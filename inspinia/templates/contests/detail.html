@@ -1,0 +1,12 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}Contest Detail{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  <h2>{{ contest.title }}</h2>
+  <p>{{ contest.rules }}</p>
+  <a class="btn btn-primary" href="{% url 'contests:register' contest.id %}">Register</a>
+  <a class="btn btn-outline-primary" href="{% url 'contests:scoreboard' contest.id %}">Scoreboard</a>
+</div>
+{% endblock page_content %}

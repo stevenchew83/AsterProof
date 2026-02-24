@@ -1,0 +1,15 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}Dashboard{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  <h2>Personal Dashboard</h2>
+  <div class="row">
+    <div class="col-md-3"><div class="card card-body">Solved: {{ total_solved }}</div></div>
+    <div class="col-md-3"><div class="card card-body">Attempted: {{ total_attempted }}</div></div>
+    <div class="col-md-3"><div class="card card-body">Total Problems: {{ total_problems }}</div></div>
+    <div class="col-md-3"><div class="card card-body">Completion: {{ completion_rate|floatformat:1 }}%</div></div>
+  </div>
+</div>
+{% endblock page_content %}

@@ -1,0 +1,19 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}Abuse Policy{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  <h2>Abuse Policy</h2>
+  <form method="post" class="row g-3">
+    {% csrf_token %}
+    <div class="col-md-4"><label class="form-label">Comment limit / minute</label><input class="form-control" type="number" name="comment_limit_per_minute" value="{{ policy.comment_limit_per_minute }}"></div>
+    <div class="col-md-4"><label class="form-label">Comment limit / hour</label><input class="form-control" type="number" name="comment_limit_per_hour" value="{{ policy.comment_limit_per_hour }}"></div>
+    <div class="col-md-4"><label class="form-label">Max external links per post</label><input class="form-control" type="number" name="max_external_links_per_post" value="{{ policy.max_external_links_per_post }}"></div>
+    <div class="col-12"><label class="form-label">Bad word list (comma separated)</label><textarea class="form-control" rows="4" name="bad_word_list">{{ policy.bad_word_list }}</textarea></div>
+    <div class="col-md-6"><label><input type="checkbox" name="captcha_on_anonymous_suggestions" {% if policy.captcha_on_anonymous_suggestions %}checked{% endif %}> Captcha on anonymous suggestions</label></div>
+    <div class="col-md-6"><label class="form-label">New account captcha threshold</label><input class="form-control" type="number" name="captcha_new_account_threshold" value="{{ policy.captcha_new_account_threshold }}"></div>
+    <div class="col-12"><button class="btn btn-primary" type="submit">Save</button></div>
+  </form>
+</div>
+{% endblock page_content %}

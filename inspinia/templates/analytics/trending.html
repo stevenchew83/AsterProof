@@ -1,0 +1,25 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}Trending{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  <h2>Trending Problems</h2>
+  <ul>
+    {% for problem in trending_problems %}
+      <li>{{ problem }} ({{ problem.fav_count }} favourites)</li>
+    {% empty %}
+      <li>No trending problems yet.</li>
+    {% endfor %}
+  </ul>
+
+  <h2 class="mt-4">Trending Users</h2>
+  <ul>
+    {% for user in trending_users %}
+      <li>{{ user.display_name|default:user.email }}</li>
+    {% empty %}
+      <li>No trending users yet.</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock page_content %}

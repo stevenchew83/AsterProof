@@ -1,0 +1,72 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}User {{ target_user.handle }}{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  <h2>{{ target_user.email }}</h2>
+  <p>Handle: <strong>{{ target_user.handle }}</strong></p>
+  <p>Flags: banned={{ target_user.is_banned }}, muted={{ target_user.is_muted_now }}, read-only={{ target_user.is_readonly }}, shadow-ban={{ target_user.is_shadow_banned }}</p>
+
+  <form method="post" action="{% url 'backoffice:user_action' target_user.id %}" class="mb-3">
+    {% csrf_token %}
+    <div class="row g-2 align-items-end">
+      <div class="col-md-3">
+        <label class="form-label">Action</label>
+        <select class="form-select" name="action">
+          <option value="mute">Mute</option>
+          <option value="unmute">Unmute</option>
+          <option value="ban">Ban (admin)</option>
+          <option value="unban">Unban (admin)</option>
+          <option value="shadow_ban">Shadow-ban (admin)</option>
+          <option value="unshadow">Unshadow (admin)</option>
+          <option value="readonly_on">Read-only ON (admin)</option>
+          <option value="readonly_off">Read-only OFF (admin)</option>
+          <option value="promote_trusted">Promote trusted</option>
+          <option value="demote_trusted">Demote trusted</option>
+          <option value="promote_moderator">Promote moderator (admin)</option>
+          <option value="demote_moderator">Demote moderator (admin)</option>
+          <option value="promote_admin">Promote admin (admin)</option>
+          <option value="demote_admin">Demote admin (admin)</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Mute days</label>
+        <input class="form-control" type="number" name="mute_days" value="7" min="1">
+      </div>
+      <div class="col-md-7">
+        <label class="form-label">Reason</label>
+        <input class="form-control" name="reason">
+      </div>
+      <div class="col-12"><button class="btn btn-primary" type="submit">Apply</button></div>
+    </div>
+  </form>
+
+  <h4>Moderation Logs</h4>
+  <ul class="list-group mb-3">
+    {% for log in logs %}
+      <li class="list-group-item">{{ log.created_at }} - {{ log.get_action_display }} by {{ log.actor.email|default:"(system)" }}{% if log.reason %}: {{ log.reason }}{% endif %}</li>
+    {% empty %}
+      <li class="list-group-item">No moderation logs.</li>
+    {% endfor %}
+  </ul>
+
+  <h4>Reports Against User Profile</h4>
+  <ul class="list-group mb-3">
+    {% for report in reports_against %}
+      <li class="list-group-item"><a href="{% url 'backoffice:moderation_report_detail' report.id %}">Report #{{ report.id }}</a> - {{ report.get_status_display }}</li>
+    {% empty %}
+      <li class="list-group-item">No reports against this profile.</li>
+    {% endfor %}
+  </ul>
+
+  <h4>Reports Submitted By User</h4>
+  <ul class="list-group">
+    {% for report in reports_by %}
+      <li class="list-group-item"><a href="{% url 'backoffice:moderation_report_detail' report.id %}">Report #{{ report.id }}</a> - {{ report.get_status_display }}</li>
+    {% empty %}
+      <li class="list-group-item">No submitted reports.</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock page_content %}

@@ -1,0 +1,51 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}My Feedback{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  <h2>My Feedback</h2>
+
+  <div class="row g-3 mb-4">
+    <div class="col-lg-6">
+      <h4>Suggestion / Problem Request</h4>
+      <form method="post" action="{% url 'feedback:create' %}" class="mb-3">
+        {% csrf_token %}
+        <select class="form-select mb-2" name="feedback_type">
+          <option value="feature">Feature request</option>
+          <option value="bug">Bug report</option>
+          <option value="problem_request">Problem/contest request</option>
+        </select>
+        <input class="form-control mb-2" name="title" placeholder="Title or contest metadata">
+        <input class="form-control mb-2" name="source_url" placeholder="Source URL (optional)">
+        <input class="form-control mb-2" name="suggested_tags" placeholder="Suggested tags (comma separated)">
+        <input class="form-control mb-2" type="number" min="1" max="7" name="suggested_difficulty" value="3" placeholder="Suggested difficulty">
+        <textarea class="form-control mb-2" name="description" rows="4" placeholder="Description"></textarea>
+        <button class="btn btn-primary" type="submit">Submit Request</button>
+      </form>
+    </div>
+
+    <div class="col-lg-6">
+      <h4>Submit Fully Formatted Problem</h4>
+      <form method="post" action="{% url 'feedback:create_problem_submission' %}">
+        {% csrf_token %}
+        <input class="form-control mb-2" name="title" placeholder="Problem title">
+        <textarea class="form-control mb-2" name="statement" rows="6" placeholder="Problem statement"></textarea>
+        <input class="form-control mb-2" name="source_reference" placeholder="Source reference URL (optional)">
+        <input class="form-control mb-2" name="proposed_tags" placeholder="Proposed tags (comma separated)">
+        <input class="form-control mb-2" type="number" min="1" max="7" name="proposed_difficulty" value="3" placeholder="Proposed difficulty">
+        <button class="btn btn-outline-primary" type="submit">Submit Problem</button>
+      </form>
+    </div>
+  </div>
+
+  <h4>My Feedback Timeline</h4>
+  <ul>
+    {% for item in items %}
+      <li>{{ item.title }} - {{ item.get_status_display }}</li>
+    {% empty %}
+      <li>No personal feedback yet.</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock page_content %}

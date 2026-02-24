@@ -1,0 +1,35 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}Problem Browser{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  <h2 class="mb-3">Problem Browser</h2>
+  <div class="table-responsive">
+    <table class="table table-striped">
+      <thead>
+      <tr>
+        <th>Problem</th>
+        <th>Difficulty</th>
+        <th>Tags</th>
+      </tr>
+      </thead>
+      <tbody>
+      {% for problem in problems %}
+        <tr>
+          <td><a href="{% url 'catalog:detail' problem.id %}">{{ problem }}</a></td>
+          <td>{{ problem.editorial_difficulty }}</td>
+          <td>
+            {% for tag in problem.tags.all %}
+              <span class="badge text-bg-light">{{ tag.name }}</span>
+            {% endfor %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="3">No problems yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock page_content %}

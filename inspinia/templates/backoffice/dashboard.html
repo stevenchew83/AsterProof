@@ -1,0 +1,28 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}Backoffice{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  <h2>Backoffice Console</h2>
+  <div class="row g-3 mb-3">
+    <div class="col-md-3"><div class="card"><div class="card-body"><h5>Open Reports</h5><p class="mb-0">{{ open_reports }}</p></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body"><h5>Escalated</h5><p class="mb-0">{{ escalated_reports }}</p></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body"><h5>Problem Requests</h5><p class="mb-0">{{ pending_problem_requests }}</p></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body"><h5>Problem Submissions</h5><p class="mb-0">{{ pending_problem_submissions }}</p></div></div></div>
+  </div>
+
+  <div class="d-flex flex-wrap gap-2">
+    <a class="btn btn-outline-primary" href="{% url 'backoffice:moderation_reports' %}">Moderation Queue</a>
+    <a class="btn btn-outline-primary" href="{% url 'backoffice:users_list' %}">User Management</a>
+    <a class="btn btn-outline-primary" href="{% url 'backoffice:ingestion_problem_requests' %}">Problem Requests</a>
+    <a class="btn btn-outline-primary" href="{% url 'backoffice:ingestion_problem_submissions' %}">Problem Submissions</a>
+    <a class="btn btn-outline-primary" href="{% url 'backoffice:problem_bulk_operations' %}">Problem Bulk Ops</a>
+    <a class="btn btn-outline-primary" href="{% url 'backoffice:contest_submissions' %}">Contest Grading</a>
+    <a class="btn btn-outline-primary" href="{% url 'backoffice:rating_runs' %}">Rating Runs</a>
+    <a class="btn btn-outline-primary" href="{% url 'backoffice:settings_feature_flags' %}">Feature Flags</a>
+    <a class="btn btn-outline-primary" href="{% url 'backoffice:settings_abuse_policy' %}">Abuse Policy</a>
+    <a class="btn btn-outline-primary" href="{% url 'backoffice:global_analytics' %}">Global Analytics</a>
+  </div>
+</div>
+{% endblock page_content %}

@@ -1,0 +1,22 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}Edit Profile{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  <h2>Edit Profile</h2>
+  <form method="post">
+    {% csrf_token %}
+    <input class="form-control mb-2" name="display_name" value="{{ profile_user.display_name }}" placeholder="Display name">
+    <input class="form-control mb-2" name="country" value="{{ profile_user.country }}" placeholder="Country">
+    <textarea class="form-control mb-2" name="bio" rows="4" placeholder="Bio">{{ profile_user.bio }}</textarea>
+    <select class="form-select mb-2" name="profile_visibility">
+      <option value="public" {% if profile_user.profile_visibility == 'public' %}selected{% endif %}>Public</option>
+      <option value="semi_private" {% if profile_user.profile_visibility == 'semi_private' %}selected{% endif %}>Semi-private</option>
+      <option value="private" {% if profile_user.profile_visibility == 'private' %}selected{% endif %}>Private</option>
+    </select>
+    <label><input type="checkbox" name="show_in_leaderboards" {% if profile_user.show_in_leaderboards %}checked{% endif %}> Show in leaderboards</label>
+    <button class="btn btn-primary d-block mt-3" type="submit">Save</button>
+  </form>
+</div>
+{% endblock page_content %}

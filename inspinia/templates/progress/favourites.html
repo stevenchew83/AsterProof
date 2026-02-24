@@ -1,0 +1,16 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}Favourites{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  <h2>Favourite Problems</h2>
+  <ul>
+    {% for fav in favourites %}
+      <li><a href="{% url 'catalog:detail' fav.problem.id %}">{{ fav.problem }}</a></li>
+    {% empty %}
+      <li>No favourites yet.</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock page_content %}

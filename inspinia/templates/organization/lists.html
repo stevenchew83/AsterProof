@@ -1,0 +1,28 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}Custom Lists{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  <h2>My Problem Lists</h2>
+  <form method="post" action="{% url 'organization:create' %}" class="mb-3">
+    {% csrf_token %}
+    <input class="form-control mb-2" name="title" placeholder="List title">
+    <textarea class="form-control mb-2" name="description" placeholder="Description"></textarea>
+    <select class="form-select mb-2" name="visibility">
+      <option value="private">Private</option>
+      <option value="unlisted">Unlisted</option>
+      <option value="public">Public</option>
+    </select>
+    <button class="btn btn-primary">Create list</button>
+  </form>
+
+  <ul>
+    {% for list in lists %}
+      <li>{{ list.title }} ({{ list.visibility }}) - {{ list.items.count }} items</li>
+    {% empty %}
+      <li>No lists yet.</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock page_content %}

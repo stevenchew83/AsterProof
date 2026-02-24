@@ -1,0 +1,18 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}Feature Flags{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  <h2>Feature Flags</h2>
+  <form method="post">
+    {% csrf_token %}
+    <label class="d-block mb-2"><input type="checkbox" name="contests" {% if cfg.contests %}checked{% endif %}> Contests</label>
+    <label class="d-block mb-2"><input type="checkbox" name="ratings" {% if cfg.ratings %}checked{% endif %}> Ratings</label>
+    <label class="d-block mb-2"><input type="checkbox" name="public_dashboards" {% if cfg.public_dashboards %}checked{% endif %}> Public dashboards</label>
+    <label class="d-block mb-2"><input type="checkbox" name="problem_submissions" {% if cfg.problem_submissions %}checked{% endif %}> Problem submissions</label>
+    <label class="d-block mb-2"><input type="checkbox" name="advanced_analytics" {% if cfg.advanced_analytics %}checked{% endif %}> Advanced analytics</label>
+    <button class="btn btn-primary" type="submit">Save</button>
+  </form>
+</div>
+{% endblock page_content %}

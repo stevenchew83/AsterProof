@@ -1,0 +1,16 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}Moderation Logs{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  <h2>Moderation Logs</h2>
+  <ul class="list-group">
+    {% for log in logs %}
+      <li class="list-group-item">{{ log.created_at }} - {{ log.get_action_display }} by {{ log.actor.email|default:"(system)" }}{% if log.target_user %} on {{ log.target_user.email }}{% endif %}{% if log.reason %}: {{ log.reason }}{% endif %}</li>
+    {% empty %}
+      <li class="list-group-item">No logs found.</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock page_content %}

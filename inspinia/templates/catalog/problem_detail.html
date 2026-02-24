@@ -1,0 +1,52 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}{{ problem }}{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  <h2>{{ problem }}</h2>
+  {% if problem.status != 'active' %}
+    <p><span class="badge text-bg-warning">{{ problem.get_status_display }}</span></p>
+  {% endif %}
+  <p>{{ problem.statement|linebreaks }}</p>
+
+  <div class="mb-3">
+    <a class="btn btn-primary" href="{% url 'notes:editor' problem.id %}">Your Notes</a>
+    <a class="btn btn-outline-primary" href="{% url 'community:problem_solutions' problem.id %}">Solutions</a>
+    <form method="post" action="{% url 'catalog:report_problem' problem.id %}" class="d-inline">
+      {% csrf_token %}
+      <input type="hidden" name="reason_code" value="other">
+      <button class="btn btn-outline-danger" type="submit">Report Problem</button>
+    </form>
+  </div>
+
+  <h4>References</h4>
+  <ul>
+    {% for ref in problem.references.all %}
+      <li><a href="{{ ref.url }}">{{ ref.title }}</a></li>
+    {% empty %}
+      <li>No references yet.</li>
+    {% endfor %}
+  </ul>
+
+  <h4 class="mt-4">Comments</h4>
+  <form method="post" action="{% url 'community:add_comment' problem.id %}" class="mb-3">
+    {% csrf_token %}
+    <textarea class="form-control mb-2" name="content" rows="3" placeholder="Comment on this problem"></textarea>
+    <button class="btn btn-outline-primary" type="submit">Post comment</button>
+  </form>
+
+  {% for comment in comments %}
+    <div class="card mb-2">
+      <div class="card-body">
+        <p>{{ comment.content|linebreaks }}</p>
+        <small class="text-muted">By {{ comment.author }}</small>
+        {% if comment.is_hidden %}<span class="badge text-bg-warning">Hidden</span>{% endif %}
+        {% if comment.is_moderator_edited %}<span class="badge text-bg-secondary">Edited by moderator</span>{% endif %}
+      </div>
+    </div>
+  {% empty %}
+    <p>No comments yet.</p>
+  {% endfor %}
+</div>
+{% endblock page_content %}

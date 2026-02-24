@@ -1,0 +1,38 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}Problem Requests{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  <h2>Problem Request Queue</h2>
+  <div class="table-responsive">
+    <table class="table table-striped">
+      <thead><tr><th>ID</th><th>Contest</th><th>Year</th><th>Status</th><th>Suggested</th><th>Reviewer</th><th>Action</th></tr></thead>
+      <tbody>
+      {% for row in rows %}
+        <tr>
+          <td>{{ row.id }}</td>
+          <td>{{ row.requested_contest|default:"-" }}</td>
+          <td>{{ row.requested_year|default:"-" }}</td>
+          <td>{{ row.get_status_display }}</td>
+          <td>Tags: {{ row.suggested_tags|default:"-" }}<br>Difficulty: {{ row.suggested_difficulty }}</td>
+          <td>{{ row.reviewer.email|default:"-" }}</td>
+          <td>
+            <form method="post" action="{% url 'backoffice:ingestion_problem_request_action' row.id %}" class="d-flex gap-1 flex-wrap">
+              {% csrf_token %}
+              <input class="form-control form-control-sm" name="decision_note" placeholder="Decision note">
+              <input class="form-control form-control-sm" name="duplicate_problem_id" placeholder="Duplicate problem ID">
+              <button class="btn btn-sm btn-success" type="submit" name="action" value="accept">Accept</button>
+              <button class="btn btn-sm btn-warning" type="submit" name="action" value="duplicate">Duplicate</button>
+              <button class="btn btn-sm btn-danger" type="submit" name="action" value="reject">Reject</button>
+            </form>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7">No request entries.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock page_content %}

@@ -1,0 +1,76 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}Contest Submissions{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  <h2>Contest Submissions</h2>
+
+  <form method="get" class="row g-2 mb-3">
+    <div class="col-md-3">
+      <label class="form-label">Contest</label>
+      <select class="form-select" name="contest">
+        <option value="">All</option>
+        {% for contest in contests %}
+          <option value="{{ contest.id }}" {% if contest_id == contest.id|stringformat:'s' %}selected{% endif %}>{{ contest.title }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label class="form-label">Problem ID</label>
+      <input class="form-control" name="problem" value="{{ problem_id }}">
+    </div>
+    <div class="col-md-2">
+      <label class="form-label">User ID</label>
+      <input class="form-control" name="user" value="{{ user_id }}">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Status</label>
+      <select class="form-select" name="status">
+        <option value="">Any</option>
+        <option value="pending" {% if status == 'pending' %}selected{% endif %}>Pending</option>
+        <option value="accepted" {% if status == 'accepted' %}selected{% endif %}>Accepted</option>
+        <option value="partial" {% if status == 'partial' %}selected{% endif %}>Partial</option>
+        <option value="rejected" {% if status == 'rejected' %}selected{% endif %}>Rejected</option>
+      </select>
+    </div>
+    <div class="col-md-2 d-flex align-items-end">
+      <button class="btn btn-primary w-100" type="submit">Filter</button>
+    </div>
+  </form>
+
+  <div class="table-responsive">
+    <table class="table table-striped">
+      <thead><tr><th>ID</th><th>Contest</th><th>Problem</th><th>User</th><th>Status</th><th>Score</th><th>Grade</th></tr></thead>
+      <tbody>
+      {% for sub in submissions %}
+        <tr>
+          <td>{{ sub.id }}</td>
+          <td>{{ sub.contest }}</td>
+          <td>{{ sub.problem }}</td>
+          <td>{{ sub.user.email }}</td>
+          <td>{{ sub.get_marking_status_display }}</td>
+          <td>{{ sub.score }}</td>
+          <td>
+            <form method="post" action="{% url 'backoffice:grade_submission' sub.id %}" class="d-flex gap-1 flex-wrap">
+              {% csrf_token %}
+              <input class="form-control form-control-sm" style="width:90px" name="score" value="{{ sub.score }}">
+              <select class="form-select form-select-sm" style="width:120px" name="marking_status">
+                <option value="pending" {% if sub.marking_status == 'pending' %}selected{% endif %}>Pending</option>
+                <option value="accepted" {% if sub.marking_status == 'accepted' %}selected{% endif %}>Accepted</option>
+                <option value="partial" {% if sub.marking_status == 'partial' %}selected{% endif %}>Partial</option>
+                <option value="rejected" {% if sub.marking_status == 'rejected' %}selected{% endif %}>Rejected</option>
+              </select>
+              <input class="form-control form-control-sm" name="grader_note" placeholder="Note" value="{{ sub.grader_note }}">
+              <button class="btn btn-sm btn-outline-primary" type="submit">Save</button>
+            </form>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7">No submissions found.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock page_content %}

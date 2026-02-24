@@ -1,0 +1,42 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}Problem Bulk Ops{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  <h2>Problem Bulk Operations</h2>
+  <p class="text-muted">Use comma-separated problem IDs.</p>
+
+  <form method="post" class="row g-3">
+    {% csrf_token %}
+    <div class="col-12">
+      <label class="form-label">Problem IDs</label>
+      <input class="form-control" name="problem_ids" placeholder="1,2,3">
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Operation</label>
+      <select class="form-select" name="operation">
+        <option value="add_tags">Add tags</option>
+        <option value="replace_tags">Replace tags</option>
+        <option value="move_contest">Move to contest</option>
+        <option value="mark_duplicates">Mark duplicates</option>
+      </select>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Tag names (comma-separated)</label>
+      <input class="form-control" name="tag_names" placeholder="algebra, inequality">
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Contest ID</label>
+      <input class="form-control" name="contest_id" placeholder="42">
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Canonical problem ID</label>
+      <input class="form-control" name="canonical_problem_id" placeholder="10">
+    </div>
+    <div class="col-12">
+      <button class="btn btn-primary" type="submit">Run bulk operation</button>
+    </div>
+  </form>
+</div>
+{% endblock page_content %}

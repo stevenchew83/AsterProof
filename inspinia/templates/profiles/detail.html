@@ -1,0 +1,20 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}Profile{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  <h2>{{ profile_user.display_name|default:profile_user.name|default:profile_user.email }}</h2>
+  <p>{{ profile_user.bio }}</p>
+  <p>Country: {{ profile_user.country|default:"-" }}</p>
+  <p>Visibility: {{ profile_user.profile_visibility }}</p>
+  <p>Rating: {{ profile_user.rating }}</p>
+  {% if user.is_authenticated and user.id != profile_user.id %}
+    <form method="post" action="{% url 'profiles:report' profile_user.id %}">
+      {% csrf_token %}
+      <input type="hidden" name="reason_code" value="other">
+      <button class="btn btn-outline-danger btn-sm" type="submit">Report Profile</button>
+    </form>
+  {% endif %}
+</div>
+{% endblock page_content %}

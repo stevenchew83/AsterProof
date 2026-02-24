@@ -1,0 +1,23 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}Branding{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  <h2>Branding</h2>
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <label class="form-label">Default skin</label>
+    <select class="form-select mb-3" name="default_skin">
+      {% for value, label in cfg.SKIN_CHOICES %}
+        <option value="{{ value }}" {% if cfg.default_skin == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <label class="form-label">Logo text</label>
+    <input class="form-control mb-3" name="logo_text" value="{{ cfg.logo_text }}">
+    <label class="form-label">Logo image</label>
+    <input class="form-control mb-3" type="file" name="logo_image">
+    <button class="btn btn-primary" type="submit">Save</button>
+  </form>
+</div>
+{% endblock page_content %}

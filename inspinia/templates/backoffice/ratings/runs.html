@@ -1,0 +1,52 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}Rating Runs{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  <h2>Rating Runs</h2>
+  <div class="card mb-3">
+    <div class="card-body">
+      <h5>Trigger Recalculation</h5>
+      <div class="d-flex flex-wrap gap-2">
+        {% for contest in contests %}
+          <form method="post" action="{% url 'backoffice:rating_recalculate' contest.id %}">
+            {% csrf_token %}
+            <button class="btn btn-sm btn-outline-primary" type="submit">Recalculate {{ contest.title }}</button>
+          </form>
+        {% empty %}
+          <span>No contests available.</span>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-striped">
+      <thead><tr><th>ID</th><th>Contest</th><th>Status</th><th>Rollback</th><th>Triggered by</th><th>Created</th><th></th></tr></thead>
+      <tbody>
+      {% for run in runs %}
+        <tr>
+          <td>{{ run.id }}</td>
+          <td>{{ run.contest }}</td>
+          <td>{{ run.get_status_display }}</td>
+          <td>{{ run.is_rollback }}</td>
+          <td>{{ run.triggered_by.email|default:'-' }}</td>
+          <td>{{ run.created_at }}</td>
+          <td>
+            {% if not run.is_rollback %}
+              <form method="post" action="{% url 'backoffice:rating_rollback' run.id %}">
+                {% csrf_token %}
+                <button class="btn btn-sm btn-warning" type="submit">Rollback</button>
+              </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7">No rating runs yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock page_content %}

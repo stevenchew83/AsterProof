@@ -1,0 +1,25 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}Scoreboard{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  <h2>Scoreboard</h2>
+  <table class="table">
+    <thead><tr><th>Rank</th><th>User</th><th>Score</th><th>Delta</th></tr></thead>
+    <tbody>
+    {% for row in rows %}
+      <tr>
+        <td>{{ row.rank }}</td>
+        <td>{{ row.user.display_name|default:row.user.email }}</td>
+        <td>{{ row.score }}</td>
+        <td>{{ row.rating_delta }}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="4">No entries yet.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <a class="btn btn-outline-primary" href="{% url 'contests:rate' contest_id %}">Run rating update</a>
+</div>
+{% endblock page_content %}

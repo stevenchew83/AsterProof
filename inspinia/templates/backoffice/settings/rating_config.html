@@ -1,0 +1,19 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}Rating Config{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  <h2>Rating Configuration</h2>
+  <form method="post" class="row g-3">
+    {% csrf_token %}
+    <div class="col-md-4"><label class="form-label">Base rating</label><input class="form-control" type="number" step="0.01" name="base_rating" value="{{ cfg.base_rating }}"></div>
+    <div class="col-md-4"><label class="form-label">K factor</label><input class="form-control" type="number" name="k_factor" value="{{ cfg.k_factor }}"></div>
+    <div class="col-md-4"><label class="form-label">Small contest threshold</label><input class="form-control" type="number" name="small_contest_threshold" value="{{ cfg.small_contest_threshold }}"></div>
+    <div class="col-md-4"><label class="form-label">Small contest K multiplier</label><input class="form-control" type="number" step="0.01" name="small_contest_k_multiplier" value="{{ cfg.small_contest_k_multiplier }}"></div>
+    <div class="col-md-4"><label class="form-label">Rating floor</label><input class="form-control" type="number" step="0.01" name="rating_floor" value="{{ cfg.rating_floor|default:'' }}"></div>
+    <div class="col-md-4"><label class="form-label">Rating cap</label><input class="form-control" type="number" step="0.01" name="rating_cap" value="{{ cfg.rating_cap|default:'' }}"></div>
+    <div class="col-12"><button class="btn btn-primary" type="submit">Save</button></div>
+  </form>
+</div>
+{% endblock page_content %}

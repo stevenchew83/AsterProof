@@ -1,0 +1,16 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}Recent Activity{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  <h2>Recent Activity</h2>
+  <ul>
+    {% for event in events %}
+      <li>{{ event.created_at }} - {{ event.get_event_type_display }} {% if event.problem %}({{ event.problem }}){% endif %}</li>
+    {% empty %}
+      <li>No activity yet.</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock page_content %}

@@ -1,0 +1,20 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}Privacy Defaults{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  <h2>Privacy Defaults</h2>
+  <form method="post">
+    {% csrf_token %}
+    <label class="form-label">Default profile visibility</label>
+    <select class="form-select mb-3" name="default_profile_visibility">
+      <option value="public" {% if cfg.default_profile_visibility == 'public' %}selected{% endif %}>Public</option>
+      <option value="semi_private" {% if cfg.default_profile_visibility == 'semi_private' %}selected{% endif %}>Semi-private</option>
+      <option value="private" {% if cfg.default_profile_visibility == 'private' %}selected{% endif %}>Private</option>
+    </select>
+    <label class="d-block mb-3"><input type="checkbox" name="default_solution_unlisted" {% if cfg.default_solution_unlisted %}checked{% endif %}> Default public solutions to unlisted</label>
+    <button class="btn btn-primary" type="submit">Save</button>
+  </form>
+</div>
+{% endblock page_content %}

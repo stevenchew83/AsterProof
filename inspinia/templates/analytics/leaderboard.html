@@ -1,0 +1,21 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}Leaderboard{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  <h2>Leaderboard</h2>
+  <table class="table">
+    <thead><tr><th>#</th><th>User</th><th>Rating</th></tr></thead>
+    <tbody>
+    {% for user in rows %}
+      <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>{{ user.display_name|default:user.email }}</td>
+        <td>{{ user.rating|floatformat:1 }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock page_content %}

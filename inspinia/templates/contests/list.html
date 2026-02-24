@@ -1,0 +1,16 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}Contests{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  <h2>Contests</h2>
+  <ul>
+    {% for contest in contests %}
+      <li><a href="{% url 'contests:detail' contest.id %}">{{ contest.title }}</a></li>
+    {% empty %}
+      <li>No contests scheduled.</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock page_content %}

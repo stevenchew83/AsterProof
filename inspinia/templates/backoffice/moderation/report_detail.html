@@ -1,0 +1,62 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}Report {{ report.id }}{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  <h2>Report #{{ report.id }}</h2>
+  <p><strong>Reason:</strong> {{ report.get_reason_code_display }} | <strong>Status:</strong> {{ report.get_status_display }} | <strong>Severity:</strong> {{ report.severity }}</p>
+  <p><strong>Reporter:</strong> {{ report.reporter.email }}</p>
+  <p><strong>Details:</strong> {{ report.details|default:"-" }}</p>
+
+  <div class="card mb-3">
+    <div class="card-body">
+      <h5>Target</h5>
+      <p>{{ target }}</p>
+    </div>
+  </div>
+
+  <form method="post" action="{% url 'backoffice:moderation_report_action' report.id %}" class="mb-3">
+    {% csrf_token %}
+    <div class="row g-2 align-items-end">
+      <div class="col-md-3">
+        <label class="form-label">Action</label>
+        <select class="form-select" name="action">
+          <option value="hide">Hide</option>
+          <option value="unhide">Unhide</option>
+          <option value="redact">Redact</option>
+          <option value="warn">Warn user</option>
+          <option value="mute">Mute user</option>
+          <option value="ban">Ban user (admin)</option>
+          <option value="shadow_ban">Shadow-ban user (admin)</option>
+          <option value="resolve">Resolve report</option>
+          <option value="dismiss">Dismiss report</option>
+          <option value="escalate">Escalate</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Mute days</label>
+        <input class="form-control" type="number" name="mute_days" value="7" min="1">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Redaction text / Note</label>
+        <input class="form-control" name="redact_text" placeholder="[redacted by moderator]">
+      </div>
+      <div class="col-12">
+        <label class="form-label">Reason</label>
+        <textarea class="form-control" name="reason" rows="2"></textarea>
+      </div>
+      <div class="col-12"><button class="btn btn-primary" type="submit">Apply Action</button></div>
+    </div>
+  </form>
+
+  <h4>Moderation History</h4>
+  <ul class="list-group">
+    {% for log in logs %}
+      <li class="list-group-item">{{ log.created_at }} - {{ log.get_action_display }} by {{ log.actor.email|default:"(system)" }}{% if log.reason %}: {{ log.reason }}{% endif %}</li>
+    {% empty %}
+      <li class="list-group-item">No logs yet.</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock page_content %}

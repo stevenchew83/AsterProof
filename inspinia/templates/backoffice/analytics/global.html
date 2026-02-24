@@ -1,0 +1,40 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}Global Analytics{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  <h2>Global Analytics</h2>
+
+  <div class="row g-3 mb-4">
+    <div class="col-md-4"><div class="card"><div class="card-body"><h5>New users (7d)</h5><p class="mb-0">{{ new_users_week }}</p></div></div></div>
+    <div class="col-md-4"><div class="card"><div class="card-body"><h5>Problems solved (total)</h5><p class="mb-0">{{ solved_week }}</p></div></div></div>
+    <div class="col-md-4"><div class="card"><div class="card-body"><h5>Notes created (total)</h5><p class="mb-0">{{ notes_week }}</p></div></div></div>
+    <div class="col-md-4"><div class="card"><div class="card-body"><h5>Public solutions</h5><p class="mb-0">{{ public_solutions }}</p></div></div></div>
+    <div class="col-md-4"><div class="card"><div class="card-body"><h5>Public comments</h5><p class="mb-0">{{ public_comments }}</p></div></div></div>
+    <div class="col-md-4"><div class="card"><div class="card-body"><h5>Flagged content (7d)</h5><p class="mb-0">{{ flagged_volume }}</p></div></div></div>
+    <div class="col-md-4"><div class="card"><div class="card-body"><h5>Resolved reports (count)</h5><p class="mb-0">{{ resolution_hours_count }}</p></div></div></div>
+    <div class="col-md-4"><div class="card"><div class="card-body"><h5>Avg resolution hours</h5><p class="mb-0">{{ resolution_hours_avg|floatformat:2|default:'-' }}</p></div></div></div>
+    <div class="col-md-4"><div class="card"><div class="card-body"><h5>Rated contests</h5><p class="mb-0">{{ rated_contests }}</p></div></div></div>
+    <div class="col-md-4"><div class="card"><div class="card-body"><h5>Avg participation</h5><p class="mb-0">{{ avg_participation|default:'-' }}</p></div></div></div>
+  </div>
+
+  <h4>Difficulty Disagreement Candidates</h4>
+  <ul class="list-group mb-4">
+    {% for p in disagreement %}
+      <li class="list-group-item">{{ p }} (Editorial: {{ p.editorial_difficulty }}, Community avg: {{ p.avg_vote|floatformat:2 }})</li>
+    {% empty %}
+      <li class="list-group-item">No data.</li>
+    {% endfor %}
+  </ul>
+
+  <h4>Low Engagement Problems</h4>
+  <ul class="list-group">
+    {% for p in low_engagement %}
+      <li class="list-group-item">{{ p }}</li>
+    {% empty %}
+      <li class="list-group-item">No data.</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock page_content %}

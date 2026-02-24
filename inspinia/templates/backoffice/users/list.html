@@ -1,0 +1,33 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}Users{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  <h2>User Management</h2>
+  <form method="get" class="mb-3">
+    <input class="form-control" name="q" value="{{ q }}" placeholder="Search by email">
+  </form>
+  <div class="table-responsive">
+    <table class="table table-striped">
+      <thead><tr><th>Handle</th><th>Email</th><th>Rating</th><th>Trusted</th><th>Banned</th><th>Muted</th><th>Read-only</th><th></th></tr></thead>
+      <tbody>
+      {% for user in users %}
+        <tr>
+          <td>{{ user.handle }}</td>
+          <td>{{ user.email }}</td>
+          <td>{{ user.rating }}</td>
+          <td>{{ user.is_trusted_user }}</td>
+          <td>{{ user.is_banned }}</td>
+          <td>{{ user.is_muted_now }}</td>
+          <td>{{ user.is_readonly }}</td>
+          <td><a class="btn btn-sm btn-primary" href="{% url 'backoffice:user_detail' user.id %}">Open</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="8">No users found.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock page_content %}

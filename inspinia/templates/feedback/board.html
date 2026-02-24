@@ -1,0 +1,20 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}Feedback Hub{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  <h2>Feedback Hub</h2>
+  <a class="btn btn-primary mb-3" href="{% url 'feedback:mine' %}">My suggestions</a>
+  <ul>
+    {% for item in items %}
+      <li>
+        <strong>{{ item.title }}</strong> - {{ item.get_feedback_type_display }} -
+        <span class="badge text-bg-secondary">{{ item.get_status_display }}</span>
+      </li>
+    {% empty %}
+      <li>No feedback submitted yet.</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock page_content %}

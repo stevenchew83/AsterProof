@@ -1,0 +1,17 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}Notes{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  <h2>Private Notes</h2>
+  <form method="post" action="{% url 'notes:autosave' problem_id %}">
+    {% csrf_token %}
+    <textarea class="form-control" rows="14" name="content">{{ note.content }}</textarea>
+    <button class="btn btn-primary mt-3" type="submit">Save</button>
+  </form>
+  <h4 class="mt-4">Preview</h4>
+  <div class="card card-body">{{ rendered_note_html|safe }}</div>
+  <small class="text-muted">KaTeX-ready markdown autosave endpoint available at this URL.</small>
+</div>
+{% endblock page_content %}
