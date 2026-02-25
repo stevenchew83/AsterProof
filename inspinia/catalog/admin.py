@@ -33,6 +33,7 @@ class ProblemAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "contest",
+        "problem_position",
         "topic",
         "label",
         "title",

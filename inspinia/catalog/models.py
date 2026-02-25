@@ -68,6 +68,12 @@ class Problem(models.Model):
         on_delete=models.SET_NULL,
         related_name="problems",
     )
+    problem_position = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Optional numeric position within a contest/problem set.",
+    )
     label = models.CharField(max_length=64, help_text="P1-P6 or custom label")
     title = models.CharField(max_length=255, blank=True)
     statement = models.TextField()

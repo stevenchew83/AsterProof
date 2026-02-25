@@ -78,7 +78,7 @@ def _coerce_difficulty(raw: str | None, default: int = 3) -> int:
         value = int((raw or "").strip())
     except ValueError:
         return default
-    return max(1, min(7, value))
+    return max(0, min(60, value))
 
 
 def _normalize_statement_format(raw: str | None) -> str:

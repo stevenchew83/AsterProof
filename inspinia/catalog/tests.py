@@ -18,6 +18,7 @@ def test_problem_browser_renders(client):
     )
     Problem.objects.create(
         contest=contest,
+        problem_position=42,
         label="P1",
         title="Sample Problem",
         statement="Prove something.",
@@ -25,6 +26,7 @@ def test_problem_browser_renders(client):
     )
     response = client.get(reverse("catalog:list"))
     assert response.status_code == 200
+    assert "42" in response.content.decode()
 
 
 def test_latex_lint_blocks_dangerous_commands():
