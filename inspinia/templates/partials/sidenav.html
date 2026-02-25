@@ -147,6 +147,87 @@
                 </a>
             </li>
 
+            {% if user.is_authenticated and user.is_staff %}
+            <li class="side-nav-title">Backoffice</li>
+
+            <li class="side-nav-item">
+                <a href="{% url 'backoffice:public_access_pages' %}" class="side-nav-link">
+                    <span class="menu-icon"><i class="ti ti-external-link"></i></span>
+                    <span class="menu-text">Public Access Pages</span>
+                </a>
+            </li>
+
+            <li class="side-nav-item">
+                <a href="{% url 'backoffice:moderation_reports' %}" class="side-nav-link">
+                    <span class="menu-icon"><i class="ti ti-shield-check"></i></span>
+                    <span class="menu-text">Moderation Queue</span>
+                </a>
+            </li>
+
+            <li class="side-nav-item">
+                <a href="{% url 'backoffice:users_list' %}" class="side-nav-link">
+                    <span class="menu-icon"><i class="ti ti-users"></i></span>
+                    <span class="menu-text">User Management</span>
+                </a>
+            </li>
+
+            <li class="side-nav-item">
+                <a href="{% url 'backoffice:ingestion_problem_requests' %}" class="side-nav-link">
+                    <span class="menu-icon"><i class="ti ti-bulb"></i></span>
+                    <span class="menu-text">Problem Requests</span>
+                </a>
+            </li>
+
+            <li class="side-nav-item">
+                <a href="{% url 'backoffice:ingestion_problem_submissions' %}" class="side-nav-link">
+                    <span class="menu-icon"><i class="ti ti-upload"></i></span>
+                    <span class="menu-text">Problem Submissions</span>
+                </a>
+            </li>
+
+            <li class="side-nav-item">
+                <a href="{% url 'backoffice:problem_bulk_operations' %}" class="side-nav-link">
+                    <span class="menu-icon"><i class="ti ti-stack-forward"></i></span>
+                    <span class="menu-text">Problem Bulk Ops</span>
+                </a>
+            </li>
+
+            <li class="side-nav-item">
+                <a href="{% url 'backoffice:contest_submissions' %}" class="side-nav-link">
+                    <span class="menu-icon"><i class="ti ti-checkup-list"></i></span>
+                    <span class="menu-text">Contest Grading</span>
+                </a>
+            </li>
+
+            <li class="side-nav-item">
+                <a href="{% url 'backoffice:rating_runs' %}" class="side-nav-link">
+                    <span class="menu-icon"><i class="ti ti-chart-bar"></i></span>
+                    <span class="menu-text">Rating Runs</span>
+                </a>
+            </li>
+
+            <li class="side-nav-item">
+                <a href="{% url 'backoffice:settings_feature_flags' %}" class="side-nav-link">
+                    <span class="menu-icon"><i class="ti ti-settings-2"></i></span>
+                    <span class="menu-text">Feature Flags</span>
+                </a>
+            </li>
+
+            <li class="side-nav-item">
+                <a href="{% url 'backoffice:settings_abuse_policy' %}" class="side-nav-link">
+                    <span class="menu-icon"><i class="ti ti-alert-hexagon"></i></span>
+                    <span class="menu-text">Abuse Policy</span>
+                </a>
+            </li>
+
+            <li class="side-nav-item">
+                <a href="{% url 'backoffice:global_analytics' %}" class="side-nav-link">
+                    <span class="menu-icon"><i class="ti ti-world"></i></span>
+                    <span class="menu-text">Global Analytics</span>
+                </a>
+            </li>
+            {% endif %}
+
             <li class="side-nav-title" data-lang="apps-title">Apps</li>
 
             <li class="side-nav-item">

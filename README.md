@@ -11,6 +11,74 @@ AsterProof is a Django-based web application that uses the Inspinia UI templates
 - `locale/`: Translation sources and locale artifacts.
 - `gulpfile.js`, `package.json`: Frontend build pipeline and scripts.
 
+## Data model overview
+
+The core schema is organized by domain app, with `catalog.Problem` as the main entity referenced across learning, contests, community, and moderation flows.
+
+### Catalog (`inspinia/catalog/models.py`)
+
+- `Contest`: source contest metadata (`short_code`, `contest_type`, `year`, visibility).
+- `Tag`: reusable taxonomy with category (`topic`, `technique`, `theme`).
+- `Problem`: canonical problem record with:
+  - source fields (`contest`, `label`, `title`, `statement`);
+  - editorial fields (`editorial_difficulty`, `editorial_quality`, `status`);
+  - curation metadata (`topic`, `mohs`, `confidence`, `imo_slot_guess`, `topic_tags`, `rationale`, `pitfalls`);
+  - deduplication (`canonical_problem` self-reference).
+- `ProblemTag`: explicit through model for many-to-many `Problem` ↔ `Tag` links (unique per pair).
+- `ProblemReference`: external links/resources per problem.
+- `RelatedProblem`: typed problem-to-problem links (`similar`, `generalisation`, `uses_lemma`).
+
+Key constraints:
+
+- `Problem` is unique by `(contest, label)`.
+- `ProblemTag` unique by `(problem, tag)`.
+- `RelatedProblem` unique by `(source_problem, target_problem, relation_type)`.
+
+### Progress and personal study state
+
+- `progress` app:
+  - `ProblemProgress`: per-user state (`unattempted/attempted/solved/revisiting`) with confidence and first solve timestamp.
+  - `ProblemFavourite`, `ProblemDifficultyVote`, `ProblemQualityVote`: one record per `(user, problem)`.
+- `notes` app:
+  - `PrivateNote`: per-user per-problem note (unique `(user, problem)`).
+- `organization` app:
+  - `ProblemList` and ordered `ProblemListItem` for personal/public lists.
+  - `ActivityEvent` for user event timeline with JSON metadata.
+
+### Community and UGC
+
+- `PublicSolution`: user-authored solution content attached to a problem.
+- `SolutionVote`: unique vote per `(solution, user)`.
+- `Comment`: threaded comments (self-parent), attachable to problem or solution.
+- `CommentReaction`: unique per `(comment, user, emoji)`.
+- `ContentReport`: lightweight report record for comments/solutions.
+- `TrustedSuggestion`: trusted-user curation proposals (tag/duplicate/difficulty/quality).
+
+### Contests and ratings
+
+- `ContestEvent`: runnable contest instance (kind, visibility, schedule, rated flag).
+- `ContestRegistration`: unique participation registration per `(user, contest)`.
+- `ContestProblem`: ordered contest composition of catalog problems.
+- `Submission`: contest submissions with marking status, score, grader info.
+- `ScoreEntry`: per-contest final score/rank/delta (unique `(contest, user)`).
+- `RatingSnapshot` and `RatingDelta`: rating history and contest deltas.
+
+### Backoffice moderation, ingestion, and platform config
+
+- Moderation:
+  - `Report`, `ModerationLog`, `ContentRevision` using generic foreign keys for cross-model moderation targets.
+- Ingestion:
+  - `ProblemRequest` and `ProblemSubmission` queues with review status and reviewer decisions.
+- Platform singleton configs:
+  - `AbusePolicy`, `FeatureFlagConfig`, `PrivacyDefaultsConfig`, `BrandingConfig`, `RatingConfig`.
+- Rating operations:
+  - `RatingRun` and `RatingRunEntry` for auditable apply/rollback cycles.
+
+### Feedback workflow
+
+- `FeedbackItem`: user-submitted feature/bug/problem requests with workflow status.
+- `FeedbackStatusEvent`: immutable status-transition history per feedback item.
+
 ## Prerequisites
 
 - Python 3.12+

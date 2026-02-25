@@ -1,0 +1,89 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}Public Access Pages{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  <h2>Public Access Pages</h2>
+  <p class="text-muted mb-3">Reference list of user-facing routes outside backoffice.</p>
+
+  <div class="card">
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead>
+            <tr>
+              <th>Section</th>
+              <th>Path</th>
+              <th>Access</th>
+              <th>Quick Link</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Home</td>
+              <td><code>/</code></td>
+              <td>Public</td>
+              <td><a href="{% url 'pages:dashboard' %}" class="btn btn-sm btn-outline-primary">Open</a></td>
+            </tr>
+            <tr>
+              <td>Problem List</td>
+              <td><code>/problems/</code></td>
+              <td>Public</td>
+              <td><a href="{% url 'catalog:list' %}" class="btn btn-sm btn-outline-primary">Open</a></td>
+            </tr>
+            <tr>
+              <td>Problem Detail</td>
+              <td><code>/problems/&lt;problem_id&gt;/</code></td>
+              <td>Public</td>
+              <td><span class="text-muted">Use an existing problem ID</span></td>
+            </tr>
+            <tr>
+              <td>User Profile</td>
+              <td><code>/profiles/&lt;user_id&gt;/</code></td>
+              <td>Public or restricted by profile visibility</td>
+              <td><span class="text-muted">Use an existing user ID</span></td>
+            </tr>
+            <tr>
+              <td>Contest List</td>
+              <td><code>/contests/</code></td>
+              <td>Public (feature flag dependent)</td>
+              <td><a href="{% url 'contests:list' %}" class="btn btn-sm btn-outline-primary">Open</a></td>
+            </tr>
+            <tr>
+              <td>Scoreboard</td>
+              <td><code>/contests/&lt;contest_id&gt;/scoreboard/</code></td>
+              <td>Public</td>
+              <td><span class="text-muted">Use an existing contest ID</span></td>
+            </tr>
+            <tr>
+              <td>User Account Login</td>
+              <td><code>/accounts/login/</code></td>
+              <td>Public</td>
+              <td><a href="{% url 'account_login' %}" class="btn btn-sm btn-outline-primary">Open</a></td>
+            </tr>
+            <tr>
+              <td>User Account Signup</td>
+              <td><code>/accounts/signup/</code></td>
+              <td>Public (if enabled)</td>
+              <td><a href="{% url 'account_signup' %}" class="btn btn-sm btn-outline-primary">Open</a></td>
+            </tr>
+            <tr>
+              <td>Current User Page</td>
+              <td><code>/users/&lt;id&gt;/</code></td>
+              <td>Login required</td>
+              <td><a href="{% url 'users:redirect' %}" class="btn btn-sm btn-outline-primary">Open</a></td>
+            </tr>
+            <tr>
+              <td>Favorites</td>
+              <td><code>/progress/favourites/</code></td>
+              <td>Login required</td>
+              <td><a href="{% url 'progress:favourites' %}" class="btn btn-sm btn-outline-primary">Open</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock page_content %}

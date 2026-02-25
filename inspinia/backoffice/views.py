@@ -84,6 +84,11 @@ def dashboard(request):
 
 
 @moderator_required
+def public_access_pages(request):
+    return render(request, "backoffice/public_access_pages.html")
+
+
+@moderator_required
 def moderation_report_list(request):
     reports = Report.objects.select_related("reporter", "assignee", "resolved_by", "content_type")
     status = request.GET.get("status")

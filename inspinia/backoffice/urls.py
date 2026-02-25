@@ -13,6 +13,7 @@ from .views import moderation_report_action
 from .views import moderation_report_detail
 from .views import moderation_report_list
 from .views import problem_bulk_operations
+from .views import public_access_pages
 from .views import rating_recalculate
 from .views import rating_rollback
 from .views import rating_runs
@@ -29,6 +30,7 @@ app_name = "backoffice"
 
 urlpatterns = [
     path("", dashboard, name="dashboard"),
+    path("public-pages/", public_access_pages, name="public_access_pages"),
     path("moderation/reports/", moderation_report_list, name="moderation_reports"),
     path("moderation/reports/<int:report_id>/", moderation_report_detail, name="moderation_report_detail"),
     path("moderation/reports/<int:report_id>/action/", moderation_report_action, name="moderation_report_action"),

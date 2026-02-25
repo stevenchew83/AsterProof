@@ -33,15 +33,18 @@ class ProblemAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "contest",
+        "topic",
         "label",
         "title",
+        "confidence",
+        "imo_slot_guess",
         "status",
         "editorial_difficulty",
         "editorial_quality",
         "canonical_problem",
     )
-    list_filter = ("status", "editorial_difficulty", "editorial_quality", "contest")
-    search_fields = ("title", "label", "statement", "contest__name", "contest__short_code")
+    list_filter = ("status", "topic", "confidence", "editorial_difficulty", "editorial_quality", "contest")
+    search_fields = ("title", "label", "statement", "topic_tags", "rationale", "pitfalls", "contest__name", "contest__short_code")
     autocomplete_fields = ("contest", "canonical_problem")
     actions = (
         "mark_active",
