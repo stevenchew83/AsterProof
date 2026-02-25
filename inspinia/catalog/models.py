@@ -51,6 +51,11 @@ class Tag(models.Model):
 
 
 class Problem(models.Model):
+    class StatementFormat(models.TextChoices):
+        PLAIN = "plain", "Plain text"
+        LATEX = "latex", "LaTeX"
+        MARKDOWN_TEX = "markdown_tex", "Markdown + TeX"
+
     class ProblemStatus(models.TextChoices):
         ACTIVE = "active", "Active"
         HIDDEN = "hidden", "Hidden"
@@ -66,6 +71,8 @@ class Problem(models.Model):
     label = models.CharField(max_length=64, help_text="P1-P6 or custom label")
     title = models.CharField(max_length=255, blank=True)
     statement = models.TextField()
+    statement_format = models.CharField(max_length=16, choices=StatementFormat.choices, default=StatementFormat.PLAIN)
+    statement_plaintext = models.TextField(blank=True)
     topic = models.CharField(max_length=64, blank=True)
     mohs = models.CharField(max_length=64, blank=True)
     confidence = models.CharField(max_length=64, blank=True)

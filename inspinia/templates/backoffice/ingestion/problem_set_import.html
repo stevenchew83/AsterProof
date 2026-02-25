@@ -1,0 +1,103 @@
+{% extends 'layouts/vertical.html' %}
+{% load static %}
+
+{% block title %}Problem Set Import{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+    <h2 class="mb-0">Problem Set Import</h2>
+    <a href="{% static 'data/problem_import_sample.csv' %}" class="btn btn-outline-primary" download>Download sample CSV</a>
+  </div>
+  <p class="text-muted">Upload a CSV file to create entries in the Problem Submission queue. If your source is <code>.xlsx</code>, export it as CSV (UTF-8) first.</p>
+
+  <div class="card mb-3">
+    <div class="card-body">
+      <form method="post" enctype="multipart/form-data" class="row g-3">
+        {% csrf_token %}
+        <div class="col-md-8">
+          <label class="form-label">CSV file</label>
+          <input type="file" class="form-control" name="problem_csv" accept=".csv" required>
+        </div>
+        <div class="col-md-4 d-flex align-items-end">
+          <button type="submit" class="btn btn-primary w-100">Import to Submission Queue</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="card mb-3">
+    <div class="card-body">
+      <h5 class="mb-2">CSV columns</h5>
+      <div class="table-responsive">
+        <table class="table table-sm mb-0">
+          <thead>
+            <tr>
+              <th>Column</th>
+              <th>Required</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><code>title</code></td><td>Yes</td><td>Problem title</td></tr>
+            <tr><td><code>statement</code></td><td>Yes</td><td>Problem statement text</td></tr>
+            <tr><td><code>statement_format</code></td><td>No</td><td><code>plain</code>, <code>latex</code>, or <code>markdown_tex</code> (defaults to <code>plain</code>)</td></tr>
+            <tr><td><code>source_reference</code></td><td>No</td><td>Source URL (must start with <code>http://</code> or <code>https://</code>)</td></tr>
+            <tr><td><code>proposed_tags</code></td><td>No</td><td>Comma-separated tags</td></tr>
+            <tr><td><code>proposed_difficulty</code></td><td>No</td><td>Difficulty from 1 to 7 (defaults to 3)</td></tr>
+            <tr><td><code>contest_short_code</code></td><td>No</td><td>If provided, links/creates contest by short code</td></tr>
+            <tr><td><code>contest_name</code></td><td>No</td><td>Used only when creating a new contest</td></tr>
+            <tr><td><code>contest_year</code></td><td>No</td><td>Used only when creating a new contest</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  {% if created_count or skipped_count %}
+  <div class="card">
+    <div class="card-body">
+      <h5 class="mb-2">Last Import Summary</h5>
+      <p class="mb-3">Created: <strong>{{ created_count }}</strong> | Skipped: <strong>{{ skipped_count }}</strong></p>
+
+      {% if preview_rows %}
+      <h6>Imported rows (first {{ preview_rows|length }})</h6>
+      <div class="table-responsive mb-3">
+        <table class="table table-striped table-sm">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Title</th>
+              <th>Format</th>
+              <th>Difficulty</th>
+              <th>Contest</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in preview_rows %}
+            <tr>
+              <td>{{ row.id }}</td>
+              <td>{{ row.title }}</td>
+              <td>{{ row.statement_format }}</td>
+              <td>{{ row.difficulty }}</td>
+              <td>{{ row.contest }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+
+      {% if skipped_rows %}
+      <h6>Skipped rows</h6>
+      <ul class="mb-0">
+        {% for item in skipped_rows %}
+        <li>{{ item }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock page_content %}

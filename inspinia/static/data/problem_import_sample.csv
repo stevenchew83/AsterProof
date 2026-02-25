@@ -1,0 +1,3 @@
+title,statement,statement_format,source_reference,proposed_tags,proposed_difficulty,contest_short_code,contest_name,contest_year
+IMO Inequality Warmup,"Let a,b,c > 0. Prove that (a+b+c)^2 >= 3(ab+bc+ca).",plain,https://example.com/imo-inequality,"algebra,inequality",2,IMO2024,International Mathematical Olympiad 2024,2024
+Geometry with TeX,"In triangle ABC, prove that $\angle A = \angle B$ implies $AC = BC$.",latex,https://example.com/geometry-sample,"geometry,triangle",3,IMO2024,International Mathematical Olympiad 2024,2024

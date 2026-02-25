@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import csv
+import io
 from datetime import timedelta
 
 from django.contrib import messages
@@ -38,6 +40,8 @@ from inspinia.backoffice.services import unhide_target
 from inspinia.catalog.models import Contest
 from inspinia.catalog.models import Problem
 from inspinia.catalog.models import Tag
+from inspinia.catalog.latex_utils import lint_statement_source
+from inspinia.catalog.latex_utils import to_plaintext
 from inspinia.community.models import Comment
 from inspinia.community.models import PublicSolution
 from inspinia.contests.models import ContestEvent
@@ -67,6 +71,59 @@ def _parse_id_list(raw: str) -> list[int]:
         except ValueError:
             continue
     return ids
+
+
+def _coerce_difficulty(raw: str | None, default: int = 3) -> int:
+    try:
+        value = int((raw or "").strip())
+    except ValueError:
+        return default
+    return max(1, min(7, value))
+
+
+def _normalize_statement_format(raw: str | None) -> str:
+    value = (raw or "").strip().lower()
+    valid_formats = {choice[0] for choice in ProblemSubmission.StatementFormat.choices}
+    if value in valid_formats:
+        return value
+    return ProblemSubmission.StatementFormat.PLAIN
+
+
+def _resolve_import_contest(
+    short_code: str | None,
+    contest_name: str | None,
+    contest_year: str | None,
+    contest_cache: dict[str, Contest],
+) -> Contest | None:
+    normalized_short_code = (short_code or "").strip()[:64]
+    if not normalized_short_code:
+        return None
+
+    if normalized_short_code in contest_cache:
+        return contest_cache[normalized_short_code]
+
+    contest = Contest.objects.filter(short_code=normalized_short_code).first()
+    if contest is not None:
+        contest_cache[normalized_short_code] = contest
+        return contest
+
+    year = timezone.now().year
+    try:
+        parsed_year = int((contest_year or "").strip())
+        if parsed_year > 0:
+            year = parsed_year
+    except ValueError:
+        pass
+
+    normalized_name = ((contest_name or "").strip() or normalized_short_code)[:200]
+    contest = Contest.objects.create(
+        name=normalized_name,
+        short_code=normalized_short_code,
+        contest_type="custom",
+        year=year,
+    )
+    contest_cache[normalized_short_code] = contest
+    return contest
 
 
 @moderator_required
@@ -339,6 +396,8 @@ def ingestion_problem_request_action(request, request_id: int):
             label=f"REQ-{row.id}",
             title=row.requested_contest or f"Requested Problem {row.id}",
             statement=row.details or "Pending statement from request.",
+            statement_format=Problem.StatementFormat.PLAIN,
+            statement_plaintext=to_plaintext(row.details or "Pending statement from request.", Problem.StatementFormat.PLAIN),
             editorial_difficulty=row.suggested_difficulty,
         )
     row.save()
@@ -401,6 +460,122 @@ def problem_bulk_operations(request):
 
 
 @admin_required
+def problem_set_import(request):
+    context = {
+        "created_count": 0,
+        "skipped_count": 0,
+        "preview_rows": [],
+        "skipped_rows": [],
+    }
+    if request.method != "POST":
+        return render(request, "backoffice/ingestion/problem_set_import.html", context)
+
+    upload = request.FILES.get("problem_csv")
+    if upload is None:
+        messages.error(request, "Please upload a CSV file.")
+        return render(request, "backoffice/ingestion/problem_set_import.html", context)
+    if not upload.name.lower().endswith(".csv"):
+        messages.error(request, "Only CSV files are supported. Export your .xlsx file as CSV and try again.")
+        return render(request, "backoffice/ingestion/problem_set_import.html", context)
+
+    try:
+        csv_text = upload.read().decode("utf-8-sig")
+    except UnicodeDecodeError:
+        messages.error(request, "Unable to read CSV. Please save it as UTF-8 and retry.")
+        return render(request, "backoffice/ingestion/problem_set_import.html", context)
+
+    reader = csv.DictReader(io.StringIO(csv_text))
+    fieldnames = [field.strip().lower() for field in (reader.fieldnames or []) if field and field.strip()]
+    if not fieldnames:
+        messages.error(request, "CSV must include a header row.")
+        return render(request, "backoffice/ingestion/problem_set_import.html", context)
+
+    required_fields = {"title", "statement"}
+    missing_fields = sorted(required_fields - set(fieldnames))
+    if missing_fields:
+        messages.error(request, f"Missing required column(s): {', '.join(missing_fields)}.")
+        return render(request, "backoffice/ingestion/problem_set_import.html", context)
+
+    created_count = 0
+    skipped_rows: list[str] = []
+    preview_rows: list[dict[str, str | int]] = []
+    contest_cache: dict[str, Contest] = {}
+
+    for row_number, raw_row in enumerate(reader, start=2):
+        row = {(key or "").strip().lower(): (value or "").strip() for key, value in raw_row.items()}
+        if not any(row.values()):
+            continue
+
+        title = (row.get("title") or "")[:255]
+        statement = row.get("statement") or ""
+        if not title or not statement:
+            skipped_rows.append(f"Row {row_number}: title and statement are required.")
+            continue
+
+        statement_format = _normalize_statement_format(row.get("statement_format"))
+        lint_errors = lint_statement_source(statement, statement_format)
+        if lint_errors:
+            skipped_rows.append(f"Row {row_number}: {' '.join(lint_errors)}")
+            continue
+
+        source_reference = (row.get("source_reference") or "")[:200]
+        if source_reference and not source_reference.startswith(("http://", "https://")):
+            skipped_rows.append(f"Row {row_number}: source_reference must start with http:// or https://.")
+            continue
+
+        try:
+            contest = _resolve_import_contest(
+                short_code=row.get("contest_short_code"),
+                contest_name=row.get("contest_name"),
+                contest_year=row.get("contest_year"),
+                contest_cache=contest_cache,
+            )
+            imported = ProblemSubmission.objects.create(
+                submitter=request.user,
+                title=title,
+                statement=statement,
+                statement_format=statement_format,
+                statement_plaintext=to_plaintext(statement, statement_format),
+                source_reference=source_reference,
+                proposed_tags=(row.get("proposed_tags") or "")[:255],
+                proposed_difficulty=_coerce_difficulty(row.get("proposed_difficulty"), default=3),
+                contest=contest,
+            )
+        except Exception as exc:  # noqa: BLE001
+            skipped_rows.append(f"Row {row_number}: import failed ({exc}).")
+            continue
+
+        created_count += 1
+        if len(preview_rows) < 25:
+            preview_rows.append(
+                {
+                    "id": imported.id,
+                    "title": imported.title,
+                    "statement_format": imported.get_statement_format_display(),
+                    "difficulty": imported.proposed_difficulty,
+                    "contest": str(imported.contest) if imported.contest else "-",
+                },
+            )
+
+    if created_count:
+        messages.success(request, f"Imported {created_count} problem submission(s).")
+    else:
+        messages.info(request, "No rows were imported.")
+    if skipped_rows:
+        messages.warning(request, f"Skipped {len(skipped_rows)} row(s).")
+
+    context.update(
+        {
+            "created_count": created_count,
+            "skipped_count": len(skipped_rows),
+            "preview_rows": preview_rows,
+            "skipped_rows": skipped_rows[:100],
+        },
+    )
+    return render(request, "backoffice/ingestion/problem_set_import.html", context)
+
+
+@admin_required
 def ingestion_problem_submission_action(request, submission_id: int):
     if request.method != "POST":
         return redirect("backoffice:ingestion_problem_submissions")
@@ -422,11 +597,17 @@ def ingestion_problem_submission_action(request, submission_id: int):
         contest_id = request.POST.get("contest_id")
         if contest_id:
             row.contest = Contest.objects.filter(pk=contest_id).first()
+        lint_errors = lint_statement_source(row.statement, row.statement_format)
+        if lint_errors:
+            messages.error(request, "Cannot accept submission: " + " ".join(lint_errors))
+            return redirect("backoffice:ingestion_problem_submissions")
         problem = Problem.objects.create(
             contest=row.contest,
             label=f"SUB-{row.id}",
             title=row.title,
             statement=row.statement,
+            statement_format=row.statement_format,
+            statement_plaintext=to_plaintext(row.statement, row.statement_format),
             editorial_difficulty=row.proposed_difficulty,
         )
         row.linked_problem = problem

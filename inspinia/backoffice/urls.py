@@ -13,6 +13,7 @@ from .views import moderation_report_action
 from .views import moderation_report_detail
 from .views import moderation_report_list
 from .views import problem_bulk_operations
+from .views import problem_set_import
 from .views import public_access_pages
 from .views import rating_recalculate
 from .views import rating_rollback
@@ -50,6 +51,7 @@ urlpatterns = [
         ingestion_problem_submission_action,
         name="ingestion_problem_submission_action",
     ),
+    path("ingestion/problem-import/", problem_set_import, name="problem_set_import"),
     path("ingestion/problem-bulk-ops/", problem_bulk_operations, name="problem_bulk_operations"),
     path("settings/abuse-policy/", settings_abuse_policy, name="settings_abuse_policy"),
     path("settings/feature-flags/", settings_feature_flags, name="settings_feature_flags"),

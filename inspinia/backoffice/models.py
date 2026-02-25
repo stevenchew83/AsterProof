@@ -188,9 +188,16 @@ class ProblemRequest(models.Model):
 
 
 class ProblemSubmission(models.Model):
+    class StatementFormat(models.TextChoices):
+        PLAIN = "plain", "Plain text"
+        LATEX = "latex", "LaTeX"
+        MARKDOWN_TEX = "markdown_tex", "Markdown + TeX"
+
     submitter = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
     title = models.CharField(max_length=255)
     statement = models.TextField()
+    statement_format = models.CharField(max_length=16, choices=StatementFormat.choices, default=StatementFormat.PLAIN)
+    statement_plaintext = models.TextField(blank=True)
     source_reference = models.URLField(blank=True)
     attachment = models.FileField(upload_to="problem_submissions/", null=True, blank=True)
     proposed_tags = models.CharField(max_length=255, blank=True)

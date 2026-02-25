@@ -265,6 +265,17 @@ module.exports = [
         ]
     },
     {
+        name: "katex",
+        assets: [
+            "./node_modules/katex/dist/katex.min.js",
+            "./node_modules/katex/dist/contrib/auto-render.min.js",
+            "./node_modules/katex/dist/katex.min.css"
+        ],
+        fonts: [
+            "./node_modules/katex/dist/fonts/*"
+        ]
+    },
+    {
         name: "inputmask",
         assets: [
             "./node_modules/inputmask/dist/inputmask.min.js"

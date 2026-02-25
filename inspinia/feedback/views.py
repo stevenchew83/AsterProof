@@ -1,4 +1,5 @@
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 from django.http import HttpResponseForbidden
 from django.http import HttpResponseNotFound
 from django.shortcuts import redirect
@@ -8,6 +9,8 @@ from inspinia.backoffice.models import ProblemRequest
 from inspinia.backoffice.models import ProblemSubmission
 from inspinia.backoffice.services import get_effective_feature_flags
 from inspinia.backoffice.services import validate_abuse_policy
+from inspinia.catalog.latex_utils import lint_statement_source
+from inspinia.catalog.latex_utils import to_plaintext
 from inspinia.core.permissions import require_posting_allowed
 from .models import FeedbackItem
 
@@ -67,13 +70,26 @@ def create_problem_submission(request):
         return blocked
     if request.method == "POST":
         statement = request.POST.get("statement", "")
+        statement_format = request.POST.get("statement_format", ProblemSubmission.StatementFormat.PLAIN)
+        valid_formats = {choice[0] for choice in ProblemSubmission.StatementFormat.choices}
+        if statement_format not in valid_formats:
+            statement_format = ProblemSubmission.StatementFormat.PLAIN
+
         policy_error = validate_abuse_policy(request.user, statement)
         if policy_error:
             return HttpResponseForbidden(policy_error)
+
+        lint_errors = lint_statement_source(statement, statement_format)
+        if lint_errors:
+            messages.error(request, " ".join(lint_errors))
+            return redirect("feedback:mine")
+
         ProblemSubmission.objects.create(
             submitter=request.user,
             title=request.POST.get("title", ""),
             statement=statement,
+            statement_format=statement_format,
+            statement_plaintext=to_plaintext(statement, statement_format),
             source_reference=request.POST.get("source_reference", ""),
             proposed_tags=request.POST.get("proposed_tags", ""),
             proposed_difficulty=int(request.POST.get("proposed_difficulty", "3") or 3),

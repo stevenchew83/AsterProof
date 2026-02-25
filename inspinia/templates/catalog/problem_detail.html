@@ -1,6 +1,11 @@
 {% extends 'layouts/vertical.html' %}
+{% load static %}
 
 {% block title %}{{ problem }}{% endblock title %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'plugins/katex/katex.min.css' %}">
+{% endblock extra_css %}
 
 {% block page_content %}
 <div class="container-fluid">
@@ -8,7 +13,11 @@
   {% if problem.status != 'active' %}
     <p><span class="badge text-bg-warning">{{ problem.get_status_display }}</span></p>
   {% endif %}
-  <p>{{ problem.statement|linebreaks }}</p>
+  {% if problem.statement_format == 'plain' %}
+    <p>{{ problem.statement|linebreaks }}</p>
+  {% else %}
+    <div id="problem-statement" class="mb-3">{{ problem.statement|linebreaksbr }}</div>
+  {% endif %}
 
   <div class="mb-3">
     <a class="btn btn-primary" href="{% url 'notes:editor' problem.id %}">Your Notes</a>
@@ -50,3 +59,29 @@
   {% endfor %}
 </div>
 {% endblock page_content %}
+
+{% block extra_javascript %}
+  {% if problem.statement_format != 'plain' %}
+    <script defer src="{% static 'plugins/katex/katex.min.js' %}"></script>
+    <script defer src="{% static 'plugins/katex/auto-render.min.js' %}"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function() {
+        const node = document.getElementById("problem-statement");
+        if (!node || typeof renderMathInElement !== "function") {
+          return;
+        }
+        renderMathInElement(node, {
+          delimiters: [
+            {left: "$$", right: "$$", display: true},
+            {left: "$", right: "$", display: false},
+            {left: "\\(", right: "\\)", display: false},
+            {left: "\\[", right: "\\]", display: true}
+          ],
+          throwOnError: false,
+          strict: "warn",
+          trust: false
+        });
+      });
+    </script>
+  {% endif %}
+{% endblock extra_javascript %}

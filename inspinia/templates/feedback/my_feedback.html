@@ -30,6 +30,11 @@
       <form method="post" action="{% url 'feedback:create_problem_submission' %}">
         {% csrf_token %}
         <input class="form-control mb-2" name="title" placeholder="Problem title">
+        <select class="form-select mb-2" name="statement_format">
+          <option value="plain">Plain text</option>
+          <option value="latex">LaTeX</option>
+          <option value="markdown_tex">Markdown + TeX</option>
+        </select>
         <textarea class="form-control mb-2" name="statement" rows="6" placeholder="Problem statement"></textarea>
         <input class="form-control mb-2" name="source_reference" placeholder="Source reference URL (optional)">
         <input class="form-control mb-2" name="proposed_tags" placeholder="Proposed tags (comma separated)">

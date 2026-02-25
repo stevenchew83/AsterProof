@@ -43,9 +43,9 @@ class ProblemRequestAdmin(admin.ModelAdmin):
 
 @admin.register(ProblemSubmission)
 class ProblemSubmissionAdmin(admin.ModelAdmin):
-    list_display = ("id", "title", "status", "reviewer", "created_at")
-    list_filter = ("status",)
-    search_fields = ("title", "statement")
+    list_display = ("id", "title", "statement_format", "status", "reviewer", "created_at")
+    list_filter = ("status", "statement_format")
+    search_fields = ("title", "statement", "statement_plaintext")
 
 
 @admin.register(RatingRun)
