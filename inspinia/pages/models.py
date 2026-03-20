@@ -21,8 +21,6 @@ class ProblemSolveRecord(models.Model):
     # Second "CONTEST" column in the sample, e.g. "BMO SL 2020 P1".
     contest_year_problem = models.CharField(max_length=128, null=True, blank=True)
 
-    solve_date = models.DateField(null=True, blank=True)
-
     confidence = models.TextField(null=True, blank=True)
     imo_slot_guess = models.TextField(null=True, blank=True)
     # Normalized candidate IMO slot numbers extracted from `imo_slot_guess`.

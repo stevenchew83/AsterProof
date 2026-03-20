@@ -73,14 +73,9 @@ def dashboard_analytics_view(request):
             "contest",
             "problem",
             "contest_year_problem",
-            "solve_date",
             "technique_count",
         ),
     )
-    for row in table_rows:
-        sd = row.get("solve_date")
-        if sd is not None:
-            row["solve_date"] = sd.isoformat()
 
     context = {
         "analytics_total": total,

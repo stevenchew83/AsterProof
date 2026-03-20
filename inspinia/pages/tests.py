@@ -231,6 +231,25 @@ def test_dashboard_allows_admin_access_when_debug_is_off(client):
     assert response.status_code == HTTPStatus.OK
 
 
+def test_dashboard_problem_table_omits_solve_date(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="NT",
+        mohs=4,
+        contest="ISRAEL TST",
+        problem="P2",
+        contest_year_problem="ISRAEL TST 2026 P2",
+    )
+
+    response = client.get(reverse("pages:dashboard"))
+
+    assert response.status_code == HTTPStatus.OK
+    assert "solve_date" not in response.context["table_rows"][0]
+    assert "Solve date" not in response.content.decode("utf-8")
+
+
 def test_problem_import_forbids_non_admin_access_when_debug_is_off(client):
     response = client.get(reverse("pages:problem_import"))
 

@@ -17,13 +17,12 @@ class ProblemSolveRecordAdmin(admin.ModelAdmin):
         "mohs",
         "contest",
         "problem",
-        "solve_date",
         "imo_slot_guess_value",
         "rationale_value",
         "pitfalls_value",
     )
     search_fields = ("contest", "problem", "contest_year_problem")
-    list_filter = ("year", "topic", "contest", "solve_date")
+    list_filter = ("year", "topic", "contest")
     inlines = (ProblemTopicTechniqueInline,)
 
 

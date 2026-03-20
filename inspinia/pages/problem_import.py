@@ -70,15 +70,6 @@ def _cell_int(value: Any) -> int | None:
         return None
 
 
-def _cell_date(value: Any):
-    if value is None or (isinstance(value, float) and pd.isna(value)):
-        return None
-    ts = pd.to_datetime(value, errors="coerce")
-    if pd.isna(ts):
-        return None
-    return ts.date()
-
-
 def _resolve_contest_problem(row: pd.Series, year: int | None) -> tuple[str | None, str | None]:
     contest = _cell_str(row.get("CONTEST"))
     problem = _cell_str(row.get("PROBLEM"))
@@ -119,12 +110,10 @@ def prepare_import_rows(df: pd.DataFrame) -> tuple[list[PreparedImportRow], list
             warnings.append(f"Skipped row: invalid MOHS for {year} {contest} {problem}.")
             continue
 
-        solve_date = _cell_date(row.get("SOLVE DATE"))
         defaults: dict[str, Any] = {
             "topic": topic,
             "mohs": mohs,
             "contest_year_problem": _cell_str(row.get("CONTEST PROBLEM")),
-            "solve_date": solve_date,
             "confidence": _cell_str(row.get("Confidence")),
             "imo_slot_guess": _cell_str(row.get("IMO slot guess")),
             "topic_tags": _cell_str(row.get("Topic tags")),
@@ -174,7 +163,6 @@ def build_parsed_preview_payload(
 
     for p in prepared[:max_problems]:
         d = p.defaults
-        solve_date = d.get("solve_date")
         problems_json.append(
             {
                 "year": str(p.year),
@@ -183,7 +171,6 @@ def build_parsed_preview_payload(
                 "contest": p.contest,
                 "problem": p.problem,
                 "contest_year_problem": d.get("contest_year_problem") or "",
-                "solve_date": str(solve_date) if solve_date else "",
                 "confidence": d.get("confidence") or "",
                 "imo_slot_guess": d.get("imo_slot_guess") or "",
                 "topic_tags_raw": d.get("topic_tags") or "",
