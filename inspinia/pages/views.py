@@ -5,7 +5,7 @@ from django.template import TemplateDoesNotExist
 from pages.forms import ProblemXlsxImportForm
 from pages.problem_import import (
     ProblemImportValidationError,
-    build_preview_payload,
+    build_parsed_preview_payload,
     dataframe_from_excel,
     import_problem_dataframe,
 )
@@ -48,13 +48,29 @@ def problem_import_view(request):
                 messages.error(request, str(exc))
             else:
                 if action == "preview":
-                    preview_payload = build_preview_payload(df)
-                    messages.info(
-                        request,
-                        f"Preview: showing {preview_payload['preview_row_count']} of "
-                        f"{preview_payload['total_row_count']} row(s). "
-                        "Upload the same file again and click Import to write to the database.",
+                    preview_payload = build_parsed_preview_payload(df)
+                    skip_warnings = preview_payload.pop("warnings", [])
+                    msg = (
+                        f"Parsed preview: {preview_payload['total_prepared_problems']} problem row(s) "
+                        f"and {preview_payload['total_parsed_techniques']} technique row(s) "
+                        f"from {preview_payload['total_sheet_rows']} sheet row(s). "
+                        "Tables below match what Import will write (not raw Excel). "
+                        "Re-upload the same file and click Import to save."
                     )
+                    if preview_payload["problems_truncated"] or preview_payload["techniques_truncated"]:
+                        msg += (
+                            f" Showing first {preview_payload['preview_problems_count']} problems and "
+                            f"{preview_payload['preview_techniques_count']} techniques in the browser."
+                        )
+                    messages.info(request, msg)
+                    max_warn = 25
+                    for w in skip_warnings[:max_warn]:
+                        messages.warning(request, w)
+                    if len(skip_warnings) > max_warn:
+                        messages.warning(
+                            request,
+                            f"…and {len(skip_warnings) - max_warn} more skip warnings.",
+                        )
                 else:
                     result = import_problem_dataframe(df, replace_tags=replace_tags)
                     messages.success(
