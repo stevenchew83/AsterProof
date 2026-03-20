@@ -27,7 +27,6 @@
 // Structure
 @import "structure/topbar";
 @import "structure/sidenav";
-@import "structure/horizontal";
 @import "structure/layout";
 @import "structure/footer";
 
@@ -54,20 +53,6 @@
 @import "components/preloader";
 @import "components/widgets";
 @import "components/list-group";
-
-
-// Pages
-@import "pages/authentication";
-@import "pages/error";
-@import "pages/outlook";
-@import "pages/landing";
-
-// @import "pages/email";
-// @import "pages/chat";
-// @import "pages/kanban-board";
-// @import "pages/pin-board";
-// @import "pages/timeline";
-
 
 // Plugins
 @import "plugins/simplebar";
@@ -98,6 +83,3 @@
 // @import "plugins/treeview";
 // @import "plugins/typehead";
 // @import "plugins/wizard";
-
-// @import "https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.36.0/tabler-icons.min.css";
-@import 'https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.33.0/dist/tabler-icons.min.css';

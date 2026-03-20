@@ -4,9 +4,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
+from django.core.management.base import CommandError
 
-from pages.problem_import import ProblemImportValidationError, dataframe_from_excel, import_problem_dataframe
+from inspinia.pages.problem_import import ProblemImportValidationError
+from inspinia.pages.problem_import import dataframe_from_excel
+from inspinia.pages.problem_import import import_problem_dataframe
 
 
 class Command(BaseCommand):
@@ -26,15 +29,16 @@ class Command(BaseCommand):
     def handle(self, *args, **options) -> None:
         path = Path(options["xlsx_path"]).expanduser().resolve()
         if not path.is_file():
-            raise CommandError(f"File not found: {path}")
+            msg = f"File not found: {path}"
+            raise CommandError(msg)
 
         try:
-            df = dataframe_from_excel(path)
+            dataframe = dataframe_from_excel(path)
         except ProblemImportValidationError as exc:
             raise CommandError(str(exc)) from exc
 
         replace_tags: bool = options["replace_tags"]
-        result = import_problem_dataframe(df, replace_tags=replace_tags)
+        result = import_problem_dataframe(dataframe, replace_tags=replace_tags)
 
         for w in result.warnings:
             self.stdout.write(self.style.WARNING(w))

@@ -13,8 +13,9 @@ def allauth_settings(request):
 def app_roles(request):
     """Navigation and UI flags derived from roles."""
     admin = user_has_admin_role(request.user)
+    can_access_admin_tools = admin or settings.DEBUG
     return {
         "is_app_admin": admin,
-        # Match `dashboard_analytics_view`: open in DEBUG, admin-only when DEBUG is off.
-        "show_analytics_dashboard_link": admin or settings.DEBUG,
+        "show_analytics_dashboard_link": can_access_admin_tools,
+        "show_problem_import_link": can_access_admin_tools,
     }

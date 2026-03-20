@@ -2,21 +2,16 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from inspinia.users.models import User
 
-if TYPE_CHECKING:
-    from django.contrib.auth.models import AbstractBaseUser
-
-# Legacy Django auth group from initial migration; prefer ``User.role`` / ``User.Role.ADMIN``.
+# Legacy Django auth group from initial migration. Prefer ``User.role`` / ``User.Role.ADMIN``.
 ADMIN_GROUP_NAME = "Admin"
 
 
-def user_has_admin_role(user: AbstractBaseUser | None) -> bool:
-    if user is None or not user.is_authenticated:
+def user_has_admin_role(user: object | None) -> bool:
+    if not getattr(user, "is_authenticated", False):
         return False
-    if user.is_superuser:
+    if getattr(user, "is_superuser", False):
         return True
     role = getattr(user, "role", None)
     return role == User.Role.ADMIN

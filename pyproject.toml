@@ -1,3 +1,8 @@
+[project]
+name = "asterproof"
+version = "0.1.0"
+requires-python = ">=3.12"
+
 # ==== pytest ====
 [tool.pytest.ini_options]
 minversion = "6.0"
@@ -55,6 +60,7 @@ indent_size = 2
 
 [tool.ruff]
 target-version = "py312"
+line-length = 119
 # Exclude a variety of commonly ignored directories.
 extend-exclude = [
     "*/migrations/*.py",
@@ -120,6 +126,8 @@ select = [
 ]
 ignore = [
   "S101", # Use of assert detected https://docs.astral.sh/ruff/rules/assert/
+  "DJ001", # Imported workbook text fields intentionally preserve NULL vs blank semantics.
+  "DJ012", # Model field/method ordering is not worth migrations or broad churn.
   "RUF012", # Mutable class attributes should be annotated with `typing.ClassVar`
   "SIM102", # sometimes it's better to nest
   "UP038", # Checks for uses of isinstance/issubclass that take a tuple

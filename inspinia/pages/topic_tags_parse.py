@@ -8,8 +8,8 @@ from typing import Any
 
 import pandas as pd
 
-# En-dash (–) or hyphen (-) surrounded by spaces (domain vs technique).
-DASH_RE = re.compile(r"\s[–-]\s")
+# En dash or hyphen surrounded by spaces (domain vs technique).
+DASH_RE = re.compile(r"\s[\u2013-]\s")
 
 # One cell may contain several blocks, each starting with \"Topic tags:\".
 TOPIC_BLOCK_RE = re.compile(
@@ -65,9 +65,7 @@ def parse_topic_tags_value(block_text: str) -> list[dict[str, Any]]:
 
         techniques = [clean_token(t) for t in tech_str.split(",")]
         techniques = [t for t in techniques if t]
-
-        for t in techniques:
-            out.append({"technique": t, "domains": seg_domains})
+        out.extend({"technique": technique, "domains": seg_domains} for technique in techniques)
 
     return out
 
@@ -97,12 +95,12 @@ def domains_dedup_preserve_order(domains: list[str] | None) -> list[str]:
         return []
     seen: set[str] = set()
     out: list[str] = []
-    for d in domains:
-        d = clean_token(d)
-        if not d or d in seen:
+    for domain in domains:
+        normalized_domain = clean_token(domain)
+        if not normalized_domain or normalized_domain in seen:
             continue
-        seen.add(d)
-        out.append(d)
+        seen.add(normalized_domain)
+        out.append(normalized_domain)
     return out
 
 

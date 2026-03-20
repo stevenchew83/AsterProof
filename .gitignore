@@ -276,6 +276,8 @@ project.min.css
 vendors.js
 *.min.js
 *.min.js.map
+!inspinia/static/plugins/**/*.min.js
+!inspinia/static/plugins/**/*.min.css
 
 # Local env / secrets (django-environ, deployment)
 .env

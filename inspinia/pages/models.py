@@ -28,12 +28,12 @@ class ProblemSolveRecord(models.Model):
     # Normalized candidate IMO slot numbers extracted from `imo_slot_guess`.
     # Examples:
     # - "IMO slot guess: P1/4" -> "4"
-    # - "IMO slot guess: P1/4 – P2/5" -> "4,5"
-    # - "IMO slot guess: —" -> NULL
+    # - "IMO slot guess: P1/4 - P2/5" -> "4,5"
+    # - "IMO slot guess: -" -> NULL
     imo_slot_guess_value = models.TextField(null=True, blank=True)
     topic_tags = models.TextField(null=True, blank=True)
     rationale = models.TextField(null=True, blank=True)
-    # Rationale text with prefixes removed (e.g. strip "Rationale:" / "Rationale (1–2 lines):").
+    # Rationale text with prefixes removed (for example "Rationale:" / "Rationale (1-2 lines):").
     rationale_value = models.TextField(null=True, blank=True)
     # Pitfalls text with prefixes removed (e.g. strip "Common pitfalls:" prefix).
     pitfalls_value = models.TextField(null=True, blank=True)
@@ -54,7 +54,7 @@ class ProblemSolveRecord(models.Model):
         return f"{self.year} {self.contest} {self.problem}"
 
     @staticmethod
-    def parse_imo_slot_guess_value(raw: str) -> str | None:
+    def parse_imo_slot_guess_value(raw: str | None) -> str | None:
         """
         Parse many free-form "IMO slot guess" cell variants into candidate slot numbers.
 
@@ -63,7 +63,7 @@ class ProblemSolveRecord(models.Model):
         - Otherwise a comma-separated list of numbers extracted from (Problem, Slot) pairs.
           For example:
           - "IMO slot guess: P1/4" -> "1,4"
-          - "IMO slot guess: P1/4–P2/5" -> "1,4,2,5"
+          - "IMO slot guess: P1/4-P2/5" -> "1,4,2,5"
 
         Note:
         - For pairs we always interpret the left number as the problem number and the right number as the slot.
@@ -73,11 +73,11 @@ class ProblemSolveRecord(models.Model):
             return None
 
         text = str(raw).strip()
-        if not text or text in {"—", "-", "–"}:
+        if not text or text in {"\u2014", "-", "\u2013"}:
             return None
 
         # Normalize common unicode dash variants to simplify range parsing.
-        text = re.sub(r"[–—−]", "-", text)
+        text = re.sub(r"[\u2013\u2014\u2212]", "-", text)
 
         extracted_numbers: list[int] = []
 
@@ -117,17 +117,17 @@ class ProblemSolveRecord(models.Model):
         return ",".join(str(n) for n in extracted_numbers)
 
     @staticmethod
-    def parse_rationale_value(raw: str) -> str | None:
+    def parse_rationale_value(raw: str | None) -> str | None:
         """
         Normalize free-form "Rationale ..." cell content.
 
         Examples:
         - "Rationale: Very short, parity punchline."
-        - "Rationale (1–2 lines): Looks like ... full sentence."
+        - "Rationale (1-2 lines): Looks like ... full sentence."
 
         Returns:
         - NULL if no content found
-        - Otherwise the part after the first ':' (after optional "(N–M lines)").
+        - Otherwise the part after the first ':' (after optional "(N-M lines)").
         """
         if raw is None:
             return None
@@ -135,12 +135,10 @@ class ProblemSolveRecord(models.Model):
         if not text:
             return None
 
-        # Normalize dash variants for the "1–2" part.
-        normalized = re.sub(r"[–—−]", "-", text)
+        # Normalize dash variants for the line-count annotation.
+        normalized = re.sub(r"[\u2013\u2014\u2212]", "-", text)
 
-        # Accept either:
-        # - "Rationale: <value>"
-        # - "Rationale (1-2 lines): <value>"
+        # Supports both "Rationale: <value>" and "Rationale (1-2 lines): <value>".
         rationale_re = re.compile(
             r"^\s*Rationale(?:\s*\(\s*\d+\s*-\s*\d+\s*lines?\s*\))?\s*:\s*(?P<value>.+?)\s*$",
             flags=re.IGNORECASE | re.DOTALL,
@@ -154,7 +152,7 @@ class ProblemSolveRecord(models.Model):
         return text
 
     @staticmethod
-    def parse_pitfalls_value(raw: str) -> str | None:
+    def parse_pitfalls_value(raw: str | None) -> str | None:
         """
         Normalize free-form "Common pitfalls ..." cell content.
 
@@ -172,7 +170,7 @@ class ProblemSolveRecord(models.Model):
         if not text:
             return None
 
-        normalized = re.sub(r"[–—−]", "-", text)
+        normalized = re.sub(r"[\u2013\u2014\u2212]", "-", text)
         pitfalls_re = re.compile(
             r"^\s*Common\s+pitfalls\s*:\s*(?P<value>.+?)\s*$",
             flags=re.IGNORECASE | re.DOTALL,
@@ -184,12 +182,18 @@ class ProblemSolveRecord(models.Model):
         return text
 
     def save(self, *args, **kwargs) -> None:
-        if self.imo_slot_guess and not self.imo_slot_guess_value:
-            self.imo_slot_guess_value = self.parse_imo_slot_guess_value(self.imo_slot_guess)
-        if self.rationale and not self.rationale_value:
-            self.rationale_value = self.parse_rationale_value(self.rationale)
-        if self.pitfalls and not self.pitfalls_value:
-            self.pitfalls_value = self.parse_pitfalls_value(self.pitfalls)
+        self.imo_slot_guess_value = self.parse_imo_slot_guess_value(self.imo_slot_guess)
+        self.rationale_value = self.parse_rationale_value(self.rationale)
+        self.pitfalls_value = self.parse_pitfalls_value(self.pitfalls)
+
+        update_fields = kwargs.get("update_fields")
+        if update_fields is not None:
+            kwargs["update_fields"] = set(update_fields) | {
+                "imo_slot_guess_value",
+                "rationale_value",
+                "pitfalls_value",
+            }
+
         super().save(*args, **kwargs)
 
 
@@ -218,4 +222,4 @@ class ProblemTopicTechnique(models.Model):
         ]
 
     def __str__(self) -> str:
-        return f"{self.record_id}: {self.technique}"
+        return f"{self.record.pk}: {self.technique}"

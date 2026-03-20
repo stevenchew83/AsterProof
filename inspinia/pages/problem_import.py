@@ -3,20 +3,24 @@
 from __future__ import annotations
 
 import io
-from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Any, BinaryIO
+from dataclasses import dataclass
+from dataclasses import field
+from typing import TYPE_CHECKING
+from typing import Any
+from typing import BinaryIO
 
 import pandas as pd
 from django.db import transaction
 
-from pages.models import ProblemSolveRecord, ProblemTopicTechnique
-from pages.topic_tags_parse import (
-    domains_dedup_preserve_order,
-    merge_domain_lists,
-    parse_contest_problem_string,
-    parse_topic_tags_cell,
-)
+from inspinia.pages.models import ProblemSolveRecord
+from inspinia.pages.models import ProblemTopicTechnique
+from inspinia.pages.topic_tags_parse import domains_dedup_preserve_order
+from inspinia.pages.topic_tags_parse import merge_domain_lists
+from inspinia.pages.topic_tags_parse import parse_contest_problem_string
+from inspinia.pages.topic_tags_parse import parse_topic_tags_cell
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 REQUIRED_COLUMNS = frozenset(
     {"YEAR", "TOPIC", "MOHS", "CONTEST", "PROBLEM", "CONTEST PROBLEM", "Topic tags"},
@@ -225,19 +229,20 @@ def dataframe_from_excel(source: Path | str | BinaryIO | bytes) -> pd.DataFrame:
     if isinstance(source, bytes):
         source = io.BytesIO(source)
     try:
-        df = pd.read_excel(source)
-    except Exception as exc:  # noqa: BLE001 — surface to caller as validation
+        dataframe = pd.read_excel(source)
+    except Exception as exc:
         msg = "Could not read Excel file. Is it a valid .xlsx?"
         raise ProblemImportValidationError(msg) from exc
 
-    df.columns = [str(c).strip() for c in df.columns]
-    missing = REQUIRED_COLUMNS - set(df.columns)
+    dataframe.columns = [str(column).strip() for column in dataframe.columns]
+    missing = REQUIRED_COLUMNS - set(dataframe.columns)
     if missing:
-        raise ProblemImportValidationError(
+        msg = (
             f"Missing required column(s): {', '.join(sorted(missing))}. "
-            f"Found columns: {list(df.columns)}",
+            f"Found columns: {list(dataframe.columns)}"
         )
-    return df
+        raise ProblemImportValidationError(msg)
+    return dataframe
 
 
 def import_problem_dataframe(df: pd.DataFrame, *, replace_tags: bool) -> ProblemImportResult:

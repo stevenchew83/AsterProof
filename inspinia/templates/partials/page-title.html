@@ -6,9 +6,9 @@
 
     <div class="text-end">
         <ol class="breadcrumb m-0 py-0">
-            <li class="breadcrumb-item"><a href="javascript: void(0);">Inspinia</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'pages:home' %}">AsterProof</a></li>
             {% if subtitle %}
-            <li class="breadcrumb-item"><a href="javascript: void(0);">{{ subtitle }}</a></li>
+            <li class="breadcrumb-item text-body-secondary">{{ subtitle }}</li>
             {% endif %}
             <li class="breadcrumb-item active">{{ title }}</li>
         </ol>

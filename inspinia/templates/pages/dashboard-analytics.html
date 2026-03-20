@@ -5,7 +5,7 @@
 {% block title %}Analytics dashboard{% endblock title %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="https://cdn.datatables.net/2.3.0/css/dataTables.bootstrap5.min.css" crossorigin="anonymous">
+<link rel="stylesheet" href="{% static 'plugins/datatables/dataTables.bootstrap5.min.css' %}">
 {% endblock extra_css %}
 
 {% block page_content %}
@@ -189,7 +189,7 @@
 
 {% block extra_javascript %}
 {% if analytics_total > 0 %}
-<script src="https://cdn.jsdelivr.net/npm/apexcharts@4.7.0"></script>
+<script src="{% static 'plugins/apexcharts/apexcharts.min.js' %}"></script>
 <script src="{% static 'plugins/datatables/dataTables.min.js' %}"></script>
 <script src="{% static 'plugins/datatables/dataTables.bootstrap5.min.js' %}"></script>
 <script>
