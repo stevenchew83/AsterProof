@@ -1,0 +1,259 @@
+{% extends 'layouts/vertical.html' %}
+
+{% load static i18n %}
+
+{% block title %}Analytics dashboard{% endblock title %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.datatables.net/2.3.0/css/dataTables.bootstrap5.min.css" crossorigin="anonymous">
+{% endblock extra_css %}
+
+{% block page_content %}
+
+<div class="container-fluid">
+
+  {% include 'partials/page-title.html' with title='Problem analytics' subtitle='Admin' %}
+
+  <div class="row g-3 mt-0">
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-primary-subtle text-primary rounded">
+                <i class="ti ti-database fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Problems</p>
+              <h3 class="mb-0">{{ analytics_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-info-subtle text-info rounded">
+                <i class="ti ti-calendar-stats fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Year span</p>
+              <h3 class="mb-0 fs-lg">
+                {% if analytics_stats.year_min is not None %}
+                  {{ analytics_stats.year_min }}–{{ analytics_stats.year_max }}
+                {% else %}
+                  —
+                {% endif %}
+              </h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-warning-subtle text-warning rounded">
+                <i class="ti ti-trophy fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Distinct contests</p>
+              <h3 class="mb-0">{{ analytics_stats.contest_n }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-success-subtle text-success rounded">
+                <i class="ti ti-tags fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Technique rows</p>
+              <h3 class="mb-0">{{ analytics_technique_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if analytics_total == 0 %}
+  <div class="alert alert-info mt-4" role="alert">
+    <strong>No problem rows yet.</strong> Import analytics via <a href="{% url 'pages:problem_import' %}" class="alert-link">Import problems</a> to populate charts and the table.
+  </div>
+  {% else %}
+
+  <div class="row g-3 mt-1">
+    <div class="col-xxl-7">
+      <div class="card">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-0">Problems by year</h4>
+          <p class="text-muted fs-xs mb-0">Volume of stored <code>ProblemSolveRecord</code> rows</p>
+        </div>
+        <div class="card-body pt-2">
+          <div id="chart-by-year" style="min-height: 300px;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xxl-5">
+      <div class="card">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-0">MOHS distribution</h4>
+          <p class="text-muted fs-xs mb-0">Count per MOHS value</p>
+        </div>
+        <div class="card-body pt-2">
+          <div id="chart-by-mohs" style="min-height: 300px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-0">
+    <div class="col-xl-6">
+      <div class="card">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-0">Top topics</h4>
+          <p class="text-muted fs-xs mb-0">Top {{ charts_payload.byTopic.labels|length }} topics by problem count</p>
+        </div>
+        <div class="card-body pt-2">
+          <div id="chart-by-topic" style="min-height: 320px;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-6">
+      <div class="card">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-0">Top technique tags</h4>
+          <p class="text-muted fs-xs mb-0">Parsed <code>ProblemTopicTechnique</code> strings</p>
+        </div>
+        <div class="card-body pt-2">
+          <div id="chart-techniques" style="min-height: 320px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-0">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-0">Problems by contest</h4>
+          <p class="text-muted fs-xs mb-0">Top contests by row count</p>
+        </div>
+        <div class="card-body pt-2">
+          <div id="chart-by-contest" style="min-height: 320px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-0 mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header border-bottom d-flex flex-wrap align-items-center gap-2">
+          <div class="flex-grow-1">
+            <h4 class="header-title mb-0">All problems</h4>
+            <p class="text-muted fs-xs mb-0">Search, sort, and paginate the full dataset in-browser</p>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table id="problems-analytics-table" class="table table-striped table-bordered align-middle w-100"></table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% endif %}
+</div>
+
+{{ charts_payload|json_script:"dashboard-charts-data" }}
+{{ table_rows|json_script:"dashboard-table-data" }}
+
+{% endblock page_content %}
+
+{% block extra_javascript %}
+{% if analytics_total > 0 %}
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@4.7.0"></script>
+<script src="{% static 'plugins/datatables/dataTables.min.js' %}"></script>
+<script src="{% static 'plugins/datatables/dataTables.bootstrap5.min.js' %}"></script>
+<script>
+(function () {
+  var dataEl = document.getElementById("dashboard-charts-data");
+  var tableElId = "dashboard-table-data";
+  if (!dataEl || typeof ApexCharts === "undefined") return;
+
+  var palette = ["#0d6efd", "#6f42c1", "#198754", "#fd7e14", "#d63384", "#0dcaf0"];
+  var charts = JSON.parse(dataEl.textContent);
+
+  function barOptions(payload, color, horizontal) {
+    var h = horizontal ? Math.max(300, 32 * payload.labels.length) : 300;
+    return {
+      chart: { type: "bar", height: h, toolbar: { show: false }, fontFamily: "inherit" },
+      series: [{ name: "Count", data: payload.values }],
+      plotOptions: {
+        bar: { borderRadius: 3, horizontal: !!horizontal, barHeight: horizontal ? "72%" : undefined },
+      },
+      dataLabels: { enabled: payload.values.length <= 14 },
+      colors: [color],
+      grid: { strokeDashArray: 4, borderColor: "rgba(108,117,125,0.15)" },
+      xaxis: {
+        categories: payload.labels,
+        labels: horizontal
+          ? { style: { fontSize: "11px" } }
+          : { rotate: payload.labels.length > 8 ? -45 : 0, hideOverlappingLabels: true },
+      },
+    };
+  }
+
+  function renderBar(sel, payload, idx, horizontal) {
+    var el = document.querySelector(sel);
+    if (!el || !payload.labels.length) return;
+    var chart = new ApexCharts(el, barOptions(payload, palette[idx % palette.length], horizontal));
+    chart.render();
+  }
+
+  renderBar("#chart-by-year", charts.byYear, 0, false);
+  renderBar("#chart-by-mohs", charts.byMohs, 1, false);
+  renderBar("#chart-by-topic", charts.byTopic, 2, false);
+  renderBar("#chart-techniques", charts.topTechniques, 3, true);
+  renderBar("#chart-by-contest", charts.byContest, 4, true);
+
+  var tblNode = document.getElementById(tableElId);
+  if (!tblNode || typeof DataTable === "undefined") return;
+  var rows = JSON.parse(tblNode.textContent);
+  new DataTable("#problems-analytics-table", {
+    data: rows,
+    columns: [
+      { data: "year", title: "Year", className: "text-nowrap" },
+      { data: "topic", title: "Topic" },
+      { data: "mohs", title: "MOHS", className: "text-nowrap" },
+      { data: "contest", title: "Contest" },
+      { data: "problem", title: "Problem", className: "text-nowrap" },
+      { data: "contest_year_problem", title: "Contest problem", defaultContent: "" },
+      { data: "solve_date", title: "Solve date", className: "text-nowrap", defaultContent: "" },
+      { data: "technique_count", title: "Techniques", className: "text-nowrap" },
+    ],
+    order: [[0, "desc"], [3, "asc"]],
+    pageLength: 25,
+    lengthMenu: [10, 25, 50, 100],
+  });
+})();
+</script>
+{% endif %}
+{% endblock extra_javascript %}

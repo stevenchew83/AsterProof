@@ -1,0 +1,18 @@
+---
+description: Inspinia dashboard UI — follow docs/inspinia-dashboard-style.md before changing templates or theme assets
+globs:
+  - inspinia/**/*
+  - docs/inspinia-dashboard-style.md
+alwaysApply: false
+---
+
+# Inspinia dashboard style (mandatory for matched paths)
+
+For any change under `inspinia/` that affects **templates, static SCSS/CSS/JS, or dashboard/admin pages**:
+
+1. Open and follow **`docs/inspinia-dashboard-style.md`** end-to-end (layout shell, asset order, `data-*` theme, cards/KPI patterns, Tabler `ti ti-*` icons, typography utilities).
+2. **Extend** `layouts/vertical.html` (unless the task explicitly requires another bundled layout). Preserve `wrapper` → sidenav → topbar → `content-page` → footer.
+3. Use **Bootstrap 5 + Inspinia** classes from existing pages (e.g. `pages/dashboard-analytics.html`, `partials/page-title.html`). Do not introduce another CSS framework or duplicate loads that `base.html` already provides.
+4. Theme tweaks belong in **`inspinia/static/scss/`** with a **gulp** rebuild per `README.md`; avoid large one-off inline styles.
+
+If unsure, match the nearest existing Inspinia demo page in `inspinia/templates/pages/` before inventing new patterns.

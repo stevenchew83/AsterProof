@@ -1,8 +1,14 @@
+from django.conf import settings
 from django.contrib import messages
+from django.core.exceptions import PermissionDenied
+from django.db.models import Count, Max, Min
 from django.shortcuts import render
 from django.template import TemplateDoesNotExist
 
+from inspinia.users.roles import user_has_admin_role
+
 from pages.forms import ProblemXlsxImportForm
+from pages.models import ProblemSolveRecord, ProblemTopicTechnique
 from pages.problem_import import (
     ProblemImportValidationError,
     build_parsed_preview_payload,
@@ -12,12 +18,83 @@ from pages.problem_import import (
 
 # Create your views here.
 
-# @login_required
+
 def root_page_view(request):
     try:
-        return render(request, 'pages/index.html')
+        return render(request, "pages/index.html")
     except TemplateDoesNotExist:
-        return render(request, 'pages/error-404.html')
+        return render(request, "pages/error-404.html")
+
+
+def _rows_to_bar_payload(rows: list[dict], label_key: str, *, value_key: str = "c") -> dict:
+    return {
+        "labels": [str(r[label_key]) for r in rows],
+        "values": [int(r[value_key]) for r in rows],
+    }
+
+
+def dashboard_analytics_view(request):
+    """Problem analytics: charts + searchable table.
+
+    When ``DEBUG`` is off, only users with the **admin** role (or superusers) may access.
+    """
+    if not settings.DEBUG and not user_has_admin_role(request.user):
+        raise PermissionDenied
+
+    base = ProblemSolveRecord.objects.all()
+    total = base.count()
+
+    stats = base.aggregate(
+        year_min=Min("year"),
+        year_max=Max("year"),
+        contest_n=Count("contest", distinct=True),
+        topic_n=Count("topic", distinct=True),
+    )
+    technique_total = ProblemTopicTechnique.objects.count()
+
+    by_year = list(base.values("year").annotate(c=Count("id")).order_by("year"))
+    by_topic = list(base.values("topic").annotate(c=Count("id")).order_by("-c")[:18])
+    by_contest = list(base.values("contest").annotate(c=Count("id")).order_by("-c")[:12])
+    by_mohs = list(base.values("mohs").annotate(c=Count("id")).order_by("mohs"))
+    top_techniques = list(
+        ProblemTopicTechnique.objects.values("technique")
+        .annotate(c=Count("id"))
+        .order_by("-c")[:18]
+    )
+
+    charts_payload = {
+        "byYear": _rows_to_bar_payload(by_year, "year"),
+        "byTopic": _rows_to_bar_payload(by_topic, "topic"),
+        "byContest": _rows_to_bar_payload(by_contest, "contest"),
+        "byMohs": _rows_to_bar_payload(by_mohs, "mohs"),
+        "topTechniques": _rows_to_bar_payload(top_techniques, "technique"),
+    }
+
+    table_rows = list(
+        base.annotate(technique_count=Count("topic_techniques")).values(
+            "year",
+            "topic",
+            "mohs",
+            "contest",
+            "problem",
+            "contest_year_problem",
+            "solve_date",
+            "technique_count",
+        )
+    )
+    for row in table_rows:
+        sd = row.get("solve_date")
+        if sd is not None:
+            row["solve_date"] = sd.isoformat()
+
+    context = {
+        "analytics_total": total,
+        "analytics_stats": stats,
+        "analytics_technique_total": technique_total,
+        "charts_payload": charts_payload,
+        "table_rows": table_rows,
+    }
+    return render(request, "pages/dashboard-analytics.html", context)
 
 
 def dynamic_pages_view(request, template_name):
