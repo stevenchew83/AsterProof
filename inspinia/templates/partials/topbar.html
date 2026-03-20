@@ -222,72 +222,144 @@
                 </div> <!-- end dropdown-->
             </div> <!-- end topbar item-->
 
-            <!-- Notification Dropdown -->
+            <!-- Notification Dropdown: user notifications vs ops alerts -->
             <div class="topbar-item">
                 <div class="dropdown">
-                    <button class="topbar-link dropdown-toggle drop-arrow-none" data-bs-toggle="dropdown" data-bs-offset="0,22" type="button" data-bs-auto-close="outside" aria-haspopup="false" aria-expanded="false">
+                    <button class="topbar-link dropdown-toggle drop-arrow-none" data-bs-toggle="dropdown" data-bs-offset="0,22" type="button" data-bs-auto-close="outside" aria-haspopup="true" aria-expanded="false" aria-label="Notifications">
                         <i data-lucide="bell" class="fs-xxl"></i>
-                        <span class="badge badge-square text-bg-warning topbar-badge">14</span>
+                        <span class="badge badge-square text-bg-warning topbar-badge">5</span>
                     </button>
 
                     <div class="dropdown-menu p-0 dropdown-menu-end dropdown-menu-lg">
                         <div class="px-3 py-2 border-bottom">
-                            <div class="row align-items-center">
+                            <div class="row align-items-center g-2">
                                 <div class="col">
                                     <h6 class="m-0 fs-md fw-semibold">Notifications</h6>
+                                    <p class="mb-0 fs-xs text-muted">For you <span class="mx-1">&middot;</span> Ops</p>
                                 </div>
-                                <div class="col text-end">
-                                    <a href="#!" class="badge text-bg-light badge-label py-1">14 Alerts</a>
+                                <div class="col-auto text-end">
+                                    <span class="badge text-bg-light badge-label py-1">3 + 2</span>
                                 </div>
                             </div>
                         </div>
 
-                        <div style="max-height: 300px;" data-simplebar>
-                            <!-- item 1 -->
-                            <div class="dropdown-item notification-item py-2 text-wrap" id="notification-1">
-                                <span class="d-flex gap-2">
-                                    <span class="avatar-md flex-shrink-0">
-                                        <span class="avatar-title bg-danger-subtle text-danger rounded fs-22">
-                                            <i data-lucide="server-crash" class="fs-xl fill-danger"></i>
-                                        </span>
-                                    </span>
-                                    <span class="flex-grow-1 text-muted">
-                                        <span class="fw-medium text-body">Critical alert: Server crash detected</span>
-                                        <br>
-                                        <span class="fs-xs">30 minutes ago</span>
-                                    </span>
-                                    <button type="button" class="flex-shrink-0 text-muted btn btn-link p-0" data-dismissible="#notification-1">
-                                        <i class="ti ti-xbox-x-filled fs-xxl"></i>
+                        <div class="px-2 pt-2">
+                            <ul class="nav nav-pills nav-justified gap-1" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link py-1 px-2 fs-xs active" id="topbar-user-notif-tab" data-bs-toggle="tab" data-bs-target="#topbar-user-notif-pane" type="button" role="tab" aria-controls="topbar-user-notif-pane" aria-selected="true">
+                                        For you <span class="badge text-bg-primary ms-1">3</span>
                                     </button>
-                                </span>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link py-1 px-2 fs-xs" id="topbar-ops-notif-tab" data-bs-toggle="tab" data-bs-target="#topbar-ops-notif-pane" type="button" role="tab" aria-controls="topbar-ops-notif-pane" aria-selected="false">
+                                        Ops <span class="badge text-bg-danger ms-1">2</span>
+                                    </button>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div class="tab-content">
+                            <div class="tab-pane fade show active" id="topbar-user-notif-pane" role="tabpanel" aria-labelledby="topbar-user-notif-tab" tabindex="0">
+                                <div style="max-height: 280px;" data-simplebar>
+                                    <div class="dropdown-item notification-item py-2 text-wrap" id="notification-user-1">
+                                        <span class="d-flex gap-2">
+                                            <span class="avatar-md flex-shrink-0">
+                                                <span class="avatar-title bg-success-subtle text-success rounded fs-22">
+                                                    <i data-lucide="circle-check" class="fs-xl fill-success"></i>
+                                                </span>
+                                            </span>
+                                            <span class="flex-grow-1 text-muted">
+                                                <span class="fw-medium text-body">Problem import finished</span>
+                                                <br>
+                                                <span class="fs-xs">45 minutes ago</span>
+                                            </span>
+                                            <button type="button" class="flex-shrink-0 text-muted btn btn-link p-0" data-dismissible="#notification-user-1">
+                                                <i class="ti ti-xbox-x-filled fs-xxl"></i>
+                                            </button>
+                                        </span>
+                                    </div>
+                                    <div class="dropdown-item notification-item py-2 text-wrap" id="notification-user-2">
+                                        <span class="d-flex gap-2">
+                                            <span class="avatar-md flex-shrink-0">
+                                                <span class="avatar-title bg-info-subtle text-info rounded fs-22">
+                                                    <i data-lucide="message-circle" class="fs-xl fill-info"></i>
+                                                </span>
+                                            </span>
+                                            <span class="flex-grow-1 text-muted">
+                                                <span class="fw-medium text-body">New comment on your proof</span>
+                                                <br>
+                                                <span class="fs-xs">2 hours ago</span>
+                                            </span>
+                                            <button type="button" class="flex-shrink-0 text-muted btn btn-link p-0" data-dismissible="#notification-user-2">
+                                                <i class="ti ti-xbox-x-filled fs-xxl"></i>
+                                            </button>
+                                        </span>
+                                    </div>
+                                    <div class="dropdown-item notification-item py-2 text-wrap" id="notification-user-3">
+                                        <span class="d-flex gap-2">
+                                            <span class="avatar-md flex-shrink-0">
+                                                <span class="avatar-title bg-primary-subtle text-primary rounded fs-22">
+                                                    <i data-lucide="users" class="fs-xl fill-primary"></i>
+                                                </span>
+                                            </span>
+                                            <span class="flex-grow-1 text-muted">
+                                                <span class="fw-medium text-body">You were added to <span class="fw-medium text-body">Geometry Team</span></span>
+                                                <br>
+                                                <span class="fs-xs">Yesterday</span>
+                                            </span>
+                                            <button type="button" class="flex-shrink-0 text-muted btn btn-link p-0" data-dismissible="#notification-user-3">
+                                                <i class="ti ti-xbox-x-filled fs-xxl"></i>
+                                            </button>
+                                        </span>
+                                    </div>
+                                </div>
+                                <a href="javascript:void(0);" class="dropdown-item text-center text-reset text-decoration-underline link-offset-2 fw-bold notify-item border-top border-light py-2">
+                                    View all for you
+                                </a>
                             </div>
 
-                            <!-- item 2 -->
-                            <div class="dropdown-item notification-item py-2 text-wrap" id="notification-2">
-                                <span class="d-flex gap-2">
-                                    <span class="avatar-md flex-shrink-0">
-                                        <span class="avatar-title bg-warning-subtle text-warning rounded fs-22">
-                                            <i data-lucide="alert-triangle" class="fs-xl fill-warning"></i>
+                            <div class="tab-pane fade" id="topbar-ops-notif-pane" role="tabpanel" aria-labelledby="topbar-ops-notif-tab" tabindex="0">
+                                <div style="max-height: 280px;" data-simplebar>
+                                    <div class="dropdown-item notification-item py-2 text-wrap" id="notification-ops-1">
+                                        <span class="d-flex gap-2">
+                                            <span class="avatar-md flex-shrink-0">
+                                                <span class="avatar-title bg-danger-subtle text-danger rounded fs-22">
+                                                    <i data-lucide="server-crash" class="fs-xl fill-danger"></i>
+                                                </span>
+                                            </span>
+                                            <span class="flex-grow-1 text-muted">
+                                                <span class="fw-medium text-body">Critical: API error rate above threshold</span>
+                                                <br>
+                                                <span class="fs-xs">30 minutes ago</span>
+                                            </span>
+                                            <button type="button" class="flex-shrink-0 text-muted btn btn-link p-0" data-dismissible="#notification-ops-1">
+                                                <i class="ti ti-xbox-x-filled fs-xxl"></i>
+                                            </button>
                                         </span>
-                                    </span>
-                                    <span class="flex-grow-1 text-muted">
-                                        <span class="fw-medium text-body">High memory usage on Node A</span>
-                                        <br>
-                                        <span class="fs-xs">10 minutes ago</span>
-                                    </span>
-                                    <button type="button" class="flex-shrink-0 text-muted btn btn-link p-0" data-dismissible="#notification-2">
-                                        <i class="ti ti-xbox-x-filled fs-xxl"></i>
-                                    </button>
-                                </span>
+                                    </div>
+                                    <div class="dropdown-item notification-item py-2 text-wrap" id="notification-ops-2">
+                                        <span class="d-flex gap-2">
+                                            <span class="avatar-md flex-shrink-0">
+                                                <span class="avatar-title bg-warning-subtle text-warning rounded fs-22">
+                                                    <i data-lucide="alert-triangle" class="fs-xl fill-warning"></i>
+                                                </span>
+                                            </span>
+                                            <span class="flex-grow-1 text-muted">
+                                                <span class="fw-medium text-body">High memory usage on worker Node A</span>
+                                                <br>
+                                                <span class="fs-xs">10 minutes ago</span>
+                                            </span>
+                                            <button type="button" class="flex-shrink-0 text-muted btn btn-link p-0" data-dismissible="#notification-ops-2">
+                                                <i class="ti ti-xbox-x-filled fs-xxl"></i>
+                                            </button>
+                                        </span>
+                                    </div>
+                                </div>
+                                <a href="javascript:void(0);" class="dropdown-item text-center text-reset text-decoration-underline link-offset-2 fw-bold notify-item border-top border-light py-2">
+                                    View all ops alerts
+                                </a>
                             </div>
-
-                        </div> <!-- end dropdown-->
-
-                        <!-- All-->
-                        <a href="javascript:void(0);" class="dropdown-item text-center text-reset text-decoration-underline link-offset-2 fw-bold notify-item border-top border-light py-2">
-                            View All Alerts
-                        </a>
-
+                        </div>
                     </div>
                 </div>
             </div>
