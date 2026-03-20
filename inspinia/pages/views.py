@@ -13,11 +13,15 @@ from django.db.models import Min
 from django.db.models import Q
 from django.http import Http404
 from django.http import HttpResponse
+from django.http import JsonResponse
 from django.shortcuts import render
+from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.text import slugify
 
+from inspinia.pages.asymptote_render import build_statement_render_segments
+from inspinia.pages.asymptote_render import has_asymptote_blocks
 from inspinia.pages.forms import ProblemStatementImportForm
 from inspinia.pages.forms import ProblemXlsxImportForm
 from inspinia.pages.models import ContestProblemStatement
@@ -273,6 +277,8 @@ def latex_preview_view(request):
                 messages.error(request, str(exc))
             else:
                 parsed_statement_payload = build_problem_statement_preview_payload(parsed_import)
+                for problem in parsed_statement_payload["problems"]:
+                    problem.update(_statement_render_payload(problem["statement_latex"]))
                 statement_save_preview = build_problem_statement_save_preview(parsed_import)
                 if action == "save":
                     _require_admin_tools_access(request)
@@ -328,6 +334,27 @@ def latex_preview_view(request):
     )
 
 
+@login_required
+def statement_render_preview_view(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required.", "ok": False}, status=405)
+
+    statement_latex = request.POST.get("source_text", "")
+    render_payload = _statement_render_payload(statement_latex)
+    html = render_to_string(
+        "partials/statement-render-content.html",
+        {"segments": render_payload["statement_render_segments"]},
+        request=request,
+    )
+    return JsonResponse(
+        {
+            "has_asymptote": render_payload["statement_has_asymptote"],
+            "html": html,
+            "ok": True,
+        },
+    )
+
+
 def _rows_to_bar_payload(
     rows: list[dict],
     label_key: str,
@@ -356,6 +383,13 @@ def _statement_preview_text(statement_latex: str, *, max_length: int = 220) -> s
     if len(collapsed) <= max_length:
         return collapsed
     return f"{collapsed[: max_length - 1].rstrip()}…"
+
+
+def _statement_render_payload(statement_latex: str) -> dict:
+    return {
+        "statement_has_asymptote": has_asymptote_blocks(statement_latex),
+        "statement_render_segments": build_statement_render_segments(statement_latex),
+    }
 
 
 def _statement_table_rows(base) -> list[dict]:
@@ -917,9 +951,12 @@ def contest_problem_list_view(request, contest_slug: str):
     ):
         if statement.linked_problem_id in statement_by_problem_id:
             continue
+        render_payload = _statement_render_payload(statement.statement_latex)
         statement_by_problem_id[statement.linked_problem_id] = {
             "day_label": statement.day_label or "",
+            "statement_has_asymptote": render_payload["statement_has_asymptote"],
             "statement_latex": statement.statement_latex,
+            "statement_render_segments": render_payload["statement_render_segments"],
             "updated_at_label": timezone.localtime(statement.updated_at).strftime("%Y-%m-%d"),
         }
 
@@ -991,7 +1028,13 @@ def contest_problem_list_view(request, contest_slug: str):
             "problem": row["problem"],
             "problem_uuid": str(row["problem_uuid"]),
             "statement_day_label": statement_data["day_label"] if statement_data else "",
+            "statement_has_asymptote": (
+                statement_data["statement_has_asymptote"] if statement_data else False
+            ),
             "statement_latex": statement_data["statement_latex"] if statement_data else "",
+            "statement_render_segments": (
+                statement_data["statement_render_segments"] if statement_data else []
+            ),
             "statement_updated_at_label": (
                 statement_data["updated_at_label"] if statement_data else ""
             ),

@@ -28,7 +28,26 @@
       background: #f7f9fd;
       color: #11203b;
       line-height: 1.75;
+    }
+
+    .statement-text-fragment {
       white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .asymptote-svg-frame {
+      overflow-x: auto;
+      padding: 0.75rem;
+      border-radius: 0.9rem;
+      border: 1px solid rgba(17, 32, 59, 0.07);
+      background: #fff;
+    }
+
+    .asymptote-svg-frame svg {
+      display: block;
+      max-width: 100%;
+      height: auto;
+      margin: 0 auto;
     }
   </style>
 {% endblock extra_css %}
@@ -167,7 +186,9 @@
                 {% endif %}
                 <span class="problem-pill"><i class="ti ti-file-text"></i> Imported</span>
               </div>
-              <div class="problem-statement-body">{{ problem.statement_latex }}</div>
+              <div class="problem-statement-body">
+                {% include 'partials/statement-render-content.html' with segments=problem.statement_render_segments %}
+              </div>
               <p class="problem-muted mt-2 mb-0">Statement import updated {{ problem.statement_updated_at_label }}.</p>
             </div>
             {% else %}
@@ -209,6 +230,10 @@
     tex: {
       packages: {
         "[+]": ["textmacros"]
+      },
+      macros: {
+        hdots: "\\dots",
+        vspace: ["\\kern0pt", 1]
       },
       inlineMath: [["$", "$"], ["\\(", "\\)"]],
       displayMath: [["$$", "$$"], ["\\[", "\\]"]]

@@ -9,6 +9,9 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
 from django.urls import reverse
 
+from inspinia.pages.asymptote_render import AsymptoteRenderResult
+from inspinia.pages.asymptote_render import _extract_svg_markup
+from inspinia.pages.asymptote_render import build_statement_render_segments
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
 from inspinia.pages.models import ProblemTopicTechnique
@@ -102,6 +105,7 @@ EXPECTED_BALKAN_SHORTLIST_PROBLEM_TOTAL = 8
 BALKAN_SHORTLIST_STATEMENT_SAMPLE = (
     Path(__file__).resolve().parent / "testdata" / "balkan_shortlist_sample.txt"
 ).read_text(encoding="utf-8")
+FAKE_ASYMPTOTE_SVG = '<svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" /></svg>'
 
 
 def _analytics_rows(*rows: dict) -> pd.DataFrame:
@@ -633,6 +637,43 @@ def test_import_problem_statements_supports_duplicate_numeric_codes_in_different
     assert "odd prime $p$" in bonus.statement_latex
 
 
+def test_build_statement_render_segments_preserves_text_around_asymptote_blocks(monkeypatch):
+    def fake_render(asy_code: str) -> AsymptoteRenderResult:
+        assert "draw((0,0)--(1,1));" in asy_code
+        return AsymptoteRenderResult(
+            svg_markup=FAKE_ASYMPTOTE_SVG,
+            backend="remote",
+        )
+
+    monkeypatch.setattr("inspinia.pages.asymptote_render.render_asymptote_svg", fake_render)
+
+    segments = build_statement_render_segments(
+        "Before $x$.\n[asy]\nsize(100);\ndraw((0,0)--(1,1));\n[/asy]\nAfter $y$.",
+    )
+
+    assert [segment["kind"] for segment in segments] == ["text", "asymptote", "text"]
+    assert segments[0]["content"] == "Before $x$.\n"
+    assert segments[1]["svg_markup"] == FAKE_ASYMPTOTE_SVG
+    assert segments[1]["backend_label"] == "Rendered via Asymptote Web Application"
+    assert "size(100);" in segments[1]["code"]
+    assert segments[2]["content"] == "\nAfter $y$."
+
+
+def test_extract_svg_markup_strips_unsafe_svg_content():
+    svg_markup = _extract_svg_markup(
+        b'<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)">'
+        b"<script>alert(1)</script>"
+        b'<circle cx="5" cy="5" r="4" onclick="alert(1)" href="javascript:alert(1)" />'
+        b"</svg>",
+    )
+
+    assert svg_markup.startswith("<svg")
+    assert "<script" not in svg_markup
+    assert "onload" not in svg_markup
+    assert "onclick" not in svg_markup
+    assert "javascript:" not in svg_markup
+
+
 def test_home_requires_login(client):
     response = client.get(reverse("pages:home"))
     login_url = reverse(settings.LOGIN_URL)
@@ -656,6 +697,17 @@ def test_latex_preview_requires_login(client):
 
     assert response.status_code == HTTPStatus.FOUND
     assert response.url == f"{login_url}?next={reverse('pages:latex_preview')}"
+
+
+def test_statement_render_preview_requires_login(client):
+    response = client.post(
+        reverse("pages:statement_render_preview"),
+        {"source_text": "[asy]draw((0,0)--(1,1));[/asy]"},
+    )
+    login_url = reverse(settings.LOGIN_URL)
+
+    assert response.status_code == HTTPStatus.FOUND
+    assert response.url == f"{login_url}?next={reverse('pages:statement_render_preview')}"
 
 
 def test_problem_statement_list_requires_login(client):
@@ -683,7 +735,10 @@ def test_latex_preview_allows_authenticated_access(client):
     response = client.get(reverse("pages:latex_preview"))
 
     assert response.status_code == HTTPStatus.OK
-    assert "LaTeX preview" in response.content.decode("utf-8")
+    response_html = response.content.decode("utf-8")
+    assert "LaTeX preview" in response_html
+    assert 'hdots: "\\\\dots"' in response_html
+    assert 'vspace: ["\\\\kern0pt", 1]' in response_html
 
 
 def test_problem_statement_list_shows_statement_rows_and_link_counts(client):
@@ -820,6 +875,34 @@ def test_latex_preview_parse_action_builds_structured_preview_without_saving(cli
         "update_count": 0,
         "update_problem_codes": [],
     }
+
+
+def test_statement_render_preview_returns_rendered_asymptote_html(client, monkeypatch):
+    user = UserFactory()
+    client.force_login(user)
+
+    def fake_render(_asy_code: str) -> AsymptoteRenderResult:
+        return AsymptoteRenderResult(
+            svg_markup=FAKE_ASYMPTOTE_SVG,
+            backend="remote",
+        )
+
+    monkeypatch.setattr("inspinia.pages.asymptote_render.render_asymptote_svg", fake_render)
+
+    response = client.post(
+        reverse("pages:statement_render_preview"),
+        {"source_text": "Figure below.\n[asy]\ndraw((0,0)--(1,1));\n[/asy]\nProve $x=y$."},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    payload = response.json()
+    assert payload["ok"] is True
+    assert payload["has_asymptote"] is True
+    assert "Asymptote" in payload["html"]
+    assert "Rendered via Asymptote Web Application" in payload["html"]
+    assert FAKE_ASYMPTOTE_SVG in payload["html"]
+    assert "Figure below." in payload["html"]
+    assert "Prove $x=y$." in payload["html"]
 
 
 def test_latex_preview_parse_action_shows_duplicate_warning_summary(client):
@@ -1031,6 +1114,52 @@ def test_contest_problem_list_shows_imported_statement_text(client):
     assert "Statement-backed problems rise to the front" in content
     assert "Prove that $1+1=2$." in content
     assert "Statement import updated" in content
+
+
+def test_contest_problem_list_renders_asymptote_statement_blocks(client, monkeypatch):
+    user = UserFactory()
+    client.force_login(user)
+    problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="GEO",
+        mohs=6,
+        contest="IMO",
+        problem="P2",
+        contest_year_problem="IMO 2026 P2",
+    )
+    ContestProblemStatement.objects.create(
+        linked_problem=problem,
+        contest_year=2026,
+        contest_name="IMO",
+        problem_number=2,
+        problem_code="P2",
+        day_label="Day 1",
+        statement_latex="See the figure.\n[asy]\ndraw((0,0)--(1,1));\n[/asy]\nProve $x=y$.",
+    )
+
+    def fake_render(_asy_code: str) -> AsymptoteRenderResult:
+        return AsymptoteRenderResult(
+            svg_markup=FAKE_ASYMPTOTE_SVG,
+            backend="remote",
+        )
+
+    monkeypatch.setattr("inspinia.pages.asymptote_render.render_asymptote_svg", fake_render)
+
+    response = client.get(reverse("pages:contest_problem_list", args=["imo"]))
+
+    assert response.status_code == HTTPStatus.OK
+    first_problem = response.context["grouped_years"][0]["problems"][0]
+    assert first_problem["has_statement"] is True
+    assert first_problem["statement_has_asymptote"] is True
+    assert [segment["kind"] for segment in first_problem["statement_render_segments"]] == [
+        "text",
+        "asymptote",
+        "text",
+    ]
+    response_html = response.content.decode("utf-8")
+    assert "Rendered via Asymptote Web Application" in response_html
+    assert FAKE_ASYMPTOTE_SVG in response_html
+    assert "Show Asymptote source" in response_html
 
 
 def test_home_exposes_live_library_index_for_admin(client):

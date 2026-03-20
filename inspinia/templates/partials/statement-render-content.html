@@ -1,0 +1,33 @@
+<div class="statement-render-content d-flex flex-column gap-3">
+  {% for segment in segments %}
+    {% if segment.kind == "text" %}
+      {% if segment.content %}
+      <div class="statement-text-fragment" data-mathjax-scope>{{ segment.content }}</div>
+      {% endif %}
+    {% elif segment.kind == "asymptote" %}
+      <div class="border rounded-3 bg-body-tertiary p-3">
+        <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+          <span class="badge bg-info-subtle text-info">
+            <i class="ti ti-wave-sine me-1"></i> Asymptote
+          </span>
+          {% if segment.backend_label %}
+          <span class="text-muted fs-xs">{{ segment.backend_label }}</span>
+          {% endif %}
+        </div>
+        {% if segment.svg_markup %}
+        <div class="asymptote-svg-frame">
+          {{ segment.svg_markup|safe }}
+        </div>
+        {% else %}
+        <div class="alert alert-warning mb-0">
+          Could not render this Asymptote block{% if segment.error %}: {{ segment.error }}{% endif %}
+        </div>
+        {% endif %}
+        <details class="mt-3">
+          <summary class="text-muted fs-xs">Show Asymptote source</summary>
+          <pre class="mt-2 mb-0"><code>{{ segment.code }}</code></pre>
+        </details>
+      </div>
+    {% endif %}
+  {% endfor %}
+</div>

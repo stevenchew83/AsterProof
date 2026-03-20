@@ -9,6 +9,7 @@ from inspinia.pages.views import problem_list_view
 from inspinia.pages.views import problem_statement_analytics_view
 from inspinia.pages.views import problem_statement_list_view
 from inspinia.pages.views import root_page_view
+from inspinia.pages.views import statement_render_preview_view
 from inspinia.pages.views import topic_tag_analytics_view
 
 app_name = "pages"
@@ -25,6 +26,7 @@ urlpatterns = [
     ),
     path("dashboard/problem-statements/", problem_statement_list_view, name="problem_statement_list"),
     path("tools/latex-preview/", latex_preview_view, name="latex_preview"),
+    path("tools/render-statement/", statement_render_preview_view, name="statement_render_preview"),
     path("problems/", problem_list_view, name="problem_list"),
     path("problems/contests/<slug:contest_slug>/", contest_problem_list_view, name="contest_problem_list"),
     path("import-problems/", problem_import_view, name="problem_import"),
