@@ -276,3 +276,26 @@ project.min.css
 vendors.js
 *.min.js
 *.min.js.map
+
+# Local env / secrets (django-environ, deployment)
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.*.example
+
+# Dev databases (SQLite default in repo root)
+*.sqlite3
+
+# Ruff (see pyproject.toml)
+.ruff_cache/
+
+# JetBrains
+.idea/
+
+# Explicit macOS folder metadata (in addition to *.DS_Store above)
+.DS_Store
+
+# Celery beat schedule (if used later)
+celerybeat-schedule
+celerybeat-schedule.*
