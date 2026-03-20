@@ -1,52 +1,105 @@
 {% extends "layouts/vertical.html" %}
 
-{% block title %}Account{% endblock title %}
-
+{% block title %}
+  Account
+{% endblock title %}
 {% block page_content %}
-<div class="container-fluid">
-  {% include "partials/page-title.html" with title="Account" subtitle="Users" %}
-
-  <div class="row g-3 mt-0">
-    <div class="col-xl-6">
-      <div class="card">
-        <div class="card-header border-0 pb-0">
-          <h4 class="header-title mb-0">{{ object.name|default:object.email }}</h4>
-          <p class="text-muted fs-xs mb-0">{{ object.get_role_display }}</p>
-        </div>
-        <div class="card-body pt-2">
-          <dl class="row mb-0">
-            <dt class="col-sm-4 text-muted">Email</dt>
-            <dd class="col-sm-8">{{ object.email }}</dd>
-            <dt class="col-sm-4 text-muted">Display name</dt>
-            <dd class="col-sm-8">{{ object.name|default:"-" }}</dd>
-            <dt class="col-sm-4 text-muted">Role</dt>
-            <dd class="col-sm-8">{{ object.get_role_display }}</dd>
-          </dl>
+  <div class="container-fluid">
+    {% include "partials/page-title.html" with title="Account" subtitle="Users" %}
+    <div class="row g-3 mt-0">
+      <div class="col-xl-6">
+        <div class="card">
+          <div class="card-header border-0 pb-0">
+            <h4 class="header-title mb-0">{{ object.name|default:object.email }}</h4>
+            <p class="text-muted fs-xs mb-0">{{ object.get_role_display }}</p>
+          </div>
+          <div class="card-body pt-2">
+            <dl class="row mb-0">
+              <dt class="col-sm-4 text-muted">Email</dt>
+              <dd class="col-sm-8">
+                {{ object.email }}
+              </dd>
+              <dt class="col-sm-4 text-muted">Display name</dt>
+              <dd class="col-sm-8">
+                {{ object.name|default:"-" }}
+              </dd>
+              <dt class="col-sm-4 text-muted">School</dt>
+              <dd class="col-sm-8">
+                {{ object.school|default:"-" }}
+              </dd>
+              <dt class="col-sm-4 text-muted">Contact number</dt>
+              <dd class="col-sm-8">
+                {{ object.contact_number|default:"-" }}
+              </dd>
+              <dt class="col-sm-4 text-muted">Discord username</dt>
+              <dd class="col-sm-8">
+                {{ object.discord_username|default:"-" }}
+              </dd>
+              <dt class="col-sm-4 text-muted">Birthdate</dt>
+              <dd class="col-sm-8">
+                {{ object.birthdate|date:"F j, Y"|default:"-" }}
+              </dd>
+              <dt class="col-sm-4 text-muted">Gender</dt>
+              <dd class="col-sm-8">
+                {{ object.get_gender_display|default:"-" }}
+              </dd>
+              <dt class="col-sm-4 text-muted">Address</dt>
+              <dd class="col-sm-8">
+                {% if object.address %}
+                  {{ object.address|linebreaksbr }}
+                {% else %}
+                  -
+                {% endif %}
+              </dd>
+              <dt class="col-sm-4 text-muted">Postal code</dt>
+              <dd class="col-sm-8">
+                {{ object.postal_code|default:"-" }}
+              </dd>
+              <dt class="col-sm-4 text-muted">Country</dt>
+              <dd class="col-sm-8">
+                {{ object.country|default:"-" }}
+              </dd>
+              <dt class="col-sm-4 text-muted">Social media links</dt>
+              <dd class="col-sm-8">
+                {% if object.social_media_links %}
+                  {{ object.social_media_links|urlize|linebreaksbr }}
+                {% else %}
+                  -
+                {% endif %}
+              </dd>
+              <dt class="col-sm-4 text-muted">Role</dt>
+              <dd class="col-sm-8">
+                {{ object.get_role_display }}
+              </dd>
+            </dl>
+          </div>
         </div>
       </div>
-    </div>
-
-    {% if object == request.user %}
-    <div class="col-xl-6">
-      <div class="card h-100">
-        <div class="card-header border-0 pb-0">
-          <h4 class="header-title mb-0">Account actions</h4>
-          <p class="text-muted fs-xs mb-0">Manage profile data and authentication settings.</p>
+      {% if object == request.user %}
+        <div class="col-xl-6">
+          <div class="card h-100">
+            <div class="card-header border-0 pb-0">
+              <h4 class="header-title mb-0">Account actions</h4>
+              <p class="text-muted fs-xs mb-0">Manage profile data and authentication settings.</p>
+            </div>
+            <div class="card-body pt-2 d-flex flex-wrap gap-2 align-content-start">
+              <a class="btn btn-primary" href="{% url 'users:update' %}" role="button">
+                <i class="ti ti-settings-2 me-1"></i> Edit profile
+              </a>
+              <a class="btn btn-outline-secondary"
+                 href="{% url 'account_email' %}"
+                 role="button">
+                <i class="ti ti-mail me-1"></i> Email settings
+              </a>
+              <a class="btn btn-outline-secondary"
+                 href="{% url 'mfa_index' %}"
+                 role="button">
+                <i class="ti ti-shield-lock me-1"></i> MFA
+              </a>
+            </div>
+          </div>
         </div>
-        <div class="card-body pt-2 d-flex flex-wrap gap-2 align-content-start">
-          <a class="btn btn-primary" href="{% url 'users:update' %}" role="button">
-            <i class="ti ti-settings-2 me-1"></i> Edit profile
-          </a>
-          <a class="btn btn-outline-secondary" href="{% url 'account_email' %}" role="button">
-            <i class="ti ti-mail me-1"></i> Email settings
-          </a>
-          <a class="btn btn-outline-secondary" href="{% url 'mfa_index' %}" role="button">
-            <i class="ti ti-shield-lock me-1"></i> MFA
-          </a>
-        </div>
-      </div>
+      {% endif %}
     </div>
-    {% endif %}
   </div>
-</div>
 {% endblock page_content %}

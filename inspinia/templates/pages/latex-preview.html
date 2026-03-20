@@ -1,0 +1,401 @@
+{% extends 'layouts/vertical.html' %}
+
+{% load i18n %}
+
+{% block title %}LaTeX preview{% endblock title %}
+
+{% block extra_css %}
+<style>
+  .latex-preview-surface {
+    min-height: 32rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .latex-problem-statement {
+    min-height: 12rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+</style>
+{% endblock extra_css %}
+
+{% block page_content %}
+
+<div class="container-fluid">
+  {% include 'partials/page-title.html' with title='LaTeX preview' subtitle='Workspace tool' %}
+
+  {% if messages %}
+  <div class="mt-3">
+    {% for message in messages %}
+      <div class="alert alert-{% if message.tags == 'error' %}danger{% elif message.tags == 'debug' %}secondary{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="{% translate 'Close' %}"></button>
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="row g-3 mt-0">
+    <div class="col-12">
+      <form id="latex-preview-form" method="post" class="card">
+        {% csrf_token %}
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-0">Paste contest text, preview the rendered math, and parse statement blocks</h4>
+          <p class="text-muted fs-xs mb-0">The parser extracts contest year, contest name, day labels, numbered problems, and statement text from scraped contest listings.</p>
+        </div>
+        <div class="card-body pt-2">
+          {% if form.non_field_errors %}
+          <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+          {% endif %}
+          <div class="d-flex flex-wrap gap-2 align-items-center">
+            <button type="button" class="btn btn-primary" id="latex-preview-render">
+              <i class="ti ti-brackets me-1"></i>Render preview
+            </button>
+            <button type="submit" name="action" value="preview" class="btn btn-outline-secondary">
+              <i class="ti ti-list-details me-1"></i>Parse structure
+            </button>
+            {% if show_problem_import_link %}
+            <button type="submit" name="action" value="save" class="btn btn-success">
+              <i class="ti ti-database-import me-1"></i>Save to database
+            </button>
+            {% else %}
+            <div class="alert alert-secondary py-2 px-3 mb-0">
+              Save access follows the problem-data admin rules.
+            </div>
+            {% endif %}
+            <button type="button" class="btn btn-outline-secondary" id="latex-preview-load-sample">
+              <i class="ti ti-file-description me-1"></i>Load sample
+            </button>
+            <button type="button" class="btn btn-outline-secondary" id="latex-preview-clear">
+              <i class="ti ti-eraser me-1"></i>Clear
+            </button>
+            <div class="form-check ms-sm-2">
+              <input class="form-check-input" type="checkbox" value="" id="latex-preview-auto-render" checked>
+              <label class="form-check-label" for="latex-preview-auto-render">
+                Auto render while typing
+              </label>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-0 mb-4">
+    <div class="col-xl-6">
+      <div class="card h-100">
+        <div class="card-header border-bottom">
+          <h4 class="header-title mb-0">Raw notation</h4>
+        </div>
+        <div class="card-body">
+          <label class="form-label" for="latex-preview-input">Input</label>
+          {{ form.source_text }}
+          {% for error in form.source_text.errors %}
+          <div class="invalid-feedback d-block">{{ error }}</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-6">
+      <div class="card h-100">
+        <div class="card-header border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
+          <div>
+            <h4 class="header-title mb-0">Rendered preview</h4>
+            <p class="text-muted fs-xs mb-0">MathJax typesets the current text in place.</p>
+          </div>
+          <div id="latex-preview-status" class="alert alert-secondary py-2 px-3 mb-0">
+            Waiting for render.
+          </div>
+        </div>
+        <div class="card-body">
+          <div id="latex-preview-output" class="border rounded-3 bg-body-tertiary p-3 latex-preview-surface"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if parsed_statement_payload %}
+  <div class="row g-3 mt-0">
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-primary-subtle text-primary rounded">
+                <i class="ti ti-trophy fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Contest</p>
+              <h3 class="mb-0 fs-lg">{{ parsed_statement_payload.contest_name }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-info-subtle text-info rounded">
+                <i class="ti ti-calendar-event fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Year</p>
+              <h3 class="mb-0">{{ parsed_statement_payload.contest_year }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-success-subtle text-success rounded">
+                <i class="ti ti-list-numbers fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Problems</p>
+              <h3 class="mb-0">{{ parsed_statement_payload.problem_count }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-warning-subtle text-warning rounded">
+                <i class="ti ti-calendar-stats fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Day sections</p>
+              <h3 class="mb-0">{{ parsed_statement_payload.day_rows|length }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if statement_import_result %}
+  <div class="row g-3 mt-1">
+    <div class="col-12">
+      <div class="alert alert-success mb-0">
+        Saved statements: <strong>{{ statement_import_result.created_count }}</strong> created,
+        <strong>{{ statement_import_result.updated_count }}</strong> updated,
+        <strong>{{ statement_import_result.linked_problem_count }}</strong> linked to existing problem rows.
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if statement_save_preview %}
+  <div class="row g-3 mt-1">
+    <div class="col-12">
+      {% if statement_save_preview.existing_count %}
+      <div class="alert alert-warning mb-0">
+        <div class="fw-semibold mb-1">Duplicate check before save</div>
+        This import will not create duplicate contest/problem keys.
+        <strong>{{ statement_save_preview.existing_count }}</strong> existing row(s) were found for this contest.
+        Saving will create <strong>{{ statement_save_preview.create_count }}</strong> row(s),
+        update <strong>{{ statement_save_preview.update_count }}</strong> row(s),
+        and refresh <strong>{{ statement_save_preview.unchanged_count }}</strong> identical row(s).
+        {% if statement_save_preview.existing_problem_codes %}
+        <div class="text-muted fs-xs mt-2">Existing keys: {{ statement_save_preview.existing_problem_codes|join:", " }}</div>
+        {% endif %}
+        {% if statement_save_preview.update_problem_codes %}
+        <div class="text-muted fs-xs">Will update: {{ statement_save_preview.update_problem_codes|join:", " }}</div>
+        {% endif %}
+        {% if statement_save_preview.unchanged_problem_codes %}
+        <div class="text-muted fs-xs">Already identical: {{ statement_save_preview.unchanged_problem_codes|join:", " }}</div>
+        {% endif %}
+      </div>
+      {% else %}
+      <div class="alert alert-info mb-0">
+        Duplicate check before save: all <strong>{{ statement_save_preview.create_count }}</strong> parsed row(s) are new.
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="row g-3 mt-1 mb-4">
+    <div class="col-xl-4">
+      <div class="card h-100">
+        <div class="card-header border-bottom">
+          <h4 class="header-title mb-0">Day breakdown</h4>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-striped align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th scope="col">Day</th>
+                  <th scope="col" class="text-nowrap">Problems</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in parsed_statement_payload.day_rows %}
+                <tr>
+                  <td>{{ row.label }}</td>
+                  <td class="text-nowrap">{{ row.problem_count }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="2" class="text-muted">No day labels were detected.</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-8">
+      <div class="card h-100">
+        <div class="card-header border-bottom">
+          <h4 class="header-title mb-0">Parsed problem statements</h4>
+          <p class="text-muted fs-xs mb-0">This preview is generated from the backend parser, not from client-side text splitting.</p>
+        </div>
+        <div class="card-body" id="latex-parsed-preview-root">
+          <div class="d-flex flex-column gap-3">
+            {% for problem in parsed_statement_payload.problems %}
+            <div class="border rounded-3 p-3">
+              <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+                <div>
+                  <h5 class="mb-1">{{ problem.problem_code }} · {{ problem.day_label }}</h5>
+                  <div class="text-muted fs-xs">{{ problem.contest_year_problem }}</div>
+                </div>
+                {% if problem.linked_problem_label %}
+                <span class="badge text-bg-success">Matched analytics row</span>
+                {% else %}
+                <span class="badge text-bg-secondary">No analytics match yet</span>
+                {% endif %}
+              </div>
+              <div class="border rounded-3 bg-body-tertiary p-3 latex-problem-statement">{{ problem.statement_latex }}</div>
+              {% if problem.linked_problem_label %}
+              <div class="text-muted fs-xs mt-2">Linked problem: {{ problem.linked_problem_label }}</div>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+{{ latex_preview_sample|json_script:"latex-preview-sample-data" }}
+
+{% endblock page_content %}
+
+{% block extra_javascript %}
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [["$", "$"], ["\\(", "\\)"]],
+    displayMath: [["$$", "$$"], ["\\[", "\\]"]]
+  },
+  options: {
+    skipHtmlTags: ["script", "noscript", "style", "textarea", "pre", "code"]
+  },
+  startup: {
+    ready: function () {
+      MathJax.startup.defaultReady();
+      window.dispatchEvent(new Event("asterproof:mathjax-ready"));
+    }
+  }
+};
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<script>
+(function () {
+  var input = document.getElementById("latex-preview-input");
+  var output = document.getElementById("latex-preview-output");
+  var renderButton = document.getElementById("latex-preview-render");
+  var loadSampleButton = document.getElementById("latex-preview-load-sample");
+  var clearButton = document.getElementById("latex-preview-clear");
+  var autoRender = document.getElementById("latex-preview-auto-render");
+  var status = document.getElementById("latex-preview-status");
+  var sampleNode = document.getElementById("latex-preview-sample-data");
+  var sampleText = sampleNode ? JSON.parse(sampleNode.textContent) : "";
+  var renderTimer = null;
+  var emptyMessage = "Paste problem text with $...$ or \\[...\\] and the rendered preview will appear here.";
+
+  function setStatus(message, tone) {
+    status.className = "alert py-2 px-3 mb-0 alert-" + tone;
+    status.textContent = message;
+  }
+
+  function showEmptyState() {
+    output.textContent = emptyMessage;
+    setStatus("Waiting for input.", "secondary");
+  }
+
+  function renderPreview() {
+    var value = input.value;
+    if (!value.trim()) {
+      showEmptyState();
+      return;
+    }
+
+    output.textContent = value;
+
+    if (!window.MathJax || typeof window.MathJax.typesetPromise !== "function") {
+      setStatus("Math renderer is loading. Plain text preview is shown for now.", "warning");
+      return;
+    }
+
+    var renderTargets = [output];
+    var parsedPreviewRoot = document.getElementById("latex-parsed-preview-root");
+    if (parsedPreviewRoot) {
+      renderTargets.push(parsedPreviewRoot);
+    }
+
+    if (typeof window.MathJax.typesetClear === "function") {
+      window.MathJax.typesetClear(renderTargets);
+    }
+
+    window.MathJax.typesetPromise(renderTargets).then(function () {
+      setStatus("Preview updated.", "success");
+    }).catch(function (error) {
+      setStatus("MathJax could not render part of the input: " + error.message, "danger");
+    });
+  }
+
+  function scheduleRender() {
+    if (!autoRender.checked) return;
+    window.clearTimeout(renderTimer);
+    renderTimer = window.setTimeout(renderPreview, 200);
+  }
+
+  renderButton.addEventListener("click", renderPreview);
+  loadSampleButton.addEventListener("click", function () {
+    input.value = sampleText;
+    renderPreview();
+  });
+  clearButton.addEventListener("click", function () {
+    input.value = "";
+    showEmptyState();
+  });
+  input.addEventListener("input", scheduleRender);
+  window.addEventListener("asterproof:mathjax-ready", renderPreview);
+
+  showEmptyState();
+  renderPreview();
+})();
+</script>
+{% endblock extra_javascript %}

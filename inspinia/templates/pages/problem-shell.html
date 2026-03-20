@@ -1,0 +1,446 @@
+{% extends 'base.html' %}
+
+{% load static %}
+
+{% block body_attribute %}class="landing-body"{% endblock body_attribute %}
+
+{% block extra_css %}
+<style>
+  .landing-body {
+    background:
+      radial-gradient(circle at top left, rgba(13, 110, 253, 0.18), transparent 34%),
+      radial-gradient(circle at 85% 15%, rgba(25, 135, 84, 0.14), transparent 24%),
+      linear-gradient(180deg, #f5f8ff 0%, #fbfcff 46%, #f3f6fb 100%);
+    color: #11203b;
+  }
+
+  .problem-shell {
+    position: relative;
+    overflow: hidden;
+    min-height: 100vh;
+  }
+
+  .problem-shell::before,
+  .problem-shell::after {
+    content: "";
+    position: absolute;
+    border-radius: 999px;
+    filter: blur(4px);
+    opacity: 0.72;
+    pointer-events: none;
+  }
+
+  .problem-shell::before {
+    inset: 7rem auto auto -8rem;
+    width: 20rem;
+    height: 20rem;
+    background: linear-gradient(135deg, rgba(13, 110, 253, 0.18), rgba(13, 202, 240, 0.08));
+  }
+
+  .problem-shell::after {
+    inset: 24rem -5rem auto auto;
+    width: 16rem;
+    height: 16rem;
+    background: linear-gradient(135deg, rgba(255, 193, 7, 0.16), rgba(220, 53, 69, 0.08));
+  }
+
+  .landing-navbar {
+    position: sticky;
+    top: 0;
+    z-index: 1030;
+    background: rgba(255, 255, 255, 0.78);
+    backdrop-filter: blur(18px);
+    border-bottom: 1px solid rgba(17, 32, 59, 0.08);
+  }
+
+  .landing-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.9rem;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .landing-brand-mark {
+    width: 2.65rem;
+    height: 2.65rem;
+    border-radius: 1rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #0d6efd, #25b7ff);
+    color: #fff;
+    box-shadow: 0 16px 36px rgba(13, 110, 253, 0.28);
+  }
+
+  .landing-brand-copy span {
+    display: block;
+    line-height: 1.1;
+  }
+
+  .landing-brand-copy span:first-child {
+    font-size: 0.82rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #4f5e78;
+  }
+
+  .landing-brand-copy strong {
+    font-size: 1.12rem;
+    letter-spacing: 0.02em;
+  }
+
+  .landing-nav-link {
+    color: #21324e;
+    font-weight: 600;
+    padding: 0.65rem 0.95rem !important;
+  }
+
+  .landing-nav-link:hover,
+  .landing-nav-link:focus,
+  .landing-nav-link.is-active {
+    color: #0d6efd;
+  }
+
+  .problem-page {
+    position: relative;
+    z-index: 1;
+    padding: 4.25rem 0 0;
+  }
+
+  .problem-section {
+    padding: 0 0 2rem;
+  }
+
+  .problem-hero-card,
+  .problem-stat-card,
+  .problem-directory-card,
+  .problem-year-card,
+  .problem-detail-card,
+  .landing-footer-card {
+    border: 1px solid rgba(17, 32, 59, 0.08);
+    background: rgba(255, 255, 255, 0.86);
+    box-shadow: 0 24px 60px rgba(16, 24, 40, 0.08);
+    border-radius: 1.75rem;
+  }
+
+  .problem-hero-card,
+  .problem-directory-card,
+  .problem-year-card,
+  .landing-footer-card {
+    padding: 1.5rem;
+  }
+
+  .problem-label {
+    color: #0d57cc;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .problem-title {
+    font-size: clamp(2.2rem, 5vw, 3.8rem);
+    line-height: 1.02;
+    letter-spacing: -0.04em;
+    margin: 1rem 0 0.9rem;
+    max-width: 12ch;
+  }
+
+  .problem-lead,
+  .problem-muted {
+    color: #5b6a82;
+  }
+
+  .problem-lead {
+    max-width: 44rem;
+    font-size: 1.04rem;
+    line-height: 1.8;
+  }
+
+  .problem-search-shell {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.65rem;
+    border-radius: 1.35rem;
+    border: 1px solid rgba(17, 32, 59, 0.08);
+    background: #fff;
+  }
+
+  .problem-search-shell .form-control {
+    border: 0;
+    background: transparent;
+    box-shadow: none !important;
+    padding-left: 0;
+  }
+
+  .problem-hint-row,
+  .problem-badge-row,
+  .problem-preview-row,
+  .problem-chip-row,
+  .landing-footer-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .problem-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+
+  .problem-stat-card {
+    padding: 1.2rem;
+  }
+
+  .problem-stat-value {
+    font-size: clamp(1.6rem, 3vw, 2.3rem);
+    line-height: 1;
+    margin: 0.85rem 0 0.3rem;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    color: #11203b;
+  }
+
+  .problem-pill,
+  .problem-preview-chip,
+  .problem-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border-radius: 999px;
+    padding: 0.42rem 0.78rem;
+    background: #eff4fb;
+    color: #31425e;
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .problem-directory,
+  .problem-year-list {
+    display: grid;
+    gap: 1rem;
+    margin-top: 1.25rem;
+  }
+
+  .problem-directory-head,
+  .problem-year-head,
+  .problem-detail-top,
+  .landing-footer-bottom {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .problem-directory-meta {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.9rem;
+    margin-top: 1rem;
+  }
+
+  .problem-meta-block {
+    padding: 0.95rem;
+    border-radius: 1.1rem;
+    border: 1px solid rgba(17, 32, 59, 0.07);
+    background: #f7f9fd;
+  }
+
+  .problem-meta-value {
+    margin-top: 0.35rem;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #11203b;
+  }
+
+  .problem-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+
+  .problem-detail-card {
+    padding: 1rem;
+  }
+
+  .problem-back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: #0d57cc;
+    font-weight: 700;
+    text-decoration: none;
+    margin-bottom: 1rem;
+  }
+
+  .landing-footer {
+    padding: 3rem 0 2rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  .landing-footer-card {
+    padding: 1.5rem;
+  }
+
+  .landing-footer a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .landing-footer a:hover,
+  .landing-footer a:focus {
+    color: #0d6efd;
+  }
+
+  .landing-footer-bottom {
+    margin-top: 1.4rem;
+    padding-top: 1.2rem;
+    border-top: 1px solid rgba(17, 32, 59, 0.08);
+    color: #61718a;
+    font-size: 0.92rem;
+  }
+
+  @media (max-width: 991.98px) {
+    .problem-stat-grid,
+    .problem-directory-meta,
+    .problem-detail-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  @media (max-width: 767.98px) {
+    .problem-stat-grid,
+    .problem-directory-meta,
+    .problem-detail-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .problem-search-shell,
+    .problem-directory-head,
+    .problem-year-head,
+    .problem-detail-top,
+    .landing-footer-bottom {
+      flex-direction: column;
+    }
+  }
+
+  @media (max-width: 575.98px) {
+    .problem-hero-card,
+    .problem-stat-card,
+    .problem-directory-card,
+    .problem-year-card,
+    .problem-detail-card,
+    .landing-footer-card {
+      border-radius: 1.3rem;
+    }
+  }
+</style>
+{% endblock extra_css %}
+
+{% block content %}
+<div class="problem-shell">
+  <nav class="navbar navbar-expand-lg landing-navbar">
+    <div class="container">
+      <a href="{% url 'pages:home' %}" class="landing-brand">
+        <span class="landing-brand-mark">
+          <i class="ti ti-asterisk-simple"></i>
+        </span>
+        <span class="landing-brand-copy">
+          <span>Placeholder Name</span>
+          <strong>AsterProof</strong>
+        </span>
+      </a>
+
+      <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#problem-navbar-nav" aria-controls="problem-navbar-nav" aria-expanded="false" aria-label="Toggle navigation">
+        <i class="ti ti-menu-2 fs-24"></i>
+      </button>
+
+      <div class="collapse navbar-collapse" id="problem-navbar-nav">
+        <ul class="navbar-nav ms-auto align-items-lg-center">
+          <li class="nav-item"><a class="nav-link landing-nav-link" href="{% url 'pages:home' %}">Home</a></li>
+          <li class="nav-item"><a class="nav-link landing-nav-link" href="{% url 'pages:home' %}#about-us">About Us</a></li>
+          <li class="nav-item">
+            <a class="nav-link landing-nav-link {% if request.resolver_match.url_name == 'problem_list' or request.resolver_match.url_name == 'contest_problem_list' %}is-active{% endif %}" href="{% url 'pages:problem_list' %}">
+              Problems
+            </a>
+          </li>
+          <li class="nav-item"><a class="nav-link landing-nav-link" href="{% url 'pages:home' %}#trending">Trending</a></li>
+          <li class="nav-item"><a class="nav-link landing-nav-link" href="{% url 'pages:home' %}#contact">Contact</a></li>
+          <li class="nav-item ms-lg-2">
+            <a class="btn btn-primary rounded-pill px-4 {% if request.resolver_match.url_name == 'profile' or request.resolver_match.url_name == 'profile_edit' %}active{% endif %}" href="{% url 'users:profile' %}">
+              Profile
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <main class="problem-page">
+    {% block problem_page_content %}{% endblock problem_page_content %}
+  </main>
+
+  <footer class="landing-footer">
+    <div class="container">
+      <div class="landing-footer-card">
+        <div class="row g-4">
+          <div class="col-lg-4">
+            <a href="{% url 'pages:home' %}" class="landing-brand">
+              <span class="landing-brand-mark">
+                <i class="ti ti-asterisk-simple"></i>
+              </span>
+              <span class="landing-brand-copy">
+                <span>Placeholder Name</span>
+                <strong>AsterProof</strong>
+              </span>
+            </a>
+            <p class="problem-muted mt-3 mb-0">
+              A contest-first archive for searching problem identifiers, opening yearly contest lists, and growing into full statement pages later.
+            </p>
+          </div>
+          <div class="col-sm-6 col-lg-3">
+            <h3 class="h6 mb-3">Navigate</h3>
+            <div class="landing-footer-links flex-column align-items-start gap-2">
+              <a href="{% url 'pages:home' %}">Home</a>
+              <a href="{% url 'pages:home' %}#about-us">About Us</a>
+              <a href="{% url 'pages:problem_list' %}">Problems</a>
+              <a href="{% url 'pages:home' %}#trending">Trending</a>
+              <a href="{% url 'pages:home' %}#contact">Contact</a>
+            </div>
+          </div>
+          <div class="col-sm-6 col-lg-2">
+            <h3 class="h6 mb-3">Workspace</h3>
+            <div class="landing-footer-links flex-column align-items-start gap-2">
+              <a href="{% url 'users:profile' %}">Profile</a>
+              <a href="{% url 'users:profile_edit' %}">Edit profile</a>
+              {% if show_analytics_dashboard_link %}
+              <a href="{% url 'pages:contest_dashboard' %}">Admin analytics</a>
+              {% endif %}
+            </div>
+          </div>
+          <div class="col-lg-3">
+            <h3 class="h6 mb-3">Direction</h3>
+            <div class="problem-hint-row">
+              <span class="problem-pill">Contest directory</span>
+              <span class="problem-pill">Yearly checklist</span>
+              <span class="problem-pill">Statements later</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="landing-footer-bottom">
+          <span>&copy; <script>document.write(new Date().getFullYear())</script> AsterProof</span>
+          <span>Standalone problem browsing from the main top nav.</span>
+        </div>
+      </div>
+    </div>
+  </footer>
+</div>
+{% endblock content %}

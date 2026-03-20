@@ -150,6 +150,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
+    "inspinia.users.middleware.TrackActiveSessionMiddleware",
 ]
 
 # STATIC

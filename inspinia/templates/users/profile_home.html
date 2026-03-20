@@ -1,0 +1,690 @@
+{% extends "pages/problem-shell.html" %}
+
+{% block title %}Profile{% endblock title %}
+
+{% block extra_css %}
+  {{ block.super }}
+  <style>
+    .profile-hero-card {
+      padding: 1.75rem;
+    }
+
+    .profile-title {
+      max-width: 16ch;
+      margin-bottom: 0.75rem;
+    }
+
+    .profile-hero-head,
+    .profile-action-stack,
+    .profile-detail-stack {
+      display: flex;
+      gap: 1rem;
+    }
+
+    .profile-hero-head {
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .profile-action-stack {
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .profile-detail-stack {
+      flex-direction: column;
+      margin-top: 1.1rem;
+    }
+
+    .profile-detail-item {
+      padding: 1rem 1.1rem;
+      border-radius: 1.1rem;
+      border: 1px solid rgba(17, 32, 59, 0.07);
+      background: #f7f9fd;
+    }
+
+    .profile-detail-label {
+      color: #5b6a82;
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .profile-detail-value {
+      margin-top: 0.45rem;
+      color: #11203b;
+      font-size: 1rem;
+      line-height: 1.7;
+      word-break: break-word;
+    }
+
+    .profile-detail-value a {
+      color: #0d57cc;
+    }
+
+    .profile-completion-list {
+      display: grid;
+      gap: 0.9rem;
+      margin-top: 1.25rem;
+    }
+
+    .profile-completion-row {
+      padding: 1rem 1.1rem;
+      border-radius: 1.1rem;
+      border: 1px solid rgba(17, 32, 59, 0.07);
+      background: #f7f9fd;
+    }
+
+    .profile-completion-head,
+    .profile-completion-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .profile-completion-meta {
+      justify-content: flex-start;
+      margin-top: 0.65rem;
+    }
+
+    .profile-completion-title {
+      font-weight: 700;
+      color: #11203b;
+    }
+
+    .profile-completion-uuid {
+      color: #5b6a82;
+      font-size: 0.82rem;
+    }
+
+    .profile-analytics-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .profile-analytics-card {
+      padding: 1rem 1.1rem;
+      border-radius: 1.1rem;
+      border: 1px solid rgba(17, 32, 59, 0.07);
+      background: #f7f9fd;
+    }
+
+    .profile-analytics-label {
+      color: #5b6a82;
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .profile-analytics-value {
+      margin-top: 0.55rem;
+      font-size: 1.6rem;
+      font-weight: 800;
+      line-height: 1;
+      color: #11203b;
+    }
+
+    .profile-analytics-helper {
+      margin-top: 0.45rem;
+      color: #5b6a82;
+      font-size: 0.92rem;
+      line-height: 1.5;
+    }
+
+    .profile-bar-list {
+      display: grid;
+      gap: 0.9rem;
+      margin-top: 1.25rem;
+    }
+
+    .profile-bar-row {
+      display: grid;
+      gap: 0.4rem;
+    }
+
+    .profile-bar-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      color: #11203b;
+      font-weight: 700;
+    }
+
+    .profile-bar-track {
+      width: 100%;
+      height: 0.6rem;
+      border-radius: 999px;
+      background: rgba(13, 87, 204, 0.12);
+      overflow: hidden;
+    }
+
+    .profile-bar-fill {
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #0d6efd, #25b7ff);
+    }
+
+    .profile-content-section,
+    .profile-main-section {
+      padding-bottom: 0.75rem;
+    }
+
+    .profile-bottom-row {
+      align-items: flex-start;
+      margin-top: 1rem !important;
+    }
+
+    .profile-stack-card {
+      height: auto !important;
+    }
+
+    .profile-import-row {
+      margin-top: 1rem !important;
+    }
+
+    .profile-import-panel {
+      position: relative;
+      z-index: 2;
+      isolation: isolate;
+      background: #ffffff;
+    }
+
+    .landing-footer {
+      padding-top: 0.75rem;
+    }
+
+    @media (max-width: 767.98px) {
+      .profile-hero-head {
+        flex-direction: column;
+      }
+
+      .profile-action-stack {
+        justify-content: flex-start;
+      }
+
+      .profile-analytics-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+{% endblock extra_css %}
+
+{% block problem_page_content %}
+  <section class="problem-section profile-content-section">
+    <div class="container">
+      <a class="problem-back-link" href="{% url 'pages:home' %}">
+        <i class="ti ti-arrow-left"></i>
+        Back to home
+      </a>
+
+      {% if messages %}
+      <div class="mt-4">
+        {% for message in messages %}
+          <div class="alert alert-{% if message.tags == 'error' %}danger{% elif message.tags == 'debug' %}secondary{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <div class="problem-hero-card profile-hero-card">
+        <span class="problem-label">Profile</span>
+        <div class="profile-hero-head mt-3">
+          <div>
+            <h1 class="problem-title profile-title">{{ profile_user.name|default:profile_user.email }}</h1>
+            <p class="problem-lead mb-0">
+              Your landing-space profile keeps account details easy to manage without sending you into the admin dashboard.
+            </p>
+          </div>
+          <div class="profile-action-stack">
+            <a class="btn btn-primary rounded-pill px-4" href="{% url 'users:profile_edit' %}">
+              <i class="ti ti-edit me-1"></i> Edit profile
+            </a>
+            <a class="btn btn-outline-secondary rounded-pill px-4" href="{% url 'pages:problem_list' %}">
+              <i class="ti ti-list-details me-1"></i> Browse problems
+            </a>
+          </div>
+        </div>
+
+        <div class="problem-chip-row mt-4">
+          <span class="problem-pill"><i class="ti ti-mail"></i> {{ profile_user.email }}</span>
+          <span class="problem-pill"><i class="ti ti-shield-check"></i> {{ profile_user.get_role_display }}</span>
+          {% if profile_user.school %}
+            <span class="problem-pill"><i class="ti ti-school"></i> {{ profile_user.school }}</span>
+          {% endif %}
+          {% if profile_user.country %}
+            <span class="problem-pill"><i class="ti ti-world"></i> {{ profile_user.country }}</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="problem-section profile-main-section">
+    <div class="container">
+      <div class="row g-4">
+        <div class="col-lg-7">
+          <div class="problem-directory-card h-100">
+            <div class="problem-directory-head">
+              <div>
+                <span class="problem-label">Identity</span>
+                <h2 class="h3 mt-2 mb-1">Your account details</h2>
+                <p class="problem-muted mb-0">These details are visible here in the public-facing product shell.</p>
+              </div>
+            </div>
+
+            <div class="profile-detail-stack">
+              <div class="profile-detail-item">
+                <div class="profile-detail-label">Display name</div>
+                <div class="profile-detail-value">{{ profile_user.name|default:"-" }}</div>
+              </div>
+              <div class="profile-detail-item">
+                <div class="profile-detail-label">School</div>
+                <div class="profile-detail-value">{{ profile_user.school|default:"-" }}</div>
+              </div>
+              <div class="profile-detail-item">
+                <div class="profile-detail-label">Birthdate</div>
+                <div class="profile-detail-value">{{ profile_user.birthdate|date:"F j, Y"|default:"-" }}</div>
+              </div>
+              <div class="profile-detail-item">
+                <div class="profile-detail-label">Gender</div>
+                <div class="profile-detail-value">{{ profile_user.get_gender_display|default:"-" }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-5">
+          <div class="problem-directory-card h-100">
+            <div class="problem-directory-head">
+              <div>
+                <span class="problem-label">Contact</span>
+                <h2 class="h3 mt-2 mb-1">How people can reach you</h2>
+                <p class="problem-muted mb-0">Keep these up to date so future coaching, classes, and team workflows stay easy.</p>
+              </div>
+            </div>
+
+            <div class="profile-detail-stack">
+              <div class="profile-detail-item">
+                <div class="profile-detail-label">Contact number</div>
+                <div class="profile-detail-value">{{ profile_user.contact_number|default:"-" }}</div>
+              </div>
+              <div class="profile-detail-item">
+                <div class="profile-detail-label">Discord username</div>
+                <div class="profile-detail-value">{{ profile_user.discord_username|default:"-" }}</div>
+              </div>
+              <div class="profile-detail-item">
+                <div class="profile-detail-label">Address</div>
+                <div class="profile-detail-value">
+                  {% if profile_user.address %}
+                    {{ profile_user.address|linebreaksbr }}
+                  {% else %}
+                    -
+                  {% endif %}
+                </div>
+              </div>
+              <div class="profile-detail-item">
+                <div class="profile-detail-label">Postal code</div>
+                <div class="profile-detail-value">{{ profile_user.postal_code|default:"-" }}</div>
+              </div>
+              <div class="profile-detail-item">
+                <div class="profile-detail-label">Country</div>
+                <div class="profile-detail-value">{{ profile_user.country|default:"-" }}</div>
+              </div>
+              <div class="profile-detail-item">
+                <div class="profile-detail-label">Social media links</div>
+                <div class="profile-detail-value">
+                  {% if profile_user.social_media_links %}
+                    {{ profile_user.social_media_links|urlize|linebreaksbr }}
+                  {% else %}
+                    -
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-4 mt-1 profile-bottom-row">
+        <div class="col-12">
+          <div class="problem-year-card profile-stack-card">
+            <div class="problem-year-head">
+              <div>
+                <span class="problem-label">Completion analytics</span>
+                <h2 class="h3 mt-2 mb-1">Your solving dashboard</h2>
+                <p class="problem-muted mb-0">
+                  A quick read on what you have finished, where your solved set is concentrated, and how much of it has exact dates attached.
+                </p>
+              </div>
+            </div>
+
+            <div class="profile-analytics-grid">
+              <div class="profile-analytics-card">
+                <div class="profile-analytics-label">Completed</div>
+                <div class="profile-analytics-value">{{ completion_analytics.completed_total }}</div>
+                <div class="profile-analytics-helper">Problems currently marked as solved.</div>
+              </div>
+              <div class="profile-analytics-card">
+                <div class="profile-analytics-label">Exact dates</div>
+                <div class="profile-analytics-value">{{ completion_analytics.dated_total }}</div>
+                <div class="profile-analytics-helper">Rows with a known completion date.</div>
+              </div>
+              <div class="profile-analytics-card">
+                <div class="profile-analytics-label">Marked Done</div>
+                <div class="profile-analytics-value">{{ completion_analytics.unknown_date_total }}</div>
+                <div class="profile-analytics-helper">Completed without an exact day.</div>
+              </div>
+              <div class="profile-analytics-card">
+                <div class="profile-analytics-label">Contests covered</div>
+                <div class="profile-analytics-value">{{ completion_analytics.contest_total }}</div>
+                <div class="profile-analytics-helper">Distinct contests in your solved set.</div>
+              </div>
+              <div class="profile-analytics-card">
+                <div class="profile-analytics-label">Topics covered</div>
+                <div class="profile-analytics-value">{{ completion_analytics.topic_total }}</div>
+                <div class="profile-analytics-helper">Distinct root topics solved so far.</div>
+              </div>
+              <div class="profile-analytics-card">
+                <div class="profile-analytics-label">Avg MOHS</div>
+                <div class="profile-analytics-value">
+                  {% if completion_analytics.avg_mohs is not None %}
+                    {{ completion_analytics.avg_mohs|floatformat:1 }}
+                  {% else %}
+                    -
+                  {% endif %}
+                </div>
+                <div class="profile-analytics-helper">Average difficulty across your solved set.</div>
+              </div>
+              <div class="profile-analytics-card">
+                <div class="profile-analytics-label">Hardest solved</div>
+                <div class="profile-analytics-value">
+                  {% if completion_analytics.max_mohs is not None %}
+                    MOHS {{ completion_analytics.max_mohs }}
+                  {% else %}
+                    -
+                  {% endif %}
+                </div>
+                <div class="profile-analytics-helper">Highest MOHS currently marked complete.</div>
+              </div>
+              <div class="profile-analytics-card">
+                <div class="profile-analytics-label">Latest exact date</div>
+                <div class="profile-analytics-value">
+                  {% if completion_analytics.latest_completion_date %}
+                    {{ completion_analytics.latest_completion_date|date:"Y-m-d" }}
+                  {% else %}
+                    -
+                  {% endif %}
+                </div>
+                <div class="profile-analytics-helper">
+                  Year coverage: {{ completion_analytics.year_range_label }}.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-8">
+          <div class="problem-year-card profile-stack-card mb-4">
+            <div class="problem-year-head">
+              <div>
+                <span class="problem-label">Completion history</span>
+                <h2 class="h3 mt-2 mb-1">Your recent solved problems</h2>
+                <p class="problem-muted mb-0">
+                  Imported rows show up here. Exact dates are shown when known, and <span class="fw-semibold">Done</span> is used when the date is unknown.
+                </p>
+              </div>
+            </div>
+
+            {% if recent_completion_items %}
+              <div class="profile-completion-list">
+                {% for completion in recent_completion_items %}
+                  <div class="profile-completion-row">
+                    <div class="profile-completion-head">
+                      <div class="profile-completion-title">{{ completion.display_label }}</div>
+                      <span class="problem-pill">
+                        <i class="ti ti-circle-check"></i>
+                        {% if completion.completion_known %}
+                          Completed {{ completion.completion_date|date:"Y-m-d" }}
+                        {% else %}
+                          Done
+                        {% endif %}
+                      </span>
+                    </div>
+                    <div class="profile-completion-meta">
+                      <span class="problem-pill">{{ completion.topic }}</span>
+                      <span class="problem-pill">{{ completion.problem }}</span>
+                      <span class="profile-completion-uuid font-monospace">{{ completion.problem_uuid }}</span>
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+
+              {% if recent_completion_hidden_count %}
+                <p class="problem-muted mt-4 mb-0">
+                  Showing the most recent {{ recent_completion_items|length }} completion{{ recent_completion_items|length|pluralize }}.
+                  {{ recent_completion_hidden_count }} older row{{ recent_completion_hidden_count|pluralize }} are still saved.
+                </p>
+              {% endif %}
+            {% else %}
+              <div class="alert alert-light mt-4 mb-0">
+                No completion rows yet. Paste your `PROBLEM UUID + Date` list in the import panel at the bottom to start building your history.
+              </div>
+            {% endif %}
+          </div>
+
+          <div class="problem-year-card profile-stack-card">
+            <div class="problem-year-head">
+              <div>
+                <span class="problem-label">Account actions</span>
+                <h2 class="h3 mt-2 mb-1">Security and account settings</h2>
+                <p class="problem-muted mb-0">Use the public profile as your home base, then jump into account controls when needed.</p>
+              </div>
+            </div>
+            <div class="problem-chip-row mt-4">
+              <a class="problem-pill" href="{% url 'users:profile_edit' %}"><i class="ti ti-edit"></i> Edit profile</a>
+              <a class="problem-pill" href="{% url 'account_email' %}"><i class="ti ti-mail"></i> Email settings</a>
+              <a class="problem-pill" href="{% url 'mfa_index' %}"><i class="ti ti-shield-lock"></i> MFA</a>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-4">
+          <div class="problem-year-card profile-stack-card mb-4">
+            <div class="problem-year-head">
+              <div>
+                <span class="problem-label">Breakdown</span>
+                <h2 class="h3 mt-2 mb-1">Top contests</h2>
+                <p class="problem-muted mb-0">Where most of your solved problems currently come from.</p>
+              </div>
+            </div>
+            {% if completion_dashboards.top_contests %}
+              <div class="profile-bar-list">
+                {% for row in completion_dashboards.top_contests %}
+                  <div class="profile-bar-row">
+                    <div class="profile-bar-head">
+                      <span>{{ row.label }}</span>
+                      <span>{{ row.total }}</span>
+                    </div>
+                    <div class="profile-bar-track">
+                      <div class="profile-bar-fill" style="width: {{ row.width_pct }}%;"></div>
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <p class="problem-muted mt-4 mb-0">No solved contests yet.</p>
+            {% endif %}
+          </div>
+
+          <div class="problem-year-card profile-stack-card mb-4">
+            <div class="problem-year-head">
+              <div>
+                <span class="problem-label">Breakdown</span>
+                <h2 class="h3 mt-2 mb-1">Top topics</h2>
+                <p class="problem-muted mb-0">A simple topic mix for your completed archive.</p>
+              </div>
+            </div>
+            {% if completion_dashboards.top_topics %}
+              <div class="profile-bar-list">
+                {% for row in completion_dashboards.top_topics %}
+                  <div class="profile-bar-row">
+                    <div class="profile-bar-head">
+                      <span>{{ row.label }}</span>
+                      <span>{{ row.total }}</span>
+                    </div>
+                    <div class="profile-bar-track">
+                      <div class="profile-bar-fill" style="width: {{ row.width_pct }}%;"></div>
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <p class="problem-muted mt-4 mb-0">No solved topics yet.</p>
+            {% endif %}
+          </div>
+
+          <div class="problem-year-card profile-stack-card mb-4">
+            <div class="problem-year-head">
+              <div>
+                <span class="problem-label">Difficulty</span>
+                <h2 class="h3 mt-2 mb-1">MOHS breakdown</h2>
+                <p class="problem-muted mb-0">How your solved archive is distributed across MOHS levels.</p>
+              </div>
+            </div>
+            {% if completion_dashboards.by_mohs %}
+              <div class="profile-bar-list">
+                {% for row in completion_dashboards.by_mohs %}
+                  <div class="profile-bar-row">
+                    <div class="profile-bar-head">
+                      <span>{{ row.label }}</span>
+                      <span>{{ row.total }}</span>
+                    </div>
+                    <div class="profile-bar-track">
+                      <div class="profile-bar-fill" style="width: {{ row.width_pct }}%;"></div>
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <p class="problem-muted mt-4 mb-0">No solved MOHS levels yet.</p>
+            {% endif %}
+          </div>
+
+          <div class="problem-year-card profile-stack-card mb-4">
+            <div class="problem-year-head">
+              <div>
+                <span class="problem-label">Recency</span>
+                <h2 class="h3 mt-2 mb-1">Recent dated activity</h2>
+                <p class="problem-muted mb-0">Only exact completion dates are counted in these windows.</p>
+              </div>
+            </div>
+            <div class="profile-detail-stack mt-4">
+              <div class="profile-analytics-card">
+                <div class="profile-analytics-label">Last 30 days</div>
+                <div class="profile-analytics-value">{{ completion_analytics.recent_30d_total }}</div>
+                <div class="profile-analytics-helper">Recent completions with known dates.</div>
+              </div>
+              <div class="profile-analytics-card">
+                <div class="profile-analytics-label">Last 90 days</div>
+                <div class="profile-analytics-value">{{ completion_analytics.recent_90d_total }}</div>
+                <div class="profile-analytics-helper">Broader recent solving window.</div>
+              </div>
+              <div class="profile-analytics-card">
+                <div class="profile-analytics-label">Problem years</div>
+                <div class="profile-analytics-value">{{ completion_analytics.year_range_label }}</div>
+                <div class="profile-analytics-helper">Contest years represented in your solved set.</div>
+              </div>
+            </div>
+            {% if completion_dashboards.year_breakdown %}
+              <div class="profile-bar-list">
+                {% for row in completion_dashboards.year_breakdown %}
+                  <div class="profile-bar-row">
+                    <div class="profile-bar-head">
+                      <span>{{ row.label }}</span>
+                      <span>{{ row.total }}</span>
+                    </div>
+                    <div class="profile-bar-track">
+                      <div class="profile-bar-fill" style="width: {{ row.width_pct }}%;"></div>
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+            {% endif %}
+          </div>
+
+          <div class="problem-year-card profile-stack-card">
+            <div class="problem-year-head">
+              <div>
+                <span class="problem-label">Next stop</span>
+                <h2 class="h3 mt-2 mb-1">Keep moving</h2>
+                <p class="problem-muted mb-0">Return to the contest explorer when you want to browse the archive from the top navigation flow.</p>
+              </div>
+            </div>
+            <div class="mt-4">
+              <a class="btn btn-outline-secondary rounded-pill px-4" href="{% url 'pages:problem_list' %}">
+                <i class="ti ti-arrow-right me-1"></i> Go to problems
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-4 profile-import-row">
+        <div class="col-12">
+          <div class="problem-directory-card profile-import-panel">
+            <div class="row g-4 align-items-start">
+              <div class="col-lg-5">
+                <span class="problem-label">Completion import</span>
+                <h2 class="h3 mt-2 mb-1">Paste solved problems here.</h2>
+                <p class="problem-muted mb-0">
+                  Update your own completion history from your profile. Paste <span class="fw-semibold">PROBLEM UUID + Date</span> rows and use <span class="fw-semibold">Done</span> when you do not remember the exact date.
+                </p>
+                <div class="problem-badge-row mt-4">
+                  <span class="problem-pill">{{ completion_import_stats.completed_total }} completed</span>
+                  <span class="problem-pill">{{ completion_import_stats.dated_total }} dated</span>
+                  <span class="problem-pill">{{ completion_import_stats.unknown_date_total }} marked Done</span>
+                </div>
+                <div class="problem-chip-row mt-4">
+                  <a class="problem-pill" href="{% url 'pages:problem_list' %}">
+                    <i class="ti ti-list-details"></i> Find problem UUIDs
+                  </a>
+                </div>
+              </div>
+              <div class="col-lg-7">
+                <form method="post">
+                  {% csrf_token %}
+                  <label for="{{ completion_import_form.source_text.id_for_label }}" class="form-label fw-semibold">
+                    {{ completion_import_form.source_text.label }}
+                  </label>
+                  {{ completion_import_form.source_text }}
+                  {% if completion_import_form.source_text.errors %}
+                    <div class="text-danger small mt-2">{{ completion_import_form.source_text.errors|join:", " }}</div>
+                  {% endif %}
+                  {% if completion_import_form.source_text.help_text %}
+                    <div class="form-text mt-2">{{ completion_import_form.source_text.help_text }}</div>
+                  {% endif %}
+                  <div class="d-flex flex-wrap gap-2 mt-3">
+                    <button type="submit" class="btn btn-primary rounded-pill px-4">
+                      <i class="ti ti-upload me-1"></i> Import completions
+                    </button>
+                    <span class="problem-muted small align-self-center">
+                      Header row is optional. Tabs or plain whitespace both work.
+                    </span>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+{% endblock problem_page_content %}

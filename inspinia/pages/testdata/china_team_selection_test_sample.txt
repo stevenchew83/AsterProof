@@ -1,0 +1,94 @@
+2026 China Team Selection Test3
+1	Round One
+Test 1
+1	Let \(\{F_n\}\) be the Fibonacci sequence, where \(F_0 = 0\), \(F_1 = 1\), and define \(F_{-1}, F_{-2}, \ldots\) by recurrence. Initially, the pair \((0,0)\) is written on the blackboard. In one operation, we erase the current pair \((x, y)\) and write either \((x + F_k, y + F_{k+1})\) or \((x - F_k, y - F_{k+1})\), where \(k\) is any integer. Prove that there exists a constant \(C\) such that for any positive integers \(p, q\), we can obtain \((p, q)\) in at most \(C \ln(p+q)\) operations.
+
+steven_zhang123
+view topic
+Solution
+
+EeEeRUT
+view topic
+2	Given a circle \(\Omega\), two points \(A, B\) on \(\Omega\), and a point \(C\) such that \(\angle ACB = 90^\circ\) and \(AC < BC\). Let \(M\) be the midpoint of \(AB\), and let \(P\) be a moving point on the major arc \(AB\) such that \(\angle CMP > 90^\circ\). Define \(Q\) by \(CQ \parallel PM\) and \(\angle QPM = \angle MCP\). Prove that there exists a fixed point \(K\) in the plane such that we always have \(\angle PQK = \angle PCK\).
+
+steven_zhang123
+view topic
+Solution
+
+bin_sherlo
+view topic
+3	Let integers \(n > k > 1\), and let \(z_1, z_2, \ldots, z_n\) be complex numbers with modulus at most 1. Prove that
+\[
+\left| \binom{n}{k}  - \sum_{1 \le i_1 < i_2 < \cdots < i_k \le n} z_{i_1} z_{i_2} \cdots z_{i_k} \right| \le \binom{n-1}{k-1}  \left| n - \sum_{i=1}^n z_i \right|,
+\]and find the condition for equality.
+
+steven_zhang123
+view topic
+Solution
+
+Rushery_10
+view topic
+Test 2
+4	Let $G = (V, E)$ be a simple graph, where $V = \{(x, y, z) \mid 1 \leq x, y, z \leq 2026\}$ and vertices $(x, y, z)$ and $(x', y', z')$ are connected if and only if $|x - x'| + |y - y'| + |z - z'| = 1$. Each vertex $v$ is labelled with a real number $f(v)$ so that the sum of all labels is $0$. For an edge $e \in E$, let $g(e)$ denote the absolute value of the difference between the labels of the two endpoints of $e$. Prove that, for any real number $p \geq 1$, we have\[ \sum_{v \in V} |f(v)|^p \leq 6677^p \cdot \sum_{e \in E} g(e)^p. \]
+
+Scilyse
+view topic
+Solution
+
+Rushery_10
+view topic
+5	Find the least integer $k$ for which the edges of the complete graph $K_{2026}$ can be labelled with the numbers $1$, $2$, $\dots$, $\binom{2026}{2}$, with each number used exactly once, such that between any two vertices, there exists a path whose sum of edge labels does not exceed $k$.
+
+Scilyse
+view topic
+Solution
+
+EthanWYX2009
+view topic
+6	Let $\{a_n\}$ be a sequence satisfying $a_1 = 2$, and for $n \geq 2$, $a_n$ is the smallest prime number that does not divide
+\[
+\prod_{k=1}^{n-1} (a_k + n - k).
+\]For a prime $p$, let $f(p)$ denote the number of times $p$ appears in this sequence. Prove that for any positive integer $m$ and any $m$ distinct primes $p_1, p_2, \ldots, p_m$, we have
+\[
+\sum_{i=1}^m f(p_i) \leq \frac{1}{2} \left( \max_{1 \leq i \leq m} p_i + \sum_{i=1}^m p_i \right).
+\]
+
+jhz
+view topic
+Solution
+
+jhz
+view topic
+Test 3
+7	For a finite set $X$ and an integer $t$, define $X + t = \{x + t \mid x \in X\}$, and let $\sigma(X)$ denote the sum of the elements of $X$.
+
+Is it true that for every integer $m \geq 2$, there exist a set $A$ of $m$ positive integers and $m$ pairwise distinct integers $t_1$, $t_2$, $\dots$, $t_m$ such that\[ \sigma(A \cup (A + t_1)) = \sigma(A \cup (A + t_2)) = \dots = \sigma(A \cup (A + t_m))? \]
+
+Scilyse
+view topic
+8	Given integers \(m, n\) satisfying \(n > 2m > 2\). There is a group of \(n\) members, and some pairs of members are friends, with friendship being mutual. They are to be divided into \(m\) committees, each member participating in exactly one committee. First, the chair and vice-chair of each committee are determined. At this point, it is found that there is exactly one way to assign the remaining \(n - 2m\) members to the committees such that in each committee, all members (including the chair and vice-chair) are pairwise friends. It is allowed that a committee consists only of the chair and vice-chair. Find the maximum possible number of (unordered) friend pairs among the \(n\) members.
+
+steven_zhang123
+view topic
+9	Let $m,n$ be positive integers, $P_1,P_2$ be a non-constant polynomials of $m$ variables with integer coefficients, and $Q_1,Q_2$ be a non-constant polynomials of ${n}$ variables with integer coefficients. It is known that for any integers $a_1,a_2,\cdots,a_m,b_1,b_2,\cdots,b_n$ such that $P_1(a_1,a_2,\cdots ,a_m)\neq Q_1(b_1,b_2,\cdots ,b_n)$,$$\frac{P_2(a_1,a_2,\cdots ,a_m)- Q_2(b_1,b_2,\cdots ,b_n)}{P_1(a_1,a_2,\cdots ,a_m)-Q_1(b_1,b_2,\cdots ,b_n)}$$is an integer.
+
+Show that there exists a one variable polynomial $R(x)$ with rational coefficients, such that $P_2=R(P_1)$, $Q_2=R(P_2)$.
+
+EthanWYX2009
+view topic
+Test 4
+10	Let $n > 1$ be an integer. For a positive integer $k$, let $d_k$ denote the number of divisors of $n$ in the interval $[1, n^{\frac 1k}]$. Prove that for any integer $k \geq 2$, we have\[ d_{k + 1} \geq \sqrt{2d_k} - k - \frac 12. \]
+
+Scilyse
+view topic
+11	Let $ABCD$ be a convex quadrilateral. The incircle of $\triangle ABC$ touches $AB$ and $BC$ at $S$ and $T$, respectively; the incircle of $\triangle BCD$ touches $BC$ and $CD$ at $U$ and $V$, respectively; the incircle of $\triangle CDA$ touches $CD$ and $DA$ at $X$ and $Y$, respectively; the incircle of $\triangle DAB$ touches $DA$ and $AB$ at $Z$ and $W$, respectively; the $A$-excircle of $\triangle DAB$ touches $DA$ and $AB$ at $E$ and $F$, respectively; and the $C$-excircle of $\triangle BCD$ touches $BC$ and $CD$ at $G$ and $H$, respectively. Prove that if the quadrilateral formed by lines $SY$, $TX$, $UW$ and $VZ$ is cyclic, then $E$, $F$, $G$ and $H$ are concyclic.
+
+Scilyse
+view topic
+12	Let $A$ be a set with $n$ elements, $\mathcal{F}$ be a family of subsets of $A$, such that the union of all sets in $\mathcal{F}$ is $A$. Prove that there is a subset $\mathcal{G}$ of $\mathcal{F}$, such that there is a subset $T$ of $A$, satisfying:
+
+(i) $\left| T \right| \ge \frac{n}{1 + \frac 12 + \dots + \frac 1n}$;
+
+(ii) $T$ is included in the union of all sets in $\mathcal{G}$;
+
+(iii) $X \cap Y \cap T = \varnothing$ for every pair of distinct sets $X, Y$ in \(\mathcal{G}\).

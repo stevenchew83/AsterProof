@@ -1,5 +1,6 @@
 from allauth.account.forms import SignupForm
 from allauth.socialaccount.forms import SignupForm as SocialSignupForm
+from django import forms
 from django.contrib.auth import forms as admin_forms
 from django.forms import EmailField
 from django.utils.translation import gettext_lazy as _
@@ -25,6 +26,48 @@ class UserAdminCreationForm(admin_forms.AdminUserCreationForm):
         field_classes = {"email": EmailField}
         error_messages = {
             "email": {"unique": _("This email has already been taken.")},
+        }
+
+
+class UserProfileForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = (
+            "name",
+            "school",
+            "contact_number",
+            "discord_username",
+            "birthdate",
+            "gender",
+            "address",
+            "postal_code",
+            "country",
+            "social_media_links",
+        )
+        widgets = {
+            "birthdate": forms.DateInput(
+                attrs={
+                    "type": "date",
+                    "autocomplete": "bday",
+                },
+                format="%Y-%m-%d",
+            ),
+            "contact_number": forms.TextInput(
+                attrs={"autocomplete": "tel"},
+            ),
+            "address": forms.Textarea(
+                attrs={
+                    "rows": 3,
+                    "autocomplete": "street-address",
+                },
+            ),
+            "postal_code": forms.TextInput(
+                attrs={"autocomplete": "postal-code"},
+            ),
+            "country": forms.TextInput(
+                attrs={"autocomplete": "country-name"},
+            ),
+            "social_media_links": forms.Textarea(attrs={"rows": 3}),
         }
 
 

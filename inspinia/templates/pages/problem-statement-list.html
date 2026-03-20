@@ -1,0 +1,191 @@
+{% extends 'layouts/vertical.html' %}
+
+{% load static %}
+
+{% block title %}Problem statements{% endblock title %}
+
+{% block extra_css %}
+{% if statement_total > 0 %}
+<link rel="stylesheet" href="{% static 'plugins/datatables/dataTables.bootstrap5.min.css' %}">
+{% endif %}
+{% endblock extra_css %}
+
+{% block page_content %}
+<div class="container-fluid">
+
+  {% include 'partials/page-title.html' with title='Problem statements' subtitle='Library' %}
+
+  <div class="row g-3 mt-0">
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-primary-subtle text-primary rounded">
+                <i class="ti ti-file-text fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Statements</p>
+              <h3 class="mb-0">{{ statement_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-success-subtle text-success rounded">
+                <i class="ti ti-link fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Linked to problems</p>
+              <h3 class="mb-0">{{ statement_stats.linked_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-warning-subtle text-warning rounded">
+                <i class="ti ti-unlink fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Unlinked</p>
+              <h3 class="mb-0">{{ statement_stats.unlinked_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-info-subtle text-info rounded">
+                <i class="ti ti-calendar-stats fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Year span</p>
+              <h3 class="mb-0 fs-lg">{{ statement_stats.year_range_label }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if statement_total == 0 %}
+  <div class="alert alert-info mt-4" role="alert">
+    <strong>No statement rows yet.</strong>
+    Save parsed results from <a href="{% url 'pages:latex_preview' %}" class="alert-link">LaTeX preview</a> to build this table.
+  </div>
+  {% else %}
+  <div class="row g-3 mt-1 mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header border-bottom d-flex flex-wrap align-items-center gap-2">
+          <div class="flex-grow-1">
+            <h4 class="header-title mb-0">All problem statements</h4>
+            <p class="text-muted fs-xs mb-0">
+              Search by contest, UUID, day label, linked problem, or statement preview. Rows imported before analytics still carry a stable UUID.
+            </p>
+          </div>
+          <span class="badge text-bg-light">{{ statement_stats.contest_total }} contests</span>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table id="problem-statements-table" class="table table-striped table-bordered align-middle w-100"></table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+{{ statement_table_rows|json_script:"problem-statement-table-data" }}
+{% endblock page_content %}
+
+{% block extra_javascript %}
+{% if statement_total > 0 %}
+<script src="{% static 'plugins/datatables/dataTables.min.js' %}"></script>
+<script src="{% static 'plugins/datatables/dataTables.bootstrap5.min.js' %}"></script>
+<script>
+(function () {
+  var dataEl = document.getElementById("problem-statement-table-data");
+  if (!dataEl || typeof DataTable === "undefined") return;
+
+  function escapeHtml(value) {
+    return String(value || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  var rows = JSON.parse(dataEl.textContent);
+
+  new DataTable("#problem-statements-table", {
+    data: rows,
+    columns: [
+      {
+        data: "problem_uuid",
+        title: "Problem UUID",
+        className: "text-nowrap",
+        render: function (data, type) {
+          if (type !== "display") return data;
+          return "<code>" + escapeHtml(data) + "</code>";
+        }
+      },
+      { data: "contest_year", title: "Year", className: "text-nowrap" },
+      { data: "contest_name", title: "Contest" },
+      { data: "problem_code", title: "Problem", className: "text-nowrap" },
+      { data: "day_label", title: "Day", className: "text-nowrap" },
+      {
+        data: "linked_problem_label",
+        title: "Linked problem",
+        defaultContent: "",
+        render: function (data, type, row) {
+          if (type !== "display") return data;
+          if (row.linked_problem_url) {
+            return '<a href="' + escapeHtml(row.linked_problem_url) + '">' + escapeHtml(data) + "</a>";
+          }
+          if (row.is_linked) {
+            return escapeHtml(data);
+          }
+          return '<span class="badge text-bg-secondary">Unlinked</span>';
+        }
+      },
+      {
+        data: "statement_preview",
+        title: "Preview",
+        defaultContent: "",
+        render: function (data, type, row) {
+          if (type !== "display") return data;
+          return '<span title="' + escapeHtml(data) + '">' + escapeHtml(data) + "</span>";
+        }
+      },
+      { data: "statement_length", title: "Chars", className: "text-nowrap" },
+      { data: "updated_at", title: "Updated", className: "text-nowrap" }
+    ],
+    order: [[1, "desc"], [2, "asc"], [3, "asc"]],
+    pageLength: 25,
+    lengthMenu: [10, 25, 50, 100]
+  });
+})();
+</script>
+{% endif %}
+{% endblock extra_javascript %}

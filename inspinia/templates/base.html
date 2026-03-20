@@ -30,9 +30,12 @@
 </head>
 <body {% block body_attribute %}{% endblock body_attribute %}>
 
+{% block body %}
 {% block preloader %}{% endblock %}
-
 {% block content %}{% endblock content %}
+{% endblock body %}
+
+{% block extra_body %}{% endblock extra_body %}
 
 {% block javascript %}
 

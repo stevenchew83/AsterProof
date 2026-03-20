@@ -1,0 +1,242 @@
+{% extends 'layouts/vertical.html' %}
+
+{% load i18n %}
+
+{% block title %}{% translate "Session monitor" %}{% endblock title %}
+
+{% block page_content %}
+
+<div class="container-fluid">
+  {% include 'partials/page-title.html' with title='User sessions' subtitle='Admin monitoring' %}
+
+  {% if messages %}
+  <div class="mt-3">
+    {% for message in messages %}
+      <div class="alert alert-{% if message.tags == 'error' %}danger{% elif message.tags == 'debug' %}secondary{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="{% translate 'Close' %}"></button>
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="row g-3 mt-0">
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-success-subtle text-success rounded">
+                <i class="ti ti-device-laptop fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">{% translate "Active sessions" %}</p>
+              <h3 class="mb-0">{{ active_session_count }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-primary-subtle text-primary rounded">
+                <i class="ti ti-users-group fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">{% translate "Active users" %}</p>
+              <h3 class="mb-0">{{ active_user_count }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-info-subtle text-info rounded">
+                <i class="ti ti-clock-plus fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">{% translate "Started in 24h" %}</p>
+              <h3 class="mb-0">{{ new_session_count_24h }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-warning-subtle text-warning rounded">
+                <i class="ti ti-hourglass-low fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">{% translate "Ended today" %}</p>
+              <h3 class="mb-0">{{ ended_session_count_today }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-1">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-0">{% translate "Filter sessions" %}</h4>
+          <p class="text-muted fs-xs mb-0">{% translate "Focus on active sessions by default, or search for a user/device." %}</p>
+        </div>
+        <div class="card-body pt-2">
+          <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-3">
+              <label for="status-filter" class="form-label">{% translate "Status" %}</label>
+              <select id="status-filter" name="status" class="form-select">
+                <option value="active" {% if status_filter == 'active' %}selected{% endif %}>{% translate "Active" %}</option>
+                <option value="ended" {% if status_filter == 'ended' %}selected{% endif %}>{% translate "Ended" %}</option>
+                <option value="all" {% if status_filter == 'all' %}selected{% endif %}>{% translate "All" %}</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label for="session-query" class="form-label">{% translate "Search" %}</label>
+              <input
+                id="session-query"
+                type="text"
+                name="q"
+                value="{{ search_query }}"
+                class="form-control"
+                placeholder="{% translate 'Email, name, or user agent' %}"
+              >
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+              <button type="submit" class="btn btn-primary">
+                <i class="ti ti-filter me-1"></i>{% translate "Apply" %}
+              </button>
+              <a href="{% url 'users:session_monitor' %}" class="btn btn-outline-secondary">
+                <i class="ti ti-refresh me-1"></i>{% translate "Reset" %}
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-0 mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header border-bottom d-flex flex-wrap align-items-center gap-2">
+          <div class="flex-grow-1">
+            <h4 class="header-title mb-0">{% translate "Tracked sessions" %}</h4>
+            <p class="text-muted fs-xs mb-0">{% translate "Revocation is limited to non-current sessions to avoid locking out the active admin tab." %}</p>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-striped align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th scope="col">{% translate "User" %}</th>
+                  <th scope="col">{% translate "Status" %}</th>
+                  <th scope="col">{% translate "Last seen" %}</th>
+                  <th scope="col">{% translate "Expires" %}</th>
+                  <th scope="col">{% translate "IP" %}</th>
+                  <th scope="col">{% translate "Client" %}</th>
+                  <th scope="col" class="text-end">{% translate "Action" %}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for tracked_session in page_obj %}
+                <tr>
+                  <td>
+                    <div class="fw-semibold">{{ tracked_session.user.email }}</div>
+                    <div class="text-muted fs-xs">
+                      {{ tracked_session.user.name|default:"—" }}
+                      {% if tracked_session.session_key == current_session_key %}
+                      <span class="badge text-bg-primary ms-1">{% translate "Current" %}</span>
+                      {% endif %}
+                    </div>
+                  </td>
+                  <td>
+                    <span class="badge {{ tracked_session.session_status_badge_class }}">
+                      {{ tracked_session.session_status_label }}
+                    </span>
+                  </td>
+                  <td class="text-nowrap">
+                    <div>{{ tracked_session.last_seen_at|date:"Y-m-d H:i" }}</div>
+                    <div class="text-muted fs-xs">
+                      {% translate "Started" %}: {{ tracked_session.created_at|date:"Y-m-d H:i" }}
+                    </div>
+                  </td>
+                  <td class="text-nowrap">
+                    <div>{{ tracked_session.expires_at|date:"Y-m-d H:i" }}</div>
+                    {% if tracked_session.ended_at %}
+                    <div class="text-muted fs-xs">
+                      {% translate "Ended" %}: {{ tracked_session.ended_at|date:"Y-m-d H:i" }}
+                    </div>
+                    {% endif %}
+                  </td>
+                  <td class="text-nowrap">{{ tracked_session.ip_address|default:"—" }}</td>
+                  <td class="text-muted fs-xs">{{ tracked_session.user_agent|default:"—"|truncatechars:90 }}</td>
+                  <td class="text-end">
+                    {% if tracked_session.ended_at %}
+                    <span class="text-muted fs-xs">{% translate "No action" %}</span>
+                    {% elif tracked_session.session_key == current_session_key %}
+                    <span class="text-muted fs-xs">{% translate "Current session" %}</span>
+                    {% else %}
+                    <form method="post" class="d-inline">
+                      {% csrf_token %}
+                      <input type="hidden" name="session_key" value="{{ tracked_session.session_key }}">
+                      <button type="submit" class="btn btn-sm btn-outline-danger">
+                        <i class="ti ti-lock-x me-1"></i>{% translate "Revoke" %}
+                      </button>
+                    </form>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="7" class="text-muted">{% translate "No sessions match the current filters." %}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          {% if page_obj.paginator.num_pages > 1 %}
+          <nav class="mt-3" aria-label="{% translate 'Session pagination' %}">
+            <ul class="pagination pagination-boxed mb-0">
+              {% if page_obj.has_previous %}
+              <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{{ pagination_suffix }}">{% translate "Previous" %}</a>
+              </li>
+              {% endif %}
+              <li class="page-item active">
+                <span class="page-link">{{ page_obj.number }}</span>
+              </li>
+              {% if page_obj.has_next %}
+              <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{{ pagination_suffix }}">{% translate "Next" %}</a>
+              </li>
+              {% endif %}
+            </ul>
+          </nav>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock page_content %}

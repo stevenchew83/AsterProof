@@ -70,7 +70,19 @@
             <li class="side-nav-item">
                 <a href="{% url 'pages:dashboard' %}" class="side-nav-link">
                     <span class="menu-icon"><i class="ti ti-chart-bar"></i></span>
-                    <span class="menu-text">Analytics dashboard</span>
+                    <span class="menu-text">Problem analytics</span>
+                </a>
+            </li>
+            <li class="side-nav-item">
+                <a href="{% url 'pages:contest_dashboard' %}" class="side-nav-link">
+                    <span class="menu-icon"><i class="ti ti-trophy"></i></span>
+                    <span class="menu-text">Contest analytics</span>
+                </a>
+            </li>
+            <li class="side-nav-item">
+                <a href="{% url 'pages:topic_tag_dashboard' %}" class="side-nav-link">
+                    <span class="menu-icon"><i class="ti ti-tags"></i></span>
+                    <span class="menu-text">Topic tag analytics</span>
                 </a>
             </li>
             {% endif %}
@@ -79,10 +91,24 @@
             <li class="side-nav-item">
                 <a href="{% url 'pages:problem_import' %}" class="side-nav-link">
                     <span class="menu-icon"><i class="ti ti-file-upload"></i></span>
-                    <span class="menu-text">Import problems</span>
+                    <span class="menu-text">Problem data</span>
                 </a>
             </li>
             {% endif %}
+
+            <li class="side-nav-item">
+                <a href="{% url 'pages:latex_preview' %}" class="side-nav-link">
+                    <span class="menu-icon"><i class="ti ti-brackets"></i></span>
+                    <span class="menu-text">LaTeX preview</span>
+                </a>
+            </li>
+
+            <li class="side-nav-item">
+                <a href="{% url 'pages:problem_statement_list' %}" class="side-nav-link">
+                    <span class="menu-icon"><i class="ti ti-file-text"></i></span>
+                    <span class="menu-text">Problem statements</span>
+                </a>
+            </li>
 
             {% if request.user.is_authenticated %}
             <li class="side-nav-item">
@@ -94,12 +120,32 @@
             {% endif %}
 
             {% if is_app_admin %}
+            <li class="side-nav-title">Admin</li>
+
             <li class="side-nav-item">
                 <a href="{% url 'users:manage_roles' %}" class="side-nav-link">
                     <span class="menu-icon"><i class="ti ti-user-cog"></i></span>
                     <span class="menu-text">User roles</span>
                 </a>
             </li>
+
+            {% if show_session_monitor_link %}
+            <li class="side-nav-item">
+                <a href="{% url 'users:session_monitor' %}" class="side-nav-link">
+                    <span class="menu-icon"><i class="ti ti-device-laptop"></i></span>
+                    <span class="menu-text">Session monitor</span>
+                </a>
+            </li>
+            {% endif %}
+
+            {% if show_event_log_link %}
+            <li class="side-nav-item">
+                <a href="{% url 'users:event_log' %}" class="side-nav-link">
+                    <span class="menu-icon"><i class="ti ti-logs"></i></span>
+                    <span class="menu-text">Event log</span>
+                </a>
+            </li>
+            {% endif %}
             {% endif %}
         </ul>
     </div>

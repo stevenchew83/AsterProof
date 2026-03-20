@@ -1,0 +1,309 @@
+{% extends 'layouts/vertical.html' %}
+
+{% load static i18n %}
+
+{% block title %}Topic tag analytics{% endblock title %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'plugins/datatables/dataTables.bootstrap5.min.css' %}">
+{% endblock extra_css %}
+
+{% block page_content %}
+
+<div class="container-fluid">
+
+  {% include 'partials/page-title.html' with title='Topic tag analytics' subtitle='Admin' %}
+
+  <div class="row g-3 mt-0">
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-primary-subtle text-primary rounded">
+                <i class="ti ti-tags fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Distinct tags</p>
+              <h3 class="mb-0">{{ topic_tag_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-info-subtle text-info rounded">
+                <i class="ti ti-binary-tree-2 fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Tagged problems</p>
+              <h3 class="mb-0">{{ tagged_problem_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-warning-subtle text-warning rounded">
+                <i class="ti ti-trophy fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Contests touched</p>
+              <h3 class="mb-0">{{ topic_tag_stats.contest_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-success-subtle text-success rounded">
+                <i class="ti ti-stack-3 fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Avg tags per problem</p>
+              <h3 class="mb-0">{{ topic_tag_stats.average_tags_per_problem }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if topic_tag_total == 0 %}
+  <div class="alert alert-info mt-4" role="alert">
+    <strong>No topic tag data yet.</strong> Import analytics via <a href="{% url 'pages:problem_import' %}" class="alert-link">Import problems</a> to populate this dashboard.
+  </div>
+  {% else %}
+
+  <div class="row g-3 mt-1">
+    <div class="col-xxl-8">
+      <div class="card">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-0">Tag usage volume</h4>
+          <p class="text-muted fs-xs mb-0">Most-used topic tags by tagged problem count</p>
+        </div>
+        <div class="card-body pt-2">
+          <div id="chart-tag-volume" style="min-height: 340px;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xxl-4">
+      <div class="card h-100">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-0">Tag leaders</h4>
+          <p class="text-muted fs-xs mb-0">The tags doing the most work across scale, spread, and longevity</p>
+        </div>
+        <div class="card-body pt-2">
+          <div class="d-flex flex-column gap-3">
+            <div class="border rounded p-3">
+              <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Most used</p>
+              <div class="d-flex align-items-center justify-content-between gap-2">
+                <h5 class="mb-0">{{ topic_tag_leaders.most_used.technique }}</h5>
+                <span class="badge bg-primary-subtle text-primary">{{ topic_tag_leaders.most_used.problem_count }} problems</span>
+              </div>
+            </div>
+            <div class="border rounded p-3">
+              <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Broadest contest coverage</p>
+              <div class="d-flex align-items-center justify-content-between gap-2">
+                <h5 class="mb-0">{{ topic_tag_leaders.broadest_contest.technique }}</h5>
+                <span class="badge bg-info-subtle text-info">{{ topic_tag_leaders.broadest_contest.contest_count }} contests</span>
+              </div>
+            </div>
+            <div class="border rounded p-3">
+              <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Broadest domain mix</p>
+              <div class="d-flex align-items-center justify-content-between gap-2">
+                <h5 class="mb-0">{{ topic_tag_leaders.broadest_domain.technique }}</h5>
+                <span class="badge bg-warning-subtle text-warning">{{ topic_tag_leaders.broadest_domain.domain_count }} domains</span>
+              </div>
+            </div>
+            <div class="border rounded p-3">
+              <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Longest-running</p>
+              <div class="d-flex align-items-center justify-content-between gap-2">
+                <h5 class="mb-0">{{ topic_tag_leaders.longest_running.technique }}</h5>
+                <span class="badge bg-success-subtle text-success">{{ topic_tag_leaders.longest_running.active_years }} years</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-0">
+    <div class="col-xl-6">
+      <div class="card">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-0">Contest coverage</h4>
+          <p class="text-muted fs-xs mb-0">Tags that appear across the widest spread of contests</p>
+        </div>
+        <div class="card-body pt-2">
+          <div id="chart-contest-coverage" style="min-height: 320px;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-6">
+      <div class="card">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-0">Domain breadth</h4>
+          <p class="text-muted fs-xs mb-0">How many domain labels each tag spans</p>
+        </div>
+        <div class="card-body pt-2">
+          <div id="chart-domain-breadth" style="min-height: 320px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-0">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-0">Average MOHS by tag</h4>
+          <p class="text-muted fs-xs mb-0">Tags associated with consistently harder problem sets</p>
+        </div>
+        <div class="card-body pt-2">
+          <div id="chart-tag-mohs" style="min-height: 340px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-0 mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header border-bottom d-flex flex-wrap align-items-center gap-2">
+          <div class="flex-grow-1">
+            <h4 class="header-title mb-0">Topic tag directory</h4>
+            <p class="text-muted fs-xs mb-0">Search, sort, and compare tag-level usage, breadth, and contest spread</p>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table id="topic-tag-analytics-table" class="table table-striped table-bordered align-middle w-100"></table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% endif %}
+</div>
+
+{{ charts_payload|json_script:"topic-tag-dashboard-charts-data" }}
+{{ topic_tag_rows|json_script:"topic-tag-dashboard-table-data" }}
+
+{% endblock page_content %}
+
+{% block extra_javascript %}
+{% if topic_tag_total > 0 %}
+<script src="{% static 'plugins/apexcharts/apexcharts.min.js' %}"></script>
+<script src="{% static 'plugins/datatables/dataTables.min.js' %}"></script>
+<script src="{% static 'plugins/datatables/dataTables.bootstrap5.min.js' %}"></script>
+<script>
+(function () {
+  var dataEl = document.getElementById("topic-tag-dashboard-charts-data");
+  var tableEl = document.getElementById("topic-tag-dashboard-table-data");
+  if (!dataEl || !tableEl || typeof ApexCharts === "undefined") return;
+
+  var palette = ["#0d6efd", "#198754", "#fd7e14", "#0dcaf0"];
+  var charts = JSON.parse(dataEl.textContent);
+  var rows = JSON.parse(tableEl.textContent);
+
+  function formatMetric(value) {
+    if (typeof value !== "number") return value;
+    return Number.isInteger(value) ? String(value) : value.toFixed(2);
+  }
+
+  function barOptions(payload, color) {
+    return {
+      chart: { type: "bar", height: Math.max(320, 34 * payload.labels.length), toolbar: { show: false }, fontFamily: "inherit" },
+      series: [{ name: "Value", data: payload.values }],
+      plotOptions: { bar: { borderRadius: 3, horizontal: true, barHeight: "72%" } },
+      dataLabels: {
+        enabled: payload.values.length <= 12,
+        formatter: function (value) { return formatMetric(value); }
+      },
+      tooltip: {
+        y: {
+          formatter: function (value) { return formatMetric(value); }
+        }
+      },
+      colors: [color],
+      grid: { strokeDashArray: 4, borderColor: "rgba(108,117,125,0.15)" },
+      xaxis: {
+        categories: payload.labels,
+        labels: { style: { fontSize: "11px" } },
+      },
+    };
+  }
+
+  function renderBar(sel, payload, idx) {
+    var el = document.querySelector(sel);
+    if (!el || !payload.labels.length) return;
+    var chart = new ApexCharts(el, barOptions(payload, palette[idx % palette.length]));
+    chart.render();
+  }
+
+  renderBar("#chart-tag-volume", charts.byProblemVolume, 0);
+  renderBar("#chart-contest-coverage", charts.byContestCoverage, 1);
+  renderBar("#chart-domain-breadth", charts.byDomainBreadth, 2);
+  renderBar("#chart-tag-mohs", charts.byAvgMohs, 3);
+
+  if (typeof DataTable === "undefined") return;
+
+  new DataTable("#topic-tag-analytics-table", {
+    data: rows,
+    columns: [
+      { data: "technique", title: "Tag" },
+      { data: "problem_count", title: "Problems", className: "text-nowrap" },
+      { data: "contest_count", title: "Contests", className: "text-nowrap" },
+      {
+        data: "domain_count",
+        title: "Domains",
+        render: function (data, type, row) {
+          if (type === "display" || type === "filter") {
+            return formatMetric(Number(data || 0)) + (row.domains_label ? " • " + row.domains_label : "");
+          }
+          return data;
+        }
+      },
+      { data: "active_years", title: "Active years", className: "text-nowrap" },
+      { data: "year_span_label", title: "Year span", className: "text-nowrap" },
+      {
+        data: "avg_mohs",
+        title: "Avg MOHS",
+        className: "text-nowrap",
+        render: function (data, type) {
+          if (type === "display" || type === "filter") return formatMetric(Number(data || 0));
+          return data;
+        }
+      },
+      { data: "max_mohs", title: "Max MOHS", className: "text-nowrap" },
+      { data: "sample_contests_label", title: "Sample contests", defaultContent: "" },
+    ],
+    order: [[1, "desc"], [0, "asc"]],
+    pageLength: 25,
+    lengthMenu: [10, 25, 50, 100],
+    scrollX: true,
+    autoWidth: false,
+  });
+})();
+</script>
+{% endif %}
+{% endblock extra_javascript %}

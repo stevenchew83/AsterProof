@@ -1,6 +1,11 @@
 import re
+import uuid
 
+from django.conf import settings
 from django.db import models
+
+from inspinia.pages.topic_tags_parse import domains_dedup_preserve_order
+from inspinia.pages.topic_tags_parse import normalize_topic_tag
 
 
 class ProblemSolveRecord(models.Model):
@@ -11,6 +16,7 @@ class ProblemSolveRecord(models.Model):
     "IMO slot guess:"), so we can parse/split them later without losing data.
     """
 
+    problem_uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
     year = models.IntegerField()
     topic = models.CharField(max_length=32)
     mohs = models.IntegerField()
@@ -221,3 +227,108 @@ class ProblemTopicTechnique(models.Model):
 
     def __str__(self) -> str:
         return f"{self.record.pk}: {self.technique}"
+
+    def save(self, *args, **kwargs) -> None:
+        normalized_technique = normalize_topic_tag(self.technique)
+        normalized_domains = domains_dedup_preserve_order(self.domains or [])
+
+        update_fields = kwargs.get("update_fields")
+        normalized_update_fields = set(update_fields) if update_fields is not None else None
+
+        if self.technique != normalized_technique:
+            self.technique = normalized_technique
+            if normalized_update_fields is not None:
+                normalized_update_fields.add("technique")
+
+        if list(self.domains or []) != normalized_domains:
+            self.domains = normalized_domains
+            if normalized_update_fields is not None:
+                normalized_update_fields.add("domains")
+
+        if normalized_update_fields is not None:
+            kwargs["update_fields"] = normalized_update_fields
+
+        super().save(*args, **kwargs)
+
+
+class ContestProblemStatement(models.Model):
+    problem_uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
+    linked_problem = models.ForeignKey(
+        ProblemSolveRecord,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="statement_entries",
+    )
+    contest_year = models.IntegerField()
+    contest_name = models.CharField(max_length=128)
+    contest_year_problem = models.CharField(max_length=160, db_index=True)
+    day_label = models.CharField(max_length=32, blank=True)
+    problem_number = models.PositiveIntegerField()
+    problem_code = models.CharField(max_length=16)
+    statement_latex = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-contest_year", "contest_name", "problem_number"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["contest_year", "contest_name", "problem_number"],
+                name="pages_contestproblemstatement_unique_contest_problem",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return self.contest_year_problem
+
+    def save(self, *args, **kwargs) -> None:
+        if self.linked_problem_id is not None:
+            linked_problem = self.linked_problem
+            if linked_problem is not None:
+                self.problem_uuid = linked_problem.problem_uuid
+
+        self.problem_code = f"P{self.problem_number}"
+        self.contest_year_problem = f"{self.contest_name} {self.contest_year} {self.problem_code}"
+
+        update_fields = kwargs.get("update_fields")
+        if update_fields is not None:
+            kwargs["update_fields"] = set(update_fields) | {
+                "contest_year_problem",
+                "problem_uuid",
+                "problem_code",
+            }
+
+        super().save(*args, **kwargs)
+
+
+class UserProblemCompletion(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="problem_completions",
+    )
+    problem = models.ForeignKey(
+        ProblemSolveRecord,
+        on_delete=models.CASCADE,
+        related_name="user_completions",
+    )
+    completion_date = models.DateField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-completion_date", "user_id", "problem_id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "problem"],
+                name="pages_userproblemcompletion_unique_user_problem",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return (
+            f"{self.user.email} completed {self.problem.contest} "
+            f"{self.problem.year} {self.problem.problem} on "
+            f"{self.completion_date.isoformat() if self.completion_date else 'unknown date'}"
+        )

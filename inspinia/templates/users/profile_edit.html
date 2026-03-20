@@ -1,0 +1,84 @@
+{% extends "pages/problem-shell.html" %}
+
+{% load crispy_forms_tags %}
+
+{% block title %}Edit profile{% endblock title %}
+
+{% block extra_css %}
+  {{ block.super }}
+  <style>
+    .profile-edit-card {
+      padding: 1.75rem;
+    }
+
+    .profile-edit-card .form-label {
+      font-weight: 700;
+      color: #21324e;
+    }
+
+    .profile-edit-card .form-control,
+    .profile-edit-card .form-select,
+    .profile-edit-card textarea {
+      border-radius: 1rem;
+      border-color: rgba(17, 32, 59, 0.12);
+      background: #fff;
+      min-height: 3rem;
+    }
+
+    .profile-edit-card textarea {
+      min-height: 7rem;
+    }
+  </style>
+{% endblock extra_css %}
+
+{% block problem_page_content %}
+  <section class="problem-section">
+    <div class="container">
+      <a class="problem-back-link" href="{% url 'users:profile' %}">
+        <i class="ti ti-arrow-left"></i>
+        Back to profile
+      </a>
+
+      <div class="row g-4">
+        <div class="col-lg-4">
+          <div class="problem-hero-card profile-edit-card h-100">
+            <span class="problem-label">Edit profile</span>
+            <h1 class="problem-title mt-3 mb-3" style="max-width: 12ch;">Refresh your landing profile.</h1>
+            <p class="problem-lead mb-0">
+              Update the fields your public-facing account space uses, while keeping the admin dashboard separate.
+            </p>
+            <div class="problem-chip-row mt-4">
+              <span class="problem-pill"><i class="ti ti-user-circle"></i> {{ request.user.email }}</span>
+              <span class="problem-pill"><i class="ti ti-shield-check"></i> {{ request.user.get_role_display }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-8">
+          <div class="problem-directory-card profile-edit-card">
+            <div class="problem-directory-head">
+              <div>
+                <span class="problem-label">Details</span>
+                <h2 class="h3 mt-2 mb-1">Profile fields</h2>
+                <p class="problem-muted mb-0">Save here to return to your standalone profile page instead of the dashboard account screen.</p>
+              </div>
+            </div>
+
+            <form method="post" action="{% url 'users:profile_edit' %}" class="mt-4">
+              {% csrf_token %}
+              {{ form|crispy }}
+              <div class="d-flex flex-wrap gap-2 mt-4">
+                <button type="submit" class="btn btn-primary rounded-pill px-4">
+                  <i class="ti ti-device-floppy me-1"></i> Save changes
+                </button>
+                <a href="{% url 'users:profile' %}" class="btn btn-outline-secondary rounded-pill px-4">
+                  Cancel
+                </a>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+{% endblock problem_page_content %}

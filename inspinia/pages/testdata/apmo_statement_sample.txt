@@ -1,0 +1,26 @@
+2025 APMO3
+Asian-Pacific MO 2025
+1	Let $ABC$ be an acute triangle inscribed in a circle $\Gamma$. Let $A_1$ be the orthogonal projection of $A$ onto $BC$ so that $AA_1$ is an altitude. Let $B_1$ and $C_1$ be the orthogonal projections of $A_1$ onto $AB$ and $AC$, respectively. Point $P$ is such that quadrilateral $AB_1PC_1$ is convex and has the same area as triangle $ABC$. Is it possible that $P$ strictly lies in the interior of circle $\Gamma$? Justify your answer.
+
+Aiden-1089
+view topic
+2	Let $\alpha$ and $\beta$ be positive real numbers. Emerald makes a trip in the coordinate plane, starting off from the origin $(0,0)$. Each minute she moves one unit up or one unit to the right, restricting herself to the region $| x-y | <2025$, in the coordinate plane. By the time she visits a point $(x,y)$ she writes down the integer $\lfloor x\alpha + y\beta \rfloor$ on it. It turns out that Emerald wrote each non-negative integer exactly once. Find all the possible pairs $(\alpha, \beta)$ for which such a trip would be possible.
+
+Aiden-1089
+view topic
+3	Let $P(x)$ be a non-constant polynomial with integer coefficients such that $P(0) \neq 0$. Let $a_1, a_2, a_3, \dots$ be an infinite sequence of integers such that $P(i - j)$ divides $a_i-a_j$ for all distinct positive integers $i,j$. Prove that the sequence $a_1, a_2, a_3, \dots$ must be constant, that is, $a_n$ equals a constant $c$ for all positive integers $n$.
+
+Aiden-1089
+view topic
+4	Let $n \geq 3$ be an integer. There are $n$ cells on a circle, and each cell is assigned either $0$ or $1$. There is a rooster on one of these cells, and it repeats the following operation:
+
+$\bullet$ If the rooster is on a cell assigned $0$, it changes the assigned number to $1$ and moves to the next cell counterclockwise.
+$\bullet$ If the rooster is on a cell assigned $1$, it changes the assigned number to $0$ and moves to the cell after the next cell counterclockwise.
+
+Prove that the following statement holds after sufficiently many operations:
+If the rooster is on a cell $C$, then the rooster would go around the circle exactly three times, stopping again at $C$. Moreover, every cell would be assigned the same number as it was assigned right before the rooster went around the circle three times.
+
+Aiden-1089
+view topic
+5	Consider an infinite sequence $a_1,a_2, \cdots$ of positive integers such that$$100!(a_m + a_{m+1} + \cdots + a_n) \text{ is a multiple of } a_{n-m+1}a_{m+n}$$for all positive integers $m, n$ such that $m\leq n$. Prove that the sequence is either bounded or linear.
+$\emph{Observation:}$ A sequence of positive integers is $\emph{bounded}$ if there exists a constant $N$ such that $a_n < N$ for all $n\in \mathbb{Z}_{>0}$. A sequence is $\emph{linear}$ if $a_n = na_1$ for all $n\in \mathbb{Z}_{>0}.$

@@ -1,0 +1,320 @@
+{% extends 'layouts/vertical.html' %}
+
+{% load static i18n %}
+
+{% block title %}Contest analytics{% endblock title %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'plugins/datatables/dataTables.bootstrap5.min.css' %}">
+{% endblock extra_css %}
+
+{% block page_content %}
+
+<div class="container-fluid">
+
+  {% include 'partials/page-title.html' with title='Contest analytics' subtitle='Admin' %}
+
+  <div class="row g-3 mt-0">
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-primary-subtle text-primary rounded">
+                <i class="ti ti-trophy fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Distinct contests</p>
+              <h3 class="mb-0">{{ contest_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-info-subtle text-info rounded">
+                <i class="ti ti-database fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Problem rows</p>
+              <h3 class="mb-0">{{ contest_problem_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-warning-subtle text-warning rounded">
+                <i class="ti ti-stack-3 fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Avg problems per contest</p>
+              <h3 class="mb-0">{{ contest_stats.average_problems_per_contest }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-success-subtle text-success rounded">
+                <i class="ti ti-calendar-repeat fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Multi-year contests</p>
+              <h3 class="mb-0">{{ contest_stats.multi_year_contests }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if contest_total == 0 %}
+  <div class="alert alert-info mt-4" role="alert">
+    <strong>No contest data yet.</strong> Import analytics via <a href="{% url 'pages:problem_import' %}" class="alert-link">Import problems</a> to populate this dashboard.
+  </div>
+  {% else %}
+
+  <div class="row g-3 mt-1">
+    <div class="col-xxl-8">
+      <div class="card">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-0">Contest volume</h4>
+          <p class="text-muted fs-xs mb-0">Top contests ranked by stored problem rows</p>
+        </div>
+        <div class="card-body pt-2">
+          <div id="chart-contest-volume" style="min-height: 340px;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xxl-4">
+      <div class="card h-100">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-0">Contest leaders</h4>
+          <p class="text-muted fs-xs mb-0">Quick signals across scale, longevity, difficulty, and breadth</p>
+        </div>
+        <div class="card-body pt-2">
+          <div class="d-flex flex-column gap-3">
+            <div class="border rounded p-3">
+              <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Largest dataset</p>
+              <div class="d-flex align-items-center justify-content-between gap-2">
+                <h5 class="mb-0">{{ contest_leaders.biggest.contest }}</h5>
+                <span class="badge bg-primary-subtle text-primary">{{ contest_leaders.biggest.problem_count }} problems</span>
+              </div>
+            </div>
+            <div class="border rounded p-3">
+              <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Longest-running</p>
+              <div class="d-flex align-items-center justify-content-between gap-2">
+                <h5 class="mb-0">{{ contest_leaders.longest_running.contest }}</h5>
+                <span class="badge bg-info-subtle text-info">{{ contest_leaders.longest_running.active_years }} years</span>
+              </div>
+            </div>
+            <div class="border rounded p-3">
+              <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Hardest on average</p>
+              <div class="d-flex align-items-center justify-content-between gap-2">
+                <h5 class="mb-0">{{ contest_leaders.hardest.contest }}</h5>
+                <span class="badge bg-warning-subtle text-warning">Avg MOHS {{ contest_leaders.hardest.avg_mohs }}</span>
+              </div>
+            </div>
+            <div class="border rounded p-3">
+              <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Broadest topic mix</p>
+              <div class="d-flex align-items-center justify-content-between gap-2">
+                <h5 class="mb-0">{{ contest_leaders.broadest.contest }}</h5>
+                <span class="badge bg-success-subtle text-success">{{ contest_leaders.broadest.distinct_topics }} topics</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-0">
+    <div class="col-xl-6">
+      <div class="card">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-0">Active year span</h4>
+          <p class="text-muted fs-xs mb-0">Contests with the widest year coverage in the dataset</p>
+        </div>
+        <div class="card-body pt-2">
+          <div id="chart-active-years" style="min-height: 320px;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-6">
+      <div class="card">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-0">Average MOHS by contest</h4>
+          <p class="text-muted fs-xs mb-0">Higher bars indicate consistently tougher problem sets</p>
+        </div>
+        <div class="card-body pt-2">
+          <div id="chart-avg-mohs" style="min-height: 320px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-0">
+    <div class="col-xl-6">
+      <div class="card">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-0">Topic breadth</h4>
+          <p class="text-muted fs-xs mb-0">Distinct topic labels represented within each contest</p>
+        </div>
+        <div class="card-body pt-2">
+          <div id="chart-topic-breadth" style="min-height: 320px;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-6">
+      <div class="card">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-0">Technique density</h4>
+          <p class="text-muted fs-xs mb-0">Parsed technique rows per problem, highlighting annotation depth</p>
+        </div>
+        <div class="card-body pt-2">
+          <div id="chart-technique-density" style="min-height: 320px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-0 mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header border-bottom d-flex flex-wrap align-items-center gap-2">
+          <div class="flex-grow-1">
+            <h4 class="header-title mb-0">Contest directory</h4>
+            <p class="text-muted fs-xs mb-0">Search, sort, and compare contest-level metrics in-browser</p>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table id="contest-analytics-table" class="table table-striped table-bordered align-middle w-100"></table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% endif %}
+</div>
+
+{{ charts_payload|json_script:"contest-dashboard-charts-data" }}
+{{ contest_rows|json_script:"contest-dashboard-table-data" }}
+
+{% endblock page_content %}
+
+{% block extra_javascript %}
+{% if contest_total > 0 %}
+<script src="{% static 'plugins/apexcharts/apexcharts.min.js' %}"></script>
+<script src="{% static 'plugins/datatables/dataTables.min.js' %}"></script>
+<script src="{% static 'plugins/datatables/dataTables.bootstrap5.min.js' %}"></script>
+<script>
+(function () {
+  var dataEl = document.getElementById("contest-dashboard-charts-data");
+  var tableEl = document.getElementById("contest-dashboard-table-data");
+  if (!dataEl || !tableEl || typeof ApexCharts === "undefined") return;
+
+  var palette = ["#0d6efd", "#198754", "#fd7e14", "#0dcaf0", "#d63384"];
+  var charts = JSON.parse(dataEl.textContent);
+  var rows = JSON.parse(tableEl.textContent);
+
+  function formatMetric(value) {
+    if (typeof value !== "number") return value;
+    return Number.isInteger(value) ? String(value) : value.toFixed(2);
+  }
+
+  function barOptions(payload, color) {
+    return {
+      chart: { type: "bar", height: Math.max(320, 34 * payload.labels.length), toolbar: { show: false }, fontFamily: "inherit" },
+      series: [{ name: "Value", data: payload.values }],
+      plotOptions: { bar: { borderRadius: 3, horizontal: true, barHeight: "72%" } },
+      dataLabels: {
+        enabled: payload.values.length <= 12,
+        formatter: function (value) { return formatMetric(value); }
+      },
+      tooltip: {
+        y: {
+          formatter: function (value) { return formatMetric(value); }
+        }
+      },
+      colors: [color],
+      grid: { strokeDashArray: 4, borderColor: "rgba(108,117,125,0.15)" },
+      xaxis: {
+        categories: payload.labels,
+        labels: { style: { fontSize: "11px" } },
+      },
+    };
+  }
+
+  function renderBar(sel, payload, idx) {
+    var el = document.querySelector(sel);
+    if (!el || !payload.labels.length) return;
+    var chart = new ApexCharts(el, barOptions(payload, palette[idx % palette.length]));
+    chart.render();
+  }
+
+  renderBar("#chart-contest-volume", charts.byProblemVolume, 0);
+  renderBar("#chart-active-years", charts.byActiveYears, 1);
+  renderBar("#chart-avg-mohs", charts.byAvgMohs, 2);
+  renderBar("#chart-topic-breadth", charts.byTopicBreadth, 3);
+  renderBar("#chart-technique-density", charts.byTechniqueDensity, 4);
+
+  if (typeof DataTable === "undefined") return;
+
+  new DataTable("#contest-analytics-table", {
+    data: rows,
+    columns: [
+      { data: "contest", title: "Contest" },
+      { data: "problem_count", title: "Problems", className: "text-nowrap" },
+      { data: "year_span_label", title: "Year span", className: "text-nowrap" },
+      { data: "active_years", title: "Active years", className: "text-nowrap" },
+      { data: "distinct_topics", title: "Topics", className: "text-nowrap" },
+      {
+        data: "avg_mohs",
+        title: "Avg MOHS",
+        className: "text-nowrap",
+        render: function (data, type) {
+          if (type === "display" || type === "filter") return formatMetric(Number(data || 0));
+          return data;
+        }
+      },
+      { data: "max_mohs", title: "Max MOHS", className: "text-nowrap" },
+      { data: "technique_rows", title: "Technique rows", className: "text-nowrap" },
+      {
+        data: "techniques_per_problem",
+        title: "Techniques / problem",
+        className: "text-nowrap",
+        render: function (data, type) {
+          if (type === "display" || type === "filter") return formatMetric(Number(data || 0));
+          return data;
+        }
+      },
+    ],
+    order: [[1, "desc"], [0, "asc"]],
+    pageLength: 25,
+    lengthMenu: [10, 25, 50, 100],
+    scrollX: true,
+    autoWidth: false,
+  });
+})();
+</script>
+{% endif %}
+{% endblock extra_javascript %}

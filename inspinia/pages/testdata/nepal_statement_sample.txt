@@ -1,0 +1,52 @@
+2026 Nepal National Olympiad (IMO Pre-TST)3
+Problems from the 2026 Nepal National Olympiad (IMO Pre-TST)
+P1	Let $a_1,a_2,\dots,a_{2n+2}$ be positive real numbers. Prove that they can be permuted into numbers $u_0,v_0,u_1,v_1,\dots,u_n,v_n$ such that the polynomial
+$$P(x)=u_0-v_0x+u_1x^2-v_1x^3+\dots+u_nx^{2n}-v_nx^{2n+1}$$has at least one real root, and every real root of $P$ is greater than or equal to $1$.
+
+(Proposed by Prajit Adhikari, Nepal)
+
+Thapakazi
+view topic
+P2	Find all functions $f:\mathbb{Z}_{\ge 0}\to\mathbb{Z}_{\ge 0}$ such that for all $m\in\mathbb{N}$,$$f(m-1)\mid m \qquad \text{ and } \qquad m+1 \mid T_{2026}(m),$$where $T_1(m)=f(m)$ and $T_{k+1}(m)=f\bigl(m+T_k(m)\bigr)$ for all $k\ge 1$.
+
+(Proposed by Shining Sun, USA)
+
+Thapakazi
+view topic
+P3	Let $ABC$ be an acute scalene triangle with $\angle BAC=60^\circ$. Denote by $O$ and $H$ the circumcenter and orthocenter of $\triangle ABC$ respectively. Let $M$ be the midpoint of arc $BC$ on $(ABC)$ not containing $A$, and let ray $\overrightarrow{MH}$ intersect $(ABC)$ a second time at $P$. Show that the lines $AP$, $OH$ and $BC$ pass through a common point.
+
+(Proposed by Lasitha Jayasinghe, Sri Lanka)
+
+AshAuktober
+view topic
+P4	Consider the standard triangular grid of unit equilateral triangles forming a larger equilateral triangle of side length $n$. Initially, only the top unit triangle is colored black, and all other unit triangles are colored white.
+
+A move consists of choosing a black unit triangle and simultaneously flipping the colors of all unit triangles that share an edge with it; that is, each such neighboring triangle changes from white to black or from black to white. Determine all positive integers $n$ for which it is possible, after a sequence of moves, for all unit triangles in the grid to be black at the same time.
+
+(Proposed by Shining Sun, USA)
+
+Thapakazi
+view topic
+P5	Let $\sigma(n)$ denote the divisors sum of $n$, and let $d(n)$ denote the number of divisors of $n$. Prove that for any nonnegative integer $k$, the equation $\sigma(n) = d(n)^k$ has finitely many solutions.
+
+(Proposed by Basu Dev Karki, Nepal)
+
+AshAuktober
+view topic
+P6	Let $\omega_1$ and $\omega_2$ be two circles intersecting at distinct points $X$ and $Y$. Let $\ell$ be their common tangent closer to $Y$, intersecting $\omega_1$ at $A$ and $\omega_2$ at $B$. The tangent to $\omega_1$ at $Y$ meets $\omega_2$ again at $C$ with $C \neq Y$. Let the line $XB$ meet $\omega_1$ again at $K$ with $K \neq X$. Let $D = BC \cap AY$, and let $E = YK \cap CX$.
+
+Prove that $D, Y, X, E$ are concyclic. (Four points are concyclic if there exists a circle containing all four points.)
+
+(Proposed by Kritesh Dhakal, Nepal)
+
+Thapakazi
+view topic
+P7	For each positive integer $n$, let $\kappa(n)$ denote the unique squarefree positive integer such that$\frac{n}{\kappa(n)}$ is a perfect square. Let $G$ be a connected simple graph whose edges are labeled by positive integers $w_e$. Assume that for every cycle $C$ in $G$, the product$\prod_{e\in C} w_e$ is a perfect square. Prove that there exist squarefree positive integers $s_v$ assigned to the vertices $v\in V(G)$ such that for every edge $uv\in E(G)$ there exists a positive integer $t_{uv}$ with $w_{uv}=\kappa(s_us_v)\,t_{uv}^2$.
+
+(Proposed by Prajit Adhikari, Nepal and Shreyash Sharma Bastola, Nepal)
+
+AshAuktober
+view topic
+P8	For all positive reals $a,b,c$, prove the inequality$$\frac{a}{b+c}+\frac{b}{c+a}+\frac{c}{a+b} \; \ge\; \frac32+\frac{(a-b)^2+(b-c)^2+(c-a)^2}{2(a+b+c)^2}.$$Determine when equality holds.
+
+(Proposed by Prajit Adhikari, Nepal and Kritesh Dhakal, Nepal)

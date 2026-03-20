@@ -26,6 +26,10 @@ def clean_token(s: str) -> str:
     return re.sub(r"\s+", " ", s)
 
 
+def normalize_topic_tag(s: str | None) -> str:
+    return clean_token(s or "").upper()
+
+
 def compute_problem_key(year: int, contest: str, problem: str) -> str:
     """Stable opaque key from YEAR + CONTEST + PROBLEM (for exports or non-Django stores)."""
     key_str = f"{year}|{clean_token(contest)}|{clean_token(problem)}"
@@ -42,13 +46,13 @@ def parse_topic_tags_value(block_text: str) -> list[dict[str, Any]]:
 
     m = DASH_RE.search(s)
     if not m:
-        t = clean_token(s)
+        t = normalize_topic_tag(s)
         return [{"technique": t, "domains": []}] if t else []
 
     domain_str = s[: m.start()].strip()
     rest = s[m.end() :].strip()
 
-    initial_domains = [d.strip() for d in domain_str.split("/") if d.strip()]
+    initial_domains = domains_dedup_preserve_order(domain_str.split("/"))
 
     segments = [seg.strip() for seg in rest.split(";") if seg.strip()]
     out: list[dict[str, Any]] = []
@@ -58,12 +62,12 @@ def parse_topic_tags_value(block_text: str) -> list[dict[str, Any]]:
         if m2:
             seg_domain_str = seg[: m2.start()].strip()
             tech_str = seg[m2.end() :].strip()
-            seg_domains = [d.strip() for d in seg_domain_str.split("/") if d.strip()]
+            seg_domains = domains_dedup_preserve_order(seg_domain_str.split("/"))
         else:
             seg_domains = initial_domains
             tech_str = seg
 
-        techniques = [clean_token(t) for t in tech_str.split(",")]
+        techniques = [normalize_topic_tag(t) for t in tech_str.split(",")]
         techniques = [t for t in techniques if t]
         out.extend({"technique": technique, "domains": seg_domains} for technique in techniques)
 
@@ -96,7 +100,7 @@ def domains_dedup_preserve_order(domains: list[str] | None) -> list[str]:
     seen: set[str] = set()
     out: list[str] = []
     for domain in domains:
-        normalized_domain = clean_token(domain)
+        normalized_domain = normalize_topic_tag(domain)
         if not normalized_domain or normalized_domain in seen:
             continue
         seen.add(normalized_domain)

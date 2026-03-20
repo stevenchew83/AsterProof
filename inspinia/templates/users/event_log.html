@@ -1,0 +1,214 @@
+{% extends 'layouts/vertical.html' %}
+
+{% load i18n %}
+
+{% block title %}{% translate "Event log" %}{% endblock title %}
+
+{% block page_content %}
+
+<div class="container-fluid">
+  {% include 'partials/page-title.html' with title='Event log' subtitle='Admin monitoring' %}
+
+  <div class="row g-3 mt-0">
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-primary-subtle text-primary rounded">
+                <i class="ti ti-logs fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">{% translate "Events in 24h" %}</p>
+              <h3 class="mb-0">{{ event_total_24h }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-success-subtle text-success rounded">
+                <i class="ti ti-login-2 fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">{% translate "Logins in 24h" %}</p>
+              <h3 class="mb-0">{{ login_count_24h }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-danger-subtle text-danger rounded">
+                <i class="ti ti-alert-triangle fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">{% translate "Failed logins" %}</p>
+              <h3 class="mb-0">{{ failed_login_count_24h }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-warning-subtle text-warning rounded">
+                <i class="ti ti-shield-cog fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">{% translate "Admin actions" %}</p>
+              <h3 class="mb-0">{{ admin_action_count_24h }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-1">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-0">{% translate "Filter events" %}</h4>
+          <p class="text-muted fs-xs mb-0">{% translate "Search by message, actor, or target. Event type filtering is server-side." %}</p>
+        </div>
+        <div class="card-body pt-2">
+          <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-4">
+              <label for="event-type-filter" class="form-label">{% translate "Event type" %}</label>
+              <select id="event-type-filter" name="event_type" class="form-select">
+                <option value="">{% translate "All event types" %}</option>
+                {% for value, label in event_type_choices %}
+                <option value="{{ value }}" {% if event_type_filter == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-5">
+              <label for="event-query" class="form-label">{% translate "Search" %}</label>
+              <input
+                id="event-query"
+                type="text"
+                name="q"
+                value="{{ search_query }}"
+                class="form-control"
+                placeholder="{% translate 'Message, actor, target, or path' %}"
+              >
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+              <button type="submit" class="btn btn-primary">
+                <i class="ti ti-filter me-1"></i>{% translate "Apply" %}
+              </button>
+              <a href="{% url 'users:event_log' %}" class="btn btn-outline-secondary">
+                <i class="ti ti-refresh me-1"></i>{% translate "Reset" %}
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-0 mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header border-bottom">
+          <h4 class="header-title mb-0">{% translate "Recent events" %}</h4>
+          <p class="text-muted fs-xs mb-0">{% translate "Authentication, session, role, and import activity lands here." %}</p>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-striped align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th scope="col">{% translate "When" %}</th>
+                  <th scope="col">{% translate "Type" %}</th>
+                  <th scope="col">{% translate "Actor" %}</th>
+                  <th scope="col">{% translate "Target" %}</th>
+                  <th scope="col">{% translate "Context" %}</th>
+                  <th scope="col">{% translate "Summary" %}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for event in page_obj %}
+                <tr>
+                  <td class="text-nowrap">{{ event.created_at|date:"Y-m-d H:i" }}</td>
+                  <td>
+                    <span class="badge {{ event.badge_class }}">{{ event.get_event_type_display }}</span>
+                  </td>
+                  <td>
+                    {% if event.actor %}
+                    <div class="fw-semibold">{{ event.actor.email }}</div>
+                    <div class="text-muted fs-xs">{{ event.actor.name|default:"—" }}</div>
+                    {% else %}
+                    <span class="text-muted">—</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if event.target_user %}
+                    <div class="fw-semibold">{{ event.target_user.email }}</div>
+                    <div class="text-muted fs-xs">{{ event.target_user.name|default:"—" }}</div>
+                    {% else %}
+                    <span class="text-muted">—</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-muted fs-xs">
+                    <div>{% translate "IP" %}: {{ event.ip_address|default:"—" }}</div>
+                    <div>{% translate "Path" %}: {{ event.path|default:"—" }}</div>
+                  </td>
+                  <td>
+                    <div>{{ event.message }}</div>
+                    {% if event.metadata.identifier %}
+                    <div class="text-muted fs-xs">{% translate "Identifier" %}: {{ event.metadata.identifier }}</div>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="6" class="text-muted">{% translate "No events match the current filters." %}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          {% if page_obj.paginator.num_pages > 1 %}
+          <nav class="mt-3" aria-label="{% translate 'Event pagination' %}">
+            <ul class="pagination pagination-boxed mb-0">
+              {% if page_obj.has_previous %}
+              <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{{ pagination_suffix }}">{% translate "Previous" %}</a>
+              </li>
+              {% endif %}
+              <li class="page-item active">
+                <span class="page-link">{{ page_obj.number }}</span>
+              </li>
+              {% if page_obj.has_next %}
+              <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{{ pagination_suffix }}">{% translate "Next" %}</a>
+              </li>
+              {% endif %}
+            </ul>
+          </nav>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock page_content %}

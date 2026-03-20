@@ -30,11 +30,16 @@
             <div class="d-none d-md-flex align-items-center gap-2 ms-2">
                 <a href="{% url 'pages:home' %}" class="btn btn-outline-secondary btn-sm">Overview</a>
                 {% if show_analytics_dashboard_link %}
-                <a href="{% url 'pages:dashboard' %}" class="btn btn-outline-secondary btn-sm">Analytics</a>
+                <a href="{% url 'pages:dashboard' %}" class="btn btn-outline-secondary btn-sm">Problem analytics</a>
+                <a href="{% url 'pages:contest_dashboard' %}" class="btn btn-outline-secondary btn-sm">Contest analytics</a>
+                <a href="{% url 'pages:topic_tag_dashboard' %}" class="btn btn-outline-secondary btn-sm">Topic tags</a>
+                <a href="{% url 'pages:problem_list' %}" class="btn btn-outline-secondary btn-sm">Problems</a>
                 {% endif %}
                 {% if show_problem_import_link %}
-                <a href="{% url 'pages:problem_import' %}" class="btn btn-primary btn-sm">Import workbook</a>
+                <a href="{% url 'pages:problem_import' %}" class="btn btn-primary btn-sm">Problem data</a>
                 {% endif %}
+                <a href="{% url 'pages:latex_preview' %}" class="btn btn-outline-secondary btn-sm">LaTeX preview</a>
+                <a href="{% url 'pages:problem_statement_list' %}" class="btn btn-outline-secondary btn-sm">Problem statements</a>
             </div>
         </div>
 
@@ -84,6 +89,14 @@
                         <a href="{% url 'users:manage_roles' %}" class="dropdown-item">
                             <i class="ti ti-user-cog me-2 fs-17 align-middle"></i>
                             <span class="align-middle">User roles</span>
+                        </a>
+                        <a href="{% url 'users:session_monitor' %}" class="dropdown-item">
+                            <i class="ti ti-device-laptop me-2 fs-17 align-middle"></i>
+                            <span class="align-middle">Session monitor</span>
+                        </a>
+                        <a href="{% url 'users:event_log' %}" class="dropdown-item">
+                            <i class="ti ti-logs me-2 fs-17 align-middle"></i>
+                            <span class="align-middle">Event log</span>
                         </a>
                         {% endif %}
 

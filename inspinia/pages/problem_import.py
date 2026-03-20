@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import io
+import re
 from dataclasses import dataclass
 from dataclasses import field
 from typing import TYPE_CHECKING
@@ -12,6 +13,7 @@ from typing import BinaryIO
 import pandas as pd
 from django.db import transaction
 
+from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
 from inspinia.pages.models import ProblemTopicTechnique
 from inspinia.pages.topic_tags_parse import domains_dedup_preserve_order
@@ -28,6 +30,21 @@ REQUIRED_COLUMNS = frozenset(
 
 DEFAULT_PREVIEW_MAX_PROBLEMS = 500
 DEFAULT_PREVIEW_MAX_TECHNIQUES = 5000
+EXPORT_COLUMNS = [
+    "PROBLEM UUID",
+    "YEAR",
+    "TOPIC",
+    "MOHS",
+    "CONTEST",
+    "PROBLEM",
+    "CONTEST PROBLEM",
+    "Topic tags",
+    "Confidence",
+    "IMO slot guess",
+    "Rationale",
+    "Pitfalls",
+]
+PROBLEM_NUMBER_RE = re.compile(r"^\s*P?(?P<number>\d+)\s*$", flags=re.IGNORECASE)
 
 
 @dataclass
@@ -84,6 +101,49 @@ def _resolve_contest_problem(row: pd.Series, year: int | None) -> tuple[str | No
     if not c2 or not p2:
         return None, None
     return c2, p2
+
+
+def _problem_number_from_code(problem_code: str) -> int | None:
+    match = PROBLEM_NUMBER_RE.fullmatch(problem_code)
+    if not match:
+        return None
+    return int(match.group("number"))
+
+
+def _find_statement_entry(*, year: int, contest: str, problem: str) -> ContestProblemStatement | None:
+    problem_number = _problem_number_from_code(problem)
+    if problem_number is None:
+        return None
+    return ContestProblemStatement.objects.filter(
+        contest_year=year,
+        contest_name=contest,
+        problem_number=problem_number,
+    ).first()
+
+
+def _sync_statement_link(*, record: ProblemSolveRecord, created: bool) -> None:
+    statement_entry = _find_statement_entry(
+        year=record.year,
+        contest=record.contest,
+        problem=record.problem,
+    )
+    if statement_entry is None:
+        return
+
+    if created and record.problem_uuid != statement_entry.problem_uuid:
+        record.problem_uuid = statement_entry.problem_uuid
+        record.save(update_fields={"problem_uuid"})
+
+    update_fields: set[str] = set()
+    if statement_entry.linked_problem_id != record.id:
+        statement_entry.linked_problem = record
+        update_fields.add("linked_problem")
+    if statement_entry.problem_uuid != record.problem_uuid:
+        statement_entry.problem_uuid = record.problem_uuid
+        update_fields.add("problem_uuid")
+
+    if update_fields:
+        statement_entry.save(update_fields=update_fields)
 
 
 def prepare_import_rows(df: pd.DataFrame) -> tuple[list[PreparedImportRow], list[str]]:
@@ -211,6 +271,57 @@ def build_parsed_preview_payload(
     }
 
 
+def _topic_tags_export_value(record: ProblemSolveRecord) -> str:
+    tags = sorted(
+        record.topic_techniques.all(),
+        key=lambda row: ("/".join(row.domains or []), row.technique),
+    )
+    if not tags:
+        return record.topic_tags or ""
+
+    grouped: dict[tuple[str, ...], list[str]] = {}
+    for tag in tags:
+        grouped.setdefault(tuple(tag.domains or []), []).append(tag.technique)
+
+    segments: list[str] = []
+    for domains, techniques in grouped.items():
+        technique_label = ", ".join(techniques)
+        if domains:
+            segments.append(f"{'/'.join(domains)} - {technique_label}")
+        else:
+            segments.append(technique_label)
+
+    return f"Topic tags: {'; '.join(segments)}"
+
+
+def build_problem_export_dataframe(records: list[ProblemSolveRecord]) -> pd.DataFrame:
+    rows = [
+        {
+            "PROBLEM UUID": str(record.problem_uuid),
+            "YEAR": record.year,
+            "TOPIC": record.topic,
+            "MOHS": record.mohs,
+            "CONTEST": record.contest,
+            "PROBLEM": record.problem,
+            "CONTEST PROBLEM": record.contest_year_problem or "",
+            "Topic tags": _topic_tags_export_value(record),
+            "Confidence": record.confidence or "",
+            "IMO slot guess": record.imo_slot_guess or "",
+            "Rationale": record.rationale or "",
+            "Pitfalls": record.pitfalls or "",
+        }
+        for record in records
+    ]
+    return pd.DataFrame(rows, columns=EXPORT_COLUMNS)
+
+
+def build_problem_export_workbook_bytes(records: list[ProblemSolveRecord]) -> bytes:
+    export_df = build_problem_export_dataframe(records)
+    buffer = io.BytesIO()
+    export_df.to_excel(buffer, index=False)
+    return buffer.getvalue()
+
+
 def dataframe_from_excel(source: Path | str | BinaryIO | bytes) -> pd.DataFrame:
     """Load workbook; normalize column headers (strip)."""
     if isinstance(source, bytes):
@@ -232,6 +343,61 @@ def dataframe_from_excel(source: Path | str | BinaryIO | bytes) -> pd.DataFrame:
     return dataframe
 
 
+def _upsert_topic_technique(
+    *,
+    record: ProblemSolveRecord,
+    technique: str,
+    domain_list: list[str],
+    replace_tags: bool,
+) -> int:
+    if replace_tags:
+        ProblemTopicTechnique.objects.create(
+            record=record,
+            technique=technique,
+            domains=domain_list,
+        )
+        return 1
+
+    matching_tags = list(
+        ProblemTopicTechnique.objects.filter(
+            record=record,
+            technique__iexact=technique,
+        ).order_by("id"),
+    )
+    if not matching_tags:
+        ProblemTopicTechnique.objects.create(
+            record=record,
+            technique=technique,
+            domains=domain_list,
+        )
+        return 1
+
+    obj = matching_tags[0]
+    duplicate_ids = [tag.pk for tag in matching_tags[1:]]
+    merged_domains = obj.domains or []
+    for duplicate in matching_tags[1:]:
+        merged_domains = merge_domain_lists(merged_domains, duplicate.domains or [])
+
+    if duplicate_ids:
+        ProblemTopicTechnique.objects.filter(pk__in=duplicate_ids).delete()
+
+    merged_domains = merge_domain_lists(merged_domains, domain_list)
+
+    updated_fields: list[str] = []
+    if obj.technique != technique:
+        obj.technique = technique
+        updated_fields.append("technique")
+    if merged_domains != (obj.domains or []):
+        obj.domains = merged_domains
+        updated_fields.append("domains")
+
+    if updated_fields:
+        obj.save(update_fields=updated_fields)
+        return 1
+
+    return 1 if duplicate_ids else 0
+
+
 def import_problem_dataframe(df: pd.DataFrame, *, replace_tags: bool) -> ProblemImportResult:
     """
     Upsert `ProblemSolveRecord` rows and parsed `ProblemTopicTechnique` entries.
@@ -244,12 +410,13 @@ def import_problem_dataframe(df: pd.DataFrame, *, replace_tags: bool) -> Problem
 
     with transaction.atomic():
         for p in prepared:
-            record, _created = ProblemSolveRecord.objects.update_or_create(
+            record, created = ProblemSolveRecord.objects.update_or_create(
                 year=p.year,
                 contest=p.contest,
                 problem=p.problem,
                 defaults=p.defaults,
             )
+            _sync_statement_link(record=record, created=created)
             result.n_records += 1
 
             if not p.techniques:
@@ -259,27 +426,11 @@ def import_problem_dataframe(df: pd.DataFrame, *, replace_tags: bool) -> Problem
                 ProblemTopicTechnique.objects.filter(record=record).delete()
 
             for technique, domain_list in p.techniques:
-                if replace_tags:
-                    ProblemTopicTechnique.objects.create(
-                        record=record,
-                        technique=technique,
-                        domains=domain_list,
-                    )
-                    result.n_techniques += 1
-                    continue
-
-                obj, created = ProblemTopicTechnique.objects.get_or_create(
+                result.n_techniques += _upsert_topic_technique(
                     record=record,
                     technique=technique,
-                    defaults={"domains": domain_list},
+                    domain_list=domain_list,
+                    replace_tags=replace_tags,
                 )
-                if created:
-                    result.n_techniques += 1
-                else:
-                    merged = merge_domain_lists(obj.domains or [], domain_list)
-                    if merged != (obj.domains or []):
-                        obj.domains = merged
-                        obj.save(update_fields=["domains"])
-                        result.n_techniques += 1
 
     return result

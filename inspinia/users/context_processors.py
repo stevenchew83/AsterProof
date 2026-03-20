@@ -17,5 +17,7 @@ def app_roles(request):
     return {
         "is_app_admin": admin,
         "show_analytics_dashboard_link": can_access_admin_tools,
+        "show_event_log_link": admin,
         "show_problem_import_link": can_access_admin_tools,
+        "show_session_monitor_link": admin,
     }

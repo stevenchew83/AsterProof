@@ -3,6 +3,7 @@
 from django.utils.translation import gettext_lazy as _
 
 from inspinia.users.forms import UserAdminCreationForm
+from inspinia.users.forms import UserProfileForm
 from inspinia.users.models import User
 
 
@@ -33,3 +34,10 @@ class TestUserAdminCreationForm:
         assert len(form.errors) == 1
         assert "email" in form.errors
         assert form.errors["email"][0] == _("This email has already been taken.")
+
+
+class TestUserProfileForm:
+    def test_birthdate_uses_date_picker_widget(self):
+        form = UserProfileForm()
+
+        assert form.fields["birthdate"].widget.input_type == "date"

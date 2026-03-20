@@ -1,0 +1,136 @@
+{% extends 'pages/problem-shell.html' %}
+
+{% block title %}Problems{% endblock title %}
+
+{% block problem_page_content %}
+<section class="problem-section">
+  <div class="container">
+    <div class="problem-hero-card">
+      <div class="row g-4 align-items-end">
+        <div class="col-lg-7">
+          <span class="problem-label">Problem library</span>
+          <h1 class="problem-title">Contest directory first, problem list second.</h1>
+          <p class="problem-lead mb-0">
+            With a large archive, it is cleaner to pick a contest from the main site navigation and then open its dedicated yearly checklist page.
+          </p>
+          <div class="problem-hint-row mt-4">
+            <span class="problem-pill">Contest directory</span>
+            <span class="problem-pill">Yearly drill-down</span>
+            <span class="problem-pill">Problem statements later</span>
+          </div>
+        </div>
+        <div class="col-lg-5">
+          <form method="get" class="problem-search-shell">
+            <input
+              id="problem-list-search"
+              type="search"
+              name="q"
+              value="{{ initial_search_query }}"
+              class="form-control"
+              placeholder="Search contests, years, topics, or P2"
+            >
+            <button type="submit" class="btn btn-primary rounded-pill px-4">
+              <i class="ti ti-search me-1"></i> Search
+            </button>
+          </form>
+          <p class="problem-muted mt-3 mb-0">
+            Search by contest name, year span, top topic, or preview problem code. The goal is to avoid one giant all-problems wall.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="problem-stat-grid">
+      <div class="problem-stat-card">
+        <span class="problem-label">Problems</span>
+        <div class="problem-stat-value">{{ problem_listing_total }}</div>
+        <p class="problem-muted mb-0">Imported problem rows currently in the archive.</p>
+      </div>
+      <div class="problem-stat-card">
+        <span class="problem-label">Contests</span>
+        <div class="problem-stat-value">{{ problem_listing_stats.contest_total }}</div>
+        <p class="problem-muted mb-0">Distinct contests available from this standalone explorer.</p>
+      </div>
+      <div class="problem-stat-card">
+        <span class="problem-label">Topics</span>
+        <div class="problem-stat-value">{{ problem_listing_stats.topic_total }}</div>
+        <p class="problem-muted mb-0">Root topics already visible before statement text arrives.</p>
+      </div>
+      <div class="problem-stat-card">
+        <span class="problem-label">Year span</span>
+        <div class="problem-stat-value">{{ problem_listing_stats.year_range_label }}</div>
+        <p class="problem-muted mb-0">Coverage window for the current archive snapshot.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="problem-section">
+  <div class="container">
+    <div class="d-flex flex-wrap align-items-end justify-content-between gap-3">
+      <div>
+        <span class="problem-label">Contest directory</span>
+        <h2 class="h3 mt-2 mb-1">Open the contest you actually want.</h2>
+        <p class="problem-muted mb-0">Each contest opens into a separate yearly checklist, so the top-nav Problems page stays fast and readable.</p>
+      </div>
+      <span class="problem-pill">{{ visible_contest_total }} shown</span>
+    </div>
+
+    {% if contest_directory %}
+    <div class="problem-directory">
+      {% for contest in contest_directory %}
+      <article class="problem-directory-card">
+        <div class="problem-directory-head">
+          <div>
+            <span class="problem-label">{{ contest.year_span_label }}</span>
+            <h3 class="h4 mt-2 mb-1">{{ contest.contest }}</h3>
+            <p class="problem-muted mb-0">
+              {{ contest.problem_count }} problems across {{ contest.active_years }} active year{{ contest.active_years|pluralize }}.
+            </p>
+          </div>
+          <a href="{% url 'pages:contest_problem_list' contest.slug %}" class="btn btn-primary rounded-pill px-4">
+            <i class="ti ti-arrow-right me-1"></i> Open contest
+          </a>
+        </div>
+
+        <div class="problem-directory-meta">
+          <div class="problem-meta-block">
+            <span class="problem-label">Problems</span>
+            <div class="problem-meta-value">{{ contest.problem_count }}</div>
+          </div>
+          <div class="problem-meta-block">
+            <span class="problem-label">Topics</span>
+            <div class="problem-meta-value">{{ contest.distinct_topics }}</div>
+          </div>
+          <div class="problem-meta-block">
+            <span class="problem-label">Avg MOHS</span>
+            <div class="problem-meta-value">{{ contest.avg_mohs|floatformat:1 }}</div>
+          </div>
+        </div>
+
+        <div class="problem-badge-row mt-4">
+          {% for topic in contest.top_topics %}
+          <span class="problem-pill">{{ topic }}</span>
+          {% empty %}
+          <span class="problem-pill">No topic preview yet</span>
+          {% endfor %}
+        </div>
+
+        <div class="problem-preview-row mt-3">
+          {% for preview in contest.preview_problems %}
+          <span class="problem-preview-chip" title="{{ preview.label }}">{{ preview.problem }}</span>
+          {% empty %}
+          <span class="problem-preview-chip">No preview rows</span>
+          {% endfor %}
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-warning mt-4 mb-0">
+      No contests matched <span class="fw-semibold">"{{ initial_search_query }}"</span>. Try a broader contest, topic, or year search.
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock problem_page_content %}

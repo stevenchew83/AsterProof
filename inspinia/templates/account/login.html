@@ -1,0 +1,44 @@
+{% extends "account/base_entrance.html" %}
+{% load i18n %}
+{% load allauth account %}
+
+{% block head_title %}
+  {% trans "Sign In" %}
+{% endblock head_title %}
+
+{% block content %}
+  {% element h1 %}
+    {% trans "Sign In" %}
+  {% endelement %}
+  {% element p %}
+    {% blocktranslate %}Use your email address and password to enter the AsterProof workspace.{% endblocktranslate %}
+  {% endelement %}
+  {% if not SOCIALACCOUNT_ONLY %}
+    {% setvar link %}
+      <a href="{{ signup_url }}">
+    {% endsetvar %}
+    {% setvar end_link %}
+      </a>
+    {% endsetvar %}
+    {% element p %}
+      {% blocktranslate %}Need an account? Please {{ link }}sign up{{ end_link }} first.{% endblocktranslate %}
+    {% endelement %}
+    {% url "account_login" as login_url %}
+    {% element form form=form method="post" action=login_url tags="entrance,login" %}
+      {% slot body %}
+        {% csrf_token %}
+        {% element fields form=form unlabeled=True %}
+        {% endelement %}
+        {{ redirect_field }}
+      {% endslot %}
+      {% slot actions %}
+        {% element button type="submit" tags="prominent,login" %}
+          {% trans "Sign In" %}
+        {% endelement %}
+        <a href="{% url 'account_reset_password' %}" class="link-primary text-decoration-none">
+          {% trans "Forgot password?" %}
+        </a>
+      {% endslot %}
+    {% endelement %}
+  {% endif %}
+{% endblock content %}
