@@ -10,11 +10,15 @@ BASE_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 # inspinia/
 APPS_DIR = BASE_DIR / "inspinia"
 env = environ.Env()
+ENV_FILE = BASE_DIR / ".env"
 
-READ_DOT_ENV_FILE = env.bool("DJANGO_READ_DOT_ENV_FILE", default=False)
-if READ_DOT_ENV_FILE:
+READ_DOT_ENV_FILE = env.bool(
+    "DJANGO_READ_DOT_ENV_FILE",
+    default=ENV_FILE.is_file(),
+)
+if READ_DOT_ENV_FILE and ENV_FILE.is_file():
     # OS environment variables take precedence over variables from .env
-    env.read_env(str(BASE_DIR / ".env"))
+    env.read_env(str(ENV_FILE))
 
 # GENERAL
 # ------------------------------------------------------------------------------

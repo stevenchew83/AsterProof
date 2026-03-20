@@ -1,5 +1,6 @@
 # ruff: noqa: E501
 from .base import *  # noqa: F403
+from .base import DATABASES
 from .base import INSTALLED_APPS
 from .base import env
 
@@ -14,6 +15,11 @@ SECRET_KEY = env(
 )
 # https://docs.djangoproject.com/en/dev/ref/settings/#allowed-hosts
 ALLOWED_HOSTS = ["localhost", "0.0.0.0", "127.0.0.1"]  # noqa: S104
+
+# DATABASES
+# ------------------------------------------------------------------------------
+DATABASES["default"] = env.db("DATABASE_URL", default="postgresql:///asterproof")
+DATABASES["default"]["ATOMIC_REQUESTS"] = True
 
 # CACHES
 # ------------------------------------------------------------------------------
