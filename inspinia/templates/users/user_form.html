@@ -1,31 +1,36 @@
-{% extends "base.html" %}
+{% extends "layouts/vertical.html" %}
 
 {% load crispy_forms_tags %}
 
-{% block title %}
+{% block title %}Edit profile{% endblock title %}
 
+{% block page_content %}
+<div class="container-fluid">
+  {% include "partials/page-title.html" with title="Edit profile" subtitle="Users" %}
 
-  {{ user.username }}
-
-
-{% endblock title %}
-{% block content %}
-  <h1>
-  
-  
-    {{ user.username }}
-  
-  
-</h1>
-<form class="form-horizontal"
-      method="post"
-      action="{% url 'users:update' %}">
-  {% csrf_token %}
-  {{ form|crispy }}
-  <div class="control-group">
-    <div class="controls">
-      <button type="submit" class="btn btn-primary">Update</button>
+  <div class="row g-3 mt-0">
+    <div class="col-xl-8">
+      <div class="card">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-0">{{ user.name|default:user.email }}</h4>
+          <p class="text-muted fs-xs mb-0">Update the profile fields used across the dashboard.</p>
+        </div>
+        <div class="card-body pt-2">
+          <form method="post" action="{% url 'users:update' %}">
+            {% csrf_token %}
+            {{ form|crispy }}
+            <div class="d-flex gap-2">
+              <button type="submit" class="btn btn-primary">
+                <i class="ti ti-device-floppy me-1"></i> Save changes
+              </button>
+              <a href="{% url 'users:detail' request.user.pk %}" class="btn btn-outline-secondary">
+                Cancel
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
     </div>
   </div>
-</form>
-{% endblock content %}
+</div>
+{% endblock page_content %}

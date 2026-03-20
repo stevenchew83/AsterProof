@@ -1,16 +1,103 @@
 {% extends 'layouts/vertical.html' %}
 
-{% load static i18n %}
+{% load i18n %}
 
-{% block title %}Starter Page{% endblock title %}
+{% block title %}Workspace{% endblock title %}
 
 {% block page_content %}
 
 <div class="container-fluid">
-  {% include 'partials/page-title.html' with title='Starter Page' %}
+  {% include 'partials/page-title.html' with title='Workspace' subtitle='Overview' %}
+
+  <div class="row g-3 mt-0">
+    <div class="col-xl-4">
+      <div class="card h-100">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-0">Problem analytics</h4>
+          <p class="text-muted fs-xs mb-0">Browse the imported dataset in charts and a searchable table.</p>
+        </div>
+        <div class="card-body pt-2 d-flex flex-column gap-3">
+          <p class="mb-0 text-body-secondary">
+            Analytics is open in debug mode and restricted to admins when debug is off.
+          </p>
+          {% if show_analytics_dashboard_link %}
+          <div>
+            <a href="{% url 'pages:dashboard' %}" class="btn btn-primary">
+              <i class="ti ti-chart-bar me-1"></i> Open dashboard
+            </a>
+          </div>
+          {% else %}
+          <div class="alert alert-info mb-0">
+            Analytics is currently limited to admin users.
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-4">
+      <div class="card h-100">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-0">Workbook import</h4>
+          <p class="text-muted fs-xs mb-0">Preview parsed rows before upserting problem records and techniques.</p>
+        </div>
+        <div class="card-body pt-2 d-flex flex-column gap-3">
+          <p class="mb-0 text-body-secondary">
+            Use the same import flow for dry-run preview and database writes.
+          </p>
+          {% if show_problem_import_link %}
+          <div>
+            <a href="{% url 'pages:problem_import' %}" class="btn btn-primary">
+              <i class="ti ti-file-upload me-1"></i> Import workbook
+            </a>
+          </div>
+          {% else %}
+          <div class="alert alert-info mb-0">
+            Workbook import is currently limited to admin users.
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-4">
+      <div class="card h-100">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-0">Account</h4>
+          <p class="text-muted fs-xs mb-0">Manage your profile, email settings, and authentication methods.</p>
+        </div>
+        <div class="card-body pt-2 d-flex flex-column gap-3">
+          {% if request.user.is_authenticated %}
+          <p class="mb-0 text-body-secondary">
+            Signed in as <span class="fw-semibold">{{ request.user.email }}</span>.
+          </p>
+          <div class="d-flex flex-wrap gap-2">
+            <a href="{% url 'users:detail' request.user.pk %}" class="btn btn-outline-secondary">
+              <i class="ti ti-user-circle me-1"></i> View account
+            </a>
+            <a href="{% url 'users:update' %}" class="btn btn-outline-secondary">
+              <i class="ti ti-settings-2 me-1"></i> Edit profile
+            </a>
+          </div>
+          {% else %}
+          <p class="mb-0 text-body-secondary">
+            Sign in to access analytics, imports, and account settings.
+          </p>
+          <div class="d-flex flex-wrap gap-2">
+            <a href="{% url 'account_login' %}" class="btn btn-primary">
+              <i class="ti ti-login-2 me-1"></i> Sign in
+            </a>
+            {% if ACCOUNT_ALLOW_REGISTRATION %}
+            <a href="{% url 'account_signup' %}" class="btn btn-outline-secondary">
+              <i class="ti ti-user-plus me-1"></i> Create account
+            </a>
+            {% endif %}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
-
 {% endblock page_content %}
-
-

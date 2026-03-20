@@ -1,23 +1,18 @@
 const {series, src, dest, parallel, watch} = require("gulp");
 
 const autoprefixer = require("gulp-autoprefixer");
-const browsersync = require("browser-sync");
 const concat = require("gulp-concat");
 const CleanCSS = require("gulp-clean-css");
-const del = require("del");
-const fileinclude = require("gulp-file-include");
-const newer = require("gulp-newer");
 const rename = require("gulp-rename");
 const rtlcss = require("gulp-rtlcss");
 const sourcemaps = require("gulp-sourcemaps");
 const sass = require("gulp-sass")(require("sass"));
-const uglify = require("gulp-uglify");
 
 const pluginFile = require("./plugins.config"); // Import the plugins list
 
 const paths = {
     baseDistAssets: "inspinia/static/", // build assets directory
-    baseSrcAssets: "inspinia/static/",   // source assets directory
+    baseSrcAssets: "inspinia/static/", // source assets directory
 };
 
 // Warning not show
@@ -28,8 +23,7 @@ const plugins = function () {
     const out = paths.baseDistAssets + "plugins/";
 
     pluginFile.forEach(({name, vendorsJS, vendorCSS, vendorFonts, assets, fonts, font, media, img, webfonts}) => {
-
-        const handleError = (label, files) => (err) => {
+        const handleError = (label) => (err) => {
             const shortMsg = err.message.split('\n')[0];
             console.error(`\n${label} - ${shortMsg}`);
             throw new Error(`${label} failed`);
@@ -72,7 +66,6 @@ const plugins = function () {
                 .on('error', handleError('media'))
                 .pipe(dest(`${out}${name}/`));
         }
-
 
         if (fonts) {
             src(fonts)
@@ -134,7 +127,7 @@ const rtl = function () {
         .pipe(rename({suffix: ".min"}))
         .pipe(sourcemaps.write("./")) // source maps
         .pipe(dest(out));
-}
+};
 
 
 function watchFiles() {
@@ -145,20 +138,20 @@ function watchFiles() {
 exports.default = series(
     plugins,
     parallel(scss),
-    parallel(watchFiles,)
+    parallel(watchFiles),
 );
 
 // Build Tasks
 exports.build = series(
     plugins,
-    parallel(scss)
+    parallel(scss),
 );
 
 // RTL Tasks
 exports.rtl = series(
     plugins,
     parallel(rtl),
-    parallel(watchFiles,)
+    parallel(watchFiles),
 );
 
 // RTL Build Tasks

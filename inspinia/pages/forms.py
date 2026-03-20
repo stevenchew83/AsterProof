@@ -4,11 +4,16 @@ from django import forms
 class ProblemXlsxImportForm(forms.Form):
     file = forms.FileField(
         label="Excel workbook",
-        help_text="Upload a .xlsx file with columns YEAR, TOPIC, MOHS, CONTEST, PROBLEM, CONTEST PROBLEM, Topic tags, …",
+        help_text=(
+            "Upload a .xlsx file with columns YEAR, TOPIC, MOHS, CONTEST, PROBLEM, "
+            "CONTEST PROBLEM, Topic tags, ..."
+        ),
         widget=forms.ClearableFileInput(
             attrs={
                 "class": "form-control",
-                "accept": ".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "accept": (
+                    ".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                ),
             },
         ),
     )
@@ -25,5 +30,6 @@ class ProblemXlsxImportForm(forms.Form):
         uploaded = self.cleaned_data["file"]
         name = getattr(uploaded, "name", "") or ""
         if not name.lower().endswith(".xlsx"):
-            raise forms.ValidationError("Please upload an .xlsx file.")
+            msg = "Please upload an .xlsx file."
+            raise forms.ValidationError(msg)
         return uploaded

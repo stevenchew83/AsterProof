@@ -36,7 +36,8 @@ Open [http://127.0.0.1:8000/](http://127.0.0.1:8000/) for the starter shell; **`
 ## Settings
 
 - Local development: `DJANGO_SETTINGS_MODULE=config.settings.local` (default in `manage.py`).
-- Copy `.envs/.local/.django` / `.postgres` from the seed docs if you use the provided env layout, or set `DJANGO_SECRET_KEY` in production.
+- Production uses `config.settings.production` and now expects `DATABASE_URL` to point at PostgreSQL, plus `DJANGO_SECRET_KEY`.
+- Copy `.envs/.local/.django` from the seed docs only if you still want that layout; the repo no longer depends on `PYTHONPATH` hacks to import the app packages.
 
 ## Frontend assets (optional)
 

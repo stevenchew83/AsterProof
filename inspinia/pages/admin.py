@@ -1,6 +1,7 @@
 from django.contrib import admin
 
-from .models import ProblemSolveRecord, ProblemTopicTechnique
+from .models import ProblemSolveRecord
+from .models import ProblemTopicTechnique
 
 
 class ProblemTopicTechniqueInline(admin.TabularInline):
