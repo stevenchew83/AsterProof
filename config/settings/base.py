@@ -192,6 +192,7 @@ TEMPLATES = [
                 "django.template.context_processors.tz",
                 "django.contrib.messages.context_processors.messages",
                 "inspinia.users.context_processors.allauth_settings",
+                "inspinia.users.context_processors.app_roles",
             ],
         },
     },

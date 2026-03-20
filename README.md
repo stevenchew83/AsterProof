@@ -31,7 +31,7 @@ python manage.py migrate
 python manage.py runserver
 ```
 
-Open [http://127.0.0.1:8000/](http://127.0.0.1:8000/) for the dashboard; `/admin/` for Django admin.
+Open [http://127.0.0.1:8000/](http://127.0.0.1:8000/) for the starter shell; **`/dashboard/`** for problem analytics (bar charts + DataTable). With **`DEBUG=True`** (typical local dev), `/dashboard/` is open without signing in. With **`DEBUG=False`**, only users with the **`admin`** role or **superusers** may access it. Roles (**admin**, **moderator**, **trainer**, **normal**) are stored on each user; after `migrate`, superusers and members of the legacy **`Admin`** auth group are upgraded to **`admin`** role. Admins can manage roles at **`/users/manage-roles/`** (requires sign-in). `/admin/` is the Django admin site.
 
 ## Settings
 
@@ -52,6 +52,7 @@ npx gulp build    # or see package.json / gulpfile.js
 | Path | Purpose |
 |------|---------|
 | `config/` | Django project settings and URL config |
+| `docs/inspinia-dashboard-style.md` | Conventions for keeping dashboard UI aligned with Inspinia |
 | `inspinia/` | Theme app: `pages`, `users`, templates, static files |
 | `requirements/` | `base.txt`, `production.txt`, `local.txt` |
 
