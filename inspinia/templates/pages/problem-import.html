@@ -40,7 +40,7 @@
             <code>SOLVE DATE</code>, <code>Confidence</code>, <code>IMO slot guess</code>, <code>Rationale</code>,
             <code>Pitfalls</code>.
           </p>
-          <form method="post" enctype="multipart/form-data" novalidate>
+          <form id="problem-import-form" method="post" enctype="multipart/form-data" novalidate>
             {% csrf_token %}
             {% if form.non_field_errors %}
               <div class="alert alert-danger">{{ form.non_field_errors }}</div>
@@ -60,9 +60,31 @@
               <button type="submit" name="action" value="preview" class="btn btn-outline-secondary">
                 <i class="ti ti-database-search me-1"></i> Preview parsed import
               </button>
-              <button type="submit" name="action" value="import" class="btn btn-primary">
+              <button type="submit" name="action" value="import" class="btn btn-primary" data-import-submit>
                 <i class="ti ti-upload me-1"></i> Import to database
               </button>
+            </div>
+
+            <div id="import-loading-state" class="card border-primary-subtle bg-primary-subtle mt-3 d-none" role="status" aria-live="polite">
+              <div class="card-body">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                  <div>
+                    <h5 class="mb-1 text-primary">Importing workbook</h5>
+                    <p class="mb-0 text-body-secondary">
+                      Writing rows to the database. Keep this tab open until the response returns.
+                    </p>
+                  </div>
+                  <div class="spinner-border text-primary" aria-hidden="true"></div>
+                </div>
+                <div class="progress progress-sm mt-3">
+                  <div
+                    class="progress-bar progress-bar-striped progress-bar-animated w-100"
+                    aria-label="Import in progress"
+                    aria-valuemin="0"
+                    aria-valuemax="100"
+                  ></div>
+                </div>
+              </div>
             </div>
           </form>
 
@@ -99,6 +121,44 @@
 {% endblock page_content %}
 
 {% block extra_javascript %}
+<script>
+(function () {
+  var importForm = document.getElementById("problem-import-form");
+  if (!importForm) return;
+
+  var loadingState = document.getElementById("import-loading-state");
+  var fileInput = importForm.querySelector('input[type="file"]');
+  var submitButtons = importForm.querySelectorAll('button[type="submit"]');
+  var replaceTagsInput = importForm.querySelector('input[name="replace_tags"]');
+  var importButton = importForm.querySelector("[data-import-submit]");
+  var lastAction = "";
+
+  submitButtons.forEach(function (button) {
+    button.addEventListener("click", function () {
+      lastAction = button.value || "";
+    });
+  });
+
+  importForm.addEventListener("submit", function (event) {
+    var submitter = event.submitter;
+    var action = submitter && submitter.value ? submitter.value : lastAction;
+    if (action !== "import" || !loadingState) return;
+    if (fileInput && !fileInput.files.length) return;
+
+    loadingState.classList.remove("d-none");
+    importForm.setAttribute("aria-busy", "true");
+
+    submitButtons.forEach(function (button) {
+      button.disabled = true;
+    });
+    if (fileInput) fileInput.disabled = true;
+    if (replaceTagsInput) replaceTagsInput.disabled = true;
+    if (importButton) {
+      importButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Importing...';
+    }
+  });
+})();
+</script>
 {% if preview_payload %}
 {{ preview_payload|json_script:"import-preview-data" }}
 <script src="{% static 'plugins/datatables/dataTables.min.js' %}"></script>
