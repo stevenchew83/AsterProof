@@ -305,7 +305,13 @@
 {% block extra_javascript %}
 <script>
 window.MathJax = {
+  loader: {
+    load: ["[tex]/textmacros"]
+  },
   tex: {
+    packages: {
+      "[+]": ["textmacros"]
+    },
     inlineMath: [["$", "$"], ["\\(", "\\)"]],
     displayMath: [["$$", "$$"], ["\\[", "\\]"]]
   },

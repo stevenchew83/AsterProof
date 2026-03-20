@@ -1,0 +1,29 @@
+2022 ELMO Revenge3
+ELMO
+1	Let $ABC$ and $DBC$ be triangles with incircles touching at a point $P$ on $BC.$ Points $A,D$ lie on the same side of $BC$ and $DB < AB < DC < AC.$ The bisector of $\angle BDC$ meets line $AP$ at $X,$ and the altitude from $A$ meets $DP$ at $Y.$ Point $Z$ lies on line $XY$ so $ZP \perp BC.$ Show the reflection of $A$ over $BC$ is on line $ZD.$
+
+Proposed by squareman (Evan Chang), USA
+
+squareman
+view topic
+2	Find all ordered pairs of integers $x,y$ such that$$xy(x^2y^2 - 12xy- 12x- 12y+2) = (2x + 2y)^2.$$
+Proposed by Henry Jiang
+
+rjiangbz
+view topic
+Bonus	Determine, with proof, if there exists an odd prime $p$ such that the following equation holds:
+$$\sum_{n = 1}^{\frac{p-1}{2}} \cot\left(\frac{\pi n^2}{p}\right) = 69\sqrt{p}$$
+Proposed by Chris Bao
+
+Gogobao
+view topic
+ELSMO
+1	In terms of $p$ and $k$, compute the number of solutions in positive integers to the equation
+$ab+bc+ca=p^{2k}$ satisfying $a\leq b\leq c$ where $p$ is a fixed prime and $k$ is a fixed positive integer.
+
+Proposed by Alexander Wang
+
+DottedCaculator
+view topic
+2	Same as ELMO 5
+3	Same as ELMO 4

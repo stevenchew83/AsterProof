@@ -1,0 +1,36 @@
+2025 EGMO3
+European Girls MO 2025
+Day 1	April 13, 2025
+1	For a positive integer $N$, let $c_1 < c_2 < \cdots < c_m$ be all positive integers smaller than $N$ that are coprime to $N$. Find all $N \geqslant 3$ such that$$\gcd( N, c_i + c_{i+1}) \neq 1$$for all $1 \leqslant i \leqslant m-1$
+
+Here $\gcd(a, b)$ is the largest positive integer that divides both $a$ and $b$. Integers $a$ and $b$ are coprime if $\gcd(a, b) = 1$.
+
+Proposed by Paulius Aleknavičius, Lithuania
+
+EeEeRUT
+view topic
+2	An infinite increasing sequence $a_1 < a_2 < a_3 < \cdots$ of positive integers is called central if for every positive integer $n$ , the arithmetic mean of the first $a_n$ terms of the sequence is equal to $a_n$.
+
+Show that there exists an infinite sequence $b_1, b_2, b_3, \dots$ of positive integers such that for every central sequence $a_1, a_2, a_3, \dots, $ there are infinitely many positive integers $n$ with $a_n = b_n$.
+
+EeEeRUT
+view topic
+3	Let $ABC$ be an acute triangle. Points $B, D, E$, and $C$ lie on a line in this order and satisfy $BD = DE = EC$. Let $M$ and $N$ be the midpoints of $AD$ and $AE$, respectively. Suppose triangle $ADE$ is acute, and let $H$ be its orthocentre. Points $P$ and $Q$ lie on lines $BM$ and $CN$, respectively, such that $D, H, M,$ and $P$ are concyclic and pairwise different, and $E, H, N,$ and $Q$ are concyclic and pairwise different. Prove that $P, Q, N,$ and $M$ are concyclic.
+
+CrazyInMath
+view topic
+Day 2	April 14, 2025
+4	Let $ABC$ be an acute triangle with incentre $I$ and $AB \neq AC$. Let lines $BI$ and $CI$ intersect the circumcircle of $ABC$ at $P \neq B$ and $Q \neq C$, respectively. Consider points $R$ and $S$ such that $AQRB$ and $ACSP$ are parallelograms (with $AQ \parallel RB, AB \parallel QR, AC \parallel SP$, and $AP \parallel CS$). Let $T$ be the point of intersection of lines $RB$ and $SC$. Prove that points $R, S, T$, and $I$ are concyclic.
+
+Lukaluce
+view topic
+5	Let $n > 1$ be an integer. In a configuration of an $n \times n$ board, each of the $n^2$ cells contains an arrow, either pointing up, down, left, or right. Given a starting configuration, Turbo the snail starts in one of the cells of the board and travels from cell to cell. In each move, Turbo moves one square unit in the direction indicated by the arrow in her cell (possibly leaving the board). After each move, the arrows in all of the cells rotate $90^{\circ}$ counterclockwise. We call a cell good if, starting from that cell, Turbo visits each cell of the board exactly once, without leaving the board, and returns to her initial cell at the end. Determine, in terms of $n$, the maximum number of good cells over all possible starting configurations.
+
+Proposed by Melek Güngör, Turkey
+
+Lukaluce
+view topic
+6	In each cell of a $2025 \times 2025$ board, a nonnegative real number is written in such a way that the sum of the numbers in each row is equal to $1$, and the sum of the numbers in each column is equal to $1$. Define $r_i$ to be the largest value in row $i$, and let $R = r_1 + r_2 + ... + r_{2025}$. Similarly, define $c_i$ to be the largest value in column $i$, and let $C = c_1 + c_2 + ... + c_{2025}$.
+What is the largest possible value of $\frac{R}{C}$?
+
+Proposed by Paulius Aleknavičius, Lithuania, and Anghel David Andrei, Romania

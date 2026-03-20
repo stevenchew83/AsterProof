@@ -10,6 +10,7 @@ from django.db.models import Avg
 from django.db.models import Count
 from django.db.models import Max
 from django.db.models import Min
+from django.db.models import Q
 from django.http import Http404
 from django.http import HttpResponse
 from django.shortcuts import render
@@ -367,7 +368,9 @@ def _statement_table_rows(base) -> list[dict]:
     for statement in base.select_related("linked_problem").order_by(
         "-contest_year",
         "contest_name",
+        "day_label",
         "problem_number",
+        "problem_code",
     ):
         linked_problem = statement.linked_problem
         linked_problem_label = ""
@@ -403,6 +406,41 @@ def _statement_table_rows(base) -> list[dict]:
         )
 
     return table_rows
+
+
+def _statement_dashboard_rows(base) -> list[dict]:
+    rows = list(
+        base.values("contest_name", "contest_year")
+        .annotate(
+            statement_count=Count("id"),
+            linked_count=Count("id", filter=Q(linked_problem__isnull=False)),
+            last_updated=Max("updated_at"),
+        )
+        .order_by("-contest_year", "contest_name"),
+    )
+
+    for row in rows:
+        statement_count = int(row["statement_count"] or 0)
+        linked_count = int(row["linked_count"] or 0)
+        row["contest_year_label"] = f"{row['contest_name']} {row['contest_year']}"
+        row["statement_count"] = statement_count
+        row["linked_count"] = linked_count
+        row["unlinked_count"] = statement_count - linked_count
+        row["link_rate"] = round((linked_count / statement_count) * 100, 2) if statement_count else 0.0
+        row["last_updated_label"] = (
+            timezone.localtime(row["last_updated"]).strftime("%Y-%m-%d %H:%M")
+            if row["last_updated"] is not None
+            else ""
+        )
+
+    rows.sort(
+        key=lambda row: (
+            -row["statement_count"],
+            -int(row["contest_year"]),
+            row["contest_name"],
+        ),
+    )
+    return rows
 
 
 def _require_admin_tools_access(request) -> None:
@@ -473,9 +511,27 @@ def _build_contest_directory_rows(base) -> list[dict]:
         )
         .order_by("-problem_count", "contest"),
     )
+    if not contest_rows:
+        return []
+
     contest_to_slug, _slug_to_contest = _build_contest_slug_maps(
         [row["contest"] for row in contest_rows],
     )
+    statement_rows = list(
+        ContestProblemStatement.objects.filter(
+            linked_problem__contest__in=[row["contest"] for row in contest_rows],
+        )
+        .values("linked_problem__contest")
+        .annotate(
+            statement_problem_count=Count("linked_problem_id", distinct=True),
+            statement_year_total=Count("contest_year", distinct=True),
+        )
+        .order_by("linked_problem__contest"),
+    )
+    statements_by_contest = {
+        row["linked_problem__contest"]: row
+        for row in statement_rows
+    }
 
     topic_rows = list(
         base.values("contest", "topic")
@@ -513,6 +569,7 @@ def _build_contest_directory_rows(base) -> list[dict]:
         )
 
     for row in contest_rows:
+        statement_row = statements_by_contest.get(row["contest"], {})
         row["slug"] = contest_to_slug[row["contest"]]
         row["avg_mohs"] = round(float(row["avg_mohs"] or 0), 1)
         row["year_span_label"] = (
@@ -520,9 +577,20 @@ def _build_contest_directory_rows(base) -> list[dict]:
             if row["year_min"] == row["year_max"]
             else f"{row['year_min']}-{row['year_max']}"
         )
+        row["statement_problem_count"] = int(statement_row.get("statement_problem_count") or 0)
+        row["statement_year_total"] = int(statement_row.get("statement_year_total") or 0)
+        row["has_statements"] = row["statement_problem_count"] > 0
         row["top_topics"] = topics_by_contest.get(row["contest"], [])
         row["preview_problems"] = previews_by_contest.get(row["contest"], [])
 
+    contest_rows.sort(
+        key=lambda row: (
+            -int(row["has_statements"]),
+            -row["statement_problem_count"],
+            -row["problem_count"],
+            row["contest"],
+        ),
+    )
     return contest_rows
 
 
@@ -662,10 +730,115 @@ def problem_statement_list_view(request):
 
 
 @login_required
+def problem_statement_analytics_view(request):
+    """Contest-year statement analytics focused on archive coverage per import set."""
+    _require_admin_tools_access(request)
+
+    base = ContestProblemStatement.objects.all()
+    statement_total = base.count()
+    dashboard_rows = _statement_dashboard_rows(base)
+    statement_set_total = len(dashboard_rows)
+    contest_total = base.values("contest_name").distinct().count()
+    linked_total = base.filter(linked_problem__isnull=False).count()
+    year_bounds = base.aggregate(year_min=Min("contest_year"), year_max=Max("contest_year"))
+
+    year_min = year_bounds["year_min"]
+    year_max = year_bounds["year_max"]
+    year_range_label = "Awaiting statement import"
+    if year_min is not None and year_max is not None:
+        year_range_label = str(year_min) if year_min == year_max else f"{year_min}-{year_max}"
+
+    average_statements_per_set = round(statement_total / statement_set_total, 2) if statement_set_total else 0.0
+    overall_link_rate = round((linked_total / statement_total) * 100, 2) if statement_total else 0.0
+
+    biggest_set = dashboard_rows[0] if dashboard_rows else None
+    best_linked_set = (
+        max(
+            dashboard_rows,
+            key=lambda row: (row["link_rate"], row["linked_count"], row["statement_count"], row["contest_year_label"]),
+        )
+        if dashboard_rows
+        else None
+    )
+    biggest_backlog_set = (
+        max(
+            dashboard_rows,
+            key=lambda row: (row["unlinked_count"], row["statement_count"], row["contest_year_label"]),
+        )
+        if dashboard_rows
+        else None
+    )
+    newest_set = (
+        max(
+            dashboard_rows,
+            key=lambda row: (row["contest_year"], row["statement_count"], row["contest_year_label"]),
+        )
+        if dashboard_rows
+        else None
+    )
+
+    year_rows = list(
+        base.values("contest_year")
+        .annotate(statement_count=Count("id"))
+        .order_by("-contest_year"),
+    )
+
+    charts_payload = {
+        "byStatementVolume": _rows_to_bar_payload(
+            dashboard_rows[:12],
+            "contest_year_label",
+            value_key="statement_count",
+        ),
+        "byLinkRate": _rows_to_bar_payload(
+            sorted(
+                dashboard_rows,
+                key=lambda row: (
+                    row["link_rate"],
+                    row["linked_count"],
+                    row["statement_count"],
+                    row["contest_year_label"],
+                ),
+                reverse=True,
+            )[:12],
+            "contest_year_label",
+            value_key="link_rate",
+            decimals=2,
+        ),
+        "byYearVolume": _rows_to_bar_payload(
+            year_rows,
+            "contest_year",
+            value_key="statement_count",
+        ),
+    }
+
+    context = {
+        "statement_dashboard_total": statement_set_total,
+        "statement_dashboard_statement_total": statement_total,
+        "statement_dashboard_stats": {
+            "average_statements_per_set": average_statements_per_set,
+            "contest_total": contest_total,
+            "linked_total": linked_total,
+            "overall_link_rate": overall_link_rate,
+            "year_range_label": year_range_label,
+        },
+        "statement_dashboard_leaders": {
+            "biggest": biggest_set,
+            "best_linked": best_linked_set,
+            "biggest_backlog": biggest_backlog_set,
+            "newest": newest_set,
+        },
+        "statement_dashboard_rows": dashboard_rows,
+        "charts_payload": charts_payload,
+    }
+    return render(request, "pages/problem-statement-analytics.html", context)
+
+
+@login_required
 def problem_list_view(request):
     """Contest-first problem explorer for browsing the imported archive."""
     base = ProblemSolveRecord.objects.all()
     contest_directory = _build_contest_directory_rows(base)
+    statement_ready_total = sum(1 for row in contest_directory if row["has_statements"])
 
     stats = base.aggregate(
         contest_n=Count("contest", distinct=True),
@@ -702,7 +875,7 @@ def problem_list_view(request):
         "problem_listing_total": stats["problem_n"],
         "problem_listing_stats": {
             "contest_total": stats["contest_n"],
-            "topic_total": stats["topic_n"],
+            "statement_ready_total": statement_ready_total,
             "year_range_label": year_range_label,
         },
         "initial_search_query": initial_search_query,
@@ -736,6 +909,20 @@ def contest_problem_list_view(request, contest_slug: str):
         raise Http404(msg)
 
     initial_search_query = (request.GET.get("q") or "").strip()
+    statement_by_problem_id: dict[int, dict] = {}
+    for statement in (
+        ContestProblemStatement.objects.filter(linked_problem__contest=contest_name)
+        .select_related("linked_problem")
+        .order_by("-updated_at", "-contest_year", "day_label", "problem_number")
+    ):
+        if statement.linked_problem_id in statement_by_problem_id:
+            continue
+        statement_by_problem_id[statement.linked_problem_id] = {
+            "day_label": statement.day_label or "",
+            "statement_latex": statement.statement_latex,
+            "updated_at_label": timezone.localtime(statement.updated_at).strftime("%Y-%m-%d"),
+        }
+
     problem_rows = list(
         contest_base.annotate(technique_count=Count("topic_techniques"))
         .values(
@@ -754,6 +941,7 @@ def contest_problem_list_view(request, contest_slug: str):
     problem_rows.sort(
         key=lambda row: (
             -int(row["year"]),
+            0 if row["id"] in statement_by_problem_id else 1,
             _problem_sort_key(row["problem"]),
             row["contest_year_problem"] or "",
         ),
@@ -786,6 +974,7 @@ def contest_problem_list_view(request, contest_slug: str):
 
     grouped_years: list[dict] = []
     for row in problem_rows:
+        statement_data = statement_by_problem_id.get(row["id"])
         label = row["contest_year_problem"] or f"{contest_name} {row['year']} {row['problem']}"
         is_completed = row["id"] in completion_by_problem_id
         problem_item = {
@@ -801,6 +990,12 @@ def contest_problem_list_view(request, contest_slug: str):
             "mohs": row["mohs"],
             "problem": row["problem"],
             "problem_uuid": str(row["problem_uuid"]),
+            "statement_day_label": statement_data["day_label"] if statement_data else "",
+            "statement_latex": statement_data["statement_latex"] if statement_data else "",
+            "statement_updated_at_label": (
+                statement_data["updated_at_label"] if statement_data else ""
+            ),
+            "has_statement": statement_data is not None,
             "technique_count": row["technique_count"],
             "topic": row["topic"],
         }
@@ -819,7 +1014,7 @@ def contest_problem_list_view(request, contest_slug: str):
         "contest_problem_total": stats["problem_n"],
         "contest_problem_stats": {
             "avg_mohs": round(float(stats["avg_mohs"] or 0), 1),
-            "topic_total": stats["topic_n"],
+            "statement_total": len(statement_by_problem_id),
             "year_range_label": (
                 str(stats["year_min"])
                 if stats["year_min"] == stats["year_max"]
@@ -830,6 +1025,7 @@ def contest_problem_list_view(request, contest_slug: str):
         "grouped_years": grouped_years,
         "initial_search_query": initial_search_query,
         "matching_problem_total": len(problem_rows),
+        "statement_rendering_enabled": bool(statement_by_problem_id),
         "top_topics": [row["topic"] for row in top_topics],
     }
     return render(request, "pages/contest-problem-list.html", context)

@@ -45,6 +45,7 @@ EXPORT_COLUMNS = [
     "Pitfalls",
 ]
 PROBLEM_NUMBER_RE = re.compile(r"^\s*P?(?P<number>\d+)\s*$", flags=re.IGNORECASE)
+STATEMENT_PROBLEM_CODE_RE = re.compile(r"^\s*(?:(?P<prefix>[A-Za-z]{1,4})\s*)?(?P<number>\d+)\s*$")
 
 
 @dataclass
@@ -110,15 +111,26 @@ def _problem_number_from_code(problem_code: str) -> int | None:
     return int(match.group("number"))
 
 
-def _find_statement_entry(*, year: int, contest: str, problem: str) -> ContestProblemStatement | None:
-    problem_number = _problem_number_from_code(problem)
-    if problem_number is None:
+def _statement_problem_code_from_problem(problem_code: str) -> str | None:
+    match = STATEMENT_PROBLEM_CODE_RE.fullmatch(problem_code)
+    if not match:
         return None
-    return ContestProblemStatement.objects.filter(
+    prefix = (match.group("prefix") or "P").upper()
+    return f"{prefix}{int(match.group('number'))}"
+
+
+def _find_statement_entry(*, year: int, contest: str, problem: str) -> ContestProblemStatement | None:
+    statement_problem_code = _statement_problem_code_from_problem(problem)
+    if statement_problem_code is None:
+        return None
+    matches = ContestProblemStatement.objects.filter(
         contest_year=year,
         contest_name=contest,
-        problem_number=problem_number,
-    ).first()
+        problem_code=statement_problem_code,
+    )
+    if matches.count() != 1:
+        return None
+    return matches.first()
 
 
 def _sync_statement_link(*, record: ProblemSolveRecord, created: bool) -> None:

@@ -1,0 +1,52 @@
+2024 ISL3
+IMO Shortlist 2024
+Algebra
+A1	Determine all real numbers $\alpha$ such that, for every positive integer $n,$ the integer
+$$\lfloor\alpha\rfloor +\lfloor 2\alpha\rfloor +\cdots +\lfloor n\alpha\rfloor$$is a multiple of $n.$ (Note that $\lfloor z\rfloor$ denotes the greatest integer less than or equal to $z.$ For example, $\lfloor -\pi\rfloor =-4$ and $\lfloor 2\rfloor= \lfloor 2.9\rfloor =2.$)
+
+Proposed by Santiago Rodríguez, Colombia
+
+EthanWYX2009
+view topic
+A2	Let $n$ be a positive integer. Find the minimum possible value of
+\[
+S = 2^0 x_0^2 + 2^1 x_1^2 + \dots + 2^n x_n^2,
+\]where $x_0, x_1, \dots, x_n$ are nonnegative integers such that $x_0 + x_1 + \dots + x_n = n$.
+
+EpicBird08
+view topic
+Combinatorics
+C1	Let $n$ be a positive integer. A class of $n$ students run $n$ races, in each of which they are ranked with no draws. A student is eligible for a rating $(a,\,b)$ for positive integers $a$ and $b$ if they come in the top $b$ places in at least $a$ of the races. Their final score is the maximum possible value of $a-b$ across all ratings for which they are eligible.
+
+Find the maximum possible sum of all the scores of the $n$ students.
+
+Proposed by William Steinberg, Australia
+
+KevinYang2.71
+view topic
+Geometry
+G1	Let $ABCD$ be a cyclic quadrilateral such that $AC<BD<AD$ and $\angle DBA<90^\circ$. Point $E$ lies on the line through $D$ parallel to $AB$ such that $E$ and $C$ lie on opposite sides of line $AD$, and $AC=DE$. Point $F$ lies on the line through $A$ parallel to $CD$ such that $F$ and $C$ lie on opposite sides of line $AD$, and $BD=AF$.
+
+Prove that the perpendicular bisectors of segments $BC$ and $EF$ intersect on the circumcircle of $ABCD$.
+
+Proposed by Mykhailo Shtandenko, Ukraine
+
+OronSH
+view topic
+Number Theory
+N1	Find all positive integers $n$ with the following property: for all positive divisors $d$ of $n$, we have $d+1\mid n$ or $d+1$ is prime.
+
+KevinYang2.71
+view topic
+N6	Let $n$ be a positive integer. We say a polynomial $P$ with integer coefficients is $\emph{n-good}$ if there exists a polynomial $Q$ of degree $2$ with integer coefficients such that $Q(k)(P(k) + Q(k))$ is never divisible by $n$ for any integer $k$.
+
+Determine all integers $n$ such that every polynomial with integer coefficients is an $n$-good polynomial
+
+brainfertilzer
+view topic
+N7	Let $\mathbb{Z}_{>0}$ denote the set of positive integers. Let $f : \mathbb{Z}_{>0} \rightarrow \mathbb{Z}_{>0}$ be a function satisfying the following property: for $m,n \in \mathbb{Z}_{>0}$, the equation
+\[
+f(mn)^2 = f(m^2)f(f(n))f(mf(n))
+\]holds if and only if $m$ and $n$ are coprime.
+
+For each positive integer $n$, determine all the possible values of $f(n)$.

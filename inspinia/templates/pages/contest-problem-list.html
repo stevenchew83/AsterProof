@@ -10,9 +10,25 @@
       color: #146c43;
     }
 
+    .problem-chip-statement {
+      background: rgba(13, 110, 253, 0.12);
+      color: #0d57cc;
+    }
+
     .problem-uuid-copy {
       font-size: 0.78rem;
       word-break: break-all;
+    }
+
+    .problem-statement-body {
+      margin-top: 0.9rem;
+      padding: 1rem;
+      border-radius: 1rem;
+      border: 1px solid rgba(17, 32, 59, 0.07);
+      background: #f7f9fd;
+      color: #11203b;
+      line-height: 1.75;
+      white-space: pre-wrap;
     }
   </style>
 {% endblock extra_css %}
@@ -27,10 +43,10 @@
 
       <div class="row g-4 align-items-end">
         <div class="col-lg-7">
-          <span class="problem-label">Contest checklist</span>
+          <span class="problem-label">Contest statements</span>
           <h1 class="problem-title">{{ contest_title }}</h1>
           <p class="problem-lead mb-0">
-            This page keeps the MO Checklist idea of yearly contest rows, but places it in a standalone Problems experience instead of the dashboard shell.
+            Open the yearly contest row, then read imported statements inline wherever they are already linked to the archive.
           </p>
           <div class="problem-badge-row mt-4">
             {% for topic in top_topics %}
@@ -66,9 +82,9 @@
         <p class="problem-muted mb-0">Visible rows in this contest archive.</p>
       </div>
       <div class="problem-stat-card">
-        <span class="problem-label">Topics</span>
-        <div class="problem-stat-value">{{ contest_problem_stats.topic_total }}</div>
-        <p class="problem-muted mb-0">Distinct topics attached to this contest.</p>
+        <span class="problem-label">Statements</span>
+        <div class="problem-stat-value">{{ contest_problem_stats.statement_total }}</div>
+        <p class="problem-muted mb-0">Problems already linked to imported statement text.</p>
       </div>
       <div class="problem-stat-card">
         <span class="problem-label">Avg MOHS</span>
@@ -90,7 +106,7 @@
       <div>
         <span class="problem-label">Yearly problem rows</span>
         <h2 class="h3 mt-2 mb-1">{{ contest_title }} checklist</h2>
-        <p class="problem-muted mb-0">Problem chips stay compact here on purpose. They can become full statement links later.</p>
+        <p class="problem-muted mb-0">Statement-backed problems rise to the front of each year row, and imported statement text appears inside the problem card.</p>
       </div>
       <span class="problem-pill">{{ matching_problem_total }} shown</span>
     </div>
@@ -110,7 +126,10 @@
 
         <div class="problem-chip-row mt-4">
           {% for problem in year_group.problems %}
-          <a href="#{{ problem.anchor }}" class="problem-chip" title="{{ problem.label }}">{{ problem.problem }}</a>
+          <a href="#{{ problem.anchor }}" class="problem-chip {% if problem.has_statement %}problem-chip-statement{% endif %}" title="{{ problem.label }}">
+            {{ problem.problem }}
+            {% if problem.has_statement %}<i class="ti ti-file-text"></i>{% endif %}
+          </a>
           {% endfor %}
         </div>
 
@@ -139,6 +158,21 @@
             <p class="problem-muted mb-0">
               {{ problem.topic }} - {{ problem.technique_count }} technique row{{ problem.technique_count|pluralize }}.
             </p>
+            {% if problem.has_statement %}
+            <div class="mt-4">
+              <div class="d-flex flex-wrap gap-2 align-items-center">
+                <span class="problem-label">Statement</span>
+                {% if problem.statement_day_label %}
+                  <span class="problem-pill">{{ problem.statement_day_label }}</span>
+                {% endif %}
+                <span class="problem-pill"><i class="ti ti-file-text"></i> Imported</span>
+              </div>
+              <div class="problem-statement-body">{{ problem.statement_latex }}</div>
+              <p class="problem-muted mt-2 mb-0">Statement import updated {{ problem.statement_updated_at_label }}.</p>
+            </div>
+            {% else %}
+            <p class="problem-muted mt-3 mb-0">Statement not imported yet for this problem.</p>
+            {% endif %}
             <p class="problem-muted problem-uuid-copy mt-3 mb-0">
               UUID: <span class="font-monospace">{{ problem.problem_uuid }}</span>
             </p>
@@ -163,3 +197,27 @@
   </div>
 </section>
 {% endblock problem_page_content %}
+
+{% block extra_javascript %}
+  {{ block.super }}
+  {% if statement_rendering_enabled %}
+  <script>
+  window.MathJax = {
+    loader: {
+      load: ["[tex]/textmacros"]
+    },
+    tex: {
+      packages: {
+        "[+]": ["textmacros"]
+      },
+      inlineMath: [["$", "$"], ["\\(", "\\)"]],
+      displayMath: [["$$", "$$"], ["\\[", "\\]"]]
+    },
+    options: {
+      skipHtmlTags: ["script", "noscript", "style", "textarea", "pre", "code"]
+    }
+  };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  {% endif %}
+{% endblock extra_javascript %}

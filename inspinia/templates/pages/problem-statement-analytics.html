@@ -1,0 +1,285 @@
+{% extends 'layouts/vertical.html' %}
+
+{% load static i18n %}
+
+{% block title %}Problem statement analytics{% endblock title %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'plugins/datatables/dataTables.bootstrap5.min.css' %}">
+{% endblock extra_css %}
+
+{% block page_content %}
+
+<div class="container-fluid">
+
+  {% include 'partials/page-title.html' with title='Problem statement analytics' subtitle='Admin' %}
+
+  <div class="row g-3 mt-0">
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-primary-subtle text-primary rounded">
+                <i class="ti ti-folders fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Contest-year sets</p>
+              <h3 class="mb-0">{{ statement_dashboard_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-info-subtle text-info rounded">
+                <i class="ti ti-trophy fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Distinct contests</p>
+              <h3 class="mb-0">{{ statement_dashboard_stats.contest_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-warning-subtle text-warning rounded">
+                <i class="ti ti-file-text fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Statement rows</p>
+              <h3 class="mb-0">{{ statement_dashboard_statement_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-success-subtle text-success rounded">
+                <i class="ti ti-link fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Linked coverage</p>
+              <h3 class="mb-0">{{ statement_dashboard_stats.overall_link_rate }}%</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if statement_dashboard_total == 0 %}
+  <div class="alert alert-info mt-4" role="alert">
+    <strong>No statement data yet.</strong> Save parsed results from <a href="{% url 'pages:latex_preview' %}" class="alert-link">LaTeX preview</a> to populate this dashboard.
+  </div>
+  {% else %}
+
+  <div class="row g-3 mt-1">
+    <div class="col-xxl-8">
+      <div class="card">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-0">Contest-year statement volume</h4>
+          <p class="text-muted fs-xs mb-0">Largest imported statement sets by stored row count</p>
+        </div>
+        <div class="card-body pt-2">
+          <div id="chart-statement-volume" style="min-height: 340px;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xxl-4">
+      <div class="card h-100">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-0">Contest-year leaders</h4>
+          <p class="text-muted fs-xs mb-0">Quick signals across coverage, linking quality, and recency</p>
+        </div>
+        <div class="card-body pt-2">
+          <div class="d-flex flex-column gap-3">
+            <div class="border rounded p-3">
+              <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Largest set</p>
+              <div class="d-flex align-items-center justify-content-between gap-2">
+                <h5 class="mb-0">{{ statement_dashboard_leaders.biggest.contest_year_label }}</h5>
+                <span class="badge bg-primary-subtle text-primary">{{ statement_dashboard_leaders.biggest.statement_count }} rows</span>
+              </div>
+            </div>
+            <div class="border rounded p-3">
+              <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Best linked coverage</p>
+              <div class="d-flex align-items-center justify-content-between gap-2">
+                <h5 class="mb-0">{{ statement_dashboard_leaders.best_linked.contest_year_label }}</h5>
+                <span class="badge bg-success-subtle text-success">{{ statement_dashboard_leaders.best_linked.link_rate }}%</span>
+              </div>
+            </div>
+            <div class="border rounded p-3">
+              <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Largest backlog</p>
+              <div class="d-flex align-items-center justify-content-between gap-2">
+                <h5 class="mb-0">{{ statement_dashboard_leaders.biggest_backlog.contest_year_label }}</h5>
+                <span class="badge bg-warning-subtle text-warning">{{ statement_dashboard_leaders.biggest_backlog.unlinked_count }} unlinked</span>
+              </div>
+            </div>
+            <div class="border rounded p-3">
+              <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Newest contest-year</p>
+              <div class="d-flex align-items-center justify-content-between gap-2">
+                <h5 class="mb-0">{{ statement_dashboard_leaders.newest.contest_year_label }}</h5>
+                <span class="badge bg-info-subtle text-info">{{ statement_dashboard_leaders.newest.contest_year }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-0">
+    <div class="col-xl-6">
+      <div class="card">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-0">Link rate by contest-year</h4>
+          <p class="text-muted fs-xs mb-0">Higher bars indicate statement sets that already map cleanly to problem rows</p>
+        </div>
+        <div class="card-body pt-2">
+          <div id="chart-link-rate" style="min-height: 320px;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-6">
+      <div class="card">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-0">Statement rows by year</h4>
+          <p class="text-muted fs-xs mb-0">Year-only view of imported statement coverage across the archive</p>
+        </div>
+        <div class="card-body pt-2">
+          <div id="chart-year-volume" style="min-height: 320px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-0 mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header border-bottom d-flex flex-wrap align-items-center gap-2">
+          <div class="flex-grow-1">
+            <h4 class="header-title mb-0">Contest-year directory</h4>
+            <p class="text-muted fs-xs mb-0">Search, sort, and compare statement coverage by contest and year only</p>
+          </div>
+          <span class="badge text-bg-light">{{ statement_dashboard_stats.year_range_label }}</span>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table id="problem-statement-analytics-table" class="table table-striped table-bordered align-middle w-100"></table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% endif %}
+</div>
+
+{{ charts_payload|json_script:"problem-statement-dashboard-charts-data" }}
+{{ statement_dashboard_rows|json_script:"problem-statement-dashboard-table-data" }}
+
+{% endblock page_content %}
+
+{% block extra_javascript %}
+{% if statement_dashboard_total > 0 %}
+<script src="{% static 'plugins/apexcharts/apexcharts.min.js' %}"></script>
+<script src="{% static 'plugins/datatables/dataTables.min.js' %}"></script>
+<script src="{% static 'plugins/datatables/dataTables.bootstrap5.min.js' %}"></script>
+<script>
+(function () {
+  var dataEl = document.getElementById("problem-statement-dashboard-charts-data");
+  var tableEl = document.getElementById("problem-statement-dashboard-table-data");
+  if (!dataEl || !tableEl || typeof ApexCharts === "undefined") return;
+
+  var palette = ["#0d6efd", "#198754", "#fd7e14"];
+  var charts = JSON.parse(dataEl.textContent);
+  var rows = JSON.parse(tableEl.textContent);
+
+  function formatMetric(value, suffix) {
+    if (typeof value !== "number") return value;
+    var rendered = Number.isInteger(value) ? String(value) : value.toFixed(2);
+    return suffix ? rendered + suffix : rendered;
+  }
+
+  function barOptions(payload, color, suffix) {
+    return {
+      chart: { type: "bar", height: Math.max(320, 34 * payload.labels.length), toolbar: { show: false }, fontFamily: "inherit" },
+      series: [{ name: "Value", data: payload.values }],
+      plotOptions: { bar: { borderRadius: 3, horizontal: true, barHeight: "72%" } },
+      dataLabels: {
+        enabled: payload.values.length <= 12,
+        formatter: function (value) { return formatMetric(value, suffix); }
+      },
+      tooltip: {
+        y: {
+          formatter: function (value) { return formatMetric(value, suffix); }
+        }
+      },
+      colors: [color],
+      grid: { strokeDashArray: 4, borderColor: "rgba(108,117,125,0.15)" },
+      xaxis: {
+        categories: payload.labels,
+        labels: { style: { fontSize: "11px" } },
+      },
+    };
+  }
+
+  function renderBar(sel, payload, idx, suffix) {
+    var el = document.querySelector(sel);
+    if (!el || !payload.labels.length) return;
+    var chart = new ApexCharts(el, barOptions(payload, palette[idx % palette.length], suffix));
+    chart.render();
+  }
+
+  renderBar("#chart-statement-volume", charts.byStatementVolume, 0, "");
+  renderBar("#chart-link-rate", charts.byLinkRate, 1, "%");
+  renderBar("#chart-year-volume", charts.byYearVolume, 2, "");
+
+  if (typeof DataTable === "undefined") return;
+
+  new DataTable("#problem-statement-analytics-table", {
+    data: rows,
+    columns: [
+      { data: "contest_year", title: "Year", className: "text-nowrap" },
+      { data: "contest_name", title: "Contest" },
+      { data: "statement_count", title: "Statements", className: "text-nowrap" },
+      { data: "linked_count", title: "Linked", className: "text-nowrap" },
+      { data: "unlinked_count", title: "Unlinked", className: "text-nowrap" },
+      {
+        data: "link_rate",
+        title: "Link rate",
+        className: "text-nowrap",
+        render: function (data, type) {
+          if (type === "display" || type === "filter") return formatMetric(Number(data || 0), "%");
+          return data;
+        }
+      },
+      { data: "last_updated_label", title: "Last updated", className: "text-nowrap" },
+    ],
+    order: [[2, "desc"], [0, "desc"], [1, "asc"]],
+    pageLength: 25,
+    lengthMenu: [10, 25, 50, 100],
+    scrollX: true,
+    autoWidth: false,
+  });
+})();
+</script>
+{% endif %}
+{% endblock extra_javascript %}

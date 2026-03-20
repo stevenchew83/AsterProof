@@ -271,11 +271,11 @@ class ContestProblemStatement(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ["-contest_year", "contest_name", "problem_number"]
+        ordering = ["-contest_year", "contest_name", "day_label", "problem_number", "problem_code"]
         constraints = [
             models.UniqueConstraint(
-                fields=["contest_year", "contest_name", "problem_number"],
-                name="pages_contestproblemstatement_unique_contest_problem",
+                fields=["contest_year", "contest_name", "day_label", "problem_code"],
+                name="pages_contestproblemstatement_unique_contest_day_problem_code",
             ),
         ]
 
@@ -288,7 +288,7 @@ class ContestProblemStatement(models.Model):
             if linked_problem is not None:
                 self.problem_uuid = linked_problem.problem_uuid
 
-        self.problem_code = f"P{self.problem_number}"
+        self.problem_code = (self.problem_code or "").strip().upper() or f"P{self.problem_number}"
         self.contest_year_problem = f"{self.contest_name} {self.contest_year} {self.problem_code}"
 
         update_fields = kwargs.get("update_fields")

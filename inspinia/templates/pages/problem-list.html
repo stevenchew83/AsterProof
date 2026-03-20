@@ -2,6 +2,29 @@
 
 {% block title %}Problems{% endblock title %}
 
+{% block extra_css %}
+  {{ block.super }}
+  <style>
+    .problem-directory-compact {
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 0.9rem;
+    }
+
+    .problem-directory-card--compact {
+      padding: 1.15rem;
+    }
+
+    .problem-directory-card--compact .problem-directory-head {
+      align-items: center;
+    }
+
+    .problem-directory-card--compact .problem-badge-row,
+    .problem-directory-card--compact .problem-preview-row {
+      gap: 0.55rem;
+    }
+  </style>
+{% endblock extra_css %}
+
 {% block problem_page_content %}
 <section class="problem-section">
   <div class="container">
@@ -9,14 +32,14 @@
       <div class="row g-4 align-items-end">
         <div class="col-lg-7">
           <span class="problem-label">Problem library</span>
-          <h1 class="problem-title">Contest directory first, problem list second.</h1>
+          <h1 class="problem-title">Compact contest picks, statement-backed first.</h1>
           <p class="problem-lead mb-0">
-            With a large archive, it is cleaner to pick a contest from the main site navigation and then open its dedicated yearly checklist page.
+            With a large archive, the fastest path is a denser contest directory that pushes statement-ready contests to the front before you drill into a yearly page.
           </p>
           <div class="problem-hint-row mt-4">
             <span class="problem-pill">Contest directory</span>
             <span class="problem-pill">Yearly drill-down</span>
-            <span class="problem-pill">Problem statements later</span>
+            <span class="problem-pill">Statement-backed first</span>
           </div>
         </div>
         <div class="col-lg-5">
@@ -52,9 +75,9 @@
         <p class="problem-muted mb-0">Distinct contests available from this standalone explorer.</p>
       </div>
       <div class="problem-stat-card">
-        <span class="problem-label">Topics</span>
-        <div class="problem-stat-value">{{ problem_listing_stats.topic_total }}</div>
-        <p class="problem-muted mb-0">Root topics already visible before statement text arrives.</p>
+        <span class="problem-label">Statement-ready</span>
+        <div class="problem-stat-value">{{ problem_listing_stats.statement_ready_total }}</div>
+        <p class="problem-muted mb-0">Contests already linked to imported problem statements.</p>
       </div>
       <div class="problem-stat-card">
         <span class="problem-label">Year span</span>
@@ -77,9 +100,9 @@
     </div>
 
     {% if contest_directory %}
-    <div class="problem-directory">
+    <div class="problem-directory problem-directory-compact">
       {% for contest in contest_directory %}
-      <article class="problem-directory-card">
+      <article class="problem-directory-card problem-directory-card--compact">
         <div class="problem-directory-head">
           <div>
             <span class="problem-label">{{ contest.year_span_label }}</span>
@@ -88,39 +111,29 @@
               {{ contest.problem_count }} problems across {{ contest.active_years }} active year{{ contest.active_years|pluralize }}.
             </p>
           </div>
-          <a href="{% url 'pages:contest_problem_list' contest.slug %}" class="btn btn-primary rounded-pill px-4">
+          <a href="{% url 'pages:contest_problem_list' contest.slug %}" class="btn btn-outline-primary rounded-pill px-3">
             <i class="ti ti-arrow-right me-1"></i> Open contest
           </a>
         </div>
 
-        <div class="problem-directory-meta">
-          <div class="problem-meta-block">
-            <span class="problem-label">Problems</span>
-            <div class="problem-meta-value">{{ contest.problem_count }}</div>
-          </div>
-          <div class="problem-meta-block">
-            <span class="problem-label">Topics</span>
-            <div class="problem-meta-value">{{ contest.distinct_topics }}</div>
-          </div>
-          <div class="problem-meta-block">
-            <span class="problem-label">Avg MOHS</span>
-            <div class="problem-meta-value">{{ contest.avg_mohs|floatformat:1 }}</div>
-          </div>
+        <div class="problem-badge-row mt-3">
+          <span class="problem-pill">{{ contest.problem_count }} problems</span>
+          <span class="problem-pill">{{ contest.distinct_topics }} topics</span>
+          <span class="problem-pill">Avg MOHS {{ contest.avg_mohs|floatformat:1 }}</span>
+          {% if contest.has_statements %}
+            <span class="problem-pill">
+              <i class="ti ti-file-text"></i> {{ contest.statement_problem_count }} statements
+            </span>
+          {% else %}
+            <span class="problem-pill">Statements pending</span>
+          {% endif %}
         </div>
 
-        <div class="problem-badge-row mt-4">
+        <div class="problem-preview-row mt-3">
           {% for topic in contest.top_topics %}
           <span class="problem-pill">{{ topic }}</span>
           {% empty %}
           <span class="problem-pill">No topic preview yet</span>
-          {% endfor %}
-        </div>
-
-        <div class="problem-preview-row mt-3">
-          {% for preview in contest.preview_problems %}
-          <span class="problem-preview-chip" title="{{ preview.label }}">{{ preview.problem }}</span>
-          {% empty %}
-          <span class="problem-preview-chip">No preview rows</span>
           {% endfor %}
         </div>
       </article>

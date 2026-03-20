@@ -1,0 +1,68 @@
+2024 Balkan MO Shortlist3
+Balkan MO Shortlist 2024
+Algebra
+A1	Let \( u, v, w \) be positive reals. Prove that there is a cyclic permutation \( (x, y, z) \) of \( (u, v, w) \) such that the inequality:
+
+\[
+\frac{a}{xa + yb + zc} + \frac{b}{xb + yc + za} + \frac{c}{xc + ya + zb} \geq \frac{3}{x + y + z}
+\]
+holds for all positive real numbers \( a, b \) and \( c \).
+
+MuradSafarli
+view topic
+A2	Prove that there is a positive integer such that the decimal representation of
+$$ \sum_{k=1}^{\lfloor n/3 \rfloor} \binom{n}{3k}8^k $$has all of its last $2023$ digits equal to $8$.
+
+Assassino9931
+view topic
+A3	Find all triples \((a, b, c)\) of positive real numbers that satisfy the system:
+\[
+\begin{aligned}
+11bc - 36b - 15c &= abc \\
+12ca - 10c - 28a &= abc \\
+13ab - 21a - 6b &= abc.
+\end{aligned}
+\]
+
+MuradSafarli
+view topic
+A4	Let \(a \geq b \geq c \geq 0\) be real numbers such that \(ab + bc + ca = 3\).
+Prove that:
+\[
+3 + (2 - \sqrt{3}) \cdot \frac{(b-c)^2}{b+(\sqrt{3}-1)c} \leq a+b+c
+\]and determine all the cases when the equality occurs.
+
+MuradSafarli
+view topic
+A5	Let \(\mathbb{R}^+ = (0, \infty)\) be the set of positive real numbers.
+Find all non-negative real numbers \(c \geq 0\) such that there exists a function \(f : \mathbb{R}^+ \to \mathbb{R}^+\) with the property:
+\[
+f(y^2f(x) + y + c) = xf(x+y^2)
+\]for all \(x, y \in \mathbb{R}^+\).
+
+proposed by Sardor Gafforov from Uzbekistan.
+
+MuradSafarli
+view topic
+Combinatorics
+C1	Let $n$, $k$ be positive integers. Julia and Florian play a game on a $2n \times 2n$ board. Julia
+has secretly tiled the entire board with invisible dominos. Florian now chooses $k$ cells.
+All dominos covering at least one of these cells then turn visible. Determine the minimal
+value of $k$ such that Florian has a strategy to always deduce the entire tiling.
+
+GreekIdiot
+view topic
+Geometry
+G1	Let $ABC$ be an acute-angled triangle with $AC > AB$ and let $D$ be the foot of the
+$A$-angle bisector on $BC$. The reflections of lines $AB$ and $AC$ in line $BC$ meet $AC$ and $AB$ at points
+$E$ and $F$ respectively. A line through $D$ meets $AC$ and $AB$ at $G$ and $H$ respectively such that $G$
+lies strictly between $A$ and $C$ while $H$ lies strictly between $B$ and $F$. Prove that the circumcircles of
+$\triangle EDG$ and $\triangle FDH$ are tangent to each other.
+
+falantrng
+view topic
+Number Theory
+N1	Let $n$ be a positive integer. Do there exist distinct $n$-digit positive integers $x$ and $y$, with each of their digits being $1,2,3$ or $4$, such that $4^n$ divides $x-y$?
+
+Assassino9931
+view topic
