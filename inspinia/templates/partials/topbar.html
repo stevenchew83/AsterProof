@@ -29,6 +29,9 @@
 
             <div class="d-none d-md-flex align-items-center gap-2 ms-2">
                 <a href="{% url 'pages:home' %}" class="btn btn-outline-secondary btn-sm">Overview</a>
+                {% if show_user_activity_dashboard_link %}
+                <a href="{% url 'pages:user_activity_dashboard' %}" class="btn btn-outline-secondary btn-sm">My activity</a>
+                {% endif %}
                 {% if show_analytics_dashboard_link %}
                 <a href="{% url 'pages:dashboard' %}" class="btn btn-outline-secondary btn-sm">Problem analytics</a>
                 <a href="{% url 'pages:contest_dashboard' %}" class="btn btn-outline-secondary btn-sm">Contest analytics</a>
@@ -38,6 +41,7 @@
                 {% endif %}
                 {% if show_problem_import_link %}
                 <a href="{% url 'pages:problem_import' %}" class="btn btn-primary btn-sm">Problem data</a>
+                <a href="{% url 'pages:contest_rename' %}" class="btn btn-outline-secondary btn-sm">Contest names</a>
                 {% endif %}
                 <a href="{% url 'pages:latex_preview' %}" class="btn btn-outline-secondary btn-sm">LaTeX preview</a>
                 <a href="{% url 'pages:problem_statement_list' %}" class="btn btn-outline-secondary btn-sm">Problem statements</a>

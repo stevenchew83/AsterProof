@@ -263,7 +263,7 @@ class ContestProblemStatement(models.Model):
     contest_year = models.IntegerField()
     contest_name = models.CharField(max_length=128)
     contest_year_problem = models.CharField(max_length=160, db_index=True)
-    day_label = models.CharField(max_length=32, blank=True)
+    day_label = models.CharField(max_length=128, blank=True)
     problem_number = models.PositiveIntegerField()
     problem_code = models.CharField(max_length=16)
     statement_latex = models.TextField()

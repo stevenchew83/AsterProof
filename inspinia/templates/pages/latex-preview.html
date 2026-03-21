@@ -333,7 +333,18 @@ window.MathJax = {
       "[+]": ["textmacros"]
     },
     macros: {
+      tiny: "",
+      scriptsize: "",
+      footnotesize: "",
+      small: "",
+      normalsize: "",
+      large: "",
+      Large: "",
+      LARGE: "",
+      huge: "",
+      Huge: "",
       hdots: "\\dots",
+      overarc: ["\\overset{\\frown}{#1}", 1],
       vspace: ["\\kern0pt", 1]
     },
     inlineMath: [["$", "$"], ["\\(", "\\)"]],
@@ -367,6 +378,7 @@ window.MathJax = {
   var asyBlockPattern = /\[asy\][\s\S]*?\[\/asy\]/i;
   var asyRenderController = null;
   var renderTimer = null;
+  var renderQueue = Promise.resolve();
   var renderSequence = 0;
   var emptyMessage = "Paste problem text with $...$ or \\[...\\] and the rendered preview will appear here.";
 
@@ -375,51 +387,86 @@ window.MathJax = {
     status.textContent = message;
   }
 
+  function queuePreviewWork(work) {
+    renderQueue = renderQueue.catch(function () {
+      return null;
+    }).then(work);
+    return renderQueue;
+  }
+
   function showEmptyState() {
-    output.innerHTML = "";
-    var emptyState = document.createElement("div");
-    emptyState.className = "statement-text-fragment";
-    emptyState.textContent = emptyMessage;
-    output.appendChild(emptyState);
-    setStatus("Waiting for input.", "secondary");
-  }
-
-  function collectMathTargets() {
-    var targets = Array.from(output.querySelectorAll("[data-mathjax-scope]"));
-    var parsedPreviewRoot = document.getElementById("latex-parsed-preview-root");
-    if (parsedPreviewRoot) {
-      targets = targets.concat(Array.from(parsedPreviewRoot.querySelectorAll("[data-mathjax-scope]")));
-    }
-    return targets.length ? targets : [output];
-  }
-
-  function typesetRenderedContent() {
-    if (!window.MathJax || typeof window.MathJax.typesetPromise !== "function") {
-      setStatus("Math renderer is loading. Plain text preview is shown for now.", "warning");
-      return Promise.resolve();
-    }
-
-    var renderTargets = collectMathTargets();
-
-    if (typeof window.MathJax.typesetClear === "function") {
-      window.MathJax.typesetClear(renderTargets);
-    }
-
-    return window.MathJax.typesetPromise(renderTargets).then(function () {
-      setStatus("Preview updated.", "success");
-    }).catch(function (error) {
-      setStatus("MathJax could not render part of the input: " + error.message, "danger");
+    return queuePreviewWork(function () {
+      output.innerHTML = "";
+      var emptyState = document.createElement("div");
+      emptyState.className = "statement-text-fragment";
+      emptyState.textContent = emptyMessage;
+      output.appendChild(emptyState);
+      setStatus("Waiting for input.", "secondary");
     });
   }
 
-  function renderPlainPreview(value) {
-    output.innerHTML = "";
-    var textFragment = document.createElement("div");
-    textFragment.className = "statement-text-fragment";
-    textFragment.setAttribute("data-mathjax-scope", "true");
-    textFragment.textContent = value;
-    output.appendChild(textFragment);
-    return typesetRenderedContent();
+  function collectOutputMathTargets() {
+    return Array.from(output.querySelectorAll("[data-mathjax-scope]"));
+  }
+
+  function collectParsedPreviewMathTargets() {
+    var parsedPreviewRoot = document.getElementById("latex-parsed-preview-root");
+    if (!parsedPreviewRoot) return [];
+    return Array.from(parsedPreviewRoot.querySelectorAll("[data-mathjax-scope]"));
+  }
+
+  function typesetTargets(targets, options) {
+    var opts = options || {};
+    var sequence = opts.sequence;
+
+    if (sequence != null && sequence !== renderSequence) {
+      return Promise.resolve();
+    }
+
+    if (!window.MathJax || typeof window.MathJax.typesetPromise !== "function") {
+      if (!opts.suppressStatus) {
+        setStatus("Math renderer is loading. Plain text preview is shown for now.", "warning");
+      }
+      return Promise.resolve();
+    }
+
+    if (typeof window.MathJax.typesetClear === "function") {
+      window.MathJax.typesetClear(targets);
+    }
+
+    return window.MathJax.typesetPromise(targets).then(function () {
+      if (!opts.suppressStatus && (sequence == null || sequence === renderSequence)) {
+        setStatus("Preview updated.", "success");
+      }
+    }).catch(function (error) {
+      if (!opts.suppressStatus && (sequence == null || sequence === renderSequence)) {
+        setStatus("MathJax could not render part of the input: " + error.message, "danger");
+      }
+    });
+  }
+
+  function typesetParsedPreview() {
+    return queuePreviewWork(function () {
+      var parsedTargets = collectParsedPreviewMathTargets();
+      if (!parsedTargets.length) return Promise.resolve();
+      return typesetTargets(parsedTargets, { suppressStatus: true });
+    });
+  }
+
+  function renderPlainPreview(value, sequence) {
+    return queuePreviewWork(function () {
+      if (sequence !== renderSequence) return Promise.resolve();
+
+      output.innerHTML = "";
+      var textFragment = document.createElement("div");
+      textFragment.className = "statement-text-fragment";
+      textFragment.setAttribute("data-mathjax-scope", "true");
+      textFragment.textContent = value;
+      output.appendChild(textFragment);
+
+      var renderTargets = collectOutputMathTargets();
+      return typesetTargets(renderTargets.length ? renderTargets : [output], { sequence: sequence });
+    });
   }
 
   function renderAsymptotePreview(value, sequence) {
@@ -455,8 +502,12 @@ window.MathJax = {
       if (!payload.ok || !payload.data.ok) {
         throw new Error(payload.data.error || "Statement render failed.");
       }
-      output.innerHTML = payload.data.html;
-      return typesetRenderedContent();
+      return queuePreviewWork(function () {
+        if (sequence !== renderSequence) return Promise.resolve();
+        output.innerHTML = payload.data.html;
+        var renderTargets = collectOutputMathTargets();
+        return typesetTargets(renderTargets.length ? renderTargets : [output], { sequence: sequence });
+      });
     });
   }
 
@@ -477,7 +528,7 @@ window.MathJax = {
     if (asyBlockPattern.test(value)) {
       renderAsymptotePreview(value, sequence).catch(function (error) {
         if (error && error.name === "AbortError") return;
-        renderPlainPreview(value).then(function () {
+        renderPlainPreview(value, sequence).then(function () {
           setStatus("Asymptote preview failed: " + error.message, "warning");
         }).catch(function () {
           setStatus("Asymptote preview failed: " + error.message, "warning");
@@ -490,7 +541,7 @@ window.MathJax = {
       asyRenderController.abort();
       asyRenderController = null;
     }
-    renderPlainPreview(value);
+    renderPlainPreview(value, sequence);
   }
 
   function scheduleRender() {
@@ -509,9 +560,13 @@ window.MathJax = {
     showEmptyState();
   });
   input.addEventListener("input", scheduleRender);
-  window.addEventListener("asterproof:mathjax-ready", renderPreview);
+  window.addEventListener("asterproof:mathjax-ready", function () {
+    typesetParsedPreview();
+    renderPreview();
+  });
 
   showEmptyState();
+  typesetParsedPreview();
   renderPreview();
 })();
 </script>

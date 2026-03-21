@@ -1,33 +1,488 @@
 {% extends 'pages/problem-shell.html' %}
 
+{% load static %}
+
 {% block title %}{{ contest_title }} problems{% endblock title %}
 
 {% block extra_css %}
   {{ block.super }}
+  <link rel="stylesheet" href="{% static 'plugins/datatables/dataTables.bootstrap5.min.css' %}">
   <style>
+    .contest-archive-shell {
+      position: relative;
+      border: 1px solid rgba(17, 32, 59, 0.08);
+      border-radius: 1.75rem;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 253, 0.92));
+      box-shadow: 0 24px 60px rgba(16, 24, 40, 0.08);
+      overflow: hidden;
+    }
+
+    .contest-archive-shell::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 0.2rem;
+      background: linear-gradient(90deg, #0d6efd 0%, #25b7ff 45%, #0acf97 100%);
+      opacity: 0.95;
+    }
+
+    .contest-archive-body {
+      display: grid;
+      gap: 1.35rem;
+      padding-top: 1.6rem;
+    }
+
+    @media (min-width: 992px) {
+      .contest-archive-body {
+        grid-template-columns: minmax(0, 1.2fr) minmax(19rem, 0.8fr);
+        align-items: start;
+      }
+    }
+
+    .contest-archive-title {
+      font-size: clamp(2.05rem, 4vw, 3rem);
+      line-height: 0.98;
+      letter-spacing: -0.04em;
+      font-weight: 800;
+      color: #11203b;
+      margin: 0.55rem 0 0.55rem;
+      max-width: 12ch;
+    }
+
+    .contest-archive-lead {
+      font-size: 0.95rem;
+      line-height: 1.7;
+      color: #5b6a82;
+      max-width: 39rem;
+      margin: 0;
+    }
+
+    .contest-summary-ribbon,
+    .contest-topic-chips,
+    .contest-active-filters,
+    .contest-filter-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.55rem;
+    }
+
+    .contest-summary-ribbon {
+      margin-top: 1rem;
+      align-items: center;
+    }
+
+    .contest-summary-pill,
+    .contest-active-filter,
+    .contest-topic-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.38rem;
+      padding: 0.38rem 0.72rem;
+      border-radius: 999px;
+      font-size: 0.76rem;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+    }
+
+    .contest-summary-pill {
+      background: rgba(17, 32, 59, 0.06);
+      color: #31425e;
+    }
+
+    .contest-topic-chips {
+      margin-top: 1.05rem;
+    }
+
+    .contest-topic-chip {
+      background: rgba(13, 110, 253, 0.1);
+      color: #0d57cc;
+      border: 1px solid rgba(13, 110, 253, 0.12);
+    }
+
+    .contest-stat-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.85rem;
+      margin-top: 1.4rem;
+      padding-top: 1.2rem;
+      border-top: 1px solid rgba(17, 32, 59, 0.08);
+    }
+
+    .contest-stat {
+      min-width: 0;
+    }
+
+    .contest-stat-label {
+      display: block;
+      font-size: 0.66rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #7a879c;
+      margin-bottom: 0.34rem;
+    }
+
+    .contest-stat-value {
+      font-size: 1.25rem;
+      font-weight: 800;
+      line-height: 1.06;
+      letter-spacing: -0.03em;
+      color: #11203b;
+      margin: 0;
+    }
+
+    .contest-stat-note {
+      margin-top: 0.16rem;
+      font-size: 0.76rem;
+      color: #7a879c;
+    }
+
+    .contest-filter-panel {
+      padding: 1rem;
+      border-radius: 1.25rem;
+      border: 1px solid rgba(17, 32, 59, 0.08);
+      background: rgba(255, 255, 255, 0.88);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+    }
+
+    .contest-filter-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 0.9rem;
+    }
+
+    .contest-filter-head h2 {
+      margin: 0.18rem 0 0;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: #11203b;
+    }
+
+    .contest-filter-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.75rem 0.9rem;
+      margin-top: 0.85rem;
+    }
+
+    .contest-search-row {
+      display: flex;
+      align-items: stretch;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .contest-search-row .form-control,
+    .contest-filter-grid .form-select {
+      border-radius: 0.75rem;
+      border-color: rgba(17, 32, 59, 0.1);
+      background-color: rgba(247, 249, 253, 0.88);
+      box-shadow: none;
+    }
+
+    .contest-search-row .form-control {
+      min-width: 12rem;
+      flex: 1 1 14rem;
+      padding-top: 0.62rem;
+      padding-bottom: 0.62rem;
+    }
+
+    .contest-search-row .btn {
+      border-radius: 0.75rem;
+      min-width: 7.4rem;
+    }
+
+    .contest-filter-actions {
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 0.95rem;
+    }
+
+    .contest-active-filters {
+      margin-top: 0.95rem;
+    }
+
+    .contest-active-filter {
+      background: rgba(25, 135, 84, 0.12);
+      color: #146c43;
+    }
+
+    .contest-table-panel {
+      border: 1px solid rgba(17, 32, 59, 0.08);
+      border-radius: 1.35rem;
+      background: rgba(255, 255, 255, 0.94);
+      overflow: hidden;
+      box-shadow: 0 18px 48px rgba(16, 24, 40, 0.06);
+    }
+
+    .contest-table-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: end;
+      justify-content: space-between;
+      gap: 1rem 1.25rem;
+      padding: 1.1rem 1.2rem 0.95rem;
+      border-bottom: 1px solid rgba(17, 32, 59, 0.07);
+      background:
+        linear-gradient(180deg, rgba(250, 252, 255, 0.98), rgba(244, 248, 252, 0.92));
+    }
+
+    .contest-table-head h2 {
+      font-size: 1.02rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin: 0;
+      color: #11203b;
+    }
+
+    .contest-table-meta {
+      font-size: 0.82rem;
+      line-height: 1.55;
+      color: #6c7a90;
+      max-width: 32rem;
+    }
+
+    #contest-problem-table_wrapper .dt-layout-row {
+      margin: 0;
+      padding: 0.8rem 1.2rem;
+      border-bottom: 1px solid rgba(17, 32, 59, 0.06);
+      align-items: center;
+      gap: 0.75rem 1rem;
+    }
+
+    #contest-problem-table_wrapper .dt-layout-row:last-child {
+      border-top: 1px solid rgba(17, 32, 59, 0.06);
+      border-bottom: 0;
+      background: rgba(250, 252, 255, 0.7);
+    }
+
+    #contest-problem-table_wrapper .dt-layout-table {
+      padding: 0;
+      border-bottom: 0;
+    }
+
+    #contest-problem-table_wrapper .dt-length,
+    #contest-problem-table_wrapper .dt-info {
+      font-size: 0.8rem;
+      color: #6c7a90;
+    }
+
+    #contest-problem-table_wrapper .dt-length label,
+    #contest-problem-table_wrapper .dt-info {
+      margin: 0;
+    }
+
+    #contest-problem-table_wrapper .dt-length select {
+      min-width: 4.25rem;
+      margin: 0 0.4rem;
+      border-radius: 999px;
+      border-color: rgba(17, 32, 59, 0.1);
+      background-color: #fff;
+    }
+
+    #contest-problem-table_wrapper .dt-paging .pagination {
+      margin-bottom: 0;
+    }
+
+    #contest-problem-table_wrapper .dt-paging .page-link {
+      box-shadow: none;
+    }
+
+    .contest-data-table {
+      font-size: 0.89rem;
+      margin: 0 !important;
+    }
+
+    .contest-data-table thead th {
+      font-size: 0.67rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 700;
+      color: #6c7a90;
+      background: rgba(247, 249, 253, 0.98) !important;
+      border-bottom: 1px solid rgba(17, 32, 59, 0.08) !important;
+      white-space: nowrap;
+      padding: 0.85rem 1rem;
+    }
+
+    .contest-data-table tbody td {
+      border-color: rgba(17, 32, 59, 0.06);
+      vertical-align: top;
+      padding: 1rem;
+      transition: background-color 0.2s ease;
+    }
+
+    .contest-data-table tbody tr:hover td {
+      background-color: rgba(13, 110, 253, 0.035);
+    }
+
+    .contest-year-badge,
+    .contest-topic-pill,
+    .contest-mohs-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.74rem;
+      font-weight: 700;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+
+    .contest-year-badge {
+      min-width: 4rem;
+      padding: 0.38rem 0.7rem;
+      background: rgba(17, 32, 59, 0.07);
+      color: #31425e;
+    }
+
+    .contest-topic-pill {
+      padding: 0.36rem 0.68rem;
+      background: rgba(13, 110, 253, 0.1);
+      color: #0d57cc;
+      border: 1px solid rgba(13, 110, 253, 0.12);
+    }
+
+    .contest-mohs {
+      min-width: 6.25rem;
+    }
+
+    .contest-mohs-pill {
+      padding: 0.32rem 0.68rem;
+      background: rgba(17, 32, 59, 0.06);
+      color: #31425e;
+    }
+
+    .contest-mohs-bar {
+      margin-top: 0.45rem;
+      width: 5.5rem;
+      height: 0.28rem;
+      border-radius: 999px;
+      background: rgba(17, 32, 59, 0.08);
+      overflow: hidden;
+    }
+
+    .contest-mohs-bar span {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #25b7ff 0%, #0d6efd 55%, #7b70ef 100%);
+    }
+
+    .contest-problem-code {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.22rem 0.52rem;
+      border-radius: 0.45rem;
+      background: rgba(17, 32, 59, 0.06);
+      color: #31425e;
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .contest-problem-cell-title {
+      margin-top: 0.55rem;
+      font-weight: 700;
+      color: #11203b;
+      letter-spacing: -0.01em;
+      line-height: 1.45;
+    }
+
+    .contest-problem-cell-sub {
+      font-size: 0.76rem;
+      color: #7a879c;
+      margin-top: 0.2rem;
+    }
+
+    .contest-table-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      min-width: 12rem;
+    }
+
+    .contest-tag-pill,
+    .problem-tag-pill {
+      display: inline-flex;
+      align-items: center;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 0.28rem 0.58rem;
+      border-radius: 999px;
+      background: rgba(13, 110, 253, 0.11);
+      color: #0d57cc;
+      border: 1px solid rgba(13, 110, 253, 0.12);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    }
+
+    .problem-statement-toggle {
+      min-width: 10rem;
+    }
+
+    .problem-statement-toggle summary {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 0.83rem;
+      color: #0d57cc;
+      list-style: none;
+      padding: 0.42rem 0.72rem;
+      border-radius: 999px;
+      background: rgba(13, 110, 253, 0.09);
+      border: 1px solid rgba(13, 110, 253, 0.1);
+    }
+
+    .problem-statement-toggle summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .problem-statement-toggle summary::before {
+      content: "";
+      display: inline-block;
+      width: 0.38rem;
+      height: 0.38rem;
+      border-right: 2px solid currentColor;
+      border-bottom: 2px solid currentColor;
+      transform: rotate(-45deg);
+      opacity: 0.8;
+    }
+
+    .problem-statement-toggle[open] summary::before {
+      transform: rotate(45deg);
+    }
+
+    .problem-row-anchor {
+      scroll-margin-top: 6.5rem;
+    }
+
     .problem-pill-complete {
       background: rgba(25, 135, 84, 0.12);
       color: #146c43;
     }
 
-    .problem-chip-statement {
-      background: rgba(13, 110, 253, 0.12);
-      color: #0d57cc;
-    }
-
-    .problem-uuid-copy {
+    .contest-status-open {
+      color: #7a879c;
       font-size: 0.78rem;
-      word-break: break-all;
+      font-weight: 600;
     }
 
     .problem-statement-body {
-      margin-top: 0.9rem;
-      padding: 1rem;
-      border-radius: 1rem;
-      border: 1px solid rgba(17, 32, 59, 0.07);
-      background: #f7f9fd;
+      margin-top: 0.75rem;
+      padding: 0.95rem 1rem;
+      border-radius: 0.8rem;
+      border: 1px solid rgba(17, 32, 59, 0.08);
+      background: #f8fafc;
       color: #11203b;
-      line-height: 1.75;
+      line-height: 1.7;
+      min-width: min(36rem, 72vw);
     }
 
     .statement-text-fragment {
@@ -37,8 +492,8 @@
 
     .asymptote-svg-frame {
       overflow-x: auto;
-      padding: 0.75rem;
-      border-radius: 0.9rem;
+      padding: 0.65rem;
+      border-radius: 0.55rem;
       border: 1px solid rgba(17, 32, 59, 0.07);
       background: #fff;
     }
@@ -49,169 +504,289 @@
       height: auto;
       margin: 0 auto;
     }
+
+    @keyframes contestArchiveIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .contest-reveal-hero {
+      animation: contestArchiveIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .contest-reveal-table {
+      animation: contestArchiveIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.05s both;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .contest-reveal-hero,
+      .contest-reveal-table {
+        animation: none;
+      }
+    }
+
+    @media (max-width: 767.98px) {
+      .contest-filter-grid,
+      .contest-stat-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .contest-filter-actions {
+        align-items: flex-start;
+      }
+
+      #contest-problem-table_wrapper .dt-layout-row {
+        padding-left: 1rem;
+        padding-right: 1rem;
+      }
+    }
   </style>
 {% endblock extra_css %}
 
 {% block problem_page_content %}
 <section class="problem-section">
   <div class="container">
-    <div class="problem-hero-card">
+    <div class="contest-archive-shell contest-reveal-hero p-4 p-lg-4">
       <a href="{% url 'pages:problem_list' %}" class="problem-back-link">
         <i class="ti ti-arrow-left"></i> Back to contests
       </a>
 
-      <div class="row g-4 align-items-end">
-        <div class="col-lg-7">
-          <span class="problem-label">Contest statements</span>
-          <h1 class="problem-title">{{ contest_title }}</h1>
-          <p class="problem-lead mb-0">
-            Open the yearly contest row, then read imported statements inline wherever they are already linked to the archive.
+      <div class="contest-archive-body">
+        <div>
+          <span class="problem-label">Contest archive</span>
+          <h1 class="contest-archive-title">{{ contest_title }}</h1>
+          <p class="contest-archive-lead">
+            One contest, one working surface. Filter the archive, scan the ledger, then open a statement only when you need the full text.
           </p>
-          <div class="problem-badge-row mt-4">
+          <div class="contest-summary-ribbon" aria-label="Archive summary">
+            <span class="contest-summary-pill">Statement-backed first</span>
+            <span class="contest-summary-pill">{{ matching_problem_total }} visible now</span>
+            <span class="contest-summary-pill">{{ contest_problem_stats.statement_total }} imported statements</span>
+          </div>
+          {% if top_topics %}
+          <div class="contest-topic-chips" aria-label="Common topics in this contest">
             {% for topic in top_topics %}
-            <span class="problem-pill">{{ topic }}</span>
+            <span class="contest-topic-chip">{{ topic }}</span>
             {% endfor %}
           </div>
+          {% endif %}
+          <div class="contest-stat-grid" role="group" aria-label="Contest summary">
+            <div class="contest-stat">
+              <span class="contest-stat-label">Problems</span>
+              <p class="contest-stat-value">{{ contest_problem_total }}</p>
+              <p class="contest-stat-note mb-0">Total rows in this archive.</p>
+            </div>
+            <div class="contest-stat">
+              <span class="contest-stat-label">Statements</span>
+              <p class="contest-stat-value">{{ contest_problem_stats.statement_total }}</p>
+              <p class="contest-stat-note mb-0">Imported and viewable inline.</p>
+            </div>
+            <div class="contest-stat">
+              <span class="contest-stat-label">Avg MOHS</span>
+              <p class="contest-stat-value">{{ contest_problem_stats.avg_mohs|floatformat:1 }}</p>
+              <p class="contest-stat-note mb-0">Difficulty signal across this contest.</p>
+            </div>
+            <div class="contest-stat">
+              <span class="contest-stat-label">Year span</span>
+              <p class="contest-stat-value">{{ contest_problem_stats.year_range_label }}</p>
+              <p class="contest-stat-note mb-0">Coverage window for the archive.</p>
+            </div>
+          </div>
         </div>
-        <div class="col-lg-5">
-          <form method="get" class="problem-search-shell">
-            <input
-              id="contest-problem-search"
-              type="search"
-              name="q"
-              value="{{ initial_search_query }}"
-              class="form-control"
-              placeholder="Search 2024, P2, geometry, or high confidence"
-            >
-            <button type="submit" class="btn btn-primary rounded-pill px-4">
-              <i class="ti ti-search me-1"></i> Search
-            </button>
+
+        <div class="contest-filter-panel">
+          <div class="contest-filter-head">
+            <div>
+              <span class="problem-label">Search &amp; filters</span>
+              <h2>Trim the archive without leaving the table</h2>
+            </div>
+            <span class="problem-pill">Scoped to {{ contest_title }}</span>
+          </div>
+          <form method="get">
+            <div class="contest-search-row">
+              <input
+                id="contest-problem-search"
+                type="search"
+                name="q"
+                value="{{ initial_search_query }}"
+                class="form-control"
+                placeholder="Year, problem id, topic…"
+              >
+              <button type="submit" class="btn btn-primary px-4">
+                <i class="ti ti-search me-1"></i> Search
+              </button>
+            </div>
+
+            <div class="contest-filter-grid">
+              <div>
+                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="contest-filter-year">Year</label>
+                <select id="contest-filter-year" name="year" class="form-select form-select-sm">
+                  <option value="">All years</option>
+                  {% for year in filter_options.years %}
+                  <option value="{{ year }}" {% if selected_year == year|stringformat:"s" %}selected{% endif %}>{{ year }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div>
+                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="contest-filter-mohs">MOHS</label>
+                <select id="contest-filter-mohs" name="mohs" class="form-select form-select-sm">
+                  <option value="">All MOHS</option>
+                  {% for mohs_value in filter_options.mohs_values %}
+                  <option value="{{ mohs_value }}" {% if selected_mohs == mohs_value|stringformat:"s" %}selected{% endif %}>{{ mohs_value }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div>
+                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="contest-filter-topic">Topic</label>
+                <select id="contest-filter-topic" name="topic" class="form-select form-select-sm">
+                  <option value="">All topics</option>
+                  {% for topic in filter_options.topics %}
+                  <option value="{{ topic }}" {% if selected_topic == topic %}selected{% endif %}>{{ topic }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div>
+                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="contest-filter-tag">Topic tag</label>
+                <select id="contest-filter-tag" name="tag" class="form-select form-select-sm">
+                  <option value="">All tags</option>
+                  {% for tag in filter_options.tags %}
+                  <option value="{{ tag }}" {% if selected_tag == tag %}selected{% endif %}>{{ tag }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+            <div class="contest-filter-actions">
+              <div class="d-flex flex-wrap gap-2">
+                <button type="submit" class="btn btn-sm btn-primary">Apply filters</button>
+                {% if has_active_filters %}
+                <a href="{% url 'pages:contest_problem_list' contest_slug %}" class="btn btn-sm btn-outline-secondary">
+                  Clear filters
+                </a>
+                {% endif %}
+              </div>
+              <span class="problem-muted fs-xs mb-0">Server-side filters keep the table focused even for large contests.</span>
+            </div>
+            {% if has_active_filters %}
+            <div class="contest-active-filters" aria-label="Active filters">
+              {% if initial_search_query %}<span class="contest-active-filter">Search: {{ initial_search_query }}</span>{% endif %}
+              {% if selected_year %}<span class="contest-active-filter">Year {{ selected_year }}</span>{% endif %}
+              {% if selected_mohs %}<span class="contest-active-filter">MOHS {{ selected_mohs }}</span>{% endif %}
+              {% if selected_topic %}<span class="contest-active-filter">Topic {{ selected_topic }}</span>{% endif %}
+              {% if selected_tag %}<span class="contest-active-filter">Tag {{ selected_tag }}</span>{% endif %}
+            </div>
+            {% endif %}
           </form>
-          <p class="problem-muted mt-3 mb-0">
-            Search inside this contest only, so the page stays focused even when the archive grows much larger.
-          </p>
         </div>
       </div>
-    </div>
-
-    <div class="problem-stat-grid">
-      <div class="problem-stat-card">
-        <span class="problem-label">Problems</span>
-        <div class="problem-stat-value">{{ contest_problem_total }}</div>
-        <p class="problem-muted mb-0">Visible rows in this contest archive.</p>
-      </div>
-      <div class="problem-stat-card">
-        <span class="problem-label">Statements</span>
-        <div class="problem-stat-value">{{ contest_problem_stats.statement_total }}</div>
-        <p class="problem-muted mb-0">Problems already linked to imported statement text.</p>
-      </div>
-      <div class="problem-stat-card">
-        <span class="problem-label">Avg MOHS</span>
-        <div class="problem-stat-value">{{ contest_problem_stats.avg_mohs|floatformat:1 }}</div>
-        <p class="problem-muted mb-0">Difficulty signal across the current contest rows.</p>
-      </div>
-      <div class="problem-stat-card">
-        <span class="problem-label">Year span</span>
-        <div class="problem-stat-value">{{ contest_problem_stats.year_range_label }}</div>
-        <p class="problem-muted mb-0">Range covered by the imported entries for this contest.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="problem-section">
-  <div class="container">
-    <div class="d-flex flex-wrap align-items-end justify-content-between gap-3">
-      <div>
-        <span class="problem-label">Yearly problem rows</span>
-        <h2 class="h3 mt-2 mb-1">{{ contest_title }} checklist</h2>
-        <p class="problem-muted mb-0">Statement-backed problems rise to the front of each year row, and imported statement text appears inside the problem card.</p>
-      </div>
-      <span class="problem-pill">{{ matching_problem_total }} shown</span>
     </div>
 
     {% if grouped_years %}
-    <div class="problem-year-list">
-      {% for year_group in grouped_years %}
-      <article class="problem-year-card">
-        <div class="problem-year-head">
-          <div>
-            <span class="problem-label">{{ contest_title }}</span>
-            <h3 class="h4 mt-2 mb-1">{{ year_group.year }}</h3>
-            <p class="problem-muted mb-0">{{ year_group.problems|length }} visible problem{{ year_group.problems|pluralize }} in this row.</p>
-          </div>
-          <span class="problem-pill">Problem row</span>
+    <div class="contest-table-panel mt-4 contest-reveal-table">
+      <div class="contest-table-head">
+        <div>
+          <h2>Problem list</h2>
+          <p class="contest-table-meta mb-0 mt-1">Statement-backed first · sortable table layout · inline statement drawers for the rows that already have imported text.</p>
         </div>
-
-        <div class="problem-chip-row mt-4">
-          {% for problem in year_group.problems %}
-          <a href="#{{ problem.anchor }}" class="problem-chip {% if problem.has_statement %}problem-chip-statement{% endif %}" title="{{ problem.label }}">
-            {{ problem.problem }}
-            {% if problem.has_statement %}<i class="ti ti-file-text"></i>{% endif %}
-          </a>
-          {% endfor %}
-        </div>
-
-        <div class="problem-detail-grid">
-          {% for problem in year_group.problems %}
-          <div id="{{ problem.anchor }}" class="problem-detail-card">
-            <div class="problem-detail-top">
-              <div>
-                <span class="problem-label">{{ problem.problem }}</span>
-                <h4 class="h5 mt-2 mb-1">{{ problem.label }}</h4>
-              </div>
-              <div class="d-flex flex-wrap gap-2 justify-content-end">
-                <span class="problem-pill">MOHS {{ problem.mohs }}</span>
-                {% if problem.is_completed %}
-                  <span class="problem-pill problem-pill-complete">
-                    <i class="ti ti-circle-check me-1"></i>
-                    {% if problem.completion_known %}
-                      Completed {{ problem.completion_date|date:"Y-m-d" }}
-                    {% else %}
-                      Done
-                    {% endif %}
+        <span class="problem-pill">{{ matching_problem_total }} shown</span>
+      </div>
+      <table id="contest-problem-table" class="table contest-data-table align-middle w-100 mb-0">
+          <thead>
+            <tr>
+              <th>Year</th>
+              <th>Problem</th>
+              <th>Topic</th>
+              <th>MOHS</th>
+              <th>Topic tags</th>
+              <th>Statement</th>
+              <th>IMO slots</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for year_group in grouped_years %}
+            {% for problem in year_group.problems %}
+            <tr id="{{ problem.anchor }}" class="problem-row-anchor">
+              <td data-order="{{ year_group.year }}">
+                <span class="contest-year-badge">{{ year_group.year }}</span>
+              </td>
+              <td>
+                <span class="contest-problem-code">{{ problem.problem }}</span>
+                <div class="contest-problem-cell-title">{{ problem.label }}</div>
+                <div class="contest-problem-cell-sub">{{ problem.technique_count }} technique row{{ problem.technique_count|pluralize }}</div>
+              </td>
+              <td data-order="{{ problem.topic }}">
+                <span class="contest-topic-pill">{{ problem.topic }}</span>
+              </td>
+              <td data-order="{{ problem.mohs }}">
+                <div class="contest-mohs">
+                  <span class="contest-mohs-pill">MOHS {{ problem.mohs }}</span>
+                  <div class="contest-mohs-bar" aria-hidden="true">
+                    <span style="width: {% widthratio problem.mohs 50 100 %}%"></span>
+                  </div>
+                </div>
+              </td>
+              <td>
+                {% if problem.topic_tags %}
+                <div class="contest-table-tags">
+                  {% for tag in problem.topic_tags %}
+                  <span class="contest-tag-pill problem-tag-pill" {% if tag.domains_label %}title="Domains: {{ tag.domains_label }}"{% endif %}>
+                    {{ tag.technique }}
                   </span>
+                  {% endfor %}
+                </div>
+                {% else %}
+                <span class="text-muted fs-xs">—</span>
                 {% endif %}
-              </div>
-            </div>
-            <p class="problem-muted mb-0">
-              {{ problem.topic }} - {{ problem.technique_count }} technique row{{ problem.technique_count|pluralize }}.
-            </p>
-            {% if problem.has_statement %}
-            <div class="mt-4">
-              <div class="d-flex flex-wrap gap-2 align-items-center">
-                <span class="problem-label">Statement</span>
-                {% if problem.statement_day_label %}
-                  <span class="problem-pill">{{ problem.statement_day_label }}</span>
+              </td>
+              <td>
+                {% if problem.has_statement %}
+                <details class="problem-statement-toggle">
+                  <summary>
+                    {% if problem.statement_day_label %}{{ problem.statement_day_label }}{% else %}Statement{% endif %}
+                  </summary>
+                  <div class="problem-statement-body">
+                    {% include 'partials/statement-render-content.html' with segments=problem.statement_render_segments %}
+                  </div>
+                </details>
+                {% else %}
+                <span class="text-muted fs-xs">Not imported</span>
                 {% endif %}
-                <span class="problem-pill"><i class="ti ti-file-text"></i> Imported</span>
-              </div>
-              <div class="problem-statement-body">
-                {% include 'partials/statement-render-content.html' with segments=problem.statement_render_segments %}
-              </div>
-              <p class="problem-muted mt-2 mb-0">Statement import updated {{ problem.statement_updated_at_label }}.</p>
-            </div>
-            {% else %}
-            <p class="problem-muted mt-3 mb-0">Statement not imported yet for this problem.</p>
-            {% endif %}
-            <p class="problem-muted problem-uuid-copy mt-3 mb-0">
-              UUID: <span class="font-monospace">{{ problem.problem_uuid }}</span>
-            </p>
-            {% if problem.confidence or problem.imo_slot_guess_value %}
-            <p class="problem-muted mt-3 mb-0">
-              {% if problem.confidence %}Confidence: {{ problem.confidence }}{% endif %}
-              {% if problem.confidence and problem.imo_slot_guess_value %} - {% endif %}
-              {% if problem.imo_slot_guess_value %}IMO slots: {{ problem.imo_slot_guess_value }}{% endif %}
-            </p>
-            {% endif %}
-          </div>
-          {% endfor %}
-        </div>
-      </article>
-      {% endfor %}
+              </td>
+              <td class="text-nowrap">
+                {% if problem.imo_slot_guess_value %}
+                {{ problem.imo_slot_guess_value }}
+                {% else %}
+                <span class="text-muted fs-xs">—</span>
+                {% endif %}
+              </td>
+              <td class="text-nowrap">
+                {% if problem.is_completed %}
+                <span class="problem-pill problem-pill-complete">
+                  <i class="ti ti-circle-check me-1"></i>
+                  {% if problem.completion_known %}
+                  {{ problem.completion_date|date:"Y-m-d" }}
+                  {% else %}
+                  Done
+                  {% endif %}
+                </span>
+                {% else %}
+                <span class="contest-status-open">Open</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+            {% endfor %}
+          </tbody>
+      </table>
     </div>
     {% else %}
-    <div class="alert alert-warning mt-4 mb-0">
+    <div class="alert alert-warning mt-4 mb-0 contest-reveal-table">
       No problems matched <span class="fw-semibold">"{{ initial_search_query }}"</span> inside {{ contest_title }}.
     </div>
     {% endif %}
@@ -221,6 +796,34 @@
 
 {% block extra_javascript %}
   {{ block.super }}
+  <script src="{% static 'plugins/datatables/dataTables.min.js' %}"></script>
+  <script src="{% static 'plugins/datatables/dataTables.bootstrap5.min.js' %}"></script>
+  <script>
+  (function () {
+    if (typeof DataTable === "undefined") return;
+    if (!document.getElementById("contest-problem-table")) return;
+
+    new DataTable("#contest-problem-table", {
+      order: [[0, "desc"], [1, "asc"]],
+      pageLength: 25,
+      lengthMenu: [10, 25, 50, 100],
+      scrollX: true,
+      autoWidth: false,
+      searching: false,
+      layout: {
+        topStart: "pageLength",
+        topEnd: "paging",
+        bottomStart: "info",
+        bottomEnd: "paging"
+      },
+      language: {
+        info: "Showing _START_ to _END_ of _TOTAL_ problems",
+        infoEmpty: "No problems to show",
+        lengthMenu: "Show _MENU_ rows"
+      }
+    });
+  })();
+  </script>
   {% if statement_rendering_enabled %}
   <script>
   window.MathJax = {
@@ -232,7 +835,18 @@
         "[+]": ["textmacros"]
       },
       macros: {
+        tiny: "",
+        scriptsize: "",
+        footnotesize: "",
+        small: "",
+        normalsize: "",
+        large: "",
+        Large: "",
+        LARGE: "",
+        huge: "",
+        Huge: "",
         hdots: "\\dots",
+        overarc: ["\\overset{\\frown}{#1}", 1],
         vspace: ["\\kern0pt", 1]
       },
       inlineMath: [["$", "$"], ["\\(", "\\)"]],

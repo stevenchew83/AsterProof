@@ -1,0 +1,591 @@
+{% extends 'layouts/vertical.html' %}
+
+{% load static i18n %}
+
+{% block title %}My activity{% endblock title %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'plugins/datatables/dataTables.bootstrap5.min.css' %}">
+<style>
+  .activity-heatmap-shell {
+    overflow-x: auto;
+    padding-bottom: 0.35rem;
+  }
+
+  .activity-heatmap {
+    min-width: max-content;
+  }
+
+  .activity-heatmap-month-track {
+    display: flex;
+    gap: 0.32rem;
+    margin-left: 2rem;
+    margin-bottom: 0.45rem;
+    height: 1rem;
+  }
+
+  .activity-heatmap-month-marker,
+  .activity-heatmap-week {
+    width: 0.92rem;
+    flex: 0 0 0.92rem;
+  }
+
+  .activity-heatmap-month-marker {
+    position: relative;
+  }
+
+  .activity-heatmap-month-label {
+    position: absolute;
+    inset: 0 auto auto 0;
+    color: var(--bs-secondary-color);
+    font-size: 0.72rem;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .activity-heatmap-main {
+    display: flex;
+    gap: 0.45rem;
+  }
+
+  .activity-heatmap-day-labels,
+  .activity-heatmap-week {
+    display: grid;
+    grid-template-rows: repeat(7, 0.92rem);
+    gap: 0.32rem;
+  }
+
+  .activity-heatmap-day-labels {
+    width: 1.6rem;
+    color: var(--bs-secondary-color);
+    font-size: 0.72rem;
+    line-height: 0.92rem;
+    text-align: right;
+  }
+
+  .activity-heatmap-weeks {
+    display: flex;
+    gap: 0.32rem;
+  }
+
+  .activity-heatmap-cell {
+    display: block;
+    width: 0.92rem;
+    height: 0.92rem;
+    border-radius: 0.24rem;
+    border: 1px solid rgba(var(--bs-primary-rgb), 0.08);
+    background: rgba(var(--bs-primary-rgb), 0.08);
+  }
+
+  .activity-heatmap-cell.is-padding {
+    border-color: transparent;
+    background: transparent;
+  }
+
+  .activity-heatmap-level-0 {
+    background: rgba(var(--bs-primary-rgb), 0.08);
+  }
+
+  .activity-heatmap-level-1 {
+    background: rgba(var(--bs-primary-rgb), 0.22);
+  }
+
+  .activity-heatmap-level-2 {
+    background: rgba(var(--bs-primary-rgb), 0.4);
+  }
+
+  .activity-heatmap-level-3 {
+    background: rgba(var(--bs-primary-rgb), 0.62);
+  }
+
+  .activity-heatmap-level-4 {
+    background: rgba(var(--bs-primary-rgb), 0.88);
+  }
+
+  .activity-legend {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: var(--bs-secondary-color);
+    font-size: 0.82rem;
+  }
+
+  .activity-legend-scale {
+    display: inline-flex;
+    gap: 0.32rem;
+  }
+
+  .activity-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    justify-content: space-between;
+    gap: 1rem 1.25rem;
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--bs-border-color);
+  }
+
+  .activity-toolbar-copy {
+    min-width: min(24rem, 100%);
+  }
+
+  .activity-filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: 0.75rem;
+  }
+
+  .activity-filter-field {
+    min-width: 8rem;
+  }
+
+  .activity-filter-field .form-select {
+    min-height: calc(1.5em + 0.65rem + 2px);
+  }
+
+  #user-activity-table_wrapper .dt-layout-row {
+    margin: 0;
+    padding: 0.75rem 0;
+    align-items: center;
+    gap: 0.75rem 1rem;
+  }
+
+  #user-activity-table_wrapper .dt-length label,
+  #user-activity-table_wrapper .dt-info {
+    margin-bottom: 0;
+    color: var(--bs-secondary-color);
+    font-size: 0.82rem;
+  }
+
+  #user-activity-table_wrapper .dt-length select {
+    min-width: 4.25rem;
+    margin: 0 0.35rem;
+  }
+
+  #user-activity-table_wrapper .dt-paging .pagination {
+    margin-bottom: 0;
+  }
+
+  @media (max-width: 767.98px) {
+    .activity-filter-row,
+    .activity-toolbar {
+      align-items: stretch;
+    }
+
+    .activity-filter-field {
+      width: 100%;
+    }
+  }
+</style>
+{% endblock extra_css %}
+
+{% block page_content %}
+<div class="container-fluid">
+
+  {% include 'partials/page-title.html' with title='My activity' subtitle='Personal' %}
+
+  <div class="row g-3 mt-0">
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-primary-subtle text-primary rounded">
+                <i class="ti ti-checklist fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Completed problems</p>
+              <h3 class="mb-0">{{ activity_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-info-subtle text-info rounded">
+                <i class="ti ti-calendar-up fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Logged in {{ activity_heatmap.end_label|slice:":4" }}</p>
+              <h3 class="mb-0">{{ activity_stats.current_year_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-success-subtle text-success rounded">
+                <i class="ti ti-trophy fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Distinct contests</p>
+              <h3 class="mb-0">{{ activity_stats.contest_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-warning-subtle text-warning rounded">
+                <i class="ti ti-calendar-question fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Unknown dates</p>
+              <h3 class="mb-0">{{ activity_stats.unknown_date_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if activity_total == 0 %}
+  <div class="alert alert-info mt-4" role="alert">
+    <strong>No completion rows yet.</strong> Add your solved problems from <a href="{% url 'users:profile' %}" class="alert-link">your profile</a> to start building this dashboard.
+  </div>
+  {% else %}
+
+  <div class="row g-3 mt-1">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header border-0 pb-0">
+          <div class="d-flex flex-wrap align-items-start justify-content-between gap-2">
+            <div>
+              <h4 class="header-title mb-0">Completion heatmap</h4>
+              <p class="text-muted fs-xs mb-0">GitHub-style view of your exact completion dates across the last 365 days.</p>
+            </div>
+            <div class="activity-legend">
+              <span>Less</span>
+              <span class="activity-legend-scale" aria-hidden="true">
+                <span class="activity-heatmap-cell activity-heatmap-level-0"></span>
+                <span class="activity-heatmap-cell activity-heatmap-level-1"></span>
+                <span class="activity-heatmap-cell activity-heatmap-level-2"></span>
+                <span class="activity-heatmap-cell activity-heatmap-level-3"></span>
+                <span class="activity-heatmap-cell activity-heatmap-level-4"></span>
+              </span>
+              <span>More</span>
+            </div>
+          </div>
+        </div>
+        <div class="card-body pt-2">
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+            <span class="badge text-bg-light">{{ activity_heatmap.start_label }} to {{ activity_heatmap.end_label }}</span>
+            <span class="text-muted fs-xs">{{ activity_heatmap.total_in_window }} dated completion{{ activity_heatmap.total_in_window|pluralize }} in this 365-day window</span>
+          </div>
+          <div class="activity-heatmap-shell">
+            <div class="activity-heatmap">
+              <div class="activity-heatmap-month-track" aria-hidden="true">
+                {% for month_label in activity_heatmap.month_labels %}
+                <span class="activity-heatmap-month-marker">
+                  {% if month_label %}
+                  <span class="activity-heatmap-month-label">{{ month_label }}</span>
+                  {% endif %}
+                </span>
+                {% endfor %}
+              </div>
+              <div class="activity-heatmap-main">
+                <div class="activity-heatmap-day-labels" aria-hidden="true">
+                  {% for day_label in activity_heatmap.day_labels %}
+                  <span>{{ day_label }}</span>
+                  {% endfor %}
+                </div>
+                <div class="activity-heatmap-weeks" role="img" aria-label="Completion heatmap for the last 365 days">
+                  {% for week in activity_heatmap.weeks %}
+                  <div class="activity-heatmap-week">
+                    {% for day in week.days %}
+                    <span
+                      class="activity-heatmap-cell activity-heatmap-level-{{ day.level }}{% if not day.in_range %} is-padding{% endif %}"
+                      title="{{ day.tooltip }}"
+                    ></span>
+                    {% endfor %}
+                  </div>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="text-muted fs-xs mt-3 mb-0">Only exact completion dates feed the heatmap and monthly chart. Rows marked done without a date still stay in the table below.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-0">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-0">Completion count by month</h4>
+          <p class="text-muted fs-xs mb-0">Monthly totals over the rolling 12-month window from {{ activity_month_window_label }}.</p>
+        </div>
+        <div class="card-body pt-2">
+          <div id="chart-user-completions-by-month" style="min-height: 320px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-0 mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header border-bottom d-flex flex-wrap align-items-center gap-2">
+          <div class="flex-grow-1">
+            <h4 class="header-title mb-0">Completion history</h4>
+            <p class="text-muted fs-xs mb-0">Use the filters below and the DataTables search box to narrow your saved completion rows.</p>
+          </div>
+          {% if activity_stats.latest_completion_date %}
+          <span class="badge text-bg-light">Latest: {{ activity_stats.latest_completion_date|date:"Y-m-d" }}</span>
+          {% endif %}
+        </div>
+        <div class="card-body">
+          <div class="activity-toolbar">
+            <div class="activity-toolbar-copy">
+              <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Saved rows</p>
+              <h5 class="mb-1">Filter by logged year, contest, topic, or MOHS</h5>
+              <p class="text-muted fs-xs mb-0">Unknown-date rows stay searchable and sortable, but they always sort after exact dates.</p>
+            </div>
+            <div class="activity-filter-row">
+              <div class="activity-filter-field">
+                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="completion-year-filter">Completion year</label>
+                <select id="completion-year-filter" class="form-select form-select-sm">
+                  <option value="">All logged years</option>
+                  {% for year in activity_filter_options.completion_years %}
+                  <option value="{{ year }}">{{ year }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="activity-filter-field">
+                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="completion-date-status-filter">Date status</label>
+                <select id="completion-date-status-filter" class="form-select form-select-sm">
+                  <option value="">All rows</option>
+                  {% for status in activity_filter_options.date_statuses %}
+                  <option value="{{ status }}">{{ status }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="activity-filter-field">
+                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="completion-contest-filter">Contest</label>
+                <select id="completion-contest-filter" class="form-select form-select-sm">
+                  <option value="">All contests</option>
+                  {% for contest in activity_filter_options.contests %}
+                  <option value="{{ contest }}">{{ contest }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="activity-filter-field">
+                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="completion-topic-filter">Topic</label>
+                <select id="completion-topic-filter" class="form-select form-select-sm">
+                  <option value="">All topics</option>
+                  {% for topic in activity_filter_options.topics %}
+                  <option value="{{ topic }}">{{ topic }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="activity-filter-field">
+                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="completion-mohs-filter">MOHS</label>
+                <select id="completion-mohs-filter" class="form-select form-select-sm">
+                  <option value="">All MOHS</option>
+                  {% for mohs in activity_filter_options.mohs_values %}
+                  <option value="{{ mohs }}">{{ mohs }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <button type="button" id="completion-filter-reset" class="btn btn-outline-secondary btn-sm">Reset filters</button>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table id="user-activity-table" class="table table-striped table-bordered align-middle w-100"></table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% endif %}
+</div>
+
+{{ activity_charts_payload|json_script:"user-activity-chart-data" }}
+{{ activity_table_rows|json_script:"user-activity-table-data" }}
+
+{% endblock page_content %}
+
+{% block extra_javascript %}
+{% if activity_total > 0 %}
+<script src="{% static 'plugins/apexcharts/apexcharts.min.js' %}"></script>
+<script src="{% static 'plugins/datatables/dataTables.min.js' %}"></script>
+<script src="{% static 'plugins/datatables/dataTables.bootstrap5.min.js' %}"></script>
+<script>
+(function () {
+  var chartDataEl = document.getElementById("user-activity-chart-data");
+  var tableDataEl = document.getElementById("user-activity-table-data");
+  if (!chartDataEl || !tableDataEl) return;
+
+  var charts = JSON.parse(chartDataEl.textContent);
+  var rows = JSON.parse(tableDataEl.textContent);
+
+  function escapeHtml(value) {
+    return String(value == null ? "" : value).replace(/[&<>"']/g, function (character) {
+      return {
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      }[character];
+    });
+  }
+
+  if (typeof ApexCharts !== "undefined") {
+    var monthPayload = charts.completionsByMonth || { labels: [], values: [] };
+    var monthChartEl = document.querySelector("#chart-user-completions-by-month");
+    if (monthChartEl && monthPayload.labels.length) {
+      var monthChart = new ApexCharts(monthChartEl, {
+        chart: {
+          type: "bar",
+          height: 320,
+          toolbar: { show: false },
+          fontFamily: "inherit"
+        },
+        series: [{ name: "Completions", data: monthPayload.values }],
+        colors: ["#0d6efd"],
+        plotOptions: {
+          bar: {
+            borderRadius: 4,
+            columnWidth: "56%"
+          }
+        },
+        dataLabels: {
+          enabled: monthPayload.values.length <= 14
+        },
+        xaxis: {
+          categories: monthPayload.labels,
+          labels: {
+            rotate: monthPayload.labels.length > 8 ? -45 : 0,
+            hideOverlappingLabels: false,
+            style: { fontSize: "11px" }
+          }
+        },
+        yaxis: {
+          labels: {
+            style: { fontSize: "11px" }
+          }
+        },
+        tooltip: {
+          y: {
+            formatter: function (value) {
+              return String(value) + " completion" + (value === 1 ? "" : "s");
+            }
+          }
+        },
+        grid: {
+          strokeDashArray: 4,
+          borderColor: "rgba(108,117,125,0.15)"
+        }
+      });
+      monthChart.render();
+    }
+  }
+
+  if (typeof DataTable === "undefined") return;
+
+  var table = new DataTable("#user-activity-table", {
+    data: rows,
+    columns: [
+      {
+        data: "completion_date",
+        title: "Completion date",
+        className: "text-nowrap",
+        render: function (data, type, row) {
+          if (type === "sort") return row.completion_date_sort;
+          if (type === "display" && !row.completion_known) return '<span class="text-muted">Unknown</span>';
+          return data;
+        }
+      },
+      {
+        data: "problem_label",
+        title: "Problem",
+        render: function (data, type, row) {
+          if (type !== "display") return data;
+          if (!row.problem_url) return escapeHtml(data);
+          return '<a href="' + escapeHtml(row.problem_url) + '" class="fw-semibold text-decoration-none">' + escapeHtml(data) + "</a>";
+        }
+      },
+      { data: "contest", title: "Contest" },
+      { data: "problem_year", title: "Year", className: "text-nowrap" },
+      { data: "topic", title: "Topic", className: "text-nowrap" },
+      { data: "mohs", title: "MOHS", className: "text-nowrap" }
+    ],
+    order: [[0, "desc"], [2, "asc"], [1, "asc"]],
+    pageLength: 25,
+    lengthMenu: [10, 25, 50, 100],
+    scrollX: true,
+    autoWidth: false,
+  });
+
+  var completionYearFilter = document.getElementById("completion-year-filter");
+  var completionDateStatusFilter = document.getElementById("completion-date-status-filter");
+  var completionContestFilter = document.getElementById("completion-contest-filter");
+  var completionTopicFilter = document.getElementById("completion-topic-filter");
+  var completionMohsFilter = document.getElementById("completion-mohs-filter");
+  var completionResetButton = document.getElementById("completion-filter-reset");
+
+  function matchesFilter(value, selectedValue) {
+    return !selectedValue || String(value || "") === selectedValue;
+  }
+
+  var filterCallback = function (settings, data, dataIndex, rowData) {
+    if (!settings.nTable || settings.nTable.id !== "user-activity-table") return true;
+    var row = rowData || table.row(dataIndex).data();
+    if (!row) return true;
+
+    return (
+      matchesFilter(row.completion_year, completionYearFilter ? completionYearFilter.value : "") &&
+      matchesFilter(row.date_status, completionDateStatusFilter ? completionDateStatusFilter.value : "") &&
+      matchesFilter(row.contest, completionContestFilter ? completionContestFilter.value : "") &&
+      matchesFilter(row.topic, completionTopicFilter ? completionTopicFilter.value : "") &&
+      matchesFilter(String(row.mohs), completionMohsFilter ? completionMohsFilter.value : "")
+    );
+  };
+
+  DataTable.ext.search.push(filterCallback);
+
+  [completionYearFilter, completionDateStatusFilter, completionContestFilter, completionTopicFilter, completionMohsFilter]
+    .filter(Boolean)
+    .forEach(function (element) {
+      element.addEventListener("change", function () {
+        table.draw();
+      });
+    });
+
+  if (completionResetButton) {
+    completionResetButton.addEventListener("click", function () {
+      [completionYearFilter, completionDateStatusFilter, completionContestFilter, completionTopicFilter, completionMohsFilter]
+        .filter(Boolean)
+        .forEach(function (element) {
+          element.value = "";
+        });
+      table.search("");
+      table.draw();
+    });
+  }
+})();
+</script>
+{% endif %}
+{% endblock extra_javascript %}

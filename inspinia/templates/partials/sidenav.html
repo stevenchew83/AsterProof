@@ -66,6 +66,15 @@
                 </a>
             </li>
 
+            {% if show_user_activity_dashboard_link %}
+            <li class="side-nav-item">
+                <a href="{% url 'pages:user_activity_dashboard' %}" class="side-nav-link">
+                    <span class="menu-icon"><i class="ti ti-activity"></i></span>
+                    <span class="menu-text">My activity</span>
+                </a>
+            </li>
+            {% endif %}
+
             {% if show_analytics_dashboard_link %}
             <li class="side-nav-item">
                 <a href="{% url 'pages:dashboard' %}" class="side-nav-link">
@@ -98,6 +107,12 @@
                 <a href="{% url 'pages:problem_import' %}" class="side-nav-link">
                     <span class="menu-icon"><i class="ti ti-file-upload"></i></span>
                     <span class="menu-text">Problem data</span>
+                </a>
+            </li>
+            <li class="side-nav-item">
+                <a href="{% url 'pages:contest_rename' %}" class="side-nav-link">
+                    <span class="menu-icon"><i class="ti ti-edit"></i></span>
+                    <span class="menu-text">Contest names</span>
                 </a>
             </li>
             {% endif %}

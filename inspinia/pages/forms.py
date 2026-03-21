@@ -1,5 +1,8 @@
 from django import forms
 
+from inspinia.pages.contest_rename import PROJECT_CONTEST_NAME_MAX_LENGTH
+from inspinia.pages.contest_rename import normalize_contest_name
+
 
 class ProblemXlsxImportForm(forms.Form):
     file = forms.FileField(
@@ -79,3 +82,55 @@ class ProblemCompletionPasteForm(forms.Form):
             msg = "Paste at least one completion row."
             raise forms.ValidationError(msg)
         return text
+
+
+class ContestRenameForm(forms.Form):
+    source_contests = forms.MultipleChoiceField(
+        label="Contest names to update",
+        required=True,
+        help_text="Tick one or more source contest names, then enter the canonical target name.",
+        widget=forms.CheckboxSelectMultiple,
+        error_messages={"required": "Select at least one contest to update."},
+    )
+    new_contest_name = forms.CharField(
+        label="New contest name",
+        max_length=PROJECT_CONTEST_NAME_MAX_LENGTH,
+        help_text="Whitespace is normalized before saving.",
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "Enter the updated contest name",
+            },
+        ),
+    )
+
+    def __init__(self, *args, contest_choices: list[tuple[str, str]] | None = None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["source_contests"].choices = contest_choices or []
+
+    def clean_source_contests(self):
+        selected_contests = self.cleaned_data["source_contests"]
+        ordered_contests: list[str] = []
+        seen_contests: set[str] = set()
+        for contest_name in selected_contests:
+            if contest_name in seen_contests:
+                continue
+            ordered_contests.append(contest_name)
+            seen_contests.add(contest_name)
+        return ordered_contests
+
+    def clean_new_contest_name(self):
+        return normalize_contest_name(self.cleaned_data["new_contest_name"])
+
+    def clean(self):
+        cleaned_data = super().clean()
+        source_contests = cleaned_data.get("source_contests") or []
+        new_contest_name = cleaned_data.get("new_contest_name")
+        if source_contests and new_contest_name and new_contest_name in source_contests:
+            msg = (
+                "Pick a different contest name."
+                if len(source_contests) == 1
+                else "Uncheck the target contest name from the source selections."
+            )
+            raise forms.ValidationError(msg)
+        return cleaned_data

@@ -1,3 +1,4 @@
+from datetime import timedelta
 from http import HTTPStatus
 from io import BytesIO
 from pathlib import Path
@@ -8,6 +9,7 @@ from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
 from django.urls import reverse
+from django.utils import timezone
 
 from inspinia.pages.asymptote_render import AsymptoteRenderResult
 from inspinia.pages.asymptote_render import _extract_svg_markup
@@ -15,6 +17,7 @@ from inspinia.pages.asymptote_render import build_statement_render_segments
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
 from inspinia.pages.models import ProblemTopicTechnique
+from inspinia.pages.models import UserProblemCompletion
 from inspinia.pages.problem_import import ProblemImportValidationError
 from inspinia.pages.problem_import import dataframe_from_excel
 from inspinia.pages.problem_import import import_problem_dataframe
@@ -29,6 +32,7 @@ pytestmark = pytest.mark.django_db
 EXPECTED_RECORD_COUNT = 1
 EXPECTED_ONE_TECHNIQUE = 1
 EXPECTED_TWO_TECHNIQUES = 2
+EXPECTED_MULTI_CONTEST_RENAME_TOTAL = 2
 UPDATED_MOHS = 5
 WORKBOOK_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 EXPECTED_EXPORT_COLUMNS = [
@@ -105,6 +109,28 @@ EXPECTED_BALKAN_SHORTLIST_PROBLEM_TOTAL = 8
 BALKAN_SHORTLIST_STATEMENT_SAMPLE = (
     Path(__file__).resolve().parent / "testdata" / "balkan_shortlist_sample.txt"
 ).read_text(encoding="utf-8")
+USA_TST_YEAR = 2025
+USA_TST_NAME = "USA Team Selection Test for IMO"
+EXPECTED_USA_TST_PROBLEM_TOTAL = 2
+USA_TST_STATEMENT_SAMPLE = (
+    "2025 USA Team Selection Test for IMO3\n"
+    "Day I Thursday, December 12, 2024\n"
+    "1\tLet $n$ be a positive integer.\n"
+    "\n"
+    "Day 2 Thursday, January 9, 2025\n"
+    "2\tLet $a_1, a_2, \\dots$ be real.\n"
+)
+USA_EGMO_TST_YEAR = 2020
+USA_EGMO_TST_NAME = "USA EGMO Team Selection Test"
+EXPECTED_USA_EGMO_TST_PROBLEM_TOTAL = 6
+USA_EGMO_TST_STATEMENT_SAMPLE = (
+    Path(__file__).resolve().parent / "testdata" / "usa_egmo_team_selection_test_sample.txt"
+).read_text(encoding="utf-8")
+EXPECTED_LINKED_PROBLEM_MOHS = 4
+EXPECTED_USER_ACTIVITY_TOTAL = 3
+EXPECTED_USER_ACTIVITY_DATED_TOTAL = 2
+EXPECTED_USER_ACTIVITY_UNKNOWN_DATE_TOTAL = 1
+EXPECTED_USER_ACTIVITY_CONTEST_TOTAL = 3
 FAKE_ASYMPTOTE_SVG = '<svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" /></svg>'
 
 
@@ -537,6 +563,43 @@ def test_parse_contest_problem_statements_supports_balkan_shortlist_equation_con
     assert all(problem.problem_code != "P3" for problem in parsed_import.problems)
 
 
+def test_parse_contest_problem_statements_supports_roman_day_headers_with_dates():
+    parsed_import = parse_contest_problem_statements(USA_TST_STATEMENT_SAMPLE)
+
+    assert parsed_import.contest_year == USA_TST_YEAR
+    assert parsed_import.contest_name == USA_TST_NAME
+    assert [problem.day_label for problem in parsed_import.problems] == [
+        "Day I · Thursday, December 12, 2024",
+        "Day 2 · Thursday, January 9, 2025",
+    ]
+
+
+def test_parse_contest_problem_statements_supports_tst_headers_and_strips_trailing_credits():
+    parsed_import = parse_contest_problem_statements(USA_EGMO_TST_STATEMENT_SAMPLE)
+
+    assert parsed_import.contest_year == USA_EGMO_TST_YEAR
+    assert parsed_import.contest_name == USA_EGMO_TST_NAME
+    assert len(parsed_import.problems) == EXPECTED_USA_EGMO_TST_PROBLEM_TOTAL
+    assert [problem.problem_number for problem in parsed_import.problems] == [1, 2, 3, 4, 5, 6]
+    assert [problem.day_label for problem in parsed_import.problems[:3]] == [
+        "TST #1 · Thursday, December 12th, 2019",
+    ] * 3
+    assert [problem.day_label for problem in parsed_import.problems[3:]] == [
+        "TST #2 · Thursday, January 23rd, 2020",
+    ] * 3
+    assert "TST #2" not in parsed_import.problems[2].statement_latex
+    assert "Andrew Gu" not in parsed_import.problems[1].statement_latex
+    assert "Carl Schildkraut and Milan Haiman" not in parsed_import.problems[2].statement_latex
+    assert "Proposed by Ankan Bhattacharya" not in parsed_import.problems[3].statement_latex
+    assert "Proposed by Yang Liu" not in parsed_import.problems[4].statement_latex
+    assert "a1267ab" not in parsed_import.problems[1].statement_latex
+    assert "alifenix-" not in parsed_import.problems[3].statement_latex
+    assert "view topic" not in parsed_import.problems[1].statement_latex
+    assert "There exists a point $Q$ on the circumcircle" not in parsed_import.problems[1].statement_latex
+    assert "there exists a point $Q$ on the circumcircle" in parsed_import.problems[1].statement_latex
+    assert "What are the possible values of $r$" in parsed_import.problems[2].statement_latex
+
+
 def test_import_problem_statements_creates_rows_and_links_existing_problem_records():
     linked_record = ProblemSolveRecord.objects.create(
         year=SPAIN_OLYMPIAD_YEAR,
@@ -601,6 +664,26 @@ def test_import_problem_statements_supports_alpha_numeric_codes_across_sections(
     assert algebra_one.linked_problem == linked_record
     assert algebra_one.problem_uuid == linked_record.problem_uuid
     assert combinatorics_one.problem_code == "C1"
+
+
+def test_import_problem_statements_persists_long_day_labels():
+    result = import_problem_statements(parse_contest_problem_statements(USA_TST_STATEMENT_SAMPLE))
+
+    assert result.created_count == EXPECTED_USA_TST_PROBLEM_TOTAL
+    assert result.updated_count == 0
+
+    saved_labels = list(
+        ContestProblemStatement.objects.filter(
+            contest_year=USA_TST_YEAR,
+            contest_name=USA_TST_NAME,
+        )
+        .order_by("problem_number")
+        .values_list("day_label", flat=True),
+    )
+    assert saved_labels == [
+        "Day I · Thursday, December 12, 2024",
+        "Day 2 · Thursday, January 9, 2025",
+    ]
 
 
 def test_import_problem_statements_supports_duplicate_numeric_codes_in_different_sections():
@@ -699,6 +782,14 @@ def test_latex_preview_requires_login(client):
     assert response.url == f"{login_url}?next={reverse('pages:latex_preview')}"
 
 
+def test_contest_rename_requires_login(client):
+    response = client.get(reverse("pages:contest_rename"))
+    login_url = reverse(settings.LOGIN_URL)
+
+    assert response.status_code == HTTPStatus.FOUND
+    assert response.url == f"{login_url}?next={reverse('pages:contest_rename')}"
+
+
 def test_statement_render_preview_requires_login(client):
     response = client.post(
         reverse("pages:statement_render_preview"),
@@ -718,12 +809,62 @@ def test_problem_statement_list_requires_login(client):
     assert response.url == f"{login_url}?next={reverse('pages:problem_statement_list')}"
 
 
+def test_user_activity_dashboard_requires_login(client):
+    response = client.get(reverse("pages:user_activity_dashboard"))
+    login_url = reverse(settings.LOGIN_URL)
+
+    assert response.status_code == HTTPStatus.FOUND
+    assert response.url == f"{login_url}?next={reverse('pages:user_activity_dashboard')}"
+
+
+@override_settings(DEBUG=False)
+def test_problem_statement_list_recheck_links_forbids_non_admin_access_when_debug_is_off(client):
+    user = UserFactory()
+    client.force_login(user)
+    matching_problem = ProblemSolveRecord.objects.create(
+        year=SPAIN_OLYMPIAD_YEAR,
+        topic="NT",
+        mohs=4,
+        contest=SPAIN_OLYMPIAD_NAME,
+        problem="P1",
+        contest_year_problem=f"{SPAIN_OLYMPIAD_NAME} {SPAIN_OLYMPIAD_YEAR} P1",
+    )
+    statement = ContestProblemStatement.objects.create(
+        contest_year=SPAIN_OLYMPIAD_YEAR,
+        contest_name=SPAIN_OLYMPIAD_NAME,
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Needs relink",
+    )
+
+    response = client.post(
+        reverse("pages:problem_statement_list"),
+        {"action": "recheck_links"},
+    )
+
+    assert response.status_code == HTTPStatus.FORBIDDEN
+    statement.refresh_from_db()
+    matching_problem.refresh_from_db()
+    assert statement.linked_problem is None
+
+
 @override_settings(DEBUG=False)
 def test_problem_statement_analytics_forbids_non_admin_access_when_debug_is_off(client):
     user = UserFactory()
     client.force_login(user)
 
     response = client.get(reverse("pages:problem_statement_dashboard"))
+
+    assert response.status_code == HTTPStatus.FORBIDDEN
+
+
+@override_settings(DEBUG=False)
+def test_contest_rename_forbids_non_admin_access_when_debug_is_off(client):
+    user = UserFactory()
+    client.force_login(user)
+
+    response = client.get(reverse("pages:contest_rename"))
 
     assert response.status_code == HTTPStatus.FORBIDDEN
 
@@ -738,6 +879,7 @@ def test_latex_preview_allows_authenticated_access(client):
     response_html = response.content.decode("utf-8")
     assert "LaTeX preview" in response_html
     assert 'hdots: "\\\\dots"' in response_html
+    assert 'overarc: ["\\\\overset{\\\\frown}{#1}", 1]' in response_html
     assert 'vspace: ["\\\\kern0pt", 1]' in response_html
 
 
@@ -748,10 +890,13 @@ def test_problem_statement_list_shows_statement_rows_and_link_counts(client):
         year=SPAIN_OLYMPIAD_YEAR,
         topic="NT",
         mohs=4,
+        confidence="35M / 33M",
         contest=SPAIN_OLYMPIAD_NAME,
+        imo_slot_guess="P2/5",
         problem="P1",
         contest_year_problem=f"{SPAIN_OLYMPIAD_NAME} {SPAIN_OLYMPIAD_YEAR} P1",
     )
+    ProblemTopicTechnique.objects.create(record=linked_record, technique="LTE", domains=["NT"])
     linked_statement = ContestProblemStatement.objects.create(
         contest_year=SPAIN_OLYMPIAD_YEAR,
         contest_name=SPAIN_OLYMPIAD_NAME,
@@ -767,6 +912,13 @@ def test_problem_statement_list_shows_statement_rows_and_link_counts(client):
         day_label="",
         statement_latex="Unlinked statement preview text",
     )
+    now = timezone.now()
+    ContestProblemStatement.objects.filter(pk=linked_statement.pk).update(updated_at=now)
+    ContestProblemStatement.objects.filter(
+        contest_year=SPAIN_OLYMPIAD_YEAR,
+        contest_name=NEPAL_OLYMPIAD_NAME,
+        problem_number=8,
+    ).update(updated_at=now - timedelta(days=1))
 
     response = client.get(reverse("pages:problem_statement_list"))
 
@@ -783,10 +935,149 @@ def test_problem_statement_list_shows_statement_rows_and_link_counts(client):
         for row in response.context["statement_table_rows"]
         if row["contest_year_problem"] == f"{SPAIN_OLYMPIAD_NAME} {SPAIN_OLYMPIAD_YEAR} P1"
     )
+    assert response.context["statement_table_rows"][0]["contest_year_problem"] == (
+        f"{SPAIN_OLYMPIAD_NAME} {SPAIN_OLYMPIAD_YEAR} P1"
+    )
     assert linked_row["problem_uuid"] == str(linked_statement.problem_uuid)
     assert linked_row["linked_problem_label"] == linked_record.contest_year_problem
     assert linked_row["linked_problem_url"].endswith("#spain-mathematical-olympiad-2026-p1")
-    assert "Problem statements" in response.content.decode("utf-8")
+    assert linked_row["linked_problem_topic_tags"] == ["LTE"]
+    assert linked_row["linked_problem_topic_tag_links"][0]["label"] == "LTE"
+    assert linked_row["linked_problem_topic_tag_links"][0]["url"].endswith("?tag=LTE")
+    assert linked_row["linked_problem_mohs"] == EXPECTED_LINKED_PROBLEM_MOHS
+    assert linked_row["linked_problem_mohs_url"].endswith("?mohs=4")
+    assert linked_row["linked_problem_confidence"] == "35M / 33M"
+    assert "?q=35M+%2F+33M" in linked_row["linked_problem_confidence_url"]
+    assert linked_row["linked_problem_imo_slot_guess_value"] == "2,5"
+    assert "?q=2%2C5" in linked_row["linked_problem_imo_slot_url"]
+    response_html = response.content.decode("utf-8")
+    assert "Problem statements" in response_html
+    assert 'id="statement-mohs-min"' in response_html
+    assert 'id="statement-mohs-max"' in response_html
+    assert 'id="problem-statements-copy"' in response_html
+    assert "Copy filtered rows" in response_html
+    assert "Filter linked rows by MOHS range" in response_html
+    assert "visible: false" in response_html
+    assert "formatImoSlotLabel" in response_html
+    assert "var updatedAtColumnIndex = statementColumns.length - 1;" in response_html
+    assert 'pre: [[updatedAtColumnIndex, "desc"]]' in response_html
+    assert "updated_at_sort" in response_html
+    assert "renderChipLinks" not in response_html
+
+
+def test_problem_statement_list_recheck_links_updates_matching_rows_for_admin(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    matching_problem = ProblemSolveRecord.objects.create(
+        year=SPAIN_OLYMPIAD_YEAR,
+        topic="NT",
+        mohs=4,
+        contest=SPAIN_OLYMPIAD_NAME,
+        problem="P1",
+        contest_year_problem=f"{SPAIN_OLYMPIAD_NAME} {SPAIN_OLYMPIAD_YEAR} P1",
+    )
+    statement = ContestProblemStatement.objects.create(
+        contest_year=SPAIN_OLYMPIAD_YEAR,
+        contest_name=SPAIN_OLYMPIAD_NAME,
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Needs relink",
+    )
+
+    response = client.post(
+        reverse("pages:problem_statement_list"),
+        {"action": "recheck_links"},
+        follow=True,
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    statement.refresh_from_db()
+    matching_problem.refresh_from_db()
+    assert statement.linked_problem == matching_problem
+    assert statement.problem_uuid == matching_problem.problem_uuid
+    assert response.context["statement_stats"]["linked_total"] == EXPECTED_RECORD_COUNT
+    assert response.context["statement_stats"]["unlinked_total"] == 0
+    response_html = response.content.decode("utf-8")
+    assert 'id="problem-statements-recheck-links"' in response_html
+    assert "Recheck problem links" in response_html
+    assert (
+        "Rechecked 1 statement row(s): 1 linked, 1 newly linked, 0 skipped, "
+        "0 still unlinked, 1 updated."
+    ) in response_html
+
+
+def test_problem_statement_list_recheck_links_skips_ambiguous_duplicate_codes(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    matching_problem = ProblemSolveRecord.objects.create(
+        year=SPAIN_OLYMPIAD_YEAR,
+        topic="NT",
+        mohs=4,
+        contest=SPAIN_OLYMPIAD_NAME,
+        problem="P1",
+        contest_year_problem=f"{SPAIN_OLYMPIAD_NAME} {SPAIN_OLYMPIAD_YEAR} P1",
+    )
+    first_statement = ContestProblemStatement.objects.create(
+        contest_year=SPAIN_OLYMPIAD_YEAR,
+        contest_name=SPAIN_OLYMPIAD_NAME,
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Duplicate candidate A",
+    )
+    second_statement = ContestProblemStatement.objects.create(
+        contest_year=SPAIN_OLYMPIAD_YEAR,
+        contest_name=SPAIN_OLYMPIAD_NAME,
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 2",
+        statement_latex="Duplicate candidate B",
+    )
+
+    response = client.post(
+        reverse("pages:problem_statement_list"),
+        {"action": "recheck_links"},
+        follow=True,
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    first_statement.refresh_from_db()
+    second_statement.refresh_from_db()
+    matching_problem.refresh_from_db()
+    assert first_statement.linked_problem is None
+    assert second_statement.linked_problem is None
+    assert response.context["statement_stats"]["linked_total"] == 0
+    assert response.context["statement_stats"]["unlinked_total"] == EXPECTED_CONTEST_TOTAL
+    response_html = response.content.decode("utf-8")
+    assert (
+        "Rechecked 2 statement row(s): 0 linked, 0 newly linked, 2 skipped, "
+        "2 still unlinked, 0 updated."
+    ) in response_html
+
+
+def test_contest_problem_list_search_matches_hidden_confidence(client):
+    user = UserFactory()
+    client.force_login(user)
+    problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="ALG",
+        mohs=5,
+        confidence="35M / 33M",
+        contest="IMO",
+        problem="P1",
+        contest_year_problem="IMO 2026 P1",
+    )
+
+    response = client.get(
+        reverse("pages:contest_problem_list", args=["imo"]),
+        {"q": "35M / 33M"},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["matching_problem_total"] == 1
+    filtered_problem = response.context["grouped_years"][0]["problems"][0]
+    assert filtered_problem["problem"] == problem.problem
 
 
 def test_problem_statement_analytics_groups_rows_by_contest_and_year_for_admin(client):
@@ -847,8 +1138,26 @@ def test_problem_statement_analytics_groups_rows_by_contest_and_year_for_admin(c
     assert dashboard_row["linked_count"] == 1
     assert dashboard_row["unlinked_count"] == 1
     assert dashboard_row["link_rate"] == EXPECTED_SPAIN_STATEMENT_LINK_RATE
+    heatmap_payload = response.context["charts_payload"]["statementCountHeatmap"]
+    assert heatmap_payload["years"] == ["2025", "2026"]
+    assert heatmap_payload["max_value"] == EXPECTED_STATEMENT_SET_TOTAL
+    assert heatmap_payload["series"][0]["name"] == SPAIN_OLYMPIAD_NAME
+    assert heatmap_payload["series"][0]["data"] == [
+        {"x": "2025", "y": 0},
+        {"x": "2026", "y": EXPECTED_STATEMENT_SET_TOTAL},
+    ]
+    year_bar_payload = response.context["charts_payload"]["statementYearBarChart"]
+    assert year_bar_payload["labels"] == ["2025", "2026"]
+    assert year_bar_payload["values"] == [1, EXPECTED_STATEMENT_ROW_TOTAL - 1]
     response_html = response.content.decode("utf-8")
     assert "Problem statement analytics" in response_html
+    assert 'id="chart-statement-heatmap"' in response_html
+    assert 'id="chart-year-bars"' in response_html
+    assert "Contest-year statement heatmap" in response_html
+    assert "Statement rows by year" in response_html
+    assert "Bar graph of year-only imported statement coverage across the archive." in response_html
+    assert "Contest-year statement volume" not in response_html
+    assert "Link rate by contest-year" not in response_html
     assert reverse("pages:problem_statement_dashboard") in response_html
 
 
@@ -875,6 +1184,7 @@ def test_latex_preview_parse_action_builds_structured_preview_without_saving(cli
         "update_count": 0,
         "update_problem_codes": [],
     }
+    assert 'footnotesize: ""' in response.content.decode("utf-8")
 
 
 def test_statement_render_preview_returns_rendered_asymptote_html(client, monkeypatch):
@@ -1040,6 +1350,123 @@ def test_home_exposes_live_library_index_for_authenticated_user(client):
     assert reverse("pages:problem_list") in response.content.decode("utf-8")
 
 
+def test_user_activity_dashboard_shows_only_current_users_completion_history(client):
+    user = UserFactory()
+    other_user = UserFactory()
+    client.force_login(user)
+    today = timezone.localdate()
+    recent_date = today - timedelta(days=2)
+    earlier_date = today - timedelta(days=35)
+
+    recent_problem = ProblemSolveRecord.objects.create(
+        year=today.year,
+        topic="ALG",
+        mohs=5,
+        contest="IMO",
+        problem="P1",
+        contest_year_problem=f"IMO {today.year} P1",
+    )
+    earlier_problem = ProblemSolveRecord.objects.create(
+        year=today.year - 1,
+        topic="NT",
+        mohs=4,
+        contest="BMO",
+        problem="P2",
+        contest_year_problem=f"BMO {today.year - 1} P2",
+    )
+    undated_problem = ProblemSolveRecord.objects.create(
+        year=today.year - 2,
+        topic="GEO",
+        mohs=6,
+        contest="EGMO",
+        problem="P3",
+        contest_year_problem=f"EGMO {today.year - 2} P3",
+    )
+    other_problem = ProblemSolveRecord.objects.create(
+        year=today.year,
+        topic="COMB",
+        mohs=3,
+        contest="USA TST",
+        problem="P4",
+        contest_year_problem=f"USA TST {today.year} P4",
+    )
+
+    UserProblemCompletion.objects.create(
+        user=user,
+        problem=recent_problem,
+        completion_date=recent_date,
+    )
+    UserProblemCompletion.objects.create(
+        user=user,
+        problem=earlier_problem,
+        completion_date=earlier_date,
+    )
+    UserProblemCompletion.objects.create(
+        user=user,
+        problem=undated_problem,
+        completion_date=None,
+    )
+    UserProblemCompletion.objects.create(
+        user=other_user,
+        problem=other_problem,
+        completion_date=today - timedelta(days=1),
+    )
+
+    response = client.get(reverse("pages:user_activity_dashboard"))
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["activity_total"] == EXPECTED_USER_ACTIVITY_TOTAL
+    assert response.context["activity_stats"]["contest_total"] == EXPECTED_USER_ACTIVITY_CONTEST_TOTAL
+    assert response.context["activity_stats"]["dated_total"] == EXPECTED_USER_ACTIVITY_DATED_TOTAL
+    assert (
+        response.context["activity_stats"]["unknown_date_total"]
+        == EXPECTED_USER_ACTIVITY_UNKNOWN_DATE_TOTAL
+    )
+    assert response.context["activity_stats"]["latest_completion_date"] == recent_date
+    assert response.context["activity_stats"]["current_year_total"] == sum(
+        1 for value in (recent_date, earlier_date) if value.year == today.year
+    )
+    assert response.context["activity_filter_options"] == {
+        "completion_years": sorted({str(recent_date.year), str(earlier_date.year)}, reverse=True),
+        "contests": ["BMO", "EGMO", "IMO"],
+        "date_statuses": ["Known date", "Unknown date"],
+        "mohs_values": [4, 5, 6],
+        "topics": ["ALG", "GEO", "NT"],
+    }
+    assert response.context["activity_heatmap"]["total_in_window"] == EXPECTED_USER_ACTIVITY_DATED_TOTAL
+    assert (
+        response.context["activity_charts_payload"]["completionsByMonth"]["values"].count(1)
+        == EXPECTED_USER_ACTIVITY_DATED_TOTAL
+    )
+    assert (
+        sum(response.context["activity_charts_payload"]["completionsByMonth"]["values"])
+        == EXPECTED_USER_ACTIVITY_DATED_TOTAL
+    )
+    recent_cell = next(
+        day
+        for week in response.context["activity_heatmap"]["weeks"]
+        for day in week["days"]
+        if day["date_label"] == recent_date.isoformat()
+    )
+    assert recent_cell["count"] == 1
+    table_rows = response.context["activity_table_rows"]
+    assert [row["problem_label"] for row in table_rows] == [
+        recent_problem.contest_year_problem,
+        earlier_problem.contest_year_problem,
+        undated_problem.contest_year_problem,
+    ]
+    assert table_rows[0]["problem_url"].endswith(f"#imo-{today.year}-p1")
+    assert table_rows[2]["completion_date"] == "Unknown"
+    response_html = response.content.decode("utf-8")
+    assert "My activity" in response_html
+    assert "Completion heatmap" in response_html
+    assert 'id="chart-user-completions-by-month"' in response_html
+    assert 'id="user-activity-table"' in response_html
+    assert 'id="completion-year-filter"' in response_html
+    assert 'order: [[0, "desc"], [2, "asc"], [1, "asc"]]' in response_html
+    assert reverse("pages:user_activity_dashboard") in response_html
+
+
 def test_problem_list_prioritizes_statement_backed_contests(client):
     user = UserFactory()
     client.force_login(user)
@@ -1111,9 +1538,86 @@ def test_contest_problem_list_shows_imported_statement_text(client):
     assert first_problem["statement_day_label"] == "Day 1"
     assert first_problem["statement_latex"] == "Prove that $1+1=2$."
     content = response.content.decode("utf-8")
-    assert "Statement-backed problems rise to the front" in content
+    assert 'id="contest-problem-table"' in content
+    assert "sortable table layout" in content
     assert "Prove that $1+1=2$." in content
-    assert "Statement import updated" in content
+    assert 'footnotesize: ""' in content
+    assert 'overarc: ["\\\\overset{\\\\frown}{#1}", 1]' in content
+    assert "Statement import updated" not in content
+    assert "UUID:" not in content
+
+
+def test_contest_problem_list_filters_by_year_mohs_topic_and_tag(client):
+    user = UserFactory()
+    client.force_login(user)
+    tagged_problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="NT",
+        mohs=4,
+        contest="IMO",
+        problem="P1",
+        contest_year_problem="IMO 2026 P1",
+        confidence="35M / 33M",
+    )
+    other_problem = ProblemSolveRecord.objects.create(
+        year=2025,
+        topic="ALG",
+        mohs=5,
+        contest="IMO",
+        problem="P2",
+        contest_year_problem="IMO 2025 P2",
+        confidence="31M / 30M",
+    )
+    another_tagged_problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="NT",
+        mohs=6,
+        contest="IMO",
+        problem="P3",
+        contest_year_problem="IMO 2026 P3",
+    )
+    ProblemTopicTechnique.objects.create(record=tagged_problem, technique="LTE", domains=["NT"])
+    ProblemTopicTechnique.objects.create(
+        record=other_problem,
+        technique="INVARIANTS",
+        domains=["ALG"],
+    )
+    ProblemTopicTechnique.objects.create(
+        record=another_tagged_problem,
+        technique="LTE",
+        domains=["NT"],
+    )
+    ContestProblemStatement.objects.create(
+        linked_problem=tagged_problem,
+        contest_year=2026,
+        contest_name="IMO",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Show that $n=n$.",
+    )
+
+    response = client.get(
+        reverse("pages:contest_problem_list", args=["imo"]),
+        {"year": "2026", "mohs": "4", "topic": "NT", "tag": "LTE"},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["selected_year"] == "2026"
+    assert response.context["selected_mohs"] == "4"
+    assert response.context["selected_topic"] == "NT"
+    assert response.context["selected_tag"] == "LTE"
+    assert response.context["matching_problem_total"] == EXPECTED_RECORD_COUNT
+    assert response.context["filter_options"]["mohs_values"] == [4, 5, 6]
+    assert response.context["filter_options"]["tags"] == ["INVARIANTS", "LTE"]
+    filtered_problem = response.context["grouped_years"][0]["problems"][0]
+    assert filtered_problem["problem"] == "P1"
+    assert filtered_problem["topic_tags"][0]["technique"] == "LTE"
+    page = response.content.decode("utf-8")
+    assert "problem-tag-pill" in page
+    assert "LTE" in page
+    assert "Confidence:" not in page
+    assert "> Imported</span>" not in page
 
 
 def test_contest_problem_list_renders_asymptote_statement_blocks(client, monkeypatch):
@@ -1204,3 +1708,355 @@ def test_home_exposes_live_library_index_for_admin(client):
         if entry["type"] == "Topic tag" and entry["label"] == "LTE"
     )
     assert topic_entry["href"] == reverse("pages:problem_list") + "?q=LTE"
+
+
+def test_contest_rename_updates_problem_and_statement_rows_for_admin(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    source_name = "Old Team Selection Test"
+    target_name = "National Team Selection Test"
+    expected_renamed_total = 2
+    linked_problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="ALG",
+        mohs=5,
+        contest=source_name,
+        problem="P1",
+        contest_year_problem=f"{source_name} 2026 P1",
+    )
+    blank_label_problem = ProblemSolveRecord.objects.create(
+        year=2025,
+        topic="NT",
+        mohs=4,
+        contest=source_name,
+        problem="P2",
+        contest_year_problem="",
+    )
+    linked_statement = ContestProblemStatement.objects.create(
+        linked_problem=linked_problem,
+        contest_year=2026,
+        contest_name=source_name,
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Linked statement",
+    )
+    ContestProblemStatement.objects.create(
+        contest_year=2025,
+        contest_name=source_name,
+        problem_number=2,
+        problem_code="P2",
+        day_label="",
+        statement_latex="Standalone statement",
+    )
+
+    response = client.post(
+        reverse("pages:contest_rename"),
+        {
+            "source_contests": [source_name],
+            "new_contest_name": f"  {target_name}  ",
+        },
+        follow=True,
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert ProblemSolveRecord.objects.filter(contest=source_name).count() == 0
+    assert ProblemSolveRecord.objects.filter(contest=target_name).count() == expected_renamed_total
+    updated_linked_problem = ProblemSolveRecord.objects.get(pk=linked_problem.pk)
+    updated_blank_label_problem = ProblemSolveRecord.objects.get(pk=blank_label_problem.pk)
+    assert updated_linked_problem.contest_year_problem == f"{target_name} 2026 P1"
+    assert updated_blank_label_problem.contest_year_problem == ""
+
+    assert ContestProblemStatement.objects.filter(contest_name=source_name).count() == 0
+    assert (
+        ContestProblemStatement.objects.filter(contest_name=target_name).count()
+        == expected_renamed_total
+    )
+    updated_linked_statement = ContestProblemStatement.objects.get(pk=linked_statement.pk)
+    assert updated_linked_statement.contest_year_problem == f"{target_name} 2026 P1"
+    assert updated_linked_statement.linked_problem_id == linked_problem.pk
+    assert any(
+        f'Renamed "{source_name}" into "{target_name}"' in str(message)
+        for message in response.context["messages"]
+    )
+
+
+def test_contest_rename_merges_into_existing_target_without_conflicts(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    source_name = "USOMO"
+    target_name = "USAMO"
+    ProblemSolveRecord.objects.create(
+        year=2024,
+        topic="ALG",
+        mohs=4,
+        contest=target_name,
+        problem="P1",
+        contest_year_problem=f"{target_name} 2024 P1",
+    )
+    source_statement = ContestProblemStatement.objects.create(
+        contest_year=2026,
+        contest_name=source_name,
+        problem_number=2,
+        problem_code="P2",
+        day_label="Day 1",
+        statement_latex="Typoed contest name statement",
+    )
+
+    response = client.post(
+        reverse("pages:contest_rename"),
+        {
+            "source_contests": [source_name],
+            "new_contest_name": target_name,
+        },
+        follow=True,
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert ProblemSolveRecord.objects.filter(contest=target_name).count() == 1
+    assert ContestProblemStatement.objects.filter(contest_name=source_name).count() == 0
+    updated_statement = ContestProblemStatement.objects.get(pk=source_statement.pk)
+    assert updated_statement.contest_name == target_name
+    assert updated_statement.contest_year_problem == f"{target_name} 2026 P2"
+    assert any(
+        f'Merged "{source_name}" into "{target_name}"' in str(message)
+        for message in response.context["messages"]
+    )
+
+
+def test_contest_rename_rejects_problem_key_collision_when_merging(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    source_name = "USOMO"
+    target_name = "USAMO"
+    ProblemSolveRecord.objects.create(
+        year=2025,
+        topic="ALG",
+        mohs=5,
+        contest=source_name,
+        problem="P1",
+        contest_year_problem=f"{source_name} 2025 P1",
+    )
+    ProblemSolveRecord.objects.create(
+        year=2025,
+        topic="NT",
+        mohs=4,
+        contest=target_name,
+        problem="P1",
+        contest_year_problem=f"{target_name} 2025 P1",
+    )
+
+    response = client.post(
+        reverse("pages:contest_rename"),
+        {
+            "source_contests": [source_name],
+            "new_contest_name": target_name,
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert ProblemSolveRecord.objects.filter(contest=source_name).count() == 1
+    assert (
+        'Cannot update contest names to "USAMO" because these problem rows would collide after the update: 2025 P1.'
+        in response.context["form"].non_field_errors()[0]
+    )
+
+
+def test_contest_rename_rejects_statement_key_collision_when_merging(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    source_name = "USOMO"
+    target_name = "USAMO"
+    ContestProblemStatement.objects.create(
+        contest_year=2025,
+        contest_name=source_name,
+        problem_number=2,
+        problem_code="P2",
+        day_label="Day 1",
+        statement_latex="Typoed source statement",
+    )
+    ContestProblemStatement.objects.create(
+        contest_year=2025,
+        contest_name=target_name,
+        problem_number=2,
+        problem_code="P2",
+        day_label="Day 1",
+        statement_latex="Existing target statement",
+    )
+
+    response = client.post(
+        reverse("pages:contest_rename"),
+        {
+            "source_contests": [source_name],
+            "new_contest_name": target_name,
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert ContestProblemStatement.objects.filter(contest_name=source_name).count() == 1
+    assert ContestProblemStatement.objects.filter(contest_name=target_name).count() == 1
+    assert (
+        'Cannot update contest names to "USAMO" because these statement rows would collide '
+        "after the update: 2025 Day 1 P2."
+        in response.context["form"].non_field_errors()[0]
+    )
+
+
+def test_contest_rename_updates_multiple_source_contests_into_one_target(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    source_names = ["USOMO", "USA MO"]
+    target_name = "USAMO"
+    first_problem = ProblemSolveRecord.objects.create(
+        year=2025,
+        topic="ALG",
+        mohs=5,
+        contest=source_names[0],
+        problem="P1",
+        contest_year_problem=f"{source_names[0]} 2025 P1",
+    )
+    second_problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="GEO",
+        mohs=4,
+        contest=source_names[1],
+        problem="P2",
+        contest_year_problem=f"{source_names[1]} 2026 P2",
+    )
+    first_statement = ContestProblemStatement.objects.create(
+        contest_year=2025,
+        contest_name=source_names[0],
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="First source statement",
+    )
+    second_statement = ContestProblemStatement.objects.create(
+        contest_year=2026,
+        contest_name=source_names[1],
+        problem_number=2,
+        problem_code="P2",
+        day_label="Day 2",
+        statement_latex="Second source statement",
+    )
+
+    response = client.post(
+        reverse("pages:contest_rename"),
+        {
+            "source_contests": source_names,
+            "new_contest_name": target_name,
+        },
+        follow=True,
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert ProblemSolveRecord.objects.filter(contest__in=source_names).count() == 0
+    assert (
+        ProblemSolveRecord.objects.filter(contest=target_name).count()
+        == EXPECTED_MULTI_CONTEST_RENAME_TOTAL
+    )
+    assert ContestProblemStatement.objects.filter(contest_name__in=source_names).count() == 0
+    assert (
+        ContestProblemStatement.objects.filter(contest_name=target_name).count()
+        == EXPECTED_MULTI_CONTEST_RENAME_TOTAL
+    )
+    assert ProblemSolveRecord.objects.get(pk=first_problem.pk).contest_year_problem == f"{target_name} 2025 P1"
+    assert ProblemSolveRecord.objects.get(pk=second_problem.pk).contest_year_problem == f"{target_name} 2026 P2"
+    assert (
+        ContestProblemStatement.objects.get(pk=first_statement.pk).contest_year_problem
+        == f"{target_name} 2025 P1"
+    )
+    assert (
+        ContestProblemStatement.objects.get(pk=second_statement.pk).contest_year_problem
+        == f"{target_name} 2026 P2"
+    )
+    assert any(
+        f'Updated 2 contest names into "{target_name}"' in str(message)
+        for message in response.context["messages"]
+    )
+
+
+def test_contest_rename_rejects_problem_key_collision_across_selected_sources(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    source_names = ["USOMO", "USA MO"]
+    target_name = "USAMO"
+    ProblemSolveRecord.objects.create(
+        year=2025,
+        topic="ALG",
+        mohs=5,
+        contest=source_names[0],
+        problem="P1",
+        contest_year_problem=f"{source_names[0]} 2025 P1",
+    )
+    ProblemSolveRecord.objects.create(
+        year=2025,
+        topic="NT",
+        mohs=4,
+        contest=source_names[1],
+        problem="P1",
+        contest_year_problem=f"{source_names[1]} 2025 P1",
+    )
+
+    response = client.post(
+        reverse("pages:contest_rename"),
+        {
+            "source_contests": source_names,
+            "new_contest_name": target_name,
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert (
+        ProblemSolveRecord.objects.filter(contest__in=source_names).count()
+        == EXPECTED_MULTI_CONTEST_RENAME_TOTAL
+    )
+    assert ProblemSolveRecord.objects.filter(contest=target_name).count() == 0
+    assert (
+        'Cannot update contest names to "USAMO" because these problem rows would collide after the '
+        "update: 2025 P1."
+        in response.context["form"].non_field_errors()[0]
+    )
+
+
+def test_contest_rename_rejects_statement_key_collision_across_selected_sources(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    source_names = ["USOMO", "USA MO"]
+    target_name = "USAMO"
+    ContestProblemStatement.objects.create(
+        contest_year=2025,
+        contest_name=source_names[0],
+        problem_number=2,
+        problem_code="P2",
+        day_label="Day 1",
+        statement_latex="First source statement",
+    )
+    ContestProblemStatement.objects.create(
+        contest_year=2025,
+        contest_name=source_names[1],
+        problem_number=2,
+        problem_code="P2",
+        day_label="Day 1",
+        statement_latex="Second source statement",
+    )
+
+    response = client.post(
+        reverse("pages:contest_rename"),
+        {
+            "source_contests": source_names,
+            "new_contest_name": target_name,
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert (
+        ContestProblemStatement.objects.filter(contest_name__in=source_names).count()
+        == EXPECTED_MULTI_CONTEST_RENAME_TOTAL
+    )
+    assert ContestProblemStatement.objects.filter(contest_name=target_name).count() == 0
+    assert (
+        'Cannot update contest names to "USAMO" because these statement rows would collide after the '
+        "update: 2025 Day 1 P2."
+        in response.context["form"].non_field_errors()[0]
+    )

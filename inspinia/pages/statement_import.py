@@ -14,7 +14,14 @@ IGNORED_STATEMENT_LINES = {
     "Stuttgarden",
     "view topic",
 }
-DAY_LABEL_RE = re.compile(r"^(?P<label>Day\s+\d+)(?:\s+(?P<detail>.+))?$", flags=re.IGNORECASE)
+DAY_LABEL_RE = re.compile(
+    r"^Day\s+(?P<token>\d+|[IVXLCDM]+)(?:\s+(?P<detail>.+))?$",
+    flags=re.IGNORECASE,
+)
+TST_DAY_LABEL_RE = re.compile(
+    r"^TST\s*#\s*(?P<number>\d+)(?:\s+(?P<detail>.+))?$",
+    flags=re.IGNORECASE,
+)
 ROUND_LABEL_RE = re.compile(r"^(?:\d+\s+)?(?P<label>Round\s+[A-Za-z0-9].*)$", flags=re.IGNORECASE)
 SOLUTION_LINE_RE = re.compile(r"^Solution$", flags=re.IGNORECASE)
 TEST_LABEL_RE = re.compile(r"^Test\s+\d+$", flags=re.IGNORECASE)
@@ -28,6 +35,10 @@ TEXT_ONLY_EMPH_DISPLAY_RE = re.compile(r"\$\$(?P<content>\\emph\{.*?\})\$\$", fl
 TEXT_ONLY_EMPH_BRACKET_RE = re.compile(r"\\\[(?P<content>\\emph\{.*?\})\\\]", flags=re.DOTALL)
 SECTION_HEADER_RE = re.compile(r"^[A-Za-z][A-Za-z0-9]*(?: [A-Za-z0-9][A-Za-z0-9]*){0,3}$")
 SPECIAL_PROBLEM_CODE_RE = re.compile(r"^(?P<code>Bonus)[.)]?\s+(?P<statement>.+)$", flags=re.IGNORECASE)
+TRAILING_AUTHOR_LINE_RE = re.compile(
+    r"^[A-Z][A-Za-z'.-]*(?: [A-Z][A-Za-z'.-]*)*(?: and [A-Z][A-Za-z'.-]*(?: [A-Z][A-Za-z'.-]*)*)?$",
+)
+TRAILING_PROPOSED_BY_LINE_RE = re.compile(r"^(?:\(?\s*)proposed by\b.+$", flags=re.IGNORECASE)
 SECTION_HEADER_LABELS = frozenset(
     {
         "Algebra",
@@ -141,6 +152,16 @@ class ProblemStatementImportResult:
     linked_problem_count: int
 
 
+@dataclass(frozen=True)
+class ProblemStatementRelinkResult:
+    checked_count: int
+    linked_count: int
+    newly_linked_count: int
+    skipped_count: int
+    unlinked_count: int
+    updated_count: int
+
+
 @dataclass
 class _StatementParseState:
     current_day: str = ""
@@ -194,6 +215,33 @@ def _collapse_statement_lines(lines: list[str]) -> str:
     return _normalize_statement_latex("\n".join(collapsed_lines).strip())
 
 
+def _supports_trailing_credit_cleanup(day_label: str) -> bool:
+    return day_label.upper().startswith("TST #")
+
+
+def _is_trailing_credit_line(line: str, *, day_label: str) -> bool:
+    if not _supports_trailing_credit_cleanup(day_label):
+        return False
+    return bool(
+        TRAILING_PROPOSED_BY_LINE_RE.fullmatch(line)
+        or TRAILING_AUTHOR_LINE_RE.fullmatch(line),
+    )
+
+
+def _trim_trailing_problem_metadata(lines: list[str], *, day_label: str) -> list[str]:
+    trimmed_lines = list(lines)
+
+    while trimmed_lines and not trimmed_lines[-1].strip():
+        trimmed_lines.pop()
+
+    while trimmed_lines and _is_trailing_credit_line(trimmed_lines[-1].strip(), day_label=day_label):
+        trimmed_lines.pop()
+        while trimmed_lines and not trimmed_lines[-1].strip():
+            trimmed_lines.pop()
+
+    return trimmed_lines
+
+
 def _normalize_statement_latex(statement_latex: str) -> str:
     normalized = TEXT_ONLY_EMPH_INLINE_RE.sub(
         lambda match: f"$\\text{{{match.group('content')}}}$",
@@ -235,7 +283,12 @@ def _flush_problem(state: _StatementParseState) -> None:
     if state.current_problem_number is None:
         return
 
-    statement_latex = _collapse_statement_lines(state.current_statement_lines)
+    statement_latex = _collapse_statement_lines(
+        _trim_trailing_problem_metadata(
+            state.current_statement_lines,
+            day_label=state.current_day,
+        ),
+    )
     if not statement_latex:
         msg = f"Problem {state.current_problem_number} does not have any statement text."
         raise ProblemStatementImportValidationError(msg)
@@ -323,7 +376,20 @@ def _normalized_day_label(line: str) -> str | None:
     match = DAY_LABEL_RE.fullmatch(line)
     if match is None:
         return None
-    label = match.group("label").title()
+    token = match.group("token")
+    normalized_token = token if token.isdigit() else token.upper()
+    label = f"Day {normalized_token}"
+    detail = " ".join((match.group("detail") or "").split())
+    if not detail:
+        return label
+    return f"{label} · {detail}"
+
+
+def _normalized_tst_day_label(line: str) -> str | None:
+    match = TST_DAY_LABEL_RE.fullmatch(line)
+    if match is None:
+        return None
+    label = f"TST #{int(match.group('number'))}"
     detail = " ".join((match.group("detail") or "").split())
     if not detail:
         return label
@@ -377,6 +443,9 @@ def _consume_header_or_problem_line(
     if day_label := _normalized_day_label(line):
         _flush_problem(state)
         _set_primary_section(state, day_label)
+    elif tst_day_label := _normalized_tst_day_label(line):
+        _flush_problem(state)
+        _set_primary_section(state, tst_day_label)
     elif round_match := ROUND_LABEL_RE.fullmatch(line):
         _flush_problem(state)
         _set_primary_section(state, round_match.group("label").title())
@@ -697,4 +766,88 @@ def import_problem_statements(
         created_count=created_count,
         updated_count=updated_count,
         linked_problem_count=linked_problem_count,
+    )
+
+
+@transaction.atomic
+def relink_problem_statement_rows() -> ProblemStatementRelinkResult:
+    checked_count = 0
+    linked_count = 0
+    newly_linked_count = 0
+    skipped_count = 0
+    unlinked_count = 0
+    updated_count = 0
+    statements = list(ContestProblemStatement.objects.select_related("linked_problem").order_by("id"))
+    problem_code_counts: dict[tuple[int, str, str], int] = {}
+    claimed_problem_uuids = {
+        statement.problem_uuid: statement.id
+        for statement in statements
+    }
+
+    for statement in statements:
+        code_key = (
+            statement.contest_year,
+            statement.contest_name,
+            statement.problem_code,
+        )
+        problem_code_counts[code_key] = problem_code_counts.get(code_key, 0) + 1
+
+    for statement in statements:
+        code_key = (
+            statement.contest_year,
+            statement.contest_name,
+            statement.problem_code,
+        )
+        if problem_code_counts[code_key] != 1:
+            skipped_count += 1
+            checked_count += 1
+            if statement.linked_problem_id is not None:
+                linked_count += 1
+            else:
+                unlinked_count += 1
+            continue
+
+        linked_problem = _find_linked_problem(
+            contest_year=statement.contest_year,
+            contest_name=statement.contest_name,
+            problem_code=statement.problem_code,
+            problem_number=statement.problem_number,
+        )
+        previous_linked_problem_id = statement.linked_problem_id
+        next_linked_problem_id = linked_problem.id if linked_problem is not None else None
+        previous_problem_uuid = statement.problem_uuid
+
+        if linked_problem is not None:
+            conflicting_statement_id = claimed_problem_uuids.get(linked_problem.problem_uuid)
+            if conflicting_statement_id not in (None, statement.id):
+                skipped_count += 1
+                checked_count += 1
+                if statement.linked_problem_id is not None:
+                    linked_count += 1
+                else:
+                    unlinked_count += 1
+                continue
+
+        if previous_linked_problem_id != next_linked_problem_id:
+            statement.linked_problem = linked_problem
+            statement.save(update_fields={"linked_problem", "updated_at"})
+            updated_count += 1
+            if previous_linked_problem_id is None and next_linked_problem_id is not None:
+                newly_linked_count += 1
+            claimed_problem_uuids.pop(previous_problem_uuid, None)
+            claimed_problem_uuids[statement.problem_uuid] = statement.id
+
+        checked_count += 1
+        if statement.linked_problem_id is not None:
+            linked_count += 1
+        else:
+            unlinked_count += 1
+
+    return ProblemStatementRelinkResult(
+        checked_count=checked_count,
+        linked_count=linked_count,
+        newly_linked_count=newly_linked_count,
+        skipped_count=skipped_count,
+        unlinked_count=unlinked_count,
+        updated_count=updated_count,
     )

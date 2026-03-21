@@ -1,5 +1,8 @@
 import re
+from collections import Counter
 from collections import defaultdict
+from datetime import date
+from datetime import timedelta
 from urllib.parse import urlencode
 
 from django.conf import settings
@@ -8,12 +11,14 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db.models import Avg
 from django.db.models import Count
+from django.db.models import F
 from django.db.models import Max
 from django.db.models import Min
 from django.db.models import Q
 from django.http import Http404
 from django.http import HttpResponse
 from django.http import JsonResponse
+from django.shortcuts import redirect
 from django.shortcuts import render
 from django.template.loader import render_to_string
 from django.urls import reverse
@@ -22,6 +27,9 @@ from django.utils.text import slugify
 
 from inspinia.pages.asymptote_render import build_statement_render_segments
 from inspinia.pages.asymptote_render import has_asymptote_blocks
+from inspinia.pages.contest_rename import ContestRenameValidationError
+from inspinia.pages.contest_rename import rename_contests
+from inspinia.pages.forms import ContestRenameForm
 from inspinia.pages.forms import ProblemStatementImportForm
 from inspinia.pages.forms import ProblemXlsxImportForm
 from inspinia.pages.models import ContestProblemStatement
@@ -41,6 +49,7 @@ from inspinia.pages.statement_import import build_problem_statement_preview_payl
 from inspinia.pages.statement_import import build_problem_statement_save_preview
 from inspinia.pages.statement_import import import_problem_statements
 from inspinia.pages.statement_import import parse_contest_problem_statements
+from inspinia.pages.statement_import import relink_problem_statement_rows
 from inspinia.users.models import AuditEvent
 from inspinia.users.monitoring import record_event
 from inspinia.users.roles import user_has_admin_role
@@ -393,33 +402,83 @@ def _statement_render_payload(statement_latex: str) -> dict:
 
 
 def _statement_table_rows(base) -> list[dict]:
-    linked_contest_names = list(
-        base.exclude(linked_problem__contest__isnull=True).values_list("linked_problem__contest", flat=True),
+    linked_statement_rows = list(
+        base.filter(linked_problem__isnull=False).values_list("linked_problem_id", "linked_problem__contest"),
     )
+    linked_problem_ids = sorted({row[0] for row in linked_statement_rows if row[0] is not None})
+    linked_contest_names = [row[1] for row in linked_statement_rows if row[1]]
     contest_to_slug, _slug_to_contest = _build_contest_slug_maps(linked_contest_names)
+    topic_tag_rows = list(
+        ProblemTopicTechnique.objects.filter(record_id__in=linked_problem_ids)
+        .values("record_id", "technique")
+        .order_by("technique", "record_id"),
+    )
+    topic_tags_by_problem_id: dict[int, list[str]] = defaultdict(list)
+    seen_topic_tags_by_problem_id: dict[int, set[str]] = defaultdict(set)
+    for tag_row in topic_tag_rows:
+        record_id = tag_row["record_id"]
+        technique = tag_row["technique"]
+        if technique in seen_topic_tags_by_problem_id[record_id]:
+            continue
+        seen_topic_tags_by_problem_id[record_id].add(technique)
+        topic_tags_by_problem_id[record_id].append(technique)
+
+    def _build_filter_url(base_url: str, **params: object) -> str:
+        clean_params = {key: value for key, value in params.items() if value not in (None, "")}
+        if not clean_params:
+            return base_url
+        return f"{base_url}?{urlencode(clean_params)}"
 
     table_rows: list[dict] = []
     for statement in base.select_related("linked_problem").order_by(
-        "-contest_year",
-        "contest_name",
-        "day_label",
-        "problem_number",
-        "problem_code",
+        "-updated_at",
+        "-id",
     ):
         linked_problem = statement.linked_problem
         linked_problem_label = ""
         linked_problem_url = ""
+        linked_problem_topic_tags: list[str] = []
+        linked_problem_topic_tag_links: list[dict[str, str]] = []
+        linked_problem_mohs = None
+        linked_problem_mohs_url = ""
+        linked_problem_confidence = ""
+        linked_problem_confidence_url = ""
+        linked_problem_imo_slot_guess_value = ""
+        linked_problem_imo_slot_url = ""
         if linked_problem is not None:
             linked_problem_label = linked_problem.contest_year_problem or (
                 f"{linked_problem.contest} {linked_problem.year} {linked_problem.problem}"
             )
+            linked_problem_topic_tags = topic_tags_by_problem_id.get(linked_problem.id, [])
+            linked_problem_mohs = linked_problem.mohs
+            linked_problem_confidence = linked_problem.confidence or ""
+            linked_problem_imo_slot_guess_value = linked_problem.imo_slot_guess_value or ""
             contest_slug = contest_to_slug.get(linked_problem.contest)
             if contest_slug:
-                linked_problem_url = reverse("pages:contest_problem_list", args=[contest_slug]) + "#" + (
+                contest_filter_base_url = reverse("pages:contest_problem_list", args=[contest_slug])
+                linked_problem_url = contest_filter_base_url + "#" + (
                     _problem_anchor(
                         linked_problem_label,
                         f"{linked_problem.year}-{linked_problem.problem}",
                     )
+                )
+                linked_problem_topic_tag_links = [
+                    {
+                        "label": technique,
+                        "url": _build_filter_url(contest_filter_base_url, tag=technique),
+                    }
+                    for technique in linked_problem_topic_tags
+                ]
+                linked_problem_mohs_url = _build_filter_url(contest_filter_base_url, mohs=linked_problem.mohs)
+                linked_problem_confidence_url = (
+                    _build_filter_url(contest_filter_base_url, q=linked_problem_confidence)
+                    if linked_problem_confidence
+                    else ""
+                )
+                linked_problem_imo_slot_url = (
+                    _build_filter_url(contest_filter_base_url, q=linked_problem_imo_slot_guess_value)
+                    if linked_problem_imo_slot_guess_value
+                    else ""
                 )
 
         table_rows.append(
@@ -433,9 +492,18 @@ def _statement_table_rows(base) -> list[dict]:
                 "linked_problem_url": linked_problem_url,
                 "problem_code": statement.problem_code,
                 "problem_uuid": str(statement.problem_uuid),
+                "linked_problem_mohs": linked_problem_mohs,
+                "linked_problem_mohs_url": linked_problem_mohs_url,
+                "linked_problem_confidence": linked_problem_confidence,
+                "linked_problem_confidence_url": linked_problem_confidence_url,
+                "linked_problem_imo_slot_guess_value": linked_problem_imo_slot_guess_value,
+                "linked_problem_imo_slot_url": linked_problem_imo_slot_url,
+                "linked_problem_topic_tags": linked_problem_topic_tags,
+                "linked_problem_topic_tag_links": linked_problem_topic_tag_links,
                 "statement_length": len(statement.statement_latex),
                 "statement_preview": _statement_preview_text(statement.statement_latex),
                 "updated_at": timezone.localtime(statement.updated_at).strftime("%Y-%m-%d %H:%M"),
+                "updated_at_sort": statement.updated_at.isoformat(),
             },
         )
 
@@ -475,6 +543,225 @@ def _statement_dashboard_rows(base) -> list[dict]:
         ),
     )
     return rows
+
+
+def _statement_heatmap_payload(rows: list[dict]) -> dict[str, object]:
+    if not rows:
+        return {"max_value": 0, "series": [], "years": []}
+
+    years = sorted({int(row["contest_year"]) for row in rows})
+    statement_count_by_contest_year: dict[str, dict[int, int]] = defaultdict(dict)
+    contest_totals: dict[str, int] = defaultdict(int)
+
+    for row in rows:
+        contest_name = row["contest_name"]
+        contest_year = int(row["contest_year"])
+        statement_count = int(row["statement_count"] or 0)
+        statement_count_by_contest_year[contest_name][contest_year] = statement_count
+        contest_totals[contest_name] += statement_count
+
+    ordered_contests = sorted(
+        contest_totals,
+        key=lambda contest_name: (-contest_totals[contest_name], contest_name),
+    )
+    max_value = max(int(row["statement_count"] or 0) for row in rows)
+
+    return {
+        "max_value": max_value,
+        "series": [
+            {
+                "data": [
+                    {
+                        "x": str(year),
+                        "y": statement_count_by_contest_year[contest_name].get(year, 0),
+                    }
+                    for year in years
+                ],
+                "name": contest_name,
+            }
+            for contest_name in ordered_contests
+        ],
+        "years": [str(year) for year in years],
+    }
+
+
+def _statement_year_bar_payload(rows: list[dict]) -> dict[str, object]:
+    if not rows:
+        return {"labels": [], "values": []}
+
+    year_totals: dict[int, int] = defaultdict(int)
+    for row in rows:
+        year_totals[int(row["contest_year"])] += int(row["statement_count"] or 0)
+
+    years = sorted(year_totals)
+    return {"labels": [str(year) for year in years], "values": [year_totals[year] for year in years]}
+
+
+def _shift_month(value: date, offset: int) -> date:
+    month_index = (value.year * 12 + value.month - 1) + offset
+    year, month_zero_based = divmod(month_index, 12)
+    return date(year, month_zero_based + 1, 1)
+
+
+def _completion_heatmap_level(count: int, max_count: int) -> int:
+    if count <= 0 or max_count <= 0:
+        return 0
+    return min(4, max(1, -(-count * 4 // max_count)))
+
+
+def _user_completion_heatmap_payload(
+    completion_dates: list[date],
+    *,
+    end_date: date,
+    day_window: int = 365,
+) -> dict[str, object]:
+    start_date = end_date - timedelta(days=day_window - 1)
+    grid_start = start_date - timedelta(days=start_date.weekday())
+    grid_end = end_date + timedelta(days=(6 - end_date.weekday()))
+    counts_by_day = Counter(
+        completion_date
+        for completion_date in completion_dates
+        if start_date <= completion_date <= end_date
+    )
+    max_count = max(counts_by_day.values(), default=0)
+    month_labels: list[str] = []
+    weeks: list[dict[str, object]] = []
+    current_day = grid_start
+
+    while current_day <= grid_end:
+        week_days: list[dict[str, object]] = []
+        week_dates = [current_day + timedelta(days=offset) for offset in range(7)]
+        month_label = next(
+            (
+                week_day.strftime("%b")
+                for week_day in week_dates
+                if start_date <= week_day <= end_date and week_day.day == 1
+            ),
+            "",
+        )
+        month_labels.append(month_label)
+        for week_day in week_dates:
+            in_range = start_date <= week_day <= end_date
+            count = counts_by_day.get(week_day, 0) if in_range else 0
+            tooltip = ""
+            if in_range:
+                tooltip = (
+                    f"{count} completion{'s' if count != 1 else ''} on "
+                    f"{week_day.isoformat()}"
+                )
+            week_days.append(
+                {
+                    "count": count,
+                    "date_label": week_day.isoformat(),
+                    "in_range": in_range,
+                    "level": _completion_heatmap_level(count, max_count),
+                    "tooltip": tooltip,
+                },
+            )
+        weeks.append({"days": week_days})
+        current_day += timedelta(days=7)
+
+    return {
+        "day_labels": ["Mon", "", "Wed", "", "Fri", "", ""],
+        "end_label": end_date.isoformat(),
+        "max_count": max_count,
+        "month_labels": month_labels,
+        "start_label": start_date.isoformat(),
+        "total_in_window": sum(counts_by_day.values()),
+        "weeks": weeks,
+    }
+
+
+def _user_completion_monthly_bar_payload(
+    completion_dates: list[date],
+    *,
+    end_date: date,
+    month_window: int = 12,
+) -> dict[str, object]:
+    end_month = date(end_date.year, end_date.month, 1)
+    month_starts = [
+        _shift_month(end_month, offset)
+        for offset in range(-(month_window - 1), 1)
+    ]
+    counts_by_month = Counter(
+        date(completion_date.year, completion_date.month, 1)
+        for completion_date in completion_dates
+    )
+    return {
+        "labels": [month_start.strftime("%b %Y") for month_start in month_starts],
+        "values": [counts_by_month.get(month_start, 0) for month_start in month_starts],
+    }
+
+
+def _user_completion_table_rows(completions: list[UserProblemCompletion]) -> tuple[list[dict], dict[str, list]]:
+    contest_to_slug, _slug_to_contest = _build_contest_slug_maps(
+        [completion.problem.contest for completion in completions],
+    )
+    table_rows: list[dict] = []
+    completion_years: set[str] = set()
+    contests: set[str] = set()
+    topics: set[str] = set()
+    mohs_values: set[int] = set()
+    has_known_dates = False
+    has_unknown_dates = False
+
+    for completion in completions:
+        problem = completion.problem
+        problem_label = problem.contest_year_problem or f"{problem.contest} {problem.year} {problem.problem}"
+        contest_slug = contest_to_slug.get(problem.contest)
+        problem_url = ""
+        if contest_slug:
+            problem_url = reverse("pages:contest_problem_list", args=[contest_slug]) + "#" + (
+                _problem_anchor(problem_label, f"{problem.year}-{problem.problem}")
+            )
+
+        completion_known = completion.completion_date is not None
+        completion_date_label = completion.completion_date.isoformat() if completion_known else "Unknown"
+        completion_date_sort = completion.completion_date.isoformat() if completion_known else "0000-00-00"
+        completion_year = str(completion.completion_date.year) if completion_known else ""
+        date_status = "Known date" if completion_known else "Unknown date"
+        if completion_known:
+            has_known_dates = True
+            completion_years.add(completion_year)
+        else:
+            has_unknown_dates = True
+
+        contests.add(problem.contest)
+        topics.add(problem.topic)
+        mohs_values.add(problem.mohs)
+        table_rows.append(
+            {
+                "completion_date": completion_date_label,
+                "completion_date_sort": completion_date_sort,
+                "completion_known": completion_known,
+                "completion_year": completion_year,
+                "contest": problem.contest,
+                "date_status": date_status,
+                "mohs": problem.mohs,
+                "problem_code": problem.problem,
+                "problem_label": problem_label,
+                "problem_url": problem_url,
+                "problem_uuid": str(problem.problem_uuid),
+                "problem_year": problem.year,
+                "topic": problem.topic,
+            },
+        )
+
+    filter_options = {
+        "completion_years": sorted(completion_years, reverse=True),
+        "contests": sorted(contests),
+        "date_statuses": [
+            label
+            for label, present in (
+                ("Known date", has_known_dates),
+                ("Unknown date", has_unknown_dates),
+            )
+            if present
+        ],
+        "mohs_values": sorted(mohs_values),
+        "topics": sorted(topics),
+    }
+    return table_rows, filter_options
 
 
 def _require_admin_tools_access(request) -> None:
@@ -517,6 +804,92 @@ def _build_contest_slug_maps(contest_names: list[str]) -> tuple[dict[str, str], 
         slug_to_contest[contest_slug] = contest_name
 
     return contest_to_slug, slug_to_contest
+
+
+def _format_year_span_label(year_min: int | None, year_max: int | None) -> str | None:
+    if year_min is None or year_max is None:
+        return None
+    return str(year_min) if year_min == year_max else f"{year_min}-{year_max}"
+
+
+def _contest_inventory_rows() -> list[dict]:
+    inventory: dict[str, dict] = {}
+
+    for row in (
+        ProblemSolveRecord.objects.values("contest")
+        .annotate(
+            problem_count=Count("id"),
+            problem_year_min=Min("year"),
+            problem_year_max=Max("year"),
+        )
+        .order_by("contest")
+    ):
+        contest_name = row["contest"]
+        inventory[contest_name] = {
+            "contest": contest_name,
+            "problem_count": row["problem_count"],
+            "problem_year_min": row["problem_year_min"],
+            "problem_year_max": row["problem_year_max"],
+            "statement_count": 0,
+            "statement_year_min": None,
+            "statement_year_max": None,
+        }
+
+    for row in (
+        ContestProblemStatement.objects.values("contest_name")
+        .annotate(
+            statement_count=Count("id"),
+            statement_year_min=Min("contest_year"),
+            statement_year_max=Max("contest_year"),
+        )
+        .order_by("contest_name")
+    ):
+        contest_name = row["contest_name"]
+        inventory_row = inventory.setdefault(
+            contest_name,
+            {
+                "contest": contest_name,
+                "problem_count": 0,
+                "problem_year_min": None,
+                "problem_year_max": None,
+                "statement_count": 0,
+                "statement_year_min": None,
+                "statement_year_max": None,
+            },
+        )
+        inventory_row["statement_count"] = row["statement_count"]
+        inventory_row["statement_year_min"] = row["statement_year_min"]
+        inventory_row["statement_year_max"] = row["statement_year_max"]
+
+    rows: list[dict] = []
+    for inventory_row in inventory.values():
+        year_candidates = [
+            year
+            for year in (
+                inventory_row["problem_year_min"],
+                inventory_row["problem_year_max"],
+                inventory_row["statement_year_min"],
+                inventory_row["statement_year_max"],
+            )
+            if year is not None
+        ]
+        overall_year_min = min(year_candidates) if year_candidates else None
+        overall_year_max = max(year_candidates) if year_candidates else None
+        inventory_row["problem_year_span_label"] = _format_year_span_label(
+            inventory_row["problem_year_min"],
+            inventory_row["problem_year_max"],
+        )
+        inventory_row["statement_year_span_label"] = _format_year_span_label(
+            inventory_row["statement_year_min"],
+            inventory_row["statement_year_max"],
+        )
+        inventory_row["year_span_label"] = _format_year_span_label(overall_year_min, overall_year_max)
+        rows.append(inventory_row)
+
+    return sorted(
+        rows,
+        key=lambda row: (-row["problem_count"], -row["statement_count"], row["contest"].lower()),
+    )
 
 
 def _problem_sort_key(problem_label: str | None) -> list[tuple[int, int | str]]:
@@ -690,6 +1063,59 @@ def _build_topic_tag_directory_rows(
 
 
 @login_required
+def user_activity_dashboard_view(request):
+    """Logged-in user's personal completion dashboard."""
+    completion_qs = UserProblemCompletion.objects.filter(user=request.user).select_related("problem").order_by(
+        F("completion_date").desc(nulls_last=True),
+        "-updated_at",
+        "problem__contest",
+        "-problem__year",
+        "problem__problem",
+    )
+    completions = list(completion_qs)
+    today = timezone.localdate()
+    dated_completion_dates = [
+        completion.completion_date
+        for completion in completions
+        if completion.completion_date is not None
+    ]
+    table_rows, filter_options = _user_completion_table_rows(completions)
+    current_year_total = sum(
+        1
+        for completion_date in dated_completion_dates
+        if completion_date.year == today.year
+    )
+
+    context = {
+        "activity_total": len(completions),
+        "activity_stats": {
+            "contest_total": len({completion.problem.contest for completion in completions}),
+            "current_year_total": current_year_total,
+            "dated_total": len(dated_completion_dates),
+            "latest_completion_date": max(dated_completion_dates, default=None),
+            "unknown_date_total": len(completions) - len(dated_completion_dates),
+        },
+        "activity_filter_options": filter_options,
+        "activity_heatmap": _user_completion_heatmap_payload(
+            dated_completion_dates,
+            end_date=today,
+        ),
+        "activity_month_window_label": (
+            f"{_shift_month(date(today.year, today.month, 1), -11).strftime('%b %Y')} - "
+            f"{date(today.year, today.month, 1).strftime('%b %Y')}"
+        ),
+        "activity_charts_payload": {
+            "completionsByMonth": _user_completion_monthly_bar_payload(
+                dated_completion_dates,
+                end_date=today,
+            ),
+        },
+        "activity_table_rows": table_rows,
+    }
+    return render(request, "pages/user-activity-dashboard.html", context)
+
+
+@login_required
 def dashboard_analytics_view(request):
     """Problem analytics: charts plus searchable table."""
     _require_admin_tools_access(request)
@@ -738,6 +1164,22 @@ def dashboard_analytics_view(request):
 @login_required
 def problem_statement_list_view(request):
     """Statement library listing with shared problem UUIDs and link status."""
+    if request.method == "POST" and request.POST.get("action") == "recheck_links":
+        _require_admin_tools_access(request)
+        relink_result = relink_problem_statement_rows()
+        messages.success(
+            request,
+            (
+                f"Rechecked {relink_result.checked_count} statement row(s): "
+                f"{relink_result.linked_count} linked, "
+                f"{relink_result.newly_linked_count} newly linked, "
+                f"{relink_result.skipped_count} skipped, "
+                f"{relink_result.unlinked_count} still unlinked, "
+                f"{relink_result.updated_count} updated."
+            ),
+        )
+        return redirect("pages:problem_statement_list")
+
     base = ContestProblemStatement.objects.all()
     statement_total = base.count()
     linked_total = base.filter(linked_problem__isnull=False).count()
@@ -811,38 +1253,9 @@ def problem_statement_analytics_view(request):
         else None
     )
 
-    year_rows = list(
-        base.values("contest_year")
-        .annotate(statement_count=Count("id"))
-        .order_by("-contest_year"),
-    )
-
     charts_payload = {
-        "byStatementVolume": _rows_to_bar_payload(
-            dashboard_rows[:12],
-            "contest_year_label",
-            value_key="statement_count",
-        ),
-        "byLinkRate": _rows_to_bar_payload(
-            sorted(
-                dashboard_rows,
-                key=lambda row: (
-                    row["link_rate"],
-                    row["linked_count"],
-                    row["statement_count"],
-                    row["contest_year_label"],
-                ),
-                reverse=True,
-            )[:12],
-            "contest_year_label",
-            value_key="link_rate",
-            decimals=2,
-        ),
-        "byYearVolume": _rows_to_bar_payload(
-            year_rows,
-            "contest_year",
-            value_key="statement_count",
-        ),
+        "statementCountHeatmap": _statement_heatmap_payload(dashboard_rows),
+        "statementYearBarChart": _statement_year_bar_payload(dashboard_rows),
     }
 
     context = {
@@ -943,6 +1356,10 @@ def contest_problem_list_view(request, contest_slug: str):
         raise Http404(msg)
 
     initial_search_query = (request.GET.get("q") or "").strip()
+    selected_mohs = (request.GET.get("mohs") or "").strip()
+    selected_year = (request.GET.get("year") or "").strip()
+    selected_topic = (request.GET.get("topic") or "").strip()
+    selected_tag = (request.GET.get("tag") or "").strip()
     statement_by_problem_id: dict[int, dict] = {}
     for statement in (
         ContestProblemStatement.objects.filter(linked_problem__contest=contest_name)
@@ -959,6 +1376,28 @@ def contest_problem_list_view(request, contest_slug: str):
             "statement_render_segments": render_payload["statement_render_segments"],
             "updated_at_label": timezone.localtime(statement.updated_at).strftime("%Y-%m-%d"),
         }
+
+    topic_tag_rows = list(
+        ProblemTopicTechnique.objects.filter(record__contest=contest_name)
+        .values("record_id", "technique", "domains")
+        .order_by("technique", "record_id"),
+    )
+    topic_tags_by_problem_id: dict[int, list[dict]] = defaultdict(list)
+    topic_tag_options: list[str] = []
+    seen_topic_tags: set[str] = set()
+    for tag_row in topic_tag_rows:
+        technique = tag_row["technique"]
+        domains = tag_row.get("domains") or []
+        topic_tags_by_problem_id[tag_row["record_id"]].append(
+            {
+                "domains": domains,
+                "domains_label": ", ".join(domains),
+                "technique": technique,
+            },
+        )
+        if technique not in seen_topic_tags:
+            seen_topic_tags.add(technique)
+            topic_tag_options.append(technique)
 
     problem_rows = list(
         contest_base.annotate(technique_count=Count("topic_techniques"))
@@ -983,6 +1422,26 @@ def contest_problem_list_view(request, contest_slug: str):
             row["contest_year_problem"] or "",
         ),
     )
+
+    if selected_year:
+        problem_rows = [row for row in problem_rows if str(row["year"]) == selected_year]
+
+    if selected_mohs:
+        problem_rows = [row for row in problem_rows if str(row["mohs"]) == selected_mohs]
+
+    if selected_topic:
+        problem_rows = [row for row in problem_rows if row["topic"] == selected_topic]
+
+    if selected_tag:
+        problem_rows = [
+            row
+            for row in problem_rows
+            if any(
+                tag["technique"] == selected_tag
+                for tag in topic_tags_by_problem_id.get(row["id"], [])
+            )
+        ]
+
     if initial_search_query:
         query = initial_search_query.lower()
         problem_rows = [
@@ -997,6 +1456,15 @@ def contest_problem_list_view(request, contest_slug: str):
                     row["contest_year_problem"] or "",
                     row.get("confidence") or "",
                     row.get("imo_slot_guess_value") or "",
+                    *(
+                        tag["technique"]
+                        for tag in topic_tags_by_problem_id.get(row["id"], [])
+                    ),
+                    *(
+                        tag["domains_label"]
+                        for tag in topic_tags_by_problem_id.get(row["id"], [])
+                        if tag["domains_label"]
+                    ),
                 ],
             ).lower()
         ]
@@ -1014,6 +1482,7 @@ def contest_problem_list_view(request, contest_slug: str):
         statement_data = statement_by_problem_id.get(row["id"])
         label = row["contest_year_problem"] or f"{contest_name} {row['year']} {row['problem']}"
         is_completed = row["id"] in completion_by_problem_id
+        topic_tags = topic_tags_by_problem_id.get(row["id"], [])
         problem_item = {
             "anchor": _problem_anchor(label, f"{row['year']}-{row['problem']}"),
             "confidence": row.get("confidence"),
@@ -1040,6 +1509,7 @@ def contest_problem_list_view(request, contest_slug: str):
             ),
             "has_statement": statement_data is not None,
             "technique_count": row["technique_count"],
+            "topic_tags": topic_tags,
             "topic": row["topic"],
         }
         if not grouped_years or grouped_years[-1]["year"] != row["year"]:
@@ -1064,10 +1534,30 @@ def contest_problem_list_view(request, contest_slug: str):
                 else f"{stats['year_min']}-{stats['year_max']}"
             ),
         },
+        "contest_slug": contest_slug,
         "contest_title": contest_name,
+        "filter_options": {
+            "mohs_values": list(
+                contest_base.values_list("mohs", flat=True).distinct().order_by("mohs"),
+            ),
+            "tags": topic_tag_options,
+            "topics": list(
+                contest_base.values_list("topic", flat=True).distinct().order_by("topic"),
+            ),
+            "years": list(
+                contest_base.values_list("year", flat=True).distinct().order_by("-year"),
+            ),
+        },
         "grouped_years": grouped_years,
+        "has_active_filters": bool(
+            initial_search_query or selected_mohs or selected_year or selected_topic or selected_tag,
+        ),
         "initial_search_query": initial_search_query,
         "matching_problem_total": len(problem_rows),
+        "selected_mohs": selected_mohs,
+        "selected_tag": selected_tag,
+        "selected_topic": selected_topic,
+        "selected_year": selected_year,
         "statement_rendering_enabled": bool(statement_by_problem_id),
         "top_topics": [row["topic"] for row in top_topics],
     }
@@ -1367,6 +1857,75 @@ def _export_problem_workbook_response() -> HttpResponse:
     response = HttpResponse(workbook_bytes, content_type=XLSX_CONTENT_TYPE)
     response["Content-Disposition"] = f'attachment; filename="asterproof-problems-{timestamp}.xlsx"'
     return response
+
+
+def _preview_contest_names(contests: tuple[str, ...]) -> str:
+    preview_limit = 3
+    preview = ", ".join(f'"{contest}"' for contest in contests[:preview_limit])
+    if len(contests) > preview_limit:
+        return f"{preview}, and {len(contests) - preview_limit} more"
+    return preview
+
+
+@login_required
+def contest_rename_view(request):
+    _require_admin_tools_access(request)
+
+    inventory_rows = _contest_inventory_rows()
+    contest_choices = [
+        (
+            row["contest"],
+            (
+                f'{row["contest"]} '
+                f'({row["problem_count"]} problems, {row["statement_count"]} statements)'
+            ),
+        )
+        for row in inventory_rows
+    ]
+
+    if request.method == "POST":
+        form = ContestRenameForm(request.POST, contest_choices=contest_choices)
+        if form.is_valid():
+            try:
+                result = rename_contests(
+                    old_names=form.cleaned_data["source_contests"],
+                    new_name=form.cleaned_data["new_contest_name"],
+                )
+            except ContestRenameValidationError as exc:
+                form.add_error(None, str(exc))
+            else:
+                if len(result.source_contests) == 1:
+                    action_verb = "Merged" if result.merged_into_existing else "Renamed"
+                    success_message = (
+                        f'{action_verb} "{result.source_contest}" into "{result.target_contest}" '
+                        f"across {result.problem_count} problem row(s) and "
+                        f"{result.statement_count} statement row(s)."
+                    )
+                else:
+                    action_verb = "Merged" if result.merged_into_existing else "Updated"
+                    success_message = (
+                        f'{action_verb} {len(result.source_contests)} contest names into '
+                        f'"{result.target_contest}" across {result.problem_count} problem row(s) '
+                        f"and {result.statement_count} statement row(s). Source contests: "
+                        f"{_preview_contest_names(result.source_contests)}."
+                    )
+                messages.success(
+                    request,
+                    success_message,
+                )
+                return redirect("pages:contest_rename")
+    else:
+        form = ContestRenameForm(contest_choices=contest_choices)
+
+    return render(
+        request,
+        "pages/contest-rename.html",
+        {
+            "form": form,
+            "inventory_rows": inventory_rows,
+            "selected_source_contests": list(form["source_contests"].value() or []),
+        },
+    )
 
 
 @login_required

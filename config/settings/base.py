@@ -93,6 +93,7 @@ THIRD_PARTY_APPS = [
 LOCAL_APPS = [
     "inspinia.users",
     "inspinia.pages",
+    "inspinia.solutions",
     # Your stuff: custom apps go here
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps

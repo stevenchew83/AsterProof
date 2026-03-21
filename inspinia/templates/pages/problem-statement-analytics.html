@@ -92,18 +92,7 @@
   {% else %}
 
   <div class="row g-3 mt-1">
-    <div class="col-xxl-8">
-      <div class="card">
-        <div class="card-header border-0 pb-0">
-          <h4 class="header-title mb-0">Contest-year statement volume</h4>
-          <p class="text-muted fs-xs mb-0">Largest imported statement sets by stored row count</p>
-        </div>
-        <div class="card-body pt-2">
-          <div id="chart-statement-volume" style="min-height: 340px;"></div>
-        </div>
-      </div>
-    </div>
-    <div class="col-xxl-4">
+    <div class="col-12">
       <div class="card h-100">
         <div class="card-header border-0 pb-0">
           <h4 class="header-title mb-0">Contest-year leaders</h4>
@@ -146,25 +135,25 @@
   </div>
 
   <div class="row g-3 mt-0">
-    <div class="col-xl-6">
+    <div class="col-12">
       <div class="card">
         <div class="card-header border-0 pb-0">
-          <h4 class="header-title mb-0">Link rate by contest-year</h4>
-          <p class="text-muted fs-xs mb-0">Higher bars indicate statement sets that already map cleanly to problem rows</p>
+          <h4 class="header-title mb-0">Contest-year statement heatmap</h4>
+          <p class="text-muted fs-xs mb-0">Each cell shows stored statement count for one contest in one year. Darker cells indicate heavier imported coverage.</p>
         </div>
         <div class="card-body pt-2">
-          <div id="chart-link-rate" style="min-height: 320px;"></div>
+          <div id="chart-statement-heatmap" style="min-height: 360px;"></div>
         </div>
       </div>
     </div>
-    <div class="col-xl-6">
+    <div class="col-12">
       <div class="card">
         <div class="card-header border-0 pb-0">
           <h4 class="header-title mb-0">Statement rows by year</h4>
-          <p class="text-muted fs-xs mb-0">Year-only view of imported statement coverage across the archive</p>
+          <p class="text-muted fs-xs mb-0">Bar graph of year-only imported statement coverage across the archive.</p>
         </div>
         <div class="card-body pt-2">
-          <div id="chart-year-volume" style="min-height: 320px;"></div>
+          <div id="chart-year-bars" style="min-height: 280px;"></div>
         </div>
       </div>
     </div>
@@ -208,7 +197,6 @@
   var tableEl = document.getElementById("problem-statement-dashboard-table-data");
   if (!dataEl || !tableEl || typeof ApexCharts === "undefined") return;
 
-  var palette = ["#0d6efd", "#198754", "#fd7e14"];
   var charts = JSON.parse(dataEl.textContent);
   var rows = JSON.parse(tableEl.textContent);
 
@@ -218,39 +206,151 @@
     return suffix ? rendered + suffix : rendered;
   }
 
-  function barOptions(payload, color, suffix) {
+  function heatmapRanges(maxValue) {
+    if (!maxValue) {
+      return [
+        { from: 0, to: 0, name: "No statements", color: "#eef2f7" }
+      ];
+    }
+
+    var firstUpper = Math.max(1, Math.ceil(maxValue / 4));
+    var secondUpper = Math.max(firstUpper + 1, Math.ceil(maxValue / 2));
+    var thirdUpper = Math.max(secondUpper + 1, Math.ceil((maxValue * 3) / 4));
+
+    return [
+      { from: 0, to: 0, name: "0", color: "#eef2f7" },
+      { from: 1, to: firstUpper, name: "1-" + firstUpper, color: "#dbeafe" },
+      { from: firstUpper + 1, to: secondUpper, name: (firstUpper + 1) + "-" + secondUpper, color: "#93c5fd" },
+      { from: secondUpper + 1, to: thirdUpper, name: (secondUpper + 1) + "-" + thirdUpper, color: "#3b82f6" },
+      { from: thirdUpper + 1, to: maxValue, name: (thirdUpper + 1) + "+" , color: "#1d4ed8" }
+    ].filter(function (range) {
+      return range.from <= range.to;
+    });
+  }
+
+  function heatmapOptions(payload) {
     return {
-      chart: { type: "bar", height: Math.max(320, 34 * payload.labels.length), toolbar: { show: false }, fontFamily: "inherit" },
-      series: [{ name: "Value", data: payload.values }],
-      plotOptions: { bar: { borderRadius: 3, horizontal: true, barHeight: "72%" } },
+      chart: {
+        type: "heatmap",
+        height: Math.max(360, 48 * payload.series.length + 72),
+        toolbar: { show: false },
+        fontFamily: "inherit"
+      },
+      series: payload.series,
+      legend: {
+        show: true,
+        position: "top",
+        horizontalAlign: "left"
+      },
+      stroke: {
+        width: 1,
+        colors: ["rgba(255,255,255,0.65)"]
+      },
       dataLabels: {
-        enabled: payload.values.length <= 12,
-        formatter: function (value) { return formatMetric(value, suffix); }
+        enabled: true,
+        style: {
+          fontSize: "11px",
+          fontWeight: 600,
+          colors: ["#11203b"]
+        },
+        formatter: function (value) {
+          return value ? String(value) : "";
+        }
+      },
+      plotOptions: {
+        heatmap: {
+          radius: 4,
+          shadeIntensity: 0.92,
+          useFillColorAsStroke: false,
+          colorScale: {
+            ranges: heatmapRanges(Number(payload.max_value || 0))
+          }
+        }
+      },
+      xaxis: {
+        type: "category",
+        labels: { style: { fontSize: "11px" } },
+      },
+      yaxis: {
+        labels: {
+          maxWidth: 240,
+          style: { fontSize: "11px" }
+        }
       },
       tooltip: {
         y: {
-          formatter: function (value) { return formatMetric(value, suffix); }
+          formatter: function (value) { return formatMetric(value, ""); }
         }
       },
-      colors: [color],
-      grid: { strokeDashArray: 4, borderColor: "rgba(108,117,125,0.15)" },
-      xaxis: {
-        categories: payload.labels,
-        labels: { style: { fontSize: "11px" } },
-      },
+      grid: {
+        borderColor: "rgba(108,117,125,0.15)"
+      }
     };
   }
 
-  function renderBar(sel, payload, idx, suffix) {
+  function renderHeatmap(sel, payload) {
     var el = document.querySelector(sel);
-    if (!el || !payload.labels.length) return;
-    var chart = new ApexCharts(el, barOptions(payload, palette[idx % palette.length], suffix));
+    if (!el || !payload.series.length) return;
+    var chart = new ApexCharts(el, heatmapOptions(payload));
     chart.render();
   }
 
-  renderBar("#chart-statement-volume", charts.byStatementVolume, 0, "");
-  renderBar("#chart-link-rate", charts.byLinkRate, 1, "%");
-  renderBar("#chart-year-volume", charts.byYearVolume, 2, "");
+  function yearBarOptions(payload) {
+    return {
+      chart: {
+        type: "bar",
+        height: 280,
+        toolbar: { show: false },
+        fontFamily: "inherit"
+      },
+      series: [{ name: "Statement rows", data: payload.values }],
+      colors: ["#0d6efd"],
+      plotOptions: {
+        bar: {
+          borderRadius: 4,
+          columnWidth: "58%"
+        }
+      },
+      dataLabels: {
+        enabled: payload.values.length <= 14,
+        formatter: function (value) {
+          return formatMetric(value, "");
+        }
+      },
+      xaxis: {
+        categories: payload.labels,
+        labels: {
+          rotate: payload.labels.length > 8 ? -45 : 0,
+          hideOverlappingLabels: true,
+          style: { fontSize: "11px" }
+        }
+      },
+      yaxis: {
+        labels: {
+          style: { fontSize: "11px" }
+        }
+      },
+      tooltip: {
+        y: {
+          formatter: function (value) { return formatMetric(value, ""); }
+        }
+      },
+      grid: {
+        strokeDashArray: 4,
+        borderColor: "rgba(108,117,125,0.15)"
+      }
+    };
+  }
+
+  function renderBar(sel, payload) {
+    var el = document.querySelector(sel);
+    if (!el || !payload.labels.length) return;
+    var chart = new ApexCharts(el, yearBarOptions(payload));
+    chart.render();
+  }
+
+  renderHeatmap("#chart-statement-heatmap", charts.statementCountHeatmap);
+  renderBar("#chart-year-bars", charts.statementYearBarChart);
 
   if (typeof DataTable === "undefined") return;
 
