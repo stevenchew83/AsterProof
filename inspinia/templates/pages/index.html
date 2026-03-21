@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% load static i18n %}
+{% load i18n %}
 
 {% block title %}AsterProof{% endblock title %}
 
@@ -8,20 +8,42 @@
 
 {% block extra_css %}
 <style>
+  @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+
+  :root {
+    --landing-bg-top: #07112b;
+    --landing-bg-bottom: #02050d;
+    --landing-panel: rgba(10, 19, 42, 0.74);
+    --landing-panel-strong: rgba(13, 24, 52, 0.9);
+    --landing-border: rgba(158, 185, 255, 0.16);
+    --landing-border-strong: rgba(158, 185, 255, 0.26);
+    --landing-text: #f7faff;
+    --landing-muted: #adc0ec;
+    --landing-soft: #d9e4ff;
+    --landing-blue: #73a8ff;
+    --landing-blue-strong: #3b82f6;
+    --landing-blue-deep: #1f4fd6;
+    --landing-shadow: 0 22px 64px rgba(1, 5, 18, 0.34);
+  }
+
   html {
     scroll-behavior: smooth;
   }
 
   .landing-body {
+    font-family: "Inter", sans-serif;
     background:
-      radial-gradient(circle at top left, rgba(13, 110, 253, 0.18), transparent 34%),
-      radial-gradient(circle at 85% 15%, rgba(25, 135, 84, 0.14), transparent 24%),
-      linear-gradient(180deg, #f5f8ff 0%, #fbfcff 46%, #f3f6fb 100%);
-    color: #11203b;
+      radial-gradient(circle at 15% 18%, rgba(77, 128, 255, 0.26), transparent 26%),
+      radial-gradient(circle at 82% 22%, rgba(34, 197, 255, 0.18), transparent 21%),
+      radial-gradient(circle at 50% 72%, rgba(69, 90, 200, 0.16), transparent 30%),
+      linear-gradient(180deg, var(--landing-bg-top) 0%, var(--landing-bg-bottom) 100%);
+    color: var(--landing-text);
+    min-height: 100vh;
   }
 
   .landing-shell {
     position: relative;
+    min-height: 100vh;
     overflow: hidden;
   }
 
@@ -29,531 +51,744 @@
   .landing-shell::after {
     content: "";
     position: absolute;
-    border-radius: 999px;
-    filter: blur(4px);
-    opacity: 0.75;
     pointer-events: none;
+    border-radius: 999px;
+    filter: blur(12px);
+    opacity: 0.8;
   }
 
   .landing-shell::before {
     inset: 8rem auto auto -8rem;
-    width: 20rem;
-    height: 20rem;
-    background: linear-gradient(135deg, rgba(13, 110, 253, 0.18), rgba(13, 202, 240, 0.08));
+    width: 24rem;
+    height: 24rem;
+    background: radial-gradient(circle, rgba(88, 128, 255, 0.28), transparent 68%);
   }
 
   .landing-shell::after {
-    inset: 32rem -6rem auto auto;
-    width: 18rem;
-    height: 18rem;
-    background: linear-gradient(135deg, rgba(255, 193, 7, 0.16), rgba(220, 53, 69, 0.08));
+    inset: 26rem -8rem auto auto;
+    width: 22rem;
+    height: 22rem;
+    background: radial-gradient(circle, rgba(34, 197, 255, 0.18), transparent 68%);
   }
 
-  .landing-navbar {
-    position: sticky;
-    top: 0;
-    z-index: 1030;
-    background: rgba(255, 255, 255, 0.78);
-    backdrop-filter: blur(18px);
-    border-bottom: 1px solid rgba(17, 32, 59, 0.08);
+  .landing-header,
+  .landing-main,
+  .landing-footer {
+    position: relative;
+    z-index: 1;
+  }
+
+  .landing-header {
+    padding: 1rem 0 0.75rem;
+  }
+
+  .landing-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .landing-header-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
   }
 
   .landing-brand {
     display: inline-flex;
     align-items: center;
     gap: 0.9rem;
-    text-decoration: none;
     color: inherit;
+    text-decoration: none;
   }
 
   .landing-brand-mark {
-    width: 2.65rem;
-    height: 2.65rem;
-    border-radius: 1rem;
+    width: 2.55rem;
+    height: 2.55rem;
+    border-radius: 0.9rem;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #0d6efd, #25b7ff);
+    background: linear-gradient(135deg, #3674ff 0%, #70c4ff 100%);
     color: #fff;
-    box-shadow: 0 16px 36px rgba(13, 110, 253, 0.28);
+    box-shadow: 0 18px 36px rgba(59, 130, 246, 0.28);
+    font-size: 1rem;
   }
 
   .landing-brand-copy span {
     display: block;
-    line-height: 1.1;
+    line-height: 1.08;
   }
 
   .landing-brand-copy span:first-child {
-    font-size: 0.82rem;
-    letter-spacing: 0.18em;
+    font-size: 0.64rem;
     text-transform: uppercase;
-    color: #4f5e78;
+    letter-spacing: 0.18em;
+    color: rgba(215, 228, 255, 0.7);
   }
 
   .landing-brand-copy strong {
-    font-size: 1.12rem;
-    letter-spacing: 0.02em;
+    font-size: 0.94rem;
+    letter-spacing: -0.02em;
+    color: #fff;
   }
 
-  .landing-nav-link {
-    color: #21324e;
-    font-weight: 600;
-    padding: 0.65rem 0.95rem !important;
-  }
-
-  .landing-nav-link:hover,
-  .landing-nav-link:focus {
-    color: #0d6efd;
-  }
-
-  .landing-section {
-    padding: 5.5rem 0 0;
-  }
-
-  .landing-hero {
-    padding: 4.5rem 0 2rem;
-  }
-
-  .landing-kicker {
+  .landing-status {
     display: inline-flex;
     align-items: center;
-    gap: 0.55rem;
+    gap: 0.5rem;
     border-radius: 999px;
-    background: rgba(13, 110, 253, 0.09);
-    color: #0d57cc;
-    padding: 0.45rem 0.85rem;
-    font-size: 0.82rem;
+    padding: 0.4rem 0.7rem;
+    border: 1px solid rgba(122, 165, 255, 0.16);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--landing-muted);
+    font-size: 0.74rem;
+    font-weight: 600;
+  }
+
+  .landing-status::before {
+    content: "";
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: #4ade80;
+    box-shadow: 0 0 0 0.25rem rgba(74, 222, 128, 0.16);
+  }
+
+  .landing-main {
+    padding: 1.25rem 0 3.75rem;
+  }
+
+  .landing-section + .landing-section {
+    margin-top: 3rem;
+  }
+
+  .landing-hero-shell,
+  .landing-feature-panel,
+  .landing-archive-panel,
+  .landing-result-card,
+  .landing-cta-panel,
+  .landing-footer-shell {
+    border: 1px solid var(--landing-border);
+    background: var(--landing-panel);
+    backdrop-filter: blur(18px);
+    box-shadow: var(--landing-shadow);
+  }
+
+  .landing-hero-shell,
+  .landing-archive-panel,
+  .landing-cta-panel,
+  .landing-footer-shell {
+    border-radius: 1.35rem;
+  }
+
+  .landing-feature-panel,
+  .landing-result-card {
+    border-radius: 1.05rem;
+  }
+
+  .landing-hero-shell {
+    max-width: 63rem;
+    margin: 0 auto;
+    padding: 1.7rem 1.4rem 1.45rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .landing-hero-shell::before {
+    content: "";
+    position: absolute;
+    inset: auto 8% -7rem auto;
+    width: 18rem;
+    height: 18rem;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(115, 168, 255, 0.18), transparent 65%);
+    pointer-events: none;
+  }
+
+  .landing-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-radius: 999px;
+    padding: 0.38rem 0.68rem;
+    background: rgba(115, 168, 255, 0.12);
+    color: #c7dbff;
+    font-size: 0.68rem;
     font-weight: 700;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
   }
 
+  .landing-eyebrow i {
+    font-size: 0.95rem;
+  }
+
   .landing-title {
-    font-size: clamp(2.15rem, 5vw, 3.7rem);
-    line-height: 1.02;
-    letter-spacing: -0.04em;
-    margin: 1.2rem 0 1rem;
-    max-width: 13ch;
+    max-width: 12ch;
+    margin: 1rem auto 0.72rem;
+    font-size: clamp(2.2rem, 5.2vw, 4rem);
+    line-height: 0.98;
+    letter-spacing: -0.06em;
+    font-weight: 800;
+    color: #fff;
+  }
+
+  .landing-title-accent {
+    color: #8fb9ff;
   }
 
   .landing-lead {
-    max-width: 42rem;
-    color: #45556f;
-    font-size: 1.08rem;
-    line-height: 1.8;
+    max-width: 37rem;
+    margin: 0 auto;
+    color: var(--landing-muted);
+    font-size: 0.91rem;
+    line-height: 1.68;
   }
 
-  .landing-panel,
-  .landing-card,
-  .landing-visual-card,
-  .landing-contact-band,
-  .landing-footer-card,
-  .landing-result-card {
-    border: 1px solid rgba(17, 32, 59, 0.08);
-    background: rgba(255, 255, 255, 0.86);
-    box-shadow: 0 24px 60px rgba(16, 24, 40, 0.08);
-    border-radius: 1.75rem;
-  }
-
-  .landing-panel {
-    padding: 1.2rem;
-    margin-top: 2rem;
+  .landing-search-shell {
+    max-width: 35rem;
+    margin: 1.45rem auto 0;
+    padding: 0.42rem;
+    border-radius: 0.92rem;
+    border: 1px solid rgba(143, 185, 255, 0.16);
+    background: rgba(255, 255, 255, 0.06);
   }
 
   .landing-search-box {
     display: flex;
     align-items: center;
-    gap: 0.9rem;
-    padding: 0.55rem;
-    border-radius: 1.4rem;
-    background: #fff;
-    border: 1px solid rgba(17, 32, 59, 0.08);
+    gap: 0.65rem;
+    padding: 0.3rem;
+    border-radius: 0.8rem;
+    background: rgba(4, 12, 29, 0.76);
+    border: 1px solid rgba(143, 185, 255, 0.12);
   }
 
   .landing-search-icon {
-    width: 3rem;
-    height: 3rem;
-    border-radius: 1rem;
+    width: 2.45rem;
+    height: 2.45rem;
+    flex-shrink: 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: #eff5ff;
-    color: #0d6efd;
-    font-size: 1.35rem;
-    flex-shrink: 0;
+    border-radius: 0.72rem;
+    background: rgba(59, 130, 246, 0.16);
+    color: #8fb9ff;
+    font-size: 0.9rem;
   }
 
   .landing-search-input {
     border: 0;
     background: transparent;
     box-shadow: none !important;
+    color: #fff;
     padding-left: 0;
-    color: #11203b;
-    font-size: 1rem;
+    font-size: 0.9rem;
   }
 
   .landing-search-input::placeholder {
-    color: #7a879d;
+    color: rgba(215, 228, 255, 0.55);
+  }
+
+  .landing-search-submit,
+  .landing-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    border: 0;
+    border-radius: 0.74rem;
+    padding: 0.72rem 1rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  }
+
+  .landing-action-compact {
+    padding: 0.58rem 0.88rem;
+    font-size: 0.76rem;
+  }
+
+  .landing-search-submit,
+  .landing-action-primary {
+    background: linear-gradient(135deg, var(--landing-blue-strong) 0%, var(--landing-blue-deep) 100%);
+    color: #fff;
+  }
+
+  .landing-search-submit:hover,
+  .landing-search-submit:focus,
+  .landing-action-primary:hover,
+  .landing-action-primary:focus {
+    transform: translateY(-1px);
+    color: #fff;
+    background: linear-gradient(135deg, #4f91ff 0%, #2556db 100%);
+  }
+
+  .landing-action-secondary {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(143, 185, 255, 0.16);
+    color: var(--landing-soft);
+  }
+
+  .landing-action-secondary:hover,
+  .landing-action-secondary:focus {
+    transform: translateY(-1px);
+    color: #fff;
+    border-color: rgba(143, 185, 255, 0.3);
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .landing-search-note,
+  .landing-muted-copy {
+    color: var(--landing-muted);
+  }
+
+  .landing-search-note {
+    max-width: 35rem;
+    margin: 0.78rem auto 0;
+    font-size: 0.81rem;
+  }
+
+  .landing-chip-row,
+  .landing-pill-row,
+  .landing-tag-cloud,
+  .landing-action-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
   }
 
   .landing-chip-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.65rem;
+    justify-content: center;
     margin-top: 1rem;
   }
 
-  .landing-chip {
+  .landing-chip,
+  .landing-pill,
+  .landing-tag {
     display: inline-flex;
     align-items: center;
     gap: 0.45rem;
+    padding: 0.38rem 0.62rem;
     border-radius: 999px;
-    padding: 0.5rem 0.8rem;
-    background: #f4f7fb;
-    color: #33435d;
-    font-size: 0.88rem;
+    font-size: 0.7rem;
     font-weight: 600;
   }
 
-  .landing-panel-note {
-    margin: 1rem 0 0;
-    color: #5e6e88;
-    font-size: 0.92rem;
+  .landing-chip {
+    background: rgba(255, 255, 255, 0.06);
+    color: #dce7ff;
+    border: 1px solid rgba(143, 185, 255, 0.12);
+  }
+
+  .landing-pill,
+  .landing-tag {
+    background: rgba(115, 168, 255, 0.1);
+    color: #d7e4ff;
+    border: 1px solid rgba(143, 185, 255, 0.12);
+  }
+
+  .landing-action-row {
+    justify-content: center;
+    margin-top: 1.15rem;
+  }
+
+  .landing-hero-stats {
+    justify-content: center;
+    margin-top: 1rem;
   }
 
   .landing-search-results {
-    margin-top: 1rem;
-    padding: 1rem;
+    margin-top: 0.82rem;
+    padding: 0.9rem;
+    border-radius: 0.9rem;
+    background: rgba(3, 11, 28, 0.82);
+    border: 1px solid rgba(143, 185, 255, 0.14);
+  }
+
+  .landing-search-summary {
+    color: #dce7ff;
+    font-size: 0.79rem;
+    font-weight: 600;
   }
 
   .landing-result-grid {
     display: grid;
-    gap: 0.9rem;
-    margin-top: 0.9rem;
+    gap: 0.65rem;
+    margin-top: 0.78rem;
+    text-align: left;
   }
 
   .landing-result-card {
     display: block;
-    padding: 1rem 1.1rem;
+    padding: 0.82rem 0.9rem;
     text-decoration: none;
     color: inherit;
-    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
   }
 
   .landing-result-card:hover,
   .landing-result-card:focus {
-    transform: translateY(-2px);
-    border-color: rgba(13, 110, 253, 0.24);
-    box-shadow: 0 24px 48px rgba(13, 110, 253, 0.12);
+    transform: translateY(-1px);
+    border-color: rgba(143, 185, 255, 0.28);
+    background: rgba(17, 31, 66, 0.92);
   }
 
   .landing-result-type {
     display: inline-flex;
     align-items: center;
+    padding: 0.22rem 0.48rem;
     border-radius: 999px;
-    padding: 0.3rem 0.65rem;
-    background: #edf4ff;
-    color: #0d57cc;
-    font-size: 0.75rem;
+    background: rgba(59, 130, 246, 0.16);
+    color: #9ac1ff;
+    font-size: 0.63rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.08em;
   }
 
   .landing-result-title {
-    margin: 0.8rem 0 0.35rem;
-    font-size: 1rem;
+    margin: 0.62rem 0 0.24rem;
+    font-size: 0.88rem;
     font-weight: 700;
-    color: #13233d;
+    color: #fff;
   }
 
-  .landing-result-copy,
-  .landing-muted-copy {
-    color: #5b6a82;
-  }
-
-  .landing-hero-actions,
-  .landing-stats-grid,
-  .landing-tag-cloud,
-  .landing-footer-links {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.85rem;
-  }
-
-  .landing-stats-grid {
-    margin-top: 2rem;
-  }
-
-  .landing-stat-card {
-    flex: 1 1 15rem;
-    min-width: 0;
-    padding: 1.2rem;
-  }
-
-  .landing-stat-badge {
-    width: 3.1rem;
-    height: 3.1rem;
-    border-radius: 1.1rem;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.4rem;
-  }
-
-  .landing-stat-badge.primary {
-    background: rgba(13, 110, 253, 0.12);
-    color: #0d6efd;
-  }
-
-  .landing-stat-badge.info {
-    background: rgba(13, 202, 240, 0.14);
-    color: #0b7285;
-  }
-
-  .landing-stat-badge.success {
-    background: rgba(25, 135, 84, 0.12);
-    color: #198754;
-  }
-
-  .landing-stat-badge.warning {
-    background: rgba(255, 193, 7, 0.16);
-    color: #a15c00;
-  }
-
-  .landing-stat-value {
-    font-size: clamp(1.55rem, 3vw, 2.2rem);
-    line-height: 1;
-    margin: 1rem 0 0.45rem;
-    font-weight: 800;
-    letter-spacing: -0.04em;
-    color: #11203b;
-  }
-
-  .landing-visual-wrap {
-    position: relative;
-  }
-
-  .landing-visual-card {
-    padding: 1.5rem;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .landing-visual-card::after {
-    content: "";
-    position: absolute;
-    inset: auto -3rem -3rem auto;
-    width: 11rem;
-    height: 11rem;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(13, 110, 253, 0.16), transparent 65%);
-  }
-
-  .landing-visual-image {
-    width: 100%;
-    border-radius: 1.35rem;
-    object-fit: cover;
-    min-height: 16rem;
-    max-height: 18rem;
-    margin-top: 1rem;
-  }
-
-  .landing-float-card {
-    position: absolute;
-    right: -0.4rem;
-    bottom: -1.5rem;
-    max-width: 18rem;
-    padding: 1rem 1.1rem;
-    animation: landing-float 9s ease-in-out infinite;
+  .landing-result-copy {
+    color: var(--landing-muted);
   }
 
   .landing-section-head {
-    max-width: 40rem;
-    margin-bottom: 2rem;
+    max-width: 34rem;
+    margin: 0 auto 1.35rem;
+    text-align: center;
+  }
+
+  .landing-section-kicker {
+    color: #9ac1ff;
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
   }
 
   .landing-section-head h2,
-  .landing-contact-band h2 {
-    font-size: clamp(2rem, 4vw, 3rem);
-    letter-spacing: -0.04em;
-    margin-bottom: 0.8rem;
+  .landing-archive-panel h2,
+  .landing-cta-panel h2 {
+    margin: 0.62rem 0 0.55rem;
+    font-size: clamp(1.45rem, 2.75vw, 2.05rem);
+    line-height: 1.08;
+    letter-spacing: -0.05em;
+    color: #fff;
   }
 
-  .landing-grid {
+  .landing-feature-grid,
+  .landing-archive-grid {
     display: grid;
-    gap: 1rem;
+    gap: 0.8rem;
   }
 
-  .landing-grid.two {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .landing-feature-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
-  .landing-card {
-    padding: 1.4rem;
-    height: 100%;
+  .landing-archive-grid {
+    grid-template-columns: 1.15fr 0.85fr;
   }
 
-  .landing-card-eyebrow {
-    color: #0d57cc;
+  .landing-feature-panel {
+    padding: 1rem;
+    overflow: hidden;
+    position: relative;
+    transition: transform 0.24s ease, background 0.24s ease, border-color 0.24s ease;
+  }
+
+  .landing-feature-panel:hover,
+  .landing-feature-panel:focus-within {
+    transform: translateY(-2px);
+    background: rgba(17, 31, 66, 0.88);
+    border-color: rgba(143, 185, 255, 0.3);
+  }
+
+  .landing-feature-panel::after {
+    content: "";
+    position: absolute;
+    inset: auto -2rem -2rem auto;
+    width: 8rem;
+    height: 8rem;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(115, 168, 255, 0.16), transparent 70%);
+    pointer-events: none;
+  }
+
+  .landing-feature-icon {
+    width: 2.35rem;
+    height: 2.35rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.78rem;
+    background: rgba(59, 130, 246, 0.16);
+    color: #8fb9ff;
+    font-size: 0.96rem;
+  }
+
+  .landing-feature-value {
+    margin-top: 0.85rem;
+    font-size: clamp(1.1rem, 2vw, 1.55rem);
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.05em;
+    color: #fff;
+  }
+
+  .landing-feature-panel h3 {
+    margin: 0.55rem 0 0.32rem;
+    font-size: 0.88rem;
+    color: #fff;
+  }
+
+  .landing-feature-panel p {
+    margin: 0;
+    color: var(--landing-muted);
+    line-height: 1.54;
     font-size: 0.8rem;
+  }
+
+  .landing-archive-panel {
+    padding: 1.2rem;
+  }
+
+  .landing-metric-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.65rem;
+    margin: 1rem 0 1.15rem;
+  }
+
+  .landing-metric {
+    padding: 0.78rem;
+    border-radius: 0.88rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(143, 185, 255, 0.12);
+  }
+
+  .landing-metric-label {
+    color: #9ac1ff;
+    font-size: 0.62rem;
     font-weight: 700;
     letter-spacing: 0.1em;
     text-transform: uppercase;
   }
 
-  .landing-feature-list,
-  .landing-mini-list {
+  .landing-metric-value {
+    margin-top: 0.48rem;
+    font-size: clamp(1.02rem, 2vw, 1.42rem);
+    font-weight: 800;
+    letter-spacing: -0.05em;
+    color: #fff;
+  }
+
+  .landing-list {
     display: grid;
-    gap: 0.95rem;
-    margin-top: 1rem;
+    gap: 0.55rem;
   }
 
-  .landing-feature-item,
-  .landing-mini-item {
-    display: flex;
-    gap: 0.85rem;
-    align-items: flex-start;
+  .landing-list-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 0.65rem;
+    align-items: start;
+    padding: 0.72rem 0;
+    border-top: 1px solid rgba(143, 185, 255, 0.1);
   }
 
-  .landing-feature-icon,
-  .landing-mini-icon {
-    flex-shrink: 0;
-    width: 2.4rem;
-    height: 2.4rem;
-    border-radius: 0.95rem;
+  .landing-list-row:first-child {
+    border-top: 0;
+    padding-top: 0;
+  }
+
+  .landing-list-rank {
+    width: 1.85rem;
+    height: 1.85rem;
+    border-radius: 0.68rem;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: #eff5ff;
-    color: #0d6efd;
+    background: rgba(59, 130, 246, 0.18);
+    color: #9ac1ff;
+    font-weight: 800;
+    flex-shrink: 0;
   }
 
-  .landing-problem-card {
-    padding: 1.2rem;
+  .landing-list-row h3,
+  .landing-problem-row h3 {
+    margin: 0;
+    font-size: 0.87rem;
+    color: #fff;
   }
 
-  .landing-problem-top,
-  .landing-rank-row,
-  .landing-footer-bottom {
+  .landing-list-meta,
+  .landing-problem-meta {
+    margin-top: 0.24rem;
+    color: var(--landing-muted);
+    font-size: 0.79rem;
+    line-height: 1.48;
+  }
+
+  .landing-problem-stack {
+    display: grid;
+    gap: 0.65rem;
+    margin-top: 0.95rem;
+  }
+
+  .landing-problem-row {
+    padding: 0.8rem 0.85rem;
+    border-radius: 0.9rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(143, 185, 255, 0.12);
+  }
+
+  .landing-problem-top {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 0.9rem;
-  }
-
-  .landing-problem-meta,
-  .landing-rank-meta {
-    display: flex;
-    flex-wrap: wrap;
     gap: 0.55rem;
-    margin-top: 0.8rem;
   }
 
-  .landing-pill,
-  .landing-tag {
-    display: inline-flex;
-    align-items: center;
-    border-radius: 999px;
-    padding: 0.38rem 0.75rem;
-    background: #eff4fb;
-    color: #31425e;
-    font-size: 0.8rem;
+  .landing-problem-tagline {
+    color: #9ac1ff;
+    font-size: 0.63rem;
     font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
   }
 
-  .landing-rank-number {
-    width: 2.3rem;
-    height: 2.3rem;
-    border-radius: 0.9rem;
-    display: inline-flex;
+  .landing-cta-panel {
+    padding: 1.2rem 1.3rem;
+    display: flex;
     align-items: center;
-    justify-content: center;
-    background: linear-gradient(135deg, #0d6efd, #25b7ff);
-    color: #fff;
-    font-weight: 800;
+    justify-content: space-between;
+    gap: 1rem;
+    background:
+      linear-gradient(135deg, rgba(35, 77, 201, 0.92) 0%, rgba(9, 17, 38, 0.88) 100%);
   }
 
-  .landing-contact-band {
-    padding: 2rem;
-    background: linear-gradient(135deg, #10213f, #1d4b99);
-    color: #fff;
+  .landing-cta-panel p {
+    margin: 0;
+    max-width: 34rem;
+    color: rgba(227, 236, 255, 0.82);
+    line-height: 1.68;
+    font-size: 0.83rem;
   }
 
-  .landing-contact-band p,
-  .landing-contact-band .landing-muted-copy {
-    color: rgba(255, 255, 255, 0.8);
+  .landing-cta-panel .landing-action-row {
+    margin-top: 0;
+    justify-content: flex-end;
+    flex-shrink: 0;
   }
 
   .landing-footer {
-    padding: 5rem 0 2.4rem;
+    padding: 0 0 2rem;
   }
 
-  .landing-footer-card {
-    padding: 1.5rem;
+  .landing-footer-shell {
+    max-width: 72rem;
+    margin: 0 auto;
+    padding: 0.88rem 1rem;
+    border-radius: 0.96rem;
   }
 
-  .landing-footer a {
-    color: inherit;
-    text-decoration: none;
+  .landing-footer-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    color: rgba(215, 228, 255, 0.72);
+    font-size: 0.76rem;
   }
 
-  .landing-footer a:hover,
-  .landing-footer a:focus {
-    color: #0d6efd;
-  }
-
-  .landing-footer-bottom {
-    margin-top: 1.4rem;
-    padding-top: 1.2rem;
-    border-top: 1px solid rgba(17, 32, 59, 0.08);
-    color: #61718a;
-    font-size: 0.92rem;
-  }
-
-  @keyframes landing-float {
-    0%, 100% {
-      transform: translateY(0);
-    }
-    50% {
-      transform: translateY(-10px);
-    }
-  }
-
-  @media (max-width: 991.98px) {
-    .landing-hero {
-      padding-top: 3rem;
+  @media (max-width: 1199.98px) {
+    .landing-feature-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .landing-float-card {
-      position: static;
-      max-width: none;
-      margin-top: 1rem;
-      animation: none;
-    }
-
-    .landing-grid.two {
+    .landing-archive-grid {
       grid-template-columns: 1fr;
     }
   }
 
-  @media (max-width: 575.98px) {
-    .landing-panel,
-    .landing-card,
-    .landing-visual-card,
-    .landing-contact-band,
-    .landing-footer-card,
-    .landing-result-card {
-      border-radius: 1.3rem;
+  @media (max-width: 767.98px) {
+    .landing-header-row,
+    .landing-header-meta,
+    .landing-cta-panel,
+    .landing-footer-row,
+    .landing-search-box,
+    .landing-problem-top,
+    .landing-list-row {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .landing-hero-shell,
+    .landing-archive-panel,
+    .landing-cta-panel {
+      padding: 1.1rem;
+    }
+
+    .landing-title {
+      font-size: clamp(1.95rem, 9vw, 3rem);
+      max-width: 100%;
     }
 
     .landing-search-box {
-      flex-wrap: wrap;
+      gap: 0.7rem;
     }
 
-    .landing-search-icon {
-      width: 2.7rem;
-      height: 2.7rem;
+    .landing-search-submit,
+    .landing-action {
+      width: 100%;
+    }
+
+    .landing-search-submit {
+      justify-content: center;
+    }
+
+    .landing-feature-grid,
+    .landing-metric-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .landing-cta-panel .landing-action-row {
+      justify-content: flex-start;
+      width: 100%;
+    }
+
+    .landing-list-row {
+      display: flex;
+    }
+  }
+
+  @media (max-width: 575.98px) {
+    .landing-hero-shell,
+    .landing-feature-panel,
+    .landing-archive-panel,
+    .landing-result-card,
+    .landing-cta-panel,
+    .landing-footer-shell {
+      border-radius: 0.92rem;
+    }
+
+    .landing-header {
+      padding-top: 1rem;
+    }
+
+    .landing-main {
+      padding-top: 1rem;
     }
   }
 </style>
@@ -561,444 +796,259 @@
 
 {% block content %}
 <div class="landing-shell">
-  <nav class="navbar navbar-expand-lg landing-navbar">
+  <header class="landing-header">
     <div class="container">
-      <a href="#home" class="landing-brand">
-        <span class="landing-brand-mark">
-          <i class="ti ti-asterisk-simple"></i>
-        </span>
-        <span class="landing-brand-copy">
-          <span>Placeholder Name</span>
-          <strong>AsterProof</strong>
-        </span>
-      </a>
+      <div class="landing-header-row">
+        <a href="{% url 'pages:home' %}" class="landing-brand">
+          <span class="landing-brand-mark">
+            <i class="ti ti-asterisk-simple"></i>
+          </span>
+          <span class="landing-brand-copy">
+            <span>Olympiad Workspace</span>
+            <strong>AsterProof</strong>
+          </span>
+        </a>
 
-      <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#landing-navbar-nav" aria-controls="landing-navbar-nav" aria-expanded="false" aria-label="Toggle navigation">
-        <i class="ti ti-menu-2 fs-24"></i>
-      </button>
-
-      <div class="collapse navbar-collapse" id="landing-navbar-nav">
-        <ul class="navbar-nav ms-auto align-items-lg-center">
-          <li class="nav-item"><a class="nav-link landing-nav-link" href="#home">Home</a></li>
-          <li class="nav-item"><a class="nav-link landing-nav-link" href="#about-us">About Us</a></li>
-          <li class="nav-item"><a class="nav-link landing-nav-link" href="{% url 'pages:problem_list' %}">Problems</a></li>
-          <li class="nav-item"><a class="nav-link landing-nav-link" href="#trending">Trending</a></li>
-          <li class="nav-item"><a class="nav-link landing-nav-link" href="#contact">Contact</a></li>
-          <li class="nav-item ms-lg-2">
-            <a class="btn btn-primary rounded-pill px-4" href="{% if request.user.is_authenticated %}{% url 'users:profile' %}{% else %}{% url 'account_login' %}{% endif %}">
-              Profile
-            </a>
-          </li>
-        </ul>
+        <div class="landing-header-meta">
+          <span class="landing-status">Archive live</span>
+          <a href="{% url 'account_signup' %}" class="landing-action landing-action-secondary landing-action-compact">
+            <i class="ti ti-user-plus"></i>
+            Sign up
+          </a>
+        </div>
       </div>
     </div>
-  </nav>
+  </header>
 
-  <main>
-    <section id="home" class="landing-section landing-hero">
+  <main class="landing-main">
+    <section class="landing-section">
       <div class="container">
-        <div class="row g-4 align-items-center">
-          <div class="col-lg-7">
-            <span class="landing-kicker">
-              <i class="ti ti-trophy"></i>
-              Contest archive, rethought
-            </span>
-            <h1 class="landing-title">Search contests, problem IDs, and topic tags from one clean starting point.</h1>
-            <p class="landing-lead">
-              The contest table is already giving us the right backbone: each row groups imported problems by contest and tracks volume, year span, difficulty, topic breadth, and technique density. This landing page turns that structure into a friendlier front door.
-            </p>
+        <div class="landing-hero-shell">
+          <span class="landing-eyebrow">
+            <i class="ti ti-bolt"></i>
+            Practice from a living archive
+          </span>
+          <h1 class="landing-title">
+            Train across olympiad archives with <span class="landing-title-accent">AsterProof</span>.
+          </h1>
+          <p class="landing-lead">
+            Search real contest names, problem labels, and topic tags from one focused workspace built for imported statements,
+            archive diagnostics, and serious long-term olympiad practice.
+          </p>
 
-            <div class="landing-hero-actions mt-4">
-              {% if show_analytics_dashboard_link %}
-              <a href="{% url 'pages:problem_list' %}" class="btn btn-primary btn-lg rounded-pill px-4">
-                <i class="ti ti-list-details me-1"></i> Open problems
-              </a>
-              <a href="{% url 'pages:contest_dashboard' %}" class="btn btn-outline-secondary btn-lg rounded-pill px-4">
-                <i class="ti ti-chart-bar me-1"></i> View contest analytics
-              </a>
-              {% else %}
-              <a href="{% url 'pages:problem_list' %}" class="btn btn-primary btn-lg rounded-pill px-4">
-                <i class="ti ti-list-details me-1"></i> Open problems
-              </a>
-              <a href="{% url 'users:profile' %}" class="btn btn-outline-secondary btn-lg rounded-pill px-4">
-                <i class="ti ti-user-circle me-1"></i> Open profile
-              </a>
-              {% endif %}
-            </div>
-
-            <div class="landing-panel">
-              <form id="landing-search-form" novalidate>
-                <div class="landing-search-box">
-                  <span class="landing-search-icon">
-                    <i class="ti ti-search"></i>
-                  </span>
-                  <input
-                    id="landing-search-input"
-                    class="form-control landing-search-input"
-                    type="search"
-                    name="search"
-                    placeholder="{% if library_access_enabled %}Search contest names, problem identifiers, or topic tags{% else %}Search unlocks when analytics access is enabled{% endif %}"
-                    {% if not library_access_enabled %}disabled{% endif %}
-                  >
-                  <button type="submit" class="btn btn-primary rounded-pill px-4" {% if not library_access_enabled %}disabled{% endif %}>
-                    Search
-                  </button>
-                </div>
-              </form>
-
-              <div class="landing-chip-row">
-                <span class="landing-chip"><i class="ti ti-trophy"></i> Contest</span>
-                <span class="landing-chip"><i class="ti ti-file-description"></i> Problem statement soon</span>
-                <span class="landing-chip"><i class="ti ti-tags"></i> Topic tag</span>
-              </div>
-
-              {% if library_access_enabled %}
-              <p class="landing-panel-note mb-0">
-                Live search is wired to the current archive. Problem statement search will join the same bar as soon as statement text is imported.
-              </p>
-              <div id="landing-search-results" class="landing-search-results d-none">
-                <div class="landing-result-type" id="landing-search-summary">Search results</div>
-                <div id="landing-search-grid" class="landing-result-grid"></div>
-                <p id="landing-search-empty" class="landing-panel-note d-none mb-0">
-                  No live matches yet. Problem statement search will be added once those records exist.
-                </p>
-              </div>
-              {% else %}
-              <div class="alert alert-info mt-3 mb-0">
-                Live archive search is currently limited to the analytics-enabled workspace.
-              </div>
-              {% endif %}
-            </div>
-
-            <div class="landing-stats-grid">
-              {% for stat in landing_highlights %}
-              <div class="landing-card landing-stat-card">
-                <span class="landing-stat-badge {{ stat.tone }}">
-                  <i class="{{ stat.icon }}"></i>
-                </span>
-                <div class="landing-stat-value">{{ stat.value }}</div>
-                <h3 class="h5 mb-2">{{ stat.label }}</h3>
-                <p class="landing-muted-copy mb-0">{{ stat.helper }}</p>
-              </div>
-              {% endfor %}
-            </div>
+          <div class="landing-pill-row landing-hero-stats">
+            <span class="landing-pill">{{ library_overview.contest_total }} contests</span>
+            <span class="landing-pill">{{ library_overview.problem_total }} indexed problems</span>
+            <span class="landing-pill">{{ library_overview.tag_total }} topic tags</span>
+            <span class="landing-pill">{{ library_overview.year_range_label }}</span>
           </div>
 
-          <div class="col-lg-5">
-            <div class="landing-visual-wrap">
-              <div class="landing-visual-card">
-                <span class="landing-card-eyebrow">Contest Table, Decoded</span>
-                <h2 class="h3 mt-2 mb-3">A contest row already tells a strong story.</h2>
-                <div class="landing-mini-list">
-                  <div class="landing-mini-item">
-                    <span class="landing-mini-icon"><i class="ti ti-stack-2"></i></span>
-                    <div>
-                      <h3 class="h6 mb-1">Volume</h3>
-                      <p class="landing-muted-copy mb-0"><code>problem_count</code> tells us how much history each contest contributes.</p>
-                    </div>
-                  </div>
-                  <div class="landing-mini-item">
-                    <span class="landing-mini-icon"><i class="ti ti-calendar-stats"></i></span>
-                    <div>
-                      <h3 class="h6 mb-1">Year span</h3>
-                      <p class="landing-muted-copy mb-0"><code>year_min</code>, <code>year_max</code>, and <code>active_years</code> capture how broad the archive is.</p>
-                    </div>
-                  </div>
-                  <div class="landing-mini-item">
-                    <span class="landing-mini-icon"><i class="ti ti-bolt"></i></span>
-                    <div>
-                      <h3 class="h6 mb-1">Difficulty and breadth</h3>
-                      <p class="landing-muted-copy mb-0"><code>avg_mohs</code>, <code>max_mohs</code>, and distinct topics surface contest character fast.</p>
-                    </div>
-                  </div>
-                  <div class="landing-mini-item">
-                    <span class="landing-mini-icon"><i class="ti ti-sparkles"></i></span>
-                    <div>
-                      <h3 class="h6 mb-1">Annotation depth</h3>
-                      <p class="landing-muted-copy mb-0">Technique density shows how richly each contest has been tagged.</p>
-                    </div>
-                  </div>
-                </div>
-                <img src="{% static 'images/landing-cta.jpg' %}" alt="Landing illustration" class="landing-visual-image">
+          <div class="landing-search-shell">
+            <form id="landing-search-form" novalidate>
+              <div class="landing-search-box">
+                <span class="landing-search-icon">
+                  <i class="ti ti-search"></i>
+                </span>
+                <input
+                  id="landing-search-input"
+                  class="form-control landing-search-input"
+                  type="search"
+                  name="search"
+                  placeholder="{% if library_access_enabled %}Search contest, problem ID, or topic tag{% else %}Search unlocks when archive access is enabled{% endif %}"
+                  {% if not library_access_enabled %}disabled{% endif %}
+                >
+                <button type="submit" class="landing-search-submit" {% if not library_access_enabled %}disabled{% endif %}>
+                  Search archive
+                </button>
               </div>
+            </form>
 
-              <div class="landing-card landing-float-card">
-                <span class="landing-card-eyebrow">Live Snapshot</span>
-                <div class="landing-rank-row mt-2">
-                  <h3 class="h5 mb-0">Current archive window</h3>
-                  <span class="landing-pill">{{ library_overview.year_range_label }}</span>
-                </div>
-                <div class="landing-problem-meta">
-                  <span class="landing-pill">{{ library_overview.contest_total }} contests</span>
-                  <span class="landing-pill">{{ library_overview.problem_total }} problems</span>
-                  <span class="landing-pill">{{ library_overview.tag_total }} tags</span>
-                </div>
-              </div>
+            <div class="landing-chip-row">
+              <span class="landing-chip"><i class="ti ti-trophy"></i> Contest names</span>
+              <span class="landing-chip"><i class="ti ti-binary-tree-2"></i> Problem labels</span>
+              <span class="landing-chip"><i class="ti ti-tags"></i> Technique tags</span>
             </div>
+
+            {% if library_access_enabled %}
+            <p class="landing-search-note mb-0">
+              Live search runs on the current archive index, so you can jump straight into contest pages, problem rows, and tag-driven exploration.
+            </p>
+            <div id="landing-search-results" class="landing-search-results d-none">
+              <div class="landing-search-summary" id="landing-search-summary">Search results</div>
+              <div id="landing-search-grid" class="landing-result-grid"></div>
+              <p id="landing-search-empty" class="landing-search-note d-none mb-0">
+                No live matches yet. Try a contest name, a problem label, or a topic tag from the archive.
+              </p>
+            </div>
+            {% else %}
+            <p class="landing-search-note mb-0">
+              Archive search appears here once library access is enabled for this workspace.
+            </p>
+            {% endif %}
+          </div>
+
+          <div class="landing-action-row">
+            <a href="{% url 'pages:problem_list' %}" class="landing-action landing-action-primary">
+              <i class="ti ti-list-details"></i>
+              Open problem archive
+            </a>
+            <a href="{% url 'users:profile' %}" class="landing-action landing-action-secondary">
+              <i class="ti ti-user-circle"></i>
+              Open profile
+            </a>
           </div>
         </div>
       </div>
     </section>
 
-    <section id="about-us" class="landing-section">
+    <section class="landing-section">
       <div class="container">
         <div class="landing-section-head">
-          <span class="landing-card-eyebrow">About Us</span>
-          <h2>Built for teams who want a cleaner way to understand contest archives.</h2>
+          <span class="landing-section-kicker">Core workflow</span>
+          <h2>Everything the workspace already does well, now framed like a front door.</h2>
           <p class="landing-muted-copy mb-0">
-            This first pass keeps the product grounded in the existing import and analytics model. The landing page stays modern and welcoming, while the content remains consistent with how the contest data is actually stored today.
+            The page stays honest to the current product: archive search, statement imports, topic tagging, and progress-oriented navigation.
           </p>
         </div>
 
-        <div class="landing-grid two">
-          <div class="landing-card">
-            <span class="landing-card-eyebrow">Curated archive</span>
-            <h3 class="h4 mt-2">One home for contests, problems, and tags</h3>
-            <div class="landing-feature-list">
-              <div class="landing-feature-item">
-                <span class="landing-feature-icon"><i class="ti ti-file-upload"></i></span>
-                <div>
-                  <h4 class="h6 mb-1">Workbook-first ingestion</h4>
-                  <p class="landing-muted-copy mb-0">The current archive comes from structured workbook imports, so the landing page reflects real imported fields instead of invented entities.</p>
-                </div>
-              </div>
-              <div class="landing-feature-item">
-                <span class="landing-feature-icon"><i class="ti ti-table"></i></span>
-                <div>
-                  <h4 class="h6 mb-1">Contest-aware organization</h4>
-                  <p class="landing-muted-copy mb-0">The contest table already gives us ranking, filtering, and summary language that translates well into a public-facing browse experience.</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="landing-card">
-            <span class="landing-card-eyebrow">Why this shape works</span>
-            <h3 class="h4 mt-2">A landing page that can grow without forcing users into the dashboard</h3>
-            <div class="landing-feature-list">
-              <div class="landing-feature-item">
-                <span class="landing-feature-icon"><i class="ti ti-search"></i></span>
-                <div>
-                  <h4 class="h6 mb-1">Search starts simple</h4>
-                  <p class="landing-muted-copy mb-0">Contests, problem identifiers, and topic tags are already indexable. Problem statement search can slot into the same experience later without a redesign.</p>
-                </div>
-              </div>
-              <div class="landing-feature-item">
-                <span class="landing-feature-icon"><i class="ti ti-layout-list"></i></span>
-                <div>
-                  <h4 class="h6 mb-1">Problem browsing stays standalone</h4>
-                  <p class="landing-muted-copy mb-0">The top nav can open a dedicated Problems experience directly, while admin analytics remain optional deeper tools.</p>
-                </div>
-              </div>
-            </div>
-          </div>
+        <div class="landing-feature-grid">
+          {% for stat in landing_highlights %}
+          <article class="landing-feature-panel">
+            <span class="landing-feature-icon">
+              <i class="{{ stat.icon }}"></i>
+            </span>
+            <div class="landing-feature-value">{{ stat.value }}</div>
+            <h3>{{ stat.label }}</h3>
+            <p>{{ stat.helper }}</p>
+          </article>
+          {% endfor %}
         </div>
       </div>
     </section>
 
-    <section id="problems" class="landing-section">
+    <section class="landing-section">
       <div class="container">
-        <div class="row g-4 align-items-start">
-          <div class="col-lg-7">
-            <div class="landing-section-head mb-0">
-              <span class="landing-card-eyebrow">Problems</span>
-              <h2>Problem discovery is ready to start with identifiers and tags.</h2>
-              <p class="landing-muted-copy mb-0">
-                Statements are not in the archive yet, so this section is designed around what already exists: problem labels, contest/year naming, topic roots, and parsed techniques.
-              </p>
-            </div>
+        <div class="landing-archive-grid">
+          <article class="landing-archive-panel">
+            <span class="landing-section-kicker">Archive snapshot</span>
+            <h2>Real coverage, not placeholder marketing numbers.</h2>
+            <p class="landing-muted-copy mb-0">
+              AsterProof already knows how wide the archive is, how far the year span reaches, and which contests carry the most indexed history.
+            </p>
 
-            <div class="landing-grid mt-4">
-              {% if library_access_enabled and featured_problems %}
-                {% for problem in featured_problems %}
-                <div class="landing-card landing-problem-card">
-                  <div class="landing-problem-top">
-                    <span class="landing-card-eyebrow">{{ problem.contest }}</span>
-                    <span class="landing-pill">MOHS {{ problem.mohs }}</span>
-                  </div>
-                  <h3 class="h5 mt-3 mb-2">{{ problem.contest_year_problem|default:problem.problem }}</h3>
-                  <p class="landing-muted-copy mb-0">
-                    Tagged under {{ problem.topic }} with {{ problem.technique_count }} technique row{{ problem.technique_count|pluralize }}.
-                  </p>
-                  <div class="landing-problem-meta">
-                    <span class="landing-pill">{{ problem.year }}</span>
-                    <span class="landing-pill">{{ problem.problem }}</span>
-                    <span class="landing-pill">Searchable now</span>
-                  </div>
-                </div>
-                {% endfor %}
-              {% else %}
-              <div class="landing-card landing-problem-card">
-                <span class="landing-card-eyebrow">Search-ready structure</span>
-                <h3 class="h4 mt-2">The UI is prepared for problem browsing.</h3>
-                <p class="landing-muted-copy mb-0">
-                  Once analytics access is available, this grid can surface imported problem identifiers immediately. When statement text arrives, the same cards can expand without changing the page structure.
-                </p>
+            <div class="landing-metric-grid">
+              <div class="landing-metric">
+                <div class="landing-metric-label">Contests</div>
+                <div class="landing-metric-value">{{ library_overview.contest_total }}</div>
               </div>
-              {% endif %}
-            </div>
-          </div>
-
-          <div class="col-lg-5">
-            <div class="landing-card h-100">
-              <span class="landing-card-eyebrow">Search Coverage</span>
-              <h3 class="h4 mt-2">What the landing search can handle</h3>
-              <div class="landing-feature-list">
-                <div class="landing-feature-item">
-                  <span class="landing-feature-icon"><i class="ti ti-trophy"></i></span>
-                  <div>
-                    <h4 class="h6 mb-1">Contest names</h4>
-                    <p class="landing-muted-copy mb-0">Contest rows already aggregate history well, so landing search can route contest lookups into the standalone contest explorer.</p>
-                  </div>
-                </div>
-                <div class="landing-feature-item">
-                  <span class="landing-feature-icon"><i class="ti ti-binary-tree-2"></i></span>
-                  <div>
-                    <h4 class="h6 mb-1">Problem identifiers</h4>
-                    <p class="landing-muted-copy mb-0">Problem codes and contest-year labels are already part of the imported dataset and can be searched today.</p>
-                  </div>
-                </div>
-                <div class="landing-feature-item">
-                  <span class="landing-feature-icon"><i class="ti ti-file-description"></i></span>
-                  <div>
-                    <h4 class="h6 mb-1">Problem statements</h4>
-                    <p class="landing-muted-copy mb-0">Not available yet, so the UI marks statement search as coming soon instead of pretending the data exists.</p>
-                  </div>
-                </div>
-                <div class="landing-feature-item">
-                  <span class="landing-feature-icon"><i class="ti ti-tags"></i></span>
-                  <div>
-                    <h4 class="h6 mb-1">Topic tags</h4>
-                    <p class="landing-muted-copy mb-0">Parsed techniques are already structured enough to power a quick tag-first discovery flow.</p>
-                  </div>
-                </div>
+              <div class="landing-metric">
+                <div class="landing-metric-label">Problems</div>
+                <div class="landing-metric-value">{{ library_overview.problem_total }}</div>
               </div>
-              {% if show_problem_import_link %}
-              <div class="mt-4">
-                <a href="{% url 'pages:problem_import' %}" class="btn btn-outline-secondary rounded-pill px-4">
-                  <i class="ti ti-file-upload me-1"></i> Manage problem data
-                </a>
+              <div class="landing-metric">
+                <div class="landing-metric-label">Topics + tags</div>
+                <div class="landing-metric-value">{{ library_overview.topic_total }} / {{ library_overview.tag_total }}</div>
               </div>
-              {% endif %}
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section id="trending" class="landing-section">
-      <div class="container">
-        <div class="row g-4 align-items-start">
-          <div class="col-lg-7">
-            <div class="landing-section-head mb-0">
-              <span class="landing-card-eyebrow">Trending</span>
-              <h2>Use the contest table to surface what deserves attention first.</h2>
-              <p class="landing-muted-copy mb-0">
-                Because the existing table is contest-level, the most natural "trending" view is a leaderboard of contests with the most stored problems, widest year coverage, and strongest annotation signals.
-              </p>
             </div>
 
-            <div class="landing-grid mt-4">
+            <div class="landing-list">
               {% if library_access_enabled and trending_contests %}
                 {% for contest in trending_contests %}
-                <div class="landing-card">
-                  <div class="landing-rank-row">
-                    <div class="d-flex align-items-center gap-3">
-                      <span class="landing-rank-number">{{ forloop.counter }}</span>
-                      <div>
-                        <h3 class="h5 mb-1">{{ contest.contest }}</h3>
-                        <p class="landing-muted-copy mb-0">{{ contest.problem_count }} problems across {{ contest.year_span_label }}</p>
-                      </div>
+                <div class="landing-list-row">
+                  <span class="landing-list-rank">{{ forloop.counter }}</span>
+                  <div>
+                    <h3>{{ contest.contest }}</h3>
+                    <div class="landing-list-meta">
+                      {{ contest.problem_count }} problems across {{ contest.year_span_label }}
+                      with {{ contest.active_years }} active year{{ contest.active_years|pluralize }}.
                     </div>
-                    <span class="landing-pill">Avg MOHS {{ contest.avg_mohs|floatformat:1 }}</span>
                   </div>
-                  <div class="landing-rank-meta">
-                    <span class="landing-pill">{{ contest.active_years }} active year{{ contest.active_years|pluralize }}</span>
-                    <span class="landing-pill">{{ contest.problem_count }} indexed</span>
+                  <span class="landing-pill">Avg MOHS {{ contest.avg_mohs|floatformat:1 }}</span>
+                </div>
+                {% endfor %}
+              {% else %}
+                <div class="landing-list-row">
+                  <span class="landing-list-rank">1</span>
+                  <div>
+                    <h3>Archive leaderboard</h3>
+                    <div class="landing-list-meta">
+                      Contest ranking will appear here as soon as imported problem rows are available.
+                    </div>
+                  </div>
+                  <span class="landing-pill">Waiting for data</span>
+                </div>
+              {% endif %}
+            </div>
+          </article>
+
+          <article class="landing-archive-panel">
+            <span class="landing-section-kicker">Indexed examples</span>
+            <h2>Recent problem rows and the tags shaping the library.</h2>
+            <p class="landing-muted-copy mb-0">
+              This side stays grounded in the imported archive too: recent rows, topic roots, MOHS values, and the techniques that surface most often.
+            </p>
+
+            <div class="landing-problem-stack">
+              {% if library_access_enabled and featured_problems %}
+                {% for problem in featured_problems %}
+                <div class="landing-problem-row">
+                  <div class="landing-problem-top">
+                    <span class="landing-problem-tagline">{{ problem.contest }}</span>
+                    <span class="landing-pill">MOHS {{ problem.mohs }}</span>
+                  </div>
+                  <h3 class="mt-3">{{ problem.contest_year_problem|default:problem.problem }}</h3>
+                  <div class="landing-problem-meta">
+                    {{ problem.topic }} topic, {{ problem.technique_count }} technique row{{ problem.technique_count|pluralize }}, {{ problem.year }}.
                   </div>
                 </div>
                 {% endfor %}
               {% else %}
-              <div class="landing-card">
-                <span class="landing-card-eyebrow">Contest leaderboard</span>
-                <h3 class="h4 mt-2">Live trending cards appear here for analytics-enabled users.</h3>
-                <p class="landing-muted-copy mb-0">
-                  The layout is already ready for ranked contests, year span summaries, and difficulty signals pulled from the current contest table.
-                </p>
-              </div>
+                <div class="landing-problem-row">
+                  <span class="landing-problem-tagline">Archive preview</span>
+                  <h3 class="mt-3">Problem cards will populate from imported rows.</h3>
+                  <div class="landing-problem-meta">
+                    Once records are present, this panel will show recent problem labels, their root topics, and archive difficulty signals.
+                  </div>
+                </div>
               {% endif %}
             </div>
-          </div>
 
-          <div class="col-lg-5">
-            <div class="landing-card h-100">
-              <span class="landing-card-eyebrow">Hot tags</span>
-              <h3 class="h4 mt-2">Topic tags give trending a second lens.</h3>
-              <p class="landing-muted-copy">
-                Contest rankings show breadth and scale. Tags reveal the techniques the archive talks about most often.
-              </p>
-              <div class="landing-tag-cloud">
-                {% if library_access_enabled and trending_tags %}
-                  {% for tag in trending_tags %}
-                  <span class="landing-tag">{{ tag.technique }} - {{ tag.problem_count }}</span>
-                  {% endfor %}
-                {% else %}
-                <span class="landing-tag">INVARIANTS</span>
-                <span class="landing-tag">CASEWORK</span>
-                <span class="landing-tag">PARITY</span>
-                <span class="landing-tag">GEOMETRY</span>
-                {% endif %}
-              </div>
-              {% if show_analytics_dashboard_link %}
-              <div class="mt-4">
-              <a href="{% url 'pages:contest_dashboard' %}" class="btn btn-primary rounded-pill px-4">
-                  <i class="ti ti-chart-histogram me-1"></i> Open contest analytics
-                </a>
-                <a href="{% url 'pages:problem_list' %}" class="btn btn-outline-secondary rounded-pill px-4 ms-2">
-                  <i class="ti ti-list-details me-1"></i> Open problems
-                </a>
-              </div>
+            <div class="landing-tag-cloud mt-4">
+              {% if library_access_enabled and trending_tags %}
+                {% for tag in trending_tags %}
+                <span class="landing-tag">{{ tag.technique }} · {{ tag.problem_count }}</span>
+                {% endfor %}
+              {% else %}
+                <span class="landing-tag">Parity</span>
+                <span class="landing-tag">Casework</span>
+                <span class="landing-tag">Geometry</span>
+                <span class="landing-tag">Invariants</span>
               {% endif %}
             </div>
-          </div>
+          </article>
         </div>
       </div>
     </section>
 
-    <section id="contact" class="landing-section">
+    <section class="landing-section">
       <div class="container">
-        <div class="landing-contact-band">
-          <div class="row g-4 align-items-center">
-            <div class="col-lg-7">
-              <span class="landing-card-eyebrow text-white">Contact</span>
-              <h2>Ready for the next layer: problem statements, richer search, and deeper contest browsing.</h2>
-              <p class="mb-0">
-                The landing page is built to stretch with the archive. Once statement text and richer problem detail arrive, we can expand search and discovery without replacing this structure.
-              </p>
-            </div>
-            <div class="col-lg-5">
-              <div class="landing-hero-actions justify-content-lg-end">
-                <a href="mailto:hello@asterproof.dev" class="btn btn-light btn-lg rounded-pill px-4">hello@asterproof.dev</a>
-                <a href="{% url 'users:profile_edit' %}" class="btn btn-outline-light btn-lg rounded-pill px-4">Edit profile</a>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="landing-grid two mt-4">
-          <div class="landing-card">
-            <span class="landing-card-eyebrow">Support</span>
-            <h3 class="h4 mt-2">Need a new import or taxonomy pass?</h3>
-            <p class="landing-muted-copy mb-0">
-              The current workflow already supports workbook preview and import, so new contest data can feed this landing experience without extra page scaffolding.
+        <div class="landing-cta-panel">
+          <div>
+            <span class="landing-section-kicker">Start here</span>
+            <h2>Open the archive now, then grow the navigation later.</h2>
+            <p>
+              The core routes are already in place. This landing page simply gives them a sharper, calmer front-end shell without pretending the product is something else.
             </p>
           </div>
-          <div class="landing-card">
-            <span class="landing-card-eyebrow">Profile access</span>
-            <h3 class="h4 mt-2">Your personal entry point stays one click away.</h3>
-            <p class="landing-muted-copy mb-0">
-              The top navbar keeps Profile visible so the landing page feels like a real home screen, not a dead-end marketing page.
-            </p>
+          <div class="landing-action-row">
+            <a href="{% url 'pages:problem_list' %}" class="landing-action landing-action-primary">
+              <i class="ti ti-arrow-up-right"></i>
+              Browse problems
+            </a>
+            <a href="{% url 'users:profile' %}" class="landing-action landing-action-secondary">
+              <i class="ti ti-user"></i>
+              Go to profile
+            </a>
           </div>
         </div>
       </div>
@@ -1007,58 +1057,10 @@
 
   <footer class="landing-footer">
     <div class="container">
-      <div class="landing-footer-card">
-        <div class="row g-4">
-          <div class="col-lg-4">
-            <a href="#home" class="landing-brand">
-              <span class="landing-brand-mark">
-                <i class="ti ti-asterisk-simple"></i>
-              </span>
-              <span class="landing-brand-copy">
-                <span>Placeholder Name</span>
-                <strong>AsterProof</strong>
-              </span>
-            </a>
-            <p class="landing-muted-copy mt-3 mb-0">
-              A contest-first archive for searching problem identifiers, tracking topic tags, and growing into full statement-level discovery.
-            </p>
-          </div>
-          <div class="col-sm-6 col-lg-3">
-            <h3 class="h6 mb-3">Navigate</h3>
-            <div class="landing-footer-links flex-column align-items-start gap-2">
-              <a href="#home">Home</a>
-              <a href="#about-us">About Us</a>
-              <a href="{% url 'pages:problem_list' %}">Problems</a>
-              <a href="#trending">Trending</a>
-              <a href="#contact">Contact</a>
-            </div>
-          </div>
-          <div class="col-sm-6 col-lg-2">
-            <h3 class="h6 mb-3">Workspace</h3>
-            <div class="landing-footer-links flex-column align-items-start gap-2">
-              <a href="{% url 'users:profile' %}">Profile</a>
-              <a href="{% url 'users:profile_edit' %}">Edit profile</a>
-              {% if show_analytics_dashboard_link %}
-              <a href="{% url 'pages:dashboard' %}">Problem analytics</a>
-              <a href="{% url 'pages:contest_dashboard' %}">Contests</a>
-              <a href="{% url 'pages:problem_list' %}">Problem explorer</a>
-              {% endif %}
-            </div>
-          </div>
-          <div class="col-lg-3">
-            <h3 class="h6 mb-3">Library snapshot</h3>
-            <div class="landing-tag-cloud">
-              <span class="landing-tag">{{ library_overview.contest_total }} contests</span>
-              <span class="landing-tag">{{ library_overview.problem_total }} problems</span>
-              <span class="landing-tag">{{ library_overview.tag_total }} tags</span>
-              <span class="landing-tag">{{ library_overview.year_range_label }}</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="landing-footer-bottom">
+      <div class="landing-footer-shell">
+        <div class="landing-footer-row">
           <span>&copy; <script>document.write(new Date().getFullYear())</script> AsterProof</span>
-          <span>Landing page for contest search, problem discovery, and profile access.</span>
+          <span>{{ library_overview.contest_total }} contests, {{ library_overview.problem_total }} indexed problems, {{ library_overview.year_range_label }}</span>
         </div>
       </div>
     </div>

@@ -7,8 +7,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
-from django.db.models import Count
 from django.db.models import Avg
+from django.db.models import Count
 from django.db.models import F
 from django.db.models import Max
 from django.db.models import Min
@@ -26,7 +26,6 @@ from django.views.generic import UpdateView
 
 from inspinia.pages.forms import ProblemCompletionPasteForm
 from inspinia.pages.models import UserProblemCompletion
-from inspinia.pages.problem_completion_import import import_problem_completion_text_for_user
 from inspinia.users.forms import UserProfileForm
 from inspinia.users.models import AuditEvent
 from inspinia.users.models import User
@@ -207,32 +206,8 @@ class PublicProfileView(LoginRequiredMixin, DetailView):
         return context
 
     def post(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        completion_import_form = ProblemCompletionPasteForm(request.POST)
-        if completion_import_form.is_valid():
-            result = import_problem_completion_text_for_user(
-                request.user,
-                completion_import_form.cleaned_data["source_text"],
-            )
-            if result.n_completions:
-                success_message = f"Updated {result.n_completions} completion row(s)."
-                if result.n_unknown_dates:
-                    success_message += (
-                        f" {result.n_unknown_dates} marked Done without an exact date."
-                    )
-                messages.success(request, success_message)
-            else:
-                messages.info(request, "No completion rows were updated.")
-            _emit_warning_messages(
-                request,
-                result.warnings,
-                overflow_label="completion import warnings",
-            )
-            return redirect("users:profile")
-
-        messages.error(request, "Please fix the completion import form and try again.")
-        context = self.get_context_data(completion_import_form=completion_import_form)
-        return self.render_to_response(context)
+        messages.info(request, "Completion import moved to My activity.")
+        return redirect("pages:user_activity_dashboard")
 
 
 public_profile_view = PublicProfileView.as_view()
@@ -263,14 +238,6 @@ class UserRedirectView(LoginRequiredMixin, RedirectView):
 
 
 user_redirect_view = UserRedirectView.as_view()
-
-
-def _emit_warning_messages(request, warnings: list[str], *, overflow_label: str) -> None:
-    max_warn = 25
-    for warning in warnings[:max_warn]:
-        messages.warning(request, warning)
-    if len(warnings) > max_warn:
-        messages.warning(request, f"...and {len(warnings) - max_warn} more {overflow_label}.")
 
 
 def _require_app_admin(request) -> None:

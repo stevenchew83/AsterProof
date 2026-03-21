@@ -26,6 +26,8 @@ from inspinia.users.views import user_detail_view
 
 pytestmark = pytest.mark.django_db
 EXPECTED_IMPORTED_COMPLETION_TOTAL = 2
+EXPECTED_PROFILE_AVG_MOHS = 4.5
+EXPECTED_PROFILE_MAX_MOHS = 5
 
 
 class TestUserUpdateView:
@@ -240,7 +242,8 @@ class TestPublicProfileView:
         assert "Malaysia" in content
         assert "https://github.com/example" in content
         assert reverse("users:profile_edit") in content
-        assert "Import completions" in content
+        assert "Import moved to My activity." in content
+        assert reverse("pages:user_activity_dashboard") in content
         assert "Your solving dashboard" in content
         assert "Top contests" in content
         assert "Top topics" in content
@@ -290,7 +293,7 @@ class TestPublicProfileView:
         assert 'name="birthdate"' in response.content.decode()
         assert 'type="date"' in response.content.decode()
 
-    def test_profile_post_imports_completion_text_for_current_user(self, user: User, client: Client):
+    def test_profile_post_redirects_completion_import_to_activity_dashboard(self, user: User, client: Client):
         client.force_login(user)
         record_with_date = ProblemSolveRecord.objects.create(
             year=2026,
@@ -322,31 +325,10 @@ class TestPublicProfileView:
         )
 
         assert response.status_code == HTTPStatus.OK
-        assert UserProblemCompletion.objects.filter(user=user).count() == EXPECTED_IMPORTED_COMPLETION_TOTAL
-        dated_completion = UserProblemCompletion.objects.get(user=user, problem=record_with_date)
-        assert dated_completion.completion_date == date(2025, 8, 28)
-        assert UserProblemCompletion.objects.get(
-            user=user,
-            problem=record_done,
-        ).completion_date is None
-        page = response.content.decode()
-        assert "Your solving dashboard" in page
-        assert "Your recent solved problems" in page
-        assert "Avg MOHS" in page
-        assert "Hardest solved" in page
-        assert "MOHS breakdown" in page
-        assert "ISRAEL TST 2026 P2" in page
-        assert "Completed 2025-08-28" in page
-        assert "Done" in page
-        assert page.index("Your recent solved problems") < page.index("Completion import")
-        assert response.context["completion_analytics"]["avg_mohs"] == 4.5
-        assert response.context["completion_analytics"]["max_mohs"] == 5
-        assert response.context["completion_dashboards"]["by_mohs"] == [
-            {"label": "MOHS 4", "total": 1, "width_pct": 100},
-            {"label": "MOHS 5", "total": 1, "width_pct": 100},
-        ]
+        assert response.request["PATH_INFO"] == reverse("pages:user_activity_dashboard")
+        assert UserProblemCompletion.objects.filter(user=user).count() == 0
         assert any(
-            "Updated 2 completion row(s). 1 marked Done without an exact date." in str(message)
+            "Completion import moved to My activity." in str(message)
             for message in response.context["messages"]
         )
 
@@ -395,9 +377,10 @@ class TestPublicProfileView:
         assert "Completed 2025-08-28" in content
         assert "IMO 2025 P1" in content
         assert "Done" in content
-        assert content.index("Your recent solved problems") < content.index("Completion import")
-        assert response.context["completion_analytics"]["avg_mohs"] == 4.5
-        assert response.context["completion_analytics"]["max_mohs"] == 5
+        assert "Import moved to My activity." in content
+        assert reverse("pages:user_activity_dashboard") in content
+        assert response.context["completion_analytics"]["avg_mohs"] == EXPECTED_PROFILE_AVG_MOHS
+        assert response.context["completion_analytics"]["max_mohs"] == EXPECTED_PROFILE_MAX_MOHS
         assert response.context["completion_dashboards"]["by_mohs"] == [
             {"label": "MOHS 4", "total": 1, "width_pct": 100},
             {"label": "MOHS 5", "total": 1, "width_pct": 100},

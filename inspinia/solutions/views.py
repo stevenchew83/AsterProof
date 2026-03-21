@@ -1,3 +1,4 @@
+import re
 from collections import Counter
 
 from django.contrib import messages
@@ -111,6 +112,93 @@ def _solution_card_rows(solutions: list[ProblemSolution]) -> list[dict]:
     ]
 
 
+def _statement_preview_text(statement_latex: str, *, max_length: int = 220) -> str:
+    collapsed = re.sub(r"\s+", " ", (statement_latex or "").strip())
+    if len(collapsed) <= max_length:
+        return collapsed
+    return f"{collapsed[: max_length - 1].rstrip()}…"
+
+
+def _statement_backed_problem_rows(user) -> list[dict]:
+    latest_statement_by_problem_id: dict[int, ContestProblemStatement] = {}
+    for statement in (
+        ContestProblemStatement.objects.filter(linked_problem__isnull=False)
+        .select_related("linked_problem")
+        .order_by("-updated_at", "-id")
+    ):
+        if statement.linked_problem_id in latest_statement_by_problem_id:
+            continue
+        latest_statement_by_problem_id[statement.linked_problem_id] = statement
+
+    if not latest_statement_by_problem_id:
+        return []
+
+    statements = list(latest_statement_by_problem_id.values())
+    problem_ids = [statement.linked_problem_id for statement in statements if statement.linked_problem_id is not None]
+    solution_status_by_problem_id = {
+        row["problem_id"]: row["status"]
+        for row in ProblemSolution.objects.filter(
+            author=user,
+            problem_id__in=problem_ids,
+        ).values("problem_id", "status")
+    }
+    contest_to_slug, _slug_to_contest = _build_contest_slug_maps(
+        [statement.linked_problem.contest for statement in statements if statement.linked_problem is not None],
+    )
+
+    rows: list[dict] = []
+    for statement in sorted(
+        statements,
+        key=lambda row: (
+            -int(row.linked_problem.year),
+            row.linked_problem.contest,
+            row.linked_problem.problem,
+            row.problem_code,
+        ),
+    ):
+        problem = statement.linked_problem
+        if problem is None:
+            continue
+
+        problem_label = problem.contest_year_problem or f"{problem.contest} {problem.year} {problem.problem}"
+        solution_status = solution_status_by_problem_id.get(problem.id, "")
+        contest_slug = contest_to_slug.get(problem.contest)
+        contest_archive_url = ""
+        if contest_slug:
+            contest_archive_url = reverse("pages:contest_problem_list", args=[contest_slug]) + "#" + _problem_anchor(
+                problem_label,
+                f"{problem.year}-{problem.problem}",
+            )
+
+        rows.append(
+            {
+                "contest_archive_url": contest_archive_url,
+                "editor_button_label": "Continue solution" if solution_status else "Start solution",
+                "editor_url": reverse("solutions:problem_solution_edit", args=[problem.problem_uuid]),
+                "has_solution": bool(solution_status),
+                "problem_label": problem_label,
+                "problem_topic": problem.topic,
+                "problem_mohs": problem.mohs,
+                "problem_url": reverse("solutions:problem_solution_list", args=[problem.problem_uuid]),
+                "solution_status_badge_class": (
+                    _solution_status_badge(solution_status) if solution_status else "text-bg-light"
+                ),
+                "solution_status_label": (
+                    ProblemSolution.Status(solution_status).label if solution_status else "Not started"
+                ),
+                "statement_label": (
+                    f"{statement.problem_code} · {statement.day_label}"
+                    if statement.day_label
+                    else statement.problem_code
+                ),
+                "statement_preview": _statement_preview_text(statement.statement_latex),
+                "statement_updated_at_label": timezone.localtime(statement.updated_at).strftime("%Y-%m-%d"),
+            },
+        )
+
+    return rows
+
+
 def _save_solution_blocks(formset, solution: ProblemSolution) -> None:
     ordered_forms = [
         form
@@ -178,6 +266,21 @@ def my_solution_list_view(request):
         },
     }
     return render(request, "solutions/my-solution-list.html", context)
+
+
+@login_required
+def problem_solution_create_view(request):
+    statement_problem_rows = _statement_backed_problem_rows(request.user)
+    started_total = sum(1 for row in statement_problem_rows if row["has_solution"])
+    context = {
+        "create_stats": {
+            "ready_total": len(statement_problem_rows) - started_total,
+            "started_total": started_total,
+            "statement_problem_total": len(statement_problem_rows),
+        },
+        "statement_problem_rows": statement_problem_rows,
+    }
+    return render(request, "solutions/problem-solution-create.html", context)
 
 
 @login_required

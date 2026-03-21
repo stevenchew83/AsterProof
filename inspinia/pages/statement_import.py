@@ -12,13 +12,14 @@ from inspinia.pages.models import ProblemSolveRecord
 
 IGNORED_STATEMENT_LINES = {
     "Stuttgarden",
+    "Click to reveal hidden text",
     "view topic",
 }
 HEADER_LINE_RE = re.compile(
     r"^\s*(?P<year_start>\d{4})(?:\s*(?:/|-)\s*(?P<year_end>\d{4}))?\s+(?P<contest>.+?)\s*$",
 )
 DAY_LABEL_RE = re.compile(
-    r"^Day\s+(?P<token>\d+|[IVXLCDM]+)(?:\s+(?P<detail>.+))?$",
+    r"^Day\s*(?P<token>\d+|[IVXLCDM]+)(?:\s+(?P<detail>.+))?$",
     flags=re.IGNORECASE,
 )
 TST_DAY_LABEL_RE = re.compile(
@@ -28,13 +29,42 @@ TST_DAY_LABEL_RE = re.compile(
 ROUND_LABEL_RE = re.compile(r"^(?:\d+\s+)?(?P<label>Round\s+[A-Za-z0-9].*)$", flags=re.IGNORECASE)
 SOLUTION_LINE_RE = re.compile(r"^Solution$", flags=re.IGNORECASE)
 TEST_LABEL_RE = re.compile(r"^Test\s+\d+$", flags=re.IGNORECASE)
-SEASON_SECTION_RE = re.compile(r"^(?P<season>Fall|Spring)\s+(?P<year>\d{4})$", flags=re.IGNORECASE)
+SEASON_SECTION_RE = re.compile(
+    r"^(?P<season>Fall|Autumn|Spring)\s+(?P<year>\d{4})$",
+    flags=re.IGNORECASE,
+)
+YEAR_FIRST_SEASON_SECTION_RE = re.compile(
+    r"^(?P<year>\d{4})\s+(?P<season>Fall|Autumn|Spring)$",
+    flags=re.IGNORECASE,
+)
 LEVEL_SECTION_RE = re.compile(
     r"^(?P<division>Junior|Senior)\s+(?P<track>[AO])-Level$",
     flags=re.IGNORECASE,
 )
+DIVISION_SECTION_RE = re.compile(r"^(?P<division>Junior|Juniors|Senior|Seniors)$", flags=re.IGNORECASE)
+TRACK_SECTION_RE = re.compile(r"^(?P<track>[AO])(?:\s*-\s*|\s+)Level$", flags=re.IGNORECASE)
+INLINE_SEASON_LEVEL_SECTION_RE = re.compile(
+    r"^(?P<season>Fall|Autumn|Spring)\s+(?P<year>\d{4})\s+(?P<track>[AO])-level\s+(?P<division>Junior|Senior)$",
+    flags=re.IGNORECASE,
+)
+HYPHENATED_SEASON_LEVEL_SECTION_RE = re.compile(
+    r"^(?P<season>Fall|Autumn|Spring)\s+(?P<year>\d{4})\s*-\s*(?P<division>Junior|Senior)\s+(?P<track>[AO])-level$",
+    flags=re.IGNORECASE,
+)
+YEARLESS_HYPHENATED_SEASON_LEVEL_SECTION_RE = re.compile(
+    r"^(?P<season>Fall|Autumn|Spring)\s*-\s*(?P<division>Junior|Senior)\s+(?P<track>[AO])-level$",
+    flags=re.IGNORECASE,
+)
+YEARLESS_SEASON_LEVEL_SECTION_RE = re.compile(
+    r"^(?P<season>Fall|Autumn|Spring)\s+(?P<division>Junior|Senior)\s+(?P<track>[AO])-level(?:\s+Paper)?$",
+    flags=re.IGNORECASE,
+)
+ROUND_PREFIXED_YEARLESS_SEASON_LEVEL_SECTION_RE = re.compile(
+    r"^(?P<round>[IVXLCDM]+)\.\s*(?P<season>Fall|Autumn|Spring)\s*-\s*(?P<division>Junior|Senior)(?:\s*-\s*|\s+)(?P<track>[AO])-level(?:\s+Paper)?$",
+    flags=re.IGNORECASE,
+)
 PROBLEM_START_RE = re.compile(
-    r"^(?:(?P<prefix>[A-Za-z]{1,4})\s*)?(?P<number>\d{1,3})[.)]?\s+(?P<statement>.+)$",
+    r"^(?:\((?P<catalog_number>\d{1,4})\)\s*)?(?:(?P<prefix>[A-Za-z]{1,4})\s*)?(?P<number>\d{1,3})[.)]?(?:\s+(?P<statement>.+))?$",
     flags=re.IGNORECASE,
 )
 TEXT_ONLY_EMPH_INLINE_RE = re.compile(r"\$(?P<content>\\emph\{[^$]+?\})\$")
@@ -43,11 +73,11 @@ TEXT_ONLY_EMPH_DISPLAY_RE = re.compile(r"\$\$(?P<content>\\emph\{.*?\})\$\$", fl
 TEXT_ONLY_EMPH_BRACKET_RE = re.compile(r"\\\[(?P<content>\\emph\{.*?\})\\\]", flags=re.DOTALL)
 SECTION_HEADER_RE = re.compile(r"^[A-Za-z][A-Za-z0-9]*(?: [A-Za-z0-9][A-Za-z0-9]*){0,3}$")
 PAPER_SECTION_RE = re.compile(
-    r"^(?:Junior|Senior)\s+[AO]-Level\s+Paper,\s+(?:Fall|Spring)\s+\d{4}$",
+    r"^(?:Junior|Senior)\s+[AO]-Level\s+Paper,\s+(?:Fall|Autumn|Spring)\s+\d{4}$",
     flags=re.IGNORECASE,
 )
 SEASON_FIRST_PAPER_SECTION_RE = re.compile(
-    r"^(?:Fall|Spring)\s+\d{4},\s+(?:Junior|Senior)\s+[AO]-level$",
+    r"^(?:Fall|Autumn|Spring)\s+\d{4},\s+(?:Junior|Senior)\s+[AO]-level$",
     flags=re.IGNORECASE,
 )
 SPECIAL_PROBLEM_CODE_RE = re.compile(r"^(?P<code>Bonus)[.)]?\s+(?P<statement>.+)$", flags=re.IGNORECASE)
@@ -58,7 +88,7 @@ TRAILING_AUTHOR_LINE_RE = re.compile(
 TRAILING_PROPOSED_BY_LINE_RE = re.compile(r"^(?:\(?\s*)proposed by\b.+$", flags=re.IGNORECASE)
 USERNAME_LINE_RE = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9_.-]*$")
 NOTE_METADATA_LINE_RE = re.compile(
-    r"^(?:note|junior version (?:posted )?here|senior version (?:posted )?here)$",
+    r"^(?:note|junior version (?:posted )?here|senior version (?:posted )?here|\(translated from here\.\))$",
     flags=re.IGNORECASE,
 )
 SECTION_HEADER_LABELS = frozenset(
@@ -186,6 +216,7 @@ class ProblemStatementRelinkResult:
 
 @dataclass
 class _StatementParseState:
+    contest_year: int | None = None
     current_day: str = ""
     current_primary_section: str = ""
     current_secondary_section: str = ""
@@ -250,6 +281,19 @@ def _is_trailing_credit_line(line: str, *, day_label: str) -> bool:
     )
 
 
+def _is_generic_trailing_metadata_line(line: str) -> bool:
+    stripped_line = line.strip()
+    if not stripped_line:
+        return False
+    if stripped_line in IGNORED_STATEMENT_LINES:
+        return True
+    if NOTE_METADATA_LINE_RE.fullmatch(stripped_line):
+        return True
+    if USERNAME_LINE_RE.fullmatch(stripped_line):
+        return True
+    return _looks_like_author_credit_line(stripped_line)
+
+
 def _trim_trailing_problem_metadata(lines: list[str], *, day_label: str) -> list[str]:
     trimmed_lines = list(lines)
 
@@ -257,6 +301,11 @@ def _trim_trailing_problem_metadata(lines: list[str], *, day_label: str) -> list
         trimmed_lines.pop()
 
     while trimmed_lines and _is_trailing_credit_line(trimmed_lines[-1].strip(), day_label=day_label):
+        trimmed_lines.pop()
+        while trimmed_lines and not trimmed_lines[-1].strip():
+            trimmed_lines.pop()
+
+    while trimmed_lines and _is_generic_trailing_metadata_line(trimmed_lines[-1]):
         trimmed_lines.pop()
         while trimmed_lines and not trimmed_lines[-1].strip():
             trimmed_lines.pop()
@@ -350,6 +399,25 @@ def _set_secondary_section(state: _StatementParseState, label: str) -> None:
         state.current_primary_section,
         state.current_secondary_section,
     )
+
+
+def _set_division_section(state: _StatementParseState, label: str) -> None:
+    _set_secondary_section(state, label)
+
+
+def _division_from_secondary_label(label: str) -> str:
+    stripped_label = label.strip()
+    if stripped_label.startswith("Junior"):
+        return "Junior"
+    if stripped_label.startswith("Senior"):
+        return "Senior"
+    return ""
+
+
+def _set_track_section(state: _StatementParseState, label: str) -> None:
+    division = _division_from_secondary_label(state.current_secondary_section)
+    _set_secondary_section(state, f"{division} {label}".strip())
+
 
 def _next_nonempty_lines(lines: list[str], current_index: int, *, limit: int = 1) -> list[str]:
     candidates: list[str] = []
@@ -459,10 +527,21 @@ def _normalized_paper_section_label(line: str) -> str | None:
 
 
 def _normalized_season_section_label(line: str) -> str | None:
-    match = SEASON_SECTION_RE.fullmatch(" ".join(line.split()))
+    candidate = " ".join(line.split())
+    match = SEASON_SECTION_RE.fullmatch(candidate)
+    if match is None:
+        match = YEAR_FIRST_SEASON_SECTION_RE.fullmatch(candidate)
     if match is None:
         return None
     return f"{match.group('season').title()} {match.group('year')}"
+
+
+def _normalized_division_section_label(line: str) -> str | None:
+    match = DIVISION_SECTION_RE.fullmatch(" ".join(line.split()))
+    if match is None:
+        return None
+    division = match.group("division").casefold()
+    return "Junior" if division.startswith("junior") else "Senior"
 
 
 def _normalized_level_section_label(line: str) -> str | None:
@@ -470,6 +549,81 @@ def _normalized_level_section_label(line: str) -> str | None:
     if match is None:
         return None
     return f"{match.group('division').title()} {match.group('track').upper()}-Level"
+
+
+def _normalized_track_section_label(line: str) -> str | None:
+    match = TRACK_SECTION_RE.fullmatch(" ".join(line.split()))
+    if match is None:
+        return None
+    return f"{match.group('track').upper()}-Level"
+
+
+def _normalized_inline_season_level_label(line: str) -> str | None:
+    match = INLINE_SEASON_LEVEL_SECTION_RE.fullmatch(" ".join(line.split()))
+    if match is None:
+        return None
+    return (
+        f"{match.group('season').title()} {match.group('year')}"
+        f" · {match.group('division').title()} {match.group('track').upper()}-Level"
+    )
+
+
+def _normalized_hyphenated_season_level_label(line: str) -> str | None:
+    match = HYPHENATED_SEASON_LEVEL_SECTION_RE.fullmatch(" ".join(line.split()))
+    if match is None:
+        return None
+    return (
+        f"{match.group('season').title()} {match.group('year')}"
+        f" · {match.group('division').title()} {match.group('track').upper()}-Level"
+    )
+
+
+def _normalized_yearless_hyphenated_season_level_label(
+    line: str,
+    *,
+    contest_year: int | None,
+) -> str | None:
+    if contest_year is None:
+        return None
+    match = YEARLESS_HYPHENATED_SEASON_LEVEL_SECTION_RE.fullmatch(" ".join(line.split()))
+    if match is None:
+        return None
+    return (
+        f"{match.group('season').title()} {contest_year}"
+        f" · {match.group('division').title()} {match.group('track').upper()}-Level"
+    )
+
+
+def _normalized_yearless_season_level_label(
+    line: str,
+    *,
+    contest_year: int | None,
+) -> str | None:
+    if contest_year is None:
+        return None
+    match = YEARLESS_SEASON_LEVEL_SECTION_RE.fullmatch(" ".join(line.split()))
+    if match is None:
+        return None
+    return (
+        f"{match.group('season').title()} {contest_year}"
+        f" · {match.group('division').title()} {match.group('track').upper()}-Level"
+    )
+
+
+def _normalized_round_prefixed_yearless_season_level_label(
+    line: str,
+    *,
+    contest_year: int | None,
+) -> str | None:
+    if contest_year is None:
+        return None
+    match = ROUND_PREFIXED_YEARLESS_SEASON_LEVEL_SECTION_RE.fullmatch(" ".join(line.split()))
+    if match is None:
+        return None
+    return (
+        f"{match.group('season').title()} {contest_year}"
+        f" · {match.group('division').title()} {match.group('track').upper()}-Level"
+    )
 
 
 def _normalized_problem_statement_text(statement: str, *, number: int) -> str:
@@ -534,12 +688,15 @@ def _start_numbered_problem(state: _StatementParseState, match: re.Match[str]) -
     _flush_problem(state)
     number = int(match.group("number"))
     prefix = (match.group("prefix") or "P").upper()
+    statement_text = (match.group("statement") or "").strip()
     state.current_problem_code = f"{prefix}{number}"
     state.current_problem_number = number
     state.awaiting_new_problem = False
-    state.current_statement_lines = [
-        _normalized_problem_statement_text(match.group("statement"), number=number),
-    ]
+    state.current_statement_lines = (
+        [_normalized_problem_statement_text(statement_text, number=number)]
+        if statement_text
+        else []
+    )
 
 
 def _can_start_inline_numbered_problem(
@@ -550,13 +707,17 @@ def _can_start_inline_numbered_problem(
         return True
     if state.awaiting_new_problem:
         return True
+    if problem_match.group("catalog_number"):
+        return True
 
     prefix = (problem_match.group("prefix") or "").strip()
     if prefix:
         return True
 
     number = int(problem_match.group("number"))
-    statement = problem_match.group("statement").lstrip()
+    statement = (problem_match.group("statement") or "").lstrip()
+    if not statement:
+        return False
     first_char = statement[:1]
     return number == state.current_problem_number + 1 and first_char.isalpha()
 
@@ -574,9 +735,49 @@ def _consume_header_or_problem_line(
     elif tst_day_label := _normalized_tst_day_label(line):
         _flush_problem(state)
         _set_primary_section(state, tst_day_label)
+    elif inline_season_level_label := _normalized_inline_season_level_label(line):
+        _flush_problem(state)
+        state.current_primary_section = inline_season_level_label.split(" · ", 1)[0]
+        state.current_secondary_section = inline_season_level_label.split(" · ", 1)[1]
+        state.current_day = inline_season_level_label
+    elif hyphenated_season_level_label := _normalized_hyphenated_season_level_label(line):
+        _flush_problem(state)
+        state.current_primary_section = hyphenated_season_level_label.split(" · ", 1)[0]
+        state.current_secondary_section = hyphenated_season_level_label.split(" · ", 1)[1]
+        state.current_day = hyphenated_season_level_label
+    elif yearless_hyphenated_season_level_label := _normalized_yearless_hyphenated_season_level_label(
+        line,
+        contest_year=state.contest_year,
+    ):
+        _flush_problem(state)
+        state.current_primary_section = yearless_hyphenated_season_level_label.split(" · ", 1)[0]
+        state.current_secondary_section = yearless_hyphenated_season_level_label.split(" · ", 1)[1]
+        state.current_day = yearless_hyphenated_season_level_label
+    elif yearless_season_level_label := _normalized_yearless_season_level_label(
+        line,
+        contest_year=state.contest_year,
+    ):
+        _flush_problem(state)
+        state.current_primary_section = yearless_season_level_label.split(" · ", 1)[0]
+        state.current_secondary_section = yearless_season_level_label.split(" · ", 1)[1]
+        state.current_day = yearless_season_level_label
+    elif round_prefixed_yearless_season_level_label := _normalized_round_prefixed_yearless_season_level_label(
+        line,
+        contest_year=state.contest_year,
+    ):
+        _flush_problem(state)
+        state.current_primary_section = round_prefixed_yearless_season_level_label.split(" · ", 1)[0]
+        state.current_secondary_section = round_prefixed_yearless_season_level_label.split(" · ", 1)[1]
+        state.current_day = round_prefixed_yearless_season_level_label
     elif season_label := _normalized_season_section_label(line):
         _flush_problem(state)
         _set_primary_section(state, season_label)
+    elif division_label := _normalized_division_section_label(line):
+        _flush_problem(state)
+        _set_division_section(state, division_label)
+    elif track_label := _normalized_track_section_label(line):
+        _flush_problem(state)
+        _set_track_section(state, track_label)
     elif round_match := ROUND_LABEL_RE.fullmatch(line):
         _flush_problem(state)
         _set_primary_section(state, round_match.group("label").title())
@@ -649,7 +850,7 @@ def _consume_statement_line(
 def parse_contest_problem_statements(raw_text: str) -> ParsedContestStatementImport:
     lines = _normalized_statement_lines(raw_text)
     contest_year, contest_name, remaining_lines = _parse_contest_header(lines)
-    state = _StatementParseState()
+    state = _StatementParseState(contest_year=contest_year)
 
     for index, raw_line in enumerate(remaining_lines):
         next_nonempty_lines = _next_nonempty_lines(remaining_lines, index, limit=3)

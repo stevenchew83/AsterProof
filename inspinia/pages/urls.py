@@ -9,6 +9,7 @@ from inspinia.pages.views import latex_preview_view
 from inspinia.pages.views import problem_import_view
 from inspinia.pages.views import problem_list_view
 from inspinia.pages.views import problem_statement_analytics_view
+from inspinia.pages.views import problem_statement_duplicate_view
 from inspinia.pages.views import problem_statement_list_view
 from inspinia.pages.views import root_page_view
 from inspinia.pages.views import statement_render_preview_view
@@ -29,6 +30,11 @@ urlpatterns = [
         name="problem_statement_dashboard",
     ),
     path("dashboard/problem-statements/", problem_statement_list_view, name="problem_statement_list"),
+    path(
+        "tools/problem-statements/duplicates/",
+        problem_statement_duplicate_view,
+        name="problem_statement_duplicates",
+    ),
     path("tools/contest-details/", contest_details_view, name="contest_details"),
     path("tools/contest-rename/", contest_rename_view, name="contest_rename"),
     path("tools/latex-preview/", latex_preview_view, name="latex_preview"),

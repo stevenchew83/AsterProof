@@ -643,43 +643,30 @@
             <div class="row g-4 align-items-start">
               <div class="col-lg-5">
                 <span class="problem-label">Completion import</span>
-                <h2 class="h3 mt-2 mb-1">Paste solved problems here.</h2>
+                <h2 class="h3 mt-2 mb-1">Import moved to My activity.</h2>
                 <p class="problem-muted mb-0">
-                  Update your own completion history from your profile. Paste <span class="fw-semibold">PROBLEM UUID + Date</span> rows and use <span class="fw-semibold">Done</span> when you do not remember the exact date.
+                  Your completion import workflow now lives in the dashboard-style <span class="fw-semibold">My activity</span> page, alongside the heatmaps and completion table it updates.
                 </p>
-                <div class="problem-badge-row mt-4">
-                  <span class="problem-pill">{{ completion_import_stats.completed_total }} completed</span>
-                  <span class="problem-pill">{{ completion_import_stats.dated_total }} dated</span>
-                  <span class="problem-pill">{{ completion_import_stats.unknown_date_total }} marked Done</span>
-                </div>
                 <div class="problem-chip-row mt-4">
+                  <a class="problem-pill" href="{% url 'pages:user_activity_dashboard' %}">
+                    <i class="ti ti-activity"></i> Open My activity
+                  </a>
                   <a class="problem-pill" href="{% url 'pages:problem_list' %}">
                     <i class="ti ti-list-details"></i> Find problem UUIDs
                   </a>
                 </div>
               </div>
               <div class="col-lg-7">
-                <form method="post">
-                  {% csrf_token %}
-                  <label for="{{ completion_import_form.source_text.id_for_label }}" class="form-label fw-semibold">
-                    {{ completion_import_form.source_text.label }}
-                  </label>
-                  {{ completion_import_form.source_text }}
-                  {% if completion_import_form.source_text.errors %}
-                    <div class="text-danger small mt-2">{{ completion_import_form.source_text.errors|join:", " }}</div>
-                  {% endif %}
-                  {% if completion_import_form.source_text.help_text %}
-                    <div class="form-text mt-2">{{ completion_import_form.source_text.help_text }}</div>
-                  {% endif %}
-                  <div class="d-flex flex-wrap gap-2 mt-3">
-                    <button type="submit" class="btn btn-primary rounded-pill px-4">
-                      <i class="ti ti-upload me-1"></i> Import completions
-                    </button>
-                    <span class="problem-muted small align-self-center">
-                      Header row is optional. Tabs or plain whitespace both work.
-                    </span>
+                <div class="problem-directory-card h-100 d-flex flex-column justify-content-center">
+                  <p class="problem-muted mb-3">
+                    Open the backend dashboard when you want to paste completion rows, review import warnings, and immediately see the updated activity heatmaps.
+                  </p>
+                  <div>
+                    <a class="btn btn-primary rounded-pill px-4" href="{% url 'pages:user_activity_dashboard' %}">
+                      <i class="ti ti-arrow-right me-1"></i> Go to My activity
+                    </a>
                   </div>
-                </form>
+                </div>
               </div>
             </div>
           </div>

@@ -1,8 +1,12 @@
 {% extends 'layouts/vertical.html' %}
 
-{% load i18n %}
+{% load static i18n %}
 
 {% block title %}Update contest names{% endblock title %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'plugins/datatables/dataTables.bootstrap5.min.css' %}">
+{% endblock extra_css %}
 
 {% block page_content %}
 
@@ -159,44 +163,67 @@
 
 {% block extra_javascript %}
 {% if inventory_rows %}
+<script src="{% static 'plugins/datatables/dataTables.min.js' %}"></script>
+<script src="{% static 'plugins/datatables/dataTables.bootstrap5.min.js' %}"></script>
 <script>
 (function () {
   var input = document.getElementById("contest-inventory-filter");
-  var table = document.getElementById("contest-inventory-table");
+  var tableElement = document.getElementById("contest-inventory-table");
   var matchCount = document.getElementById("contest-inventory-match-count");
   var selectionCount = document.getElementById("contest-source-selection-count");
   var emptyState = document.getElementById("contest-inventory-empty-state");
-  if (!table || !input || !matchCount || !selectionCount || !emptyState) return;
+  if (!tableElement || !input || !matchCount || !selectionCount || !emptyState) return;
+  if (typeof DataTable === "undefined") return;
 
-  var rows = Array.prototype.slice.call(table.querySelectorAll("tbody tr[data-contest-row]"));
   var checkboxSelector = 'input[name="{{ form.source_contests.html_name }}"]';
+  var table = new DataTable("#contest-inventory-table", {
+    order: [[2, "desc"], [1, "asc"]],
+    pageLength: 25,
+    lengthMenu: [10, 25, 50, 100],
+    scrollX: true,
+    autoWidth: false,
+    columnDefs: [
+      {
+        targets: 0,
+        orderable: false,
+        searchable: false
+      }
+    ],
+    layout: {
+      topStart: "pageLength",
+      topEnd: null,
+      bottomStart: "info",
+      bottomEnd: "paging"
+    },
+    language: {
+      info: "Showing _START_ to _END_ of _TOTAL_ contests",
+      infoEmpty: "No contests to show",
+      lengthMenu: "Show _MENU_ contests",
+      zeroRecords: "No contests match the current filter."
+    }
+  });
 
   function updateSelectionCount() {
-    var checkedTotal = table.querySelectorAll(checkboxSelector + ":checked").length;
+    var checkedTotal = tableElement.querySelectorAll(checkboxSelector + ":checked").length;
     selectionCount.textContent = checkedTotal + " selected";
   }
 
-  function applyInventoryFilter() {
-    var query = (input.value || "").trim().toLowerCase();
-    var visibleTotal = 0;
-
-    rows.forEach(function (row) {
-      var matches = !query || row.textContent.toLowerCase().indexOf(query) !== -1;
-      row.classList.toggle("d-none", !matches);
-      if (matches) visibleTotal += 1;
-    });
-
+  function updateMatchCount() {
+    var visibleTotal = table.rows({ search: "applied" }).count();
     matchCount.textContent = visibleTotal + " shown";
     emptyState.classList.toggle("d-none", visibleTotal !== 0);
   }
 
-  input.addEventListener("input", applyInventoryFilter);
-  table.addEventListener("change", function (event) {
+  input.addEventListener("input", function () {
+    table.search(input.value || "").draw();
+  });
+  tableElement.addEventListener("change", function (event) {
     if (event.target && event.target.matches(checkboxSelector)) updateSelectionCount();
   });
+  table.on("draw", updateMatchCount);
 
   updateSelectionCount();
-  applyInventoryFilter();
+  updateMatchCount();
 })();
 </script>
 {% endif %}

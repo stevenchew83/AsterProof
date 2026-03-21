@@ -32,6 +32,7 @@ from inspinia.pages.contest_rename import ContestRenameValidationError
 from inspinia.pages.contest_rename import rename_contests
 from inspinia.pages.forms import ContestMetadataForm
 from inspinia.pages.forms import ContestRenameForm
+from inspinia.pages.forms import ProblemCompletionPasteForm
 from inspinia.pages.forms import ProblemStatementImportForm
 from inspinia.pages.forms import ProblemXlsxImportForm
 from inspinia.pages.models import ContestMetadata
@@ -39,11 +40,13 @@ from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
 from inspinia.pages.models import ProblemTopicTechnique
 from inspinia.pages.models import UserProblemCompletion
+from inspinia.pages.problem_completion_import import import_problem_completion_text_for_user
 from inspinia.pages.problem_import import ProblemImportValidationError
 from inspinia.pages.problem_import import build_parsed_preview_payload
 from inspinia.pages.problem_import import build_problem_export_workbook_bytes
 from inspinia.pages.problem_import import dataframe_from_excel
 from inspinia.pages.problem_import import import_problem_dataframe
+from inspinia.pages.statement_duplicates import build_statement_duplicate_report
 from inspinia.pages.statement_import import LATEX_STATEMENT_SAMPLE
 from inspinia.pages.statement_import import ProblemStatementImportValidationError
 from inspinia.pages.statement_import import ProblemStatementPreviewPayload
@@ -61,6 +64,17 @@ from inspinia.users.roles import user_has_admin_role
 CONTEST_TOPIC_PREVIEW_LIMIT = 3
 CONTEST_PROBLEM_PREVIEW_LIMIT = 6
 XLSX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+MAIN_TOPIC_CODE_MAP = {
+    "A": "A",
+    "ALG": "A",
+    "C": "C",
+    "COMB": "C",
+    "G": "G",
+    "GEO": "G",
+    "N": "N",
+    "NT": "N",
+}
+MAIN_TOPIC_CODE_ORDER = ("A", "C", "G", "N")
 
 
 @login_required
@@ -550,25 +564,33 @@ def _statement_dashboard_rows(base) -> list[dict]:
 
 
 def _statement_heatmap_payload(rows: list[dict]) -> dict[str, object]:
+    return _contest_year_heatmap_payload(rows, value_key="statement_count")
+
+
+def _contest_year_heatmap_payload(
+    rows: list[dict],
+    *,
+    value_key: str,
+) -> dict[str, object]:
     if not rows:
         return {"max_value": 0, "series": [], "years": []}
 
     years = sorted({int(row["contest_year"]) for row in rows})
-    statement_count_by_contest_year: dict[str, dict[int, int]] = defaultdict(dict)
+    value_by_contest_year: dict[str, dict[int, int]] = defaultdict(dict)
     contest_totals: dict[str, int] = defaultdict(int)
 
     for row in rows:
         contest_name = row["contest_name"]
         contest_year = int(row["contest_year"])
-        statement_count = int(row["statement_count"] or 0)
-        statement_count_by_contest_year[contest_name][contest_year] = statement_count
-        contest_totals[contest_name] += statement_count
+        value = int(row[value_key] or 0)
+        value_by_contest_year[contest_name][contest_year] = value
+        contest_totals[contest_name] += value
 
     ordered_contests = sorted(
         contest_totals,
         key=lambda contest_name: (-contest_totals[contest_name], contest_name),
     )
-    max_value = max(int(row["statement_count"] or 0) for row in rows)
+    max_value = max(int(row[value_key] or 0) for row in rows)
 
     return {
         "max_value": max_value,
@@ -577,7 +599,7 @@ def _statement_heatmap_payload(rows: list[dict]) -> dict[str, object]:
                 "data": [
                     {
                         "x": str(year),
-                        "y": statement_count_by_contest_year[contest_name].get(year, 0),
+                        "y": value_by_contest_year[contest_name].get(year, 0),
                     }
                     for year in years
                 ],
@@ -586,6 +608,91 @@ def _statement_heatmap_payload(rows: list[dict]) -> dict[str, object]:
             for contest_name in ordered_contests
         ],
         "years": [str(year) for year in years],
+    }
+
+
+def _user_statement_completion_rows(completions: list[UserProblemCompletion]) -> list[dict]:
+    completed_problem_ids = sorted({completion.problem_id for completion in completions})
+    if not completed_problem_ids:
+        return []
+
+    rows = list(
+        ContestProblemStatement.objects.filter(linked_problem_id__in=completed_problem_ids)
+        .values("contest_name", "contest_year")
+        .annotate(completed_count=Count("linked_problem", distinct=True))
+        .order_by(
+            "-contest_year",
+            "contest_name",
+        )
+    )
+
+    for row in rows:
+        row["completed_count"] = int(row["completed_count"] or 0)
+        row["contest_year_label"] = f"{row['contest_name']} {row['contest_year']}"
+
+    rows.sort(
+        key=lambda row: (
+            -row["completed_count"],
+            -int(row["contest_year"]),
+            row["contest_name"],
+        ),
+    )
+    return rows
+
+
+def _main_topic_code(topic: str) -> str:
+    normalized = (topic or "").strip().upper()
+    if not normalized:
+        return "?"
+    return MAIN_TOPIC_CODE_MAP.get(normalized, normalized[0])
+
+
+def _main_topic_sort_key(topic_code: str) -> tuple[int, str]:
+    if topic_code in MAIN_TOPIC_CODE_ORDER:
+        return (MAIN_TOPIC_CODE_ORDER.index(topic_code), topic_code)
+    return (len(MAIN_TOPIC_CODE_ORDER), topic_code)
+
+
+def _user_topic_mohs_completion_heatmap_payload(
+    completions: list[UserProblemCompletion],
+) -> dict[str, object]:
+    if not completions:
+        return {"max_value": 0, "mohs_values": [], "series": []}
+
+    value_by_topic_mohs: dict[str, dict[int, int]] = defaultdict(dict)
+    topic_totals: dict[str, int] = defaultdict(int)
+    mohs_values = sorted({int(completion.problem.mohs) for completion in completions})
+
+    for completion in completions:
+        topic_code = _main_topic_code(completion.problem.topic)
+        mohs = int(completion.problem.mohs)
+        current_value = value_by_topic_mohs[topic_code].get(mohs, 0) + 1
+        value_by_topic_mohs[topic_code][mohs] = current_value
+        topic_totals[topic_code] += 1
+
+    ordered_topics = sorted(topic_totals, key=_main_topic_sort_key)
+    max_value = max(
+        value_by_topic_mohs[topic_code].get(mohs, 0)
+        for topic_code in ordered_topics
+        for mohs in mohs_values
+    )
+
+    return {
+        "max_value": max_value,
+        "mohs_values": [str(mohs) for mohs in mohs_values],
+        "series": [
+            {
+                "data": [
+                    {
+                        "x": str(mohs),
+                        "y": value_by_topic_mohs[topic_code].get(mohs, 0),
+                    }
+                    for mohs in mohs_values
+                ],
+                "name": topic_code,
+            }
+            for topic_code in ordered_topics
+        ],
     }
 
 
@@ -1217,6 +1324,30 @@ def _build_topic_tag_directory_rows(
 @login_required
 def user_activity_dashboard_view(request):
     """Logged-in user's personal completion dashboard."""
+    completion_import_form = ProblemCompletionPasteForm()
+    if request.method == "POST" and request.POST.get("action") == "import_completions":
+        completion_import_form = ProblemCompletionPasteForm(request.POST)
+        if completion_import_form.is_valid():
+            result = import_problem_completion_text_for_user(
+                request.user,
+                completion_import_form.cleaned_data["source_text"],
+            )
+            if result.n_completions:
+                success_message = f"Updated {result.n_completions} completion row(s)."
+                if result.n_unknown_dates:
+                    success_message += f" {result.n_unknown_dates} marked Done without an exact date."
+                messages.success(request, success_message)
+            else:
+                messages.info(request, "No completion rows were updated.")
+            _emit_warning_messages(
+                request,
+                result.warnings,
+                overflow_label="completion import warnings",
+            )
+            return redirect("pages:user_activity_dashboard")
+
+        messages.error(request, "Please fix the completion import form and try again.")
+
     completion_qs = UserProblemCompletion.objects.filter(user=request.user).select_related("problem").order_by(
         F("completion_date").desc(nulls_last=True),
         "-updated_at",
@@ -1233,6 +1364,12 @@ def user_activity_dashboard_view(request):
     ]
     unknown_completion_total = len(completions) - len(dated_completion_dates)
     table_rows, filter_options = _user_completion_table_rows(completions)
+    statement_completion_rows = _user_statement_completion_rows(completions)
+    statement_completion_heatmap = _contest_year_heatmap_payload(
+        statement_completion_rows,
+        value_key="completed_count",
+    )
+    topic_mohs_completion_heatmap = _user_topic_mohs_completion_heatmap_payload(completions)
     current_year_total = sum(
         1
         for completion_date in dated_completion_dates
@@ -1269,11 +1406,33 @@ def user_activity_dashboard_view(request):
             f"{date(activity_window_start.year, activity_window_start.month, 1).strftime('%b %Y')} - "
             f"{date(chart_end_date.year, chart_end_date.month, 1).strftime('%b %Y')}"
         ),
+        "activity_statement_completion_heatmap": statement_completion_heatmap,
+        "activity_statement_completion_stats": {
+            "contest_year_total": len(statement_completion_rows),
+            "statement_backed_completion_total": sum(
+                row["completed_count"] for row in statement_completion_rows
+            ),
+        },
+        "activity_topic_mohs_completion_heatmap": topic_mohs_completion_heatmap,
+        "activity_topic_mohs_completion_stats": {
+            "cell_total": sum(
+                1
+                for row in topic_mohs_completion_heatmap["series"]
+                for cell in row["data"]
+                if cell["y"] > 0
+            ),
+            "completion_total": len(completions),
+            "mohs_total": len(topic_mohs_completion_heatmap["mohs_values"]),
+            "topic_total": len(topic_mohs_completion_heatmap["series"]),
+        },
+        "completion_import_form": completion_import_form,
         "activity_charts_payload": {
             "completionsByMonth": _user_completion_monthly_bar_payload(
                 dated_completion_dates,
                 end_date=chart_end_date,
             ),
+            "statementCompletionHeatmap": statement_completion_heatmap,
+            "topicMohsCompletionHeatmap": topic_mohs_completion_heatmap,
         },
         "activity_table_rows": table_rows,
     }
@@ -1368,6 +1527,29 @@ def problem_statement_list_view(request):
         "statement_table_rows": _statement_table_rows(base) if statement_total else [],
     }
     return render(request, "pages/problem-statement-list.html", context)
+
+
+@login_required
+def problem_statement_duplicate_view(request):
+    """Admin duplicate detector for exact and high-similarity statement rows."""
+    _require_admin_tools_access(request)
+
+    statements = list(ContestProblemStatement.objects.select_related("linked_problem").all())
+    duplicate_report = build_statement_duplicate_report(statements)
+
+    context = {
+        "statement_duplicate_stats": {
+            "statement_total": duplicate_report["statement_total"],
+            "exact_duplicate_group_total": duplicate_report["exact_duplicate_group_total"],
+            "exact_duplicate_row_total": duplicate_report["exact_duplicate_row_total"],
+            "similar_pair_total": duplicate_report["similar_pair_total"],
+        },
+        "statement_duplicate_exact_rows": duplicate_report["exact_duplicate_rows"],
+        "statement_duplicate_similar_rows": duplicate_report["similar_pair_rows"],
+        "statement_duplicate_similar_display_total": duplicate_report["similar_pair_display_total"],
+        "statement_duplicate_similar_limit": duplicate_report["similar_pair_limit"],
+    }
+    return render(request, "pages/problem-statement-duplicates.html", context)
 
 
 @login_required

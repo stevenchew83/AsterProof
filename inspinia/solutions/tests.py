@@ -6,6 +6,7 @@ from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.urls import reverse
 
+from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
 from inspinia.solutions.models import ProblemSolution
 from inspinia.solutions.models import ProblemSolutionBlock
@@ -30,6 +31,7 @@ EXPECTED_DEFAULT_BLOCK_TYPES = {
     "remark",
 }
 EXPECTED_VISIBLE_SOLUTION_TOTAL = 2
+EXPECTED_STATEMENT_BACKED_PROBLEM_TOTAL = 2
 
 
 def _problem(*, year: int = 2026, contest: str = "IMO", problem: str = "P1") -> ProblemSolveRecord:
@@ -135,6 +137,7 @@ def test_solution_source_artifact_requires_payload():
     ("url_name", "problem_kwargs"),
     [
         ("solutions:my_solution_list", None),
+        ("solutions:problem_solution_create", None),
         ("solutions:problem_solution_list", {"problem": "P1"}),
         ("solutions:problem_solution_edit", {"problem": "P2"}),
     ],
@@ -177,8 +180,90 @@ def test_my_solution_list_shows_only_current_users_solutions(client):
     assert response.context["my_solution_stats"]["total"] == 1
     assert len(response.context["my_solution_rows"]) == 1
     response_html = response.content.decode("utf-8")
+    assert reverse("solutions:problem_solution_create") in response_html
     assert "My draft" in response_html
     assert "Other published solution" not in response_html
+
+
+def test_problem_solution_create_view_lists_only_statement_backed_problems(client):
+    user = UserFactory()
+    other_user = UserFactory()
+    client.force_login(user)
+    linked_problem_with_solution = _problem()
+    linked_problem_without_solution = _problem(year=2025, contest="USAMO", problem="P2")
+    _problem(year=2024, contest="BMO", problem="P3")
+    ContestProblemStatement.objects.create(
+        linked_problem=linked_problem_with_solution,
+        contest_year=2026,
+        contest_name="IMO",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Prove that $a=b$.",
+    )
+    ContestProblemStatement.objects.create(
+        linked_problem=linked_problem_without_solution,
+        contest_year=2025,
+        contest_name="USAMO",
+        problem_number=2,
+        problem_code="P2",
+        day_label="Day 2",
+        statement_latex="Show that $n^2=n$.",
+    )
+    ContestProblemStatement.objects.create(
+        contest_year=2025,
+        contest_name="Unlinked contest",
+        problem_number=3,
+        problem_code="P3",
+        day_label="Day 1",
+        statement_latex="This row is not linked to a problem.",
+    )
+    _solution_with_blocks(
+        problem=linked_problem_with_solution,
+        author=user,
+        title="Existing draft",
+        blocks=[("Idea", "Existing solution body.", "idea")],
+    )
+    _solution_with_blocks(
+        problem=linked_problem_with_solution,
+        author=other_user,
+        status=ProblemSolution.Status.PUBLISHED,
+        title="Other published solution",
+        blocks=[("Proof", "Other user's proof.", "proof")],
+    )
+
+    response = client.get(reverse("solutions:problem_solution_create"))
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["create_stats"]["statement_problem_total"] == EXPECTED_STATEMENT_BACKED_PROBLEM_TOTAL
+    assert response.context["create_stats"]["started_total"] == 1
+    assert response.context["create_stats"]["ready_total"] == 1
+    assert [row["problem_label"] for row in response.context["statement_problem_rows"]] == [
+        "IMO 2026 P1",
+        "USAMO 2025 P2",
+    ]
+    first_row, second_row = response.context["statement_problem_rows"]
+    assert first_row["editor_button_label"] == "Continue solution"
+    assert first_row["solution_status_label"] == "Draft"
+    assert second_row["editor_button_label"] == "Start solution"
+    assert second_row["solution_status_label"] == "Not started"
+    response_html = response.content.decode("utf-8")
+    first_editor_url = reverse("solutions:problem_solution_edit", args=[linked_problem_with_solution.problem_uuid])
+    second_editor_url = reverse("solutions:problem_solution_edit", args=[linked_problem_without_solution.problem_uuid])
+    assert first_editor_url in response_html
+    assert second_editor_url in response_html
+    assert "Unlinked contest" not in response_html
+
+
+def test_problem_solution_create_view_shows_empty_state_without_linked_statements(client):
+    user = UserFactory()
+    client.force_login(user)
+
+    response = client.get(reverse("solutions:problem_solution_create"))
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["create_stats"]["statement_problem_total"] == 0
+    assert "No linked problem statements are available yet." in response.content.decode("utf-8")
 
 
 def test_problem_solution_list_shows_my_solution_and_only_other_published_solutions(client):

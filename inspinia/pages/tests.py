@@ -1,3 +1,4 @@
+from datetime import date
 from datetime import timedelta
 from http import HTTPStatus
 from io import BytesIO
@@ -128,6 +129,28 @@ EXPECTED_USA_EGMO_TST_PROBLEM_TOTAL = 6
 USA_EGMO_TST_STATEMENT_SAMPLE = (
     Path(__file__).resolve().parent / "testdata" / "usa_egmo_team_selection_test_sample.txt"
 ).read_text(encoding="utf-8")
+CHINA_NATIONAL_OLYMPIAD_2026_YEAR = 2026
+CHINA_NATIONAL_OLYMPIAD_2026_NAME = "China National Olympiad"
+EXPECTED_CHINA_NATIONAL_OLYMPIAD_2026_PROBLEM_TOTAL = 4
+CHINA_NATIONAL_OLYMPIAD_2026_STATEMENT_SAMPLE = (
+    "2026 China National Olympiad3\n"
+    "Day1\t2025.11.26\n"
+    "1\tCompact day one.\n"
+    "\n"
+    "mathematics2004\n"
+    "view topic\n"
+    "2\tDay one second problem.\n"
+    "\n"
+    "CG40\n"
+    "view topic\n"
+    "Day2\t2025.11.27\n"
+    "3\tCompact day two.\n"
+    "\n"
+    "MathMaxGreat\n"
+    "view topic\n"
+    "4\tVisible day two statement.\n"
+    "Click to reveal hidden text\n"
+)
 TOURNAMENT_OF_TOWNS_YEAR = 2025
 TOURNAMENT_OF_TOWNS_NAME = "TOURNAMENT OF TOWNS"
 EXPECTED_TOURNAMENT_OF_TOWNS_PROBLEM_TOTAL = 2
@@ -211,11 +234,216 @@ TOURNAMENT_OF_TOWNS_2019_STATEMENT_SAMPLE = (
     "L.Lawliet03\n"
     "view topic\n"
 )
+TOURNAMENT_OF_TOWNS_2018_YEAR = 2018
+TOURNAMENT_OF_TOWNS_2018_NAME = "Tournament Of Towns"
+EXPECTED_TOURNAMENT_OF_TOWNS_2018_PROBLEM_TOTAL = 3
+TOURNAMENT_OF_TOWNS_2018_STATEMENT_SAMPLE = (
+    "2018 Tournament Of Towns3\n"
+    "Spring 2018 A-level Junior\n"
+    "1.\tThirty nine nonzero numbers are written in a row.\n"
+    "\n"
+    "Boris Frenkin\n"
+    "\n"
+    "Invert_DOG_about_centre_O\n"
+    "view topic\n"
+    "2.\tAladdin has several gold ingots.\n"
+    "\n"
+    "Alexandr Perepechko\n"
+    "\n"
+    "Invert_DOG_about_centre_O\n"
+    "view topic\n"
+    "3.\tYou are in a strange land and you don’t know the language.\n"
+    "\n"
+    "Nikolay Belukhov\n"
+)
+TOURNAMENT_OF_TOWNS_2016_YEAR = 2016
+TOURNAMENT_OF_TOWNS_2016_NAME = "Tournament Of Towns"
+EXPECTED_TOURNAMENT_OF_TOWNS_2016_PROBLEM_TOTAL = 4
+TOURNAMENT_OF_TOWNS_2016_STATEMENT_SAMPLE = (
+    "2016 Tournament Of Towns3\n"
+    "Tournament Of Towns 2016\n"
+    "Spring 2016 - Junior A-level\n"
+    "1\tJunior spring one.\n"
+    "Alexey Tolpygo\n"
+    "\n"
+    "utkarshgupta\n"
+    "view topic\n"
+    "Spring 2016 - Senior A-level\n"
+    "1\tSame as Junior A-level P1\n"
+    "Maxim Prasolov\n"
+    "\n"
+    "utkarshgupta\n"
+    "view topic\n"
+    "Oral Round\n"
+    "1\tOral round one.\n"
+    "Misha57\n"
+    "view topic\n"
+    "Fall 2016 - Senior A-level\n"
+    "1\tFall senior one.\n"
+    "(N. Chernyatevya)\n"
+    "\n"
+    "(Translated from here.)\n"
+    "\n"
+    "anantmudgal09\n"
+    "view topic\n"
+)
+TOURNAMENT_OF_TOWNS_2010_YEAR = 2010
+TOURNAMENT_OF_TOWNS_2010_NAME = "Tournament Of Towns"
+EXPECTED_TOURNAMENT_OF_TOWNS_2010_PROBLEM_TOTAL = 4
+TOURNAMENT_OF_TOWNS_2010_STATEMENT_SAMPLE = (
+    "2010 Tournament Of Towns3\n"
+    "Tournament Of Towns 2010\n"
+    "Spring - Junior O-Level\n"
+    "1\tJunior O one.\n"
+    "\n"
+    "Goutham\n"
+    "view topic\n"
+    "Spring - Junior A-Level\n"
+    "1\tJunior A one.\n"
+    "\n"
+    "Goutham\n"
+    "view topic\n"
+    "Fall - Senior O-Level\n"
+    "1\tSenior O one.\n"
+    "\n"
+    "Goutham\n"
+    "view topic\n"
+    "Fall - Senior A-Level\n"
+    "1\tSenior A one.\n"
+    "\n"
+    "Goutham\n"
+    "view topic\n"
+)
+TOURNAMENT_OF_TOWNS_2003_YEAR = 2003
+TOURNAMENT_OF_TOWNS_2003_NAME = "Tournament Of Towns"
+EXPECTED_TOURNAMENT_OF_TOWNS_2003_PROBLEM_TOTAL = 4
+TOURNAMENT_OF_TOWNS_2003_STATEMENT_SAMPLE = (
+    "2003 Tournament Of Towns3\n"
+    "Tournament Of Towns 2003\n"
+    "Spring Junior O-Level Paper\n"
+    "1\tSpring junior O one.\n"
+    "\n"
+    "Amir Hossein\n"
+    "view topic\n"
+    "Spring Junior A-Level Paper\n"
+    "1\tSpring junior A one.\n"
+    "\n"
+    "Amir Hossein\n"
+    "view topic\n"
+    "Fall Senior O-Level\n"
+    "1\tFall senior O one.\n"
+    "\n"
+    "Goutham\n"
+    "view topic\n"
+    "Fall Senior A-Level\n"
+    "1\tFall senior A one.\n"
+    "\n"
+    "Goutham\n"
+    "view topic\n"
+)
+TOURNAMENT_OF_TOWNS_2002_YEAR = 2002
+TOURNAMENT_OF_TOWNS_2002_NAME = "Tournament Of Towns"
+EXPECTED_TOURNAMENT_OF_TOWNS_2002_PROBLEM_TOTAL = 4
+TOURNAMENT_OF_TOWNS_2002_STATEMENT_SAMPLE = (
+    "2002 Tournament Of Towns3\n"
+    "Tournament Of Towns 2002\n"
+    "I. Spring - Junior O-Level\n"
+    "1\tSpring junior O one.\n"
+    "\n"
+    "joybangla\n"
+    "view topic\n"
+    "I. Spring - Senior - A-Level\n"
+    "1\tSpring senior A one.\n"
+    "\n"
+    "joybangla\n"
+    "view topic\n"
+    "II. Fall - Junior - A-Level\n"
+    "1\tFall junior A one.\n"
+    "\n"
+    "joybangla\n"
+    "view topic\n"
+    "II. Fall - Senior - O-Level\n"
+    "1\tFall senior O one.\n"
+    "\n"
+    "joybangla\n"
+    "view topic\n"
+)
+TOURNAMENT_OF_TOWNS_2002_MULTILINE_YEAR = 2002
+TOURNAMENT_OF_TOWNS_2002_MULTILINE_NAME = "Tournament Of Towns"
+EXPECTED_TOURNAMENT_OF_TOWNS_2002_MULTILINE_PROBLEM_TOTAL = 2
+TOURNAMENT_OF_TOWNS_2002_MULTILINE_STATEMENT_SAMPLE = (
+    "2002 Tournament Of Towns3\n"
+    "Tournament Of Towns 2002\n"
+    "I. Spring - Junior O-Level\n"
+    "1\n"
+    "Spring multiline one.\n"
+    "Continues here.\n"
+    "\n"
+    "joybangla\n"
+    "view topic\n"
+    "II. Fall - Senior - A-Level\n"
+    "1\n"
+    "Fall multiline one.\n"
+    "\n"
+    "joybangla\n"
+    "view topic\n"
+)
+TOURNAMENT_OF_TOWNS_1997_YEAR = 1997
+TOURNAMENT_OF_TOWNS_1997_NAME = "Tournament Of Towns"
+EXPECTED_TOURNAMENT_OF_TOWNS_1997_PROBLEM_TOTAL = 7
+TOURNAMENT_OF_TOWNS_1997_STATEMENT_SAMPLE = (
+    "1997 Tournament Of Towns3\n"
+    "Tournament Of Towns 1997\n"
+    "1997 Spring\n"
+    "Juniors\n"
+    "O Level\n"
+    "(524) 1\tSpring junior O one.\n"
+    "\n"
+    "(AI Galochkin)\n"
+    "\n"
+    "parmenides51\n"
+    "view topic\n"
+    "A Level\n"
+    "(529) 2\tSpring junior A two.\n"
+    "\n"
+    "(AK Tolpygo)\n"
+    "\n"
+    "parmenides51\n"
+    "view topic\n"
+    "Seniors\n"
+    "O Level\n"
+    "(536) 1\tSpring senior O one.\n"
+    "\n"
+    "(V Proizvolov)\n"
+    "\n"
+    "parmenides51\n"
+    "view topic\n"
+    "A Level\n"
+    "1\tsame as JA2 (529)\n"
+    "(541) 2\tSpring senior A two.\n"
+    "\n"
+    "parmenides51\n"
+    "view topic\n"
+    "Autumn 1997\n"
+    "Juniors\n"
+    "O Level\n"
+    "(547) 1\tAutumn junior O one.\n"
+    "\n"
+    "(Folklore)\n"
+    "\n"
+    "parmenides51\n"
+    "view topic\n"
+    "A Level\n"
+    "(551) 1\tAutumn junior A one.\n"
+    "\n"
+    "(A Berzinsh)\n"
+)
 EXPECTED_LINKED_PROBLEM_MOHS = 4
 EXPECTED_USER_ACTIVITY_TOTAL = 3
 EXPECTED_USER_ACTIVITY_DATED_TOTAL = 2
 EXPECTED_USER_ACTIVITY_UNKNOWN_DATE_TOTAL = 1
 EXPECTED_USER_ACTIVITY_CONTEST_TOTAL = 3
+EXPECTED_USER_ACTIVITY_IMPORTED_TOTAL = 2
 EXPECTED_USER_ACTIVITY_VISUAL_TOTAL = 2
 EXPECTED_DONE_ONLY_COMPLETION_TOTAL = 4
 EXPECTED_DONE_ONLY_EXACT_TOTAL = 0
@@ -688,6 +916,24 @@ def test_parse_contest_problem_statements_supports_tst_headers_and_strips_traili
     assert "What are the possible values of $r$" in parsed_import.problems[2].statement_latex
 
 
+def test_parse_contest_problem_statements_supports_compact_day_headers():
+    parsed_import = parse_contest_problem_statements(CHINA_NATIONAL_OLYMPIAD_2026_STATEMENT_SAMPLE)
+
+    assert parsed_import.contest_year == CHINA_NATIONAL_OLYMPIAD_2026_YEAR
+    assert parsed_import.contest_name == CHINA_NATIONAL_OLYMPIAD_2026_NAME
+    assert len(parsed_import.problems) == EXPECTED_CHINA_NATIONAL_OLYMPIAD_2026_PROBLEM_TOTAL
+    assert [problem.day_label for problem in parsed_import.problems] == [
+        "Day 1 · 2025.11.26",
+        "Day 1 · 2025.11.26",
+        "Day 2 · 2025.11.27",
+        "Day 2 · 2025.11.27",
+    ]
+    assert [problem.problem_code for problem in parsed_import.problems] == ["P1", "P2", "P3", "P4"]
+    assert parsed_import.problems[0].statement_latex == "Compact day one."
+    assert parsed_import.problems[-1].statement_latex == "Visible day two statement."
+    assert "Click to reveal hidden text" not in parsed_import.problems[-1].statement_latex
+
+
 def test_parse_contest_problem_statements_supports_tournament_of_towns_sections_and_metadata():
     parsed_import = parse_contest_problem_statements(TOURNAMENT_OF_TOWNS_STATEMENT_SAMPLE)
 
@@ -747,6 +993,137 @@ def test_parse_contest_problem_statements_supports_split_season_and_level_tourna
     assert "L.Lawliet03" not in parsed_import.problems[4].statement_latex
 
 
+def test_parse_contest_problem_statements_supports_inline_tournament_season_level_headers():
+    parsed_import = parse_contest_problem_statements(TOURNAMENT_OF_TOWNS_2018_STATEMENT_SAMPLE)
+
+    assert parsed_import.contest_year == TOURNAMENT_OF_TOWNS_2018_YEAR
+    assert parsed_import.contest_name == TOURNAMENT_OF_TOWNS_2018_NAME
+    assert len(parsed_import.problems) == EXPECTED_TOURNAMENT_OF_TOWNS_2018_PROBLEM_TOTAL
+    assert [problem.day_label for problem in parsed_import.problems] == [
+        "Spring 2018 · Junior A-Level",
+        "Spring 2018 · Junior A-Level",
+        "Spring 2018 · Junior A-Level",
+    ]
+    assert [problem.problem_code for problem in parsed_import.problems] == ["P1", "P2", "P3"]
+    assert "Invert_DOG_about_centre_O" not in parsed_import.problems[0].statement_latex
+    assert "Nikolay Belukhov" not in parsed_import.problems[2].statement_latex
+    assert parsed_import.problems[0].statement_latex == "Thirty nine nonzero numbers are written in a row."
+    assert parsed_import.problems[2].statement_latex == "You are in a strange land and you don’t know the language."
+
+
+def test_parse_contest_problem_statements_supports_hyphenated_tournament_season_level_headers():
+    parsed_import = parse_contest_problem_statements(TOURNAMENT_OF_TOWNS_2016_STATEMENT_SAMPLE)
+
+    assert parsed_import.contest_year == TOURNAMENT_OF_TOWNS_2016_YEAR
+    assert parsed_import.contest_name == TOURNAMENT_OF_TOWNS_2016_NAME
+    assert len(parsed_import.problems) == EXPECTED_TOURNAMENT_OF_TOWNS_2016_PROBLEM_TOTAL
+    assert [problem.day_label for problem in parsed_import.problems] == [
+        "Spring 2016 · Junior A-Level",
+        "Spring 2016 · Senior A-Level",
+        "Oral Round",
+        "Fall 2016 · Senior A-Level",
+    ]
+    assert [problem.problem_code for problem in parsed_import.problems] == ["P1", "P1", "P1", "P1"]
+    assert parsed_import.problems[1].statement_latex == "Same as Junior A-level P1"
+    assert parsed_import.problems[2].statement_latex == "Oral round one."
+    assert "utkarshgupta" not in parsed_import.problems[0].statement_latex
+    assert "Misha57" not in parsed_import.problems[2].statement_latex
+    assert "Translated from here." not in parsed_import.problems[3].statement_latex
+    assert "Chernyatevya" not in parsed_import.problems[3].statement_latex
+
+
+def test_parse_contest_problem_statements_supports_yearless_hyphenated_tournament_headers():
+    parsed_import = parse_contest_problem_statements(TOURNAMENT_OF_TOWNS_2010_STATEMENT_SAMPLE)
+
+    assert parsed_import.contest_year == TOURNAMENT_OF_TOWNS_2010_YEAR
+    assert parsed_import.contest_name == TOURNAMENT_OF_TOWNS_2010_NAME
+    assert len(parsed_import.problems) == EXPECTED_TOURNAMENT_OF_TOWNS_2010_PROBLEM_TOTAL
+    assert [problem.day_label for problem in parsed_import.problems] == [
+        "Spring 2010 · Junior O-Level",
+        "Spring 2010 · Junior A-Level",
+        "Fall 2010 · Senior O-Level",
+        "Fall 2010 · Senior A-Level",
+    ]
+    assert [problem.problem_code for problem in parsed_import.problems] == ["P1", "P1", "P1", "P1"]
+    assert parsed_import.problems[0].statement_latex == "Junior O one."
+    assert parsed_import.problems[-1].statement_latex == "Senior A one."
+    assert all(problem.day_label for problem in parsed_import.problems)
+
+
+def test_parse_contest_problem_statements_supports_yearless_paper_tournament_headers():
+    parsed_import = parse_contest_problem_statements(TOURNAMENT_OF_TOWNS_2003_STATEMENT_SAMPLE)
+
+    assert parsed_import.contest_year == TOURNAMENT_OF_TOWNS_2003_YEAR
+    assert parsed_import.contest_name == TOURNAMENT_OF_TOWNS_2003_NAME
+    assert len(parsed_import.problems) == EXPECTED_TOURNAMENT_OF_TOWNS_2003_PROBLEM_TOTAL
+    assert [problem.day_label for problem in parsed_import.problems] == [
+        "Spring 2003 · Junior O-Level",
+        "Spring 2003 · Junior A-Level",
+        "Fall 2003 · Senior O-Level",
+        "Fall 2003 · Senior A-Level",
+    ]
+    assert [problem.problem_code for problem in parsed_import.problems] == ["P1", "P1", "P1", "P1"]
+    assert parsed_import.problems[0].statement_latex == "Spring junior O one."
+    assert parsed_import.problems[-1].statement_latex == "Fall senior A one."
+    assert all(problem.day_label for problem in parsed_import.problems)
+
+
+def test_parse_contest_problem_statements_supports_round_prefixed_tournament_headers():
+    parsed_import = parse_contest_problem_statements(TOURNAMENT_OF_TOWNS_2002_STATEMENT_SAMPLE)
+
+    assert parsed_import.contest_year == TOURNAMENT_OF_TOWNS_2002_YEAR
+    assert parsed_import.contest_name == TOURNAMENT_OF_TOWNS_2002_NAME
+    assert len(parsed_import.problems) == EXPECTED_TOURNAMENT_OF_TOWNS_2002_PROBLEM_TOTAL
+    assert [problem.day_label for problem in parsed_import.problems] == [
+        "Spring 2002 · Junior O-Level",
+        "Spring 2002 · Senior A-Level",
+        "Fall 2002 · Junior A-Level",
+        "Fall 2002 · Senior O-Level",
+    ]
+    assert [problem.problem_code for problem in parsed_import.problems] == ["P1", "P1", "P1", "P1"]
+    assert parsed_import.problems[0].statement_latex == "Spring junior O one."
+    assert parsed_import.problems[-1].statement_latex == "Fall senior O one."
+    assert all(problem.day_label for problem in parsed_import.problems)
+
+
+def test_parse_contest_problem_statements_supports_bare_numbered_multiline_problems():
+    parsed_import = parse_contest_problem_statements(TOURNAMENT_OF_TOWNS_2002_MULTILINE_STATEMENT_SAMPLE)
+
+    assert parsed_import.contest_year == TOURNAMENT_OF_TOWNS_2002_MULTILINE_YEAR
+    assert parsed_import.contest_name == TOURNAMENT_OF_TOWNS_2002_MULTILINE_NAME
+    assert len(parsed_import.problems) == EXPECTED_TOURNAMENT_OF_TOWNS_2002_MULTILINE_PROBLEM_TOTAL
+    assert [problem.day_label for problem in parsed_import.problems] == [
+        "Spring 2002 · Junior O-Level",
+        "Fall 2002 · Senior A-Level",
+    ]
+    assert parsed_import.problems[0].statement_latex == "Spring multiline one.\nContinues here."
+    assert parsed_import.problems[1].statement_latex == "Fall multiline one."
+
+
+def test_parse_contest_problem_statements_supports_1997_split_division_headers():
+    parsed_import = parse_contest_problem_statements(TOURNAMENT_OF_TOWNS_1997_STATEMENT_SAMPLE)
+
+    assert parsed_import.contest_year == TOURNAMENT_OF_TOWNS_1997_YEAR
+    assert parsed_import.contest_name == TOURNAMENT_OF_TOWNS_1997_NAME
+    assert len(parsed_import.problems) == EXPECTED_TOURNAMENT_OF_TOWNS_1997_PROBLEM_TOTAL
+    assert [problem.day_label for problem in parsed_import.problems] == [
+        "Spring 1997 · Junior O-Level",
+        "Spring 1997 · Junior A-Level",
+        "Spring 1997 · Senior O-Level",
+        "Spring 1997 · Senior A-Level",
+        "Spring 1997 · Senior A-Level",
+        "Autumn 1997 · Junior O-Level",
+        "Autumn 1997 · Junior A-Level",
+    ]
+    assert [problem.problem_code for problem in parsed_import.problems] == ["P1", "P2", "P1", "P1", "P2", "P1", "P1"]
+    assert parsed_import.problems[0].statement_latex == "Spring junior O one."
+    assert parsed_import.problems[3].statement_latex == "same as JA2 (529)"
+    assert parsed_import.problems[4].statement_latex == "Spring senior A two."
+    assert parsed_import.problems[-1].statement_latex == "Autumn junior A one."
+    assert "parmenides51" not in parsed_import.problems[0].statement_latex
+    assert "AI Galochkin" not in parsed_import.problems[0].statement_latex
+
+
 def test_import_problem_statements_creates_rows_and_links_existing_problem_records():
     linked_record = ProblemSolveRecord.objects.create(
         year=SPAIN_OLYMPIAD_YEAR,
@@ -773,6 +1150,31 @@ def test_import_problem_statements_creates_rows_and_links_existing_problem_recor
     assert statement.day_label == "Day 1"
     assert statement.problem_code == "P1"
     assert statement.contest_year_problem == f"{SPAIN_OLYMPIAD_NAME} {SPAIN_OLYMPIAD_YEAR} P1"
+
+
+def test_import_problem_statements_supports_compact_day_headers():
+    result = import_problem_statements(
+        parse_contest_problem_statements(CHINA_NATIONAL_OLYMPIAD_2026_STATEMENT_SAMPLE)
+    )
+
+    assert result.created_count == EXPECTED_CHINA_NATIONAL_OLYMPIAD_2026_PROBLEM_TOTAL
+    assert result.updated_count == 0
+    saved_rows = list(
+        ContestProblemStatement.objects.filter(
+            contest_year=CHINA_NATIONAL_OLYMPIAD_2026_YEAR,
+            contest_name=CHINA_NATIONAL_OLYMPIAD_2026_NAME,
+        ).order_by("problem_number")
+    )
+    assert len(saved_rows) == EXPECTED_CHINA_NATIONAL_OLYMPIAD_2026_PROBLEM_TOTAL
+    assert [row.day_label for row in saved_rows] == [
+        "Day 1 · 2025.11.26",
+        "Day 1 · 2025.11.26",
+        "Day 2 · 2025.11.27",
+        "Day 2 · 2025.11.27",
+    ]
+    assert saved_rows[0].statement_latex == "Compact day one."
+    assert saved_rows[-1].statement_latex == "Visible day two statement."
+    assert "Click to reveal hidden text" not in saved_rows[-1].statement_latex
 
 
 def test_import_problem_statements_supports_alpha_numeric_codes_across_sections():
@@ -955,6 +1357,160 @@ def test_import_problem_statements_supports_split_season_and_level_tournament_he
     assert fall_junior_o.statement_latex == "Fallback username dots."
 
 
+def test_import_problem_statements_supports_inline_tournament_season_level_headers():
+    result = import_problem_statements(parse_contest_problem_statements(TOURNAMENT_OF_TOWNS_2018_STATEMENT_SAMPLE))
+
+    assert result.created_count == EXPECTED_TOURNAMENT_OF_TOWNS_2018_PROBLEM_TOTAL
+    assert result.updated_count == 0
+    saved_rows = list(
+        ContestProblemStatement.objects.filter(
+            contest_year=TOURNAMENT_OF_TOWNS_2018_YEAR,
+            contest_name=TOURNAMENT_OF_TOWNS_2018_NAME,
+        ).order_by("problem_number")
+    )
+    assert len(saved_rows) == EXPECTED_TOURNAMENT_OF_TOWNS_2018_PROBLEM_TOTAL
+    assert all(row.day_label == "Spring 2018 · Junior A-Level" for row in saved_rows)
+    assert saved_rows[-1].statement_latex == "You are in a strange land and you don’t know the language."
+
+
+def test_import_problem_statements_supports_hyphenated_tournament_season_level_headers():
+    result = import_problem_statements(parse_contest_problem_statements(TOURNAMENT_OF_TOWNS_2016_STATEMENT_SAMPLE))
+
+    assert result.created_count == EXPECTED_TOURNAMENT_OF_TOWNS_2016_PROBLEM_TOTAL
+    assert result.updated_count == 0
+    saved_rows = list(
+        ContestProblemStatement.objects.filter(
+            contest_year=TOURNAMENT_OF_TOWNS_2016_YEAR,
+            contest_name=TOURNAMENT_OF_TOWNS_2016_NAME,
+        ).order_by("day_label", "problem_number")
+    )
+    assert len(saved_rows) == EXPECTED_TOURNAMENT_OF_TOWNS_2016_PROBLEM_TOTAL
+    assert [row.day_label for row in saved_rows] == [
+        "Fall 2016 · Senior A-Level",
+        "Oral Round",
+        "Spring 2016 · Junior A-Level",
+        "Spring 2016 · Senior A-Level",
+    ]
+    assert saved_rows[0].statement_latex == "Fall senior one."
+    assert saved_rows[1].statement_latex == "Oral round one."
+
+
+def test_import_problem_statements_supports_yearless_hyphenated_tournament_headers():
+    result = import_problem_statements(parse_contest_problem_statements(TOURNAMENT_OF_TOWNS_2010_STATEMENT_SAMPLE))
+
+    assert result.created_count == EXPECTED_TOURNAMENT_OF_TOWNS_2010_PROBLEM_TOTAL
+    assert result.updated_count == 0
+    saved_rows = list(
+        ContestProblemStatement.objects.filter(
+            contest_year=TOURNAMENT_OF_TOWNS_2010_YEAR,
+            contest_name=TOURNAMENT_OF_TOWNS_2010_NAME,
+        ).order_by("day_label", "problem_number")
+    )
+    assert len(saved_rows) == EXPECTED_TOURNAMENT_OF_TOWNS_2010_PROBLEM_TOTAL
+    assert [row.day_label for row in saved_rows] == [
+        "Fall 2010 · Senior A-Level",
+        "Fall 2010 · Senior O-Level",
+        "Spring 2010 · Junior A-Level",
+        "Spring 2010 · Junior O-Level",
+    ]
+    assert saved_rows[0].statement_latex == "Senior A one."
+    assert saved_rows[-1].statement_latex == "Junior O one."
+
+
+def test_import_problem_statements_supports_yearless_paper_tournament_headers():
+    result = import_problem_statements(parse_contest_problem_statements(TOURNAMENT_OF_TOWNS_2003_STATEMENT_SAMPLE))
+
+    assert result.created_count == EXPECTED_TOURNAMENT_OF_TOWNS_2003_PROBLEM_TOTAL
+    assert result.updated_count == 0
+    saved_rows = list(
+        ContestProblemStatement.objects.filter(
+            contest_year=TOURNAMENT_OF_TOWNS_2003_YEAR,
+            contest_name=TOURNAMENT_OF_TOWNS_2003_NAME,
+        ).order_by("day_label", "problem_number")
+    )
+    assert len(saved_rows) == EXPECTED_TOURNAMENT_OF_TOWNS_2003_PROBLEM_TOTAL
+    assert [row.day_label for row in saved_rows] == [
+        "Fall 2003 · Senior A-Level",
+        "Fall 2003 · Senior O-Level",
+        "Spring 2003 · Junior A-Level",
+        "Spring 2003 · Junior O-Level",
+    ]
+    assert saved_rows[0].statement_latex == "Fall senior A one."
+    assert saved_rows[-1].statement_latex == "Spring junior O one."
+
+
+def test_import_problem_statements_supports_round_prefixed_tournament_headers():
+    result = import_problem_statements(parse_contest_problem_statements(TOURNAMENT_OF_TOWNS_2002_STATEMENT_SAMPLE))
+
+    assert result.created_count == EXPECTED_TOURNAMENT_OF_TOWNS_2002_PROBLEM_TOTAL
+    assert result.updated_count == 0
+    saved_rows = list(
+        ContestProblemStatement.objects.filter(
+            contest_year=TOURNAMENT_OF_TOWNS_2002_YEAR,
+            contest_name=TOURNAMENT_OF_TOWNS_2002_NAME,
+        ).order_by("day_label", "problem_number")
+    )
+    assert len(saved_rows) == EXPECTED_TOURNAMENT_OF_TOWNS_2002_PROBLEM_TOTAL
+    assert [row.day_label for row in saved_rows] == [
+        "Fall 2002 · Junior A-Level",
+        "Fall 2002 · Senior O-Level",
+        "Spring 2002 · Junior O-Level",
+        "Spring 2002 · Senior A-Level",
+    ]
+    assert saved_rows[0].statement_latex == "Fall junior A one."
+    assert saved_rows[-1].statement_latex == "Spring senior A one."
+
+
+def test_import_problem_statements_supports_bare_numbered_multiline_problems():
+    result = import_problem_statements(
+        parse_contest_problem_statements(TOURNAMENT_OF_TOWNS_2002_MULTILINE_STATEMENT_SAMPLE)
+    )
+
+    assert result.created_count == EXPECTED_TOURNAMENT_OF_TOWNS_2002_MULTILINE_PROBLEM_TOTAL
+    assert result.updated_count == 0
+    saved_rows = list(
+        ContestProblemStatement.objects.filter(
+            contest_year=TOURNAMENT_OF_TOWNS_2002_MULTILINE_YEAR,
+            contest_name=TOURNAMENT_OF_TOWNS_2002_MULTILINE_NAME,
+        ).order_by("day_label", "problem_number")
+    )
+    assert len(saved_rows) == EXPECTED_TOURNAMENT_OF_TOWNS_2002_MULTILINE_PROBLEM_TOTAL
+    assert [row.day_label for row in saved_rows] == [
+        "Fall 2002 · Senior A-Level",
+        "Spring 2002 · Junior O-Level",
+    ]
+    assert saved_rows[0].statement_latex == "Fall multiline one."
+    assert saved_rows[1].statement_latex == "Spring multiline one.\nContinues here."
+
+
+def test_import_problem_statements_supports_1997_split_division_headers():
+    result = import_problem_statements(parse_contest_problem_statements(TOURNAMENT_OF_TOWNS_1997_STATEMENT_SAMPLE))
+
+    assert result.created_count == EXPECTED_TOURNAMENT_OF_TOWNS_1997_PROBLEM_TOTAL
+    assert result.updated_count == 0
+    saved_rows = list(
+        ContestProblemStatement.objects.filter(
+            contest_year=TOURNAMENT_OF_TOWNS_1997_YEAR,
+            contest_name=TOURNAMENT_OF_TOWNS_1997_NAME,
+        ).order_by("day_label", "problem_number")
+    )
+    assert len(saved_rows) == EXPECTED_TOURNAMENT_OF_TOWNS_1997_PROBLEM_TOTAL
+    assert [row.day_label for row in saved_rows] == [
+        "Autumn 1997 · Junior A-Level",
+        "Autumn 1997 · Junior O-Level",
+        "Spring 1997 · Junior A-Level",
+        "Spring 1997 · Junior O-Level",
+        "Spring 1997 · Senior A-Level",
+        "Spring 1997 · Senior A-Level",
+        "Spring 1997 · Senior O-Level",
+    ]
+    assert saved_rows[0].statement_latex == "Autumn junior A one."
+    assert saved_rows[2].problem_code == "P2"
+    assert saved_rows[4].statement_latex == "same as JA2 (529)"
+    assert saved_rows[5].problem_code == "P2"
+    assert saved_rows[-1].statement_latex == "Spring senior O one."
+
+
 def test_build_statement_render_segments_preserves_text_around_asymptote_blocks(monkeypatch):
     def fake_render(asy_code: str) -> AsymptoteRenderResult:
         assert "draw((0,0)--(1,1));" in asy_code
@@ -1052,6 +1608,14 @@ def test_problem_statement_list_requires_login(client):
     assert response.url == f"{login_url}?next={reverse('pages:problem_statement_list')}"
 
 
+def test_problem_statement_duplicates_requires_login(client):
+    response = client.get(reverse("pages:problem_statement_duplicates"))
+    login_url = reverse(settings.LOGIN_URL)
+
+    assert response.status_code == HTTPStatus.FOUND
+    assert response.url == f"{login_url}?next={reverse('pages:problem_statement_duplicates')}"
+
+
 def test_user_activity_dashboard_requires_login(client):
     response = client.get(reverse("pages:user_activity_dashboard"))
     login_url = reverse(settings.LOGIN_URL)
@@ -1098,6 +1662,16 @@ def test_problem_statement_analytics_forbids_non_admin_access_when_debug_is_off(
     client.force_login(user)
 
     response = client.get(reverse("pages:problem_statement_dashboard"))
+
+    assert response.status_code == HTTPStatus.FORBIDDEN
+
+
+@override_settings(DEBUG=False)
+def test_problem_statement_duplicates_forbids_non_admin_access_when_debug_is_off(client):
+    user = UserFactory()
+    client.force_login(user)
+
+    response = client.get(reverse("pages:problem_statement_duplicates"))
 
     assert response.status_code == HTTPStatus.FORBIDDEN
 
@@ -1150,6 +1724,9 @@ def test_contest_rename_renders_inventory_filter_for_admin(client):
     assert 'id="contest-inventory-table"' in response_html
     assert 'id="contest-inventory-match-count"' in response_html
     assert 'id="contest-source-selection-count"' in response_html
+    assert "dataTables.bootstrap5.min.css" in response_html
+    assert "dataTables.min.js" in response_html
+    assert 'new DataTable("#contest-inventory-table"' in response_html
     assert "Filter contests, years, or counts" in response_html
 
 
@@ -1424,6 +2001,97 @@ def test_problem_statement_list_recheck_links_skips_ambiguous_duplicate_codes(cl
         "Rechecked 2 statement row(s): 0 linked, 0 newly linked, 2 skipped, "
         "2 still unlinked, 0 updated."
     ) in response_html
+
+
+def test_problem_statement_duplicates_detects_exact_and_similar_matches_for_admin(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    exact_text = "Determine all integers $n$ such that $n^2+n+1$ is prime."
+    similar_text_a = (
+        "Let $ABC$ be a triangle with circumcenter $O$. Prove that the reflections of $O$ "
+        "across $AB$, $BC$, and $CA$ lie on a common circle centered at the nine-point center."
+    )
+    similar_text_b = (
+        "Let $ABC$ be a triangle with circumcenter $O$. Prove that the reflections of $O$ "
+        "across $AB$, $BC$, and $CA$ lie on the same circle centered at the nine-point center."
+    )
+
+    linked_problem = ProblemSolveRecord.objects.create(
+        year=2024,
+        topic="GEO",
+        mohs=6,
+        contest="IMO",
+        problem="P2",
+        contest_year_problem="IMO 2024 P2",
+    )
+    ContestProblemStatement.objects.create(
+        contest_year=2024,
+        contest_name="USAMO",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex=exact_text,
+    )
+    ContestProblemStatement.objects.create(
+        contest_year=2025,
+        contest_name="USA TST",
+        problem_number=4,
+        problem_code="P4",
+        day_label="Day 2",
+        statement_latex=exact_text,
+    )
+    ContestProblemStatement.objects.create(
+        linked_problem=linked_problem,
+        contest_year=2024,
+        contest_name="IMO",
+        problem_number=2,
+        problem_code="P2",
+        day_label="Day 1",
+        statement_latex=similar_text_a,
+    )
+    ContestProblemStatement.objects.create(
+        contest_year=2024,
+        contest_name="ISL",
+        problem_number=7,
+        problem_code="G7",
+        day_label="Geometry",
+        statement_latex=similar_text_b,
+    )
+    ContestProblemStatement.objects.create(
+        contest_year=2023,
+        contest_name="BMO",
+        problem_number=3,
+        problem_code="P3",
+        day_label="Round 1",
+        statement_latex="Show that $1+1=2$.",
+    )
+
+    response = client.get(reverse("pages:problem_statement_duplicates"))
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["statement_duplicate_stats"] == {
+        "statement_total": 5,
+        "exact_duplicate_group_total": 1,
+        "exact_duplicate_row_total": 2,
+        "similar_pair_total": 1,
+    }
+    exact_rows = response.context["statement_duplicate_exact_rows"]
+    assert len(exact_rows) == 1
+    assert exact_rows[0]["duplicate_count"] == 2
+    assert "USAMO 2024 P1" in exact_rows[0]["members_text"]
+    assert "USA TST 2025 P4" in exact_rows[0]["members_text"]
+    similar_rows = response.context["statement_duplicate_similar_rows"]
+    assert len(similar_rows) == 1
+    assert similar_rows[0]["similarity_percent"] >= 90
+    assert "IMO 2024 P2" in similar_rows[0]["left_statement"]
+    assert "ISL 2024 G7" in similar_rows[0]["right_statement"]
+    response_html = response.content.decode("utf-8")
+    assert "Statement duplicates" in response_html
+    assert "Exact duplicate statement groups" in response_html
+    assert "High-similarity statement pairs" in response_html
+    assert 'id="statement-exact-duplicates-table"' in response_html
+    assert 'id="statement-similarity-table"' in response_html
+    assert reverse("pages:problem_statement_duplicates") in response_html
 
 
 def test_contest_problem_list_search_matches_hidden_confidence(client):
@@ -1730,6 +2398,69 @@ def test_user_activity_dashboard_exposes_solution_workspace_navigation(client):
     assert reverse("solutions:my_solution_list") in response.content.decode("utf-8")
 
 
+def test_user_activity_dashboard_imports_completion_rows_for_current_user(client):
+    user = UserFactory()
+    client.force_login(user)
+    record_with_date = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="NT",
+        mohs=4,
+        contest="ISRAEL TST",
+        problem="P2",
+        contest_year_problem="ISRAEL TST 2026 P2",
+    )
+    record_done = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="ALG",
+        mohs=5,
+        contest="IMO",
+        problem="P1",
+        contest_year_problem="IMO 2026 P1",
+    )
+
+    response = client.post(
+        reverse("pages:user_activity_dashboard"),
+        data={
+            "action": "import_completions",
+            "source_text": (
+                "PROBLEM UUID Date\n"
+                f"{record_with_date.problem_uuid}\t2025-08-28\n"
+                f"{record_done.problem_uuid}\tDone"
+            ),
+        },
+        follow=True,
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert UserProblemCompletion.objects.filter(user=user).count() == EXPECTED_USER_ACTIVITY_IMPORTED_TOTAL
+    assert UserProblemCompletion.objects.get(user=user, problem=record_with_date).completion_date == date(2025, 8, 28)
+    assert UserProblemCompletion.objects.get(user=user, problem=record_done).completion_date is None
+    response_html = response.content.decode("utf-8")
+    assert "Completion import" in response_html
+    assert "Import completions" in response_html
+    assert any(
+        "Updated 2 completion row(s). 1 marked Done without an exact date." in str(message)
+        for message in response.context["messages"]
+    )
+
+
+def test_user_activity_dashboard_shows_completion_import_errors(client):
+    user = UserFactory()
+    client.force_login(user)
+
+    response = client.post(
+        reverse("pages:user_activity_dashboard"),
+        data={"action": "import_completions", "source_text": "   "},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert UserProblemCompletion.objects.filter(user=user).count() == 0
+    response_html = response.content.decode("utf-8")
+    assert "Please fix the completion import form and try again." in response_html
+    assert "Paste at least one completion row." in response_html
+    assert 'id="activity-import-submit"' in response_html
+
+
 def test_user_activity_dashboard_shows_only_current_users_completion_history(client):
     user = UserFactory()
     other_user = UserFactory()
@@ -1846,6 +2577,7 @@ def test_user_activity_dashboard_shows_only_current_users_completion_history(cli
     )
     assert recent_cell["count"] == 1
     assert recent_cell["title"].startswith(recent_date.strftime("%a, %d %b %Y"))
+    assert recent_cell["title"].endswith("1 completion")
     assert all(
         day["estimated_count"] == 0
         for week in response.context["activity_heatmap"]["weeks"]
@@ -1861,6 +2593,7 @@ def test_user_activity_dashboard_shows_only_current_users_completion_history(cli
     assert table_rows[2]["completion_date"] == "Unknown"
     response_html = response.content.decode("utf-8")
     assert "My activity" in response_html
+    assert "Completion import" in response_html
     assert "Completion heatmaps" in response_html
     assert 'id="chart-user-completions-by-month"' in response_html
     assert 'id="user-activity-table"' in response_html
@@ -1869,11 +2602,15 @@ def test_user_activity_dashboard_shows_only_current_users_completion_history(cli
     assert "Zero-completion days stay visible" in response_html
     assert 'class="activity-heatmap-grid"' in response_html
     assert 'class="activity-heatmap-weekdays"' in response_html
+    assert 'data-bs-toggle="tooltip"' in response_html
+    assert 'data-bs-title="' in response_html
     assert "Current window" in response_html
     assert "excluded from these time-based visuals" in response_html
+    assert response_html.index("Completion history") < response_html.index("Completion import")
     assert "--activity-heatmap-level-4: #216e39;" in response_html
     assert "--activity-heatmap-level-4: #39d353;" in response_html
     assert 'order: [[0, "desc"], [2, "asc"], [1, "asc"]]' in response_html
+    assert "bootstrap.Tooltip.getOrCreateInstance" in response_html
     assert reverse("pages:user_activity_dashboard") in response_html
 
 
@@ -1946,6 +2683,247 @@ def test_user_activity_dashboard_exposes_previous_year_windows_for_older_history
     assert response_html.index(previous_window_end.isoformat()) < response_html.index(today.isoformat())
 
 
+def test_user_activity_dashboard_exposes_statement_completion_heatmap(client):
+    user = UserFactory()
+    client.force_login(user)
+    today = timezone.localdate()
+
+    imo_2025_problem = ProblemSolveRecord.objects.create(
+        year=2025,
+        topic="ALG",
+        mohs=5,
+        contest="IMO",
+        problem="P1",
+        contest_year_problem="IMO 2025 P1",
+    )
+    imo_2026_problem_a = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="NT",
+        mohs=6,
+        contest="IMO",
+        problem="P2",
+        contest_year_problem="IMO 2026 P2",
+    )
+    imo_2026_problem_b = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="GEO",
+        mohs=7,
+        contest="IMO",
+        problem="P3",
+        contest_year_problem="IMO 2026 P3",
+    )
+    bmo_2026_problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="ALG",
+        mohs=4,
+        contest="BMO",
+        problem="P1",
+        contest_year_problem="BMO 2026 P1",
+    )
+    no_statement_problem = ProblemSolveRecord.objects.create(
+        year=2024,
+        topic="COMB",
+        mohs=3,
+        contest="EGMO",
+        problem="P2",
+        contest_year_problem="EGMO 2024 P2",
+    )
+
+    for index, problem in enumerate(
+        [
+            imo_2025_problem,
+            imo_2026_problem_a,
+            imo_2026_problem_b,
+            bmo_2026_problem,
+            no_statement_problem,
+        ],
+        start=1,
+    ):
+        UserProblemCompletion.objects.create(
+            user=user,
+            problem=problem,
+            completion_date=today - timedelta(days=index),
+        )
+
+    ContestProblemStatement.objects.create(
+        linked_problem=imo_2025_problem,
+        contest_year=2025,
+        contest_name="IMO",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="IMO 2025 P1 statement",
+    )
+    ContestProblemStatement.objects.create(
+        linked_problem=imo_2026_problem_a,
+        contest_year=2026,
+        contest_name="IMO",
+        problem_number=2,
+        problem_code="P2",
+        day_label="Day 1",
+        statement_latex="IMO 2026 P2 statement",
+    )
+    ContestProblemStatement.objects.create(
+        linked_problem=imo_2026_problem_b,
+        contest_year=2026,
+        contest_name="IMO",
+        problem_number=3,
+        problem_code="P3",
+        day_label="Day 2",
+        statement_latex="IMO 2026 P3 statement",
+    )
+    ContestProblemStatement.objects.create(
+        linked_problem=bmo_2026_problem,
+        contest_year=2026,
+        contest_name="BMO",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="BMO 2026 P1 statement",
+    )
+
+    response = client.get(reverse("pages:user_activity_dashboard"))
+
+    assert response.status_code == HTTPStatus.OK
+    heatmap_payload = response.context["activity_statement_completion_heatmap"]
+    assert heatmap_payload["years"] == ["2025", "2026"]
+    assert heatmap_payload["max_value"] == 2
+    assert heatmap_payload["series"][0]["name"] == "IMO"
+    assert heatmap_payload["series"][0]["data"] == [
+        {"x": "2025", "y": 1},
+        {"x": "2026", "y": 2},
+    ]
+    assert heatmap_payload["series"][1]["name"] == "BMO"
+    assert heatmap_payload["series"][1]["data"] == [
+        {"x": "2025", "y": 0},
+        {"x": "2026", "y": 1},
+    ]
+    assert response.context["activity_statement_completion_stats"] == {
+        "contest_year_total": 3,
+        "statement_backed_completion_total": 4,
+    }
+    response_html = response.content.decode("utf-8")
+    assert "Contest-year statement completion heatmap" in response_html
+    assert 'id="chart-user-statement-completion-heatmap"' in response_html
+    assert "4 completed statement-backed problems across 3 contest-year sets." in response_html
+
+
+def test_user_activity_dashboard_exposes_topic_mohs_completion_heatmap(client):
+    user = UserFactory()
+    client.force_login(user)
+    today = timezone.localdate()
+    expected_max_value = 2
+
+    problems = [
+        ProblemSolveRecord.objects.create(
+            year=2025,
+            topic="ALG",
+            mohs=5,
+            contest="IMO",
+            problem="P1",
+            contest_year_problem="IMO 2025 P1",
+        ),
+        ProblemSolveRecord.objects.create(
+            year=2024,
+            topic="ALG",
+            mohs=5,
+            contest="BMO",
+            problem="P2",
+            contest_year_problem="BMO 2024 P2",
+        ),
+        ProblemSolveRecord.objects.create(
+            year=2023,
+            topic="COMB",
+            mohs=7,
+            contest="APMO",
+            problem="P3",
+            contest_year_problem="APMO 2023 P3",
+        ),
+        ProblemSolveRecord.objects.create(
+            year=2022,
+            topic="GEO",
+            mohs=3,
+            contest="EGMO",
+            problem="P4",
+            contest_year_problem="EGMO 2022 P4",
+        ),
+        ProblemSolveRecord.objects.create(
+            year=2021,
+            topic="NT",
+            mohs=9,
+            contest="ISL",
+            problem="P5",
+            contest_year_problem="ISL 2021 P5",
+        ),
+    ]
+
+    for index, problem in enumerate(problems, start=1):
+        UserProblemCompletion.objects.create(
+            user=user,
+            problem=problem,
+            completion_date=today - timedelta(days=index),
+        )
+
+    response = client.get(reverse("pages:user_activity_dashboard"))
+
+    assert response.status_code == HTTPStatus.OK
+    heatmap_payload = response.context["activity_topic_mohs_completion_heatmap"]
+    assert heatmap_payload["mohs_values"] == ["3", "5", "7", "9"]
+    assert heatmap_payload["max_value"] == expected_max_value
+    assert heatmap_payload["series"] == [
+        {
+            "name": "A",
+            "data": [
+                {"x": "3", "y": 0},
+                {"x": "5", "y": 2},
+                {"x": "7", "y": 0},
+                {"x": "9", "y": 0},
+            ],
+        },
+        {
+            "name": "C",
+            "data": [
+                {"x": "3", "y": 0},
+                {"x": "5", "y": 0},
+                {"x": "7", "y": 1},
+                {"x": "9", "y": 0},
+            ],
+        },
+        {
+            "name": "G",
+            "data": [
+                {"x": "3", "y": 1},
+                {"x": "5", "y": 0},
+                {"x": "7", "y": 0},
+                {"x": "9", "y": 0},
+            ],
+        },
+        {
+            "name": "N",
+            "data": [
+                {"x": "3", "y": 0},
+                {"x": "5", "y": 0},
+                {"x": "7", "y": 0},
+                {"x": "9", "y": 1},
+            ],
+        },
+    ]
+    assert response.context["activity_topic_mohs_completion_stats"] == {
+        "cell_total": 4,
+        "completion_total": 5,
+        "mohs_total": 4,
+        "topic_total": 4,
+    }
+    response_html = response.content.decode("utf-8")
+    assert "Main topic vs MOHS completion heatmap" in response_html
+    assert 'id="chart-user-topic-mohs-completion-heatmap"' in response_html
+    assert "charts.topicMohsCompletionHeatmap.reverse_yaxis = true;" in response_html
+    assert (
+        "5 completed problems across 4 topic-MOHS cells, covering 4 main topic "
+        "buckets and 4 MOHS levels."
+    ) in response_html
+
+
 def test_user_activity_dashboard_estimates_done_rows_across_heatmap_months(client):
     user = UserFactory()
     client.force_login(user)
@@ -2003,6 +2981,19 @@ def test_user_activity_dashboard_estimates_done_rows_across_heatmap_months(clien
     response_html = response.content.decode("utf-8")
     assert "No exact completion dates are available yet." in response_html
     assert "excluded from the heatmaps" in response_html
+
+
+def test_user_activity_dashboard_empty_state_points_to_import_panel(client):
+    user = UserFactory()
+    client.force_login(user)
+
+    response = client.get(reverse("pages:user_activity_dashboard"))
+
+    assert response.status_code == HTTPStatus.OK
+    assert (
+        "Paste your solved problems in the completion import panel below to start building this dashboard."
+        in response.content.decode("utf-8")
+    )
 
 
 def test_problem_list_prioritizes_statement_backed_contests(client):

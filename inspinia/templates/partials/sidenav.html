@@ -146,6 +146,15 @@
                 </a>
             </li>
 
+            {% if show_problem_import_link %}
+            <li class="side-nav-item">
+                <a href="{% url 'pages:problem_statement_duplicates' %}" class="side-nav-link">
+                    <span class="menu-icon"><i class="ti ti-copy-check"></i></span>
+                    <span class="menu-text">Statement duplicates</span>
+                </a>
+            </li>
+            {% endif %}
+
             {% if request.user.is_authenticated %}
             <li class="side-nav-item">
                 <a href="{% url 'users:detail' request.user.pk %}" class="side-nav-link">

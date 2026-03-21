@@ -214,7 +214,22 @@
       </div>
     </div>
     <div class="col-xl-4">
+      {% if problem_data.statement_entry %}
       <div class="card">
+        <div class="card-header border-bottom">
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <h4 class="header-title mb-0">Linked statement</h4>
+            <span class="badge bg-light text-body-secondary">
+              {{ problem_data.statement_entry.problem_code }}{% if problem_data.statement_entry.day_label %} · {{ problem_data.statement_entry.day_label }}{% endif %}
+            </span>
+          </div>
+        </div>
+        <div class="card-body">
+          {% include 'partials/statement-render-content.html' with segments=problem_data.statement_render_segments %}
+        </div>
+      </div>
+      {% endif %}
+      <div class="card{% if problem_data.statement_entry %} mt-3{% endif %}">
         <div class="card-header border-bottom">
           <h4 class="header-title mb-0">Editor notes</h4>
         </div>
@@ -231,21 +246,6 @@
           </p>
         </div>
       </div>
-      {% if problem_data.statement_entry %}
-      <div class="card mt-3">
-        <div class="card-header border-bottom">
-          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
-            <h4 class="header-title mb-0">Linked statement</h4>
-            <span class="badge bg-light text-body-secondary">
-              {{ problem_data.statement_entry.problem_code }}{% if problem_data.statement_entry.day_label %} · {{ problem_data.statement_entry.day_label }}{% endif %}
-            </span>
-          </div>
-        </div>
-        <div class="card-body">
-          {% include 'partials/statement-render-content.html' with segments=problem_data.statement_render_segments %}
-        </div>
-      </div>
-      {% endif %}
     </div>
   </div>
 </div>
