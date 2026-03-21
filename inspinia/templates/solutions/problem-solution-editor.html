@@ -1,0 +1,454 @@
+{% extends 'layouts/vertical.html' %}
+
+{% load static %}
+
+{% block title %}Edit solution{% endblock title %}
+
+{% block extra_css %}
+<style>
+  .solution-editor-grid {
+    display: grid;
+    gap: 1rem;
+  }
+
+  @media (min-width: 1200px) {
+    .solution-editor-grid {
+      grid-template-columns: minmax(0, 1.1fr) minmax(22rem, 0.9fr);
+      align-items: start;
+    }
+  }
+
+  .solution-block-editor + .solution-block-editor {
+    margin-top: 1rem;
+  }
+
+  .solution-preview-shell {
+    position: sticky;
+    top: 1rem;
+  }
+
+  .solution-preview-body,
+  .solution-preview-block-body {
+    white-space: pre-wrap;
+    line-height: 1.8;
+  }
+</style>
+{% endblock extra_css %}
+
+{% block page_content %}
+<div class="container-fluid">
+
+  {% include 'partials/page-title.html' with title='Solution editor' subtitle=problem_data.problem_label %}
+
+  {% if messages %}
+  <div class="mt-3">
+    {% for message in messages %}
+      <div class="alert alert-{% if message.tags == 'error' %}danger{% elif message.tags == 'debug' %}secondary{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="row g-3 mt-0">
+    <div class="col-xl-8">
+      <div class="card h-100">
+        <div class="card-header border-bottom">
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <div>
+              <h4 class="header-title mb-0">{{ problem_data.problem_label }}</h4>
+              <p class="text-muted fs-xs mb-0">Build your solution as ordered blocks and preview the rendered LaTeX on the right.</p>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+              <span class="badge {{ solution_status_badge_class }}">{{ solution_status_label }}</span>
+              <a href="{{ problem_data.solutions_url }}" class="btn btn-outline-secondary btn-sm">View solution page</a>
+              {% if problem_data.contest_archive_url %}
+              <a href="{{ problem_data.contest_archive_url }}#{{ problem_data.problem_anchor }}" class="btn btn-outline-secondary btn-sm">Open contest archive</a>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          <form method="post" novalidate id="solution-editor-form">
+            {% csrf_token %}
+            {{ formset.management_form }}
+
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+              {% for err in form.non_field_errors %}
+              <div>{{ err }}</div>
+              {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if formset.non_form_errors %}
+            <div class="alert alert-danger">
+              {% for err in formset.non_form_errors %}
+              <div>{{ err }}</div>
+              {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="solution-editor-grid">
+              <div>
+                <div class="card border mb-3">
+                  <div class="card-body">
+                    <div class="mb-3">
+                      <label class="form-label" for="{{ form.title.id_for_label }}">{{ form.title.label }}</label>
+                      {{ form.title }}
+                      {% for err in form.title.errors %}<div class="invalid-feedback d-block">{{ err }}</div>{% endfor %}
+                    </div>
+                    <div>
+                      <label class="form-label" for="{{ form.summary.id_for_label }}">{{ form.summary.label }}</label>
+                      {{ form.summary }}
+                      {% for err in form.summary.errors %}<div class="invalid-feedback d-block">{{ err }}</div>{% endfor %}
+                    </div>
+                  </div>
+                </div>
+
+                <div id="solution-block-list">
+                  {% for block_form in formset %}
+                  <div class="card border solution-block-editor" data-block-form>
+                    <div class="card-header border-bottom py-2">
+                      <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                        <h5 class="mb-0">Block <span data-block-number>{{ forloop.counter }}</span></h5>
+                        <button type="button" class="btn btn-outline-danger btn-sm" data-remove-block>Remove</button>
+                      </div>
+                    </div>
+                    <div class="card-body">
+                      {{ block_form.id }}
+                      {{ block_form.DELETE }}
+                      <div class="row g-3">
+                        <div class="col-sm-3">
+                          <label class="form-label" for="{{ block_form.ORDER.id_for_label }}">Order</label>
+                          {{ block_form.ORDER }}
+                          {% for err in block_form.ORDER.errors %}<div class="invalid-feedback d-block">{{ err }}</div>{% endfor %}
+                        </div>
+                        <div class="col-sm-4">
+                          <label class="form-label" for="{{ block_form.block_type.id_for_label }}">{{ block_form.block_type.label }}</label>
+                          {{ block_form.block_type }}
+                          {% for err in block_form.block_type.errors %}<div class="invalid-feedback d-block">{{ err }}</div>{% endfor %}
+                        </div>
+                        <div class="col-sm-5">
+                          <label class="form-label" for="{{ block_form.title.id_for_label }}">{{ block_form.title.label }}</label>
+                          {{ block_form.title }}
+                          {% for err in block_form.title.errors %}<div class="invalid-feedback d-block">{{ err }}</div>{% endfor %}
+                        </div>
+                        <div class="col-sm-4">
+                          <label class="form-label" for="{{ block_form.body_format.id_for_label }}">{{ block_form.body_format.label }}</label>
+                          {{ block_form.body_format }}
+                          {% for err in block_form.body_format.errors %}<div class="invalid-feedback d-block">{{ err }}</div>{% endfor %}
+                        </div>
+                        <div class="col-12">
+                          <label class="form-label" for="{{ block_form.body_source.id_for_label }}">{{ block_form.body_source.label }}</label>
+                          {{ block_form.body_source }}
+                          {% for err in block_form.body_source.errors %}<div class="invalid-feedback d-block">{{ err }}</div>{% endfor %}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {% endfor %}
+                </div>
+
+                <template id="solution-block-empty-form">
+                  <div class="card border solution-block-editor" data-block-form>
+                    <div class="card-header border-bottom py-2">
+                      <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                        <h5 class="mb-0">Block <span data-block-number></span></h5>
+                        <button type="button" class="btn btn-outline-danger btn-sm" data-remove-block>Remove</button>
+                      </div>
+                    </div>
+                    <div class="card-body">
+                      {{ formset.empty_form.id }}
+                      {{ formset.empty_form.DELETE }}
+                      <div class="row g-3">
+                        <div class="col-sm-3">
+                          <label class="form-label" for="{{ formset.empty_form.ORDER.id_for_label }}">Order</label>
+                          {{ formset.empty_form.ORDER }}
+                        </div>
+                        <div class="col-sm-4">
+                          <label class="form-label" for="{{ formset.empty_form.block_type.id_for_label }}">{{ formset.empty_form.block_type.label }}</label>
+                          {{ formset.empty_form.block_type }}
+                        </div>
+                        <div class="col-sm-5">
+                          <label class="form-label" for="{{ formset.empty_form.title.id_for_label }}">{{ formset.empty_form.title.label }}</label>
+                          {{ formset.empty_form.title }}
+                        </div>
+                        <div class="col-sm-4">
+                          <label class="form-label" for="{{ formset.empty_form.body_format.id_for_label }}">{{ formset.empty_form.body_format.label }}</label>
+                          {{ formset.empty_form.body_format }}
+                        </div>
+                        <div class="col-12">
+                          <label class="form-label" for="{{ formset.empty_form.body_source.id_for_label }}">{{ formset.empty_form.body_source.label }}</label>
+                          {{ formset.empty_form.body_source }}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </template>
+
+                <div class="d-flex flex-wrap gap-2 mt-3">
+                  <button type="button" class="btn btn-outline-secondary" id="solution-add-block">
+                    <i class="ti ti-plus me-1"></i>Add block
+                  </button>
+                  <button type="submit" name="action" value="save" class="btn btn-primary">Save changes</button>
+                  <button type="submit" name="action" value="save_draft" class="btn btn-outline-secondary">Save as draft</button>
+                  <button type="submit" name="action" value="publish" class="btn btn-success">Publish solution</button>
+                </div>
+              </div>
+
+              <div class="solution-preview-shell">
+                <div class="card border">
+                  <div class="card-header border-bottom">
+                    <h4 class="header-title mb-0">Live preview</h4>
+                  </div>
+                  <div class="card-body">
+                    <div id="solution-live-preview" class="d-grid gap-3"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-4">
+      <div class="card">
+        <div class="card-header border-bottom">
+          <h4 class="header-title mb-0">Editor notes</h4>
+        </div>
+        <div class="card-body">
+          <p class="text-muted">
+            Use block titles for natural transitions like <code>Therefore</code>, <code>Hence</code>, or
+            <code>When n is even</code>. Keep the structural type small and stable.
+          </p>
+          <p class="text-muted">
+            Save order follows the numeric <code>Order</code> field. The live preview uses that sequence even if the editor cards themselves are still stacked in their original order.
+          </p>
+          <p class="text-muted mb-0">
+            The preview renders LaTeX-style math with the same MathJax stack used elsewhere in the project.
+          </p>
+        </div>
+      </div>
+      {% if problem_data.statement_entry %}
+      <div class="card mt-3">
+        <div class="card-header border-bottom">
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <h4 class="header-title mb-0">Linked statement</h4>
+            <span class="badge bg-light text-body-secondary">
+              {{ problem_data.statement_entry.problem_code }}{% if problem_data.statement_entry.day_label %} · {{ problem_data.statement_entry.day_label }}{% endif %}
+            </span>
+          </div>
+        </div>
+        <div class="card-body">
+          {% include 'partials/statement-render-content.html' with segments=problem_data.statement_render_segments %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock page_content %}
+
+{% block extra_javascript %}
+<script>
+window.MathJax = {
+  loader: { load: ["[tex]/textmacros"] },
+  tex: {
+    packages: { "[+]": ["textmacros"] },
+    macros: {
+      tiny: "",
+      scriptsize: "",
+      footnotesize: "",
+      small: "",
+      normalsize: "",
+      large: "",
+      Large: "",
+      LARGE: "",
+      huge: "",
+      Huge: "",
+      hdots: "\\dots",
+      overarc: ["\\overset{\\frown}{#1}", 1],
+      vspace: ["\\kern0pt", 1]
+    },
+    inlineMath: [["$", "$"], ["\\(", "\\)"]],
+    displayMath: [["$$", "$$"], ["\\[", "\\]"]]
+  },
+  options: { skipHtmlTags: ["script", "noscript", "style", "textarea", "pre", "code"] }
+};
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<script>
+(function () {
+  var form = document.getElementById("solution-editor-form");
+  if (!form) return;
+
+  var previewRoot = document.getElementById("solution-live-preview");
+  var blockList = document.getElementById("solution-block-list");
+  var addBlockButton = document.getElementById("solution-add-block");
+  var totalFormsInput = document.getElementById("id_blocks-TOTAL_FORMS");
+  var emptyTemplate = document.getElementById("solution-block-empty-form");
+
+  function visibleBlocks() {
+    return Array.from(blockList.querySelectorAll("[data-block-form]")).filter(function (node) {
+      var deleteInput = node.querySelector(".solution-delete-input");
+      return !node.classList.contains("d-none") && (!deleteInput || !deleteInput.checked);
+    });
+  }
+
+  function orderedVisibleBlocks() {
+    return visibleBlocks()
+      .map(function (node, index) {
+        var orderInput = node.querySelector(".solution-order-input");
+        var orderValue = Number.parseInt(orderInput && orderInput.value ? orderInput.value : "", 10);
+        return {
+          index: index,
+          node: node,
+          orderValue: Number.isFinite(orderValue) && orderValue > 0 ? orderValue : index + 1
+        };
+      })
+      .sort(function (left, right) {
+        if (left.orderValue !== right.orderValue) return left.orderValue - right.orderValue;
+        return left.index - right.index;
+      })
+      .map(function (entry) {
+        return entry.node;
+      });
+  }
+
+  function refreshBlockNumbers() {
+    visibleBlocks().forEach(function (node, index) {
+      var numberNode = node.querySelector("[data-block-number]");
+      var orderInput = node.querySelector(".solution-order-input");
+      if (numberNode) numberNode.textContent = String(index + 1);
+      if (orderInput && !orderInput.value) orderInput.value = String(index + 1);
+    });
+  }
+
+  function typesetPreview() {
+    if (!window.MathJax || typeof window.MathJax.typesetPromise !== "function") return Promise.resolve();
+    var targets = Array.from(previewRoot.querySelectorAll("[data-mathjax-scope]"));
+    if (!targets.length) return Promise.resolve();
+    if (typeof window.MathJax.typesetClear === "function") {
+      window.MathJax.typesetClear(targets);
+    }
+    return window.MathJax.typesetPromise(targets).catch(function () {
+      return Promise.resolve();
+    });
+  }
+
+  function previewBlockTitle(node, index) {
+    var titleInput = node.querySelector('input[name$="-title"]');
+    var typeSelect = node.querySelector('select[name$="-block_type"]');
+    var rawTitle = titleInput ? titleInput.value.trim() : "";
+    var rawType = typeSelect && typeSelect.selectedOptions.length ? typeSelect.selectedOptions[0].text.trim() : "";
+    if (rawTitle) return rawTitle;
+    if (rawType && rawType !== "---------") return rawType;
+    return "Block " + String(index + 1);
+  }
+
+  function renderPreview() {
+    var rows = orderedVisibleBlocks();
+    previewRoot.innerHTML = "";
+    if (!rows.length) {
+      var emptyState = document.createElement("div");
+      emptyState.className = "alert alert-light border mb-0";
+      emptyState.textContent = "Add at least one block to preview your solution.";
+      previewRoot.appendChild(emptyState);
+      return;
+    }
+
+    rows.forEach(function (node, index) {
+      var bodyInput = node.querySelector('textarea[name$="-body_source"]');
+      var typeSelect = node.querySelector('select[name$="-block_type"]');
+      var bodyFormatSelect = node.querySelector('select[name$="-body_format"]');
+      var card = document.createElement("div");
+      card.className = "card border";
+      var cardBody = document.createElement("div");
+      cardBody.className = "card-body py-3";
+
+      var head = document.createElement("div");
+      head.className = "d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2";
+      var title = document.createElement("div");
+      title.className = "fw-semibold";
+      title.textContent = previewBlockTitle(node, index);
+      var orderBadge = document.createElement("span");
+      orderBadge.className = "badge bg-light text-body-secondary";
+      orderBadge.textContent = "#" + String(index + 1);
+      head.appendChild(title);
+      head.appendChild(orderBadge);
+      cardBody.appendChild(head);
+
+      if (typeSelect && typeSelect.selectedOptions.length) {
+        var typeLabel = typeSelect.selectedOptions[0].text.trim();
+        if (typeLabel && typeLabel !== "---------") {
+          var typeNode = document.createElement("div");
+          typeNode.className = "text-muted fs-12 text-uppercase mb-2";
+          typeNode.textContent = typeLabel;
+          cardBody.appendChild(typeNode);
+        }
+      }
+
+      var body = document.createElement("div");
+      body.className = "solution-preview-block-body";
+      if (bodyFormatSelect && bodyFormatSelect.value === "latex") {
+        body.setAttribute("data-mathjax-scope", "true");
+      }
+      body.textContent = bodyInput ? bodyInput.value : "";
+      cardBody.appendChild(body);
+
+      card.appendChild(cardBody);
+      previewRoot.appendChild(card);
+    });
+
+    typesetPreview();
+  }
+
+  function attachRowHandlers(node) {
+    if (!node) return;
+    node.querySelectorAll("input, textarea, select").forEach(function (element) {
+      element.addEventListener("input", function () {
+        refreshBlockNumbers();
+        renderPreview();
+      });
+      element.addEventListener("change", function () {
+        refreshBlockNumbers();
+        renderPreview();
+      });
+    });
+
+    var removeButton = node.querySelector("[data-remove-block]");
+    if (!removeButton) return;
+    removeButton.addEventListener("click", function () {
+      var deleteInput = node.querySelector(".solution-delete-input");
+      if (deleteInput) deleteInput.checked = true;
+      node.classList.add("d-none");
+      refreshBlockNumbers();
+      renderPreview();
+    });
+  }
+
+  function addBlock() {
+    if (!emptyTemplate || !totalFormsInput) return;
+    var formIndex = Number(totalFormsInput.value || "0");
+    var html = emptyTemplate.innerHTML.replace(/__prefix__/g, String(formIndex));
+    var wrapper = document.createElement("div");
+    wrapper.innerHTML = html.trim();
+    var newNode = wrapper.firstElementChild;
+    blockList.appendChild(newNode);
+    totalFormsInput.value = String(formIndex + 1);
+    attachRowHandlers(newNode);
+    refreshBlockNumbers();
+    renderPreview();
+  }
+
+  visibleBlocks().forEach(attachRowHandlers);
+  if (addBlockButton) {
+    addBlockButton.addEventListener("click", addBlock);
+  }
+  refreshBlockNumbers();
+  renderPreview();
+})();
+</script>
+{% endblock extra_javascript %}

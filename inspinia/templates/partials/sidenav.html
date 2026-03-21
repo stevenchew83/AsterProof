@@ -75,6 +75,15 @@
             </li>
             {% endif %}
 
+            {% if show_solution_workspace_link %}
+            <li class="side-nav-item">
+                <a href="{% url 'solutions:my_solution_list' %}" class="side-nav-link">
+                    <span class="menu-icon"><i class="ti ti-file-pencil"></i></span>
+                    <span class="menu-text">My solutions</span>
+                </a>
+            </li>
+            {% endif %}
+
             {% if show_analytics_dashboard_link %}
             <li class="side-nav-item">
                 <a href="{% url 'pages:dashboard' %}" class="side-nav-link">
@@ -113,6 +122,12 @@
                 <a href="{% url 'pages:contest_rename' %}" class="side-nav-link">
                     <span class="menu-icon"><i class="ti ti-edit"></i></span>
                     <span class="menu-text">Contest names</span>
+                </a>
+            </li>
+            <li class="side-nav-item">
+                <a href="{% url 'pages:contest_details' %}" class="side-nav-link">
+                    <span class="menu-icon"><i class="ti ti-notebook"></i></span>
+                    <span class="menu-text">Contest details</span>
                 </a>
             </li>
             {% endif %}

@@ -7,112 +7,158 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'plugins/datatables/dataTables.bootstrap5.min.css' %}">
 <style>
-  .activity-heatmap-shell {
+  .activity-heatmap-wrap {
     overflow-x: auto;
     padding-bottom: 0.35rem;
   }
 
-  .activity-heatmap {
+  .activity-heatmap-canvas {
+    display: inline-block;
     min-width: max-content;
   }
 
-  .activity-heatmap-month-track {
-    display: flex;
-    gap: 0.32rem;
-    margin-left: 2rem;
+  .activity-heatmap {
+    --activity-heatmap-cell-size: 0.86rem;
+    --activity-heatmap-gap: 0.22rem;
+    --activity-heatmap-weekday-width: 2rem;
+    --activity-heatmap-border: rgba(27, 31, 35, 0.06);
+    --activity-heatmap-empty: #ebedf0;
+    --activity-heatmap-level-1: #9be9a8;
+    --activity-heatmap-level-2: #40c463;
+    --activity-heatmap-level-3: #30a14e;
+    --activity-heatmap-level-4: #216e39;
+  }
+
+  [data-bs-theme="dark"] .activity-heatmap {
+    --activity-heatmap-border: rgba(240, 246, 252, 0.08);
+    --activity-heatmap-empty: #161b22;
+    --activity-heatmap-level-1: #0e4429;
+    --activity-heatmap-level-2: #006d32;
+    --activity-heatmap-level-3: #26a641;
+    --activity-heatmap-level-4: #39d353;
+  }
+
+  .activity-heatmap-months {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: var(--activity-heatmap-cell-size);
+    gap: var(--activity-heatmap-gap);
+    margin-left: calc(var(--activity-heatmap-weekday-width) + 0.45rem);
     margin-bottom: 0.45rem;
-    height: 1rem;
-  }
-
-  .activity-heatmap-month-marker,
-  .activity-heatmap-week {
-    width: 0.92rem;
-    flex: 0 0 0.92rem;
-  }
-
-  .activity-heatmap-month-marker {
-    position: relative;
-  }
-
-  .activity-heatmap-month-label {
-    position: absolute;
-    inset: 0 auto auto 0;
-    color: var(--bs-secondary-color);
+    color: var(--ins-secondary-color);
     font-size: 0.72rem;
     line-height: 1;
+  }
+
+  .activity-heatmap-months > span {
+    min-width: var(--activity-heatmap-cell-size);
     white-space: nowrap;
   }
 
-  .activity-heatmap-main {
+  .activity-heatmap-body {
     display: flex;
+    align-items: flex-start;
     gap: 0.45rem;
   }
 
-  .activity-heatmap-day-labels,
-  .activity-heatmap-week {
+  .activity-heatmap-weekdays {
     display: grid;
-    grid-template-rows: repeat(7, 0.92rem);
-    gap: 0.32rem;
-  }
-
-  .activity-heatmap-day-labels {
-    width: 1.6rem;
-    color: var(--bs-secondary-color);
+    grid-template-rows: repeat(7, var(--activity-heatmap-cell-size));
+    gap: var(--activity-heatmap-gap);
+    width: var(--activity-heatmap-weekday-width);
+    color: var(--ins-secondary-color);
     font-size: 0.72rem;
-    line-height: 0.92rem;
+    line-height: var(--activity-heatmap-cell-size);
     text-align: right;
   }
 
-  .activity-heatmap-weeks {
-    display: flex;
-    gap: 0.32rem;
+  .activity-heatmap-grid {
+    display: grid;
+    grid-template-rows: repeat(7, var(--activity-heatmap-cell-size));
+    grid-auto-flow: column;
+    grid-auto-columns: var(--activity-heatmap-cell-size);
+    gap: var(--activity-heatmap-gap);
   }
 
   .activity-heatmap-cell {
     display: block;
-    width: 0.92rem;
-    height: 0.92rem;
-    border-radius: 0.24rem;
-    border: 1px solid rgba(var(--bs-primary-rgb), 0.08);
-    background: rgba(var(--bs-primary-rgb), 0.08);
+    width: var(--activity-heatmap-cell-size);
+    height: var(--activity-heatmap-cell-size);
+    border-radius: 0.18rem;
+    border: 1px solid var(--activity-heatmap-border);
+    background: var(--activity-heatmap-empty);
   }
 
-  .activity-heatmap-cell.is-padding {
+  .activity-heatmap-cell.is-outside {
     border-color: transparent;
     background: transparent;
   }
 
-  .activity-heatmap-level-0 {
-    background: rgba(var(--bs-primary-rgb), 0.08);
+  .activity-heatmap-cell.is-today {
+    outline: 1px solid rgba(9, 105, 218, 0.55);
+    outline-offset: 1px;
   }
 
-  .activity-heatmap-level-1 {
-    background: rgba(var(--bs-primary-rgb), 0.22);
+  .activity-heatmap-cell.level-0,
+  .activity-heatmap-legend-swatch.level-0 {
+    background: var(--activity-heatmap-empty);
   }
 
-  .activity-heatmap-level-2 {
-    background: rgba(var(--bs-primary-rgb), 0.4);
+  .activity-heatmap-cell.level-1,
+  .activity-heatmap-legend-swatch.level-1 {
+    background: var(--activity-heatmap-level-1);
   }
 
-  .activity-heatmap-level-3 {
-    background: rgba(var(--bs-primary-rgb), 0.62);
+  .activity-heatmap-cell.level-2,
+  .activity-heatmap-legend-swatch.level-2 {
+    background: var(--activity-heatmap-level-2);
   }
 
-  .activity-heatmap-level-4 {
-    background: rgba(var(--bs-primary-rgb), 0.88);
+  .activity-heatmap-cell.level-3,
+  .activity-heatmap-legend-swatch.level-3 {
+    background: var(--activity-heatmap-level-3);
   }
 
-  .activity-legend {
+  .activity-heatmap-cell.level-4,
+  .activity-heatmap-legend-swatch.level-4 {
+    background: var(--activity-heatmap-level-4);
+  }
+
+  .activity-heatmap-legend {
     display: inline-flex;
     align-items: center;
     gap: 0.45rem;
-    color: var(--bs-secondary-color);
+    color: var(--ins-secondary-color);
     font-size: 0.82rem;
+    margin-top: 0.9rem;
   }
 
-  .activity-legend-scale {
+  .activity-heatmap-legend-scale {
     display: inline-flex;
-    gap: 0.32rem;
+    gap: var(--activity-heatmap-gap);
+  }
+
+  .activity-heatmap-legend-swatch {
+    width: var(--activity-heatmap-cell-size);
+    height: var(--activity-heatmap-cell-size);
+    border-radius: 0.18rem;
+    border: 1px solid var(--activity-heatmap-border);
+    display: inline-block;
+  }
+
+  .activity-heatmap-empty-state {
+    display: none;
+    margin-bottom: 1rem;
+  }
+
+  .activity-heatmap-empty-state.is-visible {
+    display: block;
+  }
+
+  .activity-heatmap-section + .activity-heatmap-section {
+    border-top: 1px solid var(--ins-border-color);
+    margin-top: 1.25rem;
+    padding-top: 1.25rem;
   }
 
   .activity-toolbar {
@@ -123,7 +169,7 @@
     gap: 1rem 1.25rem;
     padding-bottom: 1rem;
     margin-bottom: 1rem;
-    border-bottom: 1px solid var(--bs-border-color);
+    border-bottom: 1px solid var(--ins-border-color);
   }
 
   .activity-toolbar-copy {
@@ -155,7 +201,7 @@
   #user-activity-table_wrapper .dt-length label,
   #user-activity-table_wrapper .dt-info {
     margin-bottom: 0;
-    color: var(--bs-secondary-color);
+    color: var(--ins-secondary-color);
     font-size: 0.82rem;
   }
 
@@ -267,62 +313,76 @@
     <div class="col-12">
       <div class="card">
         <div class="card-header border-0 pb-0">
-          <div class="d-flex flex-wrap align-items-start justify-content-between gap-2">
-            <div>
-              <h4 class="header-title mb-0">Completion heatmap</h4>
-              <p class="text-muted fs-xs mb-0">GitHub-style view of your exact completion dates across the last 365 days.</p>
-            </div>
-            <div class="activity-legend">
-              <span>Less</span>
-              <span class="activity-legend-scale" aria-hidden="true">
-                <span class="activity-heatmap-cell activity-heatmap-level-0"></span>
-                <span class="activity-heatmap-cell activity-heatmap-level-1"></span>
-                <span class="activity-heatmap-cell activity-heatmap-level-2"></span>
-                <span class="activity-heatmap-cell activity-heatmap-level-3"></span>
-                <span class="activity-heatmap-cell activity-heatmap-level-4"></span>
-              </span>
-              <span>More</span>
-            </div>
-          </div>
+          <h4 class="header-title mb-0">Completion heatmaps</h4>
+          <p class="text-muted fs-xs mb-0">GitHub-style view of your exact completion history in stacked 365-day windows. Rows marked <code>Done</code> without a date stay in the table below and are excluded from these time-based visuals.</p>
         </div>
         <div class="card-body pt-2">
-          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
-            <span class="badge text-bg-light">{{ activity_heatmap.start_label }} to {{ activity_heatmap.end_label }}</span>
-            <span class="text-muted fs-xs">{{ activity_heatmap.total_in_window }} dated completion{{ activity_heatmap.total_in_window|pluralize }} in this 365-day window</span>
+          <p class="text-muted mb-3 fs-xs">Zero-completion days stay visible. Blank cells are outside each 365-day window.</p>
+          <div class="alert alert-warning activity-heatmap-empty-state{% if not activity_heatmap_sections %} is-visible{% endif %}" role="alert">
+            No exact completion dates are available yet. Rows marked <code>Done</code> without a date stay in the table below and are excluded from the heatmaps.
           </div>
-          <div class="activity-heatmap-shell">
-            <div class="activity-heatmap">
-              <div class="activity-heatmap-month-track" aria-hidden="true">
-                {% for month_label in activity_heatmap.month_labels %}
-                <span class="activity-heatmap-month-marker">
-                  {% if month_label %}
-                  <span class="activity-heatmap-month-label">{{ month_label }}</span>
-                  {% endif %}
-                </span>
-                {% endfor %}
+          {% if activity_heatmap_sections %}
+          {% for section in activity_heatmap_sections %}
+          <div class="activity-heatmap-section">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+              <div class="d-flex flex-wrap align-items-center gap-2">
+                <span class="badge text-bg-light">{{ section.heatmap.start_label }} to {{ section.heatmap.end_label }}</span>
+                {% if section.is_latest %}
+                <span class="badge bg-primary-subtle text-primary">Current window</span>
+                {% else %}
+                <span class="badge text-bg-light">Earlier window</span>
+                {% endif %}
               </div>
-              <div class="activity-heatmap-main">
-                <div class="activity-heatmap-day-labels" aria-hidden="true">
-                  {% for day_label in activity_heatmap.day_labels %}
-                  <span>{{ day_label }}</span>
-                  {% endfor %}
-                </div>
-                <div class="activity-heatmap-weeks" role="img" aria-label="Completion heatmap for the last 365 days">
-                  {% for week in activity_heatmap.weeks %}
-                  <div class="activity-heatmap-week">
-                    {% for day in week.days %}
-                    <span
-                      class="activity-heatmap-cell activity-heatmap-level-{{ day.level }}{% if not day.in_range %} is-padding{% endif %}"
-                      title="{{ day.tooltip }}"
-                    ></span>
+              <span class="text-muted fs-xs">{{ section.heatmap.exact_total }} exact-date completion{{ section.heatmap.exact_total|pluralize }} shown in this 365-day window</span>
+            </div>
+            <div class="activity-heatmap">
+              <div class="activity-heatmap-wrap">
+                <div class="activity-heatmap-canvas">
+                  <div class="activity-heatmap-months" aria-hidden="true">
+                    {% for week in section.heatmap.weeks %}
+                    <span>{{ week.month_label }}</span>
                     {% endfor %}
                   </div>
-                  {% endfor %}
+                  <div class="activity-heatmap-body">
+                    <div class="activity-heatmap-weekdays" aria-hidden="true">
+                      {% for day_label in section.heatmap.day_labels %}
+                      <span>{{ day_label }}</span>
+                      {% endfor %}
+                    </div>
+                    <div class="activity-heatmap-grid" role="img" aria-label="Completion heatmap for the last 365 days">
+                      {% for week in section.heatmap.weeks %}
+                      {% for day in week.days %}
+                      <span
+                        class="activity-heatmap-cell{% if day.is_blank %} is-outside{% else %} level-{{ day.level }}{% endif %}{% if day.is_today %} is-today{% endif %}"
+                        {% if day.is_blank %}
+                        aria-hidden="true"
+                        {% else %}
+                        title="{{ day.title }}"
+                        aria-label="{{ day.title }}"
+                        {% endif %}
+                      ></span>
+                      {% endfor %}
+                      {% endfor %}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-          <p class="text-muted fs-xs mt-3 mb-0">Only exact completion dates feed the heatmap and monthly chart. Rows marked done without a date still stay in the table below.</p>
+          {% endfor %}
+          <div class="activity-heatmap-legend">
+            <span>Less</span>
+            <span class="activity-heatmap-legend-scale" aria-hidden="true">
+              <span class="activity-heatmap-legend-swatch level-0"></span>
+              <span class="activity-heatmap-legend-swatch level-1"></span>
+              <span class="activity-heatmap-legend-swatch level-2"></span>
+              <span class="activity-heatmap-legend-swatch level-3"></span>
+              <span class="activity-heatmap-legend-swatch level-4"></span>
+            </span>
+            <span>More</span>
+          </div>
+          {% endif %}
+          <p class="text-muted fs-xs mt-3 mb-0">Heatmaps and monthly bars use exact completion dates only. Rows marked <code>Done</code> without a date stay in the table below and are excluded from the time-based visuals.</p>
         </div>
       </div>
     </div>
@@ -333,7 +393,7 @@
       <div class="card">
         <div class="card-header border-0 pb-0">
           <h4 class="header-title mb-0">Completion count by month</h4>
-          <p class="text-muted fs-xs mb-0">Monthly totals over the rolling 12-month window from {{ activity_month_window_label }}.</p>
+          <p class="text-muted fs-xs mb-0">Monthly totals across the most recent heatmap window with exact dates from {{ activity_month_window_label }}. Rows marked <code>Done</code> without a date are excluded.</p>
         </div>
         <div class="card-body pt-2">
           <div id="chart-user-completions-by-month" style="min-height: 320px;"></div>

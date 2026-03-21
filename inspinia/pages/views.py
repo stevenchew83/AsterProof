@@ -27,11 +27,14 @@ from django.utils.text import slugify
 
 from inspinia.pages.asymptote_render import build_statement_render_segments
 from inspinia.pages.asymptote_render import has_asymptote_blocks
+from inspinia.pages.contest_names import normalize_contest_name
 from inspinia.pages.contest_rename import ContestRenameValidationError
 from inspinia.pages.contest_rename import rename_contests
+from inspinia.pages.forms import ContestMetadataForm
 from inspinia.pages.forms import ContestRenameForm
 from inspinia.pages.forms import ProblemStatementImportForm
 from inspinia.pages.forms import ProblemXlsxImportForm
+from inspinia.pages.models import ContestMetadata
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
 from inspinia.pages.models import ProblemTopicTechnique
@@ -50,6 +53,7 @@ from inspinia.pages.statement_import import build_problem_statement_save_preview
 from inspinia.pages.statement_import import import_problem_statements
 from inspinia.pages.statement_import import parse_contest_problem_statements
 from inspinia.pages.statement_import import relink_problem_statement_rows
+from inspinia.solutions.models import ProblemSolution
 from inspinia.users.models import AuditEvent
 from inspinia.users.monitoring import record_event
 from inspinia.users.roles import user_has_admin_role
@@ -603,10 +607,32 @@ def _shift_month(value: date, offset: int) -> date:
     return date(year, month_zero_based + 1, 1)
 
 
+def _month_starts_between(start_date: date, end_date: date) -> list[date]:
+    if start_date > end_date:
+        return []
+
+    month_starts: list[date] = []
+    current_month = date(start_date.year, start_date.month, 1)
+    end_month = date(end_date.year, end_date.month, 1)
+    while current_month <= end_month:
+        month_starts.append(current_month)
+        current_month = _shift_month(current_month, 1)
+    return month_starts
+
+
 def _completion_heatmap_level(count: int, max_count: int) -> int:
     if count <= 0 or max_count <= 0:
         return 0
     return min(4, max(1, -(-count * 4 // max_count)))
+
+
+def _solution_status_badge_class(status: str) -> str:
+    return {
+        ProblemSolution.Status.ARCHIVED: "text-bg-secondary",
+        ProblemSolution.Status.DRAFT: "text-bg-warning",
+        ProblemSolution.Status.PUBLISHED: "text-bg-success",
+        ProblemSolution.Status.SUBMITTED: "text-bg-info",
+    }.get(status, "text-bg-light")
 
 
 def _user_completion_heatmap_payload(
@@ -618,56 +644,72 @@ def _user_completion_heatmap_payload(
     start_date = end_date - timedelta(days=day_window - 1)
     grid_start = start_date - timedelta(days=start_date.weekday())
     grid_end = end_date + timedelta(days=(6 - end_date.weekday()))
-    counts_by_day = Counter(
+    exact_counts_by_day = Counter(
         completion_date
         for completion_date in completion_dates
         if start_date <= completion_date <= end_date
     )
-    max_count = max(counts_by_day.values(), default=0)
-    month_labels: list[str] = []
+    max_count = max(exact_counts_by_day.values(), default=0)
     weeks: list[dict[str, object]] = []
     current_day = grid_start
+    first_visible_month_labeled = False
 
     while current_day <= grid_end:
         week_days: list[dict[str, object]] = []
         week_dates = [current_day + timedelta(days=offset) for offset in range(7)]
-        month_label = next(
-            (
-                week_day.strftime("%b")
-                for week_day in week_dates
-                if start_date <= week_day <= end_date and week_day.day == 1
-            ),
-            "",
-        )
-        month_labels.append(month_label)
+        in_range_week_days = [
+            week_day for week_day in week_dates if start_date <= week_day <= end_date
+        ]
+        month_label = ""
+        if in_range_week_days:
+            if not first_visible_month_labeled:
+                month_label = in_range_week_days[0].strftime("%b")
+                first_visible_month_labeled = True
+            else:
+                month_start_day = next(
+                    (week_day for week_day in in_range_week_days if week_day.day == 1),
+                    None,
+                )
+                if month_start_day is not None:
+                    month_label = month_start_day.strftime("%b")
         for week_day in week_dates:
             in_range = start_date <= week_day <= end_date
-            count = counts_by_day.get(week_day, 0) if in_range else 0
+            count = exact_counts_by_day.get(week_day, 0) if in_range else 0
+            exact_count = exact_counts_by_day.get(week_day, 0) if in_range else 0
             tooltip = ""
             if in_range:
                 tooltip = (
-                    f"{count} completion{'s' if count != 1 else ''} on "
-                    f"{week_day.isoformat()}"
+                    f"{week_day.strftime('%a, %d %b %Y')}: "
+                    f"{count} completion{'s' if count != 1 else ''}"
                 )
             week_days.append(
                 {
                     "count": count,
-                    "date_label": week_day.isoformat(),
+                    "date": week_day.isoformat(),
+                    "estimated_count": 0,
+                    "exact_count": exact_count,
+                    "display_date": week_day.isoformat(),
                     "in_range": in_range,
-                    "level": _completion_heatmap_level(count, max_count),
-                    "tooltip": tooltip,
+                    "is_blank": not in_range,
+                    "is_today": week_day == end_date,
+                    "label": week_day.strftime("%a"),
+                    "level": _completion_heatmap_level(count, max_count) if in_range else -1,
+                    "title": tooltip,
+                    "value": count if in_range else None,
                 },
             )
-        weeks.append({"days": week_days})
+        weeks.append({"days": week_days, "month_label": month_label})
         current_day += timedelta(days=7)
 
     return {
-        "day_labels": ["Mon", "", "Wed", "", "Fri", "", ""],
+        "day_labels": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
         "end_label": end_date.isoformat(),
+        "estimated_total": 0,
+        "exact_total": sum(exact_counts_by_day.values()),
         "max_count": max_count,
-        "month_labels": month_labels,
         "start_label": start_date.isoformat(),
-        "total_in_window": sum(counts_by_day.values()),
+        "total_in_window": sum(exact_counts_by_day.values()),
+        "uses_estimated_placements": False,
         "weeks": weeks,
     }
 
@@ -676,21 +718,81 @@ def _user_completion_monthly_bar_payload(
     completion_dates: list[date],
     *,
     end_date: date,
-    month_window: int = 12,
 ) -> dict[str, object]:
-    end_month = date(end_date.year, end_date.month, 1)
-    month_starts = [
-        _shift_month(end_month, offset)
-        for offset in range(-(month_window - 1), 1)
-    ]
-    counts_by_month = Counter(
+    start_date = end_date - timedelta(days=364)
+    month_starts = _month_starts_between(start_date, end_date)
+    exact_counts_by_month = Counter(
         date(completion_date.year, completion_date.month, 1)
         for completion_date in completion_dates
+        if start_date <= completion_date <= end_date
     )
     return {
+        "estimated_values": [0 for _month_start in month_starts],
+        "exact_values": [exact_counts_by_month.get(month_start, 0) for month_start in month_starts],
         "labels": [month_start.strftime("%b %Y") for month_start in month_starts],
-        "values": [counts_by_month.get(month_start, 0) for month_start in month_starts],
+        "values": [exact_counts_by_month.get(month_start, 0) for month_start in month_starts],
     }
+
+
+def _user_completion_window_options(
+    *,
+    latest_end_date: date,
+    earliest_completion_date: date | None,
+    day_window: int = 365,
+) -> list[dict[str, str]]:
+    options: list[dict[str, str]] = []
+    offset = 0
+
+    while True:
+        window_end = latest_end_date - timedelta(days=offset * day_window)
+        window_start = window_end - timedelta(days=day_window - 1)
+        label = f"{window_start.isoformat()} to {window_end.isoformat()}"
+        if offset == 0:
+            label = f"{label} (Latest)"
+        options.append(
+            {
+                "end_label": window_end.isoformat(),
+                "label": label,
+                "start_label": window_start.isoformat(),
+                "value": str(offset),
+            },
+        )
+        if earliest_completion_date is None or earliest_completion_date >= window_start:
+            break
+        offset += 1
+
+    return options
+
+
+def _user_completion_heatmap_sections(
+    completion_dates: list[date],
+    *,
+    latest_end_date: date,
+    day_window: int = 365,
+) -> list[dict[str, object]]:
+    sections: list[dict[str, object]] = []
+    window_options = _user_completion_window_options(
+        latest_end_date=latest_end_date,
+        earliest_completion_date=min(completion_dates, default=None),
+        day_window=day_window,
+    )
+
+    for window_option in reversed(window_options):
+        heatmap = _user_completion_heatmap_payload(
+            completion_dates,
+            end_date=date.fromisoformat(window_option["end_label"]),
+            day_window=day_window,
+        )
+        if heatmap["exact_total"] <= 0:
+            continue
+        sections.append(
+            {
+                "heatmap": heatmap,
+                "is_latest": window_option["value"] == "0",
+            },
+        )
+
+    return sections
 
 
 def _user_completion_table_rows(completions: list[UserProblemCompletion]) -> tuple[list[dict], dict[str, list]]:
@@ -830,10 +932,19 @@ def _contest_inventory_rows() -> list[dict]:
             "problem_count": row["problem_count"],
             "problem_year_min": row["problem_year_min"],
             "problem_year_max": row["problem_year_max"],
-            "statement_count": 0,
-            "statement_year_min": None,
-            "statement_year_max": None,
-        }
+                "statement_count": 0,
+                "statement_year_min": None,
+                "statement_year_max": None,
+                "metadata_exists": False,
+                "metadata_updated_at": None,
+                "metadata_updated_label": "",
+                "metadata_full_name": "",
+                "metadata_countries": [],
+                "metadata_countries_label": "",
+                "metadata_tags": [],
+                "metadata_tags_label": "",
+                "metadata_has_description": False,
+            }
 
     for row in (
         ContestProblemStatement.objects.values("contest_name")
@@ -855,11 +966,52 @@ def _contest_inventory_rows() -> list[dict]:
                 "statement_count": 0,
                 "statement_year_min": None,
                 "statement_year_max": None,
+                "metadata_exists": False,
+                "metadata_updated_at": None,
+                "metadata_updated_label": "",
+                "metadata_full_name": "",
+                "metadata_countries": [],
+                "metadata_countries_label": "",
+                "metadata_tags": [],
+                "metadata_tags_label": "",
+                "metadata_has_description": False,
             },
         )
         inventory_row["statement_count"] = row["statement_count"]
         inventory_row["statement_year_min"] = row["statement_year_min"]
         inventory_row["statement_year_max"] = row["statement_year_max"]
+
+    for metadata in ContestMetadata.objects.order_by("contest"):
+        inventory_row = inventory.setdefault(
+            metadata.contest,
+            {
+                "contest": metadata.contest,
+                "problem_count": 0,
+                "problem_year_min": None,
+                "problem_year_max": None,
+                "statement_count": 0,
+                "statement_year_min": None,
+                "statement_year_max": None,
+                "metadata_exists": False,
+                "metadata_updated_at": None,
+                "metadata_updated_label": "",
+                "metadata_full_name": "",
+                "metadata_countries": [],
+                "metadata_countries_label": "",
+                "metadata_tags": [],
+                "metadata_tags_label": "",
+                "metadata_has_description": False,
+            },
+        )
+        inventory_row["metadata_exists"] = True
+        inventory_row["metadata_updated_at"] = metadata.updated_at
+        inventory_row["metadata_updated_label"] = timezone.localtime(metadata.updated_at).strftime("%Y-%m-%d")
+        inventory_row["metadata_full_name"] = metadata.full_name
+        inventory_row["metadata_countries"] = list(metadata.countries or [])
+        inventory_row["metadata_countries_label"] = ", ".join(metadata.countries or [])
+        inventory_row["metadata_tags"] = list(metadata.tags or [])
+        inventory_row["metadata_tags_label"] = ", ".join(metadata.tags or [])
+        inventory_row["metadata_has_description"] = bool(metadata.description_markdown)
 
     rows: list[dict] = []
     for inventory_row in inventory.values():
@@ -1079,12 +1231,27 @@ def user_activity_dashboard_view(request):
         for completion in completions
         if completion.completion_date is not None
     ]
+    unknown_completion_total = len(completions) - len(dated_completion_dates)
     table_rows, filter_options = _user_completion_table_rows(completions)
     current_year_total = sum(
         1
         for completion_date in dated_completion_dates
         if completion_date.year == today.year
     )
+    activity_heatmap = _user_completion_heatmap_payload(
+        dated_completion_dates,
+        end_date=today,
+    )
+    activity_heatmap_sections = _user_completion_heatmap_sections(
+        dated_completion_dates,
+        latest_end_date=today,
+    )
+    chart_end_date = (
+        date.fromisoformat(activity_heatmap_sections[-1]["heatmap"]["end_label"])
+        if activity_heatmap_sections
+        else today
+    )
+    activity_window_start = chart_end_date - timedelta(days=364)
 
     context = {
         "activity_total": len(completions),
@@ -1093,21 +1260,19 @@ def user_activity_dashboard_view(request):
             "current_year_total": current_year_total,
             "dated_total": len(dated_completion_dates),
             "latest_completion_date": max(dated_completion_dates, default=None),
-            "unknown_date_total": len(completions) - len(dated_completion_dates),
+            "unknown_date_total": unknown_completion_total,
         },
         "activity_filter_options": filter_options,
-        "activity_heatmap": _user_completion_heatmap_payload(
-            dated_completion_dates,
-            end_date=today,
-        ),
+        "activity_heatmap": activity_heatmap,
+        "activity_heatmap_sections": activity_heatmap_sections,
         "activity_month_window_label": (
-            f"{_shift_month(date(today.year, today.month, 1), -11).strftime('%b %Y')} - "
-            f"{date(today.year, today.month, 1).strftime('%b %Y')}"
+            f"{date(activity_window_start.year, activity_window_start.month, 1).strftime('%b %Y')} - "
+            f"{date(chart_end_date.year, chart_end_date.month, 1).strftime('%b %Y')}"
         ),
         "activity_charts_payload": {
             "completionsByMonth": _user_completion_monthly_bar_payload(
                 dated_completion_dates,
-                end_date=today,
+                end_date=chart_end_date,
             ),
         },
         "activity_table_rows": table_rows,
@@ -1476,10 +1641,28 @@ def contest_problem_list_view(request, contest_slug: str):
             problem__contest=contest_name,
         ).values("problem_id", "completion_date")
     }
+    solution_counts_by_problem_id = {
+        row["problem_id"]: row["published_solution_total"]
+        for row in ProblemSolution.objects.filter(
+            problem__contest=contest_name,
+            status=ProblemSolution.Status.PUBLISHED,
+        )
+        .values("problem_id")
+        .annotate(published_solution_total=Count("id"))
+    }
+    my_solution_rows_by_problem_id = {
+        row["problem_id"]: row
+        for row in ProblemSolution.objects.filter(
+            author=request.user,
+            problem__contest=contest_name,
+        ).values("problem_id", "status")
+    }
 
     grouped_years: list[dict] = []
     for row in problem_rows:
         statement_data = statement_by_problem_id.get(row["id"])
+        published_solution_total = solution_counts_by_problem_id.get(row["id"], 0)
+        my_solution_row = my_solution_rows_by_problem_id.get(row["id"])
         label = row["contest_year_problem"] or f"{contest_name} {row['year']} {row['problem']}"
         is_completed = row["id"] in completion_by_problem_id
         topic_tags = topic_tags_by_problem_id.get(row["id"], [])
@@ -1496,6 +1679,7 @@ def contest_problem_list_view(request, contest_slug: str):
             "mohs": row["mohs"],
             "problem": row["problem"],
             "problem_uuid": str(row["problem_uuid"]),
+            "published_solution_total": published_solution_total,
             "statement_day_label": statement_data["day_label"] if statement_data else "",
             "statement_has_asymptote": (
                 statement_data["statement_has_asymptote"] if statement_data else False
@@ -1508,7 +1692,21 @@ def contest_problem_list_view(request, contest_slug: str):
                 statement_data["updated_at_label"] if statement_data else ""
             ),
             "has_statement": statement_data is not None,
+            "has_my_solution": my_solution_row is not None,
             "technique_count": row["technique_count"],
+            "my_solution_status": my_solution_row["status"] if my_solution_row else "",
+            "my_solution_status_badge_class": (
+                _solution_status_badge_class(my_solution_row["status"])
+                if my_solution_row is not None
+                else ""
+            ),
+            "my_solution_status_label": (
+                ProblemSolution.Status(my_solution_row["status"]).label
+                if my_solution_row is not None
+                else ""
+            ),
+            "solution_editor_url": reverse("solutions:problem_solution_edit", args=[row["problem_uuid"]]),
+            "solutions_url": reverse("solutions:problem_solution_list", args=[row["problem_uuid"]]),
             "topic_tags": topic_tags,
             "topic": row["topic"],
         }
@@ -1867,12 +2065,8 @@ def _preview_contest_names(contests: tuple[str, ...]) -> str:
     return preview
 
 
-@login_required
-def contest_rename_view(request):
-    _require_admin_tools_access(request)
-
-    inventory_rows = _contest_inventory_rows()
-    contest_choices = [
+def _contest_choice_rows(inventory_rows: list[dict]) -> list[tuple[str, str]]:
+    return [
         (
             row["contest"],
             (
@@ -1882,6 +2076,124 @@ def contest_rename_view(request):
         )
         for row in inventory_rows
     ]
+
+
+def _resolve_selected_contest_name(request, contest_choices: list[tuple[str, str]]) -> str:
+    available_contests = {choice[0] for choice in contest_choices}
+    requested_contest = normalize_contest_name(
+        request.POST.get("contest") or request.GET.get("contest") or "",
+    )
+    if requested_contest in available_contests:
+        return requested_contest
+    if contest_choices:
+        return contest_choices[0][0]
+    return ""
+
+
+def _contest_metadata_form_initial(selected_contest: str, metadata: ContestMetadata | None) -> dict[str, object]:
+    initial: dict[str, object] = {"contest": selected_contest}
+    if metadata is None:
+        return initial
+
+    initial.update(
+        {
+            "countries_text": "\n".join(metadata.countries or []),
+            "description_markdown": metadata.description_markdown,
+            "full_name": metadata.full_name,
+            "tags_text": "\n".join(metadata.tags or []),
+        },
+    )
+    return initial
+
+
+@login_required
+def contest_details_view(request):
+    _require_admin_tools_access(request)
+
+    inventory_rows = _contest_inventory_rows()
+    contest_choices = _contest_choice_rows(inventory_rows)
+    selected_contest = _resolve_selected_contest_name(request, contest_choices)
+    selected_inventory_row = next(
+        (row for row in inventory_rows if row["contest"] == selected_contest),
+        None,
+    )
+    selected_metadata = (
+        ContestMetadata.objects.filter(contest=selected_contest).first()
+        if selected_contest
+        else None
+    )
+
+    if request.method == "POST":
+        form = ContestMetadataForm(request.POST, contest_choices=contest_choices)
+        if form.is_valid():
+            contest_name = form.cleaned_data["contest"]
+            metadata, _created = ContestMetadata.objects.get_or_create(contest=contest_name)
+            metadata.full_name = form.cleaned_data["full_name"]
+            metadata.countries = form.cleaned_data["countries_text"]
+            metadata.tags = form.cleaned_data["tags_text"]
+            metadata.description_markdown = form.cleaned_data["description_markdown"]
+            metadata.save()
+            messages.success(request, f'Saved contest details for "{contest_name}".')
+            return redirect(f'{reverse("pages:contest_details")}?{urlencode({"contest": contest_name})}')
+
+        selected_contest = normalize_contest_name(form["contest"].value() or selected_contest)
+        selected_inventory_row = next(
+            (row for row in inventory_rows if row["contest"] == selected_contest),
+            None,
+        )
+        selected_metadata = (
+            ContestMetadata.objects.filter(contest=selected_contest).first()
+            if selected_contest
+            else None
+        )
+    else:
+        form = ContestMetadataForm(
+            contest_choices=contest_choices,
+            initial=_contest_metadata_form_initial(selected_contest, selected_metadata),
+        )
+
+    unique_countries = sorted(
+        {
+            country
+            for row in inventory_rows
+            for country in row["metadata_countries"]
+        },
+    )
+    unique_tags = sorted(
+        {
+            tag
+            for row in inventory_rows
+            for tag in row["metadata_tags"]
+        },
+    )
+
+    return render(
+        request,
+        "pages/contest-details.html",
+        {
+            "contest_choices": contest_choices,
+            "contest_detail_stats": {
+                "contest_total": len(inventory_rows),
+                "country_total": len(unique_countries),
+                "description_total": sum(1 for row in inventory_rows if row["metadata_has_description"]),
+                "metadata_total": sum(1 for row in inventory_rows if row["metadata_exists"]),
+                "tag_total": len(unique_tags),
+            },
+            "form": form,
+            "inventory_rows": inventory_rows,
+            "selected_contest": selected_contest,
+            "selected_inventory_row": selected_inventory_row,
+            "selected_metadata": selected_metadata,
+        },
+    )
+
+
+@login_required
+def contest_rename_view(request):
+    _require_admin_tools_access(request)
+
+    inventory_rows = _contest_inventory_rows()
+    contest_choices = _contest_choice_rows(inventory_rows)
 
     if request.method == "POST":
         form = ContestRenameForm(request.POST, contest_choices=contest_choices)

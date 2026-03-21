@@ -1,7 +1,8 @@
 from django import forms
 
-from inspinia.pages.contest_rename import PROJECT_CONTEST_NAME_MAX_LENGTH
-from inspinia.pages.contest_rename import normalize_contest_name
+from inspinia.pages.contest_names import PROJECT_CONTEST_NAME_MAX_LENGTH
+from inspinia.pages.contest_names import normalize_contest_name
+from inspinia.pages.contest_names import normalize_text_list
 
 
 class ProblemXlsxImportForm(forms.Form):
@@ -132,5 +133,99 @@ class ContestRenameForm(forms.Form):
                 if len(source_contests) == 1
                 else "Uncheck the target contest name from the source selections."
             )
+            raise forms.ValidationError(msg)
+        return cleaned_data
+
+
+class ContestMetadataForm(forms.Form):
+    contest = forms.ChoiceField(widget=forms.HiddenInput())
+    full_name = forms.CharField(
+        required=False,
+        label="Full contest name",
+        max_length=255,
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "Enter the full contest name",
+            },
+        ),
+    )
+    countries_text = forms.CharField(
+        required=False,
+        label="Countries",
+        help_text="Enter one country per line or separate entries with commas.",
+        widget=forms.Textarea(
+            attrs={
+                "class": "form-control",
+                "rows": 3,
+                "placeholder": "United States\nCanada",
+            },
+        ),
+    )
+    tags_text = forms.CharField(
+        required=False,
+        label="Tags",
+        help_text="Enter one tag per line or separate entries with commas.",
+        widget=forms.Textarea(
+            attrs={
+                "class": "form-control",
+                "rows": 3,
+                "placeholder": "Olympiad\nNational",
+            },
+        ),
+    )
+    description_markdown = forms.CharField(
+        required=False,
+        label="Description (Markdown)",
+        help_text="Store raw Markdown for the contest description.",
+        widget=forms.Textarea(
+            attrs={
+                "class": "form-control font-monospace",
+                "rows": 12,
+                "placeholder": "# Overview\n\nAdd the contest background, format, and notable details.",
+            },
+        ),
+    )
+
+    def __init__(self, *args, contest_choices: list[tuple[str, str]] | None = None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["contest"].choices = contest_choices or []
+
+    @staticmethod
+    def _parse_text_list(raw_value: str) -> list[str]:
+        parts = [
+            entry
+            for line in (raw_value or "").splitlines()
+            for entry in line.split(",")
+        ]
+        return normalize_text_list(parts)
+
+    def clean_contest(self):
+        return normalize_contest_name(self.cleaned_data["contest"])
+
+    def clean_full_name(self):
+        return normalize_contest_name(self.cleaned_data["full_name"])
+
+    def clean_countries_text(self):
+        return self._parse_text_list(self.cleaned_data["countries_text"])
+
+    def clean_tags_text(self):
+        return self._parse_text_list(self.cleaned_data["tags_text"])
+
+    def clean_description_markdown(self):
+        return (self.cleaned_data["description_markdown"] or "").strip()
+
+    def clean(self):
+        cleaned_data = super().clean()
+        has_content = any(
+            [
+                cleaned_data.get("full_name"),
+                cleaned_data.get("countries_text"),
+                cleaned_data.get("tags_text"),
+                cleaned_data.get("description_markdown"),
+            ],
+        )
+        if cleaned_data.get("contest") and not has_content:
+            msg = "Add at least one contest detail before saving."
             raise forms.ValidationError(msg)
         return cleaned_data

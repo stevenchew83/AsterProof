@@ -474,6 +474,29 @@
       font-weight: 600;
     }
 
+    .contest-solution-meta,
+    .contest-solution-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      align-items: center;
+    }
+
+    .contest-solution-meta {
+      margin-top: 0.55rem;
+    }
+
+    .contest-solution-stat {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.22rem 0.52rem;
+      border-radius: 999px;
+      background: rgba(17, 32, 59, 0.06);
+      color: #5f6f86;
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+
     .problem-statement-body {
       margin-top: 0.75rem;
       padding: 0.95rem 1rem;
@@ -691,7 +714,7 @@
       <div class="contest-table-head">
         <div>
           <h2>Problem list</h2>
-          <p class="contest-table-meta mb-0 mt-1">Statement-backed first · sortable table layout · inline statement drawers for the rows that already have imported text.</p>
+          <p class="contest-table-meta mb-0 mt-1">Statement-backed first · sortable table layout · inline statement drawers · direct links into each problem's shared solution workspace.</p>
         </div>
         <span class="problem-pill">{{ matching_problem_total }} shown</span>
       </div>
@@ -704,6 +727,7 @@
               <th>MOHS</th>
               <th>Topic tags</th>
               <th>Statement</th>
+              <th>Solutions</th>
               <th>IMO slots</th>
               <th>Status</th>
             </tr>
@@ -756,6 +780,22 @@
                 </details>
                 {% else %}
                 <span class="text-muted fs-xs">Not imported</span>
+                {% endif %}
+              </td>
+              <td data-order="{{ problem.published_solution_total }}">
+                <div class="contest-solution-links">
+                  <a href="{{ problem.solutions_url }}" class="btn btn-outline-secondary btn-sm">Solution page</a>
+                  <a href="{{ problem.solution_editor_url }}" class="btn btn-outline-primary btn-sm">
+                    {% if problem.has_my_solution %}Edit my draft{% else %}Start my draft{% endif %}
+                  </a>
+                </div>
+                <div class="contest-solution-meta">
+                  <span class="contest-solution-stat">{{ problem.published_solution_total }} published</span>
+                </div>
+                {% if problem.has_my_solution %}
+                <div class="mt-2">
+                  <span class="badge {{ problem.my_solution_status_badge_class }}">Mine: {{ problem.my_solution_status_label }}</span>
+                </div>
                 {% endif %}
               </td>
               <td class="text-nowrap">

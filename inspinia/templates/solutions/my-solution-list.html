@@ -1,0 +1,140 @@
+{% extends 'layouts/vertical.html' %}
+
+{% load static %}
+
+{% block title %}My solutions{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+
+  {% include 'partials/page-title.html' with title='My solutions' subtitle='Personal' %}
+
+  {% if messages %}
+  <div class="mt-3">
+    {% for message in messages %}
+      <div class="alert alert-{% if message.tags == 'error' %}danger{% elif message.tags == 'debug' %}secondary{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="row g-3 mt-0">
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-primary-subtle text-primary rounded">
+                <i class="ti ti-stack-2 fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">All solutions</p>
+              <h3 class="mb-0">{{ my_solution_stats.total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-warning-subtle text-warning rounded">
+                <i class="ti ti-pencil fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Drafts</p>
+              <h3 class="mb-0">{{ my_solution_stats.draft_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-success-subtle text-success rounded">
+                <i class="ti ti-world-check fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Published</p>
+              <h3 class="mb-0">{{ my_solution_stats.published_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-info-subtle text-info rounded">
+                <i class="ti ti-send fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Submitted</p>
+              <h3 class="mb-0">{{ my_solution_stats.submitted_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mt-3">
+    <div class="card-header border-bottom">
+      <h4 class="header-title mb-0">Your solution workspace</h4>
+    </div>
+    <div class="card-body">
+      {% if my_solution_rows %}
+      <div class="table-responsive">
+        <table class="table align-middle mb-0">
+          <thead>
+            <tr class="text-muted fs-xs text-uppercase">
+              <th>Problem</th>
+              <th>Status</th>
+              <th>Blocks</th>
+              <th>Updated</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in my_solution_rows %}
+            <tr>
+              <td>
+                <div class="fw-semibold">{{ row.problem_label }}</div>
+                <div class="text-muted fs-12">{{ row.title }}</div>
+              </td>
+              <td><span class="badge {{ row.status_badge_class }}">{{ row.status_label }}</span></td>
+              <td>{{ row.blocks|length }}</td>
+              <td class="text-muted">{{ row.updated_at_label }}</td>
+              <td class="text-end">
+                <div class="d-inline-flex flex-wrap justify-content-end gap-2">
+                  <a href="{{ row.problem_url }}" class="btn btn-outline-secondary btn-sm">Problem page</a>
+                  <a href="{{ row.edit_url }}" class="btn btn-primary btn-sm">Edit draft</a>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="alert alert-info mb-0" role="alert">
+        You have not started any solutions yet. Open a problem and create your first draft there.
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock page_content %}

@@ -48,7 +48,7 @@
             <div class="mb-3">
               <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
                 <label class="form-label mb-0">{{ form.source_contests.label }}</label>
-                <span class="badge bg-secondary-subtle text-secondary">{{ selected_source_contests|length }} selected</span>
+                <span id="contest-source-selection-count" class="badge bg-secondary-subtle text-secondary">{{ selected_source_contests|length }} selected</span>
               </div>
               {% if form.source_contests.help_text %}<div class="form-text">{{ form.source_contests.help_text }}</div>{% endif %}
               {% for err in form.source_contests.errors %}<div class="invalid-feedback d-block">{{ err }}</div>{% endfor %}
@@ -81,13 +81,27 @@
                 <h4 class="header-title mb-0">Contest inventory</h4>
                 <p class="text-muted mb-0 fs-xs">Tick the contest names you want to collapse into one canonical label.</p>
               </div>
-              <span class="badge bg-secondary-subtle text-secondary">{{ inventory_rows|length }} contests</span>
+              <div class="d-flex flex-wrap gap-2">
+                <span id="contest-inventory-match-count" class="badge bg-primary-subtle text-primary">{{ inventory_rows|length }} shown</span>
+                <span class="badge bg-secondary-subtle text-secondary">{{ inventory_rows|length }} contests</span>
+              </div>
             </div>
           </div>
           <div class="card-body">
             {% if inventory_rows %}
+            <div class="mb-3">
+              <label class="form-label" for="contest-inventory-filter">Filter inventory</label>
+              <input
+                id="contest-inventory-filter"
+                type="search"
+                class="form-control"
+                placeholder="Filter contests, years, or counts"
+                autocomplete="off"
+              >
+              <div class="form-text">Matches contest name, year span, problem count, and statement count.</div>
+            </div>
             <div class="table-responsive">
-              <table class="table align-middle mb-0">
+              <table id="contest-inventory-table" class="table align-middle mb-0">
                 <thead>
                   <tr class="text-muted fs-xs text-uppercase">
                     <th class="text-center">Use</th>
@@ -99,7 +113,7 @@
                 </thead>
                 <tbody>
                   {% for row in inventory_rows %}
-                  <tr>
+                  <tr data-contest-row>
                     <td class="text-center">
                       <input
                         class="form-check-input"
@@ -126,6 +140,9 @@
                 </tbody>
               </table>
             </div>
+            <div id="contest-inventory-empty-state" class="alert alert-info d-none mt-3 mb-0" role="alert">
+              No contests match the current filter.
+            </div>
             {% else %}
             <div class="alert alert-info mb-0" role="alert">
               No contest rows are stored yet. Import problem data or problem statements first.
@@ -139,3 +156,48 @@
 </div>
 
 {% endblock page_content %}
+
+{% block extra_javascript %}
+{% if inventory_rows %}
+<script>
+(function () {
+  var input = document.getElementById("contest-inventory-filter");
+  var table = document.getElementById("contest-inventory-table");
+  var matchCount = document.getElementById("contest-inventory-match-count");
+  var selectionCount = document.getElementById("contest-source-selection-count");
+  var emptyState = document.getElementById("contest-inventory-empty-state");
+  if (!table || !input || !matchCount || !selectionCount || !emptyState) return;
+
+  var rows = Array.prototype.slice.call(table.querySelectorAll("tbody tr[data-contest-row]"));
+  var checkboxSelector = 'input[name="{{ form.source_contests.html_name }}"]';
+
+  function updateSelectionCount() {
+    var checkedTotal = table.querySelectorAll(checkboxSelector + ":checked").length;
+    selectionCount.textContent = checkedTotal + " selected";
+  }
+
+  function applyInventoryFilter() {
+    var query = (input.value || "").trim().toLowerCase();
+    var visibleTotal = 0;
+
+    rows.forEach(function (row) {
+      var matches = !query || row.textContent.toLowerCase().indexOf(query) !== -1;
+      row.classList.toggle("d-none", !matches);
+      if (matches) visibleTotal += 1;
+    });
+
+    matchCount.textContent = visibleTotal + " shown";
+    emptyState.classList.toggle("d-none", visibleTotal !== 0);
+  }
+
+  input.addEventListener("input", applyInventoryFilter);
+  table.addEventListener("change", function (event) {
+    if (event.target && event.target.matches(checkboxSelector)) updateSelectionCount();
+  });
+
+  updateSelectionCount();
+  applyInventoryFilter();
+})();
+</script>
+{% endif %}
+{% endblock extra_javascript %}

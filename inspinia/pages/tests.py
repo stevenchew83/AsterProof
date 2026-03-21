@@ -14,6 +14,7 @@ from django.utils import timezone
 from inspinia.pages.asymptote_render import AsymptoteRenderResult
 from inspinia.pages.asymptote_render import _extract_svg_markup
 from inspinia.pages.asymptote_render import build_statement_render_segments
+from inspinia.pages.models import ContestMetadata
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
 from inspinia.pages.models import ProblemTopicTechnique
@@ -24,6 +25,7 @@ from inspinia.pages.problem_import import import_problem_dataframe
 from inspinia.pages.statement_import import LATEX_STATEMENT_SAMPLE
 from inspinia.pages.statement_import import import_problem_statements
 from inspinia.pages.statement_import import parse_contest_problem_statements
+from inspinia.solutions.models import ProblemSolution
 from inspinia.users.models import User
 from inspinia.users.tests.factories import UserFactory
 
@@ -126,11 +128,97 @@ EXPECTED_USA_EGMO_TST_PROBLEM_TOTAL = 6
 USA_EGMO_TST_STATEMENT_SAMPLE = (
     Path(__file__).resolve().parent / "testdata" / "usa_egmo_team_selection_test_sample.txt"
 ).read_text(encoding="utf-8")
+TOURNAMENT_OF_TOWNS_YEAR = 2025
+TOURNAMENT_OF_TOWNS_NAME = "TOURNAMENT OF TOWNS"
+EXPECTED_TOURNAMENT_OF_TOWNS_PROBLEM_TOTAL = 2
+TOURNAMENT_OF_TOWNS_STATEMENT_SAMPLE = (
+    "2024/2025 TOURNAMENT OF TOWNS3\n"
+    "46th internationl tournament of towns\n"
+    "Junior A-Level Paper, Fall 2024\n"
+    "P1\tBaron Munchausen took several cards and wrote a positive integer on each one.\n"
+    "\n"
+    "Maxim Didin\n"
+    "\n"
+    "gnoka\n"
+    "view topic\n"
+    "Senior A-Level Paper, Fall 2024\n"
+    "P1\tPeter writes a positive integer on the whiteboard.\n"
+    "\n"
+    "Maxim Didin\n"
+    "\n"
+    "gnoka\n"
+    "view topic\n"
+)
+SEASON_FIRST_TOURNAMENT_OF_TOWNS_YEAR = 2024
+SEASON_FIRST_TOURNAMENT_OF_TOWNS_NAME = "Tournament of Towns"
+EXPECTED_SEASON_FIRST_TOURNAMENT_OF_TOWNS_PROBLEM_TOTAL = 3
+SEASON_FIRST_TOURNAMENT_OF_TOWNS_STATEMENT_SAMPLE = (
+    "2023/2024 Tournament of Towns3\n"
+    "45th International Tournament of Towns\n"
+    "Fall 2023, Senior A-level\n"
+    "1\tSenior one.\n"
+    "\n"
+    "Alexey Glebov\n"
+    "\n"
+    "gnoka\n"
+    "view topic\n"
+    "Fall 2023, Junior A-level\n"
+    "1\t1. Junior one.\n"
+    "\n"
+    "Egor Bakaev\n"
+    "\n"
+    "gnoka\n"
+    "view topic\n"
+    "2\t2. Junior two.\n"
+    "\n"
+    "gnoka\n"
+    "view topic\n"
+)
+TOURNAMENT_OF_TOWNS_2019_YEAR = 2019
+TOURNAMENT_OF_TOWNS_2019_NAME = "Tournament Of Towns"
+EXPECTED_TOURNAMENT_OF_TOWNS_2019_PROBLEM_TOTAL = 5
+TOURNAMENT_OF_TOWNS_2019_STATEMENT_SAMPLE = (
+    "2019 Tournament Of Towns3\n"
+    "Tournament Of Towns year 2019\n"
+    "Spring 2019\n"
+    "Junior O-Level\n"
+    "1\tJunior O one.\n"
+    "\n"
+    "(Alexandr Shapovalov)\n"
+    "\n"
+    "parmenides51\n"
+    "view topic\n"
+    "Junior A-Level\n"
+    "1\tJunior A one.\n"
+    "\n"
+    "(Mikhail Evdokimov)\n"
+    "\n"
+    "parmenides51\n"
+    "view topic\n"
+    "Senior A-Level\n"
+    "2\tsame as Junior A p2\n"
+    "3\tSenior A three.\n"
+    "\n"
+    "(Egor Bakaev, Ilya Bogdanov, Pavel Kozhevnikov, Vladimir Rastorguev) (Junior version here)\n"
+    "note\n"
+    "\n"
+    "parmenides51\n"
+    "view topic\n"
+    "Fall 2019\n"
+    "Junior O-Level\n"
+    "1\tFallback username dots.\n"
+    "\n"
+    "L.Lawliet03\n"
+    "view topic\n"
+)
 EXPECTED_LINKED_PROBLEM_MOHS = 4
 EXPECTED_USER_ACTIVITY_TOTAL = 3
 EXPECTED_USER_ACTIVITY_DATED_TOTAL = 2
 EXPECTED_USER_ACTIVITY_UNKNOWN_DATE_TOTAL = 1
 EXPECTED_USER_ACTIVITY_CONTEST_TOTAL = 3
+EXPECTED_USER_ACTIVITY_VISUAL_TOTAL = 2
+EXPECTED_DONE_ONLY_COMPLETION_TOTAL = 4
+EXPECTED_DONE_ONLY_EXACT_TOTAL = 0
 FAKE_ASYMPTOTE_SVG = '<svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" /></svg>'
 
 
@@ -600,6 +688,65 @@ def test_parse_contest_problem_statements_supports_tst_headers_and_strips_traili
     assert "What are the possible values of $r$" in parsed_import.problems[2].statement_latex
 
 
+def test_parse_contest_problem_statements_supports_tournament_of_towns_sections_and_metadata():
+    parsed_import = parse_contest_problem_statements(TOURNAMENT_OF_TOWNS_STATEMENT_SAMPLE)
+
+    assert parsed_import.contest_year == TOURNAMENT_OF_TOWNS_YEAR
+    assert parsed_import.contest_name == TOURNAMENT_OF_TOWNS_NAME
+    assert len(parsed_import.problems) == EXPECTED_TOURNAMENT_OF_TOWNS_PROBLEM_TOTAL
+    assert [problem.problem_code for problem in parsed_import.problems] == ["P1", "P1"]
+    assert [problem.day_label for problem in parsed_import.problems] == [
+        "Junior A-Level Paper, Fall 2024",
+        "Senior A-Level Paper, Fall 2024",
+    ]
+    assert "Maxim Didin" not in parsed_import.problems[0].statement_latex
+    assert "gnoka" not in parsed_import.problems[0].statement_latex
+    assert "view topic" not in parsed_import.problems[0].statement_latex
+    assert "Baron Munchausen took several cards" in parsed_import.problems[0].statement_latex
+    assert "Peter writes a positive integer on the whiteboard." in parsed_import.problems[1].statement_latex
+
+
+def test_parse_contest_problem_statements_supports_season_first_tournament_of_towns_sections():
+    parsed_import = parse_contest_problem_statements(SEASON_FIRST_TOURNAMENT_OF_TOWNS_STATEMENT_SAMPLE)
+
+    assert parsed_import.contest_year == SEASON_FIRST_TOURNAMENT_OF_TOWNS_YEAR
+    assert parsed_import.contest_name == SEASON_FIRST_TOURNAMENT_OF_TOWNS_NAME
+    assert len(parsed_import.problems) == EXPECTED_SEASON_FIRST_TOURNAMENT_OF_TOWNS_PROBLEM_TOTAL
+    assert [problem.day_label for problem in parsed_import.problems] == [
+        "Fall 2023, Senior A-level",
+        "Fall 2023, Junior A-level",
+        "Fall 2023, Junior A-level",
+    ]
+    assert [problem.problem_code for problem in parsed_import.problems] == ["P1", "P1", "P2"]
+    assert parsed_import.problems[1].statement_latex == "Junior one."
+    assert parsed_import.problems[2].statement_latex == "Junior two."
+    assert "Alexey Glebov" not in parsed_import.problems[0].statement_latex
+    assert "gnoka" not in parsed_import.problems[1].statement_latex
+    assert "view topic" not in parsed_import.problems[2].statement_latex
+
+
+def test_parse_contest_problem_statements_supports_split_season_and_level_tournament_headers():
+    parsed_import = parse_contest_problem_statements(TOURNAMENT_OF_TOWNS_2019_STATEMENT_SAMPLE)
+
+    assert parsed_import.contest_year == TOURNAMENT_OF_TOWNS_2019_YEAR
+    assert parsed_import.contest_name == TOURNAMENT_OF_TOWNS_2019_NAME
+    assert len(parsed_import.problems) == EXPECTED_TOURNAMENT_OF_TOWNS_2019_PROBLEM_TOTAL
+    assert [problem.day_label for problem in parsed_import.problems] == [
+        "Spring 2019 · Junior O-Level",
+        "Spring 2019 · Junior A-Level",
+        "Spring 2019 · Senior A-Level",
+        "Spring 2019 · Senior A-Level",
+        "Fall 2019 · Junior O-Level",
+    ]
+    assert [problem.problem_code for problem in parsed_import.problems] == ["P1", "P1", "P2", "P3", "P1"]
+    assert parsed_import.problems[2].statement_latex == "same as Junior A p2"
+    assert parsed_import.problems[3].statement_latex == "Senior A three."
+    assert "Junior version here" not in parsed_import.problems[3].statement_latex
+    assert "note" not in parsed_import.problems[3].statement_latex
+    assert "parmenides51" not in parsed_import.problems[0].statement_latex
+    assert "L.Lawliet03" not in parsed_import.problems[4].statement_latex
+
+
 def test_import_problem_statements_creates_rows_and_links_existing_problem_records():
     linked_record = ProblemSolveRecord.objects.create(
         year=SPAIN_OLYMPIAD_YEAR,
@@ -720,6 +867,94 @@ def test_import_problem_statements_supports_duplicate_numeric_codes_in_different
     assert "odd prime $p$" in bonus.statement_latex
 
 
+def test_import_problem_statements_supports_tournament_of_towns_duplicate_codes_across_sections():
+    result = import_problem_statements(parse_contest_problem_statements(TOURNAMENT_OF_TOWNS_STATEMENT_SAMPLE))
+
+    assert result.created_count == EXPECTED_TOURNAMENT_OF_TOWNS_PROBLEM_TOTAL
+    assert result.updated_count == 0
+    assert ContestProblemStatement.objects.filter(
+        contest_year=TOURNAMENT_OF_TOWNS_YEAR,
+        contest_name=TOURNAMENT_OF_TOWNS_NAME,
+    ).count() == EXPECTED_TOURNAMENT_OF_TOWNS_PROBLEM_TOTAL
+
+    junior_problem = ContestProblemStatement.objects.get(
+        contest_year=TOURNAMENT_OF_TOWNS_YEAR,
+        contest_name=TOURNAMENT_OF_TOWNS_NAME,
+        day_label="Junior A-Level Paper, Fall 2024",
+        problem_code="P1",
+    )
+    senior_problem = ContestProblemStatement.objects.get(
+        contest_year=TOURNAMENT_OF_TOWNS_YEAR,
+        contest_name=TOURNAMENT_OF_TOWNS_NAME,
+        day_label="Senior A-Level Paper, Fall 2024",
+        problem_code="P1",
+    )
+    assert junior_problem.problem_number == 1
+    assert senior_problem.problem_number == 1
+    assert "Maxim Didin" not in junior_problem.statement_latex
+
+
+def test_import_problem_statements_supports_season_first_tournament_of_towns_sections():
+    result = import_problem_statements(
+        parse_contest_problem_statements(SEASON_FIRST_TOURNAMENT_OF_TOWNS_STATEMENT_SAMPLE),
+    )
+
+    assert result.created_count == EXPECTED_SEASON_FIRST_TOURNAMENT_OF_TOWNS_PROBLEM_TOTAL
+    assert result.updated_count == 0
+    assert ContestProblemStatement.objects.filter(
+        contest_year=SEASON_FIRST_TOURNAMENT_OF_TOWNS_YEAR,
+        contest_name=SEASON_FIRST_TOURNAMENT_OF_TOWNS_NAME,
+    ).count() == EXPECTED_SEASON_FIRST_TOURNAMENT_OF_TOWNS_PROBLEM_TOTAL
+
+    senior_problem = ContestProblemStatement.objects.get(
+        contest_year=SEASON_FIRST_TOURNAMENT_OF_TOWNS_YEAR,
+        contest_name=SEASON_FIRST_TOURNAMENT_OF_TOWNS_NAME,
+        day_label="Fall 2023, Senior A-level",
+        problem_code="P1",
+    )
+    junior_problem = ContestProblemStatement.objects.get(
+        contest_year=SEASON_FIRST_TOURNAMENT_OF_TOWNS_YEAR,
+        contest_name=SEASON_FIRST_TOURNAMENT_OF_TOWNS_NAME,
+        day_label="Fall 2023, Junior A-level",
+        problem_code="P1",
+    )
+    assert senior_problem.statement_latex == "Senior one."
+    assert junior_problem.statement_latex == "Junior one."
+
+
+def test_import_problem_statements_supports_split_season_and_level_tournament_headers():
+    result = import_problem_statements(parse_contest_problem_statements(TOURNAMENT_OF_TOWNS_2019_STATEMENT_SAMPLE))
+
+    assert result.created_count == EXPECTED_TOURNAMENT_OF_TOWNS_2019_PROBLEM_TOTAL
+    assert result.updated_count == 0
+    assert ContestProblemStatement.objects.filter(
+        contest_year=TOURNAMENT_OF_TOWNS_2019_YEAR,
+        contest_name=TOURNAMENT_OF_TOWNS_2019_NAME,
+    ).count() == EXPECTED_TOURNAMENT_OF_TOWNS_2019_PROBLEM_TOTAL
+
+    spring_junior_o = ContestProblemStatement.objects.get(
+        contest_year=TOURNAMENT_OF_TOWNS_2019_YEAR,
+        contest_name=TOURNAMENT_OF_TOWNS_2019_NAME,
+        day_label="Spring 2019 · Junior O-Level",
+        problem_code="P1",
+    )
+    spring_senior_a = ContestProblemStatement.objects.get(
+        contest_year=TOURNAMENT_OF_TOWNS_2019_YEAR,
+        contest_name=TOURNAMENT_OF_TOWNS_2019_NAME,
+        day_label="Spring 2019 · Senior A-Level",
+        problem_code="P3",
+    )
+    fall_junior_o = ContestProblemStatement.objects.get(
+        contest_year=TOURNAMENT_OF_TOWNS_2019_YEAR,
+        contest_name=TOURNAMENT_OF_TOWNS_2019_NAME,
+        day_label="Fall 2019 · Junior O-Level",
+        problem_code="P1",
+    )
+    assert spring_junior_o.statement_latex == "Junior O one."
+    assert spring_senior_a.statement_latex == "Senior A three."
+    assert fall_junior_o.statement_latex == "Fallback username dots."
+
+
 def test_build_statement_render_segments_preserves_text_around_asymptote_blocks(monkeypatch):
     def fake_render(asy_code: str) -> AsymptoteRenderResult:
         assert "draw((0,0)--(1,1));" in asy_code
@@ -788,6 +1023,14 @@ def test_contest_rename_requires_login(client):
 
     assert response.status_code == HTTPStatus.FOUND
     assert response.url == f"{login_url}?next={reverse('pages:contest_rename')}"
+
+
+def test_contest_details_requires_login(client):
+    response = client.get(reverse("pages:contest_details"))
+    login_url = reverse(settings.LOGIN_URL)
+
+    assert response.status_code == HTTPStatus.FOUND
+    assert response.url == f"{login_url}?next={reverse('pages:contest_details')}"
 
 
 def test_statement_render_preview_requires_login(client):
@@ -867,6 +1110,133 @@ def test_contest_rename_forbids_non_admin_access_when_debug_is_off(client):
     response = client.get(reverse("pages:contest_rename"))
 
     assert response.status_code == HTTPStatus.FORBIDDEN
+
+
+@override_settings(DEBUG=False)
+def test_contest_details_forbids_non_admin_access_when_debug_is_off(client):
+    user = UserFactory()
+    client.force_login(user)
+
+    response = client.get(reverse("pages:contest_details"))
+
+    assert response.status_code == HTTPStatus.FORBIDDEN
+
+
+def test_contest_rename_renders_inventory_filter_for_admin(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="ALG",
+        mohs=5,
+        contest="USOMO",
+        problem="P1",
+        contest_year_problem="USOMO 2026 P1",
+    )
+    ContestProblemStatement.objects.create(
+        contest_year=2025,
+        contest_name="USA MO",
+        problem_number=2,
+        problem_code="P2",
+        day_label="Day 1",
+        statement_latex="Source statement",
+    )
+
+    response = client.get(reverse("pages:contest_rename"))
+
+    assert response.status_code == HTTPStatus.OK
+    response_html = response.content.decode("utf-8")
+    assert 'id="contest-inventory-filter"' in response_html
+    assert 'id="contest-inventory-table"' in response_html
+    assert 'id="contest-inventory-match-count"' in response_html
+    assert 'id="contest-source-selection-count"' in response_html
+    assert "Filter contests, years, or counts" in response_html
+
+
+def test_contest_details_renders_editor_for_selected_contest(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="ALG",
+        mohs=5,
+        contest="USOMO",
+        problem="P1",
+        contest_year_problem="USOMO 2026 P1",
+    )
+    ContestMetadata.objects.create(
+        contest="USOMO",
+        full_name="United States of America Mathematical Olympiad",
+        countries=["United States"],
+        description_markdown="## Overview\n\nNational olympiad.",
+        tags=["Olympiad"],
+    )
+
+    response = client.get(reverse("pages:contest_details"), {"contest": "USOMO"})
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["selected_contest"] == "USOMO"
+    response_html = response.content.decode("utf-8")
+    assert "Contest details" in response_html
+    assert 'id="contest-details-filter"' in response_html
+    assert 'id="contest-details-table"' in response_html
+    assert 'id="contest-detail-selector"' in response_html
+    assert "United States of America Mathematical Olympiad" in response_html
+    assert "Description (Markdown)" in response_html
+
+
+def test_contest_metadata_normalizes_fields():
+    metadata = ContestMetadata.objects.create(
+        contest="  USA MO  ",
+        full_name="  United   States   Mathematical Olympiad  ",
+        countries=[" United States ", "united states", " Canada "],
+        description_markdown="\n# Overview\n\nTop national olympiad.\n",
+        tags=["Olympiad", " olympiad ", " National "],
+    )
+
+    metadata.refresh_from_db()
+
+    assert metadata.contest == "USA MO"
+    assert metadata.full_name == "United States Mathematical Olympiad"
+    assert metadata.countries == ["United States", "Canada"]
+    assert metadata.description_markdown == "# Overview\n\nTop national olympiad."
+    assert metadata.tags == ["Olympiad", "National"]
+
+
+def test_contest_details_saves_metadata_for_selected_contest(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="ALG",
+        mohs=5,
+        contest="USOMO",
+        problem="P1",
+        contest_year_problem="USOMO 2026 P1",
+    )
+
+    response = client.post(
+        reverse("pages:contest_details"),
+        {
+            "contest": "USOMO",
+            "full_name": "United States of America Mathematical Olympiad",
+            "countries_text": "United States\nCanada",
+            "tags_text": "Olympiad, National",
+            "description_markdown": "## Overview\n\nNational olympiad.",
+        },
+        follow=True,
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    metadata = ContestMetadata.objects.get(contest="USOMO")
+    assert metadata.full_name == "United States of America Mathematical Olympiad"
+    assert metadata.countries == ["United States", "Canada"]
+    assert metadata.tags == ["Olympiad", "National"]
+    assert metadata.description_markdown == "## Overview\n\nNational olympiad."
+    assert any(
+        'Saved contest details for "USOMO".' in str(message)
+        for message in response.context["messages"]
+    )
 
 
 def test_latex_preview_allows_authenticated_access(client):
@@ -1350,6 +1720,16 @@ def test_home_exposes_live_library_index_for_authenticated_user(client):
     assert reverse("pages:problem_list") in response.content.decode("utf-8")
 
 
+def test_user_activity_dashboard_exposes_solution_workspace_navigation(client):
+    user = UserFactory()
+    client.force_login(user)
+
+    response = client.get(reverse("pages:user_activity_dashboard"))
+
+    assert response.status_code == HTTPStatus.OK
+    assert reverse("solutions:my_solution_list") in response.content.decode("utf-8")
+
+
 def test_user_activity_dashboard_shows_only_current_users_completion_history(client):
     user = UserFactory()
     other_user = UserFactory()
@@ -1433,22 +1813,44 @@ def test_user_activity_dashboard_shows_only_current_users_completion_history(cli
         "mohs_values": [4, 5, 6],
         "topics": ["ALG", "GEO", "NT"],
     }
-    assert response.context["activity_heatmap"]["total_in_window"] == EXPECTED_USER_ACTIVITY_DATED_TOTAL
+    assert response.context["activity_heatmap"]["exact_total"] == EXPECTED_USER_ACTIVITY_DATED_TOTAL
+    assert response.context["activity_heatmap"]["estimated_total"] == EXPECTED_DONE_ONLY_EXACT_TOTAL
+    assert response.context["activity_heatmap"]["total_in_window"] == EXPECTED_USER_ACTIVITY_VISUAL_TOTAL
+    assert response.context["activity_heatmap"]["uses_estimated_placements"] is False
+    assert len(response.context["activity_heatmap_sections"]) == 1
+    assert response.context["activity_heatmap_sections"][0]["is_latest"] is True
     assert (
-        response.context["activity_charts_payload"]["completionsByMonth"]["values"].count(1)
+        response.context["activity_heatmap_sections"][0]["heatmap"]["exact_total"]
+        == EXPECTED_USER_ACTIVITY_DATED_TOTAL
+    )
+    assert response.context["activity_heatmap"]["weeks"][0]["month_label"] == (
+        today - timedelta(days=364)
+    ).strftime("%b")
+    assert (
+        sum(response.context["activity_charts_payload"]["completionsByMonth"]["exact_values"])
         == EXPECTED_USER_ACTIVITY_DATED_TOTAL
     )
     assert (
+        sum(response.context["activity_charts_payload"]["completionsByMonth"]["estimated_values"])
+        == EXPECTED_DONE_ONLY_EXACT_TOTAL
+    )
+    assert (
         sum(response.context["activity_charts_payload"]["completionsByMonth"]["values"])
-        == EXPECTED_USER_ACTIVITY_DATED_TOTAL
+        == EXPECTED_USER_ACTIVITY_VISUAL_TOTAL
     )
     recent_cell = next(
         day
         for week in response.context["activity_heatmap"]["weeks"]
         for day in week["days"]
-        if day["date_label"] == recent_date.isoformat()
+        if day["date"] == recent_date.isoformat()
     )
     assert recent_cell["count"] == 1
+    assert recent_cell["title"].startswith(recent_date.strftime("%a, %d %b %Y"))
+    assert all(
+        day["estimated_count"] == 0
+        for week in response.context["activity_heatmap"]["weeks"]
+        for day in week["days"]
+    )
     table_rows = response.context["activity_table_rows"]
     assert [row["problem_label"] for row in table_rows] == [
         recent_problem.contest_year_problem,
@@ -1459,12 +1861,148 @@ def test_user_activity_dashboard_shows_only_current_users_completion_history(cli
     assert table_rows[2]["completion_date"] == "Unknown"
     response_html = response.content.decode("utf-8")
     assert "My activity" in response_html
-    assert "Completion heatmap" in response_html
+    assert "Completion heatmaps" in response_html
     assert 'id="chart-user-completions-by-month"' in response_html
     assert 'id="user-activity-table"' in response_html
     assert 'id="completion-year-filter"' in response_html
+    assert "estimated from" not in response_html
+    assert "Zero-completion days stay visible" in response_html
+    assert 'class="activity-heatmap-grid"' in response_html
+    assert 'class="activity-heatmap-weekdays"' in response_html
+    assert "Current window" in response_html
+    assert "excluded from these time-based visuals" in response_html
+    assert "--activity-heatmap-level-4: #216e39;" in response_html
+    assert "--activity-heatmap-level-4: #39d353;" in response_html
     assert 'order: [[0, "desc"], [2, "asc"], [1, "asc"]]' in response_html
     assert reverse("pages:user_activity_dashboard") in response_html
+
+
+def test_user_activity_dashboard_exposes_previous_year_windows_for_older_history(client):
+    user = UserFactory()
+    client.force_login(user)
+    today = timezone.localdate()
+    old_date = today - timedelta(days=400)
+    recent_date = today - timedelta(days=10)
+
+    old_problem = ProblemSolveRecord.objects.create(
+        year=old_date.year,
+        topic="ALG",
+        mohs=4,
+        contest="Old Contest",
+        problem="P1",
+        contest_year_problem=f"Old Contest {old_date.year} P1",
+    )
+    recent_problem = ProblemSolveRecord.objects.create(
+        year=recent_date.year,
+        topic="NT",
+        mohs=5,
+        contest="Recent Contest",
+        problem="P2",
+        contest_year_problem=f"Recent Contest {recent_date.year} P2",
+    )
+    UserProblemCompletion.objects.create(
+        user=user,
+        problem=old_problem,
+        completion_date=old_date,
+    )
+    UserProblemCompletion.objects.create(
+        user=user,
+        problem=recent_problem,
+        completion_date=recent_date,
+    )
+
+    response = client.get(reverse("pages:user_activity_dashboard"))
+
+    previous_window_end = today - timedelta(days=365)
+    previous_window_start = previous_window_end - timedelta(days=364)
+
+    assert response.status_code == HTTPStatus.OK
+    assert [section["is_latest"] for section in response.context["activity_heatmap_sections"]] == [
+        False,
+        True,
+    ]
+    assert response.context["activity_heatmap"]["exact_total"] == 1
+    assert response.context["activity_heatmap"]["total_in_window"] == 1
+    earlier_section = response.context["activity_heatmap_sections"][0]
+    latest_section = response.context["activity_heatmap_sections"][1]
+    assert earlier_section["is_latest"] is False
+    assert latest_section["is_latest"] is True
+    assert earlier_section["heatmap"]["start_label"] == previous_window_start.isoformat()
+    assert earlier_section["heatmap"]["end_label"] == previous_window_end.isoformat()
+    assert earlier_section["heatmap"]["exact_total"] == 1
+    assert latest_section["heatmap"]["end_label"] == today.isoformat()
+    old_cell = next(
+        day
+        for week in earlier_section["heatmap"]["weeks"]
+        for day in week["days"]
+        if day["date"] == old_date.isoformat()
+    )
+    assert old_cell["count"] == 1
+    response_html = response.content.decode("utf-8")
+    assert 'id="activity-window-select"' not in response_html
+    assert previous_window_start.isoformat() in response_html
+    assert previous_window_end.isoformat() in response_html
+    assert today.isoformat() in response_html
+    assert response_html.index(previous_window_end.isoformat()) < response_html.index(today.isoformat())
+
+
+def test_user_activity_dashboard_estimates_done_rows_across_heatmap_months(client):
+    user = UserFactory()
+    client.force_login(user)
+    today = timezone.localdate()
+    unknown_problems = [
+        ProblemSolveRecord.objects.create(
+            year=today.year - index,
+            topic="NT",
+            mohs=4 + index,
+            contest=f"Contest {index + 1}",
+            problem=f"P{index + 1}",
+            contest_year_problem=f"Contest {index + 1} {today.year - index} P{index + 1}",
+        )
+        for index in range(4)
+    ]
+    for problem in unknown_problems:
+        UserProblemCompletion.objects.create(
+            user=user,
+            problem=problem,
+            completion_date=None,
+        )
+
+    response = client.get(reverse("pages:user_activity_dashboard"))
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["activity_stats"]["dated_total"] == EXPECTED_DONE_ONLY_EXACT_TOTAL
+    assert response.context["activity_stats"]["unknown_date_total"] == EXPECTED_DONE_ONLY_COMPLETION_TOTAL
+    assert response.context["activity_heatmap"]["exact_total"] == EXPECTED_DONE_ONLY_EXACT_TOTAL
+    assert response.context["activity_heatmap"]["estimated_total"] == EXPECTED_DONE_ONLY_EXACT_TOTAL
+    assert response.context["activity_heatmap"]["total_in_window"] == EXPECTED_DONE_ONLY_EXACT_TOTAL
+    assert response.context["activity_heatmap"]["uses_estimated_placements"] is False
+    assert response.context["activity_heatmap_sections"] == []
+    assert sum(
+        day["count"]
+        for week in response.context["activity_heatmap"]["weeks"]
+        for day in week["days"]
+    ) == EXPECTED_DONE_ONLY_EXACT_TOTAL
+    assert all(
+        day["estimated_count"] == 0
+        for week in response.context["activity_heatmap"]["weeks"]
+        for day in week["days"]
+    )
+    assert (
+        sum(response.context["activity_charts_payload"]["completionsByMonth"]["exact_values"])
+        == EXPECTED_DONE_ONLY_EXACT_TOTAL
+    )
+    assert (
+        sum(response.context["activity_charts_payload"]["completionsByMonth"]["estimated_values"])
+        == EXPECTED_DONE_ONLY_EXACT_TOTAL
+    )
+    assert (
+        sum(response.context["activity_charts_payload"]["completionsByMonth"]["values"])
+        == EXPECTED_DONE_ONLY_EXACT_TOTAL
+    )
+    response_html = response.content.decode("utf-8")
+    assert "No exact completion dates are available yet." in response_html
+    assert "excluded from the heatmaps" in response_html
 
 
 def test_problem_list_prioritizes_statement_backed_contests(client):
@@ -1545,6 +2083,58 @@ def test_contest_problem_list_shows_imported_statement_text(client):
     assert 'overarc: ["\\\\overset{\\\\frown}{#1}", 1]' in content
     assert "Statement import updated" not in content
     assert "UUID:" not in content
+
+
+def test_contest_problem_list_exposes_solution_workspace_links(client):
+    user = UserFactory()
+    other_user = UserFactory()
+    hidden_draft_author = UserFactory()
+    client.force_login(user)
+    problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="ALG",
+        mohs=5,
+        contest="IMO",
+        problem="P1",
+        contest_year_problem="IMO 2026 P1",
+    )
+    ProblemSolution.objects.create(
+        problem=problem,
+        author=user,
+        status=ProblemSolution.Status.DRAFT,
+        title="My draft",
+    )
+    ProblemSolution.objects.create(
+        problem=problem,
+        author=other_user,
+        status=ProblemSolution.Status.PUBLISHED,
+        title="Published solution",
+    )
+    ProblemSolution.objects.create(
+        problem=problem,
+        author=hidden_draft_author,
+        status=ProblemSolution.Status.DRAFT,
+        title="Hidden draft",
+    )
+
+    response = client.get(reverse("pages:contest_problem_list", args=["imo"]))
+
+    assert response.status_code == HTTPStatus.OK
+    first_problem = response.context["grouped_years"][0]["problems"][0]
+    assert first_problem["published_solution_total"] == 1
+    assert first_problem["has_my_solution"] is True
+    assert first_problem["my_solution_status"] == ProblemSolution.Status.DRAFT
+    assert first_problem["my_solution_status_label"] == "Draft"
+    assert first_problem["solutions_url"] == reverse("solutions:problem_solution_list", args=[problem.problem_uuid])
+    assert first_problem["solution_editor_url"] == reverse(
+        "solutions:problem_solution_edit",
+        args=[problem.problem_uuid],
+    )
+    response_html = response.content.decode("utf-8")
+    assert "Solution page" in response_html
+    assert "Edit my draft" in response_html
+    assert reverse("solutions:problem_solution_list", args=[problem.problem_uuid]) in response_html
+    assert reverse("solutions:problem_solution_edit", args=[problem.problem_uuid]) in response_html
 
 
 def test_contest_problem_list_filters_by_year_mohs_topic_and_tag(client):
@@ -1781,6 +2371,45 @@ def test_contest_rename_updates_problem_and_statement_rows_for_admin(client):
     )
 
 
+def test_contest_rename_updates_contest_metadata_for_single_source(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    source_name = "USOMO"
+    target_name = "USAMO"
+    ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="ALG",
+        mohs=5,
+        contest=source_name,
+        problem="P1",
+        contest_year_problem=f"{source_name} 2026 P1",
+    )
+    ContestMetadata.objects.create(
+        contest=source_name,
+        full_name="United States of America Mathematical Olympiad",
+        countries=["United States"],
+        description_markdown="## Overview\n\nCanonical archive contest.",
+        tags=["Olympiad", "National"],
+    )
+
+    response = client.post(
+        reverse("pages:contest_rename"),
+        {
+            "source_contests": [source_name],
+            "new_contest_name": target_name,
+        },
+        follow=True,
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert ContestMetadata.objects.filter(contest=source_name).count() == 0
+    metadata = ContestMetadata.objects.get(contest=target_name)
+    assert metadata.full_name == "United States of America Mathematical Olympiad"
+    assert metadata.countries == ["United States"]
+    assert metadata.description_markdown == "## Overview\n\nCanonical archive contest."
+    assert metadata.tags == ["Olympiad", "National"]
+
+
 def test_contest_rename_merges_into_existing_target_without_conflicts(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
@@ -1822,6 +2451,51 @@ def test_contest_rename_merges_into_existing_target_without_conflicts(client):
         f'Merged "{source_name}" into "{target_name}"' in str(message)
         for message in response.context["messages"]
     )
+
+
+def test_contest_rename_merges_contest_metadata_into_existing_target(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    source_name = "USOMO"
+    target_name = "USAMO"
+    ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="ALG",
+        mohs=5,
+        contest=source_name,
+        problem="P1",
+        contest_year_problem=f"{source_name} 2026 P1",
+    )
+    ContestMetadata.objects.create(
+        contest=source_name,
+        full_name="United States of America Mathematical Olympiad",
+        countries=["United States"],
+        description_markdown="## Overview\n\nCanonical archive contest.",
+        tags=["Olympiad", "National"],
+    )
+    ContestMetadata.objects.create(
+        contest=target_name,
+        full_name="United States of America Mathematical Olympiad",
+        countries=["Canada"],
+        description_markdown="## Overview\n\nCanonical archive contest.",
+        tags=["Team selection"],
+    )
+
+    response = client.post(
+        reverse("pages:contest_rename"),
+        {
+            "source_contests": [source_name],
+            "new_contest_name": target_name,
+        },
+        follow=True,
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert ContestMetadata.objects.filter(contest=source_name).count() == 0
+    assert ContestMetadata.objects.filter(contest=target_name).count() == 1
+    metadata = ContestMetadata.objects.get(contest=target_name)
+    assert metadata.countries == ["Canada", "United States"]
+    assert metadata.tags == ["Team selection", "Olympiad", "National"]
 
 
 def test_contest_rename_rejects_problem_key_collision_when_merging(client):
@@ -1898,6 +2572,54 @@ def test_contest_rename_rejects_statement_key_collision_when_merging(client):
     assert (
         'Cannot update contest names to "USAMO" because these statement rows would collide '
         "after the update: 2025 Day 1 P2."
+        in response.context["form"].non_field_errors()[0]
+    )
+
+
+def test_contest_rename_rejects_conflicting_contest_metadata_full_names(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    source_names = ["USOMO", "USA MO"]
+    target_name = "USAMO"
+    ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="ALG",
+        mohs=5,
+        contest=source_names[0],
+        problem="P1",
+        contest_year_problem=f"{source_names[0]} 2026 P1",
+    )
+    ProblemSolveRecord.objects.create(
+        year=2025,
+        topic="NT",
+        mohs=4,
+        contest=source_names[1],
+        problem="P2",
+        contest_year_problem=f"{source_names[1]} 2025 P2",
+    )
+    ContestMetadata.objects.create(
+        contest=source_names[0],
+        full_name="United States of America Mathematical Olympiad",
+    )
+    ContestMetadata.objects.create(
+        contest=source_names[1],
+        full_name="USA Mathematical Olympiad",
+    )
+
+    response = client.post(
+        reverse("pages:contest_rename"),
+        {
+            "source_contests": source_names,
+            "new_contest_name": target_name,
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert ContestMetadata.objects.filter(contest=target_name).count() == 0
+    assert ContestMetadata.objects.filter(contest__in=source_names).count() == EXPECTED_MULTI_CONTEST_RENAME_TOTAL
+    assert (
+        'Cannot update contest names to "USAMO" because contest metadata has conflicting full name '
+        "values across: USA MO, USOMO."
         in response.context["form"].non_field_errors()[0]
     )
 

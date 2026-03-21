@@ -1,19 +1,16 @@
-import re
 from collections import Counter
 from dataclasses import dataclass
 
 from django.db import transaction
 from django.utils import timezone
 
+from inspinia.pages.contest_names import PROJECT_CONTEST_NAME_MAX_LENGTH
+from inspinia.pages.contest_names import STATEMENT_CONTEST_NAME_MAX_LENGTH
+from inspinia.pages.contest_names import normalize_contest_name
+from inspinia.pages.contest_names import normalize_text_list
+from inspinia.pages.models import ContestMetadata
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
-
-PROJECT_CONTEST_NAME_MAX_LENGTH = 64
-STATEMENT_CONTEST_NAME_MAX_LENGTH = 128
-
-
-def normalize_contest_name(name: str) -> str:
-    return re.sub(r"\s+", " ", (name or "").strip())
 
 
 class ContestRenameValidationError(ValueError):
@@ -73,7 +70,7 @@ def _validate_target_contest_name(source_contests: list[str], target_contest: st
 
 def _load_source_rows(
     source_contests: list[str],
-) -> tuple[list[ProblemSolveRecord], list[ContestProblemStatement]]:
+) -> tuple[list[ProblemSolveRecord], list[ContestProblemStatement], list[ContestMetadata]]:
     problem_rows = list(
         ProblemSolveRecord.objects.filter(contest__in=source_contests).order_by("contest", "pk"),
     )
@@ -83,10 +80,14 @@ def _load_source_rows(
             "pk",
         ),
     )
+    contest_metadata_rows = list(
+        ContestMetadata.objects.filter(contest__in=source_contests).order_by("contest", "pk"),
+    )
 
     found_contests = {record.contest for record in problem_rows} | {
         statement.contest_name for statement in statement_rows
     }
+    found_contests |= {metadata.contest for metadata in contest_metadata_rows}
     missing_contests = [source_contest for source_contest in source_contests if source_contest not in found_contests]
     if missing_contests:
         if len(missing_contests) == 1:
@@ -95,7 +96,7 @@ def _load_source_rows(
             quoted_contests = ", ".join(f'"{contest}"' for contest in missing_contests)
             msg = f"These contests were not found: {quoted_contests}."
         raise ContestRenameValidationError(msg)
-    return problem_rows, statement_rows
+    return problem_rows, statement_rows, contest_metadata_rows
 
 
 def _problem_conflict_labels(
@@ -157,6 +158,7 @@ def _validate_target_merge(
     target_exists = ProblemSolveRecord.objects.filter(contest=target_contest).exists() or (
         ContestProblemStatement.objects.filter(contest_name=target_contest).exists()
     )
+    target_exists = target_exists or ContestMetadata.objects.filter(contest=target_contest).exists()
 
     problem_conflicts = _problem_conflict_labels(problem_rows, target_contest)
     if problem_conflicts:
@@ -209,11 +211,113 @@ def _update_statement_rows(
         )
 
 
+def _resolve_metadata_scalar_value(
+    *,
+    field_name: str,
+    field_label: str,
+    source_metadata_rows: list[ContestMetadata],
+    target_metadata_row: ContestMetadata | None,
+    target_contest: str,
+) -> str:
+    target_value = str(getattr(target_metadata_row, field_name) or "").strip() if target_metadata_row else ""
+    if target_value:
+        return target_value
+
+    source_value_to_contests: dict[str, list[str]] = {}
+    for metadata_row in source_metadata_rows:
+        source_value = str(getattr(metadata_row, field_name) or "").strip()
+        if not source_value:
+            continue
+        source_value_to_contests.setdefault(source_value, []).append(metadata_row.contest)
+
+    if len(source_value_to_contests) <= 1:
+        return next(iter(source_value_to_contests), "")
+
+    conflicting_contests = sorted(
+        {
+            contest_name
+            for contest_names in source_value_to_contests.values()
+            for contest_name in contest_names
+        },
+    )
+    msg = (
+        f'Cannot update contest names to "{target_contest}" because contest metadata has '
+        f'conflicting {field_label} values across: {_preview_conflict_text(conflicting_contests)}.'
+    )
+    raise ContestRenameValidationError(msg)
+
+
+def _merge_metadata_list_values(
+    *,
+    field_name: str,
+    source_metadata_rows: list[ContestMetadata],
+    target_metadata_row: ContestMetadata | None,
+) -> list[str]:
+    merged_values: list[str] = []
+    if target_metadata_row is not None:
+        merged_values.extend(getattr(target_metadata_row, field_name) or [])
+    for metadata_row in source_metadata_rows:
+        merged_values.extend(getattr(metadata_row, field_name) or [])
+    return normalize_text_list(merged_values)
+
+
+def _merge_contest_metadata_rows(
+    *,
+    source_metadata_rows: list[ContestMetadata],
+    target_contest: str,
+) -> None:
+    if not source_metadata_rows:
+        return
+
+    target_metadata_row = ContestMetadata.objects.filter(contest=target_contest).first()
+    merged_full_name = _resolve_metadata_scalar_value(
+        field_name="full_name",
+        field_label="full name",
+        source_metadata_rows=source_metadata_rows,
+        target_metadata_row=target_metadata_row,
+        target_contest=target_contest,
+    )
+    merged_description_markdown = _resolve_metadata_scalar_value(
+        field_name="description_markdown",
+        field_label="description",
+        source_metadata_rows=source_metadata_rows,
+        target_metadata_row=target_metadata_row,
+        target_contest=target_contest,
+    )
+    merged_countries = _merge_metadata_list_values(
+        field_name="countries",
+        source_metadata_rows=source_metadata_rows,
+        target_metadata_row=target_metadata_row,
+    )
+    merged_tags = _merge_metadata_list_values(
+        field_name="tags",
+        source_metadata_rows=source_metadata_rows,
+        target_metadata_row=target_metadata_row,
+    )
+
+    primary_metadata_row = target_metadata_row or source_metadata_rows[0]
+    duplicate_metadata_rows = [
+        metadata_row
+        for metadata_row in source_metadata_rows
+        if metadata_row.pk != primary_metadata_row.pk
+    ]
+
+    primary_metadata_row.contest = target_contest
+    primary_metadata_row.full_name = merged_full_name
+    primary_metadata_row.description_markdown = merged_description_markdown
+    primary_metadata_row.countries = merged_countries
+    primary_metadata_row.tags = merged_tags
+    primary_metadata_row.save()
+
+    if duplicate_metadata_rows:
+        ContestMetadata.objects.filter(pk__in=[row.pk for row in duplicate_metadata_rows]).delete()
+
+
 def rename_contests(*, old_names: list[str], new_name: str) -> ContestRenameResult:
     source_contests = _dedupe_contest_names(list(old_names or []))
     target_contest = normalize_contest_name(new_name)
     _validate_target_contest_name(source_contests, target_contest)
-    source_problem_rows, source_statement_rows = _load_source_rows(source_contests)
+    source_problem_rows, source_statement_rows, source_metadata_rows = _load_source_rows(source_contests)
     merged_into_existing = _validate_target_merge(
         source_problem_rows,
         source_statement_rows,
@@ -222,6 +326,10 @@ def rename_contests(*, old_names: list[str], new_name: str) -> ContestRenameResu
     with transaction.atomic():
         _update_problem_rows(source_problem_rows, target_contest)
         _update_statement_rows(source_statement_rows, target_contest)
+        _merge_contest_metadata_rows(
+            source_metadata_rows=source_metadata_rows,
+            target_contest=target_contest,
+        )
 
     return ContestRenameResult(
         source_contests=tuple(source_contests),

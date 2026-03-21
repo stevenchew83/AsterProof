@@ -1,6 +1,7 @@
 from django.urls import path
 
 from inspinia.pages.views import contest_analytics_view
+from inspinia.pages.views import contest_details_view
 from inspinia.pages.views import contest_problem_list_view
 from inspinia.pages.views import contest_rename_view
 from inspinia.pages.views import dashboard_analytics_view
@@ -28,6 +29,7 @@ urlpatterns = [
         name="problem_statement_dashboard",
     ),
     path("dashboard/problem-statements/", problem_statement_list_view, name="problem_statement_list"),
+    path("tools/contest-details/", contest_details_view, name="contest_details"),
     path("tools/contest-rename/", contest_rename_view, name="contest_rename"),
     path("tools/latex-preview/", latex_preview_view, name="latex_preview"),
     path("tools/render-statement/", statement_render_preview_view, name="statement_render_preview"),

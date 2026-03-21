@@ -14,6 +14,9 @@ IGNORED_STATEMENT_LINES = {
     "Stuttgarden",
     "view topic",
 }
+HEADER_LINE_RE = re.compile(
+    r"^\s*(?P<year_start>\d{4})(?:\s*(?:/|-)\s*(?P<year_end>\d{4}))?\s+(?P<contest>.+?)\s*$",
+)
 DAY_LABEL_RE = re.compile(
     r"^Day\s+(?P<token>\d+|[IVXLCDM]+)(?:\s+(?P<detail>.+))?$",
     flags=re.IGNORECASE,
@@ -25,6 +28,11 @@ TST_DAY_LABEL_RE = re.compile(
 ROUND_LABEL_RE = re.compile(r"^(?:\d+\s+)?(?P<label>Round\s+[A-Za-z0-9].*)$", flags=re.IGNORECASE)
 SOLUTION_LINE_RE = re.compile(r"^Solution$", flags=re.IGNORECASE)
 TEST_LABEL_RE = re.compile(r"^Test\s+\d+$", flags=re.IGNORECASE)
+SEASON_SECTION_RE = re.compile(r"^(?P<season>Fall|Spring)\s+(?P<year>\d{4})$", flags=re.IGNORECASE)
+LEVEL_SECTION_RE = re.compile(
+    r"^(?P<division>Junior|Senior)\s+(?P<track>[AO])-Level$",
+    flags=re.IGNORECASE,
+)
 PROBLEM_START_RE = re.compile(
     r"^(?:(?P<prefix>[A-Za-z]{1,4})\s*)?(?P<number>\d{1,3})[.)]?\s+(?P<statement>.+)$",
     flags=re.IGNORECASE,
@@ -34,11 +42,25 @@ TEXT_ONLY_EMPH_PAREN_RE = re.compile(r"\\\((?P<content>\\emph\{.*?\})\\\)", flag
 TEXT_ONLY_EMPH_DISPLAY_RE = re.compile(r"\$\$(?P<content>\\emph\{.*?\})\$\$", flags=re.DOTALL)
 TEXT_ONLY_EMPH_BRACKET_RE = re.compile(r"\\\[(?P<content>\\emph\{.*?\})\\\]", flags=re.DOTALL)
 SECTION_HEADER_RE = re.compile(r"^[A-Za-z][A-Za-z0-9]*(?: [A-Za-z0-9][A-Za-z0-9]*){0,3}$")
+PAPER_SECTION_RE = re.compile(
+    r"^(?:Junior|Senior)\s+[AO]-Level\s+Paper,\s+(?:Fall|Spring)\s+\d{4}$",
+    flags=re.IGNORECASE,
+)
+SEASON_FIRST_PAPER_SECTION_RE = re.compile(
+    r"^(?:Fall|Spring)\s+\d{4},\s+(?:Junior|Senior)\s+[AO]-level$",
+    flags=re.IGNORECASE,
+)
 SPECIAL_PROBLEM_CODE_RE = re.compile(r"^(?P<code>Bonus)[.)]?\s+(?P<statement>.+)$", flags=re.IGNORECASE)
+INNER_NUMBERED_STATEMENT_RE = re.compile(r"^(?P<number>\d{1,3})[.)]\s+(?P<statement>.+)$")
 TRAILING_AUTHOR_LINE_RE = re.compile(
     r"^[A-Z][A-Za-z'.-]*(?: [A-Z][A-Za-z'.-]*)*(?: and [A-Z][A-Za-z'.-]*(?: [A-Z][A-Za-z'.-]*)*)?$",
 )
 TRAILING_PROPOSED_BY_LINE_RE = re.compile(r"^(?:\(?\s*)proposed by\b.+$", flags=re.IGNORECASE)
+USERNAME_LINE_RE = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9_.-]*$")
+NOTE_METADATA_LINE_RE = re.compile(
+    r"^(?:note|junior version (?:posted )?here|senior version (?:posted )?here)$",
+    flags=re.IGNORECASE,
+)
 SECTION_HEADER_LABELS = frozenset(
     {
         "Algebra",
@@ -180,12 +202,12 @@ def _clean_contest_name(raw_name: str) -> str:
 
 
 def _parse_header_line(header_line: str) -> tuple[int, str]:
-    match = re.match(r"^\s*(?P<year>\d{4})\s+(?P<contest>.+?)\s*$", header_line)
+    match = HEADER_LINE_RE.match(header_line)
     if not match:
         msg = "Could not parse the contest header. Expected a line like '2026 Spain Mathematical Olympiad'."
         raise ProblemStatementImportValidationError(msg)
 
-    contest_year = int(match.group("year"))
+    contest_year = int(match.group("year_end") or match.group("year_start"))
     contest_name = _clean_contest_name(match.group("contest"))
     if not contest_name:
         msg = "Contest name is empty after parsing the header line."
@@ -329,19 +351,51 @@ def _set_secondary_section(state: _StatementParseState, label: str) -> None:
         state.current_secondary_section,
     )
 
-
-def _next_nonempty_line(lines: list[str], current_index: int) -> str | None:
+def _next_nonempty_lines(lines: list[str], current_index: int, *, limit: int = 1) -> list[str]:
+    candidates: list[str] = []
     for raw_line in lines[current_index + 1 :]:
         candidate = raw_line.strip()
-        if candidate:
-            return candidate
-    return None
+        if not candidate:
+            continue
+        candidates.append(candidate)
+        if len(candidates) >= limit:
+            break
+    return candidates
 
 
-def _is_scrape_metadata_line(line: str, *, next_nonempty_line: str | None) -> bool:
+def _is_scrape_metadata_line(
+    line: str,
+    *,
+    next_nonempty_line: str | None,
+    following_nonempty_line: str | None,
+    third_nonempty_line: str | None,
+) -> bool:
     if line in IGNORED_STATEMENT_LINES:
         return True
     if SOLUTION_LINE_RE.fullmatch(line):
+        return True
+    if (
+        following_nonempty_line == "view topic"
+        and next_nonempty_line is not None
+        and USERNAME_LINE_RE.fullmatch(next_nonempty_line)
+        and _looks_like_author_credit_line(line)
+    ):
+        return True
+    if (
+        _looks_like_author_credit_line(line)
+        and next_nonempty_line is not None
+        and NOTE_METADATA_LINE_RE.fullmatch(next_nonempty_line)
+        and following_nonempty_line is not None
+        and USERNAME_LINE_RE.fullmatch(following_nonempty_line)
+        and third_nonempty_line == "view topic"
+    ):
+        return True
+    if (
+        NOTE_METADATA_LINE_RE.fullmatch(line)
+        and next_nonempty_line is not None
+        and USERNAME_LINE_RE.fullmatch(next_nonempty_line)
+        and following_nonempty_line == "view topic"
+    ):
         return True
     return next_nonempty_line == "view topic"
 
@@ -352,6 +406,78 @@ def _normalized_section_label(line: str) -> str | None:
         if candidate.casefold() == label.casefold():
             return label
     return None
+
+
+def _looks_like_author_credit_line(line: str) -> bool:
+    candidate = " ".join(line.split())
+    candidate = re.sub(
+        r"\s*\((?:Junior|Senior) version (?:posted )?here\)\s*$",
+        "",
+        candidate,
+        flags=re.IGNORECASE,
+    )
+    if not candidate or len(candidate) > 120:
+        return False
+    if "proposed by" in candidate.casefold():
+        return False
+    if candidate.startswith("http"):
+        return False
+    if any(character.isdigit() for character in candidate):
+        return False
+    if any(character in candidate for character in "$\\=<>/?{}[]_"):
+        return False
+
+    for segment in re.split(r",| and ", candidate):
+        segment = segment.strip()
+        if not segment:
+            return False
+        tokens = segment.split()
+        if len(tokens) > 4:
+            return False
+        for token in tokens:
+            normalized_token = token.strip("().").replace("’", "'")
+            if not normalized_token:
+                return False
+            if not any(character.isalpha() for character in normalized_token):
+                return False
+            if not all(character.isalpha() or character in ".'-" for character in normalized_token):
+                return False
+            first_alpha = next(
+                (character for character in normalized_token if character.isalpha()),
+                "",
+            )
+            if not first_alpha or first_alpha != first_alpha.upper():
+                return False
+    return True
+
+
+def _normalized_paper_section_label(line: str) -> str | None:
+    candidate = " ".join(line.split())
+    if PAPER_SECTION_RE.fullmatch(candidate) or SEASON_FIRST_PAPER_SECTION_RE.fullmatch(candidate):
+        return candidate
+    return None
+
+
+def _normalized_season_section_label(line: str) -> str | None:
+    match = SEASON_SECTION_RE.fullmatch(" ".join(line.split()))
+    if match is None:
+        return None
+    return f"{match.group('season').title()} {match.group('year')}"
+
+
+def _normalized_level_section_label(line: str) -> str | None:
+    match = LEVEL_SECTION_RE.fullmatch(" ".join(line.split()))
+    if match is None:
+        return None
+    return f"{match.group('division').title()} {match.group('track').upper()}-Level"
+
+
+def _normalized_problem_statement_text(statement: str, *, number: int) -> str:
+    candidate = statement.strip()
+    inner_match = INNER_NUMBERED_STATEMENT_RE.match(candidate)
+    if inner_match is not None and int(inner_match.group("number")) == number:
+        return inner_match.group("statement").strip()
+    return candidate
 
 
 def _is_generic_section_header(line: str, *, next_nonempty_line: str | None) -> bool:
@@ -411,7 +537,9 @@ def _start_numbered_problem(state: _StatementParseState, match: re.Match[str]) -
     state.current_problem_code = f"{prefix}{number}"
     state.current_problem_number = number
     state.awaiting_new_problem = False
-    state.current_statement_lines = [match.group("statement").strip()]
+    state.current_statement_lines = [
+        _normalized_problem_statement_text(match.group("statement"), number=number),
+    ]
 
 
 def _can_start_inline_numbered_problem(
@@ -446,12 +574,21 @@ def _consume_header_or_problem_line(
     elif tst_day_label := _normalized_tst_day_label(line):
         _flush_problem(state)
         _set_primary_section(state, tst_day_label)
+    elif season_label := _normalized_season_section_label(line):
+        _flush_problem(state)
+        _set_primary_section(state, season_label)
     elif round_match := ROUND_LABEL_RE.fullmatch(line):
         _flush_problem(state)
         _set_primary_section(state, round_match.group("label").title())
     elif test_match := TEST_LABEL_RE.fullmatch(line):
         _flush_problem(state)
         _set_secondary_section(state, test_match.group(0).title())
+    elif level_label := _normalized_level_section_label(line):
+        _flush_problem(state)
+        _set_secondary_section(state, level_label)
+    elif paper_label := _normalized_paper_section_label(line):
+        _flush_problem(state)
+        _set_primary_section(state, paper_label)
     elif section_label := _normalized_section_label(line):
         _flush_problem(state)
         _set_primary_section(state, section_label)
@@ -477,6 +614,8 @@ def _consume_statement_line(
     raw_line: str,
     *,
     next_nonempty_line: str | None,
+    following_nonempty_line: str | None,
+    third_nonempty_line: str | None,
     state: _StatementParseState,
 ) -> None:
     line = raw_line.strip()
@@ -485,7 +624,12 @@ def _consume_statement_line(
             state.current_statement_lines.append("")
         return
 
-    if _is_scrape_metadata_line(line, next_nonempty_line=next_nonempty_line):
+    if _is_scrape_metadata_line(
+        line,
+        next_nonempty_line=next_nonempty_line,
+        following_nonempty_line=following_nonempty_line,
+        third_nonempty_line=third_nonempty_line,
+    ):
         if state.current_problem_number is not None:
             state.awaiting_new_problem = True
         return
@@ -508,9 +652,12 @@ def parse_contest_problem_statements(raw_text: str) -> ParsedContestStatementImp
     state = _StatementParseState()
 
     for index, raw_line in enumerate(remaining_lines):
+        next_nonempty_lines = _next_nonempty_lines(remaining_lines, index, limit=3)
         _consume_statement_line(
             raw_line,
-            next_nonempty_line=_next_nonempty_line(remaining_lines, index),
+            next_nonempty_line=next_nonempty_lines[0] if next_nonempty_lines else None,
+            following_nonempty_line=next_nonempty_lines[1] if len(next_nonempty_lines) > 1 else None,
+            third_nonempty_line=next_nonempty_lines[2] if len(next_nonempty_lines) > 2 else None,
             state=state,
         )
 

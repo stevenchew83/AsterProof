@@ -4,6 +4,9 @@ import uuid
 from django.conf import settings
 from django.db import models
 
+from inspinia.pages.contest_names import PROJECT_CONTEST_NAME_MAX_LENGTH
+from inspinia.pages.contest_names import normalize_contest_name
+from inspinia.pages.contest_names import normalize_text_list
 from inspinia.pages.topic_tags_parse import domains_dedup_preserve_order
 from inspinia.pages.topic_tags_parse import normalize_topic_tag
 
@@ -298,6 +301,53 @@ class ContestProblemStatement(models.Model):
                 "problem_uuid",
                 "problem_code",
             }
+
+        super().save(*args, **kwargs)
+
+
+class ContestMetadata(models.Model):
+    contest_uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
+    contest = models.CharField(max_length=PROJECT_CONTEST_NAME_MAX_LENGTH)
+    full_name = models.CharField(max_length=255, blank=True)
+    countries = models.JSONField(blank=True, default=list)
+    description_markdown = models.TextField(blank=True)
+    tags = models.JSONField(blank=True, default=list)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["contest"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["contest"],
+                name="pages_contestmetadata_unique_contest",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return self.full_name or self.contest
+
+    def save(self, *args, **kwargs) -> None:
+        update_fields = kwargs.get("update_fields")
+        normalized_update_fields = set(update_fields) if update_fields is not None else None
+
+        normalized_values = {
+            "contest": normalize_contest_name(self.contest),
+            "full_name": normalize_contest_name(self.full_name),
+            "description_markdown": (self.description_markdown or "").strip(),
+            "countries": normalize_text_list(self.countries or []),
+            "tags": normalize_text_list(self.tags or []),
+        }
+
+        for field_name, normalized_value in normalized_values.items():
+            if getattr(self, field_name) == normalized_value:
+                continue
+            setattr(self, field_name, normalized_value)
+            if normalized_update_fields is not None:
+                normalized_update_fields.add(field_name)
+
+        if normalized_update_fields is not None:
+            kwargs["update_fields"] = normalized_update_fields
 
         super().save(*args, **kwargs)
 
