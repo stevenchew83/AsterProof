@@ -31,7 +31,6 @@ from inspinia.pages.problem_import import import_problem_dataframe
 from inspinia.pages.statement_import import LATEX_STATEMENT_SAMPLE
 from inspinia.pages.statement_import import import_problem_statements
 from inspinia.pages.statement_import import parse_contest_problem_statements
-from inspinia.pages.views import COMPLETION_BOARD_INITIAL_ROW_LIMIT
 from inspinia.solutions.models import ProblemSolution
 from inspinia.users.models import User
 from inspinia.users.tests.factories import UserFactory
@@ -77,6 +76,7 @@ EXPECTED_STATEMENT_METADATA_EXPORT_COLUMNS = [
     "DAY LABEL",
     "PROBLEM NUMBER",
     "PROBLEM CODE",
+    "STATEMENT LATEX",
     "TOPIC",
     "MOHS",
     "Confidence",
@@ -2267,30 +2267,6 @@ def test_problem_statement_linker_requires_login(client):
     assert response.url == f"{login_url}?next={reverse('pages:problem_statement_linker')}"
 
 
-def test_completion_board_requires_login(client):
-    response = client.get(reverse("pages:completion_board"))
-    login_url = reverse(settings.LOGIN_URL)
-
-    assert response.status_code == HTTPStatus.FOUND
-    assert response.url == f"{login_url}?next={reverse('pages:completion_board')}"
-
-
-def test_completion_board_toggle_requires_login(client):
-    response = client.post(reverse("pages:completion_board_toggle"))
-    login_url = reverse(settings.LOGIN_URL)
-
-    assert response.status_code == HTTPStatus.FOUND
-    assert response.url == f"{login_url}?next={reverse('pages:completion_board_toggle')}"
-
-
-def test_completion_board_bulk_requires_login(client):
-    response = client.post(reverse("pages:completion_board_bulk"))
-    login_url = reverse(settings.LOGIN_URL)
-
-    assert response.status_code == HTTPStatus.FOUND
-    assert response.url == f"{login_url}?next={reverse('pages:completion_board_bulk')}"
-
-
 def test_user_activity_dashboard_requires_login(client):
     response = client.get(reverse("pages:user_activity_dashboard"))
     login_url = reverse(settings.LOGIN_URL)
@@ -2849,6 +2825,7 @@ def test_problem_statement_list_shows_statement_rows_and_link_counts(client):
     )
     assert linked_row["problem_uuid"] == str(linked_statement.problem_uuid)
     assert linked_row["linked_problem_label"] == linked_record.contest_year_problem
+    assert linked_row["linked_problem_topic"] == "NT"
     assert linked_row["linked_problem_url"].endswith("#spain-mathematical-olympiad-2026-p1")
     assert linked_row["linked_problem_topic_tags"] == ["LTE"]
     assert linked_row["linked_problem_topic_tag_links"][0]["label"] == "LTE"
@@ -2867,9 +2844,12 @@ def test_problem_statement_list_shows_statement_rows_and_link_counts(client):
     assert "Copy filtered rows" in response_html
     assert "Filter linked rows by MOHS range" in response_html
     assert "visible: false" in response_html
+    assert 'data: "linked_problem_topic"' in response_html
     assert "formatImoSlotLabel" in response_html
     assert "var updatedAtColumnIndex = statementColumns.length - 1;" in response_html
-    assert 'pre: [[updatedAtColumnIndex, "desc"]]' in response_html
+    assert 'order: [[updatedAtColumnIndex, "desc"]]' in response_html
+    assert "scrollX: true" in response_html
+    assert "autoWidth: false" in response_html
     assert "updated_at_sort" in response_html
     assert "renderChipLinks" not in response_html
 
@@ -3791,6 +3771,7 @@ def test_problem_statement_metadata_page_exports_workbook_for_admin(client):
         "DAY LABEL": "Day 1",
         "PROBLEM NUMBER": "1",
         "PROBLEM CODE": "P1",
+        "STATEMENT LATEX": "Exported statement metadata row",
         "TOPIC": "G",
         "MOHS": "25",
         "Confidence": "Medium",
@@ -3824,6 +3805,7 @@ def test_problem_statement_metadata_page_imports_workbook_and_creates_problem_ro
                     "DAY LABEL": "Day 1",
                     "PROBLEM NUMBER": 2,
                     "PROBLEM CODE": "P2",
+                    "STATEMENT LATEX": "Backfill this statement",
                     "TOPIC": "G",
                     "MOHS": 25,
                     "Confidence": "Medium",
@@ -3921,6 +3903,7 @@ def test_problem_statement_metadata_page_imports_multiple_rows_and_updates_exist
                     "DAY LABEL": "Day 1",
                     "PROBLEM NUMBER": 1,
                     "PROBLEM CODE": "P1",
+                    "STATEMENT LATEX": "Update this statement",
                     "TOPIC": "G",
                     "MOHS": 28,
                     "Confidence": "Medium",
@@ -3935,6 +3918,7 @@ def test_problem_statement_metadata_page_imports_multiple_rows_and_updates_exist
                     "DAY LABEL": "Day 2",
                     "PROBLEM NUMBER": 3,
                     "PROBLEM CODE": "P3",
+                    "STATEMENT LATEX": "Create this problem row",
                     "TOPIC": "N",
                     "MOHS": 35,
                     "Confidence": "Medium-Low",
@@ -3966,6 +3950,67 @@ def test_problem_statement_metadata_page_imports_multiple_rows_and_updates_exist
     assert create_statement.linked_problem_id == created_problem.id
     assert any(
         "Statement metadata import finished. Processed 2 row(s): 1 created, 1 updated, 2 linked, 3 technique row(s) touched, 0 untouched workbook row(s) skipped."
+        in str(message)
+        for message in response.context["messages"]
+    )
+
+
+def test_problem_statement_metadata_import_rejects_problem_key_owned_by_different_uuid(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    existing_problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="A",
+        mohs=20,
+        confidence="Low",
+        contest="Israel TST",
+        problem="P2",
+        contest_year_problem="Israel TST 2026 P2",
+        imo_slot_guess="P1/4",
+        topic_tags="Alg - old tag",
+    )
+    statement = ContestProblemStatement.objects.create(
+        contest_year=2026,
+        contest_name="Israel TST",
+        problem_number=2,
+        problem_code="P2",
+        day_label="Day 1",
+        statement_latex="Conflict statement",
+    )
+
+    response = client.post(
+        reverse("pages:problem_statement_metadata"),
+        {
+            "replace_tags": "on",
+            "file": _xlsx_upload(
+                {
+                    "PROBLEM UUID": str(statement.problem_uuid),
+                    "CONTEST YEAR": 2026,
+                    "CONTEST NAME": "Israel TST",
+                    "CONTEST PROBLEM": "Israel TST 2026 P2",
+                    "DAY LABEL": "Day 1",
+                    "PROBLEM NUMBER": 2,
+                    "PROBLEM CODE": "P2",
+                    "STATEMENT LATEX": "Conflict statement",
+                    "TOPIC": "G",
+                    "MOHS": 25,
+                    "Confidence": "Medium",
+                    "IMO slot guess": "P1/4",
+                    "Topic tags": "Geo – circles",
+                },
+            ),
+        },
+        follow=True,
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    statement.refresh_from_db()
+    existing_problem.refresh_from_db()
+    assert statement.linked_problem_id is None
+    assert existing_problem.topic == "A"
+    assert not ProblemSolveRecord.objects.filter(problem_uuid=statement.problem_uuid).exists()
+    assert any(
+        "This import uses PROBLEM UUID as the update key, so resolve that collision first."
         in str(message)
         for message in response.context["messages"]
     )
@@ -4142,573 +4187,6 @@ def test_user_activity_dashboard_shows_completion_import_errors(client):
     assert "Please fix the completion import form and try again." in response_html
     assert "Paste at least one completion row." in response_html
     assert 'id="activity-import-submit"' in response_html
-
-
-def test_completion_board_shows_contest_year_matrix_for_current_user(client):
-    user = UserFactory()
-    other_user = UserFactory()
-    client.force_login(user)
-    solved_problem = ProblemSolveRecord.objects.create(
-        year=2024,
-        topic="N",
-        mohs=25,
-        contest="USAMO",
-        problem="P1",
-        contest_year_problem="USAMO 2024 P1",
-    )
-    unsolved_problem = ProblemSolveRecord.objects.create(
-        year=2024,
-        topic="A",
-        mohs=20,
-        contest="USAMO",
-        problem="P2",
-        contest_year_problem="USAMO 2024 P2",
-    )
-    ProblemSolveRecord.objects.create(
-        year=2023,
-        topic="G",
-        mohs=18,
-        contest="IMO",
-        problem="P1",
-        contest_year_problem="IMO 2023 P1",
-    )
-    UserProblemCompletion.objects.create(
-        user=user,
-        problem=solved_problem,
-        completion_date=date(2025, 1, 7),
-    )
-    UserProblemCompletion.objects.create(
-        user=other_user,
-        problem=unsolved_problem,
-        completion_date=date(2025, 1, 8),
-    )
-    ContestProblemStatement.objects.create(
-        linked_problem=solved_problem,
-        contest_year=2024,
-        contest_name="USAMO",
-        problem_number=1,
-        problem_code="P1",
-        day_label="Day 1",
-        statement_latex="Solved statement",
-    )
-    ContestProblemStatement.objects.create(
-        linked_problem=unsolved_problem,
-        contest_year=2024,
-        contest_name="USAMO",
-        problem_number=2,
-        problem_code="P2",
-        day_label="Day 1",
-        statement_latex="Unsolved statement",
-    )
-
-    response = client.get(
-        reverse("pages:completion_board"),
-        {"year_from": "2023", "year_to": "2024"},
-    )
-
-    assert response.status_code == HTTPStatus.OK
-    assert response.context["completion_board_stats"] == {
-        "contest_year_total": 1,
-        "problem_column_total": 2,
-        "statement_cell_total": 2,
-        "solved_total": 1,
-        "trackable_cell_total": 2,
-        "unlinked_cell_total": 0,
-        "unsolved_total": 1,
-    }
-    board_rows = response.context["completion_board_rows"]
-    assert board_rows[0]["contest_year_label"] == "USAMO 2024"
-    assert board_rows[0]["exact_solved_total"] == 1
-    assert board_rows[0]["solved_total"] == 1
-    assert board_rows[0]["problem_total"] == 2
-    assert board_rows[0]["unknown_solved_total"] == 0
-    assert board_rows[0]["unsolved_total"] == 1
-    assert len(board_rows) == 1
-    first_row_cells = {
-        cell["problem_code"]: cell
-        for cell in board_rows[0]["cells"]
-        if cell["exists"]
-    }
-    assert first_row_cells["P1"]["is_solved"] is True
-    assert first_row_cells["P1"]["completion_date"] == "2025-01-07"
-    assert first_row_cells["P2"]["is_solved"] is False
-    response_html = response.content.decode("utf-8")
-    assert "Completion board" in response_html
-    assert "Completion matrix" in response_html
-    assert 'id="completion-board-table"' in response_html
-    assert 'id="completion-board-inline-editor"' in response_html
-    assert 'id="completion-board-search"' in response_html
-    assert 'name="q"' in response_html
-    assert "Solved without exact date" in response_html
-    assert 'id="completion-board-bulk-mode-toggle"' in response_html
-    assert 'id="completion-board-bulk-bar"' in response_html
-    assert reverse("pages:completion_board_bulk") in response_html
-    assert reverse("pages:completion_board_toggle") in response_html
-    assert "Search board" in response_html
-    assert "Server search" in response_html
-    assert "plugins/datatables/dataTables.min.js" not in response_html
-    assert "plugins/datatables/dataTables.bootstrap5.min.js" not in response_html
-    assert "Inline editor: click any linked cell" in response_html
-    assert "IMO 2023" not in response_html
-
-
-def test_completion_board_search_filters_rows_server_side(client):
-    user = UserFactory()
-    client.force_login(user)
-    apmo_problem = ProblemSolveRecord.objects.create(
-        year=2024,
-        topic="G",
-        mohs=24,
-        contest="APMO",
-        problem="P1",
-        contest_year_problem="APMO 2024 P1",
-    )
-    imo_problem = ProblemSolveRecord.objects.create(
-        year=2024,
-        topic="N",
-        mohs=27,
-        contest="IMO",
-        problem="P1",
-        contest_year_problem="IMO 2024 P1",
-    )
-    ContestProblemStatement.objects.create(
-        linked_problem=apmo_problem,
-        contest_year=2024,
-        contest_name="APMO",
-        problem_number=1,
-        problem_code="P1",
-        day_label="Day 1",
-        statement_latex="APMO statement",
-    )
-    ContestProblemStatement.objects.create(
-        linked_problem=imo_problem,
-        contest_year=2024,
-        contest_name="IMO",
-        problem_number=1,
-        problem_code="P1",
-        day_label="Day 1",
-        statement_latex="IMO statement",
-    )
-
-    response = client.get(reverse("pages:completion_board"), {"q": "apmo"})
-
-    assert response.status_code == HTTPStatus.OK
-    assert response.context["completion_board_filters"]["search_query"] == "apmo"
-    board_rows = response.context["completion_board_rows"]
-    assert len(board_rows) == 1
-    assert board_rows[0]["contest_year_label"] == "APMO 2024"
-    response_html = response.content.decode("utf-8")
-    assert "APMO 2024" in response_html
-    assert "IMO 2024" not in response_html
-
-
-def test_completion_board_uses_statement_rows_for_problem_columns(client):
-    user = UserFactory()
-    client.force_login(user)
-    day_one_problem = ProblemSolveRecord.objects.create(
-        year=2024,
-        topic="A",
-        mohs=20,
-        contest="Mock TST",
-        problem="P1",
-        contest_year_problem="Mock TST 2024 P1",
-    )
-    day_two_problem = ProblemSolveRecord.objects.create(
-        year=2024,
-        topic="G",
-        mohs=24,
-        contest="Mock TST",
-        problem="P2",
-        contest_year_problem="Mock TST 2024 P2",
-    )
-    ContestProblemStatement.objects.create(
-        linked_problem=day_one_problem,
-        contest_year=2024,
-        contest_name="Mock TST",
-        problem_number=1,
-        problem_code="P1",
-        day_label="Day 1",
-        statement_latex="Day one statement",
-    )
-    ContestProblemStatement.objects.create(
-        linked_problem=day_two_problem,
-        contest_year=2024,
-        contest_name="Mock TST",
-        problem_number=1,
-        problem_code="P1",
-        day_label="Day 2",
-        statement_latex="Day two statement",
-    )
-
-    response = client.get(reverse("pages:completion_board"))
-
-    assert response.status_code == HTTPStatus.OK
-    assert response.context["completion_board_problem_columns"] == [
-        "Day 1 · P1",
-        "Day 2 · P1",
-    ]
-    row_cells = [
-        cell["problem_code"]
-        for cell in response.context["completion_board_rows"][0]["cells"]
-        if cell["exists"]
-    ]
-    assert row_cells == ["Day 1 · P1", "Day 2 · P1"]
-
-
-def test_completion_board_includes_unlinked_statement_rows_as_non_trackable_cells(client):
-    user = UserFactory()
-    client.force_login(user)
-    linked_problem = ProblemSolveRecord.objects.create(
-        year=2024,
-        topic="A",
-        mohs=20,
-        contest="Mock TST",
-        problem="P1",
-        contest_year_problem="Mock TST 2024 P1",
-    )
-    ContestProblemStatement.objects.create(
-        linked_problem=linked_problem,
-        contest_year=2024,
-        contest_name="Mock TST",
-        problem_number=1,
-        problem_code="P1",
-        day_label="Day 1",
-        statement_latex="Linked statement",
-    )
-    ContestProblemStatement.objects.create(
-        contest_year=2024,
-        contest_name="Mock TST",
-        problem_number=2,
-        problem_code="P2",
-        day_label="Day 1",
-        statement_latex="Unlinked statement",
-    )
-
-    response = client.get(reverse("pages:completion_board"))
-
-    assert response.status_code == HTTPStatus.OK
-    assert response.context["completion_board_stats"] == {
-        "contest_year_total": 1,
-        "problem_column_total": 2,
-        "statement_cell_total": 2,
-        "solved_total": 0,
-        "trackable_cell_total": 1,
-        "unlinked_cell_total": 1,
-        "unsolved_total": 1,
-    }
-    row = response.context["completion_board_rows"][0]
-    assert row["contest_year_label"] == "Mock TST 2024"
-    assert row["problem_total"] == 1
-    assert row["statement_total"] == 2
-    assert row["trackable_total"] == 1
-    assert row["unlinked_total"] == 1
-    cells_by_code = {cell["problem_code"]: cell for cell in row["cells"] if cell["exists"]}
-    assert cells_by_code["P1"]["is_trackable"] is True
-    assert cells_by_code["P2"]["is_trackable"] is False
-    assert cells_by_code["P2"]["state_kind"] == "untrackable"
-    response_html = response.content.decode("utf-8")
-    assert "Statement not linked yet" in response_html
-    assert "statement cells" in response_html
-
-
-def test_completion_board_limits_initial_rows_by_default(client):
-    user = UserFactory()
-    client.force_login(user)
-    total_rows = COMPLETION_BOARD_INITIAL_ROW_LIMIT + 5
-
-    for offset in range(total_rows):
-        contest_year = 2000 + offset
-        problem = ProblemSolveRecord.objects.create(
-            year=contest_year,
-            topic="A",
-            mohs=10 + (offset % 10),
-            contest="Long Board Contest",
-            problem="P1",
-            contest_year_problem=f"Long Board Contest {contest_year} P1",
-        )
-        ContestProblemStatement.objects.create(
-            linked_problem=problem,
-            contest_year=contest_year,
-            contest_name="Long Board Contest",
-            problem_number=1,
-            problem_code="P1",
-            day_label="Day 1",
-            statement_latex=f"Statement {offset}",
-        )
-
-    response = client.get(reverse("pages:completion_board"))
-
-    assert response.status_code == HTTPStatus.OK
-    assert len(response.context["completion_board_rows"]) == COMPLETION_BOARD_INITIAL_ROW_LIMIT
-    assert response.context["completion_board_stats"]["contest_year_total"] == total_rows
-    assert response.context["completion_board_row_window"] == {
-        "has_more_rows": True,
-        "is_partial": True,
-        "loaded_row_total": COMPLETION_BOARD_INITIAL_ROW_LIMIT,
-        "remaining_row_total": 5,
-        "row_limit": COMPLETION_BOARD_INITIAL_ROW_LIMIT,
-        "show_all_url": f'{reverse("pages:completion_board")}?rows=all',
-        "total_row_total": total_rows,
-        "next_rows_url": f'{reverse("pages:completion_board")}?rows={total_rows}',
-    }
-    response_html = response.content.decode("utf-8")
-    assert "Fast first load enabled." in response_html
-    assert "Show all rows" in response_html
-    assert "Each new search starts from a smaller first batch again to keep the page responsive." in response_html
-
-
-def test_completion_board_can_show_all_rows_when_requested(client):
-    user = UserFactory()
-    client.force_login(user)
-    total_rows = COMPLETION_BOARD_INITIAL_ROW_LIMIT + 2
-
-    for offset in range(total_rows):
-        contest_year = 2010 + offset
-        problem = ProblemSolveRecord.objects.create(
-            year=contest_year,
-            topic="G",
-            mohs=20,
-            contest="Expanded Board Contest",
-            problem="P1",
-            contest_year_problem=f"Expanded Board Contest {contest_year} P1",
-        )
-        ContestProblemStatement.objects.create(
-            linked_problem=problem,
-            contest_year=contest_year,
-            contest_name="Expanded Board Contest",
-            problem_number=1,
-            problem_code="P1",
-            day_label="Day 1",
-            statement_latex=f"Expanded statement {offset}",
-        )
-
-    response = client.get(reverse("pages:completion_board"), {"rows": "all"})
-
-    assert response.status_code == HTTPStatus.OK
-    assert len(response.context["completion_board_rows"]) == total_rows
-    assert response.context["completion_board_row_window"] == {
-        "has_more_rows": False,
-        "is_partial": False,
-        "loaded_row_total": total_rows,
-        "remaining_row_total": 0,
-        "row_limit": None,
-        "show_all_url": "",
-        "total_row_total": total_rows,
-        "next_rows_url": "",
-    }
-    assert "Fast first load enabled." not in response.content.decode("utf-8")
-
-
-def test_completion_board_toggle_sets_exact_completion_date_for_current_user(client):
-    user = UserFactory()
-    other_user = UserFactory()
-    client.force_login(user)
-    problem = ProblemSolveRecord.objects.create(
-        year=2024,
-        topic="C",
-        mohs=22,
-        contest="JMO",
-        problem="P3",
-        contest_year_problem="JMO 2024 P3",
-    )
-    UserProblemCompletion.objects.create(
-        user=other_user,
-        problem=problem,
-        completion_date=date(2025, 1, 8),
-    )
-    ContestProblemStatement.objects.create(
-        linked_problem=problem,
-        contest_year=2024,
-        contest_name="JMO",
-        problem_number=3,
-        problem_code="P3",
-        day_label="Day 1",
-        statement_latex="Linked statement",
-    )
-
-    first_response = client.post(
-        reverse("pages:completion_board_toggle"),
-        {
-            "action": "set_date",
-            "completion_date": "2025-02-14",
-            "problem_uuid": str(problem.problem_uuid),
-        },
-    )
-
-    assert first_response.status_code == HTTPStatus.OK
-    assert first_response.json() == {
-        "completion_date": "2025-02-14",
-        "is_solved": True,
-        "problem_label": "JMO 2024 P3",
-        "problem_uuid": str(problem.problem_uuid),
-        "state_kind": "solved",
-        "state_label": "Solved on 2025-02-14",
-        "title": "JMO 2024 P3 · Topic C · MOHS 22 · Solved on 2025-02-14",
-    }
-    assert UserProblemCompletion.objects.filter(user=user, problem=problem).count() == 1
-    assert UserProblemCompletion.objects.filter(problem=problem).count() == 2
-    assert UserProblemCompletion.objects.get(user=user, problem=problem).completion_date == date(2025, 2, 14)
-
-def test_completion_board_toggle_sets_unknown_and_clears_current_user_completion(client):
-    user = UserFactory()
-    client.force_login(user)
-    problem = ProblemSolveRecord.objects.create(
-        year=2024,
-        topic="N",
-        mohs=27,
-        contest="USAMO",
-        problem="P5",
-        contest_year_problem="USAMO 2024 P5",
-    )
-    ContestProblemStatement.objects.create(
-        linked_problem=problem,
-        contest_year=2024,
-        contest_name="USAMO",
-        problem_number=5,
-        problem_code="P5",
-        day_label="Day 2",
-        statement_latex="Statement-backed problem",
-    )
-
-    unknown_response = client.post(
-        reverse("pages:completion_board_toggle"),
-        {
-            "action": "set_unknown",
-            "problem_uuid": str(problem.problem_uuid),
-        },
-    )
-
-    assert unknown_response.status_code == HTTPStatus.OK
-    assert unknown_response.json() == {
-        "completion_date": "",
-        "is_solved": True,
-        "problem_label": "USAMO 2024 P5",
-        "problem_uuid": str(problem.problem_uuid),
-        "state_kind": "unknown",
-        "state_label": "Solved without exact date",
-        "title": "USAMO 2024 P5 · Topic N · MOHS 27 · Solved without exact date",
-    }
-    assert UserProblemCompletion.objects.filter(user=user, problem=problem).count() == 1
-    assert UserProblemCompletion.objects.get(user=user, problem=problem).completion_date is None
-
-    clear_response = client.post(
-        reverse("pages:completion_board_toggle"),
-        {
-            "action": "clear",
-            "problem_uuid": str(problem.problem_uuid),
-        },
-    )
-
-    assert clear_response.status_code == HTTPStatus.OK
-    assert clear_response.json() == {
-        "completion_date": "",
-        "is_solved": False,
-        "problem_label": "USAMO 2024 P5",
-        "problem_uuid": str(problem.problem_uuid),
-        "state_kind": "unsolved",
-        "state_label": "Unsolved",
-        "title": "USAMO 2024 P5 · Topic N · MOHS 27 · Unsolved",
-    }
-    assert UserProblemCompletion.objects.filter(user=user, problem=problem).count() == 0
-
-
-def test_completion_board_bulk_sets_unknown_for_multiple_current_user_completions(client):
-    user = UserFactory()
-    client.force_login(user)
-    first_problem = ProblemSolveRecord.objects.create(
-        year=2024,
-        topic="A",
-        mohs=18,
-        contest="EGMO",
-        problem="P1",
-        contest_year_problem="EGMO 2024 P1",
-    )
-    second_problem = ProblemSolveRecord.objects.create(
-        year=2024,
-        topic="C",
-        mohs=21,
-        contest="EGMO",
-        problem="P2",
-        contest_year_problem="EGMO 2024 P2",
-    )
-    ContestProblemStatement.objects.create(
-        linked_problem=first_problem,
-        contest_year=2024,
-        contest_name="EGMO",
-        problem_number=1,
-        problem_code="P1",
-        day_label="Day 1",
-        statement_latex="First statement",
-    )
-    ContestProblemStatement.objects.create(
-        linked_problem=second_problem,
-        contest_year=2024,
-        contest_name="EGMO",
-        problem_number=2,
-        problem_code="P2",
-        day_label="Day 1",
-        statement_latex="Second statement",
-    )
-
-    response = client.post(
-        reverse("pages:completion_board_bulk"),
-        {
-            "action": "set_unknown",
-            "problem_uuid": [
-                str(first_problem.problem_uuid),
-                str(second_problem.problem_uuid),
-            ],
-        },
-    )
-
-    assert response.status_code == HTTPStatus.OK
-    assert response.json() == {
-        "updated": [
-            {
-                "completion_date": "",
-                "is_solved": True,
-                "problem_label": "EGMO 2024 P1",
-                "problem_uuid": str(first_problem.problem_uuid),
-                "state_kind": "unknown",
-                "state_label": "Solved without exact date",
-                "title": "EGMO 2024 P1 · Topic A · MOHS 18 · Solved without exact date",
-            },
-            {
-                "completion_date": "",
-                "is_solved": True,
-                "problem_label": "EGMO 2024 P2",
-                "problem_uuid": str(second_problem.problem_uuid),
-                "state_kind": "unknown",
-                "state_label": "Solved without exact date",
-                "title": "EGMO 2024 P2 · Topic C · MOHS 21 · Solved without exact date",
-            },
-        ],
-        "updated_count": 2,
-    }
-    assert UserProblemCompletion.objects.filter(user=user).count() == 2
-    assert UserProblemCompletion.objects.get(user=user, problem=first_problem).completion_date is None
-    assert UserProblemCompletion.objects.get(user=user, problem=second_problem).completion_date is None
-
-
-def test_completion_board_toggle_rejects_problem_without_statement(client):
-    user = UserFactory()
-    client.force_login(user)
-    problem = ProblemSolveRecord.objects.create(
-        year=2024,
-        topic="G",
-        mohs=17,
-        contest="IMO",
-        problem="P4",
-        contest_year_problem="IMO 2024 P4",
-    )
-
-    response = client.post(
-        reverse("pages:completion_board_toggle"),
-        {"problem_uuid": str(problem.problem_uuid)},
-    )
-
-    assert response.status_code == HTTPStatus.NOT_FOUND
-    assert UserProblemCompletion.objects.filter(user=user, problem=problem).count() == 0
 
 
 def test_user_activity_dashboard_shows_only_current_users_completion_history(client):
@@ -5552,8 +5030,8 @@ def test_dashboard_sidebar_groups_links_into_clear_sections_for_admin(client):
     assert "Admin" in side_nav_html
     assert side_nav_html.index("Overview") < side_nav_html.index("My account")
     assert side_nav_html.index("My account") < side_nav_html.index("My activity")
-    assert side_nav_html.index("My activity") < side_nav_html.index("Completion board")
-    assert side_nav_html.index("Completion board") < side_nav_html.index("My solutions")
+    assert "Completion board" not in side_nav_html
+    assert side_nav_html.index("My activity") < side_nav_html.index("My solutions")
     assert side_nav_html.index("My solutions") < side_nav_html.index("Problem statements")
     assert side_nav_html.index("Problem statements") < side_nav_html.index("Problem analytics")
     assert side_nav_html.index("Problem analytics") < side_nav_html.index("Problem data")

@@ -79,6 +79,11 @@
   #problem-statements-table tbody td {
     vertical-align: top;
   }
+
+  #problem-statements-table_wrapper .dt-scroll-head table,
+  #problem-statements-table_wrapper .dt-scroll-body table {
+    width: 100% !important;
+  }
 </style>
 {% endif %}
 {% endblock extra_css %}
@@ -183,7 +188,7 @@
           <div class="flex-grow-1">
             <h4 class="header-title mb-0">All problem statements</h4>
             <p class="text-muted fs-xs mb-0">
-              Search by contest, UUID, day label, linked problem, topic tags, confidence, or statement preview. Rows imported before analytics still carry a stable UUID.
+              Search by contest, linked topic, UUID, day label, linked problem, topic tags, confidence, or statement preview. Rows imported before analytics still carry a stable UUID.
             </p>
           </div>
           <span class="badge text-bg-light">{{ statement_stats.contest_total }} contests</span>
@@ -219,7 +224,9 @@
               {% endif %}
             </div>
           </div>
-          <table id="problem-statements-table" class="table table-striped table-bordered align-middle w-100"></table>
+          <div class="table-responsive">
+            <table id="problem-statements-table" class="table table-striped table-bordered align-middle w-100"></table>
+          </div>
         </div>
       </div>
     </div>
@@ -296,6 +303,17 @@
       },
       { data: "contest_year", title: "Year", className: "text-nowrap" },
       { data: "contest_name", title: "Contest" },
+      {
+        data: "linked_problem_topic",
+        title: "Topic",
+        className: "text-nowrap",
+        defaultContent: "",
+        render: function (data, type) {
+          if (type !== "display") return data || "";
+          if (!data) return '<span class="text-muted fs-xs">—</span>';
+          return '<span class="fw-semibold">' + escapeHtml(data) + "</span>";
+        }
+      },
       { data: "problem_code", title: "Problem", className: "text-nowrap" },
       { data: "day_label", title: "Day", className: "text-nowrap" },
       {
@@ -385,12 +403,11 @@
   var table = new DataTable("#problem-statements-table", {
     data: rows,
     columns: statementColumns,
-    orderFixed: {
-      pre: [[updatedAtColumnIndex, "desc"]]
-    },
     order: [[updatedAtColumnIndex, "desc"]],
     pageLength: 25,
-    lengthMenu: [10, 25, 50, 100]
+    lengthMenu: [10, 25, 50, 100],
+    scrollX: true,
+    autoWidth: false
   });
 
   var mohsMinEl = document.getElementById("statement-mohs-min");
@@ -449,6 +466,7 @@
     var header = [
       "Year",
       "Contest",
+      "Topic",
       "Problem",
       "Day",
       "Linked problem",
@@ -467,6 +485,7 @@
       lines.push([
         normalizeCellValue(row.contest_year),
         normalizeCellValue(row.contest_name),
+        normalizeCellValue(row.linked_problem_topic),
         normalizeCellValue(row.problem_code),
         normalizeCellValue(row.day_label),
         normalizeCellValue(row.is_linked ? row.linked_problem_label : "Unlinked"),

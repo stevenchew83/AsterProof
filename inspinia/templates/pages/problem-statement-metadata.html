@@ -83,7 +83,8 @@
           <p class="text-muted">
             Download all statement rows as an <code>.xlsx</code> workbook with editable
             <code>TOPIC</code>, <code>MOHS</code>, <code>Confidence</code>,
-            <code>IMO slot guess</code>, and <code>Topic tags</code> columns.
+            <code>IMO slot guess</code>, and <code>Topic tags</code> columns, plus the full
+            <code>STATEMENT LATEX</code> for context while you edit.
           </p>
           <p class="text-muted mb-4">
             On import, rows are matched by statement <code>PROBLEM UUID</code>. Blank metadata rows are ignored,
@@ -107,7 +108,7 @@
         </div>
         <div class="card-body">
           <p class="text-muted">
-            This upserts <code>ProblemSolveRecord</code> rows from statement UUIDs and links the matching
+            This upserts <code>ProblemSolveRecord</code> rows by <code>PROBLEM UUID</code> and links the matching
             <code>ContestProblemStatement</code> rows automatically.
           </p>
           <p class="text-muted">

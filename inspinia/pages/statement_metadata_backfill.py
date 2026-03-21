@@ -20,6 +20,7 @@ STATEMENT_METADATA_EXPORT_COLUMNS = [
     "DAY LABEL",
     "PROBLEM NUMBER",
     "PROBLEM CODE",
+    "STATEMENT LATEX",
     "TOPIC",
     "MOHS",
     "Confidence",
@@ -154,7 +155,7 @@ def _resolved_problem_for_statement(
     if record_by_uuid is not None:
         return record_by_uuid
 
-    return records_by_key.get(_statement_problem_key(statement))
+    return None
 
 
 def build_statement_metadata_export_dataframe(
@@ -177,6 +178,7 @@ def build_statement_metadata_export_dataframe(
                 "DAY LABEL": statement.day_label,
                 "PROBLEM NUMBER": statement.problem_number,
                 "PROBLEM CODE": statement.problem_code,
+                "STATEMENT LATEX": statement.statement_latex,
                 "TOPIC": record.topic if record is not None else "",
                 "MOHS": record.mohs if record is not None else "",
                 "Confidence": record.confidence if record is not None else "",
@@ -308,11 +310,33 @@ def _prepare_statement_metadata_rows(
     for problem_uuid in requested_uuids:
         base_row = prepared_by_uuid[problem_uuid]
         statement = statements_by_uuid[problem_uuid]
+        if (
+            statement.linked_problem_id is not None
+            and statement.linked_problem is not None
+            and statement.linked_problem.problem_uuid != statement.problem_uuid
+        ):
+            msg = (
+                f'Row {base_row.row_number}: "{_statement_label(statement)}" is linked to a '
+                "problem row with a different PROBLEM UUID. Fix that UUID/link mismatch first."
+            )
+            raise StatementMetadataBackfillValidationError(msg)
         existing_record = _resolved_problem_for_statement(
             statement,
             records_by_key=records_by_key,
             records_by_uuid=records_by_uuid,
         )
+        conflicting_record = records_by_key.get(_statement_problem_key(statement))
+        if (
+            existing_record is None
+            and conflicting_record is not None
+            and conflicting_record.problem_uuid != statement.problem_uuid
+        ):
+            msg = (
+                f'Row {base_row.row_number}: "{_statement_label(statement)}" maps to contest/problem key '
+                f'"{conflicting_record.contest_year_problem}", but that key is already owned by a different '
+                "PROBLEM UUID. This import uses PROBLEM UUID as the update key, so resolve that collision first."
+            )
+            raise StatementMetadataBackfillValidationError(msg)
         if (
             existing_record is not None
             and existing_record.problem_uuid == statement.problem_uuid
@@ -350,16 +374,8 @@ def import_statement_metadata_dataframe(
     result = StatementMetadataBackfillImportResult(skipped_count=skipped_count)
     for prepared_row in prepared_rows:
         statement = prepared_row.statement
-        statement_problem_key = _statement_problem_key(statement)
         record = prepared_row.existing_record
         record_created = False
-
-        if record is None:
-            record = ProblemSolveRecord.objects.filter(
-                year=statement.contest_year,
-                contest=statement.contest_name,
-                problem=statement.problem_code,
-            ).first()
 
         if record is None:
             record = ProblemSolveRecord(

@@ -531,6 +531,7 @@ def _statement_table_rows(base) -> list[dict]:
     ):
         linked_problem = statement.linked_problem
         linked_problem_label = ""
+        linked_problem_topic = ""
         linked_problem_url = ""
         linked_problem_topic_tags: list[str] = []
         linked_problem_topic_tag_links: list[dict[str, str]] = []
@@ -544,6 +545,7 @@ def _statement_table_rows(base) -> list[dict]:
             linked_problem_label = linked_problem.contest_year_problem or (
                 f"{linked_problem.contest} {linked_problem.year} {linked_problem.problem}"
             )
+            linked_problem_topic = linked_problem.topic or ""
             linked_problem_topic_tags = topic_tags_by_problem_id.get(linked_problem.id, [])
             linked_problem_mohs = linked_problem.mohs
             linked_problem_confidence = linked_problem.confidence or ""
@@ -584,6 +586,7 @@ def _statement_table_rows(base) -> list[dict]:
                 "day_label": statement.day_label or "Unlabeled",
                 "is_linked": linked_problem is not None,
                 "linked_problem_label": linked_problem_label,
+                "linked_problem_topic": linked_problem_topic,
                 "linked_problem_url": linked_problem_url,
                 "problem_code": statement.problem_code,
                 "problem_uuid": str(statement.problem_uuid),
