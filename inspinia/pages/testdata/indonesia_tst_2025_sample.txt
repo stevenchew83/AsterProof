@@ -1,0 +1,116 @@
+2025 Indonesia TST3
+Indonesia TST for IMO 2025
+Test I	Saturday, 8 March 2025
+Time: 5 Hours
+1	Find all positive integers $n$ with the following property: for all positive divisors $d$ of $n$, we have $d+1\mid n$ or $d+1$ is prime.	
+
+KevinYang2.71
+view topic
+2	Let $n$ be a positive integer. The integers $1,\,2,\,3,\,\ldots,\,n^2$ are to be written in the cells of an $n\times n$ board such that each integer is written in exactly one cell and each cell contains exactly one integer. For every integer $d$ with $d\mid n$, the $d$-division of the board is the division of the board into $(n/d)^2$ nonoverlapping sub-boards, each of size $d\times d$, such that each cell is contained in exactly one $d\times d$ sub-board.
+
+We say that $n$ is a cool number if the integers can be written on the $n\times n$ board such that, for each integer $d$ with $d\mid n$ and $1<d<n$, in the $d$-division of the board, the sum of the integers written in each $d\times d$ sub-board is not a multiple of $d$.
+
+Determine all even cool numbers.
+
+Proposed by Melek Güngör, Türkiye	
+
+KevinYang2.71
+view topic
+3	Let $ABCD$ be a quadrilateral with $AB$ parallel to $CD$ and $AB<CD$. Lines $AD$ and $BC$ intersect at a point $P$. Point $X$ distinct from $C$ lies on the circumcircle of triangle $ABC$ such that $PC=PX$. Point $Y$ distinct from $D$ lies on the circumcircle of triangle $ABD$ such that $PD=PY$. Lines $AX$ and $BY$ intersect at $Q$.
+
+Prove that $PQ$ is parallel to $AB$.
+
+Proposed by Fedir Yudin, Mykhailo Shtandenko, and Anton Trygub, Ukraine	
+
+peppapig_
+view topic
+Test II	Sunday, 9 March 2025
+Time: 5 Hours
+1	Let $ABCD$ be a cyclic quadrilateral such that $AC<BD<AD$ and $\angle DBA<90^\circ$. Point $E$ lies on the line through $D$ parallel to $AB$ such that $E$ and $C$ lie on opposite sides of line $AD$, and $AC=DE$. Point $F$ lies on the line through $A$ parallel to $CD$ such that $F$ and $C$ lie on opposite sides of line $AD$, and $BD=AF$.
+
+Prove that the perpendicular bisectors of segments $BC$ and $EF$ intersect on the circumcircle of $ABCD$.
+
+Proposed by Mykhailo Shtandenko, Ukraine	
+
+OronSH
+view topic
+2	Decide whether for every sequence $(a_n)$ of positive real numbers,
+
+$\frac{3^{a_1}+3^{a_2}+\cdots+3^{a_n}}{(2^{a_1}+2^{a_2}+\cdots+2^{a_n})^2} < \frac{1}{2024}$
+
+is true for at least one positive integer $n$.	
+
+sqing-inequality-BUST
+view topic
+3	Let $n$ be a positive integer. There are $2n$ knights sitting at a round table. They consist of $n$ pairs of partners, each pair of which wishes to shake hands. A pair can shake hands only when next to each other. Every minute, one pair of adjacent knights swaps places. Find the minimum number of exchanges of adjacent knights such that, regardless of the initial arrangement, every knight can meet her partner and shake hands at some time.	
+
+RaymondZhu
+view topic
+APMO	Unofficial
+Wednesday, 12 March 2025
+Time: 5 Hours
+1	Let $ABC$ be an acute triangle inscribed in a circle $\Gamma$. Let $A_1$ be the orthogonal projection of $A$ onto $BC$ so that $AA_1$ is an altitude. Let $B_1$ and $C_1$ be the orthogonal projections of $A_1$ onto $AB$ and $AC$, respectively. Point $P$ is such that quadrilateral $AB_1PC_1$ is convex and has the same area as triangle $ABC$. Is it possible that $P$ strictly lies in the interior of circle $\Gamma$? Justify your answer.	
+
+Aiden-1089
+view topic
+2	Let $\alpha$ and $\beta$ be positive real numbers. Emerald makes a trip in the coordinate plane, starting off from the origin $(0,0)$. Each minute she moves one unit up or one unit to the right, restricting herself to the region $| x-y | <2025$, in the coordinate plane. By the time she visits a point $(x,y)$ she writes down the integer $\lfloor x\alpha + y\beta \rfloor$ on it. It turns out that Emerald wrote each non-negative integer exactly once. Find all the possible pairs $(\alpha, \beta)$ for which such a trip would be possible.	
+
+Aiden-1089
+view topic
+3	Let $P(x)$ be a non-constant polynomial with integer coefficients such that $P(0) \neq 0$. Let $a_1, a_2, a_3, \dots$ be an infinite sequence of integers such that $P(i - j)$ divides $a_i-a_j$ for all distinct positive integers $i,j$. Prove that the sequence $a_1, a_2, a_3, \dots$ must be constant, that is, $a_n$ equals a constant $c$ for all positive integers $n$.	
+
+Aiden-1089
+view topic
+4	Let $n \geq 3$ be an integer. There are $n$ cells on a circle, and each cell is assigned either $0$ or $1$. There is a rooster on one of these cells, and it repeats the following operation:
+
+$\bullet$ If the rooster is on a cell assigned $0$, it changes the assigned number to $1$ and moves to the next cell counterclockwise.
+$\bullet$ If the rooster is on a cell assigned $1$, it changes the assigned number to $0$ and moves to the cell after the next cell counterclockwise.
+
+Prove that the following statement holds after sufficiently many operations:
+If the rooster is on a cell $C$, then the rooster would go around the circle exactly three times, stopping again at $C$. Moreover, every cell would be assigned the same number as it was assigned right before the rooster went around the circle three times.	
+
+Aiden-1089
+view topic
+5	Consider an infinite sequence $a_1,a_2, \cdots$ of positive integers such that$$100!(a_m + a_{m+1} + \cdots + a_n) \text{ is a multiple of } a_{n-m+1}a_{m+n}$$for all positive integers $m, n$ such that $m\leq n$. Prove that the sequence is either bounded or linear.
+$\emph{Observation:}$ A sequence of positive integers is $\emph{bounded}$ if there exists a constant $N$ such that $a_n < N$ for all $n\in \mathbb{Z}_{>0}$. A sequence is $\emph{linear}$ if $a_n = na_1$ for all $n\in \mathbb{Z}_{>0}.$	
+
+vsamc
+view topic
+Test III	Saturday, 15 March 2025
+Time: 5 Hours
+1	Let $n$ be a positive integer. A class of $n$ students run $n$ races, in each of which they are ranked with no draws. A student is eligible for a rating $(a,\,b)$ for positive integers $a$ and $b$ if they come in the top $b$ places in at least $a$ of the races. Their final score is the maximum possible value of $a-b$ across all ratings for which they are eligible.
+
+Find the maximum possible sum of all the scores of the $n$ students.
+
+Proposed by William Steinberg, Australia	
+
+KevinYang2.71
+view topic
+2	Determine all sequences $a_1, a_2, \dots$ of positive integers such that for any pair of positive integers $m\leqslant n$, the arithmetic and geometric means
+\[ \frac{a_m + a_{m+1} + \cdots + a_n}{n-m+1}\quad\text{and}\quad (a_ma_{m+1}\cdots a_n)^{\frac{1}{n-m+1}}\]are both integers.	
+
+brainfertilzer
+view topic
+3	Let \(\mathbb{Z}_{>0}\) be the set of all positive integers. Determine all subsets \(\mathcal{S}\) of \(\{2^{0},2^{1},2^{2},\ldots\}\) for which there exists a function \(f\colon\mathbb{Z}_{>0}\to\mathbb{Z}_{>0}\) such that
+\[\mathcal{S}=\{f(a+b)-f(a)-f(b)\mid a,b\in\mathbb{Z}_{>0}\}.\]Pitchayut Saengrungkongka, Thailand	
+
+MarkBcc168
+view topic
+Test IV	Sunday, 16 March 2025
+Time: 5 Hours
+1	Let $n$ be a positive integer. Find the minimum possible value of
+\[
+S = 2^0 x_0^2 + 2^1 x_1^2 + \dots + 2^n x_n^2,
+\]where $x_0, x_1, \dots, x_n$ are nonnegative integers such that $x_0 + x_1 + \dots + x_n = n$.	
+
+EpicBird08
+view topic
+2	Let $ABCDE$ be a convex pentagon and let $M$ be the midpoint of $AB$. Suppose that segment $AB$ is tangent to the circumcircle of triangle $CME$ at $M$ and that $D$ lies on the circumircles of $AME$ and $BMC$. Lines $AD$ and $ME$ interesect at $K$, and lines $BD$ and $MC$ intersect at $L$. Points $P$ and $Q$ lie on line $EC$ so that $\angle PDC = \angle EDQ = \angle ADB$.
+
+Prove that lines $KP, LQ,$ and $MD$ are concurrent.	
+
+brainfertilzer
+view topic
+3	Let $n$ be a positive integer. We say a polynomial $P$ with integer coefficients is $\emph{n-good}$ if there exists a polynomial $Q$ of degree $2$ with integer coefficients such that $Q(k)(P(k) + Q(k))$ is never divisible by $n$ for any integer $k$.
+
+Determine all integers $n$ such that every polynomial with integer coefficients is an $n$-good polynomial

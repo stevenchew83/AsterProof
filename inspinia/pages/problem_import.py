@@ -44,6 +44,17 @@ EXPORT_COLUMNS = [
     "Rationale",
     "Pitfalls",
 ]
+STATEMENT_EXPORT_COLUMNS = [
+    "PROBLEM UUID",
+    "LINKED PROBLEM UUID",
+    "CONTEST YEAR",
+    "CONTEST NAME",
+    "CONTEST PROBLEM",
+    "DAY LABEL",
+    "PROBLEM NUMBER",
+    "PROBLEM CODE",
+    "STATEMENT LATEX",
+]
 PROBLEM_NUMBER_RE = re.compile(r"^\s*P?(?P<number>\d+)\s*$", flags=re.IGNORECASE)
 STATEMENT_PROBLEM_CODE_RE = re.compile(r"^\s*(?:(?P<prefix>[A-Za-z]{1,4})\s*)?(?P<number>\d+)\s*$")
 
@@ -334,6 +345,37 @@ def build_problem_export_workbook_bytes(records: list[ProblemSolveRecord]) -> by
     return buffer.getvalue()
 
 
+def build_problem_statement_export_dataframe(
+    statements: list[ContestProblemStatement],
+) -> pd.DataFrame:
+    rows = [
+        {
+            "PROBLEM UUID": str(statement.problem_uuid),
+            "LINKED PROBLEM UUID": (
+                str(statement.linked_problem.problem_uuid) if statement.linked_problem_id else ""
+            ),
+            "CONTEST YEAR": statement.contest_year,
+            "CONTEST NAME": statement.contest_name,
+            "CONTEST PROBLEM": statement.contest_year_problem,
+            "DAY LABEL": statement.day_label,
+            "PROBLEM NUMBER": statement.problem_number,
+            "PROBLEM CODE": statement.problem_code,
+            "STATEMENT LATEX": statement.statement_latex,
+        }
+        for statement in statements
+    ]
+    return pd.DataFrame(rows, columns=STATEMENT_EXPORT_COLUMNS)
+
+
+def build_problem_statement_export_workbook_bytes(
+    statements: list[ContestProblemStatement],
+) -> bytes:
+    export_df = build_problem_statement_export_dataframe(statements)
+    buffer = io.BytesIO()
+    export_df.to_excel(buffer, index=False)
+    return buffer.getvalue()
+
+
 def dataframe_from_excel(source: Path | str | BinaryIO | bytes) -> pd.DataFrame:
     """Load workbook; normalize column headers (strip)."""
     if isinstance(source, bytes):
@@ -410,6 +452,39 @@ def _upsert_topic_technique(
     return 1 if duplicate_ids else 0
 
 
+def sync_problem_topic_techniques(
+    *,
+    record: ProblemSolveRecord,
+    raw_topic_tags: str | None,
+    replace_tags: bool,
+) -> int:
+    parsed_entries: list[tuple[str, list[str]]] = []
+    for item in parse_topic_tags_cell(raw_topic_tags):
+        technique = (item.get("technique") or "").strip()
+        if not technique:
+            continue
+        parsed_entries.append(
+            (
+                technique,
+                domains_dedup_preserve_order(item.get("domains") or []),
+            ),
+        )
+
+    if replace_tags:
+        ProblemTopicTechnique.objects.filter(record=record).delete()
+
+    touched_count = 0
+    for technique, domain_list in parsed_entries:
+        touched_count += _upsert_topic_technique(
+            record=record,
+            technique=technique,
+            domain_list=domain_list,
+            replace_tags=replace_tags,
+        )
+
+    return touched_count
+
+
 def import_problem_dataframe(df: pd.DataFrame, *, replace_tags: bool) -> ProblemImportResult:
     """
     Upsert `ProblemSolveRecord` rows and parsed `ProblemTopicTechnique` entries.
@@ -432,17 +507,14 @@ def import_problem_dataframe(df: pd.DataFrame, *, replace_tags: bool) -> Problem
             result.n_records += 1
 
             if not p.techniques:
+                if replace_tags:
+                    ProblemTopicTechnique.objects.filter(record=record).delete()
                 continue
 
-            if replace_tags:
-                ProblemTopicTechnique.objects.filter(record=record).delete()
-
-            for technique, domain_list in p.techniques:
-                result.n_techniques += _upsert_topic_technique(
-                    record=record,
-                    technique=technique,
-                    domain_list=domain_list,
-                    replace_tags=replace_tags,
-                )
+            result.n_techniques += sync_problem_topic_techniques(
+                record=record,
+                raw_topic_tags=p.defaults.get("topic_tags"),
+                replace_tags=replace_tags,
+            )
 
     return result

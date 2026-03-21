@@ -404,3 +404,29 @@ def test_problem_solution_edit_reorders_and_deletes_existing_blocks(client):
         "Moved to second.",
     ]
     assert [block.position for block in remaining_blocks] == [1, 2]
+
+
+def test_problem_solution_edit_stacks_statement_editor_and_notes_in_order(client):
+    user = UserFactory()
+    client.force_login(user)
+    problem = _problem()
+    ContestProblemStatement.objects.create(
+        linked_problem=problem,
+        contest_year=2026,
+        contest_name="IMO",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Linked statement preview text",
+    )
+
+    response = client.get(reverse("solutions:problem_solution_edit", args=[problem.problem_uuid]))
+
+    assert response.status_code == HTTPStatus.OK
+    response_html = response.content.decode("utf-8")
+    assert "Linked statement preview text" in response_html
+    assert response_html.index("Linked statement") < response_html.index("Live preview")
+    assert response_html.index("Live preview") < response_html.index("Editor notes")
+    assert "preview the rendered LaTeX alongside the editor." in response_html
+    assert 'class="col-xl-4"' not in response_html
+    assert "solution-statement-panel" in response_html

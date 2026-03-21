@@ -57,7 +57,7 @@
         </div>
 
         <ul class="side-nav">
-            <li class="side-nav-title">Workspace</li>
+            <li class="side-nav-title">Home</li>
 
             <li class="side-nav-item">
                 <a href="{% url 'pages:home' %}" class="side-nav-link">
@@ -66,11 +66,28 @@
                 </a>
             </li>
 
+            {% if request.user.is_authenticated %}
+            <li class="side-nav-title">Personal</li>
+
+            <li class="side-nav-item">
+                <a href="{% url 'users:detail' request.user.pk %}" class="side-nav-link">
+                    <span class="menu-icon"><i class="ti ti-user-circle"></i></span>
+                    <span class="menu-text">My account</span>
+                </a>
+            </li>
+            {% endif %}
+
             {% if show_user_activity_dashboard_link %}
             <li class="side-nav-item">
                 <a href="{% url 'pages:user_activity_dashboard' %}" class="side-nav-link">
                     <span class="menu-icon"><i class="ti ti-activity"></i></span>
                     <span class="menu-text">My activity</span>
+                </a>
+            </li>
+            <li class="side-nav-item">
+                <a href="{% url 'pages:completion_board' %}" class="side-nav-link">
+                    <span class="menu-icon"><i class="ti ti-layout-grid"></i></span>
+                    <span class="menu-text">Completion board</span>
                 </a>
             </li>
             {% endif %}
@@ -84,7 +101,18 @@
             </li>
             {% endif %}
 
+            <li class="side-nav-title">Library</li>
+
+            <li class="side-nav-item">
+                <a href="{% url 'pages:problem_statement_list' %}" class="side-nav-link">
+                    <span class="menu-icon"><i class="ti ti-file-text"></i></span>
+                    <span class="menu-text">Problem statements</span>
+                </a>
+            </li>
+
             {% if show_analytics_dashboard_link %}
+            <li class="side-nav-title">Analytics</li>
+
             <li class="side-nav-item">
                 <a href="{% url 'pages:dashboard' %}" class="side-nav-link">
                     <span class="menu-icon"><i class="ti ti-chart-bar"></i></span>
@@ -112,6 +140,8 @@
             {% endif %}
 
             {% if show_problem_import_link %}
+            <li class="side-nav-title">Curation</li>
+
             <li class="side-nav-item">
                 <a href="{% url 'pages:problem_import' %}" class="side-nav-link">
                     <span class="menu-icon"><i class="ti ti-file-upload"></i></span>
@@ -130,23 +160,18 @@
                     <span class="menu-text">Contest details</span>
                 </a>
             </li>
-            {% endif %}
-
             <li class="side-nav-item">
-                <a href="{% url 'pages:latex_preview' %}" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-brackets"></i></span>
-                    <span class="menu-text">LaTeX preview</span>
+                <a href="{% url 'pages:problem_statement_linker' %}" class="side-nav-link">
+                    <span class="menu-icon"><i class="ti ti-link-plus"></i></span>
+                    <span class="menu-text">Statement links</span>
                 </a>
             </li>
-
             <li class="side-nav-item">
-                <a href="{% url 'pages:problem_statement_list' %}" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-file-text"></i></span>
-                    <span class="menu-text">Problem statements</span>
+                <a href="{% url 'pages:problem_statement_metadata' %}" class="side-nav-link">
+                    <span class="menu-icon"><i class="ti ti-table-import"></i></span>
+                    <span class="menu-text">Statement metadata</span>
                 </a>
             </li>
-
-            {% if show_problem_import_link %}
             <li class="side-nav-item">
                 <a href="{% url 'pages:problem_statement_duplicates' %}" class="side-nav-link">
                     <span class="menu-icon"><i class="ti ti-copy-check"></i></span>
@@ -155,14 +180,20 @@
             </li>
             {% endif %}
 
-            {% if request.user.is_authenticated %}
+            <li class="side-nav-title">Tools</li>
+
             <li class="side-nav-item">
-                <a href="{% url 'users:detail' request.user.pk %}" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-user-circle"></i></span>
-                    <span class="menu-text">My account</span>
+                <a href="{% url 'pages:latex_preview' %}" class="side-nav-link">
+                    <span class="menu-icon"><i class="ti ti-brackets"></i></span>
+                    <span class="menu-text">LaTeX preview</span>
                 </a>
             </li>
-            {% endif %}
+            <li class="side-nav-item">
+                <a href="{% url 'pages:handle_summary_parser' %}" class="side-nav-link">
+                    <span class="menu-icon"><i class="ti ti-table-export"></i></span>
+                    <span class="menu-text">Handle parser</span>
+                </a>
+            </li>
 
             {% if is_app_admin %}
             <li class="side-nav-title">Admin</li>

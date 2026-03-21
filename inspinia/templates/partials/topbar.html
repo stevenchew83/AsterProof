@@ -48,7 +48,12 @@
                 <a href="{% url 'pages:contest_details' %}" class="btn btn-outline-secondary btn-sm">Contest details</a>
                 {% endif %}
                 <a href="{% url 'pages:latex_preview' %}" class="btn btn-outline-secondary btn-sm">LaTeX preview</a>
+                <a href="{% url 'pages:handle_summary_parser' %}" class="btn btn-outline-secondary btn-sm">Handle parser</a>
                 <a href="{% url 'pages:problem_statement_list' %}" class="btn btn-outline-secondary btn-sm">Problem statements</a>
+                {% if show_problem_import_link %}
+                <a href="{% url 'pages:problem_statement_linker' %}" class="btn btn-outline-secondary btn-sm">Statement links</a>
+                <a href="{% url 'pages:problem_statement_metadata' %}" class="btn btn-outline-secondary btn-sm">Statement metadata</a>
+                {% endif %}
             </div>
         </div>
 

@@ -46,11 +46,13 @@
             href="{% url 'pages:problem_import' %}?action=export"
             class="btn btn-success"
             data-export-trigger
+            data-export-error-state="workbook-export-error-state"
+            data-export-loading-state="workbook-export-loading-state"
           >
             <i class="ti ti-file-export me-1"></i> Export current workbook
           </a>
 
-          <div id="export-loading-state" class="card border-primary-subtle bg-primary-subtle mt-3 d-none" role="status" aria-live="polite">
+          <div id="workbook-export-loading-state" class="card border-primary-subtle bg-primary-subtle mt-3 d-none" role="status" aria-live="polite">
             <div class="card-body">
               <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
                 <div>
@@ -64,7 +66,7 @@
             </div>
           </div>
 
-          <div id="export-error-state" class="alert alert-danger mt-3 d-none" role="alert">
+          <div id="workbook-export-error-state" class="alert alert-danger mt-3 d-none" role="alert">
             Export failed. Refresh the page and try again.
           </div>
         </div>
@@ -82,32 +84,46 @@
             <code>Confidence</code>, <code>IMO slot guess</code>, <code>Rationale</code>,
             <code>Pitfalls</code>.
           </p>
-          <form id="problem-import-form" method="post" enctype="multipart/form-data" novalidate>
+          <form
+            id="problem-import-form"
+            method="post"
+            enctype="multipart/form-data"
+            novalidate
+            data-import-form
+            data-loading-action="import"
+            data-loading-state="problem-import-loading-state"
+          >
             {% csrf_token %}
-            {% if form.non_field_errors %}
-              <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+            {% if problem_form.non_field_errors %}
+              <div class="alert alert-danger">{{ problem_form.non_field_errors }}</div>
             {% endif %}
             <div class="mb-3">
-              <label class="form-label" for="{{ form.file.id_for_label }}">{{ form.file.label }}</label>
-              {{ form.file }}
-              {% if form.file.help_text %}<div class="form-text">{{ form.file.help_text }}</div>{% endif %}
-              {% for err in form.file.errors %}<div class="invalid-feedback d-block">{{ err }}</div>{% endfor %}
+              <label class="form-label" for="{{ problem_form.file.id_for_label }}">{{ problem_form.file.label }}</label>
+              {{ problem_form.file }}
+              {% if problem_form.file.help_text %}<div class="form-text">{{ problem_form.file.help_text }}</div>{% endif %}
+              {% for err in problem_form.file.errors %}<div class="invalid-feedback d-block">{{ err }}</div>{% endfor %}
             </div>
             <div class="mb-3 form-check">
-              {{ form.replace_tags }}
-              <label class="form-check-label" for="{{ form.replace_tags.id_for_label }}">{{ form.replace_tags.label }}</label>
-              {% if form.replace_tags.help_text %}<div class="form-text">{{ form.replace_tags.help_text }}</div>{% endif %}
+              {{ problem_form.replace_tags }}
+              <label class="form-check-label" for="{{ problem_form.replace_tags.id_for_label }}">{{ problem_form.replace_tags.label }}</label>
+              {% if problem_form.replace_tags.help_text %}<div class="form-text">{{ problem_form.replace_tags.help_text }}</div>{% endif %}
             </div>
             <div class="d-flex flex-wrap gap-2">
               <button type="submit" name="action" value="preview" class="btn btn-outline-secondary">
                 <i class="ti ti-database-search me-1"></i> Preview parsed import
               </button>
-              <button type="submit" name="action" value="import" class="btn btn-primary" data-import-submit>
+              <button
+                type="submit"
+                name="action"
+                value="import"
+                class="btn btn-primary"
+                data-loading-label="Importing..."
+              >
                 <i class="ti ti-upload me-1"></i> Import to database
               </button>
             </div>
 
-            <div id="import-loading-state" class="card border-primary-subtle bg-primary-subtle mt-3 d-none" role="status" aria-live="polite">
+            <div id="problem-import-loading-state" class="card border-primary-subtle bg-primary-subtle mt-3 d-none" role="status" aria-live="polite">
               <div class="card-body">
                 <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
                   <div>
@@ -158,6 +174,121 @@
       </div>
     </div>
   </div>
+
+  <div class="row g-3 mt-0">
+    <div class="col-xl-4">
+      <div class="card h-100">
+        <div class="card-header border-bottom">
+          <h4 class="header-title mb-0">Export statement table</h4>
+        </div>
+        <div class="card-body">
+          <p class="text-muted">
+            Download the current <code>ContestProblemStatement</code> table as an <code>.xlsx</code> workbook for bulk edits or backups.
+          </p>
+          <p class="text-muted mb-4">
+            The export includes <code>PROBLEM UUID</code>, <code>LINKED PROBLEM UUID</code>,
+            <code>CONTEST YEAR</code>, <code>CONTEST NAME</code>, <code>DAY LABEL</code>,
+            <code>PROBLEM NUMBER</code>, <code>PROBLEM CODE</code>, and <code>STATEMENT LATEX</code>.
+          </p>
+          <a
+            href="{% url 'pages:problem_import' %}?action=export_statement_xlsx"
+            class="btn btn-outline-success"
+            data-export-trigger
+            data-export-error-state="statement-export-error-state"
+            data-export-loading-state="statement-export-loading-state"
+          >
+            <i class="ti ti-table-export me-1"></i> Export statement XLSX
+          </a>
+
+          <div id="statement-export-loading-state" class="card border-primary-subtle bg-primary-subtle mt-3 d-none" role="status" aria-live="polite">
+            <div class="card-body">
+              <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                <div>
+                  <h5 class="mb-1 text-primary">Preparing statement workbook</h5>
+                  <p class="mb-0 text-body-secondary">
+                    Building the statement export for download. Keep this tab open until the file starts downloading.
+                  </p>
+                </div>
+                <div class="spinner-border text-primary" aria-hidden="true"></div>
+              </div>
+            </div>
+          </div>
+
+          <div id="statement-export-error-state" class="alert alert-danger mt-3 d-none" role="alert">
+            Statement workbook export failed. Refresh the page and try again.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-8">
+      <div class="card">
+        <div class="card-header border-bottom">
+          <h4 class="header-title mb-0">Upload statement CSV</h4>
+        </div>
+        <div class="card-body">
+          <p class="text-muted">
+            Import rows directly into <code>ContestProblemStatement</code> using the exported CSV shape. Rows upsert by
+            <code>PROBLEM UUID</code> when present, otherwise by
+            <code>CONTEST YEAR</code> + <code>CONTEST NAME</code> + <code>DAY LABEL</code> + <code>PROBLEM CODE</code>.
+          </p>
+          <form
+            id="problem-statement-csv-import-form"
+            method="post"
+            enctype="multipart/form-data"
+            novalidate
+            data-import-form
+            data-loading-action="import_statement_csv"
+            data-loading-state="statement-csv-import-loading-state"
+          >
+            {% csrf_token %}
+            {% if statement_csv_form.non_field_errors %}
+              <div class="alert alert-danger">{{ statement_csv_form.non_field_errors }}</div>
+            {% endif %}
+            <div class="mb-3">
+              <label class="form-label" for="{{ statement_csv_form.file.id_for_label }}">{{ statement_csv_form.file.label }}</label>
+              {{ statement_csv_form.file }}
+              {% if statement_csv_form.file.help_text %}<div class="form-text">{{ statement_csv_form.file.help_text }}</div>{% endif %}
+              {% for err in statement_csv_form.file.errors %}<div class="invalid-feedback d-block">{{ err }}</div>{% endfor %}
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+              <button
+                type="submit"
+                name="action"
+                value="import_statement_csv"
+                class="btn btn-primary"
+                data-loading-label="Importing CSV..."
+              >
+                <i class="ti ti-upload me-1"></i> Import statement CSV
+              </button>
+            </div>
+
+            <div id="statement-csv-import-loading-state" class="card border-primary-subtle bg-primary-subtle mt-3 d-none" role="status" aria-live="polite">
+              <div class="card-body">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                  <div>
+                    <h5 class="mb-1 text-primary">Importing statement CSV</h5>
+                    <p class="mb-0 text-body-secondary">
+                      Writing statement rows to the database. Keep this tab open until the response returns.
+                    </p>
+                  </div>
+                  <div class="spinner-border text-primary" aria-hidden="true"></div>
+                </div>
+                <div class="progress progress-sm mt-3">
+                  <div
+                    class="progress-bar progress-bar-striped progress-bar-animated w-100"
+                    aria-label="Statement CSV import in progress"
+                    aria-valuemin="0"
+                    aria-valuemax="100"
+                  ></div>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 {% endblock page_content %}
@@ -165,29 +296,6 @@
 {% block extra_javascript %}
 <script>
 (function () {
-  var importForm = document.getElementById("problem-import-form");
-  if (!importForm) return;
-
-  var loadingState = document.getElementById("import-loading-state");
-  var fileInput = importForm.querySelector('input[type="file"]');
-  var submitButtons = importForm.querySelectorAll('button[type="submit"]');
-  var replaceTagsInput = importForm.querySelector('input[name="replace_tags"]');
-  var importButton = importForm.querySelector("[data-import-submit]");
-  var exportButton = document.querySelector("[data-export-trigger]");
-  var exportLoadingState = document.getElementById("export-loading-state");
-  var exportErrorState = document.getElementById("export-error-state");
-  var exportButtonDefaultHtml = exportButton ? exportButton.innerHTML : "";
-  var lastAction = "";
-
-  function resetExportState() {
-    if (!exportButton || !exportLoadingState) return;
-
-    exportLoadingState.classList.add("d-none");
-    exportButton.classList.remove("disabled");
-    exportButton.removeAttribute("aria-disabled");
-    exportButton.innerHTML = exportButtonDefaultHtml;
-  }
-
   function getExportFilename(response) {
     var disposition = response.headers.get("Content-Disposition") || "";
     var utf8Match = disposition.match(/filename\*=UTF-8''([^;]+)/i);
@@ -219,32 +327,59 @@
     }, 1000);
   }
 
-  submitButtons.forEach(function (button) {
-    button.addEventListener("click", function () {
-      lastAction = button.value || "";
-    });
-  });
-
-  importForm.addEventListener("submit", function (event) {
-    var submitter = event.submitter;
-    var action = submitter && submitter.value ? submitter.value : lastAction;
-    if (action !== "import" || !loadingState) return;
-    if (fileInput && !fileInput.files.length) return;
-
-    loadingState.classList.remove("d-none");
-    importForm.setAttribute("aria-busy", "true");
+  function wireImportForm(importForm) {
+    var loadingAction = importForm.getAttribute("data-loading-action") || "";
+    var loadingStateId = importForm.getAttribute("data-loading-state");
+    var loadingState = loadingStateId ? document.getElementById(loadingStateId) : null;
+    var fileInput = importForm.querySelector('input[type="file"]');
+    var submitButtons = importForm.querySelectorAll('button[type="submit"]');
+    var lastAction = "";
 
     submitButtons.forEach(function (button) {
-      button.disabled = true;
+      button.addEventListener("click", function () {
+        lastAction = button.value || "";
+      });
     });
-    if (fileInput) fileInput.disabled = true;
-    if (replaceTagsInput) replaceTagsInput.disabled = true;
-    if (importButton) {
-      importButton.innerHTML = '<span class="spinner-border spinner-border-sm text-primary me-2" aria-hidden="true"></span>Importing...';
-    }
-  });
 
-  if (exportButton && exportLoadingState) {
+    importForm.addEventListener("submit", function (event) {
+      var submitter = event.submitter;
+      var action = submitter && submitter.value ? submitter.value : lastAction;
+      if (action !== loadingAction || !loadingState) return;
+      if (fileInput && !fileInput.files.length) return;
+
+      loadingState.classList.remove("d-none");
+      importForm.setAttribute("aria-busy", "true");
+
+      Array.prototype.forEach.call(
+        importForm.querySelectorAll('input, select, textarea, button'),
+        function (element) {
+          element.disabled = true;
+        }
+      );
+
+      if (submitter) {
+        var loadingLabel = submitter.getAttribute("data-loading-label") || "Working...";
+        submitter.innerHTML = '<span class="spinner-border spinner-border-sm text-primary me-2" aria-hidden="true"></span>' + loadingLabel;
+      }
+    });
+  }
+
+  function wireExportButton(exportButton) {
+    var loadingStateId = exportButton.getAttribute("data-export-loading-state");
+    var errorStateId = exportButton.getAttribute("data-export-error-state");
+    var exportLoadingState = loadingStateId ? document.getElementById(loadingStateId) : null;
+    var exportErrorState = errorStateId ? document.getElementById(errorStateId) : null;
+    var exportButtonDefaultHtml = exportButton.innerHTML;
+
+    function resetExportState() {
+      if (exportLoadingState) {
+        exportLoadingState.classList.add("d-none");
+      }
+      exportButton.classList.remove("disabled");
+      exportButton.removeAttribute("aria-disabled");
+      exportButton.innerHTML = exportButtonDefaultHtml;
+    }
+
     exportButton.addEventListener("click", function (event) {
       if (!window.fetch || !window.URL || !window.URL.createObjectURL) {
         return;
@@ -256,7 +391,9 @@
       if (exportErrorState) {
         exportErrorState.classList.add("d-none");
       }
-      exportLoadingState.classList.remove("d-none");
+      if (exportLoadingState) {
+        exportLoadingState.classList.remove("d-none");
+      }
       exportButton.classList.add("disabled");
       exportButton.setAttribute("aria-disabled", "true");
       exportButton.innerHTML = '<span class="spinner-border spinner-border-sm text-primary me-2" aria-hidden="true"></span>Exporting...';
@@ -265,16 +402,8 @@
         credentials: "same-origin",
       })
         .then(function (response) {
-          var contentType = response.headers.get("Content-Type") || "";
           if (!response.ok) {
             throw new Error("Export request failed");
-          }
-          if (
-            contentType &&
-            contentType.indexOf("spreadsheetml.sheet") === -1 &&
-            contentType.indexOf("application/octet-stream") === -1
-          ) {
-            throw new Error("Unexpected export response");
           }
           return Promise.all([response.blob(), getExportFilename(response)]);
         })
@@ -290,6 +419,9 @@
         });
     });
   }
+
+  document.querySelectorAll("[data-import-form]").forEach(wireImportForm);
+  document.querySelectorAll("[data-export-trigger]").forEach(wireExportButton);
 })();
 </script>
 {% if preview_payload %}

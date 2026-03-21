@@ -1,0 +1,179 @@
+2024 Malaysian IMO Training Camp3
+Various problems from the 2024 Malaysian IMO Training Camp
+Junior Olympiad of Malaysia 2024
+February 17, 2024
+1	Consider $\triangle MAB$ with a right angle at $A$ and circumcircle $\omega$. Take any chord $CD$ perpendicular to $AB$ such that $A, C, B, D, M$ lie on $\omega$ in this order. Let $AC$ and $MD$ intersect at point $E$, and let $O$ be the circumcenter of $\triangle EMC$. Show that if $J$ is the intersection of $BC$ and $OM$, then $JB = JM$.
+
+(Proposed by Matthew Kung Wei Sheng and Ivan Chan Kai Chin)	
+
+the_universe6626
+view topic
+2	The sequence $1, 2, \dots, 2023, 2024$ is written on a whiteboard. Every second, Megavan chooses two integers $a$ and $b$, and four consecutive numbers on the whiteboard. Then counting from the left, he adds $a$ to the 1st and 3rd of those numbers, and adds $b$ to the 2nd and 4th of those numbers. Can he achieve the sequence $2024, 2023, \dots, 2, 1$ in a finite number of moves?
+
+(Proposed by Avan Lim Zenn Ee)	
+
+the_universe6626
+view topic
+3	Find all functions $f:\mathbb{R}^+\rightarrow\mathbb{R}^+$ such that for all $x, y\in\mathbb{R}^+$,
+\[ \frac{f(x)}{y^2} - \frac{f(y)}{x^2} \le \left(\frac{1}{x}-\frac{1}{y}\right)^2\]($\mathbb{R}^+$ denotes the set of positive real numbers.)
+
+(Proposed by Ivan Chan Guan Yu)	
+
+the_universe6626
+view topic
+4	Minivan chooses a prime number. Then every second, he adds either the digit $1$ or the digit $3$ to the right end of his number (after the unit digit), such that the new number is also a prime. Can he continue indefinitely?
+
+(Proposed by Wong Jer Ren)	
+
+the_universe6626
+view topic
+5	Do there exist infinitely many triplets of positive integers $(a, b, c)$ such that
+the following two conditions hold:
+1. $\gcd(a, b, c) = 1$;
+2. $a+b+c, a^2+b^2+c^2$ and $abc$ are all perfect squares?
+
+(Proposed by Ivan Chan Guan Yu)	
+
+the_universe6626
+view topic
+APMO Camp Selection Test 2024
+February 17, 2024
+1	Let $a_1<a_2< \cdots$ be a strictly increasing sequence of positive integers. Suppose there exist $N$ such that for all $n>N$,$$a_{n+1}\mid a_1+a_2+\cdots+a_n$$Prove that there exist $M$ such that $a_{m+1}=2a_m$ for all $m>M$.
+
+Proposed by Ivan Chan Kai Chin	
+
+navi_09220114
+view topic
+2	Let $k>1$. Fix a circle $\omega$ with center $O$ and radius $r$, and fix a point $A$ with $OA=kr$.
+
+Let $AB$, $AC$ be tangents to $\omega$. Choose a variable point $P$ on the minor arc $BC$ in $\omega$. Lines $AB$ and $CP$ intersect at $X$ and lines $AC$ and $BP$ intersect at $Y$. The circles $(BPX)$ and $(CPY)$ meet at another point $Z$.
+
+Prove that the line $PZ$ always passes through a fixed point except for one value of $k>1$, and determine this value.
+
+Proposed by Ivan Chan Kai Chin	
+
+navi_09220114
+view topic
+3	Find all functions $f:\mathbb{Z}\rightarrow \mathbb{Z}$ such that for all integers $x$, $y$,$$f(x-f(y))=f(f(y))+f(x-2y)$$
+Proposed by Ivan Chan Kai Chin	
+
+navi_09220114
+view topic
+4	Ivan has a $n \times n$ board. He colors some of the squares black such that every black square has exactly two neighbouring square that are also black. Let $d_n$ be the maximum number of black squares possible, prove that there exist some real constants $a$, $b$, $c\ge 0$ such that;$$an^2-bn\le d_n\le an^2+cn.$$
+Proposed by Ivan Chan Kai Chin	
+
+navi_09220114
+view topic
+5	Let $ABC$ be a scalene triangle and $D$ be the feet of altitude from $A$ to $BC$. Let $I_1$, $I_2$ be incenters of triangles $ABD$ and $ACD$ respectively, and let $H_1$, $H_2$ be orthocenters of triangles $ABI_1$ and $ACI_2$ respectively. The circles $(AI_1H_1)$ and $(AI_2H_2)$ meet again at $X$. The lines $AH_1$ and $XI_1$ meet at $Y$, and the lines $AH_2$ and $XI_2$ meet at $Z$.
+
+Suppose the external common tangents of circles $(BI_1H_1)$ and $(CI_2H_2)$ meet at $U$. Prove that $UY=UZ$.
+
+Proposed by Ivan Chan Kai Chin	
+
+navi_09220114
+view topic
+IMO Team Selection Test 2024
+Day 1, April 13, 2024
+1	Let $ABC$ be an acute triangle with orthocenter $H$, and let $BE$ and $CF$ be the altitudes of the triangle. Choose two points $P$ and $Q$ on rays $BH$ and $CH$ respectively, such that:
+
+$\bullet$ $PQ$ is parallel to $BC$;
+
+$\bullet$ The quadrilateral $APHQ$ is cyclic.
+
+Suppose the circumcircles of triangles $APF$ and $AQE$ meet again at $X\neq A$. Prove that $AX$ is parallel to $BC$.
+
+Proposed by Ivan Chan Kai Chin	
+
+navi_09220114
+view topic
+2	Let $k$ be a positive integer. Find all collection of integers $(a_1, a_2,\cdots, a_k)$ such that there exist a non-linear polynomial $P$ with integer coefficients, so that for all positive integers $n$ there exist a positive integer $m$ satisfying:$$P(n+a_1)+P(n+a_2)+...+P(n+a_k)=P(m)$$
+Proposed by Ivan Chan Kai Chin	
+
+navi_09220114
+view topic
+3	Find all primes $p$ such that for any integer $k$, there exist two integers $x$ and $y$ such that$$x^3+2023xy+y^3 \equiv k  \pmod p$$
+Proposed by Tristan Chaang Tze Shen	
+
+navi_09220114
+view topic
+Day 2, April 14, 2024
+4	Zscoder has an simple undirected graph $G$ with $n\ge 3$ vertices. Navi labels a positive integer to each vertex, and places a token at one of the vertex. This vertex is now marked red. In each turn, Zscoder plays with following rule:
+
+$\bullet$ If the token is currently at vertex $v$ with label $t$, then he can move the token along the edges in $G$ (possibly repeating some edges) exactly $t$ times. After these $t$ moves, he marks the current vertex red where the token is at if it is unmarked, or does nothing otherwise, then finishes the turn.
+
+Zscoder claims that he can mark all vertices in $G$ red after finite number of turns, regardless of Navi's labels and starting vertex. What is the minimum number of edges must $G$ have, in terms of $n$?
+
+Proposed by Yeoh Zi Song	
+
+navi_09220114
+view topic
+5	Let $n$ be an odd integer and $m=\phi(n)$ be the Euler's totient function. Call a set of residues $T=\{a_1, \cdots, a_k\} \pmod n$ to be good if $\gcd(a_i, n) > 1$ $\forall i$, and $\gcd(a_i, a_j) = 1, \forall i \neq j$. Define the set $S_n$ consisting of the residues$$\sum_{i=1}^k a_i ^m\pmod{n}$$over all possible residue sets $T=\{a_1,\cdots,a_k\}$ that is good. Determine $|S_n|$.
+
+Proposed by Anzo Teh Zhao Yang	
+
+navi_09220114
+view topic
+6	Let $\omega_1$, $\omega_2$, $\omega_3$ are three externally tangent circles, with $\omega_1$ and $\omega_2$ tangent at $A$. Choose points $B$ and $C$ on $\omega_1$ so that lines $AB$ and $AC$ are tangent to $\omega_3$. Suppose the line $BC$ intersect $\omega_3$ at two distinct points, and $X$ is the intersection further away to $B$ and $C$ than the other one.
+
+Prove that one of the tangent lines of $\omega_2$ passing through $X$, is also tangent to an excircle of triangle $ABC$.
+
+Proposed by Ivan Chan Kai Chin	
+
+navi_09220114
+view topic
+Malaysian Squad Selection Test 2024
+Day 1, August 24, 2024
+1	A cyclic quadrilateral $ABCD$ has diameter $AC$ with circumcircle $\omega$. Let $K$ be the foot of the perpendicular from $C$ to $BD$, and the tangent to $\omega$ at $A$ meets $BD$ at $T$. Let the line $AK$ meets $\omega$ at $X$ and choose a point $Y$ on line $AK$ such that $\angle TYA=90^{\circ}$. Prove that $AY=KX$.
+
+Proposed by Anzo Teh Zhao Yang	
+
+navi_09220114
+view topic
+2	A finite sequence of decimal digits from $\{0,1,\cdots, 9\}$ is said to be common if for each sufficiently large positive integer $n$, there exists a positive integer $m$ such that the expansion of $n$ in base $m$ ends with this sequence of digits.
+
+For example, $0$ is common because for any large $n$, the expansion of $n$ in base $n$ is $10$, whereas $00$ is not common because for any squarefree $n$, the expansion of $n$ in any base cannot end with $00$.
+
+Determine all common sequences.
+
+Proposed by Wong Jer Ren	
+
+navi_09220114
+view topic
+3	Given $n$ students in the plane such that the $\frac{n(n-1)}{2}$ distances are pairwise distinct. Each student gives a candy each to the $k$ students closest to him. Given that each student receives the same amount of candies, determine all possible values of $n$ in terms of $k$.
+
+Proposed by Wong Jer Ren	
+
+navi_09220114
+view topic
+4	Fix a real polynomial $P$ with degree at least $1$, and a real number $c$. Prove that there exist a real number $k$ such that for all reals $a$ and $b$,$$P(a)+P(b)=c \quad \Rightarrow \quad |a+b|<k$$
+Proposed by Wong Jer Ren	
+
+navi_09220114
+view topic
+Day 2, August 25, 2024
+5	Do there exist infinitely many positive integers $a, b$ such that$$(a^2+1)(b^2+1)((a+b)^2+1)$$is a perfect square?
+
+Proposed Ivan Chan Guan Yu	
+
+navi_09220114
+view topic
+6	Let $n$ be a positive integer, and Megavan has a $(3n+1)\times (3n+1)$ board. All squares, except one, are tiled by non-overlapping $1\times 3$ triominoes. In each step, he can choose a triomino that is untouched in the step right before it, and then shift this triomino horizontally or vertically by one square, as long as the triominoes remain non-overlapping after this move.
+
+Show that there exist some $k$, such that after $k$ moves Megavan can no longer make any valid moves irregardless of the initial configuration, and find the smallest possible $k$ for each $n$.
+
+(Note: While he cannot undo a move immediately before the current step, he may still choose to move a triomino that has already been moved at least two steps before.)
+
+Proposed by Ivan Chan Kai Chin	
+
+navi_09220114
+view topic
+7	Let $P$ be the set of all primes. Given any positive integer $n$, define$$\displaystyle f(n) = \max_{p \in P}v_p(n)$$Prove that for any positive integer $k\ge 2$, there exists infinitely many positive integers $m$ such that\[ f(m+1) = f(m+2) = \cdots = f(m+k) \]
+Proposed by Ivan Chan Guan Yu	
+
+navi_09220114
+view topic
+8	Given a triangle $ABC$, let $I$ be the incenter, and $J$ be the $A$-excenter. A line $\ell$ through $A$ perpendicular to $BC$ intersect the lines $BI$, $CI$, $BJ$, $CJ$ at $P$, $Q$, $R$, $S$ respectively. Suppose the angle bisector of $\angle BAC$ meet $BC$ at $K$, and $L$ is a point such that $AL$ is a diameter in $(ABC)$.
+
+Prove that the line $KL$, $\ell$, and the line through the centers of circles $(IPQ)$ and $(JRS)$, are concurrent.
+
+Proposed by Chuah Jia Herng & Ivan Chan Kai Chin

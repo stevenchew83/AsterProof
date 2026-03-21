@@ -1,0 +1,85 @@
+2025 Malaysian IMO Training Camp3
+Various problems from the 2025 Malaysian IMO Training Camp
+BIMO 1 Christmas Test
+December 25, 2024
+1	Given two primes $p$ and $q$, is $v_p(q^n+n^q)$ unbounded as $n$ varies?
+
+(Proposed by Ivan Chan Kai Chin)	
+
+quacksaysduck
+view topic
+2	There are $2024$ points on a circle. A purple elephant labels the points $P_1,P_2,\ldots,P_{2024}$ in some order, and walks along the points from $P_1$ to $P_{2024}$ in this order, while laying some eggs. To ensure the elephant does not step on the eggs it laid, the chords $P_1P_2, P_2P_3, \ldots, P_{2023}P_{2024}$ must not intersect each other except possibly at their endpoints. How many labellings are there? (Note: Two labellings are the same if one is a rotation of the other.)
+
+(Proposed by Ho Janson)	
+
+quacksaysduck
+view topic
+3	Given a triangle $ABC$ with $M$ the midpoint of minor arc $BC$. Let $H$ be the feet of altitude from $A$ to $BC$. Let $S$ and $T$ be the reflections of $B$ and $C$ with respect to line $AM$. Suppose the circle $(HST)$ meets $BC$ again at a point $P$. Prove that $\angle AMP = 90^\circ$.
+
+(Proposed by Tan Rui Xuen)	
+
+quacksaysduck
+view topic
+4	Find all functions $f:\mathbb R\to\mathbb R$ such that\[f(x^2)+2xf(y)=yf(x)+xf(x+y).\]
+(Proposed by Yeoh Yi Shuen)	
+
+quacksaysduck
+view topic
+5	Let $n$ be an odd positive integer. There is a graph $G$ with $2n$ vertices such that if you partition the vertices into two groups $A$ and $B$ with $n$ vertices each, then the subgraph consisting of only vertices and edges within $A$ is connected and has a closed path containing all of its edges, starting and ending with the same vertex. The same condition is true for $B$ as well. Is $G$ necessarily a clique?
+
+(Proposed by Ho Janson)	
+
+quacksaysduck
+view topic
+6	Let $a_1, a_2, \ldots, a_{2024}$ be positive integers such that $a_{i+1}+1$ is a multiple of $a_i$ for all $i = 1, 2, \ldots , 2024$, with indices taken modulo $2024$.
+Find the maximum possible value of $a_1 + a_2 + \ldots + a_{2024}$.
+
+(Proposed by Ivan Chan Guan Yu)	
+
+quacksaysduck
+view topic
+7	Let $n$ be a positive integer and $a_1\le a_2\le\ldots\le a_{n+1}$ and $b_1\le b_2\le\ldots\le b_n$ be real numbers such that for all $k\le n$,\[\binom nk\sum_{\substack{1\le i_1<i_2<\ldots<i_k\le n+1,\\i_1,i_2,\ldots,i_k\in\mathbb N}}a_{i_1}a_{i_2}\ldots a_{i_k} = \binom{n+1}k\sum_{\substack{1\le j_1<j_2<\ldots<j_k\le n,\\j_1,j_2,\ldots,j_k\in\mathbb N}}b_{j_1}b_{j_2}\ldots b_{j_k}.\]Show that\[a_1\le b_1\le a_2\le b_2\le \ldots \le a_n\le b_n\le a_{n+1}.\]
+(Proposed by Ivan Chan Guan Yu)	
+
+quacksaysduck
+view topic
+8	Let $ABC$ be a non-isosceles and acute triangle. $X$ is a point on arc $BC$ not containing $A$ such that $BA-CA = CX-BX$. The incircle of $\triangle ABC$ touches $AC$ and $AB$ at $E$ and $F$ respectively. The $X$-excircle of $\triangle XBC$ touches $XC$ and $XB$ at $Y$ and $Z$ respectively. Let $T$ be such that $TA$ and $TX$ bisects $\angle BAC$ and $\angle BXC$ respectively.
+Prove that $T$ lies on the radical axis of circles $(BFZ)$ and $(CEY)$.
+
+(Proposed by Chuah Jia Herng)	
+
+quacksaysduck
+view topic
+Junior Olympiad of Malaysia 2025
+January 19, 2025
+1	Let $ABC$ be a triangle with $AB<AC$ and with its incircle touching the sides $AB$ and $BC$ at $M$ and $J$ respectively. A point $D$ lies on the extension of $AB$ beyond $B$ such that $AD=AC$. Let $O$ be the midpoint of $CD$. Prove that the points $J$, $O$, $M$ are collinear.
+
+(Proposed by Tan Rui Xuen)	
+
+quacksaysduck
+view topic
+2	Determine all infinite sequences of nonnegative integers $a_1,a_2,\ldots$ such that:
+1. Every positive integer appears in the sequence at least once, and;
+2. $a_i$ is the smallest integer $j$ such that $a_{j+2}=i$, for all $i\ge 1$.
+
+(Proposed by Ho Janson)	
+
+quacksaysduck
+view topic
+3	Minivan and Megavan play a game. For a positive integer $n$, Minivan selects a sequence of integers $a_1,a_2,\ldots,a_n$. An operation on $a_1,a_2,\ldots,a_n$ means selecting an $a_i$ and increasing it by $1$. Minivan and Megavan take turns, with Minivan going first. On Minivan's turn, he performs at most $2025$ operations, and he may choose the same integer repeatedly. On Megavan's turn, he performs exactly $1$ operation instead. Megavan wins if at any point in the game, including in the middle of Minivan's operations, two numbers in the sequence are equal.
+
+Determine, for a given positive integer $k$, the minimum $n$ such that Megavan has a winning strategy.
+
+(Proposed by Ho Janson)	
+
+quacksaysduck
+view topic
+4	For each positive integer $k$, find all positive integer $n$ such that there exists a permutation $a_1,\ldots,a_n$ of $1,2,\ldots,n$ satisfying$$a_1a_2\ldots a_i\equiv i^k \pmod n$$for each $1\le i\le n$.
+
+(Proposed by Tan Rui Xuen and Ivan Chan Guan Yu)	
+
+quacksaysduck
+view topic
+5	Let $ABC$ be a scalene triangle and $I$ be its incenter. Suppose the incircle $\omega$ touches $BC$ at a point $D$, and $N$ lies on $\omega$ such that $ND$ is a diameter of $\omega$. Let $X$ and $Y$ be points on lines $AC$ and $AB$ respectively such that $\angle BIX = \angle CIY = 90^\circ$. Let $V$ be the feet of perpendicular from $I$ onto line $XY$. Prove that the points $I$, $V$, $A$, $N$ are concyclic.
+
+(Proposed by Ivan Chan Guan Yu)

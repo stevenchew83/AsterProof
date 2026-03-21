@@ -1,0 +1,129 @@
+2024 China Team Selection Test3
+China Team Selection Test 2024
+TST 1	Day 1 (March 5, 2024, Beijing)
+1	It is known that each vertex of the convex polyhedron $P$ belongs to three different faces, and each vertex of $P$ can be dyed black and white, so that the two endpoints of each edge of $P$ are different colors. Proof: The interior of each edge of $P$ can be dyed red, yellow, and blue, so that the colors of the three edges connected to each vertex are different, and each face contains two colors of edges.
+
+Created by Liang Xiao	
+
+EthanWYX2009
+view topic
+2	In acute triangle $\triangle {ABC}$, $\angle 
+A > \angle B > \angle C$. $\triangle {AC_1B}$ and $\triangle {CB_1A}$ are isosceles triangles such that $\triangle {AC_1B} \stackrel{+}{\sim}  \triangle {CB_1A}$. Let lines $BB_1, CC_1$ intersects at ${T}$. Prove that if all points mentioned above are distinct, $\angle ATC$ isn't a right angle.	
+
+LoloChen
+view topic
+3	Given positive integer $M.$ For any $n\in\mathbb N_+,$ let $h(n)$ be the number of elements in $[n]$ that are coprime to $M.$ Define $\beta :=\frac {h(M)}M.$ Proof: there are at least $\frac M3$ elements $n$ in $[M],$ satisfy
+$$\left| h(n)-\beta n\right|\le\sqrt{\beta\cdot 2^{\omega(M)-3}}+1.$$Here $[n]:=\{1,2,\ldots ,n\}$ for all positive integer $n.$
+Proposed by Bin Wang	
+
+EthanWYX2009
+view topic
+TST 1	Day 2 (March 6, 2024, Beijing)
+4	Let $n$ be a positive square free integer, $S$ is a subset of $[n]:=\{1,2,\ldots ,n\}$ such that $|S|\ge n/2.$ Prove that there exists three elements $a,b,c\in S$ (can be same), satisfy $ab\equiv c\pmod n.$
+
+Created by Zhenhua Qu	
+
+EthanWYX2009
+view topic
+5	Find all functions $f:\mathbb N_+\to \mathbb N_+,$ such that for all positive integer $a,b,$
+$$\sum_{k=0}^{2b}f(a+k)=(2b+1)f(f(a)+b).$$
+Created by Liang Xiao, Yunhao Fu	
+
+EthanWYX2009
+view topic
+6	Let $m,n>2$ be integers. A regular ${n}$-sided polygon region $\mathcal T$ on a plane contains a regular ${m}$-sided polygon region with a side length of ${}{}{}1$. Prove that any regular ${m}$-sided polygon region $\mathcal S$ on the plane with side length $\cos{\pi}/[m,n]$ can be translated inside $\mathcal T.$ In other words, there exists a vector $\vec\alpha,$ such that for each point in $\mathcal S,$ after translating the vector $\vec\alpha$ at that point, it fall into $\mathcal T.$
+Note: The polygonal area includes both the interior and boundaries.
+
+Created by Bin Wang	
+
+EthanWYX2009
+view topic
+TST1	Day 3(March 10, 2024, Beijing)
+7	For coprime positive integers $a,b$,denote $(a^{-1}\bmod{b})$ by the only integer $0\leq m<b$ such that $am\equiv 1\pmod{b}$
+(1)Prove that for pairwise coprime integers $a,b,c$, $1<a<b<c$,we have\[(a^{-1}\bmod{b})+(b^{-1}\bmod{c})+(c^{-1}\bmod{a})>\sqrt a.\](2)Prove that for any positive integer $M$,there exists pairwise coprime integers $a,b,c$, $M<a<b<c$ such that
+\[(a^{-1}\bmod{b})+(b^{-1}\bmod{c})+(c^{-1}\bmod{a})< 100\sqrt a.\]	
+
+MathLover_ZJ
+view topic
+8	In $\triangle {ABC}$, tangents of the circumcircle $\odot {O}$ at $B, C$ and at $A, B$ intersects at $X, Y$ respectively. $AX$ cuts $BC$ at ${D}$ and $CY$ cuts $AB$ at ${F}$. Ray $DF$ cuts arc $AB$ of the circumcircle at ${P}$. $Q, R$ are on segments $AB, AC$ such that $P, Q, R$ are collinear and $QR \parallel BO$. If $PQ^2=PR \cdot QR$, find $\angle ACB$.	
+
+LoloChen
+view topic
+9	Color the positive integers by four colors $c_1,c_2,c_3,c_4$.
+(1)Prove that there exists a positive integer $n$ and $i,j\in\{1,2,3,4\}$,such that among all the positive divisors of $n$, the number of divisors with color $c_i$ is at least greater than the number of divisors with color $c_j$ by $3$.
+(2)Prove that for any positive integer $A$,there exists a positive integer $n$ and $i,j\in\{1,2,3,4\}$,such that among all the positive divisors of $n$, the number of divisors with color $c_i$ is at least greater than the number of divisors with color $c_j$ by $A$.	
+
+MathLover_ZJ
+view topic
+TST 1	Day 4 (March 11, Beijing)
+10	Let $M$ be a positive integer. $f(x):=x^3+ax^2+bx+c\in\mathbb Z[x]$ satisfy $|a|,|b|,|c|\le M.$ $x_1,x_2$ are different roots of $f.$ Prove that$$|x_1-x_2|>\frac 1{M^2+3M+1}.$$
+Created by Jingjun Han	
+
+EthanWYX2009
+view topic
+11	There is number $1$ on the blackboard initially. The first step is to erase $1$ and write two nonnegative reals whose sum is $1$. Call the smaller number of the two $L_2$.
+For integer $k \ge 2$, the ${k}$ the step is to erase a number on the blackboard arbitrarily and write two nonnegative reals whose sum is the number erased just now. Call the smallest number of the $k+1$ on the blackboard $L_{k+1}$.
+Find the maximum of $L_2+L_3+\cdots+L_{2024}$.	
+
+LoloChen
+view topic
+12	Given positive odd number $m$ and integer ${a}.$ Proof: For any real number $c,$
+$$\#\left\{x\in\mathbb Z\cap [c,c+\sqrt m]\mid x^2\equiv a\pmod m\right\}\le 2+\log_2m.$$Proposed by Yinghua Ai	
+
+EthanWYX2009
+view topic
+13	For a natural number $n$, let$$C_n=\frac{1}{n+1}\binom{2n}{n}=\frac{(2n)!}{n!(n+1)!}$$be the $n$-th Catalan number. Prove that for any natural number $m$,$$\sum_{i+j+k=m} C_{i+j}C_{j+k}C_{k+i}=\frac{3}{2m+3}C_{2m+1}.$$
+Proposed by Bin Wang	
+
+LLL2019
+view topic
+14	For a positive integer $n$ and a subset $S$ of $\{1, 2, \dots, n\}$, let $S$ be "$n$-good" if and only if for any $x$, $y\in S$ (allowed to be same), if $x+y\leq n$, then $x+y\in S$. Let $r_n$ be the smallest real number such that for any positive integer $m\leq n$, there is always a $m$-element "$n$-good" set, so that the sum of its elements is not more than $m\cdot r_n$. Prove that there exists a real number $\alpha$ such that for any positive integer $n$, $|r_n-\alpha n|\leq 2024.$	
+
+LLL2019
+view topic
+15	$n>1$ is an integer. Let real number $x>1$ satisfy$$x^{101}-nx^{100}+nx-1=0.$$Prove that for any real $0<a<b<1$, there exists a positive integer $m$ so that $a<\{x^m\}<b.$
+
+Proposed by Chenjie Yu	
+
+LLL2019
+view topic
+16	$m>1$ is an integer such that $[2m-\sqrt{m}+1, 2m]$ contains a prime. Prove that for any pairwise distinct positive integers $a_1$, $a_2$, $\dots$, $a_m$, there is always $1\leq i,j\leq m$ such that $\frac{a_i}{(a_i, a_j)}\geq m$.	
+
+LLL2019
+view topic
+17	$ABCDE$ is a convex pentagon with $BD=CD=AC$, and $B$, $C$, $D$, $E$ are concyclic. If $\angle BAC+\angle AED=180^{\circ}$ and $\angle DCA=\angle BDE$, prove that $AB=DE$ or $AB=2AE$.	
+
+LLL2019
+view topic
+18	Let $m,n\in\mathbb Z_{\ge 0},$ $a_0,a_1,\ldots ,a_m,b_0,b_1,\ldots ,b_n\in\mathbb R_{\ge 0}$ For any integer $0\le k\le m+n,$ define $c_k:=\max_{i+j=k}a_ib_j.$ Proof
+$$\frac 1{m+n+1}\sum_{k=0}^{m+n}c_k\ge\frac 1{(m+1)(n+1)}\sum_{i=0}^{m}a_i\sum_{j=0}^{n}b_j.$$
+Created by Yinghua Ai	
+
+EthanWYX2009
+view topic
+19	$n$ is a positive integer. An equilateral triangle of side length $3n$ is split into $9n^2$ unit equilateral triangles, each colored one of red, yellow, blue, such that each color appears $3n^2$ times. We call a trapezoid formed by three unit equilateral triangles as a "standard trapezoid". If a "standard trapezoid" contains all three colors, we call it a "colorful trapezoid". Find the maximum possible number of "colorful trapezoids".	
+
+LLL2019
+view topic
+20	A positive integer is a good number, if its base $10$ representation can be split into at least $5$ sections, each section with a non-zero digit, and after interpreting each section as a positive integer (omitting leading zero digits), they can be split into two groups, such that each group can be reordered to form a geometric sequence (if a group has $1$ or $2$ numbers, it is also a geometric sequence), for example $20240327$ is a good number, since after splitting it as $2|02|403|2|7$, $2|02|2$ and $403|7$ form two groups of geometric sequences.
+
+If $a>1$, $m>2$, $p=1+a+a^2+\dots+a^m$ is a prime, prove that $\frac{10^{p-1}-1}{p}$ is a good number.	
+
+LLL2019
+view topic
+21	Let integer $n\ge 3,$ $\tbinom n2$ nonnegative real numbers $a_{i,j}$ satisfy $ a_{i,j}+a_{j,k}\le a_{i,k}$ holds for all $1\le i <j<k\le n$. Proof
+$$\left\lfloor\frac{n^2}4\right\rfloor\sum_{1\le i<j\le n}a_{i,j}^4\ge \left(\sum_{1\le i<j\le n}a_{i,j}^2\right)^2.$$Proposed by Jingjun Han, Dongyi Wei	
+
+EthanWYX2009
+view topic
+22	$ABC$ is an isosceles triangle, with $AB=AC$. $D$ is a moving point such that $AD\parallel BC$, $BD>CD$. Moving point $E$ is on the arc of $BC$ in circumcircle of $ABC$ not containing $A$, such that $EB<EC$. Ray $BC$ contains point $F$ with $\angle ADE=\angle DFE$. If ray $FD$ intersects ray $BA$ at $X$, and intersects ray $CA$ at $Y$, prove that $\angle XEY$ is a fixed angle.	
+
+LLL2019
+view topic
+23	$P(z)=a_nz^n+\dots+a_1z+z_0$, with $a_n\neq 0$ is a polynomial with complex coefficients, such that when $|z|=1$, $|P(z)|\leq 1$. Prove that for any $0\leq k\leq n-1$, $|a_k|\leq 1-|a_n|^2$.
+
+Proposed by Yijun Yao	
+
+LLL2019
+view topic
+24	Let $N=10^{2024}$. $S$ is a square in the Cartesian plane with side length $N$ and the sides parallel to the coordinate axes. Inside there are $N$ points $P_1$, $P_2$, $\dots$, $P_N$ all of which have different $x$ coordinates, and the absolute value of the slope of any connected line between these points is at most $1$. Prove that there exists a line $l$ such that at least $2024$ of these points is at most distance $1$ away from $l$.

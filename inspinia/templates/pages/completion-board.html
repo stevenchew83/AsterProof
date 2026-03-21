@@ -1,0 +1,1122 @@
+{% extends 'layouts/vertical.html' %}
+
+{% load i18n %}
+
+{% block title %}Completion board{% endblock title %}
+
+{% block extra_css %}
+<style>
+  .completion-board-scroll {
+    overflow: auto;
+    padding-bottom: 0.35rem;
+  }
+
+  .completion-board-table {
+    --completion-board-label-width: 13rem;
+    --completion-board-progress-width: 5.35rem;
+    --completion-board-cell-size: 1.35rem;
+    --completion-board-cell-border: rgba(27, 31, 35, 0.08);
+    --completion-board-cell-unsolved: #ebedf0;
+    --completion-board-cell-solved: #216e39;
+    --completion-board-cell-unknown: #1d4ed8;
+    min-width: max-content;
+    margin-bottom: 0;
+    table-layout: fixed;
+  }
+
+  [data-bs-theme="dark"] .completion-board-table {
+    --completion-board-cell-border: rgba(240, 246, 252, 0.08);
+    --completion-board-cell-unsolved: #161b22;
+    --completion-board-cell-solved: #39d353;
+    --completion-board-cell-unknown: #60a5fa;
+  }
+
+  .completion-board-table th,
+  .completion-board-table td {
+    padding: 0.35rem 0.4rem;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+
+  .completion-board-sticky-label,
+  .completion-board-row-label {
+    position: sticky;
+    left: 0;
+    z-index: 3;
+    min-width: var(--completion-board-label-width);
+    width: var(--completion-board-label-width);
+    background: var(--bs-body-bg);
+  }
+
+  .completion-board-sticky-progress,
+  .completion-board-row-progress {
+    position: sticky;
+    left: var(--completion-board-label-width);
+    z-index: 2;
+    min-width: var(--completion-board-progress-width);
+    width: var(--completion-board-progress-width);
+    background: var(--bs-body-bg);
+  }
+
+  .completion-board-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 4;
+    background: var(--bs-body-bg);
+  }
+
+  .completion-board-problem-heading {
+    min-width: calc(var(--completion-board-cell-size) + 0.8rem);
+    text-align: center;
+    font-size: 0.69rem;
+    font-weight: 700;
+  }
+
+  .completion-board-row-label {
+    font-weight: 600;
+    font-size: 0.83rem;
+  }
+
+  .completion-board-row-progress-count {
+    font-weight: 700;
+    line-height: 1.2;
+    font-size: 0.83rem;
+  }
+
+  .completion-board-row-progress-rate {
+    color: var(--ins-secondary-color);
+    font-size: 0.68rem;
+    line-height: 1.2;
+    margin-top: 0.1rem;
+  }
+
+  .completion-board-cell-wrap {
+    text-align: center;
+  }
+
+  .completion-board-cell {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--completion-board-cell-size);
+    height: var(--completion-board-cell-size);
+    border-radius: 0.22rem;
+    border: 1px solid var(--completion-board-cell-border);
+    background: var(--completion-board-cell-unsolved);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+  }
+
+  button.completion-board-cell {
+    appearance: none;
+    padding: 0;
+    cursor: pointer;
+  }
+
+  button.completion-board-cell:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 0.25rem 0.75rem rgba(15, 23, 42, 0.12);
+  }
+
+  button.completion-board-cell:focus-visible {
+    outline: 2px solid rgba(9, 105, 218, 0.55);
+    outline-offset: 2px;
+  }
+
+  button.completion-board-cell.is-pending {
+    opacity: 0.65;
+    cursor: wait;
+    transform: none;
+    box-shadow: none;
+  }
+
+  button.completion-board-cell.is-selected {
+    box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.6);
+    transform: translateY(-1px);
+  }
+
+  .completion-board-cell.is-solved {
+    background: var(--completion-board-cell-solved);
+  }
+
+  .completion-board-cell.is-unknown {
+    background: var(--completion-board-cell-unknown);
+  }
+
+  .completion-board-cell.is-untrackable {
+    border-style: dashed;
+    background: transparent;
+    color: var(--ins-secondary-color);
+    cursor: default;
+  }
+
+  .completion-board-cell.is-missing {
+    border-color: transparent;
+    background: transparent;
+  }
+
+  .completion-board-legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.85rem 1.1rem;
+    color: var(--ins-secondary-color);
+    font-size: 0.82rem;
+  }
+
+  .completion-board-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+  }
+
+  .completion-board-legend-swatch {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 0.24rem;
+    border: 1px solid var(--completion-board-cell-border);
+  }
+
+  .completion-board-legend-swatch.is-unsolved {
+    background: var(--completion-board-cell-unsolved);
+  }
+
+  .completion-board-legend-swatch.is-solved {
+    background: var(--completion-board-cell-solved);
+  }
+
+  .completion-board-legend-swatch.is-unknown {
+    background: var(--completion-board-cell-unknown);
+  }
+
+  .completion-board-legend-swatch.is-untrackable {
+    border-style: dashed;
+    background: transparent;
+  }
+
+  .completion-board-toolbar {
+    display: grid;
+    grid-template-columns: minmax(280px, 1fr) auto;
+    gap: 0.75rem;
+    align-items: end;
+  }
+
+  .completion-board-toolbar .form-label {
+    margin-bottom: 0.35rem;
+    font-size: 0.73rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ins-secondary-color);
+  }
+
+  .completion-board-status-note {
+    color: var(--ins-secondary-color);
+    font-size: 0.74rem;
+  }
+
+  .completion-board-bulk-bar {
+    border: 1px solid rgba(13, 110, 253, 0.14);
+    border-radius: 0.85rem;
+    background: rgba(13, 110, 253, 0.06);
+    padding: 0.85rem 1rem;
+  }
+
+  .completion-board-bulk-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: 0.65rem;
+  }
+
+  .completion-board-bulk-actions .form-label {
+    margin-bottom: 0.25rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ins-secondary-color);
+  }
+
+  .completion-board-inline-editor {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1080;
+    width: min(22rem, calc(100vw - 1.5rem));
+  }
+
+  .completion-board-inline-editor-card {
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 0.85rem;
+    background: var(--bs-body-bg);
+    box-shadow: 0 1rem 2.5rem rgba(15, 23, 42, 0.18);
+    padding: 1rem;
+  }
+
+  .completion-board-inline-editor-title {
+    font-size: 0.98rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .completion-board-inline-editor-meta {
+    color: var(--ins-secondary-color);
+    font-size: 0.76rem;
+  }
+
+  .completion-board-inline-editor-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  @media (max-width: 767.98px) {
+    .completion-board-table {
+      --completion-board-label-width: 10rem;
+      --completion-board-progress-width: 4.75rem;
+      --completion-board-cell-size: 1.2rem;
+    }
+
+    .completion-board-toolbar {
+      grid-template-columns: 1fr;
+    }
+
+    .completion-board-inline-editor {
+      top: auto !important;
+      right: 0.75rem;
+      bottom: 0.75rem;
+      left: 0.75rem !important;
+      width: auto;
+    }
+  }
+</style>
+{% endblock extra_css %}
+
+{% block page_content %}
+<div class="container-fluid">
+
+  {% include 'partials/page-title.html' with title='Completion board' subtitle='Personal' %}
+
+  {% if messages %}
+  <div class="mt-3">
+    {% for message in messages %}
+      <div class="alert alert-{% if message.tags == 'error' %}danger{% elif message.tags == 'debug' %}secondary{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="{% translate 'Close' %}"></button>
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="row g-3 mt-0">
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-primary-subtle text-primary rounded">
+                <i class="ti ti-layout-grid fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Contest-year rows</p>
+              <h3 class="mb-0">{{ completion_board_stats.contest_year_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-info-subtle text-info rounded">
+                <i class="ti ti-columns-3 fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Problem columns</p>
+              <h3 class="mb-0">{{ completion_board_stats.problem_column_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-success-subtle text-success rounded">
+                <i class="ti ti-checks fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Solved linked cells</p>
+              <h3 id="completion-board-solved-total" class="mb-0">{{ completion_board_stats.solved_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-warning-subtle text-warning rounded">
+                <i class="ti ti-square fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Unsolved linked cells</p>
+              <h3 id="completion-board-unsolved-total" class="mb-0">{{ completion_board_stats.unsolved_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-1">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2">
+          <div>
+            <h4 class="header-title mb-0">Search board</h4>
+            <p class="text-muted fs-xs mb-0">Search contest-year rows server-side, then load more only if you still need a wider slice.</p>
+          </div>
+          <span class="badge text-bg-light">Server search</span>
+        </div>
+        <div class="card-body">
+          <form method="get" action="{% url 'pages:completion_board' %}" class="completion-board-toolbar">
+            <div>
+              <label class="form-label" for="completion-board-search">Search contest-year rows</label>
+              <input
+                id="completion-board-search"
+                name="q"
+                type="search"
+                class="form-control"
+                value="{{ completion_board_filters.search_query }}"
+                placeholder="Search contest name or year"
+              >
+            </div>
+            <div class="d-flex gap-2">
+              <button type="submit" class="btn btn-primary w-100">Search</button>
+              <a href="{% url 'pages:completion_board' %}" class="btn btn-outline-secondary w-100">Reset</a>
+            </div>
+          </form>
+          <p class="completion-board-status-note mt-3 mb-0">
+            Search matches contest names and 4-digit years.
+            {% if completion_board_row_window.is_partial %}
+            Each new search starts from a smaller first batch again to keep the page responsive.
+            {% endif %}
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if not completion_board_has_records %}
+  <div class="alert alert-info mt-4" role="alert">
+    <strong>No problem statements are available yet.</strong>
+    Import problem statements first, then this board will show contest-year rows directly from the statement table.
+  </div>
+  {% elif not completion_board_rows %}
+  <div class="alert alert-warning mt-4" role="alert">
+    No contest-year rows match the current search.
+  </div>
+  {% else %}
+  <div class="row g-3 mt-1">
+    <div class="col-12">
+      <div class="card completion-board-card">
+        <div class="card-header border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2">
+          <div>
+            <h4 class="header-title mb-0">Completion matrix</h4>
+            <p class="text-muted fs-xs mb-0">
+              Contest-year rows from the problem statement table. Unlinked statements stay visible, but only linked cells can be toggled.
+            </p>
+          </div>
+          <div class="d-flex flex-wrap align-items-center gap-2">
+            <span class="badge text-bg-light">
+              {{ completion_board_stats.statement_cell_total }} statement cells · {{ completion_board_stats.trackable_cell_total }} trackable
+            </span>
+            <button type="button" id="completion-board-bulk-mode-toggle" class="btn btn-outline-primary btn-sm">Bulk select</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div id="completion-board-error" class="alert alert-danger d-none" role="alert"></div>
+          <div class="completion-board-legend mb-3">
+            <span class="completion-board-legend-item">
+              <span class="completion-board-legend-swatch is-unsolved"></span>
+              Unsolved
+            </span>
+            <span class="completion-board-legend-item">
+              <span class="completion-board-legend-swatch is-solved"></span>
+              Solved with exact date
+            </span>
+            <span class="completion-board-legend-item">
+              <span class="completion-board-legend-swatch is-unknown"></span>
+              Solved without exact date
+            </span>
+            <span class="completion-board-legend-item">
+              <span class="completion-board-legend-swatch is-untrackable"></span>
+              Statement not linked yet
+            </span>
+          </div>
+          <p class="text-muted fs-xs mb-3">
+            Inline editor: click any linked cell for quick date actions, including a one-tap Today shortcut. Use Bulk select to apply one action across multiple visible linked cells.
+          </p>
+          {% if completion_board_row_window.is_partial %}
+          <div class="alert alert-info d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3" role="alert">
+            <div>
+              <strong>Fast first load enabled.</strong>
+              Showing the first {{ completion_board_row_window.loaded_row_total }} of {{ completion_board_row_window.total_row_total }} contest-year rows.
+              Load more rows if the contest-year you want is not visible yet.
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+              {% if completion_board_row_window.next_rows_url %}
+              <a href="{{ completion_board_row_window.next_rows_url }}" class="btn btn-primary btn-sm">Load more rows</a>
+              {% endif %}
+              {% if completion_board_row_window.show_all_url %}
+              <a href="{{ completion_board_row_window.show_all_url }}" class="btn btn-outline-primary btn-sm">Show all rows</a>
+              {% endif %}
+            </div>
+          </div>
+          {% endif %}
+          <div id="completion-board-bulk-bar" class="completion-board-bulk-bar d-none mb-3">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+              <div>
+                <div class="fw-semibold"><span id="completion-board-selected-count">0</span> cell(s) selected</div>
+                <div class="text-muted fs-xs">Bulk selection applies to the rows currently loaded on this page.</div>
+              </div>
+              <div class="completion-board-bulk-actions">
+                <div>
+                  <label class="form-label" for="completion-board-bulk-date">Exact date</label>
+                  <input id="completion-board-bulk-date" type="date" class="form-control form-control-sm" max="{{ completion_board_today }}">
+                </div>
+                <button type="button" id="completion-board-bulk-today" class="btn btn-light btn-sm">Today</button>
+                <button type="button" id="completion-board-bulk-save-date" class="btn btn-primary btn-sm">Save date</button>
+                <button type="button" id="completion-board-bulk-save-unknown" class="btn btn-outline-info btn-sm">Unknown date</button>
+                <button type="button" id="completion-board-bulk-clear" class="btn btn-outline-secondary btn-sm">Clear</button>
+                <button type="button" id="completion-board-bulk-cancel" class="btn btn-link btn-sm text-decoration-none">Exit</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="completion-board-scroll">
+            <table
+              id="completion-board-table"
+              class="table table-sm table-bordered align-middle completion-board-table"
+              data-bulk-url="{{ completion_board_bulk_url }}"
+              data-today="{{ completion_board_today }}"
+              data-toggle-url="{{ completion_board_toggle_url }}"
+            >
+              <thead>
+                <tr>
+                  <th class="completion-board-sticky-label">Contest-year</th>
+                  <th class="completion-board-sticky-progress text-center">Progress</th>
+                  {% for problem_code in completion_board_problem_columns %}
+                  <th class="completion-board-problem-heading">{{ problem_code }}</th>
+                  {% endfor %}
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in completion_board_rows %}
+                <tr
+                  data-contest-name="{{ row.contest_name }}"
+                  data-contest-year="{{ row.contest_year }}"
+                  data-has-solved="{{ row.exact_solved_total|yesno:'true,false' }}"
+                  data-has-unsolved="{{ row.unsolved_total|yesno:'true,false' }}"
+                  data-has-unknown="{{ row.unknown_solved_total|yesno:'true,false' }}"
+                  data-problem-total="{{ row.problem_total }}"
+                  data-solved-total="{{ row.solved_total }}"
+                >
+                  <td class="completion-board-row-label">{{ row.contest_year_label }}</td>
+                  <td class="completion-board-row-progress text-center">
+                    <div class="completion-board-row-progress-count">{{ row.solved_total }} / {{ row.problem_total }}</div>
+                    <div class="completion-board-row-progress-rate">{{ row.completion_rate|floatformat:0 }}% complete</div>
+                    {% if row.unlinked_total %}
+                    <div class="completion-board-row-progress-rate">{{ row.unlinked_total }} unlinked</div>
+                    {% endif %}
+                  </td>
+                  {% for cell in row.cells %}
+                  <td class="completion-board-cell-wrap">
+                    {% if cell.exists and cell.is_trackable %}
+                    <button
+                      type="button"
+                      class="completion-board-cell is-{{ cell.state_kind }}"
+                      data-problem-label="{{ cell.problem_label }}"
+                      data-problem-uuid="{{ cell.problem_uuid }}"
+                      data-state-kind="{{ cell.state_kind }}"
+                      data-state-label="{{ cell.state_label }}"
+                      data-solved="{{ cell.is_solved|yesno:'true,false' }}"
+                      data-completion-date="{{ cell.completion_date }}"
+                      title="{{ cell.title }}"
+                      aria-label="{{ cell.title }}"
+                    >
+                      <span class="visually-hidden">{{ cell.state_label }}</span>
+                    </button>
+                    {% elif cell.exists %}
+                    <span
+                      class="completion-board-cell is-untrackable"
+                      title="{{ cell.title }}"
+                      aria-label="{{ cell.title }}"
+                    ></span>
+                    {% else %}
+                    <span class="completion-board-cell is-missing" aria-hidden="true"></span>
+                    {% endif %}
+                  </td>
+                  {% endfor %}
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% if completion_board_row_window.is_partial %}
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-3">
+            <p class="text-muted fs-xs mb-0">
+              Loaded {{ completion_board_row_window.loaded_row_total }} rows now; {{ completion_board_row_window.remaining_row_total }} more rows are still hidden to keep the first render responsive.
+            </p>
+            <div class="d-flex flex-wrap gap-2">
+              {% if completion_board_row_window.next_rows_url %}
+              <a href="{{ completion_board_row_window.next_rows_url }}" class="btn btn-outline-primary btn-sm">Load more rows</a>
+              {% endif %}
+              {% if completion_board_row_window.show_all_url %}
+              <a href="{{ completion_board_row_window.show_all_url }}" class="btn btn-link btn-sm text-decoration-none">Show all</a>
+              {% endif %}
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="completion-board-inline-editor" class="completion-board-inline-editor d-none" role="dialog" aria-labelledby="completion-board-inline-editor-title" aria-modal="false">
+    <div class="completion-board-inline-editor-card">
+      <div class="d-flex align-items-start justify-content-between gap-3">
+        <div>
+          <div id="completion-board-inline-editor-title" class="completion-board-inline-editor-title">Edit completion</div>
+          <div id="completion-board-inline-editor-problem" class="completion-board-inline-editor-meta mt-1"></div>
+        </div>
+        <button type="button" id="completion-board-inline-editor-close" class="btn-close" aria-label="{% translate 'Close' %}"></button>
+      </div>
+      <div id="completion-board-inline-editor-error" class="alert alert-danger d-none mt-3 mb-3" role="alert"></div>
+      <p id="completion-board-inline-editor-state" class="text-muted fs-sm mb-3"></p>
+      <div class="mb-3">
+        <label class="form-label" for="completion-board-inline-editor-date">Exact completion date</label>
+        <input
+          id="completion-board-inline-editor-date"
+          type="date"
+          class="form-control"
+          max="{{ completion_board_today }}"
+        >
+      </div>
+      <div class="completion-board-inline-editor-actions">
+        <button type="button" id="completion-board-set-today" class="btn btn-light">Today</button>
+        <button type="button" id="completion-board-save-date" class="btn btn-primary">Save date</button>
+        <button type="button" id="completion-board-save-unknown" class="btn btn-outline-info">Unknown date</button>
+        <button type="button" id="completion-board-clear" class="btn btn-outline-secondary">Clear</button>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <form id="completion-board-csrf" class="d-none">{% csrf_token %}</form>
+</div>
+{% endblock page_content %}
+
+{% block extra_javascript %}
+<script>
+(function () {
+  var board = document.getElementById("completion-board-table");
+  if (!board) return;
+
+  var csrfTokenInput = document.querySelector('#completion-board-csrf input[name="csrfmiddlewaretoken"]');
+  var bulkUrl = board.getAttribute("data-bulk-url");
+  var toggleUrl = board.getAttribute("data-toggle-url");
+  var todayValue = board.getAttribute("data-today") || "";
+  var errorAlert = document.getElementById("completion-board-error");
+  var solvedTotalEl = document.getElementById("completion-board-solved-total");
+  var unsolvedTotalEl = document.getElementById("completion-board-unsolved-total");
+  var bulkModeToggleButton = document.getElementById("completion-board-bulk-mode-toggle");
+  var bulkBar = document.getElementById("completion-board-bulk-bar");
+  var selectedCountEl = document.getElementById("completion-board-selected-count");
+  var bulkDateInput = document.getElementById("completion-board-bulk-date");
+  var bulkTodayButton = document.getElementById("completion-board-bulk-today");
+  var bulkSaveDateButton = document.getElementById("completion-board-bulk-save-date");
+  var bulkSaveUnknownButton = document.getElementById("completion-board-bulk-save-unknown");
+  var bulkClearButton = document.getElementById("completion-board-bulk-clear");
+  var bulkCancelButton = document.getElementById("completion-board-bulk-cancel");
+  var inlineEditorEl = document.getElementById("completion-board-inline-editor");
+  var closeInlineEditorButton = document.getElementById("completion-board-inline-editor-close");
+  var inlineProblemEl = document.getElementById("completion-board-inline-editor-problem");
+  var inlineStateEl = document.getElementById("completion-board-inline-editor-state");
+  var inlineErrorEl = document.getElementById("completion-board-inline-editor-error");
+  var inlineDateInput = document.getElementById("completion-board-inline-editor-date");
+  var setTodayButton = document.getElementById("completion-board-set-today");
+  var saveDateButton = document.getElementById("completion-board-save-date");
+  var saveUnknownButton = document.getElementById("completion-board-save-unknown");
+  var clearButton = document.getElementById("completion-board-clear");
+  if (
+    !csrfTokenInput ||
+    !bulkUrl ||
+    !toggleUrl ||
+    !solvedTotalEl ||
+    !unsolvedTotalEl ||
+    !bulkModeToggleButton ||
+    !bulkBar ||
+    !selectedCountEl ||
+    !bulkDateInput ||
+    !bulkTodayButton ||
+    !bulkSaveDateButton ||
+    !bulkSaveUnknownButton ||
+    !bulkClearButton ||
+    !bulkCancelButton ||
+    !inlineEditorEl ||
+    !closeInlineEditorButton ||
+    !inlineProblemEl ||
+    !inlineStateEl ||
+    !inlineErrorEl ||
+    !inlineDateInput ||
+    !setTodayButton ||
+    !saveDateButton ||
+    !saveUnknownButton ||
+    !clearButton
+  ) return;
+
+  var activeButton = null;
+  var activeRowEl = null;
+  var bulkModeEnabled = false;
+  var bulkBusy = false;
+  var selectedProblemUuids = new Set();
+
+  function setError(message) {
+    if (!message) {
+      errorAlert.classList.add("d-none");
+      errorAlert.textContent = "";
+      return;
+    }
+    errorAlert.textContent = message;
+    errorAlert.classList.remove("d-none");
+  }
+
+  function setInlineEditorError(message) {
+    if (!message) {
+      inlineErrorEl.classList.add("d-none");
+      inlineErrorEl.textContent = "";
+      return;
+    }
+    inlineErrorEl.textContent = message;
+    inlineErrorEl.classList.remove("d-none");
+  }
+
+  function renderRowProgress(rowEl) {
+    if (!rowEl) return;
+    var solvedTotal = Number(rowEl.dataset.solvedTotal || 0);
+    var problemTotal = Number(rowEl.dataset.problemTotal || 0);
+    var countEl = rowEl.querySelector(".completion-board-row-progress-count");
+    var rateEl = rowEl.querySelector(".completion-board-row-progress-rate");
+    if (countEl) countEl.textContent = solvedTotal + " / " + problemTotal;
+    if (rateEl) {
+      var rate = problemTotal ? Math.round((solvedTotal / problemTotal) * 100) : 0;
+      rateEl.textContent = rate + "% complete";
+    }
+  }
+
+  function renderCellState(button, payload) {
+    button.classList.remove("is-solved", "is-unsolved", "is-unknown");
+    button.classList.add("is-" + payload.state_kind);
+    button.dataset.problemLabel = payload.problem_label || "";
+    button.dataset.stateKind = payload.state_kind;
+    button.dataset.stateLabel = payload.state_label;
+    button.dataset.solved = payload.is_solved ? "true" : "false";
+    button.dataset.completionDate = payload.completion_date || "";
+    button.title = payload.title;
+    button.setAttribute("aria-label", payload.title);
+    var hiddenText = button.querySelector(".visually-hidden");
+    if (hiddenText) hiddenText.textContent = payload.state_label;
+  }
+
+  function syncRowStateFlags(rowEl) {
+    if (!rowEl) return;
+    var hasSolved = false;
+    var hasUnsolved = false;
+    var hasUnknown = false;
+
+    rowEl.querySelectorAll("button[data-problem-uuid]").forEach(function (button) {
+      if (button.classList.contains("is-solved")) {
+        hasSolved = true;
+        return;
+      }
+      if (button.classList.contains("is-unknown")) {
+        hasUnknown = true;
+        return;
+      }
+      hasUnsolved = true;
+    });
+
+    rowEl.dataset.hasSolved = hasSolved ? "true" : "false";
+    rowEl.dataset.hasUnsolved = hasUnsolved ? "true" : "false";
+    rowEl.dataset.hasUnknown = hasUnknown ? "true" : "false";
+  }
+
+  function updateGlobalCounts(delta) {
+    var solvedTotal = Number(solvedTotalEl.textContent || 0) + delta;
+    var unsolvedTotal = Number(unsolvedTotalEl.textContent || 0) - delta;
+    solvedTotalEl.textContent = String(solvedTotal);
+    unsolvedTotalEl.textContent = String(unsolvedTotal);
+  }
+
+  function setInlineEditorBusy(isBusy) {
+    setTodayButton.disabled = isBusy;
+    saveDateButton.disabled = isBusy;
+    saveUnknownButton.disabled = isBusy;
+    clearButton.disabled = isBusy || !activeButton || activeButton.dataset.solved !== "true";
+    closeInlineEditorButton.disabled = isBusy;
+    inlineDateInput.disabled = isBusy;
+  }
+
+  function setBulkBusy(isBusy) {
+    bulkBusy = isBusy;
+    bulkModeToggleButton.disabled = isBusy;
+    bulkTodayButton.disabled = isBusy || selectedProblemUuids.size === 0;
+    bulkSaveUnknownButton.disabled = isBusy || selectedProblemUuids.size === 0;
+    bulkClearButton.disabled = isBusy || selectedProblemUuids.size === 0;
+    bulkCancelButton.disabled = isBusy;
+    bulkDateInput.disabled = isBusy || selectedProblemUuids.size === 0;
+    bulkSaveDateButton.disabled = isBusy || selectedProblemUuids.size === 0;
+  }
+
+  function syncSelectedButtons() {
+    board.querySelectorAll("button[data-problem-uuid]").forEach(function (button) {
+      button.classList.toggle("is-selected", selectedProblemUuids.has(button.dataset.problemUuid));
+    });
+  }
+
+  function syncBulkBarState() {
+    selectedCountEl.textContent = String(selectedProblemUuids.size);
+    bulkBar.classList.toggle("d-none", !bulkModeEnabled);
+    bulkModeToggleButton.classList.toggle("btn-primary", bulkModeEnabled);
+    bulkModeToggleButton.classList.toggle("btn-outline-primary", !bulkModeEnabled);
+    bulkModeToggleButton.textContent = bulkModeEnabled ? "Exit bulk select" : "Bulk select";
+    setBulkBusy(bulkBusy);
+  }
+
+  function clearBulkSelection() {
+    selectedProblemUuids.clear();
+    syncSelectedButtons();
+    syncBulkBarState();
+  }
+
+  function setBulkMode(enabled) {
+    bulkModeEnabled = enabled;
+    if (enabled) {
+      hideInlineEditor();
+    } else {
+      clearBulkSelection();
+    }
+    syncBulkBarState();
+  }
+
+  function hideInlineEditor() {
+    inlineEditorEl.classList.add("d-none");
+    activeButton = null;
+    activeRowEl = null;
+    setInlineEditorError("");
+  }
+
+  function positionInlineEditor(button) {
+    if (!button || inlineEditorEl.classList.contains("d-none")) return;
+    if (window.innerWidth <= 767) return;
+
+    var rect = button.getBoundingClientRect();
+    var editorWidth = inlineEditorEl.offsetWidth;
+    var editorHeight = inlineEditorEl.offsetHeight;
+    var gutter = 12;
+    var left = rect.left + (rect.width / 2) - (editorWidth / 2);
+    left = Math.max(gutter, Math.min(left, window.innerWidth - editorWidth - gutter));
+
+    var top = rect.bottom + 10;
+    if (top + editorHeight > window.innerHeight - gutter) {
+      top = Math.max(gutter, rect.top - editorHeight - 10);
+    }
+
+    inlineEditorEl.style.left = left + "px";
+    inlineEditorEl.style.top = top + "px";
+  }
+
+  function openInlineEditor(button) {
+    activeButton = button;
+    activeRowEl = button.closest("tr");
+    setError("");
+    setInlineEditorError("");
+    inlineProblemEl.textContent = button.dataset.problemLabel || "";
+    inlineStateEl.textContent = button.dataset.stateLabel || "";
+    if (button.dataset.completionDate) {
+      inlineDateInput.value = button.dataset.completionDate;
+    } else if (button.dataset.stateKind === "unsolved") {
+      inlineDateInput.value = todayValue;
+    } else {
+      inlineDateInput.value = "";
+    }
+    inlineEditorEl.classList.remove("d-none");
+    setInlineEditorBusy(false);
+    positionInlineEditor(button);
+  }
+
+  function submitCompletionAction(action) {
+    if (!activeButton || activeButton.classList.contains("is-pending")) return;
+    if (action === "set_date" && !inlineDateInput.value) {
+      setInlineEditorError("Pick a completion date first.");
+      return;
+    }
+
+    var buttonRef = activeButton;
+    var rowEl = activeRowEl;
+    var wasSolved = buttonRef.dataset.solved === "true";
+    var rowSolvedTotal = Number(rowEl ? rowEl.dataset.solvedTotal || 0 : 0);
+    setError("");
+    setInlineEditorError("");
+    buttonRef.classList.add("is-pending");
+    buttonRef.disabled = true;
+    setInlineEditorBusy(true);
+
+    fetch(toggleUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+        "X-CSRFToken": csrfTokenInput.value,
+        "X-Requested-With": "XMLHttpRequest"
+      },
+      body: new URLSearchParams({
+        action: action,
+        completion_date: inlineDateInput.value,
+        problem_uuid: buttonRef.dataset.problemUuid
+      }).toString()
+    })
+      .then(function (response) {
+        return response.json().catch(function () {
+          return {};
+        }).then(function (payload) {
+          if (!response.ok) {
+            throw new Error(payload.error || "Could not update this completion cell.");
+          }
+          return payload;
+        });
+      })
+      .then(function (payload) {
+        renderCellState(buttonRef, payload);
+        if (rowEl) {
+          syncRowStateFlags(rowEl);
+        }
+        var delta = 0;
+        if (payload.is_solved && !wasSolved) delta = 1;
+        if (!payload.is_solved && wasSolved) delta = -1;
+        if (delta !== 0) {
+          if (rowEl) {
+            rowEl.dataset.solvedTotal = String(rowSolvedTotal + delta);
+            renderRowProgress(rowEl);
+          }
+          updateGlobalCounts(delta);
+        }
+        hideInlineEditor();
+      })
+      .catch(function (error) {
+        setInlineEditorError(error.message || "Could not update this completion cell.");
+      })
+      .finally(function () {
+        buttonRef.classList.remove("is-pending");
+        buttonRef.disabled = false;
+        setInlineEditorBusy(false);
+      });
+  }
+
+  function submitBulkAction(action, completionDate) {
+    var selectedButtons = Array.from(
+      board.querySelectorAll("button[data-problem-uuid].is-selected")
+    );
+    if (!selectedButtons.length || bulkBusy) return;
+    if (action === "set_date" && !completionDate) {
+      setError("Pick a bulk completion date first.");
+      return;
+    }
+
+    var buttonMetaByUuid = new Map();
+    selectedButtons.forEach(function (button) {
+      buttonMetaByUuid.set(button.dataset.problemUuid, {
+        button: button,
+        rowEl: button.closest("tr"),
+        wasSolved: button.dataset.solved === "true"
+      });
+      button.classList.add("is-pending");
+      button.disabled = true;
+    });
+
+    setError("");
+    hideInlineEditor();
+    setBulkBusy(true);
+
+    var params = new URLSearchParams({
+      action: action,
+      completion_date: completionDate || ""
+    });
+    buttonMetaByUuid.forEach(function (_meta, problemUuid) {
+      params.append("problem_uuid", problemUuid);
+    });
+
+    fetch(bulkUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+        "X-CSRFToken": csrfTokenInput.value,
+        "X-Requested-With": "XMLHttpRequest"
+      },
+      body: params.toString()
+    })
+      .then(function (response) {
+        return response.json().catch(function () {
+          return {};
+        }).then(function (payload) {
+          if (!response.ok) {
+            throw new Error(payload.error || "Could not update the selected completion cells.");
+          }
+          return payload;
+        });
+      })
+      .then(function (payload) {
+        var totalDelta = 0;
+        var rowDeltas = new Map();
+
+        (payload.updated || []).forEach(function (item) {
+          var meta = buttonMetaByUuid.get(item.problem_uuid);
+          if (!meta) return;
+          renderCellState(meta.button, item);
+          syncRowStateFlags(meta.rowEl);
+          if (item.is_solved && !meta.wasSolved) {
+            totalDelta += 1;
+            rowDeltas.set(meta.rowEl, (rowDeltas.get(meta.rowEl) || 0) + 1);
+          } else if (!item.is_solved && meta.wasSolved) {
+            totalDelta -= 1;
+            rowDeltas.set(meta.rowEl, (rowDeltas.get(meta.rowEl) || 0) - 1);
+          }
+        });
+
+        rowDeltas.forEach(function (delta, rowEl) {
+          rowEl.dataset.solvedTotal = String(Number(rowEl.dataset.solvedTotal || 0) + delta);
+          renderRowProgress(rowEl);
+        });
+
+        if (totalDelta !== 0) {
+          updateGlobalCounts(totalDelta);
+        }
+        clearBulkSelection();
+      })
+      .catch(function (error) {
+        setError(error.message || "Could not update the selected completion cells.");
+      })
+      .finally(function () {
+        buttonMetaByUuid.forEach(function (meta) {
+          meta.button.classList.remove("is-pending");
+          meta.button.disabled = false;
+        });
+        setBulkBusy(false);
+      });
+  }
+
+  board.addEventListener("click", function (event) {
+    var button = event.target.closest("button[data-problem-uuid]");
+    if (!button || button.classList.contains("is-pending")) return;
+    if (bulkModeEnabled) {
+      var problemUuid = button.dataset.problemUuid;
+      if (selectedProblemUuids.has(problemUuid)) {
+        selectedProblemUuids.delete(problemUuid);
+      } else {
+        selectedProblemUuids.add(problemUuid);
+      }
+      syncSelectedButtons();
+      syncBulkBarState();
+      return;
+    }
+    openInlineEditor(button);
+  });
+
+  closeInlineEditorButton.addEventListener("click", function () {
+    hideInlineEditor();
+  });
+
+  setTodayButton.addEventListener("click", function () {
+    inlineDateInput.value = todayValue;
+    submitCompletionAction("set_date");
+  });
+
+  saveDateButton.addEventListener("click", function () {
+    submitCompletionAction("set_date");
+  });
+
+  saveUnknownButton.addEventListener("click", function () {
+    submitCompletionAction("set_unknown");
+  });
+
+  clearButton.addEventListener("click", function () {
+    submitCompletionAction("clear");
+  });
+
+  bulkModeToggleButton.addEventListener("click", function () {
+    setError("");
+    setBulkMode(!bulkModeEnabled);
+  });
+
+  bulkCancelButton.addEventListener("click", function () {
+    setBulkMode(false);
+  });
+
+  bulkTodayButton.addEventListener("click", function () {
+    bulkDateInput.value = todayValue;
+    submitBulkAction("set_date", todayValue);
+  });
+
+  bulkSaveDateButton.addEventListener("click", function () {
+    submitBulkAction("set_date", bulkDateInput.value);
+  });
+
+  bulkSaveUnknownButton.addEventListener("click", function () {
+    submitBulkAction("set_unknown", "");
+  });
+
+  bulkClearButton.addEventListener("click", function () {
+    submitBulkAction("clear", "");
+  });
+
+  document.addEventListener("click", function (event) {
+    if (inlineEditorEl.classList.contains("d-none")) return;
+    if (inlineEditorEl.contains(event.target)) return;
+    if (event.target.closest("button[data-problem-uuid]")) return;
+    hideInlineEditor();
+  });
+
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape") {
+      hideInlineEditor();
+    }
+  });
+
+  window.addEventListener("resize", function () {
+    positionInlineEditor(activeButton);
+  });
+
+  window.addEventListener(
+    "scroll",
+    function () {
+      positionInlineEditor(activeButton);
+    },
+    true
+  );
+
+  syncBulkBarState();
+})();
+</script>
+{% endblock extra_javascript %}

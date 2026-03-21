@@ -18,17 +18,23 @@ IGNORED_STATEMENT_LINES = {
 HEADER_LINE_RE = re.compile(
     r"^\s*(?P<year_start>\d{4})(?:\s*(?:/|-)\s*(?P<year_end>\d{4}))?\s+(?P<contest>.+?)\s*$",
 )
+YEAR_PREFIXED_SECTION_RE = re.compile(
+    r"^\s*(?P<year>\d{4})\s+(?P<label>[A-Za-z].+?)\s*$",
+)
 DAY_LABEL_RE = re.compile(
-    r"^Day\s*(?P<token>\d+|[IVXLCDM]+)(?:\s+(?P<detail>.+))?$",
+    r"^Day\s*(?P<token>\d+|[IVXLCDM]+)(?:(?:\s*[,:-]\s*|\s+)(?P<detail>.+))?$",
     flags=re.IGNORECASE,
 )
 TST_DAY_LABEL_RE = re.compile(
-    r"^TST\s*#\s*(?P<number>\d+)(?:\s+(?P<detail>.+))?$",
+    r"^TST\s*#?\s*(?P<number>\d+)(?:\s+(?P<detail>.+))?$",
     flags=re.IGNORECASE,
 )
 ROUND_LABEL_RE = re.compile(r"^(?:\d+\s+)?(?P<label>Round\s+[A-Za-z0-9].*)$", flags=re.IGNORECASE)
 SOLUTION_LINE_RE = re.compile(r"^Solution$", flags=re.IGNORECASE)
-TEST_LABEL_RE = re.compile(r"^Test\s+\d+$", flags=re.IGNORECASE)
+TEST_LABEL_RE = re.compile(
+    r"^Test\s+(?P<number>\d+|[IVXLCDM]+)(?:\s+(?P<detail>.+))?$",
+    flags=re.IGNORECASE,
+)
 SEASON_SECTION_RE = re.compile(
     r"^(?P<season>Fall|Autumn|Spring)\s+(?P<year>\d{4})$",
     flags=re.IGNORECASE,
@@ -63,15 +69,20 @@ ROUND_PREFIXED_YEARLESS_SEASON_LEVEL_SECTION_RE = re.compile(
     r"^(?P<round>[IVXLCDM]+)\.\s*(?P<season>Fall|Autumn|Spring)\s*-\s*(?P<division>Junior|Senior)(?:\s*-\s*|\s+)(?P<track>[AO])-level(?:\s+Paper)?$",
     flags=re.IGNORECASE,
 )
+ROUND_AND_SECTION_RE = re.compile(
+    r"^(?P<round>First|Second|Third|Final)\s+Round\s+(?P<label>.+)$",
+    flags=re.IGNORECASE,
+)
 PROBLEM_START_RE = re.compile(
     r"^(?:\((?P<catalog_number>\d{1,4})\)\s*)?(?:(?P<prefix>[A-Za-z]{1,4})\s*)?(?P<number>\d{1,3})[.)]?(?:\s+(?P<statement>.+))?$",
     flags=re.IGNORECASE,
 )
+ALPHA_PROBLEM_CODE_RE = re.compile(r"^(?P<code>[A-Z])(?:[.)])?\s+(?P<statement>.+)$")
 TEXT_ONLY_EMPH_INLINE_RE = re.compile(r"\$(?P<content>\\emph\{[^$]+?\})\$")
 TEXT_ONLY_EMPH_PAREN_RE = re.compile(r"\\\((?P<content>\\emph\{.*?\})\\\)", flags=re.DOTALL)
 TEXT_ONLY_EMPH_DISPLAY_RE = re.compile(r"\$\$(?P<content>\\emph\{.*?\})\$\$", flags=re.DOTALL)
 TEXT_ONLY_EMPH_BRACKET_RE = re.compile(r"\\\[(?P<content>\\emph\{.*?\})\\\]", flags=re.DOTALL)
-SECTION_HEADER_RE = re.compile(r"^[A-Za-z][A-Za-z0-9]*(?: [A-Za-z0-9][A-Za-z0-9]*){0,3}$")
+SHORT_SECTION_HEADER_RE = re.compile(r"^[A-Za-z][A-Za-z0-9]*(?: [A-Za-z0-9][A-Za-z0-9]*){0,3}$")
 PAPER_SECTION_RE = re.compile(
     r"^(?:Junior|Senior)\s+[AO]-Level\s+Paper,\s+(?:Fall|Autumn|Spring)\s+\d{4}$",
     flags=re.IGNORECASE,
@@ -85,12 +96,23 @@ INNER_NUMBERED_STATEMENT_RE = re.compile(r"^(?P<number>\d{1,3})[.)]\s+(?P<statem
 TRAILING_AUTHOR_LINE_RE = re.compile(
     r"^[A-Z][A-Za-z'.-]*(?: [A-Z][A-Za-z'.-]*)*(?: and [A-Z][A-Za-z'.-]*(?: [A-Z][A-Za-z'.-]*)*)?$",
 )
-TRAILING_PROPOSED_BY_LINE_RE = re.compile(r"^(?:\(?\s*)proposed by\b.+$", flags=re.IGNORECASE)
+TRAILING_PROPOSED_BY_LINE_RE = re.compile(
+    r"^(?:\(?\s*)(?:proposed|created)(?: by)?\b.+$",
+    flags=re.IGNORECASE,
+)
 USERNAME_LINE_RE = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9_.-]*$")
 NOTE_METADATA_LINE_RE = re.compile(
     r"^(?:note|junior version (?:posted )?here|senior version (?:posted )?here|\(translated from here\.\))$",
     flags=re.IGNORECASE,
 )
+SECTION_DATE_LINE_RE = re.compile(
+    r"^(?:"
+    r"(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),\s+\d{1,2}\s+[A-Za-z]+\s+\d{4}"
+    r"|[A-Za-z]+\s+\d{1,2},\s+\d{4}"
+    r")$",
+    flags=re.IGNORECASE,
+)
+SECTION_TIME_LINE_RE = re.compile(r"^Time:\s+.+$", flags=re.IGNORECASE)
 SECTION_HEADER_LABELS = frozenset(
     {
         "Algebra",
@@ -220,6 +242,8 @@ class _StatementParseState:
     current_day: str = ""
     current_primary_section: str = ""
     current_secondary_section: str = ""
+    allows_section_date_metadata: bool = False
+    allows_day_subsection: bool = False
     current_problem_code: str | None = None
     current_problem_number: int | None = None
     awaiting_new_problem: bool = False
@@ -346,8 +370,22 @@ def _parse_contest_header(lines: list[str]) -> tuple[int, str, list[str]]:
         msg = "Paste contest text before parsing."
         raise ProblemStatementImportValidationError(msg)
 
-    contest_year, contest_name = _parse_header_line(lines[header_index].strip())
-    return contest_year, contest_name, lines[header_index + 1 :]
+    first_header_line = lines[header_index].strip()
+    try:
+        contest_year, contest_name = _parse_header_line(first_header_line)
+        return contest_year, contest_name, lines[header_index + 1 :]
+    except ProblemStatementImportValidationError:
+        next_header_index = next(
+            (index for index in range(header_index + 1, len(lines)) if lines[index].strip()),
+            None,
+        )
+        if next_header_index is None:
+            raise
+        contest_year, _ = _parse_header_line(lines[next_header_index].strip())
+        contest_name = _clean_contest_name(first_header_line)
+        if not contest_name:
+            raise
+        return contest_year, contest_name, lines[header_index + 1 :]
 
 
 def _flush_problem(state: _StatementParseState) -> None:
@@ -384,13 +422,21 @@ def _compose_section_label(primary: str, secondary: str) -> str:
     return primary or secondary
 
 
-def _set_primary_section(state: _StatementParseState, label: str) -> None:
+def _set_primary_section(
+    state: _StatementParseState,
+    label: str,
+    *,
+    allows_section_date_metadata: bool = False,
+    allows_day_subsection: bool = False,
+) -> None:
     state.current_primary_section = label
     state.current_secondary_section = ""
     state.current_day = _compose_section_label(
         state.current_primary_section,
         state.current_secondary_section,
     )
+    state.allows_section_date_metadata = allows_section_date_metadata
+    state.allows_day_subsection = allows_day_subsection
 
 
 def _set_secondary_section(state: _StatementParseState, label: str) -> None:
@@ -399,6 +445,8 @@ def _set_secondary_section(state: _StatementParseState, label: str) -> None:
         state.current_primary_section,
         state.current_secondary_section,
     )
+    state.allows_section_date_metadata = False
+    state.allows_day_subsection = False
 
 
 def _set_division_section(state: _StatementParseState, label: str) -> None:
@@ -443,6 +491,14 @@ def _is_scrape_metadata_line(
     if SOLUTION_LINE_RE.fullmatch(line):
         return True
     if (
+        TRAILING_PROPOSED_BY_LINE_RE.fullmatch(line)
+        and " by " not in f" {line.casefold()} "
+        and next_nonempty_line is not None
+        and USERNAME_LINE_RE.fullmatch(next_nonempty_line)
+        and following_nonempty_line == "view topic"
+    ):
+        return True
+    if (
         following_nonempty_line == "view topic"
         and next_nonempty_line is not None
         and USERNAME_LINE_RE.fullmatch(next_nonempty_line)
@@ -474,6 +530,13 @@ def _normalized_section_label(line: str) -> str | None:
         if candidate.casefold() == label.casefold():
             return label
     return None
+
+
+def _normalized_section_date_label(line: str) -> str | None:
+    candidate = " ".join(line.split())
+    if SECTION_DATE_LINE_RE.fullmatch(candidate) is None:
+        return None
+    return candidate
 
 
 def _looks_like_author_credit_line(line: str) -> bool:
@@ -634,13 +697,81 @@ def _normalized_problem_statement_text(statement: str, *, number: int) -> str:
     return candidate
 
 
-def _is_generic_section_header(line: str, *, next_nonempty_line: str | None) -> bool:
-    if next_nonempty_line is None:
+def _is_section_metadata_line(line: str | None) -> bool:
+    if line is None:
         return False
+    return bool(
+        SECTION_DATE_LINE_RE.fullmatch(line)
+        or SECTION_TIME_LINE_RE.fullmatch(line),
+    )
+
+
+def _looks_like_generic_section_header_candidate(candidate: str) -> bool:
+    if not candidate or not candidate[0].isalpha():
+        return False
+    if len(candidate) > 120:
+        return False
+    if candidate.endswith((".", "!", "?", ":", ";")):
+        return False
+    if any(character in candidate for character in "$\\=<>/?{}[]_"):
+        return False
+    return all(
+        character.isalnum() or character.isspace() or character in "(),'&#-"
+        for character in candidate
+    )
+
+
+def _supports_named_day_subsections(candidate: str) -> bool:
+    normalized_candidate = candidate.casefold()
+    return any(
+        keyword in normalized_candidate
+        for keyword in ("test", "selection", "squad", "camp")
+    )
+
+
+def _is_problem_start_candidate(line: str | None) -> bool:
+    if line is None:
+        return False
+    return bool(
+        PROBLEM_START_RE.match(line)
+        or SPECIAL_PROBLEM_CODE_RE.match(line)
+        or ALPHA_PROBLEM_CODE_RE.match(line),
+    )
+
+
+def _is_generic_section_header(
+    line: str,
+    *,
+    next_nonempty_line: str | None,
+    following_nonempty_line: str | None,
+    third_nonempty_line: str | None,
+) -> bool:
     candidate = " ".join(line.split())
-    if not SECTION_HEADER_RE.fullmatch(candidate):
+    if _is_section_metadata_line(candidate):
         return False
-    return bool(PROBLEM_START_RE.match(next_nonempty_line) or SPECIAL_PROBLEM_CODE_RE.match(next_nonempty_line))
+    if SHORT_SECTION_HEADER_RE.fullmatch(candidate) and _is_problem_start_candidate(next_nonempty_line):
+        return True
+    if not _looks_like_generic_section_header_candidate(candidate):
+        return False
+    if (
+        _supports_named_day_subsections(candidate)
+        and DAY_LABEL_RE.fullmatch(" ".join((next_nonempty_line or "").split()))
+        and (
+            _is_problem_start_candidate(following_nonempty_line)
+            or (
+                _is_section_metadata_line(following_nonempty_line)
+                and _is_problem_start_candidate(third_nonempty_line)
+            )
+        )
+    ):
+        return True
+    if _is_section_metadata_line(next_nonempty_line) and _is_problem_start_candidate(following_nonempty_line):
+        return True
+    return bool(
+        _is_section_metadata_line(next_nonempty_line)
+        and _is_section_metadata_line(following_nonempty_line)
+        and _is_problem_start_candidate(third_nonempty_line)
+    )
 
 
 def _next_problem_number_for_current_section(state: _StatementParseState) -> int:
@@ -671,12 +802,57 @@ def _normalized_tst_day_label(line: str) -> str | None:
         return None
     label = f"TST #{int(match.group('number'))}"
     detail = " ".join((match.group("detail") or "").split())
+    detail = re.sub(r"(?<=\d)\(", " (", detail)
     if not detail:
         return label
     return f"{label} · {detail}"
 
 
+def _normalized_year_prefixed_section_label(
+    line: str,
+    *,
+    contest_year: int | None,
+    next_nonempty_line: str | None,
+) -> str | None:
+    if contest_year is None or next_nonempty_line is None:
+        return None
+    match = YEAR_PREFIXED_SECTION_RE.fullmatch(line)
+    if match is None or int(match.group("year")) != contest_year:
+        return None
+    if not _is_problem_start_candidate(next_nonempty_line):
+        return None
+    return _clean_contest_name(match.group("label"))
+
+
+def _normalized_test_label(line: str) -> str | None:
+    match = TEST_LABEL_RE.fullmatch(" ".join(line.split()))
+    if match is None:
+        return None
+    token = match.group("number")
+    normalized_token = str(int(token)) if token.isdigit() else token.upper()
+    label = f"Test {normalized_token}"
+    detail = " ".join((match.group("detail") or "").split())
+    if not detail:
+        return label
+    return f"{label} · {detail}"
+
+
+def _normalized_round_and_section_label(line: str) -> str | None:
+    match = ROUND_AND_SECTION_RE.fullmatch(" ".join(line.split()))
+    if match is None:
+        return None
+    return f"{match.group('round').title()} Round · {match.group('label')}"
+
+
 def _start_special_problem(state: _StatementParseState, match: re.Match[str]) -> None:
+    _flush_problem(state)
+    state.current_problem_code = match.group("code").upper()
+    state.current_problem_number = _next_problem_number_for_current_section(state)
+    state.awaiting_new_problem = False
+    state.current_statement_lines = [match.group("statement").strip()]
+
+
+def _start_alpha_problem(state: _StatementParseState, match: re.Match[str]) -> None:
     _flush_problem(state)
     state.current_problem_code = match.group("code").upper()
     state.current_problem_number = _next_problem_number_for_current_section(state)
@@ -722,19 +898,44 @@ def _can_start_inline_numbered_problem(
     return number == state.current_problem_number + 1 and first_char.isalpha()
 
 
+def _can_start_alpha_problem(state: _StatementParseState) -> bool:
+    return state.current_problem_number is None or state.awaiting_new_problem
+
+
 def _consume_header_or_problem_line(
     line: str,
     *,
     next_nonempty_line: str | None,
+    following_nonempty_line: str | None,
+    third_nonempty_line: str | None,
     state: _StatementParseState,
 ) -> bool:
     consumed = True
     if day_label := _normalized_day_label(line):
         _flush_problem(state)
-        _set_primary_section(state, day_label)
+        if state.current_primary_section.startswith("TST #") or (
+            state.current_primary_section
+            and not state.current_primary_section.startswith("Day ")
+            and (state.allows_day_subsection or state.current_secondary_section.startswith("Day "))
+        ):
+            _set_secondary_section(state, day_label)
+        else:
+            _set_primary_section(state, day_label)
     elif tst_day_label := _normalized_tst_day_label(line):
         _flush_problem(state)
         _set_primary_section(state, tst_day_label)
+    elif year_prefixed_section_label := _normalized_year_prefixed_section_label(
+        line,
+        contest_year=state.contest_year,
+        next_nonempty_line=next_nonempty_line,
+    ):
+        _flush_problem(state)
+        _set_primary_section(state, year_prefixed_section_label)
+    elif round_and_section_label := _normalized_round_and_section_label(line):
+        _flush_problem(state)
+        state.current_primary_section = round_and_section_label.split(" · ", 1)[0]
+        state.current_secondary_section = round_and_section_label.split(" · ", 1)[1]
+        state.current_day = round_and_section_label
     elif inline_season_level_label := _normalized_inline_season_level_label(line):
         _flush_problem(state)
         state.current_primary_section = inline_season_level_label.split(" · ", 1)[0]
@@ -781,9 +982,29 @@ def _consume_header_or_problem_line(
     elif round_match := ROUND_LABEL_RE.fullmatch(line):
         _flush_problem(state)
         _set_primary_section(state, round_match.group("label").title())
-    elif test_match := TEST_LABEL_RE.fullmatch(line):
+    elif test_label := _normalized_test_label(line):
         _flush_problem(state)
-        _set_secondary_section(state, test_match.group(0).title())
+        if state.current_primary_section.startswith("Round ") or state.current_primary_section.startswith("TST #"):
+            _set_secondary_section(state, test_label)
+        elif state.current_primary_section:
+            _set_primary_section(state, test_label)
+        else:
+            _set_secondary_section(state, test_label)
+    elif (
+        state.current_primary_section
+        and state.allows_section_date_metadata
+        and not state.current_secondary_section
+        and (section_date_label := _normalized_section_date_label(line))
+        and (
+            _is_problem_start_candidate(next_nonempty_line)
+            or (
+                _is_section_metadata_line(next_nonempty_line)
+                and _is_problem_start_candidate(following_nonempty_line)
+            )
+        )
+    ):
+        _flush_problem(state)
+        _set_secondary_section(state, section_date_label)
     elif level_label := _normalized_level_section_label(line):
         _flush_problem(state)
         _set_secondary_section(state, level_label)
@@ -793,14 +1014,33 @@ def _consume_header_or_problem_line(
     elif section_label := _normalized_section_label(line):
         _flush_problem(state)
         _set_primary_section(state, section_label)
-    elif _is_generic_section_header(line, next_nonempty_line=next_nonempty_line):
+    elif _is_generic_section_header(
+        line,
+        next_nonempty_line=next_nonempty_line,
+        following_nonempty_line=following_nonempty_line,
+        third_nonempty_line=third_nonempty_line,
+    ):
         _flush_problem(state)
-        _set_primary_section(state, " ".join(line.split()))
+        generic_section_label = " ".join(line.split())
+        _set_primary_section(
+            state,
+            generic_section_label,
+            allows_section_date_metadata=(
+                SHORT_SECTION_HEADER_RE.fullmatch(generic_section_label) is None
+                or any(character.isdigit() for character in generic_section_label)
+            ),
+            allows_day_subsection=(
+                _supports_named_day_subsections(generic_section_label)
+                and DAY_LABEL_RE.fullmatch(" ".join((next_nonempty_line or "").split())) is not None
+            ),
+        )
     elif (
         (state.current_problem_number is None or state.awaiting_new_problem)
         and (special_problem_match := SPECIAL_PROBLEM_CODE_RE.match(line))
     ):
         _start_special_problem(state, special_problem_match)
+    elif (alpha_problem_match := ALPHA_PROBLEM_CODE_RE.match(line)) and _can_start_alpha_problem(state):
+        _start_alpha_problem(state, alpha_problem_match)
     elif (problem_match := PROBLEM_START_RE.match(line)) and _can_start_inline_numbered_problem(
         state,
         problem_match,
@@ -838,6 +1078,8 @@ def _consume_statement_line(
     if _consume_header_or_problem_line(
         line,
         next_nonempty_line=next_nonempty_line,
+        following_nonempty_line=following_nonempty_line,
+        third_nonempty_line=third_nonempty_line,
         state=state,
     ):
         return

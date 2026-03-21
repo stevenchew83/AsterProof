@@ -1,0 +1,632 @@
+{% extends 'layouts/vertical.html' %}
+
+{% load i18n static %}
+
+{% block title %}Statement links{% endblock title %}
+
+{% block extra_css %}
+{% if statement_linker_total > 0 %}
+<link rel="stylesheet" href="{% static 'plugins/datatables/dataTables.bootstrap5.min.css' %}">
+<style>
+  .statement-linker-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    justify-content: space-between;
+    gap: 1rem 1.25rem;
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--ins-border-color);
+  }
+
+  .statement-linker-toolbar-copy {
+    min-width: min(24rem, 100%);
+  }
+
+  .statement-linker-toolbar-bulk {
+    display: grid;
+    gap: 0.5rem;
+    justify-items: end;
+    min-width: min(24rem, 100%);
+  }
+
+  .statement-linker-filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: 0.75rem;
+  }
+
+  .statement-linker-filter-row .form-select,
+  .statement-linker-filter-row .form-control {
+    min-width: 10rem;
+  }
+
+  .statement-linker-actions {
+    display: grid;
+    gap: 0.5rem;
+    min-width: 19rem;
+  }
+
+  .statement-linker-actions-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .statement-linker-actions-row .form-select {
+    min-width: 13rem;
+    flex: 1 1 13rem;
+  }
+
+  .statement-linker-suggestion {
+    display: grid;
+    gap: 0.35rem;
+  }
+
+  .statement-linker-compact-form {
+    margin: 0;
+  }
+
+  #statement-linker-table_wrapper .dt-layout-row {
+    margin: 0;
+    padding: 0.75rem 0;
+    align-items: center;
+    gap: 0.75rem 1rem;
+  }
+
+  #statement-linker-table_wrapper .dt-search {
+    display: none;
+  }
+
+  #statement-linker-table_wrapper .dt-length label,
+  #statement-linker-table_wrapper .dt-info {
+    margin-bottom: 0;
+    color: var(--ins-secondary-color);
+    font-size: 0.82rem;
+  }
+
+  #statement-linker-table_wrapper .dt-paging .pagination {
+    margin-bottom: 0;
+  }
+
+  #statement-linker-table tbody td {
+    vertical-align: top;
+  }
+</style>
+{% endif %}
+{% endblock extra_css %}
+
+{% block page_content %}
+<div class="container-fluid">
+
+  {% include 'partials/page-title.html' with title='Statement links' subtitle='Linker' %}
+
+  {% if messages %}
+  <div class="mt-3">
+    {% for message in messages %}
+      <div class="alert alert-{% if message.tags == 'error' %}danger{% elif message.tags == 'debug' %}secondary{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="{% translate 'Close' %}"></button>
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="row g-3 mt-0">
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-primary-subtle text-primary rounded">
+                <i class="ti ti-file-text fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Statements</p>
+              <h3 class="mb-0">{{ statement_linker_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-success-subtle text-success rounded">
+                <i class="ti ti-link fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Linked</p>
+              <h3 class="mb-0">{{ statement_linker_stats.linked_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-warning-subtle text-warning rounded">
+                <i class="ti ti-unlink fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Unlinked</p>
+              <h3 class="mb-0">{{ statement_linker_stats.unlinked_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-info-subtle text-info rounded">
+                <i class="ti ti-link-plus fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Safe suggestions</p>
+              <h3 class="mb-0">{{ statement_linker_stats.suggested_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if statement_linker_total == 0 %}
+  <div class="alert alert-info mt-4" role="alert">
+    <strong>No statement rows yet.</strong>
+    Save parsed results from <a href="{% url 'pages:latex_preview' %}" class="alert-link">LaTeX preview</a> before linking them to tracked problems.
+  </div>
+  {% else %}
+  <div class="row g-3 mt-1 mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header border-bottom d-flex flex-wrap align-items-center gap-2">
+          <div class="flex-grow-1">
+            <h4 class="header-title mb-0">Statement-to-problem linker</h4>
+            <p class="text-muted fs-xs mb-0">
+              Review unlinked statement rows, accept safe suggestions, or manually attach a tracked problem from the same contest-year. Clearing a link releases that UUID claim so another statement row can take it later.
+            </p>
+          </div>
+          <span class="badge text-bg-light">{{ statement_linker_stats.contest_total }} contests</span>
+        </div>
+        <div class="card-body">
+          <div class="statement-linker-toolbar">
+            <div class="statement-linker-toolbar-copy">
+              <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Suggested workflow</p>
+              <h5 class="mb-1">Start with unlinked rows</h5>
+              <p class="text-muted fs-xs mb-0">Rows stay visible even when there is no safe suggestion. Those will usually need a manual pick from the same contest-year candidate list. Manual dropdown changes are staged locally until you save them together.</p>
+            </div>
+            <div class="statement-linker-toolbar-bulk">
+              <div class="d-flex flex-wrap justify-content-end align-items-center gap-2">
+                <span id="statement-linker-staged-count" class="badge bg-secondary-subtle text-secondary">0 staged</span>
+                <button type="button" id="statement-linker-reset-staged" class="btn btn-outline-secondary btn-sm" disabled>Reset staged</button>
+                <button type="button" id="statement-linker-save-staged" class="btn btn-primary btn-sm" disabled>Save staged links</button>
+              </div>
+              <p class="text-muted fs-xs mb-0 text-end">Safe suggestions and clears still save immediately. Manual dropdown picks can now be collected across many rows and committed in one batch.</p>
+            </div>
+            <div class="statement-linker-filter-row">
+              <div>
+                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-linker-search">Search</label>
+                <input id="statement-linker-search" type="search" class="form-control form-control-sm" placeholder="Search statement, contest, code, or link">
+              </div>
+              <div>
+                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-linker-status-filter">Status</label>
+                <select id="statement-linker-status-filter" class="form-select form-select-sm">
+                  <option value="unlinked" selected>Unlinked</option>
+                  <option value="all">All rows</option>
+                  <option value="linked">Linked</option>
+                  <option value="suggested">Safe suggestions</option>
+                  <option value="candidateless">No candidates</option>
+                </select>
+              </div>
+              <div>
+                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-linker-contest-filter">Contest</label>
+                <select id="statement-linker-contest-filter" class="form-select form-select-sm">
+                  <option value="">All contests</option>
+                </select>
+              </div>
+              <div>
+                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-linker-year-filter">Year</label>
+                <select id="statement-linker-year-filter" class="form-select form-select-sm">
+                  <option value="">All years</option>
+                </select>
+              </div>
+              <button type="button" id="statement-linker-reset" class="btn btn-outline-secondary btn-sm">Reset</button>
+            </div>
+          </div>
+          <form id="statement-linker-bulk-form" method="post" action="{% url 'pages:problem_statement_linker' %}" class="d-none">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="link_selected_bulk">
+            <div id="statement-linker-bulk-fields"></div>
+          </form>
+          <table id="statement-linker-table" class="table table-striped table-bordered align-middle w-100"></table>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+{{ statement_linker_rows|json_script:"statement-linker-table-data" }}
+{{ statement_linker_candidate_groups|json_script:"statement-linker-candidate-groups" }}
+{% endblock page_content %}
+
+{% block extra_javascript %}
+{% if statement_linker_total > 0 %}
+<script src="{% static 'plugins/datatables/dataTables.min.js' %}"></script>
+<script src="{% static 'plugins/datatables/dataTables.bootstrap5.min.js' %}"></script>
+<script>
+(function () {
+  if (typeof DataTable === "undefined") return;
+
+  var dataEl = document.getElementById("statement-linker-table-data");
+  var candidateGroupsEl = document.getElementById("statement-linker-candidate-groups");
+  if (!dataEl || !candidateGroupsEl) return;
+
+  var rows = JSON.parse(dataEl.textContent);
+  var candidateGroups = JSON.parse(candidateGroupsEl.textContent);
+  var postUrl = "{% url 'pages:problem_statement_linker' %}";
+  var csrfToken = "{{ csrf_token }}";
+
+  var searchInput = document.getElementById("statement-linker-search");
+  var statusFilter = document.getElementById("statement-linker-status-filter");
+  var contestFilter = document.getElementById("statement-linker-contest-filter");
+  var yearFilter = document.getElementById("statement-linker-year-filter");
+  var resetButton = document.getElementById("statement-linker-reset");
+  var bulkForm = document.getElementById("statement-linker-bulk-form");
+  var bulkFields = document.getElementById("statement-linker-bulk-fields");
+  var saveStagedButton = document.getElementById("statement-linker-save-staged");
+  var resetStagedButton = document.getElementById("statement-linker-reset-staged");
+  var stagedCountBadge = document.getElementById("statement-linker-staged-count");
+  var tableNode = document.getElementById("statement-linker-table");
+  var stagedSelections = {};
+  var rowsByStatementId = {};
+
+  rows.forEach(function (row) {
+    rowsByStatementId[String(row.statement_id)] = row;
+  });
+
+  function escapeHtml(value) {
+    return String(value || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function populateSelect(selectNode, values) {
+    if (!selectNode) return;
+    values.forEach(function (value) {
+      var option = document.createElement("option");
+      option.value = value;
+      option.textContent = value;
+      selectNode.appendChild(option);
+    });
+  }
+
+  function getCurrentProblemId(row) {
+    return row.linked_problem_id ? String(row.linked_problem_id) : "";
+  }
+
+  function getVisibleProblemId(row) {
+    var statementKey = String(row.statement_id);
+    if (Object.prototype.hasOwnProperty.call(stagedSelections, statementKey)) {
+      return stagedSelections[statementKey];
+    }
+    return getCurrentProblemId(row);
+  }
+
+  function updateStagedSelection(statementId, selectedProblemId) {
+    var statementKey = String(statementId || "");
+    var row = rowsByStatementId[statementKey];
+    if (!row) return;
+
+    var normalizedProblemId = String(selectedProblemId || "");
+    if (!normalizedProblemId || normalizedProblemId === getCurrentProblemId(row)) {
+      delete stagedSelections[statementKey];
+      return;
+    }
+
+    stagedSelections[statementKey] = normalizedProblemId;
+  }
+
+  function updateBulkToolbar() {
+    var stagedCount = Object.keys(stagedSelections).length;
+    if (stagedCountBadge) {
+      stagedCountBadge.textContent = stagedCount + (stagedCount === 1 ? " staged" : " staged");
+      stagedCountBadge.className = stagedCount
+        ? "badge bg-primary-subtle text-primary"
+        : "badge bg-secondary-subtle text-secondary";
+    }
+    if (saveStagedButton) {
+      saveStagedButton.disabled = stagedCount === 0;
+    }
+    if (resetStagedButton) {
+      resetStagedButton.disabled = stagedCount === 0;
+    }
+  }
+
+  populateSelect(
+    contestFilter,
+    Array.from(new Set(rows.map(function (row) { return row.contest_name; }))).sort()
+  );
+  populateSelect(
+    yearFilter,
+    Array.from(new Set(rows.map(function (row) { return String(row.contest_year); }))).sort(function (left, right) {
+      return Number(right) - Number(left);
+    })
+  );
+
+  function renderCurrentLink(data, _type, row) {
+    if (!row.is_linked) {
+      return '<span class="badge bg-warning-subtle text-warning">Unlinked</span>';
+    }
+    return (
+      '<div class="d-grid gap-1">' +
+        '<span class="badge bg-success-subtle text-success w-fit-content">Linked</span>' +
+        '<span class="fw-semibold">' + escapeHtml(data) + '</span>' +
+      "</div>"
+    );
+  }
+
+  function renderSuggestion(_data, _type, row) {
+    if (!row.suggested_problem_id) {
+      return '<span class="text-muted fs-xs">No safe suggestion</span>';
+    }
+    return (
+      '<div class="statement-linker-suggestion">' +
+        '<span class="badge bg-info-subtle text-info w-fit-content">' + escapeHtml(row.suggestion_reason) + "</span>" +
+        '<span class="fw-semibold">' + escapeHtml(row.suggested_problem_label) + "</span>" +
+        '<form method="post" action="' + escapeHtml(postUrl) + '" class="statement-linker-compact-form">' +
+          '<input type="hidden" name="csrfmiddlewaretoken" value="' + escapeHtml(csrfToken) + '">' +
+          '<input type="hidden" name="action" value="link_suggested">' +
+          '<input type="hidden" name="statement_id" value="' + escapeHtml(row.statement_id) + '">' +
+          '<input type="hidden" name="selected_problem_id" value="' + escapeHtml(row.suggested_problem_id) + '">' +
+          '<button type="submit" class="btn btn-outline-info btn-sm">Link suggested</button>' +
+        "</form>" +
+      "</div>"
+    );
+  }
+
+  function renderActions(_data, _type, row) {
+    var options = candidateGroups[row.candidate_group_key] || [];
+    if (!options.length && !row.is_linked) {
+      return '<span class="text-muted fs-xs">No tracked problems found for this contest-year.</span>';
+    }
+
+    var currentProblemId = getCurrentProblemId(row);
+    var selectedProblemId = getVisibleProblemId(row);
+    var optionHtml = ['<option value="">Choose problem…</option>'];
+    options.forEach(function (option) {
+      var optionId = String(option.problem_id);
+      var isCurrent = selectedProblemId === optionId;
+      var isClaimedByAnotherStatement = option.is_claimed && currentProblemId !== optionId;
+      var disabled = option.is_claimed && !isCurrent ? " disabled" : "";
+      var selected = isCurrent ? " selected" : "";
+      var suffix = isClaimedByAnotherStatement
+        ? " (claimed by " + option.claimed_statement_label + ")"
+        : "";
+      optionHtml.push(
+        '<option value="' + escapeHtml(optionId) + '"' + selected + disabled + ">" +
+          escapeHtml(option.option_label + suffix) +
+        "</option>"
+      );
+    });
+
+    var statementKey = String(row.statement_id);
+    var stagedState = Object.prototype.hasOwnProperty.call(stagedSelections, statementKey)
+      ? (
+        '<div class="statement-linker-actions-row">' +
+          '<span class="badge bg-primary-subtle text-primary">Staged</span>' +
+          '<button type="button" class="btn btn-outline-secondary btn-sm" data-statement-linker-reset="' + escapeHtml(statementKey) + '">Reset row</button>' +
+        "</div>"
+      )
+      : '<div class="statement-linker-actions-row"><span class="text-muted fs-xs">Pick rows to stage, then use "Save staged links".</span></div>';
+
+    var clearForm = "";
+    if (row.is_linked) {
+      clearForm = (
+        '<form method="post" action="' + escapeHtml(postUrl) + '" class="statement-linker-compact-form">' +
+          '<input type="hidden" name="csrfmiddlewaretoken" value="' + escapeHtml(csrfToken) + '">' +
+          '<input type="hidden" name="action" value="clear_link">' +
+          '<input type="hidden" name="statement_id" value="' + escapeHtml(row.statement_id) + '">' +
+          '<button type="submit" class="btn btn-outline-danger btn-sm">Clear</button>' +
+        "</form>"
+      );
+    }
+
+    return (
+      '<div class="statement-linker-actions">' +
+        '<div class="statement-linker-actions-row">' +
+          '<select class="form-select form-select-sm" data-statement-linker-select="1" data-statement-id="' + escapeHtml(statementKey) + '">' + optionHtml.join("") + "</select>" +
+        "</div>" +
+        stagedState +
+        (clearForm ? '<div class="statement-linker-actions-row">' + clearForm + "</div>" : "") +
+      "</div>"
+    );
+  }
+
+  var table = new DataTable("#statement-linker-table", {
+    data: rows,
+    rowId: "statement_id",
+    columns: [
+      {
+        data: null,
+        title: "#",
+        className: "text-end text-nowrap",
+        render: function (_data, _type, _row, meta) {
+          return meta.row + 1 + meta.settings._iDisplayStart;
+        }
+      },
+      { data: "contest_year_label", title: "Contest-year", className: "text-nowrap" },
+      { data: "day_label", title: "Day", className: "text-nowrap" },
+      { data: "problem_code", title: "Code", className: "text-nowrap" },
+      { data: "statement_preview", title: "Statement preview", className: "text-wrap" },
+      {
+        data: "linked_problem_label",
+        title: "Current link",
+        className: "text-nowrap",
+        orderable: false,
+        render: renderCurrentLink
+      },
+      {
+        data: "suggested_problem_label",
+        title: "Suggested",
+        className: "text-nowrap",
+        orderable: false,
+        render: renderSuggestion
+      },
+      {
+        data: null,
+        title: "Manual link",
+        orderable: false,
+        searchable: false,
+        render: renderActions
+      },
+      { data: "contest_name", title: "Contest", visible: false },
+      { data: "contest_year", title: "Year", visible: false },
+      { data: "link_status", title: "Link status", visible: false },
+      { data: "has_suggestion", title: "Has suggestion", visible: false },
+      { data: "candidate_count", title: "Candidate count", visible: false }
+    ],
+    order: [[10, "asc"], [9, "desc"], [8, "asc"], [3, "asc"]],
+    pageLength: 25,
+    lengthMenu: [10, 25, 50, 100]
+  });
+
+  DataTable.ext.search.push(function (settings, data) {
+    if (!settings || !settings.nTable || settings.nTable.id !== "statement-linker-table") {
+      return true;
+    }
+
+    var selectedStatus = statusFilter ? statusFilter.value : "all";
+    var selectedContest = contestFilter ? contestFilter.value : "";
+    var selectedYear = yearFilter ? yearFilter.value : "";
+
+    var matchesContest = !selectedContest || data[8] === selectedContest;
+    var matchesYear = !selectedYear || data[9] === selectedYear;
+
+    var matchesStatus = true;
+    if (selectedStatus === "linked") {
+      matchesStatus = data[10] === "linked";
+    } else if (selectedStatus === "unlinked") {
+      matchesStatus = data[10] === "unlinked";
+    } else if (selectedStatus === "suggested") {
+      matchesStatus = data[10] === "unlinked" && data[11] === "yes";
+    } else if (selectedStatus === "candidateless") {
+      matchesStatus = data[10] === "unlinked" && Number(data[12] || 0) === 0;
+    }
+
+    return matchesContest && matchesYear && matchesStatus;
+  });
+
+  if (searchInput) {
+    searchInput.addEventListener("input", function () {
+      table.search(searchInput.value || "").draw();
+    });
+  }
+
+  if (statusFilter) {
+    statusFilter.addEventListener("change", function () {
+      table.draw();
+    });
+  }
+
+  if (contestFilter) {
+    contestFilter.addEventListener("change", function () {
+      table.draw();
+    });
+  }
+
+  if (yearFilter) {
+    yearFilter.addEventListener("change", function () {
+      table.draw();
+    });
+  }
+
+  if (resetButton) {
+    resetButton.addEventListener("click", function () {
+      if (searchInput) searchInput.value = "";
+      if (statusFilter) statusFilter.value = "unlinked";
+      if (contestFilter) contestFilter.value = "";
+      if (yearFilter) yearFilter.value = "";
+      table.search("").draw();
+    });
+  }
+
+  if (tableNode) {
+    tableNode.addEventListener("change", function (event) {
+      var selectNode = event.target.closest("select[data-statement-linker-select]");
+      if (!selectNode) return;
+      updateStagedSelection(
+        selectNode.getAttribute("data-statement-id"),
+        selectNode.value
+      );
+      updateBulkToolbar();
+      table.draw(false);
+    });
+
+    tableNode.addEventListener("click", function (event) {
+      var resetRowButton = event.target.closest("[data-statement-linker-reset]");
+      if (!resetRowButton) return;
+      delete stagedSelections[String(resetRowButton.getAttribute("data-statement-linker-reset"))];
+      updateBulkToolbar();
+      table.draw(false);
+    });
+  }
+
+  if (resetStagedButton) {
+    resetStagedButton.addEventListener("click", function () {
+      stagedSelections = {};
+      updateBulkToolbar();
+      table.draw(false);
+    });
+  }
+
+  if (saveStagedButton && bulkForm && bulkFields) {
+    saveStagedButton.addEventListener("click", function () {
+      var statementIds = Object.keys(stagedSelections).sort(function (left, right) {
+        return Number(left) - Number(right);
+      });
+      if (!statementIds.length) return;
+
+      bulkFields.innerHTML = "";
+      statementIds.forEach(function (statementId) {
+        var statementField = document.createElement("input");
+        statementField.type = "hidden";
+        statementField.name = "statement_ids";
+        statementField.value = statementId;
+        bulkFields.appendChild(statementField);
+
+        var problemField = document.createElement("input");
+        problemField.type = "hidden";
+        problemField.name = "selected_problem_ids";
+        problemField.value = stagedSelections[statementId];
+        bulkFields.appendChild(problemField);
+      });
+
+      bulkForm.submit();
+    });
+  }
+
+  updateBulkToolbar();
+  table.draw();
+})();
+</script>
+{% endif %}
+{% endblock extra_javascript %}

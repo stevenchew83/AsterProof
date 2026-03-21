@@ -1,0 +1,45 @@
+2026 Israel TST3
+Test 1 17/11/2025
+P1	Let $ABC$ be a triangle, denote the feet of the perpendiculars from $A$ to the angle bisectors of $\angle ABC , \angle ACB$ by $E,F$ respectively. Let $I$ be the incenter of $ABC$. The circumcircles of $BIF,CIE$ intersect again at $P$. Let $N$ be the midpoint of the arc $BC$ containing $A$. Prove that $P,I,N$ are collinear.	
+
+Zsigmondy
+view topic
+P2	Find all functions $f \colon \mathbb{R} \to \mathbb{R}$ that satisfy:
+$$f(x+f(y))+f(f(f(x))-y) = 2x $$For all $x,y \in \mathbb{R}$.	
+
+Zsigmondy
+view topic
+P3	For a positive integer $n$ let $\sigma (n)$ be the sum of divisors of $n$. Prove that there are infinitely many positive integers $m$ for which there is exactly one positive integer $n$ such that $\sigma (n) = m$.	
+
+Zsigmondy
+view topic
+Test 2 18/11/2025
+P1	Let $b,c,d,x,y$ be positive integers. A sequence $a_{n}$ is defined in the following way: $a_{0}=x,a_{1}=y$ and for all $n \geq 2$:
+$$a_{n} = ba_{n-1}+ca_{n-2}+d$$Prove that for all positive integers $m$ there exists an index $i$ such that none of the numbers $a_{i},a_{i+1}\dots,a_{i+m-1}$ are prime.	
+
+Zsigmondy
+view topic
+P2	A finite amount of ants are walking in a circular table of radius $1$, each having speed $1$. Every time two ants meet they choose a direction, One of the ants turns in that direction and the other ant goes in the opposite direction (both at speed $1$). Assume that there are never $3$ or more ants in the same place. The process ends when all ants fall off the table.
+
+a) Can the process last forever?
+b) Is there a constant C, independent on the number of ants, such that all ants will fall after at most $C$ units of time?	
+
+Zsigmondy
+view topic
+P3	Let $ABC$ be a triangle, denote its incircle by $\omega$ and its incenter by $I$. A line $\ell$ tangent to $\omega$ intersects $BC$ at a point $D$ and the lines $AC,AD$ at points $E,F$ respectively. The common external tangents of the circumcircles of $BDF,CDE$ intersect at $X$. Prove that $\angle AIX = 90^{\circ}$.	
+
+Zsigmondy
+view topic
+Test 4	28/1/2026
+P1	Let $n \geq 3$ be a positive integer and let $a_1,\dots,a_n$ be positive real numbers. The following product is written on the board:
+\[ a_1 \times a_2 \times \dots \times a_n \]It is known that replacing any one of the multiplication signs by an addition sign will increase the value of the expression. Prove that replacing all of the multiplication signs by addition signs will also increase the value of the expression.	
+
+Zsigmondy
+view topic
+P2	Define the pseudo-derivative $\Delta : \mathbb{N}_{>1} \to \mathbb{N}$ as follows: for a prime $p$ and a positive integer $a$ let $\Delta (p^{a}) = a p^{a-1}$ and for coprime integers $m,n$ let $\Delta (mn) = \Delta(m) \cdot \Delta(n)$.
+Is it true that for any positive integer $k$ there exists a positive integer $n$ for which $\Delta^{(k)}(n) = n$ but $\Delta^{(m)}(n) \neq n$ for every $m<k$?
+Comment: $\Delta^{(1)}(n) = \Delta(n), \Delta^{(k+1)}(n) = \Delta\left(\Delta^{(k)}(n)\right)$.	
+
+Zsigmondy
+view topic
+P3	On a horizontal line $\ell$ there are $n$ blue points $b_1,b_2,...,b_n$. Above that line are given $n$ red points $r_1,...,r_n$, such that every line passing through two red points doesn't contain another red or blue point. Ayala and Barvaz play a game. Ayala draws $n$ segments such that every red point is connected to a blue point and vice versa. In every turn, Barvaz can choose two intersecting segments $b_ir_j,b_kr_l$ and replace them by the segments $b_kr_j,b_ir_l$. Prove that Barvaz can make all of the segments to not intersect each other after at most $\binom{n}{2}$ turns.

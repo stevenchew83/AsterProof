@@ -1,0 +1,77 @@
+Handle: Polynomial from a sector into a strip
+Estimated MOHS: 15M
+IMO slot guess: P1/4
+Topic tags: Alg/CA – polynomials over C; asymptotic leading term; geometric image condition
+Core ideas:
+Rotate B into a bounded-real-part strip
+Look along rays in the sector and compare with the leading term
+A nonconstant polynomial cannot stay inside a fixed strip on an unbounded sector
+Rationale (1–2 lines): Once you translate the condition into “bounded real part on a whole sector,” the leading-term argument is standard and decisive. The search space is tiny after the right rephrasing.
+Common pitfalls: Missing the strip-rotation trick; overcomplicating with Liouville/entire-function language when a raywise leading-term check already kills nonconstant cases.
+Confidence: High
+Notes (optional): This is short and clean, but not “magic.” The wedge angle is mostly a red herring.
+Handle: Cyclic quadrilateral with P, Q, K, T
+Estimated MOHS: 45M
+IMO slot guess: P3/6
+Topic tags: Geo – cyclic quadrilateral; pole/polar; power of a point; projective/metric mix
+Core ideas:
+Introduce R = AD ∩ BC and exploit complete-quadrilateral structure
+Use cyclicity plus power relations on the circumcircle and the auxiliary circle through P, A, D, K
+Bring in pole/polar geometry with respect to the unit circle to control Q and OP
+Convert the metric condition on K into a rigid configuration
+Rationale (1–2 lines): This looks synthetic, but the real burden is finding the correct hidden infrastructure. The key auxiliary point(s) and the polar viewpoint are not standard “first try” moves, so the intuition cost is very high.
+Common pitfalls: Chasing angles locally around K and Q without finding the global projective structure; trying brute-force coordinates too early and drowning in algebra.
+Confidence: Medium
+Notes (optional): If one spots the right pole/polar package very early, it can feel like 40M; without that, it is a genuine 45M-type geometry problem.
+Handle: Red-blue cards with repeated averaging
+Estimated MOHS: 40M
+IMO slot guess: P3/6
+Topic tags: Comb/Alg – dynamical process; extremal construction; invariant/potential; averaging
+Core ideas:
+Find the right monotone potential; naive sum/variance alone is too weak
+Understand that locally greedy averaging is not optimal
+Build a sharp or near-sharp recursive strategy for the lower bound
+Match it with a non-obvious upper bound from the same potential framework
+Rationale (1–2 lines): The statement is elementary, but the winning invariant is not. This is exactly the kind of short process problem whose true hardness comes from hidden structure rather than computation.
+Common pitfalls: Assuming the best strategy is “always lift the smallest red by the largest blue”; using only total sum or variance and getting a bound far from sharp.
+Confidence: Medium
+Notes (optional): This is the type of problem whose MOHS jumps upward because the successful potential is hard to invent from scratch.
+Handle: 70-card stack, 30 colors, top-50/bottom-20
+Estimated MOHS: 35M
+IMO slot guess: P2/5
+Topic tags: Comb – invariant/monovariant; extremal process; weighted potential; exact maximum
+Core ideas:
+Encode the top-50 by a color-multiplicity/position profile
+Prove finiteness with a weighted lexicographic potential, not just a raw color-count argument
+Construct a worst-case initial arrangement that nearly saturates the potential
+Show the exact maximum by matching upper and lower bounds
+Rationale (1–2 lines): The process is combinatorially rich, but the space of legal moves is structured enough that a strong monovariant should exist. The hard part is inventing the right one and then making it sharp.
+Common pitfalls: Tracking only the number of distinct colors in the top 50; ignoring positional information, which is where the true difficulty sits.
+Confidence: Medium-Low
+Notes (optional): Could move up to 40M if the exact extremal construction is especially delicate.
+Handle: Determine all λ in the symmetric inequality
+Estimated MOHS: 35M
+IMO slot guess: P2/5
+Topic tags: Alg – symmetric inequalities; elementary symmetric sums; asymptotic extremals; smoothing
+Core ideas:
+Rewrite everything in terms of e2, e3 and the variance-type term
+Identify that the large-n extremal behavior is driven by near-uniform configurations
+Prove sufficiency with a stability-style inequality, not just the limiting heuristic
+Handle the “there exists N” quantifier carefully
+Rationale (1–2 lines): The asymptotic quantifier makes this subtler than a routine symmetric inequality. The hard part is not expansion; it is locating the true extremal regime and proving the buffer is enough for all large n.
+Common pitfalls: Treating it as a plain fixed-n uvw problem; proving only the limiting constant and forgetting the eventual-in-n requirement.
+Confidence: Medium
+Notes (optional): If one immediately normalizes into symmetric-sum language and sees the near-uniform extremal, it drops closer to 30M.
+Handle: Recurrence-permutation triples in Z_n
+Estimated MOHS: 40M
+IMO slot guess: P3/6
+Topic tags: NT/Alg/Comb – linear recurrences mod n; CRT; characteristic polynomial; permutation structure
+Core ideas:
+Guess/recognize the affine-permutation family coming from a second-difference relation
+Show non-affine characteristic-root behavior is impossible under the condition gcd(p-1, n)=1
+Reduce modulo prime powers / use CRT to globalize the classification
+Count only scalar multiples that survive the gcd condition
+Rationale (1–2 lines): The answer is likely rigid, but proving rigidity is the whole problem. The bridge from “permutation of residues” to “characteristic roots must collapse” is a deep structural leap.
+Common pitfalls: Brute-forcing sequence patterns instead of classifying the recurrence; not exploiting the special condition on prime divisors of n.
+Confidence: Medium
+Notes (optional): If one has seen companion-matrix or root-of-unity killing arguments in modular recurrences, this can feel closer to 35M; otherwise it is very hard to discover.

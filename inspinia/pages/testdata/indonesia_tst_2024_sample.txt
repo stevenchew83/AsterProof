@@ -1,0 +1,144 @@
+2024 Indonesia TST3
+Indonesia Team Selection Test for IMO 2024
+First Round	Test 1 (29 February 2024)
+A	Given real numbers $x,y,z$ which satisfies
+$$|x+y+z|+|xy+yz+zx|+|xyz| \le 1$$Show that $max\{ |x|,|y|,|z|\} \le 1$.	
+
+amogususususus
+view topic
+C	Given a sequence of integers $A_1,A_2,\cdots A_{99}$ such that for every sub-sequence that contains $m$ consecutive elements, there exist not more than $max\{ \frac{m}{3} ,1\}$ odd integers. Let $S=\{ (i,j) \ | i<j \}$ such that $A_i$ is even and $A_j$ is odd. Find $max\{ |S|\}$.	
+
+amogususususus
+view topic
+G	Given a concyclic quadrilateral $ABCD$ with circumcenter $O$. Let $E$ be the intersection of $AD$ and $BC$, while $F$ be the intersection of $AC$ and $BD$. A circle $w$ are tangent to $BD$ and $AC$ such that $F$ is the orthocenter of $\triangle QEP$ where $PQ$ is a diameter of $w$. Prove that $EO$ passes through the center of $w$.	
+
+amogususususus
+view topic
+N	Find all functions $f:\mathbb{N} \rightarrow \mathbb{N}$ such that for every prime number $p$ and natural number $x$,
+$$\{ x,f(x),\cdots f^{p-1}(x) \} $$is a complete residue system modulo $p$. With $f^{k+1}(x)=f(f^k(x))$ for every natural number $k$ and $f^1(x)=f(x)$.
+
+Proposed by IndoMathXdZ	
+
+amogususususus
+view topic
+First Round	Test 2 (3 March 2024)
+A	Find all second degree polynomials $P(x)$ such that for all $a \in\mathbb{R} , a \geq 1$, then
+$P(a^2+a) \geq a.P(a+1)$	
+
+Nartku
+view topic
+C	Let $A$ be a set with $1000$ members and $\mathcal F =${$A_1,A_2,\ldots,A_n$} a family of subsets of A such that
+(a) Each element in $\mathcal F$ consists of 3 members
+(b) For every five elements in $\mathcal F$, the union of them all will have at least $12$ members
+Find the largest value of $n$	
+
+Nartku
+view topic
+G	Given an acute triangle $ABC$. The incircle with center $I$ touches $BC,CA,AB$ at $D,E,F$ respectively. Let $M,N$ be the midpoint of the minor arc of $AB$ and $AC$ respectively. Prove that $M,F,E,N$ are collinear if and only if $\angle BAC =90$$^{\circ}$	
+
+Nartku
+view topic
+N	A natural number $n$ is called "good" if there exists natural numbers $a$ and $b$ such that $a+b=n$ and $ab \mid n^2+n+1$. Show that there are infinitely many "good" numbers	
+
+Nartku
+view topic
+First Round	Test 3 (7 March 2024)
+A	Let $\mathbb{R}$ be the set of real numbers. Let $f:\mathbb{R}\rightarrow\mathbb{R}$ be a function such that\[f(x+y)f(x-y)\geqslant f(x)^2-f(y)^2\]for every $x,y\in\mathbb{R}$. Assume that the inequality is strict for some $x_0,y_0\in\mathbb{R}$.
+
+Prove that either $f(x)\geqslant 0$ for every $x\in\mathbb{R}$ or $f(x)\leqslant 0$ for every $x\in\mathbb{R}$.	
+
+peace09
+view topic
+C	Let $m$ and $n$ be positive integers greater than $1$. In each unit square of an $m\times n$ grid lies a coin with its tail side up. A move consists of the following steps.
+select a $2\times 2$ square in the grid;
+flip the coins in the top-left and bottom-right unit squares;
+flip the coin in either the top-right or bottom-left unit square.
+Determine all pairs $(m,n)$ for which it is possible that every coin shows head-side up after a finite number of moves.
+
+Thanasin Nampaisarn, Thailand	
+
+MarkBcc168
+view topic
+G	Let $ABCD$ be a cyclic quadrilateral with $\angle BAD < \angle ADC$. Let $M$ be the midpoint of the arc $CD$ not containing $A$. Suppose there is a point $P$ inside $ABCD$ such that $\angle ADB = \angle CPD$ and $\angle ADP = \angle PCB$.
+
+Prove that lines $AD, PM$, and $BC$ are concurrent.	
+
+GrantStar
+view topic
+N	Let $a_1, \dots, a_n, b_1, \dots, b_n$ be $2n$ positive integers such that the $n+1$ products
+\[a_1 a_2 a_3 \cdots a_n, b_1 a_2 a_3 \cdots a_n, b_1 b_2 a_3 \cdots a_n, \dots, b_1 b_2 b_3 \cdots b_n\]form a strictly increasing arithmetic progression in that order. Determine the smallest possible integer that could be the common difference of such an arithmetic progression.	
+
+GrantStar
+view topic
+Second Round	APMO 2024 (12 March 2024)
+1	Let $ABC$ be an acute triangle. Let $D$ be a point on side $AB$ and $E$ be a point on side $AC$ such that lines $BC$ and $DE$ are parallel. Let $X$ be an interior point of $BCED$. Suppose rays $DX$ and $EX$ meet side $BC$ at points $P$ and $Q$, respectively, such that both $P$ and $Q$ lie between $B$ and $C$. Suppose that the circumcircles of triangles $BQX$ and $CPX$ intersect at a point $Y \neq X$. Prove that the points $A, X$, and $Y$ are collinear.	
+
+a_507_bc
+view topic
+2	Consider a $100 \times 100$ table, and identify the cell in row $a$ and column $b$, $1 \leq a, b \leq 100$, with the ordered pair $(a, b)$. Let $k$ be an integer such that $51 \leq k \leq 99$. A $k$-knight is a piece that moves one cell vertically or horizontally and $k$ cells to the other direction; that is, it moves from $(a, b)$ to $(c, d)$ such that $(|a-c|, |b - d|)$ is either $(1, k)$ or $(k, 1)$. The $k$-knight starts at cell $(1, 1)$, and performs several moves. A sequence of moves is a sequence of cells $(x_0, y_0)= (1, 1)$, $(x_1, y_1), (x_2, y_2)$, $\ldots, (x_n, y_n)$ such that, for all $i = 1, 2, \ldots, n$, $1 \leq x_i , y_i \leq 100$ and the $k$-knight can move from $(x_{i-1}, y_{i-1})$ to $(x_i, y_i)$. In this case, each cell $(x_i, y_i)$ is said to be reachable. For each $k$, find $L(k)$, the number of reachable cells.	
+
+a_507_bc
+view topic
+3	Let $n$ be a positive integer and $a_1,a_2,\ldots,a_n$ be positive real numbers. Prove that
+$$\sum_{i=1}^{n} \frac{1}{2^i} \left( \frac{2}{1+a_i} \right)^{2^i} \geq \frac{2}{1+a_1a_2\ldots a_n}-\frac{1}{2^n}.$$	
+
+GreenTea2593
+view topic
+4	Prove that for every positive integer $t$ there is a unique permutation $a_0, a_1, \ldots , a_{t-1}$ of $0, 1, \ldots , t-1$ such that, for every $0 \leq i \leq t-1$, the binomial coefficient $\binom{t+i}{2a_i}$ is odd and $2a_i \neq t+i$.	
+
+a_507_bc
+view topic
+5	Line $\ell$ intersects sides $BC$ and $AD$ of cyclic quadrilateral $ABCD$ in its interior points $R$ and $S$, respectively, and intersects ray $DC$ beyond point $C$ at $Q$, and ray $BA$ beyond point $A$ at $P$. Circumcircles of the triangles $QCR$ and $QDS$ intersect at $N \neq Q$, while circumcircles of the triangles $PAS$ and $PBR$ intersect at $M\neq P$. Let lines $MP$ and $NQ$ meet at point $X$, lines $AB$ and $CD$ meet at point $K$ and lines $BC$ and $AD$ meet at point $L$. Prove that point $X$ lies on line $KL$.	
+
+a_507_bc
+view topic
+Second Round	Test 1 (15 March 2024)
+1	Professor Oak is feeding his $100$ Pokémon. Each Pokémon has a bowl whose capacity is a positive real number of kilograms. These capacities are known to Professor Oak. The total capacity of all the bowls is $100$ kilograms. Professor Oak distributes $100$ kilograms of food in such a way that each Pokémon receives a non-negative integer number of kilograms of food (which may be larger than the capacity of the bowl). The dissatisfaction level of a Pokémon who received $N$ kilograms of food and whose bowl has a capacity of $C$ kilograms is equal to $\lvert N-C\rvert$.
+
+Find the smallest real number $D$ such that, regardless of the capacities of the bowls, Professor Oak can distribute food in a way that the sum of the dissatisfaction levels over all the $100$ Pokémon is at most $D$.
+
+Oleksii Masalitin, Ukraine	
+
+MarkBcc168
+view topic
+2	Let $ABC$ be a triangle with $AC > BC,$ let $\omega$ be the circumcircle of $\triangle ABC,$ and let $r$ be its radius. Point $P$ is chosen on $\overline{AC}$ such taht $BC=CP,$ and point $S$ is the foot of the perpendicular from $P$ to $\overline{AB}$. Ray $BP$ mets $\omega$ again at $D$. Point $Q$ is chosen on line $SP$ such that $PQ = r$ and $S,P,Q$ lie on a line in that order. Finally, let $E$ be a point satisfying $\overline{AE} \perp \overline{CQ}$ and $\overline{BE} \perp \overline{DQ}$. Prove that $E$ lies on $\omega$.	
+
+avisioner
+view topic
+3	Let $n\geqslant 2$ be a positive integer. Paul has a $1\times n^2$ rectangular strip consisting of $n^2$ unit squares, where the $i^{\text{th}}$ square is labelled with $i$ for all $1\leqslant i\leqslant n^2$. He wishes to cut the strip into several pieces, where each piece consists of a number of consecutive unit squares, and then translate (without rotating or flipping) the pieces to obtain an $n\times n$ square satisfying the following property: if the unit square in the $i^{\text{th}}$ row and $j^{\text{th}}$ column is labelled with $a_{ij}$, then $a_{ij}-(i+j-1)$ is divisible by $n$.
+
+Determine the smallest number of pieces Paul needs to make in order to accomplish this.	
+
+MarkBcc168
+view topic
+Second Round	Test 2 (17 March 2024)
+1	Let $ABCDE$ be a convex pentagon such that $\angle ABC = \angle AED = 90^\circ$. Suppose that the midpoint of $CD$ is the circumcenter of triangle $ABE$. Let $O$ be the circumcenter of triangle $ACD$.
+
+Prove that line $AO$ passes through the midpoint of segment $BE$.	
+
+popop614
+view topic
+2	Let $\mathbb R_{>0}$ be the set of positive real numbers. Determine all functions $f \colon \mathbb R_{>0} \to \mathbb R_{>0}$ such that\[x \big(f(x) + f(y)\big) \geqslant \big(f(f(x)) + y\big) f(y)\]for every $x, y \in \mathbb R_{>0}$.	
+
+Scilyse
+view topic
+3	Let $a_1<a_2<a_3<\dots$ be positive integers such that $a_{k+1}$ divides $2(a_1+a_2+\dots+a_k)$ for every $k\geqslant 1$. Suppose that for infinitely many primes $p$, there exists $k$ such that $p$ divides $a_k$. Prove that for every positive integer $n$, there exists $k$ such that $n$ divides $a_k$.	
+
+MarkBcc168
+view topic
+Second Round	Test 3 (19 March 2024)
+1	Determine the maximal length $L$ of a sequence $a_1,\dots,a_L$ of positive integers satisfying both the following properties:
+every term in the sequence is less than or equal to $2^{2023}$, and
+there does not exist a consecutive subsequence $a_i,a_{i+1},\dots,a_j$ (where $1\le i\le j\le L$) with a choice of signs $s_i,s_{i+1},\dots,s_j\in\{1,-1\}$ for which\[s_ia_i+s_{i+1}a_{i+1}+\dots+s_ja_j=0.\]
+
+OronSH
+view topic
+2	For positive integers $n$ and $k \geq 2$, define $E_k(n)$ as the greatest exponent $r$ such that $k^r$ divides $n!$. Prove that there are infinitely many $n$ such that $E_{10}(n) > E_9(n)$ and infinitely many $m$ such that $E_{10}(m) < E_9(m)$.	
+
+youlost_thegame_1434
+view topic
+3	Let $ABC$ be an acute-angled triangle with circumcircle $\omega$ and circumcentre $O$. Points $D\neq B$ and $E\neq C$ lie on $\omega$ such that $BD\perp AC$ and $CE\perp AB$. Let $CO$ meet $AB$ at $X$, and $BO$ meet $AC$ at $Y$.
+
+Prove that the circumcircles of triangles $BXD$ and $CYE$ have an intersection lie on line $AO$.
+
+Ivan Chan Kai Chin, Malaysia

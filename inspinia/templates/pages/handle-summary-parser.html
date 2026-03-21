@@ -1,0 +1,192 @@
+{% extends 'layouts/vertical.html' %}
+
+{% load i18n %}
+
+{% block title %}Handle summary parser{% endblock title %}
+
+{% block extra_css %}
+<style>
+  .handle-summary-export {
+    min-height: 18rem;
+  }
+
+  .handle-summary-topic-cell {
+    min-width: 28rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+</style>
+{% endblock extra_css %}
+
+{% block page_content %}
+
+<div class="container-fluid">
+  {% include 'partials/page-title.html' with title='Handle summary parser' subtitle='Workspace tool' %}
+
+  {% if messages %}
+  <div class="mt-3">
+    {% for message in messages %}
+      <div class="alert alert-{% if message.tags == 'error' %}danger{% elif message.tags == 'debug' %}secondary{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="{% translate 'Close' %}"></button>
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="row g-3 mt-0">
+    <div class="col-12">
+      <form id="handle-summary-parser-form" method="post" class="card">
+        {% csrf_token %}
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-0">Paste repeated Handle blocks and extract MOHS, confidence, IMO slot, and topic tags</h4>
+          <p class="text-muted fs-xs mb-0">The parser reads each <code>Handle:</code> block and exports a tab-separated table with the exact columns <code>MOHS</code>, <code>CONFIDENCE</code>, <code>IMO SLOT</code>, and <code>TOPICS TAG</code>.</p>
+        </div>
+        <div class="card-body pt-2">
+          {% if form.non_field_errors %}
+          <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+          {% endif %}
+          <div class="d-flex flex-wrap gap-2 align-items-center">
+            <button type="submit" class="btn btn-primary">
+              <i class="ti ti-table-export me-1"></i>Extract table
+            </button>
+            <button type="button" class="btn btn-outline-secondary" id="handle-summary-clear">
+              <i class="ti ti-eraser me-1"></i>Clear
+            </button>
+            {% if preview_payload %}
+            <button type="button" class="btn btn-outline-secondary" id="handle-summary-copy">
+              <i class="ti ti-copy me-1"></i>Copy TSV
+            </button>
+            {% endif %}
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-0 mb-4">
+    <div class="col-xl-6">
+      <div class="card h-100">
+        <div class="card-header border-bottom">
+          <h4 class="header-title mb-0">Raw input</h4>
+        </div>
+        <div class="card-body">
+          <label class="form-label" for="handle-summary-parser-input">Input</label>
+          {{ form.source_text }}
+          {% for error in form.source_text.errors %}
+          <div class="invalid-feedback d-block">{{ error }}</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-6">
+      <div class="card h-100">
+        <div class="card-header border-bottom d-flex justify-content-between align-items-center gap-2">
+          <div>
+            <h4 class="header-title mb-0">Export-ready TSV</h4>
+            <p class="text-muted fs-xs mb-0">Header row included. Paste this straight into a spreadsheet.</p>
+          </div>
+          {% if preview_payload %}
+          <span class="badge bg-primary-subtle text-primary">{{ preview_payload.row_count }} row{{ preview_payload.row_count|pluralize }}</span>
+          {% else %}
+          <span class="badge bg-secondary-subtle text-secondary">Waiting for input</span>
+          {% endif %}
+        </div>
+        <div class="card-body">
+          <textarea
+            id="handle-summary-export"
+            class="form-control font-monospace handle-summary-export"
+            readonly
+          >{% if preview_payload %}{{ preview_payload.export_tsv }}{% else %}MOHS	CONFIDENCE	IMO SLOT	TOPICS TAG{% endif %}</textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if preview_payload %}
+  <div class="row g-3 mt-0">
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-primary-subtle text-primary rounded">
+                <i class="ti ti-list-details fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Parsed rows</p>
+              <h3 class="mb-0">{{ preview_payload.row_count }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-1">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header border-bottom">
+          <h4 class="header-title mb-0">Parsed rows</h4>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-striped table-bordered align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th scope="col">Handle</th>
+                  <th scope="col">MOHS</th>
+                  <th scope="col">Confidence</th>
+                  <th scope="col">IMO slot</th>
+                  <th scope="col">Topic tags</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in preview_payload.rows %}
+                <tr>
+                  <td>{{ row.handle }}</td>
+                  <td>{{ row.mohs }}</td>
+                  <td>{{ row.confidence }}</td>
+                  <td>{{ row.imo_slot }}</td>
+                  <td class="handle-summary-topic-cell">{{ row.topic_tags }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock page_content %}
+
+{% block extra_javascript %}
+<script>
+  (function() {
+    var clearButton = document.getElementById("handle-summary-clear");
+    var copyButton = document.getElementById("handle-summary-copy");
+    var input = document.getElementById("handle-summary-parser-input");
+    var exportBox = document.getElementById("handle-summary-export");
+
+    if (clearButton && input) {
+      clearButton.addEventListener("click", function() {
+        input.value = "";
+        input.focus();
+      });
+    }
+
+    if (copyButton && exportBox) {
+      copyButton.addEventListener("click", function() {
+        exportBox.select();
+        exportBox.setSelectionRange(0, exportBox.value.length);
+        navigator.clipboard.writeText(exportBox.value).catch(function() {});
+      });
+    }
+  })();
+</script>
+{% endblock extra_javascript %}

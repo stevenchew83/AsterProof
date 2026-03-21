@@ -11,10 +11,19 @@
     gap: 1rem;
   }
 
+  .solution-statement-panel {
+    width: 100%;
+  }
+
   @media (min-width: 1200px) {
     .solution-editor-grid {
       grid-template-columns: minmax(0, 1.1fr) minmax(22rem, 0.9fr);
       align-items: start;
+    }
+
+    .solution-statement-panel {
+      max-width: calc(50% - 0.5rem);
+      justify-self: start;
     }
   }
 
@@ -52,13 +61,30 @@
   {% endif %}
 
   <div class="row g-3 mt-0">
-    <div class="col-xl-8">
-      <div class="card h-100">
+    <div class="col-12">
+      <div class="d-grid gap-3">
+        {% if problem_data.statement_entry %}
+        <div class="card solution-statement-panel">
+          <div class="card-header border-bottom">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+              <h4 class="header-title mb-0">Linked statement</h4>
+              <span class="badge bg-light text-body-secondary">
+                {{ problem_data.statement_entry.problem_code }}{% if problem_data.statement_entry.day_label %} · {{ problem_data.statement_entry.day_label }}{% endif %}
+              </span>
+            </div>
+          </div>
+          <div class="card-body">
+            {% include 'partials/statement-render-content.html' with segments=problem_data.statement_render_segments %}
+          </div>
+        </div>
+        {% endif %}
+
+        <div class="card h-100">
         <div class="card-header border-bottom">
           <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
             <div>
               <h4 class="header-title mb-0">{{ problem_data.problem_label }}</h4>
-              <p class="text-muted fs-xs mb-0">Build your solution as ordered blocks and preview the rendered LaTeX on the right.</p>
+              <p class="text-muted fs-xs mb-0">Build your solution as ordered blocks and preview the rendered LaTeX alongside the editor.</p>
             </div>
             <div class="d-flex flex-wrap gap-2">
               <span class="badge {{ solution_status_badge_class }}">{{ solution_status_label }}</span>
@@ -211,39 +237,24 @@
             </div>
           </form>
         </div>
-      </div>
-    </div>
-    <div class="col-xl-4">
-      {% if problem_data.statement_entry %}
-      <div class="card">
-        <div class="card-header border-bottom">
-          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
-            <h4 class="header-title mb-0">Linked statement</h4>
-            <span class="badge bg-light text-body-secondary">
-              {{ problem_data.statement_entry.problem_code }}{% if problem_data.statement_entry.day_label %} · {{ problem_data.statement_entry.day_label }}{% endif %}
-            </span>
+        </div>
+
+        <div class="card">
+          <div class="card-header border-bottom">
+            <h4 class="header-title mb-0">Editor notes</h4>
           </div>
-        </div>
-        <div class="card-body">
-          {% include 'partials/statement-render-content.html' with segments=problem_data.statement_render_segments %}
-        </div>
-      </div>
-      {% endif %}
-      <div class="card{% if problem_data.statement_entry %} mt-3{% endif %}">
-        <div class="card-header border-bottom">
-          <h4 class="header-title mb-0">Editor notes</h4>
-        </div>
-        <div class="card-body">
-          <p class="text-muted">
-            Use block titles for natural transitions like <code>Therefore</code>, <code>Hence</code>, or
-            <code>When n is even</code>. Keep the structural type small and stable.
-          </p>
-          <p class="text-muted">
-            Save order follows the numeric <code>Order</code> field. The live preview uses that sequence even if the editor cards themselves are still stacked in their original order.
-          </p>
-          <p class="text-muted mb-0">
-            The preview renders LaTeX-style math with the same MathJax stack used elsewhere in the project.
-          </p>
+          <div class="card-body">
+            <p class="text-muted">
+              Use block titles for natural transitions like <code>Therefore</code>, <code>Hence</code>, or
+              <code>When n is even</code>. Keep the structural type small and stable.
+            </p>
+            <p class="text-muted">
+              Save order follows the numeric <code>Order</code> field. The live preview uses that sequence even if the editor cards themselves are still stacked in their original order.
+            </p>
+            <p class="text-muted mb-0">
+              The preview renders LaTeX-style math with the same MathJax stack used elsewhere in the project.
+            </p>
+          </div>
         </div>
       </div>
     </div>

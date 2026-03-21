@@ -1,0 +1,28 @@
+2017 China Team Selection Test3
+China Team Selection Test 2017
+TST 1
+Day 1
+1	Find out the maximum value of the numbers of edges of a solid regular octahedron that we can see from a point out of the regular octahedron.
+
+HuangZhen
+view topic
+Day 2
+4	Find out all the integer pairs $(m,n)$ such that there exist two monic polynomials $P(x)$ and $Q(x)$.
+
+HuangZhen
+view topic
+TST 2
+Day 1
+1	Let $n$ be a positive integer. Let $D_n$ be the set of all divisors of $n$ and let $f(n)$ denote the smallest natural $m$ such that the elements of $D_n$ are pairwise distinct in mod $m$.
+
+fattypiggy123
+view topic
+TST 5
+1	Given $n\ge 3$. consider a sequence $a_1,a_2,...,a_n$, if $(a_i,a_j,a_k)$ with i+k=2j (i<j<k) and $a_i+a_k\ne 2a_j$, we call such a triple a $NOT-AP$ triple.
+
+sengeki-niju
+view topic
+2	Find the least positive number m such that for any polynimial f(x) with real coefficients, there is a polynimial g(x) with real coefficients (degree not greater than m).
+
+sengeki-niju
+view topic

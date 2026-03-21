@@ -1,0 +1,40 @@
+(China) National High School Mathematics League
+2025 China Second Round A3
+1	In triangle \(ABC\), let \(D\) be the midpoint of side \(BC\). Extend \(AD\) to meet the circumcircle of triangle \(ABC\) at point \(P\). Through points \(B\) and \(P\), construct a circle that is tangent to side \(AC\) at point \(E\). Through points \(C\) and \(P\), construct a circle that is tangent to side \(AB\) at point \(F\). Prove that lines \(AD\), \(BE\), and \(CF\) are concurrent.	
+
+steven_zhang123
+view topic
+2	Let $m$, $n$ and $k$ be positive integers, where $ m \geqslant 2$ and $n\geqslant k \geqslant 2$. Real numbers $x_1\geqslant x_2\geqslant \cdots \geqslant x_n\geqslant 0$ satisfy the following conditions:
+\[ \begin{aligned} \textup{(i)} \quad& x_1^m+x_2^m+\cdots+x_n^m \geqslant 1 \\  \textup{(ii)} \quad & x_1+x_2+\cdots+x_n \leqslant k\end{aligned} \]Prove that $x_1+x_2+\cdots+x_k \geqslant 1$.	
+
+Photaesthesia
+view topic
+3	Find all positive integers $n$ such that the following holds: There exists a multiple $N$ of $n$, whose decimal representation contain all digits but $0$, and for each $i\in \left \{ 1,2,\ldots,9\right\}$, one can delete a digit $i$ from the decimal representation of $N$, so that the resulting number is again a multiple of $n$.	
+
+Photaesthesia
+view topic
+4	Let $t > 10000$ be an integer. Alice and Bob play the following game, aiming to guess a positive integer $N$ such that $\tau(N) \le t^2+t+100$. Here $\tau(N)$ denotes the number of positive divisors of $N$. First, Alice chooses a positive integer $k$ and tells Bob. Then Bob finds a $N$ satisfying the condition, and tells Alice the value of $\tau(N)$ and $k$ distinct positive divisors of $N$. (If $\tau(N) \leqslant k$, Bob must tell all the positive divisors of $N$, otherwise he can choose exactly $k$ positive divisors of $N$ in his favor.) Determine the smallest $k$ such that Alice guarantees that she can guess $N$.
+
+2025 China Second Round B3
+1	Let $a,b,c>0$ such that $a+b+c=3$.
+Denote $S=a+ab+abc+bc+c$.
+(1)Prove that $S\le 5$.
+(2)If $S=3$,find the possible value of $b$.	
+
+SBYT
+view topic
+2	Let $\bigtriangleup ABC$ be a triangle and $D$ is the midpoint of $BC$.
+There are two point $E,F$ lies on the angle bisector of $\angle BAC$,such that $\angle AEB=\angle AFC=180^\circ -\angle BAC$.
+$\odot (AFB)$ intersects $\odot (AEC)$ at $A$ and another point $P$.
+
+Prove that:$A,P,D$ are conlinear.	
+
+SBYT
+view topic
+3	Let set $A\subset\mathbb{N_+},|A|=n$, define $m=|\{x+yz|x,y,x\in A\}|$
+Prove that $m\geq n^2+n-1$m and there exists $A$ such that $m=n^2+n-1$	
+
+MathMaxGreat
+view topic
+4	Find all positive integers $n$ with the following property:
+There exists a multiple $N$ of $n$ such that in its decimal representation, it contains every digit from $0$ to $9$, and for any $i \in \{0, 1, 2, ... , 9\}$, one can remove one digit $i$ from the decimal representation of $N$ so that the resulting number remains a multiple of $n$.

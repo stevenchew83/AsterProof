@@ -6,6 +6,17 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'plugins/datatables/dataTables.bootstrap5.min.css' %}">
+<style>
+  .contest-year-mohs-table-tools .dt-search {
+    display: none;
+  }
+
+  .contest-year-mohs-table-tools .dt-length,
+  .contest-year-mohs-table-tools .dt-info,
+  .contest-year-mohs-table-tools .dt-paging {
+    font-size: 0.8rem;
+  }
+</style>
 {% endblock extra_css %}
 
 {% block page_content %}
@@ -161,6 +172,56 @@
     </div>
   </div>
 
+  <div class="row g-3 mt-0">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-0">Contest-year vs MOHS pivot table</h4>
+          <p class="text-muted fs-xs mb-0">Problem statements define the rows, contest-year runs down the left, MOHS values sit across the top, and each cell shows the problem count.</p>
+        </div>
+        <div class="card-body pt-2">
+          {% if charts_payload.contestYearMohsPivotTable.table_rows %}
+          <div class="row g-3">
+            <div class="col-12">
+              <div class="d-flex flex-wrap align-items-end gap-2 mb-3">
+                <div>
+                  <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="contest-year-mohs-search">Search</label>
+                  <input
+                    id="contest-year-mohs-search"
+                    type="search"
+                    class="form-control form-control-sm"
+                    placeholder="Search contest or year"
+                  >
+                </div>
+                <div>
+                  <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="contest-year-mohs-contest-filter">Contest</label>
+                  <select id="contest-year-mohs-contest-filter" class="form-select form-select-sm">
+                    <option value="">All contests</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="contest-year-mohs-year-filter">Year</label>
+                  <select id="contest-year-mohs-year-filter" class="form-select form-select-sm">
+                    <option value="">All years</option>
+                  </select>
+                </div>
+                <button type="button" id="contest-year-mohs-reset" class="btn btn-outline-secondary btn-sm">Reset</button>
+                <span class="text-muted fs-xs">Pivot DataTable with index, search, and filters.</span>
+              </div>
+              <div class="table-responsive contest-year-mohs-table-tools">
+                <table id="contest-year-mohs-pivot-table" class="table table-striped table-bordered align-middle w-100"></table>
+              </div>
+            </div>
+          </div>
+          {% else %}
+          <div class="alert alert-info mb-0" role="alert">
+            No problem statements with matching MOHS data yet. Once statement rows and problem rows share the same problem UUID, this pivot table will populate automatically.
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
   <div class="row g-3 mt-0 mb-4">
     <div class="col-12">
       <div class="card">
@@ -236,6 +297,115 @@
 
   var tblNode = document.getElementById(tableElId);
   if (!tblNode || typeof DataTable === "undefined") return;
+  var contestYearMohsPayload = charts.contestYearMohsPivotTable || {};
+  var contestYearMohsSearch = document.getElementById("contest-year-mohs-search");
+  var contestYearMohsContestFilter = document.getElementById("contest-year-mohs-contest-filter");
+  var contestYearMohsYearFilter = document.getElementById("contest-year-mohs-year-filter");
+  var contestYearMohsReset = document.getElementById("contest-year-mohs-reset");
+  var contestYearMohsTableRows = (contestYearMohsPayload.table_rows || []).map(function (row) {
+    var hydratedRow = {
+      contest_name: row.contest_name,
+      contest_year: String(row.contest_year),
+      contest_year_label: row.contest_year_label
+    };
+    (contestYearMohsPayload.mohs_values || []).forEach(function (mohsValue) {
+      hydratedRow["mohs_" + mohsValue] = Number((row.mohs_counts || {})[mohsValue] || 0);
+    });
+    return hydratedRow;
+  });
+
+  if (contestYearMohsContestFilter && contestYearMohsPayload.contest_names) {
+    contestYearMohsPayload.contest_names.forEach(function (contestName) {
+      var option = document.createElement("option");
+      option.value = contestName;
+      option.textContent = contestName;
+      contestYearMohsContestFilter.appendChild(option);
+    });
+  }
+
+  if (contestYearMohsYearFilter && contestYearMohsPayload.year_values) {
+    contestYearMohsPayload.year_values.forEach(function (yearValue) {
+      var option = document.createElement("option");
+      option.value = yearValue;
+      option.textContent = yearValue;
+      contestYearMohsYearFilter.appendChild(option);
+    });
+  }
+
+  var contestYearMohsTable = null;
+  if (contestYearMohsTableRows.length) {
+    var contestYearMohsColumns = [
+      {
+        data: null,
+        title: "#",
+        className: "text-end text-nowrap",
+        render: function (_data, _type, _row, meta) {
+          return meta.row + 1 + meta.settings._iDisplayStart;
+        }
+      },
+      { data: "contest_year_label", title: "Contest-year", className: "text-nowrap" },
+      { data: "contest_name", title: "Contest", className: "text-nowrap", visible: false },
+      { data: "contest_year", title: "Year", className: "text-nowrap", visible: false }
+    ];
+
+    (contestYearMohsPayload.mohs_values || []).forEach(function (mohsValue) {
+      contestYearMohsColumns.push({
+        data: "mohs_" + mohsValue,
+        title: "MOHS " + mohsValue,
+        className: "text-center text-nowrap",
+        render: function (value) {
+          return Number(value || 0);
+        }
+      });
+    });
+
+    contestYearMohsTable = new DataTable("#contest-year-mohs-pivot-table", {
+      data: contestYearMohsTableRows,
+      columns: contestYearMohsColumns,
+      order: [[2, "asc"], [3, "desc"]],
+      pageLength: 12,
+      lengthMenu: [12, 25, 50, 100]
+    });
+
+    DataTable.ext.search.push(function (settings, data) {
+      if (!settings || !settings.nTable || settings.nTable.id !== "contest-year-mohs-pivot-table") {
+        return true;
+      }
+      var contestValue = contestYearMohsContestFilter ? contestYearMohsContestFilter.value : "";
+      var yearValue = contestYearMohsYearFilter ? contestYearMohsYearFilter.value : "";
+      var matchesContest = !contestValue || data[2] === contestValue;
+      var matchesYear = !yearValue || data[3] === yearValue;
+      return matchesContest && matchesYear;
+    });
+
+    if (contestYearMohsSearch) {
+      contestYearMohsSearch.addEventListener("input", function () {
+        contestYearMohsTable.search(contestYearMohsSearch.value || "").draw();
+      });
+    }
+
+    if (contestYearMohsContestFilter) {
+      contestYearMohsContestFilter.addEventListener("change", function () {
+        contestYearMohsTable.draw();
+      });
+    }
+
+    if (contestYearMohsYearFilter) {
+      contestYearMohsYearFilter.addEventListener("change", function () {
+        contestYearMohsTable.draw();
+      });
+    }
+
+    if (contestYearMohsReset) {
+      contestYearMohsReset.addEventListener("click", function () {
+        if (contestYearMohsSearch) contestYearMohsSearch.value = "";
+        if (contestYearMohsContestFilter) contestYearMohsContestFilter.value = "";
+        if (contestYearMohsYearFilter) contestYearMohsYearFilter.value = "";
+        contestYearMohsTable.search("").draw();
+      });
+    }
+  }
+
   var rows = JSON.parse(tblNode.textContent);
   new DataTable("#problems-analytics-table", {
     data: rows,

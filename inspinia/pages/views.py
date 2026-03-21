@@ -1,14 +1,19 @@
+import csv
 import re
+import uuid
 from collections import Counter
 from collections import defaultdict
 from datetime import date
 from datetime import timedelta
+from io import StringIO
 from urllib.parse import urlencode
 
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
+from django.db import IntegrityError
+from django.db import transaction
 from django.db.models import Avg
 from django.db.models import Count
 from django.db.models import F
@@ -32,9 +37,16 @@ from inspinia.pages.contest_rename import ContestRenameValidationError
 from inspinia.pages.contest_rename import rename_contests
 from inspinia.pages.forms import ContestMetadataForm
 from inspinia.pages.forms import ContestRenameForm
+from inspinia.pages.forms import HandleSummaryParserForm
 from inspinia.pages.forms import ProblemCompletionPasteForm
+from inspinia.pages.forms import ProblemStatementCsvImportForm
 from inspinia.pages.forms import ProblemStatementImportForm
 from inspinia.pages.forms import ProblemXlsxImportForm
+from inspinia.pages.forms import StatementMetadataWorkbookForm
+from inspinia.pages.handle_summary_parser import HandleSummaryParseValidationError
+from inspinia.pages.handle_summary_parser import HandleSummaryPreviewPayload
+from inspinia.pages.handle_summary_parser import build_handle_summary_preview_payload
+from inspinia.pages.handle_summary_parser import parse_handle_summary_text
 from inspinia.pages.models import ContestMetadata
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
@@ -44,6 +56,7 @@ from inspinia.pages.problem_completion_import import import_problem_completion_t
 from inspinia.pages.problem_import import ProblemImportValidationError
 from inspinia.pages.problem_import import build_parsed_preview_payload
 from inspinia.pages.problem_import import build_problem_export_workbook_bytes
+from inspinia.pages.problem_import import build_problem_statement_export_workbook_bytes
 from inspinia.pages.problem_import import dataframe_from_excel
 from inspinia.pages.problem_import import import_problem_dataframe
 from inspinia.pages.statement_duplicates import build_statement_duplicate_report
@@ -56,6 +69,12 @@ from inspinia.pages.statement_import import build_problem_statement_save_preview
 from inspinia.pages.statement_import import import_problem_statements
 from inspinia.pages.statement_import import parse_contest_problem_statements
 from inspinia.pages.statement_import import relink_problem_statement_rows
+from inspinia.pages.statement_metadata_backfill import StatementMetadataBackfillValidationError
+from inspinia.pages.statement_metadata_backfill import build_statement_metadata_export_dataframe
+from inspinia.pages.statement_metadata_backfill import build_statement_metadata_export_workbook_bytes
+from inspinia.pages.statement_metadata_backfill import import_statement_metadata_dataframe
+from inspinia.pages.statement_metadata_backfill import statement_metadata_dataframe_from_excel
+from inspinia.pages.statement_metadata_backfill import statement_metadata_dataframe_from_rows
 from inspinia.solutions.models import ProblemSolution
 from inspinia.users.models import AuditEvent
 from inspinia.users.monitoring import record_event
@@ -64,6 +83,26 @@ from inspinia.users.roles import user_has_admin_role
 CONTEST_TOPIC_PREVIEW_LIMIT = 3
 CONTEST_PROBLEM_PREVIEW_LIMIT = 6
 XLSX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+CSV_CONTENT_TYPE = "text/csv; charset=utf-8"
+STATEMENT_CSV_COLUMNS = [
+    "PROBLEM UUID",
+    "LINKED PROBLEM UUID",
+    "CONTEST YEAR",
+    "CONTEST NAME",
+    "CONTEST PROBLEM",
+    "DAY LABEL",
+    "PROBLEM NUMBER",
+    "PROBLEM CODE",
+    "STATEMENT LATEX",
+]
+STATEMENT_CSV_REQUIRED_COLUMNS = {
+    "CONTEST YEAR",
+    "CONTEST NAME",
+    "DAY LABEL",
+    "PROBLEM NUMBER",
+    "PROBLEM CODE",
+    "STATEMENT LATEX",
+}
 MAIN_TOPIC_CODE_MAP = {
     "A": "A",
     "ALG": "A",
@@ -75,6 +114,14 @@ MAIN_TOPIC_CODE_MAP = {
     "NT": "N",
 }
 MAIN_TOPIC_CODE_ORDER = ("A", "C", "G", "N")
+STATEMENT_LINKER_ERROR_PREVIEW_LIMIT = 5
+STATEMENT_METADATA_ERROR_PREVIEW_LIMIT = 5
+COMPLETION_BOARD_INITIAL_ROW_LIMIT = 30
+COMPLETION_BOARD_ROW_LOAD_STEP = 30
+
+
+class ProblemStatementCsvImportValidationError(ValueError):
+    """Raised when a statement CSV upload cannot be parsed or validated."""
 
 
 @login_required
@@ -362,6 +409,36 @@ def latex_preview_view(request):
 
 
 @login_required
+def handle_summary_parser_view(request):
+    preview_payload: HandleSummaryPreviewPayload | None = None
+
+    if request.method == "POST":
+        form = HandleSummaryParserForm(request.POST)
+        if form.is_valid():
+            try:
+                parsed_rows = parse_handle_summary_text(form.cleaned_data["source_text"])
+            except HandleSummaryParseValidationError as exc:
+                messages.error(request, str(exc))
+            else:
+                preview_payload = build_handle_summary_preview_payload(parsed_rows)
+                messages.info(
+                    request,
+                    f'Extracted {preview_payload["row_count"]} handle block(s) into the export table.',
+                )
+    else:
+        form = HandleSummaryParserForm()
+
+    return render(
+        request,
+        "pages/handle-summary-parser.html",
+        {
+            "form": form,
+            "preview_payload": preview_payload,
+        },
+    )
+
+
+@login_required
 def statement_render_preview_view(request):
     if request.method != "POST":
         return JsonResponse({"error": "POST required.", "ok": False}, status=405)
@@ -528,6 +605,406 @@ def _statement_table_rows(base) -> list[dict]:
     return table_rows
 
 
+def _statement_linker_statement_label(statement: ContestProblemStatement) -> str:
+    day_label = statement.day_label or "Unlabeled"
+    return f"{statement.contest_year_problem} · {day_label}"
+
+
+def _statement_linker_problem_label(problem: ProblemSolveRecord) -> str:
+    return problem.contest_year_problem or f"{problem.contest} {problem.year} {problem.problem}"
+
+
+def _statement_linker_problem_option_label(problem: ProblemSolveRecord) -> str:
+    return " · ".join(
+        [
+            problem.problem,
+            _statement_linker_problem_label(problem),
+            f"Topic {problem.topic}",
+            f"MOHS {problem.mohs}",
+        ],
+    )
+
+
+def _statement_linker_group_key(contest_name: str, contest_year: int) -> str:
+    return f"{contest_name}::{contest_year}"
+
+
+def _statement_linker_problem_is_available(
+    problem: ProblemSolveRecord,
+    *,
+    claimant_by_problem_uuid: dict,
+    statement_id: int,
+) -> bool:
+    claimant = claimant_by_problem_uuid.get(problem.problem_uuid)
+    return claimant is None or claimant.id == statement_id
+
+
+def _statement_linker_suggested_problem(
+    *,
+    statement: ContestProblemStatement,
+    problem_by_uuid: dict,
+    problem_by_statement_key: dict,
+    statement_problem_code_counts: Counter,
+    claimant_by_problem_uuid: dict,
+) -> tuple[ProblemSolveRecord | None, str]:
+    if statement.linked_problem is not None:
+        return statement.linked_problem, "Already linked"
+
+    uuid_match = problem_by_uuid.get(statement.problem_uuid)
+    if uuid_match is not None and _statement_linker_problem_is_available(
+        uuid_match,
+        claimant_by_problem_uuid=claimant_by_problem_uuid,
+        statement_id=statement.id,
+    ):
+        return uuid_match, "UUID match"
+
+    problem_code = (statement.problem_code or "").strip().upper()
+    statement_problem_key = (
+        statement.contest_name,
+        int(statement.contest_year),
+        problem_code,
+    )
+    if problem_code and statement_problem_code_counts[statement_problem_key] == 1:
+        direct_match = problem_by_statement_key.get(statement_problem_key)
+        if direct_match is not None and _statement_linker_problem_is_available(
+            direct_match,
+            claimant_by_problem_uuid=claimant_by_problem_uuid,
+            statement_id=statement.id,
+        ):
+            return direct_match, "Problem code match"
+
+        if problem_code == f"P{statement.problem_number}":
+            fallback_match = problem_by_statement_key.get(
+                (
+                    statement.contest_name,
+                    int(statement.contest_year),
+                    str(statement.problem_number),
+                ),
+            )
+            if fallback_match is not None and _statement_linker_problem_is_available(
+                fallback_match,
+                claimant_by_problem_uuid=claimant_by_problem_uuid,
+                statement_id=statement.id,
+            ):
+                return fallback_match, "Problem number fallback"
+
+    return None, ""
+
+
+def _statement_linker_payload() -> dict[str, object]:
+    statements = list(
+        ContestProblemStatement.objects.select_related("linked_problem").order_by(
+            "-contest_year",
+            "contest_name",
+            "day_label",
+            "problem_number",
+            "problem_code",
+        ),
+    )
+    if not statements:
+        return {
+            "candidate_groups": {},
+            "contest_names": [],
+            "rows": [],
+            "stats": {
+                "contest_total": 0,
+                "linked_total": 0,
+                "suggested_total": 0,
+                "unlinked_total": 0,
+            },
+            "year_values": [],
+        }
+
+    statement_contests = sorted({statement.contest_name for statement in statements})
+    statement_years = sorted({int(statement.contest_year) for statement in statements}, reverse=True)
+    problems = list(
+        ProblemSolveRecord.objects.filter(
+            contest__in=statement_contests,
+            year__in=statement_years,
+        ).order_by("contest", "-year", "problem"),
+    )
+    problems_by_contest_year: dict[tuple[str, int], list[ProblemSolveRecord]] = defaultdict(list)
+    problem_by_uuid = {}
+    problem_by_statement_key = {}
+    for problem in problems:
+        problem_by_uuid[problem.problem_uuid] = problem
+        problem_by_statement_key[
+            (problem.contest, int(problem.year), (problem.problem or "").strip().upper())
+        ] = problem
+        problems_by_contest_year[(problem.contest, int(problem.year))].append(problem)
+
+    claimant_by_problem_uuid = {statement.problem_uuid: statement for statement in statements}
+    statement_problem_code_counts = Counter(
+        (
+            statement.contest_name,
+            int(statement.contest_year),
+            (statement.problem_code or "").strip().upper(),
+        )
+        for statement in statements
+    )
+
+    candidate_groups: dict[str, list[dict[str, object]]] = {}
+    for contest_name, contest_year in sorted(
+        problems_by_contest_year,
+        key=lambda contest_year_key: (-contest_year_key[1], contest_year_key[0].lower()),
+    ):
+        group_key = _statement_linker_group_key(contest_name, contest_year)
+        candidate_groups[group_key] = []
+        for problem in sorted(
+            problems_by_contest_year[(contest_name, contest_year)],
+            key=lambda problem: _problem_sort_key(problem.problem),
+        ):
+            claimant = claimant_by_problem_uuid.get(problem.problem_uuid)
+            candidate_groups[group_key].append(
+                {
+                    "claimed_statement_label": (
+                        _statement_linker_statement_label(claimant)
+                        if claimant is not None
+                        else ""
+                    ),
+                    "is_claimed": claimant is not None,
+                    "problem_id": problem.id,
+                    "problem_label": _statement_linker_problem_label(problem),
+                    "option_label": _statement_linker_problem_option_label(problem),
+                },
+            )
+
+    rows: list[dict[str, object]] = []
+    linked_total = 0
+    suggested_total = 0
+    for statement in statements:
+        linked_problem = statement.linked_problem
+        group_key = _statement_linker_group_key(statement.contest_name, int(statement.contest_year))
+        suggested_problem, suggestion_reason = _statement_linker_suggested_problem(
+            statement=statement,
+            problem_by_uuid=problem_by_uuid,
+            problem_by_statement_key=problem_by_statement_key,
+            statement_problem_code_counts=statement_problem_code_counts,
+            claimant_by_problem_uuid=claimant_by_problem_uuid,
+        )
+        if linked_problem is not None:
+            linked_total += 1
+        elif suggested_problem is not None:
+            suggested_total += 1
+
+        rows.append(
+            {
+                "candidate_count": len(candidate_groups.get(group_key, [])),
+                "candidate_group_key": group_key,
+                "contest_name": statement.contest_name,
+                "contest_year": int(statement.contest_year),
+                "contest_year_label": f"{statement.contest_name} {statement.contest_year}",
+                "contest_year_problem": statement.contest_year_problem,
+                "day_label": statement.day_label or "Unlabeled",
+                "has_suggestion": "yes" if linked_problem is None and suggested_problem is not None else "no",
+                "is_linked": linked_problem is not None,
+                "link_status": "linked" if linked_problem is not None else "unlinked",
+                "linked_problem_id": linked_problem.id if linked_problem is not None else None,
+                "linked_problem_label": (
+                    _statement_linker_problem_label(linked_problem)
+                    if linked_problem is not None
+                    else ""
+                ),
+                "problem_code": statement.problem_code,
+                "problem_uuid": str(statement.problem_uuid),
+                "statement_id": statement.id,
+                "statement_preview": _statement_preview_text(statement.statement_latex, max_length=180),
+                "suggested_problem_id": (
+                    suggested_problem.id
+                    if linked_problem is None and suggested_problem is not None
+                    else None
+                ),
+                "suggested_problem_label": (
+                    _statement_linker_problem_label(suggested_problem)
+                    if linked_problem is None and suggested_problem is not None
+                    else ""
+                ),
+                "suggestion_reason": suggestion_reason if linked_problem is None else "",
+            },
+        )
+
+    return {
+        "candidate_groups": candidate_groups,
+        "contest_names": statement_contests,
+        "rows": rows,
+        "stats": {
+            "contest_total": len(statement_contests),
+            "linked_total": linked_total,
+            "suggested_total": suggested_total,
+            "unlinked_total": len(statements) - linked_total,
+        },
+        "year_values": [str(year) for year in statement_years],
+    }
+
+
+def _statement_linker_apply_link(
+    *,
+    statement: ContestProblemStatement,
+    problem: ProblemSolveRecord,
+) -> str | None:
+    if int(problem.year) != int(statement.contest_year) or problem.contest != statement.contest_name:
+        return "Selected problem must come from the same contest and year as the statement row."
+
+    conflicting_statement = (
+        ContestProblemStatement.objects.exclude(id=statement.id)
+        .filter(problem_uuid=problem.problem_uuid)
+        .first()
+    )
+    if conflicting_statement is not None:
+        return (
+            f'"{_statement_linker_problem_label(problem)}" is already claimed by '
+            f'"{_statement_linker_statement_label(conflicting_statement)}".'
+        )
+
+    statement.linked_problem = problem
+    statement.save(update_fields={"linked_problem", "updated_at"})
+    return None
+
+
+def _statement_linker_clear_link(statement: ContestProblemStatement) -> None:
+    statement.linked_problem = None
+    statement.problem_uuid = uuid.uuid4()
+    statement.save(update_fields={"linked_problem", "problem_uuid", "updated_at"})
+
+
+def _statement_linker_parse_bulk_selection_pairs(post_data) -> tuple[list[tuple[int, int]], str | None]:
+    raw_statement_ids = post_data.getlist("statement_ids")
+    raw_problem_ids = post_data.getlist("selected_problem_ids")
+    if not raw_statement_ids:
+        return [], "Stage at least one manual link before saving."
+    if len(raw_statement_ids) != len(raw_problem_ids):
+        return [], "Submitted bulk link data is incomplete. Please reload the page and try again."
+
+    selection_by_statement_id: dict[int, int] = {}
+    for row_number, (raw_statement_id, raw_problem_id) in enumerate(
+        zip(raw_statement_ids, raw_problem_ids, strict=True),
+        start=1,
+    ):
+        try:
+            statement_id = int(raw_statement_id or "")
+        except (TypeError, ValueError):
+            return [], f"Bulk row {row_number} is missing a valid statement selection."
+        try:
+            problem_id = int(raw_problem_id or "")
+        except (TypeError, ValueError):
+            return [], f'Bulk row {row_number} for statement "{statement_id}" is missing a valid problem.'
+        selection_by_statement_id[statement_id] = problem_id
+
+    return list(selection_by_statement_id.items()), None
+
+
+def _statement_linker_apply_bulk_links(selection_pairs: list[tuple[int, int]]) -> tuple[int, list[str]]:
+    statements_by_id = {
+        statement.id: statement
+        for statement in ContestProblemStatement.objects.select_related("linked_problem").filter(
+            id__in=[statement_id for statement_id, _problem_id in selection_pairs],
+        )
+    }
+    problems_by_id = {
+        problem.id: problem
+        for problem in ProblemSolveRecord.objects.filter(
+            id__in=[problem_id for _statement_id, problem_id in selection_pairs],
+        )
+    }
+
+    success_count = 0
+    errors: list[str] = []
+    for statement_id, problem_id in selection_pairs:
+        statement = statements_by_id.get(statement_id)
+        if statement is None:
+            errors.append(f"Statement row {statement_id} was not found.")
+            continue
+
+        problem = problems_by_id.get(problem_id)
+        if problem is None:
+            errors.append(
+                f'Selected problem "{problem_id}" for "{_statement_linker_statement_label(statement)}" was not found.',
+            )
+            continue
+
+        error_message = _statement_linker_apply_link(statement=statement, problem=problem)
+        if error_message is not None:
+            errors.append(error_message)
+            continue
+
+        success_count += 1
+
+    return success_count, errors
+
+
+def _handle_problem_statement_linker_post(request):
+    redirect_name = "pages:problem_statement_linker"
+    action = (request.POST.get("action") or "").strip()
+
+    if action == "link_selected_bulk":
+        selection_pairs, validation_error = _statement_linker_parse_bulk_selection_pairs(request.POST)
+        if validation_error is not None:
+            messages.error(request, validation_error)
+        else:
+            success_count, errors = _statement_linker_apply_bulk_links(selection_pairs)
+            if success_count:
+                messages.success(request, f"Saved {success_count} manual link(s).")
+            for error_message in errors[:STATEMENT_LINKER_ERROR_PREVIEW_LIMIT]:
+                messages.error(request, error_message)
+            if len(errors) > STATEMENT_LINKER_ERROR_PREVIEW_LIMIT:
+                suppressed_error_count = len(errors) - STATEMENT_LINKER_ERROR_PREVIEW_LIMIT
+                messages.error(
+                    request,
+                    f"{suppressed_error_count} additional bulk link error(s) were suppressed.",
+                )
+    else:
+        try:
+            statement_id = int(request.POST.get("statement_id") or "")
+        except (TypeError, ValueError):
+            messages.error(request, "Select a statement row before saving a link.")
+        else:
+            statement = (
+                ContestProblemStatement.objects.select_related("linked_problem")
+                .filter(id=statement_id)
+                .first()
+            )
+            if statement is None:
+                raise Http404
+
+            if action == "clear_link":
+                if statement.linked_problem_id is None:
+                    messages.info(
+                        request,
+                        f'No linked problem was attached to "{_statement_linker_statement_label(statement)}".',
+                    )
+                else:
+                    _statement_linker_clear_link(statement)
+                    messages.success(
+                        request,
+                        f'Cleared the linked problem for "{_statement_linker_statement_label(statement)}".',
+                    )
+            elif action not in {"link_selected", "link_suggested"}:
+                messages.error(request, "Unsupported statement link action.")
+            else:
+                try:
+                    selected_problem_id = int(request.POST.get("selected_problem_id") or "")
+                except (TypeError, ValueError):
+                    messages.error(request, "Select a problem row before saving the link.")
+                else:
+                    selected_problem = ProblemSolveRecord.objects.filter(id=selected_problem_id).first()
+                    if selected_problem is None:
+                        raise Http404
+
+                    error_message = _statement_linker_apply_link(statement=statement, problem=selected_problem)
+                    if error_message is not None:
+                        messages.error(request, error_message)
+                    else:
+                        messages.success(
+                            request,
+                            (
+                                f'Linked "{_statement_linker_statement_label(statement)}" to '
+                                f'"{_statement_linker_problem_label(selected_problem)}".'
+                            ),
+                        )
+
+    return redirect(redirect_name)
+
+
 def _statement_dashboard_rows(base) -> list[dict]:
     rows = list(
         base.values("contest_name", "contest_year")
@@ -608,6 +1085,111 @@ def _contest_year_heatmap_payload(
             for contest_name in ordered_contests
         ],
         "years": [str(year) for year in years],
+    }
+
+def _contest_year_mohs_pivot_payload() -> dict[str, object]:
+    statement_rows = list(
+        ContestProblemStatement.objects.values(
+            "contest_name",
+            "contest_year",
+            "problem_code",
+            "problem_uuid",
+        ).order_by("contest_name", "-contest_year", "problem_code", "problem_uuid"),
+    )
+    if not statement_rows:
+        return {
+            "contest_names": [],
+            "mohs_values": [],
+            "table_rows": [],
+            "year_values": [],
+        }
+
+    problem_by_uuid = {
+        problem_row["problem_uuid"]: int(problem_row["mohs"])
+        for problem_row in ProblemSolveRecord.objects.filter(
+            problem_uuid__in=[row["problem_uuid"] for row in statement_rows],
+        ).values("problem_uuid", "mohs")
+    }
+    statement_problem_code_counts = Counter(
+        (
+            row["contest_name"],
+            int(row["contest_year"]),
+            (row["problem_code"] or "").strip().upper(),
+        )
+        for row in statement_rows
+    )
+    statement_problem_keys = {
+        (
+            row["contest_name"],
+            int(row["contest_year"]),
+            (row["problem_code"] or "").strip().upper(),
+        )
+        for row in statement_rows
+        if (row["problem_code"] or "").strip()
+    }
+    problem_by_statement_key = {
+        (
+            problem_row["contest"],
+            int(problem_row["year"]),
+            (problem_row["problem"] or "").strip().upper(),
+        ): int(problem_row["mohs"])
+        for problem_row in ProblemSolveRecord.objects.filter(
+            year__in={key[1] for key in statement_problem_keys},
+            contest__in={key[0] for key in statement_problem_keys},
+            problem__in={key[2] for key in statement_problem_keys},
+        ).values("contest", "year", "problem", "mohs")
+    }
+
+    mohs_values: set[int] = set()
+    counts_by_contest_year_mohs: dict[tuple[str, int], Counter[int]] = defaultdict(Counter)
+    ordered_contest_year_keys: list[tuple[str, int]] = []
+    seen_contest_year_keys: set[tuple[str, int]] = set()
+    ordered_contest_names: list[str] = []
+    seen_contest_names: set[str] = set()
+    seen_year_values: set[int] = set()
+
+    for row in statement_rows:
+        contest_name = row["contest_name"]
+        contest_year = int(row["contest_year"])
+        contest_year_key = (contest_name, contest_year)
+        if contest_year_key not in seen_contest_year_keys:
+            seen_contest_year_keys.add(contest_year_key)
+            ordered_contest_year_keys.append(contest_year_key)
+        if contest_name not in seen_contest_names:
+            seen_contest_names.add(contest_name)
+            ordered_contest_names.append(contest_name)
+        seen_year_values.add(contest_year)
+
+        problem_code = (row["problem_code"] or "").strip().upper()
+        mohs = problem_by_uuid.get(row["problem_uuid"])
+        if mohs is None and problem_code:
+            statement_problem_key = (contest_name, contest_year, problem_code)
+            if statement_problem_code_counts[statement_problem_key] == 1:
+                mohs = problem_by_statement_key.get(statement_problem_key)
+        if mohs is None:
+            continue
+
+        mohs_values.add(mohs)
+        counts_by_contest_year_mohs[contest_year_key][mohs] += 1
+
+    table_rows = [
+        {
+            "contest_name": contest_name,
+            "contest_year": contest_year,
+            "contest_year_label": f"{contest_name} {contest_year}",
+            "mohs_counts": {
+                str(mohs): counts_by_contest_year_mohs[(contest_name, contest_year)].get(mohs, 0)
+                for mohs in sorted(mohs_values)
+            },
+        }
+        for contest_name, contest_year in ordered_contest_year_keys
+    ]
+
+    return {
+        "contest_names": ordered_contest_names,
+        "mohs_values": [str(mohs) for mohs in sorted(mohs_values)],
+        "table_rows": table_rows,
+        "year_values": [str(year) for year in sorted(seen_year_values, reverse=True)],
     }
 
 
@@ -973,6 +1555,409 @@ def _user_completion_table_rows(completions: list[UserProblemCompletion]) -> tup
     return table_rows, filter_options
 
 
+def _coerce_year_filter(raw_value: str | None, available_years: set[int]) -> int | None:
+    if not raw_value:
+        return None
+    try:
+        year_value = int(raw_value)
+    except (TypeError, ValueError):
+        return None
+    return year_value if year_value in available_years else None
+
+
+def _completion_board_state_kind(*, is_solved: bool, completion_date: date | None) -> str:
+    if not is_solved:
+        return "unsolved"
+    if completion_date is None:
+        return "unknown"
+    return "solved"
+
+
+def _completion_board_state_label(*, is_solved: bool, completion_date: date | None) -> str:
+    if not is_solved:
+        return "Unsolved"
+    if completion_date is None:
+        return "Solved without exact date"
+    return f"Solved on {completion_date.isoformat()}"
+
+
+def _completion_board_cell_title(
+    *,
+    problem_label: str,
+    topic: str,
+    mohs: int,
+    is_solved: bool,
+    completion_date: date | None,
+) -> str:
+    return " · ".join(
+        [
+            problem_label,
+            f"Topic {topic}",
+            f"MOHS {mohs}",
+            _completion_board_state_label(is_solved=is_solved, completion_date=completion_date),
+        ],
+    )
+
+
+def _completion_board_response_payload(
+    *,
+    statement: ContestProblemStatement,
+    problem: ProblemSolveRecord,
+    is_solved: bool,
+    completion_date: date | None,
+) -> dict[str, object]:
+    return {
+        "completion_date": completion_date.isoformat() if completion_date else "",
+        "is_solved": is_solved,
+        "problem_label": (
+            statement.contest_year_problem
+            or problem.contest_year_problem
+            or f"{problem.contest} {problem.year} {problem.problem}"
+        ),
+        "problem_uuid": str(problem.problem_uuid),
+        "state_kind": _completion_board_state_kind(
+            is_solved=is_solved,
+            completion_date=completion_date,
+        ),
+        "state_label": _completion_board_state_label(
+            is_solved=is_solved,
+            completion_date=completion_date,
+        ),
+        "title": _completion_board_cell_title(
+            problem_label=statement.contest_year_problem
+            or problem.contest_year_problem
+            or f"{problem.contest} {problem.year} {problem.problem}",
+            topic=problem.topic,
+            mohs=problem.mohs,
+            is_solved=is_solved,
+            completion_date=completion_date,
+        ),
+    }
+
+
+def _completion_board_get_statement_problem(
+    problem_uuid: str,
+) -> tuple[ContestProblemStatement, ProblemSolveRecord] | None:
+    statement = (
+        ContestProblemStatement.objects.select_related("linked_problem")
+        .filter(linked_problem__problem_uuid=problem_uuid)
+        .first()
+    )
+    if statement is None or statement.linked_problem is None:
+        return None
+    return statement, statement.linked_problem
+
+
+def _completion_board_parse_requested_date(
+    raw_completion_date: str,
+    *,
+    today: date,
+) -> tuple[date | None, str | None]:
+    if not raw_completion_date:
+        return None, "Completion date is required."
+    try:
+        completion_date = date.fromisoformat(raw_completion_date)
+    except ValueError:
+        return None, "Completion date must be a valid YYYY-MM-DD value."
+    if completion_date > today:
+        return None, "Completion date cannot be in the future."
+    return completion_date, None
+
+
+def _completion_board_apply_action(
+    *,
+    action: str,
+    problem: ProblemSolveRecord,
+    raw_completion_date: str,
+    today: date,
+    user,
+) -> tuple[bool, date | None, str | None]:
+    completion = UserProblemCompletion.objects.filter(
+        user=user,
+        problem=problem,
+    ).first()
+    error_message: str | None = None
+
+    if action in {"", "toggle"}:
+        if completion is None:
+            completion = UserProblemCompletion.objects.create(
+                user=user,
+                problem=problem,
+                completion_date=today,
+            )
+            is_solved = True
+            completion_date = completion.completion_date
+        else:
+            completion.delete()
+            is_solved = False
+            completion_date = None
+    elif action == "set_date":
+        completion_date, error_message = _completion_board_parse_requested_date(
+            raw_completion_date,
+            today=today,
+        )
+        if error_message is None and completion_date is not None:
+            UserProblemCompletion.objects.update_or_create(
+                user=user,
+                problem=problem,
+                defaults={"completion_date": completion_date},
+            )
+            is_solved = True
+        else:
+            is_solved = completion is not None
+            completion_date = completion.completion_date if completion is not None else None
+    elif action == "set_unknown":
+        UserProblemCompletion.objects.update_or_create(
+            user=user,
+            problem=problem,
+            defaults={"completion_date": None},
+        )
+        is_solved = True
+        completion_date = None
+    elif action == "clear":
+        UserProblemCompletion.objects.filter(user=user, problem=problem).delete()
+        is_solved = False
+        completion_date = None
+    else:
+        error_message = "Unsupported completion action."
+
+    return is_solved, completion_date, error_message
+
+
+def _completion_board_slot_label(*, day_label: str, problem_code: str, duplicate_count: int) -> str:
+    if duplicate_count <= 1:
+        return problem_code
+    return f"{day_label or 'Unlabeled'} · {problem_code}"
+
+
+def _completion_board_slot_sort_key(
+    slot_label: str,
+) -> tuple[list[tuple[int, int | str]], list[tuple[int, int | str]]]:
+    if " · " not in slot_label:
+        return ([], _problem_sort_key(slot_label))
+    day_label, problem_code = slot_label.split(" · ", 1)
+    return (_problem_sort_key(day_label), _problem_sort_key(problem_code))
+
+
+def _completion_board_parse_row_limit(raw_value: str | None) -> int | None:
+    raw_text = (raw_value or "").strip().lower()
+    if not raw_text:
+        return COMPLETION_BOARD_INITIAL_ROW_LIMIT
+    if raw_text == "all":
+        return None
+    try:
+        parsed_value = int(raw_text)
+    except (TypeError, ValueError):
+        return COMPLETION_BOARD_INITIAL_ROW_LIMIT
+    if parsed_value <= 0:
+        return COMPLETION_BOARD_INITIAL_ROW_LIMIT
+    return parsed_value
+
+
+def _completion_board_payload(base, *, user, row_limit: int | None) -> dict[str, object]:
+    statements = list(
+        base.select_related("linked_problem").order_by(
+            "-contest_year",
+            "contest_name",
+            "day_label",
+            "problem_number",
+            "problem_code",
+        ),
+    )
+    if not statements:
+        return {
+            "problem_columns": [],
+            "rows": [],
+            "stats": {
+                "contest_year_total": 0,
+                "problem_column_total": 0,
+                "statement_cell_total": 0,
+                "solved_total": 0,
+                "trackable_cell_total": 0,
+                "unlinked_cell_total": 0,
+                "unsolved_total": 0,
+            },
+        }
+
+    linked_problem_ids = sorted(
+        {
+            statement.linked_problem_id
+            for statement in statements
+            if statement.linked_problem_id is not None
+        },
+    )
+    completion_by_problem_id = {
+        row["problem_id"]: row["completion_date"]
+        for row in UserProblemCompletion.objects.filter(
+            user=user,
+            problem_id__in=linked_problem_ids,
+        ).values("problem_id", "completion_date")
+    }
+    solved_problem_ids = set(completion_by_problem_id)
+    trackable_statement_total = 0
+    solved_statement_total = 0
+    for statement in statements:
+        if statement.linked_problem_id is None:
+            continue
+        trackable_statement_total += 1
+        if statement.linked_problem_id in solved_problem_ids:
+            solved_statement_total += 1
+    duplicate_counts = Counter(
+        (
+            statement.contest_name,
+            statement.contest_year,
+            statement.problem_code,
+        )
+        for statement in statements
+    )
+    problem_columns = sorted(
+        {
+            _completion_board_slot_label(
+                day_label=statement.day_label,
+                problem_code=statement.problem_code,
+                duplicate_count=duplicate_counts[
+                    (statement.contest_name, statement.contest_year, statement.problem_code)
+                ],
+            )
+            for statement in statements
+        },
+        key=_completion_board_slot_sort_key,
+    )
+
+    grouped_rows: dict[tuple[str, int], dict[str, dict]] = defaultdict(dict)
+    for statement in statements:
+        slot_label = _completion_board_slot_label(
+            day_label=statement.day_label,
+            problem_code=statement.problem_code,
+            duplicate_count=duplicate_counts[(statement.contest_name, statement.contest_year, statement.problem_code)],
+        )
+        grouped_rows[(statement.contest_name, statement.contest_year)][slot_label] = statement
+
+    ordered_row_keys = sorted(
+        grouped_rows,
+        key=lambda row_key: (-row_key[1], row_key[0].lower()),
+    )
+    visible_row_keys = ordered_row_keys if row_limit is None else ordered_row_keys[:row_limit]
+    board_rows: list[dict[str, object]] = []
+    for contest_name, contest_year in visible_row_keys:
+        row_problem_map = grouped_rows[(contest_name, contest_year)]
+        row_trackable_total = 0
+        row_solved_total = 0
+        row_exact_solved_total = 0
+        row_unknown_solved_total = 0
+        cells: list[dict[str, object]] = []
+
+        for slot_label in problem_columns:
+            statement = row_problem_map.get(slot_label)
+            if statement is None:
+                cells.append(
+                    {
+                        "exists": False,
+                        "problem_code": slot_label,
+                    },
+                )
+                continue
+
+            linked_problem = statement.linked_problem
+            if linked_problem is None:
+                cells.append(
+                    {
+                        "exists": True,
+                        "is_trackable": False,
+                        "problem_code": slot_label,
+                        "problem_label": statement.contest_year_problem,
+                        "state_kind": "untrackable",
+                        "state_label": "Statement exists but is not linked to a tracked problem yet",
+                        "title": (
+                            f"{statement.contest_year_problem} · "
+                            "Statement is not linked to a tracked problem yet"
+                        ),
+                    },
+                )
+                continue
+
+            problem_id = linked_problem.id
+            row_trackable_total += 1
+            problem_label = statement.contest_year_problem or linked_problem.contest_year_problem or (
+                f"{statement.contest_name} {statement.contest_year} {statement.problem_code}"
+            )
+            is_solved = problem_id in solved_problem_ids
+            completion_date = completion_by_problem_id.get(problem_id) if is_solved else None
+            if is_solved:
+                row_solved_total += 1
+                if completion_date is None:
+                    row_unknown_solved_total += 1
+                else:
+                    row_exact_solved_total += 1
+
+            state_kind = _completion_board_state_kind(
+                is_solved=is_solved,
+                completion_date=completion_date,
+            )
+            cells.append(
+                {
+                    "completion_date": completion_date.isoformat() if completion_date else "",
+                    "exists": True,
+                    "is_solved": is_solved,
+                    "is_trackable": True,
+                    "mohs": linked_problem.mohs,
+                    "problem_code": slot_label,
+                    "problem_label": problem_label,
+                    "problem_uuid": str(linked_problem.problem_uuid),
+                    "state_kind": state_kind,
+                    "state_label": _completion_board_state_label(
+                        is_solved=is_solved,
+                        completion_date=completion_date,
+                    ),
+                    "title": _completion_board_cell_title(
+                        problem_label=problem_label,
+                        topic=linked_problem.topic,
+                        mohs=linked_problem.mohs,
+                        is_solved=is_solved,
+                        completion_date=completion_date,
+                    ),
+                    "topic": linked_problem.topic,
+                },
+            )
+
+        statement_total = len(row_problem_map)
+        board_rows.append(
+            {
+                "cells": cells,
+                "completion_rate": round((row_solved_total / row_trackable_total) * 100, 1)
+                if row_trackable_total
+                else 0.0,
+                "contest_name": contest_name,
+                "contest_year": contest_year,
+                "contest_year_label": f"{contest_name} {contest_year}",
+                "exact_solved_total": row_exact_solved_total,
+                "problem_total": row_trackable_total,
+                "solved_total": row_solved_total,
+                "statement_total": statement_total,
+                "trackable_total": row_trackable_total,
+                "unlinked_total": statement_total - row_trackable_total,
+                "unknown_solved_total": row_unknown_solved_total,
+                "unsolved_total": row_trackable_total - row_solved_total,
+            },
+        )
+
+    return {
+        "problem_columns": problem_columns,
+        "rows": board_rows,
+        "row_total": len(ordered_row_keys),
+        "visible_row_total": len(board_rows),
+        "stats": {
+            "contest_year_total": len(ordered_row_keys),
+            "problem_column_total": len(problem_columns),
+            "statement_cell_total": len(statements),
+            "solved_total": solved_statement_total,
+            "trackable_cell_total": trackable_statement_total,
+            "unlinked_cell_total": len(statements) - trackable_statement_total,
+            "unsolved_total": trackable_statement_total - solved_statement_total,
+        },
+    }
+
+
 def _require_admin_tools_access(request) -> None:
     if not settings.DEBUG and not user_has_admin_role(request.user):
         raise PermissionDenied
@@ -1322,6 +2307,179 @@ def _build_topic_tag_directory_rows(
 
 
 @login_required
+def completion_board_view(request):
+    """User-owned contest-year vs problem completion matrix."""
+    statement_base = ContestProblemStatement.objects.all()
+    statement_contest_years = [
+        f"{contest_name} {contest_year}"
+        for contest_name, contest_year in statement_base.values_list("contest_name", "contest_year")
+        .distinct()
+        .order_by("-contest_year", "contest_name")
+    ]
+    all_years = list(
+        statement_base.values_list("contest_year", flat=True).distinct().order_by("-contest_year"),
+    )
+    available_years = set(all_years)
+    search_query = (request.GET.get("q") or request.GET.get("contest") or "").strip()
+    year_from = _coerce_year_filter(request.GET.get("year_from"), available_years)
+    year_to = _coerce_year_filter(request.GET.get("year_to"), available_years)
+    if year_from is not None and year_to is not None and year_from > year_to:
+        year_from, year_to = year_to, year_from
+
+    base = statement_base
+    if search_query:
+        for token in search_query.split():
+            token_filter = Q(contest_name__icontains=token)
+            if token.isdigit():
+                token_filter |= Q(contest_year=int(token))
+            base = base.filter(token_filter)
+    if year_from is not None:
+        base = base.filter(contest_year__gte=year_from)
+    if year_to is not None:
+        base = base.filter(contest_year__lte=year_to)
+
+    row_limit = _completion_board_parse_row_limit(request.GET.get("rows"))
+    board_payload = _completion_board_payload(base, user=request.user, row_limit=row_limit)
+
+    def build_completion_board_url(*, rows: int | str | None) -> str:
+        params = request.GET.copy()
+        if rows is None:
+            params.pop("rows", None)
+        else:
+            params["rows"] = str(rows)
+        query_string = params.urlencode()
+        base_url = reverse("pages:completion_board")
+        return f"{base_url}?{query_string}" if query_string else base_url
+
+    has_more_rows = board_payload["visible_row_total"] < board_payload["row_total"]
+    next_row_limit = None
+    if has_more_rows and row_limit is not None:
+        next_row_limit = min(board_payload["row_total"], row_limit + COMPLETION_BOARD_ROW_LOAD_STEP)
+
+    context = {
+        "completion_board_filters": {
+            "search_query": search_query,
+            "selected_year_from": str(year_from) if year_from is not None else "",
+            "selected_year_to": str(year_to) if year_to is not None else "",
+            "year_choices": all_years,
+        },
+        "completion_board_has_records": bool(all_years),
+        "completion_board_problem_columns": board_payload["problem_columns"],
+        "completion_board_rows": board_payload["rows"],
+        "completion_board_row_window": {
+            "has_more_rows": has_more_rows,
+            "is_partial": row_limit is not None and has_more_rows,
+            "loaded_row_total": board_payload["visible_row_total"],
+            "remaining_row_total": board_payload["row_total"] - board_payload["visible_row_total"],
+            "row_limit": row_limit,
+            "show_all_url": build_completion_board_url(rows="all") if has_more_rows else "",
+            "total_row_total": board_payload["row_total"],
+            "next_rows_url": build_completion_board_url(rows=next_row_limit)
+            if next_row_limit is not None
+            else "",
+        },
+        "completion_board_statement_contest_years": statement_contest_years,
+        "completion_board_stats": board_payload["stats"],
+        "completion_board_bulk_url": reverse("pages:completion_board_bulk"),
+        "completion_board_today": timezone.localdate().isoformat(),
+        "completion_board_toggle_url": reverse("pages:completion_board_toggle"),
+    }
+    return render(request, "pages/completion-board.html", context)
+
+
+@login_required
+def completion_board_toggle_view(request):
+    """Phase 2 completion controls with a phase 1 toggle fallback."""
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required."}, status=405)
+
+    problem_uuid = (request.POST.get("problem_uuid") or "").strip()
+    if not problem_uuid:
+        return JsonResponse({"error": "Problem UUID is required."}, status=400)
+
+    statement_problem = _completion_board_get_statement_problem(problem_uuid)
+    if statement_problem is None:
+        raise Http404
+    statement, problem = statement_problem
+
+    action = (request.POST.get("action") or "").strip().lower()
+    today = timezone.localdate()
+    is_solved, completion_date, error_message = _completion_board_apply_action(
+        action=action,
+        problem=problem,
+        raw_completion_date=(request.POST.get("completion_date") or "").strip(),
+        today=today,
+        user=request.user,
+    )
+
+    if error_message is not None:
+        return JsonResponse({"error": error_message}, status=400)
+    return JsonResponse(
+        _completion_board_response_payload(
+            statement=statement,
+            problem=problem,
+            is_solved=is_solved,
+            completion_date=completion_date,
+        ),
+    )
+
+
+@login_required
+def completion_board_bulk_view(request):
+    """Apply one completion action to multiple selected statement-backed problems."""
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required."}, status=405)
+
+    raw_problem_uuids = [
+        value.strip()
+        for value in request.POST.getlist("problem_uuid")
+        if value.strip()
+    ]
+    if not raw_problem_uuids:
+        return JsonResponse({"error": "Select at least one problem first."}, status=400)
+
+    unique_problem_uuids = list(dict.fromkeys(raw_problem_uuids))
+    resolved_entries: list[tuple[ContestProblemStatement, ProblemSolveRecord]] = []
+    for problem_uuid in unique_problem_uuids:
+        statement_problem = _completion_board_get_statement_problem(problem_uuid)
+        if statement_problem is None:
+            raise Http404
+        resolved_entries.append(statement_problem)
+
+    action = (request.POST.get("action") or "").strip().lower()
+    raw_completion_date = (request.POST.get("completion_date") or "").strip()
+    today = timezone.localdate()
+
+    updated_payloads: list[dict[str, object]] = []
+    with transaction.atomic():
+        for statement, problem in resolved_entries:
+            is_solved, completion_date, error_message = _completion_board_apply_action(
+                action=action,
+                problem=problem,
+                raw_completion_date=raw_completion_date,
+                today=today,
+                user=request.user,
+            )
+            if error_message is not None:
+                return JsonResponse({"error": error_message}, status=400)
+            updated_payloads.append(
+                _completion_board_response_payload(
+                    statement=statement,
+                    problem=problem,
+                    is_solved=is_solved,
+                    completion_date=completion_date,
+                ),
+            )
+
+    return JsonResponse(
+        {
+            "updated": updated_payloads,
+            "updated_count": len(updated_payloads),
+        },
+    )
+
+
+@login_required
 def user_activity_dashboard_view(request):
     """Logged-in user's personal completion dashboard."""
     completion_import_form = ProblemCompletionPasteForm()
@@ -1464,6 +2622,7 @@ def dashboard_analytics_view(request):
         .annotate(c=Count("id"))
         .order_by("-c")[:18],
     )
+    contest_year_mohs_pivot_table = _contest_year_mohs_pivot_payload()
 
     charts_payload = {
         "byYear": _rows_to_bar_payload(by_year, "year"),
@@ -1471,6 +2630,7 @@ def dashboard_analytics_view(request):
         "byContest": _rows_to_bar_payload(by_contest, "contest"),
         "byMohs": _rows_to_bar_payload(by_mohs, "mohs"),
         "topTechniques": _rows_to_bar_payload(top_techniques, "technique"),
+        "contestYearMohsPivotTable": contest_year_mohs_pivot_table,
     }
 
     table_rows = _problem_table_rows(base)
@@ -1483,6 +2643,26 @@ def dashboard_analytics_view(request):
         "table_rows": table_rows,
     }
     return render(request, "pages/dashboard-analytics.html", context)
+
+
+@login_required
+def problem_statement_linker_view(request):
+    """Admin linking tool for connecting statement rows to tracked problem rows."""
+    _require_admin_tools_access(request)
+
+    if request.method == "POST":
+        return _handle_problem_statement_linker_post(request)
+
+    linker_payload = _statement_linker_payload()
+    context = {
+        "statement_linker_candidate_groups": linker_payload["candidate_groups"],
+        "statement_linker_contest_names": linker_payload["contest_names"],
+        "statement_linker_rows": linker_payload["rows"],
+        "statement_linker_stats": linker_payload["stats"],
+        "statement_linker_total": len(linker_payload["rows"]),
+        "statement_linker_year_values": linker_payload["year_values"],
+    }
+    return render(request, "pages/problem-statement-linker.html", context)
 
 
 @login_required
@@ -2239,6 +3419,398 @@ def _export_problem_workbook_response() -> HttpResponse:
     return response
 
 
+def _export_problem_statement_workbook_response() -> HttpResponse:
+    statements = (
+        ContestProblemStatement.objects.select_related("linked_problem")
+        .order_by("-contest_year", "contest_name", "day_label", "problem_number", "problem_code")
+    )
+    workbook_bytes = build_problem_statement_export_workbook_bytes(list(statements))
+    timestamp = timezone.localtime().strftime("%Y%m%d-%H%M%S")
+    response = HttpResponse(workbook_bytes, content_type=XLSX_CONTENT_TYPE)
+    response["Content-Disposition"] = (
+        f'attachment; filename="asterproof-problem-statements-{timestamp}.xlsx"'
+    )
+    return response
+
+
+def _export_statement_metadata_workbook_response() -> HttpResponse:
+    statements = list(
+        ContestProblemStatement.objects.select_related("linked_problem").order_by(
+            "-contest_year",
+            "contest_name",
+            "day_label",
+            "problem_number",
+            "problem_code",
+        ),
+    )
+    workbook_bytes = build_statement_metadata_export_workbook_bytes(statements)
+    timestamp = timezone.localtime().strftime("%Y%m%d-%H%M%S")
+    response = HttpResponse(workbook_bytes, content_type=XLSX_CONTENT_TYPE)
+    response["Content-Disposition"] = (
+        f'attachment; filename="asterproof-statement-metadata-{timestamp}.xlsx"'
+    )
+    return response
+
+
+def _statement_metadata_table_payload() -> dict[str, object]:
+    statements = list(
+        ContestProblemStatement.objects.select_related("linked_problem").order_by(
+            "-contest_year",
+            "contest_name",
+            "day_label",
+            "problem_number",
+            "problem_code",
+        ),
+    )
+    export_rows = build_statement_metadata_export_dataframe(statements).fillna("").to_dict(orient="records")
+
+    contest_names: list[str] = []
+    seen_contest_names: set[str] = set()
+    year_values: list[str] = []
+    seen_year_values: set[str] = set()
+    table_rows: list[dict[str, object]] = []
+    linked_total = 0
+    ready_total = 0
+
+    for statement, export_row in zip(statements, export_rows, strict=True):
+        contest_name = statement.contest_name
+        contest_year = int(statement.contest_year)
+        contest_year_label = f"{contest_name} {contest_year}"
+        year_value = str(contest_year)
+        if contest_name not in seen_contest_names:
+            seen_contest_names.add(contest_name)
+            contest_names.append(contest_name)
+        if year_value not in seen_year_values:
+            seen_year_values.add(year_value)
+            year_values.append(year_value)
+
+        topic = str(export_row.get("TOPIC") or "")
+        mohs = str(export_row.get("MOHS") or "")
+        confidence = str(export_row.get("Confidence") or "")
+        imo_slot_guess = str(export_row.get("IMO slot guess") or "")
+        topic_tags = str(export_row.get("Topic tags") or "")
+        has_metadata = bool(topic and mohs)
+        is_linked = statement.linked_problem_id is not None
+        linked_problem_label = ""
+        if statement.linked_problem is not None:
+            linked_problem_label = statement.linked_problem.contest_year_problem or (
+                f"{statement.linked_problem.contest} "
+                f"{statement.linked_problem.year} "
+                f"{statement.linked_problem.problem}"
+            )
+
+        if has_metadata:
+            ready_total += 1
+        if is_linked:
+            linked_total += 1
+
+        table_rows.append(
+            {
+                "confidence": confidence,
+                "contest_name": contest_name,
+                "contest_problem": statement.contest_year_problem,
+                "contest_year": contest_year,
+                "contest_year_label": contest_year_label,
+                "day_label": statement.day_label or "Unlabeled",
+                "has_metadata": "yes" if has_metadata else "no",
+                "imo_slot_guess": imo_slot_guess,
+                "is_linked": is_linked,
+                "link_status": "linked" if is_linked else "unlinked",
+                "linked_problem_label": linked_problem_label,
+                "metadata_status": "ready" if has_metadata else "missing",
+                "mohs": mohs,
+                "problem_code": statement.problem_code,
+                "problem_uuid": str(statement.problem_uuid),
+                "statement_id": statement.id,
+                "statement_preview": _statement_preview_text(statement.statement_latex),
+                "topic": topic,
+                "topic_tags": topic_tags,
+            },
+        )
+
+    year_values.sort(reverse=True)
+    return {
+        "contest_names": contest_names,
+        "rows": table_rows,
+        "stats": {
+            "linked_total": linked_total,
+            "missing_total": len(table_rows) - ready_total,
+            "ready_total": ready_total,
+            "statement_total": len(table_rows),
+        },
+        "year_values": year_values,
+    }
+
+
+def _statement_metadata_dataframe_from_post(post_data) -> tuple[object | None, str | None]:
+    raw_problem_uuids = [str(value or "").strip() for value in post_data.getlist("problem_uuid")]
+    raw_topics = post_data.getlist("topic")
+    raw_mohs = post_data.getlist("mohs")
+    raw_confidences = post_data.getlist("confidence")
+    raw_imo_slot_guesses = post_data.getlist("imo_slot_guess")
+    raw_topic_tags = post_data.getlist("topic_tags")
+
+    if not raw_problem_uuids:
+        return None, "Stage at least one metadata row before saving."
+
+    expected_length = len(raw_problem_uuids)
+    raw_column_lengths = {
+        "topic": len(raw_topics),
+        "mohs": len(raw_mohs),
+        "confidence": len(raw_confidences),
+        "imo_slot_guess": len(raw_imo_slot_guesses),
+        "topic_tags": len(raw_topic_tags),
+    }
+    if any(length != expected_length for length in raw_column_lengths.values()):
+        return None, "Submitted bulk metadata is incomplete. Please reload the page and try again."
+
+    rows = [
+        {
+            "PROBLEM UUID": raw_problem_uuids[index],
+            "TOPIC": raw_topics[index],
+            "MOHS": raw_mohs[index],
+            "Confidence": raw_confidences[index],
+            "IMO slot guess": raw_imo_slot_guesses[index],
+            "Topic tags": raw_topic_tags[index],
+        }
+        for index in range(expected_length)
+    ]
+    try:
+        return statement_metadata_dataframe_from_rows(rows), None
+    except StatementMetadataBackfillValidationError as exc:
+        return None, str(exc)
+
+
+def _apply_statement_metadata_import(
+    request,
+    *,
+    metadata_df,
+    replace_tags: bool,
+    success_prefix: str,
+    skipped_label: str,
+) -> bool:
+    try:
+        result = import_statement_metadata_dataframe(
+            metadata_df,
+            replace_tags=replace_tags,
+        )
+    except StatementMetadataBackfillValidationError as exc:
+        messages.error(request, str(exc))
+        record_event(
+            event_type=AuditEvent.EventType.IMPORT_FAILED,
+            message=f"Statement metadata import failed validation: {exc}",
+            request=request,
+            metadata={"error": str(exc)},
+        )
+        return False
+
+    messages.success(
+        request,
+        (
+            f"{success_prefix} Processed {result.processed_count} row(s): "
+            f"{result.created_count} created, {result.updated_count} updated, "
+            f"{result.linked_count} linked, {result.technique_count} technique row(s) touched, "
+            f"{result.skipped_count} {skipped_label} skipped."
+        ),
+    )
+    record_event(
+        event_type=AuditEvent.EventType.IMPORT_COMPLETED,
+        message=(
+            f"Imported statement metadata for {result.processed_count} row(s), "
+            f"creating {result.created_count} problem row(s) and updating "
+            f"{result.updated_count} existing row(s)."
+        ),
+        request=request,
+        metadata={
+            "created_count": result.created_count,
+            "linked_count": result.linked_count,
+            "processed_count": result.processed_count,
+            "replace_tags": replace_tags,
+            "skipped_count": result.skipped_count,
+            "technique_count": result.technique_count,
+            "updated_count": result.updated_count,
+        },
+    )
+    return True
+
+
+def _parse_statement_csv_uuid(raw_value: object, *, label: str, row_number: int) -> uuid.UUID | None:
+    value = str(raw_value or "").strip()
+    if not value:
+        return None
+    try:
+        return uuid.UUID(value)
+    except ValueError as exc:
+        msg = f'Row {row_number}: "{label}" must be a valid UUID.'
+        raise ProblemStatementCsvImportValidationError(msg) from exc
+
+
+def _parse_statement_csv_problem_number(
+    raw_value: object,
+    *,
+    problem_code: str,
+    row_number: int,
+) -> int:
+    value = str(raw_value or "").strip()
+    if value:
+        try:
+            problem_number = int(value)
+        except ValueError as exc:
+            msg = f'Row {row_number}: "PROBLEM NUMBER" must be an integer.'
+            raise ProblemStatementCsvImportValidationError(msg) from exc
+        if problem_number <= 0:
+            msg = f'Row {row_number}: "PROBLEM NUMBER" must be greater than zero.'
+            raise ProblemStatementCsvImportValidationError(msg)
+        return problem_number
+
+    match = re.fullmatch(r"P?(?P<number>\d+)", problem_code, flags=re.IGNORECASE)
+    if not match:
+        msg = (
+            f'Row {row_number}: provide "PROBLEM NUMBER" or a parseable "PROBLEM CODE" '
+            'like "P1".'
+        )
+        raise ProblemStatementCsvImportValidationError(msg)
+    return int(match.group("number"))
+
+
+def _prepare_statement_csv_row(raw_row: dict[str, object], *, row_number: int) -> dict[str, object]:
+    contest_year_text = str(raw_row.get("CONTEST YEAR", "") or "").strip()
+    if not contest_year_text:
+        msg = f'Row {row_number}: "CONTEST YEAR" is required.'
+        raise ProblemStatementCsvImportValidationError(msg)
+    try:
+        contest_year = int(contest_year_text)
+    except ValueError as exc:
+        msg = f'Row {row_number}: "CONTEST YEAR" must be an integer.'
+        raise ProblemStatementCsvImportValidationError(msg) from exc
+
+    contest_name = normalize_contest_name(str(raw_row.get("CONTEST NAME", "") or ""))
+    if not contest_name:
+        msg = f'Row {row_number}: "CONTEST NAME" is required.'
+        raise ProblemStatementCsvImportValidationError(msg)
+
+    day_label = normalize_contest_name(str(raw_row.get("DAY LABEL", "") or ""))
+    problem_code = re.sub(r"\s+", "", str(raw_row.get("PROBLEM CODE", "") or "")).upper()
+    problem_number = _parse_statement_csv_problem_number(
+        raw_row.get("PROBLEM NUMBER", ""),
+        problem_code=problem_code,
+        row_number=row_number,
+    )
+    normalized_problem_code = problem_code or f"P{problem_number}"
+
+    statement_latex = str(raw_row.get("STATEMENT LATEX", "") or "")
+    if not statement_latex.strip():
+        msg = f'Row {row_number}: "STATEMENT LATEX" is required.'
+        raise ProblemStatementCsvImportValidationError(msg)
+
+    problem_uuid_value = _parse_statement_csv_uuid(
+        raw_row.get("PROBLEM UUID", ""),
+        label="PROBLEM UUID",
+        row_number=row_number,
+    )
+    linked_problem_uuid = _parse_statement_csv_uuid(
+        raw_row.get("LINKED PROBLEM UUID", ""),
+        label="LINKED PROBLEM UUID",
+        row_number=row_number,
+    )
+
+    return {
+        "contest_name": contest_name,
+        "contest_year": contest_year,
+        "day_label": day_label,
+        "linked_problem_uuid": linked_problem_uuid,
+        "problem_code": normalized_problem_code,
+        "problem_number": problem_number,
+        "problem_uuid": problem_uuid_value,
+        "statement_latex": statement_latex.strip(),
+    }
+
+
+@transaction.atomic
+def _import_problem_statement_csv(uploaded_file) -> int:
+    try:
+        decoded = uploaded_file.read().decode("utf-8-sig")
+    except UnicodeDecodeError as exc:
+        msg = "Please upload a UTF-8 CSV file."
+        raise ProblemStatementCsvImportValidationError(msg) from exc
+
+    stream = StringIO(decoded, newline="")
+    reader = csv.reader(stream)
+    try:
+        raw_headers = next(reader)
+    except StopIteration as exc:
+        msg = "The CSV file is empty."
+        raise ProblemStatementCsvImportValidationError(msg) from exc
+
+    headers = [str(header or "").strip() for header in raw_headers]
+    missing_columns = sorted(STATEMENT_CSV_REQUIRED_COLUMNS.difference(headers))
+    if missing_columns:
+        missing_label = ", ".join(f'"{column}"' for column in missing_columns)
+        msg = f"Missing required column(s): {missing_label}."
+        raise ProblemStatementCsvImportValidationError(msg)
+
+    dict_reader = csv.DictReader(stream, fieldnames=headers)
+    imported_count = 0
+
+    for row_number, raw_row in enumerate(dict_reader, start=2):
+        if not any(str(value or "").strip() for value in raw_row.values()):
+            continue
+
+        prepared_row = _prepare_statement_csv_row(raw_row, row_number=row_number)
+        linked_problem = None
+        linked_problem_uuid = prepared_row["linked_problem_uuid"]
+        if linked_problem_uuid is not None:
+            linked_problem = ProblemSolveRecord.objects.filter(problem_uuid=linked_problem_uuid).first()
+            if linked_problem is None:
+                msg = f'Row {row_number}: linked problem "{linked_problem_uuid}" was not found.'
+                raise ProblemStatementCsvImportValidationError(msg)
+
+        problem_uuid_value = prepared_row["problem_uuid"]
+        statement = None
+        if problem_uuid_value is not None:
+            statement = ContestProblemStatement.objects.filter(problem_uuid=problem_uuid_value).first()
+        if statement is None:
+            statement = ContestProblemStatement.objects.filter(
+                contest_year=prepared_row["contest_year"],
+                contest_name=prepared_row["contest_name"],
+                day_label=prepared_row["day_label"],
+                problem_code=prepared_row["problem_code"],
+            ).first()
+
+        if statement is None:
+            statement = ContestProblemStatement(
+                problem_uuid=problem_uuid_value or uuid.uuid4(),
+            )
+        elif (
+            problem_uuid_value is not None
+            and statement.problem_uuid != problem_uuid_value
+            and statement.linked_problem_id is None
+        ):
+            statement.problem_uuid = problem_uuid_value
+
+        statement.linked_problem = linked_problem
+        if problem_uuid_value is not None and linked_problem is None:
+            statement.problem_uuid = problem_uuid_value
+        statement.contest_year = prepared_row["contest_year"]
+        statement.contest_name = prepared_row["contest_name"]
+        statement.day_label = prepared_row["day_label"]
+        statement.problem_number = prepared_row["problem_number"]
+        statement.problem_code = prepared_row["problem_code"]
+        statement.statement_latex = prepared_row["statement_latex"]
+        try:
+            statement.save()
+        except IntegrityError as exc:
+            msg = f"Row {row_number}: could not save statement row because it conflicts with an existing entry."
+            raise ProblemStatementCsvImportValidationError(msg) from exc
+        imported_count += 1
+
+    if imported_count == 0:
+        msg = "The CSV file did not contain any statement rows."
+        raise ProblemStatementCsvImportValidationError(msg)
+
+    return imported_count
+
+
 def _preview_contest_names(contests: tuple[str, ...]) -> str:
     preview_limit = 3
     preview = ", ".join(f'"{contest}"' for contest in contests[:preview_limit])
@@ -2427,40 +3999,159 @@ def problem_import_view(request):
     """Import/export analytics workbooks and preview parsed problem rows."""
     _require_admin_tools_access(request)
 
-    if request.method == "GET" and request.GET.get("action") == "export":
-        return _export_problem_workbook_response()
-
-    replace_tags_initial = request.method == "POST" and bool(request.POST.get("replace_tags"))
-    preview_payload: dict | None = None
-    form = ProblemXlsxImportForm(request.POST or None, request.FILES or None)
-
-    if request.method == "POST" and form.is_valid():
-        action = request.POST.get("action") or "import"
-        replace_tags = form.cleaned_data["replace_tags"]
-        replace_tags_initial = replace_tags
-
-        try:
-            workbook_df = dataframe_from_excel(form.cleaned_data["file"].read())
-        except ProblemImportValidationError as exc:
-            messages.error(request, str(exc))
-            record_event(
-                event_type=AuditEvent.EventType.IMPORT_FAILED,
-                message=f"Workbook import failed validation: {exc}",
-                request=request,
-                metadata={"error": str(exc)},
-            )
-        else:
-            if action == "preview":
-                preview_payload = _preview_problem_import(request, workbook_df)
-            else:
-                _import_problem_workbook(request, workbook_df, replace_tags=replace_tags)
-        form = ProblemXlsxImportForm(initial={"replace_tags": replace_tags_initial})
-
     if request.method == "GET":
-        form = ProblemXlsxImportForm(initial={"replace_tags": replace_tags_initial})
+        export_action = request.GET.get("action")
+        if export_action == "export":
+            return _export_problem_workbook_response()
+        if export_action in {"export_statement_csv", "export_statement_xlsx"}:
+            return _export_problem_statement_workbook_response()
+
+    replace_tags_initial = request.method == "POST" and bool(request.POST.get("problem-replace_tags"))
+    preview_payload: dict | None = None
+
+    problem_form = ProblemXlsxImportForm(
+        initial={"replace_tags": replace_tags_initial},
+        prefix="problem",
+    )
+    statement_csv_form = ProblemStatementCsvImportForm(prefix="statement_csv")
+
+    if request.method == "POST":
+        action = request.POST.get("action") or "import"
+
+        if action in {"preview", "import"}:
+            problem_form = ProblemXlsxImportForm(request.POST, request.FILES, prefix="problem")
+            if problem_form.is_valid():
+                replace_tags = problem_form.cleaned_data["replace_tags"]
+                replace_tags_initial = replace_tags
+
+                try:
+                    workbook_df = dataframe_from_excel(problem_form.cleaned_data["file"].read())
+                except ProblemImportValidationError as exc:
+                    messages.error(request, str(exc))
+                    record_event(
+                        event_type=AuditEvent.EventType.IMPORT_FAILED,
+                        message=f"Workbook import failed validation: {exc}",
+                        request=request,
+                        metadata={"error": str(exc)},
+                    )
+                else:
+                    if action == "preview":
+                        preview_payload = _preview_problem_import(request, workbook_df)
+                    else:
+                        _import_problem_workbook(request, workbook_df, replace_tags=replace_tags)
+                problem_form = ProblemXlsxImportForm(
+                    initial={"replace_tags": replace_tags_initial},
+                    prefix="problem",
+                )
+        elif action == "import_statement_csv":
+            statement_csv_form = ProblemStatementCsvImportForm(
+                request.POST,
+                request.FILES,
+                prefix="statement_csv",
+            )
+            if statement_csv_form.is_valid():
+                try:
+                    imported_count = _import_problem_statement_csv(
+                        statement_csv_form.cleaned_data["file"],
+                    )
+                except ProblemStatementCsvImportValidationError as exc:
+                    messages.error(request, str(exc))
+                    record_event(
+                        event_type=AuditEvent.EventType.IMPORT_FAILED,
+                        message=f"Statement CSV import failed validation: {exc}",
+                        request=request,
+                        metadata={"error": str(exc)},
+                    )
+                else:
+                    messages.success(
+                        request,
+                        f"Imported {imported_count} problem statement row(s) from CSV.",
+                    )
+                    record_event(
+                        event_type=AuditEvent.EventType.IMPORT_COMPLETED,
+                        message=f"Imported {imported_count} problem statement row(s) from CSV.",
+                        request=request,
+                        metadata={"statement_row_count": imported_count},
+                    )
+                    statement_csv_form = ProblemStatementCsvImportForm(prefix="statement_csv")
+        else:
+            messages.error(request, "Unknown import action.")
 
     return render(
         request,
         "pages/problem-import.html",
-        {"form": form, "preview_payload": preview_payload},
+        {
+            "preview_payload": preview_payload,
+            "problem_form": problem_form,
+            "statement_csv_form": statement_csv_form,
+        },
+    )
+
+
+@login_required
+def problem_statement_metadata_view(request):
+    _require_admin_tools_access(request)
+
+    if request.method == "GET" and request.GET.get("action") == "export":
+        return _export_statement_metadata_workbook_response()
+
+    form = StatementMetadataWorkbookForm()
+    if request.method == "POST":
+        action = (request.POST.get("action") or "").strip()
+        if action == "save_grid":
+            metadata_df, validation_error = _statement_metadata_dataframe_from_post(request.POST)
+            if validation_error is not None:
+                messages.error(request, validation_error)
+                record_event(
+                    event_type=AuditEvent.EventType.IMPORT_FAILED,
+                    message=f"Statement metadata import failed validation: {validation_error}",
+                    request=request,
+                    metadata={"error": validation_error},
+                )
+            else:
+                replace_tags = bool(request.POST.get("replace_tags"))
+                if _apply_statement_metadata_import(
+                    request,
+                    metadata_df=metadata_df,
+                    replace_tags=replace_tags,
+                    success_prefix="Statement metadata save finished.",
+                    skipped_label="untouched staged row(s)",
+                ):
+                    return redirect("pages:problem_statement_metadata")
+        else:
+            form = StatementMetadataWorkbookForm(request.POST, request.FILES)
+            if form.is_valid():
+                replace_tags = form.cleaned_data["replace_tags"]
+                try:
+                    metadata_df = statement_metadata_dataframe_from_excel(form.cleaned_data["file"].read())
+                except StatementMetadataBackfillValidationError as exc:
+                    messages.error(request, str(exc))
+                    record_event(
+                        event_type=AuditEvent.EventType.IMPORT_FAILED,
+                        message=f"Statement metadata import failed validation: {exc}",
+                        request=request,
+                        metadata={"error": str(exc)},
+                    )
+                else:
+                    if _apply_statement_metadata_import(
+                        request,
+                        metadata_df=metadata_df,
+                        replace_tags=replace_tags,
+                        success_prefix="Statement metadata import finished.",
+                        skipped_label="untouched workbook row(s)",
+                    ):
+                        return redirect("pages:problem_statement_metadata")
+
+    table_payload = _statement_metadata_table_payload()
+    return render(
+        request,
+        "pages/problem-statement-metadata.html",
+        {
+            "form": form,
+            "statement_metadata_contest_names": table_payload["contest_names"],
+            "statement_metadata_rows": table_payload["rows"],
+            "statement_metadata_stats": table_payload["stats"],
+            "statement_metadata_total": len(table_payload["rows"]),
+            "statement_metadata_year_values": table_payload["year_values"],
+        },
     )

@@ -39,6 +39,66 @@ class ProblemXlsxImportForm(forms.Form):
         return uploaded
 
 
+class ProblemStatementCsvImportForm(forms.Form):
+    file = forms.FileField(
+        label="Problem statement CSV",
+        help_text=(
+            "Upload a .csv file with columns PROBLEM UUID, LINKED PROBLEM UUID, CONTEST YEAR, "
+            "CONTEST NAME, DAY LABEL, PROBLEM NUMBER, PROBLEM CODE, and STATEMENT LATEX."
+        ),
+        widget=forms.ClearableFileInput(
+            attrs={
+                "class": "form-control",
+                "accept": ".csv,text/csv",
+            },
+        ),
+    )
+
+    def clean_file(self):
+        uploaded = self.cleaned_data["file"]
+        name = getattr(uploaded, "name", "") or ""
+        if not name.lower().endswith(".csv"):
+            msg = "Please upload a .csv file."
+            raise forms.ValidationError(msg)
+        return uploaded
+
+
+class StatementMetadataWorkbookForm(forms.Form):
+    file = forms.FileField(
+        label="Statement metadata workbook",
+        help_text=(
+            "Upload a .xlsx file keyed by statement PROBLEM UUID with TOPIC, MOHS, "
+            "Confidence, IMO slot guess, and Topic tags columns."
+        ),
+        widget=forms.ClearableFileInput(
+            attrs={
+                "class": "form-control",
+                "accept": (
+                    ".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                ),
+            },
+        ),
+    )
+    replace_tags = forms.BooleanField(
+        required=False,
+        initial=False,
+        label="Replace existing parsed topic tags for each matched problem",
+        help_text=(
+            "If checked, delete all parsed techniques for each touched problem before "
+            "rebuilding from the workbook Topic tags column."
+        ),
+        widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
+    )
+
+    def clean_file(self):
+        uploaded = self.cleaned_data["file"]
+        name = getattr(uploaded, "name", "") or ""
+        if not name.lower().endswith(".xlsx"):
+            msg = "Please upload an .xlsx file."
+            raise forms.ValidationError(msg)
+        return uploaded
+
+
 class ProblemStatementImportForm(forms.Form):
     source_text = forms.CharField(
         label="Contest text",
@@ -53,6 +113,36 @@ class ProblemStatementImportForm(forms.Form):
             },
         ),
     )
+
+
+class HandleSummaryParserForm(forms.Form):
+    source_text = forms.CharField(
+        label="Handle summaries",
+        strip=False,
+        widget=forms.Textarea(
+            attrs={
+                "class": "form-control font-monospace",
+                "form": "handle-summary-parser-form",
+                "id": "handle-summary-parser-input",
+                "rows": 24,
+                "spellcheck": "false",
+                "placeholder": (
+                    "Handle: Polynomial from a sector into a strip\n"
+                    "Estimated MOHS: 15M\n"
+                    "IMO slot guess: P1/4\n"
+                    "Topic tags: Alg/CA - polynomials over C; asymptotic leading term\n"
+                    "Confidence: High"
+                ),
+            },
+        ),
+    )
+
+    def clean_source_text(self):
+        text = self.cleaned_data["source_text"]
+        if not text.strip():
+            msg = "Paste at least one Handle block."
+            raise forms.ValidationError(msg)
+        return text
 
 
 class ProblemCompletionPasteForm(forms.Form):
