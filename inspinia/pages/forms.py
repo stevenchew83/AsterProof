@@ -128,7 +128,7 @@ class HandleSummaryParserForm(forms.Form):
                 "spellcheck": "false",
                 "placeholder": (
                     "Handle: Polynomial from a sector into a strip\n"
-                    "Estimated MOHS: 15M\n"
+                    "Estimated MOHS: 8M-12M\n"
                     "IMO slot guess: P1/4\n"
                     "Topic tags: Alg/CA - polynomials over C; asymptotic leading term\n"
                     "Confidence: High"

@@ -1,5 +1,8 @@
 from django.urls import path
 
+from inspinia.pages.views import completion_board_bulk_view
+from inspinia.pages.views import completion_board_toggle_view
+from inspinia.pages.views import completion_board_view
 from inspinia.pages.views import contest_analytics_view
 from inspinia.pages.views import contest_details_view
 from inspinia.pages.views import contest_problem_list_view
@@ -24,6 +27,9 @@ app_name = "pages"
 urlpatterns = [
     path("", root_page_view, name="home"),
     path("dashboard/my-activity/", user_activity_dashboard_view, name="user_activity_dashboard"),
+    path("dashboard/completion-board/", completion_board_view, name="completion_board"),
+    path("dashboard/completion-board/toggle/", completion_board_toggle_view, name="completion_board_toggle"),
+    path("dashboard/completion-board/bulk/", completion_board_bulk_view, name="completion_board_bulk"),
     path("dashboard/", dashboard_analytics_view, name="dashboard"),
     path("dashboard/contests/", contest_analytics_view, name="contest_dashboard"),
     path("dashboard/topic-tags/", topic_tag_analytics_view, name="topic_tag_dashboard"),

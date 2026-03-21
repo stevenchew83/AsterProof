@@ -1,0 +1,155 @@
+Handle: Reciprocal square roots between 2026 and 2027
+Estimated MOHS: 8M-12M
+IMO slot guess: P1/4
+Topic tags: Alg/estimation; telescoping; integral comparison
+Core ideas:
+Compare 1/sqrt(k) against differences like 2(sqrt(k+1) - sqrt(k))
+Use a telescoping or integral squeeze for the partial sum
+Narrow N numerically with endpoint control
+Rationale (1-2 lines): This is a clean estimate problem with very low search cost. The only real task is picking the right comparison and handling the final localization carefully.
+Common pitfalls: Using only the crude estimate sum about 2sqrt(N), which is not sharp enough by itself; losing track of endpoint errors.
+Confidence: High
+Notes (optional): This is much closer to olympiad prelim / AIME-style estimation than to full IMO invention.
+Handle: Perpendicular bisector, circle through A,C,D, and DE || AB
+Estimated MOHS: 28M-30M
+IMO slot guess: P2/5
+Topic tags: Geo - Euclidean; circle geometry; coordinates / power-of-a-point
+Core ideas:
+Put BC on a line and parameterize D on BC using the perpendicular-bisector condition
+Write E on the line through D parallel to AB
+Use the circle through A,C,D to solve for the parameter of E
+Finish with a distance-squared identity
+Rationale (1-2 lines): Once coordinates are chosen well, the proof is quite tractable. The hardness comes from deciding that a coordinate attack is the right simplification, since the synthetic target is not immediately transparent.
+Common pitfalls: Trying to force a pure angle chase; not exploiting DE || AB early enough; choosing messy coordinates.
+Confidence: High
+Notes (optional): A very polished synthetic proof may exist, but the coordinate route keeps the problem in the upper P1 / lower P2 zone.
+Handle: Roceña sequence with polynomial upper bound
+Estimated MOHS: 40M-42M
+IMO slot guess: P3/6
+Topic tags: NT/recurrences; discrete dynamics; gcd structure
+Core ideas:
+Analyze local patterns forced by the recurrence
+Detect the key rigid block behavior, especially repeated consecutive values
+Show the block regenerates at larger scale
+Deduce exponential growth, contradicting the polynomial bound
+Rationale (1-2 lines): Very deceptive statement. The hard part is discovering the right dynamical invariant/pattern; once found, the recurrence becomes rigid and the growth contradiction is fairly decisive.
+Common pitfalls: Searching for a constructive tame sequence for too long; checking examples without extracting the eventual structural pattern.
+Confidence: Medium-High
+Notes (optional): This is exactly the kind of short problem that can be badly underrated if one looks only at execution length.
+Handle: If a(n) is a cube, then so is a(n+2520)
+Estimated MOHS: 23M-25M
+IMO slot guess: P1/4
+Topic tags: NT - lcm divisibility; prime powers; Catalan/Mihailescu
+Core ideas:
+Interpret a(n) via L(k) = lcm(1,2,...,k)
+Note that a(n) can only equal k at jump points of L(k), namely when k+1 is a prime power
+Classify perfect cubes among such k using consecutive perfect powers
+Check the surviving cases under adding 2520
+Rationale (1-2 lines): Nice number-theoretic packaging, but the intended insight is compact and clean. Once the jump-point viewpoint is found, the problem collapses quickly.
+Common pitfalls: Treating a(n) as a vague divisibility statistic instead of an lcm-threshold; missing that most k can never occur as a(n).
+Confidence: High
+Notes (optional): Elegant rather than deep.
+Handle: Hotel Las Rozas three-dish scheduling count
+Estimated MOHS: 34M-36M
+IMO slot guess: P2/5
+Topic tags: Comb - recurrence; state compression; permutations
+Core ideas:
+Encode each guest by a permutation of the three dishes across their three dinners
+Translate overlapping-stay conditions into local window constraints
+Normalize dish labels and reduce to a very small state machine / transfer recurrence
+Count valid extensions and unwind the initial choices
+Rationale (1-2 lines): The execution is not fearsome once the right encoding is found, but turning the story into the correct finite-state recurrence is the real hurdle.
+Common pitfalls: Counting evening-by-evening greedily; not compressing states; overcounting equivalent dish relabelings.
+Confidence: Medium-High
+Notes (optional): This is the kind of combinatorics problem that feels impossible until the state model is chosen correctly.
+Handle: Incircle, contact chord EF, and orthocenter of ADG
+Estimated MOHS: 33M-35M
+IMO slot guess: P2/5
+Topic tags: Geo - incircle; pole-polar; analytic geometry
+Core ideas:
+Model the incircle as a unit circle with BC as a tangent
+Recognize EF as the polar of A
+Use AG || BC to locate G very cleanly in that model
+Compute the orthocenter and show it lands back on the circle
+Rationale (1-2 lines): The statement looks synthetic, but the hidden pole-polar viewpoint makes it much shorter. The main burden is spotting that viewpoint or choosing the right incircle coordinates.
+Common pitfalls: Heavy trigonometric bash; forgetting that EF is the contact chord/polar of A; chasing orthocenter angles directly.
+Confidence: Medium-High
+Notes (optional): If one sees the polar setup quickly, this drops a lot; otherwise it feels much nastier.
+Handle: Coloring coefficients of product over k = 0 to n
+Estimated MOHS: 26M-28M
+IMO slot guess: P2/5
+Topic tags: Alg/comb; coefficients; inclusion-exclusion; support sets
+Core ideas:
+Observe the polynomial depends only on x1 + x2 + ... + xn
+Color monomials by their nonempty support
+Evaluate the polynomial on 0-1 vectors to get zero sums on support-downsets
+Use inclusion-exclusion / Möbius inversion to isolate each exact support class
+Rationale (1-2 lines): This is a very “aha” problem. The execution is short once support-coloring is guessed, but that guess is not standard unless you are comfortable with coefficient-sum extraction tricks.
+Common pitfalls: Trying to pair coefficients ad hoc; not exploiting evaluations on 0-1 inputs.
+Confidence: High
+Notes (optional): Beautiful problem, but it depends heavily on seeing the right combinatorial encoding.
+Handle: Floor-sum parity inequality for a prime p
+Estimated MOHS: 42M-45M
+IMO slot guess: P3/6
+Topic tags: NT - floor sums; modular counting; Beatty/Sturmian flavor
+Core ideas:
+Rewrite the parity using floor(ak/p) - floor((a-1)k/p), which is a 0/1 quantity
+Interpret negative terms as a crossing event in a modular/lattice picture
+Prove these events are sufficiently balanced on initial segments 1 to b
+Convert that balance into the required nonnegative partial sum
+Rationale (1-2 lines): The statement is compact, but the correct reformulation is highly non-obvious. This has the feel of a serious olympiad number theory problem where the main idea is everything.
+Common pitfalls: Blind floor manipulation without extracting the 0/1 indicator; trying small cases and guessing a pattern without a counting model.
+Confidence: Medium
+Notes (optional): If there is an unexpectedly slick involution or geometric interpretation, the rating could drop a bit, but on first principles this feels hard.
+Handle: Unit-area rectangle with 0 or more than 2025 points
+Estimated MOHS: 45M-48M
+IMO slot guess: P3/6
+Topic tags: Comb/geo; extremal geometry; transversal/stabbing flavor
+Core ideas:
+Exploit affine freedom in choosing rectangles of fixed area
+Rule out the possibility that every such rectangle always has between 1 and 2025 interior points
+Use a global packing/averaging or transversal contradiction
+Force either an empty rectangle or unbounded multiplicity behavior
+Rationale (1-2 lines): This is a global geometric existence statement with very little local traction. The search space is huge, and the intended argument is likely conceptual rather than computational.
+Common pitfalls: Restricting mentally to axis-aligned rectangles; reasoning only from finite grids or density heuristics.
+Confidence: Medium-Low
+Notes (optional): Strong Danzer-type / geometric transversal flavor. High invention cost.
+Handle: Red lattice points labeled by nearest blue in row or column
+Estimated MOHS: 38M-40M
+IMO slot guess: P2/5
+Topic tags: Comb - extremal lattice; double counting; level sets
+Core ideas:
+Guess the sharp exponent from square-block examples
+Express the total label sum through level sets {label at least t}
+Relate large labels to long red runs in both a row and a column
+Use double counting / compression to prove the optimal exponent
+Rationale (1-2 lines): Identifying the right exponent is not too bad, but proving it sharply is another matter. This feels like an extremal combinatorics problem with a nontrivial structural inequality.
+Common pitfalls: Overfocusing on one-dimensional runs; proving only a quadratic bound; missing the sharp example that suggests the correct exponent.
+Confidence: Medium
+Notes (optional): The exact exponent is likely the heart; once that is guessed, the proof still has real bite.
+Handle: Tangents of circles ABM and ACM, radical-axis target
+Estimated MOHS: 46M-50M
+IMO slot guess: P3/6
+Topic tags: Geo - tangents; radical axis; homothety; advanced synthetic geometry
+Core ideas:
+Decode the two common external tangents into a homothety/radical-axis framework
+Relate the constructed circle to the circumcircle via equal powers
+Use the angle bisector and perpendicular bisector conditions as hidden metric constraints
+Likely one decisive transformation or symmedian-type observation unlocks everything
+Rationale (1-2 lines): The configuration is extremely baroque and the target point is far removed from the data. Even strong geometers will spend a long time just deciding what the picture is trying to say.
+Common pitfalls: Pure angle chase with no structural transformation; getting lost in tangent-circle bookkeeping.
+Confidence: Medium-Low
+Notes (optional): This is the most likely “true P3/P6 killer” in the set.
+Handle: No infinite arithmetic progression of chaotic integers
+Estimated MOHS: 42M-46M
+IMO slot guess: P3/6
+Topic tags: NT - additive forms; congruences; arithmetic progressions
+Core ideas:
+Search for residue obstructions to the form a^3 + b^3 + abc
+Combine those obstructions with the structure of an infinite arithmetic progression
+Use a modulus-selection / CRT strategy or equivalent local-global contradiction
+Rule out the possibility that one residue class can be entirely chaotic
+Rationale (1-2 lines): The form looks elementary, but the obstruction is not obvious at all. This feels like a genuine invention problem unless one happens to spot the right congruence structure very early.
+Common pitfalls: Arguing from density alone; checking only small moduli; assuming sum-of-cubes intuition is enough.
+Confidence: Low
+Notes (optional): If the intended proof uses a particularly sharp modular idea, the true rating could sit a bit lower or a bit higher than this band.

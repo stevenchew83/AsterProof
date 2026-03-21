@@ -496,7 +496,15 @@ def _statement_render_payload(statement_latex: str) -> dict:
     }
 
 
-def _statement_table_rows(base) -> list[dict]:
+def _statement_completion_sort_value(*, is_solved: bool, completion_date: date | None) -> str:
+    if not is_solved:
+        return "0-"
+    if completion_date is None:
+        return "1-9999-12-31"
+    return f"2-{completion_date.isoformat()}"
+
+
+def _statement_table_rows(base, *, user=None) -> list[dict]:
     linked_statement_rows = list(
         base.filter(linked_problem__isnull=False).values_list("linked_problem_id", "linked_problem__contest"),
     )
@@ -517,6 +525,15 @@ def _statement_table_rows(base) -> list[dict]:
             continue
         seen_topic_tags_by_problem_id[record_id].add(technique)
         topic_tags_by_problem_id[record_id].append(technique)
+    completion_problem_ids: set[int] = set()
+    completion_dates_by_problem_id: dict[int, date | None] = {}
+    if user is not None and linked_problem_ids:
+        completion_rows = UserProblemCompletion.objects.filter(
+            user=user,
+            problem_id__in=linked_problem_ids,
+        ).values_list("problem_id", "completion_date")
+        completion_dates_by_problem_id = dict(completion_rows)
+        completion_problem_ids = set(completion_dates_by_problem_id)
 
     def _build_filter_url(base_url: str, **params: object) -> str:
         clean_params = {key: value for key, value in params.items() if value not in (None, "")}
@@ -541,15 +558,38 @@ def _statement_table_rows(base) -> list[dict]:
         linked_problem_confidence_url = ""
         linked_problem_imo_slot_guess_value = ""
         linked_problem_imo_slot_url = ""
+        linked_problem_uuid = ""
+        user_completion_is_solved = False
+        user_completion_date = None
+        user_completion_display = "Unavailable"
+        user_completion_state_kind = "untrackable"
+        user_completion_state_label = "Statement not linked yet"
         if linked_problem is not None:
             linked_problem_label = linked_problem.contest_year_problem or (
                 f"{linked_problem.contest} {linked_problem.year} {linked_problem.problem}"
             )
+            linked_problem_uuid = str(linked_problem.problem_uuid)
             linked_problem_topic = linked_problem.topic or ""
             linked_problem_topic_tags = topic_tags_by_problem_id.get(linked_problem.id, [])
             linked_problem_mohs = linked_problem.mohs
             linked_problem_confidence = linked_problem.confidence or ""
             linked_problem_imo_slot_guess_value = linked_problem.imo_slot_guess_value or ""
+            user_completion_is_solved = linked_problem.id in completion_problem_ids
+            user_completion_date = completion_dates_by_problem_id.get(linked_problem.id)
+            user_completion_state_kind = _completion_board_state_kind(
+                is_solved=user_completion_is_solved,
+                completion_date=user_completion_date,
+            )
+            user_completion_state_label = _completion_board_state_label(
+                is_solved=user_completion_is_solved,
+                completion_date=user_completion_date,
+            )
+            if not user_completion_is_solved:
+                user_completion_display = "Unsolved"
+            elif user_completion_date is None:
+                user_completion_display = "Unknown date"
+            else:
+                user_completion_display = user_completion_date.isoformat()
             contest_slug = contest_to_slug.get(linked_problem.contest)
             if contest_slug:
                 contest_filter_base_url = reverse("pages:contest_problem_list", args=[contest_slug])
@@ -587,6 +627,7 @@ def _statement_table_rows(base) -> list[dict]:
                 "is_linked": linked_problem is not None,
                 "linked_problem_label": linked_problem_label,
                 "linked_problem_topic": linked_problem_topic,
+                "linked_problem_uuid": linked_problem_uuid,
                 "linked_problem_url": linked_problem_url,
                 "problem_code": statement.problem_code,
                 "problem_uuid": str(statement.problem_uuid),
@@ -598,6 +639,15 @@ def _statement_table_rows(base) -> list[dict]:
                 "linked_problem_imo_slot_url": linked_problem_imo_slot_url,
                 "linked_problem_topic_tags": linked_problem_topic_tags,
                 "linked_problem_topic_tag_links": linked_problem_topic_tag_links,
+                "user_completion_date": user_completion_date.isoformat() if user_completion_date else "",
+                "user_completion_display": user_completion_display,
+                "user_completion_is_solved": user_completion_is_solved,
+                "user_completion_sort": _statement_completion_sort_value(
+                    is_solved=user_completion_is_solved,
+                    completion_date=user_completion_date,
+                ),
+                "user_completion_state_kind": user_completion_state_kind,
+                "user_completion_state_label": user_completion_state_label,
                 "statement_length": len(statement.statement_latex),
                 "statement_preview": _statement_preview_text(statement.statement_latex),
                 "updated_at": timezone.localtime(statement.updated_at).strftime("%Y-%m-%d %H:%M"),
@@ -2707,7 +2757,9 @@ def problem_statement_list_view(request):
             "unlinked_total": statement_total - linked_total,
             "year_range_label": year_range_label,
         },
-        "statement_table_rows": _statement_table_rows(base) if statement_total else [],
+        "statement_completion_today": timezone.localdate().isoformat(),
+        "statement_completion_toggle_url": reverse("pages:completion_board_toggle"),
+        "statement_table_rows": _statement_table_rows(base, user=request.user) if statement_total else [],
     }
     return render(request, "pages/problem-statement-list.html", context)
 

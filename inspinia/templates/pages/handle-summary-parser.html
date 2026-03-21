@@ -40,7 +40,7 @@
         {% csrf_token %}
         <div class="card-header border-0 pb-0">
           <h4 class="header-title mb-0">Paste repeated Handle blocks and extract MOHS, confidence, IMO slot, and topic tags</h4>
-          <p class="text-muted fs-xs mb-0">The parser reads each <code>Handle:</code> block and exports a tab-separated table with the exact columns <code>MOHS</code>, <code>CONFIDENCE</code>, <code>IMO SLOT</code>, and <code>TOPICS TAG</code>.</p>
+          <p class="text-muted fs-xs mb-0">The parser reads each <code>Handle:</code> block and exports a tab-separated table with the exact columns <code>MOHS</code>, <code>CONFIDENCE</code>, <code>IMO SLOT</code>, and <code>TOPICS TAG</code>. <code>Estimated MOHS</code> accepts a single value like <code>15M</code>, a range like <code>8M-12M</code>, or an open band like <code>50M+</code>; non-singleton forms export their lower bound.</p>
         </div>
         <div class="card-body pt-2">
           {% if form.non_field_errors %}

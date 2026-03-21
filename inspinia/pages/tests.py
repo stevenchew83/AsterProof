@@ -188,6 +188,9 @@ MALAYSIAN_IMO_TRAINING_CAMP_2024_STATEMENT_SAMPLE = (
 HANDLE_SUMMARY_PARSER_SAMPLE = (
     Path(__file__).resolve().parent / "testdata" / "handle_summary_parser_sample.txt"
 ).read_text(encoding="utf-8")
+HANDLE_SUMMARY_PARSER_RANGE_SAMPLE = (
+    Path(__file__).resolve().parent / "testdata" / "handle_summary_parser_range_sample.txt"
+).read_text(encoding="utf-8")
 EN_DASH = "\u2013"
 EXPECTED_HANDLE_SUMMARY_ROWS = (
     {
@@ -801,6 +804,90 @@ def test_import_problem_dataframe_adopts_existing_statement_problem_uuid():
     statement.refresh_from_db()
     assert record.problem_uuid == statement.problem_uuid
     assert statement.linked_problem == record
+
+
+def test_import_problem_dataframe_updates_duplicate_problem_key_row_by_problem_uuid():
+    first_record = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="ALG",
+        mohs=4,
+        contest="ISRAEL TST",
+        problem="P2",
+        contest_year_problem="ISRAEL TST 2026 P2",
+        topic_tags="Topic tags: ALG - first",
+    )
+    second_record = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="GEO",
+        mohs=7,
+        contest="ISRAEL TST",
+        problem="P2",
+        contest_year_problem="ISRAEL TST 2026 P2",
+        topic_tags="Topic tags: GEO - second",
+    )
+
+    dataframe = _analytics_rows(
+        {
+            "PROBLEM UUID": str(second_record.problem_uuid),
+            "YEAR": 2026,
+            "TOPIC": "NT",
+            "MOHS": UPDATED_MOHS,
+            "CONTEST": "ISRAEL TST",
+            "PROBLEM": "P2",
+            "CONTEST PROBLEM": "ISRAEL TST 2026 P2",
+            "Topic tags": "Topic tags: NT - LTE",
+        },
+    )
+
+    result = import_problem_dataframe(dataframe, replace_tags=True)
+
+    assert result.n_records == EXPECTED_RECORD_COUNT
+    first_record.refresh_from_db()
+    second_record.refresh_from_db()
+    assert first_record.topic == "ALG"
+    assert first_record.mohs == 4
+    assert second_record.topic == "NT"
+    assert second_record.mohs == UPDATED_MOHS
+    assert second_record.problem_uuid != first_record.problem_uuid
+
+
+def test_import_problem_dataframe_skips_ambiguous_duplicate_problem_key_without_problem_uuid():
+    ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="ALG",
+        mohs=4,
+        contest="ISRAEL TST",
+        problem="P2",
+        contest_year_problem="ISRAEL TST 2026 P2",
+    )
+    ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="GEO",
+        mohs=7,
+        contest="ISRAEL TST",
+        problem="P2",
+        contest_year_problem="ISRAEL TST 2026 P2",
+    )
+
+    dataframe = _analytics_rows(
+        {
+            "YEAR": 2026,
+            "TOPIC": "NT",
+            "MOHS": UPDATED_MOHS,
+            "CONTEST": "ISRAEL TST",
+            "PROBLEM": "P2",
+            "CONTEST PROBLEM": "ISRAEL TST 2026 P2",
+            "Topic tags": "Topic tags: NT - LTE",
+        },
+    )
+
+    result = import_problem_dataframe(dataframe, replace_tags=True)
+
+    assert result.n_records == 0
+    assert any(
+        "Add PROBLEM UUID to disambiguate." in warning
+        for warning in result.warnings
+    )
 
 
 def test_import_problem_dataframe_replaces_existing_tags_when_requested():
@@ -2507,6 +2594,74 @@ def test_handle_summary_parser_extracts_export_rows():
     assert preview_payload["export_tsv"] == EXPECTED_HANDLE_SUMMARY_EXPORT_TSV
 
 
+def test_handle_summary_parser_accepts_mohs_ranges_and_uses_lower_bound():
+    parsed_rows = parse_handle_summary_text(HANDLE_SUMMARY_PARSER_RANGE_SAMPLE)
+    preview_payload = build_handle_summary_preview_payload(parsed_rows)
+
+    assert len(parsed_rows) == 12
+    assert [row.mohs for row in parsed_rows] == [8, 28, 40, 23, 34, 33, 26, 42, 45, 38, 46, 42]
+    assert parsed_rows[0].handle == "Reciprocal square roots between 2026 and 2027"
+    assert parsed_rows[0].mohs == 8
+    assert parsed_rows[0].confidence == "High"
+    assert parsed_rows[0].imo_slot == "P1/4"
+    assert parsed_rows[0].topic_tags == "Alg/estimation; telescoping; integral comparison"
+    assert parsed_rows[-1].handle == "No infinite arithmetic progression of chaotic integers"
+    assert parsed_rows[-1].mohs == 42
+    assert parsed_rows[-1].confidence == "Low"
+    assert preview_payload["row_count"] == 12
+    assert (
+        preview_payload["export_tsv"].splitlines()[1]
+        == "8\tHigh\tP1/4\tAlg/estimation; telescoping; integral comparison"
+    )
+    assert (
+        preview_payload["export_tsv"].splitlines()[-1]
+        == "42\tLow\tP3/6\tNT - additive forms; congruences; arithmetic progressions"
+    )
+
+
+def test_handle_summary_parser_accepts_open_ended_mohs_band_and_uses_lower_bound():
+    parsed_rows = parse_handle_summary_text(
+        "\n".join(
+            [
+                "Handle: Good n from harmonic numerators mod p",
+                "Estimated MOHS: 50M+",
+                "IMO slot guess: P3/6",
+                "Topic tags: NT - harmonic numbers / p-adic congruences / sparse sets",
+                "Confidence: Medium",
+            ]
+        )
+    )
+    preview_payload = build_handle_summary_preview_payload(parsed_rows)
+
+    assert len(parsed_rows) == 1
+    assert parsed_rows[0].mohs == 50
+    assert preview_payload["row_count"] == 1
+    assert (
+        preview_payload["export_tsv"].splitlines()[1]
+        == "50\tMedium\tP3/6\tNT - harmonic numbers / p-adic congruences / sparse sets"
+    )
+
+
+def test_handle_summary_parser_accepts_mohs_range_with_to_word():
+    parsed_rows = parse_handle_summary_text(
+        "\n".join(
+            [
+                "Handle: Red-blue averaging cards",
+                "Estimated MOHS: 20M to 25M",
+                "IMO slot guess: P1/4",
+                "Topic tags: Comb – invariants; Alg – averaging",
+                "Core ideas:",
+                "Sort red and blue separately.",
+                "Confidence: High",
+            ]
+        )
+    )
+
+    assert len(parsed_rows) == 1
+    assert parsed_rows[0].mohs == 20
+    assert parsed_rows[0].handle == "Red-blue averaging cards"
+
+
 def test_handle_summary_parser_allows_authenticated_access(client):
     user = UserFactory()
     client.force_login(user)
@@ -2782,6 +2937,11 @@ def test_problem_statement_list_shows_statement_rows_and_link_counts(client):
         contest_year_problem=f"{SPAIN_OLYMPIAD_NAME} {SPAIN_OLYMPIAD_YEAR} P1",
     )
     ProblemTopicTechnique.objects.create(record=linked_record, technique="LTE", domains=["NT"])
+    UserProblemCompletion.objects.create(
+        user=user,
+        problem=linked_record,
+        completion_date=date(2025, 8, 28),
+    )
     linked_statement = ContestProblemStatement.objects.create(
         contest_year=SPAIN_OLYMPIAD_YEAR,
         contest_name=SPAIN_OLYMPIAD_NAME,
@@ -2826,6 +2986,7 @@ def test_problem_statement_list_shows_statement_rows_and_link_counts(client):
     assert linked_row["problem_uuid"] == str(linked_statement.problem_uuid)
     assert linked_row["linked_problem_label"] == linked_record.contest_year_problem
     assert linked_row["linked_problem_topic"] == "NT"
+    assert linked_row["linked_problem_uuid"] == str(linked_record.problem_uuid)
     assert linked_row["linked_problem_url"].endswith("#spain-mathematical-olympiad-2026-p1")
     assert linked_row["linked_problem_topic_tags"] == ["LTE"]
     assert linked_row["linked_problem_topic_tag_links"][0]["label"] == "LTE"
@@ -2836,22 +2997,73 @@ def test_problem_statement_list_shows_statement_rows_and_link_counts(client):
     assert "?q=35M+%2F+33M" in linked_row["linked_problem_confidence_url"]
     assert linked_row["linked_problem_imo_slot_guess_value"] == "2,5"
     assert "?q=2%2C5" in linked_row["linked_problem_imo_slot_url"]
+    assert linked_row["user_completion_date"] == "2025-08-28"
+    assert linked_row["user_completion_display"] == "2025-08-28"
+    assert linked_row["user_completion_state_kind"] == "solved"
+    assert linked_row["user_completion_state_label"] == "Solved on 2025-08-28"
     response_html = response.content.decode("utf-8")
     assert "Problem statements" in response_html
     assert 'id="statement-mohs-min"' in response_html
     assert 'id="statement-mohs-max"' in response_html
     assert 'id="problem-statements-copy"' in response_html
+    assert 'id="statement-completion-feedback"' in response_html
     assert "Copy filtered rows" in response_html
     assert "Filter linked rows by MOHS range" in response_html
     assert "visible: false" in response_html
     assert 'data: "linked_problem_topic"' in response_html
+    assert 'data: "user_completion_display"' in response_html
     assert "formatImoSlotLabel" in response_html
+    assert "statement-completion-save" in response_html
+    assert "statement_completion_toggle_url" not in response_html
+    assert "data-completion-toggle-url=" in response_html
     assert "var updatedAtColumnIndex = statementColumns.length - 1;" in response_html
     assert 'order: [[updatedAtColumnIndex, "desc"]]' in response_html
     assert "scrollX: true" in response_html
-    assert "autoWidth: false" in response_html
+    assert 'class="statement-table-shell"' in response_html
+    assert "table.columns.adjust();" in response_html
     assert "updated_at_sort" in response_html
     assert "renderChipLinks" not in response_html
+
+
+def test_problem_statement_list_completion_toggle_updates_user_completion_date(client):
+    user = UserFactory()
+    client.force_login(user)
+    linked_record = ProblemSolveRecord.objects.create(
+        year=SPAIN_OLYMPIAD_YEAR,
+        topic="NT",
+        mohs=4,
+        contest=SPAIN_OLYMPIAD_NAME,
+        problem="P1",
+        contest_year_problem=f"{SPAIN_OLYMPIAD_NAME} {SPAIN_OLYMPIAD_YEAR} P1",
+    )
+    ContestProblemStatement.objects.create(
+        contest_year=SPAIN_OLYMPIAD_YEAR,
+        contest_name=SPAIN_OLYMPIAD_NAME,
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Linked statement preview text",
+        linked_problem=linked_record,
+    )
+
+    response = client.post(
+        reverse("pages:completion_board_toggle"),
+        {
+            "action": "set_date",
+            "completion_date": "2025-08-28",
+            "problem_uuid": str(linked_record.problem_uuid),
+        },
+        HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    payload = response.json()
+    assert payload["completion_date"] == "2025-08-28"
+    assert payload["is_solved"] is True
+    assert payload["state_kind"] == "solved"
+    assert payload["state_label"] == "Solved on 2025-08-28"
+    completion = UserProblemCompletion.objects.get(user=user, problem=linked_record)
+    assert completion.completion_date == date(2025, 8, 28)
 
 
 def test_problem_statement_list_recheck_links_updates_matching_rows_for_admin(client):
@@ -3674,7 +3886,7 @@ def test_problem_statement_metadata_page_bulk_saves_staged_rows_for_admin(client
     )
 
 
-def test_problem_statement_metadata_page_bulk_save_rejects_duplicate_problem_keys_within_one_batch(client):
+def test_problem_statement_metadata_page_bulk_save_supports_duplicate_problem_keys_within_one_batch(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
     first_statement = ContestProblemStatement.objects.create(
@@ -3715,15 +3927,24 @@ def test_problem_statement_metadata_page_bulk_save_rejects_duplicate_problem_key
     assert response.status_code == HTTPStatus.OK
     first_statement.refresh_from_db()
     second_statement.refresh_from_db()
-    assert not ProblemSolveRecord.objects.filter(
-        year=2012,
-        contest="USA IMO Team Selection Test",
-        problem="P2",
-    ).exists()
-    assert first_statement.linked_problem_id is None
-    assert second_statement.linked_problem_id is None
+    matching_records = list(
+        ProblemSolveRecord.objects.filter(
+            year=2012,
+            contest="USA IMO Team Selection Test",
+            problem="P2",
+        ).order_by("id")
+    )
+    assert len(matching_records) == 2
+    assert {record.problem_uuid for record in matching_records} == {
+        first_statement.problem_uuid,
+        second_statement.problem_uuid,
+    }
+    assert first_statement.linked_problem_id is not None
+    assert second_statement.linked_problem_id is not None
+    assert first_statement.linked_problem.problem_uuid == first_statement.problem_uuid
+    assert second_statement.linked_problem.problem_uuid == second_statement.problem_uuid
     assert any(
-        'Rows 2, 3 resolve to the same tracked problem key "USA IMO Team Selection Test 2012 P2".'
+        "Statement metadata save finished. Processed 2 row(s): 2 created, 0 updated, 2 linked, 2 technique row(s) touched, 0 untouched staged row(s) skipped."
         in str(message)
         for message in response.context["messages"]
     )
@@ -3862,7 +4083,7 @@ def test_problem_statement_metadata_page_imports_multiple_rows_and_updates_exist
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
     existing_problem = ProblemSolveRecord.objects.create(
-        year=2026,
+        year=2012,
         topic="A",
         mohs=20,
         confidence="Low",
@@ -3936,6 +4157,10 @@ def test_problem_statement_metadata_page_imports_multiple_rows_and_updates_exist
     create_statement.refresh_from_db()
     created_problem = ProblemSolveRecord.objects.get(problem_uuid=create_statement.problem_uuid)
 
+    assert existing_problem.year == 2026
+    assert existing_problem.contest == "Israel TST"
+    assert existing_problem.problem == "P1"
+    assert existing_problem.contest_year_problem == "Israel TST 2026 P1"
     assert existing_problem.topic == "G"
     assert existing_problem.mohs == 28
     assert existing_problem.confidence == "Medium"
@@ -3955,7 +4180,7 @@ def test_problem_statement_metadata_page_imports_multiple_rows_and_updates_exist
     )
 
 
-def test_problem_statement_metadata_import_rejects_problem_key_owned_by_different_uuid(client):
+def test_problem_statement_metadata_import_creates_new_problem_row_for_different_uuid_same_key(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
     existing_problem = ProblemSolveRecord.objects.create(
@@ -4006,11 +4231,18 @@ def test_problem_statement_metadata_import_rejects_problem_key_owned_by_differen
     assert response.status_code == HTTPStatus.OK
     statement.refresh_from_db()
     existing_problem.refresh_from_db()
-    assert statement.linked_problem_id is None
+    created_problem = ProblemSolveRecord.objects.get(problem_uuid=statement.problem_uuid)
+    assert statement.linked_problem_id == created_problem.id
     assert existing_problem.topic == "A"
-    assert not ProblemSolveRecord.objects.filter(problem_uuid=statement.problem_uuid).exists()
+    assert created_problem.topic == "G"
+    assert created_problem.mohs == 25
+    assert ProblemSolveRecord.objects.filter(
+        year=2026,
+        contest="Israel TST",
+        problem="P2",
+    ).count() == 2
     assert any(
-        "This import uses PROBLEM UUID as the update key, so resolve that collision first."
+        "Statement metadata import finished. Processed 1 row(s): 1 created, 0 updated, 1 linked, 1 technique row(s) touched, 0 untouched workbook row(s) skipped."
         in str(message)
         for message in response.context["messages"]
     )

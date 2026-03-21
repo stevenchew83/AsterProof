@@ -110,42 +110,25 @@ def _statement_problem_key(statement: ContestProblemStatement) -> tuple[int, str
     )
 
 
-def _record_problem_key(record: ProblemSolveRecord) -> tuple[int, str, str]:
-    return (
-        int(record.year),
-        record.contest,
-        (record.problem or "").strip().upper(),
-    )
-
-
 def _build_statement_problem_lookup(
     statements: list[ContestProblemStatement],
-) -> tuple[dict[uuid.UUID, ProblemSolveRecord], dict[tuple[int, str, str], ProblemSolveRecord]]:
+) -> dict[uuid.UUID, ProblemSolveRecord]:
     statement_problem_uuids = [statement.problem_uuid for statement in statements]
-    statement_problem_keys = {_statement_problem_key(statement) for statement in statements}
     matching_records = list(
         ProblemSolveRecord.objects.filter(
-            year__in=sorted({key[0] for key in statement_problem_keys}),
-            contest__in=sorted({key[1] for key in statement_problem_keys}),
+            problem_uuid__in=statement_problem_uuids,
         ).order_by("contest", "-year", "problem"),
     )
-    records_by_uuid = {
+    return {
         record.problem_uuid: record
         for record in matching_records
         if record.problem_uuid in statement_problem_uuids
     }
-    records_by_key = {
-        _record_problem_key(record): record
-        for record in matching_records
-        if _record_problem_key(record) in statement_problem_keys
-    }
-    return records_by_uuid, records_by_key
 
 
 def _resolved_problem_for_statement(
     statement: ContestProblemStatement,
     *,
-    records_by_key: dict[tuple[int, str, str], ProblemSolveRecord],
     records_by_uuid: dict[uuid.UUID, ProblemSolveRecord],
 ) -> ProblemSolveRecord | None:
     if statement.linked_problem_id is not None and statement.linked_problem is not None:
@@ -161,12 +144,11 @@ def _resolved_problem_for_statement(
 def build_statement_metadata_export_dataframe(
     statements: list[ContestProblemStatement],
 ) -> pd.DataFrame:
-    records_by_uuid, records_by_key = _build_statement_problem_lookup(statements)
+    records_by_uuid = _build_statement_problem_lookup(statements)
     rows = []
     for statement in statements:
         record = _resolved_problem_for_statement(
             statement,
-            records_by_key=records_by_key,
             records_by_uuid=records_by_uuid,
         )
         rows.append(
@@ -281,31 +263,7 @@ def _prepare_statement_metadata_rows(
         msg = f'Statement row "{missing_uuid}" was not found.'
         raise StatementMetadataBackfillValidationError(msg)
 
-    row_numbers_by_problem_key: dict[tuple[int, str, str], list[int]] = {}
-    for problem_uuid in requested_uuids:
-        statement = statements_by_uuid[problem_uuid]
-        statement_problem_key = _statement_problem_key(statement)
-        row_numbers_by_problem_key.setdefault(statement_problem_key, []).append(
-            prepared_by_uuid[problem_uuid].row_number,
-        )
-    duplicate_problem_keys = [
-        (problem_key, row_numbers)
-        for problem_key, row_numbers in row_numbers_by_problem_key.items()
-        if len(row_numbers) > 1
-    ]
-    if duplicate_problem_keys:
-        contest_year_problem = (
-            f"{duplicate_problem_keys[0][0][1]} {duplicate_problem_keys[0][0][0]} {duplicate_problem_keys[0][0][2]}"
-        )
-        row_number_text = ", ".join(str(row_number) for row_number in duplicate_problem_keys[0][1])
-        msg = (
-            f"Rows {row_number_text} resolve to the same tracked problem key "
-            f'"{contest_year_problem}". The current schema allows only one statement row '
-            "per problem record, so split or rename those statement rows first."
-        )
-        raise StatementMetadataBackfillValidationError(msg)
-
-    records_by_uuid, records_by_key = _build_statement_problem_lookup(statements)
+    records_by_uuid = _build_statement_problem_lookup(statements)
     prepared_rows: list[PreparedStatementMetadataRow] = []
     for problem_uuid in requested_uuids:
         base_row = prepared_by_uuid[problem_uuid]
@@ -322,31 +280,8 @@ def _prepare_statement_metadata_rows(
             raise StatementMetadataBackfillValidationError(msg)
         existing_record = _resolved_problem_for_statement(
             statement,
-            records_by_key=records_by_key,
             records_by_uuid=records_by_uuid,
         )
-        conflicting_record = records_by_key.get(_statement_problem_key(statement))
-        if (
-            existing_record is None
-            and conflicting_record is not None
-            and conflicting_record.problem_uuid != statement.problem_uuid
-        ):
-            msg = (
-                f'Row {base_row.row_number}: "{_statement_label(statement)}" maps to contest/problem key '
-                f'"{conflicting_record.contest_year_problem}", but that key is already owned by a different '
-                "PROBLEM UUID. This import uses PROBLEM UUID as the update key, so resolve that collision first."
-            )
-            raise StatementMetadataBackfillValidationError(msg)
-        if (
-            existing_record is not None
-            and existing_record.problem_uuid == statement.problem_uuid
-            and _record_problem_key(existing_record) != _statement_problem_key(statement)
-        ):
-            msg = (
-                f'Row {base_row.row_number}: linked problem "{existing_record.problem_uuid}" '
-                "does not match the statement contest/problem key."
-            )
-            raise StatementMetadataBackfillValidationError(msg)
 
         prepared_rows.append(
             PreparedStatementMetadataRow(
@@ -396,6 +331,9 @@ def import_statement_metadata_dataframe(
         else:
             update_fields: set[str] = set()
             field_values = {
+                "year": statement.contest_year,
+                "contest": statement.contest_name,
+                "problem": statement.problem_code,
                 "topic": prepared_row.topic,
                 "mohs": prepared_row.mohs,
                 "contest_year_problem": statement.contest_year_problem,

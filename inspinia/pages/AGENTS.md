@@ -4,7 +4,7 @@ This app owns the contest/problem archive and its surrounding tooling.
 
 ## Core models and ownership
 
-- `ProblemSolveRecord`: one analytics-sheet problem row. It is unique on `(year, contest, problem)`.
+- `ProblemSolveRecord`: one analytics-sheet problem row keyed canonically by `problem_uuid`. Do not assume `(year, contest, problem)` is globally unique.
 - `ProblemTopicTechnique`: parsed technique tags for a problem. Techniques and domain labels are stored in uppercase.
 - `ContestProblemStatement`: imported statement text keyed by contest/year/problem code, optionally linked to a `ProblemSolveRecord`.
 - `UserProblemCompletion`: per-user completion state for a problem.

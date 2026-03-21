@@ -50,12 +50,6 @@ class ProblemSolveRecord(models.Model):
 
     class Meta:
         ordering = ["-year", "contest", "problem"]
-        constraints = [
-            models.UniqueConstraint(
-                fields=["year", "contest", "problem"],
-                name="pages_problemsolverecord_unique_year_contest_problem",
-            ),
-        ]
 
     def __str__(self) -> str:
         return f"{self.year} {self.contest} {self.problem}"

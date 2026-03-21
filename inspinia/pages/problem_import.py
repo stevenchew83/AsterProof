@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import io
 import re
+import uuid
 from dataclasses import dataclass
 from dataclasses import field
 from typing import TYPE_CHECKING
@@ -63,6 +64,7 @@ STATEMENT_PROBLEM_CODE_RE = re.compile(r"^\s*(?:(?P<prefix>[A-Za-z]{1,4})\s*)?(?
 class PreparedImportRow:
     """One sheet row resolved the same way as DB import (before writing)."""
 
+    problem_uuid: uuid.UUID | None
     year: int
     contest: str
     problem: str
@@ -187,6 +189,17 @@ def prepare_import_rows(df: pd.DataFrame) -> tuple[list[PreparedImportRow], list
             warnings.append(f"Skipped row: missing contest/problem for year={year}.")
             continue
 
+        problem_uuid: uuid.UUID | None = None
+        raw_problem_uuid = _cell_str(row.get("PROBLEM UUID"))
+        if raw_problem_uuid:
+            try:
+                problem_uuid = uuid.UUID(raw_problem_uuid)
+            except ValueError:
+                warnings.append(
+                    f"Skipped row: invalid PROBLEM UUID for {year} {contest} {problem}.",
+                )
+                continue
+
         topic = _cell_str(row.get("TOPIC")) or ""
         mohs = _cell_int(row.get("MOHS"))
         if mohs is None:
@@ -214,6 +227,7 @@ def prepare_import_rows(df: pd.DataFrame) -> tuple[list[PreparedImportRow], list
 
         prepared.append(
             PreparedImportRow(
+                problem_uuid=problem_uuid,
                 year=year,
                 contest=contest,
                 problem=problem,
@@ -485,6 +499,26 @@ def sync_problem_topic_techniques(
     return touched_count
 
 
+def _update_problem_record_from_prepared(
+    *,
+    record: ProblemSolveRecord,
+    prepared_row: PreparedImportRow,
+) -> None:
+    field_values: dict[str, Any] = {
+        "year": prepared_row.year,
+        "contest": prepared_row.contest,
+        "problem": prepared_row.problem,
+        **prepared_row.defaults,
+    }
+    update_fields: set[str] = set()
+    for field_name, next_value in field_values.items():
+        if getattr(record, field_name) != next_value:
+            setattr(record, field_name, next_value)
+            update_fields.add(field_name)
+    if update_fields:
+        record.save(update_fields=update_fields)
+
+
 def import_problem_dataframe(df: pd.DataFrame, *, replace_tags: bool) -> ProblemImportResult:
     """
     Upsert `ProblemSolveRecord` rows and parsed `ProblemTopicTechnique` entries.
@@ -497,12 +531,47 @@ def import_problem_dataframe(df: pd.DataFrame, *, replace_tags: bool) -> Problem
 
     with transaction.atomic():
         for p in prepared:
-            record, created = ProblemSolveRecord.objects.update_or_create(
-                year=p.year,
-                contest=p.contest,
-                problem=p.problem,
-                defaults=p.defaults,
-            )
+            if p.problem_uuid is not None:
+                record, created = ProblemSolveRecord.objects.update_or_create(
+                    problem_uuid=p.problem_uuid,
+                    defaults={
+                        "year": p.year,
+                        "contest": p.contest,
+                        "problem": p.problem,
+                        **p.defaults,
+                    },
+                )
+            else:
+                matching_records = ProblemSolveRecord.objects.filter(
+                    year=p.year,
+                    contest=p.contest,
+                    problem=p.problem,
+                ).order_by("id")
+                if matching_records.count() > 1:
+                    contest_problem_label = p.defaults.get("contest_year_problem") or ""
+                    disambiguated_record = None
+                    if contest_problem_label:
+                        label_matches = matching_records.filter(
+                            contest_year_problem=contest_problem_label,
+                        )
+                        if label_matches.count() == 1:
+                            disambiguated_record = label_matches.first()
+                    if disambiguated_record is None:
+                        result.warnings.append(
+                            "Skipped row: multiple existing problem rows match "
+                            f"{p.year} {p.contest} {p.problem}. Add PROBLEM UUID to disambiguate.",
+                        )
+                        continue
+                    record = disambiguated_record
+                    created = False
+                    _update_problem_record_from_prepared(record=record, prepared_row=p)
+                else:
+                    record, created = ProblemSolveRecord.objects.update_or_create(
+                        year=p.year,
+                        contest=p.contest,
+                        problem=p.problem,
+                        defaults=p.defaults,
+                    )
             _sync_statement_link(record=record, created=created)
             result.n_records += 1
 

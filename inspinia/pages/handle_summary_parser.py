@@ -38,7 +38,11 @@ FIELD_PREFIX_MAP = {
     "IMO slot guess:": "imo_slot",
     "Topic tags:": "topic_tags",
 }
-MOHS_RE = re.compile(r"^(?P<value>\d+)(?:\s*M)?$", flags=re.IGNORECASE)
+MOHS_RE = re.compile(
+    r"^(?P<lower>\d+)(?:\s*M)?(?P<plus>\+)?"
+    r"(?:(?:\s*[-\u2013]\s*|\s+to\s+)(?P<upper>\d+)(?:\s*M)?)?$",
+    flags=re.IGNORECASE,
+)
 HANDLE_LINE_PREFIX = "Handle:"
 
 
@@ -52,7 +56,29 @@ def _parse_mohs_value(raw_value: str, *, handle: str) -> int:
     if match is None:
         msg = f'Handle "{handle}" has an invalid Estimated MOHS value: "{raw_value.strip()}".'
         raise HandleSummaryParseValidationError(msg)
-    return int(match.group("value"))
+
+    lower_bound = int(match.group("lower"))
+    upper_bound = match.group("upper")
+    if match.group("plus") is not None:
+        if upper_bound is not None:
+            msg = (
+                f'Handle "{handle}" has an invalid Estimated MOHS value: '
+                f'"{raw_value.strip()}".'
+            )
+            raise HandleSummaryParseValidationError(msg)
+        return lower_bound
+
+    if upper_bound is None:
+        return lower_bound
+
+    upper_bound_value = int(upper_bound)
+    if upper_bound_value < lower_bound:
+        msg = (
+            f'Handle "{handle}" has a reversed Estimated MOHS range: '
+            f'"{raw_value.strip()}".'
+        )
+        raise HandleSummaryParseValidationError(msg)
+    return lower_bound
 
 
 def _build_row_from_block(block: dict[str, str]) -> ParsedHandleSummaryRow:
