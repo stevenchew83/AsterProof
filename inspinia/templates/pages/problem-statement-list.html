@@ -225,7 +225,7 @@
           <div class="flex-grow-1">
             <h4 class="header-title mb-0">All problem statements</h4>
             <p class="text-muted fs-xs mb-0">
-              Search by contest, linked topic, UUID, solved state, day label, linked problem, topic tags, confidence, or statement preview. Rows imported before analytics still carry a stable UUID.
+              Search by contest, linked topic, UUID, solved state, day label, topic tags, confidence, statement text, linked problem labels, and more. Rows imported before analytics still carry a stable UUID.
             </p>
           </div>
           <span class="badge text-bg-light">{{ statement_stats.contest_total }} contests</span>
@@ -441,6 +441,7 @@
       {
         data: "linked_problem_label",
         title: "Linked problem",
+        visible: false,
         defaultContent: "",
         render: function (data, type, row) {
           if (type !== "display") return data;
@@ -519,6 +520,7 @@
       {
         data: "statement_preview",
         title: "Preview",
+        visible: false,
         defaultContent: "",
         render: function (data, type, row) {
           if (type !== "display") return data;
@@ -692,13 +694,11 @@
       "Topic",
       "Problem",
       "Day",
-      "Linked problem",
       "Solved",
       "Topic tags",
       "MOHS",
       "Confidence",
       "IMO slot",
-      "Preview",
       "Chars",
       "Updated"
     ];
@@ -712,13 +712,11 @@
         normalizeCellValue(row.linked_problem_topic),
         normalizeCellValue(row.problem_code),
         normalizeCellValue(row.day_label),
-        normalizeCellValue(row.is_linked ? row.linked_problem_label : "Unlinked"),
         normalizeCellValue(row.user_completion_display),
         normalizeCellValue(formatTopicTags(row.linked_problem_topic_tags)),
         normalizeCellValue(row.linked_problem_mohs),
         normalizeCellValue(row.linked_problem_confidence),
         normalizeCellValue(formatImoSlotLabel(row.linked_problem_imo_slot_guess_value)),
-        normalizeCellValue(row.statement_preview),
         normalizeCellValue(row.statement_length),
         normalizeCellValue(row.updated_at)
       ].join("\t"));
