@@ -1213,6 +1213,40 @@ def _contest_year_heatmap_payload(
         "years": [str(year) for year in years],
     }
 
+
+def _contest_completion_heatmap_chart_payload(
+    rows: list[dict[str, object]],
+) -> dict[str, object]:
+    state_values = {
+        "empty": 0,
+        "unsolved": 1,
+        "partial": 2,
+        "solved": 3,
+    }
+    if not rows:
+        return {"max_value": 3, "series": []}
+
+    return {
+        "max_value": 3,
+        "series": [
+            {
+                "name": str(row["year"]),
+                "data": [
+                    {
+                        "display": str(cell["display"]),
+                        "state": str(cell["state"]),
+                        "title": str(cell["title"]),
+                        "x": str(cell["problem_code"]),
+                        "y": state_values[str(cell["state"])],
+                    }
+                    for cell in row["cells"]
+                ],
+            }
+            for row in rows
+        ],
+    }
+
+
 def _contest_year_mohs_pivot_payload() -> dict[str, object]:
     statement_rows = list(
         _active_dashboard_statements().values(
@@ -4759,6 +4793,7 @@ def contest_advanced_analytics_view(request):
         },
         "confidence_rows": confidence_rows,
         "contest_completion_heatmap": {
+            "chart": _contest_completion_heatmap_chart_payload(heatmap_rows),
             "filled_cell_total": len(heatmap_counts),
             "has_partial_cells": has_partial_heatmap_cells,
             "problem_code_total": len(heatmap_problem_codes),

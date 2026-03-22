@@ -6,54 +6,51 @@
 
 {% block extra_css %}
 <style>
-  .contest-completion-heatmap-table th,
-  .contest-completion-heatmap-table td {
-    white-space: nowrap;
+  .contest-completion-legend {
+    gap: 0.75rem;
   }
 
-  .contest-completion-heatmap-year-col {
-    position: sticky;
-    left: 0;
-    z-index: 1;
-    background: var(--bs-body-bg);
-  }
-
-  .contest-completion-heatmap-cell {
-    min-width: 2.6rem;
-    min-height: 2rem;
+  .contest-completion-legend-item {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    border-radius: 0.5rem;
-    border: 1px solid var(--bs-border-color);
-    font-size: 0.8rem;
-    font-weight: 600;
-    line-height: 1;
-    padding: 0.35rem 0.45rem;
-  }
-
-  .contest-completion-heatmap-cell-solved {
-    background: var(--bs-success-bg-subtle);
-    border-color: var(--bs-success-border-subtle);
-    color: var(--bs-success-text-emphasis);
-  }
-
-  .contest-completion-heatmap-cell-unsolved {
-    background: var(--bs-danger-bg-subtle);
-    border-color: var(--bs-danger-border-subtle);
-    color: var(--bs-danger-text-emphasis);
-  }
-
-  .contest-completion-heatmap-cell-partial {
-    background: var(--bs-warning-bg-subtle);
-    border-color: var(--bs-warning-border-subtle);
-    color: var(--bs-warning-text-emphasis);
-  }
-
-  .contest-completion-heatmap-cell-empty {
-    background: var(--bs-secondary-bg-subtle);
-    border-color: var(--bs-border-color);
+    gap: 0.45rem;
     color: var(--bs-secondary-color);
+    font-size: 0.78rem;
+  }
+
+  .contest-completion-legend-swatch {
+    width: 0.95rem;
+    height: 0.95rem;
+    display: inline-flex;
+    border-radius: 0.3rem;
+    border: 1px solid rgba(17, 32, 59, 0.12);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  }
+
+  .contest-completion-legend-swatch-solved {
+    background: #2fbf71;
+  }
+
+  .contest-completion-legend-swatch-partial {
+    background: #f1b44c;
+  }
+
+  .contest-completion-legend-swatch-unsolved {
+    background: #e25563;
+  }
+
+  .contest-completion-legend-swatch-empty {
+    background: #d6d9e0;
+  }
+
+  .contest-completion-heatmap-scroll {
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 0.25rem;
+  }
+
+  #chart-contest-completion-heatmap {
+    min-height: 320px;
   }
  </style>
 {% endblock extra_css %}
@@ -121,46 +118,28 @@
         </div>
         <div class="card-body">
           {% if contest_completion_heatmap.problem_codes %}
-          <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
-            <span class="contest-completion-heatmap-cell contest-completion-heatmap-cell-solved">✓</span>
-            <span class="text-muted fs-xs">Solved by at least one user</span>
-            <span class="contest-completion-heatmap-cell contest-completion-heatmap-cell-unsolved">•</span>
-            <span class="text-muted fs-xs">No completion recorded yet</span>
+          <div class="d-flex flex-wrap align-items-center contest-completion-legend mb-3">
+            <span class="contest-completion-legend-item">
+              <span class="contest-completion-legend-swatch contest-completion-legend-swatch-solved"></span>
+              Solved by at least one user
+            </span>
+            <span class="contest-completion-legend-item">
+              <span class="contest-completion-legend-swatch contest-completion-legend-swatch-unsolved"></span>
+              No completion recorded yet
+            </span>
             {% if contest_completion_heatmap.has_partial_cells %}
-            <span class="contest-completion-heatmap-cell contest-completion-heatmap-cell-partial">1/2</span>
-            <span class="text-muted fs-xs">Mixed coverage when a year/code has multiple rows</span>
+            <span class="contest-completion-legend-item">
+              <span class="contest-completion-legend-swatch contest-completion-legend-swatch-partial"></span>
+              Mixed coverage when a year/code has multiple rows
+            </span>
             {% endif %}
-            <span class="contest-completion-heatmap-cell contest-completion-heatmap-cell-empty">&nbsp;</span>
-            <span class="text-muted fs-xs">No statement row for that year/code</span>
+            <span class="contest-completion-legend-item">
+              <span class="contest-completion-legend-swatch contest-completion-legend-swatch-empty"></span>
+              No statement row for that year/code
+            </span>
           </div>
-          <div class="table-responsive">
-            <table class="table table-sm table-bordered align-middle text-center mb-0 contest-completion-heatmap-table">
-              <thead>
-                <tr class="text-muted fs-xs text-uppercase">
-                  <th class="text-start contest-completion-heatmap-year-col">Year</th>
-                  {% for problem_code in contest_completion_heatmap.problem_codes %}
-                  <th>{{ problem_code }}</th>
-                  {% endfor %}
-                </tr>
-              </thead>
-              <tbody>
-                {% for row in contest_completion_heatmap.rows %}
-                <tr>
-                  <th class="text-start fw-semibold contest-completion-heatmap-year-col">{{ row.year }}</th>
-                  {% for cell in row.cells %}
-                  <td>
-                    <span
-                      class="contest-completion-heatmap-cell contest-completion-heatmap-cell-{{ cell.state }}"
-                      title="{{ cell.title }}"
-                    >
-                      {% if cell.display %}{{ cell.display }}{% else %}&nbsp;{% endif %}
-                    </span>
-                  </td>
-                  {% endfor %}
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
+          <div class="contest-completion-heatmap-scroll">
+            <div id="chart-contest-completion-heatmap"></div>
           </div>
           {% else %}
           <div class="alert alert-info mb-0" role="alert">
@@ -416,4 +395,104 @@
 
   {% endif %}
 </div>
+{% if has_contests %}
+{{ contest_completion_heatmap.chart|json_script:"contest-advanced-heatmap-data" }}
+{% endif %}
 {% endblock page_content %}
+
+{% block extra_javascript %}
+{% if has_contests and contest_completion_heatmap.problem_codes %}
+<script src="{% static 'plugins/apexcharts/apexcharts.min.js' %}"></script>
+<script>
+(function () {
+  var dataEl = document.getElementById("contest-advanced-heatmap-data");
+  var chartEl = document.getElementById("chart-contest-completion-heatmap");
+  if (!dataEl || !chartEl || typeof ApexCharts === "undefined") return;
+
+  var payload = JSON.parse(dataEl.textContent || "{}");
+  if (!payload.series || !payload.series.length) return;
+
+  function escapeHtml(value) {
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  var pointCount = payload.series[0] && payload.series[0].data ? payload.series[0].data.length : 0;
+  chartEl.style.minWidth = String(Math.max(680, pointCount * 84 + 120)) + "px";
+
+  var chart = new ApexCharts(chartEl, {
+    chart: {
+      type: "heatmap",
+      height: Math.max(340, payload.series.length * 46 + 88),
+      toolbar: { show: false },
+      fontFamily: "inherit"
+    },
+    series: payload.series,
+    dataLabels: {
+      enabled: true,
+      style: {
+        fontSize: "11px",
+        fontWeight: 700,
+        colors: ["#11203b"]
+      },
+      formatter: function (_value, opts) {
+        var point = opts.w.config.series[opts.seriesIndex].data[opts.dataPointIndex];
+        return point.display || "";
+      }
+    },
+    stroke: {
+      width: 1,
+      colors: ["rgba(255,255,255,0.72)"]
+    },
+    plotOptions: {
+      heatmap: {
+        radius: 5,
+        enableShades: false,
+        useFillColorAsStroke: false,
+        colorScale: {
+          ranges: [
+            { from: 0, to: 0, color: "#d6d9e0", name: "Empty" },
+            { from: 1, to: 1, color: "#e25563", name: "Unsolved" },
+            { from: 2, to: 2, color: "#f1b44c", name: "Partial" },
+            { from: 3, to: 3, color: "#2fbf71", name: "Solved" }
+          ]
+        }
+      }
+    },
+    legend: {
+      show: false
+    },
+    xaxis: {
+      type: "category",
+      position: "top",
+      labels: {
+        rotate: 0,
+        style: { fontSize: "11px" }
+      }
+    },
+    yaxis: {
+      labels: {
+        maxWidth: 80,
+        style: { fontSize: "11px" }
+      }
+    },
+    tooltip: {
+      custom: function (opts) {
+        var point = opts.w.config.series[opts.seriesIndex].data[opts.dataPointIndex];
+        return '<div class="apexcharts-theme-light p-2 fs-xs">' + escapeHtml(point.title || "") + "</div>";
+      }
+    },
+    grid: {
+      borderColor: "rgba(108,117,125,0.15)"
+    }
+  });
+
+  chart.render();
+})();
+</script>
+{% endif %}
+{% endblock extra_javascript %}

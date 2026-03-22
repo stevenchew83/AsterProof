@@ -3128,6 +3128,47 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
     assert heatmap_2025_p1["state"] == "empty"
     assert heatmap_2025_p2["state"] == "unsolved"
     assert heatmap_2025_p2["display"] == "•"
+    assert heatmap["chart"]["max_value"] == 3
+    assert heatmap["chart"]["series"] == [
+        {
+            "name": "2026",
+            "data": [
+                {
+                    "display": "✓",
+                    "state": "solved",
+                    "title": "USAMO 2026 P1: 1 of 1 statement row solved",
+                    "x": "P1",
+                    "y": 3,
+                },
+                {
+                    "display": "",
+                    "state": "empty",
+                    "title": "USAMO 2026 P2: no statement row",
+                    "x": "P2",
+                    "y": 0,
+                },
+            ],
+        },
+        {
+            "name": "2025",
+            "data": [
+                {
+                    "display": "",
+                    "state": "empty",
+                    "title": "USAMO 2025 P1: no statement row",
+                    "x": "P1",
+                    "y": 0,
+                },
+                {
+                    "display": "•",
+                    "state": "unsolved",
+                    "title": "USAMO 2025 P2: 0 of 1 statement row solved",
+                    "x": "P2",
+                    "y": 1,
+                },
+            ],
+        },
+    ]
     year_2026 = next(row for row in response.context["year_rows"] if row["year"] == 2026)
     year_2025 = next(row for row in response.context["year_rows"] if row["year"] == 2025)
     assert year_2026["problem_count"] == 1
@@ -3148,6 +3189,10 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
     assert "Contest advanced analytics" in response_html
     assert "Completion heatmap" in response_html
     assert "Solved by at least one user" in response_html
+    assert 'id="chart-contest-completion-heatmap"' in response_html
+    assert "contest-advanced-heatmap-data" in response_html
+    assert "plugins/apexcharts/apexcharts.min.js" in response_html
+    assert "contest-completion-heatmap-table" not in response_html
     assert "Year breakdown" in response_html
     assert "Statement-linked" in response_html
     assert "Solved" in response_html
