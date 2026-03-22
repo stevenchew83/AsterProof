@@ -3452,6 +3452,7 @@ def test_problem_statement_list_shows_statement_rows_and_link_counts(client):
     assert "?q=35M+%2F+33M" in linked_row["linked_problem_confidence_url"]
     assert linked_row["linked_problem_imo_slot_guess_value"] == "2,5"
     assert "?q=2%2C5" in linked_row["linked_problem_imo_slot_url"]
+    assert "statement_length" not in linked_row
     assert linked_row["problem_destination_label"] == "Start"
     assert linked_row["problem_destination_url"] == reverse(
         "solutions:problem_solution_edit",
@@ -3463,18 +3464,23 @@ def test_problem_statement_list_shows_statement_rows_and_link_counts(client):
     assert linked_row["user_completion_state_label"] == "Solved on 2025-08-28"
     response_html = response.content.decode("utf-8")
     assert "Problem statements" in response_html
+    assert 'id="statement-year-filter"' in response_html
+    assert 'id="statement-topic-filter"' in response_html
+    assert 'id="statement-confidence-filter"' in response_html
     assert 'id="statement-mohs-min"' in response_html
     assert 'id="statement-mohs-max"' in response_html
     assert 'id="problem-statements-copy"' in response_html
     assert "Copy filtered rows" in response_html
-    assert "Filter linked rows by MOHS range" in response_html
+    assert "Filter linked rows by metadata" in response_html
     assert 'data: "linked_problem_topic"' in response_html
     assert 'data: "user_completion_display"' in response_html
     assert 'data: "problem_destination_url"' in response_html
     assert 'title: "Solution"' in response_html
+    assert 'title: "Chars"' not in response_html
     assert 'title: "Linked problem"' not in response_html
     assert 'title: "Preview"' not in response_html
     assert "formatImoSlotLabel" in response_html
+    assert "populateFilterSelect" in response_html
     assert "statement-completion-save" not in response_html
     assert "statement-completion-date" not in response_html
     assert 'id="statement-completion-feedback"' not in response_html

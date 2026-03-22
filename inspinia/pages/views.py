@@ -657,7 +657,6 @@ def _statement_table_rows(base, *, user=None) -> list[dict]:
                 ),
                 "user_completion_state_kind": user_completion_state_kind,
                 "user_completion_state_label": user_completion_state_label,
-                "statement_length": len(statement.statement_latex),
                 "updated_at": timezone.localtime(statement.updated_at).strftime("%Y-%m-%d %H:%M"),
                 "updated_at_sort": statement.updated_at.isoformat(),
             },

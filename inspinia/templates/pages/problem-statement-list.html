@@ -34,6 +34,10 @@
     min-width: 7rem;
   }
 
+  .statement-select-field {
+    min-width: 10rem;
+  }
+
   .statement-range-field .form-control {
     min-height: calc(1.5em + 0.65rem + 2px);
   }
@@ -207,10 +211,28 @@
           <div class="statement-toolbar">
             <div class="statement-toolbar-copy">
               <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Linked metadata</p>
-              <h5 class="mb-1">Filter linked rows by MOHS range</h5>
-              <p class="text-muted fs-xs mb-0">Topic tags stay readable as plain labels, MOHS stays compact, confidence plus IMO slot still jump back into the linked contest archive, and the new Solved column lets you store your own completion date inline. The MOHS range only applies when a statement is already linked to a tracked problem row.</p>
+              <h5 class="mb-1">Filter linked rows by metadata</h5>
+              <p class="text-muted fs-xs mb-0">Use the year, topic, confidence, and MOHS range controls together with search when you want to narrow the statement inventory down to one slice of the archive.</p>
             </div>
             <div class="statement-range-filters">
+              <div class="statement-select-field">
+                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-year-filter">Year</label>
+                <select id="statement-year-filter" class="form-select form-select-sm">
+                  <option value="">All years</option>
+                </select>
+              </div>
+              <div class="statement-select-field">
+                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-topic-filter">Topic</label>
+                <select id="statement-topic-filter" class="form-select form-select-sm">
+                  <option value="">All topics</option>
+                </select>
+              </div>
+              <div class="statement-select-field">
+                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-confidence-filter">Confidence</label>
+                <select id="statement-confidence-filter" class="form-select form-select-sm">
+                  <option value="">All confidence</option>
+                </select>
+              </div>
               <div class="statement-range-field">
                 <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-mohs-min">MOHS from</label>
                 <input id="statement-mohs-min" type="number" min="0" step="1" class="form-control form-control-sm" placeholder="Min">
@@ -219,7 +241,7 @@
                 <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-mohs-max">MOHS to</label>
                 <input id="statement-mohs-max" type="number" min="0" step="1" class="form-control form-control-sm" placeholder="Max">
               </div>
-              <button type="button" id="statement-mohs-reset" class="btn btn-outline-secondary btn-sm">Reset range</button>
+              <button type="button" id="statement-mohs-reset" class="btn btn-outline-secondary btn-sm">Reset filters</button>
               <button type="button" id="problem-statements-copy" class="btn btn-outline-primary btn-sm">
                 <i class="ti ti-copy me-1"></i>Copy filtered rows
               </button>
@@ -405,7 +427,6 @@
           return renderInlineLink(formattedLabel, row.linked_problem_imo_slot_url);
         }
       },
-      { data: "statement_length", title: "Chars", className: "text-nowrap" },
       {
         data: "updated_at",
         title: "Updated",
@@ -457,6 +478,9 @@
   var mohsMinEl = document.getElementById("statement-mohs-min");
   var mohsMaxEl = document.getElementById("statement-mohs-max");
   var mohsResetEl = document.getElementById("statement-mohs-reset");
+  var yearFilterEl = document.getElementById("statement-year-filter");
+  var topicFilterEl = document.getElementById("statement-topic-filter");
+  var confidenceFilterEl = document.getElementById("statement-confidence-filter");
   var copyRowsButton = document.getElementById("problem-statements-copy");
   var copyButtonDefaultHtml = copyRowsButton ? copyRowsButton.innerHTML : "";
   var copyButtonTimer = null;
@@ -518,7 +542,6 @@
       "MOHS",
       "Confidence",
       "IMO slot",
-      "Chars",
       "Updated"
     ];
 
@@ -536,7 +559,6 @@
         normalizeCellValue(row.linked_problem_mohs),
         normalizeCellValue(row.linked_problem_confidence),
         normalizeCellValue(formatImoSlotLabel(row.linked_problem_imo_slot_guess_value)),
-        normalizeCellValue(row.statement_length),
         normalizeCellValue(row.updated_at)
       ].join("\t"));
     });
@@ -544,15 +566,65 @@
     return lines.join("\n");
   }
 
+  function populateFilterSelect(selectEl, values, labelFormatter) {
+    if (!selectEl) return;
+    values.forEach(function (value) {
+      var option = document.createElement("option");
+      option.value = value;
+      option.textContent = labelFormatter ? labelFormatter(value) : value;
+      selectEl.appendChild(option);
+    });
+  }
+
+  populateFilterSelect(
+    yearFilterEl,
+    Array.from(
+      new Set(
+        rows
+          .map(function (row) { return String(row.contest_year || "").trim(); })
+          .filter(Boolean)
+      )
+    ).sort(function (left, right) {
+      return Number(right) - Number(left);
+    })
+  );
+  populateFilterSelect(
+    topicFilterEl,
+    Array.from(
+      new Set(
+        rows
+          .map(function (row) { return String(row.linked_problem_topic || "").trim(); })
+          .filter(Boolean)
+      )
+    ).sort()
+  );
+  populateFilterSelect(
+    confidenceFilterEl,
+    Array.from(
+      new Set(
+        rows
+          .map(function (row) { return String(row.linked_problem_confidence || "").trim(); })
+          .filter(Boolean)
+      )
+    ).sort()
+  );
+
   DataTable.ext.search.push(function (settings, data, dataIndex) {
     if (!settings.nTable || settings.nTable.id !== "problem-statements-table") return true;
 
+    var selectedYear = yearFilterEl ? yearFilterEl.value : "";
+    var selectedTopic = topicFilterEl ? topicFilterEl.value : "";
+    var selectedConfidence = confidenceFilterEl ? confidenceFilterEl.value : "";
     var minValue = mohsMinEl && mohsMinEl.value !== "" ? Number(mohsMinEl.value) : null;
     var maxValue = mohsMaxEl && mohsMaxEl.value !== "" ? Number(mohsMaxEl.value) : null;
-    if (minValue === null && maxValue === null) return true;
-
     var rowData = table.row(dataIndex).data();
-    if (!rowData || rowData.linked_problem_mohs == null) return false;
+    if (!rowData) return true;
+
+    if (selectedYear && String(rowData.contest_year || "") !== selectedYear) return false;
+    if (selectedTopic && String(rowData.linked_problem_topic || "") !== selectedTopic) return false;
+    if (selectedConfidence && String(rowData.linked_problem_confidence || "") !== selectedConfidence) return false;
+    if (minValue === null && maxValue === null) return true;
+    if (rowData.linked_problem_mohs == null) return false;
 
     var mohsValue = Number(rowData.linked_problem_mohs);
     if (minValue !== null && mohsValue < minValue) return false;
@@ -560,15 +632,21 @@
     return true;
   });
 
-  [mohsMinEl, mohsMaxEl].forEach(function (input) {
+  [yearFilterEl, topicFilterEl, confidenceFilterEl, mohsMinEl, mohsMaxEl].forEach(function (input) {
     if (!input) return;
     input.addEventListener("input", function () {
+      table.draw();
+    });
+    input.addEventListener("change", function () {
       table.draw();
     });
   });
 
   if (mohsResetEl) {
     mohsResetEl.addEventListener("click", function () {
+      if (yearFilterEl) yearFilterEl.value = "";
+      if (topicFilterEl) topicFilterEl.value = "";
+      if (confidenceFilterEl) confidenceFilterEl.value = "";
       if (mohsMinEl) mohsMinEl.value = "";
       if (mohsMaxEl) mohsMaxEl.value = "";
       table.draw();
