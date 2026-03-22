@@ -22,11 +22,13 @@
           <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
             <div>
               <h4 class="header-title mb-0">Contest selector</h4>
-              <p class="text-muted fs-xs mb-0">Switch contests with a query-string selector and keep this page shareable.</p>
+              <p class="text-muted fs-xs mb-0">Switch statement-backed contests with a query-string selector and keep this page shareable.</p>
             </div>
             <div class="d-flex flex-wrap gap-2">
               <a href="{% url 'pages:contest_dashboard' %}" class="btn btn-outline-secondary btn-sm">Back to contest directory</a>
+              {% if public_contest_url %}
               <a href="{{ public_contest_url }}" class="btn btn-outline-primary btn-sm">Open public contest explorer</a>
+              {% endif %}
             </div>
           </div>
         </div>
@@ -37,7 +39,7 @@
               <select id="contest-advanced-selector" name="contest" class="form-select">
                 {% for row in contest_choices %}
                 <option value="{{ row.contest }}" {% if row.contest == selected_contest %}selected{% endif %}>
-                  {{ row.contest }} ({{ row.problem_count }} problems)
+                  {{ row.contest }} ({{ row.problem_count }} statements)
                 </option>
                 {% endfor %}
               </select>
@@ -62,7 +64,7 @@
               </span>
             </div>
             <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Problems</p>
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Statements</p>
               <h3 class="mb-0">{{ contest_stats.problem_count }}</h3>
               <p class="text-muted fs-xs mb-0">{{ contest_stats.year_span_label }}</p>
             </div>
@@ -98,9 +100,9 @@
               </span>
             </div>
             <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Difficulty</p>
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Linked difficulty</p>
               <h3 class="mb-0">{{ contest_stats.avg_mohs|floatformat:2 }}</h3>
-              <p class="text-muted fs-xs mb-0">Max MOHS {{ contest_stats.max_mohs }}</p>
+              <p class="text-muted fs-xs mb-0">Max linked MOHS {{ contest_stats.max_mohs }}</p>
             </div>
           </div>
         </div>
@@ -118,7 +120,7 @@
             <div class="flex-grow-1 ms-2">
               <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Technique density</p>
               <h3 class="mb-0">{{ contest_stats.technique_rows }}</h3>
-              <p class="text-muted fs-xs mb-0">{{ contest_stats.techniques_per_problem|floatformat:2 }} per problem</p>
+              <p class="text-muted fs-xs mb-0">{{ contest_stats.techniques_per_problem|floatformat:2 }} per statement</p>
             </div>
           </div>
         </div>
@@ -130,18 +132,18 @@
     <div class="col-sm-6 col-xl-3">
       <div class="card m-0">
         <div class="card-body">
-          <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Statement coverage</p>
+          <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Linked rows</p>
           <h3 class="mb-1">{{ contest_stats.statement_problem_total }}</h3>
-          <p class="text-muted fs-xs mb-0">{{ contest_stats.statement_row_total }} statement rows linked</p>
+          <p class="text-muted fs-xs mb-0">{{ contest_stats.statement_row_total }} active statement rows total</p>
         </div>
       </div>
     </div>
     <div class="col-sm-6 col-xl-3">
       <div class="card m-0">
         <div class="card-body">
-          <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Solution coverage</p>
+          <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Rows with solutions</p>
           <h3 class="mb-1">{{ contest_stats.solution_problem_total }}</h3>
-          <p class="text-muted fs-xs mb-0">{{ contest_stats.published_solution_total }} with published solutions</p>
+          <p class="text-muted fs-xs mb-0">{{ contest_stats.published_solution_total }} statement rows with published solutions</p>
         </div>
       </div>
     </div>
@@ -159,22 +161,26 @@
               <thead>
                 <tr class="text-muted fs-xs text-uppercase">
                   <th>Year</th>
-                  <th>Problems</th>
+                  <th>Statements</th>
                   <th>Avg MOHS</th>
                   <th>Max MOHS</th>
                   <th>Topics</th>
                   <th>Statement-linked</th>
+                  <th>Solved</th>
+                  <th>Solved rate</th>
                 </tr>
               </thead>
               <tbody>
                 {% for row in year_rows %}
                 <tr>
-                  <td class="fw-semibold">{{ row.year }}</td>
+                  <td class="fw-semibold"><a href="{{ row.year_detail_url }}">{{ row.year }}</a></td>
                   <td>{{ row.problem_count }}</td>
-                  <td>{{ row.avg_mohs|floatformat:2 }}</td>
-                  <td>{{ row.max_mohs }}</td>
+                  <td>{% if row.avg_mohs is not None %}{{ row.avg_mohs|floatformat:2 }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+                  <td>{% if row.max_mohs is not None %}{{ row.max_mohs }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
                   <td>{{ row.distinct_topics }}</td>
                   <td>{{ row.statement_problem_total }}</td>
+                  <td>{{ row.solved_problem_total }}</td>
+                  <td>{{ row.solved_rate|floatformat:1 }}%</td>
                 </tr>
                 {% endfor %}
               </tbody>
@@ -194,7 +200,7 @@
               <thead>
                 <tr class="text-muted fs-xs text-uppercase">
                   <th>Topic</th>
-                  <th>Problems</th>
+                  <th>Statements</th>
                   <th>Avg MOHS</th>
                   <th>Max MOHS</th>
                 </tr>
@@ -204,8 +210,8 @@
                 <tr>
                   <td class="fw-semibold">{{ row.topic }}</td>
                   <td>{{ row.problem_count }}</td>
-                  <td>{{ row.avg_mohs|floatformat:2 }}</td>
-                  <td>{{ row.max_mohs }}</td>
+                  <td>{% if row.avg_mohs is not None %}{{ row.avg_mohs|floatformat:2 }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+                  <td>{% if row.max_mohs is not None %}{{ row.max_mohs }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
                 </tr>
                 {% empty %}
                 <tr>
@@ -224,7 +230,7 @@
     <div class="col-xl-6">
       <div class="card h-100">
         <div class="card-header border-bottom">
-          <h4 class="header-title mb-0">Confidence split</h4>
+          <h4 class="header-title mb-0">Confidence split (linked only)</h4>
         </div>
         <div class="card-body">
           <div class="table-responsive">
@@ -232,7 +238,7 @@
               <thead>
                 <tr class="text-muted fs-xs text-uppercase">
                   <th>Confidence</th>
-                  <th>Problems</th>
+                  <th>Statements</th>
                 </tr>
               </thead>
               <tbody>
@@ -255,7 +261,7 @@
     <div class="col-xl-6">
       <div class="card h-100">
         <div class="card-header border-bottom">
-          <h4 class="header-title mb-0">Recent linked statements</h4>
+          <h4 class="header-title mb-0">Recent statements</h4>
         </div>
         <div class="card-body">
           <div class="table-responsive">
@@ -263,6 +269,7 @@
               <thead>
                 <tr class="text-muted fs-xs text-uppercase">
                   <th>Problem</th>
+                  <th>Link</th>
                   <th>Day</th>
                   <th>Updated</th>
                 </tr>
@@ -271,12 +278,13 @@
                 {% for row in recent_statement_rows %}
                 <tr>
                   <td class="fw-semibold">{{ row.problem_code }}</td>
+                  <td>{% if row.is_linked %}<span class="badge bg-success-subtle text-success border border-success-subtle">Linked</span>{% else %}<span class="badge bg-light text-dark border">Unlinked</span>{% endif %}</td>
                   <td>{% if row.day_label %}{{ row.day_label }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
                   <td>{{ row.updated_at_label }}</td>
                 </tr>
                 {% empty %}
                 <tr>
-                  <td colspan="3" class="text-muted">No linked statements for this contest yet.</td>
+                  <td colspan="4" class="text-muted">No active statements for this contest yet.</td>
                 </tr>
                 {% endfor %}
               </tbody>

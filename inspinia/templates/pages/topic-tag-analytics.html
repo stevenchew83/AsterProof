@@ -2,19 +2,35 @@
 
 {% load static i18n %}
 
-{% block title %}Topic tag analytics{% endblock title %}
+{% block title %}Technique analytics{% endblock title %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'plugins/datatables/dataTables.bootstrap5.min.css' %}">
+<style>
+  .technique-dashboard-table-tools .dt-search {
+    display: none;
+  }
+
+  .technique-dashboard-table-tools .dt-length,
+  .technique-dashboard-table-tools .dt-info,
+  .technique-dashboard-table-tools .dt-paging {
+    font-size: 0.8rem;
+  }
+</style>
 {% endblock extra_css %}
 
 {% block page_content %}
 
 <div class="container-fluid">
 
-  {% include 'partials/page-title.html' with title='Topic tag analytics' subtitle='Admin' %}
+  {% include 'partials/page-title.html' with title='Technique analytics' subtitle='Admin' %}
 
-  <div class="row g-3 mt-0">
+  <div class="alert alert-info mt-3 mb-0" role="alert">
+    Parsed techniques are stored in <code>ProblemTopicTechnique</code>. The raw workbook cell stays on
+    <code>ProblemSolveRecord.topic_tags</code>; this dashboard shows the normalized technique and domain rows.
+  </div>
+
+  <div class="row g-3 mt-1">
     <div class="col-sm-6 col-xl-3">
       <div class="card m-0">
         <div class="card-body">
@@ -25,8 +41,8 @@
               </span>
             </div>
             <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Distinct tags</p>
-              <h3 class="mb-0">{{ topic_tag_total }}</h3>
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Distinct techniques</p>
+              <h3 class="mb-0">{{ technique_total }}</h3>
             </div>
           </div>
         </div>
@@ -42,8 +58,8 @@
               </span>
             </div>
             <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Tagged problems</p>
-              <h3 class="mb-0">{{ tagged_problem_total }}</h3>
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Technique rows</p>
+              <h3 class="mb-0">{{ technique_row_total }}</h3>
             </div>
           </div>
         </div>
@@ -59,8 +75,8 @@
               </span>
             </div>
             <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Contests touched</p>
-              <h3 class="mb-0">{{ topic_tag_stats.contest_total }}</h3>
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Tagged problems</p>
+              <h3 class="mb-0">{{ tagged_problem_total }}</h3>
             </div>
           </div>
         </div>
@@ -72,12 +88,12 @@
           <div class="d-flex align-items-center">
             <div class="flex-shrink-0">
               <span class="avatar-title bg-success-subtle text-success rounded">
-                <i class="ti ti-stack-3 fs-24"></i>
+                <i class="ti ti-chart-histogram fs-24"></i>
               </span>
             </div>
             <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Avg tags per problem</p>
-              <h3 class="mb-0">{{ topic_tag_stats.average_tags_per_problem }}</h3>
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Avg techniques / problem</p>
+              <h3 class="mb-0">{{ technique_stats.average_techniques_per_problem }}</h3>
             </div>
           </div>
         </div>
@@ -85,9 +101,11 @@
     </div>
   </div>
 
-  {% if topic_tag_total == 0 %}
+  {% if technique_total == 0 %}
   <div class="alert alert-info mt-4" role="alert">
-    <strong>No topic tag data yet.</strong> Import analytics via <a href="{% url 'pages:problem_import' %}" class="alert-link">Import problems</a> to populate this dashboard.
+    <strong>No technique data yet.</strong> Import analytics via
+    <a href="{% url 'pages:problem_import' %}" class="alert-link">Import problems</a>
+    to populate this dashboard.
   </div>
   {% else %}
 
@@ -95,48 +113,62 @@
     <div class="col-xxl-8">
       <div class="card">
         <div class="card-header border-0 pb-0">
-          <h4 class="header-title mb-0">Tag usage volume</h4>
-          <p class="text-muted fs-xs mb-0">Most-used topic tags by tagged problem count</p>
+          <h4 class="header-title mb-0">Technique usage volume</h4>
+          <p class="text-muted fs-xs mb-0">Most-used techniques by tagged problem count</p>
         </div>
         <div class="card-body pt-2">
-          <div id="chart-tag-volume" style="min-height: 340px;"></div>
+          <div id="chart-technique-volume" style="min-height: 340px;"></div>
         </div>
       </div>
     </div>
     <div class="col-xxl-4">
       <div class="card h-100">
         <div class="card-header border-0 pb-0">
-          <h4 class="header-title mb-0">Tag leaders</h4>
-          <p class="text-muted fs-xs mb-0">The tags doing the most work across scale, spread, and longevity</p>
+          <h4 class="header-title mb-0">Technique leaders</h4>
+          <p class="text-muted fs-xs mb-0">Quick reads on scale, spread, and difficulty</p>
         </div>
         <div class="card-body pt-2">
           <div class="d-flex flex-column gap-3">
             <div class="border rounded p-3">
               <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Most used</p>
               <div class="d-flex align-items-center justify-content-between gap-2">
-                <h5 class="mb-0">{{ topic_tag_leaders.most_used.technique }}</h5>
-                <span class="badge bg-primary-subtle text-primary">{{ topic_tag_leaders.most_used.problem_count }} problems</span>
+                <h5 class="mb-0">{{ technique_leaders.most_used.technique }}</h5>
+                <span class="badge bg-primary-subtle text-primary">{{ technique_leaders.most_used.problem_count }} problems</span>
               </div>
             </div>
             <div class="border rounded p-3">
               <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Broadest contest coverage</p>
               <div class="d-flex align-items-center justify-content-between gap-2">
-                <h5 class="mb-0">{{ topic_tag_leaders.broadest_contest.technique }}</h5>
-                <span class="badge bg-info-subtle text-info">{{ topic_tag_leaders.broadest_contest.contest_count }} contests</span>
+                <h5 class="mb-0">{{ technique_leaders.broadest_contest.technique }}</h5>
+                <span class="badge bg-info-subtle text-info">{{ technique_leaders.broadest_contest.contest_count }} contests</span>
+              </div>
+            </div>
+            <div class="border rounded p-3">
+              <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Widest topic mix</p>
+              <div class="d-flex align-items-center justify-content-between gap-2">
+                <h5 class="mb-0">{{ technique_leaders.widest_topic.technique }}</h5>
+                <span class="badge bg-warning-subtle text-warning">{{ technique_leaders.widest_topic.topic_count }} topics</span>
               </div>
             </div>
             <div class="border rounded p-3">
               <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Broadest domain mix</p>
               <div class="d-flex align-items-center justify-content-between gap-2">
-                <h5 class="mb-0">{{ topic_tag_leaders.broadest_domain.technique }}</h5>
-                <span class="badge bg-warning-subtle text-warning">{{ topic_tag_leaders.broadest_domain.domain_count }} domains</span>
+                <h5 class="mb-0">{{ technique_leaders.broadest_domain.technique }}</h5>
+                <span class="badge bg-secondary-subtle text-secondary">{{ technique_leaders.broadest_domain.domain_count }} domains</span>
+              </div>
+            </div>
+            <div class="border rounded p-3">
+              <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Highest average MOHS</p>
+              <div class="d-flex align-items-center justify-content-between gap-2">
+                <h5 class="mb-0">{{ technique_leaders.highest_avg_mohs.technique }}</h5>
+                <span class="badge bg-success-subtle text-success">{{ technique_leaders.highest_avg_mohs.avg_mohs }}</span>
               </div>
             </div>
             <div class="border rounded p-3">
               <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Longest-running</p>
               <div class="d-flex align-items-center justify-content-between gap-2">
-                <h5 class="mb-0">{{ topic_tag_leaders.longest_running.technique }}</h5>
-                <span class="badge bg-success-subtle text-success">{{ topic_tag_leaders.longest_running.active_years }} years</span>
+                <h5 class="mb-0">{{ technique_leaders.longest_running.technique }}</h5>
+                <span class="badge bg-dark-subtle text-body">{{ technique_leaders.longest_running.active_years }} years</span>
               </div>
             </div>
           </div>
@@ -150,35 +182,71 @@
       <div class="card">
         <div class="card-header border-0 pb-0">
           <h4 class="header-title mb-0">Contest coverage</h4>
-          <p class="text-muted fs-xs mb-0">Tags that appear across the widest spread of contests</p>
+          <p class="text-muted fs-xs mb-0">Techniques that travel across the widest contest spread</p>
         </div>
         <div class="card-body pt-2">
-          <div id="chart-contest-coverage" style="min-height: 320px;"></div>
+          <div id="chart-technique-contest-coverage" style="min-height: 320px;"></div>
         </div>
       </div>
     </div>
     <div class="col-xl-6">
       <div class="card">
         <div class="card-header border-0 pb-0">
-          <h4 class="header-title mb-0">Domain breadth</h4>
-          <p class="text-muted fs-xs mb-0">How many domain labels each tag spans</p>
+          <h4 class="header-title mb-0">Topic breadth</h4>
+          <p class="text-muted fs-xs mb-0">How many main topics each technique touches</p>
         </div>
         <div class="card-body pt-2">
-          <div id="chart-domain-breadth" style="min-height: 320px;"></div>
+          <div id="chart-technique-topic-breadth" style="min-height: 320px;"></div>
         </div>
       </div>
     </div>
   </div>
 
   <div class="row g-3 mt-0">
-    <div class="col-12">
+    <div class="col-xl-6">
       <div class="card">
         <div class="card-header border-0 pb-0">
-          <h4 class="header-title mb-0">Average MOHS by tag</h4>
-          <p class="text-muted fs-xs mb-0">Tags associated with consistently harder problem sets</p>
+          <h4 class="header-title mb-0">Domain breadth</h4>
+          <p class="text-muted fs-xs mb-0">How many domain labels each technique spans</p>
         </div>
         <div class="card-body pt-2">
-          <div id="chart-tag-mohs" style="min-height: 340px;"></div>
+          <div id="chart-technique-domain-breadth" style="min-height: 320px;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-6">
+      <div class="card">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-0">Average MOHS by technique</h4>
+          <p class="text-muted fs-xs mb-0">Techniques that skew toward harder problem sets</p>
+        </div>
+        <div class="card-body pt-2">
+          <div id="chart-technique-mohs" style="min-height: 320px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-0">
+    <div class="col-xl-6">
+      <div class="card">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-0">Technique activity by year</h4>
+          <p class="text-muted fs-xs mb-0">Count of normalized technique rows attached to problems in each year</p>
+        </div>
+        <div class="card-body pt-2">
+          <div id="chart-technique-year-activity" style="min-height: 320px;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-6">
+      <div class="card">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-0">Domain label volume</h4>
+          <p class="text-muted fs-xs mb-0">Most common domain labels across all technique rows</p>
+        </div>
+        <div class="card-body pt-2">
+          <div id="chart-technique-domain-volume" style="min-height: 320px;"></div>
         </div>
       </div>
     </div>
@@ -189,13 +257,64 @@
       <div class="card">
         <div class="card-header border-bottom d-flex flex-wrap align-items-center gap-2">
           <div class="flex-grow-1">
-            <h4 class="header-title mb-0">Topic tag directory</h4>
-            <p class="text-muted fs-xs mb-0">Search, sort, and compare tag-level usage, breadth, and contest spread</p>
+            <h4 class="header-title mb-0">Technique directory</h4>
+            <p class="text-muted fs-xs mb-0">Search, filter, and compare normalized techniques across contests, topics, years, domains, and difficulty.</p>
           </div>
         </div>
         <div class="card-body">
-          <div class="table-responsive">
-            <table id="topic-tag-analytics-table" class="table table-striped table-bordered align-middle w-100"></table>
+          <div class="d-flex flex-wrap align-items-end gap-2 mb-3">
+            <div>
+              <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="technique-dashboard-search">Search</label>
+              <input
+                id="technique-dashboard-search"
+                type="search"
+                class="form-control form-control-sm"
+                placeholder="Search technique, contest, or topic"
+              >
+            </div>
+            <div>
+              <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="technique-dashboard-contest-filter">Contest</label>
+              <select id="technique-dashboard-contest-filter" class="form-select form-select-sm">
+                <option value="">All contests</option>
+                {% for contest_name in technique_filter_options.contests %}
+                <option value="{{ contest_name }}">{{ contest_name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div>
+              <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="technique-dashboard-topic-filter">Topic</label>
+              <select id="technique-dashboard-topic-filter" class="form-select form-select-sm">
+                <option value="">All topics</option>
+                {% for topic_name in technique_filter_options.topics %}
+                <option value="{{ topic_name }}">{{ topic_name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div>
+              <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="technique-dashboard-domain-filter">Domain</label>
+              <select id="technique-dashboard-domain-filter" class="form-select form-select-sm">
+                <option value="">All domains</option>
+                {% for domain_name in technique_filter_options.domains %}
+                <option value="{{ domain_name }}">{{ domain_name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div>
+              <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="technique-dashboard-year-filter">Year</label>
+              <select id="technique-dashboard-year-filter" class="form-select form-select-sm">
+                <option value="">All years</option>
+                {% for year_value in technique_filter_options.years %}
+                <option value="{{ year_value }}">{{ year_value }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <button type="button" id="technique-dashboard-reset" class="btn btn-outline-secondary btn-sm">Reset</button>
+            <span class="text-muted fs-xs">
+              {{ technique_stats.contest_total }} contests • {{ technique_stats.topic_total }} topics • {{ technique_stats.domain_total }} domains
+            </span>
+          </div>
+          <div class="table-responsive technique-dashboard-table-tools">
+            <table id="technique-analytics-table" class="table table-striped table-bordered align-middle w-100"></table>
           </div>
         </div>
       </div>
@@ -205,25 +324,34 @@
   {% endif %}
 </div>
 
-{{ charts_payload|json_script:"topic-tag-dashboard-charts-data" }}
-{{ topic_tag_rows|json_script:"topic-tag-dashboard-table-data" }}
+{{ charts_payload|json_script:"technique-dashboard-charts-data" }}
+{{ technique_rows|json_script:"technique-dashboard-table-data" }}
 
 {% endblock page_content %}
 
 {% block extra_javascript %}
-{% if topic_tag_total > 0 %}
+{% if technique_total > 0 %}
 <script src="{% static 'plugins/apexcharts/apexcharts.min.js' %}"></script>
 <script src="{% static 'plugins/datatables/dataTables.min.js' %}"></script>
 <script src="{% static 'plugins/datatables/dataTables.bootstrap5.min.js' %}"></script>
 <script>
 (function () {
-  var dataEl = document.getElementById("topic-tag-dashboard-charts-data");
-  var tableEl = document.getElementById("topic-tag-dashboard-table-data");
+  var dataEl = document.getElementById("technique-dashboard-charts-data");
+  var tableEl = document.getElementById("technique-dashboard-table-data");
   if (!dataEl || !tableEl || typeof ApexCharts === "undefined") return;
 
-  var palette = ["#0d6efd", "#198754", "#fd7e14", "#0dcaf0"];
+  var palette = ["#0d6efd", "#198754", "#fd7e14", "#0dcaf0", "#6f42c1", "#20c997"];
   var charts = JSON.parse(dataEl.textContent);
   var rows = JSON.parse(tableEl.textContent);
+
+  function escapeHtml(value) {
+    return String(value == null ? "" : value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
 
   function formatMetric(value) {
     if (typeof value !== "number") return value;
@@ -232,7 +360,12 @@
 
   function barOptions(payload, color) {
     return {
-      chart: { type: "bar", height: Math.max(320, 34 * payload.labels.length), toolbar: { show: false }, fontFamily: "inherit" },
+      chart: {
+        type: "bar",
+        height: Math.max(320, 34 * payload.labels.length),
+        toolbar: { show: false },
+        fontFamily: "inherit"
+      },
       series: [{ name: "Value", data: payload.values }],
       plotOptions: { bar: { borderRadius: 3, horizontal: true, barHeight: "72%" } },
       dataLabels: {
@@ -253,32 +386,56 @@
     };
   }
 
-  function renderBar(sel, payload, idx) {
-    var el = document.querySelector(sel);
-    if (!el || !payload.labels.length) return;
-    var chart = new ApexCharts(el, barOptions(payload, palette[idx % palette.length]));
+  function renderBar(selector, payload, paletteIndex) {
+    var element = document.querySelector(selector);
+    if (!element || !payload || !payload.labels || !payload.labels.length) return;
+    var chart = new ApexCharts(element, barOptions(payload, palette[paletteIndex % palette.length]));
     chart.render();
   }
 
-  renderBar("#chart-tag-volume", charts.byProblemVolume, 0);
-  renderBar("#chart-contest-coverage", charts.byContestCoverage, 1);
-  renderBar("#chart-domain-breadth", charts.byDomainBreadth, 2);
-  renderBar("#chart-tag-mohs", charts.byAvgMohs, 3);
+  renderBar("#chart-technique-volume", charts.byProblemVolume, 0);
+  renderBar("#chart-technique-contest-coverage", charts.byContestCoverage, 1);
+  renderBar("#chart-technique-topic-breadth", charts.byTopicBreadth, 2);
+  renderBar("#chart-technique-domain-breadth", charts.byDomainBreadth, 3);
+  renderBar("#chart-technique-mohs", charts.byAvgMohs, 4);
+  renderBar("#chart-technique-year-activity", charts.byYearActivity, 5);
+  renderBar("#chart-technique-domain-volume", charts.byDomainVolume, 1);
 
   if (typeof DataTable === "undefined") return;
 
-  new DataTable("#topic-tag-analytics-table", {
+  var table = new DataTable("#technique-analytics-table", {
     data: rows,
     columns: [
-      { data: "technique", title: "Tag" },
+      {
+        data: "technique",
+        title: "Technique",
+        render: function (data, type, row) {
+          if (type === "display") {
+            return '<a href="' + escapeHtml(row.search_href || "#") + '" class="fw-semibold">' + escapeHtml(data) + '</a>';
+          }
+          return data;
+        }
+      },
       { data: "problem_count", title: "Problems", className: "text-nowrap" },
       { data: "contest_count", title: "Contests", className: "text-nowrap" },
+      {
+        data: "topic_count",
+        title: "Topics",
+        render: function (data, type, row) {
+          if (type === "display" || type === "filter") {
+            if (!row.sample_topics_label) return formatMetric(Number(data || 0));
+            return formatMetric(Number(data || 0)) + " • " + escapeHtml(row.sample_topics_label);
+          }
+          return data;
+        }
+      },
       {
         data: "domain_count",
         title: "Domains",
         render: function (data, type, row) {
           if (type === "display" || type === "filter") {
-            return formatMetric(Number(data || 0)) + (row.domains_label ? " • " + row.domains_label : "");
+            if (!row.domains_label) return formatMetric(Number(data || 0));
+            return formatMetric(Number(data || 0)) + " • " + escapeHtml(row.domains_label);
           }
           return data;
         }
@@ -295,7 +452,7 @@
         }
       },
       { data: "max_mohs", title: "Max MOHS", className: "text-nowrap" },
-      { data: "sample_contests_label", title: "Sample contests", defaultContent: "" },
+      { data: "sample_contests_label", title: "Top contests", defaultContent: "" },
     ],
     order: [[1, "desc"], [0, "asc"]],
     pageLength: 25,
@@ -303,6 +460,63 @@
     scrollX: true,
     autoWidth: false,
   });
+
+  var searchInput = document.getElementById("technique-dashboard-search");
+  var contestFilter = document.getElementById("technique-dashboard-contest-filter");
+  var topicFilter = document.getElementById("technique-dashboard-topic-filter");
+  var domainFilter = document.getElementById("technique-dashboard-domain-filter");
+  var yearFilter = document.getElementById("technique-dashboard-year-filter");
+  var resetButton = document.getElementById("technique-dashboard-reset");
+
+  function matchesArrayFilter(values, selectedValue) {
+    if (!selectedValue) return true;
+    return Array.isArray(values) && values.indexOf(selectedValue) !== -1;
+  }
+
+  var filterCallback = function (settings, data, dataIndex, rowData) {
+    if (!settings.nTable || settings.nTable.id !== "technique-analytics-table") return true;
+    var row = rowData || table.row(dataIndex).data();
+    if (!row) return true;
+
+    return (
+      matchesArrayFilter(row.contests, contestFilter ? contestFilter.value : "") &&
+      matchesArrayFilter(row.topics, topicFilter ? topicFilter.value : "") &&
+      matchesArrayFilter(row.domains, domainFilter ? domainFilter.value : "") &&
+      matchesArrayFilter(row.years, yearFilter ? yearFilter.value : "")
+    );
+  };
+
+  DataTable.ext.search.push(filterCallback);
+
+  if (searchInput) {
+    searchInput.addEventListener("input", function () {
+      table.search(searchInput.value || "");
+      table.draw();
+    });
+  }
+
+  [contestFilter, topicFilter, domainFilter, yearFilter]
+    .filter(Boolean)
+    .forEach(function (element) {
+      element.addEventListener("change", function () {
+        table.draw();
+      });
+    });
+
+  if (resetButton) {
+    resetButton.addEventListener("click", function () {
+      [contestFilter, topicFilter, domainFilter, yearFilter]
+        .filter(Boolean)
+        .forEach(function (element) {
+          element.value = "";
+        });
+      if (searchInput) {
+        searchInput.value = "";
+      }
+      table.search("");
+      table.draw();
+    });
+  }
 })();
 </script>
 {% endif %}

@@ -357,7 +357,16 @@
   new DataTable("#problem-statement-analytics-table", {
     data: rows,
     columns: [
-      { data: "contest_year", title: "Year", className: "text-nowrap" },
+      {
+        data: "contest_year",
+        title: "Year",
+        className: "text-nowrap",
+        render: function (data, type, row) {
+          if (type !== "display") return data;
+          if (!row.contest_year_url) return data;
+          return '<a href="' + row.contest_year_url + '">' + data + "</a>";
+        }
+      },
       { data: "contest_name", title: "Contest" },
       { data: "statement_count", title: "Statements", className: "text-nowrap" },
       { data: "linked_count", title: "Linked", className: "text-nowrap" },

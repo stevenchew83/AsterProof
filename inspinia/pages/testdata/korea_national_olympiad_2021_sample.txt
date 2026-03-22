@@ -1,0 +1,42 @@
+2021 Korea National Olympiad3
+Korea National Olympiad 2021
+Part 1
+P1	Let $ABC$ be an acute triangle and $D$ be an intersection of the angle bisector of $A$ and side $BC$. Let $\Omega$ be a circle tangent to the circumcircle of triangle $ABC$ and side $BC$ at $A$ and $D$, respectively. $\Omega$ meets the sides $AB, AC$ again at $E, F$, respectively. The perpendicular line to $AD$, passing through $E, F$ meets $\Omega$ again at $G, H$, respectively. Suppose that $AE$ and $GD$ meet at $P$, $EH$ and $GF$ meet at $Q$, and $HD$ and $AF$ meet at $R$. Prove that $\dfrac{\overline{QF}}{\overline{QG}}=\dfrac{\overline{HR}}{\overline{PG}}$.	
+
+Olympiadium
+view topic
+P2	For positive integers $n, k, r$, denote by $A(n, k, r)$ the number of integer tuples $(x_1, x_2, \ldots, x_k)$ satisfying the following conditions.
+$x_1 \ge x_2 \ge \cdots \ge x_k \ge 0$
+$x_1+x_2+ \cdots +x_k = n$
+$x_1-x_k \le r$
+For all positive integers $m, s, t$, prove that$$A(m, s, t)=A(m, t, s).$$	
+
+Olympiadium
+view topic
+P3	Show that for any positive integers $k$ and $1 \leq a \leq 9$, there exists $n$ such that satisfies the below statement.
+
+When $2^n=a_0+10a_1+10^2a_2+ \cdots +10^ia_i+ \cdots $ $(0 \leq a_i \leq 9$ and $a_i$ is integer), $a_k$ is equal to $a$.	
+
+KPBY0507
+view topic
+Part 2
+P4	For a positive integer $n$, there are two countries $A$ and $B$ with $n$ airports each and $n^2-2n+ 2$ airlines operating between the two countries. Each airline operates at least one flight. Exactly one flight by one of the airlines operates between each airport in $A$ and each airport in $B$, and that flight operates in both directions. Also, there are no flights between two airports in the same country. For two different airports $P$ and $Q$, denote by "$(P, Q)$-travel route" the list of airports $T_0, T_1, \ldots, T_s$ satisfying the following conditions.
+$T_0=P,\ T_s=Q$
+$T_0, T_1, \ldots, T_s$ are all distinct.
+There exists an airline that operates between the airports $T_i$ and $T_{i+1}$ for all $i = 0, 1, \ldots, s-1$.
+Prove that there exist two airports $P, Q$ such that there is no or exactly one $(P, Q)$-travel route.
+
+Graph Wording
+Consider a complete bipartite graph $G(A, B)$ with $\vert A \vert = \vert B \vert = n$. Suppose there are $n^2-2n+2$ colors and each edge is colored by one of these colors. Define $(P, Q)-path$ a path from $P$ to $Q$ such that all of the edges in the path are colored the same. Prove that there exist two vertices $P$ and $Q$ such that there is no or only one $(P, Q)-path$.
+
+Olympiadium
+view topic
+P5	A real number sequence $a_1, \cdots ,a_{2021}$ satisfies the below conditions.
+$$a_1=1, a_2=2, a_{n+2}=\frac{2a_{n+1}^2}{a_n+a_{n+1}} (1\leq n \leq 2019)$$Let the minimum of $a_1, \cdots ,a_{2021}$ be $m$, and the maximum of $a_1, \cdots ,a_{2021}$ be $M$.
+Let a 2021 degree polynomial$$P(x):=(x-a_1)(x-a_2) \cdots (x-a_{2021})$$$|P(x)|$ is maximum in $[m, M]$ when $x=\alpha$. Show that $1<\alpha <2$.	
+
+KPBY0507
+view topic
+P6	Let $ABC$ be an obtuse triangle with $\angle A > \angle B > \angle C$, and let $M$ be a midpoint of the side $BC$. Let $D$ be a point on the arc $AB$ of the circumcircle of triangle $ABC$ not containing $C$. Suppose that the circle tangent to $BD$ at $D$ and passing through $A$ meets the circumcircle of triangle $ABM$ again at $E$ and $\overline{BD}=\overline{BE}$. $\omega$, the circumcircle of triangle $ADE$, meets $EM$ again at $F$.
+
+Prove that lines $BD$ and $AE$ meet on the line tangent to $\omega$ at $F$.

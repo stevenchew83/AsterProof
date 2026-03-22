@@ -576,8 +576,8 @@
 <section class="problem-section">
   <div class="container">
     <div class="contest-archive-shell contest-reveal-hero p-4 p-lg-4">
-      <a href="{% url 'pages:problem_list' %}" class="problem-back-link">
-        <i class="ti ti-arrow-left"></i> Back to contests
+      <a href="{{ contest_back_url }}" class="problem-back-link">
+        <i class="ti ti-arrow-left"></i> {{ contest_back_label }}
       </a>
 
       <div class="contest-archive-body">
@@ -688,7 +688,7 @@
               <div class="d-flex flex-wrap gap-2">
                 <button type="submit" class="btn btn-sm btn-primary">Apply filters</button>
                 {% if has_active_filters %}
-                <a href="{% url 'pages:contest_problem_list' contest_slug %}" class="btn btn-sm btn-outline-secondary">
+                <a href="{{ contest_listing_base_url }}" class="btn btn-sm btn-outline-secondary">
                   Clear filters
                 </a>
                 {% endif %}

@@ -1,0 +1,139 @@
+2015 Romania National Olympiad3
+Romania National Olympiad 2015
+Grade level 7
+1	Find all positive integers $r$ with the property that there exists positive prime numbers $p$ and $q$ so that$$p^2 + pq + q^2 = r^2 .$$	
+
+parmenides51
+view topic
+2	The numbers $x, y, z, t, a$ and $b$ are positive integers, so that $xt-yz = 1$ and$$\frac{x}{y} \ge \frac{a}{b} \ge \frac{z}{t} .$$Prove that$$ab \le (x + z) (y +t)$$	
+
+parmenides51
+view topic
+3	In the convex quadrilateral $ABCD$ we have that $\angle BCD = \angle ADC  \ge 90 ^o$. The bisectors of $\angle BAD$ and $\angle ABC$ intersect in $M$. Prove that if $M \in CD$, then $M$ is the middle of $CD$.	
+
+parmenides51
+view topic
+4	Consider $\vartriangle ABC$ where $\angle ABC= 60 ^o$. Points $M$ and $D$ are on the sides $(AC)$, respectively $(AB)$, such that $\angle BCA = 2   \angle MBC$, and $BD = MC$. Determine $\angle DMB$.	
+
+parmenides51
+view topic
+Grade level 8
+1	Find all real numbers $x, y,z,t \in [0, \infty)$ so that
+$$x + y + z  \le t,  \,\,\, x^2 + y^2 + z^2  \ge t \,\,\, and  \,\,\,x^3 + y^3 + z^3 \le t.$$	
+
+parmenides51
+view topic
+2	Let $a, b, c $ be distinct positive integers.
+
+a) Prove that $a^2b^2 + a^2c^2 + b^2c^2 \ge 9$.
+
+b) if, moreover, $ab + ac + bc +3 = abc > 0,$ show that
+$$(a -1)(b  -1)+(a  -1)(c  -1)+(b -1)(c -1) \ge 6.$$	
+
+parmenides51
+view topic
+3	Let $VABC$ be a regular triangular pyramid with base $ABC$, of center $O$. Points $I$ and $H$ are the center of the inscribed circle, respectively the orthocenter $\vartriangle VBC$. Knowing that $AH = 3 OI$, determine the measure of the angle between the lateral edge of the pyramid and the plane of the base.	
+
+parmenides51
+view topic
+4	A positive integer will be called typical if the sum of its decimal digits is a multiple of $2011$.
+a) Show that there are infinitely many typical numbers, each having at least $2011$ multiples which are also typical numbers.
+b) Does there exist a positive integer such that each of its multiples is typical?	
+
+parmenides51
+view topic
+Grade level 9
+1	Show that among the square roots of the first $ 2015 $ natural numbers, we cannot choose an arithmetic sequence composed of $ 45 $ elements.	
+
+CatalinBordea
+view topic
+2	A quadratic function has the property that for any interval of length $ 1, $ the length of its image is at least $ 1. $
+Show that for any interval of length $ 2, $ the length of its image is at least $ 4. $	
+
+CatalinBordea
+view topic
+3	Let be a point $ P $ in the interior of a triangle $ ABC. $ The lines $ AP,BP,CP $ meet $ BC,AC, $ respectively, $ AB $ at $ 
+A_1,B_1, $ respectively, $ C_1. $ If
+$$ \mathcal{A}_{PBA_1} +\mathcal{A}_{PCB_1} +\mathcal{A}_{PAC_1} =\frac{1}{2}\mathcal{A}_{ABC} , $$show that $ P $ lies on a median of $ ABC. $
+
+$ \mathcal{A} $ denotes area.	
+
+CatalinBordea
+view topic
+4	Let $a,b,c,d \ge 0$ real numbers so that $a+b+c+d=1$.Prove that
+$\sqrt{a+\frac{(b-c)^2}{6}+\frac{(c-d)^2}{6}+\frac{(d-b)^2}{6}} +\sqrt{b}+\sqrt{c}+\sqrt{d} \le 2.$	
+
+andreiromania
+view topic
+Grade level 10
+1	Find all triplets $ (a,b,c) $ of nonzero complex numbers having the same absolute value and which verify the equality:
+$$ \frac{a}{b} +\frac{b}{c}+\frac{c}{a} =-1 $$	
+
+CatalinBordea
+view topic
+2	Consider a natural number $ n $ for which it exist a natural number $ k $ and $ k $ distinct primes so that $ n=p_1\cdot p_2\cdots p_k. $
+
+a) Find the number of functions $ f:\{ 1, 2,\ldots , n\}\longrightarrow\{ 1,2,\ldots ,n\} $ that have the property that $ f(1)\cdot f(2)\cdots f\left( n \right) $ divides $ n. $
+b) If $ n=6, $ find the number of functions $ f:\{ 1, 2,3,4,5,6\}\longrightarrow\{ 1,2,3,4,5,6\} $ that have the property that $ f(1)\cdot f(2)\cdot f(3)\cdot f(4)\cdot f(5)\cdot f(6) $ divides $ 36. $	
+
+CatalinBordea
+view topic
+3	Find all functions $ f,g:\mathbb{Q}\longrightarrow\mathbb{Q} $ that verify the relations
+$$ \left\{\begin{matrix} f(g(x)+g(y))=f(g(x))+y \\
+g(f(x)+f(y))=g(f(x))+y\end{matrix}\right. , $$for all $ x,y\in\mathbb{Q} . $	
+
+CatalinBordea
+view topic
+4	Let be a finite set $ A $ of real numbers, and define the sets $ S_{\pm }=\{ x\pm y| x,y\in A \} . $
+Show that $ \left| A \right|\cdot\left| S_{-} \right| \le \left| S_{+} \right|^2 . $	
+
+CatalinBordea
+view topic
+Grade level 11
+1	Find all differentiable functions $ f:\mathbb{R}\longrightarrow\mathbb{R} $ that verify the conditions:
+$ \text{(i)}\quad\forall x\in\mathbb{Z} \quad f'(x) =0 $
+
+$ \text{(ii)}\quad\forall x\in\mathbb{R}\quad f'(x)=0\implies f(x)=0 $	
+
+CatalinBordea
+view topic
+2	Let be a $ 5\times 5 $ complex matrix $ A $ whose trace is $ 0, $ and such that $ I_5-A $ is invertible.
+Prove that $ A^5\neq I_5. $	
+
+CatalinBordea
+view topic
+3	Let be two nonnegative real numbers $ a,b $ with $ b>a, $ and a sequence $ \left( x_n \right)_{n\ge 1} $ of real numbers such that the sequence $ \left( \frac{x_1+x_2+\cdots +x_n}{n^a} \right)_{n\ge 1} $ is bounded.
+
+Show that the sequence $ \left( x_1+\frac{x_2}{2^b} +\frac{x_3}{3^b} +\cdots +\frac{x_n}{n^b} \right)_{n\ge 1} $ is convergent.	
+
+CatalinBordea
+view topic
+4	Let be three natural numbers $ k,m,n $ an $ m\times n $ matrix $ A, $ an $ n\times m $ matrix $ B, $ and $ k $ complex numbers $ a_0,a_1,\ldots ,a_k $ such that the following conditions hold.
+
+$ \text{(i)}\quad m\ge n\ge 2 $
+$ \text{(ii)}\quad a_0I_m+a_1AB+a_2(AB)^2+\cdots +a_k(AB)^k=O_m $
+$ \text{(iii)}\quad a_0I_m+a_1BA+a_2(BA)^2+\cdots +a_k(BA)^k\neq O_n $
+
+Prove that $ a_0=0. $	
+
+CatalinBordea
+view topic
+Grade level 12
+1	Let be a ring that has the property that all its elements are the product of two idempotent elements of it. Show that:
+a) $ 1 $ is the only unit of this ring.
+b) this ring is Boolean.	
+
+CatalinBordea
+view topic
+2	Show that the set of all elements minus $ 0 $ of a finite division ring that has at least $ 4 $ elements can be partitioned into two nonempty sets $ A,B $ having the property that
+$$ \sum_{x\in A} x=\prod_{y\in B} y. $$	
+
+CatalinBordea
+view topic
+3	Let $\mathcal{C}$ be the set of all twice differentiable functions $f:[0,1] \to \mathbb{R}$ with at least two (not necessarily distinct) zeros and $|f''(x)| \le 1,$ for all $x \in [0,1].$ Find the greatest value of the integral$$\int\limits_0^1 |f(x)| \mathrm{d}x$$when $f$ runs through the set $\mathcal{C},$ as well as the functions that achieve this maximum.
+
+Note: A differentiable function $f$ has two zeros in the same point $a$ if $f(a)=f'(a)=0.$	
+
+Filipjack
+view topic
+4	Find all non-constant polynoms $ f\in\mathbb{Q} [X] $ that don't have any real roots in the interval $ [0,1] $ and for which there exists a function $ \xi :[0,1]\longrightarrow\mathbb{Q} [X]\times\mathbb{Q} [X], \xi (x):=\left( g_x,h_x \right) $ such that $ h_x(x)\neq 0 $ and $ \int_0^x \frac{dt}{f(t)} =\frac{g_x(x)}{h_x(x)} , $ for all $ x\in [0,1] . $

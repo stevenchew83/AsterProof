@@ -1,0 +1,41 @@
+2020 Korean MO winter camp3
+2020 Korean MO winter camp Test 1
+#1	Call a positive integer challenging if it can be expressed as $2^a(2^b+1)$, where $a,b$ are positive integers. Prove that if $X$ is a set of challenging numbers smaller than $2^n (n$ is a given positive integer) and $|X|\ge \frac{4}{3}(n-1)$, there exist two disjoint subsets $A,B\subset X$ such that $|A|=|B|$ and $\sum_{a\in A}a=\sum_{b \in B}b$.	
+
+MNJ2357
+view topic
+#2	$X$ is a set of $2020$ distinct real numbers. Prove that there exist $a,b\in \mathbb{R}$ and $A\subset X$ such that
+$$\sum_{x\in A}(x-a)^2 +\sum_{x\in X\backslash A}(x-b)^2\le \frac{1009}{1010}\sum_{x\in X}x^2$$	
+
+MNJ2357
+view topic
+#3	Find all integer coefficient polynomials $Q$ such that
+$Q(n)\ge 1$ $\forall n\in \mathbb{Z}_+$.
+$Q(mn)$ and $Q(m)Q(n)$ have the same number of prime divisors $\forall m,n\in\mathbb{Z}_+$.
+
+MNJ2357
+view topic
+#4	$I$ is the incenter of a given triangle $\triangle ABC$. The angle bisectors of $ABC$ meet the sides at $D,E,F$, and $EF$ meets $(ABC)$ at $L$ and $T$ ($F$ is on segment $LE$.). Suppose $M$ is the midpoint of $BC$. Prove that if $DT$ is tangent to the incircle of $ABC$, then $IL$ bisects $\angle MLT$.	
+
+MNJ2357
+view topic
+#5	$\square ABCD$ is a quadrilateral with $\angle A=2\angle C <90^\circ$. $I$ is the incenter of $\triangle BAD$, and the line passing $I$ and perpendicular to $AI$ meets rays $CB$ and $CD$ at $E,F$ respectively. Denote $O$ as the circumcenter of $\triangle CEF$. The line passing $E$ and perpendicular to $OE$ meets ray $OF$ at $Q$, and the line passing $F$ and perpendicular to $OF$ meets ray $OE$ at $P$. Prove that the circle with diameter $PQ$ is tangent to the circumcircle of $\triangle BCD$.	
+
+MNJ2357
+view topic
+#6	Find all strictly increasing sequences $\{a_n\}_{n=0}^\infty$ of positive integers such that for all positive integers $k,m,n$
+$$\frac{a_{n+1} +a_{n+2} +\dots +a_{n+k}}{k+m}$$is not an integer larger than $2020$.	
+
+MNJ2357
+view topic
+#7	Find all functions $f:\mathbb{R}\rightarrow\mathbb{R}$ such that $2f(x^2+y^2)=(x+f(y))^2+f(x-f(y))^2$ for all $x,y\in\mathbb{R}$.	
+
+MNJ2357
+view topic
+#8	I've come across a challenging graph theory problem. Roughly translated, it goes something like this:
+
+There are n lines drawn on a plane; no two lines are parallel to each other, and no three lines meet at a single point.
+
+Those lines would partition the plane down into many 'area's. Suppose we select one point from each area. Also, should two areas share a common side, we connect the two points belonging to the respective areas with a line.
+
+A graph consisted of points and lines will have been made. Find all possible 'n' that will make a hamiltonian circuit exist for the given graph

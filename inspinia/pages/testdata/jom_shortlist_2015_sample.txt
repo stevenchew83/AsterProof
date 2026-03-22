@@ -1,0 +1,11 @@
+JOM 2015 Shortlist
+Shortlisted Problems to the Junior Olympiad of Malaysia
+A1	Let $ a, b, c $ be the side lengths of a triangle. Prove that
+$$ \displaystyle\sum_{cyc} \frac{(a^2 + b^2)(a + c)}{b} \ge 2(a^2 + b^2 + c^2) $$
+
+zschess
+view topic
+C1	Baron and Peter are playing a game. They are given a simple finite graph $G$ with $n\ge 3$ vertex and $k$ edges that connects the vertices. First Peter labels two vertices A and B, and places a counter at A.
+
+zschess
+view topic

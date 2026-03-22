@@ -10,6 +10,7 @@ from django.db import transaction
 
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
+from inspinia.pages.problem_import import dataframe_to_safe_excel_bytes
 from inspinia.pages.problem_import import sync_problem_topic_techniques
 
 STATEMENT_METADATA_EXPORT_COLUMNS = [
@@ -175,9 +176,7 @@ def build_statement_metadata_export_workbook_bytes(
     statements: list[ContestProblemStatement],
 ) -> bytes:
     export_df = build_statement_metadata_export_dataframe(statements)
-    buffer = io.BytesIO()
-    export_df.to_excel(buffer, index=False)
-    return buffer.getvalue()
+    return dataframe_to_safe_excel_bytes(export_df)
 
 
 def _normalize_and_validate_statement_metadata_dataframe(dataframe: pd.DataFrame) -> pd.DataFrame:

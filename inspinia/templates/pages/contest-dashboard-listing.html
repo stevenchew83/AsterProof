@@ -1,0 +1,841 @@
+{% extends 'layouts/vertical.html' %}
+
+{% load static %}
+
+{% block title %}Contest listing{% endblock title %}
+
+{% block extra_css %}
+  {{ block.super }}
+  <style>
+    .contest-dashboard-listing .statement-text-fragment {
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .contest-dashboard-listing .asymptote-svg-frame {
+      overflow-x: auto;
+      padding: 0.75rem;
+      border-radius: 0.75rem;
+      border: 1px solid rgba(108, 117, 125, 0.2);
+      background: var(--bs-body-bg);
+    }
+
+    .contest-dashboard-listing .asymptote-svg-frame svg {
+      display: block;
+      max-width: 100%;
+      height: auto;
+      margin: 0 auto;
+    }
+
+    .contest-dashboard-listing .problem-tag-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      align-items: flex-start;
+    }
+
+    .contest-dashboard-listing .problem-table td {
+      vertical-align: top;
+    }
+
+    .contest-dashboard-listing .problem-table .btn {
+      white-space: nowrap;
+    }
+
+    .contest-dashboard-listing details summary {
+      cursor: pointer;
+      color: var(--bs-primary);
+      font-weight: 600;
+    }
+
+    .contest-dashboard-listing .statement-panel {
+      margin-top: 0.75rem;
+      padding: 0.85rem 1rem;
+      border-radius: 0.85rem;
+      background: var(--bs-tertiary-bg);
+      border: 1px solid rgba(108, 117, 125, 0.15);
+    }
+
+    .contest-dashboard-listing .completion-editor {
+      min-width: 16rem;
+    }
+
+    .contest-dashboard-listing .completion-editor .btn {
+      min-width: 4.5rem;
+    }
+
+    .contest-dashboard-listing .bulk-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+
+    .contest-dashboard-listing .bulk-toolbar-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .contest-dashboard-listing .js-sort-header {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      text-transform: inherit;
+      letter-spacing: inherit;
+    }
+
+    .contest-dashboard-listing .js-sort-header::after {
+      content: "⇅";
+      font-size: 0.75rem;
+      opacity: 0.45;
+    }
+
+    .contest-dashboard-listing .js-sort-header[data-sort-direction="asc"]::after {
+      content: "↑";
+      opacity: 0.85;
+    }
+
+    .contest-dashboard-listing .js-sort-header[data-sort-direction="desc"]::after {
+      content: "↓";
+      opacity: 0.85;
+    }
+  </style>
+{% endblock extra_css %}
+
+{% block page_content %}
+<div class="container-fluid contest-dashboard-listing">
+  {% include 'partials/page-title.html' with title='Contest listing' subtitle=contest_title %}
+
+  <div class="row g-3 mt-0">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header border-bottom">
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <div>
+              <h4 class="header-title mb-0">Contest filters</h4>
+              <p class="text-muted fs-xs mb-0">Stay inside the dashboard while narrowing one contest by year, topic, MOHS, and tags.</p>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+              <a href="{{ contest_back_url }}" class="btn btn-outline-secondary btn-sm">{{ contest_back_label }}</a>
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          <form method="get" class="row g-3 align-items-end">
+            <div class="col-xl-4 col-lg-6">
+              <label class="form-label" for="contest-dashboard-selector">Contest</label>
+              <select id="contest-dashboard-selector" name="contest" class="form-select">
+                {% for row in contest_choices %}
+                <option value="{{ row.contest }}" {% if row.contest == selected_contest %}selected{% endif %}>
+                  {{ row.contest }} ({{ row.problem_count }} statements)
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-xl-4 col-lg-6">
+              <label class="form-label" for="contest-dashboard-search">Search</label>
+              <input
+                id="contest-dashboard-search"
+                type="search"
+                name="q"
+                value="{{ initial_search_query }}"
+                class="form-control"
+                placeholder="Problem id, topic, tag, IMO slot"
+              >
+            </div>
+            <div class="col-xl-2 col-md-4">
+              <label class="form-label" for="contest-dashboard-year">Year</label>
+              <select id="contest-dashboard-year" name="year" class="form-select">
+                <option value="">All years</option>
+                {% for year in filter_options.years %}
+                <option value="{{ year }}" {% if selected_year == year|stringformat:"s" %}selected{% endif %}>{{ year }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-xl-2 col-md-4">
+              <label class="form-label" for="contest-dashboard-mohs">MOHS</label>
+              <select id="contest-dashboard-mohs" name="mohs" class="form-select">
+                <option value="">All MOHS</option>
+                {% for mohs_value in filter_options.mohs_values %}
+                <option value="{{ mohs_value }}" {% if selected_mohs == mohs_value|stringformat:"s" %}selected{% endif %}>{{ mohs_value }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-xl-3 col-md-6">
+              <label class="form-label" for="contest-dashboard-topic">Topic</label>
+              <select id="contest-dashboard-topic" name="topic" class="form-select">
+                <option value="">All topics</option>
+                {% for topic in filter_options.topics %}
+                <option value="{{ topic }}" {% if selected_topic == topic %}selected{% endif %}>{{ topic }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-xl-3 col-md-6">
+              <label class="form-label" for="contest-dashboard-tag">Topic tag</label>
+              <select id="contest-dashboard-tag" name="tag" class="form-select">
+                <option value="">All tags</option>
+                {% for tag in filter_options.tags %}
+                <option value="{{ tag }}" {% if selected_tag == tag %}selected{% endif %}>{{ tag }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-xl-6">
+              <div class="d-flex flex-wrap gap-2">
+                <button type="submit" class="btn btn-primary">Apply filters</button>
+                {% if has_active_filters %}
+                <a href="{{ contest_listing_base_url }}" class="btn btn-outline-secondary">Clear filters</a>
+                {% endif %}
+              </div>
+            </div>
+          </form>
+          {% if has_active_filters %}
+          <div class="d-flex flex-wrap gap-2 mt-3">
+            {% if initial_search_query %}<span class="badge bg-primary-subtle text-primary">Search: {{ initial_search_query }}</span>{% endif %}
+            {% if selected_year %}<span class="badge bg-secondary-subtle text-secondary">Year {{ selected_year }}</span>{% endif %}
+            {% if selected_mohs %}<span class="badge bg-warning-subtle text-warning">MOHS {{ selected_mohs }}</span>{% endif %}
+            {% if selected_topic %}<span class="badge bg-info-subtle text-info">Topic {{ selected_topic }}</span>{% endif %}
+            {% if selected_tag %}<span class="badge bg-success-subtle text-success">Tag {{ selected_tag }}</span>{% endif %}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-0">
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0 h-100">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-primary-subtle text-primary rounded">
+                <i class="ti ti-list-details fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Visible now</p>
+              <h3 class="mb-0">{{ matching_problem_total }}</h3>
+              <p class="text-muted fs-xs mb-0">Rows after current filters.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0 h-100">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-success-subtle text-success rounded">
+                <i class="ti ti-notebook fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Statements</p>
+              <h3 class="mb-0">{{ contest_problem_total }}</h3>
+              <p class="text-muted fs-xs mb-0">{{ contest_problem_stats.year_range_label }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0 h-100">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-info-subtle text-info rounded">
+                <i class="ti ti-file-text fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Statements</p>
+              <h3 class="mb-0">{{ contest_problem_stats.statement_total }}</h3>
+              <p class="text-muted fs-xs mb-0">Imported and viewable inline.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0 h-100">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-warning-subtle text-warning rounded">
+                <i class="ti ti-chart-arcs fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Avg MOHS</p>
+              <h3 class="mb-0">{{ contest_problem_stats.avg_mohs|floatformat:1 }}</h3>
+              <p class="text-muted fs-xs mb-0">Across the current contest archive.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if top_topics %}
+  <div class="row g-3 mt-0">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body py-3">
+          <div class="d-flex flex-wrap align-items-center gap-2">
+            <span class="text-muted fs-xs text-uppercase fw-semibold me-1">Top topics</span>
+            {% for topic in top_topics %}
+            <span class="badge bg-light text-dark border">{{ topic }}</span>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="row g-3 mt-0">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body py-3">
+          <div class="bulk-toolbar">
+            <div>
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Bulk selection</p>
+              <p class="text-muted fs-xs mb-0"><span id="contest-dashboard-selected-count">0</span> row(s) selected on this page.</p>
+            </div>
+            <div class="bulk-toolbar-actions">
+              <button type="button" id="contest-dashboard-select-all" class="btn btn-outline-secondary btn-sm">Select all visible</button>
+              <button type="button" id="contest-dashboard-clear-selection" class="btn btn-outline-secondary btn-sm">Clear selection</button>
+              <button type="button" id="contest-dashboard-set-inactive" class="btn btn-outline-danger btn-sm" disabled>Set inactive</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-0">
+    <div class="col-12">
+      {% if grouped_years %}
+        {% for year_group in grouped_years %}
+        <div class="card {% if not forloop.last %}mb-3{% endif %}">
+          <div class="card-header border-bottom">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+              <div>
+                <h4 class="header-title mb-0">{{ year_group.year }}</h4>
+                <p class="text-muted fs-xs mb-0">{{ year_group.problems|length }} visible problem{{ year_group.problems|length|pluralize }} in this year.</p>
+              </div>
+              <span class="badge bg-primary-subtle text-primary">{{ contest_title }} {{ year_group.year }}</span>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-striped align-middle mb-0 problem-table">
+                <thead>
+                  <tr class="text-muted fs-xs text-uppercase">
+                    <th>#</th>
+                    <th class="text-nowrap">
+                      <input type="checkbox" class="form-check-input js-year-select-all" aria-label="Select all rows in this table">
+                    </th>
+                    <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by problem">Problem</button></th>
+                    <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by topic">Topic</button></th>
+                    <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by MOHS">MOHS</button></th>
+                    <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by topic tags">Topic tags</button></th>
+                    <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by statement">Statement</button></th>
+                    <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by solutions">Solutions</button></th>
+                    <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by IMO slots">IMO slots</button></th>
+                    <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by status">Status</button></th>
+                    <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by solved date">Solved date</button></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for problem in year_group.problems %}
+                  <tr id="{{ problem.anchor }}">
+                    <td class="text-nowrap text-muted fw-semibold js-row-index">{{ forloop.counter }}</td>
+                    <td class="text-nowrap">
+                      <input
+                        type="checkbox"
+                        class="form-check-input js-problem-select"
+                        value="{{ problem.statement_id }}"
+                        aria-label="Select {{ problem.label }}"
+                      >
+                    </td>
+                    <td data-sort-value="{{ problem.problem }}">
+                      <div class="fw-semibold">{{ problem.label }}</div>
+                      <div class="text-muted fs-xs">{{ problem.technique_count }} technique row{{ problem.technique_count|pluralize }}</div>
+                    </td>
+                    <td data-sort-value="{% if problem.is_linked %}{{ problem.topic }}{% else %}Unlinked{% endif %}">
+                      {% if problem.is_linked and problem.topic %}
+                      <span class="badge bg-light text-dark border">{{ problem.topic }}</span>
+                      {% else %}
+                      <span class="text-muted fs-xs">Unlinked</span>
+                      {% endif %}
+                    </td>
+                    <td class="text-nowrap" data-sort-value="{% if problem.mohs is not None %}{{ problem.mohs }}{% else %}{% if problem.is_linked %}—{% else %}Unlinked{% endif %}{% endif %}">
+                      {% if problem.mohs is not None %}
+                      {{ problem.mohs }}
+                      {% elif problem.is_linked %}
+                      <span class="text-muted fs-xs">—</span>
+                      {% else %}
+                      <span class="text-muted fs-xs">Unlinked</span>
+                      {% endif %}
+                    </td>
+                    <td data-sort-value="{% for tag in problem.topic_tags %}{{ tag.technique }} {% endfor %}">
+                      {% if problem.topic_tags %}
+                      <div class="problem-tag-list">
+                        {% for tag in problem.topic_tags %}
+                        <span class="text-body-secondary fs-sm" {% if tag.domains_label %}title="Domains: {{ tag.domains_label }}"{% endif %}>{{ tag.technique }}</span>
+                        {% endfor %}
+                      </div>
+                      {% else %}
+                      <span class="text-muted fs-xs">—</span>
+                      {% endif %}
+                    </td>
+                    <td data-sort-value="{% if problem.has_statement %}1-{{ problem.statement_day_label|default:'Statement' }}{% else %}0-Not imported{% endif %}">
+                      {% if problem.has_statement %}
+                      <details>
+                        <summary>{% if problem.statement_day_label %}{{ problem.statement_day_label }}{% else %}Statement{% endif %}</summary>
+                        <div class="statement-panel">
+                          {% include 'partials/statement-render-content.html' with segments=problem.statement_render_segments %}
+                        </div>
+                      </details>
+                      {% else %}
+                      <span class="text-muted fs-xs">Not imported</span>
+                      {% endif %}
+                    </td>
+                    <td data-sort-value="{% if problem.is_linked %}{{ problem.published_solution_total }}{% else %}-1{% endif %}">
+                      {% if problem.is_linked %}
+                      <div class="d-flex flex-column gap-2 align-items-start">
+                        <a href="{{ problem.solutions_url }}" class="btn btn-outline-secondary btn-sm">Solution page</a>
+                        <a href="{{ problem.solution_editor_url }}" class="btn btn-outline-primary btn-sm">
+                          {% if problem.has_my_solution %}Edit my draft{% else %}Start my draft{% endif %}
+                        </a>
+                        <span class="text-muted fs-xs">{{ problem.published_solution_total }} published</span>
+                        {% if problem.has_my_solution %}
+                        <span class="badge {{ problem.my_solution_status_badge_class }}">Mine: {{ problem.my_solution_status_label }}</span>
+                        {% endif %}
+                      </div>
+                      {% else %}
+                      <span class="text-muted fs-xs">Unlinked</span>
+                      {% endif %}
+                    </td>
+                    <td class="text-nowrap" data-sort-value="{{ problem.imo_slot_guess_value|default:'' }}">
+                      {% if problem.imo_slot_guess_value %}
+                      {{ problem.imo_slot_guess_value }}
+                      {% else %}
+                      <span class="text-muted fs-xs">—</span>
+                      {% endif %}
+                    </td>
+                    <td class="text-nowrap js-status-cell" data-sort-value="{% if not problem.is_linked %}-1-unlinked{% elif problem.completion_known %}2-{{ problem.completion_date|date:'Y-m-d' }}{% elif problem.is_completed %}1-unknown{% else %}0-unsolved{% endif %}">
+                      <span
+                        class="badge js-contest-problem-status {% if problem.completion_state_kind == 'solved' %}bg-success-subtle text-success border border-success-subtle{% elif problem.completion_state_kind == 'unknown' %}bg-info-subtle text-info border border-info-subtle{% else %}bg-light text-dark border{% endif %}"
+                        title="{{ problem.completion_state_label }}"
+                      >
+                        {% if problem.completion_state_kind == 'solved' %}
+                        {{ problem.completion_display }}
+                        {% elif problem.completion_state_kind == 'unknown' %}
+                        Unknown date
+                        {% elif problem.completion_state_kind == 'untrackable' %}
+                        Unlinked
+                        {% else %}
+                        Open
+                        {% endif %}
+                      </span>
+                    </td>
+                    <td class="js-solved-date-cell" data-sort-value="{% if not problem.is_linked %}-1-unlinked{% elif problem.completion_known %}2-{{ problem.completion_date|date:'Y-m-d' }}{% elif problem.is_completed %}1-unknown{% else %}0-unsolved{% endif %}">
+                      {% if problem.is_linked %}
+                      <div
+                        class="completion-editor"
+                        data-problem-uuid="{{ problem.problem_uuid }}"
+                        data-problem-label="{{ problem.label }}"
+                      >
+                        <div class="mb-2">
+                          <span
+                            class="badge js-completion-display {% if problem.completion_state_kind == 'solved' %}bg-success-subtle text-success border border-success-subtle{% elif problem.completion_state_kind == 'unknown' %}bg-info-subtle text-info border border-info-subtle{% else %}bg-light text-dark border{% endif %}"
+                            title="{{ problem.completion_state_label }}"
+                          >
+                            {{ problem.completion_display }}
+                          </span>
+                        </div>
+                        <input
+                          type="date"
+                          class="form-control form-control-sm js-completion-date"
+                          value="{% if problem.completion_known %}{{ problem.completion_date|date:'Y-m-d' }}{% endif %}"
+                        >
+                        <div class="d-flex flex-wrap gap-1 mt-2">
+                          <button type="button" class="btn btn-light btn-sm js-completion-today">Today</button>
+                          <button type="button" class="btn btn-primary btn-sm js-completion-save">Save</button>
+                          <button type="button" class="btn btn-outline-info btn-sm js-completion-unknown">Unknown</button>
+                          <button type="button" class="btn btn-outline-secondary btn-sm js-completion-clear">Clear</button>
+                        </div>
+                        <div class="text-danger fs-xs mt-2 d-none js-completion-error"></div>
+                      </div>
+                      {% else %}
+                      <span class="text-muted fs-xs">Link a problem first</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+      <div class="alert alert-warning mb-0" role="alert">
+        No problems matched the current filters inside <strong>{{ contest_title }}</strong>.
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+<form id="contest-dashboard-listing-csrf" class="d-none">{% csrf_token %}</form>
+<form id="contest-dashboard-bulk-form" class="d-none" method="post" action="{{ contest_dashboard_bulk_update_url }}">
+  {% csrf_token %}
+  <input type="hidden" name="action" value="set_inactive">
+  <input type="hidden" name="contest" value="{{ selected_contest }}">
+  <input type="hidden" name="next" value="{{ contest_dashboard_current_url }}">
+  <div id="contest-dashboard-bulk-fields"></div>
+</form>
+{% endblock page_content %}
+
+{% block extra_javascript %}
+  {{ block.super }}
+  <script>
+  (function () {
+    var bulkForm = document.getElementById("contest-dashboard-bulk-form");
+    var bulkFields = document.getElementById("contest-dashboard-bulk-fields");
+    var selectedCountEl = document.getElementById("contest-dashboard-selected-count");
+    var selectAllButton = document.getElementById("contest-dashboard-select-all");
+    var clearSelectionButton = document.getElementById("contest-dashboard-clear-selection");
+    var setInactiveButton = document.getElementById("contest-dashboard-set-inactive");
+    if (!bulkForm || !bulkFields || !selectedCountEl || !selectAllButton || !clearSelectionButton || !setInactiveButton) {
+      return;
+    }
+
+    function rowCheckboxes() {
+      return Array.from(document.querySelectorAll(".js-problem-select"));
+    }
+
+    function syncSelectionState() {
+      var checkboxes = rowCheckboxes();
+      var selectedCount = checkboxes.filter(function (checkbox) { return checkbox.checked; }).length;
+      selectedCountEl.textContent = String(selectedCount);
+      setInactiveButton.disabled = selectedCount === 0;
+
+      document.querySelectorAll(".js-year-select-all").forEach(function (masterCheckbox) {
+        var table = masterCheckbox.closest("table");
+        if (!table) return;
+        var tableCheckboxes = Array.from(table.querySelectorAll(".js-problem-select"));
+        var checkedTotal = tableCheckboxes.filter(function (checkbox) { return checkbox.checked; }).length;
+        masterCheckbox.checked = tableCheckboxes.length > 0 && checkedTotal === tableCheckboxes.length;
+        masterCheckbox.indeterminate = checkedTotal > 0 && checkedTotal < tableCheckboxes.length;
+      });
+    }
+
+    selectAllButton.addEventListener("click", function () {
+      rowCheckboxes().forEach(function (checkbox) {
+        checkbox.checked = true;
+      });
+      syncSelectionState();
+    });
+
+    clearSelectionButton.addEventListener("click", function () {
+      rowCheckboxes().forEach(function (checkbox) {
+        checkbox.checked = false;
+      });
+      syncSelectionState();
+    });
+
+    document.addEventListener("change", function (event) {
+      if (event.target.matches(".js-problem-select")) {
+        syncSelectionState();
+        return;
+      }
+      if (event.target.matches(".js-year-select-all")) {
+        var table = event.target.closest("table");
+        if (!table) return;
+        table.querySelectorAll(".js-problem-select").forEach(function (checkbox) {
+          checkbox.checked = event.target.checked;
+        });
+        syncSelectionState();
+      }
+    });
+
+    setInactiveButton.addEventListener("click", function () {
+      var selectedValues = rowCheckboxes()
+        .filter(function (checkbox) { return checkbox.checked; })
+        .map(function (checkbox) { return checkbox.value; });
+      if (!selectedValues.length) return;
+
+      bulkFields.innerHTML = "";
+      selectedValues.forEach(function (value) {
+        var input = document.createElement("input");
+        input.type = "hidden";
+        input.name = "statement_id";
+        input.value = value;
+        bulkFields.appendChild(input);
+      });
+      bulkForm.submit();
+    });
+
+    syncSelectionState();
+  })();
+  </script>
+  <script>
+  (function () {
+    var tables = Array.from(document.querySelectorAll(".problem-table"));
+    if (!tables.length) return;
+
+    var collator = new Intl.Collator(undefined, {
+      numeric: true,
+      sensitivity: "base"
+    });
+
+    function updateRowIndexes(table) {
+      Array.from(table.tBodies[0].rows).forEach(function (row, index) {
+        var cell = row.querySelector(".js-row-index");
+        if (cell) {
+          cell.textContent = String(index + 1);
+        }
+      });
+    }
+
+    tables.forEach(function (table) {
+      var body = table.tBodies[0];
+      if (!body) return;
+
+      table.querySelectorAll(".js-sort-header").forEach(function (button) {
+        button.addEventListener("click", function () {
+          var headerCell = button.closest("th");
+          if (!headerCell) return;
+          var columnIndex = headerCell.cellIndex;
+          var nextDirection = button.dataset.sortDirection === "asc" ? "desc" : "asc";
+          var rows = Array.from(body.rows);
+
+          table.querySelectorAll(".js-sort-header").forEach(function (otherButton) {
+            if (otherButton !== button) {
+              otherButton.dataset.sortDirection = "";
+            }
+          });
+          button.dataset.sortDirection = nextDirection;
+
+          rows.sort(function (leftRow, rightRow) {
+            var leftCell = leftRow.cells[columnIndex];
+            var rightCell = rightRow.cells[columnIndex];
+            var leftValue = leftCell ? (leftCell.getAttribute("data-sort-value") || leftCell.textContent.trim()) : "";
+            var rightValue = rightCell ? (rightCell.getAttribute("data-sort-value") || rightCell.textContent.trim()) : "";
+            var comparison = collator.compare(leftValue, rightValue);
+            return nextDirection === "asc" ? comparison : -comparison;
+          });
+
+          rows.forEach(function (row) {
+            body.appendChild(row);
+          });
+          updateRowIndexes(table);
+        });
+      });
+    });
+  })();
+  </script>
+  <script>
+  (function () {
+    var csrfTokenInput = document.querySelector('#contest-dashboard-listing-csrf input[name="csrfmiddlewaretoken"]');
+    var toggleUrl = "{{ completion_board_toggle_url|default:'' }}";
+    var todayValue = "{{ completion_board_today|default:'' }}";
+    if (!csrfTokenInput || !toggleUrl) return;
+
+    function setError(editor, message) {
+      var errorEl = editor.querySelector(".js-completion-error");
+      if (!errorEl) return;
+      if (!message) {
+        errorEl.textContent = "";
+        errorEl.classList.add("d-none");
+        return;
+      }
+      errorEl.textContent = message;
+      errorEl.classList.remove("d-none");
+    }
+
+    function statusClass(stateKind) {
+      if (stateKind === "solved") return "bg-success-subtle text-success border border-success-subtle";
+      if (stateKind === "unknown") return "bg-info-subtle text-info border border-info-subtle";
+      return "bg-light text-dark border";
+    }
+
+    function displayText(payload) {
+      if (payload.completion_date) return payload.completion_date;
+      if (payload.is_solved) return "Unknown date";
+      return "Unsolved";
+    }
+
+    function statusText(payload) {
+      if (payload.completion_date) return payload.completion_date;
+      if (payload.is_solved) return "Unknown date";
+      return "Open";
+    }
+
+    function completionSortValue(payload) {
+      if (payload.completion_date) return "2-" + payload.completion_date;
+      if (payload.is_solved) return "1-unknown";
+      return "0-unsolved";
+    }
+
+    function setBusy(editor, isBusy) {
+      editor.querySelectorAll("input, button").forEach(function (el) {
+        el.disabled = isBusy;
+      });
+    }
+
+    function applyPayload(editor, payload) {
+      var displayEl = editor.querySelector(".js-completion-display");
+      var dateInput = editor.querySelector(".js-completion-date");
+      var rowEl = editor.closest("tr");
+      var statusEl = rowEl ? rowEl.querySelector(".js-contest-problem-status") : null;
+      var statusCell = rowEl ? rowEl.querySelector(".js-status-cell") : null;
+      var solvedDateCell = rowEl ? rowEl.querySelector(".js-solved-date-cell") : null;
+      var badgeClass = statusClass(payload.state_kind);
+      var completionDisplay = displayText(payload);
+      var completionStatus = statusText(payload);
+      var sortValue = completionSortValue(payload);
+
+      if (displayEl) {
+        displayEl.className = "badge js-completion-display " + badgeClass;
+        displayEl.textContent = completionDisplay;
+        displayEl.title = payload.state_label || "";
+      }
+      if (statusEl) {
+        statusEl.className = "badge js-contest-problem-status " + badgeClass;
+        statusEl.textContent = completionStatus;
+        statusEl.title = payload.state_label || "";
+      }
+      if (statusCell) {
+        statusCell.setAttribute("data-sort-value", sortValue);
+      }
+      if (solvedDateCell) {
+        solvedDateCell.setAttribute("data-sort-value", sortValue);
+      }
+      if (dateInput) {
+        dateInput.value = payload.completion_date || "";
+      }
+      setError(editor, "");
+    }
+
+    function submitAction(editor, action, completionDate) {
+      if (!editor) return;
+      if (action === "set_date" && !completionDate) {
+        setError(editor, "Pick a completion date first.");
+        return;
+      }
+
+      setBusy(editor, true);
+      setError(editor, "");
+
+      fetch(toggleUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+          "X-CSRFToken": csrfTokenInput.value,
+          "X-Requested-With": "XMLHttpRequest"
+        },
+        body: new URLSearchParams({
+          action: action,
+          completion_date: completionDate || "",
+          problem_uuid: editor.dataset.problemUuid || ""
+        }).toString()
+      })
+        .then(function (response) {
+          return response.json().catch(function () {
+            return {};
+          }).then(function (payload) {
+            if (!response.ok) {
+              throw new Error(payload.error || "Could not update this solved date.");
+            }
+            return payload;
+          });
+        })
+        .then(function (payload) {
+          applyPayload(editor, payload);
+        })
+        .catch(function (error) {
+          setError(editor, error.message || "Could not update this solved date.");
+        })
+        .finally(function () {
+          setBusy(editor, false);
+        });
+    }
+
+    document.addEventListener("click", function (event) {
+      var editor = event.target.closest(".completion-editor");
+      if (!editor) return;
+
+      if (event.target.closest(".js-completion-today")) {
+        var todayInput = editor.querySelector(".js-completion-date");
+        if (todayInput) todayInput.value = todayValue;
+        submitAction(editor, "set_date", todayValue);
+        return;
+      }
+
+      if (event.target.closest(".js-completion-save")) {
+        var saveInput = editor.querySelector(".js-completion-date");
+        submitAction(editor, "set_date", saveInput ? saveInput.value : "");
+        return;
+      }
+
+      if (event.target.closest(".js-completion-unknown")) {
+        submitAction(editor, "set_unknown", "");
+        return;
+      }
+
+      if (event.target.closest(".js-completion-clear")) {
+        submitAction(editor, "clear", "");
+      }
+    });
+  })();
+  </script>
+  {% if statement_rendering_enabled %}
+  <script>
+  window.MathJax = {
+    loader: {
+      load: ["[tex]/textmacros"]
+    },
+    tex: {
+      packages: {
+        "[+]": ["textmacros"]
+      },
+      macros: {
+        tiny: "",
+        scriptsize: "",
+        footnotesize: "",
+        small: "",
+        normalsize: "",
+        large: "",
+        Large: "",
+        LARGE: "",
+        huge: "",
+        Huge: "",
+        textbullet: "\\bullet",
+        hdots: "\\dots",
+        overarc: ["\\overset{\\frown}{#1}", 1],
+        vspace: ["\\kern0pt", 1]
+      },
+      inlineMath: [["$", "$"], ["\\(", "\\)"]],
+      displayMath: [["$$", "$$"], ["\\[", "\\]"]]
+    },
+    options: {
+      skipHtmlTags: ["script", "noscript", "style", "textarea", "pre", "code"]
+    }
+  };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  {% endif %}
+{% endblock extra_javascript %}

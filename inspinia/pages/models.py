@@ -45,6 +45,7 @@ class ProblemSolveRecord(models.Model):
     # Pitfalls text with prefixes removed (e.g. strip "Common pitfalls:" prefix).
     pitfalls_value = models.TextField(null=True, blank=True)
     pitfalls = models.TextField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -264,6 +265,7 @@ class ContestProblemStatement(models.Model):
     problem_number = models.PositiveIntegerField()
     problem_code = models.CharField(max_length=16)
     statement_latex = models.TextField()
+    is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -14,6 +14,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.text import slugify
 
 from inspinia.pages.asymptote_render import AsymptoteRenderResult
 from inspinia.pages.asymptote_render import _extract_svg_markup
@@ -203,6 +204,42 @@ EXPECTED_MALAYSIAN_IMO_TRAINING_CAMP_2024_PROBLEM_TOTAL = 24
 MALAYSIAN_IMO_TRAINING_CAMP_2024_STATEMENT_SAMPLE = (
     Path(__file__).resolve().parent / "testdata" / "malaysian_imo_training_camp_2024_sample.txt"
 ).read_text(encoding="utf-8")
+BIMO_2021_YEAR = 2021
+BIMO_2021_NAME = "BIMO"
+EXPECTED_BIMO_2021_PROBLEM_TOTAL = 5
+BIMO_2021_STATEMENT_SAMPLE = (
+    Path(__file__).resolve().parent / "testdata" / "bimo_2021_sample.txt"
+).read_text(encoding="utf-8")
+KOREAN_MO_WINTER_CAMP_2020_YEAR = 2020
+KOREAN_MO_WINTER_CAMP_2020_NAME = "Korean MO winter camp"
+EXPECTED_KOREAN_MO_WINTER_CAMP_2020_PROBLEM_TOTAL = 8
+KOREAN_MO_WINTER_CAMP_2020_STATEMENT_SAMPLE = (
+    Path(__file__).resolve().parent / "testdata" / "korean_mo_winter_camp_2020_sample.txt"
+).read_text(encoding="utf-8")
+ROMANIA_NATIONAL_OLYMPIAD_2025_YEAR = 2025
+ROMANIA_NATIONAL_OLYMPIAD_2025_NAME = "Romania National Olympiad"
+EXPECTED_ROMANIA_NATIONAL_OLYMPIAD_2025_PROBLEM_TOTAL = 16
+ROMANIA_NATIONAL_OLYMPIAD_2025_STATEMENT_SAMPLE = (
+    Path(__file__).resolve().parent / "testdata" / "romania_national_olympiad_2025_sample.txt"
+).read_text(encoding="utf-8")
+ROMANIA_NATIONAL_OLYMPIAD_2015_YEAR = 2015
+ROMANIA_NATIONAL_OLYMPIAD_2015_NAME = "Romania National Olympiad"
+EXPECTED_ROMANIA_NATIONAL_OLYMPIAD_2015_PROBLEM_TOTAL = 24
+ROMANIA_NATIONAL_OLYMPIAD_2015_STATEMENT_SAMPLE = (
+    Path(__file__).resolve().parent / "testdata" / "romania_national_olympiad_2015_sample.txt"
+).read_text(encoding="utf-8")
+KOREA_NATIONAL_OLYMPIAD_2021_YEAR = 2021
+KOREA_NATIONAL_OLYMPIAD_2021_NAME = "Korea National Olympiad"
+EXPECTED_KOREA_NATIONAL_OLYMPIAD_2021_PROBLEM_TOTAL = 6
+KOREA_NATIONAL_OLYMPIAD_2021_STATEMENT_SAMPLE = (
+    Path(__file__).resolve().parent / "testdata" / "korea_national_olympiad_2021_sample.txt"
+).read_text(encoding="utf-8")
+KOREA_WINTER_PROGRAM_PRACTICE_TEST_2026_YEAR = 2026
+KOREA_WINTER_PROGRAM_PRACTICE_TEST_2026_NAME = "Korea Winter Program Practice Test"
+EXPECTED_KOREA_WINTER_PROGRAM_PRACTICE_TEST_2026_PROBLEM_TOTAL = 6
+KOREA_WINTER_PROGRAM_PRACTICE_TEST_2026_STATEMENT_SAMPLE = (
+    Path(__file__).resolve().parent / "testdata" / "korea_winter_program_practice_test_2026_sample.txt"
+).read_text(encoding="utf-8")
 HANDLE_SUMMARY_PARSER_SAMPLE = (
     Path(__file__).resolve().parent / "testdata" / "handle_summary_parser_sample.txt"
 ).read_text(encoding="utf-8")
@@ -286,6 +323,12 @@ BALKAN_SHORTLIST_NAME = "Balkan MO Shortlist"
 EXPECTED_BALKAN_SHORTLIST_PROBLEM_TOTAL = 8
 BALKAN_SHORTLIST_STATEMENT_SAMPLE = (
     Path(__file__).resolve().parent / "testdata" / "balkan_shortlist_sample.txt"
+).read_text(encoding="utf-8")
+JOM_SHORTLIST_2015_YEAR = 2015
+JOM_SHORTLIST_2015_NAME = "JOM Shortlist"
+EXPECTED_JOM_SHORTLIST_2015_PROBLEM_TOTAL = 2
+JOM_SHORTLIST_2015_STATEMENT_SAMPLE = (
+    Path(__file__).resolve().parent / "testdata" / "jom_shortlist_2015_sample.txt"
 ).read_text(encoding="utf-8")
 USA_TST_YEAR = 2025
 USA_TST_NAME = "USA Team Selection Test for IMO"
@@ -1426,6 +1469,131 @@ def test_parse_contest_problem_statements_supports_named_sections_with_day_subse
     assert "the line $KL$, $\\ell$, and the line through the centers" in parsed_import.problems[-1].statement_latex
 
 
+def test_parse_contest_problem_statements_supports_nested_bimo_sections():
+    parsed_import = parse_contest_problem_statements(BIMO_2021_STATEMENT_SAMPLE)
+
+    assert parsed_import.contest_year == BIMO_2021_YEAR
+    assert parsed_import.contest_name == BIMO_2021_NAME
+    assert len(parsed_import.problems) == EXPECTED_BIMO_2021_PROBLEM_TOTAL
+    assert [problem.day_label for problem in parsed_import.problems] == [
+        "BIMO 1 · Problem Solving Session",
+        "Mock IMO Test",
+        "Mock IMO Test",
+        "Mock IMO Test",
+        "BIMO 2 · Test 1 (Geometry)",
+    ]
+    assert [problem.problem_code for problem in parsed_import.problems] == ["P1", "P1", "P2", "P3", "P2"]
+    assert "navi_09220114" not in parsed_import.problems[0].statement_latex
+    assert "view topic" not in parsed_import.problems[0].statement_latex
+    assert "multiple that is good." in parsed_import.problems[0].statement_latex
+    assert "$KM\\perp EF$." in parsed_import.problems[-1].statement_latex
+
+
+def test_parse_contest_problem_statements_supports_hash_numbered_korean_winter_camp_problems():
+    parsed_import = parse_contest_problem_statements(KOREAN_MO_WINTER_CAMP_2020_STATEMENT_SAMPLE)
+
+    assert parsed_import.contest_year == KOREAN_MO_WINTER_CAMP_2020_YEAR
+    assert parsed_import.contest_name == KOREAN_MO_WINTER_CAMP_2020_NAME
+    assert len(parsed_import.problems) == EXPECTED_KOREAN_MO_WINTER_CAMP_2020_PROBLEM_TOTAL
+    assert [problem.day_label for problem in parsed_import.problems] == [
+        "Korean MO winter camp Test 1",
+    ] * 8
+    assert [problem.problem_code for problem in parsed_import.problems] == [
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
+        "P8",
+    ]
+    assert "MNJ2357" not in parsed_import.problems[0].statement_latex
+    assert "view topic" not in parsed_import.problems[0].statement_latex
+    assert "$Q(mn)$ and $Q(m)Q(n)$" in parsed_import.problems[2].statement_latex
+    assert "hamiltonian circuit exist for the given graph" in parsed_import.problems[-1].statement_latex
+
+
+def test_parse_contest_problem_statements_supports_grade_sections_for_romania_national_olympiad():
+    parsed_import = parse_contest_problem_statements(ROMANIA_NATIONAL_OLYMPIAD_2025_STATEMENT_SAMPLE)
+
+    assert parsed_import.contest_year == ROMANIA_NATIONAL_OLYMPIAD_2025_YEAR
+    assert parsed_import.contest_name == ROMANIA_NATIONAL_OLYMPIAD_2025_NAME
+    assert len(parsed_import.problems) == EXPECTED_ROMANIA_NATIONAL_OLYMPIAD_2025_PROBLEM_TOTAL
+    assert [problem.day_label for problem in parsed_import.problems[:4]] == ["Grade 9"] * 4
+    assert [problem.day_label for problem in parsed_import.problems[4:8]] == ["Grade 10"] * 4
+    assert [problem.day_label for problem in parsed_import.problems[8:12]] == ["Grade 11"] * 4
+    assert [problem.day_label for problem in parsed_import.problems[12:]] == ["Grade 12"] * 4
+    assert [problem.problem_code for problem in parsed_import.problems[:4]] == ["P1", "P2", "P3", "P4"]
+    assert [problem.problem_code for problem in parsed_import.problems[12:]] == ["P1", "P2", "P3", "P4"]
+    assert "Ciobi_" not in parsed_import.problems[0].statement_latex
+    assert "view topic" not in parsed_import.problems[0].statement_latex
+    assert "the equation has at most $2$ real solutions." in parsed_import.problems[2].statement_latex
+    assert "has at least $p$ coefficients equal to $1$." in parsed_import.problems[-1].statement_latex
+
+
+def test_parse_contest_problem_statements_supports_grade_level_sections_for_older_romania_national_olympiad():
+    parsed_import = parse_contest_problem_statements(ROMANIA_NATIONAL_OLYMPIAD_2015_STATEMENT_SAMPLE)
+
+    assert parsed_import.contest_year == ROMANIA_NATIONAL_OLYMPIAD_2015_YEAR
+    assert parsed_import.contest_name == ROMANIA_NATIONAL_OLYMPIAD_2015_NAME
+    assert len(parsed_import.problems) == EXPECTED_ROMANIA_NATIONAL_OLYMPIAD_2015_PROBLEM_TOTAL
+    assert [problem.day_label for problem in parsed_import.problems[:4]] == ["Grade level 7"] * 4
+    assert [problem.day_label for problem in parsed_import.problems[4:8]] == ["Grade level 8"] * 4
+    assert [problem.day_label for problem in parsed_import.problems[8:12]] == ["Grade level 9"] * 4
+    assert [problem.day_label for problem in parsed_import.problems[12:16]] == ["Grade level 10"] * 4
+    assert [problem.day_label for problem in parsed_import.problems[16:20]] == ["Grade level 11"] * 4
+    assert [problem.day_label for problem in parsed_import.problems[20:]] == ["Grade level 12"] * 4
+    assert [problem.problem_code for problem in parsed_import.problems[:4]] == ["P1", "P2", "P3", "P4"]
+    assert [problem.problem_code for problem in parsed_import.problems[20:]] == ["P1", "P2", "P3", "P4"]
+    assert "parmenides51" not in parsed_import.problems[0].statement_latex
+    assert "CatalinBordea" not in parsed_import.problems[8].statement_latex
+    assert "view topic" not in parsed_import.problems[0].statement_latex
+    assert "then $M$ is the middle of $CD$." in parsed_import.problems[2].statement_latex
+    assert "there exists a function $ \\xi" in parsed_import.problems[-1].statement_latex
+
+
+def test_parse_contest_problem_statements_supports_part_headers_with_p_prefixed_problems():
+    parsed_import = parse_contest_problem_statements(KOREA_NATIONAL_OLYMPIAD_2021_STATEMENT_SAMPLE)
+
+    assert parsed_import.contest_year == KOREA_NATIONAL_OLYMPIAD_2021_YEAR
+    assert parsed_import.contest_name == KOREA_NATIONAL_OLYMPIAD_2021_NAME
+    assert len(parsed_import.problems) == EXPECTED_KOREA_NATIONAL_OLYMPIAD_2021_PROBLEM_TOTAL
+    assert [problem.day_label for problem in parsed_import.problems[:3]] == ["Part 1"] * 3
+    assert [problem.day_label for problem in parsed_import.problems[3:]] == ["Part 2"] * 3
+    assert [problem.problem_code for problem in parsed_import.problems] == ["P1", "P2", "P3", "P4", "P5", "P6"]
+    assert "view topic" not in parsed_import.problems[0].statement_latex
+    assert "Olympiadium" not in parsed_import.problems[1].statement_latex
+    assert "KPBY0507" not in parsed_import.problems[2].statement_latex
+    assert "Graph Wording" in parsed_import.problems[3].statement_latex
+    assert "Define $(P, Q)-path$ a path from $P$ to $Q$" in parsed_import.problems[3].statement_latex
+    assert "Let a 2021 degree polynomial" in parsed_import.problems[4].statement_latex
+    assert "Prove that lines $BD$ and $AE$ meet on the line tangent to $\\omega$ at $F$." in parsed_import.problems[5].statement_latex
+
+
+def test_parse_contest_problem_statements_supports_nested_test_division_day_sections():
+    parsed_import = parse_contest_problem_statements(KOREA_WINTER_PROGRAM_PRACTICE_TEST_2026_STATEMENT_SAMPLE)
+
+    assert parsed_import.contest_year == KOREA_WINTER_PROGRAM_PRACTICE_TEST_2026_YEAR
+    assert parsed_import.contest_name == KOREA_WINTER_PROGRAM_PRACTICE_TEST_2026_NAME
+    assert len(parsed_import.problems) == EXPECTED_KOREA_WINTER_PROGRAM_PRACTICE_TEST_2026_PROBLEM_TOTAL
+    assert [problem.problem_code for problem in parsed_import.problems] == ["P1", "P2", "P1", "P2", "P1", "P1"]
+    assert [problem.day_label for problem in parsed_import.problems] == [
+        "Test 1 · Senior · Day 1",
+        "Test 1 · Senior · Day 2",
+        "Test 1 · Junior · Day 1",
+        "Test 1 · Junior · Day 2",
+        "Test 2 · Senior · Day 1",
+        "Test 2 · Junior · Day 2",
+    ]
+    assert parsed_import.problems[0].statement_latex == "Senior test 1 day 1 statement."
+    assert parsed_import.problems[3].statement_latex == "Junior test 1 day 2 statement."
+    assert parsed_import.problems[-1].statement_latex == "Junior test 2 day 2 statement."
+    assert all("Proposed by" not in problem.statement_latex for problem in parsed_import.problems)
+    assert all("view topic" not in problem.statement_latex for problem in parsed_import.problems)
+    assert all("sample_user_" not in problem.statement_latex for problem in parsed_import.problems)
+
+
 def test_parse_contest_problem_statements_supports_balkan_shortlist_equation_continuations():
     parsed_import = parse_contest_problem_statements(BALKAN_SHORTLIST_STATEMENT_SAMPLE)
 
@@ -1458,6 +1626,21 @@ def test_parse_contest_problem_statements_supports_balkan_shortlist_equation_con
     assert "\\]and determine all the cases when the equality occurs." in parsed_import.problems[3].statement_latex
     assert "proposed by Sardor Gafforov from Uzbekistan." in parsed_import.problems[4].statement_latex
     assert all(problem.problem_code != "P3" for problem in parsed_import.problems)
+
+
+def test_parse_contest_problem_statements_supports_middle_year_headers():
+    parsed_import = parse_contest_problem_statements(JOM_SHORTLIST_2015_STATEMENT_SAMPLE)
+
+    assert parsed_import.contest_year == JOM_SHORTLIST_2015_YEAR
+    assert parsed_import.contest_name == JOM_SHORTLIST_2015_NAME
+    assert len(parsed_import.problems) == EXPECTED_JOM_SHORTLIST_2015_PROBLEM_TOTAL
+    assert [problem.problem_code for problem in parsed_import.problems] == ["A1", "C1"]
+    assert [problem.day_label for problem in parsed_import.problems] == [""] * 2
+    assert "zschess" not in parsed_import.problems[0].statement_latex
+    assert "view topic" not in parsed_import.problems[1].statement_latex
+    assert "Shortlisted Problems to the Junior Olympiad of Malaysia" not in (
+        parsed_import.problems[0].statement_latex
+    )
 
 
 def test_parse_contest_problem_statements_supports_roman_day_headers_with_dates():
@@ -2126,6 +2309,160 @@ def test_import_problem_statements_persists_named_sections_with_day_subsections(
     assert "the line $KL$, $\\ell$, and the line through the centers" in saved_rows[-1][2]
 
 
+def test_import_problem_statements_persists_nested_bimo_sections():
+    result = import_problem_statements(parse_contest_problem_statements(BIMO_2021_STATEMENT_SAMPLE))
+
+    assert result.created_count == EXPECTED_BIMO_2021_PROBLEM_TOTAL
+    assert result.updated_count == 0
+
+    saved_rows = list(
+        ContestProblemStatement.objects.filter(
+            contest_year=BIMO_2021_YEAR,
+            contest_name=BIMO_2021_NAME,
+        )
+        .order_by("id")
+        .values_list("day_label", "problem_code", "statement_latex")
+    )
+    assert [row[0] for row in saved_rows] == [
+        "BIMO 1 · Problem Solving Session",
+        "Mock IMO Test",
+        "Mock IMO Test",
+        "Mock IMO Test",
+        "BIMO 2 · Test 1 (Geometry)",
+    ]
+    assert [row[1] for row in saved_rows] == ["P1", "P1", "P2", "P3", "P2"]
+    assert "navi_09220114" not in saved_rows[0][2]
+    assert "view topic" not in saved_rows[0][2]
+    assert "$KM\\perp EF$." in saved_rows[-1][2]
+
+
+def test_import_problem_statements_persists_hash_numbered_korean_winter_camp_problems():
+    result = import_problem_statements(parse_contest_problem_statements(KOREAN_MO_WINTER_CAMP_2020_STATEMENT_SAMPLE))
+
+    assert result.created_count == EXPECTED_KOREAN_MO_WINTER_CAMP_2020_PROBLEM_TOTAL
+    assert result.updated_count == 0
+
+    saved_rows = list(
+        ContestProblemStatement.objects.filter(
+            contest_year=KOREAN_MO_WINTER_CAMP_2020_YEAR,
+            contest_name=KOREAN_MO_WINTER_CAMP_2020_NAME,
+        )
+        .order_by("id")
+        .values_list("day_label", "problem_code", "statement_latex")
+    )
+    assert [row[0] for row in saved_rows] == ["Korean MO winter camp Test 1"] * 8
+    assert [row[1] for row in saved_rows] == ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8"]
+    assert "MNJ2357" not in saved_rows[0][2]
+    assert "view topic" not in saved_rows[0][2]
+    assert "hamiltonian circuit exist for the given graph" in saved_rows[-1][2]
+
+
+def test_import_problem_statements_persists_grade_sections_for_romania_national_olympiad():
+    result = import_problem_statements(parse_contest_problem_statements(ROMANIA_NATIONAL_OLYMPIAD_2025_STATEMENT_SAMPLE))
+
+    assert result.created_count == EXPECTED_ROMANIA_NATIONAL_OLYMPIAD_2025_PROBLEM_TOTAL
+    assert result.updated_count == 0
+
+    saved_rows = list(
+        ContestProblemStatement.objects.filter(
+            contest_year=ROMANIA_NATIONAL_OLYMPIAD_2025_YEAR,
+            contest_name=ROMANIA_NATIONAL_OLYMPIAD_2025_NAME,
+        )
+        .order_by("id")
+        .values_list("day_label", "problem_code", "statement_latex")
+    )
+    assert [row[0] for row in saved_rows[:4]] == ["Grade 9"] * 4
+    assert [row[0] for row in saved_rows[4:8]] == ["Grade 10"] * 4
+    assert [row[0] for row in saved_rows[8:12]] == ["Grade 11"] * 4
+    assert [row[0] for row in saved_rows[12:]] == ["Grade 12"] * 4
+    assert [row[1] for row in saved_rows[:4]] == ["P1", "P2", "P3", "P4"]
+    assert [row[1] for row in saved_rows[12:]] == ["P1", "P2", "P3", "P4"]
+    assert "Ciobi_" not in saved_rows[0][2]
+    assert "view topic" not in saved_rows[0][2]
+    assert "has at least $p$ coefficients equal to $1$." in saved_rows[-1][2]
+
+
+def test_import_problem_statements_persists_grade_level_sections_for_older_romania_national_olympiad():
+    result = import_problem_statements(parse_contest_problem_statements(ROMANIA_NATIONAL_OLYMPIAD_2015_STATEMENT_SAMPLE))
+
+    assert result.created_count == EXPECTED_ROMANIA_NATIONAL_OLYMPIAD_2015_PROBLEM_TOTAL
+    assert result.updated_count == 0
+
+    saved_rows = list(
+        ContestProblemStatement.objects.filter(
+            contest_year=ROMANIA_NATIONAL_OLYMPIAD_2015_YEAR,
+            contest_name=ROMANIA_NATIONAL_OLYMPIAD_2015_NAME,
+        )
+        .order_by("id")
+        .values_list("day_label", "problem_code", "statement_latex")
+    )
+    assert [row[0] for row in saved_rows[:4]] == ["Grade level 7"] * 4
+    assert [row[0] for row in saved_rows[4:8]] == ["Grade level 8"] * 4
+    assert [row[0] for row in saved_rows[8:12]] == ["Grade level 9"] * 4
+    assert [row[0] for row in saved_rows[12:16]] == ["Grade level 10"] * 4
+    assert [row[0] for row in saved_rows[16:20]] == ["Grade level 11"] * 4
+    assert [row[0] for row in saved_rows[20:]] == ["Grade level 12"] * 4
+    assert [row[1] for row in saved_rows[:4]] == ["P1", "P2", "P3", "P4"]
+    assert [row[1] for row in saved_rows[20:]] == ["P1", "P2", "P3", "P4"]
+    assert "parmenides51" not in saved_rows[0][2]
+    assert "CatalinBordea" not in saved_rows[8][2]
+    assert "view topic" not in saved_rows[0][2]
+    assert "there exists a function $ \\xi" in saved_rows[-1][2]
+
+
+def test_import_problem_statements_persists_part_headers_with_p_prefixed_problems():
+    result = import_problem_statements(
+        parse_contest_problem_statements(KOREA_NATIONAL_OLYMPIAD_2021_STATEMENT_SAMPLE),
+    )
+
+    assert result.created_count == EXPECTED_KOREA_NATIONAL_OLYMPIAD_2021_PROBLEM_TOTAL
+    assert result.updated_count == 0
+
+    saved_rows = list(
+        ContestProblemStatement.objects.filter(
+            contest_year=KOREA_NATIONAL_OLYMPIAD_2021_YEAR,
+            contest_name=KOREA_NATIONAL_OLYMPIAD_2021_NAME,
+        )
+        .order_by("id")
+        .values_list("day_label", "problem_code", "statement_latex")
+    )
+    assert [row[0] for row in saved_rows[:3]] == ["Part 1"] * 3
+    assert [row[0] for row in saved_rows[3:]] == ["Part 2"] * 3
+    assert [row[1] for row in saved_rows] == ["P1", "P2", "P3", "P4", "P5", "P6"]
+    assert "view topic" not in saved_rows[0][2]
+    assert "Olympiadium" not in saved_rows[1][2]
+    assert "KPBY0507" not in saved_rows[4][2]
+    assert "Graph Wording" in saved_rows[3][2]
+
+
+def test_import_problem_statements_persists_nested_test_division_day_sections():
+    result = import_problem_statements(
+        parse_contest_problem_statements(KOREA_WINTER_PROGRAM_PRACTICE_TEST_2026_STATEMENT_SAMPLE),
+    )
+
+    assert result.created_count == EXPECTED_KOREA_WINTER_PROGRAM_PRACTICE_TEST_2026_PROBLEM_TOTAL
+    assert result.updated_count == 0
+
+    saved_rows = list(
+        ContestProblemStatement.objects.filter(
+            contest_year=KOREA_WINTER_PROGRAM_PRACTICE_TEST_2026_YEAR,
+            contest_name=KOREA_WINTER_PROGRAM_PRACTICE_TEST_2026_NAME,
+        )
+        .order_by("id")
+        .values_list("day_label", "problem_code", "statement_latex")
+    )
+    assert [(row[0], row[1]) for row in saved_rows] == [
+        ("Test 1 · Senior · Day 1", "P1"),
+        ("Test 1 · Senior · Day 2", "P2"),
+        ("Test 1 · Junior · Day 1", "P1"),
+        ("Test 1 · Junior · Day 2", "P2"),
+        ("Test 2 · Senior · Day 1", "P1"),
+        ("Test 2 · Junior · Day 2", "P1"),
+    ]
+    assert saved_rows[0][2] == "Senior test 1 day 1 statement."
+    assert saved_rows[-1][2] == "Junior test 2 day 2 statement."
+
+
 def test_import_problem_statements_supports_duplicate_numeric_codes_in_different_sections():
     result = import_problem_statements(parse_contest_problem_statements(ELMO_REVENGE_STATEMENT_SAMPLE))
 
@@ -2682,13 +3019,13 @@ def test_contest_details_renders_editor_for_selected_contest(client):
 def test_contest_dashboard_rows_include_advanced_analytics_links(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
-    ProblemSolveRecord.objects.create(
-        year=2026,
-        topic="ALG",
-        mohs=6,
-        contest="USAMO",
-        problem="P1",
-        contest_year_problem="USAMO 2026 P1",
+    ContestProblemStatement.objects.create(
+        contest_year=2026,
+        contest_name="USAMO",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Statement one",
     )
 
     response = client.get(reverse("pages:contest_dashboard"))
@@ -2697,6 +3034,8 @@ def test_contest_dashboard_rows_include_advanced_analytics_links(client):
     assert response.context["contest_rows"][0]["detail_url"] == (
         reverse("pages:contest_advanced_dashboard") + "?contest=USAMO"
     )
+    assert response.context["contest_total"] == 1
+    assert response.context["contest_problem_total"] == 1
     response_html = response.content.decode("utf-8")
     assert "row.detail_url" in response_html
 
@@ -2742,6 +3081,24 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
         day_label="Day 1",
         statement_latex="Statement one",
     )
+    ContestProblemStatement.objects.create(
+        contest_year=2025,
+        contest_name="USAMO",
+        problem_number=2,
+        problem_code="P2",
+        day_label="Day 2",
+        statement_latex="Unlinked statement two",
+    )
+    UserProblemCompletion.objects.create(
+        user=solution_author,
+        problem=problem_one,
+        completion_date=date(2026, 1, 15),
+    )
+    UserProblemCompletion.objects.create(
+        user=solution_author,
+        problem=problem_two,
+        completion_date=date(2025, 2, 5),
+    )
     ProblemSolution.objects.create(
         problem=problem_one,
         author=solution_author,
@@ -2754,14 +3111,387 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
     assert response.context["selected_contest"] == "USAMO"
     assert response.context["contest_stats"]["problem_count"] == 2
     assert response.context["contest_stats"]["statement_problem_total"] == 1
+    assert response.context["contest_stats"]["statement_row_total"] == 2
     assert response.context["contest_stats"]["published_solution_total"] == 1
     assert response.context["public_contest_url"] == reverse("pages:contest_problem_list", args=["usamo"])
+    year_2026 = next(row for row in response.context["year_rows"] if row["year"] == 2026)
+    year_2025 = next(row for row in response.context["year_rows"] if row["year"] == 2025)
+    assert year_2026["problem_count"] == 1
+    assert year_2026["statement_problem_total"] == 1
+    assert year_2026["solved_problem_total"] == 1
+    assert year_2026["solved_rate"] == 100.0
+    assert year_2026["year_detail_url"] == (
+        reverse("pages:contest_dashboard_listing") + "?contest=USAMO&year=2026"
+    )
+    assert year_2025["problem_count"] == 1
+    assert year_2025["statement_problem_total"] == 0
+    assert year_2025["solved_problem_total"] == 0
+    assert year_2025["solved_rate"] == 0.0
+    assert year_2025["year_detail_url"] == (
+        reverse("pages:contest_dashboard_listing") + "?contest=USAMO&year=2025"
+    )
     response_html = response.content.decode("utf-8")
     assert "Contest advanced analytics" in response_html
     assert "Year breakdown" in response_html
+    assert "Statement-linked" in response_html
+    assert "Solved" in response_html
+    assert "Solved rate" in response_html
+    assert "year=2026" in response_html
     assert "Topic mix" in response_html
-    assert "Recent linked statements" in response_html
-    assert "USAMO (2 problems)" in response_html
+    assert "Recent statements" in response_html
+    assert "USAMO (2 statements)" in response_html
+
+
+def test_contest_dashboard_listing_view_filters_selected_contest_and_year_for_admin(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    visible_problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="ALG",
+        mohs=6,
+        contest="USAMO",
+        problem="P1",
+        contest_year_problem="USAMO 2026 P1",
+    )
+    hidden_problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="GEO",
+        mohs=4,
+        contest="USAMO",
+        problem="P2",
+        contest_year_problem="USAMO 2026 P2",
+    )
+    ContestProblemStatement.objects.create(
+        linked_problem=visible_problem,
+        contest_year=2026,
+        contest_name="USAMO",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Statement one",
+    )
+
+    response = client.get(
+        reverse("pages:contest_dashboard_listing"),
+        {"contest": "USAMO", "year": "2026"},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["contest_title"] == "USAMO"
+    assert response.context["selected_year"] == "2026"
+    assert response.context["matching_problem_total"] == 1
+    assert response.context["contest_back_label"] == "Back to advanced analytics"
+    assert response.context["contest_back_url"] == (
+        reverse("pages:contest_advanced_dashboard") + "?contest=USAMO"
+    )
+    assert response.context["completion_board_toggle_url"] == reverse("pages:completion_board_toggle")
+    assert response.context["contest_listing_base_url"] == (
+        reverse("pages:contest_dashboard_listing") + "?contest=USAMO"
+    )
+    grouped_years = response.context["grouped_years"]
+    assert len(grouped_years) == 1
+    assert grouped_years[0]["year"] == 2026
+    assert grouped_years[0]["problems"][0]["label"] == visible_problem.contest_year_problem
+    response_html = response.content.decode("utf-8")
+    assert "Back to advanced analytics" in response_html
+    assert "<th>#</th>" in response_html
+    assert "js-year-select-all" in response_html
+    assert "js-problem-select" in response_html
+    assert "js-sort-header" in response_html
+    assert "Set inactive" in response_html
+    assert 'text-nowrap text-muted fw-semibold js-row-index">1<' in response_html
+    assert "Solved date" in response_html
+    assert "js-completion-save" in response_html
+    assert "Unknown" in response_html
+    assert "USAMO 2026 P1" in response_html
+    assert hidden_problem.contest_year_problem not in response_html
+
+
+def test_contest_dashboard_listing_hides_inactive_statement_rows(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    visible_problem = ProblemSolveRecord.objects.create(
+        year=2024,
+        topic="ALG",
+        mohs=5,
+        contest="JBMO Shortlist",
+        problem="P1",
+        contest_year_problem="JBMO Shortlist 2024 P1",
+    )
+    hidden_problem = ProblemSolveRecord.objects.create(
+        year=2024,
+        topic="GEO",
+        mohs=4,
+        contest="JBMO Shortlist",
+        problem="P2",
+        contest_year_problem="JBMO Shortlist 2024 P2",
+    )
+    active_statement = ContestProblemStatement.objects.create(
+        linked_problem=visible_problem,
+        contest_year=2024,
+        contest_name="JBMO Shortlist",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Geometry",
+        statement_latex="Visible statement",
+        is_active=True,
+    )
+    ContestProblemStatement.objects.create(
+        linked_problem=hidden_problem,
+        contest_year=2024,
+        contest_name="JBMO Shortlist",
+        problem_number=2,
+        problem_code="P2",
+        day_label="Algebra",
+        statement_latex="Hidden statement",
+        is_active=False,
+    )
+
+    response = client.get(
+        reverse("pages:contest_dashboard_listing"),
+        {"contest": "JBMO Shortlist", "year": "2024"},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["matching_problem_total"] == 1
+    grouped_years = response.context["grouped_years"]
+    assert len(grouped_years) == 1
+    assert len(grouped_years[0]["problems"]) == 1
+    assert grouped_years[0]["problems"][0]["label"] == active_statement.contest_year_problem
+    response_html = response.content.decode("utf-8")
+    assert "Visible statement" in response_html
+    assert "Hidden statement" not in response_html
+
+
+def test_contest_dashboard_listing_shows_unlinked_statement_rows_read_only(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    statement = ContestProblemStatement.objects.create(
+        contest_year=2024,
+        contest_name="JBMO Shortlist",
+        problem_number=7,
+        problem_code="P7",
+        day_label="Number Theory",
+        statement_latex="Unlinked statement row",
+        is_active=True,
+    )
+
+    response = client.get(
+        reverse("pages:contest_dashboard_listing"),
+        {"contest": "JBMO Shortlist", "year": "2024"},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["matching_problem_total"] == 1
+    grouped_years = response.context["grouped_years"]
+    assert len(grouped_years) == 1
+    row = grouped_years[0]["problems"][0]
+    assert row["statement_id"] == statement.id
+    assert row["is_linked"] is False
+    assert row["completion_state_kind"] == "untrackable"
+    assert row["completion_display"] == "Unlinked"
+    back_response = client.get(response.context["contest_back_url"])
+    assert back_response.status_code == HTTPStatus.OK
+    assert back_response.context["selected_contest"] == "JBMO Shortlist"
+    response_html = response.content.decode("utf-8")
+    assert "Unlinked statement row" in response_html
+    assert "Link a problem first" in response_html
+
+
+def test_contest_dashboard_listing_bulk_update_sets_selected_rows_inactive(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    active_problem = ProblemSolveRecord.objects.create(
+        year=2024,
+        topic="ALG",
+        mohs=5,
+        contest="JBMO Shortlist",
+        problem="P1",
+        contest_year_problem="JBMO Shortlist 2024 P1",
+    )
+    other_problem = ProblemSolveRecord.objects.create(
+        year=2024,
+        topic="GEO",
+        mohs=4,
+        contest="JBMO Shortlist",
+        problem="P2",
+        contest_year_problem="JBMO Shortlist 2024 P2",
+    )
+    active_statement = ContestProblemStatement.objects.create(
+        linked_problem=active_problem,
+        contest_year=2024,
+        contest_name="JBMO Shortlist",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Statement one",
+        is_active=True,
+    )
+    other_statement = ContestProblemStatement.objects.create(
+        linked_problem=other_problem,
+        contest_year=2024,
+        contest_name="JBMO Shortlist",
+        problem_number=2,
+        problem_code="P2",
+        day_label="Day 1",
+        statement_latex="Statement two",
+        is_active=True,
+    )
+    listing_url = reverse("pages:contest_dashboard_listing") + "?contest=JBMO+Shortlist&year=2024"
+
+    response = client.post(
+        reverse("pages:contest_dashboard_listing_bulk_update"),
+        {
+            "action": "set_inactive",
+            "contest": "JBMO Shortlist",
+            "next": listing_url,
+            "statement_id": [str(active_statement.id)],
+        },
+        follow=True,
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    active_statement.refresh_from_db()
+    other_statement.refresh_from_db()
+    active_problem.refresh_from_db()
+    other_problem.refresh_from_db()
+    assert active_statement.is_active is False
+    assert other_statement.is_active is True
+    assert active_problem.is_active is True
+    assert other_problem.is_active is True
+    response_html = response.content.decode("utf-8")
+    assert active_problem.contest_year_problem not in response_html
+    assert other_problem.contest_year_problem in response_html
+
+
+def test_contest_dashboard_listing_bulk_update_scopes_rows_to_selected_contest(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    selected_problem = ProblemSolveRecord.objects.create(
+        year=2024,
+        topic="ALG",
+        mohs=5,
+        contest="JBMO Shortlist",
+        problem="P1",
+        contest_year_problem="JBMO Shortlist 2024 P1",
+    )
+    other_problem = ProblemSolveRecord.objects.create(
+        year=2024,
+        topic="GEO",
+        mohs=6,
+        contest="USAMO",
+        problem="P1",
+        contest_year_problem="USAMO 2024 P1",
+    )
+    selected_statement = ContestProblemStatement.objects.create(
+        linked_problem=selected_problem,
+        contest_year=2024,
+        contest_name="JBMO Shortlist",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Selected contest statement",
+        is_active=True,
+    )
+    other_statement = ContestProblemStatement.objects.create(
+        linked_problem=other_problem,
+        contest_year=2024,
+        contest_name="USAMO",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Other contest statement",
+        is_active=True,
+    )
+    listing_url = reverse("pages:contest_dashboard_listing") + "?contest=JBMO+Shortlist&year=2024"
+
+    response = client.post(
+        reverse("pages:contest_dashboard_listing_bulk_update"),
+        {
+            "action": "set_inactive",
+            "contest": "JBMO Shortlist",
+            "next": listing_url,
+            "statement_id": [str(other_statement.id)],
+        },
+        follow=True,
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    selected_statement.refresh_from_db()
+    other_statement.refresh_from_db()
+    assert selected_statement.is_active is True
+    assert other_statement.is_active is True
+
+
+def test_contest_dashboard_listing_bulk_update_redirects_to_dashboard_after_last_row_removed(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    problem = ProblemSolveRecord.objects.create(
+        year=2024,
+        topic="ALG",
+        mohs=5,
+        contest="JBMO Shortlist",
+        problem="P1",
+        contest_year_problem="JBMO Shortlist 2024 P1",
+    )
+    statement = ContestProblemStatement.objects.create(
+        linked_problem=problem,
+        contest_year=2024,
+        contest_name="JBMO Shortlist",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Only statement",
+        is_active=True,
+    )
+    listing_url = reverse("pages:contest_dashboard_listing") + "?contest=JBMO+Shortlist&year=2024"
+
+    response = client.post(
+        reverse("pages:contest_dashboard_listing_bulk_update"),
+        {
+            "action": "set_inactive",
+            "contest": "JBMO Shortlist",
+            "next": listing_url,
+            "statement_id": [str(statement.id)],
+        },
+        follow=True,
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    statement.refresh_from_db()
+    assert statement.is_active is False
+    assert response.redirect_chain
+    assert response.redirect_chain[-1][0].endswith(reverse("pages:contest_dashboard"))
+
+
+def test_completion_board_toggle_accepts_problem_without_statement(client):
+    user = UserFactory()
+    client.force_login(user)
+    problem = ProblemSolveRecord.objects.create(
+        year=2024,
+        topic="ALG",
+        mohs=5,
+        contest="BMO Shortlist",
+        problem="P1",
+        contest_year_problem="BMO Shortlist 2024 P1",
+    )
+
+    response = client.post(
+        reverse("pages:completion_board_toggle"),
+        {
+            "action": "set_unknown",
+            "problem_uuid": str(problem.problem_uuid),
+        },
+        HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    payload = response.json()
+    assert payload["problem_uuid"] == str(problem.problem_uuid)
+    assert payload["is_solved"] is True
+    assert payload["state_kind"] == "unknown"
+    completion = UserProblemCompletion.objects.get(user=user, problem=problem)
+    assert completion.completion_date is None
 
 
 def test_completion_record_list_renders_admin_inventory(client):
@@ -3184,6 +3914,14 @@ def test_problem_analytics_dashboard_exposes_contest_year_mohs_pivot_table(clien
         problem="P1",
         contest_year_problem="EGMO 2024 P1",
     )
+    ProblemSolveRecord.objects.create(
+        year=2023,
+        topic="ALG",
+        mohs=9,
+        contest="USAMO",
+        problem="P9",
+        contest_year_problem="USAMO 2023 P9",
+    )
     ContestProblemStatement.objects.create(
         problem_uuid=apmo_problem.problem_uuid,
         contest_year=2026,
@@ -3240,6 +3978,10 @@ def test_problem_analytics_dashboard_exposes_contest_year_mohs_pivot_table(clien
     response = client.get(reverse("pages:dashboard"))
 
     assert response.status_code == HTTPStatus.OK
+    assert response.context["analytics_total"] == 6
+    assert response.context["charts_payload"]["byYear"]["labels"] == ["2024", "2025", "2026"]
+    assert len(response.context["table_rows"]) == 6
+    assert all(row["contest_year_problem"] != "USAMO 2023 P9" for row in response.context["table_rows"])
     pivot_payload = response.context["charts_payload"]["contestYearMohsPivotTable"]
     assert pivot_payload["contest_names"] == ["APMO", "BMO", "EGMO", "IMO", "JBMO"]
     assert pivot_payload["year_values"] == ["2026", "2025", "2024"]
@@ -3289,6 +4031,82 @@ def test_problem_analytics_dashboard_exposes_contest_year_mohs_pivot_table(clien
         "Problem statements define the rows, contest-year runs down the left, MOHS values sit across the top, "
         "and each cell shows the problem count." in response_html
     )
+
+
+def test_technique_dashboard_exposes_filters_and_legacy_alias(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+
+    imo_problem = ProblemSolveRecord.objects.create(
+        year=2025,
+        topic="ALG",
+        mohs=25,
+        contest="IMO",
+        problem="P1",
+        contest_year_problem="IMO 2025 P1",
+    )
+    egmo_problem = ProblemSolveRecord.objects.create(
+        year=2024,
+        topic="NT",
+        mohs=35,
+        contest="EGMO",
+        problem="P2",
+        contest_year_problem="EGMO 2024 P2",
+    )
+    bmo_problem = ProblemSolveRecord.objects.create(
+        year=2025,
+        topic="COMB",
+        mohs=20,
+        contest="BMO",
+        problem="P3",
+        contest_year_problem="BMO 2025 P3",
+    )
+    ProblemTopicTechnique.objects.create(record=imo_problem, technique="LTE", domains=["NT"])
+    ProblemTopicTechnique.objects.create(record=imo_problem, technique="PARITY", domains=["COMB"])
+    ProblemTopicTechnique.objects.create(record=egmo_problem, technique="LTE", domains=["NT"])
+    ProblemTopicTechnique.objects.create(record=bmo_problem, technique="INVARIANTS", domains=["ALG", "COMB"])
+
+    response = client.get(reverse("pages:technique_dashboard"))
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["technique_total"] == 3
+    assert response.context["technique_row_total"] == 4
+    assert response.context["tagged_problem_total"] == 3
+    assert response.context["technique_stats"] == {
+        "contest_total": 3,
+        "domain_total": 3,
+        "topic_total": 3,
+        "average_techniques_per_problem": 1.33,
+    }
+    assert response.context["technique_filter_options"] == {
+        "contests": ["BMO", "EGMO", "IMO"],
+        "domains": ["ALG", "COMB", "NT"],
+        "topics": ["Algebra", "Combinatorics", "Number Theory"],
+        "years": ["2025", "2024"],
+    }
+    lte_row = next(row for row in response.context["technique_rows"] if row["technique"] == "LTE")
+    assert lte_row["problem_count"] == 2
+    assert lte_row["contest_count"] == 2
+    assert lte_row["topic_count"] == 2
+    assert lte_row["domains"] == ["NT"]
+    assert lte_row["years"] == ["2024", "2025"]
+    assert lte_row["year_span_label"] == "2024-2025"
+    assert lte_row["sample_contests_label"] == "EGMO, IMO"
+
+    response_html = response.content.decode("utf-8")
+    assert "Technique analytics" in response_html
+    assert 'id="technique-dashboard-search"' in response_html
+    assert 'id="technique-dashboard-contest-filter"' in response_html
+    assert 'id="technique-dashboard-topic-filter"' in response_html
+    assert 'id="technique-dashboard-domain-filter"' in response_html
+    assert 'id="technique-dashboard-year-filter"' in response_html
+    assert 'id="technique-dashboard-reset"' in response_html
+    assert 'id="technique-analytics-table"' in response_html
+    assert "ProblemTopicTechnique" in response_html
+
+    legacy_response = client.get(reverse("pages:topic_tag_dashboard"))
+    assert legacy_response.status_code == HTTPStatus.OK
+    assert legacy_response.context["technique_total"] == 3
 
 
 def test_problem_statement_linker_shows_rows_suggestions_and_candidate_groups(client):
@@ -3393,6 +4211,7 @@ def test_problem_statement_list_shows_statement_rows_and_link_counts(client):
         contest_year_problem=f"{SPAIN_OLYMPIAD_NAME} {SPAIN_OLYMPIAD_YEAR} P1",
     )
     ProblemTopicTechnique.objects.create(record=linked_record, technique="LTE", domains=["NT"])
+    ProblemTopicTechnique.objects.create(record=linked_record, technique="ZSIGMONDY", domains=["NT"])
     UserProblemCompletion.objects.create(
         user=user,
         problem=linked_record,
@@ -3444,7 +4263,7 @@ def test_problem_statement_list_shows_statement_rows_and_link_counts(client):
     assert linked_row["linked_problem_uuid"] == str(linked_record.problem_uuid)
     assert "linked_problem_label" not in linked_row
     assert "linked_problem_url" not in linked_row
-    assert linked_row["linked_problem_topic_tags"] == ["LTE"]
+    assert linked_row["linked_problem_topic_tags"] == ["LTE", "ZSIGMONDY"]
     assert linked_row["linked_problem_topic_tag_links"][0]["label"] == "LTE"
     assert linked_row["linked_problem_topic_tag_links"][0]["url"].endswith("?tag=LTE")
     assert linked_row["linked_problem_mohs"] == EXPECTED_LINKED_PROBLEM_MOHS
@@ -3455,6 +4274,9 @@ def test_problem_statement_list_shows_statement_rows_and_link_counts(client):
     assert "?q=2%2C5" in linked_row["linked_problem_imo_slot_url"]
     assert "statement_length" not in linked_row
     assert linked_row["problem_destination_label"] == "Start"
+    response_html = response.content.decode("utf-8")
+    assert "function renderTopicTagsCell(value)" in response_html
+    assert 'join("<br>")' in response_html
     assert linked_row["problem_destination_url"] == reverse(
         "solutions:problem_solution_edit",
         args=[linked_record.problem_uuid],
@@ -3463,7 +4285,6 @@ def test_problem_statement_list_shows_statement_rows_and_link_counts(client):
     assert linked_row["user_completion_display"] == "2025-08-28"
     assert linked_row["user_completion_state_kind"] == "solved"
     assert linked_row["user_completion_state_label"] == "Solved on 2025-08-28"
-    response_html = response.content.decode("utf-8")
     assert "Problem statements" in response_html
     assert 'id="statement-year-filter"' in response_html
     assert 'id="statement-topic-filter"' in response_html
@@ -3877,6 +4698,22 @@ def test_problem_statement_duplicates_detects_exact_and_similar_matches_for_admi
         "across $AB$, $BC$, and $CA$ lie on the same circle centered at the nine-point center."
     )
 
+    exact_problem_old = ProblemSolveRecord.objects.create(
+        year=2024,
+        topic="NT",
+        mohs=5,
+        contest="USAMO",
+        problem="P1",
+        contest_year_problem="USAMO 2024 P1",
+    )
+    exact_problem_new = ProblemSolveRecord.objects.create(
+        year=2025,
+        topic="ALG",
+        mohs=6,
+        contest="USA TST",
+        problem="P4",
+        contest_year_problem="USA TST 2025 P4",
+    )
     linked_problem = ProblemSolveRecord.objects.create(
         year=2024,
         topic="GEO",
@@ -3886,6 +4723,7 @@ def test_problem_statement_duplicates_detects_exact_and_similar_matches_for_admi
         contest_year_problem="IMO 2024 P2",
     )
     ContestProblemStatement.objects.create(
+        linked_problem=exact_problem_old,
         contest_year=2024,
         contest_name="USAMO",
         problem_number=1,
@@ -3894,6 +4732,7 @@ def test_problem_statement_duplicates_detects_exact_and_similar_matches_for_admi
         statement_latex=exact_text,
     )
     ContestProblemStatement.objects.create(
+        linked_problem=exact_problem_new,
         contest_year=2025,
         contest_name="USA TST",
         problem_number=4,
@@ -3939,6 +4778,15 @@ def test_problem_statement_duplicates_detects_exact_and_similar_matches_for_admi
     exact_rows = response.context["statement_duplicate_exact_rows"]
     assert len(exact_rows) == 1
     assert exact_rows[0]["duplicate_count"] == 2
+    assert exact_rows[0]["problem_labels"] == "USAMO 2024 P1\nUSA TST 2025 P4"
+    assert [item["label"] for item in exact_rows[0]["problem_items"]] == [
+        "USAMO 2024 P1",
+        "USA TST 2025 P4",
+    ]
+    assert [item["url"] for item in exact_rows[0]["problem_items"]] == [
+        reverse("pages:problem_detail", args=[exact_problem_old.problem_uuid]),
+        reverse("pages:problem_detail", args=[exact_problem_new.problem_uuid]),
+    ]
     similar_rows = response.context["statement_duplicate_similar_rows"]
     assert len(similar_rows) == 1
     assert similar_rows[0]["similarity_percent"] >= 90
@@ -3950,6 +4798,8 @@ def test_problem_statement_duplicates_detects_exact_and_similar_matches_for_admi
     assert "High-similarity statement pairs" in response_html
     assert 'id="statement-exact-duplicates-table"' in response_html
     assert 'id="statement-similarity-table"' in response_html
+    assert reverse("pages:problem_detail", args=[exact_problem_new.problem_uuid]) in response_html
+    assert reverse("pages:problem_detail", args=[exact_problem_old.problem_uuid]) in response_html
     assert reverse("pages:problem_statement_duplicates") in response_html
 
 
@@ -4035,6 +4885,10 @@ def test_problem_statement_analytics_groups_rows_by_contest_and_year_for_admin(c
     assert dashboard_row["linked_count"] == 1
     assert dashboard_row["unlinked_count"] == 1
     assert dashboard_row["link_rate"] == EXPECTED_SPAIN_STATEMENT_LINK_RATE
+    assert dashboard_row["contest_year_url"] == (
+        reverse("pages:contest_problem_list", args=[slugify(SPAIN_OLYMPIAD_NAME)])
+        + f"?year={SPAIN_OLYMPIAD_YEAR}"
+    )
     heatmap_payload = response.context["charts_payload"]["statementCountHeatmap"]
     assert heatmap_payload["years"] == ["2025", "2026"]
     assert heatmap_payload["max_value"] == EXPECTED_STATEMENT_SET_TOTAL
@@ -4049,6 +4903,7 @@ def test_problem_statement_analytics_groups_rows_by_contest_and_year_for_admin(c
     response_html = response.content.decode("utf-8")
     assert "Problem statement analytics" in response_html
     assert 'id="chart-statement-heatmap"' in response_html
+    assert "contest_year_url" in response_html
     assert 'id="chart-year-bars"' in response_html
     assert "Contest-year statement heatmap" in response_html
     assert "Statement rows by year" in response_html
@@ -4488,7 +5343,7 @@ def test_problem_statement_metadata_page_exports_workbook_for_admin(client):
         problem_number=1,
         problem_code="P1",
         day_label="Day 1",
-        statement_latex="Exported statement metadata row",
+        statement_latex="= foot(A, B, C);",
     )
 
     response = client.get(reverse("pages:problem_statement_metadata"), {"action": "export"})
@@ -4509,7 +5364,7 @@ def test_problem_statement_metadata_page_exports_workbook_for_admin(client):
         "DAY LABEL": "Day 1",
         "PROBLEM NUMBER": "1",
         "PROBLEM CODE": "P1",
-        "STATEMENT LATEX": "Exported statement metadata row",
+        "STATEMENT LATEX": "= foot(A, B, C);",
         "TOPIC": "G",
         "MOHS": "25",
         "Confidence": "Medium",
@@ -5664,7 +6519,7 @@ def test_contest_problem_list_filters_by_year_mohs_topic_and_tag(client):
     assert response.status_code == HTTPStatus.OK
     assert response.context["selected_year"] == "2026"
     assert response.context["selected_mohs"] == "4"
-    assert response.context["selected_topic"] == "NT"
+    assert response.context["selected_topic"] == "Number Theory"
     assert response.context["selected_tag"] == "LTE"
     assert response.context["matching_problem_total"] == EXPECTED_RECORD_COUNT
     assert response.context["filter_options"]["mohs_values"] == [4, 5, 6]
@@ -5784,6 +6639,7 @@ def test_dashboard_sidebar_groups_links_into_clear_sections_for_admin(client):
     assert side_nav_html.index("My activity") < side_nav_html.index("My solutions")
     assert side_nav_html.index("My solutions") < side_nav_html.index("Problem statements")
     assert side_nav_html.index("Problem statements") < side_nav_html.index("Problem analytics")
+    assert "Technique analytics" in side_nav_html
     assert "Completion records" in side_nav_html
     assert "Solution records" in side_nav_html
     assert side_nav_html.index("Problem analytics") < side_nav_html.index("Completion records")

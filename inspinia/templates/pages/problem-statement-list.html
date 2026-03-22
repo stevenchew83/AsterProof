@@ -312,6 +312,21 @@
       .join(", ");
   }
 
+  function renderTopicTagsCell(value) {
+    if (!value || !value.length) {
+      return '<span class="text-muted fs-xs">—</span>';
+    }
+    return value
+      .map(function (item) {
+        return String(item || "").trim();
+      })
+      .filter(Boolean)
+      .map(function (item) {
+        return escapeHtml(item);
+      })
+      .join("<br>");
+  }
+
   function completionBadgeClass(stateKind) {
     if (stateKind === "solved") return "text-bg-success";
     if (stateKind === "unknown") return "text-bg-info";
@@ -390,8 +405,7 @@
         render: function (data, type) {
           var formattedTags = formatTopicTags(data);
           if (type !== "display") return formattedTags;
-          if (!formattedTags) return '<span class="text-muted fs-xs">—</span>';
-          return '<span>' + escapeHtml(formattedTags) + "</span>";
+          return renderTopicTagsCell(data);
         }
       },
       {

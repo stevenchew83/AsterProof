@@ -36,7 +36,7 @@
               </span>
             </div>
             <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Problems</p>
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Statements</p>
               <h3 class="mb-0">{{ analytics_total }}</h3>
             </div>
           </div>
@@ -104,7 +104,7 @@
 
   {% if analytics_total == 0 %}
   <div class="alert alert-info mt-4" role="alert">
-    <strong>No problem rows yet.</strong> Import analytics via <a href="{% url 'pages:problem_import' %}" class="alert-link">Import problems</a> to populate charts and the table.
+    <strong>No statement rows yet.</strong> Import problem statements via <a href="{% url 'pages:problem_import' %}" class="alert-link">Import / export problems</a> to populate charts and the table.
   </div>
   {% else %}
 
@@ -112,8 +112,8 @@
     <div class="col-xxl-7">
       <div class="card">
         <div class="card-header border-0 pb-0">
-          <h4 class="header-title mb-0">Problems by year</h4>
-          <p class="text-muted fs-xs mb-0">Volume of stored <code>ProblemSolveRecord</code> rows</p>
+          <h4 class="header-title mb-0">Statements by year</h4>
+          <p class="text-muted fs-xs mb-0">Volume of active <code>ContestProblemStatement</code> rows</p>
         </div>
         <div class="card-body pt-2">
           <div id="chart-by-year" style="min-height: 300px;"></div>
@@ -124,7 +124,7 @@
       <div class="card">
         <div class="card-header border-0 pb-0">
           <h4 class="header-title mb-0">MOHS distribution</h4>
-          <p class="text-muted fs-xs mb-0">Count per MOHS value</p>
+          <p class="text-muted fs-xs mb-0">Linked statement rows per MOHS value</p>
         </div>
         <div class="card-body pt-2">
           <div id="chart-by-mohs" style="min-height: 300px;"></div>
@@ -138,7 +138,7 @@
       <div class="card">
         <div class="card-header border-0 pb-0">
           <h4 class="header-title mb-0">Top topics</h4>
-          <p class="text-muted fs-xs mb-0">Top {{ charts_payload.byTopic.labels|length }} topics by problem count</p>
+          <p class="text-muted fs-xs mb-0">Top {{ charts_payload.byTopic.labels|length }} topics by statement count</p>
         </div>
         <div class="card-body pt-2">
           <div id="chart-by-topic" style="min-height: 320px;"></div>
@@ -162,8 +162,8 @@
     <div class="col-12">
       <div class="card">
         <div class="card-header border-0 pb-0">
-          <h4 class="header-title mb-0">Problems by contest</h4>
-          <p class="text-muted fs-xs mb-0">Top contests by row count</p>
+          <h4 class="header-title mb-0">Statements by contest</h4>
+          <p class="text-muted fs-xs mb-0">Top contests by active statement-row count</p>
         </div>
         <div class="card-body pt-2">
           <div id="chart-by-contest" style="min-height: 320px;"></div>
@@ -227,8 +227,8 @@
       <div class="card">
         <div class="card-header border-bottom d-flex flex-wrap align-items-center gap-2">
           <div class="flex-grow-1">
-            <h4 class="header-title mb-0">All problems</h4>
-            <p class="text-muted fs-xs mb-0">Search, sort, and paginate the full dataset in-browser</p>
+            <h4 class="header-title mb-0">All statements</h4>
+            <p class="text-muted fs-xs mb-0">Search, sort, and paginate the active statement dataset in-browser</p>
           </div>
         </div>
         <div class="card-body">

@@ -8,6 +8,8 @@ from difflib import SequenceMatcher
 from itertools import combinations
 from typing import TYPE_CHECKING
 
+from django.urls import reverse
+
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
@@ -30,6 +32,7 @@ class StatementComparisonRow:
     contest_name: str
     contest_year: int
     contest_year_problem: str
+    problem_detail_url: str
     day_label: str
     linked_problem_label: str
     problem_uuid: str
@@ -72,15 +75,32 @@ def _statement_preview(statement_latex: str, *, max_length: int = 200) -> str:
 def _build_statement_rows(
     statements: Iterable[ContestProblemStatement],
 ) -> list[StatementComparisonRow]:
+    from inspinia.pages.models import ProblemSolveRecord
+
+    statement_list = list(statements)
+    existing_problem_uuid_strings = {
+        str(problem_uuid)
+        for problem_uuid in ProblemSolveRecord.objects.filter(
+            problem_uuid__in=[statement.problem_uuid for statement in statement_list],
+        ).values_list("problem_uuid", flat=True)
+    }
     rows: list[StatementComparisonRow] = []
-    for statement in statements:
+    for statement in statement_list:
         similarity_text = _normalize_similarity_text(statement.statement_latex)
+        problem_detail_uuid = None
+        if statement.linked_problem_id and statement.linked_problem is not None:
+            problem_detail_uuid = statement.linked_problem.problem_uuid
+        elif str(statement.problem_uuid) in existing_problem_uuid_strings:
+            problem_detail_uuid = statement.problem_uuid
         rows.append(
             StatementComparisonRow(
                 statement_id=statement.id,
                 contest_name=statement.contest_name,
                 contest_year=statement.contest_year,
                 contest_year_problem=statement.contest_year_problem,
+                problem_detail_url=(
+                    reverse("pages:problem_detail", args=[problem_detail_uuid]) if problem_detail_uuid else ""
+                ),
                 day_label=statement.day_label or "",
                 linked_problem_label=(
                     statement.linked_problem.contest_year_problem
@@ -118,12 +138,30 @@ def _exact_duplicate_rows(rows: list[StatementComparisonRow]) -> list[dict[str, 
             group,
             key=lambda row: (-row.contest_year, row.contest_name, row.day_label, row.contest_year_problem),
         )
+        problem_items_by_label: dict[str, dict[str, object]] = {}
+        for row in ordered_group:
+            existing_item = problem_items_by_label.get(row.contest_year_problem)
+            if existing_item is None:
+                problem_items_by_label[row.contest_year_problem] = {
+                    "contest_year": row.contest_year,
+                    "label": row.contest_year_problem,
+                    "url": row.problem_detail_url,
+                }
+                continue
+            if not existing_item["url"] and row.problem_detail_url:
+                existing_item["url"] = row.problem_detail_url
+
+        problem_items = sorted(
+            problem_items_by_label.values(),
+            key=lambda item: (int(item["contest_year"]), str(item["label"])),
+        )
         duplicate_rows.append(
             {
                 "duplicate_count": len(ordered_group),
                 "statement_length": ordered_group[0].statement_length,
                 "year_span_label": _year_span_label([row.contest_year for row in ordered_group]),
-                "contests_label": ", ".join(sorted({row.contest_name for row in ordered_group})),
+                "problem_items": problem_items,
+                "problem_labels": "\n".join(str(item["label"]) for item in problem_items),
                 "preview": ordered_group[0].preview,
                 "members_text": "\n".join(row.line_label for row in ordered_group),
             },
@@ -133,7 +171,7 @@ def _exact_duplicate_rows(rows: list[StatementComparisonRow]) -> list[dict[str, 
         key=lambda row: (
             -int(row["duplicate_count"]),
             -int(row["statement_length"]),
-            str(row["contests_label"]),
+            str(row["problem_labels"]),
             str(row["preview"]),
         ),
     )

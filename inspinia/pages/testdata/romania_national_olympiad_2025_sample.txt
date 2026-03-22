@@ -1,0 +1,91 @@
+2025 Romania National Olympiad3
+Romania National Olympiad 2025
+Grade 9
+1	Let $N \geq 1$ be a positive integer. There are two numbers written on a blackboard, one red and one blue. Initially, both are 0. We define the following procedure: at each step, we choose a nonnegative integer $k$ (not necessarily distinct from the previously chosen ones), and, if the red and blue numbers are $x$ and $y$ respectively, we replace them with $x+k+1$ and $y+k^2+2$, which we color blue and red (in this order). We keep doing this procedure until the blue number is at least $N$.
+Determine the minimum value of the red number at the end of this procedure.	
+
+Ciobi_
+view topic
+2	Let $\triangle ABC$ be an acute-angled triangle, with circumcenter $O$, circumradius $R$ and orthocenter $H$. Let $A_1$ be a point on $BC$ such that $A_1H+A_1O=R$. Define $B_1$ and $C_1$ similarly.
+If $\overrightarrow{AA_1} + \overrightarrow{BB_1} + \overrightarrow{CC_1} = \overrightarrow{0}$, prove that $\triangle ABC$ is equilateral.	
+
+Ciobi_
+view topic
+3	Let $n \geq 2$ be a positive integer. Consider the following equation:\[ \{x\}+\{2x\}+ \dots + \{nx\} = \lfloor x \rfloor + \lfloor 2x \rfloor + \dots + \lfloor 2nx \rfloor\]a) For $n=2$, solve the given equation in $\mathbb{R}$.
+b) Prove that, for any $n \geq 2$, the equation has at most $2$ real solutions.	
+
+Ciobi_
+view topic
+4	Let $m \geq 2$ be a fixed positive integer, and $(a_n)_{n\geq 1}$ be a sequence of nonnegative real numbers such that, for all $n\geq 1$, we have that $a_{n+1} \leq a_n - a_{mn}$.
+a) Prove that the sequence $b_n = \sum_{k=1}^{n} a_k$ is bounded above.
+b) Prove that the sequence $c_n = \sum_{k=1}^{n} k^2 a_k$ is bounded above.	
+
+Ciobi_
+view topic
+Grade 10
+1	Let $M$ be a point in the plane, distinct from the vertices of $\triangle ABC$. Consider $N,P,Q$ the reflections of $M$ with respect to lines $AB, BC$ and $CA$, in this order.
+a) Prove that $N, P ,Q$ are collinear if and only if $M$ lies on the circumcircle of $\triangle ABC$.
+b) If $M$ does not lie on the circumcircle of $\triangle ABC$ and the centroids of triangles $\triangle ABC$ and $\triangle NPQ$ coincide, prove that $\triangle ABC$ is equilateral.	
+
+Ciobi_
+view topic
+2	Let $n$ be a positive integer. For a set of points in the plane $M$, we call $2$ distinct points $A,B \in M$ connected if the line $AB$ contains exactly $n+1$ points from $M$.
+Find the minimum value of a positive integer $m$ such that there exists a set $M$ of $m$ points in the plane with the property that any point $A \in M$ is connected with exactly $2n$ other points from $M$.	
+
+Ciobi_
+view topic
+3	Define the functions $g_k \colon \mathbb{Z} \to \mathbb{Z}$, $g_k(x) = x^k$, where $k$ is a positive integer.
+Find the set $M_k$ of positive integers $n$ for which there exist injective functions $f_1,f_2, \dots ,f_n \colon \mathbb{Z} \to \mathbb{Z}$ such that $g_k=f_1\cdot f_2 \cdot \ldots \cdot f_n$.
+(Here, $\cdot$ denotes component-wise function multiplication)	
+
+Ciobi_
+view topic
+4	Find all pairs of complex numbers $(z,w) \in \mathbb{C}^2$ such that the relation\[|z^{2n}+z^nw^n+w^{2n} | = 2^{2n}+2^n+1 \]holds for all positive integers $n$.	
+
+Ciobi_
+view topic
+Grade 11
+1	Find all pairs of twice differentiable functions $f,g \colon \mathbb{R} \to \mathbb{R}$, with their second derivative being continuous, such that the following holds for all $x,y \in \mathbb{R}$:\[(f(x)-g(y))(f'(x)-g'(y))(f''(x)-g''(y))=0\]	
+
+Ciobi_
+view topic
+2	Let $n$ be a positive integer, and $a,b$ be two complex numbers such that $a \neq 1$ and $b^k \neq 1$, for any $k \in \{1,2,\dots ,n\}$. The matrices $A,B \in \mathcal{M}_n(\mathbb{C})$ satisfy the relation $BA=a I_n + bAB$. Prove that $A$ and $B$ are invertible.	
+
+Ciobi_
+view topic
+3	Prove that, for a function $f \colon \mathbb{R} \to \mathbb{R}$, the following $2$ statements are equivalent:
+a) $f$ is differentiable, with continuous first derivative.
+b) For any $a\in\mathbb{R}$ and for any two sequences $(x_n)_{n\geq 1},(y_n)_{n\geq 1}$, convergent to $a$, such that $x_n \neq y_n$ for any positive integer $n$, the sequence $\left(\frac{f(x_n)-f(y_n)}{x_n-y_n}\right)_{n\geq 1}$ is convergent.	
+
+Ciobi_
+view topic
+4	Let $A,B \in \mathcal{M}_n(\mathbb{C})$ be two matrices such that $A+B=AB+BA$. Prove that:
+a) if $n$ is odd, then $\det(AB-BA)=0$;
+b) if $\text{tr}(A)\neq \text{tr}(B)$, then $\det(AB-BA)=0$.	
+
+Ciobi_
+view topic
+Grade 12
+1	We say a ring $(A,+,\cdot)$ has property $(P)$ if :
+\[
+\begin{cases}
+
+\text{the set } A \text{ has at least } 4 \text{ elements} \\
+\text{the element } 1+1 \text{ is invertible}\\
+x+x^4=x^2+x^3 \text{ holds for all } x \in A
+\end{cases}
+\]a) Prove that if a ring $(A,+,\cdot)$ has property $(P)$, and $a,b \in A$ are distinct elements, such that $a$ and $a+b$ are units, then $1+ab$ is also a unit, but $b$ is not a unit.
+b) Provide an example of a ring with property $(P)$.	
+
+Ciobi_
+view topic
+2	Let $f \colon [0,1] \to \mathbb{R} $ be a differentiable function such that its derivative is an integrable function on $[0,1]$, and $f(1)=0$. Prove that\[ \int_0^1 (xf'(x))^2 dx \geq 12 \cdot \left( \int_0^1 xf(x) dx\right)^2 \]	
+
+Ciobi_
+view topic
+3	a) Let $a\in \mathbb{R}$ and $f \colon \mathbb{R} \to \mathbb{R}$ be a continuous function for which there exists an antiderivative $F \colon \mathbb{R} \to \mathbb{R} $, such that $F(x)+a\cdot f(x) \geq 0$, for any $x \in \mathbb{R}$, and$ \lim_{|x| \to \infty} \frac{F(x)}{e^{|\alpha \cdot x|}}=0$ holds for any $\alpha \in \mathbb{R}^*$. Prove that $F(x) \geq 0$ for all $x \in \mathbb{R}$.
+b) Let $n\geq 2$ be a positive integer, $g \in \mathbb{R}[X]$, $g = X^n + a_1X^{n-1}+ \dots + a_{n-1}X+a_n$ be a polynomial with all of its roots being real, and $f \colon \mathbb{R} \to \mathbb{R}$ a polynomial function such that $f(x)+a_1\cdot f'(x)+a_2\cdot f^{(2)}(x)+\dots+a_n\cdot f^{(n)}(x) \geq 0$ for any $x \in \mathbb{R}$. Prove that $f(x) \geq 0$ for all $x \in \mathbb{R}$.	
+
+Ciobi_
+view topic
+4	Let $p$ be an odd prime number, and $k$ be an odd number not divisible by $p$. Consider a field $K$ be a field with $kp+1$ elements, and $A = \{x_1,x_2, \dots, x_t\}$ be the set of elements of $K^*$, whose order is not $k$ in the multiplicative group $(K^*,\cdot)$. Prove that the polynomial $P(X)=(X+x_1)(X+x_2)\dots(X+x_t)$ has at least $p$ coefficients equal to $1$.

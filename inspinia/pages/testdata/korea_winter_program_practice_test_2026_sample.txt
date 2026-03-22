@@ -1,0 +1,48 @@
+2026 Korea Winter Program Practice Test3
+Korea Winter Program Practice Test 2026
+Test 1
+Day	1
+P1	Senior test 1 day 1 statement.
+
+Proposed by Alpha Author
+
+sample_user_one
+view topic
+Day	2
+P2	Senior test 1 day 2 statement.
+
+Proposed by Beta Author
+
+sample_user_two
+view topic
+Junior
+Day	1
+P1	Junior test 1 day 1 statement.
+
+Proposed by Gamma Author
+
+sample_user_three
+view topic
+Day	2
+P2	Junior test 1 day 2 statement.
+
+Proposed by Delta Author
+
+sample_user_four
+view topic
+Test 2
+Day	1
+P1	Senior test 2 day 1 statement.
+
+Proposed by Epsilon Author
+
+sample_user_five
+view topic
+Junior
+Day	2
+P1	Junior test 2 day 2 statement.
+
+Proposed by Zeta Author
+
+sample_user_six
+view topic

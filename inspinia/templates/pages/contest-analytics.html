@@ -42,7 +42,7 @@
               </span>
             </div>
             <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Problem rows</p>
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Statement rows</p>
               <h3 class="mb-0">{{ contest_problem_total }}</h3>
             </div>
           </div>
@@ -59,7 +59,7 @@
               </span>
             </div>
             <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Avg problems per contest</p>
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Avg statements per contest</p>
               <h3 class="mb-0">{{ contest_stats.average_problems_per_contest }}</h3>
             </div>
           </div>
@@ -96,7 +96,7 @@
       <div class="card">
         <div class="card-header border-0 pb-0">
           <h4 class="header-title mb-0">Contest volume</h4>
-          <p class="text-muted fs-xs mb-0">Top contests ranked by stored problem rows</p>
+          <p class="text-muted fs-xs mb-0">Top contests ranked by active statement rows</p>
         </div>
         <div class="card-body pt-2">
           <div id="chart-contest-volume" style="min-height: 340px;"></div>
@@ -115,7 +115,7 @@
               <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Largest dataset</p>
               <div class="d-flex align-items-center justify-content-between gap-2">
                 <h5 class="mb-0">{{ contest_leaders.biggest.contest }}</h5>
-                <span class="badge bg-primary-subtle text-primary">{{ contest_leaders.biggest.problem_count }} problems</span>
+                <span class="badge bg-primary-subtle text-primary">{{ contest_leaders.biggest.problem_count }} statements</span>
               </div>
             </div>
             <div class="border rounded p-3">
@@ -186,7 +186,7 @@
       <div class="card">
         <div class="card-header border-0 pb-0">
           <h4 class="header-title mb-0">Technique density</h4>
-          <p class="text-muted fs-xs mb-0">Parsed technique rows per problem, highlighting annotation depth</p>
+          <p class="text-muted fs-xs mb-0">Parsed technique rows per statement, highlighting annotation depth</p>
         </div>
         <div class="card-body pt-2">
           <div id="chart-technique-density" style="min-height: 320px;"></div>
@@ -301,7 +301,7 @@
           return data;
         }
       },
-      { data: "problem_count", title: "Problems", className: "text-nowrap" },
+      { data: "problem_count", title: "Statements", className: "text-nowrap" },
       { data: "year_span_label", title: "Year span", className: "text-nowrap" },
       { data: "active_years", title: "Active years", className: "text-nowrap" },
       { data: "distinct_topics", title: "Topics", className: "text-nowrap" },
@@ -318,7 +318,7 @@
       { data: "technique_rows", title: "Technique rows", className: "text-nowrap" },
       {
         data: "techniques_per_problem",
-        title: "Techniques / problem",
+        title: "Techniques / statement",
         className: "text-nowrap",
         render: function (data, type) {
           if (type === "display" || type === "filter") return formatMetric(Number(data || 0));

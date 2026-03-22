@@ -132,11 +132,11 @@ Dashboard pages filter on statement visibility only:
 - use `ContestProblemStatement.is_active`
 - do not inherit visibility from `linked_problem.is_active`
 
-`ProblemSolveRecord.is_active` becomes legacy for this workflow.
+`ProblemSolveRecord.is_active` becomes legacy for dashboard behavior only.
 
-During rollout, all existing `ProblemSolveRecord.is_active` values will be reset
-to `True` so old row-level hiding does not keep interfering with dashboard
-behavior.
+Public archive pages still depend on `ProblemSolveRecord.is_active` in this
+phase, so those values must remain unchanged until a separate public-page
+visibility migration exists.
 
 ## Architecture
 
@@ -169,7 +169,6 @@ separate follow-up project.
 1. Add `ContestProblemStatement.is_active = models.BooleanField(default=True)`.
 2. Create a migration that:
    - adds the field
-   - sets all existing `ProblemSolveRecord.is_active = True`
 3. Add statement-first dashboard query helpers.
 4. Update dashboard row-action payloads so selection and bulk visibility use
    statement ids rather than problem UUIDs.
@@ -265,4 +264,6 @@ The work is complete when:
 - dashboard analytics counts and solved rates are statement-row based
 - statement visibility is controlled by `ContestProblemStatement.is_active`
 - solved dates still work through linked problems
+- public pages keep using `ProblemSolveRecord.is_active` until a separate
+  migration changes that contract
 - public archive pages continue using their current behavior

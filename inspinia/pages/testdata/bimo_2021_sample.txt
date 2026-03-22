@@ -1,0 +1,27 @@
+BIMO 20213
+Various problems from the Malaysian IMO training camps 2021
+BIMO 1
+Problem Solving Session
+1	Given a natural number $n$, call a divisor $d$ of $n$ to be $\textit{nontrivial}$ if $d>1$. A natural number $n$ is $\textit{good}$ if one or more distinct nontrivial divisors of $n$ sum up to $n-1$.
+
+Prove that every natural number $n$ has a multiple that is good.	
+
+navi_09220114
+view topic
+Mock IMO Test
+1	Find all continuous functions $ f : \mathbb{R} \rightarrow \mathbb{R} $ such that for all real numbers $ x, y $$$ f(x^2+f(y))=f(f(y)-x^2)+f(xy) $$
+[Extra: Can you solve this without continuity?]	
+
+navi_09220114
+view topic
+2	There are $k$ piles of stones with $2020$ stones in each pile. Amber can choose any two non-empty piles of stones, and Barbara can take one stone from one of the two chosen piles and puts it into the other pile. Amber wins if she can eventually make an empty pile. What is the least $k$ such that Amber can always win?	
+
+navi_09220114
+view topic
+3	Let $ABC$ be an actue triangle with $AB<AC$. Let $\Gamma$ be its circumcircle, $I$ its incenter and $P$ is a point on $\Gamma$ such that $\angle API=90^{\circ}$. Let $Q$ be a point on $\Gamma$ such that$$QB\cdot\tan \angle B=QC\cdot \tan \angle C$$Consider a point $R$ such that $PR$ is tangent to $\Gamma$ and $BR=CR$. Prove that the points $A, Q, R$ are colinear.	
+
+navi_09220114
+view topic
+BIMO 2
+Test 1 (Geometry)
+2	Let $ABC$ be a triangle with incircle centered at $I$, tangent to sides $AC$ and $AB$ at $E$ and $F$ respectively. Let $N$ be the midpoint of major arc $BAC$. Let $IN$ intersect $EF$ at $K$, and $M$ be the midpoint of $BC$. Prove that $KM\perp EF$.

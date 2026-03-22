@@ -27,6 +27,17 @@
     font-weight: 600;
   }
 
+  .statement-duplicate-problem-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .statement-duplicate-problem-line {
+    line-height: 1.45;
+    white-space: nowrap;
+  }
+
   #statement-exact-duplicates-table_wrapper .dt-layout-row,
   #statement-similarity-table_wrapper .dt-layout-row {
     margin: 0;
@@ -236,6 +247,23 @@
     ].join("");
   }
 
+  function renderProblemListCell(items, fallbackText) {
+    if (!Array.isArray(items) || !items.length) {
+      return escapeHtml(fallbackText || "");
+    }
+    return [
+      '<div class="statement-duplicate-problem-list">',
+      items.map(function (item) {
+        var label = escapeHtml(item.label || "");
+        if (item.url) {
+          return '<div class="statement-duplicate-problem-line"><a class="link-primary text-decoration-none" href="' + escapeHtml(item.url) + '">' + label + "</a></div>";
+        }
+        return '<div class="statement-duplicate-problem-line">' + label + "</div>";
+      }).join(""),
+      "</div>"
+    ].join("");
+  }
+
   var exactDataEl = document.getElementById("statement-duplicate-exact-data");
   var similarDataEl = document.getElementById("statement-duplicate-similar-data");
   var exactRows = exactDataEl ? JSON.parse(exactDataEl.textContent) : [];
@@ -260,8 +288,12 @@
           className: "text-nowrap"
         },
         {
-          data: "contests_label",
-          title: "Contests"
+          data: "problem_labels",
+          title: "Contest-year problem",
+          render: function (data, type, row) {
+            if (type !== "display") return data;
+            return renderProblemListCell(row.problem_items || [], data || "");
+          }
         },
         {
           data: "preview",

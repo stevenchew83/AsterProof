@@ -13,6 +13,8 @@ from typing import BinaryIO
 
 import pandas as pd
 from django.db import transaction
+from openpyxl import Workbook
+from openpyxl.utils.dataframe import dataframe_to_rows
 
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
@@ -352,11 +354,29 @@ def build_problem_export_dataframe(records: list[ProblemSolveRecord]) -> pd.Data
     return pd.DataFrame(rows, columns=EXPORT_COLUMNS)
 
 
+def dataframe_to_safe_excel_bytes(dataframe: pd.DataFrame) -> bytes:
+    buffer = io.BytesIO()
+    workbook = Workbook()
+    worksheet = workbook.active
+
+    for row_index, row in enumerate(dataframe_to_rows(dataframe, index=False, header=True), start=1):
+        for column_index, value in enumerate(row, start=1):
+            cell = worksheet.cell(row=row_index, column=column_index)
+            if value is None or (isinstance(value, float) and pd.isna(value)):
+                cell.value = ""
+                cell.data_type = "s"
+                continue
+            cell.value = value
+            if isinstance(value, str):
+                cell.data_type = "s"
+
+    workbook.save(buffer)
+    return buffer.getvalue()
+
+
 def build_problem_export_workbook_bytes(records: list[ProblemSolveRecord]) -> bytes:
     export_df = build_problem_export_dataframe(records)
-    buffer = io.BytesIO()
-    export_df.to_excel(buffer, index=False)
-    return buffer.getvalue()
+    return dataframe_to_safe_excel_bytes(export_df)
 
 
 def build_problem_statement_export_dataframe(
@@ -385,9 +405,7 @@ def build_problem_statement_export_workbook_bytes(
     statements: list[ContestProblemStatement],
 ) -> bytes:
     export_df = build_problem_statement_export_dataframe(statements)
-    buffer = io.BytesIO()
-    export_df.to_excel(buffer, index=False)
-    return buffer.getvalue()
+    return dataframe_to_safe_excel_bytes(export_df)
 
 
 def dataframe_from_excel(source: Path | str | BinaryIO | bytes) -> pd.DataFrame:

@@ -6,6 +6,8 @@ from inspinia.pages.views import completion_board_view
 from inspinia.pages.views import completion_record_list_view
 from inspinia.pages.views import contest_advanced_analytics_view
 from inspinia.pages.views import contest_analytics_view
+from inspinia.pages.views import contest_dashboard_listing_view
+from inspinia.pages.views import contest_dashboard_listing_bulk_update_view
 from inspinia.pages.views import contest_details_view
 from inspinia.pages.views import contest_problem_list_view
 from inspinia.pages.views import contest_rename_view
@@ -42,6 +44,17 @@ urlpatterns = [
         contest_advanced_analytics_view,
         name="contest_advanced_dashboard",
     ),
+    path(
+        "dashboard/contests/listing/",
+        contest_dashboard_listing_view,
+        name="contest_dashboard_listing",
+    ),
+    path(
+        "dashboard/contests/listing/bulk-update/",
+        contest_dashboard_listing_bulk_update_view,
+        name="contest_dashboard_listing_bulk_update",
+    ),
+    path("dashboard/techniques/", topic_tag_analytics_view, name="technique_dashboard"),
     path("dashboard/topic-tags/", topic_tag_analytics_view, name="topic_tag_dashboard"),
     path("dashboard/user-solutions/", user_solution_record_list_view, name="user_solution_record_list"),
     path(
