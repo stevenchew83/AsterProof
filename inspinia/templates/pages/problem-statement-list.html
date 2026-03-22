@@ -85,37 +85,10 @@
     width: 100% !important;
   }
 
-  .statement-completion-cell {
-    min-width: 17rem;
-    display: grid;
-    gap: 0.5rem;
-  }
-
   .statement-completion-status {
     display: inline-flex;
     align-items: center;
     width: fit-content;
-  }
-
-  .statement-completion-controls {
-    display: grid;
-    gap: 0.45rem;
-  }
-
-  .statement-completion-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.35rem;
-  }
-
-  .statement-completion-actions .btn,
-  .statement-completion-controls .form-control {
-    min-height: calc(1.5em + 0.5rem + 2px);
-  }
-
-  .statement-completion-cell.is-pending {
-    opacity: 0.72;
-    pointer-events: none;
   }
 
   .statement-table-shell {
@@ -225,7 +198,7 @@
           <div class="flex-grow-1">
             <h4 class="header-title mb-0">All problem statements</h4>
             <p class="text-muted fs-xs mb-0">
-              Search by contest, linked topic, UUID, solved state, day label, linked problem, topic tags, confidence, or statement preview. Rows imported before analytics still carry a stable UUID.
+              Search by contest, linked topic, UUID, solved state, day label, topic tags, confidence, or IMO slot. Rows imported before analytics still carry a stable UUID.
             </p>
           </div>
           <span class="badge text-bg-light">{{ statement_stats.contest_total }} contests</span>
@@ -261,13 +234,10 @@
               {% endif %}
             </div>
           </div>
-          <div id="statement-completion-feedback" class="alert d-none mb-3" role="alert"></div>
           <div class="statement-table-shell">
             <table
               id="problem-statements-table"
               class="table table-striped table-bordered align-middle w-100"
-              data-completion-today="{{ statement_completion_today }}"
-              data-completion-toggle-url="{{ statement_completion_toggle_url }}"
             ></table>
           </div>
         </div>
@@ -277,7 +247,6 @@
   {% endif %}
 </div>
 
-<form id="statement-completion-csrf" class="d-none">{% csrf_token %}</form>
 {{ statement_table_rows|json_script:"problem-statement-table-data" }}
 {% endblock page_content %}
 
@@ -300,13 +269,6 @@
   }
 
   var rows = JSON.parse(dataEl.textContent);
-  var tableEl = document.getElementById("problem-statements-table");
-  var completionFeedbackEl = document.getElementById("statement-completion-feedback");
-  var completionCsrfInput = document.querySelector('#statement-completion-csrf input[name="csrfmiddlewaretoken"]');
-  var completionToday = tableEl ? tableEl.getAttribute("data-completion-today") || "" : "";
-  var completionToggleUrl = tableEl ? tableEl.getAttribute("data-completion-toggle-url") || "" : "";
-  var completionFeedbackTimer = null;
-
   function renderInlineLink(label, url, neutralClass) {
     if (!label) return "";
     if (!url) {
@@ -328,18 +290,6 @@
       .join(", ");
   }
 
-  function buildCompletionDisplay(isSolved, completionDate) {
-    if (!isSolved) return "Unsolved";
-    if (!completionDate) return "Unknown date";
-    return completionDate;
-  }
-
-  function buildCompletionSortValue(isSolved, completionDate) {
-    if (!isSolved) return "0-";
-    if (!completionDate) return "1-9999-12-31";
-    return "2-" + completionDate;
-  }
-
   function completionBadgeClass(stateKind) {
     if (stateKind === "solved") return "text-bg-success";
     if (stateKind === "unknown") return "text-bg-info";
@@ -347,57 +297,11 @@
     return "text-bg-light";
   }
 
-  function setCompletionFeedback(message, level) {
-    if (!completionFeedbackEl) return;
-    if (completionFeedbackTimer) {
-      window.clearTimeout(completionFeedbackTimer);
-      completionFeedbackTimer = null;
-    }
-    completionFeedbackEl.classList.remove(
-      "d-none",
-      "alert-success",
-      "alert-danger",
-      "alert-info",
-      "alert-secondary"
-    );
-    if (!message) {
-      completionFeedbackEl.textContent = "";
-      completionFeedbackEl.classList.add("d-none");
-      return;
-    }
-    completionFeedbackEl.textContent = message;
-    completionFeedbackEl.classList.add("alert-" + (level || "info"));
-    if (level === "success") {
-      completionFeedbackTimer = window.setTimeout(function () {
-        completionFeedbackEl.textContent = "";
-        completionFeedbackEl.classList.add("d-none");
-        completionFeedbackEl.classList.remove("alert-success");
-      }, 2400);
-    }
-  }
-
   function renderCompletionCell(row) {
     if (!row.is_linked || !row.linked_problem_uuid) {
       return '<span class="text-muted fs-xs">Not linked</span>';
     }
-
-    var clearDisabled = row.user_completion_is_solved ? "" : " disabled";
-    return (
-      '<div class="statement-completion-cell" data-is-solved="' + (row.user_completion_is_solved ? "true" : "") + '" data-problem-uuid="' + escapeHtml(row.linked_problem_uuid) + '">' +
-        '<span class="badge statement-completion-status ' + completionBadgeClass(row.user_completion_state_kind) + '" title="' + escapeHtml(row.user_completion_state_label) + '">' +
-          escapeHtml(row.user_completion_display) +
-        "</span>" +
-        '<div class="statement-completion-controls">' +
-          '<input type="date" class="form-control form-control-sm statement-completion-date" max="' + escapeHtml(completionToday) + '" value="' + escapeHtml(row.user_completion_date || "") + '">' +
-          '<div class="statement-completion-actions">' +
-            '<button type="button" class="btn btn-light btn-sm statement-completion-today">Today</button>' +
-            '<button type="button" class="btn btn-primary btn-sm statement-completion-save">Save</button>' +
-            '<button type="button" class="btn btn-outline-info btn-sm statement-completion-unknown">Unknown</button>' +
-            '<button type="button" class="btn btn-outline-secondary btn-sm statement-completion-clear"' + clearDisabled + ">Clear</button>" +
-          "</div>" +
-        "</div>" +
-      "</div>"
-    );
+    return '<span class="badge statement-completion-status ' + completionBadgeClass(row.user_completion_state_kind) + '" title="' + escapeHtml(row.user_completion_state_label) + '">' + escapeHtml(row.user_completion_display) + "</span>";
   }
 
   function formatImoSlotLabel(value) {
@@ -438,21 +342,6 @@
       },
       { data: "problem_code", title: "Problem", className: "text-nowrap" },
       { data: "day_label", title: "Day", className: "text-nowrap" },
-      {
-        data: "linked_problem_label",
-        title: "Linked problem",
-        defaultContent: "",
-        render: function (data, type, row) {
-          if (type !== "display") return data;
-          if (row.linked_problem_url) {
-            return '<a href="' + escapeHtml(row.linked_problem_url) + '">' + escapeHtml(data) + "</a>";
-          }
-          if (row.is_linked) {
-            return escapeHtml(data);
-          }
-          return '<span class="badge text-bg-secondary">Unlinked</span>';
-        }
-      },
       {
         data: "user_completion_display",
         title: "Solved",
@@ -516,15 +405,6 @@
           return renderInlineLink(formattedLabel, row.linked_problem_imo_slot_url);
         }
       },
-      {
-        data: "statement_preview",
-        title: "Preview",
-        defaultContent: "",
-        render: function (data, type, row) {
-          if (type !== "display") return data;
-          return '<span title="' + escapeHtml(data) + '">' + escapeHtml(data) + "</span>";
-        }
-      },
       { data: "statement_length", title: "Chars", className: "text-nowrap" },
       {
         data: "updated_at",
@@ -536,9 +416,23 @@
           }
           return data || "";
         }
+      },
+      {
+        data: "problem_destination_url",
+        title: "Solution",
+        className: "text-nowrap",
+        orderable: false,
+        searchable: false,
+        render: function (data, type, row) {
+          if (type !== "display") return data || "";
+          if (!data) return '<span class="text-muted fs-xs">—</span>';
+          return '<a href="' + escapeHtml(data) + '" class="btn btn-outline-primary btn-sm">' + escapeHtml(row.problem_destination_label || "Open") + "</a>";
+        }
       }
     ];
-  var updatedAtColumnIndex = statementColumns.length - 1;
+  var updatedAtColumnIndex = statementColumns.findIndex(function (column) {
+    return column.data === "updated_at";
+  });
 
   var table = new DataTable("#problem-statements-table", {
     data: rows,
@@ -559,79 +453,6 @@
   window.addEventListener("load", adjustStatementTableColumnsSoon);
   window.addEventListener("resize", adjustStatementTableColumnsSoon);
   table.on("draw", adjustStatementTableColumnsSoon);
-
-  function setCompletionCellBusy(cellEl, isBusy) {
-    if (!cellEl) return;
-    cellEl.classList.toggle("is-pending", isBusy);
-    cellEl.querySelectorAll("button, input").forEach(function (control) {
-      control.disabled = isBusy || (
-        control.classList.contains("statement-completion-clear") &&
-        !cellEl.getAttribute("data-is-solved")
-      );
-    });
-  }
-
-  function applyCompletionPayloadToRows(problemUuid, payload) {
-    rows.forEach(function (row) {
-      if (row.linked_problem_uuid !== problemUuid) return;
-      row.user_completion_date = payload.completion_date || "";
-      row.user_completion_display = buildCompletionDisplay(payload.is_solved, payload.completion_date);
-      row.user_completion_is_solved = !!payload.is_solved;
-      row.user_completion_sort = buildCompletionSortValue(payload.is_solved, payload.completion_date);
-      row.user_completion_state_kind = payload.state_kind || "unsolved";
-      row.user_completion_state_label = payload.state_label || "";
-    });
-  }
-
-  function submitCompletionAction(cellEl, action) {
-    if (!cellEl || !completionToggleUrl || !completionCsrfInput) return;
-
-    var problemUuid = cellEl.getAttribute("data-problem-uuid") || "";
-    var dateInput = cellEl.querySelector(".statement-completion-date");
-    var requestedDate = dateInput ? dateInput.value : "";
-    if (action === "set_date" && !requestedDate) {
-      setCompletionFeedback("Pick a solved date before saving.", "danger");
-      return;
-    }
-
-    setCompletionFeedback("", "info");
-    setCompletionCellBusy(cellEl, true);
-
-    fetch(completionToggleUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-        "X-CSRFToken": completionCsrfInput.value,
-        "X-Requested-With": "XMLHttpRequest"
-      },
-      body: new URLSearchParams({
-        action: action,
-        completion_date: requestedDate,
-        problem_uuid: problemUuid
-      }).toString()
-    })
-      .then(function (response) {
-        return response.json().catch(function () {
-          return {};
-        }).then(function (payload) {
-          if (!response.ok) {
-            throw new Error(payload.error || "Could not update the solved date.");
-          }
-          return payload;
-        });
-      })
-      .then(function (payload) {
-        applyCompletionPayloadToRows(problemUuid, payload);
-        table.draw(false);
-        setCompletionFeedback("Updated solved state for " + (payload.problem_label || "this problem") + ".", "success");
-      })
-      .catch(function (error) {
-        setCompletionFeedback(error.message || "Could not update the solved date.", "danger");
-      })
-      .finally(function () {
-        setCompletionCellBusy(cellEl, false);
-      });
-  }
 
   var mohsMinEl = document.getElementById("statement-mohs-min");
   var mohsMaxEl = document.getElementById("statement-mohs-max");
@@ -692,13 +513,11 @@
       "Topic",
       "Problem",
       "Day",
-      "Linked problem",
       "Solved",
       "Topic tags",
       "MOHS",
       "Confidence",
       "IMO slot",
-      "Preview",
       "Chars",
       "Updated"
     ];
@@ -712,13 +531,11 @@
         normalizeCellValue(row.linked_problem_topic),
         normalizeCellValue(row.problem_code),
         normalizeCellValue(row.day_label),
-        normalizeCellValue(row.is_linked ? row.linked_problem_label : "Unlinked"),
         normalizeCellValue(row.user_completion_display),
         normalizeCellValue(formatTopicTags(row.linked_problem_topic_tags)),
         normalizeCellValue(row.linked_problem_mohs),
         normalizeCellValue(row.linked_problem_confidence),
         normalizeCellValue(formatImoSlotLabel(row.linked_problem_imo_slot_guess_value)),
-        normalizeCellValue(row.statement_preview),
         normalizeCellValue(row.statement_length),
         normalizeCellValue(row.updated_at)
       ].join("\t"));
@@ -780,39 +597,6 @@
     });
   }
 
-  if (tableEl && completionToggleUrl && completionCsrfInput) {
-    tableEl.addEventListener("click", function (event) {
-      var button = event.target.closest("button");
-      if (!button) return;
-
-      var cellEl = button.closest(".statement-completion-cell");
-      if (!cellEl) return;
-
-      var dateInput = cellEl.querySelector(".statement-completion-date");
-      if (button.classList.contains("statement-completion-today")) {
-        event.preventDefault();
-        if (dateInput) dateInput.value = completionToday;
-        return;
-      }
-
-      if (button.classList.contains("statement-completion-save")) {
-        event.preventDefault();
-        submitCompletionAction(cellEl, "set_date");
-        return;
-      }
-
-      if (button.classList.contains("statement-completion-unknown")) {
-        event.preventDefault();
-        submitCompletionAction(cellEl, "set_unknown");
-        return;
-      }
-
-      if (button.classList.contains("statement-completion-clear")) {
-        event.preventDefault();
-        submitCompletionAction(cellEl, "clear");
-      }
-    });
-  }
 })();
 </script>
 {% endif %}

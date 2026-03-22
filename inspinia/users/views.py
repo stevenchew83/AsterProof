@@ -26,6 +26,7 @@ from django.views.generic import UpdateView
 
 from inspinia.pages.forms import ProblemCompletionPasteForm
 from inspinia.pages.models import UserProblemCompletion
+from inspinia.pages.topic_labels import display_topic_label
 from inspinia.users.forms import UserProfileForm
 from inspinia.users.models import AuditEvent
 from inspinia.users.models import User
@@ -134,6 +135,8 @@ class PublicProfileView(LoginRequiredMixin, DetailView):
             .annotate(total=Count("id"))
             .order_by("-total", "problem__topic")[:5],
         )
+        for row in top_topics:
+            row["problem__topic"] = display_topic_label(row["problem__topic"])
         by_mohs = list(
             completion_qs.values("problem__mohs")
             .annotate(total=Count("id"))
@@ -193,7 +196,7 @@ class PublicProfileView(LoginRequiredMixin, DetailView):
                     ),
                     "problem": problem.problem,
                     "problem_uuid": str(problem.problem_uuid),
-                    "topic": problem.topic,
+                    "topic": display_topic_label(problem.topic),
                     "updated_at": completion.updated_at,
                     "year": problem.year,
                 },

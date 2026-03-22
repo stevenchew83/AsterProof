@@ -1,0 +1,132 @@
+Russian TST 20223
+Day 1	October 16, 2021
+P1	Let $n\ge 3$ be a fixed integer. There are $m\ge n+1$ beads on a circular necklace. You wish to paint the beads using $n$ colors, such that among any $n+1$ consecutive beads every color appears at least once. Find the largest value of $m$ for which this task is $\emph{not}$ possible.
+
+Carl Schildkraut, USA	
+
+amuthup
+view topic
+P2	Let $r>1$ be a rational number. Alice plays a solitaire game on a number line. Initially there is a red bead at $0$ and a blue bead at $1$. In a move, Alice chooses one of the beads and an integer $k \in \mathbb{Z}$. If the chosen bead is at $x$, and the other bead is at $y$, then the bead at $x$ is moved to the point $x'$ satisfying $x'-y=r^k(x-y)$.
+
+Find all $r$ for which Alice can move the red bead to $1$ in at most $2021$ moves.	
+
+CyclicISLscelesTrapezoid
+view topic
+P3	Let $n\geqslant 1$ be an integer, and let $x_0,x_1,\ldots,x_{n+1}$ be $n+2$ non-negative real numbers that satisfy $x_ix_{i+1}-x_{i-1}^2\geqslant 1$ for all $i=1,2,\ldots,n.$ Show that\[x_0+x_1+\cdots+x_n+x_{n+1}>\bigg(\frac{2n}{3}\bigg)^{3/2}.\]Pakawut Jiradilok and Wijit Yangjit, Thailand	
+
+oVlad
+view topic
+Day 2	October 17, 2021
+P1	For each integer $n\ge 1,$ compute the smallest possible value of\[\sum_{k=1}^{n}\left\lfloor\frac{a_k}{k}\right\rfloor\]over all permutations $(a_1,\dots,a_n)$ of $\{1,\dots,n\}.$
+
+Proposed by Shahjalal Shohag, Bangladesh	
+
+amuthup
+view topic
+P2	Let $ABCD$ be a cyclic quadrilateral whose sides have pairwise different lengths. Let $O$ be the circumcenter of $ABCD$. The internal angle bisectors of $\angle ABC$ and $\angle ADC$ meet $AC$ at $B_1$ and $D_1$, respectively. Let $O_B$ be the center of the circle which passes through $B$ and is tangent to $\overline{AC}$ at $D_1$. Similarly, let $O_D$ be the center of the circle which passes through $D$ and is tangent to $\overline{AC}$ at $B_1$.
+
+Assume that $\overline{BD_1} \parallel \overline{DB_1}$. Prove that $O$ lies on the line $\overline{O_BO_D}$.	
+
+CyclicISLscelesTrapezoid
+view topic
+P3	A hunter and an invisible rabbit play a game on an infinite square grid. First the hunter fixes a colouring of the cells with finitely many colours. The rabbit then secretly chooses a cell to start in. Every minute, the rabbit reports the colour of its current cell to the hunter, and then secretly moves to an adjacent cell that it has not visited before (two cells are adjacent if they share an edge). The hunter wins if after some finite time either:
+the rabbit cannot move; or
+the hunter can determine the cell in which the rabbit started.
+Decide whether there exists a winning strategy for the hunter.
+
+Proposed by Aron Thomas	
+
+oVlad
+view topic
+Day 3	January 12, 2022
+P1	Consider a $100\times 100$ square unit lattice $\textbf{L}$ (hence $\textbf{L}$ has $10000$ points). Suppose $\mathcal{F}$ is a set of polygons such that all vertices of polygons in $\mathcal{F}$ lie in $\textbf{L}$ and every point in $\textbf{L}$ is the vertex of exactly one polygon in $\mathcal{F}.$ Find the maximum possible sum of the areas of the polygons in $\mathcal{F}.$
+
+Michael Ren and Ankan Bhattacharya, USA	
+
+amuthup
+view topic
+P2	Determine all functions $f:\mathbb{R}\to\mathbb{R}$ satisfying\[f(xy+f(x))+f(y)=xf(y)+f(x+y),\]for all real numbers $x,y$.	
+
+oVlad
+view topic
+P3	The set $A{}$ of positive integers satisfies the following conditions:
+If a positive integer $n{}$ belongs to $A{}$, then $2n$ also belongs to $A{}$;
+For any positive integer $n{}$ there exists an element of $A{}$ divisible by $n{}$;
+There exist finite subsets of $A{}$ with arbitrarily large sums of reciprocals of elements.
+Prove that for any positive rational number $r{}$ there exists a finite subset $B\subset A$ such that\[\sum_{x\in B}\frac{1}{x}=r.\]	
+
+oVlad
+view topic
+Day 4	January 13, 2022
+P1	Find all positive integers $n$ with the following property: the $k$ positive divisors of $n$ have a permutation $(d_1,d_2,\ldots,d_k)$ such that for $i=1,2,\ldots,k$, the number $d_1+d_2+\cdots+d_i$ is a perfect square.	
+
+CyclicISLscelesTrapezoid
+view topic
+P2	The kingdom of Anisotropy consists of $n$ cities. For every two cities there exists exactly one direct one-way road between them. We say that a path from $X$ to $Y$ is a sequence of roads such that one can move from $X$ to $Y$ along this sequence without returning to an already visited city. A collection of paths is called diverse if no road belongs to two or more paths in the collection.
+
+Let $A$ and $B$ be two distinct cities in Anisotropy. Let $N_{AB}$ denote the maximal number of paths in a diverse collection of paths from $A$ to $B$. Similarly, let $N_{BA}$ denote the maximal number of paths in a diverse collection of paths from $B$ to $A$. Prove that the equality $N_{AB} = N_{BA}$ holds if and only if the number of roads going out from $A$ is the same as the number of roads going out from $B$.
+
+Proposed by Warut Suksompong, Thailand	
+
+v_Enhance
+view topic
+P3	Let $ABC$ be a triangle with circumcircle $\omega$ and let $\Omega_A$ be the $A$-excircle. Let $X$ and $Y$ be the intersection points of $\omega$ and $\Omega_A$. Let $P$ and $Q$ be the projections of $A$ onto the tangent lines to $\Omega_A$ at $X$ and $Y$ respectively. The tangent line at $P$ to the circumcircle of the triangle $APX$ intersects the tangent line at $Q$ to the circumcircle of the triangle $AQY$ at a point $R$. Prove that $\overline{AR} \perp \overline{BC}$.	
+
+CyclicISLscelesTrapezoid
+view topic
+Day 5	February 16, 2022
+P1	Non-zero polynomials $P(x)$, $Q(x)$, and $R(x)$ with real coefficients satisfy the identities
+$$ P(x) + Q(x) + R(x) = P(Q(x)) + Q(R(x)) + R(P(x)) = 0. $$Prove that the degrees of the three polynomials are all even.	
+
+mathematics2004
+view topic
+P2	In parallelogram $ABCD$ with acute angle $A$ a point $N$ is chosen on the segment $AD$, and a point $M$ on the segment $CN$ so that $AB = BM = CM$. Point $K$ is the reflection of $N$ in line $MD$. The line $MK$ meets the segment $AD$ at point $L$. Let $P$ be the common point of the circumcircles of $AMD$ and $CNK$ such that $A$ and $P$ share the same side of the line $MK$. Prove that $\angle CPM = \angle DPL$.	
+
+mathematics2004
+view topic
+P3	Determine the largest integer $N$ for which there exists a table $T$ of integers with $N$ rows and $100$ columns that has the following properties:
+$\text{(i)}$ Every row contains the numbers $1$, $2$, $\ldots$, $100$ in some order.
+$\text{(ii)}$ For any two distinct rows $r$ and $s$, there is a column $c$ such that $|T(r,c) - T(s, c)|\geq 2$. (Here $T(r,c)$ is the entry in row $r$ and column $c$.)	
+
+admechii
+view topic
+Day 6	February 17, 2022
+P1	In triangle $ABC$, a point $M$ is the midpoint of $AB$, and a point $I$ is the incentre. Point $A_1$ is the reflection of $A$ in $BI$, and $B_1$ is the reflection of $B$ in $AI$. Let $N$ be the midpoint of $A_1B_1$. Prove that $IN > IM$.	
+
+mathematics2004
+view topic
+P2	Do there exist two bounded sequences $a_1, a_2,\ldots$ and $b_1, b_2,\ldots$ such that for each positive integers $n$ and $m>n$ at least one of the two inequalities $|a_m-a_n|>1/\sqrt{n},$ and $|b_m-b_n|>1/\sqrt{n}$ holds?	
+
+oVlad
+view topic
+P3	Write the natural numbers from left to right in ascending order. Every minute, we perform an operation. After $m$ minutes, we divide the entire available series into consecutive blocks of $m$ numbers. We leave the first block unchanged and in each of the other blocks we move all the numbers except the first one one place to the left, and move the first one to the end of the block. Prove that throughout the process, each natural number will only move a finite number of times.	
+
+oVlad
+view topic
+Day 7	May 12, 2022
+P1	Let $a{}$ and $b{}$ be positive integers. Prove that for any real number $x{}$\[\sum_{j=0}^a\binom{a}{j}\big(2\cos((2j-a)x)\big)^b=\sum_{j=0}^b\binom{b}{j}\big(2\cos((2j-b)x)\big)^a.\]	
+
+oVlad
+view topic
+P2	The quadrilateral $ABCD$ is inscribed in the circle $\Gamma$. Let $I_B$ and $I_D$ be the centers of the circles $\omega_B$ and $\omega_D$ inscribed in the triangles $ABC$ and $ADC$, respectively. A common external tangent to $\omega_B$ and $\omega_D$ intersects $\Gamma$ at $K$ and $L{}$. Prove that $I_B,I_D,K$ and $L{}$ lie on the same circle.	
+
+oVlad
+view topic
+P3	Let $n = 2k + 1$ be an odd positive integer, and $m$ be an integer realtively prime to $n{}$. For each $j =1,2,\ldots,k$ we define $p_j$ as the unique integer from the interval $[-k, k]$ congruent to $m\cdot j$ modulo $n{}$. Prove that there are equally many pairs $(i,j)$ for which $1\leqslant i<j\leqslant k$ which satisfy $|p_i|>|p_j|$ as those which satisfy $p_ip_j<0$.	
+
+oVlad
+view topic
+Day 8	May 13, 2022
+P1	A convex 51-gon is given. For each of its vertices and each diagonal that does not contain this vertex, we mark in red a point symmetrical to the vertex relative to the middle of the diagonal. Prove that strictly inside the polygon there are no more than 20400 red dots.
+
+Proposed by P. Kozhevnikov	
+
+oVlad
+view topic
+P2	Show that $n!=a^{n-1}+b^{n-1}+c^{n-1}$ has only finitely many solutions in positive integers.
+
+Proposed by Dorlir Ahmeti, Albania	
+
+amuthup
+view topic
+P3	Let $n\geqslant 3$ be an integer and $x_1>x_2>\cdots>x_n$ be real numbers. Suppose that $x_k>0\geqslant x_{k+1}$ for an index $k{}$. Prove that\[\sum_{i=1}^k\left(x_i^{n-2}\prod_{j\neq i}\frac{1}{x_i-x_j}\right)\geqslant 0.\]

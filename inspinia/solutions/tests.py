@@ -12,6 +12,7 @@ from inspinia.solutions.models import ProblemSolution
 from inspinia.solutions.models import ProblemSolutionBlock
 from inspinia.solutions.models import SolutionBlockType
 from inspinia.solutions.models import SolutionSourceArtifact
+from inspinia.users.models import User
 from inspinia.users.tests.factories import UserFactory
 
 pytestmark = pytest.mark.django_db
@@ -295,14 +296,80 @@ def test_problem_solution_list_shows_my_solution_and_only_other_published_soluti
     response = client.get(reverse("solutions:problem_solution_list", args=[problem.problem_uuid]))
 
     assert response.status_code == HTTPStatus.OK
+    assert response.context["admin_view"] is False
     assert response.context["my_solution_row"]["title"] == "My working draft"
-    assert [row["title"] for row in response.context["published_solution_rows"]] == ["Published proof"]
+    assert [row["title"] for row in response.context["visible_solution_rows"]] == ["Published proof"]
+    assert response.context["visible_solution_title"] == "Published solutions"
     assert response.context["solution_stats"]["published_total"] == 1
     assert response.context["solution_stats"]["visible_total"] == EXPECTED_VISIBLE_SOLUTION_TOTAL
     response_html = response.content.decode("utf-8")
     assert "My working draft" in response_html
     assert "Published proof" in response_html
     assert "Hidden draft" not in response_html
+
+
+def test_problem_solution_list_shows_all_user_solutions_for_admin(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    other_user = UserFactory()
+    third_user = UserFactory()
+    client.force_login(admin_user)
+    problem = _problem()
+    _solution_with_blocks(
+        problem=problem,
+        author=other_user,
+        status=ProblemSolution.Status.PUBLISHED,
+        title="Published proof",
+        blocks=[("Proof", "A published proof block.", "proof")],
+    )
+    _solution_with_blocks(
+        problem=problem,
+        author=third_user,
+        title="Hidden draft",
+        blocks=[("Idea", "This should be visible to admin.", "idea")],
+    )
+
+    response = client.get(reverse("solutions:problem_solution_list", args=[problem.problem_uuid]))
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["admin_view"] is True
+    assert {row["title"] for row in response.context["visible_solution_rows"]} == {"Published proof", "Hidden draft"}
+    assert response.context["visible_solution_title"] == "All user solutions"
+    assert response.context["solution_stats"]["visible_total"] == 2
+    response_html = response.content.decode("utf-8")
+    assert "All user solutions" in response_html
+    assert "Published proof" in response_html
+    assert "Hidden draft" in response_html
+
+
+def test_problem_solution_list_highlights_selected_solution_from_query_string_for_admin(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    other_user = UserFactory()
+    client.force_login(admin_user)
+    problem = _problem()
+    selected_solution = _solution_with_blocks(
+        problem=problem,
+        author=other_user,
+        title="Hidden draft",
+        blocks=[("Idea", "This should be highlighted.", "idea")],
+    )
+    _solution_with_blocks(
+        problem=problem,
+        author=admin_user,
+        status=ProblemSolution.Status.PUBLISHED,
+        title="Admin proof",
+        blocks=[("Proof", "Another visible solution.", "proof")],
+    )
+
+    response = client.get(
+        reverse("solutions:problem_solution_list", args=[problem.problem_uuid]),
+        {"solution": str(selected_solution.id)},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["selected_solution_id"] == selected_solution.id
+    response_html = response.content.decode("utf-8")
+    assert f'id="solution-{selected_solution.id}"' in response_html
+    assert "solution-card-selected" in response_html
 
 
 def test_problem_solution_edit_creates_and_publishes_ordered_blocks(client):
@@ -424,7 +491,13 @@ def test_problem_solution_edit_stacks_statement_editor_and_notes_in_order(client
 
     assert response.status_code == HTTPStatus.OK
     response_html = response.content.decode("utf-8")
+    assert "Problem metadata" in response_html
+    assert "Problem UUID" in response_html
+    assert "2026 · P1" in response_html
+    assert "Algebra" in response_html
+    assert ">5<" in response_html
     assert "Linked statement preview text" in response_html
+    assert response_html.index("Problem metadata") < response_html.index("Linked statement")
     assert response_html.index("Linked statement") < response_html.index("Live preview")
     assert response_html.index("Live preview") < response_html.index("Editor notes")
     assert "preview the rendered LaTeX alongside the editor." in response_html

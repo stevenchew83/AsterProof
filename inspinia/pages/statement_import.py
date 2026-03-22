@@ -18,6 +18,9 @@ IGNORED_STATEMENT_LINES = {
 HEADER_LINE_RE = re.compile(
     r"^\s*(?P<year_start>\d{4})(?:\s*(?:/|-)\s*(?P<year_end>\d{4}))?\s+(?P<contest>.+?)\s*$",
 )
+HEADER_YEAR_SUFFIX_RE = re.compile(
+    r"^\s*(?P<contest>.+?)\s+(?P<year>\d{4})(?:\d)?\s*$",
+)
 YEAR_PREFIXED_SECTION_RE = re.compile(
     r"^\s*(?P<year>\d{4})\s+(?P<label>[A-Za-z].+?)\s*$",
 )
@@ -71,6 +74,10 @@ ROUND_PREFIXED_YEARLESS_SEASON_LEVEL_SECTION_RE = re.compile(
 )
 ROUND_AND_SECTION_RE = re.compile(
     r"^(?P<round>First|Second|Third|Final)\s+Round\s+(?P<label>.+)$",
+    flags=re.IGNORECASE,
+)
+EXAM_AND_DAY_LABEL_RE = re.compile(
+    r"^(?P<exam>First|Second|Third|Final)\s+exam\s*,\s*(?P<day>Day\s*(?:\d+|[IVXLCDM]+)(?:(?:\s*[,:-]\s*|\s+).+)?)$",
     flags=re.IGNORECASE,
 )
 PROBLEM_START_RE = re.compile(
@@ -239,6 +246,7 @@ class ProblemStatementRelinkResult:
 @dataclass
 class _StatementParseState:
     contest_year: int | None = None
+    contest_name: str = ""
     current_day: str = ""
     current_primary_section: str = ""
     current_secondary_section: str = ""
@@ -258,11 +266,20 @@ def _clean_contest_name(raw_name: str) -> str:
 
 def _parse_header_line(header_line: str) -> tuple[int, str]:
     match = HEADER_LINE_RE.match(header_line)
+    if match:
+        contest_year = int(match.group("year_end") or match.group("year_start"))
+        contest_name = _clean_contest_name(match.group("contest"))
+        if not contest_name:
+            msg = "Contest name is empty after parsing the header line."
+            raise ProblemStatementImportValidationError(msg)
+        return contest_year, contest_name
+
+    match = HEADER_YEAR_SUFFIX_RE.match(header_line)
     if not match:
         msg = "Could not parse the contest header. Expected a line like '2026 Spain Mathematical Olympiad'."
         raise ProblemStatementImportValidationError(msg)
 
-    contest_year = int(match.group("year_end") or match.group("year_start"))
+    contest_year = int(match.group("year"))
     contest_name = _clean_contest_name(match.group("contest"))
     if not contest_name:
         msg = "Contest name is empty after parsing the header line."
@@ -292,12 +309,24 @@ def _collapse_statement_lines(lines: list[str]) -> str:
     return _normalize_statement_latex("\n".join(collapsed_lines).strip())
 
 
-def _supports_trailing_credit_cleanup(day_label: str) -> bool:
-    return day_label.upper().startswith("TST #")
+def _supports_trailing_credit_cleanup(day_label: str, *, contest_name: str) -> bool:
+    normalized_contest_name = contest_name.casefold()
+    normalized_day_label = day_label.casefold()
+    return (
+        normalized_contest_name.endswith(" tst")
+        or "team selection test" in normalized_contest_name
+        or "training camp" in normalized_contest_name
+        or normalized_day_label.startswith("tst #")
+        or normalized_day_label.startswith(("first exam", "second exam", "third exam", "final exam"))
+        or "selection test" in normalized_day_label
+        or "training camp" in normalized_day_label
+    )
 
 
-def _is_trailing_credit_line(line: str, *, day_label: str) -> bool:
-    if not _supports_trailing_credit_cleanup(day_label):
+def _is_trailing_credit_line(line: str, *, day_label: str, contest_name: str) -> bool:
+    if line.strip().casefold() == "unavailable":
+        return False
+    if not _supports_trailing_credit_cleanup(day_label, contest_name=contest_name):
         return False
     return bool(
         TRAILING_PROPOSED_BY_LINE_RE.fullmatch(line)
@@ -309,6 +338,8 @@ def _is_generic_trailing_metadata_line(line: str) -> bool:
     stripped_line = line.strip()
     if not stripped_line:
         return False
+    if stripped_line.casefold() == "unavailable":
+        return False
     if stripped_line in IGNORED_STATEMENT_LINES:
         return True
     if NOTE_METADATA_LINE_RE.fullmatch(stripped_line):
@@ -318,13 +349,42 @@ def _is_generic_trailing_metadata_line(line: str) -> bool:
     return _looks_like_author_credit_line(stripped_line)
 
 
-def _trim_trailing_problem_metadata(lines: list[str], *, day_label: str) -> list[str]:
+def _looks_like_inline_author_credit_suffix(line: str) -> bool:
+    candidate = " ".join(line.split())
+    if not _looks_like_author_credit_line(candidate):
+        return False
+    return "," in candidate or " and " in candidate or len(candidate.split()) >= 2
+
+
+def _trim_trailing_inline_author_suffix(line: str) -> str:
+    stripped_line = line.rstrip()
+    for separator in (r"\]", "$$", ".", "?", "!"):
+        separator_index = stripped_line.rfind(separator)
+        if separator_index < 0:
+            continue
+        candidate = stripped_line[separator_index + len(separator) :].strip()
+        if not _looks_like_inline_author_credit_suffix(candidate):
+            continue
+        return stripped_line[: separator_index + len(separator)].rstrip()
+    return stripped_line
+
+
+def _trim_trailing_problem_metadata(lines: list[str], *, day_label: str, contest_name: str) -> list[str]:
     trimmed_lines = list(lines)
 
     while trimmed_lines and not trimmed_lines[-1].strip():
         trimmed_lines.pop()
 
-    while trimmed_lines and _is_trailing_credit_line(trimmed_lines[-1].strip(), day_label=day_label):
+    if trimmed_lines:
+        trimmed_lines[-1] = _trim_trailing_inline_author_suffix(trimmed_lines[-1])
+        while trimmed_lines and not trimmed_lines[-1].strip():
+            trimmed_lines.pop()
+
+    while trimmed_lines and _is_trailing_credit_line(
+        trimmed_lines[-1].strip(),
+        day_label=day_label,
+        contest_name=contest_name,
+    ):
         trimmed_lines.pop()
         while trimmed_lines and not trimmed_lines[-1].strip():
             trimmed_lines.pop()
@@ -381,6 +441,10 @@ def _parse_contest_header(lines: list[str]) -> tuple[int, str, list[str]]:
         )
         if next_header_index is None:
             raise
+        next_header_line = lines[next_header_index].strip()
+        if _looks_like_post_header_content(next_header_line):
+            contest_year, contest_name = _parse_header_line(first_header_line)
+            return contest_year, contest_name, lines[header_index + 1 :]
         contest_year, _ = _parse_header_line(lines[next_header_index].strip())
         contest_name = _clean_contest_name(first_header_line)
         if not contest_name:
@@ -396,6 +460,7 @@ def _flush_problem(state: _StatementParseState) -> None:
         _trim_trailing_problem_metadata(
             state.current_statement_lines,
             day_label=state.current_day,
+            contest_name=state.contest_name,
         ),
     )
     if not statement_latex:
@@ -489,14 +554,6 @@ def _is_scrape_metadata_line(
     if line in IGNORED_STATEMENT_LINES:
         return True
     if SOLUTION_LINE_RE.fullmatch(line):
-        return True
-    if (
-        TRAILING_PROPOSED_BY_LINE_RE.fullmatch(line)
-        and " by " not in f" {line.casefold()} "
-        and next_nonempty_line is not None
-        and USERNAME_LINE_RE.fullmatch(next_nonempty_line)
-        and following_nonempty_line == "view topic"
-    ):
         return True
     if (
         following_nonempty_line == "view topic"
@@ -725,7 +782,7 @@ def _supports_named_day_subsections(candidate: str) -> bool:
     normalized_candidate = candidate.casefold()
     return any(
         keyword in normalized_candidate
-        for keyword in ("test", "selection", "squad", "camp")
+        for keyword in ("test", "selection", "squad", "camp", "exam")
     )
 
 
@@ -739,6 +796,20 @@ def _is_problem_start_candidate(line: str | None) -> bool:
     )
 
 
+def _looks_like_post_header_content(line: str | None) -> bool:
+    if line is None:
+        return False
+    normalized_line = " ".join(line.split())
+    return bool(
+        _normalized_day_label(normalized_line)
+        or _normalized_tst_day_label(normalized_line)
+        or _normalized_exam_day_label(normalized_line)
+        or TEST_LABEL_RE.fullmatch(normalized_line)
+        or ROUND_LABEL_RE.fullmatch(normalized_line)
+        or _is_problem_start_candidate(line)
+    )
+
+
 def _is_generic_section_header(
     line: str,
     *,
@@ -748,6 +819,8 @@ def _is_generic_section_header(
 ) -> bool:
     candidate = " ".join(line.split())
     if _is_section_metadata_line(candidate):
+        return False
+    if _is_problem_start_candidate(candidate):
         return False
     if SHORT_SECTION_HEADER_RE.fullmatch(candidate) and _is_problem_start_candidate(next_nonempty_line):
         return True
@@ -806,6 +879,16 @@ def _normalized_tst_day_label(line: str) -> str | None:
     if not detail:
         return label
     return f"{label} · {detail}"
+
+
+def _normalized_exam_day_label(line: str) -> str | None:
+    match = EXAM_AND_DAY_LABEL_RE.fullmatch(" ".join(line.split()))
+    if match is None:
+        return None
+    day_label = _normalized_day_label(match.group("day"))
+    if day_label is None:
+        return None
+    return f"{match.group('exam').title()} exam · {day_label}"
 
 
 def _normalized_year_prefixed_section_label(
@@ -911,7 +994,12 @@ def _consume_header_or_problem_line(
     state: _StatementParseState,
 ) -> bool:
     consumed = True
-    if day_label := _normalized_day_label(line):
+    if exam_day_label := _normalized_exam_day_label(line):
+        _flush_problem(state)
+        state.current_primary_section = exam_day_label.split(" · ", 1)[0]
+        state.current_secondary_section = exam_day_label.split(" · ", 1)[1]
+        state.current_day = exam_day_label
+    elif day_label := _normalized_day_label(line):
         _flush_problem(state)
         if state.current_primary_section.startswith("TST #") or (
             state.current_primary_section
@@ -1092,7 +1180,7 @@ def _consume_statement_line(
 def parse_contest_problem_statements(raw_text: str) -> ParsedContestStatementImport:
     lines = _normalized_statement_lines(raw_text)
     contest_year, contest_name, remaining_lines = _parse_contest_header(lines)
-    state = _StatementParseState(contest_year=contest_year)
+    state = _StatementParseState(contest_year=contest_year, contest_name=contest_name)
 
     for index, raw_line in enumerate(remaining_lines):
         next_nonempty_lines = _next_nonempty_lines(remaining_lines, index, limit=3)

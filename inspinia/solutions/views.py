@@ -16,10 +16,12 @@ from django.utils.text import slugify
 from inspinia.pages.asymptote_render import build_statement_render_segments
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
+from inspinia.pages.topic_labels import display_topic_label
 from inspinia.solutions.forms import ProblemSolutionBlockFormSet
 from inspinia.solutions.forms import ProblemSolutionForm
 from inspinia.solutions.models import ProblemSolution
 from inspinia.solutions.models import ProblemSolutionBlock
+from inspinia.users.roles import user_has_admin_role
 
 
 def _build_contest_slug_maps(contest_names: list[str]) -> tuple[dict[str, str], dict[str, str]]:
@@ -177,7 +179,7 @@ def _statement_backed_problem_rows(user) -> list[dict]:
                 "editor_url": reverse("solutions:problem_solution_edit", args=[problem.problem_uuid]),
                 "has_solution": bool(solution_status),
                 "problem_label": problem_label,
-                "problem_topic": problem.topic,
+                "problem_topic": display_topic_label(problem.topic),
                 "problem_mohs": problem.mohs,
                 "problem_url": reverse("solutions:problem_solution_list", args=[problem.problem_uuid]),
                 "solution_status_badge_class": (
@@ -292,20 +294,40 @@ def problem_solution_list_view(request, problem_uuid):
         .select_related("author", "problem")
         .prefetch_related(_problem_solution_prefetch())
     )
+    selected_solution = None
+    selected_solution_value = (request.GET.get("solution") or "").strip()
+    if selected_solution_value.isdigit():
+        selected_solution = solution_queryset.filter(pk=int(selected_solution_value)).first()
+    admin_view = user_has_admin_role(request.user)
     my_solution = solution_queryset.filter(author=request.user).first()
-    published_solutions = list(
-        solution_queryset.filter(status=ProblemSolution.Status.PUBLISHED)
-        .exclude(author=request.user)
-        .order_by("-published_at", "-updated_at", "-id"),
-    )
+    if admin_view:
+        visible_solutions = list(
+            solution_queryset.order_by("-published_at", "-updated_at", "-id"),
+        )
+        visible_solution_rows = _solution_card_rows(visible_solutions)
+        visible_solution_title = "All user solutions"
+        visible_solution_empty_message = "No saved solutions are available for this problem yet."
+    else:
+        visible_solutions = list(
+            solution_queryset.filter(status=ProblemSolution.Status.PUBLISHED)
+            .exclude(author=request.user)
+            .order_by("-published_at", "-updated_at", "-id"),
+        )
+        visible_solution_rows = _solution_card_rows(visible_solutions)
+        visible_solution_title = "Published solutions"
+        visible_solution_empty_message = "No other published solutions are available for this problem yet."
     published_total = solution_queryset.filter(status=ProblemSolution.Status.PUBLISHED).count()
     context = {
+        "admin_view": admin_view,
         "my_solution_row": _solution_card_rows([my_solution])[0] if my_solution is not None else None,
         "problem_data": problem_data,
-        "published_solution_rows": _solution_card_rows(published_solutions),
+        "selected_solution_id": selected_solution.id if selected_solution is not None else None,
+        "visible_solution_empty_message": visible_solution_empty_message,
+        "visible_solution_rows": visible_solution_rows,
+        "visible_solution_title": visible_solution_title,
         "solution_stats": {
             "published_total": published_total,
-            "visible_total": len(published_solutions) + (1 if my_solution is not None else 0),
+            "visible_total": len(visible_solutions) + (0 if admin_view else (1 if my_solution is not None else 0)),
         },
     }
     return render(request, "solutions/problem-solution-list.html", context)

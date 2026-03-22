@@ -131,6 +131,18 @@
                     <span class="menu-text">Statement analytics</span>
                 </a>
             </li>
+            <li class="side-nav-item">
+                <a href="{% url 'pages:completion_record_list' %}" class="side-nav-link">
+                    <span class="menu-icon"><i class="ti ti-checklist"></i></span>
+                    <span class="menu-text">Completion records</span>
+                </a>
+            </li>
+            <li class="side-nav-item">
+                <a href="{% url 'pages:user_solution_record_list' %}" class="side-nav-link">
+                    <span class="menu-icon"><i class="ti ti-writing"></i></span>
+                    <span class="menu-text">Solution records</span>
+                </a>
+            </li>
             {% endif %}
 
             {% if show_problem_import_link %}

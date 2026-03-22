@@ -1,0 +1,261 @@
+{% extends 'layouts/vertical.html' %}
+
+{% load static %}
+
+{% block title %}User solution records{% endblock title %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'plugins/datatables/dataTables.bootstrap5.min.css' %}">
+{% endblock extra_css %}
+
+{% block page_content %}
+<div class="container-fluid">
+
+  {% include 'partials/page-title.html' with title='User solution records' subtitle='Admin inventory' %}
+
+  <div class="row g-3 mt-0">
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-primary-subtle text-primary rounded">
+                <i class="ti ti-writing fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Solutions</p>
+              <h3 class="mb-0">{{ user_solution_record_stats.solution_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-success-subtle text-success rounded">
+                <i class="ti ti-users fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Authors</p>
+              <h3 class="mb-0">{{ user_solution_record_stats.author_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-info-subtle text-info rounded">
+                <i class="ti ti-rosette-discount-check fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Published</p>
+              <h3 class="mb-0">{{ user_solution_record_stats.published_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-warning-subtle text-warning rounded">
+                <i class="ti ti-pencil fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Drafts</p>
+              <h3 class="mb-0">{{ user_solution_record_stats.draft_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-0 mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header border-bottom">
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <div>
+              <h4 class="header-title mb-0">User solution listing</h4>
+              <p class="text-muted fs-xs mb-0">Filter authored solution records with shareable query-string controls.</p>
+            </div>
+            <span class="badge bg-secondary-subtle text-secondary">{{ user_solution_record_stats.problem_total }} problems touched</span>
+          </div>
+        </div>
+        <div class="card-body">
+          {% if user_solution_record_rows or user_solution_record_filter_options.contests or user_solution_record_filter_options.users %}
+          <form method="get" class="row g-2 align-items-end mb-4">
+            <div class="col-md-6 col-xl-4">
+              <label class="form-label" for="user-solution-record-q">Search</label>
+              <input
+                id="user-solution-record-q"
+                type="text"
+                name="q"
+                class="form-control"
+                value="{{ user_solution_record_filters.q }}"
+                placeholder="User, contest, problem, title"
+              >
+            </div>
+            <div class="col-md-6 col-xl-2">
+              <label class="form-label" for="user-solution-record-contest">Contest</label>
+              <select id="user-solution-record-contest" name="contest" class="form-select">
+                <option value="">All contests</option>
+                {% for contest in user_solution_record_filter_options.contests %}
+                <option value="{{ contest }}" {% if contest == user_solution_record_filters.contest %}selected{% endif %}>{{ contest }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6 col-xl-3">
+              <label class="form-label" for="user-solution-record-user">User</label>
+              <select id="user-solution-record-user" name="user" class="form-select">
+                <option value="">All users</option>
+                {% for user_row in user_solution_record_filter_options.users %}
+                <option value="{{ user_row.value }}" {% if user_row.value == user_solution_record_filters.user %}selected{% endif %}>{{ user_row.label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-3 col-xl-1">
+              <label class="form-label" for="user-solution-record-status">Status</label>
+              <select id="user-solution-record-status" name="status" class="form-select">
+                <option value="">All</option>
+                {% for status in user_solution_record_filter_options.statuses %}
+                <option value="{{ status }}" {% if status == user_solution_record_filters.status %}selected{% endif %}>{{ status|title }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-3 col-xl-2 d-flex gap-2">
+              <button type="submit" class="btn btn-primary w-100">Apply</button>
+              <a href="{% url 'pages:user_solution_record_list' %}" class="btn btn-outline-secondary w-100">Reset</a>
+            </div>
+          </form>
+          {% endif %}
+          {% if user_solution_record_rows %}
+          <div class="table-responsive">
+            <table id="user-solution-record-table" class="table table-striped table-bordered align-middle w-100"></table>
+          </div>
+          {% else %}
+          <div class="alert alert-info mb-0" role="alert">
+            No user solutions have been saved yet.
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{{ user_solution_record_rows|json_script:"user-solution-record-table-data" }}
+{% endblock page_content %}
+
+{% block extra_javascript %}
+{% if user_solution_record_rows %}
+<script src="{% static 'plugins/datatables/dataTables.min.js' %}"></script>
+<script src="{% static 'plugins/datatables/dataTables.bootstrap5.min.js' %}"></script>
+<script>
+(function () {
+  var tableEl = document.getElementById("user-solution-record-table-data");
+  if (!tableEl || typeof DataTable === "undefined") return;
+
+  var rows = JSON.parse(tableEl.textContent);
+
+  function escapeHtml(value) {
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  new DataTable("#user-solution-record-table", {
+    data: rows,
+    columns: [
+      {
+        data: "user_label",
+        title: "User",
+        render: function (data, type, row) {
+          if (type === "display") {
+            return '<a href="' + row.user_url + '" class="fw-semibold text-decoration-none">' + escapeHtml(data) + '</a><div class="text-muted fs-12">' + escapeHtml(row.user_email) + "</div>";
+          }
+          return data + " " + row.user_email;
+        }
+      },
+      { data: "contest", title: "Contest" },
+      { data: "year", title: "Year", className: "text-nowrap" },
+      {
+        data: "problem_label",
+        title: "Problem",
+        render: function (data, type, row) {
+          if (type === "display" && row.archive_url) {
+            return '<a href="' + row.archive_url + '" class="text-decoration-none">' + escapeHtml(data) + "</a>";
+          }
+          return data;
+        }
+      },
+      { data: "topic", title: "Topic", className: "text-nowrap" },
+      { data: "mohs", title: "MOHS", className: "text-nowrap" },
+      {
+        data: "status_label",
+        title: "Status",
+        className: "text-nowrap",
+        render: function (data, type, row) {
+          if (type === "display") {
+            return '<span class="badge ' + row.status_badge_class + '">' + escapeHtml(data) + "</span>";
+          }
+          return data;
+        }
+      },
+      {
+        data: "title",
+        title: "Title",
+        render: function (data, type, row) {
+          if (type === "display" && row.solution_url) {
+            return '<a href="' + row.solution_url + '" class="fw-semibold text-decoration-none">' + escapeHtml(data) + "</a>";
+          }
+          return data;
+        }
+      },
+      { data: "block_count", title: "Blocks", className: "text-nowrap" },
+      { data: "summary_length", title: "Summary chars", className: "text-nowrap" },
+      {
+        data: "published_at",
+        title: "Published",
+        className: "text-nowrap",
+        render: function (data, type, row) {
+          if (type === "sort" || type === "type") return row.published_at_sort;
+          return data;
+        }
+      },
+      {
+        data: "updated_at",
+        title: "Updated",
+        className: "text-nowrap",
+        render: function (data, type, row) {
+          if (type === "sort" || type === "type") return row.updated_at_sort;
+          return data;
+        }
+      }
+    ],
+    order: [[11, "desc"]],
+    pageLength: 25,
+    lengthMenu: [10, 25, 50, 100],
+    scrollX: true,
+  });
+})();
+</script>
+{% endif %}
+{% endblock extra_javascript %}

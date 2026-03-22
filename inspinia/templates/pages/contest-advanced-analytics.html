@@ -1,0 +1,292 @@
+{% extends 'layouts/vertical.html' %}
+
+{% load static %}
+
+{% block title %}Contest advanced analytics{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+
+  {% include 'partials/page-title.html' with title='Contest advanced analytics' subtitle=selected_contest|default:'Contest drill-down' %}
+
+  {% if not has_contests %}
+  <div class="alert alert-info mt-3" role="alert">
+    <strong>No contests available yet.</strong> Import problem data first, then return here for the contest drill-down.
+  </div>
+  {% else %}
+
+  <div class="row g-3 mt-0">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header border-bottom">
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <div>
+              <h4 class="header-title mb-0">Contest selector</h4>
+              <p class="text-muted fs-xs mb-0">Switch contests with a query-string selector and keep this page shareable.</p>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+              <a href="{% url 'pages:contest_dashboard' %}" class="btn btn-outline-secondary btn-sm">Back to contest directory</a>
+              <a href="{{ public_contest_url }}" class="btn btn-outline-primary btn-sm">Open public contest explorer</a>
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-8 col-xl-6">
+              <label class="form-label" for="contest-advanced-selector">Contest</label>
+              <select id="contest-advanced-selector" name="contest" class="form-select">
+                {% for row in contest_choices %}
+                <option value="{{ row.contest }}" {% if row.contest == selected_contest %}selected{% endif %}>
+                  {{ row.contest }} ({{ row.problem_count }} problems)
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-4 col-xl-2">
+              <button type="submit" class="btn btn-primary w-100">Load analytics</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-0">
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-primary-subtle text-primary rounded">
+                <i class="ti ti-notebook fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Problems</p>
+              <h3 class="mb-0">{{ contest_stats.problem_count }}</h3>
+              <p class="text-muted fs-xs mb-0">{{ contest_stats.year_span_label }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-success-subtle text-success rounded">
+                <i class="ti ti-calendar-stats fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Active years</p>
+              <h3 class="mb-0">{{ contest_stats.active_years }}</h3>
+              <p class="text-muted fs-xs mb-0">{{ contest_stats.distinct_topics }} topics</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-warning-subtle text-warning rounded">
+                <i class="ti ti-chart-arcs fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Difficulty</p>
+              <h3 class="mb-0">{{ contest_stats.avg_mohs|floatformat:2 }}</h3>
+              <p class="text-muted fs-xs mb-0">Max MOHS {{ contest_stats.max_mohs }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-info-subtle text-info rounded">
+                <i class="ti ti-sitemap fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Technique density</p>
+              <h3 class="mb-0">{{ contest_stats.technique_rows }}</h3>
+              <p class="text-muted fs-xs mb-0">{{ contest_stats.techniques_per_problem|floatformat:2 }} per problem</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-0">
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Statement coverage</p>
+          <h3 class="mb-1">{{ contest_stats.statement_problem_total }}</h3>
+          <p class="text-muted fs-xs mb-0">{{ contest_stats.statement_row_total }} statement rows linked</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Solution coverage</p>
+          <h3 class="mb-1">{{ contest_stats.solution_problem_total }}</h3>
+          <p class="text-muted fs-xs mb-0">{{ contest_stats.published_solution_total }} with published solutions</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-1 mb-4">
+    <div class="col-xl-7">
+      <div class="card h-100">
+        <div class="card-header border-bottom">
+          <h4 class="header-title mb-0">Year breakdown</h4>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-striped align-middle mb-0">
+              <thead>
+                <tr class="text-muted fs-xs text-uppercase">
+                  <th>Year</th>
+                  <th>Problems</th>
+                  <th>Avg MOHS</th>
+                  <th>Max MOHS</th>
+                  <th>Topics</th>
+                  <th>Statement-linked</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in year_rows %}
+                <tr>
+                  <td class="fw-semibold">{{ row.year }}</td>
+                  <td>{{ row.problem_count }}</td>
+                  <td>{{ row.avg_mohs|floatformat:2 }}</td>
+                  <td>{{ row.max_mohs }}</td>
+                  <td>{{ row.distinct_topics }}</td>
+                  <td>{{ row.statement_problem_total }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-5">
+      <div class="card h-100">
+        <div class="card-header border-bottom">
+          <h4 class="header-title mb-0">Topic mix</h4>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-striped align-middle mb-0">
+              <thead>
+                <tr class="text-muted fs-xs text-uppercase">
+                  <th>Topic</th>
+                  <th>Problems</th>
+                  <th>Avg MOHS</th>
+                  <th>Max MOHS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in topic_rows %}
+                <tr>
+                  <td class="fw-semibold">{{ row.topic }}</td>
+                  <td>{{ row.problem_count }}</td>
+                  <td>{{ row.avg_mohs|floatformat:2 }}</td>
+                  <td>{{ row.max_mohs }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="4" class="text-muted">No topic data available.</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-0">
+    <div class="col-xl-6">
+      <div class="card h-100">
+        <div class="card-header border-bottom">
+          <h4 class="header-title mb-0">Confidence split</h4>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-striped align-middle mb-0">
+              <thead>
+                <tr class="text-muted fs-xs text-uppercase">
+                  <th>Confidence</th>
+                  <th>Problems</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in confidence_rows %}
+                <tr>
+                  <td class="fw-semibold">{{ row.confidence }}</td>
+                  <td>{{ row.problem_count }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="2" class="text-muted">No confidence labels saved yet.</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-6">
+      <div class="card h-100">
+        <div class="card-header border-bottom">
+          <h4 class="header-title mb-0">Recent linked statements</h4>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-striped align-middle mb-0">
+              <thead>
+                <tr class="text-muted fs-xs text-uppercase">
+                  <th>Problem</th>
+                  <th>Day</th>
+                  <th>Updated</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in recent_statement_rows %}
+                <tr>
+                  <td class="fw-semibold">{{ row.problem_code }}</td>
+                  <td>{% if row.day_label %}{{ row.day_label }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+                  <td>{{ row.updated_at_label }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="3" class="text-muted">No linked statements for this contest yet.</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% endif %}
+</div>
+{% endblock page_content %}

@@ -241,6 +241,15 @@
     return Number.isInteger(value) ? String(value) : value.toFixed(2);
   }
 
+  function escapeHtml(value) {
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
   function barOptions(payload, color) {
     return {
       chart: { type: "bar", height: Math.max(320, 34 * payload.labels.length), toolbar: { show: false }, fontFamily: "inherit" },
@@ -282,7 +291,16 @@
   new DataTable("#contest-analytics-table", {
     data: rows,
     columns: [
-      { data: "contest", title: "Contest" },
+      {
+        data: "contest",
+        title: "Contest",
+        render: function (data, type, row) {
+          if (type === "display") {
+            return '<a href="' + row.detail_url + '" class="fw-semibold text-decoration-none">' + escapeHtml(data) + "</a>";
+          }
+          return data;
+        }
+      },
       { data: "problem_count", title: "Problems", className: "text-nowrap" },
       { data: "year_span_label", title: "Year span", className: "text-nowrap" },
       { data: "active_years", title: "Active years", className: "text-nowrap" },

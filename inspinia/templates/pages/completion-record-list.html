@@ -1,0 +1,262 @@
+{% extends 'layouts/vertical.html' %}
+
+{% load static %}
+
+{% block title %}Completion records{% endblock title %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'plugins/datatables/dataTables.bootstrap5.min.css' %}">
+{% endblock extra_css %}
+
+{% block page_content %}
+<div class="container-fluid">
+
+  {% include 'partials/page-title.html' with title='Completion records' subtitle='Admin inventory' %}
+
+  <div class="row g-3 mt-0">
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-primary-subtle text-primary rounded">
+                <i class="ti ti-checklist fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Records</p>
+              <h3 class="mb-0">{{ completion_record_stats.record_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-success-subtle text-success rounded">
+                <i class="ti ti-users fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Users</p>
+              <h3 class="mb-0">{{ completion_record_stats.user_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-info-subtle text-info rounded">
+                <i class="ti ti-calendar-check fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Known dates</p>
+              <h3 class="mb-0">{{ completion_record_stats.known_date_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-warning-subtle text-warning rounded">
+                <i class="ti ti-writing fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">With solutions</p>
+              <h3 class="mb-0">{{ completion_record_stats.solution_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-0 mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header border-bottom">
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <div>
+              <h4 class="header-title mb-0">Completion info listing</h4>
+              <p class="text-muted fs-xs mb-0">Filter by query string and keep the current inventory view shareable.</p>
+            </div>
+            <span class="badge bg-secondary-subtle text-secondary">{{ completion_record_stats.contest_total }} contests</span>
+          </div>
+        </div>
+        <div class="card-body">
+          {% if completion_record_rows or completion_record_filter_options.contests or completion_record_filter_options.users %}
+          <form method="get" class="row g-2 align-items-end mb-4">
+            <div class="col-md-6 col-xl-3">
+              <label class="form-label" for="completion-record-q">Search</label>
+              <input
+                id="completion-record-q"
+                type="text"
+                name="q"
+                class="form-control"
+                value="{{ completion_record_filters.q }}"
+                placeholder="User, contest, problem, topic"
+              >
+            </div>
+            <div class="col-md-6 col-xl-2">
+              <label class="form-label" for="completion-record-contest">Contest</label>
+              <select id="completion-record-contest" name="contest" class="form-select">
+                <option value="">All contests</option>
+                {% for contest in completion_record_filter_options.contests %}
+                <option value="{{ contest }}" {% if contest == completion_record_filters.contest %}selected{% endif %}>{{ contest }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6 col-xl-3">
+              <label class="form-label" for="completion-record-user">User</label>
+              <select id="completion-record-user" name="user" class="form-select">
+                <option value="">All users</option>
+                {% for user_row in completion_record_filter_options.users %}
+                <option value="{{ user_row.value }}" {% if user_row.value == completion_record_filters.user %}selected{% endif %}>{{ user_row.label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-3 col-xl-2">
+              <label class="form-label" for="completion-record-date-status">Date</label>
+              <select id="completion-record-date-status" name="date_status" class="form-select">
+                <option value="">All dates</option>
+                {% for status in completion_record_filter_options.date_statuses %}
+                <option value="{{ status }}" {% if status == completion_record_filters.date_status %}selected{% endif %}>
+                  {% if status == "known" %}Known date{% else %}Unknown date{% endif %}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-3 col-xl-2">
+              <label class="form-label" for="completion-record-solution-status">Solution</label>
+              <select id="completion-record-solution-status" name="solution_status" class="form-select">
+                <option value="">All solutions</option>
+                {% for status in completion_record_filter_options.solution_statuses %}
+                <option value="{{ status }}" {% if status == completion_record_filters.solution_status %}selected{% endif %}>
+                  {% if status == "none" %}No solution{% elif status == "draft" %}Draft{% elif status == "published" %}Published{% else %}{{ status|title }}{% endif %}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-sm-6 col-xl-2 d-flex gap-2">
+              <button type="submit" class="btn btn-primary w-100">Apply</button>
+              <a href="{% url 'pages:completion_record_list' %}" class="btn btn-outline-secondary w-100">Reset</a>
+            </div>
+          </form>
+          {% endif %}
+          {% if completion_record_rows %}
+          <div class="table-responsive">
+            <table id="completion-record-table" class="table table-striped table-bordered align-middle w-100"></table>
+          </div>
+          {% else %}
+          <div class="alert alert-info mb-0" role="alert">
+            No completion rows have been saved yet.
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{{ completion_record_rows|json_script:"completion-record-table-data" }}
+{% endblock page_content %}
+
+{% block extra_javascript %}
+{% if completion_record_rows %}
+<script src="{% static 'plugins/datatables/dataTables.min.js' %}"></script>
+<script src="{% static 'plugins/datatables/dataTables.bootstrap5.min.js' %}"></script>
+<script>
+(function () {
+  var tableEl = document.getElementById("completion-record-table-data");
+  if (!tableEl || typeof DataTable === "undefined") return;
+
+  var rows = JSON.parse(tableEl.textContent);
+
+  function escapeHtml(value) {
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  new DataTable("#completion-record-table", {
+    data: rows,
+    columns: [
+      {
+        data: "user_label",
+        title: "User",
+        render: function (data, type, row) {
+          if (type === "display") {
+            return '<a href="' + row.user_url + '" class="fw-semibold text-decoration-none">' + escapeHtml(data) + '</a><div class="text-muted fs-12">' + escapeHtml(row.user_email) + "</div>";
+          }
+          return data + " " + row.user_email;
+        }
+      },
+      { data: "contest", title: "Contest" },
+      { data: "year", title: "Year", className: "text-nowrap" },
+      {
+        data: "problem_label",
+        title: "Problem",
+        render: function (data, type, row) {
+          if (type === "display" && row.problem_url) {
+            return '<a href="' + row.problem_url + '" class="text-decoration-none">' + escapeHtml(data) + "</a>";
+          }
+          return data;
+        }
+      },
+      { data: "topic", title: "Topic", className: "text-nowrap" },
+      { data: "mohs", title: "MOHS", className: "text-nowrap" },
+      {
+        data: "completion_date",
+        title: "Completed",
+        className: "text-nowrap",
+        render: function (data, type, row) {
+          if (type === "sort" || type === "type") return row.completion_date_sort;
+          return data;
+        }
+      },
+      {
+        data: "solution_status_label",
+        title: "Solution",
+        className: "text-nowrap",
+        render: function (data, type, row) {
+          if (type === "display") {
+            return '<span class="badge ' + row.solution_status_badge_class + '">' + escapeHtml(data) + "</span>";
+          }
+          return data;
+        }
+      },
+      {
+        data: "updated_at",
+        title: "Updated",
+        className: "text-nowrap",
+        render: function (data, type, row) {
+          if (type === "sort" || type === "type") return row.updated_at_sort;
+          return data;
+        }
+      }
+    ],
+    order: [[7, "desc"]],
+    pageLength: 25,
+    lengthMenu: [10, 25, 50, 100],
+    scrollX: true,
+  });
+})();
+</script>
+{% endif %}
+{% endblock extra_javascript %}

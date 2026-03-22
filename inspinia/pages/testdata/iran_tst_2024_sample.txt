@@ -1,0 +1,79 @@
+2024 Iran Team Selection Test3
+Iran Team Selection Test 2024
+First exam, Day 1
+1	Let $G$ be a simple graph with $11$ vertices labeled as $v_{1} , v_{2} , ... , v_{11}$ such that the degree of $v_1$ equals to $2$ and the degree of other vertices are equal to $3$.If for any set $A$ of these vertices which $|A| \le 4$ , the number of vertices which are adjacent to at least one verex in $A$ and are not in $A$ themselves is at least equal to $|A|$ , then find the maximum possible number for the diameter of $G$. (The distance between two vertices of graph is the number of edges of the shortest path between them and the diameter of a graph , is the largest distance between arbitrary pairs in $V(G)$. )
+
+Proposed by Alireza Haqi	
+
+Shayan-TayefehIR
+view topic
+2	For a right angled triangle $\triangle ABC$ with $\angle A=90$ we have $AC=2AB$. Point $M$ is the midpoint of side $BC$ and $I$ is incenter of triangle $\triangle ABC$. The line passing trough $M$ and perpendicular to $BI$ intersect with lines $BI$ and $AC$ at points $H$ and $K$ respectively. If the semi-line $IK$ cuts circumcircle of triangle $\triangle ABC$ at $F$ and $S$ be the second intersection point of line $FH$ with circumcircle of triangle $\triangle ABC$ , then prove that $SM$ is tangent to the incircle of triangle $\triangle ABC$.
+
+Proposed by Mahdi Etesami Fard	
+
+Shayan-TayefehIR
+view topic
+3	For any real numbers $x , y ,z$ prove that :
+$$(x+y+z)^2 + \sum_{cyc}{\frac{(x+y)(y+z)}{1+|x-z|}} \ge xy+yz+zx$$
+Proposed by Navid Safaei	
+
+Shayan-TayefehIR
+view topic
+First exam, Day 2
+4	Find all functions $f : \mathbb{R} \to \mathbb{R}$ such that for any real numbers $x , y$ this equality holds :
+$$f(yf(x)+f(x)f(y))=xf(y)+f(xy)$$
+Proposed by Navid Safaei	
+
+Shayan-TayefehIR
+view topic
+5	Suppose that we have two natural numbers $x , y \le 100!$ with undetermined values. Prove that there exist natural numbers $m , n$ such that values of $x , y$ get uniquely determined according to value of $\varphi(d(my))+d(\varphi(nx))$. ( for each natural number $n$ , $d(n)$ is number of its positive divisors and $\varphi(n)$ is the number of the numbers less that $n$ which are relatively prime to $n$. )
+
+Proposed by Mehran Talaei	
+
+Shayan-TayefehIR
+view topic
+6	Let $A_1A_2...A_{99}$ be a regular $99-$gon and point $A_{100}$ be its center. find the smallest possible natural number $n$ , such that Parsa can color all segments $A_iA_j$ ( $1 \le i < j \le 100$ ) with one of $n$ colors in such a way that no two homochromatic segments intersect each other or share a vertex.
+
+Proposed by Josef Tkadlec - Czech Republic	
+
+Shayan-TayefehIR
+view topic
+Second exam, Day 1
+7	Let $\triangle ABC$ and $\triangle C'B'A$ be two congruent triangles ( with this order and orient. ). Define point $M$ as the midpoint of segment $AB$ and suppose that the extension of $CB'$ from $B'$ passes trough $M$ , if $F$ be a point on the smaller arc $MC$ of circumcircle of triangle $\triangle BMC$ such that $\angle FB'A=90$ and $\angle C'CB' \neq 90$ , then prove that $\angle B'C'C=\angle CAF$.
+
+Proposed by Alireza Dadgarnia	
+
+Shayan-TayefehIR
+view topic
+8	Find all functions $f : \mathbb{Q}[x] \to \mathbb{Q}[x]$ such that two following conditions holds :
+$$\forall P , Q \in \mathbb{Q}[x] : f(P+Q)=f(P)+f(Q)$$$$\forall P \in \mathbb{Q}[x] : gcd(P , f(P))=1 \iff$$$P$ is square-free.
+
+
+Which a square-free polynomial with rational coefficients is a polynomial such that there doesn't exist square of a non-constant polynomial with rational coefficients that divides it.
+
+Proposed by Sina Azizedin	
+
+Shayan-TayefehIR
+view topic
+9	Prove that for any natural numbers $a , b , c$ that $b>a>1$ and $gcd(c,ab)=1$ , there exist a natural number $n$ such that :
+$$c | \binom{b^n}{a^n}$$
+Proposed by Navid Safaei	
+
+Shayan-TayefehIR
+view topic
+Second exam, Day 2
+10	Let $\{a_n\}$ be a sequence of natural numbers such that each prime number greater than $1402$ divides a member of that. Prove that the set of prime divisors of members of sequence $\{b_n\}$ which $b_n=a_1a_2...a_n-1$ , is infinite.
+
+Proposed by Navid Safaei	
+
+Shayan-TayefehIR
+view topic
+11	Let $n<k$ be two natural numbers and suppose that Sepehr has $n$ chemical elements , $2k$ grams from each , divided arbitrarily in $2k$ cups.Find the smallest number $b$ such that there is always possible for Sepehr to choose $b$ cups , containing at least $2$ grams from each element in total.
+
+Proposed by Josef Tkadlec & Morteza Saghafian	
+
+Shayan-TayefehIR
+view topic
+12	For a triangle $\triangle ABC$ with an obtuse angle $\angle A$ , let $E , F$ be feet of altitudes from $B , C$ on sides $AC , AB$ respectively. The tangents from $B , C$ to circumcircle of triangle $\triangle ABC$ intersect line $EF$ at points $K , L$ respectively and we know that $\angle CLB=135$. Point $R$ lies on segment $BK$ in such a way that $KR=KL$ and let $S$ be a point on line $BK$ such that $K$ is between $B , S$ and $\angle BLS=135$. Prove that the circle with diameter $RS$ is tangent to circumcircle of triangle $\triangle ABC$.
+
+Proposed by Mehran Talaei

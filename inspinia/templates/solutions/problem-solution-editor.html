@@ -1,6 +1,6 @@
 {% extends 'layouts/vertical.html' %}
 
-{% load static %}
+{% load static topic_labels %}
 
 {% block title %}Edit solution{% endblock title %}
 
@@ -9,6 +9,26 @@
   .solution-editor-grid {
     display: grid;
     gap: 1rem;
+  }
+
+  .solution-meta-grid {
+    display: grid;
+    gap: 0.85rem;
+    grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  }
+
+  .solution-meta-item {
+    min-width: 0;
+  }
+
+  .solution-meta-label {
+    display: block;
+    margin-bottom: 0.3rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
   }
 
   .solution-statement-panel {
@@ -63,6 +83,41 @@
   <div class="row g-3 mt-0">
     <div class="col-12">
       <div class="d-grid gap-3">
+        <div class="card solution-statement-panel">
+          <div class="card-header border-bottom">
+            <h4 class="header-title mb-0">Problem metadata</h4>
+          </div>
+          <div class="card-body">
+            <div class="solution-meta-grid">
+              <div class="solution-meta-item">
+                <span class="solution-meta-label">Contest</span>
+                <div class="fw-semibold">{{ problem_data.problem.contest }}</div>
+                <div class="text-muted fs-sm">{{ problem_data.problem.year }} · {{ problem_data.problem.problem }}</div>
+              </div>
+              <div class="solution-meta-item">
+                <span class="solution-meta-label">Topic</span>
+                <div class="fw-semibold">{{ problem_data.problem.topic|topic_label }}</div>
+              </div>
+              <div class="solution-meta-item">
+                <span class="solution-meta-label">MOHS</span>
+                <div class="fw-semibold">{{ problem_data.problem.mohs }}</div>
+              </div>
+              <div class="solution-meta-item">
+                <span class="solution-meta-label">Confidence</span>
+                <div>{% if problem_data.problem.confidence %}{{ problem_data.problem.confidence }}{% else %}<span class="text-muted fs-sm">—</span>{% endif %}</div>
+              </div>
+              <div class="solution-meta-item">
+                <span class="solution-meta-label">IMO slot guess</span>
+                <div>{% if problem_data.problem.imo_slot_guess %}{{ problem_data.problem.imo_slot_guess }}{% else %}<span class="text-muted fs-sm">—</span>{% endif %}</div>
+              </div>
+              <div class="solution-meta-item">
+                <span class="solution-meta-label">Problem UUID</span>
+                <code>{{ problem_data.problem.problem_uuid }}</code>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {% if problem_data.statement_entry %}
         <div class="card solution-statement-panel">
           <div class="card-header border-bottom">
