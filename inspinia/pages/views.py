@@ -513,6 +513,58 @@ def _statement_completion_sort_value(*, is_solved: bool, completion_date: date |
     return f"2-{completion_date.isoformat()}"
 
 
+def _statement_completion_dates_by_statement_id(
+    statements: list[ContestProblemStatement],
+    *,
+    user,
+) -> dict[int, date | None]:
+    if user is None or not statements:
+        return {}
+
+    statement_ids = [statement.id for statement in statements]
+    completion_by_statement_id = {
+        row["statement_id"]: row["completion_date"]
+        for row in UserProblemCompletion.objects.filter(
+            user=user,
+            statement_id__in=statement_ids,
+        ).values("statement_id", "completion_date")
+    }
+    unresolved_linked_problem_ids = sorted(
+        {
+            statement.linked_problem_id
+            for statement in statements
+            if statement.id not in completion_by_statement_id and statement.linked_problem_id is not None
+        },
+    )
+    if not unresolved_linked_problem_ids:
+        return completion_by_statement_id
+
+    legacy_completion_by_problem_id = {
+        row["problem_id"]: row["completion_date"]
+        for row in UserProblemCompletion.objects.filter(
+            user=user,
+            statement__isnull=True,
+            problem_id__in=unresolved_linked_problem_ids,
+        ).values("problem_id", "completion_date")
+    }
+    for statement in statements:
+        if statement.id in completion_by_statement_id:
+            continue
+        if statement.linked_problem_id is None:
+            continue
+        legacy_completion_date = legacy_completion_by_problem_id.get(statement.linked_problem_id)
+        if statement.linked_problem_id in legacy_completion_by_problem_id:
+            completion_by_statement_id[statement.id] = legacy_completion_date
+
+    return completion_by_statement_id
+
+
+def _completion_problem_for_statement(statement: ContestProblemStatement | None) -> ProblemSolveRecord | None:
+    if statement is None:
+        return None
+    return statement.linked_problem
+
+
 def _statement_table_rows(base, *, user=None) -> list[dict]:
     linked_statement_rows = list(
         base.filter(linked_problem__isnull=False).values_list("linked_problem_id", "linked_problem__contest"),
@@ -534,17 +586,13 @@ def _statement_table_rows(base, *, user=None) -> list[dict]:
             continue
         seen_topic_tags_by_problem_id[record_id].add(technique)
         topic_tags_by_problem_id[record_id].append(technique)
-    completion_problem_ids: set[int] = set()
-    completion_dates_by_problem_id: dict[int, date | None] = {}
-    if user is not None and linked_problem_ids:
-        completion_rows = UserProblemCompletion.objects.filter(
-            user=user,
-            problem_id__in=linked_problem_ids,
-        ).values_list("problem_id", "completion_date")
-        completion_dates_by_problem_id = dict(completion_rows)
-        completion_problem_ids = set(completion_dates_by_problem_id)
+    completion_dates_by_statement_id: dict[int, date | None] = {}
     visible_solution_problem_ids: set[int] = set()
     if user is not None and linked_problem_ids:
+        completion_dates_by_statement_id = _statement_completion_dates_by_statement_id(
+            list(base.select_related("linked_problem")),
+            user=user,
+        )
         visible_solution_problem_ids = set(
             ProblemSolution.objects.filter(problem_id__in=linked_problem_ids)
             .filter(Q(author=user) | Q(status=ProblemSolution.Status.PUBLISHED))
@@ -575,9 +623,23 @@ def _statement_table_rows(base, *, user=None) -> list[dict]:
         linked_problem_uuid = ""
         user_completion_is_solved = False
         user_completion_date = None
-        user_completion_display = "Unavailable"
-        user_completion_state_kind = "untrackable"
-        user_completion_state_label = "Statement not linked yet"
+        user_completion_display = "Unsolved"
+        user_completion_state_kind = "unsolved"
+        user_completion_state_label = "Unsolved"
+        if statement.id in completion_dates_by_statement_id:
+            user_completion_is_solved = True
+            user_completion_date = completion_dates_by_statement_id.get(statement.id)
+            user_completion_state_kind = _completion_board_state_kind(
+                is_solved=True,
+                completion_date=user_completion_date,
+            )
+            user_completion_state_label = _completion_board_state_label(
+                is_solved=True,
+                completion_date=user_completion_date,
+            )
+            user_completion_display = (
+                user_completion_date.isoformat() if user_completion_date is not None else "Unknown date"
+            )
         if linked_problem is not None:
             linked_problem_uuid = str(linked_problem.problem_uuid)
             linked_problem_topic = display_topic_label(linked_problem.topic)
@@ -585,22 +647,6 @@ def _statement_table_rows(base, *, user=None) -> list[dict]:
             linked_problem_mohs = linked_problem.mohs
             linked_problem_confidence = linked_problem.confidence or ""
             linked_problem_imo_slot_guess_value = linked_problem.imo_slot_guess_value or ""
-            user_completion_is_solved = linked_problem.id in completion_problem_ids
-            user_completion_date = completion_dates_by_problem_id.get(linked_problem.id)
-            user_completion_state_kind = _completion_board_state_kind(
-                is_solved=user_completion_is_solved,
-                completion_date=user_completion_date,
-            )
-            user_completion_state_label = _completion_board_state_label(
-                is_solved=user_completion_is_solved,
-                completion_date=user_completion_date,
-            )
-            if not user_completion_is_solved:
-                user_completion_display = "Unsolved"
-            elif user_completion_date is None:
-                user_completion_display = "Unknown date"
-            else:
-                user_completion_display = user_completion_date.isoformat()
             contest_slug = contest_to_slug.get(linked_problem.contest)
             if contest_slug:
                 contest_filter_base_url = reverse("pages:contest_problem_list", args=[contest_slug])
@@ -633,6 +679,7 @@ def _statement_table_rows(base, *, user=None) -> list[dict]:
                 "linked_problem_topic": linked_problem_topic,
                 "linked_problem_uuid": linked_problem_uuid,
                 "problem_code": statement.problem_code,
+                "statement_uuid": str(statement.statement_uuid),
                 "problem_uuid": str(statement.problem_uuid),
                 "linked_problem_mohs": linked_problem_mohs,
                 "linked_problem_mohs_url": linked_problem_mohs_url,
@@ -1272,15 +1319,45 @@ def _contest_year_mohs_pivot_payload() -> dict[str, object]:
     }
 
 
+def _completion_statement_label(completion: UserProblemCompletion) -> str:
+    if completion.statement is not None:
+        return completion.statement.contest_year_problem
+    if completion.problem is not None:
+        return completion.problem.contest_year_problem or (
+            f"{completion.problem.contest} {completion.problem.year} {completion.problem.problem}"
+        )
+    return "Unknown statement"
+
+
+def _completion_problem_record(completion: UserProblemCompletion) -> ProblemSolveRecord | None:
+    if completion.statement is not None and completion.statement.linked_problem is not None:
+        return completion.statement.linked_problem
+    return completion.problem
+
+
 def _user_statement_completion_rows(completions: list[UserProblemCompletion]) -> list[dict]:
-    completed_problem_ids = sorted({completion.problem_id for completion in completions})
-    if not completed_problem_ids:
+    completed_statement_ids = {
+        completion.statement_id
+        for completion in completions
+        if completion.statement_id is not None
+    }
+    legacy_problem_ids = {
+        completion.problem_id
+        for completion in completions
+        if completion.statement_id is None and completion.problem_id is not None
+    }
+    if legacy_problem_ids:
+        completed_statement_ids.update(
+            ContestProblemStatement.objects.filter(linked_problem_id__in=legacy_problem_ids).values_list("id", flat=True),
+        )
+    completed_statement_ids = sorted(statement_id for statement_id in completed_statement_ids if statement_id is not None)
+    if not completed_statement_ids:
         return []
 
     rows = list(
-        ContestProblemStatement.objects.filter(linked_problem_id__in=completed_problem_ids)
+        ContestProblemStatement.objects.filter(id__in=completed_statement_ids)
         .values("contest_name", "contest_year")
-        .annotate(completed_count=Count("linked_problem", distinct=True))
+        .annotate(completed_count=Count("id"))
         .order_by(
             "-contest_year",
             "contest_name",
@@ -1367,16 +1444,17 @@ def _main_topic_sort_key(topic_code: str) -> tuple[int, str]:
 def _user_topic_mohs_completion_heatmap_payload(
     completions: list[UserProblemCompletion],
 ) -> dict[str, object]:
-    if not completions:
+    completion_problems = [problem for problem in (_completion_problem_record(c) for c in completions) if problem is not None]
+    if not completion_problems:
         return {"max_value": 0, "mohs_values": [], "series": []}
 
     value_by_topic_mohs: dict[str, dict[int, int]] = defaultdict(dict)
     topic_totals: dict[str, int] = defaultdict(int)
-    mohs_values = sorted({int(completion.problem.mohs) for completion in completions})
+    mohs_values = sorted({int(problem.mohs) for problem in completion_problems})
 
-    for completion in completions:
-        topic_code = _main_topic_code(completion.problem.topic)
-        mohs = int(completion.problem.mohs)
+    for problem in completion_problems:
+        topic_code = _main_topic_code(problem.topic)
+        mohs = int(problem.mohs)
         current_value = value_by_topic_mohs[topic_code].get(mohs, 0) + 1
         value_by_topic_mohs[topic_code][mohs] = current_value
         topic_totals[topic_code] += 1
@@ -1614,8 +1692,11 @@ def _user_completion_heatmap_sections(
 
 
 def _user_completion_table_rows(completions: list[UserProblemCompletion]) -> tuple[list[dict], dict[str, list]]:
+    completion_problems = [
+        problem for problem in (_completion_problem_record(completion) for completion in completions) if problem is not None
+    ]
     contest_to_slug, _slug_to_contest = _build_contest_slug_maps(
-        [completion.problem.contest for completion in completions],
+        [problem.contest for problem in completion_problems],
     )
     table_rows: list[dict] = []
     completion_years: set[str] = set()
@@ -1626,13 +1707,17 @@ def _user_completion_table_rows(completions: list[UserProblemCompletion]) -> tup
     has_unknown_dates = False
 
     for completion in completions:
-        problem = completion.problem
-        problem_label = problem.contest_year_problem or f"{problem.contest} {problem.year} {problem.problem}"
-        contest_slug = contest_to_slug.get(problem.contest)
+        problem = _completion_problem_record(completion)
+        statement = completion.statement
+        problem_label = _completion_statement_label(completion)
+        contest_name = statement.contest_name if statement is not None else (problem.contest if problem is not None else "")
+        contest_year = statement.contest_year if statement is not None else (problem.year if problem is not None else "")
+        problem_code = statement.problem_code if statement is not None else (problem.problem if problem is not None else "")
+        contest_slug = contest_to_slug.get(contest_name)
         problem_url = ""
-        if contest_slug:
+        if contest_slug and contest_year and problem_code:
             problem_url = reverse("pages:contest_problem_list", args=[contest_slug]) + "#" + (
-                _problem_anchor(problem_label, f"{problem.year}-{problem.problem}")
+                _problem_anchor(problem_label, f"{contest_year}-{problem_code}")
             )
 
         completion_known = completion.completion_date is not None
@@ -1646,24 +1731,27 @@ def _user_completion_table_rows(completions: list[UserProblemCompletion]) -> tup
         else:
             has_unknown_dates = True
 
-        contests.add(problem.contest)
-        topics.add(display_topic_label(problem.topic))
-        mohs_values.add(problem.mohs)
+        if contest_name:
+            contests.add(contest_name)
+        if problem is not None:
+            topics.add(display_topic_label(problem.topic))
+            mohs_values.add(problem.mohs)
         table_rows.append(
             {
                 "completion_date": completion_date_label,
                 "completion_date_sort": completion_date_sort,
                 "completion_known": completion_known,
                 "completion_year": completion_year,
-                "contest": problem.contest,
+                "contest": contest_name,
                 "date_status": date_status,
-                "mohs": problem.mohs,
-                "problem_code": problem.problem,
+                "mohs": problem.mohs if problem is not None else "",
+                "problem_code": problem_code,
                 "problem_label": problem_label,
                 "problem_url": problem_url,
-                "problem_uuid": str(problem.problem_uuid),
-                "problem_year": problem.year,
-                "topic": display_topic_label(problem.topic),
+                "problem_uuid": str(problem.problem_uuid) if problem is not None else "",
+                "statement_uuid": str(statement.statement_uuid) if statement is not None else "",
+                "problem_year": contest_year,
+                "topic": display_topic_label(problem.topic) if problem is not None else "Unlinked",
             },
         )
 
@@ -1686,10 +1774,13 @@ def _user_completion_table_rows(completions: list[UserProblemCompletion]) -> tup
 
 def _admin_completion_listing_rows() -> tuple[list[dict], dict[str, int]]:
     completions = list(
-        UserProblemCompletion.objects.select_related("user", "problem").order_by(
+        UserProblemCompletion.objects.select_related("user", "problem", "statement", "statement__linked_problem").order_by(
             F("completion_date").desc(nulls_last=True),
             "-updated_at",
             "user__email",
+            "statement__contest_name",
+            "-statement__contest_year",
+            "statement__problem_code",
             "problem__contest",
             "-problem__year",
             "problem__problem",
@@ -1704,11 +1795,16 @@ def _admin_completion_listing_rows() -> tuple[list[dict], dict[str, int]]:
             "user_total": 0,
         }
 
+    completion_problems = [
+        problem for problem in (_completion_problem_record(completion) for completion in completions) if problem is not None
+    ]
     contest_to_slug, _slug_to_contest = _build_contest_slug_maps(
-        [completion.problem.contest for completion in completions],
+        [problem.contest for problem in completion_problems],
     )
     completion_user_ids = {completion.user_id for completion in completions}
-    completion_problem_ids = {completion.problem_id for completion in completions}
+    completion_problem_ids = {
+        problem.id for problem in completion_problems
+    }
     solution_rows = ProblemSolution.objects.filter(
         author_id__in=completion_user_ids,
         problem_id__in=completion_problem_ids,
@@ -1722,17 +1818,21 @@ def _admin_completion_listing_rows() -> tuple[list[dict], dict[str, int]]:
     known_date_total = 0
     completion_with_solution_total = 0
     for completion in completions:
-        problem = completion.problem
+        problem = _completion_problem_record(completion)
+        statement = completion.statement
         user = completion.user
-        problem_label = problem.contest_year_problem or f"{problem.contest} {problem.year} {problem.problem}"
-        contest_slug = contest_to_slug.get(problem.contest)
+        problem_label = _completion_statement_label(completion)
+        contest_name = statement.contest_name if statement is not None else (problem.contest if problem is not None else "")
+        contest_year = statement.contest_year if statement is not None else (problem.year if problem is not None else "")
+        problem_code = statement.problem_code if statement is not None else (problem.problem if problem is not None else "")
+        contest_slug = contest_to_slug.get(contest_name)
         archive_url = ""
-        if contest_slug:
+        if contest_slug and contest_year and problem_code:
             archive_url = reverse("pages:contest_problem_list", args=[contest_slug]) + "#" + _problem_anchor(
                 problem_label,
-                f"{problem.year}-{problem.problem}",
+                f"{contest_year}-{problem_code}",
             )
-        solution_status = solution_status_by_key.get((user.id, problem.id), "")
+        solution_status = solution_status_by_key.get((user.id, problem.id), "") if problem is not None else ""
         if completion.completion_date is not None:
             known_date_total += 1
         if solution_status:
@@ -1748,12 +1848,17 @@ def _admin_completion_listing_rows() -> tuple[list[dict], dict[str, int]]:
                     if completion.completion_date is not None
                     else "0000-00-00"
                 ),
-                "contest": problem.contest,
-                "mohs": problem.mohs,
-                "problem": problem.problem,
+                "contest": contest_name,
+                "mohs": problem.mohs if problem is not None else "",
+                "problem": problem_code,
                 "problem_label": problem_label,
-                "problem_url": reverse("solutions:problem_solution_list", args=[problem.problem_uuid]),
-                "problem_uuid": str(problem.problem_uuid),
+                "problem_url": (
+                    reverse("solutions:problem_solution_list", args=[problem.problem_uuid])
+                    if problem is not None
+                    else ""
+                ),
+                "problem_uuid": str(problem.problem_uuid) if problem is not None else "",
+                "statement_uuid": str(statement.statement_uuid) if statement is not None else "",
                 "solution_status": solution_status,
                 "solution_status_badge_class": (
                     _solution_status_badge_class(solution_status) if solution_status else "text-bg-light"
@@ -1761,18 +1866,18 @@ def _admin_completion_listing_rows() -> tuple[list[dict], dict[str, int]]:
                 "solution_status_label": (
                     ProblemSolution.Status(solution_status).label if solution_status else "No solution"
                 ),
-                "topic": display_topic_label(problem.topic),
+                "topic": display_topic_label(problem.topic) if problem is not None else "Unlinked",
                 "updated_at": timezone.localtime(completion.updated_at).strftime("%Y-%m-%d %H:%M"),
                 "updated_at_sort": completion.updated_at.isoformat(),
                 "user_email": user.email,
                 "user_label": user.name or user.email,
                 "user_url": reverse("users:detail", args=[user.pk]),
-                "year": problem.year,
+                "year": contest_year,
             },
         )
 
     return table_rows, {
-        "contest_total": len({completion.problem.contest for completion in completions}),
+        "contest_total": len({row["contest"] for row in table_rows if row["contest"]}),
         "known_date_total": known_date_total,
         "record_total": len(completions),
         "solution_total": completion_with_solution_total,
@@ -1905,36 +2010,45 @@ def _completion_board_state_label(*, is_solved: bool, completion_date: date | No
 def _completion_board_cell_title(
     *,
     problem_label: str,
-    topic: str,
-    mohs: int,
+    topic: str = "",
+    mohs: int | None = None,
     is_solved: bool,
     completion_date: date | None,
 ) -> str:
-    return " · ".join(
-        [
-            problem_label,
-            f"Topic {topic}",
-            f"MOHS {mohs}",
-            _completion_board_state_label(is_solved=is_solved, completion_date=completion_date),
-        ],
-    )
+    parts = [problem_label]
+    if topic:
+        parts.append(f"Topic {topic}")
+    if mohs is not None:
+        parts.append(f"MOHS {mohs}")
+    parts.append(_completion_board_state_label(is_solved=is_solved, completion_date=completion_date))
+    return " · ".join(parts)
 
 
 def _completion_board_response_payload(
     *,
     statement: ContestProblemStatement | None,
-    problem: ProblemSolveRecord,
+    problem: ProblemSolveRecord | None,
     is_solved: bool,
     completion_date: date | None,
 ) -> dict[str, object]:
     problem_label = (
-        statement.contest_year_problem if statement is not None else problem.contest_year_problem
-    ) or f"{problem.contest} {problem.year} {problem.problem}"
+        statement.contest_year_problem
+        if statement is not None
+        else (problem.contest_year_problem if problem is not None else "")
+    ) or (
+        f"{problem.contest} {problem.year} {problem.problem}"
+        if problem is not None
+        else "Unknown statement"
+    )
+    topic = display_topic_label(problem.topic) if problem is not None else ""
+    mohs = problem.mohs if problem is not None else None
     return {
         "completion_date": completion_date.isoformat() if completion_date else "",
         "is_solved": is_solved,
         "problem_label": problem_label,
-        "problem_uuid": str(problem.problem_uuid),
+        "problem_uuid": str(problem.problem_uuid) if problem is not None else "",
+        "statement_id": statement.id if statement is not None else None,
+        "statement_uuid": str(statement.statement_uuid) if statement is not None else "",
         "state_kind": _completion_board_state_kind(
             is_solved=is_solved,
             completion_date=completion_date,
@@ -1945,8 +2059,8 @@ def _completion_board_response_payload(
         ),
         "title": _completion_board_cell_title(
             problem_label=problem_label,
-            topic=display_topic_label(problem.topic),
-            mohs=problem.mohs,
+            topic=topic,
+            mohs=mohs,
             is_solved=is_solved,
             completion_date=completion_date,
         ),
@@ -1954,20 +2068,35 @@ def _completion_board_response_payload(
 
 
 def _completion_board_get_statement_problem(
-    problem_uuid: str,
-) -> tuple[ContestProblemStatement | None, ProblemSolveRecord] | None:
-    statement = (
-        ContestProblemStatement.objects.select_related("linked_problem")
-        .filter(linked_problem__problem_uuid=problem_uuid)
-        .first()
-    )
-    if statement is not None and statement.linked_problem is not None:
+    *,
+    statement_uuid: str = "",
+    problem_uuid: str = "",
+) -> tuple[ContestProblemStatement | None, ProblemSolveRecord | None] | None:
+    if statement_uuid:
+        statement = (
+            ContestProblemStatement.objects.select_related("linked_problem")
+            .filter(statement_uuid=statement_uuid)
+            .first()
+        )
+        if statement is None:
+            return None
         return statement, statement.linked_problem
 
-    problem = ProblemSolveRecord.objects.filter(problem_uuid=problem_uuid).first()
-    if problem is None:
-        return None
-    return None, problem
+    if problem_uuid:
+        statement = (
+            ContestProblemStatement.objects.select_related("linked_problem")
+            .filter(linked_problem__problem_uuid=problem_uuid)
+            .first()
+        )
+        if statement is not None and statement.linked_problem is not None:
+            return statement, statement.linked_problem
+
+        problem = ProblemSolveRecord.objects.filter(problem_uuid=problem_uuid).first()
+        if problem is None:
+            return None
+        return None, problem
+
+    return None
 
 
 def _completion_board_parse_requested_date(
@@ -1989,57 +2118,139 @@ def _completion_board_parse_requested_date(
 def _completion_board_apply_action(
     *,
     action: str,
-    problem: ProblemSolveRecord,
+    statement: ContestProblemStatement | None,
+    problem: ProblemSolveRecord | None,
     raw_completion_date: str,
     today: date,
     user,
 ) -> tuple[bool, date | None, str | None]:
-    completion = UserProblemCompletion.objects.filter(
-        user=user,
-        problem=problem,
-    ).first()
+    statement_completion = None
+    legacy_problem_completion = None
+    if statement is not None:
+        statement_completion = UserProblemCompletion.objects.filter(
+            user=user,
+            statement=statement,
+        ).first()
+        if statement_completion is None and problem is not None:
+            legacy_problem_completion = UserProblemCompletion.objects.filter(
+                user=user,
+                statement__isnull=True,
+                problem=problem,
+            ).first()
+        completion = statement_completion or legacy_problem_completion
+    else:
+        completion = (
+            UserProblemCompletion.objects.filter(
+                user=user,
+                problem=problem,
+            ).first()
+            if problem is not None
+            else None
+        )
     error_message: str | None = None
+
+    def save_statement_completion(completion_date: date | None) -> None:
+        assert statement is not None
+        UserProblemCompletion.objects.update_or_create(
+            user=user,
+            statement=statement,
+            defaults={
+                "completion_date": completion_date,
+                "problem": None,
+            },
+        )
+
+    def can_clear_legacy_problem_completion() -> bool:
+        if problem is None:
+            return False
+        return ContestProblemStatement.objects.filter(linked_problem_id=problem.id).count() <= 1
 
     if action in {"", "toggle"}:
         if completion is None:
-            completion = UserProblemCompletion.objects.create(
-                user=user,
-                problem=problem,
-                completion_date=today,
-            )
+            if statement is not None:
+                save_statement_completion(today)
+            elif problem is not None:
+                completion = UserProblemCompletion.objects.create(
+                    user=user,
+                    problem=problem,
+                    completion_date=today,
+                )
             is_solved = True
-            completion_date = completion.completion_date
+            completion_date = today
         else:
-            completion.delete()
-            is_solved = False
-            completion_date = None
+            if statement is not None:
+                if statement_completion is not None:
+                    statement_completion.delete()
+                    is_solved = False
+                    completion_date = None
+                elif legacy_problem_completion is not None and can_clear_legacy_problem_completion():
+                    legacy_problem_completion.delete()
+                    is_solved = False
+                    completion_date = None
+                else:
+                    error_message = (
+                        "This completion still comes from a legacy problem record. "
+                        "Set an explicit statement completion first."
+                    )
+                    is_solved = completion is not None
+                    completion_date = completion.completion_date if completion is not None else None
+            else:
+                completion.delete()
+                is_solved = False
+                completion_date = None
     elif action == "set_date":
         completion_date, error_message = _completion_board_parse_requested_date(
             raw_completion_date,
             today=today,
         )
         if error_message is None and completion_date is not None:
-            UserProblemCompletion.objects.update_or_create(
-                user=user,
-                problem=problem,
-                defaults={"completion_date": completion_date},
-            )
+            if statement is not None:
+                save_statement_completion(completion_date)
+            elif problem is not None:
+                UserProblemCompletion.objects.update_or_create(
+                    user=user,
+                    problem=problem,
+                    defaults={"completion_date": completion_date},
+                )
             is_solved = True
         else:
             is_solved = completion is not None
             completion_date = completion.completion_date if completion is not None else None
     elif action == "set_unknown":
-        UserProblemCompletion.objects.update_or_create(
-            user=user,
-            problem=problem,
-            defaults={"completion_date": None},
-        )
+        if statement is not None:
+            save_statement_completion(None)
+        elif problem is not None:
+            UserProblemCompletion.objects.update_or_create(
+                user=user,
+                problem=problem,
+                defaults={"completion_date": None},
+            )
         is_solved = True
         completion_date = None
     elif action == "clear":
-        UserProblemCompletion.objects.filter(user=user, problem=problem).delete()
-        is_solved = False
-        completion_date = None
+        if statement is not None:
+            if statement_completion is not None:
+                statement_completion.delete()
+                is_solved = False
+                completion_date = None
+            elif legacy_problem_completion is not None and can_clear_legacy_problem_completion():
+                legacy_problem_completion.delete()
+                is_solved = False
+                completion_date = None
+            else:
+                error_message = (
+                    "This completion still comes from a legacy problem record. "
+                    "Set an explicit statement completion first."
+                )
+                is_solved = completion is not None
+                completion_date = completion.completion_date if completion is not None else None
+        elif problem is not None:
+            UserProblemCompletion.objects.filter(user=user, problem=problem).delete()
+            is_solved = False
+            completion_date = None
+        else:
+            is_solved = False
+            completion_date = None
     else:
         error_message = "Unsupported completion action."
 
@@ -2101,28 +2312,11 @@ def _completion_board_payload(base, *, user, row_limit: int | None) -> dict[str,
             },
         }
 
-    linked_problem_ids = sorted(
-        {
-            statement.linked_problem_id
-            for statement in statements
-            if statement.linked_problem_id is not None
-        },
-    )
-    completion_by_problem_id = {
-        row["problem_id"]: row["completion_date"]
-        for row in UserProblemCompletion.objects.filter(
-            user=user,
-            problem_id__in=linked_problem_ids,
-        ).values("problem_id", "completion_date")
-    }
-    solved_problem_ids = set(completion_by_problem_id)
-    trackable_statement_total = 0
+    completion_by_statement_id = _statement_completion_dates_by_statement_id(statements, user=user)
+    solved_statement_ids = set(completion_by_statement_id)
     solved_statement_total = 0
     for statement in statements:
-        if statement.linked_problem_id is None:
-            continue
-        trackable_statement_total += 1
-        if statement.linked_problem_id in solved_problem_ids:
+        if statement.id in solved_statement_ids:
             solved_statement_total += 1
     duplicate_counts = Counter(
         (
@@ -2163,7 +2357,7 @@ def _completion_board_payload(base, *, user, row_limit: int | None) -> dict[str,
     board_rows: list[dict[str, object]] = []
     for contest_name, contest_year in visible_row_keys:
         row_problem_map = grouped_rows[(contest_name, contest_year)]
-        row_trackable_total = 0
+        row_statement_total = 0
         row_solved_total = 0
         row_exact_solved_total = 0
         row_unknown_solved_total = 0
@@ -2181,30 +2375,14 @@ def _completion_board_payload(base, *, user, row_limit: int | None) -> dict[str,
                 continue
 
             linked_problem = statement.linked_problem
-            if linked_problem is None:
-                cells.append(
-                    {
-                        "exists": True,
-                        "is_trackable": False,
-                        "problem_code": slot_label,
-                        "problem_label": statement.contest_year_problem,
-                        "state_kind": "untrackable",
-                        "state_label": "Statement exists but is not linked to a tracked problem yet",
-                        "title": (
-                            f"{statement.contest_year_problem} · "
-                            "Statement is not linked to a tracked problem yet"
-                        ),
-                    },
-                )
-                continue
-
-            problem_id = linked_problem.id
-            row_trackable_total += 1
+            row_statement_total += 1
             problem_label = statement.contest_year_problem or linked_problem.contest_year_problem or (
                 f"{statement.contest_name} {statement.contest_year} {statement.problem_code}"
+            ) if linked_problem is not None else (
+                f"{statement.contest_name} {statement.contest_year} {statement.problem_code}"
             )
-            is_solved = problem_id in solved_problem_ids
-            completion_date = completion_by_problem_id.get(problem_id) if is_solved else None
+            is_solved = statement.id in solved_statement_ids
+            completion_date = completion_by_statement_id.get(statement.id) if is_solved else None
             if is_solved:
                 row_solved_total += 1
                 if completion_date is None:
@@ -2222,10 +2400,11 @@ def _completion_board_payload(base, *, user, row_limit: int | None) -> dict[str,
                     "exists": True,
                     "is_solved": is_solved,
                     "is_trackable": True,
-                    "mohs": linked_problem.mohs,
+                    "mohs": linked_problem.mohs if linked_problem is not None else None,
                     "problem_code": slot_label,
                     "problem_label": problem_label,
-                    "problem_uuid": str(linked_problem.problem_uuid),
+                    "problem_uuid": str(linked_problem.problem_uuid) if linked_problem is not None else "",
+                    "statement_uuid": str(statement.statement_uuid),
                     "state_kind": state_kind,
                     "state_label": _completion_board_state_label(
                         is_solved=is_solved,
@@ -2233,12 +2412,16 @@ def _completion_board_payload(base, *, user, row_limit: int | None) -> dict[str,
                     ),
                     "title": _completion_board_cell_title(
                         problem_label=problem_label,
-                        topic=display_topic_label(linked_problem.topic),
-                        mohs=linked_problem.mohs,
+                        topic=display_topic_label(linked_problem.topic) if linked_problem is not None else "",
+                        mohs=linked_problem.mohs if linked_problem is not None else None,
                         is_solved=is_solved,
                         completion_date=completion_date,
                     ),
-                    "topic": display_topic_label(linked_problem.topic),
+                    "topic": (
+                        display_topic_label(linked_problem.topic)
+                        if linked_problem is not None
+                        else "Unlinked"
+                    ),
                 },
             )
 
@@ -2246,20 +2429,22 @@ def _completion_board_payload(base, *, user, row_limit: int | None) -> dict[str,
         board_rows.append(
             {
                 "cells": cells,
-                "completion_rate": round((row_solved_total / row_trackable_total) * 100, 1)
-                if row_trackable_total
+                "completion_rate": round((row_solved_total / row_statement_total) * 100, 1)
+                if row_statement_total
                 else 0.0,
                 "contest_name": contest_name,
                 "contest_year": contest_year,
                 "contest_year_label": f"{contest_name} {contest_year}",
                 "exact_solved_total": row_exact_solved_total,
-                "problem_total": row_trackable_total,
+                "problem_total": row_statement_total,
                 "solved_total": row_solved_total,
                 "statement_total": statement_total,
-                "trackable_total": row_trackable_total,
-                "unlinked_total": statement_total - row_trackable_total,
+                "trackable_total": row_statement_total,
+                "unlinked_total": sum(
+                    1 for statement in row_problem_map.values() if statement.linked_problem_id is None
+                ),
                 "unknown_solved_total": row_unknown_solved_total,
-                "unsolved_total": row_trackable_total - row_solved_total,
+                "unsolved_total": row_statement_total - row_solved_total,
             },
         )
 
@@ -2273,9 +2458,9 @@ def _completion_board_payload(base, *, user, row_limit: int | None) -> dict[str,
             "problem_column_total": len(problem_columns),
             "statement_cell_total": len(statements),
             "solved_total": solved_statement_total,
-            "trackable_cell_total": trackable_statement_total,
-            "unlinked_cell_total": len(statements) - trackable_statement_total,
-            "unsolved_total": trackable_statement_total - solved_statement_total,
+            "trackable_cell_total": len(statements),
+            "unlinked_cell_total": sum(1 for statement in statements if statement.linked_problem_id is None),
+            "unsolved_total": len(statements) - solved_statement_total,
         },
     }
 
@@ -2661,7 +2846,7 @@ def _build_topic_tag_directory_rows(
 @login_required
 def completion_board_view(request):
     """User-owned contest-year vs problem completion matrix."""
-    statement_base = ContestProblemStatement.objects.all()
+    statement_base = _active_dashboard_statements()
     statement_contest_years = [
         f"{contest_name} {contest_year}"
         for contest_name, contest_year in statement_base.values_list("contest_name", "contest_year")
@@ -2745,11 +2930,15 @@ def completion_board_toggle_view(request):
     if request.method != "POST":
         return JsonResponse({"error": "POST required."}, status=405)
 
+    statement_uuid = (request.POST.get("statement_uuid") or "").strip()
     problem_uuid = (request.POST.get("problem_uuid") or "").strip()
-    if not problem_uuid:
-        return JsonResponse({"error": "Problem UUID is required."}, status=400)
+    if not statement_uuid and not problem_uuid:
+        return JsonResponse({"error": "Statement UUID or Problem UUID is required."}, status=400)
 
-    statement_problem = _completion_board_get_statement_problem(problem_uuid)
+    statement_problem = _completion_board_get_statement_problem(
+        statement_uuid=statement_uuid,
+        problem_uuid=problem_uuid,
+    )
     if statement_problem is None:
         raise Http404
     statement, problem = statement_problem
@@ -2758,6 +2947,7 @@ def completion_board_toggle_view(request):
     today = timezone.localdate()
     is_solved, completion_date, error_message = _completion_board_apply_action(
         action=action,
+        statement=statement,
         problem=problem,
         raw_completion_date=(request.POST.get("completion_date") or "").strip(),
         today=today,
@@ -2782,18 +2972,29 @@ def completion_board_bulk_view(request):
     if request.method != "POST":
         return JsonResponse({"error": "POST required."}, status=405)
 
+    raw_statement_uuids = [
+        value.strip()
+        for value in request.POST.getlist("statement_uuid")
+        if value.strip()
+    ]
     raw_problem_uuids = [
         value.strip()
         for value in request.POST.getlist("problem_uuid")
         if value.strip()
     ]
-    if not raw_problem_uuids:
-        return JsonResponse({"error": "Select at least one problem first."}, status=400)
+    if not raw_statement_uuids and not raw_problem_uuids:
+        return JsonResponse({"error": "Select at least one statement first."}, status=400)
 
+    unique_statement_uuids = list(dict.fromkeys(raw_statement_uuids))
     unique_problem_uuids = list(dict.fromkeys(raw_problem_uuids))
-    resolved_entries: list[tuple[ContestProblemStatement, ProblemSolveRecord]] = []
+    resolved_entries: list[tuple[ContestProblemStatement | None, ProblemSolveRecord | None]] = []
+    for statement_uuid_value in unique_statement_uuids:
+        statement_problem = _completion_board_get_statement_problem(statement_uuid=statement_uuid_value)
+        if statement_problem is None:
+            raise Http404
+        resolved_entries.append(statement_problem)
     for problem_uuid in unique_problem_uuids:
-        statement_problem = _completion_board_get_statement_problem(problem_uuid)
+        statement_problem = _completion_board_get_statement_problem(problem_uuid=problem_uuid)
         if statement_problem is None:
             raise Http404
         resolved_entries.append(statement_problem)
@@ -2807,6 +3008,7 @@ def completion_board_bulk_view(request):
         for statement, problem in resolved_entries:
             is_solved, completion_date, error_message = _completion_board_apply_action(
                 action=action,
+                statement=statement,
                 problem=problem,
                 raw_completion_date=raw_completion_date,
                 today=today,
@@ -2858,9 +3060,16 @@ def user_activity_dashboard_view(request):
 
         messages.error(request, "Please fix the completion import form and try again.")
 
-    completion_qs = UserProblemCompletion.objects.filter(user=request.user).select_related("problem").order_by(
+    completion_qs = UserProblemCompletion.objects.filter(user=request.user).select_related(
+        "problem",
+        "statement",
+        "statement__linked_problem",
+    ).order_by(
         F("completion_date").desc(nulls_last=True),
         "-updated_at",
+        "statement__contest_name",
+        "-statement__contest_year",
+        "statement__problem_code",
         "problem__contest",
         "-problem__year",
         "problem__problem",
@@ -2903,7 +3112,7 @@ def user_activity_dashboard_view(request):
     context = {
         "activity_total": len(completions),
         "activity_stats": {
-            "contest_total": len({completion.problem.contest for completion in completions}),
+            "contest_total": len({row["contest"] for row in table_rows if row["contest"]}),
             "current_year_total": current_year_total,
             "dated_total": len(dated_completion_dates),
             "latest_completion_date": max(dated_completion_dates, default=None),
@@ -3758,13 +3967,10 @@ def _build_dashboard_contest_statement_listing_context(
             seen_topic_tags.add(technique)
             topic_tag_options.append(technique)
 
-    completion_by_problem_id = {
-        row["problem_id"]: row["completion_date"]
-        for row in UserProblemCompletion.objects.filter(
-            user=request.user,
-            problem_id__in=linked_problem_ids,
-        ).values("problem_id", "completion_date")
-    }
+    completion_by_statement_id = _statement_completion_dates_by_statement_id(
+        statements,
+        user=request.user,
+    )
     solution_counts_by_problem_id = {
         row["problem_id"]: row["published_solution_total"]
         for row in ProblemSolution.objects.filter(
@@ -3788,31 +3994,22 @@ def _build_dashboard_contest_statement_listing_context(
         topic_tags = topic_tags_by_problem_id.get(statement.linked_problem_id, [])
         render_payload = _statement_render_payload(statement.statement_latex)
         is_linked = linked_problem is not None
-        completion_date = (
-            completion_by_problem_id.get(linked_problem.id)
-            if linked_problem is not None
-            else None
+        completion_date = completion_by_statement_id.get(statement.id)
+        is_completed = statement.id in completion_by_statement_id
+        completion_state_kind = _completion_board_state_kind(
+            is_solved=is_completed,
+            completion_date=completion_date,
         )
-        is_completed = linked_problem is not None and linked_problem.id in completion_by_problem_id
-        if linked_problem is None:
-            completion_state_kind = "untrackable"
-            completion_state_label = "Statement exists but is not linked to a tracked problem yet"
-            completion_display = "Unlinked"
+        completion_state_label = _completion_board_state_label(
+            is_solved=is_completed,
+            completion_date=completion_date,
+        )
+        if completion_date is not None:
+            completion_display = completion_date.isoformat()
+        elif is_completed:
+            completion_display = "Unknown date"
         else:
-            completion_state_kind = _completion_board_state_kind(
-                is_solved=is_completed,
-                completion_date=completion_date,
-            )
-            completion_state_label = _completion_board_state_label(
-                is_solved=is_completed,
-                completion_date=completion_date,
-            )
-            if completion_date is not None:
-                completion_display = completion_date.isoformat()
-            elif is_completed:
-                completion_display = "Unknown date"
-            else:
-                completion_display = "Unsolved"
+            completion_display = "Unsolved"
 
         label = statement.contest_year_problem or f"{statement.contest_name} {statement.contest_year} {statement.problem_code}"
         topic_label = display_topic_label(linked_problem.topic) if linked_problem is not None else ""
@@ -3857,6 +4054,7 @@ def _build_dashboard_contest_statement_listing_context(
                 ),
                 "problem": statement.problem_code,
                 "problem_uuid": str(linked_problem.problem_uuid) if linked_problem is not None else "",
+                "statement_uuid": str(statement.statement_uuid),
                 "published_solution_total": published_solution_total,
                 "solution_editor_url": (
                     reverse("solutions:problem_solution_edit", args=[linked_problem.problem_uuid])
@@ -4302,6 +4500,14 @@ def contest_advanced_analytics_view(request):
             "pages/contest-advanced-analytics.html",
             {
                 "contest_choices": [],
+                "contest_completion_heatmap": {
+                    "filled_cell_total": 0,
+                    "has_partial_cells": False,
+                    "problem_code_total": 0,
+                    "problem_codes": [],
+                    "rows": [],
+                    "year_total": 0,
+                },
                 "has_contests": False,
                 "selected_contest": "",
             },
@@ -4355,7 +4561,7 @@ def contest_advanced_analytics_view(request):
             problem_count=Count("id"),
             solved_problem_total=Count(
                 "id",
-                filter=Q(linked_problem__user_completions__isnull=False),
+                filter=Q(user_completions__isnull=False) | Q(linked_problem__user_completions__isnull=False),
                 distinct=True,
             ),
         )
@@ -4375,6 +4581,108 @@ def contest_advanced_analytics_view(request):
             reverse("pages:contest_dashboard_listing")
             + "?"
             + urlencode({"contest": selected_contest, "year": int(row["year"])})
+        )
+
+    contest_statements = list(
+        contest_base.select_related("linked_problem").values("id", "linked_problem_id", "problem_code", "contest_year"),
+    )
+    direct_solved_statement_ids = set(
+        UserProblemCompletion.objects.filter(
+            statement_id__in=[row["id"] for row in contest_statements],
+        ).values_list("statement_id", flat=True),
+    )
+    legacy_solved_problem_ids = set(
+        UserProblemCompletion.objects.filter(
+            statement__isnull=True,
+            problem__contest=selected_contest,
+        ).values_list("problem_id", flat=True),
+    )
+    heatmap_problem_codes = sorted(
+        {
+            str(problem_code).strip()
+            for problem_code in contest_base.values_list("problem_code", flat=True)
+            if problem_code
+        },
+        key=_problem_sort_key,
+    )
+    heatmap_years = sorted(
+        {
+            int(year)
+            for year in contest_base.values_list("contest_year", flat=True)
+            if year is not None
+        },
+        reverse=True,
+    )
+    heatmap_counts: dict[tuple[int, str], dict[str, int]] = {}
+    for record in contest_statements:
+        problem_code = str(record["problem_code"] or "").strip()
+        year = record["contest_year"]
+        if not problem_code or year is None:
+            continue
+        heatmap_key = (int(year), problem_code)
+        cell_counts = heatmap_counts.setdefault(
+            heatmap_key,
+            {
+                "problem_total": 0,
+                "solved_total": 0,
+            },
+        )
+        cell_counts["problem_total"] += 1
+        linked_problem_id = record["linked_problem_id"]
+        if record["id"] in direct_solved_statement_ids or (
+            linked_problem_id is not None and int(linked_problem_id) in legacy_solved_problem_ids
+        ):
+            cell_counts["solved_total"] += 1
+
+    heatmap_rows: list[dict[str, object]] = []
+    has_partial_heatmap_cells = False
+    for year in heatmap_years:
+        row_cells: list[dict[str, object]] = []
+        for problem_code in heatmap_problem_codes:
+            counts = heatmap_counts.get((year, problem_code))
+            if counts is None:
+                row_cells.append(
+                    {
+                        "display": "",
+                        "problem_code": problem_code,
+                        "state": "empty",
+                        "title": f"{selected_contest} {year} {problem_code}: no statement row",
+                    },
+                )
+                continue
+
+            problem_total = int(counts["problem_total"])
+            solved_total = int(counts["solved_total"])
+            if solved_total == 0:
+                state = "unsolved"
+            elif solved_total == problem_total:
+                state = "solved"
+            else:
+                state = "partial"
+                has_partial_heatmap_cells = True
+
+            row_cells.append(
+                {
+                    "display": (
+                        "✓"
+                        if problem_total == 1 and state == "solved"
+                        else ("•" if problem_total == 1 else f"{solved_total}/{problem_total}")
+                    ),
+                    "problem_code": problem_code,
+                    "state": state,
+                    "title": (
+                        f"{selected_contest} {year} {problem_code}: "
+                        f"{solved_total} of {problem_total} statement row"
+                        f"{'' if problem_total == 1 else 's'} solved"
+                    ),
+                },
+            )
+
+        heatmap_rows.append(
+            {
+                "cells": row_cells,
+                "year": year,
+            },
         )
 
     topic_rows = list(
@@ -4450,6 +4758,14 @@ def contest_advanced_analytics_view(request):
             "year_span_label": _format_year_span_label(stats["year_min"], stats["year_max"]) or "-",
         },
         "confidence_rows": confidence_rows,
+        "contest_completion_heatmap": {
+            "filled_cell_total": len(heatmap_counts),
+            "has_partial_cells": has_partial_heatmap_cells,
+            "problem_code_total": len(heatmap_problem_codes),
+            "problem_codes": heatmap_problem_codes,
+            "rows": heatmap_rows,
+            "year_total": len(heatmap_rows),
+        },
         "has_contests": True,
         "public_contest_url": public_contest_url,
         "recent_statement_rows": recent_statement_rows,

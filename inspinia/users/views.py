@@ -1,3 +1,4 @@
+from collections import Counter
 from datetime import timedelta
 from urllib.parse import urlencode
 
@@ -37,6 +38,21 @@ from inspinia.users.monitoring import sync_expired_sessions
 from inspinia.users.roles import user_has_admin_role
 
 
+def _completion_problem(completion: UserProblemCompletion):
+    if completion.statement is not None and completion.statement.linked_problem is not None:
+        return completion.statement.linked_problem
+    return completion.problem
+
+
+def _completion_label(completion: UserProblemCompletion) -> str:
+    if completion.statement is not None:
+        return completion.statement.contest_year_problem
+    problem = _completion_problem(completion)
+    if problem is not None:
+        return problem.contest_year_problem or f"{problem.contest} {problem.year} {problem.problem}"
+    return "Unknown statement"
+
+
 class UserDetailView(LoginRequiredMixin, DetailView):
     model = User
     slug_field = "id"
@@ -74,24 +90,54 @@ class PublicProfileView(LoginRequiredMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        completion_qs = UserProblemCompletion.objects.filter(user=self.object).select_related("problem")
+        completion_qs = UserProblemCompletion.objects.filter(user=self.object).select_related(
+            "problem",
+            "statement",
+            "statement__linked_problem",
+        )
+        completions = list(completion_qs)
+        completion_problems = [problem for problem in (_completion_problem(c) for c in completions) if problem is not None]
+        completion_contests = [
+            completion.statement.contest_name
+            if completion.statement is not None
+            else (_completion_problem(completion).contest if _completion_problem(completion) is not None else "")
+            for completion in completions
+        ]
+        completion_year_values = [
+            completion.statement.contest_year
+            if completion.statement is not None
+            else (_completion_problem(completion).year if _completion_problem(completion) is not None else None)
+            for completion in completions
+        ]
         today = timezone.localdate()
         last_30_days = today - timedelta(days=30)
         last_90_days = today - timedelta(days=90)
-        completion_summary = completion_qs.aggregate(
-            completed_total=Count("id"),
-            dated_total=Count("id", filter=Q(completion_date__isnull=False)),
-            unknown_date_total=Count("id", filter=Q(completion_date__isnull=True)),
-            contest_total=Count("problem__contest", distinct=True),
-            topic_total=Count("problem__topic", distinct=True),
-            avg_mohs=Avg("problem__mohs"),
-            max_mohs=Max("problem__mohs"),
-            year_min=Min("problem__year"),
-            year_max=Max("problem__year"),
-            latest_completion_date=Max("completion_date"),
-            recent_30d_total=Count("id", filter=Q(completion_date__gte=last_30_days)),
-            recent_90d_total=Count("id", filter=Q(completion_date__gte=last_90_days)),
-        )
+        dated_completions = [completion for completion in completions if completion.completion_date is not None]
+        completion_summary = {
+            "avg_mohs": (
+                sum(problem.mohs for problem in completion_problems) / len(completion_problems)
+                if completion_problems
+                else None
+            ),
+            "completed_total": len(completions),
+            "contest_total": len({contest_name for contest_name in completion_contests if contest_name}),
+            "dated_total": len(dated_completions),
+            "latest_completion_date": max(
+                (completion.completion_date for completion in dated_completions),
+                default=None,
+            ),
+            "max_mohs": max((problem.mohs for problem in completion_problems), default=None),
+            "recent_30d_total": sum(
+                1 for completion in dated_completions if completion.completion_date >= last_30_days
+            ),
+            "recent_90d_total": sum(
+                1 for completion in dated_completions if completion.completion_date >= last_90_days
+            ),
+            "topic_total": len({problem.topic for problem in completion_problems}),
+            "unknown_date_total": len(completions) - len(dated_completions),
+            "year_max": max((year_value for year_value in completion_year_values if year_value is not None), default=None),
+            "year_min": min((year_value for year_value in completion_year_values if year_value is not None), default=None),
+        }
         context["completion_import_form"] = kwargs.get(
             "completion_import_form",
             ProblemCompletionPasteForm(),
@@ -125,28 +171,27 @@ class PublicProfileView(LoginRequiredMixin, DetailView):
             "recent_90d_total": completion_summary["recent_90d_total"],
         }
 
-        top_contests = list(
-            completion_qs.values("problem__contest")
-            .annotate(total=Count("id"))
-            .order_by("-total", "problem__contest")[:5],
-        )
-        top_topics = list(
-            completion_qs.values("problem__topic")
-            .annotate(total=Count("id"))
-            .order_by("-total", "problem__topic")[:5],
-        )
-        for row in top_topics:
-            row["problem__topic"] = display_topic_label(row["problem__topic"])
-        by_mohs = list(
-            completion_qs.values("problem__mohs")
-            .annotate(total=Count("id"))
-            .order_by("problem__mohs"),
-        )
-        year_breakdown = list(
-            completion_qs.values("problem__year")
-            .annotate(total=Count("id"))
-            .order_by("-problem__year")[:6],
-        )
+        top_contests = [
+            {"problem__contest": contest_name, "total": total}
+            for contest_name, total in Counter(
+                contest_name for contest_name in completion_contests if contest_name
+            ).most_common(5)
+        ]
+        top_topics = [
+            {"problem__topic": display_topic_label(topic), "total": total}
+            for topic, total in Counter(problem.topic for problem in completion_problems).most_common(5)
+        ]
+        by_mohs = [
+            {"problem__mohs": mohs, "total": total}
+            for mohs, total in sorted(Counter(problem.mohs for problem in completion_problems).items())
+        ]
+        year_breakdown = [
+            {"problem__year": year_value, "total": total}
+            for year_value, total in sorted(
+                Counter(year_value for year_value in completion_year_values if year_value is not None).items(),
+                reverse=True,
+            )[:6]
+        ]
 
         def _with_bar_width(
             rows: list[dict],
@@ -177,28 +222,30 @@ class PublicProfileView(LoginRequiredMixin, DetailView):
             "year_breakdown": _with_bar_width(year_breakdown, "problem__year"),
         }
         recent_completion_items = []
-        recent_completion_qs = completion_qs.order_by(
-            F("completion_date").desc(nulls_last=True),
-            "-updated_at",
-            "problem__contest",
-            "-problem__year",
-            "problem__problem",
+        recent_completion_qs = sorted(
+            completions,
+            key=lambda completion: (
+                completion.completion_date is None,
+                -(completion.completion_date.toordinal() if completion.completion_date is not None else 0),
+                -completion.updated_at.timestamp(),
+                -int(completion.statement.contest_year if completion.statement is not None else 0),
+                _completion_label(completion),
+            ),
         )[:24]
         for completion in recent_completion_qs:
-            problem = completion.problem
+            problem = _completion_problem(completion)
+            statement = completion.statement
             recent_completion_items.append(
                 {
                     "completion_date": completion.completion_date,
                     "completion_known": completion.completion_date is not None,
-                    "display_label": (
-                        problem.contest_year_problem
-                        or f"{problem.contest} {problem.year} {problem.problem}"
-                    ),
-                    "problem": problem.problem,
-                    "problem_uuid": str(problem.problem_uuid),
-                    "topic": display_topic_label(problem.topic),
+                    "display_label": _completion_label(completion),
+                    "problem": statement.problem_code if statement is not None else (problem.problem if problem is not None else ""),
+                    "problem_uuid": str(problem.problem_uuid) if problem is not None else "",
+                    "statement_uuid": str(statement.statement_uuid) if statement is not None else "",
+                    "topic": display_topic_label(problem.topic) if problem is not None else "Unlinked",
                     "updated_at": completion.updated_at,
-                    "year": problem.year,
+                    "year": statement.contest_year if statement is not None else (problem.year if problem is not None else ""),
                 },
             )
         context["recent_completion_items"] = recent_completion_items

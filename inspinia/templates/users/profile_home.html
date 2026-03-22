@@ -462,7 +462,7 @@
                     <div class="profile-completion-meta">
                       <span class="problem-pill">{{ completion.topic }}</span>
                       <span class="problem-pill">{{ completion.problem }}</span>
-                      <span class="profile-completion-uuid font-monospace">{{ completion.problem_uuid }}</span>
+                      <span class="profile-completion-uuid font-monospace">{{ completion.statement_uuid|default:completion.problem_uuid }}</span>
                     </div>
                   </div>
                 {% endfor %}
@@ -476,7 +476,7 @@
               {% endif %}
             {% else %}
               <div class="alert alert-light mt-4 mb-0">
-                No completion rows yet. Paste your `PROBLEM UUID + Date` list in the import panel at the bottom to start building your history.
+                No completion rows yet. Paste your `STATEMENT UUID + Date` list in the import panel at the bottom to start building your history.
               </div>
             {% endif %}
           </div>

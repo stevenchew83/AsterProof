@@ -17,6 +17,7 @@ import pandas as pd
 from django.contrib.auth import get_user_model
 from django.db import transaction
 
+from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
 from inspinia.pages.models import UserProblemCompletion
 from inspinia.pages.problem_import import ProblemImportValidationError
@@ -29,6 +30,7 @@ if TYPE_CHECKING:
 
 
 COMPLETION_REQUIRED_COLUMNS = frozenset({"USER EMAIL", "COMPLETION DATE"})
+COMPLETION_STATEMENT_UUID_COLUMN = "STATEMENT UUID"
 COMPLETION_UUID_COLUMN = "PROBLEM UUID"
 COMPLETION_CONTEST_PROBLEM_COLUMN = "CONTEST PROBLEM"
 COMPLETION_NATURAL_KEY_COLUMNS = frozenset({"YEAR", "CONTEST", "PROBLEM"})
@@ -40,6 +42,8 @@ COMPLETION_TEXT_HEADER_LINES = frozenset(
     {
         "problem uuid date",
         "problem uuid completion date",
+        "statement uuid date",
+        "statement uuid completion date",
         "uuid date",
         "uuid completion date",
     },
@@ -51,6 +55,7 @@ class PreparedCompletionImportRow:
     user_email: str
     completion_date: date | None
     date_unknown: bool
+    statement_uuid: UUID | None
     problem_uuid: UUID | None
     year: int | None
     contest: str | None
@@ -117,12 +122,13 @@ def completion_dataframe_from_excel(source: Path | str | BinaryIO | bytes) -> pd
         )
         raise ProblemImportValidationError(msg)
 
+    has_statement_uuid = COMPLETION_STATEMENT_UUID_COLUMN in dataframe.columns
     has_uuid = COMPLETION_UUID_COLUMN in dataframe.columns
     has_natural_key = COMPLETION_NATURAL_KEY_COLUMNS.issubset(dataframe.columns)
     has_contest_problem = COMPLETION_CONTEST_PROBLEM_COLUMN in dataframe.columns
-    if not has_uuid and not has_natural_key and not has_contest_problem:
+    if not has_statement_uuid and not has_uuid and not has_natural_key and not has_contest_problem:
         msg = (
-            "Workbook must include either PROBLEM UUID, YEAR+CONTEST+PROBLEM, "
+            "Workbook must include either STATEMENT UUID, PROBLEM UUID, YEAR+CONTEST+PROBLEM, "
             "or CONTEST PROBLEM so completion rows can be matched to imported problems."
         )
         raise ProblemImportValidationError(msg)
@@ -141,6 +147,7 @@ def prepare_problem_completion_rows(
         is_valid_completion, completion_date, date_unknown = _parse_completion_value(
             row.get("COMPLETION DATE"),
         )
+        statement_uuid = _parse_problem_uuid(row.get(COMPLETION_STATEMENT_UUID_COLUMN))
         problem_uuid = _parse_problem_uuid(row.get(COMPLETION_UUID_COLUMN))
 
         if not user_email:
@@ -164,9 +171,9 @@ def prepare_problem_completion_rows(
                 contest = contest or parsed_contest or None
                 problem = problem or parsed_problem or None
 
-        if problem_uuid is None and (year is None or not contest or not problem):
+        if statement_uuid is None and problem_uuid is None and (year is None or not contest or not problem):
             warnings.append(
-                f"Skipped row for {user_email}: unable to resolve problem without PROBLEM UUID "
+                f"Skipped row for {user_email}: unable to resolve problem without STATEMENT UUID, PROBLEM UUID "
                 "or a valid YEAR/CONTEST/PROBLEM reference.",
             )
             continue
@@ -176,6 +183,7 @@ def prepare_problem_completion_rows(
                 user_email=user_email,
                 completion_date=completion_date,
                 date_unknown=date_unknown,
+                statement_uuid=statement_uuid,
                 problem_uuid=problem_uuid,
                 year=year,
                 contest=contest,
@@ -193,6 +201,7 @@ def import_problem_completion_dataframe(df: pd.DataFrame) -> ProblemCompletionIm
 
     user_model = get_user_model()
     user_cache: dict[str, Any | None] = {}
+    statement_by_uuid_cache: dict[UUID, ContestProblemStatement | None] = {}
     problem_by_uuid_cache: dict[UUID, ProblemSolveRecord | None] = {}
     problem_by_natural_key_cache: dict[tuple[int, str, str], ProblemSolveRecord | None] = {}
 
@@ -206,8 +215,18 @@ def import_problem_completion_dataframe(df: pd.DataFrame) -> ProblemCompletionIm
                 result.warnings.append(f"Skipped row for {row.user_email}: user not found.")
                 continue
 
+            statement: ContestProblemStatement | None = None
             problem: ProblemSolveRecord | None
-            if row.problem_uuid is not None:
+            if row.statement_uuid is not None:
+                if row.statement_uuid not in statement_by_uuid_cache:
+                    statement_by_uuid_cache[row.statement_uuid] = (
+                        ContestProblemStatement.objects.select_related("linked_problem")
+                        .filter(statement_uuid=row.statement_uuid)
+                        .first()
+                    )
+                statement = statement_by_uuid_cache[row.statement_uuid]
+                problem = statement.linked_problem if statement is not None else None
+            elif row.problem_uuid is not None:
                 if row.problem_uuid not in problem_by_uuid_cache:
                     problem_by_uuid_cache[row.problem_uuid] = (
                         ProblemSolveRecord.objects.filter(problem_uuid=row.problem_uuid).first()
@@ -228,22 +247,33 @@ def import_problem_completion_dataframe(df: pd.DataFrame) -> ProblemCompletionIm
                     )
                 problem = problem_by_natural_key_cache[natural_key]
 
-            if problem is None:
+            if statement is None and problem is None:
                 problem_label = (
+                    str(row.statement_uuid)
+                    if row.statement_uuid is not None
+                    else (
                     str(row.problem_uuid)
                     if row.problem_uuid is not None
                     else f"{row.year} {row.contest} {row.problem}"
+                    )
                 )
                 result.warnings.append(
                     f"Skipped row for {row.user_email}: problem not found ({problem_label}).",
                 )
                 continue
 
-            UserProblemCompletion.objects.update_or_create(
-                user=user,
-                problem=problem,
-                defaults={"completion_date": row.completion_date},
-            )
+            if statement is not None:
+                UserProblemCompletion.objects.update_or_create(
+                    user=user,
+                    statement=statement,
+                    defaults={"completion_date": row.completion_date, "problem": None},
+                )
+            else:
+                UserProblemCompletion.objects.update_or_create(
+                    user=user,
+                    problem=problem,
+                    defaults={"completion_date": row.completion_date},
+                )
             result.n_completions += 1
             if row.date_unknown:
                 result.n_unknown_dates += 1
@@ -253,6 +283,7 @@ def import_problem_completion_dataframe(df: pd.DataFrame) -> ProblemCompletionIm
 
 @dataclass
 class PreparedCurrentUserCompletionTextRow:
+    statement_uuid: UUID | None
     problem_uuid: UUID
     completion_date: date | None
     date_unknown: bool
@@ -311,6 +342,7 @@ def prepare_problem_completion_text_rows(
 
         prepared.append(
             PreparedCurrentUserCompletionTextRow(
+                statement_uuid=problem_uuid,
                 problem_uuid=problem_uuid,
                 completion_date=completion_date,
                 date_unknown=date_unknown,
@@ -325,25 +357,40 @@ def import_problem_completion_text_for_user(user, source_text: str) -> ProblemCo
     prepared, warnings = prepare_problem_completion_text_rows(source_text)
     result.warnings.extend(warnings)
 
+    statement_cache: dict[UUID, ContestProblemStatement | None] = {}
     problem_cache: dict[UUID, ProblemSolveRecord | None] = {}
     with transaction.atomic():
         for row in prepared:
+            if row.statement_uuid is not None and row.statement_uuid not in statement_cache:
+                statement_cache[row.statement_uuid] = (
+                    ContestProblemStatement.objects.select_related("linked_problem")
+                    .filter(statement_uuid=row.statement_uuid)
+                    .first()
+                )
+            statement = statement_cache.get(row.statement_uuid) if row.statement_uuid is not None else None
             if row.problem_uuid not in problem_cache:
                 problem_cache[row.problem_uuid] = (
                     ProblemSolveRecord.objects.filter(problem_uuid=row.problem_uuid).first()
                 )
             problem = problem_cache[row.problem_uuid]
-            if problem is None:
+            if statement is None and problem is None:
                 result.warnings.append(
-                    f"Skipped UUID {row.problem_uuid}: problem not found.",
+                    f"Skipped UUID {row.problem_uuid}: statement/problem not found.",
                 )
                 continue
 
-            UserProblemCompletion.objects.update_or_create(
-                user=user,
-                problem=problem,
-                defaults={"completion_date": row.completion_date},
-            )
+            if statement is not None:
+                UserProblemCompletion.objects.update_or_create(
+                    user=user,
+                    statement=statement,
+                    defaults={"completion_date": row.completion_date, "problem": None},
+                )
+            else:
+                UserProblemCompletion.objects.update_or_create(
+                    user=user,
+                    problem=problem,
+                    defaults={"completion_date": row.completion_date},
+                )
             result.n_completions += 1
             if row.date_unknown:
                 result.n_unknown_dates += 1

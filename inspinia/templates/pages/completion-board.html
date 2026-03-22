@@ -354,7 +354,7 @@
               </span>
             </div>
             <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Solved linked cells</p>
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Solved statement cells</p>
               <h3 id="completion-board-solved-total" class="mb-0">{{ completion_board_stats.solved_total }}</h3>
             </div>
           </div>
@@ -371,7 +371,7 @@
               </span>
             </div>
             <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Unsolved linked cells</p>
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Unsolved statement cells</p>
               <h3 id="completion-board-unsolved-total" class="mb-0">{{ completion_board_stats.unsolved_total }}</h3>
             </div>
           </div>
@@ -436,7 +436,7 @@
           <div>
             <h4 class="header-title mb-0">Completion matrix</h4>
             <p class="text-muted fs-xs mb-0">
-              Contest-year rows from the problem statement table. Unlinked statements stay visible, but only linked cells can be toggled.
+              Contest-year rows from the problem statement table. Every statement cell can store its own solved date, even before linking.
             </p>
           </div>
           <div class="d-flex flex-wrap align-items-center gap-2">
@@ -461,13 +461,9 @@
               <span class="completion-board-legend-swatch is-unknown"></span>
               Solved without exact date
             </span>
-            <span class="completion-board-legend-item">
-              <span class="completion-board-legend-swatch is-untrackable"></span>
-              Statement not linked yet
-            </span>
           </div>
           <p class="text-muted fs-xs mb-3">
-            Inline editor: click any linked cell for quick date actions, including a one-tap Today shortcut. Use Bulk select to apply one action across multiple visible linked cells.
+            Inline editor: click any statement cell for quick date actions, including a one-tap Today shortcut. Use Bulk select to apply one action across multiple visible cells.
           </p>
           {% if completion_board_row_window.is_partial %}
           <div class="alert alert-info d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3" role="alert">
@@ -549,7 +545,7 @@
                       type="button"
                       class="completion-board-cell is-{{ cell.state_kind }}"
                       data-problem-label="{{ cell.problem_label }}"
-                      data-problem-uuid="{{ cell.problem_uuid }}"
+                      data-statement-uuid="{{ cell.statement_uuid }}"
                       data-state-kind="{{ cell.state_kind }}"
                       data-state-label="{{ cell.state_label }}"
                       data-solved="{{ cell.is_solved|yesno:'true,false' }}"
@@ -559,12 +555,6 @@
                     >
                       <span class="visually-hidden">{{ cell.state_label }}</span>
                     </button>
-                    {% elif cell.exists %}
-                    <span
-                      class="completion-board-cell is-untrackable"
-                      title="{{ cell.title }}"
-                      aria-label="{{ cell.title }}"
-                    ></span>
                     {% else %}
                     <span class="completion-board-cell is-missing" aria-hidden="true"></span>
                     {% endif %}
@@ -692,7 +682,7 @@
   var activeRowEl = null;
   var bulkModeEnabled = false;
   var bulkBusy = false;
-  var selectedProblemUuids = new Set();
+  var selectedStatementUuids = new Set();
 
   function setError(message) {
     if (!message) {
@@ -747,7 +737,7 @@
     var hasUnsolved = false;
     var hasUnknown = false;
 
-    rowEl.querySelectorAll("button[data-problem-uuid]").forEach(function (button) {
+    rowEl.querySelectorAll("button[data-statement-uuid]").forEach(function (button) {
       if (button.classList.contains("is-solved")) {
         hasSolved = true;
         return;
@@ -783,22 +773,22 @@
   function setBulkBusy(isBusy) {
     bulkBusy = isBusy;
     bulkModeToggleButton.disabled = isBusy;
-    bulkTodayButton.disabled = isBusy || selectedProblemUuids.size === 0;
-    bulkSaveUnknownButton.disabled = isBusy || selectedProblemUuids.size === 0;
-    bulkClearButton.disabled = isBusy || selectedProblemUuids.size === 0;
+    bulkTodayButton.disabled = isBusy || selectedStatementUuids.size === 0;
+    bulkSaveUnknownButton.disabled = isBusy || selectedStatementUuids.size === 0;
+    bulkClearButton.disabled = isBusy || selectedStatementUuids.size === 0;
     bulkCancelButton.disabled = isBusy;
-    bulkDateInput.disabled = isBusy || selectedProblemUuids.size === 0;
-    bulkSaveDateButton.disabled = isBusy || selectedProblemUuids.size === 0;
+    bulkDateInput.disabled = isBusy || selectedStatementUuids.size === 0;
+    bulkSaveDateButton.disabled = isBusy || selectedStatementUuids.size === 0;
   }
 
   function syncSelectedButtons() {
-    board.querySelectorAll("button[data-problem-uuid]").forEach(function (button) {
-      button.classList.toggle("is-selected", selectedProblemUuids.has(button.dataset.problemUuid));
+    board.querySelectorAll("button[data-statement-uuid]").forEach(function (button) {
+      button.classList.toggle("is-selected", selectedStatementUuids.has(button.dataset.statementUuid));
     });
   }
 
   function syncBulkBarState() {
-    selectedCountEl.textContent = String(selectedProblemUuids.size);
+    selectedCountEl.textContent = String(selectedStatementUuids.size);
     bulkBar.classList.toggle("d-none", !bulkModeEnabled);
     bulkModeToggleButton.classList.toggle("btn-primary", bulkModeEnabled);
     bulkModeToggleButton.classList.toggle("btn-outline-primary", !bulkModeEnabled);
@@ -807,7 +797,7 @@
   }
 
   function clearBulkSelection() {
-    selectedProblemUuids.clear();
+    selectedStatementUuids.clear();
     syncSelectedButtons();
     syncBulkBarState();
   }
@@ -895,7 +885,7 @@
       body: new URLSearchParams({
         action: action,
         completion_date: inlineDateInput.value,
-        problem_uuid: buttonRef.dataset.problemUuid
+        statement_uuid: buttonRef.dataset.statementUuid
       }).toString()
     })
       .then(function (response) {
@@ -937,7 +927,7 @@
 
   function submitBulkAction(action, completionDate) {
     var selectedButtons = Array.from(
-      board.querySelectorAll("button[data-problem-uuid].is-selected")
+      board.querySelectorAll("button[data-statement-uuid].is-selected")
     );
     if (!selectedButtons.length || bulkBusy) return;
     if (action === "set_date" && !completionDate) {
@@ -947,7 +937,7 @@
 
     var buttonMetaByUuid = new Map();
     selectedButtons.forEach(function (button) {
-      buttonMetaByUuid.set(button.dataset.problemUuid, {
+      buttonMetaByUuid.set(button.dataset.statementUuid, {
         button: button,
         rowEl: button.closest("tr"),
         wasSolved: button.dataset.solved === "true"
@@ -964,8 +954,8 @@
       action: action,
       completion_date: completionDate || ""
     });
-    buttonMetaByUuid.forEach(function (_meta, problemUuid) {
-      params.append("problem_uuid", problemUuid);
+    buttonMetaByUuid.forEach(function (_meta, statementUuid) {
+      params.append("statement_uuid", statementUuid);
     });
 
     fetch(bulkUrl, {
@@ -992,7 +982,7 @@
         var rowDeltas = new Map();
 
         (payload.updated || []).forEach(function (item) {
-          var meta = buttonMetaByUuid.get(item.problem_uuid);
+          var meta = buttonMetaByUuid.get(item.statement_uuid);
           if (!meta) return;
           renderCellState(meta.button, item);
           syncRowStateFlags(meta.rowEl);
@@ -1028,14 +1018,14 @@
   }
 
   board.addEventListener("click", function (event) {
-    var button = event.target.closest("button[data-problem-uuid]");
+    var button = event.target.closest("button[data-statement-uuid]");
     if (!button || button.classList.contains("is-pending")) return;
     if (bulkModeEnabled) {
-      var problemUuid = button.dataset.problemUuid;
-      if (selectedProblemUuids.has(problemUuid)) {
-        selectedProblemUuids.delete(problemUuid);
+      var statementUuid = button.dataset.statementUuid;
+      if (selectedStatementUuids.has(statementUuid)) {
+        selectedStatementUuids.delete(statementUuid);
       } else {
-        selectedProblemUuids.add(problemUuid);
+        selectedStatementUuids.add(statementUuid);
       }
       syncSelectedButtons();
       syncBulkBarState();
@@ -1094,7 +1084,7 @@
   document.addEventListener("click", function (event) {
     if (inlineEditorEl.classList.contains("d-none")) return;
     if (inlineEditorEl.contains(event.target)) return;
-    if (event.target.closest("button[data-problem-uuid]")) return;
+    if (event.target.closest("button[data-statement-uuid]")) return;
     hideInlineEditor();
   });
 

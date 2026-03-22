@@ -250,6 +250,7 @@ class ProblemTopicTechnique(models.Model):
 
 
 class ContestProblemStatement(models.Model):
+    statement_uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
     problem_uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
     linked_problem = models.ForeignKey(
         ProblemSolveRecord,
@@ -354,8 +355,17 @@ class UserProblemCompletion(models.Model):
         on_delete=models.CASCADE,
         related_name="problem_completions",
     )
+    statement = models.ForeignKey(
+        ContestProblemStatement,
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="user_completions",
+    )
     problem = models.ForeignKey(
         ProblemSolveRecord,
+        null=True,
+        blank=True,
         on_delete=models.CASCADE,
         related_name="user_completions",
     )
@@ -367,14 +377,27 @@ class UserProblemCompletion(models.Model):
         ordering = ["-completion_date", "user_id", "problem_id"]
         constraints = [
             models.UniqueConstraint(
+                fields=["user", "statement"],
+                name="pages_userproblemcompletion_unique_user_statement",
+            ),
+            models.UniqueConstraint(
                 fields=["user", "problem"],
                 name="pages_userproblemcompletion_unique_user_problem",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(statement__isnull=False) | models.Q(problem__isnull=False),
+                name="pages_userproblemcompletion_requires_statement_or_problem",
             ),
         ]
 
     def __str__(self) -> str:
+        if self.statement is not None:
+            label = self.statement.contest_year_problem
+        elif self.problem is not None:
+            label = f"{self.problem.contest} {self.problem.year} {self.problem.problem}"
+        else:
+            label = "unknown problem"
         return (
-            f"{self.user.email} completed {self.problem.contest} "
-            f"{self.problem.year} {self.problem.problem} on "
+            f"{self.user.email} completed {label} on "
             f"{self.completion_date.isoformat() if self.completion_date else 'unknown date'}"
         )

@@ -150,8 +150,8 @@ class ProblemCompletionPasteForm(forms.Form):
         label="Completion rows",
         strip=False,
         help_text=(
-            "Paste lines like `PROBLEM UUID<TAB>2025-08-28`. "
-            "You can also use `Done` when the problem is completed but the exact date is unknown."
+            "Paste lines like `STATEMENT UUID<TAB>2025-08-28`. "
+            "Legacy `PROBLEM UUID` rows still work, and you can use `Done` when the exact date is unknown."
         ),
         widget=forms.Textarea(
             attrs={
@@ -159,7 +159,7 @@ class ProblemCompletionPasteForm(forms.Form):
                 "rows": 12,
                 "spellcheck": "false",
                 "placeholder": (
-                    "PROBLEM UUID\tDate\n"
+                    "STATEMENT UUID\tDate\n"
                     "003d6ee5-ded7-47f9-a901-f78ea9c5788b\t2025-08-28\n"
                     "009792e6-3039-4a52-b5d3-2ff3a32d5287\tDone"
                 ),

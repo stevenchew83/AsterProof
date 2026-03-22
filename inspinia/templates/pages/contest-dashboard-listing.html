@@ -434,7 +434,7 @@
                       <span class="text-muted fs-xs">—</span>
                       {% endif %}
                     </td>
-                    <td class="text-nowrap js-status-cell" data-sort-value="{% if not problem.is_linked %}-1-unlinked{% elif problem.completion_known %}2-{{ problem.completion_date|date:'Y-m-d' }}{% elif problem.is_completed %}1-unknown{% else %}0-unsolved{% endif %}">
+                    <td class="text-nowrap js-status-cell" data-sort-value="{% if problem.completion_known %}2-{{ problem.completion_date|date:'Y-m-d' }}{% elif problem.is_completed %}1-unknown{% else %}0-unsolved{% endif %}">
                       <span
                         class="badge js-contest-problem-status {% if problem.completion_state_kind == 'solved' %}bg-success-subtle text-success border border-success-subtle{% elif problem.completion_state_kind == 'unknown' %}bg-info-subtle text-info border border-info-subtle{% else %}bg-light text-dark border{% endif %}"
                         title="{{ problem.completion_state_label }}"
@@ -443,18 +443,15 @@
                         {{ problem.completion_display }}
                         {% elif problem.completion_state_kind == 'unknown' %}
                         Unknown date
-                        {% elif problem.completion_state_kind == 'untrackable' %}
-                        Unlinked
                         {% else %}
                         Open
                         {% endif %}
                       </span>
                     </td>
-                    <td class="js-solved-date-cell" data-sort-value="{% if not problem.is_linked %}-1-unlinked{% elif problem.completion_known %}2-{{ problem.completion_date|date:'Y-m-d' }}{% elif problem.is_completed %}1-unknown{% else %}0-unsolved{% endif %}">
-                      {% if problem.is_linked %}
+                    <td class="js-solved-date-cell" data-sort-value="{% if problem.completion_known %}2-{{ problem.completion_date|date:'Y-m-d' }}{% elif problem.is_completed %}1-unknown{% else %}0-unsolved{% endif %}">
                       <div
                         class="completion-editor"
-                        data-problem-uuid="{{ problem.problem_uuid }}"
+                        data-statement-uuid="{{ problem.statement_uuid }}"
                         data-problem-label="{{ problem.label }}"
                       >
                         <div class="mb-2">
@@ -478,9 +475,6 @@
                         </div>
                         <div class="text-danger fs-xs mt-2 d-none js-completion-error"></div>
                       </div>
-                      {% else %}
-                      <span class="text-muted fs-xs">Link a problem first</span>
-                      {% endif %}
                     </td>
                   </tr>
                   {% endfor %}
@@ -750,7 +744,7 @@
         body: new URLSearchParams({
           action: action,
           completion_date: completionDate || "",
-          problem_uuid: editor.dataset.problemUuid || ""
+          statement_uuid: editor.dataset.statementUuid || ""
         }).toString()
       })
         .then(function (response) {

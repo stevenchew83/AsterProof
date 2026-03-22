@@ -3114,6 +3114,20 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
     assert response.context["contest_stats"]["statement_row_total"] == 2
     assert response.context["contest_stats"]["published_solution_total"] == 1
     assert response.context["public_contest_url"] == reverse("pages:contest_problem_list", args=["usamo"])
+    heatmap = response.context["contest_completion_heatmap"]
+    assert heatmap["problem_codes"] == ["P1", "P2"]
+    heatmap_2026 = next(row for row in heatmap["rows"] if row["year"] == 2026)
+    heatmap_2025 = next(row for row in heatmap["rows"] if row["year"] == 2025)
+    heatmap_2026_p1 = next(cell for cell in heatmap_2026["cells"] if cell["problem_code"] == "P1")
+    heatmap_2026_p2 = next(cell for cell in heatmap_2026["cells"] if cell["problem_code"] == "P2")
+    heatmap_2025_p1 = next(cell for cell in heatmap_2025["cells"] if cell["problem_code"] == "P1")
+    heatmap_2025_p2 = next(cell for cell in heatmap_2025["cells"] if cell["problem_code"] == "P2")
+    assert heatmap_2026_p1["state"] == "solved"
+    assert heatmap_2026_p1["display"] == "✓"
+    assert heatmap_2026_p2["state"] == "empty"
+    assert heatmap_2025_p1["state"] == "empty"
+    assert heatmap_2025_p2["state"] == "unsolved"
+    assert heatmap_2025_p2["display"] == "•"
     year_2026 = next(row for row in response.context["year_rows"] if row["year"] == 2026)
     year_2025 = next(row for row in response.context["year_rows"] if row["year"] == 2025)
     assert year_2026["problem_count"] == 1
@@ -3132,6 +3146,8 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
     )
     response_html = response.content.decode("utf-8")
     assert "Contest advanced analytics" in response_html
+    assert "Completion heatmap" in response_html
+    assert "Solved by at least one user" in response_html
     assert "Year breakdown" in response_html
     assert "Statement-linked" in response_html
     assert "Solved" in response_html
@@ -3263,7 +3279,7 @@ def test_contest_dashboard_listing_hides_inactive_statement_rows(client):
     assert "Hidden statement" not in response_html
 
 
-def test_contest_dashboard_listing_shows_unlinked_statement_rows_read_only(client):
+def test_contest_dashboard_listing_shows_unlinked_statement_rows_with_completion_controls(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
     statement = ContestProblemStatement.objects.create(
@@ -3288,14 +3304,47 @@ def test_contest_dashboard_listing_shows_unlinked_statement_rows_read_only(clien
     row = grouped_years[0]["problems"][0]
     assert row["statement_id"] == statement.id
     assert row["is_linked"] is False
-    assert row["completion_state_kind"] == "untrackable"
-    assert row["completion_display"] == "Unlinked"
+    assert row["completion_state_kind"] == "unsolved"
+    assert row["completion_display"] == "Unsolved"
     back_response = client.get(response.context["contest_back_url"])
     assert back_response.status_code == HTTPStatus.OK
     assert back_response.context["selected_contest"] == "JBMO Shortlist"
     response_html = response.content.decode("utf-8")
     assert "Unlinked statement row" in response_html
-    assert "Link a problem first" in response_html
+    assert "js-completion-save" in response_html
+    assert "Link a problem first" not in response_html
+
+
+def test_completion_board_toggle_accepts_statement_uuid_for_unlinked_statement(client):
+    user = UserFactory()
+    client.force_login(user)
+    statement = ContestProblemStatement.objects.create(
+        contest_year=2024,
+        contest_name="JBMO Shortlist",
+        problem_number=7,
+        problem_code="P7",
+        day_label="Number Theory",
+        statement_latex="Unlinked statement row",
+        is_active=True,
+    )
+
+    response = client.post(
+        reverse("pages:completion_board_toggle"),
+        {
+            "action": "set_unknown",
+            "statement_uuid": str(statement.statement_uuid),
+        },
+        HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    payload = response.json()
+    assert payload["statement_uuid"] == str(statement.statement_uuid)
+    assert payload["is_solved"] is True
+    assert payload["state_kind"] == "unknown"
+    completion = UserProblemCompletion.objects.get(user=user, statement=statement)
+    assert completion.problem is None
+    assert completion.completion_date is None
 
 
 def test_contest_dashboard_listing_bulk_update_sets_selected_rows_inactive(client):
@@ -4376,7 +4425,7 @@ def test_problem_statement_list_completion_toggle_updates_user_completion_date(c
         problem="P1",
         contest_year_problem=f"{SPAIN_OLYMPIAD_NAME} {SPAIN_OLYMPIAD_YEAR} P1",
     )
-    ContestProblemStatement.objects.create(
+    statement = ContestProblemStatement.objects.create(
         contest_year=SPAIN_OLYMPIAD_YEAR,
         contest_name=SPAIN_OLYMPIAD_NAME,
         problem_number=1,
@@ -4402,7 +4451,9 @@ def test_problem_statement_list_completion_toggle_updates_user_completion_date(c
     assert payload["is_solved"] is True
     assert payload["state_kind"] == "solved"
     assert payload["state_label"] == "Solved on 2025-08-28"
-    completion = UserProblemCompletion.objects.get(user=user, problem=linked_record)
+    assert payload["statement_uuid"] == str(statement.statement_uuid)
+    completion = UserProblemCompletion.objects.get(user=user, statement=statement)
+    assert completion.problem is None
     assert completion.completion_date == date(2025, 8, 28)
 
 
