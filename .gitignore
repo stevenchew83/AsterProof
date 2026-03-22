@@ -191,6 +191,7 @@ $RECYCLE.BIN/
 *.DS_Store
 .AppleDouble
 .LSOverride
+.worktrees/
 
 # Icon must end with two \r
 Icon
