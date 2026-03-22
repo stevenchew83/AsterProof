@@ -23,12 +23,6 @@
     margin-top: 0.35rem;
   }
 
-  .statement-duplicate-members {
-    white-space: pre-line;
-    font-size: 0.84rem;
-    line-height: 1.55;
-  }
-
   .statement-duplicate-cell-title {
     font-weight: 600;
   }
@@ -277,14 +271,6 @@
             return renderStatementCell((row.statement_length || 0) + " chars", data || "");
           }
         },
-        {
-          data: "members_text",
-          title: "Matched rows",
-          render: function (data, type) {
-            if (type !== "display") return data;
-            return '<div class="statement-duplicate-members">' + escapeHtml(data).replace(/\n/g, "<br>") + "</div>";
-          }
-        }
       ],
       order: [[0, "desc"], [1, "desc"], [2, "asc"]],
       pageLength: 25,

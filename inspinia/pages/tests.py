@@ -3028,6 +3028,7 @@ def test_latex_preview_allows_authenticated_access(client):
     assert response.status_code == HTTPStatus.OK
     response_html = response.content.decode("utf-8")
     assert "LaTeX preview" in response_html
+    assert 'textbullet: "\\\\bullet"' in response_html
     assert 'hdots: "\\\\dots"' in response_html
     assert 'overarc: ["\\\\overset{\\\\frown}{#1}", 1]' in response_html
     assert 'vspace: ["\\\\kern0pt", 1]' in response_html
@@ -3938,8 +3939,6 @@ def test_problem_statement_duplicates_detects_exact_and_similar_matches_for_admi
     exact_rows = response.context["statement_duplicate_exact_rows"]
     assert len(exact_rows) == 1
     assert exact_rows[0]["duplicate_count"] == 2
-    assert "USAMO 2024 P1" in exact_rows[0]["members_text"]
-    assert "USA TST 2025 P4" in exact_rows[0]["members_text"]
     similar_rows = response.context["statement_duplicate_similar_rows"]
     assert len(similar_rows) == 1
     assert similar_rows[0]["similarity_percent"] >= 90
@@ -5546,6 +5545,7 @@ def test_contest_problem_list_shows_imported_statement_text(client):
     assert first_problem["statement_latex"] == "Prove that $1+1=2$."
     content = response.content.decode("utf-8")
     assert 'id="contest-problem-table"' in content
+    assert 'textbullet: "\\\\bullet"' in content
     assert "sortable table layout" in content
     assert "Prove that $1+1=2$." in content
     assert 'footnotesize: ""' in content
