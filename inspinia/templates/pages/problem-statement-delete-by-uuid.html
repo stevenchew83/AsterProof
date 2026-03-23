@@ -1,0 +1,65 @@
+{% extends 'layouts/vertical.html' %}
+
+{% load i18n %}
+
+{% block title %}Delete statement by UUID{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+
+  {% include 'partials/page-title.html' with title='Delete statement by UUID' subtitle='Permanent removal of one ContestProblemStatement row' %}
+
+  {% if messages %}
+  <div class="mt-3">
+    {% for message in messages %}
+      <div class="alert alert-{% if message.tags == 'error' %}danger{% elif message.tags == 'debug' %}secondary{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="{% translate 'Close' %}"></button>
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="row g-3 mt-1">
+    <div class="col-lg-8 col-xl-6">
+      <div class="card">
+        <div class="card-header border-bottom">
+          <h4 class="header-title mb-0">Remove a statement row</h4>
+        </div>
+        <div class="card-body">
+          <p class="text-muted">
+            The statement UUID is the stable identifier for one imported row (see Statement editor, metadata export, or completion paste).
+            This action deletes that <code>ContestProblemStatement</code> record only. Linked analytics problems are not deleted; the link on this row is simply removed with the row.
+          </p>
+          <p class="text-muted">
+            Related data removed with the row: statement technique tags and user completions that reference this statement (CASCADE).
+          </p>
+          <form method="post" class="mt-3" novalidate>
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger" role="alert">
+              {{ form.non_field_errors }}
+            </div>
+            {% endif %}
+            <div class="mb-3">
+              <label class="form-label" for="{{ form.statement_uuid.id_for_label }}">{{ form.statement_uuid.label }}</label>
+              {{ form.statement_uuid }}
+              {% if form.statement_uuid.errors %}
+              <div class="invalid-feedback d-block">{{ form.statement_uuid.errors|join:" " }}</div>
+              {% endif %}
+            </div>
+            <div class="mb-3 form-check">
+              {{ form.confirm_delete }}
+              <label class="form-check-label" for="{{ form.confirm_delete.id_for_label }}">{{ form.confirm_delete.label }}</label>
+              {% if form.confirm_delete.errors %}
+              <div class="invalid-feedback d-block">{{ form.confirm_delete.errors|join:" " }}</div>
+              {% endif %}
+            </div>
+            <button type="submit" class="btn btn-danger">Delete statement row</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock page_content %}

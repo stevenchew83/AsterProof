@@ -96,6 +96,8 @@
   </div>
   {% endif %}
 
+  <div id="statement-editor-save-notice" class="alert d-none mt-3" role="status" aria-live="polite"></div>
+
   <div class="row g-3 mt-0">
     <div class="col-sm-6 col-xl-3">
       <div class="card m-0">
@@ -174,7 +176,7 @@
           <div class="flex-grow-1">
             <h4 class="header-title mb-0">Edit raw statement rows</h4>
             <p class="text-muted fs-xs mb-0">
-              Review imported statement text, inspect immutable UUIDs, and save metadata or raw text updates for existing rows. Link changes belong on the <a href="{% url 'pages:problem_statement_linker' %}">Statement links</a> page.
+              Review imported statement text, inspect immutable UUIDs, and save metadata, contest identity, or raw statement text. Choose links on <a href="{% url 'pages:problem_statement_linker' %}">Statement links</a>; changing contest year, contest name, or problem code on a linked row clears that link automatically.
             </p>
           </div>
           <span id="statement-editor-total-badge" class="badge text-bg-light">{{ statement_editor_total }} rows</span>
@@ -242,7 +244,7 @@
       <div class="modal-header">
         <div>
           <h5 class="modal-title" id="statement-editor-modal-label">Statement row</h5>
-          <p class="text-muted fs-xs mb-0">Identifiers are read only here. Use Statement links for link edits; this modal saves metadata and raw statement text only.</p>
+          <p class="text-muted fs-xs mb-0">Statement UUID and problem UUID are fixed. You may edit contest identity and statement text; if the row is linked, changing contest year, contest name, or problem code clears the link so you can relink on Statement links.</p>
         </div>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% translate 'Close' %}"></button>
       </div>
@@ -312,7 +314,7 @@
         </form>
       </div>
       <div class="modal-footer d-flex justify-content-between">
-        <p class="text-muted fs-xs mb-0">Link relationships stay read only on this page.</p>
+        <p class="text-muted fs-xs mb-0">Direct link/unlink is on Statement links; identity edits here may clear an existing link.</p>
         <div class="d-flex gap-2">
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
           <button type="submit" form="statement-editor-form" id="statement-editor-save" class="btn btn-primary">Save changes</button>
@@ -721,6 +723,15 @@
         .then(function (result) {
           if (result.ok && result.payload && result.payload.ok && result.payload.row) {
             replaceTableRow(result.payload.row);
+            var notice = document.getElementById("statement-editor-save-notice");
+            if (notice && result.payload.message) {
+              notice.textContent = result.payload.message;
+              notice.classList.remove("d-none", "alert-success", "alert-info", "alert-warning");
+              notice.classList.add(
+                result.payload.link_cleared ? "alert-info" : "alert-success"
+              );
+              notice.scrollIntoView({ block: "nearest", behavior: "smooth" });
+            }
             if (modal) {
               modal.hide();
             }

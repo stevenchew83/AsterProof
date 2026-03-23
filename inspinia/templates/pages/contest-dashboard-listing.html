@@ -469,6 +469,7 @@
                         <input
                           type="date"
                           class="form-control form-control-sm js-completion-date"
+                          title="Pick a date or paste YYYY-MM-DD (e.g. 2025-11-27)."
                           value="{% if problem.completion_known %}{{ problem.completion_date|date:'Y-m-d' }}{% endif %}"
                         >
                         <div class="d-flex flex-wrap gap-1 mt-2">
@@ -693,6 +694,26 @@
         el.disabled = isBusy;
       });
     }
+
+    function isoDateFromClipboardText(text) {
+      if (!text) return null;
+      var match = String(text).trim().match(/^(\d{4}-\d{2}-\d{2})\b/);
+      return match ? match[1] : null;
+    }
+
+    document.addEventListener(
+      "paste",
+      function (event) {
+        var el = event.target;
+        if (!el || !el.classList || !el.classList.contains("js-completion-date")) return;
+        var pasted = (event.clipboardData || window.clipboardData).getData("text/plain");
+        var iso = isoDateFromClipboardText(pasted);
+        if (!iso) return;
+        event.preventDefault();
+        el.value = iso;
+      },
+      true
+    );
 
     function applyPayload(editor, payload) {
       var displayEl = editor.querySelector(".js-completion-display");

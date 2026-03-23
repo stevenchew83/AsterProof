@@ -18,6 +18,7 @@ from inspinia.pages.views import problem_detail_view
 from inspinia.pages.views import problem_import_view
 from inspinia.pages.views import problem_list_view
 from inspinia.pages.views import problem_statement_analytics_view
+from inspinia.pages.views import problem_statement_delete_by_uuid_view
 from inspinia.pages.views import problem_statement_duplicate_view
 from inspinia.pages.views import problem_statement_editor_update_view
 from inspinia.pages.views import problem_statement_editor_view
@@ -84,6 +85,11 @@ urlpatterns = [
         "tools/problem-statements/duplicates/",
         problem_statement_duplicate_view,
         name="problem_statement_duplicates",
+    ),
+    path(
+        "tools/problem-statements/delete-by-uuid/",
+        problem_statement_delete_by_uuid_view,
+        name="problem_statement_delete_by_uuid",
     ),
     path(
         "tools/problem-statements/metadata/",

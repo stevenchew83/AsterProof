@@ -35,6 +35,9 @@ from inspinia.pages.statement_analytics_sync import sync_statement_analytics_fro
 from inspinia.pages.statement_import import LATEX_STATEMENT_SAMPLE
 from inspinia.pages.statement_import import import_problem_statements
 from inspinia.pages.statement_import import parse_contest_problem_statements
+from inspinia.pages.statement_metadata_backfill import StatementMetadataBackfillValidationError
+from inspinia.pages.statement_metadata_backfill import import_statement_metadata_dataframe
+from inspinia.pages.statement_metadata_backfill import statement_metadata_dataframe_from_rows
 from inspinia.solutions.models import ProblemSolution
 from inspinia.users.models import User
 from inspinia.users.tests.factories import UserFactory
@@ -3040,7 +3043,7 @@ def test_problem_statement_editor_rejects_duplicate_statement_key_for_admin(clie
     }
 
 
-def test_problem_statement_editor_rejects_link_identity_changes_for_linked_row(client):
+def test_problem_statement_editor_clears_link_when_identity_changes_for_linked_row(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
     linked_problem = ProblemSolveRecord.objects.create(
@@ -3060,7 +3063,6 @@ def test_problem_statement_editor_rejects_link_identity_changes_for_linked_row(c
         day_label="Day 1",
         statement_latex="Original statement",
     )
-    original_linked_problem_id = statement.linked_problem_id
 
     response = client.post(
         reverse("pages:problem_statement_editor_update"),
@@ -3076,20 +3078,16 @@ def test_problem_statement_editor_rejects_link_identity_changes_for_linked_row(c
         },
     )
 
-    assert response.status_code == HTTPStatus.BAD_REQUEST
-    assert response.json() == {
-        "errors": {
-            "__all__": [
-                "Linked rows cannot change contest year, contest name, or problem code here. Use Statement links to clear or relink the row first.",
-            ],
-        },
-        "ok": False,
-    }
+    assert response.status_code == HTTPStatus.OK
+    payload = response.json()
+    assert payload["ok"] is True
+    assert payload["link_cleared"] is True
+    assert "cleared" in payload["message"].lower()
     statement.refresh_from_db()
-    assert statement.linked_problem_id == original_linked_problem_id
-    assert statement.contest_year == 2025
-    assert statement.contest_name == "IMO"
-    assert statement.problem_code == "P1"
+    assert statement.linked_problem_id is None
+    assert statement.contest_year == 2026
+    assert statement.contest_name == "Romanian Master of Mathematics"
+    assert statement.problem_code == "P7"
 
 
 def test_problem_statement_editor_rejects_blank_problem_code_when_default_code_conflicts(client):
@@ -3229,7 +3227,9 @@ def test_problem_statement_editor_updates_linked_row_without_identity_changes_fo
     )
 
     assert response.status_code == HTTPStatus.OK
-    assert response.json()["ok"] is True
+    payload = response.json()
+    assert payload["ok"] is True
+    assert payload.get("link_cleared") is False
 
     statement.refresh_from_db()
     assert statement.contest_year == 2024
@@ -3321,6 +3321,88 @@ def test_problem_statement_editor_forbids_non_admin_access_when_debug_is_off(cli
     response = client.get(reverse("pages:problem_statement_editor"))
 
     assert response.status_code == HTTPStatus.FORBIDDEN
+
+
+def test_problem_statement_delete_by_uuid_page_renders_for_admin(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+
+    response = client.get(reverse("pages:problem_statement_delete_by_uuid"))
+
+    assert response.status_code == HTTPStatus.OK
+    assert "Delete statement by UUID" in response.content.decode()
+
+
+@override_settings(DEBUG=False)
+def test_problem_statement_delete_by_uuid_forbids_non_admin_when_debug_is_off(client):
+    user = UserFactory()
+    client.force_login(user)
+
+    response = client.get(reverse("pages:problem_statement_delete_by_uuid"))
+
+    assert response.status_code == HTTPStatus.FORBIDDEN
+
+
+def test_problem_statement_delete_by_uuid_requires_login(client):
+    response = client.get(reverse("pages:problem_statement_delete_by_uuid"))
+    login_url = reverse(settings.LOGIN_URL)
+
+    assert response.status_code == HTTPStatus.FOUND
+    assert response.url == f"{login_url}?next={reverse('pages:problem_statement_delete_by_uuid')}"
+
+
+def test_problem_statement_delete_by_uuid_unknown_uuid_shows_error(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+
+    response = client.post(
+        reverse("pages:problem_statement_delete_by_uuid"),
+        {
+            "statement_uuid": str(uuid.uuid4()),
+            "confirm_delete": "on",
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert "No statement row has this statement UUID" in response.content.decode()
+
+
+def test_problem_statement_delete_by_uuid_removes_statement_and_cascades(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    statement = ContestProblemStatement.objects.create(
+        contest_year=2025,
+        contest_name="IMO",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="To delete",
+    )
+    statement_pk = statement.pk
+    statement_uuid = statement.statement_uuid
+    StatementTopicTechnique.objects.create(statement=statement, technique="CIRCLES", domains=["GEO"])
+    UserProblemCompletion.objects.create(
+        user=admin_user,
+        statement=statement,
+        problem=None,
+        completion_date=date(2025, 8, 1),
+    )
+
+    response = client.post(
+        reverse("pages:problem_statement_delete_by_uuid"),
+        {
+            "statement_uuid": str(statement_uuid),
+            "confirm_delete": "on",
+        },
+        follow=True,
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert not ContestProblemStatement.objects.filter(pk=statement_pk).exists()
+    assert not StatementTopicTechnique.objects.filter(statement_id=statement_pk).exists()
+    assert not UserProblemCompletion.objects.filter(user=admin_user).exists()
+    assert "Deleted statement row" in response.content.decode()
+    assert str(statement_uuid) in response.content.decode()
 
 
 @override_settings(DEBUG=False)
@@ -4766,7 +4848,9 @@ def test_problem_statement_list_shows_statement_rows_and_link_counts(client):
     assert linked_row["problem_destination_label"] == "Start"
     response_html = response.content.decode("utf-8")
     assert "function renderTopicTagsCell(value)" in response_html
-    assert 'join("<br>")' in response_html
+    assert "formatTopicTags(value)" in response_html
+    assert "topic-tags-cell" in response_html
+    assert "maxLen = 30" in response_html
     assert linked_row["problem_destination_url"] == reverse(
         "solutions:problem_solution_edit",
         args=[linked_record.problem_uuid],
@@ -4787,7 +4871,11 @@ def test_problem_statement_list_shows_statement_rows_and_link_counts(client):
     assert 'data: "linked_problem_topic"' in response_html
     assert 'data: "problem_code"' in response_html
     assert 'title: "Problem code"' in response_html
+    assert 'data: "day_label"' in response_html
+    assert 'title: "Day"' in response_html
     assert 'data: "user_completion_display"' in response_html
+    assert 'data: "linked_problem_confidence"' in response_html
+    assert 'title: "Confidence"' in response_html
     assert 'data: "problem_destination_url"' in response_html
     assert 'title: "Solution"' in response_html
     assert 'title: "Chars"' not in response_html
@@ -6165,7 +6253,7 @@ def test_problem_statement_metadata_page_imports_workbook_with_blank_fields_for_
     )
 
 
-def test_problem_statement_metadata_import_ignores_statement_identity_columns_from_sheet(client):
+def test_problem_statement_metadata_import_applies_statement_identity_columns_from_sheet(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
     existing_problem = ProblemSolveRecord.objects.create(
@@ -6215,11 +6303,257 @@ def test_problem_statement_metadata_import_ignores_statement_identity_columns_fr
     assert response.status_code == HTTPStatus.OK
     statement.refresh_from_db()
     existing_problem.refresh_from_db()
-    assert statement.day_label == ""
-    assert statement.problem_code == "P1"
-    assert statement.contest_year_problem == "JBMO Shortlist 2013 P1"
-    assert existing_problem.problem == "P1"
-    assert existing_problem.contest_year_problem == "JBMO Shortlist 2013 P1"
+    assert statement.day_label == "Algebra track"
+    assert statement.problem_code == "A1"
+    assert statement.contest_year_problem == "JBMO Shortlist 2013 A1"
+    assert existing_problem.problem == "A1"
+    assert existing_problem.contest_year_problem == "JBMO Shortlist 2013 A1"
+
+
+def test_problem_statement_metadata_import_paste_identity_only_rows_are_not_skipped(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    existing_problem = ProblemSolveRecord.objects.create(
+        year=2011,
+        topic="A",
+        mohs=10,
+        contest="IMO Shortlist",
+        problem="P1",
+        contest_year_problem="IMO Shortlist 2011 P1",
+    )
+    statement = ContestProblemStatement.objects.create(
+        linked_problem=existing_problem,
+        contest_year=2011,
+        contest_name="IMO Shortlist",
+        problem_number=1,
+        problem_code="P1",
+        day_label="",
+        statement_latex="Shortlist body",
+    )
+
+    response = client.post(
+        reverse("pages:problem_statement_metadata"),
+        {
+            "replace_tags": "on",
+            "source_text": (
+                "STATEMENT UUID\tPROBLEM UUID\tCONTEST YEAR\tCONTEST NAME\tCONTEST PROBLEM\t"
+                "DAY LABEL\tPROBLEM NUMBER\tPROBLEM CODE\n"
+                f"{statement.statement_uuid}\t{statement.problem_uuid}\t2011\tIMO Shortlist\t"
+                "IMO Shortlist 2011 P1\tAlgebra\t1\tA1\n"
+            ),
+        },
+        follow=True,
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    statement.refresh_from_db()
+    existing_problem.refresh_from_db()
+    assert statement.day_label == "Algebra"
+    assert statement.problem_code == "A1"
+    assert statement.contest_year_problem == "IMO Shortlist 2011 A1"
+    assert existing_problem.topic == "A"
+    assert existing_problem.mohs == 10
+    assert existing_problem.problem == "A1"
+    assert any(
+        "Statement metadata import finished. Processed 1 row(s)" in str(message)
+        for message in response.context["messages"]
+    )
+
+
+def test_problem_statement_metadata_import_updates_statement_topic_without_mohs_or_problem_row(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    statement = ContestProblemStatement.objects.create(
+        contest_year=2011,
+        contest_name="IMO Shortlist",
+        problem_number=1,
+        problem_code="A1",
+        day_label="Algebra",
+        statement_latex="Shortlist row body",
+        topic=None,
+        mohs=None,
+    )
+    assert not ProblemSolveRecord.objects.filter(problem_uuid=statement.problem_uuid).exists()
+
+    response = client.post(
+        reverse("pages:problem_statement_metadata"),
+        {
+            "replace_tags": "on",
+            "source_text": (
+                "STATEMENT UUID\tPROBLEM UUID\tCONTEST YEAR\tCONTEST NAME\tCONTEST PROBLEM\t"
+                "DAY LABEL\tPROBLEM NUMBER\tPROBLEM CODE\tTOPIC\n"
+                f"{statement.statement_uuid}\t{statement.problem_uuid}\t2011\tIMO Shortlist\t"
+                "IMO Shortlist 2011 A1\tAlgebra\t1\tA1\tA\n"
+            ),
+        },
+        follow=True,
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    statement.refresh_from_db()
+    assert statement.topic == "A"
+    assert statement.mohs is None
+    assert statement.linked_problem_id is None
+    assert not ProblemSolveRecord.objects.filter(problem_uuid=statement.problem_uuid).exists()
+    assert any(
+        "Statement metadata import finished. Processed 1 row(s)" in str(message)
+        for message in response.context["messages"]
+    )
+
+
+def test_statement_metadata_import_forward_fills_merged_contest_year_and_name():
+    first_statement = ContestProblemStatement.objects.create(
+        contest_year=2010,
+        contest_name="IMO Shortlist",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Legacy",
+        statement_latex="One",
+    )
+    second_statement = ContestProblemStatement.objects.create(
+        contest_year=2010,
+        contest_name="IMO Shortlist",
+        problem_number=2,
+        problem_code="P2",
+        day_label="Legacy",
+        statement_latex="Two",
+    )
+    rows = [
+        {
+            "STATEMENT UUID": str(first_statement.statement_uuid),
+            "PROBLEM UUID": str(first_statement.problem_uuid),
+            "CONTEST YEAR": 2011,
+            "CONTEST NAME": "IMO Shortlist",
+            "CONTEST PROBLEM": "IMO Shortlist 2011 A1",
+            "DAY LABEL": "Algebra",
+            "PROBLEM NUMBER": 1,
+            "PROBLEM CODE": "A1",
+        },
+        {
+            "STATEMENT UUID": str(second_statement.statement_uuid),
+            "PROBLEM UUID": str(second_statement.problem_uuid),
+            "CONTEST YEAR": "",
+            "CONTEST NAME": "",
+            "CONTEST PROBLEM": "",
+            "DAY LABEL": "Algebra",
+            "PROBLEM NUMBER": 2,
+            "PROBLEM CODE": "A2",
+        },
+    ]
+    dataframe = statement_metadata_dataframe_from_rows(rows)
+    import_statement_metadata_dataframe(dataframe, replace_tags=False)
+    first_statement.refresh_from_db()
+    second_statement.refresh_from_db()
+    assert first_statement.contest_year == 2011
+    assert second_statement.contest_year == 2011
+    assert second_statement.contest_name == "IMO Shortlist"
+    assert second_statement.problem_code == "A2"
+
+
+def test_statement_metadata_import_mirrors_analytics_onto_statement_when_linked():
+    existing_problem = ProblemSolveRecord.objects.create(
+        year=2000,
+        topic="C",
+        mohs=10,
+        confidence="Low",
+        contest="APMO",
+        problem="P5",
+        contest_year_problem="APMO 2000 P5",
+    )
+    statement = ContestProblemStatement.objects.create(
+        linked_problem=existing_problem,
+        contest_year=2000,
+        contest_name="APMO",
+        problem_number=5,
+        problem_code="P5",
+        day_label="APMO 2000",
+        statement_latex="Statement body",
+        topic="C",
+        mohs=10,
+        confidence="Low",
+    )
+    rows = [
+        {
+            "STATEMENT UUID": str(statement.statement_uuid),
+            "PROBLEM UUID": str(statement.problem_uuid),
+            "CONTEST YEAR": 2000,
+            "CONTEST NAME": "APMO",
+            "CONTEST PROBLEM": "APMO 2000 P5",
+            "DAY LABEL": "APMO 2000",
+            "PROBLEM NUMBER": 5,
+            "PROBLEM CODE": "P5",
+            "STATEMENT LATEX": "Statement body",
+            "TOPIC": "C",
+            "MOHS": 40,
+            "Confidence": "Medium",
+            "IMO slot guess": "P3/6",
+            "Topic tags": "Comb – test",
+        },
+    ]
+    dataframe = statement_metadata_dataframe_from_rows(rows)
+    import_statement_metadata_dataframe(dataframe, replace_tags=False)
+    statement.refresh_from_db()
+    existing_problem.refresh_from_db()
+    assert existing_problem.mohs == 40
+    assert existing_problem.confidence == "Medium"
+    assert statement.mohs == 40
+    assert statement.confidence == "Medium"
+
+
+def test_statement_metadata_import_accepts_lowercase_mohs_column_header():
+    statement = ContestProblemStatement.objects.create(
+        contest_year=2000,
+        contest_name="APMO",
+        problem_number=5,
+        problem_code="P5",
+        day_label="",
+        statement_latex="x",
+    )
+    rows = [
+        {
+            "STATEMENT UUID": str(statement.statement_uuid),
+            "TOPIC": "G",
+            "mohs": 33,
+            "confidence": "High",
+        },
+    ]
+    dataframe = statement_metadata_dataframe_from_rows(rows)
+    import_statement_metadata_dataframe(dataframe, replace_tags=False)
+    statement.refresh_from_db()
+    assert statement.mohs == 33
+    assert statement.confidence == "High"
+
+
+def test_statement_metadata_import_rejects_duplicate_contest_identity():
+    first_statement = ContestProblemStatement.objects.create(
+        contest_year=2011,
+        contest_name="IMO Shortlist",
+        problem_number=1,
+        problem_code="A1",
+        day_label="Algebra",
+        statement_latex="One",
+    )
+    second_statement = ContestProblemStatement.objects.create(
+        contest_year=2011,
+        contest_name="IMO Shortlist",
+        problem_number=2,
+        problem_code="A2",
+        day_label="Algebra",
+        statement_latex="Two",
+    )
+    rows = [
+        {
+            "STATEMENT UUID": str(second_statement.statement_uuid),
+            "CONTEST YEAR": 2011,
+            "CONTEST NAME": "IMO Shortlist",
+            "DAY LABEL": "Algebra",
+            "PROBLEM NUMBER": 1,
+            "PROBLEM CODE": "A1",
+        },
+    ]
+    dataframe = statement_metadata_dataframe_from_rows(rows)
+    with pytest.raises(StatementMetadataBackfillValidationError, match="another statement already uses"):
+        import_statement_metadata_dataframe(dataframe, replace_tags=False)
 
 
 def test_problem_statement_metadata_page_imports_pasted_rows_and_creates_problem_row(client):
@@ -7364,10 +7698,14 @@ def test_dashboard_sidebar_groups_links_into_clear_sections_for_admin(client):
     assert side_nav_html.index("Solution records") < side_nav_html.index("Problem data")
     assert "Statement editor" in side_nav_html
     assert "Statement metadata" in side_nav_html
+    assert "Statement duplicates" in side_nav_html
+    assert "Delete statement" in side_nav_html
     assert side_nav_html.index("Problem data") < side_nav_html.index("Statement metadata")
     assert side_nav_html.index("Statement links") < side_nav_html.index("Statement editor")
     assert side_nav_html.index("Statement editor") < side_nav_html.index("Statement metadata")
-    assert side_nav_html.index("Statement metadata") < side_nav_html.index("LaTeX preview")
+    assert side_nav_html.index("Statement metadata") < side_nav_html.index("Statement duplicates")
+    assert side_nav_html.index("Statement duplicates") < side_nav_html.index("Delete statement")
+    assert side_nav_html.index("Delete statement") < side_nav_html.index("LaTeX preview")
     assert "Handle parser" in side_nav_html
     assert side_nav_html.index("LaTeX preview") < side_nav_html.index("Handle parser")
     assert side_nav_html.index("Handle parser") < side_nav_html.index("User roles")

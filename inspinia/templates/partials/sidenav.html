@@ -190,6 +190,12 @@
                     <span class="menu-text">Statement duplicates</span>
                 </a>
             </li>
+            <li class="side-nav-item">
+                <a href="{% url 'pages:problem_statement_delete_by_uuid' %}" class="side-nav-link">
+                    <span class="menu-icon"><i class="ti ti-trash"></i></span>
+                    <span class="menu-text">Delete statement (UUID)</span>
+                </a>
+            </li>
             {% endif %}
 
             <li class="side-nav-title">Tools</li>
