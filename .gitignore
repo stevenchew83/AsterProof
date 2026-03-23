@@ -277,6 +277,7 @@ project.min.css
 vendors.js
 *.min.js
 *.min.js.map
+!inspinia/static/js/vendors.min.js
 !inspinia/static/plugins/**/*.min.js
 !inspinia/static/plugins/**/*.min.css
 
