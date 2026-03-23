@@ -3568,20 +3568,46 @@ def problem_statement_editor_update_view(request):
     except ContestProblemStatement.DoesNotExist as exc:
         raise Http404 from exc
 
-    statement.contest_year = form.cleaned_data["contest_year"]
-    statement.contest_name = form.cleaned_data["contest_name"]
-    statement.day_label = form.cleaned_data["day_label"]
-    statement.problem_number = form.cleaned_data["problem_number"]
-    statement.problem_code = form.cleaned_data["problem_code"]
-    statement.statement_latex = form.cleaned_data["statement_latex"]
-    statement.is_active = form.cleaned_data["is_active"]
-    statement.problem_code = (
-        (statement.problem_code or "").strip().upper() or f"P{statement.problem_number}"
+    proposed_contest_year = form.cleaned_data["contest_year"]
+    proposed_contest_name = form.cleaned_data["contest_name"]
+    proposed_day_label = form.cleaned_data["day_label"]
+    proposed_problem_number = form.cleaned_data["problem_number"]
+    proposed_problem_code = (
+        (form.cleaned_data["problem_code"] or "").strip().upper() or f"P{proposed_problem_number}"
     )
+    proposed_statement_latex = form.cleaned_data["statement_latex"]
+    proposed_is_active = form.cleaned_data["is_active"]
     duplicate_message = (
         "A statement row with this contest year, contest name, day label and "
         "problem code already exists."
     )
+    linked_identity_message = (
+        "Linked rows cannot change contest year, contest name, or problem code here. "
+        "Use Statement links to clear or relink the row first."
+    )
+
+    if statement.linked_problem_id is not None:
+        current_identity = (
+            int(statement.contest_year),
+            statement.contest_name,
+            (statement.problem_code or "").strip().upper(),
+        )
+        proposed_identity = (
+            proposed_contest_year,
+            proposed_contest_name,
+            proposed_problem_code,
+        )
+        if proposed_identity != current_identity:
+            form.add_error(None, linked_identity_message)
+            return JsonResponse({"errors": form.errors, "ok": False}, status=400)
+
+    statement.contest_year = proposed_contest_year
+    statement.contest_name = proposed_contest_name
+    statement.day_label = proposed_day_label
+    statement.problem_number = proposed_problem_number
+    statement.problem_code = proposed_problem_code
+    statement.statement_latex = proposed_statement_latex
+    statement.is_active = proposed_is_active
 
     duplicate_exists = (
         ContestProblemStatement.objects.exclude(pk=statement.pk)

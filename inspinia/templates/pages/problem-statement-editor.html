@@ -108,7 +108,7 @@
             </div>
             <div class="flex-grow-1 ms-2">
               <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Statement rows</p>
-              <h3 class="mb-0">{{ statement_editor_total }}</h3>
+              <h3 id="statement-editor-total-card" class="mb-0">{{ statement_editor_total }}</h3>
             </div>
           </div>
         </div>
@@ -125,7 +125,7 @@
             </div>
             <div class="flex-grow-1 ms-2">
               <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Active</p>
-              <h3 class="mb-0">{{ statement_editor_stats.active_total }}</h3>
+              <h3 id="statement-editor-active-card" class="mb-0">{{ statement_editor_stats.active_total }}</h3>
             </div>
           </div>
         </div>
@@ -142,7 +142,7 @@
             </div>
             <div class="flex-grow-1 ms-2">
               <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Inactive</p>
-              <h3 class="mb-0">{{ statement_editor_stats.inactive_total }}</h3>
+              <h3 id="statement-editor-inactive-card" class="mb-0">{{ statement_editor_stats.inactive_total }}</h3>
             </div>
           </div>
         </div>
@@ -159,7 +159,7 @@
             </div>
             <div class="flex-grow-1 ms-2">
               <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Unlinked</p>
-              <h3 class="mb-0">{{ statement_editor_stats.unlinked_total }}</h3>
+              <h3 id="statement-editor-unlinked-card" class="mb-0">{{ statement_editor_stats.unlinked_total }}</h3>
             </div>
           </div>
         </div>
@@ -177,7 +177,7 @@
               Review imported statement text, inspect immutable UUIDs, and save metadata or raw text updates for existing rows. Link changes belong on the <a href="{% url 'pages:problem_statement_linker' %}">Statement links</a> page.
             </p>
           </div>
-          <span class="badge text-bg-light">{{ statement_editor_total }} rows</span>
+          <span id="statement-editor-total-badge" class="badge text-bg-light">{{ statement_editor_total }} rows</span>
         </div>
         <div class="card-body">
           {% if statement_editor_total == 0 %}
@@ -364,6 +364,61 @@
 
   function problemLabel(row) {
     return row.problem_code + " · " + row.contest_year_label;
+  }
+
+  function allRows() {
+    return Object.keys(rowsByStatementId).map(function (statementId) {
+      return rowsByStatementId[statementId];
+    });
+  }
+
+  function replaceFilterOptions(selectNode, values, emptyLabel) {
+    if (!selectNode) return;
+
+    var previousValue = selectNode.value;
+    selectNode.innerHTML = "";
+    var emptyOption = document.createElement("option");
+    emptyOption.value = "";
+    emptyOption.textContent = emptyLabel;
+    selectNode.appendChild(emptyOption);
+
+    values.forEach(function (value) {
+      var option = document.createElement("option");
+      option.value = value;
+      option.textContent = value;
+      selectNode.appendChild(option);
+    });
+
+    selectNode.value = values.indexOf(previousValue) >= 0 ? previousValue : "";
+  }
+
+  function refreshEditorSummary() {
+    var currentRows = allRows();
+    var total = currentRows.length;
+    var activeTotal = currentRows.filter(function (row) { return row.is_active; }).length;
+    var inactiveTotal = total - activeTotal;
+    var unlinkedTotal = currentRows.filter(function (row) { return !row.is_linked; }).length;
+
+    setText("statement-editor-total-card", String(total));
+    setText("statement-editor-active-card", String(activeTotal));
+    setText("statement-editor-inactive-card", String(inactiveTotal));
+    setText("statement-editor-unlinked-card", String(unlinkedTotal));
+    setText("statement-editor-total-badge", total + " rows");
+  }
+
+  function refreshEditorFilters() {
+    var currentRows = allRows();
+    var contestNames = Array.from(new Set(currentRows.map(function (row) {
+      return row.contest_name;
+    }))).sort();
+    var yearValues = Array.from(new Set(currentRows.map(function (row) {
+      return String(row.contest_year);
+    }))).sort(function (left, right) {
+      return Number(right) - Number(left);
+    });
+
+    replaceFilterOptions(contestFilter, contestNames, "All contests");
+    replaceFilterOptions(yearFilter, yearValues, "All years");
   }
 
   var table = new DataTable(tableNode, {
@@ -590,6 +645,8 @@
       }
     });
     if (matched) {
+      refreshEditorSummary();
+      refreshEditorFilters();
       table.draw(false);
     }
   }
