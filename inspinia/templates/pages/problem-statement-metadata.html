@@ -91,7 +91,8 @@
           <p class="text-muted mb-4">
             On import, each row updates the statement identified by <code>STATEMENT UUID</code> (with
             <code>PROBLEM UUID</code> as a legacy fallback). Blank import rows are ignored, and blank
-            cells keep existing values, so you can fill many lines in one workbook and upload once.
+            cells keep existing values. Identity columns are exported for context only and are ignored
+            on import, so you can fill many lines in one workbook and upload once.
           </p>
           <a
             href="{% url 'pages:problem_statement_metadata' %}?action=export"
@@ -111,9 +112,8 @@
         </div>
         <div class="card-body">
           <p class="text-muted">
-            This updates each <code>ContestProblemStatement</code> row by <code>STATEMENT UUID</code> (identity
-            columns from the sheet when provided), upserts the linked <code>ProblemSolveRecord</code> metadata,
-            and keeps the link in sync automatically.
+            This updates each <code>ContestProblemStatement</code> row by <code>STATEMENT UUID</code>,
+            upserts the linked <code>ProblemSolveRecord</code> metadata, and keeps the link in sync automatically.
           </p>
           <p class="text-muted">
             Use this when you want to bulk update metadata for multiple statement rows without editing them one by one.
