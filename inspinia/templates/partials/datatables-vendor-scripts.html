@@ -1,15 +1,25 @@
 {% load static %}
-{# DataTables UMD uses the AMD branch when window.define.amd exists, which skips
-   assigning window.DataTable. Temporarily hide define so the browser-global path runs. #}
+{# DataTables UMD uses the AMD branch when define.amd is truthy, which skips
+   assigning window.DataTable. Clearing define.amd (instead of deleting define)
+   avoids environments where window.define is non-configurable. After load,
+   sync window.DataTable from jQuery.fn.dataTable if the global is still missing. #}
 <script>
 (function () {
   var g = window;
-  if (typeof g.define === "function" && g.define.amd) {
-    g.__asterproofDefineBackup = g.define;
+  var d = g.define;
+  g.__asterproofDtAmdBackup = undefined;
+  g.__asterproofDtHadAmd = false;
+  if (typeof d === "function" && d.amd) {
+    g.__asterproofDtHadAmd = true;
+    g.__asterproofDtAmdBackup = d.amd;
     try {
-      delete g.define;
-    } catch (e) {
-      g.define = undefined;
+      d.amd = undefined;
+    } catch (e1) {
+      try {
+        delete d.amd;
+      } catch (e2) {
+        /* ignore */
+      }
     }
   }
 })();
@@ -19,9 +29,24 @@
 <script>
 (function () {
   var g = window;
-  if (g.__asterproofDefineBackup) {
-    g.define = g.__asterproofDefineBackup;
-    delete g.__asterproofDefineBackup;
+  if (g.__asterproofDtHadAmd && typeof g.define === "function") {
+    try {
+      g.define.amd = g.__asterproofDtAmdBackup;
+    } catch (e) {
+      /* ignore */
+    }
+  }
+  try {
+    delete g.__asterproofDtHadAmd;
+    delete g.__asterproofDtAmdBackup;
+  } catch (e) {
+    g.__asterproofDtHadAmd = undefined;
+    g.__asterproofDtAmdBackup = undefined;
+  }
+
+  var jq = g.jQuery || g.$;
+  if (typeof g.DataTable !== "function" && jq && jq.fn && typeof jq.fn.dataTable === "function") {
+    g.DataTable = jq.fn.dataTable;
   }
 })();
 </script>
