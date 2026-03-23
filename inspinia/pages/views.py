@@ -1,4 +1,6 @@
 import csv
+import json
+import math
 import re
 import uuid
 from collections import Counter
@@ -13,6 +15,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
+from django.core.serializers.json import DjangoJSONEncoder
 from django.db import IntegrityError
 from django.db import transaction
 from django.db.models import Avg
@@ -56,13 +59,6 @@ from inspinia.pages.models import ProblemSolveRecord
 from inspinia.pages.models import ProblemTopicTechnique
 from inspinia.pages.models import StatementTopicTechnique
 from inspinia.pages.models import UserProblemCompletion
-from inspinia.pages.statement_analytics import annotate_effective_statement_analytics
-from inspinia.pages.statement_analytics import contest_key_for_public_slug
-from inspinia.pages.statement_analytics import effective_confidence
-from inspinia.pages.statement_analytics import effective_imo_slot_guess_value
-from inspinia.pages.statement_analytics import effective_mohs
-from inspinia.pages.statement_analytics import effective_topic
-from inspinia.pages.statement_analytics_sync import sync_statement_analytics_from_linked_problem
 from inspinia.pages.problem_completion_import import import_problem_completion_text_for_user
 from inspinia.pages.problem_import import ProblemImportValidationError
 from inspinia.pages.problem_import import build_parsed_preview_payload
@@ -70,6 +66,13 @@ from inspinia.pages.problem_import import build_problem_export_workbook_bytes
 from inspinia.pages.problem_import import build_problem_statement_export_workbook_bytes
 from inspinia.pages.problem_import import dataframe_from_excel
 from inspinia.pages.problem_import import import_problem_dataframe
+from inspinia.pages.statement_analytics import annotate_effective_statement_analytics
+from inspinia.pages.statement_analytics import contest_key_for_public_slug
+from inspinia.pages.statement_analytics import effective_confidence
+from inspinia.pages.statement_analytics import effective_imo_slot_guess_value
+from inspinia.pages.statement_analytics import effective_mohs
+from inspinia.pages.statement_analytics import effective_topic
+from inspinia.pages.statement_analytics_sync import sync_statement_analytics_from_linked_problem
 from inspinia.pages.statement_duplicates import build_statement_duplicate_report
 from inspinia.pages.statement_import import LATEX_STATEMENT_SAMPLE
 from inspinia.pages.statement_import import ProblemStatementImportValidationError
@@ -515,6 +518,17 @@ def _statement_render_payload(statement_latex: str) -> dict:
         "statement_has_asymptote": has_asymptote_blocks(statement_latex),
         "statement_render_segments": build_statement_render_segments(statement_latex),
     }
+
+
+def _json_script_safe(value):
+    """Make values safe for {% json_script %} / browser JSON.parse (no NaN/Infinity)."""
+    if isinstance(value, dict):
+        return {k: _json_script_safe(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_json_script_safe(v) for v in value]
+    if isinstance(value, float) and (math.isnan(value) or math.isinf(value)):
+        return None
+    return value
 
 
 def _statement_completion_sort_value(*, is_solved: bool, completion_date: date | None) -> str:
@@ -3793,6 +3807,10 @@ def problem_statement_list_view(request):
     if year_min is not None and year_max is not None:
         year_range_label = str(year_min) if year_min == year_max else f"{year_min}-{year_max}"
 
+    table_rows = _statement_table_rows(base, user=request.user) if statement_total else []
+    table_rows = _json_script_safe(table_rows)
+    _ = json.dumps(table_rows, cls=DjangoJSONEncoder, allow_nan=False)
+
     context = {
         "statement_total": statement_total,
         "statement_stats": {
@@ -3801,7 +3819,7 @@ def problem_statement_list_view(request):
             "unlinked_total": statement_total - linked_total,
             "year_range_label": year_range_label,
         },
-        "statement_table_rows": _statement_table_rows(base, user=request.user) if statement_total else [],
+        "statement_table_rows": table_rows,
     }
     return render(request, "pages/problem-statement-list.html", context)
 

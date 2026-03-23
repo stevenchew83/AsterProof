@@ -278,9 +278,6 @@
 <script src="{% static 'plugins/datatables/dataTables.bootstrap5.min.js' %}"></script>
 <script>
 (function () {
-  var dataEl = document.getElementById("problem-statement-table-data");
-  if (!dataEl || typeof DataTable === "undefined") return;
-
   function escapeHtml(value) {
     return String(value || "")
       .replace(/&/g, "&amp;")
@@ -290,7 +287,34 @@
       .replace(/'/g, "&#39;");
   }
 
-  var rows = JSON.parse(dataEl.textContent);
+  var shell = document.querySelector(".statement-table-shell");
+  function showInitError(message) {
+    if (!shell) return;
+    shell.innerHTML =
+      '<div class="alert alert-warning mb-0" role="alert">' + escapeHtml(message) + "</div>";
+  }
+
+  var dataEl = document.getElementById("problem-statement-table-data");
+  if (!dataEl) return;
+
+  var rows;
+  try {
+    rows = JSON.parse(dataEl.textContent);
+  } catch (err) {
+    console.error("problem-statements: JSON.parse failed", err);
+    showInitError(
+      "Could not read statement data for this table. If this persists, contact an administrator."
+    );
+    return;
+  }
+
+  var DT = window.DataTable;
+  if (typeof DT !== "function") {
+    showInitError(
+      "Table scripts did not load. Confirm /static/ is served (run collectstatic, check Nginx or WhiteNoise), then hard-refresh the page."
+    );
+    return;
+  }
   function renderInlineLink(label, url, neutralClass) {
     if (!label) return "";
     if (!url) {
@@ -510,15 +534,25 @@
   var updatedAtColumnIndex = statementColumns.findIndex(function (column) {
     return column.data === "updated_at";
   });
+  if (updatedAtColumnIndex < 0) {
+    updatedAtColumnIndex = 0;
+  }
 
-  var table = new DataTable("#problem-statements-table", {
+  var table;
+  try {
+    table = new DT("#problem-statements-table", {
     data: rows,
     columns: statementColumns,
     order: [[updatedAtColumnIndex, "desc"]],
     pageLength: 25,
     lengthMenu: [10, 25, 50, 100],
     scrollX: true
-  });
+    });
+  } catch (err) {
+    console.error("problem-statements: DataTable init failed", err);
+    showInitError("Could not initialize the statement table. Check the browser console for details.");
+    return;
+  }
 
   function adjustStatementTableColumnsSoon() {
     window.requestAnimationFrame(function () {
