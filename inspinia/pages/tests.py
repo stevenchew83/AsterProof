@@ -3098,6 +3098,51 @@ def test_problem_statement_editor_keeps_linked_problem_when_update_conflicts_for
     assert statement.linked_problem_id == original_linked_problem_id
 
 
+def test_problem_statement_editor_rejects_blank_problem_code_when_default_code_conflicts(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    ContestProblemStatement.objects.create(
+        contest_year=2025,
+        contest_name="IMO",
+        problem_number=2,
+        problem_code="P2",
+        day_label="Day 1",
+        statement_latex="Existing statement",
+    )
+    statement = ContestProblemStatement.objects.create(
+        contest_year=2025,
+        contest_name="IMO",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Original statement",
+    )
+
+    response = client.post(
+        reverse("pages:problem_statement_editor_update"),
+        data={
+            "statement_id": str(statement.id),
+            "contest_year": "2025",
+            "contest_name": "IMO",
+            "day_label": "Day 1",
+            "problem_number": "2",
+            "problem_code": "",
+            "statement_latex": "Updated statement",
+            "is_active": "on",
+        },
+    )
+
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert response.json() == {
+        "errors": {
+            "__all__": [
+                "A statement row with this contest year, contest name, day label and problem code already exists.",
+            ],
+        },
+        "ok": False,
+    }
+
+
 def test_problem_statement_editor_renders_modal_error_shell_for_admin(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)

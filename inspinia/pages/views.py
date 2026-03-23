@@ -3575,6 +3575,9 @@ def problem_statement_editor_update_view(request):
     statement.problem_code = form.cleaned_data["problem_code"]
     statement.statement_latex = form.cleaned_data["statement_latex"]
     statement.is_active = form.cleaned_data["is_active"]
+    statement.problem_code = (
+        (statement.problem_code or "").strip().upper() or f"P{statement.problem_number}"
+    )
     duplicate_message = (
         "A statement row with this contest year, contest name, day label and "
         "problem code already exists."
