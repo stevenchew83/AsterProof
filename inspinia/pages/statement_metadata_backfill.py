@@ -10,7 +10,6 @@ import pandas as pd
 from django.db import models
 from django.db import transaction
 
-from inspinia.pages.contest_names import normalize_contest_name
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
 from inspinia.pages.problem_import import dataframe_to_safe_excel_bytes
@@ -74,7 +73,6 @@ class PreparedStatementMetadataRow:
     raw_topic_tags: str | None
     row_number: int
     statement: ContestProblemStatement
-    statement_identity_patch: dict[str, object]
     topic: str | None
 
 
@@ -126,8 +124,10 @@ def _column_might_contribute_metadata(column: str, raw_row: dict[str, object]) -
 
 
 def _metadata_row_has_values(raw_row: dict[str, object]) -> bool:
-    columns = (*STATEMENT_METADATA_EDITABLE_COLUMNS, *STATEMENT_METADATA_STATEMENT_IDENTITY_COLUMNS)
-    return any(_column_might_contribute_metadata(column, raw_row) for column in columns)
+    return any(
+        _column_might_contribute_metadata(column, raw_row)
+        for column in STATEMENT_METADATA_EDITABLE_COLUMNS
+    )
 
 
 def _parse_uuid_cell(raw_value: object, *, row_number: int, label: str) -> uuid.UUID:
@@ -280,102 +280,6 @@ def statement_metadata_dataframe_from_rows(rows: list[dict[str, object]]) -> pd.
     return _normalize_and_validate_statement_metadata_dataframe(dataframe)
 
 
-def _non_empty_latex_cell(raw_row: dict[str, object], column: str) -> str | None:
-    latex_value = raw_row.get(column)
-    if latex_value is None or (isinstance(latex_value, float) and pd.isna(latex_value)):
-        return None
-    text = str(latex_value).strip()
-    return text or None
-
-
-def _statement_identity_patch_from_row(
-    raw_row: dict[str, object],
-    *,
-    columns: set[str],
-    row_number: int,
-) -> dict[str, object]:
-    patch: dict[str, object] = {}
-
-    def put_int(column: str, field: str, *, positive: bool = False) -> None:
-        if column not in columns:
-            return
-        val = _cell_int(raw_row.get(column))
-        if val is None:
-            return
-        if positive and val <= 0:
-            msg = f'Row {row_number}: "{column}" must be a positive integer.'
-            raise StatementMetadataBackfillValidationError(msg)
-        patch[field] = val
-
-    def put_str(column: str, field: str, *, normalize_name: bool = False) -> None:
-        if column not in columns:
-            return
-        val = _cell_str(raw_row.get(column))
-        if val is None:
-            return
-        patch[field] = normalize_contest_name(val) if normalize_name else val
-
-    put_int("CONTEST YEAR", "contest_year")
-    put_str("CONTEST NAME", "contest_name", normalize_name=True)
-    put_str("DAY LABEL", "day_label")
-    put_int("PROBLEM NUMBER", "problem_number", positive=True)
-    put_str("PROBLEM CODE", "problem_code")
-
-    if "STATEMENT LATEX" in columns:
-        latex = _non_empty_latex_cell(raw_row, "STATEMENT LATEX")
-        if latex is not None:
-            patch["statement_latex"] = latex
-
-    return patch
-
-
-def _prospective_statement_identity(
-    statement: ContestProblemStatement,
-    patch: dict[str, object],
-) -> tuple[int, str, str, int, str]:
-    contest_year = int(patch.get("contest_year", statement.contest_year))
-    contest_name = str(patch.get("contest_name", statement.contest_name))
-    day_label = str(patch.get("day_label", statement.day_label))
-    problem_number = int(patch.get("problem_number", statement.problem_number))
-    problem_code_raw = patch.get("problem_code", statement.problem_code)
-    problem_code = (str(problem_code_raw or "").strip().upper() or f"P{problem_number}")
-    return contest_year, contest_name, day_label, problem_number, problem_code
-
-
-def _apply_statement_identity_patch(
-    statement: ContestProblemStatement,
-    patch: dict[str, object],
-    *,
-    row_number: int,
-) -> None:
-    if not patch:
-        return
-    next_year, next_name, next_day, _next_num, next_code = _prospective_statement_identity(statement, patch)
-
-    collision = (
-        ContestProblemStatement.objects.filter(
-            contest_year=next_year,
-            contest_name=next_name,
-            day_label=next_day,
-            problem_code=next_code,
-        )
-        .exclude(pk=statement.pk)
-        .exists()
-    )
-    if collision:
-        day_display = next_day or "Unlabeled"
-        msg = (
-            f'Row {row_number}: "{_statement_label(statement)}" cannot use identity '
-            f'"{next_name} {next_year} {next_code}" with day label "{day_display}" '
-            "because another statement already occupies that contest slot."
-        )
-        raise StatementMetadataBackfillValidationError(msg)
-
-    for field_name, value in patch.items():
-        setattr(statement, field_name, value)
-    statement.save()
-
-
 def _parse_raw_statement_metadata_sheet_rows(
     relevant_rows: list[object],
 ) -> list[RawStatementMetadataRow]:
@@ -448,7 +352,6 @@ def _prepare_statement_metadata_rows(
     records_by_uuid = _build_statement_problem_lookup(statements)
     prepared_rows: list[PreparedStatementMetadataRow] = []
     seen_statement_uuids: set[uuid.UUID] = set()
-    column_names = {str(column) for column in df.columns}
     for raw_row in raw_rows:
         statement = None
         if raw_row.statement_uuid is not None:
@@ -492,12 +395,6 @@ def _prepare_statement_metadata_rows(
             )
             raise StatementMetadataBackfillValidationError(msg)
 
-        identity_patch = _statement_identity_patch_from_row(
-            raw_row.raw_cells,
-            columns=column_names,
-            row_number=raw_row.row_number,
-        )
-
         prepared_rows.append(
             PreparedStatementMetadataRow(
                 confidence=raw_row.confidence,
@@ -507,7 +404,6 @@ def _prepare_statement_metadata_rows(
                 raw_topic_tags=raw_row.raw_topic_tags,
                 row_number=raw_row.row_number,
                 statement=statement,
-                statement_identity_patch=identity_patch,
                 topic=raw_row.topic,
             ),
         )
@@ -630,11 +526,6 @@ def import_statement_metadata_dataframe(
     result = StatementMetadataBackfillImportResult(skipped_count=skipped_count)
     for prepared_row in prepared_rows:
         statement = prepared_row.statement
-        _apply_statement_identity_patch(
-            statement,
-            prepared_row.statement_identity_patch,
-            row_number=prepared_row.row_number,
-        )
         record = _import_metadata_upsert_problem_record(prepared_row, statement, result=result)
         _import_metadata_link_statement_and_sync(
             prepared_row,

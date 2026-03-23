@@ -50,7 +50,7 @@
   }
 
   #chart-contest-completion-heatmap {
-    min-height: 320px;
+    min-height: 240px;
   }
  </style>
 {% endblock extra_css %}
@@ -422,12 +422,13 @@
   }
 
   var pointCount = payload.series[0] && payload.series[0].data ? payload.series[0].data.length : 0;
-  chartEl.style.minWidth = String(Math.max(680, pointCount * 84 + 120)) + "px";
+  /* Narrower min width per year column so more of the grid fits without horizontal scroll. */
+  chartEl.style.minWidth = String(Math.max(480, pointCount * 48 + 96)) + "px";
 
   var chart = new ApexCharts(chartEl, {
     chart: {
       type: "heatmap",
-      height: Math.max(340, payload.series.length * 46 + 88),
+      height: Math.max(260, payload.series.length * 30 + 72),
       toolbar: { show: false },
       fontFamily: "inherit"
     },
@@ -435,7 +436,7 @@
     dataLabels: {
       enabled: true,
       style: {
-        fontSize: "11px",
+        fontSize: "9px",
         fontWeight: 700,
         colors: ["#11203b"]
       },
@@ -450,7 +451,7 @@
     },
     plotOptions: {
       heatmap: {
-        radius: 5,
+        radius: 3,
         enableShades: false,
         useFillColorAsStroke: false,
         colorScale: {
@@ -471,13 +472,13 @@
       position: "top",
       labels: {
         rotate: 0,
-        style: { fontSize: "11px" }
+        style: { fontSize: "10px" }
       }
     },
     yaxis: {
       labels: {
-        maxWidth: 80,
-        style: { fontSize: "11px" }
+        maxWidth: 72,
+        style: { fontSize: "10px" }
       }
     },
     tooltip: {

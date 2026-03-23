@@ -27,11 +27,11 @@ from inspinia.pages.models import ProblemSolveRecord
 from inspinia.pages.models import ProblemTopicTechnique
 from inspinia.pages.models import StatementTopicTechnique
 from inspinia.pages.models import UserProblemCompletion
-from inspinia.pages.statement_analytics import effective_topic
-from inspinia.pages.statement_analytics_sync import sync_statement_analytics_from_linked_problem
 from inspinia.pages.problem_import import ProblemImportValidationError
 from inspinia.pages.problem_import import dataframe_from_excel
 from inspinia.pages.problem_import import import_problem_dataframe
+from inspinia.pages.statement_analytics import effective_topic
+from inspinia.pages.statement_analytics_sync import sync_statement_analytics_from_linked_problem
 from inspinia.pages.statement_import import LATEX_STATEMENT_SAMPLE
 from inspinia.pages.statement_import import import_problem_statements
 from inspinia.pages.statement_import import parse_contest_problem_statements
@@ -5670,6 +5670,8 @@ def test_problem_statement_metadata_page_renders_tools_for_admin(client):
     assert "Import metadata" in response_html
     assert "Pasted metadata rows" in response_html
     assert "Blank cells keep existing values." in response_html
+    assert "Identity columns are exported for context only" in response_html
+    assert "are ignored" in response_html
     assert "Browser editor" in response_html
     assert "Save staged metadata" in response_html
     assert "?action=export" in response_html
@@ -6163,7 +6165,7 @@ def test_problem_statement_metadata_page_imports_workbook_with_blank_fields_for_
     )
 
 
-def test_problem_statement_metadata_import_updates_statement_identity_from_sheet(client):
+def test_problem_statement_metadata_import_ignores_statement_identity_columns_from_sheet(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
     existing_problem = ProblemSolveRecord.objects.create(
@@ -6213,11 +6215,11 @@ def test_problem_statement_metadata_import_updates_statement_identity_from_sheet
     assert response.status_code == HTTPStatus.OK
     statement.refresh_from_db()
     existing_problem.refresh_from_db()
-    assert statement.day_label == "Algebra track"
-    assert statement.problem_code == "A1"
-    assert statement.contest_year_problem == "JBMO Shortlist 2013 A1"
-    assert existing_problem.problem == "A1"
-    assert existing_problem.contest_year_problem == "JBMO Shortlist 2013 A1"
+    assert statement.day_label == ""
+    assert statement.problem_code == "P1"
+    assert statement.contest_year_problem == "JBMO Shortlist 2013 P1"
+    assert existing_problem.problem == "P1"
+    assert existing_problem.contest_year_problem == "JBMO Shortlist 2013 P1"
 
 
 def test_problem_statement_metadata_page_imports_pasted_rows_and_creates_problem_row(client):
