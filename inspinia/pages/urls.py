@@ -6,8 +6,8 @@ from inspinia.pages.views import completion_board_view
 from inspinia.pages.views import completion_record_list_view
 from inspinia.pages.views import contest_advanced_analytics_view
 from inspinia.pages.views import contest_analytics_view
-from inspinia.pages.views import contest_dashboard_listing_view
 from inspinia.pages.views import contest_dashboard_listing_bulk_update_view
+from inspinia.pages.views import contest_dashboard_listing_view
 from inspinia.pages.views import contest_details_view
 from inspinia.pages.views import contest_problem_list_view
 from inspinia.pages.views import contest_rename_view
@@ -19,6 +19,8 @@ from inspinia.pages.views import problem_import_view
 from inspinia.pages.views import problem_list_view
 from inspinia.pages.views import problem_statement_analytics_view
 from inspinia.pages.views import problem_statement_duplicate_view
+from inspinia.pages.views import problem_statement_editor_update_view
+from inspinia.pages.views import problem_statement_editor_view
 from inspinia.pages.views import problem_statement_linker_view
 from inspinia.pages.views import problem_statement_list_view
 from inspinia.pages.views import problem_statement_metadata_view
@@ -67,6 +69,16 @@ urlpatterns = [
         "tools/problem-statements/linker/",
         problem_statement_linker_view,
         name="problem_statement_linker",
+    ),
+    path(
+        "tools/problem-statements/editor/",
+        problem_statement_editor_view,
+        name="problem_statement_editor",
+    ),
+    path(
+        "tools/problem-statements/editor/update/",
+        problem_statement_editor_update_view,
+        name="problem_statement_editor_update",
     ),
     path(
         "tools/problem-statements/duplicates/",

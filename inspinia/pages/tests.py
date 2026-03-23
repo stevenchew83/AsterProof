@@ -2860,6 +2860,381 @@ def test_problem_statement_linker_requires_login(client):
     assert response.url == f"{login_url}?next={reverse('pages:problem_statement_linker')}"
 
 
+def test_problem_statement_editor_requires_login(client):
+    response = client.get(reverse("pages:problem_statement_editor"))
+    login_url = reverse(settings.LOGIN_URL)
+
+    assert response.status_code == HTTPStatus.FOUND
+    assert response.url == f"{login_url}?next={reverse('pages:problem_statement_editor')}"
+
+
+def test_problem_statement_editor_page_renders_tools_for_admin(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    linked_problem = ProblemSolveRecord.objects.create(
+        year=2025,
+        topic="ALG",
+        mohs=25,
+        contest="IMO",
+        problem="P1",
+        contest_year_problem="",
+    )
+    linked_statement = ContestProblemStatement.objects.create(
+        linked_problem=linked_problem,
+        contest_year=2025,
+        contest_name="IMO",
+        problem_number=1,
+        problem_code="p1",
+        day_label="Day 1",
+        statement_latex="Linked statement body",
+    )
+    unlinked_statement = ContestProblemStatement.objects.create(
+        contest_year=2024,
+        contest_name="JBMO",
+        problem_number=2,
+        problem_code="P2",
+        day_label="",
+        statement_latex="Unlinked statement body",
+    )
+    inactive_statement = ContestProblemStatement.objects.create(
+        contest_year=2024,
+        contest_name="APMO",
+        problem_number=3,
+        problem_code="P3",
+        day_label="Day 1",
+        statement_latex="Inactive statement body",
+        is_active=False,
+    )
+
+    response = client.get(reverse("pages:problem_statement_editor"))
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["statement_editor_total"] == 3
+    assert response.context["statement_editor_stats"] == {
+        "active_total": 2,
+        "inactive_total": 1,
+        "total": 3,
+        "unlinked_total": 2,
+    }
+    assert response.context["statement_editor_contest_names"] == ["APMO", "IMO", "JBMO"]
+    assert response.context["statement_editor_year_values"] == ["2025", "2024"]
+    row_by_id = {row["statement_id"]: row for row in response.context["statement_editor_rows"]}
+    assert row_by_id[linked_statement.id] == {
+        "contest_name": "IMO",
+        "contest_year": 2025,
+        "contest_year_label": "IMO 2025",
+        "day_label": "Day 1",
+        "day_label_display": "Day 1",
+        "is_active": True,
+        "is_linked": True,
+        "link_status": "Linked",
+        "linked_problem_label": "IMO 2025 P1",
+        "problem_code": "P1",
+        "problem_number": 1,
+        "problem_uuid": str(linked_problem.problem_uuid),
+        "statement_id": linked_statement.id,
+        "statement_latex": "Linked statement body",
+        "statement_uuid": str(linked_statement.statement_uuid),
+        "updated_at": row_by_id[linked_statement.id]["updated_at"],
+        "updated_at_sort": row_by_id[linked_statement.id]["updated_at_sort"],
+    }
+    assert row_by_id[unlinked_statement.id]["is_linked"] is False
+    assert row_by_id[unlinked_statement.id]["day_label"] == ""
+    assert row_by_id[unlinked_statement.id]["day_label_display"] == "Unlabeled"
+    assert row_by_id[unlinked_statement.id]["link_status"] == "Unlinked"
+    assert row_by_id[unlinked_statement.id]["linked_problem_label"] == ""
+    assert row_by_id[inactive_statement.id]["is_active"] is False
+    response_html = response.content.decode("utf-8")
+    assert "Statement editor" in response_html
+    assert 'id="statement-editor-table"' in response_html
+    assert 'id="statement-editor-modal"' in response_html
+    assert 'id="statement-editor-form"' in response_html
+    assert "Edit raw statement rows" in response_html
+
+
+def test_problem_statement_editor_rejects_blank_statement_latex_for_admin(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    statement = ContestProblemStatement.objects.create(
+        contest_year=2025,
+        contest_name="IMO",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Original statement",
+    )
+
+    response = client.post(
+        reverse("pages:problem_statement_editor_update"),
+        data={
+            "statement_id": str(statement.id),
+            "contest_year": "2025",
+            "contest_name": "IMO",
+            "day_label": "Day 1",
+            "problem_number": "1",
+            "problem_code": "P1",
+            "statement_latex": "   ",
+            "is_active": "on",
+        },
+    )
+
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert response.json() == {
+        "errors": {
+            "statement_latex": ["Statement LaTeX is required."],
+        },
+        "ok": False,
+    }
+
+
+def test_problem_statement_editor_rejects_duplicate_statement_key_for_admin(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    ContestProblemStatement.objects.create(
+        contest_year=2025,
+        contest_name="IMO",
+        problem_number=2,
+        problem_code="P2",
+        day_label="Day 1",
+        statement_latex="Conflicting statement",
+    )
+    statement = ContestProblemStatement.objects.create(
+        contest_year=2025,
+        contest_name="IMO",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Original statement",
+    )
+
+    response = client.post(
+        reverse("pages:problem_statement_editor_update"),
+        data={
+            "statement_id": str(statement.id),
+            "contest_year": "2025",
+            "contest_name": "IMO",
+            "day_label": "Day 1",
+            "problem_number": "2",
+            "problem_code": "P2",
+            "statement_latex": "Updated statement",
+            "is_active": "on",
+        },
+    )
+
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert response.json() == {
+        "errors": {
+            "__all__": [
+                "A statement row with this contest year, contest name, day label and problem code already exists.",
+            ],
+        },
+        "ok": False,
+    }
+
+
+def test_problem_statement_editor_rejects_link_identity_changes_for_linked_row(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    linked_problem = ProblemSolveRecord.objects.create(
+        year=2025,
+        topic="ALG",
+        mohs=25,
+        contest="IMO",
+        problem="P1",
+        contest_year_problem="IMO 2025 P1",
+    )
+    statement = ContestProblemStatement.objects.create(
+        linked_problem=linked_problem,
+        contest_year=2025,
+        contest_name="IMO",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Original statement",
+    )
+    original_linked_problem_id = statement.linked_problem_id
+
+    response = client.post(
+        reverse("pages:problem_statement_editor_update"),
+        data={
+            "statement_id": str(statement.id),
+            "contest_year": "2026",
+            "contest_name": "Romanian Master of Mathematics",
+            "day_label": "Day 1",
+            "problem_number": "7",
+            "problem_code": "P7",
+            "statement_latex": "Updated statement",
+            "is_active": "on",
+        },
+    )
+
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert response.json() == {
+        "errors": {
+            "__all__": [
+                "Linked rows cannot change contest year, contest name, or problem code here. Use Statement links to clear or relink the row first.",
+            ],
+        },
+        "ok": False,
+    }
+    statement.refresh_from_db()
+    assert statement.linked_problem_id == original_linked_problem_id
+    assert statement.contest_year == 2025
+    assert statement.contest_name == "IMO"
+    assert statement.problem_code == "P1"
+
+
+def test_problem_statement_editor_rejects_blank_problem_code_when_default_code_conflicts(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    ContestProblemStatement.objects.create(
+        contest_year=2025,
+        contest_name="IMO",
+        problem_number=2,
+        problem_code="P2",
+        day_label="Day 1",
+        statement_latex="Existing statement",
+    )
+    statement = ContestProblemStatement.objects.create(
+        contest_year=2025,
+        contest_name="IMO",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Original statement",
+    )
+
+    response = client.post(
+        reverse("pages:problem_statement_editor_update"),
+        data={
+            "statement_id": str(statement.id),
+            "contest_year": "2025",
+            "contest_name": "IMO",
+            "day_label": "Day 1",
+            "problem_number": "2",
+            "problem_code": "",
+            "statement_latex": "Updated statement",
+            "is_active": "on",
+        },
+    )
+
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert response.json() == {
+        "errors": {
+            "__all__": [
+                "A statement row with this contest year, contest name, day label and problem code already exists.",
+            ],
+        },
+        "ok": False,
+    }
+
+
+def test_problem_statement_editor_renders_modal_error_shell_for_admin(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+
+    response = client.get(reverse("pages:problem_statement_editor"))
+
+    assert response.status_code == HTTPStatus.OK
+    response_html = response.content.decode("utf-8")
+    assert 'id="statement-editor-modal-alert"' in response_html
+    assert 'id="statement-editor-total-card"' in response_html
+    assert 'id="statement-editor-total-badge"' in response_html
+    assert 'data-error-field="statement_id"' not in response_html
+    assert 'data-error-field="statement_latex"' in response_html
+    assert 'data-error-field="contest_name"' in response_html
+
+
+def test_problem_statement_editor_updates_existing_row_for_admin(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    statement = ContestProblemStatement.objects.create(
+        contest_year=2024,
+        contest_name="IMO",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Original statement",
+    )
+
+    response = client.post(
+        reverse("pages:problem_statement_editor_update"),
+        data={
+            "statement_id": str(statement.id),
+            "contest_year": "2026",
+            "contest_name": "  Romanian   Master of Mathematics  ",
+            "day_label": "Final Round",
+            "problem_number": "7",
+            "problem_code": "  p7  ",
+            "statement_latex": "  Updated statement with preserved spacing  \n",
+            "is_active": "",
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.json()["ok"] is True
+
+    statement.refresh_from_db()
+    assert statement.contest_year == 2026
+    assert statement.contest_name == "Romanian Master of Mathematics"
+    assert statement.day_label == "Final Round"
+    assert statement.problem_number == 7
+    assert statement.problem_code == "P7"
+    assert statement.contest_year_problem == "Romanian Master of Mathematics 2026 P7"
+    assert statement.statement_latex == "  Updated statement with preserved spacing  \n"
+    assert statement.is_active is False
+
+
+def test_problem_statement_editor_updates_linked_row_without_identity_changes_for_admin(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    linked_problem = ProblemSolveRecord.objects.create(
+        year=2024,
+        topic="GEO",
+        mohs=18,
+        contest="IMO",
+        problem="P1",
+        contest_year_problem="IMO 2024 P1",
+    )
+    statement = ContestProblemStatement.objects.create(
+        linked_problem=linked_problem,
+        contest_year=2024,
+        contest_name="IMO",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Original statement",
+    )
+
+    response = client.post(
+        reverse("pages:problem_statement_editor_update"),
+        data={
+            "statement_id": str(statement.id),
+            "contest_year": "2024",
+            "contest_name": " IMO ",
+            "day_label": "Final Round",
+            "problem_number": "1",
+            "problem_code": " p1 ",
+            "statement_latex": "  Updated linked statement  \n",
+            "is_active": "",
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.json()["ok"] is True
+
+    statement.refresh_from_db()
+    assert statement.contest_year == 2024
+    assert statement.contest_name == "IMO"
+    assert statement.day_label == "Final Round"
+    assert statement.problem_number == 1
+    assert statement.problem_code == "P1"
+    assert statement.contest_year_problem == "IMO 2024 P1"
+    assert statement.statement_latex == "  Updated linked statement  \n"
+    assert statement.is_active is False
+    assert statement.linked_problem_id == linked_problem.id
+
+
 def test_user_activity_dashboard_requires_login(client):
     response = client.get(reverse("pages:user_activity_dashboard"))
     login_url = reverse(settings.LOGIN_URL)
@@ -2926,6 +3301,16 @@ def test_problem_statement_linker_forbids_non_admin_access_when_debug_is_off(cli
     client.force_login(user)
 
     response = client.get(reverse("pages:problem_statement_linker"))
+
+    assert response.status_code == HTTPStatus.FORBIDDEN
+
+
+@override_settings(DEBUG=False)
+def test_problem_statement_editor_forbids_non_admin_access_when_debug_is_off(client):
+    user = UserFactory()
+    client.force_login(user)
+
+    response = client.get(reverse("pages:problem_statement_editor"))
 
     assert response.status_code == HTTPStatus.FORBIDDEN
 
@@ -6741,8 +7126,11 @@ def test_dashboard_sidebar_groups_links_into_clear_sections_for_admin(client):
     assert side_nav_html.index("Problem analytics") < side_nav_html.index("Completion records")
     assert side_nav_html.index("Completion records") < side_nav_html.index("Solution records")
     assert side_nav_html.index("Solution records") < side_nav_html.index("Problem data")
+    assert "Statement editor" in side_nav_html
     assert "Statement metadata" in side_nav_html
     assert side_nav_html.index("Problem data") < side_nav_html.index("Statement metadata")
+    assert side_nav_html.index("Statement links") < side_nav_html.index("Statement editor")
+    assert side_nav_html.index("Statement editor") < side_nav_html.index("Statement metadata")
     assert side_nav_html.index("Statement metadata") < side_nav_html.index("LaTeX preview")
     assert "Handle parser" in side_nav_html
     assert side_nav_html.index("LaTeX preview") < side_nav_html.index("Handle parser")
