@@ -1,6 +1,7 @@
 from django import forms
 
 from inspinia.pages.contest_names import PROJECT_CONTEST_NAME_MAX_LENGTH
+from inspinia.pages.contest_names import STATEMENT_CONTEST_NAME_MAX_LENGTH
 from inspinia.pages.contest_names import normalize_contest_name
 from inspinia.pages.contest_names import normalize_text_list
 
@@ -113,6 +114,30 @@ class ProblemStatementImportForm(forms.Form):
             },
         ),
     )
+
+
+class ProblemStatementEditorUpdateForm(forms.Form):
+    statement_id = forms.IntegerField(min_value=1)
+    contest_year = forms.IntegerField()
+    contest_name = forms.CharField(max_length=STATEMENT_CONTEST_NAME_MAX_LENGTH)
+    day_label = forms.CharField(required=False, max_length=128)
+    problem_number = forms.IntegerField(min_value=1)
+    problem_code = forms.CharField(required=False, max_length=16)
+    statement_latex = forms.CharField(strip=False)
+    is_active = forms.BooleanField(required=False)
+
+    def clean_contest_name(self):
+        return normalize_contest_name(self.cleaned_data["contest_name"])
+
+    def clean_problem_code(self):
+        return (self.cleaned_data["problem_code"] or "").strip().upper()
+
+    def clean_statement_latex(self):
+        statement_latex = self.cleaned_data["statement_latex"]
+        if not statement_latex.strip():
+            msg = "Statement LaTeX is required."
+            raise forms.ValidationError(msg)
+        return statement_latex
 
 
 class HandleSummaryParserForm(forms.Form):

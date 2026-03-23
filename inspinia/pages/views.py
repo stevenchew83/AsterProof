@@ -40,6 +40,7 @@ from inspinia.pages.forms import ContestRenameForm
 from inspinia.pages.forms import HandleSummaryParserForm
 from inspinia.pages.forms import ProblemCompletionPasteForm
 from inspinia.pages.forms import ProblemStatementCsvImportForm
+from inspinia.pages.forms import ProblemStatementEditorUpdateForm
 from inspinia.pages.forms import ProblemStatementImportForm
 from inspinia.pages.forms import ProblemXlsxImportForm
 from inspinia.pages.forms import StatementMetadataWorkbookForm
@@ -752,32 +753,7 @@ def _statement_editor_table_payload() -> dict[str, object]:
         if statement.linked_problem is None:
             unlinked_total += 1
 
-        linked_problem = statement.linked_problem
-        rows.append(
-            {
-                "statement_id": statement.id,
-                "statement_uuid": str(statement.statement_uuid),
-                "problem_uuid": str(statement.problem_uuid),
-                "contest_year": int(statement.contest_year),
-                "contest_name": statement.contest_name,
-                "contest_year_label": f"{statement.contest_name} {statement.contest_year}",
-                "day_label": statement.day_label,
-                "day_label_display": statement.day_label or "Unlabeled",
-                "problem_number": statement.problem_number,
-                "problem_code": statement.problem_code,
-                "statement_latex": statement.statement_latex,
-                "is_active": statement.is_active,
-                "is_linked": linked_problem is not None,
-                "link_status": "Linked" if linked_problem is not None else "Unlinked",
-                "linked_problem_label": (
-                    _statement_linker_problem_label(linked_problem)
-                    if linked_problem is not None
-                    else ""
-                ),
-                "updated_at": timezone.localtime(statement.updated_at).strftime("%Y-%m-%d %H:%M"),
-                "updated_at_sort": statement.updated_at.isoformat(),
-            },
-        )
+        rows.append(_statement_editor_row(statement))
 
     total = len(rows)
     return {
@@ -790,6 +766,31 @@ def _statement_editor_table_payload() -> dict[str, object]:
             "unlinked_total": unlinked_total,
         },
         "year_values": [str(year) for year in year_values],
+    }
+
+
+def _statement_editor_row(statement: ContestProblemStatement) -> dict[str, object]:
+    linked_problem = statement.linked_problem
+    return {
+        "statement_id": statement.id,
+        "statement_uuid": str(statement.statement_uuid),
+        "problem_uuid": str(statement.problem_uuid),
+        "contest_year": int(statement.contest_year),
+        "contest_name": statement.contest_name,
+        "contest_year_label": f"{statement.contest_name} {statement.contest_year}",
+        "day_label": statement.day_label,
+        "day_label_display": statement.day_label or "Unlabeled",
+        "problem_number": statement.problem_number,
+        "problem_code": statement.problem_code,
+        "statement_latex": statement.statement_latex,
+        "is_active": statement.is_active,
+        "is_linked": linked_problem is not None,
+        "link_status": "Linked" if linked_problem is not None else "Unlinked",
+        "linked_problem_label": (
+            _statement_linker_problem_label(linked_problem) if linked_problem is not None else ""
+        ),
+        "updated_at": timezone.localtime(statement.updated_at).strftime("%Y-%m-%d %H:%M"),
+        "updated_at_sort": statement.updated_at.isoformat(),
     }
 
 
@@ -3548,6 +3549,41 @@ def problem_statement_editor_view(request):
         "statement_editor_year_values": editor_payload["year_values"],
     }
     return render(request, "pages/problem-statement-editor.html", context)
+
+
+@login_required
+def problem_statement_editor_update_view(request):
+    _require_admin_tools_access(request)
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required.", "ok": False}, status=405)
+
+    form = ProblemStatementEditorUpdateForm(request.POST)
+    if not form.is_valid():
+        return JsonResponse({"errors": form.errors, "ok": False}, status=400)
+
+    try:
+        statement = ContestProblemStatement.objects.select_related("linked_problem").get(
+            pk=form.cleaned_data["statement_id"],
+        )
+    except ContestProblemStatement.DoesNotExist as exc:
+        raise Http404 from exc
+
+    statement.contest_year = form.cleaned_data["contest_year"]
+    statement.contest_name = form.cleaned_data["contest_name"]
+    statement.day_label = form.cleaned_data["day_label"]
+    statement.problem_number = form.cleaned_data["problem_number"]
+    statement.problem_code = form.cleaned_data["problem_code"]
+    statement.statement_latex = form.cleaned_data["statement_latex"]
+    statement.is_active = form.cleaned_data["is_active"]
+    statement.save()
+
+    return JsonResponse(
+        {
+            "ok": True,
+            "row": _statement_editor_row(statement),
+            "message": "Statement row saved.",
+        },
+    )
 
 
 @login_required

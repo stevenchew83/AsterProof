@@ -174,7 +174,7 @@
           <div class="flex-grow-1">
             <h4 class="header-title mb-0">Edit raw statement rows</h4>
             <p class="text-muted fs-xs mb-0">
-              Review imported statement text, inspect immutable UUIDs, and prepare edits before save behavior lands. Link changes belong on the <a href="{% url 'pages:problem_statement_linker' %}">Statement links</a> page.
+              Review imported statement text, inspect immutable UUIDs, and save metadata or raw text updates for existing rows. Link changes belong on the <a href="{% url 'pages:problem_statement_linker' %}">Statement links</a> page.
             </p>
           </div>
           <span class="badge text-bg-light">{{ statement_editor_total }} rows</span>
@@ -242,7 +242,7 @@
       <div class="modal-header">
         <div>
           <h5 class="modal-title" id="statement-editor-modal-label">Statement row</h5>
-          <p class="text-muted fs-xs mb-0">Identifiers are read only here. Use Statement links for link edits and wait for the next task to save field changes.</p>
+          <p class="text-muted fs-xs mb-0">Identifiers are read only here. Use Statement links for link edits; this modal saves metadata and raw statement text only.</p>
         </div>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% translate 'Close' %}"></button>
       </div>
@@ -266,7 +266,8 @@
           </div>
         </div>
 
-        <form id="statement-editor-form" novalidate>
+        <form id="statement-editor-form" method="post" action="{% url 'pages:problem_statement_editor_update' %}" data-update-url="{% url 'pages:problem_statement_editor_update' %}" novalidate>
+          {% csrf_token %}
           <input type="hidden" id="statement-editor-row-id" name="statement_id">
           <div class="row g-3">
             <div class="col-md-6">
@@ -303,8 +304,11 @@
         </form>
       </div>
       <div class="modal-footer d-flex justify-content-between">
-        <p class="text-muted fs-xs mb-0">Save behavior is intentionally not part of this task.</p>
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+        <p class="text-muted fs-xs mb-0">Link relationships stay read only on this page.</p>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="submit" form="statement-editor-form" id="statement-editor-save" class="btn btn-primary">Save changes</button>
+        </div>
       </div>
     </div>
   </div>
@@ -332,6 +336,8 @@
   var resetButton = document.getElementById("statement-editor-reset");
   var modalNode = document.getElementById("statement-editor-modal");
   var modal = modalNode && typeof bootstrap !== "undefined" ? new bootstrap.Modal(modalNode) : null;
+  var formNode = document.getElementById("statement-editor-form");
+  var saveButton = document.getElementById("statement-editor-save");
   var rowsByStatementId = {};
 
   rows.forEach(function (row) {
@@ -494,6 +500,21 @@
     modal.show();
   }
 
+  function replaceTableRow(updatedRow) {
+    var matched = false;
+    rowsByStatementId[String(updatedRow.statement_id)] = updatedRow;
+    table.rows().every(function () {
+      var currentRow = this.data();
+      if (String(currentRow.statement_id) === String(updatedRow.statement_id)) {
+        this.data(updatedRow);
+        matched = true;
+      }
+    });
+    if (matched) {
+      table.draw(false);
+    }
+  }
+
   if (searchInput) {
     searchInput.addEventListener("input", function () {
       table.search(searchInput.value).draw();
@@ -522,6 +543,48 @@
     if (!trigger) return;
     openEditor(trigger.getAttribute("data-statement-id"));
   });
+
+  if (formNode) {
+    formNode.addEventListener("submit", function (event) {
+      var updateUrl = formNode.getAttribute("data-update-url");
+      if (!updateUrl) return;
+
+      event.preventDefault();
+      if (saveButton) {
+        saveButton.disabled = true;
+      }
+
+      fetch(updateUrl, {
+        method: "POST",
+        body: new FormData(formNode),
+        headers: {
+          "X-Requested-With": "XMLHttpRequest"
+        }
+      })
+        .then(function (response) {
+          return response.json().then(function (payload) {
+            return { ok: response.ok, payload: payload };
+          });
+        })
+        .then(function (result) {
+          if (!result.ok || !result.payload || !result.payload.ok || !result.payload.row) {
+            throw new Error("Unable to save statement row.");
+          }
+          replaceTableRow(result.payload.row);
+          if (modal) {
+            modal.hide();
+          }
+        })
+        .catch(function (error) {
+          window.alert(error.message);
+        })
+        .finally(function () {
+          if (saveButton) {
+            saveButton.disabled = false;
+          }
+        });
+    });
+  }
 })();
 </script>
 {% endblock extra_javascript %}

@@ -2952,6 +2952,56 @@ def test_problem_statement_editor_page_renders_tools_for_admin(client):
     assert "Edit raw statement rows" in response_html
 
 
+def test_problem_statement_editor_updates_existing_row_for_admin(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    linked_problem = ProblemSolveRecord.objects.create(
+        year=2024,
+        topic="GEO",
+        mohs=18,
+        contest="IMO",
+        problem="P1",
+        contest_year_problem="IMO 2024 P1",
+    )
+    statement = ContestProblemStatement.objects.create(
+        linked_problem=linked_problem,
+        contest_year=2024,
+        contest_name="IMO",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Original statement",
+    )
+
+    response = client.post(
+        reverse("pages:problem_statement_editor_update"),
+        data={
+            "statement_id": str(statement.id),
+            "contest_year": "2026",
+            "contest_name": "  Romanian   Master of Mathematics  ",
+            "day_label": "Final Round",
+            "problem_number": "7",
+            "problem_code": "  p7  ",
+            "statement_latex": "  Updated statement with preserved spacing  \n",
+            "is_active": "",
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.json()["ok"] is True
+
+    statement.refresh_from_db()
+    assert statement.contest_year == 2026
+    assert statement.contest_name == "Romanian Master of Mathematics"
+    assert statement.day_label == "Final Round"
+    assert statement.problem_number == 7
+    assert statement.problem_code == "P7"
+    assert statement.contest_year_problem == "Romanian Master of Mathematics 2026 P7"
+    assert statement.statement_latex == "  Updated statement with preserved spacing  \n"
+    assert statement.is_active is False
+    assert statement.linked_problem_id == linked_problem.id
+
+
 def test_user_activity_dashboard_requires_login(client):
     response = client.get(reverse("pages:user_activity_dashboard"))
     login_url = reverse(settings.LOGIN_URL)
