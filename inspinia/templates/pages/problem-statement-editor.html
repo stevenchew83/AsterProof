@@ -363,7 +363,7 @@
           return [
             "<div class=\"d-grid gap-1\">",
             "<div class=\"fw-semibold\">" + escapeHtml(problemLabel(row)) + "</div>",
-            "<div class=\"text-muted fs-xs\">" + escapeHtml(row.day_label) + "</div>",
+            "<div class=\"text-muted fs-xs\">" + escapeHtml(row.day_label_display) + "</div>",
             "<div class=\"text-muted fs-xs\">Statement ID " + escapeHtml(row.statement_id) + "</div>",
             "</div>",
           ].join("");
@@ -475,7 +475,7 @@
     setValue("statement-editor-row-id", row.statement_id);
     setValue("statement-editor-contest-year", row.contest_year);
     setValue("statement-editor-contest-name", row.contest_name);
-    setValue("statement-editor-day-label", row.day_label === "Unlabeled" ? "" : row.day_label);
+    setValue("statement-editor-day-label", row.day_label);
     setValue("statement-editor-problem-number", row.problem_number);
     setValue("statement-editor-problem-code", row.problem_code);
     setValue("statement-editor-statement-latex", row.statement_latex);

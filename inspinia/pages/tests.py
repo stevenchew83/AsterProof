@@ -2893,7 +2893,7 @@ def test_problem_statement_editor_page_renders_tools_for_admin(client):
         contest_name="JBMO",
         problem_number=2,
         problem_code="P2",
-        day_label="Day 2",
+        day_label="",
         statement_latex="Unlinked statement body",
     )
     inactive_statement = ContestProblemStatement.objects.create(
@@ -2922,6 +2922,7 @@ def test_problem_statement_editor_page_renders_tools_for_admin(client):
         "contest_year": 2025,
         "contest_year_label": "IMO 2025",
         "day_label": "Day 1",
+        "day_label_display": "Day 1",
         "is_active": True,
         "is_linked": True,
         "link_status": "Linked",
@@ -2936,6 +2937,8 @@ def test_problem_statement_editor_page_renders_tools_for_admin(client):
         "updated_at_sort": row_by_id[linked_statement.id]["updated_at_sort"],
     }
     assert row_by_id[unlinked_statement.id]["is_linked"] is False
+    assert row_by_id[unlinked_statement.id]["day_label"] == ""
+    assert row_by_id[unlinked_statement.id]["day_label_display"] == "Unlabeled"
     assert row_by_id[unlinked_statement.id]["link_status"] == "Unlinked"
     assert row_by_id[unlinked_statement.id]["linked_problem_label"] == ""
     assert row_by_id[inactive_statement.id]["is_active"] is False
