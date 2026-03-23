@@ -157,6 +157,9 @@ ANYMAIL = {
 # Collectfasta
 # ------------------------------------------------------------------------------
 # https://github.com/jasongi/collectfasta#installation
+# Only useful with a remote staticfiles backend (e.g. S3). When enabled without
+# COLLECTFASTA_STRATEGY, collectstatic raises ImproperlyConfigured.
+COLLECTFASTA_ENABLED = False
 INSTALLED_APPS = ["collectfasta", *INSTALLED_APPS]
 
 # LOGGING
