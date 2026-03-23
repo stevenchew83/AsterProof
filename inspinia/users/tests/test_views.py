@@ -2,6 +2,7 @@ from datetime import date
 from http import HTTPStatus
 
 import pytest
+from allauth.account.models import EmailAddress
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.models import AnonymousUser
@@ -12,11 +13,13 @@ from django.http import HttpResponseRedirect
 from django.test import Client
 from django.test import RequestFactory
 from django.urls import reverse
+from django.utils.translation import gettext
 from django.utils.translation import gettext_lazy as _
 
 from inspinia.pages.models import ProblemSolveRecord
 from inspinia.pages.models import UserProblemCompletion
 from inspinia.users.forms import UserAdminChangeForm
+from inspinia.users.models import AuditEvent
 from inspinia.users.models import User
 from inspinia.users.tests.factories import UserFactory
 from inspinia.users.views import PublicProfileUpdateView
@@ -25,6 +28,16 @@ from inspinia.users.views import UserUpdateView
 from inspinia.users.views import user_detail_view
 
 pytestmark = pytest.mark.django_db
+
+TEST_PASSWORD = "StrongPass123!"  # noqa: S105
+
+
+def _verify_email(user: User) -> None:
+    EmailAddress.objects.update_or_create(
+        user=user,
+        email=user.email,
+        defaults={"primary": True, "verified": True},
+    )
 EXPECTED_IMPORTED_COMPLETION_TOTAL = 2
 EXPECTED_PROFILE_AVG_MOHS = 4.5
 EXPECTED_PROFILE_MAX_MOHS = 5
@@ -139,7 +152,21 @@ class TestUserRedirectView:
         request.user = admin_user
 
         view.request = request
-        assert view.get_redirect_url() == reverse("pages:dashboard")
+        assert view.get_redirect_url() == reverse("pages:user_activity_dashboard")
+
+
+def test_account_login_ignores_next_and_lands_on_my_activity(client: Client):
+    user = UserFactory(password=TEST_PASSWORD)
+    _verify_email(user)
+
+    response = client.post(
+        f"{reverse('account_login')}?next={reverse('users:update')}",
+        {"login": user.email, "password": TEST_PASSWORD},
+        follow=True,
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.request["PATH_INFO"] == reverse("pages:user_activity_dashboard")
 
 
 class TestPublicProfileUpdateView:
@@ -394,3 +421,87 @@ class TestPublicProfileView:
             {"label": "MOHS 4", "total": 1, "width_pct": 100},
             {"label": "MOHS 5", "total": 1, "width_pct": 100},
         ]
+
+
+class TestManageRolesView:
+    def test_manage_roles_redirects_anonymous_user_to_login(self, client: Client):
+        response = client.get(reverse("users:manage_roles"))
+
+        assert response.status_code == HTTPStatus.FOUND
+        assert response.url == f"{reverse(settings.LOGIN_URL)}?next={reverse('users:manage_roles')}"
+
+    def test_manage_roles_forbids_non_admin_user(self, client: Client):
+        member = UserFactory(role=User.Role.NORMAL)
+        client.force_login(member)
+
+        response = client.get(reverse("users:manage_roles"))
+
+        assert response.status_code == HTTPStatus.FORBIDDEN
+
+    def test_manage_roles_admin_can_update_role_and_record_audit_event(self, client: Client):
+        admin_user = UserFactory(role=User.Role.ADMIN)
+        target_user = UserFactory(role=User.Role.NORMAL)
+        client.force_login(admin_user)
+
+        response = client.post(
+            reverse("users:manage_roles"),
+            {"user_id": target_user.pk, "role": User.Role.MODERATOR},
+            follow=True,
+        )
+
+        target_user.refresh_from_db()
+
+        assert response.status_code == HTTPStatus.OK
+        assert response.request["PATH_INFO"] == reverse("users:manage_roles")
+        assert target_user.role == User.Role.MODERATOR
+        content = response.content.decode("utf-8")
+        assert (
+            gettext("Updated role for %(email)s to %(role)s.")
+            % {
+                "email": target_user.email,
+                "role": target_user.get_role_display(),
+            }
+            in content
+        )
+        assert (
+            gettext(
+                "Admin-only role settings. Admin unlocks the admin tools and admin navigation. "
+                "Moderator, trainer, and normal are reserved for future permissions.",
+            )
+            in content
+        )
+        assert AuditEvent.objects.filter(
+            event_type=AuditEvent.EventType.ROLE_CHANGED,
+            actor=admin_user,
+            target_user=target_user,
+        ).exists()
+
+    def test_manage_roles_rejects_invalid_role(self, client: Client):
+        admin_user = UserFactory(role=User.Role.ADMIN)
+        target_user = UserFactory(role=User.Role.NORMAL)
+        client.force_login(admin_user)
+
+        response = client.post(
+            reverse("users:manage_roles"),
+            {"user_id": target_user.pk, "role": "owner"},
+            follow=True,
+        )
+
+        target_user.refresh_from_db()
+
+        assert response.status_code == HTTPStatus.OK
+        assert target_user.role == User.Role.NORMAL
+        assert gettext("Invalid user or role.") in response.content.decode("utf-8")
+
+    def test_manage_roles_rejects_invalid_user_id(self, client: Client):
+        admin_user = UserFactory(role=User.Role.ADMIN)
+        client.force_login(admin_user)
+
+        response = client.post(
+            reverse("users:manage_roles"),
+            {"user_id": "999999", "role": User.Role.ADMIN},
+            follow=True,
+        )
+
+        assert response.status_code == HTTPStatus.OK
+        assert gettext("Invalid user or role.") in response.content.decode("utf-8")

@@ -5,6 +5,7 @@ import typing
 from allauth.account.adapter import DefaultAccountAdapter
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from django.conf import settings
+from django.urls import reverse
 
 if typing.TYPE_CHECKING:
     from allauth.socialaccount.models import SocialLogin
@@ -16,6 +17,29 @@ if typing.TYPE_CHECKING:
 class AccountAdapter(DefaultAccountAdapter):
     def is_open_for_signup(self, request: HttpRequest) -> bool:
         return getattr(settings, "ACCOUNT_ALLOW_REGISTRATION", True)
+
+    def post_login(  # noqa: PLR0913
+        self,
+        request: HttpRequest,
+        user: User,
+        *,
+        email_verification,
+        signal_kwargs,
+        email,
+        signup,
+        redirect_url,
+    ):
+        if not signup:
+            redirect_url = reverse("pages:user_activity_dashboard")
+        return super().post_login(
+            request,
+            user,
+            email_verification=email_verification,
+            signal_kwargs=signal_kwargs,
+            email=email,
+            signup=signup,
+            redirect_url=redirect_url,
+        )
 
 
 class SocialAccountAdapter(DefaultSocialAccountAdapter):

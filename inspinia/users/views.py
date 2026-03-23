@@ -297,8 +297,6 @@ class UserRedirectView(LoginRequiredMixin, RedirectView):
     permanent = False
 
     def get_redirect_url(self) -> str:
-        if user_has_admin_role(self.request.user):
-            return reverse("pages:dashboard")
         return reverse("pages:user_activity_dashboard")
 
 
