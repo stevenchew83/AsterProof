@@ -286,6 +286,8 @@ ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 # https://docs.allauth.org/en/latest/account/configuration.html
 ACCOUNT_EMAIL_VERIFICATION = "mandatory"
 # https://docs.allauth.org/en/latest/account/configuration.html
+ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
+# https://docs.allauth.org/en/latest/account/configuration.html
 ACCOUNT_ADAPTER = "inspinia.users.adapters.AccountAdapter"
 # https://docs.allauth.org/en/latest/account/forms.html
 ACCOUNT_FORMS = {"signup": "inspinia.users.forms.UserSignupForm"}
