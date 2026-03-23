@@ -247,6 +247,17 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% translate 'Close' %}"></button>
       </div>
       <div class="modal-body">
+        <div id="statement-editor-modal-alert" class="alert alert-danger d-none" role="alert"></div>
+        <div id="statement-editor-field-errors" class="d-none">
+          <div class="invalid-feedback d-block d-none" data-error-field="statement_id"></div>
+          <div class="invalid-feedback d-block d-none" data-error-field="contest_year"></div>
+          <div class="invalid-feedback d-block d-none" data-error-field="contest_name"></div>
+          <div class="invalid-feedback d-block d-none" data-error-field="day_label"></div>
+          <div class="invalid-feedback d-block d-none" data-error-field="problem_number"></div>
+          <div class="invalid-feedback d-block d-none" data-error-field="problem_code"></div>
+          <div class="invalid-feedback d-block d-none" data-error-field="statement_latex"></div>
+          <div class="invalid-feedback d-block d-none" data-error-field="is_active"></div>
+        </div>
         <div class="statement-editor-identity mb-3">
           <div class="statement-editor-identity-item">
             <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Statement ID</p>
@@ -273,31 +284,38 @@
             <div class="col-md-6">
               <label class="form-label" for="statement-editor-contest-year">Contest year</label>
               <input id="statement-editor-contest-year" name="contest_year" type="number" class="form-control">
+              <div class="invalid-feedback d-block d-none" data-error-field="contest_year"></div>
             </div>
             <div class="col-md-6">
               <label class="form-label" for="statement-editor-contest-name">Contest name</label>
               <input id="statement-editor-contest-name" name="contest_name" type="text" class="form-control">
+              <div class="invalid-feedback d-block d-none" data-error-field="contest_name"></div>
             </div>
             <div class="col-md-4">
               <label class="form-label" for="statement-editor-day-label">Day label</label>
               <input id="statement-editor-day-label" name="day_label" type="text" class="form-control">
+              <div class="invalid-feedback d-block d-none" data-error-field="day_label"></div>
             </div>
             <div class="col-md-4">
               <label class="form-label" for="statement-editor-problem-number">Problem number</label>
               <input id="statement-editor-problem-number" name="problem_number" type="number" min="1" class="form-control">
+              <div class="invalid-feedback d-block d-none" data-error-field="problem_number"></div>
             </div>
             <div class="col-md-4">
               <label class="form-label" for="statement-editor-problem-code">Problem code</label>
               <input id="statement-editor-problem-code" name="problem_code" type="text" class="form-control">
+              <div class="invalid-feedback d-block d-none" data-error-field="problem_code"></div>
             </div>
             <div class="col-12">
               <label class="form-label" for="statement-editor-statement-latex">Statement LaTeX</label>
               <textarea id="statement-editor-statement-latex" name="statement_latex" rows="12" class="form-control"></textarea>
+              <div class="invalid-feedback d-block d-none" data-error-field="statement_latex"></div>
             </div>
             <div class="col-12">
               <div class="form-check">
                 <input id="statement-editor-is-active" name="is_active" type="checkbox" class="form-check-input">
                 <label class="form-check-label" for="statement-editor-is-active">Active row</label>
+                <div class="invalid-feedback d-block d-none" data-error-field="is_active"></div>
               </div>
             </div>
           </div>
@@ -338,6 +356,7 @@
   var modal = modalNode && typeof bootstrap !== "undefined" ? new bootstrap.Modal(modalNode) : null;
   var formNode = document.getElementById("statement-editor-form");
   var saveButton = document.getElementById("statement-editor-save");
+  var modalAlertNode = document.getElementById("statement-editor-modal-alert");
   var rowsByStatementId = {};
 
   rows.forEach(function (row) {
@@ -476,9 +495,73 @@
     }
   }
 
+  function clearEditorErrors() {
+    if (modalAlertNode) {
+      modalAlertNode.textContent = "";
+      modalAlertNode.classList.add("d-none");
+    }
+
+    if (!formNode) return;
+
+    formNode.querySelectorAll(".is-invalid").forEach(function (node) {
+      node.classList.remove("is-invalid");
+    });
+
+    formNode.querySelectorAll("[data-error-field]").forEach(function (node) {
+      node.textContent = "";
+      node.classList.add("d-none");
+    });
+  }
+
+  function renderEditorErrors(errors) {
+    clearEditorErrors();
+
+    if (!errors) {
+      if (modal) {
+        modal.show();
+      }
+      return;
+    }
+
+    var generalErrors = [];
+    if (Array.isArray(errors.__all__)) {
+      generalErrors = generalErrors.concat(errors.__all__);
+    }
+    if (Array.isArray(errors.non_field_errors)) {
+      generalErrors = generalErrors.concat(errors.non_field_errors);
+    }
+    if (modalAlertNode && generalErrors.length) {
+      modalAlertNode.textContent = generalErrors.join(" ");
+      modalAlertNode.classList.remove("d-none");
+    }
+
+    Object.keys(errors).forEach(function (fieldName) {
+      if (fieldName === "__all__" || fieldName === "non_field_errors") {
+        return;
+      }
+
+      var messages = Array.isArray(errors[fieldName]) ? errors[fieldName] : [String(errors[fieldName])];
+      var input = formNode ? formNode.querySelector('[name="' + fieldName + '"]') : null;
+      if (input) {
+        input.classList.add("is-invalid");
+      }
+
+      document.querySelectorAll('[data-error-field="' + fieldName + '"]').forEach(function (errorNode) {
+        errorNode.textContent = messages.join(" ");
+        errorNode.classList.remove("d-none");
+      });
+    });
+
+    if (modal) {
+      modal.show();
+    }
+  }
+
   function openEditor(statementId) {
     var row = rowsByStatementId[String(statementId)];
     if (!row || !modal) return;
+
+    clearEditorErrors();
 
     setText("statement-editor-identity-statement-id", String(row.statement_id));
     setText("statement-editor-identity-statement-uuid", row.statement_uuid);
@@ -567,16 +650,27 @@
           });
         })
         .then(function (result) {
-          if (!result.ok || !result.payload || !result.payload.ok || !result.payload.row) {
-            throw new Error("Unable to save statement row.");
+          if (result.ok && result.payload && result.payload.ok && result.payload.row) {
+            replaceTableRow(result.payload.row);
+            if (modal) {
+              modal.hide();
+            }
+            return;
           }
-          replaceTableRow(result.payload.row);
-          if (modal) {
-            modal.hide();
+
+          if (result.payload && result.payload.errors) {
+            renderEditorErrors(result.payload.errors);
+            return;
           }
+
+          renderEditorErrors({
+            __all__: ["Unable to save statement row."],
+          });
         })
         .catch(function (error) {
-          window.alert(error.message);
+          renderEditorErrors({
+            __all__: [error.message || "Unable to save statement row."],
+          });
         })
         .finally(function () {
           if (saveButton) {

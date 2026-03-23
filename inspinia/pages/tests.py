@@ -2952,6 +2952,166 @@ def test_problem_statement_editor_page_renders_tools_for_admin(client):
     assert "Edit raw statement rows" in response_html
 
 
+def test_problem_statement_editor_rejects_blank_statement_latex_for_admin(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    statement = ContestProblemStatement.objects.create(
+        contest_year=2025,
+        contest_name="IMO",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Original statement",
+    )
+
+    response = client.post(
+        reverse("pages:problem_statement_editor_update"),
+        data={
+            "statement_id": str(statement.id),
+            "contest_year": "2025",
+            "contest_name": "IMO",
+            "day_label": "Day 1",
+            "problem_number": "1",
+            "problem_code": "P1",
+            "statement_latex": "   ",
+            "is_active": "on",
+        },
+    )
+
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert response.json() == {
+        "errors": {
+            "statement_latex": ["Statement LaTeX is required."],
+        },
+        "ok": False,
+    }
+
+
+def test_problem_statement_editor_rejects_duplicate_statement_key_for_admin(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    linked_problem = ProblemSolveRecord.objects.create(
+        year=2025,
+        topic="ALG",
+        mohs=25,
+        contest="IMO",
+        problem="P1",
+        contest_year_problem="IMO 2025 P1",
+    )
+    ContestProblemStatement.objects.create(
+        contest_year=2025,
+        contest_name="IMO",
+        problem_number=2,
+        problem_code="P2",
+        day_label="Day 1",
+        statement_latex="Conflicting statement",
+    )
+    statement = ContestProblemStatement.objects.create(
+        linked_problem=linked_problem,
+        contest_year=2025,
+        contest_name="IMO",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Original statement",
+    )
+
+    response = client.post(
+        reverse("pages:problem_statement_editor_update"),
+        data={
+            "statement_id": str(statement.id),
+            "contest_year": "2025",
+            "contest_name": "IMO",
+            "day_label": "Day 1",
+            "problem_number": "2",
+            "problem_code": "P2",
+            "statement_latex": "Updated statement",
+            "is_active": "on",
+        },
+    )
+
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert response.json() == {
+        "errors": {
+            "__all__": [
+                "A statement row with this contest year, contest name, day label and problem code already exists.",
+            ],
+        },
+        "ok": False,
+    }
+
+
+def test_problem_statement_editor_keeps_linked_problem_when_update_conflicts_for_admin(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    linked_problem = ProblemSolveRecord.objects.create(
+        year=2025,
+        topic="ALG",
+        mohs=25,
+        contest="IMO",
+        problem="P1",
+        contest_year_problem="IMO 2025 P1",
+    )
+    ProblemSolveRecord.objects.create(
+        year=2025,
+        topic="GEO",
+        mohs=18,
+        contest="IMO",
+        problem="P2",
+        contest_year_problem="IMO 2025 P2",
+    )
+    ContestProblemStatement.objects.create(
+        contest_year=2025,
+        contest_name="IMO",
+        problem_number=2,
+        problem_code="P2",
+        day_label="Day 1",
+        statement_latex="Conflicting statement",
+    )
+    statement = ContestProblemStatement.objects.create(
+        linked_problem=linked_problem,
+        contest_year=2025,
+        contest_name="IMO",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Original statement",
+    )
+    original_linked_problem_id = statement.linked_problem_id
+
+    response = client.post(
+        reverse("pages:problem_statement_editor_update"),
+        data={
+            "statement_id": str(statement.id),
+            "contest_year": "2025",
+            "contest_name": "IMO",
+            "day_label": "Day 1",
+            "problem_number": "2",
+            "problem_code": "P2",
+            "statement_latex": "Updated statement",
+            "is_active": "on",
+        },
+    )
+
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    statement.refresh_from_db()
+    assert statement.linked_problem_id == original_linked_problem_id
+
+
+def test_problem_statement_editor_renders_modal_error_shell_for_admin(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+
+    response = client.get(reverse("pages:problem_statement_editor"))
+
+    assert response.status_code == HTTPStatus.OK
+    response_html = response.content.decode("utf-8")
+    assert 'id="statement-editor-modal-alert"' in response_html
+    assert 'id="statement-editor-field-errors"' in response_html
+    assert 'data-error-field="statement_latex"' in response_html
+    assert 'data-error-field="contest_name"' in response_html
+
+
 def test_problem_statement_editor_updates_existing_row_for_admin(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)

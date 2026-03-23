@@ -3575,7 +3575,19 @@ def problem_statement_editor_update_view(request):
     statement.problem_code = form.cleaned_data["problem_code"]
     statement.statement_latex = form.cleaned_data["statement_latex"]
     statement.is_active = form.cleaned_data["is_active"]
-    statement.save()
+
+    try:
+        with transaction.atomic():
+            statement.save()
+    except IntegrityError:
+        form.add_error(
+            None,
+            (
+                "A statement row with this contest year, contest name, day label and "
+                "problem code already exists."
+            ),
+        )
+        return JsonResponse({"errors": form.errors, "ok": False}, status=400)
 
     return JsonResponse(
         {
