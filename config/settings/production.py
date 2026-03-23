@@ -2,11 +2,17 @@
 from .base import *  # noqa: F403
 from .base import DATABASES
 from .base import INSTALLED_APPS
+from .base import MIDDLEWARE
 from .base import REDIS_URL
 from .base import env
 
 # GENERAL
 # ------------------------------------------------------------------------------
+# Serve collected static assets when the request reaches the WSGI app (e.g.
+# Gunicorn). Nginx may still alias /static/ for efficiency; if it does not,
+# WhiteNoise handles /static/ from STATIC_ROOT after collectstatic.
+MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")
+
 # https://docs.djangoproject.com/en/dev/ref/settings/#secret-key
 SECRET_KEY = env("DJANGO_SECRET_KEY")
 # https://docs.djangoproject.com/en/dev/ref/settings/#allowed-hosts
