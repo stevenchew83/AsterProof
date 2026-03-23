@@ -1,0 +1,27 @@
+{% load static %}
+{# DataTables UMD uses the AMD branch when window.define.amd exists, which skips
+   assigning window.DataTable. Temporarily hide define so the browser-global path runs. #}
+<script>
+(function () {
+  var g = window;
+  if (typeof g.define === "function" && g.define.amd) {
+    g.__asterproofDefineBackup = g.define;
+    try {
+      delete g.define;
+    } catch (e) {
+      g.define = undefined;
+    }
+  }
+})();
+</script>
+<script src="{% static 'plugins/datatables/dataTables.min.js' %}"></script>
+<script src="{% static 'plugins/datatables/dataTables.bootstrap5.min.js' %}"></script>
+<script>
+(function () {
+  var g = window;
+  if (g.__asterproofDefineBackup) {
+    g.define = g.__asterproofDefineBackup;
+    delete g.__asterproofDefineBackup;
+  }
+})();
+</script>

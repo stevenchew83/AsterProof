@@ -332,8 +332,7 @@
 {% block extra_javascript %}
 {% if technique_total > 0 %}
 <script src="{% static 'plugins/apexcharts/apexcharts.min.js' %}"></script>
-<script src="{% static 'plugins/datatables/dataTables.min.js' %}"></script>
-<script src="{% static 'plugins/datatables/dataTables.bootstrap5.min.js' %}"></script>
+{% include 'partials/datatables-vendor-scripts.html' %}
 <script>
 (function () {
   var dataEl = document.getElementById("technique-dashboard-charts-data");
