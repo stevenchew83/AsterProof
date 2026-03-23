@@ -2816,6 +2816,28 @@ def test_handle_summary_parser_requires_login(client):
     assert response.url == f"{login_url}?next={reverse('pages:handle_summary_parser')}"
 
 
+@override_settings(DEBUG=False)
+def test_handle_summary_parser_forbids_non_admin_when_debug_is_off(client):
+    user = UserFactory()
+    client.force_login(user)
+
+    response = client.get(reverse("pages:handle_summary_parser"))
+
+    assert response.status_code == HTTPStatus.FORBIDDEN
+
+
+@override_settings(DEBUG=False)
+def test_latex_preview_sidebar_hides_handle_parser_for_non_admin(client):
+    user = UserFactory()
+    client.force_login(user)
+
+    response = client.get(reverse("pages:latex_preview"))
+
+    assert response.status_code == HTTPStatus.OK
+    side_nav_html = response.content.decode("utf-8").split('<ul class="side-nav">', 1)[1].split("</ul>", 1)[0]
+    assert "Handle parser" not in side_nav_html
+
+
 def test_contest_rename_requires_login(client):
     response = client.get(reverse("pages:contest_rename"))
     login_url = reverse(settings.LOGIN_URL)
@@ -4420,9 +4442,9 @@ def test_handle_summary_parser_accepts_mohs_range_with_to_word():
     assert parsed_rows[0].handle == "Red-blue averaging cards"
 
 
-def test_handle_summary_parser_allows_authenticated_access(client):
-    user = UserFactory()
-    client.force_login(user)
+def test_handle_summary_parser_allows_admin_access(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
 
     response = client.get(reverse("pages:handle_summary_parser"))
 
@@ -5522,8 +5544,8 @@ def test_latex_preview_parse_action_builds_structured_preview_without_saving(cli
 
 
 def test_handle_summary_parser_post_builds_export_table(client):
-    user = UserFactory()
-    client.force_login(user)
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
     first_expected_row = EXPECTED_HANDLE_SUMMARY_ROWS[0]
 
     response = client.post(
