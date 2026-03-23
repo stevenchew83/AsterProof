@@ -25,6 +25,8 @@ def test_production_settings_keep_secure_cookies_enabled_by_default(monkeypatch)
 
     assert production.SESSION_COOKIE_SECURE is True
     assert production.CSRF_COOKIE_SECURE is True
+    assert production.SESSION_COOKIE_NAME == "__Secure-sessionid"
+    assert production.CSRF_COOKIE_NAME == "__Secure-csrftoken"
 
 
 def test_production_settings_allow_cookie_security_overrides(monkeypatch):
@@ -36,3 +38,5 @@ def test_production_settings_allow_cookie_security_overrides(monkeypatch):
 
     assert production.SESSION_COOKIE_SECURE is False
     assert production.CSRF_COOKIE_SECURE is False
+    assert production.SESSION_COOKIE_NAME == "sessionid"
+    assert production.CSRF_COOKIE_NAME == "csrftoken"
