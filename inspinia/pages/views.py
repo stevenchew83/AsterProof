@@ -770,7 +770,7 @@ def _statement_editor_table_payload() -> dict[str, object]:
                 "is_linked": linked_problem is not None,
                 "link_status": "Linked" if linked_problem is not None else "Unlinked",
                 "linked_problem_label": (
-                    linked_problem.contest_year_problem
+                    _statement_linker_problem_label(linked_problem)
                     if linked_problem is not None
                     else ""
                 ),

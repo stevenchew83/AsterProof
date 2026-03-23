@@ -2877,7 +2877,7 @@ def test_problem_statement_editor_page_renders_tools_for_admin(client):
         mohs=25,
         contest="IMO",
         problem="P1",
-        contest_year_problem="IMO 2025 P1",
+        contest_year_problem="",
     )
     linked_statement = ContestProblemStatement.objects.create(
         linked_problem=linked_problem,
@@ -2916,6 +2916,8 @@ def test_problem_statement_editor_page_renders_tools_for_admin(client):
         "total": 3,
         "unlinked_total": 2,
     }
+    assert response.context["statement_editor_contest_names"] == ["APMO", "IMO", "JBMO"]
+    assert response.context["statement_editor_year_values"] == ["2025", "2024"]
     row_by_id = {row["statement_id"]: row for row in response.context["statement_editor_rows"]}
     assert row_by_id[linked_statement.id] == {
         "contest_name": "IMO",
