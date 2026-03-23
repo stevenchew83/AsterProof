@@ -2868,6 +2868,18 @@ def test_problem_statement_editor_requires_login(client):
     assert response.url == f"{login_url}?next={reverse('pages:problem_statement_editor')}"
 
 
+def test_problem_statement_editor_page_renders_for_admin(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+
+    response = client.get(reverse("pages:problem_statement_editor"))
+
+    assert response.status_code == HTTPStatus.OK
+    response_html = response.content.decode("utf-8")
+    assert "Statement editor" in response_html
+    assert "Statement editor scaffold." in response_html
+
+
 def test_user_activity_dashboard_requires_login(client):
     response = client.get(reverse("pages:user_activity_dashboard"))
     login_url = reverse(settings.LOGIN_URL)
