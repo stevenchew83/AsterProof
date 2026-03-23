@@ -434,6 +434,7 @@ def latex_preview_view(request):
 
 @login_required
 def handle_summary_parser_view(request):
+    _require_admin_tools_access(request)
     preview_payload: HandleSummaryPreviewPayload | None = None
 
     if request.method == "POST":

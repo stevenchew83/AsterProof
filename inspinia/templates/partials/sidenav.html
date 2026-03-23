@@ -206,12 +206,14 @@
                     <span class="menu-text">LaTeX preview</span>
                 </a>
             </li>
+            {% if show_problem_import_link %}
             <li class="side-nav-item">
                 <a href="{% url 'pages:handle_summary_parser' %}" class="side-nav-link">
                     <span class="menu-icon"><i class="ti ti-table-export"></i></span>
                     <span class="menu-text">Handle parser</span>
                 </a>
             </li>
+            {% endif %}
 
             {% if is_app_admin %}
             <li class="side-nav-title">Admin</li>
