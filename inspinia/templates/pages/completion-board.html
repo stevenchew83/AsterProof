@@ -491,7 +491,13 @@
               <div class="completion-board-bulk-actions">
                 <div>
                   <label class="form-label" for="completion-board-bulk-date">Exact date</label>
-                  <input id="completion-board-bulk-date" type="date" class="form-control form-control-sm" max="{{ completion_board_today }}">
+                  <input
+                    id="completion-board-bulk-date"
+                    type="date"
+                    class="form-control form-control-sm"
+                    max="{{ completion_board_today }}"
+                    title="Pick a date or paste YYYY-MM-DD (e.g. 2025-11-27)."
+                  >
                 </div>
                 <button type="button" id="completion-board-bulk-today" class="btn btn-light btn-sm">Today</button>
                 <button type="button" id="completion-board-bulk-save-date" class="btn btn-primary btn-sm">Save date</button>
@@ -603,6 +609,7 @@
           type="date"
           class="form-control"
           max="{{ completion_board_today }}"
+          title="Pick a date or paste YYYY-MM-DD (e.g. 2025-11-27)."
         >
       </div>
       <div class="completion-board-inline-editor-actions">
@@ -769,6 +776,30 @@
     closeInlineEditorButton.disabled = isBusy;
     inlineDateInput.disabled = isBusy;
   }
+
+  function isoDateFromClipboardText(text) {
+    if (!text) return null;
+    var match = String(text).trim().match(/^(\d{4}-\d{2}-\d{2})\b/);
+    return match ? match[1] : null;
+  }
+
+  function bindIsoDatePaste(input) {
+    if (!input) return;
+    input.addEventListener(
+      "paste",
+      function (event) {
+        var pasted = (event.clipboardData || window.clipboardData).getData("text/plain");
+        var iso = isoDateFromClipboardText(pasted);
+        if (!iso) return;
+        event.preventDefault();
+        input.value = iso;
+      },
+      true
+    );
+  }
+
+  bindIsoDatePaste(inlineDateInput);
+  bindIsoDatePaste(bulkDateInput);
 
   function setBulkBusy(isBusy) {
     bulkBusy = isBusy;

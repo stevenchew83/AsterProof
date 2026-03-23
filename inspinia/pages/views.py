@@ -40,6 +40,7 @@ from inspinia.pages.forms import ContestRenameForm
 from inspinia.pages.forms import HandleSummaryParserForm
 from inspinia.pages.forms import ProblemCompletionPasteForm
 from inspinia.pages.forms import ProblemStatementCsvImportForm
+from inspinia.pages.forms import ProblemStatementDeleteByUuidForm
 from inspinia.pages.forms import ProblemStatementEditorUpdateForm
 from inspinia.pages.forms import ProblemStatementImportForm
 from inspinia.pages.forms import ProblemXlsxImportForm
@@ -3626,11 +3627,8 @@ def problem_statement_editor_update_view(request):
         "A statement row with this contest year, contest name, day label and "
         "problem code already exists."
     )
-    linked_identity_message = (
-        "Linked rows cannot change contest year, contest name, or problem code here. "
-        "Use Statement links to clear or relink the row first."
-    )
 
+    link_cleared = False
     if statement.linked_problem_id is not None:
         current_identity = (
             int(statement.contest_year),
@@ -3643,8 +3641,8 @@ def problem_statement_editor_update_view(request):
             proposed_problem_code,
         )
         if proposed_identity != current_identity:
-            form.add_error(None, linked_identity_message)
-            return JsonResponse({"errors": form.errors, "ok": False}, status=400)
+            statement.linked_problem = None
+            link_cleared = True
 
     statement.contest_year = proposed_contest_year
     statement.contest_name = proposed_contest_name
@@ -3678,11 +3676,19 @@ def problem_statement_editor_update_view(request):
         )
         return JsonResponse({"errors": form.errors, "ok": False}, status=400)
 
+    message = "Statement row saved."
+    if link_cleared:
+        message = (
+            "Statement row saved. The problem link was cleared because contest year, "
+            "contest name, or problem code changed. Relink on Statement links when ready."
+        )
+
     return JsonResponse(
         {
             "ok": True,
             "row": _statement_editor_row(statement),
-            "message": "Statement row saved.",
+            "message": message,
+            "link_cleared": link_cleared,
         },
     )
 
@@ -3752,6 +3758,37 @@ def problem_statement_duplicate_view(request):
         "statement_duplicate_similar_limit": duplicate_report["similar_pair_limit"],
     }
     return render(request, "pages/problem-statement-duplicates.html", context)
+
+
+@login_required
+def problem_statement_delete_by_uuid_view(request):
+    """Admin tool: permanently remove one statement row by its immutable statement UUID."""
+    _require_admin_tools_access(request)
+
+    if request.method == "POST":
+        form = ProblemStatementDeleteByUuidForm(request.POST)
+        if form.is_valid():
+            statement_uuid = form.cleaned_data["statement_uuid"]
+            try:
+                statement = ContestProblemStatement.objects.get(statement_uuid=statement_uuid)
+            except ContestProblemStatement.DoesNotExist:
+                form.add_error("statement_uuid", "No statement row has this statement UUID.")
+            else:
+                label = statement.contest_year_problem
+                statement.delete()
+                messages.success(
+                    request,
+                    f"Deleted statement row {label}. Statement UUID was {statement_uuid}.",
+                )
+                return redirect("pages:problem_statement_delete_by_uuid")
+    else:
+        form = ProblemStatementDeleteByUuidForm()
+
+    return render(
+        request,
+        "pages/problem-statement-delete-by-uuid.html",
+        {"form": form},
+    )
 
 
 @login_required

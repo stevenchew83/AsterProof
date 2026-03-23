@@ -155,6 +155,24 @@ class ProblemStatementImportForm(forms.Form):
     )
 
 
+class ProblemStatementDeleteByUuidForm(forms.Form):
+    statement_uuid = forms.UUIDField(
+        label="Statement UUID",
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control font-monospace",
+                "placeholder": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+                "autocomplete": "off",
+            },
+        ),
+    )
+    confirm_delete = forms.BooleanField(
+        label="I understand this permanently deletes the statement row, its technique tags, "
+        "and any user completions tied to this statement.",
+        required=True,
+    )
+
+
 class ProblemStatementEditorUpdateForm(forms.Form):
     statement_id = forms.IntegerField(min_value=1)
     contest_year = forms.IntegerField()
