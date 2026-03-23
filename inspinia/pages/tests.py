@@ -4868,15 +4868,11 @@ def test_problem_statement_list_shows_statement_rows_and_link_counts(client):
     assert "?q=2%2C5" in linked_row["linked_problem_imo_slot_url"]
     assert "statement_length" not in linked_row
     assert linked_row["problem_destination_label"] == "Start"
-    response_html = response.content.decode("utf-8")
-    assert "function renderTopicTagsCell(value)" in response_html
-    assert "formatTopicTags(value)" in response_html
-    assert "topic-tags-cell" in response_html
-    assert "maxLen = 30" in response_html
     assert linked_row["problem_destination_url"] == reverse(
         "solutions:problem_solution_edit",
         args=[linked_record.problem_uuid],
     )
+    response_html = response.content.decode("utf-8")
     assert linked_row["user_completion_date"] == "2025-08-28"
     assert linked_row["user_completion_display"] == "2025-08-28"
     assert linked_row["user_completion_state_kind"] == "solved"
@@ -4887,36 +4883,25 @@ def test_problem_statement_list_shows_statement_rows_and_link_counts(client):
     assert 'id="statement-confidence-filter"' in response_html
     assert 'id="statement-mohs-min"' in response_html
     assert 'id="statement-mohs-max"' in response_html
+    assert 'id="statement-search-q"' in response_html
     assert 'id="problem-statements-copy"' in response_html
     assert "Copy filtered rows" in response_html
-    assert "Filter linked rows by metadata" in response_html
-    assert 'data: "linked_problem_topic"' in response_html
-    assert 'data: "problem_code"' in response_html
-    assert 'title: "Problem code"' in response_html
-    assert 'data: "day_label"' in response_html
-    assert 'title: "Day"' in response_html
-    assert 'data: "user_completion_display"' in response_html
-    assert 'data: "linked_problem_confidence"' in response_html
-    assert 'title: "Confidence"' in response_html
-    assert 'data: "problem_destination_url"' in response_html
-    assert 'title: "Solution"' in response_html
-    assert 'title: "Chars"' not in response_html
-    assert 'title: "Linked problem"' not in response_html
-    assert 'title: "Preview"' not in response_html
-    assert "formatImoSlotLabel" in response_html
-    assert "populateFilterSelect" in response_html
+    assert "Filter and search" in response_html
+    assert 'id="problem-statements-table"' in response_html
+    assert "<thead" in response_html
+    assert SPAIN_OLYMPIAD_NAME in response_html
+    assert "Number Theory" in response_html
+    assert "P2, P5" in response_html
+    assert "dataTables" not in response_html.lower()
     assert "statement-completion-save" not in response_html
     assert "statement-completion-date" not in response_html
     assert 'id="statement-completion-feedback"' not in response_html
     assert "statement_completion_toggle_url" not in response_html
     assert "data-completion-toggle-url=" not in response_html
-    assert 'return column.data === "updated_at";' in response_html
-    assert 'order: [[updatedAtColumnIndex, "desc"]]' in response_html
-    assert "scrollX: true" in response_html
-    assert 'class="statement-table-shell"' in response_html
-    assert "table.columns.adjust();" in response_html
-    assert "updated_at_sort" in response_html
-    assert "renderChipLinks" not in response_html
+    assert "statement-table-shell" in response_html
+    assert "updated_at_sort" not in response_html
+    assert response.context["statement_filtered_total"] == EXPECTED_CONTEST_TOTAL
+    assert response.context["statement_page"].paginator.per_page == 25
 
 
 def test_problem_detail_view_redirects_to_solution_editor_when_no_solution_exists(client):
