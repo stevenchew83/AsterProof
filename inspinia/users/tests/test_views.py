@@ -124,13 +124,22 @@ class TestUserUpdateView:
 
 
 class TestUserRedirectView:
-    def test_get_redirect_url(self, user: User, rf: RequestFactory):
+    def test_get_redirect_url_for_non_admin_user(self, user: User, rf: RequestFactory):
         view = UserRedirectView()
         request = rf.get("/fake-url")
         request.user = user
 
         view.request = request
-        assert view.get_redirect_url() == "/users/profile/"
+        assert view.get_redirect_url() == reverse("pages:user_activity_dashboard")
+
+    def test_get_redirect_url_for_admin_user(self, rf: RequestFactory):
+        admin_user = UserFactory(role=User.Role.ADMIN)
+        view = UserRedirectView()
+        request = rf.get("/fake-url")
+        request.user = admin_user
+
+        view.request = request
+        assert view.get_redirect_url() == reverse("pages:dashboard")
 
 
 class TestPublicProfileUpdateView:

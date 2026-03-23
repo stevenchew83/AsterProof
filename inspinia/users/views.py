@@ -8,11 +8,6 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
-from django.db.models import Avg
-from django.db.models import Count
-from django.db.models import F
-from django.db.models import Max
-from django.db.models import Min
 from django.db.models import Q
 from django.db.models import QuerySet
 from django.shortcuts import redirect
@@ -96,7 +91,11 @@ class PublicProfileView(LoginRequiredMixin, DetailView):
             "statement__linked_problem",
         )
         completions = list(completion_qs)
-        completion_problems = [problem for problem in (_completion_problem(c) for c in completions) if problem is not None]
+        completion_problems = [
+            problem
+            for problem in (_completion_problem(completion) for completion in completions)
+            if problem is not None
+        ]
         completion_contests = [
             completion.statement.contest_name
             if completion.statement is not None
@@ -135,8 +134,14 @@ class PublicProfileView(LoginRequiredMixin, DetailView):
             ),
             "topic_total": len({problem.topic for problem in completion_problems}),
             "unknown_date_total": len(completions) - len(dated_completions),
-            "year_max": max((year_value for year_value in completion_year_values if year_value is not None), default=None),
-            "year_min": min((year_value for year_value in completion_year_values if year_value is not None), default=None),
+            "year_max": max(
+                (year_value for year_value in completion_year_values if year_value is not None),
+                default=None,
+            ),
+            "year_min": min(
+                (year_value for year_value in completion_year_values if year_value is not None),
+                default=None,
+            ),
         }
         context["completion_import_form"] = kwargs.get(
             "completion_import_form",
@@ -240,12 +245,20 @@ class PublicProfileView(LoginRequiredMixin, DetailView):
                     "completion_date": completion.completion_date,
                     "completion_known": completion.completion_date is not None,
                     "display_label": _completion_label(completion),
-                    "problem": statement.problem_code if statement is not None else (problem.problem if problem is not None else ""),
+                    "problem": (
+                        statement.problem_code
+                        if statement is not None
+                        else (problem.problem if problem is not None else "")
+                    ),
                     "problem_uuid": str(problem.problem_uuid) if problem is not None else "",
                     "statement_uuid": str(statement.statement_uuid) if statement is not None else "",
                     "topic": display_topic_label(problem.topic) if problem is not None else "Unlinked",
                     "updated_at": completion.updated_at,
-                    "year": statement.contest_year if statement is not None else (problem.year if problem is not None else ""),
+                    "year": (
+                        statement.contest_year
+                        if statement is not None
+                        else (problem.year if problem is not None else "")
+                    ),
                 },
             )
         context["recent_completion_items"] = recent_completion_items
@@ -284,7 +297,9 @@ class UserRedirectView(LoginRequiredMixin, RedirectView):
     permanent = False
 
     def get_redirect_url(self) -> str:
-        return reverse("users:profile")
+        if user_has_admin_role(self.request.user):
+            return reverse("pages:dashboard")
+        return reverse("pages:user_activity_dashboard")
 
 
 user_redirect_view = UserRedirectView.as_view()
