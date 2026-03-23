@@ -38,11 +38,6 @@ EMAIL_BACKEND = env(
     "DJANGO_EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend",
 )
 
-# django-allauth
-# ------------------------------------------------------------------------------
-# Local development should not block account creation on outbound email delivery.
-ACCOUNT_EMAIL_VERIFICATION = "none"
-
 # django-extensions
 # ------------------------------------------------------------------------------
 # https://django-extensions.readthedocs.io/en/latest/installation_instructions.html#configuration
