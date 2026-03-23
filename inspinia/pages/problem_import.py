@@ -21,6 +21,7 @@ from inspinia.pages.models import ProblemSolveRecord
 from inspinia.pages.models import ProblemTopicTechnique
 from inspinia.pages.topic_tags_parse import domains_dedup_preserve_order
 from inspinia.pages.topic_tags_parse import merge_domain_lists
+from inspinia.pages.statement_analytics_sync import sync_statement_analytics_from_linked_problem
 from inspinia.pages.topic_tags_parse import parse_contest_problem_string
 from inspinia.pages.topic_tags_parse import parse_topic_tags_cell
 
@@ -171,6 +172,9 @@ def _sync_statement_link(*, record: ProblemSolveRecord, created: bool) -> None:
 
     if update_fields:
         statement_entry.save(update_fields=update_fields)
+        if statement_entry.linked_problem_id is not None:
+            statement_entry.refresh_from_db()
+            sync_statement_analytics_from_linked_problem(statement_entry)
 
 
 def prepare_import_rows(df: pd.DataFrame) -> tuple[list[PreparedImportRow], list[str]]:

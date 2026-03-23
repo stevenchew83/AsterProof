@@ -423,7 +423,6 @@
 
   var table = new DataTable(tableNode, {
     data: rows,
-    order: [[4, "desc"]],
     pageLength: 25,
     columns: [
       {
@@ -437,6 +436,22 @@
             "<div class=\"text-muted fs-xs\">Statement ID " + escapeHtml(row.statement_id) + "</div>",
             "</div>",
           ].join("");
+        },
+      },
+      {
+        title: "Problem code",
+        data: "problem_code",
+        className: "text-nowrap",
+      },
+      {
+        title: "Topic",
+        data: "topic",
+        render: function (data, type, row) {
+          if (type !== "display") return data;
+          if (!row.is_linked) {
+            return "<span class=\"text-muted fs-xs\">Unlinked</span>";
+          }
+          return "<span class=\"badge bg-light text-dark border\">" + escapeHtml(data) + "</span>";
         },
       },
       {
@@ -499,6 +514,7 @@
         },
       },
     ],
+    order: [[6, "desc"]],
   });
 
   DataTable.ext.search.push(function (_settings, searchData, _index, rowData) {

@@ -25,7 +25,10 @@ from inspinia.pages.models import ContestMetadata
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
 from inspinia.pages.models import ProblemTopicTechnique
+from inspinia.pages.models import StatementTopicTechnique
 from inspinia.pages.models import UserProblemCompletion
+from inspinia.pages.statement_analytics import effective_topic
+from inspinia.pages.statement_analytics_sync import sync_statement_analytics_from_linked_problem
 from inspinia.pages.problem_import import ProblemImportValidationError
 from inspinia.pages.problem_import import dataframe_from_excel
 from inspinia.pages.problem_import import import_problem_dataframe
@@ -70,6 +73,7 @@ EXPECTED_STATEMENT_EXPORT_COLUMNS = [
     "STATEMENT LATEX",
 ]
 EXPECTED_STATEMENT_METADATA_EXPORT_COLUMNS = [
+    "STATEMENT UUID",
     "PROBLEM UUID",
     "CONTEST YEAR",
     "CONTEST NAME",
@@ -2935,6 +2939,7 @@ def test_problem_statement_editor_page_renders_tools_for_admin(client):
         "statement_id": linked_statement.id,
         "statement_latex": "Linked statement body",
         "statement_uuid": str(linked_statement.statement_uuid),
+        "topic": "Algebra",
         "updated_at": row_by_id[linked_statement.id]["updated_at"],
         "updated_at_sort": row_by_id[linked_statement.id]["updated_at_sort"],
     }
@@ -2943,6 +2948,7 @@ def test_problem_statement_editor_page_renders_tools_for_admin(client):
     assert row_by_id[unlinked_statement.id]["day_label_display"] == "Unlabeled"
     assert row_by_id[unlinked_statement.id]["link_status"] == "Unlinked"
     assert row_by_id[unlinked_statement.id]["linked_problem_label"] == ""
+    assert row_by_id[unlinked_statement.id]["topic"] == "Unlinked"
     assert row_by_id[inactive_statement.id]["is_active"] is False
     response_html = response.content.decode("utf-8")
     assert "Statement editor" in response_html
@@ -2950,6 +2956,8 @@ def test_problem_statement_editor_page_renders_tools_for_admin(client):
     assert 'id="statement-editor-modal"' in response_html
     assert 'id="statement-editor-form"' in response_html
     assert "Edit raw statement rows" in response_html
+    assert "Problem code" in response_html
+    assert "Topic" in response_html
 
 
 def test_problem_statement_editor_rejects_blank_statement_latex_for_admin(client):
@@ -3638,6 +3646,7 @@ def test_contest_dashboard_listing_view_filters_selected_contest_and_year_for_ad
     assert len(grouped_years) == 1
     assert grouped_years[0]["year"] == 2026
     assert grouped_years[0]["problems"][0]["label"] == visible_problem.contest_year_problem
+    assert grouped_years[0]["problems"][0]["problem_code"] == "P1"
     response_html = response.content.decode("utf-8")
     assert "Back to advanced analytics" in response_html
     assert "<th>#</th>" in response_html
@@ -3646,6 +3655,8 @@ def test_contest_dashboard_listing_view_filters_selected_contest_and_year_for_ad
     assert "js-sort-header" in response_html
     assert "Set inactive" in response_html
     assert 'text-nowrap text-muted fw-semibold js-row-index">1<' in response_html
+    assert "Problem code" in response_html
+    assert '<td class="text-nowrap" data-sort-value="P1">' in response_html
     assert "Solved date" in response_html
     assert "js-completion-save" in response_html
     assert "Unknown" in response_html
@@ -4774,6 +4785,8 @@ def test_problem_statement_list_shows_statement_rows_and_link_counts(client):
     assert "Copy filtered rows" in response_html
     assert "Filter linked rows by metadata" in response_html
     assert 'data: "linked_problem_topic"' in response_html
+    assert 'data: "problem_code"' in response_html
+    assert 'title: "Problem code"' in response_html
     assert 'data: "user_completion_display"' in response_html
     assert 'data: "problem_destination_url"' in response_html
     assert 'title: "Solution"' in response_html
@@ -5654,6 +5667,9 @@ def test_problem_statement_metadata_page_renders_tools_for_admin(client):
     response_html = response.content.decode("utf-8")
     assert "Statement metadata" in response_html
     assert "Export metadata workbook" in response_html
+    assert "Import metadata" in response_html
+    assert "Pasted metadata rows" in response_html
+    assert "Blank cells keep existing values." in response_html
     assert "Browser editor" in response_html
     assert "Save staged metadata" in response_html
     assert "?action=export" in response_html
@@ -5698,9 +5714,9 @@ def test_problem_statement_metadata_page_bulk_saves_staged_rows_for_admin(client
         {
             "action": "save_grid",
             "replace_tags": "on",
-            "problem_uuid": [
-                str(update_statement.problem_uuid),
-                str(create_statement.problem_uuid),
+            "statement_uuid": [
+                str(update_statement.statement_uuid),
+                str(create_statement.statement_uuid),
             ],
             "topic": ["G", "N"],
             "mohs": ["28", "35"],
@@ -5739,6 +5755,61 @@ def test_problem_statement_metadata_page_bulk_saves_staged_rows_for_admin(client
     )
 
 
+def test_problem_statement_metadata_page_bulk_save_allows_blank_optional_updates_for_existing_problem(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    existing_problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="A",
+        mohs=20,
+        confidence="Low",
+        contest="Israel TST",
+        problem="P1",
+        contest_year_problem="Israel TST 2026 P1",
+        imo_slot_guess="P1/4",
+        topic_tags="Alg - old tag",
+    )
+    statement = ContestProblemStatement.objects.create(
+        linked_problem=existing_problem,
+        contest_year=2026,
+        contest_name="Israel TST",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Update this statement",
+    )
+
+    response = client.post(
+        reverse("pages:problem_statement_metadata"),
+        {
+            "action": "save_grid",
+            "replace_tags": "on",
+            "statement_uuid": [str(statement.statement_uuid)],
+            "topic": [""],
+            "mohs": [""],
+            "confidence": ["Medium"],
+            "imo_slot_guess": [""],
+            "topic_tags": [""],
+        },
+        follow=True,
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    existing_problem.refresh_from_db()
+    statement.refresh_from_db()
+    assert existing_problem.topic == "A"
+    assert existing_problem.mohs == 20
+    assert existing_problem.confidence == "Medium"
+    assert existing_problem.imo_slot_guess == "P1/4"
+    assert existing_problem.topic_tags == "Alg - old tag"
+    assert statement.linked_problem_id == existing_problem.id
+    assert any(
+        "Statement metadata save finished. Processed 1 row(s): 0 created, 1 updated, 1 linked, 0 technique row(s) touched, 0 untouched staged row(s) skipped."
+        in str(message)
+        for message in response.context["messages"]
+    )
+
+
 def test_problem_statement_metadata_page_bulk_save_supports_duplicate_problem_keys_within_one_batch(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
@@ -5764,9 +5835,9 @@ def test_problem_statement_metadata_page_bulk_save_supports_duplicate_problem_ke
         {
             "action": "save_grid",
             "replace_tags": "on",
-            "problem_uuid": [
-                str(first_statement.problem_uuid),
-                str(second_statement.problem_uuid),
+            "statement_uuid": [
+                str(first_statement.statement_uuid),
+                str(second_statement.statement_uuid),
             ],
             "topic": ["G", "G"],
             "mohs": ["25", "25"],
@@ -5817,7 +5888,7 @@ def test_problem_statement_metadata_page_exports_workbook_for_admin(client):
         imo_slot_guess="P1/4",
         topic_tags="Geo – circles; isogonality",
     )
-    ContestProblemStatement.objects.create(
+    statement = ContestProblemStatement.objects.create(
         linked_problem=linked_problem,
         contest_year=2026,
         contest_name="Israel TST",
@@ -5838,6 +5909,7 @@ def test_problem_statement_metadata_page_exports_workbook_for_admin(client):
     exported_rows = exported_dataframe.to_dict(orient="records")
     assert list(exported_dataframe.columns) == EXPECTED_STATEMENT_METADATA_EXPORT_COLUMNS
     assert exported_rows == [{
+        "STATEMENT UUID": str(statement.statement_uuid),
         "PROBLEM UUID": str(linked_problem.problem_uuid),
         "CONTEST YEAR": "2026",
         "CONTEST NAME": "Israel TST",
@@ -5872,7 +5944,7 @@ def test_problem_statement_metadata_page_imports_workbook_and_creates_problem_ro
             "replace_tags": "on",
             "file": _xlsx_upload(
                 {
-                    "PROBLEM UUID": str(statement.problem_uuid),
+                    "STATEMENT UUID": str(statement.statement_uuid),
                     "CONTEST YEAR": 2026,
                     "CONTEST NAME": "Israel TST",
                     "CONTEST PROBLEM": "Israel TST 2026 P2",
@@ -5887,13 +5959,15 @@ def test_problem_statement_metadata_page_imports_workbook_and_creates_problem_ro
                     "Topic tags": "Geo – circles; isogonality",
                 },
                 {
-                    "PROBLEM UUID": str(uuid.uuid4()),
-                    "CONTEST YEAR": 2026,
-                    "CONTEST NAME": "Israel TST",
-                    "CONTEST PROBLEM": "Israel TST 2026 P9",
-                    "DAY LABEL": "Day 2",
-                    "PROBLEM NUMBER": 9,
-                    "PROBLEM CODE": "P9",
+                    "STATEMENT UUID": str(uuid.uuid4()),
+                    "PROBLEM UUID": "",
+                    "CONTEST YEAR": "",
+                    "CONTEST NAME": "",
+                    "CONTEST PROBLEM": "",
+                    "DAY LABEL": "",
+                    "PROBLEM NUMBER": "",
+                    "PROBLEM CODE": "",
+                    "STATEMENT LATEX": "",
                     "TOPIC": "",
                     "MOHS": "",
                     "Confidence": "",
@@ -5926,7 +6000,7 @@ def test_problem_statement_metadata_page_imports_workbook_and_creates_problem_ro
         ("ISOGONALITY", ["GEO"]),
     ]
     assert any(
-        "Statement metadata import finished. Processed 1 row(s): 1 created, 0 updated, 1 linked, 2 technique row(s) touched, 1 untouched workbook row(s) skipped."
+        "Statement metadata import finished. Processed 1 row(s): 1 created, 0 updated, 1 linked, 2 technique row(s) touched, 1 untouched import row(s) skipped."
         in str(message)
         for message in response.context["messages"]
     )
@@ -5970,7 +6044,7 @@ def test_problem_statement_metadata_page_imports_multiple_rows_and_updates_exist
             "replace_tags": "on",
             "file": _xlsx_upload(
                 {
-                    "PROBLEM UUID": str(update_statement.problem_uuid),
+                    "STATEMENT UUID": str(update_statement.statement_uuid),
                     "CONTEST YEAR": 2026,
                     "CONTEST NAME": "Israel TST",
                     "CONTEST PROBLEM": "Israel TST 2026 P1",
@@ -5985,7 +6059,7 @@ def test_problem_statement_metadata_page_imports_multiple_rows_and_updates_exist
                     "Topic tags": "Geo - circles",
                 },
                 {
-                    "PROBLEM UUID": str(create_statement.problem_uuid),
+                    "STATEMENT UUID": str(create_statement.statement_uuid),
                     "CONTEST YEAR": 2026,
                     "CONTEST NAME": "Israel TST",
                     "CONTEST PROBLEM": "Israel TST 2026 P3",
@@ -6027,7 +6101,167 @@ def test_problem_statement_metadata_page_imports_multiple_rows_and_updates_exist
     assert created_problem.topic_tags == "NT - multiplicative functions; prime divisors"
     assert create_statement.linked_problem_id == created_problem.id
     assert any(
-        "Statement metadata import finished. Processed 2 row(s): 1 created, 1 updated, 2 linked, 3 technique row(s) touched, 0 untouched workbook row(s) skipped."
+        "Statement metadata import finished. Processed 2 row(s): 1 created, 1 updated, 2 linked, 3 technique row(s) touched, 0 untouched import row(s) skipped."
+        in str(message)
+        for message in response.context["messages"]
+    )
+
+
+def test_problem_statement_metadata_page_imports_workbook_with_blank_fields_for_existing_problem(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    existing_problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="A",
+        mohs=20,
+        confidence="Low",
+        contest="Israel TST",
+        problem="P1",
+        contest_year_problem="Israel TST 2026 P1",
+        imo_slot_guess="P1/4",
+        topic_tags="Alg - old tag",
+    )
+    statement = ContestProblemStatement.objects.create(
+        linked_problem=existing_problem,
+        contest_year=2026,
+        contest_name="Israel TST",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Update this statement",
+    )
+
+    response = client.post(
+        reverse("pages:problem_statement_metadata"),
+        {
+            "replace_tags": "on",
+            "file": _xlsx_upload(
+                {
+                    "PROBLEM UUID": str(statement.problem_uuid),
+                    "Confidence": "Medium",
+                    "IMO slot guess": "",
+                    "Topic tags": "",
+                },
+            ),
+        },
+        follow=True,
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    existing_problem.refresh_from_db()
+    statement.refresh_from_db()
+    assert existing_problem.topic == "A"
+    assert existing_problem.mohs == 20
+    assert existing_problem.confidence == "Medium"
+    assert existing_problem.imo_slot_guess == "P1/4"
+    assert existing_problem.topic_tags == "Alg - old tag"
+    assert statement.linked_problem_id == existing_problem.id
+    assert any(
+        "Statement metadata import finished. Processed 1 row(s): 0 created, 1 updated, 1 linked, 0 technique row(s) touched, 0 untouched import row(s) skipped."
+        in str(message)
+        for message in response.context["messages"]
+    )
+
+
+def test_problem_statement_metadata_import_updates_statement_identity_from_sheet(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    existing_problem = ProblemSolveRecord.objects.create(
+        year=2013,
+        topic="G",
+        mohs=30,
+        contest="JBMO Shortlist",
+        problem="P1",
+        contest_year_problem="JBMO Shortlist 2013 P1",
+    )
+    statement = ContestProblemStatement.objects.create(
+        linked_problem=existing_problem,
+        contest_year=2013,
+        contest_name="JBMO Shortlist",
+        problem_number=1,
+        problem_code="P1",
+        day_label="",
+        statement_latex="Statement body",
+    )
+
+    response = client.post(
+        reverse("pages:problem_statement_metadata"),
+        {
+            "replace_tags": "on",
+            "file": _xlsx_upload(
+                {
+                    "STATEMENT UUID": str(statement.statement_uuid),
+                    "PROBLEM UUID": str(statement.problem_uuid),
+                    "CONTEST YEAR": 2013,
+                    "CONTEST NAME": "JBMO Shortlist",
+                    "CONTEST PROBLEM": "JBMO Shortlist 2013 P1",
+                    "DAY LABEL": "Algebra track",
+                    "PROBLEM NUMBER": 1,
+                    "PROBLEM CODE": "A1",
+                    "STATEMENT LATEX": "Statement body",
+                    "TOPIC": "G",
+                    "MOHS": 30,
+                    "Confidence": "",
+                    "IMO slot guess": "",
+                    "Topic tags": "",
+                },
+            ),
+        },
+        follow=True,
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    statement.refresh_from_db()
+    existing_problem.refresh_from_db()
+    assert statement.day_label == "Algebra track"
+    assert statement.problem_code == "A1"
+    assert statement.contest_year_problem == "JBMO Shortlist 2013 A1"
+    assert existing_problem.problem == "A1"
+    assert existing_problem.contest_year_problem == "JBMO Shortlist 2013 A1"
+
+
+def test_problem_statement_metadata_page_imports_pasted_rows_and_creates_problem_row(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    statement = ContestProblemStatement.objects.create(
+        contest_year=2026,
+        contest_name="Israel TST",
+        problem_number=4,
+        problem_code="P4",
+        day_label="Day 2",
+        statement_latex="Paste this metadata",
+    )
+
+    response = client.post(
+        reverse("pages:problem_statement_metadata"),
+        {
+            "replace_tags": "on",
+            "source_text": (
+                "STATEMENT UUID\tTOPIC\tMOHS\tConfidence\tIMO slot guess\tTopic tags\n"
+                f"{statement.statement_uuid}\tG\t27\tMedium\tP2/5\tGeo - circles; isogonality\n"
+            ),
+        },
+        follow=True,
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    statement.refresh_from_db()
+    created_problem = ProblemSolveRecord.objects.get(problem_uuid=statement.problem_uuid)
+    assert statement.linked_problem_id == created_problem.id
+    assert created_problem.topic == "G"
+    assert created_problem.mohs == 27
+    assert created_problem.confidence == "Medium"
+    assert created_problem.imo_slot_guess == "P2/5"
+    assert created_problem.topic_tags == "Geo - circles; isogonality"
+    saved_tags = list(
+        ProblemTopicTechnique.objects.filter(record=created_problem).order_by("technique")
+    )
+    assert [(tag.technique, tag.domains) for tag in saved_tags] == [
+        ("CIRCLES", ["GEO"]),
+        ("ISOGONALITY", ["GEO"]),
+    ]
+    assert any(
+        "Statement metadata import finished. Processed 1 row(s): 1 created, 0 updated, 1 linked, 2 technique row(s) touched, 0 untouched import row(s) skipped."
         in str(message)
         for message in response.context["messages"]
     )
@@ -6062,7 +6296,7 @@ def test_problem_statement_metadata_import_creates_new_problem_row_for_different
             "replace_tags": "on",
             "file": _xlsx_upload(
                 {
-                    "PROBLEM UUID": str(statement.problem_uuid),
+                    "STATEMENT UUID": str(statement.statement_uuid),
                     "CONTEST YEAR": 2026,
                     "CONTEST NAME": "Israel TST",
                     "CONTEST PROBLEM": "Israel TST 2026 P2",
@@ -6095,7 +6329,7 @@ def test_problem_statement_metadata_import_creates_new_problem_row_for_different
         problem="P2",
     ).count() == 2
     assert any(
-        "Statement metadata import finished. Processed 1 row(s): 1 created, 0 updated, 1 linked, 1 technique row(s) touched, 0 untouched workbook row(s) skipped."
+        "Statement metadata import finished. Processed 1 row(s): 1 created, 0 updated, 1 linked, 1 technique row(s) touched, 0 untouched import row(s) skipped."
         in str(message)
         for message in response.context["messages"]
     )
@@ -7619,3 +7853,81 @@ def test_contest_rename_rejects_statement_key_collision_across_selected_sources(
         "update: 2025 Day 1 P2."
         in response.context["form"].non_field_errors()[0]
     )
+
+
+@pytest.mark.django_db
+def test_effective_topic_prefers_statement_column_over_linked_record():
+    record = ProblemSolveRecord.objects.create(
+        year=2025,
+        topic="NT",
+        mohs=5,
+        contest="IMO",
+        problem="P1",
+    )
+    statement = ContestProblemStatement.objects.create(
+        contest_year=2025,
+        contest_name="IMO",
+        problem_number=1,
+        problem_code="P1",
+        statement_latex="x",
+        linked_problem=record,
+        topic="C",
+    )
+    assert effective_topic(statement) == "C"
+
+
+@pytest.mark.django_db
+def test_sync_statement_analytics_from_linked_problem_copies_when_statement_empty():
+    record = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="G",
+        mohs=7,
+        contest="TST",
+        problem="P2",
+        confidence="High",
+        imo_slot_guess="P1/4",
+    )
+    ProblemTopicTechnique.objects.create(record=record, technique="ANGLE", domains=["GEO"])
+    statement = ContestProblemStatement.objects.create(
+        contest_year=2026,
+        contest_name="TST",
+        problem_number=2,
+        problem_code="P2",
+        statement_latex="y",
+        linked_problem=record,
+    )
+    StatementTopicTechnique.objects.filter(statement=statement).delete()
+    ContestProblemStatement.objects.filter(pk=statement.pk).update(
+        topic=None,
+        mohs=None,
+        confidence=None,
+        imo_slot_guess=None,
+        imo_slot_guess_value=None,
+    )
+    statement.refresh_from_db()
+
+    assert sync_statement_analytics_from_linked_problem(statement) is True
+    statement.refresh_from_db()
+    assert statement.topic == record.topic
+    assert statement.mohs == record.mohs
+    assert statement.confidence == record.confidence
+    assert (statement.imo_slot_guess_value or "") != ""
+    assert list(
+        StatementTopicTechnique.objects.filter(statement=statement).values_list("technique", flat=True),
+    ) == ["ANGLE"]
+
+
+@pytest.mark.django_db
+def test_statement_topic_technique_uppercase_on_save():
+    statement = ContestProblemStatement.objects.create(
+        contest_year=2025,
+        contest_name="X",
+        problem_number=1,
+        problem_code="P1",
+        statement_latex="z",
+    )
+    st = StatementTopicTechnique(statement=statement, technique="lte", domains=["nt"])
+    st.save()
+    st.refresh_from_db()
+    assert st.technique == "LTE"
+    assert st.domains == ["NT"]

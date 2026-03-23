@@ -52,7 +52,15 @@ from inspinia.pages.models import ContestMetadata
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
 from inspinia.pages.models import ProblemTopicTechnique
+from inspinia.pages.models import StatementTopicTechnique
 from inspinia.pages.models import UserProblemCompletion
+from inspinia.pages.statement_analytics import annotate_effective_statement_analytics
+from inspinia.pages.statement_analytics import contest_key_for_public_slug
+from inspinia.pages.statement_analytics import effective_confidence
+from inspinia.pages.statement_analytics import effective_imo_slot_guess_value
+from inspinia.pages.statement_analytics import effective_mohs
+from inspinia.pages.statement_analytics import effective_topic
+from inspinia.pages.statement_analytics_sync import sync_statement_analytics_from_linked_problem
 from inspinia.pages.problem_completion_import import import_problem_completion_text_for_user
 from inspinia.pages.problem_import import ProblemImportValidationError
 from inspinia.pages.problem_import import build_parsed_preview_payload
@@ -76,6 +84,7 @@ from inspinia.pages.statement_metadata_backfill import build_statement_metadata_
 from inspinia.pages.statement_metadata_backfill import import_statement_metadata_dataframe
 from inspinia.pages.statement_metadata_backfill import statement_metadata_dataframe_from_excel
 from inspinia.pages.statement_metadata_backfill import statement_metadata_dataframe_from_rows
+from inspinia.pages.statement_metadata_backfill import statement_metadata_dataframe_from_text
 from inspinia.pages.topic_labels import display_topic_label
 from inspinia.solutions.models import ProblemSolution
 from inspinia.users.models import AuditEvent
@@ -567,12 +576,13 @@ def _completion_problem_for_statement(statement: ContestProblemStatement | None)
 
 
 def _statement_table_rows(base, *, user=None) -> list[dict]:
-    linked_statement_rows = list(
-        base.filter(linked_problem__isnull=False).values_list("linked_problem_id", "linked_problem__contest"),
+    statements_list = list(base.select_related("linked_problem").order_by("-updated_at", "-id"))
+    statement_ids = [statement.id for statement in statements_list]
+    linked_problem_ids = sorted(
+        {statement.linked_problem_id for statement in statements_list if statement.linked_problem_id is not None},
     )
-    linked_problem_ids = sorted({row[0] for row in linked_statement_rows if row[0] is not None})
-    linked_contest_names = [row[1] for row in linked_statement_rows if row[1]]
-    contest_to_slug, _slug_to_contest = _build_contest_slug_maps(linked_contest_names)
+    contest_keys = [contest_key_for_public_slug(statement) for statement in statements_list]
+    contest_to_slug, _slug_to_contest = _build_contest_slug_maps([key for key in contest_keys if key])
     topic_tag_rows = list(
         ProblemTopicTechnique.objects.filter(record_id__in=linked_problem_ids)
         .values("record_id", "technique")
@@ -587,11 +597,25 @@ def _statement_table_rows(base, *, user=None) -> list[dict]:
             continue
         seen_topic_tags_by_problem_id[record_id].add(technique)
         topic_tags_by_problem_id[record_id].append(technique)
+    stmt_topic_rows = list(
+        StatementTopicTechnique.objects.filter(statement_id__in=statement_ids)
+        .values("statement_id", "technique")
+        .order_by("technique", "statement_id"),
+    )
+    topic_tags_by_statement_id: dict[int, list[str]] = defaultdict(list)
+    seen_topic_tags_by_statement_id: dict[int, set[str]] = defaultdict(set)
+    for tag_row in stmt_topic_rows:
+        statement_id = tag_row["statement_id"]
+        technique = tag_row["technique"]
+        if technique in seen_topic_tags_by_statement_id[statement_id]:
+            continue
+        seen_topic_tags_by_statement_id[statement_id].add(technique)
+        topic_tags_by_statement_id[statement_id].append(technique)
     completion_dates_by_statement_id: dict[int, date | None] = {}
     visible_solution_problem_ids: set[int] = set()
     if user is not None and linked_problem_ids:
         completion_dates_by_statement_id = _statement_completion_dates_by_statement_id(
-            list(base.select_related("linked_problem")),
+            statements_list,
             user=user,
         )
         visible_solution_problem_ids = set(
@@ -607,10 +631,7 @@ def _statement_table_rows(base, *, user=None) -> list[dict]:
         return f"{base_url}?{urlencode(clean_params)}"
 
     table_rows: list[dict] = []
-    for statement in base.select_related("linked_problem").order_by(
-        "-updated_at",
-        "-id",
-    ):
+    for statement in statements_list:
         linked_problem = statement.linked_problem
         linked_problem_topic = ""
         linked_problem_topic_tags: list[str] = []
@@ -641,34 +662,40 @@ def _statement_table_rows(base, *, user=None) -> list[dict]:
             user_completion_display = (
                 user_completion_date.isoformat() if user_completion_date is not None else "Unknown date"
             )
+        eff_topic = effective_topic(statement)
+        if eff_topic:
+            linked_problem_topic = display_topic_label(eff_topic)
+        linked_problem_topic_tags = topic_tags_by_statement_id.get(statement.id, [])
+        if not linked_problem_topic_tags and linked_problem is not None:
+            linked_problem_topic_tags = topic_tags_by_problem_id.get(linked_problem.id, [])
+        eff_mohs = effective_mohs(statement)
+        linked_problem_mohs = eff_mohs
+        linked_problem_confidence = effective_confidence(statement)
+        linked_problem_imo_slot_guess_value = effective_imo_slot_guess_value(statement)
         if linked_problem is not None:
             linked_problem_uuid = str(linked_problem.problem_uuid)
-            linked_problem_topic = display_topic_label(linked_problem.topic)
-            linked_problem_topic_tags = topic_tags_by_problem_id.get(linked_problem.id, [])
-            linked_problem_mohs = linked_problem.mohs
-            linked_problem_confidence = linked_problem.confidence or ""
-            linked_problem_imo_slot_guess_value = linked_problem.imo_slot_guess_value or ""
-            contest_slug = contest_to_slug.get(linked_problem.contest)
-            if contest_slug:
-                contest_filter_base_url = reverse("pages:contest_problem_list", args=[contest_slug])
-                linked_problem_topic_tag_links = [
-                    {
-                        "label": technique,
-                        "url": _build_filter_url(contest_filter_base_url, tag=technique),
-                    }
-                    for technique in linked_problem_topic_tags
-                ]
-                linked_problem_mohs_url = _build_filter_url(contest_filter_base_url, mohs=linked_problem.mohs)
-                linked_problem_confidence_url = (
-                    _build_filter_url(contest_filter_base_url, q=linked_problem_confidence)
-                    if linked_problem_confidence
-                    else ""
-                )
-                linked_problem_imo_slot_url = (
-                    _build_filter_url(contest_filter_base_url, q=linked_problem_imo_slot_guess_value)
-                    if linked_problem_imo_slot_guess_value
-                    else ""
-                )
+        contest_slug = contest_to_slug.get(contest_key_for_public_slug(statement))
+        if contest_slug:
+            contest_filter_base_url = reverse("pages:contest_problem_list", args=[contest_slug])
+            linked_problem_topic_tag_links = [
+                {
+                    "label": technique,
+                    "url": _build_filter_url(contest_filter_base_url, tag=technique),
+                }
+                for technique in linked_problem_topic_tags
+            ]
+            if eff_mohs is not None:
+                linked_problem_mohs_url = _build_filter_url(contest_filter_base_url, mohs=eff_mohs)
+            linked_problem_confidence_url = (
+                _build_filter_url(contest_filter_base_url, q=linked_problem_confidence)
+                if linked_problem_confidence
+                else ""
+            )
+            linked_problem_imo_slot_url = (
+                _build_filter_url(contest_filter_base_url, q=linked_problem_imo_slot_guess_value)
+                if linked_problem_imo_slot_guess_value
+                else ""
+            )
 
         table_rows.append(
             {
@@ -783,6 +810,11 @@ def _statement_editor_row(statement: ContestProblemStatement) -> dict[str, objec
         "problem_number": statement.problem_number,
         "problem_code": statement.problem_code,
         "statement_latex": statement.statement_latex,
+        "topic": (
+            display_topic_label(effective_topic(statement))
+            if effective_topic(statement)
+            else "Unlinked"
+        ),
         "is_active": statement.is_active,
         "is_linked": linked_problem is not None,
         "link_status": "Linked" if linked_problem is not None else "Unlinked",
@@ -1047,6 +1079,8 @@ def _statement_linker_apply_link(
 
     statement.linked_problem = problem
     statement.save(update_fields={"linked_problem", "updated_at"})
+    statement.refresh_from_db()
+    sync_statement_analytics_from_linked_problem(statement)
     return None
 
 
@@ -1328,6 +1362,7 @@ def _contest_year_mohs_pivot_payload() -> dict[str, object]:
             "contest_year",
             "problem_code",
             "problem_uuid",
+            "mohs",
         ).order_by("contest_name", "-contest_year", "problem_code", "problem_uuid"),
     )
     if not statement_rows:
@@ -1395,7 +1430,9 @@ def _contest_year_mohs_pivot_payload() -> dict[str, object]:
         seen_year_values.add(contest_year)
 
         problem_code = (row["problem_code"] or "").strip().upper()
-        mohs = problem_by_uuid.get(row["problem_uuid"])
+        mohs = row.get("mohs")
+        if mohs is None:
+            mohs = problem_by_uuid.get(row["problem_uuid"])
         if mohs is None and problem_code:
             statement_problem_key = (contest_name, contest_year, problem_code)
             if statement_problem_code_counts[statement_problem_key] == 1:
@@ -1497,6 +1534,7 @@ def _dashboard_statement_problem_rows(base) -> list[dict]:
             "-id",
         ),
     )
+    statement_ids = [statement.id for statement in statements]
     linked_problem_ids = sorted(
         {
             statement.linked_problem_id
@@ -1510,27 +1548,31 @@ def _dashboard_statement_problem_rows(base) -> list[dict]:
         .values("record_id")
         .annotate(c=Count("id"))
     }
+    technique_counts_by_statement_id = {
+        row["statement_id"]: int(row["c"])
+        for row in StatementTopicTechnique.objects.filter(statement_id__in=statement_ids)
+        .values("statement_id")
+        .annotate(c=Count("id"))
+    }
 
     rows: list[dict] = []
     for statement in statements:
         linked_problem = statement.linked_problem
+        eff_topic = effective_topic(statement)
+        topic_label = display_topic_label(eff_topic) if eff_topic else "Unlinked"
+        eff_mohs = effective_mohs(statement)
+        tech_n = technique_counts_by_statement_id.get(statement.id, 0)
+        if tech_n == 0 and linked_problem is not None:
+            tech_n = technique_counts_by_problem_id.get(linked_problem.id, 0)
         rows.append(
             {
                 "year": int(statement.contest_year),
-                "topic": (
-                    display_topic_label(linked_problem.topic)
-                    if linked_problem is not None and linked_problem.topic
-                    else "Unlinked"
-                ),
-                "mohs": linked_problem.mohs if linked_problem is not None else "",
+                "topic": topic_label,
+                "mohs": eff_mohs if eff_mohs is not None else "",
                 "contest": statement.contest_name,
                 "problem": statement.problem_code,
                 "contest_year_problem": statement.contest_year_problem,
-                "technique_count": (
-                    technique_counts_by_problem_id.get(linked_problem.id, 0)
-                    if linked_problem is not None
-                    else 0
-                ),
+                "technique_count": tech_n,
             },
         )
     return rows
@@ -3449,28 +3491,31 @@ def dashboard_analytics_view(request):
     base = _active_dashboard_statements()
     total = base.count()
 
-    stats = base.aggregate(
+    base_eff = annotate_effective_statement_analytics(base)
+    stats = base_eff.aggregate(
         year_min=Min("contest_year"),
         year_max=Max("contest_year"),
         contest_n=Count("contest_name", distinct=True),
-        topic_n=Count(
-            "linked_problem__topic",
-            filter=Q(linked_problem__topic__isnull=False) & ~Q(linked_problem__topic=""),
-            distinct=True,
-        ),
     )
-    technique_total = base.aggregate(total=Count("linked_problem__topic_techniques"))["total"] or 0
+    stats["topic_n"] = (
+        base_eff.exclude(_eff_topic="")
+        .values("_eff_topic")
+        .distinct()
+        .count()
+    )
+    technique_total = base.aggregate(total=Count("statement_topic_techniques"))["total"] or 0
 
     by_year = list(base.values("contest_year").annotate(c=Count("id")).order_by("contest_year"))
     for row in by_year:
         row["year"] = row.pop("contest_year")
     by_topic = list(
-        base.values("linked_problem__topic")
+        base_eff.exclude(_eff_topic="")
+        .values("_eff_topic")
         .annotate(c=Count("id"))
-        .order_by("-c", "linked_problem__topic")[:18]
+        .order_by("-c", "_eff_topic")[:18]
     )
     for row in by_topic:
-        raw_topic = row.pop("linked_problem__topic")
+        raw_topic = row.pop("_eff_topic")
         row["topic"] = display_topic_label(raw_topic) if raw_topic else "Unlinked"
     by_contest = list(
         base.values("contest_name").annotate(c=Count("id")).order_by("-c", "contest_name")[:12]
@@ -3478,22 +3523,22 @@ def dashboard_analytics_view(request):
     for row in by_contest:
         row["contest"] = row.pop("contest_name")
     by_mohs = list(
-        base.filter(linked_problem__isnull=False)
-        .values("linked_problem__mohs")
+        base_eff.filter(_eff_mohs__isnull=False)
+        .values("_eff_mohs")
         .annotate(c=Count("id"))
-        .order_by("linked_problem__mohs")
+        .order_by("_eff_mohs")
     )
     for row in by_mohs:
-        row["mohs"] = row.pop("linked_problem__mohs")
+        row["mohs"] = row.pop("_eff_mohs")
     top_techniques = list(
-        base.filter(linked_problem__topic_techniques__technique__isnull=False)
-        .exclude(linked_problem__topic_techniques__technique="")
-        .values("linked_problem__topic_techniques__technique")
-        .annotate(c=Count("id"))
-        .order_by("-c", "linked_problem__topic_techniques__technique")[:18]
+        base.filter(statement_topic_techniques__technique__isnull=False)
+        .exclude(statement_topic_techniques__technique="")
+        .values("statement_topic_techniques__technique")
+        .annotate(c=Count("id", distinct=True))
+        .order_by("-c", "statement_topic_techniques__technique")[:18]
     )
     for row in top_techniques:
-        row["technique"] = row.pop("linked_problem__topic_techniques__technique")
+        row["technique"] = row.pop("statement_topic_techniques__technique")
     contest_year_mohs_pivot_table = _contest_year_mohs_pivot_payload()
 
     charts_payload = {
@@ -4124,8 +4169,9 @@ def _build_dashboard_contest_statement_listing_context(
     contest_slug: str,
 ) -> dict[str, object]:
     contest_base = _active_dashboard_statements().filter(contest_name=contest_name)
-    stats = contest_base.aggregate(
-        avg_mohs=Avg("linked_problem__mohs"),
+    contest_base_eff = annotate_effective_statement_analytics(contest_base)
+    stats = contest_base_eff.aggregate(
+        avg_mohs=Avg("_eff_mohs"),
         statement_n=Count("id"),
         linked_n=Count("id", filter=Q(linked_problem__isnull=False)),
         year_max=Max("contest_year"),
@@ -4151,6 +4197,7 @@ def _build_dashboard_contest_statement_listing_context(
             "-id",
         ),
     )
+    statement_ids = [statement.id for statement in statements]
     linked_problem_ids = sorted(
         {
             statement.linked_problem_id
@@ -4163,13 +4210,32 @@ def _build_dashboard_contest_statement_listing_context(
         .values("record_id", "technique", "domains")
         .order_by("technique", "record_id"),
     )
+    stmt_topic_tag_rows = list(
+        StatementTopicTechnique.objects.filter(statement_id__in=statement_ids)
+        .values("statement_id", "technique", "domains")
+        .order_by("technique", "statement_id"),
+    )
     topic_tags_by_problem_id: dict[int, list[dict]] = defaultdict(list)
+    topic_tags_by_statement_id: dict[int, list[dict]] = defaultdict(list)
     topic_tag_options: list[str] = []
     seen_topic_tags: set[str] = set()
     for tag_row in topic_tag_rows:
         technique = tag_row["technique"]
         domains = tag_row.get("domains") or []
         topic_tags_by_problem_id[tag_row["record_id"]].append(
+            {
+                "domains": domains,
+                "domains_label": ", ".join(domains),
+                "technique": technique,
+            },
+        )
+        if technique not in seen_topic_tags:
+            seen_topic_tags.add(technique)
+            topic_tag_options.append(technique)
+    for tag_row in stmt_topic_tag_rows:
+        technique = tag_row["technique"]
+        domains = tag_row.get("domains") or []
+        topic_tags_by_statement_id[tag_row["statement_id"]].append(
             {
                 "domains": domains,
                 "domains_label": ", ".join(domains),
@@ -4204,7 +4270,9 @@ def _build_dashboard_contest_statement_listing_context(
     problem_rows: list[dict[str, object]] = []
     for statement in statements:
         linked_problem = statement.linked_problem
-        topic_tags = topic_tags_by_problem_id.get(statement.linked_problem_id, [])
+        topic_tags = topic_tags_by_statement_id.get(statement.id, [])
+        if not topic_tags:
+            topic_tags = topic_tags_by_problem_id.get(statement.linked_problem_id, [])
         render_payload = _statement_render_payload(statement.statement_latex)
         is_linked = linked_problem is not None
         completion_date = completion_by_statement_id.get(statement.id)
@@ -4225,7 +4293,8 @@ def _build_dashboard_contest_statement_listing_context(
             completion_display = "Unsolved"
 
         label = statement.contest_year_problem or f"{statement.contest_name} {statement.contest_year} {statement.problem_code}"
-        topic_label = display_topic_label(linked_problem.topic) if linked_problem is not None else ""
+        eff_topic = effective_topic(statement)
+        topic_label = display_topic_label(eff_topic) if eff_topic else ""
         published_solution_total = (
             solution_counts_by_problem_id.get(linked_problem.id, 0)
             if linked_problem is not None
@@ -4244,16 +4313,14 @@ def _build_dashboard_contest_statement_listing_context(
                 "completion_known": is_completed and completion_date is not None,
                 "completion_state_kind": completion_state_kind,
                 "completion_state_label": completion_state_label,
-                "confidence": linked_problem.confidence if linked_problem is not None else "",
+                "confidence": effective_confidence(statement),
                 "has_my_solution": my_solution_row is not None,
                 "has_statement": True,
-                "imo_slot_guess_value": (
-                    linked_problem.imo_slot_guess_value if linked_problem is not None else ""
-                ),
+                "imo_slot_guess_value": effective_imo_slot_guess_value(statement),
                 "is_completed": is_completed,
                 "is_linked": is_linked,
                 "label": label,
-                "mohs": linked_problem.mohs if linked_problem is not None else None,
+                "mohs": effective_mohs(statement),
                 "my_solution_status": my_solution_row["status"] if my_solution_row else "",
                 "my_solution_status_badge_class": (
                     _solution_status_badge_class(my_solution_row["status"])
@@ -4266,6 +4333,7 @@ def _build_dashboard_contest_statement_listing_context(
                     else ""
                 ),
                 "problem": statement.problem_code,
+                "problem_code": statement.problem_code,
                 "problem_uuid": str(linked_problem.problem_uuid) if linked_problem is not None else "",
                 "statement_uuid": str(statement.statement_uuid),
                 "published_solution_total": published_solution_total,
@@ -4295,7 +4363,7 @@ def _build_dashboard_contest_statement_listing_context(
     problem_rows.sort(
         key=lambda row: (
             -int(row["year"]),
-            _problem_sort_key(str(row["problem"])),
+            _problem_sort_key(str(row["problem_code"])),
             str(row["statement_day_label"] or ""),
             str(row["label"]),
         ),
@@ -4326,7 +4394,7 @@ def _build_dashboard_contest_statement_listing_context(
             in " ".join(
                 [
                     str(row["year"]),
-                    str(row["problem"]),
+                    str(row["problem_code"]),
                     str(row["topic"]),
                     str(row["label"]),
                     str(row.get("confidence") or ""),
@@ -4353,31 +4421,31 @@ def _build_dashboard_contest_statement_listing_context(
         grouped_years[-1]["problems"].append(row)
 
     top_topic_rows = list(
-        contest_base.filter(linked_problem__isnull=False)
-        .values("linked_problem__topic")
+        contest_base_eff.filter(~Q(_eff_topic=""))
+        .values("_eff_topic")
         .annotate(statement_count=Count("id"))
-        .order_by("-statement_count", "linked_problem__topic")[:6]
+        .order_by("-statement_count", "_eff_topic")[:6]
     )
     top_topics = [
-        display_topic_label(str(row["linked_problem__topic"]))
+        display_topic_label(str(row["_eff_topic"]))
         for row in top_topic_rows
-        if row["linked_problem__topic"]
+        if row["_eff_topic"]
     ]
 
     years = list(contest_base.values_list("contest_year", flat=True).distinct().order_by("-contest_year"))
     mohs_values = list(
-        contest_base.filter(linked_problem__isnull=False)
-        .values_list("linked_problem__mohs", flat=True)
+        contest_base_eff.filter(_eff_mohs__isnull=False)
+        .values_list("_eff_mohs", flat=True)
         .distinct()
-        .order_by("linked_problem__mohs")
+        .order_by("_eff_mohs")
     )
     topics = list(
         dict.fromkeys(
             display_topic_label(topic)
-            for topic in contest_base.filter(linked_problem__isnull=False)
-            .values_list("linked_problem__topic", flat=True)
+            for topic in contest_base_eff.filter(~Q(_eff_topic=""))
+            .values_list("_eff_topic", flat=True)
             .distinct()
-            .order_by("linked_problem__topic")
+            .order_by("_eff_topic")
             if topic
         ),
     )
@@ -4573,26 +4641,27 @@ def contest_analytics_view(request):
     base = _active_dashboard_statements()
     problem_total = base.count()
 
+    base_eff = annotate_effective_statement_analytics(base)
     contest_rows = list(
-        base.values("contest_name")
+        base_eff.values("contest_name")
         .annotate(
             problem_count=Count("id"),
             year_min=Min("contest_year"),
             year_max=Max("contest_year"),
             active_years=Count("contest_year", distinct=True),
             distinct_topics=Count(
-                "linked_problem__topic",
-                filter=Q(linked_problem__topic__isnull=False) & ~Q(linked_problem__topic=""),
+                "_eff_topic",
+                filter=~Q(_eff_topic=""),
                 distinct=True,
             ),
-            avg_mohs=Avg("linked_problem__mohs"),
-            max_mohs=Max("linked_problem__mohs"),
+            avg_mohs=Avg("_eff_mohs"),
+            max_mohs=Max("_eff_mohs"),
         )
         .order_by("-problem_count", "contest_name"),
     )
     technique_rows_by_contest = {
         row["contest_name"]: int(row["c"])
-        for row in base.values("contest_name").annotate(c=Count("linked_problem__topic_techniques"))
+        for row in base.values("contest_name").annotate(c=Count("statement_topic_techniques"))
     }
     for row in contest_rows:
         row["contest"] = row.pop("contest_name")
@@ -4733,23 +4802,24 @@ def contest_advanced_analytics_view(request):
         raise Http404(msg)
 
     contest_base = _active_dashboard_statements().filter(contest_name=selected_contest)
-    stats = contest_base.aggregate(
+    contest_base_eff = annotate_effective_statement_analytics(contest_base)
+    stats = contest_base_eff.aggregate(
         active_years=Count("contest_year", distinct=True),
-        avg_mohs=Avg("linked_problem__mohs"),
+        avg_mohs=Avg("_eff_mohs"),
         distinct_topics=Count(
-            "linked_problem__topic",
-            filter=Q(linked_problem__topic__isnull=False) & ~Q(linked_problem__topic=""),
+            "_eff_topic",
+            filter=~Q(_eff_topic=""),
             distinct=True,
         ),
         linked_statement_total=Count("id", filter=Q(linked_problem__isnull=False)),
-        max_mohs=Max("linked_problem__mohs"),
+        max_mohs=Max("_eff_mohs"),
         problem_count=Count("id"),
         year_max=Max("contest_year"),
         year_min=Min("contest_year"),
     )
 
     technique_row_total = (
-        contest_base.aggregate(total=Count("linked_problem__topic_techniques"))["total"] or 0
+        contest_base.aggregate(total=Count("statement_topic_techniques"))["total"] or 0
     )
     statement_row_total = int(stats["problem_count"] or 0)
     statement_problem_total = int(stats["linked_statement_total"] or 0)
@@ -4761,15 +4831,16 @@ def contest_advanced_analytics_view(request):
     ).distinct().count()
 
     year_rows = list(
-        contest_base.values("contest_year")
+        annotate_effective_statement_analytics(contest_base)
+        .values("contest_year")
         .annotate(
-            avg_mohs=Avg("linked_problem__mohs"),
+            avg_mohs=Avg("_eff_mohs"),
             distinct_topics=Count(
-                "linked_problem__topic",
-                filter=Q(linked_problem__topic__isnull=False) & ~Q(linked_problem__topic=""),
+                "_eff_topic",
+                filter=~Q(_eff_topic=""),
                 distinct=True,
             ),
-            max_mohs=Max("linked_problem__mohs"),
+            max_mohs=Max("_eff_mohs"),
             linked_statement_total=Count("id", filter=Q(linked_problem__isnull=False)),
             problem_count=Count("id"),
             solved_problem_total=Count(
@@ -4797,7 +4868,12 @@ def contest_advanced_analytics_view(request):
         )
 
     contest_statements = list(
-        contest_base.select_related("linked_problem").values("id", "linked_problem_id", "problem_code", "contest_year"),
+        contest_base.select_related("linked_problem").values(
+            "id",
+            "linked_problem_id",
+            "problem_code",
+            "contest_year",
+        ),
     )
     direct_solved_statement_ids = set(
         UserProblemCompletion.objects.filter(
@@ -4899,31 +4975,30 @@ def contest_advanced_analytics_view(request):
         )
 
     topic_rows = list(
-        contest_base.values("linked_problem__topic")
+        contest_base_eff.filter(~Q(_eff_topic=""))
+        .values("_eff_topic")
         .annotate(
-            avg_mohs=Avg("linked_problem__mohs"),
-            max_mohs=Max("linked_problem__mohs"),
+            avg_mohs=Avg("_eff_mohs"),
+            max_mohs=Max("_eff_mohs"),
             problem_count=Count("id"),
         )
-        .order_by("-problem_count", "linked_problem__topic"),
+        .order_by("-problem_count", "_eff_topic"),
     )
     for row in topic_rows:
-        raw_topic = row.pop("linked_problem__topic")
+        raw_topic = row.pop("_eff_topic")
         row["topic"] = display_topic_label(raw_topic) if raw_topic else "Unlinked"
         row["avg_mohs"] = (
             round(float(row["avg_mohs"]), 2) if row["avg_mohs"] is not None else None
         )
 
     confidence_rows = list(
-        contest_base.filter(linked_problem__isnull=False)
-        .exclude(linked_problem__confidence__isnull=True)
-        .exclude(linked_problem__confidence="")
-        .values("linked_problem__confidence")
+        contest_base_eff.exclude(_eff_confidence="")
+        .values("_eff_confidence")
         .annotate(problem_count=Count("id"))
-        .order_by("-problem_count", "linked_problem__confidence"),
+        .order_by("-problem_count", "_eff_confidence"),
     )
     for row in confidence_rows:
-        row["confidence"] = row.pop("linked_problem__confidence")
+        row["confidence"] = row.pop("_eff_confidence")
 
     recent_statement_rows = [
         {
@@ -5325,14 +5400,19 @@ def _statement_metadata_table_payload() -> dict[str, object]:
         if is_linked:
             linked_total += 1
 
+        day_label_display = statement.day_label or "Unlabeled"
+        contest_problem_display = (
+            f"{statement.contest_year_problem} · {day_label_display} · {statement.problem_code}"
+        )
         table_rows.append(
             {
                 "confidence": confidence,
                 "contest_name": contest_name,
                 "contest_problem": statement.contest_year_problem,
+                "contest_problem_display": contest_problem_display,
                 "contest_year": contest_year,
                 "contest_year_label": contest_year_label,
-                "day_label": statement.day_label or "Unlabeled",
+                "day_label": day_label_display,
                 "has_metadata": "yes" if has_metadata else "no",
                 "imo_slot_guess": imo_slot_guess,
                 "is_linked": is_linked,
@@ -5341,6 +5421,7 @@ def _statement_metadata_table_payload() -> dict[str, object]:
                 "metadata_status": "ready" if has_metadata else "missing",
                 "mohs": mohs,
                 "problem_code": statement.problem_code,
+                "statement_uuid": str(statement.statement_uuid),
                 "problem_uuid": str(statement.problem_uuid),
                 "statement_id": statement.id,
                 "statement_preview": _statement_preview_text(statement.statement_latex),
@@ -5364,17 +5445,17 @@ def _statement_metadata_table_payload() -> dict[str, object]:
 
 
 def _statement_metadata_dataframe_from_post(post_data) -> tuple[object | None, str | None]:
-    raw_problem_uuids = [str(value or "").strip() for value in post_data.getlist("problem_uuid")]
+    raw_statement_uuids = [str(value or "").strip() for value in post_data.getlist("statement_uuid")]
     raw_topics = post_data.getlist("topic")
     raw_mohs = post_data.getlist("mohs")
     raw_confidences = post_data.getlist("confidence")
     raw_imo_slot_guesses = post_data.getlist("imo_slot_guess")
     raw_topic_tags = post_data.getlist("topic_tags")
 
-    if not raw_problem_uuids:
+    if not raw_statement_uuids:
         return None, "Stage at least one metadata row before saving."
 
-    expected_length = len(raw_problem_uuids)
+    expected_length = len(raw_statement_uuids)
     raw_column_lengths = {
         "topic": len(raw_topics),
         "mohs": len(raw_mohs),
@@ -5387,7 +5468,7 @@ def _statement_metadata_dataframe_from_post(post_data) -> tuple[object | None, s
 
     rows = [
         {
-            "PROBLEM UUID": raw_problem_uuids[index],
+            "STATEMENT UUID": raw_statement_uuids[index],
             "TOPIC": raw_topics[index],
             "MOHS": raw_mohs[index],
             "Confidence": raw_confidences[index],
@@ -5944,7 +6025,12 @@ def problem_statement_metadata_view(request):
             if form.is_valid():
                 replace_tags = form.cleaned_data["replace_tags"]
                 try:
-                    metadata_df = statement_metadata_dataframe_from_excel(form.cleaned_data["file"].read())
+                    uploaded_file = form.cleaned_data["file"]
+                    source_text = form.cleaned_data["source_text"]
+                    if uploaded_file is not None:
+                        metadata_df = statement_metadata_dataframe_from_excel(uploaded_file.read())
+                    else:
+                        metadata_df = statement_metadata_dataframe_from_text(source_text)
                 except StatementMetadataBackfillValidationError as exc:
                     messages.error(request, str(exc))
                     record_event(
@@ -5959,7 +6045,7 @@ def problem_statement_metadata_view(request):
                         metadata_df=metadata_df,
                         replace_tags=replace_tags,
                         success_prefix="Statement metadata import finished.",
-                        skipped_label="untouched workbook row(s)",
+                        skipped_label="untouched import row(s)",
                     ):
                         return redirect("pages:problem_statement_metadata")
 

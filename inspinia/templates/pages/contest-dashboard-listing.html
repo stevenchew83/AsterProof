@@ -346,6 +346,7 @@
                       <input type="checkbox" class="form-check-input js-year-select-all" aria-label="Select all rows in this table">
                     </th>
                     <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by problem">Problem</button></th>
+                    <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by problem code">Problem code</button></th>
                     <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by topic">Topic</button></th>
                     <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by MOHS">MOHS</button></th>
                     <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by topic tags">Topic tags</button></th>
@@ -368,9 +369,12 @@
                         aria-label="Select {{ problem.label }}"
                       >
                     </td>
-                    <td data-sort-value="{{ problem.problem }}">
+                    <td data-sort-value="{{ problem.problem_code }}">
                       <div class="fw-semibold">{{ problem.label }}</div>
                       <div class="text-muted fs-xs">{{ problem.technique_count }} technique row{{ problem.technique_count|pluralize }}</div>
+                    </td>
+                    <td class="text-nowrap" data-sort-value="{{ problem.problem_code }}">
+                      {{ problem.problem_code }}
                     </td>
                     <td data-sort-value="{% if problem.is_linked %}{{ problem.topic }}{% else %}Unlinked{% endif %}">
                       {% if problem.is_linked and problem.topic %}

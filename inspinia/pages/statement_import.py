@@ -9,6 +9,7 @@ from django.db import transaction
 
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
+from inspinia.pages.statement_analytics_sync import sync_statement_analytics_from_linked_problem
 
 IGNORED_STATEMENT_LINES = {
     "Stuttgarden",
@@ -1677,6 +1678,8 @@ def import_problem_statements(
             updated_count += 1
 
         if statement_entry.linked_problem_id is not None:
+            statement_entry.refresh_from_db()
+            sync_statement_analytics_from_linked_problem(statement_entry)
             linked_problem_count += 1
 
     return ProblemStatementImportResult(
@@ -1753,6 +1756,9 @@ def relink_problem_statement_rows() -> ProblemStatementRelinkResult:
                 newly_linked_count += 1
             claimed_problem_uuids.pop(previous_problem_uuid, None)
             claimed_problem_uuids[statement.problem_uuid] = statement.id
+            if statement.linked_problem_id is not None:
+                statement.refresh_from_db()
+                sync_statement_analytics_from_linked_problem(statement)
 
         checked_count += 1
         if statement.linked_problem_id is not None:

@@ -6,11 +6,17 @@ from .models import ContestMetadata
 from .models import ContestProblemStatement
 from .models import ProblemSolveRecord
 from .models import ProblemTopicTechnique
+from .models import StatementTopicTechnique
 from .models import UserProblemCompletion
 
 
 class ProblemTopicTechniqueInline(admin.TabularInline):
     model = ProblemTopicTechnique
+    extra = 0
+
+
+class StatementTopicTechniqueInline(admin.TabularInline):
+    model = StatementTopicTechnique
     extra = 0
 
 
@@ -126,6 +132,7 @@ class ContestProblemStatementAdmin(admin.ModelAdmin):
         "linked_problem__contest_year_problem",
     )
     list_filter = ("contest_year", "contest_name", "day_label")
+    inlines = (StatementTopicTechniqueInline,)
 
 
 @admin.register(ContestMetadata)

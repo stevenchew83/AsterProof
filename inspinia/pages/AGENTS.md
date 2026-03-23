@@ -6,7 +6,8 @@ This app owns the contest/problem archive and its surrounding tooling.
 
 - `ProblemSolveRecord`: one analytics-sheet problem row keyed canonically by `problem_uuid`. Do not assume `(year, contest, problem)` is globally unique.
 - `ProblemTopicTechnique`: parsed technique tags for a problem. Techniques and domain labels are stored in uppercase.
-- `ContestProblemStatement`: imported statement text keyed by contest/year/problem code, optionally linked to a `ProblemSolveRecord`.
+- `ContestProblemStatement`: imported statement text keyed by contest/year/problem code, optionally linked to a `ProblemSolveRecord`. Holds workbook analytics fields (`topic`, `mohs`, etc.) as the long-term canonical copy; `linked_problem` fills gaps until backfilled.
+- `StatementTopicTechnique`: parsed technique tags for a statement row (mirror of `ProblemTopicTechnique` on the archive record).
 - `UserProblemCompletion`: per-user completion state for a problem.
 
 ## Import invariants

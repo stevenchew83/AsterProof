@@ -83,12 +83,15 @@
           <p class="text-muted">
             Download all statement rows as an <code>.xlsx</code> workbook with editable
             <code>TOPIC</code>, <code>MOHS</code>, <code>Confidence</code>,
-            <code>IMO slot guess</code>, and <code>Topic tags</code> columns, plus the full
-            <code>STATEMENT LATEX</code> for context while you edit.
+            <code>IMO slot guess</code>, and <code>Topic tags</code> columns, plus identity fields
+            (<code>CONTEST YEAR</code>, <code>CONTEST NAME</code>, <code>DAY LABEL</code>,
+            <code>PROBLEM NUMBER</code>, <code>PROBLEM CODE</code>, and <code>STATEMENT LATEX</code>)
+            for context while you edit.
           </p>
           <p class="text-muted mb-4">
-            On import, rows are matched by statement <code>PROBLEM UUID</code>. Blank metadata rows are ignored,
-            so you can fill many lines in one workbook and upload once to backfill them together.
+            On import, each row updates the statement identified by <code>STATEMENT UUID</code> (with
+            <code>PROBLEM UUID</code> as a legacy fallback). Blank import rows are ignored, and blank
+            cells keep existing values, so you can fill many lines in one workbook and upload once.
           </p>
           <a
             href="{% url 'pages:problem_statement_metadata' %}?action=export"
@@ -104,15 +107,17 @@
     <div class="col-xl-8">
       <div class="card">
         <div class="card-header border-bottom">
-          <h4 class="header-title mb-0">Import metadata workbook</h4>
+          <h4 class="header-title mb-0">Import metadata</h4>
         </div>
         <div class="card-body">
           <p class="text-muted">
-            This upserts <code>ProblemSolveRecord</code> rows by <code>PROBLEM UUID</code> and links the matching
-            <code>ContestProblemStatement</code> rows automatically.
+            This updates each <code>ContestProblemStatement</code> row by <code>STATEMENT UUID</code> (identity
+            columns from the sheet when provided), upserts the linked <code>ProblemSolveRecord</code> metadata,
+            and keeps the link in sync automatically.
           </p>
           <p class="text-muted">
             Use this when you want to bulk update metadata for multiple statement rows without editing them one by one.
+            Upload a workbook or paste TSV/CSV rows with a header row. Blank cells keep existing values.
           </p>
           <form
             id="statement-metadata-import-form"
@@ -129,6 +134,12 @@
               {{ form.file }}
               {% if form.file.help_text %}<div class="form-text">{{ form.file.help_text }}</div>{% endif %}
               {% for err in form.file.errors %}<div class="invalid-feedback d-block">{{ err }}</div>{% endfor %}
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="{{ form.source_text.id_for_label }}">{{ form.source_text.label }}</label>
+              {{ form.source_text }}
+              {% if form.source_text.help_text %}<div class="form-text">{{ form.source_text.help_text }}</div>{% endif %}
+              {% for err in form.source_text.errors %}<div class="invalid-feedback d-block">{{ err }}</div>{% endfor %}
             </div>
             <div class="mb-3 form-check">
               {{ form.replace_tags }}
@@ -241,7 +252,7 @@
               <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Suggested workflow</p>
               <h5 class="mb-1">Start with rows that need metadata</h5>
               <p class="text-muted fs-xs mb-0">
-                Search or filter the table, type into the editable cells, then use one bulk save. Each staged row sends the same payload shape as the workbook importer, so the browser editor and workbook flow stay in sync.
+                Search or filter the table, type into the editable cells, then use one bulk save. Each staged row sends the same payload shape as the importer, so the browser editor, pasted rows, and workbook flow stay in sync.
               </p>
             </div>
             <div class="statement-metadata-toolbar-bulk">
@@ -255,7 +266,7 @@
                 <button type="button" id="statement-metadata-save-staged" class="btn btn-primary btn-sm" disabled>Save staged metadata</button>
               </div>
               <p class="text-muted fs-xs mb-0 text-end">
-                Staged rows save together. Keep <code>TOPIC</code> and <code>MOHS</code> filled for every staged row.
+                Staged rows save together. Leave any field blank to keep its existing value.
               </p>
             </div>
           </div>
@@ -438,7 +449,7 @@
     var originalRow = rowsByStatementId[String(statementId)];
     if (!originalRow) return null;
     return {
-      problem_uuid: String(originalRow.problem_uuid || ""),
+      statement_uuid: String(originalRow.statement_uuid || ""),
       topic: normalizeValue(getVisibleFieldValue(originalRow, "topic")),
       mohs: normalizeValue(getVisibleFieldValue(originalRow, "mohs")),
       confidence: normalizeValue(getVisibleFieldValue(originalRow, "confidence")),
@@ -492,6 +503,7 @@
   function renderCurrentProblem(_data, type, row) {
     if (type !== "display") {
       return [
+        row.contest_problem_display,
         row.contest_problem,
         row.linked_problem_label,
         row.link_status,
@@ -556,6 +568,11 @@
         }
       },
       { data: "contest_year_label", title: "Contest-year", className: "text-nowrap" },
+      {
+        data: "contest_problem_display",
+        title: "Contest problem",
+        className: "text-nowrap"
+      },
       { data: "day_label", title: "Day", className: "text-nowrap" },
       { data: "problem_code", title: "Code", className: "text-nowrap" },
       { data: "statement_preview", title: "Statement preview", className: "statement-metadata-preview" },
@@ -609,7 +626,7 @@
       { data: "metadata_status", title: "Metadata status", visible: false },
       { data: "link_status", title: "Link status", visible: false }
     ],
-    order: [[14, "asc"], [13, "desc"], [12, "asc"], [3, "asc"]],
+    order: [[15, "asc"], [14, "desc"], [13, "asc"], [4, "asc"]],
     pageLength: 25,
     lengthMenu: [10, 25, 50, 100]
   });
@@ -728,33 +745,17 @@
         appendHiddenField("replace_tags", "on");
       }
 
-      var validationErrors = [];
       stagedIds.forEach(function (statementId) {
         var values = buildVisibleRowValues(statementId);
         if (!values) return;
 
-        if (!values.topic) {
-          validationErrors.push("Every staged row must keep TOPIC filled.");
-          return;
-        }
-
-        if (!/^\d+$/.test(values.mohs) || Number(values.mohs) <= 0) {
-          validationErrors.push("Every staged row must keep MOHS as a positive integer.");
-          return;
-        }
-
-        appendHiddenField("problem_uuid", values.problem_uuid);
+        appendHiddenField("statement_uuid", values.statement_uuid);
         appendHiddenField("topic", values.topic);
         appendHiddenField("mohs", values.mohs);
         appendHiddenField("confidence", values.confidence);
         appendHiddenField("imo_slot_guess", values.imo_slot_guess);
         appendHiddenField("topic_tags", values.topic_tags);
       });
-
-      if (validationErrors.length) {
-        window.alert(validationErrors[0]);
-        return;
-      }
 
       bulkForm.submit();
     });

@@ -67,8 +67,9 @@ class ProblemStatementCsvImportForm(forms.Form):
 class StatementMetadataWorkbookForm(forms.Form):
     file = forms.FileField(
         label="Statement metadata workbook",
+        required=False,
         help_text=(
-            "Upload a .xlsx file keyed by statement PROBLEM UUID with TOPIC, MOHS, "
+            "Upload a .xlsx file keyed by STATEMENT UUID with TOPIC, MOHS, "
             "Confidence, IMO slot guess, and Topic tags columns."
         ),
         widget=forms.ClearableFileInput(
@@ -76,6 +77,27 @@ class StatementMetadataWorkbookForm(forms.Form):
                 "class": "form-control",
                 "accept": (
                     ".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                ),
+            },
+        ),
+    )
+    source_text = forms.CharField(
+        required=False,
+        label="Pasted metadata rows",
+        strip=False,
+        help_text=(
+            "Paste TSV or CSV rows with a header row. Include STATEMENT UUID plus any "
+            "subset of TOPIC, MOHS, Confidence, IMO slot guess, and Topic tags. "
+            "Blank cells keep existing values."
+        ),
+        widget=forms.Textarea(
+            attrs={
+                "class": "form-control font-monospace",
+                "rows": 8,
+                "spellcheck": "false",
+                "placeholder": (
+                    "STATEMENT UUID\tTOPIC\tMOHS\tConfidence\tIMO slot guess\tTopic tags\n"
+                    "003d6ee5-ded7-47f9-a901-f78ea9c5788b\tG\t25\tMedium\tP1/4\tGeo - circles"
                 ),
             },
         ),
@@ -93,11 +115,28 @@ class StatementMetadataWorkbookForm(forms.Form):
 
     def clean_file(self):
         uploaded = self.cleaned_data["file"]
+        if uploaded is None:
+            return None
         name = getattr(uploaded, "name", "") or ""
         if not name.lower().endswith(".xlsx"):
             msg = "Please upload an .xlsx file."
             raise forms.ValidationError(msg)
         return uploaded
+
+    def clean_source_text(self):
+        return (self.cleaned_data["source_text"] or "").strip()
+
+    def clean(self):
+        cleaned_data = super().clean()
+        uploaded = cleaned_data.get("file")
+        source_text = cleaned_data.get("source_text") or ""
+        if uploaded and source_text:
+            msg = "Use either a workbook upload or pasted metadata rows, not both."
+            raise forms.ValidationError(msg)
+        if uploaded is None and not source_text:
+            msg = "Upload a workbook or paste metadata rows."
+            raise forms.ValidationError(msg)
+        return cleaned_data
 
 
 class ProblemStatementImportForm(forms.Form):
