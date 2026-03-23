@@ -3575,6 +3575,24 @@ def problem_statement_editor_update_view(request):
     statement.problem_code = form.cleaned_data["problem_code"]
     statement.statement_latex = form.cleaned_data["statement_latex"]
     statement.is_active = form.cleaned_data["is_active"]
+    duplicate_message = (
+        "A statement row with this contest year, contest name, day label and "
+        "problem code already exists."
+    )
+
+    duplicate_exists = (
+        ContestProblemStatement.objects.exclude(pk=statement.pk)
+        .filter(
+            contest_year=statement.contest_year,
+            contest_name=statement.contest_name,
+            day_label=statement.day_label,
+            problem_code=statement.problem_code,
+        )
+        .exists()
+    )
+    if duplicate_exists:
+        form.add_error(None, duplicate_message)
+        return JsonResponse({"errors": form.errors, "ok": False}, status=400)
 
     try:
         with transaction.atomic():
@@ -3582,10 +3600,7 @@ def problem_statement_editor_update_view(request):
     except IntegrityError:
         form.add_error(
             None,
-            (
-                "A statement row with this contest year, contest name, day label and "
-                "problem code already exists."
-            ),
+            "Unable to save the statement row because of a data integrity conflict. Refresh and try again.",
         )
         return JsonResponse({"errors": form.errors, "ok": False}, status=400)
 

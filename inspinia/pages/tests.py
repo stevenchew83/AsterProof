@@ -3107,7 +3107,7 @@ def test_problem_statement_editor_renders_modal_error_shell_for_admin(client):
     assert response.status_code == HTTPStatus.OK
     response_html = response.content.decode("utf-8")
     assert 'id="statement-editor-modal-alert"' in response_html
-    assert 'id="statement-editor-field-errors"' in response_html
+    assert 'data-error-field="statement_id"' not in response_html
     assert 'data-error-field="statement_latex"' in response_html
     assert 'data-error-field="contest_name"' in response_html
 

@@ -248,16 +248,6 @@
       </div>
       <div class="modal-body">
         <div id="statement-editor-modal-alert" class="alert alert-danger d-none" role="alert"></div>
-        <div id="statement-editor-field-errors" class="d-none">
-          <div class="invalid-feedback d-block d-none" data-error-field="statement_id"></div>
-          <div class="invalid-feedback d-block d-none" data-error-field="contest_year"></div>
-          <div class="invalid-feedback d-block d-none" data-error-field="contest_name"></div>
-          <div class="invalid-feedback d-block d-none" data-error-field="day_label"></div>
-          <div class="invalid-feedback d-block d-none" data-error-field="problem_number"></div>
-          <div class="invalid-feedback d-block d-none" data-error-field="problem_code"></div>
-          <div class="invalid-feedback d-block d-none" data-error-field="statement_latex"></div>
-          <div class="invalid-feedback d-block d-none" data-error-field="is_active"></div>
-        </div>
         <div class="statement-editor-identity mb-3">
           <div class="statement-editor-identity-item">
             <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Statement ID</p>
@@ -516,6 +506,7 @@
   function renderEditorErrors(errors) {
     clearEditorErrors();
 
+    var generalErrors = [];
     if (!errors) {
       if (modal) {
         modal.show();
@@ -523,16 +514,11 @@
       return;
     }
 
-    var generalErrors = [];
     if (Array.isArray(errors.__all__)) {
       generalErrors = generalErrors.concat(errors.__all__);
     }
     if (Array.isArray(errors.non_field_errors)) {
       generalErrors = generalErrors.concat(errors.non_field_errors);
-    }
-    if (modalAlertNode && generalErrors.length) {
-      modalAlertNode.textContent = generalErrors.join(" ");
-      modalAlertNode.classList.remove("d-none");
     }
 
     Object.keys(errors).forEach(function (fieldName) {
@@ -542,15 +528,25 @@
 
       var messages = Array.isArray(errors[fieldName]) ? errors[fieldName] : [String(errors[fieldName])];
       var input = formNode ? formNode.querySelector('[name="' + fieldName + '"]') : null;
+      var errorTargets = formNode ? formNode.querySelectorAll('[data-error-field="' + fieldName + '"]') : [];
       if (input) {
         input.classList.add("is-invalid");
       }
+      if (!input || input.type === "hidden" || !errorTargets.length) {
+        generalErrors = generalErrors.concat(messages);
+        return;
+      }
 
-      document.querySelectorAll('[data-error-field="' + fieldName + '"]').forEach(function (errorNode) {
+      errorTargets.forEach(function (errorNode) {
         errorNode.textContent = messages.join(" ");
         errorNode.classList.remove("d-none");
       });
     });
+
+    if (modalAlertNode && generalErrors.length) {
+      modalAlertNode.textContent = generalErrors.join(" ");
+      modalAlertNode.classList.remove("d-none");
+    }
 
     if (modal) {
       modal.show();
