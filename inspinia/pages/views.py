@@ -1849,12 +1849,6 @@ def _user_completion_heatmap_sections(
 
 
 def _user_completion_table_rows(completions: list[UserProblemCompletion]) -> tuple[list[dict], dict[str, list]]:
-    completion_problems = [
-        problem for problem in (_completion_problem_record(completion) for completion in completions) if problem is not None
-    ]
-    contest_to_slug, _slug_to_contest = _build_contest_slug_maps(
-        [problem.contest for problem in completion_problems],
-    )
     table_rows: list[dict] = []
     completion_years: set[str] = set()
     contests: set[str] = set()
@@ -1870,12 +1864,11 @@ def _user_completion_table_rows(completions: list[UserProblemCompletion]) -> tup
         contest_name = statement.contest_name if statement is not None else (problem.contest if problem is not None else "")
         contest_year = statement.contest_year if statement is not None else (problem.year if problem is not None else "")
         problem_code = statement.problem_code if statement is not None else (problem.problem if problem is not None else "")
-        contest_slug = contest_to_slug.get(contest_name)
-        problem_url = ""
-        if contest_slug and contest_year and problem_code:
-            problem_url = reverse("pages:contest_problem_list", args=[contest_slug]) + "#" + (
-                _problem_anchor(problem_label, f"{contest_year}-{problem_code}")
-            )
+        problem_url = (
+            reverse("solutions:problem_solution_list", args=[problem.problem_uuid])
+            if problem is not None
+            else ""
+        )
 
         completion_known = completion.completion_date is not None
         completion_date_label = completion.completion_date.isoformat() if completion_known else "Unknown"

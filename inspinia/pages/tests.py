@@ -6972,7 +6972,10 @@ def test_user_activity_dashboard_shows_only_current_users_completion_history(cli
         earlier_problem.contest_year_problem,
         undated_problem.contest_year_problem,
     ]
-    assert table_rows[0]["problem_url"].endswith(f"#imo-{today.year}-p1")
+    assert table_rows[0]["problem_url"] == reverse(
+        "solutions:problem_solution_list",
+        args=[recent_problem.problem_uuid],
+    )
     assert table_rows[2]["completion_date"] == "Unknown"
     response_html = response.content.decode("utf-8")
     assert "My activity" in response_html
