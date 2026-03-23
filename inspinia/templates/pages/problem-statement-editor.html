@@ -328,8 +328,7 @@
 {% endblock page_content %}
 
 {% block extra_javascript %}
-<script src="{% static 'plugins/datatables/dataTables.min.js' %}"></script>
-<script src="{% static 'plugins/datatables/dataTables.bootstrap5.min.js' %}"></script>
+{% include 'partials/datatables-vendor-scripts.html' %}
 <script>
 (function () {
   if (typeof DataTable === "undefined") return;

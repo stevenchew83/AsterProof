@@ -426,8 +426,7 @@
 </script>
 {% if preview_payload %}
 {{ preview_payload|json_script:"import-preview-data" }}
-<script src="{% static 'plugins/datatables/dataTables.min.js' %}"></script>
-<script src="{% static 'plugins/datatables/dataTables.bootstrap5.min.js' %}"></script>
+{% include 'partials/datatables-vendor-scripts.html' %}
 <script>
 (function () {
   var dataEl = document.getElementById("import-preview-data");
