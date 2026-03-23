@@ -1,12 +1,11 @@
 {% extends 'layouts/vertical.html' %}
 
-{% load i18n static %}
+{% load i18n statement_list %}
 
 {% block title %}Problem statements{% endblock title %}
 
 {% block extra_css %}
 {% if statement_total > 0 %}
-<link rel="stylesheet" href="{% static 'plugins/datatables/dataTables.bootstrap5.min.css' %}">
 <style>
   .statement-toolbar {
     display: flex;
@@ -38,6 +37,11 @@
     min-width: 10rem;
   }
 
+  .statement-search-field {
+    min-width: 12rem;
+    flex: 1 1 14rem;
+  }
+
   .statement-range-field .form-control {
     min-height: calc(1.5em + 0.65rem + 2px);
   }
@@ -57,36 +61,8 @@
     font-weight: 600;
   }
 
-  #problem-statements-table_wrapper .dt-layout-row {
-    margin: 0;
-    padding: 0.75rem 0;
-    align-items: center;
-    gap: 0.75rem 1rem;
-  }
-
-  #problem-statements-table_wrapper .dt-length label,
-  #problem-statements-table_wrapper .dt-info {
-    margin-bottom: 0;
-    color: var(--ins-secondary-color);
-    font-size: 0.82rem;
-  }
-
-  #problem-statements-table_wrapper .dt-length select {
-    min-width: 4.25rem;
-    margin: 0 0.35rem;
-  }
-
-  #problem-statements-table_wrapper .dt-paging .pagination {
-    margin-bottom: 0;
-  }
-
   #problem-statements-table tbody td {
     vertical-align: top;
-  }
-
-  #problem-statements-table_wrapper .dt-scroll-head table,
-  #problem-statements-table_wrapper .dt-scroll-body table {
-    width: 100% !important;
   }
 
   .statement-completion-status {
@@ -97,6 +73,11 @@
 
   .statement-table-shell {
     width: 100%;
+  }
+
+  .statement-table-meta {
+    font-size: 0.82rem;
+    color: var(--ins-secondary-color);
   }
 </style>
 {% endif %}
@@ -202,7 +183,7 @@
           <div class="flex-grow-1">
             <h4 class="header-title mb-0">All problem statements</h4>
             <p class="text-muted fs-xs mb-0">
-              Search by contest, linked topic, UUID, solved state, day label, topic tags, confidence, or IMO slot. Rows imported before analytics still carry a stable UUID.
+              Search and filters apply on the server. Rows imported before analytics still carry a stable UUID.
             </p>
           </div>
           <span class="badge text-bg-light">{{ statement_stats.contest_total }} contests</span>
@@ -211,37 +192,61 @@
           <div class="statement-toolbar">
             <div class="statement-toolbar-copy">
               <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Linked metadata</p>
-              <h5 class="mb-1">Filter linked rows by metadata</h5>
-              <p class="text-muted fs-xs mb-0">Use the year, topic, confidence, and MOHS range controls together with search when you want to narrow the statement inventory down to one slice of the archive.</p>
+              <h5 class="mb-1">Filter and search</h5>
+              <p class="text-muted fs-xs mb-0">Use search plus year, topic, confidence, and MOHS range, then Apply filters. Pagination shows 25 rows per page.</p>
             </div>
-            <div class="statement-range-filters">
+            <form method="get" class="statement-range-filters align-items-end" action="{% url 'pages:problem_statement_list' %}">
+              <div class="statement-search-field">
+                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-search-q">Search</label>
+                <input
+                  type="search"
+                  name="q"
+                  id="statement-search-q"
+                  class="form-control form-control-sm"
+                  value="{{ statement_list_filters.q }}"
+                  placeholder="Contest, UUID, topic, tags, …"
+                  autocomplete="off"
+                >
+              </div>
               <div class="statement-select-field">
                 <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-year-filter">Year</label>
-                <select id="statement-year-filter" class="form-select form-select-sm">
+                <select id="statement-year-filter" name="year" class="form-select form-select-sm">
                   <option value="">All years</option>
+                  {% for y in statement_filter_years %}
+                  <option value="{{ y }}"{% if statement_list_filters.year == y %} selected{% endif %}>{{ y }}</option>
+                  {% endfor %}
                 </select>
               </div>
               <div class="statement-select-field">
                 <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-topic-filter">Topic</label>
-                <select id="statement-topic-filter" class="form-select form-select-sm">
+                <select id="statement-topic-filter" name="topic" class="form-select form-select-sm">
                   <option value="">All topics</option>
+                  {% for t in statement_filter_topics %}
+                  <option value="{{ t }}"{% if statement_list_filters.topic == t %} selected{% endif %}>{{ t }}</option>
+                  {% endfor %}
                 </select>
               </div>
               <div class="statement-select-field">
                 <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-confidence-filter">Confidence</label>
-                <select id="statement-confidence-filter" class="form-select form-select-sm">
+                <select id="statement-confidence-filter" name="confidence" class="form-select form-select-sm">
                   <option value="">All confidence</option>
+                  {% for c in statement_filter_confidences %}
+                  <option value="{{ c }}"{% if statement_list_filters.confidence == c %} selected{% endif %}>{{ c|truncatechars:40 }}</option>
+                  {% endfor %}
                 </select>
               </div>
               <div class="statement-range-field">
                 <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-mohs-min">MOHS from</label>
-                <input id="statement-mohs-min" type="number" min="0" step="1" class="form-control form-control-sm" placeholder="Min">
+                <input id="statement-mohs-min" name="mohs_min" type="number" min="0" step="1" class="form-control form-control-sm" placeholder="Min" value="{{ statement_list_filters.mohs_min }}">
               </div>
               <div class="statement-range-field">
                 <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-mohs-max">MOHS to</label>
-                <input id="statement-mohs-max" type="number" min="0" step="1" class="form-control form-control-sm" placeholder="Max">
+                <input id="statement-mohs-max" name="mohs_max" type="number" min="0" step="1" class="form-control form-control-sm" placeholder="Max" value="{{ statement_list_filters.mohs_max }}">
               </div>
-              <button type="button" id="statement-mohs-reset" class="btn btn-outline-secondary btn-sm">Reset filters</button>
+              <button type="submit" class="btn btn-primary btn-sm">Apply filters</button>
+              <a href="{% url 'pages:problem_statement_list' %}" class="btn btn-outline-secondary btn-sm">Reset</a>
+            </form>
+            <div class="statement-range-filters align-items-end mt-2 mt-md-0">
               <button type="button" id="problem-statements-copy" class="btn btn-outline-primary btn-sm">
                 <i class="ti ti-copy me-1"></i>Copy filtered rows
               </button>
@@ -256,514 +261,217 @@
               {% endif %}
             </div>
           </div>
-          <div class="statement-table-shell">
-            <table
-              id="problem-statements-table"
-              class="table table-striped table-bordered align-middle w-100"
-            ></table>
+          <p class="statement-table-meta mb-2">
+            {% if statement_filtered_total %}
+            Showing {{ statement_page.start_index }}–{{ statement_page.end_index }} of {{ statement_filtered_total }} matching row{{ statement_filtered_total|pluralize }} ({{ statement_total }} total).
+            {% else %}
+            No rows match the current filters ({{ statement_total }} total in library).
+            {% endif %}
+          </p>
+          <div class="statement-table-shell table-responsive">
+            <table id="problem-statements-table" class="table table-striped table-bordered align-middle w-100">
+              <thead class="table-light">
+                <tr>
+                  <th class="text-nowrap">Year</th>
+                  <th>Contest</th>
+                  <th class="text-nowrap">Topic</th>
+                  <th class="text-nowrap">Problem code</th>
+                  <th class="text-nowrap">Day</th>
+                  <th>Solved</th>
+                  <th>Topic tags</th>
+                  <th class="text-nowrap">MOHS</th>
+                  <th class="text-nowrap">Confidence</th>
+                  <th class="text-nowrap">IMO slot</th>
+                  <th class="text-nowrap">Updated</th>
+                  <th class="text-nowrap">Solution</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in statement_page %}
+                <tr data-problem-uuid="{{ row.problem_uuid }}">
+                  <td class="text-nowrap">{{ row.contest_year }}</td>
+                  <td>{{ row.contest_name }}</td>
+                  <td class="text-nowrap">
+                    {% if row.linked_problem_topic %}
+                    <span class="fw-semibold">{{ row.linked_problem_topic }}</span>
+                    {% else %}
+                    <span class="text-muted fs-xs">—</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-nowrap">{{ row.problem_code }}</td>
+                  <td class="text-nowrap">
+                    {% if row.day_label and row.day_label != "Unlabeled" %}
+                    <span title="{{ row.day_label }}">{{ row.day_label|ellipsize:30 }}</span>
+                    {% else %}
+                    <span class="text-muted fs-xs">—</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if not row.is_linked %}
+                    <span class="text-muted fs-xs">Not linked</span>
+                    {% else %}
+                      {% if row.user_completion_state_kind == "solved" %}
+                      <span class="badge statement-completion-status text-bg-success" title="{{ row.user_completion_state_label }}">{{ row.user_completion_display }}</span>
+                      {% elif row.user_completion_state_kind == "unknown" %}
+                      <span class="badge statement-completion-status text-bg-info" title="{{ row.user_completion_state_label }}">{{ row.user_completion_display }}</span>
+                      {% elif row.user_completion_state_kind == "unsolved" %}
+                      <span class="badge statement-completion-status text-bg-secondary" title="{{ row.user_completion_state_label }}">{{ row.user_completion_display }}</span>
+                      {% else %}
+                      <span class="badge statement-completion-status text-bg-light" title="{{ row.user_completion_state_label }}">{{ row.user_completion_display }}</span>
+                      {% endif %}
+                    {% endif %}
+                  </td>
+                  <td class="small">
+                    {% if row.linked_problem_topic_tag_links %}
+                      {% statement_topic_tag_links row.linked_problem_topic_tag_links %}
+                    {% elif row.linked_problem_topic_tags %}
+                      {{ row.linked_problem_topic_tags|join:", " }}
+                    {% else %}
+                      <span class="text-muted fs-xs">—</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-nowrap">
+                    {% if row.linked_problem_mohs is not None %}
+                      {% if row.linked_problem_mohs_url %}
+                      <a class="statement-inline-link fw-semibold" href="{{ row.linked_problem_mohs_url }}">{{ row.linked_problem_mohs }}</a>
+                      {% else %}
+                      <span class="fw-semibold">{{ row.linked_problem_mohs }}</span>
+                      {% endif %}
+                    {% else %}
+                    <span class="text-muted fs-xs">—</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-nowrap small">
+                    {% if row.linked_problem_confidence %}
+                      {% if row.linked_problem_confidence_url %}
+                      <a class="statement-inline-link" href="{{ row.linked_problem_confidence_url }}" title="{{ row.linked_problem_confidence }}">{{ row.linked_problem_confidence|ellipsize:20 }}</a>
+                      {% else %}
+                      <span title="{{ row.linked_problem_confidence }}">{{ row.linked_problem_confidence|ellipsize:20 }}</span>
+                      {% endif %}
+                    {% else %}
+                    <span class="text-muted fs-xs">—</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-nowrap">
+                    {% if row.linked_problem_imo_slot_guess_value %}
+                      {% if row.linked_problem_imo_slot_url %}
+                      <a class="statement-inline-link" href="{{ row.linked_problem_imo_slot_url }}">{{ row.linked_problem_imo_slot_guess_value|imo_slot_labels }}</a>
+                      {% else %}
+                      {{ row.linked_problem_imo_slot_guess_value|imo_slot_labels }}
+                      {% endif %}
+                    {% else %}
+                    <span class="text-muted fs-xs">—</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-nowrap small">{{ row.updated_at }}</td>
+                  <td class="text-nowrap">
+                    {% if row.problem_destination_url %}
+                    <a href="{{ row.problem_destination_url }}" class="btn btn-outline-primary btn-sm">{{ row.problem_destination_label|default:"Open" }}</a>
+                    {% else %}
+                    <span class="text-muted fs-xs">—</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="12" class="text-muted text-center py-4">No rows match the current filters.</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
           </div>
+          {% if statement_page.has_other_pages %}
+          <nav class="mt-3" aria-label="Statement pages">
+            <ul class="pagination pagination-sm mb-0 flex-wrap">
+              {% if statement_page.has_previous %}
+              <li class="page-item">
+                <a class="page-link" href="?{% if statement_list_query %}{{ statement_list_query }}&amp;{% endif %}page={{ statement_page.previous_page_number }}">Previous</a>
+              </li>
+              {% endif %}
+              <li class="page-item disabled">
+                <span class="page-link">Page {{ statement_page.number }} of {{ statement_page.paginator.num_pages }}</span>
+              </li>
+              {% if statement_page.has_next %}
+              <li class="page-item">
+                <a class="page-link" href="?{% if statement_list_query %}{{ statement_list_query }}&amp;{% endif %}page={{ statement_page.next_page_number }}">Next</a>
+              </li>
+              {% endif %}
+            </ul>
+          </nav>
+          {% endif %}
         </div>
       </div>
     </div>
   </div>
   {% endif %}
 </div>
-
-{{ statement_table_rows|json_script:"problem-statement-table-data" }}
 {% endblock page_content %}
 
 {% block extra_javascript %}
 {% if statement_total > 0 %}
-{% include 'partials/datatables-vendor-scripts.html' %}
+<textarea id="statement-copy-tsv" class="d-none" readonly>{{ statement_copy_tsv }}</textarea>
 <script>
 (function () {
-  function escapeHtml(value) {
-    return String(value || "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/\"/g, "&quot;")
-      .replace(/'/g, "&#39;");
-  }
+  var copyBtn = document.getElementById("problem-statements-copy");
+  var payload = document.getElementById("statement-copy-tsv");
+  if (!copyBtn || !payload) return;
 
-  var shell = document.querySelector(".statement-table-shell");
-  function showInitError(message) {
-    if (!shell) return;
-    shell.innerHTML =
-      '<div class="alert alert-warning mb-0" role="alert">' + escapeHtml(message) + "</div>";
-  }
+  var defaultHtml = copyBtn.innerHTML;
+  var timer = null;
 
-  var dataEl = document.getElementById("problem-statement-table-data");
-  if (!dataEl) return;
-
-  var rows;
-  try {
-    rows = JSON.parse(dataEl.textContent);
-  } catch (err) {
-    console.error("problem-statements: JSON.parse failed", err);
-    showInitError(
-      "Could not read statement data for this table. If this persists, contact an administrator."
-    );
-    return;
-  }
-
-  var DT = window.DataTable;
-  if (typeof DT !== "function") {
-    showInitError(
-      "Table scripts did not load. Confirm /static/ is served (run collectstatic, check Nginx or WhiteNoise), then hard-refresh the page."
-    );
-    return;
-  }
-  function renderInlineLink(label, url, neutralClass) {
-    if (!label) return "";
-    if (!url) {
-      if (neutralClass) {
-        return '<span class="' + neutralClass + '">' + escapeHtml(label) + "</span>";
-      }
-      return escapeHtml(label);
-    }
-    return '<a class="statement-inline-link' + (neutralClass ? " " + neutralClass : "") + '" href="' + escapeHtml(url) + '">' + escapeHtml(label) + "</a>";
-  }
-
-  function formatTopicTags(value) {
-    if (!value || !value.length) return "";
-    return value
-      .map(function (item) {
-        return String(item || "").trim();
-      })
-      .filter(Boolean)
-      .join(", ");
-  }
-
-  function renderTopicTagsCell(value) {
-    if (!value || !value.length) {
-      return '<span class="text-muted fs-xs">—</span>';
-    }
-    var full = formatTopicTags(value);
-    if (!full) {
-      return '<span class="text-muted fs-xs">—</span>';
-    }
-    var maxLen = 30;
-    var display =
-      full.length <= maxLen ? full : full.slice(0, maxLen - 1) + "\u2026";
-    return (
-      '<span class="topic-tags-cell" title="' +
-      escapeHtml(full) +
-      '">' +
-      escapeHtml(display) +
-      "</span>"
-    );
-  }
-
-  function completionBadgeClass(stateKind) {
-    if (stateKind === "solved") return "text-bg-success";
-    if (stateKind === "unknown") return "text-bg-info";
-    if (stateKind === "unsolved") return "text-bg-secondary";
-    return "text-bg-light";
-  }
-
-  function renderCompletionCell(row) {
-    if (!row.is_linked || !row.linked_problem_uuid) {
-      return '<span class="text-muted fs-xs">Not linked</span>';
-    }
-    return '<span class="badge statement-completion-status ' + completionBadgeClass(row.user_completion_state_kind) + '" title="' + escapeHtml(row.user_completion_state_label) + '">' + escapeHtml(row.user_completion_display) + "</span>";
-  }
-
-  function formatImoSlotLabel(value) {
-    if (!value) return "";
-    return String(value)
-      .split(",")
-      .map(function (part) {
-        var token = String(part).trim();
-        return token ? "P" + token : "";
-      })
-      .filter(Boolean)
-      .join(", ");
-  }
-
-  var statementColumns = [
-      {
-        data: "problem_uuid",
-        title: "Problem UUID",
-        className: "text-nowrap",
-        visible: false,
-        searchable: true,
-        render: function (data, type) {
-          return data;
-        }
-      },
-      { data: "contest_year", title: "Year", className: "text-nowrap" },
-      { data: "contest_name", title: "Contest" },
-      {
-        data: "linked_problem_topic",
-        title: "Topic",
-        className: "text-nowrap",
-        defaultContent: "",
-        render: function (data, type) {
-          if (type !== "display") return data || "";
-          if (!data) return '<span class="text-muted fs-xs">—</span>';
-          return '<span class="fw-semibold">' + escapeHtml(data) + "</span>";
-        }
-      },
-      { data: "problem_code", title: "Problem code", className: "text-nowrap" },
-      {
-        data: "day_label",
-        title: "Day",
-        className: "text-nowrap",
-        defaultContent: "",
-        render: function (data, type) {
-          var full = String(data || "").trim();
-          if (type !== "display") return full;
-          if (!full) return '<span class="text-muted fs-xs">—</span>';
-          var maxLen = 30;
-          var display =
-            full.length <= maxLen ? full : full.slice(0, maxLen - 1) + "\u2026";
-          return (
-            '<span class="day-label-cell" title="' +
-            escapeHtml(full) +
-            '">' +
-            escapeHtml(display) +
-            "</span>"
-          );
-        }
-      },
-      {
-        data: "user_completion_display",
-        title: "Solved",
-        defaultContent: "",
-        render: function (data, type, row) {
-          if (type === "sort" || type === "type") {
-            return row.user_completion_sort || "";
-          }
-          if (type === "filter") {
-            return [
-              row.user_completion_display || "",
-              row.user_completion_state_label || "",
-              row.user_completion_date || ""
-            ].join(" ");
-          }
-          return renderCompletionCell(row);
-        }
-      },
-      {
-        data: "linked_problem_topic_tags",
-        title: "Topic tags",
-        defaultContent: "",
-        orderable: false,
-        render: function (data, type) {
-          var formattedTags = formatTopicTags(data);
-          if (type !== "display") return formattedTags;
-          return renderTopicTagsCell(data);
-        }
-      },
-      {
-        data: "linked_problem_mohs",
-        title: "MOHS",
-        className: "text-nowrap",
-        render: function (data, type) {
-          if (type !== "display") return data == null ? "" : data;
-          if (data == null) return '<span class="text-muted fs-xs">—</span>';
-          return '<span class="fw-semibold">' + escapeHtml(data) + "</span>";
-        }
-      },
-      {
-        data: "linked_problem_confidence",
-        title: "Confidence",
-        className: "text-nowrap",
-        defaultContent: "",
-        render: function (data, type, row) {
-          if (type !== "display") return data || "";
-          if (!data) return '<span class="text-muted fs-xs">—</span>';
-          var full = String(data).trim();
-          var maxLen = 20;
-          var display =
-            full.length <= maxLen ? full : full.slice(0, maxLen - 1) + "\u2026";
-          if (row.linked_problem_confidence_url) {
-            return (
-              '<a class="statement-inline-link" href="' +
-              escapeHtml(row.linked_problem_confidence_url) +
-              '" title="' +
-              escapeHtml(full) +
-              '">' +
-              escapeHtml(display) +
-              "</a>"
-            );
-          }
-          return (
-            '<span title="' + escapeHtml(full) + '">' + escapeHtml(display) + "</span>"
-          );
-        }
-      },
-      {
-        data: "linked_problem_imo_slot_guess_value",
-        title: "IMO slot",
-        className: "text-nowrap",
-        defaultContent: "",
-        render: function (data, type, row) {
-          var formattedLabel = formatImoSlotLabel(data);
-          if (type !== "display") return formattedLabel || data || "";
-          if (!data) return '<span class="text-muted fs-xs">—</span>';
-          return renderInlineLink(formattedLabel, row.linked_problem_imo_slot_url);
-        }
-      },
-      {
-        data: "updated_at",
-        title: "Updated",
-        className: "text-nowrap",
-        render: function (data, type, row) {
-          if (type === "sort" || type === "type") {
-            return row.updated_at_sort || data || "";
-          }
-          return data || "";
-        }
-      },
-      {
-        data: "problem_destination_url",
-        title: "Solution",
-        className: "text-nowrap",
-        orderable: false,
-        searchable: false,
-        render: function (data, type, row) {
-          if (type !== "display") return data || "";
-          if (!data) return '<span class="text-muted fs-xs">—</span>';
-          return '<a href="' + escapeHtml(data) + '" class="btn btn-outline-primary btn-sm">' + escapeHtml(row.problem_destination_label || "Open") + "</a>";
-        }
-      }
-    ];
-  var updatedAtColumnIndex = statementColumns.findIndex(function (column) {
-    return column.data === "updated_at";
-  });
-  if (updatedAtColumnIndex < 0) {
-    updatedAtColumnIndex = 0;
-  }
-
-  var table;
-  try {
-    table = new DT("#problem-statements-table", {
-    data: rows,
-    columns: statementColumns,
-    order: [[updatedAtColumnIndex, "desc"]],
-    pageLength: 25,
-    lengthMenu: [10, 25, 50, 100],
-    scrollX: true
-    });
-  } catch (err) {
-    console.error("problem-statements: DataTable init failed", err);
-    showInitError("Could not initialize the statement table. Check the browser console for details.");
-    return;
-  }
-
-  function adjustStatementTableColumnsSoon() {
-    window.requestAnimationFrame(function () {
-      table.columns.adjust();
-    });
-  }
-
-  adjustStatementTableColumnsSoon();
-  window.addEventListener("load", adjustStatementTableColumnsSoon);
-  window.addEventListener("resize", adjustStatementTableColumnsSoon);
-  table.on("draw", adjustStatementTableColumnsSoon);
-
-  var mohsMinEl = document.getElementById("statement-mohs-min");
-  var mohsMaxEl = document.getElementById("statement-mohs-max");
-  var mohsResetEl = document.getElementById("statement-mohs-reset");
-  var yearFilterEl = document.getElementById("statement-year-filter");
-  var topicFilterEl = document.getElementById("statement-topic-filter");
-  var confidenceFilterEl = document.getElementById("statement-confidence-filter");
-  var copyRowsButton = document.getElementById("problem-statements-copy");
-  var copyButtonDefaultHtml = copyRowsButton ? copyRowsButton.innerHTML : "";
-  var copyButtonTimer = null;
-
-  function normalizeCellValue(value) {
-    return String(value == null ? "" : value)
-      .replace(/\t/g, " ")
-      .replace(/\r?\n/g, " ")
-      .trim();
-  }
-
-  function setCopyButtonState(html, buttonClass) {
-    if (!copyRowsButton) return;
-    copyRowsButton.classList.remove("btn-outline-primary", "btn-success", "btn-outline-secondary", "btn-danger");
-    copyRowsButton.classList.add(buttonClass);
-    copyRowsButton.innerHTML = html;
-    if (copyButtonTimer) clearTimeout(copyButtonTimer);
-    copyButtonTimer = window.setTimeout(function () {
-      copyRowsButton.classList.remove("btn-success", "btn-outline-secondary", "btn-danger");
-      copyRowsButton.classList.add("btn-outline-primary");
-      copyRowsButton.innerHTML = copyButtonDefaultHtml;
+  function setState(html, btnClass) {
+    copyBtn.classList.remove("btn-outline-primary", "btn-success", "btn-outline-secondary", "btn-danger");
+    copyBtn.classList.add(btnClass);
+    copyBtn.innerHTML = html;
+    if (timer) clearTimeout(timer);
+    timer = window.setTimeout(function () {
+      copyBtn.classList.remove("btn-success", "btn-outline-secondary", "btn-danger");
+      copyBtn.classList.add("btn-outline-primary");
+      copyBtn.innerHTML = defaultHtml;
     }, 2200);
   }
 
-  function copyTextToClipboard(text) {
+  function copyText(text) {
     if (navigator.clipboard && window.isSecureContext) {
       return navigator.clipboard.writeText(text);
     }
-
     return new Promise(function (resolve, reject) {
-      var fallbackArea = document.createElement("textarea");
-      fallbackArea.value = text;
-      fallbackArea.setAttribute("readonly", "");
-      fallbackArea.style.position = "fixed";
-      fallbackArea.style.opacity = "0";
-      document.body.appendChild(fallbackArea);
-      fallbackArea.focus();
-      fallbackArea.select();
+      var area = document.createElement("textarea");
+      area.value = text;
+      area.setAttribute("readonly", "");
+      area.style.position = "fixed";
+      area.style.opacity = "0";
+      document.body.appendChild(area);
+      area.focus();
+      area.select();
       try {
         document.execCommand("copy");
-        document.body.removeChild(fallbackArea);
+        document.body.removeChild(area);
         resolve();
-      } catch (error) {
-        document.body.removeChild(fallbackArea);
-        reject(error);
+      } catch (err) {
+        document.body.removeChild(area);
+        reject(err);
       }
     });
   }
 
-  function buildCopyPayload(filteredRows) {
-    var header = [
-      "Year",
-      "Contest",
-      "Topic",
-      "Problem code",
-      "Day",
-      "Solved",
-      "Topic tags",
-      "MOHS",
-      "Confidence",
-      "IMO slot",
-      "Updated"
-    ];
-
-    var lines = [header.join("\t")];
-
-    filteredRows.forEach(function (row) {
-      lines.push([
-        normalizeCellValue(row.contest_year),
-        normalizeCellValue(row.contest_name),
-        normalizeCellValue(row.linked_problem_topic),
-        normalizeCellValue(row.problem_code),
-        normalizeCellValue(row.day_label),
-        normalizeCellValue(row.user_completion_display),
-        normalizeCellValue(formatTopicTags(row.linked_problem_topic_tags)),
-        normalizeCellValue(row.linked_problem_mohs),
-        normalizeCellValue(row.linked_problem_confidence),
-        normalizeCellValue(formatImoSlotLabel(row.linked_problem_imo_slot_guess_value)),
-        normalizeCellValue(row.updated_at)
-      ].join("\t"));
-    });
-
-    return lines.join("\n");
-  }
-
-  function populateFilterSelect(selectEl, values, labelFormatter) {
-    if (!selectEl) return;
-    values.forEach(function (value) {
-      var option = document.createElement("option");
-      option.value = value;
-      option.textContent = labelFormatter ? labelFormatter(value) : value;
-      selectEl.appendChild(option);
-    });
-  }
-
-  populateFilterSelect(
-    yearFilterEl,
-    Array.from(
-      new Set(
-        rows
-          .map(function (row) { return String(row.contest_year || "").trim(); })
-          .filter(Boolean)
-      )
-    ).sort(function (left, right) {
-      return Number(right) - Number(left);
-    })
-  );
-  populateFilterSelect(
-    topicFilterEl,
-    Array.from(
-      new Set(
-        rows
-          .map(function (row) { return String(row.linked_problem_topic || "").trim(); })
-          .filter(Boolean)
-      )
-    ).sort()
-  );
-  populateFilterSelect(
-    confidenceFilterEl,
-    Array.from(
-      new Set(
-        rows
-          .map(function (row) { return String(row.linked_problem_confidence || "").trim(); })
-          .filter(Boolean)
-      )
-    ).sort()
-  );
-
-  DataTable.ext.search.push(function (settings, data, dataIndex) {
-    if (!settings.nTable || settings.nTable.id !== "problem-statements-table") return true;
-
-    var selectedYear = yearFilterEl ? yearFilterEl.value : "";
-    var selectedTopic = topicFilterEl ? topicFilterEl.value : "";
-    var selectedConfidence = confidenceFilterEl ? confidenceFilterEl.value : "";
-    var minValue = mohsMinEl && mohsMinEl.value !== "" ? Number(mohsMinEl.value) : null;
-    var maxValue = mohsMaxEl && mohsMaxEl.value !== "" ? Number(mohsMaxEl.value) : null;
-    var rowData = table.row(dataIndex).data();
-    if (!rowData) return true;
-
-    if (selectedYear && String(rowData.contest_year || "") !== selectedYear) return false;
-    if (selectedTopic && String(rowData.linked_problem_topic || "") !== selectedTopic) return false;
-    if (selectedConfidence && String(rowData.linked_problem_confidence || "") !== selectedConfidence) return false;
-    if (minValue === null && maxValue === null) return true;
-    if (rowData.linked_problem_mohs == null) return false;
-
-    var mohsValue = Number(rowData.linked_problem_mohs);
-    if (minValue !== null && mohsValue < minValue) return false;
-    if (maxValue !== null && mohsValue > maxValue) return false;
-    return true;
+  copyBtn.addEventListener("click", function () {
+    var text = payload.value || "";
+    if (!text.trim()) {
+      setState('<i class="ti ti-table-off me-1"></i>No rows to copy', "btn-outline-secondary");
+      return;
+    }
+    copyText(text)
+      .then(function () {
+        var lines = text.split(/\r?\n/).filter(function (line) { return line.trim().length; });
+        var dataRows = Math.max(0, lines.length - 1);
+        var label = dataRows === 1 ? "row" : "rows";
+        setState('<i class="ti ti-check me-1"></i>Copied ' + dataRows + " " + label, "btn-success");
+      })
+      .catch(function () {
+        setState('<i class="ti ti-alert-circle me-1"></i>Copy failed', "btn-danger");
+      });
   });
-
-  [yearFilterEl, topicFilterEl, confidenceFilterEl, mohsMinEl, mohsMaxEl].forEach(function (input) {
-    if (!input) return;
-    input.addEventListener("input", function () {
-      table.draw();
-    });
-    input.addEventListener("change", function () {
-      table.draw();
-    });
-  });
-
-  if (mohsResetEl) {
-    mohsResetEl.addEventListener("click", function () {
-      if (yearFilterEl) yearFilterEl.value = "";
-      if (topicFilterEl) topicFilterEl.value = "";
-      if (confidenceFilterEl) confidenceFilterEl.value = "";
-      if (mohsMinEl) mohsMinEl.value = "";
-      if (mohsMaxEl) mohsMaxEl.value = "";
-      table.draw();
-    });
-  }
-
-  if (copyRowsButton) {
-    copyRowsButton.addEventListener("click", function () {
-      var filteredRows = table.rows({search: "applied"}).data().toArray();
-      if (!filteredRows.length) {
-        setCopyButtonState('<i class="ti ti-table-off me-1"></i>No rows to copy', "btn-outline-secondary");
-        return;
-      }
-
-      copyTextToClipboard(buildCopyPayload(filteredRows))
-        .then(function () {
-          var rowLabel = filteredRows.length === 1 ? "row" : "rows";
-          setCopyButtonState(
-            '<i class="ti ti-check me-1"></i>Copied ' + escapeHtml(filteredRows.length) + " " + rowLabel,
-            "btn-success"
-          );
-        })
-        .catch(function () {
-          setCopyButtonState('<i class="ti ti-alert-circle me-1"></i>Copy failed', "btn-danger");
-        });
-    });
-  }
-
 })();
 </script>
 {% endif %}

@@ -765,6 +765,151 @@ def _statement_table_rows(base, *, user=None) -> list[dict]:
     return table_rows
 
 
+def _format_imo_slot_label(value: object) -> str:
+    if not value:
+        return ""
+    parts = [p.strip() for p in str(value).split(",")]
+    return ", ".join(f"P{p}" for p in parts if p)
+
+
+def _statement_row_search_blob(row: dict) -> str:
+    parts = [
+        str(row.get("contest_year") or ""),
+        str(row.get("contest_name") or ""),
+        str(row.get("linked_problem_topic") or ""),
+        str(row.get("problem_code") or ""),
+        str(row.get("day_label") or ""),
+        str(row.get("problem_uuid") or ""),
+        str(row.get("linked_problem_uuid") or ""),
+        str(row.get("user_completion_display") or ""),
+        str(row.get("user_completion_state_label") or ""),
+        str(row.get("linked_problem_confidence") or ""),
+        str(row.get("linked_problem_imo_slot_guess_value") or ""),
+        ", ".join(row.get("linked_problem_topic_tags") or []),
+        str(row.get("updated_at") or ""),
+        str(row.get("contest_year_problem") or ""),
+    ]
+    return " ".join(parts).lower()
+
+
+def _filter_statement_table_rows(  # noqa: C901, PLR0913
+    rows: list[dict],
+    *,
+    q: str,
+    year: str,
+    topic: str,
+    confidence: str,
+    mohs_min: str,
+    mohs_max: str,
+) -> list[dict]:
+    qn = (q or "").strip().lower()
+    year_s = (year or "").strip()
+    topic_s = (topic or "").strip()
+    confidence_s = (confidence or "").strip()
+    try:
+        mn = int(mohs_min) if str(mohs_min).strip() != "" else None
+    except ValueError:
+        mn = None
+    try:
+        mx = int(mohs_max) if str(mohs_max).strip() != "" else None
+    except ValueError:
+        mx = None
+
+    def match(row: dict) -> bool:  # noqa: PLR0911
+        if year_s and str(row.get("contest_year") or "") != year_s:
+            return False
+        if topic_s and str(row.get("linked_problem_topic") or "") != topic_s:
+            return False
+        if confidence_s and str(row.get("linked_problem_confidence") or "") != confidence_s:
+            return False
+        if mn is not None or mx is not None:
+            mval = row.get("linked_problem_mohs")
+            if mval is None:
+                return False
+            try:
+                mv = int(mval)
+            except (TypeError, ValueError):
+                return False
+            if mn is not None and mv < mn:
+                return False
+            if mx is not None and mv > mx:
+                return False
+        return not (qn and qn not in _statement_row_search_blob(row))
+
+    return [r for r in rows if match(r)]
+
+
+def _statement_table_rows_copy_tsv(rows: list[dict]) -> str:
+    header = (
+        "Year\tContest\tTopic\tProblem code\tDay\tSolved\tTopic tags\tMOHS\t"
+        "Confidence\tIMO slot\tUpdated\n"
+    )
+    lines = [header]
+    for row in rows:
+        tags = ", ".join(row.get("linked_problem_topic_tags") or [])
+        mohs = row.get("linked_problem_mohs")
+        imo = _format_imo_slot_label(row.get("linked_problem_imo_slot_guess_value") or "")
+        lines.append(
+            "\t".join(
+                [
+                    str(row.get("contest_year") or ""),
+                    str(row.get("contest_name") or ""),
+                    str(row.get("linked_problem_topic") or ""),
+                    str(row.get("problem_code") or ""),
+                    str(row.get("day_label") or ""),
+                    str(row.get("user_completion_display") or ""),
+                    tags,
+                    "" if mohs is None else str(mohs),
+                    str(row.get("linked_problem_confidence") or ""),
+                    imo,
+                    str(row.get("updated_at") or ""),
+                ],
+            )
+            + "\n",
+        )
+    return "".join(lines)
+
+
+def _problem_statement_list_filter_options(rows: list[dict]) -> dict[str, list[str]]:
+    years = sorted(
+        {str(r.get("contest_year") or "").strip() for r in rows if str(r.get("contest_year") or "").strip()},
+        key=lambda s: int(s) if s.isdigit() else 0,
+        reverse=True,
+    )
+    topics = sorted(
+        {str(r.get("linked_problem_topic") or "").strip() for r in rows if r.get("linked_problem_topic")},
+    )
+    confidences = sorted(
+        {str(r.get("linked_problem_confidence") or "").strip() for r in rows if r.get("linked_problem_confidence")},
+    )
+    return {"years": years, "topics": topics, "confidences": confidences}
+
+
+def _problem_statement_list_filter_querystring(  # noqa: PLR0913
+    *,
+    q: str,
+    year: str,
+    topic: str,
+    confidence: str,
+    mohs_min: str,
+    mohs_max: str,
+) -> str:
+    pairs: list[tuple[str, str]] = []
+    if (q or "").strip():
+        pairs.append(("q", (q or "").strip()))
+    if (year or "").strip():
+        pairs.append(("year", (year or "").strip()))
+    if (topic or "").strip():
+        pairs.append(("topic", (topic or "").strip()))
+    if (confidence or "").strip():
+        pairs.append(("confidence", (confidence or "").strip()))
+    if (mohs_min or "").strip():
+        pairs.append(("mohs_min", (mohs_min or "").strip()))
+    if (mohs_max or "").strip():
+        pairs.append(("mohs_max", (mohs_max or "").strip()))
+    return urlencode(pairs)
+
+
 def _statement_editor_table_payload() -> dict[str, object]:
     statements = list(
         ContestProblemStatement.objects.select_related("linked_problem").order_by(
@@ -3812,6 +3957,35 @@ def problem_statement_list_view(request):
     table_rows = _json_script_safe(table_rows)
     _ = json.dumps(table_rows, cls=DjangoJSONEncoder, allow_nan=False)
 
+    fq = (request.GET.get("q") or "").strip()
+    fyear = (request.GET.get("year") or "").strip()
+    ftopic = (request.GET.get("topic") or "").strip()
+    fconfidence = (request.GET.get("confidence") or "").strip()
+    fmohs_min = (request.GET.get("mohs_min") or "").strip()
+    fmohs_max = (request.GET.get("mohs_max") or "").strip()
+
+    filtered_rows = _filter_statement_table_rows(
+        table_rows,
+        q=fq,
+        year=fyear,
+        topic=ftopic,
+        confidence=fconfidence,
+        mohs_min=fmohs_min,
+        mohs_max=fmohs_max,
+    )
+    filter_options = _problem_statement_list_filter_options(table_rows)
+    list_query = _problem_statement_list_filter_querystring(
+        q=fq,
+        year=fyear,
+        topic=ftopic,
+        confidence=fconfidence,
+        mohs_min=fmohs_min,
+        mohs_max=fmohs_max,
+    )
+    paginator = Paginator(filtered_rows, 25)
+    statement_page = paginator.get_page(request.GET.get("page"))
+    copy_tsv = _statement_table_rows_copy_tsv(filtered_rows)
+
     context = {
         "statement_total": statement_total,
         "statement_stats": {
@@ -3821,6 +3995,21 @@ def problem_statement_list_view(request):
             "year_range_label": year_range_label,
         },
         "statement_table_rows": table_rows,
+        "statement_page": statement_page,
+        "statement_filtered_total": len(filtered_rows),
+        "statement_list_filters": {
+            "q": fq,
+            "year": fyear,
+            "topic": ftopic,
+            "confidence": fconfidence,
+            "mohs_min": fmohs_min,
+            "mohs_max": fmohs_max,
+        },
+        "statement_filter_years": filter_options["years"],
+        "statement_filter_topics": filter_options["topics"],
+        "statement_filter_confidences": filter_options["confidences"],
+        "statement_list_query": list_query,
+        "statement_copy_tsv": copy_tsv,
     }
     return render(request, "pages/problem-statement-list.html", context)
 
