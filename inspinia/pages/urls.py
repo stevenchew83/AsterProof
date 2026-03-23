@@ -19,6 +19,7 @@ from inspinia.pages.views import problem_import_view
 from inspinia.pages.views import problem_list_view
 from inspinia.pages.views import problem_statement_analytics_view
 from inspinia.pages.views import problem_statement_duplicate_view
+from inspinia.pages.views import problem_statement_editor_view
 from inspinia.pages.views import problem_statement_linker_view
 from inspinia.pages.views import problem_statement_list_view
 from inspinia.pages.views import problem_statement_metadata_view
@@ -67,6 +68,11 @@ urlpatterns = [
         "tools/problem-statements/linker/",
         problem_statement_linker_view,
         name="problem_statement_linker",
+    ),
+    path(
+        "tools/problem-statements/editor/",
+        problem_statement_editor_view,
+        name="problem_statement_editor",
     ),
     path(
         "tools/problem-statements/duplicates/",

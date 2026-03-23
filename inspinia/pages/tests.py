@@ -2860,6 +2860,14 @@ def test_problem_statement_linker_requires_login(client):
     assert response.url == f"{login_url}?next={reverse('pages:problem_statement_linker')}"
 
 
+def test_problem_statement_editor_requires_login(client):
+    response = client.get(reverse("pages:problem_statement_editor"))
+    login_url = reverse(settings.LOGIN_URL)
+
+    assert response.status_code == HTTPStatus.FOUND
+    assert response.url == f"{login_url}?next={reverse('pages:problem_statement_editor')}"
+
+
 def test_user_activity_dashboard_requires_login(client):
     response = client.get(reverse("pages:user_activity_dashboard"))
     login_url = reverse(settings.LOGIN_URL)
@@ -2926,6 +2934,16 @@ def test_problem_statement_linker_forbids_non_admin_access_when_debug_is_off(cli
     client.force_login(user)
 
     response = client.get(reverse("pages:problem_statement_linker"))
+
+    assert response.status_code == HTTPStatus.FORBIDDEN
+
+
+@override_settings(DEBUG=False)
+def test_problem_statement_editor_forbids_non_admin_access_when_debug_is_off(client):
+    user = UserFactory()
+    client.force_login(user)
+
+    response = client.get(reverse("pages:problem_statement_editor"))
 
     assert response.status_code == HTTPStatus.FORBIDDEN
 
@@ -6741,8 +6759,11 @@ def test_dashboard_sidebar_groups_links_into_clear_sections_for_admin(client):
     assert side_nav_html.index("Problem analytics") < side_nav_html.index("Completion records")
     assert side_nav_html.index("Completion records") < side_nav_html.index("Solution records")
     assert side_nav_html.index("Solution records") < side_nav_html.index("Problem data")
+    assert "Statement editor" in side_nav_html
     assert "Statement metadata" in side_nav_html
     assert side_nav_html.index("Problem data") < side_nav_html.index("Statement metadata")
+    assert side_nav_html.index("Statement links") < side_nav_html.index("Statement editor")
+    assert side_nav_html.index("Statement editor") < side_nav_html.index("Statement metadata")
     assert side_nav_html.index("Statement metadata") < side_nav_html.index("LaTeX preview")
     assert "Handle parser" in side_nav_html
     assert side_nav_html.index("LaTeX preview") < side_nav_html.index("Handle parser")

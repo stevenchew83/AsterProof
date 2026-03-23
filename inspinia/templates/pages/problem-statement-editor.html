@@ -1,0 +1,18 @@
+{% extends 'layouts/vertical.html' %}
+
+{% load i18n static %}
+
+{% block title %}Statement editor{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+
+  {% include 'partials/page-title.html' with title='Statement editor' subtitle='Curation' %}
+
+  <div class="alert alert-info mt-3" role="alert">
+    <strong>Statement editor scaffold.</strong>
+    Placeholder total: {{ statement_editor_total }}.
+  </div>
+
+</div>
+{% endblock page_content %}

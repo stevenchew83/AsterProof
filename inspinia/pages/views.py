@@ -3464,6 +3464,12 @@ def problem_statement_linker_view(request):
 
 
 @login_required
+def problem_statement_editor_view(request):
+    _require_admin_tools_access(request)
+    return render(request, "pages/problem-statement-editor.html", {"statement_editor_total": 0})
+
+
+@login_required
 def problem_statement_list_view(request):
     """Statement library listing with shared problem UUIDs and link status."""
     if request.method == "POST" and request.POST.get("action") == "recheck_links":
