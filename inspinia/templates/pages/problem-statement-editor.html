@@ -4,15 +4,514 @@
 
 {% block title %}Statement editor{% endblock title %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'plugins/datatables/dataTables.bootstrap5.min.css' %}">
+<style>
+  .statement-editor-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    justify-content: space-between;
+    gap: 1rem 1.25rem;
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--ins-border-color);
+  }
+
+  .statement-editor-toolbar-copy {
+    min-width: min(24rem, 100%);
+  }
+
+  .statement-editor-filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: 0.75rem;
+  }
+
+  .statement-editor-filter-row .form-select,
+  .statement-editor-filter-row .form-control {
+    min-width: 10rem;
+  }
+
+  .statement-editor-identity {
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  }
+
+  .statement-editor-identity-item {
+    padding: 0.75rem;
+    border: 1px solid var(--ins-border-color);
+    border-radius: 0.5rem;
+    background: var(--bs-tertiary-bg);
+  }
+
+  .statement-editor-preview {
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  #statement-editor-table_wrapper .dt-layout-row {
+    margin: 0;
+    padding: 0.75rem 0;
+    align-items: center;
+    gap: 0.75rem 1rem;
+  }
+
+  #statement-editor-table_wrapper .dt-search {
+    display: none;
+  }
+
+  #statement-editor-table_wrapper .dt-length label,
+  #statement-editor-table_wrapper .dt-info {
+    margin-bottom: 0;
+    color: var(--ins-secondary-color);
+    font-size: 0.82rem;
+  }
+
+  #statement-editor-table_wrapper .dt-paging .pagination {
+    margin-bottom: 0;
+  }
+
+  #statement-editor-table tbody td {
+    vertical-align: top;
+  }
+</style>
+{% endblock extra_css %}
+
 {% block page_content %}
 <div class="container-fluid">
 
   {% include 'partials/page-title.html' with title='Statement editor' subtitle='Curation' %}
 
-  <div class="alert alert-info mt-3" role="alert">
-    <strong>Statement editor scaffold.</strong>
-    Placeholder total: {{ statement_editor_total }}.
+  {% if messages %}
+  <div class="mt-3">
+    {% for message in messages %}
+      <div class="alert alert-{% if message.tags == 'error' %}danger{% elif message.tags == 'debug' %}secondary{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="{% translate 'Close' %}"></button>
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="row g-3 mt-0">
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-primary-subtle text-primary rounded">
+                <i class="ti ti-file-text fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Statement rows</p>
+              <h3 class="mb-0">{{ statement_editor_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-success-subtle text-success rounded">
+                <i class="ti ti-circle-check fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Active</p>
+              <h3 class="mb-0">{{ statement_editor_stats.active_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-warning-subtle text-warning rounded">
+                <i class="ti ti-circle-off fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Inactive</p>
+              <h3 class="mb-0">{{ statement_editor_stats.inactive_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-info-subtle text-info rounded">
+                <i class="ti ti-unlink fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Unlinked</p>
+              <h3 class="mb-0">{{ statement_editor_stats.unlinked_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
+  <div class="row g-3 mt-1 mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header border-bottom d-flex flex-wrap align-items-center gap-2">
+          <div class="flex-grow-1">
+            <h4 class="header-title mb-0">Edit raw statement rows</h4>
+            <p class="text-muted fs-xs mb-0">
+              Review imported statement text, inspect immutable UUIDs, and prepare edits before save behavior lands. Link changes belong on the <a href="{% url 'pages:problem_statement_linker' %}">Statement links</a> page.
+            </p>
+          </div>
+          <span class="badge text-bg-light">{{ statement_editor_total }} rows</span>
+        </div>
+        <div class="card-body">
+          {% if statement_editor_total == 0 %}
+          <div class="alert alert-info" role="alert">
+            <strong>No statement rows yet.</strong>
+            Save parsed results from <a href="{% url 'pages:latex_preview' %}" class="alert-link">LaTeX preview</a> to build this editor.
+          </div>
+          {% else %}
+          <div class="statement-editor-toolbar">
+            <div class="statement-editor-toolbar-copy">
+              <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Suggested workflow</p>
+              <h5 class="mb-1">Filter first, edit one row at a time</h5>
+              <p class="text-muted fs-xs mb-0">Use search plus contest, year, and status filters to narrow the queue, then open a row in the modal to inspect its immutable identifiers alongside editable metadata.</p>
+            </div>
+            <div class="statement-editor-filter-row">
+              <div>
+                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-editor-search">Search</label>
+                <input id="statement-editor-search" type="search" class="form-control form-control-sm" placeholder="Search contest, code, UUID, or statement">
+              </div>
+              <div>
+                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-editor-contest-filter">Contest</label>
+                <select id="statement-editor-contest-filter" class="form-select form-select-sm">
+                  <option value="">All contests</option>
+                  {% for contest_name in statement_editor_contest_names %}
+                  <option value="{{ contest_name }}">{{ contest_name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div>
+                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-editor-year-filter">Year</label>
+                <select id="statement-editor-year-filter" class="form-select form-select-sm">
+                  <option value="">All years</option>
+                  {% for year_value in statement_editor_year_values %}
+                  <option value="{{ year_value }}">{{ year_value }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div>
+                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-editor-status-filter">Status</label>
+                <select id="statement-editor-status-filter" class="form-select form-select-sm">
+                  <option value="">All rows</option>
+                  <option value="active">Active only</option>
+                  <option value="inactive">Inactive only</option>
+                  <option value="linked">Linked only</option>
+                  <option value="unlinked">Unlinked only</option>
+                </select>
+              </div>
+              <button type="button" id="statement-editor-reset" class="btn btn-outline-secondary btn-sm">Reset</button>
+            </div>
+          </div>
+          {% endif %}
+          <table id="statement-editor-table" class="table table-striped table-bordered align-middle w-100"></table>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
+
+<div class="modal fade" id="statement-editor-modal" tabindex="-1" aria-labelledby="statement-editor-modal-label" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title" id="statement-editor-modal-label">Statement row</h5>
+          <p class="text-muted fs-xs mb-0">Identifiers are read only here. Use Statement links for link edits and wait for the next task to save field changes.</p>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% translate 'Close' %}"></button>
+      </div>
+      <div class="modal-body">
+        <div class="statement-editor-identity mb-3">
+          <div class="statement-editor-identity-item">
+            <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Statement ID</p>
+            <div id="statement-editor-identity-statement-id" class="fw-semibold"></div>
+          </div>
+          <div class="statement-editor-identity-item">
+            <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Statement UUID</p>
+            <div id="statement-editor-identity-statement-uuid" class="fw-semibold statement-editor-preview"></div>
+          </div>
+          <div class="statement-editor-identity-item">
+            <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Problem UUID</p>
+            <div id="statement-editor-identity-problem-uuid" class="fw-semibold statement-editor-preview"></div>
+          </div>
+          <div class="statement-editor-identity-item">
+            <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Link status</p>
+            <div id="statement-editor-identity-link-status" class="fw-semibold"></div>
+          </div>
+        </div>
+
+        <form id="statement-editor-form" novalidate>
+          <input type="hidden" id="statement-editor-row-id" name="statement_id">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label" for="statement-editor-contest-year">Contest year</label>
+              <input id="statement-editor-contest-year" name="contest_year" type="number" class="form-control">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="statement-editor-contest-name">Contest name</label>
+              <input id="statement-editor-contest-name" name="contest_name" type="text" class="form-control">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label" for="statement-editor-day-label">Day label</label>
+              <input id="statement-editor-day-label" name="day_label" type="text" class="form-control">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label" for="statement-editor-problem-number">Problem number</label>
+              <input id="statement-editor-problem-number" name="problem_number" type="number" min="1" class="form-control">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label" for="statement-editor-problem-code">Problem code</label>
+              <input id="statement-editor-problem-code" name="problem_code" type="text" class="form-control">
+            </div>
+            <div class="col-12">
+              <label class="form-label" for="statement-editor-statement-latex">Statement LaTeX</label>
+              <textarea id="statement-editor-statement-latex" name="statement_latex" rows="12" class="form-control"></textarea>
+            </div>
+            <div class="col-12">
+              <div class="form-check">
+                <input id="statement-editor-is-active" name="is_active" type="checkbox" class="form-check-input">
+                <label class="form-check-label" for="statement-editor-is-active">Active row</label>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer d-flex justify-content-between">
+        <p class="text-muted fs-xs mb-0">Save behavior is intentionally not part of this task.</p>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{{ statement_editor_rows|json_script:"statement-editor-table-data" }}
 {% endblock page_content %}
+
+{% block extra_javascript %}
+<script src="{% static 'plugins/datatables/dataTables.min.js' %}"></script>
+<script src="{% static 'plugins/datatables/dataTables.bootstrap5.min.js' %}"></script>
+<script>
+(function () {
+  if (typeof DataTable === "undefined") return;
+
+  var dataEl = document.getElementById("statement-editor-table-data");
+  var tableNode = document.getElementById("statement-editor-table");
+  if (!dataEl || !tableNode) return;
+
+  var rows = JSON.parse(dataEl.textContent || "[]");
+  var searchInput = document.getElementById("statement-editor-search");
+  var contestFilter = document.getElementById("statement-editor-contest-filter");
+  var yearFilter = document.getElementById("statement-editor-year-filter");
+  var statusFilter = document.getElementById("statement-editor-status-filter");
+  var resetButton = document.getElementById("statement-editor-reset");
+  var modalNode = document.getElementById("statement-editor-modal");
+  var modal = modalNode && typeof bootstrap !== "undefined" ? new bootstrap.Modal(modalNode) : null;
+  var rowsByStatementId = {};
+
+  rows.forEach(function (row) {
+    rowsByStatementId[String(row.statement_id)] = row;
+  });
+
+  function escapeHtml(value) {
+    return String(value || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function problemLabel(row) {
+    return row.problem_code + " · " + row.contest_year_label;
+  }
+
+  var table = new DataTable(tableNode, {
+    data: rows,
+    order: [[4, "desc"]],
+    pageLength: 25,
+    columns: [
+      {
+        title: "Statement",
+        data: null,
+        render: function (_data, _type, row) {
+          return [
+            "<div class=\"d-grid gap-1\">",
+            "<div class=\"fw-semibold\">" + escapeHtml(problemLabel(row)) + "</div>",
+            "<div class=\"text-muted fs-xs\">" + escapeHtml(row.day_label) + "</div>",
+            "<div class=\"text-muted fs-xs\">Statement ID " + escapeHtml(row.statement_id) + "</div>",
+            "</div>",
+          ].join("");
+        },
+      },
+      {
+        title: "Link",
+        data: null,
+        render: function (_data, _type, row) {
+          var badgeClass = row.is_linked ? "bg-success-subtle text-success" : "bg-warning-subtle text-warning";
+          var linkedLabel = row.linked_problem_label
+            ? "<div class=\"text-muted fs-xs mt-1\">" + escapeHtml(row.linked_problem_label) + "</div>"
+            : "";
+          return "<span class=\"badge " + badgeClass + "\">" + escapeHtml(row.link_status) + "</span>" + linkedLabel;
+        },
+      },
+      {
+        title: "Activity",
+        data: null,
+        render: function (_data, _type, row) {
+          return row.is_active
+            ? "<span class=\"badge bg-success-subtle text-success\">Active</span>"
+            : "<span class=\"badge bg-secondary-subtle text-secondary\">Inactive</span>";
+        },
+      },
+      {
+        title: "Statement preview",
+        data: "statement_latex",
+        render: function (data, type) {
+          if (type !== "display") return data;
+          var text = String(data || "");
+          if (text.length > 180) {
+            text = text.slice(0, 180) + "...";
+          }
+          return "<div class=\"statement-editor-preview\">" + escapeHtml(text) + "</div>";
+        },
+      },
+      {
+        title: "Updated",
+        data: "updated_at_sort",
+        render: function (data, type, row) {
+          return type === "display" ? row.updated_at : data;
+        },
+      },
+      {
+        title: "",
+        data: null,
+        orderable: false,
+        searchable: false,
+        className: "text-nowrap",
+        render: function (_data, _type, row) {
+          return "<button type=\"button\" class=\"btn btn-outline-primary btn-sm statement-editor-open\" data-statement-id=\"" + escapeHtml(row.statement_id) + "\">Edit</button>";
+        },
+      },
+    ],
+  });
+
+  DataTable.ext.search.push(function (_settings, searchData, _index, rowData) {
+    if (!rowData) return true;
+
+    if (contestFilter && contestFilter.value && rowData.contest_name !== contestFilter.value) {
+      return false;
+    }
+    if (yearFilter && yearFilter.value && String(rowData.contest_year) !== yearFilter.value) {
+      return false;
+    }
+    if (statusFilter && statusFilter.value) {
+      if (statusFilter.value === "active" && !rowData.is_active) return false;
+      if (statusFilter.value === "inactive" && rowData.is_active) return false;
+      if (statusFilter.value === "linked" && !rowData.is_linked) return false;
+      if (statusFilter.value === "unlinked" && rowData.is_linked) return false;
+    }
+    return true;
+  });
+
+  function setText(id, value) {
+    var node = document.getElementById(id);
+    if (node) {
+      node.textContent = value || "";
+    }
+  }
+
+  function setValue(id, value) {
+    var node = document.getElementById(id);
+    if (node) {
+      node.value = value == null ? "" : value;
+    }
+  }
+
+  function setChecked(id, value) {
+    var node = document.getElementById(id);
+    if (node) {
+      node.checked = Boolean(value);
+    }
+  }
+
+  function openEditor(statementId) {
+    var row = rowsByStatementId[String(statementId)];
+    if (!row || !modal) return;
+
+    setText("statement-editor-identity-statement-id", String(row.statement_id));
+    setText("statement-editor-identity-statement-uuid", row.statement_uuid);
+    setText("statement-editor-identity-problem-uuid", row.problem_uuid);
+    setText(
+      "statement-editor-identity-link-status",
+      row.linked_problem_label ? row.link_status + " · " + row.linked_problem_label : row.link_status
+    );
+
+    setValue("statement-editor-row-id", row.statement_id);
+    setValue("statement-editor-contest-year", row.contest_year);
+    setValue("statement-editor-contest-name", row.contest_name);
+    setValue("statement-editor-day-label", row.day_label === "Unlabeled" ? "" : row.day_label);
+    setValue("statement-editor-problem-number", row.problem_number);
+    setValue("statement-editor-problem-code", row.problem_code);
+    setValue("statement-editor-statement-latex", row.statement_latex);
+    setChecked("statement-editor-is-active", row.is_active);
+
+    modal.show();
+  }
+
+  if (searchInput) {
+    searchInput.addEventListener("input", function () {
+      table.search(searchInput.value).draw();
+    });
+  }
+
+  [contestFilter, yearFilter, statusFilter].forEach(function (filterNode) {
+    if (!filterNode) return;
+    filterNode.addEventListener("change", function () {
+      table.draw();
+    });
+  });
+
+  if (resetButton) {
+    resetButton.addEventListener("click", function () {
+      if (searchInput) searchInput.value = "";
+      if (contestFilter) contestFilter.value = "";
+      if (yearFilter) yearFilter.value = "";
+      if (statusFilter) statusFilter.value = "";
+      table.search("").draw();
+    });
+  }
+
+  tableNode.addEventListener("click", function (event) {
+    var trigger = event.target.closest(".statement-editor-open");
+    if (!trigger) return;
+    openEditor(trigger.getAttribute("data-statement-id"));
+  });
+})();
+</script>
+{% endblock extra_javascript %}

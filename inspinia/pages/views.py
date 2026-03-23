@@ -720,6 +720,78 @@ def _statement_table_rows(base, *, user=None) -> list[dict]:
     return table_rows
 
 
+def _statement_editor_table_payload() -> dict[str, object]:
+    statements = list(
+        ContestProblemStatement.objects.select_related("linked_problem").order_by(
+            "-updated_at",
+            "-id",
+        ),
+    )
+    if not statements:
+        return {
+            "contest_names": [],
+            "rows": [],
+            "stats": {
+                "active_total": 0,
+                "inactive_total": 0,
+                "total": 0,
+                "unlinked_total": 0,
+            },
+            "year_values": [],
+        }
+
+    rows: list[dict[str, object]] = []
+    active_total = 0
+    unlinked_total = 0
+    contest_names = sorted({statement.contest_name for statement in statements})
+    year_values = sorted({int(statement.contest_year) for statement in statements}, reverse=True)
+
+    for statement in statements:
+        if statement.is_active:
+            active_total += 1
+        if statement.linked_problem is None:
+            unlinked_total += 1
+
+        linked_problem = statement.linked_problem
+        rows.append(
+            {
+                "statement_id": statement.id,
+                "statement_uuid": str(statement.statement_uuid),
+                "problem_uuid": str(statement.problem_uuid),
+                "contest_year": int(statement.contest_year),
+                "contest_name": statement.contest_name,
+                "contest_year_label": f"{statement.contest_name} {statement.contest_year}",
+                "day_label": statement.day_label or "Unlabeled",
+                "problem_number": statement.problem_number,
+                "problem_code": statement.problem_code,
+                "statement_latex": statement.statement_latex,
+                "is_active": statement.is_active,
+                "is_linked": linked_problem is not None,
+                "link_status": "Linked" if linked_problem is not None else "Unlinked",
+                "linked_problem_label": (
+                    linked_problem.contest_year_problem
+                    if linked_problem is not None
+                    else ""
+                ),
+                "updated_at": timezone.localtime(statement.updated_at).strftime("%Y-%m-%d %H:%M"),
+                "updated_at_sort": statement.updated_at.isoformat(),
+            },
+        )
+
+    total = len(rows)
+    return {
+        "contest_names": contest_names,
+        "rows": rows,
+        "stats": {
+            "active_total": active_total,
+            "inactive_total": total - active_total,
+            "total": total,
+            "unlinked_total": unlinked_total,
+        },
+        "year_values": [str(year) for year in year_values],
+    }
+
+
 def _statement_linker_statement_label(statement: ContestProblemStatement) -> str:
     day_label = statement.day_label or "Unlabeled"
     return f"{statement.contest_year_problem} · {day_label}"
@@ -3466,7 +3538,15 @@ def problem_statement_linker_view(request):
 @login_required
 def problem_statement_editor_view(request):
     _require_admin_tools_access(request)
-    return render(request, "pages/problem-statement-editor.html", {"statement_editor_total": 0})
+    editor_payload = _statement_editor_table_payload()
+    context = {
+        "statement_editor_contest_names": editor_payload["contest_names"],
+        "statement_editor_rows": editor_payload["rows"],
+        "statement_editor_stats": editor_payload["stats"],
+        "statement_editor_total": len(editor_payload["rows"]),
+        "statement_editor_year_values": editor_payload["year_values"],
+    }
+    return render(request, "pages/problem-statement-editor.html", context)
 
 
 @login_required

@@ -2868,16 +2868,83 @@ def test_problem_statement_editor_requires_login(client):
     assert response.url == f"{login_url}?next={reverse('pages:problem_statement_editor')}"
 
 
-def test_problem_statement_editor_page_renders_for_admin(client):
+def test_problem_statement_editor_page_renders_tools_for_admin(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
+    linked_problem = ProblemSolveRecord.objects.create(
+        year=2025,
+        topic="ALG",
+        mohs=25,
+        contest="IMO",
+        problem="P1",
+        contest_year_problem="IMO 2025 P1",
+    )
+    linked_statement = ContestProblemStatement.objects.create(
+        linked_problem=linked_problem,
+        contest_year=2025,
+        contest_name="IMO",
+        problem_number=1,
+        problem_code="p1",
+        day_label="Day 1",
+        statement_latex="Linked statement body",
+    )
+    unlinked_statement = ContestProblemStatement.objects.create(
+        contest_year=2024,
+        contest_name="JBMO",
+        problem_number=2,
+        problem_code="P2",
+        day_label="Day 2",
+        statement_latex="Unlinked statement body",
+    )
+    inactive_statement = ContestProblemStatement.objects.create(
+        contest_year=2024,
+        contest_name="APMO",
+        problem_number=3,
+        problem_code="P3",
+        day_label="Day 1",
+        statement_latex="Inactive statement body",
+        is_active=False,
+    )
 
     response = client.get(reverse("pages:problem_statement_editor"))
 
     assert response.status_code == HTTPStatus.OK
+    assert response.context["statement_editor_total"] == 3
+    assert response.context["statement_editor_stats"] == {
+        "active_total": 2,
+        "inactive_total": 1,
+        "total": 3,
+        "unlinked_total": 2,
+    }
+    row_by_id = {row["statement_id"]: row for row in response.context["statement_editor_rows"]}
+    assert row_by_id[linked_statement.id] == {
+        "contest_name": "IMO",
+        "contest_year": 2025,
+        "contest_year_label": "IMO 2025",
+        "day_label": "Day 1",
+        "is_active": True,
+        "is_linked": True,
+        "link_status": "Linked",
+        "linked_problem_label": "IMO 2025 P1",
+        "problem_code": "P1",
+        "problem_number": 1,
+        "problem_uuid": str(linked_problem.problem_uuid),
+        "statement_id": linked_statement.id,
+        "statement_latex": "Linked statement body",
+        "statement_uuid": str(linked_statement.statement_uuid),
+        "updated_at": row_by_id[linked_statement.id]["updated_at"],
+        "updated_at_sort": row_by_id[linked_statement.id]["updated_at_sort"],
+    }
+    assert row_by_id[unlinked_statement.id]["is_linked"] is False
+    assert row_by_id[unlinked_statement.id]["link_status"] == "Unlinked"
+    assert row_by_id[unlinked_statement.id]["linked_problem_label"] == ""
+    assert row_by_id[inactive_statement.id]["is_active"] is False
     response_html = response.content.decode("utf-8")
     assert "Statement editor" in response_html
-    assert "Statement editor scaffold." in response_html
+    assert 'id="statement-editor-table"' in response_html
+    assert 'id="statement-editor-modal"' in response_html
+    assert 'id="statement-editor-form"' in response_html
+    assert "Edit raw statement rows" in response_html
 
 
 def test_user_activity_dashboard_requires_login(client):
