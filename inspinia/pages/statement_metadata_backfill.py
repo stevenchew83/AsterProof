@@ -63,6 +63,13 @@ STATEMENT_METADATA_ROW_VALUE_COLUMNS = (
     *STATEMENT_METADATA_SHEET_CONTEXT_COLUMNS,
 )
 
+_STATEMENT_METADATA_HEADER_CANONICAL: dict[str, str] = {}
+for _header in (
+    *STATEMENT_METADATA_EXPORT_COLUMNS,
+    *STATEMENT_METADATA_SHEET_CONTEXT_COLUMNS,
+):
+    _STATEMENT_METADATA_HEADER_CANONICAL[_header.casefold()] = _header
+
 
 class StatementMetadataBackfillValidationError(ValueError):
     """Raised when a statement metadata workbook cannot be validated."""
@@ -273,6 +280,19 @@ def _row_has_problem_grid_cells(row: pd.Series) -> bool:
     return False
 
 
+def _canonicalize_statement_metadata_column_names(dataframe: pd.DataFrame) -> pd.DataFrame:
+    """Map headers like 'mohs' / 'Mohs' to canonical export names so cells are read correctly."""
+    rename: dict[str, str] = {}
+    for column in list(dataframe.columns):
+        key = str(column).strip().casefold()
+        canonical = _STATEMENT_METADATA_HEADER_CANONICAL.get(key)
+        if canonical is not None and column != canonical:
+            rename[column] = canonical
+    if rename:
+        return dataframe.rename(columns=rename)
+    return dataframe
+
+
 def _forward_fill_statement_metadata_columns(dataframe: pd.DataFrame) -> None:
     """Excel often merges CONTEST YEAR / CONTEST NAME / CONTEST PROBLEM; only the first row has text."""
     grid_mask = dataframe.apply(_row_has_problem_grid_cells, axis=1)
@@ -288,6 +308,7 @@ def _forward_fill_statement_metadata_columns(dataframe: pd.DataFrame) -> None:
 
 def _normalize_and_validate_statement_metadata_dataframe(dataframe: pd.DataFrame) -> pd.DataFrame:
     dataframe.columns = [str(column).strip() for column in dataframe.columns]
+    dataframe = _canonicalize_statement_metadata_column_names(dataframe)
     if not any(column in dataframe.columns for column in STATEMENT_METADATA_IDENTIFIER_COLUMNS):
         msg = 'Missing required column: "STATEMENT UUID" (or legacy "PROBLEM UUID").'
         raise StatementMetadataBackfillValidationError(msg)
@@ -794,13 +815,11 @@ def sync_statement_topic_techniques(
     return touched_count
 
 
-def _import_metadata_update_statement_analytics_only(
+def _apply_prepared_row_to_statement_analytics(
     prepared_row: PreparedStatementMetadataRow,
-    *,
-    replace_tags: bool,
-    result: StatementMetadataBackfillImportResult,
+    statement: ContestProblemStatement,
 ) -> None:
-    statement = prepared_row.statement
+    """Copy sheet analytics onto the statement row (canonical CPS fields)."""
     update_fields: set[str] = set()
     if prepared_row.topic is not None and statement.topic != prepared_row.topic:
         statement.topic = prepared_row.topic
@@ -821,6 +840,16 @@ def _import_metadata_update_statement_analytics_only(
     if update_fields:
         update_fields.add("updated_at")
         statement.save(update_fields=update_fields)
+
+
+def _import_metadata_update_statement_analytics_only(
+    prepared_row: PreparedStatementMetadataRow,
+    *,
+    replace_tags: bool,
+    result: StatementMetadataBackfillImportResult,
+) -> None:
+    statement = prepared_row.statement
+    _apply_prepared_row_to_statement_analytics(prepared_row, statement)
 
     if prepared_row.raw_topic_tags is not None:
         result.technique_count += sync_statement_topic_techniques(
@@ -865,6 +894,25 @@ def _import_metadata_upsert_problem_record(
     _import_metadata_update_existing_problem_record(prepared_row, statement, record)
     result.updated_count += 1
     return record
+
+
+def _import_metadata_sync_statement_with_sheet_and_link(
+    prepared_row: PreparedStatementMetadataRow,
+    statement: ContestProblemStatement,
+    record: ProblemSolveRecord,
+    *,
+    replace_tags: bool,
+    result: StatementMetadataBackfillImportResult,
+) -> None:
+    """Keep ContestProblemStatement analytics aligned with the import (effective_* prefers CPS)."""
+    _apply_prepared_row_to_statement_analytics(prepared_row, statement)
+    _import_metadata_link_statement_and_sync(
+        prepared_row,
+        statement,
+        record,
+        replace_tags=replace_tags,
+        result=result,
+    )
 
 
 def _import_metadata_link_statement_and_sync(
@@ -919,7 +967,7 @@ def import_statement_metadata_dataframe(
             prepared_row.topic is not None and prepared_row.mohs is not None
         ):
             record = _import_metadata_upsert_problem_record(prepared_row, statement, result=result)
-            _import_metadata_link_statement_and_sync(
+            _import_metadata_sync_statement_with_sheet_and_link(
                 prepared_row,
                 statement,
                 record,

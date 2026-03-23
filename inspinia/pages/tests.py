@@ -4848,7 +4848,9 @@ def test_problem_statement_list_shows_statement_rows_and_link_counts(client):
     assert linked_row["problem_destination_label"] == "Start"
     response_html = response.content.decode("utf-8")
     assert "function renderTopicTagsCell(value)" in response_html
-    assert 'join("<br>")' in response_html
+    assert "formatTopicTags(value)" in response_html
+    assert "topic-tags-cell" in response_html
+    assert "maxLen = 30" in response_html
     assert linked_row["problem_destination_url"] == reverse(
         "solutions:problem_solution_edit",
         args=[linked_record.problem_uuid],
@@ -4869,7 +4871,11 @@ def test_problem_statement_list_shows_statement_rows_and_link_counts(client):
     assert 'data: "linked_problem_topic"' in response_html
     assert 'data: "problem_code"' in response_html
     assert 'title: "Problem code"' in response_html
+    assert 'data: "day_label"' in response_html
+    assert 'title: "Day"' in response_html
     assert 'data: "user_completion_display"' in response_html
+    assert 'data: "linked_problem_confidence"' in response_html
+    assert 'title: "Confidence"' in response_html
     assert 'data: "problem_destination_url"' in response_html
     assert 'title: "Solution"' in response_html
     assert 'title: "Chars"' not in response_html
@@ -6442,6 +6448,80 @@ def test_statement_metadata_import_forward_fills_merged_contest_year_and_name():
     assert second_statement.contest_year == 2011
     assert second_statement.contest_name == "IMO Shortlist"
     assert second_statement.problem_code == "A2"
+
+
+def test_statement_metadata_import_mirrors_analytics_onto_statement_when_linked():
+    existing_problem = ProblemSolveRecord.objects.create(
+        year=2000,
+        topic="C",
+        mohs=10,
+        confidence="Low",
+        contest="APMO",
+        problem="P5",
+        contest_year_problem="APMO 2000 P5",
+    )
+    statement = ContestProblemStatement.objects.create(
+        linked_problem=existing_problem,
+        contest_year=2000,
+        contest_name="APMO",
+        problem_number=5,
+        problem_code="P5",
+        day_label="APMO 2000",
+        statement_latex="Statement body",
+        topic="C",
+        mohs=10,
+        confidence="Low",
+    )
+    rows = [
+        {
+            "STATEMENT UUID": str(statement.statement_uuid),
+            "PROBLEM UUID": str(statement.problem_uuid),
+            "CONTEST YEAR": 2000,
+            "CONTEST NAME": "APMO",
+            "CONTEST PROBLEM": "APMO 2000 P5",
+            "DAY LABEL": "APMO 2000",
+            "PROBLEM NUMBER": 5,
+            "PROBLEM CODE": "P5",
+            "STATEMENT LATEX": "Statement body",
+            "TOPIC": "C",
+            "MOHS": 40,
+            "Confidence": "Medium",
+            "IMO slot guess": "P3/6",
+            "Topic tags": "Comb – test",
+        },
+    ]
+    dataframe = statement_metadata_dataframe_from_rows(rows)
+    import_statement_metadata_dataframe(dataframe, replace_tags=False)
+    statement.refresh_from_db()
+    existing_problem.refresh_from_db()
+    assert existing_problem.mohs == 40
+    assert existing_problem.confidence == "Medium"
+    assert statement.mohs == 40
+    assert statement.confidence == "Medium"
+
+
+def test_statement_metadata_import_accepts_lowercase_mohs_column_header():
+    statement = ContestProblemStatement.objects.create(
+        contest_year=2000,
+        contest_name="APMO",
+        problem_number=5,
+        problem_code="P5",
+        day_label="",
+        statement_latex="x",
+    )
+    rows = [
+        {
+            "STATEMENT UUID": str(statement.statement_uuid),
+            "TOPIC": "G",
+            "mohs": 33,
+            "confidence": "High",
+        },
+    ]
+    dataframe = statement_metadata_dataframe_from_rows(rows)
+    import_statement_metadata_dataframe(dataframe, replace_tags=False)
+    statement.refresh_from_db()
+    assert statement.mohs == 33
+    assert statement.confidence == "High"
 
 
 def test_statement_metadata_import_rejects_duplicate_contest_identity():

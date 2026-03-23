@@ -316,15 +316,20 @@
     if (!value || !value.length) {
       return '<span class="text-muted fs-xs">—</span>';
     }
-    return value
-      .map(function (item) {
-        return String(item || "").trim();
-      })
-      .filter(Boolean)
-      .map(function (item) {
-        return escapeHtml(item);
-      })
-      .join("<br>");
+    var full = formatTopicTags(value);
+    if (!full) {
+      return '<span class="text-muted fs-xs">—</span>';
+    }
+    var maxLen = 30;
+    var display =
+      full.length <= maxLen ? full : full.slice(0, maxLen - 1) + "\u2026";
+    return (
+      '<span class="topic-tags-cell" title="' +
+      escapeHtml(full) +
+      '">' +
+      escapeHtml(display) +
+      "</span>"
+    );
   }
 
   function completionBadgeClass(stateKind) {
@@ -378,7 +383,27 @@
         }
       },
       { data: "problem_code", title: "Problem code", className: "text-nowrap" },
-      { data: "day_label", title: "Day", className: "text-nowrap" },
+      {
+        data: "day_label",
+        title: "Day",
+        className: "text-nowrap",
+        defaultContent: "",
+        render: function (data, type) {
+          var full = String(data || "").trim();
+          if (type !== "display") return full;
+          if (!full) return '<span class="text-muted fs-xs">—</span>';
+          var maxLen = 30;
+          var display =
+            full.length <= maxLen ? full : full.slice(0, maxLen - 1) + "\u2026";
+          return (
+            '<span class="day-label-cell" title="' +
+            escapeHtml(full) +
+            '">' +
+            escapeHtml(display) +
+            "</span>"
+          );
+        }
+      },
       {
         data: "user_completion_display",
         title: "Solved",
@@ -426,7 +451,24 @@
         render: function (data, type, row) {
           if (type !== "display") return data || "";
           if (!data) return '<span class="text-muted fs-xs">—</span>';
-          return renderInlineLink(data, row.linked_problem_confidence_url);
+          var full = String(data).trim();
+          var maxLen = 20;
+          var display =
+            full.length <= maxLen ? full : full.slice(0, maxLen - 1) + "\u2026";
+          if (row.linked_problem_confidence_url) {
+            return (
+              '<a class="statement-inline-link" href="' +
+              escapeHtml(row.linked_problem_confidence_url) +
+              '" title="' +
+              escapeHtml(full) +
+              '">' +
+              escapeHtml(display) +
+              "</a>"
+            );
+          }
+          return (
+            '<span title="' + escapeHtml(full) + '">' + escapeHtml(display) + "</span>"
+          );
         }
       },
       {
