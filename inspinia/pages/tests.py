@@ -6992,9 +6992,94 @@ def test_user_activity_dashboard_shows_only_current_users_completion_history(cli
     assert response_html.index("Completion history") < response_html.index("Completion import")
     assert "--activity-heatmap-level-4: #216e39;" in response_html
     assert "--activity-heatmap-level-4: #39d353;" in response_html
-    assert 'order: [[0, "desc"], [2, "asc"], [1, "asc"]]' in response_html
+    assert 'name="q"' in response_html
+    assert "Apply filters" in response_html
     assert "bootstrap.Tooltip.getOrCreateInstance" in response_html
     assert reverse("pages:user_activity_dashboard") in response_html
+
+
+def test_user_activity_dashboard_paginates_completion_history_table(client):
+    user = UserFactory()
+    client.force_login(user)
+    today = timezone.localdate()
+
+    for index in range(30):
+        problem = ProblemSolveRecord.objects.create(
+            year=today.year,
+            topic="ALG",
+            mohs=4,
+            contest="IMO",
+            problem=f"P{index + 1}",
+            contest_year_problem=f"IMO {today.year} P{index + 1}",
+        )
+        UserProblemCompletion.objects.create(
+            user=user,
+            problem=problem,
+            completion_date=today - timedelta(days=index),
+        )
+
+    response = client.get(reverse("pages:user_activity_dashboard"), {"page": "2"})
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["activity_page_obj"].number == 2
+    assert response.context["activity_page_obj"].paginator.count == 30
+    assert len(response.context["activity_page_obj"].object_list) == 5
+    response_html = response.content.decode("utf-8")
+    assert f"IMO {today.year} P1" not in response_html
+    assert f"IMO {today.year} P26" in response_html
+    assert "Previous" in response_html
+
+
+def test_user_activity_dashboard_filters_completion_history_table_with_get_params(client):
+    user = UserFactory()
+    client.force_login(user)
+    today = timezone.localdate()
+    imo_problem = ProblemSolveRecord.objects.create(
+        year=today.year,
+        topic="ALG",
+        mohs=5,
+        contest="IMO",
+        problem="P1",
+        contest_year_problem=f"IMO {today.year} P1",
+    )
+    bmo_problem = ProblemSolveRecord.objects.create(
+        year=today.year,
+        topic="NT",
+        mohs=4,
+        contest="BMO",
+        problem="P2",
+        contest_year_problem=f"BMO {today.year} P2",
+    )
+    UserProblemCompletion.objects.create(
+        user=user,
+        problem=imo_problem,
+        completion_date=today - timedelta(days=1),
+    )
+    UserProblemCompletion.objects.create(
+        user=user,
+        problem=bmo_problem,
+        completion_date=today - timedelta(days=2),
+    )
+
+    response = client.get(
+        reverse("pages:user_activity_dashboard"),
+        {"contest": "BMO", "topic": "Number Theory"},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["activity_filters"] == {
+        "completion_year": "",
+        "contest": "BMO",
+        "date_status": "",
+        "mohs": "",
+        "q": "",
+        "topic": "Number Theory",
+    }
+    assert response.context["activity_page_obj"].paginator.count == 1
+    response_html = response.content.decode("utf-8")
+    assert f"BMO {today.year} P2" in response_html
+    assert f"IMO {today.year} P1" not in response_html
+    assert 'value="BMO" selected' in response_html
 
 
 def test_user_activity_dashboard_exposes_previous_year_windows_for_older_history(client):

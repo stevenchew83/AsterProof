@@ -12,6 +12,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
+from django.core.paginator import Paginator
 from django.db import IntegrityError
 from django.db import transaction
 from django.db.models import Avg
@@ -1667,6 +1668,11 @@ def _month_starts_between(start_date: date, end_date: date) -> list[date]:
     return month_starts
 
 
+def _pagination_suffix(params: dict[str, str]) -> str:
+    query_string = urlencode({key: value for key, value in params.items() if value})
+    return f"&{query_string}" if query_string else ""
+
+
 def _completion_heatmap_level(count: int, max_count: int) -> int:
     if count <= 0 or max_count <= 0:
         return 0
@@ -3259,6 +3265,56 @@ def user_activity_dashboard_view(request):
         else today
     )
     activity_window_start = chart_end_date - timedelta(days=364)
+    search_query = (request.GET.get("q") or "").strip()
+    selected_completion_year = (request.GET.get("completion_year") or "").strip()
+    selected_date_status = (request.GET.get("date_status") or "").strip()
+    selected_contest = (request.GET.get("contest") or "").strip()
+    selected_topic = (request.GET.get("topic") or "").strip()
+    selected_mohs = (request.GET.get("mohs") or "").strip()
+
+    filtered_table_rows = table_rows
+    if selected_completion_year:
+        filtered_table_rows = [
+            row for row in filtered_table_rows if row["completion_year"] == selected_completion_year
+        ]
+    if selected_date_status:
+        filtered_table_rows = [
+            row for row in filtered_table_rows if row["date_status"] == selected_date_status
+        ]
+    if selected_contest:
+        filtered_table_rows = [
+            row for row in filtered_table_rows if row["contest"] == selected_contest
+        ]
+    if selected_topic:
+        filtered_table_rows = [
+            row for row in filtered_table_rows if row["topic"] == selected_topic
+        ]
+    if selected_mohs:
+        filtered_table_rows = [
+            row for row in filtered_table_rows if str(row["mohs"]) == selected_mohs
+        ]
+    if search_query:
+        tokens = search_query.lower().split()
+        filtered_table_rows = [
+            row
+            for row in filtered_table_rows
+            if all(
+                token in " ".join(
+                    [
+                        row["completion_date"],
+                        row["contest"],
+                        str(row["mohs"]),
+                        row["problem_code"],
+                        row["problem_label"],
+                        str(row["problem_year"]),
+                        row["topic"],
+                    ],
+                ).lower()
+                for token in tokens
+            )
+        ]
+
+    page_obj = Paginator(filtered_table_rows, 25).get_page(request.GET.get("page"))
 
     context = {
         "activity_total": len(completions),
@@ -3304,7 +3360,27 @@ def user_activity_dashboard_view(request):
             "statementCompletionHeatmap": statement_completion_heatmap,
             "topicMohsCompletionHeatmap": topic_mohs_completion_heatmap,
         },
-        "activity_table_rows": table_rows,
+        "activity_filters": {
+            "completion_year": selected_completion_year,
+            "contest": selected_contest,
+            "date_status": selected_date_status,
+            "mohs": selected_mohs,
+            "q": search_query,
+            "topic": selected_topic,
+        },
+        "activity_filtered_total": len(filtered_table_rows),
+        "activity_page_obj": page_obj,
+        "activity_pagination_suffix": _pagination_suffix(
+            {
+                "completion_year": selected_completion_year,
+                "contest": selected_contest,
+                "date_status": selected_date_status,
+                "mohs": selected_mohs,
+                "q": search_query,
+                "topic": selected_topic,
+            },
+        ),
+        "activity_table_rows": filtered_table_rows,
     }
     return render(request, "pages/user-activity-dashboard.html", context)
 
