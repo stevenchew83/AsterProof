@@ -8,7 +8,7 @@ Reduce **server-side latency** (high **Time To First Byte** on the HTML document
 
 - **Route:** `users:detail` → `UserDetailView` (`inspinia/users/views.py`, `inspinia/users/urls.py`).
 - **Template:** `user_detail.html` — simple `object` fields, no heavy in-template queries observed.
-- **Observation:** In the browser, slowness presents as **high document TTFB** (option A), so the bottleneck is not primarily static subresources.
+- **Observation:** In the browser, slowness presents as **high document TTFB** (large “Waiting” time on the main HTML request), so the bottleneck is not primarily static subresources.
 - **Hypotheses (to validate, not assume):** per-request middleware (`TrackActiveSessionMiddleware` → `touch_tracked_session` → `ensure_tracked_session`, `UserSession` I/O, `_model_table_exists`), Django session backend I/O, database round-trip latency, or duplicate user queries vs `request.user`.
 
 ## Decision (approved)
@@ -18,7 +18,7 @@ Reduce **server-side latency** (high **Time To First Byte** on the HTML document
 1. **Phase A — Instrument (short-lived)**  
    - Compare timing from **app host to loopback** vs **public URL** to detect proxy/network vs app work.  
    - Add **temporary** server-side visibility: e.g. timing middleware (path, duration, optional query count behind an env flag) **and/or** PostgreSQL slow-query logging / `pg_stat_statements` for a bounded window.  
-   - Record baseline for `/users/<pk>/` and at least one **lighter** authenticated route for contrast.
+   - Record baseline for `/users/<pk>/` and at least one **other** authenticated route for contrast (pick during planning — e.g. landing **`/`** if it is cheaper server-side than `/users/profile/`, which loads completion aggregates).
 
 2. **Phase B — Fix**  
    - Apply changes **only** supported by Phase A evidence.  
@@ -35,7 +35,7 @@ Reduce **server-side latency** (high **Time To First Byte** on the HTML document
 
 ## Success criteria
 
-- Document TTFB for `/users/<pk>/` (and similarly affected pages) is **measurably improved** on production or staging, with **before/after numbers** recorded.  
+- Document TTFB for `/users/<pk>/` is **measurably improved** on production or staging, with **before/after numbers** recorded; any additional pages claimed improved must **share the same diagnosed bottleneck** (e.g. same middleware/session/DB path) or be listed explicitly.  
 - The chosen fix is **traceable to measured evidence** (logs, query analysis, or timing breakdown).  
 - Instrumentation that was only for diagnosis is **removed or gated** so it does not run unbounded in production unless explicitly desired.
 
