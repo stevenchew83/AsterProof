@@ -3742,6 +3742,63 @@ def test_contest_advanced_analytics_allows_non_admin_and_uses_public_year_links(
     )
 
 
+def test_contest_advanced_analytics_normal_user_sees_own_completions_only(client):
+    """Completion heatmap and year solved counts use request.user, not global completions."""
+    viewer = UserFactory()
+    other = UserFactory()
+    assert viewer.role == User.Role.NORMAL
+
+    problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="ALG",
+        mohs=6,
+        contest="USAMO",
+        problem="P1",
+        contest_year_problem="USAMO 2026 P1",
+        confidence="High",
+    )
+    ContestProblemStatement.objects.create(
+        linked_problem=problem,
+        contest_year=2026,
+        contest_name="USAMO",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Statement one",
+    )
+    UserProblemCompletion.objects.create(
+        user=other,
+        problem=problem,
+        completion_date=date(2026, 1, 1),
+    )
+
+    client.force_login(viewer)
+    response = client.get(reverse("pages:contest_advanced_dashboard"), {"contest": "USAMO"})
+    assert response.status_code == HTTPStatus.OK
+    year_row = next(row for row in response.context["year_rows"] if row["year"] == 2026)
+    assert year_row["solved_problem_total"] == 0
+    assert year_row["solved_rate"] == 0.0
+    heatmap = response.context["contest_completion_heatmap"]
+    row_2026 = next(row for row in heatmap["rows"] if row["year"] == 2026)
+    cell_p1 = next(cell for cell in row_2026["cells"] if cell["problem_code"] == "P1")
+    assert cell_p1["state"] == "unsolved"
+
+    UserProblemCompletion.objects.create(
+        user=viewer,
+        problem=problem,
+        completion_date=date(2026, 2, 2),
+    )
+    response_done = client.get(reverse("pages:contest_advanced_dashboard"), {"contest": "USAMO"})
+    year_done = next(row for row in response_done.context["year_rows"] if row["year"] == 2026)
+    assert year_done["solved_problem_total"] == 1
+    assert year_done["solved_rate"] == 100.0
+    heatmap_done = response_done.context["contest_completion_heatmap"]
+    row_done = next(row for row in heatmap_done["rows"] if row["year"] == 2026)
+    cell_done = next(cell for cell in row_done["cells"] if cell["problem_code"] == "P1")
+    assert cell_done["state"] == "solved"
+    assert cell_done["display"] == "✓"
+
+
 def test_contest_dashboard_listing_view_filters_selected_contest_and_year_for_admin(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)

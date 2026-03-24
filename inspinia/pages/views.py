@@ -5153,8 +5153,12 @@ def contest_advanced_analytics_view(request):
                 distinct=True,
             ),
             max_mohs=Max("_eff_mohs"),
-            linked_statement_total=Count("id", filter=Q(linked_problem__isnull=False)),
-            problem_count=Count("id"),
+            linked_statement_total=Count(
+                "id",
+                filter=Q(linked_problem__isnull=False),
+                distinct=True,
+            ),
+            problem_count=Count("id", distinct=True),
             solved_problem_total=Count(
                 "id",
                 filter=Q(user_completions__user=request.user)
