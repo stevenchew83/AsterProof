@@ -267,27 +267,13 @@
           </div>
           <p class="statement-table-meta mb-2">
             {% if statement_filtered_total %}
-            Showing {{ statement_filtered_total }} matching row{{ statement_filtered_total|pluralize }} ({{ statement_total }} total in library). Sort and page in the table; use Filter table to narrow visible rows. Search and Apply filters still run on the server.
+            Showing {{ statement_filtered_total }} matching row{{ statement_filtered_total|pluralize }} ({{ statement_total }} total in library). Sort and page in the table; change which rows load with Search and Apply filters above.
             {% else %}
             No rows match the current filters ({{ statement_total }} total in library).
             {% endif %}
           </p>
           {% if statement_filtered_total > 0 %}
           {{ statement_datatable_rows|json_script:"problem-statements-table-data" }}
-          <div class="row g-2 align-items-end mb-2">
-            <div class="col-md-6 col-xl-4">
-              <label class="form-label text-muted mb-0 fs-xs text-uppercase fw-semibold" for="statement-table-filter-q">Filter table</label>
-              <input
-                type="search"
-                id="statement-table-filter-q"
-                class="form-control form-control-sm"
-                placeholder="Narrow visible rows (all columns)"
-                autocomplete="off"
-                aria-describedby="statement-table-filter-hint"
-              >
-              <p id="statement-table-filter-hint" class="text-muted fs-xs mb-0 mt-1">Client-side only; does not change Copy filtered rows or server results.</p>
-            </div>
-          </div>
           <div class="statement-table-shell table-responsive">
             <table id="problem-statements-table" class="table table-striped table-bordered align-middle w-100">
               <thead class="table-light">
@@ -437,21 +423,9 @@
     return s.slice(0, maxLen - 1) + "\u2026";
   }
 
-  function debounce(fn, ms) {
-    var t = null;
-    return function () {
-      var ctx = this;
-      var args = arguments;
-      window.clearTimeout(t);
-      t = window.setTimeout(function () {
-        fn.apply(ctx, args);
-      }, ms);
-    };
-  }
-
-  var table = new DataTable("#problem-statements-table", {
+  new DataTable("#problem-statements-table", {
     data: rows,
-    searching: true,
+    searching: false,
     layout: {
       topStart: "pageLength",
       topEnd: "paging",
@@ -640,15 +614,6 @@
       }
     ]
   });
-
-  var tableFilterInput = document.getElementById("statement-table-filter-q");
-  if (tableFilterInput) {
-    var applyTableFilter = debounce(function () {
-      table.search(tableFilterInput.value || "").draw();
-    }, 250);
-    tableFilterInput.addEventListener("input", applyTableFilter);
-    tableFilterInput.addEventListener("change", applyTableFilter);
-  }
 })();
 </script>
 {% endif %}
