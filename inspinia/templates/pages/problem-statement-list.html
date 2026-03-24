@@ -451,7 +451,13 @@
 
   var table = new DataTable("#problem-statements-table", {
     data: rows,
-    searching: false,
+    searching: true,
+    layout: {
+      topStart: "pageLength",
+      topEnd: "paging",
+      bottomStart: "info",
+      bottomEnd: "paging",
+    },
     order: [[10, "desc"]],
     pageLength: 25,
     lengthMenu: [10, 25, 50, 100],
