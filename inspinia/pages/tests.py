@@ -20,6 +20,7 @@ from django.utils.text import slugify
 from inspinia.pages.asymptote_render import AsymptoteRenderResult
 from inspinia.pages.asymptote_render import _extract_svg_markup
 from inspinia.pages.asymptote_render import build_statement_render_segments
+from inspinia.pages.contest_links import contest_dashboard_listing_url
 from inspinia.pages.handle_summary_parser import build_handle_summary_preview_payload
 from inspinia.pages.handle_summary_parser import parse_handle_summary_text
 from inspinia.pages.models import ContestMetadata
@@ -3611,7 +3612,7 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
     assert response.context["contest_stats"]["statement_problem_total"] == 1
     assert response.context["contest_stats"]["statement_row_total"] == 2
     assert response.context["contest_stats"]["published_solution_total"] == 1
-    assert response.context["public_contest_url"] == reverse("pages:contest_problem_list", args=["usamo"])
+    assert response.context["public_contest_url"] == contest_dashboard_listing_url("USAMO")
     heatmap = response.context["contest_completion_heatmap"]
     assert heatmap["problem_codes"] == ["P1", "P2"]
     heatmap_2026 = next(row for row in heatmap["rows"] if row["year"] == 2026)
@@ -3709,7 +3710,76 @@ def test_contest_advanced_analytics_requires_login(client):
     assert response.url == f"{login_url}?next={reverse('pages:contest_advanced_dashboard')}"
 
 
-def test_contest_advanced_analytics_allows_non_admin_and_uses_public_year_links(client):
+def test_contest_problem_list_legacy_url_requires_login(client):
+    response = client.get(reverse("pages:contest_problem_list", args=["imo"]))
+
+    assert response.status_code == HTTPStatus.FOUND
+    login_url = reverse(settings.LOGIN_URL)
+    assert response.url.startswith(f"{login_url}?")
+
+
+def test_contest_problem_list_legacy_url_redirects_to_dashboard_listing(client):
+    user = UserFactory()
+    client.force_login(user)
+    problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="ALG",
+        mohs=5,
+        contest="IMO",
+        problem="P1",
+        contest_year_problem="IMO 2026 P1",
+    )
+    ContestProblemStatement.objects.create(
+        linked_problem=problem,
+        contest_year=2026,
+        contest_name="IMO",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Stub",
+    )
+    response = client.get(
+        reverse("pages:contest_problem_list", args=["imo"]),
+        {"year": "2026"},
+        follow=True,
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.resolver_match.url_name == "contest_dashboard_listing"
+
+
+def test_contest_dashboard_listing_omits_bulk_controls_for_non_admin(client):
+    user = UserFactory()
+    client.force_login(user)
+    problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="ALG",
+        mohs=5,
+        contest="USAMO",
+        problem="P1",
+        contest_year_problem="USAMO 2026 P1",
+    )
+    ContestProblemStatement.objects.create(
+        linked_problem=problem,
+        contest_year=2026,
+        contest_name="USAMO",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Statement one",
+    )
+
+    response = client.get(reverse("pages:contest_dashboard_listing"), {"contest": "USAMO"})
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["show_contest_dashboard_bulk"] is False
+    html = response.content.decode("utf-8")
+    assert "Bulk selection" not in html
+    assert "js-problem-select" not in html
+    assert "Set inactive" not in html
+
+
+def test_contest_advanced_analytics_non_admin_year_links_use_dashboard_listing(client):
     user = UserFactory()
     client.force_login(user)
     problem = ProblemSolveRecord.objects.create(
@@ -3737,9 +3807,7 @@ def test_contest_advanced_analytics_allows_non_admin_and_uses_public_year_links(
     assert response.context["selected_contest"] == "USAMO"
     year_row = response.context["year_rows"][0]
     assert year_row["year"] == 2026
-    assert year_row["year_detail_url"] == (
-        reverse("pages:contest_problem_list", args=["usamo"]) + "?" + urlencode({"year": 2026})
-    )
+    assert year_row["year_detail_url"] == contest_dashboard_listing_url("USAMO", year=2026)
 
 
 def test_contest_advanced_analytics_normal_user_sees_own_completions_only(client):
@@ -4958,13 +5026,13 @@ def test_problem_statement_list_shows_statement_rows_and_link_counts(client):
     assert "linked_problem_url" not in linked_row
     assert linked_row["linked_problem_topic_tags"] == ["LTE", "ZSIGMONDY"]
     assert linked_row["linked_problem_topic_tag_links"][0]["label"] == "LTE"
-    assert linked_row["linked_problem_topic_tag_links"][0]["url"].endswith("?tag=LTE")
+    assert "tag=LTE" in linked_row["linked_problem_topic_tag_links"][0]["url"]
     assert linked_row["linked_problem_mohs"] == EXPECTED_LINKED_PROBLEM_MOHS
-    assert linked_row["linked_problem_mohs_url"].endswith("?mohs=4")
+    assert "mohs=4" in linked_row["linked_problem_mohs_url"]
     assert linked_row["linked_problem_confidence"] == "35M / 33M"
-    assert "?q=35M+%2F+33M" in linked_row["linked_problem_confidence_url"]
+    assert "q=35M" in linked_row["linked_problem_confidence_url"]
     assert linked_row["linked_problem_imo_slot_guess_value"] == "2,5"
-    assert "?q=2%2C5" in linked_row["linked_problem_imo_slot_url"]
+    assert "q=2%2C5" in linked_row["linked_problem_imo_slot_url"]
     assert "statement_length" not in linked_row
     assert linked_row["problem_destination_label"] == "Start"
     assert linked_row["problem_destination_url"] == reverse(
@@ -5528,10 +5596,19 @@ def test_contest_problem_list_search_matches_hidden_confidence(client):
         problem="P1",
         contest_year_problem="IMO 2026 P1",
     )
+    ContestProblemStatement.objects.create(
+        linked_problem=problem,
+        contest_year=2026,
+        contest_name="IMO",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Stub",
+    )
 
     response = client.get(
-        reverse("pages:contest_problem_list", args=["imo"]),
-        {"q": "35M / 33M"},
+        reverse("pages:contest_dashboard_listing"),
+        {"contest": "IMO", "q": "35M / 33M"},
     )
 
     assert response.status_code == HTTPStatus.OK
@@ -5598,9 +5675,9 @@ def test_problem_statement_analytics_groups_rows_by_contest_and_year_for_admin(c
     assert dashboard_row["linked_count"] == 1
     assert dashboard_row["unlinked_count"] == 1
     assert dashboard_row["link_rate"] == EXPECTED_SPAIN_STATEMENT_LINK_RATE
-    assert dashboard_row["contest_year_url"] == (
-        reverse("pages:contest_problem_list", args=[slugify(SPAIN_OLYMPIAD_NAME)])
-        + f"?year={SPAIN_OLYMPIAD_YEAR}"
+    assert dashboard_row["contest_year_url"] == contest_dashboard_listing_url(
+        SPAIN_OLYMPIAD_NAME,
+        year=SPAIN_OLYMPIAD_YEAR,
     )
     heatmap_payload = response.context["charts_payload"]["statementCountHeatmap"]
     assert heatmap_payload["years"] == ["2025", "2026"]
@@ -7659,7 +7736,7 @@ def test_contest_problem_list_shows_imported_statement_text(client):
         statement_latex="Prove that $1+1=2$.",
     )
 
-    response = client.get(reverse("pages:contest_problem_list", args=["imo"]))
+    response = client.get(reverse("pages:contest_dashboard_listing"), {"contest": "IMO"})
 
     assert response.status_code == HTTPStatus.OK
     assert response.context["contest_problem_stats"]["statement_total"] == 1
@@ -7669,9 +7746,9 @@ def test_contest_problem_list_shows_imported_statement_text(client):
     assert first_problem["statement_day_label"] == "Day 1"
     assert first_problem["statement_latex"] == "Prove that $1+1=2$."
     content = response.content.decode("utf-8")
-    assert 'id="contest-problem-table"' in content
+    assert "problem-table" in content
     assert 'textbullet: "\\\\bullet"' in content
-    assert "sortable table layout" in content
+    assert "js-sort-header" in content
     assert "Prove that $1+1=2$." in content
     assert 'footnotesize: ""' in content
     assert 'overarc: ["\\\\overset{\\\\frown}{#1}", 1]' in content
@@ -7710,8 +7787,17 @@ def test_contest_problem_list_exposes_solution_workspace_links(client):
         status=ProblemSolution.Status.DRAFT,
         title="Hidden draft",
     )
+    ContestProblemStatement.objects.create(
+        linked_problem=problem,
+        contest_year=2026,
+        contest_name="IMO",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Stub",
+    )
 
-    response = client.get(reverse("pages:contest_problem_list", args=["imo"]))
+    response = client.get(reverse("pages:contest_dashboard_listing"), {"contest": "IMO"})
 
     assert response.status_code == HTTPStatus.OK
     first_problem = response.context["grouped_years"][0]["problems"][0]
@@ -7780,10 +7866,28 @@ def test_contest_problem_list_filters_by_year_mohs_topic_and_tag(client):
         day_label="Day 1",
         statement_latex="Show that $n=n$.",
     )
+    ContestProblemStatement.objects.create(
+        linked_problem=other_problem,
+        contest_year=2025,
+        contest_name="IMO",
+        problem_number=2,
+        problem_code="P2",
+        day_label="Day 1",
+        statement_latex="Other year stub.",
+    )
+    ContestProblemStatement.objects.create(
+        linked_problem=another_tagged_problem,
+        contest_year=2026,
+        contest_name="IMO",
+        problem_number=3,
+        problem_code="P3",
+        day_label="Day 1",
+        statement_latex="Third stub.",
+    )
 
     response = client.get(
-        reverse("pages:contest_problem_list", args=["imo"]),
-        {"year": "2026", "mohs": "4", "topic": "NT", "tag": "LTE"},
+        reverse("pages:contest_dashboard_listing"),
+        {"contest": "IMO", "year": "2026", "mohs": "4", "topic": "NT", "tag": "LTE"},
     )
 
     assert response.status_code == HTTPStatus.OK
@@ -7798,7 +7902,7 @@ def test_contest_problem_list_filters_by_year_mohs_topic_and_tag(client):
     assert filtered_problem["problem"] == "P1"
     assert filtered_problem["topic_tags"][0]["technique"] == "LTE"
     page = response.content.decode("utf-8")
-    assert "problem-tag-pill" in page
+    assert "problem-tag-list" in page
     assert "LTE" in page
     assert "Confidence:" not in page
     assert "> Imported</span>" not in page
@@ -7833,7 +7937,7 @@ def test_contest_problem_list_renders_asymptote_statement_blocks(client, monkeyp
 
     monkeypatch.setattr("inspinia.pages.asymptote_render.render_asymptote_svg", fake_render)
 
-    response = client.get(reverse("pages:contest_problem_list", args=["imo"]))
+    response = client.get(reverse("pages:contest_dashboard_listing"), {"contest": "IMO"})
 
     assert response.status_code == HTTPStatus.OK
     first_problem = response.context["grouped_years"][0]["problems"][0]
@@ -7874,17 +7978,14 @@ def test_home_exposes_live_library_index_for_admin(client):
         for entry in response.context["search_entries"]
         if entry["type"] == "Contest" and entry["label"] == "ISRAEL TST"
     )
-    assert contest_entry["href"] == reverse("pages:contest_problem_list", args=["israel-tst"])
+    assert contest_entry["href"] == contest_dashboard_listing_url("ISRAEL TST")
 
     problem_entry = next(
         entry
         for entry in response.context["search_entries"]
         if entry["type"] == "Problem" and entry["label"] == "ISRAEL TST 2026 P2"
     )
-    assert (
-        problem_entry["href"]
-        == reverse("pages:contest_problem_list", args=["israel-tst"]) + "#israel-tst-2026-p2"
-    )
+    assert problem_entry["href"] == contest_dashboard_listing_url("ISRAEL TST") + "#israel-tst-2026-p2"
 
 
 def test_dashboard_sidebar_groups_links_into_clear_sections_for_admin(client):

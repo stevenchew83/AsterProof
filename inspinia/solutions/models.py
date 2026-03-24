@@ -1,7 +1,17 @@
+import uuid
+
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import TextChoices
+
+
+def _solution_body_image_upload_to(_instance, filename: str) -> str:
+    lower = (filename or "").rsplit(".", 1)[-1].lower() if "." in (filename or "") else ""
+    ext = lower if lower in {"png", "jpg", "jpeg", "gif", "webp"} else "png"
+    if ext == "jpeg":
+        ext = "jpg"
+    return f"solution_body_images/{uuid.uuid4().hex}.{ext}"
 
 
 class ProblemSolution(models.Model):
@@ -176,3 +186,28 @@ class SolutionSourceArtifact(models.Model):
 
     def __str__(self) -> str:
         return f"{self.get_artifact_type_display()} - solution {self.solution_id}"
+
+
+class SolutionBodyImage(models.Model):
+    """Image pasted into solution block bodies; referenced via \\includegraphics{path}."""
+
+    solution = models.ForeignKey(
+        ProblemSolution,
+        on_delete=models.CASCADE,
+        related_name="body_images",
+    )
+    file = models.ImageField(upload_to=_solution_body_image_upload_to)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="solution_body_images_uploaded",
+    )
+
+    class Meta:
+        ordering = ["-uploaded_at", "-id"]
+
+    def __str__(self) -> str:
+        return f"Body image {self.pk} → solution {self.solution_id}"

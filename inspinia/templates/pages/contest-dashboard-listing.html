@@ -302,6 +302,7 @@
   </div>
   {% endif %}
 
+  {% if show_contest_dashboard_bulk %}
   <div class="row g-3 mt-0">
     <div class="col-12">
       <div class="card">
@@ -321,6 +322,7 @@
       </div>
     </div>
   </div>
+  {% endif %}
 
   <div class="row g-3 mt-0">
     <div class="col-12">
@@ -342,9 +344,11 @@
                 <thead>
                   <tr class="text-muted fs-xs text-uppercase">
                     <th>#</th>
+                    {% if show_contest_dashboard_bulk %}
                     <th class="text-nowrap">
                       <input type="checkbox" class="form-check-input js-year-select-all" aria-label="Select all rows in this table">
                     </th>
+                    {% endif %}
                     <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by problem">Problem</button></th>
                     <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by problem code">Problem code</button></th>
                     <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by topic">Topic</button></th>
@@ -361,6 +365,7 @@
                   {% for problem in year_group.problems %}
                   <tr id="{{ problem.anchor }}">
                     <td class="text-nowrap text-muted fw-semibold js-row-index">{{ forloop.counter }}</td>
+                    {% if show_contest_dashboard_bulk %}
                     <td class="text-nowrap">
                       <input
                         type="checkbox"
@@ -369,6 +374,7 @@
                         aria-label="Select {{ problem.label }}"
                       >
                     </td>
+                    {% endif %}
                     <td data-sort-value="{{ problem.problem_code }}">
                       <div class="fw-semibold">{{ problem.label }}</div>
                       <div class="text-muted fs-xs">{{ problem.technique_count }} technique row{{ problem.technique_count|pluralize }}</div>
@@ -498,6 +504,7 @@
   </div>
 </div>
 <form id="contest-dashboard-listing-csrf" class="d-none">{% csrf_token %}</form>
+{% if show_contest_dashboard_bulk %}
 <form id="contest-dashboard-bulk-form" class="d-none" method="post" action="{{ contest_dashboard_bulk_update_url }}">
   {% csrf_token %}
   <input type="hidden" name="action" value="set_inactive">
@@ -505,10 +512,12 @@
   <input type="hidden" name="next" value="{{ contest_dashboard_current_url }}">
   <div id="contest-dashboard-bulk-fields"></div>
 </form>
+{% endif %}
 {% endblock page_content %}
 
 {% block extra_javascript %}
   {{ block.super }}
+  {% if show_contest_dashboard_bulk %}
   <script>
   (function () {
     var bulkForm = document.getElementById("contest-dashboard-bulk-form");
@@ -590,6 +599,7 @@
     syncSelectionState();
   })();
   </script>
+  {% endif %}
   <script>
   (function () {
     var tables = Array.from(document.querySelectorAll(".problem-table"));

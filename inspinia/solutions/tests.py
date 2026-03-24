@@ -1,17 +1,26 @@
 from http import HTTPStatus
+from io import BytesIO
+from pathlib import Path
 
 import pytest
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import IntegrityError
 from django.urls import reverse
+from PIL import Image
 
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
+from inspinia.solutions.body_image_paths import is_allowed_includegraphics_path
 from inspinia.solutions.models import ProblemSolution
 from inspinia.solutions.models import ProblemSolutionBlock
 from inspinia.solutions.models import SolutionBlockType
+from inspinia.solutions.models import SolutionBodyImage
 from inspinia.solutions.models import SolutionSourceArtifact
+from inspinia.solutions.pdf_latex import SolutionPdfCompileError
+from inspinia.solutions.pdf_latex import SolutionPdfToolError
+from inspinia.solutions.pdf_latex import build_solution_tex_source
 from inspinia.users.models import User
 from inspinia.users.tests.factories import UserFactory
 
@@ -141,6 +150,7 @@ def test_solution_source_artifact_requires_payload():
         ("solutions:problem_solution_create", None),
         ("solutions:problem_solution_list", {"problem": "P1"}),
         ("solutions:problem_solution_edit", {"problem": "P2"}),
+        ("solutions:problem_solution_pdf", {"problem": "P1"}),
     ],
 )
 def test_solution_pages_require_login(client, url_name, problem_kwargs):
@@ -335,7 +345,7 @@ def test_problem_solution_list_shows_all_user_solutions_for_admin(client):
     assert response.context["admin_view"] is True
     assert {row["title"] for row in response.context["visible_solution_rows"]} == {"Published proof", "Hidden draft"}
     assert response.context["visible_solution_title"] == "All user solutions"
-    assert response.context["solution_stats"]["visible_total"] == 2
+    assert response.context["solution_stats"]["visible_total"] == EXPECTED_VISIBLE_SOLUTION_TOTAL
     response_html = response.content.decode("utf-8")
     assert "All user solutions" in response_html
     assert "Published proof" in response_html
@@ -472,6 +482,192 @@ def test_problem_solution_edit_reorders_and_deletes_existing_blocks(client):
         "Moved to second.",
     ]
     assert [block.position for block in remaining_blocks] == [1, 2]
+
+
+@pytest.mark.parametrize(
+    ("path", "expected"),
+    [
+        ("solution_body_images/abcdef0123456789abcdef0123456789.png", True),
+        ("solution_body_images/ABCDEF0123456789ABCDEF0123456789.JPG", True),
+        ("solution_body_images/abcdef0123456789abcdef0123456789.jpeg", True),
+        ("../solution_body_images/abcdef0123456789abcdef0123456789.png", False),
+        ("solution_body_images/not-a-uuid.png", False),
+        ("solution_body_images/abcdef0123456789abcdef0123456789.exe", False),
+        ("http://evil.com/x.png", False),
+        ("solution_body_images/abcdef0123456789abcdef0123456789.png//x", False),
+    ],
+)
+def test_includegraphics_path_allowlist(path, expected):
+    assert is_allowed_includegraphics_path(path) is expected
+
+
+def _png_upload() -> SimpleUploadedFile:
+    buf = BytesIO()
+    Image.new("RGB", (2, 2), color=(10, 20, 30)).save(buf, format="PNG")
+    return SimpleUploadedFile("x.png", buf.getvalue(), content_type="image/png")
+
+
+def test_solution_body_image_upload_requires_login(client):
+    problem = _problem()
+    url = reverse("solutions:solution_body_image_upload", args=[problem.problem_uuid])
+    response = client.post(url, {"image": _png_upload()})
+    assert response.status_code == HTTPStatus.FOUND
+
+
+def test_solution_body_image_upload_creates_draft_and_returns_path(client):
+    user = UserFactory()
+    client.force_login(user)
+    problem = _problem()
+    url = reverse("solutions:solution_body_image_upload", args=[problem.problem_uuid])
+    response = client.post(url, {"image": _png_upload()})
+    assert response.status_code == HTTPStatus.OK
+    payload = response.json()
+    assert payload["path"].startswith("solution_body_images/")
+    assert is_allowed_includegraphics_path(payload["path"])
+    assert "/media/" in payload["url"] or payload["url"].startswith("http")
+    solution = ProblemSolution.objects.get(problem=problem, author=user)
+    assert solution.status == ProblemSolution.Status.DRAFT
+    assert SolutionBodyImage.objects.filter(solution=solution).count() == 1
+
+
+def test_solution_body_image_upload_rejects_non_image(client):
+    user = UserFactory()
+    client.force_login(user)
+    problem = _problem()
+    url = reverse("solutions:solution_body_image_upload", args=[problem.problem_uuid])
+    bad = SimpleUploadedFile("x.txt", b"not an image", content_type="text/plain")
+    response = client.post(url, {"image": bad})
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+
+
+def test_solution_body_image_upload_rejects_oversized(client):
+    user = UserFactory()
+    client.force_login(user)
+    problem = _problem()
+    url = reverse("solutions:solution_body_image_upload", args=[problem.problem_uuid])
+    buf = BytesIO()
+    Image.new("RGB", (2, 2), color="white").save(buf, format="PNG")
+    png = buf.getvalue()
+    huge = SimpleUploadedFile("huge.png", png + b"\x00" * (4 * 1024 * 1024), content_type="image/png")
+    response = client.post(url, {"image": huge})
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+
+
+def test_build_solution_tex_includes_scrartcl_evan_and_block_order():
+    user = UserFactory(name="Test User")
+    problem = _problem()
+    solution = _solution_with_blocks(
+        problem=problem,
+        author=user,
+        title="My Title",
+        blocks=[
+            ("A", r"$\alpha$", "claim"),
+            ("B", "Second body.", "proof"),
+        ],
+    )
+    blocks = list(solution.blocks.order_by("position"))
+    tex = build_solution_tex_source(
+        solution=solution,
+        blocks=blocks,
+        media_root=Path(settings.MEDIA_ROOT),
+        problem_label="IMO 2026 P1",
+    )
+    assert r"\documentclass{scrartcl}" in tex
+    assert r"\usepackage[noasy]{evan}" in tex
+    assert r"\graphicspath{" in tex
+    assert "IMO 2026 P1" in tex
+    assert "My Title" in tex
+    assert "Test User" in tex
+    assert r"\paragraph{Claim — A}" in tex
+    assert r"$\alpha$" in tex
+    assert r"\paragraph{Proof — B}" in tex
+    assert "Second body." in tex
+    assert tex.index(r"$\alpha$") < tex.index("Second body.")
+
+
+def test_build_solution_tex_emits_plain_text_block_body_as_latex():
+    user = UserFactory()
+    problem = _problem()
+    solution = _solution_with_blocks(
+        problem=problem,
+        author=user,
+        blocks=[("Step", "plain % not a comment in editor", "idea")],
+    )
+    block = solution.blocks.order_by("position").first()
+    block.body_format = ProblemSolutionBlock.BodyFormat.PLAIN_TEXT
+    block.save(update_fields=["body_format"])
+    blocks = list(solution.blocks.order_by("position"))
+    tex = build_solution_tex_source(
+        solution=solution,
+        blocks=blocks,
+        media_root=Path(settings.MEDIA_ROOT),
+        problem_label="X",
+    )
+    assert "plain % not a comment" in tex
+
+
+def test_problem_solution_pdf_404_when_solution_not_saved(client):
+    user = UserFactory()
+    client.force_login(user)
+    problem = _problem()
+    url = reverse("solutions:problem_solution_pdf", args=[problem.problem_uuid])
+    response = client.get(url)
+    assert response.status_code == HTTPStatus.NOT_FOUND
+
+
+def test_problem_solution_pdf_returns_attachment_when_compile_succeeds(monkeypatch, client):
+    user = UserFactory()
+    client.force_login(user)
+    problem = _problem()
+    _solution_with_blocks(
+        problem=problem,
+        author=user,
+        blocks=[("Block", "body", "idea")],
+    )
+
+    monkeypatch.setattr(
+        "inspinia.solutions.views.compile_solution_to_pdf",
+        lambda *args, **kwargs: b"%PDF-1.4\n",
+    )
+    url = reverse("solutions:problem_solution_pdf", args=[problem.problem_uuid])
+    response = client.get(url)
+    assert response.status_code == HTTPStatus.OK
+    assert response["Content-Type"] == "application/pdf"
+    assert "attachment" in response["Content-Disposition"]
+
+
+def test_problem_solution_pdf_compile_error_renders_log_tail(monkeypatch, client):
+    user = UserFactory()
+    client.force_login(user)
+    problem = _problem()
+    _solution_with_blocks(problem=problem, author=user, blocks=[("X", "y", "idea")])
+
+    def _boom(*args, **kwargs):
+        msg = "failed"
+        tail = "! LaTeX Error: intentional"
+        raise SolutionPdfCompileError(msg, log_tail=tail)
+
+    monkeypatch.setattr("inspinia.solutions.views.compile_solution_to_pdf", _boom)
+    url = reverse("solutions:problem_solution_pdf", args=[problem.problem_uuid])
+    response = client.get(url)
+    assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+    assert b"! LaTeX Error: intentional" in response.content
+
+
+def test_problem_solution_pdf_tool_missing_returns_503(monkeypatch, client):
+    user = UserFactory()
+    client.force_login(user)
+    problem = _problem()
+    _solution_with_blocks(problem=problem, author=user, blocks=[("X", "y", "idea")])
+
+    def _boom(*args, **kwargs):
+        msg = "latexmk not found"
+        raise SolutionPdfToolError(msg)
+
+    monkeypatch.setattr("inspinia.solutions.views.compile_solution_to_pdf", _boom)
+    url = reverse("solutions:problem_solution_pdf", args=[problem.problem_uuid])
+    response = client.get(url)
+    assert response.status_code == HTTPStatus.SERVICE_UNAVAILABLE
 
 
 def test_problem_solution_edit_stacks_statement_editor_and_notes_in_order(client):

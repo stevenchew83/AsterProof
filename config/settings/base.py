@@ -179,6 +179,10 @@ MEDIA_ROOT = str(APPS_DIR / "media")
 # https://docs.djangoproject.com/en/dev/ref/settings/#media-url
 MEDIA_URL = "/media/"
 
+# Solution PDF export (LaTeX + vendored evan.sty; requires TeX Live with KOMA-Script on the host).
+SOLUTION_PDF_LATEX_TIMEOUT = env.int("SOLUTION_PDF_LATEX_TIMEOUT", default=120)
+SOLUTION_PDF_LATEX_BINARY = env("SOLUTION_PDF_LATEX_BINARY", default="latexmk")
+
 # TEMPLATES
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#templates

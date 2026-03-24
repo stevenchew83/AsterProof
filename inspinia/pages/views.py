@@ -36,6 +36,7 @@ from django.utils.text import slugify
 
 from inspinia.pages.asymptote_render import build_statement_render_segments
 from inspinia.pages.asymptote_render import has_asymptote_blocks
+from inspinia.pages.contest_links import contest_dashboard_listing_url
 from inspinia.pages.contest_names import normalize_contest_name
 from inspinia.pages.contest_rename import ContestRenameValidationError
 from inspinia.pages.contest_rename import rename_contests
@@ -302,7 +303,7 @@ def root_page_view(request):
                         f"{row['problem_count']} problems across {row['year_span_label']} "
                         f"with avg MOHS {row['avg_mohs']:.1f}"
                     ),
-                    "href": reverse("pages:contest_problem_list", args=[contest_to_slug[row["contest"]]]),
+                    "href": contest_dashboard_listing_url(row["contest"]),
                     "label": row["contest"],
                     "searchable": (
                         f"{row['contest']} {row['problem_count']} "
@@ -330,7 +331,7 @@ def root_page_view(request):
                 {
                     "description": f"{problem_row['topic']} topic - MOHS {problem_row['mohs']}",
                     "href": (
-                        reverse("pages:contest_problem_list", args=[contest_to_slug[problem_row["contest"]]])
+                        contest_dashboard_listing_url(problem_row["contest"])
                         + f"#{_problem_anchor(problem_label, problem_row['problem'])}"
                     ),
                     "label": problem_label,
@@ -598,8 +599,6 @@ def _statement_table_rows(base, *, user=None) -> list[dict]:
     linked_problem_ids = sorted(
         {statement.linked_problem_id for statement in statements_list if statement.linked_problem_id is not None},
     )
-    contest_keys = [contest_key_for_public_slug(statement) for statement in statements_list]
-    contest_to_slug, _slug_to_contest = _build_contest_slug_maps([key for key in contest_keys if key])
     topic_tag_rows = list(
         ProblemTopicTechnique.objects.filter(record_id__in=linked_problem_ids)
         .values("record_id", "technique")
@@ -640,12 +639,6 @@ def _statement_table_rows(base, *, user=None) -> list[dict]:
             .filter(Q(author=user) | Q(status=ProblemSolution.Status.PUBLISHED))
             .values_list("problem_id", flat=True)
         )
-
-    def _build_filter_url(base_url: str, **params: object) -> str:
-        clean_params = {key: value for key, value in params.items() if value not in (None, "")}
-        if not clean_params:
-            return base_url
-        return f"{base_url}?{urlencode(clean_params)}"
 
     table_rows: list[dict] = []
     for statement in statements_list:
@@ -691,25 +684,24 @@ def _statement_table_rows(base, *, user=None) -> list[dict]:
         linked_problem_imo_slot_guess_value = effective_imo_slot_guess_value(statement)
         if linked_problem is not None:
             linked_problem_uuid = str(linked_problem.problem_uuid)
-        contest_slug = contest_to_slug.get(contest_key_for_public_slug(statement))
-        if contest_slug:
-            contest_filter_base_url = reverse("pages:contest_problem_list", args=[contest_slug])
+        contest_key = contest_key_for_public_slug(statement)
+        if contest_key:
             linked_problem_topic_tag_links = [
                 {
                     "label": technique,
-                    "url": _build_filter_url(contest_filter_base_url, tag=technique),
+                    "url": contest_dashboard_listing_url(contest_key, tag=technique),
                 }
                 for technique in linked_problem_topic_tags
             ]
             if eff_mohs is not None:
-                linked_problem_mohs_url = _build_filter_url(contest_filter_base_url, mohs=eff_mohs)
+                linked_problem_mohs_url = contest_dashboard_listing_url(contest_key, mohs=eff_mohs)
             linked_problem_confidence_url = (
-                _build_filter_url(contest_filter_base_url, q=linked_problem_confidence)
+                contest_dashboard_listing_url(contest_key, q=linked_problem_confidence)
                 if linked_problem_confidence
                 else ""
             )
             linked_problem_imo_slot_url = (
-                _build_filter_url(contest_filter_base_url, q=linked_problem_imo_slot_guess_value)
+                contest_dashboard_listing_url(contest_key, q=linked_problem_imo_slot_guess_value)
                 if linked_problem_imo_slot_guess_value
                 else ""
             )
@@ -1386,9 +1378,7 @@ def _statement_dashboard_rows(base) -> list[dict]:
         contest_slug = contest_to_slug.get(str(row["contest_name"]))
         row["contest_year_label"] = f"{row['contest_name']} {row['contest_year']}"
         row["contest_year_url"] = (
-            reverse("pages:contest_problem_list", args=[contest_slug])
-            + "?"
-            + urlencode({"year": int(row["contest_year"])})
+            contest_dashboard_listing_url(str(row["contest_name"]), year=int(row["contest_year"]))
             if contest_slug
             else ""
         )
@@ -2114,7 +2104,7 @@ def _admin_completion_listing_rows() -> tuple[list[dict], dict[str, int]]:
         contest_slug = contest_to_slug.get(contest_name)
         archive_url = ""
         if contest_slug and contest_year and problem_code:
-            archive_url = reverse("pages:contest_problem_list", args=[contest_slug]) + "#" + _problem_anchor(
+            archive_url = contest_dashboard_listing_url(contest_name, year=int(contest_year)) + "#" + _problem_anchor(
                 problem_label,
                 f"{contest_year}-{problem_code}",
             )
@@ -2198,7 +2188,7 @@ def _admin_solution_listing_rows() -> tuple[list[dict], dict[str, int]]:
         contest_slug = contest_to_slug.get(problem.contest)
         archive_url = ""
         if contest_slug:
-            archive_url = reverse("pages:contest_problem_list", args=[contest_slug]) + "#" + _problem_anchor(
+            archive_url = contest_dashboard_listing_url(problem.contest, year=int(problem.year)) + "#" + _problem_anchor(
                 problem_label,
                 f"{problem.year}-{problem.problem}",
             )
@@ -3022,6 +3012,7 @@ def _build_contest_directory_rows(base) -> list[dict]:
     for row in contest_rows:
         statement_row = statements_by_contest.get(row["contest"], {})
         row["slug"] = contest_to_slug[row["contest"]]
+        row["dashboard_listing_url"] = contest_dashboard_listing_url(row["contest"])
         row["avg_mohs"] = round(float(row["avg_mohs"] or 0), 1)
         row["year_span_label"] = (
             str(row["year_min"])
@@ -4766,35 +4757,23 @@ def _build_dashboard_contest_statement_listing_context(
     return context
 
 
+@login_required
 def contest_problem_list_view(request, contest_slug: str):
-    """Checklist-style drill-down for one contest, grouped by year."""
+    """Legacy URL under /problems/contests/… redirects to dashboard contest listing."""
     contest_names = list(_active_problem_records().values_list("contest", flat=True).distinct())
     _contest_to_slug, slug_to_contest = _build_contest_slug_maps(contest_names)
     contest_name = slug_to_contest.get(contest_slug)
     if contest_name is None:
         msg = "Contest not found."
         raise Http404(msg)
-
-    context = _build_contest_problem_listing_context(
-        request,
-        contest_name=contest_name,
-        contest_slug=contest_slug,
-    )
-    context.update(
-        {
-            "contest_back_label": "Back to contests",
-            "contest_back_url": reverse("pages:problem_list"),
-            "contest_listing_base_url": reverse("pages:contest_problem_list", args=[contest_slug]),
-        },
-    )
-    return render(request, "pages/contest-problem-list.html", context)
+    query = request.GET.copy()
+    query["contest"] = contest_name
+    return redirect(f"{reverse('pages:contest_dashboard_listing')}?{query.urlencode()}")
 
 
 @login_required
 def contest_dashboard_listing_view(request):
     """Dashboard contest listing drill-down selected by query string."""
-    _require_admin_tools_access(request)
-
     contest_choices = [
         {
             "contest": row["contest_name"],
@@ -4840,6 +4819,7 @@ def contest_dashboard_listing_view(request):
             "contest_dashboard_bulk_update_url": reverse("pages:contest_dashboard_listing_bulk_update"),
             "contest_dashboard_current_url": request.get_full_path(),
             "selected_contest": selected_contest,
+            "show_contest_dashboard_bulk": user_has_admin_role(request.user),
         },
     )
     return render(request, "pages/contest-dashboard-listing.html", context)
@@ -5135,10 +5115,6 @@ def contest_advanced_analytics_view(request):
         )
         .order_by("-contest_year"),
     )
-    year_detail_contest_slug = ""
-    if _active_problem_records().filter(contest=selected_contest).exists():
-        contest_to_slug, _slug_to_contest = _build_contest_slug_maps([selected_contest])
-        year_detail_contest_slug = contest_to_slug.get(selected_contest, "")
     for row in year_rows:
         row["year"] = int(row.pop("contest_year"))
         row["avg_mohs"] = (
@@ -5150,20 +5126,7 @@ def contest_advanced_analytics_view(request):
             1,
         ) if row["problem_count"] else 0.0
         year_int = int(row["year"])
-        if user_has_admin_role(request.user):
-            row["year_detail_url"] = (
-                reverse("pages:contest_dashboard_listing")
-                + "?"
-                + urlencode({"contest": selected_contest, "year": year_int})
-            )
-        elif year_detail_contest_slug:
-            row["year_detail_url"] = (
-                reverse("pages:contest_problem_list", args=[year_detail_contest_slug])
-                + "?"
-                + urlencode({"year": year_int})
-            )
-        else:
-            row["year_detail_url"] = ""
+        row["year_detail_url"] = contest_dashboard_listing_url(selected_contest, year=year_int)
 
     contest_statements = list(
         contest_base.select_related("linked_problem").values(
@@ -5317,11 +5280,7 @@ def contest_advanced_analytics_view(request):
 
     public_contest_url = ""
     if _active_problem_records().filter(contest=selected_contest).exists():
-        contest_to_slug, _slug_to_contest = _build_contest_slug_maps([selected_contest])
-        public_contest_url = reverse(
-            "pages:contest_problem_list",
-            args=[contest_to_slug[selected_contest]],
-        )
+        public_contest_url = contest_dashboard_listing_url(selected_contest)
 
     context = {
         "contest_choices": contest_choices,
