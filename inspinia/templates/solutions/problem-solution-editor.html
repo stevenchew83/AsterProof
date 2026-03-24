@@ -395,6 +395,13 @@ window.ASTERPROOF_SOLUTION_MEDIA = {
     return match ? decodeURIComponent(match[2]) : "";
   }
 
+  /** CSRF is HttpOnly in base settings — cookie is not readable from JS; use the form token. */
+  function getCsrfToken() {
+    var input = form.querySelector('input[name="csrfmiddlewaretoken"]');
+    if (input && input.value) return input.value;
+    return getCookie("csrftoken");
+  }
+
   function visibleBlocks() {
     return Array.from(blockList.querySelectorAll("[data-block-form]")).filter(function (node) {
       var deleteInput = node.querySelector(".solution-delete-input");
@@ -590,9 +597,24 @@ window.ASTERPROOF_SOLUTION_MEDIA = {
       evt.preventDefault();
       var fd = new FormData();
       fd.append("image", file, file.name || "paste.png");
-      var headers = { "X-CSRFToken": getCookie("csrftoken") };
+      var csrf = getCsrfToken();
+      if (!csrf) {
+        showUploadError("Missing CSRF token. Refresh the page and try again.");
+        return;
+      }
+      var headers = { "X-CSRFToken": csrf };
       fetch(uploadUrl, { method: "POST", body: fd, headers: headers, credentials: "same-origin" })
         .then(function (r) {
+          var ct = (r.headers.get("content-type") || "").toLowerCase();
+          if (ct.indexOf("application/json") === -1) {
+            return r.text().then(function (text) {
+              var hint =
+                r.status === 403
+                  ? "Request blocked (often CSRF). Refresh the page and try again."
+                  : "Unexpected response (" + r.status + ").";
+              throw new Error(hint);
+            });
+          }
           return r.json().then(function (data) {
             if (!r.ok) throw new Error((data && data.error) || r.statusText);
             return data;
