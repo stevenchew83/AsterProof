@@ -135,6 +135,8 @@ class RequestTimingMiddleware:
 "config.middleware.RequestTimingMiddleware",
 ```
 
+- [ ] **Step 2b:** In `production.py`, change WhiteNoise insertion from `insert(1, …)` to **`insert(2, …)`** so the stack stays `RequestTiming → Security → WhiteNoise → …` (see file map note).
+
 - [ ] **Step 3:** Commit
 
 ```bash
