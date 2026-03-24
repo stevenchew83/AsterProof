@@ -6,6 +6,7 @@ from http import HTTPStatus
 from io import BytesIO
 from io import StringIO
 from pathlib import Path
+from urllib.parse import urlencode
 
 import pandas as pd
 import pytest
@@ -3587,12 +3588,12 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
         statement_latex="Unlinked statement two",
     )
     UserProblemCompletion.objects.create(
-        user=solution_author,
+        user=admin_user,
         problem=problem_one,
         completion_date=date(2026, 1, 15),
     )
     UserProblemCompletion.objects.create(
-        user=solution_author,
+        user=admin_user,
         problem=problem_two,
         completion_date=date(2025, 2, 5),
     )
@@ -3633,7 +3634,7 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
                 {
                     "display": "✓",
                     "state": "solved",
-                    "title": "USAMO 2026 P1: 1 of 1 statement row solved",
+                    "title": "USAMO 2026 P1: 1 of 1 statement row solved by you",
                     "x": "P1",
                     "y": 3,
                 },
@@ -3659,7 +3660,7 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
                 {
                     "display": "•",
                     "state": "unsolved",
-                    "title": "USAMO 2025 P2: 0 of 1 statement row solved",
+                    "title": "USAMO 2025 P2: 0 of 1 statement row solved by you",
                     "x": "P2",
                     "y": 1,
                 },
@@ -3685,7 +3686,7 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
     response_html = response.content.decode("utf-8")
     assert "Contest advanced analytics" in response_html
     assert "Completion heatmap" in response_html
-    assert "Solved by at least one user" in response_html
+    assert "Your completions" in response_html
     assert 'id="chart-contest-completion-heatmap"' in response_html
     assert "contest-advanced-heatmap-data" in response_html
     assert "plugins/apexcharts/apexcharts.min.js" in response_html
@@ -3698,6 +3699,104 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
     assert "Topic mix" in response_html
     assert "Recent statements" in response_html
     assert "USAMO (2 statements)" in response_html
+
+
+def test_contest_advanced_analytics_requires_login(client):
+    response = client.get(reverse("pages:contest_advanced_dashboard"))
+    login_url = reverse(settings.LOGIN_URL)
+
+    assert response.status_code == HTTPStatus.FOUND
+    assert response.url == f"{login_url}?next={reverse('pages:contest_advanced_dashboard')}"
+
+
+def test_contest_advanced_analytics_allows_non_admin_and_uses_public_year_links(client):
+    user = UserFactory()
+    client.force_login(user)
+    problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="ALG",
+        mohs=6,
+        contest="USAMO",
+        problem="P1",
+        contest_year_problem="USAMO 2026 P1",
+        confidence="High",
+    )
+    ContestProblemStatement.objects.create(
+        linked_problem=problem,
+        contest_year=2026,
+        contest_name="USAMO",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Statement one",
+    )
+
+    response = client.get(reverse("pages:contest_advanced_dashboard"), {"contest": "USAMO"})
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["selected_contest"] == "USAMO"
+    year_row = response.context["year_rows"][0]
+    assert year_row["year"] == 2026
+    assert year_row["year_detail_url"] == (
+        reverse("pages:contest_problem_list", args=["usamo"]) + "?" + urlencode({"year": 2026})
+    )
+
+
+def test_contest_advanced_analytics_normal_user_sees_own_completions_only(client):
+    """Completion heatmap and year solved counts use request.user, not global completions."""
+    viewer = UserFactory()
+    other = UserFactory()
+    assert viewer.role == User.Role.NORMAL
+
+    problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="ALG",
+        mohs=6,
+        contest="USAMO",
+        problem="P1",
+        contest_year_problem="USAMO 2026 P1",
+        confidence="High",
+    )
+    ContestProblemStatement.objects.create(
+        linked_problem=problem,
+        contest_year=2026,
+        contest_name="USAMO",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Statement one",
+    )
+    UserProblemCompletion.objects.create(
+        user=other,
+        problem=problem,
+        completion_date=date(2026, 1, 1),
+    )
+
+    client.force_login(viewer)
+    response = client.get(reverse("pages:contest_advanced_dashboard"), {"contest": "USAMO"})
+    assert response.status_code == HTTPStatus.OK
+    year_row = next(row for row in response.context["year_rows"] if row["year"] == 2026)
+    assert year_row["solved_problem_total"] == 0
+    assert year_row["solved_rate"] == 0.0
+    heatmap = response.context["contest_completion_heatmap"]
+    row_2026 = next(row for row in heatmap["rows"] if row["year"] == 2026)
+    cell_p1 = next(cell for cell in row_2026["cells"] if cell["problem_code"] == "P1")
+    assert cell_p1["state"] == "unsolved"
+
+    UserProblemCompletion.objects.create(
+        user=viewer,
+        problem=problem,
+        completion_date=date(2026, 2, 2),
+    )
+    response_done = client.get(reverse("pages:contest_advanced_dashboard"), {"contest": "USAMO"})
+    year_done = next(row for row in response_done.context["year_rows"] if row["year"] == 2026)
+    assert year_done["solved_problem_total"] == 1
+    assert year_done["solved_rate"] == 100.0
+    heatmap_done = response_done.context["contest_completion_heatmap"]
+    row_done = next(row for row in heatmap_done["rows"] if row["year"] == 2026)
+    cell_done = next(cell for cell in row_done["cells"] if cell["problem_code"] == "P1")
+    assert cell_done["state"] == "solved"
+    assert cell_done["display"] == "✓"
 
 
 def test_contest_dashboard_listing_view_filters_selected_contest_and_year_for_admin(client):
@@ -4892,16 +4991,40 @@ def test_problem_statement_list_shows_statement_rows_and_link_counts(client):
     assert SPAIN_OLYMPIAD_NAME in response_html
     assert "Number Theory" in response_html
     assert "P2, P5" in response_html
-    assert "dataTables" not in response_html.lower()
+    assert "dataTables.bootstrap5.min.css" in response_html
+    assert "dataTables.min.js" in response_html
+    assert 'new DataTable("#problem-statements-table"' in response_html
+    assert 'id="problem-statements-table-data"' in response_html
+    assert 'aria-label="Statement pages"' not in response_html
+    assert "dataTables_filter" not in response_html.lower()
     assert "statement-completion-save" not in response_html
     assert "statement-completion-date" not in response_html
     assert 'id="statement-completion-feedback"' not in response_html
     assert "statement_completion_toggle_url" not in response_html
     assert "data-completion-toggle-url=" not in response_html
     assert "statement-table-shell" in response_html
-    assert "updated_at_sort" not in response_html
     assert response.context["statement_filtered_total"] == EXPECTED_CONTEST_TOTAL
-    assert response.context["statement_page"].paginator.per_page == 25
+
+
+def test_problem_statement_list_skips_datatables_when_filters_match_nothing(client):
+    user = UserFactory()
+    client.force_login(user)
+    ContestProblemStatement.objects.create(
+        contest_year=SPAIN_OLYMPIAD_YEAR,
+        contest_name=SPAIN_OLYMPIAD_NAME,
+        problem_number=1,
+        day_label="Day 1",
+        statement_latex="Some statement text for filtering",
+    )
+    response = client.get(
+        reverse("pages:problem_statement_list"),
+        {"q": "__unlikely_token_xyz__"},
+    )
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["statement_filtered_total"] == 0
+    response_html = response.content.decode("utf-8")
+    assert "datatables" not in response_html.lower()
+    assert 'new DataTable("#problem-statements-table"' not in response_html
 
 
 def test_problem_detail_view_redirects_to_solution_editor_when_no_solution_exists(client):

@@ -731,6 +731,7 @@ def _statement_table_rows(base, *, user=None) -> list[dict]:
                 "linked_problem_confidence": linked_problem_confidence,
                 "linked_problem_confidence_url": linked_problem_confidence_url,
                 "linked_problem_imo_slot_guess_value": linked_problem_imo_slot_guess_value,
+                "linked_problem_imo_slot_display": _format_imo_slot_label(linked_problem_imo_slot_guess_value),
                 "linked_problem_imo_slot_url": linked_problem_imo_slot_url,
                 "linked_problem_topic_tags": linked_problem_topic_tags,
                 "linked_problem_topic_tag_links": linked_problem_topic_tag_links,
@@ -883,31 +884,6 @@ def _problem_statement_list_filter_options(rows: list[dict]) -> dict[str, list[s
         {str(r.get("linked_problem_confidence") or "").strip() for r in rows if r.get("linked_problem_confidence")},
     )
     return {"years": years, "topics": topics, "confidences": confidences}
-
-
-def _problem_statement_list_filter_querystring(  # noqa: PLR0913
-    *,
-    q: str,
-    year: str,
-    topic: str,
-    confidence: str,
-    mohs_min: str,
-    mohs_max: str,
-) -> str:
-    pairs: list[tuple[str, str]] = []
-    if (q or "").strip():
-        pairs.append(("q", (q or "").strip()))
-    if (year or "").strip():
-        pairs.append(("year", (year or "").strip()))
-    if (topic or "").strip():
-        pairs.append(("topic", (topic or "").strip()))
-    if (confidence or "").strip():
-        pairs.append(("confidence", (confidence or "").strip()))
-    if (mohs_min or "").strip():
-        pairs.append(("mohs_min", (mohs_min or "").strip()))
-    if (mohs_max or "").strip():
-        pairs.append(("mohs_max", (mohs_max or "").strip()))
-    return urlencode(pairs)
 
 
 def _statement_editor_table_payload() -> dict[str, object]:
@@ -3974,16 +3950,8 @@ def problem_statement_list_view(request):
         mohs_max=fmohs_max,
     )
     filter_options = _problem_statement_list_filter_options(table_rows)
-    list_query = _problem_statement_list_filter_querystring(
-        q=fq,
-        year=fyear,
-        topic=ftopic,
-        confidence=fconfidence,
-        mohs_min=fmohs_min,
-        mohs_max=fmohs_max,
-    )
-    paginator = Paginator(filtered_rows, 25)
-    statement_page = paginator.get_page(request.GET.get("page"))
+    statement_datatable_rows = _json_script_safe(filtered_rows)
+    _ = json.dumps(statement_datatable_rows, cls=DjangoJSONEncoder, allow_nan=False)
     copy_tsv = _statement_table_rows_copy_tsv(filtered_rows)
 
     context = {
@@ -3995,7 +3963,7 @@ def problem_statement_list_view(request):
             "year_range_label": year_range_label,
         },
         "statement_table_rows": table_rows,
-        "statement_page": statement_page,
+        "statement_datatable_rows": statement_datatable_rows,
         "statement_filtered_total": len(filtered_rows),
         "statement_list_filters": {
             "q": fq,
@@ -4008,7 +3976,6 @@ def problem_statement_list_view(request):
         "statement_filter_years": filter_options["years"],
         "statement_filter_topics": filter_options["topics"],
         "statement_filter_confidences": filter_options["confidences"],
-        "statement_list_query": list_query,
         "statement_copy_tsv": copy_tsv,
     }
     return render(request, "pages/problem-statement-list.html", context)
@@ -5078,8 +5045,6 @@ def contest_analytics_view(request):
 @login_required
 def contest_advanced_analytics_view(request):
     """Drill-down analytics for one contest, selected by query string."""
-    _require_admin_tools_access(request)
-
     contest_choices = [
         {
             "contest": row["contest_name"],
@@ -5155,16 +5120,25 @@ def contest_advanced_analytics_view(request):
                 distinct=True,
             ),
             max_mohs=Max("_eff_mohs"),
-            linked_statement_total=Count("id", filter=Q(linked_problem__isnull=False)),
-            problem_count=Count("id"),
+            linked_statement_total=Count(
+                "id",
+                filter=Q(linked_problem__isnull=False),
+                distinct=True,
+            ),
+            problem_count=Count("id", distinct=True),
             solved_problem_total=Count(
                 "id",
-                filter=Q(user_completions__isnull=False) | Q(linked_problem__user_completions__isnull=False),
+                filter=Q(user_completions__user=request.user)
+                | Q(linked_problem__user_completions__user=request.user),
                 distinct=True,
             ),
         )
         .order_by("-contest_year"),
     )
+    year_detail_contest_slug = ""
+    if _active_problem_records().filter(contest=selected_contest).exists():
+        contest_to_slug, _slug_to_contest = _build_contest_slug_maps([selected_contest])
+        year_detail_contest_slug = contest_to_slug.get(selected_contest, "")
     for row in year_rows:
         row["year"] = int(row.pop("contest_year"))
         row["avg_mohs"] = (
@@ -5175,11 +5149,21 @@ def contest_advanced_analytics_view(request):
             (row["solved_problem_total"] / row["problem_count"]) * 100,
             1,
         ) if row["problem_count"] else 0.0
-        row["year_detail_url"] = (
-            reverse("pages:contest_dashboard_listing")
-            + "?"
-            + urlencode({"contest": selected_contest, "year": int(row["year"])})
-        )
+        year_int = int(row["year"])
+        if user_has_admin_role(request.user):
+            row["year_detail_url"] = (
+                reverse("pages:contest_dashboard_listing")
+                + "?"
+                + urlencode({"contest": selected_contest, "year": year_int})
+            )
+        elif year_detail_contest_slug:
+            row["year_detail_url"] = (
+                reverse("pages:contest_problem_list", args=[year_detail_contest_slug])
+                + "?"
+                + urlencode({"year": year_int})
+            )
+        else:
+            row["year_detail_url"] = ""
 
     contest_statements = list(
         contest_base.select_related("linked_problem").values(
@@ -5191,11 +5175,13 @@ def contest_advanced_analytics_view(request):
     )
     direct_solved_statement_ids = set(
         UserProblemCompletion.objects.filter(
+            user=request.user,
             statement_id__in=[row["id"] for row in contest_statements],
         ).values_list("statement_id", flat=True),
     )
     legacy_solved_problem_ids = set(
         UserProblemCompletion.objects.filter(
+            user=request.user,
             statement__isnull=True,
             problem__contest=selected_contest,
         ).values_list("problem_id", flat=True),
@@ -5264,6 +5250,7 @@ def contest_advanced_analytics_view(request):
                 state = "partial"
                 has_partial_heatmap_cells = True
 
+            rows_word = "statement row" if problem_total == 1 else "statement rows"
             row_cells.append(
                 {
                     "display": (
@@ -5275,8 +5262,7 @@ def contest_advanced_analytics_view(request):
                     "state": state,
                     "title": (
                         f"{selected_contest} {year} {problem_code}: "
-                        f"{solved_total} of {problem_total} statement row"
-                        f"{'' if problem_total == 1 else 's'} solved"
+                        f"{solved_total} of {problem_total} {rows_word} solved by you"
                     ),
                 },
             )

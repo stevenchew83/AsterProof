@@ -76,7 +76,9 @@
               <p class="text-muted fs-xs mb-0">Switch statement-backed contests with a query-string selector and keep this page shareable.</p>
             </div>
             <div class="d-flex flex-wrap gap-2">
+              {% if show_analytics_dashboard_link %}
               <a href="{% url 'pages:contest_dashboard' %}" class="btn btn-outline-secondary btn-sm">Back to contest directory</a>
+              {% endif %}
               {% if public_contest_url %}
               <a href="{{ public_contest_url }}" class="btn btn-outline-primary btn-sm">Open public contest explorer</a>
               {% endif %}
@@ -110,7 +112,7 @@
         <div class="card-header border-bottom d-flex flex-wrap align-items-center gap-2">
           <div class="flex-grow-1">
             <h4 class="header-title mb-0">Completion heatmap</h4>
-            <p class="text-muted fs-xs mb-0">Year-by-problem completion coverage for this contest. Green means at least one recorded solve, red means no completion yet.</p>
+            <p class="text-muted fs-xs mb-0">Year-by-problem completion coverage for this contest. Green shows your completions on those rows; red means you have not completed any row in that cell yet.</p>
           </div>
           <span class="badge text-bg-light">
             {{ contest_completion_heatmap.year_total }} years · {{ contest_completion_heatmap.problem_code_total }} codes
@@ -121,11 +123,11 @@
           <div class="d-flex flex-wrap align-items-center contest-completion-legend mb-3">
             <span class="contest-completion-legend-item">
               <span class="contest-completion-legend-swatch contest-completion-legend-swatch-solved"></span>
-              Solved by at least one user
+              Your completions
             </span>
             <span class="contest-completion-legend-item">
               <span class="contest-completion-legend-swatch contest-completion-legend-swatch-unsolved"></span>
-              No completion recorded yet
+              No completion from you yet
             </span>
             {% if contest_completion_heatmap.has_partial_cells %}
             <span class="contest-completion-legend-item">
@@ -271,7 +273,13 @@
               <tbody>
                 {% for row in year_rows %}
                 <tr>
-                  <td class="fw-semibold"><a href="{{ row.year_detail_url }}">{{ row.year }}</a></td>
+                  <td class="fw-semibold">
+                    {% if row.year_detail_url %}
+                    <a href="{{ row.year_detail_url }}">{{ row.year }}</a>
+                    {% else %}
+                    {{ row.year }}
+                    {% endif %}
+                  </td>
                   <td>{{ row.problem_count }}</td>
                   <td>{% if row.avg_mohs is not None %}{{ row.avg_mohs|floatformat:2 }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
                   <td>{% if row.max_mohs is not None %}{{ row.max_mohs }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
