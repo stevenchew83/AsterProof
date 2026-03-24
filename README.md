@@ -109,6 +109,22 @@ npm run build
 
 If you change dashboard-facing UI, follow [`docs/inspinia-dashboard-style.md`](docs/inspinia-dashboard-style.md).
 
+## Production static files (AWS)
+
+All dashboard JS/CSS and vendored `plugins/` under `inspinia/static/` must be **built and collected** into `STATIC_ROOT` (`staticfiles/` at the repo root) before or during deploy. **S3 is for user media only** (`STORAGES.default`); do not serve `/static/` from a stale bucket prefix alongside the app.
+
+**Build + collect (recommended):**
+
+```bash
+./scripts/build_and_collectstatic.sh
+```
+
+Or manually: `npm install && npm run build`, then `DJANGO_SETTINGS_MODULE=config.settings.test uv run python manage.py collectstatic --noinput`.
+
+**Deploy artifact:** The running app (or reverse proxy) must serve `/static/` from that collected tree — for example WhiteNoise (enabled in production settings) and/or nginx/ALB `alias` to `STATIC_ROOT`. Avoid mixing another origin for the same `/static/...` paths.
+
+**Verify after deploy:** On production, open DevTools → Network and confirm `vendors.min.js`, `app.js`, and `app.min.css` return **200** from your **app hostname** with correct content types. Compare with localhost on the same page.
+
 ## Quality checks
 
 Common validation commands:

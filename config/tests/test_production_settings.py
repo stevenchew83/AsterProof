@@ -40,3 +40,13 @@ def test_production_settings_allow_cookie_security_overrides(monkeypatch):
     assert production.CSRF_COOKIE_SECURE is False
     assert production.SESSION_COOKIE_NAME == "sessionid"
     assert production.CSRF_COOKIE_NAME == "csrftoken"
+
+
+def test_production_settings_staticfiles_on_filesystem_default_on_s3(monkeypatch):
+    production = _load_production_settings(monkeypatch)
+
+    assert production.STORAGES["staticfiles"]["BACKEND"] == (
+        "django.contrib.staticfiles.storage.StaticFilesStorage"
+    )
+    assert production.STORAGES["default"]["BACKEND"] == "storages.backends.s3.S3Storage"
+    assert production.STORAGES["default"]["OPTIONS"]["location"] == "media"
