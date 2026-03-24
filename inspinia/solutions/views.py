@@ -53,9 +53,14 @@ def _problem_solution_prefetch():
 
 
 def _problem_context(problem: ProblemSolveRecord) -> dict:
-    contest_to_slug, _slug_to_contest = _build_contest_slug_maps(
-        list(ProblemSolveRecord.objects.values_list("contest", flat=True)),
+    # Distinct active contests only — avoid scanning every ProblemSolveRecord row
+    # (matches pages.contest_problem_list_view slug generation).
+    contest_names = list(
+        ProblemSolveRecord.objects.filter(is_active=True)
+        .values_list("contest", flat=True)
+        .distinct(),
     )
+    contest_to_slug, _slug_to_contest = _build_contest_slug_maps(contest_names)
     problem_label = problem.contest_year_problem or f"{problem.contest} {problem.year} {problem.problem}"
     contest_slug = contest_to_slug.get(problem.contest)
     contest_url = ""

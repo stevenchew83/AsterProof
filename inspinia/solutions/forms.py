@@ -53,13 +53,23 @@ class ProblemSolutionBlockForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["block_type"].queryset = SolutionBlockType.objects.order_by("sort_order", "label", "id")
         self.fields["block_type"].required = False
         self.fields["title"].required = False
         self.fields["body_source"].required = True
 
 
 class BaseProblemSolutionBlockFormSet(BaseInlineFormSet):
+    def _construct_form(self, i, **kwargs):
+        form = super()._construct_form(i, **kwargs)
+        if not hasattr(self, "_shared_block_type_queryset"):
+            self._shared_block_type_queryset = SolutionBlockType.objects.order_by(
+                "sort_order",
+                "label",
+                "id",
+            )
+        form.fields["block_type"].queryset = self._shared_block_type_queryset
+        return form
+
     def add_fields(self, form, index) -> None:
         super().add_fields(form, index)
         order_field = form.fields.get("ORDER")
