@@ -4995,7 +4995,7 @@ def test_problem_statement_list_shows_statement_rows_and_link_counts(client):
     assert "dataTables.min.js" in response_html
     assert 'new DataTable("#problem-statements-table"' in response_html
     assert 'id="problem-statements-table-data"' in response_html
-    assert 'id="statement-table-filter-q"' in response_html
+    assert "Filter table" not in response_html
     assert 'aria-label="Statement pages"' not in response_html
     assert "dataTables_filter" not in response_html.lower()
     assert "statement-completion-save" not in response_html
