@@ -18,6 +18,10 @@ the only global search UI.
   `_filter_statement_table_rows`, paginates with `Paginator(..., 25)`, and
   passes `statement_page` to the template. Copy-TSV uses the **full**
   `filtered_rows` list, not only the current page.
+- **Context names (today):** `statement_total` is the count of all statement
+  rows in the library (`ContestProblemStatement` queryset). After filtering,
+  `statement_filtered_total` is `len(filtered_rows)` (also used for the
+  “Showing … of …” line).
 - Elsewhere, the app already ships DataTables (Bootstrap 5) and
   `partials/datatables-vendor-scripts.html`, e.g.
   `user-solution-record-list.html` (`json_script` + `new DataTable(...)`).
@@ -26,9 +30,12 @@ the only global search UI.
 
 ### In scope
 
-- Initialize DataTables on the All problem statements table when
-  `statement_total > 0` and the filtered result is non-empty (or show the
-  existing empty state when there are zero matching rows).
+- **Vendor assets and init:** Load DataTables CSS and
+  `partials/datatables-vendor-scripts.html`, and run `new DataTable(...)`, only
+  when **`statement_total > 0` and `statement_filtered_total > 0`**. When the
+  library has rows but the current server filters match nothing, keep the
+  existing empty-table message and **do not** load DataTables assets or
+  initialize the grid (avoids useless script and keeps tests unambiguous).
 - Feed the grid from a **JSON payload** of the **current server-filtered**
   rows (`filtered_rows` after `_filter_statement_table_rows`), passed through
   the same JSON-safety path used today (`_json_script_safe`), exposed as a new
@@ -52,9 +59,17 @@ the only global search UI.
   set; grid sorts, pages, and column-filters in the browser).
 - Preserve **Copy filtered rows** semantics: TSV continues to reflect **all**
   rows matching the current server filters (unchanged server-side generation).
+  **Per-column DataTables filters do not change the TSV payload**; they only
+  change which rows are visible in the browser until the user submits new
+  server filters or reloads.
 - Adjust `inspinia/pages/tests.py` (and any assertions on pagination markup /
   row counts per page) to match the new behavior; add coverage that DataTables
-  assets and initialization appear when the statement library has data.
+  assets and initialization appear when **`statement_total > 0` and
+  `statement_filtered_total > 0`**. For a fixture with statements present but a
+  GET that matches zero rows, assert that DataTables init **does not** run (and
+  assets are not required in that response unless an implementation chooses
+  otherwise — the spec prefers skipping assets when `statement_filtered_total
+  == 0`).
 
 ### Out of scope
 
@@ -112,17 +127,25 @@ two sources of truth.
 
 - Extend or replace tests that expect `page=` links or “Page X of Y” from
   Django pagination on this page.
-- Assert presence of DataTables CSS/JS includes and a stable init hook (e.g.
-  `new DataTable("#problem-statements-table"` or equivalent) when statements
-  exist and filters yield rows.
+- **Aligned with §Scope (vendor assets and init):** assert DataTables CSS/JS
+  and `new DataTable("#problem-statements-table", …)` (or equivalent) only
+  when the response has at least one statement row **and** the current filters
+  yield at least one matching row. When the library has data but the filter
+  combination matches nothing, assert the absence of that init hook (and
+  prefer absence of DataTables asset tags).
 - Keep existing tests for login, recheck-links, completion toggles, and row
   visibility unless behavior intentionally changes.
 
 ## Risks and mitigations
 
-- **Very large filtered sets** increase HTML/JSON payload size. Mitigation for
-  now: accept same practical limits as loading full `table_rows` in memory
-  today; document that server-side AJAX DataTables is a future option if needed.
+- **Response weight vs the old page:** Previously the HTML body included at
+  most **25** table rows per request; after this change it includes a
+  **`json_script`** (or equivalent) with **every server-filtered row**. Server
+  **memory** for `filtered_rows` was already paid for copy-TSV; the new cost
+  is mainly **transfer size**, **JSON parse time**, and **client render time**
+  for that blob. Mitigation: treat this as acceptable for expected library
+  sizes; if real deployments hit multi‑MB responses, follow up with
+  server-side DataTables or paging the JSON API (out of scope here).
 - **Footer inputs vs accessibility**: use `<th scope="row">` or associated
   labels as appropriate so filter inputs are identifiable.
 
