@@ -83,3 +83,16 @@ On a production page and the same page on localhost:
   `collectstatic` cannot be skipped accidentally.
 - Manual “upload JS to S3 for the site to work” is **not** required for standard
   app pages.
+
+## Notes for implementation planning
+
+- **Confirm root cause first:** Compare AWS vs localhost Network tab for the same
+  page before changing infra; rule out wrong `STATIC_URL`, middleware order, or
+  routing if `/static/` is already correct.
+- **Record the actual stack:** Document whether production serves `/static/`
+  via WhiteNoise only, nginx/ALB `alias`, or both — the plan should match what
+  is deployed, not assume two competing mechanisms.
+- **Canonical verification targets:** Pick 1–2 concrete URLs (e.g. main
+  dashboard + one DataTables page + one ApexCharts page) and optionally a
+  small scripted check (`GET`/`HEAD` on fixed `/static/...` paths) so “done” is
+  objective.
