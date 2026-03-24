@@ -8,55 +8,59 @@ On the **solution editor** (`problem_solution_edit`, template `solutions/problem
 
 - Blocks use `ProblemSolutionBlock.body_source` (textarea) and `body_format` (e.g. `latex`). Preview today sets `textContent` from the textarea and runs **MathJax** on `[data-mathjax-scope]` only for LaTeX blocks.
 - **MathJax does not** render `\includegraphics` like pdfLaTeX. Preview requires a **hybrid**: keep MathJax for math delimiters; resolve allowlisted `\includegraphics{url}` into safe `<img>` (preview and public list views).
-- **Published list** (`problem-solution-list.html`) renders `body_source` as text inside a div with MathJax—**same limitation** as the editor. Parity: any preview/list pipeline for graphics should be **shared or duplicated carefully** (prefer one small JS module or documented pattern).
-- **Media**: `MEDIA_URL` / `MEDIA_ROOT` in base; production may use S3 (`config/settings/production.py`). Uploaded files must use Django storage and return a **browser-loadable URL** consistent with deployment.
+- **Published list** (`problem-solution-list.html`) renders `body_source` inside a div with MathJax—**same limitation** as the editor. Parity: implement **one shared static JS module** (e.g. under `inspinia/static/...`) that: (1) finds LaTeX block bodies, (2) splits `\includegraphics[optional width]{path}` into text vs image segments, (3) builds DOM with `<img>` only for allowlisted paths, (4) calls `MathJax.typesetPromise` on **text-only** subtrees (or equivalent) so user HTML never enters MathJax input.
+- **Load order**: include the shared script **after** MathJax config, **before** or with `defer` coordinated so `DOMContentLoaded` (or explicit init) runs `initSolutionLatexHybrid(root)` on `#solution-live-preview` and on each `.solution-block-body[data-mathjax-scope]` on the list page—**single entry point** to avoid editor vs list drift.
+- **Media**: `MEDIA_URL` / `MEDIA_ROOT` in base; production may use S3 (`config/settings/production.py`). Uploaded files must use Django storage; **`img src`** in the browser must be whatever `FileField.url` resolves to in that environment (absolute S3 URL is fine). **Canonical stored form in `body_source`**: use a **stable path string** the app controls, e.g. `\includegraphics{solution_body_images/<uuid>.png}` **without** scheme/host, and resolve to full URL in JS via a template-injected `window.SOLUTION_MEDIA_PREFIX` or prefix + `new URL(path, MEDIA_URL)`—document the exact rule in implementation so dev/staging/prod stay consistent.
+- **`problem_solution_edit_view`** may hold an **unsaved** `ProblemSolution` in memory until the first successful POST. Image uploads need a persisted PK for an FK.
 
 ## Decision (approved direction: LaTeX-first, hybrid preview)
 
 1. **Storage model**  
-   - New model, e.g. `SolutionBodyImage` (name TBD): `FileField` (or `ImageField`), `upload_to` under a dedicated prefix (e.g. `solution_body_images/`), **FK to `ProblemSolution`** (and thus author via solution), optional `uploaded_at`, `uploaded_by` (redundant but useful for audits).  
-   - **Ownership**: only the **solution author** may upload; endpoint resolves `problem_uuid` + ensures `ProblemSolution` for `(problem, request.user)` exists or is created lazily—**prefer requiring an existing draft/solution row** to avoid orphan files (product choice: create draft on first upload vs require “start draft” first—spec recommends **require authenticated editor access to that problem’s solution** same as `problem_solution_edit_view`).
+   - New model, e.g. `SolutionBodyImage`: **`ImageField`** (Pillow verify) under `upload_to=solution_body_images/%Y/%m/` (or UUID filenames), **FK to `ProblemSolution`**, `uploaded_at`, optional `uploaded_by`.  
+   - **Persistence before upload (required):** If `ProblemSolution` for `(problem, request.user)` has **no PK** yet, the upload endpoint **`get_or_create`s** and **saves** a minimal row (status `DRAFT`, empty title/summary acceptable per model constraints) **inside the same transaction** as file save, mirroring “user has opened the editor for this problem.” This avoids orphan `SolutionBodyImage` rows without a solution and matches editor access.  
+   - **Ownership:** only the author of that `ProblemSolution` may upload; `problem_uuid` in the URL must match the linked `ProblemSolveRecord`; return **403** otherwise.
 
 2. **Upload API**  
-   - `POST` multipart, `@login_required`, CSRF (fetch cookie/header).  
-   - Validate: **image MIME** (allowlist: png, jpeg, gif, webp as policy allows), **max size** (e.g. 2–5 MB), optional max dimensions.  
-   - Return JSON: `{ "url": "<absolute or site-relative URL>" }` using `request.build_absolute_uri` or stable **`MEDIA_URL`-relative path** documented as the only form allowed inside `\includegraphics{...}`.
+   - `POST` multipart, `@login_required`, CSRF.  
+   - Validate: allowlist **image** types; **max size** (e.g. 3 MB); **`ImageField` / Pillow** open to verify magic matches extension.  
+   - Return JSON: `{ "path": "<canonical path for body_source>", "url": "<browser src URL>" }` where `path` is the documented stored token and `url` is `file.url` for immediate preview if needed.
 
 3. **Canonical LaTeX insertion**  
-   - On successful upload, insert at cursor, e.g.  
-     `\includegraphics[width=0.9\linewidth]{/media/solution_body_images/...}`  
-     using the **exact** URL shape the app documents (site-relative path preferred so dev/staging/prod differ only by `MEDIA_URL`).  
-   - **Optional bracket args**: support `[width=...]` only; no arbitrary user-controlled URLs in stored TeX beyond the inserted token.
+   - Insert at cursor: `\includegraphics[width=0.9\linewidth]{<canonical path>}` using **only** the server-returned path (opaque filename).  
+   - **Bracket args (v1):** optional `[width=0.9\linewidth]` fixed template or allowlisted `width=` only.
 
 4. **Paste UX**  
-   - `paste` listener on each block’s `body_source` textarea: if `clipboardData.files` / items contain image, **preventDefault**, upload, then insert.  
-   - If not an image, default paste behavior.  
-   - Show inline error (toast or small alert) on failure; do not block typing.
+   - `paste` on `body_source`: if image in clipboard, **preventDefault**, `POST` upload, then insert LaTeX.  
+   - Non-image: default paste. Errors: non-blocking message.
 
-5. **Preview (editor)**  
-   - For LaTeX blocks: build preview DOM by **splitting** `body_source` into segments: text runs (MathJax) vs `\includegraphics[...]{url}` (render `<img src="..." alt="">` with **URL allowlist**: must start with `MEDIA_URL` prefix or relative `/media/` prefix—reject `javascript:`, other hosts).  
-   - Run `MathJax.typesetPromise` on text segments only, or on containers that exclude raw `<img>`—avoid passing unsanitized HTML to MathJax.  
-   - **Security**: never set `innerHTML` from user text except for **replaced** img tags with **validated** URLs only.
+5. **Preview (editor) + list**  
+   - Shared JS: parse `\includegraphics` with **strict grammar** (path segment = characters from upload naming only, or regex aligned with storage).  
+   - **URL allowlist (JS + mirror in Python if server emits HTML later):**  
+     - Reject `javascript:`, `data:`, backslashes, control chars, `//` (protocol-relative), and any path not under **`solution_body_images/`** after **normalization** (resolve `.` / `..`, no traversal).  
+     - Prefer validating **prefix + UUID filename** from storage, not arbitrary subpaths.  
+   - Build `<img src="...">` only after validation; map canonical path to URL using `MEDIA_URL` / injected base.  
+   - **MathJax:** typeset only on text nodes or wrapped text elements, not on parent that contains unverified HTML.
 
 6. **Published / list view**  
-   - Apply the **same** graphics + MathJax hybrid for `body_format == latex'` blocks so published solutions show diagrams, not raw `\includegraphics` text.  
-   - Extract shared logic to a static JS file included by both templates if practical.
+   - For `body_format == latex` (`ProblemSolutionBlock.BodyFormat.LATEX`), run the **same** hybrid initializer as the editor after DOM ready.
 
-7. **Out of scope (v1)**  
-   - Server-side PDF/LaTeX export pipeline changes (may need URL→file mapping later).  
-   - Drag-and-drop file onto textarea (can be fast follow).  
-   - Deleting unused images / garbage collection.  
-   - Non-LaTeX `body_format` blocks (paste could be disabled or same insertion if format is latex-only feature).
+7. **Server-side HTML (future)**  
+   - Never mark `body_source` safe in templates without the **same** allowlisted `img` rules; today templates use auto-escape—**keep** that until a dedicated sanitizer exists.
+
+8. **Out of scope (v1)**  
+   - PDF/LaTeX export. Drag-and-drop. Orphan file GC. Upload rate limits / per-solution quota (note for ops).  
+   - Non-LaTeX blocks: disable paste-to-upload or no-op.
 
 ## Success criteria
 
-- Author on solution editor can paste a screenshot; after upload, **LaTeX line appears** in the textarea and **preview shows the image**.  
-- Another user cannot upload to someone else’s solution (403).  
-- Malicious `\includegraphics{javascript:...}` in pasted or hand-typed body does not execute; preview/list strip or ignore non-allowlisted URLs.  
-- Tests: view permission, upload validation (type/size), optional URL allowlist unit tests in Python for a shared validator used when rendering server-side (if any); client-heavy behavior covered by minimal integration or documented manual QA if E2E not present.
+- Paste → LaTeX line in textarea + image in live preview.  
+- Cross-user upload denied.  
+- Hand-typed malicious `\includegraphics{...}` does not load arbitrary URLs.  
+- List page shows images for LaTeX blocks.  
+- Tests: upload authz, validation, optional Python tests for path validator; manual QA note for clipboard if no browser tests.
 
 ## Risks / notes
 
-- **Orphan files** when users delete `\includegraphics` lines—acceptable for v1.  
-- **CDN/S3**: `build_absolute_uri` vs relative paths—pick one canonical stored form and document.  
-- **CSP**: if strict img-src, allow own media host.
+- **S3 vs local:** document canonical **stored** path vs **resolved** `src`.  
+- **CSP `img-src`:** allow media host.  
+- **First paste creates draft:** editor UX may show “draft saved” implicitly—optional small message on first upload.
