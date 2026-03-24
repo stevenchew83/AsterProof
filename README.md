@@ -111,7 +111,7 @@ If you change dashboard-facing UI, follow [`docs/inspinia-dashboard-style.md`](d
 
 ## Production static files (AWS)
 
-All dashboard JS/CSS and vendored `plugins/` under `inspinia/static/` must be **built and collected** into `STATIC_ROOT` (`staticfiles/` at the repo root) before or during deploy. **S3 is for user media only** (`STORAGES.default`); do not serve `/static/` from a stale bucket prefix alongside the app.
+All dashboard JS/CSS and vendored `plugins/` under `inspinia/static/` must be **built and collected** into `STATIC_ROOT` (`staticfiles/` at the repo root) before or during deploy. **User uploads** use `MEDIA_ROOT` (`inspinia/media/`); in production configure your reverse proxy to serve `/media/` from that directory (Django does not serve media when `DEBUG=False`).
 
 **Build + collect (recommended):**
 

@@ -6,9 +6,6 @@ def _load_production_settings(monkeypatch, **extra_env):
     required_env = {
         "DATABASE_URL": "postgresql://user:pass@localhost:5432/asterproof",
         "DJANGO_ADMIN_URL": "secure-admin/",
-        "DJANGO_AWS_ACCESS_KEY_ID": "access-key",
-        "DJANGO_AWS_SECRET_ACCESS_KEY": "secret-key",
-        "DJANGO_AWS_STORAGE_BUCKET_NAME": "bucket-name",
         "DJANGO_SECRET_KEY": "secret-key",
         "MAILGUN_API_KEY": "mailgun-key",
         "MAILGUN_DOMAIN": "mg.example.com",
@@ -42,14 +39,16 @@ def test_production_settings_allow_cookie_security_overrides(monkeypatch):
     assert production.CSRF_COOKIE_NAME == "csrftoken"
 
 
-def test_production_settings_staticfiles_on_filesystem_default_on_s3(monkeypatch):
+def test_production_settings_staticfiles_and_media_on_filesystem(monkeypatch):
     production = _load_production_settings(monkeypatch)
 
     assert production.STORAGES["staticfiles"]["BACKEND"] == (
         "django.contrib.staticfiles.storage.StaticFilesStorage"
     )
-    assert production.STORAGES["default"]["BACKEND"] == "storages.backends.s3.S3Storage"
-    assert production.STORAGES["default"]["OPTIONS"]["location"] == "media"
+    assert production.STORAGES["default"]["BACKEND"] == (
+        "django.core.files.storage.FileSystemStorage"
+    )
+    assert production.MEDIA_URL == "/media/"
 
 
 def test_production_settings_middleware_timing_then_security_then_whitenoise(monkeypatch):
