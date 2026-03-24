@@ -4991,7 +4991,12 @@ def test_problem_statement_list_shows_statement_rows_and_link_counts(client):
     assert SPAIN_OLYMPIAD_NAME in response_html
     assert "Number Theory" in response_html
     assert "P2, P5" in response_html
-    assert "dataTables" not in response_html.lower()
+    assert "dataTables.bootstrap5.min.css" in response_html
+    assert "dataTables.min.js" in response_html
+    assert 'new DataTable("#problem-statements-table"' in response_html
+    assert 'id="problem-statements-table-data"' in response_html
+    assert 'aria-label="Statement pages"' not in response_html
+    assert "dataTables_filter" not in response_html.lower()
     assert "statement-completion-save" not in response_html
     assert "statement-completion-date" not in response_html
     assert 'id="statement-completion-feedback"' not in response_html
@@ -5000,7 +5005,27 @@ def test_problem_statement_list_shows_statement_rows_and_link_counts(client):
     assert "statement-table-shell" in response_html
     assert "updated_at_sort" not in response_html
     assert response.context["statement_filtered_total"] == EXPECTED_CONTEST_TOTAL
-    assert response.context["statement_page"].paginator.per_page == 25
+
+
+def test_problem_statement_list_skips_datatables_when_filters_match_nothing(client):
+    user = UserFactory()
+    client.force_login(user)
+    ContestProblemStatement.objects.create(
+        contest_year=SPAIN_OLYMPIAD_YEAR,
+        contest_name=SPAIN_OLYMPIAD_NAME,
+        problem_number=1,
+        day_label="Day 1",
+        statement_latex="Some statement text for filtering",
+    )
+    response = client.get(
+        reverse("pages:problem_statement_list"),
+        {"q": "__unlikely_token_xyz__"},
+    )
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["statement_filtered_total"] == 0
+    response_html = response.content.decode("utf-8")
+    assert "datatables" not in response_html.lower()
+    assert 'new DataTable("#problem-statements-table"' not in response_html
 
 
 def test_problem_detail_view_redirects_to_solution_editor_when_no_solution_exists(client):

@@ -3974,16 +3974,8 @@ def problem_statement_list_view(request):
         mohs_max=fmohs_max,
     )
     filter_options = _problem_statement_list_filter_options(table_rows)
-    list_query = _problem_statement_list_filter_querystring(
-        q=fq,
-        year=fyear,
-        topic=ftopic,
-        confidence=fconfidence,
-        mohs_min=fmohs_min,
-        mohs_max=fmohs_max,
-    )
-    paginator = Paginator(filtered_rows, 25)
-    statement_page = paginator.get_page(request.GET.get("page"))
+    statement_datatable_rows = _json_script_safe(filtered_rows)
+    _ = json.dumps(statement_datatable_rows, cls=DjangoJSONEncoder, allow_nan=False)
     copy_tsv = _statement_table_rows_copy_tsv(filtered_rows)
 
     context = {
@@ -3995,7 +3987,7 @@ def problem_statement_list_view(request):
             "year_range_label": year_range_label,
         },
         "statement_table_rows": table_rows,
-        "statement_page": statement_page,
+        "statement_datatable_rows": statement_datatable_rows,
         "statement_filtered_total": len(filtered_rows),
         "statement_list_filters": {
             "q": fq,
@@ -4008,7 +4000,6 @@ def problem_statement_list_view(request):
         "statement_filter_years": filter_options["years"],
         "statement_filter_topics": filter_options["topics"],
         "statement_filter_confidences": filter_options["confidences"],
-        "statement_list_query": list_query,
         "statement_copy_tsv": copy_tsv,
     }
     return render(request, "pages/problem-statement-list.html", context)
