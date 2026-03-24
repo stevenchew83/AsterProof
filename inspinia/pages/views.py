@@ -5078,8 +5078,6 @@ def contest_analytics_view(request):
 @login_required
 def contest_advanced_analytics_view(request):
     """Drill-down analytics for one contest, selected by query string."""
-    _require_admin_tools_access(request)
-
     contest_choices = [
         {
             "contest": row["contest_name"],
@@ -5159,12 +5157,17 @@ def contest_advanced_analytics_view(request):
             problem_count=Count("id"),
             solved_problem_total=Count(
                 "id",
-                filter=Q(user_completions__isnull=False) | Q(linked_problem__user_completions__isnull=False),
+                filter=Q(user_completions__user=request.user)
+                | Q(linked_problem__user_completions__user=request.user),
                 distinct=True,
             ),
         )
         .order_by("-contest_year"),
     )
+    year_detail_contest_slug = ""
+    if _active_problem_records().filter(contest=selected_contest).exists():
+        contest_to_slug, _slug_to_contest = _build_contest_slug_maps([selected_contest])
+        year_detail_contest_slug = contest_to_slug.get(selected_contest, "")
     for row in year_rows:
         row["year"] = int(row.pop("contest_year"))
         row["avg_mohs"] = (
@@ -5175,11 +5178,21 @@ def contest_advanced_analytics_view(request):
             (row["solved_problem_total"] / row["problem_count"]) * 100,
             1,
         ) if row["problem_count"] else 0.0
-        row["year_detail_url"] = (
-            reverse("pages:contest_dashboard_listing")
-            + "?"
-            + urlencode({"contest": selected_contest, "year": int(row["year"])})
-        )
+        year_int = int(row["year"])
+        if user_has_admin_role(request.user):
+            row["year_detail_url"] = (
+                reverse("pages:contest_dashboard_listing")
+                + "?"
+                + urlencode({"contest": selected_contest, "year": year_int})
+            )
+        elif year_detail_contest_slug:
+            row["year_detail_url"] = (
+                reverse("pages:contest_problem_list", args=[year_detail_contest_slug])
+                + "?"
+                + urlencode({"year": year_int})
+            )
+        else:
+            row["year_detail_url"] = ""
 
     contest_statements = list(
         contest_base.select_related("linked_problem").values(
@@ -5191,11 +5204,13 @@ def contest_advanced_analytics_view(request):
     )
     direct_solved_statement_ids = set(
         UserProblemCompletion.objects.filter(
+            user=request.user,
             statement_id__in=[row["id"] for row in contest_statements],
         ).values_list("statement_id", flat=True),
     )
     legacy_solved_problem_ids = set(
         UserProblemCompletion.objects.filter(
+            user=request.user,
             statement__isnull=True,
             problem__contest=selected_contest,
         ).values_list("problem_id", flat=True),
@@ -5264,6 +5279,7 @@ def contest_advanced_analytics_view(request):
                 state = "partial"
                 has_partial_heatmap_cells = True
 
+            rows_word = "statement row" if problem_total == 1 else "statement rows"
             row_cells.append(
                 {
                     "display": (
@@ -5275,8 +5291,7 @@ def contest_advanced_analytics_view(request):
                     "state": state,
                     "title": (
                         f"{selected_contest} {year} {problem_code}: "
-                        f"{solved_total} of {problem_total} statement row"
-                        f"{'' if problem_total == 1 else 's'} solved"
+                        f"{solved_total} of {problem_total} {rows_word} solved by you"
                     ),
                 },
             )

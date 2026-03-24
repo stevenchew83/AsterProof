@@ -22,4 +22,5 @@ def app_roles(request):
         "show_session_monitor_link": admin,
         "show_solution_workspace_link": request.user.is_authenticated,
         "show_user_activity_dashboard_link": request.user.is_authenticated,
+        "show_contest_advanced_dashboard_link": request.user.is_authenticated,
     }

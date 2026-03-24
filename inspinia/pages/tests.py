@@ -6,6 +6,7 @@ from http import HTTPStatus
 from io import BytesIO
 from io import StringIO
 from pathlib import Path
+from urllib.parse import urlencode
 
 import pandas as pd
 import pytest
@@ -3587,12 +3588,12 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
         statement_latex="Unlinked statement two",
     )
     UserProblemCompletion.objects.create(
-        user=solution_author,
+        user=admin_user,
         problem=problem_one,
         completion_date=date(2026, 1, 15),
     )
     UserProblemCompletion.objects.create(
-        user=solution_author,
+        user=admin_user,
         problem=problem_two,
         completion_date=date(2025, 2, 5),
     )
@@ -3633,7 +3634,7 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
                 {
                     "display": "✓",
                     "state": "solved",
-                    "title": "USAMO 2026 P1: 1 of 1 statement row solved",
+                    "title": "USAMO 2026 P1: 1 of 1 statement row solved by you",
                     "x": "P1",
                     "y": 3,
                 },
@@ -3659,7 +3660,7 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
                 {
                     "display": "•",
                     "state": "unsolved",
-                    "title": "USAMO 2025 P2: 0 of 1 statement row solved",
+                    "title": "USAMO 2025 P2: 0 of 1 statement row solved by you",
                     "x": "P2",
                     "y": 1,
                 },
@@ -3685,7 +3686,7 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
     response_html = response.content.decode("utf-8")
     assert "Contest advanced analytics" in response_html
     assert "Completion heatmap" in response_html
-    assert "Solved by at least one user" in response_html
+    assert "Your completions" in response_html
     assert 'id="chart-contest-completion-heatmap"' in response_html
     assert "contest-advanced-heatmap-data" in response_html
     assert "plugins/apexcharts/apexcharts.min.js" in response_html
@@ -3698,6 +3699,47 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
     assert "Topic mix" in response_html
     assert "Recent statements" in response_html
     assert "USAMO (2 statements)" in response_html
+
+
+def test_contest_advanced_analytics_requires_login(client):
+    response = client.get(reverse("pages:contest_advanced_dashboard"))
+    login_url = reverse(settings.LOGIN_URL)
+
+    assert response.status_code == HTTPStatus.FOUND
+    assert response.url == f"{login_url}?next={reverse('pages:contest_advanced_dashboard')}"
+
+
+def test_contest_advanced_analytics_allows_non_admin_and_uses_public_year_links(client):
+    user = UserFactory()
+    client.force_login(user)
+    problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="ALG",
+        mohs=6,
+        contest="USAMO",
+        problem="P1",
+        contest_year_problem="USAMO 2026 P1",
+        confidence="High",
+    )
+    ContestProblemStatement.objects.create(
+        linked_problem=problem,
+        contest_year=2026,
+        contest_name="USAMO",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Statement one",
+    )
+
+    response = client.get(reverse("pages:contest_advanced_dashboard"), {"contest": "USAMO"})
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["selected_contest"] == "USAMO"
+    year_row = response.context["year_rows"][0]
+    assert year_row["year"] == 2026
+    assert year_row["year_detail_url"] == (
+        reverse("pages:contest_problem_list", args=["usamo"]) + "?" + urlencode({"year": 2026})
+    )
 
 
 def test_contest_dashboard_listing_view_filters_selected_contest_and_year_for_admin(client):
