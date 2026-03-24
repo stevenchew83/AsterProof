@@ -32,7 +32,7 @@ This directory owns settings composition, middleware wiring, and root URL inclus
 - When changing `config/urls.py`, prefer adding or updating routes in the app namespace rather than growing root routing logic.
 - Do not move production-only dependencies into `base.py` just to make imports convenient.
 - Do not remove migration-safe guards around session/audit tracking unless you have checked startup, tests, and migrate flows.
-- When changing static, media, or middleware that affects `/static/`, see **Production static files (AWS)** in the root `README.md` and keep S3 on `default` (media) only unless deliberately redesigning storage.
+- When changing static, media, or middleware that affects `/static/` or `/media/`, see **Production static files (AWS)** in the root `README.md`.
 
 ## Validation
 
