@@ -1,6 +1,7 @@
 {% extends 'layouts/vertical.html' %}
 
-{% load static topic_labels %}
+{% load static %}
+{% load topic_labels %}
 
 {% block title %}Edit solution{% endblock title %}
 
@@ -273,6 +274,16 @@
                   <button type="button" class="btn btn-outline-secondary" id="solution-add-block">
                     <i class="ti ti-plus me-1"></i>Add block
                   </button>
+                  {% if form.instance.pk %}
+                  <a
+                    href="{% url 'solutions:problem_solution_pdf' problem_data.problem.problem_uuid %}"
+                    class="btn btn-outline-secondary"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <i class="ti ti-file-type-pdf me-1"></i>Download PDF
+                  </a>
+                  {% endif %}
                   <button type="submit" name="action" value="save" class="btn btn-primary">Save changes</button>
                   <button type="submit" name="action" value="save_draft" class="btn btn-outline-secondary">Save as draft</button>
                   <button type="submit" name="action" value="publish" class="btn btn-success">Publish solution</button>
@@ -306,8 +317,14 @@
             <p class="text-muted">
               Save order follows the numeric <code>Order</code> field. The live preview uses that sequence even if the editor cards themselves are still stacked in their original order.
             </p>
-            <p class="text-muted mb-0">
+            <p class="text-muted">
               The preview renders LaTeX-style math with the same MathJax stack used elsewhere in the project.
+              In <strong>Body format: LaTeX</strong>, you can paste an image from the clipboard into <strong>Body source</strong>
+              to upload it and insert <code>\includegraphics</code> automatically.
+            </p>
+            <p class="text-muted mb-0">
+              <strong>Download PDF</strong> typesets your <strong>last saved</strong> blocks with Evan Chen&rsquo;s
+              <code>evan.sty</code> (KOMA class) on the server; fix compile errors shown in the log if export fails.
             </p>
           </div>
         </div>
@@ -342,10 +359,23 @@ window.MathJax = {
     inlineMath: [["$", "$"], ["\\(", "\\)"]],
     displayMath: [["$$", "$$"], ["\\[", "\\]"]]
   },
-  options: { skipHtmlTags: ["script", "noscript", "style", "textarea", "pre", "code"] }
+  options: { skipHtmlTags: ["script", "noscript", "style", "textarea", "pre", "code"] },
+  startup: {
+    ready: function () {
+      MathJax.startup.defaultReady();
+      window.dispatchEvent(new Event("asterproof:mathjax-ready"));
+    }
+  }
 };
 </script>
 <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<script>
+window.ASTERPROOF_SOLUTION_MEDIA = {
+  baseUrl: "{{ solution_media_base_url|escapejs }}",
+  uploadUrl: "{{ solution_body_image_upload_url|escapejs }}"
+};
+</script>
+<script src="{% static 'js/solution-latex-hybrid.js' %}"></script>
 <script>
 (function () {
   var form = document.getElementById("solution-editor-form");
@@ -356,6 +386,14 @@ window.MathJax = {
   var addBlockButton = document.getElementById("solution-add-block");
   var totalFormsInput = document.getElementById("id_blocks-TOTAL_FORMS");
   var emptyTemplate = document.getElementById("solution-block-empty-form");
+  var mediaBaseUrl = (window.ASTERPROOF_SOLUTION_MEDIA && window.ASTERPROOF_SOLUTION_MEDIA.baseUrl) || "";
+  var uploadUrl = (window.ASTERPROOF_SOLUTION_MEDIA && window.ASTERPROOF_SOLUTION_MEDIA.uploadUrl) || "";
+  var previewTimer = null;
+
+  function getCookie(name) {
+    var match = document.cookie.match(new RegExp("(^| )" + name + "=([^;]+)"));
+    return match ? decodeURIComponent(match[2]) : "";
+  }
 
   function visibleBlocks() {
     return Array.from(blockList.querySelectorAll("[data-block-form]")).filter(function (node) {
@@ -393,9 +431,11 @@ window.MathJax = {
     });
   }
 
-  function typesetPreview() {
+  function typesetPlainPreviewBodies() {
     if (!window.MathJax || typeof window.MathJax.typesetPromise !== "function") return Promise.resolve();
-    var targets = Array.from(previewRoot.querySelectorAll("[data-mathjax-scope]"));
+    var targets = Array.from(
+      previewRoot.querySelectorAll(".solution-preview-block-body[data-mathjax-scope]")
+    );
     if (!targets.length) return Promise.resolve();
     if (typeof window.MathJax.typesetClear === "function") {
       window.MathJax.typesetClear(targets);
@@ -415,7 +455,7 @@ window.MathJax = {
     return "Block " + String(index + 1);
   }
 
-  function renderPreview() {
+  function renderPreviewNow() {
     var rows = orderedVisibleBlocks();
     previewRoot.innerHTML = "";
     if (!rows.length) {
@@ -423,53 +463,70 @@ window.MathJax = {
       emptyState.className = "alert alert-light border mb-0";
       emptyState.textContent = "Add at least one block to preview your solution.";
       previewRoot.appendChild(emptyState);
-      return;
+      return Promise.resolve();
     }
 
+    var pending = Promise.resolve();
     rows.forEach(function (node, index) {
-      var bodyInput = node.querySelector('textarea[name$="-body_source"]');
-      var typeSelect = node.querySelector('select[name$="-block_type"]');
-      var bodyFormatSelect = node.querySelector('select[name$="-body_format"]');
-      var card = document.createElement("div");
-      card.className = "card border";
-      var cardBody = document.createElement("div");
-      cardBody.className = "card-body py-3";
+      pending = pending.then(function () {
+        var bodyInput = node.querySelector('textarea[name$="-body_source"]');
+        var typeSelect = node.querySelector('select[name$="-block_type"]');
+        var bodyFormatSelect = node.querySelector('select[name$="-body_format"]');
+        var card = document.createElement("div");
+        card.className = "card border";
+        var cardBody = document.createElement("div");
+        cardBody.className = "card-body py-3";
 
-      var head = document.createElement("div");
-      head.className = "d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2";
-      var title = document.createElement("div");
-      title.className = "fw-semibold";
-      title.textContent = previewBlockTitle(node, index);
-      var orderBadge = document.createElement("span");
-      orderBadge.className = "badge bg-light text-body-secondary";
-      orderBadge.textContent = "#" + String(index + 1);
-      head.appendChild(title);
-      head.appendChild(orderBadge);
-      cardBody.appendChild(head);
+        var head = document.createElement("div");
+        head.className = "d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2";
+        var title = document.createElement("div");
+        title.className = "fw-semibold";
+        title.textContent = previewBlockTitle(node, index);
+        var orderBadge = document.createElement("span");
+        orderBadge.className = "badge bg-light text-body-secondary";
+        orderBadge.textContent = "#" + String(index + 1);
+        head.appendChild(title);
+        head.appendChild(orderBadge);
+        cardBody.appendChild(head);
 
-      if (typeSelect && typeSelect.selectedOptions.length) {
-        var typeLabel = typeSelect.selectedOptions[0].text.trim();
-        if (typeLabel && typeLabel !== "---------") {
-          var typeNode = document.createElement("div");
-          typeNode.className = "text-muted fs-12 text-uppercase mb-2";
-          typeNode.textContent = typeLabel;
-          cardBody.appendChild(typeNode);
+        if (typeSelect && typeSelect.selectedOptions.length) {
+          var typeLabel = typeSelect.selectedOptions[0].text.trim();
+          if (typeLabel && typeLabel !== "---------") {
+            var typeNode = document.createElement("div");
+            typeNode.className = "text-muted fs-12 text-uppercase mb-2";
+            typeNode.textContent = typeLabel;
+            cardBody.appendChild(typeNode);
+          }
         }
-      }
 
-      var body = document.createElement("div");
-      body.className = "solution-preview-block-body";
-      if (bodyFormatSelect && bodyFormatSelect.value === "latex") {
+        var body = document.createElement("div");
+        body.className = "solution-preview-block-body";
+        var raw = bodyInput ? bodyInput.value : "";
+        if (bodyFormatSelect && bodyFormatSelect.value === "latex") {
+          card.appendChild(cardBody);
+          cardBody.appendChild(body);
+          previewRoot.appendChild(card);
+          return window.AsterProofSolutionLatex.renderInto(body, raw, mediaBaseUrl);
+        }
         body.setAttribute("data-mathjax-scope", "true");
-      }
-      body.textContent = bodyInput ? bodyInput.value : "";
-      cardBody.appendChild(body);
-
-      card.appendChild(cardBody);
-      previewRoot.appendChild(card);
+        body.textContent = raw;
+        card.appendChild(cardBody);
+        cardBody.appendChild(body);
+        previewRoot.appendChild(card);
+        return Promise.resolve();
+      });
     });
 
-    typesetPreview();
+    return pending.then(function () {
+      return typesetPlainPreviewBodies();
+    });
+  }
+
+  function scheduleRenderPreview() {
+    window.clearTimeout(previewTimer);
+    previewTimer = window.setTimeout(function () {
+      renderPreviewNow();
+    }, 120);
   }
 
   function attachRowHandlers(node) {
@@ -477,11 +534,11 @@ window.MathJax = {
     node.querySelectorAll("input, textarea, select").forEach(function (element) {
       element.addEventListener("input", function () {
         refreshBlockNumbers();
-        renderPreview();
+        scheduleRenderPreview();
       });
       element.addEventListener("change", function () {
         refreshBlockNumbers();
-        renderPreview();
+        scheduleRenderPreview();
       });
     });
 
@@ -492,9 +549,65 @@ window.MathJax = {
       if (deleteInput) deleteInput.checked = true;
       node.classList.add("d-none");
       refreshBlockNumbers();
-      renderPreview();
+      scheduleRenderPreview();
     });
   }
+
+  function clipboardImageFile(evt) {
+    var cd = evt.clipboardData;
+    if (!cd) return null;
+    var items = cd.items;
+    if (items) {
+      for (var i = 0; i < items.length; i += 1) {
+        if (items[i].type && items[i].type.indexOf("image/") === 0) {
+          var f = items[i].getAsFile();
+          if (f) return f;
+        }
+      }
+    }
+    if (cd.files && cd.files.length) return cd.files[0];
+    return null;
+  }
+
+  function showUploadError(message) {
+    window.alert(message || "Could not upload image.");
+  }
+
+  form.addEventListener(
+    "paste",
+    function (evt) {
+      var target = evt.target;
+      if (!target || target.tagName !== "TEXTAREA" || !target.name || target.name.indexOf("-body_source") === -1) {
+        return;
+      }
+      var row = target.closest("[data-block-form]");
+      if (!row) return;
+      var fmt = row.querySelector('select[name$="-body_format"]');
+      if (!fmt || fmt.value !== "latex") return;
+      var file = clipboardImageFile(evt);
+      if (!file || !file.type || file.type.indexOf("image/") !== 0) return;
+      if (!uploadUrl) return;
+      evt.preventDefault();
+      var fd = new FormData();
+      fd.append("image", file, file.name || "paste.png");
+      var headers = { "X-CSRFToken": getCookie("csrftoken") };
+      fetch(uploadUrl, { method: "POST", body: fd, headers: headers, credentials: "same-origin" })
+        .then(function (r) {
+          return r.json().then(function (data) {
+            if (!r.ok) throw new Error((data && data.error) || r.statusText);
+            return data;
+          });
+        })
+        .then(function (data) {
+          if (!data.path) throw new Error("Invalid response");
+          window.AsterProofSolutionLatex.insertGraphicsAtCursor(target, data.path);
+        })
+        .catch(function (err) {
+          showUploadError(err.message);
+        });
+    },
+    true
+  );
 
   function addBlock() {
     if (!emptyTemplate || !totalFormsInput) return;
@@ -507,7 +620,7 @@ window.MathJax = {
     totalFormsInput.value = String(formIndex + 1);
     attachRowHandlers(newNode);
     refreshBlockNumbers();
-    renderPreview();
+    scheduleRenderPreview();
   }
 
   visibleBlocks().forEach(attachRowHandlers);
@@ -515,7 +628,9 @@ window.MathJax = {
     addBlockButton.addEventListener("click", addBlock);
   }
   refreshBlockNumbers();
-  renderPreview();
+  window.AsterProofSolutionLatex.mathJaxReady().then(function () {
+    return renderPreviewNow();
+  });
 })();
 </script>
 {% endblock extra_javascript %}

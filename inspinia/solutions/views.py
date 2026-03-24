@@ -1,19 +1,30 @@
+import logging
 import re
 from collections import Counter
+from io import BytesIO
+from pathlib import Path
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.files.base import ContentFile
 from django.db import transaction
 from django.db.models import Max
 from django.db.models import Prefetch
+from django.http import FileResponse
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
 from django.shortcuts import render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.text import slugify
+from django.views.decorators.http import require_POST
+from PIL import Image
+from PIL import UnidentifiedImageError
 
 from inspinia.pages.asymptote_render import build_statement_render_segments
+from inspinia.pages.contest_links import contest_dashboard_listing_url
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
 from inspinia.pages.topic_labels import display_topic_label
@@ -21,7 +32,38 @@ from inspinia.solutions.forms import ProblemSolutionBlockFormSet
 from inspinia.solutions.forms import ProblemSolutionForm
 from inspinia.solutions.models import ProblemSolution
 from inspinia.solutions.models import ProblemSolutionBlock
+from inspinia.solutions.models import SolutionBodyImage
+from inspinia.solutions.pdf_latex import SolutionPdfCompileError
+from inspinia.solutions.pdf_latex import SolutionPdfCompileParams
+from inspinia.solutions.pdf_latex import SolutionPdfError
+from inspinia.solutions.pdf_latex import SolutionPdfToolError
+from inspinia.solutions.pdf_latex import compile_solution_to_pdf
 from inspinia.users.roles import user_has_admin_role
+
+logger = logging.getLogger(__name__)
+
+SOLUTION_BODY_IMAGE_MAX_BYTES = 3 * 1024 * 1024
+SOLUTION_BODY_IMAGE_ALLOWED_TYPES = frozenset(
+    {"image/png", "image/jpeg", "image/jpg", "image/pjpeg", "image/gif", "image/webp"},
+)
+
+
+def _solution_media_base_url(request) -> str:
+    media = settings.MEDIA_URL
+    url = (
+        media
+        if media.startswith(("http://", "https://"))
+        else request.build_absolute_uri(media)
+    )
+    if not url.endswith("/"):
+        url += "/"
+    return url
+
+
+def _absolute_media_file_url(request, file_url: str) -> str:
+    if file_url.startswith(("http://", "https://")):
+        return file_url
+    return request.build_absolute_uri(file_url)
 
 
 def _build_contest_slug_maps(contest_names: list[str]) -> tuple[dict[str, str], dict[str, str]]:
@@ -65,7 +107,7 @@ def _problem_context(problem: ProblemSolveRecord) -> dict:
     contest_slug = contest_to_slug.get(problem.contest)
     contest_url = ""
     if contest_slug is not None:
-        contest_url = reverse("pages:contest_problem_list", args=[contest_slug])
+        contest_url = contest_dashboard_listing_url(problem.contest)
 
     statement_entry = (
         ContestProblemStatement.objects.filter(linked_problem=problem)
@@ -172,7 +214,10 @@ def _statement_backed_problem_rows(user) -> list[dict]:
         contest_slug = contest_to_slug.get(problem.contest)
         contest_archive_url = ""
         if contest_slug:
-            contest_archive_url = reverse("pages:contest_problem_list", args=[contest_slug]) + "#" + _problem_anchor(
+            contest_archive_url = contest_dashboard_listing_url(
+                problem.contest,
+                year=int(problem.year),
+            ) + "#" + _problem_anchor(
                 problem_label,
                 f"{problem.year}-{problem.problem}",
             )
@@ -327,6 +372,7 @@ def problem_solution_list_view(request, problem_uuid):
         "my_solution_row": _solution_card_rows([my_solution])[0] if my_solution is not None else None,
         "problem_data": problem_data,
         "selected_solution_id": selected_solution.id if selected_solution is not None else None,
+        "solution_media_base_url": _solution_media_base_url(request),
         "visible_solution_empty_message": visible_solution_empty_message,
         "visible_solution_rows": visible_solution_rows,
         "visible_solution_title": visible_solution_title,
@@ -367,7 +413,145 @@ def problem_solution_edit_view(request, problem_uuid):
         "form": form,
         "formset": formset,
         "problem_data": problem_data,
+        "solution_body_image_upload_url": reverse(
+            "solutions:solution_body_image_upload",
+            args=[problem.problem_uuid],
+        ),
+        "solution_media_base_url": _solution_media_base_url(request),
         "solution_status_badge_class": _solution_status_badge(current_status),
         "solution_status_label": ProblemSolution.Status(current_status).label,
     }
     return render(request, "solutions/problem-solution-editor.html", context)
+
+
+@login_required
+def problem_solution_pdf_view(request, problem_uuid):
+    problem = get_object_or_404(ProblemSolveRecord, problem_uuid=problem_uuid)
+    solution = (
+        ProblemSolution.objects.filter(problem=problem, author=request.user)
+        .select_related("author")
+        .prefetch_related(
+            Prefetch(
+                "blocks",
+                queryset=ProblemSolutionBlock.objects.select_related("block_type").order_by("position", "id"),
+            ),
+        )
+        .first()
+    )
+    problem_data = _problem_context(problem)
+    if solution is None:
+        return render(
+            request,
+            "solutions/solution_pdf_unavailable.html",
+            {
+                "problem_data": problem_data,
+                "reason": "Save your solution at least once before downloading a PDF.",
+            },
+            status=404,
+        )
+
+    problem_label = problem.contest_year_problem or f"{problem.contest} {problem.year} {problem.problem}"
+    blocks = list(solution.blocks.all())
+
+    try:
+        pdf_bytes = compile_solution_to_pdf(
+            solution,
+            blocks,
+            SolutionPdfCompileParams(
+                media_root=Path(settings.MEDIA_ROOT),
+                problem_label=problem_label,
+                timeout=settings.SOLUTION_PDF_LATEX_TIMEOUT,
+                latex_binary=settings.SOLUTION_PDF_LATEX_BINARY,
+            ),
+        )
+    except SolutionPdfToolError as exc:
+        return render(
+            request,
+            "solutions/solution_pdf_unavailable.html",
+            {
+                "problem_data": problem_data,
+                "detail": (
+                    "Install TeX Live (with KOMA-Script) and latexmk on the server, "
+                    "or set SOLUTION_PDF_LATEX_BINARY to a suitable driver."
+                ),
+                "reason": str(exc),
+            },
+            status=503,
+        )
+    except SolutionPdfCompileError as exc:
+        logger.warning("solution_pdf_compile_error solution_id=%s", solution.pk)
+        return render(
+            request,
+            "solutions/solution_pdf_error.html",
+            {
+                "problem_data": problem_data,
+                "log_tail": exc.log_tail,
+            },
+            status=500,
+        )
+    except SolutionPdfError as exc:
+        return render(
+            request,
+            "solutions/solution_pdf_unavailable.html",
+            {
+                "problem_data": problem_data,
+                "reason": str(exc),
+            },
+            status=500,
+        )
+
+    base = slugify(problem_label) or "solution"
+    slug = slugify(solution.title or "solution") or "solution"
+    filename = f"{base}-{slug}.pdf"[:200]
+    return FileResponse(
+        BytesIO(pdf_bytes),
+        as_attachment=True,
+        filename=filename,
+        content_type="application/pdf",
+    )
+
+
+@login_required
+@require_POST
+def solution_body_image_upload_view(request, problem_uuid):
+    problem = get_object_or_404(ProblemSolveRecord, problem_uuid=problem_uuid)
+    upload = request.FILES.get("image")
+    if upload is None:
+        return JsonResponse({"error": "Missing image file."}, status=400)
+
+    content_type = (upload.content_type or "").split(";")[0].strip().lower()
+    if content_type and content_type not in SOLUTION_BODY_IMAGE_ALLOWED_TYPES:
+        return JsonResponse({"error": "Unsupported image type."}, status=400)
+
+    if upload.size is not None and upload.size > SOLUTION_BODY_IMAGE_MAX_BYTES:
+        return JsonResponse({"error": "Image too large."}, status=400)
+
+    data = upload.read()
+    if len(data) > SOLUTION_BODY_IMAGE_MAX_BYTES:
+        return JsonResponse({"error": "Image too large."}, status=400)
+
+    try:
+        with Image.open(BytesIO(data)) as image:
+            image.verify()
+    except (OSError, ValueError, UnidentifiedImageError):
+        return JsonResponse({"error": "Invalid image file."}, status=400)
+
+    with transaction.atomic():
+        solution, _created = ProblemSolution.objects.get_or_create(
+            problem=problem,
+            author=request.user,
+            defaults={"status": ProblemSolution.Status.DRAFT},
+        )
+        row = SolutionBodyImage(
+            solution=solution,
+            uploaded_by=request.user,
+        )
+        row.file.save("paste.png", ContentFile(data), save=True)
+
+    canonical_path = row.file.name.replace("\\", "/")
+    return JsonResponse(
+        {
+            "path": canonical_path,
+            "url": _absolute_media_file_url(request, row.file.url),
+        },
+    )

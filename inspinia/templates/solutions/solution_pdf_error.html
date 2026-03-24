@@ -1,0 +1,19 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}PDF export failed{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid py-4">
+  {% include 'partials/page-title.html' with title='PDF export failed' subtitle=problem_data.problem_label %}
+  <div class="alert alert-danger" role="alert">
+    LaTeX did not produce a PDF. Fix any errors in your block bodies and try again.
+  </div>
+  <p class="text-muted">
+    <a href="{% url 'solutions:problem_solution_edit' problem_data.problem.problem_uuid %}">Back to solution editor</a>
+  </p>
+  {% if log_tail %}
+  <h5 class="mt-4">Compiler log (tail)</h5>
+  <pre class="bg-light border rounded p-3 small" style="max-height: 24rem; overflow: auto;">{{ log_tail }}</pre>
+  {% endif %}
+</div>
+{% endblock page_content %}

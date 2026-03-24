@@ -1,0 +1,18 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}PDF unavailable{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid py-4">
+  {% include 'partials/page-title.html' with title='PDF unavailable' subtitle=problem_data.problem_label %}
+  <div class="alert alert-warning" role="alert">
+    {{ reason }}
+  </div>
+  {% if detail %}
+  <p class="text-muted">{{ detail }}</p>
+  {% endif %}
+  <p class="mb-0">
+    <a href="{% url 'solutions:problem_solution_edit' problem_data.problem.problem_uuid %}">Back to solution editor</a>
+  </p>
+</div>
+{% endblock page_content %}

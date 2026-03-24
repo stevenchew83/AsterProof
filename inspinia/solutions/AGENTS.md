@@ -23,6 +23,10 @@ This app owns user-authored problem solutions and their block structure.
 - If you add nesting behavior, keep parent/child relationships inside the same solution.
 - If you add moderation or history, prefer new revision/review tables over mutating the authored blocks into audit records.
 
+## PDF export
+
+- **Download PDF** (`problem_solution_pdf`) compiles the **saved** solution with vendored `latex/evan.sty` and KOMA `scrartcl` via `latexmk` (see `SOLUTION_PDF_LATEX_*` in settings). The host needs TeX Live with KOMA-Script and the packages `evan.sty` pulls in.
+
 ## Recommended checks
 
 - `uv run pytest inspinia/solutions/tests.py`
