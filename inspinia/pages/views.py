@@ -731,6 +731,7 @@ def _statement_table_rows(base, *, user=None) -> list[dict]:
                 "linked_problem_confidence": linked_problem_confidence,
                 "linked_problem_confidence_url": linked_problem_confidence_url,
                 "linked_problem_imo_slot_guess_value": linked_problem_imo_slot_guess_value,
+                "linked_problem_imo_slot_display": _format_imo_slot_label(linked_problem_imo_slot_guess_value),
                 "linked_problem_imo_slot_url": linked_problem_imo_slot_url,
                 "linked_problem_topic_tags": linked_problem_topic_tags,
                 "linked_problem_topic_tag_links": linked_problem_topic_tag_links,
@@ -883,31 +884,6 @@ def _problem_statement_list_filter_options(rows: list[dict]) -> dict[str, list[s
         {str(r.get("linked_problem_confidence") or "").strip() for r in rows if r.get("linked_problem_confidence")},
     )
     return {"years": years, "topics": topics, "confidences": confidences}
-
-
-def _problem_statement_list_filter_querystring(  # noqa: PLR0913
-    *,
-    q: str,
-    year: str,
-    topic: str,
-    confidence: str,
-    mohs_min: str,
-    mohs_max: str,
-) -> str:
-    pairs: list[tuple[str, str]] = []
-    if (q or "").strip():
-        pairs.append(("q", (q or "").strip()))
-    if (year or "").strip():
-        pairs.append(("year", (year or "").strip()))
-    if (topic or "").strip():
-        pairs.append(("topic", (topic or "").strip()))
-    if (confidence or "").strip():
-        pairs.append(("confidence", (confidence or "").strip()))
-    if (mohs_min or "").strip():
-        pairs.append(("mohs_min", (mohs_min or "").strip()))
-    if (mohs_max or "").strip():
-        pairs.append(("mohs_max", (mohs_max or "").strip()))
-    return urlencode(pairs)
 
 
 def _statement_editor_table_payload() -> dict[str, object]:

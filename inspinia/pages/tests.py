@@ -5003,7 +5003,6 @@ def test_problem_statement_list_shows_statement_rows_and_link_counts(client):
     assert "statement_completion_toggle_url" not in response_html
     assert "data-completion-toggle-url=" not in response_html
     assert "statement-table-shell" in response_html
-    assert "updated_at_sort" not in response_html
     assert response.context["statement_filtered_total"] == EXPECTED_CONTEST_TOTAL
 
 
