@@ -50,3 +50,12 @@ def test_production_settings_staticfiles_on_filesystem_default_on_s3(monkeypatch
     )
     assert production.STORAGES["default"]["BACKEND"] == "storages.backends.s3.S3Storage"
     assert production.STORAGES["default"]["OPTIONS"]["location"] == "media"
+
+
+def test_production_settings_middleware_timing_then_security_then_whitenoise(monkeypatch):
+    production = _load_production_settings(monkeypatch)
+    mw = production.MIDDLEWARE
+
+    assert mw[0] == "config.middleware.RequestTimingMiddleware"
+    assert mw[1] == "django.middleware.security.SecurityMiddleware"
+    assert mw[2] == "whitenoise.middleware.WhiteNoiseMiddleware"
