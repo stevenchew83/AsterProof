@@ -79,7 +79,7 @@ def effective_imo_slot_guess_value(statement: ContestProblemStatement) -> str:
 
 
 def contest_key_for_public_slug(statement: ContestProblemStatement) -> str:
-    """Short contest key used for public contest_problem_list slug maps."""
+    """Contest key for linking into dashboard listing query params and slug maps."""
     if (statement.source_contest or "").strip():
         return str(statement.source_contest).strip()
     linked = statement.linked_problem
