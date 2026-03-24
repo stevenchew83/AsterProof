@@ -1,6 +1,5 @@
 from pathlib import Path
 
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 VENDORS_BUNDLE = REPO_ROOT / "inspinia" / "static" / "js" / "vendors.min.js"
 

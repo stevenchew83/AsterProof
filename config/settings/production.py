@@ -6,12 +6,15 @@ from .base import MIDDLEWARE
 from .base import REDIS_URL
 from .base import env
 
+REQUEST_TIMING_LOG = env.bool("DJANGO_REQUEST_TIMING_LOG", default=False)
+
 # GENERAL
 # ------------------------------------------------------------------------------
 # Serve collected static assets when the request reaches the WSGI app (e.g.
 # Gunicorn). Nginx may still alias /static/ for efficiency; if it does not,
 # WhiteNoise handles /static/ from STATIC_ROOT after collectstatic.
-MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")
+# After RequestTimingMiddleware at index 0, keep WhiteNoise directly after SecurityMiddleware.
+MIDDLEWARE.insert(2, "whitenoise.middleware.WhiteNoiseMiddleware")
 
 # https://docs.djangoproject.com/en/dev/ref/settings/#secret-key
 SECRET_KEY = env("DJANGO_SECRET_KEY")
