@@ -7,7 +7,9 @@ from pathlib import Path
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import FieldError
 from django.core.files.base import ContentFile
+from django.db import DatabaseError
 from django.db import transaction
 from django.db.models import Max
 from django.db.models import Prefetch
@@ -513,7 +515,7 @@ def problem_solution_pdf_view(request, problem_uuid):
 
 @login_required
 @require_POST
-def solution_body_image_upload_view(request, problem_uuid):
+def solution_body_image_upload_view(request, problem_uuid):  # noqa: C901, PLR0911
     problem = get_object_or_404(ProblemSolveRecord, problem_uuid=problem_uuid)
     upload = request.FILES.get("image")
     if upload is None:
@@ -536,17 +538,43 @@ def solution_body_image_upload_view(request, problem_uuid):
     except (OSError, ValueError, UnidentifiedImageError):
         return JsonResponse({"error": "Invalid image file."}, status=400)
 
-    with transaction.atomic():
-        solution, _created = ProblemSolution.objects.get_or_create(
-            problem=problem,
-            author=request.user,
-            defaults={"status": ProblemSolution.Status.DRAFT},
-        )
-        row = SolutionBodyImage(
-            solution=solution,
-            uploaded_by=request.user,
-        )
-        row.file.save("paste.png", ContentFile(data), save=True)
+    # Django 5.1+ FileField.pre_save rejects nameless ContentFile in some paths.
+    image_file = ContentFile(data, name="paste.png")
+    try:
+        with transaction.atomic():
+            solution, _created = ProblemSolution.objects.get_or_create(
+                problem=problem,
+                author=request.user,
+                defaults={"status": ProblemSolution.Status.DRAFT},
+            )
+            row = SolutionBodyImage(
+                solution=solution,
+                uploaded_by=request.user,
+            )
+            row.file.save("paste.png", image_file, save=True)
+    except FieldError as exc:
+        logger.exception("solution_body_image_field_error")
+        payload = {"error": "Could not store the image."}
+        if settings.DEBUG:
+            payload["detail"] = str(exc)
+        return JsonResponse(payload, status=500)
+    except DatabaseError as exc:
+        logger.exception("solution_body_image_database_error")
+        payload = {
+            "error": (
+                "Database error while saving the image. If you recently pulled code, run "
+                "`python manage.py migrate` (especially the `solutions` app)."
+            ),
+        }
+        if settings.DEBUG:
+            payload["detail"] = str(exc)
+        return JsonResponse(payload, status=500)
+    except OSError as exc:
+        logger.exception("solution_body_image_io_error")
+        payload = {"error": "Could not write the image to server storage (check MEDIA_ROOT permissions)."}
+        if settings.DEBUG:
+            payload["detail"] = str(exc)
+        return JsonResponse(payload, status=500)
 
     canonical_path = row.file.name.replace("\\", "/")
     return JsonResponse(
