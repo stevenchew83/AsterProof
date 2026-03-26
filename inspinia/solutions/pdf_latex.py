@@ -48,6 +48,7 @@ class SolutionPdfCompileParams:
     problem_label: str
     timeout: int
     latex_binary: str
+    problem_statement_latex: str = ""
 
 
 _LATEX_ESCAPES = (
@@ -88,22 +89,27 @@ def _graphicspath_tex(media_root: Path) -> str:
     return media.replace("#", "\\#").replace("%", "\\%")
 
 
+def _solution_pdf_author_display(user) -> str:
+    name = (getattr(user, "name", None) or "").strip()
+    return name or "Unknown"
+
+
 def build_solution_tex_source(
     *,
     solution: ProblemSolution,
     blocks: Sequence[ProblemSolutionBlock],
     media_root: Path,
     problem_label: str,
+    problem_statement_latex: str = "",
 ) -> str:
     title = latex_escape_plain_text(
         f"{problem_label} — {(solution.title or '').strip() or 'Untitled solution'}",
     )
-    author_name = (getattr(solution.author, "name", None) or "").strip()
-    author_email = (getattr(solution.author, "email", "") or "").strip()
-    author_display = author_name or author_email or "Unknown"
-    author = latex_escape_plain_text(author_display)
-    dt = timezone.localtime(solution.updated_at)
-    date_str = latex_escape_plain_text(dt.strftime("%Y-%m-%d %H:%M %Z"))
+    author = latex_escape_plain_text(_solution_pdf_author_display(solution.author))
+    dt_ref = solution.published_at or solution.updated_at
+    date_str = latex_escape_plain_text(
+        timezone.localtime(dt_ref).strftime("%Y-%m-%d"),
+    )
     gp = _graphicspath_tex(media_root)
 
     lines: list[str] = [
@@ -116,6 +122,11 @@ def build_solution_tex_source(
         r"\begin{document}",
         r"\maketitle",
     ]
+    stmt_body = (problem_statement_latex or "").strip()
+    if stmt_body:
+        lines.append(r"\section*{Problem}")
+        lines.append(stmt_body)
+        lines.append("")
     for block in blocks:
         heading = latex_escape_plain_text(_block_heading(block))
         lines.append(rf"\paragraph{{{heading}}}")
@@ -196,6 +207,7 @@ def compile_solution_to_pdf(
         blocks=blocks,
         media_root=params.media_root,
         problem_label=params.problem_label,
+        problem_statement_latex=params.problem_statement_latex,
     )
     return compile_solution_tex_to_pdf(
         tex,

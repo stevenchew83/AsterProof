@@ -110,6 +110,12 @@ def _solution_pdf_http_response(request, solution: ProblemSolution):
     problem_data = _problem_context(problem)
     problem_label = problem.contest_year_problem or f"{problem.contest} {problem.year} {problem.problem}"
     blocks = list(solution.blocks.all())
+    statement_row = (
+        ContestProblemStatement.objects.filter(linked_problem_id=problem.pk)
+        .only("statement_latex")
+        .first()
+    )
+    problem_statement_latex = (statement_row.statement_latex if statement_row else "") or ""
 
     try:
         pdf_bytes = compile_solution_to_pdf(
@@ -120,6 +126,7 @@ def _solution_pdf_http_response(request, solution: ProblemSolution):
                 problem_label=problem_label,
                 timeout=settings.SOLUTION_PDF_LATEX_TIMEOUT,
                 latex_binary=settings.SOLUTION_PDF_LATEX_BINARY,
+                problem_statement_latex=problem_statement_latex,
             ),
         )
     except SolutionPdfToolError as exc:

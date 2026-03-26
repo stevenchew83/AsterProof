@@ -11,6 +11,8 @@ Start here before touching the repo. Then open the nearest more specific `AGENTS
 
 If a task changes dashboard or admin UI, also read [`docs/inspinia-dashboard-style.md`](docs/inspinia-dashboard-style.md).
 
+When generating **LaTeX or PDF** for olympiad-style written solutions, follow **`.cursor/rules/evan-chen-latex-pdf.mdc`** (`scrartcl`, `\usepackage[sexy]{evan}`, purple problem `mdframed`, claim/proof, KOMA headers).
+
 ## Project map
 
 - `config/`: settings split, root URL wiring, environment behavior.
