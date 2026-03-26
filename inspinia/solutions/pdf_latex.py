@@ -82,6 +82,10 @@ def _block_heading(block: ProblemSolutionBlock) -> str:
     return type_label
 
 
+def _is_plain_block(block: ProblemSolutionBlock) -> bool:
+    return bool(block.block_type_id and block.block_type and block.block_type.slug == "plain")
+
+
 def _graphicspath_tex(media_root: Path) -> str:
     media = media_root.resolve().as_posix()
     if not media.endswith("/"):
@@ -128,6 +132,10 @@ def build_solution_tex_source(
         lines.append(stmt_body)
         lines.append("")
     for block in blocks:
+        if _is_plain_block(block):
+            lines.append(block.body_source or "")
+            lines.append("")
+            continue
         heading = latex_escape_plain_text(_block_heading(block))
         lines.append(rf"\paragraph{{{heading}}}")
         lines.append(block.body_source or "")

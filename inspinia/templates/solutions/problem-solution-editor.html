@@ -374,6 +374,9 @@ window.ASTERPROOF_SOLUTION_MEDIA = {
   baseUrl: "{{ solution_media_base_url|escapejs }}",
   uploadUrl: "{{ solution_body_image_upload_url|escapejs }}"
 };
+window.ASTERPROOF_SOLUTION_PREVIEW = {
+  plainBlockTypeId: "{{ plain_block_type_id|escapejs }}"
+};
 </script>
 <script src="{% static 'js/solution-latex-hybrid.js' %}"></script>
 <script>
@@ -388,6 +391,9 @@ window.ASTERPROOF_SOLUTION_MEDIA = {
   var emptyTemplate = document.getElementById("solution-block-empty-form");
   var mediaBaseUrl = (window.ASTERPROOF_SOLUTION_MEDIA && window.ASTERPROOF_SOLUTION_MEDIA.baseUrl) || "";
   var uploadUrl = (window.ASTERPROOF_SOLUTION_MEDIA && window.ASTERPROOF_SOLUTION_MEDIA.uploadUrl) || "";
+  var plainBlockTypeId = (
+    window.ASTERPROOF_SOLUTION_PREVIEW && window.ASTERPROOF_SOLUTION_PREVIEW.plainBlockTypeId
+  ) || "";
   var previewTimer = null;
 
   function getCookie(name) {
@@ -440,9 +446,7 @@ window.ASTERPROOF_SOLUTION_MEDIA = {
 
   function typesetPlainPreviewBodies() {
     if (!window.MathJax || typeof window.MathJax.typesetPromise !== "function") return Promise.resolve();
-    var targets = Array.from(
-      previewRoot.querySelectorAll(".solution-preview-block-body[data-mathjax-scope]")
-    );
+    var targets = Array.from(previewRoot.querySelectorAll("[data-mathjax-scope]"));
     if (!targets.length) return Promise.resolve();
     if (typeof window.MathJax.typesetClear === "function") {
       window.MathJax.typesetClear(targets);
@@ -462,6 +466,15 @@ window.ASTERPROOF_SOLUTION_MEDIA = {
     return "Block " + String(index + 1);
   }
 
+  function selectedBlockTypeId(node) {
+    var typeSelect = node.querySelector('select[name$="-block_type"]');
+    return typeSelect ? String(typeSelect.value || "").trim() : "";
+  }
+
+  function isPlainBlockType(node) {
+    return Boolean(plainBlockTypeId) && selectedBlockTypeId(node) === plainBlockTypeId;
+  }
+
   function renderPreviewNow() {
     var rows = orderedVisibleBlocks();
     previewRoot.innerHTML = "";
@@ -479,6 +492,22 @@ window.ASTERPROOF_SOLUTION_MEDIA = {
         var bodyInput = node.querySelector('textarea[name$="-body_source"]');
         var typeSelect = node.querySelector('select[name$="-block_type"]');
         var bodyFormatSelect = node.querySelector('select[name$="-body_format"]');
+        var isPlain = isPlainBlockType(node);
+        var raw = bodyInput ? bodyInput.value : "";
+        var isLatexBody = bodyFormatSelect && bodyFormatSelect.value === "latex";
+        if (isPlain) {
+          var plainBody = document.createElement("div");
+          plainBody.className = "solution-preview-body mb-0";
+          if (isLatexBody) {
+            previewRoot.appendChild(plainBody);
+            return window.AsterProofSolutionLatex.renderInto(plainBody, raw, mediaBaseUrl);
+          }
+          plainBody.setAttribute("data-mathjax-scope", "true");
+          plainBody.textContent = raw;
+          previewRoot.appendChild(plainBody);
+          return Promise.resolve();
+        }
+
         var card = document.createElement("div");
         card.className = "card border";
         var cardBody = document.createElement("div");
@@ -508,8 +537,7 @@ window.ASTERPROOF_SOLUTION_MEDIA = {
 
         var body = document.createElement("div");
         body.className = "solution-preview-block-body";
-        var raw = bodyInput ? bodyInput.value : "";
-        if (bodyFormatSelect && bodyFormatSelect.value === "latex") {
+        if (isLatexBody) {
           card.appendChild(cardBody);
           cardBody.appendChild(body);
           previewRoot.appendChild(card);

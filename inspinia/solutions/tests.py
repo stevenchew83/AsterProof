@@ -632,7 +632,7 @@ def test_build_solution_tex_date_uses_published_at_as_local_date_only():
     user = UserFactory()
     problem = _problem()
     solution = _solution_with_blocks(problem=problem, author=user, blocks=[])
-    fixed = timezone.make_aware(datetime(2026, 3, 24, 15, 36, 0))
+    fixed = datetime(2026, 3, 24, 15, 36, 0, tzinfo=timezone.get_current_timezone())
     solution.published_at = fixed
     solution.save(update_fields=["published_at"])
     blocks = list(solution.blocks.order_by("position"))
@@ -706,6 +706,26 @@ def test_build_solution_tex_emits_plain_text_block_body_as_latex():
         problem_label="X",
     )
     assert "plain % not a comment" in tex
+
+
+def test_build_solution_tex_plain_block_omits_heading_and_title():
+    user = UserFactory()
+    problem = _problem()
+    solution = _solution_with_blocks(
+        problem=problem,
+        author=user,
+        blocks=[("Lead paragraph", "This starts the solution body.", "plain")],
+    )
+    blocks = list(solution.blocks.order_by("position"))
+    tex = build_solution_tex_source(
+        solution=solution,
+        blocks=blocks,
+        media_root=Path(settings.MEDIA_ROOT),
+        problem_label="USAMO 2026 P4",
+    )
+    assert "This starts the solution body." in tex
+    assert "Lead paragraph" not in tex
+    assert r"\paragraph{" not in tex
 
 
 def test_problem_solution_pdf_404_when_solution_not_saved(client):
@@ -837,3 +857,17 @@ def test_problem_solution_edit_stacks_statement_editor_and_notes_in_order(client
     assert 'class="col-xl-4"' not in response_html
     assert "solution-statement-panel" in response_html
     assert 'textbullet: "\\\\bullet"' in response_html
+
+
+def test_problem_solution_edit_exposes_plain_block_type_for_live_preview_branch(client):
+    user = UserFactory()
+    client.force_login(user)
+    problem = _problem()
+
+    response = client.get(reverse("solutions:problem_solution_edit", args=[problem.problem_uuid]))
+
+    assert response.status_code == HTTPStatus.OK
+    response_html = response.content.decode("utf-8")
+    plain_block_type = SolutionBlockType.objects.get(slug="plain")
+    assert f'plainBlockTypeId: "{plain_block_type.id}"' in response_html
+    assert "function isPlainBlockType(node)" in response_html
