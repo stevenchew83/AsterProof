@@ -731,6 +731,7 @@ def test_build_solution_tex_splits_claim_title_from_claim_body():
     assert "This is trivial." in tex
     first_proof_begin = tex.index(r"\begin{proof}")
     first_proof_end = tex.index(r"\end{proof}")
+    assert tex[first_proof_begin + len(r"\begin{proof}")] != "["
     assert first_proof_begin < tex.index("This is trivial.") < first_proof_end
     assert tex.index(r"\begin{proof}[Induction step]") > first_proof_end
     assert r"\begin{proof}[Induction step]" in tex
