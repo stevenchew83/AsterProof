@@ -773,6 +773,80 @@ def test_build_solution_tex_maps_remark_to_remark_environment():
     assert r"\end{remark}" in tex
 
 
+def test_build_solution_tex_maps_section_and_part_blocks_to_headings():
+    user = UserFactory(name="Author Display")
+    problem = _problem()
+    solution = _solution_with_blocks(
+        problem=problem,
+        author=user,
+        blocks=[
+            ("Reduction", "We first reduce to the base case.", "section"),
+            ("Part A", "Now handle the finite family.", "part"),
+        ],
+    )
+    blocks = list(solution.blocks.order_by("position"))
+    tex = build_solution_tex_source(
+        solution=solution,
+        blocks=blocks,
+        media_root=Path(settings.MEDIA_ROOT),
+        problem_label="USAMO 2026 P4",
+    )
+    assert r"\section*{Reduction}" in tex
+    assert "We first reduce to the base case." in tex
+    assert r"\subsection*{Part A}" in tex
+    assert "Now handle the finite family." in tex
+
+
+def test_build_solution_tex_renders_case_and_idea_blocks_as_bold_lead_ins():
+    user = UserFactory(name="Author Display")
+    problem = _problem()
+    solution = _solution_with_blocks(
+        problem=problem,
+        author=user,
+        blocks=[
+            ("Case 1", "Assume the first digit is 2.", "case"),
+            ("Idea", "Shift the contradiction to a smaller number.", "idea"),
+        ],
+    )
+    blocks = list(solution.blocks.order_by("position"))
+    tex = build_solution_tex_source(
+        solution=solution,
+        blocks=blocks,
+        media_root=Path(settings.MEDIA_ROOT),
+        problem_label="USAMO 2026 P4",
+    )
+    assert r"\textbf{Case 1.}" in tex
+    assert "Assume the first digit is 2." in tex
+    assert r"\textbf{Idea.}" in tex
+    assert "Shift the contradiction to a smaller number." in tex
+    assert r"\paragraph{Case" not in tex
+    assert r"\paragraph{Idea" not in tex
+
+
+def test_build_solution_tex_renders_computation_and_conclusion_blocks_as_bold_lead_ins():
+    user = UserFactory(name="Author Display")
+    problem = _problem()
+    solution = _solution_with_blocks(
+        problem=problem,
+        author=user,
+        blocks=[
+            ("Computation", r"We obtain $a+b=n$.", "computation"),
+            ("Therefore", "This contradicts solitude.", "conclusion"),
+        ],
+    )
+    blocks = list(solution.blocks.order_by("position"))
+    tex = build_solution_tex_source(
+        solution=solution,
+        blocks=blocks,
+        media_root=Path(settings.MEDIA_ROOT),
+        problem_label="USAMO 2026 P4",
+    )
+    assert r"\textbf{Computation.}" in tex
+    assert r"We obtain $a+b=n$." in tex
+    assert r"\textbf{Therefore.}" in tex
+    assert "This contradicts solitude." in tex
+
+
 def test_build_solution_tex_emits_plain_text_block_body_as_latex():
     user = UserFactory()
     problem = _problem()

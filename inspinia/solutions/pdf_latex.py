@@ -137,6 +137,30 @@ def _render_proof_block(*, title: str, body: str) -> list[str]:
     return [r"\begin{proof}", body_text, r"\end{proof}", ""]
 
 
+def _render_heading_block(command: str, *, title: str, fallback: str, body: str) -> list[str]:
+    heading = (title or "").strip() or fallback
+    if not heading and not (body or "").strip():
+        return []
+    lines = [rf"\{command}*{{{heading}}}"]
+    if (body or "").strip():
+        lines.extend([(body or "").strip(), ""])
+    else:
+        lines.append("")
+    return lines
+
+
+def _render_bold_leadin(label: str, *, title: str, body: str) -> list[str]:
+    lead = ((title or "").strip() or label).rstrip(".")
+    if not lead and not (body or "").strip():
+        return []
+    lines = [rf"\textbf{{{lead}.}}"]
+    if (body or "").strip():
+        lines.extend([(body or "").strip(), ""])
+    else:
+        lines.append("")
+    return lines
+
+
 def _render_block(block: ProblemSolutionBlock) -> list[str]:
     if _is_plain_block(block):
         return [block.body_source or "", ""]
@@ -150,6 +174,26 @@ def _render_block(block: ProblemSolutionBlock) -> list[str]:
         return _render_theorem_like_block("fact", title=block.title or "", body=block.body_source or "")
     if slug == "proof":
         return _render_proof_block(title=block.title or "", body=block.body_source or "")
+    if slug == "section":
+        return _render_heading_block(
+            "section",
+            title=block.title or "",
+            fallback=(block.block_type.label if block.block_type else "Section"),
+            body=block.body_source or "",
+        )
+    if slug == "part":
+        return _render_heading_block(
+            "subsection",
+            title=block.title or "",
+            fallback=(block.block_type.label if block.block_type else "Part"),
+            body=block.body_source or "",
+        )
+    if slug in {"case", "subcase", "idea", "computation", "conclusion"}:
+        return _render_bold_leadin(
+            (block.block_type.label if block.block_type else slug.title()),
+            title=block.title or "",
+            body=block.body_source or "",
+        )
 
     heading = latex_escape_plain_text(_block_heading(block))
     return [rf"\paragraph{{{heading}}}", block.body_source or "", ""]
