@@ -907,50 +907,40 @@ def _problem_statement_list_filter_options(base) -> dict[str, list[str]]:
 
 
 def _statement_editor_table_payload() -> dict[str, object]:
-    statements = list(
-        ContestProblemStatement.objects.select_related("linked_problem").order_by(
-            "-updated_at",
-            "-id",
-        ),
-    )
-    if not statements:
+    statement_total = ContestProblemStatement.objects.count()
+    if statement_total == 0:
         return {
             "contest_names": [],
+            "is_capped": False,
+            "limit": ADMIN_TABLE_LATEST_LIMIT,
             "rows": [],
-            "stats": {
-                "active_total": 0,
-                "inactive_total": 0,
-                "total": 0,
-                "unlinked_total": 0,
-            },
+            "statement_total": 0,
             "year_values": [],
         }
 
-    rows: list[dict[str, object]] = []
-    active_total = 0
-    unlinked_total = 0
-    contest_names = sorted({statement.contest_name for statement in statements})
-    year_values = sorted({int(statement.contest_year) for statement in statements}, reverse=True)
-
-    for statement in statements:
-        if statement.is_active:
-            active_total += 1
-        if statement.linked_problem is None:
-            unlinked_total += 1
-
-        rows.append(_statement_editor_row(statement))
-
-    total = len(rows)
+    table_qs = ContestProblemStatement.objects.select_related("linked_problem").order_by(
+        "-updated_at",
+        "-id",
+    )
+    statements = list(table_qs[:ADMIN_TABLE_LATEST_LIMIT])
+    rows = [_statement_editor_row(statement) for statement in statements]
+    contest_names = list(
+        ContestProblemStatement.objects.order_by("contest_name")
+        .values_list("contest_name", flat=True)
+        .distinct(),
+    )
+    year_values = sorted(
+        {str(y) for y in ContestProblemStatement.objects.values_list("contest_year", flat=True).distinct()},
+        reverse=True,
+    )
+    is_capped = statement_total > ADMIN_TABLE_LATEST_LIMIT
     return {
         "contest_names": contest_names,
+        "is_capped": is_capped,
+        "limit": ADMIN_TABLE_LATEST_LIMIT,
         "rows": rows,
-        "stats": {
-            "active_total": active_total,
-            "inactive_total": total - active_total,
-            "total": total,
-            "unlinked_total": unlinked_total,
-        },
-        "year_values": [str(year) for year in year_values],
+        "statement_total": statement_total,
+        "year_values": year_values,
     }
 
 
@@ -3815,8 +3805,10 @@ def problem_statement_editor_view(request):
     context = {
         "statement_editor_contest_names": editor_payload["contest_names"],
         "statement_editor_rows": editor_payload["rows"],
-        "statement_editor_stats": editor_payload["stats"],
-        "statement_editor_total": len(editor_payload["rows"]),
+        "statement_editor_table_is_capped": editor_payload["is_capped"],
+        "statement_editor_table_limit": editor_payload["limit"],
+        "statement_editor_table_visible_total": len(editor_payload["rows"]),
+        "statement_editor_total": editor_payload["statement_total"],
         "statement_editor_year_values": editor_payload["year_values"],
     }
     return render(request, "pages/problem-statement-editor.html", context)
