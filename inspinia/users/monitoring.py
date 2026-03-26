@@ -25,6 +25,7 @@ SESSION_TOUCH_INTERVAL = timedelta(minutes=5)
 SESSION_TOUCH_CACHE_KEY = "_asterproof_session_last_touch_ts"
 USER_AGENT_MAX_LENGTH = 1000
 PATH_MAX_LENGTH = 255
+_MODEL_TABLE_EXISTS_CACHE: dict[tuple[str, str], bool] = {}
 
 
 def _trim(value: str | None, *, max_length: int) -> str:
@@ -34,11 +35,19 @@ def _trim(value: str | None, *, max_length: int) -> str:
 
 
 def _model_table_exists(model) -> bool:
-    connection = connections[router.db_for_write(model)]
+    db_alias = router.db_for_write(model) or "default"
+    cache_key = (db_alias, model._meta.db_table)  # noqa: SLF001
+    if _MODEL_TABLE_EXISTS_CACHE.get(cache_key, False):
+        return True
+
+    connection = connections[db_alias]
     try:
-        return model._meta.db_table in connection.introspection.table_names()  # noqa: SLF001
+        table_exists = model._meta.db_table in connection.introspection.table_names()  # noqa: SLF001
     except (OperationalError, ProgrammingError):
         return False
+    if table_exists:
+        _MODEL_TABLE_EXISTS_CACHE[cache_key] = True
+    return table_exists
 
 
 def get_client_ip(request: HttpRequest | None) -> str | None:

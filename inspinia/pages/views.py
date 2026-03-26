@@ -19,11 +19,16 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.db import IntegrityError
 from django.db import transaction
 from django.db.models import Avg
+from django.db.models import CharField
 from django.db.models import Count
 from django.db.models import F
 from django.db.models import Max
 from django.db.models import Min
+from django.db.models import OuterRef
 from django.db.models import Q
+from django.db.models import Subquery
+from django.db.models import Value
+from django.db.models.functions import Coalesce
 from django.http import Http404
 from django.http import HttpResponse
 from django.http import JsonResponse
@@ -91,6 +96,7 @@ from inspinia.pages.statement_metadata_backfill import import_statement_metadata
 from inspinia.pages.statement_metadata_backfill import statement_metadata_dataframe_from_excel
 from inspinia.pages.statement_metadata_backfill import statement_metadata_dataframe_from_rows
 from inspinia.pages.statement_metadata_backfill import statement_metadata_dataframe_from_text
+from inspinia.pages.topic_labels import FULL_TOPIC_LABEL_MAP
 from inspinia.pages.topic_labels import display_topic_label
 from inspinia.solutions.models import ProblemSolution
 from inspinia.users.models import AuditEvent
@@ -135,6 +141,7 @@ STATEMENT_LINKER_ERROR_PREVIEW_LIMIT = 5
 STATEMENT_METADATA_ERROR_PREVIEW_LIMIT = 5
 COMPLETION_BOARD_INITIAL_ROW_LIMIT = 30
 COMPLETION_BOARD_ROW_LOAD_STEP = 30
+ADMIN_TABLE_LATEST_LIMIT = 100
 
 
 class ProblemStatementCsvImportValidationError(ValueError):
@@ -594,7 +601,7 @@ def _completion_problem_for_statement(statement: ContestProblemStatement | None)
 
 
 def _statement_table_rows(base, *, user=None) -> list[dict]:
-    statements_list = list(base.select_related("linked_problem").order_by("-updated_at", "-id"))
+    statements_list = list(base)
     statement_ids = [statement.id for statement in statements_list]
     linked_problem_ids = sorted(
         {statement.linked_problem_id for statement in statements_list if statement.linked_problem_id is not None},
@@ -765,28 +772,21 @@ def _format_imo_slot_label(value: object) -> str:
     return ", ".join(f"P{p}" for p in parts if p)
 
 
-def _statement_row_search_blob(row: dict) -> str:
-    parts = [
-        str(row.get("contest_year") or ""),
-        str(row.get("contest_name") or ""),
-        str(row.get("linked_problem_topic") or ""),
-        str(row.get("problem_code") or ""),
-        str(row.get("day_label") or ""),
-        str(row.get("problem_uuid") or ""),
-        str(row.get("linked_problem_uuid") or ""),
-        str(row.get("user_completion_display") or ""),
-        str(row.get("user_completion_state_label") or ""),
-        str(row.get("linked_problem_confidence") or ""),
-        str(row.get("linked_problem_imo_slot_guess_value") or ""),
-        ", ".join(row.get("linked_problem_topic_tags") or []),
-        str(row.get("updated_at") or ""),
-        str(row.get("contest_year_problem") or ""),
-    ]
-    return " ".join(parts).lower()
+def _statement_topic_filter_values(topic_label: str) -> set[str]:
+    label = (topic_label or "").strip()
+    if not label:
+        return set()
+    topic_values = {label}
+    topic_values.update(
+        raw_topic
+        for raw_topic, display_label in FULL_TOPIC_LABEL_MAP.items()
+        if display_label == label
+    )
+    return {topic.strip() for topic in topic_values if topic.strip()}
 
 
-def _filter_statement_table_rows(  # noqa: C901, PLR0913
-    rows: list[dict],
+def _filter_statement_queryset(  # noqa: C901
+    base,
     *,
     q: str,
     year: str,
@@ -794,11 +794,26 @@ def _filter_statement_table_rows(  # noqa: C901, PLR0913
     confidence: str,
     mohs_min: str,
     mohs_max: str,
-) -> list[dict]:
-    qn = (q or "").strip().lower()
+) -> object:
+    filtered = annotate_effective_statement_analytics(
+        base.select_related("linked_problem"),
+    )
+
+    qn = (q or "").strip()
     year_s = (year or "").strip()
     topic_s = (topic or "").strip()
     confidence_s = (confidence or "").strip()
+
+    if year_s:
+        if not year_s.isdigit():
+            return filtered.none()
+        filtered = filtered.filter(contest_year=int(year_s))
+
+    if topic_s:
+        filtered = filtered.filter(_eff_topic__in=sorted(_statement_topic_filter_values(topic_s)))
+    if confidence_s:
+        filtered = filtered.filter(_eff_confidence=confidence_s)
+
     try:
         mn = int(mohs_min) if str(mohs_min).strip() != "" else None
     except ValueError:
@@ -807,29 +822,30 @@ def _filter_statement_table_rows(  # noqa: C901, PLR0913
         mx = int(mohs_max) if str(mohs_max).strip() != "" else None
     except ValueError:
         mx = None
+    if mn is not None:
+        filtered = filtered.filter(_eff_mohs__gte=mn)
+    if mx is not None:
+        filtered = filtered.filter(_eff_mohs__lte=mx)
 
-    def match(row: dict) -> bool:  # noqa: PLR0911
-        if year_s and str(row.get("contest_year") or "") != year_s:
-            return False
-        if topic_s and str(row.get("linked_problem_topic") or "") != topic_s:
-            return False
-        if confidence_s and str(row.get("linked_problem_confidence") or "") != confidence_s:
-            return False
-        if mn is not None or mx is not None:
-            mval = row.get("linked_problem_mohs")
-            if mval is None:
-                return False
-            try:
-                mv = int(mval)
-            except (TypeError, ValueError):
-                return False
-            if mn is not None and mv < mn:
-                return False
-            if mx is not None and mv > mx:
-                return False
-        return not (qn and qn not in _statement_row_search_blob(row))
+    if qn:
+        for token in qn.split():
+            token_query = (
+                Q(contest_name__icontains=token)
+                | Q(contest_year_problem__icontains=token)
+                | Q(problem_code__icontains=token)
+                | Q(day_label__icontains=token)
+                | Q(statement_latex__icontains=token)
+                | Q(_eff_topic__icontains=token)
+                | Q(_eff_confidence__icontains=token)
+                | Q(_eff_imo_slot_guess_value__icontains=token)
+                | Q(statement_topic_techniques__technique__icontains=token)
+                | Q(linked_problem__topic_techniques__technique__icontains=token)
+            )
+            if token.isdigit():
+                token_query |= Q(contest_year=int(token))
+            filtered = filtered.filter(token_query)
 
-    return [r for r in rows if match(r)]
+    return filtered.distinct()
 
 
 def _statement_table_rows_copy_tsv(rows: list[dict]) -> str:
@@ -863,17 +879,29 @@ def _statement_table_rows_copy_tsv(rows: list[dict]) -> str:
     return "".join(lines)
 
 
-def _problem_statement_list_filter_options(rows: list[dict]) -> dict[str, list[str]]:
-    years = sorted(
-        {str(r.get("contest_year") or "").strip() for r in rows if str(r.get("contest_year") or "").strip()},
-        key=lambda s: int(s) if s.isdigit() else 0,
-        reverse=True,
-    )
+def _problem_statement_list_filter_options(base) -> dict[str, list[str]]:
+    years = [
+        str(year_value)
+        for year_value in base.values_list("contest_year", flat=True).distinct().order_by("-contest_year")
+    ]
+    analytics_base = annotate_effective_statement_analytics(base)
     topics = sorted(
-        {str(r.get("linked_problem_topic") or "").strip() for r in rows if r.get("linked_problem_topic")},
+        {
+            display_topic_label(str(topic_value).strip())
+            for topic_value in analytics_base.exclude(_eff_topic="")
+            .values_list("_eff_topic", flat=True)
+            .distinct()
+            if str(topic_value).strip()
+        },
     )
     confidences = sorted(
-        {str(r.get("linked_problem_confidence") or "").strip() for r in rows if r.get("linked_problem_confidence")},
+        {
+            str(confidence_value).strip()
+            for confidence_value in analytics_base.exclude(_eff_confidence="")
+            .values_list("_eff_confidence", flat=True)
+            .distinct()
+            if str(confidence_value).strip()
+        },
     )
     return {"years": years, "topics": topics, "confidences": confidences}
 
@@ -2048,20 +2076,23 @@ def _user_completion_table_rows(completions: list[UserProblemCompletion]) -> tup
     return table_rows, filter_options
 
 
-def _admin_completion_listing_rows() -> tuple[list[dict], dict[str, int]]:
-    completions = list(
-        UserProblemCompletion.objects.select_related("user", "problem", "statement", "statement__linked_problem").order_by(
-            F("completion_date").desc(nulls_last=True),
-            "-updated_at",
-            "user__email",
-            "statement__contest_name",
-            "-statement__contest_year",
-            "statement__problem_code",
-            "problem__contest",
-            "-problem__year",
-            "problem__problem",
-        ),
-    )
+def _admin_completion_listing_rows(
+    completions: list[UserProblemCompletion] | None = None,
+) -> tuple[list[dict], dict[str, int]]:
+    if completions is None:
+        completions = list(
+            UserProblemCompletion.objects.select_related(
+                "user",
+                "problem",
+                "statement",
+                "statement__linked_problem",
+            ).order_by(
+                "-updated_at",
+                "-id",
+            ),
+        )
+    else:
+        completions = list(completions)
     if not completions:
         return [], {
             "contest_total": 0,
@@ -2161,12 +2192,17 @@ def _admin_completion_listing_rows() -> tuple[list[dict], dict[str, int]]:
     }
 
 
-def _admin_solution_listing_rows() -> tuple[list[dict], dict[str, int]]:
-    solutions = list(
-        ProblemSolution.objects.select_related("author", "problem")
-        .annotate(block_count=Count("blocks", distinct=True))
-        .order_by("-updated_at", "author__email", "problem__contest", "-problem__year", "problem__problem"),
-    )
+def _admin_solution_listing_rows(
+    solutions: list[ProblemSolution] | None = None,
+) -> tuple[list[dict], dict[str, int]]:
+    if solutions is None:
+        solutions = list(
+            ProblemSolution.objects.select_related("author", "problem")
+            .annotate(block_count=Count("blocks", distinct=True))
+            .order_by("-updated_at", "-id"),
+        )
+    else:
+        solutions = list(solutions)
     if not solutions:
         return [], {
             "author_total": 0,
@@ -3509,15 +3545,96 @@ def user_activity_dashboard_view(request):
 def completion_record_list_view(request):
     """Admin inventory of all saved user completion rows."""
     _require_admin_tools_access(request)
-    completion_rows, _completion_stats = _admin_completion_listing_rows()
     search_query = (request.GET.get("q") or "").strip()
     selected_contest = (request.GET.get("contest") or "").strip()
     selected_user = (request.GET.get("user") or "").strip()
     selected_date_status = (request.GET.get("date_status") or "").strip()
     selected_solution_status = (request.GET.get("solution_status") or "").strip()
 
+    completion_queryset = (
+        UserProblemCompletion.objects.select_related(
+            "user",
+            "problem",
+            "statement",
+            "statement__linked_problem",
+        )
+        .annotate(
+            _effective_contest=Coalesce(
+                "statement__contest_name",
+                "problem__contest",
+                Value("", output_field=CharField()),
+            ),
+            _effective_problem=Coalesce(
+                "statement__problem_code",
+                "problem__problem",
+                Value("", output_field=CharField()),
+            ),
+            _effective_problem_label=Coalesce(
+                "statement__contest_year_problem",
+                "problem__contest_year_problem",
+                Value("", output_field=CharField()),
+            ),
+            _effective_topic=Coalesce(
+                "statement__linked_problem__topic",
+                "problem__topic",
+                Value("", output_field=CharField()),
+            ),
+            _effective_problem_id=Coalesce(
+                "statement__linked_problem_id",
+                "problem_id",
+            ),
+        )
+        .annotate(
+            _effective_solution_status=Subquery(
+                ProblemSolution.objects.filter(
+                    author_id=OuterRef("user_id"),
+                    problem_id=OuterRef("_effective_problem_id"),
+                )
+                .order_by("-updated_at", "-id")
+                .values("status")[:1],
+            ),
+        )
+    )
+
+    if selected_contest:
+        completion_queryset = completion_queryset.filter(_effective_contest=selected_contest)
+    if selected_user:
+        completion_queryset = completion_queryset.filter(user__email=selected_user)
+    if selected_date_status == "known":
+        completion_queryset = completion_queryset.filter(completion_date__isnull=False)
+    elif selected_date_status == "unknown":
+        completion_queryset = completion_queryset.filter(completion_date__isnull=True)
+    if selected_solution_status == "none":
+        completion_queryset = completion_queryset.filter(
+            Q(_effective_solution_status__isnull=True) | Q(_effective_solution_status=""),
+        )
+    elif selected_solution_status:
+        completion_queryset = completion_queryset.filter(_effective_solution_status=selected_solution_status)
+    if search_query:
+        for token in search_query.split():
+            token_query = (
+                Q(user__name__icontains=token)
+                | Q(user__email__icontains=token)
+                | Q(_effective_contest__icontains=token)
+                | Q(_effective_problem__icontains=token)
+                | Q(_effective_problem_label__icontains=token)
+                | Q(_effective_topic__icontains=token)
+                | Q(_effective_solution_status__icontains=token)
+            )
+            if token.isdigit():
+                token_query |= Q(statement__contest_year=int(token)) | Q(problem__year=int(token))
+            completion_queryset = completion_queryset.filter(token_query)
+
+    completion_filtered_total = completion_queryset.count()
+    completion_rows, _completion_stats = _admin_completion_listing_rows(
+        list(
+            completion_queryset.order_by("-updated_at", "-id")[:ADMIN_TABLE_LATEST_LIMIT],
+        ),
+    )
+    completion_visible_total = len(completion_rows)
+
     completion_filter_options = {
-        "contests": sorted({row["contest"] for row in completion_rows}),
+        "contests": sorted({row["contest"] for row in completion_rows if row["contest"]}),
         "date_statuses": [
             label
             for label, present in (
@@ -3549,44 +3666,6 @@ def completion_record_list_view(request):
         ],
     }
 
-    if selected_contest:
-        completion_rows = [row for row in completion_rows if row["contest"] == selected_contest]
-    if selected_user:
-        completion_rows = [row for row in completion_rows if row["user_email"] == selected_user]
-    if selected_date_status == "known":
-        completion_rows = [row for row in completion_rows if row["completion_date"] != "Unknown"]
-    elif selected_date_status == "unknown":
-        completion_rows = [row for row in completion_rows if row["completion_date"] == "Unknown"]
-    if selected_solution_status:
-        completion_rows = [
-            row
-            for row in completion_rows
-            if (row["solution_status"] or "none") == selected_solution_status
-        ]
-    if search_query:
-        tokens = search_query.lower().split()
-        completion_rows = [
-            row
-            for row in completion_rows
-            if all(
-                token
-                in " ".join(
-                    [
-                        row["user_label"],
-                        row["user_email"],
-                        row["contest"],
-                        str(row["year"]),
-                        row["problem"],
-                        row["problem_label"],
-                        row["topic"],
-                        row["completion_date"],
-                        row["solution_status_label"],
-                    ],
-                ).lower()
-                for token in tokens
-            )
-        ]
-
     completion_stats = _admin_completion_listing_stats(completion_rows)
     context = {
         "completion_record_filter_options": completion_filter_options,
@@ -3599,6 +3678,9 @@ def completion_record_list_view(request):
         },
         "completion_record_rows": completion_rows,
         "completion_record_stats": completion_stats,
+        "completion_record_visible_total": completion_visible_total,
+        "completion_record_result_limit": ADMIN_TABLE_LATEST_LIMIT,
+        "completion_record_is_capped": completion_filtered_total > completion_visible_total,
     }
     return render(request, "pages/completion-record-list.html", context)
 
@@ -3607,14 +3689,45 @@ def completion_record_list_view(request):
 def user_solution_record_list_view(request):
     """Admin inventory of all saved user-authored solutions."""
     _require_admin_tools_access(request)
-    solution_rows, _solution_stats = _admin_solution_listing_rows()
     search_query = (request.GET.get("q") or "").strip()
     selected_contest = (request.GET.get("contest") or "").strip()
     selected_user = (request.GET.get("user") or "").strip()
     selected_status = (request.GET.get("status") or "").strip()
 
+    solution_queryset = ProblemSolution.objects.select_related("author", "problem").annotate(
+        block_count=Count("blocks", distinct=True),
+    )
+
+    if selected_contest:
+        solution_queryset = solution_queryset.filter(problem__contest=selected_contest)
+    if selected_user:
+        solution_queryset = solution_queryset.filter(author__email=selected_user)
+    if selected_status:
+        solution_queryset = solution_queryset.filter(status=selected_status)
+    if search_query:
+        for token in search_query.split():
+            token_query = (
+                Q(author__name__icontains=token)
+                | Q(author__email__icontains=token)
+                | Q(problem__contest__icontains=token)
+                | Q(problem__problem__icontains=token)
+                | Q(problem__contest_year_problem__icontains=token)
+                | Q(problem__topic__icontains=token)
+                | Q(title__icontains=token)
+                | Q(status__icontains=token)
+            )
+            if token.isdigit():
+                token_query |= Q(problem__year=int(token))
+            solution_queryset = solution_queryset.filter(token_query)
+
+    solution_filtered_total = solution_queryset.count()
+    solution_rows, _solution_stats = _admin_solution_listing_rows(
+        list(solution_queryset.order_by("-updated_at", "-id")[:ADMIN_TABLE_LATEST_LIMIT]),
+    )
+    solution_visible_total = len(solution_rows)
+
     solution_filter_options = {
-        "contests": sorted({row["contest"] for row in solution_rows}),
+        "contests": sorted({row["contest"] for row in solution_rows if row["contest"]}),
         "statuses": [
             status
             for status, _label in ProblemSolution.Status.choices
@@ -3635,36 +3748,6 @@ def user_solution_record_list_view(request):
         ],
     }
 
-    if selected_contest:
-        solution_rows = [row for row in solution_rows if row["contest"] == selected_contest]
-    if selected_user:
-        solution_rows = [row for row in solution_rows if row["user_email"] == selected_user]
-    if selected_status:
-        solution_rows = [row for row in solution_rows if row["status"] == selected_status]
-    if search_query:
-        tokens = search_query.lower().split()
-        solution_rows = [
-            row
-            for row in solution_rows
-            if all(
-                token
-                in " ".join(
-                    [
-                        row["user_label"],
-                        row["user_email"],
-                        row["contest"],
-                        str(row["year"]),
-                        row["problem"],
-                        row["problem_label"],
-                        row["topic"],
-                        row["title"],
-                        row["status_label"],
-                    ],
-                ).lower()
-                for token in tokens
-            )
-        ]
-
     solution_stats = _admin_solution_listing_stats(solution_rows)
     context = {
         "user_solution_record_filter_options": solution_filter_options,
@@ -3676,6 +3759,9 @@ def user_solution_record_list_view(request):
         },
         "user_solution_record_rows": solution_rows,
         "user_solution_record_stats": solution_stats,
+        "user_solution_record_visible_total": solution_visible_total,
+        "user_solution_record_result_limit": ADMIN_TABLE_LATEST_LIMIT,
+        "user_solution_record_is_capped": solution_filtered_total > solution_visible_total,
     }
     return render(request, "pages/user-solution-record-list.html", context)
 
@@ -3920,10 +4006,6 @@ def problem_statement_list_view(request):
     if year_min is not None and year_max is not None:
         year_range_label = str(year_min) if year_min == year_max else f"{year_min}-{year_max}"
 
-    table_rows = _statement_table_rows(base, user=request.user) if statement_total else []
-    table_rows = _json_script_safe(table_rows)
-    _ = json.dumps(table_rows, cls=DjangoJSONEncoder, allow_nan=False)
-
     fq = (request.GET.get("q") or "").strip()
     fyear = (request.GET.get("year") or "").strip()
     ftopic = (request.GET.get("topic") or "").strip()
@@ -3931,8 +4013,8 @@ def problem_statement_list_view(request):
     fmohs_min = (request.GET.get("mohs_min") or "").strip()
     fmohs_max = (request.GET.get("mohs_max") or "").strip()
 
-    filtered_rows = _filter_statement_table_rows(
-        table_rows,
+    filtered_statements = _filter_statement_queryset(
+        base,
         q=fq,
         year=fyear,
         topic=ftopic,
@@ -3940,10 +4022,25 @@ def problem_statement_list_view(request):
         mohs_min=fmohs_min,
         mohs_max=fmohs_max,
     )
-    filter_options = _problem_statement_list_filter_options(table_rows)
-    statement_datatable_rows = _json_script_safe(filtered_rows)
+    statement_filtered_total = filtered_statements.count()
+    visible_statement_rows = (
+        _statement_table_rows(
+            list(
+                filtered_statements.order_by("-updated_at", "-id")[:ADMIN_TABLE_LATEST_LIMIT],
+            ),
+            user=request.user,
+        )
+        if statement_filtered_total
+        else []
+    )
+    visible_statement_rows = _json_script_safe(visible_statement_rows)
+    _ = json.dumps(visible_statement_rows, cls=DjangoJSONEncoder, allow_nan=False)
+    statement_visible_total = len(visible_statement_rows)
+
+    filter_options = _problem_statement_list_filter_options(base)
+    statement_datatable_rows = visible_statement_rows
     _ = json.dumps(statement_datatable_rows, cls=DjangoJSONEncoder, allow_nan=False)
-    copy_tsv = _statement_table_rows_copy_tsv(filtered_rows)
+    copy_tsv = _statement_table_rows_copy_tsv(visible_statement_rows)
 
     context = {
         "statement_total": statement_total,
@@ -3953,9 +4050,12 @@ def problem_statement_list_view(request):
             "unlinked_total": statement_total - linked_total,
             "year_range_label": year_range_label,
         },
-        "statement_table_rows": table_rows,
+        "statement_table_rows": visible_statement_rows,
         "statement_datatable_rows": statement_datatable_rows,
-        "statement_filtered_total": len(filtered_rows),
+        "statement_filtered_total": statement_filtered_total,
+        "statement_visible_total": statement_visible_total,
+        "statement_result_limit": ADMIN_TABLE_LATEST_LIMIT,
+        "statement_is_capped": statement_filtered_total > statement_visible_total,
         "statement_list_filters": {
             "q": fq,
             "year": fyear,

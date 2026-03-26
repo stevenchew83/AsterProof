@@ -265,9 +265,18 @@
               {% endif %}
             </div>
           </div>
+          {% if statement_is_capped %}
+          <div class="alert alert-info py-2 mb-2" role="alert">
+            Showing latest {{ statement_result_limit }} rows out of {{ statement_filtered_total }} matches. Use search and filters to narrow further.
+          </div>
+          {% endif %}
           <p class="statement-table-meta mb-2">
             {% if statement_filtered_total %}
+            {% if statement_is_capped %}
+            Showing {{ statement_visible_total }} latest matching row{{ statement_visible_total|pluralize }} ({{ statement_filtered_total }} match current filters; {{ statement_total }} total in library). Sort and page in the table; change which rows load with Search and Apply filters above.
+            {% else %}
             Showing {{ statement_filtered_total }} matching row{{ statement_filtered_total|pluralize }} ({{ statement_total }} total in library). Sort and page in the table; change which rows load with Search and Apply filters above.
+            {% endif %}
             {% else %}
             No rows match the current filters ({{ statement_total }} total in library).
             {% endif %}

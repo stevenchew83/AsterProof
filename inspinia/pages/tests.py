@@ -4294,6 +4294,97 @@ def test_completion_record_list_renders_admin_inventory(client):
     assert 'id="completion-record-table"' in response_html
 
 
+def test_completion_record_list_caps_to_latest_100_by_updated_at(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    completion_user = UserFactory(name="Cap Test User")
+    client.force_login(admin_user)
+    now = timezone.now()
+
+    for offset in range(120):
+        problem = ProblemSolveRecord.objects.create(
+            year=2026,
+            topic="ALG",
+            mohs=4,
+            contest="USAMO",
+            problem=f"P{offset + 1}",
+            contest_year_problem=f"USAMO 2026 P{offset + 1}",
+        )
+        completion = UserProblemCompletion.objects.create(
+            user=completion_user,
+            problem=problem,
+            completion_date=date(2026, 7, 10),
+        )
+        UserProblemCompletion.objects.filter(pk=completion.pk).update(
+            updated_at=now - timedelta(minutes=offset),
+        )
+
+    response = client.get(reverse("pages:completion_record_list"))
+
+    assert response.status_code == HTTPStatus.OK
+    rows = response.context["completion_record_rows"]
+    assert len(rows) == 100
+    assert rows[0]["problem"] == "P1"
+    assert rows[-1]["problem"] == "P100"
+    assert response.context["completion_record_visible_total"] == 100
+    assert response.context["completion_record_result_limit"] == 100
+    assert response.context["completion_record_is_capped"] is True
+
+
+def test_completion_record_list_applies_filters_before_latest_100_cap(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    completion_user = UserFactory(name="Filter Cap User")
+    client.force_login(admin_user)
+    now = timezone.now()
+
+    for offset in range(120):
+        problem = ProblemSolveRecord.objects.create(
+            year=2026,
+            topic="ALG",
+            mohs=4,
+            contest="IMO",
+            problem=f"P{offset + 1}",
+            contest_year_problem=f"IMO 2026 P{offset + 1}",
+        )
+        completion = UserProblemCompletion.objects.create(
+            user=completion_user,
+            problem=problem,
+            completion_date=date(2026, 8, 1),
+        )
+        UserProblemCompletion.objects.filter(pk=completion.pk).update(
+            updated_at=now - timedelta(minutes=offset),
+        )
+
+    for offset in range(3):
+        problem = ProblemSolveRecord.objects.create(
+            year=2025,
+            topic="GEO",
+            mohs=5,
+            contest="USAMO",
+            problem=f"Q{offset + 1}",
+            contest_year_problem=f"USAMO 2025 Q{offset + 1}",
+        )
+        completion = UserProblemCompletion.objects.create(
+            user=completion_user,
+            problem=problem,
+            completion_date=date(2025, 8, 1),
+        )
+        UserProblemCompletion.objects.filter(pk=completion.pk).update(
+            updated_at=now - timedelta(days=10, minutes=offset),
+        )
+
+    broad = client.get(reverse("pages:completion_record_list"), {"contest": "IMO"})
+    assert broad.status_code == HTTPStatus.OK
+    assert len(broad.context["completion_record_rows"]) == 100
+    assert all(row["contest"] == "IMO" for row in broad.context["completion_record_rows"])
+    assert broad.context["completion_record_is_capped"] is True
+
+    narrow = client.get(reverse("pages:completion_record_list"), {"contest": "USAMO"})
+    assert narrow.status_code == HTTPStatus.OK
+    assert len(narrow.context["completion_record_rows"]) == 3
+    assert all(row["contest"] == "USAMO" for row in narrow.context["completion_record_rows"])
+    assert narrow.context["completion_record_is_capped"] is False
+
+
 def test_user_solution_record_list_renders_admin_inventory(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     solution_author = UserFactory(name="Mary Cartwright")
@@ -4335,6 +4426,101 @@ def test_user_solution_record_list_renders_admin_inventory(client):
     assert "User solution listing" in response_html
     assert 'id="user-solution-record-table"' in response_html
     assert f'"solution_url": "{reverse("solutions:problem_solution_list", args=[problem.problem_uuid])}?solution={solution.id}#solution-{solution.id}"' in response_html
+
+
+def test_user_solution_record_list_caps_to_latest_100_by_updated_at(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    solution_author = UserFactory(name="Solution Cap User")
+    client.force_login(admin_user)
+    now = timezone.now()
+
+    for offset in range(120):
+        problem = ProblemSolveRecord.objects.create(
+            year=2026,
+            topic="ALG",
+            mohs=3,
+            contest="IMO",
+            problem=f"P{offset + 1}",
+            contest_year_problem=f"IMO 2026 P{offset + 1}",
+        )
+        solution = ProblemSolution.objects.create(
+            problem=problem,
+            author=solution_author,
+            title=f"Solution {offset + 1}",
+            status=ProblemSolution.Status.DRAFT,
+        )
+        ProblemSolution.objects.filter(pk=solution.pk).update(
+            updated_at=now - timedelta(minutes=offset),
+        )
+
+    response = client.get(reverse("pages:user_solution_record_list"))
+
+    assert response.status_code == HTTPStatus.OK
+    rows = response.context["user_solution_record_rows"]
+    assert len(rows) == 100
+    assert rows[0]["problem"] == "P1"
+    assert rows[-1]["problem"] == "P100"
+    assert response.context["user_solution_record_visible_total"] == 100
+    assert response.context["user_solution_record_result_limit"] == 100
+    assert response.context["user_solution_record_is_capped"] is True
+
+
+def test_user_solution_record_list_applies_filters_before_latest_100_cap(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    solution_author = UserFactory(name="Solution Filter User")
+    client.force_login(admin_user)
+    now = timezone.now()
+
+    for offset in range(120):
+        problem = ProblemSolveRecord.objects.create(
+            year=2026,
+            topic="ALG",
+            mohs=3,
+            contest="IMO",
+            problem=f"P{offset + 1}",
+            contest_year_problem=f"IMO 2026 P{offset + 1}",
+        )
+        solution = ProblemSolution.objects.create(
+            problem=problem,
+            author=solution_author,
+            title=f"IMO Solution {offset + 1}",
+            status=ProblemSolution.Status.DRAFT,
+        )
+        ProblemSolution.objects.filter(pk=solution.pk).update(
+            updated_at=now - timedelta(minutes=offset),
+        )
+
+    for offset in range(3):
+        problem = ProblemSolveRecord.objects.create(
+            year=2025,
+            topic="GEO",
+            mohs=4,
+            contest="USAMO",
+            problem=f"Q{offset + 1}",
+            contest_year_problem=f"USAMO 2025 Q{offset + 1}",
+        )
+        solution = ProblemSolution.objects.create(
+            problem=problem,
+            author=solution_author,
+            title=f"USAMO Solution {offset + 1}",
+            status=ProblemSolution.Status.PUBLISHED,
+            published_at=now - timedelta(days=1),
+        )
+        ProblemSolution.objects.filter(pk=solution.pk).update(
+            updated_at=now - timedelta(days=10, minutes=offset),
+        )
+
+    broad = client.get(reverse("pages:user_solution_record_list"), {"contest": "IMO"})
+    assert broad.status_code == HTTPStatus.OK
+    assert len(broad.context["user_solution_record_rows"]) == 100
+    assert all(row["contest"] == "IMO" for row in broad.context["user_solution_record_rows"])
+    assert broad.context["user_solution_record_is_capped"] is True
+
+    narrow = client.get(reverse("pages:user_solution_record_list"), {"contest": "USAMO"})
+    assert narrow.status_code == HTTPStatus.OK
+    assert len(narrow.context["user_solution_record_rows"]) == 3
+    assert all(row["contest"] == "USAMO" for row in narrow.context["user_solution_record_rows"])
+    assert narrow.context["user_solution_record_is_capped"] is False
 
 
 def test_completion_record_list_applies_query_filters(client):
@@ -5073,6 +5259,110 @@ def test_problem_statement_list_shows_statement_rows_and_link_counts(client):
     assert "data-completion-toggle-url=" not in response_html
     assert "statement-table-shell" in response_html
     assert response.context["statement_filtered_total"] == EXPECTED_CONTEST_TOTAL
+
+
+def test_problem_statement_list_caps_to_latest_100_by_updated_at(client):
+    user = UserFactory()
+    client.force_login(user)
+    now = timezone.now()
+
+    for offset in range(120):
+        statement = ContestProblemStatement.objects.create(
+            contest_year=2026,
+            contest_name="IMO",
+            problem_number=offset + 1,
+            day_label="Day 1",
+            problem_code=f"P{offset + 1}",
+            statement_latex=f"Statement {offset + 1}",
+        )
+        ContestProblemStatement.objects.filter(pk=statement.pk).update(
+            updated_at=now - timedelta(minutes=offset),
+        )
+
+    response = client.get(reverse("pages:problem_statement_list"))
+
+    assert response.status_code == HTTPStatus.OK
+    rows = response.context["statement_datatable_rows"]
+    assert len(rows) == 100
+    assert rows[0]["problem_code"] == "P1"
+    assert rows[-1]["problem_code"] == "P100"
+    assert response.context["statement_visible_total"] == 100
+    assert response.context["statement_result_limit"] == 100
+    assert response.context["statement_is_capped"] is True
+
+
+def test_problem_statement_list_filter_applies_before_latest_100_cap(client):
+    user = UserFactory()
+    client.force_login(user)
+    now = timezone.now()
+
+    for offset in range(120):
+        statement = ContestProblemStatement.objects.create(
+            contest_year=2026,
+            contest_name="IMO",
+            problem_number=offset + 1,
+            day_label="Day 1",
+            problem_code=f"P{offset + 1}",
+            statement_latex=f"IMO statement {offset + 1}",
+        )
+        ContestProblemStatement.objects.filter(pk=statement.pk).update(
+            updated_at=now - timedelta(minutes=offset),
+        )
+
+    for offset in range(3):
+        statement = ContestProblemStatement.objects.create(
+            contest_year=2025,
+            contest_name="USAMO",
+            problem_number=offset + 1,
+            day_label="Day 1",
+            problem_code=f"Q{offset + 1}",
+            statement_latex=f"USAMO statement {offset + 1}",
+        )
+        ContestProblemStatement.objects.filter(pk=statement.pk).update(
+            updated_at=now - timedelta(days=10, minutes=offset),
+        )
+
+    broad = client.get(reverse("pages:problem_statement_list"), {"q": "IMO"})
+    assert broad.status_code == HTTPStatus.OK
+    assert len(broad.context["statement_datatable_rows"]) == 100
+    assert broad.context["statement_is_capped"] is True
+
+    narrow = client.get(reverse("pages:problem_statement_list"), {"q": "USAMO"})
+    assert narrow.status_code == HTTPStatus.OK
+    assert len(narrow.context["statement_datatable_rows"]) == 3
+    assert all(row["contest_name"] == "USAMO" for row in narrow.context["statement_datatable_rows"])
+    assert narrow.context["statement_is_capped"] is False
+
+
+def test_problem_statement_list_invalid_mohs_filters_are_non_fatal(client):
+    user = UserFactory()
+    client.force_login(user)
+    linked_problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="ALG",
+        mohs=5,
+        contest="IMO",
+        problem="P1",
+        contest_year_problem="IMO 2026 P1",
+    )
+    ContestProblemStatement.objects.create(
+        contest_year=2026,
+        contest_name="IMO",
+        problem_number=1,
+        day_label="Day 1",
+        problem_code="P1",
+        statement_latex="Linked statement",
+        linked_problem=linked_problem,
+    )
+
+    response = client.get(
+        reverse("pages:problem_statement_list"),
+        {"mohs_min": "abc", "mohs_max": "xyz"},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["statement_filtered_total"] == 1
+    assert len(response.context["statement_datatable_rows"]) == 1
 
 
 def test_problem_statement_list_skips_datatables_when_filters_match_nothing(client):
