@@ -727,7 +727,8 @@ def test_build_solution_tex_splits_claim_title_from_claim_body():
     assert r"\end{claim}" in tex
     assert tex.index("1 is solitary.") < tex.index(r"\end{claim}")
     assert tex.index(r"\end{claim}") < tex.index(r"\begin{proof}")
-    assert "This is trivial." not in tex[: tex.index(r"\end{claim}")]
+    assert "This is trivial." in tex
+    assert tex.index("This is trivial.") > tex.index(r"\end{claim}")
     assert r"\begin{proof}[Induction step]" in tex
     assert "Assume the result for $n$." in tex
     assert r"\end{proof}" in tex
@@ -749,6 +750,7 @@ def test_build_solution_tex_claim_body_only_stays_in_claim_box():
         problem_label="USAMO 2026 P4",
     )
     assert r"\begin{claim}" in tex
+    assert tex.index(r"\begin{claim}") < tex.index("Only the statement text.") < tex.index(r"\end{claim}")
     assert "Only the statement text." in tex
     assert r"\begin{proof}" not in tex
     assert r"\end{claim}" in tex
