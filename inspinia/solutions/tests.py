@@ -727,7 +727,7 @@ def test_build_solution_tex_splits_claim_title_from_claim_body():
     assert r"\end{claim}" in tex
     assert tex.index("1 is solitary.") < tex.index(r"\end{claim}")
     assert tex.index(r"\end{claim}") < tex.index(r"\begin{proof}")
-    assert tex.count(r"\begin{proof}") == 2
+    assert tex.count(r"\begin{proof}") == len({"claim", "proof"})
     assert "This is trivial." in tex
     first_proof_begin = tex.index(r"\begin{proof}")
     first_proof_end = tex.index(r"\end{proof}")
