@@ -705,7 +705,7 @@ def test_build_solution_tex_wraps_problem_statement_in_mdpurplebox():
     assert r"Let $ABC$ be a triangle. Prove $a+b>c$." in tex
 
 
-def test_build_solution_tex_maps_claim_and_proof_blocks_to_evan_environments():
+def test_build_solution_tex_splits_claim_title_from_claim_body():
     user = UserFactory(name="Author Display")
     problem = _problem()
     solution = _solution_with_blocks(
@@ -724,11 +724,56 @@ def test_build_solution_tex_maps_claim_and_proof_blocks_to_evan_environments():
         problem_label="USAMO 2026 P4",
     )
     assert r"\begin{claim}" in tex
-    assert "1 is solitary." in tex
     assert r"\end{claim}" in tex
+    assert tex.index("1 is solitary.") > tex.index(r"\end{claim}")
+    assert tex.index(r"\end{claim}") < tex.index(r"\begin{proof}")
+    assert "This is trivial." not in tex[: tex.index(r"\end{claim}")]
     assert r"\begin{proof}[Induction step]" in tex
     assert "Assume the result for $n$." in tex
     assert r"\end{proof}" in tex
+
+
+def test_build_solution_tex_claim_body_only_stays_in_claim_box():
+    user = UserFactory(name="Author Display")
+    problem = _problem()
+    solution = _solution_with_blocks(
+        problem=problem,
+        author=user,
+        blocks=[("", "Only the statement text.", "claim")],
+    )
+    blocks = list(solution.blocks.order_by("position"))
+    tex = build_solution_tex_source(
+        solution=solution,
+        blocks=blocks,
+        media_root=Path(settings.MEDIA_ROOT),
+        problem_label="USAMO 2026 P4",
+    )
+    assert r"\begin{claim}" in tex
+    assert "Only the statement text." in tex
+    assert r"\begin{proof}" not in tex
+    assert r"\end{claim}" in tex
+
+
+def test_build_solution_tex_uses_single_line_spacing_between_blocks():
+    user = UserFactory(name="Author Display")
+    problem = _problem()
+    solution = _solution_with_blocks(
+        problem=problem,
+        author=user,
+        blocks=[
+            ("Note", "First block.", "remark"),
+            ("Second note", "Second block.", "remark"),
+        ],
+    )
+    blocks = list(solution.blocks.order_by("position"))
+    tex = build_solution_tex_source(
+        solution=solution,
+        blocks=blocks,
+        media_root=Path(settings.MEDIA_ROOT),
+        problem_label="USAMO 2026 P4",
+    )
+    assert r"\addvspace{\baselineskip}" in tex
+    assert r"\addvspace{2\baselineskip}" not in tex
 
 
 def test_build_solution_tex_maps_observation_to_fact_and_preserves_raw_latex_titles():
