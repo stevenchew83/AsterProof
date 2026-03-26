@@ -211,6 +211,53 @@ def _resolved_problem_for_statement(
     return None
 
 
+def _record_has_metadata_for_dashboard(record: ProblemSolveRecord | None) -> bool:
+    """Match browser-editor readiness: both topic and MOHS must be non-blank (see export dataframe)."""
+    if record is None:
+        return False
+    topic_cell = record.topic
+    topic_str = "" if topic_cell is None else str(topic_cell).strip()
+    mohs_cell = record.mohs
+    mohs_str = "" if mohs_cell is None else str(mohs_cell).strip()
+    return bool(topic_str and mohs_str)
+
+
+def statement_metadata_dashboard_stats() -> dict[str, int]:
+    """Full counts for the Statement metadata page KPIs (not limited to the browser table)."""
+    statements = list(
+        ContestProblemStatement.objects.select_related("linked_problem").order_by(
+            "-contest_year",
+            "contest_name",
+            "day_label",
+            "problem_number",
+            "problem_code",
+        ),
+    )
+    if not statements:
+        return {
+            "linked_total": 0,
+            "missing_total": 0,
+            "ready_total": 0,
+            "statement_total": 0,
+        }
+    records_by_uuid = _build_statement_problem_lookup(statements)
+    linked_total = 0
+    ready_total = 0
+    for statement in statements:
+        if statement.linked_problem_id:
+            linked_total += 1
+        record = _resolved_problem_for_statement(statement, records_by_uuid=records_by_uuid)
+        if _record_has_metadata_for_dashboard(record):
+            ready_total += 1
+    statement_total = len(statements)
+    return {
+        "linked_total": linked_total,
+        "missing_total": statement_total - ready_total,
+        "ready_total": ready_total,
+        "statement_total": statement_total,
+    }
+
+
 def build_statement_metadata_export_dataframe(
     statements: list[ContestProblemStatement],
 ) -> pd.DataFrame:

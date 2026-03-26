@@ -244,9 +244,20 @@
               Edit multiple statement rows directly in the table, stage only the rows you touched, then save them together in one batch.
             </p>
           </div>
-          <span class="badge text-bg-light">{{ statement_metadata_stats.statement_total }} rows</span>
+          <span class="badge text-bg-light">
+            {% if statement_metadata_table_is_capped %}
+            Latest {{ statement_metadata_table_visible_total }} of {{ statement_metadata_stats.statement_total }} rows
+            {% else %}
+            {{ statement_metadata_stats.statement_total }} rows
+            {% endif %}
+          </span>
         </div>
         <div class="card-body">
+          {% if statement_metadata_table_is_capped %}
+          <div class="alert alert-info py-2 mb-3" role="alert">
+            Browser editor loads the latest {{ statement_metadata_table_limit }} statement rows (same sort as export). Use search and filters, or export/import the full workbook for bulk edits.
+          </div>
+          {% endif %}
           <div class="statement-metadata-toolbar">
             <div class="statement-metadata-toolbar-copy">
               <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Suggested workflow</p>

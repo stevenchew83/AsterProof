@@ -94,6 +94,7 @@ from inspinia.pages.statement_metadata_backfill import build_statement_metadata_
 from inspinia.pages.statement_metadata_backfill import build_statement_metadata_export_workbook_bytes
 from inspinia.pages.statement_metadata_backfill import import_statement_metadata_dataframe
 from inspinia.pages.statement_metadata_backfill import statement_metadata_dataframe_from_excel
+from inspinia.pages.statement_metadata_backfill import statement_metadata_dashboard_stats
 from inspinia.pages.statement_metadata_backfill import statement_metadata_dataframe_from_rows
 from inspinia.pages.statement_metadata_backfill import statement_metadata_dataframe_from_text
 from inspinia.pages.topic_labels import FULL_TOPIC_LABEL_MAP
@@ -5652,36 +5653,36 @@ def _export_statement_metadata_workbook_response() -> HttpResponse:
 
 
 def _statement_metadata_table_payload() -> dict[str, object]:
+    stats = statement_metadata_dashboard_stats()
+    statement_order = (
+        "-contest_year",
+        "contest_name",
+        "day_label",
+        "problem_number",
+        "problem_code",
+    )
     statements = list(
-        ContestProblemStatement.objects.select_related("linked_problem").order_by(
-            "-contest_year",
-            "contest_name",
-            "day_label",
-            "problem_number",
-            "problem_code",
-        ),
+        ContestProblemStatement.objects.select_related("linked_problem")
+        .order_by(*statement_order)
+        [:ADMIN_TABLE_LATEST_LIMIT],
     )
     export_rows = build_statement_metadata_export_dataframe(statements).fillna("").to_dict(orient="records")
 
-    contest_names: list[str] = []
-    seen_contest_names: set[str] = set()
-    year_values: list[str] = []
-    seen_year_values: set[str] = set()
+    contest_names = list(
+        ContestProblemStatement.objects.order_by("contest_name")
+        .values_list("contest_name", flat=True)
+        .distinct(),
+    )
+    year_values = sorted(
+        {str(y) for y in ContestProblemStatement.objects.values_list("contest_year", flat=True).distinct()},
+        reverse=True,
+    )
     table_rows: list[dict[str, object]] = []
-    linked_total = 0
-    ready_total = 0
 
     for statement, export_row in zip(statements, export_rows, strict=True):
         contest_name = statement.contest_name
         contest_year = int(statement.contest_year)
         contest_year_label = f"{contest_name} {contest_year}"
-        year_value = str(contest_year)
-        if contest_name not in seen_contest_names:
-            seen_contest_names.add(contest_name)
-            contest_names.append(contest_name)
-        if year_value not in seen_year_values:
-            seen_year_values.add(year_value)
-            year_values.append(year_value)
 
         topic = str(export_row.get("TOPIC") or "")
         mohs = str(export_row.get("MOHS") or "")
@@ -5697,11 +5698,6 @@ def _statement_metadata_table_payload() -> dict[str, object]:
                 f"{statement.linked_problem.year} "
                 f"{statement.linked_problem.problem}"
             )
-
-        if has_metadata:
-            ready_total += 1
-        if is_linked:
-            linked_total += 1
 
         day_label_display = statement.day_label or "Unlabeled"
         contest_problem_display = (
@@ -5733,16 +5729,12 @@ def _statement_metadata_table_payload() -> dict[str, object]:
             },
         )
 
-    year_values.sort(reverse=True)
     return {
         "contest_names": contest_names,
+        "is_capped": stats["statement_total"] > ADMIN_TABLE_LATEST_LIMIT,
+        "limit": ADMIN_TABLE_LATEST_LIMIT,
         "rows": table_rows,
-        "stats": {
-            "linked_total": linked_total,
-            "missing_total": len(table_rows) - ready_total,
-            "ready_total": ready_total,
-            "statement_total": len(table_rows),
-        },
+        "stats": stats,
         "year_values": year_values,
     }
 
@@ -6361,7 +6353,10 @@ def problem_statement_metadata_view(request):
             "statement_metadata_contest_names": table_payload["contest_names"],
             "statement_metadata_rows": table_payload["rows"],
             "statement_metadata_stats": table_payload["stats"],
-            "statement_metadata_total": len(table_payload["rows"]),
+            "statement_metadata_table_is_capped": table_payload["is_capped"],
+            "statement_metadata_table_limit": table_payload["limit"],
+            "statement_metadata_table_visible_total": len(table_payload["rows"]),
+            "statement_metadata_total": table_payload["stats"]["statement_total"],
             "statement_metadata_year_values": table_payload["year_values"],
         },
     )
