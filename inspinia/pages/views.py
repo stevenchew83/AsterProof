@@ -5661,11 +5661,8 @@ def _statement_metadata_table_payload() -> dict[str, object]:
         "problem_number",
         "problem_code",
     )
-    statements = list(
-        ContestProblemStatement.objects.select_related("linked_problem")
-        .order_by(*statement_order)
-        [:ADMIN_TABLE_LATEST_LIMIT],
-    )
+    table_qs = ContestProblemStatement.objects.select_related("linked_problem").order_by(*statement_order)
+    statements = list(table_qs[:ADMIN_TABLE_LATEST_LIMIT])
     export_rows = build_statement_metadata_export_dataframe(statements).fillna("").to_dict(orient="records")
 
     contest_names = list(

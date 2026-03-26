@@ -285,7 +285,7 @@
           <div class="statement-metadata-filter-row">
             <div>
               <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-metadata-search">Search</label>
-              <input id="statement-metadata-search" type="search" class="form-control form-control-sm" placeholder="Search statement, contest, code, or metadata">
+              <input id="statement-metadata-search" type="search" class="form-control form-control-sm" placeholder="Search within the loaded table (latest rows shown below)">
             </div>
             <div>
               <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-metadata-status-filter">Status</label>
@@ -327,6 +327,8 @@
 </div>
 
 {{ statement_metadata_rows|json_script:"statement-metadata-table-data" }}
+{{ statement_metadata_contest_names|json_script:"statement-metadata-contest-names-data" }}
+{{ statement_metadata_year_values|json_script:"statement-metadata-year-values-data" }}
 {% endblock page_content %}
 
 {% block extra_javascript %}
@@ -554,15 +556,18 @@
     );
   }
 
-  populateSelect(
-    contestFilter,
-    Array.from(new Set(rows.map(function (row) { return row.contest_name; }))).sort()
-  );
+  var contestNamesEl = document.getElementById("statement-metadata-contest-names-data");
+  var yearValuesEl = document.getElementById("statement-metadata-year-values-data");
+  var contestNamesPayload = contestNamesEl ? JSON.parse(contestNamesEl.textContent) : [];
+  var yearValuesPayload = yearValuesEl ? JSON.parse(yearValuesEl.textContent) : [];
+  populateSelect(contestFilter, Array.isArray(contestNamesPayload) ? contestNamesPayload.slice().sort() : []);
   populateSelect(
     yearFilter,
-    Array.from(new Set(rows.map(function (row) { return String(row.contest_year); }))).sort(function (left, right) {
-      return Number(right) - Number(left);
-    })
+    Array.isArray(yearValuesPayload)
+      ? yearValuesPayload.slice().sort(function (left, right) {
+          return Number(right) - Number(left);
+        })
+      : []
   );
 
   var table = new DataTable("#statement-metadata-table", {
