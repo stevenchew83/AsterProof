@@ -5183,6 +5183,107 @@ def test_technique_dashboard_exposes_filters_and_legacy_alias(client):
     assert legacy_response.context["technique_total"] == 3
 
 
+def test_technique_dashboard_caps_to_latest_100_rows_by_record_created_at(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    now = timezone.now()
+
+    for offset in range(120):
+        problem = ProblemSolveRecord.objects.create(
+            year=2026,
+            topic="NT",
+            mohs=5,
+            contest="USAMO",
+            problem=f"P{offset + 1}",
+            contest_year_problem=f"USAMO 2026 P{offset + 1}",
+        )
+        ProblemSolveRecord.objects.filter(pk=problem.pk).update(
+            created_at=now - timedelta(minutes=offset),
+        )
+        ProblemTopicTechnique.objects.create(
+            record=problem,
+            technique=f"TAG-{offset + 1}",
+            domains=["NT"],
+        )
+
+    response = client.get(reverse("pages:technique_dashboard"))
+
+    assert response.status_code == HTTPStatus.OK
+    rows = response.context["technique_rows"]
+    technique_names = {row["technique"] for row in rows}
+    assert len(rows) == 100
+    assert "TAG-1" in technique_names
+    assert "TAG-100" in technique_names
+    assert "TAG-101" not in technique_names
+    assert "TAG-120" not in technique_names
+    assert response.context["technique_row_total"] == 100
+    assert response.context["technique_filtered_total"] == 120
+    assert response.context["technique_result_limit"] == 100
+    assert response.context["technique_is_capped"] is True
+    response_html = response.content.decode("utf-8")
+    assert "Showing latest 100 rows out of 120 matches." in response_html
+
+
+def test_technique_dashboard_applies_search_before_latest_100_cap(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    now = timezone.now()
+
+    for offset in range(120):
+        problem = ProblemSolveRecord.objects.create(
+            year=2026,
+            topic="ALG",
+            mohs=5,
+            contest="IMO",
+            problem=f"P{offset + 1}",
+            contest_year_problem=f"IMO 2026 P{offset + 1}",
+        )
+        ProblemSolveRecord.objects.filter(pk=problem.pk).update(
+            created_at=now - timedelta(minutes=offset),
+        )
+        ProblemTopicTechnique.objects.create(
+            record=problem,
+            technique=f"BROAD-{offset + 1}",
+            domains=["ALG"],
+        )
+
+    for offset in range(3):
+        problem = ProblemSolveRecord.objects.create(
+            year=2025,
+            topic="GEO",
+            mohs=6,
+            contest="USAMO",
+            problem=f"Q{offset + 1}",
+            contest_year_problem=f"USAMO 2025 Q{offset + 1}",
+        )
+        ProblemSolveRecord.objects.filter(pk=problem.pk).update(
+            created_at=now - timedelta(days=10, minutes=offset),
+        )
+        ProblemTopicTechnique.objects.create(
+            record=problem,
+            technique=f"NARROW-{offset + 1}",
+            domains=["GEO"],
+        )
+
+    broad = client.get(reverse("pages:technique_dashboard"), {"q": "IMO"})
+    assert broad.status_code == HTTPStatus.OK
+    assert len(broad.context["technique_rows"]) == 100
+    assert broad.context["technique_filtered_total"] == 120
+    assert broad.context["technique_is_capped"] is True
+    assert broad.context["initial_search_query"] == "IMO"
+
+    narrow = client.get(reverse("pages:technique_dashboard"), {"q": "USAMO"})
+    assert narrow.status_code == HTTPStatus.OK
+    assert len(narrow.context["technique_rows"]) == 3
+    assert narrow.context["technique_filtered_total"] == 3
+    assert narrow.context["technique_is_capped"] is False
+    assert narrow.context["initial_search_query"] == "USAMO"
+    assert all(
+        row["contests"] == ["USAMO"]
+        for row in narrow.context["technique_rows"]
+    )
+
+
 def test_problem_statement_linker_shows_rows_suggestions_and_candidate_groups(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)

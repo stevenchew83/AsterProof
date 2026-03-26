@@ -5410,10 +5410,26 @@ def topic_tag_analytics_view(request):
     """Technique analytics: coverage, breadth, and difficulty signals per parsed technique."""
     _require_admin_tools_access(request)
 
+    initial_search_query = (request.GET.get("q") or "").strip()
+
+    tag_queryset = ProblemTopicTechnique.objects.select_related("record")
+    if initial_search_query:
+        for token in initial_search_query.split():
+            token_filter = (
+                Q(technique__icontains=token)
+                | Q(domains__icontains=token)
+                | Q(record__contest__icontains=token)
+                | Q(record__problem__icontains=token)
+                | Q(record__contest_year_problem__icontains=token)
+                | Q(record__topic__icontains=token)
+            )
+            if token.isdigit():
+                token_filter |= Q(record__year=int(token))
+            tag_queryset = tag_queryset.filter(token_filter)
+
+    technique_filtered_total = tag_queryset.count()
     tag_rows = list(
-        ProblemTopicTechnique.objects.select_related("record")
-        .all()
-        .order_by("technique", "record__contest", "record__problem"),
+        tag_queryset.order_by("-record__created_at", "-id")[:ADMIN_TABLE_LATEST_LIMIT],
     )
     tag_directory = _build_topic_tag_directory_rows(tag_rows)
 
@@ -5549,7 +5565,11 @@ def topic_tag_analytics_view(request):
     context = {
         "technique_total": technique_total,
         "technique_row_total": technique_row_total,
+        "technique_filtered_total": technique_filtered_total,
+        "technique_result_limit": ADMIN_TABLE_LATEST_LIMIT,
+        "technique_is_capped": technique_filtered_total > technique_row_total,
         "tagged_problem_total": tagged_problem_total,
+        "initial_search_query": initial_search_query,
         "technique_stats": {
             "contest_total": len(distinct_contests),
             "domain_total": len(distinct_domains),
