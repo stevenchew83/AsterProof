@@ -2942,12 +2942,8 @@ def test_problem_statement_editor_page_renders_tools_for_admin(client):
 
     assert response.status_code == HTTPStatus.OK
     assert response.context["statement_editor_total"] == 3
-    assert response.context["statement_editor_stats"] == {
-        "active_total": 2,
-        "inactive_total": 1,
-        "total": 3,
-        "unlinked_total": 2,
-    }
+    assert response.context["statement_editor_table_is_capped"] is False
+    assert response.context["statement_editor_table_visible_total"] == 3
     assert response.context["statement_editor_contest_names"] == ["APMO", "IMO", "JBMO"]
     assert response.context["statement_editor_year_values"] == ["2025", "2024"]
     row_by_id = {row["statement_id"]: row for row in response.context["statement_editor_rows"]}
@@ -2986,6 +2982,30 @@ def test_problem_statement_editor_page_renders_tools_for_admin(client):
     assert "Edit raw statement rows" in response_html
     assert "Problem code" in response_html
     assert "Topic" in response_html
+
+
+def test_problem_statement_editor_table_loads_latest_100_rows_only(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    for i in range(ADMIN_TABLE_LATEST_LIMIT + 1):
+        ContestProblemStatement.objects.create(
+            contest_year=2026,
+            contest_name="Cap Contest",
+            problem_number=i + 1,
+            problem_code=f"P{i + 1}",
+            day_label="Day 1",
+            statement_latex=f"Body {i}",
+        )
+
+    response = client.get(reverse("pages:problem_statement_editor"))
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["statement_editor_total"] == ADMIN_TABLE_LATEST_LIMIT + 1
+    assert len(response.context["statement_editor_rows"]) == ADMIN_TABLE_LATEST_LIMIT
+    assert response.context["statement_editor_table_is_capped"] is True
+    response_html = response.content.decode("utf-8")
+    assert "Latest 100 of 101 rows" in response_html
+    assert "Showing the latest 100 rows" in response_html
 
 
 def test_problem_statement_editor_rejects_blank_statement_latex_for_admin(client):
@@ -3169,7 +3189,6 @@ def test_problem_statement_editor_renders_modal_error_shell_for_admin(client):
     assert response.status_code == HTTPStatus.OK
     response_html = response.content.decode("utf-8")
     assert 'id="statement-editor-modal-alert"' in response_html
-    assert 'id="statement-editor-total-card"' in response_html
     assert 'id="statement-editor-total-badge"' in response_html
     assert 'data-error-field="statement_id"' not in response_html
     assert 'data-error-field="statement_latex"' in response_html
