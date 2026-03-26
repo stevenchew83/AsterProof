@@ -94,7 +94,6 @@ from inspinia.pages.statement_metadata_backfill import build_statement_metadata_
 from inspinia.pages.statement_metadata_backfill import build_statement_metadata_export_workbook_bytes
 from inspinia.pages.statement_metadata_backfill import import_statement_metadata_dataframe
 from inspinia.pages.statement_metadata_backfill import statement_metadata_dataframe_from_excel
-from inspinia.pages.statement_metadata_backfill import statement_metadata_dashboard_stats
 from inspinia.pages.statement_metadata_backfill import statement_metadata_dataframe_from_rows
 from inspinia.pages.statement_metadata_backfill import statement_metadata_dataframe_from_text
 from inspinia.pages.topic_labels import FULL_TOPIC_LABEL_MAP
@@ -5653,7 +5652,7 @@ def _export_statement_metadata_workbook_response() -> HttpResponse:
 
 
 def _statement_metadata_table_payload() -> dict[str, object]:
-    stats = statement_metadata_dashboard_stats()
+    statement_total = ContestProblemStatement.objects.count()
     statement_order = (
         "-contest_year",
         "contest_name",
@@ -5728,10 +5727,10 @@ def _statement_metadata_table_payload() -> dict[str, object]:
 
     return {
         "contest_names": contest_names,
-        "is_capped": stats["statement_total"] > ADMIN_TABLE_LATEST_LIMIT,
+        "is_capped": statement_total > ADMIN_TABLE_LATEST_LIMIT,
         "limit": ADMIN_TABLE_LATEST_LIMIT,
         "rows": table_rows,
-        "stats": stats,
+        "statement_total": statement_total,
         "year_values": year_values,
     }
 
@@ -6349,11 +6348,10 @@ def problem_statement_metadata_view(request):
             "form": form,
             "statement_metadata_contest_names": table_payload["contest_names"],
             "statement_metadata_rows": table_payload["rows"],
-            "statement_metadata_stats": table_payload["stats"],
             "statement_metadata_table_is_capped": table_payload["is_capped"],
             "statement_metadata_table_limit": table_payload["limit"],
             "statement_metadata_table_visible_total": len(table_payload["rows"]),
-            "statement_metadata_total": table_payload["stats"]["statement_total"],
+            "statement_metadata_total": table_payload["statement_total"],
             "statement_metadata_year_values": table_payload["year_values"],
         },
     )

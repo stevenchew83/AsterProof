@@ -163,77 +163,6 @@
     Save parsed results from <a href="{% url 'pages:latex_preview' %}" class="alert-link">LaTeX preview</a> to build this table.
   </div>
   {% else %}
-  <div class="row g-3 mt-1">
-    <div class="col-sm-6 col-xl-3">
-      <div class="card m-0">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-primary-subtle text-primary rounded">
-                <i class="ti ti-file-text fs-24"></i>
-              </span>
-            </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Statement rows</p>
-              <h3 class="mb-0">{{ statement_metadata_stats.statement_total }}</h3>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-6 col-xl-3">
-      <div class="card m-0">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-warning-subtle text-warning rounded">
-                <i class="ti ti-pencil-question fs-24"></i>
-              </span>
-            </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Need metadata</p>
-              <h3 class="mb-0">{{ statement_metadata_stats.missing_total }}</h3>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-6 col-xl-3">
-      <div class="card m-0">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-success-subtle text-success rounded">
-                <i class="ti ti-badge fs-24"></i>
-              </span>
-            </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Ready rows</p>
-              <h3 class="mb-0">{{ statement_metadata_stats.ready_total }}</h3>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-6 col-xl-3">
-      <div class="card m-0">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-info-subtle text-info rounded">
-                <i class="ti ti-link fs-24"></i>
-              </span>
-            </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Linked rows</p>
-              <h3 class="mb-0">{{ statement_metadata_stats.linked_total }}</h3>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <div class="row g-3 mt-1 mb-4">
     <div class="col-12">
       <div class="card">
@@ -246,9 +175,9 @@
           </div>
           <span class="badge text-bg-light">
             {% if statement_metadata_table_is_capped %}
-            Latest {{ statement_metadata_table_visible_total }} of {{ statement_metadata_stats.statement_total }} rows
+            Latest {{ statement_metadata_table_visible_total }} of {{ statement_metadata_total }} rows
             {% else %}
-            {{ statement_metadata_stats.statement_total }} rows
+            {{ statement_metadata_total }} rows
             {% endif %}
           </span>
         </div>
