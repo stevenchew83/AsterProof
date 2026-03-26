@@ -5054,8 +5054,6 @@ def test_problem_analytics_dashboard_exposes_contest_year_mohs_pivot_table(clien
     assert response.status_code == HTTPStatus.OK
     assert response.context["analytics_total"] == 6
     assert response.context["charts_payload"]["byYear"]["labels"] == ["2024", "2025", "2026"]
-    assert len(response.context["table_rows"]) == 6
-    assert all(row["contest_year_problem"] != "USAMO 2023 P9" for row in response.context["table_rows"])
     pivot_payload = response.context["charts_payload"]["contestYearMohsPivotTable"]
     assert pivot_payload["contest_names"] == ["APMO", "BMO", "EGMO", "IMO", "JBMO"]
     assert pivot_payload["year_values"] == ["2026", "2025", "2024"]
@@ -5101,6 +5099,9 @@ def test_problem_analytics_dashboard_exposes_contest_year_mohs_pivot_table(clien
     assert 'id="contest-year-mohs-reset"' in response_html
     assert 'id="contest-year-mohs-pivot-table"' in response_html
     assert "Pivot DataTable with index, search, and filters." in response_html
+    assert "All statements" not in response_html
+    assert 'id="problems-analytics-table"' not in response_html
+    assert 'id="dashboard-table-data"' not in response_html
     assert (
         "Problem statements define the rows, contest-year runs down the left, MOHS values sit across the top, "
         "and each cell shows the problem count." in response_html
