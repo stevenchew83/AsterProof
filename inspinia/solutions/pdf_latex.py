@@ -182,38 +182,41 @@ def _render_bold_leadin(label: str, *, title: str, body: str) -> list[str]:
 
 
 def _render_block(block: ProblemSolutionBlock) -> list[str]:
+    rendered: list[str]
     if _is_plain_block(block):
-        return [block.body_source or "", ""]
+        rendered = [block.body_source or "", ""]
+    else:
+        slug = _block_slug(block)
+        theorem_env = {
+            "observation": "fact",
+            "remark": "remark",
+        }.get(slug)
+        if theorem_env:
+            rendered = _render_theorem_like_block(theorem_env, title=block.title or "", body=block.body_source or "")
+        elif slug == "claim":
+            rendered = _render_claim_block(title=block.title or "", body=block.body_source or "")
+        elif slug == "proof":
+            rendered = _render_proof_block(title=block.title or "", body=block.body_source or "")
+        elif slug in {"section", "part"}:
+            command = "section" if slug == "section" else "subsection"
+            fallback = block.block_type.label if block.block_type else slug.title()
+            rendered = _render_heading_block(
+                command,
+                title=block.title or "",
+                fallback=fallback,
+                body=block.body_source or "",
+            )
+        elif slug in {"case", "subcase", "idea", "computation", "conclusion"}:
+            rendered = _render_bold_leadin(
+                (block.block_type.label if block.block_type else slug.title()),
+                title=block.title or "",
+                body=block.body_source or "",
+            )
+        else:
+            heading = latex_escape_plain_text(_block_heading(block))
+            rendered = [rf"\paragraph{{{heading}}}", block.body_source or "", ""]
 
-    slug = _block_slug(block)
-    theorem_env = {
-        "observation": "fact",
-        "remark": "remark",
-    }.get(slug)
-    if theorem_env:
-        return _render_theorem_like_block(theorem_env, title=block.title or "", body=block.body_source or "")
-    if slug == "claim":
-        return _render_claim_block(title=block.title or "", body=block.body_source or "")
-    if slug == "proof":
-        return _render_proof_block(title=block.title or "", body=block.body_source or "")
-    if slug in {"section", "part"}:
-        command = "section" if slug == "section" else "subsection"
-        fallback = block.block_type.label if block.block_type else slug.title()
-        return _render_heading_block(
-            command,
-            title=block.title or "",
-            fallback=fallback,
-            body=block.body_source or "",
-        )
-    if slug in {"case", "subcase", "idea", "computation", "conclusion"}:
-        return _render_bold_leadin(
-            (block.block_type.label if block.block_type else slug.title()),
-            title=block.title or "",
-            body=block.body_source or "",
-        )
-
-    heading = latex_escape_plain_text(_block_heading(block))
-    return [rf"\paragraph{{{heading}}}", block.body_source or "", ""]
+    return rendered
 
 
 def build_solution_tex_source(
