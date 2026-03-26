@@ -1679,61 +1679,6 @@ def _user_statement_completion_rows(completions: list[UserProblemCompletion]) ->
     return rows
 
 
-def _dashboard_statement_problem_rows(base) -> list[dict]:
-    statements = list(
-        base.select_related("linked_problem").order_by(
-            "-contest_year",
-            "contest_name",
-            "problem_code",
-            "day_label",
-            "-updated_at",
-            "-id",
-        ),
-    )
-    statement_ids = [statement.id for statement in statements]
-    linked_problem_ids = sorted(
-        {
-            statement.linked_problem_id
-            for statement in statements
-            if statement.linked_problem_id is not None
-        },
-    )
-    technique_counts_by_problem_id = {
-        row["record_id"]: int(row["c"])
-        for row in ProblemTopicTechnique.objects.filter(record_id__in=linked_problem_ids)
-        .values("record_id")
-        .annotate(c=Count("id"))
-    }
-    technique_counts_by_statement_id = {
-        row["statement_id"]: int(row["c"])
-        for row in StatementTopicTechnique.objects.filter(statement_id__in=statement_ids)
-        .values("statement_id")
-        .annotate(c=Count("id"))
-    }
-
-    rows: list[dict] = []
-    for statement in statements:
-        linked_problem = statement.linked_problem
-        eff_topic = effective_topic(statement)
-        topic_label = display_topic_label(eff_topic) if eff_topic else "Unlinked"
-        eff_mohs = effective_mohs(statement)
-        tech_n = technique_counts_by_statement_id.get(statement.id, 0)
-        if tech_n == 0 and linked_problem is not None:
-            tech_n = technique_counts_by_problem_id.get(linked_problem.id, 0)
-        rows.append(
-            {
-                "year": int(statement.contest_year),
-                "topic": topic_label,
-                "mohs": eff_mohs if eff_mohs is not None else "",
-                "contest": statement.contest_name,
-                "problem": statement.problem_code,
-                "contest_year_problem": statement.contest_year_problem,
-                "technique_count": tech_n,
-            },
-        )
-    return rows
-
-
 def _main_topic_code(topic: str) -> str:
     normalized = (topic or "").strip().upper()
     if not normalized:
@@ -3768,7 +3713,7 @@ def user_solution_record_list_view(request):
 
 @login_required
 def dashboard_analytics_view(request):
-    """Problem analytics: charts plus searchable table."""
+    """Problem analytics: charts and pivot views."""
     _require_admin_tools_access(request)
 
     base = _active_dashboard_statements()
@@ -3833,14 +3778,11 @@ def dashboard_analytics_view(request):
         "contestYearMohsPivotTable": contest_year_mohs_pivot_table,
     }
 
-    table_rows = _dashboard_statement_problem_rows(base)
-
     context = {
         "analytics_total": total,
         "analytics_stats": stats,
         "analytics_technique_total": technique_total,
         "charts_payload": charts_payload,
-        "table_rows": table_rows,
     }
     return render(request, "pages/dashboard-analytics.html", context)
 
