@@ -22,6 +22,8 @@ logger = logging.getLogger(__name__)
 
 EVAN_STY_PATH = Path(__file__).resolve().parent / "latex" / "evan.sty"
 LOG_TAIL_MAX_CHARS = 12_000
+# Failed runs can produce multi-MB logs; scan a bounded suffix for error markers.
+LOG_READ_MAX_BYTES = 4 * 1024 * 1024
 
 _MSG_LATEX_TIMEOUT = "LaTeX compilation timed out."
 _MSG_LATEX_FAILED = "LaTeX compilation failed."
@@ -50,6 +52,9 @@ class SolutionPdfCompileParams:
     latex_binary: str
     problem_statement_latex: str = ""
 
+
+# Vertical gap between exported blocks (~two \baselineskip in the PDF body).
+_SOLUTION_PDF_BLOCK_VSPACE = r"\addvspace{2\baselineskip}"
 
 _LATEX_ESCAPES = (
     ("\\", r"\textbackslash{}"),
@@ -131,7 +136,10 @@ def build_solution_tex_source(
         lines.append(r"\section*{Problem}")
         lines.append(stmt_body)
         lines.append("")
-    for block in blocks:
+    for i, block in enumerate(blocks):
+        if i:
+            lines.append(r"\par")
+            lines.append(_SOLUTION_PDF_BLOCK_VSPACE)
         if _is_plain_block(block):
             lines.append(block.body_source or "")
             lines.append("")
@@ -144,13 +152,44 @@ def build_solution_tex_source(
     return "\n".join(lines)
 
 
-def _read_log_tail(path: Path) -> str:
+def _read_log_bytes(path: Path) -> str:
     if not path.is_file():
         return ""
-    data = path.read_text(encoding="utf-8", errors="replace")
-    if len(data) > LOG_TAIL_MAX_CHARS:
-        return data[-LOG_TAIL_MAX_CHARS:]
-    return data
+    raw = path.read_bytes()
+    if len(raw) > LOG_READ_MAX_BYTES:
+        raw = raw[-LOG_READ_MAX_BYTES:]
+    return raw.decode("utf-8", errors="replace")
+
+
+def _latex_log_user_excerpt(log_text: str, *, max_chars: int) -> str:
+    """Prefer the last TeX error region; a plain tail is often only preamble noise."""
+    if not log_text:
+        return ""
+    if len(log_text) <= max_chars:
+        return log_text
+    markers = ("\n! ", "\n!", "Emergency stop", "Fatal error", "==> Fatal error")
+    best = -1
+    for m in markers:
+        idx = log_text.rfind(m)
+        best = max(best, idx)
+    if best != -1:
+        chunk = log_text[best:].lstrip("\n")
+        if len(chunk) <= max_chars:
+            return chunk
+        return chunk[:max_chars]
+    return log_text[-max_chars:]
+
+
+def _merge_latex_fail_detail(*, log_text: str, stderr: str, max_chars: int) -> str:
+    excerpt = _latex_log_user_excerpt(log_text, max_chars=max_chars)
+    err = (stderr or "").strip()
+    if not err or err in excerpt:
+        return excerpt
+    suffix = f"\n\n--- latexmk / driver stderr ---\n{err[-4000:]}"
+    if len(excerpt) + len(suffix) <= max_chars:
+        return excerpt + suffix
+    room = max(0, max_chars - len(suffix))
+    return excerpt[:room] + suffix
 
 
 def compile_solution_tex_to_pdf(
@@ -188,20 +227,24 @@ def compile_solution_tex_to_pdf(
                 check=False,
             )
         except subprocess.TimeoutExpired as exc:
-            log_tail = _read_log_tail(tmp_path / "main.log")
+            log_raw = _read_log_bytes(tmp_path / "main.log")
+            log_tail = _merge_latex_fail_detail(log_text=log_raw, stderr="", max_chars=LOG_TAIL_MAX_CHARS)
             raise SolutionPdfCompileError(_MSG_LATEX_TIMEOUT, log_tail=log_tail) from exc
 
         pdf_path = tmp_path / "main.pdf"
         if pdf_path.is_file() and completed.returncode == 0:
             return pdf_path.read_bytes()
 
-        log_tail = _read_log_tail(tmp_path / "main.log")
-        stderr_tail = (completed.stderr or "")[-2000:]
+        log_raw = _read_log_bytes(tmp_path / "main.log")
         logger.warning(
             "solution_pdf_compile_failed returncode=%s",
             completed.returncode,
         )
-        combined = log_tail or stderr_tail
+        combined = _merge_latex_fail_detail(
+            log_text=log_raw,
+            stderr=completed.stderr or "",
+            max_chars=LOG_TAIL_MAX_CHARS,
+        ) or (completed.stderr or "")[-2000:]
         raise SolutionPdfCompileError(_MSG_LATEX_FAILED, log_tail=combined)
 
 

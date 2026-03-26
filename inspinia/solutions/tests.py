@@ -23,6 +23,8 @@ from inspinia.solutions.models import SolutionBodyImage
 from inspinia.solutions.models import SolutionSourceArtifact
 from inspinia.solutions.pdf_latex import SolutionPdfCompileError
 from inspinia.solutions.pdf_latex import SolutionPdfToolError
+from inspinia.solutions.pdf_latex import _latex_log_user_excerpt
+from inspinia.solutions.pdf_latex import _merge_latex_fail_detail
 from inspinia.solutions.pdf_latex import build_solution_tex_source
 from inspinia.solutions.views import STATEMENT_BACKED_PROBLEM_LIST_LIMIT
 from inspinia.users.models import User
@@ -625,7 +627,8 @@ def test_build_solution_tex_includes_scrartcl_evan_and_block_order():
     assert r"$\alpha$" in tex
     assert r"\paragraph{Proof — B}" in tex
     assert "Second body." in tex
-    assert tex.index(r"$\alpha$") < tex.index("Second body.")
+    sep = tex.index(r"\addvspace{2\baselineskip}")
+    assert tex.index(r"$\alpha$") < sep < tex.index("Second body.")
 
 
 def test_build_solution_tex_date_uses_published_at_as_local_date_only():
@@ -726,6 +729,26 @@ def test_build_solution_tex_plain_block_omits_heading_and_title():
     assert "This starts the solution body." in tex
     assert "Lead paragraph" not in tex
     assert r"\paragraph{" not in tex
+
+
+def test_latex_log_user_excerpt_finds_error_not_preamble_tail():
+    preamble = ("(/usr/share/texlive/texmf-dist/tex/latex/microtype/microtype.sty)\n") * 400
+    err = "\n! LaTeX Error: missing \\begin{document}.\nl.44 \\foo"
+    data = preamble + err
+    excerpt = _latex_log_user_excerpt(data, max_chars=2000)
+    assert excerpt.startswith("!")
+    assert "LaTeX Error" in excerpt
+
+
+def test_merge_latex_fail_detail_appends_stderr_when_not_in_log():
+    log = "x" * 3000 + "\n! LaTeX Error: bad.\n"
+    merged = _merge_latex_fail_detail(
+        log_text=log,
+        stderr="latexmk: summary failure line\n",
+        max_chars=8000,
+    )
+    assert "LaTeX Error" in merged
+    assert "latexmk" in merged
 
 
 def test_problem_solution_pdf_404_when_solution_not_saved(client):
