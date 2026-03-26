@@ -53,8 +53,8 @@ class SolutionPdfCompileParams:
     problem_statement_latex: str = ""
 
 
-# Vertical gap between exported blocks (~two \baselineskip in the PDF body).
-_SOLUTION_PDF_BLOCK_VSPACE = r"\addvspace{2\baselineskip}"
+# Vertical gap between exported blocks.
+_SOLUTION_PDF_BLOCK_VSPACE = r"\addvspace{\baselineskip}"
 
 _LATEX_ESCAPES = (
     ("\\", r"\textbackslash{}"),
@@ -128,6 +128,26 @@ def _render_theorem_like_block(env_name: str, *, title: str, body: str) -> list[
     return [rf"\begin{{{env_name}}}", content, rf"\end{{{env_name}}}", ""]
 
 
+def _render_claim_block(*, title: str, body: str) -> list[str]:
+    statement = (title or "").strip()
+    proof_text = (body or "").strip()
+    if statement and proof_text:
+        return [
+            r"\begin{claim}",
+            statement,
+            r"\end{claim}",
+            r"\begin{proof}",
+            proof_text,
+            r"\end{proof}",
+            "",
+        ]
+    if statement:
+        return [r"\begin{claim}", statement, r"\end{claim}", ""]
+    if proof_text:
+        return [r"\begin{claim}", proof_text, r"\end{claim}", ""]
+    return []
+
+
 def _render_proof_block(*, title: str, body: str) -> list[str]:
     body_text = (body or "").strip()
     if not title.strip() and not body_text:
@@ -167,12 +187,13 @@ def _render_block(block: ProblemSolutionBlock) -> list[str]:
 
     slug = _block_slug(block)
     theorem_env = {
-        "claim": "claim",
         "observation": "fact",
         "remark": "remark",
     }.get(slug)
     if theorem_env:
         return _render_theorem_like_block(theorem_env, title=block.title or "", body=block.body_source or "")
+    if slug == "claim":
+        return _render_claim_block(title=block.title or "", body=block.body_source or "")
     if slug == "proof":
         return _render_proof_block(title=block.title or "", body=block.body_source or "")
     if slug in {"section", "part"}:

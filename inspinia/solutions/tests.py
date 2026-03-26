@@ -739,6 +739,33 @@ def test_build_solution_tex_splits_claim_title_from_claim_body():
     assert r"\end{proof}" in tex
 
 
+def test_build_solution_tex_maps_claim_and_proof_blocks_to_evan_environments():
+    user = UserFactory(name="Author Display")
+    problem = _problem()
+    solution = _solution_with_blocks(
+        problem=problem,
+        author=user,
+        blocks=[
+            ("Claim heading", "Claim body.", "claim"),
+            ("Proof heading", "Proof body.", "proof"),
+        ],
+    )
+    blocks = list(solution.blocks.order_by("position"))
+    tex = build_solution_tex_source(
+        solution=solution,
+        blocks=blocks,
+        media_root=Path(settings.MEDIA_ROOT),
+        problem_label="USAMO 2026 P4",
+    )
+    assert r"\begin{claim}" in tex
+    assert r"\end{claim}" in tex
+    assert "Claim heading" in tex
+    assert "Claim body." in tex
+    assert r"\begin{proof}[Proof heading]" in tex
+    assert "Proof body." in tex
+    assert r"\end{proof}" in tex
+
+
 def test_build_solution_tex_claim_body_only_stays_in_claim_box():
     user = UserFactory(name="Author Display")
     problem = _problem()
