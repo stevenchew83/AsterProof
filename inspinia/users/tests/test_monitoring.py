@@ -3,9 +3,12 @@ from http import HTTPStatus
 import pytest
 from allauth.account.models import EmailAddress
 from django.contrib.sessions.models import Session
+from django.db import connections
+from django.db import router
 from django.test import Client
 from django.urls import reverse
 
+from inspinia.users import monitoring
 from inspinia.users.models import AuditEvent
 from inspinia.users.models import User
 from inspinia.users.models import UserSession
@@ -79,6 +82,52 @@ def test_failed_login_creates_audit_event(client):
     assert logged_in is False
     event = AuditEvent.objects.get(event_type=AuditEvent.EventType.LOGIN_FAILED)
     assert event.metadata["identifier"] == user.email
+
+
+def test_model_table_exists_caches_successful_lookup(monkeypatch):
+    cache = monitoring._MODEL_TABLE_EXISTS_CACHE  # noqa: SLF001
+    model_table_exists = monitoring._model_table_exists  # noqa: SLF001
+    cache.clear()
+    connection = connections[router.db_for_write(UserSession) or "default"]
+    probe = {"calls": 0}
+    table_name = UserSession._meta.db_table  # noqa: SLF001
+
+    def fake_table_names():
+        probe["calls"] += 1
+        return [table_name]
+
+    monkeypatch.setattr(connection.introspection, "table_names", fake_table_names)
+
+    try:
+        assert model_table_exists(UserSession) is True
+        assert model_table_exists(UserSession) is True
+    finally:
+        cache.clear()
+
+    assert probe["calls"] == 1
+
+
+def test_model_table_exists_does_not_cache_missing_lookup(monkeypatch):
+    cache = monitoring._MODEL_TABLE_EXISTS_CACHE  # noqa: SLF001
+    model_table_exists = monitoring._model_table_exists  # noqa: SLF001
+    cache.clear()
+    connection = connections[router.db_for_write(UserSession) or "default"]
+    probe = {"calls": 0}
+
+    def fake_table_names():
+        probe["calls"] += 1
+        return []
+
+    monkeypatch.setattr(connection.introspection, "table_names", fake_table_names)
+
+    try:
+        assert model_table_exists(UserSession) is False
+        assert model_table_exists(UserSession) is False
+    finally:
+        cache.clear()
+
+    expected_calls = 2
+    assert probe["calls"] == expected_calls
 
 
 def test_monitoring_pages_forbid_non_admin_users(client):
