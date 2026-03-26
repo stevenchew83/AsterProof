@@ -1,11 +1,11 @@
-<div class="statement-render-content d-flex flex-column gap-3">
+<div class="statement-render-content statement-evan-box d-flex flex-column gap-3">
   {% for segment in segments %}
     {% if segment.kind == "text" %}
       {% if segment.content %}
       <div class="statement-text-fragment" data-mathjax-scope>{{ segment.content }}</div>
       {% endif %}
     {% elif segment.kind == "asymptote" %}
-      <div class="border rounded-3 bg-body-tertiary p-3">
+      <div class="statement-asymptote-panel">
         <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
           <span class="badge bg-info-subtle text-info">
             <i class="ti ti-wave-sine me-1"></i> Asymptote

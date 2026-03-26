@@ -4575,6 +4575,10 @@ def test_user_solution_record_list_renders_admin_inventory(client):
     assert 'id="user-solution-record-table"' in response_html
     assert f'"solution_url": "{reverse("solutions:problem_solution_list", args=[problem.problem_uuid])}?solution={solution.id}#solution-{solution.id}"' in response_html
     assert f'"pdf_url": "{reverse("solutions:admin_problem_solution_pdf", args=[solution.pk])}"' in response_html
+    assert '<p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Solutions</p>' not in response_html
+    assert '<p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Authors</p>' not in response_html
+    assert '<p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Published</p>' not in response_html
+    assert '<p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Drafts</p>' not in response_html
 
 
 def test_user_solution_record_list_caps_to_latest_100_by_updated_at(client):
@@ -6331,6 +6335,7 @@ def test_statement_render_preview_returns_rendered_asymptote_html(client, monkey
     payload = response.json()
     assert payload["ok"] is True
     assert payload["has_asymptote"] is True
+    assert "statement-evan-box" in payload["html"]
     assert "Asymptote" in payload["html"]
     assert "Rendered via Asymptote Web Application" in payload["html"]
     assert FAKE_ASYMPTOTE_SVG in payload["html"]
