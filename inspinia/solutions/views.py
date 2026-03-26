@@ -35,6 +35,7 @@ from inspinia.solutions.forms import ProblemSolutionBlockFormSet
 from inspinia.solutions.forms import ProblemSolutionForm
 from inspinia.solutions.models import ProblemSolution
 from inspinia.solutions.models import ProblemSolutionBlock
+from inspinia.solutions.models import SolutionBlockType
 from inspinia.solutions.models import SolutionBodyImage
 from inspinia.solutions.pdf_latex import SolutionPdfCompileError
 from inspinia.solutions.pdf_latex import SolutionPdfCompileParams
@@ -505,9 +506,11 @@ def problem_solution_edit_view(request, problem_uuid):
 
     current_status = solution.status or ProblemSolution.Status.DRAFT
     problem_data = _problem_context(problem)
+    plain_block_type = SolutionBlockType.objects.filter(slug="plain").only("id").first()
     context = {
         "form": form,
         "formset": formset,
+        "plain_block_type_id": str(plain_block_type.id) if plain_block_type is not None else "",
         "problem_data": problem_data,
         "solution_body_image_upload_url": reverse(
             "solutions:solution_body_image_upload",
