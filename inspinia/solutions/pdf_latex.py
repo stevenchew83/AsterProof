@@ -87,8 +87,14 @@ def _block_heading(block: ProblemSolutionBlock) -> str:
     return type_label
 
 
+def _block_slug(block: ProblemSolutionBlock) -> str:
+    if not block.block_type_id or not block.block_type:
+        return ""
+    return (block.block_type.slug or "").strip()
+
+
 def _is_plain_block(block: ProblemSolutionBlock) -> bool:
-    return bool(block.block_type_id and block.block_type and block.block_type.slug == "plain")
+    return _block_slug(block) == "plain"
 
 
 def _graphicspath_tex(media_root: Path) -> str:
@@ -108,6 +114,45 @@ def _solution_pdf_subtitle(solution: ProblemSolution) -> str:
     if not title or title == "Untitled solution":
         return ""
     return title
+
+
+def _join_block_text(title: str, body: str) -> str:
+    parts = [part for part in [(title or "").strip(), (body or "").strip()] if part]
+    return "\n\n".join(parts)
+
+
+def _render_theorem_like_block(env_name: str, *, title: str, body: str) -> list[str]:
+    content = _join_block_text(title, body)
+    if not content:
+        return []
+    return [rf"\begin{{{env_name}}}", content, rf"\end{{{env_name}}}", ""]
+
+
+def _render_proof_block(*, title: str, body: str) -> list[str]:
+    body_text = (body or "").strip()
+    if not title.strip() and not body_text:
+        return []
+    if title.strip():
+        return [rf"\begin{{proof}}[{title.strip()}]", body_text, r"\end{proof}", ""]
+    return [r"\begin{proof}", body_text, r"\end{proof}", ""]
+
+
+def _render_block(block: ProblemSolutionBlock) -> list[str]:
+    if _is_plain_block(block):
+        return [block.body_source or "", ""]
+
+    slug = _block_slug(block)
+    if slug == "claim":
+        return _render_theorem_like_block("claim", title=block.title or "", body=block.body_source or "")
+    if slug == "remark":
+        return _render_theorem_like_block("remark", title=block.title or "", body=block.body_source or "")
+    if slug == "observation":
+        return _render_theorem_like_block("fact", title=block.title or "", body=block.body_source or "")
+    if slug == "proof":
+        return _render_proof_block(title=block.title or "", body=block.body_source or "")
+
+    heading = latex_escape_plain_text(_block_heading(block))
+    return [rf"\paragraph{{{heading}}}", block.body_source or "", ""]
 
 
 def build_solution_tex_source(
@@ -149,14 +194,7 @@ def build_solution_tex_source(
         if i:
             lines.append(r"\par")
             lines.append(_SOLUTION_PDF_BLOCK_VSPACE)
-        if _is_plain_block(block):
-            lines.append(block.body_source or "")
-            lines.append("")
-            continue
-        heading = latex_escape_plain_text(_block_heading(block))
-        lines.append(rf"\paragraph{{{heading}}}")
-        lines.append(block.body_source or "")
-        lines.append("")
+        lines.extend(_render_block(block))
     lines.append(r"\end{document}")
     return "\n".join(lines)
 

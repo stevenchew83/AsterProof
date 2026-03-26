@@ -705,6 +705,74 @@ def test_build_solution_tex_wraps_problem_statement_in_mdpurplebox():
     assert r"Let $ABC$ be a triangle. Prove $a+b>c$." in tex
 
 
+def test_build_solution_tex_maps_claim_and_proof_blocks_to_evan_environments():
+    user = UserFactory(name="Author Display")
+    problem = _problem()
+    solution = _solution_with_blocks(
+        problem=problem,
+        author=user,
+        blocks=[
+            ("1 is solitary.", "This is trivial.", "claim"),
+            ("Induction step", "Assume the result for $n$.", "proof"),
+        ],
+    )
+    blocks = list(solution.blocks.order_by("position"))
+    tex = build_solution_tex_source(
+        solution=solution,
+        blocks=blocks,
+        media_root=Path(settings.MEDIA_ROOT),
+        problem_label="USAMO 2026 P4",
+    )
+    assert r"\begin{claim}" in tex
+    assert "1 is solitary." in tex
+    assert r"\end{claim}" in tex
+    assert r"\begin{proof}[Induction step]" in tex
+    assert "Assume the result for $n$." in tex
+    assert r"\end{proof}" in tex
+
+
+def test_build_solution_tex_maps_observation_to_fact_and_preserves_raw_latex_titles():
+    user = UserFactory(name="Author Display")
+    problem = _problem()
+    solution = _solution_with_blocks(
+        problem=problem,
+        author=user,
+        blocks=[(r"$n$ is solitary", "Then $10n$ is solitary.", "observation")],
+    )
+    blocks = list(solution.blocks.order_by("position"))
+    tex = build_solution_tex_source(
+        solution=solution,
+        blocks=blocks,
+        media_root=Path(settings.MEDIA_ROOT),
+        problem_label="USAMO 2026 P4",
+    )
+    assert r"\begin{fact}" in tex
+    assert r"$n$ is solitary" in tex
+    assert r"\$n\$ is solitary" not in tex
+    assert r"\end{fact}" in tex
+
+
+def test_build_solution_tex_maps_remark_to_remark_environment():
+    user = UserFactory(name="Author Display")
+    problem = _problem()
+    solution = _solution_with_blocks(
+        problem=problem,
+        author=user,
+        blocks=[("Note", "Keep track of leading digits.", "remark")],
+    )
+    blocks = list(solution.blocks.order_by("position"))
+    tex = build_solution_tex_source(
+        solution=solution,
+        blocks=blocks,
+        media_root=Path(settings.MEDIA_ROOT),
+        problem_label="USAMO 2026 P4",
+    )
+    assert r"\begin{remark}" in tex
+    assert "Note" in tex
+    assert "Keep track of leading digits." in tex
+    assert r"\end{remark}" in tex
+
+
 def test_build_solution_tex_emits_plain_text_block_body_as_latex():
     user = UserFactory()
     problem = _problem()
