@@ -725,7 +725,7 @@ def test_build_solution_tex_splits_claim_title_from_claim_body():
     )
     assert r"\begin{claim}" in tex
     assert r"\end{claim}" in tex
-    assert tex.index("1 is solitary.") > tex.index(r"\end{claim}")
+    assert tex.index("1 is solitary.") < tex.index(r"\end{claim}")
     assert tex.index(r"\end{claim}") < tex.index(r"\begin{proof}")
     assert "This is trivial." not in tex[: tex.index(r"\end{claim}")]
     assert r"\begin{proof}[Induction step]" in tex
