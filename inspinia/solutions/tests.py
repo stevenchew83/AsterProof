@@ -728,7 +728,9 @@ def test_build_solution_tex_splits_claim_title_from_claim_body():
     assert tex.index("1 is solitary.") < tex.index(r"\end{claim}")
     assert tex.index(r"\end{claim}") < tex.index(r"\begin{proof}")
     assert "This is trivial." in tex
-    assert tex.index("This is trivial.") > tex.index(r"\end{claim}")
+    first_proof_begin = tex.index(r"\begin{proof}")
+    first_proof_end = tex.index(r"\end{proof}")
+    assert first_proof_begin < tex.index("This is trivial.") < first_proof_end
     assert r"\begin{proof}[Induction step]" in tex
     assert "Assume the result for $n$." in tex
     assert r"\end{proof}" in tex
