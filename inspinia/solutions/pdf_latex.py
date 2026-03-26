@@ -166,26 +166,22 @@ def _render_block(block: ProblemSolutionBlock) -> list[str]:
         return [block.body_source or "", ""]
 
     slug = _block_slug(block)
-    if slug == "claim":
-        return _render_theorem_like_block("claim", title=block.title or "", body=block.body_source or "")
-    if slug == "remark":
-        return _render_theorem_like_block("remark", title=block.title or "", body=block.body_source or "")
-    if slug == "observation":
-        return _render_theorem_like_block("fact", title=block.title or "", body=block.body_source or "")
+    theorem_env = {
+        "claim": "claim",
+        "observation": "fact",
+        "remark": "remark",
+    }.get(slug)
+    if theorem_env:
+        return _render_theorem_like_block(theorem_env, title=block.title or "", body=block.body_source or "")
     if slug == "proof":
         return _render_proof_block(title=block.title or "", body=block.body_source or "")
-    if slug == "section":
+    if slug in {"section", "part"}:
+        command = "section" if slug == "section" else "subsection"
+        fallback = block.block_type.label if block.block_type else slug.title()
         return _render_heading_block(
-            "section",
+            command,
             title=block.title or "",
-            fallback=(block.block_type.label if block.block_type else "Section"),
-            body=block.body_source or "",
-        )
-    if slug == "part":
-        return _render_heading_block(
-            "subsection",
-            title=block.title or "",
-            fallback=(block.block_type.label if block.block_type else "Part"),
+            fallback=fallback,
             body=block.body_source or "",
         )
     if slug in {"case", "subcase", "idea", "computation", "conclusion"}:
