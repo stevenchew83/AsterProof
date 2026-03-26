@@ -302,6 +302,16 @@
   </div>
   {% endif %}
 
+  {% if contest_listing_is_capped %}
+  <div class="row g-3 mt-0">
+    <div class="col-12">
+      <div class="alert alert-info mb-0" role="alert">
+        Showing latest {{ contest_listing_result_limit }} rows out of {{ matching_problem_filtered_total }} matches. Use search and filters to narrow further.
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
   {% if show_contest_dashboard_bulk %}
   <div class="row g-3 mt-0">
     <div class="col-12">

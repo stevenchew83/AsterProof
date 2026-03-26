@@ -3935,6 +3935,133 @@ def test_contest_dashboard_listing_view_filters_selected_contest_and_year_for_ad
     assert hidden_problem.contest_year_problem not in response_html
 
 
+def test_contest_dashboard_listing_caps_to_latest_100_by_updated_at(client):
+    user = UserFactory()
+    client.force_login(user)
+    now = timezone.now()
+
+    for offset in range(120):
+        problem = ProblemSolveRecord.objects.create(
+            year=2026,
+            topic="ALG",
+            mohs=5,
+            contest="USAMO",
+            problem=f"P{offset + 1}",
+            contest_year_problem=f"USAMO 2026 P{offset + 1}",
+        )
+        statement = ContestProblemStatement.objects.create(
+            linked_problem=problem,
+            contest_year=2026,
+            contest_name="USAMO",
+            problem_number=offset + 1,
+            problem_code=f"P{offset + 1}",
+            day_label="Day 1",
+            statement_latex=f"USAMO statement {offset + 1}",
+        )
+        ContestProblemStatement.objects.filter(pk=statement.pk).update(
+            updated_at=now - timedelta(minutes=offset),
+        )
+
+    response = client.get(reverse("pages:contest_dashboard_listing"), {"contest": "USAMO"})
+
+    assert response.status_code == HTTPStatus.OK
+    rows = [
+        problem_row
+        for year_group in response.context["grouped_years"]
+        for problem_row in year_group["problems"]
+    ]
+    assert len(rows) == 100
+    assert rows[0]["problem_code"] == "P1"
+    assert rows[-1]["problem_code"] == "P100"
+    assert response.context["matching_problem_total"] == 100
+    assert response.context["contest_listing_result_limit"] == 100
+    assert response.context["contest_listing_is_capped"] is True
+
+
+def test_contest_dashboard_listing_applies_tag_filter_before_latest_100_cap(client):
+    user = UserFactory()
+    client.force_login(user)
+    now = timezone.now()
+    broad_tag = "FIBONACCI/LUCAS STRUCTURE"
+    narrow_tag = "RARE TAG"
+
+    for offset in range(120):
+        problem = ProblemSolveRecord.objects.create(
+            year=2026,
+            topic="NT",
+            mohs=4,
+            contest="USAMO",
+            problem=f"P{offset + 1}",
+            contest_year_problem=f"USAMO 2026 P{offset + 1}",
+        )
+        ProblemTopicTechnique.objects.create(record=problem, technique=broad_tag, domains=["NT"])
+        statement = ContestProblemStatement.objects.create(
+            linked_problem=problem,
+            contest_year=2026,
+            contest_name="USAMO",
+            problem_number=offset + 1,
+            problem_code=f"P{offset + 1}",
+            day_label="Day 1",
+            statement_latex=f"Broad tag statement {offset + 1}",
+        )
+        ContestProblemStatement.objects.filter(pk=statement.pk).update(
+            updated_at=now - timedelta(minutes=offset),
+        )
+
+    for offset in range(3):
+        problem = ProblemSolveRecord.objects.create(
+            year=2025,
+            topic="NT",
+            mohs=6,
+            contest="USAMO",
+            problem=f"Q{offset + 1}",
+            contest_year_problem=f"USAMO 2025 Q{offset + 1}",
+        )
+        ProblemTopicTechnique.objects.create(record=problem, technique=narrow_tag, domains=["NT"])
+        statement = ContestProblemStatement.objects.create(
+            linked_problem=problem,
+            contest_year=2025,
+            contest_name="USAMO",
+            problem_number=offset + 1,
+            problem_code=f"Q{offset + 1}",
+            day_label="Day 2",
+            statement_latex=f"Narrow tag statement {offset + 1}",
+        )
+        ContestProblemStatement.objects.filter(pk=statement.pk).update(
+            updated_at=now - timedelta(days=10, minutes=offset),
+        )
+
+    broad = client.get(
+        reverse("pages:contest_dashboard_listing"),
+        {"contest": "USAMO", "tag": broad_tag},
+    )
+    assert broad.status_code == HTTPStatus.OK
+    broad_rows = [
+        problem_row
+        for year_group in broad.context["grouped_years"]
+        for problem_row in year_group["problems"]
+    ]
+    assert len(broad_rows) == 100
+    assert broad.context["contest_listing_is_capped"] is True
+
+    narrow = client.get(
+        reverse("pages:contest_dashboard_listing"),
+        {"contest": "USAMO", "tag": narrow_tag},
+    )
+    assert narrow.status_code == HTTPStatus.OK
+    narrow_rows = [
+        problem_row
+        for year_group in narrow.context["grouped_years"]
+        for problem_row in year_group["problems"]
+    ]
+    assert len(narrow_rows) == 3
+    assert all(
+        any(tag["technique"] == narrow_tag for tag in row["topic_tags"])
+        for row in narrow_rows
+    )
+    assert narrow.context["contest_listing_is_capped"] is False
+
+
 def test_contest_dashboard_listing_hides_inactive_statement_rows(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)

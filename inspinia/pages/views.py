@@ -4559,15 +4559,28 @@ def _build_dashboard_contest_statement_listing_context(
     selected_topic = display_topic_label((request.GET.get("topic") or "").strip())
     selected_tag = (request.GET.get("tag") or "").strip()
 
+    filtered_statements = _filter_statement_queryset(
+        contest_base,
+        q=initial_search_query,
+        year=selected_year,
+        topic=selected_topic,
+        confidence="",
+        mohs_min=selected_mohs,
+        mohs_max=selected_mohs,
+    )
+    if selected_tag:
+        filtered_statements = filtered_statements.filter(
+            Q(statement_topic_techniques__technique=selected_tag)
+            | Q(linked_problem__topic_techniques__technique=selected_tag),
+        )
+    filtered_statements = filtered_statements.distinct()
+    matching_problem_filtered_total = filtered_statements.count()
+
     statements = list(
-        contest_base.select_related("linked_problem").order_by(
-            "-contest_year",
-            "day_label",
-            "problem_number",
-            "problem_code",
+        filtered_statements.select_related("linked_problem").order_by(
             "-updated_at",
             "-id",
-        ),
+        )[:ADMIN_TABLE_LATEST_LIMIT],
     )
     statement_ids = [statement.id for statement in statements]
     linked_problem_ids = sorted(
@@ -4587,10 +4600,25 @@ def _build_dashboard_contest_statement_listing_context(
         .values("statement_id", "technique", "domains")
         .order_by("technique", "statement_id"),
     )
+    topic_tag_options = sorted(
+        {
+            technique
+            for technique in ProblemTopicTechnique.objects.filter(
+                record__contest=contest_name,
+            ).values_list("technique", flat=True)
+            if technique
+        }
+        | {
+            technique
+            for technique in StatementTopicTechnique.objects.filter(
+                statement__contest_name=contest_name,
+                statement__is_active=True,
+            ).values_list("technique", flat=True)
+            if technique
+        },
+    )
     topic_tags_by_problem_id: dict[int, list[dict]] = defaultdict(list)
     topic_tags_by_statement_id: dict[int, list[dict]] = defaultdict(list)
-    topic_tag_options: list[str] = []
-    seen_topic_tags: set[str] = set()
     for tag_row in topic_tag_rows:
         technique = tag_row["technique"]
         domains = tag_row.get("domains") or []
@@ -4601,9 +4629,6 @@ def _build_dashboard_contest_statement_listing_context(
                 "technique": technique,
             },
         )
-        if technique not in seen_topic_tags:
-            seen_topic_tags.add(technique)
-            topic_tag_options.append(technique)
     for tag_row in stmt_topic_tag_rows:
         technique = tag_row["technique"]
         domains = tag_row.get("domains") or []
@@ -4614,9 +4639,6 @@ def _build_dashboard_contest_statement_listing_context(
                 "technique": technique,
             },
         )
-        if technique not in seen_topic_tags:
-            seen_topic_tags.add(technique)
-            topic_tag_options.append(technique)
 
     completion_by_statement_id = _statement_completion_dates_by_statement_id(
         statements,
@@ -4741,50 +4763,6 @@ def _build_dashboard_contest_statement_listing_context(
         ),
     )
 
-    if selected_year:
-        problem_rows = [row for row in problem_rows if str(row["year"]) == selected_year]
-
-    if selected_mohs:
-        problem_rows = [row for row in problem_rows if str(row.get("mohs") or "") == selected_mohs]
-
-    if selected_topic:
-        problem_rows = [row for row in problem_rows if row["topic"] == selected_topic]
-
-    if selected_tag:
-        problem_rows = [
-            row
-            for row in problem_rows
-            if any(tag["technique"] == selected_tag for tag in row["topic_tags"])
-        ]
-
-    if initial_search_query:
-        query = initial_search_query.lower()
-        problem_rows = [
-            row
-            for row in problem_rows
-            if query
-            in " ".join(
-                [
-                    str(row["year"]),
-                    str(row["problem_code"]),
-                    str(row["topic"]),
-                    str(row["label"]),
-                    str(row.get("confidence") or ""),
-                    str(row.get("imo_slot_guess_value") or ""),
-                    str(row.get("statement_day_label") or ""),
-                    *(
-                        tag["technique"]
-                        for tag in row["topic_tags"]
-                    ),
-                    *(
-                        tag["domains_label"]
-                        for tag in row["topic_tags"]
-                        if tag["domains_label"]
-                    ),
-                ],
-            ).lower()
-        ]
-
     grouped_years: list[dict[str, object]] = []
     for row in problem_rows:
         if not grouped_years or grouped_years[-1]["year"] != row["year"]:
@@ -4847,6 +4825,9 @@ def _build_dashboard_contest_statement_listing_context(
         ),
         "initial_search_query": initial_search_query,
         "matching_problem_total": len(problem_rows),
+        "matching_problem_filtered_total": matching_problem_filtered_total,
+        "contest_listing_result_limit": ADMIN_TABLE_LATEST_LIMIT,
+        "contest_listing_is_capped": matching_problem_filtered_total > len(problem_rows),
         "selected_mohs": selected_mohs,
         "selected_tag": selected_tag,
         "selected_topic": selected_topic,
