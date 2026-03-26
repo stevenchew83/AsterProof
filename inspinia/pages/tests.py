@@ -40,6 +40,7 @@ from inspinia.pages.statement_import import parse_contest_problem_statements
 from inspinia.pages.statement_metadata_backfill import StatementMetadataBackfillValidationError
 from inspinia.pages.statement_metadata_backfill import import_statement_metadata_dataframe
 from inspinia.pages.statement_metadata_backfill import statement_metadata_dataframe_from_rows
+from inspinia.pages.views import ADMIN_TABLE_LATEST_LIMIT
 from inspinia.solutions.models import ProblemSolution
 from inspinia.users.models import User
 from inspinia.users.tests.factories import UserFactory
@@ -6481,6 +6482,8 @@ def test_problem_statement_metadata_page_renders_tools_for_admin(client):
     response = client.get(reverse("pages:problem_statement_metadata"))
 
     assert response.status_code == HTTPStatus.OK
+    assert response.context["statement_metadata_table_is_capped"] is False
+    assert len(response.context["statement_metadata_rows"]) == 1
     response_html = response.content.decode("utf-8")
     assert "Statement metadata" in response_html
     assert "Export metadata workbook" in response_html
@@ -6494,6 +6497,31 @@ def test_problem_statement_metadata_page_renders_tools_for_admin(client):
     assert "?action=export" in response_html
     assert 'id="statement-metadata-import-form"' in response_html
     assert 'id="statement-metadata-table"' in response_html
+
+
+def test_problem_statement_metadata_browser_table_loads_latest_100_rows_only(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    for i in range(ADMIN_TABLE_LATEST_LIMIT + 1):
+        ContestProblemStatement.objects.create(
+            contest_year=2026,
+            contest_name="Cap Contest",
+            problem_number=i + 1,
+            problem_code=f"P{i + 1}",
+            day_label="Day 1",
+            statement_latex=f"Statement {i}",
+        )
+
+    response = client.get(reverse("pages:problem_statement_metadata"))
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["statement_metadata_stats"]["statement_total"] == ADMIN_TABLE_LATEST_LIMIT + 1
+    assert len(response.context["statement_metadata_rows"]) == ADMIN_TABLE_LATEST_LIMIT
+    assert response.context["statement_metadata_table_is_capped"] is True
+    assert response.context["statement_metadata_total"] == ADMIN_TABLE_LATEST_LIMIT + 1
+    response_html = response.content.decode("utf-8")
+    assert "Latest 100 of 101 rows" in response_html
+    assert "Browser editor loads the latest 100" in response_html
 
 
 def test_problem_statement_metadata_page_bulk_saves_staged_rows_for_admin(client):
