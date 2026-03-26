@@ -1,5 +1,6 @@
 from django.urls import path
 
+from inspinia.solutions.views import admin_problem_solution_pdf_view
 from inspinia.solutions.views import my_solution_list_view
 from inspinia.solutions.views import problem_solution_create_view
 from inspinia.solutions.views import problem_solution_edit_view
@@ -23,5 +24,10 @@ urlpatterns = [
         "problems/<uuid:problem_uuid>/draft/pdf/",
         problem_solution_pdf_view,
         name="problem_solution_pdf",
+    ),
+    path(
+        "admin/solutions/<int:solution_pk>/pdf/",
+        admin_problem_solution_pdf_view,
+        name="admin_problem_solution_pdf",
     ),
 ]

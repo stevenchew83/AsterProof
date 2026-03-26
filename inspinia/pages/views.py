@@ -2198,6 +2198,7 @@ def _admin_solution_listing_rows(
                     + urlencode({"solution": solution.id})
                     + f"#solution-{solution.id}"
                 ),
+                "pdf_url": reverse("solutions:admin_problem_solution_pdf", args=[solution.pk]),
                 "title": solution.title or "Untitled solution",
                 "topic": display_topic_label(problem.topic),
                 "updated_at": timezone.localtime(solution.updated_at).strftime("%Y-%m-%d %H:%M"),

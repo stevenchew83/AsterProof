@@ -233,6 +233,23 @@
           return data;
         }
       },
+      {
+        data: "pdf_url",
+        title: "Evan PDF",
+        className: "text-nowrap",
+        orderable: false,
+        searchable: false,
+        render: function (data, type) {
+          if (type === "display" && data) {
+            return (
+              '<a href="' +
+              data +
+              '" class="btn btn-sm btn-outline-primary"><i class="ti ti-file-type-pdf me-1"></i>PDF</a>'
+            );
+          }
+          return data || "";
+        }
+      },
       { data: "block_count", title: "Blocks", className: "text-nowrap" },
       { data: "summary_length", title: "Summary chars", className: "text-nowrap" },
       {
@@ -254,7 +271,7 @@
         }
       }
     ],
-    order: [[11, "desc"]],
+    order: [[12, "desc"]],
     pageLength: 25,
     lengthMenu: [10, 25, 50, 100],
     scrollX: true,

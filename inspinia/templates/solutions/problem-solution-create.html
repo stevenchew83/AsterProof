@@ -123,6 +123,11 @@
       <a href="{% url 'solutions:my_solution_list' %}" class="btn btn-outline-secondary btn-sm">Back to my solutions</a>
     </div>
     <div class="card-body">
+      {% if statement_problem_list_is_capped %}
+      <div class="alert alert-info py-2 mb-3" role="alert">
+        Showing the latest {{ statement_problem_list_limit }} statement-backed problems (by most recently updated link). Use the table search to narrow this list.
+      </div>
+      {% endif %}
       {% if statement_problem_rows %}
       <table id="solution-problem-picker-table" class="table table-striped table-bordered align-middle w-100">
         <thead>

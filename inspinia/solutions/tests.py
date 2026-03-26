@@ -1,3 +1,4 @@
+from datetime import timedelta
 from http import HTTPStatus
 from io import BytesIO
 from pathlib import Path
@@ -8,6 +9,7 @@ from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import IntegrityError
 from django.urls import reverse
+from django.utils import timezone
 from PIL import Image
 
 from inspinia.pages.models import ContestProblemStatement
@@ -21,6 +23,7 @@ from inspinia.solutions.models import SolutionSourceArtifact
 from inspinia.solutions.pdf_latex import SolutionPdfCompileError
 from inspinia.solutions.pdf_latex import SolutionPdfToolError
 from inspinia.solutions.pdf_latex import build_solution_tex_source
+from inspinia.solutions.views import STATEMENT_BACKED_PROBLEM_LIST_LIMIT
 from inspinia.users.models import User
 from inspinia.users.tests.factories import UserFactory
 
@@ -246,6 +249,7 @@ def test_problem_solution_create_view_lists_only_statement_backed_problems(clien
     response = client.get(reverse("solutions:problem_solution_create"))
 
     assert response.status_code == HTTPStatus.OK
+    assert response.context["statement_problem_list_is_capped"] is False
     assert response.context["create_stats"]["statement_problem_total"] == EXPECTED_STATEMENT_BACKED_PROBLEM_TOTAL
     assert response.context["create_stats"]["started_total"] == 1
     assert response.context["create_stats"]["ready_total"] == 1
@@ -274,7 +278,45 @@ def test_problem_solution_create_view_shows_empty_state_without_linked_statement
 
     assert response.status_code == HTTPStatus.OK
     assert response.context["create_stats"]["statement_problem_total"] == 0
+    assert response.context["statement_problem_list_is_capped"] is False
     assert "No linked problem statements are available yet." in response.content.decode("utf-8")
+
+
+def test_problem_solution_create_view_caps_statement_rows_at_100(client):
+    user = UserFactory()
+    client.force_login(user)
+    now = timezone.now()
+    for i in range(STATEMENT_BACKED_PROBLEM_LIST_LIMIT + 1):
+        problem = ProblemSolveRecord.objects.create(
+            year=2026,
+            topic="ALG",
+            mohs=3,
+            contest="IMO",
+            problem=f"P{i}",
+            contest_year_problem=f"IMO 2026 P{i}",
+        )
+        stmt = ContestProblemStatement.objects.create(
+            linked_problem=problem,
+            contest_year=2026,
+            contest_name="IMO",
+            problem_number=i + 1,
+            problem_code=f"P{i}",
+            day_label="Day 1",
+            statement_latex=f"Problem {i} body.",
+        )
+        ContestProblemStatement.objects.filter(pk=stmt.pk).update(updated_at=now - timedelta(seconds=i))
+
+    response = client.get(reverse("solutions:problem_solution_create"))
+
+    assert response.status_code == HTTPStatus.OK
+    rows = response.context["statement_problem_rows"]
+    assert len(rows) == STATEMENT_BACKED_PROBLEM_LIST_LIMIT
+    assert response.context["statement_problem_list_is_capped"] is True
+    assert response.context["statement_problem_list_limit"] == STATEMENT_BACKED_PROBLEM_LIST_LIMIT
+    assert response.context["create_stats"]["statement_problem_total"] == STATEMENT_BACKED_PROBLEM_LIST_LIMIT
+    labels = {row["problem_label"] for row in rows}
+    assert "IMO 2026 P0" in labels
+    assert f"IMO 2026 P{STATEMENT_BACKED_PROBLEM_LIST_LIMIT}" not in labels
 
 
 def test_problem_solution_list_shows_my_solution_and_only_other_published_solutions(client):
@@ -668,6 +710,40 @@ def test_problem_solution_pdf_tool_missing_returns_503(monkeypatch, client):
     url = reverse("solutions:problem_solution_pdf", args=[problem.problem_uuid])
     response = client.get(url)
     assert response.status_code == HTTPStatus.SERVICE_UNAVAILABLE
+
+
+def test_admin_problem_solution_pdf_requires_login(client):
+    sol = _solution_with_blocks(problem=_problem(), author=UserFactory(), blocks=[("X", "y", "idea")])
+    url = reverse("solutions:admin_problem_solution_pdf", args=[sol.pk])
+    response = client.get(url)
+    assert response.status_code == HTTPStatus.FOUND
+    assert response.url == f"{reverse(settings.LOGIN_URL)}?next={url}"
+
+
+def test_admin_problem_solution_pdf_forbidden_for_non_admin(client):
+    user = UserFactory()
+    sol = _solution_with_blocks(problem=_problem(), author=user, blocks=[("X", "y", "idea")])
+    client.force_login(user)
+    url = reverse("solutions:admin_problem_solution_pdf", args=[sol.pk])
+    assert client.get(url).status_code == HTTPStatus.FORBIDDEN
+
+
+def test_admin_problem_solution_pdf_returns_attachment_for_admin(monkeypatch, client):
+    author = UserFactory()
+    admin = UserFactory(role=User.Role.ADMIN)
+    problem = _problem()
+    sol = _solution_with_blocks(problem=problem, author=author, blocks=[("Block", "body", "idea")])
+
+    monkeypatch.setattr(
+        "inspinia.solutions.views.compile_solution_to_pdf",
+        lambda *args, **kwargs: b"%PDF-1.4\n",
+    )
+    client.force_login(admin)
+    url = reverse("solutions:admin_problem_solution_pdf", args=[sol.pk])
+    response = client.get(url)
+    assert response.status_code == HTTPStatus.OK
+    assert response["Content-Type"] == "application/pdf"
+    assert "attachment" in response["Content-Disposition"]
 
 
 def test_problem_solution_edit_stacks_statement_editor_and_notes_in_order(client):
