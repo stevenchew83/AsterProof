@@ -1,0 +1,37 @@
+---
+description: LaTeX/PDF olympiad solutions — Evan Chen evan.sty layout, colours, headers (KOMA + [sexy])
+alwaysApply: true
+---
+
+# Evan Chen style for LaTeX → PDF solutions
+
+When producing a **full compilable** solution (not bare snippets), use this template so format, colours, and headers match **Evan Chen’s `evan.sty`** and the project’s reference pattern.
+
+## Preamble
+
+- `\documentclass[11pt]{scrartcl}`
+- `\usepackage[sexy]{evan}` — requires **`evan.sty`** on `TEXINPUTS` or beside the `.tex` file (`[sexy]` = mdframed theorem boxes, purple section marks, long-doc layout).
+- Set `\title{...}`, **`\author{...}`** (override package default author), optional `\date{\today}`, then `\maketitle`.
+
+## Problem statement box
+
+Wrap the statement in the purple framed style:
+
+```latex
+\begin{mdframed}[style=mdpurplebox,frametitle={Problem Statement}]
+  % statement here
+\end{mdframed}
+```
+
+## Body
+
+- Structure main arguments with `\begin{claim}...\end{claim}` and `\begin{proof}...\end{proof}` (and other `evan` theorem envs as needed).
+- Prefer `\soln` / `proof` naming consistent with the source problem.
+
+## Headers and colour (do not fight defaults)
+
+With KOMA + `evan` defaults, page headers use **inner: bold author — date**, **outer: bold title**, centred page number. Keep `[sexy]` unless the user asks otherwise; that drives **purple** section formatting and **green** claim boxes, **purple/violet** problem frame, and **hyperref** link colours from `evan.sty`.
+
+## Attribution
+
+Distributed `evan.sty` is Boost-licensed; **source** copies should retain its license header. See [Evan’s LaTeX FAQ](https://web.evanchen.cc/faq-latex.html).

@@ -1,3 +1,4 @@
+from datetime import datetime
 from datetime import timedelta
 from http import HTTPStatus
 from io import BytesIO
@@ -625,6 +626,65 @@ def test_build_solution_tex_includes_scrartcl_evan_and_block_order():
     assert r"\paragraph{Proof — B}" in tex
     assert "Second body." in tex
     assert tex.index(r"$\alpha$") < tex.index("Second body.")
+
+
+def test_build_solution_tex_date_uses_published_at_as_local_date_only():
+    user = UserFactory()
+    problem = _problem()
+    solution = _solution_with_blocks(problem=problem, author=user, blocks=[])
+    fixed = timezone.make_aware(datetime(2026, 3, 24, 15, 36, 0))
+    solution.published_at = fixed
+    solution.save(update_fields=["published_at"])
+    blocks = list(solution.blocks.order_by("position"))
+    tex = build_solution_tex_source(
+        solution=solution,
+        blocks=blocks,
+        media_root=Path(settings.MEDIA_ROOT),
+        problem_label="X",
+    )
+    assert r"\date{2026-03-24}" in tex
+    assert "15:36" not in tex
+    assert "UTC" not in tex
+
+
+def test_build_solution_tex_never_puts_email_in_author_when_name_empty():
+    user = UserFactory()
+    user.name = ""
+    user.save(update_fields=["name"])
+    problem = _problem()
+    solution = _solution_with_blocks(problem=problem, author=user, blocks=[])
+    blocks = list(solution.blocks.order_by("position"))
+    tex = build_solution_tex_source(
+        solution=solution,
+        blocks=blocks,
+        media_root=Path(settings.MEDIA_ROOT),
+        problem_label="Y",
+    )
+    assert user.email not in tex
+    assert r"\author{Unknown}" in tex
+
+
+def test_build_solution_tex_includes_problem_section_when_statement_provided():
+    user = UserFactory(name="Author Display")
+    problem = _problem()
+    solution = _solution_with_blocks(
+        problem=problem,
+        author=user,
+        blocks=[("Note", "After problem.", "remark")],
+    )
+    blocks = list(solution.blocks.order_by("position"))
+    tex = build_solution_tex_source(
+        solution=solution,
+        blocks=blocks,
+        media_root=Path(settings.MEDIA_ROOT),
+        problem_label="Z",
+        problem_statement_latex=r"Let $ABC$ be a triangle. Prove $a+b>c$.",
+    )
+    maketitle_at = tex.index(r"\maketitle")
+    problem_sec = tex.index(r"\section*{Problem}")
+    claim_at = tex.index(r"\paragraph{Remark — Note}")
+    assert maketitle_at < problem_sec < claim_at
+    assert r"Let $ABC$ be a triangle. Prove $a+b>c$." in tex
 
 
 def test_build_solution_tex_emits_plain_text_block_body_as_latex():

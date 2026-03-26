@@ -114,77 +114,6 @@
   </div>
   {% endif %}
 
-  <div class="row g-3 mt-0">
-    <div class="col-sm-6 col-xl-3">
-      <div class="card m-0">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-primary-subtle text-primary rounded">
-                <i class="ti ti-file-text fs-24"></i>
-              </span>
-            </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Statements</p>
-              <h3 class="mb-0">{{ statement_linker_total }}</h3>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-6 col-xl-3">
-      <div class="card m-0">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-success-subtle text-success rounded">
-                <i class="ti ti-link fs-24"></i>
-              </span>
-            </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Linked</p>
-              <h3 class="mb-0">{{ statement_linker_stats.linked_total }}</h3>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-6 col-xl-3">
-      <div class="card m-0">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-warning-subtle text-warning rounded">
-                <i class="ti ti-unlink fs-24"></i>
-              </span>
-            </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Unlinked</p>
-              <h3 class="mb-0">{{ statement_linker_stats.unlinked_total }}</h3>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-6 col-xl-3">
-      <div class="card m-0">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-info-subtle text-info rounded">
-                <i class="ti ti-link-plus fs-24"></i>
-              </span>
-            </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Safe suggestions</p>
-              <h3 class="mb-0">{{ statement_linker_stats.suggested_total }}</h3>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
   {% if statement_linker_total == 0 %}
   <div class="alert alert-info mt-4" role="alert">
     <strong>No statement rows yet.</strong>
@@ -201,9 +130,21 @@
               Review unlinked statement rows, accept safe suggestions, or manually attach a tracked problem from the same contest-year. Clearing a link releases that UUID claim so another statement row can take it later.
             </p>
           </div>
-          <span class="badge text-bg-light">{{ statement_linker_stats.contest_total }} contests</span>
+          <span class="badge text-bg-light">
+            {% if statement_linker_table_is_capped %}
+            Latest {{ statement_linker_table_visible_total }} of {{ statement_linker_total }} rows
+            {% else %}
+            {{ statement_linker_total }} rows
+            {% endif %}
+          </span>
+          <span class="badge text-bg-light">{{ statement_linker_contest_total }} contests</span>
         </div>
         <div class="card-body">
+          {% if statement_linker_table_is_capped %}
+          <div class="alert alert-info py-2 mb-3" role="alert">
+            Showing the latest {{ statement_linker_table_limit }} rows by update time. Use search and filters within this table, or edit a row in <a href="{% url 'pages:problem_statement_editor' %}" class="alert-link">Statement editor</a> so it appears in this window.
+          </div>
+          {% endif %}
           <div class="statement-linker-toolbar">
             <div class="statement-linker-toolbar-copy">
               <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Suggested workflow</p>
@@ -221,7 +162,7 @@
             <div class="statement-linker-filter-row">
               <div>
                 <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-linker-search">Search</label>
-                <input id="statement-linker-search" type="search" class="form-control form-control-sm" placeholder="Search statement, contest, code, or link">
+                <input id="statement-linker-search" type="search" class="form-control form-control-sm" placeholder="Search within the loaded table (latest rows shown below)">
               </div>
               <div>
                 <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-linker-status-filter">Status</label>
@@ -237,12 +178,18 @@
                 <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-linker-contest-filter">Contest</label>
                 <select id="statement-linker-contest-filter" class="form-select form-select-sm">
                   <option value="">All contests</option>
+                  {% for contest_name in statement_linker_contest_names %}
+                  <option value="{{ contest_name }}">{{ contest_name }}</option>
+                  {% endfor %}
                 </select>
               </div>
               <div>
                 <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-linker-year-filter">Year</label>
                 <select id="statement-linker-year-filter" class="form-select form-select-sm">
                   <option value="">All years</option>
+                  {% for year_value in statement_linker_year_values %}
+                  <option value="{{ year_value }}">{{ year_value }}</option>
+                  {% endfor %}
                 </select>
               </div>
               <button type="button" id="statement-linker-reset" class="btn btn-outline-secondary btn-sm">Reset</button>
@@ -308,16 +255,6 @@
       .replace(/'/g, "&#39;");
   }
 
-  function populateSelect(selectNode, values) {
-    if (!selectNode) return;
-    values.forEach(function (value) {
-      var option = document.createElement("option");
-      option.value = value;
-      option.textContent = value;
-      selectNode.appendChild(option);
-    });
-  }
-
   function getCurrentProblemId(row) {
     return row.linked_problem_id ? String(row.linked_problem_id) : "";
   }
@@ -359,17 +296,6 @@
       resetStagedButton.disabled = stagedCount === 0;
     }
   }
-
-  populateSelect(
-    contestFilter,
-    Array.from(new Set(rows.map(function (row) { return row.contest_name; }))).sort()
-  );
-  populateSelect(
-    yearFilter,
-    Array.from(new Set(rows.map(function (row) { return String(row.contest_year); }))).sort(function (left, right) {
-      return Number(right) - Number(left);
-    })
-  );
 
   function renderCurrentLink(data, _type, row) {
     if (!row.is_linked) {

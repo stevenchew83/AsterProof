@@ -5356,12 +5356,8 @@ def test_problem_statement_linker_shows_rows_suggestions_and_candidate_groups(cl
 
     assert response.status_code == HTTPStatus.OK
     assert response.context["statement_linker_total"] == 3
-    assert response.context["statement_linker_stats"] == {
-        "contest_total": 2,
-        "linked_total": 1,
-        "suggested_total": 1,
-        "unlinked_total": 2,
-    }
+    assert response.context["statement_linker_contest_total"] == 2
+    assert response.context["statement_linker_table_is_capped"] is False
     row_by_id = {row["statement_id"]: row for row in response.context["statement_linker_rows"]}
     assert row_by_id[linked_statement.id]["is_linked"] is True
     assert row_by_id[linked_statement.id]["linked_problem_label"] == "IMO 2025 P1"
@@ -5393,6 +5389,30 @@ def test_problem_statement_linker_shows_rows_suggestions_and_candidate_groups(cl
     assert 'id="statement-linker-bulk-form"' in response_html
     assert 'id="statement-linker-save-staged"' in response_html
     assert "Save staged links" in response_html
+
+
+def test_problem_statement_linker_table_loads_latest_100_rows_only(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    for i in range(ADMIN_TABLE_LATEST_LIMIT + 1):
+        ContestProblemStatement.objects.create(
+            contest_year=2026,
+            contest_name="Cap Contest",
+            problem_number=i + 1,
+            problem_code=f"P{i + 1}",
+            day_label="Day 1",
+            statement_latex=f"Body {i}",
+        )
+
+    response = client.get(reverse("pages:problem_statement_linker"))
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["statement_linker_total"] == ADMIN_TABLE_LATEST_LIMIT + 1
+    assert len(response.context["statement_linker_rows"]) == ADMIN_TABLE_LATEST_LIMIT
+    assert response.context["statement_linker_table_is_capped"] is True
+    response_html = response.content.decode("utf-8")
+    assert "Latest 100 of 101 rows" in response_html
+    assert "Showing the latest 100 rows" in response_html
 
 
 def test_problem_statement_list_shows_statement_rows_and_link_counts(client):

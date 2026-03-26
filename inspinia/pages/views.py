@@ -8,6 +8,7 @@ from collections import defaultdict
 from datetime import date
 from datetime import timedelta
 from io import StringIO
+from types import SimpleNamespace
 from urllib.parse import urlencode
 
 from django.conf import settings
@@ -1061,31 +1062,30 @@ def _statement_linker_suggested_problem(
 
 
 def _statement_linker_payload() -> dict[str, object]:
-    statements = list(
-        ContestProblemStatement.objects.select_related("linked_problem").order_by(
-            "-contest_year",
-            "contest_name",
-            "day_label",
-            "problem_number",
-            "problem_code",
-        ),
-    )
-    if not statements:
+    statement_total = ContestProblemStatement.objects.count()
+    if statement_total == 0:
         return {
             "candidate_groups": {},
             "contest_names": [],
+            "contest_total": 0,
+            "is_capped": False,
+            "limit": ADMIN_TABLE_LATEST_LIMIT,
             "rows": [],
-            "stats": {
-                "contest_total": 0,
-                "linked_total": 0,
-                "suggested_total": 0,
-                "unlinked_total": 0,
-            },
+            "statement_total": 0,
             "year_values": [],
         }
 
-    statement_contests = sorted({statement.contest_name for statement in statements})
-    statement_years = sorted({int(statement.contest_year) for statement in statements}, reverse=True)
+    statement_contests = list(
+        ContestProblemStatement.objects.order_by("contest_name")
+        .values_list("contest_name", flat=True)
+        .distinct(),
+    )
+    contest_years_int = {
+        int(y) for y in ContestProblemStatement.objects.values_list("contest_year", flat=True).distinct()
+    }
+    statement_years = sorted(contest_years_int, reverse=True)
+    year_values = [str(year) for year in statement_years]
+
     problems = list(
         ProblemSolveRecord.objects.filter(
             contest__in=statement_contests,
@@ -1102,27 +1102,49 @@ def _statement_linker_payload() -> dict[str, object]:
         ] = problem
         problems_by_contest_year[(problem.contest, int(problem.year))].append(problem)
 
-    claimant_by_problem_uuid = {statement.problem_uuid: statement for statement in statements}
+    claimant_by_problem_uuid: dict = {}
+    for row in ContestProblemStatement.objects.order_by(
+        "-contest_year",
+        "contest_name",
+        "day_label",
+        "problem_number",
+        "problem_code",
+        "id",
+    ).values("id", "problem_uuid", "contest_year_problem", "day_label"):
+        claimant_by_problem_uuid[row["problem_uuid"]] = SimpleNamespace(**row)
+
     statement_problem_code_counts = Counter(
         (
-            statement.contest_name,
-            int(statement.contest_year),
-            (statement.problem_code or "").strip().upper(),
+            contest_name,
+            int(contest_year),
+            (problem_code or "").strip().upper(),
         )
-        for statement in statements
+        for contest_name, contest_year, problem_code in ContestProblemStatement.objects.values_list(
+            "contest_name",
+            "contest_year",
+            "problem_code",
+        )
     )
+
+    table_qs = ContestProblemStatement.objects.select_related("linked_problem").order_by(
+        "-updated_at",
+        "-id",
+    )
+    statements = list(table_qs[:ADMIN_TABLE_LATEST_LIMIT])
+
+    visible_contest_years = {
+        (statement.contest_name, int(statement.contest_year)) for statement in statements
+    }
 
     candidate_groups: dict[str, list[dict[str, object]]] = {}
     for contest_name, contest_year in sorted(
-        problems_by_contest_year,
+        visible_contest_years,
         key=lambda contest_year_key: (-contest_year_key[1], contest_year_key[0].lower()),
     ):
+        problem_list = problems_by_contest_year.get((contest_name, contest_year), [])
         group_key = _statement_linker_group_key(contest_name, contest_year)
         candidate_groups[group_key] = []
-        for problem in sorted(
-            problems_by_contest_year[(contest_name, contest_year)],
-            key=lambda problem: _problem_sort_key(problem.problem),
-        ):
+        for problem in sorted(problem_list, key=lambda p: _problem_sort_key(p.problem)):
             claimant = claimant_by_problem_uuid.get(problem.problem_uuid)
             candidate_groups[group_key].append(
                 {
@@ -1139,8 +1161,6 @@ def _statement_linker_payload() -> dict[str, object]:
             )
 
     rows: list[dict[str, object]] = []
-    linked_total = 0
-    suggested_total = 0
     for statement in statements:
         linked_problem = statement.linked_problem
         group_key = _statement_linker_group_key(statement.contest_name, int(statement.contest_year))
@@ -1151,10 +1171,6 @@ def _statement_linker_payload() -> dict[str, object]:
             statement_problem_code_counts=statement_problem_code_counts,
             claimant_by_problem_uuid=claimant_by_problem_uuid,
         )
-        if linked_problem is not None:
-            linked_total += 1
-        elif suggested_problem is not None:
-            suggested_total += 1
 
         rows.append(
             {
@@ -1195,14 +1211,12 @@ def _statement_linker_payload() -> dict[str, object]:
     return {
         "candidate_groups": candidate_groups,
         "contest_names": statement_contests,
+        "contest_total": len(statement_contests),
+        "is_capped": statement_total > ADMIN_TABLE_LATEST_LIMIT,
+        "limit": ADMIN_TABLE_LATEST_LIMIT,
         "rows": rows,
-        "stats": {
-            "contest_total": len(statement_contests),
-            "linked_total": linked_total,
-            "suggested_total": suggested_total,
-            "unlinked_total": len(statements) - linked_total,
-        },
-        "year_values": [str(year) for year in statement_years],
+        "statement_total": statement_total,
+        "year_values": year_values,
     }
 
 
@@ -3790,9 +3804,12 @@ def problem_statement_linker_view(request):
     context = {
         "statement_linker_candidate_groups": linker_payload["candidate_groups"],
         "statement_linker_contest_names": linker_payload["contest_names"],
+        "statement_linker_contest_total": linker_payload["contest_total"],
         "statement_linker_rows": linker_payload["rows"],
-        "statement_linker_stats": linker_payload["stats"],
-        "statement_linker_total": len(linker_payload["rows"]),
+        "statement_linker_table_is_capped": linker_payload["is_capped"],
+        "statement_linker_table_limit": linker_payload["limit"],
+        "statement_linker_table_visible_total": len(linker_payload["rows"]),
+        "statement_linker_total": linker_payload["statement_total"],
         "statement_linker_year_values": linker_payload["year_values"],
     }
     return render(request, "pages/problem-statement-linker.html", context)
