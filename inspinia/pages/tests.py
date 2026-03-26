@@ -6515,7 +6515,7 @@ def test_problem_statement_metadata_browser_table_loads_latest_100_rows_only(cli
     response = client.get(reverse("pages:problem_statement_metadata"))
 
     assert response.status_code == HTTPStatus.OK
-    assert response.context["statement_metadata_stats"]["statement_total"] == ADMIN_TABLE_LATEST_LIMIT + 1
+    assert response.context["statement_metadata_total"] == ADMIN_TABLE_LATEST_LIMIT + 1
     assert len(response.context["statement_metadata_rows"]) == ADMIN_TABLE_LATEST_LIMIT
     assert response.context["statement_metadata_table_is_capped"] is True
     assert response.context["statement_metadata_total"] == ADMIN_TABLE_LATEST_LIMIT + 1
