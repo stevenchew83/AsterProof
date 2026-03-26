@@ -4549,10 +4549,12 @@ def test_user_solution_record_list_renders_admin_inventory(client):
         reverse("solutions:problem_solution_list", args=[problem.problem_uuid])
         + f"?solution={solution.id}#solution-{solution.id}"
     )
+    assert first_row["pdf_url"] == reverse("solutions:admin_problem_solution_pdf", args=[solution.pk])
     response_html = response.content.decode("utf-8")
     assert "User solution listing" in response_html
     assert 'id="user-solution-record-table"' in response_html
     assert f'"solution_url": "{reverse("solutions:problem_solution_list", args=[problem.problem_uuid])}?solution={solution.id}#solution-{solution.id}"' in response_html
+    assert f'"pdf_url": "{reverse("solutions:admin_problem_solution_pdf", args=[solution.pk])}"' in response_html
 
 
 def test_user_solution_record_list_caps_to_latest_100_by_updated_at(client):

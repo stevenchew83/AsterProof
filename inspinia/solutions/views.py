@@ -8,6 +8,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import FieldError
+from django.core.exceptions import PermissionDenied
 from django.core.files.base import ContentFile
 from django.db import DatabaseError
 from django.db import transaction
@@ -43,6 +44,8 @@ from inspinia.solutions.pdf_latex import compile_solution_to_pdf
 from inspinia.users.roles import user_has_admin_role
 
 logger = logging.getLogger(__name__)
+
+STATEMENT_BACKED_PROBLEM_LIST_LIMIT = 100
 
 SOLUTION_BODY_IMAGE_MAX_BYTES = 3 * 1024 * 1024
 SOLUTION_BODY_IMAGE_ALLOWED_TYPES = frozenset(
@@ -93,6 +96,76 @@ def _problem_solution_prefetch():
     return Prefetch(
         "blocks",
         queryset=ProblemSolutionBlock.objects.select_related("block_type").order_by("position", "id"),
+    )
+
+
+def _require_admin_tools_access(request) -> None:
+    if not settings.DEBUG and not user_has_admin_role(request.user):
+        raise PermissionDenied
+
+
+def _solution_pdf_http_response(request, solution: ProblemSolution):
+    """Return PDF file response or render an error/unavailable template (blocks should be prefetched)."""
+    problem = solution.problem
+    problem_data = _problem_context(problem)
+    problem_label = problem.contest_year_problem or f"{problem.contest} {problem.year} {problem.problem}"
+    blocks = list(solution.blocks.all())
+
+    try:
+        pdf_bytes = compile_solution_to_pdf(
+            solution,
+            blocks,
+            SolutionPdfCompileParams(
+                media_root=Path(settings.MEDIA_ROOT),
+                problem_label=problem_label,
+                timeout=settings.SOLUTION_PDF_LATEX_TIMEOUT,
+                latex_binary=settings.SOLUTION_PDF_LATEX_BINARY,
+            ),
+        )
+    except SolutionPdfToolError as exc:
+        return render(
+            request,
+            "solutions/solution_pdf_unavailable.html",
+            {
+                "problem_data": problem_data,
+                "detail": (
+                    "Install TeX Live (with KOMA-Script) and latexmk on the server, "
+                    "or set SOLUTION_PDF_LATEX_BINARY to a suitable driver."
+                ),
+                "reason": str(exc),
+            },
+            status=503,
+        )
+    except SolutionPdfCompileError as exc:
+        logger.warning("solution_pdf_compile_error solution_id=%s", solution.pk)
+        return render(
+            request,
+            "solutions/solution_pdf_error.html",
+            {
+                "problem_data": problem_data,
+                "log_tail": exc.log_tail,
+            },
+            status=500,
+        )
+    except SolutionPdfError as exc:
+        return render(
+            request,
+            "solutions/solution_pdf_unavailable.html",
+            {
+                "problem_data": problem_data,
+                "reason": str(exc),
+            },
+            status=500,
+        )
+
+    base = slugify(problem_label) or "solution"
+    slug = slugify(solution.title or "solution") or "solution"
+    filename = f"{base}-{slug}.pdf"[:200]
+    return FileResponse(
+        BytesIO(pdf_bytes),
+        as_attachment=True,
+        filename=filename,
+        content_type="application/pdf",
     )
 
 
@@ -170,7 +243,7 @@ def _statement_preview_text(statement_latex: str, *, max_length: int = 220) -> s
     return f"{collapsed[: max_length - 1].rstrip()}…"
 
 
-def _statement_backed_problem_rows(user) -> list[dict]:
+def _statement_backed_problem_rows(user) -> tuple[list[dict], dict[str, bool | int]]:
     latest_statement_by_problem_id: dict[int, ContestProblemStatement] = {}
     for statement in (
         ContestProblemStatement.objects.filter(linked_problem__isnull=False)
@@ -180,9 +253,18 @@ def _statement_backed_problem_rows(user) -> list[dict]:
         if statement.linked_problem_id in latest_statement_by_problem_id:
             continue
         latest_statement_by_problem_id[statement.linked_problem_id] = statement
+        if len(latest_statement_by_problem_id) >= STATEMENT_BACKED_PROBLEM_LIST_LIMIT:
+            break
 
     if not latest_statement_by_problem_id:
-        return []
+        return [], {"is_capped": False, "limit": STATEMENT_BACKED_PROBLEM_LIST_LIMIT}
+
+    capped_problem_ids = list(latest_statement_by_problem_id.keys())
+    list_is_capped = len(capped_problem_ids) >= STATEMENT_BACKED_PROBLEM_LIST_LIMIT and (
+        ContestProblemStatement.objects.filter(linked_problem__isnull=False)
+        .exclude(linked_problem_id__in=capped_problem_ids)
+        .exists()
+    )
 
     statements = list(latest_statement_by_problem_id.values())
     problem_ids = [statement.linked_problem_id for statement in statements if statement.linked_problem_id is not None]
@@ -250,7 +332,10 @@ def _statement_backed_problem_rows(user) -> list[dict]:
             },
         )
 
-    return rows
+    return rows, {
+        "is_capped": list_is_capped,
+        "limit": STATEMENT_BACKED_PROBLEM_LIST_LIMIT,
+    }
 
 
 def _save_solution_blocks(formset, solution: ProblemSolution) -> None:
@@ -324,7 +409,7 @@ def my_solution_list_view(request):
 
 @login_required
 def problem_solution_create_view(request):
-    statement_problem_rows = _statement_backed_problem_rows(request.user)
+    statement_problem_rows, statement_problem_list_meta = _statement_backed_problem_rows(request.user)
     started_total = sum(1 for row in statement_problem_rows if row["has_solution"])
     context = {
         "create_stats": {
@@ -332,6 +417,8 @@ def problem_solution_create_view(request):
             "started_total": started_total,
             "statement_problem_total": len(statement_problem_rows),
         },
+        "statement_problem_list_is_capped": statement_problem_list_meta["is_capped"],
+        "statement_problem_list_limit": statement_problem_list_meta["limit"],
         "statement_problem_rows": statement_problem_rows,
     }
     return render(request, "solutions/problem-solution-create.html", context)
@@ -432,12 +519,7 @@ def problem_solution_pdf_view(request, problem_uuid):
     solution = (
         ProblemSolution.objects.filter(problem=problem, author=request.user)
         .select_related("author")
-        .prefetch_related(
-            Prefetch(
-                "blocks",
-                queryset=ProblemSolutionBlock.objects.select_related("block_type").order_by("position", "id"),
-            ),
-        )
+        .prefetch_related(_problem_solution_prefetch())
         .first()
     )
     problem_data = _problem_context(problem)
@@ -451,66 +533,18 @@ def problem_solution_pdf_view(request, problem_uuid):
             },
             status=404,
         )
+    return _solution_pdf_http_response(request, solution)
 
-    problem_label = problem.contest_year_problem or f"{problem.contest} {problem.year} {problem.problem}"
-    blocks = list(solution.blocks.all())
 
-    try:
-        pdf_bytes = compile_solution_to_pdf(
-            solution,
-            blocks,
-            SolutionPdfCompileParams(
-                media_root=Path(settings.MEDIA_ROOT),
-                problem_label=problem_label,
-                timeout=settings.SOLUTION_PDF_LATEX_TIMEOUT,
-                latex_binary=settings.SOLUTION_PDF_LATEX_BINARY,
-            ),
-        )
-    except SolutionPdfToolError as exc:
-        return render(
-            request,
-            "solutions/solution_pdf_unavailable.html",
-            {
-                "problem_data": problem_data,
-                "detail": (
-                    "Install TeX Live (with KOMA-Script) and latexmk on the server, "
-                    "or set SOLUTION_PDF_LATEX_BINARY to a suitable driver."
-                ),
-                "reason": str(exc),
-            },
-            status=503,
-        )
-    except SolutionPdfCompileError as exc:
-        logger.warning("solution_pdf_compile_error solution_id=%s", solution.pk)
-        return render(
-            request,
-            "solutions/solution_pdf_error.html",
-            {
-                "problem_data": problem_data,
-                "log_tail": exc.log_tail,
-            },
-            status=500,
-        )
-    except SolutionPdfError as exc:
-        return render(
-            request,
-            "solutions/solution_pdf_unavailable.html",
-            {
-                "problem_data": problem_data,
-                "reason": str(exc),
-            },
-            status=500,
-        )
-
-    base = slugify(problem_label) or "solution"
-    slug = slugify(solution.title or "solution") or "solution"
-    filename = f"{base}-{slug}.pdf"[:200]
-    return FileResponse(
-        BytesIO(pdf_bytes),
-        as_attachment=True,
-        filename=filename,
-        content_type="application/pdf",
+@login_required
+def admin_problem_solution_pdf_view(request, solution_pk: int):
+    """Admin inventory: download any user's solution as Evan-format PDF (same pipeline as author PDF)."""
+    _require_admin_tools_access(request)
+    solution = get_object_or_404(
+        ProblemSolution.objects.select_related("author", "problem").prefetch_related(_problem_solution_prefetch()),
+        pk=solution_pk,
     )
+    return _solution_pdf_http_response(request, solution)
 
 
 @login_required
