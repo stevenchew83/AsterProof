@@ -598,7 +598,7 @@ def test_solution_body_image_upload_rejects_oversized(client):
     assert response.status_code == HTTPStatus.BAD_REQUEST
 
 
-def test_build_solution_tex_includes_scrartcl_evan_and_block_order():
+def test_build_solution_tex_wrapper_uses_11pt_sexy_and_problem_title():
     user = UserFactory(name="Test User")
     problem = _problem()
     solution = _solution_with_blocks(
@@ -615,20 +615,34 @@ def test_build_solution_tex_includes_scrartcl_evan_and_block_order():
         solution=solution,
         blocks=blocks,
         media_root=Path(settings.MEDIA_ROOT),
-        problem_label="IMO 2026 P1",
+        problem_label="USAMO 2026 P4",
     )
-    assert r"\documentclass{scrartcl}" in tex
-    assert r"\usepackage[noasy]{evan}" in tex
+    assert r"\documentclass[11pt]{scrartcl}" in tex
+    assert r"\usepackage[sexy,noasy]{evan}" in tex
     assert r"\graphicspath{" in tex
-    assert "IMO 2026 P1" in tex
-    assert "My Title" in tex
-    assert "Test User" in tex
-    assert r"\paragraph{Claim — A}" in tex
-    assert r"$\alpha$" in tex
-    assert r"\paragraph{Proof — B}" in tex
-    assert "Second body." in tex
-    sep = tex.index(r"\addvspace{2\baselineskip}")
-    assert tex.index(r"$\alpha$") < sep < tex.index("Second body.")
+    assert r"\title{USAMO 2026 P4}" in tex
+    assert r"\subtitle{My Title}" in tex
+    assert r"\author{Test User}" in tex
+
+
+def test_build_solution_tex_omits_subtitle_for_placeholder_title():
+    user = UserFactory(name="Test User")
+    problem = _problem()
+    solution = _solution_with_blocks(
+        problem=problem,
+        author=user,
+        title="Untitled solution",
+        blocks=[],
+    )
+    blocks = list(solution.blocks.order_by("position"))
+    tex = build_solution_tex_source(
+        solution=solution,
+        blocks=blocks,
+        media_root=Path(settings.MEDIA_ROOT),
+        problem_label="USAMO 2026 P4",
+    )
+    assert r"\title{USAMO 2026 P4}" in tex
+    assert r"\subtitle{" not in tex
 
 
 def test_build_solution_tex_date_uses_published_at_as_local_date_only():
@@ -667,7 +681,7 @@ def test_build_solution_tex_never_puts_email_in_author_when_name_empty():
     assert r"\author{Unknown}" in tex
 
 
-def test_build_solution_tex_includes_problem_section_when_statement_provided():
+def test_build_solution_tex_wraps_problem_statement_in_mdpurplebox():
     user = UserFactory(name="Author Display")
     problem = _problem()
     solution = _solution_with_blocks(
@@ -684,9 +698,10 @@ def test_build_solution_tex_includes_problem_section_when_statement_provided():
         problem_statement_latex=r"Let $ABC$ be a triangle. Prove $a+b>c$.",
     )
     maketitle_at = tex.index(r"\maketitle")
-    problem_sec = tex.index(r"\section*{Problem}")
-    claim_at = tex.index(r"\paragraph{Remark — Note}")
-    assert maketitle_at < problem_sec < claim_at
+    problem_box = tex.index(r"\begin{mdframed}[style=mdpurplebox,frametitle={Problem Statement}]")
+    block_at = tex.index("After problem.")
+    assert maketitle_at < problem_box < block_at
+    assert r"\end{mdframed}" in tex
     assert r"Let $ABC$ be a triangle. Prove $a+b>c$." in tex
 
 

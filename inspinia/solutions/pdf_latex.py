@@ -103,6 +103,13 @@ def _solution_pdf_author_display(user) -> str:
     return name or "Unknown"
 
 
+def _solution_pdf_subtitle(solution: ProblemSolution) -> str:
+    title = (solution.title or "").strip()
+    if not title or title == "Untitled solution":
+        return ""
+    return title
+
+
 def build_solution_tex_source(
     *,
     solution: ProblemSolution,
@@ -111,9 +118,8 @@ def build_solution_tex_source(
     problem_label: str,
     problem_statement_latex: str = "",
 ) -> str:
-    title = latex_escape_plain_text(
-        f"{problem_label} — {(solution.title or '').strip() or 'Untitled solution'}",
-    )
+    title = latex_escape_plain_text(problem_label)
+    subtitle = latex_escape_plain_text(_solution_pdf_subtitle(solution))
     author = latex_escape_plain_text(_solution_pdf_author_display(solution.author))
     dt_ref = solution.published_at or solution.updated_at
     date_str = latex_escape_plain_text(
@@ -122,8 +128,8 @@ def build_solution_tex_source(
     gp = _graphicspath_tex(media_root)
 
     lines: list[str] = [
-        r"\documentclass{scrartcl}",
-        r"\usepackage[noasy]{evan}",
+        r"\documentclass[11pt]{scrartcl}",
+        r"\usepackage[sexy,noasy]{evan}",
         rf"\graphicspath{{{gp}}}",
         rf"\title{{{title}}}",
         rf"\author{{{author}}}",
@@ -131,10 +137,13 @@ def build_solution_tex_source(
         r"\begin{document}",
         r"\maketitle",
     ]
+    if subtitle:
+        lines.insert(4, rf"\subtitle{{{subtitle}}}")
     stmt_body = (problem_statement_latex or "").strip()
     if stmt_body:
-        lines.append(r"\section*{Problem}")
+        lines.append(r"\begin{mdframed}[style=mdpurplebox,frametitle={Problem Statement}]")
         lines.append(stmt_body)
+        lines.append(r"\end{mdframed}")
         lines.append("")
     for i, block in enumerate(blocks):
         if i:
