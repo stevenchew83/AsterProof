@@ -6,6 +6,7 @@ from http import HTTPStatus
 from io import BytesIO
 from io import StringIO
 from pathlib import Path
+import re
 from urllib.parse import urlencode
 
 import pandas as pd
@@ -5532,7 +5533,14 @@ def test_problem_statement_list_shows_statement_rows_and_link_counts(client):
     assert 'id="statement-completion-feedback"' not in response_html
     assert "statement_completion_toggle_url" not in response_html
     assert "data-completion-toggle-url=" not in response_html
-    assert "statement-table-shell" in response_html
+    populated_shell_match = re.search(
+        r'<div class="(?P<classes>statement-table-shell[^"]*)">\s*'
+        r'<table id="problem-statements-table"',
+        response_html,
+        re.S,
+    )
+    assert populated_shell_match is not None
+    assert "table-responsive" not in populated_shell_match.group("classes")
     assert response.context["statement_filtered_total"] == EXPECTED_CONTEST_TOTAL
 
 
@@ -5659,6 +5667,14 @@ def test_problem_statement_list_skips_datatables_when_filters_match_nothing(clie
     response_html = response.content.decode("utf-8")
     assert "datatables" not in response_html.lower()
     assert 'new DataTable("#problem-statements-table"' not in response_html
+    zero_results_shell_match = re.search(
+        r'<div class="(?P<classes>statement-table-shell[^"]*)">\s*'
+        r'<table(?![^>]*id="problem-statements-table")[^>]*>',
+        response_html,
+        re.S,
+    )
+    assert zero_results_shell_match is not None
+    assert "table-responsive" in zero_results_shell_match.group("classes")
 
 
 def test_problem_detail_view_redirects_to_solution_editor_when_no_solution_exists(client):
