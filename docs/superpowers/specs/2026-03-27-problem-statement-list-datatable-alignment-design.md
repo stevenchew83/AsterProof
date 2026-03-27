@@ -78,9 +78,10 @@ For the branch where `statement_filtered_total > 0`:
 
 For the branch where the page renders the static empty table/message:
 
-- leave the current empty-results table shell unchanged unless implementation
-  simplicity strongly favors keeping markup parallel
+- leave the current empty-results table shell unchanged
 - no DataTable is initialized in this branch today; preserve that behavior
+- if implementation exposes a blocker that would require changing this branch,
+  stop and re-approve scope rather than broadening the fix implicitly
 
 ### DataTables init behavior
 
@@ -97,11 +98,24 @@ page contract reflects the intended shell for the populated table, including:
 
 - the populated page still includes DataTables assets and initialization
 - the populated DataTable branch no longer renders the redundant responsive
-  wrapper around `#problem-statements-table` if that is the implemented fix
+  wrapper around `#problem-statements-table`
 - the zero-results branch keeps its current non-DataTable behavior
+- the zero-results branch still renders its existing static responsive table
+  shell
 
 A browser-level visual assertion is out of scope for automated tests here; the
 main value is protecting the rendered structure that avoids the alignment bug.
+
+## Manual acceptance
+
+Because the reported defect is visual, do not consider the fix complete until
+the populated **All problem statements** table is checked in a browser:
+
+- at a normal desktop width, confirm header cells and body cells align
+- at a narrower width that requires horizontal scrolling, confirm alignment
+  remains correct while scrolling
+- confirm the page still pages, sorts, and uses the existing server filter form
+  exactly as before
 
 ## Risks and mitigations
 
