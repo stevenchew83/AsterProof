@@ -187,7 +187,7 @@
           <div class="flex-grow-1">
             <h4 class="header-title mb-0">All problem statements</h4>
             <p class="text-muted fs-xs mb-0">
-              Search and filters apply on the server. Rows imported before analytics still carry a stable UUID.
+              Form filters and search load rows from the server. The table filter box narrows within the rows already loaded below.
             </p>
           </div>
           <span class="badge text-bg-light">{{ statement_stats.contest_total }} contests</span>
@@ -197,7 +197,7 @@
             <div class="statement-toolbar-copy">
               <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Linked metadata</p>
               <h5 class="mb-1">Filter and search</h5>
-              <p class="text-muted fs-xs mb-0">Use search plus year, topic, confidence, and MOHS range, then Apply filters. The grid defaults to 25 rows per page; change the page size with the table control.</p>
+              <p class="text-muted fs-xs mb-0">Use search plus year, topic, confidence, and MOHS range, then Apply filters. After rows load, use the table filter to search within the grid. The grid defaults to 25 rows per page; change the page size with the table control.</p>
             </div>
             <form method="get" class="statement-range-filters align-items-end" action="{% url 'pages:problem_statement_list' %}">
               <div class="statement-search-field">
@@ -299,6 +299,8 @@
                   <th class="text-nowrap">IMO slot</th>
                   <th class="text-nowrap">Updated</th>
                   <th class="text-nowrap">Solution</th>
+                  <th class="d-none" aria-hidden="true"></th>
+                  <th class="d-none" aria-hidden="true"></th>
                 </tr>
               </thead>
               <tbody></tbody>
@@ -434,12 +436,21 @@
 
   new DataTable("#problem-statements-table", {
     data: rows,
-    searching: false,
     layout: {
-      topStart: "pageLength",
-      topEnd: "paging",
-      bottomStart: "info",
-      bottomEnd: "paging",
+      topStart: null,
+      topEnd: null,
+      bottomStart: null,
+      bottomEnd: null,
+      top: ["pageLength", "search", "paging"],
+      bottom: ["info", "paging"],
+    },
+    language: {
+      search: "Filter table:",
+      searchPlaceholder: "Within loaded rows…",
+      info: "Showing _START_ to _END_ of _TOTAL_ statement rows",
+      infoEmpty: "No statement rows to show",
+      infoFiltered: "(filtered from _MAX_ row(s) on this page)",
+      lengthMenu: "Show _MENU_ rows",
     },
     order: [[10, "desc"]],
     pageLength: 25,
@@ -620,7 +631,15 @@
           }
           return data;
         }
-      }
+      },
+      {
+        data: "problem_uuid",
+        visible: false,
+      },
+      {
+        data: "statement_uuid",
+        visible: false,
+      },
     ]
   });
 })();
