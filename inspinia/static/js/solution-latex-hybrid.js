@@ -24,9 +24,24 @@
   }
 
   function joinMediaUrl(baseUrl, path) {
-    var base = baseUrl || "";
     var p = normalizePath(path);
     if (!p) return "";
+    var cfg = typeof window !== "undefined" ? window.ASTERPROOF_SOLUTION_MEDIA : null;
+    var prefix = cfg && cfg.mediaUrlPrefix ? String(cfg.mediaUrlPrefix).trim() : "";
+    if (prefix) {
+      var pre = prefix.endsWith("/") ? prefix : prefix + "/";
+      if (pre.startsWith("http://") || pre.startsWith("https://")) {
+        try {
+          return new URL(p, pre).href;
+        } catch (e) {
+          return pre + p;
+        }
+      }
+      var root = pre.replace(/\/*$/, "") || "/";
+      if (!root.startsWith("/")) root = "/" + root;
+      return root + "/" + p;
+    }
+    var base = baseUrl || "";
     if (!base.endsWith("/")) base += "/";
     if (p.startsWith("/")) p = p.slice(1);
     try {
@@ -79,7 +94,7 @@
         var img = document.createElement("img");
         img.className = "solution-body-image img-fluid d-block my-2";
         img.alt = "";
-        img.loading = "lazy";
+        img.loading = "eager";
         img.src = joinMediaUrl(baseUrl, p.path);
         frag.appendChild(img);
         return;

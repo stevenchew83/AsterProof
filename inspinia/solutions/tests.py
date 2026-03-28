@@ -361,6 +361,7 @@ def test_problem_solution_list_shows_my_solution_and_only_other_published_soluti
     assert "My working draft" in response_html
     assert "Published proof" in response_html
     assert "Hidden draft" not in response_html
+    assert "mediaUrlPrefix:" in response_html
     assert 'textbullet: "\\\\bullet"' in response_html
 
 
@@ -1112,6 +1113,7 @@ def test_problem_solution_edit_stacks_statement_editor_and_notes_in_order(client
     assert response_html.index("Problem metadata") < response_html.index("Linked statement")
     assert response_html.index("Linked statement") < response_html.index("Live preview")
     assert response_html.index("Live preview") < response_html.index("Editor notes")
+    assert "mediaUrlPrefix:" in response_html
     assert "preview the rendered LaTeX alongside the editor." in response_html
     assert 'class="col-xl-4"' not in response_html
     assert "solution-statement-panel" in response_html

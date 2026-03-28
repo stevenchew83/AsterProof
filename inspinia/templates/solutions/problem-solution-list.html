@@ -268,7 +268,10 @@ window.MathJax = {
 </script>
 <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 <script>
-window.ASTERPROOF_SOLUTION_MEDIA = { baseUrl: "{{ solution_media_base_url|escapejs }}" };
+window.ASTERPROOF_SOLUTION_MEDIA = {
+  baseUrl: "{{ solution_media_base_url|escapejs }}",
+  mediaUrlPrefix: "{{ MEDIA_URL|escapejs }}"
+};
 </script>
 <script src="{% static 'js/solution-latex-hybrid.js' %}"></script>
 <script>

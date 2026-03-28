@@ -372,6 +372,7 @@ window.MathJax = {
 <script>
 window.ASTERPROOF_SOLUTION_MEDIA = {
   baseUrl: "{{ solution_media_base_url|escapejs }}",
+  mediaUrlPrefix: "{{ MEDIA_URL|escapejs }}",
   uploadUrl: "{{ solution_body_image_upload_url|escapejs }}"
 };
 window.ASTERPROOF_SOLUTION_PREVIEW = {
