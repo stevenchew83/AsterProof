@@ -107,6 +107,7 @@ from inspinia.users.roles import user_has_admin_role
 CONTEST_TOPIC_PREVIEW_LIMIT = 3
 CONTEST_PROBLEM_PREVIEW_LIMIT = 6
 STATEMENT_DELETE_PREVIEW_LIMIT = 3
+STATEMENT_DELETE_STALE_SELECTION_ERROR = "One or more selected statement rows no longer exist."
 XLSX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 CSV_CONTENT_TYPE = "text/csv; charset=utf-8"
 STATEMENT_CSV_COLUMNS = [
@@ -4087,33 +4088,49 @@ def problem_statement_delete_by_uuid_view(request):
         form = ProblemStatementDeleteByUuidForm(request.POST)
         if form.is_valid():
             submitted_statement_uuids = form.cleaned_data["statement_uuid"]
-            selected_statement_rows = list(
-                ContestProblemStatement.objects.filter(statement_uuid__in=submitted_statement_uuids).order_by(
-                    "-contest_year",
-                    "contest_name",
-                    "day_label",
-                    "problem_number",
-                    "problem_code",
-                ),
-            )
-            selected_statement_rows_by_uuid = {
-                str(statement.statement_uuid): statement for statement in selected_statement_rows
-            }
-            missing_statement_uuids = [
-                statement_uuid
-                for statement_uuid in submitted_statement_uuids
-                if statement_uuid not in selected_statement_rows_by_uuid
-            ]
-            if missing_statement_uuids:
-                form.add_error("statement_uuid", "One or more selected statement rows no longer exist.")
-            else:
-                selected_statement_labels = [
-                    selected_statement_rows_by_uuid[statement_uuid].contest_year_problem
+            stale_selection = False
+            with transaction.atomic():
+                selected_statement_rows = list(
+                    ContestProblemStatement.objects.filter(
+                        statement_uuid__in=submitted_statement_uuids,
+                    ).order_by(
+                        "-contest_year",
+                        "contest_name",
+                        "day_label",
+                        "problem_number",
+                        "problem_code",
+                    ),
+                )
+                selected_statement_rows_by_uuid = {
+                    str(statement.statement_uuid): statement for statement in selected_statement_rows
+                }
+                missing_statement_uuids = [
+                    statement_uuid
                     for statement_uuid in submitted_statement_uuids
-                    if statement_uuid in selected_statement_rows_by_uuid
+                    if statement_uuid not in selected_statement_rows_by_uuid
                 ]
-                with transaction.atomic():
-                    ContestProblemStatement.objects.filter(statement_uuid__in=submitted_statement_uuids).delete()
+                if missing_statement_uuids:
+                    transaction.set_rollback(True)
+                    stale_selection = True
+                else:
+                    selected_statement_labels = [
+                        selected_statement_rows_by_uuid[statement_uuid].contest_year_problem
+                        for statement_uuid in submitted_statement_uuids
+                        if statement_uuid in selected_statement_rows_by_uuid
+                    ]
+                    _, deleted_row_breakdown = ContestProblemStatement.objects.filter(
+                        statement_uuid__in=submitted_statement_uuids,
+                    ).delete()
+                    deleted_statement_count = deleted_row_breakdown.get(
+                        "pages.ContestProblemStatement",
+                        0,
+                    )
+                    if deleted_statement_count != len(submitted_statement_uuids):
+                        transaction.set_rollback(True)
+                        stale_selection = True
+            if stale_selection:
+                form.add_error("statement_uuid", STATEMENT_DELETE_STALE_SELECTION_ERROR)
+            else:
                 messages.success(
                     request,
                     f"Deleted {len(selected_statement_labels)} statement row(s): "
