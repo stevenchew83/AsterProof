@@ -1,8 +1,14 @@
 {% extends 'layouts/vertical.html' %}
 
-{% load i18n %}
+{% load i18n static %}
 
 {% block title %}Delete statement by UUID{% endblock title %}
+
+{% block extra_css %}
+{% if statement_delete_rows %}
+<link rel="stylesheet" href="{% static 'plugins/datatables/dataTables.bootstrap5.min.css' %}">
+{% endif %}
+{% endblock extra_css %}
 
 {% block page_content %}
 <div class="container-fluid">
@@ -20,46 +26,387 @@
   </div>
   {% endif %}
 
-  <div class="row g-3 mt-1">
-    <div class="col-lg-8 col-xl-6">
-      <div class="card">
-        <div class="card-header border-bottom">
-          <h4 class="header-title mb-0">Remove a statement row</h4>
-        </div>
-        <div class="card-body">
-          <p class="text-muted">
-            The statement UUID is the stable identifier for one imported row (see Statement editor, metadata export, or completion paste).
-            This action deletes that <code>ContestProblemStatement</code> record only. Linked analytics problems are not deleted; the link on this row is simply removed with the row.
-          </p>
-          <p class="text-muted">
-            Related data removed with the row: statement technique tags and user completions that reference this statement (CASCADE).
-          </p>
-          <form method="post" class="mt-3" novalidate>
-            {% csrf_token %}
+  <form id="statement-delete-form" method="post" novalidate>
+    {% csrf_token %}
+    <div class="row g-3 mt-1">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header border-bottom">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+              <div>
+                <h4 class="header-title mb-0">Delete selected statement rows</h4>
+                <p class="text-muted fs-xs mb-0">
+                  Select one or more statement rows below, confirm the deletion, and submit once you are sure.
+                </p>
+              </div>
+              <div class="d-flex flex-wrap gap-2">
+                <span id="statement-delete-selected-count" class="badge bg-danger-subtle text-danger" aria-live="polite">0 selected</span>
+                <span class="badge bg-secondary-subtle text-secondary">{{ statement_delete_total }} available</span>
+              </div>
+            </div>
+          </div>
+          <div class="card-body">
+            <p class="text-muted mb-3">
+              This permanently deletes each selected <code>ContestProblemStatement</code> row.
+              Linked statement techniques and user completions that cascade from those rows are removed too.
+              Problem archive rows are kept intact.
+            </p>
+
             {% if form.non_field_errors %}
             <div class="alert alert-danger" role="alert">
-              {{ form.non_field_errors }}
+              {% for err in form.non_field_errors %}
+                <div>{{ err }}</div>
+              {% endfor %}
             </div>
             {% endif %}
-            <div class="mb-3">
-              <label class="form-label" for="{{ form.statement_uuid.id_for_label }}">{{ form.statement_uuid.label }}</label>
-              {{ form.statement_uuid }}
-              {% if form.statement_uuid.errors %}
-              <div class="invalid-feedback d-block">{{ form.statement_uuid.errors|join:" " }}</div>
-              {% endif %}
+
+            {% if form.statement_uuid.errors %}
+            <div class="alert alert-danger" role="alert">
+              {% for err in form.statement_uuid.errors %}
+                <div>{{ err }}</div>
+              {% endfor %}
             </div>
-            <div class="mb-3 form-check">
-              {{ form.confirm_delete }}
-              <label class="form-check-label" for="{{ form.confirm_delete.id_for_label }}">{{ form.confirm_delete.label }}</label>
-              {% if form.confirm_delete.errors %}
-              <div class="invalid-feedback d-block">{{ form.confirm_delete.errors|join:" " }}</div>
-              {% endif %}
+            {% endif %}
+
+            {% if statement_delete_rows %}
+            <div class="row g-3 align-items-end mb-3">
+              <div class="col-lg-7 col-xl-6">
+                <label class="form-label" for="statement-delete-filter">Filter rows</label>
+                <input
+                  id="statement-delete-filter"
+                  type="search"
+                  class="form-control"
+                  placeholder="Filter contest, year, day, problem, UUID, or preview"
+                  autocomplete="off"
+                >
+                <div class="form-text">
+                  Search uses the DataTable filter and applies to the loaded rows in this table.
+                </div>
+              </div>
+              <div class="col-lg-5 col-xl-6">
+                <div class="alert alert-warning mb-0" role="alert">
+                  The select-all checkbox only affects the rows visible on the current page.
+                </div>
+              </div>
             </div>
-            <button type="submit" class="btn btn-danger">Delete statement row</button>
-          </form>
+
+            <div class="table-responsive">
+              <table id="statement-delete-table" class="table align-middle table-hover mb-0">
+                <thead>
+                  <tr class="text-muted fs-xs text-uppercase">
+                    <th class="text-center" style="width: 1%; min-width: 3rem;">
+                      <input
+                        id="statement-delete-select-all"
+                        class="form-check-input"
+                        type="checkbox"
+                        aria-label="Select all visible rows"
+                      >
+                    </th>
+                    <th>Contest</th>
+                    <th>Year</th>
+                    <th>Day</th>
+                    <th>Problem</th>
+                    <th>Statement UUID</th>
+                    <th>Preview</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for row in statement_delete_rows %}
+                  <tr data-statement-uuid="{{ row.statement_uuid }}">
+                    <td class="text-center">
+                      <input
+                        class="form-check-input statement-delete-row-checkbox"
+                        type="checkbox"
+                        name="statement_uuid"
+                        value="{{ row.statement_uuid }}"
+                        id="statement-delete-row-{{ forloop.counter0 }}"
+                        aria-label="Select statement row {{ row.statement_uuid }}"
+                      >
+                    </td>
+                    <td class="fw-semibold">{{ row.contest_name }}</td>
+                    <td>{{ row.contest_year }}</td>
+                    <td>{{ row.day_label }}</td>
+                    <td>
+                      <div class="fw-semibold">{{ row.contest_year_problem }}</div>
+                      {% if row.problem_code %}
+                      <div class="text-muted fs-12">{{ row.problem_code }}</div>
+                      {% endif %}
+                    </td>
+                    <td><code class="text-break">{{ row.statement_uuid }}</code></td>
+                    <td class="text-wrap text-muted">{{ row.statement_preview }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mt-3">
+              <div class="form-check mb-0">
+                {{ form.confirm_delete }}
+                <label class="form-check-label" for="{{ form.confirm_delete.id_for_label }}">{{ form.confirm_delete.label }}</label>
+                {% if form.confirm_delete.errors %}
+                <div class="invalid-feedback d-block">
+                  {% for err in form.confirm_delete.errors %}
+                    <div>{{ err }}</div>
+                  {% endfor %}
+                </div>
+                {% endif %}
+              </div>
+              <div class="d-flex flex-wrap gap-2 ms-auto">
+                <div id="statement-delete-hidden-fields" class="d-none"></div>
+                <button type="submit" id="statement-delete-submit" class="btn btn-danger">
+                  <i class="ti ti-trash me-1"></i> Delete selected statement rows
+                </button>
+              </div>
+            </div>
+
+            {{ statement_delete_rows|json_script:"statement-delete-table-data" }}
+            {% else %}
+            <div class="alert alert-info mb-0" role="alert">
+              No statement rows are available yet. Import problem statements first, then come back to delete one or more rows.
+            </div>
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mt-3">
+              <div class="form-check mb-0">
+                {{ form.confirm_delete }}
+                <label class="form-check-label" for="{{ form.confirm_delete.id_for_label }}">{{ form.confirm_delete.label }}</label>
+                {% if form.confirm_delete.errors %}
+                <div class="invalid-feedback d-block">
+                  {% for err in form.confirm_delete.errors %}
+                    <div>{{ err }}</div>
+                  {% endfor %}
+                </div>
+                {% endif %}
+              </div>
+              <button type="submit" id="statement-delete-submit" class="btn btn-danger" disabled>
+                <i class="ti ti-trash me-1"></i> Delete selected statement rows
+              </button>
+            </div>
+            {% endif %}
+          </div>
         </div>
       </div>
     </div>
-  </div>
+  </form>
 </div>
 {% endblock page_content %}
+
+{% block extra_javascript %}
+{% if statement_delete_rows %}
+{% include 'partials/datatables-vendor-scripts.html' %}
+<script>
+(function () {
+  var filterInput = document.getElementById("statement-delete-filter");
+  var tableElement = document.getElementById("statement-delete-table");
+  var selectAllCheckbox = document.getElementById("statement-delete-select-all");
+  var selectedCountBadge = document.getElementById("statement-delete-selected-count");
+  var hiddenFields = document.getElementById("statement-delete-hidden-fields");
+  var submitButton = document.getElementById("statement-delete-submit");
+  var confirmCheckbox = document.getElementById("{{ form.confirm_delete.id_for_label }}");
+  var form = document.getElementById("statement-delete-form");
+  var rowCheckboxSelector = "input.statement-delete-row-checkbox";
+  var statementDeleteRows = [];
+  var statementRowsByUuid = new Map();
+  var selectedStatementUuids = new Set();
+  var table;
+
+  if (!tableElement || !selectedCountBadge || !hiddenFields || !submitButton || !confirmCheckbox || !form) {
+    return;
+  }
+
+  var rowDataScript = document.getElementById("statement-delete-table-data");
+  if (rowDataScript) {
+    try {
+      statementDeleteRows = JSON.parse(rowDataScript.textContent || "[]");
+    } catch (error) {
+      statementDeleteRows = [];
+    }
+  }
+
+  statementDeleteRows.forEach(function (row) {
+    if (!row || row.statement_uuid === undefined || row.statement_uuid === null) return;
+    statementRowsByUuid.set(String(row.statement_uuid), row);
+  });
+
+  Array.prototype.slice.call(tableElement.querySelectorAll(rowCheckboxSelector)).forEach(function (checkbox) {
+    if (checkbox.checked) {
+      selectedStatementUuids.add(String(checkbox.value || ""));
+    }
+  });
+
+  function getCurrentPageCheckboxes() {
+    if (!table) {
+      return Array.prototype.slice.call(tableElement.querySelectorAll("tbody " + rowCheckboxSelector));
+    }
+
+    var nodes = table.rows({ page: "current" }).nodes();
+    var checkboxes = [];
+    for (var i = 0; i < nodes.length; i += 1) {
+      var checkbox = nodes[i].querySelector(rowCheckboxSelector);
+      if (checkbox) {
+        checkboxes.push(checkbox);
+      }
+    }
+    return checkboxes;
+  }
+
+  function updateSelectedCountBadge() {
+    selectedCountBadge.textContent = selectedStatementUuids.size + " selected";
+  }
+
+  function syncHiddenStatementInputs() {
+    hiddenFields.innerHTML = "";
+    statementRowsByUuid.forEach(function (row, statementUuid) {
+      if (!statementUuid || !selectedStatementUuids.has(statementUuid)) {
+        return;
+      }
+
+      var input = document.createElement("input");
+      input.type = "hidden";
+      input.name = "statement_uuid";
+      input.value = statementUuid;
+      hiddenFields.appendChild(input);
+    });
+  }
+
+  function updateSubmitState() {
+    submitButton.disabled = !(confirmCheckbox.checked && selectedStatementUuids.size > 0);
+  }
+
+  function syncMasterCheckbox() {
+    if (!selectAllCheckbox) return;
+
+    var visibleCheckboxes = getCurrentPageCheckboxes();
+    var visibleCount = visibleCheckboxes.length;
+    var checkedCount = 0;
+
+    for (var i = 0; i < visibleCheckboxes.length; i += 1) {
+      if (visibleCheckboxes[i].checked) {
+        checkedCount += 1;
+      }
+    }
+
+    if (!visibleCount) {
+      selectAllCheckbox.checked = false;
+      selectAllCheckbox.indeterminate = false;
+      return;
+    }
+
+    selectAllCheckbox.checked = checkedCount === visibleCount;
+    selectAllCheckbox.indeterminate = checkedCount > 0 && checkedCount < visibleCount;
+  }
+
+  function syncVisibleCheckboxes() {
+    getCurrentPageCheckboxes().forEach(function (checkbox) {
+      var statementUuid = String(checkbox.value || "");
+      checkbox.checked = selectedStatementUuids.has(statementUuid);
+    });
+    syncMasterCheckbox();
+  }
+
+  function syncUiState() {
+    updateSelectedCountBadge();
+    syncHiddenStatementInputs();
+    syncMasterCheckbox();
+    updateSubmitState();
+  }
+
+  function setCheckboxSelection(checkbox, isSelected) {
+    var statementUuid = String(checkbox.value || "");
+    checkbox.checked = isSelected;
+    if (isSelected) {
+      selectedStatementUuids.add(statementUuid);
+    } else {
+      selectedStatementUuids.delete(statementUuid);
+    }
+  }
+
+  if (typeof DataTable === "function") {
+    table = new DataTable("#statement-delete-table", {
+      pageLength: 25,
+      lengthMenu: [10, 25, 50, 100],
+      order: [[1, "asc"], [2, "asc"], [3, "asc"], [4, "asc"]],
+      autoWidth: false,
+      layout: {
+        topStart: "pageLength",
+        topEnd: null,
+        bottomStart: "info",
+        bottomEnd: "paging"
+      },
+      columnDefs: [
+        {
+          targets: 0,
+          orderable: false,
+          searchable: false
+        }
+      ],
+      language: {
+        info: "Showing _START_ to _END_ of _TOTAL_ statement rows",
+        infoEmpty: "No statement rows to show",
+        lengthMenu: "Show _MENU_ rows",
+        zeroRecords: "No statement rows match the current filter."
+      }
+    });
+  }
+
+  if (filterInput && table) {
+    filterInput.addEventListener("input", function () {
+      table.search(filterInput.value || "").draw();
+    });
+  }
+
+  if (selectAllCheckbox) {
+    selectAllCheckbox.addEventListener("change", function () {
+      var shouldSelect = selectAllCheckbox.checked;
+      getCurrentPageCheckboxes().forEach(function (checkbox) {
+        setCheckboxSelection(checkbox, shouldSelect);
+      });
+      syncUiState();
+    });
+  }
+
+  tableElement.addEventListener("change", function (event) {
+    var target = event.target;
+    if (!target || !target.classList) return;
+
+    if (target.classList.contains("statement-delete-row-checkbox")) {
+      setCheckboxSelection(target, target.checked);
+      syncUiState();
+      return;
+    }
+
+    if (target === confirmCheckbox) {
+      updateSubmitState();
+    }
+  });
+
+  tableElement.addEventListener("click", function (event) {
+    var checkbox = event.target && event.target.closest ? event.target.closest(rowCheckboxSelector) : null;
+    if (!checkbox) return;
+    if (!table || checkbox.disabled) return;
+    setTimeout(syncUiState, 0);
+  });
+
+  if (table) {
+    table.on("draw", function () {
+      syncVisibleCheckboxes();
+    });
+  }
+
+  form.addEventListener("submit", function () {
+    syncHiddenStatementInputs();
+    Array.prototype.slice.call(tableElement.querySelectorAll("input[type='checkbox'].statement-delete-row-checkbox")).forEach(function (checkbox) {
+      checkbox.disabled = true;
+    });
+    if (selectAllCheckbox) {
+      selectAllCheckbox.disabled = true;
+    }
+  });
+
+  confirmCheckbox.addEventListener("change", updateSubmitState);
+
+  syncVisibleCheckboxes();
+  syncUiState();
+})();
+</script>
+{% endif %}
+{% endblock extra_javascript %}
