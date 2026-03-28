@@ -40,7 +40,7 @@
                 </p>
               </div>
               <div class="d-flex flex-wrap gap-2">
-                <span id="statement-delete-selected-count" class="badge bg-danger-subtle text-danger" aria-live="polite">0 selected</span>
+                <span id="statement-delete-selected-count" class="badge bg-danger-subtle text-danger" aria-live="polite">{% if form.is_bound and form.statement_uuid.value %}{{ form.statement_uuid.value|length }}{% else %}0{% endif %} selected</span>
                 <span class="badge bg-secondary-subtle text-secondary">{{ statement_delete_total }} available</span>
               </div>
             </div>
@@ -60,7 +60,7 @@
             </div>
             {% endif %}
 
-            {% if form.statement_uuid.errors %}
+          {% if form.statement_uuid.errors %}
             <div class="alert alert-danger" role="alert">
               {% for err in form.statement_uuid.errors %}
                 <div>{{ err }}</div>
@@ -69,6 +69,7 @@
             {% endif %}
 
             {% if statement_delete_rows %}
+            {{ form.statement_uuid.value|json_script:"statement-delete-selected-values" }}
             <div class="row g-3 align-items-end mb-3">
               <div class="col-lg-7 col-xl-6">
                 <label class="form-label" for="statement-delete-filter">Filter rows</label>
@@ -111,6 +112,7 @@
                   </tr>
                 </thead>
                 <tbody>
+                  {% with selected_statement_uuid_values=form.statement_uuid.value %}
                   {% for row in statement_delete_rows %}
                   <tr data-statement-uuid="{{ row.statement_uuid }}">
                     <td class="text-center">
@@ -121,6 +123,7 @@
                         value="{{ row.statement_uuid }}"
                         id="statement-delete-row-{{ forloop.counter0 }}"
                         aria-label="Select statement row {{ row.statement_uuid }}"
+                        {% if selected_statement_uuid_values and row.statement_uuid|stringformat:"s" in selected_statement_uuid_values %}checked{% endif %}
                       >
                     </td>
                     <td class="fw-semibold">{{ row.contest_name }}</td>
@@ -136,6 +139,7 @@
                     <td class="text-wrap text-muted">{{ row.statement_preview }}</td>
                   </tr>
                   {% endfor %}
+                  {% endwith %}
                 </tbody>
               </table>
             </div>
@@ -227,6 +231,24 @@
     statementRowsByUuid.set(String(row.statement_uuid), row);
   });
 
+  var selectedValuesScript = document.getElementById("statement-delete-selected-values");
+  if (selectedValuesScript) {
+    try {
+      var selectedValues = JSON.parse(selectedValuesScript.textContent || "null");
+      if (Array.isArray(selectedValues)) {
+        selectedValues.forEach(function (statementUuid) {
+          if (statementUuid !== undefined && statementUuid !== null && String(statementUuid) !== "") {
+            selectedStatementUuids.add(String(statementUuid));
+          }
+        });
+      } else if (selectedValues !== undefined && selectedValues !== null && String(selectedValues) !== "") {
+        selectedStatementUuids.add(String(selectedValues));
+      }
+    } catch (error) {
+      /* ignore malformed bound values */
+    }
+  }
+
   Array.prototype.slice.call(tableElement.querySelectorAll(rowCheckboxSelector)).forEach(function (checkbox) {
     if (checkbox.checked) {
       selectedStatementUuids.add(String(checkbox.value || ""));
@@ -265,6 +287,18 @@
       input.name = "statement_uuid";
       input.value = statementUuid;
       hiddenFields.appendChild(input);
+    });
+
+    selectedStatementUuids.forEach(function (statementUuid) {
+      if (statementRowsByUuid.has(statementUuid)) {
+        return;
+      }
+
+      var missingInput = document.createElement("input");
+      missingInput.type = "hidden";
+      missingInput.name = "statement_uuid";
+      missingInput.value = statementUuid;
+      hiddenFields.appendChild(missingInput);
     });
   }
 
