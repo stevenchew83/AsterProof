@@ -11,6 +11,8 @@ from inspinia.pages.contest_names import normalize_text_list
 from inspinia.pages.models import ContestMetadata
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
+from inspinia.pages.models import StatementTopicTechnique
+from inspinia.pages.models import UserProblemCompletion
 
 
 class ContestRenameValidationError(ValueError):
@@ -30,6 +32,12 @@ class ContestRenameResult:
         if len(self.source_contests) == 1:
             return self.source_contests[0]
         return ", ".join(self.source_contests)
+
+
+@dataclass(frozen=True, slots=True)
+class StatementRenamePlan:
+    rename_rows: tuple[ContestProblemStatement, ...]
+    merge_pairs: tuple[tuple[ContestProblemStatement, ContestProblemStatement], ...]
 
 
 def _dedupe_contest_names(source_contests: list[str]) -> list[str]:
@@ -119,28 +127,109 @@ def _problem_conflict_labels(
     )
 
 
-def _statement_conflict_labels(
+def _statement_key(statement: ContestProblemStatement) -> tuple[int, str, str]:
+    return (statement.contest_year, statement.day_label, statement.problem_code)
+
+
+def _statement_conflict_label_from_key(statement_key: tuple[int, str, str]) -> str:
+    contest_year, day_label, problem_code = statement_key
+    display_day_label = day_label or "No day label"
+    return f"{contest_year} {display_day_label} {problem_code}"
+
+
+def _statement_merge_text_value(target_value: str | None, source_value: str | None) -> str:
+    normalized_target = str(target_value or "").strip()
+    return normalized_target or str(source_value or "").strip()
+
+
+def _statement_merge_optional_int_value(target_value: int | None, source_value: int | None) -> int | None:
+    return target_value if target_value is not None else source_value
+
+
+def _statement_rows_are_merge_compatible(
+    source_statement: ContestProblemStatement,
+    target_statement: ContestProblemStatement,
+) -> bool:
+    if source_statement.problem_number != target_statement.problem_number:
+        return False
+    if source_statement.statement_latex != target_statement.statement_latex:
+        return False
+    if (
+        source_statement.linked_problem_id is not None
+        and target_statement.linked_problem_id is not None
+        and source_statement.linked_problem_id != target_statement.linked_problem_id
+    ):
+        return False
+
+    text_fields = (
+        "topic",
+        "source_contest",
+        "source_problem",
+        "workbook_contest_year_problem",
+        "confidence",
+        "imo_slot_guess",
+        "topic_tags",
+        "rationale",
+        "pitfalls",
+    )
+    for field_name in text_fields:
+        source_value = str(getattr(source_statement, field_name) or "").strip()
+        target_value = str(getattr(target_statement, field_name) or "").strip()
+        if source_value and target_value and source_value != target_value:
+            return False
+
+    return not (
+        source_statement.mohs is not None
+        and target_statement.mohs is not None
+        and source_statement.mohs != target_statement.mohs
+    )
+
+
+def _build_statement_rename_plan(
     statement_rows: list[ContestProblemStatement],
     target_contest: str,
-) -> list[str]:
+) -> StatementRenamePlan:
     source_statement_key_counts: Counter[tuple[int, str, str]] = Counter(
-        (statement.contest_year, statement.day_label, statement.problem_code)
+        _statement_key(statement)
         for statement in statement_rows
     )
-    target_statement_keys = set(
-        ContestProblemStatement.objects.filter(contest_name=target_contest).values_list(
-            "contest_year",
-            "day_label",
-            "problem_code",
-        ),
-    )
+    target_statements_by_key = {
+        _statement_key(statement): statement
+        for statement in ContestProblemStatement.objects.filter(contest_name=target_contest).order_by("pk")
+    }
+
     conflict_labels: set[str] = set()
-    for (contest_year, day_label, problem_code), count in source_statement_key_counts.items():
-        if count <= 1 and (contest_year, day_label, problem_code) not in target_statement_keys:
+    rename_rows: list[ContestProblemStatement] = []
+    merge_pairs: list[tuple[ContestProblemStatement, ContestProblemStatement]] = []
+    for statement in statement_rows:
+        statement_key = _statement_key(statement)
+        if source_statement_key_counts[statement_key] > 1:
+            conflict_labels.add(_statement_conflict_label_from_key(statement_key))
             continue
-        display_day_label = day_label or "No day label"
-        conflict_labels.add(f"{contest_year} {display_day_label} {problem_code}")
-    return sorted(conflict_labels)
+
+        target_statement = target_statements_by_key.get(statement_key)
+        if target_statement is None:
+            rename_rows.append(statement)
+            continue
+
+        if not _statement_rows_are_merge_compatible(statement, target_statement):
+            conflict_labels.add(_statement_conflict_label_from_key(statement_key))
+            continue
+
+        merge_pairs.append((statement, target_statement))
+
+    if conflict_labels:
+        msg = (
+            f'Cannot update contest names to "{target_contest}" because these statement rows would '
+            "collide after the update: "
+            f"{_preview_conflict_text(sorted(conflict_labels))}."
+        )
+        raise ContestRenameValidationError(msg)
+
+    return StatementRenamePlan(
+        rename_rows=tuple(rename_rows),
+        merge_pairs=tuple(merge_pairs),
+    )
 
 
 def _preview_conflict_text(conflicts: list[str]) -> str:
@@ -153,7 +242,6 @@ def _preview_conflict_text(conflicts: list[str]) -> str:
 
 def _validate_target_merge(
     problem_rows: list[ProblemSolveRecord],
-    statement_rows: list[ContestProblemStatement],
     target_contest: str,
 ) -> bool:
     target_exists = ProblemSolveRecord.objects.filter(contest=target_contest).exists() or (
@@ -167,15 +255,6 @@ def _validate_target_merge(
             f'Cannot update contest names to "{target_contest}" because these problem rows would '
             "collide after the update: "
             f"{_preview_conflict_text(problem_conflicts)}."
-        )
-        raise ContestRenameValidationError(msg)
-
-    statement_conflicts = _statement_conflict_labels(statement_rows, target_contest)
-    if statement_conflicts:
-        msg = (
-            f'Cannot update contest names to "{target_contest}" because these statement rows would '
-            "collide after the update: "
-            f"{_preview_conflict_text(statement_conflicts)}."
         )
         raise ContestRenameValidationError(msg)
 
@@ -196,20 +275,139 @@ def _update_problem_rows(problem_rows: list[ProblemSolveRecord], target_contest:
 
 
 def _update_statement_rows(
-    statement_rows: list[ContestProblemStatement],
+    statement_plan: StatementRenamePlan,
     target_contest: str,
 ) -> None:
     rename_timestamp = timezone.now()
-    for statement in statement_rows:
+    for statement in statement_plan.rename_rows:
         statement.contest_name = target_contest
         statement.contest_year_problem = f"{target_contest} {statement.contest_year} {statement.problem_code}"
         statement.updated_at = rename_timestamp
-    if statement_rows:
+    if statement_plan.rename_rows:
         ContestProblemStatement.objects.bulk_update(
-            statement_rows,
+            list(statement_plan.rename_rows),
             ["contest_name", "contest_year_problem", "updated_at"],
             batch_size=200,
         )
+
+    source_statement_ids_to_delete = [
+        _merge_statement_row_into_target(
+            source_statement=source_statement,
+            target_statement=target_statement,
+        )
+        for source_statement, target_statement in statement_plan.merge_pairs
+    ]
+
+    if source_statement_ids_to_delete:
+        ContestProblemStatement.objects.filter(pk__in=source_statement_ids_to_delete).delete()
+
+
+def _merge_statement_topic_techniques(
+    *,
+    source_statement: ContestProblemStatement,
+    target_statement: ContestProblemStatement,
+) -> None:
+    for source_technique in source_statement.statement_topic_techniques.all():
+        target_technique = StatementTopicTechnique.objects.filter(
+            statement=target_statement,
+            technique=source_technique.technique,
+        ).first()
+        if target_technique is None:
+            source_technique.statement = target_statement
+            source_technique.save(update_fields=["statement"])
+            continue
+
+        merged_domains = normalize_text_list(
+            [*(target_technique.domains or []), *(source_technique.domains or [])],
+        )
+        if merged_domains != list(target_technique.domains or []):
+            target_technique.domains = merged_domains
+            target_technique.save(update_fields=["domains"])
+        source_technique.delete()
+
+
+def _merge_statement_completion_rows(
+    *,
+    source_statement: ContestProblemStatement,
+    target_statement: ContestProblemStatement,
+) -> None:
+    for source_completion in source_statement.user_completions.select_related("user").all():
+        target_completion = UserProblemCompletion.objects.filter(
+            user=source_completion.user,
+            statement=target_statement,
+        ).first()
+        if target_completion is None:
+            source_completion.statement = target_statement
+            source_completion.save(update_fields=["statement"])
+            continue
+
+        completion_dates = [
+            completion_date
+            for completion_date in (
+                target_completion.completion_date,
+                source_completion.completion_date,
+            )
+            if completion_date is not None
+        ]
+        merged_completion_date = min(completion_dates) if completion_dates else None
+        if target_completion.completion_date != merged_completion_date:
+            target_completion.completion_date = merged_completion_date
+            target_completion.save(update_fields=["completion_date"])
+        source_completion.delete()
+
+
+def _merge_statement_row_into_target(
+    *,
+    source_statement: ContestProblemStatement,
+    target_statement: ContestProblemStatement,
+) -> int:
+    target_statement.linked_problem = target_statement.linked_problem or source_statement.linked_problem
+    target_statement.is_active = target_statement.is_active or source_statement.is_active
+    target_statement.topic = _statement_merge_text_value(target_statement.topic, source_statement.topic)
+    target_statement.mohs = _statement_merge_optional_int_value(target_statement.mohs, source_statement.mohs)
+    target_statement.source_contest = _statement_merge_text_value(
+        target_statement.source_contest,
+        source_statement.source_contest,
+    )
+    target_statement.source_problem = _statement_merge_text_value(
+        target_statement.source_problem,
+        source_statement.source_problem,
+    )
+    target_statement.workbook_contest_year_problem = _statement_merge_text_value(
+        target_statement.workbook_contest_year_problem,
+        source_statement.workbook_contest_year_problem,
+    )
+    target_statement.confidence = _statement_merge_text_value(
+        target_statement.confidence,
+        source_statement.confidence,
+    )
+    target_statement.imo_slot_guess = _statement_merge_text_value(
+        target_statement.imo_slot_guess,
+        source_statement.imo_slot_guess,
+    )
+    target_statement.topic_tags = _statement_merge_text_value(
+        target_statement.topic_tags,
+        source_statement.topic_tags,
+    )
+    target_statement.rationale = _statement_merge_text_value(
+        target_statement.rationale,
+        source_statement.rationale,
+    )
+    target_statement.pitfalls = _statement_merge_text_value(
+        target_statement.pitfalls,
+        source_statement.pitfalls,
+    )
+    target_statement.save()
+
+    _merge_statement_topic_techniques(
+        source_statement=source_statement,
+        target_statement=target_statement,
+    )
+    _merge_statement_completion_rows(
+        source_statement=source_statement,
+        target_statement=target_statement,
+    )
+    return source_statement.pk
 
 
 def _resolve_metadata_scalar_value(
@@ -319,14 +517,17 @@ def rename_contests(*, old_names: list[str], new_name: str) -> ContestRenameResu
     target_contest = normalize_contest_name(new_name)
     _validate_target_contest_name(source_contests, target_contest)
     source_problem_rows, source_statement_rows, source_metadata_rows = _load_source_rows(source_contests)
+    statement_plan = _build_statement_rename_plan(
+        source_statement_rows,
+        target_contest,
+    )
     merged_into_existing = _validate_target_merge(
         source_problem_rows,
-        source_statement_rows,
         target_contest,
     )
     with transaction.atomic():
         _update_problem_rows(source_problem_rows, target_contest)
-        _update_statement_rows(source_statement_rows, target_contest)
+        _update_statement_rows(statement_plan, target_contest)
         _merge_contest_metadata_rows(
             source_metadata_rows=source_metadata_rows,
             target_contest=target_contest,
