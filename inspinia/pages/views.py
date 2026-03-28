@@ -106,6 +106,7 @@ from inspinia.users.roles import user_has_admin_role
 
 CONTEST_TOPIC_PREVIEW_LIMIT = 3
 CONTEST_PROBLEM_PREVIEW_LIMIT = 6
+STATEMENT_DELETE_PREVIEW_LIMIT = 3
 XLSX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 CSV_CONTENT_TYPE = "text/csv; charset=utf-8"
 STATEMENT_CSV_COLUMNS = [
@@ -521,6 +522,26 @@ def _statement_preview_text(statement_latex: str, *, max_length: int = 220) -> s
     if len(collapsed) <= max_length:
         return collapsed
     return f"{collapsed[: max_length - 1].rstrip()}…"
+
+
+def _statement_delete_row(statement: ContestProblemStatement) -> dict[str, str]:
+    return {
+        "contest_name": statement.contest_name,
+        "contest_year": str(statement.contest_year),
+        "day_label": statement.day_label or "—",
+        "problem_code": statement.problem_code,
+        "statement_uuid": str(statement.statement_uuid),
+        "contest_year_problem": statement.contest_year_problem,
+        "statement_preview": _statement_preview_text(statement.statement_latex, max_length=120),
+    }
+
+
+def _statement_delete_preview(labels: list[str]) -> str:
+    preview_labels = labels[:STATEMENT_DELETE_PREVIEW_LIMIT]
+    preview = ", ".join(preview_labels)
+    if len(labels) > STATEMENT_DELETE_PREVIEW_LIMIT:
+        preview = f"{preview}, and {len(labels) - STATEMENT_DELETE_PREVIEW_LIMIT} more"
+    return preview
 
 
 def _statement_render_payload(statement_latex: str) -> dict:
@@ -4052,20 +4073,51 @@ def problem_statement_delete_by_uuid_view(request):
     """Admin tool: permanently remove one statement row by its immutable statement UUID."""
     _require_admin_tools_access(request)
 
+    statement_inventory = ContestProblemStatement.objects.order_by(
+        "-contest_year",
+        "contest_name",
+        "day_label",
+        "problem_number",
+        "problem_code",
+    )
+    statement_delete_rows = [_statement_delete_row(statement) for statement in statement_inventory]
+    statement_delete_total = len(statement_delete_rows)
+
     if request.method == "POST":
         form = ProblemStatementDeleteByUuidForm(request.POST)
         if form.is_valid():
-            statement_uuid = form.cleaned_data["statement_uuid"]
-            try:
-                statement = ContestProblemStatement.objects.get(statement_uuid=statement_uuid)
-            except ContestProblemStatement.DoesNotExist:
-                form.add_error("statement_uuid", "No statement row has this statement UUID.")
+            submitted_statement_uuids = form.cleaned_data["statement_uuid"]
+            selected_statement_rows = list(
+                ContestProblemStatement.objects.filter(statement_uuid__in=submitted_statement_uuids).order_by(
+                    "-contest_year",
+                    "contest_name",
+                    "day_label",
+                    "problem_number",
+                    "problem_code",
+                ),
+            )
+            selected_statement_rows_by_uuid = {
+                str(statement.statement_uuid): statement for statement in selected_statement_rows
+            }
+            missing_statement_uuids = [
+                statement_uuid
+                for statement_uuid in submitted_statement_uuids
+                if statement_uuid not in selected_statement_rows_by_uuid
+            ]
+            if missing_statement_uuids:
+                form.add_error("statement_uuid", "One or more selected statement rows no longer exist.")
             else:
-                label = statement.contest_year_problem
-                statement.delete()
+                selected_statement_labels = [
+                    selected_statement_rows_by_uuid[statement_uuid].contest_year_problem
+                    for statement_uuid in submitted_statement_uuids
+                    if statement_uuid in selected_statement_rows_by_uuid
+                ]
+                with transaction.atomic():
+                    ContestProblemStatement.objects.filter(statement_uuid__in=submitted_statement_uuids).delete()
                 messages.success(
                     request,
-                    f"Deleted statement row {label}. Statement UUID was {statement_uuid}.",
+                    f"Deleted {len(selected_statement_labels)} statement row(s): "
+                    f"{_statement_delete_preview(selected_statement_labels)}.",
                 )
                 return redirect("pages:problem_statement_delete_by_uuid")
     else:
@@ -4074,7 +4126,11 @@ def problem_statement_delete_by_uuid_view(request):
     return render(
         request,
         "pages/problem-statement-delete-by-uuid.html",
-        {"form": form},
+        {
+            "form": form,
+            "statement_delete_rows": statement_delete_rows,
+            "statement_delete_total": statement_delete_total,
+        },
     )
 
 
