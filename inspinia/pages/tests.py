@@ -8877,6 +8877,56 @@ def test_contest_rename_rejects_problem_key_collision_when_merging(client):
     )
 
 
+def test_contest_rename_allows_statement_only_merge_when_target_has_unrelated_duplicate_problem_keys(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    source_name = "USOMO"
+    target_name = "USAMO"
+    ProblemSolveRecord.objects.create(
+        year=2025,
+        topic="ALG",
+        mohs=5,
+        contest=target_name,
+        problem="P1",
+        contest_year_problem=f"{target_name} 2025 P1",
+    )
+    ProblemSolveRecord.objects.create(
+        year=2025,
+        topic="NT",
+        mohs=4,
+        contest=target_name,
+        problem="P1",
+        contest_year_problem=f"{target_name} 2025 P1",
+    )
+    source_statement = ContestProblemStatement.objects.create(
+        contest_year=2025,
+        contest_name=source_name,
+        problem_number=2,
+        problem_code="P2",
+        day_label="Day 1",
+        statement_latex="Source statement",
+    )
+
+    response = client.post(
+        reverse("pages:contest_rename"),
+        {
+            "source_contests": [source_name],
+            "new_contest_name": target_name,
+        },
+        follow=True,
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert ContestProblemStatement.objects.filter(contest_name=source_name).count() == 0
+    renamed_statement = ContestProblemStatement.objects.get(pk=source_statement.pk)
+    assert renamed_statement.contest_name == target_name
+    assert renamed_statement.contest_year_problem == f"{target_name} 2025 P2"
+    assert any(
+        f'Merged "{source_name}" into "{target_name}"' in str(message)
+        for message in response.context["messages"]
+    )
+
+
 def test_contest_rename_rejects_statement_key_collision_when_merging(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)

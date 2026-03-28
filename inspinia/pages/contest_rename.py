@@ -103,17 +103,18 @@ def _problem_conflict_labels(
     problem_rows: list[ProblemSolveRecord],
     target_contest: str,
 ) -> list[str]:
-    problem_key_counts: Counter[tuple[int, str]] = Counter(
-        (record.year, record.problem) for record in problem_rows
+    source_problem_key_counts: Counter[tuple[int, str]] = Counter(
+        (record.year, record.problem)
+        for record in problem_rows
     )
-    problem_key_counts.update(
+    target_problem_keys = set(
         ProblemSolveRecord.objects.filter(contest=target_contest).values_list("year", "problem"),
     )
     return sorted(
         {
             f"{year} {problem}"
-            for (year, problem), count in problem_key_counts.items()
-            if count > 1
+            for (year, problem), count in source_problem_key_counts.items()
+            if count > 1 or (year, problem) in target_problem_keys
         },
     )
 
@@ -122,11 +123,11 @@ def _statement_conflict_labels(
     statement_rows: list[ContestProblemStatement],
     target_contest: str,
 ) -> list[str]:
-    statement_key_counts: Counter[tuple[int, str, str]] = Counter(
+    source_statement_key_counts: Counter[tuple[int, str, str]] = Counter(
         (statement.contest_year, statement.day_label, statement.problem_code)
         for statement in statement_rows
     )
-    statement_key_counts.update(
+    target_statement_keys = set(
         ContestProblemStatement.objects.filter(contest_name=target_contest).values_list(
             "contest_year",
             "day_label",
@@ -134,8 +135,8 @@ def _statement_conflict_labels(
         ),
     )
     conflict_labels: set[str] = set()
-    for (contest_year, day_label, problem_code), count in statement_key_counts.items():
-        if count <= 1:
+    for (contest_year, day_label, problem_code), count in source_statement_key_counts.items():
+        if count <= 1 and (contest_year, day_label, problem_code) not in target_statement_keys:
             continue
         display_day_label = day_label or "No day label"
         conflict_labels.add(f"{contest_year} {display_day_label} {problem_code}")
