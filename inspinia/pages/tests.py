@@ -3387,6 +3387,8 @@ def test_problem_statement_delete_by_uuid_page_renders_for_admin(client):
     assert response.status_code == HTTPStatus.OK
     assert "Delete statement by UUID" in response_html
     assert 'id="statement-delete-table"' in response_html
+    assert 'type="checkbox"' in response_html
+    assert f'value="{statement.statement_uuid}"' in response_html
     assert 'name="statement_uuid"' in response_html
     assert str(statement.statement_uuid) in response_html
     assert "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" not in response_html
@@ -3461,7 +3463,7 @@ def test_problem_statement_delete_by_uuid_unknown_uuid_shows_error(client):
     assert UserProblemCompletion.objects.filter(pk=completion.pk).exists()
 
 
-def test_problem_statement_delete_by_uuid_removes_statement_and_cascades(client):
+def test_problem_statement_delete_by_uuid_bulk_delete_removes_selected_rows_and_cascades(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
     first_statement = ContestProblemStatement.objects.create(
@@ -3502,6 +3504,25 @@ def test_problem_statement_delete_by_uuid_removes_statement_and_cascades(client)
         problem=None,
         completion_date=date(2025, 8, 1),
     )
+    untouched_statement = ContestProblemStatement.objects.create(
+        contest_year=2025,
+        contest_name="IMO",
+        problem_number=3,
+        problem_code="P3",
+        day_label="Day 3",
+        statement_latex="Untouched row",
+    )
+    StatementTopicTechnique.objects.create(
+        statement=untouched_statement,
+        technique="GEOMETRY",
+        domains=["GEO"],
+    )
+    untouched_completion = UserProblemCompletion.objects.create(
+        user=admin_user,
+        statement=untouched_statement,
+        problem=None,
+        completion_date=date(2025, 8, 2),
+    )
 
     response = client.post(
         reverse("pages:problem_statement_delete_by_uuid"),
@@ -3525,6 +3546,9 @@ def test_problem_statement_delete_by_uuid_removes_statement_and_cascades(client)
     assert not UserProblemCompletion.objects.filter(
         statement_id__in=[first_statement.pk, second_statement.pk],
     ).exists()
+    assert ContestProblemStatement.objects.filter(pk=untouched_statement.pk).exists()
+    assert StatementTopicTechnique.objects.filter(statement=untouched_statement).exists()
+    assert UserProblemCompletion.objects.filter(pk=untouched_completion.pk).exists()
     assert "Deleted 2 statement row(s)" in response.content.decode()
 
 
