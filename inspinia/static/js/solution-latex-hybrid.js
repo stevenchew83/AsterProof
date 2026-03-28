@@ -5,7 +5,10 @@
 (function () {
   "use strict";
 
-  var INCLUDE_RE = /\\includegraphics(\[[^\]]*\])?\{([^}]*)\}/g;
+  // Allow optional whitespace after \includegraphics and before { so small edits
+  // (or rare browser formatting) still match; otherwise the whole line falls through
+  // to MathJax, which renders \includegraphics as a link and misparses _ in paths.
+  var INCLUDE_RE = /\\includegraphics\s*(\[[^\]]*\])?\s*\{([^}]*)\}/g;
   var ALLOWED_PATH = /^solution_body_images\/[0-9a-f]{32}\.(png|jpg|jpeg|gif|webp)$/i;
 
   function normalizePath(path) {
@@ -23,9 +26,14 @@
   function joinMediaUrl(baseUrl, path) {
     var base = baseUrl || "";
     var p = normalizePath(path);
+    if (!p) return "";
     if (!base.endsWith("/")) base += "/";
     if (p.startsWith("/")) p = p.slice(1);
-    return base + p;
+    try {
+      return new URL(p, base).href;
+    } catch (e) {
+      return base + p;
+    }
   }
 
   function parseIncludeGraphics(text) {
