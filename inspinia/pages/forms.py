@@ -1,3 +1,5 @@
+import uuid
+
 from django import forms
 
 from inspinia.pages.contest_names import PROJECT_CONTEST_NAME_MAX_LENGTH
@@ -156,21 +158,37 @@ class ProblemStatementImportForm(forms.Form):
 
 
 class ProblemStatementDeleteByUuidForm(forms.Form):
-    statement_uuid = forms.UUIDField(
+    statement_uuid = forms.CharField(
+        required=False,
         label="Statement UUID",
-        widget=forms.TextInput(
-            attrs={
-                "class": "form-control font-monospace",
-                "placeholder": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-                "autocomplete": "off",
-            },
-        ),
+        widget=forms.MultipleHiddenInput(),
     )
     confirm_delete = forms.BooleanField(
         label="I understand this permanently deletes the statement row, its technique tags, "
         "and any user completions tied to this statement.",
         required=True,
     )
+
+    def clean_statement_uuid(self):
+        raw_statement_uuids = [str(value or "").strip() for value in self.data.getlist("statement_uuid")]
+        cleaned_statement_uuids: list[str] = []
+        seen_statement_uuids: set[str] = set()
+        for raw_statement_uuid in raw_statement_uuids:
+            if not raw_statement_uuid:
+                continue
+            try:
+                normalized_statement_uuid = str(uuid.UUID(raw_statement_uuid))
+            except (TypeError, ValueError):
+                msg = "One or more selected statement UUID values are invalid."
+                raise forms.ValidationError(msg) from None
+            if normalized_statement_uuid in seen_statement_uuids:
+                continue
+            seen_statement_uuids.add(normalized_statement_uuid)
+            cleaned_statement_uuids.append(normalized_statement_uuid)
+        if not cleaned_statement_uuids:
+            msg = "Select at least one statement row to delete."
+            raise forms.ValidationError(msg)
+        return cleaned_statement_uuids
 
 
 class ProblemStatementEditorUpdateForm(forms.Form):

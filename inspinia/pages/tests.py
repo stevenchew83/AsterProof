@@ -13,6 +13,7 @@ import pandas as pd
 import pytest
 from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.http import QueryDict
 from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -3371,11 +3372,41 @@ def test_problem_statement_editor_forbids_non_admin_access_when_debug_is_off(cli
 def test_problem_statement_delete_by_uuid_page_renders_for_admin(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
+    statement = ContestProblemStatement.objects.create(
+        contest_year=2025,
+        contest_name="IMO",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Statement row shown in the delete table",
+    )
 
     response = client.get(reverse("pages:problem_statement_delete_by_uuid"))
+    response_html = response.content.decode("utf-8")
 
     assert response.status_code == HTTPStatus.OK
-    assert "Delete statement by UUID" in response.content.decode()
+    assert "Delete statement by UUID" in response_html
+    assert 'id="statement-delete-table"' in response_html
+    assert 'type="checkbox"' in response_html
+    assert f'value="{statement.statement_uuid}"' in response_html
+    assert 'name="statement_uuid"' in response_html
+    assert str(statement.statement_uuid) in response_html
+    assert "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" not in response_html
+
+
+def test_problem_statement_delete_by_uuid_requires_selection(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+
+    response = client.post(
+        reverse("pages:problem_statement_delete_by_uuid"),
+        {
+            "confirm_delete": "on",
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert "Select at least one statement row to delete." in response.content.decode()
 
 
 @override_settings(DEBUG=False)
@@ -3399,55 +3430,126 @@ def test_problem_statement_delete_by_uuid_requires_login(client):
 def test_problem_statement_delete_by_uuid_unknown_uuid_shows_error(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
-
-    response = client.post(
-        reverse("pages:problem_statement_delete_by_uuid"),
-        {
-            "statement_uuid": str(uuid.uuid4()),
-            "confirm_delete": "on",
-        },
-    )
-
-    assert response.status_code == HTTPStatus.OK
-    assert "No statement row has this statement UUID" in response.content.decode()
-
-
-def test_problem_statement_delete_by_uuid_removes_statement_and_cascades(client):
-    admin_user = UserFactory(role=User.Role.ADMIN)
-    client.force_login(admin_user)
     statement = ContestProblemStatement.objects.create(
         contest_year=2025,
         contest_name="IMO",
         problem_number=1,
         problem_code="P1",
         day_label="Day 1",
-        statement_latex="To delete",
+        statement_latex="Real statement that must remain when delete selection is invalid",
     )
-    statement_pk = statement.pk
-    statement_uuid = statement.statement_uuid
-    StatementTopicTechnique.objects.create(statement=statement, technique="CIRCLES", domains=["GEO"])
-    UserProblemCompletion.objects.create(
+    StatementTopicTechnique.objects.create(
+        statement=statement,
+        technique="CIRCLES",
+        domains=["GEO"],
+    )
+    completion = UserProblemCompletion.objects.create(
         user=admin_user,
         statement=statement,
         problem=None,
         completion_date=date(2025, 8, 1),
     )
+    missing_statement_uuid = uuid.uuid4()
+    payload = QueryDict(mutable=True)
+    payload.setlist("statement_uuid", [str(statement.statement_uuid), str(missing_statement_uuid)])
+    payload["confirm_delete"] = "on"
+
+    response = client.post(reverse("pages:problem_statement_delete_by_uuid"), payload)
+
+    assert response.status_code == HTTPStatus.OK
+    assert "One or more selected statement rows no longer exist." in response.content.decode()
+    assert ContestProblemStatement.objects.filter(pk=statement.pk).exists()
+    assert StatementTopicTechnique.objects.filter(statement=statement).exists()
+    assert UserProblemCompletion.objects.filter(pk=completion.pk).exists()
+
+
+def test_problem_statement_delete_by_uuid_bulk_delete_removes_selected_rows_and_cascades(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    first_statement = ContestProblemStatement.objects.create(
+        contest_year=2025,
+        contest_name="IMO",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="First row to delete",
+    )
+    second_statement = ContestProblemStatement.objects.create(
+        contest_year=2025,
+        contest_name="IMO",
+        problem_number=2,
+        problem_code="P2",
+        day_label="Day 2",
+        statement_latex="Second row to delete",
+    )
+    StatementTopicTechnique.objects.create(
+        statement=first_statement,
+        technique="CIRCLES",
+        domains=["GEO"],
+    )
+    StatementTopicTechnique.objects.create(
+        statement=second_statement,
+        technique="INEQUALITIES",
+        domains=["ALG"],
+    )
+    UserProblemCompletion.objects.create(
+        user=admin_user,
+        statement=first_statement,
+        problem=None,
+        completion_date=date(2025, 8, 1),
+    )
+    UserProblemCompletion.objects.create(
+        user=admin_user,
+        statement=second_statement,
+        problem=None,
+        completion_date=date(2025, 8, 1),
+    )
+    untouched_statement = ContestProblemStatement.objects.create(
+        contest_year=2025,
+        contest_name="IMO",
+        problem_number=3,
+        problem_code="P3",
+        day_label="Day 3",
+        statement_latex="Untouched row",
+    )
+    StatementTopicTechnique.objects.create(
+        statement=untouched_statement,
+        technique="GEOMETRY",
+        domains=["GEO"],
+    )
+    untouched_completion = UserProblemCompletion.objects.create(
+        user=admin_user,
+        statement=untouched_statement,
+        problem=None,
+        completion_date=date(2025, 8, 2),
+    )
 
     response = client.post(
         reverse("pages:problem_statement_delete_by_uuid"),
         {
-            "statement_uuid": str(statement_uuid),
+            "statement_uuid": [
+                str(first_statement.statement_uuid),
+                str(second_statement.statement_uuid),
+            ],
             "confirm_delete": "on",
         },
         follow=True,
     )
 
     assert response.status_code == HTTPStatus.OK
-    assert not ContestProblemStatement.objects.filter(pk=statement_pk).exists()
-    assert not StatementTopicTechnique.objects.filter(statement_id=statement_pk).exists()
-    assert not UserProblemCompletion.objects.filter(user=admin_user).exists()
-    assert "Deleted statement row" in response.content.decode()
-    assert str(statement_uuid) in response.content.decode()
+    assert not ContestProblemStatement.objects.filter(
+        pk__in=[first_statement.pk, second_statement.pk],
+    ).exists()
+    assert not StatementTopicTechnique.objects.filter(
+        statement_id__in=[first_statement.pk, second_statement.pk],
+    ).exists()
+    assert not UserProblemCompletion.objects.filter(
+        statement_id__in=[first_statement.pk, second_statement.pk],
+    ).exists()
+    assert ContestProblemStatement.objects.filter(pk=untouched_statement.pk).exists()
+    assert StatementTopicTechnique.objects.filter(statement=untouched_statement).exists()
+    assert UserProblemCompletion.objects.filter(pk=untouched_completion.pk).exists()
+    assert "Deleted 2 statement row(s)" in response.content.decode()
 
 
 @override_settings(DEBUG=False)
