@@ -13,6 +13,7 @@ import pandas as pd
 import pytest
 from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.http import QueryDict
 from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -3384,8 +3385,9 @@ def test_problem_statement_delete_by_uuid_page_renders_for_admin(client):
     response_html = response.content.decode("utf-8")
 
     assert response.status_code == HTTPStatus.OK
-    assert "table-responsive" in response_html
-    assert "Statement preview" in response_html
+    assert "Delete statement by UUID" in response_html
+    assert 'id="statement-delete-table"' in response_html
+    assert 'name="statement_uuid"' in response_html
     assert str(statement.statement_uuid) in response_html
     assert "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" not in response_html
 
@@ -3434,19 +3436,29 @@ def test_problem_statement_delete_by_uuid_unknown_uuid_shows_error(client):
         day_label="Day 1",
         statement_latex="Real statement that must remain when delete selection is invalid",
     )
-    missing_statement_uuid = uuid.uuid4()
-
-    response = client.post(
-        reverse("pages:problem_statement_delete_by_uuid"),
-        {
-            "statement_uuid": [str(statement.statement_uuid), str(missing_statement_uuid)],
-            "confirm_delete": "on",
-        },
+    StatementTopicTechnique.objects.create(
+        statement=statement,
+        technique="CIRCLES",
+        domains=["GEO"],
     )
+    completion = UserProblemCompletion.objects.create(
+        user=admin_user,
+        statement=statement,
+        problem=None,
+        completion_date=date(2025, 8, 1),
+    )
+    missing_statement_uuid = uuid.uuid4()
+    payload = QueryDict(mutable=True)
+    payload.setlist("statement_uuid", [str(statement.statement_uuid), str(missing_statement_uuid)])
+    payload["confirm_delete"] = "on"
+
+    response = client.post(reverse("pages:problem_statement_delete_by_uuid"), payload)
 
     assert response.status_code == HTTPStatus.OK
     assert "One or more selected statement rows no longer exist." in response.content.decode()
     assert ContestProblemStatement.objects.filter(pk=statement.pk).exists()
+    assert StatementTopicTechnique.objects.filter(statement=statement).exists()
+    assert UserProblemCompletion.objects.filter(pk=completion.pk).exists()
 
 
 def test_problem_statement_delete_by_uuid_removes_statement_and_cascades(client):
