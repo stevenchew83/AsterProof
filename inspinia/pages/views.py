@@ -91,7 +91,6 @@ from inspinia.pages.statement_import import import_problem_statements
 from inspinia.pages.statement_import import parse_contest_problem_statements
 from inspinia.pages.statement_import import relink_problem_statement_rows
 from inspinia.pages.statement_metadata_backfill import StatementMetadataBackfillValidationError
-from inspinia.pages.statement_metadata_backfill import build_statement_metadata_export_dataframe
 from inspinia.pages.statement_metadata_backfill import build_statement_metadata_export_workbook_bytes
 from inspinia.pages.statement_metadata_backfill import import_statement_metadata_dataframe
 from inspinia.pages.statement_metadata_backfill import statement_metadata_dataframe_from_excel
@@ -5733,90 +5732,6 @@ def _export_statement_metadata_workbook_response() -> HttpResponse:
     return response
 
 
-def _statement_metadata_table_payload() -> dict[str, object]:
-    statement_total = ContestProblemStatement.objects.count()
-    statement_order = (
-        "-contest_year",
-        "contest_name",
-        "day_label",
-        "problem_number",
-        "problem_code",
-    )
-    table_qs = ContestProblemStatement.objects.select_related("linked_problem").order_by(*statement_order)
-    statements = list(table_qs[:ADMIN_TABLE_LATEST_LIMIT])
-    export_rows = build_statement_metadata_export_dataframe(statements).fillna("").to_dict(orient="records")
-
-    contest_names = list(
-        ContestProblemStatement.objects.order_by("contest_name")
-        .values_list("contest_name", flat=True)
-        .distinct(),
-    )
-    year_values = sorted(
-        {str(y) for y in ContestProblemStatement.objects.values_list("contest_year", flat=True).distinct()},
-        reverse=True,
-    )
-    table_rows: list[dict[str, object]] = []
-
-    for statement, export_row in zip(statements, export_rows, strict=True):
-        contest_name = statement.contest_name
-        contest_year = int(statement.contest_year)
-        contest_year_label = f"{contest_name} {contest_year}"
-
-        topic = str(export_row.get("TOPIC") or "")
-        mohs = str(export_row.get("MOHS") or "")
-        confidence = str(export_row.get("Confidence") or "")
-        imo_slot_guess = str(export_row.get("IMO slot guess") or "")
-        topic_tags = str(export_row.get("Topic tags") or "")
-        has_metadata = bool(topic and mohs)
-        is_linked = statement.linked_problem_id is not None
-        linked_problem_label = ""
-        if statement.linked_problem is not None:
-            linked_problem_label = statement.linked_problem.contest_year_problem or (
-                f"{statement.linked_problem.contest} "
-                f"{statement.linked_problem.year} "
-                f"{statement.linked_problem.problem}"
-            )
-
-        day_label_display = statement.day_label or "Unlabeled"
-        contest_problem_display = (
-            f"{statement.contest_year_problem} · {day_label_display} · {statement.problem_code}"
-        )
-        table_rows.append(
-            {
-                "confidence": confidence,
-                "contest_name": contest_name,
-                "contest_problem": statement.contest_year_problem,
-                "contest_problem_display": contest_problem_display,
-                "contest_year": contest_year,
-                "contest_year_label": contest_year_label,
-                "day_label": day_label_display,
-                "has_metadata": "yes" if has_metadata else "no",
-                "imo_slot_guess": imo_slot_guess,
-                "is_linked": is_linked,
-                "link_status": "linked" if is_linked else "unlinked",
-                "linked_problem_label": linked_problem_label,
-                "metadata_status": "ready" if has_metadata else "missing",
-                "mohs": mohs,
-                "problem_code": statement.problem_code,
-                "statement_uuid": str(statement.statement_uuid),
-                "problem_uuid": str(statement.problem_uuid),
-                "statement_id": statement.id,
-                "statement_preview": _statement_preview_text(statement.statement_latex),
-                "topic": topic,
-                "topic_tags": topic_tags,
-            },
-        )
-
-    return {
-        "contest_names": contest_names,
-        "is_capped": statement_total > ADMIN_TABLE_LATEST_LIMIT,
-        "limit": ADMIN_TABLE_LATEST_LIMIT,
-        "rows": table_rows,
-        "statement_total": statement_total,
-        "year_values": year_values,
-    }
-
-
 def _statement_metadata_dataframe_from_post(post_data) -> tuple[object | None, str | None]:
     raw_statement_uuids = [str(value or "").strip() for value in post_data.getlist("statement_uuid")]
     raw_topics = post_data.getlist("topic")
@@ -6422,18 +6337,11 @@ def problem_statement_metadata_view(request):
                     ):
                         return redirect("pages:problem_statement_metadata")
 
-    table_payload = _statement_metadata_table_payload()
     return render(
         request,
         "pages/problem-statement-metadata.html",
         {
             "form": form,
-            "statement_metadata_contest_names": table_payload["contest_names"],
-            "statement_metadata_rows": table_payload["rows"],
-            "statement_metadata_table_is_capped": table_payload["is_capped"],
-            "statement_metadata_table_limit": table_payload["limit"],
-            "statement_metadata_table_visible_total": len(table_payload["rows"]),
-            "statement_metadata_total": table_payload["statement_total"],
-            "statement_metadata_year_values": table_payload["year_values"],
+            "statement_metadata_total": ContestProblemStatement.objects.count(),
         },
     )

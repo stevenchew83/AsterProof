@@ -6645,8 +6645,7 @@ def test_problem_statement_metadata_page_renders_tools_for_admin(client):
     response = client.get(reverse("pages:problem_statement_metadata"))
 
     assert response.status_code == HTTPStatus.OK
-    assert response.context["statement_metadata_table_is_capped"] is False
-    assert len(response.context["statement_metadata_rows"]) == 1
+    assert response.context["statement_metadata_total"] == 1
     response_html = response.content.decode("utf-8")
     assert "Statement metadata" in response_html
     assert "Export metadata workbook" in response_html
@@ -6655,14 +6654,12 @@ def test_problem_statement_metadata_page_renders_tools_for_admin(client):
     assert "Blank cells keep existing values." in response_html
     assert "Identity columns are exported for context only" in response_html
     assert "are ignored" in response_html
-    assert "Browser editor" in response_html
-    assert "Save staged metadata" in response_html
+    assert "Browser editor" not in response_html
     assert "?action=export" in response_html
     assert 'id="statement-metadata-import-form"' in response_html
-    assert 'id="statement-metadata-table"' in response_html
 
 
-def test_problem_statement_metadata_browser_table_loads_latest_100_rows_only(client):
+def test_problem_statement_metadata_page_reports_full_statement_count(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
     for i in range(ADMIN_TABLE_LATEST_LIMIT + 1):
@@ -6679,12 +6676,8 @@ def test_problem_statement_metadata_browser_table_loads_latest_100_rows_only(cli
 
     assert response.status_code == HTTPStatus.OK
     assert response.context["statement_metadata_total"] == ADMIN_TABLE_LATEST_LIMIT + 1
-    assert len(response.context["statement_metadata_rows"]) == ADMIN_TABLE_LATEST_LIMIT
-    assert response.context["statement_metadata_table_is_capped"] is True
-    assert response.context["statement_metadata_total"] == ADMIN_TABLE_LATEST_LIMIT + 1
     response_html = response.content.decode("utf-8")
-    assert "Latest 100 of 101 rows" in response_html
-    assert "Browser editor loads the latest 100" in response_html
+    assert "Browser editor" not in response_html
 
 
 def test_problem_statement_metadata_page_bulk_saves_staged_rows_for_admin(client):
