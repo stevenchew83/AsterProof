@@ -8927,6 +8927,76 @@ def test_contest_rename_allows_statement_only_merge_when_target_has_unrelated_du
     )
 
 
+def test_contest_rename_merges_compatible_duplicate_statement_rows_into_existing_target(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    user = UserFactory()
+    source_name = "USOMO"
+    target_name = "USAMO"
+    target_statement = ContestProblemStatement.objects.create(
+        contest_year=2025,
+        contest_name=target_name,
+        problem_number=2,
+        problem_code="P2",
+        day_label="Day 1",
+        statement_latex="Shared statement",
+        confidence="High",
+    )
+    source_statement = ContestProblemStatement.objects.create(
+        contest_year=2025,
+        contest_name=source_name,
+        problem_number=2,
+        problem_code="P2",
+        day_label="Day 1",
+        statement_latex="Shared statement",
+        topic="NT",
+        mohs=7,
+    )
+    StatementTopicTechnique.objects.create(
+        statement=target_statement,
+        technique="Invariants",
+        domains=["ALG"],
+    )
+    StatementTopicTechnique.objects.create(
+        statement=source_statement,
+        technique="Invariants",
+        domains=["COMB"],
+    )
+    UserProblemCompletion.objects.create(
+        user=user,
+        statement=source_statement,
+        completion_date=date(2025, 1, 2),
+    )
+
+    response = client.post(
+        reverse("pages:contest_rename"),
+        {
+            "source_contests": [source_name],
+            "new_contest_name": target_name,
+        },
+        follow=True,
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert ContestProblemStatement.objects.filter(pk=source_statement.pk).count() == 0
+    target_statement.refresh_from_db()
+    assert target_statement.topic == "NT"
+    assert target_statement.mohs == 7
+    assert target_statement.confidence == "High"
+    assert list(
+        StatementTopicTechnique.objects.filter(statement=target_statement).values_list(
+            "technique",
+            "domains",
+        ),
+    ) == [("INVARIANTS", ["ALG", "COMB"])]
+    completion = UserProblemCompletion.objects.get(user=user, statement=target_statement)
+    assert completion.completion_date == date(2025, 1, 2)
+    assert any(
+        f'Merged "{source_name}" into "{target_name}"' in str(message)
+        for message in response.context["messages"]
+    )
+
+
 def test_contest_rename_rejects_statement_key_collision_when_merging(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
