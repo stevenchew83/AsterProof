@@ -40,6 +40,7 @@ from inspinia.solutions.models import SolutionBodyImage
 from inspinia.solutions.pdf_latex import SolutionPdfCompileError
 from inspinia.solutions.pdf_latex import SolutionPdfCompileParams
 from inspinia.solutions.pdf_latex import SolutionPdfError
+from inspinia.solutions.pdf_latex import SolutionPdfMissingBodyImagesError
 from inspinia.solutions.pdf_latex import SolutionPdfToolError
 from inspinia.solutions.pdf_latex import compile_solution_to_pdf
 from inspinia.users.roles import user_has_admin_role
@@ -152,6 +153,18 @@ def _solution_pdf_http_response(request, solution: ProblemSolution):
             {
                 "problem_data": problem_data,
                 "log_tail": exc.log_tail,
+            },
+            status=500,
+        )
+    except SolutionPdfMissingBodyImagesError as exc:
+        missing_paths = ", ".join(exc.missing_paths)
+        return render(
+            request,
+            "solutions/solution_pdf_unavailable.html",
+            {
+                "problem_data": problem_data,
+                "reason": "Pasted solution images are missing from server storage.",
+                "detail": f"Pasted body images are missing from server storage: {missing_paths}",
             },
             status=500,
         )

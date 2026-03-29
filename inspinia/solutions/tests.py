@@ -1174,6 +1174,25 @@ def test_problem_solution_pdf_tool_missing_returns_503(monkeypatch, client):
     assert response.status_code == HTTPStatus.SERVICE_UNAVAILABLE
 
 
+def test_problem_solution_pdf_missing_body_images_renders_unavailable_detail(monkeypatch, client):
+    user = UserFactory()
+    client.force_login(user)
+    problem = _problem()
+    _solution_with_blocks(problem=problem, author=user, blocks=[("X", "y", "idea")])
+
+    def _boom(*args, **kwargs):
+        raise SolutionPdfMissingBodyImagesError(
+            ["solution_body_images/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.png"],
+        )
+
+    monkeypatch.setattr("inspinia.solutions.views.compile_solution_to_pdf", _boom)
+    url = reverse("solutions:problem_solution_pdf", args=[problem.problem_uuid])
+    response = client.get(url)
+    assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+    assert b"Pasted solution images are missing from server storage." in response.content
+    assert b"solution_body_images/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.png" in response.content
+
+
 def test_admin_problem_solution_pdf_requires_login(client):
     sol = _solution_with_blocks(problem=_problem(), author=UserFactory(), blocks=[("X", "y", "idea")])
     url = reverse("solutions:admin_problem_solution_pdf", args=[sol.pk])
