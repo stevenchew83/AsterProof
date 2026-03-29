@@ -22,10 +22,15 @@ from inspinia.solutions.models import SolutionBlockType
 from inspinia.solutions.models import SolutionBodyImage
 from inspinia.solutions.models import SolutionSourceArtifact
 from inspinia.solutions.pdf_latex import SolutionPdfCompileError
+from inspinia.solutions.pdf_latex import SolutionPdfCompileParams
+from inspinia.solutions.pdf_latex import SolutionPdfMissingBodyImagesError
 from inspinia.solutions.pdf_latex import SolutionPdfToolError
+from inspinia.solutions.pdf_latex import _extract_includegraphics_paths
+from inspinia.solutions.pdf_latex import _graphicspath_tex
 from inspinia.solutions.pdf_latex import _latex_log_user_excerpt
 from inspinia.solutions.pdf_latex import _merge_latex_fail_detail
 from inspinia.solutions.pdf_latex import build_solution_tex_source
+from inspinia.solutions.pdf_latex import compile_solution_to_pdf
 from inspinia.solutions.views import STATEMENT_BACKED_PROBLEM_LIST_LIMIT
 from inspinia.users.models import User
 from inspinia.users.tests.factories import UserFactory
@@ -704,6 +709,123 @@ def test_build_solution_tex_wraps_problem_statement_in_mdpurplebox():
     assert maketitle_at < problem_box < block_at
     assert r"\end{mdframed}" in tex
     assert r"Let $ABC$ be a triangle. Prove $a+b>c$." in tex
+
+
+def test_graphicspath_tex_wraps_directory_for_graphicx(tmp_path):
+    media_root = tmp_path / "ap-media"
+    assert _graphicspath_tex(media_root) == rf"{{{media_root.resolve().as_posix()}/}}"
+
+
+def test_graphicspath_tex_resolves_relative_media_root_to_absolute_path(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    expected = (tmp_path / "media").resolve()
+    assert _graphicspath_tex(Path("media")) == rf"{{{expected.as_posix()}/}}"
+
+
+def test_extract_includegraphics_paths_preserves_source_order():
+    body = (
+        r"Before \includegraphics[width=2cm]{solution_body_images/"
+        r"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.png} "
+        r"middle \includegraphics{figures/manual.png} "
+        r"after \includegraphics [height=1in] {solution_body_images/"
+        r"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.jpg}"
+    )
+
+    assert _extract_includegraphics_paths(body) == [
+        "solution_body_images/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.png",
+        "figures/manual.png",
+        "solution_body_images/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.jpg",
+    ]
+
+
+def test_extract_includegraphics_paths_ignores_commented_out_lines():
+    body = (
+        "% \\includegraphics{solution_body_images/"
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.png}\n"
+        "Active \\includegraphics{solution_body_images/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.jpg}\n"
+        "% another comment with \\includegraphics{solution_body_images/"
+        "cccccccccccccccccccccccccccccccc.png}"
+    )
+
+    assert _extract_includegraphics_paths(body) == [
+        "solution_body_images/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.jpg",
+    ]
+
+
+def test_compile_solution_to_pdf_raises_when_solution_body_image_missing(
+    monkeypatch,
+    tmp_path,
+):
+    user = UserFactory()
+    problem = _problem()
+    solution = _solution_with_blocks(
+        problem=problem,
+        author=user,
+        blocks=[
+            (
+                "Missing image",
+                r"\includegraphics{solution_body_images/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.png}",
+                "proof",
+            ),
+        ],
+    )
+    blocks = list(solution.blocks.order_by("position"))
+    params = SolutionPdfCompileParams(
+        media_root=tmp_path,
+        problem_label="IMO 2026 P1",
+        timeout=5,
+        latex_binary="latexmk",
+    )
+
+    def _boom(*_args, **_kwargs):
+        pytest.fail("compile_solution_tex_to_pdf should not be called")
+
+    monkeypatch.setattr("inspinia.solutions.pdf_latex.compile_solution_tex_to_pdf", _boom)
+
+    with pytest.raises(SolutionPdfMissingBodyImagesError) as excinfo:
+        compile_solution_to_pdf(solution, blocks, params)
+
+    assert excinfo.value.missing_paths == [
+        "solution_body_images/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.png",
+    ]
+
+
+def test_compile_solution_to_pdf_ignores_commented_out_body_image_references(
+    monkeypatch,
+    tmp_path,
+):
+    user = UserFactory()
+    problem = _problem()
+    solution = _solution_with_blocks(
+        problem=problem,
+        author=user,
+        blocks=[
+                (
+                    "Commented image",
+                    "% \\includegraphics{solution_body_images/"
+                    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.png}",
+                    "proof",
+                ),
+            ],
+        )
+    blocks = list(solution.blocks.order_by("position"))
+    params = SolutionPdfCompileParams(
+        media_root=tmp_path,
+        problem_label="IMO 2026 P1",
+        timeout=5,
+        latex_binary="latexmk",
+    )
+
+    called = {"count": 0}
+
+    def _stub(*_args, **_kwargs):
+        called["count"] += 1
+        return b"ok"
+
+    monkeypatch.setattr("inspinia.solutions.pdf_latex.compile_solution_tex_to_pdf", _stub)
+
+    assert compile_solution_to_pdf(solution, blocks, params) == b"ok"
+    assert called["count"] == 1
 
 
 def test_build_solution_tex_splits_claim_title_from_claim_body():

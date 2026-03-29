@@ -3,14 +3,18 @@
 from __future__ import annotations
 
 import logging
+import re
 import shutil
 import subprocess
 import tempfile
+import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from django.utils import timezone
+
+from inspinia.solutions.body_image_paths import is_allowed_includegraphics_path
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -28,6 +32,7 @@ LOG_READ_MAX_BYTES = 4 * 1024 * 1024
 _MSG_LATEX_TIMEOUT = "LaTeX compilation timed out."
 _MSG_LATEX_FAILED = "LaTeX compilation failed."
 _MSG_TOOL_NOT_FOUND = "LaTeX tool not found in PATH: {binary}"
+_INCLUDEGRAPHICS_RE = re.compile(r"\\includegraphics(?:\s*\[[^\]]*])?\s*\{\s*([^}]*)\s*\}")
 
 
 class SolutionPdfError(Exception):
@@ -42,6 +47,13 @@ class SolutionPdfCompileError(SolutionPdfError):
 
 class SolutionPdfToolError(SolutionPdfError):
     pass
+
+
+class SolutionPdfMissingBodyImagesError(SolutionPdfError):
+    def __init__(self, missing_paths: list[str]) -> None:
+        self.missing_paths = missing_paths
+        self.detail = "Missing pasted body images."
+        super().__init__(self.detail)
 
 
 @dataclass(frozen=True)
@@ -98,10 +110,55 @@ def _is_plain_block(block: ProblemSolutionBlock) -> bool:
 
 
 def _graphicspath_tex(media_root: Path) -> str:
-    media = media_root.resolve().as_posix()
+    media = media_root.expanduser().resolve().as_posix()
     if not media.endswith("/"):
         media += "/"
-    return media.replace("#", "\\#").replace("%", "\\%")
+    media = media.replace("#", "\\#").replace("%", "\\%")
+    return f"{{{media}}}"
+
+
+def _strip_latex_comments(value: str) -> str:
+    if not value:
+        return ""
+    lines: list[str] = []
+    for line in value.splitlines():
+        idx = 0
+        while True:
+            percent = line.find("%", idx)
+            if percent == -1:
+                lines.append(line)
+                break
+            if percent == 0 or line[percent - 1] != "\\":
+                lines.append(line[:percent])
+                break
+            idx = percent + 1
+    return "\n".join(lines)
+
+
+def _extract_includegraphics_paths(value: str) -> list[str]:
+    if not value:
+        return []
+    return [match.group(1).strip() for match in _INCLUDEGRAPHICS_RE.finditer(_strip_latex_comments(value))]
+
+
+def _missing_solution_body_image_paths(
+    blocks: Sequence[ProblemSolutionBlock],
+    *,
+    media_root: Path,
+) -> list[str]:
+    seen: set[str] = set()
+    missing: list[str] = []
+    for block in blocks:
+        for path in _extract_includegraphics_paths(block.body_source or ""):
+            if not is_allowed_includegraphics_path(path):
+                continue
+            canonical_path = unicodedata.normalize("NFKC", path).strip().replace("\\", "/").lstrip("/")
+            if canonical_path in seen:
+                continue
+            seen.add(canonical_path)
+            if not (media_root / canonical_path).is_file():
+                missing.append(canonical_path)
+    return missing
 
 
 def _solution_pdf_author_display(user) -> str:
@@ -364,6 +421,9 @@ def compile_solution_to_pdf(
     blocks: Sequence[ProblemSolutionBlock],
     params: SolutionPdfCompileParams,
 ) -> bytes:
+    missing_paths = _missing_solution_body_image_paths(blocks, media_root=params.media_root)
+    if missing_paths:
+        raise SolutionPdfMissingBodyImagesError(missing_paths)
     tex = build_solution_tex_source(
         solution=solution,
         blocks=blocks,
