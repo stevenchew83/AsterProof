@@ -125,6 +125,9 @@
               <label class="form-label mb-1" for="{{ form.file.id_for_label }}">Upload contest PDF</label>
               {{ form.file }}
               <div class="form-text">Upload one text-based PDF to parse immediately.</div>
+              <button type="submit" name="action" value="preview" class="btn btn-outline-primary btn-sm mt-2">
+                <i class="ti ti-file-search me-1"></i>Parse uploaded PDF
+              </button>
               {% for error in form.file.errors %}
               <div class="invalid-feedback d-block">{{ error }}</div>
               {% endfor %}
@@ -406,6 +409,7 @@ window.MathJax = {
   var loadSampleButton = document.getElementById("latex-preview-load-sample");
   var clearButton = document.getElementById("latex-preview-clear");
   var autoRender = document.getElementById("latex-preview-auto-render");
+  var fileInput = document.getElementById("id_file");
   var status = document.getElementById("latex-preview-status");
   var csrfTokenInput = document.querySelector('#latex-preview-form input[name="csrfmiddlewaretoken"]');
   var sampleNode = document.getElementById("latex-preview-sample-data");
@@ -588,13 +592,25 @@ window.MathJax = {
 
   renderButton.addEventListener("click", renderPreview);
   loadSampleButton.addEventListener("click", function () {
+    if (fileInput) fileInput.value = "";
     input.value = sampleText;
     renderPreview();
   });
   clearButton.addEventListener("click", function () {
+    if (fileInput) fileInput.value = "";
     input.value = "";
     showEmptyState();
   });
+  if (fileInput) {
+    fileInput.addEventListener("change", function () {
+      if (!fileInput.files || !fileInput.files.length) return;
+      if (input.value.trim()) {
+        input.value = "";
+        showEmptyState();
+      }
+      setStatus("PDF selected. Click \"Parse uploaded PDF\" or \"Parse structure\".", "info");
+    });
+  }
   input.addEventListener("input", scheduleRender);
   window.addEventListener("asterproof:mathjax-ready", function () {
     typesetParsedPreview();

@@ -436,7 +436,7 @@ def latex_preview_view(request):
                             ),
                         )
     else:
-        form = ProblemStatementImportForm(initial={"source_text": LATEX_STATEMENT_SAMPLE})
+        form = ProblemStatementImportForm()
 
     return render(
         request,
