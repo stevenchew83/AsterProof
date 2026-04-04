@@ -38,6 +38,8 @@ from inspinia.pages.problem_import import import_problem_dataframe
 from inspinia.pages.statement_analytics import effective_topic
 from inspinia.pages.statement_analytics_sync import sync_statement_analytics_from_linked_problem
 from inspinia.pages.statement_import import LATEX_STATEMENT_SAMPLE
+from inspinia.pages.statement_import import ProblemStatementImportValidationError
+from inspinia.pages.statement_import import extract_statement_text_from_pdf
 from inspinia.pages.statement_import import import_problem_statements
 from inspinia.pages.statement_import import parse_contest_problem_statements
 from inspinia.pages.statement_metadata_backfill import StatementMetadataBackfillValidationError
@@ -1022,6 +1024,79 @@ def test_problem_topic_technique_save_uppercases_technique_and_domains():
 
     assert tag.technique == "ANGLE CHASING"
     assert tag.domains == ["GEO", "COMBINATORICS"]
+
+
+def test_extract_statement_text_from_pdf_normalizes_and_joins_pages(monkeypatch):
+    class _FakePage:
+        def __init__(self, text: str | None) -> None:
+            self._text = text
+
+        def extract_text(self) -> str | None:
+            return self._text
+
+    class _FakeReader:
+        def __init__(self, _stream) -> None:
+            self.pages = [
+                _FakePage("2026 Spain Mathematical Olympiad\r\nDay 1\x00"),
+                _FakePage("1 First statement."),
+                _FakePage(None),
+                _FakePage("  \n2 Second statement.\n"),
+            ]
+
+    monkeypatch.setattr("inspinia.pages.statement_import.PdfReader", _FakeReader)
+    upload = SimpleUploadedFile(
+        "sample.pdf",
+        b"%PDF-1.4\n%mock\n",
+        content_type="application/pdf",
+    )
+
+    extracted = extract_statement_text_from_pdf(upload)
+
+    assert extracted == (
+        "2026 Spain Mathematical Olympiad\n"
+        "Day 1\n\n"
+        "1 First statement.\n\n"
+        "2 Second statement."
+    )
+
+
+def test_extract_statement_text_from_pdf_raises_validation_error_when_reader_fails(monkeypatch):
+    class _BrokenReader:
+        def __init__(self, _stream) -> None:
+            raise ValueError("broken pdf")
+
+    monkeypatch.setattr("inspinia.pages.statement_import.PdfReader", _BrokenReader)
+    upload = SimpleUploadedFile(
+        "broken.pdf",
+        b"%PDF-1.4\n%broken\n",
+        content_type="application/pdf",
+    )
+
+    with pytest.raises(ProblemStatementImportValidationError, match="Could not read the uploaded PDF"):
+        extract_statement_text_from_pdf(upload)
+
+
+def test_extract_statement_text_from_pdf_raises_validation_error_when_no_text(monkeypatch):
+    class _FakePage:
+        def extract_text(self) -> str | None:
+            return "   "
+
+    class _ReaderNoText:
+        def __init__(self, _stream) -> None:
+            self.pages = [_FakePage()]
+
+    monkeypatch.setattr("inspinia.pages.statement_import.PdfReader", _ReaderNoText)
+    upload = SimpleUploadedFile(
+        "empty.pdf",
+        b"%PDF-1.4\n%empty\n",
+        content_type="application/pdf",
+    )
+
+    with pytest.raises(
+        ProblemStatementImportValidationError,
+        match="No extractable text was found in the uploaded PDF",
+    ):
+        extract_statement_text_from_pdf(upload)
 
 
 def test_parse_contest_problem_statements_extracts_contest_days_and_problem_blocks():

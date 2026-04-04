@@ -6,6 +6,10 @@ from dataclasses import field
 from typing import TypedDict
 
 from django.db import transaction
+try:
+    from pypdf import PdfReader
+except ImportError:  # pragma: no cover - dependency install is validated separately.
+    PdfReader = None  # type: ignore[assignment]
 
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
@@ -219,6 +223,44 @@ class ProblemStatementSavePreviewPayload(TypedDict):
 
 class ProblemStatementImportValidationError(ValueError):
     """Raised when pasted contest statement text cannot be parsed reliably."""
+
+
+def extract_statement_text_from_pdf(uploaded_file) -> str:
+    try:
+        uploaded_file.seek(0)
+    except (AttributeError, OSError):
+        pass
+
+    if PdfReader is None:
+        msg = "PDF parsing dependency is unavailable. Install pypdf and try again."
+        raise ProblemStatementImportValidationError(msg)
+
+    try:
+        reader = PdfReader(uploaded_file)
+    except Exception as exc:  # noqa: BLE001
+        msg = "Could not read the uploaded PDF. Please upload a valid text-based PDF file."
+        raise ProblemStatementImportValidationError(msg) from exc
+
+    page_chunks: list[str] = []
+    for page in reader.pages:
+        try:
+            raw_text = page.extract_text() or ""
+        except Exception as exc:  # noqa: BLE001
+            msg = "Could not extract text from one or more PDF pages."
+            raise ProblemStatementImportValidationError(msg) from exc
+
+        normalized = raw_text.replace("\x00", "")
+        normalized = normalized.replace("\r\n", "\n").replace("\r", "\n")
+        normalized = normalized.strip()
+        if normalized:
+            page_chunks.append(normalized)
+
+    extracted_text = "\n\n".join(page_chunks).strip()
+    if not extracted_text:
+        msg = "No extractable text was found in the uploaded PDF. The file may be image-only."
+        raise ProblemStatementImportValidationError(msg)
+
+    return extracted_text
 
 
 @dataclass(frozen=True)
