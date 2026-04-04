@@ -153,7 +153,7 @@
           </div>
         </div>
         <div class="card-body">
-          <div id="latex-preview-output" class="latex-preview-surface statement-evan-box"></div>
+          <div id="latex-preview-output" class="latex-preview-surface"></div>
         </div>
       </div>
     </div>
@@ -328,7 +328,7 @@
                 {% endif %}
               </div>
               <div class="latex-problem-statement">
-                {% include 'partials/statement-render-content.html' with segments=problem.statement_render_segments %}
+                {% include 'partials/statement-render-content.html' with segments=problem.statement_render_segments render_style='classic' %}
               </div>
               {% if problem.linked_problem_label %}
               <div class="text-muted fs-xs mt-2">Linked problem: {{ problem.linked_problem_label }}</div>

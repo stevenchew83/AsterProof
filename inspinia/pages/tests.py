@@ -14,6 +14,7 @@ import pytest
 from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.http import QueryDict
+from django.template.loader import render_to_string
 from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -6454,12 +6455,26 @@ def test_statement_render_preview_returns_rendered_asymptote_html(client, monkey
     payload = response.json()
     assert payload["ok"] is True
     assert payload["has_asymptote"] is True
-    assert "statement-evan-box" in payload["html"]
+    assert "statement-evan-box" not in payload["html"]
+    assert "border rounded-3 bg-body-tertiary p-3" in payload["html"]
     assert "Asymptote" in payload["html"]
     assert "Rendered via Asymptote Web Application" in payload["html"]
     assert FAKE_ASYMPTOTE_SVG in payload["html"]
     assert "Figure below." in payload["html"]
     assert "Prove $x=y$." in payload["html"]
+
+
+def test_statement_render_content_defaults_to_evan_style():
+    html = render_to_string(
+        "partials/statement-render-content.html",
+        {
+            "segments": [
+                {"kind": "text", "content": "Prove $x=y$."},
+            ],
+        },
+    )
+
+    assert "statement-evan-box" in html
 
 
 def test_latex_preview_parse_action_shows_duplicate_warning_summary(client):

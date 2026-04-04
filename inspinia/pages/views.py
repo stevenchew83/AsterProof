@@ -482,7 +482,10 @@ def statement_render_preview_view(request):
     render_payload = _statement_render_payload(statement_latex)
     html = render_to_string(
         "partials/statement-render-content.html",
-        {"segments": render_payload["statement_render_segments"]},
+        {
+            "segments": render_payload["statement_render_segments"],
+            "render_style": "classic",
+        },
         request=request,
     )
     return JsonResponse(
