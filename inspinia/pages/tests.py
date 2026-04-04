@@ -6634,6 +6634,17 @@ def test_latex_preview_page_renders_pdf_upload_control(client):
     assert 'name="file"' in html
     assert 'accept=".pdf,application/pdf"' in html
     assert "Upload contest PDF" in html
+    assert "Parse uploaded PDF" in html
+
+
+def test_latex_preview_page_starts_with_empty_source_text(client):
+    user = UserFactory()
+    client.force_login(user)
+
+    response = client.get(reverse("pages:latex_preview"))
+
+    assert response.status_code == HTTPStatus.OK
+    assert (response.context["form"]["source_text"].value() or "") == ""
 
 
 def test_handle_summary_parser_post_builds_export_table(client):
