@@ -1,0 +1,31 @@
+Final Training 2026 week 1 Day: 1
+Saturday, April 4, 2026
+Problem 1. Given an integer n >= 2, find the maximum real number C such that for any real numbers
+x1, x2, . . . , xn, the following inequality holds:
+nX
+i=1
+
+(M - xi)^2 + (xi - m)^2
++ (M - m)^2 >= C
+X
+1<=i<j<=n
+(xi - xj)^2
+where M = max
+1<=i<=n
+xi and m = min
+1<=i<=n
+xi.
+Problem 2. Given ten points in space, no four of which are coplanar. Some pairs of these points are
+connected by line segments. If the resulting graph contains no triangles and no spatial quadrilaterals,
+find the maximum number of line segments that can be drawn.
+Problem 3. Let D be a point inside an acute triangle ABC such that angle BDC + angle BAC = 180 degrees.
+Let the line BD intersect AC at point E, and the line CD intersect AB at point F. Let P and Q be two
+points on the line EF distinct from E and F, such that BP = BE and CQ = CF. The segments AP and AQ
+intersect the circumcircle of triangle ABC at points R and S, respectively. Prove that the intersection
+of lines RF and SE lies on the circumcircle.
+Problem 4. For a prime p, a subset S of Fp is called a sum-free multiplicative subgroup if:
+- There exists a non-zero residue alpha (mod p) such that S = {1, alpha, alpha^2, . . .} (all considered modulo p)
+- There do not exist a, b, c in S such that a + b == c (mod p).
+Prove that for every positive integer N, there exists a prime p and a sum-free multiplicative subgroup
+S of Fp such that |S| >= N.
+Time limit: 4.5 hours. Each question is worth 7 points.
