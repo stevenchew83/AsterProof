@@ -1,19 +1,18 @@
 from __future__ import annotations
 
+import contextlib
 import re
 from dataclasses import dataclass
 from dataclasses import field
 from typing import TypedDict
 
 from django.db import transaction
-try:
-    from pypdf import PdfReader
-except ImportError:  # pragma: no cover - dependency install is validated separately.
-    PdfReader = None  # type: ignore[assignment]
 
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
 from inspinia.pages.statement_analytics_sync import sync_statement_analytics_from_linked_problem
+
+PdfReader = None
 
 IGNORED_STATEMENT_LINES = {
     "Stuttgarden",
@@ -226,18 +225,23 @@ class ProblemStatementImportValidationError(ValueError):
 
 
 def extract_statement_text_from_pdf(uploaded_file) -> str:
-    try:
+    with contextlib.suppress(AttributeError, OSError):
         uploaded_file.seek(0)
-    except (AttributeError, OSError):
-        pass
 
-    if PdfReader is None:
+    reader_cls = PdfReader
+    if reader_cls is None:
+        with contextlib.suppress(ImportError):
+            from pypdf import PdfReader as installed_reader_cls
+
+            reader_cls = installed_reader_cls
+
+    if reader_cls is None:
         msg = "PDF parsing dependency is unavailable. Install pypdf and try again."
         raise ProblemStatementImportValidationError(msg)
 
     try:
-        reader = PdfReader(uploaded_file)
-    except Exception as exc:  # noqa: BLE001
+        reader = reader_cls(uploaded_file)
+    except Exception as exc:
         msg = "Could not read the uploaded PDF. Please upload a valid text-based PDF file."
         raise ProblemStatementImportValidationError(msg) from exc
 
@@ -245,7 +249,7 @@ def extract_statement_text_from_pdf(uploaded_file) -> str:
     for page in reader.pages:
         try:
             raw_text = page.extract_text() or ""
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             msg = "Could not extract text from one or more PDF pages."
             raise ProblemStatementImportValidationError(msg) from exc
 
