@@ -6622,6 +6622,20 @@ def test_latex_preview_pdf_extraction_error_is_displayed(client, monkeypatch):
     )
 
 
+def test_latex_preview_page_renders_pdf_upload_control(client):
+    user = UserFactory()
+    client.force_login(user)
+
+    response = client.get(reverse("pages:latex_preview"))
+
+    assert response.status_code == HTTPStatus.OK
+    html = response.content.decode("utf-8")
+    assert 'enctype="multipart/form-data"' in html
+    assert 'name="file"' in html
+    assert 'accept=".pdf,application/pdf"' in html
+    assert "Upload contest PDF" in html
+
+
 def test_handle_summary_parser_post_builds_export_table(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
