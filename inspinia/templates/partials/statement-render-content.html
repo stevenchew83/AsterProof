@@ -1,11 +1,11 @@
-<div class="statement-render-content statement-evan-box d-flex flex-column gap-3">
+<div class="statement-render-content d-flex flex-column gap-3{% if render_style != 'classic' %} statement-evan-box{% endif %}">
   {% for segment in segments %}
     {% if segment.kind == "text" %}
       {% if segment.content %}
       <div class="statement-text-fragment" data-mathjax-scope>{{ segment.content }}</div>
       {% endif %}
     {% elif segment.kind == "asymptote" %}
-      <div class="statement-asymptote-panel">
+      <div class="{% if render_style == 'classic' %}border rounded-3 bg-body-tertiary p-3{% else %}statement-asymptote-panel{% endif %}">
         <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
           <span class="badge bg-info-subtle text-info">
             <i class="ti ti-wave-sine me-1"></i> Asymptote
