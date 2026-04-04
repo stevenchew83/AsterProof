@@ -140,6 +140,12 @@ EXPECTED_EGMO_STATEMENT_PROBLEM_TOTAL = 6
 EGMO_STATEMENT_SAMPLE = (
     Path(__file__).resolve().parent / "testdata" / "egmo_statement_sample.txt"
 ).read_text(encoding="utf-8")
+FINAL_TRAINING_2026_WEEK1_DAY1_YEAR = 2026
+FINAL_TRAINING_2026_WEEK1_DAY1_NAME = "Final Training week 1 Day: 1"
+EXPECTED_FINAL_TRAINING_2026_WEEK1_DAY1_PROBLEM_TOTAL = 4
+FINAL_TRAINING_2026_WEEK1_DAY1_STATEMENT_SAMPLE = (
+    Path(__file__).resolve().parent / "testdata" / "final_training_2026_week1_day1_sample.txt"
+).read_text(encoding="utf-8")
 ELMO_REVENGE_YEAR = 2022
 ELMO_REVENGE_NAME = "ELMO Revenge"
 EXPECTED_ELMO_REVENGE_PROBLEM_TOTAL = 6
@@ -1209,6 +1215,19 @@ def test_parse_contest_problem_statements_supports_day_headers_with_dates():
     assert "Here $\\gcd(a, b)$ is the largest positive integer" in parsed_import.problems[0].statement_latex
     assert "Proposed by Paulius Aleknavičius, Lithuania" in parsed_import.problems[0].statement_latex
     assert "What is the largest possible value of $\\frac{R}{C}$?" in parsed_import.problems[-1].statement_latex
+
+
+def test_parse_contest_problem_statements_supports_problem_keyword_prefix_lines():
+    parsed_import = parse_contest_problem_statements(FINAL_TRAINING_2026_WEEK1_DAY1_STATEMENT_SAMPLE)
+
+    assert parsed_import.contest_year == FINAL_TRAINING_2026_WEEK1_DAY1_YEAR
+    assert parsed_import.contest_name == FINAL_TRAINING_2026_WEEK1_DAY1_NAME
+    assert len(parsed_import.problems) == EXPECTED_FINAL_TRAINING_2026_WEEK1_DAY1_PROBLEM_TOTAL
+    assert [problem.problem_code for problem in parsed_import.problems] == ["P1", "P2", "P3", "P4"]
+    assert [problem.problem_number for problem in parsed_import.problems] == [1, 2, 3, 4]
+    assert "Given an integer n >= 2" in parsed_import.problems[0].statement_latex
+    assert "sum-free multiplicative subgroup if:" in parsed_import.problems[-1].statement_latex
+    assert "Time limit: 4.5 hours." in parsed_import.problems[-1].statement_latex
 
 
 def test_parse_contest_problem_statements_supports_elmo_subsections_and_bonus_problem():

@@ -97,6 +97,10 @@ PROBLEM_START_RE = re.compile(
     r"^(?:\((?P<catalog_number>\d{1,4})\)\s*)?(?:#\s*)?(?:(?P<prefix>[A-Za-z]{1,4})\s*)?(?P<number>\d{1,3})[.)]?(?:\s+(?P<statement>.+))?$",
     flags=re.IGNORECASE,
 )
+PROBLEM_KEYWORD_START_RE = re.compile(
+    r"^(?:Problem|Question)\s+(?P<number>\d{1,3})[.):]?(?:\s+(?P<statement>.+))?$",
+    flags=re.IGNORECASE,
+)
 ALPHA_PROBLEM_CODE_RE = re.compile(r"^(?P<code>[A-Z])(?:[.)])?\s+(?P<statement>.+)$")
 TEXT_ONLY_EMPH_INLINE_RE = re.compile(r"\$(?P<content>\\emph\{[^$]+?\})\$")
 TEXT_ONLY_EMPH_PAREN_RE = re.compile(r"\\\((?P<content>\\emph\{.*?\})\\\)", flags=re.DOTALL)
@@ -939,6 +943,8 @@ def _is_problem_start_candidate(line: str | None) -> bool:
     if line is None:
         return False
     return bool(
+        PROBLEM_KEYWORD_START_RE.match(line)
+        or
         PROBLEM_START_RE.match(line)
         or SPECIAL_PROBLEM_CODE_RE.match(line)
         or ALPHA_PROBLEM_CODE_RE.match(line),
@@ -1175,6 +1181,20 @@ def _start_numbered_problem(state: _StatementParseState, match: re.Match[str]) -
     )
 
 
+def _start_keyword_numbered_problem(state: _StatementParseState, match: re.Match[str]) -> None:
+    _flush_problem(state)
+    number = int(match.group("number"))
+    statement_text = (match.group("statement") or "").strip()
+    state.current_problem_code = f"P{number}"
+    state.current_problem_number = number
+    state.awaiting_new_problem = False
+    state.current_statement_lines = (
+        [_normalized_problem_statement_text(statement_text, number=number)]
+        if statement_text
+        else []
+    )
+
+
 def _can_start_inline_numbered_problem(
     state: _StatementParseState,
     problem_match: re.Match[str],
@@ -1200,6 +1220,20 @@ def _can_start_inline_numbered_problem(
 
 def _can_start_alpha_problem(state: _StatementParseState) -> bool:
     return state.current_problem_number is None or state.awaiting_new_problem
+
+
+def _can_start_keyword_numbered_problem(
+    state: _StatementParseState,
+    problem_match: re.Match[str],
+) -> bool:
+    if state.current_problem_number is None or state.awaiting_new_problem:
+        return True
+
+    statement = (problem_match.group("statement") or "").strip()
+    if not statement:
+        return False
+
+    return int(problem_match.group("number")) == state.current_problem_number + 1
 
 
 def _consume_header_or_problem_line(
@@ -1375,6 +1409,11 @@ def _consume_header_or_problem_line(
         and (special_problem_match := SPECIAL_PROBLEM_CODE_RE.match(line))
     ):
         _start_special_problem(state, special_problem_match)
+    elif (keyword_problem_match := PROBLEM_KEYWORD_START_RE.match(line)) and _can_start_keyword_numbered_problem(
+        state,
+        keyword_problem_match,
+    ):
+        _start_keyword_numbered_problem(state, keyword_problem_match)
     elif (alpha_problem_match := ALPHA_PROBLEM_CODE_RE.match(line)) and _can_start_alpha_problem(state):
         _start_alpha_problem(state, alpha_problem_match)
     elif (problem_match := PROBLEM_START_RE.match(line)) and _can_start_inline_numbered_problem(
