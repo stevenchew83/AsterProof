@@ -142,7 +142,18 @@ class StatementMetadataWorkbookForm(forms.Form):
 
 
 class ProblemStatementImportForm(forms.Form):
+    file = forms.FileField(
+        required=False,
+        label="Contest PDF",
+        widget=forms.ClearableFileInput(
+            attrs={
+                "class": "form-control",
+                "accept": ".pdf,application/pdf",
+            },
+        ),
+    )
     source_text = forms.CharField(
+        required=False,
         label="Contest text",
         strip=False,
         widget=forms.Textarea(
@@ -155,6 +166,31 @@ class ProblemStatementImportForm(forms.Form):
             },
         ),
     )
+
+    def clean_file(self):
+        uploaded = self.cleaned_data.get("file")
+        if uploaded is None:
+            return None
+        name = getattr(uploaded, "name", "") or ""
+        if not name.lower().endswith(".pdf"):
+            msg = "Please upload a .pdf file."
+            raise forms.ValidationError(msg)
+        return uploaded
+
+    def clean_source_text(self):
+        return (self.cleaned_data.get("source_text") or "").strip()
+
+    def clean(self):
+        cleaned_data = super().clean()
+        uploaded = cleaned_data.get("file")
+        source_text = cleaned_data.get("source_text") or ""
+        if uploaded and source_text:
+            msg = "Use either pasted contest text or a PDF upload, not both."
+            raise forms.ValidationError(msg)
+        if uploaded is None and not source_text:
+            msg = "Paste contest text or upload a PDF."
+            raise forms.ValidationError(msg)
+        return cleaned_data
 
 
 class ProblemStatementDeleteByUuidForm(forms.Form):

@@ -87,6 +87,7 @@ from inspinia.pages.statement_import import ProblemStatementPreviewPayload
 from inspinia.pages.statement_import import ProblemStatementSavePreviewPayload
 from inspinia.pages.statement_import import build_problem_statement_preview_payload
 from inspinia.pages.statement_import import build_problem_statement_save_preview
+from inspinia.pages.statement_import import extract_statement_text_from_pdf
 from inspinia.pages.statement_import import import_problem_statements
 from inspinia.pages.statement_import import parse_contest_problem_statements
 from inspinia.pages.statement_import import relink_problem_statement_rows
@@ -375,15 +376,22 @@ def latex_preview_view(request):
     statement_import_result: dict[str, int] | None = None
 
     if request.method == "POST":
-        form = ProblemStatementImportForm(request.POST)
+        form = ProblemStatementImportForm(request.POST, request.FILES)
         if form.is_valid():
             action = request.POST.get("action") or "preview"
             source_text = form.cleaned_data["source_text"]
+            source_label = "pasted text"
+            uploaded_pdf = form.cleaned_data.get("file")
             try:
+                if uploaded_pdf is not None:
+                    source_text = extract_statement_text_from_pdf(uploaded_pdf)
+                    source_label = "PDF upload"
                 parsed_import = parse_contest_problem_statements(source_text)
             except ProblemStatementImportValidationError as exc:
                 messages.error(request, str(exc))
             else:
+                if uploaded_pdf is not None:
+                    form = ProblemStatementImportForm(initial={"source_text": source_text})
                 parsed_statement_payload = build_problem_statement_preview_payload(parsed_import)
                 for problem in parsed_statement_payload["problems"]:
                     problem.update(_statement_render_payload(problem["statement_latex"]))
@@ -399,7 +407,8 @@ def latex_preview_view(request):
                     messages.success(
                         request,
                         (
-                            f"Saved {parsed_statement_payload['problem_count']} problem statement(s): "
+                            f"Saved {parsed_statement_payload['problem_count']} problem statement(s) from "
+                            f"{source_label}: "
                             f"{save_result.created_count} created, {save_result.updated_count} updated, "
                             f"{save_result.linked_problem_count} linked to existing problem rows."
                         ),
@@ -411,7 +420,7 @@ def latex_preview_view(request):
                         (
                             f"Parsed {parsed_statement_payload['problem_count']} problem(s) from "
                             f"{parsed_statement_payload['contest_name']} {parsed_statement_payload['contest_year']} "
-                            f"across {day_total} day section(s)."
+                            f"across {day_total} day section(s) using {source_label}."
                         ),
                     )
                     if statement_save_preview["existing_count"] > 0:
