@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import re
 from dataclasses import dataclass
 from dataclasses import field
@@ -10,6 +11,8 @@ from django.db import transaction
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
 from inspinia.pages.statement_analytics_sync import sync_statement_analytics_from_linked_problem
+
+PdfReader = None
 
 IGNORED_STATEMENT_LINES = {
     "Stuttgarden",
@@ -219,6 +222,49 @@ class ProblemStatementSavePreviewPayload(TypedDict):
 
 class ProblemStatementImportValidationError(ValueError):
     """Raised when pasted contest statement text cannot be parsed reliably."""
+
+
+def extract_statement_text_from_pdf(uploaded_file) -> str:
+    with contextlib.suppress(AttributeError, OSError):
+        uploaded_file.seek(0)
+
+    reader_cls = PdfReader
+    if reader_cls is None:
+        with contextlib.suppress(ImportError):
+            from pypdf import PdfReader as installed_reader_cls
+
+            reader_cls = installed_reader_cls
+
+    if reader_cls is None:
+        msg = "PDF parsing dependency is unavailable. Install pypdf and try again."
+        raise ProblemStatementImportValidationError(msg)
+
+    try:
+        reader = reader_cls(uploaded_file)
+    except Exception as exc:
+        msg = "Could not read the uploaded PDF. Please upload a valid text-based PDF file."
+        raise ProblemStatementImportValidationError(msg) from exc
+
+    page_chunks: list[str] = []
+    for page in reader.pages:
+        try:
+            raw_text = page.extract_text() or ""
+        except Exception as exc:
+            msg = "Could not extract text from one or more PDF pages."
+            raise ProblemStatementImportValidationError(msg) from exc
+
+        normalized = raw_text.replace("\x00", "")
+        normalized = normalized.replace("\r\n", "\n").replace("\r", "\n")
+        normalized = normalized.strip()
+        if normalized:
+            page_chunks.append(normalized)
+
+    extracted_text = "\n\n".join(page_chunks).strip()
+    if not extracted_text:
+        msg = "No extractable text was found in the uploaded PDF. The file may be image-only."
+        raise ProblemStatementImportValidationError(msg)
+
+    return extracted_text
 
 
 @dataclass(frozen=True)

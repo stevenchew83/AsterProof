@@ -38,6 +38,8 @@ from inspinia.pages.problem_import import import_problem_dataframe
 from inspinia.pages.statement_analytics import effective_topic
 from inspinia.pages.statement_analytics_sync import sync_statement_analytics_from_linked_problem
 from inspinia.pages.statement_import import LATEX_STATEMENT_SAMPLE
+from inspinia.pages.statement_import import ProblemStatementImportValidationError
+from inspinia.pages.statement_import import extract_statement_text_from_pdf
 from inspinia.pages.statement_import import import_problem_statements
 from inspinia.pages.statement_import import parse_contest_problem_statements
 from inspinia.pages.statement_metadata_backfill import StatementMetadataBackfillValidationError
@@ -719,6 +721,13 @@ def _csv_upload(*rows: dict) -> SimpleUploadedFile:
     )
 
 
+def _pdf_upload(
+    name: str = "contest.pdf",
+    payload: bytes = b"%PDF-1.4\n%upload\n",
+) -> SimpleUploadedFile:
+    return SimpleUploadedFile(name, payload, content_type="application/pdf")
+
+
 def test_dataframe_from_excel_strips_headers_and_requires_columns():
     workbook_bytes = _workbook_bytes(
         {
@@ -1022,6 +1031,79 @@ def test_problem_topic_technique_save_uppercases_technique_and_domains():
 
     assert tag.technique == "ANGLE CHASING"
     assert tag.domains == ["GEO", "COMBINATORICS"]
+
+
+def test_extract_statement_text_from_pdf_normalizes_and_joins_pages(monkeypatch):
+    class _FakePage:
+        def __init__(self, text: str | None) -> None:
+            self._text = text
+
+        def extract_text(self) -> str | None:
+            return self._text
+
+    class _FakeReader:
+        def __init__(self, _stream) -> None:
+            self.pages = [
+                _FakePage("2026 Spain Mathematical Olympiad\r\nDay 1\x00"),
+                _FakePage("1 First statement."),
+                _FakePage(None),
+                _FakePage("  \n2 Second statement.\n"),
+            ]
+
+    monkeypatch.setattr("inspinia.pages.statement_import.PdfReader", _FakeReader)
+    upload = SimpleUploadedFile(
+        "sample.pdf",
+        b"%PDF-1.4\n%mock\n",
+        content_type="application/pdf",
+    )
+
+    extracted = extract_statement_text_from_pdf(upload)
+
+    assert extracted == (
+        "2026 Spain Mathematical Olympiad\n"
+        "Day 1\n\n"
+        "1 First statement.\n\n"
+        "2 Second statement."
+    )
+
+
+def test_extract_statement_text_from_pdf_raises_validation_error_when_reader_fails(monkeypatch):
+    class _BrokenReader:
+        def __init__(self, _stream) -> None:
+            raise ValueError("broken pdf")
+
+    monkeypatch.setattr("inspinia.pages.statement_import.PdfReader", _BrokenReader)
+    upload = SimpleUploadedFile(
+        "broken.pdf",
+        b"%PDF-1.4\n%broken\n",
+        content_type="application/pdf",
+    )
+
+    with pytest.raises(ProblemStatementImportValidationError, match="Could not read the uploaded PDF"):
+        extract_statement_text_from_pdf(upload)
+
+
+def test_extract_statement_text_from_pdf_raises_validation_error_when_no_text(monkeypatch):
+    class _FakePage:
+        def extract_text(self) -> str | None:
+            return "   "
+
+    class _ReaderNoText:
+        def __init__(self, _stream) -> None:
+            self.pages = [_FakePage()]
+
+    monkeypatch.setattr("inspinia.pages.statement_import.PdfReader", _ReaderNoText)
+    upload = SimpleUploadedFile(
+        "empty.pdf",
+        b"%PDF-1.4\n%empty\n",
+        content_type="application/pdf",
+    )
+
+    with pytest.raises(
+        ProblemStatementImportValidationError,
+        match="No extractable text was found in the uploaded PDF",
+    ):
+        extract_statement_text_from_pdf(upload)
 
 
 def test_parse_contest_problem_statements_extracts_contest_days_and_problem_blocks():
@@ -6412,6 +6494,146 @@ def test_latex_preview_parse_action_builds_structured_preview_without_saving(cli
         "update_problem_codes": [],
     }
     assert 'footnotesize: ""' in response.content.decode("utf-8")
+
+
+def test_latex_preview_parse_action_accepts_pdf_upload_and_uses_extracted_text(client, monkeypatch):
+    user = UserFactory()
+    client.force_login(user)
+
+    monkeypatch.setattr(
+        "inspinia.pages.views.extract_statement_text_from_pdf",
+        lambda _uploaded: LATEX_STATEMENT_SAMPLE,
+    )
+
+    response = client.post(
+        reverse("pages:latex_preview"),
+        {
+            "action": "preview",
+            "source_text": "",
+            "file": _pdf_upload(),
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert ContestProblemStatement.objects.count() == 0
+    assert response.context["parsed_statement_payload"]["contest_name"] == SPAIN_OLYMPIAD_NAME
+    assert response.context["parsed_statement_payload"]["problem_count"] == EXPECTED_STATEMENT_PROBLEM_TOTAL
+    assert response.context["form"]["source_text"].value().startswith("2026 Spain Mathematical Olympiad")
+
+
+def test_latex_preview_save_action_accepts_pdf_upload_for_admin(client, monkeypatch):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+
+    monkeypatch.setattr(
+        "inspinia.pages.views.extract_statement_text_from_pdf",
+        lambda _uploaded: LATEX_STATEMENT_SAMPLE,
+    )
+
+    response = client.post(
+        reverse("pages:latex_preview"),
+        {
+            "action": "save",
+            "source_text": "",
+            "file": _pdf_upload(),
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert ContestProblemStatement.objects.count() == EXPECTED_STATEMENT_PROBLEM_TOTAL
+    assert response.context["statement_import_result"]["created_count"] == EXPECTED_STATEMENT_PROBLEM_TOTAL
+
+
+def test_latex_preview_rejects_source_text_and_pdf_together(client):
+    user = UserFactory()
+    client.force_login(user)
+
+    response = client.post(
+        reverse("pages:latex_preview"),
+        {
+            "action": "preview",
+            "source_text": LATEX_STATEMENT_SAMPLE,
+            "file": _pdf_upload(),
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    html = response.content.decode("utf-8")
+    assert "Use either pasted contest text or a PDF upload, not both." in html
+
+
+def test_latex_preview_rejects_when_no_source_is_provided(client):
+    user = UserFactory()
+    client.force_login(user)
+
+    response = client.post(
+        reverse("pages:latex_preview"),
+        {"action": "preview", "source_text": ""},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert "Paste contest text or upload a PDF." in response.content.decode("utf-8")
+
+
+def test_latex_preview_rejects_non_pdf_upload(client):
+    user = UserFactory()
+    client.force_login(user)
+
+    response = client.post(
+        reverse("pages:latex_preview"),
+        {
+            "action": "preview",
+            "source_text": "",
+            "file": SimpleUploadedFile(
+                "contest.txt",
+                b"not pdf",
+                content_type="text/plain",
+            ),
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["form"].errors["file"] == ["Please upload a .pdf file."]
+
+
+def test_latex_preview_pdf_extraction_error_is_displayed(client, monkeypatch):
+    user = UserFactory()
+    client.force_login(user)
+
+    def _raise(_uploaded):
+        msg = "Could not read the uploaded PDF. Please upload a valid text-based PDF file."
+        raise ProblemStatementImportValidationError(msg)
+
+    monkeypatch.setattr("inspinia.pages.views.extract_statement_text_from_pdf", _raise)
+
+    response = client.post(
+        reverse("pages:latex_preview"),
+        {
+            "action": "preview",
+            "source_text": "",
+            "file": _pdf_upload(),
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["parsed_statement_payload"] is None
+    assert "Could not read the uploaded PDF. Please upload a valid text-based PDF file." in response.content.decode(
+        "utf-8",
+    )
+
+
+def test_latex_preview_page_renders_pdf_upload_control(client):
+    user = UserFactory()
+    client.force_login(user)
+
+    response = client.get(reverse("pages:latex_preview"))
+
+    assert response.status_code == HTTPStatus.OK
+    html = response.content.decode("utf-8")
+    assert 'enctype="multipart/form-data"' in html
+    assert 'name="file"' in html
+    assert 'accept=".pdf,application/pdf"' in html
+    assert "Upload contest PDF" in html
 
 
 def test_handle_summary_parser_post_builds_export_table(client):

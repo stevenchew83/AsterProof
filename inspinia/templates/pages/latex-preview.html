@@ -81,7 +81,7 @@
 
   <div class="row g-3 mt-0">
     <div class="col-12">
-      <form id="latex-preview-form" method="post" class="card">
+      <form id="latex-preview-form" method="post" enctype="multipart/form-data" class="card">
         {% csrf_token %}
         <div class="card-header border-0 pb-0">
           <h4 class="header-title mb-0">Paste contest text, preview the rendered math, and parse statement blocks</h4>
@@ -118,6 +118,16 @@
               <label class="form-check-label" for="latex-preview-auto-render">
                 Auto render while typing
               </label>
+            </div>
+          </div>
+          <div class="row g-2 mt-1">
+            <div class="col-lg-6 col-xl-5">
+              <label class="form-label mb-1" for="{{ form.file.id_for_label }}">Upload contest PDF</label>
+              {{ form.file }}
+              <div class="form-text">Upload one text-based PDF to parse immediately.</div>
+              {% for error in form.file.errors %}
+              <div class="invalid-feedback d-block">{{ error }}</div>
+              {% endfor %}
             </div>
           </div>
         </div>
