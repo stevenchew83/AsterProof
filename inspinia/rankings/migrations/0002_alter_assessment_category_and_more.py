@@ -3,6 +3,121 @@
 from django.db import migrations, models
 
 
+ASSESSMENT_CATEGORY_ALIASES = {
+    "exam": "test",
+    "quiz": "test",
+    "selection": "qualifier",
+}
+
+ASSESSMENT_RESULT_TYPE_ALIASES = {
+    "percent": "score",
+    "rank": "status",
+}
+
+RANKING_FORMULA_MISSING_SCORE_POLICY_ALIASES = {
+    "skip": "skip_and_rescale",
+    "require_all": "zero",
+}
+
+RANKING_FORMULA_ITEM_NORMALIZATION_METHOD_ALIASES = {
+    "percent": "percent_of_max",
+    "z_score": "zscore",
+    "custom": "fixed_scale",
+}
+
+
+def canonicalize_token(value, aliases):
+    token = " ".join((value or "").split()).lower()
+    return aliases.get(token, token)
+
+
+def backfill_ranking_choice_tokens(apps, schema_editor):
+    Assessment = apps.get_model("rankings", "Assessment")
+    RankingFormula = apps.get_model("rankings", "RankingFormula")
+    RankingFormulaItem = apps.get_model("rankings", "RankingFormulaItem")
+
+    assessments_to_update = []
+    for assessment in Assessment.objects.all().only("id", "category", "result_type"):
+        category = canonicalize_token(
+            assessment.category,
+            ASSESSMENT_CATEGORY_ALIASES,
+        )
+        result_type = canonicalize_token(
+            assessment.result_type,
+            ASSESSMENT_RESULT_TYPE_ALIASES,
+        )
+        if category != assessment.category or result_type != assessment.result_type:
+            assessment.category = category
+            assessment.result_type = result_type
+            assessments_to_update.append(assessment)
+
+    if assessments_to_update:
+        Assessment.objects.bulk_update(
+            assessments_to_update,
+            ["category", "result_type"],
+        )
+
+    formulas_to_update = []
+    used_versions_by_scope = {}
+    formula_queryset = RankingFormula.objects.all().only(
+        "id",
+        "season_year",
+        "division",
+        "purpose",
+        "version",
+        "missing_score_policy",
+    )
+    for formula in formula_queryset.order_by(
+        "season_year",
+        "division",
+        "purpose",
+        "version",
+        "id",
+    ):
+        missing_score_policy = canonicalize_token(
+            formula.missing_score_policy,
+            RANKING_FORMULA_MISSING_SCORE_POLICY_ALIASES,
+        )
+        scope = (formula.season_year, formula.division, formula.purpose)
+        used_versions = used_versions_by_scope.setdefault(scope, set())
+        version = formula.version
+        if version in used_versions:
+            version += 1
+            while version in used_versions:
+                version += 1
+        used_versions.add(version)
+
+        if (
+            missing_score_policy != formula.missing_score_policy
+            or version != formula.version
+        ):
+            formula.missing_score_policy = missing_score_policy
+            formula.version = version
+            formulas_to_update.append(formula)
+
+    if formulas_to_update:
+        RankingFormula.objects.bulk_update(
+            formulas_to_update,
+            ["missing_score_policy", "version"],
+        )
+
+    items_to_update = []
+    for item in RankingFormulaItem.objects.all().only("id", "normalization_method"):
+        normalization_method = canonicalize_token(
+            item.normalization_method,
+            RANKING_FORMULA_ITEM_NORMALIZATION_METHOD_ALIASES,
+        )
+        if normalization_method != item.normalization_method:
+            item.normalization_method = normalization_method
+            items_to_update.append(item)
+
+    if items_to_update:
+        RankingFormulaItem.objects.bulk_update(
+            items_to_update,
+            ["normalization_method"],
+        )
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -10,6 +125,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.RunPython(backfill_ranking_choice_tokens, migrations.RunPython.noop),
         migrations.AlterField(
             model_name="assessment",
             name="category",

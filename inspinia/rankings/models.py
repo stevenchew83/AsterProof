@@ -13,6 +13,34 @@ def normalize_name(value: str) -> str:
     return normalize_whitespace(value).casefold()
 
 
+def canonicalize_choice_token(value: str, aliases: dict[str, str]) -> str:
+    token = normalize_whitespace(value).lower()
+    return aliases.get(token, token)
+
+
+ASSESSMENT_CATEGORY_ALIASES = {
+    "exam": "test",
+    "quiz": "test",
+    "selection": "qualifier",
+}
+
+ASSESSMENT_RESULT_TYPE_ALIASES = {
+    "percent": "score",
+    "rank": "status",
+}
+
+RANKING_FORMULA_MISSING_SCORE_POLICY_ALIASES = {
+    "skip": "skip_and_rescale",
+    "require_all": "zero",
+}
+
+RANKING_FORMULA_ITEM_NORMALIZATION_METHOD_ALIASES = {
+    "percent": "percent_of_max",
+    "z_score": "zscore",
+    "custom": "fixed_scale",
+}
+
+
 class School(models.Model):
     class SchoolType(TextChoices):
         DAY = "day", "Day School"
@@ -181,9 +209,15 @@ class Assessment(models.Model):
     def save(self, *args, **kwargs) -> None:
         self.code = normalize_whitespace(self.code).upper()
         self.display_name = normalize_whitespace(self.display_name)
-        self.category = (self.category or "").strip()
+        self.category = canonicalize_choice_token(
+            self.category,
+            ASSESSMENT_CATEGORY_ALIASES,
+        )
         self.division_scope = (self.division_scope or "").strip()
-        self.result_type = (self.result_type or "").strip()
+        self.result_type = canonicalize_choice_token(
+            self.result_type,
+            ASSESSMENT_RESULT_TYPE_ALIASES,
+        )
 
         update_fields = kwargs.get("update_fields")
         if update_fields is not None:
@@ -245,7 +279,10 @@ class RankingFormula(models.Model):
         self.name = normalize_whitespace(self.name)
         self.division = (self.division or "").strip()
         self.purpose = (self.purpose or "").strip()
-        self.missing_score_policy = (self.missing_score_policy or "").strip()
+        self.missing_score_policy = canonicalize_choice_token(
+            self.missing_score_policy,
+            RANKING_FORMULA_MISSING_SCORE_POLICY_ALIASES,
+        )
 
         update_fields = kwargs.get("update_fields")
         if update_fields is not None:
@@ -301,7 +338,10 @@ class RankingFormulaItem(models.Model):
         return f"{self.ranking_formula} / {self.assessment}"
 
     def save(self, *args, **kwargs) -> None:
-        self.normalization_method = (self.normalization_method or "").strip()
+        self.normalization_method = canonicalize_choice_token(
+            self.normalization_method,
+            RANKING_FORMULA_ITEM_NORMALIZATION_METHOD_ALIASES,
+        )
 
         update_fields = kwargs.get("update_fields")
         if update_fields is not None:

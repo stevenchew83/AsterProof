@@ -52,6 +52,32 @@ def test_ranking_formula_missing_score_policy_allows_skip_and_rescale():
     assert formula.missing_score_policy == "skip_and_rescale"
 
 
+def test_assessment_save_canonicalizes_legacy_category_and_result_type_tokens():
+    assessment = Assessment.objects.create(
+        code=" R1 ",
+        display_name=" Round 1 ",
+        season_year=2026,
+        category="  EXAM  ",
+        division_scope="  senior  ",
+        result_type="  Rank  ",
+    )
+
+    assert assessment.category == "test"
+    assert assessment.result_type == "status"
+
+
+def test_ranking_formula_save_canonicalizes_legacy_missing_score_policy_tokens():
+    formula = RankingFormula.objects.create(
+        name="National Overall",
+        season_year=2026,
+        division="",
+        purpose=RankingFormula.Purpose.OVERALL,
+        missing_score_policy="  skip  ",
+    )
+
+    assert formula.missing_score_policy == "skip_and_rescale"
+
+
 def test_ranking_formula_item_normalization_method_allows_percent_of_max():
     assessment = Assessment.objects.create(
         code="R1",
@@ -77,6 +103,31 @@ def test_ranking_formula_item_normalization_method_allows_percent_of_max():
     item.save()
 
     assert item.normalization_method == "percent_of_max"
+
+
+def test_ranking_formula_item_save_canonicalizes_legacy_normalization_method_tokens():
+    assessment = Assessment.objects.create(
+        code="R2",
+        display_name="Round 2",
+        season_year=2026,
+        category="contest",
+        division_scope="",
+        result_type="score",
+    )
+    formula = RankingFormula.objects.create(
+        name="National Overall",
+        season_year=2026,
+        division="",
+        purpose=RankingFormula.Purpose.OVERALL,
+    )
+
+    item = RankingFormulaItem.objects.create(
+        ranking_formula=formula,
+        assessment=assessment,
+        normalization_method="  z_score  ",
+    )
+
+    assert item.normalization_method == "zscore"
 
 
 def test_ranking_formula_scope_is_unique_per_version():
