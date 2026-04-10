@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 from typing import Any
 
@@ -13,19 +14,28 @@ from inspinia.rankings.services.ranking_normalization import quantize_score
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
+    from decimal import Decimal
 
 
-def compute_rankings(
+@dataclass(slots=True)
+class ComputedRankRow:
+    student_id: int
+    total_score: Decimal
+    breakdown: dict[str, dict[str, Any]]
+    normalized_name: str
+
+
+def compute_rank_rows(
     formula: RankingFormula,
     students: Iterable[Student],
-) -> list[dict[str, Any]]:
+) -> list[ComputedRankRow]:
     formula_items = list(
         formula.items.select_related("assessment").order_by("sort_order", "id"),
     )
     student_list = list(students)
     results_by_key = _load_results(student_list, formula_items)
 
-    rows: list[dict[str, Any]] = []
+    rows: list[ComputedRankRow] = []
     for student in student_list:
         breakdown: dict[str, dict[str, Any]] = {}
         numerator = ZERO
@@ -49,8 +59,10 @@ def compute_rankings(
             if normalized_score is not None:
                 numerator += normalized_score * item.weight
 
-            breakdown[item.assessment.code] = {
+            breakdown_key = _build_breakdown_key(item, breakdown)
+            breakdown[breakdown_key] = {
                 "assessment_id": item.assessment_id,
+                "assessment_code": item.assessment.code,
                 "weight": item.weight,
                 "normalization_method": item.normalization_method,
                 "is_required": item.is_required,
@@ -63,20 +75,51 @@ def compute_rankings(
 
         total_score = ZERO if denominator == ZERO else quantize_score(numerator / denominator)
         rows.append(
-            {
-                "student_id": student.id,
-                "total_score": total_score,
-                "breakdown": breakdown,
-                "_sort_name": student.normalized_name or str(student.id or ""),
-                "_sort_id": student.id or 0,
-            },
+            ComputedRankRow(
+                student_id=student.id or 0,
+                total_score=total_score,
+                breakdown=breakdown,
+                normalized_name=student.normalized_name or str(student.id or ""),
+            ),
         )
 
-    rows.sort(key=lambda row: (-row["total_score"], row["_sort_name"], row["_sort_id"]))
-    for row in rows:
-        row.pop("_sort_name")
-        row.pop("_sort_id")
+    rows.sort(key=lambda row: (-row.total_score, row.normalized_name, row.student_id))
     return rows
+
+
+def compute_rankings(
+    formula: RankingFormula,
+    students: Iterable[Student],
+) -> list[dict[str, Any]]:
+    """Compatibility wrapper retained while callers migrate to compute_rank_rows."""
+    return [
+        {
+            "student_id": row.student_id,
+            "total_score": row.total_score,
+            "breakdown": row.breakdown,
+        }
+        for row in compute_rank_rows(formula=formula, students=students)
+    ]
+
+
+def _build_breakdown_key(
+    item: RankingFormulaItem,
+    breakdown: dict[str, dict[str, Any]],
+) -> str:
+    base_key = item.assessment.code or f"ASSESSMENT-{item.assessment_id}"
+    if base_key not in breakdown:
+        return base_key
+
+    fallback_key = f"{base_key}__{item.assessment_id}"
+    if fallback_key not in breakdown:
+        return fallback_key
+
+    suffix = 2
+    while True:
+        candidate_key = f"{fallback_key}_{suffix}"
+        if candidate_key not in breakdown:
+            return candidate_key
+        suffix += 1
 
 
 def _count_item_in_denominator(

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from decimal import ROUND_HALF_UP
 from decimal import Decimal
 
 from inspinia.rankings.models import RankingFormulaItem
@@ -11,7 +12,7 @@ ZERO = Decimal("0")
 
 
 def quantize_score(value: Decimal) -> Decimal:
-    return value.quantize(SCORE_QUANTUM)
+    return value.quantize(SCORE_QUANTUM, rounding=ROUND_HALF_UP)
 
 
 def normalize_formula_item_score(
