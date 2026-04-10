@@ -3,6 +3,7 @@ import re
 from django.db import models
 from django.db.models import Q
 from django.db.models import TextChoices
+from django.utils import timezone
 
 
 def normalize_whitespace(value: str) -> str:
@@ -346,5 +347,281 @@ class RankingFormulaItem(models.Model):
         update_fields = kwargs.get("update_fields")
         if update_fields is not None:
             kwargs["update_fields"] = set(update_fields) | {"normalization_method"}
+
+        super().save(*args, **kwargs)
+
+
+class StudentResult(models.Model):
+    student = models.ForeignKey(
+        Student,
+        on_delete=models.CASCADE,
+        related_name="results",
+    )
+    assessment = models.ForeignKey(
+        Assessment,
+        on_delete=models.CASCADE,
+        related_name="results",
+    )
+    raw_score = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    normalized_score = models.DecimalField(max_digits=10, decimal_places=4, null=True, blank=True)
+    medal = models.CharField(max_length=32, blank=True, db_index=True)
+    band = models.CharField(max_length=32, blank=True, db_index=True)
+    status_text = models.CharField(max_length=64, blank=True)
+    remarks = models.TextField(blank=True)
+    source_url = models.URLField(blank=True)
+    source_file_name = models.CharField(max_length=255, blank=True)
+    imported_by = models.ForeignKey(
+        "users.User",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="imported_student_results",
+    )
+    imported_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["assessment", "student", "id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["student", "assessment"],
+                name="rank_sturesult_unique_pair",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["assessment"], name="rank_res_assess_idx"),
+            models.Index(fields=["student"], name="rank_res_student_idx"),
+            models.Index(fields=["raw_score"], name="rank_res_rawscore_idx"),
+            models.Index(fields=["medal"], name="rank_res_medal_idx"),
+            models.Index(fields=["band"], name="rank_res_band_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.student} / {self.assessment}"
+
+    def save(self, *args, **kwargs) -> None:
+        self.medal = normalize_whitespace(self.medal)
+        self.band = normalize_whitespace(self.band)
+        self.status_text = normalize_whitespace(self.status_text)
+        self.source_url = normalize_whitespace(self.source_url)
+        self.source_file_name = normalize_whitespace(self.source_file_name)
+
+        update_fields = kwargs.get("update_fields")
+        if update_fields is not None:
+            kwargs["update_fields"] = set(update_fields) | {
+                "medal",
+                "band",
+                "status_text",
+                "source_url",
+                "source_file_name",
+            }
+
+        super().save(*args, **kwargs)
+
+
+class StudentSelectionStatus(models.Model):
+    class Status(TextChoices):
+        TEAM = "team", "Team"
+        SQUAD = "squad", "Squad"
+        WATCHLIST = "watchlist", "Watchlist"
+        SENIOR = "senior", "Senior"
+        JUNIOR = "junior", "Junior"
+        PRIMARY = "primary", "Primary"
+        PIONEER = "pioneer", "Pioneer"
+        BEGINNER = "beginner", "Beginner"
+        NONE = "none", "None"
+
+    student = models.ForeignKey(
+        Student,
+        on_delete=models.CASCADE,
+        related_name="selection_statuses",
+    )
+    season_year = models.PositiveSmallIntegerField(db_index=True)
+    division = models.CharField(max_length=32, blank=True, default="", db_index=True)
+    status = models.CharField(max_length=32, db_index=True)
+    notes = models.TextField(blank=True)
+    created_by = models.ForeignKey(
+        "users.User",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="created_selection_statuses",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-season_year", "division", "status", "student", "id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["student", "season_year", "division", "status"],
+                name="rank_selstatus_unique_scope",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        scope = self.division or "overall"
+        return f"{self.student} / {self.season_year} / {scope} / {self.status}"
+
+    def save(self, *args, **kwargs) -> None:
+        self.division = normalize_whitespace(self.division).lower()
+        self.status = normalize_whitespace(self.status).lower()
+
+        update_fields = kwargs.get("update_fields")
+        if update_fields is not None:
+            kwargs["update_fields"] = set(update_fields) | {"division", "status"}
+
+        super().save(*args, **kwargs)
+
+
+class RankingSnapshot(models.Model):
+    ranking_formula = models.ForeignKey(
+        RankingFormula,
+        on_delete=models.CASCADE,
+        related_name="snapshots",
+    )
+    student = models.ForeignKey(
+        Student,
+        on_delete=models.CASCADE,
+        related_name="ranking_snapshots",
+    )
+    season_year = models.PositiveSmallIntegerField(db_index=True)
+    division = models.CharField(max_length=32, blank=True, default="", db_index=True)
+    total_score = models.DecimalField(max_digits=12, decimal_places=4, db_index=True)
+    rank_overall = models.PositiveIntegerField(null=True, blank=True, db_index=True)
+    rank_within_division = models.PositiveIntegerField(null=True, blank=True)
+    score_breakdown_json = models.JSONField(default=dict, blank=True)
+    last_computed_at = models.DateTimeField(default=timezone.now)
+    formula_version_label = models.CharField(max_length=64, blank=True)
+    formula_version_hash = models.CharField(max_length=64, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["season_year", "division", "rank_overall", "student", "id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["ranking_formula", "student"],
+                name="rank_snapshot_unique_pair",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["season_year"], name="rank_snap_season_idx"),
+            models.Index(fields=["division"], name="rank_snap_div_idx"),
+            models.Index(fields=["total_score"], name="rank_snap_score_idx"),
+            models.Index(fields=["rank_overall"], name="rank_snap_rank_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.student} / {self.ranking_formula}"
+
+    def save(self, *args, **kwargs) -> None:
+        self.division = normalize_whitespace(self.division).lower()
+        self.formula_version_label = normalize_whitespace(self.formula_version_label)
+        self.formula_version_hash = normalize_whitespace(self.formula_version_hash)
+
+        update_fields = kwargs.get("update_fields")
+        if update_fields is not None:
+            kwargs["update_fields"] = set(update_fields) | {
+                "division",
+                "formula_version_label",
+                "formula_version_hash",
+            }
+
+        super().save(*args, **kwargs)
+
+
+class ImportBatch(models.Model):
+    class ImportType(TextChoices):
+        STUDENT_MASTER = "student_master", "Student Master"
+        ASSESSMENT_RESULTS = "assessment_results", "Assessment Results"
+        LEGACY_WIDE_TABLE = "legacy_wide_table", "Legacy Wide Table"
+
+    class Status(TextChoices):
+        UPLOADED = "uploaded", "Uploaded"
+        PREVIEWED = "previewed", "Previewed"
+        APPLIED = "applied", "Applied"
+        FAILED = "failed", "Failed"
+        PARTIAL = "partial", "Partial"
+
+    import_type = models.CharField(max_length=32, choices=ImportType.choices, db_index=True)
+    uploaded_file = models.FileField(upload_to="rankings/imports/%Y/%m/%d")
+    original_filename = models.CharField(max_length=255)
+    status = models.CharField(
+        max_length=32,
+        choices=Status.choices,
+        default=Status.UPLOADED,
+        db_index=True,
+    )
+    summary_json = models.JSONField(default=dict, blank=True)
+    created_by = models.ForeignKey(
+        "users.User",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="created_import_batches",
+    )
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+
+    def __str__(self) -> str:
+        return f"{self.get_import_type_display()} / {self.original_filename}"
+
+    def save(self, *args, **kwargs) -> None:
+        self.original_filename = normalize_whitespace(self.original_filename)
+        self.import_type = normalize_whitespace(self.import_type).lower()
+        self.status = normalize_whitespace(self.status).lower()
+
+        update_fields = kwargs.get("update_fields")
+        if update_fields is not None:
+            kwargs["update_fields"] = set(update_fields) | {
+                "original_filename",
+                "import_type",
+                "status",
+            }
+
+        super().save(*args, **kwargs)
+
+
+class ImportRowIssue(models.Model):
+    class Severity(TextChoices):
+        INFO = "info", "Info"
+        WARNING = "warning", "Warning"
+        ERROR = "error", "Error"
+
+    import_batch = models.ForeignKey(
+        ImportBatch,
+        on_delete=models.CASCADE,
+        related_name="row_issues",
+    )
+    row_number = models.PositiveIntegerField()
+    severity = models.CharField(max_length=16, choices=Severity.choices, db_index=True)
+    issue_code = models.CharField(max_length=64)
+    message = models.TextField()
+    raw_row_json = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["import_batch", "row_number", "id"]
+        indexes = [
+            models.Index(fields=["import_batch", "severity"], name="rank_issue_batch_sev_idx"),
+            models.Index(fields=["import_batch", "row_number"], name="rank_issue_batch_row_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.import_batch_id} row {self.row_number} {self.severity}"
+
+    def save(self, *args, **kwargs) -> None:
+        self.severity = normalize_whitespace(self.severity).lower()
+        self.issue_code = normalize_whitespace(self.issue_code)
+
+        update_fields = kwargs.get("update_fields")
+        if update_fields is not None:
+            kwargs["update_fields"] = set(update_fields) | {"severity", "issue_code"}
 
         super().save(*args, **kwargs)

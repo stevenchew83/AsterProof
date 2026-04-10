@@ -158,3 +158,90 @@ def test_school_has_name_index():
     }
 
     assert ("name",) in indexed_columns
+
+
+def test_student_result_is_unique_per_student_and_assessment():
+    from inspinia.rankings.models import StudentResult
+
+    student = Student.objects.create(full_name="Alice Tan")
+    assessment = Assessment.objects.create(
+        code="R1",
+        display_name="Round 1",
+        season_year=2026,
+        category="contest",
+        division_scope="",
+        result_type="score",
+    )
+
+    StudentResult.objects.create(student=student, assessment=assessment, raw_score="12.00")
+
+    with pytest.raises(IntegrityError):
+        StudentResult.objects.create(student=student, assessment=assessment, raw_score="13.00")
+
+
+def test_ranking_snapshot_is_unique_per_formula_and_student():
+    from inspinia.rankings.models import RankingSnapshot
+
+    student = Student.objects.create(full_name="Alice Tan")
+    formula = RankingFormula.objects.create(
+        name="National Overall",
+        season_year=2026,
+        division="senior",
+        purpose=RankingFormula.Purpose.OVERALL,
+    )
+
+    RankingSnapshot.objects.create(
+        ranking_formula=formula,
+        student=student,
+        season_year=2026,
+        division="senior",
+        total_score="88.5000",
+        last_computed_at="2026-04-10T12:00:00Z",
+    )
+
+    with pytest.raises(IntegrityError):
+        RankingSnapshot.objects.create(
+            ranking_formula=formula,
+            student=student,
+            season_year=2026,
+            division="senior",
+            total_score="89.0000",
+            last_computed_at="2026-04-10T12:05:00Z",
+        )
+
+
+def test_student_selection_status_scope_key_is_unique():
+    from inspinia.rankings.models import StudentSelectionStatus
+
+    student = Student.objects.create(full_name="Alice Tan")
+
+    StudentSelectionStatus.objects.create(
+        student=student,
+        season_year=2026,
+        division="senior",
+        status="team",
+    )
+
+    with pytest.raises(IntegrityError):
+        StudentSelectionStatus.objects.create(
+            student=student,
+            season_year=2026,
+            division="senior",
+            status="team",
+        )
+
+
+def test_import_batch_defaults_to_uploaded_status():
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    from inspinia.rankings.models import ImportBatch
+
+    upload = SimpleUploadedFile("results.csv", b"student,score\nAlice,12\n", content_type="text/csv")
+
+    batch = ImportBatch.objects.create(
+        import_type=ImportBatch.ImportType.ASSESSMENT_RESULTS,
+        uploaded_file=upload,
+        original_filename="results.csv",
+    )
+
+    assert batch.status == ImportBatch.Status.UPLOADED
