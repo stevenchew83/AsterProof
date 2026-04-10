@@ -1,0 +1,204 @@
+{% extends 'layouts/vertical.html' %}
+{% load static %}
+
+{% block title %}Student detail{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  {% include 'partials/page-title.html' with title=student.full_name subtitle='Student detail' %}
+
+  <div class="row g-3 mt-3">
+    <div class="col-lg-4">
+      <div class="card h-100">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-1">Master Data</h4>
+        </div>
+        <div class="card-body pt-2">
+          <p class="mb-2"><strong>School:</strong> {{ student.school.name|default:'-' }}</p>
+          <p class="mb-2"><strong>State:</strong> {{ student.state|default:'-' }}</p>
+          <p class="mb-2"><strong>Birth year:</strong> {{ student.birth_year|default:'-' }}</p>
+          <p class="mb-2"><strong>External code:</strong> {{ student.external_code|default:'-' }}</p>
+          <p class="mb-2"><strong>Active:</strong> {{ student.active|yesno:'Yes,No' }}</p>
+          <p class="mb-0"><strong>Updated:</strong> {{ student.updated_at|date:'Y-m-d H:i' }}</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-8">
+      <div class="card h-100">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-1">Ranking trend</h4>
+          <p class="text-muted fs-xs mb-0">Total score history across snapshot seasons.</p>
+        </div>
+        <div class="card-body pt-2">
+          <div id="student-trend-chart" style="min-height: 280px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-0">
+    <div class="col-xl-7">
+      <div class="card">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-1">Result history</h4>
+        </div>
+        <div class="card-body pt-2">
+          <div class="table-responsive">
+            <table class="table table-sm table-striped mb-0">
+              <thead>
+                <tr>
+                  <th>Assessment</th>
+                  <th>Raw</th>
+                  <th>Medal</th>
+                  <th>Band</th>
+                  <th>Status Text</th>
+                  <th>Updated</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for result in results %}
+                <tr>
+                  <td>{{ result.assessment.display_name }}</td>
+                  <td>{{ result.raw_score|default:'' }}</td>
+                  <td>{{ result.medal }}</td>
+                  <td>{{ result.band }}</td>
+                  <td>{{ result.status_text }}</td>
+                  <td>{{ result.updated_at|date:'Y-m-d H:i' }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="6" class="text-muted">No result history available.</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-5">
+      <div class="card">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-1">Selection statuses</h4>
+        </div>
+        <div class="card-body pt-2">
+          <div class="table-responsive">
+            <table class="table table-sm table-striped mb-0">
+              <thead>
+                <tr>
+                  <th>Season</th>
+                  <th>Division</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for status in selection_statuses %}
+                <tr>
+                  <td>{{ status.season_year }}</td>
+                  <td>{{ status.division|default:'overall' }}</td>
+                  <td>{{ status.get_status_display }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="3" class="text-muted">No selection statuses recorded.</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mt-3">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-1">Import / audit summary</h4>
+        </div>
+        <div class="card-body pt-2">
+          <div class="table-responsive">
+            <table class="table table-sm table-striped mb-0">
+              <thead>
+                <tr>
+                  <th>Source File</th>
+                  <th>Rows</th>
+                  <th>Last Imported</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in import_summary %}
+                <tr>
+                  <td>{{ row.source_file_name }}</td>
+                  <td>{{ row.row_count }}</td>
+                  <td>{{ row.last_imported_at|date:'Y-m-d H:i' }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="3" class="text-muted">No import metadata available.</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{{ trend_points|json_script:'student-trend-points' }}
+{% endblock page_content %}
+
+{% block extra_javascript %}
+<script src="{% static 'plugins/apexcharts/apexcharts.min.js' %}"></script>
+<script>
+(function () {
+  var dataEl = document.getElementById('student-trend-points');
+  var chartEl = document.getElementById('student-trend-chart');
+  if (!dataEl || !chartEl || typeof ApexCharts === 'undefined') return;
+
+  var points = [];
+  try {
+    points = JSON.parse(dataEl.textContent || '[]');
+  } catch (error) {
+    points = [];
+  }
+
+  var categories = points.map(function (point) { return point.label; });
+  var seriesValues = points.map(function (point) { return point.score; });
+
+  var chart = new ApexCharts(chartEl, {
+    chart: {
+      type: 'line',
+      height: 280,
+      toolbar: { show: false }
+    },
+    stroke: {
+      curve: 'smooth',
+      width: 3
+    },
+    series: [
+      {
+        name: 'Total score',
+        data: seriesValues
+      }
+    ],
+    xaxis: {
+      categories: categories
+    },
+    yaxis: {
+      labels: {
+        formatter: function (value) {
+          return Number(value).toFixed(2);
+        }
+      }
+    },
+    noData: {
+      text: 'No ranking history yet.'
+    }
+  });
+
+  chart.render();
+})();
+</script>
+{% endblock extra_javascript %}

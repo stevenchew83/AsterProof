@@ -1,0 +1,85 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}Assessments{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  {% include 'partials/page-title.html' with title='Assessments' subtitle='Rankings' %}
+
+  <div class="card mt-3">
+    <div class="card-body">
+      <form method="get" class="row g-2 align-items-end">
+        <div class="col-sm-6 col-md-2">
+          <label class="form-label mb-1" for="assessment-season">Season</label>
+          <input id="assessment-season" type="number" name="season" value="{{ request.GET.season|default:'' }}" class="form-control" placeholder="Season">
+        </div>
+        <div class="col-sm-6 col-md-2">
+          <label class="form-label mb-1" for="assessment-division">Division</label>
+          <input id="assessment-division" type="text" name="division" value="{{ request.GET.division|default:'' }}" class="form-control" placeholder="Division">
+        </div>
+        <div class="col-sm-6 col-md-2">
+          <label class="form-label mb-1" for="assessment-active">Active</label>
+          <select id="assessment-active" name="active" class="form-select">
+            <option value="" {% if request.GET.active == '' %}selected{% endif %}>All</option>
+            <option value="1" {% if request.GET.active == '1' %}selected{% endif %}>Active</option>
+            <option value="0" {% if request.GET.active == '0' %}selected{% endif %}>Inactive</option>
+          </select>
+        </div>
+        <div class="col-sm-6 col-md-4">
+          <label class="form-label mb-1" for="assessment-search">Search</label>
+          <input id="assessment-search" type="text" name="q" value="{{ request.GET.q|default:'' }}" class="form-control" placeholder="Code, name, division">
+        </div>
+        <div class="col-sm-12 col-md-2 d-flex gap-2">
+          <button class="btn btn-primary" type="submit"><i class="ti ti-filter me-1"></i>Apply</button>
+          <a href="{% url 'rankings:assessments_list' %}" class="btn btn-outline-secondary"><i class="ti ti-refresh me-1"></i></a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="card mt-3">
+    <div class="card-header border-0 pb-0">
+      <h4 class="header-title mb-1">Assessment definitions</h4>
+      <p class="text-muted fs-xs mb-0">Showing {{ assessments|length }} row(s) (max 500).</p>
+    </div>
+    <div class="card-body pt-2">
+      <div class="table-responsive">
+        <table class="table table-striped table-bordered align-middle mb-0">
+          <thead>
+            <tr>
+              <th>Code</th>
+              <th>Name</th>
+              <th>Season</th>
+              <th>Category</th>
+              <th>Division</th>
+              <th>Result Type</th>
+              <th>Ranked</th>
+              <th>Active</th>
+              <th>Updated</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for assessment in assessments %}
+            <tr>
+              <td>{{ assessment.code }}</td>
+              <td>{{ assessment.display_name }}</td>
+              <td>{{ assessment.season_year }}</td>
+              <td>{{ assessment.get_category_display }}</td>
+              <td>{{ assessment.division_scope|default:'-' }}</td>
+              <td>{{ assessment.get_result_type_display }}</td>
+              <td>{{ assessment.is_ranked_by_default|yesno:'Yes,No' }}</td>
+              <td>{{ assessment.is_active|yesno:'Yes,No' }}</td>
+              <td>{{ assessment.updated_at|date:'Y-m-d H:i' }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="9" class="text-muted">No assessments found.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock page_content %}

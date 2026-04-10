@@ -1,0 +1,141 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}Ranking dashboard{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  {% include 'partials/page-title.html' with title='Ranking dashboard' subtitle='Rankings' %}
+
+  <div class="row g-3 mt-3">
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-body">
+          <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Formula</p>
+          <h4 class="mb-0">{% if formula %}{{ formula.name }}{% else %}No active formula{% endif %}</h4>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-body">
+          <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Selected (Team)</p>
+          <h3 class="mb-0">{{ selected_count }}</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-body">
+          <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Watchlist</p>
+          <h3 class="mb-0">{{ watchlist_count }}</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-0">
+    <div class="col-xl-6">
+      <div class="card h-100">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-1">Top ranks</h4>
+          <p class="text-muted fs-xs mb-0">Current selection overview for the active filters.</p>
+        </div>
+        <div class="card-body pt-2">
+          <div class="table-responsive">
+            <table class="table table-sm table-striped mb-0">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Student</th>
+                  <th>School</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in top_rows %}
+                <tr>
+                  <td>{{ row.rank_overall }}</td>
+                  <td>{{ row.student.full_name }}</td>
+                  <td>{{ row.student.school.name|default:'' }}</td>
+                  <td>{{ row.total_score }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="4" class="text-muted">No ranking snapshots available.</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-6">
+      <div class="card h-100">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-1">School / state distribution</h4>
+          <p class="text-muted fs-xs mb-0">Top schools and states in the filtered ranking set.</p>
+        </div>
+        <div class="card-body pt-2">
+          <div class="row g-3">
+            <div class="col-12">
+              <h6 class="text-muted text-uppercase fs-xs mb-2">Schools</h6>
+              <div class="table-responsive">
+                <table class="table table-sm table-striped mb-0">
+                  <thead>
+                    <tr>
+                      <th>School</th>
+                      <th>Students</th>
+                      <th>Average Score</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for item in school_stats %}
+                    <tr>
+                      <td>{{ item.student__school__name|default:'(Unassigned)' }}</td>
+                      <td>{{ item.student_count }}</td>
+                      <td>{{ item.average_total|default:'' }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                      <td colspan="3" class="text-muted">No school data available.</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="col-12">
+              <h6 class="text-muted text-uppercase fs-xs mb-2">States</h6>
+              <div class="table-responsive">
+                <table class="table table-sm table-striped mb-0">
+                  <thead>
+                    <tr>
+                      <th>State</th>
+                      <th>Students</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for item in state_stats %}
+                    <tr>
+                      <td>{{ item.student__state|default:'(Unknown)' }}</td>
+                      <td>{{ item.student_count }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                      <td colspan="2" class="text-muted">No state data available.</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock page_content %}

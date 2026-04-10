@@ -1,0 +1,235 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}Import center{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  {% include 'partials/page-title.html' with title='Import center' subtitle='Rankings' %}
+
+  {% if messages %}
+  <div class="mt-3">
+    {% for message in messages %}
+    <div class="alert alert-{% if message.tags == 'error' %}danger{% elif message.tags == 'debug' %}secondary{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+      {{ message }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="row g-3 mt-3">
+    <div class="col-xl-4">
+      <div class="card h-100">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-1">Student Master Import</h4>
+          <p class="text-muted fs-xs mb-0">Match by external code, full NRIC (privileged), then name + birth year.</p>
+        </div>
+        <div class="card-body pt-2">
+          <form method="post" enctype="multipart/form-data" class="d-grid gap-2">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="student_master_preview">
+            <label class="form-label mb-1" for="id_student_master_file">Upload file</label>
+            {{ student_master_form.file }}
+            {% for error in student_master_form.file.errors %}
+            <div class="text-danger small">{{ error }}</div>
+            {% endfor %}
+            <button class="btn btn-primary" type="submit"><i class="ti ti-eye me-1"></i>Preview student import</button>
+          </form>
+
+          {% if student_master_preview %}
+          <hr class="my-3">
+          <p class="mb-1"><strong>Rows processed:</strong> {{ student_master_preview.rows_processed }}</p>
+          <p class="mb-1"><strong>Matched:</strong> {{ student_master_preview.match_count }}</p>
+          <p class="mb-1"><strong>Create:</strong> {{ student_master_preview.create_count }}</p>
+          <p class="mb-1"><strong>Ambiguous:</strong> {{ student_master_preview.ambiguous_count }}</p>
+          <p class="mb-3"><strong>Errors:</strong> {{ student_master_preview.error_count }}</p>
+
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="student_master_apply">
+            <input type="hidden" name="batch_id" value="{{ student_master_batch.id }}">
+            <button class="btn btn-success" type="submit"><i class="ti ti-check me-1"></i>Apply student import</button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-4">
+      <div class="card h-100">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-1">Assessment Result Import</h4>
+          <p class="text-muted fs-xs mb-0">Upload one assessment file and map source columns.</p>
+        </div>
+        <div class="card-body pt-2">
+          <form method="post" enctype="multipart/form-data" class="d-grid gap-2">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="assessment_result_preview">
+
+            <label class="form-label mb-1" for="id_assessment_result_file">Upload file</label>
+            {{ assessment_result_form.file }}
+
+            <label class="form-label mb-1" for="{{ assessment_result_form.assessment.id_for_label }}">Assessment</label>
+            {{ assessment_result_form.assessment }}
+
+            <div class="row g-2">
+              <div class="col-6">
+                <label class="form-label mb-1" for="{{ assessment_result_form.assessment_code.id_for_label }}">New code</label>
+                {{ assessment_result_form.assessment_code }}
+              </div>
+              <div class="col-6">
+                <label class="form-label mb-1" for="{{ assessment_result_form.season_year.id_for_label }}">Season</label>
+                {{ assessment_result_form.season_year }}
+              </div>
+              <div class="col-12">
+                <label class="form-label mb-1" for="{{ assessment_result_form.assessment_display_name.id_for_label }}">New display name</label>
+                {{ assessment_result_form.assessment_display_name }}
+              </div>
+            </div>
+
+            <div class="row g-2">
+              <div class="col-6">
+                <label class="form-label mb-1" for="{{ assessment_result_form.student_identifier_column.id_for_label }}">Identifier column</label>
+                {{ assessment_result_form.student_identifier_column }}
+              </div>
+              <div class="col-6">
+                <label class="form-label mb-1" for="{{ assessment_result_form.raw_score_column.id_for_label }}">Score column</label>
+                {{ assessment_result_form.raw_score_column }}
+              </div>
+              <div class="col-6">
+                <label class="form-label mb-1" for="{{ assessment_result_form.medal_column.id_for_label }}">Medal column</label>
+                {{ assessment_result_form.medal_column }}
+              </div>
+              <div class="col-6">
+                <label class="form-label mb-1" for="{{ assessment_result_form.band_column.id_for_label }}">Band column</label>
+                {{ assessment_result_form.band_column }}
+              </div>
+              <div class="col-6">
+                <label class="form-label mb-1" for="{{ assessment_result_form.status_text_column.id_for_label }}">Status text column</label>
+                {{ assessment_result_form.status_text_column }}
+              </div>
+              <div class="col-6">
+                <label class="form-label mb-1" for="{{ assessment_result_form.remarks_column.id_for_label }}">Remarks column</label>
+                {{ assessment_result_form.remarks_column }}
+              </div>
+            </div>
+
+            {% for error in assessment_result_form.non_field_errors %}
+            <div class="text-danger small">{{ error }}</div>
+            {% endfor %}
+
+            <button class="btn btn-primary" type="submit"><i class="ti ti-eye me-1"></i>Preview result import</button>
+          </form>
+
+          {% if assessment_result_preview %}
+          <hr class="my-3">
+          <p class="mb-1"><strong>Total rows:</strong> {{ assessment_result_preview.total_rows }}</p>
+          <p class="mb-1"><strong>Matched:</strong> {{ assessment_result_preview.matched_count }}</p>
+          <p class="mb-1"><strong>Missing students:</strong> {{ assessment_result_preview.missing_student_count }}</p>
+          <p class="mb-3"><strong>Invalid rows:</strong> {{ assessment_result_preview.invalid_count }}</p>
+
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="assessment_result_apply">
+            <input type="hidden" name="batch_id" value="{{ assessment_result_batch.id }}">
+            <input type="hidden" name="assessment_id" value="{{ assessment_result_assessment.id }}">
+            <input type="hidden" name="student_identifier" value="{{ assessment_result_mapping.student_identifier }}">
+            <input type="hidden" name="raw_score" value="{{ assessment_result_mapping.raw_score }}">
+            <input type="hidden" name="medal" value="{{ assessment_result_mapping.medal }}">
+            <input type="hidden" name="band" value="{{ assessment_result_mapping.band }}">
+            <input type="hidden" name="status_text" value="{{ assessment_result_mapping.status_text }}">
+            <input type="hidden" name="remarks" value="{{ assessment_result_mapping.remarks }}">
+            <input type="hidden" name="source_url" value="{{ assessment_result_mapping.source_url }}">
+            <button class="btn btn-success" type="submit"><i class="ti ti-check me-1"></i>Apply result import</button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-4">
+      <div class="card h-100">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-1">Legacy Wide-Sheet Import</h4>
+          <p class="text-muted fs-xs mb-0">Migrate the existing wide spreadsheet into normalized tables.</p>
+        </div>
+        <div class="card-body pt-2">
+          <form method="post" enctype="multipart/form-data" class="d-grid gap-2">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="legacy_wide_preview">
+            <label class="form-label mb-1" for="{{ legacy_wide_form.file.id_for_label }}">Upload legacy sheet</label>
+            {{ legacy_wide_form.file }}
+            <label class="form-label mb-1" for="{{ legacy_wide_form.season_year.id_for_label }}">Season year</label>
+            {{ legacy_wide_form.season_year }}
+            <label class="form-label mb-1" for="{{ legacy_wide_form.default_division.id_for_label }}">Default division</label>
+            {{ legacy_wide_form.default_division }}
+            {% for error in legacy_wide_form.non_field_errors %}
+            <div class="text-danger small">{{ error }}</div>
+            {% endfor %}
+            <button class="btn btn-primary" type="submit"><i class="ti ti-eye me-1"></i>Preview legacy import</button>
+          </form>
+
+          {% if legacy_wide_preview %}
+          <hr class="my-3">
+          <p class="mb-1"><strong>Rows:</strong> {{ legacy_wide_preview.rows|length }}</p>
+          <p class="mb-1"><strong>Student columns:</strong> {{ legacy_wide_preview.classification.student_columns|length }}</p>
+          <p class="mb-1"><strong>Assessment columns:</strong> {{ legacy_wide_preview.classification.assessment_columns|length }}</p>
+          <p class="mb-1"><strong>Status columns:</strong> {{ legacy_wide_preview.classification.status_columns|length }}</p>
+          <p class="mb-3"><strong>Ambiguous columns:</strong> {{ legacy_wide_preview.classification.ambiguous_columns|length }}</p>
+
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="legacy_wide_apply">
+            <input type="hidden" name="batch_id" value="{{ legacy_wide_batch.id }}">
+            <input type="hidden" name="season_year" value="{{ legacy_wide_season_year }}">
+            <input type="hidden" name="default_division" value="{{ legacy_wide_default_division }}">
+            <button class="btn btn-success" type="submit"><i class="ti ti-check me-1"></i>Apply legacy import</button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mt-3">
+    <div class="card-header border-0 pb-0">
+      <h4 class="header-title mb-1">Import batch history</h4>
+      <p class="text-muted fs-xs mb-0">Latest {{ import_batches|length }} batches with status and issue counts.</p>
+    </div>
+    <div class="card-body pt-2">
+      <div class="table-responsive">
+        <table class="table table-sm table-striped table-bordered mb-0">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Type</th>
+              <th>File</th>
+              <th>Status</th>
+              <th>Issues</th>
+              <th>Created By</th>
+              <th>Created</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for batch in import_batches %}
+            <tr>
+              <td>#{{ batch.id }}</td>
+              <td>{{ batch.get_import_type_display }}</td>
+              <td>{{ batch.original_filename }}</td>
+              <td>{{ batch.get_status_display }}</td>
+              <td>{{ batch.row_issues.count }}</td>
+              <td>{{ batch.created_by.email|default:'-' }}</td>
+              <td>{{ batch.created_at|date:'Y-m-d H:i' }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="7" class="text-muted">No import batches yet.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock page_content %}
