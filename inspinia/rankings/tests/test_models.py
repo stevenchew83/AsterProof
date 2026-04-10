@@ -1,14 +1,29 @@
 import pytest
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.db import connection
 
 from inspinia.rankings.models import Assessment
 from inspinia.rankings.models import RankingFormula
 from inspinia.rankings.models import RankingFormulaItem
+from inspinia.rankings.models import RankingSnapshot
 from inspinia.rankings.models import School
 from inspinia.rankings.models import Student
+from inspinia.rankings.models import StudentResult
+from inspinia.rankings.models import StudentSelectionStatus
 
 pytestmark = pytest.mark.django_db
+
+
+def _single_column_index_count(table_name: str, column_name: str) -> int:
+    constraints = connection.introspection.get_constraints(connection.cursor(), table_name)
+    return sum(
+        1
+        for details in constraints.values()
+        if details["index"]
+        and not details["primary_key"]
+        and tuple(details["columns"]) == (column_name,)
+    )
 
 
 def test_school_normalizes_name_and_enforces_unique_normalized_name():
@@ -161,8 +176,6 @@ def test_school_has_name_index():
 
 
 def test_student_result_is_unique_per_student_and_assessment():
-    from inspinia.rankings.models import StudentResult
-
     student = Student.objects.create(full_name="Alice Tan")
     assessment = Assessment.objects.create(
         code="R1",
@@ -180,8 +193,6 @@ def test_student_result_is_unique_per_student_and_assessment():
 
 
 def test_ranking_snapshot_is_unique_per_formula_and_student():
-    from inspinia.rankings.models import RankingSnapshot
-
     student = Student.objects.create(full_name="Alice Tan")
     formula = RankingFormula.objects.create(
         name="National Overall",
@@ -211,8 +222,6 @@ def test_ranking_snapshot_is_unique_per_formula_and_student():
 
 
 def test_student_selection_status_scope_key_is_unique():
-    from inspinia.rankings.models import StudentSelectionStatus
-
     student = Student.objects.create(full_name="Alice Tan")
 
     StudentSelectionStatus.objects.create(
@@ -245,3 +254,54 @@ def test_import_batch_defaults_to_uploaded_status():
     )
 
     assert batch.status == ImportBatch.Status.UPLOADED
+
+
+def test_ranking_snapshot_save_uses_formula_scope():
+    student = Student.objects.create(full_name="Alice Tan")
+    formula = RankingFormula.objects.create(
+        name="National Overall",
+        season_year=2026,
+        division="Senior ",
+        purpose=RankingFormula.Purpose.OVERALL,
+    )
+
+    snapshot = RankingSnapshot.objects.create(
+        ranking_formula=formula,
+        student=student,
+        season_year=2030,
+        division=" junior ",
+        total_score="88.5000",
+    )
+
+    assert snapshot.season_year == formula.season_year
+    assert snapshot.division == "Senior"
+
+
+def test_student_selection_status_full_clean_rejects_invalid_status():
+    student = Student.objects.create(full_name="Alice Tan")
+    selection_status = StudentSelectionStatus(
+        student=student,
+        season_year=2026,
+        division="senior",
+        status="invalid-status",
+    )
+
+    with pytest.raises(ValidationError) as exc_info:
+        selection_status.full_clean()
+
+    assert "status" in exc_info.value.message_dict
+
+
+def test_student_result_duplicate_single_column_indexes_are_removed():
+    assert _single_column_index_count("rankings_studentresult", "student_id") == 1
+    assert _single_column_index_count("rankings_studentresult", "assessment_id") == 1
+    assert _single_column_index_count("rankings_studentresult", "medal") == 1
+    assert _single_column_index_count("rankings_studentresult", "band") == 1
+    assert _single_column_index_count("rankings_studentresult", "raw_score") == 1
+
+
+def test_ranking_snapshot_duplicate_single_column_indexes_are_removed():
+    assert _single_column_index_count("rankings_rankingsnapshot", "season_year") == 1
+    assert _single_column_index_count("rankings_rankingsnapshot", "division") == 1
+    assert _single_column_index_count("rankings_rankingsnapshot", "total_score") == 1
+    assert _single_column_index_count("rankings_rankingsnapshot", "rank_overall") == 1

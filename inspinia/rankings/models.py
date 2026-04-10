@@ -390,11 +390,7 @@ class StudentResult(models.Model):
             ),
         ]
         indexes = [
-            models.Index(fields=["assessment"], name="rank_res_assess_idx"),
-            models.Index(fields=["student"], name="rank_res_student_idx"),
             models.Index(fields=["raw_score"], name="rank_res_rawscore_idx"),
-            models.Index(fields=["medal"], name="rank_res_medal_idx"),
-            models.Index(fields=["band"], name="rank_res_band_idx"),
         ]
 
     def __str__(self) -> str:
@@ -439,7 +435,12 @@ class StudentSelectionStatus(models.Model):
     )
     season_year = models.PositiveSmallIntegerField(db_index=True)
     division = models.CharField(max_length=32, blank=True, default="", db_index=True)
-    status = models.CharField(max_length=32, db_index=True)
+    status = models.CharField(
+        max_length=32,
+        choices=Status.choices,
+        default=Status.NONE,
+        db_index=True,
+    )
     notes = models.TextField(blank=True)
     created_by = models.ForeignKey(
         "users.User",
@@ -506,24 +507,20 @@ class RankingSnapshot(models.Model):
                 name="rank_snapshot_unique_pair",
             ),
         ]
-        indexes = [
-            models.Index(fields=["season_year"], name="rank_snap_season_idx"),
-            models.Index(fields=["division"], name="rank_snap_div_idx"),
-            models.Index(fields=["total_score"], name="rank_snap_score_idx"),
-            models.Index(fields=["rank_overall"], name="rank_snap_rank_idx"),
-        ]
 
     def __str__(self) -> str:
         return f"{self.student} / {self.ranking_formula}"
 
     def save(self, *args, **kwargs) -> None:
-        self.division = normalize_whitespace(self.division).lower()
+        self.season_year = self.ranking_formula.season_year
+        self.division = self.ranking_formula.division
         self.formula_version_label = normalize_whitespace(self.formula_version_label)
         self.formula_version_hash = normalize_whitespace(self.formula_version_hash)
 
         update_fields = kwargs.get("update_fields")
         if update_fields is not None:
             kwargs["update_fields"] = set(update_fields) | {
+                "season_year",
                 "division",
                 "formula_version_label",
                 "formula_version_hash",
