@@ -8,6 +8,8 @@ from inspinia.rankings.models import RankingFormula
 from inspinia.rankings.models import Student
 from inspinia.rankings.models import StudentResult
 from inspinia.rankings.services.ranking_compute import compute_rank_rows
+from inspinia.rankings.services.ranking_snapshot_store import clear_ranking_snapshots
+from inspinia.rankings.services.ranking_snapshot_store import lock_formula_for_snapshot_refresh
 from inspinia.rankings.services.ranking_snapshot_store import store_ranking_snapshots
 
 
@@ -24,7 +26,10 @@ class Command(BaseCommand):
         season_year = options.get("season")
         division = options.get("division")
 
-        if formula_id and (season_year is not None or division):
+        if formula_id is not None and formula_id < 1:
+            msg = "--formula must be a positive integer."
+            raise CommandError(msg)
+        if formula_id is not None and (season_year is not None or division):
             msg = "--formula cannot be combined with --season or --division."
             raise CommandError(msg)
         if division and season_year is None:
@@ -32,19 +37,39 @@ class Command(BaseCommand):
             raise CommandError(msg)
 
         formulas = list(self._get_formulas(formula_id=formula_id, season_year=season_year, division=division))
-        if formula_id and not formulas:
+        if formula_id is not None and not formulas:
             msg = f"RankingFormula {formula_id} does not exist."
             raise CommandError(msg)
 
         snapshot_count = 0
+        recomputed_formula_count = 0
         for formula in formulas:
-            students = self._get_students_for_formula(formula)
-            rows = compute_rank_rows(formula=formula, students=students)
-            snapshot_count += store_ranking_snapshots(formula=formula, rows=rows)
+            with lock_formula_for_snapshot_refresh(formula_id=formula.id) as locked_formula:
+                if not locked_formula.items.exists():
+                    deleted_count = clear_ranking_snapshots(
+                        formula=locked_formula,
+                        formula_locked=True,
+                    )
+                    self.stdout.write(
+                        self.style.WARNING(
+                            f"Skipped RankingFormula {locked_formula.id} ({locked_formula.name}): "
+                            f"no formula items configured; cleared {deleted_count} existing snapshot(s).",
+                        ),
+                    )
+                    continue
+
+                students = self._get_students_for_formula(locked_formula)
+                rows = compute_rank_rows(formula=locked_formula, students=students)
+                snapshot_count += store_ranking_snapshots(
+                    formula=locked_formula,
+                    rows=rows,
+                    formula_locked=True,
+                )
+            recomputed_formula_count += 1
 
         self.stdout.write(
             self.style.SUCCESS(
-                f"Recomputed {len(formulas)} formula(s), stored {snapshot_count} snapshot(s).",
+                f"Recomputed {recomputed_formula_count} formula(s), stored {snapshot_count} snapshot(s).",
             ),
         )
 
@@ -55,7 +80,7 @@ class Command(BaseCommand):
         season_year: int | None,
         division: str | None,
     ):
-        if formula_id:
+        if formula_id is not None:
             return RankingFormula.objects.filter(pk=formula_id).order_by("season_year", "division", "id")
 
         queryset = RankingFormula.objects.filter(is_active=True)

@@ -5,6 +5,7 @@ from io import StringIO
 
 import pytest
 from django.core.management import call_command
+from django.core.management.base import CommandError
 
 from inspinia.rankings.models import Assessment
 from inspinia.rankings.models import RankingFormula
@@ -112,3 +113,51 @@ def test_recompute_rankings_command_filters_active_formulas_by_season_and_divisi
     assert RankingSnapshot.objects.filter(ranking_formula=inactive_formula).count() == 0
     assert RankingSnapshot.objects.filter(ranking_formula=next_year_formula).count() == 0
     assert "Recomputed 1 formula(s), stored 1 snapshot(s)." in stdout.getvalue()
+
+
+def test_recompute_rankings_command_rejects_non_positive_formula_id():
+    with pytest.raises(CommandError, match="--formula must be a positive integer."):
+        call_command("recompute_rankings", "--formula", "0")
+
+
+def test_recompute_rankings_command_rejects_incompatible_filters():
+    formula = _make_formula("Senior Overall", division="senior")
+
+    with pytest.raises(CommandError, match="--formula cannot be combined"):
+        call_command("recompute_rankings", "--formula", str(formula.id), "--season", "2026")
+
+
+def test_recompute_rankings_command_requires_season_when_division_is_provided():
+    with pytest.raises(CommandError, match="--division requires --season"):
+        call_command("recompute_rankings", "--division", "senior")
+
+
+def test_recompute_rankings_command_skips_formula_without_items():
+    formula = _make_formula("Empty Formula", division="senior")
+
+    stdout = StringIO()
+    call_command("recompute_rankings", "--formula", str(formula.id), stdout=stdout)
+
+    assert RankingSnapshot.objects.filter(ranking_formula=formula).count() == 0
+    output = stdout.getvalue()
+    assert "Skipped RankingFormula" in output
+    assert "Recomputed 0 formula(s), stored 0 snapshot(s)." in output
+
+
+def test_recompute_rankings_command_clears_stale_snapshots_for_empty_formula():
+    formula = _make_formula("Now Empty Formula", division="senior")
+    assessment = _make_assessment("R1", sort_order=1)
+    _attach_assessment(formula, assessment)
+    student = Student.objects.create(full_name="Alice Tan", active=True)
+    StudentResult.objects.create(student=student, assessment=assessment, raw_score=Decimal("88.00"))
+    call_command("recompute_rankings", "--formula", str(formula.id))
+    assert RankingSnapshot.objects.filter(ranking_formula=formula).count() == 1
+
+    formula.items.all().delete()
+    stdout = StringIO()
+    call_command("recompute_rankings", "--formula", str(formula.id), stdout=stdout)
+
+    assert RankingSnapshot.objects.filter(ranking_formula=formula).count() == 0
+    output = stdout.getvalue()
+    assert "cleared 1 existing snapshot(s)" in output
+    assert "Recomputed 0 formula(s), stored 0 snapshot(s)." in output

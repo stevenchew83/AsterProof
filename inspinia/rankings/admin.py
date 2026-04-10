@@ -13,6 +13,8 @@ from .models import Student
 from .models import StudentResult
 from .models import StudentSelectionStatus
 from .services.ranking_compute import compute_rank_rows
+from .services.ranking_snapshot_store import clear_ranking_snapshots
+from .services.ranking_snapshot_store import lock_formula_for_snapshot_refresh
 from .services.ranking_snapshot_store import store_ranking_snapshots
 
 
@@ -67,23 +69,50 @@ class RankingFormulaAdmin(admin.ModelAdmin):
     def recompute_selected_formulas(self, request, queryset):
         snapshot_count = 0
         formula_count = 0
+        skipped_formula_count = 0
 
         for formula in queryset.order_by("season_year", "division", "id"):
-            assessment_ids = list(
-                formula.items.order_by("sort_order", "id").values_list("assessment_id", flat=True),
-            )
-            students = Student.objects.filter(active=True).prefetch_related(
-                Prefetch(
-                    "results",
-                    queryset=StudentResult.objects.filter(assessment_id__in=assessment_ids).order_by(
-                        "assessment_id",
-                        "id",
+            with lock_formula_for_snapshot_refresh(formula_id=formula.id) as locked_formula:
+                if not locked_formula.items.exists():
+                    skipped_formula_count += 1
+                    deleted_count = clear_ranking_snapshots(
+                        formula=locked_formula,
+                        formula_locked=True,
+                    )
+                    self.message_user(
+                        request,
+                        f"Skipped RankingFormula {locked_formula.id} ({locked_formula.name}): "
+                        f"no formula items configured; cleared {deleted_count} existing snapshot(s).",
+                        level=messages.WARNING,
+                    )
+                    continue
+
+                assessment_ids = list(
+                    locked_formula.items.order_by("sort_order", "id").values_list("assessment_id", flat=True),
+                )
+                students = Student.objects.filter(active=True).prefetch_related(
+                    Prefetch(
+                        "results",
+                        queryset=StudentResult.objects.filter(assessment_id__in=assessment_ids).order_by(
+                            "assessment_id",
+                            "id",
+                        ),
                     ),
-                ),
-            )
-            rows = compute_rank_rows(formula=formula, students=students)
-            snapshot_count += store_ranking_snapshots(formula=formula, rows=rows)
+                )
+                rows = compute_rank_rows(formula=locked_formula, students=students)
+                snapshot_count += store_ranking_snapshots(
+                    formula=locked_formula,
+                    rows=rows,
+                    formula_locked=True,
+                )
             formula_count += 1
+
+        if skipped_formula_count:
+            self.message_user(
+                request,
+                f"Skipped {skipped_formula_count} formula(s) with no formula items.",
+                level=messages.WARNING,
+            )
 
         self.message_user(
             request,
