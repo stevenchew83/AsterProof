@@ -1,4 +1,6 @@
 from django.contrib import admin
+from django.contrib import messages
+from django.db.models import Prefetch
 
 from .models import Assessment
 from .models import ImportBatch
@@ -10,6 +12,8 @@ from .models import School
 from .models import Student
 from .models import StudentResult
 from .models import StudentSelectionStatus
+from .services.ranking_compute import compute_rank_rows
+from .services.ranking_snapshot_store import store_ranking_snapshots
 
 
 class RankingFormulaItemInline(admin.TabularInline):
@@ -57,6 +61,35 @@ class RankingFormulaAdmin(admin.ModelAdmin):
     list_filter = ("season_year", "division", "purpose", "missing_score_policy", "is_active")
     readonly_fields = ("created_at", "updated_at")
     inlines = (RankingFormulaItemInline,)
+    actions = ("recompute_selected_formulas",)
+
+    @admin.action(description="Recompute ranking snapshots for selected formulas")
+    def recompute_selected_formulas(self, request, queryset):
+        snapshot_count = 0
+        formula_count = 0
+
+        for formula in queryset.order_by("season_year", "division", "id"):
+            assessment_ids = list(
+                formula.items.order_by("sort_order", "id").values_list("assessment_id", flat=True),
+            )
+            students = Student.objects.filter(active=True).prefetch_related(
+                Prefetch(
+                    "results",
+                    queryset=StudentResult.objects.filter(assessment_id__in=assessment_ids).order_by(
+                        "assessment_id",
+                        "id",
+                    ),
+                ),
+            )
+            rows = compute_rank_rows(formula=formula, students=students)
+            snapshot_count += store_ranking_snapshots(formula=formula, rows=rows)
+            formula_count += 1
+
+        self.message_user(
+            request,
+            f"Recomputed {formula_count} formula(s), stored {snapshot_count} snapshot(s).",
+            level=messages.SUCCESS,
+        )
 
 
 @admin.register(StudentResult)

@@ -164,6 +164,42 @@ def test_compute_rankings_uses_fixed_scale_normalized_score_when_available():
     assert row["breakdown"]["M1"]["normalized_score"] == Decimal("88.8888")
 
 
+def test_compute_rank_rows_uses_priority_assessment_tiebreak_from_policy():
+    formula = RankingFormula.objects.create(
+        name="Selection Ranking",
+        season_year=2026,
+        division="",
+        purpose=RankingFormula.Purpose.SELECTION,
+        missing_score_policy=RankingFormula.MissingScorePolicy.ZERO,
+        tiebreak_policy={"priority_assessment_code": "R2"},
+    )
+    round_one = _make_assessment("R1", sort_order=1)
+    round_two = _make_assessment("R2", sort_order=2)
+    RankingFormulaItem.objects.create(
+        ranking_formula=formula,
+        assessment=round_one,
+        weight=Decimal("1.0000"),
+        sort_order=1,
+    )
+    RankingFormulaItem.objects.create(
+        ranking_formula=formula,
+        assessment=round_two,
+        weight=Decimal("1.0000"),
+        sort_order=2,
+    )
+    student_a = Student.objects.create(full_name="Alice Tan")
+    student_b = Student.objects.create(full_name="Brian Tan")
+    StudentResult.objects.create(student=student_a, assessment=round_one, raw_score=Decimal("90.00"))
+    StudentResult.objects.create(student=student_a, assessment=round_two, raw_score=Decimal("70.00"))
+    StudentResult.objects.create(student=student_b, assessment=round_one, raw_score=Decimal("70.00"))
+    StudentResult.objects.create(student=student_b, assessment=round_two, raw_score=Decimal("90.00"))
+
+    rows = compute_rank_rows(formula, Student.objects.filter(id__in=[student_a.id, student_b.id]))
+
+    assert [row.student_id for row in rows] == [student_b.id, student_a.id]
+    assert rows[0].total_score == rows[1].total_score == Decimal("80.0000")
+
+
 def test_compute_rank_rows_orders_ties_by_normalized_name_then_id():
     formula = _make_formula(missing_score_policy=RankingFormula.MissingScorePolicy.ZERO)
     assessment = _make_assessment("R1", sort_order=1)

@@ -11,6 +11,7 @@ from inspinia.rankings.models import StudentResult
 from inspinia.rankings.services.ranking_normalization import ZERO
 from inspinia.rankings.services.ranking_normalization import normalize_formula_item_score
 from inspinia.rankings.services.ranking_normalization import quantize_score
+from inspinia.rankings.services.ranking_tiebreak import build_rank_sort_key
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -83,7 +84,7 @@ def compute_rank_rows(
             ),
         )
 
-    rows.sort(key=lambda row: (-row.total_score, row.normalized_name, row.student_id))
+    rows.sort(key=lambda row: build_rank_sort_key(formula=formula, row=row, formula_items=formula_items))
     return rows
 
 
@@ -146,6 +147,10 @@ def _load_results(
     if not student_ids or not assessment_ids:
         return {}
 
+    prefetched_results = _load_prefetched_results(students=students, assessment_ids=assessment_ids)
+    if prefetched_results is not None:
+        return prefetched_results
+
     results = StudentResult.objects.filter(
         student_id__in=student_ids,
         assessment_id__in=assessment_ids,
@@ -154,3 +159,21 @@ def _load_results(
         (result.student_id, result.assessment_id): result
         for result in results
     }
+
+
+def _load_prefetched_results(
+    *,
+    students: list[Student],
+    assessment_ids: list[int],
+) -> dict[tuple[int | None, int], StudentResult] | None:
+    results_by_key: dict[tuple[int | None, int], StudentResult] = {}
+    for student in students:
+        prefetched_cache = getattr(student, "_prefetched_objects_cache", {})
+        if "results" not in prefetched_cache:
+            return None
+
+        for result in prefetched_cache["results"]:
+            if result.assessment_id in assessment_ids:
+                results_by_key[(result.student_id, result.assessment_id)] = result
+
+    return results_by_key
