@@ -21,7 +21,7 @@ class School(models.Model):
         HOMESCHOOL = "homeschool", "Homeschool"
         OTHER = "other", "Other"
 
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=255, db_index=True)
     normalized_name = models.CharField(max_length=255, unique=True, db_index=True)
     short_name = models.CharField(max_length=64, blank=True)
     state = models.CharField(max_length=64, blank=True, db_index=True)
@@ -78,7 +78,7 @@ class Student(models.Model):
     )
     state = models.CharField(max_length=64, blank=True, db_index=True)
     masked_nric = models.CharField(max_length=32, blank=True)
-    full_nric = models.CharField(max_length=32, blank=True)
+    full_nric = models.CharField(max_length=32, blank=True, db_index=True)
     external_code = models.CharField(max_length=64, blank=True)
     legacy_code = models.CharField(max_length=64, blank=True)
     active = models.BooleanField(default=True, db_index=True)
@@ -131,30 +131,28 @@ class Student(models.Model):
 
 class Assessment(models.Model):
     class Category(TextChoices):
-        EXAM = "exam", "Exam"
-        QUIZ = "quiz", "Quiz"
-        SELECTION = "selection", "Selection"
+        CONTEST = "contest", "Contest"
+        TEST = "test", "Test"
+        QUALIFIER = "qualifier", "Qualifier"
+        MOCK = "mock", "Mock"
+        MONTHLY = "monthly", "Monthly"
+        ENTRANCE = "entrance", "Entrance"
         OTHER = "other", "Other"
-
-    class DivisionScope(TextChoices):
-        OPEN = "open", "Open"
-        JUNIOR = "junior", "Junior"
-        SENIOR = "senior", "Senior"
-        GIRLS = "girls", "Girls"
-        MIXED = "mixed", "Mixed"
 
     class ResultType(TextChoices):
         SCORE = "score", "Score"
-        PERCENT = "percent", "Percent"
         BAND = "band", "Band"
-        RANK = "rank", "Rank"
+        MEDAL = "medal", "Medal"
+        STATUS = "status", "Status"
+        TEXT = "text", "Text"
+        MIXED = "mixed", "Mixed"
 
     code = models.CharField(max_length=32)
     display_name = models.CharField(max_length=255)
     season_year = models.PositiveSmallIntegerField(db_index=True)
     assessment_date = models.DateField(null=True, blank=True, db_index=True)
     category = models.CharField(max_length=32, choices=Category.choices)
-    division_scope = models.CharField(max_length=32, choices=DivisionScope.choices, db_index=True)
+    division_scope = models.CharField(max_length=32, blank=True, db_index=True)
     max_score = models.DecimalField(max_digits=8, decimal_places=2, default="100.00")
     default_weight = models.DecimalField(max_digits=8, decimal_places=4, default="1.0000")
     result_type = models.CharField(max_length=32, choices=ResultType.choices, default=ResultType.SCORE)
@@ -201,12 +199,6 @@ class Assessment(models.Model):
 
 
 class RankingFormula(models.Model):
-    class Division(TextChoices):
-        OPEN = "open", "Open"
-        JUNIOR = "junior", "Junior"
-        SENIOR = "senior", "Senior"
-        GIRLS = "girls", "Girls"
-
     class Purpose(TextChoices):
         OVERALL = "overall", "Overall Ranking"
         SELECTION = "selection", "Selection"
@@ -215,12 +207,11 @@ class RankingFormula(models.Model):
 
     class MissingScorePolicy(TextChoices):
         ZERO = "zero", "Treat as Zero"
-        SKIP = "skip", "Skip Missing Score"
-        REQUIRE_ALL = "require_all", "Require All Scores"
+        SKIP_AND_RESCALE = "skip_and_rescale", "Skip and Rescale"
 
     name = models.CharField(max_length=255)
     season_year = models.PositiveSmallIntegerField(db_index=True)
-    division = models.CharField(max_length=32, choices=Division.choices, db_index=True)
+    division = models.CharField(max_length=32, blank=True, default="", db_index=True)
     purpose = models.CharField(max_length=32, choices=Purpose.choices, default=Purpose.OVERALL)
     missing_score_policy = models.CharField(
         max_length=32,
@@ -236,6 +227,12 @@ class RankingFormula(models.Model):
 
     class Meta:
         ordering = ["season_year", "division", "name", "version", "id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["season_year", "division", "purpose", "version"],
+                name="rankings_formula_unique_scope_version",
+            ),
+        ]
         indexes = [
             models.Index(fields=["season_year", "division"], name="rankings_formula_year_div_idx"),
             models.Index(fields=["season_year", "purpose"], name="rank_formula_year_purp_idx"),
@@ -265,9 +262,9 @@ class RankingFormula(models.Model):
 class RankingFormulaItem(models.Model):
     class NormalizationMethod(TextChoices):
         RAW = "raw", "Raw Score"
-        PERCENT = "percent", "Percent of Max Score"
-        Z_SCORE = "z_score", "Z-Score"
-        CUSTOM = "custom", "Custom"
+        PERCENT_OF_MAX = "percent_of_max", "Percent of Max Score"
+        ZSCORE = "zscore", "Z-Score"
+        FIXED_SCALE = "fixed_scale", "Fixed Scale"
 
     ranking_formula = models.ForeignKey(
         RankingFormula,
