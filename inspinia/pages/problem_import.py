@@ -14,14 +14,15 @@ from typing import BinaryIO
 import pandas as pd
 from django.db import transaction
 from openpyxl import Workbook
+from openpyxl.cell.cell import ILLEGAL_CHARACTERS_RE
 from openpyxl.utils.dataframe import dataframe_to_rows
 
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
 from inspinia.pages.models import ProblemTopicTechnique
+from inspinia.pages.statement_analytics_sync import sync_statement_analytics_from_linked_problem
 from inspinia.pages.topic_tags_parse import domains_dedup_preserve_order
 from inspinia.pages.topic_tags_parse import merge_domain_lists
-from inspinia.pages.statement_analytics_sync import sync_statement_analytics_from_linked_problem
 from inspinia.pages.topic_tags_parse import parse_contest_problem_string
 from inspinia.pages.topic_tags_parse import parse_topic_tags_cell
 
@@ -370,9 +371,12 @@ def dataframe_to_safe_excel_bytes(dataframe: pd.DataFrame) -> bytes:
                 cell.value = ""
                 cell.data_type = "s"
                 continue
-            cell.value = value
             if isinstance(value, str):
+                safe_value = ILLEGAL_CHARACTERS_RE.sub("", value)
+                cell.value = safe_value
                 cell.data_type = "s"
+                continue
+            cell.value = value
 
     workbook.save(buffer)
     return buffer.getvalue()

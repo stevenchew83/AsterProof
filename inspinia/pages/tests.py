@@ -6929,6 +6929,49 @@ def test_problem_statement_metadata_page_exports_workbook_for_admin(client):
     }]
 
 
+def test_problem_statement_metadata_export_strips_illegal_excel_characters(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    linked_problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="G",
+        mohs=25,
+        contest="Israel TST",
+        problem="P1",
+        contest_year_problem="Israel TST 2026 P1",
+    )
+    ContestProblemStatement.objects.create(
+        linked_problem=linked_problem,
+        contest_year=2026,
+        contest_name="Israel TST",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Hello\x0bWorld",
+    )
+
+    response = client.get(reverse("pages:problem_statement_metadata"), {"action": "export"})
+
+    assert response.status_code == HTTPStatus.OK
+    exported_dataframe = pd.read_excel(BytesIO(response.content), dtype=str).fillna("")
+    assert exported_dataframe.to_dict(orient="records") == [{
+        "STATEMENT UUID": str(ContestProblemStatement.objects.get().statement_uuid),
+        "PROBLEM UUID": str(linked_problem.problem_uuid),
+        "CONTEST YEAR": "2026",
+        "CONTEST NAME": "Israel TST",
+        "CONTEST PROBLEM": "Israel TST 2026 P1",
+        "DAY LABEL": "Day 1",
+        "PROBLEM NUMBER": "1",
+        "PROBLEM CODE": "P1",
+        "STATEMENT LATEX": "HelloWorld",
+        "TOPIC": "G",
+        "MOHS": "25",
+        "Confidence": "",
+        "IMO slot guess": "",
+        "Topic tags": "",
+    }]
+
+
 def test_problem_statement_metadata_page_imports_workbook_and_creates_problem_rows(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
