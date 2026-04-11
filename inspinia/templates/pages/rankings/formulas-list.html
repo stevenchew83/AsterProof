@@ -1,0 +1,67 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}Ranking formulas{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  {% include 'partials/page-title.html' with title='Ranking formulas' subtitle='Rankings' %}
+
+  <div class="row g-3 mt-3">
+    {% for formula in formulas %}
+    <div class="col-xl-6">
+      <div class="card h-100">
+        <div class="card-header border-0 pb-0 d-flex justify-content-between align-items-start">
+          <div>
+            <h4 class="header-title mb-1">{{ formula.name }} <span class="text-muted">v{{ formula.version }}</span></h4>
+            <p class="text-muted fs-xs mb-0">
+              {{ formula.season_year }} / {{ formula.division|default:'overall' }} / {{ formula.get_purpose_display }}
+            </p>
+          </div>
+          <span class="badge {% if formula.is_active %}text-bg-success{% else %}text-bg-secondary{% endif %}">
+            {{ formula.is_active|yesno:'Active,Inactive' }}
+          </span>
+        </div>
+        <div class="card-body pt-2">
+          <div class="mb-3">
+            <p class="mb-1"><strong>Missing-score policy:</strong> {{ formula.get_missing_score_policy_display }}</p>
+            <p class="mb-0"><strong>Notes:</strong> {{ formula.notes|default:'-' }}</p>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-sm table-striped mb-0">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Assessment</th>
+                  <th>Weight</th>
+                  <th>Required</th>
+                  <th>Normalization</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for item in formula.items.all %}
+                <tr>
+                  <td>{{ item.sort_order }}</td>
+                  <td>{{ item.assessment.code }} - {{ item.assessment.display_name }}</td>
+                  <td>{{ item.weight }}</td>
+                  <td>{{ item.is_required|yesno:'Yes,No' }}</td>
+                  <td>{{ item.get_normalization_method_display }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="5" class="text-muted">No formula items configured.</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+      <div class="alert alert-secondary mb-0">No ranking formulas available.</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock page_content %}

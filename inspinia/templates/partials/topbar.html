@@ -35,6 +35,13 @@
                 {% if show_solution_workspace_link %}
                 <a href="{% url 'solutions:my_solution_list' %}" class="btn btn-outline-secondary btn-sm">My solutions</a>
                 {% endif %}
+                {% if request.user.is_authenticated %}
+                <a href="{% url 'rankings:ranking_table' %}" class="btn btn-outline-secondary btn-sm">Ranking table</a>
+                <a href="{% url 'rankings:dashboard' %}" class="btn btn-outline-secondary btn-sm">Ranking dashboard</a>
+                {% if is_app_admin %}
+                <a href="{% url 'rankings:import_center' %}" class="btn btn-outline-secondary btn-sm">Ranking imports</a>
+                {% endif %}
+                {% endif %}
                 {% if show_analytics_dashboard_link %}
                 <a href="{% url 'pages:dashboard' %}" class="btn btn-outline-secondary btn-sm">Problem analytics</a>
                 <a href="{% url 'pages:contest_dashboard' %}" class="btn btn-outline-secondary btn-sm">Contest analytics</a>
