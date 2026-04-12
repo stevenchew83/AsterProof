@@ -2934,14 +2934,25 @@ def test_handle_summary_parser_forbids_non_admin_when_debug_is_off(client):
 
 
 @override_settings(DEBUG=False)
-def test_latex_preview_sidebar_hides_handle_parser_for_non_admin(client):
+def test_latex_preview_forbids_non_admin_when_debug_is_off(client):
     user = UserFactory()
     client.force_login(user)
 
     response = client.get(reverse("pages:latex_preview"))
 
+    assert response.status_code == HTTPStatus.FORBIDDEN
+
+
+@override_settings(DEBUG=False)
+def test_user_activity_sidebar_hides_admin_only_utilities_for_non_admin(client):
+    user = UserFactory()
+    client.force_login(user)
+
+    response = client.get(reverse("pages:user_activity_dashboard"))
+
     assert response.status_code == HTTPStatus.OK
     side_nav_html = response.content.decode("utf-8").split('<ul class="side-nav">', 1)[1].split("</ul>", 1)[0]
+    assert "LaTeX preview" not in side_nav_html
     assert "Handle parser" not in side_nav_html
 
 
@@ -5054,9 +5065,9 @@ def test_contest_details_saves_metadata_for_selected_contest(client):
     )
 
 
-def test_latex_preview_allows_authenticated_access(client):
-    user = UserFactory()
-    client.force_login(user)
+def test_latex_preview_allows_admin_access(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
 
     response = client.get(reverse("pages:latex_preview"))
 
@@ -6490,8 +6501,8 @@ def test_problem_statement_analytics_groups_rows_by_contest_and_year_for_admin(c
 
 
 def test_latex_preview_parse_action_builds_structured_preview_without_saving(client):
-    user = UserFactory()
-    client.force_login(user)
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
 
     response = client.post(
         reverse("pages:latex_preview"),
@@ -6516,8 +6527,8 @@ def test_latex_preview_parse_action_builds_structured_preview_without_saving(cli
 
 
 def test_latex_preview_parse_action_accepts_pdf_upload_and_uses_extracted_text(client, monkeypatch):
-    user = UserFactory()
-    client.force_login(user)
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
 
     monkeypatch.setattr(
         "inspinia.pages.views.extract_statement_text_from_pdf",
@@ -6564,8 +6575,8 @@ def test_latex_preview_save_action_accepts_pdf_upload_for_admin(client, monkeypa
 
 
 def test_latex_preview_rejects_source_text_and_pdf_together(client):
-    user = UserFactory()
-    client.force_login(user)
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
 
     response = client.post(
         reverse("pages:latex_preview"),
@@ -6582,8 +6593,8 @@ def test_latex_preview_rejects_source_text_and_pdf_together(client):
 
 
 def test_latex_preview_rejects_when_no_source_is_provided(client):
-    user = UserFactory()
-    client.force_login(user)
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
 
     response = client.post(
         reverse("pages:latex_preview"),
@@ -6595,8 +6606,8 @@ def test_latex_preview_rejects_when_no_source_is_provided(client):
 
 
 def test_latex_preview_rejects_non_pdf_upload(client):
-    user = UserFactory()
-    client.force_login(user)
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
 
     response = client.post(
         reverse("pages:latex_preview"),
@@ -6616,8 +6627,8 @@ def test_latex_preview_rejects_non_pdf_upload(client):
 
 
 def test_latex_preview_pdf_extraction_error_is_displayed(client, monkeypatch):
-    user = UserFactory()
-    client.force_login(user)
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
 
     def _raise(_uploaded):
         msg = "Could not read the uploaded PDF. Please upload a valid text-based PDF file."
@@ -6642,8 +6653,8 @@ def test_latex_preview_pdf_extraction_error_is_displayed(client, monkeypatch):
 
 
 def test_latex_preview_page_renders_pdf_upload_control(client):
-    user = UserFactory()
-    client.force_login(user)
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
 
     response = client.get(reverse("pages:latex_preview"))
 
@@ -6657,8 +6668,8 @@ def test_latex_preview_page_renders_pdf_upload_control(client):
 
 
 def test_latex_preview_page_starts_with_empty_source_text(client):
-    user = UserFactory()
-    client.force_login(user)
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
 
     response = client.get(reverse("pages:latex_preview"))
 
@@ -6730,8 +6741,8 @@ def test_statement_render_content_defaults_to_evan_style():
 
 
 def test_latex_preview_parse_action_shows_duplicate_warning_summary(client):
-    user = UserFactory()
-    client.force_login(user)
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
     parsed_import = parse_contest_problem_statements(LATEX_STATEMENT_SAMPLE)
     ContestProblemStatement.objects.create(
         contest_year=SPAIN_OLYMPIAD_YEAR,
@@ -9003,7 +9014,7 @@ def test_home_exposes_live_library_index_for_admin(client):
     assert problem_entry["href"] == contest_dashboard_listing_url("ISRAEL TST") + "#israel-tst-2026-p2"
 
 
-def test_dashboard_sidebar_groups_links_into_clear_sections_for_admin(client):
+def test_dashboard_sidebar_groups_links_into_balanced_workflow_sections_for_admin(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
 
@@ -9013,29 +9024,48 @@ def test_dashboard_sidebar_groups_links_into_clear_sections_for_admin(client):
     response_html = response.content.decode("utf-8")
     side_nav_html = response_html.split('<ul class="side-nav">', 1)[1].split("</ul>", 1)[0]
     assert "Home" in side_nav_html
-    assert "Personal" in side_nav_html
+    assert "Workspace" in side_nav_html
     assert "Library" in side_nav_html
-    assert "Analytics" in side_nav_html
-    assert "Curation" in side_nav_html
-    assert "Tools" in side_nav_html
+    assert "Rankings" in side_nav_html
+    assert "Insights" in side_nav_html
+    assert "Operations" in side_nav_html
+    assert "Utilities" in side_nav_html
     assert "Admin" in side_nav_html
+    assert "Personal" not in side_nav_html
+    assert "Analytics" not in side_nav_html
+    assert "Curation" not in side_nav_html
+    assert "Tools" not in side_nav_html
     assert side_nav_html.index("Overview") < side_nav_html.index("My account")
     assert side_nav_html.index("My account") < side_nav_html.index("My activity")
     assert "Completion board" not in side_nav_html
-    assert side_nav_html.index("My activity") < side_nav_html.index("My solutions")
+    assert "Import center" not in side_nav_html
+    assert "Ranking imports" in side_nav_html
+    assert side_nav_html.index("My activity") < side_nav_html.index("Contest progress")
+    assert side_nav_html.index("Contest progress") < side_nav_html.index("My solutions")
     assert side_nav_html.index("My solutions") < side_nav_html.index("Problem statements")
-    assert side_nav_html.index("Problem statements") < side_nav_html.index("Problem analytics")
+    assert side_nav_html.index("Problem statements") < side_nav_html.index("Ranking table")
+    assert side_nav_html.index("Ranking table") < side_nav_html.index("Ranking dashboard")
+    assert side_nav_html.index("Ranking dashboard") < side_nav_html.index("Students")
+    assert side_nav_html.index("Students") < side_nav_html.index("Assessments")
+    assert side_nav_html.index("Assessments") < side_nav_html.index("Formulas")
+    assert side_nav_html.index("Formulas") < side_nav_html.index("Ranking imports")
+    assert side_nav_html.index("Ranking imports") < side_nav_html.index("Problem analytics")
+    assert side_nav_html.index("Problem analytics") < side_nav_html.index("Contest analytics")
     assert "Technique analytics" in side_nav_html
     assert "Completion records" in side_nav_html
     assert "Solution records" in side_nav_html
-    assert side_nav_html.index("Problem analytics") < side_nav_html.index("Completion records")
+    assert side_nav_html.index("Contest analytics") < side_nav_html.index("Technique analytics")
+    assert side_nav_html.index("Technique analytics") < side_nav_html.index("Statement analytics")
+    assert side_nav_html.index("Statement analytics") < side_nav_html.index("Completion records")
     assert side_nav_html.index("Completion records") < side_nav_html.index("Solution records")
     assert side_nav_html.index("Solution records") < side_nav_html.index("Problem data")
     assert "Statement editor" in side_nav_html
     assert "Statement metadata" in side_nav_html
     assert "Statement duplicates" in side_nav_html
     assert "Delete statement" in side_nav_html
-    assert side_nav_html.index("Problem data") < side_nav_html.index("Statement metadata")
+    assert side_nav_html.index("Problem data") < side_nav_html.index("Contest names")
+    assert side_nav_html.index("Contest names") < side_nav_html.index("Contest details")
+    assert side_nav_html.index("Contest details") < side_nav_html.index("Statement links")
     assert side_nav_html.index("Statement links") < side_nav_html.index("Statement editor")
     assert side_nav_html.index("Statement editor") < side_nav_html.index("Statement metadata")
     assert side_nav_html.index("Statement metadata") < side_nav_html.index("Statement duplicates")
@@ -9044,6 +9074,8 @@ def test_dashboard_sidebar_groups_links_into_clear_sections_for_admin(client):
     assert "Handle parser" in side_nav_html
     assert side_nav_html.index("LaTeX preview") < side_nav_html.index("Handle parser")
     assert side_nav_html.index("Handle parser") < side_nav_html.index("User roles")
+    assert side_nav_html.index("User roles") < side_nav_html.index("Session monitor")
+    assert side_nav_html.index("Session monitor") < side_nav_html.index("Event log")
 
 
 def test_contest_rename_updates_problem_and_statement_rows_for_admin(client):
