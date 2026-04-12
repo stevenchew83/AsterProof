@@ -371,6 +371,7 @@ def root_page_view(request):
 
 @login_required
 def latex_preview_view(request):
+    _require_admin_tools_access(request)
     parsed_statement_payload: ProblemStatementPreviewPayload | None = None
     statement_save_preview: ProblemStatementSavePreviewPayload | None = None
     statement_import_result: dict[str, int] | None = None
@@ -397,7 +398,6 @@ def latex_preview_view(request):
                     problem.update(_statement_render_payload(problem["statement_latex"]))
                 statement_save_preview = build_problem_statement_save_preview(parsed_import)
                 if action == "save":
-                    _require_admin_tools_access(request)
                     save_result = import_problem_statements(parsed_import)
                     statement_import_result = {
                         "created_count": save_result.created_count,

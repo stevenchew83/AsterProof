@@ -2934,14 +2934,25 @@ def test_handle_summary_parser_forbids_non_admin_when_debug_is_off(client):
 
 
 @override_settings(DEBUG=False)
-def test_latex_preview_sidebar_hides_handle_parser_for_non_admin(client):
+def test_latex_preview_forbids_non_admin_when_debug_is_off(client):
     user = UserFactory()
     client.force_login(user)
 
     response = client.get(reverse("pages:latex_preview"))
 
+    assert response.status_code == HTTPStatus.FORBIDDEN
+
+
+@override_settings(DEBUG=False)
+def test_user_activity_sidebar_hides_admin_only_utilities_for_non_admin(client):
+    user = UserFactory()
+    client.force_login(user)
+
+    response = client.get(reverse("pages:user_activity_dashboard"))
+
     assert response.status_code == HTTPStatus.OK
     side_nav_html = response.content.decode("utf-8").split('<ul class="side-nav">', 1)[1].split("</ul>", 1)[0]
+    assert "LaTeX preview" not in side_nav_html
     assert "Handle parser" not in side_nav_html
 
 
@@ -5054,9 +5065,9 @@ def test_contest_details_saves_metadata_for_selected_contest(client):
     )
 
 
-def test_latex_preview_allows_authenticated_access(client):
-    user = UserFactory()
-    client.force_login(user)
+def test_latex_preview_allows_admin_access(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
 
     response = client.get(reverse("pages:latex_preview"))
 
@@ -6490,8 +6501,8 @@ def test_problem_statement_analytics_groups_rows_by_contest_and_year_for_admin(c
 
 
 def test_latex_preview_parse_action_builds_structured_preview_without_saving(client):
-    user = UserFactory()
-    client.force_login(user)
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
 
     response = client.post(
         reverse("pages:latex_preview"),
@@ -6516,8 +6527,8 @@ def test_latex_preview_parse_action_builds_structured_preview_without_saving(cli
 
 
 def test_latex_preview_parse_action_accepts_pdf_upload_and_uses_extracted_text(client, monkeypatch):
-    user = UserFactory()
-    client.force_login(user)
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
 
     monkeypatch.setattr(
         "inspinia.pages.views.extract_statement_text_from_pdf",
@@ -6564,8 +6575,8 @@ def test_latex_preview_save_action_accepts_pdf_upload_for_admin(client, monkeypa
 
 
 def test_latex_preview_rejects_source_text_and_pdf_together(client):
-    user = UserFactory()
-    client.force_login(user)
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
 
     response = client.post(
         reverse("pages:latex_preview"),
@@ -6582,8 +6593,8 @@ def test_latex_preview_rejects_source_text_and_pdf_together(client):
 
 
 def test_latex_preview_rejects_when_no_source_is_provided(client):
-    user = UserFactory()
-    client.force_login(user)
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
 
     response = client.post(
         reverse("pages:latex_preview"),
@@ -6595,8 +6606,8 @@ def test_latex_preview_rejects_when_no_source_is_provided(client):
 
 
 def test_latex_preview_rejects_non_pdf_upload(client):
-    user = UserFactory()
-    client.force_login(user)
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
 
     response = client.post(
         reverse("pages:latex_preview"),
@@ -6616,8 +6627,8 @@ def test_latex_preview_rejects_non_pdf_upload(client):
 
 
 def test_latex_preview_pdf_extraction_error_is_displayed(client, monkeypatch):
-    user = UserFactory()
-    client.force_login(user)
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
 
     def _raise(_uploaded):
         msg = "Could not read the uploaded PDF. Please upload a valid text-based PDF file."
@@ -6642,8 +6653,8 @@ def test_latex_preview_pdf_extraction_error_is_displayed(client, monkeypatch):
 
 
 def test_latex_preview_page_renders_pdf_upload_control(client):
-    user = UserFactory()
-    client.force_login(user)
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
 
     response = client.get(reverse("pages:latex_preview"))
 
@@ -6657,8 +6668,8 @@ def test_latex_preview_page_renders_pdf_upload_control(client):
 
 
 def test_latex_preview_page_starts_with_empty_source_text(client):
-    user = UserFactory()
-    client.force_login(user)
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
 
     response = client.get(reverse("pages:latex_preview"))
 
@@ -6730,8 +6741,8 @@ def test_statement_render_content_defaults_to_evan_style():
 
 
 def test_latex_preview_parse_action_shows_duplicate_warning_summary(client):
-    user = UserFactory()
-    client.force_login(user)
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
     parsed_import = parse_contest_problem_statements(LATEX_STATEMENT_SAMPLE)
     ContestProblemStatement.objects.create(
         contest_year=SPAIN_OLYMPIAD_YEAR,

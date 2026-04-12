@@ -67,7 +67,7 @@
             </li>
 
             {% if request.user.is_authenticated %}
-            <li class="side-nav-title">Personal</li>
+            <li class="side-nav-title">Workspace</li>
 
             <li class="side-nav-item">
                 <a href="{% url 'users:detail' request.user.pk %}" class="side-nav-link">
@@ -150,14 +150,14 @@
             <li class="side-nav-item">
                 <a href="{% url 'rankings:import_center' %}" class="side-nav-link">
                     <span class="menu-icon"><i class="ti ti-table-import"></i></span>
-                    <span class="menu-text">Import center</span>
+                    <span class="menu-text">Ranking imports</span>
                 </a>
             </li>
             {% endif %}
             {% endif %}
 
             {% if show_analytics_dashboard_link %}
-            <li class="side-nav-title">Analytics</li>
+            <li class="side-nav-title">Insights</li>
 
             <li class="side-nav-item">
                 <a href="{% url 'pages:dashboard' %}" class="side-nav-link">
@@ -198,7 +198,7 @@
             {% endif %}
 
             {% if show_problem_import_link %}
-            <li class="side-nav-title">Curation</li>
+            <li class="side-nav-title">Operations</li>
 
             <li class="side-nav-item">
                 <a href="{% url 'pages:problem_import' %}" class="side-nav-link">
@@ -245,12 +245,11 @@
             <li class="side-nav-item">
                 <a href="{% url 'pages:problem_statement_delete_by_uuid' %}" class="side-nav-link">
                     <span class="menu-icon"><i class="ti ti-trash"></i></span>
-                    <span class="menu-text">Delete statement (UUID)</span>
+                    <span class="menu-text">Delete statement</span>
                 </a>
             </li>
-            {% endif %}
 
-            <li class="side-nav-title">Tools</li>
+            <li class="side-nav-title">Utilities</li>
 
             <li class="side-nav-item">
                 <a href="{% url 'pages:latex_preview' %}" class="side-nav-link">
@@ -258,7 +257,6 @@
                     <span class="menu-text">LaTeX preview</span>
                 </a>
             </li>
-            {% if show_problem_import_link %}
             <li class="side-nav-item">
                 <a href="{% url 'pages:handle_summary_parser' %}" class="side-nav-link">
                     <span class="menu-icon"><i class="ti ti-table-export"></i></span>
