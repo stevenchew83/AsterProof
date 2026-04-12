@@ -9003,7 +9003,7 @@ def test_home_exposes_live_library_index_for_admin(client):
     assert problem_entry["href"] == contest_dashboard_listing_url("ISRAEL TST") + "#israel-tst-2026-p2"
 
 
-def test_dashboard_sidebar_groups_links_into_clear_sections_for_admin(client):
+def test_dashboard_sidebar_groups_links_into_balanced_workflow_sections_for_admin(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
 
@@ -9013,29 +9013,48 @@ def test_dashboard_sidebar_groups_links_into_clear_sections_for_admin(client):
     response_html = response.content.decode("utf-8")
     side_nav_html = response_html.split('<ul class="side-nav">', 1)[1].split("</ul>", 1)[0]
     assert "Home" in side_nav_html
-    assert "Personal" in side_nav_html
+    assert "Workspace" in side_nav_html
     assert "Library" in side_nav_html
-    assert "Analytics" in side_nav_html
-    assert "Curation" in side_nav_html
-    assert "Tools" in side_nav_html
+    assert "Rankings" in side_nav_html
+    assert "Insights" in side_nav_html
+    assert "Operations" in side_nav_html
+    assert "Utilities" in side_nav_html
     assert "Admin" in side_nav_html
+    assert "Personal" not in side_nav_html
+    assert "Analytics" not in side_nav_html
+    assert "Curation" not in side_nav_html
+    assert "Tools" not in side_nav_html
     assert side_nav_html.index("Overview") < side_nav_html.index("My account")
     assert side_nav_html.index("My account") < side_nav_html.index("My activity")
     assert "Completion board" not in side_nav_html
-    assert side_nav_html.index("My activity") < side_nav_html.index("My solutions")
+    assert "Import center" not in side_nav_html
+    assert "Ranking imports" in side_nav_html
+    assert side_nav_html.index("My activity") < side_nav_html.index("Contest progress")
+    assert side_nav_html.index("Contest progress") < side_nav_html.index("My solutions")
     assert side_nav_html.index("My solutions") < side_nav_html.index("Problem statements")
-    assert side_nav_html.index("Problem statements") < side_nav_html.index("Problem analytics")
+    assert side_nav_html.index("Problem statements") < side_nav_html.index("Ranking table")
+    assert side_nav_html.index("Ranking table") < side_nav_html.index("Ranking dashboard")
+    assert side_nav_html.index("Ranking dashboard") < side_nav_html.index("Students")
+    assert side_nav_html.index("Students") < side_nav_html.index("Assessments")
+    assert side_nav_html.index("Assessments") < side_nav_html.index("Formulas")
+    assert side_nav_html.index("Formulas") < side_nav_html.index("Ranking imports")
+    assert side_nav_html.index("Ranking imports") < side_nav_html.index("Problem analytics")
+    assert side_nav_html.index("Problem analytics") < side_nav_html.index("Contest analytics")
     assert "Technique analytics" in side_nav_html
     assert "Completion records" in side_nav_html
     assert "Solution records" in side_nav_html
-    assert side_nav_html.index("Problem analytics") < side_nav_html.index("Completion records")
+    assert side_nav_html.index("Contest analytics") < side_nav_html.index("Technique analytics")
+    assert side_nav_html.index("Technique analytics") < side_nav_html.index("Statement analytics")
+    assert side_nav_html.index("Statement analytics") < side_nav_html.index("Completion records")
     assert side_nav_html.index("Completion records") < side_nav_html.index("Solution records")
     assert side_nav_html.index("Solution records") < side_nav_html.index("Problem data")
     assert "Statement editor" in side_nav_html
     assert "Statement metadata" in side_nav_html
     assert "Statement duplicates" in side_nav_html
     assert "Delete statement" in side_nav_html
-    assert side_nav_html.index("Problem data") < side_nav_html.index("Statement metadata")
+    assert side_nav_html.index("Problem data") < side_nav_html.index("Contest names")
+    assert side_nav_html.index("Contest names") < side_nav_html.index("Contest details")
+    assert side_nav_html.index("Contest details") < side_nav_html.index("Statement links")
     assert side_nav_html.index("Statement links") < side_nav_html.index("Statement editor")
     assert side_nav_html.index("Statement editor") < side_nav_html.index("Statement metadata")
     assert side_nav_html.index("Statement metadata") < side_nav_html.index("Statement duplicates")
@@ -9044,6 +9063,8 @@ def test_dashboard_sidebar_groups_links_into_clear_sections_for_admin(client):
     assert "Handle parser" in side_nav_html
     assert side_nav_html.index("LaTeX preview") < side_nav_html.index("Handle parser")
     assert side_nav_html.index("Handle parser") < side_nav_html.index("User roles")
+    assert side_nav_html.index("User roles") < side_nav_html.index("Session monitor")
+    assert side_nav_html.index("Session monitor") < side_nav_html.index("Event log")
 
 
 def test_contest_rename_updates_problem_and_statement_rows_for_admin(client):
