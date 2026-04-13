@@ -4791,6 +4791,10 @@ def test_user_solution_record_list_renders_admin_inventory(client):
     assert 'id="user-solution-record-table"' in response_html
     assert f'"solution_url": "{reverse("solutions:problem_solution_list", args=[problem.problem_uuid])}?solution={solution.id}#solution-{solution.id}"' in response_html
     assert f'"pdf_url": "{reverse("solutions:admin_problem_solution_pdf", args=[solution.pk])}"' in response_html
+    assert ">Overview</a>" not in response_html
+    assert ">My activity</a>" not in response_html
+    assert 'id="light-dark-mode"' in response_html
+    assert ">Profile</span>" in response_html
     assert '<p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Solutions</p>' not in response_html
     assert '<p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Authors</p>' not in response_html
     assert '<p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Published</p>' not in response_html

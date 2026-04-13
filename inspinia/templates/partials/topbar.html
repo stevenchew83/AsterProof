@@ -27,6 +27,7 @@
                 <i class="ti ti-menu-4 fs-22"></i>
             </button>
 
+            {% if not hide_topbar_shortcut_links %}
             <div class="d-none d-md-flex align-items-center gap-2 ms-2">
                 <a href="{% url 'pages:home' %}" class="btn btn-outline-secondary btn-sm">Overview</a>
                 {% if show_user_activity_dashboard_link %}
@@ -65,6 +66,7 @@
                 <a href="{% url 'pages:problem_statement_delete_by_uuid' %}" class="btn btn-outline-secondary btn-sm">Delete statement</a>
                 {% endif %}
             </div>
+            {% endif %}
         </div>
 
         <div class="d-flex align-items-center gap-2">
