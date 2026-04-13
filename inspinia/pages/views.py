@@ -3733,6 +3733,7 @@ def user_solution_record_list_view(request):
 
     solution_stats = _admin_solution_listing_stats(solution_rows)
     context = {
+        "hide_topbar_shortcut_links": True,
         "user_solution_record_filter_options": solution_filter_options,
         "user_solution_record_filters": {
             "contest": selected_contest,
