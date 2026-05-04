@@ -21,6 +21,7 @@ def app_roles(request):
         "show_problem_import_link": can_access_admin_tools,
         "show_session_monitor_link": admin,
         "show_solution_workspace_link": request.user.is_authenticated,
+        "show_completion_quick_update_link": request.user.is_authenticated,
         "show_user_activity_dashboard_link": request.user.is_authenticated,
         "show_contest_advanced_dashboard_link": request.user.is_authenticated,
     }
