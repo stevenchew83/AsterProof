@@ -233,7 +233,26 @@
         type: "heatmap",
         height: Math.max(360, 48 * payload.series.length + 72),
         toolbar: { show: false },
-        fontFamily: "inherit"
+        fontFamily: "inherit",
+        events: {
+          dataPointSelection: function (_event, _chartContext, config) {
+            var point = payload.series[config.seriesIndex].data[config.dataPointIndex];
+            if (point && point.url) {
+              window.location.href = point.url;
+            }
+          },
+          dataPointMouseEnter: function (event, _chartContext, config) {
+            var point = payload.series[config.seriesIndex].data[config.dataPointIndex];
+            if (event && event.target) {
+              event.target.style.cursor = point && point.url ? "pointer" : "default";
+            }
+          },
+          dataPointMouseLeave: function (event) {
+            if (event && event.target) {
+              event.target.style.cursor = "";
+            }
+          }
+        }
       },
       series: payload.series,
       legend: {
@@ -278,7 +297,11 @@
       },
       tooltip: {
         y: {
-          formatter: function (value) { return formatMetric(value, ""); }
+          formatter: function (value, opts) {
+            var point = opts.w.config.series[opts.seriesIndex].data[opts.dataPointIndex];
+            var suffix = point && point.url ? " statement rows - click to open master list" : " statement rows";
+            return formatMetric(value, "") + suffix;
+          }
         }
       },
       grid: {
