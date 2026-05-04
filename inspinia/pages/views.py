@@ -43,6 +43,7 @@ from django.utils.text import slugify
 from inspinia.pages.asymptote_render import build_statement_render_segments
 from inspinia.pages.asymptote_render import has_asymptote_blocks
 from inspinia.pages.contest_links import contest_dashboard_listing_url
+from inspinia.pages.contest_links import problem_statement_contest_year_master_url
 from inspinia.pages.contest_names import normalize_contest_name
 from inspinia.pages.contest_rename import ContestRenameValidationError
 from inspinia.pages.contest_rename import rename_contests
@@ -755,6 +756,8 @@ def _statement_table_rows(base, *, user=None) -> list[dict]:
                 "contest_year": statement.contest_year,
                 "contest_year_problem": statement.contest_year_problem,
                 "day_label": statement.day_label or "Unlabeled",
+                "is_active": statement.is_active,
+                "is_active_label": "Active" if statement.is_active else "Inactive",
                 "is_linked": linked_problem is not None,
                 "linked_problem_topic": linked_problem_topic,
                 "linked_problem_uuid": linked_problem_uuid,
@@ -1445,7 +1448,7 @@ def _statement_dashboard_rows(base) -> list[dict]:
         contest_slug = contest_to_slug.get(str(row["contest_name"]))
         row["contest_year_label"] = f"{row['contest_name']} {row['contest_year']}"
         row["contest_year_url"] = (
-            contest_dashboard_listing_url(str(row["contest_name"]), year=int(row["contest_year"]))
+            problem_statement_contest_year_master_url(str(row["contest_name"]), int(row["contest_year"]))
             if contest_slug
             else ""
         )
@@ -1470,19 +1473,25 @@ def _statement_dashboard_rows(base) -> list[dict]:
 
 
 def _statement_heatmap_payload(rows: list[dict]) -> dict[str, object]:
-    return _contest_year_heatmap_payload(rows, value_key="statement_count")
+    return _contest_year_heatmap_payload(
+        rows,
+        value_key="statement_count",
+        url_key="contest_year_url",
+    )
 
 
 def _contest_year_heatmap_payload(
     rows: list[dict],
     *,
     value_key: str,
+    url_key: str | None = None,
 ) -> dict[str, object]:
     if not rows:
         return {"max_value": 0, "series": [], "years": []}
 
     years = sorted({int(row["contest_year"]) for row in rows})
     value_by_contest_year: dict[str, dict[int, int]] = defaultdict(dict)
+    url_by_contest_year: dict[str, dict[int, str]] = defaultdict(dict)
     contest_totals: dict[str, int] = defaultdict(int)
 
     for row in rows:
@@ -1490,6 +1499,10 @@ def _contest_year_heatmap_payload(
         contest_year = int(row["contest_year"])
         value = int(row[value_key] or 0)
         value_by_contest_year[contest_name][contest_year] = value
+        if url_key:
+            url = str(row.get(url_key) or "")
+            if url and value:
+                url_by_contest_year[contest_name][contest_year] = url
         contest_totals[contest_name] += value
 
     ordered_contests = sorted(
@@ -1503,10 +1516,18 @@ def _contest_year_heatmap_payload(
         "series": [
             {
                 "data": [
-                    {
-                        "x": str(year),
-                        "y": value_by_contest_year[contest_name].get(year, 0),
-                    }
+                    (
+                        {
+                            "x": str(year),
+                            "y": value_by_contest_year[contest_name].get(year, 0),
+                            "url": url_by_contest_year[contest_name][year],
+                        }
+                        if year in url_by_contest_year[contest_name]
+                        else {
+                            "x": str(year),
+                            "y": value_by_contest_year[contest_name].get(year, 0),
+                        }
+                    )
                     for year in years
                 ],
                 "name": contest_name,
@@ -3985,7 +4006,6 @@ def user_solution_record_list_view(request):
 
     solution_stats = _admin_solution_listing_stats(solution_rows)
     context = {
-        "hide_topbar_shortcut_links": True,
         "user_solution_record_filter_options": solution_filter_options,
         "user_solution_record_filters": {
             "contest": selected_contest,
@@ -4488,6 +4508,61 @@ def problem_statement_analytics_view(request):
         "charts_payload": charts_payload,
     }
     return render(request, "pages/problem-statement-analytics.html", context)
+
+
+@login_required
+def problem_statement_contest_year_master_view(request):
+    """Uncapped statement-first master list for one contest-year."""
+    _require_admin_tools_access(request)
+
+    contest_name = (request.GET.get("contest") or "").strip()
+    year_value = (request.GET.get("year") or "").strip()
+    if not contest_name or not year_value.isdigit():
+        msg = "Contest-year not found."
+        raise Http404(msg)
+
+    contest_year = int(year_value)
+    base = ContestProblemStatement.objects.filter(
+        contest_name=contest_name,
+        contest_year=contest_year,
+    )
+    stats = base.aggregate(
+        total=Count("id"),
+        linked_total=Count("id", filter=Q(linked_problem__isnull=False)),
+        active_total=Count("id", filter=Q(is_active=True)),
+    )
+    statement_total = int(stats["total"] or 0)
+    if not statement_total:
+        msg = "Contest-year not found."
+        raise Http404(msg)
+
+    statements = list(
+        base.select_related("linked_problem").order_by(
+            "problem_number",
+            "problem_code",
+            "day_label",
+            "id",
+        ),
+    )
+    master_statement_rows = _json_script_safe(_statement_table_rows(statements, user=request.user))
+    _ = json.dumps(master_statement_rows, cls=DjangoJSONEncoder, allow_nan=False)
+    linked_total = int(stats["linked_total"] or 0)
+    active_total = int(stats["active_total"] or 0)
+
+    context = {
+        "master_back_url": reverse("pages:problem_statement_dashboard"),
+        "master_contest_name": contest_name,
+        "master_contest_year": contest_year,
+        "master_statement_rows": master_statement_rows,
+        "master_statement_stats": {
+            "active_total": active_total,
+            "inactive_total": statement_total - active_total,
+            "linked_total": linked_total,
+            "unlinked_total": statement_total - linked_total,
+        },
+        "master_statement_total": statement_total,
+    }
+    return render(request, "pages/problem-statement-contest-year-master.html", context)
 
 
 @login_required

@@ -26,50 +26,6 @@
             <button class="sidenav-toggle-button btn btn-primary btn-icon">
                 <i class="ti ti-menu-4 fs-22"></i>
             </button>
-
-            {% if not hide_topbar_shortcut_links %}
-            <div class="d-none d-md-flex align-items-center gap-2 ms-2">
-                <a href="{% url 'pages:home' %}" class="btn btn-outline-secondary btn-sm">Overview</a>
-                {% if show_user_activity_dashboard_link %}
-                <a href="{% url 'pages:user_activity_dashboard' %}" class="btn btn-outline-secondary btn-sm">My activity</a>
-                {% endif %}
-                {% if show_completion_quick_update_link %}
-                <a href="{% url 'pages:completion_quick_update' %}" class="btn btn-outline-secondary btn-sm">Quick completions</a>
-                {% endif %}
-                {% if show_solution_workspace_link %}
-                <a href="{% url 'solutions:my_solution_list' %}" class="btn btn-outline-secondary btn-sm">My solutions</a>
-                {% endif %}
-                {% if request.user.is_authenticated %}
-                <a href="{% url 'rankings:ranking_table' %}" class="btn btn-outline-secondary btn-sm">Ranking table</a>
-                <a href="{% url 'rankings:dashboard' %}" class="btn btn-outline-secondary btn-sm">Ranking dashboard</a>
-                {% if is_app_admin %}
-                <a href="{% url 'rankings:import_center' %}" class="btn btn-outline-secondary btn-sm">Ranking imports</a>
-                {% endif %}
-                {% endif %}
-                {% if show_analytics_dashboard_link %}
-                <a href="{% url 'pages:dashboard' %}" class="btn btn-outline-secondary btn-sm">Problem analytics</a>
-                <a href="{% url 'pages:contest_dashboard' %}" class="btn btn-outline-secondary btn-sm">Contest analytics</a>
-                <a href="{% url 'pages:technique_dashboard' %}" class="btn btn-outline-secondary btn-sm">Techniques</a>
-                <a href="{% url 'pages:problem_statement_dashboard' %}" class="btn btn-outline-secondary btn-sm">Statement analytics</a>
-                <a href="{% url 'pages:problem_list' %}" class="btn btn-outline-secondary btn-sm">Problems</a>
-                {% endif %}
-                {% if show_problem_import_link %}
-                <a href="{% url 'pages:problem_import' %}" class="btn btn-primary btn-sm">Problem data</a>
-                <a href="{% url 'pages:contest_rename' %}" class="btn btn-outline-secondary btn-sm">Contest names</a>
-                <a href="{% url 'pages:contest_details' %}" class="btn btn-outline-secondary btn-sm">Contest details</a>
-                {% endif %}
-                <a href="{% url 'pages:latex_preview' %}" class="btn btn-outline-secondary btn-sm">LaTeX preview</a>
-                {% if show_problem_import_link %}
-                <a href="{% url 'pages:handle_summary_parser' %}" class="btn btn-outline-secondary btn-sm">Handle parser</a>
-                {% endif %}
-                <a href="{% url 'pages:problem_statement_list' %}" class="btn btn-outline-secondary btn-sm">Problem statements</a>
-                {% if show_problem_import_link %}
-                <a href="{% url 'pages:problem_statement_linker' %}" class="btn btn-outline-secondary btn-sm">Statement links</a>
-                <a href="{% url 'pages:problem_statement_metadata' %}" class="btn btn-outline-secondary btn-sm">Statement metadata</a>
-                <a href="{% url 'pages:problem_statement_delete_by_uuid' %}" class="btn btn-outline-secondary btn-sm">Delete statement</a>
-                {% endif %}
-            </div>
-            {% endif %}
         </div>
 
         <div class="d-flex align-items-center gap-2">

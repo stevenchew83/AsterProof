@@ -1,0 +1,317 @@
+{% extends 'layouts/vertical.html' %}
+
+{% load static %}
+
+{% block title %}Contest-year master list{% endblock title %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'plugins/datatables/dataTables.bootstrap5.min.css' %}">
+<style>
+  .statement-master-table-shell {
+    width: 100%;
+  }
+
+  .statement-master-tags {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    align-items: flex-start;
+  }
+
+  .statement-master-inline-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    text-decoration: none;
+    font-weight: 600;
+  }
+
+  .statement-master-inline-link:hover {
+    color: var(--ins-primary);
+  }
+
+  #problem-statement-contest-year-master-table tbody td {
+    vertical-align: top;
+  }
+</style>
+{% endblock extra_css %}
+
+{% block page_content %}
+<div class="container-fluid">
+  {% include 'partials/page-title.html' with title='Contest-year master list' subtitle=master_contest_name %}
+
+  <div class="row g-3 mt-0">
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-primary-subtle text-primary rounded">
+                <i class="ti ti-list-details fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Statement rows</p>
+              <h3 class="mb-0">{{ master_statement_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-success-subtle text-success rounded">
+                <i class="ti ti-link fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Linked</p>
+              <h3 class="mb-0">{{ master_statement_stats.linked_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-warning-subtle text-warning rounded">
+                <i class="ti ti-unlink fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Unlinked</p>
+              <h3 class="mb-0">{{ master_statement_stats.unlinked_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-danger-subtle text-danger rounded">
+                <i class="ti ti-eye-off fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Inactive</p>
+              <h3 class="mb-0">{{ master_statement_stats.inactive_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-1 mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header border-bottom d-flex flex-wrap align-items-center gap-2">
+          <div class="flex-grow-1">
+            <h4 class="header-title mb-0">{{ master_contest_name }} {{ master_contest_year }}</h4>
+            <p class="text-muted fs-xs mb-0">Complete statement-row list for this contest-year.</p>
+          </div>
+          <a href="{{ master_back_url }}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-arrow-left me-1"></i>Back to statement analytics
+          </a>
+        </div>
+        <div class="card-body">
+          {{ master_statement_rows|json_script:"problem-statement-contest-year-master-data" }}
+          <div class="statement-master-table-shell">
+            <table
+              id="problem-statement-contest-year-master-table"
+              class="table table-striped table-bordered align-middle w-100"
+            >
+              <thead class="table-light">
+                <tr>
+                  <th class="text-nowrap">Problem code</th>
+                  <th class="text-nowrap">Day</th>
+                  <th class="text-nowrap">Status</th>
+                  <th class="text-nowrap">Topic</th>
+                  <th class="text-nowrap">MOHS</th>
+                  <th class="text-nowrap">Confidence</th>
+                  <th class="text-nowrap">IMO slot</th>
+                  <th>Topic tags</th>
+                  <th class="text-nowrap">Solved</th>
+                  <th class="text-nowrap">Updated</th>
+                  <th class="text-nowrap">Solution</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock page_content %}
+
+{% block extra_javascript %}
+{% include 'partials/datatables-vendor-scripts.html' %}
+<script>
+(function () {
+  var dataEl = document.getElementById("problem-statement-contest-year-master-data");
+  if (!dataEl || typeof DataTable === "undefined") return;
+
+  var rows = JSON.parse(dataEl.textContent);
+
+  function escapeHtml(value) {
+    return String(value || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function mutedDash() {
+    return '<span class="text-muted fs-xs">&mdash;</span>';
+  }
+
+  function ellipsize(value, maxLen) {
+    var s = String(value || "").trim();
+    if (s.length <= maxLen) return s;
+    return s.slice(0, maxLen - 1) + "\u2026";
+  }
+
+  new DataTable("#problem-statement-contest-year-master-table", {
+    data: rows,
+    language: {
+      search: "Filter table:",
+      searchPlaceholder: "Within this contest-year...",
+      info: "Showing _START_ to _END_ of _TOTAL_ statement rows",
+      infoEmpty: "No statement rows to show",
+      lengthMenu: "Show _MENU_ rows",
+    },
+    order: [[0, "asc"]],
+    pageLength: 25,
+    lengthMenu: [10, 25, 50, 100],
+    scrollX: true,
+    autoWidth: false,
+    columns: [
+      { data: "problem_code", className: "text-nowrap" },
+      {
+        data: "day_label",
+        className: "text-nowrap",
+        render: function (data, type) {
+          var label = data || "";
+          if (type === "sort" || type === "filter") return label === "Unlabeled" ? "" : label;
+          if (!label || label === "Unlabeled") return mutedDash();
+          return '<span title="' + escapeHtml(label) + '">' + escapeHtml(ellipsize(label, 30)) + "</span>";
+        }
+      },
+      {
+        data: "is_active",
+        className: "text-nowrap",
+        render: function (data, type, row) {
+          if (type === "sort") return data ? 1 : 0;
+          if (type === "filter") return row.is_active_label || "";
+          var badgeClass = data ? "bg-success-subtle text-success" : "bg-danger-subtle text-danger";
+          return '<span class="badge ' + badgeClass + '">' + escapeHtml(row.is_active_label) + "</span>";
+        }
+      },
+      {
+        data: "linked_problem_topic",
+        className: "text-nowrap",
+        render: function (data, type) {
+          var topic = data || "";
+          if (type !== "display") return topic;
+          return topic ? '<span class="fw-semibold">' + escapeHtml(topic) + "</span>" : mutedDash();
+        }
+      },
+      {
+        data: "linked_problem_mohs",
+        className: "text-nowrap",
+        render: function (data, type) {
+          if (type === "sort") return data == null ? -1 : Number(data);
+          if (data == null || data === "") return type === "display" ? mutedDash() : "";
+          return data;
+        }
+      },
+      {
+        data: "linked_problem_confidence",
+        className: "text-nowrap",
+        render: function (data, type) {
+          var confidence = data || "";
+          if (type !== "display") return confidence;
+          return confidence ? escapeHtml(ellipsize(confidence, 34)) : mutedDash();
+        }
+      },
+      {
+        data: "linked_problem_imo_slot_display",
+        className: "text-nowrap",
+        render: function (data, type) {
+          var slot = data || "";
+          if (type !== "display") return slot;
+          return slot ? escapeHtml(slot) : mutedDash();
+        }
+      },
+      {
+        data: "linked_problem_topic_tag_links",
+        render: function (links, type) {
+          var labels = (links || []).map(function (item) { return item.label || ""; }).filter(Boolean);
+          if (type !== "display") return labels.join(" ");
+          if (!labels.length) return mutedDash();
+          return (
+            '<div class="statement-master-tags">' +
+            links.map(function (item) {
+              var label = escapeHtml(item.label || "");
+              if (!label) return "";
+              if (item.url) {
+                return (
+                  '<a class="statement-master-inline-link" href="' +
+                  escapeHtml(item.url) +
+                  '">' +
+                  label +
+                  "</a>"
+                );
+              }
+              return "<span>" + label + "</span>";
+            }).join("") +
+            "</div>"
+          );
+        }
+      },
+      {
+        data: null,
+        className: "text-nowrap",
+        render: function (_data, type, row) {
+          if (!row.is_linked) {
+            return type === "display" ? '<span class="text-muted fs-xs">Not linked</span>' : "Not linked";
+          }
+          var kind = row.user_completion_state_kind || "";
+          var label = row.user_completion_display || "";
+          if (type === "sort") return row.user_completion_sort || "";
+          if (type === "filter") return label + " " + kind;
+          var badgeClass = "text-bg-secondary";
+          if (kind === "solved") badgeClass = "text-bg-success";
+          else if (kind === "unknown") badgeClass = "text-bg-info";
+          return '<span class="badge ' + badgeClass + '">' + escapeHtml(label) + "</span>";
+        }
+      },
+      { data: "updated_at", className: "text-nowrap" },
+      {
+        data: null,
+        className: "text-nowrap",
+        render: function (_data, type, row) {
+          var label = row.problem_destination_label || "";
+          var url = row.problem_destination_url || "";
+          if (type !== "display") return label;
+          if (!url || !label) return '<span class="text-muted fs-xs">Unlinked</span>';
+          return '<a href="' + escapeHtml(url) + '" class="btn btn-outline-primary btn-sm">' + escapeHtml(label) + "</a>";
+        }
+      }
+    ]
+  });
+})();
+</script>
+{% endblock extra_javascript %}

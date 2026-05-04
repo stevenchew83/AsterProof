@@ -1,13 +1,14 @@
 import csv
+import re
 import uuid
 from datetime import date
+from datetime import datetime
 from datetime import timedelta
+from datetime import timezone as datetime_timezone
 from http import HTTPStatus
 from io import BytesIO
 from io import StringIO
 from pathlib import Path
-import re
-from urllib.parse import urlencode
 
 import pandas as pd
 import pytest
@@ -18,12 +19,12 @@ from django.template.loader import render_to_string
 from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.text import slugify
 
 from inspinia.pages.asymptote_render import AsymptoteRenderResult
 from inspinia.pages.asymptote_render import _extract_svg_markup
 from inspinia.pages.asymptote_render import build_statement_render_segments
 from inspinia.pages.contest_links import contest_dashboard_listing_url
+from inspinia.pages.contest_links import problem_statement_contest_year_master_url
 from inspinia.pages.handle_summary_parser import build_handle_summary_preview_payload
 from inspinia.pages.handle_summary_parser import parse_handle_summary_text
 from inspinia.pages.models import ContestMetadata
@@ -4898,6 +4899,9 @@ def test_completion_record_list_renders_admin_inventory(client):
     response_html = response.content.decode("utf-8")
     assert "Completion info listing" in response_html
     assert 'id="completion-record-table"' in response_html
+    assert 'order: [[8, "desc"]]' in response_html
+    assert "Known dates" not in response_html
+    assert "With solutions" not in response_html
 
 
 def test_completion_record_list_caps_to_latest_100_by_updated_at(client):
@@ -6037,6 +6041,28 @@ def test_problem_statement_list_caps_to_latest_100_by_updated_at(client):
     assert response.context["statement_is_capped"] is True
 
 
+def test_problem_statement_list_formats_updated_at_in_local_timezone(client):
+    user = UserFactory()
+    client.force_login(user)
+    statement = ContestProblemStatement.objects.create(
+        contest_year=2026,
+        contest_name="IMO",
+        problem_number=1,
+        day_label="Day 1",
+        problem_code="P1",
+        statement_latex="Statement",
+    )
+    ContestProblemStatement.objects.filter(pk=statement.pk).update(
+        updated_at=datetime(2026, 1, 2, 15, 30, tzinfo=datetime_timezone.utc),
+    )
+
+    response = client.get(reverse("pages:problem_statement_list"))
+
+    assert response.status_code == HTTPStatus.OK
+    rows = response.context["statement_datatable_rows"]
+    assert rows[0]["updated_at"] == "2026-01-02 23:30"
+
+
 def test_problem_statement_list_filter_applies_before_latest_100_cap(client):
     user = UserFactory()
     client.force_login(user)
@@ -6138,6 +6164,116 @@ def test_problem_statement_list_skips_datatables_when_filters_match_nothing(clie
     )
     assert zero_results_shell_match is not None
     assert "table-responsive" in zero_results_shell_match.group("classes")
+
+
+def test_problem_statement_contest_year_master_requires_login(client):
+    response = client.get(
+        reverse("pages:problem_statement_contest_year_master"),
+        {"contest": "IMO", "year": "2026"},
+    )
+
+    assert response.status_code == HTTPStatus.FOUND
+    login_url = reverse(settings.LOGIN_URL)
+    assert response.url.startswith(f"{login_url}?")
+
+
+@override_settings(DEBUG=False)
+def test_problem_statement_contest_year_master_forbids_non_admin_access_when_debug_is_off(client):
+    user = UserFactory()
+    client.force_login(user)
+
+    response = client.get(
+        reverse("pages:problem_statement_contest_year_master"),
+        {"contest": "IMO", "year": "2026"},
+    )
+
+    assert response.status_code == HTTPStatus.FORBIDDEN
+
+
+def test_problem_statement_contest_year_master_lists_all_rows_uncapped(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+
+    for offset in range(120):
+        ContestProblemStatement.objects.create(
+            contest_year=2026,
+            contest_name="IMO Shortlist",
+            problem_number=offset + 1,
+            day_label="Day 1",
+            problem_code=f"P{offset + 1}",
+            statement_latex=f"Statement {offset + 1}",
+        )
+
+    response = client.get(
+        reverse("pages:problem_statement_contest_year_master"),
+        {"contest": "IMO Shortlist", "year": "2026"},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["master_contest_name"] == "IMO Shortlist"
+    assert response.context["master_contest_year"] == 2026
+    assert response.context["master_statement_total"] == 120
+    assert len(response.context["master_statement_rows"]) == 120
+    assert response.context["master_statement_rows"][0]["problem_code"] == "P1"
+    assert response.context["master_statement_rows"][-1]["problem_code"] == "P120"
+    response_html = response.content.decode("utf-8")
+    assert "Contest-year master list" in response_html
+    assert "Latest 100" not in response_html
+    assert "Showing latest" not in response_html
+
+
+def test_problem_statement_contest_year_master_includes_inactive_and_unlinked_rows(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    linked_record = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="ALG",
+        mohs=5,
+        contest="JBMO Shortlist",
+        problem="P1",
+        contest_year_problem="JBMO Shortlist 2026 P1",
+    )
+    ContestProblemStatement.objects.create(
+        linked_problem=linked_record,
+        contest_year=2026,
+        contest_name="JBMO Shortlist",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Linked active statement",
+        is_active=True,
+    )
+    ContestProblemStatement.objects.create(
+        contest_year=2026,
+        contest_name="JBMO Shortlist",
+        problem_number=2,
+        problem_code="P2",
+        day_label="Day 1",
+        statement_latex="Unlinked inactive statement",
+        is_active=False,
+    )
+
+    response = client.get(
+        reverse("pages:problem_statement_contest_year_master"),
+        {"contest": "JBMO Shortlist", "year": "2026"},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["master_statement_total"] == 2
+    assert response.context["master_statement_stats"] == {
+        "active_total": 1,
+        "inactive_total": 1,
+        "linked_total": 1,
+        "unlinked_total": 1,
+    }
+    rows = response.context["master_statement_rows"]
+    assert [row["problem_code"] for row in rows] == ["P1", "P2"]
+    assert rows[0]["is_active"] is True
+    assert rows[0]["is_active_label"] == "Active"
+    assert rows[0]["is_linked"] is True
+    assert rows[1]["is_active"] is False
+    assert rows[1]["is_active_label"] == "Inactive"
+    assert rows[1]["is_linked"] is False
 
 
 def test_problem_detail_view_redirects_to_solution_editor_when_no_solution_exists(client):
@@ -6719,17 +6855,18 @@ def test_problem_statement_analytics_groups_rows_by_contest_and_year_for_admin(c
     assert dashboard_row["linked_count"] == 1
     assert dashboard_row["unlinked_count"] == 1
     assert dashboard_row["link_rate"] == EXPECTED_SPAIN_STATEMENT_LINK_RATE
-    assert dashboard_row["contest_year_url"] == contest_dashboard_listing_url(
+    expected_master_url = problem_statement_contest_year_master_url(
         SPAIN_OLYMPIAD_NAME,
-        year=SPAIN_OLYMPIAD_YEAR,
+        SPAIN_OLYMPIAD_YEAR,
     )
+    assert dashboard_row["contest_year_url"] == expected_master_url
     heatmap_payload = response.context["charts_payload"]["statementCountHeatmap"]
     assert heatmap_payload["years"] == ["2025", "2026"]
     assert heatmap_payload["max_value"] == EXPECTED_STATEMENT_SET_TOTAL
     assert heatmap_payload["series"][0]["name"] == SPAIN_OLYMPIAD_NAME
     assert heatmap_payload["series"][0]["data"] == [
         {"x": "2025", "y": 0},
-        {"x": "2026", "y": EXPECTED_STATEMENT_SET_TOTAL},
+        {"x": "2026", "y": EXPECTED_STATEMENT_SET_TOTAL, "url": expected_master_url},
     ]
     year_bar_payload = response.context["charts_payload"]["statementYearBarChart"]
     assert year_bar_payload["labels"] == ["2025", "2026"]
@@ -6738,6 +6875,8 @@ def test_problem_statement_analytics_groups_rows_by_contest_and_year_for_admin(c
     assert "Problem statement analytics" in response_html
     assert 'id="chart-statement-heatmap"' in response_html
     assert "contest_year_url" in response_html
+    assert "dataPointSelection" in response_html
+    assert "window.location.href" in response_html
     assert 'id="chart-year-bars"' in response_html
     assert "Contest-year statement heatmap" in response_html
     assert "Statement rows by year" in response_html
@@ -9334,8 +9473,21 @@ def test_dashboard_sidebar_groups_links_into_balanced_workflow_sections_for_admi
     assert [side_nav_html.index(label) for label in expected_order] == sorted(
         side_nav_html.index(label) for label in expected_order
     )
+
+
+def test_topbar_keeps_account_controls_without_page_shortcut_links_for_admin(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+
+    response = client.get(reverse("pages:latex_preview"))
+
+    assert response.status_code == HTTPStatus.OK
+    response_html = response.content.decode("utf-8")
     topbar_html = response_html.split('<header class="app-topbar">', 1)[1].split("</header>", 1)[0]
-    assert "Quick completions" in topbar_html
+    assert 'id="light-dark-mode"' in topbar_html
+    assert ">Profile</span>" in topbar_html
+    assert 'class="btn btn-outline-secondary btn-sm"' not in topbar_html
+    assert 'class="btn btn-primary btn-sm"' not in topbar_html
 
 
 def test_contest_rename_updates_problem_and_statement_rows_for_admin(client):
