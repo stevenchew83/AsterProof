@@ -4864,6 +4864,72 @@ def test_completion_board_toggle_accepts_problem_without_statement(client):
     assert completion.completion_date is None
 
 
+def test_completion_quick_update_renders_datatable_with_status_filter(client):
+    user = UserFactory()
+    client.force_login(user)
+    solved_problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="ALG",
+        mohs=5,
+        contest="Argentina TST",
+        problem="P1",
+        contest_year_problem="Argentina TST 2026 P1",
+    )
+    solved_statement = ContestProblemStatement.objects.create(
+        linked_problem=solved_problem,
+        contest_year=2026,
+        contest_name="Argentina TST",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Statement one",
+    )
+    unsolved_problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="COMB",
+        mohs=20,
+        contest="Argentina TST",
+        problem="P2",
+        contest_year_problem="Argentina TST 2026 P2",
+    )
+    ContestProblemStatement.objects.create(
+        linked_problem=unsolved_problem,
+        contest_year=2026,
+        contest_name="Argentina TST",
+        problem_number=2,
+        problem_code="P2",
+        day_label="Day 1",
+        statement_latex="Statement two",
+    )
+    UserProblemCompletion.objects.create(
+        user=user,
+        statement=solved_statement,
+        completion_date=date(2026, 4, 20),
+    )
+
+    response = client.get(reverse("pages:completion_quick_update"))
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["completion_quick_update_matching_total"] == 2
+    row_by_problem = {
+        row["problem_code"]: row
+        for row in response.context["completion_quick_update_rows"]
+    }
+    assert row_by_problem["P1"]["completion_state_kind"] == "solved"
+    assert row_by_problem["P1"]["completion_date"] == "2026-04-20"
+    assert row_by_problem["P2"]["completion_state_kind"] == "unsolved"
+    response_html = response.content.decode("utf-8")
+    assert "Completion date editor" in response_html
+    assert "dataTables.bootstrap5.min.css" in response_html
+    assert "dataTables.min.js" in response_html
+    assert 'id="quick-completion-table"' in response_html
+    assert 'id="quick-completion-status-filter"' in response_html
+    assert 'data-completion-state="solved"' in response_html
+    assert 'data-completion-state="unsolved"' in response_html
+    assert 'new DataTable("#quick-completion-table"' in response_html
+    assert "DataTable.ext.search.push" in response_html
+
+
 def test_completion_record_list_renders_admin_inventory(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     completion_user = UserFactory(name="Ada Lovelace")
