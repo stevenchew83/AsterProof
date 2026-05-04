@@ -1,4 +1,5 @@
 const {series, src, dest, parallel, watch} = require("gulp");
+const {Transform} = require("stream");
 
 const autoprefixer = require("gulp-autoprefixer");
 const concat = require("gulp-concat");
@@ -13,6 +14,22 @@ const pluginFile = require("./plugins.config"); // Import the plugins list
 const paths = {
     baseDistAssets: "inspinia/static/", // build assets directory
     baseSrcAssets: "inspinia/static/", // source assets directory
+};
+
+const stripSourceMappingURL = function () {
+    return new Transform({
+        objectMode: true,
+        transform(file, _encoding, callback) {
+            if (file.isBuffer()) {
+                const contents = file.contents.toString();
+                const lines = contents
+                    .split(/\r?\n/)
+                    .filter((line) => !line.startsWith("//# sourceMappingURL="));
+                file.contents = Buffer.from(lines.join("\n"));
+            }
+            callback(null, file);
+        },
+    });
 };
 
 // Warning not show
@@ -33,6 +50,7 @@ const plugins = function () {
             src(vendorsJS)
                 .on('error', handleError('vendorsJS'))
                 .pipe(concat("vendors.min.js"))
+                .pipe(stripSourceMappingURL())
                 .pipe(dest(paths.baseDistAssets + "js/"));
         }
 
