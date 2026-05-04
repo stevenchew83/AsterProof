@@ -1,13 +1,14 @@
 import csv
+import re
 import uuid
 from datetime import date
+from datetime import datetime
 from datetime import timedelta
+from datetime import timezone as datetime_timezone
 from http import HTTPStatus
 from io import BytesIO
 from io import StringIO
 from pathlib import Path
-import re
-from urllib.parse import urlencode
 
 import pandas as pd
 import pytest
@@ -18,7 +19,6 @@ from django.template.loader import render_to_string
 from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.text import slugify
 
 from inspinia.pages.asymptote_render import AsymptoteRenderResult
 from inspinia.pages.asymptote_render import _extract_svg_markup
@@ -5792,6 +5792,28 @@ def test_problem_statement_list_caps_to_latest_100_by_updated_at(client):
     assert response.context["statement_visible_total"] == 100
     assert response.context["statement_result_limit"] == 100
     assert response.context["statement_is_capped"] is True
+
+
+def test_problem_statement_list_formats_updated_at_in_local_timezone(client):
+    user = UserFactory()
+    client.force_login(user)
+    statement = ContestProblemStatement.objects.create(
+        contest_year=2026,
+        contest_name="IMO",
+        problem_number=1,
+        day_label="Day 1",
+        problem_code="P1",
+        statement_latex="Statement",
+    )
+    ContestProblemStatement.objects.filter(pk=statement.pk).update(
+        updated_at=datetime(2026, 1, 2, 15, 30, tzinfo=datetime_timezone.utc),
+    )
+
+    response = client.get(reverse("pages:problem_statement_list"))
+
+    assert response.status_code == HTTPStatus.OK
+    rows = response.context["statement_datatable_rows"]
+    assert rows[0]["updated_at"] == "2026-01-02 23:30"
 
 
 def test_problem_statement_list_filter_applies_before_latest_100_cap(client):
