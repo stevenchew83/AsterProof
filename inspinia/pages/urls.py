@@ -3,6 +3,8 @@ from django.urls import path
 from inspinia.pages.views import completion_board_bulk_view
 from inspinia.pages.views import completion_board_toggle_view
 from inspinia.pages.views import completion_board_view
+from inspinia.pages.views import completion_quick_update_save_view
+from inspinia.pages.views import completion_quick_update_view
 from inspinia.pages.views import completion_record_list_view
 from inspinia.pages.views import contest_advanced_analytics_view
 from inspinia.pages.views import contest_analytics_view
@@ -36,6 +38,12 @@ app_name = "pages"
 urlpatterns = [
     path("", root_page_view, name="home"),
     path("dashboard/my-activity/", user_activity_dashboard_view, name="user_activity_dashboard"),
+    path("dashboard/completion-quick-update/", completion_quick_update_view, name="completion_quick_update"),
+    path(
+        "dashboard/completion-quick-update/save/",
+        completion_quick_update_save_view,
+        name="completion_quick_update_save",
+    ),
     path("dashboard/completion-board/", completion_board_view, name="completion_board"),
     path("dashboard/completion-board/toggle/", completion_board_toggle_view, name="completion_board_toggle"),
     path("dashboard/completion-board/bulk/", completion_board_bulk_view, name="completion_board_bulk"),

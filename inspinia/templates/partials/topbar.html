@@ -33,6 +33,9 @@
                 {% if show_user_activity_dashboard_link %}
                 <a href="{% url 'pages:user_activity_dashboard' %}" class="btn btn-outline-secondary btn-sm">My activity</a>
                 {% endif %}
+                {% if show_completion_quick_update_link %}
+                <a href="{% url 'pages:completion_quick_update' %}" class="btn btn-outline-secondary btn-sm">Quick completions</a>
+                {% endif %}
                 {% if show_solution_workspace_link %}
                 <a href="{% url 'solutions:my_solution_list' %}" class="btn btn-outline-secondary btn-sm">My solutions</a>
                 {% endif %}
