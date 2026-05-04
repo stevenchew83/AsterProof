@@ -802,6 +802,36 @@ def _statement_table_rows(base, *, user=None) -> list[dict]:
     return table_rows
 
 
+def _completion_quick_update_rows(statements: list[ContestProblemStatement], *, user) -> list[dict]:
+    statement_rows = _statement_table_rows(statements, user=user)
+    rows: list[dict[str, object]] = []
+    for row in statement_rows:
+        topic = row["linked_problem_topic"] or ""
+        mohs = row["linked_problem_mohs"]
+        topic_mohs = topic
+        if mohs is not None:
+            topic_mohs = f"{topic} MOHS {mohs}" if topic else f"MOHS {mohs}"
+        rows.append(
+            {
+                "completion_date": row["user_completion_date"],
+                "completion_display": row["user_completion_display"],
+                "completion_sort": row["user_completion_sort"],
+                "completion_state_kind": row["user_completion_state_kind"],
+                "completion_state_label": row["user_completion_state_label"],
+                "contest": row["contest_name"],
+                "day_label": "" if row["day_label"] == "Unlabeled" else row["day_label"],
+                "label": row["contest_year_problem"],
+                "mohs": "" if mohs is None else mohs,
+                "problem_code": row["problem_code"],
+                "statement_uuid": row["statement_uuid"],
+                "topic": topic,
+                "topic_mohs": topic_mohs,
+                "year": row["contest_year"],
+            },
+        )
+    return rows
+
+
 def _format_imo_slot_label(value: object) -> str:
     if not value:
         return ""
@@ -3239,6 +3269,71 @@ def completion_board_view(request):
         "completion_board_toggle_url": reverse("pages:completion_board_toggle"),
     }
     return render(request, "pages/completion-board.html", context)
+
+
+@login_required
+def completion_quick_update_view(request):
+    """Flat DataTable for quickly editing the current user's completion dates."""
+    base = _active_dashboard_statements()
+    filter_options = _problem_statement_list_filter_options(base)
+
+    search_query = (request.GET.get("q") or "").strip()
+    selected_contest = (request.GET.get("contest") or "").strip()
+    selected_year = (request.GET.get("year") or "").strip()
+    selected_topic = (request.GET.get("topic") or "").strip()
+
+    filtered_statements = _filter_statement_queryset(
+        base,
+        q=search_query,
+        year=selected_year,
+        topic=selected_topic,
+        confidence="",
+        mohs_min="",
+        mohs_max="",
+    )
+    if selected_contest:
+        filtered_statements = filtered_statements.filter(contest_name=selected_contest)
+
+    filtered_total = filtered_statements.count()
+    statements = list(
+        filtered_statements.select_related("linked_problem").order_by(
+            "-contest_year",
+            "contest_name",
+            "day_label",
+            "problem_number",
+            "problem_code",
+        )[:ADMIN_TABLE_LATEST_LIMIT],
+    )
+    rows = _json_script_safe(_completion_quick_update_rows(statements, user=request.user))
+    _ = json.dumps(rows, cls=DjangoJSONEncoder, allow_nan=False)
+
+    context = {
+        "completion_quick_update_filter_options": {
+            "contests": list(
+                base.values_list("contest_name", flat=True).distinct().order_by("contest_name"),
+            ),
+            "topics": filter_options["topics"],
+            "years": filter_options["years"],
+        },
+        "completion_quick_update_filters": {
+            "contest": selected_contest,
+            "q": search_query,
+            "topic": selected_topic,
+            "year": selected_year,
+        },
+        "completion_quick_update_has_active_filters": bool(
+            search_query or selected_contest or selected_year or selected_topic,
+        ),
+        "completion_quick_update_is_capped": filtered_total > len(rows),
+        "completion_quick_update_result_limit": ADMIN_TABLE_LATEST_LIMIT,
+        "completion_quick_update_rows": rows,
+        "completion_quick_update_total": base.count(),
+        "completion_quick_update_filtered_total": filtered_total,
+        "completion_quick_update_visible_total": len(rows),
+        "completion_board_today": timezone.localdate().isoformat(),
+        "completion_board_toggle_url": reverse("pages:completion_board_toggle"),
+    }
+    return render(request, "pages/completion-quick-update.html", context)
 
 
 @login_required

@@ -1,0 +1,409 @@
+{% extends 'layouts/vertical.html' %}
+
+{% load static %}
+
+{% block title %}Completion date editor{% endblock title %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'plugins/datatables/dataTables.bootstrap5.min.css' %}">
+<style>
+  #completion-quick-update-table_wrapper .dt-layout-row {
+    margin: .5rem 0;
+  }
+
+  #completion-quick-update-table_wrapper .dt-length label,
+  #completion-quick-update-table_wrapper .dt-search label {
+    color: var(--bs-secondary-color);
+    font-size: .75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  #completion-quick-update-table_wrapper .dt-length .form-select,
+  #completion-quick-update-table_wrapper .dt-search .form-control {
+    font-size: .8125rem;
+    min-height: calc(1.5em + .5rem + 2px);
+    padding-bottom: .25rem;
+    padding-top: .25rem;
+  }
+
+  .completion-quick-date-input {
+    min-width: 9.75rem;
+  }
+
+  .completion-quick-actions {
+    min-width: 18rem;
+  }
+</style>
+{% endblock extra_css %}
+
+{% block page_content %}
+<div class="container-fluid">
+
+  {% include 'partials/page-title.html' with title='Completion date editor' subtitle='Dashboard' %}
+
+  <div class="row g-3 mt-0 mb-3">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header border-bottom py-2">
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <div>
+              <h4 class="header-title mb-0">Completion date editor</h4>
+              <p class="text-muted fs-xs mb-0">Dates must use YYYY-MM-DD. Unknown keeps the problem solved without an exact date.</p>
+            </div>
+            <div class="d-flex flex-wrap gap-1">
+              <span class="badge bg-primary-subtle text-primary">
+                Showing {{ completion_quick_update_visible_total }} of {{ completion_quick_update_filtered_total }}
+              </span>
+              <span class="badge bg-secondary-subtle text-secondary">
+                {{ completion_quick_update_total }} active rows
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="card-body p-2 p-md-3">
+          <form method="get" class="row g-2 align-items-end mb-3">
+            <div class="col-md-6 col-xl-3">
+              <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-quick-search">Search</label>
+              <input
+                id="completion-quick-search"
+                type="search"
+                name="q"
+                class="form-control form-control-sm"
+                value="{{ completion_quick_update_filters.q }}"
+                placeholder="Contest, problem, topic, tag"
+              >
+            </div>
+            <div class="col-md-6 col-xl-3">
+              <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-quick-contest">Contest</label>
+              <select id="completion-quick-contest" name="contest" class="form-select form-select-sm">
+                <option value="">All contests</option>
+                {% for contest in completion_quick_update_filter_options.contests %}
+                <option value="{{ contest }}" {% if contest == completion_quick_update_filters.contest %}selected{% endif %}>{{ contest }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-4 col-xl-2">
+              <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-quick-year">Year</label>
+              <select id="completion-quick-year" name="year" class="form-select form-select-sm">
+                <option value="">All years</option>
+                {% for year in completion_quick_update_filter_options.years %}
+                <option value="{{ year }}" {% if year == completion_quick_update_filters.year %}selected{% endif %}>{{ year }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-4 col-xl-2">
+              <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-quick-topic">Topic</label>
+              <select id="completion-quick-topic" name="topic" class="form-select form-select-sm">
+                <option value="">All topics</option>
+                {% for topic in completion_quick_update_filter_options.topics %}
+                <option value="{{ topic }}" {% if topic == completion_quick_update_filters.topic %}selected{% endif %}>{{ topic }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-4 col-xl-2 d-flex gap-1">
+              <button type="submit" class="btn btn-sm btn-primary flex-fill" title="Apply filters" aria-label="Apply filters">
+                <i class="ti ti-filter"></i>
+              </button>
+              <a href="{% url 'pages:completion_quick_update' %}" class="btn btn-sm btn-outline-secondary flex-fill" title="Reset filters" aria-label="Reset filters">
+                <i class="ti ti-refresh"></i>
+              </a>
+            </div>
+          </form>
+
+          <div class="row g-2 align-items-end mb-3">
+            <div class="col-sm-6 col-md-4 col-xl-2">
+              <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-quick-status-filter">Loaded-row status</label>
+              <select id="completion-quick-status-filter" class="form-select form-select-sm">
+                <option value="">All loaded rows</option>
+                <option value="unsolved">Unsolved</option>
+                <option value="solved">Known date</option>
+                <option value="unknown">Unknown date</option>
+              </select>
+            </div>
+            <div class="col-sm-6 col-md-4 col-xl-2">
+              <button type="button" id="completion-quick-table-reset" class="btn btn-sm btn-outline-secondary w-100">
+                <i class="ti ti-eraser me-1"></i>Clear table filter
+              </button>
+            </div>
+          </div>
+
+          {% if completion_quick_update_is_capped %}
+          <div class="alert alert-info py-1 px-2 mb-2 fs-sm" role="alert">
+            Showing the first {{ completion_quick_update_result_limit }} matching rows. Narrow the filters to find older rows.
+          </div>
+          {% endif %}
+
+          {% if completion_quick_update_rows %}
+          <div class="table-responsive">
+            <table id="completion-quick-update-table" class="table table-sm table-hover table-striped align-middle w-100 mb-0"></table>
+          </div>
+          {% else %}
+          <div class="alert alert-info py-2 mb-0" role="alert">
+            No problems matched the current filters.
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <form id="completion-quick-update-csrf" class="d-none">{% csrf_token %}</form>
+</div>
+
+{{ completion_quick_update_rows|json_script:"completion-quick-update-table-data" }}
+{% endblock page_content %}
+
+{% block extra_javascript %}
+{% if completion_quick_update_rows %}
+{% include 'partials/datatables-vendor-scripts.html' %}
+<script>
+(function () {
+  var dataEl = document.getElementById("completion-quick-update-table-data");
+  var csrfTokenInput = document.querySelector('#completion-quick-update-csrf input[name="csrfmiddlewaretoken"]');
+  var statusFilter = document.getElementById("completion-quick-status-filter");
+  var resetButton = document.getElementById("completion-quick-table-reset");
+  var toggleUrl = "{{ completion_board_toggle_url|default:'' }}";
+  var todayValue = "{{ completion_board_today|default:'' }}";
+  if (!dataEl || !csrfTokenInput || !toggleUrl || typeof DataTable === "undefined") return;
+
+  var rows = JSON.parse(dataEl.textContent || "[]");
+
+  function escapeHtml(value) {
+    return String(value || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function statusClass(stateKind) {
+    if (stateKind === "solved") return "bg-success-subtle text-success border border-success-subtle";
+    if (stateKind === "unknown") return "bg-info-subtle text-info border border-info-subtle";
+    return "bg-light text-dark border";
+  }
+
+  function displayText(row) {
+    if (row.completion_date) return row.completion_date;
+    if (row.completion_state_kind === "unknown") return "Unknown date";
+    return "Unsolved";
+  }
+
+  function completionSortValue(payload) {
+    if (payload.completion_date) return "2-" + payload.completion_date;
+    if (payload.is_solved) return "1-9999-12-31";
+    return "0-";
+  }
+
+  function setRowError(rowNode, message) {
+    var errorEl = rowNode ? rowNode.querySelector(".js-completion-quick-error") : null;
+    if (!errorEl) return;
+    if (!message) {
+      errorEl.textContent = "";
+      errorEl.classList.add("d-none");
+      return;
+    }
+    errorEl.textContent = message;
+    errorEl.classList.remove("d-none");
+  }
+
+  function setRowBusy(rowNode, isBusy) {
+    if (!rowNode) return;
+    rowNode.querySelectorAll("input, button").forEach(function (element) {
+      element.disabled = isBusy;
+    });
+  }
+
+  var table = new DataTable("#completion-quick-update-table", {
+    data: rows,
+    layout: {
+      topStart: null,
+      topEnd: null,
+      bottomStart: null,
+      bottomEnd: null,
+      top: ["pageLength", "search", "paging"],
+      bottom: ["info", "paging"],
+    },
+    language: {
+      search: "Filter table:",
+      searchPlaceholder: "Within loaded rows",
+      info: "Showing _START_ to _END_ of _TOTAL_ loaded rows",
+      infoEmpty: "No loaded rows to show",
+      infoFiltered: "(filtered from _MAX_ loaded row(s))",
+      lengthMenu: "Show _MENU_ rows",
+    },
+    columns: [
+      { data: "contest", title: "Contest" },
+      {
+        data: "year",
+        title: "Year",
+        className: "text-nowrap",
+        render: function (data, type) {
+          if (type === "sort" || type === "type") return Number(data) || 0;
+          return data;
+        }
+      },
+      { data: "problem_code", title: "Problem", className: "text-nowrap" },
+      {
+        data: "label",
+        title: "Label",
+        render: function (data, type, row) {
+          if (type !== "display") return [data, row.day_label].join(" ");
+          var dayLabel = row.day_label
+            ? '<div class="text-muted fs-12">' + escapeHtml(row.day_label) + "</div>"
+            : "";
+          return '<div class="fw-semibold">' + escapeHtml(data) + "</div>" + dayLabel;
+        }
+      },
+      {
+        data: "topic_mohs",
+        title: "Topic / MOHS",
+        className: "text-nowrap",
+        render: function (data, type) {
+          if (type !== "display") return data;
+          return data ? escapeHtml(data) : '<span class="text-muted fs-xs">No metadata</span>';
+        }
+      },
+      {
+        data: "completion_display",
+        title: "Current completion",
+        className: "text-nowrap",
+        render: function (_data, type, row) {
+          if (type === "sort" || type === "type") return row.completion_sort;
+          if (type !== "display") return displayText(row);
+          return '<span class="badge ' + statusClass(row.completion_state_kind) + '" title="' + escapeHtml(row.completion_state_label) + '">' + escapeHtml(displayText(row)) + "</span>";
+        }
+      },
+      {
+        data: "completion_date",
+        title: "YYYY-MM-DD",
+        orderable: false,
+        searchable: false,
+        render: function (data, type) {
+          if (type !== "display") return data || "";
+          return [
+            '<input type="date" class="form-control form-control-sm completion-quick-date-input js-completion-quick-date" max="',
+            escapeHtml(todayValue),
+            '" value="',
+            escapeHtml(data || ""),
+            '" title="Dates must use YYYY-MM-DD.">',
+            '<div class="text-danger fs-xs mt-1 d-none js-completion-quick-error"></div>',
+          ].join("");
+        }
+      },
+      {
+        data: null,
+        title: "Actions",
+        orderable: false,
+        searchable: false,
+        className: "text-nowrap",
+        render: function () {
+          return [
+            '<div class="completion-quick-actions d-flex flex-wrap gap-1">',
+            '<button type="button" class="btn btn-light btn-sm js-completion-quick-action" data-action="today" title="Save today"><i class="ti ti-calendar-event me-1"></i>Today</button>',
+            '<button type="button" class="btn btn-primary btn-sm js-completion-quick-action" data-action="set_date" title="Save exact date"><i class="ti ti-device-floppy me-1"></i>Save</button>',
+            '<button type="button" class="btn btn-outline-info btn-sm js-completion-quick-action" data-action="set_unknown" title="Mark solved without exact date"><i class="ti ti-help-circle me-1"></i>Unknown</button>',
+            '<button type="button" class="btn btn-outline-secondary btn-sm js-completion-quick-action" data-action="clear" title="Clear completion"><i class="ti ti-x me-1"></i>Clear</button>',
+            "</div>",
+          ].join("");
+        }
+      },
+    ],
+    order: [[1, "desc"], [0, "asc"], [2, "asc"]],
+    pageLength: 25,
+    lengthMenu: [10, 25, 50, 100],
+    scrollX: true,
+    autoWidth: false,
+  });
+
+  DataTable.ext.search.push(function (settings, _data, dataIndex, rowData) {
+    if (!settings.nTable || settings.nTable.id !== "completion-quick-update-table") return true;
+    var selectedStatus = statusFilter ? statusFilter.value : "";
+    if (!selectedStatus) return true;
+    var row = rowData || table.row(dataIndex).data();
+    return row && row.completion_state_kind === selectedStatus;
+  });
+
+  if (statusFilter) {
+    statusFilter.addEventListener("change", function () {
+      table.draw();
+    });
+  }
+
+  if (resetButton) {
+    resetButton.addEventListener("click", function () {
+      if (statusFilter) statusFilter.value = "";
+      table.search("");
+      table.draw();
+    });
+  }
+
+  document.addEventListener("click", function (event) {
+    var button = event.target.closest(".js-completion-quick-action");
+    if (!button) return;
+
+    var rowNode = button.closest("tr");
+    var rowApi = table.row(rowNode);
+    var rowData = rowApi.data();
+    if (!rowData) return;
+
+    var action = button.dataset.action || "";
+    var dateInput = rowNode.querySelector(".js-completion-quick-date");
+    var completionDate = dateInput ? dateInput.value : "";
+    if (action === "today") {
+      action = "set_date";
+      completionDate = todayValue;
+      if (dateInput) dateInput.value = todayValue;
+    }
+    if (action === "set_date" && !completionDate) {
+      setRowError(rowNode, "Pick a completion date first.");
+      return;
+    }
+
+    setRowBusy(rowNode, true);
+    setRowError(rowNode, "");
+
+    fetch(toggleUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+        "X-CSRFToken": csrfTokenInput.value,
+        "X-Requested-With": "XMLHttpRequest"
+      },
+      body: new URLSearchParams({
+        action: action,
+        completion_date: completionDate || "",
+        statement_uuid: rowData.statement_uuid || ""
+      }).toString()
+    })
+      .then(function (response) {
+        return response.json().catch(function () {
+          return {};
+        }).then(function (payload) {
+          if (!response.ok) {
+            throw new Error(payload.error || "Could not update this completion row.");
+          }
+          return payload;
+        });
+      })
+      .then(function (payload) {
+        rowData.completion_date = payload.completion_date || "";
+        rowData.completion_display = payload.completion_date || (payload.is_solved ? "Unknown date" : "Unsolved");
+        rowData.completion_sort = completionSortValue(payload);
+        rowData.completion_state_kind = payload.state_kind || "unsolved";
+        rowData.completion_state_label = payload.state_label || "";
+        rowApi.data(rowData).invalidate();
+        table.draw(false);
+      })
+      .catch(function (error) {
+        setRowError(rowNode, error.message || "Could not update this completion row.");
+      })
+      .finally(function () {
+        setRowBusy(rowNode, false);
+      });
+  });
+})();
+</script>
+{% endif %}
+{% endblock extra_javascript %}
