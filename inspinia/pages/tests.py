@@ -9107,6 +9107,21 @@ def test_dashboard_sidebar_groups_links_into_balanced_workflow_sections_for_admi
     assert side_nav_html.index("Session monitor") < side_nav_html.index("Event log")
 
 
+def test_topbar_keeps_account_controls_without_page_shortcut_links_for_admin(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+
+    response = client.get(reverse("pages:latex_preview"))
+
+    assert response.status_code == HTTPStatus.OK
+    response_html = response.content.decode("utf-8")
+    topbar_html = response_html.split('<header class="app-topbar">', 1)[1].split("</header>", 1)[0]
+    assert 'id="light-dark-mode"' in topbar_html
+    assert ">Profile</span>" in topbar_html
+    assert 'class="btn btn-outline-secondary btn-sm"' not in topbar_html
+    assert 'class="btn btn-primary btn-sm"' not in topbar_html
+
+
 def test_contest_rename_updates_problem_and_statement_rows_for_admin(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
