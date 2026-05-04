@@ -328,6 +328,9 @@ class UserProblemCompletion(models.Model):
                 name="pages_userproblemcompletion_requires_statement_or_problem",
             ),
         ]
+        indexes = [
+            models.Index(fields=["-updated_at", "-id"], name="pages_upc_updated_id_idx"),
+        ]
 
     def __str__(self) -> str:
         if self.statement is not None:

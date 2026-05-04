@@ -14,9 +14,11 @@ import pandas as pd
 import pytest
 from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import connection
 from django.http import QueryDict
 from django.template.loader import render_to_string
 from django.test import override_settings
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
 
@@ -4940,6 +4942,77 @@ def test_completion_record_list_caps_to_latest_100_by_updated_at(client):
     assert response.context["completion_record_is_capped"] is True
 
 
+def test_completion_record_list_does_not_cap_exactly_100_records(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    completion_user = UserFactory(name="Exact Cap User")
+    client.force_login(admin_user)
+    now = timezone.now()
+
+    for offset in range(ADMIN_TABLE_LATEST_LIMIT):
+        problem = ProblemSolveRecord.objects.create(
+            year=2026,
+            topic="ALG",
+            mohs=4,
+            contest="USAMO",
+            problem=f"P{offset + 1}",
+            contest_year_problem=f"USAMO 2026 P{offset + 1}",
+        )
+        completion = UserProblemCompletion.objects.create(
+            user=completion_user,
+            problem=problem,
+            completion_date=date(2026, 7, 10),
+        )
+        UserProblemCompletion.objects.filter(pk=completion.pk).update(
+            updated_at=now - timedelta(minutes=offset),
+        )
+
+    response = client.get(reverse("pages:completion_record_list"))
+
+    assert response.status_code == HTTPStatus.OK
+    assert len(response.context["completion_record_rows"]) == ADMIN_TABLE_LATEST_LIMIT
+    assert response.context["completion_record_visible_total"] == ADMIN_TABLE_LATEST_LIMIT
+    assert response.context["completion_record_is_capped"] is False
+
+
+def test_completion_record_list_detects_cap_without_completion_count_query(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    completion_user = UserFactory(name="Query Cap User")
+    client.force_login(admin_user)
+    now = timezone.now()
+
+    for offset in range(ADMIN_TABLE_LATEST_LIMIT + 1):
+        problem = ProblemSolveRecord.objects.create(
+            year=2026,
+            topic="ALG",
+            mohs=4,
+            contest="USAMO",
+            problem=f"P{offset + 1}",
+            contest_year_problem=f"USAMO 2026 P{offset + 1}",
+        )
+        completion = UserProblemCompletion.objects.create(
+            user=completion_user,
+            problem=problem,
+            completion_date=date(2026, 7, 10),
+        )
+        UserProblemCompletion.objects.filter(pk=completion.pk).update(
+            updated_at=now - timedelta(minutes=offset),
+        )
+
+    with CaptureQueriesContext(connection) as queries:
+        response = client.get(reverse("pages:completion_record_list"))
+
+    completion_count_queries = [
+        query["sql"]
+        for query in queries
+        if "pages_userproblemcompletion" in query["sql"].lower()
+        and "count(" in query["sql"].lower()
+    ]
+    assert response.status_code == HTTPStatus.OK
+    assert len(response.context["completion_record_rows"]) == ADMIN_TABLE_LATEST_LIMIT
+    assert response.context["completion_record_is_capped"] is True
+    assert completion_count_queries == []
+
+
 def test_completion_record_list_applies_filters_before_latest_100_cap(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     completion_user = UserFactory(name="Filter Cap User")
@@ -5201,6 +5274,104 @@ def test_completion_record_list_applies_query_filters(client):
     response_html = response.content.decode("utf-8")
     assert 'name="contest"' in response_html
     assert 'value="ada@example.com" selected' in response_html
+
+
+def test_completion_record_list_filters_no_solution_records(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    no_solution_user = UserFactory(name="No Solution User", email="none@example.com")
+    solved_user = UserFactory(name="Solved User", email="solved@example.com")
+    client.force_login(admin_user)
+    no_solution_problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="ALG",
+        mohs=6,
+        contest="USAMO",
+        problem="P1",
+        contest_year_problem="USAMO 2026 P1",
+    )
+    solved_problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="GEO",
+        mohs=5,
+        contest="USAMO",
+        problem="P2",
+        contest_year_problem="USAMO 2026 P2",
+    )
+    UserProblemCompletion.objects.create(
+        user=no_solution_user,
+        problem=no_solution_problem,
+        completion_date=date(2026, 7, 10),
+    )
+    UserProblemCompletion.objects.create(
+        user=solved_user,
+        problem=solved_problem,
+        completion_date=date(2026, 7, 11),
+    )
+    ProblemSolution.objects.create(
+        problem=solved_problem,
+        author=solved_user,
+        status=ProblemSolution.Status.DRAFT,
+    )
+
+    response = client.get(
+        reverse("pages:completion_record_list"),
+        {"solution_status": "none"},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert len(response.context["completion_record_rows"]) == 1
+    assert response.context["completion_record_rows"][0]["user_email"] == "none@example.com"
+    assert response.context["completion_record_rows"][0]["solution_status_label"] == "No solution"
+
+
+def test_completion_record_list_search_matches_solution_status_text(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    published_user = UserFactory(name="Published User", email="published@example.com")
+    draft_user = UserFactory(name="Draft User", email="draft@example.com")
+    client.force_login(admin_user)
+    published_problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="ALG",
+        mohs=6,
+        contest="USAMO",
+        problem="P1",
+        contest_year_problem="USAMO 2026 P1",
+    )
+    draft_problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="GEO",
+        mohs=5,
+        contest="USAMO",
+        problem="P2",
+        contest_year_problem="USAMO 2026 P2",
+    )
+    UserProblemCompletion.objects.create(
+        user=published_user,
+        problem=published_problem,
+        completion_date=date(2026, 7, 10),
+    )
+    UserProblemCompletion.objects.create(
+        user=draft_user,
+        problem=draft_problem,
+        completion_date=date(2026, 7, 11),
+    )
+    ProblemSolution.objects.create(
+        problem=published_problem,
+        author=published_user,
+        status=ProblemSolution.Status.PUBLISHED,
+    )
+    ProblemSolution.objects.create(
+        problem=draft_problem,
+        author=draft_user,
+        status=ProblemSolution.Status.DRAFT,
+    )
+
+    response = client.get(reverse("pages:completion_record_list"), {"q": "published"})
+
+    assert response.status_code == HTTPStatus.OK
+    assert len(response.context["completion_record_rows"]) == 1
+    assert response.context["completion_record_rows"][0]["user_email"] == "published@example.com"
+    assert response.context["completion_record_rows"][0]["solution_status"] == ProblemSolution.Status.PUBLISHED
 
 
 def test_user_solution_record_list_applies_query_filters(client):
