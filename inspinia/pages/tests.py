@@ -4655,6 +4655,9 @@ def test_completion_record_list_renders_admin_inventory(client):
     response_html = response.content.decode("utf-8")
     assert "Completion info listing" in response_html
     assert 'id="completion-record-table"' in response_html
+    assert 'order: [[8, "desc"]]' in response_html
+    assert "Known dates" not in response_html
+    assert "With solutions" not in response_html
 
 
 def test_completion_record_list_caps_to_latest_100_by_updated_at(client):
