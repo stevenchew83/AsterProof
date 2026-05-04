@@ -102,6 +102,7 @@ from inspinia.pages.topic_labels import FULL_TOPIC_LABEL_MAP
 from inspinia.pages.topic_labels import display_topic_label
 from inspinia.solutions.models import ProblemSolution
 from inspinia.users.models import AuditEvent
+from inspinia.users.models import User
 from inspinia.users.monitoring import record_event
 from inspinia.users.roles import user_has_admin_role
 
@@ -145,6 +146,7 @@ STATEMENT_LINKER_ERROR_PREVIEW_LIMIT = 5
 STATEMENT_METADATA_ERROR_PREVIEW_LIMIT = 5
 COMPLETION_BOARD_INITIAL_ROW_LIMIT = 30
 COMPLETION_BOARD_ROW_LOAD_STEP = 30
+COMPLETION_QUICK_UPDATE_RESULT_LIMIT = 100
 ADMIN_TABLE_LATEST_LIMIT = 100
 
 
@@ -800,36 +802,6 @@ def _statement_table_rows(base, *, user=None) -> list[dict]:
         )
 
     return table_rows
-
-
-def _completion_quick_update_rows(statements: list[ContestProblemStatement], *, user) -> list[dict]:
-    statement_rows = _statement_table_rows(statements, user=user)
-    rows: list[dict[str, object]] = []
-    for row in statement_rows:
-        topic = row["linked_problem_topic"] or ""
-        mohs = row["linked_problem_mohs"]
-        topic_mohs = topic
-        if mohs is not None:
-            topic_mohs = f"{topic} MOHS {mohs}" if topic else f"MOHS {mohs}"
-        rows.append(
-            {
-                "completion_date": row["user_completion_date"],
-                "completion_display": row["user_completion_display"],
-                "completion_sort": row["user_completion_sort"],
-                "completion_state_kind": row["user_completion_state_kind"],
-                "completion_state_label": row["user_completion_state_label"],
-                "contest": row["contest_name"],
-                "day_label": "" if row["day_label"] == "Unlabeled" else row["day_label"],
-                "label": row["contest_year_problem"],
-                "mohs": "" if mohs is None else mohs,
-                "problem_code": row["problem_code"],
-                "statement_uuid": row["statement_uuid"],
-                "topic": topic,
-                "topic_mohs": topic_mohs,
-                "year": row["contest_year"],
-            },
-        )
-    return rows
 
 
 def _format_imo_slot_label(value: object) -> str:
@@ -3272,71 +3244,6 @@ def completion_board_view(request):
 
 
 @login_required
-def completion_quick_update_view(request):
-    """Flat DataTable for quickly editing the current user's completion dates."""
-    base = _active_dashboard_statements()
-    filter_options = _problem_statement_list_filter_options(base)
-
-    search_query = (request.GET.get("q") or "").strip()
-    selected_contest = (request.GET.get("contest") or "").strip()
-    selected_year = (request.GET.get("year") or "").strip()
-    selected_topic = (request.GET.get("topic") or "").strip()
-
-    filtered_statements = _filter_statement_queryset(
-        base,
-        q=search_query,
-        year=selected_year,
-        topic=selected_topic,
-        confidence="",
-        mohs_min="",
-        mohs_max="",
-    )
-    if selected_contest:
-        filtered_statements = filtered_statements.filter(contest_name=selected_contest)
-
-    filtered_total = filtered_statements.count()
-    statements = list(
-        filtered_statements.select_related("linked_problem").order_by(
-            "-contest_year",
-            "contest_name",
-            "day_label",
-            "problem_number",
-            "problem_code",
-        )[:ADMIN_TABLE_LATEST_LIMIT],
-    )
-    rows = _json_script_safe(_completion_quick_update_rows(statements, user=request.user))
-    _ = json.dumps(rows, cls=DjangoJSONEncoder, allow_nan=False)
-
-    context = {
-        "completion_quick_update_filter_options": {
-            "contests": list(
-                base.values_list("contest_name", flat=True).distinct().order_by("contest_name"),
-            ),
-            "topics": filter_options["topics"],
-            "years": filter_options["years"],
-        },
-        "completion_quick_update_filters": {
-            "contest": selected_contest,
-            "q": search_query,
-            "topic": selected_topic,
-            "year": selected_year,
-        },
-        "completion_quick_update_has_active_filters": bool(
-            search_query or selected_contest or selected_year or selected_topic,
-        ),
-        "completion_quick_update_is_capped": filtered_total > len(rows),
-        "completion_quick_update_result_limit": ADMIN_TABLE_LATEST_LIMIT,
-        "completion_quick_update_rows": rows,
-        "completion_quick_update_total": base.count(),
-        "completion_quick_update_filtered_total": filtered_total,
-        "completion_quick_update_visible_total": len(rows),
-        "completion_board_today": timezone.localdate().isoformat(),
-        "completion_board_toggle_url": reverse("pages:completion_board_toggle"),
-    }
-    return render(request, "pages/completion-quick-update.html", context)
-
-
-@login_required
 def completion_board_toggle_view(request):
     """Phase 2 completion controls with a phase 1 toggle fallback."""
     if request.method != "POST":
@@ -3443,6 +3350,256 @@ def completion_board_bulk_view(request):
             "updated_count": len(updated_payloads),
         },
     )
+
+
+def _completion_quick_update_user_label(user: User) -> str:
+    return user.name or user.email
+
+
+def _completion_quick_update_user_options() -> list[dict[str, object]]:
+    return [
+        {
+            "id": user.id,
+            "label": (
+                user.email
+                if not user.name or user.name == user.email
+                else f"{user.name} ({user.email})"
+            ),
+        }
+        for user in User.objects.filter(is_active=True).order_by("email")
+    ]
+
+
+def _completion_quick_update_problem_candidates(raw_value: str) -> tuple[set[str], int | None]:
+    normalized = re.sub(r"\s+", "", raw_value or "").upper()
+    if not normalized:
+        return set(), None
+    candidates = {normalized}
+    problem_number = None
+    match = re.fullmatch(r"P?(?P<number>\d+)", normalized)
+    if match is not None:
+        number_text = match.group("number")
+        problem_number = int(number_text)
+        candidates.update({number_text, f"P{number_text}"})
+    return candidates, problem_number
+
+
+def _completion_quick_update_apply_problem_filter(queryset, raw_value: str):
+    candidates, problem_number = _completion_quick_update_problem_candidates(raw_value)
+    if not candidates and problem_number is None:
+        return queryset
+    problem_query = Q()
+    for candidate in candidates:
+        problem_query |= Q(problem_code__iexact=candidate)
+    if problem_number is not None:
+        problem_query |= Q(problem_number=problem_number)
+    return queryset.filter(problem_query)
+
+
+def _completion_quick_update_parse_user_id(raw_value: str) -> int | None:
+    try:
+        user_id = int(raw_value)
+    except (TypeError, ValueError):
+        return None
+    return user_id if user_id > 0 else None
+
+
+def _completion_quick_update_resolve_get_user(request) -> User:
+    if not user_has_admin_role(request.user):
+        return request.user
+    raw_target_user_id = (request.GET.get("target_user_id") or "").strip()
+    if not raw_target_user_id:
+        return request.user
+    target_user_id = _completion_quick_update_parse_user_id(raw_target_user_id)
+    if target_user_id is None:
+        return request.user
+    return User.objects.filter(id=target_user_id, is_active=True).first() or request.user
+
+
+def _completion_quick_update_resolve_post_user(request) -> tuple[User | None, str | None, int]:
+    raw_target_user_id = (request.POST.get("target_user_id") or "").strip()
+    if not user_has_admin_role(request.user):
+        if raw_target_user_id and raw_target_user_id != str(request.user.id):
+            return None, "Only admins can update another user's completion dates.", 403
+        return request.user, None, 200
+    if not raw_target_user_id:
+        return request.user, None, 200
+    target_user_id = _completion_quick_update_parse_user_id(raw_target_user_id)
+    if target_user_id is None:
+        return None, "Selected user was not found.", 400
+    target_user = User.objects.filter(id=target_user_id, is_active=True).first()
+    if target_user is None:
+        return None, "Selected user was not found.", 400
+    return target_user, None, 200
+
+
+def _completion_quick_update_row(
+    statement: ContestProblemStatement,
+    *,
+    completion_by_statement_id: dict[int, date | None],
+) -> dict[str, object]:
+    is_completed = statement.id in completion_by_statement_id
+    completion_date = completion_by_statement_id.get(statement.id)
+    completion_state_kind = _completion_board_state_kind(
+        is_solved=is_completed,
+        completion_date=completion_date,
+    )
+    completion_state_label = _completion_board_state_label(
+        is_solved=is_completed,
+        completion_date=completion_date,
+    )
+    if completion_date is not None:
+        completion_display = completion_date.isoformat()
+    elif is_completed:
+        completion_display = "Unknown date"
+    else:
+        completion_display = "Unsolved"
+    label = statement.contest_year_problem or (
+        f"{statement.contest_name} {statement.contest_year} {statement.problem_code}"
+    )
+    topic = effective_topic(statement)
+    return {
+        "completion_date": completion_date.isoformat() if completion_date else "",
+        "completion_display": completion_display,
+        "completion_state_kind": completion_state_kind,
+        "completion_state_label": completion_state_label,
+        "contest": statement.contest_name,
+        "day_label": statement.day_label or "",
+        "is_completed": is_completed,
+        "label": label,
+        "mohs": effective_mohs(statement),
+        "problem_code": statement.problem_code,
+        "statement_uuid": str(statement.statement_uuid),
+        "topic": display_topic_label(topic) if topic else "",
+        "year": int(statement.contest_year),
+    }
+
+
+@login_required
+def completion_quick_update_view(request):
+    """Fast statement search and completion-date update page."""
+    statement_base = _active_dashboard_statements().select_related("linked_problem")
+    contest_choices = list(
+        statement_base.values("contest_name")
+        .annotate(problem_count=Count("id"))
+        .order_by("contest_name"),
+    )
+    selected_contest = (request.GET.get("contest") or "").strip()
+    selected_year = (request.GET.get("year") or "").strip()
+    selected_problem = (request.GET.get("problem") or "").strip()
+    search_query = (request.GET.get("q") or "").strip()
+    can_select_user = user_has_admin_role(request.user)
+    selected_user = _completion_quick_update_resolve_get_user(request)
+
+    year_base = statement_base
+    if selected_contest:
+        year_base = year_base.filter(contest_name=selected_contest)
+    year_choices = list(
+        year_base.values_list("contest_year", flat=True).distinct().order_by("-contest_year"),
+    )
+
+    filtered_statements = statement_base
+    if selected_contest:
+        filtered_statements = filtered_statements.filter(contest_name=selected_contest)
+    filtered_statements = _filter_statement_queryset(
+        filtered_statements,
+        q=search_query,
+        year=selected_year,
+        topic="",
+        confidence="",
+        mohs_min="",
+        mohs_max="",
+    )
+    filtered_statements = _completion_quick_update_apply_problem_filter(
+        filtered_statements,
+        selected_problem,
+    ).distinct()
+    matching_total = filtered_statements.count()
+    statements = list(
+        filtered_statements.order_by(
+            "-contest_year",
+            "contest_name",
+            "problem_number",
+            "problem_code",
+            "day_label",
+            "id",
+        )[:COMPLETION_QUICK_UPDATE_RESULT_LIMIT],
+    )
+    completion_by_statement_id = _statement_completion_dates_by_statement_id(
+        statements,
+        user=selected_user,
+    )
+    rows = [
+        _completion_quick_update_row(
+            statement,
+            completion_by_statement_id=completion_by_statement_id,
+        )
+        for statement in statements
+    ]
+
+    context = {
+        "completion_quick_update_can_select_user": can_select_user,
+        "completion_quick_update_contest_choices": contest_choices,
+        "completion_quick_update_filters": {
+            "contest": selected_contest,
+            "problem": selected_problem,
+            "q": search_query,
+            "target_user_id": str(selected_user.id) if can_select_user and selected_user != request.user else "",
+            "year": selected_year,
+        },
+        "completion_quick_update_is_capped": matching_total > len(rows),
+        "completion_quick_update_matching_total": matching_total,
+        "completion_quick_update_result_limit": COMPLETION_QUICK_UPDATE_RESULT_LIMIT,
+        "completion_quick_update_rows": rows,
+        "completion_quick_update_save_url": reverse("pages:completion_quick_update_save"),
+        "completion_quick_update_selected_user": selected_user,
+        "completion_quick_update_today": timezone.localdate().isoformat(),
+        "completion_quick_update_user_options": (
+            _completion_quick_update_user_options() if can_select_user else []
+        ),
+        "completion_quick_update_year_choices": year_choices,
+    }
+    return render(request, "pages/completion-quick-update.html", context)
+
+
+@login_required
+def completion_quick_update_save_view(request):
+    """Save one quick completion-editor row for the current or selected user."""
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required."}, status=405)
+
+    target_user, error_message, status_code = _completion_quick_update_resolve_post_user(request)
+    if error_message is not None or target_user is None:
+        return JsonResponse({"error": error_message}, status=status_code)
+
+    statement_uuid = (request.POST.get("statement_uuid") or "").strip()
+    if not statement_uuid:
+        return JsonResponse({"error": "Statement UUID is required."}, status=400)
+    statement_problem = _completion_board_get_statement_problem(statement_uuid=statement_uuid)
+    if statement_problem is None:
+        raise Http404
+    statement, problem = statement_problem
+
+    is_solved, completion_date, error_message = _completion_board_apply_action(
+        action=(request.POST.get("action") or "").strip().lower(),
+        statement=statement,
+        problem=problem,
+        raw_completion_date=(request.POST.get("completion_date") or "").strip(),
+        today=timezone.localdate(),
+        user=target_user,
+    )
+    if error_message is not None:
+        return JsonResponse({"error": error_message}, status=400)
+
+    payload = _completion_board_response_payload(
+        statement=statement,
+        problem=problem,
+        is_solved=is_solved,
+        completion_date=completion_date,
+    )
+    payload["target_user_id"] = target_user.id
+    payload["target_user_label"] = _completion_quick_update_user_label(target_user)
+    return JsonResponse(payload)
 
 
 @login_required

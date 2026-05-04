@@ -86,6 +86,15 @@
             </li>
             {% endif %}
 
+            {% if show_completion_quick_update_link %}
+            <li class="side-nav-item">
+                <a href="{% url 'pages:completion_quick_update' %}" class="side-nav-link">
+                    <span class="menu-icon"><i class="ti ti-calendar-check"></i></span>
+                    <span class="menu-text">Quick completions</span>
+                </a>
+            </li>
+            {% endif %}
+
             {% if show_contest_advanced_dashboard_link %}
             <li class="side-nav-item">
                 <a href="{% url 'pages:contest_advanced_dashboard' %}" class="side-nav-link">

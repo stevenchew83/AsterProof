@@ -4423,6 +4423,249 @@ def test_completion_board_toggle_accepts_statement_uuid_for_unlinked_statement(c
     assert completion.completion_date is None
 
 
+def _create_quick_completion_statement(
+    *,
+    contest: str = "USAMO",
+    year: int = 2026,
+    problem_code: str = "P1",
+    problem_number: int = 1,
+) -> ContestProblemStatement:
+    problem = ProblemSolveRecord.objects.create(
+        year=year,
+        topic="ALG",
+        mohs=6,
+        contest=contest,
+        problem=problem_code,
+        contest_year_problem=f"{contest} {year} {problem_code}",
+    )
+    return ContestProblemStatement.objects.create(
+        linked_problem=problem,
+        contest_year=year,
+        contest_name=contest,
+        problem_number=problem_number,
+        problem_code=problem_code,
+        day_label="Day 1",
+        statement_latex=f"{contest} {year} {problem_code} statement",
+        is_active=True,
+    )
+
+
+def test_completion_quick_update_requires_login(client):
+    response = client.get(reverse("pages:completion_quick_update"))
+    login_url = reverse(settings.LOGIN_URL)
+
+    assert response.status_code == HTTPStatus.FOUND
+    assert response.url == f"{login_url}?next={reverse('pages:completion_quick_update')}"
+
+
+def test_completion_quick_update_filters_by_contest_year_and_problem_text(client):
+    user = UserFactory()
+    client.force_login(user)
+    matching_statement = _create_quick_completion_statement(problem_code="P1", problem_number=1)
+    _create_quick_completion_statement(problem_code="P2", problem_number=2)
+    _create_quick_completion_statement(contest="IMO", year=2026, problem_code="P1", problem_number=1)
+    UserProblemCompletion.objects.create(
+        user=user,
+        statement=matching_statement,
+        completion_date=date(2025, 8, 28),
+    )
+
+    response = client.get(
+        reverse("pages:completion_quick_update"),
+        {"contest": "USAMO", "year": "2026", "problem": "1"},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["completion_quick_update_filters"] == {
+        "contest": "USAMO",
+        "problem": "1",
+        "q": "",
+        "target_user_id": "",
+        "year": "2026",
+    }
+    rows = response.context["completion_quick_update_rows"]
+    assert len(rows) == 1
+    assert rows[0]["label"] == "USAMO 2026 P1"
+    assert rows[0]["completion_display"] == "2025-08-28"
+    response_html = response.content.decode("utf-8")
+    assert "USAMO 2026 P1" in response_html
+    assert "USAMO 2026 P2" not in response_html
+    assert 'name="problem"' in response_html
+    assert 'type="text"' in response_html
+    assert 'placeholder="YYYY-MM-DD"' in response_html
+
+
+def test_completion_quick_update_save_updates_current_user_only(client):
+    user = UserFactory()
+    client.force_login(user)
+    statement = _create_quick_completion_statement()
+
+    response = client.post(
+        reverse("pages:completion_quick_update_save"),
+        {
+            "action": "set_date",
+            "completion_date": "2025-08-28",
+            "statement_uuid": str(statement.statement_uuid),
+        },
+        HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    payload = response.json()
+    assert payload["completion_date"] == "2025-08-28"
+    assert payload["is_solved"] is True
+    completion = UserProblemCompletion.objects.get(user=user, statement=statement)
+    assert completion.completion_date == date(2025, 8, 28)
+    assert completion.problem is None
+
+
+def test_completion_quick_update_rejects_non_admin_target_user_override(client):
+    user = UserFactory()
+    other_user = UserFactory()
+    client.force_login(user)
+    statement = _create_quick_completion_statement()
+
+    response = client.post(
+        reverse("pages:completion_quick_update_save"),
+        {
+            "action": "set_date",
+            "completion_date": "2025-08-28",
+            "statement_uuid": str(statement.statement_uuid),
+            "target_user_id": str(other_user.id),
+        },
+        HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+    )
+
+    assert response.status_code == HTTPStatus.FORBIDDEN
+    assert not UserProblemCompletion.objects.filter(user=other_user, statement=statement).exists()
+    assert not UserProblemCompletion.objects.filter(user=user, statement=statement).exists()
+
+
+def test_completion_quick_update_admin_selects_target_user_completion_state(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    target_user = UserFactory(name="Target Learner", email="target@example.com")
+    client.force_login(admin_user)
+    statement = _create_quick_completion_statement()
+    UserProblemCompletion.objects.create(
+        user=admin_user,
+        statement=statement,
+        completion_date=date(2025, 1, 1),
+    )
+    UserProblemCompletion.objects.create(
+        user=target_user,
+        statement=statement,
+        completion_date=date(2025, 8, 28),
+    )
+
+    response = client.get(
+        reverse("pages:completion_quick_update"),
+        {"target_user_id": str(target_user.id)},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["completion_quick_update_can_select_user"] is True
+    assert response.context["completion_quick_update_selected_user"] == target_user
+    rows = response.context["completion_quick_update_rows"]
+    assert rows[0]["completion_display"] == "2025-08-28"
+    response_html = response.content.decode("utf-8")
+    assert 'name="target_user_id"' in response_html
+    assert "target@example.com" in response_html
+    assert "2025-01-01" not in response_html
+
+
+def test_completion_quick_update_admin_save_updates_selected_user_only(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    target_user = UserFactory()
+    client.force_login(admin_user)
+    statement = _create_quick_completion_statement()
+
+    response = client.post(
+        reverse("pages:completion_quick_update_save"),
+        {
+            "action": "set_date",
+            "completion_date": "2025-08-28",
+            "statement_uuid": str(statement.statement_uuid),
+            "target_user_id": str(target_user.id),
+        },
+        HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    target_completion = UserProblemCompletion.objects.get(user=target_user, statement=statement)
+    assert target_completion.completion_date == date(2025, 8, 28)
+    assert not UserProblemCompletion.objects.filter(user=admin_user, statement=statement).exists()
+
+
+def test_completion_quick_update_admin_save_rejects_invalid_target_user(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    statement = _create_quick_completion_statement()
+
+    response = client.post(
+        reverse("pages:completion_quick_update_save"),
+        {
+            "action": "set_date",
+            "completion_date": "2025-08-28",
+            "statement_uuid": str(statement.statement_uuid),
+            "target_user_id": "not-a-user",
+        },
+        HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+    )
+
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert not UserProblemCompletion.objects.filter(user=admin_user, statement=statement).exists()
+
+
+def test_completion_quick_update_save_rejects_invalid_date_without_changing_completion(client):
+    user = UserFactory()
+    client.force_login(user)
+    statement = _create_quick_completion_statement()
+    completion = UserProblemCompletion.objects.create(
+        user=user,
+        statement=statement,
+        completion_date=date(2025, 1, 1),
+    )
+
+    response = client.post(
+        reverse("pages:completion_quick_update_save"),
+        {
+            "action": "set_date",
+            "completion_date": "not-a-date",
+            "statement_uuid": str(statement.statement_uuid),
+        },
+        HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+    )
+
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    completion.refresh_from_db()
+    assert completion.completion_date == date(2025, 1, 1)
+
+
+def test_completion_quick_update_save_rejects_future_date_without_changing_completion(client):
+    user = UserFactory()
+    client.force_login(user)
+    statement = _create_quick_completion_statement()
+    completion = UserProblemCompletion.objects.create(
+        user=user,
+        statement=statement,
+        completion_date=date(2025, 1, 1),
+    )
+
+    response = client.post(
+        reverse("pages:completion_quick_update_save"),
+        {
+            "action": "set_date",
+            "completion_date": (timezone.localdate() + timedelta(days=1)).isoformat(),
+            "statement_uuid": str(statement.statement_uuid),
+        },
+        HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+    )
+
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    completion.refresh_from_db()
+    assert completion.completion_date == date(2025, 1, 1)
+
+
 def test_contest_dashboard_listing_bulk_update_sets_selected_rows_inactive(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
@@ -4665,7 +4908,7 @@ def test_completion_quick_update_renders_datatable_with_status_filter(client):
     response = client.get(reverse("pages:completion_quick_update"))
 
     assert response.status_code == HTTPStatus.OK
-    assert response.context["completion_quick_update_visible_total"] == 2
+    assert response.context["completion_quick_update_matching_total"] == 2
     row_by_problem = {
         row["problem_code"]: row
         for row in response.context["completion_quick_update_rows"]
@@ -4677,9 +4920,11 @@ def test_completion_quick_update_renders_datatable_with_status_filter(client):
     assert "Completion date editor" in response_html
     assert "dataTables.bootstrap5.min.css" in response_html
     assert "dataTables.min.js" in response_html
-    assert 'id="completion-quick-update-table"' in response_html
-    assert 'id="completion-quick-status-filter"' in response_html
-    assert 'new DataTable("#completion-quick-update-table"' in response_html
+    assert 'id="quick-completion-table"' in response_html
+    assert 'id="quick-completion-status-filter"' in response_html
+    assert 'data-completion-state="solved"' in response_html
+    assert 'data-completion-state="unsolved"' in response_html
+    assert 'new DataTable("#quick-completion-table"' in response_html
     assert "DataTable.ext.search.push" in response_html
 
 
@@ -9230,59 +9475,70 @@ def test_dashboard_sidebar_groups_links_into_balanced_workflow_sections_for_admi
     assert response.status_code == HTTPStatus.OK
     response_html = response.content.decode("utf-8")
     side_nav_html = response_html.split('<ul class="side-nav">', 1)[1].split("</ul>", 1)[0]
-    assert "Home" in side_nav_html
-    assert "Workspace" in side_nav_html
-    assert "Library" in side_nav_html
-    assert "Rankings" in side_nav_html
-    assert "Insights" in side_nav_html
-    assert "Operations" in side_nav_html
-    assert "Utilities" in side_nav_html
-    assert "Admin" in side_nav_html
-    assert "Personal" not in side_nav_html
-    assert "Analytics" not in side_nav_html
-    assert "Curation" not in side_nav_html
-    assert "Tools" not in side_nav_html
-    assert side_nav_html.index("Overview") < side_nav_html.index("My account")
-    assert side_nav_html.index("My account") < side_nav_html.index("My activity")
-    assert "Completion board" not in side_nav_html
-    assert "Import center" not in side_nav_html
-    assert "Ranking imports" in side_nav_html
-    assert side_nav_html.index("My activity") < side_nav_html.index("Contest progress")
-    assert side_nav_html.index("Contest progress") < side_nav_html.index("My solutions")
-    assert side_nav_html.index("My solutions") < side_nav_html.index("Problem statements")
-    assert side_nav_html.index("Problem statements") < side_nav_html.index("Ranking table")
-    assert side_nav_html.index("Ranking table") < side_nav_html.index("Ranking dashboard")
-    assert side_nav_html.index("Ranking dashboard") < side_nav_html.index("Students")
-    assert side_nav_html.index("Students") < side_nav_html.index("Assessments")
-    assert side_nav_html.index("Assessments") < side_nav_html.index("Formulas")
-    assert side_nav_html.index("Formulas") < side_nav_html.index("Ranking imports")
-    assert side_nav_html.index("Ranking imports") < side_nav_html.index("Problem analytics")
-    assert side_nav_html.index("Problem analytics") < side_nav_html.index("Contest analytics")
-    assert "Technique analytics" in side_nav_html
-    assert "Completion records" in side_nav_html
-    assert "Solution records" in side_nav_html
-    assert side_nav_html.index("Contest analytics") < side_nav_html.index("Technique analytics")
-    assert side_nav_html.index("Technique analytics") < side_nav_html.index("Statement analytics")
-    assert side_nav_html.index("Statement analytics") < side_nav_html.index("Completion records")
-    assert side_nav_html.index("Completion records") < side_nav_html.index("Solution records")
-    assert side_nav_html.index("Solution records") < side_nav_html.index("Problem data")
-    assert "Statement editor" in side_nav_html
-    assert "Statement metadata" in side_nav_html
-    assert "Statement duplicates" in side_nav_html
-    assert "Delete statement" in side_nav_html
-    assert side_nav_html.index("Problem data") < side_nav_html.index("Contest names")
-    assert side_nav_html.index("Contest names") < side_nav_html.index("Contest details")
-    assert side_nav_html.index("Contest details") < side_nav_html.index("Statement links")
-    assert side_nav_html.index("Statement links") < side_nav_html.index("Statement editor")
-    assert side_nav_html.index("Statement editor") < side_nav_html.index("Statement metadata")
-    assert side_nav_html.index("Statement metadata") < side_nav_html.index("Statement duplicates")
-    assert side_nav_html.index("Statement duplicates") < side_nav_html.index("Delete statement")
-    assert side_nav_html.index("Delete statement") < side_nav_html.index("LaTeX preview")
-    assert "Handle parser" in side_nav_html
-    assert side_nav_html.index("LaTeX preview") < side_nav_html.index("Handle parser")
-    assert side_nav_html.index("Handle parser") < side_nav_html.index("User roles")
-    assert side_nav_html.index("User roles") < side_nav_html.index("Session monitor")
-    assert side_nav_html.index("Session monitor") < side_nav_html.index("Event log")
+    present_labels = [
+        "Home",
+        "Workspace",
+        "Library",
+        "Rankings",
+        "Insights",
+        "Operations",
+        "Utilities",
+        "Admin",
+        "Quick completions",
+        "Ranking imports",
+        "Technique analytics",
+        "Completion records",
+        "Solution records",
+        "Statement editor",
+        "Statement metadata",
+        "Statement duplicates",
+        "Delete statement",
+        "Handle parser",
+    ]
+    absent_labels = ["Personal", "Analytics", "Curation", "Tools", "Completion board", "Import center"]
+
+    for label in present_labels:
+        assert label in side_nav_html
+    for label in absent_labels:
+        assert label not in side_nav_html
+
+    expected_order = [
+        "Overview",
+        "My account",
+        "My activity",
+        "Quick completions",
+        "Contest progress",
+        "My solutions",
+        "Problem statements",
+        "Ranking table",
+        "Ranking dashboard",
+        "Students",
+        "Assessments",
+        "Formulas",
+        "Ranking imports",
+        "Problem analytics",
+        "Contest analytics",
+        "Technique analytics",
+        "Statement analytics",
+        "Completion records",
+        "Solution records",
+        "Problem data",
+        "Contest names",
+        "Contest details",
+        "Statement links",
+        "Statement editor",
+        "Statement metadata",
+        "Statement duplicates",
+        "Delete statement",
+        "LaTeX preview",
+        "Handle parser",
+        "User roles",
+        "Session monitor",
+        "Event log",
+    ]
+    assert [side_nav_html.index(label) for label in expected_order] == sorted(
+        side_nav_html.index(label) for label in expected_order
+    )
 
 
 def test_topbar_keeps_account_controls_without_page_shortcut_links_for_admin(client):
