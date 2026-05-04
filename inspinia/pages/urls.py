@@ -18,6 +18,7 @@ from inspinia.pages.views import problem_detail_view
 from inspinia.pages.views import problem_import_view
 from inspinia.pages.views import problem_list_view
 from inspinia.pages.views import problem_statement_analytics_view
+from inspinia.pages.views import problem_statement_contest_year_master_view
 from inspinia.pages.views import problem_statement_delete_by_uuid_view
 from inspinia.pages.views import problem_statement_duplicate_view
 from inspinia.pages.views import problem_statement_editor_update_view
@@ -64,6 +65,11 @@ urlpatterns = [
         "dashboard/problem-statements/analytics/",
         problem_statement_analytics_view,
         name="problem_statement_dashboard",
+    ),
+    path(
+        "dashboard/problem-statements/contest-year/",
+        problem_statement_contest_year_master_view,
+        name="problem_statement_contest_year_master",
     ),
     path("dashboard/problem-statements/", problem_statement_list_view, name="problem_statement_list"),
     path(
