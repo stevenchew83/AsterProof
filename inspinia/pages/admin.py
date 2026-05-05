@@ -8,6 +8,7 @@ from .models import ProblemSolveRecord
 from .models import ProblemTopicTechnique
 from .models import StatementTopicTechnique
 from .models import UserProblemCompletion
+from .models import UserProblemDifficultyRating
 
 
 class ProblemTopicTechniqueInline(admin.TabularInline):
@@ -112,6 +113,19 @@ class UserProblemCompletionAdmin(admin.ModelAdmin):
         "problem__problem_uuid",
     )
     list_filter = ("completion_date", "problem__contest", "problem__year")
+
+
+@admin.register(UserProblemDifficultyRating)
+class UserProblemDifficultyRatingAdmin(admin.ModelAdmin):
+    list_display = ("user", "statement", "rating", "updated_at")
+    search_fields = (
+        "user__email",
+        "statement__contest_name",
+        "statement__contest_year_problem",
+        "statement__problem_code",
+        "statement__statement_uuid",
+    )
+    list_filter = ("rating", "statement__contest_name", "statement__contest_year")
 
 
 @admin.register(ContestProblemStatement)
