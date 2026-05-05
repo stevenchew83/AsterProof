@@ -16,6 +16,8 @@ class TestUserAdmin:
         url = reverse("admin:users_user_changelist")
         response = admin_client.get(url)
         assert response.status_code == HTTPStatus.OK
+        content = response.content.decode("utf-8")
+        assert "Approved for app access" in content or "Is approved" in content
 
     def test_search(self, admin_client):
         url = reverse("admin:users_user_changelist")

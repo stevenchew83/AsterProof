@@ -13,8 +13,11 @@ from pathlib import Path
 import pandas as pd
 import pytest
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import IntegrityError
 from django.db import connection
+from django.db import transaction
 from django.http import QueryDict
 from django.template.loader import render_to_string
 from django.test import override_settings
@@ -35,6 +38,7 @@ from inspinia.pages.models import ProblemSolveRecord
 from inspinia.pages.models import ProblemTopicTechnique
 from inspinia.pages.models import StatementTopicTechnique
 from inspinia.pages.models import UserProblemCompletion
+from inspinia.pages.models import UserProblemDifficultyRating
 from inspinia.pages.problem_import import ProblemImportValidationError
 from inspinia.pages.problem_import import dataframe_from_excel
 from inspinia.pages.problem_import import import_problem_dataframe
@@ -4532,6 +4536,248 @@ def _create_quick_completion_statement(
         statement_latex=f"{contest} {year} {problem_code} statement",
         is_active=True,
     )
+
+
+def test_problem_statement_difficulty_rating_accepts_boundary_values():
+    user = UserFactory()
+    low_statement = _create_quick_completion_statement(problem_code="P1", problem_number=1)
+    high_statement = _create_quick_completion_statement(problem_code="P2", problem_number=2)
+
+    low_rating = UserProblemDifficultyRating(user=user, statement=low_statement, rating=0)
+    high_rating = UserProblemDifficultyRating(user=user, statement=high_statement, rating=60)
+
+    low_rating.full_clean()
+    high_rating.full_clean()
+    low_rating.save()
+    high_rating.save()
+
+    assert list(
+        UserProblemDifficultyRating.objects.order_by("rating").values_list("rating", flat=True),
+    ) == [0, 60]
+
+
+def test_problem_statement_difficulty_rating_rejects_out_of_range_model_values():
+    user = UserFactory()
+    statement = _create_quick_completion_statement()
+    rating = UserProblemDifficultyRating(user=user, statement=statement, rating=61)
+
+    with pytest.raises(ValidationError):
+        rating.full_clean()
+
+
+def test_problem_statement_difficulty_rating_is_unique_per_user_and_statement():
+    user = UserFactory()
+    statement = _create_quick_completion_statement()
+    UserProblemDifficultyRating.objects.create(user=user, statement=statement, rating=12)
+
+    with pytest.raises(IntegrityError), transaction.atomic():
+        UserProblemDifficultyRating.objects.create(user=user, statement=statement, rating=24)
+
+
+def test_problem_statement_difficulty_rating_save_requires_login(client):
+    statement = _create_quick_completion_statement()
+
+    response = client.post(
+        reverse("pages:problem_statement_difficulty_rating_save"),
+        {
+            "rating": "30",
+            "statement_uuid": str(statement.statement_uuid),
+        },
+        HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+    )
+
+    login_url = reverse(settings.LOGIN_URL)
+    assert response.status_code == HTTPStatus.FOUND
+    assert response.url.startswith(f"{login_url}?")
+    assert not UserProblemDifficultyRating.objects.exists()
+
+
+def test_problem_statement_difficulty_rating_save_creates_current_user_rating(client):
+    user = UserFactory()
+    client.force_login(user)
+    statement = _create_quick_completion_statement()
+
+    response = client.post(
+        reverse("pages:problem_statement_difficulty_rating_save"),
+        {
+            "rating": "42",
+            "statement_uuid": str(statement.statement_uuid),
+        },
+        HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    payload = response.json()
+    assert payload["user_difficulty_rating"] == 42
+    assert payload["average_difficulty_rating"] == 42.0
+    assert payload["average_difficulty_display"] == "42.0"
+    assert payload["difficulty_rating_count"] == 1
+    rating = UserProblemDifficultyRating.objects.get(user=user, statement=statement)
+    assert rating.rating == 42
+
+
+def test_problem_statement_difficulty_rating_save_updates_existing_user_rating(client):
+    user = UserFactory()
+    client.force_login(user)
+    statement = _create_quick_completion_statement()
+    UserProblemDifficultyRating.objects.create(user=user, statement=statement, rating=12)
+
+    response = client.post(
+        reverse("pages:problem_statement_difficulty_rating_save"),
+        {
+            "rating": "24",
+            "statement_uuid": str(statement.statement_uuid),
+        },
+        HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.json()["user_difficulty_rating"] == 24
+    assert UserProblemDifficultyRating.objects.filter(user=user, statement=statement).count() == 1
+    assert UserProblemDifficultyRating.objects.get(user=user, statement=statement).rating == 24
+
+
+def test_problem_statement_difficulty_rating_save_returns_average_across_users(client):
+    user = UserFactory()
+    other_user = UserFactory()
+    client.force_login(user)
+    statement = _create_quick_completion_statement()
+    UserProblemDifficultyRating.objects.create(user=other_user, statement=statement, rating=25)
+
+    response = client.post(
+        reverse("pages:problem_statement_difficulty_rating_save"),
+        {
+            "rating": "10",
+            "statement_uuid": str(statement.statement_uuid),
+        },
+        HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    payload = response.json()
+    assert payload["user_difficulty_rating"] == 10
+    assert payload["average_difficulty_rating"] == 17.5
+    assert payload["average_difficulty_display"] == "17.5"
+    assert payload["difficulty_rating_count"] == 2
+
+
+@pytest.mark.parametrize("raw_rating", ["", "12.5", "-1", "61", "abc"])
+def test_problem_statement_difficulty_rating_save_rejects_invalid_values(client, raw_rating):
+    user = UserFactory()
+    client.force_login(user)
+    statement = _create_quick_completion_statement()
+    existing_rating = UserProblemDifficultyRating.objects.create(
+        user=user,
+        statement=statement,
+        rating=20,
+    )
+
+    response = client.post(
+        reverse("pages:problem_statement_difficulty_rating_save"),
+        {
+            "rating": raw_rating,
+            "statement_uuid": str(statement.statement_uuid),
+        },
+        HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+    )
+
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    existing_rating.refresh_from_db()
+    assert existing_rating.rating == 20
+
+
+def test_problem_statement_difficulty_rating_save_requires_statement_uuid(client):
+    user = UserFactory()
+    client.force_login(user)
+
+    response = client.post(
+        reverse("pages:problem_statement_difficulty_rating_save"),
+        {"rating": "30"},
+        HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+    )
+
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert response.json()["error"] == "Statement UUID is required."
+
+
+def test_problem_statement_difficulty_rating_save_raises_404_for_unknown_statement(client):
+    user = UserFactory()
+    client.force_login(user)
+
+    response = client.post(
+        reverse("pages:problem_statement_difficulty_rating_save"),
+        {
+            "rating": "30",
+            "statement_uuid": str(uuid.uuid4()),
+        },
+        HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+    )
+
+    assert response.status_code == HTTPStatus.NOT_FOUND
+    assert not UserProblemDifficultyRating.objects.exists()
+
+
+def test_problem_statement_list_includes_difficulty_rating_payload_and_controls(client):
+    user = UserFactory()
+    other_user = UserFactory()
+    client.force_login(user)
+    statement = _create_quick_completion_statement()
+    UserProblemDifficultyRating.objects.create(user=user, statement=statement, rating=10)
+    UserProblemDifficultyRating.objects.create(user=other_user, statement=statement, rating=25)
+
+    response = client.get(reverse("pages:problem_statement_list"))
+
+    assert response.status_code == HTTPStatus.OK
+    row = response.context["statement_datatable_rows"][0]
+    assert row["user_difficulty_rating"] == 10
+    assert row["average_difficulty_rating"] == 17.5
+    assert row["average_difficulty_display"] == "17.5"
+    assert row["difficulty_rating_count"] == 2
+    response_html = response.content.decode("utf-8")
+    assert "Your difficulty" in response_html
+    assert "Avg difficulty" in response_html
+    assert 'id="problem-statement-difficulty-csrf"' in response_html
+    assert reverse("pages:problem_statement_difficulty_rating_save") in response_html
+    assert 'min="0"' in response_html
+    assert 'max="60"' in response_html
+    assert 'step="1"' in response_html
+
+
+def test_problem_statement_list_difficulty_rating_stats_are_limited_to_visible_rows(client):
+    user = UserFactory()
+    other_user = UserFactory()
+    client.force_login(user)
+    now = timezone.now()
+    visible_statement = None
+    hidden_statement = None
+
+    for offset in range(ADMIN_TABLE_LATEST_LIMIT + 1):
+        statement = _create_quick_completion_statement(
+            problem_code=f"P{offset + 1}",
+            problem_number=offset + 1,
+        )
+        ContestProblemStatement.objects.filter(pk=statement.pk).update(
+            updated_at=now - timedelta(minutes=offset),
+        )
+        if offset == 0:
+            visible_statement = statement
+        if offset == ADMIN_TABLE_LATEST_LIMIT:
+            hidden_statement = statement
+
+    assert visible_statement is not None
+    assert hidden_statement is not None
+    UserProblemDifficultyRating.objects.create(user=user, statement=visible_statement, rating=12)
+    UserProblemDifficultyRating.objects.create(user=other_user, statement=hidden_statement, rating=60)
+
+    response = client.get(reverse("pages:problem_statement_list"))
+
+    assert response.status_code == HTTPStatus.OK
+    rows = response.context["statement_datatable_rows"]
+    assert len(rows) == ADMIN_TABLE_LATEST_LIMIT
+    assert rows[0]["statement_uuid"] == str(visible_statement.statement_uuid)
+    assert rows[0]["user_difficulty_rating"] == 12
+    assert rows[0]["average_difficulty_display"] == "12.0"
+    assert str(hidden_statement.statement_uuid) not in {row["statement_uuid"] for row in rows}
 
 
 def test_completion_quick_update_requires_login(client):

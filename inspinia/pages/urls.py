@@ -23,6 +23,7 @@ from inspinia.pages.views import problem_list_redirect_view
 from inspinia.pages.views import problem_statement_analytics_view
 from inspinia.pages.views import problem_statement_contest_year_master_view
 from inspinia.pages.views import problem_statement_delete_by_uuid_view
+from inspinia.pages.views import problem_statement_difficulty_rating_save_view
 from inspinia.pages.views import problem_statement_duplicate_view
 from inspinia.pages.views import problem_statement_editor_update_view
 from inspinia.pages.views import problem_statement_editor_view
@@ -96,6 +97,11 @@ urlpatterns = [
         name="problem_statement_contest_year_master",
     ),
     path("dashboard/problem-statements/", problem_statement_list_view, name="problem_statement_list"),
+    path(
+        "dashboard/problem-statements/rating/",
+        problem_statement_difficulty_rating_save_view,
+        name="problem_statement_difficulty_rating_save",
+    ),
     path(
         "tools/problem-statements/linker/",
         problem_statement_linker_view,
