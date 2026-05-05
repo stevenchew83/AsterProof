@@ -41,6 +41,7 @@ class UserAdmin(auth_admin.UserAdmin):
             _("Permissions"),
             {
                 "fields": (
+                    "is_approved",
                     "is_active",
                     "is_staff",
                     "is_superuser",
@@ -51,7 +52,8 @@ class UserAdmin(auth_admin.UserAdmin):
         ),
         (_("Important dates"), {"fields": ("last_login", "date_joined")}),
     )
-    list_display = ["email", "name", "school", "role", "is_superuser"]
+    list_display = ["email", "name", "school", "role", "is_approved", "is_superuser"]
+    list_filter = ["role", "is_approved", "is_superuser", "is_staff", "is_active"]
     search_fields = ["email", "name", "school", "discord_username", "contact_number", "postal_code", "country"]
     ordering = ["id"]
     add_fieldsets = (

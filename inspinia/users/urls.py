@@ -1,5 +1,6 @@
 from django.urls import path
 
+from .views import approval_pending_view
 from .views import event_log_view
 from .views import manage_user_roles_view
 from .views import public_profile_update_view
@@ -11,6 +12,7 @@ from .views import user_update_view
 
 app_name = "users"
 urlpatterns = [
+    path("approval-pending/", view=approval_pending_view, name="approval_pending"),
     path("~redirect/", view=user_redirect_view, name="redirect"),
     path("~update/", view=user_update_view, name="update"),
     path("profile/", view=public_profile_view, name="profile"),

@@ -68,6 +68,12 @@ class User(AbstractUser):
         default=Role.NORMAL,
         db_index=True,
     )
+    is_approved = models.BooleanField(
+        _("Approved for app access"),
+        default=False,
+        db_index=True,
+        help_text=_("Unapproved users can sign in but cannot use AsterProof features."),
+    )
     first_name = None  # type: ignore[assignment]
     last_name = None  # type: ignore[assignment]
     email = EmailField(_("email address"), unique=True)
@@ -148,6 +154,7 @@ class AuditEvent(models.Model):
         LOGOUT = "auth.logout", _("Logout")
         SIGNUP = "auth.signup", _("Signup")
         ROLE_CHANGED = "users.role_changed", _("Role changed")
+        APPROVAL_CHANGED = "users.approval_changed", _("Approval changed")
         SESSION_REVOKED = "sessions.revoked", _("Session revoked")
         IMPORT_PREVIEWED = "imports.previewed", _("Workbook previewed")
         IMPORT_COMPLETED = "imports.completed", _("Workbook imported")
@@ -204,6 +211,7 @@ class AuditEvent(models.Model):
             return "text-bg-info"
         if self.event_type in {
             self.EventType.ROLE_CHANGED,
+            self.EventType.APPROVAL_CHANGED,
             self.EventType.SESSION_REVOKED,
         }:
             return "text-bg-warning"

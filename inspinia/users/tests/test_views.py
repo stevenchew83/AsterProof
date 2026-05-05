@@ -445,7 +445,7 @@ class TestManageRolesView:
 
         response = client.post(
             reverse("users:manage_roles"),
-            {"user_id": target_user.pk, "role": User.Role.MODERATOR},
+            {"user_id": target_user.pk, "role": User.Role.MODERATOR, "is_approved": "1"},
             follow=True,
         )
 
@@ -454,19 +454,13 @@ class TestManageRolesView:
         assert response.status_code == HTTPStatus.OK
         assert response.request["PATH_INFO"] == reverse("users:manage_roles")
         assert target_user.role == User.Role.MODERATOR
+        assert target_user.is_approved is True
         content = response.content.decode("utf-8")
-        assert (
-            gettext("Updated role for %(email)s to %(role)s.")
-            % {
-                "email": target_user.email,
-                "role": target_user.get_role_display(),
-            }
-            in content
-        )
+        assert gettext("Updated access for %(email)s.") % {"email": target_user.email} in content
         assert (
             gettext(
-                "Admin-only role settings. Admin unlocks the admin tools and admin navigation. "
-                "Moderator, trainer, and normal are reserved for future permissions.",
+                "Admin-only access settings. Approval unlocks authenticated AsterProof features. "
+                "Admin and superuser accounts are always treated as approved.",
             )
             in content
         )
@@ -475,6 +469,86 @@ class TestManageRolesView:
             actor=admin_user,
             target_user=target_user,
         ).exists()
+
+    def test_manage_roles_admin_can_approve_user_and_record_audit_event(self, client: Client):
+        admin_user = UserFactory(role=User.Role.ADMIN)
+        target_user = UserFactory(role=User.Role.NORMAL, is_approved=False)
+        client.force_login(admin_user)
+
+        response = client.post(
+            reverse("users:manage_roles"),
+            {"user_id": target_user.pk, "role": User.Role.NORMAL, "is_approved": "1"},
+            follow=True,
+        )
+
+        target_user.refresh_from_db()
+
+        assert response.status_code == HTTPStatus.OK
+        assert target_user.role == User.Role.NORMAL
+        assert target_user.is_approved is True
+        content = response.content.decode("utf-8")
+        assert gettext("Updated access for %(email)s.") % {"email": target_user.email} in content
+        assert AuditEvent.objects.filter(
+            event_type=AuditEvent.EventType.APPROVAL_CHANGED,
+            actor=admin_user,
+            target_user=target_user,
+            metadata__from_approved=False,
+            metadata__to_approved=True,
+        ).exists()
+
+    def test_manage_roles_admin_can_revoke_normal_user_approval(self, client: Client):
+        admin_user = UserFactory(role=User.Role.ADMIN)
+        target_user = UserFactory(role=User.Role.NORMAL, is_approved=True)
+        client.force_login(admin_user)
+
+        response = client.post(
+            reverse("users:manage_roles"),
+            {"user_id": target_user.pk, "role": User.Role.NORMAL, "is_approved": "0"},
+            follow=True,
+        )
+
+        target_user.refresh_from_db()
+
+        assert response.status_code == HTTPStatus.OK
+        assert target_user.is_approved is False
+        assert AuditEvent.objects.filter(
+            event_type=AuditEvent.EventType.APPROVAL_CHANGED,
+            actor=admin_user,
+            target_user=target_user,
+            metadata__from_approved=True,
+            metadata__to_approved=False,
+        ).exists()
+
+    def test_manage_roles_admin_role_is_stored_as_approved(self, client: Client):
+        admin_user = UserFactory(role=User.Role.ADMIN)
+        target_user = UserFactory(role=User.Role.NORMAL, is_approved=False)
+        client.force_login(admin_user)
+
+        response = client.post(
+            reverse("users:manage_roles"),
+            {"user_id": target_user.pk, "role": User.Role.ADMIN, "is_approved": "0"},
+            follow=True,
+        )
+
+        target_user.refresh_from_db()
+
+        assert response.status_code == HTTPStatus.OK
+        assert target_user.role == User.Role.ADMIN
+        assert target_user.is_approved is True
+
+    def test_manage_roles_page_shows_approval_controls(self, client: Client):
+        admin_user = UserFactory(role=User.Role.ADMIN)
+        pending_user = UserFactory(email="pending@example.com", is_approved=False)
+        client.force_login(admin_user)
+
+        response = client.get(reverse("users:manage_roles"))
+
+        assert response.status_code == HTTPStatus.OK
+        content = response.content.decode("utf-8")
+        assert "User access" in content
+        assert "Approval" in content
+        assert pending_user.email in content
+        assert 'name="is_approved"' in content
 
     def test_manage_roles_rejects_invalid_role(self, client: Client):
         admin_user = UserFactory(role=User.Role.ADMIN)

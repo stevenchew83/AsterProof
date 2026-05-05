@@ -22,3 +22,11 @@ def user_has_moderator_or_admin_role(user: object | None) -> bool:
         return True
     role = getattr(user, "role", None)
     return role == User.Role.MODERATOR
+
+
+def user_can_access_app_features(user: object | None) -> bool:
+    if not getattr(user, "is_authenticated", False):
+        return False
+    if user_has_admin_role(user):
+        return True
+    return bool(getattr(user, "is_approved", False))
