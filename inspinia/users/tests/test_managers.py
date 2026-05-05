@@ -16,6 +16,7 @@ class TestUserManager:
         assert user.email == "john@example.com"
         assert not user.is_staff
         assert not user.is_superuser
+        assert not user.is_approved
         assert user.check_password("something-r@nd0m!")
         assert user.username is None
 
@@ -27,6 +28,7 @@ class TestUserManager:
         assert user.email == "admin@example.com"
         assert user.is_staff
         assert user.is_superuser
+        assert user.is_approved
         assert user.username is None
 
     def test_create_superuser_username_ignored(self):
@@ -53,3 +55,4 @@ def test_createsuperuser_command():
     assert out.getvalue() == "Superuser created successfully.\n"
     user = User.objects.get(email="henry@example.com")
     assert not user.has_usable_password()
+    assert user.is_approved
