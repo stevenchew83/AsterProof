@@ -56,6 +56,7 @@ from inspinia.pages.completion_progress import filter_completion_progress_rows
 from inspinia.pages.completion_progress import normalize_completion_progress_rows
 from inspinia.pages.completion_progress import resolve_completion_progress_date_range
 from inspinia.pages.contest_links import contest_dashboard_listing_url
+from inspinia.pages.contest_links import problem_anchor as dashboard_problem_anchor
 from inspinia.pages.contest_links import problem_statement_contest_year_master_url
 from inspinia.pages.contest_names import normalize_contest_name
 from inspinia.pages.contest_rename import ContestRenameValidationError
@@ -372,7 +373,7 @@ def root_page_view(request):
         search_entries.extend(
             {
                 "description": f"Appears in {row['problem_count']} imported problem(s)",
-                "href": reverse("pages:problem_list") + f"?{urlencode({'q': row['technique']})}",
+                "href": reverse("pages:topic_tag_dashboard") + f"?{urlencode({'q': row['technique']})}",
                 "label": row["technique"],
                 "searchable": f"{row['technique']} technique tag",
                 "type": "Topic tag",
@@ -2991,7 +2992,7 @@ def _problem_sort_key(problem_label: str | None) -> list[tuple[int, int | str]]:
 
 
 def _problem_anchor(problem_label: str, fallback: str) -> str:
-    return slugify(problem_label) or slugify(fallback) or "problem"
+    return dashboard_problem_anchor(problem_label, fallback)
 
 
 def _build_contest_directory_rows(base) -> list[dict]:
@@ -3167,7 +3168,7 @@ def _build_topic_tag_directory_rows(
                 "avg_mohs": round(sum(bucket["mohs_values"]) / len(bucket["mohs_values"]), 2),
                 "max_mohs": max(bucket["mohs_values"]),
                 "sample_contests_label": ", ".join(sample_contests),
-                "search_href": reverse("pages:problem_list") + f"?{urlencode({'q': technique})}",
+                "search_href": reverse("pages:topic_tag_dashboard") + f"?{urlencode({'q': technique})}",
             },
         )
 
@@ -4715,336 +4716,63 @@ def problem_statement_contest_year_master_view(request):
 
 
 @login_required
-def problem_list_view(request):
-    """Contest-first problem explorer for browsing the imported archive."""
-    base = _active_problem_records()
-    contest_directory = _build_contest_directory_rows(base)
-    statement_ready_total = sum(1 for row in contest_directory if row["has_statements"])
-
-    stats = base.aggregate(
-        contest_n=Count("contest", distinct=True),
-        problem_n=Count("id"),
-        topic_n=Count("topic", distinct=True),
-        year_min=Min("year"),
-        year_max=Max("year"),
-    )
-    year_min = stats["year_min"]
-    year_max = stats["year_max"]
-    year_range_label = "Awaiting dataset import"
-    if year_min is not None and year_max is not None:
-        year_range_label = str(year_min) if year_min == year_max else f"{year_min}-{year_max}"
-
-    initial_search_query = (request.GET.get("q") or "").strip()
-    if initial_search_query:
-        query = initial_search_query.lower()
-        contest_directory = [
-            row
-            for row in contest_directory
-            if query
-            in " ".join(
-                [
-                    row["contest"],
-                    row["year_span_label"],
-                    *row["top_topics"],
-                    *(preview["label"] for preview in row["preview_problems"]),
-                ],
-            ).lower()
-        ]
-
+def archive_hub_view(request):
+    """Dashboard navigation hub for current archive workflows."""
     context = {
-        "contest_directory": contest_directory,
-        "problem_listing_total": stats["problem_n"],
-        "problem_listing_stats": {
-            "contest_total": stats["contest_n"],
-            "statement_ready_total": statement_ready_total,
-            "year_range_label": year_range_label,
-        },
-        "initial_search_query": initial_search_query,
-        "visible_contest_total": len(contest_directory),
+        "archive_hub_primary_links": [
+            {
+                "description": "Contest-year statement rows, filters, completion state, and solution links.",
+                "icon": "ti-list-details",
+                "title": "Contest listings",
+                "url": reverse("pages:contest_dashboard_listing"),
+            },
+            {
+                "description": "Statement UUIDs, linked problem UUIDs, topics, confidence, and MOHS filters.",
+                "icon": "ti-file-text",
+                "title": "Problem statements",
+                "url": reverse("pages:problem_statement_list"),
+            },
+            {
+                "description": "Contest-year completion matrix for marking solved and dated problems.",
+                "icon": "ti-checkbox",
+                "title": "Completion board",
+                "url": reverse("pages:completion_board"),
+            },
+            {
+                "description": "Search statements quickly and save completion state from a compact table.",
+                "icon": "ti-bolt",
+                "title": "Quick completions",
+                "url": reverse("pages:completion_quick_update"),
+            },
+        ],
+        "archive_hub_secondary_links": [
+            {
+                "description": "Personal completion import, heatmaps, and activity history.",
+                "icon": "ti-activity",
+                "title": "My activity",
+                "url": reverse("pages:user_activity_dashboard"),
+            },
+            {
+                "description": "Create or continue written solutions for statement-backed problems.",
+                "icon": "ti-pencil",
+                "title": "Solution workspace",
+                "url": reverse("solutions:problem_solution_create"),
+            },
+            {
+                "description": "Technique-tag analytics and tag-driven exploration.",
+                "icon": "ti-tags",
+                "title": "Topic tags",
+                "url": reverse("pages:topic_tag_dashboard"),
+            },
+        ],
     }
-    return render(request, "pages/problem-list.html", context)
+    return render(request, "pages/archive-hub.html", context)
 
 
 @login_required
-def _build_contest_problem_listing_context(
-    request,
-    *,
-    contest_name: str,
-    contest_slug: str,
-) -> dict[str, object]:
-    contest_base = _active_problem_records().filter(contest=contest_name)
-    stats = contest_base.aggregate(
-        avg_mohs=Avg("mohs"),
-        problem_n=Count("id"),
-        topic_n=Count("topic", distinct=True),
-        year_max=Max("year"),
-        year_min=Min("year"),
-    )
-    if not stats["problem_n"]:
-        msg = "Contest has no problems."
-        raise Http404(msg)
-
-    initial_search_query = (request.GET.get("q") or "").strip()
-    selected_mohs = (request.GET.get("mohs") or "").strip()
-    selected_year = (request.GET.get("year") or "").strip()
-    selected_topic = display_topic_label((request.GET.get("topic") or "").strip())
-    selected_tag = (request.GET.get("tag") or "").strip()
-    statement_by_problem_id: dict[int, dict] = {}
-    for statement in (
-        ContestProblemStatement.objects.filter(linked_problem__contest=contest_name)
-        .select_related("linked_problem")
-        .order_by("-updated_at", "-contest_year", "day_label", "problem_number")
-    ):
-        if statement.linked_problem_id in statement_by_problem_id:
-            continue
-        render_payload = _statement_render_payload(statement.statement_latex)
-        statement_by_problem_id[statement.linked_problem_id] = {
-            "day_label": statement.day_label or "",
-            "statement_has_asymptote": render_payload["statement_has_asymptote"],
-            "statement_latex": statement.statement_latex,
-            "statement_render_segments": render_payload["statement_render_segments"],
-            "updated_at_label": timezone.localtime(statement.updated_at).strftime("%Y-%m-%d"),
-        }
-
-    topic_tag_rows = list(
-        ProblemTopicTechnique.objects.filter(record__contest=contest_name)
-        .values("record_id", "technique", "domains")
-        .order_by("technique", "record_id"),
-    )
-    topic_tags_by_problem_id: dict[int, list[dict]] = defaultdict(list)
-    topic_tag_options: list[str] = []
-    seen_topic_tags: set[str] = set()
-    for tag_row in topic_tag_rows:
-        technique = tag_row["technique"]
-        domains = tag_row.get("domains") or []
-        topic_tags_by_problem_id[tag_row["record_id"]].append(
-            {
-                "domains": domains,
-                "domains_label": ", ".join(domains),
-                "technique": technique,
-            },
-        )
-        if technique not in seen_topic_tags:
-            seen_topic_tags.add(technique)
-            topic_tag_options.append(technique)
-
-    problem_rows = list(
-        contest_base.annotate(technique_count=Count("topic_techniques"))
-        .values(
-            "id",
-            "contest_year_problem",
-            "confidence",
-            "imo_slot_guess_value",
-            "mohs",
-            "problem",
-            "problem_uuid",
-            "technique_count",
-            "topic",
-            "year",
-        ),
-    )
-    for row in problem_rows:
-        row["topic"] = display_topic_label(row["topic"])
-    problem_rows.sort(
-        key=lambda row: (
-            -int(row["year"]),
-            0 if row["id"] in statement_by_problem_id else 1,
-            _problem_sort_key(row["problem"]),
-            row["contest_year_problem"] or "",
-        ),
-    )
-
-    if selected_year:
-        problem_rows = [row for row in problem_rows if str(row["year"]) == selected_year]
-
-    if selected_mohs:
-        problem_rows = [row for row in problem_rows if str(row["mohs"]) == selected_mohs]
-
-    if selected_topic:
-        problem_rows = [row for row in problem_rows if row["topic"] == selected_topic]
-
-    if selected_tag:
-        problem_rows = [
-            row
-            for row in problem_rows
-            if any(
-                tag["technique"] == selected_tag
-                for tag in topic_tags_by_problem_id.get(row["id"], [])
-            )
-        ]
-
-    if initial_search_query:
-        query = initial_search_query.lower()
-        problem_rows = [
-            row
-            for row in problem_rows
-            if query
-            in " ".join(
-                [
-                    str(row["year"]),
-                    row["problem"],
-                    row["topic"],
-                    row["contest_year_problem"] or "",
-                    row.get("confidence") or "",
-                    row.get("imo_slot_guess_value") or "",
-                    *(
-                        tag["technique"]
-                        for tag in topic_tags_by_problem_id.get(row["id"], [])
-                    ),
-                    *(
-                        tag["domains_label"]
-                        for tag in topic_tags_by_problem_id.get(row["id"], [])
-                        if tag["domains_label"]
-                    ),
-                ],
-            ).lower()
-        ]
-
-    completion_by_problem_id = {
-        row["problem_id"]: row["completion_date"]
-        for row in UserProblemCompletion.objects.filter(
-            user=request.user,
-            problem__contest=contest_name,
-        ).values("problem_id", "completion_date")
-    }
-    solution_counts_by_problem_id = {
-        row["problem_id"]: row["published_solution_total"]
-        for row in ProblemSolution.objects.filter(
-            problem__contest=contest_name,
-            status=ProblemSolution.Status.PUBLISHED,
-        )
-        .values("problem_id")
-        .annotate(published_solution_total=Count("id"))
-    }
-    my_solution_rows_by_problem_id = {
-        row["problem_id"]: row
-        for row in ProblemSolution.objects.filter(
-            author=request.user,
-            problem__contest=contest_name,
-        ).values("problem_id", "status")
-    }
-
-    grouped_years: list[dict] = []
-    for row in problem_rows:
-        statement_data = statement_by_problem_id.get(row["id"])
-        published_solution_total = solution_counts_by_problem_id.get(row["id"], 0)
-        my_solution_row = my_solution_rows_by_problem_id.get(row["id"])
-        label = row["contest_year_problem"] or f"{contest_name} {row['year']} {row['problem']}"
-        completion_date = completion_by_problem_id.get(row["id"])
-        is_completed = row["id"] in completion_by_problem_id
-        completion_state_kind = _completion_board_state_kind(
-            is_solved=is_completed,
-            completion_date=completion_date,
-        )
-        completion_state_label = _completion_board_state_label(
-            is_solved=is_completed,
-            completion_date=completion_date,
-        )
-        topic_tags = topic_tags_by_problem_id.get(row["id"], [])
-        problem_item = {
-            "anchor": _problem_anchor(label, f"{row['year']}-{row['problem']}"),
-            "confidence": row.get("confidence"),
-            "completion_date": completion_date,
-            "completion_display": (
-                completion_date.isoformat()
-                if completion_date is not None
-                else ("Unknown date" if is_completed else "Unsolved")
-            ),
-            "completion_known": is_completed and completion_date is not None,
-            "completion_state_kind": completion_state_kind,
-            "completion_state_label": completion_state_label,
-            "is_completed": is_completed,
-            "imo_slot_guess_value": row.get("imo_slot_guess_value"),
-            "label": label,
-            "mohs": row["mohs"],
-            "problem": row["problem"],
-            "problem_uuid": str(row["problem_uuid"]),
-            "published_solution_total": published_solution_total,
-            "statement_day_label": statement_data["day_label"] if statement_data else "",
-            "statement_has_asymptote": (
-                statement_data["statement_has_asymptote"] if statement_data else False
-            ),
-            "statement_latex": statement_data["statement_latex"] if statement_data else "",
-            "statement_render_segments": (
-                statement_data["statement_render_segments"] if statement_data else []
-            ),
-            "statement_updated_at_label": (
-                statement_data["updated_at_label"] if statement_data else ""
-            ),
-            "has_statement": statement_data is not None,
-            "has_my_solution": my_solution_row is not None,
-            "technique_count": row["technique_count"],
-            "my_solution_status": my_solution_row["status"] if my_solution_row else "",
-            "my_solution_status_badge_class": (
-                _solution_status_badge_class(my_solution_row["status"])
-                if my_solution_row is not None
-                else ""
-            ),
-            "my_solution_status_label": (
-                ProblemSolution.Status(my_solution_row["status"]).label
-                if my_solution_row is not None
-                else ""
-            ),
-            "solution_editor_url": reverse("solutions:problem_solution_edit", args=[row["problem_uuid"]]),
-            "solutions_url": reverse("solutions:problem_solution_list", args=[row["problem_uuid"]]),
-            "topic_tags": topic_tags,
-            "topic": row["topic"],
-        }
-        if not grouped_years or grouped_years[-1]["year"] != row["year"]:
-            grouped_years.append({"year": row["year"], "problems": [problem_item]})
-            continue
-        grouped_years[-1]["problems"].append(problem_item)
-
-    top_topics = list(
-        contest_base.values("topic")
-        .annotate(problem_count=Count("id"))
-        .order_by("-problem_count", "topic")[:6],
-    )
-    for row in top_topics:
-        row["topic"] = display_topic_label(row["topic"])
-
-    context = {
-        "contest_problem_total": stats["problem_n"],
-        "contest_problem_stats": {
-            "avg_mohs": round(float(stats["avg_mohs"] or 0), 1),
-            "statement_total": len(statement_by_problem_id),
-            "year_range_label": (
-                str(stats["year_min"])
-                if stats["year_min"] == stats["year_max"]
-                else f"{stats['year_min']}-{stats['year_max']}"
-            ),
-        },
-        "contest_slug": contest_slug,
-        "contest_title": contest_name,
-        "filter_options": {
-            "mohs_values": list(
-                contest_base.values_list("mohs", flat=True).distinct().order_by("mohs"),
-            ),
-            "tags": topic_tag_options,
-            "topics": list(
-                dict.fromkeys(
-                    display_topic_label(topic)
-                    for topic in contest_base.values_list("topic", flat=True).distinct().order_by("topic")
-                ),
-            ),
-            "years": list(
-                contest_base.values_list("year", flat=True).distinct().order_by("-year"),
-            ),
-        },
-        "grouped_years": grouped_years,
-        "has_active_filters": bool(
-            initial_search_query or selected_mohs or selected_year or selected_topic or selected_tag,
-        ),
-        "initial_search_query": initial_search_query,
-        "matching_problem_total": len(problem_rows),
-        "selected_mohs": selected_mohs,
-        "selected_tag": selected_tag,
-        "selected_topic": selected_topic,
-        "selected_year": selected_year,
-        "statement_rendering_enabled": bool(statement_by_problem_id),
-        "top_topics": [row["topic"] for row in top_topics],
-    }
-    return context
+def problem_list_redirect_view(request):
+    """Temporary compatibility redirect from the retired /problems/ landing page."""
+    return redirect("pages:archive_hub")
 
 
 def _build_dashboard_contest_statement_listing_context(
@@ -5352,20 +5080,6 @@ def _build_dashboard_contest_statement_listing_context(
 
 
 @login_required
-def contest_problem_list_view(request, contest_slug: str):
-    """Legacy URL under /problems/contests/… redirects to dashboard contest listing."""
-    contest_names = list(_active_problem_records().values_list("contest", flat=True).distinct())
-    _contest_to_slug, slug_to_contest = _build_contest_slug_maps(contest_names)
-    contest_name = slug_to_contest.get(contest_slug)
-    if contest_name is None:
-        msg = "Contest not found."
-        raise Http404(msg)
-    query = request.GET.copy()
-    query["contest"] = contest_name
-    return redirect(f"{reverse('pages:contest_dashboard_listing')}?{query.urlencode()}")
-
-
-@login_required
 def contest_dashboard_listing_view(request):
     """Dashboard contest listing drill-down selected by query string."""
     contest_choices = [
@@ -5472,20 +5186,6 @@ def contest_dashboard_listing_bulk_update_view(request):
         f"Set {updated_total} statement row(s) inactive.",
     )
     return redirect(redirect_url)
-
-
-@login_required
-def problem_detail_view(request, problem_uuid: uuid.UUID):
-    problem = _active_problem_records().filter(problem_uuid=problem_uuid).first()
-    if problem is None:
-        msg = "Problem not found."
-        raise Http404(msg)
-    has_visible_solution = ProblemSolution.objects.filter(problem=problem).filter(
-        Q(author=request.user) | Q(status=ProblemSolution.Status.PUBLISHED),
-    ).exists()
-    if has_visible_solution:
-        return redirect("solutions:problem_solution_list", problem.problem_uuid)
-    return redirect("solutions:problem_solution_edit", problem.problem_uuid)
 
 
 @login_required

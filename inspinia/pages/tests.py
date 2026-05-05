@@ -3949,15 +3949,43 @@ def test_contest_advanced_analytics_requires_login(client):
     assert response.url == f"{login_url}?next={reverse('pages:contest_advanced_dashboard')}"
 
 
-def test_contest_problem_list_legacy_url_requires_login(client):
-    response = client.get(reverse("pages:contest_problem_list", args=["imo"]))
+def test_archive_hub_requires_login(client):
+    response = client.get("/archive/")
 
     assert response.status_code == HTTPStatus.FOUND
     login_url = reverse(settings.LOGIN_URL)
-    assert response.url.startswith(f"{login_url}?")
+    assert response.url == f"{login_url}?next=/archive/"
 
 
-def test_contest_problem_list_legacy_url_redirects_to_dashboard_listing(client):
+def test_archive_hub_renders_current_archive_workflow_links(client):
+    user = UserFactory()
+    client.force_login(user)
+
+    response = client.get("/archive/")
+
+    assert response.status_code == HTTPStatus.OK
+    response_html = response.content.decode("utf-8")
+    assert "Archive hub" in response_html
+    assert reverse("pages:contest_dashboard_listing") in response_html
+    assert reverse("pages:problem_statement_list") in response_html
+    assert reverse("pages:completion_board") in response_html
+    assert reverse("pages:completion_quick_update") in response_html
+    assert reverse("pages:user_activity_dashboard") in response_html
+    assert reverse("solutions:problem_solution_create") in response_html
+    assert reverse("pages:topic_tag_dashboard") in response_html
+
+
+def test_problem_list_redirects_to_archive_hub_for_authenticated_user(client):
+    user = UserFactory()
+    client.force_login(user)
+
+    response = client.get(reverse("pages:problem_list"))
+
+    assert response.status_code == HTTPStatus.FOUND
+    assert response.url == "/archive/"
+
+
+def test_removed_legacy_problem_paths_return_404_for_authenticated_user(client):
     user = UserFactory()
     client.force_login(user)
     problem = ProblemSolveRecord.objects.create(
@@ -3977,11 +4005,35 @@ def test_contest_problem_list_legacy_url_redirects_to_dashboard_listing(client):
         day_label="Day 1",
         statement_latex="Stub",
     )
-    response = client.get(
-        reverse("pages:contest_problem_list", args=["imo"]),
-        {"year": "2026"},
-        follow=True,
+
+    detail_response = client.get(f"/problems/{problem.problem_uuid}/")
+    contest_response = client.get("/problems/contests/imo/")
+
+    assert detail_response.status_code == HTTPStatus.NOT_FOUND
+    assert contest_response.status_code == HTTPStatus.NOT_FOUND
+
+
+def test_contest_dashboard_listing_route_replaces_legacy_contest_problem_list(client):
+    user = UserFactory()
+    client.force_login(user)
+    problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="ALG",
+        mohs=5,
+        contest="IMO",
+        problem="P1",
+        contest_year_problem="IMO 2026 P1",
     )
+    ContestProblemStatement.objects.create(
+        linked_problem=problem,
+        contest_year=2026,
+        contest_name="IMO",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Stub",
+    )
+    response = client.get(reverse("pages:contest_dashboard_listing"), {"contest": "IMO", "year": "2026"})
 
     assert response.status_code == HTTPStatus.OK
     assert response.resolver_match.url_name == "contest_dashboard_listing"
@@ -6221,6 +6273,7 @@ def test_technique_dashboard_exposes_filters_and_legacy_alias(client):
     assert lte_row["years"] == ["2024", "2025"]
     assert lte_row["year_span_label"] == "2024-2025"
     assert lte_row["sample_contests_label"] == "EGMO, IMO"
+    assert lte_row["search_href"] == reverse("pages:topic_tag_dashboard") + "?q=LTE"
 
     response_html = response.content.decode("utf-8")
     assert "Technique analytics" in response_html
@@ -6837,7 +6890,7 @@ def test_problem_statement_contest_year_master_includes_inactive_and_unlinked_ro
     assert rows[1]["is_linked"] is False
 
 
-def test_problem_detail_view_redirects_to_solution_editor_when_no_solution_exists(client):
+def test_problem_detail_legacy_path_returns_404_for_existing_problem(client):
     user = UserFactory()
     client.force_login(user)
     linked_record = ProblemSolveRecord.objects.create(
@@ -6849,40 +6902,9 @@ def test_problem_detail_view_redirects_to_solution_editor_when_no_solution_exist
         contest_year_problem=f"{SPAIN_OLYMPIAD_NAME} {SPAIN_OLYMPIAD_YEAR} P1",
     )
 
-    response = client.get(reverse("pages:problem_detail", args=[linked_record.problem_uuid]))
+    response = client.get(f"/problems/{linked_record.problem_uuid}/")
 
-    assert response.status_code == HTTPStatus.FOUND
-    assert response.url == reverse(
-        "solutions:problem_solution_edit",
-        args=[linked_record.problem_uuid],
-    )
-
-
-def test_problem_detail_view_redirects_to_solution_page_when_visible_solution_exists(client):
-    user = UserFactory()
-    client.force_login(user)
-    linked_record = ProblemSolveRecord.objects.create(
-        year=SPAIN_OLYMPIAD_YEAR,
-        topic="NT",
-        mohs=4,
-        contest=SPAIN_OLYMPIAD_NAME,
-        problem="P1",
-        contest_year_problem=f"{SPAIN_OLYMPIAD_NAME} {SPAIN_OLYMPIAD_YEAR} P1",
-    )
-    ProblemSolution.objects.create(
-        problem=linked_record,
-        author=user,
-        title="My draft",
-        status=ProblemSolution.Status.DRAFT,
-    )
-
-    response = client.get(reverse("pages:problem_detail", args=[linked_record.problem_uuid]))
-
-    assert response.status_code == HTTPStatus.FOUND
-    assert response.url == reverse(
-        "solutions:problem_solution_list",
-        args=[linked_record.problem_uuid],
-    )
+    assert response.status_code == HTTPStatus.NOT_FOUND
 
 
 def test_problem_statement_list_completion_toggle_updates_user_completion_date(client):
@@ -7305,9 +7327,11 @@ def test_problem_statement_duplicates_detects_exact_and_similar_matches_for_admi
         "USAMO 2024 P1",
         "USA TST 2025 P4",
     ]
+    exact_problem_old_url = contest_dashboard_listing_url("USAMO", year=2024) + "#usamo-2024-p1"
+    exact_problem_new_url = contest_dashboard_listing_url("USA TST", year=2025) + "#usa-tst-2025-p4"
     assert [item["url"] for item in exact_rows[0]["problem_items"]] == [
-        reverse("pages:problem_detail", args=[exact_problem_old.problem_uuid]),
-        reverse("pages:problem_detail", args=[exact_problem_new.problem_uuid]),
+        exact_problem_old_url,
+        exact_problem_new_url,
     ]
     similar_rows = response.context["statement_duplicate_similar_rows"]
     assert len(similar_rows) == 1
@@ -7320,8 +7344,8 @@ def test_problem_statement_duplicates_detects_exact_and_similar_matches_for_admi
     assert "High-similarity statement pairs" in response_html
     assert 'id="statement-exact-duplicates-table"' in response_html
     assert 'id="statement-similarity-table"' in response_html
-    assert reverse("pages:problem_detail", args=[exact_problem_new.problem_uuid]) in response_html
-    assert reverse("pages:problem_detail", args=[exact_problem_old.problem_uuid]) in response_html
+    assert exact_problem_new_url.replace("&", "\\u0026") in response_html
+    assert exact_problem_old_url.replace("&", "\\u0026") in response_html
     assert reverse("pages:problem_statement_duplicates") in response_html
 
 
@@ -8930,7 +8954,7 @@ def test_problem_import_page_imports_statement_csv_rows_for_admin(client):
 def test_home_exposes_live_library_index_for_authenticated_user(client):
     user = UserFactory()
     client.force_login(user)
-    ProblemSolveRecord.objects.create(
+    problem = ProblemSolveRecord.objects.create(
         year=2026,
         topic="NT",
         mohs=4,
@@ -8938,6 +8962,7 @@ def test_home_exposes_live_library_index_for_authenticated_user(client):
         problem="P2",
         contest_year_problem="ISRAEL TST 2026 P2",
     )
+    ProblemTopicTechnique.objects.create(record=problem, technique="LTE", domains=["NT"])
 
     response = client.get(reverse("pages:home"))
 
@@ -8949,7 +8974,12 @@ def test_home_exposes_live_library_index_for_authenticated_user(client):
         entry["type"] == "Contest" and entry["label"] == "ISRAEL TST"
         for entry in response.context["search_entries"]
     )
-    assert reverse("pages:problem_list") in response.content.decode("utf-8")
+    response_html = response.content.decode("utf-8")
+    assert "/archive/" in response_html
+    assert any(
+        entry["type"] == "Topic tag" and entry["href"].startswith(reverse("pages:topic_tag_dashboard"))
+        for entry in response.context["search_entries"]
+    )
 
 
 def test_user_activity_dashboard_exposes_solution_workspace_navigation(client):
@@ -9648,10 +9678,10 @@ def test_user_activity_dashboard_empty_state_points_to_import_panel(client):
     )
 
 
-def test_problem_list_prioritizes_statement_backed_contests(client):
+def test_problem_list_redirects_to_archive_hub_instead_of_rendering_old_listing(client):
     user = UserFactory()
     client.force_login(user)
-    statement_ready = ProblemSolveRecord.objects.create(
+    ProblemSolveRecord.objects.create(
         year=2026,
         topic="ALG",
         mohs=5,
@@ -9659,33 +9689,11 @@ def test_problem_list_prioritizes_statement_backed_contests(client):
         problem="P1",
         contest_year_problem="IMO 2026 P1",
     )
-    ProblemSolveRecord.objects.create(
-        year=2026,
-        topic="NT",
-        mohs=4,
-        contest="ISRAEL TST",
-        problem="P2",
-        contest_year_problem="ISRAEL TST 2026 P2",
-    )
-    ContestProblemStatement.objects.create(
-        linked_problem=statement_ready,
-        contest_year=2026,
-        contest_name="IMO",
-        problem_number=1,
-        problem_code="P1",
-        day_label="Day 1",
-        statement_latex="Prove that $1+1=2$.",
-    )
 
     response = client.get(reverse("pages:problem_list"))
 
-    assert response.status_code == HTTPStatus.OK
-    contest_directory = response.context["contest_directory"]
-    assert [row["contest"] for row in contest_directory] == ["IMO", "ISRAEL TST"]
-    assert contest_directory[0]["has_statements"] is True
-    assert contest_directory[0]["statement_problem_count"] == 1
-    assert response.context["problem_listing_stats"]["statement_ready_total"] == 1
-    assert "Statement-backed first" in response.content.decode("utf-8")
+    assert response.status_code == HTTPStatus.FOUND
+    assert response.url == "/archive/"
 
 
 def test_contest_problem_list_shows_imported_statement_text(client):

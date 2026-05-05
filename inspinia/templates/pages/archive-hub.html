@@ -1,0 +1,88 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}Archive hub{% endblock title %}
+
+{% block extra_css %}
+<style>
+  .archive-hub-card {
+    height: 100%;
+  }
+
+  .archive-hub-card .card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .archive-hub-card .btn {
+    align-self: flex-start;
+  }
+</style>
+{% endblock extra_css %}
+
+{% block page_content %}
+<div class="container-fluid">
+  {% include 'partials/page-title.html' with title='Archive hub' subtitle='Library' %}
+
+  <div class="row g-3 mt-0">
+    <div class="col-12">
+      <div class="alert alert-info mb-0" role="status">
+        <strong>/problems/ has moved.</strong>
+        Use these archive workflows while the next public landing page is rebuilt.
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-1">
+    {% for link in archive_hub_primary_links %}
+    <div class="col-md-6 col-xl-3">
+      <div class="card archive-hub-card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-primary-subtle text-primary rounded">
+                <i class="ti {{ link.icon }} fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Archive</p>
+              <h4 class="header-title mb-0">{{ link.title }}</h4>
+            </div>
+          </div>
+          <p class="text-muted fs-sm mb-0">{{ link.description }}</p>
+          <a href="{{ link.url }}" class="btn btn-primary btn-sm">
+            <i class="ti ti-arrow-up-right me-1"></i>Open
+          </a>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="row g-3 mt-1">
+    {% for link in archive_hub_secondary_links %}
+    <div class="col-md-6 col-xl-4">
+      <div class="card archive-hub-card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-secondary-subtle text-secondary rounded">
+                <i class="ti {{ link.icon }} fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Workspace</p>
+              <h4 class="header-title mb-0">{{ link.title }}</h4>
+            </div>
+          </div>
+          <p class="text-muted fs-sm mb-0">{{ link.description }}</p>
+          <a href="{{ link.url }}" class="btn btn-outline-primary btn-sm">
+            <i class="ti ti-arrow-up-right me-1"></i>Open
+          </a>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock page_content %}
