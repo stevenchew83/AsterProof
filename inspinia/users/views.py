@@ -347,12 +347,16 @@ def manage_user_roles_view(request):
             messages.error(request, _("Invalid user or role."))
         else:
             previous_role = target.role
+            previous_is_approved = target.is_approved
+            posted_is_approved = request.POST.get("is_approved") == "1"
+            new_is_approved = posted_is_approved or new_role == User.Role.ADMIN or target.is_superuser
+
             target.role = new_role
-            target.save(update_fields=["role"])
+            target.is_approved = new_is_approved
+            target.save(update_fields=["role", "is_approved"])
             messages.success(
                 request,
-                _("Updated role for %(email)s to %(role)s.")
-                % {"email": target.email, "role": target.get_role_display()},
+                _("Updated access for %(email)s.") % {"email": target.email},
             )
             if previous_role != new_role:
                 record_event(
@@ -367,6 +371,19 @@ def manage_user_roles_view(request):
                     metadata={
                         "from_role": previous_role,
                         "to_role": new_role,
+                    },
+                )
+            if previous_is_approved != new_is_approved:
+                action = "Approved" if new_is_approved else "Revoked approval for"
+                record_event(
+                    event_type=AuditEvent.EventType.APPROVAL_CHANGED,
+                    message=f"{action} {target.email}.",
+                    request=request,
+                    actor=request.user,
+                    target_user=target,
+                    metadata={
+                        "from_approved": previous_is_approved,
+                        "to_approved": new_is_approved,
                     },
                 )
         return redirect("users:manage_roles")
@@ -482,6 +499,7 @@ def event_log_view(request):
     day_ago = timezone.now() - timedelta(days=1)
     admin_action_types = {
         AuditEvent.EventType.ROLE_CHANGED,
+        AuditEvent.EventType.APPROVAL_CHANGED,
         AuditEvent.EventType.SESSION_REVOKED,
         AuditEvent.EventType.IMPORT_COMPLETED,
     }
