@@ -160,7 +160,6 @@ STATEMENT_LINKER_ERROR_PREVIEW_LIMIT = 5
 STATEMENT_METADATA_ERROR_PREVIEW_LIMIT = 5
 COMPLETION_BOARD_INITIAL_ROW_LIMIT = 30
 COMPLETION_BOARD_ROW_LOAD_STEP = 30
-COMPLETION_QUICK_UPDATE_RESULT_LIMIT = 100
 ADMIN_TABLE_LATEST_LIMIT = 100
 
 
@@ -3528,7 +3527,6 @@ def completion_quick_update_view(request):
         filtered_statements,
         selected_problem,
     ).distinct()
-    matching_total = filtered_statements.count()
     statements = list(
         filtered_statements.order_by(
             "-contest_year",
@@ -3537,8 +3535,9 @@ def completion_quick_update_view(request):
             "problem_code",
             "day_label",
             "id",
-        )[:COMPLETION_QUICK_UPDATE_RESULT_LIMIT],
+        ),
     )
+    matching_total = len(statements)
     completion_by_statement_id = _statement_completion_dates_by_statement_id(
         statements,
         user=selected_user,
@@ -3561,9 +3560,7 @@ def completion_quick_update_view(request):
             "target_user_id": str(selected_user.id) if can_select_user and selected_user != request.user else "",
             "year": selected_year,
         },
-        "completion_quick_update_is_capped": matching_total > len(rows),
         "completion_quick_update_matching_total": matching_total,
-        "completion_quick_update_result_limit": COMPLETION_QUICK_UPDATE_RESULT_LIMIT,
         "completion_quick_update_rows": rows,
         "completion_quick_update_save_url": reverse("pages:completion_quick_update_save"),
         "completion_quick_update_selected_user": selected_user,
