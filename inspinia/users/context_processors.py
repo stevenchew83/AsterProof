@@ -1,6 +1,7 @@
 from django.conf import settings
 
 from inspinia.users.roles import user_has_admin_role
+from inspinia.users.roles import user_has_moderator_or_admin_role
 
 
 def allauth_settings(request):
@@ -13,9 +14,11 @@ def allauth_settings(request):
 def app_roles(request):
     """Navigation and UI flags derived from roles."""
     admin = user_has_admin_role(request.user)
+    can_access_rankings = user_has_moderator_or_admin_role(request.user)
     can_access_admin_tools = admin or settings.DEBUG
     return {
         "is_app_admin": admin,
+        "show_rankings_link": can_access_rankings,
         "show_analytics_dashboard_link": can_access_admin_tools,
         "show_event_log_link": admin,
         "show_problem_import_link": can_access_admin_tools,

@@ -15,3 +15,10 @@ def user_has_admin_role(user: object | None) -> bool:
         return True
     role = getattr(user, "role", None)
     return role == User.Role.ADMIN
+
+
+def user_has_moderator_or_admin_role(user: object | None) -> bool:
+    if user_has_admin_role(user):
+        return True
+    role = getattr(user, "role", None)
+    return role == User.Role.MODERATOR

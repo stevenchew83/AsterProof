@@ -4,7 +4,6 @@ import csv
 from decimal import Decimal
 
 import pandas as pd
-from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
@@ -43,15 +42,15 @@ from inspinia.rankings.services.privacy import mask_nric
 from inspinia.rankings.services.privacy import user_can_view_full_nric
 from inspinia.users.models import AuditEvent
 from inspinia.users.monitoring import record_event
-from inspinia.users.roles import user_has_admin_role
+from inspinia.users.roles import user_has_moderator_or_admin_role
 
 RANKING_TABLE_MAX_ROWS = 5000
 IMPORT_BATCH_HISTORY_LIMIT = 20
 MAX_DERIVED_AGE = 100
 
 
-def _require_rankings_admin_access(request) -> None:
-    if not settings.DEBUG and not user_has_admin_role(request.user):
+def _require_rankings_access(request) -> None:
+    if not user_has_moderator_or_admin_role(request.user):
         raise PermissionDenied
 
 
@@ -287,6 +286,7 @@ def _render_ranking_export_rows(*, request, queryset, formula: RankingFormula | 
 
 @login_required
 def ranking_table_view(request):
+    _require_rankings_access(request)
     filter_form = RankingTableFilterForm(request.GET or None)
     filter_data = filter_form.cleaned_data if filter_form.is_valid() else {}
     formula = _resolve_formula(filter_data)
@@ -313,6 +313,7 @@ def ranking_table_view(request):
 
 @login_required
 def ranking_export_csv_view(request):
+    _require_rankings_access(request)
     filter_form = RankingTableFilterForm(request.GET or None)
     filter_data = filter_form.cleaned_data if filter_form.is_valid() else {}
     formula = _resolve_formula(filter_data)
@@ -360,6 +361,7 @@ def ranking_export_csv_view(request):
 
 @login_required
 def ranking_export_xlsx_view(request):
+    _require_rankings_access(request)
     filter_form = RankingTableFilterForm(request.GET or None)
     filter_data = filter_form.cleaned_data if filter_form.is_valid() else {}
     formula = _resolve_formula(filter_data)
@@ -413,6 +415,7 @@ def ranking_export_xlsx_view(request):
 
 @login_required
 def ranking_dashboard_view(request):
+    _require_rankings_access(request)
     filter_form = RankingTableFilterForm(request.GET or None)
     filter_data = filter_form.cleaned_data if filter_form.is_valid() else {}
     formula = _resolve_formula(filter_data)
@@ -460,6 +463,7 @@ def ranking_dashboard_view(request):
 
 @login_required
 def students_list_view(request):
+    _require_rankings_access(request)
     queryset = Student.objects.select_related("school")
 
     school = (request.GET.get("school") or "").strip()
@@ -503,6 +507,7 @@ def students_list_view(request):
 
 @login_required
 def student_detail_view(request, student_id: int):
+    _require_rankings_access(request)
     student = get_object_or_404(
         Student.objects.select_related("school"),
         pk=student_id,
@@ -553,6 +558,7 @@ def student_detail_view(request, student_id: int):
 
 @login_required
 def assessments_list_view(request):
+    _require_rankings_access(request)
     queryset = Assessment.objects.order_by("-season_year", "sort_order", "code")
 
     season = (request.GET.get("season") or "").strip()
@@ -586,6 +592,7 @@ def assessments_list_view(request):
 
 @login_required
 def formulas_list_view(request):
+    _require_rankings_access(request)
     formulas = list(
         RankingFormula.objects.prefetch_related("items__assessment")
         .order_by("-season_year", "division", "name", "-version", "id"),
@@ -639,7 +646,7 @@ def _log_import_complete_event(*, request, batch: ImportBatch) -> None:
 
 @login_required
 def import_center_view(request):  # noqa: C901, PLR0911, PLR0915
-    _require_rankings_admin_access(request)
+    _require_rankings_access(request)
     context = _base_import_center_context()
 
     if request.method == "GET":

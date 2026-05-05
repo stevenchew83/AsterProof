@@ -87,7 +87,7 @@ def test_ranking_table_requires_login(client):
 
 
 def test_ranking_table_filters_by_school_and_division(client):
-    user = UserFactory()
+    user = UserFactory(role=User.Role.MODERATOR)
     client.force_login(user)
 
     school_a = School.objects.create(name="SMK A")
@@ -151,8 +151,34 @@ def test_import_center_renders_for_admin(client):
     assert "Import center" in response.content.decode()
 
 
-def test_ranking_export_masks_nric_for_non_admin(client):
+@override_settings(DEBUG=False)
+def test_ranking_routes_forbidden_for_normal_user(client):
     user = UserFactory(role=User.Role.NORMAL)
+    client.force_login(user)
+    student = Student.objects.create(full_name="Hidden Student")
+
+    route_names = [
+        "rankings:ranking_table",
+        "rankings:ranking_export_csv",
+        "rankings:ranking_export_xlsx",
+        "rankings:dashboard",
+        "rankings:students_list",
+        "rankings:student_detail",
+        "rankings:assessments_list",
+        "rankings:formulas_list",
+        "rankings:import_center",
+    ]
+
+    for route_name in route_names:
+        if route_name == "rankings:student_detail":
+            response = client.get(reverse(route_name, args=[student.id]))
+        else:
+            response = client.get(reverse(route_name))
+        assert response.status_code == HTTPStatus.FORBIDDEN
+
+
+def test_ranking_export_masks_nric_for_moderator(client):
+    user = UserFactory(role=User.Role.MODERATOR)
     client.force_login(user)
 
     formula = _make_formula(name="Export Formula", season_year=2026, division="senior")
@@ -206,8 +232,9 @@ def test_ranking_export_includes_full_nric_for_admin(client):
     assert "900101-01-8888" in content
 
 
-def test_students_assessments_formulas_and_dashboard_routes_render(client):
-    user = UserFactory()
+@override_settings(DEBUG=False)
+def test_students_assessments_formulas_imports_and_dashboard_routes_render_for_moderator(client):
+    user = UserFactory(role=User.Role.MODERATOR)
     client.force_login(user)
 
     formula = _make_formula(name="Routes Formula", season_year=2026, division="senior")
@@ -233,6 +260,7 @@ def test_students_assessments_formulas_and_dashboard_routes_render(client):
         "rankings:assessments_list",
         "rankings:formulas_list",
         "rankings:dashboard",
+        "rankings:import_center",
     ]
 
     for route_name in route_names:
