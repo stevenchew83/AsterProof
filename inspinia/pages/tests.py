@@ -4717,7 +4717,51 @@ def test_problem_statement_difficulty_rating_save_raises_404_for_unknown_stateme
     assert not UserProblemDifficultyRating.objects.exists()
 
 
-def test_problem_statement_list_includes_difficulty_rating_payload_and_controls(client):
+def test_problem_statement_difficulty_rating_save_rejects_non_admin_target_user_override(client):
+    user = UserFactory()
+    other_user = UserFactory()
+    client.force_login(user)
+    statement = _create_quick_completion_statement()
+
+    response = client.post(
+        reverse("pages:problem_statement_difficulty_rating_save"),
+        {
+            "rating": "30",
+            "statement_uuid": str(statement.statement_uuid),
+            "target_user_id": str(other_user.id),
+        },
+        HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+    )
+
+    assert response.status_code == HTTPStatus.FORBIDDEN
+    assert not UserProblemDifficultyRating.objects.filter(user=other_user, statement=statement).exists()
+    assert not UserProblemDifficultyRating.objects.filter(user=user, statement=statement).exists()
+
+
+def test_problem_statement_difficulty_rating_save_admin_updates_selected_user_only(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    target_user = UserFactory()
+    client.force_login(admin_user)
+    statement = _create_quick_completion_statement()
+
+    response = client.post(
+        reverse("pages:problem_statement_difficulty_rating_save"),
+        {
+            "rating": "37",
+            "statement_uuid": str(statement.statement_uuid),
+            "target_user_id": str(target_user.id),
+        },
+        HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.json()["user_difficulty_rating"] == 37
+    target_rating = UserProblemDifficultyRating.objects.get(user=target_user, statement=statement)
+    assert target_rating.rating == 37
+    assert not UserProblemDifficultyRating.objects.filter(user=admin_user, statement=statement).exists()
+
+
+def test_problem_statement_list_keeps_average_difficulty_without_user_editor(client):
     user = UserFactory()
     other_user = UserFactory()
     client.force_login(user)
@@ -4734,13 +4778,16 @@ def test_problem_statement_list_includes_difficulty_rating_payload_and_controls(
     assert row["average_difficulty_display"] == "17.5"
     assert row["difficulty_rating_count"] == 2
     response_html = response.content.decode("utf-8")
-    assert "Your difficulty" in response_html
+    assert "Your difficulty" not in response_html
     assert "Avg difficulty" in response_html
-    assert 'id="problem-statement-difficulty-csrf"' in response_html
-    assert reverse("pages:problem_statement_difficulty_rating_save") in response_html
-    assert 'min="0"' in response_html
-    assert 'max="60"' in response_html
-    assert 'step="1"' in response_html
+    assert 'id="problem-statement-difficulty-csrf"' not in response_html
+    assert reverse("pages:problem_statement_difficulty_rating_save") not in response_html
+    assert "js-statement-difficulty-save" not in response_html
+    assert "statement-difficulty-editor" not in response_html
+    assert response.context["statement_copy_tsv"].splitlines()[0] == (
+        "Year\tContest\tTopic\tProblem code\tDay\tSolved\tTopic tags\tMOHS\t"
+        "Avg difficulty\tDifficulty ratings\tConfidence\tIMO slot\tUpdated"
+    )
 
 
 def test_problem_statement_list_difficulty_rating_stats_are_limited_to_visible_rows(client):
@@ -4825,6 +4872,31 @@ def test_completion_quick_update_filters_by_contest_year_and_problem_text(client
     assert 'placeholder="YYYY-MM-DD"' in response_html
 
 
+def test_completion_quick_update_includes_difficulty_rating_payload_and_controls(client):
+    user = UserFactory()
+    other_user = UserFactory()
+    client.force_login(user)
+    statement = _create_quick_completion_statement()
+    UserProblemDifficultyRating.objects.create(user=user, statement=statement, rating=12)
+    UserProblemDifficultyRating.objects.create(user=other_user, statement=statement, rating=30)
+
+    response = client.get(reverse("pages:completion_quick_update"))
+
+    assert response.status_code == HTTPStatus.OK
+    row = response.context["completion_quick_update_rows"][0]
+    assert row["user_difficulty_rating"] == 12
+    assert row["average_difficulty_rating"] == 21.0
+    assert row["average_difficulty_display"] == "21.0"
+    assert row["difficulty_rating_count"] == 2
+    response_html = response.content.decode("utf-8")
+    assert "Your difficulty" in response_html
+    assert reverse("pages:problem_statement_difficulty_rating_save") in response_html
+    assert "js-quick-completion-difficulty-save" in response_html
+    assert 'min="0"' in response_html
+    assert 'max="60"' in response_html
+    assert 'step="1"' in response_html
+
+
 def test_completion_quick_update_save_updates_current_user_only(client):
     user = UserFactory()
     client.force_login(user)
@@ -4886,6 +4958,8 @@ def test_completion_quick_update_admin_selects_target_user_completion_state(clie
         statement=statement,
         completion_date=date(2025, 8, 28),
     )
+    UserProblemDifficultyRating.objects.create(user=admin_user, statement=statement, rating=12)
+    UserProblemDifficultyRating.objects.create(user=target_user, statement=statement, rating=44)
 
     response = client.get(
         reverse("pages:completion_quick_update"),
@@ -4897,10 +4971,12 @@ def test_completion_quick_update_admin_selects_target_user_completion_state(clie
     assert response.context["completion_quick_update_selected_user"] == target_user
     rows = response.context["completion_quick_update_rows"]
     assert rows[0]["completion_display"] == "2025-08-28"
+    assert rows[0]["user_difficulty_rating"] == 44
     response_html = response.content.decode("utf-8")
     assert 'name="target_user_id"' in response_html
     assert "target@example.com" in response_html
     assert "2025-01-01" not in response_html
+    assert 'value="44"' in response_html
 
 
 def test_completion_quick_update_admin_save_updates_selected_user_only(client):
@@ -6234,6 +6310,51 @@ def test_my_completion_progress_analytics_ignores_user_query_parameter(client):
         f"BMO {today.year} N1",
     ]
     assert "target@example.com" not in response.content.decode("utf-8")
+
+
+@override_settings(DEBUG=False)
+def test_my_completion_progress_analytics_exposes_difficulty_editor_in_filtered_rows(client):
+    user = UserFactory(name="Difficulty Owner", email="difficulty-owner@example.com")
+    other_user = UserFactory(name="Difficulty Peer", email="difficulty-peer@example.com")
+    client.force_login(user)
+    today = timezone.localdate()
+    problem = ProblemSolveRecord.objects.create(
+        year=today.year,
+        topic="ALG",
+        mohs=18,
+        contest="IMO",
+        problem="P1",
+        contest_year_problem=f"IMO {today.year} P1",
+    )
+    statement = ContestProblemStatement.objects.create(
+        linked_problem=problem,
+        contest_year=today.year,
+        contest_name="IMO",
+        problem_number=1,
+        problem_code="P1",
+        statement_latex="Statement text",
+    )
+    UserProblemCompletion.objects.create(user=user, problem=problem, completion_date=today)
+    UserProblemDifficultyRating.objects.create(user=user, statement=statement, rating=18)
+    UserProblemDifficultyRating.objects.create(user=other_user, statement=statement, rating=32)
+
+    response = client.get(reverse("pages:my_completion_progress_analytics"), {"range": "7d"})
+
+    assert response.status_code == HTTPStatus.OK
+    row = response.context["completion_progress_rows"][0]
+    assert row["difficulty_statement_uuid"] == str(statement.statement_uuid)
+    assert row["user_difficulty_rating"] == 18
+    assert row["average_difficulty_rating"] == 25.0
+    assert row["average_difficulty_display"] == "25.0"
+    assert row["difficulty_rating_count"] == 2
+    response_html = response.content.decode("utf-8")
+    assert "Your difficulty" in response_html
+    assert 'id="completion-progress-difficulty-csrf"' in response_html
+    assert reverse("pages:problem_statement_difficulty_rating_save") in response_html
+    assert 'min="0"' in response_html
+    assert 'max="60"' in response_html
+    assert 'step="1"' in response_html
+    assert "js-completion-progress-difficulty-save" in response_html
 
 
 @override_settings(DEBUG=False)

@@ -31,6 +31,20 @@
     min-width: 9.75rem;
   }
 
+  .quick-completion-difficulty-editor {
+    min-width: 9.5rem;
+  }
+
+  .quick-completion-difficulty-input {
+    max-width: 4.75rem;
+  }
+
+  .quick-completion-difficulty-average {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+  }
+
   .quick-completion-actions {
     min-width: 18rem;
   }
@@ -164,6 +178,7 @@
             <table
               id="quick-completion-table"
               class="table table-sm table-striped table-bordered align-middle w-100 mb-0"
+              data-difficulty-rating-save-url="{{ completion_quick_update_difficulty_save_url }}"
               data-save-url="{{ completion_quick_update_save_url }}"
               data-target-user-id="{{ completion_quick_update_filters.target_user_id }}"
               data-today="{{ completion_quick_update_today }}"
@@ -176,6 +191,7 @@
                   <th>Label</th>
                   <th>Topic / MOHS</th>
                   <th>Current completion</th>
+                  <th>Your difficulty</th>
                   <th>YYYY-MM-DD</th>
                   <th>Actions</th>
                 </tr>
@@ -209,6 +225,31 @@
                     >
                       {{ row.completion_display }}
                     </span>
+                  </td>
+                  <td>
+                    <div class="quick-completion-difficulty-editor" data-statement-uuid="{{ row.statement_uuid }}">
+                      <div class="input-group input-group-sm">
+                        <input
+                          type="number"
+                          min="0"
+                          max="60"
+                          step="1"
+                          class="form-control form-control-sm quick-completion-difficulty-input js-quick-completion-difficulty-rating"
+                          value="{{ row.user_difficulty_rating }}"
+                          aria-label="Your difficulty"
+                        >
+                        <button type="button" class="btn btn-outline-primary js-quick-completion-difficulty-save">
+                          <i class="ti ti-device-floppy me-1"></i>Save
+                        </button>
+                      </div>
+                      <div class="js-quick-completion-difficulty-average">
+                        {% if row.difficulty_rating_count %}
+                        <span class="badge bg-info-subtle text-info border border-info-subtle quick-completion-difficulty-average">{{ row.average_difficulty_display }}</span>
+                        <div class="text-muted fs-xs mt-1">{{ row.difficulty_rating_count }} rating{{ row.difficulty_rating_count|pluralize }}</div>
+                        {% endif %}
+                      </div>
+                      <div class="text-danger fs-xs mt-1 d-none js-quick-completion-difficulty-error"></div>
+                    </div>
                   </td>
                   <td>
                     <input
@@ -267,6 +308,7 @@
     if (!table) return;
 
     var csrfTokenInput = document.querySelector('#quick-completion-csrf input[name="csrfmiddlewaretoken"]');
+    var difficultyRatingSaveUrl = table.getAttribute("data-difficulty-rating-save-url");
     var resetButton = document.getElementById("quick-completion-table-reset");
     var saveUrl = table.getAttribute("data-save-url");
     var statusFilter = document.getElementById("quick-completion-status-filter");
@@ -274,6 +316,15 @@
     var todayValue = table.getAttribute("data-today") || "";
     var tableApi = null;
     if (!csrfTokenInput || !saveUrl) return;
+
+    function escapeHtml(value) {
+      return String(value == null ? "" : value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
 
     function statusClass(stateKind) {
       if (stateKind === "solved") return "bg-success-subtle text-success border border-success-subtle";
@@ -332,6 +383,70 @@
       setRowError(row, "");
     }
 
+    function ratingCountLabel(count) {
+      var n = Number(count) || 0;
+      return n === 1 ? "1 rating" : n + " ratings";
+    }
+
+    function setDifficultyError(editor, message) {
+      var errorEl = editor ? editor.querySelector(".js-quick-completion-difficulty-error") : null;
+      if (!errorEl) return;
+      if (!message) {
+        errorEl.textContent = "";
+        errorEl.classList.add("d-none");
+        return;
+      }
+      errorEl.textContent = message;
+      errorEl.classList.remove("d-none");
+    }
+
+    function setDifficultyBusy(editor, isBusy) {
+      if (!editor) return;
+      editor.querySelectorAll("input, button").forEach(function (el) {
+        el.disabled = isBusy;
+      });
+    }
+
+    function validateDifficultyRating(rawValue) {
+      var value = String(rawValue || "").trim();
+      if (!/^\d+$/.test(value)) return "Enter an integer from 0 to 60.";
+      var num = Number(value);
+      if (num < 0 || num > 60) return "Enter an integer from 0 to 60.";
+      return "";
+    }
+
+    function setDifficultyAverage(editor, payload) {
+      var averageEl = editor ? editor.querySelector(".js-quick-completion-difficulty-average") : null;
+      if (!averageEl) return;
+      var count = Number(payload.difficulty_rating_count) || 0;
+      var display = payload.average_difficulty_display || "";
+      if (!count) {
+        averageEl.innerHTML = "";
+        return;
+      }
+      averageEl.innerHTML = (
+        '<span class="badge bg-info-subtle text-info border border-info-subtle quick-completion-difficulty-average">' +
+        escapeHtml(display) +
+        "</span>" +
+        '<div class="text-muted fs-xs mt-1">' +
+        escapeHtml(ratingCountLabel(count)) +
+        "</div>"
+      );
+    }
+
+    function applyDifficultyPayload(row, editor, payload) {
+      var input = editor.querySelector(".js-quick-completion-difficulty-rating");
+      if (input) {
+        input.value = payload.user_difficulty_rating == null ? "" : String(payload.user_difficulty_rating);
+      }
+      setDifficultyAverage(editor, payload);
+      if (tableApi) {
+        tableApi.row(row).invalidate("dom");
+        tableApi.draw(false);
+      }
+      setDifficultyError(editor, "");
+    }
+
     if (typeof DataTable !== "undefined") {
       DataTable.ext.search.push(function (settings, _data, dataIndex) {
         if (!settings.nTable || settings.nTable.id !== "quick-completion-table") return true;
@@ -349,7 +464,7 @@
         autoWidth: false,
         columnDefs: [
           {
-            targets: [6, 7],
+            targets: [6, 7, 8],
             orderable: false,
             searchable: false
           }
@@ -386,6 +501,57 @@
           tableApi.draw();
         }
       });
+    }
+
+    function submitDifficultyRating(row, editor) {
+      if (!difficultyRatingSaveUrl) return;
+      var input = editor.querySelector(".js-quick-completion-difficulty-rating");
+      var rawValue = input ? input.value : "";
+      var validationError = validateDifficultyRating(rawValue);
+      if (validationError) {
+        setDifficultyError(editor, validationError);
+        return;
+      }
+
+      setDifficultyBusy(editor, true);
+      setDifficultyError(editor, "");
+
+      var params = new URLSearchParams({
+        rating: String(rawValue).trim(),
+        statement_uuid: editor.getAttribute("data-statement-uuid") || row.getAttribute("data-statement-uuid") || ""
+      });
+      if (targetUserId) {
+        params.set("target_user_id", targetUserId);
+      }
+
+      fetch(difficultyRatingSaveUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+          "X-CSRFToken": csrfTokenInput.value,
+          "X-Requested-With": "XMLHttpRequest"
+        },
+        body: params.toString()
+      })
+        .then(function (response) {
+          return response.json().catch(function () {
+            return {};
+          }).then(function (payload) {
+            if (!response.ok) {
+              throw new Error(payload.error || "Could not save this difficulty rating.");
+            }
+            return payload;
+          });
+        })
+        .then(function (payload) {
+          applyDifficultyPayload(row, editor, payload);
+        })
+        .catch(function (error) {
+          setDifficultyError(editor, error.message || "Could not save this difficulty rating.");
+        })
+        .finally(function () {
+          setDifficultyBusy(editor, false);
+        });
     }
 
     function submitAction(row, action, completionDate) {
@@ -438,6 +604,12 @@
     table.addEventListener("click", function (event) {
       var row = event.target.closest("tr[data-statement-uuid]");
       if (!row) return;
+      var difficultySaveButton = event.target.closest(".js-quick-completion-difficulty-save");
+      if (difficultySaveButton) {
+        var difficultyEditor = difficultySaveButton.closest(".quick-completion-difficulty-editor");
+        if (difficultyEditor) submitDifficultyRating(row, difficultyEditor);
+        return;
+      }
       var dateInput = row.querySelector(".js-quick-completion-date");
       if (event.target.closest(".js-quick-completion-today")) {
         if (dateInput) dateInput.value = todayValue;
@@ -455,6 +627,16 @@
       if (event.target.closest(".js-quick-completion-clear")) {
         submitAction(row, "clear", "");
       }
+    });
+
+    table.addEventListener("keydown", function (event) {
+      if (event.key !== "Enter") return;
+      if (!event.target.classList.contains("js-quick-completion-difficulty-rating")) return;
+      event.preventDefault();
+      var row = event.target.closest("tr[data-statement-uuid]");
+      var difficultyEditor = event.target.closest(".quick-completion-difficulty-editor");
+      if (!row || !difficultyEditor) return;
+      submitDifficultyRating(row, difficultyEditor);
     });
   })();
   </script>

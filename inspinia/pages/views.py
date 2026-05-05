@@ -785,14 +785,13 @@ def _filter_statement_queryset(  # noqa: C901
 def _statement_table_rows_copy_tsv(rows: list[dict]) -> str:
     header = (
         "Year\tContest\tTopic\tProblem code\tDay\tSolved\tTopic tags\tMOHS\t"
-        "Your difficulty\tAvg difficulty\tDifficulty ratings\tConfidence\tIMO slot\tUpdated\n"
+        "Avg difficulty\tDifficulty ratings\tConfidence\tIMO slot\tUpdated\n"
     )
     lines = [header]
     for row in rows:
         tags = ", ".join(row.get("linked_problem_topic_tags") or [])
         mohs = row.get("linked_problem_mohs")
         imo = _format_imo_slot_label(row.get("linked_problem_imo_slot_guess_value") or "")
-        user_difficulty_rating = row.get("user_difficulty_rating")
         lines.append(
             "\t".join(
                 [
@@ -804,7 +803,6 @@ def _statement_table_rows_copy_tsv(rows: list[dict]) -> str:
                     str(row.get("user_completion_display") or ""),
                     tags,
                     "" if mohs is None else str(mohs),
-                    "" if user_difficulty_rating in {None, ""} else str(user_difficulty_rating),
                     "" if row.get("average_difficulty_rating") is None else str(row.get("average_difficulty_display")),
                     str(row.get("difficulty_rating_count") or 0),
                     str(row.get("linked_problem_confidence") or ""),
@@ -3315,11 +3313,15 @@ def _completion_quick_update_resolve_get_user(request) -> User:
     return User.objects.filter(id=target_user_id, is_active=True).first() or request.user
 
 
-def _completion_quick_update_resolve_post_user(request) -> tuple[User | None, str | None, int]:
+def _completion_quick_update_resolve_post_user(
+    request,
+    *,
+    resource_label: str = "completion dates",
+) -> tuple[User | None, str | None, int]:
     raw_target_user_id = (request.POST.get("target_user_id") or "").strip()
     if not user_has_admin_role(request.user):
         if raw_target_user_id and raw_target_user_id != str(request.user.id):
-            return None, "Only admins can update another user's completion dates.", 403
+            return None, f"Only admins can update another user's {resource_label}.", 403
         return request.user, None, 200
     if not raw_target_user_id:
         return request.user, None, 200
@@ -3336,6 +3338,7 @@ def _completion_quick_update_row(
     statement: ContestProblemStatement,
     *,
     completion_by_statement_id: dict[int, date | None],
+    difficulty_rating_payload: dict[str, object],
 ) -> dict[str, object]:
     is_completed = statement.id in completion_by_statement_id
     completion_date = completion_by_statement_id.get(statement.id)
@@ -3371,6 +3374,7 @@ def _completion_quick_update_row(
         "statement_uuid": str(statement.statement_uuid),
         "topic": display_topic_label(topic) if topic else "",
         "year": int(statement.contest_year),
+        **difficulty_rating_payload,
     }
 
 
@@ -3428,10 +3432,15 @@ def completion_quick_update_view(request):
         statements,
         user=selected_user,
     )
+    difficulty_rating_payloads = _difficulty_rating_payloads_by_statement_id(
+        statement_ids=[statement.id for statement in statements],
+        user=selected_user,
+    )
     rows = [
         _completion_quick_update_row(
             statement,
             completion_by_statement_id=completion_by_statement_id,
+            difficulty_rating_payload=difficulty_rating_payloads[statement.id],
         )
         for statement in statements
     ]
@@ -3448,6 +3457,7 @@ def completion_quick_update_view(request):
         },
         "completion_quick_update_matching_total": matching_total,
         "completion_quick_update_rows": rows,
+        "completion_quick_update_difficulty_save_url": reverse("pages:problem_statement_difficulty_rating_save"),
         "completion_quick_update_save_url": reverse("pages:completion_quick_update_save"),
         "completion_quick_update_selected_user": selected_user,
         "completion_quick_update_today": timezone.localdate().isoformat(),
@@ -3734,6 +3744,111 @@ def _completion_progress_csv_response(rows, selected_user: User | None) -> HttpR
     return response
 
 
+def _completion_progress_default_difficulty_payload() -> dict[str, object]:
+    return _difficulty_rating_payload(user_rating=None, average_rating=None, rating_count=0)
+
+
+def _completion_progress_seed_difficulty_defaults(rows: list[dict[str, object]]) -> None:
+    default_payload = _completion_progress_default_difficulty_payload()
+    for row in rows:
+        row["difficulty_statement_uuid"] = row.get("statement_uuid") or ""
+        row.update(default_payload)
+
+
+def _completion_progress_difficulty_statement_query(rows: list[dict[str, object]]) -> Q | None:
+    statement_uuid_values = {
+        row_statement_uuid
+        for row in rows
+        if (row_statement_uuid := str(row.get("statement_uuid") or ""))
+    }
+    problem_uuid_values = {
+        row_problem_uuid
+        for row in rows
+        if not row.get("statement_uuid") and (row_problem_uuid := str(row.get("problem_uuid") or ""))
+    }
+    if not statement_uuid_values and not problem_uuid_values:
+        return None
+
+    statement_query = Q()
+    if statement_uuid_values:
+        statement_query |= Q(statement_uuid__in=statement_uuid_values)
+    if problem_uuid_values:
+        statement_query |= Q(linked_problem__problem_uuid__in=problem_uuid_values)
+    return statement_query
+
+
+def _completion_progress_difficulty_statement_maps(
+    statement_query: Q,
+) -> tuple[dict[str, ContestProblemStatement], dict[str, ContestProblemStatement]]:
+    statements_by_uuid: dict[str, ContestProblemStatement] = {}
+    statements_by_problem_uuid: dict[str, ContestProblemStatement] = {}
+    statements = (
+        ContestProblemStatement.objects.select_related("linked_problem")
+        .filter(statement_query)
+        .order_by("-is_active", "-contest_year", "contest_name", "day_label", "problem_number", "problem_code")
+    )
+    for statement in statements:
+        statements_by_uuid.setdefault(str(statement.statement_uuid), statement)
+        if statement.linked_problem_id is not None:
+            statements_by_problem_uuid.setdefault(str(statement.linked_problem.problem_uuid), statement)
+    return statements_by_uuid, statements_by_problem_uuid
+
+
+def _completion_progress_resolve_difficulty_statement(
+    row: dict[str, object],
+    *,
+    statements_by_uuid: dict[str, ContestProblemStatement],
+    statements_by_problem_uuid: dict[str, ContestProblemStatement],
+) -> ContestProblemStatement | None:
+    row_statement_uuid = str(row.get("statement_uuid") or "")
+    if row_statement_uuid:
+        return statements_by_uuid.get(row_statement_uuid)
+    return statements_by_problem_uuid.get(str(row.get("problem_uuid") or ""))
+
+
+def _completion_progress_apply_difficulty_payloads(
+    rows: list[dict[str, object]],
+    *,
+    user: User | None,
+) -> list[dict[str, object]]:
+    _completion_progress_seed_difficulty_defaults(rows)
+
+    if not rows or user is None:
+        return rows
+
+    statement_query = _completion_progress_difficulty_statement_query(rows)
+    if statement_query is None:
+        return rows
+
+    statements_by_uuid, statements_by_problem_uuid = _completion_progress_difficulty_statement_maps(statement_query)
+
+    resolved_statement_ids: set[int] = set()
+    statement_id_by_difficulty_uuid: dict[str, int] = {}
+    for row in rows:
+        statement = _completion_progress_resolve_difficulty_statement(
+            row,
+            statements_by_uuid=statements_by_uuid,
+            statements_by_problem_uuid=statements_by_problem_uuid,
+        )
+        if statement is None:
+            continue
+        difficulty_statement_uuid = str(statement.statement_uuid)
+        row["difficulty_statement_uuid"] = difficulty_statement_uuid
+        statement_id_by_difficulty_uuid[difficulty_statement_uuid] = statement.id
+        resolved_statement_ids.add(statement.id)
+
+    difficulty_payloads = _difficulty_rating_payloads_by_statement_id(
+        statement_ids=sorted(resolved_statement_ids),
+        user=user,
+    )
+    for row in rows:
+        statement_id = statement_id_by_difficulty_uuid.get(str(row.get("difficulty_statement_uuid") or ""))
+        if statement_id is not None:
+            row.update(difficulty_payloads[statement_id])
+
+    return rows
+
+
 def _render_completion_progress_analytics(
     request,
     *,
@@ -3799,6 +3914,8 @@ def _render_completion_progress_analytics(
         return _completion_progress_csv_response(filtered_rows, selected_user)
 
     table_rows = completion_progress_table_rows(filtered_rows)
+    table_rows = _completion_progress_apply_difficulty_payloads(table_rows, user=selected_user)
+    can_edit_difficulty = selected_user == request.user
     context = {
         "completion_progress_charts_payload": completion_progress_charts_payload(
             filtered_rows,
@@ -3820,6 +3937,8 @@ def _render_completion_progress_analytics(
             "user": str(selected_user.pk) if can_select_user and selected_user is not None else "",
         },
         "completion_progress_can_select_user": can_select_user,
+        "completion_progress_can_edit_difficulty": can_edit_difficulty,
+        "completion_progress_difficulty_save_url": reverse("pages:problem_statement_difficulty_rating_save"),
         "completion_progress_page_subtitle": "Progress analytics",
         "completion_progress_page_title": page_title,
         "completion_progress_range_options": COMPLETION_PROGRESS_RANGE_OPTIONS,
@@ -4402,6 +4521,13 @@ def problem_statement_difficulty_rating_save_view(request):
     if request.method != "POST":
         return JsonResponse({"error": "POST required."}, status=405)
 
+    target_user, error_message, status_code = _completion_quick_update_resolve_post_user(
+        request,
+        resource_label="difficulty ratings",
+    )
+    if error_message is not None or target_user is None:
+        return JsonResponse({"error": error_message}, status=status_code)
+
     statement_uuid = (request.POST.get("statement_uuid") or "").strip()
     if not statement_uuid:
         return JsonResponse({"error": "Statement UUID is required."}, status=400)
@@ -4424,11 +4550,11 @@ def problem_statement_difficulty_rating_save_view(request):
         return JsonResponse({"error": "Rating must be an integer from 0 to 60."}, status=400)
 
     UserProblemDifficultyRating.objects.update_or_create(
-        user=request.user,
+        user=target_user,
         statement=statement,
         defaults={"rating": rating},
     )
-    payload = _difficulty_rating_payload_for_statement(statement=statement, user=request.user)
+    payload = _difficulty_rating_payload_for_statement(statement=statement, user=target_user)
     payload["statement_uuid"] = str(statement.statement_uuid)
     return JsonResponse(payload)
 
