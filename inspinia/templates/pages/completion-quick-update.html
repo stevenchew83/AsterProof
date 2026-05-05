@@ -1,8 +1,41 @@
 {% extends 'layouts/vertical.html' %}
 
-{% load i18n %}
+{% load i18n static %}
 
 {% block title %}Quick completions{% endblock title %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'plugins/datatables/dataTables.bootstrap5.min.css' %}">
+<style>
+  #quick-completion-table_wrapper .dt-layout-row {
+    margin: .5rem 0;
+  }
+
+  #quick-completion-table_wrapper .dt-length label,
+  #quick-completion-table_wrapper .dt-search label {
+    color: var(--bs-secondary-color);
+    font-size: .75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  #quick-completion-table_wrapper .dt-length .form-select,
+  #quick-completion-table_wrapper .dt-search .form-control {
+    font-size: .8125rem;
+    min-height: calc(1.5em + .5rem + 2px);
+    padding-bottom: .25rem;
+    padding-top: .25rem;
+  }
+
+  .quick-completion-date-input {
+    min-width: 9.75rem;
+  }
+
+  .quick-completion-actions {
+    min-width: 18rem;
+  }
+</style>
+{% endblock extra_css %}
 
 {% block page_content %}
 <div class="container-fluid">
@@ -115,10 +148,27 @@
           </div>
           {% endif %}
           {% if completion_quick_update_rows %}
+          <div class="row g-2 align-items-end mb-3">
+            <div class="col-sm-6 col-md-4 col-xl-2">
+              <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="quick-completion-status-filter">Loaded-row status</label>
+              <select id="quick-completion-status-filter" class="form-select form-select-sm">
+                <option value="">All loaded rows</option>
+                <option value="unsolved">Unsolved</option>
+                <option value="solved">Known date</option>
+                <option value="unknown">Unknown date</option>
+              </select>
+            </div>
+            <div class="col-sm-6 col-md-4 col-xl-2">
+              <button type="button" id="quick-completion-table-reset" class="btn btn-sm btn-outline-secondary w-100">
+                <i class="ti ti-eraser me-1"></i>Clear table filter
+              </button>
+            </div>
+          </div>
+
           <div class="table-responsive">
             <table
               id="quick-completion-table"
-              class="table table-striped table-bordered align-middle mb-0"
+              class="table table-sm table-striped table-bordered align-middle w-100 mb-0"
               data-save-url="{{ completion_quick_update_save_url }}"
               data-target-user-id="{{ completion_quick_update_filters.target_user_id }}"
               data-today="{{ completion_quick_update_today }}"
@@ -137,7 +187,7 @@
               </thead>
               <tbody>
                 {% for row in completion_quick_update_rows %}
-                <tr data-statement-uuid="{{ row.statement_uuid }}">
+                <tr data-statement-uuid="{{ row.statement_uuid }}" data-completion-state="{{ row.completion_state_kind }}">
                   <td class="text-nowrap">{{ row.contest }}</td>
                   <td class="text-nowrap">{{ row.year }}</td>
                   <td class="text-nowrap fw-semibold">{{ row.problem_code }}</td>
@@ -169,7 +219,7 @@
                     <input
                       type="text"
                       inputmode="numeric"
-                      class="form-control form-control-sm js-quick-completion-date"
+                      class="form-control form-control-sm quick-completion-date-input js-quick-completion-date"
                       value="{{ row.completion_date }}"
                       placeholder="YYYY-MM-DD"
                       autocomplete="off"
@@ -177,11 +227,19 @@
                     <div class="text-danger fs-xs mt-1 d-none js-quick-completion-error"></div>
                   </td>
                   <td>
-                    <div class="d-flex flex-wrap gap-1">
-                      <button type="button" class="btn btn-light btn-sm js-quick-completion-today">Today</button>
-                      <button type="button" class="btn btn-primary btn-sm js-quick-completion-save">Save</button>
-                      <button type="button" class="btn btn-outline-info btn-sm js-quick-completion-unknown">Unknown</button>
-                      <button type="button" class="btn btn-outline-secondary btn-sm js-quick-completion-clear">Clear</button>
+                    <div class="quick-completion-actions d-flex flex-wrap gap-1">
+                      <button type="button" class="btn btn-light btn-sm js-quick-completion-today">
+                        <i class="ti ti-calendar-event me-1"></i>Today
+                      </button>
+                      <button type="button" class="btn btn-primary btn-sm js-quick-completion-save">
+                        <i class="ti ti-device-floppy me-1"></i>Save
+                      </button>
+                      <button type="button" class="btn btn-outline-info btn-sm js-quick-completion-unknown">
+                        <i class="ti ti-help-circle me-1"></i>Unknown
+                      </button>
+                      <button type="button" class="btn btn-outline-secondary btn-sm js-quick-completion-clear">
+                        <i class="ti ti-x me-1"></i>Clear
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -205,21 +263,34 @@
 
 {% block extra_javascript %}
   {{ block.super }}
+  {% if completion_quick_update_rows %}
+  {% include 'partials/datatables-vendor-scripts.html' %}
+  {% endif %}
   <script>
   (function () {
     var table = document.getElementById("quick-completion-table");
     if (!table) return;
 
     var csrfTokenInput = document.querySelector('#quick-completion-csrf input[name="csrfmiddlewaretoken"]');
+    var resetButton = document.getElementById("quick-completion-table-reset");
     var saveUrl = table.getAttribute("data-save-url");
+    var statusFilter = document.getElementById("quick-completion-status-filter");
     var targetUserId = table.getAttribute("data-target-user-id") || "";
     var todayValue = table.getAttribute("data-today") || "";
+    var tableApi = null;
     if (!csrfTokenInput || !saveUrl) return;
 
     function statusClass(stateKind) {
       if (stateKind === "solved") return "bg-success-subtle text-success border border-success-subtle";
       if (stateKind === "unknown") return "bg-info-subtle text-info border border-info-subtle";
       return "bg-light text-dark border";
+    }
+
+    function stateKindForPayload(payload) {
+      if (payload.state_kind) return payload.state_kind;
+      if (payload.completion_date) return "solved";
+      if (payload.is_solved) return "unknown";
+      return "unsolved";
     }
 
     function displayText(payload) {
@@ -249,15 +320,77 @@
     function applyPayload(row, payload) {
       var displayEl = row.querySelector(".js-quick-completion-display");
       var dateInput = row.querySelector(".js-quick-completion-date");
+      var stateKind = stateKindForPayload(payload);
+      row.setAttribute("data-completion-state", stateKind);
       if (displayEl) {
-        displayEl.className = "badge js-quick-completion-display " + statusClass(payload.state_kind);
+        displayEl.className = "badge js-quick-completion-display " + statusClass(stateKind);
         displayEl.textContent = displayText(payload);
         displayEl.title = payload.state_label || "";
       }
       if (dateInput) {
         dateInput.value = payload.completion_date || "";
       }
+      if (tableApi) {
+        tableApi.row(row).invalidate("dom");
+        tableApi.draw(false);
+      }
       setRowError(row, "");
+    }
+
+    if (typeof DataTable !== "undefined") {
+      DataTable.ext.search.push(function (settings, _data, dataIndex) {
+        if (!settings.nTable || settings.nTable.id !== "quick-completion-table") return true;
+        var selectedStatus = statusFilter ? statusFilter.value : "";
+        if (!selectedStatus) return true;
+        var rowNode = settings.aoData && settings.aoData[dataIndex] ? settings.aoData[dataIndex].nTr : null;
+        return rowNode && rowNode.getAttribute("data-completion-state") === selectedStatus;
+      });
+
+      tableApi = new DataTable("#quick-completion-table", {
+        order: [[1, "desc"], [0, "asc"], [2, "asc"]],
+        pageLength: 25,
+        lengthMenu: [10, 25, 50, 100],
+        scrollX: true,
+        autoWidth: false,
+        columnDefs: [
+          {
+            targets: [6, 7],
+            orderable: false,
+            searchable: false
+          }
+        ],
+        layout: {
+          topStart: "pageLength",
+          topEnd: "search",
+          bottomStart: "info",
+          bottomEnd: "paging"
+        },
+        language: {
+          search: "Filter table:",
+          searchPlaceholder: "Within loaded rows",
+          info: "Showing _START_ to _END_ of _TOTAL_ loaded rows",
+          infoEmpty: "No loaded rows to show",
+          infoFiltered: "(filtered from _MAX_ loaded row(s))",
+          lengthMenu: "Show _MENU_ rows",
+          zeroRecords: "No loaded rows match the current filter."
+        }
+      });
+    }
+
+    if (statusFilter) {
+      statusFilter.addEventListener("change", function () {
+        if (tableApi) tableApi.draw();
+      });
+    }
+
+    if (resetButton) {
+      resetButton.addEventListener("click", function () {
+        if (statusFilter) statusFilter.value = "";
+        if (tableApi) {
+          tableApi.search("");
+          tableApi.draw();
+        }
+      });
     }
 
     function submitAction(row, action, completionDate) {

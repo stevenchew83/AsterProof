@@ -17,6 +17,11 @@ def _load_production_settings(monkeypatch, **extra_env):
     return importlib.import_module("config.settings.production")
 
 
+def _load_staticfiles_settings():
+    sys.modules.pop("config.settings.staticfiles", None)
+    return importlib.import_module("config.settings.staticfiles")
+
+
 def test_production_settings_keep_secure_cookies_enabled_by_default(monkeypatch):
     production = _load_production_settings(monkeypatch)
 
@@ -43,12 +48,20 @@ def test_production_settings_staticfiles_and_media_on_filesystem(monkeypatch):
     production = _load_production_settings(monkeypatch)
 
     assert production.STORAGES["staticfiles"]["BACKEND"] == (
-        "django.contrib.staticfiles.storage.StaticFilesStorage"
+        "whitenoise.storage.CompressedManifestStaticFilesStorage"
     )
     assert production.STORAGES["default"]["BACKEND"] == (
         "django.core.files.storage.FileSystemStorage"
     )
     assert production.MEDIA_URL == "/media/"
+
+
+def test_staticfiles_settings_use_compressed_manifest_storage():
+    staticfiles = _load_staticfiles_settings()
+
+    assert staticfiles.STORAGES["staticfiles"]["BACKEND"] == (
+        "whitenoise.storage.CompressedManifestStaticFilesStorage"
+    )
 
 
 def test_production_settings_middleware_timing_then_security_then_whitenoise(monkeypatch):

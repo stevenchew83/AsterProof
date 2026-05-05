@@ -22,6 +22,7 @@ from django.db import transaction
 from django.db.models import Avg
 from django.db.models import CharField
 from django.db.models import Count
+from django.db.models import Exists
 from django.db.models import F
 from django.db.models import Max
 from django.db.models import Min
@@ -3984,16 +3985,10 @@ def completion_record_list_view(request):
                 "problem_id",
             ),
         )
-        .annotate(
-            _effective_solution_status=Subquery(
-                ProblemSolution.objects.filter(
-                    author_id=OuterRef("user_id"),
-                    problem_id=OuterRef("_effective_problem_id"),
-                )
-                .order_by("-updated_at", "-id")
-                .values("status")[:1],
-            ),
-        )
+    )
+    solution_status_queryset = ProblemSolution.objects.filter(
+        author_id=OuterRef("user_id"),
+        problem_id=OuterRef("_effective_problem_id"),
     )
 
     if selected_contest:
@@ -4005,12 +4000,21 @@ def completion_record_list_view(request):
     elif selected_date_status == "unknown":
         completion_queryset = completion_queryset.filter(completion_date__isnull=True)
     if selected_solution_status == "none":
-        completion_queryset = completion_queryset.filter(
-            Q(_effective_solution_status__isnull=True) | Q(_effective_solution_status=""),
-        )
+        completion_queryset = completion_queryset.annotate(
+            _has_effective_solution=Exists(solution_status_queryset),
+        ).filter(_has_effective_solution=False)
     elif selected_solution_status:
-        completion_queryset = completion_queryset.filter(_effective_solution_status=selected_solution_status)
+        completion_queryset = completion_queryset.annotate(
+            _has_selected_solution_status=Exists(
+                solution_status_queryset.filter(status=selected_solution_status),
+            ),
+        ).filter(_has_selected_solution_status=True)
     if search_query:
+        completion_queryset = completion_queryset.annotate(
+            _effective_solution_status=Subquery(
+                solution_status_queryset.order_by("-updated_at", "-id").values("status")[:1],
+            ),
+        )
         for token in search_query.split():
             token_query = (
                 Q(user__name__icontains=token)
@@ -4025,11 +4029,12 @@ def completion_record_list_view(request):
                 token_query |= Q(statement__contest_year=int(token)) | Q(problem__year=int(token))
             completion_queryset = completion_queryset.filter(token_query)
 
-    completion_filtered_total = completion_queryset.count()
+    latest_completions = list(
+        completion_queryset.order_by("-updated_at", "-id")[: ADMIN_TABLE_LATEST_LIMIT + 1],
+    )
+    completion_is_capped = len(latest_completions) > ADMIN_TABLE_LATEST_LIMIT
     completion_rows, _completion_stats = _admin_completion_listing_rows(
-        list(
-            completion_queryset.order_by("-updated_at", "-id")[:ADMIN_TABLE_LATEST_LIMIT],
-        ),
+        latest_completions[:ADMIN_TABLE_LATEST_LIMIT],
     )
     completion_visible_total = len(completion_rows)
 
@@ -4080,7 +4085,7 @@ def completion_record_list_view(request):
         "completion_record_stats": completion_stats,
         "completion_record_visible_total": completion_visible_total,
         "completion_record_result_limit": ADMIN_TABLE_LATEST_LIMIT,
-        "completion_record_is_capped": completion_filtered_total > completion_visible_total,
+        "completion_record_is_capped": completion_is_capped,
     }
     return render(request, "pages/completion-record-list.html", context)
 

@@ -40,7 +40,11 @@ app_name = "pages"
 urlpatterns = [
     path("", root_page_view, name="home"),
     path("dashboard/my-activity/", user_activity_dashboard_view, name="user_activity_dashboard"),
-    path("dashboard/completion-quick-update/", completion_quick_update_view, name="completion_quick_update"),
+    path(
+        "dashboard/completion-quick-update/",
+        completion_quick_update_view,
+        name="completion_quick_update",
+    ),
     path(
         "dashboard/completion-quick-update/save/",
         completion_quick_update_save_view,

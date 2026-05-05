@@ -119,11 +119,11 @@ All dashboard JS/CSS and vendored `plugins/` under `inspinia/static/` must be **
 ./scripts/build_and_collectstatic.sh
 ```
 
-Or manually: `npm install && npm run build`, then `DJANGO_SETTINGS_MODULE=config.settings.test uv run python manage.py collectstatic --noinput`.
+Or manually: `npm ci && npm run build`, then `DJANGO_SETTINGS_MODULE=config.settings.staticfiles uv run python manage.py collectstatic --noinput`.
 
-**Deploy artifact:** The running app (or reverse proxy) must serve `/static/` from that collected tree — for example WhiteNoise (enabled in production settings) and/or nginx/ALB `alias` to `STATIC_ROOT`. Avoid mixing another origin for the same `/static/...` paths.
+**Deploy artifact:** The running app (or reverse proxy) must serve `/static/` from that collected tree — for example WhiteNoise (enabled in production settings) and/or nginx/ALB `alias` to `STATIC_ROOT`. Avoid mixing another origin for the same `/static/...` paths. The production and staticfiles settings use WhiteNoise compressed manifest storage, so collected assets include hashed names plus gzip variants by default, and brotli variants when brotli support is installed.
 
-**Verify after deploy:** On production, open DevTools → Network and confirm `vendors.min.js`, `app.js`, and `app.min.css` return **200** from your **app hostname** with correct content types. Compare with localhost on the same page.
+**Verify after deploy:** On production, open DevTools → Network and confirm `vendors.min.js`, `app.js`, and `app.min.css` return **200** from your **app hostname** with correct content types and `Content-Encoding: gzip` or `br` when requested. Compare with localhost on the same page.
 
 ## Quality checks
 
