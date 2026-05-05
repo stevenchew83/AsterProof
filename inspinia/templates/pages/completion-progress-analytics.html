@@ -450,7 +450,7 @@
       grid: { borderColor: "rgba(108,117,125,0.15)", strokeDashArray: 4 },
       plotOptions: { bar: { borderRadius: 4, columnWidth: "56%" } },
       series: series,
-      tooltip: { shared: true },
+      tooltip: { shared: true, intersect: false },
       xaxis: {
         categories: labels,
         labels: { rotate: labels.length > 8 ? -45 : 0, style: { fontSize: "11px" } }
@@ -474,7 +474,7 @@
         { name: "Average MOHS", type: "line", data: payload.averageValues }
       ],
       stroke: { curve: "smooth", width: [0, 3] },
-      tooltip: { shared: true },
+      tooltip: { shared: true, intersect: false },
       xaxis: {
         categories: payload.labels,
         labels: { rotate: payload.labels.length > 8 ? -45 : 0, style: { fontSize: "11px" } }
