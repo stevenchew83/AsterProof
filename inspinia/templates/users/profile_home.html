@@ -219,9 +219,9 @@
 {% block problem_page_content %}
   <section class="problem-section profile-content-section">
     <div class="container">
-      <a class="problem-back-link" href="{% url 'pages:home' %}">
+      <a class="problem-back-link" href="{% url 'pages:user_activity_dashboard' %}">
         <i class="ti ti-arrow-left"></i>
-        Back to home
+        Back to dashboard
       </a>
 
       {% if messages %}
@@ -241,7 +241,7 @@
           <div>
             <h1 class="problem-title profile-title">{{ profile_user.name|default:profile_user.email }}</h1>
             <p class="problem-lead mb-0">
-              Your landing-space profile keeps account details easy to manage without sending you into the admin dashboard.
+              Your profile keeps account details easy to manage without sending you into the admin dashboard.
             </p>
           </div>
           <div class="profile-action-stack">

@@ -348,7 +348,7 @@
 <div class="problem-shell">
   <nav class="navbar navbar-expand-lg landing-navbar">
     <div class="container">
-      <a href="{% url 'pages:home' %}" class="landing-brand">
+      <a href="{% url 'pages:user_activity_dashboard' %}" class="landing-brand">
         <span class="landing-brand-mark">
           <i class="ti ti-asterisk-simple"></i>
         </span>
@@ -364,15 +364,12 @@
 
       <div class="collapse navbar-collapse" id="problem-navbar-nav">
         <ul class="navbar-nav ms-auto align-items-lg-center">
-          <li class="nav-item"><a class="nav-link landing-nav-link" href="{% url 'pages:home' %}">Home</a></li>
-          <li class="nav-item"><a class="nav-link landing-nav-link" href="{% url 'pages:home' %}#about-us">About Us</a></li>
+          <li class="nav-item"><a class="nav-link landing-nav-link" href="{% url 'pages:user_activity_dashboard' %}">Dashboard</a></li>
           <li class="nav-item">
             <a class="nav-link landing-nav-link {% if request.resolver_match.url_name == 'archive_hub' or request.resolver_match.url_name == 'contest_dashboard_listing' %}is-active{% endif %}" href="{% url 'pages:archive_hub' %}">
               Archive
             </a>
           </li>
-          <li class="nav-item"><a class="nav-link landing-nav-link" href="{% url 'pages:home' %}#trending">Trending</a></li>
-          <li class="nav-item"><a class="nav-link landing-nav-link" href="{% url 'pages:home' %}#contact">Contact</a></li>
           <li class="nav-item ms-lg-2">
             <a class="btn btn-primary rounded-pill px-4 {% if request.resolver_match.url_name == 'profile' or request.resolver_match.url_name == 'profile_edit' %}active{% endif %}" href="{% url 'users:profile' %}">
               Profile
@@ -392,7 +389,7 @@
       <div class="landing-footer-card">
         <div class="row g-4">
           <div class="col-lg-4">
-            <a href="{% url 'pages:home' %}" class="landing-brand">
+            <a href="{% url 'pages:user_activity_dashboard' %}" class="landing-brand">
               <span class="landing-brand-mark">
                 <i class="ti ti-asterisk-simple"></i>
               </span>
@@ -408,11 +405,8 @@
           <div class="col-sm-6 col-lg-3">
             <h3 class="h6 mb-3">Navigate</h3>
             <div class="landing-footer-links flex-column align-items-start gap-2">
-              <a href="{% url 'pages:home' %}">Home</a>
-              <a href="{% url 'pages:home' %}#about-us">About Us</a>
+              <a href="{% url 'pages:user_activity_dashboard' %}">Dashboard</a>
               <a href="{% url 'pages:archive_hub' %}">Archive</a>
-              <a href="{% url 'pages:home' %}#trending">Trending</a>
-              <a href="{% url 'pages:home' %}#contact">Contact</a>
             </div>
           </div>
           <div class="col-sm-6 col-lg-2">
