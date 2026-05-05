@@ -32,9 +32,13 @@
                     </span>
                 </span>
                 <div class="min-w-0">
+                    {% if is_app_approved %}
                     <a href="{% url 'users:detail' request.user.pk %}" class="link-reset d-block fw-bold text-truncate">
                         {{ request.user.name|default:request.user.email }}
                     </a>
+                    {% else %}
+                    <span class="d-block fw-bold text-truncate">{{ request.user.name|default:request.user.email }}</span>
+                    {% endif %}
                     <span class="fs-12 fw-semibold text-body-secondary d-block text-truncate">
                         {{ request.user.email }}
                     </span>
@@ -66,7 +70,7 @@
                 </a>
             </li>
 
-            {% if request.user.is_authenticated %}
+            {% if request.user.is_authenticated and is_app_approved %}
             <li class="side-nav-title">Workspace</li>
 
             <li class="side-nav-item">
@@ -122,6 +126,7 @@
             </li>
             {% endif %}
 
+            {% if is_app_approved %}
             <li class="side-nav-title">Library</li>
 
             <li class="side-nav-item">
@@ -130,6 +135,7 @@
                     <span class="menu-text">Problem statements</span>
                 </a>
             </li>
+            {% endif %}
 
             {% if show_rankings_link %}
             <li class="side-nav-title">Rankings</li>
