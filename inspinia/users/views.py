@@ -8,6 +8,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
+from django.db import transaction
 from django.db.models import Q
 from django.db.models import QuerySet
 from django.shortcuts import redirect
@@ -15,6 +16,7 @@ from django.shortcuts import render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+from django.utils.translation import ngettext
 from django.views.decorators.http import require_http_methods
 from django.views.generic import DetailView
 from django.views.generic import RedirectView
@@ -327,6 +329,150 @@ def _url_with_query(url_name: str, params: dict[str, str]) -> str:
     return f"{base_url}?{query_string}" if query_string else base_url
 
 
+def _apply_user_access_update(
+    *,
+    request,
+    target: User,
+    new_role: str,
+    posted_is_approved: bool,
+) -> bool:
+    previous_role = target.role
+    previous_is_approved = target.is_approved
+    new_is_approved = posted_is_approved or new_role == User.Role.ADMIN or target.is_superuser
+
+    target.role = new_role
+    target.is_approved = new_is_approved
+    changed = previous_role != new_role or previous_is_approved != new_is_approved
+    if changed:
+        target.save(update_fields=["role", "is_approved"])
+
+    if previous_role != new_role:
+        record_event(
+            event_type=AuditEvent.EventType.ROLE_CHANGED,
+            message=(
+                f"Changed role for {target.email} from "
+                f"{User.Role(previous_role).label} to {target.get_role_display()}."
+            ),
+            request=request,
+            actor=request.user,
+            target_user=target,
+            metadata={
+                "from_role": previous_role,
+                "to_role": new_role,
+            },
+        )
+    if previous_is_approved != new_is_approved:
+        action = "Approved" if new_is_approved else "Revoked approval for"
+        record_event(
+            event_type=AuditEvent.EventType.APPROVAL_CHANGED,
+            message=f"{action} {target.email}.",
+            request=request,
+            actor=request.user,
+            target_user=target,
+            metadata={
+                "from_approved": previous_is_approved,
+                "to_approved": new_is_approved,
+            },
+        )
+    return changed
+
+
+def _build_user_access_summary(users: list[User]) -> dict[str, int]:
+    approved_count = sum(
+        1
+        for user in users
+        if user.is_approved or user.is_superuser or user.role == User.Role.ADMIN
+    )
+    return {
+        "total": len(users),
+        "approved": approved_count,
+        "pending": len(users) - approved_count,
+        "admins": sum(1 for user in users if user.is_superuser or user.role == User.Role.ADMIN),
+    }
+
+
+def _parse_bulk_user_access_updates(request, allowed_roles: set[str]) -> list[tuple[int, str, bool]] | None:
+    updates = []
+    for raw_id in request.POST.getlist("user_ids"):
+        try:
+            user_id = int(raw_id)
+        except (ValueError, TypeError):
+            return None
+
+        new_role = request.POST.get(f"role_{raw_id}")
+        if new_role not in allowed_roles:
+            return None
+
+        updates.append(
+            (
+                user_id,
+                new_role,
+                request.POST.get(f"is_approved_{raw_id}") == "1",
+            ),
+        )
+    return updates
+
+
+def _handle_bulk_user_access_post(request, allowed_roles: set[str]) -> None:
+    parsed_updates = _parse_bulk_user_access_updates(request, allowed_roles)
+    if parsed_updates is None:
+        messages.error(request, _("Invalid user or role."))
+        return
+
+    targets_by_id = User.objects.in_bulk([update[0] for update in parsed_updates])
+    if len(targets_by_id) != len(parsed_updates):
+        messages.error(request, _("Invalid user or role."))
+        return
+
+    changed_count = 0
+    with transaction.atomic():
+        for user_id, new_role, posted_is_approved in parsed_updates:
+            if _apply_user_access_update(
+                request=request,
+                target=targets_by_id[user_id],
+                new_role=new_role,
+                posted_is_approved=posted_is_approved,
+            ):
+                changed_count += 1
+
+    if changed_count:
+        messages.success(
+            request,
+            ngettext(
+                "Saved access changes for %(count)d user.",
+                "Saved access changes for %(count)d users.",
+                changed_count,
+            )
+            % {"count": changed_count},
+        )
+    else:
+        messages.info(request, _("No access changes to save."))
+
+
+def _handle_single_user_access_post(request, allowed_roles: set[str]) -> None:
+    raw_id = request.POST.get("user_id")
+    new_role = request.POST.get("role")
+    try:
+        target = User.objects.get(pk=int(raw_id)) if raw_id else None
+    except (User.DoesNotExist, ValueError, TypeError):
+        target = None
+
+    if target is None or new_role not in allowed_roles:
+        messages.error(request, _("Invalid user or role."))
+        return
+
+    _apply_user_access_update(
+        request=request,
+        target=target,
+        new_role=new_role,
+        posted_is_approved=request.POST.get("is_approved") == "1",
+    )
+    messages.success(
+        request,
+        _("Updated access for %(email)s.") % {"email": target.email},
+    )
+
+
 @login_required
 @require_http_methods(["GET", "POST"])
 def manage_user_roles_view(request):
@@ -336,65 +482,20 @@ def manage_user_roles_view(request):
     allowed_roles = {choice[0] for choice in User.Role.choices}
 
     if request.method == "POST":
-        raw_id = request.POST.get("user_id")
-        new_role = request.POST.get("role")
-        try:
-            target = User.objects.get(pk=int(raw_id)) if raw_id else None
-        except (User.DoesNotExist, ValueError, TypeError):
-            target = None
-
-        if target is None or new_role not in allowed_roles:
-            messages.error(request, _("Invalid user or role."))
+        if request.POST.getlist("user_ids"):
+            _handle_bulk_user_access_post(request, allowed_roles)
         else:
-            previous_role = target.role
-            previous_is_approved = target.is_approved
-            posted_is_approved = request.POST.get("is_approved") == "1"
-            new_is_approved = posted_is_approved or new_role == User.Role.ADMIN or target.is_superuser
-
-            target.role = new_role
-            target.is_approved = new_is_approved
-            target.save(update_fields=["role", "is_approved"])
-            messages.success(
-                request,
-                _("Updated access for %(email)s.") % {"email": target.email},
-            )
-            if previous_role != new_role:
-                record_event(
-                    event_type=AuditEvent.EventType.ROLE_CHANGED,
-                    message=(
-                        f"Changed role for {target.email} from "
-                        f"{User.Role(previous_role).label} to {target.get_role_display()}."
-                    ),
-                    request=request,
-                    actor=request.user,
-                    target_user=target,
-                    metadata={
-                        "from_role": previous_role,
-                        "to_role": new_role,
-                    },
-                )
-            if previous_is_approved != new_is_approved:
-                action = "Approved" if new_is_approved else "Revoked approval for"
-                record_event(
-                    event_type=AuditEvent.EventType.APPROVAL_CHANGED,
-                    message=f"{action} {target.email}.",
-                    request=request,
-                    actor=request.user,
-                    target_user=target,
-                    metadata={
-                        "from_approved": previous_is_approved,
-                        "to_approved": new_is_approved,
-                    },
-                )
+            _handle_single_user_access_post(request, allowed_roles)
         return redirect("users:manage_roles")
 
-    users_qs = User.objects.order_by("email")
+    users = list(User.objects.order_by("email"))
     return render(
         request,
         "users/manage_roles.html",
         {
-            "users": users_qs,
+            "users": users,
             "role_choices": User.Role.choices,
+            "access_summary": _build_user_access_summary(users),
         },
     )
 

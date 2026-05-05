@@ -470,6 +470,63 @@ class TestManageRolesView:
             target_user=target_user,
         ).exists()
 
+    def test_manage_roles_admin_can_save_all_access_changes(self, client: Client):
+        admin_user = UserFactory(role=User.Role.ADMIN)
+        first_target = UserFactory(
+            email="bulk-first@example.com",
+            role=User.Role.NORMAL,
+            is_approved=False,
+        )
+        second_target = UserFactory(
+            email="bulk-second@example.com",
+            role=User.Role.TRAINER,
+            is_approved=True,
+        )
+        unchanged_target = UserFactory(
+            email="bulk-unchanged@example.com",
+            role=User.Role.NORMAL,
+            is_approved=False,
+        )
+        client.force_login(admin_user)
+
+        response = client.post(
+            reverse("users:manage_roles"),
+            {
+                "user_ids": [first_target.pk, second_target.pk, unchanged_target.pk],
+                f"role_{first_target.pk}": User.Role.MODERATOR,
+                f"is_approved_{first_target.pk}": "1",
+                f"role_{second_target.pk}": User.Role.NORMAL,
+                f"is_approved_{second_target.pk}": "0",
+                f"role_{unchanged_target.pk}": User.Role.NORMAL,
+                f"is_approved_{unchanged_target.pk}": "0",
+            },
+            follow=True,
+        )
+
+        first_target.refresh_from_db()
+        second_target.refresh_from_db()
+        unchanged_target.refresh_from_db()
+
+        assert response.status_code == HTTPStatus.OK
+        assert first_target.role == User.Role.MODERATOR
+        assert first_target.is_approved is True
+        assert second_target.role == User.Role.NORMAL
+        assert second_target.is_approved is False
+        assert unchanged_target.role == User.Role.NORMAL
+        assert unchanged_target.is_approved is False
+        assert "Saved access changes for 2 users." in response.content.decode("utf-8")
+        assert AuditEvent.objects.filter(
+            event_type=AuditEvent.EventType.ROLE_CHANGED,
+            actor=admin_user,
+            target_user=first_target,
+        ).exists()
+        assert AuditEvent.objects.filter(
+            event_type=AuditEvent.EventType.APPROVAL_CHANGED,
+            actor=admin_user,
+            target_user=second_target,
+            metadata__to_approved=False,
+        ).exists()
+
     def test_manage_roles_admin_can_approve_user_and_record_audit_event(self, client: Client):
         admin_user = UserFactory(role=User.Role.ADMIN)
         target_user = UserFactory(role=User.Role.NORMAL, is_approved=False)
@@ -548,7 +605,9 @@ class TestManageRolesView:
         assert "User access" in content
         assert "Approval" in content
         assert pending_user.email in content
-        assert 'name="is_approved"' in content
+        assert 'name="user_ids"' in content
+        assert f'name="is_approved_{pending_user.pk}"' in content
+        assert "Save all changes" in content
 
     def test_manage_roles_rejects_invalid_role(self, client: Client):
         admin_user = UserFactory(role=User.Role.ADMIN)
