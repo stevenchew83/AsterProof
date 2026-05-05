@@ -42,6 +42,18 @@ from django.utils.text import slugify
 
 from inspinia.pages.asymptote_render import build_statement_render_segments
 from inspinia.pages.asymptote_render import has_asymptote_blocks
+from inspinia.pages.completion_progress import COMPLETION_PROGRESS_RANGE_OPTIONS
+from inspinia.pages.completion_progress import CompletionProgressFilters
+from inspinia.pages.completion_progress import completion_progress_charts_payload
+from inspinia.pages.completion_progress import completion_progress_csv_rows
+from inspinia.pages.completion_progress import completion_progress_filter_options
+from inspinia.pages.completion_progress import completion_progress_stats
+from inspinia.pages.completion_progress import completion_progress_table_rows
+from inspinia.pages.completion_progress import completion_progress_user_options
+from inspinia.pages.completion_progress import default_completion_progress_user
+from inspinia.pages.completion_progress import filter_completion_progress_rows
+from inspinia.pages.completion_progress import normalize_completion_progress_rows
+from inspinia.pages.completion_progress import resolve_completion_progress_date_range
 from inspinia.pages.contest_links import contest_dashboard_listing_url
 from inspinia.pages.contest_links import problem_statement_contest_year_master_url
 from inspinia.pages.contest_names import normalize_contest_name
@@ -3795,6 +3807,138 @@ def user_activity_dashboard_view(request):
         "activity_table_rows": filtered_table_rows,
     }
     return render(request, "pages/user-activity-dashboard.html", context)
+
+
+def _selected_completion_progress_user(raw_user_id: str) -> User | None:
+    selected_user = None
+    if raw_user_id:
+        try:
+            selected_user_id = int(raw_user_id)
+        except (TypeError, ValueError):
+            selected_user_id = None
+        if selected_user_id is not None:
+            selected_user = User.objects.filter(pk=selected_user_id).first()
+    return selected_user or default_completion_progress_user()
+
+
+def _completion_progress_csv_response(rows, selected_user: User | None) -> HttpResponse:
+    csv_rows = completion_progress_csv_rows(rows)
+    fieldnames = [
+        "User",
+        "User email",
+        "Completion date",
+        "Contest",
+        "Year",
+        "Problem",
+        "Problem code",
+        "Topic",
+        "MOHS",
+        "Solution status",
+        "Updated at",
+        "Problem UUID",
+        "Statement UUID",
+    ]
+    filename_subject = selected_user.email if selected_user is not None else "all-users"
+    response = HttpResponse(content_type=CSV_CONTENT_TYPE)
+    response["Content-Disposition"] = (
+        f'attachment; filename="{slugify(filename_subject) or "completion"}-progress.csv"'
+    )
+    writer = csv.DictWriter(response, fieldnames=fieldnames)
+    writer.writeheader()
+    writer.writerows(csv_rows)
+    return response
+
+
+@login_required
+def completion_progress_analytics_view(request):
+    """Admin progress analytics for one selected user's completion history."""
+    _require_admin_tools_access(request)
+    today = timezone.localdate()
+    selected_user = _selected_completion_progress_user((request.GET.get("user") or "").strip())
+    date_range = resolve_completion_progress_date_range(
+        raw_range=(request.GET.get("range") or "").strip(),
+        raw_start=(request.GET.get("start") or "").strip(),
+        raw_end=(request.GET.get("end") or "").strip(),
+        today=today,
+    )
+    selected_contest = (request.GET.get("contest") or "").strip()
+    selected_topic = (request.GET.get("topic") or "").strip()
+    selected_mohs_min = (request.GET.get("mohs_min") or "").strip()
+    selected_mohs_max = (request.GET.get("mohs_max") or "").strip()
+    selected_solution_status = (request.GET.get("solution_status") or "").strip()
+    search_query = (request.GET.get("q") or "").strip()
+
+    if selected_user is None:
+        completions = []
+    else:
+        completions = list(
+            UserProblemCompletion.objects.filter(user=selected_user)
+            .select_related(
+                "user",
+                "problem",
+                "statement",
+                "statement__linked_problem",
+            )
+            .order_by(
+                F("completion_date").desc(nulls_last=True),
+                "-updated_at",
+                "-id",
+            ),
+        )
+    all_rows = normalize_completion_progress_rows(completions)
+    date_scoped_rows = filter_completion_progress_rows(
+        all_rows,
+        CompletionProgressFilters(
+            start_date=date_range.start_date,
+            end_date=date_range.end_date,
+        ),
+    )
+    filtered_rows = filter_completion_progress_rows(
+        all_rows,
+        CompletionProgressFilters(
+            start_date=date_range.start_date,
+            end_date=date_range.end_date,
+            contest=selected_contest,
+            topic=selected_topic,
+            mohs_min=selected_mohs_min,
+            mohs_max=selected_mohs_max,
+            solution_status=selected_solution_status,
+            search_query=search_query,
+        ),
+    )
+
+    if request.GET.get("export") == "csv":
+        return _completion_progress_csv_response(filtered_rows, selected_user)
+
+    table_rows = completion_progress_table_rows(filtered_rows)
+    context = {
+        "completion_progress_charts_payload": completion_progress_charts_payload(
+            filtered_rows,
+            start_date=date_range.start_date,
+            end_date=date_range.end_date,
+        ),
+        "completion_progress_date_range": date_range,
+        "completion_progress_filter_options": completion_progress_filter_options(date_scoped_rows),
+        "completion_progress_filters": {
+            "contest": selected_contest,
+            "end": date_range.end_label,
+            "mohs_max": selected_mohs_max,
+            "mohs_min": selected_mohs_min,
+            "q": search_query,
+            "range": date_range.range_key,
+            "solution_status": selected_solution_status,
+            "start": date_range.start_label,
+            "topic": selected_topic,
+            "user": str(selected_user.pk) if selected_user is not None else "",
+        },
+        "completion_progress_range_options": COMPLETION_PROGRESS_RANGE_OPTIONS,
+        "completion_progress_rows": table_rows,
+        "completion_progress_selected_user": selected_user,
+        "completion_progress_stats": completion_progress_stats(filtered_rows, today=today),
+        "completion_progress_table_rows": table_rows,
+        "completion_progress_user_options": completion_progress_user_options(),
+    }
+    return render(request, "pages/completion-progress-analytics.html", context)
 
 
 @login_required

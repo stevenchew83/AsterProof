@@ -3,6 +3,7 @@ from django.urls import path
 from inspinia.pages.views import completion_board_bulk_view
 from inspinia.pages.views import completion_board_toggle_view
 from inspinia.pages.views import completion_board_view
+from inspinia.pages.views import completion_progress_analytics_view
 from inspinia.pages.views import completion_quick_update_save_view
 from inspinia.pages.views import completion_quick_update_view
 from inspinia.pages.views import completion_record_list_view
@@ -48,6 +49,11 @@ urlpatterns = [
     path("dashboard/completion-board/", completion_board_view, name="completion_board"),
     path("dashboard/completion-board/toggle/", completion_board_toggle_view, name="completion_board_toggle"),
     path("dashboard/completion-board/bulk/", completion_board_bulk_view, name="completion_board_bulk"),
+    path(
+        "dashboard/completion-progress/",
+        completion_progress_analytics_view,
+        name="completion_progress_analytics",
+    ),
     path("dashboard/completion-records/", completion_record_list_view, name="completion_record_list"),
     path("dashboard/", dashboard_analytics_view, name="dashboard"),
     path("dashboard/contests/", contest_analytics_view, name="contest_dashboard"),

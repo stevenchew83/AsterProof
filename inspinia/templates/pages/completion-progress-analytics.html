@@ -1,0 +1,586 @@
+{% extends 'layouts/vertical.html' %}
+
+{% load static %}
+
+{% block title %}Progress analytics{% endblock title %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'plugins/datatables/dataTables.bootstrap5.min.css' %}">
+<style>
+  .completion-progress-filter-row {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: .75rem;
+    align-items: end;
+  }
+
+  .completion-progress-field {
+    grid-column: span 2;
+  }
+
+  .completion-progress-field.is-wide {
+    grid-column: span 3;
+  }
+
+  .completion-progress-field.is-actions {
+    grid-column: span 12;
+  }
+
+  .completion-progress-chart {
+    min-height: 320px;
+  }
+
+  #completion-progress-table_wrapper .dt-layout-row {
+    margin: .5rem 0;
+  }
+
+  #completion-progress-table_wrapper .dt-length label,
+  #completion-progress-table_wrapper .dt-search label {
+    color: var(--bs-secondary-color);
+    font-size: .75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  #completion-progress-table_wrapper .dt-length .form-select,
+  #completion-progress-table_wrapper .dt-search .form-control {
+    font-size: .8125rem;
+    min-height: calc(1.5em + .5rem + 2px);
+    padding-bottom: .25rem;
+    padding-top: .25rem;
+  }
+
+  @media (max-width: 1199.98px) {
+    .completion-progress-field,
+    .completion-progress-field.is-wide {
+      grid-column: span 4;
+    }
+  }
+
+  @media (max-width: 767.98px) {
+    .completion-progress-field,
+    .completion-progress-field.is-wide {
+      grid-column: span 12;
+    }
+  }
+</style>
+{% endblock extra_css %}
+
+{% block page_content %}
+<div class="container-fluid">
+
+  {% include 'partials/page-title.html' with title='Completion progress' subtitle='Progress analytics' %}
+
+  <div class="row g-3 mt-0">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header border-bottom py-2">
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <div>
+              <h4 class="header-title mb-0">Progress analytics filters</h4>
+              <p class="text-muted fs-xs mb-0">Daily progress uses exact completion dates. Unknown-date rows stay visible in the table and missing-date KPI.</p>
+            </div>
+            {% if completion_progress_selected_user %}
+            <span class="badge bg-primary-subtle text-primary">{{ completion_progress_selected_user.email }}</span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="card-body">
+          <form method="get" class="completion-progress-filter-row">
+            <div class="completion-progress-field is-wide">
+              <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-progress-user">User</label>
+              <select id="completion-progress-user" name="user" class="form-select form-select-sm">
+                {% if not completion_progress_user_options %}
+                <option value="">No completion users</option>
+                {% endif %}
+                {% for user_option in completion_progress_user_options %}
+                <option value="{{ user_option.value }}" {% if user_option.value == completion_progress_filters.user %}selected{% endif %}>{{ user_option.label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="completion-progress-field">
+              <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-progress-range">Range</label>
+              <select id="completion-progress-range" name="range" class="form-select form-select-sm">
+                {% for range_option in completion_progress_range_options %}
+                <option value="{{ range_option.value }}" {% if range_option.value == completion_progress_filters.range %}selected{% endif %}>{{ range_option.label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="completion-progress-field">
+              <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-progress-start">Start</label>
+              <input id="completion-progress-start" type="date" name="start" value="{{ completion_progress_filters.start }}" class="form-control form-control-sm">
+            </div>
+            <div class="completion-progress-field">
+              <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-progress-end">End</label>
+              <input id="completion-progress-end" type="date" name="end" value="{{ completion_progress_filters.end }}" class="form-control form-control-sm">
+            </div>
+            <div class="completion-progress-field">
+              <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-progress-contest">Contest</label>
+              <select id="completion-progress-contest" name="contest" class="form-select form-select-sm">
+                <option value="">All contests</option>
+                {% for contest in completion_progress_filter_options.contests %}
+                <option value="{{ contest }}" {% if contest == completion_progress_filters.contest %}selected{% endif %}>{{ contest }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="completion-progress-field">
+              <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-progress-topic">Topic</label>
+              <select id="completion-progress-topic" name="topic" class="form-select form-select-sm">
+                <option value="">All topics</option>
+                {% for topic in completion_progress_filter_options.topics %}
+                <option value="{{ topic }}" {% if topic == completion_progress_filters.topic %}selected{% endif %}>{{ topic }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="completion-progress-field">
+              <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-progress-mohs-min">MOHS min</label>
+              <input id="completion-progress-mohs-min" type="number" name="mohs_min" value="{{ completion_progress_filters.mohs_min }}" class="form-control form-control-sm" min="0">
+            </div>
+            <div class="completion-progress-field">
+              <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-progress-mohs-max">MOHS max</label>
+              <input id="completion-progress-mohs-max" type="number" name="mohs_max" value="{{ completion_progress_filters.mohs_max }}" class="form-control form-control-sm" min="0">
+            </div>
+            <div class="completion-progress-field">
+              <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-progress-solution">Solution</label>
+              <select id="completion-progress-solution" name="solution_status" class="form-select form-select-sm">
+                <option value="">All solutions</option>
+                {% for status in completion_progress_filter_options.solution_statuses %}
+                <option value="{{ status.value }}" {% if status.value == completion_progress_filters.solution_status %}selected{% endif %}>{{ status.label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="completion-progress-field is-wide">
+              <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-progress-q">Search</label>
+              <input id="completion-progress-q" type="search" name="q" value="{{ completion_progress_filters.q }}" class="form-control form-control-sm" placeholder="Contest, problem, topic...">
+            </div>
+            <div class="completion-progress-field is-actions">
+              <div class="d-flex flex-wrap gap-2">
+                <button type="submit" class="btn btn-sm btn-primary">
+                  <i class="ti ti-filter me-1"></i>Apply filters
+                </button>
+                <button type="submit" name="export" value="csv" class="btn btn-sm btn-outline-primary">
+                  <i class="ti ti-download me-1"></i>Export CSV
+                </button>
+                <a href="{% url 'pages:completion_progress_analytics' %}" class="btn btn-sm btn-outline-secondary">
+                  <i class="ti ti-refresh me-1"></i>Reset
+                </a>
+                <span class="text-muted fs-xs align-self-center">{{ completion_progress_date_range.label }}</span>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-0">
+    <div class="col-sm-6 col-xl-3">
+      <div class="card">
+        <div class="card-body d-flex align-items-center">
+          <span class="avatar-title bg-primary-subtle text-primary rounded flex-shrink-0"><i class="ti ti-checks fs-24"></i></span>
+          <div class="flex-grow-1 ms-2">
+            <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Solved</p>
+            <h3 class="mb-0">{{ completion_progress_stats.solved_total }}</h3>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card">
+        <div class="card-body d-flex align-items-center">
+          <span class="avatar-title bg-info-subtle text-info rounded flex-shrink-0"><i class="ti ti-calendar-stats fs-24"></i></span>
+          <div class="flex-grow-1 ms-2">
+            <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Active days</p>
+            <h3 class="mb-0">{{ completion_progress_stats.active_day_total }}</h3>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card">
+        <div class="card-body d-flex align-items-center">
+          <span class="avatar-title bg-success-subtle text-success rounded flex-shrink-0"><i class="ti ti-flame fs-24"></i></span>
+          <div class="flex-grow-1 ms-2">
+            <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Current / longest streak</p>
+            <h3 class="mb-0">{{ completion_progress_stats.current_streak }} / {{ completion_progress_stats.longest_streak }}</h3>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card">
+        <div class="card-body d-flex align-items-center">
+          <span class="avatar-title bg-warning-subtle text-warning rounded flex-shrink-0"><i class="ti ti-target-arrow fs-24"></i></span>
+          <div class="flex-grow-1 ms-2">
+            <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Total MOHS</p>
+            <h3 class="mb-0">{{ completion_progress_stats.total_mohs }}</h3>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card">
+        <div class="card-body d-flex align-items-center">
+          <span class="avatar-title bg-primary-subtle text-primary rounded flex-shrink-0"><i class="ti ti-gauge fs-24"></i></span>
+          <div class="flex-grow-1 ms-2">
+            <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Average MOHS</p>
+            <h3 class="mb-0">{{ completion_progress_stats.average_mohs|default:"—" }}</h3>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card">
+        <div class="card-body d-flex align-items-center">
+          <span class="avatar-title bg-info-subtle text-info rounded flex-shrink-0"><i class="ti ti-mountain fs-24"></i></span>
+          <div class="flex-grow-1 ms-2">
+            <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Max MOHS</p>
+            <h3 class="mb-0">{{ completion_progress_stats.max_mohs|default:"—" }}</h3>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card">
+        <div class="card-body d-flex align-items-center">
+          <span class="avatar-title bg-warning-subtle text-warning rounded flex-shrink-0"><i class="ti ti-calendar-question fs-24"></i></span>
+          <div class="flex-grow-1 ms-2">
+            <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Missing dates</p>
+            <h3 class="mb-0">{{ completion_progress_stats.missing_date_total }}</h3>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card">
+        <div class="card-body d-flex align-items-center">
+          <span class="avatar-title bg-danger-subtle text-danger rounded flex-shrink-0"><i class="ti ti-writing-off fs-24"></i></span>
+          <div class="flex-grow-1 ms-2">
+            <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">No solution</p>
+            <h3 class="mb-0">{{ completion_progress_stats.no_solution_total }}</h3>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if not completion_progress_selected_user %}
+  <div class="alert alert-info mt-3" role="alert">
+    No completion rows exist yet. This page will populate after at least one user completion is saved.
+  </div>
+  {% else %}
+
+  <div class="row g-3 mt-0">
+    <div class="col-xl-6">
+      <div class="card">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-0">Daily completions</h4>
+          <p class="text-muted fs-xs mb-0">Exact-date solve count by day.</p>
+        </div>
+        <div class="card-body pt-2"><div id="chart-completion-progress-daily" class="completion-progress-chart"></div></div>
+      </div>
+    </div>
+    <div class="col-xl-6">
+      <div class="card">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-0">Daily MOHS</h4>
+          <p class="text-muted fs-xs mb-0">Total and average MOHS from exact-date rows.</p>
+        </div>
+        <div class="card-body pt-2"><div id="chart-completion-progress-mohs" class="completion-progress-chart"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-0">
+    <div class="col-xl-7">
+      <div class="card">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-0">Daily topic mix</h4>
+          <p class="text-muted fs-xs mb-0">Stacked exact-date completions by main topic.</p>
+        </div>
+        <div class="card-body pt-2"><div id="chart-completion-progress-topic-mix" class="completion-progress-chart"></div></div>
+      </div>
+    </div>
+    <div class="col-xl-5">
+      <div class="card">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-0">Topic totals</h4>
+          <p class="text-muted fs-xs mb-0">Filtered completions by topic.</p>
+        </div>
+        <div class="card-body pt-2"><div id="chart-completion-progress-topic-totals" class="completion-progress-chart"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-0">
+    <div class="col-xl-4">
+      <div class="card">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-0">MOHS distribution</h4>
+          <p class="text-muted fs-xs mb-0">Filtered completions by MOHS value.</p>
+        </div>
+        <div class="card-body pt-2"><div id="chart-completion-progress-mohs-distribution" class="completion-progress-chart"></div></div>
+      </div>
+    </div>
+    <div class="col-xl-4">
+      <div class="card">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-0">Topic x MOHS</h4>
+          <p class="text-muted fs-xs mb-0">Filtered topic and difficulty cells.</p>
+        </div>
+        <div class="card-body pt-2"><div id="chart-completion-progress-topic-mohs" class="completion-progress-chart"></div></div>
+      </div>
+    </div>
+    <div class="col-xl-4">
+      <div class="card">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-0">Solution follow-through</h4>
+          <p class="text-muted fs-xs mb-0">Filtered completions by solution status.</p>
+        </div>
+        <div class="card-body pt-2"><div id="chart-completion-progress-solutions" class="completion-progress-chart"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-0 mb-3">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header border-bottom py-2">
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <div>
+              <h4 class="header-title mb-0">Filtered completion rows</h4>
+              <p class="text-muted fs-xs mb-0">The table and CSV export use the same filtered row set as the charts.</p>
+            </div>
+            <span class="badge bg-secondary-subtle text-secondary">{{ completion_progress_rows|length }} loaded</span>
+          </div>
+        </div>
+        <div class="card-body p-2 p-md-3">
+          {% if completion_progress_rows %}
+          <div class="table-responsive">
+            <table id="completion-progress-table" class="table table-sm table-hover table-striped align-middle w-100 mb-0"></table>
+          </div>
+          {% else %}
+          <div class="alert alert-info py-2 mb-0" role="alert">
+            No completion rows match the current filters.
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% endif %}
+</div>
+
+{{ completion_progress_charts_payload|json_script:"completion-progress-chart-data" }}
+{{ completion_progress_table_rows|json_script:"completion-progress-table-data" }}
+{% endblock page_content %}
+
+{% block extra_javascript %}
+<script src="{% static 'plugins/apexcharts/apexcharts.min.js' %}"></script>
+{% if completion_progress_rows %}
+{% include 'partials/datatables-vendor-scripts.html' %}
+{% endif %}
+<script>
+(function () {
+  var chartDataEl = document.getElementById("completion-progress-chart-data");
+  var tableDataEl = document.getElementById("completion-progress-table-data");
+  var charts = chartDataEl ? JSON.parse(chartDataEl.textContent) : {};
+
+  function escapeHtml(value) {
+    return String(value == null ? "" : value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function hasValues(values) {
+    return Array.isArray(values) && values.some(function (value) { return Number(value) > 0; });
+  }
+
+  function renderBar(selector, labels, series, colors, stacked) {
+    var el = document.querySelector(selector);
+    if (!el || typeof ApexCharts === "undefined" || !labels || !labels.length) return;
+    if (!series.some(function (row) { return hasValues(row.data); })) return;
+
+    new ApexCharts(el, {
+      chart: {
+        type: "bar",
+        height: 320,
+        stacked: Boolean(stacked),
+        toolbar: { show: false },
+        fontFamily: "inherit"
+      },
+      colors: colors,
+      dataLabels: { enabled: false },
+      grid: { borderColor: "rgba(108,117,125,0.15)", strokeDashArray: 4 },
+      plotOptions: { bar: { borderRadius: 4, columnWidth: "56%" } },
+      series: series,
+      tooltip: { shared: true },
+      xaxis: {
+        categories: labels,
+        labels: { rotate: labels.length > 8 ? -45 : 0, style: { fontSize: "11px" } }
+      },
+      yaxis: { labels: { style: { fontSize: "11px" } } }
+    }).render();
+  }
+
+  function renderLine(selector, payload) {
+    var el = document.querySelector(selector);
+    if (!el || typeof ApexCharts === "undefined" || !payload || !payload.labels.length) return;
+    if (!hasValues(payload.totalValues) && !hasValues(payload.averageValues)) return;
+
+    new ApexCharts(el, {
+      chart: { type: "line", height: 320, toolbar: { show: false }, fontFamily: "inherit" },
+      colors: ["#0d6efd", "#20c997"],
+      dataLabels: { enabled: false },
+      grid: { borderColor: "rgba(108,117,125,0.15)", strokeDashArray: 4 },
+      series: [
+        { name: "Total MOHS", type: "column", data: payload.totalValues },
+        { name: "Average MOHS", type: "line", data: payload.averageValues }
+      ],
+      stroke: { curve: "smooth", width: [0, 3] },
+      tooltip: { shared: true },
+      xaxis: {
+        categories: payload.labels,
+        labels: { rotate: payload.labels.length > 8 ? -45 : 0, style: { fontSize: "11px" } }
+      },
+      yaxis: [{ labels: { style: { fontSize: "11px" } } }]
+    }).render();
+  }
+
+  function heatmapRanges(maxValue) {
+    if (!maxValue) return [{ from: 0, to: 0, name: "0", color: "#eef2f7" }];
+    var firstUpper = Math.max(1, Math.ceil(maxValue / 4));
+    var secondUpper = Math.max(firstUpper + 1, Math.ceil(maxValue / 2));
+    var thirdUpper = Math.max(secondUpper + 1, Math.ceil((maxValue * 3) / 4));
+    return [
+      { from: 0, to: 0, name: "0", color: "#eef2f7" },
+      { from: 1, to: firstUpper, name: "1-" + firstUpper, color: "#dbeafe" },
+      { from: firstUpper + 1, to: secondUpper, name: (firstUpper + 1) + "-" + secondUpper, color: "#93c5fd" },
+      { from: secondUpper + 1, to: thirdUpper, name: (secondUpper + 1) + "-" + thirdUpper, color: "#3b82f6" },
+      { from: thirdUpper + 1, to: maxValue, name: (thirdUpper + 1) + "+", color: "#1d4ed8" }
+    ].filter(function (range) { return range.from <= range.to; });
+  }
+
+  function renderHeatmap(selector, payload) {
+    var el = document.querySelector(selector);
+    if (!el || typeof ApexCharts === "undefined" || !payload || !payload.series.length) return;
+    new ApexCharts(el, {
+      chart: {
+        type: "heatmap",
+        height: Math.max(320, 48 * payload.series.length + 72),
+        toolbar: { show: false },
+        fontFamily: "inherit"
+      },
+      dataLabels: {
+        enabled: true,
+        formatter: function (value) { return value ? String(value) : ""; },
+        style: { colors: ["#11203b"], fontSize: "11px", fontWeight: 600 }
+      },
+      grid: { borderColor: "rgba(108,117,125,0.15)" },
+      legend: { show: true, position: "top", horizontalAlign: "left" },
+      plotOptions: {
+        heatmap: {
+          colorScale: { ranges: heatmapRanges(Number(payload.max_value || 0)) },
+          radius: 4,
+          shadeIntensity: 0.92
+        }
+      },
+      series: payload.series,
+      stroke: { width: 1, colors: ["rgba(255,255,255,0.65)"] },
+      xaxis: { type: "category", labels: { style: { fontSize: "11px" } } },
+      yaxis: { reversed: true, labels: { maxWidth: 160, style: { fontSize: "11px" } } }
+    }).render();
+  }
+
+  function renderDonut(selector, payload) {
+    var el = document.querySelector(selector);
+    if (!el || typeof ApexCharts === "undefined" || !payload || !hasValues(payload.values)) return;
+    new ApexCharts(el, {
+      chart: { type: "donut", height: 320, toolbar: { show: false }, fontFamily: "inherit" },
+      labels: payload.labels,
+      legend: { position: "bottom" },
+      series: payload.values
+    }).render();
+  }
+
+  renderBar("#chart-completion-progress-daily", charts.dailyCompletions.labels, [
+    { name: "Completions", data: charts.dailyCompletions.values }
+  ], ["#0d6efd"], false);
+  renderLine("#chart-completion-progress-mohs", charts.dailyMohs);
+  renderBar(
+    "#chart-completion-progress-topic-mix",
+    charts.dailyTopicMix.labels,
+    charts.dailyTopicMix.series,
+    ["#0d6efd", "#20c997", "#ffc107", "#dc3545", "#6f42c1"],
+    true
+  );
+  renderBar("#chart-completion-progress-topic-totals", charts.topicTotals.labels, [
+    { name: "Completions", data: charts.topicTotals.values }
+  ], ["#20c997"], false);
+  renderBar("#chart-completion-progress-mohs-distribution", charts.mohsDistribution.labels, [
+    { name: "Completions", data: charts.mohsDistribution.values }
+  ], ["#ffc107"], false);
+  renderHeatmap("#chart-completion-progress-topic-mohs", charts.topicMohsHeatmap);
+  renderDonut("#chart-completion-progress-solutions", charts.solutionStatus);
+
+  if (tableDataEl && typeof DataTable !== "undefined") {
+    var rows = JSON.parse(tableDataEl.textContent);
+    new DataTable("#completion-progress-table", {
+      data: rows,
+      columns: [
+        {
+          data: "completion_date",
+          title: "Completed",
+          className: "text-nowrap",
+          render: function (data, type, row) {
+            if (type === "sort" || type === "type") return row.completion_date_sort;
+            return data;
+          }
+        },
+        { data: "contest", title: "Contest" },
+        { data: "year", title: "Year", className: "text-nowrap" },
+        {
+          data: "problem_label",
+          title: "Problem",
+          render: function (data, type, row) {
+            if (type === "display" && row.problem_url) {
+              return '<a href="' + row.problem_url + '" class="text-decoration-none fw-semibold">' + escapeHtml(data) + "</a>";
+            }
+            return data;
+          }
+        },
+        { data: "topic", title: "Topic", className: "text-nowrap" },
+        { data: "mohs", title: "MOHS", className: "text-nowrap" },
+        {
+          data: "solution_status_label",
+          title: "Solution",
+          className: "text-nowrap",
+          render: function (data, type, row) {
+            if (type === "display") {
+              return '<span class="badge ' + row.solution_status_badge_class + '">' + escapeHtml(data) + "</span>";
+            }
+            return data;
+          }
+        },
+        {
+          data: "updated_at",
+          title: "Updated",
+          className: "text-nowrap",
+          render: function (data, type, row) {
+            if (type === "sort" || type === "type") return row.updated_at_sort;
+            return data;
+          }
+        }
+      ],
+      order: [[0, "desc"]],
+      pageLength: 25,
+      responsive: true
+    });
+  }
+})();
+</script>
+{% endblock extra_javascript %}
