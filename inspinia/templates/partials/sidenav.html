@@ -117,6 +117,15 @@
             </li>
             {% endif %}
 
+            {% if show_problem_lists_link %}
+            <li class="side-nav-item">
+                <a href="{% url 'problemsets:my_lists' %}" class="side-nav-link">
+                    <span class="menu-icon"><i class="ti ti-list-details"></i></span>
+                    <span class="menu-text">My problem lists</span>
+                </a>
+            </li>
+            {% endif %}
+
             {% if is_app_approved %}
             <li class="side-nav-title">Library</li>
 
@@ -126,6 +135,15 @@
                     <span class="menu-text">Problem statements</span>
                 </a>
             </li>
+
+            {% if show_problem_list_discovery_link %}
+            <li class="side-nav-item">
+                <a href="{% url 'problemsets:discover' %}" class="side-nav-link">
+                    <span class="menu-icon"><i class="ti ti-world-search"></i></span>
+                    <span class="menu-text">Discover lists</span>
+                </a>
+            </li>
+            {% endif %}
             {% endif %}
 
             {% if show_rankings_link %}

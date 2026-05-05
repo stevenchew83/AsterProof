@@ -97,6 +97,7 @@ LOCAL_APPS = [
     "inspinia.users",
     "inspinia.pages",
     "inspinia.solutions",
+    "inspinia.problemsets",
     "inspinia.rankings",
     # Your stuff: custom apps go here
 ]

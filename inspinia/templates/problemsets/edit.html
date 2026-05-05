@@ -1,0 +1,205 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}Edit {{ problem_list.title }}{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  {% include 'partials/page-title.html' with title='Edit problem list' subtitle=problem_list.title %}
+
+  {% if messages %}
+  <div class="mt-3">
+    {% for message in messages %}
+      <div class="alert alert-{% if message.tags == 'error' %}danger{% elif message.tags == 'debug' %}secondary{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="row g-3 mt-0">
+    <div class="col-xl-5">
+      <div class="card">
+        <div class="card-header border-bottom">
+          <h4 class="header-title mb-0">List details</h4>
+        </div>
+        <div class="card-body">
+          <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+              <label class="form-label" for="{{ form.title.id_for_label }}">Title</label>
+              {{ form.title }}
+              {% for error in form.title.errors %}<div class="text-danger fs-xs mt-1">{{ error }}</div>{% endfor %}
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="{{ form.description.id_for_label }}">Description</label>
+              {{ form.description }}
+              {% for error in form.description.errors %}<div class="text-danger fs-xs mt-1">{{ error }}</div>{% endfor %}
+            </div>
+            <button type="submit" class="btn btn-primary">Save details</button>
+          </form>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-7">
+      <div class="card">
+        <div class="card-header border-bottom">
+          <h4 class="header-title mb-0">Sharing</h4>
+        </div>
+        <div class="card-body">
+          <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+            <span class="badge {% if problem_list.is_public %}bg-success-subtle text-success{% else %}bg-secondary-subtle text-secondary{% endif %}">
+              {{ problem_list.get_visibility_display }}
+            </span>
+            <span class="badge bg-primary-subtle text-primary">Score {{ problem_list_votes.score }}</span>
+            <span class="badge bg-light text-dark border">{{ problem_list_votes.upvote_count }} up / {{ problem_list_votes.downvote_count }} down</span>
+          </div>
+          <form method="post" action="{% url 'problemsets:toggle_visibility' problem_list.list_uuid %}" class="mb-3">
+            {% csrf_token %}
+            <button type="submit" class="btn {% if problem_list.is_public %}btn-outline-secondary{% else %}btn-success{% endif %}">
+              {% if problem_list.is_public %}Make private{% else %}Publish with share link{% endif %}
+            </button>
+          </form>
+          {% if problem_list.is_public %}
+          <div class="input-group input-group-sm">
+            <span class="input-group-text">Share URL</span>
+            <input type="text" class="form-control" value="{{ request.scheme }}://{{ request.get_host }}{{ problem_list_public_url }}" readonly>
+            <a href="{{ problem_list_public_url }}" class="btn btn-outline-secondary">Open</a>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mt-3">
+    <div class="card-header border-bottom">
+      <h4 class="header-title mb-0">Add problem</h4>
+      <p class="text-muted fs-xs mb-0">Paste an active problem UUID from the problem statement or contest listing pages.</p>
+    </div>
+    <div class="card-body">
+      <form method="post" action="{% url 'problemsets:add_item' problem_list.list_uuid %}" class="row g-2 align-items-end">
+        {% csrf_token %}
+        <div class="col-xl-7 col-lg-8">
+          <label class="form-label" for="{{ add_problem_form.problem_uuid.id_for_label }}">Problem UUID</label>
+          {{ add_problem_form.problem_uuid }}
+        </div>
+        <div class="col-auto">
+          <button type="submit" class="btn btn-primary">Add problem</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="card mt-3">
+    <div class="card-header border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2">
+      <div>
+        <h4 class="header-title mb-0">Problem sequence</h4>
+        <p class="text-muted fs-xs mb-0">Move rows, then save the sequence.</p>
+      </div>
+      <a href="{% url 'problemsets:detail' problem_list.list_uuid %}" class="btn btn-outline-secondary btn-sm">View list</a>
+    </div>
+    <div class="card-body">
+      {% if problem_list_items %}
+      <form method="post" action="{% url 'problemsets:reorder_items' problem_list.list_uuid %}" id="problem-list-reorder-form">
+        {% csrf_token %}
+        <div class="table-responsive">
+          <table class="table table-striped align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Order</th>
+                <th>Problem</th>
+                <th>Metadata</th>
+                <th class="text-end">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="problem-list-item-rows">
+              {% for row in problem_list_items %}
+              <tr data-item-row>
+                <td class="text-nowrap fw-semibold">
+                  <span data-position-label>#{{ forloop.counter }}</span>
+                  <input type="hidden" name="item_order" value="{{ row.id }}">
+                </td>
+                <td>
+                  <div class="fw-semibold">{{ row.problem_label }}</div>
+                  <div class="text-muted fs-xs">{{ row.problem_uuid }}</div>
+                  {% if not row.is_active %}
+                  <span class="badge bg-warning-subtle text-warning mt-1">Inactive problem; public pages hide this row</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <span class="badge bg-light text-dark border">{{ row.topic_label }}</span>
+                  <span class="badge bg-light text-dark border">MOHS {{ row.mohs|default:"—" }}</span>
+                </td>
+                <td class="text-end">
+                  <div class="d-inline-flex flex-wrap justify-content-end gap-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-move-up aria-label="Move {{ row.problem_label }} up">
+                      <i class="ti ti-arrow-up"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-move-down aria-label="Move {{ row.problem_label }} down">
+                      <i class="ti ti-arrow-down"></i>
+                    </button>
+                    <button
+                      type="submit"
+                      form="problem-list-remove-{{ row.id }}"
+                      class="btn btn-outline-danger btn-sm"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="mt-3">
+          <button type="submit" class="btn btn-primary">Save sequence</button>
+        </div>
+      </form>
+      {% for row in problem_list_items %}
+      <form id="problem-list-remove-{{ row.id }}" method="post" action="{% url 'problemsets:remove_item' problem_list.list_uuid row.id %}" class="d-none">
+        {% csrf_token %}
+      </form>
+      {% endfor %}
+      {% else %}
+      <div class="alert alert-info mb-0" role="alert">
+        Add at least one active problem to start building the sequence.
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock page_content %}
+
+{% block extra_javascript %}
+<script>
+(function () {
+  var tbody = document.getElementById("problem-list-item-rows");
+  if (!tbody) return;
+
+  function refreshPositions() {
+    Array.from(tbody.querySelectorAll("[data-position-label]")).forEach(function (label, index) {
+      label.textContent = "#" + String(index + 1);
+    });
+  }
+
+  tbody.addEventListener("click", function (event) {
+    var upButton = event.target.closest("[data-move-up]");
+    var downButton = event.target.closest("[data-move-down]");
+    if (!upButton && !downButton) return;
+    var row = event.target.closest("[data-item-row]");
+    if (!row) return;
+    if (upButton && row.previousElementSibling) {
+      tbody.insertBefore(row, row.previousElementSibling);
+      refreshPositions();
+      return;
+    }
+    if (downButton && row.nextElementSibling) {
+      tbody.insertBefore(row.nextElementSibling, row);
+      refreshPositions();
+    }
+  });
+})();
+</script>
+{% endblock extra_javascript %}

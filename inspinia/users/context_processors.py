@@ -25,6 +25,8 @@ def app_roles(request):
         "show_analytics_dashboard_link": can_access_admin_tools,
         "show_event_log_link": approved and admin,
         "show_my_progress_analytics_link": approved,
+        "show_problem_lists_link": approved,
+        "show_problem_list_discovery_link": approved,
         "show_problem_import_link": can_access_admin_tools,
         "show_session_monitor_link": approved and admin,
         "show_solution_workspace_link": approved,
