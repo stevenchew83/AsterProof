@@ -5622,6 +5622,8 @@ def test_completion_progress_analytics_renders_admin_dashboard(client):
     apex_script = response_html.index("plugins/apexcharts/apexcharts.min")
     apex_restore = response_html.index("__asterproofApexAmdBackup", apex_script)
     assert apex_guard_start < apex_script < apex_restore
+    expected_shared_tooltip_config_count = 2
+    assert response_html.count("tooltip: { shared: true, intersect: false }") == expected_shared_tooltip_config_count
     assert '<div class="flex-shrink-0">\n              <span class="avatar-title bg-primary-subtle' in response_html
 
 
