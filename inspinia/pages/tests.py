@@ -2957,6 +2957,31 @@ def test_user_activity_sidebar_hides_admin_only_utilities_for_non_admin(client):
     side_nav_html = response.content.decode("utf-8").split('<ul class="side-nav">', 1)[1].split("</ul>", 1)[0]
     assert "LaTeX preview" not in side_nav_html
     assert "Handle parser" not in side_nav_html
+    assert "Rankings" not in side_nav_html
+    assert "Ranking table" not in side_nav_html
+    assert "Ranking dashboard" not in side_nav_html
+    assert "Students" not in side_nav_html
+    assert "Assessments" not in side_nav_html
+    assert "Formulas" not in side_nav_html
+    assert "Ranking imports" not in side_nav_html
+
+
+@override_settings(DEBUG=False)
+def test_user_activity_sidebar_shows_rankings_for_moderator(client):
+    user = UserFactory(role=User.Role.MODERATOR)
+    client.force_login(user)
+
+    response = client.get(reverse("pages:user_activity_dashboard"))
+
+    assert response.status_code == HTTPStatus.OK
+    side_nav_html = response.content.decode("utf-8").split('<ul class="side-nav">', 1)[1].split("</ul>", 1)[0]
+    assert "Rankings" in side_nav_html
+    assert "Ranking table" in side_nav_html
+    assert "Ranking dashboard" in side_nav_html
+    assert "Students" in side_nav_html
+    assert "Assessments" in side_nav_html
+    assert "Formulas" in side_nav_html
+    assert "Ranking imports" in side_nav_html
 
 
 def test_contest_rename_requires_login(client):
