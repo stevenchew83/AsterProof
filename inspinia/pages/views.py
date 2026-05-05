@@ -75,12 +75,15 @@ from inspinia.pages.handle_summary_parser import HandleSummaryParseValidationErr
 from inspinia.pages.handle_summary_parser import HandleSummaryPreviewPayload
 from inspinia.pages.handle_summary_parser import build_handle_summary_preview_payload
 from inspinia.pages.handle_summary_parser import parse_handle_summary_text
+from inspinia.pages.models import DIFFICULTY_RATING_MAX
+from inspinia.pages.models import DIFFICULTY_RATING_MIN
 from inspinia.pages.models import ContestMetadata
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
 from inspinia.pages.models import ProblemTopicTechnique
 from inspinia.pages.models import StatementTopicTechnique
 from inspinia.pages.models import UserProblemCompletion
+from inspinia.pages.models import UserProblemDifficultyRating
 from inspinia.pages.problem_completion_import import import_problem_completion_text_for_user
 from inspinia.pages.problem_import import ProblemImportValidationError
 from inspinia.pages.problem_import import build_parsed_preview_payload
@@ -439,6 +442,84 @@ def _statement_completion_dates_by_statement_id(
     return completion_by_statement_id
 
 
+def _difficulty_rating_payload(
+    *,
+    user_rating: int | None,
+    average_rating: object,
+    rating_count: int,
+) -> dict[str, object]:
+    average_value = None
+    average_display = "—"
+    if average_rating is not None and rating_count:
+        average_value = round(float(average_rating), 1)
+        average_display = f"{average_value:.1f}"
+
+    return {
+        "user_difficulty_rating": user_rating if user_rating is not None else "",
+        "average_difficulty_rating": average_value,
+        "average_difficulty_display": average_display,
+        "difficulty_rating_count": int(rating_count or 0),
+    }
+
+
+def _difficulty_rating_payload_for_statement(
+    *,
+    statement: ContestProblemStatement,
+    user,
+) -> dict[str, object]:
+    stats = UserProblemDifficultyRating.objects.filter(statement=statement).aggregate(
+        average_rating=Avg("rating"),
+        rating_count=Count("id"),
+    )
+    user_rating = (
+        UserProblemDifficultyRating.objects.filter(user=user, statement=statement)
+        .values_list("rating", flat=True)
+        .first()
+    )
+    return _difficulty_rating_payload(
+        user_rating=user_rating,
+        average_rating=stats["average_rating"],
+        rating_count=stats["rating_count"],
+    )
+
+
+def _difficulty_rating_payloads_by_statement_id(
+    *,
+    statement_ids: list[int],
+    user,
+) -> dict[int, dict[str, object]]:
+    if not statement_ids:
+        return {}
+
+    payloads = {
+        statement_id: _difficulty_rating_payload(user_rating=None, average_rating=None, rating_count=0)
+        for statement_id in statement_ids
+    }
+    rating_stat_rows = (
+        UserProblemDifficultyRating.objects.filter(statement_id__in=statement_ids)
+        .values("statement_id")
+        .annotate(average_rating=Avg("rating"), rating_count=Count("id"))
+    )
+    for rating_row in rating_stat_rows:
+        payloads[rating_row["statement_id"]] = _difficulty_rating_payload(
+            user_rating=None,
+            average_rating=rating_row["average_rating"],
+            rating_count=rating_row["rating_count"],
+        )
+
+    if user is None or not getattr(user, "is_authenticated", False):
+        return payloads
+
+    user_rating_rows = UserProblemDifficultyRating.objects.filter(
+        user=user,
+        statement_id__in=statement_ids,
+    ).values("statement_id", "rating")
+    for rating_row in user_rating_rows:
+        payloads[rating_row["statement_id"]]["user_difficulty_rating"] = rating_row["rating"]
+
+    return payloads
+
+
 def _completion_problem_for_statement(statement: ContestProblemStatement | None) -> ProblemSolveRecord | None:
     if statement is None:
         return None
@@ -479,6 +560,10 @@ def _statement_table_rows(base, *, user=None) -> list[dict]:
             continue
         seen_topic_tags_by_statement_id[statement_id].add(technique)
         topic_tags_by_statement_id[statement_id].append(technique)
+    difficulty_rating_payloads = _difficulty_rating_payloads_by_statement_id(
+        statement_ids=statement_ids,
+        user=user,
+    )
     completion_dates_by_statement_id: dict[int, date | None] = {}
     visible_solution_problem_ids: set[int] = set()
     if user is not None and linked_problem_ids:
@@ -534,6 +619,7 @@ def _statement_table_rows(base, *, user=None) -> list[dict]:
         linked_problem_mohs = eff_mohs
         linked_problem_confidence = effective_confidence(statement)
         linked_problem_imo_slot_guess_value = effective_imo_slot_guess_value(statement)
+        difficulty_rating_payload = difficulty_rating_payloads[statement.id]
         if linked_problem is not None:
             linked_problem_uuid = str(linked_problem.problem_uuid)
         contest_key = contest_key_for_public_slug(statement)
@@ -581,6 +667,7 @@ def _statement_table_rows(base, *, user=None) -> list[dict]:
                 "linked_problem_imo_slot_url": linked_problem_imo_slot_url,
                 "linked_problem_topic_tags": linked_problem_topic_tags,
                 "linked_problem_topic_tag_links": linked_problem_topic_tag_links,
+                **difficulty_rating_payload,
                 "problem_destination_label": (
                     "View"
                     if linked_problem is not None and linked_problem.id in visible_solution_problem_ids
@@ -698,13 +785,14 @@ def _filter_statement_queryset(  # noqa: C901
 def _statement_table_rows_copy_tsv(rows: list[dict]) -> str:
     header = (
         "Year\tContest\tTopic\tProblem code\tDay\tSolved\tTopic tags\tMOHS\t"
-        "Confidence\tIMO slot\tUpdated\n"
+        "Your difficulty\tAvg difficulty\tDifficulty ratings\tConfidence\tIMO slot\tUpdated\n"
     )
     lines = [header]
     for row in rows:
         tags = ", ".join(row.get("linked_problem_topic_tags") or [])
         mohs = row.get("linked_problem_mohs")
         imo = _format_imo_slot_label(row.get("linked_problem_imo_slot_guess_value") or "")
+        user_difficulty_rating = row.get("user_difficulty_rating")
         lines.append(
             "\t".join(
                 [
@@ -716,6 +804,9 @@ def _statement_table_rows_copy_tsv(rows: list[dict]) -> str:
                     str(row.get("user_completion_display") or ""),
                     tags,
                     "" if mohs is None else str(mohs),
+                    "" if user_difficulty_rating in {None, ""} else str(user_difficulty_rating),
+                    "" if row.get("average_difficulty_rating") is None else str(row.get("average_difficulty_display")),
+                    str(row.get("difficulty_rating_count") or 0),
                     str(row.get("linked_problem_confidence") or ""),
                     imo,
                     str(row.get("updated_at") or ""),
@@ -4303,6 +4394,43 @@ def problem_statement_list_view(request):
         "statement_copy_tsv": copy_tsv,
     }
     return render(request, "pages/problem-statement-list.html", context)
+
+
+@login_required
+def problem_statement_difficulty_rating_save_view(request):
+    """Save one per-user difficulty rating for a statement row."""
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required."}, status=405)
+
+    statement_uuid = (request.POST.get("statement_uuid") or "").strip()
+    if not statement_uuid:
+        return JsonResponse({"error": "Statement UUID is required."}, status=400)
+
+    try:
+        statement_uuid_value = uuid.UUID(statement_uuid)
+    except ValueError as exc:
+        raise Http404 from exc
+
+    try:
+        statement = ContestProblemStatement.objects.get(statement_uuid=statement_uuid_value)
+    except ContestProblemStatement.DoesNotExist as exc:
+        raise Http404 from exc
+
+    raw_rating = (request.POST.get("rating") or "").strip()
+    if not re.fullmatch(r"\d+", raw_rating):
+        return JsonResponse({"error": "Rating must be an integer from 0 to 60."}, status=400)
+    rating = int(raw_rating)
+    if rating < DIFFICULTY_RATING_MIN or rating > DIFFICULTY_RATING_MAX:
+        return JsonResponse({"error": "Rating must be an integer from 0 to 60."}, status=400)
+
+    UserProblemDifficultyRating.objects.update_or_create(
+        user=request.user,
+        statement=statement,
+        defaults={"rating": rating},
+    )
+    payload = _difficulty_rating_payload_for_statement(statement=statement, user=request.user)
+    payload["statement_uuid"] = str(statement.statement_uuid)
+    return JsonResponse(payload)
 
 
 @login_required

@@ -1,6 +1,8 @@
 import uuid
 
 from django.conf import settings
+from django.core.validators import MaxValueValidator
+from django.core.validators import MinValueValidator
 from django.db import models
 
 from inspinia.pages.analytics_field_parse import parse_imo_slot_guess_value
@@ -11,6 +13,9 @@ from inspinia.pages.contest_names import normalize_contest_name
 from inspinia.pages.contest_names import normalize_text_list
 from inspinia.pages.topic_tags_parse import domains_dedup_preserve_order
 from inspinia.pages.topic_tags_parse import normalize_topic_tag
+
+DIFFICULTY_RATING_MIN = 0
+DIFFICULTY_RATING_MAX = 60
 
 
 class ProblemSolveRecord(models.Model):
@@ -343,3 +348,40 @@ class UserProblemCompletion(models.Model):
             f"{self.user.email} completed {label} on "
             f"{self.completion_date.isoformat() if self.completion_date else 'unknown date'}"
         )
+
+
+class UserProblemDifficultyRating(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="problem_difficulty_ratings",
+    )
+    statement = models.ForeignKey(
+        ContestProblemStatement,
+        on_delete=models.CASCADE,
+        related_name="difficulty_ratings",
+    )
+    rating = models.PositiveSmallIntegerField(
+        validators=[
+            MinValueValidator(DIFFICULTY_RATING_MIN),
+            MaxValueValidator(DIFFICULTY_RATING_MAX),
+        ],
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-updated_at", "user_id", "statement_id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "statement"],
+                name="pages_userproblemdifficultyrating_unique_user_statement",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(rating__gte=DIFFICULTY_RATING_MIN, rating__lte=DIFFICULTY_RATING_MAX),
+                name="pages_userproblemdifficultyrating_rating_range",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.user.email} rated {self.statement.contest_year_problem} as {self.rating}"
