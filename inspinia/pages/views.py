@@ -3848,12 +3848,15 @@ def _completion_progress_csv_response(rows, selected_user: User | None) -> HttpR
     return response
 
 
-@login_required
-def completion_progress_analytics_view(request):
-    """Admin progress analytics for one selected user's completion history."""
-    _require_admin_tools_access(request)
+def _render_completion_progress_analytics(
+    request,
+    *,
+    selected_user: User | None,
+    can_select_user: bool,
+    page_title: str,
+    reset_url_name: str,
+):
     today = timezone.localdate()
-    selected_user = _selected_completion_progress_user((request.GET.get("user") or "").strip())
     date_range = resolve_completion_progress_date_range(
         raw_range=(request.GET.get("range") or "").strip(),
         raw_start=(request.GET.get("start") or "").strip(),
@@ -3928,16 +3931,46 @@ def completion_progress_analytics_view(request):
             "solution_status": selected_solution_status,
             "start": date_range.start_label,
             "topic": selected_topic,
-            "user": str(selected_user.pk) if selected_user is not None else "",
+            "user": str(selected_user.pk) if can_select_user and selected_user is not None else "",
         },
+        "completion_progress_can_select_user": can_select_user,
+        "completion_progress_page_subtitle": "Progress analytics",
+        "completion_progress_page_title": page_title,
         "completion_progress_range_options": COMPLETION_PROGRESS_RANGE_OPTIONS,
+        "completion_progress_reset_url": reverse(reset_url_name),
         "completion_progress_rows": table_rows,
         "completion_progress_selected_user": selected_user,
         "completion_progress_stats": completion_progress_stats(filtered_rows, today=today),
         "completion_progress_table_rows": table_rows,
-        "completion_progress_user_options": completion_progress_user_options(),
+        "completion_progress_user_options": completion_progress_user_options() if can_select_user else [],
     }
     return render(request, "pages/completion-progress-analytics.html", context)
+
+
+@login_required
+def completion_progress_analytics_view(request):
+    """Admin progress analytics for one selected user's completion history."""
+    _require_admin_tools_access(request)
+    selected_user = _selected_completion_progress_user((request.GET.get("user") or "").strip())
+    return _render_completion_progress_analytics(
+        request,
+        selected_user=selected_user,
+        can_select_user=True,
+        page_title="Completion progress",
+        reset_url_name="pages:completion_progress_analytics",
+    )
+
+
+@login_required
+def my_completion_progress_analytics_view(request):
+    """Personal progress analytics scoped to the signed-in user's completion history."""
+    return _render_completion_progress_analytics(
+        request,
+        selected_user=request.user,
+        can_select_user=False,
+        page_title="My progress",
+        reset_url_name="pages:my_completion_progress_analytics",
+    )
 
 
 @login_required

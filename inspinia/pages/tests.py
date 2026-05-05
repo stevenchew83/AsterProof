@@ -5847,6 +5847,161 @@ def test_completion_progress_analytics_forbids_non_admin_when_debug_is_off(clien
     assert response.status_code == HTTPStatus.FORBIDDEN
 
 
+@override_settings(DEBUG=False)
+def test_my_completion_progress_analytics_renders_only_signed_in_user_rows(client):
+    user = UserFactory(name="Own Student", email="own-progress@example.com")
+    other_user = UserFactory(name="Other Student", email="other-progress@example.com")
+    client.force_login(user)
+    today = timezone.localdate()
+
+    own_problem = ProblemSolveRecord.objects.create(
+        year=today.year,
+        topic="ALG",
+        mohs=18,
+        contest="IMO",
+        problem="P1",
+        contest_year_problem=f"IMO {today.year} P1",
+    )
+    other_problem = ProblemSolveRecord.objects.create(
+        year=today.year,
+        topic="GEO",
+        mohs=35,
+        contest="USAMO",
+        problem="P2",
+        contest_year_problem=f"USAMO {today.year} P2",
+    )
+    UserProblemCompletion.objects.create(
+        user=user,
+        problem=own_problem,
+        completion_date=today,
+    )
+    UserProblemCompletion.objects.create(
+        user=other_user,
+        problem=other_problem,
+        completion_date=today,
+    )
+    ProblemSolution.objects.create(
+        problem=own_problem,
+        author=user,
+        status=ProblemSolution.Status.DRAFT,
+    )
+
+    response = client.get(
+        reverse("pages:my_completion_progress_analytics"),
+        {"range": "7d"},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["completion_progress_selected_user"] == user
+    assert response.context["completion_progress_can_select_user"] is False
+    assert response.context["completion_progress_user_options"] == []
+    assert response.context["completion_progress_stats"]["solved_total"] == 1
+    assert [row["problem_label"] for row in response.context["completion_progress_rows"]] == [
+        f"IMO {today.year} P1",
+    ]
+    assert response.context["completion_progress_charts_payload"]["solutionStatus"] == {
+        "labels": ["Draft"],
+        "values": [1],
+    }
+
+    response_html = response.content.decode("utf-8")
+    assert "My progress" in response_html
+    assert "Progress analytics" in response_html
+    assert 'id="completion-progress-user"' not in response_html
+    assert "own-progress@example.com" in response_html
+    assert "other-progress@example.com" not in response_html
+    assert f"USAMO {today.year} P2" not in response_html
+
+
+@override_settings(DEBUG=False)
+def test_my_completion_progress_analytics_ignores_user_query_parameter(client):
+    user = UserFactory(name="Private Student", email="private@example.com")
+    other_user = UserFactory(name="Target Student", email="target@example.com")
+    client.force_login(user)
+    today = timezone.localdate()
+
+    own_problem = ProblemSolveRecord.objects.create(
+        year=today.year,
+        topic="NT",
+        mohs=21,
+        contest="BMO",
+        problem="N1",
+        contest_year_problem=f"BMO {today.year} N1",
+    )
+    other_problem = ProblemSolveRecord.objects.create(
+        year=today.year,
+        topic="COMB",
+        mohs=40,
+        contest="EGMO",
+        problem="C6",
+        contest_year_problem=f"EGMO {today.year} C6",
+    )
+    UserProblemCompletion.objects.create(
+        user=user,
+        problem=own_problem,
+        completion_date=today,
+    )
+    UserProblemCompletion.objects.create(
+        user=other_user,
+        problem=other_problem,
+        completion_date=today,
+    )
+
+    response = client.get(
+        reverse("pages:my_completion_progress_analytics"),
+        {"user": str(other_user.pk), "range": "all"},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["completion_progress_selected_user"] == user
+    assert [row["problem_label"] for row in response.context["completion_progress_rows"]] == [
+        f"BMO {today.year} N1",
+    ]
+    assert "target@example.com" not in response.content.decode("utf-8")
+
+
+@override_settings(DEBUG=False)
+def test_my_completion_progress_analytics_csv_exports_only_signed_in_user_rows(client):
+    user = UserFactory(name="CSV Owner", email="csv-owner@example.com")
+    other_user = UserFactory(name="CSV Other", email="csv-other@example.com")
+    client.force_login(user)
+    today = timezone.localdate()
+
+    own_problem = ProblemSolveRecord.objects.create(
+        year=today.year,
+        topic="ALG",
+        mohs=12,
+        contest="IMO",
+        problem="P1",
+        contest_year_problem=f"IMO {today.year} P1",
+    )
+    other_problem = ProblemSolveRecord.objects.create(
+        year=today.year,
+        topic="GEO",
+        mohs=30,
+        contest="IMO",
+        problem="P2",
+        contest_year_problem=f"IMO {today.year} P2",
+    )
+    UserProblemCompletion.objects.create(user=user, problem=own_problem, completion_date=today)
+    UserProblemCompletion.objects.create(user=other_user, problem=other_problem, completion_date=today)
+
+    response = client.get(
+        reverse("pages:my_completion_progress_analytics"),
+        {"user": str(other_user.pk), "range": "all", "export": "csv"},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response["Content-Type"] == "text/csv; charset=utf-8"
+    assert 'filename="csv-ownerexamplecom-progress.csv"' in response["Content-Disposition"]
+    csv_rows = list(csv.DictReader(StringIO(response.content.decode("utf-8"))))
+    assert len(csv_rows) == 1
+    assert csv_rows[0]["User email"] == "csv-owner@example.com"
+    assert csv_rows[0]["Problem"] == f"IMO {today.year} P1"
+    assert "csv-other@example.com" not in response.content.decode("utf-8")
+    assert f"IMO {today.year} P2" not in response.content.decode("utf-8")
+
+
 def test_user_solution_record_list_applies_query_filters(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     matching_user = UserFactory(name="Mary Cartwright", email="mary@example.com")
@@ -10000,6 +10155,19 @@ def test_home_exposes_live_library_index_for_admin(client):
     assert problem_entry["href"] == contest_dashboard_listing_url("ISRAEL TST") + "#israel-tst-2026-p2"
 
 
+def test_dashboard_sidebar_shows_personal_progress_link_for_authenticated_user(client):
+    user = UserFactory()
+    client.force_login(user)
+
+    response = client.get(reverse("pages:user_activity_dashboard"))
+
+    assert response.status_code == HTTPStatus.OK
+    side_nav_html = response.content.decode("utf-8").split('<ul class="side-nav">', 1)[1].split("</ul>", 1)[0]
+    assert "My progress" in side_nav_html
+    assert reverse("pages:my_completion_progress_analytics") in side_nav_html
+    assert "Progress analytics" not in side_nav_html
+
+
 def test_dashboard_sidebar_groups_links_into_balanced_workflow_sections_for_admin(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
@@ -10018,6 +10186,7 @@ def test_dashboard_sidebar_groups_links_into_balanced_workflow_sections_for_admi
         "Operations",
         "Utilities",
         "Admin",
+        "My progress",
         "Quick completions",
         "Ranking imports",
         "Technique analytics",
@@ -10041,6 +10210,7 @@ def test_dashboard_sidebar_groups_links_into_balanced_workflow_sections_for_admi
         "Overview",
         "My account",
         "My activity",
+        "My progress",
         "Quick completions",
         "Contest progress",
         "My solutions",

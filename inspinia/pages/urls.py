@@ -17,6 +17,7 @@ from inspinia.pages.views import contest_rename_view
 from inspinia.pages.views import dashboard_analytics_view
 from inspinia.pages.views import handle_summary_parser_view
 from inspinia.pages.views import latex_preview_view
+from inspinia.pages.views import my_completion_progress_analytics_view
 from inspinia.pages.views import problem_import_view
 from inspinia.pages.views import problem_list_redirect_view
 from inspinia.pages.views import problem_statement_analytics_view
@@ -40,6 +41,11 @@ urlpatterns = [
     path("", root_page_view, name="home"),
     path("archive/", archive_hub_view, name="archive_hub"),
     path("dashboard/my-activity/", user_activity_dashboard_view, name="user_activity_dashboard"),
+    path(
+        "dashboard/my-progress/",
+        my_completion_progress_analytics_view,
+        name="my_completion_progress_analytics",
+    ),
     path(
         "dashboard/completion-quick-update/",
         completion_quick_update_view,
