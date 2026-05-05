@@ -71,14 +71,6 @@
     width: fit-content;
   }
 
-  .statement-difficulty-editor {
-    min-width: 9.5rem;
-  }
-
-  .statement-difficulty-input {
-    max-width: 4.75rem;
-  }
-
   .statement-difficulty-average {
     display: inline-flex;
     align-items: center;
@@ -300,7 +292,6 @@
           <div class="statement-table-shell">
             <table id="problem-statements-table"
               class="table table-striped table-bordered align-middle w-100"
-              data-difficulty-rating-save-url="{% url 'pages:problem_statement_difficulty_rating_save' %}"
             >
               <thead class="table-light">
                 <tr>
@@ -312,7 +303,6 @@
                   <th>Solved</th>
                   <th>Topic tags</th>
                   <th class="text-nowrap">MOHS</th>
-                  <th class="text-nowrap">Your difficulty</th>
                   <th class="text-nowrap">Avg difficulty</th>
                   <th class="text-nowrap">Confidence</th>
                   <th class="text-nowrap">IMO slot</th>
@@ -338,7 +328,6 @@
                   <th>Solved</th>
                   <th>Topic tags</th>
                   <th class="text-nowrap">MOHS</th>
-                  <th class="text-nowrap">Your difficulty</th>
                   <th class="text-nowrap">Avg difficulty</th>
                   <th class="text-nowrap">Confidence</th>
                   <th class="text-nowrap">IMO slot</th>
@@ -348,7 +337,7 @@
               </thead>
               <tbody>
                 <tr>
-                  <td colspan="14" class="text-muted text-center py-4">No rows match the current filters.</td>
+                  <td colspan="13" class="text-muted text-center py-4">No rows match the current filters.</td>
                 </tr>
               </tbody>
             </table>
@@ -364,9 +353,6 @@
 
 {% block extra_javascript %}
 {% if statement_total > 0 %}
-{% if statement_filtered_total > 0 %}
-<form id="problem-statement-difficulty-csrf" class="d-none">{% csrf_token %}</form>
-{% endif %}
 <textarea id="statement-copy-tsv" class="d-none" readonly>{{ statement_copy_tsv }}</textarea>
 {% if statement_filtered_total > 0 %}
 {% include 'partials/datatables-vendor-scripts.html' %}
@@ -441,11 +427,7 @@
   var dataEl = document.getElementById("problem-statements-table-data");
   if (!dataEl || typeof DataTable === "undefined") return;
 
-  var tableEl = document.getElementById("problem-statements-table");
-  var ratingSaveUrl = tableEl ? tableEl.getAttribute("data-difficulty-rating-save-url") : "";
-  var csrfTokenInput = document.querySelector('#problem-statement-difficulty-csrf input[name="csrfmiddlewaretoken"]');
   var rows = JSON.parse(dataEl.textContent);
-  var tableApi = null;
 
   function escapeHtml(value) {
     return String(value)
@@ -462,44 +444,12 @@
     return s.slice(0, maxLen - 1) + "\u2026";
   }
 
-  function ratingValue(value) {
-    if (value === null || value === undefined || value === "") return "";
-    return String(value);
-  }
-
   function ratingCountLabel(count) {
     var n = Number(count) || 0;
     return n === 1 ? "1 rating" : n + " ratings";
   }
 
-  function setDifficultyError(editor, message) {
-    var errorEl = editor ? editor.querySelector(".js-statement-difficulty-error") : null;
-    if (!errorEl) return;
-    if (!message) {
-      errorEl.textContent = "";
-      errorEl.classList.add("d-none");
-      return;
-    }
-    errorEl.textContent = message;
-    errorEl.classList.remove("d-none");
-  }
-
-  function setDifficultyBusy(editor, isBusy) {
-    if (!editor) return;
-    editor.querySelectorAll("input, button").forEach(function (el) {
-      el.disabled = isBusy;
-    });
-  }
-
-  function validateDifficultyRating(rawValue) {
-    var value = String(rawValue || "").trim();
-    if (!/^\d+$/.test(value)) return "Enter an integer from 0 to 60.";
-    var num = Number(value);
-    if (num < 0 || num > 60) return "Enter an integer from 0 to 60.";
-    return "";
-  }
-
-  tableApi = new DataTable("#problem-statements-table", {
+  new DataTable("#problem-statements-table", {
     data: rows,
     layout: {
       topStart: null,
@@ -517,7 +467,7 @@
       infoFiltered: "(filtered from _MAX_ row(s) on this page)",
       lengthMenu: "Show _MENU_ rows",
     },
-    order: [[12, "desc"]],
+    order: [[11, "desc"]],
     pageLength: 25,
     lengthMenu: [10, 25, 50, 100],
     scrollX: true,
@@ -637,32 +587,6 @@
         }
       },
       {
-        data: "user_difficulty_rating",
-        className: "text-nowrap",
-        render: function (data, type, row) {
-          var value = ratingValue(data);
-          if (type === "sort") return value === "" ? -1 : Number(value);
-          if (type === "filter") return value;
-          if (type !== "display") return value;
-          return (
-            '<div class="statement-difficulty-editor" data-statement-uuid="' +
-            escapeHtml(row.statement_uuid || "") +
-            '">' +
-            '<div class="input-group input-group-sm">' +
-            '<input type="number" min="0" max="60" step="1" ' +
-            'class="form-control form-control-sm statement-difficulty-input js-statement-difficulty-rating" ' +
-            'value="' +
-            escapeHtml(value) +
-            '" aria-label="Your difficulty">' +
-            '<button type="button" class="btn btn-outline-primary js-statement-difficulty-save">' +
-            '<i class="ti ti-device-floppy me-1"></i>Save</button>' +
-            "</div>" +
-            '<div class="text-danger fs-xs mt-1 d-none js-statement-difficulty-error"></div>' +
-            "</div>"
-          );
-        }
-      },
-      {
         data: "average_difficulty_rating",
         className: "text-nowrap",
         render: function (data, type, row) {
@@ -759,83 +683,6 @@
     ]
   });
 
-  function submitDifficultyRating(editor, rowNode) {
-    if (!tableApi || !ratingSaveUrl || !csrfTokenInput) return;
-    var input = editor.querySelector(".js-statement-difficulty-rating");
-    var rawValue = input ? input.value : "";
-    var validationError = validateDifficultyRating(rawValue);
-    if (validationError) {
-      setDifficultyError(editor, validationError);
-      return;
-    }
-
-    var rowData = tableApi.row(rowNode).data();
-    if (!rowData) {
-      setDifficultyError(editor, "Could not locate this statement row.");
-      return;
-    }
-
-    setDifficultyBusy(editor, true);
-    setDifficultyError(editor, "");
-
-    var params = new URLSearchParams({
-      rating: String(rawValue).trim(),
-      statement_uuid: rowData.statement_uuid || editor.getAttribute("data-statement-uuid") || ""
-    });
-
-    fetch(ratingSaveUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-        "X-CSRFToken": csrfTokenInput.value,
-        "X-Requested-With": "XMLHttpRequest"
-      },
-      body: params.toString()
-    })
-      .then(function (response) {
-        return response.json().catch(function () {
-          return {};
-        }).then(function (payload) {
-          if (!response.ok) {
-            throw new Error(payload.error || "Could not save this difficulty rating.");
-          }
-          return payload;
-        });
-      })
-      .then(function (payload) {
-        rowData.user_difficulty_rating = payload.user_difficulty_rating;
-        rowData.average_difficulty_rating = payload.average_difficulty_rating;
-        rowData.average_difficulty_display = payload.average_difficulty_display;
-        rowData.difficulty_rating_count = payload.difficulty_rating_count;
-        tableApi.row(rowNode).data(rowData).invalidate();
-        tableApi.draw(false);
-      })
-      .catch(function (error) {
-        setDifficultyBusy(editor, false);
-        setDifficultyError(editor, error.message || "Could not save this difficulty rating.");
-      });
-  }
-
-  if (tableEl) {
-    tableEl.addEventListener("click", function (event) {
-      var saveButton = event.target.closest(".js-statement-difficulty-save");
-      if (!saveButton) return;
-      var editor = saveButton.closest(".statement-difficulty-editor");
-      var rowNode = saveButton.closest("tr");
-      if (!editor || !rowNode) return;
-      submitDifficultyRating(editor, rowNode);
-    });
-
-    tableEl.addEventListener("keydown", function (event) {
-      if (event.key !== "Enter") return;
-      if (!event.target.classList.contains("js-statement-difficulty-rating")) return;
-      event.preventDefault();
-      var editor = event.target.closest(".statement-difficulty-editor");
-      var rowNode = event.target.closest("tr");
-      if (!editor || !rowNode) return;
-      submitDifficultyRating(editor, rowNode);
-    });
-  }
 })();
 </script>
 {% endif %}
