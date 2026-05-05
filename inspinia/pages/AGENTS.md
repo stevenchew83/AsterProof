@@ -34,9 +34,10 @@ This app owns the contest/problem archive and its surrounding tooling.
 
 ## Current UX shape
 
-- `problem_list_view` is a contest-directory explorer, not a flat raw-problem table.
-- Contest drill-down for users is `contest_dashboard_listing_view` (`/dashboard/contests/listing/`). Legacy `/problems/contests/<slug>/` redirects there when logged in.
-- The landing page search routes into contest and problem explorer pages, not only dashboards.
+- `archive_hub_view` (`/archive/`) is the authenticated hub for current archive workflows.
+- `/problems/` is only a temporary redirect to `/archive/`; do not add new links to legacy `/problems/` routes.
+- Contest drill-down for users is `contest_dashboard_listing_view` (`/dashboard/contests/listing/`).
+- The landing page search routes into contest dashboard pages and topic-tag analytics, not legacy problem explorer pages.
 - Topic-tag analytics and problem-statement analytics are separate pages with their own payloads.
 
 ## Tests and fixtures

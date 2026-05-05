@@ -248,8 +248,8 @@
             <a class="btn btn-primary rounded-pill px-4" href="{% url 'users:profile_edit' %}">
               <i class="ti ti-edit me-1"></i> Edit profile
             </a>
-            <a class="btn btn-outline-secondary rounded-pill px-4" href="{% url 'pages:problem_list' %}">
-              <i class="ti ti-list-details me-1"></i> Browse problems
+            <a class="btn btn-outline-secondary rounded-pill px-4" href="{% url 'pages:archive_hub' %}">
+              <i class="ti ti-list-details me-1"></i> Open archive
             </a>
           </div>
         </div>
@@ -629,8 +629,8 @@
               </div>
             </div>
             <div class="mt-4">
-              <a class="btn btn-outline-secondary rounded-pill px-4" href="{% url 'pages:problem_list' %}">
-                <i class="ti ti-arrow-right me-1"></i> Go to problems
+              <a class="btn btn-outline-secondary rounded-pill px-4" href="{% url 'pages:archive_hub' %}">
+                <i class="ti ti-arrow-right me-1"></i> Go to archive
               </a>
             </div>
           </div>
@@ -651,7 +651,7 @@
                   <a class="problem-pill" href="{% url 'pages:user_activity_dashboard' %}">
                     <i class="ti ti-activity"></i> Open My activity
                   </a>
-                  <a class="problem-pill" href="{% url 'pages:problem_list' %}">
+                  <a class="problem-pill" href="{% url 'pages:problem_statement_list' %}">
                     <i class="ti ti-list-details"></i> Find problem UUIDs
                   </a>
                 </div>

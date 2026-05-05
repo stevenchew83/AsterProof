@@ -68,8 +68,8 @@ python manage.py runserver
 | Route | Purpose | Access |
 |------|---------|--------|
 | `/` | Landing page, archive search, and navigation hub | Login required |
-| `/problems/` | Contest-first problem explorer | Login required |
-| `/problems/contests/<slug>/` | Contest drill-down / checklist-style problem list | Login required |
+| `/archive/` | Archive workflow hub | Login required |
+| `/problems/` | Temporary redirect to `/archive/` | Login required |
 | `/dashboard/` | Problem analytics dashboard | Login required; admin tools only when `DEBUG=False` |
 | `/dashboard/contests/` | Contest analytics dashboard | Login required; admin tools only when `DEBUG=False` |
 | `/dashboard/topic-tags/` | Topic-tag analytics dashboard | Login required; admin tools only when `DEBUG=False` |

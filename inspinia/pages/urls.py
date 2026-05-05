@@ -1,5 +1,6 @@
 from django.urls import path
 
+from inspinia.pages.views import archive_hub_view
 from inspinia.pages.views import completion_board_bulk_view
 from inspinia.pages.views import completion_board_toggle_view
 from inspinia.pages.views import completion_board_view
@@ -11,14 +12,12 @@ from inspinia.pages.views import contest_analytics_view
 from inspinia.pages.views import contest_dashboard_listing_bulk_update_view
 from inspinia.pages.views import contest_dashboard_listing_view
 from inspinia.pages.views import contest_details_view
-from inspinia.pages.views import contest_problem_list_view
 from inspinia.pages.views import contest_rename_view
 from inspinia.pages.views import dashboard_analytics_view
 from inspinia.pages.views import handle_summary_parser_view
 from inspinia.pages.views import latex_preview_view
-from inspinia.pages.views import problem_detail_view
 from inspinia.pages.views import problem_import_view
-from inspinia.pages.views import problem_list_view
+from inspinia.pages.views import problem_list_redirect_view
 from inspinia.pages.views import problem_statement_analytics_view
 from inspinia.pages.views import problem_statement_contest_year_master_view
 from inspinia.pages.views import problem_statement_delete_by_uuid_view
@@ -38,6 +37,7 @@ app_name = "pages"
 
 urlpatterns = [
     path("", root_page_view, name="home"),
+    path("archive/", archive_hub_view, name="archive_hub"),
     path("dashboard/my-activity/", user_activity_dashboard_view, name="user_activity_dashboard"),
     path("dashboard/completion-quick-update/", completion_quick_update_view, name="completion_quick_update"),
     path(
@@ -115,8 +115,6 @@ urlpatterns = [
     path("tools/handle-summary-parser/", handle_summary_parser_view, name="handle_summary_parser"),
     path("tools/latex-preview/", latex_preview_view, name="latex_preview"),
     path("tools/render-statement/", statement_render_preview_view, name="statement_render_preview"),
-    path("problems/", problem_list_view, name="problem_list"),
-    path("problems/<uuid:problem_uuid>/", problem_detail_view, name="problem_detail"),
-    path("problems/contests/<slug:contest_slug>/", contest_problem_list_view, name="contest_problem_list"),
+    path("problems/", problem_list_redirect_view, name="problem_list"),
     path("import-problems/", problem_import_view, name="problem_import"),
 ]

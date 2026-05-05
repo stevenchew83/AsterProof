@@ -8,7 +8,7 @@ from difflib import SequenceMatcher
 from itertools import combinations
 from typing import TYPE_CHECKING
 
-from django.urls import reverse
+from inspinia.pages.contest_links import contest_dashboard_problem_url
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -32,7 +32,7 @@ class StatementComparisonRow:
     contest_name: str
     contest_year: int
     contest_year_problem: str
-    problem_detail_url: str
+    problem_url: str
     day_label: str
     linked_problem_label: str
     problem_uuid: str
@@ -87,20 +87,24 @@ def _build_statement_rows(
     rows: list[StatementComparisonRow] = []
     for statement in statement_list:
         similarity_text = _normalize_similarity_text(statement.statement_latex)
-        problem_detail_uuid = None
-        if statement.linked_problem_id and statement.linked_problem is not None:
-            problem_detail_uuid = statement.linked_problem.problem_uuid
-        elif str(statement.problem_uuid) in existing_problem_uuid_strings:
-            problem_detail_uuid = statement.problem_uuid
+        problem_url = ""
+        if (
+            (statement.linked_problem_id and statement.linked_problem is not None)
+            or str(statement.problem_uuid) in existing_problem_uuid_strings
+        ):
+            problem_url = contest_dashboard_problem_url(
+                statement.contest_name,
+                year=statement.contest_year,
+                problem_label=statement.contest_year_problem,
+                fallback=f"{statement.contest_year}-{statement.problem_code}",
+            )
         rows.append(
             StatementComparisonRow(
                 statement_id=statement.id,
                 contest_name=statement.contest_name,
                 contest_year=statement.contest_year,
                 contest_year_problem=statement.contest_year_problem,
-                problem_detail_url=(
-                    reverse("pages:problem_detail", args=[problem_detail_uuid]) if problem_detail_uuid else ""
-                ),
+                problem_url=problem_url,
                 day_label=statement.day_label or "",
                 linked_problem_label=(
                     statement.linked_problem.contest_year_problem
@@ -145,11 +149,11 @@ def _exact_duplicate_rows(rows: list[StatementComparisonRow]) -> list[dict[str, 
                 problem_items_by_label[row.contest_year_problem] = {
                     "contest_year": row.contest_year,
                     "label": row.contest_year_problem,
-                    "url": row.problem_detail_url,
+                    "url": row.problem_url,
                 }
                 continue
-            if not existing_item["url"] and row.problem_detail_url:
-                existing_item["url"] = row.problem_detail_url
+            if not existing_item["url"] and row.problem_url:
+                existing_item["url"] = row.problem_url
 
         problem_items = sorted(
             problem_items_by_label.values(),

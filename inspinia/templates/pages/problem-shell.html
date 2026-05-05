@@ -367,8 +367,8 @@
           <li class="nav-item"><a class="nav-link landing-nav-link" href="{% url 'pages:home' %}">Home</a></li>
           <li class="nav-item"><a class="nav-link landing-nav-link" href="{% url 'pages:home' %}#about-us">About Us</a></li>
           <li class="nav-item">
-            <a class="nav-link landing-nav-link {% if request.resolver_match.url_name == 'problem_list' or request.resolver_match.url_name == 'contest_problem_list' or request.resolver_match.url_name == 'contest_dashboard_listing' %}is-active{% endif %}" href="{% url 'pages:problem_list' %}">
-              Problems
+            <a class="nav-link landing-nav-link {% if request.resolver_match.url_name == 'archive_hub' or request.resolver_match.url_name == 'contest_dashboard_listing' %}is-active{% endif %}" href="{% url 'pages:archive_hub' %}">
+              Archive
             </a>
           </li>
           <li class="nav-item"><a class="nav-link landing-nav-link" href="{% url 'pages:home' %}#trending">Trending</a></li>
@@ -410,7 +410,7 @@
             <div class="landing-footer-links flex-column align-items-start gap-2">
               <a href="{% url 'pages:home' %}">Home</a>
               <a href="{% url 'pages:home' %}#about-us">About Us</a>
-              <a href="{% url 'pages:problem_list' %}">Problems</a>
+              <a href="{% url 'pages:archive_hub' %}">Archive</a>
               <a href="{% url 'pages:home' %}#trending">Trending</a>
               <a href="{% url 'pages:home' %}#contact">Contact</a>
             </div>

@@ -192,7 +192,7 @@ def _solution_pdf_http_response(request, solution: ProblemSolution):
 
 def _problem_context(problem: ProblemSolveRecord) -> dict:
     # Distinct active contests only — avoid scanning every ProblemSolveRecord row
-    # (matches pages.contest_problem_list_view slug generation).
+    # (matches the dashboard contest listing slug generation).
     contest_names = list(
         ProblemSolveRecord.objects.filter(is_active=True)
         .values_list("contest", flat=True)
