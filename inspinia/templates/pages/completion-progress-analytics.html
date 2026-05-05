@@ -176,88 +176,120 @@
   <div class="row g-3 mt-0">
     <div class="col-sm-6 col-xl-3">
       <div class="card">
-        <div class="card-body d-flex align-items-center">
-          <span class="avatar-title bg-primary-subtle text-primary rounded flex-shrink-0"><i class="ti ti-checks fs-24"></i></span>
-          <div class="flex-grow-1 ms-2">
-            <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Solved</p>
-            <h3 class="mb-0">{{ completion_progress_stats.solved_total }}</h3>
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-primary-subtle text-primary rounded"><i class="ti ti-checks fs-24"></i></span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Solved</p>
+              <h3 class="mb-0">{{ completion_progress_stats.solved_total }}</h3>
+            </div>
           </div>
         </div>
       </div>
     </div>
     <div class="col-sm-6 col-xl-3">
       <div class="card">
-        <div class="card-body d-flex align-items-center">
-          <span class="avatar-title bg-info-subtle text-info rounded flex-shrink-0"><i class="ti ti-calendar-stats fs-24"></i></span>
-          <div class="flex-grow-1 ms-2">
-            <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Active days</p>
-            <h3 class="mb-0">{{ completion_progress_stats.active_day_total }}</h3>
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-info-subtle text-info rounded"><i class="ti ti-calendar-stats fs-24"></i></span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Active days</p>
+              <h3 class="mb-0">{{ completion_progress_stats.active_day_total }}</h3>
+            </div>
           </div>
         </div>
       </div>
     </div>
     <div class="col-sm-6 col-xl-3">
       <div class="card">
-        <div class="card-body d-flex align-items-center">
-          <span class="avatar-title bg-success-subtle text-success rounded flex-shrink-0"><i class="ti ti-flame fs-24"></i></span>
-          <div class="flex-grow-1 ms-2">
-            <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Current / longest streak</p>
-            <h3 class="mb-0">{{ completion_progress_stats.current_streak }} / {{ completion_progress_stats.longest_streak }}</h3>
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-success-subtle text-success rounded"><i class="ti ti-flame fs-24"></i></span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Current / longest streak</p>
+              <h3 class="mb-0">{{ completion_progress_stats.current_streak }} / {{ completion_progress_stats.longest_streak }}</h3>
+            </div>
           </div>
         </div>
       </div>
     </div>
     <div class="col-sm-6 col-xl-3">
       <div class="card">
-        <div class="card-body d-flex align-items-center">
-          <span class="avatar-title bg-warning-subtle text-warning rounded flex-shrink-0"><i class="ti ti-target-arrow fs-24"></i></span>
-          <div class="flex-grow-1 ms-2">
-            <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Total MOHS</p>
-            <h3 class="mb-0">{{ completion_progress_stats.total_mohs }}</h3>
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-warning-subtle text-warning rounded"><i class="ti ti-target-arrow fs-24"></i></span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Total MOHS</p>
+              <h3 class="mb-0">{{ completion_progress_stats.total_mohs }}</h3>
+            </div>
           </div>
         </div>
       </div>
     </div>
     <div class="col-sm-6 col-xl-3">
       <div class="card">
-        <div class="card-body d-flex align-items-center">
-          <span class="avatar-title bg-primary-subtle text-primary rounded flex-shrink-0"><i class="ti ti-gauge fs-24"></i></span>
-          <div class="flex-grow-1 ms-2">
-            <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Average MOHS</p>
-            <h3 class="mb-0">{{ completion_progress_stats.average_mohs|default:"—" }}</h3>
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-primary-subtle text-primary rounded"><i class="ti ti-gauge fs-24"></i></span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Average MOHS</p>
+              <h3 class="mb-0">{{ completion_progress_stats.average_mohs|default:"—" }}</h3>
+            </div>
           </div>
         </div>
       </div>
     </div>
     <div class="col-sm-6 col-xl-3">
       <div class="card">
-        <div class="card-body d-flex align-items-center">
-          <span class="avatar-title bg-info-subtle text-info rounded flex-shrink-0"><i class="ti ti-mountain fs-24"></i></span>
-          <div class="flex-grow-1 ms-2">
-            <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Max MOHS</p>
-            <h3 class="mb-0">{{ completion_progress_stats.max_mohs|default:"—" }}</h3>
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-info-subtle text-info rounded"><i class="ti ti-mountain fs-24"></i></span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Max MOHS</p>
+              <h3 class="mb-0">{{ completion_progress_stats.max_mohs|default:"—" }}</h3>
+            </div>
           </div>
         </div>
       </div>
     </div>
     <div class="col-sm-6 col-xl-3">
       <div class="card">
-        <div class="card-body d-flex align-items-center">
-          <span class="avatar-title bg-warning-subtle text-warning rounded flex-shrink-0"><i class="ti ti-calendar-question fs-24"></i></span>
-          <div class="flex-grow-1 ms-2">
-            <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Missing dates</p>
-            <h3 class="mb-0">{{ completion_progress_stats.missing_date_total }}</h3>
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-warning-subtle text-warning rounded"><i class="ti ti-calendar-question fs-24"></i></span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Missing dates</p>
+              <h3 class="mb-0">{{ completion_progress_stats.missing_date_total }}</h3>
+            </div>
           </div>
         </div>
       </div>
     </div>
     <div class="col-sm-6 col-xl-3">
       <div class="card">
-        <div class="card-body d-flex align-items-center">
-          <span class="avatar-title bg-danger-subtle text-danger rounded flex-shrink-0"><i class="ti ti-writing-off fs-24"></i></span>
-          <div class="flex-grow-1 ms-2">
-            <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">No solution</p>
-            <h3 class="mb-0">{{ completion_progress_stats.no_solution_total }}</h3>
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-danger-subtle text-danger rounded"><i class="ti ti-writing-off fs-24"></i></span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">No solution</p>
+              <h3 class="mb-0">{{ completion_progress_stats.no_solution_total }}</h3>
+            </div>
           </div>
         </div>
       </div>
@@ -377,7 +409,7 @@
 {% endblock page_content %}
 
 {% block extra_javascript %}
-<script src="{% static 'plugins/apexcharts/apexcharts.min.js' %}"></script>
+{% include 'partials/apexcharts-vendor-script.html' %}
 {% if completion_progress_rows %}
 {% include 'partials/datatables-vendor-scripts.html' %}
 {% endif %}
