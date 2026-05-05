@@ -3956,6 +3956,11 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
     assert "contest-advanced-heatmap-data" in response_html
     assert "plugins/apexcharts/apexcharts.min.js" in response_html
     assert "contest-completion-heatmap-table" not in response_html
+    assert '<input id="contest-advanced-selector" type="search" name="contest" value="USAMO"' in response_html
+    assert 'list="contest-advanced-options"' in response_html
+    assert '<datalist id="contest-advanced-options">' in response_html
+    assert '<option value="USAMO" label="2 statements">' in response_html
+    assert '<select id="contest-advanced-selector"' not in response_html
     assert "Year breakdown" in response_html
     assert "Statement-linked" in response_html
     assert "Solved" in response_html
@@ -3963,7 +3968,6 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
     assert "year=2026" in response_html
     assert "Topic mix" in response_html
     assert "Recent statements" in response_html
-    assert "USAMO (2 statements)" in response_html
 
 
 def test_contest_advanced_analytics_requires_login(client):

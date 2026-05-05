@@ -89,13 +89,17 @@
           <form method="get" class="row g-2 align-items-end">
             <div class="col-md-8 col-xl-6">
               <label class="form-label" for="contest-advanced-selector">Contest</label>
-              <select id="contest-advanced-selector" name="contest" class="form-select">
+              <div class="input-group">
+                <span class="input-group-text">
+                  <i class="ti ti-search" aria-hidden="true"></i>
+                </span>
+                <input id="contest-advanced-selector" type="search" name="contest" value="{{ selected_contest }}" class="form-control" list="contest-advanced-options" autocomplete="off" placeholder="Search contest">
+              </div>
+              <datalist id="contest-advanced-options">
                 {% for row in contest_choices %}
-                <option value="{{ row.contest }}" {% if row.contest == selected_contest %}selected{% endif %}>
-                  {{ row.contest }} ({{ row.problem_count }} statements)
-                </option>
+                <option value="{{ row.contest }}" label="{{ row.problem_count }} statements"></option>
                 {% endfor %}
-              </select>
+              </datalist>
             </div>
             <div class="col-md-4 col-xl-2">
               <button type="submit" class="btn btn-primary w-100">Load analytics</button>
