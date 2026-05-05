@@ -2,7 +2,7 @@
 <!-- Sidenav Menu Start -->
 <div class="sidenav-menu">
 
-    <a href="{% url 'pages:home' %}" class="logo">
+    <a href="{% url 'pages:user_activity_dashboard' %}" class="logo">
         <span class="logo logo-light">
             <span class="logo-lg"><img src="{% static 'images/logo.png' %}" alt="AsterProof"></span>
             <span class="logo-sm"><img src="{% static 'images/logo-sm.png' %}" alt="AsterProof"></span>
@@ -57,15 +57,6 @@
         </div>
 
         <ul class="side-nav">
-            <li class="side-nav-title">Home</li>
-
-            <li class="side-nav-item">
-                <a href="{% url 'pages:home' %}" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-home-2"></i></span>
-                    <span class="menu-text">Overview</span>
-                </a>
-            </li>
-
             {% if request.user.is_authenticated %}
             <li class="side-nav-title">Workspace</li>
 
