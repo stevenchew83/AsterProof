@@ -2901,13 +2901,14 @@ def test_home_requires_login(client):
     assert response.url == f"{login_url}?next={reverse('pages:home')}"
 
 
-def test_home_allows_authenticated_access(client):
+def test_home_redirects_authenticated_user_to_activity_dashboard(client):
     user = UserFactory()
     client.force_login(user)
 
     response = client.get(reverse("pages:home"))
 
-    assert response.status_code == HTTPStatus.OK
+    assert response.status_code == HTTPStatus.FOUND
+    assert response.url == reverse("pages:user_activity_dashboard")
 
 
 def test_latex_preview_requires_login(client):
@@ -3956,6 +3957,11 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
     assert "contest-advanced-heatmap-data" in response_html
     assert "plugins/apexcharts/apexcharts.min.js" in response_html
     assert "contest-completion-heatmap-table" not in response_html
+    assert '<input id="contest-advanced-selector" type="search" name="contest" value="USAMO"' in response_html
+    assert 'list="contest-advanced-options"' in response_html
+    assert '<datalist id="contest-advanced-options">' in response_html
+    assert '<option value="USAMO" label="2 statements">' in response_html
+    assert '<select id="contest-advanced-selector"' not in response_html
     assert "Year breakdown" in response_html
     assert "Statement-linked" in response_html
     assert "Solved" in response_html
@@ -3963,7 +3969,6 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
     assert "year=2026" in response_html
     assert "Topic mix" in response_html
     assert "Recent statements" in response_html
-    assert "USAMO (2 statements)" in response_html
 
 
 def test_contest_advanced_analytics_requires_login(client):
@@ -9162,7 +9167,7 @@ def test_problem_import_page_imports_statement_csv_rows_for_admin(client):
 
 
 @override_settings(DEBUG=False)
-def test_home_exposes_live_library_index_for_authenticated_user(client):
+def test_home_redirects_authenticated_user_with_archive_data_to_activity_dashboard(client):
     user = UserFactory()
     client.force_login(user)
     problem = ProblemSolveRecord.objects.create(
@@ -9177,20 +9182,8 @@ def test_home_exposes_live_library_index_for_authenticated_user(client):
 
     response = client.get(reverse("pages:home"))
 
-    assert response.status_code == HTTPStatus.OK
-    assert response.context["library_access_enabled"] is True
-    assert response.context["library_overview"]["contest_total"] == EXPECTED_RECORD_COUNT
-    assert reverse("users:profile") in response.content.decode("utf-8")
-    assert any(
-        entry["type"] == "Contest" and entry["label"] == "ISRAEL TST"
-        for entry in response.context["search_entries"]
-    )
-    response_html = response.content.decode("utf-8")
-    assert "/archive/" in response_html
-    assert any(
-        entry["type"] == "Topic tag" and entry["href"].startswith(reverse("pages:topic_tag_dashboard"))
-        for entry in response.context["search_entries"]
-    )
+    assert response.status_code == HTTPStatus.FOUND
+    assert response.url == reverse("pages:user_activity_dashboard")
 
 
 def test_user_activity_dashboard_exposes_solution_workspace_navigation(client):
@@ -10146,7 +10139,7 @@ def test_contest_problem_list_renders_asymptote_statement_blocks(client, monkeyp
     assert "Show Asymptote source" in response_html
 
 
-def test_home_exposes_live_library_index_for_admin(client):
+def test_home_redirects_admin_to_activity_dashboard(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
     record = ProblemSolveRecord.objects.create(
@@ -10161,23 +10154,8 @@ def test_home_exposes_live_library_index_for_admin(client):
 
     response = client.get(reverse("pages:home"))
 
-    assert response.status_code == HTTPStatus.OK
-    assert response.context["library_access_enabled"] is True
-    assert response.context["library_overview"]["contest_total"] == EXPECTED_RECORD_COUNT
-    assert response.context["library_overview"]["problem_total"] == EXPECTED_RECORD_COUNT
-    contest_entry = next(
-        entry
-        for entry in response.context["search_entries"]
-        if entry["type"] == "Contest" and entry["label"] == "ISRAEL TST"
-    )
-    assert contest_entry["href"] == contest_dashboard_listing_url("ISRAEL TST")
-
-    problem_entry = next(
-        entry
-        for entry in response.context["search_entries"]
-        if entry["type"] == "Problem" and entry["label"] == "ISRAEL TST 2026 P2"
-    )
-    assert problem_entry["href"] == contest_dashboard_listing_url("ISRAEL TST") + "#israel-tst-2026-p2"
+    assert response.status_code == HTTPStatus.FOUND
+    assert response.url == reverse("pages:user_activity_dashboard")
 
 
 def test_dashboard_sidebar_shows_personal_progress_link_for_authenticated_user(client):
@@ -10203,7 +10181,6 @@ def test_dashboard_sidebar_groups_links_into_balanced_workflow_sections_for_admi
     response_html = response.content.decode("utf-8")
     side_nav_html = response_html.split('<ul class="side-nav">', 1)[1].split("</ul>", 1)[0]
     present_labels = [
-        "Home",
         "Workspace",
         "Library",
         "Rankings",
@@ -10232,7 +10209,6 @@ def test_dashboard_sidebar_groups_links_into_balanced_workflow_sections_for_admi
         assert label not in side_nav_html
 
     expected_order = [
-        "Overview",
         "My account",
         "My activity",
         "My progress",
