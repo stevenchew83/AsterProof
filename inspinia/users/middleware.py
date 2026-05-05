@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from django.conf import settings
 from django.shortcuts import redirect
 from django.urls import reverse
 
@@ -8,7 +9,7 @@ from inspinia.users.roles import user_can_access_app_features
 
 
 class RequireApprovedUserMiddleware:
-    exempt_path_prefixes = ("/accounts/", "/admin/", "/static/", "/media/")
+    exempt_path_prefixes = ("/accounts/", "/static/", "/media/")
 
     def __init__(self, get_response):
         self.get_response = get_response
@@ -28,7 +29,8 @@ class RequireApprovedUserMiddleware:
         return redirect("users:approval_pending")
 
     def _is_exempt_path(self, path: str) -> bool:
-        return path.startswith(self.exempt_path_prefixes)
+        admin_path_prefix = f"/{settings.ADMIN_URL.strip('/')}/"
+        return path.startswith((*self.exempt_path_prefixes, admin_path_prefix))
 
 
 class TrackActiveSessionMiddleware:

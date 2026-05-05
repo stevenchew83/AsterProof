@@ -1,8 +1,10 @@
 from http import HTTPStatus
 
 import pytest
+from django.http import HttpResponse
 from django.urls import reverse
 
+from inspinia.users.middleware import RequireApprovedUserMiddleware
 from inspinia.users.models import User
 from inspinia.users.tests.factories import UserFactory
 
@@ -38,6 +40,19 @@ def test_unapproved_user_can_open_logout_page(client):
     response = client.get(reverse("account_logout"))
 
     assert response.status_code == HTTPStatus.OK
+
+
+def test_approval_middleware_exempts_configured_admin_url(settings, rf):
+    settings.ADMIN_URL = "secret-admin/"
+    user = UserFactory(is_approved=False)
+    request = rf.get("/secret-admin/")
+    request.user = user
+    middleware = RequireApprovedUserMiddleware(lambda request: HttpResponse("admin ok"))
+
+    response = middleware(request)
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.content == b"admin ok"
 
 
 def test_approved_user_can_open_app_feature(client):
