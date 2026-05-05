@@ -30,6 +30,7 @@ from inspinia.users.models import UserSession
 from inspinia.users.monitoring import record_event
 from inspinia.users.monitoring import revoke_tracked_session
 from inspinia.users.monitoring import sync_expired_sessions
+from inspinia.users.roles import user_can_access_app_features
 from inspinia.users.roles import user_has_admin_role
 
 
@@ -301,6 +302,13 @@ class UserRedirectView(LoginRequiredMixin, RedirectView):
 
 
 user_redirect_view = UserRedirectView.as_view()
+
+
+@login_required
+def approval_pending_view(request):
+    if user_can_access_app_features(request.user):
+        return redirect("pages:user_activity_dashboard")
+    return render(request, "users/approval_pending.html")
 
 
 def _require_app_admin(request) -> None:
