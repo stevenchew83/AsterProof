@@ -1,0 +1,44 @@
+{% load static %}
+{# ApexCharts UMD uses the AMD branch when define.amd is truthy, which skips
+   assigning window.ApexCharts. Clear AMD just for this vendor load, then restore it. #}
+<script>
+(function () {
+  var g = window;
+  var d = g.define;
+  g.__asterproofApexAmdBackup = undefined;
+  g.__asterproofApexHadAmd = false;
+  if (typeof d === "function" && d.amd) {
+    g.__asterproofApexHadAmd = true;
+    g.__asterproofApexAmdBackup = d.amd;
+    try {
+      d.amd = undefined;
+    } catch (e1) {
+      try {
+        delete d.amd;
+      } catch (e2) {
+        /* ignore */
+      }
+    }
+  }
+})();
+</script>
+<script src="{% static 'plugins/apexcharts/apexcharts.min.js' %}"></script>
+<script>
+(function () {
+  var g = window;
+  if (g.__asterproofApexHadAmd && typeof g.define === "function") {
+    try {
+      g.define.amd = g.__asterproofApexAmdBackup;
+    } catch (e) {
+      /* ignore */
+    }
+  }
+  try {
+    delete g.__asterproofApexHadAmd;
+    delete g.__asterproofApexAmdBackup;
+  } catch (e) {
+    g.__asterproofApexHadAmd = undefined;
+    g.__asterproofApexAmdBackup = undefined;
+  }
+})();
+</script>

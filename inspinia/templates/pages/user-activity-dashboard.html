@@ -669,7 +669,7 @@
 
 {% block extra_javascript %}
 {% if activity_total > 0 %}
-<script src="{% static 'plugins/apexcharts/apexcharts.min.js' %}"></script>
+{% include 'partials/apexcharts-vendor-script.html' %}
 <script>
 (function () {
   var chartDataEl = document.getElementById("user-activity-chart-data");

@@ -346,7 +346,7 @@
 
 {% block extra_javascript %}
 {% if technique_total > 0 %}
-<script src="{% static 'plugins/apexcharts/apexcharts.min.js' %}"></script>
+{% include 'partials/apexcharts-vendor-script.html' %}
 {% include 'partials/datatables-vendor-scripts.html' %}
 <script>
 (function () {

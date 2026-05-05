@@ -150,7 +150,7 @@
 {% endblock page_content %}
 
 {% block extra_javascript %}
-<script src="{% static 'plugins/apexcharts/apexcharts.min.js' %}"></script>
+{% include 'partials/apexcharts-vendor-script.html' %}
 <script>
 (function () {
   var dataEl = document.getElementById('student-trend-points');

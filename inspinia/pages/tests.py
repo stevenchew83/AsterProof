@@ -5618,6 +5618,11 @@ def test_completion_progress_analytics_renders_admin_dashboard(client):
     assert "Completion progress" in response_html
     assert 'id="chart-completion-progress-daily"' in response_html
     assert 'id="completion-progress-table"' in response_html
+    apex_guard_start = response_html.index("__asterproofApexHadAmd")
+    apex_script = response_html.index("plugins/apexcharts/apexcharts.min")
+    apex_restore = response_html.index("__asterproofApexAmdBackup", apex_script)
+    assert apex_guard_start < apex_script < apex_restore
+    assert '<div class="flex-shrink-0">\n              <span class="avatar-title bg-primary-subtle' in response_html
 
 
 def test_completion_progress_analytics_filters_by_completion_date_not_updated_at(client):
