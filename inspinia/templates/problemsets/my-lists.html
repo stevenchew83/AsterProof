@@ -1,0 +1,130 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}My problem lists{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  {% include 'partials/page-title.html' with title='My problem lists' subtitle='Workspace' %}
+
+  {% if messages %}
+  <div class="mt-3">
+    {% for message in messages %}
+      <div class="alert alert-{% if message.tags == 'error' %}danger{% elif message.tags == 'debug' %}secondary{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="row g-3 mt-0">
+    <div class="col-sm-6 col-xl-4">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-primary-subtle text-primary rounded">
+                <i class="ti ti-list-details fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Lists</p>
+              <h3 class="mb-0">{{ problem_list_stats.total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-4">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-success-subtle text-success rounded">
+                <i class="ti ti-world-check fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Public</p>
+              <h3 class="mb-0">{{ problem_list_stats.public_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-4">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-secondary-subtle text-secondary rounded">
+                <i class="ti ti-lock fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Private</p>
+              <h3 class="mb-0">{{ problem_list_stats.private_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mt-3">
+    <div class="card-header border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2">
+      <div>
+        <h4 class="header-title mb-0">Your curated lists</h4>
+        <p class="text-muted fs-xs mb-0">Build ordered contest-problem lists and publish the ones worth sharing.</p>
+      </div>
+      <div class="d-flex flex-wrap gap-2">
+        <a href="{% url 'problemsets:discover' %}" class="btn btn-outline-secondary btn-sm">Discover lists</a>
+        <a href="{% url 'problemsets:create' %}" class="btn btn-primary btn-sm">
+          <i class="ti ti-plus me-1"></i>New list
+        </a>
+      </div>
+    </div>
+    <div class="card-body">
+      {% if problem_list_rows %}
+      <div class="row g-3">
+        {% for row in problem_list_rows %}
+        <div class="col-xl-4 col-md-6">
+          <div class="card border h-100 mb-0">
+            <div class="card-body d-flex flex-column">
+              <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-2">
+                <h5 class="mb-0">{{ row.title }}</h5>
+                <span class="badge {% if row.visibility == 'public' %}bg-success-subtle text-success{% else %}bg-secondary-subtle text-secondary{% endif %}">
+                  {{ row.visibility_label }}
+                </span>
+              </div>
+              {% if row.description %}
+              <p class="text-muted fs-sm">{{ row.description|truncatechars:180 }}</p>
+              {% endif %}
+              <div class="d-flex flex-wrap gap-2 mb-3">
+                <span class="badge bg-light text-dark border">{{ row.item_count }} problems</span>
+                <span class="badge bg-primary-subtle text-primary">Score {{ row.score }}</span>
+                <span class="badge bg-light text-dark border">{{ row.upvote_count }} up / {{ row.downvote_count }} down</span>
+              </div>
+              <p class="text-muted fs-xs mb-3">Updated {{ row.updated_at_label }}</p>
+              <div class="mt-auto d-flex flex-wrap gap-2">
+                <a href="{{ row.detail_url }}" class="btn btn-outline-primary btn-sm">Open</a>
+                <a href="{{ row.edit_url }}" class="btn btn-primary btn-sm">Edit</a>
+                {% if row.visibility == 'public' %}
+                <a href="{{ row.public_url }}" class="btn btn-outline-secondary btn-sm">Share page</a>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="alert alert-info mb-0" role="alert">
+        You have not created any problem lists yet.
+        <a href="{% url 'problemsets:create' %}" class="alert-link">Create your first list</a>.
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock page_content %}

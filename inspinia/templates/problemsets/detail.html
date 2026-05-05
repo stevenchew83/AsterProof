@@ -1,0 +1,114 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}{{ problem_list.title }}{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  {% include 'partials/page-title.html' with title='Problem list' subtitle=problem_list.title %}
+
+  {% if messages %}
+  <div class="mt-3">
+    {% for message in messages %}
+      <div class="alert alert-{% if message.tags == 'error' %}danger{% elif message.tags == 'debug' %}secondary{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="card mt-0">
+    <div class="card-header border-bottom">
+      <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+        <div>
+          <h4 class="header-title mb-1">{{ problem_list.title }}</h4>
+          <p class="text-muted fs-xs mb-2">
+            By {{ problem_list_author_label }} · {{ problem_list.get_visibility_display }}
+          </p>
+          {% if problem_list.description %}
+          <p class="mb-0">{{ problem_list.description }}</p>
+          {% endif %}
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+          {% if is_author %}
+          <a href="{% url 'problemsets:edit' problem_list.list_uuid %}" class="btn btn-primary btn-sm">Edit list</a>
+          {% endif %}
+          {% if problem_list.is_public %}
+          <a href="{{ problem_list_public_url }}" class="btn btn-outline-secondary btn-sm">Public share page</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+        <span class="badge bg-primary-subtle text-primary">Score {{ problem_list_votes.score }}</span>
+        <span class="badge bg-success-subtle text-success">{{ problem_list_votes.upvote_count }} up</span>
+        <span class="badge bg-danger-subtle text-danger">{{ problem_list_votes.downvote_count }} down</span>
+        <span class="badge bg-light text-dark border">{{ problem_list_items|length }} visible problems</span>
+      </div>
+      {% if can_vote %}
+      <form method="post" action="{% url 'problemsets:vote' problem_list.list_uuid %}" class="d-flex flex-wrap gap-2 mb-3">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <button type="submit" name="value" value="1" class="btn {% if user_vote == 1 %}btn-success{% else %}btn-outline-success{% endif %} btn-sm">
+          <i class="ti ti-thumb-up me-1"></i>Thumbs up
+        </button>
+        <button type="submit" name="value" value="-1" class="btn {% if user_vote == -1 %}btn-danger{% else %}btn-outline-danger{% endif %} btn-sm">
+          <i class="ti ti-thumb-down me-1"></i>Thumbs down
+        </button>
+      </form>
+      {% endif %}
+      {% if problem_list.is_public %}
+      <div class="input-group input-group-sm mb-3">
+        <span class="input-group-text">Share URL</span>
+        <input type="text" class="form-control" value="{{ request.scheme }}://{{ request.get_host }}{{ problem_list_public_url }}" readonly>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="row g-3 mt-0">
+    <div class="col-12">
+      {% if problem_list_items %}
+      <div class="d-grid gap-3">
+        {% for row in problem_list_items %}
+        <div class="card">
+          <div class="card-header border-bottom">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+              <div>
+                <h4 class="header-title mb-0">#{{ row.position }} {{ row.problem_label }}</h4>
+                <p class="text-muted fs-xs mb-0">{{ row.topic_label }} · MOHS {{ row.mohs|default:"—" }}</p>
+              </div>
+              {% if not row.is_active %}
+              <span class="badge bg-warning-subtle text-warning">Inactive</span>
+              {% endif %}
+            </div>
+          </div>
+          <div class="card-body">
+            {% if row.topic_tags %}
+            <div class="d-flex flex-wrap gap-2 mb-3">
+              {% for tag in row.topic_tags %}
+              <span class="badge bg-light text-dark border">{{ tag }}</span>
+              {% endfor %}
+            </div>
+            {% endif %}
+            {% if row.statement %}
+            {% include 'partials/statement-render-content.html' with segments=row.statement_render_segments render_style='classic' %}
+            {% else %}
+            <div class="alert alert-light border mb-0" role="alert">
+              No linked statement is available for this problem yet.
+            </div>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="alert alert-info mb-0" role="alert">
+        This list does not have any visible active problems yet.
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock page_content %}
