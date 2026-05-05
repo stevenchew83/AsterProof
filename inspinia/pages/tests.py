@@ -5440,6 +5440,330 @@ def test_completion_record_list_search_matches_solution_status_text(client):
     assert response.context["completion_record_rows"][0]["solution_status"] == ProblemSolution.Status.PUBLISHED
 
 
+def test_completion_progress_analytics_renders_admin_dashboard(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    completion_user = UserFactory(name="Alexander Chew", email="alex@example.com")
+    other_user = UserFactory(name="Other Student", email="other@example.com")
+    client.force_login(admin_user)
+    today = timezone.localdate()
+
+    algebra_problem = ProblemSolveRecord.objects.create(
+        year=today.year,
+        topic="ALG",
+        mohs=20,
+        contest="JBMO",
+        problem="P1",
+        contest_year_problem=f"JBMO {today.year} P1",
+    )
+    number_theory_problem = ProblemSolveRecord.objects.create(
+        year=today.year,
+        topic="NT",
+        mohs=15,
+        contest="JBMO Shortlist",
+        problem="N2",
+        contest_year_problem=f"JBMO Shortlist {today.year} N2",
+    )
+    unknown_date_problem = ProblemSolveRecord.objects.create(
+        year=today.year,
+        topic="GEO",
+        mohs=35,
+        contest="JBMO Shortlist",
+        problem="G6",
+        contest_year_problem=f"JBMO Shortlist {today.year} G6",
+    )
+    other_problem = ProblemSolveRecord.objects.create(
+        year=today.year,
+        topic="COMB",
+        mohs=30,
+        contest="BMO",
+        problem="P3",
+        contest_year_problem=f"BMO {today.year} P3",
+    )
+    UserProblemCompletion.objects.create(
+        user=completion_user,
+        problem=algebra_problem,
+        completion_date=today,
+    )
+    UserProblemCompletion.objects.create(
+        user=completion_user,
+        problem=number_theory_problem,
+        completion_date=today - timedelta(days=1),
+    )
+    UserProblemCompletion.objects.create(
+        user=completion_user,
+        problem=unknown_date_problem,
+        completion_date=None,
+    )
+    UserProblemCompletion.objects.create(
+        user=other_user,
+        problem=other_problem,
+        completion_date=today,
+    )
+    ProblemSolution.objects.create(
+        problem=algebra_problem,
+        author=completion_user,
+        status=ProblemSolution.Status.DRAFT,
+    )
+
+    response = client.get(
+        reverse("pages:completion_progress_analytics"),
+        {"user": str(completion_user.pk), "range": "7d"},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["completion_progress_selected_user"] == completion_user
+    assert response.context["completion_progress_stats"] == {
+        "active_day_total": 2,
+        "average_mohs": 23.3,
+        "current_streak": 2,
+        "known_date_total": 2,
+        "longest_streak": 2,
+        "max_mohs": 35,
+        "missing_date_total": 1,
+        "missing_mohs_total": 0,
+        "no_solution_total": 2,
+        "solved_total": 3,
+        "total_mohs": 70,
+    }
+    assert [row["problem_label"] for row in response.context["completion_progress_rows"]] == [
+        f"JBMO {today.year} P1",
+        f"JBMO Shortlist {today.year} N2",
+        f"JBMO Shortlist {today.year} G6",
+    ]
+    chart_payload = response.context["completion_progress_charts_payload"]
+    assert chart_payload["dailyCompletions"]["values"][-2:] == [1, 1]
+    assert chart_payload["dailyMohs"]["totalValues"][-2:] == [15, 20]
+    assert chart_payload["topicTotals"]["labels"] == ["Algebra", "Geometry", "Number Theory"]
+    assert chart_payload["topicTotals"]["values"] == [1, 1, 1]
+    assert chart_payload["solutionStatus"]["labels"] == ["Draft", "No solution"]
+    assert chart_payload["solutionStatus"]["values"] == [1, 2]
+    response_html = response.content.decode("utf-8")
+    assert "Progress analytics" in response_html
+    assert "Completion progress" in response_html
+    assert 'id="chart-completion-progress-daily"' in response_html
+    assert 'id="completion-progress-table"' in response_html
+
+
+def test_completion_progress_analytics_filters_by_completion_date_not_updated_at(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    completion_user = UserFactory(name="Date Filter User")
+    client.force_login(admin_user)
+    today = timezone.localdate()
+    now = timezone.now()
+
+    inside_problem = ProblemSolveRecord.objects.create(
+        year=today.year,
+        topic="ALG",
+        mohs=10,
+        contest="IMO",
+        problem="P1",
+        contest_year_problem=f"IMO {today.year} P1",
+    )
+    stale_solve_problem = ProblemSolveRecord.objects.create(
+        year=today.year,
+        topic="NT",
+        mohs=40,
+        contest="IMO",
+        problem="P2",
+        contest_year_problem=f"IMO {today.year} P2",
+    )
+    inside_completion = UserProblemCompletion.objects.create(
+        user=completion_user,
+        problem=inside_problem,
+        completion_date=today - timedelta(days=3),
+    )
+    stale_completion = UserProblemCompletion.objects.create(
+        user=completion_user,
+        problem=stale_solve_problem,
+        completion_date=today - timedelta(days=60),
+    )
+    UserProblemCompletion.objects.filter(pk=inside_completion.pk).update(updated_at=now - timedelta(days=10))
+    UserProblemCompletion.objects.filter(pk=stale_completion.pk).update(updated_at=now)
+
+    response = client.get(
+        reverse("pages:completion_progress_analytics"),
+        {"user": str(completion_user.pk), "range": "30d"},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["completion_progress_stats"]["solved_total"] == 1
+    assert [row["problem_label"] for row in response.context["completion_progress_rows"]] == [
+        f"IMO {today.year} P1",
+    ]
+    assert sum(response.context["completion_progress_charts_payload"]["dailyCompletions"]["values"]) == 1
+
+
+def test_completion_progress_analytics_defaults_to_newest_completion_user(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    older_user = UserFactory(name="Older User")
+    newest_user = UserFactory(name="Newest User")
+    client.force_login(admin_user)
+    today = timezone.localdate()
+    now = timezone.now()
+
+    older_problem = ProblemSolveRecord.objects.create(
+        year=today.year,
+        topic="ALG",
+        mohs=10,
+        contest="IMO",
+        problem="P1",
+        contest_year_problem=f"IMO {today.year} P1",
+    )
+    newest_problem = ProblemSolveRecord.objects.create(
+        year=today.year,
+        topic="GEO",
+        mohs=30,
+        contest="BMO",
+        problem="P2",
+        contest_year_problem=f"BMO {today.year} P2",
+    )
+    older_completion = UserProblemCompletion.objects.create(
+        user=older_user,
+        problem=older_problem,
+        completion_date=today,
+    )
+    newest_completion = UserProblemCompletion.objects.create(
+        user=newest_user,
+        problem=newest_problem,
+        completion_date=today,
+    )
+    UserProblemCompletion.objects.filter(pk=older_completion.pk).update(updated_at=now - timedelta(hours=1))
+    UserProblemCompletion.objects.filter(pk=newest_completion.pk).update(updated_at=now)
+
+    response = client.get(reverse("pages:completion_progress_analytics"))
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["completion_progress_selected_user"] == newest_user
+    assert response.context["completion_progress_stats"]["total_mohs"] == 30
+
+
+def test_completion_progress_analytics_prefers_statement_metadata(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    completion_user = UserFactory(name="Statement User")
+    client.force_login(admin_user)
+    today = timezone.localdate()
+    linked_problem = ProblemSolveRecord.objects.create(
+        year=today.year,
+        topic="ALG",
+        mohs=5,
+        contest="Legacy Contest",
+        problem="P1",
+        contest_year_problem=f"Legacy Contest {today.year} P1",
+    )
+    statement = ContestProblemStatement.objects.create(
+        linked_problem=linked_problem,
+        contest_year=today.year,
+        contest_name="Statement Contest",
+        problem_number=1,
+        problem_code="P1",
+        statement_latex="Statement text",
+        topic="GEO",
+        mohs=42,
+    )
+    UserProblemCompletion.objects.create(
+        user=completion_user,
+        statement=statement,
+        completion_date=today,
+    )
+
+    response = client.get(
+        reverse("pages:completion_progress_analytics"),
+        {"user": str(completion_user.pk), "range": "7d"},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    first_row = response.context["completion_progress_rows"][0]
+    assert first_row["contest"] == "Statement Contest"
+    assert first_row["topic"] == "Geometry"
+    assert first_row["mohs"] == 42
+    assert response.context["completion_progress_charts_payload"]["topicMohsHeatmap"]["series"] == [
+        {"name": "Geometry", "data": [{"x": "42", "y": 1}]},
+    ]
+
+
+def test_completion_progress_analytics_applies_filters_and_exports_csv(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    completion_user = UserFactory(name="Ada Lovelace", email="ada-progress@example.com")
+    client.force_login(admin_user)
+    today = timezone.localdate()
+
+    draft_problem = ProblemSolveRecord.objects.create(
+        year=today.year,
+        topic="ALG",
+        mohs=18,
+        contest="IMO",
+        problem="P1",
+        contest_year_problem=f"IMO {today.year} P1",
+    )
+    no_solution_problem = ProblemSolveRecord.objects.create(
+        year=today.year,
+        topic="GEO",
+        mohs=28,
+        contest="USAMO",
+        problem="P2",
+        contest_year_problem=f"USAMO {today.year} P2",
+    )
+    UserProblemCompletion.objects.create(
+        user=completion_user,
+        problem=draft_problem,
+        completion_date=today,
+    )
+    UserProblemCompletion.objects.create(
+        user=completion_user,
+        problem=no_solution_problem,
+        completion_date=today - timedelta(days=1),
+    )
+    ProblemSolution.objects.create(
+        problem=draft_problem,
+        author=completion_user,
+        status=ProblemSolution.Status.DRAFT,
+    )
+
+    params = {
+        "user": str(completion_user.pk),
+        "range": "30d",
+        "contest": "USAMO",
+        "topic": "Geometry",
+        "mohs_min": "20",
+        "mohs_max": "30",
+        "solution_status": "none",
+        "q": "P2",
+    }
+    response = client.get(reverse("pages:completion_progress_analytics"), params)
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["completion_progress_stats"]["solved_total"] == 1
+    assert response.context["completion_progress_rows"][0]["problem_label"] == f"USAMO {today.year} P2"
+    assert response.context["completion_progress_filters"]["solution_status"] == "none"
+    assert response.context["completion_progress_charts_payload"]["topicTotals"] == {
+        "labels": ["Geometry"],
+        "values": [1],
+    }
+
+    csv_response = client.get(
+        reverse("pages:completion_progress_analytics"),
+        params | {"export": "csv"},
+    )
+
+    assert csv_response.status_code == HTTPStatus.OK
+    assert csv_response["Content-Type"] == "text/csv; charset=utf-8"
+    csv_rows = list(csv.DictReader(StringIO(csv_response.content.decode("utf-8"))))
+    assert len(csv_rows) == 1
+    assert csv_rows[0]["User email"] == "ada-progress@example.com"
+    assert csv_rows[0]["Problem"] == f"USAMO {today.year} P2"
+    assert csv_rows[0]["Solution status"] == "No solution"
+
+
+@override_settings(DEBUG=False)
+def test_completion_progress_analytics_forbids_non_admin_when_debug_is_off(client):
+    user = UserFactory()
+    client.force_login(user)
+
+    response = client.get(reverse("pages:completion_progress_analytics"))
+
+    assert response.status_code == HTTPStatus.FORBIDDEN
+
+
 def test_user_solution_record_list_applies_query_filters(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     matching_user = UserFactory(name="Mary Cartwright", email="mary@example.com")
@@ -9659,6 +9983,7 @@ def test_dashboard_sidebar_groups_links_into_balanced_workflow_sections_for_admi
         "Ranking imports",
         "Technique analytics",
         "Completion records",
+        "Progress analytics",
         "Solution records",
         "Statement editor",
         "Statement metadata",
@@ -9692,6 +10017,7 @@ def test_dashboard_sidebar_groups_links_into_balanced_workflow_sections_for_admi
         "Technique analytics",
         "Statement analytics",
         "Completion records",
+        "Progress analytics",
         "Solution records",
         "Problem data",
         "Contest names",
