@@ -4980,6 +4980,30 @@ def test_completion_quick_update_renders_datatable_with_status_filter(client):
     assert 'data-completion-state="unsolved"' in response_html
     assert 'new DataTable("#quick-completion-table"' in response_html
     assert "DataTable.ext.search.push" in response_html
+    assert "Completion status" in response_html
+    assert "All matching rows" in response_html
+    assert "pageLength: 25" in response_html
+    assert "loaded rows" not in response_html
+
+
+def test_completion_quick_update_loads_all_matching_rows_without_backend_cap(client):
+    user = UserFactory()
+    client.force_login(user)
+    expected_row_count = 105
+    for problem_number in range(1, expected_row_count + 1):
+        _create_quick_completion_statement(
+            problem_code=f"P{problem_number}",
+            problem_number=problem_number,
+        )
+
+    response = client.get(reverse("pages:completion_quick_update"))
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["completion_quick_update_matching_total"] == expected_row_count
+    assert len(response.context["completion_quick_update_rows"]) == expected_row_count
+    response_html = response.content.decode("utf-8")
+    assert "Showing the first 100" not in response_html
+    assert 'new DataTable("#quick-completion-table"' in response_html
 
 
 def test_completion_record_list_renders_admin_inventory(client):

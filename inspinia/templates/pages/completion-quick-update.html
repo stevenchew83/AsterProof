@@ -138,21 +138,16 @@
             <p class="text-muted fs-xs mb-0">Dates must use YYYY-MM-DD. Unknown keeps the problem solved without an exact date.</p>
           </div>
           <span class="badge text-bg-light">
-            Showing {{ completion_quick_update_rows|length }} of {{ completion_quick_update_matching_total }}
+            {{ completion_quick_update_matching_total }} matching row{{ completion_quick_update_matching_total|pluralize }}
           </span>
         </div>
         <div class="card-body">
-          {% if completion_quick_update_is_capped %}
-          <div class="alert alert-info mb-3" role="alert">
-            Showing the first {{ completion_quick_update_result_limit }} matching rows. Narrow the filters to find older rows.
-          </div>
-          {% endif %}
           {% if completion_quick_update_rows %}
           <div class="row g-2 align-items-end mb-3">
             <div class="col-sm-6 col-md-4 col-xl-2">
-              <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="quick-completion-status-filter">Loaded-row status</label>
+              <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="quick-completion-status-filter">Completion status</label>
               <select id="quick-completion-status-filter" class="form-select form-select-sm">
-                <option value="">All loaded rows</option>
+                <option value="">All matching rows</option>
                 <option value="unsolved">Unsolved</option>
                 <option value="solved">Known date</option>
                 <option value="unknown">Unknown date</option>
@@ -367,12 +362,12 @@
         },
         language: {
           search: "Filter table:",
-          searchPlaceholder: "Within loaded rows",
-          info: "Showing _START_ to _END_ of _TOTAL_ loaded rows",
-          infoEmpty: "No loaded rows to show",
-          infoFiltered: "(filtered from _MAX_ loaded row(s))",
+          searchPlaceholder: "Within matching rows",
+          info: "Showing _START_ to _END_ of _TOTAL_ matching rows",
+          infoEmpty: "No matching rows to show",
+          infoFiltered: "(filtered from _MAX_ matching row(s))",
           lengthMenu: "Show _MENU_ rows",
-          zeroRecords: "No loaded rows match the current filter."
+          zeroRecords: "No matching rows match the current filter."
         }
       });
     }
