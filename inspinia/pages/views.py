@@ -121,7 +121,7 @@ from inspinia.pages.statement_metadata_backfill import statement_metadata_datafr
 from inspinia.pages.statement_metadata_backfill import statement_metadata_dataframe_from_text
 from inspinia.pages.topic_labels import FULL_TOPIC_LABEL_MAP
 from inspinia.pages.topic_labels import display_topic_label
-from inspinia.problemsets.models import ProblemList
+from inspinia.problemsets.selectors import problem_list_add_target_rows
 from inspinia.solutions.models import ProblemSolution
 from inspinia.users.models import AuditEvent
 from inspinia.users.models import User
@@ -2212,13 +2212,7 @@ def _coerce_year_filter(raw_value: str | None, available_years: set[int]) -> int
 
 
 def _problem_list_add_targets(user) -> list[dict[str, str]]:
-    return [
-        {
-            "add_url": reverse("problemsets:add_item", args=[problem_list.list_uuid]),
-            "title": problem_list.title,
-        }
-        for problem_list in ProblemList.objects.filter(author=user).order_by("title", "id")
-    ]
+    return problem_list_add_target_rows(user)
 
 
 def _is_problem_list_addable(problem: ProblemSolveRecord | None) -> bool:
@@ -3357,7 +3351,6 @@ def _completion_quick_update_row(
     statement: ContestProblemStatement,
     *,
     completion_by_statement_id: dict[int, date | None],
-    difficulty_rating_payload: dict[str, object],
 ) -> dict[str, object]:
     is_completed = statement.id in completion_by_statement_id
     completion_date = completion_by_statement_id.get(statement.id)
@@ -3394,7 +3387,6 @@ def _completion_quick_update_row(
         "statement_uuid": str(statement.statement_uuid),
         "topic": display_topic_label(topic) if topic else "",
         "year": int(statement.contest_year),
-        **difficulty_rating_payload,
     }
 
 
@@ -3452,15 +3444,10 @@ def completion_quick_update_view(request):
         statements,
         user=selected_user,
     )
-    difficulty_rating_payloads = _difficulty_rating_payloads_by_statement_id(
-        statement_ids=[statement.id for statement in statements],
-        user=selected_user,
-    )
     rows = [
         _completion_quick_update_row(
             statement,
             completion_by_statement_id=completion_by_statement_id,
-            difficulty_rating_payload=difficulty_rating_payloads[statement.id],
         )
         for statement in statements
     ]
@@ -3477,7 +3464,6 @@ def completion_quick_update_view(request):
         },
         "completion_quick_update_matching_total": matching_total,
         "completion_quick_update_rows": rows,
-        "completion_quick_update_difficulty_save_url": reverse("pages:problem_statement_difficulty_rating_save"),
         "completion_quick_update_save_url": reverse("pages:completion_quick_update_save"),
         "completion_quick_update_selected_user": selected_user,
         "completion_quick_update_today": timezone.localdate().isoformat(),

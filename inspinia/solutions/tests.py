@@ -1,3 +1,4 @@
+from datetime import date
 from datetime import datetime
 from datetime import timedelta
 from http import HTTPStatus
@@ -15,6 +16,9 @@ from PIL import Image
 
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
+from inspinia.pages.models import UserProblemCompletion
+from inspinia.pages.models import UserProblemDifficultyRating
+from inspinia.problemsets.models import ProblemList
 from inspinia.solutions.body_image_paths import is_allowed_includegraphics_path
 from inspinia.solutions.models import ProblemSolution
 from inspinia.solutions.models import ProblemSolutionBlock
@@ -53,6 +57,10 @@ EXPECTED_DEFAULT_BLOCK_TYPES = {
 }
 EXPECTED_VISIBLE_SOLUTION_TOTAL = 2
 EXPECTED_STATEMENT_BACKED_PROBLEM_TOTAL = 2
+EXPECTED_DIFFICULTY_RATING_COUNT = 2
+EXPECTED_USER_DIFFICULTY_RATING = 37
+OTHER_USER_DIFFICULTY_RATING = 17
+EXPECTED_AVERAGE_DIFFICULTY_DISPLAY = "27.0"
 
 
 def _problem(*, year: int = 2026, contest: str = "IMO", problem: str = "P1") -> ProblemSolveRecord:
@@ -368,6 +376,171 @@ def test_problem_solution_list_shows_my_solution_and_only_other_published_soluti
     assert "Hidden draft" not in response_html
     assert "mediaUrlPrefix:" in response_html
     assert 'textbullet: "\\\\bullet"' in response_html
+
+
+def test_problem_solution_list_exposes_statement_difficulty_and_problem_list_controls(client):
+    user = UserFactory()
+    other_user = UserFactory()
+    client.force_login(user)
+    problem = _problem(contest="JBMO Shortlist", year=2015, problem="NT2")
+    statement = ContestProblemStatement.objects.create(
+        linked_problem=problem,
+        contest_year=2015,
+        contest_name="JBMO Shortlist",
+        problem_number=2,
+        problem_code="NT2",
+        day_label="Number Theory",
+        statement_latex="A positive integer is called a repunit.",
+    )
+    UserProblemDifficultyRating.objects.create(user=user, statement=statement, rating=EXPECTED_USER_DIFFICULTY_RATING)
+    UserProblemDifficultyRating.objects.create(
+        user=other_user,
+        statement=statement,
+        rating=OTHER_USER_DIFFICULTY_RATING,
+    )
+    algebra_list = ProblemList.objects.create(author=user, title="Algebra list")
+    nt_list = ProblemList.objects.create(author=user, title="Number theory list")
+    ProblemList.objects.create(author=other_user, title="Other user's list")
+
+    response = client.get(reverse("solutions:problem_solution_list", args=[problem.problem_uuid]))
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["difficulty_rating"]["user_difficulty_rating"] == EXPECTED_USER_DIFFICULTY_RATING
+    assert response.context["difficulty_rating"]["average_difficulty_display"] == EXPECTED_AVERAGE_DIFFICULTY_DISPLAY
+    assert response.context["difficulty_rating"]["difficulty_rating_count"] == EXPECTED_DIFFICULTY_RATING_COUNT
+    assert response.context["difficulty_rating_statement_uuid"] == str(statement.statement_uuid)
+    assert [row["title"] for row in response.context["problem_list_add_targets"]] == [
+        "Algebra list",
+        "Number theory list",
+    ]
+    response_html = response.content.decode("utf-8")
+    assert "A positive integer is called a repunit." in response_html
+    assert "View linked statement" not in response_html
+    assert "Your difficulty" in response_html
+    assert 'value="37"' in response_html
+    assert reverse("pages:problem_statement_difficulty_rating_save") in response_html
+    assert reverse("problemsets:add_item", args=[algebra_list.list_uuid]) in response_html
+    assert reverse("problemsets:add_item", args=[nt_list.list_uuid]) in response_html
+    assert "Other user's list" not in response_html
+    assert f'name="problem_uuid" value="{problem.problem_uuid}"' in response_html
+    assert "Add to list" in response_html
+
+
+def test_problem_solution_list_exposes_completion_date_control(client):
+    user = UserFactory()
+    client.force_login(user)
+    problem = _problem(contest="JBMO Shortlist", year=2015, problem="NT2")
+    statement = ContestProblemStatement.objects.create(
+        linked_problem=problem,
+        contest_year=2015,
+        contest_name="JBMO Shortlist",
+        problem_number=2,
+        problem_code="NT2",
+        day_label="Number Theory",
+        statement_latex="A positive integer is called a repunit.",
+    )
+    UserProblemCompletion.objects.create(
+        user=user,
+        statement=statement,
+        completion_date=date(2026, 1, 24),
+    )
+
+    response = client.get(reverse("solutions:problem_solution_list", args=[problem.problem_uuid]))
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["completion_state"]["completion_date"] == "2026-01-24"
+    assert response.context["completion_state"]["state_kind"] == "solved"
+    assert response.context["completion_statement_uuid"] == str(statement.statement_uuid)
+    assert response.context["completion_problem_uuid"] == str(problem.problem_uuid)
+    response_html = response.content.decode("utf-8")
+    assert "Your complete date" in response_html
+    assert 'placeholder="YYYY-MM-DD"' in response_html
+    assert 'pattern="\\d{4}-\\d{2}-\\d{2}"' in response_html
+    assert 'value="2026-01-24"' in response_html
+    assert reverse("pages:completion_board_toggle") in response_html
+    assert "js-solution-completion-save" in response_html
+
+
+def test_problem_solution_list_hides_solution_bodies_until_selected_link_opened(client):
+    user = UserFactory()
+    other_user = UserFactory()
+    client.force_login(user)
+    problem = _problem()
+    my_solution = _solution_with_blocks(
+        problem=problem,
+        author=user,
+        title="My working draft",
+        blocks=[("Claim", "My private draft block.", "claim")],
+    )
+    published_solution = _solution_with_blocks(
+        problem=problem,
+        author=other_user,
+        status=ProblemSolution.Status.PUBLISHED,
+        title="Published proof",
+        blocks=[("Proof", "A published proof block.", "proof")],
+    )
+
+    response = client.get(reverse("solutions:problem_solution_list", args=[problem.problem_uuid]))
+
+    assert response.status_code == HTTPStatus.OK
+    response_html = response.content.decode("utf-8")
+    assert "My working draft" in response_html
+    assert "Published proof" in response_html
+    assert "My private draft block." not in response_html
+    assert "A published proof block." not in response_html
+    assert f"?solution={my_solution.id}#solution-{my_solution.id}" in response_html
+    assert f"?solution={published_solution.id}#solution-{published_solution.id}" in response_html
+    assert 'target="_blank"' in response_html
+
+    selected_response = client.get(
+        reverse("solutions:problem_solution_list", args=[problem.problem_uuid]),
+        {"solution": str(published_solution.id)},
+    )
+
+    assert selected_response.status_code == HTTPStatus.OK
+    assert "A published proof block." in selected_response.content.decode("utf-8")
+
+
+def test_problem_solution_list_inline_draft_post_creates_solution_and_returns_to_problem_page(client):
+    user = UserFactory()
+    client.force_login(user)
+    problem = _problem()
+    proof_block_type = SolutionBlockType.objects.get(slug="proof")
+    url = reverse("solutions:problem_solution_list", args=[problem.problem_uuid])
+
+    get_response = client.get(url)
+
+    assert get_response.status_code == HTTPStatus.OK
+    get_html = get_response.content.decode("utf-8")
+    assert 'id="solution-start-inline-draft"' in get_html
+    assert 'id="inline-draft-editor"' in get_html
+
+    response = client.post(
+        url,
+        {
+            "action": "save_draft",
+            "solution-title": "First draft from page",
+            "solution-summary": "Started without leaving the problem page.",
+            "blocks-TOTAL_FORMS": "1",
+            "blocks-INITIAL_FORMS": "0",
+            "blocks-MIN_NUM_FORMS": "0",
+            "blocks-MAX_NUM_FORMS": "1000",
+            "blocks-0-id": "",
+            "blocks-0-ORDER": "1",
+            "blocks-0-block_type": str(proof_block_type.id),
+            "blocks-0-title": "Proof",
+            "blocks-0-body_format": ProblemSolutionBlock.BodyFormat.LATEX,
+            "blocks-0-body_source": "Inline draft body.",
+        },
+    )
+
+    solution = ProblemSolution.objects.get(problem=problem, author=user)
+    assert response.status_code == HTTPStatus.FOUND
+    assert response.url == f"{url}?solution={solution.id}#solution-{solution.id}"
+    assert solution.title == "First draft from page"
+    assert solution.summary == "Started without leaving the problem page."
+    assert solution.status == ProblemSolution.Status.DRAFT
+    assert list(solution.blocks.values_list("title", "body_source")) == [("Proof", "Inline draft body.")]
 
 
 def test_problem_solution_list_shows_all_user_solutions_for_admin(client):

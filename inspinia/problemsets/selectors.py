@@ -107,6 +107,16 @@ def my_problem_lists_queryset(user):
     ).order_by("-updated_at", "-id")
 
 
+def problem_list_add_target_rows(user) -> list[dict[str, str]]:
+    return [
+        {
+            "add_url": reverse("problemsets:add_item", args=[problem_list.list_uuid]),
+            "title": problem_list.title,
+        }
+        for problem_list in ProblemList.objects.filter(author=user).order_by("title", "id")
+    ]
+
+
 def problem_list_summary_rows(problem_lists: list[ProblemList]) -> list[dict]:
     return [
         {
