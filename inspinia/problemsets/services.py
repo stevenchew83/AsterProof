@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import uuid
+
 from django.db import IntegrityError
 from django.db import transaction
 from django.db.models import Max
@@ -73,6 +75,40 @@ def reorder_problem_list_items(problem_list: ProblemList, item_ids: list[int]) -
         ProblemListItem.objects.bulk_update(reordered_items, ["position"])
 
 
+def replace_problem_list_items(problem_list: ProblemList, problem_uuids: list[str]) -> list[ProblemListItem]:
+    normalized_problem_uuids = _normalize_problem_uuid_order(problem_uuids)
+    _validate_unique_problem_uuid_order(normalized_problem_uuids)
+
+    with transaction.atomic():
+        locked_list = ProblemList.objects.select_for_update().get(pk=problem_list.pk)
+        existing_items = _locked_problem_list_items(locked_list)
+        if not normalized_problem_uuids:
+            _delete_items(existing_items)
+            return []
+
+        existing_by_problem_uuid = {item.problem.problem_uuid: item for item in existing_items}
+        problem_by_uuid = _problem_by_uuid_for_sequence(normalized_problem_uuids, existing_by_problem_uuid)
+        requested_problem_uuids = set(normalized_problem_uuids)
+        _delete_omitted_items(existing_items, requested_problem_uuids)
+
+        retained_items = [
+            item
+            for item in existing_items
+            if item.problem.problem_uuid in requested_problem_uuids
+        ]
+        temp_base = len(existing_items) + len(normalized_problem_uuids) + 1000
+        _move_items_to_temp_positions(retained_items, temp_base)
+        ordered_items = _upsert_ordered_items(
+            locked_list,
+            normalized_problem_uuids,
+            problem_by_uuid,
+            retained_items,
+            temp_base=temp_base,
+        )
+        _move_items_to_final_positions(ordered_items)
+        return ordered_items
+
+
 def set_problem_list_visibility(problem_list: ProblemList, visibility: str) -> ProblemList:
     if visibility not in {ProblemList.Visibility.PRIVATE, ProblemList.Visibility.PUBLIC}:
         msg = "Choose private or public visibility."
@@ -122,6 +158,102 @@ def _renumber_items(problem_list: ProblemList) -> None:
     for offset, item in enumerate(items, start=1):
         item.position = temp_base + offset
     ProblemListItem.objects.bulk_update(items, ["position"])
+    for position, item in enumerate(items, start=1):
+        item.position = position
+    ProblemListItem.objects.bulk_update(items, ["position"])
+
+
+def _normalize_problem_uuid_order(problem_uuids: list[str]) -> list[uuid.UUID]:
+    normalized_problem_uuids: list[uuid.UUID] = []
+    for raw_problem_uuid in problem_uuids:
+        raw_value = str(raw_problem_uuid or "").strip()
+        if not raw_value:
+            continue
+        try:
+            normalized_problem_uuids.append(uuid.UUID(raw_value))
+        except ValueError as exc:
+            msg = "Submitted problem sequence is invalid."
+            raise ProblemListServiceError(msg) from exc
+    return normalized_problem_uuids
+
+
+def _validate_unique_problem_uuid_order(problem_uuids: list[uuid.UUID]) -> None:
+    if len(problem_uuids) == len(set(problem_uuids)):
+        return
+    msg = "A problem appears more than once in this sequence."
+    raise ProblemListServiceError(msg)
+
+
+def _locked_problem_list_items(problem_list: ProblemList) -> list[ProblemListItem]:
+    return list(
+        ProblemListItem.objects.select_for_update()
+        .select_related("problem")
+        .filter(problem_list=problem_list)
+        .order_by("position", "id"),
+    )
+
+
+def _problem_by_uuid_for_sequence(
+    problem_uuids: list[uuid.UUID],
+    existing_by_problem_uuid: dict[uuid.UUID, ProblemListItem],
+) -> dict[uuid.UUID, ProblemSolveRecord]:
+    problem_by_uuid = ProblemSolveRecord.objects.in_bulk(problem_uuids, field_name="problem_uuid")
+    if set(problem_by_uuid) != set(problem_uuids):
+        msg = "Select active contest problems only."
+        raise ProblemListServiceError(msg)
+
+    for problem_uuid in problem_uuids:
+        problem = problem_by_uuid[problem_uuid]
+        if not problem.is_active and problem_uuid not in existing_by_problem_uuid:
+            msg = "Select active contest problems only."
+            raise ProblemListServiceError(msg)
+
+    return problem_by_uuid
+
+
+def _delete_items(items: list[ProblemListItem]) -> None:
+    for item in items:
+        item.delete()
+
+
+def _delete_omitted_items(items: list[ProblemListItem], requested_problem_uuids: set[uuid.UUID]) -> None:
+    for item in items:
+        if item.problem.problem_uuid not in requested_problem_uuids:
+            item.delete()
+
+
+def _move_items_to_temp_positions(items: list[ProblemListItem], temp_base: int) -> None:
+    for offset, item in enumerate(items, start=1):
+        item.position = temp_base + offset
+    if items:
+        ProblemListItem.objects.bulk_update(items, ["position"])
+
+
+def _upsert_ordered_items(
+    problem_list: ProblemList,
+    problem_uuids: list[uuid.UUID],
+    problem_by_uuid: dict[uuid.UUID, ProblemSolveRecord],
+    retained_items: list[ProblemListItem],
+    *,
+    temp_base: int,
+) -> list[ProblemListItem]:
+    retained_by_problem_uuid = {item.problem.problem_uuid: item for item in retained_items}
+    ordered_items = []
+    next_temp_position = temp_base + len(retained_items)
+    for problem_uuid in problem_uuids:
+        item = retained_by_problem_uuid.get(problem_uuid)
+        if item is None:
+            next_temp_position += 1
+            item = ProblemListItem.objects.create(
+                problem_list=problem_list,
+                problem=problem_by_uuid[problem_uuid],
+                position=next_temp_position,
+            )
+        ordered_items.append(item)
+    return ordered_items
+
+
+def _move_items_to_final_positions(items: list[ProblemListItem]) -> None:
     for position, item in enumerate(items, start=1):
         item.position = position
     ProblemListItem.objects.bulk_update(items, ["position"])

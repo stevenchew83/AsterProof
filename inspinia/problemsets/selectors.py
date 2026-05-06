@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import re
+import uuid
+from contextlib import suppress
+
 from django.db.models import Count
 from django.db.models import F
 from django.db.models import Q
@@ -7,14 +11,18 @@ from django.urls import reverse
 from django.utils import timezone
 
 from inspinia.pages.asymptote_render import build_statement_render_segments
+from inspinia.pages.contest_links import contest_dashboard_problem_url
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
 from inspinia.pages.models import ProblemTopicTechnique
 from inspinia.pages.statement_analytics import effective_mohs
 from inspinia.pages.statement_analytics import effective_topic
+from inspinia.pages.topic_labels import FULL_TOPIC_LABEL_MAP
 from inspinia.pages.topic_labels import display_topic_label
 from inspinia.problemsets.models import ProblemList
 from inspinia.problemsets.models import ProblemListVote
+
+PROBLEM_LIST_PROBLEM_SEARCH_LIMIT = 50
 
 
 def problem_label(problem: ProblemSolveRecord) -> str:
@@ -140,6 +148,96 @@ def problem_list_item_rows(problem_list: ProblemList, *, include_inactive: bool 
             },
         )
     return rows
+
+
+def problem_list_picker_rows(problem_list: ProblemList) -> list[dict]:
+    item_rows = problem_list_item_rows(problem_list, include_inactive=True)
+    return [_problem_picker_row(row["problem"], is_in_list=True, topic_tags=row["topic_tags"]) for row in item_rows]
+
+
+def searchable_problem_rows(
+    problem_list: ProblemList,
+    search_text: str = "",
+    *,
+    limit: int = PROBLEM_LIST_PROBLEM_SEARCH_LIMIT,
+) -> list[dict]:
+    existing_problem_uuids = set(problem_list.items.values_list("problem__problem_uuid", flat=True))
+    queryset = ProblemSolveRecord.objects.filter(is_active=True).prefetch_related("topic_techniques")
+    search_text = (search_text or "").strip()
+    if search_text:
+        queryset = queryset.filter(_problem_search_query(search_text)).distinct()
+
+    problems = list(queryset.order_by("-year", "contest", "problem", "id")[:limit])
+    return [
+        _problem_picker_row(
+            problem,
+            is_in_list=problem.problem_uuid in existing_problem_uuids,
+        )
+        for problem in problems
+    ]
+
+
+def _problem_picker_row(
+    problem: ProblemSolveRecord,
+    *,
+    is_in_list: bool,
+    topic_tags: list[str] | None = None,
+) -> dict:
+    label = problem_label(problem)
+    return {
+        "archive_url": contest_dashboard_problem_url(
+            problem.contest,
+            year=int(problem.year),
+            problem_label=label,
+            fallback=f"{problem.year}-{problem.problem}",
+        ),
+        "contest": problem.contest,
+        "is_active": problem.is_active,
+        "is_in_list": is_in_list,
+        "mohs": problem.mohs,
+        "problem_code": problem.problem,
+        "problem_label": label,
+        "problem_uuid": str(problem.problem_uuid),
+        "topic_label": display_topic_label(problem.topic),
+        "topic_tags": topic_tags if topic_tags is not None else _problem_topic_tags(problem),
+        "year": problem.year,
+    }
+
+
+def _problem_topic_tags(problem: ProblemSolveRecord) -> list[str]:
+    techniques = [row.technique for row in problem.topic_techniques.all()]
+    if techniques:
+        return techniques
+    return _raw_topic_tags(problem.topic_tags)
+
+
+def _problem_search_query(search_text: str) -> Q:
+    normalized_search = search_text.lower()
+    query = (
+        Q(contest__icontains=search_text)
+        | Q(problem__icontains=search_text)
+        | Q(contest_year_problem__icontains=search_text)
+        | Q(topic__icontains=search_text)
+        | Q(topic_tags__icontains=search_text)
+        | Q(topic_techniques__technique__icontains=search_text)
+    )
+    if search_text.isdigit():
+        numeric_value = int(search_text)
+        query |= Q(year=numeric_value) | Q(mohs=numeric_value)
+    for year_match in re.findall(r"\b(?:19|20)\d{2}\b", search_text):
+        query |= Q(year=int(year_match))
+    for mohs_match in re.findall(r"\bmohs\s*(\d+)\b", search_text, flags=re.IGNORECASE):
+        query |= Q(mohs=int(mohs_match))
+    topic_values = [
+        topic_value
+        for topic_value, topic_label in FULL_TOPIC_LABEL_MAP.items()
+        if normalized_search in topic_value.lower() or normalized_search in topic_label.lower()
+    ]
+    if topic_values:
+        query |= Q(topic__in=topic_values)
+    with suppress(ValueError):
+        query |= Q(problem_uuid=uuid.UUID(search_text))
+    return query
 
 
 def _latest_statement_by_problem_id(problem_ids: list[int]) -> dict[int, ContestProblemStatement]:

@@ -2,6 +2,18 @@
 
 {% block title %}Edit {{ problem_list.title }}{% endblock title %}
 
+{% block extra_css %}
+<style>
+  .problem-list-picker-status {
+    min-height: 1.5rem;
+  }
+
+  .problem-list-picker-table td {
+    vertical-align: top;
+  }
+</style>
+{% endblock extra_css %}
+
 {% block page_content %}
 <div class="container-fluid">
   {% include 'partials/page-title.html' with title='Edit problem list' subtitle=problem_list.title %}
@@ -72,22 +84,45 @@
     </div>
   </div>
 
-  <div class="card mt-3">
+  <div class="card mt-3" data-problem-search-url="{% url 'problemsets:problem_search' problem_list.list_uuid %}">
     <div class="card-header border-bottom">
-      <h4 class="header-title mb-0">Add problem</h4>
-      <p class="text-muted fs-xs mb-0">Paste an active problem UUID from the problem statement or contest listing pages.</p>
+      <h4 class="header-title mb-0">Find problems</h4>
+      <p class="text-muted fs-xs mb-0">Search the active archive by contest, year, topic, MOHS, tag, label, or UUID.</p>
     </div>
     <div class="card-body">
-      <form method="post" action="{% url 'problemsets:add_item' problem_list.list_uuid %}" class="row g-2 align-items-end">
-        {% csrf_token %}
-        <div class="col-xl-7 col-lg-8">
-          <label class="form-label" for="{{ add_problem_form.problem_uuid.id_for_label }}">Problem UUID</label>
-          {{ add_problem_form.problem_uuid }}
+      <form id="problem-list-search-form" class="row g-2 align-items-end">
+        <div class="col-xl-8 col-lg-9">
+          <label class="form-label" for="problem-list-search-input">Search archive</label>
+          <input id="problem-list-search-input" type="search" class="form-control" placeholder="IMO 2026 P1, geometry, LTE, MOHS 12...">
         </div>
         <div class="col-auto">
-          <button type="submit" class="btn btn-primary">Add problem</button>
+          <button id="problem-list-search-button" type="submit" class="btn btn-primary">
+            <i class="ti ti-search me-1"></i>Search
+          </button>
         </div>
       </form>
+
+      <div id="problem-list-search-status" class="problem-list-picker-status text-muted fs-xs mt-2" role="status">
+        Search for problems, then add rows to the draft sequence below.
+      </div>
+
+      <div class="table-responsive mt-2">
+        <table class="table table-striped align-middle problem-list-picker-table mb-0">
+          <thead>
+            <tr>
+              <th>Problem</th>
+              <th>Metadata</th>
+              <th>Tags</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="problem-list-search-results">
+            <tr>
+              <td colspan="4" class="text-muted fs-sm">No search has been run yet.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 
@@ -95,111 +130,289 @@
     <div class="card-header border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2">
       <div>
         <h4 class="header-title mb-0">Problem sequence</h4>
-        <p class="text-muted fs-xs mb-0">Move rows, then save the sequence.</p>
+        <p class="text-muted fs-xs mb-0">Add problems to the draft, move rows, then save the sequence.</p>
       </div>
-      <a href="{% url 'problemsets:detail' problem_list.list_uuid %}" class="btn btn-outline-secondary btn-sm">View list</a>
+      <div class="d-flex flex-wrap align-items-center gap-2">
+        <span id="problem-list-unsaved-badge" class="badge bg-warning-subtle text-warning d-none">Unsaved changes</span>
+        <a href="{% url 'problemsets:detail' problem_list.list_uuid %}" class="btn btn-outline-secondary btn-sm">View list</a>
+      </div>
     </div>
     <div class="card-body">
-      {% if problem_list_items %}
-      <form method="post" action="{% url 'problemsets:reorder_items' problem_list.list_uuid %}" id="problem-list-reorder-form">
+      <form method="post" action="{% url 'problemsets:save_items' problem_list.list_uuid %}" id="problem-list-save-form">
         {% csrf_token %}
+        <div id="problem-list-hidden-order-fields"></div>
         <div class="table-responsive">
-          <table class="table table-striped align-middle mb-0">
+          <table class="table table-striped align-middle problem-list-picker-table mb-0">
             <thead>
               <tr>
                 <th>Order</th>
                 <th>Problem</th>
                 <th>Metadata</th>
+                <th>Tags</th>
                 <th class="text-end">Actions</th>
               </tr>
             </thead>
-            <tbody id="problem-list-item-rows">
-              {% for row in problem_list_items %}
-              <tr data-item-row>
-                <td class="text-nowrap fw-semibold">
-                  <span data-position-label>#{{ forloop.counter }}</span>
-                  <input type="hidden" name="item_order" value="{{ row.id }}">
-                </td>
-                <td>
-                  <div class="fw-semibold">{{ row.problem_label }}</div>
-                  <div class="text-muted fs-xs">{{ row.problem_uuid }}</div>
-                  {% if not row.is_active %}
-                  <span class="badge bg-warning-subtle text-warning mt-1">Inactive problem; public pages hide this row</span>
-                  {% endif %}
-                </td>
-                <td>
-                  <span class="badge bg-light text-dark border">{{ row.topic_label }}</span>
-                  <span class="badge bg-light text-dark border">MOHS {{ row.mohs|default:"—" }}</span>
-                </td>
-                <td class="text-end">
-                  <div class="d-inline-flex flex-wrap justify-content-end gap-2">
-                    <button type="button" class="btn btn-outline-secondary btn-sm" data-move-up aria-label="Move {{ row.problem_label }} up">
-                      <i class="ti ti-arrow-up"></i>
-                    </button>
-                    <button type="button" class="btn btn-outline-secondary btn-sm" data-move-down aria-label="Move {{ row.problem_label }} down">
-                      <i class="ti ti-arrow-down"></i>
-                    </button>
-                    <button
-                      type="submit"
-                      form="problem-list-remove-{{ row.id }}"
-                      class="btn btn-outline-danger btn-sm"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
+            <tbody id="problem-list-draft-rows"></tbody>
           </table>
         </div>
-        <div class="mt-3">
-          <button type="submit" class="btn btn-primary">Save sequence</button>
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-3">
+          <p id="problem-list-save-status" class="text-muted fs-xs mb-0">Public and shared views update after this sequence is saved.</p>
+          <button id="problem-list-save-button" type="submit" class="btn btn-primary">Save problem sequence</button>
         </div>
       </form>
-      {% for row in problem_list_items %}
-      <form id="problem-list-remove-{{ row.id }}" method="post" action="{% url 'problemsets:remove_item' problem_list.list_uuid row.id %}" class="d-none">
-        {% csrf_token %}
-      </form>
-      {% endfor %}
-      {% else %}
-      <div class="alert alert-info mb-0" role="alert">
-        Add at least one active problem to start building the sequence.
-      </div>
-      {% endif %}
     </div>
   </div>
 </div>
+
+{{ problem_list_draft_rows|json_script:"problem-list-draft-data" }}
 {% endblock page_content %}
 
 {% block extra_javascript %}
 <script>
 (function () {
-  var tbody = document.getElementById("problem-list-item-rows");
-  if (!tbody) return;
+  var draftDataEl = document.getElementById("problem-list-draft-data");
+  var searchCard = document.querySelector("[data-problem-search-url]");
+  var searchForm = document.getElementById("problem-list-search-form");
+  var searchInput = document.getElementById("problem-list-search-input");
+  var searchButton = document.getElementById("problem-list-search-button");
+  var searchStatus = document.getElementById("problem-list-search-status");
+  var searchResultsBody = document.getElementById("problem-list-search-results");
+  var draftBody = document.getElementById("problem-list-draft-rows");
+  var saveForm = document.getElementById("problem-list-save-form");
+  var hiddenOrderFields = document.getElementById("problem-list-hidden-order-fields");
+  var unsavedBadge = document.getElementById("problem-list-unsaved-badge");
+  var saveButton = document.getElementById("problem-list-save-button");
+  if (!draftDataEl || !searchCard || !draftBody || !hiddenOrderFields) return;
 
-  function refreshPositions() {
-    Array.from(tbody.querySelectorAll("[data-position-label]")).forEach(function (label, index) {
-      label.textContent = "#" + String(index + 1);
+  var draftRows = JSON.parse(draftDataEl.textContent || "[]");
+  var latestResults = [];
+  var originalOrderKey = orderKey(draftRows);
+
+  function escapeHtml(value) {
+    return String(value || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function orderKey(rows) {
+    return rows.map(function (row) {
+      return row.problem_uuid;
+    }).join("|");
+  }
+
+  function draftContains(problemUuid) {
+    return draftRows.some(function (row) {
+      return row.problem_uuid === problemUuid;
     });
   }
 
-  tbody.addEventListener("click", function (event) {
-    var upButton = event.target.closest("[data-move-up]");
-    var downButton = event.target.closest("[data-move-down]");
-    if (!upButton && !downButton) return;
-    var row = event.target.closest("[data-item-row]");
-    if (!row) return;
-    if (upButton && row.previousElementSibling) {
-      tbody.insertBefore(row, row.previousElementSibling);
-      refreshPositions();
+  function tagBadges(row) {
+    if (!row.topic_tags || !row.topic_tags.length) {
+      return "<span class=\"text-muted fs-xs\">No tags</span>";
+    }
+    return row.topic_tags.slice(0, 4).map(function (tag) {
+      return "<span class=\"badge bg-light text-dark border me-1 mb-1\">" + escapeHtml(tag) + "</span>";
+    }).join("");
+  }
+
+  function metadataBadges(row) {
+    var mohsValue = row.mohs === null || row.mohs === undefined || row.mohs === ""
+      ? "&mdash;"
+      : escapeHtml(row.mohs);
+    return [
+      "<span class=\"badge bg-light text-dark border me-1 mb-1\">" + escapeHtml(row.topic_label || "Unlabeled") + "</span>",
+      "<span class=\"badge bg-light text-dark border me-1 mb-1\">MOHS " + mohsValue + "</span>"
+    ].join("");
+  }
+
+  function renderHiddenFields() {
+    hiddenOrderFields.innerHTML = draftRows.map(function (row) {
+      return "<input type=\"hidden\" name=\"problem_uuid_order\" value=\"" + escapeHtml(row.problem_uuid) + "\">";
+    }).join("");
+  }
+
+  function renderDraftRows() {
+    renderHiddenFields();
+    var hasUnsavedChanges = orderKey(draftRows) !== originalOrderKey;
+    if (unsavedBadge) {
+      unsavedBadge.classList.toggle("d-none", !hasUnsavedChanges);
+    }
+    if (saveButton) {
+      saveButton.disabled = !hasUnsavedChanges;
+    }
+
+    if (!draftRows.length) {
+      draftBody.innerHTML = [
+        "<tr>",
+        "<td colspan=\"5\">",
+        "<div class=\"alert alert-info mb-0\" role=\"alert\">Search above and add at least one active problem to build the sequence.</div>",
+        "</td>",
+        "</tr>"
+      ].join("");
       return;
     }
-    if (downButton && row.nextElementSibling) {
-      tbody.insertBefore(row.nextElementSibling, row);
-      refreshPositions();
+
+    draftBody.innerHTML = draftRows.map(function (row, index) {
+      var inactiveBadge = row.is_active ? "" : "<span class=\"badge bg-warning-subtle text-warning mt-1\">Inactive problem; public pages hide this row</span>";
+      return [
+        "<tr data-draft-uuid=\"" + escapeHtml(row.problem_uuid) + "\">",
+        "<td class=\"text-nowrap fw-semibold\">#" + String(index + 1) + "</td>",
+        "<td>",
+        "<div class=\"fw-semibold\">" + escapeHtml(row.problem_label) + "</div>",
+        "<div class=\"text-muted fs-xs\">" + escapeHtml(row.problem_uuid) + "</div>",
+        inactiveBadge,
+        "</td>",
+        "<td>" + metadataBadges(row) + "</td>",
+        "<td>" + tagBadges(row) + "</td>",
+        "<td class=\"text-end\">",
+        "<div class=\"d-inline-flex flex-wrap justify-content-end gap-2\">",
+        "<button type=\"button\" class=\"btn btn-outline-secondary btn-sm\" data-draft-action=\"up\" aria-label=\"Move " + escapeHtml(row.problem_label) + " up\"><i class=\"ti ti-arrow-up\"></i></button>",
+        "<button type=\"button\" class=\"btn btn-outline-secondary btn-sm\" data-draft-action=\"down\" aria-label=\"Move " + escapeHtml(row.problem_label) + " down\"><i class=\"ti ti-arrow-down\"></i></button>",
+        "<button type=\"button\" class=\"btn btn-outline-danger btn-sm\" data-draft-action=\"remove\">Remove</button>",
+        "</div>",
+        "</td>",
+        "</tr>"
+      ].join("");
+    }).join("");
+  }
+
+  function renderSearchResults(rows) {
+    latestResults = rows || [];
+    if (!latestResults.length) {
+      searchResultsBody.innerHTML = "<tr><td colspan=\"4\" class=\"text-muted fs-sm\">No active problems match this search.</td></tr>";
+      return;
     }
+
+    searchResultsBody.innerHTML = latestResults.map(function (row) {
+      var isAdded = draftContains(row.problem_uuid);
+      var buttonClass = isAdded ? "btn-outline-secondary" : "btn-primary";
+      var buttonLabel = isAdded ? "Added" : "Add";
+      var disabled = isAdded ? " disabled" : "";
+      return [
+        "<tr data-result-uuid=\"" + escapeHtml(row.problem_uuid) + "\">",
+        "<td>",
+        "<div class=\"fw-semibold\">" + escapeHtml(row.problem_label) + "</div>",
+        "<div class=\"text-muted fs-xs\">" + escapeHtml(row.contest) + " " + escapeHtml(row.year) + " · " + escapeHtml(row.problem_uuid) + "</div>",
+        "</td>",
+        "<td>" + metadataBadges(row) + "</td>",
+        "<td>" + tagBadges(row) + "</td>",
+        "<td class=\"text-end\">",
+        "<div class=\"d-inline-flex flex-wrap justify-content-end gap-2\">",
+        "<a href=\"" + escapeHtml(row.archive_url) + "\" class=\"btn btn-outline-secondary btn-sm\" target=\"_blank\" rel=\"noopener\">Archive</a>",
+        "<button type=\"button\" class=\"btn " + buttonClass + " btn-sm\" data-add-problem" + disabled + ">" + buttonLabel + "</button>",
+        "</div>",
+        "</td>",
+        "</tr>"
+      ].join("");
+    }).join("");
+  }
+
+  function setSearchBusy(isBusy) {
+    if (searchButton) {
+      searchButton.disabled = isBusy;
+    }
+    if (searchStatus && isBusy) {
+      searchStatus.textContent = isBusy ? "Searching active problems..." : "";
+    }
+  }
+
+  function runSearch() {
+    if (!searchResultsBody || !searchInput) return;
+    var url = new URL(searchCard.getAttribute("data-problem-search-url"), window.location.origin);
+    url.searchParams.set("q", searchInput.value || "");
+    setSearchBusy(true);
+    fetch(url.toString(), {
+      headers: {
+        "X-Requested-With": "XMLHttpRequest"
+      }
+    })
+      .then(function (response) {
+        return response.json().then(function (payload) {
+          return { ok: response.ok, payload: payload };
+        });
+      })
+      .then(function (result) {
+        if (!result.ok) {
+          throw new Error("Could not search active problems.");
+        }
+        renderSearchResults(result.payload.results || []);
+        if (searchStatus) {
+          searchStatus.textContent = "Showing " + String(result.payload.count || 0) + " of up to " + String(result.payload.limit || 50) + " matching active problems.";
+        }
+      })
+      .catch(function (error) {
+        searchResultsBody.innerHTML = "<tr><td colspan=\"4\" class=\"text-danger fs-sm\">" + escapeHtml(error.message || "Could not search active problems.") + "</td></tr>";
+        if (searchStatus) {
+          searchStatus.textContent = "";
+        }
+      })
+      .finally(function () {
+        setSearchBusy(false);
+      });
+  }
+
+  if (searchForm) {
+    searchForm.addEventListener("submit", function (event) {
+      event.preventDefault();
+      runSearch();
+    });
+  }
+
+  if (searchResultsBody) {
+    searchResultsBody.addEventListener("click", function (event) {
+      var button = event.target.closest("[data-add-problem]");
+      if (!button) return;
+      var rowNode = button.closest("[data-result-uuid]");
+      if (!rowNode) return;
+      var problemUuid = rowNode.getAttribute("data-result-uuid");
+      if (draftContains(problemUuid)) return;
+      var row = latestResults.find(function (resultRow) {
+        return resultRow.problem_uuid === problemUuid;
+      });
+      if (!row) return;
+      draftRows.push(row);
+      renderDraftRows();
+      renderSearchResults(latestResults);
+    });
+  }
+
+  draftBody.addEventListener("click", function (event) {
+    var button = event.target.closest("[data-draft-action]");
+    if (!button) return;
+    var rowNode = button.closest("[data-draft-uuid]");
+    if (!rowNode) return;
+    var problemUuid = rowNode.getAttribute("data-draft-uuid");
+    var index = draftRows.findIndex(function (row) {
+      return row.problem_uuid === problemUuid;
+    });
+    if (index < 0) return;
+
+    var action = button.getAttribute("data-draft-action");
+    if (action === "remove") {
+      draftRows.splice(index, 1);
+    } else if (action === "up" && index > 0) {
+      var previous = draftRows[index - 1];
+      draftRows[index - 1] = draftRows[index];
+      draftRows[index] = previous;
+    } else if (action === "down" && index < draftRows.length - 1) {
+      var next = draftRows[index + 1];
+      draftRows[index + 1] = draftRows[index];
+      draftRows[index] = next;
+    }
+    renderDraftRows();
+    renderSearchResults(latestResults);
   });
+
+  if (saveForm) {
+    saveForm.addEventListener("submit", function () {
+      renderHiddenFields();
+    });
+  }
+
+  renderDraftRows();
 })();
 </script>
 {% endblock extra_javascript %}

@@ -3,25 +3,31 @@ from __future__ import annotations
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import Http404
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
 from django.shortcuts import render
+from django.views.decorators.http import require_GET
 from django.views.decorators.http import require_POST
 
 from inspinia.problemsets.forms import ProblemListAddProblemForm
 from inspinia.problemsets.forms import ProblemListForm
 from inspinia.problemsets.forms import ProblemListSearchForm
 from inspinia.problemsets.models import ProblemList
+from inspinia.problemsets.selectors import PROBLEM_LIST_PROBLEM_SEARCH_LIMIT
 from inspinia.problemsets.selectors import author_label
 from inspinia.problemsets.selectors import my_problem_lists_queryset
 from inspinia.problemsets.selectors import problem_list_item_rows
+from inspinia.problemsets.selectors import problem_list_picker_rows
 from inspinia.problemsets.selectors import problem_list_summary_rows
 from inspinia.problemsets.selectors import problem_list_vote_totals
 from inspinia.problemsets.selectors import public_problem_lists_queryset
+from inspinia.problemsets.selectors import searchable_problem_rows
 from inspinia.problemsets.services import ProblemListServiceError
 from inspinia.problemsets.services import add_problem_to_list
 from inspinia.problemsets.services import remove_problem_list_item
 from inspinia.problemsets.services import reorder_problem_list_items
+from inspinia.problemsets.services import replace_problem_list_items
 from inspinia.problemsets.services import set_problem_list_visibility
 from inspinia.problemsets.services import toggle_problem_list_vote
 
@@ -109,10 +115,9 @@ def edit_view(request, list_uuid):
         request,
         "problemsets/edit.html",
         {
-            "add_problem_form": ProblemListAddProblemForm(),
             "form": form,
+            "problem_list_draft_rows": problem_list_picker_rows(problem_list),
             "problem_list": problem_list,
-            "problem_list_items": problem_list_item_rows(problem_list, include_inactive=True),
             "problem_list_public_url": problem_list.public_url(),
             "problem_list_votes": problem_list_vote_totals(problem_list),
         },
@@ -133,6 +138,33 @@ def add_item_view(request, list_uuid):
             messages.success(request, "Added problem to list.")
     else:
         messages.error(request, "Paste a valid problem UUID.")
+    return redirect("problemsets:edit", problem_list.list_uuid)
+
+
+@login_required
+@require_GET
+def problem_search_view(request, list_uuid):
+    problem_list = get_object_or_404(ProblemList, list_uuid=list_uuid, author=request.user)
+    rows = searchable_problem_rows(problem_list, request.GET.get("q", ""))
+    return JsonResponse(
+        {
+            "count": len(rows),
+            "limit": PROBLEM_LIST_PROBLEM_SEARCH_LIMIT,
+            "results": rows,
+        },
+    )
+
+
+@login_required
+@require_POST
+def save_items_view(request, list_uuid):
+    problem_list = get_object_or_404(ProblemList, list_uuid=list_uuid, author=request.user)
+    try:
+        replace_problem_list_items(problem_list, request.POST.getlist("problem_uuid_order"))
+    except ProblemListServiceError as exc:
+        messages.error(request, str(exc))
+    else:
+        messages.success(request, "Saved problem sequence.")
     return redirect("problemsets:edit", problem_list.list_uuid)
 
 
