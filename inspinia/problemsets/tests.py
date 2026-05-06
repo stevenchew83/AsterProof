@@ -185,6 +185,24 @@ def test_replace_problem_list_items_sets_full_order_and_membership():
     ]
 
 
+def test_replace_problem_list_items_updates_custom_titles_when_provided():
+    problem_list = _problem_list()
+    first_problem = _problem(problem="P1")
+    second_problem = _problem(problem="P2", contest="USAMO", year=2025)
+    ProblemListItem.objects.create(problem_list=problem_list, problem=first_problem, position=1)
+
+    replace_problem_list_items(
+        problem_list,
+        [str(second_problem.problem_uuid), str(first_problem.problem_uuid)],
+        custom_titles=["Challenge A", ""],
+    )
+
+    assert list(problem_list.items.order_by("position").values_list("problem_id", "custom_title")) == [
+        (second_problem.id, "Challenge A"),
+        (first_problem.id, ""),
+    ]
+
+
 def test_replace_problem_list_items_rejects_duplicate_unknown_and_new_inactive_problem():
     problem_list = _problem_list()
     active_problem = _problem(problem="P1")
@@ -447,6 +465,30 @@ def test_problem_list_save_items_endpoint_requires_author_and_replaces_sequence(
     assert forbidden_response.status_code == HTTPStatus.NOT_FOUND
 
 
+def test_problem_list_save_items_endpoint_persists_custom_titles(client):
+    author = UserFactory()
+    client.force_login(author)
+    problem_list = _problem_list(author=author)
+    first_problem = _problem(problem="P1")
+    second_problem = _problem(problem="P2", contest="USAMO", year=2025)
+    ProblemListItem.objects.create(problem_list=problem_list, problem=first_problem, position=1)
+
+    response = client.post(
+        reverse("problemsets:save_items", args=[problem_list.list_uuid]),
+        {
+            "custom_title": ["Mock paper problem", ""],
+            "problem_uuid_order": [str(second_problem.problem_uuid), str(first_problem.problem_uuid)],
+        },
+        follow=True,
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert list(problem_list.items.order_by("position").values_list("problem_id", "custom_title")) == [
+        (second_problem.id, "Mock paper problem"),
+        (first_problem.id, ""),
+    ]
+
+
 def test_problem_list_edit_page_exposes_picker_payload_and_save_urls(client):
     user = UserFactory()
     client.force_login(user)
@@ -464,6 +506,8 @@ def test_problem_list_edit_page_exposes_picker_payload_and_save_urls(client):
     assert "problem-list-search-facets" in response_html
     assert "problem-list-search-contest" in response_html
     assert "problem-list-load-more" in response_html
+    assert "Hide original source" in response_html
+    assert "Optional title for public view" in response_html
     assert "Paste an active problem UUID" not in response_html
 
 
@@ -557,6 +601,40 @@ def test_public_share_page_is_read_only_without_dashboard_chrome(client):
     assert "Start my draft" not in response_html
     assert "completion-editor" not in response_html
     assert "<form" not in response_html
+
+
+def test_public_share_page_respects_display_options_and_custom_title(client):
+    author = UserFactory(name="Exam Maker")
+    problem = _problem(topic="GEO", mohs=12, topic_tags="GEO - angle chase")
+    ProblemTopicTechnique.objects.create(record=problem, technique="ANGLE CHASE", domains=["GEO"])
+    _statement(problem, "Find all triangles with $AB=AC$.")
+    problem_list = _problem_list(
+        author=author,
+        title="Mock paper",
+        visibility=ProblemList.Visibility.PUBLIC,
+    )
+    problem_list.hide_source = True
+    problem_list.hide_topic = True
+    problem_list.hide_mohs = True
+    problem_list.hide_subtopics = True
+    problem_list.save()
+    ProblemListItem.objects.create(
+        problem_list=problem_list,
+        problem=problem,
+        position=1,
+        custom_title="Challenge 1",
+    )
+
+    response = client.get(problem_list.public_url())
+
+    assert response.status_code == HTTPStatus.OK
+    response_html = response.content.decode("utf-8")
+    assert "Challenge 1" in response_html
+    assert "Find all triangles" in response_html
+    assert "IMO 2026 P1" not in response_html
+    assert "Geometry" not in response_html
+    assert "MOHS 12" not in response_html
+    assert "ANGLE CHASE" not in response_html
 
 
 def test_public_share_page_links_authenticated_users_to_solution_editor(client):

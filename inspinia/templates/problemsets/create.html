@@ -25,6 +25,7 @@
               {{ form.description }}
               {% for error in form.description.errors %}<div class="text-danger fs-xs mt-1">{{ error }}</div>{% endfor %}
             </div>
+            {% include 'problemsets/partials/display-options-fields.html' %}
             <div class="d-flex flex-wrap gap-2">
               <button type="submit" class="btn btn-primary">Create list</button>
               <a href="{% url 'problemsets:my_lists' %}" class="btn btn-outline-secondary">Cancel</a>

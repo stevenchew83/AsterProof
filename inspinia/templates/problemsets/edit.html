@@ -52,6 +52,7 @@
               {{ form.description }}
               {% for error in form.description.errors %}<div class="text-danger fs-xs mt-1">{{ error }}</div>{% endfor %}
             </div>
+            {% include 'problemsets/partials/display-options-fields.html' %}
             <button type="submit" class="btn btn-primary">Save details</button>
           </form>
         </div>
@@ -189,7 +190,7 @@
             <thead>
               <tr>
                 <th>Order</th>
-                <th>Problem</th>
+                <th>Problem / title</th>
                 <th>Metadata</th>
                 <th>Tags</th>
                 <th class="text-end">Actions</th>
@@ -240,7 +241,7 @@
   var latestResults = [];
   var searchLimit = 50;
   var searchHasMore = false;
-  var originalOrderKey = orderKey(draftRows);
+  var originalDraftKey = draftKey(draftRows);
 
   function escapeHtml(value) {
     return String(value || "")
@@ -251,9 +252,9 @@
       .replace(/'/g, "&#39;");
   }
 
-  function orderKey(rows) {
+  function draftKey(rows) {
     return rows.map(function (row) {
-      return row.problem_uuid;
+      return row.problem_uuid + "\u001f" + String(row.custom_title || "");
     }).join("|");
   }
 
@@ -307,19 +308,26 @@
 
   function renderHiddenFields() {
     hiddenOrderFields.innerHTML = draftRows.map(function (row) {
-      return "<input type=\"hidden\" name=\"problem_uuid_order\" value=\"" + escapeHtml(row.problem_uuid) + "\">";
+      return [
+        "<input type=\"hidden\" name=\"problem_uuid_order\" value=\"" + escapeHtml(row.problem_uuid) + "\">",
+        "<input type=\"hidden\" name=\"custom_title\" value=\"" + escapeHtml(row.custom_title || "") + "\">"
+      ].join("");
     }).join("");
   }
 
-  function renderDraftRows() {
+  function syncDraftFormState() {
     renderHiddenFields();
-    var hasUnsavedChanges = orderKey(draftRows) !== originalOrderKey;
+    var hasUnsavedChanges = draftKey(draftRows) !== originalDraftKey;
     if (unsavedBadge) {
       unsavedBadge.classList.toggle("d-none", !hasUnsavedChanges);
     }
     if (saveButton) {
       saveButton.disabled = !hasUnsavedChanges;
     }
+  }
+
+  function renderDraftRows() {
+    syncDraftFormState();
 
     if (!draftRows.length) {
       draftBody.innerHTML = [
@@ -340,6 +348,10 @@
         "<td>",
         "<div class=\"fw-semibold\">" + escapeHtml(row.problem_label) + "</div>",
         "<div class=\"text-muted fs-xs\">" + escapeHtml(row.problem_uuid) + "</div>",
+        "<div class=\"mt-2\">",
+        "<label class=\"form-label fs-xs text-uppercase fw-semibold text-muted mb-1\" for=\"problem-list-custom-title-" + String(index) + "\">Custom title</label>",
+        "<input id=\"problem-list-custom-title-" + String(index) + "\" type=\"text\" class=\"form-control form-control-sm\" maxlength=\"160\" placeholder=\"Optional title for public view\" value=\"" + escapeHtml(row.custom_title || "") + "\" data-custom-title-input>",
+        "</div>",
         inactiveBadge,
         "</td>",
         "<td>" + metadataBadges(row) + "</td>",
@@ -528,11 +540,25 @@
         return resultRow.problem_uuid === problemUuid;
       });
       if (!row) return;
-      draftRows.push(row);
+      draftRows.push(Object.assign({}, row, { custom_title: row.custom_title || "" }));
       renderDraftRows();
       renderSearchResults(latestResults);
     });
   }
+
+  draftBody.addEventListener("input", function (event) {
+    var input = event.target.closest("[data-custom-title-input]");
+    if (!input) return;
+    var rowNode = input.closest("[data-draft-uuid]");
+    if (!rowNode) return;
+    var problemUuid = rowNode.getAttribute("data-draft-uuid");
+    var row = draftRows.find(function (draftRow) {
+      return draftRow.problem_uuid === problemUuid;
+    });
+    if (!row) return;
+    row.custom_title = input.value || "";
+    syncDraftFormState();
+  });
 
   draftBody.addEventListener("click", function (event) {
     var button = event.target.closest("[data-draft-action]");

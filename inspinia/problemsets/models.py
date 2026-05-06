@@ -6,6 +6,8 @@ from django.db.models import Q
 from django.urls import reverse
 from django.utils.text import slugify
 
+PROBLEM_LIST_ITEM_CUSTOM_TITLE_MAX_LENGTH = 160
+
 
 class ProblemList(models.Model):
     class Visibility(models.TextChoices):
@@ -27,6 +29,10 @@ class ProblemList(models.Model):
         db_index=True,
     )
     share_token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
+    hide_source = models.BooleanField(default=False)
+    hide_topic = models.BooleanField(default=False)
+    hide_mohs = models.BooleanField(default=False)
+    hide_subtopics = models.BooleanField(default=False)
     published_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -70,6 +76,7 @@ class ProblemListItem(models.Model):
         related_name="problem_list_items",
     )
     position = models.PositiveIntegerField()
+    custom_title = models.CharField(max_length=PROBLEM_LIST_ITEM_CUSTOM_TITLE_MAX_LENGTH, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -91,6 +98,10 @@ class ProblemListItem(models.Model):
 
     def __str__(self) -> str:
         return f"{self.problem_list_id}:{self.position} {self.problem}"
+
+    def save(self, *args, **kwargs) -> None:
+        self.custom_title = (self.custom_title or "").strip()
+        super().save(*args, **kwargs)
 
 
 class ProblemListVote(models.Model):

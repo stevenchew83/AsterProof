@@ -8,6 +8,7 @@ from django.db.models import Max
 from django.utils import timezone
 
 from inspinia.pages.models import ProblemSolveRecord
+from inspinia.problemsets.models import PROBLEM_LIST_ITEM_CUSTOM_TITLE_MAX_LENGTH
 from inspinia.problemsets.models import ProblemList
 from inspinia.problemsets.models import ProblemListItem
 from inspinia.problemsets.models import ProblemListVote
@@ -75,9 +76,19 @@ def reorder_problem_list_items(problem_list: ProblemList, item_ids: list[int]) -
         ProblemListItem.objects.bulk_update(reordered_items, ["position"])
 
 
-def replace_problem_list_items(problem_list: ProblemList, problem_uuids: list[str]) -> list[ProblemListItem]:
+def replace_problem_list_items(
+    problem_list: ProblemList,
+    problem_uuids: list[str],
+    *,
+    custom_titles: list[str] | None = None,
+) -> list[ProblemListItem]:
     normalized_problem_uuids = _normalize_problem_uuid_order(problem_uuids)
     _validate_unique_problem_uuid_order(normalized_problem_uuids)
+    normalized_custom_titles = (
+        _normalize_custom_titles(custom_titles, expected_count=len(normalized_problem_uuids))
+        if custom_titles is not None
+        else None
+    )
 
     with transaction.atomic():
         locked_list = ProblemList.objects.select_for_update().get(pk=problem_list.pk)
@@ -98,14 +109,24 @@ def replace_problem_list_items(problem_list: ProblemList, problem_uuids: list[st
         ]
         temp_base = len(existing_items) + len(normalized_problem_uuids) + 1000
         _move_items_to_temp_positions(retained_items, temp_base)
+        requested_rows = [
+            (
+                problem_uuid,
+                problem_by_uuid[problem_uuid],
+                normalized_custom_titles[index] if normalized_custom_titles is not None else None,
+            )
+            for index, problem_uuid in enumerate(normalized_problem_uuids)
+        ]
         ordered_items = _upsert_ordered_items(
             locked_list,
-            normalized_problem_uuids,
-            problem_by_uuid,
+            requested_rows,
             retained_items,
             temp_base=temp_base,
         )
-        _move_items_to_final_positions(ordered_items)
+        _move_items_to_final_positions(
+            ordered_items,
+            update_custom_titles=normalized_custom_titles is not None,
+        )
         return ordered_items
 
 
@@ -184,6 +205,16 @@ def _validate_unique_problem_uuid_order(problem_uuids: list[uuid.UUID]) -> None:
     raise ProblemListServiceError(msg)
 
 
+def _normalize_custom_titles(custom_titles: list[str], *, expected_count: int) -> list[str]:
+    normalized_titles = [(raw_title or "").strip() for raw_title in custom_titles[:expected_count]]
+    if len(normalized_titles) < expected_count:
+        normalized_titles.extend([""] * (expected_count - len(normalized_titles)))
+    if any(len(title) > PROBLEM_LIST_ITEM_CUSTOM_TITLE_MAX_LENGTH for title in normalized_titles):
+        msg = "Custom titles must be 160 characters or fewer."
+        raise ProblemListServiceError(msg)
+    return normalized_titles
+
+
 def _locked_problem_list_items(problem_list: ProblemList) -> list[ProblemListItem]:
     return list(
         ProblemListItem.objects.select_for_update()
@@ -231,8 +262,7 @@ def _move_items_to_temp_positions(items: list[ProblemListItem], temp_base: int) 
 
 def _upsert_ordered_items(
     problem_list: ProblemList,
-    problem_uuids: list[uuid.UUID],
-    problem_by_uuid: dict[uuid.UUID, ProblemSolveRecord],
+    requested_rows: list[tuple[uuid.UUID, ProblemSolveRecord, str | None]],
     retained_items: list[ProblemListItem],
     *,
     temp_base: int,
@@ -240,20 +270,24 @@ def _upsert_ordered_items(
     retained_by_problem_uuid = {item.problem.problem_uuid: item for item in retained_items}
     ordered_items = []
     next_temp_position = temp_base + len(retained_items)
-    for problem_uuid in problem_uuids:
+    for problem_uuid, problem, custom_title in requested_rows:
         item = retained_by_problem_uuid.get(problem_uuid)
         if item is None:
             next_temp_position += 1
             item = ProblemListItem.objects.create(
+                custom_title=custom_title or "",
                 problem_list=problem_list,
-                problem=problem_by_uuid[problem_uuid],
+                problem=problem,
                 position=next_temp_position,
             )
+        elif custom_title is not None:
+            item.custom_title = custom_title
         ordered_items.append(item)
     return ordered_items
 
 
-def _move_items_to_final_positions(items: list[ProblemListItem]) -> None:
+def _move_items_to_final_positions(items: list[ProblemListItem], *, update_custom_titles: bool = False) -> None:
     for position, item in enumerate(items, start=1):
         item.position = position
-    ProblemListItem.objects.bulk_update(items, ["position"])
+    fields = ["position", "custom_title"] if update_custom_titles else ["position"]
+    ProblemListItem.objects.bulk_update(items, fields)
