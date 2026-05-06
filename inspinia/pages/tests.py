@@ -4991,6 +4991,38 @@ def test_completion_quick_update_filters_by_contest_year_and_problem_text(client
     assert 'placeholder="YYYY-MM-DD"' in response_html
 
 
+def test_completion_quick_update_problem_label_links_to_statement_detail(client):
+    user = UserFactory()
+    client.force_login(user)
+    statement = _create_quick_completion_statement(problem_code="P1", problem_number=1)
+
+    response = client.get(reverse("pages:completion_quick_update"))
+
+    assert response.status_code == HTTPStatus.OK
+    detail_url = reverse("pages:problem_statement_detail", args=[statement.statement_uuid])
+    row = response.context["completion_quick_update_rows"][0]
+    assert row["problem_detail_url"] == detail_url
+    response_html = response.content.decode("utf-8")
+    assert f'href="{detail_url}"' in response_html
+    assert ">USAMO 2026 P1</a>" in response_html
+
+
+def test_problem_statement_detail_renders_statement_page(client):
+    user = UserFactory()
+    client.force_login(user)
+    statement = _create_quick_completion_statement(problem_code="P1", problem_number=1)
+
+    response = client.get(reverse("pages:problem_statement_detail", args=[statement.statement_uuid]))
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["problem_statement"] == statement
+    response_html = response.content.decode("utf-8")
+    assert "USAMO 2026 P1" in response_html
+    assert "USAMO 2026 P1 statement" in response_html
+    assert "Algebra" in response_html
+    assert "MOHS 6" in response_html
+
+
 def test_completion_quick_update_includes_difficulty_rating_payload_and_controls(client):
     user = UserFactory()
     other_user = UserFactory()

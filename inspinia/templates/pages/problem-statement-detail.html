@@ -1,0 +1,130 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}{{ problem_statement_context.label }}{% endblock title %}
+
+{% block extra_css %}
+  {{ block.super }}
+  <style>
+    .problem-statement-detail .statement-text-fragment {
+      line-height: 1.75;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .problem-statement-detail .statement-asymptote-panel {
+      background: var(--bs-tertiary-bg);
+      border: 1px solid var(--ins-border-color);
+      border-radius: 0.75rem;
+      padding: 0.85rem;
+    }
+
+    .problem-statement-detail .asymptote-svg-frame {
+      background: var(--bs-body-bg);
+      border: 1px solid var(--ins-border-color);
+      border-radius: 0.65rem;
+      overflow-x: auto;
+      padding: 0.75rem;
+    }
+
+    .problem-statement-detail .asymptote-svg-frame svg {
+      display: block;
+      height: auto;
+      margin: 0 auto;
+      max-width: 100%;
+    }
+  </style>
+{% endblock extra_css %}
+
+{% block page_content %}
+<div class="container-fluid problem-statement-detail">
+
+  {% include 'partials/page-title.html' with title=problem_statement_context.label subtitle='Problem statement' %}
+
+  <div class="row g-3 mt-0">
+    <div class="col-12">
+      <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between">
+        <div class="d-flex flex-wrap gap-2">
+          <a href="{{ problem_statement_context.contest_listing_url }}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-arrow-left me-1"></i>Contest row
+          </a>
+          <a href="{% url 'pages:completion_quick_update' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-bolt me-1"></i>Quick completions
+          </a>
+          {% if problem_statement_context.solutions_url %}
+          <a href="{{ problem_statement_context.solutions_url }}" class="btn btn-outline-secondary btn-sm">
+            Solution page
+          </a>
+          {% endif %}
+          {% if problem_statement_context.solution_editor_url %}
+          <a href="{{ problem_statement_context.solution_editor_url }}" class="btn btn-primary btn-sm">
+            Start or edit solution
+          </a>
+          {% endif %}
+        </div>
+        <span
+          class="badge {% if problem_statement_context.completion_state_kind == 'solved' %}bg-success-subtle text-success border border-success-subtle{% elif problem_statement_context.completion_state_kind == 'unknown' %}bg-info-subtle text-info border border-info-subtle{% else %}bg-light text-dark border{% endif %}"
+          title="{{ problem_statement_context.completion_state_label }}"
+        >
+          {{ problem_statement_context.completion_display }}
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-1">
+    <div class="col-xl-8">
+      <div class="card h-100">
+        <div class="card-header border-0 pb-0">
+          <div class="d-flex flex-wrap align-items-start justify-content-between gap-2">
+            <div>
+              <h4 class="header-title mb-0">{{ problem_statement_context.problem_code }}</h4>
+              {% if problem_statement_context.day_label %}
+              <p class="text-muted fs-xs mb-0">{{ problem_statement_context.day_label }}</p>
+              {% endif %}
+            </div>
+            {% if problem_statement_context.statement_has_asymptote %}
+            <span class="badge bg-info-subtle text-info border border-info-subtle">Asymptote</span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="card-body">
+          {% include 'partials/statement-render-content.html' with segments=problem_statement_context.statement_render_segments render_style='classic' %}
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-4">
+      <div class="card h-100">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-0">Problem metadata</h4>
+        </div>
+        <div class="card-body pt-2">
+          <dl class="row mb-0 g-2">
+            <dt class="col-5 text-muted fs-xs text-uppercase fw-semibold">Contest</dt>
+            <dd class="col-7 mb-0">{{ problem_statement.contest_name }}</dd>
+            <dt class="col-5 text-muted fs-xs text-uppercase fw-semibold">Year</dt>
+            <dd class="col-7 mb-0">{{ problem_statement_context.year }}</dd>
+            <dt class="col-5 text-muted fs-xs text-uppercase fw-semibold">Topic</dt>
+            <dd class="col-7 mb-0">
+              {% if problem_statement_context.topic %}
+              {{ problem_statement_context.topic }}
+              {% else %}
+              <span class="text-muted">No topic</span>
+              {% endif %}
+            </dd>
+            <dt class="col-5 text-muted fs-xs text-uppercase fw-semibold">MOHS</dt>
+            <dd class="col-7 mb-0">
+              {% if problem_statement_context.mohs is not None %}
+              MOHS {{ problem_statement_context.mohs }}
+              {% else %}
+              <span class="text-muted">No MOHS</span>
+              {% endif %}
+            </dd>
+            <dt class="col-5 text-muted fs-xs text-uppercase fw-semibold">Statement UUID</dt>
+            <dd class="col-7 mb-0 font-monospace small">{{ problem_statement.statement_uuid }}</dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock page_content %}

@@ -3386,6 +3386,7 @@ def _completion_quick_update_row(
         "label": label,
         "mohs": effective_mohs(statement),
         "problem_code": statement.problem_code,
+        "problem_detail_url": reverse("pages:problem_statement_detail", args=[statement.statement_uuid]),
         "statement_uuid": str(statement.statement_uuid),
         "topic": display_topic_label(topic) if topic else "",
         "year": int(statement.contest_year),
@@ -3482,6 +3483,75 @@ def completion_quick_update_view(request):
         "completion_quick_update_year_choices": year_choices,
     }
     return render(request, "pages/completion-quick-update.html", context)
+
+
+@login_required
+def problem_statement_detail_view(request, statement_uuid: uuid.UUID):
+    """Per-statement problem page for direct links from tables and dashboards."""
+    try:
+        statement = ContestProblemStatement.objects.select_related("linked_problem").get(
+            statement_uuid=statement_uuid,
+        )
+    except ContestProblemStatement.DoesNotExist as exc:
+        raise Http404 from exc
+
+    render_payload = _statement_render_payload(statement.statement_latex)
+    topic = effective_topic(statement)
+    mohs = effective_mohs(statement)
+    label = statement.contest_year_problem or (
+        f"{statement.contest_name} {statement.contest_year} {statement.problem_code}"
+    )
+    completion_by_statement_id = _statement_completion_dates_by_statement_id(
+        [statement],
+        user=request.user,
+    )
+    is_completed = statement.id in completion_by_statement_id
+    completion_date = completion_by_statement_id.get(statement.id)
+    completion_state_kind = _completion_board_state_kind(
+        is_solved=is_completed,
+        completion_date=completion_date,
+    )
+    linked_problem = statement.linked_problem
+    contest_url = contest_dashboard_listing_url(
+        statement.contest_name,
+        year=statement.contest_year,
+    ) + "#" + _problem_anchor(label, f"statement-{statement.id}")
+
+    context = {
+        "problem_statement": statement,
+        "problem_statement_context": {
+            "completion_display": (
+                completion_date.isoformat()
+                if completion_date is not None
+                else ("Unknown date" if is_completed else "Unsolved")
+            ),
+            "completion_state_kind": completion_state_kind,
+            "completion_state_label": _completion_board_state_label(
+                is_solved=is_completed,
+                completion_date=completion_date,
+            ),
+            "contest_listing_url": contest_url,
+            "day_label": statement.day_label or "",
+            "label": label,
+            "mohs": mohs,
+            "problem_code": statement.problem_code,
+            "solution_editor_url": (
+                reverse("solutions:problem_solution_edit", args=[linked_problem.problem_uuid])
+                if linked_problem is not None
+                else ""
+            ),
+            "solutions_url": (
+                reverse("solutions:problem_solution_list", args=[linked_problem.problem_uuid])
+                if linked_problem is not None
+                else ""
+            ),
+            "statement_has_asymptote": render_payload["statement_has_asymptote"],
+            "statement_render_segments": render_payload["statement_render_segments"],
+            "topic": display_topic_label(topic) if topic else "",
+            "year": int(statement.contest_year),
+        },
+    }
+    return render(request, "pages/problem-statement-detail.html", context)
 
 
 @login_required

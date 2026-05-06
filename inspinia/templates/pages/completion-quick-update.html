@@ -203,7 +203,9 @@
                   <td class="text-nowrap">{{ row.year }}</td>
                   <td class="text-nowrap fw-semibold">{{ row.problem_code }}</td>
                   <td>
-                    <div class="fw-semibold">{{ row.label }}</div>
+                    <div class="fw-semibold">
+                      <a href="{{ row.problem_detail_url }}" class="link-primary text-decoration-none">{{ row.label }}</a>
+                    </div>
                     {% if row.day_label %}
                     <div class="text-muted fs-xs">{{ row.day_label }}</div>
                     {% endif %}
