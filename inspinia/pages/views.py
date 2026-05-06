@@ -2090,6 +2090,8 @@ def _admin_completion_listing_rows(
             },
         )
 
+    table_rows = _completion_progress_apply_difficulty_payloads(table_rows, user=None)
+
     return table_rows, {
         "contest_total": len({row["contest"] for row in table_rows if row["contest"]}),
         "known_date_total": known_date_total,
@@ -3905,7 +3907,7 @@ def _completion_progress_apply_difficulty_payloads(
 ) -> list[dict[str, object]]:
     _completion_progress_seed_difficulty_defaults(rows)
 
-    if not rows or user is None:
+    if not rows:
         return rows
 
     statement_query = _completion_progress_difficulty_statement_query(rows)

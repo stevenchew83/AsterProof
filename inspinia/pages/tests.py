@@ -5546,9 +5546,58 @@ def test_completion_record_list_renders_admin_inventory(client):
     response_html = response.content.decode("utf-8")
     assert "Completion info listing" in response_html
     assert 'id="completion-record-table"' in response_html
-    assert 'order: [[8, "desc"]]' in response_html
+    assert 'order: [[9, "desc"]]' in response_html
     assert "Known dates" not in response_html
     assert "With solutions" not in response_html
+
+
+def test_completion_record_list_shows_average_user_set_difficulty_after_mohs(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    completion_user = UserFactory(name="Ada Lovelace")
+    peer_user = UserFactory(name="Grace Hopper")
+    client.force_login(admin_user)
+    expected_mohs = 6
+    expected_average_difficulty = 25.0
+    expected_difficulty_rating_count = 2
+    problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="ALG",
+        mohs=expected_mohs,
+        contest="USAMO",
+        problem="P1",
+        contest_year_problem="USAMO 2026 P1",
+    )
+    statement = ContestProblemStatement.objects.create(
+        linked_problem=problem,
+        contest_year=2026,
+        contest_name="USAMO",
+        day_label="",
+        problem_number=1,
+        problem_code="P1",
+        statement_latex="Solve the problem.",
+    )
+    UserProblemCompletion.objects.create(
+        user=completion_user,
+        problem=problem,
+        completion_date=date(2026, 7, 10),
+    )
+    UserProblemDifficultyRating.objects.create(user=completion_user, statement=statement, rating=20)
+    UserProblemDifficultyRating.objects.create(user=peer_user, statement=statement, rating=30)
+
+    response = client.get(reverse("pages:completion_record_list"))
+
+    assert response.status_code == HTTPStatus.OK
+    row = response.context["completion_record_rows"][0]
+    assert row["mohs"] == expected_mohs
+    assert row["average_difficulty_rating"] == expected_average_difficulty
+    assert row["average_difficulty_display"] == "25.0"
+    assert row["difficulty_rating_count"] == expected_difficulty_rating_count
+    response_html = response.content.decode("utf-8")
+    assert 'title: "Avg difficulty"' in response_html
+    assert response_html.index('{ data: "mohs", title: "MOHS"') < response_html.index(
+        'data: "average_difficulty_rating"',
+    ) < response_html.index('data: "completion_date"')
+    assert 'order: [[9, "desc"]]' in response_html
 
 
 def test_completion_record_list_caps_to_latest_100_by_updated_at(client):

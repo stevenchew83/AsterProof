@@ -154,6 +154,10 @@
       .replace(/'/g, "&#39;");
   }
 
+  function ratingCountLabel(count) {
+    return count === 1 ? "1 rating" : count + " ratings";
+  }
+
   new DataTable("#completion-record-table", {
     data: rows,
     columns: [
@@ -181,6 +185,31 @@
       },
       { data: "topic", title: "Topic", className: "text-nowrap" },
       { data: "mohs", title: "MOHS", className: "text-nowrap" },
+      {
+        data: "average_difficulty_rating",
+        title: "Avg difficulty",
+        className: "text-nowrap",
+        render: function (data, type, row) {
+          var count = Number(row.difficulty_rating_count) || 0;
+          var display = row.average_difficulty_display || "";
+          if (!count || data === null || data === undefined || data === "") {
+            if (type === "sort" || type === "type") return -1;
+            if (type === "filter") return "";
+            return type === "display" ? '<span class="text-muted fs-xs">&mdash;</span>' : "";
+          }
+          if (type === "sort" || type === "type") return Number(data);
+          if (type === "filter") return display + " " + ratingCountLabel(count);
+          if (type !== "display") return display;
+          return (
+            '<span class="fw-semibold">' +
+            escapeHtml(display) +
+            "</span>" +
+            '<div class="text-muted fs-12">' +
+            escapeHtml(ratingCountLabel(count)) +
+            "</div>"
+          );
+        }
+      },
       {
         data: "completion_date",
         title: "Completed",
@@ -211,7 +240,7 @@
         }
       }
     ],
-    order: [[8, "desc"]],
+    order: [[9, "desc"]],
     pageLength: 25,
     lengthMenu: [10, 25, 50, 100],
     scrollX: true,
