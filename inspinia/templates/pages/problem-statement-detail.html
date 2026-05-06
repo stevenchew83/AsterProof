@@ -1,27 +1,88 @@
 {% extends 'layouts/vertical.html' %}
 
-{% block title %}{{ problem_statement_context.label }}{% endblock title %}
-
+{% block title %}
+  {{ problem_statement_context.label }}
+{% endblock title %}
 {% block extra_css %}
   {{ block.super }}
   <style>
+    .problem-statement-detail {
+      --statement-detail-border: var(--ins-border-color, var(--bs-border-color, #e7e9eb));
+      --statement-detail-surface: var(--ins-body-bg, var(--bs-body-bg, #ffffff));
+    }
+
+    .problem-statement-detail .statement-brief {
+      animation: statement-detail-enter 360ms ease both;
+      background:
+        linear-gradient(90deg, rgba(var(--ins-primary-rgb, 26, 179, 148), 0.09), rgba(var(--ins-secondary-rgb, 28, 132, 198), 0.035) 52%, transparent),
+        var(--statement-detail-surface);
+      border: 1px solid var(--statement-detail-border);
+      border-left: 4px solid var(--ins-primary, var(--bs-primary, #1ab394));
+      border-radius: var(--ins-border-radius, var(--bs-border-radius, 0.5rem));
+      padding: 1rem;
+    }
+
+    .problem-statement-detail .statement-problem-code {
+      align-items: center;
+      background: var(--ins-primary-bg-subtle, var(--bs-primary-bg-subtle, #ddf4ef));
+      border: 1px solid var(--ins-primary-border-subtle, var(--bs-primary-border-subtle, #a3e1d4));
+      border-radius: var(--ins-border-radius, var(--bs-border-radius, 0.5rem));
+      color: var(--ins-primary-text-emphasis, var(--bs-primary-text-emphasis, #16987e));
+      display: inline-flex;
+      font-size: 1.45rem;
+      font-weight: 700;
+      justify-content: center;
+      line-height: 1;
+      min-height: 3.25rem;
+      min-width: 3.25rem;
+      padding: 0.65rem;
+    }
+
+    .problem-statement-detail .statement-action-bar .btn {
+      transition: transform 160ms ease, box-shadow 160ms ease;
+    }
+
+    .problem-statement-detail .statement-action-bar .btn:hover {
+      box-shadow: var(--ins-box-shadow-sm, var(--bs-box-shadow-sm, 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075)));
+      transform: translateY(-1px);
+    }
+
+    .problem-statement-detail .statement-reading-card {
+      animation: statement-detail-enter 420ms ease 70ms both;
+      border-color: var(--statement-detail-border);
+    }
+
+    .problem-statement-detail .statement-render-content {
+      gap: 1.25rem !important;
+    }
+
     .problem-statement-detail .statement-text-fragment {
-      line-height: 1.75;
+      color: var(--ins-emphasis-color, var(--bs-emphasis-color, inherit));
+      font-size: 1rem;
+      line-height: 1.9;
+      max-width: 74ch;
       white-space: pre-wrap;
       word-break: break-word;
     }
 
+    .problem-statement-detail .statement-text-fragment mjx-container[display="true"] {
+      max-width: 100%;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding-block: 0.35rem;
+    }
+
     .problem-statement-detail .statement-asymptote-panel {
-      background: var(--bs-tertiary-bg);
-      border: 1px solid var(--ins-border-color);
-      border-radius: 0.75rem;
+      background: var(--ins-tertiary-bg, var(--bs-tertiary-bg, #f6f7fb));
+      border: 1px solid var(--statement-detail-border);
+      border-radius: var(--ins-border-radius, var(--bs-border-radius, 0.5rem));
       padding: 0.85rem;
     }
 
     .problem-statement-detail .asymptote-svg-frame {
-      background: var(--bs-body-bg);
-      border: 1px solid var(--ins-border-color);
-      border-radius: 0.65rem;
+      background: var(--statement-detail-surface);
+      border: 1px solid var(--statement-detail-border);
+      border-radius: var(--ins-border-radius, var(--bs-border-radius, 0.5rem));
       overflow-x: auto;
       padding: 0.75rem;
     }
@@ -32,99 +93,230 @@
       margin: 0 auto;
       max-width: 100%;
     }
+
+    .problem-statement-detail .statement-context-rail {
+      animation: statement-detail-enter 420ms ease 120ms both;
+    }
+
+    .problem-statement-detail .statement-context-rail .list-group-item {
+      padding-inline: 0;
+    }
+
+    .problem-statement-detail .statement-context-value {
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+
+    @keyframes statement-detail-enter {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (min-width: 1200px) {
+      .problem-statement-detail .statement-context-rail {
+        position: sticky;
+        top: calc(var(--ins-topbar-height, 70px) + 1rem);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+
+      .problem-statement-detail .statement-brief,
+      .problem-statement-detail .statement-reading-card,
+      .problem-statement-detail .statement-context-rail {
+        animation: none;
+      }
+
+      .problem-statement-detail .statement-action-bar .btn {
+        transition: none;
+      }
+
+      .problem-statement-detail .statement-action-bar .btn:hover {
+        transform: none;
+      }
+    }
   </style>
 {% endblock extra_css %}
-
 {% block page_content %}
-<div class="container-fluid problem-statement-detail">
-
-  {% include 'partials/page-title.html' with title=problem_statement_context.label subtitle='Problem statement' %}
-
-  <div class="row g-3 mt-0">
-    <div class="col-12">
-      <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between">
-        <div class="d-flex flex-wrap gap-2">
-          <a href="{{ problem_statement_context.contest_listing_url }}" class="btn btn-outline-secondary btn-sm">
-            <i class="ti ti-arrow-left me-1"></i>Contest row
-          </a>
-          <a href="{% url 'pages:completion_quick_update' %}" class="btn btn-outline-secondary btn-sm">
-            <i class="ti ti-bolt me-1"></i>Quick completions
-          </a>
-          {% if problem_statement_context.solutions_url %}
-          <a href="{{ problem_statement_context.solutions_url }}" class="btn btn-outline-secondary btn-sm">
-            Solution page
-          </a>
-          {% endif %}
-          {% if problem_statement_context.solution_editor_url %}
-          <a href="{{ problem_statement_context.solution_editor_url }}" class="btn btn-primary btn-sm">
-            Start or edit solution
-          </a>
-          {% endif %}
-        </div>
-        <span
-          class="badge {% if problem_statement_context.completion_state_kind == 'solved' %}bg-success-subtle text-success border border-success-subtle{% elif problem_statement_context.completion_state_kind == 'unknown' %}bg-info-subtle text-info border border-info-subtle{% else %}bg-light text-dark border{% endif %}"
-          title="{{ problem_statement_context.completion_state_label }}"
-        >
-          {{ problem_statement_context.completion_display }}
-        </span>
-      </div>
-    </div>
-  </div>
-
-  <div class="row g-3 mt-1">
-    <div class="col-xl-8">
-      <div class="card h-100">
-        <div class="card-header border-0 pb-0">
-          <div class="d-flex flex-wrap align-items-start justify-content-between gap-2">
-            <div>
-              <h4 class="header-title mb-0">{{ problem_statement_context.problem_code }}</h4>
-              {% if problem_statement_context.day_label %}
-              <p class="text-muted fs-xs mb-0">{{ problem_statement_context.day_label }}</p>
-              {% endif %}
+  <div class="container-fluid problem-statement-detail">
+    {% include 'partials/page-title.html' with title=problem_statement_context.label subtitle='Problem statement' %}
+    <div class="row g-3 mt-0">
+      <div class="col-12">
+        <section class="statement-brief">
+          <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+            <div class="d-flex align-items-start gap-3">
+              <span class="statement-problem-code">{{ problem_statement_context.problem_code }}</span>
+              <div>
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                  <span class="badge bg-primary-subtle text-primary border border-primary-subtle">{{ problem_statement_context.topic|default:"Uncategorized" }}</span>
+                  {% if problem_statement_context.mohs is not None %}
+                    <span class="badge bg-info-subtle text-info border border-info-subtle">MOHS {{ problem_statement_context.mohs }}</span>
+                  {% endif %}
+                  {% if problem_statement_context.statement_has_asymptote %}
+                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle">Asymptote</span>
+                  {% endif %}
+                </div>
+                <h2 class="mb-1 fw-bold">{{ problem_statement_context.label }}</h2>
+                <p class="text-muted mb-0">
+                  {{ problem_statement.contest_name }} {{ problem_statement_context.year }}
+                  {% if problem_statement_context.day_label %}
+                    <span class="mx-1">/</span>{{ problem_statement_context.day_label }}
+                  {% endif %}
+                </p>
+              </div>
             </div>
-            {% if problem_statement_context.statement_has_asymptote %}
-            <span class="badge bg-info-subtle text-info border border-info-subtle">Asymptote</span>
+            <span class="badge fs-sm {% if problem_statement_context.completion_state_kind == 'solved' %}bg-success-subtle text-success border border-success-subtle{% elif problem_statement_context.completion_state_kind == 'unknown' %}bg-info-subtle text-info border border-info-subtle{% else %}bg-light text-dark border{% endif %}"
+                  title="{{ problem_statement_context.completion_state_label }}">
+              {{ problem_statement_context.completion_display }}
+            </span>
+          </div>
+          <div class="statement-action-bar d-flex flex-wrap gap-2 mt-3">
+            <a href="{{ problem_statement_context.contest_listing_url }}"
+               class="btn btn-outline-secondary btn-sm">
+              <i class="ti ti-arrow-left me-1"></i>Contest row
+            </a>
+            <a href="{% url 'pages:completion_quick_update' %}"
+               class="btn btn-outline-secondary btn-sm">
+              <i class="ti ti-bolt me-1"></i>Quick completions
+            </a>
+            {% if problem_statement_context.solutions_url %}
+              <a href="{{ problem_statement_context.solutions_url }}"
+                 class="btn btn-outline-secondary btn-sm">
+                <i class="ti ti-file-text me-1"></i>Solution page
+              </a>
+            {% endif %}
+            {% if problem_statement_context.solution_editor_url %}
+              <a href="{{ problem_statement_context.solution_editor_url }}"
+                 class="btn btn-primary btn-sm">
+                <i class="ti ti-edit me-1"></i>Start or edit solution
+              </a>
             {% endif %}
           </div>
-        </div>
-        <div class="card-body">
-          {% include 'partials/statement-render-content.html' with segments=problem_statement_context.statement_render_segments render_style='classic' %}
-        </div>
+        </section>
       </div>
     </div>
-    <div class="col-xl-4">
-      <div class="card h-100">
-        <div class="card-header border-0 pb-0">
-          <h4 class="header-title mb-0">Problem metadata</h4>
-        </div>
-        <div class="card-body pt-2">
-          <dl class="row mb-0 g-2">
-            <dt class="col-5 text-muted fs-xs text-uppercase fw-semibold">Contest</dt>
-            <dd class="col-7 mb-0">{{ problem_statement.contest_name }}</dd>
-            <dt class="col-5 text-muted fs-xs text-uppercase fw-semibold">Year</dt>
-            <dd class="col-7 mb-0">{{ problem_statement_context.year }}</dd>
-            <dt class="col-5 text-muted fs-xs text-uppercase fw-semibold">Topic</dt>
-            <dd class="col-7 mb-0">
-              {% if problem_statement_context.topic %}
-              {{ problem_statement_context.topic }}
-              {% else %}
-              <span class="text-muted">No topic</span>
-              {% endif %}
-            </dd>
-            <dt class="col-5 text-muted fs-xs text-uppercase fw-semibold">MOHS</dt>
-            <dd class="col-7 mb-0">
-              {% if problem_statement_context.mohs is not None %}
-              MOHS {{ problem_statement_context.mohs }}
-              {% else %}
-              <span class="text-muted">No MOHS</span>
-              {% endif %}
-            </dd>
-            <dt class="col-5 text-muted fs-xs text-uppercase fw-semibold">Statement UUID</dt>
-            <dd class="col-7 mb-0 font-monospace small">{{ problem_statement.statement_uuid }}</dd>
-          </dl>
-        </div>
+    <div class="row g-3 mt-1">
+      <div class="col-xl-8">
+        <article class="card h-100 statement-reading-card">
+          <div class="card-header border-0 pb-0">
+            <div class="d-flex flex-wrap align-items-start justify-content-between gap-2">
+              <div>
+                <h4 class="header-title mb-0">Problem statement</h4>
+                {% if problem_statement_context.day_label %}
+                  <p class="text-muted fs-xs mb-0">
+                    {{ problem_statement_context.problem_code }} / {{ problem_statement_context.day_label }}
+                  </p>
+                {% else %}
+                  <p class="text-muted fs-xs mb-0">{{ problem_statement_context.problem_code }}</p>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          <div class="card-body">
+            {% include 'partials/statement-render-content.html' with segments=problem_statement_context.statement_render_segments render_style='classic' %}
+          </div>
+        </article>
+      </div>
+      <div class="col-xl-4">
+        <aside class="card h-100 statement-context-rail">
+          <div class="card-header border-0 pb-0">
+            <h4 class="header-title mb-0">Problem metadata</h4>
+            <p class="text-muted fs-xs mb-0">Stored archive fields for this statement.</p>
+          </div>
+          <div class="card-body pt-2">
+            <div class="list-group list-group-flush">
+              <div class="list-group-item d-flex align-items-start justify-content-between gap-3">
+                <span class="text-muted fs-xs text-uppercase fw-semibold">Contest</span>
+                <span class="statement-context-value text-end">{{ problem_statement.contest_name }}</span>
+              </div>
+              <div class="list-group-item d-flex align-items-start justify-content-between gap-3">
+                <span class="text-muted fs-xs text-uppercase fw-semibold">Year</span>
+                <span class="statement-context-value text-end">{{ problem_statement_context.year }}</span>
+              </div>
+              <div class="list-group-item d-flex align-items-start justify-content-between gap-3">
+                <span class="text-muted fs-xs text-uppercase fw-semibold">Topic</span>
+                <span class="statement-context-value text-end">
+                  {% if problem_statement_context.topic %}
+                    {{ problem_statement_context.topic }}
+                  {% else %}
+                    <span class="text-muted">No topic</span>
+                  {% endif %}
+                </span>
+              </div>
+              <div class="list-group-item d-flex align-items-start justify-content-between gap-3">
+                <span class="text-muted fs-xs text-uppercase fw-semibold">MOHS</span>
+                <span class="statement-context-value text-end">
+                  {% if problem_statement_context.mohs is not None %}
+                    MOHS {{ problem_statement_context.mohs }}
+                  {% else %}
+                    <span class="text-muted">No MOHS</span>
+                  {% endif %}
+                </span>
+              </div>
+              <div class="list-group-item d-flex flex-column gap-1">
+                <span class="text-muted fs-xs text-uppercase fw-semibold">Statement UUID</span>
+                <span class="statement-context-value font-monospace small">{{ problem_statement.statement_uuid }}</span>
+              </div>
+            </div>
+          </div>
+        </aside>
       </div>
     </div>
   </div>
-</div>
 {% endblock page_content %}
+{% block extra_javascript %}
+  {{ block.super }}
+  <script>
+    window.MathJax = {
+      loader: {
+        load: ["[tex]/textmacros"]
+      },
+      tex: {
+        packages: {
+          "[+]": ["textmacros"]
+        },
+        macros: {
+          tiny: "",
+          scriptsize: "",
+          footnotesize: "",
+          small: "",
+          normalsize: "",
+          large: "",
+          Large: "",
+          LARGE: "",
+          huge: "",
+          Huge: "",
+          textbullet: "\\bullet",
+          hdots: "\\dots",
+          overarc: ["\\overset{\\frown}{#1}", 1],
+          vspace: ["\\kern0pt", 1]
+        },
+        inlineMath: [
+          ["$", "$"],
+          ["\\(", "\\)"]
+        ],
+        displayMath: [
+          ["$$", "$$"],
+          ["\\[", "\\]"]
+        ]
+      },
+      options: {
+        skipHtmlTags: ["script", "noscript", "style", "textarea", "pre", "code"]
+      },
+      startup: {
+        ready: function() {
+          MathJax.startup.defaultReady();
+          window.dispatchEvent(new Event("asterproof:mathjax-ready"));
+        }
+      }
+    };
+  </script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+{% endblock extra_javascript %}
