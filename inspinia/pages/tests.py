@@ -5029,7 +5029,7 @@ def test_problem_statement_detail_renders_statement_page(client):
     assert "statement-brief" in response_html
 
 
-def test_completion_quick_update_includes_difficulty_rating_payload_and_controls(client):
+def test_completion_quick_update_omits_difficulty_rating_controls(client):
     user = UserFactory()
     other_user = UserFactory()
     client.force_login(user)
@@ -5041,17 +5041,15 @@ def test_completion_quick_update_includes_difficulty_rating_payload_and_controls
 
     assert response.status_code == HTTPStatus.OK
     row = response.context["completion_quick_update_rows"][0]
-    assert row["user_difficulty_rating"] == 12
-    assert row["average_difficulty_rating"] == 21.0
-    assert row["average_difficulty_display"] == "21.0"
-    assert row["difficulty_rating_count"] == 2
+    assert "user_difficulty_rating" not in row
+    assert "average_difficulty_rating" not in row
+    assert "average_difficulty_display" not in row
+    assert "difficulty_rating_count" not in row
     response_html = response.content.decode("utf-8")
-    assert "Your difficulty" in response_html
-    assert reverse("pages:problem_statement_difficulty_rating_save") in response_html
-    assert "js-quick-completion-difficulty-save" in response_html
-    assert 'min="0"' in response_html
-    assert 'max="60"' in response_html
-    assert 'step="1"' in response_html
+    assert "Your difficulty" not in response_html
+    assert reverse("pages:problem_statement_difficulty_rating_save") not in response_html
+    assert "js-quick-completion-difficulty-save" not in response_html
+    assert "quick-completion-difficulty-editor" not in response_html
 
 
 def test_completion_quick_update_save_updates_current_user_only(client):
@@ -5115,8 +5113,6 @@ def test_completion_quick_update_admin_selects_target_user_completion_state(clie
         statement=statement,
         completion_date=date(2025, 8, 28),
     )
-    UserProblemDifficultyRating.objects.create(user=admin_user, statement=statement, rating=12)
-    UserProblemDifficultyRating.objects.create(user=target_user, statement=statement, rating=44)
 
     response = client.get(
         reverse("pages:completion_quick_update"),
@@ -5128,12 +5124,10 @@ def test_completion_quick_update_admin_selects_target_user_completion_state(clie
     assert response.context["completion_quick_update_selected_user"] == target_user
     rows = response.context["completion_quick_update_rows"]
     assert rows[0]["completion_display"] == "2025-08-28"
-    assert rows[0]["user_difficulty_rating"] == 44
     response_html = response.content.decode("utf-8")
     assert 'name="target_user_id"' in response_html
     assert "target@example.com" in response_html
     assert "2025-01-01" not in response_html
-    assert 'value="44"' in response_html
 
 
 def test_completion_quick_update_admin_save_updates_selected_user_only(client):
@@ -9602,7 +9596,7 @@ def test_statement_metadata_import_accepts_lowercase_mohs_column_header():
 
 
 def test_statement_metadata_import_rejects_duplicate_contest_identity():
-    first_statement = ContestProblemStatement.objects.create(
+    ContestProblemStatement.objects.create(
         contest_year=2011,
         contest_name="IMO Shortlist",
         problem_number=1,

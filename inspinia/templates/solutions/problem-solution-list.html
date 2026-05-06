@@ -19,6 +19,25 @@
     border-color: rgba(var(--bs-primary-rgb), 0.45) !important;
     box-shadow: 0 0 0 0.2rem rgba(var(--bs-primary-rgb), 0.12);
   }
+
+  .solution-reference-card {
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    padding: 1rem;
+  }
+
+  .solution-inline-draft {
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    padding: 1rem;
+    background: var(--bs-tertiary-bg);
+  }
+
+  .solution-difficulty-editor,
+  .solution-completion-editor,
+  .solution-problem-list-actions {
+    min-width: 0;
+  }
 </style>
 {% endblock extra_css %}
 
@@ -54,7 +73,11 @@
               </p>
             </div>
             <div class="d-flex flex-wrap gap-2">
-              <a href="{{ problem_data.editor_url }}" class="btn btn-primary btn-sm">Edit my draft</a>
+              {% if my_solution_row %}
+              <a href="{{ my_solution_row.edit_url }}" class="btn btn-primary btn-sm">Edit my draft</a>
+              {% else %}
+              <button type="button" class="btn btn-primary btn-sm js-show-inline-draft" data-focus-inline-draft="true">Start my draft</button>
+              {% endif %}
               <a href="{{ problem_data.solutions_url }}" class="btn btn-outline-secondary btn-sm">Refresh list</a>
               {% if problem_data.contest_archive_url %}
               <a href="{{ problem_data.contest_archive_url }}#{{ problem_data.problem_anchor }}" class="btn btn-outline-secondary btn-sm">Open contest archive</a>
@@ -64,12 +87,9 @@
         </div>
         <div class="card-body">
           {% if problem_data.statement_entry %}
-          <details>
-            <summary class="fw-semibold">View linked statement</summary>
-            <div class="pt-3">
-              {% include 'partials/statement-render-content.html' with segments=problem_data.statement_render_segments %}
-            </div>
-          </details>
+          <div class="statement-panel">
+            {% include 'partials/statement-render-content.html' with segments=problem_data.statement_render_segments %}
+          </div>
           {% else %}
           <div class="alert alert-light border mb-0" role="alert">
             A linked statement is not available for this problem yet.
@@ -114,6 +134,126 @@
             </div>
           </div>
         </div>
+        <div class="col-sm-6 col-xl-12">
+          <div class="card m-0">
+            <div class="card-body">
+              <div
+                class="solution-difficulty-editor js-solution-difficulty-editor"
+                data-save-url="{{ difficulty_rating_save_url }}"
+                data-statement-uuid="{{ difficulty_rating_statement_uuid }}"
+              >
+                <label class="text-muted mb-1 fs-xs text-uppercase fw-semibold" for="solution-difficulty-rating">Your difficulty</label>
+                {% if difficulty_rating_statement_uuid %}
+                <div class="input-group input-group-sm">
+                  <input
+                    type="number"
+                    min="{{ difficulty_rating_min }}"
+                    max="{{ difficulty_rating_max }}"
+                    step="1"
+                    id="solution-difficulty-rating"
+                    class="form-control js-solution-difficulty-rating"
+                    value="{{ difficulty_rating.user_difficulty_rating }}"
+                    aria-label="Your difficulty"
+                  >
+                  <button type="button" class="btn btn-outline-primary js-solution-difficulty-save">
+                    <i class="ti ti-device-floppy me-1"></i>Save
+                  </button>
+                </div>
+                <div class="text-muted fs-xs mt-2 js-solution-difficulty-average">
+                  {% if difficulty_rating.difficulty_rating_count %}
+                  Avg {{ difficulty_rating.average_difficulty_display }} · {{ difficulty_rating.difficulty_rating_count }} rating{{ difficulty_rating.difficulty_rating_count|pluralize }}
+                  {% else %}
+                  No ratings yet
+                  {% endif %}
+                </div>
+                <div class="text-danger fs-xs mt-1 d-none js-solution-difficulty-error"></div>
+                {% else %}
+                <div class="text-muted fs-sm">Link a statement before rating difficulty.</div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-sm-6 col-xl-12">
+          <div class="card m-0">
+            <div class="card-body">
+              <div
+                class="solution-completion-editor js-solution-completion-editor"
+                data-problem-uuid="{{ completion_problem_uuid }}"
+                data-save-url="{{ completion_save_url }}"
+                data-statement-uuid="{{ completion_statement_uuid }}"
+              >
+                <label class="text-muted mb-1 fs-xs text-uppercase fw-semibold" for="solution-completion-date">Your complete date</label>
+                <div class="input-group input-group-sm">
+                  <input
+                    type="text"
+                    inputmode="numeric"
+                    maxlength="10"
+                    pattern="\d{4}-\d{2}-\d{2}"
+                    id="solution-completion-date"
+                    class="form-control js-solution-completion-date"
+                    value="{{ completion_state.completion_date }}"
+                    placeholder="YYYY-MM-DD"
+                    autocomplete="off"
+                    aria-label="Your complete date in YYYY-MM-DD format"
+                  >
+                  <button type="button" class="btn btn-outline-primary js-solution-completion-save">
+                    <i class="ti ti-device-floppy me-1"></i>Save
+                  </button>
+                </div>
+                <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
+                  <span
+                    class="badge js-solution-completion-display {% if completion_state.state_kind == 'solved' %}bg-success-subtle text-success border border-success-subtle{% elif completion_state.state_kind == 'unknown' %}bg-info-subtle text-info border border-info-subtle{% else %}bg-light text-dark border{% endif %}"
+                    title="{{ completion_state.state_label }}"
+                  >
+                    {% if completion_state.completion_date %}
+                    {{ completion_state.completion_date }}
+                    {% elif completion_state.is_solved %}
+                    Unknown date
+                    {% else %}
+                    Unsolved
+                    {% endif %}
+                  </span>
+                  <button type="button" class="btn btn-light btn-sm js-solution-completion-today">Today</button>
+                  <button type="button" class="btn btn-outline-secondary btn-sm js-solution-completion-clear">Clear</button>
+                </div>
+                <div class="text-danger fs-xs mt-1 d-none js-solution-completion-error"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-sm-6 col-xl-12">
+          <div class="card m-0">
+            <div class="card-body">
+              <div class="solution-problem-list-actions">
+                <p class="text-muted mb-2 fs-xs text-uppercase fw-semibold">Add to list</p>
+                {% if problem_list_add_targets %}
+                <form
+                  method="post"
+                  action="{{ problem_list_add_targets.0.add_url }}"
+                  class="problem-list-add-form"
+                >
+                  {% csrf_token %}
+                  <input type="hidden" name="problem_uuid" value="{{ problem_data.problem.problem_uuid }}">
+                  <input type="hidden" name="next" value="{{ problem_list_next_url }}">
+                  <div class="input-group input-group-sm">
+                    <select class="form-select js-problem-list-add-target" aria-label="Choose problem list">
+                      {% for target in problem_list_add_targets %}
+                      <option value="{{ target.add_url }}">{{ target.title }}</option>
+                      {% endfor %}
+                    </select>
+                    <button type="submit" class="btn btn-outline-primary">
+                      <i class="ti ti-plus me-1"></i>Add to list
+                    </button>
+                  </div>
+                </form>
+                {% else %}
+                <a href="{% url 'problemsets:create' %}" class="btn btn-outline-secondary btn-sm">Create list</a>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -127,47 +267,126 @@
         <div class="card-body">
           {% if my_solution_row %}
           <div id="solution-{{ my_solution_row.id }}" class="{% if selected_solution_id == my_solution_row.id %}solution-card-selected rounded-3 p-2{% endif %}">
-          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
-            <div>
-              <div class="fw-semibold">{{ my_solution_row.title }}</div>
-              <div class="text-muted fs-12">Updated {{ my_solution_row.updated_at_label }}</div>
-            </div>
-            <span class="badge {{ my_solution_row.status_badge_class }}">{{ my_solution_row.status_label }}</span>
-          </div>
-          {% if my_solution_row.summary %}
-          <p class="text-muted">{{ my_solution_row.summary }}</p>
-          {% endif %}
-          {% for block in my_solution_row.blocks %}
-          <div class="card border solution-block-card">
-            <div class="card-body py-3">
-              <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
-                <div class="fw-semibold">
-                  {% if block.title %}{{ block.title }}{% elif block.block_type %}{{ block.block_type.label }}{% else %}Block {{ block.position }}{% endif %}
-                </div>
-                <span class="badge bg-light text-body-secondary">#{{ block.position }}</span>
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+              <div>
+                <div class="fw-semibold">{{ my_solution_row.title }}</div>
+                <div class="text-muted fs-12">Updated {{ my_solution_row.updated_at_label }}</div>
               </div>
-              {% if block.block_type %}
-              <div class="text-muted fs-12 text-uppercase mb-2">{{ block.block_type.label }}</div>
-              {% endif %}
-              {% if block.body_format == 'latex' %}
-              <div class="solution-block-body solution-block-body-latex">{{ block.body_source }}</div>
-              {% else %}
-              <div class="solution-block-body" data-mathjax-scope="true">{{ block.body_source }}</div>
-              {% endif %}
+              <span class="badge {{ my_solution_row.status_badge_class }}">{{ my_solution_row.status_label }}</span>
             </div>
-          </div>
-          {% endfor %}
-          <div class="mt-3">
-            <a href="{{ my_solution_row.edit_url }}" class="btn btn-primary btn-sm">Edit my draft</a>
-          </div>
+            {% if my_solution_row.summary %}
+            <p class="text-muted">{{ my_solution_row.summary }}</p>
+            {% endif %}
+            <div class="d-flex flex-wrap gap-2">
+              <a
+                href="{{ my_solution_row.view_url }}"
+                class="btn btn-outline-primary btn-sm"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <i class="ti ti-external-link me-1"></i>Open my draft
+              </a>
+              <a href="{{ my_solution_row.edit_url }}" class="btn btn-primary btn-sm">Edit my draft</a>
+            </div>
+            {% if selected_solution_id == my_solution_row.id %}
+            <div class="mt-3">
+              {% include 'solutions/partials/solution-block-list.html' with row=my_solution_row %}
+            </div>
+            {% else %}
+            <p class="text-muted fs-xs mb-0 mt-3">Saved blocks open from the draft link.</p>
+            {% endif %}
           </div>
           {% else %}
           <div class="alert alert-info mb-0" role="alert">
             You have not started a solution for this problem yet.
           </div>
           <div class="mt-3">
-            <a href="{{ problem_data.editor_url }}" class="btn btn-primary btn-sm">Start my draft</a>
+            <button
+              type="button"
+              id="solution-start-inline-draft"
+              class="btn btn-primary btn-sm js-show-inline-draft"
+              aria-expanded="{% if show_inline_draft_editor %}true{% else %}false{% endif %}"
+              aria-controls="inline-draft-editor"
+              data-focus-inline-draft="true"
+            >
+              Start my draft
+            </button>
           </div>
+          {% if inline_draft_form and inline_draft_formset and inline_draft_block_form %}
+          <div
+            id="inline-draft-editor"
+            class="solution-inline-draft mt-3 {% if not show_inline_draft_editor %}d-none{% endif %}"
+            tabindex="-1"
+          >
+            <form method="post" action="{{ problem_data.solutions_url }}" novalidate>
+              {% csrf_token %}
+              {{ inline_draft_formset.management_form }}
+              <input type="hidden" name="action" value="save_draft">
+
+              {% if inline_draft_form.non_field_errors %}
+              <div class="alert alert-danger">
+                {% for err in inline_draft_form.non_field_errors %}
+                <div>{{ err }}</div>
+                {% endfor %}
+              </div>
+              {% endif %}
+
+              {% if inline_draft_formset.non_form_errors %}
+              <div class="alert alert-danger">
+                {% for err in inline_draft_formset.non_form_errors %}
+                <div>{{ err }}</div>
+                {% endfor %}
+              </div>
+              {% endif %}
+
+              <div class="row g-3">
+                <div class="col-12">
+                  <label class="form-label" for="{{ inline_draft_form.title.id_for_label }}">{{ inline_draft_form.title.label }}</label>
+                  {{ inline_draft_form.title }}
+                  {% for err in inline_draft_form.title.errors %}<div class="invalid-feedback d-block">{{ err }}</div>{% endfor %}
+                </div>
+                <div class="col-12">
+                  <label class="form-label" for="{{ inline_draft_form.summary.id_for_label }}">{{ inline_draft_form.summary.label }}</label>
+                  {{ inline_draft_form.summary }}
+                  {% for err in inline_draft_form.summary.errors %}<div class="invalid-feedback d-block">{{ err }}</div>{% endfor %}
+                </div>
+                <div class="col-12">
+                  <div class="text-muted fs-xs text-uppercase fw-semibold mb-2">First block</div>
+                  {{ inline_draft_block_form.id }}
+                  {{ inline_draft_block_form.ORDER.as_hidden }}
+                  <div class="row g-3">
+                    <div class="col-sm-5">
+                      <label class="form-label" for="{{ inline_draft_block_form.block_type.id_for_label }}">{{ inline_draft_block_form.block_type.label }}</label>
+                      {{ inline_draft_block_form.block_type }}
+                      {% for err in inline_draft_block_form.block_type.errors %}<div class="invalid-feedback d-block">{{ err }}</div>{% endfor %}
+                    </div>
+                    <div class="col-sm-7">
+                      <label class="form-label" for="{{ inline_draft_block_form.title.id_for_label }}">{{ inline_draft_block_form.title.label }}</label>
+                      {{ inline_draft_block_form.title }}
+                      {% for err in inline_draft_block_form.title.errors %}<div class="invalid-feedback d-block">{{ err }}</div>{% endfor %}
+                    </div>
+                    <div class="col-sm-5">
+                      <label class="form-label" for="{{ inline_draft_block_form.body_format.id_for_label }}">{{ inline_draft_block_form.body_format.label }}</label>
+                      {{ inline_draft_block_form.body_format }}
+                      {% for err in inline_draft_block_form.body_format.errors %}<div class="invalid-feedback d-block">{{ err }}</div>{% endfor %}
+                    </div>
+                    <div class="col-12">
+                      <label class="form-label" for="{{ inline_draft_block_form.body_source.id_for_label }}">{{ inline_draft_block_form.body_source.label }}</label>
+                      {{ inline_draft_block_form.body_source }}
+                      {% for err in inline_draft_block_form.body_source.errors %}<div class="invalid-feedback d-block">{{ err }}</div>{% endfor %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="d-flex flex-wrap gap-2 mt-3">
+                <button type="submit" class="btn btn-primary btn-sm">
+                  <i class="ti ti-device-floppy me-1"></i>Save draft
+                </button>
+                <a href="{{ problem_data.editor_url }}" class="btn btn-outline-secondary btn-sm">Open full editor</a>
+              </div>
+            </form>
+          </div>
+          {% endif %}
           {% endif %}
         </div>
       </div>
@@ -183,40 +402,33 @@
             {% for row in visible_solution_rows %}
             <div
               id="solution-{{ row.id }}"
-              class="card border{% if selected_solution_id == row.id %} solution-card-selected{% endif %}"
+              class="solution-reference-card{% if selected_solution_id == row.id %} solution-card-selected{% endif %}"
             >
-              <div class="card-body">
-                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
-                  <div>
-                    <div class="fw-semibold">{{ row.title }}</div>
-                    <div class="text-muted fs-12">By {{ row.author_label }} · Updated {{ row.updated_at_label }}</div>
-                  </div>
-                  <span class="badge {{ row.status_badge_class }}">{{ row.status_label }}</span>
+              <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                <div>
+                  <div class="fw-semibold">{{ row.title }}</div>
+                  <div class="text-muted fs-12">By {{ row.author_label }} · Updated {{ row.updated_at_label }}</div>
                 </div>
-                {% if row.summary %}
-                <p class="text-muted">{{ row.summary }}</p>
-                {% endif %}
-                {% for block in row.blocks %}
-                <div class="card border solution-block-card">
-                  <div class="card-body py-3">
-                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
-                      <div class="fw-semibold">
-                        {% if block.title %}{{ block.title }}{% elif block.block_type %}{{ block.block_type.label }}{% else %}Block {{ block.position }}{% endif %}
-                      </div>
-                      <span class="badge bg-light text-body-secondary">#{{ block.position }}</span>
-                    </div>
-                    {% if block.block_type %}
-                    <div class="text-muted fs-12 text-uppercase mb-2">{{ block.block_type.label }}</div>
-                    {% endif %}
-                    {% if block.body_format == 'latex' %}
-              <div class="solution-block-body solution-block-body-latex">{{ block.body_source }}</div>
-              {% else %}
-              <div class="solution-block-body" data-mathjax-scope="true">{{ block.body_source }}</div>
-              {% endif %}
-                  </div>
-                </div>
-                {% endfor %}
+                <span class="badge {{ row.status_badge_class }}">{{ row.status_label }}</span>
               </div>
+              {% if row.summary %}
+              <p class="text-muted">{{ row.summary }}</p>
+              {% endif %}
+              <a
+                href="{{ row.view_url }}"
+                class="btn btn-outline-primary btn-sm"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <i class="ti ti-external-link me-1"></i>Open solution
+              </a>
+              {% if selected_solution_id == row.id %}
+              <div class="mt-3">
+                {% include 'solutions/partials/solution-block-list.html' with row=row %}
+              </div>
+              {% else %}
+              <p class="text-muted fs-xs mb-0 mt-3">Solution body opens from the link above.</p>
+              {% endif %}
             </div>
             {% endfor %}
           </div>
@@ -230,6 +442,7 @@
     </div>
   </div>
 </div>
+<form id="solution-page-csrf" class="d-none">{% csrf_token %}</form>
 {% endblock page_content %}
 
 {% block extra_javascript %}
@@ -272,6 +485,276 @@ window.ASTERPROOF_SOLUTION_MEDIA = {
   baseUrl: "{{ solution_media_base_url|escapejs }}",
   mediaUrlPrefix: "{{ MEDIA_URL|escapejs }}"
 };
+</script>
+<script>
+(function () {
+  function showInlineDraft(focusEditor) {
+    var panel = document.getElementById("inline-draft-editor");
+    if (!panel) return;
+    panel.classList.remove("d-none");
+    document.querySelectorAll(".js-show-inline-draft").forEach(function (button) {
+      button.setAttribute("aria-expanded", "true");
+    });
+    if (!focusEditor) return;
+    var focusTarget = panel.querySelector("textarea, input, select, button");
+    if (focusTarget) focusTarget.focus();
+  }
+
+  document.addEventListener("click", function (event) {
+    var draftButton = event.target.closest(".js-show-inline-draft");
+    if (!draftButton) return;
+    showInlineDraft(draftButton.getAttribute("data-focus-inline-draft") === "true");
+  });
+
+  document.addEventListener("change", function (event) {
+    if (!event.target.matches(".js-problem-list-add-target")) return;
+    var form = event.target.closest("form");
+    if (!form) return;
+    form.action = event.target.value;
+  });
+})();
+</script>
+<script>
+(function () {
+  var editor = document.querySelector(".js-solution-completion-editor");
+  var csrfTokenInput = document.querySelector('#solution-page-csrf input[name="csrfmiddlewaretoken"]');
+  if (!editor || !csrfTokenInput) return;
+
+  var saveUrl = editor.getAttribute("data-save-url") || "";
+  var todayValue = "{{ completion_today|escapejs }}";
+  var input = editor.querySelector(".js-solution-completion-date");
+  var saveButton = editor.querySelector(".js-solution-completion-save");
+  var todayButton = editor.querySelector(".js-solution-completion-today");
+  var clearButton = editor.querySelector(".js-solution-completion-clear");
+  var displayEl = editor.querySelector(".js-solution-completion-display");
+  var errorEl = editor.querySelector(".js-solution-completion-error");
+
+  function setError(message) {
+    if (!errorEl) return;
+    if (!message) {
+      errorEl.textContent = "";
+      errorEl.classList.add("d-none");
+      return;
+    }
+    errorEl.textContent = message;
+    errorEl.classList.remove("d-none");
+  }
+
+  function setBusy(isBusy) {
+    [input, saveButton, todayButton, clearButton].forEach(function (element) {
+      if (element) element.disabled = isBusy;
+    });
+  }
+
+  function statusClass(stateKind) {
+    if (stateKind === "solved") return "bg-success-subtle text-success border border-success-subtle";
+    if (stateKind === "unknown") return "bg-info-subtle text-info border border-info-subtle";
+    return "bg-light text-dark border";
+  }
+
+  function displayText(payload) {
+    if (payload.completion_date) return payload.completion_date;
+    if (payload.is_solved) return "Unknown date";
+    return "Unsolved";
+  }
+
+  function validateCompletionDate(rawValue) {
+    var value = String(rawValue || "").trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return "Enter a date in YYYY-MM-DD format.";
+    if (todayValue && value > todayValue) return "Completion date cannot be in the future.";
+    return "";
+  }
+
+  function applyCompletionPayload(payload) {
+    if (input) input.value = payload.completion_date || "";
+    if (displayEl) {
+      displayEl.textContent = displayText(payload);
+      displayEl.title = payload.state_label || "";
+      displayEl.className = "badge js-solution-completion-display " + statusClass(payload.state_kind);
+    }
+    setError("");
+  }
+
+  function submitCompletion(action, completionDate) {
+    if (!saveUrl) return;
+    if (action === "set_date") {
+      var validationError = validateCompletionDate(completionDate);
+      if (validationError) {
+        setError(validationError);
+        return;
+      }
+    }
+
+    var params = new URLSearchParams({
+      action: action,
+      completion_date: completionDate || ""
+    });
+    var statementUuid = editor.getAttribute("data-statement-uuid") || "";
+    var problemUuid = editor.getAttribute("data-problem-uuid") || "";
+    if (statementUuid) {
+      params.set("statement_uuid", statementUuid);
+    } else {
+      params.set("problem_uuid", problemUuid);
+    }
+
+    setBusy(true);
+    setError("");
+    fetch(saveUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+        "X-CSRFToken": csrfTokenInput.value,
+        "X-Requested-With": "XMLHttpRequest"
+      },
+      body: params.toString()
+    })
+      .then(function (response) {
+        return response.json().catch(function () {
+          return {};
+        }).then(function (payload) {
+          if (!response.ok) throw new Error(payload.error || "Could not update this complete date.");
+          return payload;
+        });
+      })
+      .then(applyCompletionPayload)
+      .catch(function (error) {
+        setError(error.message || "Could not update this complete date.");
+      })
+      .finally(function () {
+        setBusy(false);
+      });
+  }
+
+  if (saveButton) {
+    saveButton.addEventListener("click", function () {
+      submitCompletion("set_date", input ? input.value : "");
+    });
+  }
+  if (todayButton) {
+    todayButton.addEventListener("click", function () {
+      if (input) input.value = todayValue;
+      submitCompletion("set_date", todayValue);
+    });
+  }
+  if (clearButton) {
+    clearButton.addEventListener("click", function () {
+      submitCompletion("clear", "");
+    });
+  }
+  if (input) {
+    input.addEventListener("keydown", function (event) {
+      if (event.key !== "Enter") return;
+      event.preventDefault();
+      submitCompletion("set_date", input.value);
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var editor = document.querySelector(".js-solution-difficulty-editor");
+  var saveUrl = editor ? editor.getAttribute("data-save-url") : "";
+  var csrfTokenInput = document.querySelector('#solution-page-csrf input[name="csrfmiddlewaretoken"]');
+  if (!editor || !saveUrl || !csrfTokenInput || !editor.getAttribute("data-statement-uuid")) return;
+
+  var input = editor.querySelector(".js-solution-difficulty-rating");
+  var saveButton = editor.querySelector(".js-solution-difficulty-save");
+  var averageEl = editor.querySelector(".js-solution-difficulty-average");
+  var errorEl = editor.querySelector(".js-solution-difficulty-error");
+
+  function setError(message) {
+    if (!errorEl) return;
+    if (!message) {
+      errorEl.textContent = "";
+      errorEl.classList.add("d-none");
+      return;
+    }
+    errorEl.textContent = message;
+    errorEl.classList.remove("d-none");
+  }
+
+  function setBusy(isBusy) {
+    if (input) input.disabled = isBusy;
+    if (saveButton) saveButton.disabled = isBusy;
+  }
+
+  function ratingCountLabel(count) {
+    var n = Number(count) || 0;
+    return n === 1 ? "1 rating" : n + " ratings";
+  }
+
+  function validateRating(rawValue) {
+    var value = String(rawValue || "").trim();
+    if (!/^\d+$/.test(value)) return "Enter an integer from {{ difficulty_rating_min }} to {{ difficulty_rating_max }}.";
+    var numberValue = Number(value);
+    if (numberValue < {{ difficulty_rating_min }} || numberValue > {{ difficulty_rating_max }}) {
+      return "Enter an integer from {{ difficulty_rating_min }} to {{ difficulty_rating_max }}.";
+    }
+    return "";
+  }
+
+  function applyPayload(payload) {
+    if (input) {
+      input.value = payload.user_difficulty_rating == null ? "" : String(payload.user_difficulty_rating);
+    }
+    if (averageEl) {
+      var count = Number(payload.difficulty_rating_count) || 0;
+      averageEl.textContent = count ? "Avg " + payload.average_difficulty_display + " · " + ratingCountLabel(count) : "No ratings yet";
+    }
+    setError("");
+  }
+
+  function submitRating() {
+    if (!input) return;
+    var validationError = validateRating(input.value);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+    setBusy(true);
+    setError("");
+    var params = new URLSearchParams({
+      rating: String(input.value).trim(),
+      statement_uuid: editor.getAttribute("data-statement-uuid")
+    });
+
+    fetch(saveUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+        "X-CSRFToken": csrfTokenInput.value,
+        "X-Requested-With": "XMLHttpRequest"
+      },
+      body: params.toString()
+    })
+      .then(function (response) {
+        return response.json().catch(function () {
+          return {};
+        }).then(function (payload) {
+          if (!response.ok) throw new Error(payload.error || "Could not save this difficulty rating.");
+          return payload;
+        });
+      })
+      .then(applyPayload)
+      .catch(function (error) {
+        setError(error.message || "Could not save this difficulty rating.");
+      })
+      .finally(function () {
+        setBusy(false);
+      });
+  }
+
+  if (saveButton) {
+    saveButton.addEventListener("click", submitRating);
+  }
+  if (input) {
+    input.addEventListener("keydown", function (event) {
+      if (event.key !== "Enter") return;
+      event.preventDefault();
+      submitRating();
+    });
+  }
+})();
 </script>
 <script src="{% static 'js/solution-latex-hybrid.js' %}"></script>
 <script>

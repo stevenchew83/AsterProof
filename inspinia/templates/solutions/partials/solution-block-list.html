@@ -1,0 +1,20 @@
+{% for block in row.blocks %}
+<div class="card border solution-block-card">
+  <div class="card-body py-3">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+      <div class="fw-semibold">
+        {% if block.title %}{{ block.title }}{% elif block.block_type %}{{ block.block_type.label }}{% else %}Block {{ block.position }}{% endif %}
+      </div>
+      <span class="badge bg-light text-body-secondary">#{{ block.position }}</span>
+    </div>
+    {% if block.block_type %}
+    <div class="text-muted fs-12 text-uppercase mb-2">{{ block.block_type.label }}</div>
+    {% endif %}
+    {% if block.body_format == 'latex' %}
+    <div class="solution-block-body solution-block-body-latex">{{ block.body_source }}</div>
+    {% else %}
+    <div class="solution-block-body" data-mathjax-scope="true">{{ block.body_source }}</div>
+    {% endif %}
+  </div>
+</div>
+{% endfor %}

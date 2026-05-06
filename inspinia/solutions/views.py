@@ -3,6 +3,7 @@ import re
 from collections import Counter
 from io import BytesIO
 from pathlib import Path
+from urllib.parse import urlencode
 
 from django.conf import settings
 from django.contrib import messages
@@ -12,6 +13,8 @@ from django.core.exceptions import PermissionDenied
 from django.core.files.base import ContentFile
 from django.db import DatabaseError
 from django.db import transaction
+from django.db.models import Avg
+from django.db.models import Count
 from django.db.models import Max
 from django.db.models import Prefetch
 from django.http import FileResponse
@@ -28,12 +31,17 @@ from PIL import UnidentifiedImageError
 
 from inspinia.pages.asymptote_render import build_statement_render_segments
 from inspinia.pages.contest_links import contest_dashboard_listing_url
+from inspinia.pages.models import DIFFICULTY_RATING_MAX
+from inspinia.pages.models import DIFFICULTY_RATING_MIN
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import PageViewEvent
 from inspinia.pages.models import ProblemSolveRecord
+from inspinia.pages.models import UserProblemCompletion
+from inspinia.pages.models import UserProblemDifficultyRating
 from inspinia.pages.page_views import PageViewPayload
 from inspinia.pages.page_views import record_page_view
 from inspinia.pages.topic_labels import display_topic_label
+from inspinia.problemsets.selectors import problem_list_add_target_rows
 from inspinia.solutions.forms import ProblemSolutionBlockFormSet
 from inspinia.solutions.forms import ProblemSolutionForm
 from inspinia.solutions.models import ProblemSolution
@@ -236,28 +244,307 @@ def _solution_status_badge(status: str) -> str:
     }.get(status, "text-bg-light")
 
 
+def _solution_reference_url(solution: ProblemSolution) -> str:
+    problem_url = reverse("solutions:problem_solution_list", args=[solution.problem.problem_uuid])
+    return f"{problem_url}?{urlencode({'solution': solution.id})}#solution-{solution.id}"
+
+
 def _solution_card_rows(solutions: list[ProblemSolution]) -> list[dict]:
-    return [
-        {
-            "author_label": solution.author.name or solution.author.email,
-            "blocks": list(solution.blocks.all()),
-            "edit_url": reverse("solutions:problem_solution_edit", args=[solution.problem.problem_uuid]),
-            "id": solution.id,
-            "is_published": solution.status == ProblemSolution.Status.PUBLISHED,
-            "problem_label": (
-                solution.problem.contest_year_problem
-                or f"{solution.problem.contest} {solution.problem.year} {solution.problem.problem}"
-            ),
-            "problem_url": reverse("solutions:problem_solution_list", args=[solution.problem.problem_uuid]),
-            "status": solution.status,
-            "status_badge_class": _solution_status_badge(solution.status),
-            "status_label": solution.get_status_display(),
-            "summary": solution.summary,
-            "title": solution.title or "Untitled solution",
-            "updated_at_label": timezone.localtime(solution.updated_at).strftime("%Y-%m-%d %H:%M"),
+    rows = []
+    for solution in solutions:
+        problem_url = reverse("solutions:problem_solution_list", args=[solution.problem.problem_uuid])
+        rows.append(
+            {
+                "anchor": f"solution-{solution.id}",
+                "author_label": solution.author.name or solution.author.email,
+                "blocks": list(solution.blocks.all()),
+                "edit_url": reverse("solutions:problem_solution_edit", args=[solution.problem.problem_uuid]),
+                "id": solution.id,
+                "is_published": solution.status == ProblemSolution.Status.PUBLISHED,
+                "problem_label": (
+                    solution.problem.contest_year_problem
+                    or f"{solution.problem.contest} {solution.problem.year} {solution.problem.problem}"
+                ),
+                "problem_url": problem_url,
+                "status": solution.status,
+                "status_badge_class": _solution_status_badge(solution.status),
+                "status_label": solution.get_status_display(),
+                "summary": solution.summary,
+                "title": solution.title or "Untitled solution",
+                "updated_at_label": timezone.localtime(solution.updated_at).strftime("%Y-%m-%d %H:%M"),
+                "view_url": _solution_reference_url(solution),
+            },
+        )
+    return rows
+
+
+def _difficulty_rating_payload(
+    *,
+    user_rating: int | None,
+    average_rating: object,
+    rating_count: int,
+) -> dict[str, object]:
+    average_value = None
+    average_display = "—"
+    if average_rating is not None and rating_count:
+        average_value = round(float(average_rating), 1)
+        average_display = f"{average_value:.1f}"
+
+    return {
+        "user_difficulty_rating": user_rating if user_rating is not None else "",
+        "average_difficulty_rating": average_value,
+        "average_difficulty_display": average_display,
+        "difficulty_rating_count": int(rating_count or 0),
+    }
+
+
+def _solution_page_difficulty_payload(
+    *,
+    statement: ContestProblemStatement | None,
+    user,
+) -> dict[str, object]:
+    if statement is None:
+        return _difficulty_rating_payload(user_rating=None, average_rating=None, rating_count=0)
+
+    stats = UserProblemDifficultyRating.objects.filter(statement=statement).aggregate(
+        average_rating=Avg("rating"),
+        rating_count=Count("id"),
+    )
+    user_rating = (
+        UserProblemDifficultyRating.objects.filter(user=user, statement=statement)
+        .values_list("rating", flat=True)
+        .first()
+    )
+    return _difficulty_rating_payload(
+        user_rating=user_rating,
+        average_rating=stats["average_rating"],
+        rating_count=stats["rating_count"],
+    )
+
+
+def _solution_completion_state_kind(*, is_solved: bool, completion_date) -> str:
+    if not is_solved:
+        return "unsolved"
+    if completion_date is None:
+        return "unknown"
+    return "solved"
+
+
+def _solution_completion_state_label(*, is_solved: bool, completion_date) -> str:
+    if not is_solved:
+        return "Unsolved"
+    if completion_date is None:
+        return "Solved without exact date"
+    return f"Solved on {completion_date.isoformat()}"
+
+
+def _solution_page_completion_payload(
+    *,
+    problem: ProblemSolveRecord,
+    statement: ContestProblemStatement | None,
+    user,
+) -> dict[str, object]:
+    completion = None
+    if statement is not None:
+        completion = UserProblemCompletion.objects.filter(user=user, statement=statement).first()
+        if completion is None:
+            completion = UserProblemCompletion.objects.filter(
+                user=user,
+                statement__isnull=True,
+                problem=problem,
+            ).first()
+    else:
+        completion = UserProblemCompletion.objects.filter(user=user, problem=problem).first()
+
+    is_solved = completion is not None
+    completion_date = completion.completion_date if completion is not None else None
+    return {
+        "completion_date": completion_date.isoformat() if completion_date is not None else "",
+        "is_solved": is_solved,
+        "state_kind": _solution_completion_state_kind(
+            is_solved=is_solved,
+            completion_date=completion_date,
+        ),
+        "state_label": _solution_completion_state_label(
+            is_solved=is_solved,
+            completion_date=completion_date,
+        ),
+    }
+
+
+def _solution_form_context(solution: ProblemSolution, post_data=None) -> tuple[ProblemSolutionForm, object]:
+    return (
+        ProblemSolutionForm(post_data, instance=solution, prefix="solution"),
+        ProblemSolutionBlockFormSet(post_data, instance=solution, prefix="blocks"),
+    )
+
+
+def _save_solution_form_request(
+    *,
+    form: ProblemSolutionForm,
+    formset,
+    problem: ProblemSolveRecord,
+    user,
+    action: str,
+) -> tuple[ProblemSolution, str, str]:
+    with transaction.atomic():
+        solution = form.save(commit=False)
+        solution.problem = problem
+        solution.author = user
+        message_text, message_level = _apply_editor_action(solution, action)
+        solution.save()
+        formset.instance = solution
+        _save_solution_blocks(formset, solution)
+    return solution, message_text, message_level
+
+
+def _selected_solution_id(request) -> int | None:
+    selected_solution_value = (request.GET.get("solution") or "").strip()
+    if not selected_solution_value.isdigit():
+        return None
+    return int(selected_solution_value)
+
+
+def _inline_draft_block_form(formset):
+    return formset.forms[0] if formset is not None and formset.forms else None
+
+
+def _problem_solution_list_inline_form_context(
+    *,
+    request,
+    problem: ProblemSolveRecord,
+    existing_solution: ProblemSolution | None,
+    post_data=None,
+) -> dict[str, object]:
+    if existing_solution is not None and post_data is None:
+        return {
+            "inline_draft_block_form": None,
+            "inline_draft_form": None,
+            "inline_draft_formset": None,
         }
-        for solution in solutions
-    ]
+
+    solution = existing_solution or ProblemSolution(
+        problem=problem,
+        author=request.user,
+        status=ProblemSolution.Status.DRAFT,
+    )
+    form, formset = _solution_form_context(solution, post_data)
+    return {
+        "inline_draft_block_form": _inline_draft_block_form(formset),
+        "inline_draft_form": form,
+        "inline_draft_formset": formset,
+    }
+
+
+def _solution_list_context(  # noqa: PLR0913
+    *,
+    request,
+    problem: ProblemSolveRecord,
+    problem_data: dict,
+    solution_queryset,
+    selected_solution_id: int | None,
+    inline_form_context: dict[str, object] | None = None,
+    show_inline_draft_editor: bool = False,
+) -> dict:
+    admin_view = user_has_admin_role(request.user)
+    my_solution = solution_queryset.filter(author=request.user).first()
+    if admin_view:
+        visible_solutions = list(
+            solution_queryset.order_by("-published_at", "-updated_at", "-id"),
+        )
+        visible_solution_rows = _solution_card_rows(visible_solutions)
+        visible_solution_title = "All user solutions"
+        visible_solution_empty_message = "No saved solutions are available for this problem yet."
+    else:
+        visible_solutions = list(
+            solution_queryset.filter(status=ProblemSolution.Status.PUBLISHED)
+            .exclude(author=request.user)
+            .order_by("-published_at", "-updated_at", "-id"),
+        )
+        visible_solution_rows = _solution_card_rows(visible_solutions)
+        visible_solution_title = "Published solutions"
+        visible_solution_empty_message = "No other published solutions are available for this problem yet."
+    published_total = solution_queryset.filter(status=ProblemSolution.Status.PUBLISHED).count()
+    statement_entry = problem_data["statement_entry"]
+    inline_form_context = inline_form_context or _problem_solution_list_inline_form_context(
+        request=request,
+        problem=problem,
+        existing_solution=my_solution,
+    )
+    return {
+        "admin_view": admin_view,
+        "completion_problem_uuid": str(problem.problem_uuid),
+        "completion_save_url": reverse("pages:completion_board_toggle"),
+        "completion_state": _solution_page_completion_payload(
+            problem=problem,
+            statement=statement_entry,
+            user=request.user,
+        ),
+        "completion_statement_uuid": str(statement_entry.statement_uuid) if statement_entry else "",
+        "completion_today": timezone.localdate().isoformat(),
+        "difficulty_rating": _solution_page_difficulty_payload(statement=statement_entry, user=request.user),
+        "difficulty_rating_max": DIFFICULTY_RATING_MAX,
+        "difficulty_rating_min": DIFFICULTY_RATING_MIN,
+        "difficulty_rating_save_url": reverse("pages:problem_statement_difficulty_rating_save"),
+        "difficulty_rating_statement_uuid": str(statement_entry.statement_uuid) if statement_entry else "",
+        **inline_form_context,
+        "my_solution_row": _solution_card_rows([my_solution])[0] if my_solution is not None else None,
+        "problem_data": problem_data,
+        "problem_list_add_targets": problem_list_add_target_rows(request.user),
+        "problem_list_next_url": request.get_full_path(),
+        "selected_solution_id": selected_solution_id,
+        "show_inline_draft_editor": show_inline_draft_editor,
+        "solution_media_base_url": _solution_media_base_url(request),
+        "visible_solution_empty_message": visible_solution_empty_message,
+        "visible_solution_rows": visible_solution_rows,
+        "visible_solution_title": visible_solution_title,
+        "solution_stats": {
+            "published_total": published_total,
+            "visible_total": len(visible_solutions) + (0 if admin_view else (1 if my_solution is not None else 0)),
+        },
+    }
+
+
+def _record_solution_page_view(request, problem: ProblemSolveRecord, *, published_total: int) -> None:
+    problem_label = problem.contest_year_problem or f"{problem.contest} {problem.year} {problem.problem}"
+    record_page_view(
+        request,
+        payload=PageViewPayload(
+            view_type=PageViewEvent.ViewType.SOLUTION,
+            label=problem_label,
+            object_uuid=problem.problem_uuid,
+            contest_name=problem.contest,
+            contest_year=problem.year,
+            metadata={"published_total": published_total},
+        ),
+    )
+
+
+def _solution_list_response(  # noqa: PLR0913
+    request,
+    *,
+    problem: ProblemSolveRecord,
+    problem_data: dict,
+    solution_queryset,
+    selected_solution_id: int | None,
+    inline_form_context: dict[str, object] | None = None,
+    show_inline_draft_editor: bool = False,
+):
+    context = _solution_list_context(
+        request=request,
+        problem=problem,
+        problem_data=problem_data,
+        solution_queryset=solution_queryset,
+        selected_solution_id=selected_solution_id,
+        inline_form_context=inline_form_context,
+        show_inline_draft_editor=show_inline_draft_editor,
+    )
+    _record_solution_page_view(
+        request,
+        problem,
+        published_total=context["solution_stats"]["published_total"],
+    )
+    return render(request, "solutions/problem-solution-list.html", context)
 
 
 def _statement_preview_text(statement_latex: str, *, max_length: int = 220) -> str:
@@ -457,56 +744,48 @@ def problem_solution_list_view(request, problem_uuid):
         .select_related("author", "problem")
         .prefetch_related(_problem_solution_prefetch())
     )
-    selected_solution = None
-    selected_solution_value = (request.GET.get("solution") or "").strip()
-    if selected_solution_value.isdigit():
-        selected_solution = solution_queryset.filter(pk=int(selected_solution_value)).first()
-    admin_view = user_has_admin_role(request.user)
+    selected_solution_id = _selected_solution_id(request)
+    if selected_solution_id is not None and not solution_queryset.filter(pk=selected_solution_id).exists():
+        selected_solution_id = None
+
     my_solution = solution_queryset.filter(author=request.user).first()
-    if admin_view:
-        visible_solutions = list(
-            solution_queryset.order_by("-published_at", "-updated_at", "-id"),
+    if request.method == "POST":
+        inline_form_context = _problem_solution_list_inline_form_context(
+            request=request,
+            problem=problem,
+            existing_solution=my_solution,
+            post_data=request.POST,
         )
-        visible_solution_rows = _solution_card_rows(visible_solutions)
-        visible_solution_title = "All user solutions"
-        visible_solution_empty_message = "No saved solutions are available for this problem yet."
-    else:
-        visible_solutions = list(
-            solution_queryset.filter(status=ProblemSolution.Status.PUBLISHED)
-            .exclude(author=request.user)
-            .order_by("-published_at", "-updated_at", "-id"),
+        form = inline_form_context["inline_draft_form"]
+        formset = inline_form_context["inline_draft_formset"]
+        if form is not None and formset is not None and form.is_valid() and formset.is_valid():
+            action = request.POST.get("action") or "save_draft"
+            solution, message_text, message_level = _save_solution_form_request(
+                form=form,
+                formset=formset,
+                problem=problem,
+                user=request.user,
+                action=action,
+            )
+            getattr(messages, message_level)(request, message_text)
+            return redirect(_solution_reference_url(solution))
+        return _solution_list_response(
+            request,
+            problem=problem,
+            problem_data=problem_data,
+            solution_queryset=solution_queryset,
+            selected_solution_id=selected_solution_id,
+            inline_form_context=inline_form_context,
+            show_inline_draft_editor=True,
         )
-        visible_solution_rows = _solution_card_rows(visible_solutions)
-        visible_solution_title = "Published solutions"
-        visible_solution_empty_message = "No other published solutions are available for this problem yet."
-    published_total = solution_queryset.filter(status=ProblemSolution.Status.PUBLISHED).count()
-    context = {
-        "admin_view": admin_view,
-        "my_solution_row": _solution_card_rows([my_solution])[0] if my_solution is not None else None,
-        "problem_data": problem_data,
-        "selected_solution_id": selected_solution.id if selected_solution is not None else None,
-        "solution_media_base_url": _solution_media_base_url(request),
-        "visible_solution_empty_message": visible_solution_empty_message,
-        "visible_solution_rows": visible_solution_rows,
-        "visible_solution_title": visible_solution_title,
-        "solution_stats": {
-            "published_total": published_total,
-            "visible_total": len(visible_solutions) + (0 if admin_view else (1 if my_solution is not None else 0)),
-        },
-    }
-    problem_label = problem.contest_year_problem or f"{problem.contest} {problem.year} {problem.problem}"
-    record_page_view(
+
+    return _solution_list_response(
         request,
-        payload=PageViewPayload(
-            view_type=PageViewEvent.ViewType.SOLUTION,
-            label=problem_label,
-            object_uuid=problem.problem_uuid,
-            contest_name=problem.contest,
-            contest_year=problem.year,
-            metadata={"published_total": published_total},
-        ),
+        problem=problem,
+        problem_data=problem_data,
+        solution_queryset=solution_queryset,
+        selected_solution_id=selected_solution_id,
     )
-    return render(request, "solutions/problem-solution-list.html", context)
 
 
 @login_required
@@ -516,19 +795,17 @@ def problem_solution_edit_view(request, problem_uuid):
     if solution is None:
         solution = ProblemSolution(problem=problem, author=request.user, status=ProblemSolution.Status.DRAFT)
 
-    form = ProblemSolutionForm(request.POST or None, instance=solution, prefix="solution")
-    formset = ProblemSolutionBlockFormSet(request.POST or None, instance=solution, prefix="blocks")
+    form, formset = _solution_form_context(solution, request.POST or None)
 
     if request.method == "POST" and form.is_valid() and formset.is_valid():
         action = request.POST.get("action") or "save"
-        with transaction.atomic():
-            solution = form.save(commit=False)
-            solution.problem = problem
-            solution.author = request.user
-            message_text, message_level = _apply_editor_action(solution, action)
-            solution.save()
-            formset.instance = solution
-            _save_solution_blocks(formset, solution)
+        solution, message_text, message_level = _save_solution_form_request(
+            form=form,
+            formset=formset,
+            problem=problem,
+            user=request.user,
+            action=action,
+        )
         getattr(messages, message_level)(request, message_text)
         return redirect("solutions:problem_solution_edit", problem.problem_uuid)
 
