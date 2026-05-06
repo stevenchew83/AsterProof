@@ -6187,6 +6187,7 @@ def test_completion_progress_analytics_renders_admin_dashboard(client):
 
     assert response.status_code == HTTPStatus.OK
     assert response.context["completion_progress_selected_user"] == completion_user
+    assert response.context["completion_progress_show_difficulty"] is False
     assert response.context["completion_progress_stats"] == {
         "active_day_total": 2,
         "average_mohs": 23.3,
@@ -6224,6 +6225,47 @@ def test_completion_progress_analytics_renders_admin_dashboard(client):
     expected_shared_tooltip_config_count = 2
     assert response_html.count("tooltip: { shared: true, intersect: false }") == expected_shared_tooltip_config_count
     assert '<div class="flex-shrink-0">\n              <span class="avatar-title bg-primary-subtle' in response_html
+    assert "var updatedColumnIndex = tableColumns.length - 1;" in response_html
+    assert 'order: [[updatedColumnIndex, "desc"]]' in response_html
+
+
+def test_completion_progress_analytics_shows_selected_user_difficulty_read_only_for_admin(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    completion_user = UserFactory(name="Alexander Chew", email="alexander@example.com")
+    client.force_login(admin_user)
+    today = timezone.localdate()
+    selected_user_rating = 31
+    problem = ProblemSolveRecord.objects.create(
+        year=today.year,
+        topic="ALG",
+        mohs=20,
+        contest="JBMO",
+        problem="P1",
+        contest_year_problem=f"JBMO {today.year} P1",
+    )
+    statement = ContestProblemStatement.objects.create(
+        linked_problem=problem,
+        contest_year=today.year,
+        contest_name="JBMO",
+        problem_number=1,
+        problem_code="P1",
+        statement_latex="Statement text",
+    )
+    UserProblemCompletion.objects.create(user=completion_user, problem=problem, completion_date=today)
+    UserProblemDifficultyRating.objects.create(user=completion_user, statement=statement, rating=selected_user_rating)
+
+    response = client.get(
+        reverse("pages:completion_progress_analytics"),
+        {"user": str(completion_user.pk), "range": "7d"},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["completion_progress_can_edit_difficulty"] is False
+    assert response.context["completion_progress_show_difficulty"] is True
+    assert response.context["completion_progress_rows"][0]["user_difficulty_rating"] == selected_user_rating
+    response_html = response.content.decode("utf-8")
+    assert 'data-show-difficulty="true"' in response_html
+    assert 'id="completion-progress-difficulty-csrf"' not in response_html
 
 
 def test_completion_progress_analytics_filters_by_completion_date_not_updated_at(client):
