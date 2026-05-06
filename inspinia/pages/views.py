@@ -79,11 +79,15 @@ from inspinia.pages.models import DIFFICULTY_RATING_MAX
 from inspinia.pages.models import DIFFICULTY_RATING_MIN
 from inspinia.pages.models import ContestMetadata
 from inspinia.pages.models import ContestProblemStatement
+from inspinia.pages.models import PageViewEvent
 from inspinia.pages.models import ProblemSolveRecord
 from inspinia.pages.models import ProblemTopicTechnique
 from inspinia.pages.models import StatementTopicTechnique
 from inspinia.pages.models import UserProblemCompletion
 from inspinia.pages.models import UserProblemDifficultyRating
+from inspinia.pages.page_view_analytics import build_page_view_analytics_context
+from inspinia.pages.page_views import PageViewPayload
+from inspinia.pages.page_views import record_page_view
 from inspinia.pages.problem_completion_import import import_problem_completion_text_for_user
 from inspinia.pages.problem_import import ProblemImportValidationError
 from inspinia.pages.problem_import import build_parsed_preview_payload
@@ -3551,6 +3555,17 @@ def problem_statement_detail_view(request, statement_uuid: uuid.UUID):
             "year": int(statement.contest_year),
         },
     }
+    record_page_view(
+        request,
+        payload=PageViewPayload(
+            view_type=PageViewEvent.ViewType.PROBLEM_STATEMENT,
+            label=label,
+            object_uuid=statement.statement_uuid,
+            contest_name=statement.contest_name,
+            contest_year=statement.contest_year,
+            metadata={"problem_code": statement.problem_code},
+        ),
+    )
     return render(request, "pages/problem-statement-detail.html", context)
 
 
@@ -4293,6 +4308,13 @@ def user_solution_record_list_view(request):
 
 
 @login_required
+def page_view_analytics_view(request):
+    """Admin dashboard for archive and solution page-view activity."""
+    _require_admin_tools_access(request)
+    return render(request, "pages/page-view-analytics.html", build_page_view_analytics_context())
+
+
+@login_required
 def dashboard_analytics_view(request):
     """Problem analytics: charts and pivot views."""
     _require_admin_tools_access(request)
@@ -4597,6 +4619,19 @@ def problem_statement_list_view(request):
         "statement_filter_confidences": filter_options["confidences"],
         "statement_copy_tsv": copy_tsv,
     }
+    record_page_view(
+        request,
+        payload=PageViewPayload(
+            view_type=PageViewEvent.ViewType.LIST,
+            label="Problem statement list",
+            metadata={
+                "filtered_total": statement_filtered_total,
+                "kind": "statement_list",
+                "q": fq,
+                "year": fyear,
+            },
+        ),
+    )
     return render(request, "pages/problem-statement-list.html", context)
 
 
@@ -5295,6 +5330,20 @@ def contest_dashboard_listing_view(request):
             "selected_contest": selected_contest,
             "show_contest_dashboard_bulk": user_has_admin_role(request.user),
         },
+    )
+    selected_year = (request.GET.get("year") or "").strip()
+    record_page_view(
+        request,
+        payload=PageViewPayload(
+            view_type=PageViewEvent.ViewType.CONTEST,
+            label=selected_contest,
+            contest_name=selected_contest,
+            contest_year=int(selected_year) if selected_year.isdigit() else None,
+            metadata={
+                "filtered_total": context["matching_problem_filtered_total"],
+                "q": (request.GET.get("q") or "").strip(),
+            },
+        ),
     )
     return render(request, "pages/contest-dashboard-listing.html", context)
 

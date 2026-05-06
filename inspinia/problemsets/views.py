@@ -12,6 +12,9 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_GET
 from django.views.decorators.http import require_POST
 
+from inspinia.pages.models import PageViewEvent
+from inspinia.pages.page_views import PageViewPayload
+from inspinia.pages.page_views import record_page_view
 from inspinia.problemsets.forms import ProblemListAddProblemForm
 from inspinia.problemsets.forms import ProblemListForm
 from inspinia.problemsets.forms import ProblemListSearchForm
@@ -88,6 +91,18 @@ def detail_view(request, list_uuid):
     if problem_list.is_public:
         user_vote = problem_list.votes.filter(user=request.user).values_list("value", flat=True).first()
     is_author = problem_list.author_id == request.user.id
+    record_page_view(
+        request,
+        payload=PageViewPayload(
+            view_type=PageViewEvent.ViewType.LIST,
+            label=problem_list.title,
+            object_uuid=problem_list.list_uuid,
+            metadata={
+                "kind": "problem_list",
+                "visibility": problem_list.visibility,
+            },
+        ),
+    )
     return render(
         request,
         "problemsets/detail.html",
@@ -254,6 +269,18 @@ def public_detail_view(request, share_token, slug):
     )
     if slug != problem_list.public_slug:
         raise Http404
+    record_page_view(
+        request,
+        payload=PageViewPayload(
+            view_type=PageViewEvent.ViewType.LIST,
+            label=problem_list.title,
+            object_uuid=problem_list.list_uuid,
+            metadata={
+                "kind": "public_problem_list",
+                "visibility": problem_list.visibility,
+            },
+        ),
+    )
     return render(
         request,
         "problemsets/public-detail.html",

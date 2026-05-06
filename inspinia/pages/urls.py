@@ -18,6 +18,7 @@ from inspinia.pages.views import dashboard_analytics_view
 from inspinia.pages.views import handle_summary_parser_view
 from inspinia.pages.views import latex_preview_view
 from inspinia.pages.views import my_completion_progress_analytics_view
+from inspinia.pages.views import page_view_analytics_view
 from inspinia.pages.views import problem_import_view
 from inspinia.pages.views import problem_list_redirect_view
 from inspinia.pages.views import problem_statement_analytics_view
@@ -87,6 +88,7 @@ urlpatterns = [
     path("dashboard/techniques/", topic_tag_analytics_view, name="technique_dashboard"),
     path("dashboard/topic-tags/", topic_tag_analytics_view, name="topic_tag_dashboard"),
     path("dashboard/user-solutions/", user_solution_record_list_view, name="user_solution_record_list"),
+    path("dashboard/page-views/", page_view_analytics_view, name="page_view_analytics"),
     path(
         "dashboard/problem-statements/analytics/",
         problem_statement_analytics_view,

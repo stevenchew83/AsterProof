@@ -29,7 +29,10 @@ from PIL import UnidentifiedImageError
 from inspinia.pages.asymptote_render import build_statement_render_segments
 from inspinia.pages.contest_links import contest_dashboard_listing_url
 from inspinia.pages.models import ContestProblemStatement
+from inspinia.pages.models import PageViewEvent
 from inspinia.pages.models import ProblemSolveRecord
+from inspinia.pages.page_views import PageViewPayload
+from inspinia.pages.page_views import record_page_view
 from inspinia.pages.topic_labels import display_topic_label
 from inspinia.solutions.forms import ProblemSolutionBlockFormSet
 from inspinia.solutions.forms import ProblemSolutionForm
@@ -491,6 +494,18 @@ def problem_solution_list_view(request, problem_uuid):
             "visible_total": len(visible_solutions) + (0 if admin_view else (1 if my_solution is not None else 0)),
         },
     }
+    problem_label = problem.contest_year_problem or f"{problem.contest} {problem.year} {problem.problem}"
+    record_page_view(
+        request,
+        payload=PageViewPayload(
+            view_type=PageViewEvent.ViewType.SOLUTION,
+            label=problem_label,
+            object_uuid=problem.problem_uuid,
+            contest_name=problem.contest,
+            contest_year=problem.year,
+            metadata={"published_total": published_total},
+        ),
+    )
     return render(request, "solutions/problem-solution-list.html", context)
 
 

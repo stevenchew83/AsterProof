@@ -1,0 +1,334 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}View analytics{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+
+  {% include 'partials/page-title.html' with title='View analytics' subtitle='Admin' %}
+
+  <div class="row g-3 mt-0">
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-primary-subtle text-primary rounded">
+                <i class="ti ti-file-text fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Problem statements</p>
+              <h3 class="mb-0">{{ page_view_stats.problem_statement_view_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-info-subtle text-info rounded">
+                <i class="ti ti-writing fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Solutions</p>
+              <h3 class="mb-0">{{ page_view_stats.solution_view_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-warning-subtle text-warning rounded">
+                <i class="ti ti-list-details fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Lists</p>
+              <h3 class="mb-0">{{ page_view_stats.list_view_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-success-subtle text-success rounded">
+                <i class="ti ti-trophy fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Contests</p>
+              <h3 class="mb-0">{{ page_view_stats.contest_view_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-1">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header border-bottom d-flex flex-wrap align-items-center gap-2">
+          <div class="flex-grow-1">
+            <h4 class="header-title mb-0">View volume by surface</h4>
+            <p class="text-muted fs-xs mb-0">{{ page_view_stats.total }} total views from {{ page_view_stats.unique_user_total }} user{{ page_view_stats.unique_user_total|pluralize }}</p>
+          </div>
+          <span class="badge bg-secondary-subtle text-secondary">Latest activity</span>
+        </div>
+        <div class="card-body">
+          {% if page_view_stats.total == 0 %}
+          <div class="alert alert-info mb-0" role="alert">
+            View counts will appear after students open statement, solution, list, or contest pages.
+          </div>
+          {% else %}
+          <div class="table-responsive">
+            <table class="table table-striped table-bordered align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>Surface</th>
+                  <th class="text-end">Views</th>
+                  <th class="text-end">Users</th>
+                  <th>Latest</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in page_view_type_rows %}
+                <tr>
+                  <td>{{ row.view_type_label }}</td>
+                  <td class="text-end">{{ row.view_total }}</td>
+                  <td class="text-end">{{ row.unique_user_total }}</td>
+                  <td>{{ row.latest_at_label|default:'—' }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if page_view_stats.total > 0 %}
+  <div class="row g-3 mt-0">
+    <div class="col-xl-6">
+      <div class="card h-100">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-0">Most viewed statements</h4>
+          <p class="text-muted fs-xs mb-0">Problem statement detail pages</p>
+        </div>
+        <div class="card-body pt-2">
+          <div class="table-responsive">
+            <table class="table table-sm table-hover align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>Problem</th>
+                  <th class="text-end">Views</th>
+                  <th class="text-end">Users</th>
+                  <th>Latest</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in page_view_top_statements %}
+                <tr>
+                  <td>
+                    {% if row.url %}
+                    <a href="{{ row.url }}" class="fw-semibold text-decoration-none">{{ row.label }}</a>
+                    {% else %}
+                    <span class="fw-semibold">{{ row.label }}</span>
+                    {% endif %}
+                    <div class="text-muted fs-12">{{ row.contest_name }}{% if row.contest_year %} {{ row.contest_year }}{% endif %}</div>
+                  </td>
+                  <td class="text-end">{{ row.view_total }}</td>
+                  <td class="text-end">{{ row.unique_user_total }}</td>
+                  <td>{{ row.latest_at_label }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" class="text-muted">No statement views yet.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-6">
+      <div class="card h-100">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-0">Most viewed solutions</h4>
+          <p class="text-muted fs-xs mb-0">Problem solution pages</p>
+        </div>
+        <div class="card-body pt-2">
+          <div class="table-responsive">
+            <table class="table table-sm table-hover align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>Problem</th>
+                  <th class="text-end">Views</th>
+                  <th class="text-end">Users</th>
+                  <th>Latest</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in page_view_top_solutions %}
+                <tr>
+                  <td>
+                    {% if row.url %}
+                    <a href="{{ row.url }}" class="fw-semibold text-decoration-none">{{ row.label }}</a>
+                    {% else %}
+                    <span class="fw-semibold">{{ row.label }}</span>
+                    {% endif %}
+                    <div class="text-muted fs-12">{{ row.contest_name }}{% if row.contest_year %} {{ row.contest_year }}{% endif %}</div>
+                  </td>
+                  <td class="text-end">{{ row.view_total }}</td>
+                  <td class="text-end">{{ row.unique_user_total }}</td>
+                  <td>{{ row.latest_at_label }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" class="text-muted">No solution views yet.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-0">
+    <div class="col-xl-6">
+      <div class="card h-100">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-0">List views</h4>
+          <p class="text-muted fs-xs mb-0">Statement and problem list traffic</p>
+        </div>
+        <div class="card-body pt-2">
+          <div class="table-responsive">
+            <table class="table table-sm table-hover align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>List</th>
+                  <th class="text-end">Views</th>
+                  <th class="text-end">Users</th>
+                  <th>Latest</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in page_view_top_lists %}
+                <tr>
+                  <td><a href="{{ row.url }}" class="fw-semibold text-decoration-none">{{ row.label }}</a></td>
+                  <td class="text-end">{{ row.view_total }}</td>
+                  <td class="text-end">{{ row.unique_user_total }}</td>
+                  <td>{{ row.latest_at_label }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" class="text-muted">No list views yet.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-6">
+      <div class="card h-100">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-0">Contest views</h4>
+          <p class="text-muted fs-xs mb-0">Contest listing traffic</p>
+        </div>
+        <div class="card-body pt-2">
+          <div class="table-responsive">
+            <table class="table table-sm table-hover align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>Contest</th>
+                  <th class="text-end">Views</th>
+                  <th class="text-end">Users</th>
+                  <th>Latest</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in page_view_top_contests %}
+                <tr>
+                  <td>
+                    {% if row.url %}
+                    <a href="{{ row.url }}" class="fw-semibold text-decoration-none">{{ row.label }}</a>
+                    {% else %}
+                    <span class="fw-semibold">{{ row.label }}</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-end">{{ row.view_total }}</td>
+                  <td class="text-end">{{ row.unique_user_total }}</td>
+                  <td>{{ row.latest_at_label }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" class="text-muted">No contest views yet.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-0 mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header border-bottom">
+          <h4 class="header-title mb-0">Recent views</h4>
+          <p class="text-muted fs-xs mb-0">Latest {{ page_view_recent_rows|length }} tracked page views</p>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-striped table-bordered align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Surface</th>
+                  <th>Label</th>
+                  <th>User</th>
+                  <th>Path</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in page_view_recent_rows %}
+                <tr>
+                  <td class="text-nowrap">{{ row.created_at_label }}</td>
+                  <td>{{ row.view_type_label }}</td>
+                  <td>
+                    {% if row.url %}
+                    <a href="{{ row.url }}" class="fw-semibold text-decoration-none">{{ row.label|default:row.view_type_label }}</a>
+                    {% else %}
+                    {{ row.label|default:row.view_type_label }}
+                    {% endif %}
+                  </td>
+                  <td>{{ row.user_label|default:'—' }}</td>
+                  <td class="text-muted fs-12">{{ row.path }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock page_content %}
