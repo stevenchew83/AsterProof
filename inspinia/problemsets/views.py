@@ -7,6 +7,8 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
 from django.shortcuts import render
+from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_GET
 from django.views.decorators.http import require_POST
 
@@ -14,7 +16,6 @@ from inspinia.problemsets.forms import ProblemListAddProblemForm
 from inspinia.problemsets.forms import ProblemListForm
 from inspinia.problemsets.forms import ProblemListSearchForm
 from inspinia.problemsets.models import ProblemList
-from inspinia.problemsets.selectors import PROBLEM_LIST_PROBLEM_SEARCH_LIMIT
 from inspinia.problemsets.selectors import author_label
 from inspinia.problemsets.selectors import my_problem_lists_queryset
 from inspinia.problemsets.selectors import problem_list_item_rows
@@ -22,7 +23,7 @@ from inspinia.problemsets.selectors import problem_list_picker_rows
 from inspinia.problemsets.selectors import problem_list_summary_rows
 from inspinia.problemsets.selectors import problem_list_vote_totals
 from inspinia.problemsets.selectors import public_problem_lists_queryset
-from inspinia.problemsets.selectors import searchable_problem_rows
+from inspinia.problemsets.selectors import searchable_problem_payload
 from inspinia.problemsets.services import ProblemListServiceError
 from inspinia.problemsets.services import add_problem_to_list
 from inspinia.problemsets.services import remove_problem_list_item
@@ -128,6 +129,10 @@ def edit_view(request, list_uuid):
 @require_POST
 def add_item_view(request, list_uuid):
     problem_list = get_object_or_404(ProblemList, list_uuid=list_uuid, author=request.user)
+    redirect_url = _safe_problem_list_next_url(
+        request,
+        fallback=reverse("problemsets:edit", args=[problem_list.list_uuid]),
+    )
     form = ProblemListAddProblemForm(request.POST)
     if form.is_valid():
         try:
@@ -138,21 +143,14 @@ def add_item_view(request, list_uuid):
             messages.success(request, "Added problem to list.")
     else:
         messages.error(request, "Paste a valid problem UUID.")
-    return redirect("problemsets:edit", problem_list.list_uuid)
+    return redirect(redirect_url)
 
 
 @login_required
 @require_GET
 def problem_search_view(request, list_uuid):
     problem_list = get_object_or_404(ProblemList, list_uuid=list_uuid, author=request.user)
-    rows = searchable_problem_rows(problem_list, request.GET.get("q", ""))
-    return JsonResponse(
-        {
-            "count": len(rows),
-            "limit": PROBLEM_LIST_PROBLEM_SEARCH_LIMIT,
-            "results": rows,
-        },
-    )
+    return JsonResponse(searchable_problem_payload(problem_list, request.GET))
 
 
 @login_required
@@ -268,3 +266,14 @@ def _get_visible_problem_list(user, list_uuid):
     if problem_list.author_id == user.id or problem_list.is_public:
         return problem_list
     raise Http404
+
+
+def _safe_problem_list_next_url(request, *, fallback: str) -> str:
+    next_url = (request.POST.get("next") or "").strip()
+    if url_has_allowed_host_and_scheme(
+        next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return next_url
+    return fallback

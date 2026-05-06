@@ -17,6 +17,7 @@ from inspinia.problemsets.services import replace_problem_list_items
 from inspinia.users.tests.factories import UserFactory
 
 pytestmark = pytest.mark.django_db
+EXPECTED_TWO_PROBLEM_SEARCH_MATCHES = 2
 
 
 def _problem(**overrides) -> ProblemSolveRecord:
@@ -26,6 +27,7 @@ def _problem(**overrides) -> ProblemSolveRecord:
         "mohs": 5,
         "problem": "P1",
         "topic": "ALG",
+        "topic_tags": "ALG - inequalities",
         "year": 2026,
     } | overrides
     return ProblemSolveRecord.objects.create(
@@ -36,7 +38,7 @@ def _problem(**overrides) -> ProblemSolveRecord:
         problem=values["problem"],
         contest_year_problem=f"{values['contest']} {values['year']} {values['problem']}",
         is_active=values["is_active"],
-        topic_tags="ALG - inequalities",
+        topic_tags=values["topic_tags"],
     )
 
 
@@ -288,6 +290,132 @@ def test_problem_list_problem_search_requires_author_and_returns_active_problem_
     assert forbidden_response.status_code == HTTPStatus.NOT_FOUND
 
 
+def test_problem_list_problem_search_filters_facets_ranks_and_paginates(client):
+    author = UserFactory()
+    client.force_login(author)
+    problem_list = _problem_list(author=author)
+    first_match = _problem(
+        contest="Balkan MO",
+        year=2024,
+        problem="P3",
+        topic="GEO",
+        mohs=12,
+        topic_tags="GEO - angle chase",
+    )
+    second_match = _problem(
+        contest="Junior Balkan MO",
+        year=2024,
+        problem="P3",
+        topic="NT",
+        mohs=14,
+        topic_tags="NT - LTE",
+    )
+    _problem(
+        contest="IMO",
+        year=2024,
+        problem="P3",
+        topic="GEO",
+        mohs=12,
+        topic_tags="GEO - angle chase",
+    )
+    _problem(
+        contest="Balkan MO",
+        year=2024,
+        problem="P3",
+        topic="GEO",
+        mohs=12,
+        is_active=False,
+    )
+    ProblemTopicTechnique.objects.create(record=first_match, technique="ANGLE CHASE", domains=["GEO"])
+    ProblemTopicTechnique.objects.create(record=second_match, technique="LTE", domains=["NT"])
+
+    first_page = client.get(
+        reverse("problemsets:problem_search", args=[problem_list.list_uuid]),
+        {"q": "contest:balkan year:2024 p3", "limit": "1"},
+    )
+
+    assert first_page.status_code == HTTPStatus.OK
+    payload = first_page.json()
+    assert payload["total"] == EXPECTED_TWO_PROBLEM_SEARCH_MATCHES
+    assert payload["count"] == 1
+    assert payload["limit"] == 1
+    assert payload["offset"] == 0
+    assert payload["has_more"] is True
+    assert payload["results"][0]["problem_uuid"] == str(first_match.problem_uuid)
+    assert payload["facets"]["contests"] == [
+        {"count": 1, "label": "Balkan MO", "value": "Balkan MO"},
+        {"count": 1, "label": "Junior Balkan MO", "value": "Junior Balkan MO"},
+    ]
+    assert {
+        "count": EXPECTED_TWO_PROBLEM_SEARCH_MATCHES,
+        "label": "2024",
+        "value": "2024",
+    } in payload["facets"]["years"]
+    assert {"count": 1, "label": "Geometry", "value": "GEO"} in payload["facets"]["topics"]
+    assert {"count": 1, "label": "MOHS 12", "value": "12"} in payload["facets"]["mohs"]
+    assert {"count": 1, "label": "ANGLE CHASE", "value": "ANGLE CHASE"} in payload["facets"]["tags"]
+
+    next_page = client.get(
+        reverse("problemsets:problem_search", args=[problem_list.list_uuid]),
+        {"q": "contest:balkan year:2024 p3", "limit": "1", "offset": "1"},
+    )
+
+    assert next_page.status_code == HTTPStatus.OK
+    next_payload = next_page.json()
+    assert next_payload["offset"] == 1
+    assert next_payload["has_more"] is False
+    assert [row["problem_uuid"] for row in next_payload["results"]] == [str(second_match.problem_uuid)]
+
+
+def test_problem_list_problem_search_applies_advanced_filters(client):
+    author = UserFactory()
+    client.force_login(author)
+    problem_list = _problem_list(author=author)
+    matching_problem = _problem(
+        contest="Balkan MO",
+        year=2024,
+        problem="P4",
+        topic="GEO",
+        mohs=11,
+        topic_tags="GEO - spiral similarity",
+    )
+    wrong_topic = _problem(
+        contest="Balkan MO",
+        year=2024,
+        problem="P5",
+        topic="ALG",
+        mohs=11,
+        topic_tags="ALG - inequalities",
+    )
+    wrong_mohs = _problem(
+        contest="Balkan MO",
+        year=2024,
+        problem="P6",
+        topic="GEO",
+        mohs=16,
+        topic_tags="GEO - spiral similarity",
+    )
+    ProblemTopicTechnique.objects.create(record=matching_problem, technique="SPIRAL SIMILARITY", domains=["GEO"])
+    ProblemTopicTechnique.objects.create(record=wrong_topic, technique="INEQUALITIES", domains=["ALG"])
+    ProblemTopicTechnique.objects.create(record=wrong_mohs, technique="SPIRAL SIMILARITY", domains=["GEO"])
+
+    response = client.get(
+        reverse("problemsets:problem_search", args=[problem_list.list_uuid]),
+        {
+            "contest": "balkan",
+            "mohs_max": "12",
+            "mohs_min": "10",
+            "tag": "spiral",
+            "topic": "Geometry",
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    payload = response.json()
+    assert payload["total"] == 1
+    assert [row["problem_uuid"] for row in payload["results"]] == [str(matching_problem.problem_uuid)]
+
+
 def test_problem_list_save_items_endpoint_requires_author_and_replaces_sequence(client):
     author = UserFactory()
     other_user = UserFactory()
@@ -332,7 +460,36 @@ def test_problem_list_edit_page_exposes_picker_payload_and_save_urls(client):
     assert reverse("problemsets:problem_search", args=[problem_list.list_uuid]) in response_html
     assert reverse("problemsets:save_items", args=[problem_list.list_uuid]) in response_html
     assert "problem-list-draft-data" in response_html
+    assert "problem-list-search-facets" in response_html
+    assert "problem-list-search-contest" in response_html
+    assert "problem-list-load-more" in response_html
     assert "Paste an active problem UUID" not in response_html
+
+
+def test_add_item_view_redirects_to_safe_next_and_rejects_external_next(client):
+    user = UserFactory()
+    client.force_login(user)
+    problem = _problem(contest="Balkan MO", year=2024, problem="P3")
+    second_problem = _problem(contest="Balkan MO", year=2024, problem="P4")
+    problem_list = _problem_list(author=user)
+    safe_next = reverse("pages:contest_dashboard_listing") + "?contest=Balkan+MO#balkan-mo-2024-p3"
+
+    response = client.post(
+        reverse("problemsets:add_item", args=[problem_list.list_uuid]),
+        {"next": safe_next, "problem_uuid": str(problem.problem_uuid)},
+    )
+
+    assert response.status_code == HTTPStatus.FOUND
+    assert response.url == safe_next
+    assert list(problem_list.items.values_list("problem_id", "position")) == [(problem.id, 1)]
+
+    unsafe_response = client.post(
+        reverse("problemsets:add_item", args=[problem_list.list_uuid]),
+        {"next": "https://example.com/phishing", "problem_uuid": str(second_problem.problem_uuid)},
+    )
+
+    assert unsafe_response.status_code == HTTPStatus.FOUND
+    assert unsafe_response.url == reverse("problemsets:edit", args=[problem_list.list_uuid])
 
 
 def test_reorder_items_requires_author_and_reorders_exact_item_set(client):
@@ -405,9 +562,21 @@ def test_private_list_share_url_returns_not_found(client):
 def test_discover_lists_shows_public_lists_sorted_by_vote_score_and_search(client):
     user = UserFactory()
     client.force_login(user)
-    low_score = _problem_list(title="Algebra picks", visibility=ProblemList.Visibility.PUBLIC)
-    high_score = _problem_list(title="Geometry gems", visibility=ProblemList.Visibility.PUBLIC)
-    _problem_list(title="Hidden gems", visibility=ProblemList.Visibility.PRIVATE)
+    low_score = _problem_list(
+        author=UserFactory(email="algebra-author@example.test", name="Algebra Author"),
+        title="Algebra picks",
+        visibility=ProblemList.Visibility.PUBLIC,
+    )
+    high_score = _problem_list(
+        author=UserFactory(email="geometry-author@example.test", name="Geometry Author"),
+        title="Geometry gems",
+        visibility=ProblemList.Visibility.PUBLIC,
+    )
+    _problem_list(
+        author=UserFactory(email="hidden-author@example.test", name="Hidden Author"),
+        title="Hidden gems",
+        visibility=ProblemList.Visibility.PRIVATE,
+    )
     ProblemListItem.objects.create(problem_list=high_score, problem=_problem(contest="IMO", problem="P4"), position=1)
     ProblemListVote.objects.create(problem_list=low_score, user=UserFactory(), value=ProblemListVote.Value.DOWN)
     ProblemListVote.objects.create(problem_list=high_score, user=UserFactory(), value=ProblemListVote.Value.UP)

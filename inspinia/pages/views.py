@@ -117,6 +117,7 @@ from inspinia.pages.statement_metadata_backfill import statement_metadata_datafr
 from inspinia.pages.statement_metadata_backfill import statement_metadata_dataframe_from_text
 from inspinia.pages.topic_labels import FULL_TOPIC_LABEL_MAP
 from inspinia.pages.topic_labels import display_topic_label
+from inspinia.problemsets.models import ProblemList
 from inspinia.solutions.models import ProblemSolution
 from inspinia.users.models import AuditEvent
 from inspinia.users.models import User
@@ -2204,6 +2205,20 @@ def _coerce_year_filter(raw_value: str | None, available_years: set[int]) -> int
     except (TypeError, ValueError):
         return None
     return year_value if year_value in available_years else None
+
+
+def _problem_list_add_targets(user) -> list[dict[str, str]]:
+    return [
+        {
+            "add_url": reverse("problemsets:add_item", args=[problem_list.list_uuid]),
+            "title": problem_list.title,
+        }
+        for problem_list in ProblemList.objects.filter(author=user).order_by("title", "id")
+    ]
+
+
+def _is_problem_list_addable(problem: ProblemSolveRecord | None) -> bool:
+    return problem is not None and problem.is_active
 
 
 def _completion_board_state_kind(*, is_solved: bool, completion_date: date | None) -> str:
@@ -5032,6 +5047,7 @@ def _build_dashboard_contest_statement_listing_context(
                 "has_statement": True,
                 "imo_slot_guess_value": effective_imo_slot_guess_value(statement),
                 "is_completed": is_completed,
+                "is_addable_to_problem_list": _is_problem_list_addable(linked_problem),
                 "is_linked": is_linked,
                 "label": label,
                 "mohs": effective_mohs(statement),
@@ -5146,6 +5162,7 @@ def _build_dashboard_contest_statement_listing_context(
         "initial_search_query": initial_search_query,
         "matching_problem_total": len(problem_rows),
         "matching_problem_filtered_total": matching_problem_filtered_total,
+        "problem_list_add_targets": _problem_list_add_targets(request.user),
         "contest_listing_result_limit": ADMIN_TABLE_LATEST_LIMIT,
         "contest_listing_is_capped": matching_problem_filtered_total > len(problem_rows),
         "selected_mohs": selected_mohs,

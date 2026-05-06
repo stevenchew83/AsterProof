@@ -11,6 +11,10 @@
   .problem-list-picker-table td {
     vertical-align: top;
   }
+
+  .problem-list-search-group td {
+    background: var(--bs-light);
+  }
 </style>
 {% endblock extra_css %}
 
@@ -100,7 +104,41 @@
             <i class="ti ti-search me-1"></i>Search
           </button>
         </div>
+        <div class="col-12">
+          <div class="row g-2">
+            <div class="col-xl-3 col-md-6">
+              <label class="form-label" for="problem-list-search-contest">Contest</label>
+              <input id="problem-list-search-contest" type="search" class="form-control form-control-sm" placeholder="Balkan MO">
+            </div>
+            <div class="col-xl-2 col-md-3">
+              <label class="form-label" for="problem-list-search-year">Year</label>
+              <input id="problem-list-search-year" type="number" class="form-control form-control-sm" placeholder="2024">
+            </div>
+            <div class="col-xl-2 col-md-3">
+              <label class="form-label" for="problem-list-search-problem">Problem</label>
+              <input id="problem-list-search-problem" type="search" class="form-control form-control-sm" placeholder="P3">
+            </div>
+            <div class="col-xl-3 col-md-6">
+              <label class="form-label" for="problem-list-search-topic">Topic</label>
+              <input id="problem-list-search-topic" type="search" class="form-control form-control-sm" placeholder="Geometry">
+            </div>
+            <div class="col-xl-1 col-md-3">
+              <label class="form-label" for="problem-list-search-mohs-min">MOHS min</label>
+              <input id="problem-list-search-mohs-min" type="number" class="form-control form-control-sm" placeholder="0">
+            </div>
+            <div class="col-xl-1 col-md-3">
+              <label class="form-label" for="problem-list-search-mohs-max">MOHS max</label>
+              <input id="problem-list-search-mohs-max" type="number" class="form-control form-control-sm" placeholder="60">
+            </div>
+            <div class="col-xl-3 col-md-6">
+              <label class="form-label" for="problem-list-search-tag">Topic tag</label>
+              <input id="problem-list-search-tag" type="search" class="form-control form-control-sm" placeholder="Angle chase">
+            </div>
+          </div>
+        </div>
       </form>
+
+      <div id="problem-list-search-facets" class="d-flex flex-column gap-2 mt-3 d-none"></div>
 
       <div id="problem-list-search-status" class="problem-list-picker-status text-muted fs-xs mt-2" role="status">
         Search for problems, then add rows to the draft sequence below.
@@ -122,6 +160,11 @@
             </tr>
           </tbody>
         </table>
+      </div>
+      <div class="d-flex justify-content-center mt-3">
+        <button id="problem-list-load-more" type="button" class="btn btn-outline-secondary btn-sm d-none">
+          Load more
+        </button>
       </div>
     </div>
   </div>
@@ -175,8 +218,17 @@
   var searchForm = document.getElementById("problem-list-search-form");
   var searchInput = document.getElementById("problem-list-search-input");
   var searchButton = document.getElementById("problem-list-search-button");
+  var searchContestInput = document.getElementById("problem-list-search-contest");
+  var searchYearInput = document.getElementById("problem-list-search-year");
+  var searchProblemInput = document.getElementById("problem-list-search-problem");
+  var searchTopicInput = document.getElementById("problem-list-search-topic");
+  var searchMohsMinInput = document.getElementById("problem-list-search-mohs-min");
+  var searchMohsMaxInput = document.getElementById("problem-list-search-mohs-max");
+  var searchTagInput = document.getElementById("problem-list-search-tag");
+  var searchFacets = document.getElementById("problem-list-search-facets");
   var searchStatus = document.getElementById("problem-list-search-status");
   var searchResultsBody = document.getElementById("problem-list-search-results");
+  var loadMoreButton = document.getElementById("problem-list-load-more");
   var draftBody = document.getElementById("problem-list-draft-rows");
   var saveForm = document.getElementById("problem-list-save-form");
   var hiddenOrderFields = document.getElementById("problem-list-hidden-order-fields");
@@ -186,6 +238,8 @@
 
   var draftRows = JSON.parse(draftDataEl.textContent || "[]");
   var latestResults = [];
+  var searchLimit = 50;
+  var searchHasMore = false;
   var originalOrderKey = orderKey(draftRows);
 
   function escapeHtml(value) {
@@ -226,6 +280,29 @@
       "<span class=\"badge bg-light text-dark border me-1 mb-1\">" + escapeHtml(row.topic_label || "Unlabeled") + "</span>",
       "<span class=\"badge bg-light text-dark border me-1 mb-1\">MOHS " + mohsValue + "</span>"
     ].join("");
+  }
+
+  function setUrlParam(url, name, input) {
+    if (!input) return;
+    var value = input.value || "";
+    if (value.trim()) {
+      url.searchParams.set(name, value.trim());
+    }
+  }
+
+  function searchUrl(offset) {
+    var url = new URL(searchCard.getAttribute("data-problem-search-url"), window.location.origin);
+    setUrlParam(url, "q", searchInput);
+    setUrlParam(url, "contest", searchContestInput);
+    setUrlParam(url, "year", searchYearInput);
+    setUrlParam(url, "problem", searchProblemInput);
+    setUrlParam(url, "topic", searchTopicInput);
+    setUrlParam(url, "mohs_min", searchMohsMinInput);
+    setUrlParam(url, "mohs_max", searchMohsMaxInput);
+    setUrlParam(url, "tag", searchTagInput);
+    url.searchParams.set("limit", String(searchLimit));
+    url.searchParams.set("offset", String(offset || 0));
+    return url;
   }
 
   function renderHiddenFields() {
@@ -280,18 +357,31 @@
   }
 
   function renderSearchResults(rows) {
-    latestResults = rows || [];
-    if (!latestResults.length) {
+    var renderedRows = rows || [];
+    if (!renderedRows.length) {
       searchResultsBody.innerHTML = "<tr><td colspan=\"4\" class=\"text-muted fs-sm\">No active problems match this search.</td></tr>";
       return;
     }
 
-    searchResultsBody.innerHTML = latestResults.map(function (row) {
+    var lastGroupKey = "";
+    var htmlRows = [];
+    renderedRows.forEach(function (row) {
+      var groupKey = String(row.contest || "") + "|" + String(row.year || "");
+      if (groupKey !== lastGroupKey) {
+        lastGroupKey = groupKey;
+        htmlRows.push([
+          "<tr class=\"problem-list-search-group\">",
+          "<td colspan=\"4\" class=\"text-muted fs-xs text-uppercase fw-semibold\">",
+          escapeHtml(row.contest || "Unlabeled contest") + " · " + escapeHtml(row.year || "Unlabeled year"),
+          "</td>",
+          "</tr>"
+        ].join(""));
+      }
       var isAdded = draftContains(row.problem_uuid);
       var buttonClass = isAdded ? "btn-outline-secondary" : "btn-primary";
       var buttonLabel = isAdded ? "Added" : "Add";
       var disabled = isAdded ? " disabled" : "";
-      return [
+      htmlRows.push([
         "<tr data-result-uuid=\"" + escapeHtml(row.problem_uuid) + "\">",
         "<td>",
         "<div class=\"fw-semibold\">" + escapeHtml(row.problem_label) + "</div>",
@@ -306,8 +396,49 @@
         "</div>",
         "</td>",
         "</tr>"
+      ].join(""));
+    });
+    searchResultsBody.innerHTML = htmlRows.join("");
+  }
+
+  function renderFacets(facets) {
+    if (!searchFacets) return;
+    var groups = [
+      { key: "contests", label: "Contests", field: "contest" },
+      { key: "years", label: "Years", field: "year" },
+      { key: "topics", label: "Topics", field: "topic" },
+      { key: "mohs", label: "MOHS", field: "mohs" },
+      { key: "tags", label: "Tags", field: "tag" }
+    ];
+    var sections = groups.map(function (group) {
+      var rows = (facets && facets[group.key]) || [];
+      if (!rows.length) return "";
+      return [
+        "<div class=\"d-flex flex-wrap align-items-center gap-2\">",
+        "<span class=\"text-muted fs-xs text-uppercase fw-semibold\">" + escapeHtml(group.label) + "</span>",
+        rows.map(function (row) {
+          return "<button type=\"button\" class=\"btn btn-light btn-sm border\" data-facet-field=\"" + escapeHtml(group.field) + "\" data-facet-value=\"" + escapeHtml(row.value) + "\">" + escapeHtml(row.label) + " <span class=\"text-muted\">(" + escapeHtml(row.count) + ")</span></button>";
+        }).join(""),
+        "</div>"
       ].join("");
-    }).join("");
+    }).filter(Boolean);
+    searchFacets.classList.toggle("d-none", !sections.length);
+    searchFacets.innerHTML = sections.join("");
+  }
+
+  function applyFacet(field, value) {
+    if (field === "contest" && searchContestInput) {
+      searchContestInput.value = value;
+    } else if (field === "year" && searchYearInput) {
+      searchYearInput.value = value;
+    } else if (field === "topic" && searchTopicInput) {
+      searchTopicInput.value = value;
+    } else if (field === "tag" && searchTagInput) {
+      searchTagInput.value = value;
+    } else if (field === "mohs") {
+      if (searchMohsMinInput) searchMohsMinInput.value = value;
+      if (searchMohsMaxInput) searchMohsMaxInput.value = value;
+    }
   }
 
   function setSearchBusy(isBusy) {
@@ -319,10 +450,11 @@
     }
   }
 
-  function runSearch() {
+  function runSearch(options) {
     if (!searchResultsBody || !searchInput) return;
-    var url = new URL(searchCard.getAttribute("data-problem-search-url"), window.location.origin);
-    url.searchParams.set("q", searchInput.value || "");
+    var appendResults = options && options.append;
+    var nextOffset = appendResults ? latestResults.length : 0;
+    var url = searchUrl(nextOffset);
     setSearchBusy(true);
     fetch(url.toString(), {
       headers: {
@@ -338,9 +470,16 @@
         if (!result.ok) {
           throw new Error("Could not search active problems.");
         }
-        renderSearchResults(result.payload.results || []);
+        var nextRows = result.payload.results || [];
+        latestResults = appendResults ? latestResults.concat(nextRows) : nextRows;
+        searchHasMore = Boolean(result.payload.has_more);
+        renderSearchResults(latestResults);
+        renderFacets(result.payload.facets || {});
+        if (loadMoreButton) {
+          loadMoreButton.classList.toggle("d-none", !searchHasMore);
+        }
         if (searchStatus) {
-          searchStatus.textContent = "Showing " + String(result.payload.count || 0) + " of up to " + String(result.payload.limit || 50) + " matching active problems.";
+          searchStatus.textContent = "Showing " + String(latestResults.length) + " of " + String(result.payload.total || 0) + " matching active problems.";
         }
       })
       .catch(function (error) {
@@ -358,6 +497,22 @@
     searchForm.addEventListener("submit", function (event) {
       event.preventDefault();
       runSearch();
+    });
+  }
+
+  if (searchFacets) {
+    searchFacets.addEventListener("click", function (event) {
+      var button = event.target.closest("[data-facet-field]");
+      if (!button) return;
+      applyFacet(button.getAttribute("data-facet-field"), button.getAttribute("data-facet-value") || "");
+      runSearch();
+    });
+  }
+
+  if (loadMoreButton) {
+    loadMoreButton.addEventListener("click", function () {
+      if (!searchHasMore) return;
+      runSearch({ append: true });
     });
   }
 
