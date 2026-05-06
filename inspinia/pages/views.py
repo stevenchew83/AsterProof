@@ -1461,6 +1461,7 @@ def _contest_completion_heatmap_chart_payload(
                 "data": [
                     {
                         "display": str(cell["display"]),
+                        "solution_url": str(cell.get("solution_url", "")),
                         "state": str(cell["state"]),
                         "title": str(cell["title"]),
                         "x": str(cell["problem_code"]),
@@ -5642,6 +5643,7 @@ def contest_advanced_analytics_view(request):
         contest_base.select_related("linked_problem").values(
             "id",
             "linked_problem_id",
+            "linked_problem__problem_uuid",
             "problem_code",
             "contest_year",
         ),
@@ -5659,6 +5661,7 @@ def contest_advanced_analytics_view(request):
             problem__contest=selected_contest,
         ).values_list("problem_id", flat=True),
     )
+    heatmap_solution_urls: dict[tuple[int, str], str] = {}
     heatmap_problem_codes = sorted(
         {
             str(problem_code).strip()
@@ -5691,6 +5694,12 @@ def contest_advanced_analytics_view(request):
         )
         cell_counts["problem_total"] += 1
         linked_problem_id = record["linked_problem_id"]
+        linked_problem_uuid = record["linked_problem__problem_uuid"]
+        if linked_problem_uuid is not None:
+            heatmap_solution_urls.setdefault(
+                heatmap_key,
+                reverse("solutions:problem_solution_list", args=[linked_problem_uuid]),
+            )
         if record["id"] in direct_solved_statement_ids or (
             linked_problem_id is not None and int(linked_problem_id) in legacy_solved_problem_ids
         ):
@@ -5707,6 +5716,7 @@ def contest_advanced_analytics_view(request):
                     {
                         "display": "",
                         "problem_code": problem_code,
+                        "solution_url": "",
                         "state": "empty",
                         "title": f"{selected_contest} {year} {problem_code}: no statement row",
                     },
@@ -5732,6 +5742,7 @@ def contest_advanced_analytics_view(request):
                         else ("•" if problem_total == 1 else f"{solved_total}/{problem_total}")
                     ),
                     "problem_code": problem_code,
+                    "solution_url": heatmap_solution_urls.get((year, problem_code), ""),
                     "state": state,
                     "title": (
                         f"{selected_contest} {year} {problem_code}: "
