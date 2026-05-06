@@ -3884,7 +3884,9 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
     assert response.context["contest_stats"]["statement_problem_total"] == 1
     assert response.context["contest_stats"]["statement_row_total"] == 2
     assert response.context["contest_stats"]["published_solution_total"] == 1
-    assert response.context["public_contest_url"] == contest_dashboard_listing_url("USAMO")
+    assert response.context["contest_quick_update_url"] == (
+        reverse("pages:completion_quick_update") + "?contest=USAMO"
+    )
     heatmap = response.context["contest_completion_heatmap"]
     assert heatmap["problem_codes"] == ["P1", "P2"]
     heatmap_2026 = next(row for row in heatmap["rows"] if row["year"] == 2026)
@@ -3947,14 +3949,14 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
     assert year_2026["solved_problem_total"] == 1
     assert year_2026["solved_rate"] == 100.0
     assert year_2026["year_detail_url"] == (
-        reverse("pages:contest_dashboard_listing") + "?contest=USAMO&year=2026"
+        reverse("pages:completion_quick_update") + "?contest=USAMO&year=2026"
     )
     assert year_2025["problem_count"] == 1
     assert year_2025["statement_problem_total"] == 0
     assert year_2025["solved_problem_total"] == 0
     assert year_2025["solved_rate"] == 0.0
     assert year_2025["year_detail_url"] == (
-        reverse("pages:contest_dashboard_listing") + "?contest=USAMO&year=2025"
+        reverse("pages:completion_quick_update") + "?contest=USAMO&year=2025"
     )
     response_html = response.content.decode("utf-8")
     assert "Contest advanced analytics" in response_html
@@ -3973,7 +3975,9 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
     assert "Statement-linked" in response_html
     assert "Solved" in response_html
     assert "Solved rate" in response_html
-    assert "year=2026" in response_html
+    assert reverse("pages:completion_quick_update") + "?contest=USAMO&amp;year=2026" in response_html
+    assert reverse("pages:contest_dashboard_listing") not in response_html
+    assert "Open contest listing" not in response_html
     assert "Topic mix" in response_html
     assert "Recent statements" in response_html
 
@@ -4003,7 +4007,8 @@ def test_archive_hub_renders_current_archive_workflow_links(client):
     assert response.status_code == HTTPStatus.OK
     response_html = response.content.decode("utf-8")
     assert "Archive hub" in response_html
-    assert reverse("pages:contest_dashboard_listing") in response_html
+    assert reverse("pages:contest_advanced_dashboard") in response_html
+    assert reverse("pages:contest_dashboard_listing") not in response_html
     assert reverse("pages:problem_statement_list") in response_html
     assert reverse("pages:completion_board") in response_html
     assert reverse("pages:completion_quick_update") in response_html
@@ -4107,7 +4112,7 @@ def test_contest_dashboard_listing_omits_bulk_controls_for_non_admin(client):
     assert "Set inactive" not in html
 
 
-def test_contest_advanced_analytics_non_admin_year_links_use_dashboard_listing(client):
+def test_contest_advanced_analytics_year_links_use_completion_quick_update(client):
     user = UserFactory()
     client.force_login(user)
     problem = ProblemSolveRecord.objects.create(
@@ -4135,7 +4140,9 @@ def test_contest_advanced_analytics_non_admin_year_links_use_dashboard_listing(c
     assert response.context["selected_contest"] == "USAMO"
     year_row = response.context["year_rows"][0]
     assert year_row["year"] == 2026
-    assert year_row["year_detail_url"] == contest_dashboard_listing_url("USAMO", year=2026)
+    assert year_row["year_detail_url"] == (
+        reverse("pages:completion_quick_update") + "?contest=USAMO&year=2026"
+    )
 
 
 def test_contest_advanced_analytics_normal_user_sees_own_completions_only(client):

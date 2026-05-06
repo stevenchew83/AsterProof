@@ -13,6 +13,13 @@ def contest_dashboard_listing_url(contest_name: str, **params: object) -> str:
     return reverse("pages:contest_dashboard_listing") + "?" + urlencode(query, doseq=True)
 
 
+def contest_completion_quick_update_url(contest_name: str, **params: object) -> str:
+    """Build ``/dashboard/completion-quick-update/?contest=...`` with optional filters."""
+    extra = {key: value for key, value in params.items() if value not in (None, "")}
+    query: dict[str, object] = {"contest": contest_name, **extra}
+    return reverse("pages:completion_quick_update") + "?" + urlencode(query, doseq=True)
+
+
 def problem_anchor(problem_label: str, fallback: str) -> str:
     """Build the stable fragment used by contest dashboard problem rows."""
     return slugify(problem_label) or slugify(fallback) or "problem"
