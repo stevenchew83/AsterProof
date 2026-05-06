@@ -174,6 +174,7 @@ def problem_list_item_rows(problem_list: ProblemList, *, include_inactive: bool 
                 "problem": problem,
                 "problem_label": problem_label(problem),
                 "problem_uuid": str(problem.problem_uuid),
+                "solution_editor_url": reverse("solutions:problem_solution_edit", args=[problem.problem_uuid]),
                 "statement": statement,
                 "statement_render_segments": (
                     build_statement_render_segments(statement.statement_latex) if statement is not None else []

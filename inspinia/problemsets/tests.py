@@ -1,4 +1,5 @@
 from http import HTTPStatus
+from urllib.parse import quote
 
 import pytest
 from django.conf import settings
@@ -542,6 +543,13 @@ def test_public_share_page_is_read_only_without_dashboard_chrome(client):
     assert "List Author" in response_html
     assert "Find all triangles" in response_html
     assert "MOHS 12" in response_html
+    assert "tex-mml-chtml.js" in response_html
+    assert "Sign in to submit solution" in response_html
+    assert (
+        f"{reverse('account_login')}?next="
+        f"{quote(reverse('solutions:problem_solution_edit', args=[problem.problem_uuid]), safe='')}"
+    ) in response_html
+    assert f">{problem.problem_uuid}<" not in response_html
     assert "sidenav-menu" not in response_html
     assert "side-nav" not in response_html
     assert "content-page" not in response_html
@@ -549,6 +557,23 @@ def test_public_share_page_is_read_only_without_dashboard_chrome(client):
     assert "Start my draft" not in response_html
     assert "completion-editor" not in response_html
     assert "<form" not in response_html
+
+
+def test_public_share_page_links_authenticated_users_to_solution_editor(client):
+    user = UserFactory()
+    client.force_login(user)
+    problem = _problem(topic="GEO", mohs=12)
+    _statement(problem, "Prove that $AB=AC$.")
+    problem_list = _problem_list(visibility=ProblemList.Visibility.PUBLIC)
+    ProblemListItem.objects.create(problem_list=problem_list, problem=problem, position=1)
+
+    response = client.get(problem_list.public_url())
+
+    assert response.status_code == HTTPStatus.OK
+    response_html = response.content.decode("utf-8")
+    assert "Submit solution" in response_html
+    assert reverse("solutions:problem_solution_edit", args=[problem.problem_uuid]) in response_html
+    assert "Sign in to submit solution" not in response_html
 
 
 def test_private_list_share_url_returns_not_found(client):

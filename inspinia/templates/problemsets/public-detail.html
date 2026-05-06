@@ -7,17 +7,144 @@
 <style>
   .problem-list-public-shell {
     min-height: 100vh;
-    background: var(--bs-body-bg);
+    background: var(--bs-tertiary-bg);
+    color: var(--bs-body-color);
   }
 
   .problem-list-public-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
     border-bottom: 1px solid var(--ins-border-color);
+    background: rgba(var(--bs-body-bg-rgb), 0.92);
+    backdrop-filter: blur(10px);
+  }
+
+  .problem-list-public-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--bs-body-color);
+    font-weight: 700;
+    letter-spacing: 0;
+  }
+
+  .problem-list-public-hero {
+    padding: 2.5rem 0 1.5rem;
+  }
+
+  .problem-list-public-eyebrow {
+    color: var(--bs-primary);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-transform: uppercase;
+  }
+
+  .problem-list-public-title {
+    max-width: 48rem;
+    font-size: 3rem;
+    line-height: 1;
+  }
+
+  .problem-list-public-description {
+    max-width: 46rem;
+    color: var(--bs-secondary-color);
+    font-size: 1.05rem;
+    line-height: 1.65;
+  }
+
+  .problem-list-public-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .problem-list-public-stat {
+    min-width: 6.5rem;
+    border: 1px solid var(--ins-border-color);
+    border-radius: 0.5rem;
+    background: var(--bs-body-bg);
+    padding: 0.75rem 1rem;
+  }
+
+  .problem-list-public-stat span {
+    display: block;
+    color: var(--bs-secondary-color);
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .problem-list-public-stat strong {
+    display: block;
+    margin-top: 0.15rem;
+    font-size: 1.2rem;
+    line-height: 1;
   }
 
   .problem-list-public-card {
     border: 1px solid var(--ins-border-color);
     border-radius: 0.5rem;
     background: var(--bs-body-bg);
+    box-shadow: 0 1rem 2rem rgba(15, 23, 42, 0.05);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  }
+
+  .problem-list-public-card:hover {
+    border-color: rgba(var(--bs-primary-rgb), 0.32);
+    box-shadow: 0 1.25rem 2.5rem rgba(15, 23, 42, 0.08);
+    transform: translateY(-1px);
+  }
+
+  .problem-list-public-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    flex: 0 0 auto;
+    border-radius: 0.5rem;
+    background: var(--bs-primary-bg-subtle);
+    color: var(--bs-primary);
+    font-weight: 700;
+  }
+
+  .problem-list-public-problem-title {
+    font-size: 1.15rem;
+    line-height: 1.35;
+  }
+
+  .problem-list-public-tags .badge {
+    border-color: var(--ins-border-color) !important;
+    color: var(--bs-secondary-color) !important;
+    font-weight: 600;
+  }
+
+  .problem-list-public-card .statement-render-content {
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--ins-border-color);
+  }
+
+  .problem-list-public-card .statement-text-fragment {
+    font-size: 1.02rem;
+    line-height: 1.78;
+  }
+
+  @media (max-width: 575.98px) {
+    .problem-list-public-hero {
+      padding-top: 1.75rem;
+    }
+
+    .problem-list-public-title {
+      font-size: 2rem;
+      line-height: 1.1;
+    }
+
+    .problem-list-public-stat {
+      flex: 1 1 calc(50% - 0.75rem);
+      min-width: 0;
+    }
   }
 </style>
 {% endblock extra_css %}
@@ -27,49 +154,84 @@
   <header class="problem-list-public-header py-3">
     <div class="container">
       <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
-        <a href="{% url 'account_login' %}" class="text-decoration-none fw-bold text-body">AsterProof</a>
+        <a href="{% url 'account_login' %}" class="problem-list-public-brand text-decoration-none">
+          <i class="ti ti-sparkles"></i>
+          <span>AsterProof</span>
+        </a>
         <div class="d-flex flex-wrap gap-2">
           {% if request.user.is_authenticated %}
-          <a href="{% url 'problemsets:detail' problem_list.list_uuid %}" class="btn btn-outline-primary btn-sm">Open workspace view</a>
+          <a href="{% url 'problemsets:detail' problem_list.list_uuid %}" class="btn btn-outline-primary btn-sm">
+            <i class="ti ti-layout-dashboard me-1"></i> Open workspace view
+          </a>
           {% else %}
-          <a href="{% url 'account_login' %}" class="btn btn-primary btn-sm">Sign in</a>
+          <a href="{% url 'account_login' %}" class="btn btn-primary btn-sm">
+            <i class="ti ti-login-2 me-1"></i> Sign in
+          </a>
           {% endif %}
         </div>
       </div>
     </div>
   </header>
 
-  <main class="container py-4">
-    <section class="mb-4">
-      <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+  <main class="container pb-5">
+    <section class="problem-list-public-hero">
+      <div class="d-flex flex-column gap-4">
         <div>
-          <h1 class="h3 mb-2">{{ problem_list.title }}</h1>
-          <p class="text-muted mb-2">Curated by {{ problem_list_author_label }}</p>
+          <p class="problem-list-public-eyebrow mb-2">Curated by {{ problem_list_author_label }}</p>
+          <h1 class="problem-list-public-title fw-bold mb-3">{{ problem_list.title }}</h1>
           {% if problem_list.description %}
-          <p class="mb-0">{{ problem_list.description }}</p>
+          <p class="problem-list-public-description mb-0">{{ problem_list.description }}</p>
           {% endif %}
         </div>
-        <div class="d-flex flex-wrap gap-2">
-          <span class="badge bg-primary-subtle text-primary">Score {{ problem_list_votes.score }}</span>
-          <span class="badge bg-success-subtle text-success">{{ problem_list_votes.upvote_count }} up</span>
-          <span class="badge bg-danger-subtle text-danger">{{ problem_list_votes.downvote_count }} down</span>
+        <div class="problem-list-public-stats">
+          <div class="problem-list-public-stat">
+            <span>Score</span>
+            <strong>{{ problem_list_votes.score }}</strong>
+          </div>
+          <div class="problem-list-public-stat">
+            <span>Up</span>
+            <strong>{{ problem_list_votes.upvote_count }}</strong>
+          </div>
+          <div class="problem-list-public-stat">
+            <span>Down</span>
+            <strong>{{ problem_list_votes.downvote_count }}</strong>
+          </div>
+          <div class="problem-list-public-stat">
+            <span>Problems</span>
+            <strong>{{ problem_list_items|length }}</strong>
+          </div>
         </div>
       </div>
     </section>
 
     {% if problem_list_items %}
-    <div class="d-grid gap-3">
+    <div class="d-grid gap-4">
       {% for row in problem_list_items %}
       <article class="problem-list-public-card p-3 p-lg-4">
-        <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-3">
-          <div>
-            <h2 class="h5 mb-1">#{{ row.position }} {{ row.problem_label }}</h2>
-            <p class="text-muted fs-sm mb-0">{{ row.topic_label }} · MOHS {{ row.mohs|default:"—" }}</p>
+        <div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-3">
+          <div class="d-flex align-items-start gap-3">
+            <span class="problem-list-public-number">#{{ row.position }}</span>
+            <div>
+              <h2 class="problem-list-public-problem-title fw-bold mb-1">{{ row.problem_label }}</h2>
+              <p class="text-muted fs-sm mb-0">
+                <i class="ti ti-category-2 me-1"></i>{{ row.topic_label }}
+                <span class="mx-1">·</span>
+                <i class="ti ti-mountain me-1"></i>MOHS {{ row.mohs|default:"—" }}
+              </p>
+            </div>
           </div>
-          <span class="badge bg-light text-dark border">{{ row.problem_uuid }}</span>
+          {% if request.user.is_authenticated %}
+          <a href="{{ row.solution_editor_url }}" class="btn btn-primary btn-sm">
+            <i class="ti ti-edit me-1"></i> Submit solution
+          </a>
+          {% else %}
+          <a href="{% url 'account_login' %}?next={{ row.solution_editor_url|urlencode:'' }}" class="btn btn-primary btn-sm">
+            <i class="ti ti-login-2 me-1"></i> Sign in to submit solution
+          </a>
+          {% endif %}
         </div>
         {% if row.topic_tags %}
-        <div class="d-flex flex-wrap gap-2 mb-3">
+        <div class="problem-list-public-tags d-flex flex-wrap gap-2 mb-3">
           {% for tag in row.topic_tags %}
           <span class="badge bg-light text-dark border">{{ tag }}</span>
           {% endfor %}
@@ -93,3 +255,34 @@
   </main>
 </div>
 {% endblock body %}
+
+{% block extra_javascript %}
+<script>
+window.MathJax = {
+  loader: { load: ["[tex]/textmacros"] },
+  tex: {
+    packages: { "[+]": ["textmacros"] },
+    macros: {
+      tiny: "",
+      scriptsize: "",
+      footnotesize: "",
+      small: "",
+      normalsize: "",
+      large: "",
+      Large: "",
+      LARGE: "",
+      huge: "",
+      Huge: "",
+      textbullet: "\\bullet",
+      hdots: "\\dots",
+      overarc: ["\\overset{\\frown}{#1}", 1],
+      vspace: ["\\kern0pt", 1]
+    },
+    inlineMath: [["$", "$"], ["\\(", "\\)"]],
+    displayMath: [["$$", "$$"], ["\\[", "\\]"]]
+  },
+  options: { skipHtmlTags: ["script", "noscript", "style", "textarea", "pre", "code"] }
+};
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+{% endblock extra_javascript %}
