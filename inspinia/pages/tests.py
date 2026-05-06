@@ -3897,10 +3897,16 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
     heatmap_2025_p2 = next(cell for cell in heatmap_2025["cells"] if cell["problem_code"] == "P2")
     assert heatmap_2026_p1["state"] == "solved"
     assert heatmap_2026_p1["display"] == "✓"
+    assert heatmap_2026_p1["solution_url"] == reverse(
+        "solutions:problem_solution_list",
+        args=[problem_one.problem_uuid],
+    )
     assert heatmap_2026_p2["state"] == "empty"
+    assert heatmap_2026_p2["solution_url"] == ""
     assert heatmap_2025_p1["state"] == "empty"
     assert heatmap_2025_p2["state"] == "unsolved"
     assert heatmap_2025_p2["display"] == "•"
+    assert heatmap_2025_p2["solution_url"] == ""
     assert heatmap["chart"]["max_value"] == 3
     assert heatmap["chart"]["series"] == [
         {
@@ -3908,6 +3914,10 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
             "data": [
                 {
                     "display": "✓",
+                    "solution_url": reverse(
+                        "solutions:problem_solution_list",
+                        args=[problem_one.problem_uuid],
+                    ),
                     "state": "solved",
                     "title": "USAMO 2026 P1: 1 of 1 statement row solved by you",
                     "x": "P1",
@@ -3915,6 +3925,7 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
                 },
                 {
                     "display": "",
+                    "solution_url": "",
                     "state": "empty",
                     "title": "USAMO 2026 P2: no statement row",
                     "x": "P2",
@@ -3927,6 +3938,7 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
             "data": [
                 {
                     "display": "",
+                    "solution_url": "",
                     "state": "empty",
                     "title": "USAMO 2025 P1: no statement row",
                     "x": "P1",
@@ -3934,6 +3946,7 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
                 },
                 {
                     "display": "•",
+                    "solution_url": "",
                     "state": "unsolved",
                     "title": "USAMO 2025 P2: 0 of 1 statement row solved by you",
                     "x": "P2",
@@ -3964,6 +3977,8 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
     assert "Your completions" in response_html
     assert 'id="chart-contest-completion-heatmap"' in response_html
     assert "contest-advanced-heatmap-data" in response_html
+    assert "dataPointSelection" in response_html
+    assert "point.solution_url" in response_html
     assert "plugins/apexcharts/apexcharts.min.js" in response_html
     assert "contest-completion-heatmap-table" not in response_html
     assert '<input id="contest-advanced-selector" type="search" name="contest" value="USAMO"' in response_html
@@ -4185,6 +4200,7 @@ def test_contest_advanced_analytics_normal_user_sees_own_completions_only(client
     row_2026 = next(row for row in heatmap["rows"] if row["year"] == 2026)
     cell_p1 = next(cell for cell in row_2026["cells"] if cell["problem_code"] == "P1")
     assert cell_p1["state"] == "unsolved"
+    assert cell_p1["solution_url"] == reverse("solutions:problem_solution_list", args=[problem.problem_uuid])
 
     UserProblemCompletion.objects.create(
         user=viewer,

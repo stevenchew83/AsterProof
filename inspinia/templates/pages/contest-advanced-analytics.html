@@ -52,6 +52,11 @@
   #chart-contest-completion-heatmap {
     min-height: 240px;
   }
+
+  #chart-contest-completion-heatmap.contest-completion-heatmap-clickable .apexcharts-heatmap-rect,
+  #chart-contest-completion-heatmap.contest-completion-heatmap-clickable .apexcharts-series rect {
+    cursor: pointer;
+  }
  </style>
 {% endblock extra_css %}
 
@@ -437,12 +442,45 @@
   /* Narrower min width per year column so more of the grid fits without horizontal scroll. */
   chartEl.style.minWidth = String(Math.max(480, pointCount * 48 + 96)) + "px";
 
+  function pointFromOptions(opts) {
+    if (!opts || opts.seriesIndex < 0 || opts.dataPointIndex < 0) return null;
+    var row = payload.series[opts.seriesIndex];
+    if (!row || !row.data) return null;
+    return row.data[opts.dataPointIndex] || null;
+  }
+
+  function hasLinkedPoints() {
+    for (var rowIndex = 0; rowIndex < payload.series.length; rowIndex += 1) {
+      var row = payload.series[rowIndex];
+      var data = row && row.data ? row.data : [];
+      for (var pointIndex = 0; pointIndex < data.length; pointIndex += 1) {
+        if (data[pointIndex].solution_url) return true;
+      }
+    }
+    return false;
+  }
+
+  function openProblemSolution(opts) {
+    var point = pointFromOptions(opts);
+    if (!point || !point.solution_url) return;
+    window.location.assign(point.solution_url);
+  }
+
+  if (hasLinkedPoints()) {
+    chartEl.classList.add("contest-completion-heatmap-clickable");
+  }
+
   var chart = new ApexCharts(chartEl, {
     chart: {
       type: "heatmap",
       height: Math.max(260, payload.series.length * 30 + 72),
       toolbar: { show: false },
-      fontFamily: "inherit"
+      fontFamily: "inherit",
+      events: {
+        dataPointSelection: function (_event, _chartContext, opts) {
+          openProblemSolution(opts);
+        }
+      }
     },
     series: payload.series,
     dataLabels: {
