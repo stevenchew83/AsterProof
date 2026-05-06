@@ -8,9 +8,12 @@ from django.urls import reverse
 
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
+from inspinia.pages.models import ProblemTopicTechnique
 from inspinia.problemsets.models import ProblemList
 from inspinia.problemsets.models import ProblemListItem
 from inspinia.problemsets.models import ProblemListVote
+from inspinia.problemsets.services import ProblemListServiceError
+from inspinia.problemsets.services import replace_problem_list_items
 from inspinia.users.tests.factories import UserFactory
 
 pytestmark = pytest.mark.django_db
@@ -158,6 +161,178 @@ def test_create_list_and_add_active_problem_workflow(client):
     )
     assert inactive_response.status_code == HTTPStatus.OK
     assert problem_list.items.count() == 1
+
+
+def test_replace_problem_list_items_sets_full_order_and_membership():
+    problem_list = _problem_list()
+    removed_problem = _problem(problem="P1")
+    first_problem = _problem(problem="P2", contest="USAMO", year=2025)
+    second_problem = _problem(problem="P3", contest="BMO", year=2024)
+    ProblemListItem.objects.create(problem_list=problem_list, problem=removed_problem, position=1)
+    ProblemListItem.objects.create(problem_list=problem_list, problem=second_problem, position=2)
+
+    replace_problem_list_items(
+        problem_list,
+        [str(first_problem.problem_uuid), str(second_problem.problem_uuid)],
+    )
+
+    assert list(problem_list.items.order_by("position").values_list("problem_id", "position")) == [
+        (first_problem.id, 1),
+        (second_problem.id, 2),
+    ]
+
+
+def test_replace_problem_list_items_rejects_duplicate_unknown_and_new_inactive_problem():
+    problem_list = _problem_list()
+    active_problem = _problem(problem="P1")
+    inactive_problem = _problem(problem="P2", contest="USAMO", year=2025, is_active=False)
+
+    with pytest.raises(ProblemListServiceError, match="more than once"):
+        replace_problem_list_items(
+            problem_list,
+            [str(active_problem.problem_uuid), str(active_problem.problem_uuid)],
+        )
+
+    with pytest.raises(ProblemListServiceError, match="active contest problems"):
+        replace_problem_list_items(problem_list, ["00000000-0000-0000-0000-000000000000"])
+
+    with pytest.raises(ProblemListServiceError, match="active contest problems"):
+        replace_problem_list_items(problem_list, [str(inactive_problem.problem_uuid)])
+
+    assert problem_list.items.count() == 0
+
+
+def test_replace_problem_list_items_preserves_existing_inactive_rows_when_submitted_and_can_clear():
+    problem_list = _problem_list()
+    active_problem = _problem(problem="P1")
+    inactive_problem = _problem(problem="P2", contest="USAMO", year=2025, is_active=False)
+    ProblemListItem.objects.create(problem_list=problem_list, problem=active_problem, position=1)
+    ProblemListItem.objects.create(problem_list=problem_list, problem=inactive_problem, position=2)
+
+    replace_problem_list_items(
+        problem_list,
+        [str(inactive_problem.problem_uuid), str(active_problem.problem_uuid)],
+    )
+
+    assert list(problem_list.items.order_by("position").values_list("problem_id", "position")) == [
+        (inactive_problem.id, 1),
+        (active_problem.id, 2),
+    ]
+
+    replace_problem_list_items(problem_list, [])
+
+    assert problem_list.items.count() == 0
+
+
+def test_problem_list_problem_search_requires_author_and_returns_active_problem_rows(client):
+    author = UserFactory()
+    other_user = UserFactory()
+    client.force_login(author)
+    problem_list = _problem_list(author=author)
+    existing_problem = _problem(problem="P1", topic="ALG", mohs=5)
+    searchable_year = 2025
+    searchable_mohs = 12
+    searchable_problem = _problem(
+        problem="P2",
+        contest="USAMO",
+        year=searchable_year,
+        topic="GEO",
+        mohs=searchable_mohs,
+    )
+    inactive_problem = _problem(problem="P3", contest="USAMO", year=2024, is_active=False)
+    ProblemListItem.objects.create(problem_list=problem_list, problem=existing_problem, position=1)
+    ProblemTopicTechnique.objects.create(record=searchable_problem, technique="ANGLE CHASE", domains=["GEO"])
+
+    response = client.get(
+        reverse("problemsets:problem_search", args=[problem_list.list_uuid]),
+        {"q": "angle"},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    payload = response.json()
+    assert payload["count"] == 1
+    assert payload["results"][0]["problem_uuid"] == str(searchable_problem.problem_uuid)
+    assert payload["results"][0]["problem_label"] == "USAMO 2025 P2"
+    assert payload["results"][0]["contest"] == "USAMO"
+    assert payload["results"][0]["year"] == searchable_year
+    assert payload["results"][0]["problem_code"] == "P2"
+    assert payload["results"][0]["topic_label"] == "Geometry"
+    assert payload["results"][0]["mohs"] == searchable_mohs
+    assert payload["results"][0]["topic_tags"] == ["ANGLE CHASE"]
+    assert payload["results"][0]["archive_url"].startswith(reverse("pages:contest_dashboard_listing"))
+    assert payload["results"][0]["is_in_list"] is False
+    assert str(inactive_problem.problem_uuid) not in response.content.decode("utf-8")
+
+    existing_response = client.get(
+        reverse("problemsets:problem_search", args=[problem_list.list_uuid]),
+        {"q": str(existing_problem.problem_uuid)},
+    )
+
+    assert existing_response.json()["results"][0]["is_in_list"] is True
+
+    topic_response = client.get(
+        reverse("problemsets:problem_search", args=[problem_list.list_uuid]),
+        {"q": "geometry"},
+    )
+    assert [row["problem_uuid"] for row in topic_response.json()["results"]] == [str(searchable_problem.problem_uuid)]
+
+    mohs_response = client.get(
+        reverse("problemsets:problem_search", args=[problem_list.list_uuid]),
+        {"q": "MOHS 12"},
+    )
+    assert [row["problem_uuid"] for row in mohs_response.json()["results"]] == [str(searchable_problem.problem_uuid)]
+
+    client.force_login(other_user)
+    forbidden_response = client.get(reverse("problemsets:problem_search", args=[problem_list.list_uuid]))
+
+    assert forbidden_response.status_code == HTTPStatus.NOT_FOUND
+
+
+def test_problem_list_save_items_endpoint_requires_author_and_replaces_sequence(client):
+    author = UserFactory()
+    other_user = UserFactory()
+    client.force_login(author)
+    problem_list = _problem_list(author=author)
+    first_problem = _problem(problem="P1")
+    second_problem = _problem(problem="P2", contest="USAMO", year=2025)
+    ProblemListItem.objects.create(problem_list=problem_list, problem=first_problem, position=1)
+
+    response = client.post(
+        reverse("problemsets:save_items", args=[problem_list.list_uuid]),
+        {"problem_uuid_order": [str(second_problem.problem_uuid), str(first_problem.problem_uuid)]},
+        follow=True,
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert list(problem_list.items.order_by("position").values_list("problem_id", flat=True)) == [
+        second_problem.id,
+        first_problem.id,
+    ]
+
+    client.force_login(other_user)
+    forbidden_response = client.post(
+        reverse("problemsets:save_items", args=[problem_list.list_uuid]),
+        {"problem_uuid_order": [str(first_problem.problem_uuid)]},
+    )
+
+    assert forbidden_response.status_code == HTTPStatus.NOT_FOUND
+
+
+def test_problem_list_edit_page_exposes_picker_payload_and_save_urls(client):
+    user = UserFactory()
+    client.force_login(user)
+    problem = _problem(problem="P1")
+    problem_list = _problem_list(author=user)
+    ProblemListItem.objects.create(problem_list=problem_list, problem=problem, position=1)
+
+    response = client.get(reverse("problemsets:edit", args=[problem_list.list_uuid]))
+
+    assert response.status_code == HTTPStatus.OK
+    response_html = response.content.decode("utf-8")
+    assert reverse("problemsets:problem_search", args=[problem_list.list_uuid]) in response_html
+    assert reverse("problemsets:save_items", args=[problem_list.list_uuid]) in response_html
+    assert "problem-list-draft-data" in response_html
+    assert "Paste an active problem UUID" not in response_html
 
 
 def test_reorder_items_requires_author_and_reorders_exact_item_set(client):
