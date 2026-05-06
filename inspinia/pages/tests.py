@@ -5031,6 +5031,22 @@ def test_completion_quick_update_problem_label_links_to_solution_problem_page(cl
     assert ">USAMO 2026 P1</a>" in response_html
 
 
+def test_completion_quick_update_contest_links_to_advanced_contest_dashboard(client):
+    user = UserFactory()
+    client.force_login(user)
+    _create_quick_completion_statement(contest="Argentina TST", problem_code="P1", problem_number=1)
+
+    response = client.get(reverse("pages:completion_quick_update"))
+
+    assert response.status_code == HTTPStatus.OK
+    detail_url = reverse("pages:contest_advanced_dashboard") + "?contest=Argentina+TST"
+    row = response.context["completion_quick_update_rows"][0]
+    assert row["contest_detail_url"] == detail_url
+    response_html = response.content.decode("utf-8")
+    assert f'href="{detail_url}"' in response_html
+    assert ">Argentina TST</a>" in response_html
+
+
 def test_problem_statement_detail_renders_statement_page(client):
     user = UserFactory()
     client.force_login(user)
