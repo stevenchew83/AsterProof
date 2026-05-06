@@ -1,0 +1,37 @@
+<div class="border-top pt-3 mb-3">
+  <p class="text-muted mb-2 fs-xs text-uppercase fw-semibold">Public display</p>
+  <div class="row g-2">
+    <div class="col-md-6">
+      <div class="form-check form-switch">
+        {{ form.hide_source }}
+        <label class="form-check-label" for="{{ form.hide_source.id_for_label }}">{{ form.hide_source.label }}</label>
+      </div>
+      <div class="text-muted fs-xs">{{ form.hide_source.help_text }}</div>
+      {% for error in form.hide_source.errors %}<div class="text-danger fs-xs mt-1">{{ error }}</div>{% endfor %}
+    </div>
+    <div class="col-md-6">
+      <div class="form-check form-switch">
+        {{ form.hide_topic }}
+        <label class="form-check-label" for="{{ form.hide_topic.id_for_label }}">{{ form.hide_topic.label }}</label>
+      </div>
+      <div class="text-muted fs-xs">{{ form.hide_topic.help_text }}</div>
+      {% for error in form.hide_topic.errors %}<div class="text-danger fs-xs mt-1">{{ error }}</div>{% endfor %}
+    </div>
+    <div class="col-md-6">
+      <div class="form-check form-switch">
+        {{ form.hide_mohs }}
+        <label class="form-check-label" for="{{ form.hide_mohs.id_for_label }}">{{ form.hide_mohs.label }}</label>
+      </div>
+      <div class="text-muted fs-xs">{{ form.hide_mohs.help_text }}</div>
+      {% for error in form.hide_mohs.errors %}<div class="text-danger fs-xs mt-1">{{ error }}</div>{% endfor %}
+    </div>
+    <div class="col-md-6">
+      <div class="form-check form-switch">
+        {{ form.hide_subtopics }}
+        <label class="form-check-label" for="{{ form.hide_subtopics.id_for_label }}">{{ form.hide_subtopics.label }}</label>
+      </div>
+      <div class="text-muted fs-xs">{{ form.hide_subtopics.help_text }}</div>
+      {% for error in form.hide_subtopics.errors %}<div class="text-danger fs-xs mt-1">{{ error }}</div>{% endfor %}
+    </div>
+  </div>
+</div>

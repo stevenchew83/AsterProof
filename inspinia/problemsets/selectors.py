@@ -158,6 +158,8 @@ def problem_list_item_rows(problem_list: ProblemList, *, include_inactive: bool 
     for item in items:
         problem = item.problem
         statement = latest_statement_by_problem_id.get(problem.id)
+        source_label = problem_label(problem)
+        custom_title = item.custom_title.strip()
         topic_label = (
             display_topic_label(effective_topic(statement))
             if statement is not None
@@ -165,15 +167,21 @@ def problem_list_item_rows(problem_list: ProblemList, *, include_inactive: bool 
         )
         mohs = effective_mohs(statement) if statement is not None else problem.mohs
         topic_tags = topic_tags_by_problem_id.get(problem.id) or _raw_topic_tags(problem.topic_tags)
+        display_label = custom_title or source_label
+        if problem_list.hide_source and not custom_title:
+            display_label = f"Problem {item.position}"
         rows.append(
             {
+                "custom_title": custom_title,
+                "display_label": display_label,
                 "id": item.id,
                 "is_active": problem.is_active,
                 "mohs": mohs,
                 "position": item.position,
                 "problem": problem,
-                "problem_label": problem_label(problem),
+                "problem_label": source_label,
                 "problem_uuid": str(problem.problem_uuid),
+                "show_source_context": bool(custom_title and not problem_list.hide_source),
                 "solution_editor_url": reverse("solutions:problem_solution_edit", args=[problem.problem_uuid]),
                 "statement": statement,
                 "statement_render_segments": (
@@ -188,7 +196,12 @@ def problem_list_item_rows(problem_list: ProblemList, *, include_inactive: bool 
 
 def problem_list_picker_rows(problem_list: ProblemList) -> list[dict]:
     item_rows = problem_list_item_rows(problem_list, include_inactive=True)
-    return [_problem_picker_row(row["problem"], is_in_list=True, topic_tags=row["topic_tags"]) for row in item_rows]
+    rows = []
+    for row in item_rows:
+        picker_row = _problem_picker_row(row["problem"], is_in_list=True, topic_tags=row["topic_tags"])
+        picker_row["custom_title"] = row["custom_title"]
+        rows.append(picker_row)
+    return rows
 
 
 def searchable_problem_rows(
@@ -428,6 +441,7 @@ def _problem_picker_row(
             fallback=f"{problem.year}-{problem.problem}",
         ),
         "contest": problem.contest,
+        "custom_title": "",
         "is_active": problem.is_active,
         "is_in_list": is_in_list,
         "mohs": problem.mohs,

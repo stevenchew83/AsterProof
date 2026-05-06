@@ -157,8 +157,13 @@ def problem_search_view(request, list_uuid):
 @require_POST
 def save_items_view(request, list_uuid):
     problem_list = get_object_or_404(ProblemList, list_uuid=list_uuid, author=request.user)
+    custom_titles = request.POST.getlist("custom_title") if "custom_title" in request.POST else None
     try:
-        replace_problem_list_items(problem_list, request.POST.getlist("problem_uuid_order"))
+        replace_problem_list_items(
+            problem_list,
+            request.POST.getlist("problem_uuid_order"),
+            custom_titles=custom_titles,
+        )
     except ProblemListServiceError as exc:
         messages.error(request, str(exc))
     else:

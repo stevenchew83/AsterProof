@@ -212,12 +212,20 @@
           <div class="d-flex align-items-start gap-3">
             <span class="problem-list-public-number">#{{ row.position }}</span>
             <div>
-              <h2 class="problem-list-public-problem-title fw-bold mb-1">{{ row.problem_label }}</h2>
-              <p class="text-muted fs-sm mb-0">
-                <i class="ti ti-category-2 me-1"></i>{{ row.topic_label }}
-                <span class="mx-1">·</span>
-                <i class="ti ti-mountain me-1"></i>MOHS {{ row.mohs|default:"—" }}
+              <h2 class="problem-list-public-problem-title fw-bold mb-1">{{ row.display_label }}</h2>
+              {% if row.show_source_context or not problem_list.hide_topic or not problem_list.hide_mohs %}
+              <p class="text-muted fs-sm mb-0 d-flex flex-wrap align-items-center gap-2">
+                {% if row.show_source_context %}
+                <span><i class="ti ti-certificate me-1"></i>{{ row.problem_label }}</span>
+                {% endif %}
+                {% if not problem_list.hide_topic %}
+                <span><i class="ti ti-category-2 me-1"></i>{{ row.topic_label }}</span>
+                {% endif %}
+                {% if not problem_list.hide_mohs %}
+                <span><i class="ti ti-mountain me-1"></i>MOHS {{ row.mohs|default:"—" }}</span>
+                {% endif %}
               </p>
+              {% endif %}
             </div>
           </div>
           {% if request.user.is_authenticated %}
@@ -230,7 +238,7 @@
           </a>
           {% endif %}
         </div>
-        {% if row.topic_tags %}
+        {% if row.topic_tags and not problem_list.hide_subtopics %}
         <div class="problem-list-public-tags d-flex flex-wrap gap-2 mb-3">
           {% for tag in row.topic_tags %}
           <span class="badge bg-light text-dark border">{{ tag }}</span>
