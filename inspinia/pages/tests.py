@@ -34,6 +34,7 @@ from inspinia.pages.handle_summary_parser import build_handle_summary_preview_pa
 from inspinia.pages.handle_summary_parser import parse_handle_summary_text
 from inspinia.pages.models import ContestMetadata
 from inspinia.pages.models import ContestProblemStatement
+from inspinia.pages.models import PageViewEvent
 from inspinia.pages.models import ProblemSolveRecord
 from inspinia.pages.models import ProblemTopicTechnique
 from inspinia.pages.models import StatementTopicTechnique
@@ -5861,6 +5862,96 @@ def test_user_solution_record_list_applies_filters_before_latest_100_cap(client)
     assert narrow.context["user_solution_record_is_capped"] is False
 
 
+def test_page_view_analytics_tracks_core_archive_surfaces_for_admin(client):
+    viewer = UserFactory(name="Viewer One", email="viewer@example.com")
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="GEO",
+        mohs=4,
+        contest="IMO",
+        problem="P1",
+        contest_year_problem="IMO 2026 P1",
+    )
+    statement = ContestProblemStatement.objects.create(
+        linked_problem=problem,
+        contest_year=2026,
+        contest_name="IMO",
+        contest_year_problem="IMO 2026 P1",
+        day_label="Day 1",
+        problem_number=1,
+        problem_code="P1",
+        statement_latex="Prove the angle claim.",
+    )
+    ProblemSolution.objects.create(
+        problem=problem,
+        author=viewer,
+        title="Synthetic angle chase",
+        status=ProblemSolution.Status.PUBLISHED,
+        published_at=timezone.now(),
+    )
+    problem_list = ProblemList.objects.create(
+        author=viewer,
+        title="Geometry warmups",
+        visibility=ProblemList.Visibility.PUBLIC,
+    )
+
+    client.force_login(viewer)
+    tracked_requests = [
+        client.get(reverse("pages:problem_statement_list")),
+        client.get(reverse("pages:problem_statement_detail", args=[statement.statement_uuid])),
+        client.get(reverse("solutions:problem_solution_list", args=[problem.problem_uuid])),
+        client.get(reverse("problemsets:detail", args=[problem_list.list_uuid])),
+        client.get(reverse("pages:contest_dashboard_listing"), {"contest": "IMO"}),
+    ]
+    assert [response.status_code for response in tracked_requests] == [HTTPStatus.OK] * 5
+
+    client.force_login(admin_user)
+    response = client.get(reverse("pages:page_view_analytics"))
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["page_view_stats"] == {
+        "contest_view_total": 1,
+        "list_view_total": 2,
+        "problem_statement_view_total": 1,
+        "solution_view_total": 1,
+        "total": 5,
+        "unique_user_total": 1,
+    }
+    assert [row["view_type"] for row in response.context["page_view_type_rows"]] == [
+        PageViewEvent.ViewType.PROBLEM_STATEMENT,
+        PageViewEvent.ViewType.SOLUTION,
+        PageViewEvent.ViewType.LIST,
+        PageViewEvent.ViewType.CONTEST,
+    ]
+    rows_by_type = {row["view_type"]: row for row in response.context["page_view_type_rows"]}
+    for view_type in PageViewEvent.ViewType:
+        expected_view_total = 2 if view_type == PageViewEvent.ViewType.LIST else 1
+        assert rows_by_type[view_type]["view_total"] == expected_view_total
+        assert rows_by_type[view_type]["unique_user_total"] == 1
+        assert rows_by_type[view_type]["latest_at"] is not None
+    assert response.context["page_view_top_statements"][0]["label"] == "IMO 2026 P1"
+    assert response.context["page_view_top_statements"][0]["view_total"] == 1
+    assert response.context["page_view_top_solutions"][0]["label"] == "IMO 2026 P1"
+    assert response.context["page_view_top_solutions"][0]["view_total"] == 1
+    assert {row["label"] for row in response.context["page_view_top_lists"]} == {
+        "Geometry warmups",
+        "Problem statement list",
+    }
+    assert response.context["page_view_top_contests"][0]["contest_name"] == "IMO"
+    assert response.context["page_view_top_contests"][0]["view_total"] == 1
+    assert "View analytics" in response.content.decode("utf-8")
+
+
+def test_page_view_analytics_requires_admin_access(client):
+    user = UserFactory()
+    client.force_login(user)
+
+    response = client.get(reverse("pages:page_view_analytics"))
+
+    assert response.status_code == HTTPStatus.FORBIDDEN
+
+
 def test_completion_record_list_applies_query_filters(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     matching_user = UserFactory(name="Ada Lovelace", email="ada@example.com")
@@ -10710,6 +10801,7 @@ def test_dashboard_sidebar_groups_links_into_balanced_workflow_sections_for_admi
         "Quick completions",
         "Ranking imports",
         "Technique analytics",
+        "View analytics",
         "Completion records",
         "Progress analytics",
         "Solution records",
@@ -10744,6 +10836,7 @@ def test_dashboard_sidebar_groups_links_into_balanced_workflow_sections_for_admi
         "Contest analytics",
         "Technique analytics",
         "Statement analytics",
+        "View analytics",
         "Completion records",
         "Progress analytics",
         "Solution records",

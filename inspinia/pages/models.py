@@ -4,6 +4,7 @@ from django.conf import settings
 from django.core.validators import MaxValueValidator
 from django.core.validators import MinValueValidator
 from django.db import models
+from django.utils import timezone
 
 from inspinia.pages.analytics_field_parse import parse_imo_slot_guess_value
 from inspinia.pages.analytics_field_parse import parse_pitfalls_value
@@ -291,6 +292,42 @@ class ContestMetadata(models.Model):
             kwargs["update_fields"] = normalized_update_fields
 
         super().save(*args, **kwargs)
+
+
+class PageViewEvent(models.Model):
+    class ViewType(models.TextChoices):
+        PROBLEM_STATEMENT = "problem_statement", "Problem statement"
+        SOLUTION = "solution", "Solution"
+        LIST = "list", "List"
+        CONTEST = "contest", "Contest"
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="page_view_events",
+    )
+    view_type = models.CharField(max_length=32, choices=ViewType.choices, db_index=True)
+    object_uuid = models.UUIDField(null=True, blank=True, db_index=True)
+    label = models.CharField(max_length=160, blank=True)
+    contest_name = models.CharField(max_length=128, blank=True)
+    contest_year = models.IntegerField(null=True, blank=True)
+    path = models.CharField(max_length=255, blank=True)
+    metadata = models.JSONField(blank=True, default=dict)
+    created_at = models.DateTimeField(default=timezone.now, db_index=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+        indexes = [
+            models.Index(fields=["view_type", "-created_at"], name="pg_pv_type_created_idx"),
+            models.Index(fields=["object_uuid", "view_type"], name="pg_pv_object_type_idx"),
+            models.Index(fields=["contest_name", "-created_at"], name="pg_pv_contest_created_idx"),
+        ]
+
+    def __str__(self) -> str:
+        label = self.label or self.path or self.object_uuid or "page"
+        return f"{self.get_view_type_display()}: {label}"
 
 
 class UserProblemCompletion(models.Model):
