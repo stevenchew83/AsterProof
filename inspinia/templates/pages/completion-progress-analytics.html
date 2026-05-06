@@ -403,6 +403,7 @@
               id="completion-progress-table"
               class="table table-sm table-hover table-striped align-middle w-100 mb-0"
               data-can-edit-difficulty="{% if completion_progress_can_edit_difficulty %}true{% else %}false{% endif %}"
+              data-show-difficulty="{% if completion_progress_show_difficulty %}true{% else %}false{% endif %}"
               data-difficulty-rating-save-url="{{ completion_progress_difficulty_save_url }}"
             ></table>
           </div>
@@ -581,6 +582,7 @@
     var rows = JSON.parse(tableDataEl.textContent);
     var tableEl = document.getElementById("completion-progress-table");
     var canEditDifficulty = tableEl && tableEl.getAttribute("data-can-edit-difficulty") === "true";
+    var showDifficulty = tableEl && tableEl.getAttribute("data-show-difficulty") === "true";
     var ratingSaveUrl = tableEl ? tableEl.getAttribute("data-difficulty-rating-save-url") : "";
     var csrfTokenInput = document.querySelector('#completion-progress-difficulty-csrf input[name="csrfmiddlewaretoken"]');
 
@@ -642,6 +644,12 @@
           var averageHtml = ratingCount
             ? '<div class="text-muted fs-xs mt-1">Avg ' + escapeHtml(averageDisplay) + " - " + escapeHtml(ratingCountLabel(ratingCount)) + "</div>"
             : "";
+          if (!canEditDifficulty) {
+            var valueHtml = value
+              ? '<span class="fw-semibold">' + escapeHtml(value) + "</span>"
+              : '<span class="text-muted">—</span>';
+            return '<div class="completion-progress-difficulty-display">' + valueHtml + averageHtml + "</div>";
+          }
           return (
             '<div class="completion-progress-difficulty-editor" data-statement-uuid="' +
             escapeHtml(statementUuid) +
@@ -689,7 +697,7 @@
       { data: "mohs", title: "MOHS", className: "text-nowrap" }
     ];
 
-    if (canEditDifficulty) {
+    if (showDifficulty) {
       tableColumns.push(difficultyColumn());
     }
 
@@ -716,10 +724,11 @@
       }
     );
 
+    var updatedColumnIndex = tableColumns.length - 1;
     var tableApi = new DataTable("#completion-progress-table", {
       data: rows,
       columns: tableColumns,
-      order: [[0, "desc"]],
+      order: [[updatedColumnIndex, "desc"]],
       pageLength: 25,
       responsive: true
     });

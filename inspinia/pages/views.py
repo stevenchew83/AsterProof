@@ -3949,6 +3949,10 @@ def _completion_progress_apply_difficulty_payloads(
     return rows
 
 
+def _completion_progress_has_user_difficulty(rows: list[dict[str, object]]) -> bool:
+    return any(row.get("user_difficulty_rating") not in ("", None) for row in rows)
+
+
 def _render_completion_progress_analytics(
     request,
     *,
@@ -4016,6 +4020,7 @@ def _render_completion_progress_analytics(
     table_rows = completion_progress_table_rows(filtered_rows)
     table_rows = _completion_progress_apply_difficulty_payloads(table_rows, user=selected_user)
     can_edit_difficulty = selected_user == request.user
+    show_difficulty = can_edit_difficulty or _completion_progress_has_user_difficulty(table_rows)
     context = {
         "completion_progress_charts_payload": completion_progress_charts_payload(
             filtered_rows,
@@ -4045,6 +4050,7 @@ def _render_completion_progress_analytics(
         "completion_progress_reset_url": reverse(reset_url_name),
         "completion_progress_rows": table_rows,
         "completion_progress_selected_user": selected_user,
+        "completion_progress_show_difficulty": show_difficulty,
         "completion_progress_stats": completion_progress_stats(filtered_rows, today=today),
         "completion_progress_table_rows": table_rows,
         "completion_progress_user_options": completion_progress_user_options() if can_select_user else [],
