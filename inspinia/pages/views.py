@@ -3372,6 +3372,12 @@ def _completion_quick_update_row(
         f"{statement.contest_name} {statement.contest_year} {statement.problem_code}"
     )
     topic = effective_topic(statement)
+    linked_problem = statement.linked_problem
+    problem_detail_url = (
+        reverse("solutions:problem_solution_list", args=[linked_problem.problem_uuid])
+        if linked_problem is not None
+        else reverse("pages:problem_statement_detail", args=[statement.statement_uuid])
+    )
     return {
         "completion_date": completion_date.isoformat() if completion_date else "",
         "completion_display": completion_display,
@@ -3383,7 +3389,7 @@ def _completion_quick_update_row(
         "label": label,
         "mohs": effective_mohs(statement),
         "problem_code": statement.problem_code,
-        "problem_detail_url": reverse("pages:problem_statement_detail", args=[statement.statement_uuid]),
+        "problem_detail_url": problem_detail_url,
         "statement_uuid": str(statement.statement_uuid),
         "topic": display_topic_label(topic) if topic else "",
         "year": int(statement.contest_year),

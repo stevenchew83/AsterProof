@@ -4992,7 +4992,7 @@ def test_completion_quick_update_filters_by_contest_year_and_problem_text(client
     assert 'placeholder="YYYY-MM-DD"' in response_html
 
 
-def test_completion_quick_update_problem_label_links_to_statement_detail(client):
+def test_completion_quick_update_problem_label_links_to_solution_problem_page(client):
     user = UserFactory()
     client.force_login(user)
     statement = _create_quick_completion_statement(problem_code="P1", problem_number=1)
@@ -5000,7 +5000,7 @@ def test_completion_quick_update_problem_label_links_to_statement_detail(client)
     response = client.get(reverse("pages:completion_quick_update"))
 
     assert response.status_code == HTTPStatus.OK
-    detail_url = reverse("pages:problem_statement_detail", args=[statement.statement_uuid])
+    detail_url = reverse("solutions:problem_solution_list", args=[statement.problem_uuid])
     row = response.context["completion_quick_update_rows"][0]
     assert row["problem_detail_url"] == detail_url
     response_html = response.content.decode("utf-8")
