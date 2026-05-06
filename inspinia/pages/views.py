@@ -55,6 +55,7 @@ from inspinia.pages.completion_progress import default_completion_progress_user
 from inspinia.pages.completion_progress import filter_completion_progress_rows
 from inspinia.pages.completion_progress import normalize_completion_progress_rows
 from inspinia.pages.completion_progress import resolve_completion_progress_date_range
+from inspinia.pages.contest_links import contest_completion_quick_update_url
 from inspinia.pages.contest_links import contest_dashboard_listing_url
 from inspinia.pages.contest_links import problem_anchor as dashboard_problem_anchor
 from inspinia.pages.contest_links import problem_statement_contest_year_master_url
@@ -4912,10 +4913,10 @@ def archive_hub_view(request):
     context = {
         "archive_hub_primary_links": [
             {
-                "description": "Contest-year statement rows, filters, completion state, and solution links.",
-                "icon": "ti-list-details",
-                "title": "Contest listings",
-                "url": reverse("pages:contest_dashboard_listing"),
+                "description": "Contest-level analytics, year breakdowns, completion heatmaps, and quick-update links.",
+                "icon": "ti-chart-arcs",
+                "title": "Contest analytics",
+                "url": reverse("pages:contest_advanced_dashboard"),
             },
             {
                 "description": "Statement UUIDs, linked problem UUIDs, topics, confidence, and MOHS filters.",
@@ -5627,7 +5628,7 @@ def contest_advanced_analytics_view(request):
             1,
         ) if row["problem_count"] else 0.0
         year_int = int(row["year"])
-        row["year_detail_url"] = contest_dashboard_listing_url(selected_contest, year=year_int)
+        row["year_detail_url"] = contest_completion_quick_update_url(selected_contest, year=year_int)
 
     contest_statements = list(
         contest_base.select_related("linked_problem").values(
@@ -5779,9 +5780,7 @@ def contest_advanced_analytics_view(request):
         )[:8]
     ]
 
-    public_contest_url = ""
-    if _active_problem_records().filter(contest=selected_contest).exists():
-        public_contest_url = contest_dashboard_listing_url(selected_contest)
+    contest_quick_update_url = contest_completion_quick_update_url(selected_contest)
 
     context = {
         "contest_choices": contest_choices,
@@ -5816,7 +5815,7 @@ def contest_advanced_analytics_view(request):
             "year_total": len(heatmap_rows),
         },
         "has_contests": True,
-        "public_contest_url": public_contest_url,
+        "contest_quick_update_url": contest_quick_update_url,
         "recent_statement_rows": recent_statement_rows,
         "selected_contest": selected_contest,
         "topic_rows": topic_rows,

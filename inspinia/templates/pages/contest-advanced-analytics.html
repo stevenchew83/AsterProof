@@ -79,8 +79,8 @@
               {% if show_analytics_dashboard_link %}
               <a href="{% url 'pages:contest_dashboard' %}" class="btn btn-outline-secondary btn-sm">Back to contest directory</a>
               {% endif %}
-              {% if public_contest_url %}
-              <a href="{{ public_contest_url }}" class="btn btn-outline-primary btn-sm">Open contest listing</a>
+              {% if contest_quick_update_url %}
+              <a href="{{ contest_quick_update_url }}" class="btn btn-outline-primary btn-sm">Open quick completions</a>
               {% endif %}
             </div>
           </div>
