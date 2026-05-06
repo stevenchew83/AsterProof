@@ -53,6 +53,8 @@ from inspinia.pages.statement_metadata_backfill import StatementMetadataBackfill
 from inspinia.pages.statement_metadata_backfill import import_statement_metadata_dataframe
 from inspinia.pages.statement_metadata_backfill import statement_metadata_dataframe_from_rows
 from inspinia.pages.views import ADMIN_TABLE_LATEST_LIMIT
+from inspinia.problemsets.models import ProblemList
+from inspinia.problemsets.models import ProblemListItem
 from inspinia.solutions.models import ProblemSolution
 from inspinia.users.models import User
 from inspinia.users.tests.factories import UserFactory
@@ -4477,6 +4479,123 @@ def test_contest_dashboard_listing_shows_unlinked_statement_rows_with_completion
     assert "Unlinked statement row" in response_html
     assert "js-completion-save" in response_html
     assert "Link a problem first" not in response_html
+
+
+def test_contest_dashboard_listing_renders_problem_list_add_controls_for_linked_active_rows(client):
+    user = UserFactory()
+    client.force_login(user)
+    problem_list = ProblemList.objects.create(
+        author=user,
+        title="Balkan practice",
+        description="Rows to revisit.",
+    )
+    linked_problem = ProblemSolveRecord.objects.create(
+        year=2024,
+        topic="GEO",
+        mohs=7,
+        contest="Balkan MO",
+        problem="P3",
+        contest_year_problem="Balkan MO 2024 P3",
+        is_active=True,
+    )
+    inactive_problem = ProblemSolveRecord.objects.create(
+        year=2024,
+        topic="ALG",
+        mohs=5,
+        contest="Balkan MO",
+        problem="P4",
+        contest_year_problem="Balkan MO 2024 P4",
+        is_active=False,
+    )
+    ContestProblemStatement.objects.create(
+        linked_problem=linked_problem,
+        contest_year=2024,
+        contest_name="Balkan MO",
+        problem_number=3,
+        problem_code="P3",
+        day_label="Day 2",
+        statement_latex="Linked active statement",
+    )
+    ContestProblemStatement.objects.create(
+        linked_problem=inactive_problem,
+        contest_year=2024,
+        contest_name="Balkan MO",
+        problem_number=4,
+        problem_code="P4",
+        day_label="Day 2",
+        statement_latex="Linked inactive statement",
+    )
+    ContestProblemStatement.objects.create(
+        contest_year=2024,
+        contest_name="Balkan MO",
+        problem_number=5,
+        problem_code="P5",
+        day_label="Day 2",
+        statement_latex="Unlinked statement",
+    )
+
+    response = client.get(reverse("pages:contest_dashboard_listing"), {"contest": "Balkan MO"})
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["problem_list_add_targets"] == [
+        {
+            "add_url": reverse("problemsets:add_item", args=[problem_list.list_uuid]),
+            "title": "Balkan practice",
+        },
+    ]
+    rows = [
+        problem_row
+        for year_group in response.context["grouped_years"]
+        for problem_row in year_group["problems"]
+    ]
+    row_by_problem_code = {row["problem_code"]: row for row in rows}
+    assert row_by_problem_code["P3"]["is_addable_to_problem_list"] is True
+    assert row_by_problem_code["P4"]["is_addable_to_problem_list"] is False
+    assert row_by_problem_code["P5"]["is_addable_to_problem_list"] is False
+    page = response.content.decode("utf-8")
+    assert "Add to list" in page
+    assert reverse("problemsets:add_item", args=[problem_list.list_uuid]) in page
+    assert f'value="{linked_problem.problem_uuid}"' in page
+    assert f'value="{inactive_problem.problem_uuid}"' not in page
+
+
+def test_contest_dashboard_listing_add_to_problem_list_posts_back_to_listing(client):
+    user = UserFactory()
+    client.force_login(user)
+    problem_list = ProblemList.objects.create(
+        author=user,
+        title="Shortlist",
+        description="Useful rows.",
+    )
+    problem = ProblemSolveRecord.objects.create(
+        year=2024,
+        topic="NT",
+        mohs=8,
+        contest="Balkan MO",
+        problem="P3",
+        contest_year_problem="Balkan MO 2024 P3",
+    )
+    ContestProblemStatement.objects.create(
+        linked_problem=problem,
+        contest_year=2024,
+        contest_name="Balkan MO",
+        problem_number=3,
+        problem_code="P3",
+        day_label="Day 2",
+        statement_latex="Number theory statement",
+    )
+    next_url = reverse("pages:contest_dashboard_listing") + "?contest=Balkan+MO#balkan-mo-2024-p3"
+
+    response = client.post(
+        reverse("problemsets:add_item", args=[problem_list.list_uuid]),
+        {"next": next_url, "problem_uuid": str(problem.problem_uuid)},
+    )
+
+    assert response.status_code == HTTPStatus.FOUND
+    assert response.url == next_url
+    assert list(ProblemListItem.objects.values_list("problem_list_id", "problem_id", "position")) == [
+        (problem_list.id, problem.id, 1),
+    ]
 
 
 def test_completion_board_toggle_accepts_statement_uuid_for_unlinked_statement(client):

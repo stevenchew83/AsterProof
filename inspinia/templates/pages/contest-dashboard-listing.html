@@ -59,6 +59,10 @@
       white-space: nowrap;
     }
 
+    .contest-dashboard-listing .problem-list-add-form {
+      min-width: 15rem;
+    }
+
     .contest-dashboard-listing details summary {
       cursor: pointer;
       color: var(--bs-primary);
@@ -387,6 +391,7 @@
                     <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by topic tags">Topic tags</button></th>
                     <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by statement">Statement</button></th>
                     <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by solutions">Solutions</button></th>
+                    <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by problem lists">Problem lists</button></th>
                     <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by IMO slots">IMO slots</button></th>
                     <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by status">Status</button></th>
                     <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by solved date">Solved date</button></th>
@@ -466,6 +471,33 @@
                       </div>
                       {% else %}
                       <span class="text-muted fs-xs">Unlinked</span>
+                      {% endif %}
+                    </td>
+                    <td data-sort-value="{% if problem.is_addable_to_problem_list %}1{% else %}0{% endif %}">
+                      {% if problem.is_addable_to_problem_list and problem_list_add_targets %}
+                      <form
+                        method="post"
+                        action="{{ problem_list_add_targets.0.add_url }}"
+                        class="problem-list-add-form"
+                      >
+                        {% csrf_token %}
+                        <input type="hidden" name="problem_uuid" value="{{ problem.problem_uuid }}">
+                        <input type="hidden" name="next" value="{{ contest_dashboard_current_url }}#{{ problem.anchor }}">
+                        <div class="input-group input-group-sm">
+                          <select class="form-select js-problem-list-add-target" aria-label="Choose problem list">
+                            {% for target in problem_list_add_targets %}
+                            <option value="{{ target.add_url }}">{{ target.title }}</option>
+                            {% endfor %}
+                          </select>
+                          <button type="submit" class="btn btn-outline-primary">
+                            <i class="ti ti-plus me-1"></i>Add to list
+                          </button>
+                        </div>
+                      </form>
+                      {% elif problem.is_addable_to_problem_list %}
+                      <a href="{% url 'problemsets:create' %}" class="btn btn-outline-secondary btn-sm">Create list</a>
+                      {% else %}
+                      <span class="text-muted fs-xs">—</span>
                       {% endif %}
                     </td>
                     <td class="text-nowrap" data-sort-value="{{ problem.imo_slot_guess_value|default:'' }}">
@@ -631,6 +663,16 @@
   })();
   </script>
   {% endif %}
+  <script>
+  (function () {
+    document.addEventListener("change", function (event) {
+      if (!event.target.matches(".js-problem-list-add-target")) return;
+      var form = event.target.closest("form");
+      if (!form) return;
+      form.action = event.target.value;
+    });
+  })();
+  </script>
   <script>
   (function () {
     var tables = Array.from(document.querySelectorAll(".problem-table"));
