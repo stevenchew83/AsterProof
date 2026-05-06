@@ -5011,6 +5011,8 @@ def test_problem_statement_detail_renders_statement_page(client):
     user = UserFactory()
     client.force_login(user)
     statement = _create_quick_completion_statement(problem_code="P1", problem_number=1)
+    statement.statement_latex = "Determine all $P(x)$ such that $$P^2(x)=P(x^2).$$"
+    statement.save()
 
     response = client.get(reverse("pages:problem_statement_detail", args=[statement.statement_uuid]))
 
@@ -5018,9 +5020,12 @@ def test_problem_statement_detail_renders_statement_page(client):
     assert response.context["problem_statement"] == statement
     response_html = response.content.decode("utf-8")
     assert "USAMO 2026 P1" in response_html
-    assert "USAMO 2026 P1 statement" in response_html
+    assert "Determine all $P(x)$ such that $$P^2(x)=P(x^2).$$" in response_html
     assert "Algebra" in response_html
     assert "MOHS 6" in response_html
+    assert 'class="statement-text-fragment" data-mathjax-scope' in response_html
+    assert "tex-mml-chtml.js" in response_html
+    assert "statement-brief" in response_html
 
 
 def test_completion_quick_update_includes_difficulty_rating_payload_and_controls(client):
