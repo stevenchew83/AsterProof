@@ -3388,6 +3388,7 @@ def _completion_quick_update_row(
         "completion_state_kind": completion_state_kind,
         "completion_state_label": completion_state_label,
         "contest": statement.contest_name,
+        "contest_detail_url": _contest_query_url("pages:contest_advanced_dashboard", statement.contest_name),
         "day_label": statement.day_label or "",
         "is_completed": is_completed,
         "label": label,

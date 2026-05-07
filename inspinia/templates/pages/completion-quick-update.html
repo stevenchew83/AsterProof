@@ -183,7 +183,9 @@
               <tbody>
                 {% for row in completion_quick_update_rows %}
                 <tr data-statement-uuid="{{ row.statement_uuid }}" data-completion-state="{{ row.completion_state_kind }}">
-                  <td class="text-nowrap">{{ row.contest }}</td>
+                  <td class="text-nowrap">
+                    <a href="{{ row.contest_detail_url }}" class="link-primary text-decoration-none">{{ row.contest }}</a>
+                  </td>
                   <td class="text-nowrap">{{ row.year }}</td>
                   <td class="text-nowrap fw-semibold">{{ row.problem_code }}</td>
                   <td>
