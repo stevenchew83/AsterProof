@@ -1,0 +1,17 @@
+2020 Junior Balkan Team Selection Tests-Serbia3
+2020 Junior Balkan Team Selection Tests-Serbia
+1#	Given is triangle $ABC$ with arbitrary point $D$ on $AB$ and central of inscribed circle $I$. The perpendicular bisector of $AB$ intersects $AI$ and $BI$ at $P$ and $Q$, respectively. The circle $(ADP)$ intersects $CA$ at $E$, and the circle $(BDQ)$ intersects $BC$ at $F$ and $(ADP)$ intersects $(BDQ)$ at $K$. Prove that $E, F, K, I$ lie on one circle.
+
+VicKmath7
+view topic
+2#	Solve in positive integers $x^{100}-y^{100}=100!$
+
+VicKmath7
+view topic
+3#	Given are real numbers $a_1, a_2,...,a_{101}$ from the interval $[-2,10]$ such that their sum is $0$. Prove that the sum of their squares is smaller than $2020$.
+
+VicKmath7
+view topic
+4#	One hundred tennis players took part in a tournament where they played with each other
+exactly one game, with no draws. At the end of the tournament a table (ranking) is formed depending on the number of victories. It is known that one tennis player finished the tournament on
+$k$-th place and is the only one with that number of victories, and he has beaten every tennis player who is placed above him in the table and lost to anyone ranked weaker than him on the table. Find the smallest value of $k$.
