@@ -94,7 +94,7 @@ EXAM_AND_DAY_LABEL_RE = re.compile(
     flags=re.IGNORECASE,
 )
 PROBLEM_START_RE = re.compile(
-    r"^(?:\((?P<catalog_number>\d{1,4})\)\s*)?(?:#\s*)?(?:(?P<prefix>[A-Za-z]{1,4})\s*)?(?P<number>\d{1,3})[.)]?(?:\s+(?P<statement>.+))?$",
+    r"^(?:\((?P<catalog_number>\d{1,4})\)\s*)?(?:#\s*)?(?:(?P<prefix>[A-Za-z]{1,4})\s*)?(?P<number>\d{1,3})[.)#]?(?:\s+(?P<statement>.+))?$",
     flags=re.IGNORECASE,
 )
 PROBLEM_KEYWORD_START_RE = re.compile(

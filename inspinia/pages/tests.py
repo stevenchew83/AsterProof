@@ -247,6 +247,12 @@ EXPECTED_KOREAN_MO_WINTER_CAMP_2020_PROBLEM_TOTAL = 8
 KOREAN_MO_WINTER_CAMP_2020_STATEMENT_SAMPLE = (
     Path(__file__).resolve().parent / "testdata" / "korean_mo_winter_camp_2020_sample.txt"
 ).read_text(encoding="utf-8")
+SERBIA_JUNIOR_BALKAN_TEAM_SELECTION_2020_YEAR = 2020
+SERBIA_JUNIOR_BALKAN_TEAM_SELECTION_2020_NAME = "Junior Balkan Team Selection Tests-Serbia"
+EXPECTED_SERBIA_JUNIOR_BALKAN_TEAM_SELECTION_2020_PROBLEM_TOTAL = 4
+SERBIA_JUNIOR_BALKAN_TEAM_SELECTION_2020_STATEMENT_SAMPLE = (
+    Path(__file__).resolve().parent / "testdata" / "serbia_junior_balkan_team_selection_2020_sample.txt"
+).read_text(encoding="utf-8")
 ROMANIA_NATIONAL_OLYMPIAD_2025_YEAR = 2025
 ROMANIA_NATIONAL_OLYMPIAD_2025_NAME = "Romania National Olympiad"
 EXPECTED_ROMANIA_NATIONAL_OLYMPIAD_2025_PROBLEM_TOTAL = 16
@@ -1636,6 +1642,21 @@ def test_parse_contest_problem_statements_supports_hash_numbered_korean_winter_c
     assert "view topic" not in parsed_import.problems[0].statement_latex
     assert "$Q(mn)$ and $Q(m)Q(n)$" in parsed_import.problems[2].statement_latex
     assert "hamiltonian circuit exist for the given graph" in parsed_import.problems[-1].statement_latex
+
+
+def test_parse_contest_problem_statements_supports_trailing_hash_numbered_scrape_problems():
+    parsed_import = parse_contest_problem_statements(SERBIA_JUNIOR_BALKAN_TEAM_SELECTION_2020_STATEMENT_SAMPLE)
+
+    assert parsed_import.contest_year == SERBIA_JUNIOR_BALKAN_TEAM_SELECTION_2020_YEAR
+    assert parsed_import.contest_name == SERBIA_JUNIOR_BALKAN_TEAM_SELECTION_2020_NAME
+    assert len(parsed_import.problems) == EXPECTED_SERBIA_JUNIOR_BALKAN_TEAM_SELECTION_2020_PROBLEM_TOTAL
+    assert [problem.day_label for problem in parsed_import.problems] == [
+        SERBIA_JUNIOR_BALKAN_TEAM_SELECTION_2020_NAME,
+    ] * 4
+    assert [problem.problem_code for problem in parsed_import.problems] == ["P1", "P2", "P3", "P4"]
+    assert "VicKmath7" not in parsed_import.problems[0].statement_latex
+    assert "view topic" not in parsed_import.problems[0].statement_latex
+    assert parsed_import.problems[-1].statement_latex.startswith("One hundred tennis players")
 
 
 def test_parse_contest_problem_statements_supports_grade_sections_for_romania_national_olympiad():
