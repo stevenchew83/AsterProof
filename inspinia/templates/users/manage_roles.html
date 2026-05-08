@@ -104,6 +104,9 @@
                   <td>
                     <input type="hidden" name="user_ids" value="{{ u.pk }}">
                     <select name="role_{{ u.pk }}" class="form-select form-select-sm w-auto" aria-label="{% translate 'Role' %}">
+                      {% if u.unknown_role_label %}
+                      <option value="{{ u.role }}" selected>{{ u.unknown_role_label }}</option>
+                      {% endif %}
                       {% for value, label in role_choices %}
                       <option value="{{ value }}" {% if u.role == value %}selected{% endif %}>{{ label }}</option>
                       {% endfor %}

@@ -527,6 +527,46 @@ class TestManageRolesView:
             metadata__to_approved=False,
         ).exists()
 
+    def test_manage_roles_page_shows_unknown_stored_role_without_defaulting_to_admin(self, client: Client):
+        admin_user = UserFactory(role=User.Role.ADMIN)
+        stale_role_user = UserFactory(email="stale-role@example.com", role="legacy", is_approved=False)
+        client.force_login(admin_user)
+
+        response = client.get(reverse("users:manage_roles"))
+
+        assert response.status_code == HTTPStatus.OK
+        content = response.content.decode("utf-8")
+        assert stale_role_user.email in content
+        assert '<option value="legacy" selected>Unknown role (legacy)</option>' in content
+
+    def test_manage_roles_admin_can_bulk_update_user_with_unknown_previous_role(self, client: Client):
+        admin_user = UserFactory(role=User.Role.ADMIN)
+        stale_role_user = UserFactory(email="stale-role@example.com", role="legacy", is_approved=False)
+        client.force_login(admin_user)
+
+        response = client.post(
+            reverse("users:manage_roles"),
+            {
+                "user_ids": [stale_role_user.pk],
+                f"role_{stale_role_user.pk}": User.Role.ADMIN,
+                f"is_approved_{stale_role_user.pk}": "1",
+            },
+            follow=True,
+        )
+
+        stale_role_user.refresh_from_db()
+
+        assert response.status_code == HTTPStatus.OK
+        assert stale_role_user.role == User.Role.ADMIN
+        assert stale_role_user.is_approved is True
+        assert AuditEvent.objects.filter(
+            event_type=AuditEvent.EventType.ROLE_CHANGED,
+            actor=admin_user,
+            target_user=stale_role_user,
+            metadata__from_role="legacy",
+            metadata__to_role=User.Role.ADMIN,
+        ).exists()
+
     def test_manage_roles_admin_can_approve_user_and_record_audit_event(self, client: Client):
         admin_user = UserFactory(role=User.Role.ADMIN)
         target_user = UserFactory(role=User.Role.NORMAL, is_approved=False)
