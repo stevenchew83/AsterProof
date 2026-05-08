@@ -28,6 +28,7 @@ from django.utils import timezone
 from inspinia.pages.asymptote_render import AsymptoteRenderResult
 from inspinia.pages.asymptote_render import _extract_svg_markup
 from inspinia.pages.asymptote_render import build_statement_render_segments
+from inspinia.pages.completion_progress import completion_progress_contest_heatmap_payload
 from inspinia.pages.contest_existence_audit import ContestExistenceAuditValidationError
 from inspinia.pages.contest_existence_audit import build_contest_existence_audit_payload
 from inspinia.pages.contest_existence_audit import parse_contest_existence_audit_text
@@ -6237,6 +6238,235 @@ def test_completion_record_list_search_matches_solution_status_text(client):
     assert len(response.context["completion_record_rows"]) == 1
     assert response.context["completion_record_rows"][0]["user_email"] == "published@example.com"
     assert response.context["completion_record_rows"][0]["solution_status"] == ProblemSolution.Status.PUBLISHED
+
+
+def _create_heatmap_statement(
+    *,
+    contest: str,
+    year: int,
+    problem_code: str,
+    problem_number: int,
+    day_label: str = "",
+    mohs: int = 10,
+) -> tuple[ProblemSolveRecord, ContestProblemStatement]:
+    problem = ProblemSolveRecord.objects.create(
+        year=year,
+        topic="ALG",
+        mohs=mohs,
+        contest=contest,
+        problem=problem_code,
+        contest_year_problem=f"{contest} {year} {problem_code}",
+    )
+    statement = ContestProblemStatement.objects.create(
+        linked_problem=problem,
+        contest_year=year,
+        contest_name=contest,
+        problem_number=problem_number,
+        problem_code=problem_code,
+        day_label=day_label,
+        statement_latex=f"{contest} {year} {problem_code} statement",
+    )
+    return problem, statement
+
+
+def test_completion_progress_contest_heatmap_payload_marks_cell_states():
+    user = UserFactory()
+    other_user = UserFactory()
+    contest = "APMO"
+    solved_problem, solved_statement = _create_heatmap_statement(
+        contest=contest,
+        year=2026,
+        problem_code="P1",
+        problem_number=1,
+    )
+    _unsolved_problem, _unsolved_statement = _create_heatmap_statement(
+        contest=contest,
+        year=2026,
+        problem_code="P2",
+        problem_number=2,
+    )
+    _partial_problem_one, partial_statement_one = _create_heatmap_statement(
+        contest=contest,
+        year=2026,
+        problem_code="P3",
+        problem_number=3,
+        day_label="Day 1",
+    )
+    _partial_problem_two, _partial_statement_two = _create_heatmap_statement(
+        contest=contest,
+        year=2026,
+        problem_code="P3",
+        problem_number=3,
+        day_label="Day 2",
+    )
+    _older_problem, _older_statement = _create_heatmap_statement(
+        contest=contest,
+        year=2025,
+        problem_code="P2",
+        problem_number=2,
+    )
+
+    UserProblemCompletion.objects.create(
+        user=user,
+        problem=solved_problem,
+        completion_date=date(2026, 1, 1),
+    )
+    UserProblemCompletion.objects.create(
+        user=user,
+        statement=partial_statement_one,
+        completion_date=date(2026, 1, 2),
+    )
+    UserProblemCompletion.objects.create(
+        user=other_user,
+        statement=solved_statement,
+        completion_date=date(2026, 1, 3),
+    )
+
+    heatmap = completion_progress_contest_heatmap_payload(contest=contest, user=user)
+
+    assert heatmap["selected_contest"] == contest
+    assert heatmap["problem_codes"] == ["P1", "P2", "P3"]
+    assert heatmap["year_total"] == 2
+    assert heatmap["problem_code_total"] == 3
+    assert heatmap["filled_cell_total"] == 4
+    assert heatmap["has_partial_cells"] is True
+    row_2026 = next(row for row in heatmap["rows"] if row["year"] == 2026)
+    row_2025 = next(row for row in heatmap["rows"] if row["year"] == 2025)
+    cell_2026_p1 = next(cell for cell in row_2026["cells"] if cell["problem_code"] == "P1")
+    cell_2026_p2 = next(cell for cell in row_2026["cells"] if cell["problem_code"] == "P2")
+    cell_2026_p3 = next(cell for cell in row_2026["cells"] if cell["problem_code"] == "P3")
+    cell_2025_p1 = next(cell for cell in row_2025["cells"] if cell["problem_code"] == "P1")
+    assert cell_2026_p1["state"] == "solved"
+    assert cell_2026_p1["display"] == "✓"
+    assert cell_2026_p1["solution_url"] == reverse(
+        "solutions:problem_solution_list",
+        args=[solved_problem.problem_uuid],
+    )
+    assert cell_2026_p2["state"] == "unsolved"
+    assert cell_2026_p2["display"] == "•"
+    assert cell_2026_p3["state"] == "partial"
+    assert cell_2026_p3["display"] == "1/2"
+    assert cell_2025_p1["state"] == "empty"
+    assert cell_2025_p1["display"] == ""
+    assert heatmap["chart"]["series"][0]["name"] == "2026"
+    assert heatmap["chart"]["series"][0]["data"][0]["y"] == 3
+
+
+def test_completion_progress_contest_heatmap_payload_requires_contest_and_user():
+    user = UserFactory()
+
+    no_contest = completion_progress_contest_heatmap_payload(contest="", user=user)
+    no_user = completion_progress_contest_heatmap_payload(contest="APMO", user=None)
+
+    assert no_contest["selected_contest"] == ""
+    assert no_contest["problem_codes"] == []
+    assert no_contest["chart"]["series"] == []
+    assert no_user["selected_contest"] == "APMO"
+    assert no_user["problem_codes"] == []
+    assert no_user["chart"]["series"] == []
+
+
+def test_completion_progress_analytics_contest_heatmap_uses_selected_user(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    selected_user = UserFactory(email="selected@example.com")
+    other_user = UserFactory(email="other@example.com")
+    client.force_login(admin_user)
+    contest = "APMO"
+    problem, statement = _create_heatmap_statement(
+        contest=contest,
+        year=2026,
+        problem_code="P1",
+        problem_number=1,
+    )
+    UserProblemCompletion.objects.create(
+        user=selected_user,
+        problem=problem,
+        completion_date=date(2026, 1, 1),
+    )
+    UserProblemCompletion.objects.create(
+        user=other_user,
+        statement=statement,
+        completion_date=date(2026, 1, 2),
+    )
+
+    response = client.get(
+        reverse("pages:completion_progress_analytics"),
+        {"contest": contest, "range": "all", "user": str(selected_user.pk)},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    heatmap = response.context["completion_progress_contest_heatmap"]
+    row_2026 = next(row for row in heatmap["rows"] if row["year"] == 2026)
+    cell_p1 = next(cell for cell in row_2026["cells"] if cell["problem_code"] == "P1")
+    assert heatmap["selected_contest"] == contest
+    assert cell_p1["state"] == "solved"
+    response_html = response.content.decode("utf-8")
+    assert response_html.index("Completion heatmap") < response_html.index("Filtered completion rows")
+    assert 'id="chart-completion-progress-contest-heatmap"' in response_html
+    assert "completion-progress-contest-heatmap-data" in response_html
+    assert "Your completions" in response_html
+    assert "No completion from you yet" in response_html
+    assert "No statement row for that year/code" in response_html
+    assert "renderContestHeatmap();" in response_html
+    assert "dataPointSelection" in response_html
+    assert "point.solution_url" in response_html
+
+
+def test_my_completion_progress_contest_heatmap_uses_signed_in_user(client):
+    user = UserFactory()
+    other_user = UserFactory()
+    client.force_login(user)
+    contest = "APMO"
+    _problem, statement = _create_heatmap_statement(
+        contest=contest,
+        year=2026,
+        problem_code="P1",
+        problem_number=1,
+    )
+    UserProblemCompletion.objects.create(
+        user=other_user,
+        statement=statement,
+        completion_date=date(2026, 1, 2),
+    )
+
+    response = client.get(
+        reverse("pages:my_completion_progress_analytics"),
+        {"contest": contest, "range": "all"},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    heatmap = response.context["completion_progress_contest_heatmap"]
+    row_2026 = next(row for row in heatmap["rows"] if row["year"] == 2026)
+    cell_p1 = next(cell for cell in row_2026["cells"] if cell["problem_code"] == "P1")
+    assert heatmap["selected_contest"] == contest
+    assert cell_p1["state"] == "unsolved"
+
+
+def test_completion_progress_contest_heatmap_prompts_for_contest(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    completion_user = UserFactory()
+    client.force_login(admin_user)
+    problem, _statement = _create_heatmap_statement(
+        contest="APMO",
+        year=2026,
+        problem_code="P1",
+        problem_number=1,
+    )
+    UserProblemCompletion.objects.create(
+        user=completion_user,
+        problem=problem,
+        completion_date=date(2026, 1, 1),
+    )
+
+    response = client.get(
+        reverse("pages:completion_progress_analytics"),
+        {"range": "all", "user": str(completion_user.pk)},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    response_html = response.content.decode("utf-8")
+    assert "Select a contest in the filters to load year-by-problem completion coverage." in response_html
+    assert 'id="chart-completion-progress-contest-heatmap"' not in response_html
 
 
 def test_completion_progress_analytics_renders_admin_dashboard(client):
