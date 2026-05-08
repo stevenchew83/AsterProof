@@ -281,6 +281,37 @@ class HandleSummaryParserForm(forms.Form):
         return text
 
 
+class ContestExistenceAuditForm(forms.Form):
+    source_text = forms.CharField(
+        label="Contest scrape",
+        strip=False,
+        widget=forms.Textarea(
+            attrs={
+                "class": "form-control font-monospace",
+                "form": "contest-existence-audit-form",
+                "id": "contest-existence-audit-input",
+                "rows": 24,
+                "spellcheck": "false",
+                "placeholder": (
+                    "2026 Contests3\n"
+                    " 2026 Abelkonkurransen Finale\n"
+                    "1a\tDetermine all pairs of positive integers...\n"
+                    "RANDOM__USER\n"
+                    "view topic\n"
+                    " 2026 AIMEAIME 2026"
+                ),
+            },
+        ),
+    )
+
+    def clean_source_text(self):
+        text = self.cleaned_data["source_text"]
+        if not text.strip():
+            msg = "Paste contest text before checking."
+            raise forms.ValidationError(msg)
+        return text
+
+
 class ProblemCompletionPasteForm(forms.Form):
     source_text = forms.CharField(
         label="Completion rows",

@@ -2958,12 +2958,30 @@ def test_handle_summary_parser_requires_login(client):
     assert response.url == f"{login_url}?next={reverse('pages:handle_summary_parser')}"
 
 
+def test_contest_existence_audit_requires_login(client):
+    response = client.get(reverse("pages:contest_existence_audit"))
+    login_url = reverse(settings.LOGIN_URL)
+
+    assert response.status_code == HTTPStatus.FOUND
+    assert response.url == f"{login_url}?next={reverse('pages:contest_existence_audit')}"
+
+
 @override_settings(DEBUG=False)
 def test_handle_summary_parser_forbids_non_admin_when_debug_is_off(client):
     user = UserFactory()
     client.force_login(user)
 
     response = client.get(reverse("pages:handle_summary_parser"))
+
+    assert response.status_code == HTTPStatus.FORBIDDEN
+
+
+@override_settings(DEBUG=False)
+def test_contest_existence_audit_forbids_non_admin_when_debug_is_off(client):
+    user = UserFactory()
+    client.force_login(user)
+
+    response = client.get(reverse("pages:contest_existence_audit"))
 
     assert response.status_code == HTTPStatus.FORBIDDEN
 
@@ -7150,6 +7168,62 @@ def test_handle_summary_parser_allows_admin_access(client):
     assert 'id="handle-summary-parser-form"' in response_html
 
 
+def test_contest_existence_audit_allows_admin_and_posts_audit_results(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="ALG",
+        mohs=5,
+        contest="Canadian National Olympiad",
+        problem="P1",
+        contest_year_problem="Canadian National Olympiad 2026 P1",
+    )
+    ContestProblemStatement.objects.create(
+        contest_year=2026,
+        contest_name="Canadian National Olympiad",
+        day_label="",
+        problem_number=1,
+        problem_code="P1",
+        statement_latex="Canadian statement",
+    )
+
+    get_response = client.get(reverse("pages:contest_existence_audit"))
+    assert get_response.status_code == HTTPStatus.OK
+    assert "Contest existence audit" in get_response.content.decode("utf-8")
+    assert get_response.context["preview_payload"] is None
+
+    response = client.post(
+        reverse("pages:contest_existence_audit"),
+        {
+            "source_text": "\n".join(
+                [
+                    "2026 Contests3",
+                    "2026 Canadian National Olympiad",
+                    "2026 Canadian National Olympiad",
+                    "2026 Canada National Olympiad",
+                ]
+            ),
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    payload = response.context["preview_payload"]
+    assert payload["row_count"] == 2
+    rows_by_contest = {row["contest_name"]: row for row in payload["rows"]}
+    assert rows_by_contest["Canadian National Olympiad"]["overall_status"] == "both_found"
+    assert rows_by_contest["Canadian National Olympiad"]["occurrence_count"] == 2
+    assert rows_by_contest["Canada National Olympiad"]["overall_status"] == "missing"
+    assert rows_by_contest["Canada National Olympiad"]["suggestions"] == [
+        "Canadian National Olympiad",
+    ]
+    assert "Canadian National Olympiad" in payload["export_tsv"]
+    response_html = response.content.decode("utf-8")
+    assert 'id="contest-existence-audit-form"' in response_html
+    assert 'id="contest-existence-audit-results-table"' in response_html
+    assert 'id="contest-existence-audit-export"' in response_html
+
+
 def test_problem_analytics_dashboard_exposes_contest_year_mohs_pivot_table(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
@@ -11133,6 +11207,7 @@ def test_dashboard_sidebar_groups_links_into_balanced_workflow_sections_for_admi
         "Delete statement",
         "LaTeX preview",
         "Handle parser",
+        "Contest audit",
         "User roles",
         "Session monitor",
         "Event log",

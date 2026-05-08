@@ -1,0 +1,215 @@
+{% extends 'layouts/vertical.html' %}
+
+{% load i18n %}
+
+{% block title %}Contest existence audit{% endblock title %}
+
+{% block extra_css %}
+<style>
+  .contest-audit-export {
+    min-height: 14rem;
+  }
+
+  .contest-audit-suggestions {
+    min-width: 18rem;
+    white-space: normal;
+  }
+</style>
+{% endblock extra_css %}
+
+{% block page_content %}
+<div class="container-fluid">
+  {% include 'partials/page-title.html' with title='Contest existence audit' subtitle='Workspace tool' %}
+
+  {% if messages %}
+  <div class="mt-3">
+    {% for message in messages %}
+      <div class="alert alert-{% if message.tags == 'error' %}danger{% elif message.tags == 'debug' %}secondary{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="{% translate 'Close' %}"></button>
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="row g-3 mt-0">
+    <div class="col-12">
+      <form id="contest-existence-audit-form" method="post" class="card">
+        {% csrf_token %}
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-0">Paste contest scrape text and check exact contest-year existence</h4>
+          <p class="text-muted fs-xs mb-0">Only lines starting with a 4-digit year are parsed. Suggestions are same-year hints and do not count as existing rows.</p>
+        </div>
+        <div class="card-body pt-2">
+          {% if form.non_field_errors %}
+          <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+          {% endif %}
+          <div class="d-flex flex-wrap gap-2 align-items-center">
+            <button type="submit" class="btn btn-primary">
+              <i class="ti ti-database-search me-1"></i>Check contests
+            </button>
+            <button type="button" class="btn btn-outline-secondary" id="contest-existence-audit-clear">
+              <i class="ti ti-eraser me-1"></i>Clear
+            </button>
+            {% if preview_payload %}
+            <button type="button" class="btn btn-outline-secondary" id="contest-existence-audit-copy">
+              <i class="ti ti-copy me-1"></i>Copy TSV
+            </button>
+            {% endif %}
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-0 mb-4">
+    <div class="col-xl-6">
+      <div class="card h-100">
+        <div class="card-header border-bottom">
+          <h4 class="header-title mb-0">Raw input</h4>
+        </div>
+        <div class="card-body">
+          <label class="form-label" for="contest-existence-audit-input">Input</label>
+          {{ form.source_text }}
+          {% for error in form.source_text.errors %}
+          <div class="invalid-feedback d-block">{{ error }}</div>
+          {% endfor %}
+          <div class="form-text">Generic headings such as <code>2026 Contests3</code> are skipped.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-6">
+      <div class="card h-100">
+        <div class="card-header border-bottom">
+          <h4 class="header-title mb-0">Audit summary</h4>
+          <p class="text-muted fs-xs mb-0">Exact matches across statement and analytics data.</p>
+        </div>
+        <div class="card-body">
+          {% if preview_payload %}
+          <div class="row g-3">
+            <div class="col-6 col-lg-3">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Parsed</p>
+              <h3 class="mb-0">{{ preview_payload.summary.parsed_total }}</h3>
+            </div>
+            <div class="col-6 col-lg-3">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Both</p>
+              <h3 class="mb-0 text-success">{{ preview_payload.summary.both_found_total }}</h3>
+            </div>
+            <div class="col-6 col-lg-3">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Partial</p>
+              <h3 class="mb-0 text-warning">{{ preview_payload.summary.partial_total }}</h3>
+            </div>
+            <div class="col-6 col-lg-3">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Missing</p>
+              <h3 class="mb-0 text-danger">{{ preview_payload.summary.missing_total }}</h3>
+            </div>
+          </div>
+          <textarea
+            id="contest-existence-audit-export"
+            class="form-control font-monospace contest-audit-export mt-4"
+            readonly
+          >{{ preview_payload.export_tsv }}</textarea>
+          {% else %}
+          <div class="alert alert-info mb-0" role="status">
+            Paste contest text and run the check to see statement-table and analytics-table status.
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if preview_payload %}
+  <div class="row g-3 mt-0">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2">
+          <div>
+            <h4 class="header-title mb-0">Parsed contests</h4>
+            <p class="text-muted fs-xs mb-0">Status is based on exact normalized contest-year matches.</p>
+          </div>
+          <span class="badge bg-primary-subtle text-primary">{{ preview_payload.row_count }} row{{ preview_payload.row_count|pluralize }}</span>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table id="contest-existence-audit-results-table" class="table table-striped table-bordered align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th scope="col">Line</th>
+                  <th scope="col">Year</th>
+                  <th scope="col">Contest</th>
+                  <th scope="col">Seen</th>
+                  <th scope="col">Statements</th>
+                  <th scope="col">Analytics</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Suggestions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in preview_payload.rows %}
+                <tr>
+                  <td>{{ row.first_line_number }}</td>
+                  <td>{{ row.year }}</td>
+                  <td>{{ row.contest_name }}</td>
+                  <td>{{ row.occurrence_count }}</td>
+                  <td>
+                    <span class="badge {% if row.statement_status == 'found' %}bg-success-subtle text-success{% else %}bg-secondary-subtle text-secondary{% endif %}">
+                      {{ row.statement_status }} - {{ row.statement_count }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="badge {% if row.analytics_status == 'found' %}bg-success-subtle text-success{% else %}bg-secondary-subtle text-secondary{% endif %}">
+                      {{ row.analytics_status }} - {{ row.analytics_count }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="badge {% if row.overall_status == 'both_found' %}bg-success-subtle text-success{% elif row.overall_status == 'missing' %}bg-danger-subtle text-danger{% else %}bg-warning-subtle text-warning{% endif %}">
+                      {{ row.overall_status }}
+                    </span>
+                  </td>
+                  <td class="contest-audit-suggestions">
+                    {% if row.suggestions %}
+                    {{ row.suggestions_label }}
+                    {% else %}
+                    <span class="text-muted">-</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock page_content %}
+
+{% block extra_javascript %}
+<script>
+  (function() {
+    var clearButton = document.getElementById("contest-existence-audit-clear");
+    var copyButton = document.getElementById("contest-existence-audit-copy");
+    var input = document.getElementById("contest-existence-audit-input");
+    var exportBox = document.getElementById("contest-existence-audit-export");
+
+    if (clearButton && input) {
+      clearButton.addEventListener("click", function() {
+        input.value = "";
+        input.focus();
+      });
+    }
+
+    if (copyButton && exportBox) {
+      copyButton.addEventListener("click", function() {
+        exportBox.select();
+        exportBox.setSelectionRange(0, exportBox.value.length);
+        navigator.clipboard.writeText(exportBox.value).catch(function() {});
+      });
+    }
+  })();
+</script>
+{% endblock extra_javascript %}

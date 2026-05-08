@@ -306,6 +306,12 @@
                     <span class="menu-text">Handle parser</span>
                 </a>
             </li>
+            <li class="side-nav-item">
+                <a href="{% url 'pages:contest_existence_audit' %}" class="side-nav-link">
+                    <span class="menu-icon"><i class="ti ti-database-search"></i></span>
+                    <span class="menu-text">Contest audit</span>
+                </a>
+            </li>
             {% endif %}
 
             {% if is_app_admin %}
