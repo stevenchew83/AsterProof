@@ -407,6 +407,13 @@ CHINA_NATIONAL_OLYMPIAD_2026_STATEMENT_SAMPLE = (
     "4\tVisible day two statement.\n"
     "Click to reveal hidden text\n"
 )
+ALL_RUSSIAN_OLYMPIAD_2026_YEAR = 2026
+ALL_RUSSIAN_OLYMPIAD_2026_NAME = "All-Russian Olympiad"
+EXPECTED_ALL_RUSSIAN_OLYMPIAD_2026_PROBLEM_TOTAL = 13
+EXPECTED_ALL_RUSSIAN_OLYMPIAD_2026_LAST_GRADE_TEN_NUMBER = 8
+ALL_RUSSIAN_OLYMPIAD_2026_STATEMENT_SAMPLE = (
+    Path(__file__).resolve().parent / "testdata" / "all_russian_olympiad_2026_sample.txt"
+).read_text(encoding="utf-8")
 TOURNAMENT_OF_TOWNS_YEAR = 2025
 TOURNAMENT_OF_TOWNS_NAME = "TOURNAMENT OF TOWNS"
 EXPECTED_TOURNAMENT_OF_TOWNS_PROBLEM_TOTAL = 2
@@ -1676,6 +1683,24 @@ def test_parse_contest_problem_statements_supports_grade_sections_for_romania_na
     assert "view topic" not in parsed_import.problems[0].statement_latex
     assert "the equation has at most $2$ real solutions." in parsed_import.problems[2].statement_latex
     assert "has at least $p$ coefficients equal to $1$." in parsed_import.problems[-1].statement_latex
+
+
+def test_parse_contest_problem_statements_supports_grade_prefixed_problem_codes():
+    parsed_import = parse_contest_problem_statements(ALL_RUSSIAN_OLYMPIAD_2026_STATEMENT_SAMPLE)
+
+    assert parsed_import.contest_year == ALL_RUSSIAN_OLYMPIAD_2026_YEAR
+    assert parsed_import.contest_name == ALL_RUSSIAN_OLYMPIAD_2026_NAME
+    assert len(parsed_import.problems) == EXPECTED_ALL_RUSSIAN_OLYMPIAD_2026_PROBLEM_TOTAL
+    assert [problem.day_label for problem in parsed_import.problems[:2]] == ["Grade 9"] * 2
+    assert [problem.day_label for problem in parsed_import.problems[2:10]] == ["Grade 10"] * 8
+    assert [problem.day_label for problem in parsed_import.problems[10:]] == ["Grade 11"] * 3
+    assert [problem.problem_code for problem in parsed_import.problems[:3]] == ["9.1", "9.2", "10.1"]
+    assert parsed_import.problems[9].problem_code == "10.8"
+    assert parsed_import.problems[9].problem_number == EXPECTED_ALL_RUSSIAN_OLYMPIAD_2026_LAST_GRADE_TEN_NUMBER
+    assert parsed_import.problems[10].statement_latex == "Same as 10.1"
+    assert parsed_import.problems[12].statement_latex == "Same as 9.4"
+    assert "Tintarn" not in parsed_import.problems[1].statement_latex
+    assert "view topic" not in parsed_import.problems[1].statement_latex
 
 
 def test_parse_contest_problem_statements_supports_grade_level_sections_for_older_romania_national_olympiad():

@@ -97,6 +97,9 @@ PROBLEM_START_RE = re.compile(
     r"^(?:\((?P<catalog_number>\d{1,4})\)\s*)?(?:#\s*)?(?:(?P<prefix>[A-Za-z]{1,4})\s*)?(?P<number>\d{1,3})[.)#]?(?:\s+(?P<statement>.+))?$",
     flags=re.IGNORECASE,
 )
+GRADE_PREFIXED_PROBLEM_START_RE = re.compile(
+    r"^(?P<grade>\d{1,2})\.(?P<number>\d{1,3})[.)#]?(?:\s+(?P<statement>.+))?$",
+)
 PROBLEM_KEYWORD_START_RE = re.compile(
     r"^(?:Problem|Question)\s+(?P<number>\d{1,3})[.):]?(?:\s+(?P<statement>.+))?$",
     flags=re.IGNORECASE,
@@ -907,6 +910,15 @@ def _normalized_problem_statement_text(statement: str, *, number: int) -> str:
     return candidate
 
 
+def _current_grade_section_number(state: _StatementParseState) -> int | None:
+    section_label = state.current_primary_section or state.current_day
+    for pattern in (GRADE_SECTION_RE, GRADE_LEVEL_SECTION_RE):
+        match = pattern.fullmatch(section_label)
+        if match is not None:
+            return int(match.group("number"))
+    return None
+
+
 def _is_section_metadata_line(line: str | None) -> bool:
     if line is None:
         return False
@@ -944,6 +956,7 @@ def _is_problem_start_candidate(line: str | None) -> bool:
         return False
     return bool(
         PROBLEM_KEYWORD_START_RE.match(line)
+        or GRADE_PREFIXED_PROBLEM_START_RE.match(line)
         or
         PROBLEM_START_RE.match(line)
         or SPECIAL_PROBLEM_CODE_RE.match(line)
@@ -1195,6 +1208,21 @@ def _start_keyword_numbered_problem(state: _StatementParseState, match: re.Match
     )
 
 
+def _start_grade_prefixed_problem(state: _StatementParseState, match: re.Match[str]) -> None:
+    _flush_problem(state)
+    grade = int(match.group("grade"))
+    number = int(match.group("number"))
+    statement_text = (match.group("statement") or "").strip()
+    state.current_problem_code = f"{grade}.{number}"
+    state.current_problem_number = number
+    state.awaiting_new_problem = False
+    state.current_statement_lines = (
+        [_normalized_problem_statement_text(statement_text, number=number)]
+        if statement_text
+        else []
+    )
+
+
 def _can_start_inline_numbered_problem(
     state: _StatementParseState,
     problem_match: re.Match[str],
@@ -1216,6 +1244,24 @@ def _can_start_inline_numbered_problem(
         return False
     first_char = statement[:1]
     return number == state.current_problem_number + 1 and first_char.isalpha()
+
+
+def _can_start_grade_prefixed_problem(
+    state: _StatementParseState,
+    problem_match: re.Match[str],
+) -> bool:
+    current_grade = _current_grade_section_number(state)
+    if current_grade is None or current_grade != int(problem_match.group("grade")):
+        return False
+
+    if state.current_problem_number is None or state.awaiting_new_problem:
+        return True
+
+    statement = (problem_match.group("statement") or "").strip()
+    if not statement:
+        return False
+
+    return int(problem_match.group("number")) == state.current_problem_number + 1
 
 
 def _can_start_alpha_problem(state: _StatementParseState) -> bool:
@@ -1414,6 +1460,11 @@ def _consume_header_or_problem_line(
         keyword_problem_match,
     ):
         _start_keyword_numbered_problem(state, keyword_problem_match)
+    elif (grade_problem_match := GRADE_PREFIXED_PROBLEM_START_RE.match(line)) and _can_start_grade_prefixed_problem(
+        state,
+        grade_problem_match,
+    ):
+        _start_grade_prefixed_problem(state, grade_problem_match)
     elif (alpha_problem_match := ALPHA_PROBLEM_CODE_RE.match(line)) and _can_start_alpha_problem(state):
         _start_alpha_problem(state, alpha_problem_match)
     elif (problem_match := PROBLEM_START_RE.match(line)) and _can_start_inline_numbered_problem(
