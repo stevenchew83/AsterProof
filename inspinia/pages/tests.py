@@ -6379,6 +6379,13 @@ def test_completion_progress_analytics_contest_heatmap_uses_selected_user(client
     cell_p1 = next(cell for cell in row_2026["cells"] if cell["problem_code"] == "P1")
     assert heatmap["selected_contest"] == contest
     assert cell_p1["state"] == "solved"
+    response_html = response.content.decode("utf-8")
+    assert response_html.index("Completion heatmap") < response_html.index("Filtered completion rows")
+    assert 'id="chart-completion-progress-contest-heatmap"' in response_html
+    assert "completion-progress-contest-heatmap-data" in response_html
+    assert "Your completions" in response_html
+    assert "No completion from you yet" in response_html
+    assert "No statement row for that year/code" in response_html
 
 
 def test_my_completion_progress_contest_heatmap_uses_signed_in_user(client):
@@ -6409,6 +6416,33 @@ def test_my_completion_progress_contest_heatmap_uses_signed_in_user(client):
     cell_p1 = next(cell for cell in row_2026["cells"] if cell["problem_code"] == "P1")
     assert heatmap["selected_contest"] == contest
     assert cell_p1["state"] == "unsolved"
+
+
+def test_completion_progress_contest_heatmap_prompts_for_contest(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    completion_user = UserFactory()
+    client.force_login(admin_user)
+    problem, _statement = _create_heatmap_statement(
+        contest="APMO",
+        year=2026,
+        problem_code="P1",
+        problem_number=1,
+    )
+    UserProblemCompletion.objects.create(
+        user=completion_user,
+        problem=problem,
+        completion_date=date(2026, 1, 1),
+    )
+
+    response = client.get(
+        reverse("pages:completion_progress_analytics"),
+        {"range": "all", "user": str(completion_user.pk)},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    response_html = response.content.decode("utf-8")
+    assert "Select a contest in the filters to load year-by-problem completion coverage." in response_html
+    assert 'id="chart-completion-progress-contest-heatmap"' not in response_html
 
 
 def test_completion_progress_analytics_renders_admin_dashboard(client):
