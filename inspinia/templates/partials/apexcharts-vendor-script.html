@@ -1,6 +1,8 @@
 {% load static %}
-{# ApexCharts UMD uses the AMD branch when define.amd is truthy, which skips
-   assigning window.ApexCharts. Clear AMD just for this vendor load, then restore it. #}
+{% comment %}
+ApexCharts UMD uses the AMD branch when define.amd is truthy, which skips
+assigning window.ApexCharts. Clear AMD just for this vendor load, then restore it.
+{% endcomment %}
 <script>
 (function () {
   var g = window;
