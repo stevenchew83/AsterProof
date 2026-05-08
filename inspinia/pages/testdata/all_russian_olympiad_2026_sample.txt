@@ -1,0 +1,53 @@
+2026 All-Russian Olympiad3
+All-Russian Olympiad 2026
+Grade 9
+9.1	Initially, there are 75 candies on a plate.
+
+Tintarn
+view topic
+9.2	Call a natural number $n$ strange if there exist pairwise distinct natural numbers $a,b,c,d,e>1$ such that
+\[
+n = a^{a^a} = b^{b^c} = d^{e^e}.
+\]
+Are there finitely or infinitely many strange numbers?
+
+Tintarn
+view topic
+Grade 10
+10.1	Same as 9.1
+10.2	A sequence of natural numbers $a_1,a_2,\dots$ satisfies
+\[
+a_1+a_2+\dots+a_{2n-1}=a_n^2.
+\]
+Find all such sequences.
+
+Tintarn
+view topic
+10.3	Third grade-ten problem.
+
+Tintarn
+view topic
+10.4	Fourth grade-ten problem.
+
+Tintarn
+view topic
+10.5	Fifth grade-ten problem.
+
+bin_sherlo
+view topic
+10.6	Sixth grade-ten problem.
+
+bin_sherlo
+view topic
+10.7	Seventh grade-ten problem.
+
+egxa
+view topic
+10.8	Same as 9.8
+Grade 11
+11.1	Same as 10.1
+11.2	The medians of an acute triangle $ABC$ meet at $M$.
+
+Tintarn
+view topic
+11.3	Same as 9.4
