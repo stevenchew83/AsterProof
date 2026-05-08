@@ -13,6 +13,7 @@ from inspinia.pages.views import contest_analytics_view
 from inspinia.pages.views import contest_dashboard_listing_bulk_update_view
 from inspinia.pages.views import contest_dashboard_listing_view
 from inspinia.pages.views import contest_details_view
+from inspinia.pages.views import contest_existence_audit_view
 from inspinia.pages.views import contest_rename_view
 from inspinia.pages.views import dashboard_analytics_view
 from inspinia.pages.views import handle_summary_parser_view
@@ -142,6 +143,7 @@ urlpatterns = [
     ),
     path("tools/contest-details/", contest_details_view, name="contest_details"),
     path("tools/contest-rename/", contest_rename_view, name="contest_rename"),
+    path("tools/contest-existence-audit/", contest_existence_audit_view, name="contest_existence_audit"),
     path("tools/handle-summary-parser/", handle_summary_parser_view, name="handle_summary_parser"),
     path("tools/latex-preview/", latex_preview_view, name="latex_preview"),
     path("tools/render-statement/", statement_render_preview_view, name="statement_render_preview"),

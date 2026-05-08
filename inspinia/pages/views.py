@@ -56,6 +56,9 @@ from inspinia.pages.completion_progress import default_completion_progress_user
 from inspinia.pages.completion_progress import filter_completion_progress_rows
 from inspinia.pages.completion_progress import normalize_completion_progress_rows
 from inspinia.pages.completion_progress import resolve_completion_progress_date_range
+from inspinia.pages.contest_existence_audit import ContestExistenceAuditValidationError
+from inspinia.pages.contest_existence_audit import build_contest_existence_audit_payload
+from inspinia.pages.contest_existence_audit import parse_contest_existence_audit_text
 from inspinia.pages.contest_links import contest_completion_quick_update_url
 from inspinia.pages.contest_links import contest_dashboard_listing_url
 from inspinia.pages.contest_links import problem_anchor as dashboard_problem_anchor
@@ -63,6 +66,7 @@ from inspinia.pages.contest_links import problem_statement_contest_year_master_u
 from inspinia.pages.contest_names import normalize_contest_name
 from inspinia.pages.contest_rename import ContestRenameValidationError
 from inspinia.pages.contest_rename import rename_contests
+from inspinia.pages.forms import ContestExistenceAuditForm
 from inspinia.pages.forms import ContestMetadataForm
 from inspinia.pages.forms import ContestRenameForm
 from inspinia.pages.forms import HandleSummaryParserForm
@@ -296,6 +300,37 @@ def handle_summary_parser_view(request):
     return render(
         request,
         "pages/handle-summary-parser.html",
+        {
+            "form": form,
+            "preview_payload": preview_payload,
+        },
+    )
+
+
+@login_required
+def contest_existence_audit_view(request):
+    _require_admin_tools_access(request)
+    preview_payload = None
+
+    if request.method == "POST":
+        form = ContestExistenceAuditForm(request.POST)
+        if form.is_valid():
+            try:
+                parsed_headers = parse_contest_existence_audit_text(form.cleaned_data["source_text"])
+            except ContestExistenceAuditValidationError as exc:
+                messages.error(request, str(exc))
+            else:
+                preview_payload = build_contest_existence_audit_payload(parsed_headers)
+                messages.info(
+                    request,
+                    f'Checked {preview_payload["row_count"]} parsed contest-year row(s).',
+                )
+    else:
+        form = ContestExistenceAuditForm()
+
+    return render(
+        request,
+        "pages/contest-existence-audit.html",
         {
             "form": form,
             "preview_payload": preview_payload,

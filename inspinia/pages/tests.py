@@ -29,6 +29,9 @@ from inspinia.pages.asymptote_render import AsymptoteRenderResult
 from inspinia.pages.asymptote_render import _extract_svg_markup
 from inspinia.pages.asymptote_render import build_statement_render_segments
 from inspinia.pages.completion_progress import completion_progress_contest_heatmap_payload
+from inspinia.pages.contest_existence_audit import ContestExistenceAuditValidationError
+from inspinia.pages.contest_existence_audit import build_contest_existence_audit_payload
+from inspinia.pages.contest_existence_audit import parse_contest_existence_audit_text
 from inspinia.pages.contest_links import contest_dashboard_listing_url
 from inspinia.pages.contest_links import problem_statement_contest_year_master_url
 from inspinia.pages.handle_summary_parser import build_handle_summary_preview_payload
@@ -2956,12 +2959,30 @@ def test_handle_summary_parser_requires_login(client):
     assert response.url == f"{login_url}?next={reverse('pages:handle_summary_parser')}"
 
 
+def test_contest_existence_audit_requires_login(client):
+    response = client.get(reverse("pages:contest_existence_audit"))
+    login_url = reverse(settings.LOGIN_URL)
+
+    assert response.status_code == HTTPStatus.FOUND
+    assert response.url == f"{login_url}?next={reverse('pages:contest_existence_audit')}"
+
+
 @override_settings(DEBUG=False)
 def test_handle_summary_parser_forbids_non_admin_when_debug_is_off(client):
     user = UserFactory()
     client.force_login(user)
 
     response = client.get(reverse("pages:handle_summary_parser"))
+
+    assert response.status_code == HTTPStatus.FORBIDDEN
+
+
+@override_settings(DEBUG=False)
+def test_contest_existence_audit_forbids_non_admin_when_debug_is_off(client):
+    user = UserFactory()
+    client.force_login(user)
+
+    response = client.get(reverse("pages:contest_existence_audit"))
 
     assert response.status_code == HTTPStatus.FORBIDDEN
 
@@ -7233,6 +7254,136 @@ def test_handle_summary_parser_accepts_mohs_range_with_to_word():
     assert parsed_rows[0].handle == "Red-blue averaging cards"
 
 
+def test_contest_existence_audit_parser_reads_year_prefixed_contest_headers():
+    parsed_headers = parse_contest_existence_audit_text(
+        "\n".join(
+            [
+                "2026 Contests3",
+                " 2026 Abelkonkurransen Finale",
+                "1a\tDetermine all pairs of positive integers.",
+                "RANDOM__USER",
+                "view topic",
+                " 2026 AIMEAIME 2026",
+                "I",
+                "February 5",
+                "1\tPatrick started walking.",
+                " 2026 All-Russian OlympiadAll-Russian Olympiad 2026",
+                "Grade 9",
+                "9.1\tInitially, there are 75 candies.",
+                " 2026 Austrian MO National Competition2026 Austrian MO National Competition",
+                "Preliminary round (May 2, 2026)",
+                "1\tProve that for all integers.",
+                " 2026 Abelkonkurransen Finale",
+            ]
+        )
+    )
+
+    assert [
+        (
+            header.year,
+            header.contest_name,
+            header.first_line_number,
+            header.occurrence_count,
+        )
+        for header in parsed_headers
+    ] == [
+        (2026, "Abelkonkurransen Finale", 2, 2),
+        (2026, "AIME", 6, 1),
+        (2026, "All-Russian Olympiad", 10, 1),
+        (2026, "Austrian MO National Competition", 13, 1),
+    ]
+
+
+def test_contest_existence_audit_parser_rejects_text_without_contest_headers():
+    with pytest.raises(
+        ContestExistenceAuditValidationError,
+        match="No year-prefixed contest headers were detected.",
+    ):
+        parse_contest_existence_audit_text(
+            "\n".join(
+                [
+                    "Day 1",
+                    "1\tLet ABC be a triangle.",
+                    "RANDOM__USER",
+                    "view topic",
+                ]
+            )
+        )
+
+
+def test_contest_existence_audit_payload_checks_both_tables_and_suggests_same_year_names():
+    ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="ALG",
+        mohs=5,
+        contest="Canadian National Olympiad",
+        problem="P1",
+        contest_year_problem="Canadian National Olympiad 2026 P1",
+    )
+    ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="NT",
+        mohs=7,
+        contest="All-Russian Olympiad",
+        problem="P1",
+        contest_year_problem="All-Russian Olympiad 2026 P1",
+    )
+    ContestProblemStatement.objects.create(
+        contest_year=2026,
+        contest_name="Canadian National Olympiad",
+        day_label="",
+        problem_number=1,
+        problem_code="P1",
+        statement_latex="Canadian statement",
+    )
+    ContestProblemStatement.objects.create(
+        contest_year=2026,
+        contest_name="AIME",
+        day_label="",
+        problem_number=1,
+        problem_code="P1",
+        statement_latex="AIME statement",
+    )
+
+    parsed_headers = parse_contest_existence_audit_text(
+        "\n".join(
+            [
+                "2026 Canadian National Olympiad",
+                "2026 AIMEAIME 2026",
+                "2026 All-Russian OlympiadAll-Russian Olympiad 2026",
+                "2026 Abelkonkurransen Finale",
+            ]
+        )
+    )
+    payload = build_contest_existence_audit_payload(parsed_headers)
+    rows_by_contest = {row["contest_name"]: row for row in payload["rows"]}
+
+    assert payload["row_count"] == 4
+    assert payload["summary"] == {
+        "analytics_only_total": 1,
+        "both_found_total": 1,
+        "missing_total": 1,
+        "partial_total": 2,
+        "parsed_total": 4,
+        "statements_only_total": 1,
+    }
+    assert rows_by_contest["Canadian National Olympiad"]["overall_status"] == "both_found"
+    assert rows_by_contest["Canadian National Olympiad"]["statement_count"] == 1
+    assert rows_by_contest["Canadian National Olympiad"]["analytics_count"] == 1
+    assert rows_by_contest["AIME"]["overall_status"] == "statements_only"
+    assert rows_by_contest["AIME"]["statement_count"] == 1
+    assert rows_by_contest["AIME"]["analytics_count"] == 0
+    assert rows_by_contest["All-Russian Olympiad"]["overall_status"] == "analytics_only"
+    assert rows_by_contest["All-Russian Olympiad"]["statement_count"] == 0
+    assert rows_by_contest["All-Russian Olympiad"]["analytics_count"] == 1
+    assert rows_by_contest["Abelkonkurransen Finale"]["overall_status"] == "missing"
+    assert rows_by_contest["Abelkonkurransen Finale"]["suggestions"]
+    assert payload["export_tsv"].splitlines()[0] == (
+        "LINE\tYEAR\tCONTEST\tOCCURRENCES\tSTATEMENT STATUS\tSTATEMENT COUNT\t"
+        "ANALYTICS STATUS\tANALYTICS COUNT\tOVERALL STATUS\tSUGGESTIONS"
+    )
+
+
 def test_handle_summary_parser_allows_admin_access(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
@@ -7245,6 +7396,62 @@ def test_handle_summary_parser_allows_admin_access(client):
     assert "MOHS" in response_html
     assert "TOPICS TAG" in response_html
     assert 'id="handle-summary-parser-form"' in response_html
+
+
+def test_contest_existence_audit_allows_admin_and_posts_audit_results(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="ALG",
+        mohs=5,
+        contest="Canadian National Olympiad",
+        problem="P1",
+        contest_year_problem="Canadian National Olympiad 2026 P1",
+    )
+    ContestProblemStatement.objects.create(
+        contest_year=2026,
+        contest_name="Canadian National Olympiad",
+        day_label="",
+        problem_number=1,
+        problem_code="P1",
+        statement_latex="Canadian statement",
+    )
+
+    get_response = client.get(reverse("pages:contest_existence_audit"))
+    assert get_response.status_code == HTTPStatus.OK
+    assert "Contest existence audit" in get_response.content.decode("utf-8")
+    assert get_response.context["preview_payload"] is None
+
+    response = client.post(
+        reverse("pages:contest_existence_audit"),
+        {
+            "source_text": "\n".join(
+                [
+                    "2026 Contests3",
+                    "2026 Canadian National Olympiad",
+                    "2026 Canadian National Olympiad",
+                    "2026 Canada National Olympiad",
+                ]
+            ),
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    payload = response.context["preview_payload"]
+    assert payload["row_count"] == 2
+    rows_by_contest = {row["contest_name"]: row for row in payload["rows"]}
+    assert rows_by_contest["Canadian National Olympiad"]["overall_status"] == "both_found"
+    assert rows_by_contest["Canadian National Olympiad"]["occurrence_count"] == 2
+    assert rows_by_contest["Canada National Olympiad"]["overall_status"] == "missing"
+    assert rows_by_contest["Canada National Olympiad"]["suggestions"] == [
+        "Canadian National Olympiad",
+    ]
+    assert "Canadian National Olympiad" in payload["export_tsv"]
+    response_html = response.content.decode("utf-8")
+    assert 'id="contest-existence-audit-form"' in response_html
+    assert 'id="contest-existence-audit-results-table"' in response_html
+    assert 'id="contest-existence-audit-export"' in response_html
 
 
 def test_problem_analytics_dashboard_exposes_contest_year_mohs_pivot_table(client):
@@ -11230,6 +11437,7 @@ def test_dashboard_sidebar_groups_links_into_balanced_workflow_sections_for_admi
         "Delete statement",
         "LaTeX preview",
         "Handle parser",
+        "Contest audit",
         "User roles",
         "Session monitor",
         "Event log",
