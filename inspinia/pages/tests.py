@@ -28,6 +28,9 @@ from django.utils import timezone
 from inspinia.pages.asymptote_render import AsymptoteRenderResult
 from inspinia.pages.asymptote_render import _extract_svg_markup
 from inspinia.pages.asymptote_render import build_statement_render_segments
+from inspinia.pages.contest_existence_audit import ContestExistenceAuditValidationError
+from inspinia.pages.contest_existence_audit import build_contest_existence_audit_payload
+from inspinia.pages.contest_existence_audit import parse_contest_existence_audit_text
 from inspinia.pages.contest_links import contest_dashboard_listing_url
 from inspinia.pages.contest_links import problem_statement_contest_year_master_url
 from inspinia.pages.handle_summary_parser import build_handle_summary_preview_payload
@@ -7001,6 +7004,136 @@ def test_handle_summary_parser_accepts_mohs_range_with_to_word():
     assert len(parsed_rows) == 1
     assert parsed_rows[0].mohs == 20
     assert parsed_rows[0].handle == "Red-blue averaging cards"
+
+
+def test_contest_existence_audit_parser_reads_year_prefixed_contest_headers():
+    parsed_headers = parse_contest_existence_audit_text(
+        "\n".join(
+            [
+                "2026 Contests3",
+                " 2026 Abelkonkurransen Finale",
+                "1a\tDetermine all pairs of positive integers.",
+                "RANDOM__USER",
+                "view topic",
+                " 2026 AIMEAIME 2026",
+                "I",
+                "February 5",
+                "1\tPatrick started walking.",
+                " 2026 All-Russian OlympiadAll-Russian Olympiad 2026",
+                "Grade 9",
+                "9.1\tInitially, there are 75 candies.",
+                " 2026 Austrian MO National Competition2026 Austrian MO National Competition",
+                "Preliminary round (May 2, 2026)",
+                "1\tProve that for all integers.",
+                " 2026 Abelkonkurransen Finale",
+            ]
+        )
+    )
+
+    assert [
+        (
+            header.year,
+            header.contest_name,
+            header.first_line_number,
+            header.occurrence_count,
+        )
+        for header in parsed_headers
+    ] == [
+        (2026, "Abelkonkurransen Finale", 2, 2),
+        (2026, "AIME", 6, 1),
+        (2026, "All-Russian Olympiad", 10, 1),
+        (2026, "Austrian MO National Competition", 13, 1),
+    ]
+
+
+def test_contest_existence_audit_parser_rejects_text_without_contest_headers():
+    with pytest.raises(
+        ContestExistenceAuditValidationError,
+        match="No year-prefixed contest headers were detected.",
+    ):
+        parse_contest_existence_audit_text(
+            "\n".join(
+                [
+                    "Day 1",
+                    "1\tLet ABC be a triangle.",
+                    "RANDOM__USER",
+                    "view topic",
+                ]
+            )
+        )
+
+
+def test_contest_existence_audit_payload_checks_both_tables_and_suggests_same_year_names():
+    ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="ALG",
+        mohs=5,
+        contest="Canadian National Olympiad",
+        problem="P1",
+        contest_year_problem="Canadian National Olympiad 2026 P1",
+    )
+    ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="NT",
+        mohs=7,
+        contest="All-Russian Olympiad",
+        problem="P1",
+        contest_year_problem="All-Russian Olympiad 2026 P1",
+    )
+    ContestProblemStatement.objects.create(
+        contest_year=2026,
+        contest_name="Canadian National Olympiad",
+        day_label="",
+        problem_number=1,
+        problem_code="P1",
+        statement_latex="Canadian statement",
+    )
+    ContestProblemStatement.objects.create(
+        contest_year=2026,
+        contest_name="AIME",
+        day_label="",
+        problem_number=1,
+        problem_code="P1",
+        statement_latex="AIME statement",
+    )
+
+    parsed_headers = parse_contest_existence_audit_text(
+        "\n".join(
+            [
+                "2026 Canadian National Olympiad",
+                "2026 AIMEAIME 2026",
+                "2026 All-Russian OlympiadAll-Russian Olympiad 2026",
+                "2026 Abelkonkurransen Finale",
+            ]
+        )
+    )
+    payload = build_contest_existence_audit_payload(parsed_headers)
+    rows_by_contest = {row["contest_name"]: row for row in payload["rows"]}
+
+    assert payload["row_count"] == 4
+    assert payload["summary"] == {
+        "analytics_only_total": 1,
+        "both_found_total": 1,
+        "missing_total": 1,
+        "partial_total": 2,
+        "parsed_total": 4,
+        "statements_only_total": 1,
+    }
+    assert rows_by_contest["Canadian National Olympiad"]["overall_status"] == "both_found"
+    assert rows_by_contest["Canadian National Olympiad"]["statement_count"] == 1
+    assert rows_by_contest["Canadian National Olympiad"]["analytics_count"] == 1
+    assert rows_by_contest["AIME"]["overall_status"] == "statements_only"
+    assert rows_by_contest["AIME"]["statement_count"] == 1
+    assert rows_by_contest["AIME"]["analytics_count"] == 0
+    assert rows_by_contest["All-Russian Olympiad"]["overall_status"] == "analytics_only"
+    assert rows_by_contest["All-Russian Olympiad"]["statement_count"] == 0
+    assert rows_by_contest["All-Russian Olympiad"]["analytics_count"] == 1
+    assert rows_by_contest["Abelkonkurransen Finale"]["overall_status"] == "missing"
+    assert rows_by_contest["Abelkonkurransen Finale"]["suggestions"]
+    assert payload["export_tsv"].splitlines()[0] == (
+        "LINE\tYEAR\tCONTEST\tOCCURRENCES\tSTATEMENT STATUS\tSTATEMENT COUNT\t"
+        "ANALYTICS STATUS\tANALYTICS COUNT\tOVERALL STATUS\tSUGGESTIONS"
+    )
 
 
 def test_handle_summary_parser_allows_admin_access(client):
