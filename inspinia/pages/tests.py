@@ -6345,6 +6345,72 @@ def test_completion_progress_contest_heatmap_payload_requires_contest_and_user()
     assert no_user["chart"]["series"] == []
 
 
+def test_completion_progress_analytics_contest_heatmap_uses_selected_user(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    selected_user = UserFactory(email="selected@example.com")
+    other_user = UserFactory(email="other@example.com")
+    client.force_login(admin_user)
+    contest = "APMO"
+    problem, statement = _create_heatmap_statement(
+        contest=contest,
+        year=2026,
+        problem_code="P1",
+        problem_number=1,
+    )
+    UserProblemCompletion.objects.create(
+        user=selected_user,
+        problem=problem,
+        completion_date=date(2026, 1, 1),
+    )
+    UserProblemCompletion.objects.create(
+        user=other_user,
+        statement=statement,
+        completion_date=date(2026, 1, 2),
+    )
+
+    response = client.get(
+        reverse("pages:completion_progress_analytics"),
+        {"contest": contest, "range": "all", "user": str(selected_user.pk)},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    heatmap = response.context["completion_progress_contest_heatmap"]
+    row_2026 = next(row for row in heatmap["rows"] if row["year"] == 2026)
+    cell_p1 = next(cell for cell in row_2026["cells"] if cell["problem_code"] == "P1")
+    assert heatmap["selected_contest"] == contest
+    assert cell_p1["state"] == "solved"
+
+
+def test_my_completion_progress_contest_heatmap_uses_signed_in_user(client):
+    user = UserFactory()
+    other_user = UserFactory()
+    client.force_login(user)
+    contest = "APMO"
+    _problem, statement = _create_heatmap_statement(
+        contest=contest,
+        year=2026,
+        problem_code="P1",
+        problem_number=1,
+    )
+    UserProblemCompletion.objects.create(
+        user=other_user,
+        statement=statement,
+        completion_date=date(2026, 1, 2),
+    )
+
+    response = client.get(
+        reverse("pages:my_completion_progress_analytics"),
+        {"contest": contest, "range": "all"},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    heatmap = response.context["completion_progress_contest_heatmap"]
+    row_2026 = next(row for row in heatmap["rows"] if row["year"] == 2026)
+    cell_p1 = next(cell for cell in row_2026["cells"] if cell["problem_code"] == "P1")
+    assert heatmap["selected_contest"] == contest
+    assert cell_p1["state"] == "unsolved"
+
+
 def test_completion_progress_analytics_renders_admin_dashboard(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     completion_user = UserFactory(name="Alexander Chew", email="alex@example.com")
