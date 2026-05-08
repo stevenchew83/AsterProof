@@ -404,7 +404,7 @@ def _build_user_access_summary(users: list[User]) -> dict[str, int]:
     }
 
 
-def _parse_bulk_user_access_updates(request, allowed_roles: set[str]) -> list[tuple[int, str, bool]] | None:
+def _parse_bulk_user_access_updates(request) -> list[tuple[int, str | None, bool]] | None:
     updates = []
     for raw_id in request.POST.getlist("user_ids"):
         try:
@@ -413,9 +413,6 @@ def _parse_bulk_user_access_updates(request, allowed_roles: set[str]) -> list[tu
             return None
 
         new_role = request.POST.get(f"role_{raw_id}")
-        if new_role not in allowed_roles:
-            return None
-
         updates.append(
             (
                 user_id,
@@ -427,7 +424,7 @@ def _parse_bulk_user_access_updates(request, allowed_roles: set[str]) -> list[tu
 
 
 def _handle_bulk_user_access_post(request, allowed_roles: set[str]) -> None:
-    parsed_updates = _parse_bulk_user_access_updates(request, allowed_roles)
+    parsed_updates = _parse_bulk_user_access_updates(request)
     if parsed_updates is None:
         messages.error(request, _("Invalid user or role."))
         return
@@ -437,13 +434,21 @@ def _handle_bulk_user_access_post(request, allowed_roles: set[str]) -> None:
         messages.error(request, _("Invalid user or role."))
         return
 
+    invalid_role = any(
+        new_role not in allowed_roles and new_role != targets_by_id[user_id].role
+        for user_id, new_role, _posted_is_approved in parsed_updates
+    )
+    if invalid_role:
+        messages.error(request, _("Invalid user or role."))
+        return
+
     changed_count = 0
     with transaction.atomic():
         for user_id, new_role, posted_is_approved in parsed_updates:
             if _apply_user_access_update(
                 request=request,
                 target=targets_by_id[user_id],
-                new_role=new_role,
+                new_role=new_role or "",
                 posted_is_approved=posted_is_approved,
             ):
                 changed_count += 1

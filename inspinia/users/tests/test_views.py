@@ -567,6 +567,43 @@ class TestManageRolesView:
             metadata__to_role=User.Role.ADMIN,
         ).exists()
 
+    def test_manage_roles_bulk_save_allows_unchanged_unknown_role_while_approving_another_user(
+        self,
+        client: Client,
+    ):
+        admin_user = UserFactory(role=User.Role.ADMIN)
+        stale_role_user = UserFactory(email="stale-role@example.com", role="legacy", is_approved=False)
+        pending_user = UserFactory(
+            email="isaacong10142627@gmail.com",
+            role=User.Role.NORMAL,
+            is_approved=False,
+        )
+        client.force_login(admin_user)
+
+        response = client.post(
+            reverse("users:manage_roles"),
+            {
+                "user_ids": [stale_role_user.pk, pending_user.pk],
+                f"role_{stale_role_user.pk}": "legacy",
+                f"is_approved_{stale_role_user.pk}": "0",
+                f"role_{pending_user.pk}": User.Role.NORMAL,
+                f"is_approved_{pending_user.pk}": "1",
+            },
+            follow=True,
+        )
+
+        stale_role_user.refresh_from_db()
+        pending_user.refresh_from_db()
+
+        assert response.status_code == HTTPStatus.OK
+        assert stale_role_user.role == "legacy"
+        assert stale_role_user.is_approved is False
+        assert pending_user.role == User.Role.NORMAL
+        assert pending_user.is_approved is True
+        content = response.content.decode("utf-8")
+        assert "Saved access changes for 1 user." in content
+        assert gettext("Invalid user or role.") not in content
+
     def test_manage_roles_admin_can_approve_user_and_record_audit_event(self, client: Client):
         admin_user = UserFactory(role=User.Role.ADMIN)
         target_user = UserFactory(role=User.Role.NORMAL, is_approved=False)
