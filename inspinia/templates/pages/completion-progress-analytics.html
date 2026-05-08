@@ -540,6 +540,7 @@
 (function () {
   var chartDataEl = document.getElementById("completion-progress-chart-data");
   var tableDataEl = document.getElementById("completion-progress-table-data");
+  var contestHeatmapDataEl = document.getElementById("completion-progress-contest-heatmap-data");
   var charts = chartDataEl ? JSON.parse(chartDataEl.textContent) : {};
 
   function escapeHtml(value) {
@@ -651,6 +652,116 @@
     }).render();
   }
 
+  function renderContestHeatmap() {
+    var dataEl = contestHeatmapDataEl;
+    var chartEl = document.getElementById("chart-completion-progress-contest-heatmap");
+    if (!dataEl || !chartEl || typeof ApexCharts === "undefined") return;
+
+    var payload = JSON.parse(dataEl.textContent || "{}");
+    if (!payload.series || !payload.series.length) return;
+
+    function pointFromOptions(opts) {
+      if (!opts || opts.seriesIndex < 0 || opts.dataPointIndex < 0) return null;
+      var row = payload.series[opts.seriesIndex];
+      if (!row || !row.data) return null;
+      return row.data[opts.dataPointIndex] || null;
+    }
+
+    function hasLinkedPoints() {
+      for (var rowIndex = 0; rowIndex < payload.series.length; rowIndex += 1) {
+        var row = payload.series[rowIndex];
+        var data = row && row.data ? row.data : [];
+        for (var pointIndex = 0; pointIndex < data.length; pointIndex += 1) {
+          if (data[pointIndex].solution_url) return true;
+        }
+      }
+      return false;
+    }
+
+    function openProblemSolution(opts) {
+      var point = pointFromOptions(opts);
+      if (!point || !point.solution_url) return;
+      window.location.assign(point.solution_url);
+    }
+
+    var pointCount = payload.series[0] && payload.series[0].data ? payload.series[0].data.length : 0;
+    chartEl.style.minWidth = String(Math.max(480, pointCount * 48 + 96)) + "px";
+
+    if (hasLinkedPoints()) {
+      chartEl.classList.add("completion-progress-contest-heatmap-clickable");
+    }
+
+    new ApexCharts(chartEl, {
+      chart: {
+        type: "heatmap",
+        height: Math.max(260, payload.series.length * 30 + 72),
+        toolbar: { show: false },
+        fontFamily: "inherit",
+        events: {
+          dataPointSelection: function (_event, _chartContext, opts) {
+            openProblemSolution(opts);
+          }
+        }
+      },
+      series: payload.series,
+      dataLabels: {
+        enabled: true,
+        style: {
+          fontSize: "9px",
+          fontWeight: 700,
+          colors: ["#11203b"]
+        },
+        formatter: function (_value, opts) {
+          var point = opts.w.config.series[opts.seriesIndex].data[opts.dataPointIndex];
+          return point.display || "";
+        }
+      },
+      stroke: {
+        width: 1,
+        colors: ["rgba(255,255,255,0.72)"]
+      },
+      plotOptions: {
+        heatmap: {
+          radius: 3,
+          enableShades: false,
+          useFillColorAsStroke: false,
+          colorScale: {
+            ranges: [
+              { from: 0, to: 0, color: "#d6d9e0", name: "Empty" },
+              { from: 1, to: 1, color: "#e25563", name: "Unsolved" },
+              { from: 2, to: 2, color: "#f1b44c", name: "Partial" },
+              { from: 3, to: 3, color: "#2fbf71", name: "Solved" }
+            ]
+          }
+        }
+      },
+      legend: { show: false },
+      xaxis: {
+        type: "category",
+        position: "top",
+        labels: {
+          rotate: 0,
+          style: { fontSize: "10px" }
+        }
+      },
+      yaxis: {
+        labels: {
+          maxWidth: 72,
+          style: { fontSize: "10px" }
+        }
+      },
+      tooltip: {
+        custom: function (opts) {
+          var point = opts.w.config.series[opts.seriesIndex].data[opts.dataPointIndex];
+          return '<div class="apexcharts-theme-light p-2 fs-xs">' + escapeHtml(point.title || "") + "</div>";
+        }
+      },
+      grid: {
+        borderColor: "rgba(108,117,125,0.15)"
+      }
+    }).render();
+  }
+
   function renderDonut(selector, payload) {
     var el = document.querySelector(selector);
     if (!el || typeof ApexCharts === "undefined" || !payload || !hasValues(payload.values)) return;
@@ -680,6 +791,7 @@
     { name: "Completions", data: charts.mohsDistribution.values }
   ], ["#ffc107"], false);
   renderHeatmap("#chart-completion-progress-topic-mohs", charts.topicMohsHeatmap);
+  renderContestHeatmap();
   renderDonut("#chart-completion-progress-solutions", charts.solutionStatus);
 
   if (tableDataEl && typeof DataTable !== "undefined") {

@@ -6386,6 +6386,9 @@ def test_completion_progress_analytics_contest_heatmap_uses_selected_user(client
     assert "Your completions" in response_html
     assert "No completion from you yet" in response_html
     assert "No statement row for that year/code" in response_html
+    assert "renderContestHeatmap();" in response_html
+    assert "dataPointSelection" in response_html
+    assert "point.solution_url" in response_html
 
 
 def test_my_completion_progress_contest_heatmap_uses_signed_in_user(client):
