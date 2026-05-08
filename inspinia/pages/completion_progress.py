@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from collections import Counter
 from collections import defaultdict
 from dataclasses import dataclass
@@ -10,6 +11,7 @@ from typing import TYPE_CHECKING
 from django.urls import reverse
 from django.utils import timezone
 
+from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import UserProblemCompletion
 from inspinia.pages.statement_analytics import effective_mohs
 from inspinia.pages.statement_analytics import effective_topic
@@ -261,6 +263,247 @@ def completion_progress_charts_payload(
         "topicMohsHeatmap": _topic_mohs_heatmap_payload(row_list),
         "topicTotals": _topic_totals_payload(row_list),
     }
+
+
+def completion_progress_contest_heatmap_payload(
+    *,
+    contest: str,
+    user: User | None,
+) -> dict[str, object]:
+    selected_contest = (contest or "").strip()
+    empty_payload = _completion_progress_empty_contest_heatmap_payload(selected_contest)
+    if not selected_contest or user is None:
+        return empty_payload
+
+    statement_rows = _completion_progress_contest_statement_rows(selected_contest)
+    if not statement_rows:
+        return empty_payload
+
+    direct_solved_statement_ids, legacy_solved_problem_ids = _completion_progress_contest_solved_ids(
+        statement_rows,
+        user=user,
+    )
+    heatmap_counts, heatmap_solution_urls = _completion_progress_contest_heatmap_counts(
+        statement_rows,
+        direct_solved_statement_ids=direct_solved_statement_ids,
+        legacy_solved_problem_ids=legacy_solved_problem_ids,
+    )
+    heatmap_problem_codes, heatmap_years = _completion_progress_contest_heatmap_axes(statement_rows)
+    heatmap_rows, has_partial_heatmap_cells = _completion_progress_contest_heatmap_rows(
+        selected_contest=selected_contest,
+        heatmap_problem_codes=heatmap_problem_codes,
+        heatmap_years=heatmap_years,
+        heatmap_counts=heatmap_counts,
+        heatmap_solution_urls=heatmap_solution_urls,
+    )
+
+    return {
+        "chart": _completion_progress_contest_heatmap_chart_payload(heatmap_rows),
+        "filled_cell_total": len(heatmap_counts),
+        "has_partial_cells": has_partial_heatmap_cells,
+        "problem_code_total": len(heatmap_problem_codes),
+        "problem_codes": heatmap_problem_codes,
+        "rows": heatmap_rows,
+        "selected_contest": selected_contest,
+        "year_total": len(heatmap_rows),
+    }
+
+
+def _completion_progress_empty_contest_heatmap_payload(selected_contest: str) -> dict[str, object]:
+    return {
+        "chart": _completion_progress_contest_heatmap_chart_payload([]),
+        "filled_cell_total": 0,
+        "has_partial_cells": False,
+        "problem_code_total": 0,
+        "problem_codes": [],
+        "rows": [],
+        "selected_contest": selected_contest,
+        "year_total": 0,
+    }
+
+
+def _completion_progress_contest_statement_rows(selected_contest: str) -> list[dict[str, object]]:
+    return list(
+        ContestProblemStatement.objects.filter(is_active=True, contest_name=selected_contest)
+        .select_related("linked_problem")
+        .values(
+            "id",
+            "linked_problem_id",
+            "linked_problem__problem_uuid",
+            "problem_code",
+            "contest_year",
+        ),
+    )
+
+
+def _completion_progress_contest_solved_ids(
+    statement_rows: list[dict[str, object]],
+    *,
+    user: User,
+) -> tuple[set[int], set[int]]:
+    statement_ids = [int(row["id"]) for row in statement_rows]
+    direct_solved_statement_ids = set(
+        UserProblemCompletion.objects.filter(
+            user=user,
+            statement_id__in=statement_ids,
+        ).values_list("statement_id", flat=True),
+    )
+    linked_problem_ids = sorted(
+        {
+            int(row["linked_problem_id"])
+            for row in statement_rows
+            if row["linked_problem_id"] is not None
+        },
+    )
+    legacy_solved_problem_ids = set(
+        UserProblemCompletion.objects.filter(
+            user=user,
+            statement__isnull=True,
+            problem_id__in=linked_problem_ids,
+        ).values_list("problem_id", flat=True),
+    )
+    return direct_solved_statement_ids, legacy_solved_problem_ids
+
+
+def _completion_progress_contest_heatmap_axes(
+    statement_rows: list[dict[str, object]],
+) -> tuple[list[str], list[int]]:
+    heatmap_problem_codes = sorted(
+        {
+            str(row["problem_code"] or "").strip()
+            for row in statement_rows
+            if row["problem_code"]
+        },
+        key=_completion_progress_problem_sort_key,
+    )
+    heatmap_years = sorted(
+        {
+            int(row["contest_year"])
+            for row in statement_rows
+            if row["contest_year"] is not None
+        },
+        reverse=True,
+    )
+    return heatmap_problem_codes, heatmap_years
+
+
+def _completion_progress_contest_heatmap_counts(
+    statement_rows: list[dict[str, object]],
+    *,
+    direct_solved_statement_ids: set[int],
+    legacy_solved_problem_ids: set[int],
+) -> tuple[dict[tuple[int, str], dict[str, int]], dict[tuple[int, str], str]]:
+    heatmap_solution_urls: dict[tuple[int, str], str] = {}
+    heatmap_counts: dict[tuple[int, str], dict[str, int]] = {}
+    for row in statement_rows:
+        problem_code = str(row["problem_code"] or "").strip()
+        year = row["contest_year"]
+        if not problem_code or year is None:
+            continue
+        heatmap_key = (int(year), problem_code)
+        cell_counts = heatmap_counts.setdefault(
+            heatmap_key,
+            {
+                "problem_total": 0,
+                "solved_total": 0,
+            },
+        )
+        cell_counts["problem_total"] += 1
+        linked_problem_id = row["linked_problem_id"]
+        linked_problem_uuid = row["linked_problem__problem_uuid"]
+        if linked_problem_uuid is not None:
+            heatmap_solution_urls.setdefault(
+                heatmap_key,
+                reverse("solutions:problem_solution_list", args=[linked_problem_uuid]),
+            )
+        if row["id"] in direct_solved_statement_ids or (
+            linked_problem_id is not None and int(linked_problem_id) in legacy_solved_problem_ids
+        ):
+            cell_counts["solved_total"] += 1
+    return heatmap_counts, heatmap_solution_urls
+
+
+def _completion_progress_contest_heatmap_rows(
+    *,
+    selected_contest: str,
+    heatmap_problem_codes: list[str],
+    heatmap_years: list[int],
+    heatmap_counts: dict[tuple[int, str], dict[str, int]],
+    heatmap_solution_urls: dict[tuple[int, str], str],
+) -> tuple[list[dict[str, object]], bool]:
+    heatmap_rows: list[dict[str, object]] = []
+    has_partial_heatmap_cells = False
+    for year in heatmap_years:
+        row_cells: list[dict[str, object]] = []
+        for problem_code in heatmap_problem_codes:
+            counts = heatmap_counts.get((year, problem_code))
+            if counts is None:
+                row_cells.append(
+                    {
+                        "display": "",
+                        "problem_code": problem_code,
+                        "solution_url": "",
+                        "state": "empty",
+                        "title": f"{selected_contest} {year} {problem_code}: no statement row",
+                    },
+                )
+                continue
+
+            cell = _completion_progress_contest_heatmap_filled_cell(
+                selected_contest=selected_contest,
+                year=year,
+                problem_code=problem_code,
+                counts=counts,
+                solution_url=heatmap_solution_urls.get((year, problem_code), ""),
+            )
+            if cell["state"] == "partial":
+                has_partial_heatmap_cells = True
+            row_cells.append(cell)
+        heatmap_rows.append({"cells": row_cells, "year": year})
+    return heatmap_rows, has_partial_heatmap_cells
+
+
+def _completion_progress_contest_heatmap_filled_cell(
+    *,
+    selected_contest: str,
+    year: int,
+    problem_code: str,
+    counts: dict[str, int],
+    solution_url: str,
+) -> dict[str, object]:
+    problem_total = int(counts["problem_total"])
+    solved_total = int(counts["solved_total"])
+    state = _completion_progress_contest_heatmap_cell_state(
+        solved_total=solved_total,
+        problem_total=problem_total,
+    )
+    rows_word = "statement row" if problem_total == 1 else "statement rows"
+    return {
+        "display": (
+            "✓"
+            if problem_total == 1 and state == "solved"
+            else ("•" if problem_total == 1 else f"{solved_total}/{problem_total}")
+        ),
+        "problem_code": problem_code,
+        "solution_url": solution_url,
+        "state": state,
+        "title": (
+            f"{selected_contest} {year} {problem_code}: "
+            f"{solved_total} of {problem_total} {rows_word} solved by you"
+        ),
+    }
+
+
+def _completion_progress_contest_heatmap_cell_state(
+    *,
+    solved_total: int,
+    problem_total: int,
+) -> str:
+    if solved_total == 0:
+        return "unsolved"
+    if solved_total == problem_total:
+        return "solved"
+    return "partial"
 
 
 def completion_progress_table_rows(rows: Iterable[CompletionProgressRow]) -> list[dict[str, object]]:
@@ -640,6 +883,49 @@ def _topic_mohs_heatmap_payload(rows: list[CompletionProgressRow]) -> dict[str, 
             for topic in topics
         ],
     }
+
+
+def _completion_progress_contest_heatmap_chart_payload(
+    rows: list[dict[str, object]],
+) -> dict[str, object]:
+    state_values = {
+        "empty": 0,
+        "unsolved": 1,
+        "partial": 2,
+        "solved": 3,
+    }
+    if not rows:
+        return {"max_value": 3, "series": []}
+
+    return {
+        "max_value": 3,
+        "series": [
+            {
+                "name": str(row["year"]),
+                "data": [
+                    {
+                        "display": str(cell["display"]),
+                        "solution_url": str(cell.get("solution_url", "")),
+                        "state": str(cell["state"]),
+                        "title": str(cell["title"]),
+                        "x": str(cell["problem_code"]),
+                        "y": state_values[str(cell["state"])],
+                    }
+                    for cell in row["cells"]
+                ],
+            }
+            for row in rows
+        ],
+    }
+
+
+def _completion_progress_problem_sort_key(problem_label: str | None) -> list[tuple[int, int | str]]:
+    parts = re.split(r"(\d+)", str(problem_label or ""))
+    return [
+        (0, int(part)) if part.isdigit() else (1, part.lower())
+        for part in parts
+        if part
+    ]
 
 
 def _topic_sort_key(topic_label: str) -> tuple[int, str]:

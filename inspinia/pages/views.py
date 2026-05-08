@@ -46,6 +46,7 @@ from inspinia.pages.asymptote_render import has_asymptote_blocks
 from inspinia.pages.completion_progress import COMPLETION_PROGRESS_RANGE_OPTIONS
 from inspinia.pages.completion_progress import CompletionProgressFilters
 from inspinia.pages.completion_progress import completion_progress_charts_payload
+from inspinia.pages.completion_progress import completion_progress_contest_heatmap_payload
 from inspinia.pages.completion_progress import completion_progress_csv_rows
 from inspinia.pages.completion_progress import completion_progress_filter_options
 from inspinia.pages.completion_progress import completion_progress_stats
@@ -4023,6 +4024,10 @@ def _render_completion_progress_analytics(
             filtered_rows,
             start_date=date_range.start_date,
             end_date=date_range.end_date,
+        ),
+        "completion_progress_contest_heatmap": completion_progress_contest_heatmap_payload(
+            contest=selected_contest,
+            user=selected_user,
         ),
         "completion_progress_date_range": date_range,
         "completion_progress_filter_options": completion_progress_filter_options(date_scoped_rows),

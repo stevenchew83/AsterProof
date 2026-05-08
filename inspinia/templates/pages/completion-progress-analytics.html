@@ -30,6 +30,58 @@
     min-height: 320px;
   }
 
+  .completion-progress-contest-legend {
+    gap: 0.75rem;
+  }
+
+  .completion-progress-contest-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: var(--bs-secondary-color);
+    font-size: 0.78rem;
+  }
+
+  .completion-progress-contest-legend-swatch {
+    width: 0.95rem;
+    height: 0.95rem;
+    display: inline-flex;
+    border-radius: 0.3rem;
+    border: 1px solid rgba(17, 32, 59, 0.12);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  }
+
+  .completion-progress-contest-legend-swatch-solved {
+    background: #2fbf71;
+  }
+
+  .completion-progress-contest-legend-swatch-partial {
+    background: #f1b44c;
+  }
+
+  .completion-progress-contest-legend-swatch-unsolved {
+    background: #e25563;
+  }
+
+  .completion-progress-contest-legend-swatch-empty {
+    background: #d6d9e0;
+  }
+
+  .completion-progress-contest-heatmap-scroll {
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 0.25rem;
+  }
+
+  #chart-completion-progress-contest-heatmap {
+    min-height: 240px;
+  }
+
+  #chart-completion-progress-contest-heatmap.completion-progress-contest-heatmap-clickable .apexcharts-heatmap-rect,
+  #chart-completion-progress-contest-heatmap.completion-progress-contest-heatmap-clickable .apexcharts-series rect {
+    cursor: pointer;
+  }
+
   .completion-progress-difficulty-editor {
     min-width: 10rem;
   }
@@ -384,6 +436,57 @@
     </div>
   </div>
 
+  <div class="row g-3 mt-0">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header border-bottom d-flex flex-wrap align-items-center gap-2">
+          <div class="flex-grow-1">
+            <h4 class="header-title mb-0">Completion heatmap</h4>
+            <p class="text-muted fs-xs mb-0">Year-by-problem completion coverage for this contest. Green shows your completions on those rows; red means you have not completed any row in that cell yet.</p>
+          </div>
+          <span class="badge text-bg-light">
+            {{ completion_progress_contest_heatmap.year_total }} years · {{ completion_progress_contest_heatmap.problem_code_total }} codes
+          </span>
+        </div>
+        <div class="card-body">
+          {% if not completion_progress_contest_heatmap.selected_contest %}
+          <div class="alert alert-info mb-0" role="alert">
+            Select a contest in the filters to load year-by-problem completion coverage.
+          </div>
+          {% elif completion_progress_contest_heatmap.problem_codes %}
+          <div class="d-flex flex-wrap align-items-center completion-progress-contest-legend mb-3">
+            <span class="completion-progress-contest-legend-item">
+              <span class="completion-progress-contest-legend-swatch completion-progress-contest-legend-swatch-solved"></span>
+              Your completions
+            </span>
+            <span class="completion-progress-contest-legend-item">
+              <span class="completion-progress-contest-legend-swatch completion-progress-contest-legend-swatch-unsolved"></span>
+              No completion from you yet
+            </span>
+            {% if completion_progress_contest_heatmap.has_partial_cells %}
+            <span class="completion-progress-contest-legend-item">
+              <span class="completion-progress-contest-legend-swatch completion-progress-contest-legend-swatch-partial"></span>
+              Mixed coverage when a year/code has multiple rows
+            </span>
+            {% endif %}
+            <span class="completion-progress-contest-legend-item">
+              <span class="completion-progress-contest-legend-swatch completion-progress-contest-legend-swatch-empty"></span>
+              No statement row for that year/code
+            </span>
+          </div>
+          <div class="completion-progress-contest-heatmap-scroll">
+            <div id="chart-completion-progress-contest-heatmap"></div>
+          </div>
+          {% else %}
+          <div class="alert alert-info mb-0" role="alert">
+            No statement-backed problem codes are available for this contest yet.
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="row g-3 mt-0 mb-3">
     <div class="col-12">
       <div class="card">
@@ -422,6 +525,7 @@
 
 {{ completion_progress_charts_payload|json_script:"completion-progress-chart-data" }}
 {{ completion_progress_table_rows|json_script:"completion-progress-table-data" }}
+{{ completion_progress_contest_heatmap.chart|json_script:"completion-progress-contest-heatmap-data" }}
 {% if completion_progress_rows and completion_progress_can_edit_difficulty %}
 <form id="completion-progress-difficulty-csrf" class="d-none">{% csrf_token %}</form>
 {% endif %}
@@ -436,6 +540,7 @@
 (function () {
   var chartDataEl = document.getElementById("completion-progress-chart-data");
   var tableDataEl = document.getElementById("completion-progress-table-data");
+  var contestHeatmapDataEl = document.getElementById("completion-progress-contest-heatmap-data");
   var charts = chartDataEl ? JSON.parse(chartDataEl.textContent) : {};
 
   function escapeHtml(value) {
@@ -547,6 +652,116 @@
     }).render();
   }
 
+  function renderContestHeatmap() {
+    var dataEl = contestHeatmapDataEl;
+    var chartEl = document.getElementById("chart-completion-progress-contest-heatmap");
+    if (!dataEl || !chartEl || typeof ApexCharts === "undefined") return;
+
+    var payload = JSON.parse(dataEl.textContent || "{}");
+    if (!payload.series || !payload.series.length) return;
+
+    function pointFromOptions(opts) {
+      if (!opts || opts.seriesIndex < 0 || opts.dataPointIndex < 0) return null;
+      var row = payload.series[opts.seriesIndex];
+      if (!row || !row.data) return null;
+      return row.data[opts.dataPointIndex] || null;
+    }
+
+    function hasLinkedPoints() {
+      for (var rowIndex = 0; rowIndex < payload.series.length; rowIndex += 1) {
+        var row = payload.series[rowIndex];
+        var data = row && row.data ? row.data : [];
+        for (var pointIndex = 0; pointIndex < data.length; pointIndex += 1) {
+          if (data[pointIndex].solution_url) return true;
+        }
+      }
+      return false;
+    }
+
+    function openProblemSolution(opts) {
+      var point = pointFromOptions(opts);
+      if (!point || !point.solution_url) return;
+      window.location.assign(point.solution_url);
+    }
+
+    var pointCount = payload.series[0] && payload.series[0].data ? payload.series[0].data.length : 0;
+    chartEl.style.minWidth = String(Math.max(480, pointCount * 48 + 96)) + "px";
+
+    if (hasLinkedPoints()) {
+      chartEl.classList.add("completion-progress-contest-heatmap-clickable");
+    }
+
+    new ApexCharts(chartEl, {
+      chart: {
+        type: "heatmap",
+        height: Math.max(260, payload.series.length * 30 + 72),
+        toolbar: { show: false },
+        fontFamily: "inherit",
+        events: {
+          dataPointSelection: function (_event, _chartContext, opts) {
+            openProblemSolution(opts);
+          }
+        }
+      },
+      series: payload.series,
+      dataLabels: {
+        enabled: true,
+        style: {
+          fontSize: "9px",
+          fontWeight: 700,
+          colors: ["#11203b"]
+        },
+        formatter: function (_value, opts) {
+          var point = opts.w.config.series[opts.seriesIndex].data[opts.dataPointIndex];
+          return point.display || "";
+        }
+      },
+      stroke: {
+        width: 1,
+        colors: ["rgba(255,255,255,0.72)"]
+      },
+      plotOptions: {
+        heatmap: {
+          radius: 3,
+          enableShades: false,
+          useFillColorAsStroke: false,
+          colorScale: {
+            ranges: [
+              { from: 0, to: 0, color: "#d6d9e0", name: "Empty" },
+              { from: 1, to: 1, color: "#e25563", name: "Unsolved" },
+              { from: 2, to: 2, color: "#f1b44c", name: "Partial" },
+              { from: 3, to: 3, color: "#2fbf71", name: "Solved" }
+            ]
+          }
+        }
+      },
+      legend: { show: false },
+      xaxis: {
+        type: "category",
+        position: "top",
+        labels: {
+          rotate: 0,
+          style: { fontSize: "10px" }
+        }
+      },
+      yaxis: {
+        labels: {
+          maxWidth: 72,
+          style: { fontSize: "10px" }
+        }
+      },
+      tooltip: {
+        custom: function (opts) {
+          var point = opts.w.config.series[opts.seriesIndex].data[opts.dataPointIndex];
+          return '<div class="apexcharts-theme-light p-2 fs-xs">' + escapeHtml(point.title || "") + "</div>";
+        }
+      },
+      grid: {
+        borderColor: "rgba(108,117,125,0.15)"
+      }
+    }).render();
+  }
+
   function renderDonut(selector, payload) {
     var el = document.querySelector(selector);
     if (!el || typeof ApexCharts === "undefined" || !payload || !hasValues(payload.values)) return;
@@ -576,6 +791,7 @@
     { name: "Completions", data: charts.mohsDistribution.values }
   ], ["#ffc107"], false);
   renderHeatmap("#chart-completion-progress-topic-mohs", charts.topicMohsHeatmap);
+  renderContestHeatmap();
   renderDonut("#chart-completion-progress-solutions", charts.solutionStatus);
 
   if (tableDataEl && typeof DataTable !== "undefined") {

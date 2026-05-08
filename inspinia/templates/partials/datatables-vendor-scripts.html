@@ -1,8 +1,10 @@
 {% load static %}
-{# DataTables UMD uses the AMD branch when define.amd is truthy, which skips
-   assigning window.DataTable. Clearing define.amd (instead of deleting define)
-   avoids environments where window.define is non-configurable. After load,
-   sync window.DataTable from jQuery.fn.dataTable if the global is still missing. #}
+{% comment %}
+DataTables UMD uses the AMD branch when define.amd is truthy, which skips
+assigning window.DataTable. Clearing define.amd (instead of deleting define)
+avoids environments where window.define is non-configurable. After load,
+sync window.DataTable from jQuery.fn.dataTable if the global is still missing.
+{% endcomment %}
 <script>
 (function () {
   var g = window;
