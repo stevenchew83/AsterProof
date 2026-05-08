@@ -213,7 +213,7 @@ def _build_export_tsv(rows: list[ContestExistenceAuditRow]) -> str:
             "ANALYTICS COUNT",
             "OVERALL STATUS",
             "SUGGESTIONS",
-        ]
+        ],
     )
     for row in rows:
         writer.writerow(
@@ -228,7 +228,7 @@ def _build_export_tsv(rows: list[ContestExistenceAuditRow]) -> str:
                 row["analytics_count"],
                 row["overall_status"],
                 row["suggestions_label"],
-            ]
+            ],
         )
     return output.getvalue().rstrip("\n")
 
@@ -290,7 +290,7 @@ def build_contest_existence_audit_payload(
                 "suggestions": suggestions,
                 "suggestions_label": ", ".join(suggestions),
                 "year": header.year,
-            }
+            },
         )
 
     return {
