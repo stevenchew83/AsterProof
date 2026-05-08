@@ -329,6 +329,19 @@ def _url_with_query(url_name: str, params: dict[str, str]) -> str:
     return f"{base_url}?{query_string}" if query_string else base_url
 
 
+def _role_label(role: str | None) -> str:
+    try:
+        return str(User.Role(role).label)
+    except (TypeError, ValueError):
+        role_value = role or str(_("blank"))
+        return str(_("Unknown role (%(role)s)") % {"role": role_value})
+
+
+def _annotate_unknown_role_labels(users: list[User], allowed_roles: set[str]) -> None:
+    for user in users:
+        user.unknown_role_label = "" if user.role in allowed_roles else _role_label(user.role)
+
+
 def _apply_user_access_update(
     *,
     request,
@@ -351,7 +364,7 @@ def _apply_user_access_update(
             event_type=AuditEvent.EventType.ROLE_CHANGED,
             message=(
                 f"Changed role for {target.email} from "
-                f"{User.Role(previous_role).label} to {target.get_role_display()}."
+                f"{_role_label(previous_role)} to {_role_label(new_role)}."
             ),
             request=request,
             actor=request.user,
@@ -489,6 +502,7 @@ def manage_user_roles_view(request):
         return redirect("users:manage_roles")
 
     users = list(User.objects.order_by("email"))
+    _annotate_unknown_role_labels(users, allowed_roles)
     return render(
         request,
         "users/manage_roles.html",
