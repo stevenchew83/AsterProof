@@ -1356,6 +1356,141 @@ egxa
     assert parsed_import.problems[2].statement_latex.startswith("A chess king")
 
 
+def test_fetch_statement_text_from_url_prefers_reader_when_aops_printable_pdf_flattens_latex(monkeypatch):
+    class _FakePage:
+        def extract_text(self) -> str:
+            return (
+                "AoPS Community 2025 Balkan MO\n"
+                "Balkan MO 2025\n"
+                "www.artofproblemsolving.com/community/c4305889\n"
+                "by swynca, falantrng, egxa\n"
+                "1 An integer $n > 1$ is called good if there exists a permutation "
+                "$a 1, a 2, a 3,..., a n$ of the numbers\n"
+                "$1, 2, 3,..., n$, such that:\n"
+                "$( i ) a i$ and $a i + 1$ have different parities.\n"
+                "2 $In an acute - angled triangle ABC$, $H$ be the orthocenter.\n"
+                "3 Find all functions $f: R \\to R$ such that for all $x, y \\in R$,\n"
+                "$f ( x + yf ( x )) + y = xy + f ( x + y ).$\n"
+                "4 There are $n$ cities in a country, where $n \\ge 100$ is an integer.\n"
+            )
+
+    class _FakeReader:
+        def __init__(self, _stream) -> None:
+            self.pages = [_FakePage()]
+
+    class _FakeResponse:
+        status = HTTPStatus.OK
+
+        def __init__(self, payload: bytes, content_type: str) -> None:
+            self.payload = payload
+            self.content_type = content_type
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_exc_info):
+            return False
+
+        def read(self, _size: int = -1) -> bytes:
+            return self.payload
+
+        def getheader(self, name: str, default: str | None = None) -> str | None:
+            if name.casefold() == "content-type":
+                return self.content_type
+            return default
+
+    reader_markdown = br"""Title: Math Message Boards FAQ & Community Help
+
+URL Source: https://artofproblemsolving.com/community/c4305889_2025_balkan_mo
+
+Markdown Content:
+1
+
+An integer ![Image 1: $n > 1$](https://latex.artofproblemsolving.com/n-good.png) is called good if
+there exists a permutation ![Image 2: $a_1, a_2, a_3, \dots, a_n$](https://latex.artofproblemsolving.com/a-list.png)
+of the numbers ![Image 3: $1, 2, 3, \dots, n$](https://latex.artofproblemsolving.com/numbers.png), such that:
+
+![Image 4: $(i)$](https://latex.artofproblemsolving.com/i.png)
+![Image 5: $a_i$](https://latex.artofproblemsolving.com/ai.png)
+and ![Image 6: $a_{i+1}$](https://latex.artofproblemsolving.com/ai1.png) have different parities.
+
+![Image 7](https://avatar.artofproblemsolving.com/avatar_773332.jpeg)
+
+swynca
+
+[view topic](https://artofproblemsolving.com/community/c6h3557041p34676759)
+
+2
+
+In an acute-angled triangle ![Image 8: \(ABC\)](https://latex.artofproblemsolving.com/abc.png),
+![Image 9: \(H\)](https://latex.artofproblemsolving.com/h.png) is the orthocenter. Prove the result.
+
+_Proposed by Theoklitos Parayiou, Cyprus_
+
+![Image 10](https://avatar.artofproblemsolving.com/avatar_376542.png)
+
+falantrng
+
+[view topic](https://artofproblemsolving.com/community/c6h3556973p34675945)
+
+3
+
+Find all functions
+![Image 11: $f\colon \mathbb{R} \rightarrow \mathbb{R}$](https://latex.artofproblemsolving.com/function.png)
+such that for all ![Image 12: $x,y \in \mathbb{R}$](https://latex.artofproblemsolving.com/xy.png),
+
+![Image 13: \[f(x+yf(x))+y = xy + f(x+y).\]](https://latex.artofproblemsolving.com/equation.png)
+
+_Proposed by Giannis Galamatis, Greece_
+
+[view topic](https://artofproblemsolving.com/community/c6h3556976p34675961)
+
+4
+
+There are ![Image 14: $n$](https://latex.artofproblemsolving.com/n.png) cities in a country, where
+![Image 15: $n \geq 100$](https://latex.artofproblemsolving.com/n100.png) is an integer.
+Let ![Image 16: $F$](https://latex.artofproblemsolving.com/f.png) be the total number of direct flights.
+
+Proposed by David-Andrei Anghel, Romania.
+"""
+    seen_urls = []
+
+    def fake_urlopen(request, *, timeout):
+        seen_urls.append((request.full_url, timeout))
+        if len(seen_urls) == 1:
+            return _FakeResponse(b"%PDF-1.5\n%mock\n", "application/pdf")
+        return _FakeResponse(reader_markdown, "text/plain; charset=utf-8")
+
+    monkeypatch.setattr("inspinia.pages.statement_import.PdfReader", _FakeReader)
+    monkeypatch.setattr("inspinia.pages.statement_import.urllib.request.urlopen", fake_urlopen)
+
+    fetched = fetch_statement_text_from_url(
+        "https://artofproblemsolving.com/community/c4305889_2025_balkan_mo",
+    )
+
+    assert seen_urls == [
+        (
+            "https://artofproblemsolving.com/downloads/printable_post_collections/4305889.pdf",
+            URL_FETCH_TIMEOUT_SECONDS,
+        ),
+        (
+            "https://r.jina.ai/http://https://artofproblemsolving.com/community/c4305889_2025_balkan_mo",
+            URL_FETCH_TIMEOUT_SECONDS,
+        ),
+    ]
+    assert "$a_1, a_2, a_3, \\dots, a_n$" in fetched.text
+    assert "$a 1, a 2" not in fetched.text
+    assert r"$f\colon \mathbb{R} \rightarrow \mathbb{R}$" in fetched.text
+    assert "[view topic]" not in fetched.text
+
+    parsed_import = parse_contest_problem_statements(fetched.text)
+
+    assert parsed_import.contest_year == 2025
+    assert parsed_import.contest_name == "Balkan MO"
+    assert [problem.problem_code for problem in parsed_import.problems] == ["P1", "P2", "P3", "P4"]
+    assert "\\[\nf(x+yf(x))+y = xy + f(x+y).\n\\]" in parsed_import.problems[2].statement_latex
+
+
 def test_fetch_statement_text_from_url_extracts_visible_html_text(monkeypatch):
     class _FakeResponse:
         status = HTTPStatus.OK
