@@ -1,0 +1,41 @@
+2024 Bulgaria MO Regional Round3
+Bulgaria MO Regional Round 2024
+9.3	A positive integer $n$ is called a $\textit{supersquare}$ if there exists a positive integer $m$, such that $10 \nmid m$ and the decimal representation of $n=m^2$ consists only of digits among $\{0, 4, 9\}$. Are there infinitely many $\textit{supersquares}$?
+
+VicKmath7
+view topic
+9.4	Given is a $K_{2024}$ in which every edge has weight $1$ or $2$. If every cycle has even total weight, find the minimal value of the sum of all weights in the graph.
+
+VicKmath7
+view topic
+10.2	Given are two fixed lines that meet at a point $O$ and form an acute angle with measure $\alpha$. Let $P$ be a fixed point, internal for the angle. The points $M, N$ vary on the two lines (one point on each line) such that $\angle MPN=180^{\circ}-\alpha$ and $P$ is internal for $\triangle MON$. Show that the foot of the perpendicular from $P$ to $MN$ lies on a fixed circle.
+
+VicKmath7
+view topic
+10.3	Find all positive integers $1 \leq k \leq 6$ such that for any prime $p$, satisfying $p^2=a^2+kb^2$ for some positive integers $a, b$, there exist positive integers $x, y$, satisfying $p=x^2+ky^2$.
+
+Remark on 10.4
+
+VicKmath7
+view topic
+11.3	A positive integer $n$ is called $\textit{good}$ if $2 \mid \tau(n)$ and if its divisors are$$1=d_1<d_2<\ldots<d_{2k-1}<d_{2k}=n, $$then $d_{k+1}-d_k=2$ and $d_{k+2}-d_{k-1}=65$. Find the smallest $\textit{good}$ number.
+
+VicKmath7
+view topic
+11.4	A board $2025 \times 2025$ is filled with the numbers $1, 2, \ldots, 2025$, each appearing exactly $2025$ times. Show that there is a row or column with at least $45$ distinct numbers.
+
+VicKmath7
+view topic
+12.1	Let $ABC$ be an acute triangle with midpoint $M$ of $AB$. The point $D$ lies on the segment $MB$ and $I_1, I_2$ denote the incenters of $\triangle ADC$ and $\triangle BDC$. Given that $\angle I_1MI_2=90^{\circ}$, show that $CA=CB$.
+
+VicKmath7
+view topic
+12.2	Let $N$ be a positive integer. The sequence $x_1, x_2, \ldots$ of non-negative reals is defined by$$x_n^2=\sum_{i=1}^{n-1} \sqrt{x_ix_{n-i}}$$for all positive integers $n>N$. Show that there exists a constant $c>0$, such that $x_n \leq \frac{n} {2}+c$ for all positive integers $n$.
+
+VicKmath7
+view topic
+12.3	Let $A_0B_0C_0$ be a triangle. For a positive integer $n \geq 1$, we define $A_n$ on the segment $B_{n-1}C_{n-1}$ such that $B_{n-1}A_n:C_{n-1}A_n=2:1$ and $B_n, C_n$ are defined cyclically in a similar manner. Show that there exists an unique point $P$ that lies in the interior of all triangles $A_nB_nC_n$.
+
+VicKmath7
+view topic
+12.4	Find all pairs of positive integers $(n, k)$ such that all sufficiently large odd positive integers $m$ are representable as$$m=a_1^{n^2}+a_2^{(n+1)^2}+\ldots+a_k^{(n+k-1)^2}+a_{k+1}^{(n+k)^2}$$for some non-negative integers $a_1, a_2, \ldots, a_{k+1}$.

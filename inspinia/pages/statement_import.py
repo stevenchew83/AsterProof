@@ -94,6 +94,9 @@ HEADER_YEAR_MIDDLE_RE = re.compile(
 YEAR_PREFIXED_SECTION_RE = re.compile(
     r"^\s*(?P<year>\d{4})\s+(?P<label>[A-Za-z].+?)\s*$",
 )
+YEAR_SUFFIXED_SECTION_RE = re.compile(
+    r"^\s*(?P<label>[A-Za-z].+?)\s+(?P<year>\d{4})(?:\d)?\s*$",
+)
 DAY_LABEL_RE = re.compile(
     r"^Day\s*(?P<token>\d+|[IVXLCDM]+)(?:(?:\s*[,:-]\s*|\s+)(?P<detail>.+))?$",
     flags=re.IGNORECASE,
@@ -194,9 +197,13 @@ TRAILING_PROPOSED_BY_LINE_RE = re.compile(
 )
 USERNAME_LINE_RE = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9_.-]*$")
 NOTE_METADATA_LINE_RE = re.compile(
-    r"^(?:note|junior version (?:posted )?here|senior version (?:posted )?here|\(translated from here\.\))$",
+    r"^(?:"
+    r"note|remark on \d{1,2}\.\d{1,3}|junior version (?:posted )?here|"
+    r"senior version (?:posted )?here|\(translated from here\.\)"
+    r")$",
     flags=re.IGNORECASE,
 )
+DOTTED_PROBLEM_CODE_RE = re.compile(r"^(?P<group>\d{1,2})\.(?P<number>\d{1,3})$")
 SECTION_DATE_LINE_RE = re.compile(
     r"^(?:"
     r"(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),\s+\d{1,2}\s+[A-Za-z]+\s+\d{4}"
@@ -1882,6 +1889,15 @@ def _current_grade_section_number(state: _StatementParseState) -> int | None:
     return None
 
 
+def _current_dotted_problem_group(state: _StatementParseState) -> int | None:
+    if not state.current_problem_code:
+        return None
+    match = DOTTED_PROBLEM_CODE_RE.fullmatch(state.current_problem_code)
+    if match is None:
+        return None
+    return int(match.group("group"))
+
+
 def _is_section_metadata_line(line: str | None) -> bool:
     if line is None:
         return False
@@ -2111,6 +2127,28 @@ def _normalized_year_prefixed_section_label(
     return _clean_contest_name(match.group("label"))
 
 
+def _normalized_year_suffixed_section_label(
+    line: str,
+    *,
+    contest_year: int | None,
+    contest_name: str,
+    next_nonempty_line: str | None,
+) -> str | None:
+    if contest_year is None or next_nonempty_line is None:
+        return None
+    if _is_section_metadata_line(line) or _is_structured_section_header(next_nonempty_line):
+        return None
+    match = YEAR_SUFFIXED_SECTION_RE.fullmatch(line)
+    if match is None or int(match.group("year")) != contest_year:
+        return None
+    if not _is_problem_start_candidate(next_nonempty_line):
+        return None
+    section_label = _clean_contest_name(match.group("label"))
+    if section_label.casefold() != contest_name.casefold():
+        return None
+    return section_label
+
+
 def _normalized_test_label(line: str) -> str | None:
     match = TEST_LABEL_RE.fullmatch(" ".join(line.split()))
     if match is None:
@@ -2236,17 +2274,27 @@ def _can_start_grade_prefixed_problem(
     problem_match: re.Match[str],
 ) -> bool:
     current_grade = _current_grade_section_number(state)
-    if current_grade is None or current_grade != int(problem_match.group("grade")):
-        return False
+    problem_group = int(problem_match.group("grade"))
+    statement = (problem_match.group("statement") or "").strip()
+    if current_grade is not None:
+        if current_grade != problem_group:
+            return False
 
+        if state.current_problem_number is None or state.awaiting_new_problem:
+            return True
+
+        return bool(statement and int(problem_match.group("number")) > state.current_problem_number)
+
+    if not statement:
+        return False
     if state.current_problem_number is None or state.awaiting_new_problem:
         return True
 
-    statement = (problem_match.group("statement") or "").strip()
-    if not statement:
-        return False
-
-    return int(problem_match.group("number")) > state.current_problem_number
+    current_group = _current_dotted_problem_group(state)
+    return (
+        (current_group is not None and current_group != problem_group)
+        or int(problem_match.group("number")) > state.current_problem_number
+    )
 
 
 def _can_start_alpha_problem(state: _StatementParseState) -> bool:
@@ -2301,6 +2349,14 @@ def _consume_header_or_problem_line(
     ):
         _flush_problem(state)
         _set_primary_section(state, year_prefixed_section_label)
+    elif year_suffixed_section_label := _normalized_year_suffixed_section_label(
+        line,
+        contest_year=state.contest_year,
+        contest_name=state.contest_name,
+        next_nonempty_line=next_nonempty_line,
+    ):
+        _flush_problem(state)
+        _set_primary_section(state, year_suffixed_section_label)
     elif round_and_section_label := _normalized_round_and_section_label(line):
         _flush_problem(state)
         state.current_primary_section = round_and_section_label.split(" · ", 1)[0]
