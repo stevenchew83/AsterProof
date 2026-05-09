@@ -75,6 +75,7 @@ AOPS_SLUG_WORD_REPLACEMENTS = {
     "imo": "IMO",
     "jmo": "JMO",
     "mo": "MO",
+    "nmo": "NMO",
     "tst": "TST",
     "usa": "USA",
     "usamo": "USAMO",
@@ -606,6 +607,93 @@ def _aops_reader_markdown_body(markdown_text: str) -> str:
     return markdown_text
 
 
+def _aops_collection_id(source_url: str) -> str | None:
+    parsed_url = urllib.parse.urlparse(source_url)
+    match = AOPS_COMMUNITY_COLLECTION_RE.match(parsed_url.path)
+    if match is None:
+        match = AOPS_PRINTABLE_COLLECTION_RE.match(parsed_url.path)
+    if match is None:
+        return None
+    return match.group("collection_id")
+
+
+def _next_nonempty_reader_line(lines: list[str], current_index: int) -> str:
+    for line in lines[current_index + 1 :]:
+        stripped_line = line.strip()
+        if stripped_line:
+            return stripped_line
+    return ""
+
+
+def _is_aops_reader_collection_metadata_line(line: str, *, next_line: str) -> bool:
+    normalized_line = " ".join(line.split()).casefold()
+    normalized_next_line = " ".join(next_line.split()).casefold()
+    if (
+        re.fullmatch(r"\d+", normalized_line)
+        and normalized_next_line.startswith("for ")
+        and "grade" in normalized_next_line
+    ):
+        return True
+    return normalized_line.startswith("for ") and "grade" in normalized_line
+
+
+def _is_aops_reader_content_start(line: str) -> bool:
+    candidate = " ".join(line.split())
+    return bool(
+        _normalized_day_label(candidate)
+        or _normalized_grade_section_label(candidate)
+        or _normalized_grade_level_section_label(candidate)
+        or _is_problem_start_candidate(candidate),
+    )
+
+
+def _is_aops_reader_footer_line(line: str) -> bool:
+    stripped_line = line.strip()
+    footer_lines = (
+        "Art of Problem Solving is an",
+        "aops programs",
+        "Something appears to not have loaded correctly.",
+    )
+    return (
+        "aops-online-footer.svg" in stripped_line
+        or stripped_line.startswith("Copyright ©")
+        or stripped_line in footer_lines
+    )
+
+
+def _trim_aops_reader_page_chrome(markdown_text: str, *, source_url: str) -> str:
+    lines = markdown_text.splitlines()
+    collection_id = _aops_collection_id(source_url)
+    if collection_id is not None:
+        printable_marker = f"/downloads/printable_post_collections/{collection_id}"
+        for index, line in enumerate(lines):
+            if printable_marker in line:
+                lines = lines[index + 1 :]
+                break
+
+    start_index = 0
+    for index, line in enumerate(lines):
+        stripped_line = line.strip()
+        if not stripped_line:
+            continue
+        if _is_aops_reader_collection_metadata_line(
+            stripped_line,
+            next_line=_next_nonempty_reader_line(lines, index),
+        ):
+            continue
+        if _is_aops_reader_content_start(stripped_line):
+            start_index = index
+            break
+
+    lines = lines[start_index:]
+    end_index = len(lines)
+    for index, line in enumerate(lines):
+        if _is_aops_reader_footer_line(line):
+            end_index = index
+            break
+    return "\n".join(lines[:end_index])
+
+
 def _is_aops_reader_view_topic_line(line: str) -> bool:
     return AOPS_READER_VIEW_TOPIC_LINK_RE.fullmatch(line.strip()) is not None
 
@@ -676,12 +764,39 @@ def _join_standalone_aops_reader_problem_codes(text: str) -> str:
     return "\n".join(joined_lines)
 
 
+def _join_aops_reader_day_date_lines(text: str) -> str:
+    lines = text.splitlines()
+    joined_lines: list[str] = []
+    index = 0
+    while index < len(lines):
+        line = lines[index]
+        stripped_line = line.strip()
+        if _normalized_day_label(stripped_line):
+            next_index = index + 1
+            while next_index < len(lines) and not lines[next_index].strip():
+                next_index += 1
+            if next_index < len(lines):
+                date_label = _normalized_section_date_label(lines[next_index].strip())
+                if date_label is not None:
+                    joined_lines.append(f"{stripped_line} {date_label}")
+                    index = next_index + 1
+                    continue
+        joined_lines.append(line)
+        index += 1
+    return "\n".join(joined_lines)
+
+
 def _normalize_aops_reader_markdown(markdown_text: str, *, source_url: str) -> str:
+    reader_body = _trim_aops_reader_page_chrome(
+        _aops_reader_markdown_body(markdown_text),
+        source_url=source_url,
+    )
     converted_text = MARKDOWN_IMAGE_RE.sub(
         _replace_aops_markdown_image,
-        _aops_reader_markdown_body(markdown_text),
+        reader_body,
     )
     reader_text = _strip_aops_reader_author_lines(_normalize_extracted_text(converted_text))
+    reader_text = _join_aops_reader_day_date_lines(reader_text)
     normalized_text = _normalize_extracted_text(
         _join_standalone_aops_reader_problem_codes(reader_text),
     )
@@ -691,9 +806,12 @@ def _normalize_aops_reader_markdown(markdown_text: str, *, source_url: str) -> s
 
     first_line = next((line.strip() for line in normalized_text.splitlines() if line.strip()), "")
     if (
-        HEADER_LINE_RE.match(first_line)
-        or HEADER_YEAR_SUFFIX_RE.match(first_line)
-        or HEADER_YEAR_MIDDLE_RE.match(first_line)
+        _normalized_day_label(first_line) is None
+        and (
+            HEADER_LINE_RE.match(first_line)
+            or HEADER_YEAR_SUFFIX_RE.match(first_line)
+            or HEADER_YEAR_MIDDLE_RE.match(first_line)
+        )
     ):
         return normalized_text
     return _normalize_extracted_text(f"{header}\n\n{normalized_text}")
@@ -1495,7 +1613,7 @@ def _is_structured_day_subsection_part(label: str) -> bool:
     return bool(
         _normalized_day_label(candidate)
         or _normalized_test_label(candidate)
-        or _normalized_exam_day_label(candidate)
+        or _normalized_exam_day_label(candidate),
     )
 
 
@@ -1818,7 +1936,7 @@ def _looks_like_post_header_content(line: str | None) -> bool:
         or _normalized_part_label(normalized_line)
         or TEST_LABEL_RE.fullmatch(normalized_line)
         or ROUND_LABEL_RE.fullmatch(normalized_line)
-        or _is_problem_start_candidate(line)
+        or _is_problem_start_candidate(line),
     )
 
 
@@ -1833,7 +1951,7 @@ def _is_structured_section_header(line: str | None) -> bool:
         or _normalized_part_label(normalized_line)
         or _normalized_test_label(normalized_line)
         or ROUND_LABEL_RE.fullmatch(normalized_line)
-        or _normalized_round_and_section_label(normalized_line)
+        or _normalized_round_and_section_label(normalized_line),
     )
 
 
@@ -1907,7 +2025,7 @@ def _is_generic_section_header(
     return bool(
         _is_section_metadata_line(next_nonempty_line)
         and _is_section_metadata_line(following_nonempty_line)
-        and _is_problem_start_candidate(third_nonempty_line)
+        and _is_problem_start_candidate(third_nonempty_line),
     )
 
 
