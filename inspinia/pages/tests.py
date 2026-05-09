@@ -7889,6 +7889,7 @@ def test_contest_existence_audit_url_source_extracts_year_prefixed_aops_titles(m
         return FakeResponse()
 
     monkeypatch.setattr("inspinia.pages.contest_existence_audit.urlopen", fake_urlopen, raising=False)
+    monkeypatch.setattr("inspinia.pages.contest_existence_audit.curl_requests", None)
 
     source_text = fetch_contest_existence_audit_source_text(
         "https://artofproblemsolving.com/community/c4148541_2025_contests",
@@ -7959,7 +7960,7 @@ def test_contest_existence_audit_url_source_fetches_all_paginated_aops_folder_it
         return FakeResponse(
             {
                 "response": {
-                    "items": [
+                    "new_items": [
                         {
                             "item_id": 4318802,
                             "item_text": "2025 Austrian MO National Competition",
@@ -7990,6 +7991,114 @@ def test_contest_existence_audit_url_source_fetches_all_paginated_aops_folder_it
         (2025, "AIME"),
         (2025, "Austrian MO National Competition"),
         (2025, "Azerbaijan Junior NMO"),
+    ]
+
+
+def test_contest_existence_audit_url_source_uses_browser_session_for_aops_pagination(monkeypatch):
+    import json
+    from urllib.error import HTTPError
+    from urllib.parse import parse_qs
+
+    from inspinia.pages.contest_existence_audit import fetch_contest_existence_audit_source_text
+
+    ajax_url = "https://artofproblemsolving.com/m/community/ajax.php"
+    source_url = "https://artofproblemsolving.com/community/c4148541_2025_contests"
+    html = """
+    <script>
+    AoPS.session = {"id": "session-123", "logged_in": false, "user_id": 1};
+    </script>
+    """.encode()
+    requested_browser_actions = []
+
+    class FakeResponse:
+        def __init__(self, payload, *, content_type="application/json; charset=utf-8", status_code=200):
+            self.content = payload
+            self.headers = {"Content-Type": content_type}
+            self.status_code = status_code
+
+    class FakeBrowserSession:
+        def get(self, fetch_url, headers, timeout):
+            assert fetch_url == source_url
+            assert headers["User-Agent"] == "AsterProof contest existence audit"
+            assert timeout > 0
+            return FakeResponse(html, content_type="text/html; charset=utf-8")
+
+        def post(self, fetch_url, data, headers, timeout):
+            assert fetch_url == ajax_url
+            assert headers["Referer"] == source_url
+            assert timeout > 0
+            request_data = parse_qs(data.decode())
+            assert request_data["aops_logged_in"] == ["false"]
+            assert request_data["aops_session_id"] == ["session-123"]
+            assert request_data["aops_user_id"] == ["1"]
+            action = request_data["a"][0]
+            requested_browser_actions.append(action)
+
+            if action == "fetch_category_data":
+                return FakeResponse(
+                    json.dumps(
+                        {
+                            "response": {
+                                "category": {
+                                    "category_id": 4148541,
+                                    "category_type": "folder",
+                                    "items": [
+                                        {
+                                            "item_id": 3198869,
+                                            "item_text": "2025 AIME",
+                                            "item_type": "view_posts",
+                                            "item_subtitle": "AIME 2025",
+                                        },
+                                    ],
+                                    "no_more_items": False,
+                                },
+                            },
+                        },
+                    ).encode(),
+                )
+
+            assert action == "fetch_items_categories"
+            assert request_data["parent_category_id"] == ["4148541"]
+            assert request_data["start_num"] == ["1"]
+            return FakeResponse(
+                json.dumps(
+                    {
+                        "response": {
+                            "new_items": [
+                                {
+                                    "item_id": 4318802,
+                                    "item_text": "2025 Austrian MO National Competition",
+                                    "item_type": "view_posts",
+                                    "item_subtitle": "Austrian MO National Competition 2025",
+                                },
+                            ],
+                            "no_more_items": True,
+                        },
+                    },
+                ).encode(),
+            )
+
+    class FakeCurlRequests:
+        @staticmethod
+        def Session(impersonate):
+            assert impersonate == "safari17_0"
+            return FakeBrowserSession()
+
+    def fake_urlopen(request, timeout):
+        assert request.full_url == ajax_url
+        assert timeout > 0
+        raise HTTPError(ajax_url, 403, "Forbidden", hdrs=None, fp=None)
+
+    monkeypatch.setattr("inspinia.pages.contest_existence_audit.urlopen", fake_urlopen, raising=False)
+    monkeypatch.setattr("inspinia.pages.contest_existence_audit.curl_requests", FakeCurlRequests)
+
+    source_text = fetch_contest_existence_audit_source_text(source_url)
+    parsed_headers = parse_contest_existence_audit_text(source_text)
+
+    assert requested_browser_actions == ["fetch_category_data", "fetch_items_categories"]
+    assert [(header.year, header.contest_name) for header in parsed_headers] == [
+        (2025, "AIME"),
+        (2025, "Austrian MO National Competition"),
     ]
 
 
@@ -8034,6 +8143,7 @@ def test_contest_existence_audit_url_source_uses_reader_fallback_for_aops_forbid
         return FakeResponse()
 
     monkeypatch.setattr("inspinia.pages.contest_existence_audit.urlopen", fake_urlopen, raising=False)
+    monkeypatch.setattr("inspinia.pages.contest_existence_audit.curl_requests", None)
 
     source_text = fetch_contest_existence_audit_source_text(source_url)
     parsed_headers = parse_contest_existence_audit_text(source_text)
@@ -8082,6 +8192,7 @@ def test_contest_existence_audit_url_source_rejects_incomplete_aops_reader_page(
         return FakeResponse()
 
     monkeypatch.setattr("inspinia.pages.contest_existence_audit.urlopen", fake_urlopen, raising=False)
+    monkeypatch.setattr("inspinia.pages.contest_existence_audit.curl_requests", None)
 
     with pytest.raises(ContestExistenceAuditValidationError, match="Could not load all AoPS contest entries"):
         fetch_contest_existence_audit_source_text(source_url)
