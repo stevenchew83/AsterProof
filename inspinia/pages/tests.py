@@ -8366,6 +8366,48 @@ def test_contest_existence_audit_allows_admin_and_posts_audit_results(client, mo
     assert 'id="contest-existence-audit-form"' in response_html
     assert 'id="contest-existence-audit-url"' in response_html
     assert 'id="contest-existence-audit-results-table"' in response_html
+
+
+def test_contest_existence_audit_accepts_pasted_source_text(client, monkeypatch):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+
+    def fake_fetch_source_text(_source_url):
+        raise AssertionError("URL fetch should not run when pasted source text is provided.")
+
+    monkeypatch.setattr(
+        "inspinia.pages.views.fetch_contest_existence_audit_source_text",
+        fake_fetch_source_text,
+        raising=False,
+    )
+
+    response = client.post(
+        reverse("pages:contest_existence_audit"),
+        {
+            "source_text": "\n".join(
+                [
+                    "2026 Contests3",
+                    " 2026 AIMEAIME 2026",
+                    "I",
+                    "February 5",
+                    "1\tPatrick started walking.",
+                    " 2026 Austrian MO National Competition2026 Austrian MO National Competition",
+                    "Preliminary round (May 2, 2026)",
+                    "1\tProve that for all integers.",
+                ]
+            ),
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    payload = response.context["preview_payload"]
+    assert payload["row_count"] == 2
+    assert [(row["year"], row["contest_name"]) for row in payload["rows"]] == [
+        (2026, "AIME"),
+        (2026, "Austrian MO National Competition"),
+    ]
+    response_html = response.content.decode("utf-8")
+    assert 'id="contest-existence-audit-text"' in response_html
     assert 'id="contest-existence-audit-export"' in response_html
 
 
