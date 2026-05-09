@@ -7319,6 +7319,50 @@ def test_contest_existence_audit_parser_reads_year_prefixed_contest_headers():
     ]
 
 
+def test_contest_existence_audit_url_source_extracts_year_prefixed_aops_titles(monkeypatch):
+    from inspinia.pages.contest_existence_audit import fetch_contest_existence_audit_source_text
+
+    html = """
+    <html>
+      <body>
+        <a href="/community/c3198869_2025_aime">x 2025 AIME</a>
+        <span>AIME 2025</span>
+        <a href="/community/c4000000_2025_austrian_mo_national_competition">x 2025 Austrian MO National Competition</a>
+        <span>Austrian MO National Competition 2025</span>
+      </body>
+    </html>
+    """.encode()
+
+    class FakeResponse:
+        headers = {"Content-Type": "text/html; charset=utf-8"}
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, traceback):
+            return False
+
+        def read(self, _size):
+            return html
+
+    def fake_urlopen(request, timeout):
+        assert request.full_url == "https://artofproblemsolving.com/community/c4148541_2025_contests"
+        assert timeout > 0
+        return FakeResponse()
+
+    monkeypatch.setattr("inspinia.pages.contest_existence_audit.urlopen", fake_urlopen, raising=False)
+
+    source_text = fetch_contest_existence_audit_source_text(
+        "https://artofproblemsolving.com/community/c4148541_2025_contests",
+    )
+    parsed_headers = parse_contest_existence_audit_text(source_text)
+
+    assert [(header.year, header.contest_name) for header in parsed_headers] == [
+        (2025, "AIME"),
+        (2025, "Austrian MO National Competition"),
+    ]
+
+
 def test_contest_existence_audit_parser_rejects_text_without_contest_headers():
     with pytest.raises(
         ContestExistenceAuditValidationError,
@@ -7423,7 +7467,7 @@ def test_handle_summary_parser_allows_admin_access(client):
     assert 'id="handle-summary-parser-form"' in response_html
 
 
-def test_contest_existence_audit_allows_admin_and_posts_audit_results(client):
+def test_contest_existence_audit_allows_admin_and_posts_audit_results(client, monkeypatch):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
     ProblemSolveRecord.objects.create(
@@ -7448,17 +7492,27 @@ def test_contest_existence_audit_allows_admin_and_posts_audit_results(client):
     assert "Contest existence audit" in get_response.content.decode("utf-8")
     assert get_response.context["preview_payload"] is None
 
+    def fake_fetch_source_text(source_url):
+        assert source_url == "https://artofproblemsolving.com/community/c4148541_2025_contests"
+        return "\n".join(
+            [
+                "2026 Contests3",
+                "2026 Canadian National Olympiad",
+                "2026 Canadian National Olympiad",
+                "2026 Canada National Olympiad",
+            ]
+        )
+
+    monkeypatch.setattr(
+        "inspinia.pages.views.fetch_contest_existence_audit_source_text",
+        fake_fetch_source_text,
+        raising=False,
+    )
+
     response = client.post(
         reverse("pages:contest_existence_audit"),
         {
-            "source_text": "\n".join(
-                [
-                    "2026 Contests3",
-                    "2026 Canadian National Olympiad",
-                    "2026 Canadian National Olympiad",
-                    "2026 Canada National Olympiad",
-                ]
-            ),
+            "source_url": "https://artofproblemsolving.com/community/c4148541_2025_contests",
         },
     )
 
@@ -7475,6 +7529,7 @@ def test_contest_existence_audit_allows_admin_and_posts_audit_results(client):
     assert "Canadian National Olympiad" in payload["export_tsv"]
     response_html = response.content.decode("utf-8")
     assert 'id="contest-existence-audit-form"' in response_html
+    assert 'id="contest-existence-audit-url"' in response_html
     assert 'id="contest-existence-audit-results-table"' in response_html
     assert 'id="contest-existence-audit-export"' in response_html
 

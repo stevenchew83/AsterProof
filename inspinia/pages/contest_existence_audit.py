@@ -2,12 +2,18 @@ from __future__ import annotations
 
 import csv
 import re
+import urllib.error
 from collections import OrderedDict
 from collections import defaultdict
 from dataclasses import dataclass
 from difflib import SequenceMatcher
+from html import unescape
+from html.parser import HTMLParser
 from io import StringIO
 from typing import TypedDict
+from urllib.parse import urlparse
+from urllib.request import Request
+from urllib.request import urlopen
 
 from django.db.models import Count
 
@@ -54,10 +60,166 @@ TRAILING_YEAR_RE = re.compile(r"\s+\d{4}\s*$")
 GENERIC_HEADER_WORDS = {"contest", "contests"}
 SUGGESTION_LIMIT = 3
 SUGGESTION_MIN_RATIO = 0.35
+SOURCE_FETCH_BYTE_LIMIT = 2_000_000
+SOURCE_FETCH_TIMEOUT_SECONDS = 20
+ALLOWED_AOPS_HOST_SUFFIX = "artofproblemsolving.com"
+HTML_CONTENT_TYPE_RE = re.compile(r"\bhtml\b", flags=re.IGNORECASE)
+CHARSET_RE = re.compile(r"charset=([A-Za-z0-9._-]+)", flags=re.IGNORECASE)
+AOPS_COMMUNITY_TITLE_RE = re.compile(r"^AoPS Community\s+(?P<title>\d{4}\s+.+)$", flags=re.IGNORECASE)
+AOPS_ICON_PREFIXED_YEAR_RE = re.compile(r"^(?:x|8)\s+(?P<title>\d{4}\s+.+)$", flags=re.IGNORECASE)
+
+
+class _AuditSourceHtmlTextParser(HTMLParser):
+    _BLOCK_TAGS = {
+        "a",
+        "article",
+        "body",
+        "br",
+        "dd",
+        "div",
+        "dt",
+        "figcaption",
+        "footer",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
+        "header",
+        "li",
+        "main",
+        "p",
+        "section",
+        "td",
+        "th",
+        "title",
+        "tr",
+    }
+    _SKIP_TAGS = {"script", "style", "svg", "noscript"}
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.lines: list[str] = []
+        self._current_parts: list[str] = []
+        self._skip_depth = 0
+
+    def handle_starttag(self, tag, attrs):
+        tag = tag.lower()
+        if tag in self._SKIP_TAGS:
+            self._skip_depth += 1
+            return
+        if tag in self._BLOCK_TAGS:
+            self._flush_current_line()
+
+    def handle_endtag(self, tag):
+        tag = tag.lower()
+        if tag in self._SKIP_TAGS:
+            self._skip_depth = max(0, self._skip_depth - 1)
+            return
+        if tag in self._BLOCK_TAGS:
+            self._flush_current_line()
+
+    def handle_data(self, data):
+        if self._skip_depth:
+            return
+        text = _collapse_whitespace(unescape(data))
+        if text:
+            self._current_parts.append(text)
+
+    def close(self):
+        super().close()
+        self._flush_current_line()
+
+    def _flush_current_line(self):
+        line = _collapse_whitespace(" ".join(self._current_parts))
+        self._current_parts = []
+        if line:
+            self.lines.append(line)
 
 
 def _collapse_whitespace(value: str) -> str:
     return " ".join(value.strip().split())
+
+
+def _validate_aops_source_url(source_url: str) -> str:
+    url = source_url.strip()
+    parsed = urlparse(url)
+    if parsed.scheme != "https" or not parsed.netloc:
+        msg = "Enter a full AoPS URL beginning with https://."
+        raise ContestExistenceAuditValidationError(msg)
+
+    hostname = parsed.hostname or ""
+    if hostname != ALLOWED_AOPS_HOST_SUFFIX and not hostname.endswith(f".{ALLOWED_AOPS_HOST_SUFFIX}"):
+        msg = "Contest audit URL must be on artofproblemsolving.com."
+        raise ContestExistenceAuditValidationError(msg)
+
+    if not parsed.path.startswith(("/community/", "/downloads/")):
+        msg = "Enter an AoPS community or downloads URL."
+        raise ContestExistenceAuditValidationError(msg)
+
+    return url
+
+
+def _decode_source_document(raw_content: bytes, content_type: str) -> str:
+    charset_match = CHARSET_RE.search(content_type)
+    encodings = [charset_match.group(1)] if charset_match else []
+    encodings.extend(["utf-8", "latin-1"])
+
+    for encoding in encodings:
+        try:
+            return raw_content.decode(encoding)
+        except UnicodeDecodeError:
+            continue
+    return raw_content.decode("utf-8", errors="replace")
+
+
+def _html_to_source_text(document: str) -> str:
+    parser = _AuditSourceHtmlTextParser()
+    parser.feed(document)
+    parser.close()
+
+    lines: list[str] = []
+    for line in parser.lines:
+        community_title_match = AOPS_COMMUNITY_TITLE_RE.match(line)
+        if community_title_match:
+            lines.append(community_title_match.group("title"))
+        icon_prefixed_year_match = AOPS_ICON_PREFIXED_YEAR_RE.match(line)
+        if icon_prefixed_year_match:
+            lines.append(icon_prefixed_year_match.group("title"))
+        lines.append(line)
+    return "\n".join(lines)
+
+
+def fetch_contest_existence_audit_source_text(source_url: str) -> str:
+    validated_url = _validate_aops_source_url(source_url)
+    request = Request(  # noqa: S310
+        validated_url,
+        headers={
+            "Accept": "text/html,text/plain;q=0.9,*/*;q=0.8",
+            "User-Agent": "AsterProof contest existence audit",
+        },
+    )
+
+    try:
+        with urlopen(request, timeout=SOURCE_FETCH_TIMEOUT_SECONDS) as response:  # noqa: S310
+            content_type = response.headers.get("Content-Type", "")
+            raw_content = response.read(SOURCE_FETCH_BYTE_LIMIT + 1)
+    except (TimeoutError, OSError, ValueError, urllib.error.URLError) as exc:
+        msg = "Could not fetch the AoPS URL. Check that the page is reachable and try again."
+        raise ContestExistenceAuditValidationError(msg) from exc
+
+    if len(raw_content) > SOURCE_FETCH_BYTE_LIMIT:
+        msg = "The AoPS page is too large to audit in one request."
+        raise ContestExistenceAuditValidationError(msg)
+    if not raw_content.strip():
+        msg = "The AoPS URL returned an empty response."
+        raise ContestExistenceAuditValidationError(msg)
+
+    document = _decode_source_document(raw_content, content_type)
+    if HTML_CONTENT_TYPE_RE.search(content_type) or "<html" in document[:500].lower():
+        return _html_to_source_text(document)
+    return document
 
 
 def _is_generic_header(title: str) -> bool:
@@ -169,10 +331,7 @@ def _contest_names_by_year(
     names_by_year: dict[int, set[str]] = defaultdict(set)
     for year, contest_name in list(statement_counts) + list(analytics_counts):
         names_by_year[year].add(contest_name)
-    return {
-        year: sorted(contest_names)
-        for year, contest_names in names_by_year.items()
-    }
+    return {year: sorted(contest_names) for year, contest_names in names_by_year.items()}
 
 
 def _status_for_counts(statement_count: int, analytics_count: int) -> str:

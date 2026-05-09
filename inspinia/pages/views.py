@@ -58,6 +58,7 @@ from inspinia.pages.completion_progress import normalize_completion_progress_row
 from inspinia.pages.completion_progress import resolve_completion_progress_date_range
 from inspinia.pages.contest_existence_audit import ContestExistenceAuditValidationError
 from inspinia.pages.contest_existence_audit import build_contest_existence_audit_payload
+from inspinia.pages.contest_existence_audit import fetch_contest_existence_audit_source_text
 from inspinia.pages.contest_existence_audit import parse_contest_existence_audit_text
 from inspinia.pages.contest_links import contest_completion_quick_update_url
 from inspinia.pages.contest_links import contest_dashboard_listing_url
@@ -316,14 +317,15 @@ def contest_existence_audit_view(request):
         form = ContestExistenceAuditForm(request.POST)
         if form.is_valid():
             try:
-                parsed_headers = parse_contest_existence_audit_text(form.cleaned_data["source_text"])
+                source_text = fetch_contest_existence_audit_source_text(form.cleaned_data["source_url"])
+                parsed_headers = parse_contest_existence_audit_text(source_text)
             except ContestExistenceAuditValidationError as exc:
                 messages.error(request, str(exc))
             else:
                 preview_payload = build_contest_existence_audit_payload(parsed_headers)
                 messages.info(
                     request,
-                    f'Checked {preview_payload["row_count"]} parsed contest-year row(s).',
+                    f"Fetched and checked {preview_payload['row_count']} parsed contest-year row(s).",
                 )
     else:
         form = ContestExistenceAuditForm()
