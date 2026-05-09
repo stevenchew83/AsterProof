@@ -7449,6 +7449,55 @@ def test_contest_existence_audit_url_source_extracts_year_prefixed_aops_titles(m
     ]
 
 
+def test_contest_existence_audit_url_source_uses_reader_fallback_for_aops_forbidden(monkeypatch):
+    from urllib.error import HTTPError
+
+    from inspinia.pages.contest_existence_audit import fetch_contest_existence_audit_source_text
+
+    source_url = "https://artofproblemsolving.com/community/c4148541_2025_contests"
+    reader_url = f"https://r.jina.ai/{source_url}"
+    fallback_text = "\n".join(
+        [
+            "AoPS Community 2025 AIME",
+            "AIME 2025",
+            "AoPS Community 2025 Austrian MO National Competition",
+            "Austrian MO National Competition 2025",
+        ],
+    ).encode()
+    requested_urls = []
+
+    class FakeResponse:
+        headers = {"Content-Type": "text/plain; charset=utf-8"}
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, traceback):
+            return False
+
+        def read(self, _size):
+            return fallback_text
+
+    def fake_urlopen(request, timeout):
+        requested_urls.append(request.full_url)
+        if request.full_url == source_url:
+            raise HTTPError(source_url, 403, "Forbidden", hdrs=None, fp=None)
+        assert request.full_url == reader_url
+        assert timeout > 0
+        return FakeResponse()
+
+    monkeypatch.setattr("inspinia.pages.contest_existence_audit.urlopen", fake_urlopen, raising=False)
+
+    source_text = fetch_contest_existence_audit_source_text(source_url)
+    parsed_headers = parse_contest_existence_audit_text(source_text)
+
+    assert requested_urls == [source_url, reader_url]
+    assert [(header.year, header.contest_name) for header in parsed_headers] == [
+        (2025, "AIME"),
+        (2025, "Austrian MO National Competition"),
+    ]
+
+
 def test_contest_existence_audit_parser_rejects_text_without_contest_headers():
     with pytest.raises(
         ContestExistenceAuditValidationError,

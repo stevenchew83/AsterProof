@@ -63,6 +63,8 @@ SUGGESTION_MIN_RATIO = 0.35
 SOURCE_FETCH_BYTE_LIMIT = 2_000_000
 SOURCE_FETCH_TIMEOUT_SECONDS = 20
 ALLOWED_AOPS_HOST_SUFFIX = "artofproblemsolving.com"
+READER_FALLBACK_PREFIX = "https://r.jina.ai/"
+READER_FALLBACK_HTTP_STATUSES = {403, 429}
 HTML_CONTENT_TYPE_RE = re.compile(r"\bhtml\b", flags=re.IGNORECASE)
 CHARSET_RE = re.compile(r"charset=([A-Za-z0-9._-]+)", flags=re.IGNORECASE)
 AOPS_COMMUNITY_TITLE_RE = re.compile(r"^AoPS Community\s+(?P<title>\d{4}\s+.+)$", flags=re.IGNORECASE)
@@ -174,13 +176,12 @@ def _decode_source_document(raw_content: bytes, content_type: str) -> str:
     return raw_content.decode("utf-8", errors="replace")
 
 
-def _html_to_source_text(document: str) -> str:
-    parser = _AuditSourceHtmlTextParser()
-    parser.feed(document)
-    parser.close()
-
+def _expand_aops_source_lines(raw_lines: list[str]) -> list[str]:
     lines: list[str] = []
-    for line in parser.lines:
+    for raw_line in raw_lines:
+        line = _collapse_whitespace(raw_line)
+        if not line:
+            continue
         community_title_match = AOPS_COMMUNITY_TITLE_RE.match(line)
         if community_title_match:
             lines.append(community_title_match.group("title"))
@@ -188,27 +189,63 @@ def _html_to_source_text(document: str) -> str:
         if icon_prefixed_year_match:
             lines.append(icon_prefixed_year_match.group("title"))
         lines.append(line)
-    return "\n".join(lines)
+    return lines
 
 
-def fetch_contest_existence_audit_source_text(source_url: str) -> str:
-    validated_url = _validate_aops_source_url(source_url)
+def _html_to_source_text(document: str) -> str:
+    parser = _AuditSourceHtmlTextParser()
+    parser.feed(document)
+    parser.close()
+
+    return "\n".join(_expand_aops_source_lines(parser.lines))
+
+
+def _plain_to_source_text(document: str) -> str:
+    return "\n".join(_expand_aops_source_lines(document.splitlines()))
+
+
+def _read_source_response(fetch_url: str) -> tuple[str, bytes]:
     request = Request(  # noqa: S310
-        validated_url,
+        fetch_url,
         headers={
             "Accept": "text/html,text/plain;q=0.9,*/*;q=0.8",
             "User-Agent": "AsterProof contest existence audit",
         },
     )
+    with urlopen(request, timeout=SOURCE_FETCH_TIMEOUT_SECONDS) as response:  # noqa: S310
+        content_type = response.headers.get("Content-Type", "")
+        raw_content = response.read(SOURCE_FETCH_BYTE_LIMIT + 1)
+    return content_type, raw_content
 
+
+def _reader_fallback_url(validated_url: str) -> str:
+    return f"{READER_FALLBACK_PREFIX}{validated_url}"
+
+
+def _fetch_source_response(validated_url: str) -> tuple[str, bytes]:
     try:
-        with urlopen(request, timeout=SOURCE_FETCH_TIMEOUT_SECONDS) as response:  # noqa: S310
-            content_type = response.headers.get("Content-Type", "")
-            raw_content = response.read(SOURCE_FETCH_BYTE_LIMIT + 1)
+        return _read_source_response(validated_url)
+    except urllib.error.HTTPError as exc:
+        if exc.code not in READER_FALLBACK_HTTP_STATUSES:
+            msg = f"Could not fetch the AoPS URL. AoPS returned HTTP {exc.code}."
+            raise ContestExistenceAuditValidationError(msg) from exc
+        try:
+            return _read_source_response(_reader_fallback_url(validated_url))
+        except (TimeoutError, OSError, ValueError, urllib.error.URLError) as fallback_exc:
+            msg = (
+                f"Could not fetch the AoPS URL directly (HTTP {exc.code}) or through "
+                "the reader fallback. Try again later, or open the AoPS page in a browser."
+            )
+            raise ContestExistenceAuditValidationError(msg) from fallback_exc
     except (TimeoutError, OSError, ValueError, urllib.error.URLError) as exc:
         msg = "Could not fetch the AoPS URL. Check that the page is reachable and try again."
         raise ContestExistenceAuditValidationError(msg) from exc
 
+
+def fetch_contest_existence_audit_source_text(source_url: str) -> str:
+    validated_url = _validate_aops_source_url(source_url)
+
+    content_type, raw_content = _fetch_source_response(validated_url)
     if len(raw_content) > SOURCE_FETCH_BYTE_LIMIT:
         msg = "The AoPS page is too large to audit in one request."
         raise ContestExistenceAuditValidationError(msg)
@@ -219,7 +256,7 @@ def fetch_contest_existence_audit_source_text(source_url: str) -> str:
     document = _decode_source_document(raw_content, content_type)
     if HTML_CONTENT_TYPE_RE.search(content_type) or "<html" in document[:500].lower():
         return _html_to_source_text(document)
-    return document
+    return _plain_to_source_text(document)
 
 
 def _is_generic_header(title: str) -> bool:
