@@ -248,6 +248,12 @@ EXPECTED_BIMO_2021_PROBLEM_TOTAL = 5
 BIMO_2021_STATEMENT_SAMPLE = (
     Path(__file__).resolve().parent / "testdata" / "bimo_2021_sample.txt"
 ).read_text(encoding="utf-8")
+BULGARIA_MO_REGIONAL_ROUND_2024_YEAR = 2024
+BULGARIA_MO_REGIONAL_ROUND_2024_NAME = "Bulgaria MO Regional Round"
+EXPECTED_BULGARIA_MO_REGIONAL_ROUND_2024_PROBLEM_TOTAL = 10
+BULGARIA_MO_REGIONAL_ROUND_2024_STATEMENT_SAMPLE = (
+    Path(__file__).resolve().parent / "testdata" / "bulgaria_mo_regional_round_2024_sample.txt"
+).read_text(encoding="utf-8")
 KOREAN_MO_WINTER_CAMP_2020_YEAR = 2020
 KOREAN_MO_WINTER_CAMP_2020_NAME = "Korean MO winter camp"
 EXPECTED_KOREAN_MO_WINTER_CAMP_2020_PROBLEM_TOTAL = 8
@@ -2243,6 +2249,34 @@ def test_parse_contest_problem_statements_supports_grade_prefixed_problem_codes(
     assert parsed_import.problems[12].statement_latex == "Same as 9.4"
     assert "Tintarn" not in parsed_import.problems[1].statement_latex
     assert "view topic" not in parsed_import.problems[1].statement_latex
+
+
+def test_parse_contest_problem_statements_supports_unsectioned_dotted_problem_codes():
+    parsed_import = parse_contest_problem_statements(BULGARIA_MO_REGIONAL_ROUND_2024_STATEMENT_SAMPLE)
+
+    assert parsed_import.contest_year == BULGARIA_MO_REGIONAL_ROUND_2024_YEAR
+    assert parsed_import.contest_name == BULGARIA_MO_REGIONAL_ROUND_2024_NAME
+    assert len(parsed_import.problems) == EXPECTED_BULGARIA_MO_REGIONAL_ROUND_2024_PROBLEM_TOTAL
+    assert [problem.day_label for problem in parsed_import.problems] == [
+        BULGARIA_MO_REGIONAL_ROUND_2024_NAME,
+    ] * EXPECTED_BULGARIA_MO_REGIONAL_ROUND_2024_PROBLEM_TOTAL
+    assert [problem.problem_code for problem in parsed_import.problems] == [
+        "9.3",
+        "9.4",
+        "10.2",
+        "10.3",
+        "11.3",
+        "11.4",
+        "12.1",
+        "12.2",
+        "12.3",
+        "12.4",
+    ]
+    assert [problem.problem_number for problem in parsed_import.problems] == [3, 4, 2, 3, 3, 4, 1, 2, 3, 4]
+    assert "VicKmath7" not in parsed_import.problems[0].statement_latex
+    assert "view topic" not in parsed_import.problems[0].statement_latex
+    assert "Remark on 10.4" not in parsed_import.problems[3].statement_latex
+    assert parsed_import.problems[-1].statement_latex.startswith("Find all pairs of positive integers")
 
 
 def test_parse_contest_problem_statements_supports_grade_level_sections_for_older_romania_national_olympiad():
