@@ -23,6 +23,15 @@ from inspinia.pages.contest_names import normalize_contest_name
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
 
+try:
+    from curl_cffi import requests as curl_requests
+    from curl_cffi.requests.exceptions import RequestException as CurlRequestException
+except ImportError:  # pragma: no cover - dependency is optional at runtime.
+    curl_requests = None
+    CURL_REQUEST_EXCEPTIONS = ()
+else:
+    CURL_REQUEST_EXCEPTIONS = (CurlRequestException,)
+
 
 class ContestExistenceAuditValidationError(ValueError):
     """Raised when pasted contest-audit text cannot be parsed."""
@@ -64,10 +73,13 @@ SUGGESTION_LIMIT = 3
 SUGGESTION_MIN_RATIO = 0.35
 SOURCE_FETCH_BYTE_LIMIT = 2_000_000
 SOURCE_FETCH_TIMEOUT_SECONDS = 20
+HTTP_ERROR_STATUS_FLOOR = 400
 ALLOWED_AOPS_HOST_SUFFIX = "artofproblemsolving.com"
 AOPS_AJAX_URL = "https://artofproblemsolving.com/m/community/ajax.php"
 AOPS_MAX_FOLDER_PAGE_FETCHES = 100
 AOPS_INCOMPLETE_RENDERED_TEXT = "Something appears to not have loaded correctly"
+AOPS_BROWSER_IMPERSONATION = "safari17_0"
+AOPS_SESSION_RE = re.compile(r"AoPS\.session\s*=\s*(?P<session>\{.*?\});", flags=re.DOTALL)
 READER_FALLBACK_PREFIX = "https://r.jina.ai/"
 READER_FALLBACK_HTTP_STATUSES = {403, 429}
 HTML_CONTENT_TYPE_RE = re.compile(r"\bhtml\b", flags=re.IGNORECASE)
@@ -239,6 +251,37 @@ def _read_source_response(
     return content_type, raw_content
 
 
+def _read_browser_source_response(
+    browser_session,
+    fetch_url: str,
+    *,
+    data: bytes | None = None,
+    headers: dict[str, str] | None = None,
+) -> tuple[str, bytes]:
+    request_headers = {
+        "Accept": "text/html,text/plain;q=0.9,*/*;q=0.8",
+        "User-Agent": "AsterProof contest existence audit",
+    }
+    if headers:
+        request_headers.update(headers)
+
+    if data is None:
+        response = browser_session.get(fetch_url, headers=request_headers, timeout=SOURCE_FETCH_TIMEOUT_SECONDS)
+    else:
+        response = browser_session.post(
+            fetch_url,
+            data=data,
+            headers=request_headers,
+            timeout=SOURCE_FETCH_TIMEOUT_SECONDS,
+        )
+
+    if response.status_code >= HTTP_ERROR_STATUS_FLOOR:
+        msg = f"AoPS returned HTTP {response.status_code} while loading paginated contest data."
+        raise ContestExistenceAuditValidationError(msg)
+
+    return response.headers.get("Content-Type", ""), response.content[: SOURCE_FETCH_BYTE_LIMIT + 1]
+
+
 def _aops_community_category_id(source_url: str) -> int | None:
     match = AOPS_COMMUNITY_CATEGORY_ID_RE.search(urlparse(source_url).path)
     if match is None:
@@ -246,19 +289,74 @@ def _aops_community_category_id(source_url: str) -> int | None:
     return int(match.group("category_id"))
 
 
-def _fetch_aops_ajax_response(action: str, params: dict[str, str | int]) -> dict:
+def _aops_session_request_params(document: str) -> dict[str, str]:
+    match = AOPS_SESSION_RE.search(document)
+    if match is None:
+        return {}
+
+    try:
+        session_data = json.loads(match.group("session"))
+    except json.JSONDecodeError:
+        return {}
+
+    if not isinstance(session_data, dict):
+        return {}
+
+    session_id = _collapse_whitespace(str(session_data.get("id", "")))
+    if not session_id:
+        return {}
+
+    return {
+        "aops_logged_in": "true" if session_data.get("logged_in") else "false",
+        "aops_session_id": session_id,
+        "aops_user_id": str(session_data.get("user_id") or 1),
+    }
+
+
+def _fetch_aops_browser_session(source_url: str) -> tuple[object, dict[str, str]] | None:
+    if curl_requests is None:
+        return None
+
+    browser_session = curl_requests.Session(impersonate=AOPS_BROWSER_IMPERSONATION)
+    content_type, raw_content = _read_browser_source_response(browser_session, source_url)
+    if len(raw_content) > SOURCE_FETCH_BYTE_LIMIT:
+        return None
+
+    document = _decode_source_document(raw_content, content_type)
+    session_params = _aops_session_request_params(document)
+    if not session_params:
+        return None
+
+    return browser_session, session_params
+
+
+def _fetch_aops_ajax_response(
+    action: str,
+    params: dict[str, str | int],
+    *,
+    browser_session=None,
+    referer: str = "https://artofproblemsolving.com/community",
+    session_params: dict[str, str] | None = None,
+) -> dict:
     form_data = {"a": action}
     form_data.update({key: str(value) for key, value in params.items()})
-    content_type, raw_content = _read_source_response(
-        AOPS_AJAX_URL,
-        data=urlencode(form_data).encode(),
-        headers={
+    if session_params:
+        form_data.update(session_params)
+
+    request_kwargs = {
+        "data": urlencode(form_data).encode(),
+        "headers": {
             "Accept": "application/json,text/plain;q=0.9,*/*;q=0.8",
             "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-            "Referer": "https://artofproblemsolving.com/community",
+            "Referer": referer,
             "X-Requested-With": "XMLHttpRequest",
         },
-    )
+    }
+    if browser_session is None:
+        content_type, raw_content = _read_source_response(AOPS_AJAX_URL, **request_kwargs)
+    else:
+        content_type, raw_content = _read_browser_source_response(browser_session, AOPS_AJAX_URL, **request_kwargs)
+
     if len(raw_content) > SOURCE_FETCH_BYTE_LIMIT:
         msg = "The AoPS paginated response is too large to audit in one request."
         raise ContestExistenceAuditValidationError(msg)
@@ -286,52 +384,97 @@ def _aops_year_prefixed_item_lines(items: list) -> list[str]:
     return lines
 
 
+def _source_text_from_aops_category_response(
+    category_id: int,
+    response: dict,
+    *,
+    browser_session=None,
+    referer: str = "https://artofproblemsolving.com/community",
+    session_params: dict[str, str] | None = None,
+) -> str:
+    category = response.get("category")
+    items = category.get("items", []) if isinstance(category, dict) else []
+    if not isinstance(category, dict) or not isinstance(items, list):
+        return ""
+
+    items = [*items]
+    if category.get("category_type") == "folder":
+        no_more_items = bool(category.get("no_more_items"))
+        page_fetches = 0
+        while not no_more_items and page_fetches < AOPS_MAX_FOLDER_PAGE_FETCHES:
+            next_response = _fetch_aops_ajax_response(
+                "fetch_items_categories",
+                {
+                    "log_visit": 0,
+                    "parent_category_id": category_id,
+                    "seek_items": 1,
+                    "sought_category_ids": "[]",
+                    "start_num": len(items),
+                },
+                browser_session=browser_session,
+                referer=referer,
+                session_params=session_params,
+            )
+            next_items = next_response.get("new_items", next_response.get("items", []))
+            if not isinstance(next_items, list):
+                items = []
+                break
+            items.extend(next_items)
+            no_more_items = bool(next_response.get("no_more_items")) or not next_items
+            page_fetches += 1
+        if not no_more_items:
+            items = []
+
+    return "\n".join(_aops_year_prefixed_item_lines(items))
+
+
 def _fetch_aops_paginated_category_source_text(source_url: str) -> str:
-    source_text = ""
     category_id = _aops_community_category_id(source_url)
-    if category_id is not None:
-        try:
-            response = _fetch_aops_ajax_response("fetch_category_data", {"category_id": category_id})
-            category = response.get("category")
-            items = category.get("items", []) if isinstance(category, dict) else []
+    if category_id is None:
+        return ""
 
-            if isinstance(category, dict) and isinstance(items, list):
-                items = [*items]
-                if category.get("category_type") == "folder":
-                    no_more_items = bool(category.get("no_more_items"))
-                    page_fetches = 0
-                    while not no_more_items and page_fetches < AOPS_MAX_FOLDER_PAGE_FETCHES:
-                        next_response = _fetch_aops_ajax_response(
-                            "fetch_items_categories",
-                            {
-                                "log_visit": 0,
-                                "parent_category_id": category_id,
-                                "seek_items": 1,
-                                "sought_category_ids": "[]",
-                                "start_num": len(items),
-                            },
-                        )
-                        next_items = next_response.get("items", [])
-                        if not isinstance(next_items, list):
-                            items = []
-                            break
-                        items.extend(next_items)
-                        no_more_items = bool(next_response.get("no_more_items")) or not next_items
-                        page_fetches += 1
-                    if not no_more_items:
-                        items = []
+    try:
+        response = _fetch_aops_ajax_response("fetch_category_data", {"category_id": category_id})
+        return _source_text_from_aops_category_response(category_id, response)
+    except (
+        ContestExistenceAuditValidationError,
+        TimeoutError,
+        OSError,
+        TypeError,
+        ValueError,
+        urllib.error.URLError,
+    ):
+        pass
 
-                source_text = "\n".join(_aops_year_prefixed_item_lines(items))
-        except (
-            ContestExistenceAuditValidationError,
-            TimeoutError,
-            OSError,
-            TypeError,
-            ValueError,
-            urllib.error.URLError,
-        ):
-            source_text = ""
-    return source_text
+    try:
+        browser_context = _fetch_aops_browser_session(source_url)
+        if browser_context is None:
+            return ""
+        browser_session, session_params = browser_context
+        response = _fetch_aops_ajax_response(
+            "fetch_category_data",
+            {"category_id": category_id},
+            browser_session=browser_session,
+            referer=source_url,
+            session_params=session_params,
+        )
+        return _source_text_from_aops_category_response(
+            category_id,
+            response,
+            browser_session=browser_session,
+            referer=source_url,
+            session_params=session_params,
+        )
+    except (
+        *CURL_REQUEST_EXCEPTIONS,
+        ContestExistenceAuditValidationError,
+        TimeoutError,
+        OSError,
+        TypeError,
+        ValueError,
+        urllib.error.URLError,
+    ):
+        return ""
 
 
 def _reader_fallback_url(validated_url: str) -> str:
