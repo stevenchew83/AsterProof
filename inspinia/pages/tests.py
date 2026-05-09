@@ -1491,6 +1491,155 @@ Proposed by David-Andrei Anghel, Romania.
     assert "\\[\nf(x+yf(x))+y = xy + f(x+y).\n\\]" in parsed_import.problems[2].statement_latex
 
 
+def test_fetch_statement_text_from_url_trims_aops_reader_page_chrome(monkeypatch):
+    class _FakePage:
+        def extract_text(self) -> str:
+            return (
+                "2025 Azerbaijan Senior NMO\n"
+                "Day 1 May 5, 2025\n"
+                "1 First $2025$ flattened statement.\n"
+                "2 Find all $x,y,z$.\n"
+                "3 Grid problem.\n"
+                "Day 2 May 6, 2025\n"
+                "4 Prime problem.\n"
+                "5 Digit problem.\n"
+                "6 Geometry problem.\n"
+            )
+
+    class _FakeReader:
+        def __init__(self, _stream) -> None:
+            self.pages = [_FakePage()]
+
+    class _FakeResponse:
+        status = HTTPStatus.OK
+
+        def __init__(self, payload: bytes, content_type: str) -> None:
+            self.payload = payload
+            self.content_type = content_type
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_exc_info):
+            return False
+
+        def read(self, _size: int = -1) -> bytes:
+            return self.payload
+
+        def getheader(self, name: str, default: str | None = None) -> str | None:
+            if name.casefold() == "content-type":
+                return self.content_type
+            return default
+
+    reader_markdown = r"""Title: Math Message Boards FAQ & Community Help
+
+URL Source: https://artofproblemsolving.com/community/c4316590_2025_azerbaijan_senior_nmo
+
+Markdown Content:
+# Math Message Boards FAQ & Community Help | AoPS
+
+[Art of Problem Solving](https://artofproblemsolving.com/company)
+
+[Community](https://artofproblemsolving.com/community/)2025 Azerbaijan Senior NMO
+
+[](https://artofproblemsolving.com/community/c4316590_2025_azerbaijan_senior_nmo)
+
+2025 Azerbaijan Senior NMO
+
+[](https://artofproblemsolving.com/downloads/printable_post_collections/4316590 "View as PDF")
+
+3
+
+For seniors (10-11 grades)
+
+Day 1
+
+May 5, 2025
+
+1
+
+Alice creates a sequence: For the first ![Image 1: $2025$](https://latex.artofproblemsolving.com/2025.png)
+terms, she writes a random permutation of
+![Image 2: $\{1;2;3;...;2025\}$](https://latex.artofproblemsolving.com/set.png).
+
+![Image 3](https://avatar.artofproblemsolving.com/avatar_1150076.png)
+
+Sadigly
+
+[view topic](https://artofproblemsolving.com/community/c6h3564562p34776368)
+
+2
+
+Find all the positive reals ![Image 4: $x,y,z$](https://latex.artofproblemsolving.com/xyz.png)
+satisfying the following equations:
+![Image 5: $$y=\frac6{(2x-1)^2}$$](https://latex.artofproblemsolving.com/y.png)
+
+3
+
+You are given a positive integer ![Image 6: $n$](https://latex.artofproblemsolving.com/n.png).
+
+Day 2
+
+May 6, 2025
+
+4
+
+Prove that for any ![Image 7: $p>2$](https://latex.artofproblemsolving.com/p.png) prime number.
+
+5
+
+A 9-digit number ![Image 8: $N$](https://latex.artofproblemsolving.com/N.png) is given.
+
+6
+
+In an acute triangle ![Image 9: $ABC$](https://latex.artofproblemsolving.com/ABC.png) with
+![Image 10: $AB<AC$](https://latex.artofproblemsolving.com/ABAC.png), prove the claim.
+
+[![Image 11](https://artofproblemsolving.com/assets/images/logos/aops-online-footer.svg)](
+https://artofproblemsolving.com/online)
+
+Art of Problem Solving is an
+
+aops programs
+
+Copyright © 2026 Art of Problem Solving
+
+Something appears to not have loaded correctly.
+""".encode()
+    seen_urls = []
+
+    def fake_urlopen(request, *, timeout):
+        seen_urls.append((request.full_url, timeout))
+        if len(seen_urls) == 1:
+            return _FakeResponse(b"%PDF-1.5\n%mock\n", "application/pdf")
+        return _FakeResponse(reader_markdown, "text/plain; charset=utf-8")
+
+    monkeypatch.setattr("inspinia.pages.statement_import.PdfReader", _FakeReader)
+    monkeypatch.setattr("inspinia.pages.statement_import.urllib.request.urlopen", fake_urlopen)
+
+    fetched = fetch_statement_text_from_url(
+        "https://artofproblemsolving.com/community/c4316590_2025_azerbaijan_senior_nmo",
+    )
+
+    assert fetched.text.startswith("2025 Azerbaijan Senior NMO\n\nDay 1 May 5, 2025\n\n1 Alice")
+    assert "# Math Message Boards FAQ" not in fetched.text
+    assert "For seniors" not in fetched.text
+    assert "aops programs" not in fetched.text
+    assert "Something appears" not in fetched.text
+    assert "$2025$" in fetched.text
+    assert "$\\{1;2;3;...;2025\\}$" in fetched.text
+
+    parsed_import = parse_contest_problem_statements(fetched.text)
+
+    assert parsed_import.contest_year == 2025
+    assert parsed_import.contest_name == "Azerbaijan Senior NMO"
+    assert [problem.problem_code for problem in parsed_import.problems] == ["P1", "P2", "P3", "P4", "P5", "P6"]
+    assert {problem.day_label for problem in parsed_import.problems} == {
+        "Day 1 · May 5, 2025",
+        "Day 2 · May 6, 2025",
+    }
+
+
 def test_fetch_statement_text_from_url_extracts_visible_html_text(monkeypatch):
     class _FakeResponse:
         status = HTTPStatus.OK
