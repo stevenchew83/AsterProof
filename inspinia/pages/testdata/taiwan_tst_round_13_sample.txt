@@ -1,0 +1,45 @@
+2025 Taiwan TST Round 13
+Quiz 1
+N	Find all positive integers $n$ such that there exist two permutations $a_0,a_1,\ldots,a_{n-1}$ and $b_0,b_1,\ldots,b_{n-1}$ of the set $\lbrace0,1,\ldots,n-1\rbrace$, satisfying the condition
+$$ia_i\equiv b_i\pmod{n}$$for all $0\le i\le n-1$.
+
+Proposed by Fysty	
+
+Fysty
+view topic
+C	Alice and Bob are playing game on an $n \times n$ grid. Alice goes first, and they take turns drawing a black point from the coordinate set
+\[\{(i, j) \mid i, j \in \mathbb{N}, 1 \leq i, j \leq n\}\]There is a constraint that the distance between any two black points cannot be an integer. The player who cannot draw a black point loses. Find all integers $n$ such that Alice has a winning strategy.
+
+Proposed by chengbilly	
+
+chengbilly
+view topic
+Quiz 2
+N	Let $k$ be a positive integer. A positive integer $n$ is called a $k$-good number if it satisfies
+the following two conditions:
+
+1. $n$ has exactly $2k$ digits in decimal representation (it cannot have leading zeros).
+
+2. If the first $k$ digits and the last $k$ digits of $n$ are considered as two separate $k$-digit
+numbers (which may have leading zeros), the square of their sum is equal to $n$.
+
+For example, $2025$ is a $2$-good number because
+\[(20 + 25)^2 = 2025.\]Find all $3$-good numbers.	
+
+CSJL
+view topic
+G	Suppose $I$ and $I_A$ are the incenter and the $A$-excenter of triangle $ABC$, respectively.
+Let $M$ be the midpoint of arc $BAC$ on the circumcircle, and $D$ be the foot of the
+perpendicular from $I_A$ to $BC$. The line $MI$ intersects the circumcircle again at $T$ . For
+any point $X$ on the circumcircle of triangle $ABC$, let $XT$ intersect $BC$ at $Y$ . Prove
+that $A, D, X, Y$ are concyclic.	
+
+chengbilly
+view topic
+Mock IMO, Day 1
+Mock IMO, Day 2
+5	A country has 2025 cites, with some pairs of cities having bidirectional flight routes between them. For any pair of the cities, the flight route between them must be operated by one of the companies $X, Y$ or $Z$. To avoid unfairly favoring specific company, the regulation ensures that if there have three cities $A, B$ and $C$, with flight routes $A \leftrightarrow B$ and $A \leftrightarrow C$ operated by two different companies, then there must exist flight route $B \leftrightarrow C$ operated by the third company different from $A \leftrightarrow B$ and $A \leftrightarrow C$ .
+
+Let $n_X$, $n_Y$ and $n_Z$ denote the number of flight routes operated by companies $X, Y$ and $Z$, respectively. It is known that, starting from a city, we can arrive any other city through a series of flight routes (not necessary operated by the same company). Find the minimum possible value of $\max(n_X, n_Y , n_Z)$.
+
+Proposed by usjl and YaWNeeT

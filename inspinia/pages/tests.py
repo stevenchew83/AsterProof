@@ -391,6 +391,12 @@ EXPECTED_USA_EGMO_TST_PROBLEM_TOTAL = 6
 USA_EGMO_TST_STATEMENT_SAMPLE = (
     Path(__file__).resolve().parent / "testdata" / "usa_egmo_team_selection_test_sample.txt"
 ).read_text(encoding="utf-8")
+TAIWAN_TST_ROUND_13_YEAR = 2025
+TAIWAN_TST_ROUND_13_NAME = "Taiwan TST Round 13"
+EXPECTED_TAIWAN_TST_ROUND_13_PROBLEM_TOTAL = 5
+TAIWAN_TST_ROUND_13_STATEMENT_SAMPLE = (
+    Path(__file__).resolve().parent / "testdata" / "taiwan_tst_round_13_sample.txt"
+).read_text(encoding="utf-8")
 CHINA_NATIONAL_OLYMPIAD_2026_YEAR = 2026
 CHINA_NATIONAL_OLYMPIAD_2026_NAME = "China National Olympiad"
 EXPECTED_CHINA_NATIONAL_OLYMPIAD_2026_PROBLEM_TOTAL = 4
@@ -2385,6 +2391,31 @@ def test_parse_contest_problem_statements_supports_tst_headers_and_strips_traili
     assert "There exists a point $Q$ on the circumcircle" not in parsed_import.problems[1].statement_latex
     assert "there exists a point $Q$ on the circumcircle" in parsed_import.problems[1].statement_latex
     assert "What are the possible values of $r$" in parsed_import.problems[2].statement_latex
+
+
+def test_parse_contest_problem_statements_supports_tst_round_quizzes_and_mock_days():
+    parsed_import = parse_contest_problem_statements(TAIWAN_TST_ROUND_13_STATEMENT_SAMPLE)
+
+    assert parsed_import.contest_year == TAIWAN_TST_ROUND_13_YEAR
+    assert parsed_import.contest_name == TAIWAN_TST_ROUND_13_NAME
+    assert len(parsed_import.problems) == EXPECTED_TAIWAN_TST_ROUND_13_PROBLEM_TOTAL
+    assert [problem.day_label for problem in parsed_import.problems] == [
+        "Quiz 1",
+        "Quiz 1",
+        "Quiz 2",
+        "Quiz 2",
+        "Mock IMO, Day 2",
+    ]
+    assert [problem.problem_code for problem in parsed_import.problems] == ["N", "C", "N", "G", "P5"]
+    assert [problem.problem_number for problem in parsed_import.problems] == [1, 2, 1, 2, 5]
+    assert "2. If the first $k$ digits" in parsed_import.problems[2].statement_latex
+    assert "Find all $3$-good numbers." in parsed_import.problems[2].statement_latex
+    assert "Mock IMO, Day 1" not in parsed_import.problems[3].statement_latex
+    assert "Mock IMO, Day 2" not in parsed_import.problems[3].statement_latex
+    assert "A country has 2025 cites" in parsed_import.problems[4].statement_latex
+    assert all("view topic" not in problem.statement_latex for problem in parsed_import.problems)
+    assert all("Proposed by" not in problem.statement_latex for problem in parsed_import.problems)
+    assert all("CSJL" not in problem.statement_latex for problem in parsed_import.problems)
 
 
 def test_parse_contest_problem_statements_supports_compact_day_headers():
