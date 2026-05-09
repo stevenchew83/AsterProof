@@ -71,7 +71,7 @@ TRAILING_YEAR_RE = re.compile(r"\s+\d{4}\s*$")
 EMBEDDED_YEAR_SUBTITLE_RE = re.compile(r"^(?P<title>.+\S)\d{4}\s+.+$")
 GLUED_ACRONYM_SUBTITLE_RE = re.compile(r"^(?P<title>[A-Z]{2,8})(?=[A-Z][a-z])")
 GLUED_TERMINAL_SUBTITLE_RE = re.compile(
-    r"^(?P<title>.+?(?:Mathematics|Olympi.d|Competition|Round|Tests?|TSTST|TST|MO))(?=[A-Z0-9'])",
+    r"^(?P<title>.+?(?:Mathematics|Olympi.d|Competition|Round|Tests?|TSTST|TST(?!ST)|MO))(?=[A-Z0-9'])",
 )
 GENERIC_HEADER_WORDS = {"contest", "contests"}
 SUGGESTION_LIMIT = 3

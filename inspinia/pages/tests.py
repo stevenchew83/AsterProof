@@ -7917,6 +7917,23 @@ def test_contest_existence_audit_parser_trims_glued_aops_subtitles():
     ]
 
 
+def test_contest_existence_audit_parser_preserves_dutch_tstst_name():
+    parsed_headers = parse_contest_existence_audit_text(
+        "\n".join(
+            [
+                " 2026 Dutch TSTSTDutch TSTST 2026",
+                "March 6, 2026",
+                "1\tLet ABCD be a rectangle.",
+                " 2026 Dutch TSTST",
+            ]
+        )
+    )
+
+    assert [(header.year, header.contest_name, header.occurrence_count) for header in parsed_headers] == [
+        (2026, "Dutch TSTST", 2),
+    ]
+
+
 def test_contest_existence_audit_url_source_extracts_year_prefixed_aops_titles(monkeypatch):
     from urllib.error import HTTPError
 
