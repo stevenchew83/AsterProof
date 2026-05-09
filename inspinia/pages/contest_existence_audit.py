@@ -68,6 +68,11 @@ class ContestExistenceAuditPayload(TypedDict):
 
 YEAR_HEADER_RE = re.compile(r"^(?P<year>\d{4})\s+(?P<title>.+?)\s*$")
 TRAILING_YEAR_RE = re.compile(r"\s+\d{4}\s*$")
+EMBEDDED_YEAR_SUBTITLE_RE = re.compile(r"^(?P<title>.+\S)\d{4}\s+.+$")
+GLUED_ACRONYM_SUBTITLE_RE = re.compile(r"^(?P<title>[A-Z]{2,8})(?=[A-Z][a-z])")
+GLUED_TERMINAL_SUBTITLE_RE = re.compile(
+    r"^(?P<title>.+?(?:Mathematics|Olympi.d|Competition|Round|Tests?|TSTST|TST|MO))(?=[A-Z0-9'])",
+)
 GENERIC_HEADER_WORDS = {"contest", "contests"}
 SUGGESTION_LIMIT = 3
 SUGGESTION_MIN_RATIO = 0.35
@@ -541,23 +546,63 @@ def _is_generic_header(title: str) -> bool:
     return letters_only in GENERIC_HEADER_WORDS
 
 
+def _title_compare_key(title: str) -> str:
+    return re.sub(r"[^a-z0-9]", "", TRAILING_YEAR_RE.sub("", title).lower())
+
+
 def _dedupe_concatenated_title(title: str) -> str:
     for split_index in range(1, len(title)):
-        prefix = title[:split_index].strip()
-        suffix = title[split_index:].strip()
+        prefix = title[:split_index].strip(" '\"-")
+        suffix = title[split_index:].strip(" '\"-")
         if not prefix or not suffix:
             continue
-        if suffix == prefix:
+        if _title_compare_key(suffix) == _title_compare_key(prefix):
             return prefix
         if re.fullmatch(rf"\d{{4}}\s*{re.escape(prefix)}", suffix):
             return prefix
     return title
 
 
+def _strip_repeated_leading_phrase(title: str) -> str:
+    words = re.findall(r"[A-Za-z][A-Za-z'-]*", title)
+    if not words:
+        return title
+
+    leading_phrase = " ".join(words[: min(3, len(words))])
+    search_start = len(leading_phrase)
+    repeat_index = title.find(leading_phrase, search_start)
+    if repeat_index == -1:
+        return title
+
+    return title[:repeat_index].strip(" '\"-")
+
+
+def _strip_glued_aops_subtitle(title: str) -> str:
+    embedded_year_match = EMBEDDED_YEAR_SUBTITLE_RE.match(title)
+    if embedded_year_match:
+        return embedded_year_match.group("title").strip(" '\"-")
+
+    acronym_match = GLUED_ACRONYM_SUBTITLE_RE.match(title)
+    if acronym_match:
+        return acronym_match.group("title")
+
+    repeated_title = _strip_repeated_leading_phrase(title)
+    if repeated_title != title:
+        return repeated_title
+
+    terminal_match = GLUED_TERMINAL_SUBTITLE_RE.match(title)
+    if terminal_match:
+        return terminal_match.group("title").strip(" '\"-")
+
+    return title
+
+
 def _clean_parsed_contest_name(raw_title: str) -> str:
     title = _collapse_whitespace(raw_title)
+    title = _strip_glued_aops_subtitle(title)
     title = TRAILING_YEAR_RE.sub("", title).strip()
     title = _dedupe_concatenated_title(title)
+    title = _strip_glued_aops_subtitle(title)
     return normalize_contest_name(title)
 
 
