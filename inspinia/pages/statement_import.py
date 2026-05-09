@@ -152,6 +152,8 @@ ROUND_AND_SECTION_RE = re.compile(
     r"^(?P<round>First|Second|Third|Final)\s+Round\s+(?P<label>.+)$",
     flags=re.IGNORECASE,
 )
+NAMED_DAY_SECTION_RE = re.compile(r"^.+,\s*Day\s+(?:\d+|[IVXLCDM]+)(?:\b.*)?$", flags=re.IGNORECASE)
+NUMBERED_SIBLING_SECTION_RE = re.compile(r"^(?P<family>[A-Za-z][A-Za-z ]*?)\s+\d+$")
 EXAM_AND_DAY_LABEL_RE = re.compile(
     r"^(?P<exam>First|Second|Third|Final)\s+exam\s*,\s*(?P<day>Day\s*(?:\d+|[IVXLCDM]+)(?:(?:\s*[,:-]\s*|\s+).+)?)$",
     flags=re.IGNORECASE,
@@ -1284,7 +1286,7 @@ class _StatementParseState:
 
 
 def _clean_contest_name(raw_name: str) -> str:
-    cleaned_name = re.sub(r"(?<!\s)\d+$", "", raw_name.strip())
+    cleaned_name = re.sub(r"(?<![\s\d])\d$", "", raw_name.strip())
     return cleaned_name.strip()
 
 
@@ -1348,7 +1350,7 @@ def _supports_trailing_credit_cleanup(day_label: str, *, contest_name: str) -> b
     normalized_contest_name = contest_name.casefold()
     normalized_day_label = day_label.casefold()
     return (
-        normalized_contest_name.endswith(" tst")
+        re.search(r"(?:^|\s)tst(?:\s|$)", normalized_contest_name) is not None
         or "team selection test" in normalized_contest_name
         or "training camp" in normalized_contest_name
         or "practice test" in normalized_contest_name
@@ -1904,6 +1906,18 @@ def _looks_like_generic_section_header_candidate(candidate: str) -> bool:
     )
 
 
+def _is_named_day_section_header(candidate: str) -> bool:
+    return NAMED_DAY_SECTION_RE.fullmatch(candidate) is not None
+
+
+def _is_numbered_sibling_section(current_label: str, candidate_label: str) -> bool:
+    current_match = NUMBERED_SIBLING_SECTION_RE.fullmatch(current_label)
+    candidate_match = NUMBERED_SIBLING_SECTION_RE.fullmatch(candidate_label)
+    if current_match is None or candidate_match is None:
+        return False
+    return current_match.group("family").casefold() == candidate_match.group("family").casefold()
+
+
 def _supports_named_day_subsections(candidate: str) -> bool:
     normalized_candidate = candidate.casefold()
     return any(
@@ -2008,6 +2022,14 @@ def _is_generic_section_header(
         return True
     if not _looks_like_generic_section_header_candidate(candidate):
         return False
+    if _is_named_day_section_header(candidate) and (
+        _is_problem_start_candidate(next_nonempty_line)
+        or (
+            _is_named_day_section_header(normalized_next_line)
+            and _is_problem_start_candidate(following_nonempty_line)
+        )
+    ):
+        return True
     if (
         _supports_named_day_subsections(candidate)
         and DAY_LABEL_RE.fullmatch(" ".join((next_nonempty_line or "").split()))
@@ -2198,6 +2220,8 @@ def _can_start_inline_numbered_problem(
     prefix = (problem_match.group("prefix") or "").strip()
     if prefix:
         return True
+    if state.current_problem_code and state.current_problem_code.isalpha():
+        return False
 
     number = int(problem_match.group("number"))
     statement = (problem_match.group("statement") or "").lstrip()
@@ -2396,6 +2420,11 @@ def _consume_header_or_problem_line(
             and " " in generic_section_label
             and _is_problem_start_candidate(next_nonempty_line)
             and not _is_structured_section_header(next_nonempty_line)
+            and not _is_numbered_sibling_section(state.current_primary_section, generic_section_label)
+            and not (
+                _is_named_day_section_header(state.current_primary_section)
+                and _is_named_day_section_header(generic_section_label)
+            )
         ):
             _set_secondary_section(state, generic_section_label)
         else:
