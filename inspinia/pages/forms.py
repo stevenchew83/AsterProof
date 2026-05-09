@@ -300,34 +300,27 @@ class HandleSummaryParserForm(forms.Form):
 
 
 class ContestExistenceAuditForm(forms.Form):
-    source_text = forms.CharField(
-        label="Contest scrape",
-        strip=False,
-        widget=forms.Textarea(
+    source_url = forms.URLField(
+        assume_scheme="https",
+        label="AoPS contest URL",
+        widget=forms.URLInput(
             attrs={
-                "class": "form-control font-monospace",
+                "autocomplete": "off",
+                "class": "form-control",
                 "form": "contest-existence-audit-form",
-                "id": "contest-existence-audit-input",
-                "rows": 24,
-                "spellcheck": "false",
-                "placeholder": (
-                    "2026 Contests3\n"
-                    " 2026 Abelkonkurransen Finale\n"
-                    "1a\tDetermine all pairs of positive integers...\n"
-                    "RANDOM__USER\n"
-                    "view topic\n"
-                    " 2026 AIMEAIME 2026"
-                ),
+                "id": "contest-existence-audit-url",
+                "inputmode": "url",
+                "placeholder": "https://artofproblemsolving.com/community/c4148541_2025_contests",
             },
         ),
     )
 
-    def clean_source_text(self):
-        text = self.cleaned_data["source_text"]
-        if not text.strip():
-            msg = "Paste contest text before checking."
+    def clean_source_url(self):
+        url = self.cleaned_data["source_url"].strip()
+        if not url:
+            msg = "Enter an AoPS contest URL before checking."
             raise forms.ValidationError(msg)
-        return text
+        return url
 
 
 class ProblemCompletionPasteForm(forms.Form):
