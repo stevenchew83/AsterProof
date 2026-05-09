@@ -116,6 +116,7 @@ from inspinia.pages.statement_import import ProblemStatementSavePreviewPayload
 from inspinia.pages.statement_import import build_problem_statement_preview_payload
 from inspinia.pages.statement_import import build_problem_statement_save_preview
 from inspinia.pages.statement_import import extract_statement_text_from_pdf
+from inspinia.pages.statement_import import fetch_statement_text_from_url
 from inspinia.pages.statement_import import import_problem_statements
 from inspinia.pages.statement_import import parse_contest_problem_statements
 from inspinia.pages.statement_import import relink_problem_statement_rows
@@ -208,15 +209,20 @@ def latex_preview_view(request):
             source_text = form.cleaned_data["source_text"]
             source_label = "pasted text"
             uploaded_pdf = form.cleaned_data.get("file")
+            source_url = form.cleaned_data.get("source_url")
             try:
                 if uploaded_pdf is not None:
                     source_text = extract_statement_text_from_pdf(uploaded_pdf)
                     source_label = "PDF upload"
+                elif source_url:
+                    fetched_source = fetch_statement_text_from_url(source_url)
+                    source_text = fetched_source.text
+                    source_label = fetched_source.source_label
                 parsed_import = parse_contest_problem_statements(source_text)
             except ProblemStatementImportValidationError as exc:
                 messages.error(request, str(exc))
             else:
-                if uploaded_pdf is not None:
+                if uploaded_pdf is not None or source_url:
                     form = ProblemStatementImportForm(initial={"source_text": source_text})
                 parsed_statement_payload = build_problem_statement_preview_payload(parsed_import)
                 for problem in parsed_statement_payload["problems"]:

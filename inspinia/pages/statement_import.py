@@ -1,9 +1,17 @@
 from __future__ import annotations
 
 import contextlib
+import html
+import ipaddress
 import re
+import urllib.error
+import urllib.parse
+import urllib.request
 from dataclasses import dataclass
 from dataclasses import field
+from html.parser import HTMLParser
+from http import HTTPStatus
+from io import BytesIO
 from typing import TypedDict
 
 from django.db import transaction
@@ -19,6 +27,17 @@ IGNORED_STATEMENT_LINES = {
     "Click to reveal hidden text",
     "view topic",
 }
+URL_FETCH_TIMEOUT_SECONDS = 20
+URL_FETCH_MAX_BYTES = 15 * 1024 * 1024
+URL_FETCH_USER_AGENT = (
+    "Mozilla/5.0 (compatible; AsterProofLatexPreview/1.0; +https://asterproof.local/tools/latex-preview)"
+)
+AOPS_HOSTS = {"artofproblemsolving.com", "www.artofproblemsolving.com"}
+AOPS_COMMUNITY_COLLECTION_RE = re.compile(r"^/community/c(?P<collection_id>\d+)(?:[_/?#].*)?$", flags=re.IGNORECASE)
+AOPS_PRINTABLE_COLLECTION_RE = re.compile(
+    r"^/downloads/printable_post_collections/(?P<collection_id>\d+)(?:\.pdf)?/?$",
+    flags=re.IGNORECASE,
+)
 HEADER_LINE_RE = re.compile(
     r"^\s*(?P<year_start>\d{4})(?:\s*(?:/|-)\s*(?P<year_end>\d{4}))?\s+(?P<contest>.+?)\s*$",
 )
@@ -229,6 +248,269 @@ class ProblemStatementSavePreviewPayload(TypedDict):
 
 class ProblemStatementImportValidationError(ValueError):
     """Raised when pasted contest statement text cannot be parsed reliably."""
+
+
+@dataclass(frozen=True)
+class FetchedStatementText:
+    text: str
+    source_label: str
+
+
+class _VisibleTextExtractor(HTMLParser):
+    _BLOCK_TAGS = {
+        "address",
+        "article",
+        "aside",
+        "blockquote",
+        "br",
+        "dd",
+        "div",
+        "dl",
+        "dt",
+        "figcaption",
+        "footer",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
+        "header",
+        "hr",
+        "li",
+        "main",
+        "nav",
+        "ol",
+        "p",
+        "pre",
+        "section",
+        "table",
+        "tbody",
+        "td",
+        "tfoot",
+        "th",
+        "thead",
+        "tr",
+        "ul",
+    }
+    _SKIPPED_TAGS = {"head", "script", "style", "svg", "title", "noscript"}
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self._skip_depth = 0
+        self._parts: list[str] = []
+
+    def handle_starttag(self, tag: str, _attrs) -> None:
+        normalized_tag = tag.casefold()
+        if normalized_tag in self._SKIPPED_TAGS:
+            self._skip_depth += 1
+            return
+        if normalized_tag in self._BLOCK_TAGS:
+            self._append_newline()
+
+    def handle_endtag(self, tag: str) -> None:
+        normalized_tag = tag.casefold()
+        if normalized_tag in self._SKIPPED_TAGS and self._skip_depth:
+            self._skip_depth -= 1
+            return
+        if normalized_tag in self._BLOCK_TAGS:
+            self._append_newline(count=2)
+
+    def handle_data(self, data: str) -> None:
+        if self._skip_depth:
+            return
+        text = " ".join(data.split())
+        if not text:
+            return
+        if self._parts and not self._parts[-1].endswith(("\n", " ")):
+            self._parts.append(" ")
+        self._parts.append(text)
+
+    def _append_newline(self, *, count: int = 1) -> None:
+        if not self._parts:
+            return
+        trailing_newlines = len("".join(self._parts)[-count:]) - len("".join(self._parts)[-count:].rstrip("\n"))
+        if trailing_newlines < count:
+            self._parts.append("\n" * (count - trailing_newlines))
+
+    def text(self) -> str:
+        return _normalize_extracted_text("".join(self._parts))
+
+
+def _normalize_extracted_text(raw_text: str) -> str:
+    normalized = raw_text.replace("\x00", "")
+    normalized = normalized.replace("\r\n", "\n").replace("\r", "\n")
+    lines = [line.strip() for line in normalized.splitlines()]
+
+    collapsed_lines: list[str] = []
+    previous_blank = False
+    for line in lines:
+        if not line:
+            if collapsed_lines and not previous_blank:
+                collapsed_lines.append("")
+                previous_blank = True
+            continue
+        collapsed_lines.append(line)
+        previous_blank = False
+
+    while collapsed_lines and not collapsed_lines[-1]:
+        collapsed_lines.pop()
+
+    return "\n".join(collapsed_lines).strip()
+
+
+def _content_type_charset(content_type: str) -> str:
+    match = re.search(r"charset=([^;\s]+)", content_type, flags=re.IGNORECASE)
+    if match is None:
+        return "utf-8"
+    return match.group(1).strip("\"'")
+
+
+def _decode_fetched_text(payload: bytes, content_type: str) -> str:
+    charset = _content_type_charset(content_type)
+    try:
+        return payload.decode(charset, errors="replace")
+    except LookupError:
+        return payload.decode("utf-8", errors="replace")
+
+
+def _extract_visible_text_from_html(html_text: str) -> str:
+    extractor = _VisibleTextExtractor()
+    extractor.feed(html.unescape(html_text))
+    extractor.close()
+    extracted_text = extractor.text()
+    if not extracted_text:
+        msg = "No readable text was found at the fetched URL."
+        raise ProblemStatementImportValidationError(msg)
+    return extracted_text
+
+
+def _reject_known_remote_error_page(html_text: str, *, source_url: str) -> None:
+    normalized = " ".join(html_text.split()).casefold()
+    if "attention required! | cloudflare" in normalized or "you are unable to access" in normalized:
+        msg = "The remote site blocked the URL fetch. Try a printable PDF URL, or paste the contest text."
+        raise ProblemStatementImportValidationError(msg)
+    if "there is a latex error in one of the posts" in normalized and "artofproblemsolving.com" in source_url:
+        msg = (
+            "AoPS could not build the printable collection because one included post has a LaTeX error. "
+            "Fix the collection or paste the contest text."
+        )
+        raise ProblemStatementImportValidationError(msg)
+    if "this collection is not printable" in normalized and "artofproblemsolving.com" in source_url:
+        msg = "This AoPS collection is not printable. Paste the contest text instead."
+        raise ProblemStatementImportValidationError(msg)
+
+
+def _is_blocked_url_host(hostname: str) -> bool:
+    normalized_hostname = hostname.strip("[]").casefold()
+    if normalized_hostname == "localhost" or normalized_hostname.endswith(".local"):
+        return True
+
+    with contextlib.suppress(ValueError):
+        address = ipaddress.ip_address(normalized_hostname)
+        return (
+            address.is_loopback
+            or address.is_private
+            or address.is_link_local
+            or address.is_multicast
+            or address.is_reserved
+            or address.is_unspecified
+        )
+    return False
+
+
+def _validated_source_url(source_url: str) -> str:
+    candidate = source_url.strip()
+    if not candidate:
+        msg = "Enter a URL before fetching."
+        raise ProblemStatementImportValidationError(msg)
+
+    parsed_url = urllib.parse.urlparse(candidate)
+    if parsed_url.scheme not in {"http", "https"} or not parsed_url.netloc:
+        msg = "Enter a full HTTP or HTTPS URL."
+        raise ProblemStatementImportValidationError(msg)
+
+    hostname = parsed_url.hostname or ""
+    if _is_blocked_url_host(hostname):
+        msg = "URLs pointing to local or private network hosts are not allowed."
+        raise ProblemStatementImportValidationError(msg)
+
+    return urllib.parse.urlunparse(parsed_url)
+
+
+def _aops_printable_url(source_url: str) -> str | None:
+    parsed_url = urllib.parse.urlparse(source_url)
+    hostname = (parsed_url.hostname or "").casefold()
+    if hostname not in AOPS_HOSTS:
+        return None
+
+    match = AOPS_COMMUNITY_COLLECTION_RE.match(parsed_url.path)
+    if match is None:
+        match = AOPS_PRINTABLE_COLLECTION_RE.match(parsed_url.path)
+    if match is None:
+        return None
+
+    collection_id = match.group("collection_id")
+    return f"https://artofproblemsolving.com/downloads/printable_post_collections/{collection_id}.pdf"
+
+
+def _request_url_payload(source_url: str) -> tuple[bytes, str]:
+    request = urllib.request.Request(  # noqa: S310
+        source_url,
+        headers={
+            "Accept": "application/pdf,text/html,text/plain,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.9",
+            "User-Agent": URL_FETCH_USER_AGENT,
+        },
+    )
+
+    try:
+        with urllib.request.urlopen(request, timeout=URL_FETCH_TIMEOUT_SECONDS) as response:  # noqa: S310
+            status = getattr(response, "status", HTTPStatus.OK)
+            payload = response.read(URL_FETCH_MAX_BYTES + 1)
+            content_type = response.getheader("Content-Type", "") or ""
+    except ProblemStatementImportValidationError:
+        raise
+    except (TimeoutError, OSError, ValueError, urllib.error.URLError) as exc:
+        msg = "Could not fetch the URL. Check that it is public and reachable."
+        raise ProblemStatementImportValidationError(msg) from exc
+
+    if status >= HTTPStatus.BAD_REQUEST:
+        msg = f"The URL returned HTTP {status}."
+        raise ProblemStatementImportValidationError(msg)
+    if len(payload) > URL_FETCH_MAX_BYTES:
+        msg = "Fetched URL is too large. Use a PDF upload or paste the contest text instead."
+        raise ProblemStatementImportValidationError(msg)
+    if not payload:
+        msg = "Fetched URL did not return any content."
+        raise ProblemStatementImportValidationError(msg)
+    return payload, content_type
+
+
+def fetch_statement_text_from_url(source_url: str) -> FetchedStatementText:
+    validated_url = _validated_source_url(source_url)
+    fetch_url = _aops_printable_url(validated_url) or validated_url
+    payload, content_type = _request_url_payload(fetch_url)
+
+    if "pdf" in content_type.casefold() or payload.startswith(b"%PDF"):
+        stream = BytesIO(payload)
+        stream.name = "remote-statement-source.pdf"
+        return FetchedStatementText(
+            text=extract_statement_text_from_pdf(stream),
+            source_label="URL fetch",
+        )
+
+    decoded_text = _decode_fetched_text(payload, content_type)
+    _reject_known_remote_error_page(decoded_text, source_url=fetch_url)
+    if "html" in content_type.casefold() or b"<html" in payload[:2048].casefold():
+        extracted_text = _extract_visible_text_from_html(decoded_text)
+    else:
+        extracted_text = _normalize_extracted_text(decoded_text)
+
+    if not extracted_text:
+        msg = "No readable text was found at the fetched URL."
+        raise ProblemStatementImportValidationError(msg)
+    return FetchedStatementText(text=extracted_text, source_label="URL fetch")
 
 
 def extract_statement_text_from_pdf(uploaded_file) -> str:

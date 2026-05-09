@@ -84,8 +84,8 @@
       <form id="latex-preview-form" method="post" enctype="multipart/form-data" class="card">
         {% csrf_token %}
         <div class="card-header border-0 pb-0">
-          <h4 class="header-title mb-0">Paste contest text, preview the rendered math, and parse statement blocks</h4>
-          <p class="text-muted fs-xs mb-0">The parser extracts contest year, contest name, day labels, numbered problems, and statement text from scraped contest listings.</p>
+          <h4 class="header-title mb-0">Fetch, paste, or upload contest text, then parse statement blocks</h4>
+          <p class="text-muted fs-xs mb-0">The parser extracts contest year, contest name, day labels, numbered problems, and statement text from contest listings.</p>
         </div>
         <div class="card-body pt-2">
           {% if form.non_field_errors %}
@@ -120,7 +120,7 @@
               </label>
             </div>
           </div>
-          <div class="row g-2 mt-1">
+          <div class="row g-2 mt-1 align-items-end">
             <div class="col-lg-6 col-xl-5">
               <label class="form-label mb-1" for="{{ form.file.id_for_label }}">Upload contest PDF</label>
               {{ form.file }}
@@ -129,6 +129,20 @@
                 <i class="ti ti-file-search me-1"></i>Parse uploaded PDF
               </button>
               {% for error in form.file.errors %}
+              <div class="invalid-feedback d-block">{{ error }}</div>
+              {% endfor %}
+            </div>
+            <div class="col-lg-6 col-xl-7">
+              <label class="form-label mb-1" for="{{ form.source_url.id_for_label }}">Fetch from URL</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="ti ti-link"></i></span>
+                {{ form.source_url }}
+                <button type="submit" name="action" value="preview" class="btn btn-outline-primary">
+                  <i class="ti ti-cloud-download me-1"></i>Parse URL
+                </button>
+              </div>
+              <div class="form-text">AoPS community collection URLs are fetched through the printable source when available.</div>
+              {% for error in form.source_url.errors %}
               <div class="invalid-feedback d-block">{{ error }}</div>
               {% endfor %}
             </div>
@@ -410,6 +424,7 @@ window.MathJax = {
   var clearButton = document.getElementById("latex-preview-clear");
   var autoRender = document.getElementById("latex-preview-auto-render");
   var fileInput = document.getElementById("id_file");
+  var urlInput = document.getElementById("latex-preview-url");
   var status = document.getElementById("latex-preview-status");
   var csrfTokenInput = document.querySelector('#latex-preview-form input[name="csrfmiddlewaretoken"]');
   var sampleNode = document.getElementById("latex-preview-sample-data");
@@ -593,17 +608,20 @@ window.MathJax = {
   renderButton.addEventListener("click", renderPreview);
   loadSampleButton.addEventListener("click", function () {
     if (fileInput) fileInput.value = "";
+    if (urlInput) urlInput.value = "";
     input.value = sampleText;
     renderPreview();
   });
   clearButton.addEventListener("click", function () {
     if (fileInput) fileInput.value = "";
+    if (urlInput) urlInput.value = "";
     input.value = "";
     showEmptyState();
   });
   if (fileInput) {
     fileInput.addEventListener("change", function () {
       if (!fileInput.files || !fileInput.files.length) return;
+      if (urlInput) urlInput.value = "";
       if (input.value.trim()) {
         input.value = "";
         showEmptyState();
@@ -611,7 +629,24 @@ window.MathJax = {
       setStatus("PDF selected. Click \"Parse uploaded PDF\" or \"Parse structure\".", "info");
     });
   }
-  input.addEventListener("input", scheduleRender);
+  if (urlInput) {
+    urlInput.addEventListener("input", function () {
+      if (!urlInput.value.trim()) return;
+      if (fileInput) fileInput.value = "";
+      if (input.value.trim()) {
+        input.value = "";
+        showEmptyState();
+      }
+      setStatus("URL ready. Click \"Parse URL\" or \"Parse structure\".", "info");
+    });
+  }
+  input.addEventListener("input", function () {
+    if (input.value.trim()) {
+      if (fileInput) fileInput.value = "";
+      if (urlInput) urlInput.value = "";
+    }
+    scheduleRender();
+  });
   window.addEventListener("asterproof:mathjax-ready", function () {
     typesetParsedPreview();
     renderPreview();

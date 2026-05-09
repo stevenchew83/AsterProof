@@ -50,8 +50,11 @@ from inspinia.pages.problem_import import import_problem_dataframe
 from inspinia.pages.statement_analytics import effective_topic
 from inspinia.pages.statement_analytics_sync import sync_statement_analytics_from_linked_problem
 from inspinia.pages.statement_import import LATEX_STATEMENT_SAMPLE
+from inspinia.pages.statement_import import URL_FETCH_TIMEOUT_SECONDS
+from inspinia.pages.statement_import import FetchedStatementText
 from inspinia.pages.statement_import import ProblemStatementImportValidationError
 from inspinia.pages.statement_import import extract_statement_text_from_pdf
+from inspinia.pages.statement_import import fetch_statement_text_from_url
 from inspinia.pages.statement_import import import_problem_statements
 from inspinia.pages.statement_import import parse_contest_problem_statements
 from inspinia.pages.statement_metadata_backfill import StatementMetadataBackfillValidationError
@@ -1137,6 +1140,89 @@ def test_extract_statement_text_from_pdf_raises_validation_error_when_no_text(mo
         match="No extractable text was found in the uploaded PDF",
     ):
         extract_statement_text_from_pdf(upload)
+
+
+def test_fetch_statement_text_from_url_uses_aops_printable_pdf_for_collection_urls(monkeypatch):
+    class _FakePage:
+        def extract_text(self) -> str:
+            return "2026 Spain Mathematical Olympiad\nDay 1\n1 First statement."
+
+    class _FakeReader:
+        def __init__(self, _stream) -> None:
+            self.pages = [_FakePage()]
+
+    class _FakeResponse:
+        status = HTTPStatus.OK
+
+        def __init__(self, payload: bytes, content_type: str) -> None:
+            self.payload = payload
+            self.content_type = content_type
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_exc_info):
+            return False
+
+        def read(self, _size: int = -1) -> bytes:
+            return self.payload
+
+        def getheader(self, name: str, default: str | None = None) -> str | None:
+            if name.casefold() == "content-type":
+                return self.content_type
+            return default
+
+    seen_requests = []
+
+    def fake_urlopen(request, *, timeout):
+        seen_requests.append((request, timeout))
+        return _FakeResponse(b"%PDF-1.5\n%mock\n", "application/pdf")
+
+    monkeypatch.setattr("inspinia.pages.statement_import.PdfReader", _FakeReader)
+    monkeypatch.setattr("inspinia.pages.statement_import.urllib.request.urlopen", fake_urlopen)
+
+    fetched = fetch_statement_text_from_url(
+        "https://artofproblemsolving.com/community/c4299349_2025_allrussian_olympiad",
+    )
+
+    request, timeout = seen_requests[0]
+    assert request.full_url == "https://artofproblemsolving.com/downloads/printable_post_collections/4299349.pdf"
+    assert "Mozilla" in request.get_header("User-agent")
+    assert timeout == URL_FETCH_TIMEOUT_SECONDS
+    assert fetched.text == "2026 Spain Mathematical Olympiad\nDay 1\n1 First statement."
+    assert fetched.source_label == "URL fetch"
+
+
+def test_fetch_statement_text_from_url_extracts_visible_html_text(monkeypatch):
+    class _FakeResponse:
+        status = HTTPStatus.OK
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_exc_info):
+            return False
+
+        def read(self, _size: int = -1) -> bytes:
+            return (
+                b"<html><head><title>Ignore me</title><script>skip()</script></head>"
+                b"<body><main><h1>2026 Spain Mathematical Olympiad</h1>"
+                b"<p>Day 1</p><p>1 First statement.</p></main></body></html>"
+            )
+
+        def getheader(self, name: str, default: str | None = None) -> str | None:
+            if name.casefold() == "content-type":
+                return "text/html; charset=utf-8"
+            return default
+
+    monkeypatch.setattr(
+        "inspinia.pages.statement_import.urllib.request.urlopen",
+        lambda _request, *, timeout: _FakeResponse(),
+    )
+
+    fetched = fetch_statement_text_from_url("https://example.com/contest.html")
+
+    assert fetched.text == "2026 Spain Mathematical Olympiad\n\nDay 1\n\n1 First statement."
 
 
 def test_parse_contest_problem_statements_extracts_contest_days_and_problem_blocks():
@@ -8959,6 +9045,37 @@ def test_latex_preview_parse_action_accepts_pdf_upload_and_uses_extracted_text(c
     assert response.context["form"]["source_text"].value().startswith("2026 Spain Mathematical Olympiad")
 
 
+def test_latex_preview_parse_action_accepts_source_url_and_uses_fetched_text(client, monkeypatch):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+
+    seen_urls = []
+
+    def fake_fetch(source_url: str) -> FetchedStatementText:
+        seen_urls.append(source_url)
+        return FetchedStatementText(text=LATEX_STATEMENT_SAMPLE, source_label="URL fetch")
+
+    monkeypatch.setattr("inspinia.pages.views.fetch_statement_text_from_url", fake_fetch)
+
+    response = client.post(
+        reverse("pages:latex_preview"),
+        {
+            "action": "preview",
+            "source_text": "",
+            "source_url": "https://artofproblemsolving.com/community/c4299349_2025_allrussian_olympiad",
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert seen_urls == ["https://artofproblemsolving.com/community/c4299349_2025_allrussian_olympiad"]
+    assert ContestProblemStatement.objects.count() == 0
+    assert response.context["parsed_statement_payload"]["contest_name"] == SPAIN_OLYMPIAD_NAME
+    assert response.context["parsed_statement_payload"]["problem_count"] == EXPECTED_STATEMENT_PROBLEM_TOTAL
+    assert response.context["form"]["source_text"].value().startswith("2026 Spain Mathematical Olympiad")
+    assert (response.context["form"]["source_url"].value() or "") == ""
+    assert "using URL fetch" in response.content.decode("utf-8")
+
+
 def test_latex_preview_save_action_accepts_pdf_upload_for_admin(client, monkeypatch):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
@@ -8982,6 +9099,29 @@ def test_latex_preview_save_action_accepts_pdf_upload_for_admin(client, monkeypa
     assert response.context["statement_import_result"]["created_count"] == EXPECTED_STATEMENT_PROBLEM_TOTAL
 
 
+def test_latex_preview_save_action_accepts_source_url_for_admin(client, monkeypatch):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+
+    monkeypatch.setattr(
+        "inspinia.pages.views.fetch_statement_text_from_url",
+        lambda _source_url: FetchedStatementText(text=LATEX_STATEMENT_SAMPLE, source_label="URL fetch"),
+    )
+
+    response = client.post(
+        reverse("pages:latex_preview"),
+        {
+            "action": "save",
+            "source_text": "",
+            "source_url": "https://artofproblemsolving.com/community/c4299349_2025_allrussian_olympiad",
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert ContestProblemStatement.objects.count() == EXPECTED_STATEMENT_PROBLEM_TOTAL
+    assert response.context["statement_import_result"]["created_count"] == EXPECTED_STATEMENT_PROBLEM_TOTAL
+
+
 def test_latex_preview_rejects_source_text_and_pdf_together(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
@@ -8997,7 +9137,26 @@ def test_latex_preview_rejects_source_text_and_pdf_together(client):
 
     assert response.status_code == HTTPStatus.OK
     html = response.content.decode("utf-8")
-    assert "Use either pasted contest text or a PDF upload, not both." in html
+    assert "Use only one input source: pasted contest text, a PDF upload, or a URL." in html
+
+
+def test_latex_preview_rejects_source_text_and_url_together(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+
+    response = client.post(
+        reverse("pages:latex_preview"),
+        {
+            "action": "preview",
+            "source_text": LATEX_STATEMENT_SAMPLE,
+            "source_url": "https://example.com/contest",
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert "Use only one input source: pasted contest text, a PDF upload, or a URL." in response.content.decode(
+        "utf-8",
+    )
 
 
 def test_latex_preview_rejects_when_no_source_is_provided(client):
@@ -9010,7 +9169,7 @@ def test_latex_preview_rejects_when_no_source_is_provided(client):
     )
 
     assert response.status_code == HTTPStatus.OK
-    assert "Paste contest text or upload a PDF." in response.content.decode("utf-8")
+    assert "Paste contest text, upload a PDF, or enter a URL." in response.content.decode("utf-8")
 
 
 def test_latex_preview_rejects_non_pdf_upload(client):
@@ -9073,6 +9232,20 @@ def test_latex_preview_page_renders_pdf_upload_control(client):
     assert 'accept=".pdf,application/pdf"' in html
     assert "Upload contest PDF" in html
     assert "Parse uploaded PDF" in html
+
+
+def test_latex_preview_page_renders_url_input_control(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+
+    response = client.get(reverse("pages:latex_preview"))
+
+    assert response.status_code == HTTPStatus.OK
+    html = response.content.decode("utf-8")
+    assert 'name="source_url"' in html
+    assert 'type="url"' in html
+    assert "Fetch from URL" in html
+    assert "Parse URL" in html
 
 
 def test_latex_preview_page_starts_with_empty_source_text(client):
