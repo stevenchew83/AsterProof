@@ -7319,6 +7319,40 @@ def test_contest_existence_audit_parser_reads_year_prefixed_contest_headers():
     ]
 
 
+def test_contest_existence_audit_parser_trims_glued_aops_subtitles():
+    parsed_headers = parse_contest_existence_audit_text(
+        "\n".join(
+            [
+                " 2026 Kosovo National Mathematical Olympiad'Kosovo National Mathematical Olympiad 2026",
+                "Grade 7",
+                "P1\tSome people participated in a chess tournament.",
+                (
+                    " 2026 Kazakhstan Regional OlympiadThere are 3 problems on each of 2 days. Each problem is worth "
+                    "a maximum of 7 points, time allowed is 180 minutes."
+                ),
+                "Grade 9",
+                "1\tA problem committee consists of several authors.",
+                " 2026 Benelux2026 Benelux Mathematical Olympiad",
+                "1\tLet n be a strictly positive integer.",
+                " 2026 EMOEuropean Mathematical Olympiad 2026",
+                "Day 1",
+                "1\tDetermine all positive integers n.",
+                " 2026 Romanian Masters of Mathematics16th RMM",
+                "Day 1",
+                "1\tLet n be a positive integer.",
+            ]
+        )
+    )
+
+    assert [(header.year, header.contest_name) for header in parsed_headers] == [
+        (2026, "Kosovo National Mathematical Olympiad"),
+        (2026, "Kazakhstan Regional Olympiad"),
+        (2026, "Benelux"),
+        (2026, "EMO"),
+        (2026, "Romanian Masters of Mathematics"),
+    ]
+
+
 def test_contest_existence_audit_url_source_extracts_year_prefixed_aops_titles(monkeypatch):
     from urllib.error import HTTPError
 
