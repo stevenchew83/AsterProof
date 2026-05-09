@@ -128,7 +128,21 @@
             <h4 class="header-title mb-0">Parsed contests</h4>
             <p class="text-muted fs-xs mb-0">Status is based on exact normalized contest-year matches.</p>
           </div>
-          <span class="badge bg-primary-subtle text-primary">{{ preview_payload.row_count }} row{{ preview_payload.row_count|pluralize }}</span>
+          <div class="d-flex flex-wrap align-items-center gap-2">
+            <button
+              type="button"
+              class="btn btn-sm btn-outline-danger"
+              id="contest-existence-audit-missing-only"
+              aria-pressed="false"
+              data-show-label="Show missing only"
+              data-hide-label="Show all rows"
+            >
+              <i class="ti ti-filter me-1"></i><span data-contest-audit-filter-label>Show missing only</span>
+            </button>
+            <span id="contest-existence-audit-row-count" class="badge bg-primary-subtle text-primary">
+              {{ preview_payload.row_count }} row{{ preview_payload.row_count|pluralize }}
+            </span>
+          </div>
         </div>
         <div class="card-body p-0">
           <div class="table-responsive">
@@ -147,7 +161,7 @@
               </thead>
               <tbody>
                 {% for row in preview_payload.rows %}
-                <tr>
+                <tr data-contest-audit-status="{{ row.overall_status }}">
                   <td>{{ row.first_line_number }}</td>
                   <td>{{ row.year }}</td>
                   <td>{{ row.contest_name }}</td>
@@ -176,6 +190,9 @@
                   </td>
                 </tr>
                 {% endfor %}
+                <tr id="contest-existence-audit-empty-row" hidden>
+                  <td colspan="8" class="text-center text-muted py-4">No missing contests in this audit.</td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -195,6 +212,16 @@
     var input = document.getElementById("contest-existence-audit-url");
     var textInput = document.getElementById("contest-existence-audit-text");
     var exportBox = document.getElementById("contest-existence-audit-export");
+    var missingOnlyButton = document.getElementById("contest-existence-audit-missing-only");
+    var rowCount = document.getElementById("contest-existence-audit-row-count");
+    var emptyRow = document.getElementById("contest-existence-audit-empty-row");
+    var resultRows = Array.prototype.slice.call(
+      document.querySelectorAll("#contest-existence-audit-results-table tbody tr[data-contest-audit-status]")
+    );
+
+    function formatRowCount(count) {
+      return count + " row" + (count === 1 ? "" : "s");
+    }
 
     if (clearButton && input) {
       clearButton.addEventListener("click", function() {
@@ -211,6 +238,40 @@
         exportBox.select();
         exportBox.setSelectionRange(0, exportBox.value.length);
         navigator.clipboard.writeText(exportBox.value).catch(function() {});
+      });
+    }
+
+    if (missingOnlyButton && resultRows.length) {
+      missingOnlyButton.addEventListener("click", function() {
+        var showMissingOnly = missingOnlyButton.getAttribute("aria-pressed") !== "true";
+        var visibleCount = 0;
+
+        resultRows.forEach(function(row) {
+          var isMissing = row.getAttribute("data-contest-audit-status") === "missing";
+          var shouldShow = !showMissingOnly || isMissing;
+          row.hidden = !shouldShow;
+          if (shouldShow) {
+            visibleCount += 1;
+          }
+        });
+
+        missingOnlyButton.setAttribute("aria-pressed", showMissingOnly ? "true" : "false");
+        missingOnlyButton.classList.toggle("active", showMissingOnly);
+
+        var label = missingOnlyButton.querySelector("[data-contest-audit-filter-label]");
+        if (label) {
+          label.textContent = showMissingOnly
+            ? missingOnlyButton.getAttribute("data-hide-label")
+            : missingOnlyButton.getAttribute("data-show-label");
+        }
+
+        if (rowCount) {
+          rowCount.textContent = formatRowCount(visibleCount);
+        }
+
+        if (emptyRow) {
+          emptyRow.hidden = visibleCount !== 0;
+        }
       });
     }
   })();

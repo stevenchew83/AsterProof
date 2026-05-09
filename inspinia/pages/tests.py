@@ -8400,6 +8400,9 @@ def test_contest_existence_audit_allows_admin_and_posts_audit_results(client, mo
     assert 'id="contest-existence-audit-form"' in response_html
     assert 'id="contest-existence-audit-url"' in response_html
     assert 'id="contest-existence-audit-results-table"' in response_html
+    assert 'id="contest-existence-audit-missing-only"' in response_html
+    assert 'data-contest-audit-status="both_found"' in response_html
+    assert 'data-contest-audit-status="missing"' in response_html
 
 
 def test_contest_existence_audit_accepts_pasted_source_text(client, monkeypatch):
