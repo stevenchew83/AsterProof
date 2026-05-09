@@ -285,6 +285,7 @@ class ContestExistenceAuditForm(forms.Form):
     source_url = forms.URLField(
         assume_scheme="https",
         label="AoPS contest URL",
+        required=False,
         widget=forms.URLInput(
             attrs={
                 "autocomplete": "off",
@@ -296,13 +297,40 @@ class ContestExistenceAuditForm(forms.Form):
             },
         ),
     )
+    source_text = forms.CharField(
+        label="Pasted contest text",
+        required=False,
+        strip=False,
+        widget=forms.Textarea(
+            attrs={
+                "class": "form-control font-monospace",
+                "form": "contest-existence-audit-form",
+                "id": "contest-existence-audit-text",
+                "rows": 14,
+                "spellcheck": "false",
+                "placeholder": (
+                    "2026 Contests3\n"
+                    " 2026 AIMEAIME 2026\n"
+                    "I\n"
+                    "February 5\n"
+                    "1\tPatrick started walking.\n"
+                    " 2026 Austrian MO National Competition2026 Austrian MO National Competition"
+                ),
+            },
+        ),
+    )
 
     def clean_source_url(self):
-        url = self.cleaned_data["source_url"].strip()
-        if not url:
-            msg = "Enter an AoPS contest URL before checking."
+        return self.cleaned_data["source_url"].strip()
+
+    def clean(self):
+        cleaned_data = super().clean()
+        source_url = cleaned_data.get("source_url", "")
+        source_text = cleaned_data.get("source_text", "")
+        if not source_url and not source_text.strip():
+            msg = "Enter an AoPS contest URL or paste contest text before checking."
             raise forms.ValidationError(msg)
-        return url
+        return cleaned_data
 
 
 class ProblemCompletionPasteForm(forms.Form):

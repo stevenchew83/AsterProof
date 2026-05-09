@@ -317,7 +317,11 @@ def contest_existence_audit_view(request):
         form = ContestExistenceAuditForm(request.POST)
         if form.is_valid():
             try:
-                source_text = fetch_contest_existence_audit_source_text(form.cleaned_data["source_url"])
+                source_text = form.cleaned_data["source_text"]
+                source_label = "Parsed"
+                if not source_text.strip():
+                    source_text = fetch_contest_existence_audit_source_text(form.cleaned_data["source_url"])
+                    source_label = "Fetched and checked"
                 parsed_headers = parse_contest_existence_audit_text(source_text)
             except ContestExistenceAuditValidationError as exc:
                 messages.error(request, str(exc))
@@ -325,7 +329,7 @@ def contest_existence_audit_view(request):
                 preview_payload = build_contest_existence_audit_payload(parsed_headers)
                 messages.info(
                     request,
-                    f"Fetched and checked {preview_payload['row_count']} parsed contest-year row(s).",
+                    f"{source_label} {preview_payload['row_count']} contest-year row(s).",
                 )
     else:
         form = ContestExistenceAuditForm()

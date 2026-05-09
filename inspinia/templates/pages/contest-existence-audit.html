@@ -38,7 +38,7 @@
         {% csrf_token %}
         <div class="card-header border-bottom">
           <h4 class="header-title mb-0">AoPS source</h4>
-          <p class="text-muted fs-xs mb-0">Fetch a contest index and check exact contest-year existence.</p>
+          <p class="text-muted fs-xs mb-0">Fetch or paste a contest index and check exact contest-year existence.</p>
         </div>
         <div class="card-body">
           {% if form.non_field_errors %}
@@ -50,6 +50,17 @@
           <div class="invalid-feedback d-block">{{ error }}</div>
           {% endfor %}
           <div class="form-text">AoPS community URLs such as <code>https://artofproblemsolving.com/community/c4148541_2025_contests</code>.</div>
+          <div class="d-flex align-items-center gap-2 my-3">
+            <div class="border-top flex-grow-1"></div>
+            <span class="text-muted fs-xs text-uppercase fw-semibold">or paste page text</span>
+            <div class="border-top flex-grow-1"></div>
+          </div>
+          <label class="form-label" for="contest-existence-audit-text">Contest text</label>
+          {{ form.source_text }}
+          {% for error in form.source_text.errors %}
+          <div class="invalid-feedback d-block">{{ error }}</div>
+          {% endfor %}
+          <div class="form-text">Use pasted AoPS page text when the URL source is incomplete or blocked.</div>
           <div class="d-flex flex-wrap gap-2 align-items-center mt-3">
             <button type="submit" class="btn btn-primary">
               <i class="ti ti-database-search me-1"></i>Check contests
@@ -100,7 +111,7 @@
           >{{ preview_payload.export_tsv }}</textarea>
           {% else %}
           <div class="alert alert-info mb-0" role="status">
-            Enter an AoPS contest URL and run the check to see statement-table and analytics-table status.
+            Enter an AoPS contest URL or paste copied contest text to see statement-table and analytics-table status.
           </div>
           {% endif %}
         </div>
@@ -182,11 +193,15 @@
     var clearButton = document.getElementById("contest-existence-audit-clear");
     var copyButton = document.getElementById("contest-existence-audit-copy");
     var input = document.getElementById("contest-existence-audit-url");
+    var textInput = document.getElementById("contest-existence-audit-text");
     var exportBox = document.getElementById("contest-existence-audit-export");
 
     if (clearButton && input) {
       clearButton.addEventListener("click", function() {
         input.value = "";
+        if (textInput) {
+          textInput.value = "";
+        }
         input.focus();
       });
     }
