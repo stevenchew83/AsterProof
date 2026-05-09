@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import json
 import re
 import urllib.error
 from collections import OrderedDict
@@ -11,6 +12,7 @@ from html import unescape
 from html.parser import HTMLParser
 from io import StringIO
 from typing import TypedDict
+from urllib.parse import urlencode
 from urllib.parse import urlparse
 from urllib.request import Request
 from urllib.request import urlopen
@@ -63,12 +65,17 @@ SUGGESTION_MIN_RATIO = 0.35
 SOURCE_FETCH_BYTE_LIMIT = 2_000_000
 SOURCE_FETCH_TIMEOUT_SECONDS = 20
 ALLOWED_AOPS_HOST_SUFFIX = "artofproblemsolving.com"
+AOPS_AJAX_URL = "https://artofproblemsolving.com/m/community/ajax.php"
+AOPS_MAX_FOLDER_PAGE_FETCHES = 100
+AOPS_INCOMPLETE_RENDERED_TEXT = "Something appears to not have loaded correctly"
 READER_FALLBACK_PREFIX = "https://r.jina.ai/"
 READER_FALLBACK_HTTP_STATUSES = {403, 429}
 HTML_CONTENT_TYPE_RE = re.compile(r"\bhtml\b", flags=re.IGNORECASE)
 CHARSET_RE = re.compile(r"charset=([A-Za-z0-9._-]+)", flags=re.IGNORECASE)
 AOPS_COMMUNITY_TITLE_RE = re.compile(r"^AoPS Community\s+(?P<title>\d{4}\s+.+)$", flags=re.IGNORECASE)
+AOPS_DOUBLED_FIELD_YEAR_RE = re.compile(r"^\s*(?P<title>\d{4}\s+.+?)\s{2,}.+$")
 AOPS_ICON_PREFIXED_YEAR_RE = re.compile(r"^(?:x|8)\s+(?P<title>\d{4}\s+.+)$", flags=re.IGNORECASE)
+AOPS_COMMUNITY_CATEGORY_ID_RE = re.compile(r"/community/c(?P<category_id>\d+)")
 
 
 class _AuditSourceHtmlTextParser(HTMLParser):
@@ -179,6 +186,11 @@ def _decode_source_document(raw_content: bytes, content_type: str) -> str:
 def _expand_aops_source_lines(raw_lines: list[str]) -> list[str]:
     lines: list[str] = []
     for raw_line in raw_lines:
+        doubled_field_year_match = AOPS_DOUBLED_FIELD_YEAR_RE.match(raw_line)
+        if doubled_field_year_match:
+            lines.append(_collapse_whitespace(doubled_field_year_match.group("title")))
+            continue
+
         line = _collapse_whitespace(raw_line)
         if not line:
             continue
@@ -204,18 +216,122 @@ def _plain_to_source_text(document: str) -> str:
     return "\n".join(_expand_aops_source_lines(document.splitlines()))
 
 
-def _read_source_response(fetch_url: str) -> tuple[str, bytes]:
+def _read_source_response(
+    fetch_url: str,
+    *,
+    data: bytes | None = None,
+    headers: dict[str, str] | None = None,
+) -> tuple[str, bytes]:
+    request_headers = {
+        "Accept": "text/html,text/plain;q=0.9,*/*;q=0.8",
+        "User-Agent": "AsterProof contest existence audit",
+    }
+    if headers:
+        request_headers.update(headers)
     request = Request(  # noqa: S310
         fetch_url,
-        headers={
-            "Accept": "text/html,text/plain;q=0.9,*/*;q=0.8",
-            "User-Agent": "AsterProof contest existence audit",
-        },
+        data=data,
+        headers=request_headers,
     )
     with urlopen(request, timeout=SOURCE_FETCH_TIMEOUT_SECONDS) as response:  # noqa: S310
         content_type = response.headers.get("Content-Type", "")
         raw_content = response.read(SOURCE_FETCH_BYTE_LIMIT + 1)
     return content_type, raw_content
+
+
+def _aops_community_category_id(source_url: str) -> int | None:
+    match = AOPS_COMMUNITY_CATEGORY_ID_RE.search(urlparse(source_url).path)
+    if match is None:
+        return None
+    return int(match.group("category_id"))
+
+
+def _fetch_aops_ajax_response(action: str, params: dict[str, str | int]) -> dict:
+    form_data = {"a": action}
+    form_data.update({key: str(value) for key, value in params.items()})
+    content_type, raw_content = _read_source_response(
+        AOPS_AJAX_URL,
+        data=urlencode(form_data).encode(),
+        headers={
+            "Accept": "application/json,text/plain;q=0.9,*/*;q=0.8",
+            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+            "Referer": "https://artofproblemsolving.com/community",
+            "X-Requested-With": "XMLHttpRequest",
+        },
+    )
+    if len(raw_content) > SOURCE_FETCH_BYTE_LIMIT:
+        msg = "The AoPS paginated response is too large to audit in one request."
+        raise ContestExistenceAuditValidationError(msg)
+
+    payload = json.loads(_decode_source_document(raw_content, content_type))
+    if not isinstance(payload, dict) or payload.get("error_code"):
+        msg = "AoPS did not return usable paginated contest data."
+        raise ContestExistenceAuditValidationError(msg)
+
+    response = payload.get("response", {})
+    if not isinstance(response, dict):
+        msg = "AoPS returned malformed paginated contest data."
+        raise ContestExistenceAuditValidationError(msg)
+    return response
+
+
+def _aops_year_prefixed_item_lines(items: list) -> list[str]:
+    lines: list[str] = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        item_text = _collapse_whitespace(str(item.get("item_text", "")))
+        if YEAR_HEADER_RE.match(item_text):
+            lines.append(item_text)
+    return lines
+
+
+def _fetch_aops_paginated_category_source_text(source_url: str) -> str:
+    source_text = ""
+    category_id = _aops_community_category_id(source_url)
+    if category_id is not None:
+        try:
+            response = _fetch_aops_ajax_response("fetch_category_data", {"category_id": category_id})
+            category = response.get("category")
+            items = category.get("items", []) if isinstance(category, dict) else []
+
+            if isinstance(category, dict) and isinstance(items, list):
+                items = [*items]
+                if category.get("category_type") == "folder":
+                    no_more_items = bool(category.get("no_more_items"))
+                    page_fetches = 0
+                    while not no_more_items and page_fetches < AOPS_MAX_FOLDER_PAGE_FETCHES:
+                        next_response = _fetch_aops_ajax_response(
+                            "fetch_items_categories",
+                            {
+                                "log_visit": 0,
+                                "parent_category_id": category_id,
+                                "seek_items": 1,
+                                "sought_category_ids": "[]",
+                                "start_num": len(items),
+                            },
+                        )
+                        next_items = next_response.get("items", [])
+                        if not isinstance(next_items, list):
+                            items = []
+                            break
+                        items.extend(next_items)
+                        no_more_items = bool(next_response.get("no_more_items")) or not next_items
+                        page_fetches += 1
+                    if not no_more_items:
+                        items = []
+
+                source_text = "\n".join(_aops_year_prefixed_item_lines(items))
+        except (
+            ContestExistenceAuditValidationError,
+            TimeoutError,
+            OSError,
+            TypeError,
+            ValueError,
+            urllib.error.URLError,
+        ):
+            source_text = ""
+    return source_text
 
 
 def _reader_fallback_url(validated_url: str) -> str:
@@ -242,8 +358,23 @@ def _fetch_source_response(validated_url: str) -> tuple[str, bytes]:
         raise ContestExistenceAuditValidationError(msg) from exc
 
 
+def _reject_incomplete_aops_rendered_source(source_url: str, source_text: str) -> None:
+    if _aops_community_category_id(source_url) is None or AOPS_INCOMPLETE_RENDERED_TEXT not in source_text:
+        return
+
+    msg = (
+        "Could not load all AoPS contest entries. AoPS blocked its paginated category data, "
+        "and the rendered fallback only exposed the first batch."
+    )
+    raise ContestExistenceAuditValidationError(msg)
+
+
 def fetch_contest_existence_audit_source_text(source_url: str) -> str:
     validated_url = _validate_aops_source_url(source_url)
+
+    paginated_source_text = _fetch_aops_paginated_category_source_text(validated_url)
+    if paginated_source_text.strip():
+        return paginated_source_text
 
     content_type, raw_content = _fetch_source_response(validated_url)
     if len(raw_content) > SOURCE_FETCH_BYTE_LIMIT:
@@ -255,8 +386,11 @@ def fetch_contest_existence_audit_source_text(source_url: str) -> str:
 
     document = _decode_source_document(raw_content, content_type)
     if HTML_CONTENT_TYPE_RE.search(content_type) or "<html" in document[:500].lower():
-        return _html_to_source_text(document)
-    return _plain_to_source_text(document)
+        source_text = _html_to_source_text(document)
+    else:
+        source_text = _plain_to_source_text(document)
+    _reject_incomplete_aops_rendered_source(validated_url, source_text)
+    return source_text
 
 
 def _is_generic_header(title: str) -> bool:

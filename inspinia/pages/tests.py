@@ -7569,8 +7569,11 @@ def test_contest_existence_audit_parser_reads_year_prefixed_contest_headers():
 
 
 def test_contest_existence_audit_url_source_extracts_year_prefixed_aops_titles(monkeypatch):
+    from urllib.error import HTTPError
+
     from inspinia.pages.contest_existence_audit import fetch_contest_existence_audit_source_text
 
+    ajax_url = "https://artofproblemsolving.com/m/community/ajax.php"
     html = """
     <html>
       <body>
@@ -7595,6 +7598,8 @@ def test_contest_existence_audit_url_source_extracts_year_prefixed_aops_titles(m
             return html
 
     def fake_urlopen(request, timeout):
+        if request.full_url == ajax_url:
+            raise HTTPError(ajax_url, 403, "Forbidden", hdrs=None, fp=None)
         assert request.full_url == "https://artofproblemsolving.com/community/c4148541_2025_contests"
         assert timeout > 0
         return FakeResponse()
@@ -7612,18 +7617,111 @@ def test_contest_existence_audit_url_source_extracts_year_prefixed_aops_titles(m
     ]
 
 
+def test_contest_existence_audit_url_source_fetches_all_paginated_aops_folder_items(monkeypatch):
+    import json
+    from urllib.parse import parse_qs
+
+    from inspinia.pages.contest_existence_audit import fetch_contest_existence_audit_source_text
+
+    ajax_url = "https://artofproblemsolving.com/m/community/ajax.php"
+    requested_actions = []
+
+    class FakeResponse:
+        headers = {"Content-Type": "application/json; charset=utf-8"}
+
+        def __init__(self, payload):
+            self.payload = payload
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, traceback):
+            return False
+
+        def read(self, _size):
+            return json.dumps(self.payload).encode()
+
+    def fake_urlopen(request, timeout):
+        assert request.full_url == ajax_url
+        assert timeout > 0
+        data = parse_qs(request.data.decode())
+        action = data["a"][0]
+        requested_actions.append(action)
+        if action == "fetch_category_data":
+            assert data["category_id"] == ["4148541"]
+            return FakeResponse(
+                {
+                    "response": {
+                        "category": {
+                            "category_id": 4148541,
+                            "category_type": "folder",
+                            "items": [
+                                {
+                                    "item_id": 3198869,
+                                    "item_text": "2025 AIME",
+                                    "item_type": "view_posts",
+                                    "item_subtitle": "AIME 2025",
+                                },
+                            ],
+                            "no_more_items": False,
+                        },
+                    },
+                },
+            )
+        assert action == "fetch_items_categories"
+        assert data["parent_category_id"] == ["4148541"]
+        assert data["seek_items"] == ["1"]
+        assert data["start_num"] == ["1"]
+        return FakeResponse(
+            {
+                "response": {
+                    "items": [
+                        {
+                            "item_id": 4318802,
+                            "item_text": "2025 Austrian MO National Competition",
+                            "item_type": "view_posts",
+                            "item_subtitle": "Austrian MO National Competition 2025",
+                        },
+                        {
+                            "item_id": 4317268,
+                            "item_text": "2025 Azerbaijan Junior NMO",
+                            "item_type": "view_posts",
+                            "item_subtitle": "For junior (8-9 grades)",
+                        },
+                    ],
+                    "no_more_items": True,
+                },
+            },
+        )
+
+    monkeypatch.setattr("inspinia.pages.contest_existence_audit.urlopen", fake_urlopen, raising=False)
+
+    source_text = fetch_contest_existence_audit_source_text(
+        "https://artofproblemsolving.com/community/c4148541_2025_contests",
+    )
+    parsed_headers = parse_contest_existence_audit_text(source_text)
+
+    assert requested_actions == ["fetch_category_data", "fetch_items_categories"]
+    assert [(header.year, header.contest_name) for header in parsed_headers] == [
+        (2025, "AIME"),
+        (2025, "Austrian MO National Competition"),
+        (2025, "Azerbaijan Junior NMO"),
+    ]
+
+
 def test_contest_existence_audit_url_source_uses_reader_fallback_for_aops_forbidden(monkeypatch):
     from urllib.error import HTTPError
 
     from inspinia.pages.contest_existence_audit import fetch_contest_existence_audit_source_text
 
+    ajax_url = "https://artofproblemsolving.com/m/community/ajax.php"
     source_url = "https://artofproblemsolving.com/community/c4148541_2025_contests"
     reader_url = f"https://r.jina.ai/{source_url}"
     fallback_text = "\n".join(
         [
-            "AoPS Community 2025 AIME",
+            " 2025 Abelkonkurransen Finale  Norwegian MO 2025 ",
             "AIME 2025",
-            "AoPS Community 2025 Austrian MO National Competition",
+            " 2025 Austrian MO National Competition  Austrian MO National Competition 2025 ",
             "Austrian MO National Competition 2025",
         ],
     ).encode()
@@ -7643,6 +7741,8 @@ def test_contest_existence_audit_url_source_uses_reader_fallback_for_aops_forbid
 
     def fake_urlopen(request, timeout):
         requested_urls.append(request.full_url)
+        if request.full_url == ajax_url:
+            raise HTTPError(ajax_url, 403, "Forbidden", hdrs=None, fp=None)
         if request.full_url == source_url:
             raise HTTPError(source_url, 403, "Forbidden", hdrs=None, fp=None)
         assert request.full_url == reader_url
@@ -7654,11 +7754,53 @@ def test_contest_existence_audit_url_source_uses_reader_fallback_for_aops_forbid
     source_text = fetch_contest_existence_audit_source_text(source_url)
     parsed_headers = parse_contest_existence_audit_text(source_text)
 
-    assert requested_urls == [source_url, reader_url]
+    assert requested_urls == [ajax_url, source_url, reader_url]
     assert [(header.year, header.contest_name) for header in parsed_headers] == [
-        (2025, "AIME"),
+        (2025, "Abelkonkurransen Finale"),
         (2025, "Austrian MO National Competition"),
     ]
+
+
+def test_contest_existence_audit_url_source_rejects_incomplete_aops_reader_page(monkeypatch):
+    from urllib.error import HTTPError
+
+    from inspinia.pages.contest_existence_audit import fetch_contest_existence_audit_source_text
+
+    ajax_url = "https://artofproblemsolving.com/m/community/ajax.php"
+    source_url = "https://artofproblemsolving.com/community/c4148541_2025_contests"
+    reader_url = f"https://r.jina.ai/{source_url}"
+    fallback_text = "\n".join(
+        [
+            " 2025 AIME  AIME 2025 ",
+            "Something appears to not have loaded correctly.",
+        ],
+    ).encode()
+
+    class FakeResponse:
+        headers = {"Content-Type": "text/plain; charset=utf-8"}
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, traceback):
+            return False
+
+        def read(self, _size):
+            return fallback_text
+
+    def fake_urlopen(request, timeout):
+        if request.full_url == ajax_url:
+            raise HTTPError(ajax_url, 403, "Forbidden", hdrs=None, fp=None)
+        if request.full_url == source_url:
+            raise HTTPError(source_url, 403, "Forbidden", hdrs=None, fp=None)
+        assert request.full_url == reader_url
+        assert timeout > 0
+        return FakeResponse()
+
+    monkeypatch.setattr("inspinia.pages.contest_existence_audit.urlopen", fake_urlopen, raising=False)
+
+    with pytest.raises(ContestExistenceAuditValidationError, match="Could not load all AoPS contest entries"):
+        fetch_contest_existence_audit_source_text(source_url)
 
 
 def test_contest_existence_audit_parser_rejects_text_without_contest_headers():
