@@ -45,6 +45,8 @@ AOPS_PRINTABLE_COLLECTION_RE = re.compile(
 AOPS_READER_URL_PREFIX = "https://r.jina.ai/http://"
 AOPS_LATEX_IMAGE_HOST = "latex.artofproblemsolving.com"
 MARKDOWN_IMAGE_RE = re.compile(r"!\[(?P<alt>(?:\\.|[^\]\\])*)\]\((?P<url>[^)\s]+)\)", flags=re.DOTALL)
+AOPS_READER_VIEW_TOPIC_LINK_RE = re.compile(r"^(?:\[)?view topic(?:\]\([^)]+\))?$", flags=re.IGNORECASE)
+LATEX_SOURCE_TOKEN_RE = re.compile(r"\\[A-Za-z]+|_[A-Za-z0-9{]|\\\(|\\\[|\^\{")
 PDF_LINE_GROUP_Y_TOLERANCE = 9
 PDF_SMALL_MATH_FONT_SIZE = 9
 PDF_SCRIPT_Y_DELTA = 2
@@ -72,6 +74,7 @@ AOPS_SLUG_WORD_REPLACEMENTS = {
     "allrussian": "All-Russian",
     "imo": "IMO",
     "jmo": "JMO",
+    "mo": "MO",
     "tst": "TST",
     "usa": "USA",
     "usamo": "USAMO",
@@ -603,6 +606,10 @@ def _aops_reader_markdown_body(markdown_text: str) -> str:
     return markdown_text
 
 
+def _is_aops_reader_view_topic_line(line: str) -> bool:
+    return AOPS_READER_VIEW_TOPIC_LINK_RE.fullmatch(line.strip()) is not None
+
+
 def _can_join_aops_reader_problem_code_line(next_line: str) -> bool:
     candidate = next_line.strip()
     if not candidate:
@@ -625,16 +632,22 @@ def _strip_aops_reader_author_lines(text: str) -> str:
     kept_lines: list[str] = []
     for index, line in enumerate(lines):
         stripped_line = line.strip()
+        if _is_aops_reader_view_topic_line(stripped_line):
+            continue
         next_index = index + 1
         while next_index < len(lines) and not lines[next_index].strip():
             next_index += 1
         next_line = lines[next_index].strip() if next_index < len(lines) else ""
         if USERNAME_LINE_RE.fullmatch(stripped_line) and (
             not next_line
+            or _is_aops_reader_view_topic_line(next_line)
             or GRADE_PREFIXED_PROBLEM_START_RE.fullmatch(next_line)
             or _normalized_grade_section_label(next_line)
             or _normalized_grade_level_section_label(next_line)
         ):
+            continue
+        if stripped_line.startswith("_") and stripped_line.endswith("_") and len(stripped_line) > 2:
+            kept_lines.append(stripped_line[1:-1])
             continue
         kept_lines.append(line)
     return "\n".join(kept_lines)
@@ -648,6 +661,8 @@ def _join_standalone_aops_reader_problem_codes(text: str) -> str:
         line = lines[index]
         stripped_line = line.strip()
         problem_match = GRADE_PREFIXED_PROBLEM_START_RE.fullmatch(stripped_line)
+        if problem_match is None:
+            problem_match = PROBLEM_START_RE.fullmatch(stripped_line)
         if problem_match is not None and not (problem_match.group("statement") or "").strip():
             next_index = index + 1
             while next_index < len(lines) and not lines[next_index].strip():
@@ -697,6 +712,37 @@ def _fetch_aops_reader_statement_text(source_url: str) -> FetchedStatementText |
         msg = "No readable text was found at the fetched URL."
         raise ProblemStatementImportValidationError(msg)
     return FetchedStatementText(text=extracted_text, source_label="URL fetch")
+
+
+def _parsed_statement_problem_count(text: str) -> int:
+    with contextlib.suppress(ProblemStatementImportValidationError):
+        return len(parse_contest_problem_statements(text).problems)
+    return 0
+
+
+def _latex_source_score(text: str) -> int:
+    return len(LATEX_SOURCE_TOKEN_RE.findall(text))
+
+
+def _is_better_aops_reader_text(*, reader_text: str, current_text: str) -> bool:
+    reader_problem_count = _parsed_statement_problem_count(reader_text)
+    current_problem_count = _parsed_statement_problem_count(current_text)
+    if reader_problem_count > current_problem_count:
+        return True
+    if reader_problem_count == 0 or reader_problem_count != current_problem_count:
+        return False
+    return _latex_source_score(reader_text) > _latex_source_score(current_text)
+
+
+def _fetch_better_aops_reader_statement_text(source_url: str, *, current_text: str) -> FetchedStatementText | None:
+    with contextlib.suppress(ProblemStatementImportValidationError):
+        reader_fetched = _fetch_aops_reader_statement_text(source_url)
+        if reader_fetched is not None and _is_better_aops_reader_text(
+            reader_text=reader_fetched.text,
+            current_text=current_text,
+        ):
+            return reader_fetched
+    return None
 
 
 def _request_url_payload(source_url: str) -> tuple[bytes, str]:
@@ -1020,10 +1066,12 @@ def fetch_statement_text_from_url(source_url: str) -> FetchedStatementText:
     if "pdf" in content_type.casefold() or payload.startswith(b"%PDF"):
         stream = BytesIO(payload)
         stream.name = "remote-statement-source.pdf"
-        return FetchedStatementText(
-            text=extract_statement_latexish_text_from_pdf(stream),
-            source_label="URL fetch",
-        )
+        extracted_text = extract_statement_latexish_text_from_pdf(stream)
+        if printable_url is not None:
+            reader_fetched = _fetch_better_aops_reader_statement_text(validated_url, current_text=extracted_text)
+            if reader_fetched is not None:
+                return reader_fetched
+        return FetchedStatementText(text=extracted_text, source_label="URL fetch")
 
     decoded_text = _decode_fetched_text(payload, content_type)
     if printable_url is not None and _is_aops_printable_latex_error_page(decoded_text, source_url=fetch_url):
