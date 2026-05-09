@@ -152,6 +152,19 @@ class ProblemStatementImportForm(forms.Form):
             },
         ),
     )
+    source_url = forms.URLField(
+        required=False,
+        label="Contest URL",
+        assume_scheme="https",
+        widget=forms.URLInput(
+            attrs={
+                "class": "form-control",
+                "form": "latex-preview-form",
+                "id": "latex-preview-url",
+                "placeholder": "https://artofproblemsolving.com/community/c4299349_2025_allrussian_olympiad",
+            },
+        ),
+    )
     source_text = forms.CharField(
         required=False,
         label="Contest text",
@@ -180,15 +193,20 @@ class ProblemStatementImportForm(forms.Form):
     def clean_source_text(self):
         return (self.cleaned_data.get("source_text") or "").strip()
 
+    def clean_source_url(self):
+        return (self.cleaned_data.get("source_url") or "").strip()
+
     def clean(self):
         cleaned_data = super().clean()
         uploaded = cleaned_data.get("file")
+        source_url = cleaned_data.get("source_url") or ""
         source_text = cleaned_data.get("source_text") or ""
-        if uploaded and source_text:
-            msg = "Use either pasted contest text or a PDF upload, not both."
+        source_count = sum(1 for value in (uploaded, source_url, source_text) if value)
+        if source_count > 1:
+            msg = "Use only one input source: pasted contest text, a PDF upload, or a URL."
             raise forms.ValidationError(msg)
-        if uploaded is None and not source_text:
-            msg = "Paste contest text or upload a PDF."
+        if source_count == 0:
+            msg = "Paste contest text, upload a PDF, or enter a URL."
             raise forms.ValidationError(msg)
         return cleaned_data
 
