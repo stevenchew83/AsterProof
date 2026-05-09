@@ -34,11 +34,17 @@ URL_FETCH_USER_AGENT = (
     "Mozilla/5.0 (compatible; AsterProofLatexPreview/1.0; +https://asterproof.local/tools/latex-preview)"
 )
 AOPS_HOSTS = {"artofproblemsolving.com", "www.artofproblemsolving.com"}
-AOPS_COMMUNITY_COLLECTION_RE = re.compile(r"^/community/c(?P<collection_id>\d+)(?:[_/?#].*)?$", flags=re.IGNORECASE)
+AOPS_COMMUNITY_COLLECTION_RE = re.compile(
+    r"^/community/c(?P<collection_id>\d+)(?:_(?P<slug>[^/]+))?/?$",
+    flags=re.IGNORECASE,
+)
 AOPS_PRINTABLE_COLLECTION_RE = re.compile(
     r"^/downloads/printable_post_collections/(?P<collection_id>\d+)(?:\.pdf)?/?$",
     flags=re.IGNORECASE,
 )
+AOPS_READER_URL_PREFIX = "https://r.jina.ai/http://"
+AOPS_LATEX_IMAGE_HOST = "latex.artofproblemsolving.com"
+MARKDOWN_IMAGE_RE = re.compile(r"!\[(?P<alt>(?:\\.|[^\]\\])*)\]\((?P<url>[^)\s]+)\)", flags=re.DOTALL)
 PDF_LINE_GROUP_Y_TOLERANCE = 9
 PDF_SMALL_MATH_FONT_SIZE = 9
 PDF_SCRIPT_Y_DELTA = 2
@@ -61,6 +67,16 @@ PDF_LATEX_REPLACEMENTS = {
     "⊥": r"\perp",
     "Γ": r"\Gamma",
     "ℓ": r"\ell",
+}
+AOPS_SLUG_WORD_REPLACEMENTS = {
+    "allrussian": "All-Russian",
+    "imo": "IMO",
+    "jmo": "JMO",
+    "tst": "TST",
+    "usa": "USA",
+    "usamo": "USAMO",
+    "usaamo": "USAAMO",
+    "usajmo": "USAJMO",
 }
 HEADER_LINE_RE = re.compile(
     r"^\s*(?P<year_start>\d{4})(?:\s*(?:/|-)\s*(?P<year_end>\d{4}))?\s+(?P<contest>.+?)\s*$",
@@ -426,12 +442,17 @@ def _extract_visible_text_from_html(html_text: str) -> str:
     return extracted_text
 
 
+def _is_aops_printable_latex_error_page(html_text: str, *, source_url: str) -> bool:
+    normalized = " ".join(html_text.split()).casefold()
+    return "there is a latex error in one of the posts" in normalized and "artofproblemsolving.com" in source_url
+
+
 def _reject_known_remote_error_page(html_text: str, *, source_url: str) -> None:
     normalized = " ".join(html_text.split()).casefold()
     if "attention required! | cloudflare" in normalized or "you are unable to access" in normalized:
         msg = "The remote site blocked the URL fetch. Try a printable PDF URL, or paste the contest text."
         raise ProblemStatementImportValidationError(msg)
-    if "there is a latex error in one of the posts" in normalized and "artofproblemsolving.com" in source_url:
+    if _is_aops_printable_latex_error_page(html_text, source_url=source_url):
         msg = (
             "AoPS could not build the printable collection because one included post has a LaTeX error. "
             "Fix the collection or paste the contest text."
@@ -493,6 +514,189 @@ def _aops_printable_url(source_url: str) -> str | None:
 
     collection_id = match.group("collection_id")
     return f"https://artofproblemsolving.com/downloads/printable_post_collections/{collection_id}.pdf"
+
+
+def _aops_reader_url(source_url: str) -> str | None:
+    parsed_url = urllib.parse.urlparse(source_url)
+    hostname = (parsed_url.hostname or "").casefold()
+    if hostname not in AOPS_HOSTS:
+        return None
+    if AOPS_COMMUNITY_COLLECTION_RE.match(parsed_url.path) is None:
+        return None
+    return f"{AOPS_READER_URL_PREFIX}{source_url}"
+
+
+def _title_case_aops_slug_word(word: str) -> str:
+    normalized_word = word.casefold()
+    if normalized_word in AOPS_SLUG_WORD_REPLACEMENTS:
+        return AOPS_SLUG_WORD_REPLACEMENTS[normalized_word]
+    return normalized_word.capitalize()
+
+
+def _aops_collection_header_from_url(source_url: str) -> str | None:
+    parsed_url = urllib.parse.urlparse(source_url)
+    match = AOPS_COMMUNITY_COLLECTION_RE.match(parsed_url.path)
+    if match is None:
+        return None
+
+    slug = match.group("slug") or ""
+    slug_parts = [part for part in re.split(r"[_-]+", slug) if part]
+    year_index = next((index for index, part in enumerate(slug_parts) if re.fullmatch(r"\d{4}", part)), None)
+    if year_index is None:
+        return None
+
+    contest_words = slug_parts[:year_index] + slug_parts[year_index + 1 :]
+    if not contest_words:
+        return None
+
+    titled_words: list[str] = []
+    index = 0
+    while index < len(contest_words):
+        word = contest_words[index].casefold()
+        if word == "all" and index + 1 < len(contest_words) and contest_words[index + 1].casefold() == "russian":
+            titled_words.append("All-Russian")
+            index += 2
+            continue
+        titled_words.append(_title_case_aops_slug_word(word))
+        index += 1
+
+    return f"{slug_parts[year_index]} {' '.join(titled_words)}"
+
+
+def _latex_from_aops_markdown_image_alt(alt_text: str, *, image_url: str) -> str:
+    parsed_image_url = urllib.parse.urlparse(image_url)
+    if (parsed_image_url.hostname or "").casefold() != AOPS_LATEX_IMAGE_HOST:
+        return ""
+
+    candidate = html.unescape(alt_text).strip()
+    if ":" in candidate and candidate.split(":", 1)[0].strip().casefold().startswith("image"):
+        candidate = candidate.split(":", 1)[1].strip()
+    if not candidate:
+        return ""
+
+    if candidate.startswith(r"\(") and candidate.endswith(r"\)"):
+        return f"${candidate[2:-2].strip()}$"
+    if candidate.startswith(r"\[") and candidate.endswith(r"\]"):
+        return "\\[\n" + candidate[2:-2].strip() + "\n\\]"
+    if candidate.startswith("$") and candidate.endswith("$"):
+        return candidate
+    return ""
+
+
+def _replace_aops_markdown_image(match: re.Match[str]) -> str:
+    latex = _latex_from_aops_markdown_image_alt(
+        match.group("alt"),
+        image_url=match.group("url"),
+    )
+    if not latex:
+        return ""
+    if latex.startswith((r"\[", "$$")):
+        return f"\n{latex}\n"
+    return latex
+
+
+def _aops_reader_markdown_body(markdown_text: str) -> str:
+    lines = markdown_text.splitlines()
+    for index, line in enumerate(lines):
+        if line.strip().casefold() == "markdown content:":
+            return "\n".join(lines[index + 1 :])
+    return markdown_text
+
+
+def _can_join_aops_reader_problem_code_line(next_line: str) -> bool:
+    candidate = next_line.strip()
+    if not candidate:
+        return False
+    if USERNAME_LINE_RE.fullmatch(candidate):
+        return False
+    return not (
+        PROBLEM_KEYWORD_START_RE.match(candidate)
+        or GRADE_PREFIXED_PROBLEM_START_RE.match(candidate)
+        or PROBLEM_START_RE.match(candidate)
+        or SPECIAL_PROBLEM_CODE_RE.match(candidate)
+        or _normalized_grade_section_label(candidate)
+        or _normalized_grade_level_section_label(candidate)
+        or _normalized_day_label(candidate)
+    )
+
+
+def _strip_aops_reader_author_lines(text: str) -> str:
+    lines = text.splitlines()
+    kept_lines: list[str] = []
+    for index, line in enumerate(lines):
+        stripped_line = line.strip()
+        next_index = index + 1
+        while next_index < len(lines) and not lines[next_index].strip():
+            next_index += 1
+        next_line = lines[next_index].strip() if next_index < len(lines) else ""
+        if USERNAME_LINE_RE.fullmatch(stripped_line) and (
+            not next_line
+            or GRADE_PREFIXED_PROBLEM_START_RE.fullmatch(next_line)
+            or _normalized_grade_section_label(next_line)
+            or _normalized_grade_level_section_label(next_line)
+        ):
+            continue
+        kept_lines.append(line)
+    return "\n".join(kept_lines)
+
+
+def _join_standalone_aops_reader_problem_codes(text: str) -> str:
+    lines = text.splitlines()
+    joined_lines: list[str] = []
+    index = 0
+    while index < len(lines):
+        line = lines[index]
+        stripped_line = line.strip()
+        problem_match = GRADE_PREFIXED_PROBLEM_START_RE.fullmatch(stripped_line)
+        if problem_match is not None and not (problem_match.group("statement") or "").strip():
+            next_index = index + 1
+            while next_index < len(lines) and not lines[next_index].strip():
+                next_index += 1
+            if next_index < len(lines) and _can_join_aops_reader_problem_code_line(lines[next_index]):
+                joined_lines.append(f"{stripped_line} {lines[next_index].strip()}")
+                index = next_index + 1
+                continue
+        joined_lines.append(line)
+        index += 1
+    return "\n".join(joined_lines)
+
+
+def _normalize_aops_reader_markdown(markdown_text: str, *, source_url: str) -> str:
+    converted_text = MARKDOWN_IMAGE_RE.sub(
+        _replace_aops_markdown_image,
+        _aops_reader_markdown_body(markdown_text),
+    )
+    reader_text = _strip_aops_reader_author_lines(_normalize_extracted_text(converted_text))
+    normalized_text = _normalize_extracted_text(
+        _join_standalone_aops_reader_problem_codes(reader_text),
+    )
+    header = _aops_collection_header_from_url(source_url)
+    if header is None:
+        return normalized_text
+
+    first_line = next((line.strip() for line in normalized_text.splitlines() if line.strip()), "")
+    if (
+        HEADER_LINE_RE.match(first_line)
+        or HEADER_YEAR_SUFFIX_RE.match(first_line)
+        or HEADER_YEAR_MIDDLE_RE.match(first_line)
+    ):
+        return normalized_text
+    return _normalize_extracted_text(f"{header}\n\n{normalized_text}")
+
+
+def _fetch_aops_reader_statement_text(source_url: str) -> FetchedStatementText | None:
+    reader_url = _aops_reader_url(source_url)
+    if reader_url is None:
+        return None
+
+    payload, content_type = _request_url_payload(reader_url)
+    decoded_text = _decode_fetched_text(payload, content_type)
+    _reject_known_remote_error_page(decoded_text, source_url=reader_url)
+    extracted_text = _normalize_aops_reader_markdown(decoded_text, source_url=source_url)
+    if not extracted_text:
+        msg = "No readable text was found at the fetched URL."
+        raise ProblemStatementImportValidationError(msg)
+    return FetchedStatementText(text=extracted_text, source_label="URL fetch")
 
 
 def _request_url_payload(source_url: str) -> tuple[bytes, str]:
@@ -809,7 +1013,8 @@ def extract_statement_latexish_text_from_pdf(uploaded_file) -> str:
 
 def fetch_statement_text_from_url(source_url: str) -> FetchedStatementText:
     validated_url = _validated_source_url(source_url)
-    fetch_url = _aops_printable_url(validated_url) or validated_url
+    printable_url = _aops_printable_url(validated_url)
+    fetch_url = printable_url or validated_url
     payload, content_type = _request_url_payload(fetch_url)
 
     if "pdf" in content_type.casefold() or payload.startswith(b"%PDF"):
@@ -821,6 +1026,10 @@ def fetch_statement_text_from_url(source_url: str) -> FetchedStatementText:
         )
 
     decoded_text = _decode_fetched_text(payload, content_type)
+    if printable_url is not None and _is_aops_printable_latex_error_page(decoded_text, source_url=fetch_url):
+        reader_fetched = _fetch_aops_reader_statement_text(validated_url)
+        if reader_fetched is not None:
+            return reader_fetched
     _reject_known_remote_error_page(decoded_text, source_url=fetch_url)
     if "html" in content_type.casefold() or b"<html" in payload[:2048].casefold():
         extracted_text = _extract_visible_text_from_html(decoded_text)
@@ -1847,7 +2056,7 @@ def _can_start_grade_prefixed_problem(
     if not statement:
         return False
 
-    return int(problem_match.group("number")) == state.current_problem_number + 1
+    return int(problem_match.group("number")) > state.current_problem_number
 
 
 def _can_start_alpha_problem(state: _StatementParseState) -> bool:
