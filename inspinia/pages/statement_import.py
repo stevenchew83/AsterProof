@@ -4,6 +4,7 @@ import contextlib
 import html
 import ipaddress
 import re
+import statistics
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -38,6 +39,29 @@ AOPS_PRINTABLE_COLLECTION_RE = re.compile(
     r"^/downloads/printable_post_collections/(?P<collection_id>\d+)(?:\.pdf)?/?$",
     flags=re.IGNORECASE,
 )
+PDF_LINE_GROUP_Y_TOLERANCE = 9
+PDF_SMALL_MATH_FONT_SIZE = 9
+PDF_SCRIPT_Y_DELTA = 2
+PDF_MATH_FONT_MARKERS = ("CMMI", "CMSY", "MSBM", "CMEX")
+PDF_TEXT_NUMBER_FONT_MARKERS = ("CMR",)
+PDF_MATH_SYMBOL_RE = re.compile(r"[+\-=<>≤≥×∥±∠◦Γℓ→∞∈⊥|]")
+PDF_AOPS_COPYRIGHT_RE = re.compile(r"^©\s+\d{4}\s+AoPS Incorporated\s+\d+\s*$")
+PDF_LATEX_REPLACEMENTS = {
+    "−": "-",
+    "±": r"\pm",
+    "∥": r"\parallel",
+    "×": r"\times",
+    "≥": r"\ge",
+    "≤": r"\le",
+    "∠": r"\angle",
+    "◦": r"^\circ",
+    "→": r"\to",
+    "∞": r"\infty",
+    "∈": r"\in",
+    "⊥": r"\perp",
+    "Γ": r"\Gamma",
+    "ℓ": r"\ell",
+}
 HEADER_LINE_RE = re.compile(
     r"^\s*(?P<year_start>\d{4})(?:\s*(?:/|-)\s*(?P<year_end>\d{4}))?\s+(?P<contest>.+?)\s*$",
 )
@@ -254,6 +278,23 @@ class ProblemStatementImportValidationError(ValueError):
 class FetchedStatementText:
     text: str
     source_label: str
+
+
+@dataclass(frozen=True)
+class _PdfTextChunk:
+    text: str
+    x: float
+    y: float
+    font_size: float
+    font_name: str
+    order: int
+
+
+@dataclass
+class _PdfLineGroup:
+    y: float
+    y_values: list[float] = field(default_factory=list)
+    chunks: list[_PdfTextChunk] = field(default_factory=list)
 
 
 class _VisibleTextExtractor(HTMLParser):
@@ -487,6 +528,285 @@ def _request_url_payload(source_url: str) -> tuple[bytes, str]:
     return payload, content_type
 
 
+def _pdf_reader_for(uploaded_file):
+    reader_cls = PdfReader
+    if reader_cls is None:
+        with contextlib.suppress(ImportError):
+            from pypdf import PdfReader as installed_reader_cls
+
+            reader_cls = installed_reader_cls
+
+    if reader_cls is None:
+        msg = "PDF parsing dependency is unavailable. Install pypdf and try again."
+        raise ProblemStatementImportValidationError(msg)
+
+    try:
+        return reader_cls(uploaded_file)
+    except Exception as exc:
+        msg = "Could not read the uploaded PDF. Please upload a valid text-based PDF file."
+        raise ProblemStatementImportValidationError(msg) from exc
+
+
+def _pdf_font_name(font_dict) -> str:
+    if not font_dict:
+        return ""
+    return str(font_dict.get("/BaseFont") or "")
+
+
+def _is_pdf_math_font(font_name: str) -> bool:
+    return any(marker in font_name for marker in PDF_MATH_FONT_MARKERS)
+
+
+def _is_pdf_number_font(font_name: str) -> bool:
+    return any(marker in font_name for marker in PDF_TEXT_NUMBER_FONT_MARKERS)
+
+
+def _pdf_chunk_has_math_symbol(text: str) -> bool:
+    return PDF_MATH_SYMBOL_RE.search(text) is not None
+
+
+def _is_definitely_math_pdf_chunk(chunk: _PdfTextChunk) -> bool:
+    return (
+        _is_pdf_math_font(chunk.font_name)
+        or _pdf_chunk_has_math_symbol(chunk.text)
+        or (_is_pdf_number_font(chunk.font_name) and chunk.font_size <= PDF_SMALL_MATH_FONT_SIZE)
+    )
+
+
+def _normalized_pdf_text_part(text: str) -> str:
+    return (
+        " ".join(text.split())
+        .replace("ﬁ", "fi")
+        .replace("ﬂ", "fl")
+        .replace("ﬀ", "ff")
+        .replace("ﬃ", "ffi")
+        .replace("ﬄ", "ffl")
+    )
+
+
+def _normalized_pdf_math_text(text: str) -> str:
+    normalized = _normalized_pdf_text_part(text)
+    for source, replacement in PDF_LATEX_REPLACEMENTS.items():
+        normalized = normalized.replace(source, replacement)
+    return normalized
+
+
+def _append_latex_superscript(base: str, superscript: str) -> str:
+    if not base:
+        return f"^{{{superscript}}}"
+    return f"{base}^{{{superscript}}}"
+
+
+def _normalized_pdf_math_spacing(raw_math: str) -> str:
+    normalized = re.sub(r"\s*([,+\-=])\s*", r" \1 ", raw_math)
+    normalized = re.sub(r"\s+", " ", normalized).strip()
+    normalized = normalized.replace(r"\frac ", r"\frac")
+    return normalized
+
+
+def _render_pdf_math_run(chunks: list[_PdfTextChunk], *, baseline: float) -> str:
+    rendered_parts: list[str] = []
+    index = 0
+    while index < len(chunks):
+        chunk = chunks[index]
+        token = _normalized_pdf_math_text(chunk.text).strip()
+        if not token:
+            index += 1
+            continue
+
+        if (
+            chunk.font_size <= PDF_SMALL_MATH_FONT_SIZE
+            and index + 1 < len(chunks)
+            and chunks[index + 1].font_size <= PDF_SMALL_MATH_FONT_SIZE
+            and chunk.y > chunks[index + 1].y + PDF_SCRIPT_Y_DELTA
+        ):
+            numerator = token
+            denominator = _normalized_pdf_math_text(chunks[index + 1].text).strip()
+            index += 2
+            while (
+                index < len(chunks)
+                and chunks[index].font_size <= PDF_SMALL_MATH_FONT_SIZE
+                and chunks[index].y < baseline + 1
+            ):
+                next_token = _normalized_pdf_math_text(chunks[index].text).strip()
+                if next_token:
+                    if chunks[index].y > chunks[index - 1].y + 1:
+                        denominator = _append_latex_superscript(denominator, next_token)
+                    else:
+                        denominator += next_token
+                index += 1
+            rendered_parts.append(rf"\frac{{{numerator}}}{{{denominator}}}")
+            continue
+
+        if chunk.font_size <= 8 and chunk.y > baseline + PDF_SCRIPT_Y_DELTA:
+            if rendered_parts:
+                rendered_parts[-1] = _append_latex_superscript(rendered_parts[-1], token)
+            else:
+                rendered_parts.append(f"^{{{token}}}")
+        elif chunk.font_size <= 8 and chunk.y < baseline - PDF_SCRIPT_Y_DELTA:
+            if rendered_parts:
+                rendered_parts[-1] = f"{rendered_parts[-1]}_{{{token}}}"
+            else:
+                rendered_parts.append(f"_{{{token}}}")
+        else:
+            rendered_parts.append(token)
+        index += 1
+
+    return _normalized_pdf_math_spacing(" ".join(part for part in rendered_parts if part))
+
+
+def _pdf_line_baseline(chunks: list[_PdfTextChunk]) -> float:
+    candidates = [chunk.y for chunk in chunks if chunk.font_size >= PDF_SMALL_MATH_FONT_SIZE]
+    if candidates:
+        return statistics.median(candidates)
+    return statistics.median(chunk.y for chunk in chunks)
+
+
+def _pdf_math_flags(chunks: list[_PdfTextChunk]) -> list[bool]:
+    definite_flags = [_is_definitely_math_pdf_chunk(chunk) for chunk in chunks]
+    math_flags: list[bool] = []
+    for index, chunk in enumerate(chunks):
+        is_math = definite_flags[index]
+        if _is_pdf_number_font(chunk.font_name) and not is_math:
+            is_math = (
+                _pdf_chunk_has_math_symbol(chunk.text)
+                or (index > 0 and definite_flags[index - 1])
+                or (index + 1 < len(chunks) and definite_flags[index + 1])
+            )
+        math_flags.append(is_math)
+    return math_flags
+
+
+def _render_pdf_latexish_line(chunks: list[_PdfTextChunk]) -> str:
+    baseline = _pdf_line_baseline(chunks)
+    math_flags = _pdf_math_flags(chunks)
+    rendered_parts: list[str] = []
+    math_run: list[_PdfTextChunk] = []
+
+    def flush_math_run() -> None:
+        if not math_run:
+            return
+        rendered_math = _render_pdf_math_run(math_run, baseline=baseline)
+        math_run.clear()
+        if rendered_math:
+            rendered_parts.append(f"${rendered_math}$")
+
+    for chunk, is_math in zip(chunks, math_flags):
+        if is_math:
+            math_run.append(chunk)
+            continue
+        flush_math_run()
+        text_part = _normalized_pdf_text_part(chunk.text)
+        if text_part:
+            rendered_parts.append(text_part)
+
+    flush_math_run()
+    line = " ".join(part.strip() for part in rendered_parts if part.strip())
+    line = re.sub(r"\s+([,.;:?])", r"\1", line)
+    return re.sub(r"\s+", " ", line).strip()
+
+
+def _pdf_line_groups(chunks: list[_PdfTextChunk]) -> list[_PdfLineGroup]:
+    groups: list[_PdfLineGroup] = []
+    for chunk in chunks:
+        for group in groups:
+            if abs(chunk.y - group.y) <= PDF_LINE_GROUP_Y_TOLERANCE:
+                group.chunks.append(chunk)
+                group.y_values.append(chunk.y)
+                group.y = statistics.median(group.y_values)
+                break
+        else:
+            groups.append(_PdfLineGroup(y=chunk.y, y_values=[chunk.y], chunks=[chunk]))
+    return sorted(groups, key=lambda group: -group.y)
+
+
+def _clean_pdf_latexish_text(raw_text: str) -> str:
+    cleaned_lines: list[str] = []
+    seen_aops_header = False
+    for line in raw_text.splitlines():
+        stripped = line.strip()
+        if PDF_AOPS_COPYRIGHT_RE.fullmatch(stripped):
+            continue
+        if stripped == "Art of Problem Solving is an ACS WASC Accredited School.":
+            continue
+        if section_match := re.fullmatch(r"[–-]\s+(Grade\s+\d{1,2}|Day\s+\d+)", stripped, flags=re.IGNORECASE):
+            stripped = section_match.group(1)
+            line = stripped
+        if stripped.startswith("AoPS Community "):
+            if seen_aops_header:
+                continue
+            seen_aops_header = True
+        cleaned_lines.append(line)
+    return _normalize_extracted_text("\n".join(cleaned_lines))
+
+
+def _extract_latexish_text_from_pdf_page(page) -> str:
+    chunks: list[_PdfTextChunk] = []
+    order = 0
+
+    def visitor_text(text, _cm, tm, font_dict, font_size) -> None:
+        nonlocal order
+        normalized_text = str(text).replace("\x00", "")
+        normalized_text = normalized_text.replace("\r\n", "\n").replace("\r", "\n")
+        try:
+            x = float(tm[4])
+            y = float(tm[5])
+        except (IndexError, TypeError, ValueError):
+            x = 0.0
+            y = 0.0
+        for part in normalized_text.splitlines():
+            if not part.strip():
+                continue
+            chunks.append(
+                _PdfTextChunk(
+                    text=part,
+                    x=x,
+                    y=y,
+                    font_size=float(font_size or 0),
+                    font_name=_pdf_font_name(font_dict),
+                    order=order,
+                ),
+            )
+            order += 1
+
+    try:
+        page.extract_text(visitor_text=visitor_text)
+    except TypeError:
+        return page.extract_text() or ""
+    except Exception as exc:
+        msg = "Could not extract text from one or more PDF pages."
+        raise ProblemStatementImportValidationError(msg) from exc
+
+    if not chunks:
+        return ""
+
+    rendered_lines: list[str] = []
+    for group in _pdf_line_groups(chunks):
+        line_chunks = sorted(group.chunks, key=lambda chunk: chunk.order)
+        rendered_line = _render_pdf_latexish_line(line_chunks)
+        if rendered_line:
+            rendered_lines.append(rendered_line)
+    return "\n".join(rendered_lines)
+
+
+def extract_statement_latexish_text_from_pdf(uploaded_file) -> str:
+    with contextlib.suppress(AttributeError, OSError):
+        uploaded_file.seek(0)
+
+    reader = _pdf_reader_for(uploaded_file)
+    page_chunks: list[str] = []
+    for page in reader.pages:
+        extracted = _extract_latexish_text_from_pdf_page(page).strip()
+        if extracted:
+            page_chunks.append(extracted)
+
+    extracted_text = _clean_pdf_latexish_text("\n\n".join(page_chunks))
+    if not extracted_text:
+        msg = "No extractable text was found in the uploaded PDF. The file may be image-only."
+        raise ProblemStatementImportValidationError(msg)
+    return extracted_text
+
+
 def fetch_statement_text_from_url(source_url: str) -> FetchedStatementText:
     validated_url = _validated_source_url(source_url)
     fetch_url = _aops_printable_url(validated_url) or validated_url
@@ -496,7 +816,7 @@ def fetch_statement_text_from_url(source_url: str) -> FetchedStatementText:
         stream = BytesIO(payload)
         stream.name = "remote-statement-source.pdf"
         return FetchedStatementText(
-            text=extract_statement_text_from_pdf(stream),
+            text=extract_statement_latexish_text_from_pdf(stream),
             source_label="URL fetch",
         )
 
@@ -517,23 +837,7 @@ def extract_statement_text_from_pdf(uploaded_file) -> str:
     with contextlib.suppress(AttributeError, OSError):
         uploaded_file.seek(0)
 
-    reader_cls = PdfReader
-    if reader_cls is None:
-        with contextlib.suppress(ImportError):
-            from pypdf import PdfReader as installed_reader_cls
-
-            reader_cls = installed_reader_cls
-
-    if reader_cls is None:
-        msg = "PDF parsing dependency is unavailable. Install pypdf and try again."
-        raise ProblemStatementImportValidationError(msg)
-
-    try:
-        reader = reader_cls(uploaded_file)
-    except Exception as exc:
-        msg = "Could not read the uploaded PDF. Please upload a valid text-based PDF file."
-        raise ProblemStatementImportValidationError(msg) from exc
-
+    reader = _pdf_reader_for(uploaded_file)
     page_chunks: list[str] = []
     for page in reader.pages:
         try:
@@ -1648,10 +1952,10 @@ def _consume_header_or_problem_line(
         _set_track_section(state, track_label)
     elif grade_label := _normalized_grade_section_label(line):
         _flush_problem(state)
-        _set_primary_section(state, grade_label)
+        _set_primary_section(state, grade_label, allows_day_subsection=True)
     elif grade_level_label := _normalized_grade_level_section_label(line):
         _flush_problem(state)
-        _set_primary_section(state, grade_level_label)
+        _set_primary_section(state, grade_level_label, allows_day_subsection=True)
     elif round_match := ROUND_LABEL_RE.fullmatch(line):
         _flush_problem(state)
         _set_primary_section(state, round_match.group("label").title())

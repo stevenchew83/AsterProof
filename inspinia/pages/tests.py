@@ -1193,6 +1193,67 @@ def test_fetch_statement_text_from_url_uses_aops_printable_pdf_for_collection_ur
     assert fetched.source_label == "URL fetch"
 
 
+def test_fetch_statement_text_from_url_preserves_latexish_math_from_aops_printable_pdf(monkeypatch):
+    class _FakePage:
+        def extract_text(self, *_, visitor_text=None, **__) -> str:
+            if visitor_text is None:
+                return "Prove that x2 + 1\nx is integer."
+
+            def emit(text: str, *, x: float, y: float, size: float, font: str) -> None:
+                visitor_text(text, None, [0, 0, 0, 0, x, y], {"/BaseFont": font}, size)
+
+            emit("2026 Test Olympiad", x=54, y=700, size=10.9, font="/MESFEV+Roboto-Regular")
+            emit("–", x=70, y=540, size=10.9, font="/QHNIYP+Roboto-Bold")
+            emit(" Grade 9", x=80, y=540, size=10.9, font="/MESFEV+Roboto-Regular")
+            emit("–", x=70, y=520, size=10.9, font="/QHNIYP+Roboto-Bold")
+            emit(" Day 1", x=80, y=520, size=10.9, font="/MESFEV+Roboto-Regular")
+            emit("9.1", x=70, y=500, size=10.9, font="/QHNIYP+Roboto-Bold")
+            emit(" Prove that", x=100, y=500, size=10.9, font="/MESFEV+Roboto-Regular")
+            emit("x", x=200, y=500, size=10.9, font="/QLCQXC+CMMI10")
+            emit("2", x=206, y=504, size=8, font="/FIGFKO+CMR8")
+            emit(" +", x=212, y=504, size=10.9, font="/FMBXWT+CMR10")
+            emit(" 1", x=226, y=500, size=8, font="/FIGFKO+CMR8")
+            emit("x", x=236, y=496, size=8, font="/RPZWZR+CMMI8")
+            emit(" is integer.", x=246, y=500, size=10.9, font="/MESFEV+Roboto-Regular")
+            return ""
+
+    class _FakeReader:
+        def __init__(self, _stream) -> None:
+            self.pages = [_FakePage()]
+
+    class _FakeResponse:
+        status = HTTPStatus.OK
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_exc_info):
+            return False
+
+        def read(self, _size: int = -1) -> bytes:
+            return b"%PDF-1.5\n%mock\n"
+
+        def getheader(self, name: str, default: str | None = None) -> str | None:
+            if name.casefold() == "content-type":
+                return "application/pdf"
+            return default
+
+    monkeypatch.setattr("inspinia.pages.statement_import.PdfReader", _FakeReader)
+    monkeypatch.setattr(
+        "inspinia.pages.statement_import.urllib.request.urlopen",
+        lambda _request, *, timeout: _FakeResponse(),
+    )
+
+    fetched = fetch_statement_text_from_url("https://artofproblemsolving.com/community/c4784607")
+
+    assert r"$x^{2} + \frac{1}{x}$" in fetched.text
+    assert "x2 + 1\nx" not in fetched.text
+
+    parsed_import = parse_contest_problem_statements(fetched.text)
+    assert len(parsed_import.problems) == 1
+    assert parsed_import.problems[0].day_label == "Grade 9 · Day 1"
+
+
 def test_fetch_statement_text_from_url_extracts_visible_html_text(monkeypatch):
     class _FakeResponse:
         status = HTTPStatus.OK
