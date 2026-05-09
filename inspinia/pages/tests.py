@@ -1254,6 +1254,108 @@ def test_fetch_statement_text_from_url_preserves_latexish_math_from_aops_printab
     assert parsed_import.problems[0].day_label == "Grade 9 · Day 1"
 
 
+def test_fetch_statement_text_from_url_falls_back_to_reader_when_aops_printable_has_latex_error(monkeypatch):
+    class _FakeResponse:
+        status = HTTPStatus.OK
+
+        def __init__(self, payload: bytes, content_type: str) -> None:
+            self.payload = payload
+            self.content_type = content_type
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_exc_info):
+            return False
+
+        def read(self, _size: int = -1) -> bytes:
+            return self.payload
+
+        def getheader(self, name: str, default: str | None = None) -> str | None:
+            if name.casefold() == "content-type":
+                return self.content_type
+            return default
+
+    reader_markdown = br"""Title: Math Message Boards FAQ & Community Help
+
+URL Source: https://artofproblemsolving.com/community/c4299349_2025_allrussian_olympiad
+
+Markdown Content:
+Grade 9
+
+9.1
+
+Several line segments were drawn on a rectangular sheet of paper.
+
+![Image 1](https://avatar.artofproblemsolving.com/avatar_771032.png)
+
+egxa
+
+9.3
+
+Find all natural numbers ![Image 2: \(n\)](https://latex.artofproblemsolving.com/n.png)
+for which there exists an even natural number ![Image 3: \(a\)](https://latex.artofproblemsolving.com/a.png)
+such that the number
+
+![Image 4: \[
+(a - 1)(a^2 - 1)\cdots(a^n - 1)
+\]](https://latex.artofproblemsolving.com/display.png)is a perfect square.
+
+![Image 5](https://avatar.artofproblemsolving.com/avatar_771032.png)
+
+egxa
+
+9.4
+
+A chess king was placed on a square of an ![Image 6: \(8 \times 8\)](https://latex.artofproblemsolving.com/board.png)
+board.
+
+egxa
+"""
+    printable_error_html = (
+        b"<html><body>There is a LaTeX error in one of the posts that you are including in this PDF.</body></html>"
+    )
+    seen_urls = []
+
+    def fake_urlopen(request, *, timeout):
+        seen_urls.append((request.full_url, timeout))
+        if len(seen_urls) == 1:
+            return _FakeResponse(printable_error_html, "text/html; charset=utf-8")
+        return _FakeResponse(reader_markdown, "text/plain; charset=utf-8")
+
+    monkeypatch.setattr("inspinia.pages.statement_import.urllib.request.urlopen", fake_urlopen)
+
+    fetched = fetch_statement_text_from_url(
+        "https://artofproblemsolving.com/community/c4299349_2025_allrussian_olympiad",
+    )
+
+    assert seen_urls == [
+        (
+            "https://artofproblemsolving.com/downloads/printable_post_collections/4299349.pdf",
+            URL_FETCH_TIMEOUT_SECONDS,
+        ),
+        (
+            "https://r.jina.ai/http://https://artofproblemsolving.com/community/c4299349_2025_allrussian_olympiad",
+            URL_FETCH_TIMEOUT_SECONDS,
+        ),
+    ]
+    assert fetched.text.startswith("2025 All-Russian Olympiad\n\nGrade 9")
+    assert "$n$" in fetched.text
+    assert "$a$" in fetched.text
+    assert "\\[\n(a - 1)(a^2 - 1)\\cdots(a^n - 1)\n\\]" in fetched.text
+    assert "![Image" not in fetched.text
+    assert "avatar_artofproblemsolving" not in fetched.text
+
+    parsed_import = parse_contest_problem_statements(fetched.text)
+
+    assert parsed_import.contest_year == 2025
+    assert parsed_import.contest_name == "All-Russian Olympiad"
+    assert [problem.problem_code for problem in parsed_import.problems] == ["9.1", "9.3", "9.4"]
+    assert parsed_import.problems[0].day_label == "Grade 9"
+    assert "$n$" in parsed_import.problems[1].statement_latex
+    assert parsed_import.problems[2].statement_latex.startswith("A chess king")
+
+
 def test_fetch_statement_text_from_url_extracts_visible_html_text(monkeypatch):
     class _FakeResponse:
         status = HTTPStatus.OK
