@@ -7260,6 +7260,17 @@ def test_completion_progress_analytics_renders_admin_dashboard(client):
     assert chart_payload["topicTotals"]["values"] == [1, 1, 1]
     assert chart_payload["solutionStatus"]["labels"] == ["Draft", "No solution"]
     assert chart_payload["solutionStatus"]["values"] == [1, 2]
+    yearly_heatmap = response.context["completion_progress_yearly_heatmap"]
+    assert yearly_heatmap["end_label"] == today.isoformat()
+    assert yearly_heatmap["exact_total"] == 2
+    assert yearly_heatmap["missing_date_total"] == 1
+    today_cell = next(
+        day
+        for week in yearly_heatmap["weeks"]
+        for day in week["days"]
+        if day["date"] == today.isoformat()
+    )
+    assert today_cell["count"] == 1
     response_html = response.content.decode("utf-8")
     assert "Progress analytics" in response_html
     assert "Completion progress" in response_html
@@ -7362,6 +7373,7 @@ def test_completion_progress_analytics_filters_by_completion_date_not_updated_at
         f"IMO {today.year} P1",
     ]
     assert sum(response.context["completion_progress_charts_payload"]["dailyCompletions"]["values"]) == 1
+    assert response.context["completion_progress_yearly_heatmap"]["exact_total"] == 1
 
 
 def test_completion_progress_analytics_defaults_to_newest_completion_user(client):
@@ -7591,6 +7603,7 @@ def test_my_completion_progress_analytics_renders_only_signed_in_user_rows(clien
         "labels": ["Draft"],
         "values": [1],
     }
+    assert response.context["completion_progress_yearly_heatmap"]["exact_total"] == 1
 
     response_html = response.content.decode("utf-8")
     assert "My progress" in response_html
