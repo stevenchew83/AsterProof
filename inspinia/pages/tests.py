@@ -29,6 +29,8 @@ from inspinia.pages.asymptote_render import AsymptoteRenderResult
 from inspinia.pages.asymptote_render import _extract_svg_markup
 from inspinia.pages.asymptote_render import build_statement_render_segments
 from inspinia.pages.completion_progress import completion_progress_contest_heatmap_payload
+from inspinia.pages.completion_progress import completion_progress_yearly_heatmap_payload
+from inspinia.pages.completion_progress import normalize_completion_progress_rows
 from inspinia.pages.contest_existence_audit import ContestExistenceAuditValidationError
 from inspinia.pages.contest_existence_audit import build_contest_existence_audit_payload
 from inspinia.pages.contest_existence_audit import parse_contest_existence_audit_text
@@ -6989,6 +6991,74 @@ def test_completion_progress_contest_heatmap_payload_requires_contest_and_user()
     assert no_user["chart"]["series"] == []
 
 
+def test_completion_progress_yearly_heatmap_payload_counts_exact_dates_in_window():
+    user = UserFactory()
+    end_date = date(2026, 5, 10)
+    expected_exact_total = 2
+    expected_missing_date_total = 1
+    expected_max_count = 2
+    expected_highest_level = 4
+    active_problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="ALG",
+        mohs=10,
+        contest="IMO",
+        problem="P1",
+        contest_year_problem="IMO 2026 P1",
+    )
+    second_problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="NT",
+        mohs=15,
+        contest="IMO",
+        problem="P2",
+        contest_year_problem="IMO 2026 P2",
+    )
+    old_problem = ProblemSolveRecord.objects.create(
+        year=2025,
+        topic="GEO",
+        mohs=20,
+        contest="BMO",
+        problem="P3",
+        contest_year_problem="BMO 2025 P3",
+    )
+    missing_date_problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="COMB",
+        mohs=25,
+        contest="EGMO",
+        problem="P4",
+        contest_year_problem="EGMO 2026 P4",
+    )
+    completions = [
+        UserProblemCompletion.objects.create(user=user, problem=active_problem, completion_date=end_date),
+        UserProblemCompletion.objects.create(user=user, problem=second_problem, completion_date=end_date),
+        UserProblemCompletion.objects.create(user=user, problem=old_problem, completion_date=date(2025, 4, 1)),
+        UserProblemCompletion.objects.create(user=user, problem=missing_date_problem, completion_date=None),
+    ]
+    rows = normalize_completion_progress_rows(completions)
+
+    payload = completion_progress_yearly_heatmap_payload(rows, end_date=end_date)
+
+    assert payload["start_label"] == "2025-05-11"
+    assert payload["end_label"] == "2026-05-10"
+    assert payload["exact_total"] == expected_exact_total
+    assert payload["missing_date_total"] == expected_missing_date_total
+    assert payload["max_count"] == expected_max_count
+    end_cell = next(
+        day
+        for week in payload["weeks"]
+        for day in week["days"]
+        if day["date"] == "2026-05-10"
+    )
+    assert end_cell["count"] == expected_exact_total
+    assert end_cell["level"] == expected_highest_level
+    assert end_cell["is_today"] is True
+    outside_cell = payload["weeks"][0]["days"][0]
+    assert outside_cell["is_blank"] is True
+    assert outside_cell["level"] == -1
+
+
 def test_completion_progress_analytics_contest_heatmap_uses_selected_user(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     selected_user = UserFactory(email="selected@example.com")
@@ -7088,6 +7158,7 @@ def test_completion_progress_contest_heatmap_prompts_for_contest(client):
 
     assert response.status_code == HTTPStatus.OK
     response_html = response.content.decode("utf-8")
+    assert "Yearly completion heatmap" in response_html
     assert "Select a contest in the filters to load year-by-problem completion coverage." in response_html
     assert 'id="chart-completion-progress-contest-heatmap"' not in response_html
 
@@ -7190,7 +7261,24 @@ def test_completion_progress_analytics_renders_admin_dashboard(client):
     assert chart_payload["topicTotals"]["values"] == [1, 1, 1]
     assert chart_payload["solutionStatus"]["labels"] == ["Draft", "No solution"]
     assert chart_payload["solutionStatus"]["values"] == [1, 2]
+    yearly_heatmap = response.context["completion_progress_yearly_heatmap"]
+    assert yearly_heatmap["end_label"] == today.isoformat()
+    assert yearly_heatmap["exact_total"] == 2
+    assert yearly_heatmap["missing_date_total"] == 1
+    today_cell = next(
+        day
+        for week in yearly_heatmap["weeks"]
+        for day in week["days"]
+        if day["date"] == today.isoformat()
+    )
+    assert today_cell["count"] == 1
     response_html = response.content.decode("utf-8")
+    assert "Yearly completion heatmap" in response_html
+    assert 'class="completion-progress-yearly-grid"' in response_html
+    assert 'data-bs-toggle="tooltip"' in response_html
+    assert "initCompletionProgressTooltips();" in response_html
+    assert response_html.index("Yearly completion heatmap") < response_html.index("Completion heatmap")
+    assert response_html.index("Completion heatmap") < response_html.index("Filtered completion rows")
     assert "Progress analytics" in response_html
     assert "Completion progress" in response_html
     assert 'id="chart-completion-progress-daily"' in response_html
@@ -7292,6 +7380,7 @@ def test_completion_progress_analytics_filters_by_completion_date_not_updated_at
         f"IMO {today.year} P1",
     ]
     assert sum(response.context["completion_progress_charts_payload"]["dailyCompletions"]["values"]) == 1
+    assert response.context["completion_progress_yearly_heatmap"]["exact_total"] == 1
 
 
 def test_completion_progress_analytics_defaults_to_newest_completion_user(client):
@@ -7521,6 +7610,7 @@ def test_my_completion_progress_analytics_renders_only_signed_in_user_rows(clien
         "labels": ["Draft"],
         "values": [1],
     }
+    assert response.context["completion_progress_yearly_heatmap"]["exact_total"] == 1
 
     response_html = response.content.decode("utf-8")
     assert "My progress" in response_html

@@ -52,6 +52,7 @@ from inspinia.pages.completion_progress import completion_progress_filter_option
 from inspinia.pages.completion_progress import completion_progress_stats
 from inspinia.pages.completion_progress import completion_progress_table_rows
 from inspinia.pages.completion_progress import completion_progress_user_options
+from inspinia.pages.completion_progress import completion_progress_yearly_heatmap_payload
 from inspinia.pages.completion_progress import default_completion_progress_user
 from inspinia.pages.completion_progress import filter_completion_progress_rows
 from inspinia.pages.completion_progress import normalize_completion_progress_rows
@@ -4077,6 +4078,10 @@ def _render_completion_progress_analytics(
             user=selected_user,
         ),
         "completion_progress_date_range": date_range,
+        "completion_progress_yearly_heatmap": completion_progress_yearly_heatmap_payload(
+            filtered_rows,
+            end_date=date_range.end_date or today,
+        ),
         "completion_progress_filter_options": completion_progress_filter_options(date_scoped_rows),
         "completion_progress_filters": {
             "contest": selected_contest,
