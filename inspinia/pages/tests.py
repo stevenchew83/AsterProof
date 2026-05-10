@@ -7158,6 +7158,7 @@ def test_completion_progress_contest_heatmap_prompts_for_contest(client):
 
     assert response.status_code == HTTPStatus.OK
     response_html = response.content.decode("utf-8")
+    assert "Yearly completion heatmap" in response_html
     assert "Select a contest in the filters to load year-by-problem completion coverage." in response_html
     assert 'id="chart-completion-progress-contest-heatmap"' not in response_html
 
@@ -7272,6 +7273,12 @@ def test_completion_progress_analytics_renders_admin_dashboard(client):
     )
     assert today_cell["count"] == 1
     response_html = response.content.decode("utf-8")
+    assert "Yearly completion heatmap" in response_html
+    assert 'class="completion-progress-yearly-grid"' in response_html
+    assert 'data-bs-toggle="tooltip"' in response_html
+    assert "initCompletionProgressTooltips();" in response_html
+    assert response_html.index("Yearly completion heatmap") < response_html.index("Completion heatmap")
+    assert response_html.index("Completion heatmap") < response_html.index("Filtered completion rows")
     assert "Progress analytics" in response_html
     assert "Completion progress" in response_html
     assert 'id="chart-completion-progress-daily"' in response_html

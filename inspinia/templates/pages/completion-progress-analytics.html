@@ -30,6 +30,167 @@
     min-height: 320px;
   }
 
+  .completion-progress-yearly-heatmap-wrap {
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 0.35rem;
+  }
+
+  .completion-progress-yearly-heatmap-canvas {
+    display: inline-block;
+    min-width: max-content;
+  }
+
+  .completion-progress-yearly-heatmap {
+    --completion-progress-yearly-cell-size: 0.86rem;
+    --completion-progress-yearly-cell-gap: 0.22rem;
+    --completion-progress-yearly-weekday-width: 2.25rem;
+    --completion-progress-yearly-cell-border: rgba(27, 31, 36, 0.06);
+    --completion-progress-yearly-empty: #ebedf0;
+    --completion-progress-yearly-level-1: #9be9a8;
+    --completion-progress-yearly-level-2: #40c463;
+    --completion-progress-yearly-level-3: #30a14e;
+    --completion-progress-yearly-level-4: #216e39;
+  }
+
+  [data-bs-theme="dark"] .completion-progress-yearly-heatmap {
+    --completion-progress-yearly-cell-border: rgba(240, 246, 252, 0.08);
+    --completion-progress-yearly-empty: #161b22;
+    --completion-progress-yearly-level-1: #0e4429;
+    --completion-progress-yearly-level-2: #006d32;
+    --completion-progress-yearly-level-3: #26a641;
+    --completion-progress-yearly-level-4: #39d353;
+  }
+
+  .completion-progress-yearly-months {
+    display: grid;
+    grid-auto-columns: var(--completion-progress-yearly-cell-size);
+    grid-auto-flow: column;
+    gap: var(--completion-progress-yearly-cell-gap);
+    margin-bottom: 0.35rem;
+    margin-left: calc(var(--completion-progress-yearly-weekday-width) + var(--completion-progress-yearly-cell-gap));
+  }
+
+  .completion-progress-yearly-month {
+    color: var(--ins-secondary-color);
+    font-size: 0.72rem;
+    line-height: 1;
+    min-height: 0.8rem;
+    white-space: nowrap;
+  }
+
+  .completion-progress-yearly-body {
+    display: flex;
+    gap: var(--completion-progress-yearly-cell-gap);
+  }
+
+  .completion-progress-yearly-weekdays {
+    display: grid;
+    gap: var(--completion-progress-yearly-cell-gap);
+    grid-template-rows: repeat(7, var(--completion-progress-yearly-cell-size));
+    width: var(--completion-progress-yearly-weekday-width);
+  }
+
+  .completion-progress-yearly-weekday {
+    align-items: center;
+    color: var(--ins-secondary-color);
+    display: flex;
+    font-size: 0.68rem;
+    line-height: var(--completion-progress-yearly-cell-size);
+  }
+
+  .completion-progress-yearly-grid {
+    display: grid;
+    gap: var(--completion-progress-yearly-cell-gap);
+    grid-auto-flow: column;
+    grid-template-rows: repeat(7, var(--completion-progress-yearly-cell-size));
+  }
+
+  .completion-progress-yearly-week {
+    display: contents;
+  }
+
+  .completion-progress-yearly-cell {
+    background: var(--completion-progress-yearly-empty);
+    border: 1px solid var(--completion-progress-yearly-cell-border);
+    border-radius: 0.18rem;
+    display: block;
+    height: var(--completion-progress-yearly-cell-size);
+    min-width: var(--completion-progress-yearly-cell-size);
+    width: var(--completion-progress-yearly-cell-size);
+  }
+
+  .completion-progress-yearly-cell.is-outside {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .completion-progress-yearly-cell.is-today {
+    box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.38);
+  }
+
+  .completion-progress-yearly-cell.level-0 {
+    background: var(--completion-progress-yearly-empty);
+  }
+
+  .completion-progress-yearly-cell.level-1 {
+    background: var(--completion-progress-yearly-level-1);
+  }
+
+  .completion-progress-yearly-cell.level-2 {
+    background: var(--completion-progress-yearly-level-2);
+  }
+
+  .completion-progress-yearly-cell.level-3 {
+    background: var(--completion-progress-yearly-level-3);
+  }
+
+  .completion-progress-yearly-cell.level-4 {
+    background: var(--completion-progress-yearly-level-4);
+  }
+
+  .completion-progress-yearly-legend {
+    align-items: center;
+    color: var(--ins-secondary-color);
+    display: flex;
+    flex-wrap: wrap;
+    font-size: 0.72rem;
+    gap: 0.45rem;
+  }
+
+  .completion-progress-yearly-legend-scale {
+    display: inline-flex;
+    gap: var(--completion-progress-yearly-cell-gap);
+  }
+
+  .completion-progress-yearly-legend-swatch {
+    border: 1px solid var(--completion-progress-yearly-cell-border);
+    border-radius: 0.18rem;
+    display: inline-flex;
+    height: var(--completion-progress-yearly-cell-size);
+    width: var(--completion-progress-yearly-cell-size);
+  }
+
+  .completion-progress-yearly-legend-swatch.level-0 {
+    background: var(--completion-progress-yearly-empty);
+  }
+
+  .completion-progress-yearly-legend-swatch.level-1 {
+    background: var(--completion-progress-yearly-level-1);
+  }
+
+  .completion-progress-yearly-legend-swatch.level-2 {
+    background: var(--completion-progress-yearly-level-2);
+  }
+
+  .completion-progress-yearly-legend-swatch.level-3 {
+    background: var(--completion-progress-yearly-level-3);
+  }
+
+  .completion-progress-yearly-legend-swatch.level-4 {
+    background: var(--completion-progress-yearly-level-4);
+  }
+
   .completion-progress-contest-legend {
     gap: 0.75rem;
   }
@@ -441,6 +602,90 @@
       <div class="card">
         <div class="card-header border-bottom d-flex flex-wrap align-items-center gap-2">
           <div class="flex-grow-1">
+            <h4 class="header-title mb-0">Yearly completion heatmap</h4>
+            <p class="text-muted fs-xs mb-0">GitHub-style daily solve density for the current filtered row set. Unknown-date rows stay out of the grid.</p>
+          </div>
+          <span class="badge text-bg-light">
+            {{ completion_progress_yearly_heatmap.start_label }} to {{ completion_progress_yearly_heatmap.end_label }}
+          </span>
+        </div>
+        <div class="card-body">
+          {% if completion_progress_yearly_heatmap.exact_total == 0 %}
+          <div class="alert alert-info mb-3" role="alert">
+            No exact completion dates match the current filters in this yearly window.
+            {% if completion_progress_yearly_heatmap.missing_date_total %}
+            {{ completion_progress_yearly_heatmap.missing_date_total }} unknown-date row{{ completion_progress_yearly_heatmap.missing_date_total|pluralize }} remain visible in the table.
+            {% endif %}
+          </div>
+          {% endif %}
+          <div class="completion-progress-yearly-heatmap">
+            <div class="completion-progress-yearly-heatmap-wrap">
+              <div class="completion-progress-yearly-heatmap-canvas">
+                <div class="completion-progress-yearly-months" aria-hidden="true">
+                  {% for week in completion_progress_yearly_heatmap.weeks %}
+                  <span class="completion-progress-yearly-month">{{ week.month_label }}</span>
+                  {% endfor %}
+                </div>
+                <div class="completion-progress-yearly-body">
+                  <div class="completion-progress-yearly-weekdays" aria-hidden="true">
+                    {% for day_label in completion_progress_yearly_heatmap.day_labels %}
+                    <span class="completion-progress-yearly-weekday">{{ day_label }}</span>
+                    {% endfor %}
+                  </div>
+                  <div class="completion-progress-yearly-grid" role="img" aria-label="Yearly completion heatmap">
+                    {% for week in completion_progress_yearly_heatmap.weeks %}
+                    <div class="completion-progress-yearly-week">
+                      {% for day in week.days %}
+                      {% if day.is_blank %}
+                      <span class="completion-progress-yearly-cell is-outside" aria-hidden="true"></span>
+                      {% else %}
+                      <span
+                        class="completion-progress-yearly-cell level-{{ day.level }}{% if day.is_today %} is-today{% endif %}"
+                        data-bs-toggle="tooltip"
+                        data-bs-placement="top"
+                        data-bs-title="{{ day.title }}"
+                        title="{{ day.title }}"
+                        aria-label="{{ day.title }}"
+                        tabindex="0"
+                      ></span>
+                      {% endif %}
+                      {% endfor %}
+                    </div>
+                    {% endfor %}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-3">
+              <p class="text-muted fs-xs mb-0">
+                {{ completion_progress_yearly_heatmap.exact_total }} exact-date completion{{ completion_progress_yearly_heatmap.exact_total|pluralize }} shown.
+                {% if completion_progress_yearly_heatmap.missing_date_total %}
+                {{ completion_progress_yearly_heatmap.missing_date_total }} unknown-date row{{ completion_progress_yearly_heatmap.missing_date_total|pluralize }} excluded from the grid.
+                {% endif %}
+              </p>
+              <div class="completion-progress-yearly-legend" aria-hidden="true">
+                <span>Less</span>
+                <span class="completion-progress-yearly-legend-scale">
+                  <span class="completion-progress-yearly-legend-swatch level-0"></span>
+                  <span class="completion-progress-yearly-legend-swatch level-1"></span>
+                  <span class="completion-progress-yearly-legend-swatch level-2"></span>
+                  <span class="completion-progress-yearly-legend-swatch level-3"></span>
+                  <span class="completion-progress-yearly-legend-swatch level-4"></span>
+                </span>
+                <span>More</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-0">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header border-bottom d-flex flex-wrap align-items-center gap-2">
+          <div class="flex-grow-1">
             <h4 class="header-title mb-0">Completion heatmap</h4>
             <p class="text-muted fs-xs mb-0">Year-by-problem completion coverage for this contest. Green shows your completions on those rows; red means you have not completed any row in that cell yet.</p>
           </div>
@@ -554,6 +799,13 @@
 
   function hasValues(values) {
     return Array.isArray(values) && values.some(function (value) { return Number(value) > 0; });
+  }
+
+  function initCompletionProgressTooltips() {
+    if (!window.bootstrap || !window.bootstrap.Tooltip) return;
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) {
+      window.bootstrap.Tooltip.getOrCreateInstance(el);
+    });
   }
 
   function renderBar(selector, labels, series, colors, stacked) {
@@ -792,6 +1044,7 @@
   ], ["#ffc107"], false);
   renderHeatmap("#chart-completion-progress-topic-mohs", charts.topicMohsHeatmap);
   renderContestHeatmap();
+  initCompletionProgressTooltips();
   renderDonut("#chart-completion-progress-solutions", charts.solutionStatus);
 
   if (tableDataEl && typeof DataTable !== "undefined") {
