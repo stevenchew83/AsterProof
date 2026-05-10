@@ -265,6 +265,87 @@ def completion_progress_charts_payload(
     }
 
 
+def completion_progress_yearly_heatmap_payload(
+    rows: Iterable[CompletionProgressRow],
+    *,
+    end_date: date,
+    day_window: int = 365,
+) -> dict[str, object]:
+    row_list = list(rows)
+    start_date = end_date - timedelta(days=day_window - 1)
+    grid_start = start_date - timedelta(days=start_date.weekday())
+    grid_end = end_date + timedelta(days=(6 - end_date.weekday()))
+    exact_counts_by_day = Counter(
+        row.completion_date
+        for row in row_list
+        if row.completion_date is not None and start_date <= row.completion_date <= end_date
+    )
+    max_count = max(exact_counts_by_day.values(), default=0)
+    weeks: list[dict[str, object]] = []
+    current_day = grid_start
+    first_visible_month_labeled = False
+
+    while current_day <= grid_end:
+        week_days: list[dict[str, object]] = []
+        week_dates = [current_day + timedelta(days=offset) for offset in range(7)]
+        in_range_week_days = [week_day for week_day in week_dates if start_date <= week_day <= end_date]
+        month_label = ""
+        if in_range_week_days:
+            if not first_visible_month_labeled:
+                month_label = in_range_week_days[0].strftime("%b")
+                first_visible_month_labeled = True
+            else:
+                month_start_day = next(
+                    (week_day for week_day in in_range_week_days if week_day.day == 1),
+                    None,
+                )
+                if month_start_day is not None:
+                    month_label = month_start_day.strftime("%b")
+
+        for week_day in week_dates:
+            in_range = start_date <= week_day <= end_date
+            count = exact_counts_by_day.get(week_day, 0) if in_range else 0
+            title = ""
+            if in_range:
+                title = (
+                    f"{week_day.strftime('%a, %d %b %Y')}: "
+                    f"{count} completion{'s' if count != 1 else ''}"
+                )
+            week_days.append(
+                {
+                    "count": count,
+                    "date": week_day.isoformat(),
+                    "display_date": week_day.isoformat(),
+                    "in_range": in_range,
+                    "is_blank": not in_range,
+                    "is_today": week_day == end_date,
+                    "label": week_day.strftime("%a"),
+                    "level": _completion_progress_yearly_heatmap_level(count, max_count) if in_range else -1,
+                    "title": title,
+                    "value": count if in_range else None,
+                },
+            )
+        weeks.append({"days": week_days, "month_label": month_label})
+        current_day += timedelta(days=7)
+
+    return {
+        "day_labels": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        "end_label": end_date.isoformat(),
+        "exact_total": sum(exact_counts_by_day.values()),
+        "max_count": max_count,
+        "missing_date_total": sum(1 for row in row_list if row.completion_date is None),
+        "start_label": start_date.isoformat(),
+        "total_in_window": sum(exact_counts_by_day.values()),
+        "weeks": weeks,
+    }
+
+
+def _completion_progress_yearly_heatmap_level(count: int, max_count: int) -> int:
+    if count <= 0 or max_count <= 0:
+        return 0
+    return min(4, max(1, -(-count * 4 // max_count)))
+
+
 def completion_progress_contest_heatmap_payload(
     *,
     contest: str,
