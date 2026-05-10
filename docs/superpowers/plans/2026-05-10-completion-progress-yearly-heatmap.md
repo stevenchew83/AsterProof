@@ -2,9 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add a GitHub-like yearly daily completion heatmap to `/dashboard/completion-progress/` and `/dashboard/my-progress/`, positioned immediately before the existing contest `Completion heatmap` card.
+**Goal:** Add GitHub-like yearly daily completion heatmaps to `/dashboard/completion-progress/` and `/dashboard/my-progress/`, positioned immediately before the existing contest `Completion heatmap` card.
 
-**Architecture:** Add a small payload helper in `inspinia/pages/completion_progress.py` that converts the already filtered completion rows into a rolling 365-day, week-column heatmap. Wire that payload through `_render_completion_progress_analytics`, render the grid with page-local Bootstrap/Inspinia-aligned CSS in `completion-progress-analytics.html`, and initialize Bootstrap tooltips for accessible day-level detail.
+**Architecture:** Add a small payload helper in `inspinia/pages/completion_progress.py` that converts the already filtered completion rows into stacked 365-day, week-column heatmap sections from the first exact completion to the latest. Wire that payload through `_render_completion_progress_analytics`, render the grids with page-local Bootstrap/Inspinia-aligned CSS in `completion-progress-analytics.html`, and initialize Bootstrap tooltips for accessible day-level detail.
+
+**Revision:** After implementation feedback, the heatmap renders all completion-year sections from the earliest exact completion date to the latest exact completion date, not only the latest/current 365-day window.
 
 **Tech Stack:** Django, Python `date` / `timedelta` / `Counter`, Bootstrap 5 / Inspinia cards and utilities, Tabler icons, page-local CSS/JS, pytest.
 
@@ -23,7 +25,7 @@
 ## Product Decisions
 
 - The new heatmap uses the same `filtered_rows` collection as the current charts and stats. That means user, range, contest, topic, MOHS, solution status, and search filters all apply consistently.
-- The heatmap is a rolling 365-day window ending at `completion_progress_date_range.end_date` when available, otherwise `today`. For the shared URL with `range=all`, the end date is `today`, so the grid shows the latest year of exact-date completions.
+- The heatmap renders stacked 365-day windows from the earliest exact completion date to the latest exact completion date in the filtered row set. If no exact-date completions exist, it falls back to one empty 365-day window ending at the active page end date.
 - Rows with `completion_date=None` are excluded from the heatmap cells but counted in `missing_date_total` for the card copy.
 - No route, permission, model, migration, global SCSS, or compiled asset changes are needed.
 

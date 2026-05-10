@@ -62,6 +62,12 @@
     --completion-progress-yearly-level-4: #39d353;
   }
 
+  .completion-progress-yearly-section + .completion-progress-yearly-section {
+    border-top: 1px solid var(--ins-border-color);
+    margin-top: 1.25rem;
+    padding-top: 1.25rem;
+  }
+
   .completion-progress-yearly-months {
     display: grid;
     grid-auto-columns: var(--completion-progress-yearly-cell-size);
@@ -603,7 +609,7 @@
         <div class="card-header border-bottom d-flex flex-wrap align-items-center gap-2">
           <div class="flex-grow-1">
             <h4 class="header-title mb-0">Yearly completion heatmap</h4>
-            <p class="text-muted fs-xs mb-0">GitHub-style daily solve density for the current filtered row set. Unknown-date rows stay out of the grid.</p>
+            <p class="text-muted fs-xs mb-0">GitHub-style daily solve density from the first exact completion to the latest. Unknown-date rows stay out of the grid.</p>
           </div>
           <span class="badge text-bg-light">
             {{ completion_progress_yearly_heatmap.start_label }} to {{ completion_progress_yearly_heatmap.end_label }}
@@ -619,21 +625,34 @@
           </div>
           {% endif %}
           <div class="completion-progress-yearly-heatmap">
+            {% for section in completion_progress_yearly_heatmap.sections %}
+            <div class="completion-progress-yearly-section">
+              <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                  <span class="badge text-bg-light">{{ section.heatmap.start_label }} to {{ section.heatmap.end_label }}</span>
+                  {% if section.is_latest %}
+                  <span class="badge bg-primary-subtle text-primary">Latest window</span>
+                  {% else %}
+                  <span class="badge text-bg-light">Earlier window</span>
+                  {% endif %}
+                </div>
+                <span class="text-muted fs-xs">{{ section.heatmap.exact_total }} exact-date completion{{ section.heatmap.exact_total|pluralize }} shown in this window</span>
+              </div>
             <div class="completion-progress-yearly-heatmap-wrap">
               <div class="completion-progress-yearly-heatmap-canvas">
                 <div class="completion-progress-yearly-months" aria-hidden="true">
-                  {% for week in completion_progress_yearly_heatmap.weeks %}
+                  {% for week in section.heatmap.weeks %}
                   <span class="completion-progress-yearly-month">{{ week.month_label }}</span>
                   {% endfor %}
                 </div>
                 <div class="completion-progress-yearly-body">
                   <div class="completion-progress-yearly-weekdays" aria-hidden="true">
-                    {% for day_label in completion_progress_yearly_heatmap.day_labels %}
+                    {% for day_label in section.heatmap.day_labels %}
                     <span class="completion-progress-yearly-weekday">{{ day_label }}</span>
                     {% endfor %}
                   </div>
                   <div class="completion-progress-yearly-grid" role="img" aria-label="Yearly completion heatmap">
-                    {% for week in completion_progress_yearly_heatmap.weeks %}
+                    {% for week in section.heatmap.weeks %}
                     <div class="completion-progress-yearly-week">
                       {% for day in week.days %}
                       {% if day.is_blank %}
@@ -656,9 +675,11 @@
                 </div>
               </div>
             </div>
+            </div>
+            {% endfor %}
             <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-3">
               <p class="text-muted fs-xs mb-0">
-                {{ completion_progress_yearly_heatmap.exact_total }} exact-date completion{{ completion_progress_yearly_heatmap.exact_total|pluralize }} shown.
+                {{ completion_progress_yearly_heatmap.exact_total }} exact-date completion{{ completion_progress_yearly_heatmap.exact_total|pluralize }} shown from first to latest.
                 {% if completion_progress_yearly_heatmap.missing_date_total %}
                 {{ completion_progress_yearly_heatmap.missing_date_total }} unknown-date row{{ completion_progress_yearly_heatmap.missing_date_total|pluralize }} excluded from the grid.
                 {% endif %}

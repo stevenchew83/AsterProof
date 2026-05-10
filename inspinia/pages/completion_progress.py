@@ -272,12 +272,100 @@ def completion_progress_yearly_heatmap_payload(
     day_window: int = 365,
 ) -> dict[str, object]:
     row_list = list(rows)
+    exact_completion_dates = [row.completion_date for row in row_list if row.completion_date is not None]
+    latest_end_date = max(exact_completion_dates, default=end_date)
+    earliest_completion_date = min(exact_completion_dates, default=None)
+    sections = _completion_progress_yearly_heatmap_sections(
+        row_list,
+        earliest_completion_date=earliest_completion_date,
+        latest_end_date=latest_end_date,
+        day_window=day_window,
+    )
+    latest_heatmap = sections[-1]["heatmap"]
+    exact_total = sum(int(section["heatmap"]["exact_total"]) for section in sections)
+    max_count = max((int(section["heatmap"]["max_count"]) for section in sections), default=0)
+
+    return {
+        "day_labels": latest_heatmap["day_labels"],
+        "end_label": latest_end_date.isoformat(),
+        "exact_total": exact_total,
+        "max_count": max_count,
+        "missing_date_total": sum(1 for row in row_list if row.completion_date is None),
+        "sections": sections,
+        "start_label": (
+            earliest_completion_date.isoformat()
+            if earliest_completion_date is not None
+            else latest_heatmap["start_label"]
+        ),
+        "total_in_window": exact_total,
+        "weeks": latest_heatmap["weeks"],
+    }
+
+
+def _completion_progress_yearly_heatmap_sections(
+    rows: list[CompletionProgressRow],
+    *,
+    earliest_completion_date: date | None,
+    latest_end_date: date,
+    day_window: int,
+) -> list[dict[str, object]]:
+    window_options = _completion_progress_yearly_heatmap_window_options(
+        earliest_completion_date=earliest_completion_date,
+        latest_end_date=latest_end_date,
+        day_window=day_window,
+    )
+    sections: list[dict[str, object]] = []
+    for window_option in reversed(window_options):
+        heatmap = _completion_progress_yearly_heatmap_window_payload(
+            rows,
+            end_date=date.fromisoformat(window_option["end_label"]),
+            day_window=day_window,
+        )
+        sections.append(
+            {
+                "heatmap": heatmap,
+                "is_latest": window_option["value"] == "0",
+            },
+        )
+    return sections
+
+
+def _completion_progress_yearly_heatmap_window_options(
+    *,
+    earliest_completion_date: date | None,
+    latest_end_date: date,
+    day_window: int,
+) -> list[dict[str, str]]:
+    options: list[dict[str, str]] = []
+    offset = 0
+    while True:
+        window_end = latest_end_date - timedelta(days=offset * day_window)
+        window_start = window_end - timedelta(days=day_window - 1)
+        options.append(
+            {
+                "end_label": window_end.isoformat(),
+                "start_label": window_start.isoformat(),
+                "value": str(offset),
+            },
+        )
+        if earliest_completion_date is None or earliest_completion_date >= window_start:
+            break
+        offset += 1
+    return options
+
+
+def _completion_progress_yearly_heatmap_window_payload(
+    rows: list[CompletionProgressRow],
+    *,
+    end_date: date,
+    day_window: int,
+) -> dict[str, object]:
     start_date = end_date - timedelta(days=day_window - 1)
     grid_start = start_date - timedelta(days=start_date.weekday())
     grid_end = end_date + timedelta(days=(6 - end_date.weekday()))
     exact_counts_by_day = Counter(
         row.completion_date
-        for row in row_list
+        for row in rows
         if row.completion_date is not None and start_date <= row.completion_date <= end_date
     )
     max_count = max(exact_counts_by_day.values(), default=0)
@@ -333,7 +421,6 @@ def completion_progress_yearly_heatmap_payload(
         "end_label": end_date.isoformat(),
         "exact_total": sum(exact_counts_by_day.values()),
         "max_count": max_count,
-        "missing_date_total": sum(1 for row in row_list if row.completion_date is None),
         "start_label": start_date.isoformat(),
         "total_in_window": sum(exact_counts_by_day.values()),
         "weeks": weeks,
