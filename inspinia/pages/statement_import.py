@@ -106,6 +106,11 @@ TST_DAY_LABEL_RE = re.compile(
     flags=re.IGNORECASE,
 )
 ROUND_LABEL_RE = re.compile(r"^(?:\d+\s+)?(?P<label>Round\s+[A-Za-z0-9].*)$", flags=re.IGNORECASE)
+TST_CONTEST_NAME_RE = re.compile(r"\b(?:TST|Team Selection Test)\b", flags=re.IGNORECASE)
+TST_ROUND_SCRAPE_COUNT_SUFFIX_RE = re.compile(
+    r"(?P<prefix>\bRound\s+)(?P<round_number>[1-3])3$",
+    flags=re.IGNORECASE,
+)
 SOLUTION_LINE_RE = re.compile(r"^Solution$", flags=re.IGNORECASE)
 TEST_LABEL_RE = re.compile(
     r"^Test\s+(?P<number>\d+|[IVXLCDM]+)(?:\s+(?P<detail>.+))?$",
@@ -1294,6 +1299,11 @@ class _StatementParseState:
 
 def _clean_contest_name(raw_name: str) -> str:
     cleaned_name = re.sub(r"(?<![\s\d])\d$", "", raw_name.strip())
+    if TST_CONTEST_NAME_RE.search(cleaned_name):
+        cleaned_name = TST_ROUND_SCRAPE_COUNT_SUFFIX_RE.sub(
+            r"\g<prefix>\g<round_number>",
+            cleaned_name,
+        )
     return cleaned_name.strip()
 
 
