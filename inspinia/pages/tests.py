@@ -6994,7 +6994,7 @@ def test_completion_progress_contest_heatmap_payload_requires_contest_and_user()
 def test_completion_progress_yearly_heatmap_payload_counts_exact_dates_in_window():
     user = UserFactory()
     end_date = date(2026, 5, 10)
-    expected_exact_total = 2
+    expected_exact_total = 3
     expected_missing_date_total = 1
     expected_max_count = 2
     expected_highest_level = 4
@@ -7040,23 +7040,84 @@ def test_completion_progress_yearly_heatmap_payload_counts_exact_dates_in_window
 
     payload = completion_progress_yearly_heatmap_payload(rows, end_date=end_date)
 
-    assert payload["start_label"] == "2025-05-11"
+    assert payload["start_label"] == "2025-04-01"
     assert payload["end_label"] == "2026-05-10"
     assert payload["exact_total"] == expected_exact_total
     assert payload["missing_date_total"] == expected_missing_date_total
     assert payload["max_count"] == expected_max_count
+    assert len(payload["sections"]) == 2
+    earlier_section = payload["sections"][0]
+    latest_section = payload["sections"][1]
+    assert earlier_section["is_latest"] is False
+    assert earlier_section["heatmap"]["start_label"] == "2024-05-11"
+    assert earlier_section["heatmap"]["end_label"] == "2025-05-10"
+    assert earlier_section["heatmap"]["exact_total"] == 1
+    assert latest_section["is_latest"] is True
+    assert latest_section["heatmap"]["start_label"] == "2025-05-11"
+    assert latest_section["heatmap"]["end_label"] == "2026-05-10"
+    assert latest_section["heatmap"]["exact_total"] == 2
     end_cell = next(
         day
-        for week in payload["weeks"]
+        for week in latest_section["heatmap"]["weeks"]
         for day in week["days"]
         if day["date"] == "2026-05-10"
     )
-    assert end_cell["count"] == expected_exact_total
+    assert end_cell["count"] == 2
     assert end_cell["level"] == expected_highest_level
     assert end_cell["is_today"] is True
-    outside_cell = payload["weeks"][0]["days"][0]
+    old_cell = next(
+        day
+        for week in earlier_section["heatmap"]["weeks"]
+        for day in week["days"]
+        if day["date"] == "2025-04-01"
+    )
+    assert old_cell["count"] == 1
+    outside_cell = earlier_section["heatmap"]["weeks"][0]["days"][0]
     assert outside_cell["is_blank"] is True
     assert outside_cell["level"] == -1
+
+
+def test_completion_progress_analytics_renders_all_yearly_heatmap_sections(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    completion_user = UserFactory()
+    client.force_login(admin_user)
+    recent_date = date(2026, 5, 10)
+    old_date = date(2025, 4, 1)
+    recent_problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="ALG",
+        mohs=10,
+        contest="IMO",
+        problem="P1",
+        contest_year_problem="IMO 2026 P1",
+    )
+    old_problem = ProblemSolveRecord.objects.create(
+        year=2025,
+        topic="GEO",
+        mohs=20,
+        contest="BMO",
+        problem="P2",
+        contest_year_problem="BMO 2025 P2",
+    )
+    UserProblemCompletion.objects.create(user=completion_user, problem=recent_problem, completion_date=recent_date)
+    UserProblemCompletion.objects.create(user=completion_user, problem=old_problem, completion_date=old_date)
+
+    response = client.get(
+        reverse("pages:completion_progress_analytics"),
+        {"range": "all", "user": str(completion_user.pk)},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    yearly_heatmap = response.context["completion_progress_yearly_heatmap"]
+    assert yearly_heatmap["start_label"] == old_date.isoformat()
+    assert yearly_heatmap["end_label"] == recent_date.isoformat()
+    assert yearly_heatmap["exact_total"] == 2
+    assert [section["is_latest"] for section in yearly_heatmap["sections"]] == [False, True]
+    response_html = response.content.decode("utf-8")
+    assert "Earlier window" in response_html
+    assert "Latest window" in response_html
+    assert "2024-05-11 to 2025-05-10" in response_html
+    assert "2025-05-11 to 2026-05-10" in response_html
 
 
 def test_completion_progress_analytics_contest_heatmap_uses_selected_user(client):
