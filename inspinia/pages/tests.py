@@ -400,7 +400,7 @@ USA_EGMO_TST_STATEMENT_SAMPLE = (
     Path(__file__).resolve().parent / "testdata" / "usa_egmo_team_selection_test_sample.txt"
 ).read_text(encoding="utf-8")
 TAIWAN_TST_ROUND_13_YEAR = 2025
-TAIWAN_TST_ROUND_13_NAME = "Taiwan TST Round 13"
+TAIWAN_TST_ROUND_13_NAME = "Taiwan TST Round 1"
 EXPECTED_TAIWAN_TST_ROUND_13_PROBLEM_TOTAL = 5
 TAIWAN_TST_ROUND_13_STATEMENT_SAMPLE = (
     Path(__file__).resolve().parent / "testdata" / "taiwan_tst_round_13_sample.txt"
@@ -2452,6 +2452,29 @@ def test_parse_contest_problem_statements_supports_tst_round_quizzes_and_mock_da
     assert all("view topic" not in problem.statement_latex for problem in parsed_import.problems)
     assert all("Proposed by" not in problem.statement_latex for problem in parsed_import.problems)
     assert all("CSJL" not in problem.statement_latex for problem in parsed_import.problems)
+
+
+@pytest.mark.parametrize(
+    ("header_line", "expected_contest_name"),
+    [
+        ("2025 Taiwan TST Round 13", "Taiwan TST Round 1"),
+        ("2025 Taiwan TST Round 23", "Taiwan TST Round 2"),
+        ("2025 Taiwan TST Round 33", "Taiwan TST Round 3"),
+    ],
+)
+def test_parse_contest_problem_statements_strips_tst_round_scrape_count_suffix(
+    header_line,
+    expected_contest_name,
+):
+    parsed_import = parse_contest_problem_statements(
+        f"{header_line}\n"
+        "Quiz 1\n"
+        "N\tFind all positive integers $n$.\n",
+    )
+
+    assert parsed_import.contest_year == TAIWAN_TST_ROUND_13_YEAR
+    assert parsed_import.contest_name == expected_contest_name
+    assert parsed_import.problems[0].day_label == "Quiz 1"
 
 
 def test_parse_contest_problem_statements_supports_compact_day_headers():
