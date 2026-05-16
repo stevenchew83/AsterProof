@@ -7014,6 +7014,49 @@ def test_completion_progress_contest_heatmap_payload_requires_contest_and_user()
     assert no_user["chart"]["series"] == []
 
 
+def test_completion_progress_contest_heatmap_pdf_export_metadata_and_print_styles(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    completion_user = UserFactory(name="Alexander Chew", email="alex@example.com")
+    client.force_login(admin_user)
+    contest = "JBMO Shortlist"
+    today = timezone.localdate()
+    for problem_number in range(1, 22):
+        problem, _statement = _create_heatmap_statement(
+            contest=contest,
+            year=today.year,
+            problem_code=f"P{problem_number}",
+            problem_number=problem_number,
+        )
+        if problem_number == 1:
+            UserProblemCompletion.objects.create(
+                user=completion_user,
+                problem=problem,
+                completion_date=today,
+            )
+
+    response = client.get(
+        reverse("pages:completion_progress_analytics"),
+        {"user": str(completion_user.pk), "range": "all", "contest": contest},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["completion_progress_export_metadata"] == {
+        "generated_date": today.isoformat(),
+        "user_label": "Alexander Chew (alex@example.com)",
+    }
+    assert response.context["completion_progress_contest_heatmap"]["problem_code_total"] == 21
+    response_html = response.content.decode("utf-8")
+    assert 'id="completion-progress-export-metadata"' in response_html
+    assert "contestHeatmapExportGeneratedDate" in response_html
+    assert "contestHeatmapExportUserLabel" in response_html
+    assert "contestHeatmapPrintOrientation" in response_html
+    assert "@page{size:A4 \" + printOrientation" in response_html
+    assert "print-color-adjust:exact" in response_html
+    assert '<svg class="swatch"' in response_html
+    assert "User: \" + escapeHtml(userLabel)" in response_html
+    assert "Generated: \" + escapeHtml(generatedDate)" in response_html
+
+
 def test_completion_progress_yearly_heatmap_payload_counts_exact_dates_in_window():
     user = UserFactory()
     end_date = date(2026, 5, 10)
