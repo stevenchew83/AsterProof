@@ -7187,6 +7187,11 @@ def test_completion_progress_analytics_contest_heatmap_uses_selected_user(client
     assert "renderContestHeatmap();" in response_html
     assert "dataPointSelection" in response_html
     assert "point.solution_url" in response_html
+    assert 'data-completion-progress-contest-export="png"' in response_html
+    assert 'data-completion-progress-contest-export="pdf"' in response_html
+    assert "Download image" in response_html
+    assert "Save PDF" in response_html
+    assert "wireContestHeatmapExports" in response_html
 
 
 def test_my_completion_progress_contest_heatmap_uses_signed_in_user(client):
