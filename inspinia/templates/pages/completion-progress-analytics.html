@@ -813,6 +813,7 @@
 {{ completion_progress_charts_payload|json_script:"completion-progress-chart-data" }}
 {{ completion_progress_table_rows|json_script:"completion-progress-table-data" }}
 {{ completion_progress_contest_heatmap.chart|json_script:"completion-progress-contest-heatmap-data" }}
+{{ completion_progress_export_metadata|json_script:"completion-progress-export-metadata" }}
 {% if completion_progress_rows and completion_progress_can_edit_difficulty %}
 <form id="completion-progress-difficulty-csrf" class="d-none">{% csrf_token %}</form>
 {% endif %}
@@ -828,7 +829,9 @@
   var chartDataEl = document.getElementById("completion-progress-chart-data");
   var tableDataEl = document.getElementById("completion-progress-table-data");
   var contestHeatmapDataEl = document.getElementById("completion-progress-contest-heatmap-data");
+  var exportMetadataEl = document.getElementById("completion-progress-export-metadata");
   var charts = chartDataEl ? JSON.parse(chartDataEl.textContent) : {};
+  var exportMetadata = exportMetadataEl ? JSON.parse(exportMetadataEl.textContent || "{}") : {};
   var contestHeatmapChart = null;
   var contestHeatmapPayload = null;
 
@@ -1091,6 +1094,22 @@
     return summaryEl ? summaryEl.textContent.trim().replace(/\s+/g, " ") : "";
   }
 
+  function contestHeatmapExportUserLabel() {
+    return exportMetadata.user_label || "";
+  }
+
+  function contestHeatmapExportGeneratedDate() {
+    return exportMetadata.generated_date || new Date().toISOString().slice(0, 10);
+  }
+
+  function contestHeatmapPrintOrientation(problemCodeCount) {
+    return Number(problemCodeCount || 0) >= 18 ? "landscape" : "portrait";
+  }
+
+  function contestHeatmapLegendSwatch(color) {
+    return '<svg class="swatch" viewBox="0 0 12 12" width="12" height="12" aria-hidden="true" focusable="false"><rect x="0.5" y="0.5" width="11" height="11" rx="3" fill="' + escapeHtml(color) + '" stroke="rgba(17,32,59,.14)"/></svg>';
+  }
+
   function contestHeatmapExportFilename(extension) {
     var slug = contestHeatmapExportTitle()
       .toLowerCase()
@@ -1115,6 +1134,18 @@
     var title = escapeHtml(contestHeatmapExportTitle());
     var summary = escapeHtml(contestHeatmapExportSummary());
     var seriesTotal = contestHeatmapPayload && contestHeatmapPayload.series ? contestHeatmapPayload.series.length : 0;
+    var problemCodeCount = (
+      contestHeatmapPayload &&
+      contestHeatmapPayload.series &&
+      contestHeatmapPayload.series[0] &&
+      contestHeatmapPayload.series[0].data
+    ) ? contestHeatmapPayload.series[0].data.length : 0;
+    var printOrientation = contestHeatmapPrintOrientation(problemCodeCount);
+    var printMargin = printOrientation === "landscape" ? "10mm" : "14mm";
+    var userLabel = contestHeatmapExportUserLabel();
+    var generatedDate = contestHeatmapExportGeneratedDate();
+    var userMetaHtml = userLabel ? "<span>User: " + escapeHtml(userLabel) + "</span>" : "";
+    var generatedMetaHtml = generatedDate ? "<span>Generated: " + escapeHtml(generatedDate) + "</span>" : "";
     var html = [
       "<!doctype html>",
       '<html lang="en">',
@@ -1122,29 +1153,33 @@
       '<meta charset="utf-8">',
       "<title>" + title + "</title>",
       "<style>",
+      "@page{size:A4 " + printOrientation + ";margin:" + printMargin + ";}",
+      "*,*::before,*::after{-webkit-print-color-adjust:exact;print-color-adjust:exact;}",
       "body{color:#172033;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin:24px;}",
       ".completion-print-head{align-items:flex-start;border-bottom:1px solid #d8dee8;display:flex;gap:16px;justify-content:space-between;padding-bottom:14px;}",
       "h1{font-size:22px;line-height:1.2;margin:0 0 6px;}",
       "p{color:#667085;font-size:12px;margin:0;}",
       ".badge{background:#f1f5f9;border:1px solid #d8dee8;border-radius:999px;color:#334155;display:inline-block;font-size:12px;font-weight:600;padding:5px 9px;white-space:nowrap;}",
+      ".meta{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:8px;}",
+      ".meta span{color:#475467;font-size:12px;font-weight:600;}",
       ".legend{display:flex;flex-wrap:wrap;gap:10px 16px;margin:16px 0 12px;}",
       ".legend span{align-items:center;color:#475467;display:inline-flex;font-size:12px;gap:6px;}",
-      ".swatch{border:1px solid rgba(17,32,59,.14);border-radius:4px;display:inline-block;height:12px;width:12px;}",
+      ".swatch{display:inline-block;flex:0 0 auto;height:12px;width:12px;}",
       ".chart{margin-top:10px;max-width:100%;}",
       "img{display:block;height:auto;max-width:100%;}",
-      "@media print{body{margin:14mm;}.completion-print-head{break-after:avoid;}img{break-inside:avoid;}}",
+      "@media print{body{margin:0;}.completion-print-head{break-after:avoid;}img{break-inside:avoid;}}",
       "</style>",
       "</head>",
       "<body>",
       '<div class="completion-print-head">',
-      "<div><h1>" + title + "</h1><p>Year-by-problem completion coverage exported from AsterProof.</p></div>",
+      "<div><h1>" + title + '</h1><p>Year-by-problem completion coverage exported from AsterProof.</p><div class="meta">' + userMetaHtml + generatedMetaHtml + "</div></div>",
       summary ? '<span class="badge">' + summary + "</span>" : "",
       "</div>",
       '<div class="legend" aria-label="Legend">',
-      '<span><i class="swatch" style="background:#2fbf71"></i>Your completions</span>',
-      '<span><i class="swatch" style="background:#e25563"></i>No completion yet</span>',
-      '<span><i class="swatch" style="background:#f1b44c"></i>Mixed coverage</span>',
-      '<span><i class="swatch" style="background:#d6d9e0"></i>No statement row</span>',
+      "<span>" + contestHeatmapLegendSwatch("#2fbf71") + "Your completions</span>",
+      "<span>" + contestHeatmapLegendSwatch("#e25563") + "No completion yet</span>",
+      "<span>" + contestHeatmapLegendSwatch("#f1b44c") + "Mixed coverage</span>",
+      "<span>" + contestHeatmapLegendSwatch("#d6d9e0") + "No statement row</span>",
       "</div>",
       '<div class="chart"><img src="' + escapeHtml(dataUri) + '" alt="' + title + ' chart"></div>',
       '<p style="margin-top:12px;">' + String(seriesTotal) + ' year row' + (seriesTotal === 1 ? "" : "s") + " exported.</p>",

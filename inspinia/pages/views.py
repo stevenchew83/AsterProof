@@ -3862,6 +3862,19 @@ def _selected_completion_progress_user(raw_user_id: str) -> User | None:
     return selected_user or default_completion_progress_user()
 
 
+def _completion_progress_export_metadata(selected_user: User | None, *, today: date) -> dict[str, str]:
+    if selected_user is None:
+        user_label = ""
+    else:
+        user_name = (selected_user.name or "").strip()
+        user_email = (selected_user.email or "").strip()
+        user_label = f"{user_name} ({user_email})" if user_name and user_email else user_name or user_email
+    return {
+        "generated_date": today.isoformat(),
+        "user_label": user_label,
+    }
+
+
 def _completion_progress_csv_response(rows, selected_user: User | None) -> HttpResponse:
     csv_rows = completion_progress_csv_rows(rows)
     fieldnames = [
@@ -4098,6 +4111,7 @@ def _render_completion_progress_analytics(
         "completion_progress_can_select_user": can_select_user,
         "completion_progress_can_edit_difficulty": can_edit_difficulty,
         "completion_progress_difficulty_save_url": reverse("pages:problem_statement_difficulty_rating_save"),
+        "completion_progress_export_metadata": _completion_progress_export_metadata(selected_user, today=today),
         "completion_progress_page_subtitle": "Progress analytics",
         "completion_progress_page_title": page_title,
         "completion_progress_range_options": COMPLETION_PROGRESS_RANGE_OPTIONS,
