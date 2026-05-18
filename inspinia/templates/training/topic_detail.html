@@ -1,0 +1,47 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}{{ topic.title }}{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  {% include 'partials/page-title.html' with title=topic.title subtitle='Training topic' %}
+  <div class="row g-3 mt-0">
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-body">
+          <p class="text-muted mb-2">{{ topic.description }}</p>
+          <div class="progress" style="height: 8px;">
+            <div class="progress-bar" style="width: {{ topic_progress.completion_percentage }}%;"></div>
+          </div>
+          <div class="text-muted fs-xs mt-2">{{ topic_progress.earned_points }}/{{ topic_progress.available_points }} points earned</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-8">
+      <div class="row g-3">
+        {% for row in subtopic_rows %}
+        <div class="col-md-6">
+          <a href="{{ row.url }}" class="card h-100 text-decoration-none text-reset">
+            <div class="card-body">
+              <h4 class="mb-1">{{ row.subtopic.title }}</h4>
+              <p class="text-muted fs-sm">{{ row.subtopic.description }}</p>
+              <div class="d-flex flex-wrap gap-2 mb-3">
+                <span class="badge text-bg-light">{{ row.material_count }} materials</span>
+                <span class="badge text-bg-light">{{ row.problem_count }} problems</span>
+                <span class="badge bg-warning-subtle text-warning">{{ row.progress.earned_points }} pts</span>
+              </div>
+              <div class="progress" style="height: 6px;">
+                <div class="progress-bar" style="width: {{ row.progress.completion_percentage }}%;"></div>
+              </div>
+            </div>
+          </a>
+        </div>
+        {% empty %}
+        <div class="col-12"><div class="alert alert-info">No subtopics are available yet.</div></div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock page_content %}
+

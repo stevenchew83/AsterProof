@@ -1,0 +1,62 @@
+{% extends 'layouts/vertical.html' %}
+
+{% load crispy_forms_tags %}
+
+{% block title %}Training problems{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  {% include 'partials/page-title.html' with title='Training problems' subtitle='Trainer CMS' %}
+  {% include 'training/partials/messages.html' %}
+  <div class="row g-3 mt-0">
+    <div class="col-xl-5">
+      <div class="card">
+        <div class="card-header border-0 pb-0"><h4 class="header-title mb-0">{% if selected_problem %}Edit problem{% else %}Create problem{% endif %}</h4></div>
+        <div class="card-body pt-2">
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="item_id" value="{{ selected_problem.id|default:'' }}">
+            {{ form|crispy }}
+            <button type="submit" class="btn btn-primary">Save problem</button>
+          </form>
+        </div>
+      </div>
+      {% if selected_problem %}
+      <div class="card">
+        <div class="card-header border-0 pb-0"><h4 class="header-title mb-0">Statement preview</h4></div>
+        <div class="card-body pt-2">
+          <div data-mathjax-scope class="lh-lg">{{ rendered_statement_preview }}</div>
+          {% if selected_problem.official_solution_markdown %}
+          <hr>
+          <p class="text-muted fs-xs text-uppercase fw-semibold mb-2">Official solution</p>
+          <div data-mathjax-scope class="lh-lg">{{ rendered_official_solution_preview }}</div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+    <div class="col-xl-7">
+      <div class="card">
+        <div class="card-header border-0 pb-0"><h4 class="header-title mb-0">Problems</h4></div>
+        <div class="card-body pt-2">
+          {% for problem in problems %}
+          <div class="d-flex justify-content-between border-bottom py-2 gap-3">
+            <div>
+              <div class="fw-semibold">{{ problem.title }}</div>
+              <div class="text-muted fs-xs">{{ problem.subtopic.topic.title }} · {{ problem.subtopic.title }}</div>
+              <span class="badge {{ problem.difficulty_badge_class }}">{{ problem.get_difficulty_display }}</span>
+              <span class="badge bg-warning-subtle text-warning">{{ problem.max_points }} pts</span>
+            </div>
+            <a href="{% url 'training:trainer_problems' %}?edit={{ problem.id }}" class="btn btn-outline-secondary btn-sm">Edit</a>
+          </div>
+          {% empty %}<div class="alert alert-info mb-0">No problems yet.</div>{% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock page_content %}
+
+{% block extra_javascript %}
+{% include 'training/partials/mathjax.html' %}
+{% endblock extra_javascript %}

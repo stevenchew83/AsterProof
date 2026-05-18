@@ -69,7 +69,7 @@ urlpatterns = [
         name="completion_progress_analytics",
     ),
     path("dashboard/completion-records/", completion_record_list_view, name="completion_record_list"),
-    path("dashboard/", dashboard_analytics_view, name="dashboard"),
+    path("dashboard/problem-analytics/", dashboard_analytics_view, name="dashboard"),
     path("dashboard/contests/", contest_analytics_view, name="contest_dashboard"),
     path(
         "dashboard/contests/advanced/",

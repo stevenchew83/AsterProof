@@ -24,6 +24,17 @@ def user_has_moderator_or_admin_role(user: object | None) -> bool:
     return role == User.Role.MODERATOR
 
 
+def user_has_trainer_role(user: object | None) -> bool:
+    if not getattr(user, "is_authenticated", False):
+        return False
+    role = getattr(user, "role", None)
+    return role == User.Role.TRAINER
+
+
+def user_has_trainer_or_admin_role(user: object | None) -> bool:
+    return user_has_admin_role(user) or user_has_trainer_role(user)
+
+
 def user_can_access_app_features(user: object | None) -> bool:
     if not getattr(user, "is_authenticated", False):
         return False
