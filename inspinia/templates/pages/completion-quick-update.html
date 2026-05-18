@@ -176,6 +176,15 @@
                   <th>Label</th>
                   <th>Topic / MOHS</th>
                   <th>Current completion</th>
+                  <th>Status</th>
+                  <th>Time spent</th>
+                  <th>First idea?</th>
+                  <th>Proof?</th>
+                  <th>Obstacle</th>
+                  <th>Technique</th>
+                  <th>Post-mortem</th>
+                  <th>Reattempt</th>
+                  <th>Confidence</th>
                   <th>YYYY-MM-DD</th>
                   <th>Actions</th>
                 </tr>
@@ -215,6 +224,55 @@
                     </span>
                   </td>
                   <td>
+                    <select class="form-select form-select-sm js-quick-completion-status">
+                      {% for value, label in completion_status_choices %}
+                      <option value="{{ value }}"{% if row.status == value %} selected{% endif %}>{{ label }}</option>
+                      {% endfor %}
+                    </select>
+                  </td>
+                  <td>
+                    <input type="number" min="0" class="form-control form-control-sm js-quick-completion-time-spent" value="{{ row.time_spent_minutes|default_if_none:'' }}" aria-label="Time spent in minutes">
+                  </td>
+                  <td>
+                    <select class="form-select form-select-sm js-quick-completion-first-idea">
+                      <option value="">-</option>
+                      <option value="yes"{% if row.first_idea_found_label == 'Yes' %} selected{% endif %}>Yes</option>
+                      <option value="no"{% if row.first_idea_found_label == 'No' %} selected{% endif %}>No</option>
+                    </select>
+                  </td>
+                  <td>
+                    <select class="form-select form-select-sm js-quick-completion-proof">
+                      <option value="">-</option>
+                      <option value="yes"{% if row.proof_completed_label == 'Yes' %} selected{% endif %}>Yes</option>
+                      <option value="no"{% if row.proof_completed_label == 'No' %} selected{% endif %}>No</option>
+                    </select>
+                  </td>
+                  <td>
+                    <select class="form-select form-select-sm js-quick-completion-obstacle">
+                      <option value="">-</option>
+                      {% for value, label in completion_obstacle_choices %}
+                      <option value="{{ value }}"{% if row.main_obstacle == value %} selected{% endif %}>{{ label }}</option>
+                      {% endfor %}
+                    </select>
+                  </td>
+                  <td>
+                    <input type="text" maxlength="160" class="form-control form-control-sm js-quick-completion-technique" value="{{ row.key_technique }}" placeholder="Invariant">
+                  </td>
+                  <td>
+                    <input type="text" maxlength="240" class="form-control form-control-sm js-quick-completion-post-mortem" value="{{ row.post_mortem }}" placeholder="One sentence">
+                  </td>
+                  <td>
+                    <input type="date" class="form-control form-control-sm js-quick-completion-reattempt" value="{{ row.reattempt_date }}">
+                  </td>
+                  <td>
+                    <select class="form-select form-select-sm js-quick-completion-confidence">
+                      <option value="">-</option>
+                      {% for value, label in completion_confidence_choices %}
+                      <option value="{{ value }}"{% if row.confidence == value %} selected{% endif %}>{{ label }}</option>
+                      {% endfor %}
+                    </select>
+                  </td>
+                  <td>
                     <input
                       type="text"
                       inputmode="numeric"
@@ -232,6 +290,9 @@
                       </button>
                       <button type="button" class="btn btn-primary btn-sm js-quick-completion-save">
                         <i class="ti ti-device-floppy me-1"></i>Save
+                      </button>
+                      <button type="button" class="btn btn-outline-primary btn-sm js-quick-completion-save-details">
+                        <i class="ti ti-notes me-1"></i>Details
                       </button>
                       <button type="button" class="btn btn-outline-info btn-sm js-quick-completion-unknown">
                         <i class="ti ti-help-circle me-1"></i>Unknown
@@ -311,9 +372,36 @@
     }
 
     function setRowBusy(row, isBusy) {
-      row.querySelectorAll("input, button").forEach(function (el) {
+      row.querySelectorAll("input, select, button").forEach(function (el) {
         el.disabled = isBusy;
       });
+    }
+
+    function rowValue(row, selector) {
+      var el = row.querySelector(selector);
+      return el ? el.value : "";
+    }
+
+    function rowMetadata(row) {
+      return {
+        status: rowValue(row, ".js-quick-completion-status"),
+        time_spent_minutes: rowValue(row, ".js-quick-completion-time-spent"),
+        first_idea_found: rowValue(row, ".js-quick-completion-first-idea"),
+        proof_completed: rowValue(row, ".js-quick-completion-proof"),
+        main_obstacle: rowValue(row, ".js-quick-completion-obstacle"),
+        key_technique: rowValue(row, ".js-quick-completion-technique"),
+        post_mortem: rowValue(row, ".js-quick-completion-post-mortem"),
+        reattempt_date: rowValue(row, ".js-quick-completion-reattempt"),
+        confidence: rowValue(row, ".js-quick-completion-confidence")
+      };
+    }
+
+    function promoteStatusForSolvedAction(row) {
+      var statusSelect = row.querySelector(".js-quick-completion-status");
+      if (!statusSelect) return;
+      if (!statusSelect.value || statusSelect.value === "unattempted" || statusSelect.value === "attempted") {
+        statusSelect.value = "solved";
+      }
     }
 
     function applyPayload(row, payload) {
@@ -353,7 +441,7 @@
         autoWidth: false,
         columnDefs: [
           {
-            targets: [6, 7],
+            targets: [15, 16],
             orderable: false,
             searchable: false
           }
@@ -408,6 +496,10 @@
       if (targetUserId) {
         params.set("target_user_id", targetUserId);
       }
+      var metadata = rowMetadata(row);
+      Object.keys(metadata).forEach(function (key) {
+        params.set(key, metadata[key]);
+      });
 
       fetch(saveUrl, {
         method: "POST",
@@ -445,14 +537,21 @@
       var dateInput = row.querySelector(".js-quick-completion-date");
       if (event.target.closest(".js-quick-completion-today")) {
         if (dateInput) dateInput.value = todayValue;
+        promoteStatusForSolvedAction(row);
         submitAction(row, "set_date", todayValue);
         return;
       }
       if (event.target.closest(".js-quick-completion-save")) {
+        promoteStatusForSolvedAction(row);
         submitAction(row, "set_date", dateInput ? dateInput.value : "");
         return;
       }
+      if (event.target.closest(".js-quick-completion-save-details")) {
+        submitAction(row, "save_details", dateInput ? dateInput.value : "");
+        return;
+      }
       if (event.target.closest(".js-quick-completion-unknown")) {
+        promoteStatusForSolvedAction(row);
         submitAction(row, "set_unknown", "");
         return;
       }
