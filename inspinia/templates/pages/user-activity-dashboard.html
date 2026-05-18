@@ -505,6 +505,24 @@
                 </select>
               </div>
               <div class="activity-filter-field">
+                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="completion-status-filter">Status</label>
+                <select id="completion-status-filter" name="status" class="form-select form-select-sm">
+                  <option value="">All statuses</option>
+                  {% for status in activity_filter_options.statuses %}
+                  <option value="{{ status.value }}"{% if activity_filters.status == status.value %} selected{% endif %}>{{ status.label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="activity-filter-field">
+                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="completion-confidence-filter">Confidence</label>
+                <select id="completion-confidence-filter" name="confidence" class="form-select form-select-sm">
+                  <option value="">All confidence</option>
+                  {% for confidence in activity_filter_options.confidences %}
+                  <option value="{{ confidence.value }}"{% if activity_filters.confidence == confidence.value %} selected{% endif %}>{{ confidence.label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="activity-filter-field">
                 <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="completion-contest-filter">Contest</label>
                 <select id="completion-contest-filter" name="contest" class="form-select form-select-sm">
                   <option value="">All contests</option>
@@ -541,6 +559,15 @@
                 <tr>
                   <th scope="col" class="text-nowrap">Completion date</th>
                   <th scope="col">Problem</th>
+                  <th scope="col" class="text-nowrap">Status</th>
+                  <th scope="col" class="text-nowrap">Time spent</th>
+                  <th scope="col" class="text-nowrap">First idea?</th>
+                  <th scope="col" class="text-nowrap">Proof?</th>
+                  <th scope="col" class="text-nowrap">Obstacle</th>
+                  <th scope="col" class="text-nowrap">Technique</th>
+                  <th scope="col">Post-mortem</th>
+                  <th scope="col" class="text-nowrap">Reattempt</th>
+                  <th scope="col" class="text-nowrap">Confidence</th>
                   <th scope="col">Contest</th>
                   <th scope="col" class="text-nowrap">Year</th>
                   <th scope="col" class="text-nowrap">Topic</th>
@@ -564,6 +591,15 @@
                     {{ row.problem_label }}
                     {% endif %}
                   </td>
+                  <td class="text-nowrap">{{ row.status_label }}</td>
+                  <td class="text-nowrap">{{ row.time_spent_display }}</td>
+                  <td class="text-nowrap">{{ row.first_idea_found_label }}</td>
+                  <td class="text-nowrap">{{ row.proof_completed_label }}</td>
+                  <td class="text-nowrap">{{ row.main_obstacle_label }}</td>
+                  <td class="text-nowrap">{{ row.key_technique }}</td>
+                  <td>{{ row.post_mortem }}</td>
+                  <td class="text-nowrap">{{ row.reattempt_date }}</td>
+                  <td class="text-nowrap">{{ row.confidence_label }}</td>
                   <td>{{ row.contest }}</td>
                   <td class="text-nowrap">{{ row.problem_year }}</td>
                   <td class="text-nowrap">{{ row.topic }}</td>
@@ -571,7 +607,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                  <td colspan="6" class="text-muted">No completion rows match the current filters.</td>
+                  <td colspan="15" class="text-muted">No completion rows match the current filters.</td>
                 </tr>
                 {% endfor %}
               </tbody>
