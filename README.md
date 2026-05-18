@@ -6,6 +6,7 @@ AsterProof is a Django 5 project built on the Inspinia dashboard shell. The curr
 - parsed topic-technique tags with uppercase normalization
 - contest problem statement import and analytics
 - per-user problem completion tracking
+- Math Olympiad self-progression training with trainer review and points
 - role-aware profile, audit log, and session monitoring screens
 
 ## Stack
@@ -33,6 +34,7 @@ pip install -r requirements/local.txt
 createdb asterproof
 cp .env.sample .env
 python manage.py migrate
+python manage.py seed_training_hub
 python manage.py createsuperuser
 python manage.py runserver
 ```
@@ -49,9 +51,18 @@ uv pip install -r requirements/local.txt
 createdb asterproof
 cp .env.sample .env
 python manage.py migrate
+python manage.py seed_training_hub
 python manage.py createsuperuser
 python manage.py runserver
 ```
+
+`seed_training_hub` is idempotent and creates development-only sample accounts:
+
+| Role | Email | Password |
+|------|-------|----------|
+| Admin | `training-admin@example.com` | `training-admin` |
+| Trainer | `training-trainer@example.com` | `training-trainer` |
+| Student | `training-student@example.com` | `training-student` |
 
 ## First run and access model
 
@@ -63,6 +74,33 @@ python manage.py runserver
 - Roles live on `inspinia.users.models.User.role`.
 - Django admin is mounted at `/admin/` by default, unless `DJANGO_ADMIN_URL` overrides it.
 
+## Math Olympiad Training Hub
+
+The training hub lets approved students progress through Algebra, Number Theory, Geometry, and Combinatorics.
+Students read curated materials, mark lessons complete, attempt problems, submit written solutions, receive trainer
+comments, and earn points toward Level 1 through Level 10. Trainers manage training content and review solutions;
+admins can also manage users and level thresholds.
+
+Points are never edited directly on a user. They are summed from `PointLedger` entries:
+
+- material completion entries are awarded once per user/material
+- problem submission entries are awarded only after trainer/admin review
+- accepted submissions receive full problem points
+- partially accepted submissions receive trainer-selected points
+- needs-revision and rejected submissions award no points
+
+The current level is calculated from configured `LevelThreshold` rows. Default levels are seeded by
+`seed_training_hub`, from Euclid Initiate at 0 points through Grothendieck Legend at 6000 points.
+
+Trainer review workflow:
+
+1. Student studies a material and marks it complete.
+2. The system creates one material completion ledger entry.
+3. Student submits a Markdown/math solution for a problem.
+4. Trainer comments and marks the submission accepted, partially accepted, needs revision, or rejected.
+5. Accepted and partially accepted reviews create or update one point-ledger entry for that submission.
+6. Student dashboard updates total points, level, comments, and topic progress.
+
 ## Main routes
 
 | Route | Purpose | Access |
@@ -70,7 +108,19 @@ python manage.py runserver
 | `/` | Landing page, archive search, and navigation hub | Login required |
 | `/archive/` | Archive workflow hub | Login required |
 | `/problems/` | Temporary redirect to `/archive/` | Login required |
-| `/dashboard/` | Problem analytics dashboard | Login required; admin tools only when `DEBUG=False` |
+| `/dashboard/` | Training dashboard with level, points, progress, comments, and recommendations | Login required |
+| `/dashboard/problem-analytics/` | Problem analytics dashboard | Login required; admin tools only when `DEBUG=False` |
+| `/training/` | Main olympiad training roadmap | Login required |
+| `/materials/<slug>/` | Study material with Markdown and MathJax rendering | Login required; unpublished trainer/admin only |
+| `/problems/<slug>/` | Training problem detail and solution submission | Login required; unpublished trainer/admin only |
+| `/submissions/` | Current user's training submissions | Login required |
+| `/trainer/` | Trainer dashboard and pending review queue | Trainer/admin |
+| `/trainer/topics/` | Topic and subtopic CMS | Trainer/admin |
+| `/trainer/materials/` | Material CMS | Trainer/admin |
+| `/trainer/problems/` | Problem CMS | Trainer/admin |
+| `/trainer/submissions/` | Submission review queue with filters | Trainer/admin |
+| `/admin/users/` | Admin user-role management alias | Admin |
+| `/admin/levels/` | Admin level threshold settings | Admin |
 | `/dashboard/contests/` | Contest analytics dashboard | Login required; admin tools only when `DEBUG=False` |
 | `/dashboard/topic-tags/` | Topic-tag analytics dashboard | Login required; admin tools only when `DEBUG=False` |
 | `/dashboard/problem-statements/` | Problem statement library list | Login required |
