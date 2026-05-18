@@ -5676,6 +5676,7 @@ def test_completion_quick_update_filters_by_contest_year_and_problem_text(client
     client.force_login(user)
     matching_statement = _create_quick_completion_statement(problem_code="P1", problem_number=1)
     _create_quick_completion_statement(problem_code="P2", problem_number=2)
+    _create_quick_completion_statement(problem_code="P10", problem_number=10)
     _create_quick_completion_statement(contest="IMO", year=2026, problem_code="P1", problem_number=1)
     UserProblemCompletion.objects.create(
         user=user,
@@ -5692,6 +5693,7 @@ def test_completion_quick_update_filters_by_contest_year_and_problem_text(client
     assert response.context["completion_quick_update_filters"] == {
         "contest": "USAMO",
         "problem": "1",
+        "problem_label": "",
         "q": "",
         "target_user_id": "",
         "year": "2026",
@@ -5706,6 +5708,29 @@ def test_completion_quick_update_filters_by_contest_year_and_problem_text(client
     assert 'name="problem"' in response_html
     assert 'type="text"' in response_html
     assert 'placeholder="YYYY-MM-DD"' in response_html
+
+
+def test_completion_quick_update_filters_by_problem_label(client):
+    user = UserFactory()
+    client.force_login(user)
+    matching_statement = _create_quick_completion_statement(problem_code="P1", problem_number=1)
+    _create_quick_completion_statement(problem_code="P2", problem_number=2)
+    _create_quick_completion_statement(problem_code="P10", problem_number=10)
+
+    response = client.get(
+        reverse("pages:completion_quick_update"),
+        {"problem_label": "USAMO 2026 P1"},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["completion_quick_update_filters"]["problem_label"] == "USAMO 2026 P1"
+    rows = response.context["completion_quick_update_rows"]
+    assert [row["statement_uuid"] for row in rows] == [str(matching_statement.statement_uuid)]
+    response_html = response.content.decode("utf-8")
+    assert 'name="problem_label"' in response_html
+    assert 'value="USAMO 2026 P1"' in response_html
+    assert "USAMO 2026 P2" not in response_html
+    assert "USAMO 2026 P10" not in response_html
 
 
 def test_completion_quick_update_problem_label_links_to_solution_problem_page(client):

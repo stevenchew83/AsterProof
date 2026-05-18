@@ -3500,6 +3500,24 @@ def _completion_quick_update_apply_problem_filter(queryset, raw_value: str):
     return queryset.filter(problem_query)
 
 
+def _completion_quick_update_apply_problem_label_filter(queryset, raw_value: str):
+    label_query = (raw_value or "").strip()
+    if not label_query:
+        return queryset
+    for token in label_query.split():
+        if re.fullmatch(r"[A-Za-z]+\d+", token):
+            queryset = queryset.filter(
+                Q(problem_code__iexact=token)
+                | Q(linked_problem__problem__iexact=token),
+            )
+        else:
+            queryset = queryset.filter(
+                Q(contest_year_problem__icontains=token)
+                | Q(linked_problem__contest_year_problem__icontains=token),
+            )
+    return queryset
+
+
 def _completion_quick_update_parse_user_id(raw_value: str) -> int | None:
     try:
         user_id = int(raw_value)
@@ -3605,6 +3623,7 @@ def completion_quick_update_view(request):
     selected_contest = (request.GET.get("contest") or "").strip()
     selected_year = (request.GET.get("year") or "").strip()
     selected_problem = (request.GET.get("problem") or "").strip()
+    selected_problem_label = (request.GET.get("problem_label") or "").strip()
     search_query = (request.GET.get("q") or "").strip()
     can_select_user = user_has_admin_role(request.user)
     selected_user = _completion_quick_update_resolve_get_user(request)
@@ -3631,6 +3650,10 @@ def completion_quick_update_view(request):
     filtered_statements = _completion_quick_update_apply_problem_filter(
         filtered_statements,
         selected_problem,
+    ).distinct()
+    filtered_statements = _completion_quick_update_apply_problem_label_filter(
+        filtered_statements,
+        selected_problem_label,
     ).distinct()
     statements = list(
         filtered_statements.order_by(
@@ -3661,6 +3684,7 @@ def completion_quick_update_view(request):
         "completion_quick_update_filters": {
             "contest": selected_contest,
             "problem": selected_problem,
+            "problem_label": selected_problem_label,
             "q": search_query,
             "target_user_id": str(selected_user.id) if can_select_user and selected_user != request.user else "",
             "year": selected_year,
