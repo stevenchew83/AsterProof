@@ -4670,6 +4670,8 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
     assert "contest-advanced-heatmap-data" in response_html
     assert "dataPointSelection" in response_html
     assert "point.solution_url" in response_html
+    assert "event.metaKey || event.ctrlKey" in response_html
+    assert 'window.open(point.solution_url, "_blank", "noopener")' in response_html
     assert "plugins/apexcharts/apexcharts.min.js" in response_html
     assert "contest-completion-heatmap-table" not in response_html
     assert '<input id="contest-advanced-selector" type="search" name="contest" value="USAMO"' in response_html
@@ -7409,6 +7411,8 @@ def test_completion_progress_analytics_contest_heatmap_uses_selected_user(client
     assert "renderContestHeatmap();" in response_html
     assert "dataPointSelection" in response_html
     assert "point.solution_url" in response_html
+    assert "event.metaKey || event.ctrlKey" in response_html
+    assert 'window.open(point.solution_url, "_blank", "noopener")' in response_html
     assert 'data-completion-progress-contest-export="png"' in response_html
     assert 'data-completion-progress-contest-export="pdf"' in response_html
     assert "Download image" in response_html
