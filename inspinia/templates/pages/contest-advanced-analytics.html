@@ -460,9 +460,13 @@
     return false;
   }
 
-  function openProblemSolution(opts) {
+  function openProblemSolution(event, opts) {
     var point = pointFromOptions(opts);
     if (!point || !point.solution_url) return;
+    if (event && (event.metaKey || event.ctrlKey)) {
+      window.open(point.solution_url, "_blank", "noopener");
+      return;
+    }
     window.location.assign(point.solution_url);
   }
 
@@ -477,8 +481,8 @@
       toolbar: { show: false },
       fontFamily: "inherit",
       events: {
-        dataPointSelection: function (_event, _chartContext, opts) {
-          openProblemSolution(opts);
+        dataPointSelection: function (event, _chartContext, opts) {
+          openProblemSolution(event, opts);
         }
       }
     },
