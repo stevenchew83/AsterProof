@@ -178,6 +178,8 @@ STATEMENT_METADATA_ERROR_PREVIEW_LIMIT = 5
 COMPLETION_BOARD_INITIAL_ROW_LIMIT = 30
 COMPLETION_BOARD_ROW_LOAD_STEP = 30
 ADMIN_TABLE_LATEST_LIMIT = 100
+COMPLETION_QUICK_UPDATE_RECENT_LIMIT = ADMIN_TABLE_LATEST_LIMIT
+COMPLETION_QUICK_UPDATE_SEARCH_LIMIT = 200
 
 
 class ProblemStatementCsvImportValidationError(ValueError):
@@ -3450,6 +3452,21 @@ def _completion_quick_update_row(
     }
 
 
+def _completion_quick_update_result_summary(
+    *,
+    has_search_filters: bool,
+    matching_total: int,
+    visible_total: int,
+) -> str:
+    if has_search_filters:
+        if visible_total < matching_total:
+            return f"Showing {visible_total} of {matching_total} matching rows"
+        return f"{matching_total} matching row{'s' if matching_total != 1 else ''}"
+    if visible_total < matching_total:
+        return f"Showing {visible_total} recent rows of {matching_total} total"
+    return f"{visible_total} recent row{'s' if visible_total != 1 else ''}"
+
+
 @login_required
 def completion_quick_update_view(request):
     """Fast statement search and completion-date update page."""
@@ -3465,6 +3482,7 @@ def completion_quick_update_view(request):
     search_query = (request.GET.get("q") or "").strip()
     can_select_user = user_has_admin_role(request.user)
     selected_user = _completion_quick_update_resolve_get_user(request)
+    has_search_filters = any([selected_contest, selected_year, selected_problem, search_query])
 
     year_base = statement_base
     if selected_contest:
@@ -3489,17 +3507,27 @@ def completion_quick_update_view(request):
         filtered_statements,
         selected_problem,
     ).distinct()
-    statements = list(
-        filtered_statements.order_by(
+    matching_total = filtered_statements.count()
+    result_limit = (
+        COMPLETION_QUICK_UPDATE_SEARCH_LIMIT
+        if has_search_filters
+        else COMPLETION_QUICK_UPDATE_RECENT_LIMIT
+    )
+    if has_search_filters:
+        filtered_statements = filtered_statements.order_by(
             "-contest_year",
             "contest_name",
             "problem_number",
             "problem_code",
             "day_label",
             "id",
-        ),
+        )
+    else:
+        filtered_statements = filtered_statements.order_by("-updated_at", "-id")
+    statements = list(
+        filtered_statements[:result_limit],
     )
-    matching_total = len(statements)
+    visible_total = len(statements)
     completion_by_statement_id = _statement_completion_dates_by_statement_id(
         statements,
         user=selected_user,
@@ -3523,13 +3551,21 @@ def completion_quick_update_view(request):
             "year": selected_year,
         },
         "completion_quick_update_matching_total": matching_total,
+        "completion_quick_update_is_capped": visible_total < matching_total,
         "completion_quick_update_rows": rows,
+        "completion_quick_update_result_limit": result_limit,
+        "completion_quick_update_result_summary": _completion_quick_update_result_summary(
+            has_search_filters=has_search_filters,
+            matching_total=matching_total,
+            visible_total=visible_total,
+        ),
         "completion_quick_update_save_url": reverse("pages:completion_quick_update_save"),
         "completion_quick_update_selected_user": selected_user,
         "completion_quick_update_today": timezone.localdate().isoformat(),
         "completion_quick_update_user_options": (
             _completion_quick_update_user_options() if can_select_user else []
         ),
+        "completion_quick_update_visible_total": visible_total,
         "completion_quick_update_year_choices": year_choices,
     }
     return render(request, "pages/completion-quick-update.html", context)

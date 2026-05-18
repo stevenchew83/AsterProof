@@ -63,6 +63,7 @@ from inspinia.pages.statement_metadata_backfill import StatementMetadataBackfill
 from inspinia.pages.statement_metadata_backfill import import_statement_metadata_dataframe
 from inspinia.pages.statement_metadata_backfill import statement_metadata_dataframe_from_rows
 from inspinia.pages.views import ADMIN_TABLE_LATEST_LIMIT
+from inspinia.pages.views import COMPLETION_QUICK_UPDATE_SEARCH_LIMIT
 from inspinia.problemsets.models import ProblemList
 from inspinia.problemsets.models import ProblemListItem
 from inspinia.solutions.models import ProblemSolution
@@ -5706,6 +5707,68 @@ def test_completion_quick_update_filters_by_contest_year_and_problem_text(client
     assert 'placeholder="YYYY-MM-DD"' in response_html
 
 
+def test_completion_quick_update_defaults_to_recent_statement_limit(client):
+    user = UserFactory()
+    client.force_login(user)
+    now = timezone.now()
+    newest_statement = None
+    oldest_statement = None
+
+    for offset in range(ADMIN_TABLE_LATEST_LIMIT + 1):
+        statement = _create_quick_completion_statement(
+            problem_code=f"P{offset + 1}",
+            problem_number=offset + 1,
+        )
+        ContestProblemStatement.objects.filter(pk=statement.pk).update(
+            updated_at=now - timedelta(minutes=offset),
+        )
+        if offset == 0:
+            newest_statement = statement
+        if offset == ADMIN_TABLE_LATEST_LIMIT:
+            oldest_statement = statement
+
+    assert newest_statement is not None
+    assert oldest_statement is not None
+
+    response = client.get(reverse("pages:completion_quick_update"))
+
+    assert response.status_code == HTTPStatus.OK
+    rows = response.context["completion_quick_update_rows"]
+    assert response.context["completion_quick_update_matching_total"] == ADMIN_TABLE_LATEST_LIMIT + 1
+    assert len(rows) == ADMIN_TABLE_LATEST_LIMIT
+    assert rows[0]["statement_uuid"] == str(newest_statement.statement_uuid)
+    assert str(oldest_statement.statement_uuid) not in {row["statement_uuid"] for row in rows}
+
+
+def test_completion_quick_update_search_results_are_capped_at_200_rows(client):
+    user = UserFactory()
+    client.force_login(user)
+    hidden_statement = None
+
+    for offset in range(COMPLETION_QUICK_UPDATE_SEARCH_LIMIT + 1):
+        statement = _create_quick_completion_statement(
+            problem_code=f"P{offset + 1}",
+            problem_number=offset + 1,
+        )
+        if offset == COMPLETION_QUICK_UPDATE_SEARCH_LIMIT:
+            hidden_statement = statement
+
+    assert hidden_statement is not None
+
+    response = client.get(reverse("pages:completion_quick_update"), {"contest": "USAMO"})
+
+    assert response.status_code == HTTPStatus.OK
+    rows = response.context["completion_quick_update_rows"]
+    assert (
+        response.context["completion_quick_update_matching_total"]
+        == COMPLETION_QUICK_UPDATE_SEARCH_LIMIT + 1
+    )
+    assert response.context["completion_quick_update_visible_total"] == COMPLETION_QUICK_UPDATE_SEARCH_LIMIT
+    assert response.context["completion_quick_update_result_limit"] == COMPLETION_QUICK_UPDATE_SEARCH_LIMIT
+    assert len(rows) == COMPLETION_QUICK_UPDATE_SEARCH_LIMIT
+    assert str(hidden_statement.statement_uuid) not in {row["statement_uuid"] for row in rows}
+
+
 def test_completion_quick_update_problem_label_links_to_solution_problem_page(client):
     user = UserFactory()
     client.force_login(user)
@@ -6214,12 +6277,12 @@ def test_completion_quick_update_renders_datatable_with_status_filter(client):
     assert 'new DataTable("#quick-completion-table"' in response_html
     assert "DataTable.ext.search.push" in response_html
     assert "Completion status" in response_html
-    assert "All matching rows" in response_html
+    assert "All loaded rows" in response_html
     assert "pageLength: 25" in response_html
-    assert "loaded rows" not in response_html
+    assert "loaded rows" in response_html
 
 
-def test_completion_quick_update_loads_all_matching_rows_without_backend_cap(client):
+def test_completion_quick_update_announces_recent_backend_cap(client):
     user = UserFactory()
     client.force_login(user)
     expected_row_count = 105
@@ -6233,9 +6296,12 @@ def test_completion_quick_update_loads_all_matching_rows_without_backend_cap(cli
 
     assert response.status_code == HTTPStatus.OK
     assert response.context["completion_quick_update_matching_total"] == expected_row_count
-    assert len(response.context["completion_quick_update_rows"]) == expected_row_count
+    assert response.context["completion_quick_update_visible_total"] == ADMIN_TABLE_LATEST_LIMIT
+    assert response.context["completion_quick_update_result_limit"] == ADMIN_TABLE_LATEST_LIMIT
+    assert response.context["completion_quick_update_is_capped"] is True
+    assert len(response.context["completion_quick_update_rows"]) == ADMIN_TABLE_LATEST_LIMIT
     response_html = response.content.decode("utf-8")
-    assert "Showing the first 100" not in response_html
+    assert f"Showing {ADMIN_TABLE_LATEST_LIMIT} recent rows of {expected_row_count} total" in response_html
     assert 'new DataTable("#quick-completion-table"' in response_html
 
 
