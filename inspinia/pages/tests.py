@@ -5806,6 +5806,61 @@ def test_completion_quick_update_save_updates_current_user_only(client):
     assert completion.problem is None
 
 
+def test_completion_quick_update_save_persists_study_progress_fields(client):
+    user = UserFactory()
+    client.force_login(user)
+    problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="GEO",
+        mohs=5,
+        contest="USAMO",
+        problem="P2",
+        contest_year_problem="USAMO 2026 P2",
+    )
+    statement = ContestProblemStatement.objects.create(
+        linked_problem=problem,
+        contest_year=2026,
+        contest_name="USAMO",
+        problem_number=2,
+        problem_code="P2",
+        statement_latex="Angle chase.",
+    )
+
+    response = client.post(
+        reverse("pages:completion_quick_update_save"),
+        {
+            "statement_uuid": str(statement.statement_uuid),
+            "action": "set_date",
+            "completion_date": "2026-05-10",
+            "status": UserProblemCompletion.Status.WRITTEN,
+            "time_spent_minutes": "120",
+            "first_idea_found": "yes",
+            "proof_completed": "yes",
+            "main_obstacle": UserProblemCompletion.MainObstacle.DIAGRAM,
+            "key_technique": "Angle chase",
+            "post_mortem": "Draw the auxiliary circle first.",
+            "reattempt_date": "2026-08-10",
+            "confidence": UserProblemCompletion.Confidence.HIGH,
+        },
+        HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    payload = response.json()
+    assert payload["status_label"] == "Written"
+    assert payload["time_spent_display"] == "2h"
+    completion = UserProblemCompletion.objects.get(user=user, statement=statement)
+    assert completion.status == UserProblemCompletion.Status.WRITTEN
+    assert completion.time_spent_minutes == 120
+    assert completion.first_idea_found is True
+    assert completion.proof_completed is True
+    assert completion.main_obstacle == UserProblemCompletion.MainObstacle.DIAGRAM
+    assert completion.key_technique == "Angle chase"
+    assert completion.post_mortem == "Draw the auxiliary circle first."
+    assert completion.reattempt_date == date(2026, 8, 10)
+    assert completion.confidence == UserProblemCompletion.Confidence.HIGH
+
+
 def test_completion_quick_update_rejects_non_admin_target_user_override(client):
     user = UserFactory()
     other_user = UserFactory()
@@ -6239,6 +6294,83 @@ def test_completion_quick_update_loads_all_matching_rows_without_backend_cap(cli
     assert 'new DataTable("#quick-completion-table"' in response_html
 
 
+def test_user_problem_completion_defaults_to_solved_status():
+    user = UserFactory()
+    problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="ALG",
+        mohs=6,
+        contest="USAMO",
+        problem="P1",
+        contest_year_problem="USAMO 2026 P1",
+    )
+
+    completion = UserProblemCompletion.objects.create(
+        user=user,
+        problem=problem,
+        completion_date=date(2026, 7, 10),
+    )
+
+    assert completion.status == UserProblemCompletion.Status.SOLVED
+    assert completion.time_spent_minutes is None
+    assert completion.first_idea_found is None
+    assert completion.proof_completed is None
+    assert completion.main_obstacle == ""
+    assert completion.key_technique == ""
+    assert completion.post_mortem == ""
+    assert completion.reattempt_date is None
+    assert completion.confidence == ""
+
+
+def test_completion_record_metadata_from_post_parses_blank_safe_values():
+    from inspinia.pages.completion_record_fields import completion_metadata_from_post
+
+    blank_defaults, blank_error = completion_metadata_from_post(QueryDict(""))
+
+    assert blank_error is None
+    assert blank_defaults == {
+        "status": UserProblemCompletion.Status.SOLVED,
+        "time_spent_minutes": None,
+        "first_idea_found": None,
+        "proof_completed": None,
+        "main_obstacle": "",
+        "key_technique": "",
+        "post_mortem": "",
+        "reattempt_date": None,
+        "confidence": "",
+    }
+
+    post_data = QueryDict(mutable=True)
+    post_data.update(
+        {
+            "status": UserProblemCompletion.Status.ATTEMPTED,
+            "time_spent_minutes": "75",
+            "first_idea_found": "yes",
+            "proof_completed": "no",
+            "main_obstacle": UserProblemCompletion.MainObstacle.IDEA,
+            "key_technique": "Invariant",
+            "post_mortem": "Look for monotonic quantity earlier.",
+            "reattempt_date": "2026-08-01",
+            "confidence": UserProblemCompletion.Confidence.LOW,
+        },
+    )
+
+    defaults, error = completion_metadata_from_post(post_data)
+
+    assert error is None
+    assert defaults == {
+        "status": UserProblemCompletion.Status.ATTEMPTED,
+        "time_spent_minutes": 75,
+        "first_idea_found": True,
+        "proof_completed": False,
+        "main_obstacle": UserProblemCompletion.MainObstacle.IDEA,
+        "key_technique": "Invariant",
+        "post_mortem": "Look for monotonic quantity earlier.",
+        "reattempt_date": date(2026, 8, 1),
+        "confidence": UserProblemCompletion.Confidence.LOW,
+    }
+
+
 def test_completion_record_list_renders_admin_inventory(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     completion_user = UserFactory(name="Ada Lovelace")
@@ -6276,9 +6408,56 @@ def test_completion_record_list_renders_admin_inventory(client):
     response_html = response.content.decode("utf-8")
     assert "Completion info listing" in response_html
     assert 'id="completion-record-table"' in response_html
-    assert 'order: [[9, "desc"]]' in response_html
+    assert 'order: [[18, "desc"]]' in response_html
     assert "Known dates" not in response_html
     assert "With solutions" not in response_html
+
+
+def test_completion_record_list_includes_study_progress_fields(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    completion_user = UserFactory(name="Ada Lovelace")
+    client.force_login(admin_user)
+    problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="NT",
+        mohs=7,
+        contest="IMO",
+        problem="P3",
+        contest_year_problem="IMO 2026 P3",
+    )
+    UserProblemCompletion.objects.create(
+        user=completion_user,
+        problem=problem,
+        completion_date=date(2026, 7, 10),
+        status=UserProblemCompletion.Status.CHECKED,
+        time_spent_minutes=95,
+        first_idea_found=True,
+        proof_completed=False,
+        main_obstacle=UserProblemCompletion.MainObstacle.PROOF_RIGOR,
+        key_technique="LTE",
+        post_mortem="State the lifting step before expanding cases.",
+        reattempt_date=date(2026, 7, 24),
+        confidence=UserProblemCompletion.Confidence.MEDIUM,
+    )
+
+    response = client.get(reverse("pages:completion_record_list"))
+
+    assert response.status_code == HTTPStatus.OK
+    row = response.context["completion_record_rows"][0]
+    assert row["status"] == UserProblemCompletion.Status.CHECKED
+    assert row["status_label"] == "Checked"
+    assert row["time_spent_display"] == "1h 35m"
+    assert row["first_idea_found_label"] == "Yes"
+    assert row["proof_completed_label"] == "No"
+    assert row["main_obstacle_label"] == "Proof rigor"
+    assert row["key_technique"] == "LTE"
+    assert row["post_mortem"] == "State the lifting step before expanding cases."
+    assert row["reattempt_date"] == "2026-07-24"
+    assert row["confidence_label"] == "Medium"
+    response_html = response.content.decode("utf-8")
+    assert 'title: "Status"' in response_html
+    assert 'title: "Time spent"' in response_html
+    assert 'title: "Post-mortem"' in response_html
 
 
 def test_completion_record_list_shows_average_user_set_difficulty_after_mohs(client):
@@ -6327,7 +6506,7 @@ def test_completion_record_list_shows_average_user_set_difficulty_after_mohs(cli
     assert response_html.index('{ data: "mohs", title: "MOHS"') < response_html.index(
         'data: "average_difficulty_rating"',
     ) < response_html.index('data: "completion_date"')
-    assert 'order: [[9, "desc"]]' in response_html
+    assert 'order: [[18, "desc"]]' in response_html
 
 
 def test_completion_record_list_caps_to_latest_100_by_updated_at(client):
@@ -11918,9 +12097,11 @@ def test_user_activity_dashboard_shows_only_current_users_completion_history(cli
     )
     assert response.context["activity_filter_options"] == {
         "completion_years": sorted({str(recent_date.year), str(earlier_date.year)}, reverse=True),
+        "confidences": [],
         "contests": ["BMO", "EGMO", "IMO"],
         "date_statuses": ["Known date", "Unknown date"],
         "mohs_values": [4, 5, 6],
+        "statuses": [{"value": UserProblemCompletion.Status.SOLVED, "label": "Solved"}],
         "topics": ["Algebra", "Geometry", "Number Theory"],
     }
     assert response.context["activity_heatmap"]["exact_total"] == EXPECTED_USER_ACTIVITY_DATED_TOTAL
@@ -12068,10 +12249,12 @@ def test_user_activity_dashboard_filters_completion_history_table_with_get_param
     assert response.status_code == HTTPStatus.OK
     assert response.context["activity_filters"] == {
         "completion_year": "",
+        "confidence": "",
         "contest": "BMO",
         "date_status": "",
         "mohs": "",
         "q": "",
+        "status": "",
         "topic": "Number Theory",
     }
     assert response.context["activity_page_obj"].paginator.count == 1
@@ -12079,6 +12262,45 @@ def test_user_activity_dashboard_filters_completion_history_table_with_get_param
     assert f"BMO {today.year} P2" in response_html
     assert f"IMO {today.year} P1" not in response_html
     assert 'value="BMO" selected' in response_html
+
+
+def test_user_activity_dashboard_shows_completion_study_progress_fields(client):
+    user = UserFactory()
+    client.force_login(user)
+    problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="ALG",
+        mohs=4,
+        contest="IMO",
+        problem="P1",
+        contest_year_problem="IMO 2026 P1",
+    )
+    UserProblemCompletion.objects.create(
+        user=user,
+        problem=problem,
+        completion_date=date(2026, 1, 1),
+        status=UserProblemCompletion.Status.ATTEMPTED,
+        time_spent_minutes=30,
+        first_idea_found=False,
+        proof_completed=False,
+        main_obstacle=UserProblemCompletion.MainObstacle.IDEA,
+        key_technique="Smoothing",
+        post_mortem="Try the equalization move first.",
+        reattempt_date=date(2026, 1, 8),
+        confidence=UserProblemCompletion.Confidence.LOW,
+    )
+
+    response = client.get(
+        reverse("pages:user_activity_dashboard"),
+        {"status": UserProblemCompletion.Status.ATTEMPTED},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    html = response.content.decode("utf-8")
+    assert "Time spent" in html
+    assert "Smoothing" in html
+    assert "Try the equalization move first." in html
+    assert response.context["activity_filters"]["status"] == UserProblemCompletion.Status.ATTEMPTED
 
 
 def test_user_activity_dashboard_exposes_previous_year_windows_for_older_history(client):

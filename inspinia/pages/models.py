@@ -331,6 +331,26 @@ class PageViewEvent(models.Model):
 
 
 class UserProblemCompletion(models.Model):
+    class Status(models.TextChoices):
+        UNATTEMPTED = "unattempted", "Unattempted"
+        ATTEMPTED = "attempted", "Attempted"
+        SOLVED = "solved", "Solved"
+        CHECKED = "checked", "Checked"
+        WRITTEN = "written", "Written"
+        PUBLISHED = "published", "Published"
+
+    class MainObstacle(models.TextChoices):
+        IDEA = "idea", "Idea"
+        COMPUTATION = "computation", "Computation"
+        PROOF_RIGOR = "proof_rigor", "Proof rigor"
+        DIAGRAM = "diagram", "Diagram"
+        CASEWORK = "casework", "Casework"
+
+    class Confidence(models.TextChoices):
+        LOW = "low", "Low"
+        MEDIUM = "medium", "Medium"
+        HIGH = "high", "High"
+
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -351,6 +371,15 @@ class UserProblemCompletion(models.Model):
         related_name="user_completions",
     )
     completion_date = models.DateField(null=True, blank=True)
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.SOLVED, db_index=True)
+    time_spent_minutes = models.PositiveIntegerField(null=True, blank=True)
+    first_idea_found = models.BooleanField(null=True, blank=True)
+    proof_completed = models.BooleanField(null=True, blank=True)
+    main_obstacle = models.CharField(max_length=16, choices=MainObstacle.choices, blank=True)
+    key_technique = models.CharField(max_length=160, blank=True)
+    post_mortem = models.TextField(blank=True)
+    reattempt_date = models.DateField(null=True, blank=True, db_index=True)
+    confidence = models.CharField(max_length=8, choices=Confidence.choices, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

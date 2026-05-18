@@ -91,6 +91,24 @@
                 {% endfor %}
               </select>
             </div>
+            <div class="col-md-3 col-xl-1">
+              <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-record-status">Status</label>
+              <select id="completion-record-status" name="status" class="form-select form-select-sm">
+                <option value="">All</option>
+                {% for status in completion_record_filter_options.statuses %}
+                <option value="{{ status.value }}" {% if status.value == completion_record_filters.status %}selected{% endif %}>{{ status.label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-3 col-xl-1">
+              <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-record-confidence">Confidence</label>
+              <select id="completion-record-confidence" name="confidence" class="form-select form-select-sm">
+                <option value="">All</option>
+                {% for confidence in completion_record_filter_options.confidences %}
+                <option value="{{ confidence.value }}" {% if confidence.value == completion_record_filters.confidence %}selected{% endif %}>{{ confidence.label }}</option>
+                {% endfor %}
+              </select>
+            </div>
             <div class="col-md-3 col-xl-2">
               <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-record-solution-status">Solution</label>
               <select id="completion-record-solution-status" name="solution_status" class="form-select form-select-sm">
@@ -211,6 +229,39 @@
         }
       },
       {
+        data: "status_label",
+        title: "Status",
+        className: "text-nowrap",
+        render: function (data, type, row) {
+          if (type === "filter") return (data || "") + " " + (row.status || "");
+          if (type !== "display") return data || "";
+          return '<span class="badge text-bg-light">' + escapeHtml(data || "Unattempted") + "</span>";
+        }
+      },
+      { data: "time_spent_display", title: "Time spent", className: "text-nowrap" },
+      { data: "first_idea_found_label", title: "First idea found?", className: "text-nowrap" },
+      { data: "proof_completed_label", title: "Proof completed?", className: "text-nowrap" },
+      { data: "main_obstacle_label", title: "Main obstacle", className: "text-nowrap" },
+      { data: "key_technique", title: "Key technique", className: "text-nowrap" },
+      {
+        data: "post_mortem",
+        title: "Post-mortem",
+        render: function (data, type) {
+          if (type !== "display") return data || "";
+          return data ? '<span class="d-inline-block text-truncate" style="max-width: 18rem;" title="' + escapeHtml(data) + '">' + escapeHtml(data) + "</span>" : '<span class="text-muted fs-xs">-</span>';
+        }
+      },
+      {
+        data: "reattempt_date",
+        title: "Reattempt date",
+        className: "text-nowrap",
+        render: function (data, type, row) {
+          if (type === "sort" || type === "type") return row.reattempt_date_sort;
+          return data || "";
+        }
+      },
+      { data: "confidence_label", title: "Confidence", className: "text-nowrap" },
+      {
         data: "completion_date",
         title: "Completed",
         className: "text-nowrap",
@@ -240,7 +291,7 @@
         }
       }
     ],
-    order: [[9, "desc"]],
+    order: [[18, "desc"]],
     pageLength: 25,
     lengthMenu: [10, 25, 50, 100],
     scrollX: true,
