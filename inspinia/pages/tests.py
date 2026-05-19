@@ -6361,6 +6361,14 @@ def test_completion_quick_update_renders_datatable_with_status_filter(client):
     assert "Completion status" in response_html
     assert "All loaded rows" in response_html
     assert "pageLength: 25" in response_html
+    header_html = response_html[
+        response_html.index("<thead>") : response_html.index("</thead>")
+    ]
+    assert header_html.index("<th>Current completion</th>") < header_html.index(
+        "<th>Actions</th>"
+    )
+    assert header_html.index("<th>Actions</th>") < header_html.index("<th>Status</th>")
+    assert "targets: [6, 16]" in response_html
     assert "loaded rows" in response_html
 
 
