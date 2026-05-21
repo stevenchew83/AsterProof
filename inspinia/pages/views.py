@@ -43,10 +43,6 @@ from django.utils.text import slugify
 
 from inspinia.pages.asymptote_render import build_statement_render_segments
 from inspinia.pages.asymptote_render import has_asymptote_blocks
-from inspinia.pages.completion_record_fields import completion_metadata_from_post
-from inspinia.pages.completion_record_fields import completion_metadata_payload
-from inspinia.pages.completion_record_fields import has_completion_metadata
-from inspinia.pages.completion_record_fields import is_completion_status_solved
 from inspinia.pages.completion_progress import COMPLETION_PROGRESS_RANGE_OPTIONS
 from inspinia.pages.completion_progress import CompletionProgressFilters
 from inspinia.pages.completion_progress import completion_progress_charts_payload
@@ -61,6 +57,11 @@ from inspinia.pages.completion_progress import default_completion_progress_user
 from inspinia.pages.completion_progress import filter_completion_progress_rows
 from inspinia.pages.completion_progress import normalize_completion_progress_rows
 from inspinia.pages.completion_progress import resolve_completion_progress_date_range
+from inspinia.pages.completion_record_fields import SOLVED_STATUSES
+from inspinia.pages.completion_record_fields import completion_metadata_from_post
+from inspinia.pages.completion_record_fields import completion_metadata_payload
+from inspinia.pages.completion_record_fields import has_completion_metadata
+from inspinia.pages.completion_record_fields import is_completion_status_solved
 from inspinia.pages.contest_existence_audit import ContestExistenceAuditValidationError
 from inspinia.pages.contest_existence_audit import build_contest_existence_audit_payload
 from inspinia.pages.contest_existence_audit import fetch_contest_existence_audit_source_text
@@ -177,6 +178,7 @@ MAIN_TOPIC_CODE_MAP = {
     "NT": "N",
 }
 MAIN_TOPIC_CODE_ORDER = ("A", "C", "G", "N")
+CONTEST_MOHS_SUMMARY_HIDE_THRESHOLD = 20
 STATEMENT_LINKER_ERROR_PREVIEW_LIMIT = 5
 STATEMENT_METADATA_ERROR_PREVIEW_LIMIT = 5
 COMPLETION_BOARD_INITIAL_ROW_LIMIT = 30
@@ -1730,6 +1732,145 @@ def _main_topic_sort_key(topic_code: str) -> tuple[int, str]:
     if topic_code in MAIN_TOPIC_CODE_ORDER:
         return (MAIN_TOPIC_CODE_ORDER.index(topic_code), topic_code)
     return (len(MAIN_TOPIC_CODE_ORDER), topic_code)
+
+
+def _average_or_none(values: list[int]) -> float | None:
+    if not values:
+        return None
+    return round(sum(values) / len(values), 2)
+
+
+def _contest_mohs_summary_rows(user: User) -> list[dict[str, object]]:
+    statement_rows = list(
+        annotate_effective_statement_analytics(_active_dashboard_statements())
+        .values(
+            "id",
+            "linked_problem_id",
+            "contest_name",
+            "_eff_mohs",
+            "_eff_topic",
+        )
+        .order_by("contest_name", "-contest_year", "problem_number", "problem_code"),
+    )
+    direct_solved_statement_ids = set(
+        UserProblemCompletion.objects.filter(
+            user=user,
+            statement_id__isnull=False,
+            status__in=SOLVED_STATUSES,
+        ).values_list("statement_id", flat=True),
+    )
+    legacy_solved_problem_ids = set(
+        UserProblemCompletion.objects.filter(
+            user=user,
+            statement__isnull=True,
+            problem_id__isnull=False,
+            status__in=SOLVED_STATUSES,
+        ).values_list("problem_id", flat=True),
+    )
+    metadata_by_contest = {
+        metadata.contest: metadata
+        for metadata in ContestMetadata.objects.filter(
+            contest__in={row["contest_name"] for row in statement_rows},
+        )
+    }
+
+    buckets: dict[str, dict[str, object]] = {}
+    for statement in statement_rows:
+        mohs = statement["_eff_mohs"]
+        topic_code = _main_topic_code(str(statement["_eff_topic"] or ""))
+        if mohs is None or topic_code not in MAIN_TOPIC_CODE_ORDER:
+            continue
+
+        contest_name = statement["contest_name"]
+        bucket = buckets.setdefault(
+            contest_name,
+            {
+                "contest": contest_name,
+                "topic_values": {topic: [] for topic in MAIN_TOPIC_CODE_ORDER},
+                "user_mohs_values": [],
+            },
+        )
+        topic_values = bucket["topic_values"]
+        topic_values[topic_code].append(int(mohs))
+
+        linked_problem_id = statement["linked_problem_id"]
+        if statement["id"] in direct_solved_statement_ids or (
+            linked_problem_id is not None and int(linked_problem_id) in legacy_solved_problem_ids
+        ):
+            bucket["user_mohs_values"].append(int(mohs))
+
+    rows: list[dict[str, object]] = []
+    for contest_name, bucket in buckets.items():
+        topic_values = bucket["topic_values"]
+        topic_averages = {
+            topic: _average_or_none(topic_values[topic])
+            for topic in MAIN_TOPIC_CODE_ORDER
+        }
+        topic_counts = {
+            topic: len(topic_values[topic])
+            for topic in MAIN_TOPIC_CODE_ORDER
+        }
+        all_mohs_values = [
+            mohs
+            for topic in MAIN_TOPIC_CODE_ORDER
+            for mohs in topic_values[topic]
+        ]
+        user_mohs_values = bucket["user_mohs_values"]
+        user_average = _average_or_none(user_mohs_values)
+        metadata = metadata_by_contest.get(contest_name)
+        level_labels = ", ".join(metadata.tags or []) if metadata is not None else ""
+        row = {
+            "average_mohs": _average_or_none(all_mohs_values),
+            "contest": contest_name,
+            "contest_url": contest_dashboard_listing_url(contest_name),
+            "levels": level_labels,
+            "total_count": len(all_mohs_values),
+            "topic_averages": topic_averages,
+            "topic_counts": topic_counts,
+            "user_average_mohs": user_average,
+            "user_average_sort": user_average if user_average is not None else -1,
+            "user_completion_count": len(user_mohs_values),
+        }
+        for topic in MAIN_TOPIC_CODE_ORDER:
+            row[f"avg_{topic.lower()}"] = topic_averages[topic]
+            row[f"count_{topic.lower()}"] = topic_counts[topic]
+        rows.append(row)
+
+    rows.sort(
+        key=lambda row: (
+            row["user_average_mohs"] is None,
+            -(row["user_average_mohs"] or -1),
+            -row["user_completion_count"],
+            -row["total_count"],
+            row["contest"].lower(),
+        ),
+    )
+    return rows
+
+
+@login_required
+def contest_mohs_summary_view(request):
+    """Contest-level topic MOHS averages ranked by the current user's completions."""
+    rows = _contest_mohs_summary_rows(request.user)
+    contest_total = len(rows)
+    total_statement_count = sum(int(row["total_count"]) for row in rows)
+    visible_over_threshold = sum(
+        1
+        for row in rows
+        if int(row["total_count"]) >= CONTEST_MOHS_SUMMARY_HIDE_THRESHOLD
+    )
+    rows_with_user_average = sum(1 for row in rows if row["user_average_mohs"] is not None)
+    context = {
+        "contest_mohs_summary_hide_threshold": CONTEST_MOHS_SUMMARY_HIDE_THRESHOLD,
+        "contest_mohs_summary_rows": rows,
+        "contest_mohs_summary_stats": {
+            "contest_total": contest_total,
+            "rows_with_user_average": rows_with_user_average,
+            "total_statement_count": total_statement_count,
+            "visible_over_threshold": visible_over_threshold,
+        },
+    }
+    return render(request, "pages/contest-mohs-summary.html", context)
 
 
 def _user_topic_mohs_completion_heatmap_payload(
@@ -5268,10 +5409,18 @@ def archive_hub_view(request):
     context = {
         "archive_hub_primary_links": [
             {
-                "description": "Contest-level analytics, year breakdowns, completion heatmaps, and quick-update links.",
+                "description": (
+                    "Contest-level analytics, year breakdowns, completion heatmaps, and quick-update links."
+                ),
                 "icon": "ti-chart-arcs",
                 "title": "Contest analytics",
                 "url": reverse("pages:contest_advanced_dashboard"),
+            },
+            {
+                "description": "A/C/G/N MOHS averages by contest, ranked by your completed-problem average.",
+                "icon": "ti-table-options",
+                "title": "Contest MOHS summary",
+                "url": reverse("pages:contest_mohs_summary"),
             },
             {
                 "description": "Statement UUIDs, linked problem UUIDs, topics, confidence, and MOHS filters.",

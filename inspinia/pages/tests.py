@@ -138,6 +138,15 @@ EXPECTED_STATEMENT_OVERALL_LINK_RATE = 33.33
 EXPECTED_SPAIN_STATEMENT_LINK_RATE = 50.0
 NEPAL_OLYMPIAD_YEAR = 2026
 NEPAL_OLYMPIAD_NAME = "Nepal National Olympiad (IMO Pre-TST)"
+
+
+def _rendered_side_nav_html(response) -> str:
+    return response.content.decode("utf-8").split('<ul class="side-nav">', 1)[1].split(
+        "<!-- Sidenav Menu End -->",
+        1,
+    )[0]
+
+
 EXPECTED_NEPAL_STATEMENT_PROBLEM_TOTAL = 8
 NEPAL_STATEMENT_SAMPLE = (
     Path(__file__).resolve().parent / "testdata" / "nepal_statement_sample.txt"
@@ -3654,7 +3663,7 @@ def test_user_activity_sidebar_hides_admin_only_utilities_for_non_admin(client):
     response = client.get(reverse("pages:user_activity_dashboard"))
 
     assert response.status_code == HTTPStatus.OK
-    side_nav_html = response.content.decode("utf-8").split('<ul class="side-nav">', 1)[1].split("</ul>", 1)[0]
+    side_nav_html = _rendered_side_nav_html(response)
     assert "LaTeX preview" not in side_nav_html
     assert "Handle parser" not in side_nav_html
     assert "Rankings" not in side_nav_html
@@ -3674,7 +3683,7 @@ def test_user_activity_sidebar_shows_rankings_for_moderator(client):
     response = client.get(reverse("pages:user_activity_dashboard"))
 
     assert response.status_code == HTTPStatus.OK
-    side_nav_html = response.content.decode("utf-8").split('<ul class="side-nav">', 1)[1].split("</ul>", 1)[0]
+    side_nav_html = _rendered_side_nav_html(response)
     assert "Rankings" in side_nav_html
     assert "Ranking table" in side_nav_html
     assert "Ranking dashboard" in side_nav_html
@@ -4717,6 +4726,7 @@ def test_archive_hub_renders_current_archive_workflow_links(client):
     response_html = response.content.decode("utf-8")
     assert "Archive hub" in response_html
     assert reverse("pages:contest_advanced_dashboard") in response_html
+    assert reverse("pages:contest_mohs_summary") in response_html
     assert reverse("pages:contest_dashboard_listing") not in response_html
     assert reverse("pages:problem_statement_list") in response_html
     assert reverse("pages:completion_board") in response_html
@@ -4910,6 +4920,104 @@ def test_contest_advanced_analytics_normal_user_sees_own_completions_only(client
     cell_done = next(cell for cell in row_done["cells"] if cell["problem_code"] == "P1")
     assert cell_done["state"] == "solved"
     assert cell_done["display"] == "✓"
+
+
+def test_contest_mohs_summary_ranks_by_current_user_average(client):
+    user = UserFactory()
+    other = UserFactory()
+    client.force_login(user)
+
+    hard_statement = ContestProblemStatement.objects.create(
+        contest_year=2026,
+        contest_name="Hard Cup",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Hard statement",
+        topic="ALG",
+        mohs=40,
+    )
+    easier_statement = ContestProblemStatement.objects.create(
+        contest_year=2026,
+        contest_name="Easier Cup",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Easier statement",
+        topic="GEO",
+        mohs=20,
+    )
+    unsolved_statement = ContestProblemStatement.objects.create(
+        contest_year=2026,
+        contest_name="Unsolved Cup",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Unsolved statement",
+        topic="NT",
+        mohs=35,
+    )
+    UserProblemCompletion.objects.create(user=user, statement=easier_statement, completion_date=date(2026, 1, 2))
+    UserProblemCompletion.objects.create(user=user, statement=hard_statement, completion_date=date(2026, 1, 1))
+    UserProblemCompletion.objects.create(user=other, statement=unsolved_statement, completion_date=date(2026, 1, 3))
+
+    response = client.get(reverse("pages:contest_mohs_summary"))
+
+    assert response.status_code == HTTPStatus.OK
+    rows = response.context["contest_mohs_summary_rows"]
+    assert [row["contest"] for row in rows] == ["Hard Cup", "Easier Cup", "Unsolved Cup"]
+    hard_row = rows[0]
+    assert hard_row["topic_averages"]["A"] == 40.0
+    assert hard_row["topic_counts"]["A"] == 1
+    assert hard_row["average_mohs"] == 40.0
+    assert hard_row["total_count"] == 1
+    assert hard_row["user_average_mohs"] == 40.0
+    assert hard_row["user_completion_count"] == 1
+    assert hard_row["contest_url"] == reverse("pages:contest_dashboard_listing") + "?contest=Hard+Cup"
+
+    unsolved_row = rows[2]
+    assert unsolved_row["user_average_mohs"] is None
+    assert unsolved_row["user_average_sort"] == -1
+    assert unsolved_row["user_completion_count"] == 0
+
+
+def test_contest_mohs_summary_renders_table_and_hide_low_count_toggle(client):
+    user = UserFactory()
+    client.force_login(user)
+    for problem_number in range(1, 22):
+        ContestProblemStatement.objects.create(
+            contest_year=2026,
+            contest_name="Large Cup",
+            problem_number=problem_number,
+            problem_code=f"P{problem_number}",
+            day_label="Day 1",
+            statement_latex="Large statement",
+            topic="COMB",
+            mohs=30,
+        )
+    ContestProblemStatement.objects.create(
+        contest_year=2026,
+        contest_name="Small Cup",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Small statement",
+        topic="NT",
+        mohs=10,
+    )
+
+    response = client.get(reverse("pages:contest_mohs_summary"))
+
+    assert response.status_code == HTTPStatus.OK
+    response_html = response.content.decode("utf-8")
+    assert "Contest MOHS summary" in response_html
+    assert 'id="contest-mohs-summary-table"' in response_html
+    assert 'id="contest-mohs-hide-low-count"' in response_html
+    assert "data-hide-threshold=\"20\"" in response_html
+    assert "DataTable.ext.search.push" in response_html
+    assert "Total Count of MOHS2" in response_html
+    assert "Usr Average" in response_html
+    assert reverse("pages:contest_dashboard_listing") + "?contest=Large+Cup" in response_html
 
 
 def test_contest_dashboard_listing_view_filters_selected_contest_and_year_for_admin(client):
@@ -13071,7 +13179,7 @@ def test_dashboard_sidebar_shows_personal_progress_link_for_authenticated_user(c
     response = client.get(reverse("pages:user_activity_dashboard"))
 
     assert response.status_code == HTTPStatus.OK
-    side_nav_html = response.content.decode("utf-8").split('<ul class="side-nav">', 1)[1].split("</ul>", 1)[0]
+    side_nav_html = _rendered_side_nav_html(response)
     assert "My progress" in side_nav_html
     assert reverse("pages:my_completion_progress_analytics") in side_nav_html
     assert "Progress analytics" not in side_nav_html
@@ -13084,8 +13192,7 @@ def test_dashboard_sidebar_groups_links_into_balanced_workflow_sections_for_admi
     response = client.get(reverse("pages:latex_preview"))
 
     assert response.status_code == HTTPStatus.OK
-    response_html = response.content.decode("utf-8")
-    side_nav_html = response_html.split('<ul class="side-nav">', 1)[1].split("</ul>", 1)[0]
+    side_nav_html = _rendered_side_nav_html(response)
     present_labels = [
         "Workspace",
         "Library",
@@ -13096,6 +13203,7 @@ def test_dashboard_sidebar_groups_links_into_balanced_workflow_sections_for_admi
         "Admin",
         "My progress",
         "Quick completions",
+        "Contest MOHS",
         "Ranking imports",
         "Technique analytics",
         "View analytics",
@@ -13121,6 +13229,7 @@ def test_dashboard_sidebar_groups_links_into_balanced_workflow_sections_for_admi
         "My progress",
         "Quick completions",
         "Contest progress",
+        "Contest MOHS",
         "My solutions",
         "Problem statements",
         "Ranking table",
