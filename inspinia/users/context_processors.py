@@ -1,6 +1,7 @@
 from django.conf import settings
 
 from inspinia.users.roles import user_can_access_app_features
+from inspinia.users.roles import user_can_curate_training
 from inspinia.users.roles import user_has_admin_role
 from inspinia.users.roles import user_has_moderator_or_admin_role
 
@@ -18,6 +19,7 @@ def app_roles(request):
     admin = user_has_admin_role(request.user)
     can_access_rankings = approved and user_has_moderator_or_admin_role(request.user)
     can_access_admin_tools = approved and (admin or settings.DEBUG)
+    can_curate_training = user_can_curate_training(request.user)
     return {
         "is_app_admin": admin,
         "is_app_approved": approved,
@@ -30,6 +32,8 @@ def app_roles(request):
         "show_problem_import_link": can_access_admin_tools,
         "show_session_monitor_link": approved and admin,
         "show_solution_workspace_link": approved,
+        "show_training_curation_link": can_curate_training,
+        "show_training_library_link": approved,
         "show_completion_quick_update_link": approved,
         "show_user_activity_dashboard_link": approved,
         "show_contest_advanced_dashboard_link": approved,

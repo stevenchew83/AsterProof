@@ -3,6 +3,7 @@ from django.contrib.auth.models import AnonymousUser
 
 from inspinia.users.models import User
 from inspinia.users.roles import user_can_access_app_features
+from inspinia.users.roles import user_can_curate_training
 from inspinia.users.tests.factories import UserFactory
 
 pytestmark = pytest.mark.django_db
@@ -34,3 +35,12 @@ def test_superuser_can_access_app_features_even_if_boolean_is_false():
     user = UserFactory(is_superuser=True, is_approved=False)
 
     assert user_can_access_app_features(user) is True
+
+
+def test_training_curation_requires_approved_trainer_or_admin():
+    assert user_can_curate_training(AnonymousUser()) is False
+    assert user_can_curate_training(UserFactory(role=User.Role.NORMAL, is_approved=True)) is False
+    assert user_can_curate_training(UserFactory(role=User.Role.TRAINER, is_approved=False)) is False
+    assert user_can_curate_training(UserFactory(role=User.Role.TRAINER, is_approved=True)) is True
+    assert user_can_curate_training(UserFactory(role=User.Role.ADMIN, is_approved=False)) is True
+    assert user_can_curate_training(UserFactory(is_superuser=True, is_approved=False)) is True

@@ -99,6 +99,7 @@ LOCAL_APPS = [
     "inspinia.solutions",
     "inspinia.problemsets",
     "inspinia.rankings",
+    "inspinia.training",
     # Your stuff: custom apps go here
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps

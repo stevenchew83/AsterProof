@@ -14,6 +14,7 @@ urlpatterns = [
     path("solutions/", include("inspinia.solutions.urls", namespace="solutions")),
     path("problem-lists/", include("inspinia.problemsets.urls", namespace="problemsets")),
     path("rankings/", include("inspinia.rankings.urls", namespace="rankings")),
+    path("training/", include("inspinia.training.urls", namespace="training")),
     path("", include("inspinia.pages.urls", namespace="pages")),
     # Your stuff: custom urls includes go here
     # ...

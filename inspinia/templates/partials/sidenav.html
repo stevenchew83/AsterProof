@@ -129,6 +129,15 @@
             {% if is_app_approved %}
             <li class="side-nav-title">Library</li>
 
+            {% if show_training_library_link %}
+            <li class="side-nav-item">
+                <a href="{% url 'training:index' %}" class="side-nav-link">
+                    <span class="menu-icon"><i class="ti ti-school"></i></span>
+                    <span class="menu-text">Training library</span>
+                </a>
+            </li>
+            {% endif %}
+
             <li class="side-nav-item">
                 <a href="{% url 'pages:problem_statement_list' %}" class="side-nav-link">
                     <span class="menu-icon"><i class="ti ti-file-text"></i></span>
@@ -240,8 +249,28 @@
             </li>
             {% endif %}
 
+            {% if show_training_curation_link and not show_problem_import_link %}
+            <li class="side-nav-title">Operations</li>
+
+            <li class="side-nav-item">
+                <a href="{% url 'training:manage' %}" class="side-nav-link">
+                    <span class="menu-icon"><i class="ti ti-books"></i></span>
+                    <span class="menu-text">Training curation</span>
+                </a>
+            </li>
+            {% endif %}
+
             {% if show_problem_import_link %}
             <li class="side-nav-title">Operations</li>
+
+            {% if show_training_curation_link %}
+            <li class="side-nav-item">
+                <a href="{% url 'training:manage' %}" class="side-nav-link">
+                    <span class="menu-icon"><i class="ti ti-books"></i></span>
+                    <span class="menu-text">Training curation</span>
+                </a>
+            </li>
+            {% endif %}
 
             <li class="side-nav-item">
                 <a href="{% url 'pages:problem_import' %}" class="side-nav-link">

@@ -1,0 +1,47 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}{{ form_title }}{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  {% include 'partials/page-title.html' with title=form_title subtitle='Training curation' %}
+
+  <div class="row g-3 mt-0">
+    <div class="col-xl-8">
+      <div class="card">
+        <div class="card-header border-bottom">
+          <h4 class="header-title mb-0">Subtopic details</h4>
+        </div>
+        <div class="card-body">
+          <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+              <label class="form-label" for="{{ form.topic.id_for_label }}">Main topic</label>
+              {{ form.topic }}
+              {% for error in form.topic.errors %}<div class="text-danger fs-xs mt-1">{{ error }}</div>{% endfor %}
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="{{ form.title.id_for_label }}">Title</label>
+              {{ form.title }}
+              {% for error in form.title.errors %}<div class="text-danger fs-xs mt-1">{{ error }}</div>{% endfor %}
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="{{ form.description.id_for_label }}">Description</label>
+              {{ form.description }}
+              {% for error in form.description.errors %}<div class="text-danger fs-xs mt-1">{{ error }}</div>{% endfor %}
+            </div>
+            <div class="form-check mb-3">
+              {{ form.is_active }}
+              <label class="form-check-label" for="{{ form.is_active.id_for_label }}">Active</label>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+              <button type="submit" class="btn btn-primary">Save subtopic</button>
+              <a href="{% url 'training:subtopic_manage' %}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock page_content %}

@@ -42,6 +42,8 @@ def test_approved_user_keeps_personal_feature_links(rf):
     assert flags["show_user_activity_dashboard_link"] is True
     assert flags["show_completion_quick_update_link"] is True
     assert flags["show_solution_workspace_link"] is True
+    assert flags["show_training_library_link"] is True
+    assert flags["show_training_curation_link"] is False
 
 
 def test_admin_keeps_admin_links_without_stored_approval(rf):
@@ -54,3 +56,15 @@ def test_admin_keeps_admin_links_without_stored_approval(rf):
     assert flags["is_app_admin"] is True
     assert flags["show_event_log_link"] is True
     assert flags["show_session_monitor_link"] is True
+    assert flags["show_training_library_link"] is True
+    assert flags["show_training_curation_link"] is True
+
+
+def test_approved_trainer_gets_training_curation_link(rf):
+    request = rf.get("/")
+    request.user = UserFactory(role=User.Role.TRAINER, is_approved=True)
+
+    flags = app_roles(request)
+
+    assert flags["show_training_library_link"] is True
+    assert flags["show_training_curation_link"] is True

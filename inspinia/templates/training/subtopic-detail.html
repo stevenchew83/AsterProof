@@ -1,0 +1,20 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}{{ subtopic.title }}{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  {% include 'partials/page-title.html' with title=subtopic.title subtitle=topic.title %}
+
+  <div class="card mt-0">
+    <div class="card-header border-bottom">
+      <h4 class="header-title mb-0">Published modules</h4>
+      {% if subtopic.description %}<p class="text-muted fs-xs mb-0">{{ subtopic.description }}</p>{% endif %}
+    </div>
+    <div class="card-body">
+      {% include 'training/partials/material-cards.html' with material_rows=material_rows %}
+    </div>
+  </div>
+</div>
+{% endblock page_content %}
+
