@@ -54,7 +54,43 @@ class MaterialForm(BootstrapModelForm):
             "is_published",
         ]
         widgets = {
-            "content_markdown": forms.Textarea(attrs={"rows": 10, "class": "font-monospace"}),
+            "content_markdown": forms.Textarea(
+                attrs={
+                    "rows": 16,
+                    "class": "font-monospace training-material-editor-input",
+                    "data-preview-source": "id_content_markdown",
+                    "spellcheck": "true",
+                },
+            ),
+        }
+
+
+class CheckpointProblemForm(BootstrapModelForm):
+    slug = forms.SlugField(
+        required=False,
+        help_text="Leave blank to generate from the title.",
+    )
+
+    class Meta:
+        model = Problem
+        fields = [
+            "subtopic",
+            "title",
+            "slug",
+            "statement_markdown",
+            "difficulty",
+            "max_points",
+            "order",
+            "is_published",
+        ]
+        widgets = {
+            "statement_markdown": forms.Textarea(
+                attrs={
+                    "rows": 5,
+                    "class": "font-monospace",
+                    "placeholder": "State the checkpoint problem. Use $...$ or $$...$$ for math.",
+                },
+            ),
         }
 
 
