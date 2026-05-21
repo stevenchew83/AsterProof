@@ -24,15 +24,16 @@ from inspinia.users.tests.factories import UserFactory
 pytestmark = pytest.mark.django_db
 
 FULL_COMPLETION_PERCENTAGE = 100
-EXPECTED_SEED_TOPIC_TOTAL = 4
-EXPECTED_BROAD_SEED_SUBTOPIC_TOTAL = 56
-EXPECTED_IMO_SYLLABUS_SUBTOPIC_TOTAL = 117
-EXPECTED_SEED_SUBTOPIC_TOTAL = EXPECTED_BROAD_SEED_SUBTOPIC_TOTAL + EXPECTED_IMO_SYLLABUS_SUBTOPIC_TOTAL
+EXPECTED_SEED_TOPIC_TOTAL = 5
+EXPECTED_EXPANDED_SEED_SUBTOPIC_TOTAL = 417
+EXPECTED_IMO_SYLLABUS_ROW_TOTAL = 118
+EXPECTED_IMO_SYLLABUS_NEW_SUBTOPIC_TOTAL = 114
+EXPECTED_SEED_SUBTOPIC_TOTAL = EXPECTED_EXPANDED_SEED_SUBTOPIC_TOTAL + EXPECTED_IMO_SYLLABUS_NEW_SUBTOPIC_TOTAL
 INITIAL_LEDGER_POINTS = 275
 MATERIAL_COMPLETION_POINTS = 10
 PARTIAL_ACCEPTANCE_POINTS = 15
 
-EXPECTED_SEED_SUBTOPICS = {
+BASE_SEED_SUBTOPICS = {
     "algebra": {
         "Algebraic identities",
         "Equations and systems",
@@ -99,6 +100,39 @@ EXPECTED_SEED_SUBTOPICS = {
     },
 }
 
+EXPECTED_ADDED_SEED_SUBTOPICS = {
+    "foundations": {
+        "Mathematical proof-writing",
+        "Mathematical induction",
+        "Extremal principle",
+        "WLOG and symmetry arguments",
+    },
+    "algebra": {
+        "Binomial theorem",
+        "Cauchy's functional equation",
+        "uvw or pqr method",
+        "Combinatorial Nullstellensatz",
+    },
+    "combinatorics": {
+        "Catalan numbers",
+        "Graph theory basics",
+        "Small Ramsey numbers",
+        "Nim",
+    },
+    "geometry": {
+        "Law of Sines",
+        "Fermat point",
+        "Cross-ratio",
+        "Miquel's theorem",
+    },
+    "number-theory": {
+        "Kummer's theorem",
+        "Gaussian integers Z[i]",
+        "Mobius function and inversion",
+        "Dirichlet approximation principle",
+    },
+}
+
 
 def _thresholds() -> None:
     for level_number, name, minimum_points in [
@@ -157,13 +191,19 @@ def _topic_tree(*, published: bool = True) -> tuple[Topic, Subtopic, Material, P
 
 
 def test_seeded_training_taxonomy_contains_expanded_topics():
-    assert Topic.objects.filter(slug__in=EXPECTED_SEED_SUBTOPICS).count() == EXPECTED_SEED_TOPIC_TOTAL
-    assert Subtopic.objects.filter(topic__slug__in=EXPECTED_SEED_SUBTOPICS).count() == EXPECTED_SEED_SUBTOPIC_TOTAL
+    expected_topic_slugs = set(BASE_SEED_SUBTOPICS) | set(EXPECTED_ADDED_SEED_SUBTOPICS)
+    assert Topic.objects.filter(slug__in=expected_topic_slugs).count() == EXPECTED_SEED_TOPIC_TOTAL
+    assert Subtopic.objects.filter(topic__slug__in=expected_topic_slugs).count() == EXPECTED_SEED_SUBTOPIC_TOTAL
 
-    for topic_slug, expected_titles in EXPECTED_SEED_SUBTOPICS.items():
+    for topic_slug, expected_titles in BASE_SEED_SUBTOPICS.items():
         topic = Topic.objects.get(slug=topic_slug)
         titles = set(topic.subtopics.values_list("title", flat=True))
-        assert titles.issuperset(expected_titles)
+        assert expected_titles <= titles
+
+    for topic_slug, expected_titles in EXPECTED_ADDED_SEED_SUBTOPICS.items():
+        topic = Topic.objects.get(slug=topic_slug)
+        titles = set(topic.subtopics.values_list("title", flat=True))
+        assert expected_titles <= titles
 
 
 def test_seeded_training_taxonomy_adds_imo_syllabus_leaf_subtopics_without_duplicates():
@@ -172,15 +212,22 @@ def test_seeded_training_taxonomy_adds_imo_syllabus_leaf_subtopics_without_dupli
         topic=algebra,
         title="What it means to solve (structure, fixed points, verification)",
     )
+    existing_crt = Subtopic.objects.get(topic__slug="number-theory", title__iexact="Chinese remainder theorem")
 
     assert fe_subtopic.category == "Functional Equations"
     assert fe_subtopic.level == Subtopic.Level.CORE
     assert fe_subtopic.is_imo_syllabus is True
-    assert Subtopic.objects.filter(is_imo_syllabus=True).count() == EXPECTED_IMO_SYLLABUS_SUBTOPIC_TOTAL
-    assert Subtopic.objects.filter(
-        topic__slug="number-theory",
-        title__iexact="Chinese remainder theorem",
-    ).count() == 1
+    assert existing_crt.category == "CRT & Applications"
+    assert existing_crt.level == Subtopic.Level.CORE
+    assert existing_crt.is_imo_syllabus is True
+    assert Subtopic.objects.filter(is_imo_syllabus=True).count() == EXPECTED_IMO_SYLLABUS_ROW_TOTAL
+    assert (
+        Subtopic.objects.filter(
+            topic__slug="number-theory",
+            title__iexact="Chinese remainder theorem",
+        ).count()
+        == 1
+    )
 
 
 def test_markdown_renderer_sanitizes_html_and_preserves_math():
@@ -285,6 +332,49 @@ def test_student_cannot_access_trainer_or_admin_pages(client):
 
     assert client.get(reverse("training:trainer_dashboard")).status_code == HTTPStatus.FORBIDDEN
     assert client.get(reverse("training:admin_levels")).status_code == HTTPStatus.FORBIDDEN
+
+
+def test_trainer_topics_page_uses_split_taxonomy_workspace(client):
+    trainer = UserFactory(role=User.Role.TRAINER)
+    topic, subtopic, _material, _problem = _topic_tree()
+    draft_topic = Topic.objects.create(
+        title="Draft Geometry",
+        slug="draft-geometry",
+        description="Hidden geometry sequence.",
+        order=2,
+        is_published=False,
+    )
+    Subtopic.objects.create(
+        topic=draft_topic,
+        title="Circle tangencies",
+        slug="circle-tangencies",
+        order=1,
+        is_published=False,
+    )
+    client.force_login(trainer)
+
+    response = client.get(reverse("training:trainer_topics"), {"edit_subtopic": subtopic.id})
+
+    assert response.status_code == HTTPStatus.OK
+    html = response.content.decode("utf-8")
+    topic_total = Topic.objects.count()
+    subtopic_total = Subtopic.objects.count()
+    published_topic_total = Topic.objects.filter(is_published=True).count()
+    published_subtopic_total = Subtopic.objects.filter(is_published=True, topic__is_published=True).count()
+    draft_total = (topic_total - published_topic_total) + (subtopic_total - published_subtopic_total)
+
+    assert 'data-training-topic-workspace="true"' in html
+    assert "Taxonomy workspace" in html
+    assert f"{topic_total} topic" in html
+    assert f"{subtopic_total} subtopic" in html
+    assert f"{draft_total} draft" in html
+    assert 'id="training-subtopics-table"' in html
+    assert 'data-topic-slug="local-algebra"' in html
+    assert 'data-selected-topic-slug="local-algebra"' in html
+    assert "Subtopic table" in html
+    assert "Editor" in html
+    assert topic.title in html
+    assert subtopic.title in html
 
 
 def test_student_cannot_award_submission_points(client):

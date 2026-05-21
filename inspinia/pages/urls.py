@@ -14,6 +14,7 @@ from inspinia.pages.views import contest_dashboard_listing_bulk_update_view
 from inspinia.pages.views import contest_dashboard_listing_view
 from inspinia.pages.views import contest_details_view
 from inspinia.pages.views import contest_existence_audit_view
+from inspinia.pages.views import contest_mohs_summary_view
 from inspinia.pages.views import contest_rename_view
 from inspinia.pages.views import dashboard_analytics_view
 from inspinia.pages.views import handle_summary_parser_view
@@ -75,6 +76,11 @@ urlpatterns = [
         "dashboard/contests/advanced/",
         contest_advanced_analytics_view,
         name="contest_advanced_dashboard",
+    ),
+    path(
+        "dashboard/contests/mohs-summary/",
+        contest_mohs_summary_view,
+        name="contest_mohs_summary",
     ),
     path(
         "dashboard/contests/listing/",

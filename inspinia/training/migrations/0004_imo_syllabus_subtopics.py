@@ -380,15 +380,17 @@ def seed_imo_syllabus_subtopics(apps, schema_editor) -> None:
     Topic = apps.get_model("training", "Topic")
     Subtopic = apps.get_model("training", "Subtopic")
 
-    topic_by_slug = {topic.slug: topic for topic in Topic.objects.filter(slug__in={row[0] for row in IMO_SYLLABUS_SUBTOPICS})}
-    seen_titles_by_topic = defaultdict(set)
+    topic_by_slug = {
+        topic.slug: topic for topic in Topic.objects.filter(slug__in={row[0] for row in IMO_SYLLABUS_SUBTOPICS})
+    }
+    subtopics_by_title_by_topic = defaultdict(dict)
     used_slugs_by_topic = defaultdict(set)
     max_order_by_topic = defaultdict(int)
     next_index_by_topic = defaultdict(int)
 
     for subtopic in Subtopic.objects.filter(topic__slug__in=topic_by_slug).select_related("topic"):
         topic_slug = subtopic.topic.slug
-        seen_titles_by_topic[topic_slug].add(normalize_title(subtopic.title))
+        subtopics_by_title_by_topic[topic_slug][normalize_title(subtopic.title)] = subtopic
         used_slugs_by_topic[topic_slug].add(subtopic.slug)
         max_order_by_topic[topic_slug] = max(max_order_by_topic[topic_slug], subtopic.order)
 
@@ -397,11 +399,15 @@ def seed_imo_syllabus_subtopics(apps, schema_editor) -> None:
         if topic is None:
             continue
         normalized_title = normalize_title(title)
-        if normalized_title in seen_titles_by_topic[topic_slug]:
+        existing_subtopic = subtopics_by_title_by_topic[topic_slug].get(normalized_title)
+        if existing_subtopic is not None:
+            existing_subtopic.category = category
+            existing_subtopic.level = level
+            existing_subtopic.is_imo_syllabus = True
+            existing_subtopic.save(update_fields=["category", "level", "is_imo_syllabus"])
             continue
         next_index_by_topic[topic_slug] += 1
-        seen_titles_by_topic[topic_slug].add(normalized_title)
-        Subtopic.objects.create(
+        subtopic = Subtopic.objects.create(
             topic=topic,
             title=title,
             slug=unique_slug(title, used_slugs_by_topic[topic_slug]),
@@ -412,6 +418,7 @@ def seed_imo_syllabus_subtopics(apps, schema_editor) -> None:
             order=max_order_by_topic[topic_slug] + (next_index_by_topic[topic_slug] * 10),
             description="",
         )
+        subtopics_by_title_by_topic[topic_slug][normalized_title] = subtopic
 
 
 def noop_reverse(apps, schema_editor) -> None:
@@ -420,7 +427,7 @@ def noop_reverse(apps, schema_editor) -> None:
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("training", "0002_seed_training_topics"),
+        ("training", "0003_expand_training_taxonomy"),
     ]
 
     operations = [

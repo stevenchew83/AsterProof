@@ -1,0 +1,291 @@
+{% extends 'layouts/vertical.html' %}
+
+{% load static %}
+
+{% block title %}Contest MOHS summary{% endblock title %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'plugins/datatables/dataTables.bootstrap5.min.css' %}">
+<style>
+  #contest-mohs-summary-table_wrapper .dt-layout-row {
+    margin: .5rem 0;
+  }
+
+  #contest-mohs-summary-table_wrapper .dt-length label,
+  #contest-mohs-summary-table_wrapper .dt-search label {
+    color: var(--bs-secondary-color);
+    font-size: .75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  #contest-mohs-summary-table_wrapper .dt-length .form-select,
+  #contest-mohs-summary-table_wrapper .dt-search .form-control {
+    font-size: .8125rem;
+    min-height: calc(1.5em + .5rem + 2px);
+    padding-bottom: .25rem;
+    padding-top: .25rem;
+  }
+</style>
+{% endblock extra_css %}
+
+{% block page_content %}
+<div class="container-fluid">
+
+  {% include 'partials/page-title.html' with title='Contest MOHS summary' subtitle='Archive' %}
+
+  <div class="row g-3 mt-0">
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-primary-subtle text-primary rounded">
+                <i class="ti ti-trophy fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Contests</p>
+              <h3 class="mb-0">{{ contest_mohs_summary_stats.contest_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-info-subtle text-info rounded">
+                <i class="ti ti-database fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">MOHS rows</p>
+              <h3 class="mb-0">{{ contest_mohs_summary_stats.total_statement_count }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-success-subtle text-success rounded">
+                <i class="ti ti-checkup-list fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">With usr average</p>
+              <h3 class="mb-0">{{ contest_mohs_summary_stats.rows_with_user_average }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-warning-subtle text-warning rounded">
+                <i class="ti ti-filter-check fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Count >= {{ contest_mohs_summary_hide_threshold }}</p>
+              <h3 class="mb-0">{{ contest_mohs_summary_stats.visible_over_threshold }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-1 mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header border-bottom d-flex flex-wrap align-items-center gap-2">
+          <div class="flex-grow-1">
+            <h4 class="header-title mb-0">Contest table</h4>
+            <p class="text-muted fs-xs mb-0">Ranked by your completed-problem average MOHS</p>
+          </div>
+          {% if contest_mohs_summary_rows %}
+          <button
+            id="contest-mohs-hide-low-count"
+            type="button"
+            class="btn btn-outline-secondary btn-sm"
+            data-hide-threshold="{{ contest_mohs_summary_hide_threshold }}"
+            aria-pressed="false"
+          >
+            <i class="ti ti-eye-off me-1"></i>Hide &lt; {{ contest_mohs_summary_hide_threshold }}
+          </button>
+          {% endif %}
+        </div>
+        <div class="card-body">
+          {% if contest_mohs_summary_rows %}
+          <div class="table-responsive">
+            <table id="contest-mohs-summary-table" class="table table-sm table-striped table-bordered align-middle w-100 mb-0"></table>
+          </div>
+          {% else %}
+          <div class="alert alert-info mb-0" role="alert">
+            No active statement rows with A/C/G/N topic and MOHS values are available yet.
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{{ contest_mohs_summary_rows|json_script:"contest-mohs-summary-table-data" }}
+{% endblock page_content %}
+
+{% block extra_javascript %}
+{% if contest_mohs_summary_rows %}
+{% include 'partials/datatables-vendor-scripts.html' %}
+<script>
+(function () {
+  var tableEl = document.getElementById("contest-mohs-summary-table-data");
+  var toggleButton = document.getElementById("contest-mohs-hide-low-count");
+  if (!tableEl || typeof DataTable === "undefined") return;
+
+  var rows = JSON.parse(tableEl.textContent);
+  var hideLowCount = false;
+  var hideThreshold = toggleButton ? Number(toggleButton.getAttribute("data-hide-threshold")) || 20 : 20;
+  var tableApi = null;
+
+  function escapeHtml(value) {
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function formatMetric(value) {
+    if (value === null || value === undefined || value === "") {
+      return '<span class="text-muted fs-xs">&mdash;</span>';
+    }
+    var numeric = Number(value);
+    if (!Number.isFinite(numeric)) return escapeHtml(value);
+    return Number.isInteger(numeric) ? String(numeric) : numeric.toFixed(2);
+  }
+
+  function numericRender(data, type) {
+    if (type === "sort" || type === "type") {
+      return data === null || data === undefined || data === "" ? -1 : Number(data);
+    }
+    if (type === "filter") {
+      return data === null || data === undefined || data === "" ? "" : String(data);
+    }
+    return formatMetric(data);
+  }
+
+  function countRender(data, type) {
+    if (type === "display") return formatMetric(data);
+    return Number(data || 0);
+  }
+
+  DataTable.ext.search.push(function (settings, _data, dataIndex, rowData) {
+    if (!settings.nTable || settings.nTable.id !== "contest-mohs-summary-table") return true;
+    if (!hideLowCount) return true;
+    var row = rowData || (tableApi ? tableApi.row(dataIndex).data() : null);
+    return row ? Number(row.total_count || 0) >= hideThreshold : true;
+  });
+
+  tableApi = new DataTable("#contest-mohs-summary-table", {
+    data: rows,
+    columns: [
+      {
+        data: "contest",
+        title: "Contest Name",
+        render: function (data, type, row) {
+          if (type === "display") {
+            return '<a href="' + row.contest_url + '" class="fw-semibold text-decoration-none">' + escapeHtml(data) + "</a>";
+          }
+          return data;
+        }
+      },
+      {
+        data: "contest_url",
+        title: "Contest Link",
+        orderable: false,
+        searchable: false,
+        render: function (data, type) {
+          if (type !== "display") return data;
+          return '<a href="' + data + '" class="btn btn-sm btn-outline-primary"><i class="ti ti-arrow-right me-1"></i>Open</a>';
+        }
+      },
+      { data: "avg_a", title: "A", className: "text-end text-nowrap", render: numericRender },
+      { data: "avg_c", title: "C", className: "text-end text-nowrap", render: numericRender },
+      { data: "avg_g", title: "G", className: "text-end text-nowrap", render: numericRender },
+      { data: "avg_n", title: "N", className: "text-end text-nowrap", render: numericRender },
+      { data: "average_mohs", title: "Average", className: "text-end text-nowrap", render: numericRender },
+      {
+        data: "user_average_mohs",
+        title: "Usr Average",
+        className: "text-end text-nowrap",
+        render: function (data, type, row) {
+          if (type === "sort" || type === "type") return Number(row.user_average_sort || -1);
+          if (type === "filter") return data === null || data === undefined ? "" : String(data);
+          if (data === null || data === undefined) return '<span class="text-muted fs-xs">&mdash;</span>';
+          return '<span class="fw-semibold">' + formatMetric(data) + '</span><div class="text-muted fs-xs">' + Number(row.user_completion_count || 0) + " completed</div>";
+        }
+      },
+      { data: "count_a", title: "A Count", className: "text-end text-nowrap", render: countRender },
+      { data: "count_c", title: "C Count", className: "text-end text-nowrap", render: countRender },
+      { data: "count_g", title: "G Count", className: "text-end text-nowrap", render: countRender },
+      { data: "count_n", title: "N Count", className: "text-end text-nowrap", render: countRender },
+      { data: "total_count", title: "Total Count of MOHS2", className: "text-end text-nowrap", render: countRender },
+      {
+        data: "levels",
+        title: "Levels",
+        render: function (data, type) {
+          if (type !== "display") return data || "";
+          return data ? escapeHtml(data) : '<span class="text-muted fs-xs">&mdash;</span>';
+        }
+      }
+    ],
+    order: [[7, "desc"], [0, "asc"]],
+    pageLength: 25,
+    lengthMenu: [10, 25, 50, 100],
+    scrollX: true,
+    autoWidth: false,
+    layout: {
+      topStart: "pageLength",
+      topEnd: "search",
+      bottomStart: "info",
+      bottomEnd: "paging"
+    },
+    language: {
+      search: "Filter table:",
+      searchPlaceholder: "Contest or level",
+      info: "Showing _START_ to _END_ of _TOTAL_ contest rows",
+      infoEmpty: "No contest rows to show",
+      infoFiltered: "(filtered from _MAX_ contest rows)",
+      lengthMenu: "Show _MENU_ rows",
+      zeroRecords: "No contest rows match the current filter."
+    }
+  });
+
+  if (toggleButton) {
+    toggleButton.addEventListener("click", function () {
+      hideLowCount = !hideLowCount;
+      toggleButton.setAttribute("aria-pressed", hideLowCount ? "true" : "false");
+      toggleButton.classList.toggle("btn-primary", hideLowCount);
+      toggleButton.classList.toggle("btn-outline-secondary", !hideLowCount);
+      toggleButton.innerHTML = hideLowCount
+        ? '<i class="ti ti-filter-check me-1"></i>Showing >= ' + hideThreshold
+        : '<i class="ti ti-eye-off me-1"></i>Hide &lt; ' + hideThreshold;
+      tableApi.draw();
+    });
+  }
+})();
+</script>
+{% endif %}
+{% endblock extra_javascript %}

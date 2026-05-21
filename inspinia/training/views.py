@@ -431,42 +431,79 @@ def _redirect_with_edit(route_name: str, item_id: int | None = None, *, param_na
     return redirect(url)
 
 
+def _selected_training_topic(topics: list[Topic], topic: Topic | None, subtopic: Subtopic | None) -> Topic | None:
+    if topic is not None:
+        return topic
+    if subtopic is not None:
+        return subtopic.topic
+    return topics[0] if topics else None
+
+
+def _topic_workspace_stats(topics: list[Topic], subtopics: list[Subtopic]) -> dict[str, int]:
+    published_topic_count = sum(1 for topic in topics if topic.is_published)
+    published_subtopic_count = sum(
+        1
+        for subtopic in subtopics
+        if subtopic.is_published and subtopic.topic.is_published
+    )
+    return {
+        "topic_total": len(topics),
+        "subtopic_total": len(subtopics),
+        "published_total": published_topic_count + published_subtopic_count,
+        "draft_total": (len(topics) - published_topic_count) + (len(subtopics) - published_subtopic_count),
+    }
+
+
 @login_required
 @require_http_methods(["GET", "POST"])
 def trainer_topics_view(request):
     _require_trainer_or_admin(request)
     topic_instance = None
     subtopic_instance = None
+    active_form_kind = "topic"
     if request.GET.get("edit_topic"):
         topic_instance = get_object_or_404(Topic, pk=request.GET["edit_topic"])
+        active_form_kind = "topic"
     if request.GET.get("edit_subtopic"):
         subtopic_instance = get_object_or_404(Subtopic, pk=request.GET["edit_subtopic"])
+        active_form_kind = "subtopic"
+
+    topic_form = TopicForm(instance=topic_instance)
+    subtopic_form = SubtopicForm(instance=subtopic_instance)
 
     if request.method == "POST":
         form_kind = request.POST.get("form_kind")
         if form_kind == "topic":
             instance = Topic.objects.filter(pk=request.POST.get("item_id")).first()
-            form = TopicForm(request.POST, instance=instance)
-            if form.is_valid():
-                saved = form.save()
+            topic_form = TopicForm(request.POST, instance=instance)
+            active_form_kind = "topic"
+            if topic_form.is_valid():
+                saved = topic_form.save()
                 messages.success(request, "Topic saved.")
                 return _redirect_with_edit("training:trainer_topics", saved.id, param_name="edit_topic")
         elif form_kind == "subtopic":
             instance = Subtopic.objects.filter(pk=request.POST.get("item_id")).first()
-            form = SubtopicForm(request.POST, instance=instance)
-            if form.is_valid():
-                form.save()
+            subtopic_form = SubtopicForm(request.POST, instance=instance)
+            active_form_kind = "subtopic"
+            if subtopic_form.is_valid():
+                subtopic_form.save()
                 messages.success(request, "Subtopic saved.")
                 return redirect("training:trainer_topics")
+
+    topics = list(Topic.objects.prefetch_related("subtopics"))
+    subtopics = list(Subtopic.objects.select_related("topic"))
 
     return render(
         request,
         "training/trainer/topics.html",
         {
-            "subtopic_form": SubtopicForm(instance=subtopic_instance),
-            "subtopics": Subtopic.objects.select_related("topic"),
-            "topic_form": TopicForm(instance=topic_instance),
-            "topics": Topic.objects.prefetch_related("subtopics"),
+            "active_form_kind": active_form_kind,
+            "selected_topic": _selected_training_topic(topics, topic_instance, subtopic_instance),
+            "subtopic_form": subtopic_form,
+            "subtopics": subtopics,
+            "topic_form": topic_form,
+            "topic_workspace_stats": _topic_workspace_stats(topics, subtopics),
+            "topics": topics,
         },
     )
 
