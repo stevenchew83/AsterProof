@@ -1,65 +1,376 @@
 {% extends 'layouts/vertical.html' %}
 
+{% load static %}
 {% load crispy_forms_tags %}
 
 {% block title %}Training topics{% endblock title %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'plugins/datatables/dataTables.bootstrap5.min.css' %}">
+<style>
+  .training-topic-workspace .metric-card .avatar-title {
+    height: 2.75rem;
+    width: 2.75rem;
+  }
+
+  .training-topic-rail {
+    max-height: 34rem;
+    overflow-y: auto;
+  }
+
+  .training-topic-filter {
+    appearance: none;
+    background: transparent;
+    border: 0;
+    color: inherit;
+    display: block;
+    padding: 0;
+    text-align: left;
+    width: 100%;
+  }
+
+  .training-topic-row {
+    transition: background-color .15s ease, border-color .15s ease;
+  }
+
+  .training-topic-row.is-active {
+    background-color: var(--bs-primary-bg-subtle);
+    border-color: var(--bs-primary-border-subtle) !important;
+  }
+
+  .training-topic-row.is-active .training-topic-filter {
+    color: var(--bs-primary-text-emphasis);
+  }
+
+  .training-topic-editor {
+    top: 1rem;
+  }
+
+  .training-topic-description {
+    max-width: 30rem;
+  }
+
+  #training-subtopics-table_wrapper .dt-layout-row {
+    margin: .5rem 0;
+  }
+
+  #training-subtopics-table_wrapper .dt-length label,
+  #training-subtopics-table_wrapper .dt-search label {
+    color: var(--bs-secondary-color);
+    font-size: .75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  #training-subtopics-table_wrapper .dt-length .form-select,
+  #training-subtopics-table_wrapper .dt-search .form-control {
+    font-size: .8125rem;
+    min-height: calc(1.5em + .5rem + 2px);
+    padding-bottom: .25rem;
+    padding-top: .25rem;
+  }
+
+  @media (min-width: 1400px) {
+    .training-topic-editor {
+      position: sticky;
+    }
+  }
+</style>
+{% endblock extra_css %}
+
 {% block page_content %}
-<div class="container-fluid">
+<div class="container-fluid training-topic-workspace" data-training-topic-workspace="true">
   {% include 'partials/page-title.html' with title='Training content' subtitle='Topics and subtopics' %}
   {% include 'training/partials/messages.html' %}
-  <div class="row g-3 mt-0">
-    <div class="col-xl-5">
-      <div class="card">
-        <div class="card-header border-0 pb-0"><h4 class="header-title mb-0">Topic</h4></div>
-        <div class="card-body pt-2">
-          <form method="post">
-            {% csrf_token %}
-            <input type="hidden" name="form_kind" value="topic">
-            <input type="hidden" name="item_id" value="{{ topic_form.instance.id|default:'' }}">
-            {{ topic_form|crispy }}
-            <button type="submit" class="btn btn-primary">Save topic</button>
-          </form>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-header border-0 pb-0"><h4 class="header-title mb-0">Subtopic</h4></div>
-        <div class="card-body pt-2">
-          <form method="post">
-            {% csrf_token %}
-            <input type="hidden" name="form_kind" value="subtopic">
-            <input type="hidden" name="item_id" value="{{ subtopic_form.instance.id|default:'' }}">
-            {{ subtopic_form|crispy }}
-            <button type="submit" class="btn btn-primary">Save subtopic</button>
-          </form>
+
+  <div class="row g-3 mt-0 mb-3">
+    <div class="col-sm-6 col-xl-3">
+      <div class="card metric-card mb-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-primary-subtle text-primary rounded">
+                <i class="ti ti-category fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Topics</p>
+              <h3 class="mb-0">{{ topic_workspace_stats.topic_total }} topic{{ topic_workspace_stats.topic_total|pluralize }}</h3>
+            </div>
+          </div>
         </div>
       </div>
     </div>
-    <div class="col-xl-7">
-      <div class="card">
-        <div class="card-header border-0 pb-0"><h4 class="header-title mb-0">Current structure</h4></div>
-        <div class="card-body pt-2">
-          {% for topic in topics %}
-          <div class="border-bottom py-3">
-            <div class="d-flex justify-content-between gap-3">
-              <div>
-                <div class="fw-semibold">{{ topic.title }}</div>
-                <div class="text-muted fs-xs">{{ topic.description }}</div>
-              </div>
-              <a href="{% url 'training:trainer_topics' %}?edit_topic={{ topic.id }}" class="btn btn-outline-secondary btn-sm">Edit</a>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card metric-card mb-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-info-subtle text-info rounded">
+                <i class="ti ti-list-tree fs-24"></i>
+              </span>
             </div>
-            <div class="mt-2 d-flex flex-column gap-1">
-              {% for subtopic in topic.subtopics.all %}
-              <div class="d-flex justify-content-between">
-                <span>{{ subtopic.title }}</span>
-                <a href="{% url 'training:trainer_topics' %}?edit_subtopic={{ subtopic.id }}" class="fs-xs">Edit</a>
-              </div>
-              {% empty %}<span class="text-muted fs-xs">No subtopics.</span>{% endfor %}
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Subtopics</p>
+              <h3 class="mb-0">{{ topic_workspace_stats.subtopic_total }} subtopic{{ topic_workspace_stats.subtopic_total|pluralize }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card metric-card mb-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-success-subtle text-success rounded">
+                <i class="ti ti-circle-check fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Published</p>
+              <h3 class="mb-0">{{ topic_workspace_stats.published_total }} published</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card metric-card mb-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-warning-subtle text-warning rounded">
+                <i class="ti ti-eye-off fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Drafts</p>
+              <h3 class="mb-0">{{ topic_workspace_stats.draft_total }} draft{{ topic_workspace_stats.draft_total|pluralize }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-xxl-3 col-xl-4">
+      <div class="card">
+        <div class="card-header border-bottom py-2">
+          <div class="d-flex align-items-center justify-content-between gap-2">
+            <div>
+              <h4 class="header-title mb-0">Taxonomy workspace</h4>
+              <p class="text-muted fs-xs mb-0">Pick a topic to focus the subtopic table.</p>
+            </div>
+            <a href="{% url 'training:trainer_topics' %}" class="btn btn-outline-secondary btn-sm">
+              <i class="ti ti-plus me-1"></i>New
+            </a>
+          </div>
+        </div>
+        <div class="card-body p-2">
+          <div class="border rounded mb-2 p-2 {% if not selected_topic %}bg-primary-subtle border-primary-subtle{% endif %}">
+            <button type="button" class="training-topic-filter" data-topic-filter="" data-topic-title="All subtopics">
+              <span class="d-flex align-items-center justify-content-between gap-2">
+                <span>
+                  <span class="fw-semibold">All subtopics</span>
+                  <span class="d-block text-muted fs-xs">Global search across the training map</span>
+                </span>
+                <span class="badge bg-light text-dark border">{{ topic_workspace_stats.subtopic_total }}</span>
+              </span>
+            </button>
+          </div>
+          <div class="training-topic-rail d-flex flex-column gap-2">
+          {% for topic in topics %}
+          <div class="training-topic-row border rounded p-2{% if selected_topic.id == topic.id %} is-active{% endif %}" data-topic-row="{{ topic.slug }}">
+            <div class="d-flex align-items-start gap-2">
+              <button type="button" class="training-topic-filter flex-grow-1" data-topic-filter="{{ topic.slug }}" data-topic-title="{{ topic.title }}">
+                <span class="d-flex align-items-center justify-content-between gap-2">
+                  <span class="fw-semibold">{{ topic.title }}</span>
+                  <span class="badge bg-light text-dark border">{{ topic.subtopics.all|length }}</span>
+                </span>
+                <span class="d-block text-muted fs-xs text-truncate">{{ topic.slug }}</span>
+                {% if topic.description %}
+                <span class="d-block text-muted fs-xs mt-1">{{ topic.description|truncatechars:96 }}</span>
+                {% endif %}
+              </button>
+              <a href="{% url 'training:trainer_topics' %}?edit_topic={{ topic.id }}" class="btn btn-outline-secondary btn-sm flex-shrink-0" aria-label="Edit {{ topic.title }}">
+                <i class="ti ti-edit"></i>
+              </a>
+            </div>
+            <div class="mt-2 d-flex flex-wrap align-items-center gap-1">
+              <span class="badge bg-secondary-subtle text-secondary">Order {{ topic.order }}</span>
+              {% if topic.is_published %}
+              <span class="badge bg-success-subtle text-success">Published</span>
+              {% else %}
+              <span class="badge bg-warning-subtle text-warning">Draft</span>
+              {% endif %}
             </div>
           </div>
           {% empty %}
           <div class="alert alert-info mb-0">No topics yet.</div>
           {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xxl-6 col-xl-8">
+      <div class="card">
+        <div class="card-header border-bottom py-2">
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <div>
+              <h4 class="header-title mb-0">Subtopic table</h4>
+              <p class="text-muted fs-xs mb-0" id="training-subtopic-table-caption">
+                {% if selected_topic %}Showing {{ selected_topic.title }} by default.{% else %}Showing every subtopic.{% endif %}
+              </p>
+            </div>
+            <div class="d-flex align-items-end gap-2">
+              <div>
+                <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="training-topic-status-filter">Status</label>
+                <select id="training-topic-status-filter" class="form-select form-select-sm">
+                  <option value="">All</option>
+                  <option value="published">Published</option>
+                  <option value="draft">Draft</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card-body p-2 p-md-3">
+          {% if subtopics %}
+          <div class="table-responsive">
+            <table
+              id="training-subtopics-table"
+              class="table table-sm table-hover align-middle mb-0"
+              data-selected-topic-slug="{{ selected_topic.slug|default:'' }}"
+            >
+              <thead>
+                <tr>
+                  <th class="text-nowrap">Order</th>
+                  <th>Subtopic</th>
+                  <th class="text-nowrap">Slug</th>
+                  <th>Description</th>
+                  <th class="text-nowrap">Status</th>
+                  <th class="text-end">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for subtopic in subtopics %}
+                <tr data-topic-slug="{{ subtopic.topic.slug }}" data-status="{% if subtopic.is_published and subtopic.topic.is_published %}published{% else %}draft{% endif %}">
+                  <td class="text-nowrap" data-order="{{ subtopic.order }}">{{ subtopic.order }}</td>
+                  <td>
+                    <div class="fw-semibold">{{ subtopic.title }}</div>
+                    <div class="text-muted fs-xs">{{ subtopic.topic.title }}</div>
+                  </td>
+                  <td class="text-nowrap"><code>{{ subtopic.slug }}</code></td>
+                  <td class="text-muted training-topic-description">
+                    {% if subtopic.description %}{{ subtopic.description|truncatechars:140 }}{% else %}<span class="fs-xs">No description</span>{% endif %}
+                  </td>
+                  <td class="text-nowrap">
+                    {% if subtopic.is_published and subtopic.topic.is_published %}
+                    <span class="badge bg-success-subtle text-success">Published</span>
+                    {% else %}
+                    <span class="badge bg-warning-subtle text-warning">Draft</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-end">
+                    <a href="{% url 'training:trainer_topics' %}?edit_subtopic={{ subtopic.id }}" class="btn btn-outline-secondary btn-sm text-nowrap">
+                      <i class="ti ti-edit me-1"></i>Edit
+                    </a>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="alert alert-info mb-0">No subtopics yet.</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xxl-3">
+      <div class="card training-topic-editor">
+        <div class="card-header border-bottom py-2">
+          <div class="d-flex align-items-center justify-content-between gap-2">
+            <div>
+              <h4 class="header-title mb-0">Editor</h4>
+              <p class="text-muted fs-xs mb-0">Create or update taxonomy records.</p>
+            </div>
+            {% if topic_form.instance.id or subtopic_form.instance.id %}
+            <a href="{% url 'training:trainer_topics' %}" class="btn btn-outline-secondary btn-sm">Clear</a>
+            {% endif %}
+          </div>
+        </div>
+        <div class="card-body">
+          <ul class="nav nav-pills nav-justified mb-3" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button
+                class="nav-link{% if active_form_kind == 'topic' %} active{% endif %}"
+                id="topic-editor-tab"
+                data-bs-toggle="tab"
+                data-bs-target="#topic-editor-pane"
+                type="button"
+                role="tab"
+                aria-controls="topic-editor-pane"
+                aria-selected="{% if active_form_kind == 'topic' %}true{% else %}false{% endif %}"
+              >
+                Topic
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button
+                class="nav-link{% if active_form_kind == 'subtopic' %} active{% endif %}"
+                id="subtopic-editor-tab"
+                data-bs-toggle="tab"
+                data-bs-target="#subtopic-editor-pane"
+                type="button"
+                role="tab"
+                aria-controls="subtopic-editor-pane"
+                aria-selected="{% if active_form_kind == 'subtopic' %}true{% else %}false{% endif %}"
+              >
+                Subtopic
+              </button>
+            </li>
+          </ul>
+          <div class="tab-content">
+            <div
+              class="tab-pane fade{% if active_form_kind == 'topic' %} show active{% endif %}"
+              id="topic-editor-pane"
+              role="tabpanel"
+              aria-labelledby="topic-editor-tab"
+              tabindex="0"
+            >
+              <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="form_kind" value="topic">
+                <input type="hidden" name="item_id" value="{{ topic_form.instance.id|default:'' }}">
+                {{ topic_form|crispy }}
+                <button type="submit" class="btn btn-primary w-100">
+                  <i class="ti ti-device-floppy me-1"></i>Save topic
+                </button>
+              </form>
+            </div>
+            <div
+              class="tab-pane fade{% if active_form_kind == 'subtopic' %} show active{% endif %}"
+              id="subtopic-editor-pane"
+              role="tabpanel"
+              aria-labelledby="subtopic-editor-tab"
+              tabindex="0"
+            >
+              <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="form_kind" value="subtopic">
+                <input type="hidden" name="item_id" value="{{ subtopic_form.instance.id|default:'' }}">
+                {{ subtopic_form|crispy }}
+                <button type="submit" class="btn btn-primary w-100">
+                  <i class="ti ti-device-floppy me-1"></i>Save subtopic
+                </button>
+              </form>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -67,3 +378,88 @@
 </div>
 {% endblock page_content %}
 
+{% block extra_javascript %}
+{% include 'partials/datatables-vendor-scripts.html' %}
+<script>
+(function () {
+  var tableNode = document.getElementById("training-subtopics-table");
+  var caption = document.getElementById("training-subtopic-table-caption");
+  var statusFilter = document.getElementById("training-topic-status-filter");
+  var topicButtons = Array.prototype.slice.call(document.querySelectorAll("[data-topic-filter]"));
+  var selectedTopicSlug = tableNode ? tableNode.getAttribute("data-selected-topic-slug") || "" : "";
+  var currentTopicSlug = selectedTopicSlug;
+  var tableRows = tableNode ? Array.prototype.slice.call(tableNode.querySelectorAll("tbody tr")) : [];
+  var tableApi = null;
+
+  function setActiveTopic(slug) {
+    topicButtons.forEach(function (button) {
+      var row = button.closest("[data-topic-row]");
+      var isActive = (button.getAttribute("data-topic-filter") || "") === slug;
+      button.setAttribute("aria-pressed", isActive ? "true" : "false");
+      if (row) row.classList.toggle("is-active", isActive);
+      if (!row && !slug) {
+        button.parentElement.classList.add("bg-primary-subtle", "border-primary-subtle");
+      } else if (!row) {
+        button.parentElement.classList.remove("bg-primary-subtle", "border-primary-subtle");
+      }
+    });
+  }
+
+  function setCaption(slug) {
+    if (!caption) return;
+    if (!slug) {
+      caption.textContent = "Showing every subtopic.";
+      return;
+    }
+    var activeButton = topicButtons.find(function (button) {
+      return button.getAttribute("data-topic-filter") === slug;
+    });
+    caption.textContent = activeButton
+      ? "Showing " + activeButton.getAttribute("data-topic-title") + "."
+      : "Showing selected topic.";
+  }
+
+  function redrawTable() {
+    setActiveTopic(currentTopicSlug);
+    setCaption(currentTopicSlug);
+    if (tableApi) tableApi.draw();
+  }
+
+  topicButtons.forEach(function (button) {
+    button.addEventListener("click", function () {
+      currentTopicSlug = button.getAttribute("data-topic-filter") || "";
+      redrawTable();
+    });
+  });
+
+  if (statusFilter) {
+    statusFilter.addEventListener("change", redrawTable);
+  }
+
+  if (!tableNode || typeof DataTable === "undefined") {
+    redrawTable();
+    return;
+  }
+
+  DataTable.ext.search.push(function (settings, _data, dataIndex) {
+    if (settings.nTable !== tableNode) return true;
+    var row = tableRows[dataIndex];
+    if (!row) return true;
+    var statusValue = statusFilter ? statusFilter.value : "";
+    var topicMatches = !currentTopicSlug || row.getAttribute("data-topic-slug") === currentTopicSlug;
+    var statusMatches = !statusValue || row.getAttribute("data-status") === statusValue;
+    return topicMatches && statusMatches;
+  });
+
+  tableApi = new DataTable(tableNode, {
+    pageLength: 25,
+    order: [[0, "asc"], [1, "asc"]],
+    columnDefs: [
+      { targets: 5, orderable: false, searchable: false }
+    ]
+  });
+
+  redrawTable();
+})();
+</script>
+{% endblock extra_javascript %}
