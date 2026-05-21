@@ -307,6 +307,49 @@ def test_student_cannot_access_trainer_or_admin_pages(client):
     assert client.get(reverse("training:admin_levels")).status_code == HTTPStatus.FORBIDDEN
 
 
+def test_trainer_topics_page_uses_split_taxonomy_workspace(client):
+    trainer = UserFactory(role=User.Role.TRAINER)
+    topic, subtopic, _material, _problem = _topic_tree()
+    draft_topic = Topic.objects.create(
+        title="Draft Geometry",
+        slug="draft-geometry",
+        description="Hidden geometry sequence.",
+        order=2,
+        is_published=False,
+    )
+    Subtopic.objects.create(
+        topic=draft_topic,
+        title="Circle tangencies",
+        slug="circle-tangencies",
+        order=1,
+        is_published=False,
+    )
+    client.force_login(trainer)
+
+    response = client.get(reverse("training:trainer_topics"), {"edit_subtopic": subtopic.id})
+
+    assert response.status_code == HTTPStatus.OK
+    html = response.content.decode("utf-8")
+    topic_total = Topic.objects.count()
+    subtopic_total = Subtopic.objects.count()
+    published_topic_total = Topic.objects.filter(is_published=True).count()
+    published_subtopic_total = Subtopic.objects.filter(is_published=True, topic__is_published=True).count()
+    draft_total = (topic_total - published_topic_total) + (subtopic_total - published_subtopic_total)
+
+    assert 'data-training-topic-workspace="true"' in html
+    assert "Taxonomy workspace" in html
+    assert f"{topic_total} topic" in html
+    assert f"{subtopic_total} subtopic" in html
+    assert f"{draft_total} draft" in html
+    assert 'id="training-subtopics-table"' in html
+    assert 'data-topic-slug="local-algebra"' in html
+    assert 'data-selected-topic-slug="local-algebra"' in html
+    assert "Subtopic table" in html
+    assert "Editor" in html
+    assert topic.title in html
+    assert subtopic.title in html
+
+
 def test_student_cannot_award_submission_points(client):
     _thresholds()
     student = UserFactory(role=User.Role.NORMAL)
