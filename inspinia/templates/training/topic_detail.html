@@ -23,7 +23,10 @@
         <div class="col-md-6">
           <a href="{{ row.url }}" class="card h-100 text-decoration-none text-reset">
             <div class="card-body">
-              <h4 class="mb-1">{{ row.subtopic.title }}</h4>
+              <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                <h4 class="mb-0">{{ row.subtopic.title }}</h4>
+                {% include 'training/partials/subtopic_badges.html' with subtopic=row.subtopic %}
+              </div>
               <p class="text-muted fs-sm">{{ row.subtopic.description }}</p>
               <div class="d-flex flex-wrap gap-2 mb-3">
                 <span class="badge text-bg-light">{{ row.material_count }} materials</span>
@@ -44,4 +47,3 @@
   </div>
 </div>
 {% endblock page_content %}
-

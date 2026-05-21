@@ -37,9 +37,17 @@ class Topic(models.Model):
 
 
 class Subtopic(models.Model):
+    class Level(models.TextChoices):
+        CORE = "CORE", "Core"
+        ADVANCED = "ADVANCED", "Advanced"
+        EXCEPTIONAL = "EXCEPTIONAL", "Exceptional"
+
     topic = models.ForeignKey(Topic, on_delete=models.CASCADE, related_name="subtopics")
     title = models.CharField(max_length=160)
-    slug = models.SlugField()
+    slug = models.SlugField(max_length=180)
+    category = models.CharField(max_length=120, blank=True)
+    level = models.CharField(max_length=16, choices=Level.choices, blank=True)
+    is_imo_syllabus = models.BooleanField("IMO syllabus", default=False, db_index=True)
     description = models.TextField(blank=True)
     order = models.PositiveIntegerField(default=0)
     is_published = models.BooleanField(default=True, db_index=True)
@@ -59,6 +67,7 @@ class Subtopic(models.Model):
         if not self.slug:
             self.slug = slugify(self.title)
         self.title = (self.title or "").strip()
+        self.category = (self.category or "").strip()
         self.description = (self.description or "").strip()
         super().save(*args, **kwargs)
 

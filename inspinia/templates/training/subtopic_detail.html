@@ -9,6 +9,11 @@
     <div class="col-xl-4">
       <div class="card">
         <div class="card-body">
+          {% if subtopic.is_imo_syllabus or subtopic.category or subtopic.level %}
+          <div class="d-flex flex-wrap gap-2 mb-2">
+            {% include 'training/partials/subtopic_badges.html' with subtopic=subtopic %}
+          </div>
+          {% endif %}
           <p class="text-muted">{{ subtopic.description }}</p>
           <div class="progress" style="height: 8px;">
             <div class="progress-bar" style="width: {{ progress.completion_percentage }}%;"></div>
