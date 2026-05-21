@@ -457,7 +457,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="subtopic",
             name="is_imo_syllabus",
-            field=models.BooleanField("IMO syllabus", db_index=True, default=False),
+            field=models.BooleanField("IMO syllabus", default=False),
         ),
         migrations.RunPython(seed_imo_syllabus_subtopics, noop_reverse),
     ]
