@@ -260,7 +260,10 @@
                 <tr data-topic-slug="{{ subtopic.topic.slug }}" data-status="{% if subtopic.is_published and subtopic.topic.is_published %}published{% else %}draft{% endif %}">
                   <td class="text-nowrap" data-order="{{ subtopic.order }}">{{ subtopic.order }}</td>
                   <td>
-                    <div class="fw-semibold">{{ subtopic.title }}</div>
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                      <span class="fw-semibold">{{ subtopic.title }}</span>
+                      {% include 'training/partials/subtopic_badges.html' with subtopic=subtopic %}
+                    </div>
                     <div class="text-muted fs-xs">{{ subtopic.topic.title }}</div>
                   </td>
                   <td class="text-nowrap"><code>{{ subtopic.slug }}</code></td>
