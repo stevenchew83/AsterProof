@@ -22,10 +22,10 @@ class TopicAdmin(admin.ModelAdmin):
 
 @admin.register(Subtopic)
 class SubtopicAdmin(admin.ModelAdmin):
-    list_display = ("title", "topic", "order", "is_published")
-    list_filter = ("topic", "is_published")
+    list_display = ("title", "topic", "category", "level", "is_imo_syllabus", "order", "is_published")
+    list_filter = ("topic", "level", "is_imo_syllabus", "is_published")
     prepopulated_fields = {"slug": ("title",)}
-    search_fields = ("title", "description", "topic__title")
+    search_fields = ("title", "category", "description", "topic__title")
 
 
 @admin.register(Material)

@@ -25,7 +25,9 @@ pytestmark = pytest.mark.django_db
 
 FULL_COMPLETION_PERCENTAGE = 100
 EXPECTED_SEED_TOPIC_TOTAL = 4
-EXPECTED_SEED_SUBTOPIC_TOTAL = 56
+EXPECTED_BROAD_SEED_SUBTOPIC_TOTAL = 56
+EXPECTED_IMO_SYLLABUS_SUBTOPIC_TOTAL = 117
+EXPECTED_SEED_SUBTOPIC_TOTAL = EXPECTED_BROAD_SEED_SUBTOPIC_TOTAL + EXPECTED_IMO_SYLLABUS_SUBTOPIC_TOTAL
 INITIAL_LEDGER_POINTS = 275
 MATERIAL_COMPLETION_POINTS = 10
 PARTIAL_ACCEPTANCE_POINTS = 15
@@ -161,7 +163,24 @@ def test_seeded_training_taxonomy_contains_expanded_topics():
     for topic_slug, expected_titles in EXPECTED_SEED_SUBTOPICS.items():
         topic = Topic.objects.get(slug=topic_slug)
         titles = set(topic.subtopics.values_list("title", flat=True))
-        assert titles == expected_titles
+        assert titles.issuperset(expected_titles)
+
+
+def test_seeded_training_taxonomy_adds_imo_syllabus_leaf_subtopics_without_duplicates():
+    algebra = Topic.objects.get(slug="algebra")
+    fe_subtopic = Subtopic.objects.get(
+        topic=algebra,
+        title="What it means to solve (structure, fixed points, verification)",
+    )
+
+    assert fe_subtopic.category == "Functional Equations"
+    assert fe_subtopic.level == Subtopic.Level.CORE
+    assert fe_subtopic.is_imo_syllabus is True
+    assert Subtopic.objects.filter(is_imo_syllabus=True).count() == EXPECTED_IMO_SYLLABUS_SUBTOPIC_TOTAL
+    assert Subtopic.objects.filter(
+        topic__slug="number-theory",
+        title__iexact="Chinese remainder theorem",
+    ).count() == 1
 
 
 def test_markdown_renderer_sanitizes_html_and_preserves_math():
@@ -364,3 +383,31 @@ def test_sidebar_shows_role_appropriate_training_links(client):
     admin_html = client.get(reverse("training:dashboard")).content.decode("utf-8")
     assert "Trainer queue" in admin_html
     assert "Level settings" in admin_html
+
+
+def test_trainer_topics_marks_imo_syllabus_subtopics(client):
+    trainer = UserFactory(role=User.Role.TRAINER)
+    topic = Topic.objects.create(
+        title="Local Algebra",
+        slug="local-algebra",
+        description="Core algebra training.",
+        order=1,
+    )
+    Subtopic.objects.create(
+        topic=topic,
+        title="What it means to solve",
+        slug="what-it-means-to-solve",
+        category="Functional Equations",
+        level=Subtopic.Level.CORE,
+        is_imo_syllabus=True,
+        order=1,
+    )
+    client.force_login(trainer)
+
+    html = client.get(reverse("training:trainer_topics")).content.decode("utf-8")
+
+    assert "What it means to solve" in html
+    assert "Functional Equations" in html
+    assert "Core" in html
+    assert "ti ti-award" in html
+    assert "IMO" in html

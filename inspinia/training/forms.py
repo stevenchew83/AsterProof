@@ -34,7 +34,17 @@ class TopicForm(BootstrapModelForm):
 class SubtopicForm(BootstrapModelForm):
     class Meta:
         model = Subtopic
-        fields = ["topic", "title", "slug", "description", "order", "is_published"]
+        fields = [
+            "topic",
+            "title",
+            "slug",
+            "category",
+            "level",
+            "is_imo_syllabus",
+            "description",
+            "order",
+            "is_published",
+        ]
         widgets = {
             "description": forms.Textarea(attrs={"rows": 3}),
         }
