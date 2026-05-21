@@ -3,6 +3,7 @@ from http import HTTPStatus
 import pytest
 from django.urls import reverse
 
+from inspinia.training.markdown import render_markdown
 from inspinia.training.models import LevelThreshold
 from inspinia.training.models import Material
 from inspinia.training.models import PointLedger
@@ -23,9 +24,78 @@ from inspinia.users.tests.factories import UserFactory
 pytestmark = pytest.mark.django_db
 
 FULL_COMPLETION_PERCENTAGE = 100
+EXPECTED_SEED_TOPIC_TOTAL = 4
+EXPECTED_SEED_SUBTOPIC_TOTAL = 56
 INITIAL_LEDGER_POINTS = 275
 MATERIAL_COMPLETION_POINTS = 10
 PARTIAL_ACCEPTANCE_POINTS = 15
+
+EXPECTED_SEED_SUBTOPICS = {
+    "algebra": {
+        "Algebraic identities",
+        "Equations and systems",
+        "Inequalities",
+        "Polynomials",
+        "Functional equations",
+        "Sequences and recurrences",
+        "Symmetric and cyclic expressions",
+        "Vieta relations and root methods",
+        "Algebraic substitutions and transformations",
+        "Absolute value and piecewise algebra",
+        "Exponential and logarithmic expressions",
+        "Optimization and extrema",
+        "Complex numbers and roots of unity",
+        "Matrices and linear transformations",
+    },
+    "number-theory": {
+        "Divisibility",
+        "Modular arithmetic",
+        "Primes and factorization",
+        "Diophantine equations",
+        "Orders, residues, and primitive roots",
+        "Valuations and LTE-style methods",
+        "GCD, LCM, and Euclidean algorithm",
+        "Chinese remainder theorem",
+        "Fermat, Euler, and Wilson theorems",
+        "Quadratic residues and reciprocity",
+        "Arithmetic functions",
+        "Pell equations and continued fractions",
+        "Base representation and digit problems",
+        "Infinite descent",
+    },
+    "geometry": {
+        "Angle chasing",
+        "Cyclic quadrilaterals",
+        "Similarity and homothety",
+        "Power of a point",
+        "Inversion",
+        "Coordinate, barycentric, and complex geometry",
+        "Triangle centers and classical lines",
+        "Ceva, Menelaus, and mass points",
+        "Tangency and radical axis",
+        "Spiral similarity",
+        "Area methods",
+        "Trigonometric geometry",
+        "Projective geometry",
+        "Loci and constructions",
+    },
+    "combinatorics": {
+        "Counting techniques",
+        "Pigeonhole principle",
+        "Invariants and monovariants",
+        "Graph theory",
+        "Extremal combinatorics",
+        "Games and strategies",
+        "Double counting",
+        "Inclusion-exclusion",
+        "Recursion and generating functions",
+        "Coloring arguments",
+        "Tiling and packing",
+        "Ramsey theory",
+        "Probabilistic method",
+        "Posets and ordering",
+    },
+}
 
 
 def _thresholds() -> None:
@@ -45,8 +115,8 @@ def _thresholds() -> None:
 def _topic_tree(*, published: bool = True) -> tuple[Topic, Subtopic, Material, Problem]:
     trainer = UserFactory(role=User.Role.TRAINER)
     topic = Topic.objects.create(
-        title="Algebra",
-        slug="algebra",
+        title="Local Algebra",
+        slug="local-algebra",
         description="Core algebra training.",
         order=1,
         is_published=published,
@@ -82,6 +152,35 @@ def _topic_tree(*, published: bool = True) -> tuple[Topic, Subtopic, Material, P
         created_by=trainer,
     )
     return topic, subtopic, material, problem
+
+
+def test_seeded_training_taxonomy_contains_expanded_topics():
+    assert Topic.objects.filter(slug__in=EXPECTED_SEED_SUBTOPICS).count() == EXPECTED_SEED_TOPIC_TOTAL
+    assert Subtopic.objects.filter(topic__slug__in=EXPECTED_SEED_SUBTOPICS).count() == EXPECTED_SEED_SUBTOPIC_TOTAL
+
+    for topic_slug, expected_titles in EXPECTED_SEED_SUBTOPICS.items():
+        topic = Topic.objects.get(slug=topic_slug)
+        titles = set(topic.subtopics.values_list("title", flat=True))
+        assert titles == expected_titles
+
+
+def test_markdown_renderer_sanitizes_html_and_preserves_math():
+    html = str(
+        render_markdown(
+            "# Inequalities\n\n"
+            "Use $a^2+b^2 \\ge 2ab$.\n\n"
+            "<script>alert('x')</script>"
+            '<a href="javascript:alert(1)" onclick="alert(2)">bad</a>\n\n'
+            "[good](https://example.com)",
+        ),
+    )
+
+    assert "<h1>Inequalities</h1>" in html
+    assert "$a^2+b^2 \\ge 2ab$" in html
+    assert "<script" not in html
+    assert "onclick" not in html
+    assert "javascript:" not in html
+    assert '<a href="https://example.com"' in html
 
 
 def test_level_is_calculated_from_point_ledger():
