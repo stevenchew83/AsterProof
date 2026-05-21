@@ -1,0 +1,59 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}{{ subtopic.title }}{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  {% include 'partials/page-title.html' with title=subtopic.title subtitle=topic.title %}
+  <div class="row g-3 mt-0">
+    <div class="col-xl-4">
+      <div class="card">
+        <div class="card-body">
+          <p class="text-muted">{{ subtopic.description }}</p>
+          <div class="progress" style="height: 8px;">
+            <div class="progress-bar" style="width: {{ progress.completion_percentage }}%;"></div>
+          </div>
+          <div class="text-muted fs-xs mt-2">{{ progress.earned_points }}/{{ progress.available_points }} points earned</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-8">
+      <div class="card">
+        <div class="card-header border-0 pb-0"><h4 class="header-title mb-0">Materials</h4></div>
+        <div class="card-body pt-2">
+          {% for row in materials %}
+          <div class="d-flex align-items-center justify-content-between border-bottom py-2 gap-3">
+            <div>
+              <a href="{{ row.url }}" class="fw-semibold text-decoration-none">{{ row.material.title }}</a>
+              <div class="text-muted fs-xs">{{ row.material.estimated_minutes }} min · {{ row.material.completion_points }} pts</div>
+            </div>
+            {% if row.completed %}<span class="badge text-bg-success">Complete</span>{% else %}<span class="badge text-bg-light">Open</span>{% endif %}
+          </div>
+          {% empty %}
+          <div class="text-muted fs-sm">No materials yet.</div>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header border-0 pb-0"><h4 class="header-title mb-0">Problems</h4></div>
+        <div class="card-body pt-2">
+          {% for row in problems %}
+          <div class="d-flex align-items-center justify-content-between border-bottom py-2 gap-3">
+            <div>
+              <a href="{{ row.url }}" class="fw-semibold text-decoration-none">{{ row.problem.title }}</a>
+              <div class="d-flex flex-wrap gap-2 mt-1">
+                <span class="badge {{ row.problem.difficulty_badge_class }}">{{ row.problem.get_difficulty_display }}</span>
+                <span class="badge bg-warning-subtle text-warning">{{ row.problem.max_points }} pts</span>
+              </div>
+            </div>
+            {% if row.accepted %}<span class="badge text-bg-success">Accepted</span>{% else %}<span class="badge text-bg-light">Attempt</span>{% endif %}
+          </div>
+          {% empty %}
+          <div class="text-muted fs-sm">No problems yet.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock page_content %}

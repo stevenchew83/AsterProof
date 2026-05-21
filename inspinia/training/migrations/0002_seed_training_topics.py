@@ -4,10 +4,10 @@ from django.utils.text import slugify
 
 TRAINING_TOPIC_SEEDS = [
     {
-        "code": "ALG",
+        "slug": "algebra",
         "title": "Algebra",
         "description": "Equations, inequalities, polynomials, functions, and structural algebraic methods.",
-        "sort_order": 10,
+        "order": 10,
         "subtopics": [
             "Algebraic identities",
             "Equations and systems",
@@ -26,10 +26,10 @@ TRAINING_TOPIC_SEEDS = [
         ],
     },
     {
-        "code": "NT",
+        "slug": "number-theory",
         "title": "Number Theory",
         "description": "Divisibility, congruences, primes, residues, valuations, and integer equations.",
-        "sort_order": 20,
+        "order": 20,
         "subtopics": [
             "Divisibility",
             "Modular arithmetic",
@@ -48,10 +48,10 @@ TRAINING_TOPIC_SEEDS = [
         ],
     },
     {
-        "code": "GEO",
+        "slug": "geometry",
         "title": "Geometry",
         "description": "Synthetic, metric, transformational, and coordinate methods for olympiad geometry.",
-        "sort_order": 30,
+        "order": 30,
         "subtopics": [
             "Angle chasing",
             "Cyclic quadrilaterals",
@@ -70,10 +70,10 @@ TRAINING_TOPIC_SEEDS = [
         ],
     },
     {
-        "code": "COMB",
+        "slug": "combinatorics",
         "title": "Combinatorics",
         "description": "Counting, extremal arguments, invariants, graphs, games, and discrete structures.",
-        "sort_order": 40,
+        "order": 40,
         "subtopics": [
             "Counting techniques",
             "Pigeonhole principle",
@@ -100,31 +100,28 @@ def normalize_seed_title(value: str) -> str:
 
 def seed_training_topics(apps, schema_editor) -> None:
     del schema_editor
-    TrainingTopic = apps.get_model("training", "TrainingTopic")
-    TrainingSubtopic = apps.get_model("training", "TrainingSubtopic")
+    Topic = apps.get_model("training", "Topic")
+    Subtopic = apps.get_model("training", "Subtopic")
     for topic_payload in TRAINING_TOPIC_SEEDS:
         topic_title = normalize_seed_title(topic_payload["title"])
-        topic, _created = TrainingTopic.objects.update_or_create(
-            code=topic_payload["code"],
+        topic, _created = Topic.objects.update_or_create(
+            slug=topic_payload["slug"],
             defaults={
                 "description": topic_payload["description"],
-                "is_active": True,
-                "slug": slugify(topic_title),
-                "sort_order": topic_payload["sort_order"],
+                "is_published": True,
+                "order": topic_payload["order"],
                 "title": topic_title,
             },
         )
         for index, subtopic_title in enumerate(topic_payload["subtopics"], start=1):
             normalized_title = normalize_seed_title(subtopic_title)
-            TrainingSubtopic.objects.update_or_create(
+            Subtopic.objects.update_or_create(
                 topic=topic,
-                normalized_title=normalized_title.casefold(),
+                slug=slugify(normalized_title),
                 defaults={
                     "description": "",
-                    "is_active": True,
-                    "is_seeded": True,
-                    "slug": slugify(normalized_title),
-                    "sort_order": index * 10,
+                    "is_published": True,
+                    "order": index * 10,
                     "title": normalized_title,
                 },
             )
@@ -142,4 +139,3 @@ class Migration(migrations.Migration):
     operations = [
         migrations.RunPython(seed_training_topics, noop_reverse),
     ]
-

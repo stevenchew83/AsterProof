@@ -49,7 +49,7 @@
           <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
             <div>
               <h4 class="header-title mb-0">Find problem rows</h4>
-              <p class="text-muted fs-xs mb-0">Search by contest, year, and problem code, then save a completion date directly.</p>
+              <p class="text-muted fs-xs mb-0">Search by contest, year, problem code, and label, then save a completion date directly.</p>
             </div>
             <span class="badge text-bg-light">{{ completion_quick_update_result_summary }}</span>
           </div>
@@ -96,6 +96,17 @@
                   value="{{ completion_quick_update_filters.problem }}"
                   placeholder="P1 or 1"
                   autocomplete="off"
+                >
+              </div>
+              <div class="col-md-6 col-xl-3">
+                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="quick-completion-problem-label">Problem label</label>
+                <input
+                  id="quick-completion-problem-label"
+                  name="problem_label"
+                  type="search"
+                  class="form-control"
+                  value="{{ completion_quick_update_filters.problem_label }}"
+                  placeholder="USAMO 2026 P1"
                 >
               </div>
               <div class="col-md-4 col-xl-2">
@@ -176,6 +187,7 @@
                   <th>Label</th>
                   <th>Topic / MOHS</th>
                   <th>Current completion</th>
+                  <th>Actions</th>
                   <th>Status</th>
                   <th>Time spent</th>
                   <th>First idea?</th>
@@ -186,7 +198,6 @@
                   <th>Reattempt</th>
                   <th>Confidence</th>
                   <th>YYYY-MM-DD</th>
-                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -222,6 +233,25 @@
                     >
                       {{ row.completion_display }}
                     </span>
+                  </td>
+                  <td>
+                    <div class="quick-completion-actions d-flex flex-wrap gap-1">
+                      <button type="button" class="btn btn-light btn-sm js-quick-completion-today">
+                        <i class="ti ti-calendar-event me-1"></i>Today
+                      </button>
+                      <button type="button" class="btn btn-primary btn-sm js-quick-completion-save">
+                        <i class="ti ti-device-floppy me-1"></i>Save
+                      </button>
+                      <button type="button" class="btn btn-outline-primary btn-sm js-quick-completion-save-details">
+                        <i class="ti ti-notes me-1"></i>Details
+                      </button>
+                      <button type="button" class="btn btn-outline-info btn-sm js-quick-completion-unknown">
+                        <i class="ti ti-help-circle me-1"></i>Unknown
+                      </button>
+                      <button type="button" class="btn btn-outline-secondary btn-sm js-quick-completion-clear">
+                        <i class="ti ti-x me-1"></i>Clear
+                      </button>
+                    </div>
                   </td>
                   <td>
                     <select class="form-select form-select-sm js-quick-completion-status">
@@ -282,25 +312,6 @@
                       autocomplete="off"
                     >
                     <div class="text-danger fs-xs mt-1 d-none js-quick-completion-error"></div>
-                  </td>
-                  <td>
-                    <div class="quick-completion-actions d-flex flex-wrap gap-1">
-                      <button type="button" class="btn btn-light btn-sm js-quick-completion-today">
-                        <i class="ti ti-calendar-event me-1"></i>Today
-                      </button>
-                      <button type="button" class="btn btn-primary btn-sm js-quick-completion-save">
-                        <i class="ti ti-device-floppy me-1"></i>Save
-                      </button>
-                      <button type="button" class="btn btn-outline-primary btn-sm js-quick-completion-save-details">
-                        <i class="ti ti-notes me-1"></i>Details
-                      </button>
-                      <button type="button" class="btn btn-outline-info btn-sm js-quick-completion-unknown">
-                        <i class="ti ti-help-circle me-1"></i>Unknown
-                      </button>
-                      <button type="button" class="btn btn-outline-secondary btn-sm js-quick-completion-clear">
-                        <i class="ti ti-x me-1"></i>Clear
-                      </button>
-                    </div>
                   </td>
                 </tr>
                 {% endfor %}
@@ -441,7 +452,7 @@
         autoWidth: false,
         columnDefs: [
           {
-            targets: [15, 16],
+            targets: [6, 16],
             orderable: false,
             searchable: false
           }

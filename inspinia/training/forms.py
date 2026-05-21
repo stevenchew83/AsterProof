@@ -1,132 +1,169 @@
 from __future__ import annotations
 
 from django import forms
+from django.forms import modelformset_factory
 
-from inspinia.training.models import TrainingMaterial
-from inspinia.training.models import TrainingSubtopic
-from inspinia.training.models import TrainingTopic
+from inspinia.training.models import LevelThreshold
+from inspinia.training.models import Material
+from inspinia.training.models import Problem
+from inspinia.training.models import Submission
+from inspinia.training.models import Subtopic
+from inspinia.training.models import Topic
 
 
-class TrainingMaterialForm(forms.ModelForm):
-    subtopics = forms.ModelMultipleChoiceField(
-        queryset=TrainingSubtopic.objects.none(),
+class BootstrapModelForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            css_class = "form-check-input" if isinstance(field.widget, forms.CheckboxInput) else "form-control"
+            if isinstance(field.widget, forms.Select):
+                css_class = "form-select"
+            current_class = field.widget.attrs.get("class", "")
+            field.widget.attrs["class"] = f"{current_class} {css_class}".strip()
+
+
+class TopicForm(BootstrapModelForm):
+    class Meta:
+        model = Topic
+        fields = ["title", "slug", "description", "order", "is_published"]
+        widgets = {
+            "description": forms.Textarea(attrs={"rows": 3}),
+        }
+
+
+class SubtopicForm(BootstrapModelForm):
+    class Meta:
+        model = Subtopic
+        fields = ["topic", "title", "slug", "description", "order", "is_published"]
+        widgets = {
+            "description": forms.Textarea(attrs={"rows": 3}),
+        }
+
+
+class MaterialForm(BootstrapModelForm):
+    class Meta:
+        model = Material
+        fields = [
+            "subtopic",
+            "title",
+            "slug",
+            "content_markdown",
+            "estimated_minutes",
+            "completion_points",
+            "order",
+            "is_published",
+        ]
+        widgets = {
+            "content_markdown": forms.Textarea(attrs={"rows": 10, "class": "font-monospace"}),
+        }
+
+
+class ProblemForm(BootstrapModelForm):
+    tags_text = forms.CharField(
         required=False,
-        to_field_name="subtopic_uuid",
-        widget=forms.SelectMultiple(attrs={"class": "form-select", "size": 10}),
+        help_text="Comma-separated tags; stored uppercase.",
+        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "IDENTITIES, FACTORING"}),
     )
 
     class Meta:
-        model = TrainingMaterial
-        fields = ("title", "summary", "body_source", "estimated_minutes", "subtopics")
+        model = Problem
+        fields = [
+            "subtopic",
+            "title",
+            "slug",
+            "statement_markdown",
+            "difficulty",
+            "mohs_rating",
+            "source",
+            "tags_text",
+            "expected_method",
+            "max_points",
+            "official_solution_markdown",
+            "order",
+            "is_published",
+        ]
         widgets = {
-            "title": forms.TextInput(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Inversion: first transformations",
-                },
-            ),
-            "summary": forms.Textarea(
-                attrs={
-                    "class": "form-control",
-                    "rows": 3,
-                    "placeholder": "What should students understand after this module?",
-                },
-            ),
-            "body_source": forms.Textarea(
-                attrs={
-                    "class": "form-control font-monospace",
-                    "rows": 16,
-                    "placeholder": "## Lesson\n\nUse Markdown and TeX math like $a^2+b^2 \\ge 2ab$.",
-                },
-            ),
-            "estimated_minutes": forms.NumberInput(
-                attrs={
-                    "class": "form-control",
-                    "min": 0,
-                    "placeholder": "30",
-                },
-            ),
-        }
-        labels = {
-            "body_source": "Lesson body",
-            "estimated_minutes": "Estimated minutes",
+            "statement_markdown": forms.Textarea(attrs={"rows": 8, "class": "font-monospace"}),
+            "official_solution_markdown": forms.Textarea(attrs={"rows": 8, "class": "font-monospace"}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        subtopic_queryset = TrainingSubtopic.objects.filter(
-            is_active=True,
-            topic__is_active=True,
-        ).select_related("topic")
-        self.fields["subtopics"].queryset = subtopic_queryset
-        self.fields["subtopics"].choices = self._grouped_subtopic_choices(subtopic_queryset)
-        if self.instance.pk and not self.is_bound:
-            self.fields["subtopics"].initial = list(self.instance.subtopics.values_list("subtopic_uuid", flat=True))
+        if self.instance.pk:
+            self.fields["tags_text"].initial = ", ".join(self.instance.tags or [])
 
-    def clean_title(self) -> str:
-        title = (self.cleaned_data["title"] or "").strip()
-        if not title:
-            msg = "Title is required."
-            raise forms.ValidationError(msg)
-        return title
+    def clean_tags_text(self) -> list[str]:
+        value = self.cleaned_data.get("tags_text") or ""
+        return [chunk.strip().upper() for chunk in value.split(",") if chunk.strip()]
 
-    def clean_summary(self) -> str:
-        return (self.cleaned_data["summary"] or "").strip()
-
-    def clean_body_source(self) -> str:
-        return (self.cleaned_data["body_source"] or "").strip()
-
-    @staticmethod
-    def _grouped_subtopic_choices(queryset) -> list[tuple[str, list[tuple[object, str]]]]:
-        groups: list[tuple[str, list[tuple[object, str]]]] = []
-        current_topic_id = None
-        current_label = ""
-        current_choices: list[tuple[object, str]] = []
-        for subtopic in queryset.order_by("topic__sort_order", "topic__title", "sort_order", "title"):
-            if current_topic_id != subtopic.topic_id:
-                if current_choices:
-                    groups.append((current_label, current_choices))
-                current_topic_id = subtopic.topic_id
-                current_label = subtopic.topic.title
-                current_choices = []
-            current_choices.append((subtopic.subtopic_uuid, subtopic.title))
-        if current_choices:
-            groups.append((current_label, current_choices))
-        return groups
+    def save(self, commit=True):  # noqa: FBT002 - Django ModelForm.save uses this signature.
+        instance = super().save(commit=False)
+        instance.tags = self.cleaned_data["tags_text"]
+        if commit:
+            instance.save()
+            self.save_m2m()
+        return instance
 
 
-class TrainingSubtopicForm(forms.ModelForm):
+class SubmissionForm(BootstrapModelForm):
     class Meta:
-        model = TrainingSubtopic
-        fields = ("topic", "title", "description", "is_active")
+        model = Submission
+        fields = ["solution_markdown"]
         widgets = {
-            "topic": forms.Select(attrs={"class": "form-select"}),
-            "title": forms.TextInput(
+            "solution_markdown": forms.Textarea(
                 attrs={
-                    "class": "form-control",
-                    "placeholder": "Spiral similarity",
+                    "rows": 10,
+                    "class": "form-control font-monospace",
+                    "placeholder": "Write your proof. Use $...$ for inline math.",
                 },
             ),
-            "description": forms.Textarea(
-                attrs={
-                    "class": "form-control",
-                    "rows": 3,
-                    "placeholder": "Optional curator notes for this subtopic.",
-                },
-            ),
-            "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
 
-    def __init__(self, *args, **kwargs):
+
+class ReviewForm(forms.Form):
+    status = forms.ChoiceField(choices=Submission.Status.choices, widget=forms.Select(attrs={"class": "form-select"}))
+    awarded_points = forms.IntegerField(
+        min_value=0,
+        required=False,
+        widget=forms.NumberInput(attrs={"class": "form-control", "min": 0}),
+    )
+    comment_body = forms.CharField(
+        required=False,
+        widget=forms.Textarea(
+            attrs={
+                "class": "form-control font-monospace",
+                "rows": 4,
+                "placeholder": "Leave feedback for the student.",
+            },
+        ),
+    )
+
+    def __init__(self, *args, problem: Problem, **kwargs):
+        self.problem = problem
         super().__init__(*args, **kwargs)
-        self.fields["topic"].queryset = TrainingTopic.objects.filter(is_active=True).order_by("sort_order", "title")
+        self.fields["awarded_points"].widget.attrs["max"] = problem.max_points
+        self.fields["awarded_points"].help_text = f"Partial points may range from 0 to {problem.max_points}."
 
-    def clean_title(self) -> str:
-        title = (self.cleaned_data["title"] or "").strip()
-        if not title:
-            msg = "Subtopic title is required."
-            raise forms.ValidationError(msg)
-        return title
+    def clean_awarded_points(self) -> int:
+        value = self.cleaned_data.get("awarded_points")
+        return int(value or 0)
 
-    def clean_description(self) -> str:
-        return (self.cleaned_data["description"] or "").strip()
+    def clean(self):
+        cleaned_data = super().clean()
+        status = cleaned_data.get("status")
+        awarded_points = int(cleaned_data.get("awarded_points") or 0)
+        if status == Submission.Status.PARTIALLY_ACCEPTED and awarded_points > self.problem.max_points:
+            self.add_error("awarded_points", f"Points cannot exceed {self.problem.max_points}.")
+        return cleaned_data
+
+
+LevelThresholdFormSet = modelformset_factory(
+    LevelThreshold,
+    fields=["level_number", "name", "minimum_points"],
+    extra=0,
+    widgets={
+        "level_number": forms.NumberInput(attrs={"class": "form-control", "min": 1, "max": 10}),
+        "name": forms.TextInput(attrs={"class": "form-control"}),
+        "minimum_points": forms.NumberInput(attrs={"class": "form-control", "min": 0}),
+    },
+)

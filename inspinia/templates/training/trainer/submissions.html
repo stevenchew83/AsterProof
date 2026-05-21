@@ -1,0 +1,58 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}Training submissions{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  {% include 'partials/page-title.html' with title='Trainer queue' subtitle='Submissions' %}
+  <div class="card mt-0">
+    <div class="card-body">
+      <form method="get" class="row g-2 align-items-end">
+        <div class="col-md-3">
+          <label class="form-label">Status</label>
+          <select name="status" class="form-select">
+            <option value="">All</option>
+            {% for value,label in status_choices %}<option value="{{ value }}" {% if value == status_filter %}selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Topic</label>
+          <select name="topic" class="form-select">
+            <option value="">All</option>
+            {% for option in topic_options %}
+            <option value="{{ option.topic.id }}" {% if option.is_selected %}selected{% endif %}>{{ option.topic.title }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Search</label>
+          <input name="q" class="form-control" value="{{ query }}" placeholder="Student or problem">
+        </div>
+        <div class="col-md-2"><button class="btn btn-primary w-100" type="submit">Filter</button></div>
+      </form>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead><tr><th>Problem</th><th>Student</th><th>Status</th><th>Points</th><th></th></tr></thead>
+          <tbody>
+            {% for submission in submissions %}
+            <tr>
+              <td><div class="fw-semibold">{{ submission.problem.title }}</div><div class="text-muted fs-xs">{{ submission.problem.subtopic.topic.title }}</div></td>
+              <td>{{ submission.user.email }}</td>
+              <td><span class="badge {{ submission.status_badge_class }}">{{ submission.get_status_display }}</span></td>
+              <td>{{ submission.awarded_points }}/{{ submission.problem.max_points }}</td>
+              <td class="text-end"><a href="{% url 'training:trainer_submission_detail' submission.id %}" class="btn btn-outline-primary btn-sm">Review</a></td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="text-muted">No submissions match the filters.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock page_content %}

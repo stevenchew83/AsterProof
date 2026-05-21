@@ -1,0 +1,43 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}{{ material.title }}{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  {% include 'partials/page-title.html' with title=material.title subtitle=material.subtopic.title %}
+  {% include 'training/partials/messages.html' %}
+  <div class="row g-3 mt-0">
+    <div class="col-xl-8">
+      <article class="card">
+        <div class="card-body">
+          <div data-mathjax-scope class="lh-lg">{{ rendered_content }}</div>
+        </div>
+      </article>
+    </div>
+    <div class="col-xl-4">
+      <div class="card">
+        <div class="card-body">
+          <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Completion</p>
+          {% if completed %}
+          <div class="alert alert-success mb-0">This material is complete.</div>
+          {% else %}
+          <p class="text-muted">Mark complete once you have studied the notes and examples.</p>
+          <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary">
+              <i class="ti ti-check me-1"></i>Mark complete
+            </button>
+          </form>
+          {% endif %}
+          <div class="text-muted fs-xs mt-3">{{ material.completion_points }} points · {{ material.estimated_minutes }} min</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock page_content %}
+
+{% block extra_javascript %}
+{% include 'training/partials/mathjax.html' %}
+{% endblock extra_javascript %}
+

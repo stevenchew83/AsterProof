@@ -1,0 +1,39 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}Training roadmap{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  {% include 'partials/page-title.html' with title='Training roadmap' subtitle='Olympiad topics' %}
+  <div class="row g-3 mt-0">
+    {% for row in topic_rows %}
+    <div class="col-md-6 col-xl-3">
+      <a href="{{ row.url }}" class="card h-100 text-decoration-none text-reset">
+        <div class="card-body">
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <span class="avatar-title bg-primary-subtle text-primary rounded">
+              <i class="ti ti-book-2 fs-24"></i>
+            </span>
+            <span class="badge bg-warning-subtle text-warning border border-warning-subtle">{{ row.available_points }} pts</span>
+          </div>
+          <h4 class="mb-1">{{ row.title }}</h4>
+          <p class="text-muted fs-sm">{{ row.description }}</p>
+          <div class="d-flex justify-content-between fs-xs text-muted mb-1">
+            <span>{{ row.subtopic_count }} subtopics</span>
+            <span>{{ row.progress.completion_percentage }}%</span>
+          </div>
+          <div class="progress" style="height: 6px;">
+            <div class="progress-bar" style="width: {{ row.progress.completion_percentage }}%;"></div>
+          </div>
+        </div>
+      </a>
+    </div>
+    {% empty %}
+    <div class="col-12">
+      <div class="alert alert-info">No published training topics yet.</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock page_content %}
+

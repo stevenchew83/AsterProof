@@ -1,0 +1,52 @@
+{% extends 'layouts/vertical.html' %}
+
+{% load crispy_forms_tags %}
+
+{% block title %}Training materials{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  {% include 'partials/page-title.html' with title='Training materials' subtitle='Trainer CMS' %}
+  {% include 'training/partials/messages.html' %}
+  <div class="row g-3 mt-0">
+    <div class="col-xl-5">
+      <div class="card">
+        <div class="card-header border-0 pb-0"><h4 class="header-title mb-0">{% if selected_material %}Edit material{% else %}Create material{% endif %}</h4></div>
+        <div class="card-body pt-2">
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="item_id" value="{{ selected_material.id|default:'' }}">
+            {{ form|crispy }}
+            <button type="submit" class="btn btn-primary">Save material</button>
+          </form>
+        </div>
+      </div>
+      {% if selected_material %}
+      <div class="card">
+        <div class="card-header border-0 pb-0"><h4 class="header-title mb-0">Markdown preview</h4></div>
+        <div class="card-body pt-2">
+          <div data-mathjax-scope class="lh-lg">{{ rendered_material_preview }}</div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+    <div class="col-xl-7">
+      <div class="card">
+        <div class="card-header border-0 pb-0"><h4 class="header-title mb-0">Materials</h4></div>
+        <div class="card-body pt-2">
+          {% for material in materials %}
+          <div class="d-flex justify-content-between border-bottom py-2 gap-3">
+            <div><div class="fw-semibold">{{ material.title }}</div><div class="text-muted fs-xs">{{ material.subtopic.topic.title }} · {{ material.subtopic.title }}</div></div>
+            <a href="{% url 'training:trainer_materials' %}?edit={{ material.id }}" class="btn btn-outline-secondary btn-sm">Edit</a>
+          </div>
+          {% empty %}<div class="alert alert-info mb-0">No materials yet.</div>{% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock page_content %}
+
+{% block extra_javascript %}
+{% include 'training/partials/mathjax.html' %}
+{% endblock extra_javascript %}
