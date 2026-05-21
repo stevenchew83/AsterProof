@@ -24,13 +24,13 @@ from inspinia.users.tests.factories import UserFactory
 pytestmark = pytest.mark.django_db
 
 FULL_COMPLETION_PERCENTAGE = 100
-EXPECTED_SEED_TOPIC_TOTAL = 4
-EXPECTED_SEED_SUBTOPIC_TOTAL = 56
+EXPECTED_SEED_TOPIC_TOTAL = 5
+EXPECTED_SEED_SUBTOPIC_TOTAL = 417
 INITIAL_LEDGER_POINTS = 275
 MATERIAL_COMPLETION_POINTS = 10
 PARTIAL_ACCEPTANCE_POINTS = 15
 
-EXPECTED_SEED_SUBTOPICS = {
+BASE_SEED_SUBTOPICS = {
     "algebra": {
         "Algebraic identities",
         "Equations and systems",
@@ -97,6 +97,39 @@ EXPECTED_SEED_SUBTOPICS = {
     },
 }
 
+EXPECTED_ADDED_SEED_SUBTOPICS = {
+    "foundations": {
+        "Mathematical proof-writing",
+        "Mathematical induction",
+        "Extremal principle",
+        "WLOG and symmetry arguments",
+    },
+    "algebra": {
+        "Binomial theorem",
+        "Cauchy's functional equation",
+        "uvw or pqr method",
+        "Combinatorial Nullstellensatz",
+    },
+    "combinatorics": {
+        "Catalan numbers",
+        "Graph theory basics",
+        "Small Ramsey numbers",
+        "Nim",
+    },
+    "geometry": {
+        "Law of Sines",
+        "Fermat point",
+        "Cross-ratio",
+        "Miquel's theorem",
+    },
+    "number-theory": {
+        "Kummer's theorem",
+        "Gaussian integers Z[i]",
+        "Mobius function and inversion",
+        "Dirichlet approximation principle",
+    },
+}
+
 
 def _thresholds() -> None:
     for level_number, name, minimum_points in [
@@ -155,13 +188,19 @@ def _topic_tree(*, published: bool = True) -> tuple[Topic, Subtopic, Material, P
 
 
 def test_seeded_training_taxonomy_contains_expanded_topics():
-    assert Topic.objects.filter(slug__in=EXPECTED_SEED_SUBTOPICS).count() == EXPECTED_SEED_TOPIC_TOTAL
-    assert Subtopic.objects.filter(topic__slug__in=EXPECTED_SEED_SUBTOPICS).count() == EXPECTED_SEED_SUBTOPIC_TOTAL
+    expected_topic_slugs = set(BASE_SEED_SUBTOPICS) | set(EXPECTED_ADDED_SEED_SUBTOPICS)
+    assert Topic.objects.filter(slug__in=expected_topic_slugs).count() == EXPECTED_SEED_TOPIC_TOTAL
+    assert Subtopic.objects.filter(topic__slug__in=expected_topic_slugs).count() == EXPECTED_SEED_SUBTOPIC_TOTAL
 
-    for topic_slug, expected_titles in EXPECTED_SEED_SUBTOPICS.items():
+    for topic_slug, expected_titles in BASE_SEED_SUBTOPICS.items():
         topic = Topic.objects.get(slug=topic_slug)
         titles = set(topic.subtopics.values_list("title", flat=True))
-        assert titles == expected_titles
+        assert expected_titles <= titles
+
+    for topic_slug, expected_titles in EXPECTED_ADDED_SEED_SUBTOPICS.items():
+        topic = Topic.objects.get(slug=topic_slug)
+        titles = set(topic.subtopics.values_list("title", flat=True))
+        assert expected_titles <= titles
 
 
 def test_markdown_renderer_sanitizes_html_and_preserves_math():

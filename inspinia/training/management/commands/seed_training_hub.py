@@ -8,6 +8,9 @@ from inspinia.training.models import Material
 from inspinia.training.models import Problem
 from inspinia.training.models import Subtopic
 from inspinia.training.models import Topic
+from inspinia.training.taxonomy import TRAINING_TAXONOMY
+from inspinia.training.taxonomy import normalize_seed_title
+from inspinia.training.taxonomy import unique_slug_for_title
 
 LEVELS = [
     (1, "Euclid Initiate", 0),
@@ -21,89 +24,6 @@ LEVELS = [
     (9, "Riemann Visionary", 4200),
     (10, "Grothendieck Legend", 6000),
 ]
-
-TOPICS = {
-    "algebra": {
-        "title": "Algebra",
-        "description": "Identities, equations, inequalities, polynomials, and structural transformations.",
-        "subtopics": [
-            "Algebraic identities",
-            "Equations and systems",
-            "Inequalities",
-            "Polynomials",
-            "Functional equations",
-            "Sequences and recurrences",
-            "Symmetric and cyclic expressions",
-            "Vieta relations and root methods",
-            "Algebraic substitutions and transformations",
-            "Absolute value and piecewise algebra",
-            "Exponential and logarithmic expressions",
-            "Optimization and extrema",
-            "Complex numbers and roots of unity",
-            "Matrices and linear transformations",
-        ],
-    },
-    "number-theory": {
-        "title": "Number Theory",
-        "description": "Divisibility, modular arithmetic, factorization, Diophantine reasoning, and valuations.",
-        "subtopics": [
-            "Divisibility",
-            "Modular arithmetic",
-            "Primes and factorization",
-            "Diophantine equations",
-            "Orders, residues, and primitive roots",
-            "Valuations and LTE-style methods",
-            "GCD, LCM, and Euclidean algorithm",
-            "Chinese remainder theorem",
-            "Fermat, Euler, and Wilson theorems",
-            "Quadratic residues and reciprocity",
-            "Arithmetic functions",
-            "Pell equations and continued fractions",
-            "Base representation and digit problems",
-            "Infinite descent",
-        ],
-    },
-    "geometry": {
-        "title": "Geometry",
-        "description": "Synthetic and analytic geometry methods for olympiad proof problems.",
-        "subtopics": [
-            "Angle chasing",
-            "Cyclic quadrilaterals",
-            "Similarity and homothety",
-            "Power of a point",
-            "Inversion",
-            "Coordinate, barycentric, and complex geometry",
-            "Triangle centers and classical lines",
-            "Ceva, Menelaus, and mass points",
-            "Tangency and radical axis",
-            "Spiral similarity",
-            "Area methods",
-            "Trigonometric geometry",
-            "Projective geometry",
-            "Loci and constructions",
-        ],
-    },
-    "combinatorics": {
-        "title": "Combinatorics",
-        "description": "Counting, invariants, graph methods, extremal ideas, and game strategies.",
-        "subtopics": [
-            "Counting techniques",
-            "Pigeonhole principle",
-            "Invariants and monovariants",
-            "Graph theory",
-            "Extremal combinatorics",
-            "Games and strategies",
-            "Double counting",
-            "Inclusion-exclusion",
-            "Recursion and generating functions",
-            "Coloring arguments",
-            "Tiling and packing",
-            "Ramsey theory",
-            "Probabilistic method",
-            "Posets and ordering",
-        ],
-    },
-}
 
 OFFICIAL_SOLUTION_PLACEHOLDER = "A complete solution should identify the key invariant or transformation."
 SEED_PASSWORDS = {
@@ -147,27 +67,37 @@ class Command(BaseCommand):
                 defaults={"name": name, "minimum_points": minimum_points},
             )
 
-        for topic_order, (topic_slug, topic_data) in enumerate(TOPICS.items(), start=1):
+        for topic_data in TRAINING_TAXONOMY:
+            topic_slug = topic_data["slug"]
             topic, _created = Topic.objects.update_or_create(
                 slug=topic_slug,
                 defaults={
                     "description": topic_data["description"],
                     "is_published": True,
-                    "order": topic_order,
+                    "order": topic_data["order"],
                     "title": topic_data["title"],
                 },
             )
             first_subtopic = None
+            existing_slugs_by_title = {
+                normalize_seed_title(subtopic.title): subtopic.slug
+                for subtopic in Subtopic.objects.filter(topic=topic)
+            }
+            used_slugs = set(existing_slugs_by_title.values())
             for subtopic_order, title in enumerate(topic_data["subtopics"], start=1):
-                slug = title.lower().replace(",", "").replace(" ", "-")
+                normalized_title = normalize_seed_title(title)
+                slug = existing_slugs_by_title.get(normalized_title)
+                if slug is None:
+                    slug = unique_slug_for_title(normalized_title, used_slugs)
+                used_slugs.add(slug)
                 subtopic, _created = Subtopic.objects.update_or_create(
                     topic=topic,
                     slug=slug,
                     defaults={
-                        "description": f"Core methods for {title.lower()}.",
+                        "description": f"Core methods for {normalized_title.lower()}.",
                         "is_published": True,
-                        "order": subtopic_order,
-                        "title": title,
+                        "order": subtopic_order * 10,
+                        "title": normalized_title,
                     },
                 )
                 first_subtopic = first_subtopic or subtopic
