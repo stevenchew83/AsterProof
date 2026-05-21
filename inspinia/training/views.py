@@ -14,6 +14,7 @@ from django.shortcuts import render
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 
+from inspinia.training.forms import CheckpointProblemForm
 from inspinia.training.forms import LevelThresholdFormSet
 from inspinia.training.forms import MaterialForm
 from inspinia.training.forms import ProblemForm
@@ -512,28 +513,71 @@ def trainer_topics_view(request):
 @require_http_methods(["GET", "POST"])
 def trainer_materials_view(request):
     _require_trainer_or_admin(request)
-    instance = Material.objects.filter(pk=request.GET.get("edit")).first()
+    instance = (
+        Material.objects.select_related("subtopic", "subtopic__topic").filter(pk=request.GET.get("edit")).first()
+    )
+    checkpoint_initial = {
+        "difficulty": Problem.Difficulty.INTRODUCTORY,
+        "is_published": True,
+        "max_points": 20,
+    }
+    if instance is not None:
+        checkpoint_initial["subtopic"] = instance.subtopic_id
+        checkpoint_initial["order"] = instance.order + 10
+
     if request.method == "POST":
-        instance = Material.objects.filter(pk=request.POST.get("item_id")).first()
-        form = MaterialForm(request.POST, instance=instance)
-        if form.is_valid():
-            material = form.save(commit=False)
-            if material.created_by_id is None:
-                material.created_by = request.user
-            material.save()
-            messages.success(request, "Material saved.")
-            return _redirect_with_edit("training:trainer_materials", material.id)
+        form_kind = request.POST.get("form_kind", "material")
+        if form_kind == "checkpoint_problem":
+            instance = (
+                Material.objects.select_related("subtopic", "subtopic__topic")
+                .filter(pk=request.POST.get("material_id"))
+                .first()
+            )
+            form = MaterialForm(instance=instance)
+            checkpoint_form = CheckpointProblemForm(request.POST)
+            if checkpoint_form.is_valid():
+                problem = checkpoint_form.save(commit=False)
+                if problem.created_by_id is None:
+                    problem.created_by = request.user
+                problem.save()
+                messages.success(request, "Checkpoint problem saved.")
+                return _redirect_with_edit("training:trainer_materials", instance.id if instance is not None else None)
+        else:
+            instance = (
+                Material.objects.select_related("subtopic", "subtopic__topic")
+                .filter(pk=request.POST.get("item_id"))
+                .first()
+            )
+            form = MaterialForm(request.POST, instance=instance)
+            checkpoint_form = CheckpointProblemForm(initial=checkpoint_initial)
+            if form.is_valid():
+                material = form.save(commit=False)
+                if material.created_by_id is None:
+                    material.created_by = request.user
+                material.save()
+                messages.success(request, "Material saved.")
+                return _redirect_with_edit("training:trainer_materials", material.id)
     else:
         form = MaterialForm(instance=instance)
+        checkpoint_form = CheckpointProblemForm(initial=checkpoint_initial)
+
+    checkpoint_problems = Problem.objects.select_related("subtopic", "subtopic__topic")
+    if instance is not None:
+        checkpoint_problems = checkpoint_problems.filter(subtopic=instance.subtopic)
 
     return render(
         request,
         "training/trainer/materials.html",
         {
+            "checkpoint_form": checkpoint_form,
+            "checkpoint_problems": checkpoint_problems.order_by("order", "title", "id")[:8],
             "form": form,
+            "material_total": Material.objects.count(),
             "materials": Material.objects.select_related("subtopic", "subtopic__topic"),
+            "published_material_total": Material.objects.filter(is_published=True).count(),
             "rendered_material_preview": render_markdown(instance.content_markdown) if instance is not None else "",
             "selected_material": instance,
+            "subtopic_problem_total": checkpoint_problems.count(),
         },
     )
 
