@@ -72,49 +72,6 @@
     line-height: 1.65;
   }
 
-  .problem-list-public-stats {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-  }
-
-  .problem-list-public-stat {
-    min-width: 6.5rem;
-    border: 1px solid var(--pl-border);
-    border-radius: 0.5rem;
-    background: var(--pl-paper);
-    padding: 0.75rem 1rem;
-    box-shadow: 0 0.75rem 1.75rem rgba(23, 32, 38, 0.045);
-  }
-
-  .problem-list-public-stat span {
-    display: block;
-    color: var(--pl-muted);
-    font-size: 0.72rem;
-    font-weight: 700;
-    text-transform: uppercase;
-  }
-
-  .problem-list-public-stat strong {
-    display: block;
-    margin-top: 0.15rem;
-    color: var(--pl-ink);
-    font-size: 1.2rem;
-    line-height: 1;
-  }
-
-  .problem-list-public-stat:nth-child(2) strong {
-    color: var(--pl-teal);
-  }
-
-  .problem-list-public-stat:nth-child(3) strong {
-    color: var(--pl-warm);
-  }
-
-  .problem-list-public-stat:nth-child(4) strong {
-    color: var(--pl-blue);
-  }
-
   .problem-list-public-card {
     border: 1px solid var(--pl-border);
     border-radius: 0.5rem;
@@ -241,10 +198,6 @@
       line-height: 1.1;
     }
 
-    .problem-list-public-stat {
-      flex: 1 1 calc(50% - 0.75rem);
-      min-width: 0;
-    }
   }
 </style>
 {% endblock extra_css %}
@@ -286,24 +239,18 @@
           <p class="problem-list-public-description mb-0">{{ problem_list.description }}</p>
           {% endif %}
         </div>
-        <div class="problem-list-public-stats">
-          <div class="problem-list-public-stat">
-            <span>Score</span>
-            <strong>{{ problem_list_votes.score }}</strong>
-          </div>
-          <div class="problem-list-public-stat">
-            <span>Up</span>
-            <strong>{{ problem_list_votes.upvote_count }}</strong>
-          </div>
-          <div class="problem-list-public-stat">
-            <span>Down</span>
-            <strong>{{ problem_list_votes.downvote_count }}</strong>
-          </div>
-          <div class="problem-list-public-stat">
-            <span>Problems</span>
-            <strong>{{ problem_list_items|length }}</strong>
-          </div>
-        </div>
+        {% if can_vote %}
+        <form method="post" action="{% url 'problemsets:vote' problem_list.list_uuid %}" class="d-flex flex-wrap gap-2">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ request.get_full_path }}">
+          <button type="submit" name="value" value="1" class="btn {% if user_vote == 1 %}btn-success{% else %}btn-outline-success{% endif %} btn-sm">
+            <i class="ti ti-thumb-up me-1"></i>Thumbs up
+          </button>
+          <button type="submit" name="value" value="-1" class="btn {% if user_vote == -1 %}btn-danger{% else %}btn-outline-danger{% endif %} btn-sm">
+            <i class="ti ti-thumb-down me-1"></i>Thumbs down
+          </button>
+        </form>
+        {% endif %}
       </div>
     </section>
 

@@ -72,8 +72,35 @@
     width: 4.5rem;
   }
 
+  .problem-list-sequence-table {
+    min-width: 46rem;
+  }
+
+  .problem-list-draft-summary-row td {
+    border-bottom-width: 0;
+  }
+
+  .problem-list-draft-notes-row td {
+    border-top-width: 0;
+    padding-top: 0;
+  }
+
+  .problem-list-draft-notes-panel {
+    background: var(--bs-tertiary-bg);
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    display: grid;
+    gap: .75rem;
+    padding: .75rem;
+  }
+
   .problem-list-order-handle {
     color: var(--bs-secondary-color);
+  }
+
+  .problem-list-note-textarea {
+    min-height: 5.75rem;
+    resize: vertical;
   }
 
   .problem-list-save-bar {
@@ -741,30 +768,17 @@
 
     draftBody.innerHTML = draftRows.map(function (row, index) {
       var inactiveBadge = row.is_active ? "" : "<span class=\"badge bg-warning-subtle text-warning mt-1\">Inactive problem; public pages hide this row</span>";
-      var rowClass = row._justAdded ? " class=\"problem-list-row-added\"" : "";
+      var summaryRowClass = "problem-list-draft-summary-row" + (row._justAdded ? " problem-list-row-added" : "");
+      var notesRowClass = "problem-list-draft-notes-row" + (row._justAdded ? " problem-list-row-added" : "");
       var upDisabled = index === 0 ? " disabled" : "";
       var downDisabled = index === draftRows.length - 1 ? " disabled" : "";
       return [
-        "<tr data-draft-uuid=\"" + escapeHtml(row.problem_uuid) + "\"" + rowClass + ">",
+        "<tr class=\"" + summaryRowClass + "\" data-draft-uuid=\"" + escapeHtml(row.problem_uuid) + "\">",
         "<td class=\"text-nowrap fw-semibold\"><span class=\"d-inline-flex align-items-center gap-1\"><i class=\"ti ti-grip-vertical problem-list-order-handle\"></i>#" + String(index + 1) + "</span></td>",
         "<td>",
         "<div class=\"fw-semibold\">" + escapeHtml(row.problem_label) + "</div>",
         "<div class=\"text-muted fs-xs\">" + escapeHtml(row.problem_uuid) + "</div>",
         "<div class=\"mt-1\">" + statementStatusBadge(row) + "</div>",
-        "<div class=\"mt-2\">",
-        "<label class=\"form-label fs-xs text-uppercase fw-semibold text-muted mb-1\" for=\"problem-list-custom-title-" + String(index) + "\">Custom title</label>",
-        "<input id=\"problem-list-custom-title-" + String(index) + "\" type=\"text\" class=\"form-control form-control-sm\" maxlength=\"160\" placeholder=\"Optional title for public view\" value=\"" + escapeHtml(row.custom_title || "") + "\" data-draft-field=\"custom_title\">",
-        "</div>",
-        "<div class=\"row g-2 mt-1\">",
-        "<div class=\"col-xl-6\">",
-        "<label class=\"form-label fs-xs text-uppercase fw-semibold text-muted mb-1\" for=\"problem-list-hint-" + String(index) + "\">Curator hint</label>",
-        "<textarea id=\"problem-list-hint-" + String(index) + "\" class=\"form-control form-control-sm\" rows=\"2\" placeholder=\"Hidden until the reader opens it\" data-draft-field=\"hint\">" + escapeHtml(row.hint || "") + "</textarea>",
-        "</div>",
-        "<div class=\"col-xl-6\">",
-        "<label class=\"form-label fs-xs text-uppercase fw-semibold text-muted mb-1\" for=\"problem-list-comment-" + String(index) + "\">Curator comment</label>",
-        "<textarea id=\"problem-list-comment-" + String(index) + "\" class=\"form-control form-control-sm\" rows=\"2\" placeholder=\"Visible note for this problem\" data-draft-field=\"comment\">" + escapeHtml(row.comment || "") + "</textarea>",
-        "</div>",
-        "</div>",
         inactiveBadge,
         "</td>",
         "<td>" + metadataBadges(row) + "</td>",
@@ -775,6 +789,24 @@
         "<button type=\"button\" class=\"btn btn-outline-secondary btn-sm\" data-draft-action=\"up\" aria-label=\"Move " + escapeHtml(row.problem_label) + " up\"" + upDisabled + "><i class=\"ti ti-arrow-up\"></i></button>",
         "<button type=\"button\" class=\"btn btn-outline-secondary btn-sm\" data-draft-action=\"down\" aria-label=\"Move " + escapeHtml(row.problem_label) + " down\"" + downDisabled + "><i class=\"ti ti-arrow-down\"></i></button>",
         "<button type=\"button\" class=\"btn btn-outline-danger btn-sm\" data-draft-action=\"remove\" aria-label=\"Remove " + escapeHtml(row.problem_label) + "\"><i class=\"ti ti-trash me-1\"></i>Remove</button>",
+        "</div>",
+        "</td>",
+        "</tr>",
+        "<tr class=\"" + notesRowClass + "\" data-draft-uuid=\"" + escapeHtml(row.problem_uuid) + "\">",
+        "<td colspan=\"6\" class=\"problem-list-draft-notes-cell\">",
+        "<div class=\"problem-list-draft-notes-panel\">",
+        "<div>",
+        "<label class=\"form-label fs-xs text-uppercase fw-semibold text-muted mb-1\" for=\"problem-list-custom-title-" + String(index) + "\">Custom title</label>",
+        "<input id=\"problem-list-custom-title-" + String(index) + "\" type=\"text\" class=\"form-control form-control-sm\" maxlength=\"160\" placeholder=\"Optional title for public view\" value=\"" + escapeHtml(row.custom_title || "") + "\" data-draft-field=\"custom_title\">",
+        "</div>",
+        "<div>",
+        "<label class=\"form-label fs-xs text-uppercase fw-semibold text-muted mb-1\" for=\"problem-list-hint-" + String(index) + "\">Curator hint</label>",
+        "<textarea id=\"problem-list-hint-" + String(index) + "\" class=\"form-control form-control-sm problem-list-note-textarea\" rows=\"3\" placeholder=\"Hidden until the reader opens it\" data-draft-field=\"hint\">" + escapeHtml(row.hint || "") + "</textarea>",
+        "</div>",
+        "<div>",
+        "<label class=\"form-label fs-xs text-uppercase fw-semibold text-muted mb-1\" for=\"problem-list-comment-" + String(index) + "\">Curator comment</label>",
+        "<textarea id=\"problem-list-comment-" + String(index) + "\" class=\"form-control form-control-sm problem-list-note-textarea\" rows=\"3\" placeholder=\"Visible note for this problem\" data-draft-field=\"comment\">" + escapeHtml(row.comment || "") + "</textarea>",
+        "</div>",
         "</div>",
         "</td>",
         "</tr>"

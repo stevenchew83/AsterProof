@@ -16,6 +16,7 @@ from inspinia.problemsets.models import ProblemListItem
 from inspinia.problemsets.models import ProblemListVote
 from inspinia.problemsets.services import ProblemListServiceError
 from inspinia.problemsets.services import replace_problem_list_items
+from inspinia.users.models import User
 from inspinia.users.tests.factories import UserFactory
 
 pytestmark = pytest.mark.django_db
@@ -577,6 +578,8 @@ def test_problem_list_edit_page_exposes_picker_payload_and_save_urls(client):
     assert "problem-list-builder-layout" in response_html
     assert "problem-list-active-filters" in response_html
     assert "problem-list-sequence-panel" in response_html
+    assert "problem-list-draft-notes-row" in response_html
+    assert "problem-list-note-textarea" in response_html
     assert "problem-list-copy-share-url" in response_html
     assert "problem-list-statement-preview" in response_html
     assert "problem-list-unlinked-confirm-modal" in response_html
@@ -787,6 +790,76 @@ def test_public_share_page_links_authenticated_users_to_pdf_download(client):
     )
 
 
+@pytest.mark.parametrize(
+    "viewer_kwargs",
+    [
+        {"is_approved": True},
+        {"role": User.Role.ADMIN, "is_approved": False},
+        {"is_superuser": True, "is_approved": False},
+    ],
+)
+def test_public_share_page_shows_vote_controls_to_eligible_non_authors(client, viewer_kwargs):
+    viewer = UserFactory(**viewer_kwargs)
+    client.force_login(viewer)
+    problem = _problem(topic="GEO", mohs=12)
+    _statement(problem, "Prove that $AB=AC$.")
+    problem_list = _problem_list(visibility=ProblemList.Visibility.PUBLIC)
+    ProblemListItem.objects.create(problem_list=problem_list, problem=problem, position=1)
+
+    response = client.get(problem_list.public_url())
+
+    assert response.status_code == HTTPStatus.OK
+    response_html = response.content.decode("utf-8")
+    assert reverse("problemsets:vote", args=[problem_list.list_uuid]) in response_html
+    assert f'<input type="hidden" name="next" value="{problem_list.public_url()}">' in response_html
+    assert 'name="value" value="1"' in response_html
+    assert 'name="value" value="-1"' in response_html
+    assert "Thumbs up" in response_html
+    assert "Thumbs down" in response_html
+
+
+def test_public_share_page_hides_vote_controls_from_anonymous_users_and_authors(client):
+    author = UserFactory()
+    problem = _problem(topic="GEO", mohs=12)
+    _statement(problem, "Prove that $AB=AC$.")
+    problem_list = _problem_list(author=author, visibility=ProblemList.Visibility.PUBLIC)
+    ProblemListItem.objects.create(problem_list=problem_list, problem=problem, position=1)
+
+    anonymous_response = client.get(problem_list.public_url())
+    assert anonymous_response.status_code == HTTPStatus.OK
+    anonymous_html = anonymous_response.content.decode("utf-8")
+    assert reverse("problemsets:vote", args=[problem_list.list_uuid]) not in anonymous_html
+    assert "Thumbs up" not in anonymous_html
+    assert "Thumbs down" not in anonymous_html
+
+    client.force_login(author)
+    author_response = client.get(problem_list.public_url())
+    assert author_response.status_code == HTTPStatus.OK
+    author_html = author_response.content.decode("utf-8")
+    assert reverse("problemsets:vote", args=[problem_list.list_uuid]) not in author_html
+    assert "Thumbs up" not in author_html
+    assert "Thumbs down" not in author_html
+
+
+def test_public_share_page_does_not_display_vote_stats(client):
+    voter = UserFactory()
+    problem = _problem(topic="GEO", mohs=12)
+    _statement(problem, "Prove that $AB=AC$.")
+    problem_list = _problem_list(visibility=ProblemList.Visibility.PUBLIC)
+    ProblemListItem.objects.create(problem_list=problem_list, problem=problem, position=1)
+    ProblemListVote.objects.create(problem_list=problem_list, user=voter, value=ProblemListVote.Value.UP)
+
+    response = client.get(problem_list.public_url())
+
+    assert response.status_code == HTTPStatus.OK
+    response_html = response.content.decode("utf-8")
+    assert '<div class="problem-list-public-stats">' not in response_html
+    assert ">Score<" not in response_html
+    assert ">Up<" not in response_html
+    assert ">Down<" not in response_html
+    assert ">Problems<" not in response_html
+
+
 def test_public_share_pdf_returns_attachment_when_compile_succeeds(monkeypatch, client):
     user = UserFactory()
     client.force_login(user)
@@ -934,6 +1007,53 @@ def test_discover_lists_shows_public_lists_sorted_by_vote_score_and_search(clien
     search_response = client.get(reverse("problemsets:discover"), {"q": "IMO"})
 
     assert [row["title"] for row in search_response.context["problem_list_rows"]] == ["Geometry gems"]
+
+
+def test_admin_discover_lists_shows_all_lists_in_datatable(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    public_list = _problem_list(
+        author=UserFactory(email="public-author@example.test", name="Public Author"),
+        title="Public geometry",
+        visibility=ProblemList.Visibility.PUBLIC,
+    )
+    _problem_list(
+        author=UserFactory(email="private-author@example.test", name="Private Author"),
+        title="Private algebra",
+        visibility=ProblemList.Visibility.PRIVATE,
+    )
+    ProblemListVote.objects.create(problem_list=public_list, user=UserFactory(), value=ProblemListVote.Value.UP)
+
+    response = client.get(reverse("problemsets:discover"), {"q": "author"})
+
+    assert response.status_code == HTTPStatus.OK
+    rows = response.context["problem_list_rows"]
+    assert [row["title"] for row in rows] == ["Public geometry", "Private algebra"]
+    assert response.context["problem_list_discover_is_admin"] is True
+    response_html = response.content.decode("utf-8")
+    assert "All problem lists" in response_html
+    assert "Private" in response_html
+    assert 'id="problem-list-discover-table"' in response_html
+    assert 'new DataTable("#problem-list-discover-table"' in response_html
+
+
+def test_admin_can_open_private_problem_list_without_editing_it(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    author = UserFactory()
+    problem_list = _problem_list(
+        author=author,
+        title="Private shortlist",
+        visibility=ProblemList.Visibility.PRIVATE,
+    )
+    client.force_login(admin_user)
+
+    response = client.get(reverse("problemsets:detail", args=[problem_list.list_uuid]))
+
+    assert response.status_code == HTTPStatus.OK
+    response_html = response.content.decode("utf-8")
+    assert "Private shortlist" in response_html
+    assert "Private" in response_html
+    assert reverse("problemsets:edit", args=[problem_list.list_uuid]) not in response_html
 
 
 def test_vote_endpoint_toggles_and_changes_vote_for_non_author(client):

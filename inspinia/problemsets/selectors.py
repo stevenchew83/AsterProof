@@ -77,11 +77,12 @@ def vote_annotations(queryset):
     ).annotate(score=F("upvote_count") - F("downvote_count"))
 
 
-def public_problem_lists_queryset(search_text: str = ""):
+def discover_problem_lists_queryset(search_text: str = "", *, include_private: bool = False):
+    base_queryset = ProblemList.objects.all()
+    if not include_private:
+        base_queryset = base_queryset.filter(visibility=ProblemList.Visibility.PUBLIC)
     queryset = vote_annotations(
-        ProblemList.objects.filter(visibility=ProblemList.Visibility.PUBLIC)
-        .select_related("author")
-        .prefetch_related("items__problem"),
+        base_queryset.select_related("author").prefetch_related("items__problem"),
     )
 
     search_text = (search_text or "").strip()
@@ -100,6 +101,10 @@ def public_problem_lists_queryset(search_text: str = ""):
         ).distinct()
 
     return queryset.order_by("-score", "-published_at", "-updated_at", "-id")
+
+
+def public_problem_lists_queryset(search_text: str = ""):
+    return discover_problem_lists_queryset(search_text, include_private=False)
 
 
 def my_problem_lists_queryset(user):
