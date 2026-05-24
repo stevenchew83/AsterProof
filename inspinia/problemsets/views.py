@@ -44,6 +44,7 @@ from inspinia.problemsets.services import toggle_problem_list_vote
 from inspinia.solutions.pdf_latex import SolutionPdfCompileError
 from inspinia.solutions.pdf_latex import SolutionPdfError
 from inspinia.solutions.pdf_latex import SolutionPdfToolError
+from inspinia.users.roles import user_can_access_app_features
 from inspinia.users.roles import user_has_admin_role
 
 
@@ -280,6 +281,11 @@ def vote_view(request, list_uuid):
 
 def public_detail_view(request, share_token, slug):
     problem_list = _get_public_problem_list_or_404(share_token, slug)
+    is_author = problem_list.author_id == getattr(request.user, "id", None)
+    can_vote = user_can_access_app_features(request.user) and not is_author
+    user_vote = None
+    if can_vote:
+        user_vote = problem_list.votes.filter(user=request.user).values_list("value", flat=True).first()
     record_page_view(
         request,
         payload=PageViewPayload(
@@ -296,10 +302,11 @@ def public_detail_view(request, share_token, slug):
         request,
         "problemsets/public-detail.html",
         {
+            "can_vote": can_vote,
             "problem_list": problem_list,
             "problem_list_author_label": author_label(problem_list.author),
             "problem_list_items": problem_list_item_rows(problem_list),
-            "problem_list_votes": problem_list_vote_totals(problem_list),
+            "user_vote": user_vote,
         },
     )
 

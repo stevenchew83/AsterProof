@@ -759,6 +759,76 @@ def test_public_share_page_links_authenticated_users_to_pdf_download(client):
     )
 
 
+@pytest.mark.parametrize(
+    "viewer_kwargs",
+    [
+        {"is_approved": True},
+        {"role": User.Role.ADMIN, "is_approved": False},
+        {"is_superuser": True, "is_approved": False},
+    ],
+)
+def test_public_share_page_shows_vote_controls_to_eligible_non_authors(client, viewer_kwargs):
+    viewer = UserFactory(**viewer_kwargs)
+    client.force_login(viewer)
+    problem = _problem(topic="GEO", mohs=12)
+    _statement(problem, "Prove that $AB=AC$.")
+    problem_list = _problem_list(visibility=ProblemList.Visibility.PUBLIC)
+    ProblemListItem.objects.create(problem_list=problem_list, problem=problem, position=1)
+
+    response = client.get(problem_list.public_url())
+
+    assert response.status_code == HTTPStatus.OK
+    response_html = response.content.decode("utf-8")
+    assert reverse("problemsets:vote", args=[problem_list.list_uuid]) in response_html
+    assert f'<input type="hidden" name="next" value="{problem_list.public_url()}">' in response_html
+    assert 'name="value" value="1"' in response_html
+    assert 'name="value" value="-1"' in response_html
+    assert "Thumbs up" in response_html
+    assert "Thumbs down" in response_html
+
+
+def test_public_share_page_hides_vote_controls_from_anonymous_users_and_authors(client):
+    author = UserFactory()
+    problem = _problem(topic="GEO", mohs=12)
+    _statement(problem, "Prove that $AB=AC$.")
+    problem_list = _problem_list(author=author, visibility=ProblemList.Visibility.PUBLIC)
+    ProblemListItem.objects.create(problem_list=problem_list, problem=problem, position=1)
+
+    anonymous_response = client.get(problem_list.public_url())
+    assert anonymous_response.status_code == HTTPStatus.OK
+    anonymous_html = anonymous_response.content.decode("utf-8")
+    assert reverse("problemsets:vote", args=[problem_list.list_uuid]) not in anonymous_html
+    assert "Thumbs up" not in anonymous_html
+    assert "Thumbs down" not in anonymous_html
+
+    client.force_login(author)
+    author_response = client.get(problem_list.public_url())
+    assert author_response.status_code == HTTPStatus.OK
+    author_html = author_response.content.decode("utf-8")
+    assert reverse("problemsets:vote", args=[problem_list.list_uuid]) not in author_html
+    assert "Thumbs up" not in author_html
+    assert "Thumbs down" not in author_html
+
+
+def test_public_share_page_does_not_display_vote_stats(client):
+    voter = UserFactory()
+    problem = _problem(topic="GEO", mohs=12)
+    _statement(problem, "Prove that $AB=AC$.")
+    problem_list = _problem_list(visibility=ProblemList.Visibility.PUBLIC)
+    ProblemListItem.objects.create(problem_list=problem_list, problem=problem, position=1)
+    ProblemListVote.objects.create(problem_list=problem_list, user=voter, value=ProblemListVote.Value.UP)
+
+    response = client.get(problem_list.public_url())
+
+    assert response.status_code == HTTPStatus.OK
+    response_html = response.content.decode("utf-8")
+    assert '<div class="problem-list-public-stats">' not in response_html
+    assert ">Score<" not in response_html
+    assert ">Up<" not in response_html
+    assert ">Down<" not in response_html
+    assert ">Problems<" not in response_html
+
+
 def test_public_share_pdf_returns_attachment_when_compile_succeeds(monkeypatch, client):
     user = UserFactory()
     client.force_login(user)
