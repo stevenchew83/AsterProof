@@ -44,6 +44,18 @@
     min-height: 1.5rem;
   }
 
+  .problem-list-statement-preview-text {
+    max-height: 18rem;
+    overflow: auto;
+    white-space: pre-wrap;
+  }
+
+  .problem-list-preview-meta-grid {
+    display: grid;
+    gap: .75rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .problem-list-picker-table td {
     vertical-align: top;
   }
@@ -119,6 +131,12 @@
   @media (min-width: 1200px) {
     .card.problem-list-sticky-panel {
       position: sticky;
+    }
+  }
+
+  @media (max-width: 575.98px) {
+    .problem-list-preview-meta-grid {
+      grid-template-columns: 1fr;
     }
   }
 </style>
@@ -334,6 +352,46 @@
               <i class="ti ti-chevron-down me-1"></i>Load more
             </button>
           </div>
+
+          <div class="offcanvas offcanvas-end" tabindex="-1" id="problem-list-statement-preview" aria-labelledby="problem-list-statement-preview-title">
+            <div class="offcanvas-header border-bottom">
+              <div>
+                <p class="text-muted fs-xs text-uppercase fw-semibold mb-1">Problem preview</p>
+                <h5 class="offcanvas-title" id="problem-list-statement-preview-title">Problem preview</h5>
+              </div>
+              <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+            </div>
+            <div class="offcanvas-body">
+              <div id="problem-list-statement-preview-body" class="d-grid gap-3"></div>
+              <div class="d-flex flex-wrap gap-2 mt-3">
+                <button type="button" id="problem-list-preview-add-button" class="btn btn-primary btn-sm">
+                  <i class="ti ti-plus me-1"></i>Add to list
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="offcanvas">Close</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal fade" id="problem-list-unlinked-confirm-modal" tabindex="-1" aria-labelledby="problem-list-unlinked-confirm-title" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title" id="problem-list-unlinked-confirm-title">Add problem without a statement?</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                  <p class="mb-2">This archive row has no linked problem statement.</p>
+                  <p class="text-muted mb-0">You can add it, but public lists and PDFs will show a missing-statement notice until the statement is linked.</p>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                  <button type="button" class="btn btn-warning" data-confirm-unlinked-add>
+                    <i class="ti ti-alert-triangle me-1"></i>Add anyway
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -407,6 +465,12 @@
   var searchStatus = document.getElementById("problem-list-search-status");
   var searchResultsBody = document.getElementById("problem-list-search-results");
   var loadMoreButton = document.getElementById("problem-list-load-more");
+  var statementPreview = document.getElementById("problem-list-statement-preview");
+  var statementPreviewTitle = document.getElementById("problem-list-statement-preview-title");
+  var statementPreviewBody = document.getElementById("problem-list-statement-preview-body");
+  var previewAddButton = document.getElementById("problem-list-preview-add-button");
+  var unlinkedConfirmModal = document.getElementById("problem-list-unlinked-confirm-modal");
+  var confirmUnlinkedAddButton = document.querySelector("[data-confirm-unlinked-add]");
   var draftBody = document.getElementById("problem-list-draft-rows");
   var saveForm = document.getElementById("problem-list-save-form");
   var hiddenOrderFields = document.getElementById("problem-list-hidden-order-fields");
@@ -421,6 +485,8 @@
 
   var draftRows = JSON.parse(draftDataEl.textContent || "[]");
   var latestResults = [];
+  var previewRow = null;
+  var pendingUnlinkedRow = null;
   var searchLimit = 50;
   var searchHasMore = false;
   var originalDraftKey = draftKey(draftRows);
@@ -437,7 +503,7 @@
   ];
 
   function escapeHtml(value) {
-    return String(value || "")
+    return String(value === null || value === undefined ? "" : value)
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
@@ -488,6 +554,120 @@
       return "<span class=\"text-muted\">&mdash;</span>";
     }
     return "<span class=\"fw-semibold\">" + escapeHtml(row.user_mohs) + "</span>";
+  }
+
+  function statementStatusBadge(row) {
+    if (row.has_statement) {
+      return "<span class=\"badge bg-success-subtle text-success\"><i class=\"ti ti-file-check me-1\"></i>" + escapeHtml(row.statement_status_label || "Statement ready") + "</span>";
+    }
+    return "<span class=\"badge bg-warning-subtle text-warning\"><i class=\"ti ti-file-alert me-1\"></i>" + escapeHtml(row.statement_status_label || "No statement") + "</span>";
+  }
+
+  function findLatestRow(problemUuid) {
+    return latestResults.find(function (resultRow) {
+      return resultRow.problem_uuid === problemUuid;
+    });
+  }
+
+  function addProblemRow(row) {
+    if (!row || draftContains(row.problem_uuid)) return;
+    draftRows.push(Object.assign({}, row, {
+      comment: row.comment || "",
+      custom_title: row.custom_title || "",
+      hint: row.hint || "",
+      _justAdded: true
+    }));
+    renderDraftRows();
+    renderSearchResults(latestResults);
+  }
+
+  function showUnlinkedConfirm(row) {
+    pendingUnlinkedRow = row;
+    if (window.bootstrap && unlinkedConfirmModal) {
+      window.bootstrap.Modal.getOrCreateInstance(unlinkedConfirmModal).show();
+      return;
+    }
+    if (window.confirm("This archive row has no linked problem statement. Add it anyway?")) {
+      addProblemRow(row);
+      pendingUnlinkedRow = null;
+    }
+  }
+
+  function requestAddProblem(row) {
+    if (!row || draftContains(row.problem_uuid)) return;
+    if (!row.has_statement) {
+      showUnlinkedConfirm(row);
+      return;
+    }
+    addProblemRow(row);
+  }
+
+  function previewMetaItem(label, value) {
+    var displayValue = value === null || value === undefined || value === "" ? "-" : value;
+    return [
+      "<div>",
+      "<p class=\"text-muted fs-xs text-uppercase fw-semibold mb-1\">" + escapeHtml(label) + "</p>",
+      "<div class=\"fw-semibold\">" + escapeHtml(displayValue) + "</div>",
+      "</div>"
+    ].join("");
+  }
+
+  function renderStatementPreviewBody(row) {
+    var tags = tagBadges(row);
+    var statementBlock = row.has_statement
+      ? [
+          "<div>",
+          "<p class=\"text-muted fs-xs text-uppercase fw-semibold mb-1\">Statement preview</p>",
+          "<div class=\"border rounded p-3 bg-body-tertiary problem-list-statement-preview-text\">" + escapeHtml(row.statement_preview || "No preview text is available.") + "</div>",
+          "</div>"
+        ].join("")
+      : [
+          "<div class=\"alert alert-warning mb-0\" role=\"alert\">",
+          "<div class=\"fw-semibold mb-1\">No linked statement</div>",
+          "<div>You can add this problem, but public lists and PDFs will show a missing-statement notice until the statement is linked.</div>",
+          "</div>"
+        ].join("");
+    return [
+      "<div>",
+      "<div class=\"d-flex flex-wrap align-items-center gap-2 mb-2\">",
+      statementStatusBadge(row),
+      row.user_mohs === null || row.user_mohs === undefined || row.user_mohs === "" ? "" : "<span class=\"badge bg-primary-subtle text-primary\">User MOHS " + escapeHtml(row.user_mohs) + "</span>",
+      "</div>",
+      "<div class=\"problem-list-preview-meta-grid\">",
+      previewMetaItem("Contest", row.contest),
+      previewMetaItem("Year", row.year),
+      previewMetaItem("Problem", row.problem_code),
+      previewMetaItem("MOHS", row.mohs),
+      "</div>",
+      "<p class=\"text-muted fs-xs mt-3 mb-0 font-monospace\">" + escapeHtml(row.problem_uuid) + "</p>",
+      "</div>",
+      "<div>",
+      "<p class=\"text-muted fs-xs text-uppercase fw-semibold mb-1\">Tags</p>",
+      tags,
+      "</div>",
+      statementBlock
+    ].join("");
+  }
+
+  function openStatementPreview(row) {
+    if (!row || !statementPreview || !statementPreviewBody || !statementPreviewTitle) return;
+    previewRow = row;
+    statementPreviewTitle.textContent = row.problem_label || "Problem preview";
+    statementPreviewBody.innerHTML = renderStatementPreviewBody(row);
+    if (previewAddButton) {
+      var isAdded = draftContains(row.problem_uuid);
+      previewAddButton.disabled = isAdded;
+      previewAddButton.innerHTML = isAdded
+        ? "<i class=\"ti ti-check me-1\"></i>Added"
+        : row.has_statement
+          ? "<i class=\"ti ti-plus me-1\"></i>Add to list"
+          : "<i class=\"ti ti-alert-triangle me-1\"></i>Add anyway";
+      previewAddButton.classList.toggle("btn-warning", !row.has_statement && !isAdded);
+      previewAddButton.classList.toggle("btn-primary", row.has_statement || isAdded);
+    }
+    if (window.bootstrap) {
+      window.bootstrap.Offcanvas.getOrCreateInstance(statementPreview).show();
+    }
   }
 
   function setUrlParam(url, name, input) {
@@ -598,6 +778,7 @@
         "<td>",
         "<div class=\"fw-semibold\">" + escapeHtml(row.problem_label) + "</div>",
         "<div class=\"text-muted fs-xs\">" + escapeHtml(row.problem_uuid) + "</div>",
+        "<div class=\"mt-1\">" + statementStatusBadge(row) + "</div>",
         inactiveBadge,
         "</td>",
         "<td>" + metadataBadges(row) + "</td>",
@@ -666,12 +847,14 @@
         "<td>",
         "<div class=\"fw-semibold\">" + escapeHtml(row.problem_label) + "</div>",
         "<div class=\"text-muted fs-xs\">" + escapeHtml(row.contest) + " " + escapeHtml(row.year) + " · " + escapeHtml(row.problem_uuid) + "</div>",
+        "<div class=\"mt-1\">" + statementStatusBadge(row) + "</div>",
         "</td>",
         "<td>" + metadataBadges(row) + "</td>",
         "<td class=\"text-nowrap\">" + userMohsCell(row) + "</td>",
         "<td>" + tagBadges(row) + "</td>",
         "<td class=\"text-end\">",
         "<div class=\"d-inline-flex flex-wrap justify-content-end gap-2\">",
+        "<button type=\"button\" class=\"btn btn-outline-secondary btn-sm\" data-preview-problem><i class=\"ti ti-eye me-1\"></i>Preview</button>",
         "<a href=\"" + escapeHtml(row.archive_url) + "\" class=\"btn btn-outline-secondary btn-sm\" target=\"_blank\" rel=\"noopener\"><i class=\"ti ti-archive me-1\"></i>Archive</a>",
         "<button type=\"button\" class=\"btn " + buttonClass + " btn-sm\" data-add-problem" + disabled + ">" + buttonLabel + "</button>",
         "</div>",
@@ -840,24 +1023,45 @@
 
   if (searchResultsBody) {
     searchResultsBody.addEventListener("click", function (event) {
+      var previewButton = event.target.closest("[data-preview-problem]");
+      if (previewButton) {
+        var previewRowNode = previewButton.closest("[data-result-uuid]");
+        if (!previewRowNode) return;
+        openStatementPreview(findLatestRow(previewRowNode.getAttribute("data-result-uuid")));
+        return;
+      }
+
       var button = event.target.closest("[data-add-problem]");
       if (!button) return;
       var rowNode = button.closest("[data-result-uuid]");
       if (!rowNode) return;
       var problemUuid = rowNode.getAttribute("data-result-uuid");
-      if (draftContains(problemUuid)) return;
-      var row = latestResults.find(function (resultRow) {
-        return resultRow.problem_uuid === problemUuid;
-      });
-      if (!row) return;
-      draftRows.push(Object.assign({}, row, {
-        comment: row.comment || "",
-        custom_title: row.custom_title || "",
-        hint: row.hint || "",
-        _justAdded: true
-      }));
-      renderDraftRows();
-      renderSearchResults(latestResults);
+      var row = findLatestRow(problemUuid);
+      requestAddProblem(row);
+    });
+  }
+
+  if (previewAddButton) {
+    previewAddButton.addEventListener("click", function () {
+      requestAddProblem(previewRow);
+    });
+  }
+
+  if (confirmUnlinkedAddButton) {
+    confirmUnlinkedAddButton.addEventListener("click", function () {
+      if (!pendingUnlinkedRow) return;
+      var addedRow = pendingUnlinkedRow;
+      addProblemRow(addedRow);
+      pendingUnlinkedRow = null;
+      if (window.bootstrap && unlinkedConfirmModal) {
+        window.bootstrap.Modal.getOrCreateInstance(unlinkedConfirmModal).hide();
+      }
+      if (previewRow && previewRow.problem_uuid === addedRow.problem_uuid && previewAddButton) {
+        previewAddButton.disabled = true;
+        previewAddButton.innerHTML = "<i class=\"ti ti-check me-1\"></i>Added";
+        previewAddButton.classList.remove("btn-warning");
+        previewAddButton.classList.add("btn-primary");
+      }
     });
   }
 
