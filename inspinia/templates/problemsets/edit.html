@@ -4,6 +4,42 @@
 
 {% block extra_css %}
 <style>
+  .problem-list-summary-icon {
+    align-items: center;
+    display: inline-flex;
+    flex: 0 0 2.75rem;
+    height: 2.75rem;
+    justify-content: center;
+    width: 2.75rem;
+  }
+
+  .problem-list-summary-description {
+    max-width: 52rem;
+  }
+
+  .problem-list-builder-layout .card-header {
+    background: transparent;
+  }
+
+  .problem-list-builder-layout .form-label {
+    margin-bottom: .35rem;
+  }
+
+  .problem-list-sticky-panel {
+    top: 5.25rem;
+  }
+
+  .problem-list-meta-badges,
+  .problem-list-tag-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem;
+  }
+
+  .problem-list-tag-badges {
+    max-width: 24rem;
+  }
+
   .problem-list-picker-status {
     min-height: 1.5rem;
   }
@@ -14,6 +50,49 @@
 
   .problem-list-search-group td {
     background: var(--bs-light);
+  }
+
+  .problem-list-filter-chip {
+    border-radius: 999px;
+  }
+
+  .problem-list-sequence-table td:first-child {
+    width: 4.5rem;
+  }
+
+  .problem-list-order-handle {
+    color: var(--bs-secondary-color);
+  }
+
+  .problem-list-save-bar {
+    background: var(--bs-tertiary-bg);
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    padding: .75rem;
+  }
+
+  .problem-list-save-bar.is-dirty {
+    border-color: rgba(var(--bs-warning-rgb), .45);
+    box-shadow: 0 0 0 .15rem rgba(var(--bs-warning-rgb), .08);
+  }
+
+  .problem-list-row-added {
+    animation: problem-list-row-pulse 900ms ease-out;
+  }
+
+  @keyframes problem-list-row-pulse {
+    0% {
+      background-color: rgba(var(--bs-success-rgb), .2);
+    }
+    100% {
+      background-color: transparent;
+    }
+  }
+
+  @media (min-width: 1200px) {
+    .card.problem-list-sticky-panel {
+      position: sticky;
+    }
   }
 </style>
 {% endblock extra_css %}
@@ -33,179 +112,247 @@
   </div>
   {% endif %}
 
-  <div class="row g-3 mt-0">
-    <div class="col-xl-5">
-      <div class="card">
-        <div class="card-header border-bottom">
-          <h4 class="header-title mb-0">List details</h4>
-        </div>
-        <div class="card-body">
-          <form method="post">
-            {% csrf_token %}
-            <div class="mb-3">
-              <label class="form-label" for="{{ form.title.id_for_label }}">Title</label>
-              {{ form.title }}
-              {% for error in form.title.errors %}<div class="text-danger fs-xs mt-1">{{ error }}</div>{% endfor %}
-            </div>
-            <div class="mb-3">
-              <label class="form-label" for="{{ form.description.id_for_label }}">Description</label>
-              {{ form.description }}
-              {% for error in form.description.errors %}<div class="text-danger fs-xs mt-1">{{ error }}</div>{% endfor %}
-            </div>
-            {% include 'problemsets/partials/display-options-fields.html' %}
-            <button type="submit" class="btn btn-primary">Save details</button>
-          </form>
-        </div>
-      </div>
-    </div>
-    <div class="col-xl-7">
-      <div class="card">
-        <div class="card-header border-bottom">
-          <h4 class="header-title mb-0">Sharing</h4>
-        </div>
-        <div class="card-body">
-          <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
-            <span class="badge {% if problem_list.is_public %}bg-success-subtle text-success{% else %}bg-secondary-subtle text-secondary{% endif %}">
-              {{ problem_list.get_visibility_display }}
-            </span>
-            <span class="badge bg-primary-subtle text-primary">Score {{ problem_list_votes.score }}</span>
-            <span class="badge bg-light text-dark border">{{ problem_list_votes.upvote_count }} up / {{ problem_list_votes.downvote_count }} down</span>
+  <div class="card mt-0" id="problem-list-summary">
+    <div class="card-body py-3">
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div class="d-flex align-items-center gap-3">
+          <span class="avatar-title bg-primary-subtle text-primary rounded problem-list-summary-icon flex-shrink-0">
+            <i class="ti ti-list-details fs-24"></i>
+          </span>
+          <div>
+            <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Curator workspace</p>
+            <h3 class="mb-1">{{ problem_list.title }}</h3>
+            <p class="text-muted fs-sm mb-0 problem-list-summary-description">
+              {% if problem_list.description %}{{ problem_list.description }}{% else %}Add a description to help students understand when to use this list.{% endif %}
+            </p>
           </div>
-          <form method="post" action="{% url 'problemsets:toggle_visibility' problem_list.list_uuid %}" class="mb-3">
-            {% csrf_token %}
-            <button type="submit" class="btn {% if problem_list.is_public %}btn-outline-secondary{% else %}btn-success{% endif %}">
-              {% if problem_list.is_public %}Make private{% else %}Publish with share link{% endif %}
-            </button>
-          </form>
-          {% if problem_list.is_public %}
-          <div class="input-group input-group-sm">
-            <span class="input-group-text">Share URL</span>
-            <input type="text" class="form-control" value="{{ request.scheme }}://{{ request.get_host }}{{ problem_list_public_url }}" readonly>
-            <a href="{{ problem_list_public_url }}" class="btn btn-outline-secondary">Open</a>
-          </div>
-          {% endif %}
+        </div>
+        <div class="d-flex flex-wrap align-items-center justify-content-end gap-2">
+          <span class="badge {% if problem_list.is_public %}bg-success-subtle text-success{% else %}bg-secondary-subtle text-secondary{% endif %}">
+            <i class="ti {% if problem_list.is_public %}ti-world-check{% else %}ti-lock{% endif %} me-1"></i>{{ problem_list.get_visibility_display }}
+          </span>
+          <span id="problem-list-summary-count" class="badge bg-info-subtle text-info">{{ problem_list_draft_rows|length }} problems</span>
+          <span class="badge bg-primary-subtle text-primary">Score {{ problem_list_votes.score }}</span>
+          <span class="badge bg-light text-dark border">{{ problem_list_votes.upvote_count }} up / {{ problem_list_votes.downvote_count }} down</span>
+          <span id="problem-list-summary-unsaved-badge" class="badge bg-warning-subtle text-warning d-none">
+            <i class="ti ti-alert-triangle me-1"></i>Unsaved
+          </span>
+          <a href="{% url 'problemsets:detail' problem_list.list_uuid %}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-eye me-1"></i>View list
+          </a>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="card mt-3" data-problem-search-url="{% url 'problemsets:problem_search' problem_list.list_uuid %}">
-    <div class="card-header border-bottom">
-      <h4 class="header-title mb-0">Find problems</h4>
-      <p class="text-muted fs-xs mb-0">Search the active archive by contest, year, topic, MOHS, tag, label, or UUID.</p>
-    </div>
-    <div class="card-body">
-      <form id="problem-list-search-form" class="row g-2 align-items-end">
-        <div class="col-xl-8 col-lg-9">
-          <label class="form-label" for="problem-list-search-input">Search archive</label>
-          <input id="problem-list-search-input" type="search" class="form-control" placeholder="IMO 2026 P1, geometry, LTE, MOHS 12...">
+  <div id="problem-list-builder-layout" class="row g-3 align-items-start mt-0 problem-list-builder-layout">
+    <div class="col-xxl-8 col-xl-7 order-2 order-xl-1">
+      <div class="row g-3">
+        <div class="col-xxl-5">
+          <div class="card h-100">
+            <div class="card-header border-bottom">
+              <h4 class="header-title mb-0">List settings</h4>
+              <p class="text-muted fs-xs mb-0">Title, description, and public display controls.</p>
+            </div>
+            <div class="card-body">
+              <form method="post">
+                {% csrf_token %}
+                <div class="mb-3">
+                  <label class="form-label" for="{{ form.title.id_for_label }}">Title</label>
+                  {{ form.title }}
+                  {% for error in form.title.errors %}<div class="text-danger fs-xs mt-1">{{ error }}</div>{% endfor %}
+                </div>
+                <div class="mb-3">
+                  <label class="form-label" for="{{ form.description.id_for_label }}">Description</label>
+                  {{ form.description }}
+                  {% for error in form.description.errors %}<div class="text-danger fs-xs mt-1">{{ error }}</div>{% endfor %}
+                </div>
+                {% include 'problemsets/partials/display-options-fields.html' %}
+                <button type="submit" class="btn btn-primary">
+                  <i class="ti ti-device-floppy me-1"></i>Save details
+                </button>
+              </form>
+            </div>
+          </div>
         </div>
-        <div class="col-auto">
-          <button id="problem-list-search-button" type="submit" class="btn btn-primary">
-            <i class="ti ti-search me-1"></i>Search
+        <div class="col-xxl-7">
+          <div class="card h-100">
+            <div class="card-header border-bottom">
+              <h4 class="header-title mb-0">Sharing</h4>
+              <p class="text-muted fs-xs mb-0">Publish the list and share the public version.</p>
+            </div>
+            <div class="card-body">
+              <div class="row g-3 mb-3">
+                <div class="col-sm-4">
+                  <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Visibility</p>
+                  <span class="badge {% if problem_list.is_public %}bg-success-subtle text-success{% else %}bg-secondary-subtle text-secondary{% endif %}">
+                    {{ problem_list.get_visibility_display }}
+                  </span>
+                </div>
+                <div class="col-sm-4">
+                  <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Score</p>
+                  <h4 class="mb-0">{{ problem_list_votes.score }}</h4>
+                </div>
+                <div class="col-sm-4">
+                  <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Votes</p>
+                  <p class="mb-0 fs-sm">{{ problem_list_votes.upvote_count }} up / {{ problem_list_votes.downvote_count }} down</p>
+                </div>
+              </div>
+              <form method="post" action="{% url 'problemsets:toggle_visibility' problem_list.list_uuid %}" class="mb-3">
+                {% csrf_token %}
+                <button type="submit" class="btn {% if problem_list.is_public %}btn-outline-secondary{% else %}btn-success{% endif %}">
+                  <i class="ti {% if problem_list.is_public %}ti-lock{% else %}ti-world-upload{% endif %} me-1"></i>
+                  {% if problem_list.is_public %}Make private{% else %}Publish with share link{% endif %}
+                </button>
+              </form>
+              {% if problem_list.is_public %}
+              <label class="form-label" for="problem-list-share-url">Share URL</label>
+              <div class="input-group input-group-sm">
+                <input id="problem-list-share-url" type="text" class="form-control" value="{{ request.scheme }}://{{ request.get_host }}{{ problem_list_public_url }}" readonly>
+                <button id="problem-list-copy-share-url" type="button" class="btn btn-outline-secondary" data-copy-share-url>
+                  <i class="ti ti-copy me-1"></i>Copy
+                </button>
+                <a href="{{ problem_list_public_url }}" class="btn btn-outline-secondary">
+                  <i class="ti ti-external-link me-1"></i>Open
+                </a>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mt-3" data-problem-search-url="{% url 'problemsets:problem_search' problem_list.list_uuid %}">
+        <div class="card-header border-bottom d-flex flex-wrap align-items-start justify-content-between gap-2">
+          <div>
+            <h4 class="header-title mb-0">Find problems</h4>
+            <p class="text-muted fs-xs mb-0">Search the active archive by contest, year, topic, MOHS, tag, label, or UUID.</p>
+          </div>
+          <button class="btn btn-light btn-sm border" type="button" data-bs-toggle="collapse" data-bs-target="#problem-list-advanced-filters" aria-expanded="true" aria-controls="problem-list-advanced-filters">
+            <i class="ti ti-adjustments-horizontal me-1"></i>Filters
           </button>
         </div>
-        <div class="col-12">
-          <div class="row g-2">
-            <div class="col-xl-3 col-md-6">
-              <label class="form-label" for="problem-list-search-contest">Contest</label>
-              <input id="problem-list-search-contest" type="search" class="form-control form-control-sm" placeholder="Balkan MO">
+        <div class="card-body">
+          <form id="problem-list-search-form">
+            <label class="form-label" for="problem-list-search-input">Search archive</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="ti ti-search"></i></span>
+              <input id="problem-list-search-input" type="search" class="form-control" placeholder="IMO 2026 P1, geometry, LTE, MOHS 12...">
+              <button id="problem-list-search-button" type="submit" class="btn btn-primary">
+                <i class="ti ti-search me-1"></i>Search
+              </button>
             </div>
-            <div class="col-xl-2 col-md-3">
-              <label class="form-label" for="problem-list-search-year">Year</label>
-              <input id="problem-list-search-year" type="number" class="form-control form-control-sm" placeholder="2024">
+
+            <div class="collapse show mt-3" id="problem-list-advanced-filters">
+              <div class="row g-2">
+                <div class="col-xl-4 col-md-6">
+                  <label class="form-label" for="problem-list-search-contest">Contest</label>
+                  <input id="problem-list-search-contest" type="search" class="form-control form-control-sm" placeholder="Balkan MO">
+                </div>
+                <div class="col-xl-2 col-md-3">
+                  <label class="form-label" for="problem-list-search-year">Year</label>
+                  <input id="problem-list-search-year" type="number" class="form-control form-control-sm" placeholder="2024">
+                </div>
+                <div class="col-xl-2 col-md-3">
+                  <label class="form-label" for="problem-list-search-problem">Problem</label>
+                  <input id="problem-list-search-problem" type="search" class="form-control form-control-sm" placeholder="P3">
+                </div>
+                <div class="col-xl-4 col-md-6">
+                  <label class="form-label" for="problem-list-search-topic">Topic</label>
+                  <input id="problem-list-search-topic" type="search" class="form-control form-control-sm" placeholder="Geometry">
+                </div>
+                <div class="col-xl-2 col-md-3">
+                  <label class="form-label" for="problem-list-search-mohs-min">MOHS min</label>
+                  <input id="problem-list-search-mohs-min" type="number" class="form-control form-control-sm" placeholder="0">
+                </div>
+                <div class="col-xl-2 col-md-3">
+                  <label class="form-label" for="problem-list-search-mohs-max">MOHS max</label>
+                  <input id="problem-list-search-mohs-max" type="number" class="form-control form-control-sm" placeholder="60">
+                </div>
+                <div class="col-xl-4 col-md-6">
+                  <label class="form-label" for="problem-list-search-tag">Topic tag</label>
+                  <input id="problem-list-search-tag" type="search" class="form-control form-control-sm" placeholder="Angle chase">
+                </div>
+              </div>
             </div>
-            <div class="col-xl-2 col-md-3">
-              <label class="form-label" for="problem-list-search-problem">Problem</label>
-              <input id="problem-list-search-problem" type="search" class="form-control form-control-sm" placeholder="P3">
-            </div>
-            <div class="col-xl-3 col-md-6">
-              <label class="form-label" for="problem-list-search-topic">Topic</label>
-              <input id="problem-list-search-topic" type="search" class="form-control form-control-sm" placeholder="Geometry">
-            </div>
-            <div class="col-xl-1 col-md-3">
-              <label class="form-label" for="problem-list-search-mohs-min">MOHS min</label>
-              <input id="problem-list-search-mohs-min" type="number" class="form-control form-control-sm" placeholder="0">
-            </div>
-            <div class="col-xl-1 col-md-3">
-              <label class="form-label" for="problem-list-search-mohs-max">MOHS max</label>
-              <input id="problem-list-search-mohs-max" type="number" class="form-control form-control-sm" placeholder="60">
-            </div>
-            <div class="col-xl-3 col-md-6">
-              <label class="form-label" for="problem-list-search-tag">Topic tag</label>
-              <input id="problem-list-search-tag" type="search" class="form-control form-control-sm" placeholder="Angle chase">
-            </div>
+          </form>
+
+          <div id="problem-list-active-filters" class="d-flex flex-wrap gap-2 mt-3 d-none" aria-live="polite"></div>
+          <div id="problem-list-search-facets" class="d-flex flex-column gap-2 mt-3 d-none"></div>
+
+          <div id="problem-list-search-status" class="problem-list-picker-status text-muted fs-xs mt-2" role="status">
+            Search for problems, then add rows to the draft sequence.
+          </div>
+
+          <div class="table-responsive mt-2">
+            <table class="table table-striped table-hover align-middle problem-list-picker-table mb-0">
+              <thead>
+                <tr>
+                  <th>Problem</th>
+                  <th>Metadata</th>
+                  <th>User MOHS</th>
+                  <th>Tags</th>
+                  <th class="text-end">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="problem-list-search-results">
+                <tr>
+                  <td colspan="5" class="text-muted fs-sm">No search has been run yet.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="d-flex justify-content-center mt-3">
+            <button id="problem-list-load-more" type="button" class="btn btn-outline-secondary btn-sm d-none">
+              <i class="ti ti-chevron-down me-1"></i>Load more
+            </button>
           </div>
         </div>
-      </form>
-
-      <div id="problem-list-search-facets" class="d-flex flex-column gap-2 mt-3 d-none"></div>
-
-      <div id="problem-list-search-status" class="problem-list-picker-status text-muted fs-xs mt-2" role="status">
-        Search for problems, then add rows to the draft sequence below.
-      </div>
-
-      <div class="table-responsive mt-2">
-        <table class="table table-striped align-middle problem-list-picker-table mb-0">
-          <thead>
-            <tr>
-              <th>Problem</th>
-              <th>Metadata</th>
-              <th>User MOHS</th>
-              <th>Tags</th>
-              <th class="text-end">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="problem-list-search-results">
-            <tr>
-              <td colspan="5" class="text-muted fs-sm">No search has been run yet.</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="d-flex justify-content-center mt-3">
-        <button id="problem-list-load-more" type="button" class="btn btn-outline-secondary btn-sm d-none">
-          Load more
-        </button>
       </div>
     </div>
-  </div>
 
-  <div class="card mt-3">
-    <div class="card-header border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2">
-      <div>
-        <h4 class="header-title mb-0">Problem sequence</h4>
-        <p class="text-muted fs-xs mb-0">Add problems to the draft, move rows, then save the sequence.</p>
-      </div>
-      <div class="d-flex flex-wrap align-items-center gap-2">
-        <span id="problem-list-unsaved-badge" class="badge bg-warning-subtle text-warning d-none">Unsaved changes</span>
-        <a href="{% url 'problemsets:detail' problem_list.list_uuid %}" class="btn btn-outline-secondary btn-sm">View list</a>
-      </div>
-    </div>
-    <div class="card-body">
-      <form method="post" action="{% url 'problemsets:save_items' problem_list.list_uuid %}" id="problem-list-save-form">
-        {% csrf_token %}
-        <div id="problem-list-hidden-order-fields"></div>
-        <div class="table-responsive">
-          <table class="table table-striped align-middle problem-list-picker-table mb-0">
-            <thead>
-              <tr>
-                <th>Order</th>
-                <th>Problem / title</th>
-                <th>Metadata</th>
-                <th>User MOHS</th>
-                <th>Tags</th>
-                <th class="text-end">Actions</th>
-              </tr>
-            </thead>
-            <tbody id="problem-list-draft-rows"></tbody>
-          </table>
+    <div class="col-xxl-4 col-xl-5 order-1 order-xl-2">
+      <div id="problem-list-sequence-panel" class="card problem-list-sticky-panel">
+        <div class="card-header border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2">
+          <div>
+            <h4 class="header-title mb-0">Problem sequence</h4>
+            <p class="text-muted fs-xs mb-0">Add problems, reorder rows, then save.</p>
+          </div>
+          <div class="d-flex flex-wrap align-items-center gap-2">
+            <span id="problem-list-unsaved-badge" class="badge bg-warning-subtle text-warning d-none">Unsaved changes</span>
+            <a href="{% url 'problemsets:detail' problem_list.list_uuid %}" class="btn btn-outline-secondary btn-sm">
+              <i class="ti ti-eye me-1"></i>View
+            </a>
+          </div>
         </div>
-        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-3">
-          <p id="problem-list-save-status" class="text-muted fs-xs mb-0">Public and shared views update after this sequence is saved.</p>
-          <button id="problem-list-save-button" type="submit" class="btn btn-primary">Save problem sequence</button>
+        <div class="card-body">
+          <form method="post" action="{% url 'problemsets:save_items' problem_list.list_uuid %}" id="problem-list-save-form">
+            {% csrf_token %}
+            <div id="problem-list-hidden-order-fields"></div>
+            <div class="table-responsive">
+              <table class="table table-striped table-hover align-middle problem-list-picker-table problem-list-sequence-table mb-0">
+                <thead>
+                  <tr>
+                    <th>Order</th>
+                    <th>Problem / title</th>
+                    <th>Metadata</th>
+                    <th>User MOHS</th>
+                    <th>Tags</th>
+                    <th class="text-end">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="problem-list-draft-rows"></tbody>
+              </table>
+            </div>
+            <div id="problem-list-save-bar" class="problem-list-save-bar d-flex flex-wrap align-items-center justify-content-between gap-2 mt-3">
+              <p id="problem-list-save-status" class="text-muted fs-xs mb-0">Public and shared views update after this sequence is saved.</p>
+              <button id="problem-list-save-button" type="submit" class="btn btn-primary">
+                <i class="ti ti-device-floppy me-1"></i>Save sequence
+              </button>
+            </div>
+          </form>
         </div>
-      </form>
+      </div>
     </div>
   </div>
 </div>
@@ -228,6 +375,7 @@
   var searchMohsMinInput = document.getElementById("problem-list-search-mohs-min");
   var searchMohsMaxInput = document.getElementById("problem-list-search-mohs-max");
   var searchTagInput = document.getElementById("problem-list-search-tag");
+  var activeFilters = document.getElementById("problem-list-active-filters");
   var searchFacets = document.getElementById("problem-list-search-facets");
   var searchStatus = document.getElementById("problem-list-search-status");
   var searchResultsBody = document.getElementById("problem-list-search-results");
@@ -237,6 +385,11 @@
   var hiddenOrderFields = document.getElementById("problem-list-hidden-order-fields");
   var unsavedBadge = document.getElementById("problem-list-unsaved-badge");
   var saveButton = document.getElementById("problem-list-save-button");
+  var saveBar = document.getElementById("problem-list-save-bar");
+  var summaryCount = document.getElementById("problem-list-summary-count");
+  var summaryUnsavedBadge = document.getElementById("problem-list-summary-unsaved-badge");
+  var shareUrlInput = document.getElementById("problem-list-share-url");
+  var copyShareUrlButton = document.getElementById("problem-list-copy-share-url");
   if (!draftDataEl || !searchCard || !draftBody || !hiddenOrderFields) return;
 
   var draftRows = JSON.parse(draftDataEl.textContent || "[]");
@@ -244,6 +397,17 @@
   var searchLimit = 50;
   var searchHasMore = false;
   var originalDraftKey = draftKey(draftRows);
+  var searchButtonDefaultHtml = searchButton ? searchButton.innerHTML : "";
+  var filterFields = [
+    { key: "q", label: "Search", input: searchInput },
+    { key: "contest", label: "Contest", input: searchContestInput },
+    { key: "year", label: "Year", input: searchYearInput },
+    { key: "problem", label: "Problem", input: searchProblemInput },
+    { key: "topic", label: "Topic", input: searchTopicInput },
+    { key: "mohs_min", label: "MOHS min", input: searchMohsMinInput },
+    { key: "mohs_max", label: "MOHS max", input: searchMohsMaxInput },
+    { key: "tag", label: "Tag", input: searchTagInput }
+  ];
 
   function escapeHtml(value) {
     return String(value || "")
@@ -275,9 +439,9 @@
     if (!row.topic_tags || !row.topic_tags.length) {
       return "<span class=\"text-muted fs-xs\">No tags</span>";
     }
-    return row.topic_tags.slice(0, 4).map(function (tag) {
-      return "<span class=\"badge bg-light text-dark border me-1 mb-1\">" + escapeHtml(tag) + "</span>";
-    }).join("");
+    return "<div class=\"problem-list-tag-badges\">" + row.topic_tags.slice(0, 4).map(function (tag) {
+      return "<span class=\"badge bg-secondary-subtle text-secondary\">" + escapeHtml(tag) + "</span>";
+    }).join("") + "</div>";
   }
 
   function metadataBadges(row) {
@@ -285,8 +449,10 @@
       ? "&mdash;"
       : escapeHtml(row.mohs);
     return [
-      "<span class=\"badge bg-light text-dark border me-1 mb-1\">" + escapeHtml(row.topic_label || "Unlabeled") + "</span>",
-      "<span class=\"badge bg-light text-dark border me-1 mb-1\">MOHS " + mohsValue + "</span>"
+      "<div class=\"problem-list-meta-badges\">",
+      "<span class=\"badge bg-info-subtle text-info\">" + escapeHtml(row.topic_label || "Unlabeled") + "</span>",
+      "<span class=\"badge bg-warning-subtle text-warning\">MOHS " + mohsValue + "</span>",
+      "</div>"
     ].join("");
   }
 
@@ -303,6 +469,34 @@
     if (value.trim()) {
       url.searchParams.set(name, value.trim());
     }
+  }
+
+  function renderActiveFilters() {
+    if (!activeFilters) return;
+    var chips = filterFields.map(function (field) {
+      if (!field.input) return "";
+      var value = (field.input.value || "").trim();
+      if (!value) return "";
+      return [
+        "<button type=\"button\" class=\"btn btn-light btn-sm border problem-list-filter-chip\" data-clear-filter=\"" + escapeHtml(field.key) + "\">",
+        "<span class=\"text-muted\">" + escapeHtml(field.label) + ":</span> ",
+        escapeHtml(value),
+        " <i class=\"ti ti-x ms-1\"></i>",
+        "</button>"
+      ].join("");
+    }).filter(Boolean);
+    activeFilters.classList.toggle("d-none", !chips.length);
+    activeFilters.innerHTML = chips.join("");
+  }
+
+  function clearFilter(key) {
+    var field = filterFields.find(function (candidate) {
+      return candidate.key === key;
+    });
+    if (!field || !field.input) return;
+    field.input.value = "";
+    renderActiveFilters();
+    runSearch();
   }
 
   function searchUrl(offset) {
@@ -337,6 +531,15 @@
     if (unsavedBadge) {
       unsavedBadge.classList.toggle("d-none", !hasUnsavedChanges);
     }
+    if (summaryUnsavedBadge) {
+      summaryUnsavedBadge.classList.toggle("d-none", !hasUnsavedChanges);
+    }
+    if (saveBar) {
+      saveBar.classList.toggle("is-dirty", hasUnsavedChanges);
+    }
+    if (summaryCount) {
+      summaryCount.textContent = String(draftRows.length) + " " + (draftRows.length === 1 ? "problem" : "problems");
+    }
     if (saveButton) {
       saveButton.disabled = !hasUnsavedChanges;
     }
@@ -358,9 +561,12 @@
 
     draftBody.innerHTML = draftRows.map(function (row, index) {
       var inactiveBadge = row.is_active ? "" : "<span class=\"badge bg-warning-subtle text-warning mt-1\">Inactive problem; public pages hide this row</span>";
+      var rowClass = row._justAdded ? " class=\"problem-list-row-added\"" : "";
+      var upDisabled = index === 0 ? " disabled" : "";
+      var downDisabled = index === draftRows.length - 1 ? " disabled" : "";
       return [
-        "<tr data-draft-uuid=\"" + escapeHtml(row.problem_uuid) + "\">",
-        "<td class=\"text-nowrap fw-semibold\">#" + String(index + 1) + "</td>",
+        "<tr data-draft-uuid=\"" + escapeHtml(row.problem_uuid) + "\"" + rowClass + ">",
+        "<td class=\"text-nowrap fw-semibold\"><span class=\"d-inline-flex align-items-center gap-1\"><i class=\"ti ti-grip-vertical problem-list-order-handle\"></i>#" + String(index + 1) + "</span></td>",
         "<td>",
         "<div class=\"fw-semibold\">" + escapeHtml(row.problem_label) + "</div>",
         "<div class=\"text-muted fs-xs\">" + escapeHtml(row.problem_uuid) + "</div>",
@@ -385,14 +591,17 @@
         "<td>" + tagBadges(row) + "</td>",
         "<td class=\"text-end\">",
         "<div class=\"d-inline-flex flex-wrap justify-content-end gap-2\">",
-        "<button type=\"button\" class=\"btn btn-outline-secondary btn-sm\" data-draft-action=\"up\" aria-label=\"Move " + escapeHtml(row.problem_label) + " up\"><i class=\"ti ti-arrow-up\"></i></button>",
-        "<button type=\"button\" class=\"btn btn-outline-secondary btn-sm\" data-draft-action=\"down\" aria-label=\"Move " + escapeHtml(row.problem_label) + " down\"><i class=\"ti ti-arrow-down\"></i></button>",
-        "<button type=\"button\" class=\"btn btn-outline-danger btn-sm\" data-draft-action=\"remove\">Remove</button>",
+        "<button type=\"button\" class=\"btn btn-outline-secondary btn-sm\" data-draft-action=\"up\" aria-label=\"Move " + escapeHtml(row.problem_label) + " up\"" + upDisabled + "><i class=\"ti ti-arrow-up\"></i></button>",
+        "<button type=\"button\" class=\"btn btn-outline-secondary btn-sm\" data-draft-action=\"down\" aria-label=\"Move " + escapeHtml(row.problem_label) + " down\"" + downDisabled + "><i class=\"ti ti-arrow-down\"></i></button>",
+        "<button type=\"button\" class=\"btn btn-outline-danger btn-sm\" data-draft-action=\"remove\" aria-label=\"Remove " + escapeHtml(row.problem_label) + "\"><i class=\"ti ti-trash me-1\"></i>Remove</button>",
         "</div>",
         "</td>",
         "</tr>"
       ].join("");
     }).join("");
+    draftRows.forEach(function (row) {
+      row._justAdded = false;
+    });
   }
 
   function renderSearchResults(rows) {
@@ -418,7 +627,7 @@
       }
       var isAdded = draftContains(row.problem_uuid);
       var buttonClass = isAdded ? "btn-outline-secondary" : "btn-primary";
-      var buttonLabel = isAdded ? "Added" : "Add";
+      var buttonLabel = isAdded ? "<i class=\"ti ti-check me-1\"></i>Added" : "<i class=\"ti ti-plus me-1\"></i>Add";
       var disabled = isAdded ? " disabled" : "";
       htmlRows.push([
         "<tr data-result-uuid=\"" + escapeHtml(row.problem_uuid) + "\">",
@@ -431,7 +640,7 @@
         "<td>" + tagBadges(row) + "</td>",
         "<td class=\"text-end\">",
         "<div class=\"d-inline-flex flex-wrap justify-content-end gap-2\">",
-        "<a href=\"" + escapeHtml(row.archive_url) + "\" class=\"btn btn-outline-secondary btn-sm\" target=\"_blank\" rel=\"noopener\">Archive</a>",
+        "<a href=\"" + escapeHtml(row.archive_url) + "\" class=\"btn btn-outline-secondary btn-sm\" target=\"_blank\" rel=\"noopener\"><i class=\"ti ti-archive me-1\"></i>Archive</a>",
         "<button type=\"button\" class=\"btn " + buttonClass + " btn-sm\" data-add-problem" + disabled + ">" + buttonLabel + "</button>",
         "</div>",
         "</td>",
@@ -479,11 +688,15 @@
       if (searchMohsMinInput) searchMohsMinInput.value = value;
       if (searchMohsMaxInput) searchMohsMaxInput.value = value;
     }
+    renderActiveFilters();
   }
 
   function setSearchBusy(isBusy) {
     if (searchButton) {
       searchButton.disabled = isBusy;
+      searchButton.innerHTML = isBusy
+        ? "<span class=\"spinner-border spinner-border-sm me-1\" aria-hidden=\"true\"></span>Searching"
+        : searchButtonDefaultHtml;
     }
     if (searchStatus && isBusy) {
       searchStatus.textContent = isBusy ? "Searching active problems..." : "";
@@ -495,6 +708,7 @@
     var appendResults = options && options.append;
     var nextOffset = appendResults ? latestResults.length : 0;
     var url = searchUrl(nextOffset);
+    renderActiveFilters();
     setSearchBusy(true);
     fetch(url.toString(), {
       headers: {
@@ -540,6 +754,42 @@
     });
   }
 
+  filterFields.forEach(function (field) {
+    if (!field.input) return;
+    field.input.addEventListener("input", renderActiveFilters);
+  });
+
+  if (activeFilters) {
+    activeFilters.addEventListener("click", function (event) {
+      var button = event.target.closest("[data-clear-filter]");
+      if (!button) return;
+      clearFilter(button.getAttribute("data-clear-filter") || "");
+    });
+  }
+
+  if (copyShareUrlButton && shareUrlInput) {
+    copyShareUrlButton.addEventListener("click", function () {
+      var originalHtml = copyShareUrlButton.innerHTML;
+      var setCopied = function () {
+        copyShareUrlButton.innerHTML = "<i class=\"ti ti-check me-1\"></i>Copied";
+        setTimeout(function () {
+          copyShareUrlButton.innerHTML = originalHtml;
+        }, 1400);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(shareUrlInput.value).then(setCopied).catch(function () {
+          shareUrlInput.select();
+          document.execCommand("copy");
+          setCopied();
+        });
+      } else {
+        shareUrlInput.select();
+        document.execCommand("copy");
+        setCopied();
+      }
+    });
+  }
+
   if (searchFacets) {
     searchFacets.addEventListener("click", function (event) {
       var button = event.target.closest("[data-facet-field]");
@@ -571,7 +821,8 @@
       draftRows.push(Object.assign({}, row, {
         comment: row.comment || "",
         custom_title: row.custom_title || "",
-        hint: row.hint || ""
+        hint: row.hint || "",
+        _justAdded: true
       }));
       renderDraftRows();
       renderSearchResults(latestResults);
@@ -628,6 +879,7 @@
   }
 
   renderDraftRows();
+  renderActiveFilters();
 })();
 </script>
 {% endblock extra_javascript %}
