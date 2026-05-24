@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+from io import BytesIO
+
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.http import FileResponse
 from django.http import Http404
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
@@ -9,6 +13,7 @@ from django.shortcuts import redirect
 from django.shortcuts import render
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
+from django.utils.text import slugify
 from django.views.decorators.http import require_GET
 from django.views.decorators.http import require_POST
 
@@ -19,6 +24,8 @@ from inspinia.problemsets.forms import ProblemListAddProblemForm
 from inspinia.problemsets.forms import ProblemListForm
 from inspinia.problemsets.forms import ProblemListSearchForm
 from inspinia.problemsets.models import ProblemList
+from inspinia.problemsets.pdf_latex import ProblemListPdfCompileParams
+from inspinia.problemsets.pdf_latex import compile_problem_list_to_pdf
 from inspinia.problemsets.selectors import author_label
 from inspinia.problemsets.selectors import my_problem_lists_queryset
 from inspinia.problemsets.selectors import problem_list_item_rows
@@ -34,6 +41,9 @@ from inspinia.problemsets.services import reorder_problem_list_items
 from inspinia.problemsets.services import replace_problem_list_items
 from inspinia.problemsets.services import set_problem_list_visibility
 from inspinia.problemsets.services import toggle_problem_list_vote
+from inspinia.solutions.pdf_latex import SolutionPdfCompileError
+from inspinia.solutions.pdf_latex import SolutionPdfError
+from inspinia.solutions.pdf_latex import SolutionPdfToolError
 
 
 @login_required
@@ -262,13 +272,7 @@ def vote_view(request, list_uuid):
 
 
 def public_detail_view(request, share_token, slug):
-    problem_list = get_object_or_404(
-        ProblemList.objects.select_related("author"),
-        share_token=share_token,
-        visibility=ProblemList.Visibility.PUBLIC,
-    )
-    if slug != problem_list.public_slug:
-        raise Http404
+    problem_list = _get_public_problem_list_or_404(share_token, slug)
     record_page_view(
         request,
         payload=PageViewPayload(
@@ -291,6 +295,73 @@ def public_detail_view(request, share_token, slug):
             "problem_list_votes": problem_list_vote_totals(problem_list),
         },
     )
+
+
+@login_required
+def public_pdf_view(request, share_token, slug):
+    problem_list = _get_public_problem_list_or_404(share_token, slug)
+    try:
+        pdf_bytes = compile_problem_list_to_pdf(
+            problem_list,
+            problem_list_item_rows(problem_list),
+            ProblemListPdfCompileParams(
+                timeout=settings.SOLUTION_PDF_LATEX_TIMEOUT,
+                latex_binary=settings.SOLUTION_PDF_LATEX_BINARY,
+            ),
+        )
+    except SolutionPdfToolError as exc:
+        return render(
+            request,
+            "problemsets/pdf-unavailable.html",
+            {
+                "detail": (
+                    "Install TeX Live with latexmk on the server, "
+                    "or set SOLUTION_PDF_LATEX_BINARY to a suitable driver."
+                ),
+                "problem_list": problem_list,
+                "reason": str(exc),
+            },
+            status=503,
+        )
+    except SolutionPdfCompileError as exc:
+        return render(
+            request,
+            "problemsets/pdf-error.html",
+            {
+                "log_tail": exc.log_tail,
+                "problem_list": problem_list,
+            },
+            status=500,
+        )
+    except SolutionPdfError as exc:
+        return render(
+            request,
+            "problemsets/pdf-unavailable.html",
+            {
+                "problem_list": problem_list,
+                "reason": str(exc),
+            },
+            status=500,
+        )
+
+    filename = f"{slugify(problem_list.title) or 'problem-list'}.pdf"
+    return FileResponse(
+        BytesIO(pdf_bytes),
+        as_attachment=True,
+        filename=filename,
+        content_type="application/pdf",
+    )
+
+
+def _get_public_problem_list_or_404(share_token, slug) -> ProblemList:
+    problem_list = get_object_or_404(
+        ProblemList.objects.select_related("author"),
+        share_token=share_token,
+        visibility=ProblemList.Visibility.PUBLIC,
+    )
+    if slug != problem_list.public_slug:
+        raise Http404
+    return problem_list
 
 
 def _get_visible_problem_list(user, list_uuid):

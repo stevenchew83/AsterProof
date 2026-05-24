@@ -8,6 +8,7 @@ from inspinia.problemsets.views import edit_view
 from inspinia.problemsets.views import my_lists_view
 from inspinia.problemsets.views import problem_search_view
 from inspinia.problemsets.views import public_detail_view
+from inspinia.problemsets.views import public_pdf_view
 from inspinia.problemsets.views import remove_item_view
 from inspinia.problemsets.views import reorder_items_view
 from inspinia.problemsets.views import save_items_view
@@ -30,4 +31,5 @@ urlpatterns = [
     path("<uuid:list_uuid>/visibility/", toggle_visibility_view, name="toggle_visibility"),
     path("<uuid:list_uuid>/vote/", vote_view, name="vote"),
     path("share/<uuid:share_token>/<slug:slug>/", public_detail_view, name="public_detail"),
+    path("share/<uuid:share_token>/<slug:slug>/pdf/", public_pdf_view, name="public_pdf"),
 ]

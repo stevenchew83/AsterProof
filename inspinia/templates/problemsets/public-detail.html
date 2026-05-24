@@ -6,17 +6,30 @@
 {{ block.super }}
 <style>
   .problem-list-public-shell {
+    --bs-primary: #0f766e;
+    --bs-primary-rgb: 15, 118, 110;
+    --bs-primary-bg-subtle: #d9f0ea;
+    --bs-primary-border-subtle: #a9d9cf;
+    --pl-bg: #f4f7f3;
+    --pl-border: #d8e1d7;
+    --pl-ink: #172026;
+    --pl-muted: #5e6872;
+    --pl-paper: #fffefb;
+    --pl-teal: #0f766e;
+    --pl-warm: #b4532a;
+    --pl-blue: #2457a6;
+    --pl-gold: #a66f16;
     min-height: 100vh;
-    background: var(--bs-tertiary-bg);
-    color: var(--bs-body-color);
+    background: var(--pl-bg);
+    color: var(--pl-ink);
   }
 
   .problem-list-public-header {
     position: sticky;
     top: 0;
     z-index: 10;
-    border-bottom: 1px solid var(--ins-border-color);
-    background: rgba(var(--bs-body-bg-rgb), 0.92);
+    border-bottom: 1px solid rgba(23, 32, 38, 0.09);
+    background: rgba(255, 254, 251, 0.94);
     backdrop-filter: blur(10px);
   }
 
@@ -24,9 +37,13 @@
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    color: var(--bs-body-color);
+    color: var(--pl-ink);
     font-weight: 700;
     letter-spacing: 0;
+  }
+
+  .problem-list-public-brand i {
+    color: var(--pl-warm);
   }
 
   .problem-list-public-hero {
@@ -34,7 +51,7 @@
   }
 
   .problem-list-public-eyebrow {
-    color: var(--bs-primary);
+    color: var(--pl-warm);
     font-size: 0.75rem;
     font-weight: 700;
     letter-spacing: 0;
@@ -43,13 +60,14 @@
 
   .problem-list-public-title {
     max-width: 48rem;
+    color: var(--pl-ink);
     font-size: 3rem;
     line-height: 1;
   }
 
   .problem-list-public-description {
     max-width: 46rem;
-    color: var(--bs-secondary-color);
+    color: var(--pl-muted);
     font-size: 1.05rem;
     line-height: 1.65;
   }
@@ -62,15 +80,16 @@
 
   .problem-list-public-stat {
     min-width: 6.5rem;
-    border: 1px solid var(--ins-border-color);
+    border: 1px solid var(--pl-border);
     border-radius: 0.5rem;
-    background: var(--bs-body-bg);
+    background: var(--pl-paper);
     padding: 0.75rem 1rem;
+    box-shadow: 0 0.75rem 1.75rem rgba(23, 32, 38, 0.045);
   }
 
   .problem-list-public-stat span {
     display: block;
-    color: var(--bs-secondary-color);
+    color: var(--pl-muted);
     font-size: 0.72rem;
     font-weight: 700;
     text-transform: uppercase;
@@ -79,21 +98,34 @@
   .problem-list-public-stat strong {
     display: block;
     margin-top: 0.15rem;
+    color: var(--pl-ink);
     font-size: 1.2rem;
     line-height: 1;
   }
 
+  .problem-list-public-stat:nth-child(2) strong {
+    color: var(--pl-teal);
+  }
+
+  .problem-list-public-stat:nth-child(3) strong {
+    color: var(--pl-warm);
+  }
+
+  .problem-list-public-stat:nth-child(4) strong {
+    color: var(--pl-blue);
+  }
+
   .problem-list-public-card {
-    border: 1px solid var(--ins-border-color);
+    border: 1px solid var(--pl-border);
     border-radius: 0.5rem;
-    background: var(--bs-body-bg);
-    box-shadow: 0 1rem 2rem rgba(15, 23, 42, 0.05);
+    background: var(--pl-paper);
+    box-shadow: 0 1rem 2rem rgba(23, 32, 38, 0.055);
     transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
   }
 
   .problem-list-public-card:hover {
-    border-color: rgba(var(--bs-primary-rgb), 0.32);
-    box-shadow: 0 1.25rem 2.5rem rgba(15, 23, 42, 0.08);
+    border-color: rgba(15, 118, 110, 0.38);
+    box-shadow: 0 1.25rem 2.5rem rgba(23, 32, 38, 0.085);
     transform: translateY(-1px);
   }
 
@@ -105,30 +137,75 @@
     height: 2.5rem;
     flex: 0 0 auto;
     border-radius: 0.5rem;
-    background: var(--bs-primary-bg-subtle);
-    color: var(--bs-primary);
+    background: var(--pl-teal);
+    color: #ffffff;
     font-weight: 700;
+    box-shadow: 0 0.5rem 1rem rgba(15, 118, 110, 0.22);
   }
 
   .problem-list-public-problem-title {
+    color: var(--pl-ink);
     font-size: 1.15rem;
     line-height: 1.35;
   }
 
   .problem-list-public-tags .badge {
-    border-color: var(--ins-border-color) !important;
-    color: var(--bs-secondary-color) !important;
+    border-color: #cad8cf !important;
+    background: #eef4f0 !important;
+    color: #40504b !important;
     font-weight: 600;
   }
 
   .problem-list-public-card .statement-render-content {
     padding-top: 0.75rem;
-    border-top: 1px solid var(--ins-border-color);
+    border-top: 1px solid var(--pl-border);
   }
 
   .problem-list-public-card .statement-text-fragment {
+    color: var(--pl-ink);
     font-size: 1.02rem;
     line-height: 1.78;
+  }
+
+  .problem-list-public-shell .btn-primary {
+    --bs-btn-bg: var(--pl-teal);
+    --bs-btn-border-color: var(--pl-teal);
+    --bs-btn-hover-bg: #0b5f59;
+    --bs-btn-hover-border-color: #0b5f59;
+    --bs-btn-active-bg: #084f4a;
+    --bs-btn-active-border-color: #084f4a;
+  }
+
+  .problem-list-public-shell .btn-outline-primary {
+    --bs-btn-color: var(--pl-teal);
+    --bs-btn-border-color: #86bdb3;
+    --bs-btn-hover-bg: var(--pl-teal);
+    --bs-btn-hover-border-color: var(--pl-teal);
+    --bs-btn-hover-color: #ffffff;
+    --bs-btn-active-bg: var(--pl-teal);
+    --bs-btn-active-border-color: var(--pl-teal);
+  }
+
+  html[data-bs-theme="dark"] .problem-list-public-shell {
+    --pl-bg: #111917;
+    --pl-border: #293b37;
+    --pl-ink: #ecf4f1;
+    --pl-muted: #a9b7b3;
+    --pl-paper: #17211f;
+    --pl-warm: #e28a5d;
+    --pl-blue: #8fb8ff;
+    background: var(--pl-bg);
+  }
+
+  html[data-bs-theme="dark"] .problem-list-public-header {
+    border-bottom-color: rgba(236, 244, 241, 0.1);
+    background: rgba(17, 25, 23, 0.94);
+  }
+
+  html[data-bs-theme="dark"] .problem-list-public-tags .badge {
+    border-color: #314843 !important;
+    background: #20332f !important;
+    color: #cbdad6 !important;
   }
 
   @media (max-width: 575.98px) {
@@ -160,6 +237,9 @@
         </a>
         <div class="d-flex flex-wrap gap-2">
           {% if request.user.is_authenticated %}
+          <a href="{% url 'problemsets:public_pdf' problem_list.share_token problem_list.public_slug %}" class="btn btn-primary btn-sm">
+            <i class="ti ti-file-type-pdf me-1"></i> Download PDF
+          </a>
           <a href="{% url 'problemsets:detail' problem_list.list_uuid %}" class="btn btn-outline-primary btn-sm">
             <i class="ti ti-layout-dashboard me-1"></i> Open workspace view
           </a>

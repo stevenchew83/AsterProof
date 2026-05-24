@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block title %}PDF export failed{% endblock title %}
+
+{% block body %}
+<main class="min-vh-100 d-flex align-items-center bg-body-tertiary py-5">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-12 col-lg-7">
+        <div class="card border-0 shadow-sm">
+          <div class="card-body p-4 p-lg-5">
+            <p class="text-danger fw-semibold text-uppercase fs-xs mb-2">Problem list export</p>
+            <h1 class="h3 mb-3">PDF export failed</h1>
+            <div class="alert alert-danger" role="alert">
+              LaTeX did not produce a PDF for this problem list.
+            </div>
+            <a href="{{ problem_list.public_url }}" class="btn btn-outline-primary">
+              <i class="ti ti-arrow-left me-1"></i> Back to problem list
+            </a>
+            {% if log_tail %}
+            <h2 class="h5 mt-4">Compiler log</h2>
+            <pre class="bg-light border rounded p-3 small mb-0" style="max-height: 24rem; overflow: auto;">{{ log_tail }}</pre>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+{% endblock body %}
