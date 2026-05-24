@@ -286,6 +286,10 @@ def test_problem_list_problem_search_requires_author_and_returns_active_problem_
     assert payload["results"][0]["mohs"] == searchable_mohs
     assert payload["results"][0]["user_mohs"] == author_user_mohs
     assert payload["results"][0]["topic_tags"] == ["ANGLE CHASE"]
+    assert payload["results"][0]["has_statement"] is True
+    assert payload["results"][0]["statement_status_label"] == "Statement ready"
+    assert payload["results"][0]["statement_uuid"] == str(searchable_statement.statement_uuid)
+    assert payload["results"][0]["statement_preview"] == "Prove that $a+b \\ge c$."
     assert payload["results"][0]["archive_url"].startswith(reverse("pages:contest_dashboard_listing"))
     assert payload["results"][0]["is_in_list"] is False
     assert str(inactive_problem.problem_uuid) not in response.content.decode("utf-8")
@@ -295,7 +299,12 @@ def test_problem_list_problem_search_requires_author_and_returns_active_problem_
         {"q": str(existing_problem.problem_uuid)},
     )
 
-    assert existing_response.json()["results"][0]["is_in_list"] is True
+    existing_payload = existing_response.json()
+    assert existing_payload["results"][0]["is_in_list"] is True
+    assert existing_payload["results"][0]["has_statement"] is False
+    assert existing_payload["results"][0]["statement_status_label"] == "No statement"
+    assert existing_payload["results"][0]["statement_uuid"] == ""
+    assert existing_payload["results"][0]["statement_preview"] == ""
 
     topic_response = client.get(
         reverse("problemsets:problem_search", args=[problem_list.list_uuid]),
@@ -535,6 +544,12 @@ def test_problem_list_edit_page_exposes_picker_payload_and_save_urls(client):
         problem=problem,
         position=1,
     )
+    unlinked_problem = _problem(problem="P2", contest="USAMO", year=2025)
+    ProblemListItem.objects.create(
+        problem_list=problem_list,
+        problem=unlinked_problem,
+        position=2,
+    )
     UserProblemDifficultyRating.objects.create(user=user, statement=statement, rating=user_mohs)
 
     response = client.get(reverse("problemsets:edit", args=[problem_list.list_uuid]))
@@ -543,6 +558,15 @@ def test_problem_list_edit_page_exposes_picker_payload_and_save_urls(client):
     assert response.context["problem_list_draft_rows"][0]["user_mohs"] == user_mohs
     assert response.context["problem_list_draft_rows"][0]["hint"] == hint_text
     assert response.context["problem_list_draft_rows"][0]["comment"] == comment_text
+    draft_rows = response.context["problem_list_draft_rows"]
+    assert draft_rows[0]["has_statement"] is True
+    assert draft_rows[0]["statement_status_label"] == "Statement ready"
+    assert draft_rows[0]["statement_uuid"] == str(statement.statement_uuid)
+    assert draft_rows[0]["statement_preview"] == "Prove that $a+b \\ge c$."
+    assert draft_rows[1]["has_statement"] is False
+    assert draft_rows[1]["statement_status_label"] == "No statement"
+    assert draft_rows[1]["statement_uuid"] == ""
+    assert draft_rows[1]["statement_preview"] == ""
     response_html = response.content.decode("utf-8")
     assert reverse("problemsets:problem_search", args=[problem_list.list_uuid]) in response_html
     assert reverse("problemsets:save_items", args=[problem_list.list_uuid]) in response_html

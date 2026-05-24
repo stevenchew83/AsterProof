@@ -225,6 +225,7 @@ def problem_list_picker_rows(problem_list: ProblemList) -> list[dict]:
         picker_row = _problem_picker_row(
             row["problem"],
             is_in_list=True,
+            statement=row["statement"],
             topic_tags=row["topic_tags"],
             user_mohs=row["user_mohs"],
         )
@@ -258,14 +259,17 @@ def searchable_problem_payload(problem_list: ProblemList, raw_params) -> dict:
     )
     latest_statement_by_problem_id = _latest_statement_by_problem_id([problem.id for problem in problems])
     user_mohs_by_problem_id = _user_mohs_by_problem_id(latest_statement_by_problem_id, problem_list.author)
-    rows = [
-        _problem_picker_row(
-            problem,
-            is_in_list=problem.problem_uuid in existing_problem_uuids,
-            user_mohs=user_mohs_by_problem_id.get(problem.id),
+    rows = []
+    for problem in problems:
+        statement = latest_statement_by_problem_id.get(problem.id)
+        rows.append(
+            _problem_picker_row(
+                problem,
+                is_in_list=problem.problem_uuid in existing_problem_uuids,
+                statement=statement,
+                user_mohs=user_mohs_by_problem_id.get(problem.id),
+            ),
         )
-        for problem in problems
-    ]
     return {
         "count": len(rows),
         "facets": _problem_search_facets(filtered_queryset),
@@ -464,10 +468,12 @@ def _problem_picker_row(
     problem: ProblemSolveRecord,
     *,
     is_in_list: bool,
+    statement: ContestProblemStatement | None = None,
     topic_tags: list[str] | None = None,
     user_mohs: int | None = None,
 ) -> dict:
     label = problem_label(problem)
+    has_statement = statement is not None
     return {
         "archive_url": contest_dashboard_problem_url(
             problem.contest,
@@ -485,6 +491,10 @@ def _problem_picker_row(
         "problem_code": problem.problem,
         "problem_label": label,
         "problem_uuid": str(problem.problem_uuid),
+        "has_statement": has_statement,
+        "statement_preview": _statement_preview_text(statement),
+        "statement_status_label": "Statement ready" if has_statement else "No statement",
+        "statement_uuid": str(statement.statement_uuid) if statement is not None else "",
         "topic_label": display_topic_label(problem.topic),
         "topic_tags": topic_tags if topic_tags is not None else _problem_topic_tags(problem),
         "user_mohs": user_mohs,
@@ -497,6 +507,15 @@ def _problem_topic_tags(problem: ProblemSolveRecord) -> list[str]:
     if techniques:
         return techniques
     return _raw_topic_tags(problem.topic_tags)
+
+
+def _statement_preview_text(statement: ContestProblemStatement | None, *, limit: int = 220) -> str:
+    if statement is None:
+        return ""
+    preview = re.sub(r"\s+", " ", statement.statement_latex or "").strip()
+    if len(preview) <= limit:
+        return preview
+    return f"{preview[: limit - 3].rstrip()}..."
 
 
 def _param_value(raw_params, key: str) -> str:
