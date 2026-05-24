@@ -578,6 +578,13 @@ def test_problem_list_edit_page_exposes_picker_payload_and_save_urls(client):
     assert "problem-list-active-filters" in response_html
     assert "problem-list-sequence-panel" in response_html
     assert "problem-list-copy-share-url" in response_html
+    assert "problem-list-statement-preview" in response_html
+    assert "problem-list-unlinked-confirm-modal" in response_html
+    assert "data-preview-problem" in response_html
+    assert "data-confirm-unlinked-add" in response_html
+    assert "Add problem without a statement?" in response_html
+    assert "statementStatusBadge" in response_html
+    assert "openStatementPreview" in response_html
     assert "data-copy-share-url" in response_html
     expected_added_button_js = (
         'buttonLabel = isAdded ? "<i class=\\"ti ti-check me-1\\"></i>Added" '
