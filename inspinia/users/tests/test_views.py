@@ -1,4 +1,5 @@
 from datetime import date
+from datetime import timedelta
 from http import HTTPStatus
 
 import pytest
@@ -13,6 +14,7 @@ from django.http import HttpResponseRedirect
 from django.test import Client
 from django.test import RequestFactory
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.translation import gettext
 from django.utils.translation import gettext_lazy as _
 
@@ -21,6 +23,7 @@ from inspinia.pages.models import UserProblemCompletion
 from inspinia.users.forms import UserAdminChangeForm
 from inspinia.users.models import AuditEvent
 from inspinia.users.models import User
+from inspinia.users.models import UserAccessSettings
 from inspinia.users.tests.factories import UserFactory
 from inspinia.users.views import PublicProfileUpdateView
 from inspinia.users.views import UserRedirectView
@@ -527,6 +530,36 @@ class TestManageRolesView:
             metadata__to_approved=False,
         ).exists()
 
+    def test_manage_roles_admin_can_enable_signup_auto_approval_without_approving_pending_users(
+        self,
+        client: Client,
+    ):
+        admin_user = UserFactory(role=User.Role.ADMIN)
+        pending_user = UserFactory(
+            email="pending-toggle@example.com",
+            role=User.Role.NORMAL,
+            is_approved=False,
+        )
+        client.force_login(admin_user)
+
+        response = client.post(
+            reverse("users:manage_roles"),
+            {
+                "auto_approve_new_users": "1",
+                "user_ids": [pending_user.pk],
+                f"role_{pending_user.pk}": User.Role.NORMAL,
+                f"is_approved_{pending_user.pk}": "0",
+            },
+            follow=True,
+        )
+
+        pending_user.refresh_from_db()
+
+        assert response.status_code == HTTPStatus.OK
+        assert UserAccessSettings.get_solo().auto_approve_new_users is True
+        assert pending_user.is_approved is False
+        assert "Saved user access settings." in response.content.decode("utf-8")
+
     def test_manage_roles_page_shows_unknown_stored_role_without_defaulting_to_admin(self, client: Client):
         admin_user = UserFactory(role=User.Role.ADMIN)
         stale_role_user = UserFactory(email="stale-role@example.com", role="legacy", is_approved=False)
@@ -683,8 +716,28 @@ class TestManageRolesView:
         assert "Approval" in content
         assert pending_user.email in content
         assert 'name="user_ids"' in content
+        assert 'name="auto_approve_new_users"' in content
+        assert 'id="user-access-table"' in content
+        assert "dataTables.bootstrap5.min.css" in content
         assert f'name="is_approved_{pending_user.pk}"' in content
         assert "Save all changes" in content
+
+    def test_manage_roles_lists_users_newest_joined_first(self, client: Client):
+        admin_user = UserFactory(role=User.Role.ADMIN)
+        older_user = UserFactory(
+            email="older-joined@example.com",
+            date_joined=timezone.now() - timedelta(days=7),
+        )
+        newer_user = UserFactory(
+            email="newer-joined@example.com",
+            date_joined=timezone.now() - timedelta(days=1),
+        )
+        client.force_login(admin_user)
+
+        response = client.get(reverse("users:manage_roles"))
+
+        users = list(response.context["users"])
+        assert users.index(newer_user) < users.index(older_user)
 
     def test_manage_roles_rejects_invalid_role(self, client: Client):
         admin_user = UserFactory(role=User.Role.ADMIN)

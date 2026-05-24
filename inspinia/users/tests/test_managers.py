@@ -4,6 +4,7 @@ import pytest
 from django.core.management import call_command
 
 from inspinia.users.models import User
+from inspinia.users.models import UserAccessSettings
 
 
 @pytest.mark.django_db
@@ -56,3 +57,17 @@ def test_createsuperuser_command():
     user = User.objects.get(email="henry@example.com")
     assert not user.has_usable_password()
     assert user.is_approved
+
+
+@pytest.mark.django_db
+def test_create_user_stays_pending_when_auto_approve_signup_is_enabled():
+    settings = UserAccessSettings.get_solo()
+    settings.auto_approve_new_users = True
+    settings.save()
+
+    user = User.objects.create_user(
+        email="manual-create@example.com",
+        password="something-r@nd0m!",  # noqa: S106
+    )
+
+    assert user.is_approved is False

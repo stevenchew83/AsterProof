@@ -8,6 +8,7 @@ from .forms import UserAdminChangeForm
 from .forms import UserAdminCreationForm
 from .models import AuditEvent
 from .models import User
+from .models import UserAccessSettings
 from .models import UserSession
 
 if settings.DJANGO_ADMIN_FORCE_ALLAUTH:
@@ -80,6 +81,15 @@ class UserSessionAdmin(admin.ModelAdmin):
     list_filter = ("ended_reason",)
     search_fields = ("user__email", "session_key", "ip_address", "user_agent")
     readonly_fields = ("created_at", "last_seen_at")
+
+
+@admin.register(UserAccessSettings)
+class UserAccessSettingsAdmin(admin.ModelAdmin):
+    list_display = ("auto_approve_new_users", "updated_at")
+    readonly_fields = ("created_at", "updated_at")
+
+    def has_add_permission(self, request):
+        return not UserAccessSettings.objects.exists()
 
 
 @admin.register(AuditEvent)

@@ -14,9 +14,20 @@ if typing.TYPE_CHECKING:
     from inspinia.users.models import User
 
 
+def _apply_signup_auto_approval(user: User) -> None:
+    from inspinia.users.models import UserAccessSettings
+
+    if UserAccessSettings.get_solo().auto_approve_new_users:
+        user.is_approved = True
+
+
 class AccountAdapter(DefaultAccountAdapter):
     def is_open_for_signup(self, request: HttpRequest) -> bool:
         return getattr(settings, "ACCOUNT_ALLOW_REGISTRATION", True)
+
+    def save_user(self, request: HttpRequest, user: User, form, commit=True) -> User:  # noqa: FBT002
+        _apply_signup_auto_approval(user)
+        return super().save_user(request, user, form, commit=commit)
 
     def post_login(  # noqa: PLR0913
         self,
@@ -70,3 +81,7 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):
                 if last_name := data.get("last_name"):
                     user.name += f" {last_name}"
         return user
+
+    def save_user(self, request: HttpRequest, sociallogin: SocialLogin, form=None) -> User:
+        _apply_signup_auto_approval(sociallogin.user)
+        return super().save_user(request, sociallogin, form=form)

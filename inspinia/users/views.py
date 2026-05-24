@@ -28,6 +28,7 @@ from inspinia.pages.topic_labels import display_topic_label
 from inspinia.users.forms import UserProfileForm
 from inspinia.users.models import AuditEvent
 from inspinia.users.models import User
+from inspinia.users.models import UserAccessSettings
 from inspinia.users.models import UserSession
 from inspinia.users.monitoring import record_event
 from inspinia.users.monitoring import revoke_tracked_session
@@ -404,6 +405,20 @@ def _build_user_access_summary(users: list[User]) -> dict[str, int]:
     }
 
 
+def _apply_user_access_settings_update(request) -> bool:
+    if "auto_approve_new_users" not in request.POST:
+        return False
+
+    access_settings = UserAccessSettings.get_solo()
+    next_auto_approve = request.POST.get("auto_approve_new_users") == "1"
+    if access_settings.auto_approve_new_users == next_auto_approve:
+        return False
+
+    access_settings.auto_approve_new_users = next_auto_approve
+    access_settings.save()
+    return True
+
+
 def _parse_bulk_user_access_updates(request) -> list[tuple[int, str | None, bool]] | None:
     updates = []
     for raw_id in request.POST.getlist("user_ids"):
@@ -443,7 +458,9 @@ def _handle_bulk_user_access_post(request, allowed_roles: set[str]) -> None:
         return
 
     changed_count = 0
+    settings_changed = False
     with transaction.atomic():
+        settings_changed = _apply_user_access_settings_update(request)
         for user_id, new_role, posted_is_approved in parsed_updates:
             if _apply_user_access_update(
                 request=request,
@@ -453,6 +470,8 @@ def _handle_bulk_user_access_post(request, allowed_roles: set[str]) -> None:
             ):
                 changed_count += 1
 
+    if settings_changed:
+        messages.success(request, _("Saved user access settings."))
     if changed_count:
         messages.success(
             request,
@@ -463,7 +482,7 @@ def _handle_bulk_user_access_post(request, allowed_roles: set[str]) -> None:
             )
             % {"count": changed_count},
         )
-    else:
+    elif not settings_changed:
         messages.info(request, _("No access changes to save."))
 
 
@@ -479,12 +498,16 @@ def _handle_single_user_access_post(request, allowed_roles: set[str]) -> None:
         messages.error(request, _("Invalid user or role."))
         return
 
-    _apply_user_access_update(
-        request=request,
-        target=target,
-        new_role=new_role,
-        posted_is_approved=request.POST.get("is_approved") == "1",
-    )
+    with transaction.atomic():
+        settings_changed = _apply_user_access_settings_update(request)
+        _apply_user_access_update(
+            request=request,
+            target=target,
+            new_role=new_role,
+            posted_is_approved=request.POST.get("is_approved") == "1",
+        )
+    if settings_changed:
+        messages.success(request, _("Saved user access settings."))
     messages.success(
         request,
         _("Updated access for %(email)s.") % {"email": target.email},
@@ -506,7 +529,7 @@ def manage_user_roles_view(request):
             _handle_single_user_access_post(request, allowed_roles)
         return redirect("users:manage_roles")
 
-    users = list(User.objects.order_by("email"))
+    users = list(User.objects.order_by("-date_joined", "-id"))
     _annotate_unknown_role_labels(users, allowed_roles)
     return render(
         request,
@@ -514,6 +537,7 @@ def manage_user_roles_view(request):
         {
             "users": users,
             "role_choices": User.Role.choices,
+            "access_settings": UserAccessSettings.get_solo(),
             "access_summary": _build_user_access_summary(users),
         },
     )
