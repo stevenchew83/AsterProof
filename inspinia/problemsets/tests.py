@@ -493,7 +493,7 @@ def test_problem_list_edit_page_exposes_picker_payload_and_save_urls(client):
     user = UserFactory()
     client.force_login(user)
     problem = _problem(problem="P1")
-    problem_list = _problem_list(author=user)
+    problem_list = _problem_list(author=user, visibility=ProblemList.Visibility.PUBLIC)
     ProblemListItem.objects.create(problem_list=problem_list, problem=problem, position=1)
 
     response = client.get(reverse("problemsets:edit", args=[problem_list.list_uuid]))
@@ -506,6 +506,16 @@ def test_problem_list_edit_page_exposes_picker_payload_and_save_urls(client):
     assert "problem-list-search-facets" in response_html
     assert "problem-list-search-contest" in response_html
     assert "problem-list-load-more" in response_html
+    assert "problem-list-builder-layout" in response_html
+    assert "problem-list-active-filters" in response_html
+    assert "problem-list-sequence-panel" in response_html
+    assert "problem-list-copy-share-url" in response_html
+    assert "data-copy-share-url" in response_html
+    expected_added_button_js = (
+        'buttonLabel = isAdded ? "<i class=\\"ti ti-check me-1\\"></i>Added" '
+        ': "<i class=\\"ti ti-plus me-1\\"></i>Add";'
+    )
+    assert expected_added_button_js in response_html
     assert "Hide original source" in response_html
     assert "Optional title for public view" in response_html
     assert "Paste an active problem UUID" not in response_html
