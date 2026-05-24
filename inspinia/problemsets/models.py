@@ -77,6 +77,8 @@ class ProblemListItem(models.Model):
     )
     position = models.PositiveIntegerField()
     custom_title = models.CharField(max_length=PROBLEM_LIST_ITEM_CUSTOM_TITLE_MAX_LENGTH, blank=True)
+    hint = models.TextField(blank=True)
+    comment = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -101,6 +103,8 @@ class ProblemListItem(models.Model):
 
     def save(self, *args, **kwargs) -> None:
         self.custom_title = (self.custom_title or "").strip()
+        self.hint = (self.hint or "").strip()
+        self.comment = (self.comment or "").strip()
         super().save(*args, **kwargs)
 
 

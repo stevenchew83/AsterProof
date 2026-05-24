@@ -104,6 +104,22 @@
               {% endfor %}
             </div>
             {% endif %}
+            {% if row.comment or row.hint %}
+            <div class="d-grid gap-2 mb-3">
+              {% if row.comment %}
+              <div class="border rounded p-3 bg-light-subtle">
+                <p class="text-muted fs-xs text-uppercase fw-semibold mb-1">Curator comment</p>
+                <div class="mb-0">{{ row.comment|linebreaksbr }}</div>
+              </div>
+              {% endif %}
+              {% if row.hint %}
+              <details class="border rounded p-3">
+                <summary class="fw-semibold">Show hint</summary>
+                <div class="text-muted mt-2">{{ row.hint|linebreaksbr }}</div>
+              </details>
+              {% endif %}
+            </div>
+            {% endif %}
             {% if row.statement %}
             {% include 'partials/statement-render-content.html' with segments=row.statement_render_segments render_style='classic' %}
             {% else %}

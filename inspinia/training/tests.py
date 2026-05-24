@@ -31,6 +31,7 @@ EXPECTED_IMO_SYLLABUS_NEW_SUBTOPIC_TOTAL = 114
 EXPECTED_SEED_SUBTOPIC_TOTAL = EXPECTED_EXPANDED_SEED_SUBTOPIC_TOTAL + EXPECTED_IMO_SYLLABUS_NEW_SUBTOPIC_TOTAL
 INITIAL_LEDGER_POINTS = 275
 MATERIAL_COMPLETION_POINTS = 10
+CHECKPOINT_PROBLEM_POINTS = 20
 PARTIAL_ACCEPTANCE_POINTS = 15
 
 BASE_SEED_SUBTOPICS = {
@@ -473,6 +474,55 @@ def test_sidebar_shows_role_appropriate_training_links(client):
     admin_html = client.get(reverse("training:dashboard")).content.decode("utf-8")
     assert "Trainer queue" in admin_html
     assert "Level settings" in admin_html
+
+
+def test_trainer_materials_workspace_exposes_rich_markdown_tools_and_checkpoint_form(client):
+    trainer = UserFactory(role=User.Role.TRAINER)
+    _topic, _subtopic, material, _problem = _topic_tree()
+    client.force_login(trainer)
+
+    response = client.get(f"{reverse('training:trainer_materials')}?edit={material.id}")
+
+    assert response.status_code == HTTPStatus.OK
+    html = response.content.decode("utf-8")
+    assert 'data-training-material-editor="true"' in html
+    assert 'data-format-action="heading"' in html
+    assert 'data-format-action="display-math"' in html
+    assert 'data-preview-source="id_content_markdown"' in html
+    assert "Add checkpoint problem" in html
+    assert 'name="form_kind" value="checkpoint_problem"' in html
+    assert str(material.subtopic_id) in html
+
+
+def test_trainer_materials_quick_creates_checkpoint_problem(client):
+    trainer = UserFactory(role=User.Role.TRAINER)
+    _topic, subtopic, material, _problem = _topic_tree()
+    client.force_login(trainer)
+
+    response = client.post(
+        reverse("training:trainer_materials"),
+        {
+            "form_kind": "checkpoint_problem",
+            "material_id": str(material.id),
+            "subtopic": str(subtopic.id),
+            "title": "Proof-writing checkpoint",
+            "slug": "",
+            "statement_markdown": "Prove that $a^2-b^2=(a-b)(a+b)$.",
+            "difficulty": Problem.Difficulty.INTRODUCTORY,
+            "max_points": str(CHECKPOINT_PROBLEM_POINTS),
+            "order": "15",
+            "is_published": "on",
+        },
+    )
+
+    assert response.status_code == HTTPStatus.FOUND
+    problem = Problem.objects.get(title="Proof-writing checkpoint")
+    assert problem.subtopic == subtopic
+    assert problem.slug == "proof-writing-checkpoint"
+    assert problem.statement_markdown == "Prove that $a^2-b^2=(a-b)(a+b)$."
+    assert problem.max_points == CHECKPOINT_PROBLEM_POINTS
+    assert problem.created_by == trainer
+    assert response["Location"] == f"{reverse('training:trainer_materials')}?edit={material.id}"
 
 
 def test_trainer_topics_marks_imo_syllabus_subtopics(client):
