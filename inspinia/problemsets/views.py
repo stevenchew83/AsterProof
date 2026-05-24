@@ -27,12 +27,12 @@ from inspinia.problemsets.models import ProblemList
 from inspinia.problemsets.pdf_latex import ProblemListPdfCompileParams
 from inspinia.problemsets.pdf_latex import compile_problem_list_to_pdf
 from inspinia.problemsets.selectors import author_label
+from inspinia.problemsets.selectors import discover_problem_lists_queryset
 from inspinia.problemsets.selectors import my_problem_lists_queryset
 from inspinia.problemsets.selectors import problem_list_item_rows
 from inspinia.problemsets.selectors import problem_list_picker_rows
 from inspinia.problemsets.selectors import problem_list_summary_rows
 from inspinia.problemsets.selectors import problem_list_vote_totals
-from inspinia.problemsets.selectors import public_problem_lists_queryset
 from inspinia.problemsets.selectors import searchable_problem_payload
 from inspinia.problemsets.services import ProblemListServiceError
 from inspinia.problemsets.services import add_problem_to_list
@@ -45,6 +45,7 @@ from inspinia.solutions.pdf_latex import SolutionPdfCompileError
 from inspinia.solutions.pdf_latex import SolutionPdfError
 from inspinia.solutions.pdf_latex import SolutionPdfToolError
 from inspinia.users.roles import user_can_access_app_features
+from inspinia.users.roles import user_has_admin_role
 
 
 @login_required
@@ -70,12 +71,14 @@ def discover_view(request):
     search_text = ""
     if form.is_valid():
         search_text = form.cleaned_data["q"]
-    problem_lists = list(public_problem_lists_queryset(search_text))
+    is_admin = user_has_admin_role(request.user)
+    problem_lists = list(discover_problem_lists_queryset(search_text, include_private=is_admin))
     return render(
         request,
         "problemsets/discover.html",
         {
             "form": form,
+            "problem_list_discover_is_admin": is_admin,
             "problem_list_rows": problem_list_summary_rows(problem_lists),
             "problem_list_search_query": search_text,
         },
@@ -377,7 +380,7 @@ def _get_public_problem_list_or_404(share_token, slug) -> ProblemList:
 
 def _get_visible_problem_list(user, list_uuid):
     problem_list = get_object_or_404(ProblemList.objects.select_related("author"), list_uuid=list_uuid)
-    if problem_list.author_id == user.id or problem_list.is_public:
+    if problem_list.author_id == user.id or problem_list.is_public or user_has_admin_role(user):
         return problem_list
     raise Http404
 
