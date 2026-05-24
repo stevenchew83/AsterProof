@@ -553,6 +553,8 @@ def test_problem_list_edit_page_exposes_picker_payload_and_save_urls(client):
     assert "problem-list-builder-layout" in response_html
     assert "problem-list-active-filters" in response_html
     assert "problem-list-sequence-panel" in response_html
+    assert "problem-list-draft-notes-row" in response_html
+    assert "problem-list-note-textarea" in response_html
     assert "problem-list-copy-share-url" in response_html
     assert "data-copy-share-url" in response_html
     expected_added_button_js = (
