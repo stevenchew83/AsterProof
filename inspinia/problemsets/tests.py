@@ -654,6 +654,7 @@ def test_public_share_page_is_read_only_without_dashboard_chrome(client):
     assert "sidenav-menu" not in response_html
     assert "side-nav" not in response_html
     assert "content-page" not in response_html
+    assert "Download PDF" not in response_html
     assert "Edit my draft" not in response_html
     assert "Start my draft" not in response_html
     assert "completion-editor" not in response_html
@@ -734,6 +735,130 @@ def test_public_share_page_links_authenticated_users_to_solution_editor(client):
     assert "Submit solution" in response_html
     assert reverse("solutions:problem_solution_edit", args=[problem.problem_uuid]) in response_html
     assert "Sign in to submit solution" not in response_html
+
+
+def test_public_share_page_links_authenticated_users_to_pdf_download(client):
+    user = UserFactory()
+    client.force_login(user)
+    problem = _problem(topic="GEO", mohs=12)
+    _statement(problem, "Prove that $AB=AC$.")
+    problem_list = _problem_list(visibility=ProblemList.Visibility.PUBLIC)
+    ProblemListItem.objects.create(problem_list=problem_list, problem=problem, position=1)
+
+    response = client.get(problem_list.public_url())
+
+    assert response.status_code == HTTPStatus.OK
+    response_html = response.content.decode("utf-8")
+    assert "Download PDF" in response_html
+    assert (
+        reverse("problemsets:public_pdf", args=[problem_list.share_token, problem_list.public_slug])
+        in response_html
+    )
+
+
+def test_public_share_pdf_returns_attachment_when_compile_succeeds(monkeypatch, client):
+    user = UserFactory()
+    client.force_login(user)
+    problem = _problem(topic="GEO", mohs=12)
+    _statement(problem, "Prove that $AB=AC$.")
+    problem_list = _problem_list(title="Mock paper", visibility=ProblemList.Visibility.PUBLIC)
+    ProblemListItem.objects.create(
+        problem_list=problem_list,
+        problem=problem,
+        position=1,
+        custom_title="Challenge 1",
+    )
+    captured = {}
+
+    def _compile_problem_list(problem_list_arg, item_rows, params):
+        captured["problem_list"] = problem_list_arg
+        captured["item_rows"] = item_rows
+        captured["params"] = params
+        return b"%PDF-1.4\n"
+
+    monkeypatch.setattr("inspinia.problemsets.views.compile_problem_list_to_pdf", _compile_problem_list)
+
+    response = client.get(reverse("problemsets:public_pdf", args=[problem_list.share_token, problem_list.public_slug]))
+
+    assert response.status_code == HTTPStatus.OK
+    assert response["Content-Type"] == "application/pdf"
+    assert "attachment" in response["Content-Disposition"]
+    assert "mock-paper.pdf" in response["Content-Disposition"]
+    assert captured["problem_list"] == problem_list
+    assert captured["item_rows"][0]["display_label"] == "Challenge 1"
+    assert captured["params"].latex_binary == settings.SOLUTION_PDF_LATEX_BINARY
+
+
+def test_public_share_pdf_requires_login(client):
+    problem_list = _problem_list(visibility=ProblemList.Visibility.PUBLIC)
+    url = reverse("problemsets:public_pdf", args=[problem_list.share_token, problem_list.public_slug])
+
+    response = client.get(url)
+
+    assert response.status_code == HTTPStatus.FOUND
+    assert response.url == f"{reverse(settings.LOGIN_URL)}?next={url}"
+
+
+def test_public_share_pdf_tool_missing_returns_503(monkeypatch, client):
+    from inspinia.solutions.pdf_latex import SolutionPdfToolError
+
+    user = UserFactory()
+    client.force_login(user)
+    problem = _problem(topic="GEO", mohs=12)
+    _statement(problem, "Prove that $AB=AC$.")
+    problem_list = _problem_list(visibility=ProblemList.Visibility.PUBLIC)
+    ProblemListItem.objects.create(problem_list=problem_list, problem=problem, position=1)
+
+    def _boom(*args, **kwargs):
+        msg = "latexmk not found"
+        raise SolutionPdfToolError(msg)
+
+    monkeypatch.setattr("inspinia.problemsets.views.compile_problem_list_to_pdf", _boom)
+
+    response = client.get(reverse("problemsets:public_pdf", args=[problem_list.share_token, problem_list.public_slug]))
+
+    assert response.status_code == HTTPStatus.SERVICE_UNAVAILABLE
+    assert b"PDF unavailable" in response.content
+    assert b"latexmk not found" in response.content
+
+
+def test_problem_list_pdf_source_respects_display_options_and_custom_titles():
+    from inspinia.problemsets.pdf_latex import build_problem_list_tex_source
+    from inspinia.problemsets.selectors import problem_list_item_rows
+
+    author = UserFactory(name="Exam Maker")
+    problem = _problem(topic="GEO", mohs=12, topic_tags="GEO - angle chase")
+    ProblemTopicTechnique.objects.create(record=problem, technique="ANGLE CHASE", domains=["GEO"])
+    _statement(problem, "Find all triangles with $AB=AC$.")
+    problem_list = _problem_list(
+        author=author,
+        title="Mock paper",
+        visibility=ProblemList.Visibility.PUBLIC,
+    )
+    problem_list.hide_source = True
+    problem_list.hide_topic = True
+    problem_list.hide_mohs = True
+    problem_list.hide_subtopics = True
+    problem_list.save()
+    ProblemListItem.objects.create(
+        problem_list=problem_list,
+        problem=problem,
+        position=1,
+        custom_title="Challenge 1",
+    )
+
+    tex_source = build_problem_list_tex_source(problem_list, problem_list_item_rows(problem_list))
+
+    assert r"\documentclass[11pt]{scrartcl}" in tex_source
+    assert r"\usepackage[sexy,noasy]{evan}" in tex_source
+    assert r"\title{Mock paper}" in tex_source
+    assert "Curated by Exam Maker" in tex_source
+    assert "Challenge 1" in tex_source
+    assert "Find all triangles with $AB=AC$." in tex_source
+    assert "IMO 2026 P1" not in tex_source
+    assert "Geometry" not in tex_source
+    assert "MOHS 12" not in tex_source
+    assert "ANGLE CHASE" not in tex_source
 
 
 def test_private_list_share_url_returns_not_found(client):
