@@ -3706,6 +3706,7 @@ def _completion_quick_update_row(
     statement: ContestProblemStatement,
     *,
     completion_by_statement_id: dict[int, UserProblemCompletion],
+    difficulty_payload: dict[str, object] | None = None,
 ) -> dict[str, object]:
     completion = completion_by_statement_id.get(statement.id)
     is_completed = _completion_is_solved(completion)
@@ -3750,6 +3751,10 @@ def _completion_quick_update_row(
         "statement_uuid": str(statement.statement_uuid),
         "topic": display_topic_label(topic) if topic else "",
         "year": int(statement.contest_year),
+        **(
+            difficulty_payload
+            or _difficulty_rating_payload(user_rating=None, average_rating=None, rating_count=0)
+        ),
         **completion_metadata_payload(completion),
     }
 
@@ -3841,10 +3846,15 @@ def completion_quick_update_view(request):
         statements,
         user=selected_user,
     )
+    difficulty_payloads = _difficulty_rating_payloads_by_statement_id(
+        statement_ids=[statement.id for statement in statements],
+        user=selected_user,
+    )
     rows = [
         _completion_quick_update_row(
             statement,
             completion_by_statement_id=completion_by_statement_id,
+            difficulty_payload=difficulty_payloads.get(statement.id),
         )
         for statement in statements
     ]
@@ -3862,6 +3872,11 @@ def completion_quick_update_view(request):
         },
         "completion_quick_update_matching_total": matching_total,
         "completion_quick_update_is_capped": visible_total < matching_total,
+        "completion_quick_update_difficulty_max": DIFFICULTY_RATING_MAX,
+        "completion_quick_update_difficulty_min": DIFFICULTY_RATING_MIN,
+        "completion_quick_update_difficulty_save_url": reverse(
+            "pages:problem_statement_difficulty_rating_save",
+        ),
         "completion_quick_update_rows": rows,
         "completion_quick_update_result_limit": result_limit,
         "completion_quick_update_result_summary": _completion_quick_update_result_summary(
