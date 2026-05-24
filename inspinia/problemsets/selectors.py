@@ -20,6 +20,7 @@ from inspinia.pages.contest_links import contest_dashboard_problem_url
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
 from inspinia.pages.models import ProblemTopicTechnique
+from inspinia.pages.models import UserProblemDifficultyRating
 from inspinia.pages.statement_analytics import effective_mohs
 from inspinia.pages.statement_analytics import effective_topic
 from inspinia.pages.topic_labels import FULL_TOPIC_LABEL_MAP
@@ -151,7 +152,12 @@ def problem_list_vote_totals(problem_list: ProblemList) -> dict[str, int]:
     }
 
 
-def problem_list_item_rows(problem_list: ProblemList, *, include_inactive: bool = False) -> list[dict]:
+def problem_list_item_rows(
+    problem_list: ProblemList,
+    *,
+    include_inactive: bool = False,
+    include_user_mohs: bool = False,
+) -> list[dict]:
     item_queryset = problem_list.items.select_related("problem").order_by("position", "id")
     if not include_inactive:
         item_queryset = item_queryset.filter(problem__is_active=True)
@@ -162,6 +168,11 @@ def problem_list_item_rows(problem_list: ProblemList, *, include_inactive: bool 
     problems = [item.problem for item in items]
     problem_ids = [problem.id for problem in problems]
     latest_statement_by_problem_id = _latest_statement_by_problem_id(problem_ids)
+    user_mohs_by_problem_id = (
+        _user_mohs_by_problem_id(latest_statement_by_problem_id, problem_list.author)
+        if include_user_mohs
+        else {}
+    )
     topic_tags_by_problem_id = _topic_tags_by_problem_id(problem_ids)
 
     rows: list[dict] = []
@@ -182,8 +193,10 @@ def problem_list_item_rows(problem_list: ProblemList, *, include_inactive: bool 
             display_label = f"Problem {item.position}"
         rows.append(
             {
+                "comment": item.comment,
                 "custom_title": custom_title,
                 "display_label": display_label,
+                "hint": item.hint,
                 "id": item.id,
                 "is_active": problem.is_active,
                 "mohs": mohs,
@@ -199,17 +212,25 @@ def problem_list_item_rows(problem_list: ProblemList, *, include_inactive: bool 
                 ),
                 "topic_label": topic_label,
                 "topic_tags": topic_tags,
+                "user_mohs": user_mohs_by_problem_id.get(problem.id),
             },
         )
     return rows
 
 
 def problem_list_picker_rows(problem_list: ProblemList) -> list[dict]:
-    item_rows = problem_list_item_rows(problem_list, include_inactive=True)
+    item_rows = problem_list_item_rows(problem_list, include_inactive=True, include_user_mohs=True)
     rows = []
     for row in item_rows:
-        picker_row = _problem_picker_row(row["problem"], is_in_list=True, topic_tags=row["topic_tags"])
+        picker_row = _problem_picker_row(
+            row["problem"],
+            is_in_list=True,
+            topic_tags=row["topic_tags"],
+            user_mohs=row["user_mohs"],
+        )
+        picker_row["comment"] = row["comment"]
         picker_row["custom_title"] = row["custom_title"]
+        picker_row["hint"] = row["hint"]
         rows.append(picker_row)
     return rows
 
@@ -235,10 +256,13 @@ def searchable_problem_payload(problem_list: ProblemList, raw_params) -> dict:
         _ranked_problem_search_queryset(filtered_queryset, params)
         .prefetch_related("topic_techniques")[params.offset : params.offset + params.limit],
     )
+    latest_statement_by_problem_id = _latest_statement_by_problem_id([problem.id for problem in problems])
+    user_mohs_by_problem_id = _user_mohs_by_problem_id(latest_statement_by_problem_id, problem_list.author)
     rows = [
         _problem_picker_row(
             problem,
             is_in_list=problem.problem_uuid in existing_problem_uuids,
+            user_mohs=user_mohs_by_problem_id.get(problem.id),
         )
         for problem in problems
     ]
@@ -441,6 +465,7 @@ def _problem_picker_row(
     *,
     is_in_list: bool,
     topic_tags: list[str] | None = None,
+    user_mohs: int | None = None,
 ) -> dict:
     label = problem_label(problem)
     return {
@@ -451,7 +476,9 @@ def _problem_picker_row(
             fallback=f"{problem.year}-{problem.problem}",
         ),
         "contest": problem.contest,
+        "comment": "",
         "custom_title": "",
+        "hint": "",
         "is_active": problem.is_active,
         "is_in_list": is_in_list,
         "mohs": problem.mohs,
@@ -460,6 +487,7 @@ def _problem_picker_row(
         "problem_uuid": str(problem.problem_uuid),
         "topic_label": display_topic_label(problem.topic),
         "topic_tags": topic_tags if topic_tags is not None else _problem_topic_tags(problem),
+        "user_mohs": user_mohs,
         "year": problem.year,
     }
 
@@ -617,6 +645,25 @@ def _latest_statement_by_problem_id(problem_ids: list[int]) -> dict[int, Contest
             continue
         latest_by_problem_id[statement.linked_problem_id] = statement
     return latest_by_problem_id
+
+
+def _user_mohs_by_problem_id(
+    latest_statement_by_problem_id: dict[int, ContestProblemStatement],
+    user,
+) -> dict[int, int]:
+    if not latest_statement_by_problem_id:
+        return {}
+    statement_id_to_problem_id = {
+        statement.id: problem_id
+        for problem_id, statement in latest_statement_by_problem_id.items()
+    }
+    return {
+        statement_id_to_problem_id[statement_id]: rating
+        for statement_id, rating in UserProblemDifficultyRating.objects.filter(
+            user=user,
+            statement_id__in=statement_id_to_problem_id,
+        ).values_list("statement_id", "rating")
+    }
 
 
 def _topic_tags_by_problem_id(problem_ids: list[int]) -> dict[int, list[str]]:

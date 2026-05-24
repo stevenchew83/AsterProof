@@ -8,7 +8,7 @@ from inspinia.problemsets.models import ProblemListVote
 class ProblemListItemInline(admin.TabularInline):
     model = ProblemListItem
     extra = 0
-    fields = ("position", "problem", "custom_title")
+    fields = ("position", "problem", "custom_title", "hint", "comment")
     autocomplete_fields = ("problem",)
 
 
@@ -54,7 +54,9 @@ class ProblemListItemAdmin(admin.ModelAdmin):
     list_display = ("problem_list", "position", "problem", "custom_title", "updated_at")
     list_filter = ("problem__contest", "problem__year")
     search_fields = (
+        "comment",
         "custom_title",
+        "hint",
         "problem_list__title",
         "problem__contest",
         "problem__problem",
