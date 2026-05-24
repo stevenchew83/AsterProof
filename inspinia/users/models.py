@@ -94,6 +94,33 @@ class User(AbstractUser):
         return reverse("users:detail", kwargs={"pk": self.id})
 
 
+class UserAccessSettings(models.Model):
+    auto_approve_new_users = models.BooleanField(
+        _("Auto approve new users"),
+        default=False,
+        help_text=_("New signups are approved automatically when enabled."),
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = _("User access settings")
+        verbose_name_plural = _("User access settings")
+
+    @classmethod
+    def get_solo(cls) -> "UserAccessSettings":
+        access_settings, _created = cls.objects.get_or_create(pk=1)
+        return access_settings
+
+    def save(self, *args, **kwargs):
+        if self.pk is None:
+            self.pk = 1
+        return super().save(*args, **kwargs)
+
+    def __str__(self) -> str:
+        return str(_("User access settings"))
+
+
 class UserSession(models.Model):
     class Status(TextChoices):
         ACTIVE = "active", _("Active")
