@@ -5957,7 +5957,7 @@ def test_problem_statement_detail_renders_statement_page(client):
     assert "statement-brief" in response_html
 
 
-def test_completion_quick_update_omits_difficulty_rating_controls(client):
+def test_completion_quick_update_renders_user_mohs_controls(client):
     user = UserFactory()
     other_user = UserFactory()
     client.force_login(user)
@@ -5969,15 +5969,15 @@ def test_completion_quick_update_omits_difficulty_rating_controls(client):
 
     assert response.status_code == HTTPStatus.OK
     row = response.context["completion_quick_update_rows"][0]
-    assert "user_difficulty_rating" not in row
-    assert "average_difficulty_rating" not in row
-    assert "average_difficulty_display" not in row
-    assert "difficulty_rating_count" not in row
+    assert row["user_difficulty_rating"] == 12
+    assert row["average_difficulty_rating"] == 21.0
+    assert row["average_difficulty_display"] == "21.0"
+    assert row["difficulty_rating_count"] == 2
     response_html = response.content.decode("utf-8")
-    assert "Your difficulty" not in response_html
-    assert reverse("pages:problem_statement_difficulty_rating_save") not in response_html
-    assert "js-quick-completion-difficulty-save" not in response_html
-    assert "quick-completion-difficulty-editor" not in response_html
+    assert "User MOHS" in response_html
+    assert reverse("pages:problem_statement_difficulty_rating_save") in response_html
+    assert "js-quick-completion-user-mohs-save" in response_html
+    assert "quick-completion-user-mohs-editor" in response_html
 
 
 def test_completion_quick_update_save_updates_current_user_only(client):
@@ -6472,11 +6472,17 @@ def test_completion_quick_update_renders_datatable_with_status_filter(client):
     header_html = response_html[
         response_html.index("<thead>") : response_html.index("</thead>")
     ]
+    assert header_html.index("<th>Topic / MOHS</th>") < header_html.index(
+        "<th>User MOHS</th>",
+    )
+    assert header_html.index("<th>User MOHS</th>") < header_html.index(
+        "<th>Current completion</th>",
+    )
     assert header_html.index("<th>Current completion</th>") < header_html.index(
         "<th>Actions</th>"
     )
     assert header_html.index("<th>Actions</th>") < header_html.index("<th>Status</th>")
-    assert "targets: [6, 16]" in response_html
+    assert "targets: [5, 7, 17]" in response_html
     assert "loaded rows" in response_html
 
 

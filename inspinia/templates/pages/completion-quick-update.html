@@ -34,6 +34,14 @@
   .quick-completion-actions {
     min-width: 18rem;
   }
+
+  .quick-completion-user-mohs-editor {
+    min-width: 12rem;
+  }
+
+  .quick-completion-user-mohs-input {
+    max-width: 5rem;
+  }
 </style>
 {% endblock extra_css %}
 
@@ -176,6 +184,9 @@
               id="quick-completion-table"
               class="table table-sm table-striped table-bordered align-middle w-100 mb-0"
               data-save-url="{{ completion_quick_update_save_url }}"
+              data-difficulty-save-url="{{ completion_quick_update_difficulty_save_url }}"
+              data-difficulty-min="{{ completion_quick_update_difficulty_min }}"
+              data-difficulty-max="{{ completion_quick_update_difficulty_max }}"
               data-target-user-id="{{ completion_quick_update_filters.target_user_id }}"
               data-today="{{ completion_quick_update_today }}"
             >
@@ -186,6 +197,7 @@
                   <th>Problem</th>
                   <th>Label</th>
                   <th>Topic / MOHS</th>
+                  <th>User MOHS</th>
                   <th>Current completion</th>
                   <th>Actions</th>
                   <th>Status</th>
@@ -225,6 +237,32 @@
                     {% if row.mohs is not None %}
                     <span class="text-muted fs-xs ms-1">MOHS {{ row.mohs }}</span>
                     {% endif %}
+                  </td>
+                  <td>
+                    <div class="quick-completion-user-mohs-editor" data-statement-uuid="{{ row.statement_uuid }}">
+                      <div class="input-group input-group-sm">
+                        <input
+                          type="number"
+                          min="{{ completion_quick_update_difficulty_min }}"
+                          max="{{ completion_quick_update_difficulty_max }}"
+                          step="1"
+                          class="form-control form-control-sm quick-completion-user-mohs-input js-quick-completion-user-mohs-rating"
+                          value="{{ row.user_difficulty_rating }}"
+                          aria-label="User MOHS"
+                        >
+                        <button type="button" class="btn btn-outline-primary js-quick-completion-user-mohs-save">
+                          <i class="ti ti-device-floppy me-1"></i>Save
+                        </button>
+                      </div>
+                      <div class="text-muted fs-xs mt-1 js-quick-completion-user-mohs-average">
+                        {% if row.difficulty_rating_count %}
+                        Avg {{ row.average_difficulty_display }} - {{ row.difficulty_rating_count }} rating{{ row.difficulty_rating_count|pluralize }}
+                        {% else %}
+                        No ratings yet
+                        {% endif %}
+                      </div>
+                      <div class="text-danger fs-xs mt-1 d-none js-quick-completion-user-mohs-error"></div>
+                    </div>
                   </td>
                   <td class="text-nowrap">
                     <span
@@ -345,6 +383,9 @@
     var csrfTokenInput = document.querySelector('#quick-completion-csrf input[name="csrfmiddlewaretoken"]');
     var resetButton = document.getElementById("quick-completion-table-reset");
     var saveUrl = table.getAttribute("data-save-url");
+    var difficultySaveUrl = table.getAttribute("data-difficulty-save-url");
+    var difficultyMin = Number(table.getAttribute("data-difficulty-min") || "0");
+    var difficultyMax = Number(table.getAttribute("data-difficulty-max") || "60");
     var statusFilter = document.getElementById("quick-completion-status-filter");
     var targetUserId = table.getAttribute("data-target-user-id") || "";
     var todayValue = table.getAttribute("data-today") || "";
@@ -386,6 +427,62 @@
       row.querySelectorAll("input, select, button").forEach(function (el) {
         el.disabled = isBusy;
       });
+    }
+
+    function ratingCountLabel(count) {
+      var n = Number(count) || 0;
+      return n === 1 ? "1 rating" : n + " ratings";
+    }
+
+    function userMohsValidationMessage(rawValue) {
+      var value = String(rawValue || "").trim();
+      if (!/^\d+$/.test(value)) {
+        return "Enter an integer from " + difficultyMin + " to " + difficultyMax + ".";
+      }
+      var numberValue = Number(value);
+      if (numberValue < difficultyMin || numberValue > difficultyMax) {
+        return "Enter an integer from " + difficultyMin + " to " + difficultyMax + ".";
+      }
+      return "";
+    }
+
+    function setUserMohsError(editor, message) {
+      var errorEl = editor ? editor.querySelector(".js-quick-completion-user-mohs-error") : null;
+      if (!errorEl) return;
+      if (!message) {
+        errorEl.textContent = "";
+        errorEl.classList.add("d-none");
+        return;
+      }
+      errorEl.textContent = message;
+      errorEl.classList.remove("d-none");
+    }
+
+    function setUserMohsBusy(editor, isBusy) {
+      if (!editor) return;
+      editor.querySelectorAll("input, button").forEach(function (el) {
+        el.disabled = isBusy;
+      });
+    }
+
+    function applyUserMohsPayload(row, payload) {
+      var editor = row.querySelector(".quick-completion-user-mohs-editor");
+      var input = editor ? editor.querySelector(".js-quick-completion-user-mohs-rating") : null;
+      var averageEl = editor ? editor.querySelector(".js-quick-completion-user-mohs-average") : null;
+      var ratingCount = Number(payload.difficulty_rating_count) || 0;
+      if (input) {
+        input.value = payload.user_difficulty_rating == null ? "" : String(payload.user_difficulty_rating);
+      }
+      if (averageEl) {
+        averageEl.textContent = ratingCount
+          ? "Avg " + (payload.average_difficulty_display || "") + " - " + ratingCountLabel(ratingCount)
+          : "No ratings yet";
+      }
+      if (tableApi) {
+        tableApi.row(row).invalidate("dom");
+        tableApi.draw(false);
+      }
+      setUserMohsError(editor, "");
     }
 
     function rowValue(row, selector) {
@@ -452,7 +549,7 @@
         autoWidth: false,
         columnDefs: [
           {
-            targets: [6, 16],
+            targets: [5, 7, 17],
             orderable: false,
             searchable: false
           }
@@ -542,10 +639,69 @@
         });
     }
 
+    function submitUserMohs(row) {
+      var editor = row.querySelector(".quick-completion-user-mohs-editor");
+      var input = editor ? editor.querySelector(".js-quick-completion-user-mohs-rating") : null;
+      var rawValue = input ? input.value : "";
+      var validationError = userMohsValidationMessage(rawValue);
+      if (validationError) {
+        setUserMohsError(editor, validationError);
+        return;
+      }
+      if (!difficultySaveUrl) {
+        setUserMohsError(editor, "Could not find the User MOHS save URL.");
+        return;
+      }
+
+      setUserMohsBusy(editor, true);
+      setUserMohsError(editor, "");
+
+      var params = new URLSearchParams({
+        rating: String(rawValue).trim(),
+        statement_uuid: row.getAttribute("data-statement-uuid") || ""
+      });
+      if (targetUserId) {
+        params.set("target_user_id", targetUserId);
+      }
+
+      fetch(difficultySaveUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+          "X-CSRFToken": csrfTokenInput.value,
+          "X-Requested-With": "XMLHttpRequest"
+        },
+        body: params.toString()
+      })
+        .then(function (response) {
+          return response.json().catch(function () {
+            return {};
+          }).then(function (payload) {
+            if (!response.ok) {
+              throw new Error(payload.error || "Could not save this User MOHS value.");
+            }
+            return payload;
+          });
+        })
+        .then(function (payload) {
+          applyUserMohsPayload(row, payload);
+        })
+        .catch(function (error) {
+          setUserMohsError(editor, error.message || "Could not save this User MOHS value.");
+        })
+        .finally(function () {
+          setUserMohsBusy(editor, false);
+        });
+    }
+
     table.addEventListener("click", function (event) {
       var row = event.target.closest("tr[data-statement-uuid]");
       if (!row) return;
       var dateInput = row.querySelector(".js-quick-completion-date");
+      if (event.target.closest(".js-quick-completion-user-mohs-save")) {
+        submitUserMohs(row);
+        return;
+      }
       if (event.target.closest(".js-quick-completion-today")) {
         if (dateInput) dateInput.value = todayValue;
         promoteStatusForSolvedAction(row);
@@ -569,6 +725,15 @@
       if (event.target.closest(".js-quick-completion-clear")) {
         submitAction(row, "clear", "");
       }
+    });
+
+    table.addEventListener("keydown", function (event) {
+      if (event.key !== "Enter") return;
+      if (!event.target.classList.contains("js-quick-completion-user-mohs-rating")) return;
+      event.preventDefault();
+      var row = event.target.closest("tr[data-statement-uuid]");
+      if (!row) return;
+      submitUserMohs(row);
     });
   })();
   </script>
