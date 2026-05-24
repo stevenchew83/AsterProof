@@ -30,6 +30,7 @@ from django.db.models import OuterRef
 from django.db.models import Q
 from django.db.models import Subquery
 from django.db.models import Value
+from django.db.models.functions import Cast
 from django.db.models.functions import Coalesce
 from django.http import Http404
 from django.http import HttpResponse
@@ -145,6 +146,7 @@ from inspinia.users.roles import user_has_admin_role
 CONTEST_TOPIC_PREVIEW_LIMIT = 3
 CONTEST_PROBLEM_PREVIEW_LIMIT = 6
 STATEMENT_DELETE_PREVIEW_LIMIT = 3
+STATEMENT_DELETE_TABLE_PAGE_LENGTH = 50
 STATEMENT_DELETE_STALE_SELECTION_ERROR = "One or more selected statement rows no longer exist."
 XLSX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 CSV_CONTENT_TYPE = "text/csv; charset=utf-8"
@@ -422,6 +424,74 @@ def _statement_delete_row(statement: ContestProblemStatement) -> dict[str, str]:
         "statement_uuid": str(statement.statement_uuid),
         "contest_year_problem": statement.contest_year_problem,
         "statement_preview": _statement_preview_text(statement.statement_latex, max_length=120),
+    }
+
+
+def _statement_delete_inventory_queryset():
+    return ContestProblemStatement.objects.order_by(
+        "-contest_year",
+        "contest_name",
+        "day_label",
+        "problem_number",
+        "problem_code",
+    )
+
+
+def _statement_delete_filtered_queryset(raw_search: str):
+    queryset = _statement_delete_inventory_queryset()
+    search_terms = [term for term in re.split(r"\s+", raw_search.strip()) if term]
+    if not search_terms:
+        return queryset
+
+    queryset = queryset.annotate(
+        contest_year_text=Cast("contest_year", output_field=CharField()),
+        problem_number_text=Cast("problem_number", output_field=CharField()),
+        statement_uuid_text=Cast("statement_uuid", output_field=CharField()),
+    )
+    for term in search_terms:
+        queryset = queryset.filter(
+            Q(contest_name__icontains=term)
+            | Q(contest_year_text__icontains=term)
+            | Q(day_label__icontains=term)
+            | Q(problem_number_text__icontains=term)
+            | Q(problem_code__icontains=term)
+            | Q(statement_uuid_text__icontains=term)
+            | Q(statement_latex__icontains=term),
+        )
+    return queryset
+
+
+def _statement_delete_datatable_int(raw_value: str | None, *, default: int = 0) -> int:
+    try:
+        value = int(raw_value or "")
+    except (TypeError, ValueError):
+        return default
+    return max(value, 0)
+
+
+def _statement_delete_datatable_payload(request) -> dict[str, object]:
+    draw = _statement_delete_datatable_int(request.GET.get("draw"), default=0)
+    start = _statement_delete_datatable_int(request.GET.get("start"), default=0)
+    requested_length = _statement_delete_datatable_int(
+        request.GET.get("length"),
+        default=STATEMENT_DELETE_TABLE_PAGE_LENGTH,
+    )
+    page_length = min(
+        max(requested_length, 1),
+        STATEMENT_DELETE_TABLE_PAGE_LENGTH,
+    )
+    raw_search = request.GET.get("search[value]") or request.GET.get("q") or ""
+
+    records_total = ContestProblemStatement.objects.count()
+    filtered_queryset = _statement_delete_filtered_queryset(raw_search)
+    records_filtered = filtered_queryset.count()
+    statement_page = list(filtered_queryset[start : start + page_length])
+
+    return {
+        "draw": draw,
+        "recordsTotal": records_total,
+        "recordsFiltered": records_filtered,
+        "data": [_statement_delete_row(statement) for statement in statement_page],
     }
 
 
@@ -5211,15 +5281,10 @@ def problem_statement_delete_by_uuid_view(request):
     """Admin tool: permanently remove one statement row by its immutable statement UUID."""
     _require_admin_tools_access(request)
 
-    statement_inventory = ContestProblemStatement.objects.order_by(
-        "-contest_year",
-        "contest_name",
-        "day_label",
-        "problem_number",
-        "problem_code",
-    )
-    statement_delete_rows = [_statement_delete_row(statement) for statement in statement_inventory]
-    statement_delete_total = len(statement_delete_rows)
+    if request.method == "GET" and request.GET.get("format") == "datatable":
+        return JsonResponse(_statement_delete_datatable_payload(request))
+
+    statement_delete_total = ContestProblemStatement.objects.count()
 
     if request.method == "POST":
         form = ProblemStatementDeleteByUuidForm(request.POST)
@@ -5228,14 +5293,8 @@ def problem_statement_delete_by_uuid_view(request):
             stale_selection = False
             with transaction.atomic():
                 selected_statement_rows = list(
-                    ContestProblemStatement.objects.filter(
+                    _statement_delete_inventory_queryset().filter(
                         statement_uuid__in=submitted_statement_uuids,
-                    ).order_by(
-                        "-contest_year",
-                        "contest_name",
-                        "day_label",
-                        "problem_number",
-                        "problem_code",
                     ),
                 )
                 selected_statement_rows_by_uuid = {
@@ -5282,8 +5341,11 @@ def problem_statement_delete_by_uuid_view(request):
         "pages/problem-statement-delete-by-uuid.html",
         {
             "form": form,
-            "statement_delete_rows": statement_delete_rows,
             "statement_delete_total": statement_delete_total,
+            "statement_delete_page_length": STATEMENT_DELETE_TABLE_PAGE_LENGTH,
+            "statement_delete_rows_url": (
+                f"{reverse('pages:problem_statement_delete_by_uuid')}?format=datatable"
+            ),
         },
     )
 

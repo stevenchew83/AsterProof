@@ -4237,11 +4237,74 @@ def test_problem_statement_delete_by_uuid_page_renders_for_admin(client):
     assert response.status_code == HTTPStatus.OK
     assert "Delete statement by UUID" in response_html
     assert 'id="statement-delete-table"' in response_html
-    assert 'type="checkbox"' in response_html
-    assert f'value="{statement.statement_uuid}"' in response_html
-    assert 'name="statement_uuid"' in response_html
-    assert str(statement.statement_uuid) in response_html
+    assert 'id="id_statement_uuid_text"' in response_html
+    assert 'name="statement_uuid_text"' in response_html
+    assert 'data-rows-url="' in response_html
+    assert f'value="{statement.statement_uuid}"' not in response_html
+    assert str(statement.statement_uuid) not in response_html
     assert "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" not in response_html
+
+
+def test_problem_statement_delete_by_uuid_datatable_limits_to_50_and_searches_all_rows(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    for index in range(55):
+        ContestProblemStatement.objects.create(
+            contest_year=2200 + index,
+            contest_name=f"Bulk Contest {index}",
+            problem_number=index + 1,
+            problem_code=f"P{index + 1}",
+            day_label="Day 1",
+            statement_latex=f"Bulk statement row {index}",
+        )
+    hidden_statement = ContestProblemStatement.objects.create(
+        contest_year=2015,
+        contest_name="JBMO Shortlist",
+        problem_number=2,
+        problem_code="C2",
+        day_label="Combinatorics",
+        statement_latex="Needle row outside the first page",
+    )
+
+    response = client.get(
+        reverse("pages:problem_statement_delete_by_uuid"),
+        {
+            "format": "datatable",
+            "draw": "7",
+            "start": "0",
+            "length": "50",
+        },
+    )
+    payload = response.json()
+
+    assert response.status_code == HTTPStatus.OK
+    assert payload["draw"] == 7
+    assert payload["recordsTotal"] == 56
+    assert payload["recordsFiltered"] == 56
+    assert len(payload["data"]) == 50
+    assert str(hidden_statement.statement_uuid) not in {
+        row["statement_uuid"] for row in payload["data"]
+    }
+
+    response = client.get(
+        reverse("pages:problem_statement_delete_by_uuid"),
+        {
+            "format": "datatable",
+            "draw": "8",
+            "start": "0",
+            "length": "50",
+            "search[value]": "jbmo shortlist 2015",
+        },
+    )
+    payload = response.json()
+
+    assert response.status_code == HTTPStatus.OK
+    assert payload["draw"] == 8
+    assert payload["recordsTotal"] == 56
+    assert payload["recordsFiltered"] == 1
+    assert [row["statement_uuid"] for row in payload["data"]] == [
+        str(hidden_statement.statement_uuid),
+    ]
 
 
 def test_problem_statement_delete_by_uuid_requires_selection(client):
@@ -4399,6 +4462,46 @@ def test_problem_statement_delete_by_uuid_bulk_delete_removes_selected_rows_and_
     assert ContestProblemStatement.objects.filter(pk=untouched_statement.pk).exists()
     assert StatementTopicTechnique.objects.filter(statement=untouched_statement).exists()
     assert UserProblemCompletion.objects.filter(pk=untouched_completion.pk).exists()
+    assert "Deleted 2 statement row(s)" in response.content.decode()
+
+
+def test_problem_statement_delete_by_uuid_textarea_uuids_join_selected_rows(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    selected_statement = ContestProblemStatement.objects.create(
+        contest_year=2025,
+        contest_name="IMO",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Selected row to delete",
+    )
+    pasted_statement = ContestProblemStatement.objects.create(
+        contest_year=2024,
+        contest_name="JBMO Shortlist",
+        problem_number=2,
+        problem_code="C2",
+        day_label="Combinatorics",
+        statement_latex="Pasted row to delete",
+    )
+
+    response = client.post(
+        reverse("pages:problem_statement_delete_by_uuid"),
+        {
+            "statement_uuid": [str(selected_statement.statement_uuid)],
+            "statement_uuid_text": (
+                f"{pasted_statement.statement_uuid}\n"
+                f"{selected_statement.statement_uuid}\n"
+            ),
+            "confirm_delete": "on",
+        },
+        follow=True,
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert not ContestProblemStatement.objects.filter(
+        pk__in=[selected_statement.pk, pasted_statement.pk],
+    ).exists()
     assert "Deleted 2 statement row(s)" in response.content.decode()
 
 

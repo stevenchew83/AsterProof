@@ -1,3 +1,4 @@
+import re
 import uuid
 
 from django import forms
@@ -212,10 +213,25 @@ class ProblemStatementImportForm(forms.Form):
 
 
 class ProblemStatementDeleteByUuidForm(forms.Form):
-    statement_uuid = forms.CharField(
+    statement_uuid = forms.Field(
         required=False,
         label="Statement UUID",
         widget=forms.MultipleHiddenInput(),
+    )
+    statement_uuid_text = forms.CharField(
+        required=False,
+        label="Statement UUIDs",
+        widget=forms.Textarea(
+            attrs={
+                "class": "form-control font-monospace",
+                "rows": 8,
+                "placeholder": (
+                    "41799082-c4df-4deb-ae87-1fce95c3386d\n"
+                    "101ce65a-f1bb-4390-b5cc-a2576b9e99b8"
+                ),
+                "spellcheck": "false",
+            },
+        ),
     )
     confirm_delete = forms.BooleanField(
         label="I understand this permanently deletes the statement row, its technique tags, "
@@ -224,21 +240,27 @@ class ProblemStatementDeleteByUuidForm(forms.Form):
     )
 
     def clean_statement_uuid(self):
-        raw_statement_uuids = [str(value or "").strip() for value in self.data.getlist("statement_uuid")]
+        raw_statement_uuids = [
+            *self.data.getlist("statement_uuid"),
+            self.data.get("statement_uuid_text", ""),
+        ]
         cleaned_statement_uuids: list[str] = []
         seen_statement_uuids: set[str] = set()
-        for raw_statement_uuid in raw_statement_uuids:
-            if not raw_statement_uuid:
-                continue
-            try:
-                normalized_statement_uuid = str(uuid.UUID(raw_statement_uuid))
-            except (TypeError, ValueError):
-                msg = "One or more selected statement UUID values are invalid."
-                raise forms.ValidationError(msg) from None
-            if normalized_statement_uuid in seen_statement_uuids:
-                continue
-            seen_statement_uuids.add(normalized_statement_uuid)
-            cleaned_statement_uuids.append(normalized_statement_uuid)
+        for raw_statement_uuid_value in raw_statement_uuids:
+            raw_values = re.split(r"[\s,]+", str(raw_statement_uuid_value or "").strip())
+            for raw_statement_uuid_item in raw_values:
+                raw_statement_uuid = raw_statement_uuid_item.strip()
+                if not raw_statement_uuid:
+                    continue
+                try:
+                    normalized_statement_uuid = str(uuid.UUID(raw_statement_uuid))
+                except (TypeError, ValueError):
+                    msg = "One or more selected statement UUID values are invalid."
+                    raise forms.ValidationError(msg) from None
+                if normalized_statement_uuid in seen_statement_uuids:
+                    continue
+                seen_statement_uuids.add(normalized_statement_uuid)
+                cleaned_statement_uuids.append(normalized_statement_uuid)
         if not cleaned_statement_uuids:
             msg = "Select at least one statement row to delete."
             raise forms.ValidationError(msg)
