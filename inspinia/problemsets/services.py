@@ -80,13 +80,25 @@ def replace_problem_list_items(
     problem_list: ProblemList,
     problem_uuids: list[str],
     *,
+    comments: list[str] | None = None,
     custom_titles: list[str] | None = None,
+    hints: list[str] | None = None,
 ) -> list[ProblemListItem]:
     normalized_problem_uuids = _normalize_problem_uuid_order(problem_uuids)
     _validate_unique_problem_uuid_order(normalized_problem_uuids)
+    normalized_comments = (
+        _normalize_text_fields(comments, expected_count=len(normalized_problem_uuids))
+        if comments is not None
+        else None
+    )
     normalized_custom_titles = (
         _normalize_custom_titles(custom_titles, expected_count=len(normalized_problem_uuids))
         if custom_titles is not None
+        else None
+    )
+    normalized_hints = (
+        _normalize_text_fields(hints, expected_count=len(normalized_problem_uuids))
+        if hints is not None
         else None
     )
 
@@ -113,7 +125,9 @@ def replace_problem_list_items(
             (
                 problem_uuid,
                 problem_by_uuid[problem_uuid],
+                normalized_comments[index] if normalized_comments is not None else None,
                 normalized_custom_titles[index] if normalized_custom_titles is not None else None,
+                normalized_hints[index] if normalized_hints is not None else None,
             )
             for index, problem_uuid in enumerate(normalized_problem_uuids)
         ]
@@ -125,7 +139,9 @@ def replace_problem_list_items(
         )
         _move_items_to_final_positions(
             ordered_items,
+            update_comments=normalized_comments is not None,
             update_custom_titles=normalized_custom_titles is not None,
+            update_hints=normalized_hints is not None,
         )
         return ordered_items
 
@@ -215,6 +231,13 @@ def _normalize_custom_titles(custom_titles: list[str], *, expected_count: int) -
     return normalized_titles
 
 
+def _normalize_text_fields(raw_values: list[str], *, expected_count: int) -> list[str]:
+    normalized_values = [(raw_value or "").strip() for raw_value in raw_values[:expected_count]]
+    if len(normalized_values) < expected_count:
+        normalized_values.extend([""] * (expected_count - len(normalized_values)))
+    return normalized_values
+
+
 def _locked_problem_list_items(problem_list: ProblemList) -> list[ProblemListItem]:
     return list(
         ProblemListItem.objects.select_for_update()
@@ -262,7 +285,7 @@ def _move_items_to_temp_positions(items: list[ProblemListItem], temp_base: int) 
 
 def _upsert_ordered_items(
     problem_list: ProblemList,
-    requested_rows: list[tuple[uuid.UUID, ProblemSolveRecord, str | None]],
+    requested_rows: list[tuple[uuid.UUID, ProblemSolveRecord, str | None, str | None, str | None]],
     retained_items: list[ProblemListItem],
     *,
     temp_base: int,
@@ -270,24 +293,42 @@ def _upsert_ordered_items(
     retained_by_problem_uuid = {item.problem.problem_uuid: item for item in retained_items}
     ordered_items = []
     next_temp_position = temp_base + len(retained_items)
-    for problem_uuid, problem, custom_title in requested_rows:
+    for problem_uuid, problem, comment, custom_title, hint in requested_rows:
         item = retained_by_problem_uuid.get(problem_uuid)
         if item is None:
             next_temp_position += 1
             item = ProblemListItem.objects.create(
+                comment=comment or "",
                 custom_title=custom_title or "",
+                hint=hint or "",
                 problem_list=problem_list,
                 problem=problem,
                 position=next_temp_position,
             )
         elif custom_title is not None:
             item.custom_title = custom_title
+        if item is not None and comment is not None:
+            item.comment = comment
+        if item is not None and hint is not None:
+            item.hint = hint
         ordered_items.append(item)
     return ordered_items
 
 
-def _move_items_to_final_positions(items: list[ProblemListItem], *, update_custom_titles: bool = False) -> None:
+def _move_items_to_final_positions(
+    items: list[ProblemListItem],
+    *,
+    update_comments: bool = False,
+    update_custom_titles: bool = False,
+    update_hints: bool = False,
+) -> None:
     for position, item in enumerate(items, start=1):
         item.position = position
-    fields = ["position", "custom_title"] if update_custom_titles else ["position"]
+    fields = ["position"]
+    if update_comments:
+        fields.append("comment")
+    if update_custom_titles:
+        fields.append("custom_title")
+    if update_hints:
+        fields.append("hint")
     ProblemListItem.objects.bulk_update(items, fields)

@@ -121,6 +121,29 @@
     font-weight: 600;
   }
 
+  .problem-list-public-note,
+  .problem-list-public-hint {
+    border: 1px solid var(--ins-border-color);
+    border-radius: 0.5rem;
+    background: var(--bs-tertiary-bg);
+  }
+
+  .problem-list-public-note {
+    border-left: 3px solid var(--bs-primary);
+  }
+
+  .problem-list-public-note-label {
+    color: var(--bs-secondary-color);
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .problem-list-public-hint summary {
+    cursor: pointer;
+    font-weight: 700;
+  }
+
   .problem-list-public-card .statement-render-content {
     padding-top: 0.75rem;
     border-top: 1px solid var(--ins-border-color);
@@ -243,6 +266,22 @@
           {% for tag in row.topic_tags %}
           <span class="badge bg-light text-dark border">{{ tag }}</span>
           {% endfor %}
+        </div>
+        {% endif %}
+        {% if row.comment or row.hint %}
+        <div class="d-grid gap-2 mb-3">
+          {% if row.comment %}
+          <div class="problem-list-public-note p-3">
+            <p class="problem-list-public-note-label mb-1">Curator comment</p>
+            <div>{{ row.comment|linebreaksbr }}</div>
+          </div>
+          {% endif %}
+          {% if row.hint %}
+          <details class="problem-list-public-hint p-3">
+            <summary>Show hint</summary>
+            <div class="text-muted mt-2">{{ row.hint|linebreaksbr }}</div>
+          </details>
+          {% endif %}
         </div>
         {% endif %}
         {% if row.statement %}

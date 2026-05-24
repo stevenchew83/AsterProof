@@ -151,13 +151,14 @@
             <tr>
               <th>Problem</th>
               <th>Metadata</th>
+              <th>User MOHS</th>
               <th>Tags</th>
               <th class="text-end">Actions</th>
             </tr>
           </thead>
           <tbody id="problem-list-search-results">
             <tr>
-              <td colspan="4" class="text-muted fs-sm">No search has been run yet.</td>
+              <td colspan="5" class="text-muted fs-sm">No search has been run yet.</td>
             </tr>
           </tbody>
         </table>
@@ -192,6 +193,7 @@
                 <th>Order</th>
                 <th>Problem / title</th>
                 <th>Metadata</th>
+                <th>User MOHS</th>
                 <th>Tags</th>
                 <th class="text-end">Actions</th>
               </tr>
@@ -254,7 +256,12 @@
 
   function draftKey(rows) {
     return rows.map(function (row) {
-      return row.problem_uuid + "\u001f" + String(row.custom_title || "");
+      return [
+        row.problem_uuid,
+        String(row.custom_title || ""),
+        String(row.hint || ""),
+        String(row.comment || "")
+      ].join("\u001f");
     }).join("|");
   }
 
@@ -281,6 +288,13 @@
       "<span class=\"badge bg-light text-dark border me-1 mb-1\">" + escapeHtml(row.topic_label || "Unlabeled") + "</span>",
       "<span class=\"badge bg-light text-dark border me-1 mb-1\">MOHS " + mohsValue + "</span>"
     ].join("");
+  }
+
+  function userMohsCell(row) {
+    if (row.user_mohs === null || row.user_mohs === undefined || row.user_mohs === "") {
+      return "<span class=\"text-muted\">&mdash;</span>";
+    }
+    return "<span class=\"fw-semibold\">" + escapeHtml(row.user_mohs) + "</span>";
   }
 
   function setUrlParam(url, name, input) {
@@ -310,7 +324,9 @@
     hiddenOrderFields.innerHTML = draftRows.map(function (row) {
       return [
         "<input type=\"hidden\" name=\"problem_uuid_order\" value=\"" + escapeHtml(row.problem_uuid) + "\">",
-        "<input type=\"hidden\" name=\"custom_title\" value=\"" + escapeHtml(row.custom_title || "") + "\">"
+        "<input type=\"hidden\" name=\"custom_title\" value=\"" + escapeHtml(row.custom_title || "") + "\">",
+        "<textarea hidden name=\"hint\">" + escapeHtml(row.hint || "") + "</textarea>",
+        "<textarea hidden name=\"comment\">" + escapeHtml(row.comment || "") + "</textarea>"
       ].join("");
     }).join("");
   }
@@ -332,7 +348,7 @@
     if (!draftRows.length) {
       draftBody.innerHTML = [
         "<tr>",
-        "<td colspan=\"5\">",
+        "<td colspan=\"6\">",
         "<div class=\"alert alert-info mb-0\" role=\"alert\">Search above and add at least one active problem to build the sequence.</div>",
         "</td>",
         "</tr>"
@@ -350,11 +366,22 @@
         "<div class=\"text-muted fs-xs\">" + escapeHtml(row.problem_uuid) + "</div>",
         "<div class=\"mt-2\">",
         "<label class=\"form-label fs-xs text-uppercase fw-semibold text-muted mb-1\" for=\"problem-list-custom-title-" + String(index) + "\">Custom title</label>",
-        "<input id=\"problem-list-custom-title-" + String(index) + "\" type=\"text\" class=\"form-control form-control-sm\" maxlength=\"160\" placeholder=\"Optional title for public view\" value=\"" + escapeHtml(row.custom_title || "") + "\" data-custom-title-input>",
+        "<input id=\"problem-list-custom-title-" + String(index) + "\" type=\"text\" class=\"form-control form-control-sm\" maxlength=\"160\" placeholder=\"Optional title for public view\" value=\"" + escapeHtml(row.custom_title || "") + "\" data-draft-field=\"custom_title\">",
+        "</div>",
+        "<div class=\"row g-2 mt-1\">",
+        "<div class=\"col-xl-6\">",
+        "<label class=\"form-label fs-xs text-uppercase fw-semibold text-muted mb-1\" for=\"problem-list-hint-" + String(index) + "\">Curator hint</label>",
+        "<textarea id=\"problem-list-hint-" + String(index) + "\" class=\"form-control form-control-sm\" rows=\"2\" placeholder=\"Hidden until the reader opens it\" data-draft-field=\"hint\">" + escapeHtml(row.hint || "") + "</textarea>",
+        "</div>",
+        "<div class=\"col-xl-6\">",
+        "<label class=\"form-label fs-xs text-uppercase fw-semibold text-muted mb-1\" for=\"problem-list-comment-" + String(index) + "\">Curator comment</label>",
+        "<textarea id=\"problem-list-comment-" + String(index) + "\" class=\"form-control form-control-sm\" rows=\"2\" placeholder=\"Visible note for this problem\" data-draft-field=\"comment\">" + escapeHtml(row.comment || "") + "</textarea>",
+        "</div>",
         "</div>",
         inactiveBadge,
         "</td>",
         "<td>" + metadataBadges(row) + "</td>",
+        "<td class=\"text-nowrap\">" + userMohsCell(row) + "</td>",
         "<td>" + tagBadges(row) + "</td>",
         "<td class=\"text-end\">",
         "<div class=\"d-inline-flex flex-wrap justify-content-end gap-2\">",
@@ -371,7 +398,7 @@
   function renderSearchResults(rows) {
     var renderedRows = rows || [];
     if (!renderedRows.length) {
-      searchResultsBody.innerHTML = "<tr><td colspan=\"4\" class=\"text-muted fs-sm\">No active problems match this search.</td></tr>";
+      searchResultsBody.innerHTML = "<tr><td colspan=\"5\" class=\"text-muted fs-sm\">No active problems match this search.</td></tr>";
       return;
     }
 
@@ -383,7 +410,7 @@
         lastGroupKey = groupKey;
         htmlRows.push([
           "<tr class=\"problem-list-search-group\">",
-          "<td colspan=\"4\" class=\"text-muted fs-xs text-uppercase fw-semibold\">",
+          "<td colspan=\"5\" class=\"text-muted fs-xs text-uppercase fw-semibold\">",
           escapeHtml(row.contest || "Unlabeled contest") + " · " + escapeHtml(row.year || "Unlabeled year"),
           "</td>",
           "</tr>"
@@ -400,6 +427,7 @@
         "<div class=\"text-muted fs-xs\">" + escapeHtml(row.contest) + " " + escapeHtml(row.year) + " · " + escapeHtml(row.problem_uuid) + "</div>",
         "</td>",
         "<td>" + metadataBadges(row) + "</td>",
+        "<td class=\"text-nowrap\">" + userMohsCell(row) + "</td>",
         "<td>" + tagBadges(row) + "</td>",
         "<td class=\"text-end\">",
         "<div class=\"d-inline-flex flex-wrap justify-content-end gap-2\">",
@@ -495,7 +523,7 @@
         }
       })
       .catch(function (error) {
-        searchResultsBody.innerHTML = "<tr><td colspan=\"4\" class=\"text-danger fs-sm\">" + escapeHtml(error.message || "Could not search active problems.") + "</td></tr>";
+        searchResultsBody.innerHTML = "<tr><td colspan=\"5\" class=\"text-danger fs-sm\">" + escapeHtml(error.message || "Could not search active problems.") + "</td></tr>";
         if (searchStatus) {
           searchStatus.textContent = "";
         }
@@ -540,14 +568,18 @@
         return resultRow.problem_uuid === problemUuid;
       });
       if (!row) return;
-      draftRows.push(Object.assign({}, row, { custom_title: row.custom_title || "" }));
+      draftRows.push(Object.assign({}, row, {
+        comment: row.comment || "",
+        custom_title: row.custom_title || "",
+        hint: row.hint || ""
+      }));
       renderDraftRows();
       renderSearchResults(latestResults);
     });
   }
 
   draftBody.addEventListener("input", function (event) {
-    var input = event.target.closest("[data-custom-title-input]");
+    var input = event.target.closest("[data-draft-field]");
     if (!input) return;
     var rowNode = input.closest("[data-draft-uuid]");
     if (!rowNode) return;
@@ -556,7 +588,9 @@
       return draftRow.problem_uuid === problemUuid;
     });
     if (!row) return;
-    row.custom_title = input.value || "";
+    var fieldName = input.getAttribute("data-draft-field");
+    if (["comment", "custom_title", "hint"].indexOf(fieldName) === -1) return;
+    row[fieldName] = input.value || "";
     syncDraftFormState();
   });
 

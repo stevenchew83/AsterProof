@@ -10,6 +10,7 @@ from django.urls import reverse
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
 from inspinia.pages.models import ProblemTopicTechnique
+from inspinia.pages.models import UserProblemDifficultyRating
 from inspinia.problemsets.models import ProblemList
 from inspinia.problemsets.models import ProblemListItem
 from inspinia.problemsets.models import ProblemListVote
@@ -251,6 +252,7 @@ def test_problem_list_problem_search_requires_author_and_returns_active_problem_
     client.force_login(author)
     problem_list = _problem_list(author=author)
     existing_problem = _problem(problem="P1", topic="ALG", mohs=5)
+    author_user_mohs = 17
     searchable_year = 2025
     searchable_mohs = 12
     searchable_problem = _problem(
@@ -260,9 +262,12 @@ def test_problem_list_problem_search_requires_author_and_returns_active_problem_
         topic="GEO",
         mohs=searchable_mohs,
     )
+    searchable_statement = _statement(searchable_problem)
     inactive_problem = _problem(problem="P3", contest="USAMO", year=2024, is_active=False)
     ProblemListItem.objects.create(problem_list=problem_list, problem=existing_problem, position=1)
     ProblemTopicTechnique.objects.create(record=searchable_problem, technique="ANGLE CHASE", domains=["GEO"])
+    UserProblemDifficultyRating.objects.create(user=author, statement=searchable_statement, rating=author_user_mohs)
+    UserProblemDifficultyRating.objects.create(user=other_user, statement=searchable_statement, rating=44)
 
     response = client.get(
         reverse("problemsets:problem_search", args=[problem_list.list_uuid]),
@@ -279,6 +284,7 @@ def test_problem_list_problem_search_requires_author_and_returns_active_problem_
     assert payload["results"][0]["problem_code"] == "P2"
     assert payload["results"][0]["topic_label"] == "Geometry"
     assert payload["results"][0]["mohs"] == searchable_mohs
+    assert payload["results"][0]["user_mohs"] == author_user_mohs
     assert payload["results"][0]["topic_tags"] == ["ANGLE CHASE"]
     assert payload["results"][0]["archive_url"].startswith(reverse("pages:contest_dashboard_listing"))
     assert payload["results"][0]["is_in_list"] is False
@@ -489,16 +495,54 @@ def test_problem_list_save_items_endpoint_persists_custom_titles(client):
     ]
 
 
+def test_problem_list_save_items_endpoint_persists_hints_and_comments(client):
+    author = UserFactory()
+    client.force_login(author)
+    problem_list = _problem_list(author=author)
+    problem = _problem(problem="P1")
+    hint_text = "Try applying AM-GM to the symmetric pair."
+    comment_text = "Good first inequality problem for warm-up."
+
+    response = client.post(
+        reverse("problemsets:save_items", args=[problem_list.list_uuid]),
+        {
+            "comment": [comment_text],
+            "hint": [hint_text],
+            "problem_uuid_order": [str(problem.problem_uuid)],
+        },
+        follow=True,
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    item = ProblemListItem.objects.get(problem_list=problem_list, problem=problem)
+    assert item.hint == hint_text
+    assert item.comment == comment_text
+
+
 def test_problem_list_edit_page_exposes_picker_payload_and_save_urls(client):
     user = UserFactory()
     client.force_login(user)
     problem = _problem(problem="P1")
+    statement = _statement(problem)
     problem_list = _problem_list(author=user)
-    ProblemListItem.objects.create(problem_list=problem_list, problem=problem, position=1)
+    user_mohs = 19
+    hint_text = "Start by bounding each term."
+    comment_text = "Use after students have seen AM-GM."
+    ProblemListItem.objects.create(
+        comment=comment_text,
+        hint=hint_text,
+        problem_list=problem_list,
+        problem=problem,
+        position=1,
+    )
+    UserProblemDifficultyRating.objects.create(user=user, statement=statement, rating=user_mohs)
 
     response = client.get(reverse("problemsets:edit", args=[problem_list.list_uuid]))
 
     assert response.status_code == HTTPStatus.OK
+    assert response.context["problem_list_draft_rows"][0]["user_mohs"] == user_mohs
+    assert response.context["problem_list_draft_rows"][0]["hint"] == hint_text
+    assert response.context["problem_list_draft_rows"][0]["comment"] == comment_text
     response_html = response.content.decode("utf-8")
     assert reverse("problemsets:problem_search", args=[problem_list.list_uuid]) in response_html
     assert reverse("problemsets:save_items", args=[problem_list.list_uuid]) in response_html
@@ -506,6 +550,9 @@ def test_problem_list_edit_page_exposes_picker_payload_and_save_urls(client):
     assert "problem-list-search-facets" in response_html
     assert "problem-list-search-contest" in response_html
     assert "problem-list-load-more" in response_html
+    assert "User MOHS" in response_html
+    assert "Curator hint" in response_html
+    assert "Curator comment" in response_html
     assert "Hide original source" in response_html
     assert "Optional title for public view" in response_html
     assert "Paste an active problem UUID" not in response_html
@@ -635,6 +682,31 @@ def test_public_share_page_respects_display_options_and_custom_title(client):
     assert "Geometry" not in response_html
     assert "MOHS 12" not in response_html
     assert "ANGLE CHASE" not in response_html
+
+
+def test_public_share_page_shows_comments_and_collapsed_hints(client):
+    author = UserFactory(name="Exam Maker")
+    problem = _problem(topic="GEO", mohs=12)
+    _statement(problem, "Find all triangles with $AB=AC$.")
+    problem_list = _problem_list(author=author, visibility=ProblemList.Visibility.PUBLIC)
+    hint_text = "Draw the altitude from the apex first."
+    comment_text = "A short opener before angle chasing."
+    ProblemListItem.objects.create(
+        comment=comment_text,
+        hint=hint_text,
+        problem_list=problem_list,
+        problem=problem,
+        position=1,
+    )
+
+    response = client.get(problem_list.public_url())
+
+    assert response.status_code == HTTPStatus.OK
+    response_html = response.content.decode("utf-8")
+    assert comment_text in response_html
+    assert hint_text in response_html
+    assert "Show hint" in response_html
+    assert "<details open" not in response_html
 
 
 def test_public_share_page_links_authenticated_users_to_solution_editor(client):
