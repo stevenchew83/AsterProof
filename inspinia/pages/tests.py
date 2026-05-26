@@ -4827,6 +4827,7 @@ def test_contest_dashboard_listing_omits_bulk_controls_for_non_admin(client):
     assert response.context["show_contest_dashboard_bulk"] is False
     html = response.content.decode("utf-8")
     assert "Bulk selection" not in html
+    assert 'id="contest-dashboard-bulk-bar"' not in html
     assert "js-problem-select" not in html
     assert "Set inactive" not in html
 
@@ -5039,7 +5040,7 @@ def test_contest_dashboard_listing_view_filters_selected_contest_and_year_for_ad
         problem="P2",
         contest_year_problem="USAMO 2026 P2",
     )
-    ContestProblemStatement.objects.create(
+    visible_statement = ContestProblemStatement.objects.create(
         linked_problem=visible_problem,
         contest_year=2026,
         contest_name="USAMO",
@@ -5047,6 +5048,12 @@ def test_contest_dashboard_listing_view_filters_selected_contest_and_year_for_ad
         problem_code="P1",
         day_label="Day 1",
         statement_latex="Statement one",
+    )
+    UserProblemCompletion.objects.create(
+        user=admin_user,
+        problem=visible_problem,
+        statement=visible_statement,
+        completion_date=date(2026, 1, 1),
     )
 
     response = client.get(
@@ -5066,22 +5073,35 @@ def test_contest_dashboard_listing_view_filters_selected_contest_and_year_for_ad
     assert response.context["contest_listing_base_url"] == (
         reverse("pages:contest_dashboard_listing") + "?contest=USAMO"
     )
+    assert response.context["completion_summary"]["solved_visible_total"] == 1
     grouped_years = response.context["grouped_years"]
     assert len(grouped_years) == 1
     assert grouped_years[0]["year"] == 2026
     assert grouped_years[0]["problems"][0]["label"] == visible_problem.contest_year_problem
     assert grouped_years[0]["problems"][0]["problem_code"] == "P1"
+    assert grouped_years[0]["problems"][0]["statement_preview"] == "Statement one"
     response_html = response.content.decode("utf-8")
+    assert '<h1 class="contest-dashboard-title">USAMO</h1>' in response_html
     assert "Back to advanced analytics" in response_html
-    assert "<th>#</th>" in response_html
+    assert 'class="btn btn-outline-secondary btn-sm contest-dashboard-back-link"' in response_html
+    assert "contest-dashboard-summary-band" in response_html
+    assert "1 visible" in response_html
+    assert "1 solved" in response_html
+    assert "contest-dashboard-filter-toolbar" in response_html
+    assert "contest-dashboard-bulk-bar" in response_html
+    assert "Bulk selection" not in response_html
+    assert "<th>#</th>" not in response_html
     assert "js-year-select-all" in response_html
     assert "js-problem-select" in response_html
     assert "js-sort-header" in response_html
     assert "Set inactive" in response_html
     assert 'text-nowrap text-muted fw-semibold js-row-index">1<' in response_html
-    assert "Problem code" in response_html
-    assert '<td class="text-nowrap" data-sort-value="P1">' in response_html
-    assert "Solved date" in response_html
+    assert "Problem code" not in response_html
+    assert "Solved date" not in response_html
+    assert "statement-drawer-row" in response_html
+    assert 'data-statement-target="statement-drawer-usamo-2026-p1"' in response_html
+    assert "js-statement-toggle" in response_html
+    assert "Problem metadata" in response_html
     assert "js-completion-save" in response_html
     assert "Unknown" in response_html
     assert "USAMO 2026 P1" in response_html
@@ -12950,11 +12970,15 @@ def test_contest_problem_list_shows_imported_statement_text(client):
     assert first_problem["has_statement"] is True
     assert first_problem["statement_day_label"] == "Day 1"
     assert first_problem["statement_latex"] == "Prove that $1+1=2$."
+    assert first_problem["statement_preview"] == "Prove that $1+1=2$."
     content = response.content.decode("utf-8")
     assert "problem-table" in content
     assert 'textbullet: "\\\\bullet"' in content
     assert "js-sort-header" in content
+    assert "statement-drawer-row" in content
+    assert "js-statement-toggle" in content
     assert "Prove that $1+1=2$." in content
+    assert "statement-evan-box" not in content
     assert 'footnotesize: ""' in content
     assert 'overarc: ["\\\\overset{\\\\frown}{#1}", 1]' in content
     assert "Statement import updated" not in content
@@ -13103,10 +13127,21 @@ def test_contest_problem_list_filters_by_year_mohs_topic_and_tag(client):
     assert response.context["matching_problem_total"] == EXPECTED_RECORD_COUNT
     assert response.context["filter_options"]["mohs_values"] == [4, 5, 6]
     assert response.context["filter_options"]["tags"] == ["INVARIANTS", "LTE"]
+    assert [(chip["label"], chip["value"]) for chip in response.context["active_filter_chips"]] == [
+        ("Year", "2026"),
+        ("MOHS", "4"),
+        ("Topic", "Number Theory"),
+        ("Tag", "LTE"),
+    ]
+    assert response.context["active_filter_chips"][-1]["remove_url"] == (
+        reverse("pages:contest_dashboard_listing") + "?contest=IMO&year=2026&mohs=4&topic=Number+Theory"
+    )
     filtered_problem = response.context["grouped_years"][0]["problems"][0]
     assert filtered_problem["problem"] == "P1"
     assert filtered_problem["topic_tags"][0]["technique"] == "LTE"
     page = response.content.decode("utf-8")
+    assert 'id="contest-dashboard-advanced-filters" class="collapse show"' in page
+    assert "contest-dashboard-filter-chip" in page
     assert "problem-tag-list" in page
     assert "LTE" in page
     assert "Confidence:" not in page
