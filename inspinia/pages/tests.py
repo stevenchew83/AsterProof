@@ -5118,6 +5118,11 @@ def test_contest_mohs_summary_renders_table_and_hide_low_count_toggle(client):
     assert 'id="contest-mohs-hide-low-count"' in response_html
     assert "data-hide-threshold=\"20\"" in response_html
     assert "DataTable.ext.search.push" in response_html
+    assert "numeric.toFixed(2)" in response_html
+    assert "A Count" not in response_html
+    assert "C Count" not in response_html
+    assert "G Count" not in response_html
+    assert "N Count" not in response_html
     assert "Total Count of MOHS2" in response_html
     assert "Usr Average" in response_html
     assert reverse("pages:contest_dashboard_listing") + "?contest=Large+Cup" in response_html
