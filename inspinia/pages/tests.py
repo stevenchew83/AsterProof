@@ -4974,11 +4974,51 @@ def test_contest_mohs_summary_ranks_by_current_user_average(client):
     assert hard_row["user_average_mohs"] == 40.0
     assert hard_row["user_completion_count"] == 1
     assert hard_row["contest_url"] == reverse("pages:contest_dashboard_listing") + "?contest=Hard+Cup"
+    assert response.context["contest_mohs_summary_stats"]["has_user_averages"] is True
+    assert (
+        response.context["contest_mohs_summary_stats"]["rank_description"]
+        == "Ranked by My Avg from completed problems"
+    )
 
     unsolved_row = rows[2]
     assert unsolved_row["user_average_mohs"] is None
     assert unsolved_row["user_average_sort"] == -1
     assert unsolved_row["user_completion_count"] == 0
+
+
+def test_contest_mohs_summary_without_user_average_ranks_by_average_mohs(client):
+    user = UserFactory()
+    client.force_login(user)
+
+    ContestProblemStatement.objects.create(
+        contest_year=2026,
+        contest_name="Hard Small Cup",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Hard statement",
+        topic="GEO",
+        mohs=45,
+    )
+    for problem_number in range(1, 4):
+        ContestProblemStatement.objects.create(
+            contest_year=2026,
+            contest_name="Easy Larger Cup",
+            problem_number=problem_number,
+            problem_code=f"P{problem_number}",
+            day_label="Day 1",
+            statement_latex="Easy statement",
+            topic="ALG",
+            mohs=20,
+        )
+
+    response = client.get(reverse("pages:contest_mohs_summary"))
+
+    assert response.status_code == HTTPStatus.OK
+    rows = response.context["contest_mohs_summary_rows"]
+    assert [row["contest"] for row in rows] == ["Hard Small Cup", "Easy Larger Cup"]
+    assert response.context["contest_mohs_summary_stats"]["has_user_averages"] is False
+    assert response.context["contest_mohs_summary_stats"]["rank_description"] == "Ranked by contest average MOHS"
 
 
 def test_contest_mohs_summary_renders_table_and_hide_low_count_toggle(client):
@@ -4995,6 +5035,7 @@ def test_contest_mohs_summary_renders_table_and_hide_low_count_toggle(client):
             topic="COMB",
             mohs=30,
         )
+    ContestMetadata.objects.create(contest="Large Cup", tags=["Olympiad", "National"])
     ContestProblemStatement.objects.create(
         contest_year=2026,
         contest_name="Small Cup",
@@ -5009,14 +5050,29 @@ def test_contest_mohs_summary_renders_table_and_hide_low_count_toggle(client):
     response = client.get(reverse("pages:contest_mohs_summary"))
 
     assert response.status_code == HTTPStatus.OK
+    large_row = next(row for row in response.context["contest_mohs_summary_rows"] if row["contest"] == "Large Cup")
+    assert large_row["level_labels"] == ["Olympiad", "National"]
     response_html = response.content.decode("utf-8")
     assert "Contest MOHS summary" in response_html
     assert 'id="contest-mohs-summary-table"' in response_html
-    assert 'id="contest-mohs-hide-low-count"' in response_html
+    assert 'id="contest-mohs-filter-all"' in response_html
+    assert 'id="contest-mohs-filter-threshold"' in response_html
+    assert 'id="contest-mohs-hide-low-count"' not in response_html
     assert "data-hide-threshold=\"20\"" in response_html
+    assert 'data-has-user-averages="false"' in response_html
     assert "DataTable.ext.search.push" in response_html
-    assert "Total Count of MOHS2" in response_html
-    assert "Usr Average" in response_html
+    assert "Problems with MOHS" in response_html
+    assert "With My Avg" in response_html
+    assert "20+ problem contests" in response_html
+    assert "My Avg" in response_html
+    assert "MOHS Count" in response_html
+    assert "Topic averages" in response_html
+    assert "Overall" in response_html
+    assert "No completed contests yet" in response_html
+    assert "MOHS rows" not in response_html
+    assert "With usr average" not in response_html
+    assert "Total Count of MOHS2" not in response_html
+    assert "Usr Average" not in response_html
     assert reverse("pages:contest_dashboard_listing") + "?contest=Large+Cup" in response_html
 
 
