@@ -7,22 +7,6 @@
 {% block extra_css %}
   {{ block.super }}
   <style>
-    .contest-dashboard-listing .statement-evan-box {
-      border-radius: 1rem;
-      border: 1px solid rgba(91, 48, 161, 0.34);
-      background: linear-gradient(180deg, rgba(248, 239, 255, 0.98), rgba(238, 223, 255, 0.96));
-      box-shadow: 0 12px 30px rgba(91, 48, 161, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.86);
-      color: #2b1844;
-      padding: 0.95rem 1rem;
-    }
-
-    .contest-dashboard-listing .statement-asymptote-panel {
-      border: 1px solid rgba(91, 48, 161, 0.18);
-      border-radius: 0.85rem;
-      background: rgba(255, 255, 255, 0.72);
-      padding: 0.75rem;
-    }
-
     .contest-dashboard-listing .statement-text-fragment {
       white-space: pre-wrap;
       word-break: break-word;
@@ -32,9 +16,9 @@
     .contest-dashboard-listing .asymptote-svg-frame {
       overflow-x: auto;
       padding: 0.75rem;
-      border-radius: 0.7rem;
-      border: 1px solid rgba(91, 48, 161, 0.2);
-      background: rgba(255, 255, 255, 0.9);
+      border-radius: var(--bs-border-radius);
+      border: 1px solid var(--bs-border-color);
+      background: var(--bs-body-bg);
     }
 
     .contest-dashboard-listing .asymptote-svg-frame svg {
@@ -44,15 +28,126 @@
       margin: 0 auto;
     }
 
+    .contest-dashboard-listing .contest-dashboard-heading {
+      align-items: flex-start;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .contest-dashboard-listing .contest-dashboard-kicker {
+      letter-spacing: 0;
+    }
+
+    .contest-dashboard-listing .contest-dashboard-title {
+      margin: 0;
+      font-size: 1.55rem;
+      line-height: 1.2;
+      font-weight: 700;
+      color: var(--bs-heading-color);
+    }
+
+    .contest-dashboard-listing .contest-dashboard-back-link {
+      white-space: nowrap;
+    }
+
+    .contest-dashboard-listing .contest-dashboard-summary-band,
+    .contest-dashboard-listing .contest-dashboard-filter-card,
+    .contest-dashboard-listing .contest-year-card {
+      border: 1px solid var(--bs-border-color);
+      box-shadow: 0 0.5rem 1.25rem rgba(var(--bs-body-color-rgb), 0.04);
+    }
+
+    .contest-dashboard-listing .contest-dashboard-summary-band {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.75rem 1rem;
+      padding: 0.9rem 1rem;
+      border-radius: var(--bs-border-radius);
+      background: var(--bs-body-bg);
+    }
+
+    .contest-dashboard-listing .summary-item {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 0.35rem;
+      padding-right: 1rem;
+      border-right: 1px solid var(--bs-border-color);
+    }
+
+    .contest-dashboard-listing .summary-item:last-child,
+    .contest-dashboard-listing .summary-topics {
+      border-right: 0;
+      padding-right: 0;
+    }
+
+    .contest-dashboard-listing .summary-value {
+      font-weight: 700;
+      color: var(--bs-heading-color);
+    }
+
+    .contest-dashboard-listing .contest-dashboard-filter-toolbar {
+      display: grid;
+      grid-template-columns: minmax(15rem, 1.2fr) minmax(16rem, 1.6fr) auto auto;
+      gap: 0.75rem;
+      align-items: end;
+    }
+
+    .contest-dashboard-listing .contest-dashboard-filter-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      text-decoration: none;
+    }
+
     .contest-dashboard-listing .problem-tag-list {
       display: flex;
       flex-direction: column;
-      gap: 0.35rem;
+      gap: 0.25rem;
       align-items: flex-start;
     }
 
+    .contest-dashboard-listing .problem-table {
+      min-width: 74rem;
+    }
+
+    .contest-dashboard-listing .problem-table thead th {
+      position: sticky;
+      top: 0;
+      z-index: 3;
+      background: var(--bs-tertiary-bg);
+      box-shadow: inset 0 -1px 0 var(--bs-border-color);
+    }
+
     .contest-dashboard-listing .problem-table td {
-      vertical-align: top;
+      vertical-align: middle;
+    }
+
+    .contest-dashboard-listing .problem-table tbody tr.js-problem-row {
+      transition: background-color 0.15s ease;
+    }
+
+    .contest-dashboard-listing .problem-table tbody tr.js-problem-row:hover,
+    .contest-dashboard-listing .problem-table tbody tr.js-problem-row.is-drawer-open {
+      background: var(--bs-tertiary-bg);
+    }
+
+    .contest-dashboard-listing .problem-table tbody tr.js-problem-row.is-selected {
+      background: var(--bs-primary-bg-subtle);
+    }
+
+    .contest-dashboard-listing .problem-sticky-col {
+      position: sticky;
+      left: 0;
+      z-index: 2;
+      min-width: 18rem;
+      background: var(--bs-body-bg);
+      box-shadow: 1px 0 0 var(--bs-border-color);
+    }
+
+    .contest-dashboard-listing thead .problem-sticky-col {
+      z-index: 4;
+      background: var(--bs-tertiary-bg);
     }
 
     .contest-dashboard-listing .problem-table .btn {
@@ -63,33 +158,73 @@
       min-width: 15rem;
     }
 
-    .contest-dashboard-listing details summary {
-      cursor: pointer;
-      color: var(--bs-primary);
-      font-weight: 600;
+    .contest-dashboard-listing .statement-preview-button {
+      max-width: 20rem;
+      color: inherit;
+      text-decoration: none;
     }
 
-    .contest-dashboard-listing .statement-panel {
-      margin-top: 0.75rem;
+    .contest-dashboard-listing .statement-preview-text {
+      display: -webkit-box;
+      overflow: hidden;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
     }
 
-    @media print {
-      .contest-dashboard-listing .statement-evan-box {
-        background: #f3eaff !important;
-        box-shadow: none !important;
-        border-color: rgba(91, 48, 161, 0.42) !important;
-      }
+    .contest-dashboard-listing .statement-drawer-row > td {
+      background: var(--bs-tertiary-bg);
+      border-top: 0;
+    }
+
+    .contest-dashboard-listing .statement-drawer-panel {
+      border-left: 3px solid var(--bs-primary);
+      border-radius: var(--bs-border-radius);
+      background: var(--bs-body-bg);
+      padding: 1rem;
+    }
+
+    .contest-dashboard-listing .statement-render-content {
+      border: 0;
+      background: transparent;
+      padding: 0;
     }
 
     .contest-dashboard-listing .completion-editor {
-      min-width: 16rem;
+      min-width: 10rem;
     }
 
-    .contest-dashboard-listing .completion-editor .btn {
-      min-width: 4.5rem;
+    .contest-dashboard-listing .completion-popover {
+      width: 16rem;
+      max-width: calc(100vw - 2rem);
+      border: 1px solid var(--bs-border-color);
+      box-shadow: 0 0.75rem 1.5rem rgba(var(--bs-body-color-rgb), 0.12);
     }
 
-    .contest-dashboard-listing .bulk-toolbar {
+    .contest-dashboard-listing .completion-editor .dropdown-menu.show {
+      position: static !important;
+      transform: none !important;
+      margin-top: 0.5rem !important;
+    }
+
+    .contest-dashboard-listing .completion-editor.is-busy {
+      opacity: 0.72;
+    }
+
+    .contest-dashboard-listing .contest-dashboard-bulk-bar {
+      position: sticky;
+      right: 1rem;
+      bottom: 1rem;
+      left: 1rem;
+      z-index: 10;
+      margin-top: 1rem;
+      border: 1px solid var(--bs-border-color);
+      border-radius: var(--bs-border-radius);
+      background: var(--bs-body-bg);
+      box-shadow: 0 0.75rem 2rem rgba(var(--bs-body-color-rgb), 0.16);
+      padding: 0.75rem 1rem;
+    }
+
+    .contest-dashboard-listing .contest-dashboard-bulk-bar-inner {
       display: flex;
       flex-wrap: wrap;
       align-items: center;
@@ -117,46 +252,74 @@
       letter-spacing: inherit;
     }
 
-    .contest-dashboard-listing .js-sort-header::after {
-      content: "⇅";
-      font-size: 0.75rem;
-      opacity: 0.45;
+    .contest-dashboard-listing .js-sort-header .sort-icon {
+      font-size: 1rem;
+      opacity: 0.55;
     }
 
-    .contest-dashboard-listing .js-sort-header[data-sort-direction="asc"]::after {
-      content: "↑";
-      opacity: 0.85;
-    }
+    @media (max-width: 991.98px) {
+      .contest-dashboard-listing .contest-dashboard-filter-toolbar {
+        grid-template-columns: 1fr;
+      }
 
-    .contest-dashboard-listing .js-sort-header[data-sort-direction="desc"]::after {
-      content: "↓";
-      opacity: 0.85;
+      .contest-dashboard-listing .contest-dashboard-heading {
+        flex-direction: column;
+      }
+
+      .contest-dashboard-listing .contest-dashboard-heading .text-end {
+        text-align: start !important;
+      }
     }
   </style>
 {% endblock extra_css %}
 
 {% block page_content %}
 <div class="container-fluid contest-dashboard-listing">
-  {% include 'partials/page-title.html' with title='Contest listing' subtitle=contest_title %}
+  <div class="page-title-head d-flex contest-dashboard-heading">
+    <div class="flex-grow-1">
+      <p class="contest-dashboard-kicker text-muted mb-1 fs-xs text-uppercase fw-semibold">Contest listing</p>
+      <h1 class="contest-dashboard-title">{{ contest_title }}</h1>
+    </div>
+    <div class="text-end">
+      <ol class="breadcrumb m-0 py-0 justify-content-end">
+        <li class="breadcrumb-item"><a href="{% url 'pages:user_activity_dashboard' %}">AsterProof</a></li>
+        <li class="breadcrumb-item text-body-secondary">Contest listing</li>
+        <li class="breadcrumb-item active">{{ contest_title }}</li>
+      </ol>
+      <a href="{{ contest_back_url }}" class="btn btn-outline-secondary btn-sm contest-dashboard-back-link">
+        <i class="ti ti-arrow-left me-1"></i>{{ contest_back_label }}
+      </a>
+    </div>
+  </div>
 
   <div class="row g-3 mt-0">
     <div class="col-12">
-      <div class="card">
-        <div class="card-header border-bottom">
-          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
-            <div>
-              <h4 class="header-title mb-0">Contest filters</h4>
-              <p class="text-muted fs-xs mb-0">Stay inside the dashboard while narrowing one contest by year, topic, MOHS, and tags.</p>
-            </div>
-            <div class="d-flex flex-wrap gap-2">
-              <a href="{{ contest_back_url }}" class="btn btn-outline-secondary btn-sm">{{ contest_back_label }}</a>
-            </div>
-          </div>
-        </div>
+      <div class="contest-dashboard-summary-band">
+        <span class="summary-item"><span class="summary-value">{{ matching_problem_total }} visible</span></span>
+        <span class="summary-item"><span class="summary-value">{{ contest_problem_stats.statement_total }} statements</span></span>
+        <span class="summary-item"><span class="summary-value">{{ contest_problem_stats.year_range_label }}</span><span class="text-muted fs-xs text-uppercase fw-semibold">years</span></span>
+        <span class="summary-item"><span class="text-muted fs-xs text-uppercase fw-semibold">Avg MOHS</span><span class="summary-value">{{ contest_problem_stats.avg_mohs|floatformat:1 }}</span></span>
+        <span class="summary-item"><span class="summary-value">{{ completion_summary.solved_visible_total }} solved</span></span>
+        {% if top_topics %}
+        <span class="summary-topics d-inline-flex flex-wrap align-items-center gap-2">
+          <span class="text-muted fs-xs text-uppercase fw-semibold">Top topics</span>
+          {% for topic in top_topics %}
+          <span class="badge bg-light text-dark border">{{ topic }}</span>
+          {% endfor %}
+        </span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-0">
+    <div class="col-12">
+      <div class="card contest-dashboard-filter-card">
         <div class="card-body">
-          <form method="get" class="row g-3 align-items-end">
-            <div class="col-xl-4 col-lg-6">
-              <label class="form-label" for="contest-dashboard-selector">Contest</label>
+          <form method="get">
+            <div class="contest-dashboard-filter-toolbar">
+              <div>
+                <label class="form-label" for="contest-dashboard-selector">Contest</label>
               <select id="contest-dashboard-selector" name="contest" class="form-select">
                 {% for row in contest_choices %}
                 <option value="{{ row.contest }}" {% if row.contest == selected_contest %}selected{% endif %}>
@@ -165,7 +328,7 @@
                 {% endfor %}
               </select>
             </div>
-            <div class="col-xl-4 col-lg-6">
+              <div>
               <label class="form-label" for="contest-dashboard-search">Search</label>
               <input
                 id="contest-dashboard-search"
@@ -176,156 +339,78 @@
                 placeholder="Problem id, topic, tag, IMO slot"
               >
             </div>
-            <div class="col-xl-2 col-md-4">
-              <label class="form-label" for="contest-dashboard-year">Year</label>
-              <select id="contest-dashboard-year" name="year" class="form-select">
-                <option value="">All years</option>
-                {% for year in filter_options.years %}
-                <option value="{{ year }}" {% if selected_year == year|stringformat:"s" %}selected{% endif %}>{{ year }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="col-xl-2 col-md-4">
-              <label class="form-label" for="contest-dashboard-mohs">MOHS</label>
-              <select id="contest-dashboard-mohs" name="mohs" class="form-select">
-                <option value="">All MOHS</option>
-                {% for mohs_value in filter_options.mohs_values %}
-                <option value="{{ mohs_value }}" {% if selected_mohs == mohs_value|stringformat:"s" %}selected{% endif %}>{{ mohs_value }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="col-xl-3 col-md-6">
-              <label class="form-label" for="contest-dashboard-topic">Topic</label>
-              <select id="contest-dashboard-topic" name="topic" class="form-select">
-                <option value="">All topics</option>
-                {% for topic in filter_options.topics %}
-                <option value="{{ topic }}" {% if selected_topic == topic %}selected{% endif %}>{{ topic }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="col-xl-3 col-md-6">
-              <label class="form-label" for="contest-dashboard-tag">Topic tag</label>
-              <select id="contest-dashboard-tag" name="tag" class="form-select">
-                <option value="">All tags</option>
-                {% for tag in filter_options.tags %}
-                <option value="{{ tag }}" {% if selected_tag == tag %}selected{% endif %}>{{ tag }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="col-xl-6">
+              <button
+                class="btn btn-outline-secondary"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#contest-dashboard-advanced-filters"
+                aria-expanded="{% if has_advanced_filters %}true{% else %}false{% endif %}"
+                aria-controls="contest-dashboard-advanced-filters"
+              >
+                <i class="ti ti-adjustments-horizontal me-1"></i>Filters
+              </button>
               <div class="d-flex flex-wrap gap-2">
                 <button type="submit" class="btn btn-primary">Apply filters</button>
                 {% if has_active_filters %}
-                <a href="{{ contest_listing_base_url }}" class="btn btn-outline-secondary">Clear filters</a>
+                <a href="{{ contest_listing_base_url }}" class="btn btn-outline-secondary">Clear</a>
                 {% endif %}
               </div>
             </div>
+            <div id="contest-dashboard-advanced-filters" class="collapse {% if has_advanced_filters %}show{% endif %}">
+              <div class="row g-3 pt-3">
+                <div class="col-xl-2 col-md-4">
+                  <label class="form-label" for="contest-dashboard-year">Year</label>
+                  <select id="contest-dashboard-year" name="year" class="form-select">
+                    <option value="">All years</option>
+                    {% for year in filter_options.years %}
+                    <option value="{{ year }}" {% if selected_year == year|stringformat:"s" %}selected{% endif %}>{{ year }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="col-xl-2 col-md-4">
+                  <label class="form-label" for="contest-dashboard-mohs">MOHS</label>
+                  <select id="contest-dashboard-mohs" name="mohs" class="form-select">
+                    <option value="">All MOHS</option>
+                    {% for mohs_value in filter_options.mohs_values %}
+                    <option value="{{ mohs_value }}" {% if selected_mohs == mohs_value|stringformat:"s" %}selected{% endif %}>{{ mohs_value }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="col-xl-4 col-md-6">
+                  <label class="form-label" for="contest-dashboard-topic">Topic</label>
+                  <select id="contest-dashboard-topic" name="topic" class="form-select">
+                    <option value="">All topics</option>
+                    {% for topic in filter_options.topics %}
+                    <option value="{{ topic }}" {% if selected_topic == topic %}selected{% endif %}>{{ topic }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="col-xl-4 col-md-6">
+                  <label class="form-label" for="contest-dashboard-tag">Topic tag</label>
+                  <select id="contest-dashboard-tag" name="tag" class="form-select">
+                    <option value="">All tags</option>
+                    {% for tag in filter_options.tags %}
+                    <option value="{{ tag }}" {% if selected_tag == tag %}selected{% endif %}>{{ tag }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+              </div>
+            </div>
           </form>
-          {% if has_active_filters %}
+          {% if active_filter_chips %}
           <div class="d-flex flex-wrap gap-2 mt-3">
-            {% if initial_search_query %}<span class="badge bg-primary-subtle text-primary">Search: {{ initial_search_query }}</span>{% endif %}
-            {% if selected_year %}<span class="badge bg-secondary-subtle text-secondary">Year {{ selected_year }}</span>{% endif %}
-            {% if selected_mohs %}<span class="badge bg-warning-subtle text-warning">MOHS {{ selected_mohs }}</span>{% endif %}
-            {% if selected_topic %}<span class="badge bg-info-subtle text-info">Topic {{ selected_topic }}</span>{% endif %}
-            {% if selected_tag %}<span class="badge bg-success-subtle text-success">Tag {{ selected_tag }}</span>{% endif %}
+            {% for chip in active_filter_chips %}
+            <a href="{{ chip.remove_url }}" class="badge {{ chip.badge_class }} contest-dashboard-filter-chip">
+              <span>{{ chip.label }}: {{ chip.value }}</span>
+              <i class="ti ti-x"></i>
+            </a>
+            {% endfor %}
           </div>
           {% endif %}
         </div>
       </div>
     </div>
   </div>
-
-  <div class="row g-3 mt-0">
-    <div class="col-sm-6 col-xl-3">
-      <div class="card m-0 h-100">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-primary-subtle text-primary rounded">
-                <i class="ti ti-list-details fs-24"></i>
-              </span>
-            </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Visible now</p>
-              <h3 class="mb-0">{{ matching_problem_total }}</h3>
-              <p class="text-muted fs-xs mb-0">Rows after current filters.</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-6 col-xl-3">
-      <div class="card m-0 h-100">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-success-subtle text-success rounded">
-                <i class="ti ti-notebook fs-24"></i>
-              </span>
-            </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Statements</p>
-              <h3 class="mb-0">{{ contest_problem_total }}</h3>
-              <p class="text-muted fs-xs mb-0">{{ contest_problem_stats.year_range_label }}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-6 col-xl-3">
-      <div class="card m-0 h-100">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-info-subtle text-info rounded">
-                <i class="ti ti-file-text fs-24"></i>
-              </span>
-            </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Statements</p>
-              <h3 class="mb-0">{{ contest_problem_stats.statement_total }}</h3>
-              <p class="text-muted fs-xs mb-0">Imported and viewable inline.</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-6 col-xl-3">
-      <div class="card m-0 h-100">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-warning-subtle text-warning rounded">
-                <i class="ti ti-chart-arcs fs-24"></i>
-              </span>
-            </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Avg MOHS</p>
-              <h3 class="mb-0">{{ contest_problem_stats.avg_mohs|floatformat:1 }}</h3>
-              <p class="text-muted fs-xs mb-0">Across the current contest archive.</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  {% if top_topics %}
-  <div class="row g-3 mt-0">
-    <div class="col-12">
-      <div class="card">
-        <div class="card-body py-3">
-          <div class="d-flex flex-wrap align-items-center gap-2">
-            <span class="text-muted fs-xs text-uppercase fw-semibold me-1">Top topics</span>
-            {% for topic in top_topics %}
-            <span class="badge bg-light text-dark border">{{ topic }}</span>
-            {% endfor %}
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  {% endif %}
 
   {% if contest_listing_is_capped %}
   <div class="row g-3 mt-0">
@@ -337,33 +422,11 @@
   </div>
   {% endif %}
 
-  {% if show_contest_dashboard_bulk %}
-  <div class="row g-3 mt-0">
-    <div class="col-12">
-      <div class="card">
-        <div class="card-body py-3">
-          <div class="bulk-toolbar">
-            <div>
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Bulk selection</p>
-              <p class="text-muted fs-xs mb-0"><span id="contest-dashboard-selected-count">0</span> row(s) selected on this page.</p>
-            </div>
-            <div class="bulk-toolbar-actions">
-              <button type="button" id="contest-dashboard-select-all" class="btn btn-outline-secondary btn-sm">Select all visible</button>
-              <button type="button" id="contest-dashboard-clear-selection" class="btn btn-outline-secondary btn-sm">Clear selection</button>
-              <button type="button" id="contest-dashboard-set-inactive" class="btn btn-outline-danger btn-sm" disabled>Set inactive</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  {% endif %}
-
   <div class="row g-3 mt-0">
     <div class="col-12">
       {% if grouped_years %}
         {% for year_group in grouped_years %}
-        <div class="card {% if not forloop.last %}mb-3{% endif %}">
+        <div class="card contest-year-card {% if not forloop.last %}mb-3{% endif %}">
           <div class="card-header border-bottom">
             <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
               <div>
@@ -375,48 +438,45 @@
           </div>
           <div class="card-body">
             <div class="table-responsive">
-              <table class="table table-striped align-middle mb-0 problem-table">
+              <table class="table table-hover align-middle mb-0 problem-table">
                 <thead>
                   <tr class="text-muted fs-xs text-uppercase">
-                    <th>#</th>
-                    {% if show_contest_dashboard_bulk %}
-                    <th class="text-nowrap">
-                      <input type="checkbox" class="form-check-input js-year-select-all" aria-label="Select all rows in this table">
+                    <th class="problem-sticky-col">
+                      {% if show_contest_dashboard_bulk %}
+                      <input type="checkbox" class="form-check-input js-year-select-all me-2" aria-label="Select all rows in this table">
+                      {% endif %}
+                      <button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by problem">Problem <i class="ti ti-arrows-sort sort-icon"></i></button>
                     </th>
-                    {% endif %}
-                    <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by problem">Problem</button></th>
-                    <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by problem code">Problem code</button></th>
-                    <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by topic">Topic</button></th>
-                    <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by MOHS">MOHS</button></th>
-                    <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by topic tags">Topic tags</button></th>
-                    <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by statement">Statement</button></th>
-                    <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by solutions">Solutions</button></th>
-                    <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by problem lists">Problem lists</button></th>
-                    <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by IMO slots">IMO slots</button></th>
-                    <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by status">Status</button></th>
-                    <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by solved date">Solved date</button></th>
+                    <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by topic">Topic <i class="ti ti-arrows-sort sort-icon"></i></button></th>
+                    <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by MOHS">MOHS <i class="ti ti-arrows-sort sort-icon"></i></button></th>
+                    <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by tags">Tags <i class="ti ti-arrows-sort sort-icon"></i></button></th>
+                    <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by statement">Statement <i class="ti ti-arrows-sort sort-icon"></i></button></th>
+                    <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by actions">Actions <i class="ti ti-arrows-sort sort-icon"></i></button></th>
+                    <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by progress">Progress <i class="ti ti-arrows-sort sort-icon"></i></button></th>
                   </tr>
                 </thead>
                 <tbody>
                   {% for problem in year_group.problems %}
-                  <tr id="{{ problem.anchor }}">
-                    <td class="text-nowrap text-muted fw-semibold js-row-index">{{ forloop.counter }}</td>
-                    {% if show_contest_dashboard_bulk %}
-                    <td class="text-nowrap">
-                      <input
-                        type="checkbox"
-                        class="form-check-input js-problem-select"
-                        value="{{ problem.statement_id }}"
-                        aria-label="Select {{ problem.label }}"
-                      >
-                    </td>
-                    {% endif %}
-                    <td data-sort-value="{{ problem.problem_code }}">
-                      <div class="fw-semibold">{{ problem.label }}</div>
-                      <div class="text-muted fs-xs">{{ problem.technique_count }} technique row{{ problem.technique_count|pluralize }}</div>
-                    </td>
-                    <td class="text-nowrap" data-sort-value="{{ problem.problem_code }}">
-                      {{ problem.problem_code }}
+                  <tr id="{{ problem.anchor }}" class="js-problem-row" data-statement-target="statement-drawer-{{ problem.anchor }}">
+                    <td class="problem-sticky-col" data-sort-value="{{ problem.problem_code }}">
+                      <div class="d-flex align-items-start gap-2">
+                        {% if show_contest_dashboard_bulk %}
+                        <input
+                          type="checkbox"
+                          class="form-check-input js-problem-select mt-1"
+                          value="{{ problem.statement_id }}"
+                          aria-label="Select {{ problem.label }}"
+                        >
+                        {% endif %}
+                        <span class="text-nowrap text-muted fw-semibold js-row-index">{{ forloop.counter }}</span>
+                        <div class="min-w-0">
+                          <div class="fw-semibold">{{ problem.label }}</div>
+                          <div class="d-flex flex-wrap align-items-center gap-1 mt-1">
+                            <span class="badge bg-light text-dark border">{{ problem.problem_code }}</span>
+                            <span class="text-muted fs-xs">{{ problem.technique_count }} technique row{{ problem.technique_count|pluralize }}</span>
+                          </div>
+                        </div>
+                      </div>
                     </td>
                     <td data-sort-value="{% if problem.is_linked %}{{ problem.topic }}{% else %}Unlinked{% endif %}">
                       {% if problem.is_linked and problem.topic %}
@@ -445,14 +505,17 @@
                       <span class="text-muted fs-xs">—</span>
                       {% endif %}
                     </td>
-                    <td data-sort-value="{% if problem.has_statement %}1-{{ problem.statement_day_label|default:'Statement' }}{% else %}0-Not imported{% endif %}">
+                    <td data-sort-value="{% if problem.has_statement %}1-{{ problem.statement_day_label|default:'Statement' }} {{ problem.statement_preview }}{% else %}0-Not imported{% endif %}">
                       {% if problem.has_statement %}
-                      <details>
-                        <summary>{% if problem.statement_day_label %}{{ problem.statement_day_label }}{% else %}Statement{% endif %}</summary>
-                        <div class="statement-panel">
-                          {% include 'partials/statement-render-content.html' with segments=problem.statement_render_segments %}
-                        </div>
-                      </details>
+                      <button
+                        type="button"
+                        class="btn btn-link p-0 text-start statement-preview-button js-statement-toggle"
+                        aria-expanded="false"
+                        aria-controls="statement-drawer-{{ problem.anchor }}"
+                      >
+                        <span class="d-block fw-semibold">{% if problem.statement_day_label %}{{ problem.statement_day_label }}{% else %}Statement{% endif %}</span>
+                        <span class="statement-preview-text text-muted fs-xs">{{ problem.statement_preview|default:"Open statement" }}</span>
+                      </button>
                       {% else %}
                       <span class="text-muted fs-xs">Not imported</span>
                       {% endif %}
@@ -460,94 +523,107 @@
                     <td data-sort-value="{% if problem.is_linked %}{{ problem.published_solution_total }}{% else %}-1{% endif %}">
                       {% if problem.is_linked %}
                       <div class="d-flex flex-column gap-2 align-items-start">
-                        <a href="{{ problem.solutions_url }}" class="btn btn-outline-secondary btn-sm">Solution page</a>
-                        <a href="{{ problem.solution_editor_url }}" class="btn btn-outline-primary btn-sm">
-                          {% if problem.has_my_solution %}Edit my draft{% else %}Start my draft{% endif %}
-                        </a>
+                        <div class="d-flex flex-wrap gap-1">
+                          <a href="{{ problem.solutions_url }}" class="btn btn-outline-secondary btn-sm">Solution page</a>
+                          <a href="{{ problem.solution_editor_url }}" class="btn btn-outline-primary btn-sm">
+                            {% if problem.has_my_solution %}Edit my draft{% else %}Start my draft{% endif %}
+                          </a>
+                        </div>
                         <span class="text-muted fs-xs">{{ problem.published_solution_total }} published</span>
                         {% if problem.has_my_solution %}
                         <span class="badge {{ problem.my_solution_status_badge_class }}">Mine: {{ problem.my_solution_status_label }}</span>
+                        {% endif %}
+                        {% if problem.is_addable_to_problem_list and problem_list_add_targets %}
+                        <form
+                          method="post"
+                          action="{{ problem_list_add_targets.0.add_url }}"
+                          class="problem-list-add-form"
+                        >
+                          {% csrf_token %}
+                          <input type="hidden" name="problem_uuid" value="{{ problem.problem_uuid }}">
+                          <input type="hidden" name="next" value="{{ contest_dashboard_current_url }}#{{ problem.anchor }}">
+                          <div class="input-group input-group-sm">
+                            <select class="form-select js-problem-list-add-target" aria-label="Choose problem list">
+                              {% for target in problem_list_add_targets %}
+                              <option value="{{ target.add_url }}">{{ target.title }}</option>
+                              {% endfor %}
+                            </select>
+                            <button type="submit" class="btn btn-outline-primary">
+                              <i class="ti ti-plus me-1"></i>Add to list
+                            </button>
+                          </div>
+                        </form>
+                        {% elif problem.is_addable_to_problem_list %}
+                        <a href="{% url 'problemsets:create' %}" class="btn btn-outline-secondary btn-sm">Create list</a>
                         {% endif %}
                       </div>
                       {% else %}
                       <span class="text-muted fs-xs">Unlinked</span>
                       {% endif %}
                     </td>
-                    <td data-sort-value="{% if problem.is_addable_to_problem_list %}1{% else %}0{% endif %}">
-                      {% if problem.is_addable_to_problem_list and problem_list_add_targets %}
-                      <form
-                        method="post"
-                        action="{{ problem_list_add_targets.0.add_url }}"
-                        class="problem-list-add-form"
-                      >
-                        {% csrf_token %}
-                        <input type="hidden" name="problem_uuid" value="{{ problem.problem_uuid }}">
-                        <input type="hidden" name="next" value="{{ contest_dashboard_current_url }}#{{ problem.anchor }}">
-                        <div class="input-group input-group-sm">
-                          <select class="form-select js-problem-list-add-target" aria-label="Choose problem list">
-                            {% for target in problem_list_add_targets %}
-                            <option value="{{ target.add_url }}">{{ target.title }}</option>
-                            {% endfor %}
-                          </select>
-                          <button type="submit" class="btn btn-outline-primary">
-                            <i class="ti ti-plus me-1"></i>Add to list
-                          </button>
-                        </div>
-                      </form>
-                      {% elif problem.is_addable_to_problem_list %}
-                      <a href="{% url 'problemsets:create' %}" class="btn btn-outline-secondary btn-sm">Create list</a>
-                      {% else %}
-                      <span class="text-muted fs-xs">—</span>
-                      {% endif %}
-                    </td>
-                    <td class="text-nowrap" data-sort-value="{{ problem.imo_slot_guess_value|default:'' }}">
-                      {% if problem.imo_slot_guess_value %}
-                      {{ problem.imo_slot_guess_value }}
-                      {% else %}
-                      <span class="text-muted fs-xs">—</span>
-                      {% endif %}
-                    </td>
-                    <td class="text-nowrap js-status-cell" data-sort-value="{% if problem.completion_known %}2-{{ problem.completion_date|date:'Y-m-d' }}{% elif problem.is_completed %}1-unknown{% else %}0-unsolved{% endif %}">
-                      <span
-                        class="badge js-contest-problem-status {% if problem.completion_state_kind == 'solved' %}bg-success-subtle text-success border border-success-subtle{% elif problem.completion_state_kind == 'unknown' %}bg-info-subtle text-info border border-info-subtle{% else %}bg-light text-dark border{% endif %}"
-                        title="{{ problem.completion_state_label }}"
-                      >
-                        {% if problem.completion_state_kind == 'solved' %}
-                        {{ problem.completion_display }}
-                        {% elif problem.completion_state_kind == 'unknown' %}
-                        Unknown date
-                        {% else %}
-                        Open
-                        {% endif %}
-                      </span>
-                    </td>
-                    <td class="js-solved-date-cell" data-sort-value="{% if problem.completion_known %}2-{{ problem.completion_date|date:'Y-m-d' }}{% elif problem.is_completed %}1-unknown{% else %}0-unsolved{% endif %}">
+                    <td class="js-status-cell js-solved-date-cell" data-sort-value="{% if problem.completion_known %}2-{{ problem.completion_date|date:'Y-m-d' }}{% elif problem.is_completed %}1-unknown{% else %}0-unsolved{% endif %}">
                       <div
-                        class="completion-editor"
+                        class="completion-editor dropdown"
                         data-statement-uuid="{{ problem.statement_uuid }}"
                         data-problem-label="{{ problem.label }}"
                       >
-                        <div class="mb-2">
+                        <div class="d-flex align-items-center gap-2">
                           <span
-                            class="badge js-completion-display {% if problem.completion_state_kind == 'solved' %}bg-success-subtle text-success border border-success-subtle{% elif problem.completion_state_kind == 'unknown' %}bg-info-subtle text-info border border-info-subtle{% else %}bg-light text-dark border{% endif %}"
+                            class="badge js-completion-display js-contest-problem-status {% if problem.completion_state_kind == 'solved' %}bg-success-subtle text-success border border-success-subtle{% elif problem.completion_state_kind == 'unknown' %}bg-info-subtle text-info border border-info-subtle{% else %}bg-light text-dark border{% endif %}"
                             title="{{ problem.completion_state_label }}"
                           >
+                            {% if problem.completion_state_kind == 'solved' %}
                             {{ problem.completion_display }}
+                            {% elif problem.completion_state_kind == 'unknown' %}
+                            Unknown date
+                            {% else %}
+                            Open
+                            {% endif %}
                           </span>
+                          <button type="button" class="btn btn-light btn-sm btn-icon" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" aria-label="Edit progress for {{ problem.label }}">
+                            <i class="ti ti-pencil"></i>
+                          </button>
                         </div>
-                        <input
-                          type="date"
-                          class="form-control form-control-sm js-completion-date"
-                          title="Pick a date or paste YYYY-MM-DD (e.g. 2025-11-27)."
-                          value="{% if problem.completion_known %}{{ problem.completion_date|date:'Y-m-d' }}{% endif %}"
-                        >
-                        <div class="d-flex flex-wrap gap-1 mt-2">
-                          <button type="button" class="btn btn-light btn-sm js-completion-today">Today</button>
-                          <button type="button" class="btn btn-primary btn-sm js-completion-save">Save</button>
-                          <button type="button" class="btn btn-outline-info btn-sm js-completion-unknown">Unknown</button>
-                          <button type="button" class="btn btn-outline-secondary btn-sm js-completion-clear">Clear</button>
+                        <div class="dropdown-menu dropdown-menu-end p-3 completion-popover">
+                          <label class="form-label fs-xs text-uppercase fw-semibold text-muted" for="completion-date-{{ problem.anchor }}">Completion date</label>
+                          <input
+                            id="completion-date-{{ problem.anchor }}"
+                            type="date"
+                            class="form-control form-control-sm js-completion-date"
+                            title="Pick a date or paste YYYY-MM-DD (e.g. 2025-11-27)."
+                            value="{% if problem.completion_known %}{{ problem.completion_date|date:'Y-m-d' }}{% endif %}"
+                          >
+                          <div class="d-grid mt-2">
+                            <button type="button" class="btn btn-primary btn-sm js-completion-save">Save</button>
+                          </div>
+                          <div class="d-flex flex-wrap gap-1 mt-2">
+                            <button type="button" class="btn btn-light btn-sm js-completion-today">Today</button>
+                            <button type="button" class="btn btn-outline-info btn-sm js-completion-unknown">Unknown</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm js-completion-clear">Clear</button>
+                          </div>
+                          <div class="text-danger fs-xs mt-2 d-none js-completion-error"></div>
                         </div>
-                        <div class="text-danger fs-xs mt-2 d-none js-completion-error"></div>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr id="statement-drawer-{{ problem.anchor }}" class="statement-drawer-row js-statement-drawer d-none">
+                    <td colspan="7">
+                      <div class="statement-drawer-panel">
+                        <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                          <span class="text-muted fs-xs text-uppercase fw-semibold">Problem metadata</span>
+                          <span class="badge bg-light text-dark border">{{ problem.problem_code }}</span>
+                          {% if problem.imo_slot_guess_value %}
+                          <span class="badge bg-primary-subtle text-primary">IMO {{ problem.imo_slot_guess_value }}</span>
+                          {% endif %}
+                          <span class="badge {% if problem.is_linked %}bg-success-subtle text-success{% else %}bg-secondary-subtle text-secondary{% endif %}">
+                            {% if problem.is_linked %}Linked{% else %}Unlinked{% endif %}
+                          </span>
+                          {% if problem.statement_day_label %}
+                          <span class="text-muted fs-xs">{{ problem.statement_day_label }}</span>
+                          {% endif %}
+                          <span class="text-muted fs-xs">Updated {{ problem.statement_updated_at_label }}</span>
+                        </div>
+                        {% include 'partials/statement-render-content.html' with segments=problem.statement_render_segments render_style='classic' %}
                       </div>
                     </td>
                   </tr>
@@ -565,6 +641,21 @@
       {% endif %}
     </div>
   </div>
+  {% if show_contest_dashboard_bulk %}
+  <div id="contest-dashboard-bulk-bar" class="contest-dashboard-bulk-bar d-none">
+    <div class="contest-dashboard-bulk-bar-inner">
+      <div>
+        <p class="mb-0 fw-semibold"><span id="contest-dashboard-selected-count">0</span> selected</p>
+        <p class="text-muted fs-xs mb-0">Applies to rows selected on this page.</p>
+      </div>
+      <div class="bulk-toolbar-actions">
+        <button type="button" id="contest-dashboard-select-all" class="btn btn-outline-secondary btn-sm">Select all visible</button>
+        <button type="button" id="contest-dashboard-clear-selection" class="btn btn-outline-secondary btn-sm">Clear</button>
+        <button type="button" id="contest-dashboard-set-inactive" class="btn btn-outline-danger btn-sm" disabled>Set inactive</button>
+      </div>
+    </div>
+  </div>
+  {% endif %}
 </div>
 <form id="contest-dashboard-listing-csrf" class="d-none">{% csrf_token %}</form>
 {% if show_contest_dashboard_bulk %}
@@ -589,7 +680,8 @@
     var selectAllButton = document.getElementById("contest-dashboard-select-all");
     var clearSelectionButton = document.getElementById("contest-dashboard-clear-selection");
     var setInactiveButton = document.getElementById("contest-dashboard-set-inactive");
-    if (!bulkForm || !bulkFields || !selectedCountEl || !selectAllButton || !clearSelectionButton || !setInactiveButton) {
+    var bulkBar = document.getElementById("contest-dashboard-bulk-bar");
+    if (!bulkForm || !bulkFields || !selectedCountEl || !selectAllButton || !clearSelectionButton || !setInactiveButton || !bulkBar) {
       return;
     }
 
@@ -602,6 +694,14 @@
       var selectedCount = checkboxes.filter(function (checkbox) { return checkbox.checked; }).length;
       selectedCountEl.textContent = String(selectedCount);
       setInactiveButton.disabled = selectedCount === 0;
+      bulkBar.classList.toggle("d-none", selectedCount === 0);
+
+      checkboxes.forEach(function (checkbox) {
+        var row = checkbox.closest(".js-problem-row");
+        if (row) {
+          row.classList.toggle("is-selected", checkbox.checked);
+        }
+      });
 
       document.querySelectorAll(".js-year-select-all").forEach(function (masterCheckbox) {
         var table = masterCheckbox.closest("table");
@@ -675,6 +775,47 @@
   </script>
   <script>
   (function () {
+    function isInteractiveTarget(target) {
+      return Boolean(target.closest("a, button, input, select, textarea, label, .dropdown-menu"));
+    }
+
+    function typesetDrawer(drawer) {
+      if (!window.MathJax || typeof window.MathJax.typesetPromise !== "function") return;
+      window.MathJax.typesetPromise([drawer]).catch(function () {});
+    }
+
+    function setDrawerOpen(row, shouldOpen) {
+      var drawer = document.getElementById(row.dataset.statementTarget || "");
+      if (!drawer) return;
+      drawer.classList.toggle("d-none", !shouldOpen);
+      row.classList.toggle("is-drawer-open", shouldOpen);
+      row.querySelectorAll(".js-statement-toggle").forEach(function (button) {
+        button.setAttribute("aria-expanded", shouldOpen ? "true" : "false");
+      });
+      if (shouldOpen) {
+        typesetDrawer(drawer);
+      }
+    }
+
+    document.addEventListener("click", function (event) {
+      var toggle = event.target.closest(".js-statement-toggle");
+      if (toggle) {
+        var toggleRow = toggle.closest(".js-problem-row");
+        if (!toggleRow) return;
+        var toggleDrawer = document.getElementById(toggleRow.dataset.statementTarget || "");
+        setDrawerOpen(toggleRow, toggleDrawer ? toggleDrawer.classList.contains("d-none") : true);
+        return;
+      }
+
+      var row = event.target.closest(".js-problem-row");
+      if (!row || isInteractiveTarget(event.target)) return;
+      var drawer = document.getElementById(row.dataset.statementTarget || "");
+      setDrawerOpen(row, drawer ? drawer.classList.contains("d-none") : true);
+    });
+  })();
+  </script>
+  <script>
+  (function () {
     var tables = Array.from(document.querySelectorAll(".problem-table"));
     if (!tables.length) return;
 
@@ -683,8 +824,17 @@
       sensitivity: "base"
     });
 
+    function problemRows(table) {
+      return Array.from(table.tBodies[0].querySelectorAll(".js-problem-row"));
+    }
+
+    function drawerForRow(row) {
+      var drawerId = row.dataset.statementTarget;
+      return drawerId ? document.getElementById(drawerId) : null;
+    }
+
     function updateRowIndexes(table) {
-      Array.from(table.tBodies[0].rows).forEach(function (row, index) {
+      problemRows(table).forEach(function (row, index) {
         var cell = row.querySelector(".js-row-index");
         if (cell) {
           cell.textContent = String(index + 1);
@@ -702,14 +852,22 @@
           if (!headerCell) return;
           var columnIndex = headerCell.cellIndex;
           var nextDirection = button.dataset.sortDirection === "asc" ? "desc" : "asc";
-          var rows = Array.from(body.rows);
+          var rows = problemRows(table);
 
           table.querySelectorAll(".js-sort-header").forEach(function (otherButton) {
             if (otherButton !== button) {
               otherButton.dataset.sortDirection = "";
+              var otherIcon = otherButton.querySelector(".sort-icon");
+              if (otherIcon) {
+                otherIcon.className = "ti ti-arrows-sort sort-icon";
+              }
             }
           });
           button.dataset.sortDirection = nextDirection;
+          var activeIcon = button.querySelector(".sort-icon");
+          if (activeIcon) {
+            activeIcon.className = "ti " + (nextDirection === "asc" ? "ti-sort-ascending" : "ti-sort-descending") + " sort-icon";
+          }
 
           rows.sort(function (leftRow, rightRow) {
             var leftCell = leftRow.cells[columnIndex];
@@ -722,6 +880,10 @@
 
           rows.forEach(function (row) {
             body.appendChild(row);
+            var drawer = drawerForRow(row);
+            if (drawer) {
+              body.appendChild(drawer);
+            }
           });
           updateRowIndexes(table);
         });
@@ -773,9 +935,19 @@
     }
 
     function setBusy(editor, isBusy) {
+      editor.classList.toggle("is-busy", isBusy);
       editor.querySelectorAll("input, button").forEach(function (el) {
         el.disabled = isBusy;
       });
+    }
+
+    function hideCompletionMenu(editor) {
+      var toggle = editor.querySelector('[data-bs-toggle="dropdown"]');
+      if (!toggle || !window.bootstrap || !window.bootstrap.Dropdown) return;
+      var dropdown = window.bootstrap.Dropdown.getInstance(toggle);
+      if (dropdown) {
+        dropdown.hide();
+      }
     }
 
     function isoDateFromClipboardText(text) {
@@ -811,11 +983,11 @@
       var sortValue = completionSortValue(payload);
 
       if (displayEl) {
-        displayEl.className = "badge js-completion-display " + badgeClass;
-        displayEl.textContent = completionDisplay;
+        displayEl.className = "badge js-completion-display js-contest-problem-status " + badgeClass;
+        displayEl.textContent = completionStatus;
         displayEl.title = payload.state_label || "";
       }
-      if (statusEl) {
+      if (statusEl && statusEl !== displayEl) {
         statusEl.className = "badge js-contest-problem-status " + badgeClass;
         statusEl.textContent = completionStatus;
         statusEl.title = payload.state_label || "";
@@ -867,6 +1039,7 @@
         })
         .then(function (payload) {
           applyPayload(editor, payload);
+          hideCompletionMenu(editor);
         })
         .catch(function (error) {
           setError(editor, error.message || "Could not update this solved date.");

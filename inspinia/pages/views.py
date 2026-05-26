@@ -3281,6 +3281,56 @@ def _problem_anchor(problem_label: str, fallback: str) -> str:
     return dashboard_problem_anchor(problem_label, fallback)
 
 
+def _contest_listing_statement_preview(statement_latex: str, max_length: int = 160) -> str:
+    preview = re.sub(r"\[asy\].*?\[/asy\]", " ", statement_latex or "", flags=re.DOTALL | re.IGNORECASE)
+    preview = re.sub(r"\s+", " ", preview).strip()
+    if len(preview) <= max_length:
+        return preview
+    return preview[: max_length - 3].rstrip() + "..."
+
+
+def _contest_listing_filter_url(contest_name: str, **filters: str) -> str:
+    query = {"contest": contest_name}
+    for key in ("q", "year", "mohs", "topic", "tag"):
+        value = filters.get(key, "")
+        if value:
+            query[key] = value
+    return reverse("pages:contest_dashboard_listing") + "?" + urlencode(query)
+
+
+def _contest_listing_active_filter_chips(
+    *,
+    contest_name: str,
+    filters: dict[str, str],
+) -> list[dict[str, str]]:
+    chip_specs = [
+        ("q", "Search", "bg-primary-subtle text-primary"),
+        ("year", "Year", "bg-secondary-subtle text-secondary"),
+        ("mohs", "MOHS", "bg-warning-subtle text-warning"),
+        ("topic", "Topic", "bg-info-subtle text-info"),
+        ("tag", "Tag", "bg-success-subtle text-success"),
+    ]
+    chips = []
+    for key, label, badge_class in chip_specs:
+        value = filters[key]
+        if not value:
+            continue
+        remaining_filters = {
+            filter_key: filter_value
+            for filter_key, filter_value in filters.items()
+            if filter_key != key
+        }
+        chips.append(
+            {
+                "badge_class": badge_class,
+                "label": label,
+                "remove_url": _contest_listing_filter_url(contest_name, **remaining_filters),
+                "value": value,
+            },
+        )
+    return chips
+
+
 def _build_contest_directory_rows(base) -> list[dict]:
     contest_rows = list(
         base.values("contest")
@@ -5777,6 +5827,7 @@ def _build_dashboard_contest_statement_listing_context(
                 "statement_has_asymptote": render_payload["statement_has_asymptote"],
                 "statement_id": statement.id,
                 "statement_latex": statement.statement_latex,
+                "statement_preview": _contest_listing_statement_preview(statement.statement_latex),
                 "statement_render_segments": render_payload["statement_render_segments"],
                 "statement_updated_at_label": timezone.localtime(statement.updated_at).strftime("%Y-%m-%d"),
                 "technique_count": len(topic_tags),
@@ -5831,8 +5882,23 @@ def _build_dashboard_contest_statement_listing_context(
             if topic
         ),
     )
+    completion_summary = {
+        "solved_visible_total": sum(1 for row in problem_rows if row["is_completed"]),
+    }
+    active_filter_chips = _contest_listing_active_filter_chips(
+        contest_name=contest_name,
+        filters={
+            "q": initial_search_query,
+            "year": selected_year,
+            "mohs": selected_mohs,
+            "topic": selected_topic,
+            "tag": selected_tag,
+        },
+    )
 
     context = {
+        "active_filter_chips": active_filter_chips,
+        "completion_summary": completion_summary,
         "contest_problem_total": int(stats["statement_n"] or 0),
         "contest_problem_stats": {
             "avg_mohs": round(float(stats["avg_mohs"] or 0), 1),
@@ -5855,6 +5921,7 @@ def _build_dashboard_contest_statement_listing_context(
         "has_active_filters": bool(
             initial_search_query or selected_mohs or selected_year or selected_topic or selected_tag,
         ),
+        "has_advanced_filters": bool(selected_mohs or selected_year or selected_topic or selected_tag),
         "initial_search_query": initial_search_query,
         "matching_problem_total": len(problem_rows),
         "matching_problem_filtered_total": matching_problem_filtered_total,
