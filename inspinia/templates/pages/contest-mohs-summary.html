@@ -239,13 +239,22 @@
       .replace(/'/g, "&#39;");
   }
 
-  function formatMetric(value) {
+  function formatAverageMetric(value) {
     if (value === null || value === undefined || value === "") {
       return '<span class="text-muted fs-xs">&mdash;</span>';
     }
     var numeric = Number(value);
     if (!Number.isFinite(numeric)) return escapeHtml(value);
-    return Number.isInteger(numeric) ? String(numeric) : numeric.toFixed(2);
+    return numeric.toFixed(2);
+  }
+
+  function formatCount(value) {
+    if (value === null || value === undefined || value === "") {
+      return '<span class="text-muted fs-xs">&mdash;</span>';
+    }
+    var numeric = Number(value);
+    if (!Number.isFinite(numeric)) return escapeHtml(value);
+    return String(numeric);
   }
 
   function numericRender(data, type) {
@@ -255,11 +264,11 @@
     if (type === "filter") {
       return data === null || data === undefined || data === "" ? "" : String(data);
     }
-    return formatMetric(data);
+    return formatAverageMetric(data);
   }
 
   function countRender(data, type) {
-    if (type === "display") return formatMetric(data);
+    if (type === "display") return formatCount(data);
     return Number(data || 0);
   }
 
@@ -317,7 +326,7 @@
           if (type === "sort" || type === "type") return Number(row.user_average_sort || -1);
           if (type === "filter") return data === null || data === undefined ? "" : String(data);
           if (data === null || data === undefined) return '<span class="text-muted fs-xs">&mdash;</span>';
-          return '<span class="fw-semibold">' + formatMetric(data) + '</span><div class="text-muted fs-xs">' + Number(row.user_completion_count || 0) + " completed</div>";
+          return '<span class="fw-semibold">' + formatAverageMetric(data) + '</span><div class="text-muted fs-xs">' + Number(row.user_completion_count || 0) + " completed</div>";
         }
       },
       { data: "total_count", title: "MOHS Count", className: "text-end text-nowrap", render: countRender },
