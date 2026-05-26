@@ -1888,12 +1888,13 @@ def _contest_mohs_summary_rows(user: User) -> list[dict[str, object]]:
         user_mohs_values = bucket["user_mohs_values"]
         user_average = _average_or_none(user_mohs_values)
         metadata = metadata_by_contest.get(contest_name)
-        level_labels = ", ".join(metadata.tags or []) if metadata is not None else ""
+        level_labels = [str(tag) for tag in metadata.tags or []] if metadata is not None else []
         row = {
             "average_mohs": _average_or_none(all_mohs_values),
             "contest": contest_name,
             "contest_url": contest_dashboard_listing_url(contest_name),
-            "levels": level_labels,
+            "level_labels": level_labels,
+            "levels": ", ".join(level_labels),
             "total_count": len(all_mohs_values),
             "topic_averages": topic_averages,
             "topic_counts": topic_counts,
@@ -1906,21 +1907,30 @@ def _contest_mohs_summary_rows(user: User) -> list[dict[str, object]]:
             row[f"count_{topic.lower()}"] = topic_counts[topic]
         rows.append(row)
 
-    rows.sort(
-        key=lambda row: (
-            row["user_average_mohs"] is None,
-            -(row["user_average_mohs"] or -1),
-            -row["user_completion_count"],
-            -row["total_count"],
-            row["contest"].lower(),
-        ),
-    )
+    if any(row["user_average_mohs"] is not None for row in rows):
+        rows.sort(
+            key=lambda row: (
+                row["user_average_mohs"] is None,
+                -(row["user_average_mohs"] or -1),
+                -row["user_completion_count"],
+                -row["total_count"],
+                row["contest"].lower(),
+            ),
+        )
+    else:
+        rows.sort(
+            key=lambda row: (
+                -(row["average_mohs"] or -1),
+                -row["total_count"],
+                row["contest"].lower(),
+            ),
+        )
     return rows
 
 
 @login_required
 def contest_mohs_summary_view(request):
-    """Contest-level topic MOHS averages ranked by the current user's completions."""
+    """Contest-level topic MOHS averages ranked by user completions when present."""
     rows = _contest_mohs_summary_rows(request.user)
     contest_total = len(rows)
     total_statement_count = sum(int(row["total_count"]) for row in rows)
@@ -1930,11 +1940,18 @@ def contest_mohs_summary_view(request):
         if int(row["total_count"]) >= CONTEST_MOHS_SUMMARY_HIDE_THRESHOLD
     )
     rows_with_user_average = sum(1 for row in rows if row["user_average_mohs"] is not None)
+    has_user_averages = rows_with_user_average > 0
     context = {
         "contest_mohs_summary_hide_threshold": CONTEST_MOHS_SUMMARY_HIDE_THRESHOLD,
         "contest_mohs_summary_rows": rows,
         "contest_mohs_summary_stats": {
             "contest_total": contest_total,
+            "has_user_averages": has_user_averages,
+            "rank_description": (
+                "Ranked by My Avg from completed problems"
+                if has_user_averages
+                else "Ranked by contest average MOHS"
+            ),
             "rows_with_user_average": rows_with_user_average,
             "total_statement_count": total_statement_count,
             "visible_over_threshold": visible_over_threshold,
