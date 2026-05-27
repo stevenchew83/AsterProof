@@ -411,6 +411,14 @@ def _rows_to_bar_payload(
     }
 
 
+def _with_bar_payload_metadata(payload: dict, *, series_name: str, filter_param: str) -> dict:
+    return {
+        **payload,
+        "filterParam": filter_param,
+        "seriesName": series_name,
+    }
+
+
 def _statement_preview_text(statement_latex: str, *, max_length: int = 220) -> str:
     collapsed = re.sub(r"\s+", " ", statement_latex.strip())
     if len(collapsed) <= max_length:
@@ -3546,6 +3554,216 @@ def _build_topic_tag_directory_rows(
     return directory_rows
 
 
+def _format_count_label(count: int, singular: str, plural: str | None = None) -> str:
+    unit = singular if count == 1 else (plural or f"{singular}s")
+    return f"{count} {unit}"
+
+
+def _technique_dashboard_url(params: dict[str, str | int | None]) -> str:
+    query_params = {
+        key: str(value)
+        for key, value in params.items()
+        if value is not None and str(value).strip()
+    }
+    query_string = urlencode(query_params)
+    base_url = reverse("pages:technique_dashboard")
+    return f"{base_url}?{query_string}" if query_string else base_url
+
+
+def _build_technique_active_filter_rows(filters: dict[str, str]) -> list[dict]:
+    labels = {
+        "q": "Search",
+        "contest": "Contest",
+        "topic": "Topic",
+        "domain": "Domain",
+        "year": "Year",
+    }
+    rows: list[dict] = []
+    for param_name in ("q", "contest", "topic", "domain", "year"):
+        value = filters.get(param_name, "")
+        if not value:
+            continue
+        remaining_filters = {key: val for key, val in filters.items() if key != param_name}
+        rows.append(
+            {
+                "label": labels[param_name],
+                "param": param_name,
+                "remove_url": _technique_dashboard_url(remaining_filters),
+                "value": value,
+            },
+        )
+    return rows
+
+
+def _build_technique_filter_options(tag_rows: list[ProblemTopicTechnique]) -> dict:
+    by_year_counter: Counter[int] = Counter()
+    contests = set()
+    domains = set()
+    topics = set()
+
+    for tag_row in tag_rows:
+        record = tag_row.record
+        if record.contest:
+            contests.add(record.contest)
+        topic_label = display_topic_label(record.topic)
+        if topic_label:
+            topics.add(topic_label)
+        if record.year is not None:
+            by_year_counter[int(record.year)] += 1
+        for domain_name in tag_row.domains or []:
+            if domain_name:
+                domains.add(domain_name)
+
+    return {
+        "contests": sorted(contests),
+        "domains": sorted(domains),
+        "topics": sorted(topics),
+        "years": [str(year_value) for year_value in sorted(by_year_counter, reverse=True)],
+    }
+
+
+def _filter_technique_tag_rows(
+    tag_rows: list[ProblemTopicTechnique],
+    *,
+    contest: str = "",
+    domain: str = "",
+    topic: str = "",
+    year: str = "",
+) -> list[ProblemTopicTechnique]:
+    year_value = int(year) if year.isdigit() else None
+    filtered_rows: list[ProblemTopicTechnique] = []
+
+    for tag_row in tag_rows:
+        record = tag_row.record
+        if contest and record.contest != contest:
+            continue
+        if topic and display_topic_label(record.topic) != topic:
+            continue
+        if domain and domain not in (tag_row.domains or []):
+            continue
+        if year_value is not None and record.year != year_value:
+            continue
+        filtered_rows.append(tag_row)
+
+    return filtered_rows
+
+
+def _build_technique_leader_rows(tag_directory: list[dict], current_filters: dict[str, str]) -> list[dict]:
+    if not tag_directory:
+        return []
+
+    leader_specs = [
+        (
+            "Most used",
+            sorted(tag_directory, key=lambda row: (-row["problem_count"], row["technique"]))[0],
+            lambda row: _format_count_label(row["problem_count"], "problem"),
+            "bg-primary-subtle text-primary",
+        ),
+        (
+            "Broadest contest coverage",
+            sorted(
+                tag_directory,
+                key=lambda row: (-row["contest_count"], -row["problem_count"], row["technique"]),
+            )[0],
+            lambda row: _format_count_label(row["contest_count"], "contest"),
+            "bg-info-subtle text-info",
+        ),
+        (
+            "Widest topic mix",
+            sorted(
+                tag_directory,
+                key=lambda row: (-row["topic_count"], -row["problem_count"], row["technique"]),
+            )[0],
+            lambda row: _format_count_label(row["topic_count"], "topic", "topics"),
+            "bg-warning-subtle text-warning",
+        ),
+        (
+            "Broadest domain mix",
+            sorted(
+                tag_directory,
+                key=lambda row: (-row["domain_count"], -row["problem_count"], row["technique"]),
+            )[0],
+            lambda row: _format_count_label(row["domain_count"], "domain"),
+            "bg-secondary-subtle text-secondary",
+        ),
+        (
+            "Highest average MOHS",
+            sorted(
+                tag_directory,
+                key=lambda row: (-row["avg_mohs"], -row["problem_count"], row["technique"]),
+            )[0],
+            lambda row: f"{row['avg_mohs']} avg / {_format_count_label(row['problem_count'], 'problem')}",
+            "bg-success-subtle text-success",
+        ),
+        (
+            "Longest-running",
+            sorted(
+                tag_directory,
+                key=lambda row: (-row["active_years"], -row["problem_count"], row["technique"]),
+            )[0],
+            lambda row: _format_count_label(row["active_years"], "year"),
+            "bg-dark-subtle text-body",
+        ),
+    ]
+
+    leader_rows: list[dict] = []
+    for label, row, value_label, badge_class in leader_specs:
+        leader_rows.append(
+            {
+                "badge_class": badge_class,
+                "label": label,
+                "technique": row["technique"],
+                "url": _technique_dashboard_url({**current_filters, "q": row["technique"]}),
+                "value_label": value_label(row),
+            },
+        )
+    return leader_rows
+
+
+def _build_technique_topic_volume_payload(tag_rows: list[ProblemTopicTechnique]) -> dict:
+    topic_counter: Counter[str] = Counter()
+    for tag_row in tag_rows:
+        topic_label = display_topic_label(tag_row.record.topic)
+        if topic_label:
+            topic_counter[topic_label] += 1
+    rows = [
+        {"topic": topic_label, "c": count}
+        for topic_label, count in sorted(topic_counter.items())
+    ]
+    return _with_bar_payload_metadata(
+        _rows_to_bar_payload(rows, "topic"),
+        filter_param="topic",
+        series_name="Technique rows",
+    )
+
+
+def _build_technique_avg_mohs_scatter_payload(tag_directory: list[dict]) -> dict:
+    points = [
+        {
+            "avg_mohs": float(row["avg_mohs"]),
+            "filter_param": "q",
+            "filter_value": row["technique"],
+            "max_mohs": row["max_mohs"],
+            "problem_count": row["problem_count"],
+            "technique": row["technique"],
+            "x": row["problem_count"],
+            "y": float(row["avg_mohs"]),
+        }
+        for row in sorted(
+            tag_directory,
+            key=lambda row: (-row["avg_mohs"], -row["problem_count"], row["technique"]),
+        )
+    ]
+    return {
+        "series": [
+            {
+                "data": points,
+                "name": "Average MOHS",
+            },
+        ],
+    }
+
+
 @login_required
 def completion_board_view(request):
     """User-owned contest-year vs problem completion matrix."""
@@ -6562,6 +6780,15 @@ def topic_tag_analytics_view(request):
     _require_admin_tools_access(request)
 
     initial_search_query = (request.GET.get("q") or "").strip()
+    selected_filters = {
+        "q": initial_search_query,
+        "contest": (request.GET.get("contest") or "").strip(),
+        "topic": (request.GET.get("topic") or "").strip(),
+        "domain": (request.GET.get("domain") or "").strip().upper(),
+        "year": (request.GET.get("year") or "").strip(),
+    }
+    if selected_filters["year"] and not selected_filters["year"].isdigit():
+        selected_filters["year"] = ""
 
     tag_queryset = ProblemTopicTechnique.objects.select_related("record")
     if initial_search_query:
@@ -6578,14 +6805,28 @@ def topic_tag_analytics_view(request):
                 token_filter |= Q(record__year=int(token))
             tag_queryset = tag_queryset.filter(token_filter)
 
-    technique_filtered_total = tag_queryset.count()
-    tag_rows = list(
-        tag_queryset.order_by("-record__created_at", "-id")[:ADMIN_TABLE_LATEST_LIMIT],
+    q_scoped_tag_rows = list(
+        tag_queryset.order_by(
+            "technique",
+            "-record__year",
+            "record__contest",
+            "record__problem",
+            "id",
+        ),
+    )
+    technique_filter_options = _build_technique_filter_options(q_scoped_tag_rows)
+    tag_rows = _filter_technique_tag_rows(
+        q_scoped_tag_rows,
+        contest=selected_filters["contest"],
+        domain=selected_filters["domain"],
+        topic=selected_filters["topic"],
+        year=selected_filters["year"],
     )
     tag_directory = _build_topic_tag_directory_rows(tag_rows)
 
     technique_total = len(tag_directory)
     technique_row_total = len(tag_rows)
+    technique_filtered_total = technique_row_total
     tagged_problem_total = len({tag_row.record_id for tag_row in tag_rows})
     distinct_contests = sorted({tag_row.record.contest for tag_row in tag_rows if tag_row.record.contest})
     distinct_domains = sorted(
@@ -6594,18 +6835,20 @@ def topic_tag_analytics_view(request):
             for tag_row in tag_rows
             for domain_name in (tag_row.domains or [])
             if domain_name
-        }
+        },
     )
     distinct_topics = sorted(
         {
             display_topic_label(tag_row.record.topic)
             for tag_row in tag_rows
             if display_topic_label(tag_row.record.topic)
-        }
+        },
     )
     average_techniques_per_problem = (
         round(technique_row_total / tagged_problem_total, 2) if tagged_problem_total else 0.0
     )
+    active_filter_rows = _build_technique_active_filter_rows(selected_filters)
+    scope_label = "Filtered dataset" if active_filter_rows else "All technique rows"
 
     by_year_counter: Counter[int] = Counter()
     by_domain_counter: Counter[str] = Counter()
@@ -6628,119 +6871,94 @@ def topic_tag_analytics_view(request):
         )[:12]
     ]
 
-    most_used_technique = tag_directory[0] if tag_directory else None
-    broadest_contest_technique = (
-        sorted(
-            tag_directory,
-            key=lambda row: (-row["contest_count"], -row["problem_count"], row["technique"]),
-        )[0]
-        if tag_directory
-        else None
-    )
-    broadest_domain_technique = (
-        sorted(
-            tag_directory,
-            key=lambda row: (-row["domain_count"], -row["problem_count"], row["technique"]),
-        )[0]
-        if tag_directory
-        else None
-    )
-    widest_topic_technique = (
-        sorted(
-            tag_directory,
-            key=lambda row: (-row["topic_count"], -row["problem_count"], row["technique"]),
-        )[0]
-        if tag_directory
-        else None
-    )
-    longest_running_technique = (
-        sorted(
-            tag_directory,
-            key=lambda row: (-row["active_years"], -row["problem_count"], row["technique"]),
-        )[0]
-        if tag_directory
-        else None
-    )
-    highest_avg_mohs_technique = (
-        sorted(
-            tag_directory,
-            key=lambda row: (-row["avg_mohs"], -row["problem_count"], row["technique"]),
-        )[0]
-        if tag_directory
-        else None
-    )
-
     charts_payload = {
-        "byProblemVolume": _rows_to_bar_payload(
-            tag_directory[:12],
-            "technique",
-            value_key="problem_count",
+        "byProblemVolume": _with_bar_payload_metadata(
+            _rows_to_bar_payload(
+                tag_directory[:12],
+                "technique",
+                value_key="problem_count",
+            ),
+            filter_param="q",
+            series_name="Problems",
         ),
-        "byContestCoverage": _rows_to_bar_payload(
-            sorted(
-                tag_directory,
-                key=lambda row: (-row["contest_count"], -row["problem_count"], row["technique"]),
-            )[:12],
-            "technique",
-            value_key="contest_count",
+        "byContestCoverage": _with_bar_payload_metadata(
+            _rows_to_bar_payload(
+                sorted(
+                    tag_directory,
+                    key=lambda row: (-row["contest_count"], -row["problem_count"], row["technique"]),
+                )[:12],
+                "technique",
+                value_key="contest_count",
+            ),
+            filter_param="q",
+            series_name="Contests",
         ),
-        "byDomainBreadth": _rows_to_bar_payload(
-            sorted(
-                tag_directory,
-                key=lambda row: (-row["domain_count"], -row["problem_count"], row["technique"]),
-            )[:12],
-            "technique",
-            value_key="domain_count",
+        "byDomainBreadth": _with_bar_payload_metadata(
+            _rows_to_bar_payload(
+                sorted(
+                    tag_directory,
+                    key=lambda row: (-row["domain_count"], -row["problem_count"], row["technique"]),
+                )[:12],
+                "technique",
+                value_key="domain_count",
+            ),
+            filter_param="q",
+            series_name="Domains",
         ),
-        "byTopicBreadth": _rows_to_bar_payload(
-            sorted(
-                tag_directory,
-                key=lambda row: (-row["topic_count"], -row["problem_count"], row["technique"]),
-            )[:12],
-            "technique",
-            value_key="topic_count",
+        "byTopicVolume": _build_technique_topic_volume_payload(tag_rows),
+        "byAvgMohs": _with_bar_payload_metadata(
+            _rows_to_bar_payload(
+                sorted(
+                    tag_directory,
+                    key=lambda row: (-row["avg_mohs"], -row["problem_count"], row["technique"]),
+                )[:12],
+                "technique",
+                value_key="avg_mohs",
+                decimals=2,
+            ),
+            filter_param="q",
+            series_name="Avg MOHS",
         ),
-        "byAvgMohs": _rows_to_bar_payload(
-            sorted(
-                tag_directory,
-                key=lambda row: (-row["avg_mohs"], -row["problem_count"], row["technique"]),
-            )[:12],
-            "technique",
-            value_key="avg_mohs",
-            decimals=2,
+        "byAvgMohsScatter": _build_technique_avg_mohs_scatter_payload(tag_directory),
+        "byYearActivity": _with_bar_payload_metadata(
+            _rows_to_bar_payload(
+                year_activity_rows,
+                "year",
+            ),
+            filter_param="year",
+            series_name="Technique rows",
         ),
-        "byYearActivity": _rows_to_bar_payload(year_activity_rows, "year"),
-        "byDomainVolume": _rows_to_bar_payload(domain_volume_rows, "domain"),
+        "byDomainVolume": _with_bar_payload_metadata(
+            _rows_to_bar_payload(
+                domain_volume_rows,
+                "domain",
+            ),
+            filter_param="domain",
+            series_name="Technique rows",
+        ),
     }
+    technique_leader_rows = _build_technique_leader_rows(tag_directory, selected_filters)
 
     context = {
+        "has_any_technique_rows": ProblemTopicTechnique.objects.exists(),
+        "has_technique_source_rows": bool(q_scoped_tag_rows),
         "technique_total": technique_total,
         "technique_row_total": technique_row_total,
         "technique_filtered_total": technique_filtered_total,
-        "technique_result_limit": ADMIN_TABLE_LATEST_LIMIT,
-        "technique_is_capped": technique_filtered_total > technique_row_total,
         "tagged_problem_total": tagged_problem_total,
         "initial_search_query": initial_search_query,
+        "technique_active_filters": active_filter_rows,
+        "technique_filters": selected_filters,
+        "technique_reset_url": reverse("pages:technique_dashboard"),
+        "technique_scope_label": scope_label,
         "technique_stats": {
             "contest_total": len(distinct_contests),
             "domain_total": len(distinct_domains),
             "topic_total": len(distinct_topics),
             "average_techniques_per_problem": average_techniques_per_problem,
         },
-        "technique_leaders": {
-            "most_used": most_used_technique,
-            "broadest_contest": broadest_contest_technique,
-            "broadest_domain": broadest_domain_technique,
-            "widest_topic": widest_topic_technique,
-            "longest_running": longest_running_technique,
-            "highest_avg_mohs": highest_avg_mohs_technique,
-        },
-        "technique_filter_options": {
-            "contests": distinct_contests,
-            "domains": distinct_domains,
-            "topics": distinct_topics,
-            "years": [str(year_value) for year_value in sorted(by_year_counter, reverse=True)],
-        },
+        "technique_leader_rows": technique_leader_rows,
+        "technique_filter_options": technique_filter_options,
         "technique_rows": tag_directory,
         "charts_payload": charts_payload,
     }

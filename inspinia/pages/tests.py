@@ -10061,7 +10061,7 @@ def test_problem_analytics_dashboard_keeps_admin_access_requirements(client):
     assert response.status_code == HTTPStatus.FORBIDDEN
 
 
-def test_technique_dashboard_exposes_filters_and_legacy_alias(client):
+def test_technique_dashboard_exposes_filters_scope_and_legacy_alias(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
 
@@ -10112,6 +10112,8 @@ def test_technique_dashboard_exposes_filters_and_legacy_alias(client):
         "topics": ["Algebra", "Combinatorics", "Number Theory"],
         "years": ["2025", "2024"],
     }
+    assert response.context["technique_scope_label"] == "All technique rows"
+    assert response.context["technique_active_filters"] == []
     lte_row = next(row for row in response.context["technique_rows"] if row["technique"] == "LTE")
     assert lte_row["problem_count"] == 2
     assert lte_row["contest_count"] == 2
@@ -10121,6 +10123,35 @@ def test_technique_dashboard_exposes_filters_and_legacy_alias(client):
     assert lte_row["year_span_label"] == "2024-2025"
     assert lte_row["sample_contests_label"] == "EGMO, IMO"
     assert lte_row["search_href"] == reverse("pages:topic_tag_dashboard") + "?q=LTE"
+    assert response.context["charts_payload"]["byProblemVolume"]["seriesName"] == "Problems"
+    assert response.context["charts_payload"]["byTopicVolume"] == {
+        "filterParam": "topic",
+        "labels": ["Algebra", "Combinatorics", "Number Theory"],
+        "seriesName": "Technique rows",
+        "values": [2, 1, 1],
+    }
+    scatter_points = response.context["charts_payload"]["byAvgMohsScatter"]["series"][0]["data"]
+    lte_point = next(point for point in scatter_points if point["technique"] == "LTE")
+    assert lte_point == {
+        "avg_mohs": 30.0,
+        "filter_param": "q",
+        "filter_value": "LTE",
+        "max_mohs": 35,
+        "problem_count": 2,
+        "technique": "LTE",
+        "x": 2,
+        "y": 30.0,
+    }
+    leader_labels = {row["label"] for row in response.context["technique_leader_rows"]}
+    assert {
+        "Most used",
+        "Broadest contest coverage",
+        "Widest topic mix",
+        "Broadest domain mix",
+        "Highest average MOHS",
+        "Longest-running",
+    } <= leader_labels
+    assert any(row["value_label"] == "2 problems" for row in response.context["technique_leader_rows"])
 
     response_html = response.content.decode("utf-8")
     assert "Technique analytics" in response_html
@@ -10131,6 +10162,9 @@ def test_technique_dashboard_exposes_filters_and_legacy_alias(client):
     assert 'id="technique-dashboard-year-filter"' in response_html
     assert 'id="technique-dashboard-reset"' in response_html
     assert 'id="technique-analytics-table"' in response_html
+    assert 'id="technique-dashboard-data-source"' in response_html
+    assert 'id="technique-dashboard-chart-tabs"' in response_html
+    assert "Filtered dataset" not in response_html
     assert "ProblemTopicTechnique" in response_html
 
     legacy_response = client.get(reverse("pages:topic_tag_dashboard"))
@@ -10138,7 +10172,7 @@ def test_technique_dashboard_exposes_filters_and_legacy_alias(client):
     assert legacy_response.context["technique_total"] == 3
 
 
-def test_technique_dashboard_caps_to_latest_100_rows_by_record_created_at(client):
+def test_technique_dashboard_uses_all_matched_rows_instead_of_latest_100_cap(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
     now = timezone.now()
@@ -10166,20 +10200,24 @@ def test_technique_dashboard_caps_to_latest_100_rows_by_record_created_at(client
     assert response.status_code == HTTPStatus.OK
     rows = response.context["technique_rows"]
     technique_names = {row["technique"] for row in rows}
-    assert len(rows) == 100
+    assert len(rows) == ADMIN_TABLE_LATEST_LIMIT + 20
     assert "TAG-1" in technique_names
     assert "TAG-100" in technique_names
-    assert "TAG-101" not in technique_names
-    assert "TAG-120" not in technique_names
-    assert response.context["technique_row_total"] == 100
-    assert response.context["technique_filtered_total"] == 120
-    assert response.context["technique_result_limit"] == 100
-    assert response.context["technique_is_capped"] is True
+    assert "TAG-101" in technique_names
+    assert "TAG-120" in technique_names
+    assert response.context["technique_total"] == ADMIN_TABLE_LATEST_LIMIT + 20
+    assert response.context["technique_row_total"] == ADMIN_TABLE_LATEST_LIMIT + 20
+    assert response.context["technique_filtered_total"] == ADMIN_TABLE_LATEST_LIMIT + 20
+    assert response.context["tagged_problem_total"] == ADMIN_TABLE_LATEST_LIMIT + 20
+    assert "technique_result_limit" not in response.context
+    assert "technique_is_capped" not in response.context
+    assert response.context["charts_payload"]["byProblemVolume"]["values"]
     response_html = response.content.decode("utf-8")
-    assert "Showing latest 100 rows out of 120 matches." in response_html
+    assert "Showing latest 100 rows" not in response_html
+    assert "All technique rows" in response_html
 
 
-def test_technique_dashboard_applies_search_before_latest_100_cap(client):
+def test_technique_dashboard_applies_search_to_full_dataset(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
     now = timezone.now()
@@ -10222,21 +10260,114 @@ def test_technique_dashboard_applies_search_before_latest_100_cap(client):
 
     broad = client.get(reverse("pages:technique_dashboard"), {"q": "IMO"})
     assert broad.status_code == HTTPStatus.OK
-    assert len(broad.context["technique_rows"]) == 100
+    assert len(broad.context["technique_rows"]) == 120
     assert broad.context["technique_filtered_total"] == 120
-    assert broad.context["technique_is_capped"] is True
     assert broad.context["initial_search_query"] == "IMO"
+    assert broad.context["technique_active_filters"][0]["value"] == "IMO"
 
     narrow = client.get(reverse("pages:technique_dashboard"), {"q": "USAMO"})
     assert narrow.status_code == HTTPStatus.OK
     assert len(narrow.context["technique_rows"]) == 3
     assert narrow.context["technique_filtered_total"] == 3
-    assert narrow.context["technique_is_capped"] is False
     assert narrow.context["initial_search_query"] == "USAMO"
     assert all(
         row["contests"] == ["USAMO"]
         for row in narrow.context["technique_rows"]
     )
+
+
+def test_technique_dashboard_exact_filters_are_server_side_and_combined(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+
+    imo_algebra = ProblemSolveRecord.objects.create(
+        year=2025,
+        topic="ALG",
+        mohs=25,
+        contest="IMO",
+        problem="P1",
+        contest_year_problem="IMO 2025 P1",
+    )
+    imo_number_theory = ProblemSolveRecord.objects.create(
+        year=2025,
+        topic="NT",
+        mohs=15,
+        contest="IMO",
+        problem="P2",
+        contest_year_problem="IMO 2025 P2",
+    )
+    egmo_number_theory = ProblemSolveRecord.objects.create(
+        year=2024,
+        topic="NT",
+        mohs=35,
+        contest="EGMO",
+        problem="P3",
+        contest_year_problem="EGMO 2024 P3",
+    )
+    bmo_combinatorics = ProblemSolveRecord.objects.create(
+        year=2025,
+        topic="COMB",
+        mohs=20,
+        contest="BMO",
+        problem="P4",
+        contest_year_problem="BMO 2025 P4",
+    )
+    ProblemTopicTechnique.objects.create(record=imo_algebra, technique="LTE", domains=["NT"])
+    ProblemTopicTechnique.objects.create(record=imo_number_theory, technique="PARITY", domains=["COMB"])
+    ProblemTopicTechnique.objects.create(record=egmo_number_theory, technique="LTE", domains=["NT"])
+    ProblemTopicTechnique.objects.create(record=bmo_combinatorics, technique="INVARIANTS", domains=["ALG", "COMB"])
+
+    contest_response = client.get(reverse("pages:technique_dashboard"), {"contest": "IMO"})
+    assert contest_response.status_code == HTTPStatus.OK
+    assert contest_response.context["technique_row_total"] == 2
+    assert {row["technique"] for row in contest_response.context["technique_rows"]} == {"LTE", "PARITY"}
+    assert contest_response.context["technique_filter_options"]["contests"] == ["BMO", "EGMO", "IMO"]
+    assert contest_response.context["technique_scope_label"] == "Filtered dataset"
+    assert contest_response.context["technique_active_filters"][0]["label"] == "Contest"
+    assert "contest=IMO" in contest_response.content.decode("utf-8")
+
+    topic_response = client.get(reverse("pages:technique_dashboard"), {"topic": "Number Theory"})
+    assert topic_response.status_code == HTTPStatus.OK
+    assert topic_response.context["technique_row_total"] == 2
+    assert {row["technique"] for row in topic_response.context["technique_rows"]} == {"LTE", "PARITY"}
+    assert topic_response.context["charts_payload"]["byTopicVolume"] == {
+        "filterParam": "topic",
+        "labels": ["Number Theory"],
+        "seriesName": "Technique rows",
+        "values": [2],
+    }
+
+    domain_response = client.get(reverse("pages:technique_dashboard"), {"domain": "COMB"})
+    assert domain_response.status_code == HTTPStatus.OK
+    assert domain_response.context["technique_row_total"] == 2
+    assert {row["technique"] for row in domain_response.context["technique_rows"]} == {"INVARIANTS", "PARITY"}
+    assert domain_response.context["charts_payload"]["byDomainVolume"] == {
+        "filterParam": "domain",
+        "labels": ["COMB", "ALG"],
+        "seriesName": "Technique rows",
+        "values": [2, 1],
+    }
+
+    year_response = client.get(reverse("pages:technique_dashboard"), {"year": "2025"})
+    assert year_response.status_code == HTTPStatus.OK
+    assert year_response.context["technique_row_total"] == 3
+    assert {row["technique"] for row in year_response.context["technique_rows"]} == {
+        "INVARIANTS",
+        "LTE",
+        "PARITY",
+    }
+
+    combined_response = client.get(
+        reverse("pages:technique_dashboard"),
+        {"contest": "IMO", "domain": "COMB"},
+    )
+    assert combined_response.status_code == HTTPStatus.OK
+    assert combined_response.context["technique_row_total"] == 1
+    assert combined_response.context["technique_rows"][0]["technique"] == "PARITY"
+    assert [item["label"] for item in combined_response.context["technique_active_filters"]] == [
+        "Contest",
+        "Domain",
+    ]
 
 
 def test_problem_statement_linker_shows_rows_suggestions_and_candidate_groups(client):
