@@ -222,6 +222,16 @@ def completion_progress_filter_options(rows: Iterable[CompletionProgressRow]) ->
     }
 
 
+def completion_progress_contest_options(rows: Iterable[CompletionProgressRow]) -> list[str]:
+    row_contests = {row.contest for row in rows if row.contest}
+    statement_contests = set(
+        ContestProblemStatement.objects.filter(is_active=True)
+        .exclude(contest_name="")
+        .values_list("contest_name", flat=True),
+    )
+    return sorted(row_contests | statement_contests)
+
+
 def completion_progress_stats(
     rows: Iterable[CompletionProgressRow],
     *,
@@ -244,6 +254,63 @@ def completion_progress_stats(
         "solved_total": len(row_list),
         "total_mohs": sum(mohs_values),
     }
+
+
+def completion_progress_insights_payload(
+    rows: Iterable[CompletionProgressRow],
+    *,
+    comparison_rows: Iterable[CompletionProgressRow],
+    start_date: date | None,
+    end_date: date | None,
+    today: date,
+) -> dict[str, object]:
+    del today
+    row_list = list(rows)
+    dated_rows = _completion_progress_dated_rows(row_list)
+    payload: dict[str, object] = {
+        "best_day": _completion_progress_best_day(dated_rows),
+        "comparison_label": "",
+        "deltas": [],
+        "has_comparison": False,
+        "top_topic": _completion_progress_top_topic(row_list),
+    }
+    if start_date is None or end_date is None or start_date > end_date:
+        return payload
+
+    day_count = (end_date - start_date).days + 1
+    previous_end_date = start_date - timedelta(days=1)
+    previous_start_date = previous_end_date - timedelta(days=day_count - 1)
+    previous_rows = [
+        row
+        for row in _completion_progress_dated_rows(comparison_rows)
+        if previous_start_date <= row.completion_date <= previous_end_date
+    ]
+    current_summary = _completion_progress_insight_summary(dated_rows)
+    previous_summary = _completion_progress_insight_summary(previous_rows)
+
+    payload["comparison_label"] = (
+        f"Previous {day_count} day{'s' if day_count != 1 else ''}: "
+        f"{previous_start_date.isoformat()} to {previous_end_date.isoformat()}"
+    )
+    payload["deltas"] = [
+        _completion_progress_delta_payload(
+            label="Exact completions",
+            value=current_summary["exact_completion_total"],
+            previous=previous_summary["exact_completion_total"],
+        ),
+        _completion_progress_delta_payload(
+            label="Active days",
+            value=current_summary["active_day_total"],
+            previous=previous_summary["active_day_total"],
+        ),
+        _completion_progress_delta_payload(
+            label="Total MOHS",
+            value=current_summary["total_mohs"],
+            previous=previous_summary["total_mohs"],
+        ),
+    ]
+    payload["has_comparison"] = True
+    return payload
 
 
 def completion_progress_charts_payload(
@@ -943,6 +1010,58 @@ def _longest_streak(active_dates: set[date | None]) -> int:
         longest = max(longest, current)
         previous_day = active_date
     return longest
+
+
+def _completion_progress_dated_rows(
+    rows: Iterable[CompletionProgressRow],
+) -> list[CompletionProgressRow]:
+    return [row for row in rows if row.completion_date is not None]
+
+
+def _completion_progress_insight_summary(rows: Iterable[CompletionProgressRow]) -> dict[str, int]:
+    row_list = list(rows)
+    active_dates = {row.completion_date for row in row_list if row.completion_date is not None}
+    return {
+        "active_day_total": len(active_dates),
+        "exact_completion_total": len(row_list),
+        "total_mohs": sum(int(row.mohs) for row in row_list if row.mohs is not None),
+    }
+
+
+def _completion_progress_delta_payload(*, label: str, value: int, previous: int) -> dict[str, object]:
+    delta = value - previous
+    return {
+        "delta": delta,
+        "display_delta": f"{delta:+d}",
+        "label": label,
+        "previous": previous,
+        "tone": "success" if delta > 0 else ("danger" if delta < 0 else "secondary"),
+        "value": value,
+    }
+
+
+def _completion_progress_best_day(rows: Iterable[CompletionProgressRow]) -> dict[str, str] | None:
+    counts = Counter(row.completion_date for row in rows if row.completion_date is not None)
+    if not counts:
+        return None
+    best_day, best_count = max(counts.items(), key=lambda item: (item[1], item[0].toordinal()))
+    return {
+        "detail": f"{best_count} completion{'s' if best_count != 1 else ''}",
+        "label": "Best day",
+        "value": best_day.isoformat(),
+    }
+
+
+def _completion_progress_top_topic(rows: Iterable[CompletionProgressRow]) -> dict[str, str] | None:
+    counts = Counter(row.topic for row in rows if row.topic)
+    if not counts:
+        return None
+    top_topic, top_count = min(counts.items(), key=lambda item: (-item[1], _topic_sort_key(item[0])))
+    return {
+        "detail": f"{top_count} completion{'s' if top_count != 1 else ''}",
+        "label": "Top topic",
+        "value": top_topic,
+    }
 
 
 def _chart_days(

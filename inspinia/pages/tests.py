@@ -28,8 +28,12 @@ from django.utils import timezone
 from inspinia.pages.asymptote_render import AsymptoteRenderResult
 from inspinia.pages.asymptote_render import _extract_svg_markup
 from inspinia.pages.asymptote_render import build_statement_render_segments
+from inspinia.pages.completion_progress import CompletionProgressFilters
 from inspinia.pages.completion_progress import completion_progress_contest_heatmap_payload
+from inspinia.pages.completion_progress import completion_progress_contest_options
+from inspinia.pages.completion_progress import completion_progress_insights_payload
 from inspinia.pages.completion_progress import completion_progress_yearly_heatmap_payload
+from inspinia.pages.completion_progress import filter_completion_progress_rows
 from inspinia.pages.completion_progress import normalize_completion_progress_rows
 from inspinia.pages.contest_existence_audit import ContestExistenceAuditValidationError
 from inspinia.pages.contest_existence_audit import build_contest_existence_audit_payload
@@ -7811,7 +7815,7 @@ def test_completion_progress_analytics_contest_heatmap_uses_selected_user(client
     assert heatmap["selected_contest"] == contest
     assert cell_p1["state"] == "solved"
     response_html = response.content.decode("utf-8")
-    assert response_html.index("Completion heatmap") < response_html.index("Filtered completion rows")
+    assert response_html.index("Contest coverage") < response_html.index("Filtered completion rows")
     assert 'id="chart-completion-progress-contest-heatmap"' in response_html
     assert "completion-progress-contest-heatmap-data" in response_html
     assert "Your completions" in response_html
@@ -7882,9 +7886,211 @@ def test_completion_progress_contest_heatmap_prompts_for_contest(client):
 
     assert response.status_code == HTTPStatus.OK
     response_html = response.content.decode("utf-8")
-    assert "Yearly completion heatmap" in response_html
-    assert "Select a contest in the filters to load year-by-problem completion coverage." in response_html
+    assert "Activity calendar" in response_html
+    assert "Contest coverage" in response_html
+    assert "Select a contest to load coverage." in response_html
+    assert 'id="completion-progress-contest-coverage-form"' in response_html
+    assert 'name="range" value="all"' in response_html
+    assert f'name="user" value="{completion_user.pk}"' in response_html
     assert 'id="chart-completion-progress-contest-heatmap"' not in response_html
+
+
+def test_completion_progress_insights_payload_compares_previous_period():
+    user = UserFactory()
+    today = timezone.localdate()
+    current_start = today - timedelta(days=6)
+    current_end = today
+
+    current_problem = ProblemSolveRecord.objects.create(
+        year=today.year,
+        topic="GEO",
+        mohs=20,
+        contest="IMO",
+        problem="P1",
+        contest_year_problem=f"IMO {today.year} P1",
+    )
+    second_current_problem = ProblemSolveRecord.objects.create(
+        year=today.year,
+        topic="GEO",
+        mohs=10,
+        contest="IMO",
+        problem="P2",
+        contest_year_problem=f"IMO {today.year} P2",
+    )
+    previous_problem = ProblemSolveRecord.objects.create(
+        year=today.year,
+        topic="ALG",
+        mohs=15,
+        contest="IMO",
+        problem="P3",
+        contest_year_problem=f"IMO {today.year} P3",
+    )
+    UserProblemCompletion.objects.create(user=user, problem=current_problem, completion_date=current_end)
+    UserProblemCompletion.objects.create(
+        user=user,
+        problem=second_current_problem,
+        completion_date=current_end - timedelta(days=1),
+    )
+    UserProblemCompletion.objects.create(
+        user=user,
+        problem=previous_problem,
+        completion_date=current_start - timedelta(days=1),
+    )
+
+    rows = normalize_completion_progress_rows(UserProblemCompletion.objects.filter(user=user))
+    current_rows = filter_completion_progress_rows(
+        rows,
+        CompletionProgressFilters(start_date=current_start, end_date=current_end),
+    )
+    payload = completion_progress_insights_payload(
+        current_rows,
+        comparison_rows=rows,
+        start_date=current_start,
+        end_date=current_end,
+        today=today,
+    )
+
+    assert payload["has_comparison"] is True
+    assert payload["comparison_label"] == (
+        f"Previous 7 days: {(current_start - timedelta(days=7)).isoformat()} "
+        f"to {(current_start - timedelta(days=1)).isoformat()}"
+    )
+    assert payload["deltas"] == [
+        {
+            "delta": 1,
+            "display_delta": "+1",
+            "label": "Exact completions",
+            "previous": 1,
+            "tone": "success",
+            "value": 2,
+        },
+        {
+            "delta": 1,
+            "display_delta": "+1",
+            "label": "Active days",
+            "previous": 1,
+            "tone": "success",
+            "value": 2,
+        },
+        {
+            "delta": 15,
+            "display_delta": "+15",
+            "label": "Total MOHS",
+            "previous": 15,
+            "tone": "success",
+            "value": 30,
+        },
+    ]
+    assert payload["best_day"] == {
+        "detail": "1 completion",
+        "label": "Best day",
+        "value": current_end.isoformat(),
+    }
+    assert payload["top_topic"] == {
+        "detail": "2 completions",
+        "label": "Top topic",
+        "value": "Geometry",
+    }
+
+
+def test_completion_progress_insights_payload_excludes_unknown_dates_from_deltas():
+    user = UserFactory()
+    today = timezone.localdate()
+    current_start = today - timedelta(days=6)
+    current_end = today
+    unknown_date_problem = ProblemSolveRecord.objects.create(
+        year=today.year,
+        topic="NT",
+        mohs=50,
+        contest="IMO",
+        problem="N6",
+        contest_year_problem=f"IMO {today.year} N6",
+    )
+    UserProblemCompletion.objects.create(user=user, problem=unknown_date_problem, completion_date=None)
+
+    rows = normalize_completion_progress_rows(UserProblemCompletion.objects.filter(user=user))
+    current_rows = filter_completion_progress_rows(
+        rows,
+        CompletionProgressFilters(start_date=current_start, end_date=current_end),
+    )
+    payload = completion_progress_insights_payload(
+        current_rows,
+        comparison_rows=rows,
+        start_date=current_start,
+        end_date=current_end,
+        today=today,
+    )
+
+    assert [delta["value"] for delta in payload["deltas"]] == [0, 0, 0]
+    assert [delta["previous"] for delta in payload["deltas"]] == [0, 0, 0]
+    assert payload["best_day"] is None
+    assert payload["top_topic"] == {
+        "detail": "1 completion",
+        "label": "Top topic",
+        "value": "Number Theory",
+    }
+
+
+def test_completion_progress_insights_payload_omits_comparison_for_all_dates():
+    user = UserFactory()
+    today = timezone.localdate()
+    problem = ProblemSolveRecord.objects.create(
+        year=today.year,
+        topic="ALG",
+        mohs=12,
+        contest="IMO",
+        problem="P1",
+        contest_year_problem=f"IMO {today.year} P1",
+    )
+    UserProblemCompletion.objects.create(user=user, problem=problem, completion_date=today)
+
+    rows = normalize_completion_progress_rows(UserProblemCompletion.objects.filter(user=user))
+    payload = completion_progress_insights_payload(
+        rows,
+        comparison_rows=rows,
+        start_date=None,
+        end_date=None,
+        today=today,
+    )
+
+    assert payload["has_comparison"] is False
+    assert payload["comparison_label"] == ""
+    assert payload["deltas"] == []
+    assert payload["best_day"]["value"] == today.isoformat()
+    assert payload["top_topic"]["value"] == "Algebra"
+
+
+def test_completion_progress_contest_options_include_statement_backed_contests_without_completion_rows():
+    user = UserFactory()
+    today = timezone.localdate()
+    completion_problem = ProblemSolveRecord.objects.create(
+        year=today.year,
+        topic="ALG",
+        mohs=12,
+        contest="IMO",
+        problem="P1",
+        contest_year_problem=f"IMO {today.year} P1",
+    )
+    UserProblemCompletion.objects.create(user=user, problem=completion_problem, completion_date=today)
+    ContestProblemStatement.objects.create(
+        contest_year=today.year,
+        contest_name="APMO",
+        problem_number=1,
+        problem_code="P1",
+        statement_latex="Statement text",
+    )
+    ContestProblemStatement.objects.create(
+        contest_year=today.year,
+        contest_name="Inactive Contest",
+        problem_number=1,
+        problem_code="P1",
+        statement_latex="Statement text",
+        is_active=False,
+    )
+
+    rows = normalize_completion_progress_rows(UserProblemCompletion.objects.filter(user=user))
+
+    assert completion_progress_contest_options(rows) == ["APMO", "IMO"]
 
 
 def test_completion_progress_analytics_renders_admin_dashboard(client):
@@ -7997,25 +8203,72 @@ def test_completion_progress_analytics_renders_admin_dashboard(client):
     )
     assert today_cell["count"] == 1
     response_html = response.content.decode("utf-8")
-    assert "Yearly completion heatmap" in response_html
+    assert "Progress over time" in response_html
+    assert "Activity calendar" in response_html
+    assert "Contest coverage" in response_html
+    assert "Yearly completion heatmap" not in response_html
+    assert "Daily completions" not in response_html
+    assert "Daily MOHS" not in response_html
+    assert "Advanced filters" in response_html
+    assert 'data-bs-target="#completion-progress-advanced-filters"' in response_html
+    assert 'id="chart-completion-progress-over-time"' in response_html
     assert 'class="completion-progress-yearly-grid"' in response_html
     assert 'data-bs-toggle="tooltip"' in response_html
     assert "initCompletionProgressTooltips();" in response_html
-    assert response_html.index("Yearly completion heatmap") < response_html.index("Completion heatmap")
-    assert response_html.index("Completion heatmap") < response_html.index("Filtered completion rows")
+    assert response_html.index("Activity calendar") < response_html.index("Contest coverage")
+    assert response_html.index("Contest coverage") < response_html.index("Filtered completion rows")
     assert "Progress analytics" in response_html
     assert "Completion progress" in response_html
-    assert 'id="chart-completion-progress-daily"' in response_html
+    assert 'id="chart-completion-progress-daily"' not in response_html
     assert 'id="completion-progress-table"' in response_html
     apex_guard_start = response_html.index("__asterproofApexHadAmd")
     apex_script = response_html.index("plugins/apexcharts/apexcharts.min")
     apex_restore = response_html.index("__asterproofApexAmdBackup", apex_script)
     assert apex_guard_start < apex_script < apex_restore
-    expected_shared_tooltip_config_count = 2
-    assert response_html.count("tooltip: { shared: true, intersect: false }") == expected_shared_tooltip_config_count
+    assert "tooltip: { shared: true, intersect: false }" in response_html
     assert '<div class="flex-shrink-0">\n              <span class="avatar-title bg-primary-subtle' in response_html
     assert "var updatedColumnIndex = tableColumns.length - 1;" in response_html
     assert 'order: [[updatedColumnIndex, "desc"]]' in response_html
+    today_title = f"{today.strftime('%a, %d %b %Y')}: 1 completion"
+    today_index = response_html.index(f'data-bs-title="{today_title}"')
+    assert 'tabindex="0"' in response_html[today_index : today_index + 240]
+    zero_day = today - timedelta(days=2)
+    zero_title = f"{zero_day.strftime('%a, %d %b %Y')}: 0 completions"
+    zero_index = response_html.index(f'data-bs-title="{zero_title}"')
+    assert 'tabindex="0"' not in response_html[zero_index : zero_index + 240]
+
+
+def test_completion_progress_analytics_renders_empty_states_for_filtered_out_rows(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    completion_user = UserFactory(name="Empty State User", email="empty-progress@example.com")
+    client.force_login(admin_user)
+    today = timezone.localdate()
+    old_problem = ProblemSolveRecord.objects.create(
+        year=today.year,
+        topic="ALG",
+        mohs=12,
+        contest="IMO",
+        problem="P1",
+        contest_year_problem=f"IMO {today.year} P1",
+    )
+    UserProblemCompletion.objects.create(
+        user=completion_user,
+        problem=old_problem,
+        completion_date=today - timedelta(days=60),
+    )
+
+    response = client.get(
+        reverse("pages:completion_progress_analytics"),
+        {"user": str(completion_user.pk), "range": "7d"},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    response_html = response.content.decode("utf-8")
+    assert "No completions in this range." in response_html
+    assert "Show all dates" in response_html
+    assert "Quick completions" in response_html
+    assert "No exact completion dates match these filters." in response_html
+    assert 'class="completion-progress-yearly-grid"' not in response_html
 
 
 def test_completion_progress_analytics_shows_selected_user_difficulty_read_only_for_admin(client):
