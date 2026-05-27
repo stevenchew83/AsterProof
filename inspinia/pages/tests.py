@@ -9,6 +9,7 @@ from http import HTTPStatus
 from io import BytesIO
 from io import StringIO
 from pathlib import Path
+from urllib.parse import urlencode
 
 import pandas as pd
 import pytest
@@ -7502,30 +7503,52 @@ def test_user_solution_record_list_renders_admin_inventory(client):
     assert response.status_code == HTTPStatus.OK
     assert response.context["user_solution_record_stats"]["solution_total"] == 1
     assert response.context["user_solution_record_stats"]["published_total"] == 1
+    assert response.context["user_solution_record_filtered_total"] == 1
+    assert response.context["user_solution_record_has_active_filters"] is False
+    assert response.context["user_solution_record_active_filter_chips"] == []
     first_row = response.context["user_solution_record_rows"][0]
+    assert response.context["user_solution_record_latest_updated_at"] == first_row["updated_at"]
     assert first_row["user_label"] == "Mary Cartwright"
     assert first_row["title"] == "Circle setup"
     assert first_row["status_label"] == "Published"
     assert first_row["block_count"] == 1
     assert first_row["archive_url"].endswith("#imo-2025-p2")
-    assert first_row["solution_url"] == (
+    expected_solution_url = (
         reverse("solutions:problem_solution_list", args=[problem.problem_uuid])
         + f"?solution={solution.id}#solution-{solution.id}"
     )
-    assert first_row["pdf_url"] == reverse("solutions:admin_problem_solution_pdf", args=[solution.pk])
+    expected_pdf_url = reverse("solutions:admin_problem_solution_pdf", args=[solution.pk])
+    assert first_row["solution_url"] == expected_solution_url
+    assert first_row["pdf_url"] == expected_pdf_url
     response_html = response.content.decode("utf-8")
     assert "User solution listing" in response_html
     assert 'id="user-solution-record-table"' in response_html
-    assert f'"solution_url": "{reverse("solutions:problem_solution_list", args=[problem.problem_uuid])}?solution={solution.id}#solution-{solution.id}"' in response_html
-    assert f'"pdf_url": "{reverse("solutions:admin_problem_solution_pdf", args=[solution.pk])}"' in response_html
+    assert '<p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Loaded solutions</p>' in response_html
+    assert '<p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Authors</p>' in response_html
+    assert '<p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Published</p>' in response_html
+    assert '<p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Drafts</p>' in response_html
+    assert '<p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Problems</p>' in response_html
+    assert '<p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Latest update</p>' in response_html
+    assert 'class="table table-sm table-hover align-middle w-100 mb-0"' in response_html
+    assert 'title: "Solution"' in response_html
+    assert 'title: "Problem"' in response_html
+    assert 'title: "Content"' in response_html
+    assert 'title: "Dates"' in response_html
+    assert 'title: "Actions"' in response_html
+    assert 'title: "Summary chars"' not in response_html
+    assert 'title: "Evan PDF"' not in response_html
+    assert 'title: "Contest"' not in response_html
+    assert 'title: "Year"' not in response_html
+    assert 'title: "MOHS"' not in response_html
+    assert "Filter visible rows:" in response_html
+    assert "Within loaded rows..." in response_html
+    assert "Showing 1 matching solution record." in response_html
+    assert f'"solution_url": "{expected_solution_url}"' in response_html
+    assert f'"pdf_url": "{expected_pdf_url}"' in response_html
     assert ">Overview</a>" not in response_html
     assert ">My activity</a>" not in response_html
     assert 'id="light-dark-mode"' in response_html
     assert ">Profile</span>" in response_html
-    assert '<p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Solutions</p>' not in response_html
-    assert '<p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Authors</p>' not in response_html
-    assert '<p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Published</p>' not in response_html
-    assert '<p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Drafts</p>' not in response_html
 
 
 def test_user_solution_record_list_caps_to_latest_100_by_updated_at(client):
@@ -7562,7 +7585,10 @@ def test_user_solution_record_list_caps_to_latest_100_by_updated_at(client):
     assert rows[-1]["problem"] == "P100"
     assert response.context["user_solution_record_visible_total"] == 100
     assert response.context["user_solution_record_result_limit"] == 100
+    assert response.context["user_solution_record_filtered_total"] == 120
     assert response.context["user_solution_record_is_capped"] is True
+    response_html = response.content.decode("utf-8")
+    assert "Showing latest 100 solution records out of 120 matches." in response_html
 
 
 def test_user_solution_record_list_applies_filters_before_latest_100_cap(client):
@@ -7614,13 +7640,17 @@ def test_user_solution_record_list_applies_filters_before_latest_100_cap(client)
     assert broad.status_code == HTTPStatus.OK
     assert len(broad.context["user_solution_record_rows"]) == 100
     assert all(row["contest"] == "IMO" for row in broad.context["user_solution_record_rows"])
+    assert broad.context["user_solution_record_filtered_total"] == 120
     assert broad.context["user_solution_record_is_capped"] is True
+    assert "Showing latest 100 solution records out of 120 matches." in broad.content.decode("utf-8")
 
     narrow = client.get(reverse("pages:user_solution_record_list"), {"contest": "USAMO"})
     assert narrow.status_code == HTTPStatus.OK
     assert len(narrow.context["user_solution_record_rows"]) == 3
     assert all(row["contest"] == "USAMO" for row in narrow.context["user_solution_record_rows"])
+    assert narrow.context["user_solution_record_filtered_total"] == 3
     assert narrow.context["user_solution_record_is_capped"] is False
+    assert "Showing 3 matching solution records." in narrow.content.decode("utf-8")
 
 
 def test_page_view_analytics_tracks_core_archive_surfaces_for_admin(client):
@@ -9441,11 +9471,88 @@ def test_user_solution_record_list_applies_query_filters(client):
     assert response.context["user_solution_record_filters"]["contest"] == "IMO"
     assert response.context["user_solution_record_filters"]["user"] == "mary@example.com"
     assert response.context["user_solution_record_stats"]["solution_total"] == 1
+    assert response.context["user_solution_record_filtered_total"] == 1
+    assert response.context["user_solution_record_has_active_filters"] is True
+    active_chips = response.context["user_solution_record_active_filter_chips"]
+    assert [(chip["label"], chip["value"]) for chip in active_chips] == [
+        ("Search", "Circle P2"),
+        ("Contest", "IMO"),
+        ("User", "mary@example.com"),
+        ("Status", "Published"),
+    ]
+    list_url = reverse("pages:user_solution_record_list")
+    expected_chip_urls = [
+        list_url
+        + "?"
+        + urlencode(
+            {"contest": "IMO", "user": "mary@example.com", "status": ProblemSolution.Status.PUBLISHED},
+        ),
+        list_url
+        + "?"
+        + urlencode(
+            {"q": "Circle P2", "user": "mary@example.com", "status": ProblemSolution.Status.PUBLISHED},
+        ),
+        list_url
+        + "?"
+        + urlencode(
+            {"q": "Circle P2", "contest": "IMO", "status": ProblemSolution.Status.PUBLISHED},
+        ),
+        list_url + "?" + urlencode({"q": "Circle P2", "contest": "IMO", "user": "mary@example.com"}),
+    ]
+    assert [chip["remove_url"] for chip in active_chips] == expected_chip_urls
     assert len(response.context["user_solution_record_rows"]) == 1
     assert response.context["user_solution_record_rows"][0]["user_email"] == "mary@example.com"
     response_html = response.content.decode("utf-8")
     assert 'name="status"' in response_html
     assert 'value="mary@example.com" selected' in response_html
+    assert "user-solution-record-filter-chip" in response_html
+    assert "Showing 1 matching solution record." in response_html
+
+
+def test_user_solution_record_list_renders_empty_filtered_state(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    solution_author = UserFactory(name="Mary Cartwright")
+    client.force_login(admin_user)
+    problem = ProblemSolveRecord.objects.create(
+        year=2025,
+        topic="GEO",
+        mohs=5,
+        contest="IMO",
+        problem="P2",
+        contest_year_problem="IMO 2025 P2",
+    )
+    ProblemSolution.objects.create(
+        problem=problem,
+        author=solution_author,
+        title="Circle setup",
+        status=ProblemSolution.Status.PUBLISHED,
+        published_at=timezone.now(),
+    )
+
+    response = client.get(reverse("pages:user_solution_record_list"), {"q": "Noether"})
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["user_solution_record_filtered_total"] == 0
+    assert response.context["user_solution_record_has_active_filters"] is True
+    assert response.context["user_solution_record_latest_updated_at"] == "—"
+    response_html = response.content.decode("utf-8")
+    assert "No solution records match the current filters." in response_html
+    assert "No user solutions have been saved yet." not in response_html
+
+
+def test_user_solution_record_list_renders_empty_saved_state(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+
+    response = client.get(reverse("pages:user_solution_record_list"))
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["user_solution_record_filtered_total"] == 0
+    assert response.context["user_solution_record_has_active_filters"] is False
+    assert response.context["user_solution_record_latest_updated_at"] == "—"
+    response_html = response.content.decode("utf-8")
+    assert "No user solutions have been saved yet." in response_html
+    assert "No solution records match the current filters." not in response_html
 
 
 def test_contest_metadata_normalizes_fields():

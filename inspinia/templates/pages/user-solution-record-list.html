@@ -6,6 +6,40 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'plugins/datatables/dataTables.bootstrap5.min.css' %}">
+<style>
+  #user-solution-record-table_wrapper .dt-layout-row {
+    margin: .5rem 0;
+  }
+
+  #user-solution-record-table_wrapper .dt-length label,
+  #user-solution-record-table_wrapper .dt-search label {
+    color: var(--bs-secondary-color);
+    font-size: .75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  #user-solution-record-table_wrapper .dt-length .form-select,
+  #user-solution-record-table_wrapper .dt-search .form-control {
+    font-size: .8125rem;
+    min-height: calc(1.5em + .5rem + 2px);
+    padding-bottom: .25rem;
+    padding-top: .25rem;
+  }
+
+  .user-solution-record-filter-chip {
+    align-items: center;
+    display: inline-flex;
+    gap: .25rem;
+    text-decoration: none;
+  }
+
+  .user-solution-record-actions .btn {
+    align-items: center;
+    display: inline-flex;
+    justify-content: center;
+  }
+</style>
 {% endblock extra_css %}
 
 {% block page_content %}
@@ -13,35 +47,143 @@
 
   {% include 'partials/page-title.html' with title='User solution records' subtitle='Admin inventory' %}
 
-  <div class="row g-3 mt-0 mb-4">
+  <div class="row g-3 mt-0">
+    <div class="col-sm-6 col-md-4 col-xl-2">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-primary-subtle text-primary rounded">
+                <i class="ti ti-writing fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Loaded solutions</p>
+              <h3 class="mb-0">{{ user_solution_record_stats.solution_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-md-4 col-xl-2">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-info-subtle text-info rounded">
+                <i class="ti ti-users fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Authors</p>
+              <h3 class="mb-0">{{ user_solution_record_stats.author_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-md-4 col-xl-2">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-success-subtle text-success rounded">
+                <i class="ti ti-circle-check fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Published</p>
+              <h3 class="mb-0">{{ user_solution_record_stats.published_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-md-4 col-xl-2">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-warning-subtle text-warning rounded">
+                <i class="ti ti-pencil fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Drafts</p>
+              <h3 class="mb-0">{{ user_solution_record_stats.draft_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-md-4 col-xl-2">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-secondary-subtle text-secondary rounded">
+                <i class="ti ti-list-details fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Problems</p>
+              <h3 class="mb-0">{{ user_solution_record_stats.problem_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-md-4 col-xl-2">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-primary-subtle text-primary rounded">
+                <i class="ti ti-clock fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Latest update</p>
+              <h3 class="mb-0 fs-sm">{{ user_solution_record_latest_updated_at }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-1 mb-4">
     <div class="col-12">
       <div class="card">
-        <div class="card-header border-bottom">
+        <div class="card-header border-bottom py-2">
           <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
             <div>
               <h4 class="header-title mb-0">User solution listing</h4>
-              <p class="text-muted fs-xs mb-0">Filter authored solution records with shareable query-string controls.</p>
+              <p class="text-muted fs-xs mb-0">Server filters decide which records load; the table filter narrows visible rows.</p>
             </div>
-            <span class="badge bg-secondary-subtle text-secondary">{{ user_solution_record_stats.problem_total }} problems touched</span>
+            <div class="d-flex flex-wrap gap-1">
+              <span class="badge bg-primary-subtle text-primary">{{ user_solution_record_visible_total }} loaded</span>
+              <span class="badge bg-secondary-subtle text-secondary">{{ user_solution_record_stats.problem_total }} problems</span>
+            </div>
           </div>
         </div>
-        <div class="card-body">
-          {% if user_solution_record_rows or user_solution_record_filter_options.contests or user_solution_record_filter_options.users %}
-          <form method="get" class="row g-2 align-items-end mb-4">
+        <div class="card-body p-2 p-md-3">
+          {% if user_solution_record_rows or user_solution_record_filter_options.contests or user_solution_record_filter_options.users or user_solution_record_has_active_filters %}
+          <form method="get" class="row g-2 align-items-end mb-2">
             <div class="col-md-6 col-xl-4">
-              <label class="form-label" for="user-solution-record-q">Search</label>
+              <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="user-solution-record-q">Search</label>
               <input
                 id="user-solution-record-q"
                 type="text"
                 name="q"
-                class="form-control"
+                class="form-control form-control-sm"
                 value="{{ user_solution_record_filters.q }}"
                 placeholder="User, contest, problem, title"
               >
             </div>
             <div class="col-md-6 col-xl-2">
-              <label class="form-label" for="user-solution-record-contest">Contest</label>
-              <select id="user-solution-record-contest" name="contest" class="form-select">
+              <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="user-solution-record-contest">Contest</label>
+              <select id="user-solution-record-contest" name="contest" class="form-select form-select-sm">
                 <option value="">All contests</option>
                 {% for contest in user_solution_record_filter_options.contests %}
                 <option value="{{ contest }}" {% if contest == user_solution_record_filters.contest %}selected{% endif %}>{{ contest }}</option>
@@ -49,41 +191,63 @@
               </select>
             </div>
             <div class="col-md-6 col-xl-3">
-              <label class="form-label" for="user-solution-record-user">User</label>
-              <select id="user-solution-record-user" name="user" class="form-select">
+              <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="user-solution-record-user">User</label>
+              <select id="user-solution-record-user" name="user" class="form-select form-select-sm">
                 <option value="">All users</option>
                 {% for user_row in user_solution_record_filter_options.users %}
                 <option value="{{ user_row.value }}" {% if user_row.value == user_solution_record_filters.user %}selected{% endif %}>{{ user_row.label }}</option>
                 {% endfor %}
               </select>
             </div>
-            <div class="col-md-3 col-xl-1">
-              <label class="form-label" for="user-solution-record-status">Status</label>
-              <select id="user-solution-record-status" name="status" class="form-select">
+            <div class="col-md-3 col-xl-2">
+              <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="user-solution-record-status">Status</label>
+              <select id="user-solution-record-status" name="status" class="form-select form-select-sm">
                 <option value="">All</option>
                 {% for status in user_solution_record_filter_options.statuses %}
                 <option value="{{ status }}" {% if status == user_solution_record_filters.status %}selected{% endif %}>{{ status|title }}</option>
                 {% endfor %}
               </select>
             </div>
-            <div class="col-md-3 col-xl-2 d-flex gap-2">
-              <button type="submit" class="btn btn-primary w-100">Apply</button>
-              <a href="{% url 'pages:user_solution_record_list' %}" class="btn btn-outline-secondary w-100">Reset</a>
+            <div class="col-md-3 col-xl-1 d-flex gap-1">
+              <button type="submit" class="btn btn-sm btn-primary flex-fill" title="Apply filters" aria-label="Apply filters">
+                <i class="ti ti-filter"></i>
+              </button>
+              {% if user_solution_record_has_active_filters %}
+              <a href="{% url 'pages:user_solution_record_list' %}" class="btn btn-sm btn-outline-secondary flex-fill" title="Reset filters" aria-label="Reset filters">
+                <i class="ti ti-refresh"></i>
+              </a>
+              {% endif %}
             </div>
           </form>
           {% endif %}
-          {% if user_solution_record_is_capped %}
-          <div class="alert alert-info py-2 mb-3" role="alert">
-            Showing latest {{ user_solution_record_result_limit }} matching records. Use search and filters to find older entries.
+          {% if user_solution_record_active_filter_chips %}
+          <div class="d-flex flex-wrap gap-2 mb-2">
+            {% for chip in user_solution_record_active_filter_chips %}
+            <a href="{{ chip.remove_url }}" class="badge {{ chip.badge_class }} user-solution-record-filter-chip">
+              <span>{{ chip.label }}: {{ chip.value }}</span>
+              <i class="ti ti-x"></i>
+            </a>
+            {% endfor %}
           </div>
           {% endif %}
           {% if user_solution_record_rows %}
+          <p class="text-muted fs-xs mb-2">
+            {% if user_solution_record_is_capped %}
+            Showing latest {{ user_solution_record_result_limit }} solution records out of {{ user_solution_record_filtered_total }} matches.
+            {% else %}
+            Showing {{ user_solution_record_filtered_total }} matching solution record{{ user_solution_record_filtered_total|pluralize }}.
+            {% endif %}
+          </p>
           <div class="table-responsive">
-            <table id="user-solution-record-table" class="table table-striped table-bordered align-middle w-100"></table>
+            <table id="user-solution-record-table" class="table table-sm table-hover align-middle w-100 mb-0"></table>
           </div>
           {% else %}
-          <div class="alert alert-info mb-0" role="alert">
+          <div class="alert alert-info py-2 mb-0" role="alert">
+            {% if user_solution_record_has_active_filters %}
+            No solution records match the current filters.
+            {% else %}
             No user solutions have been saved yet.
+            {% endif %}
           </div>
           {% endif %}
         </div>
@@ -114,6 +278,14 @@
       .replace(/'/g, "&#39;");
   }
 
+  function pluralize(count, singular, plural) {
+    return Number(count) === 1 ? singular : plural;
+  }
+
+  function mutedDash() {
+    return '<span class="text-muted fs-xs">&mdash;</span>';
+  }
+
   new DataTable("#user-solution-record-table", {
     data: rows,
     columns: [
@@ -121,89 +293,139 @@
         data: "user_label",
         title: "User",
         render: function (data, type, row) {
+          var email = row.user_email || "";
           if (type === "display") {
-            return '<a href="' + row.user_url + '" class="fw-semibold text-decoration-none">' + escapeHtml(data) + '</a><div class="text-muted fs-12">' + escapeHtml(row.user_email) + "</div>";
+            return '<a href="' + escapeHtml(row.user_url) + '" class="fw-semibold text-decoration-none">' + escapeHtml(data) + '</a><div class="text-muted fs-12">' + escapeHtml(email) + "</div>";
           }
-          return data + " " + row.user_email;
-        }
-      },
-      { data: "contest", title: "Contest" },
-      { data: "year", title: "Year", className: "text-nowrap" },
-      {
-        data: "problem_label",
-        title: "Problem",
-        render: function (data, type, row) {
-          if (type === "display" && row.archive_url) {
-            return '<a href="' + row.archive_url + '" class="text-decoration-none">' + escapeHtml(data) + "</a>";
-          }
-          return data;
-        }
-      },
-      { data: "topic", title: "Topic", className: "text-nowrap" },
-      { data: "mohs", title: "MOHS", className: "text-nowrap" },
-      {
-        data: "status_label",
-        title: "Status",
-        className: "text-nowrap",
-        render: function (data, type, row) {
-          if (type === "display") {
-            return '<span class="badge ' + row.status_badge_class + '">' + escapeHtml(data) + "</span>";
-          }
-          return data;
+          return data + " " + email;
         }
       },
       {
         data: "title",
-        title: "Title",
+        title: "Solution",
         render: function (data, type, row) {
-          if (type === "display" && row.solution_url) {
-            return '<a href="' + row.solution_url + '" class="fw-semibold text-decoration-none">' + escapeHtml(data) + "</a>";
-          }
-          return data;
+          var title = data || "Untitled solution";
+          if (type === "sort" || type === "type") return title;
+          if (type === "filter") return [title, row.status_label, row.user_email].join(" ");
+          if (type !== "display") return title;
+          return (
+            '<a href="' +
+            escapeHtml(row.solution_url) +
+            '" class="fw-semibold text-decoration-none">' +
+            escapeHtml(title) +
+            "</a>" +
+            '<div class="mt-1"><span class="badge ' +
+            escapeHtml(row.status_badge_class) +
+            '">' +
+            escapeHtml(row.status_label) +
+            "</span></div>"
+          );
         }
       },
       {
-        data: "pdf_url",
-        title: "Evan PDF",
-        className: "text-nowrap",
-        orderable: false,
-        searchable: false,
-        render: function (data, type) {
-          if (type === "display" && data) {
-            return (
-              '<a href="' +
-              data +
-              '" class="btn btn-sm btn-outline-primary"><i class="ti ti-file-type-pdf me-1"></i>PDF</a>'
-            );
-          }
-          return data || "";
+        data: "problem_label",
+        title: "Problem",
+        render: function (data, type, row) {
+          var meta = [row.contest, row.year, row.problem, row.topic, "MOHS " + row.mohs].join(" ");
+          if (type === "sort" || type === "type") return row.updated_at_sort;
+          if (type === "filter") return data + " " + meta;
+          if (type !== "display") return data;
+          var problemLink = row.archive_url
+            ? '<a href="' + escapeHtml(row.archive_url) + '" class="fw-semibold text-decoration-none">' + escapeHtml(data) + "</a>"
+            : '<span class="fw-semibold">' + escapeHtml(data) + "</span>";
+          return (
+            problemLink +
+            '<div class="text-muted fs-12">' +
+            escapeHtml(row.topic || "") +
+            " · " +
+            escapeHtml(row.contest || "") +
+            " " +
+            escapeHtml(row.year || "") +
+            " · MOHS " +
+            escapeHtml(row.mohs || "") +
+            "</div>"
+          );
         }
       },
-      { data: "block_count", title: "Blocks", className: "text-nowrap" },
-      { data: "summary_length", title: "Summary chars", className: "text-nowrap" },
       {
-        data: "published_at",
-        title: "Published",
+        data: "block_count",
+        title: "Content",
         className: "text-nowrap",
         render: function (data, type, row) {
-          if (type === "sort" || type === "type") return row.published_at_sort;
-          return data;
+          var blocks = Number(data) || 0;
+          var summaryLength = Number(row.summary_length) || 0;
+          if (type === "sort" || type === "type") return blocks;
+          if (type === "filter") return blocks + " blocks " + summaryLength + " summary chars";
+          if (type !== "display") return blocks;
+          return (
+            '<span class="fw-semibold">' +
+            escapeHtml(blocks) +
+            " " +
+            escapeHtml(pluralize(blocks, "block", "blocks")) +
+            "</span>" +
+            '<div class="text-muted fs-12">' +
+            escapeHtml(summaryLength) +
+            " summary chars</div>"
+          );
         }
       },
       {
         data: "updated_at",
-        title: "Updated",
+        title: "Dates",
         className: "text-nowrap",
         render: function (data, type, row) {
           if (type === "sort" || type === "type") return row.updated_at_sort;
-          return data;
+          if (type === "filter") return row.published_at + " " + data;
+          if (type !== "display") return data;
+          return (
+            '<div><span class="text-muted fs-12">Updated</span> <span class="fw-semibold">' +
+            escapeHtml(data) +
+            "</span></div>" +
+            '<div><span class="text-muted fs-12">Published</span> ' +
+            (row.published_at_sort ? escapeHtml(row.published_at) : mutedDash()) +
+            "</div>"
+          );
+        }
+      },
+      {
+        data: "solution_url",
+        title: "Actions",
+        className: "text-nowrap",
+        orderable: false,
+        searchable: false,
+        render: function (data, type, row) {
+          if (type !== "display") return data || "";
+          var archiveButton = row.archive_url
+            ? '<a href="' + escapeHtml(row.archive_url) + '" class="btn btn-sm btn-outline-secondary" title="Open archive problem" aria-label="Open archive problem"><i class="ti ti-list-details"></i></a>'
+            : "";
+          var pdfButton = row.pdf_url
+            ? '<a href="' + escapeHtml(row.pdf_url) + '" class="btn btn-sm btn-outline-primary" title="Download Evan PDF" aria-label="Download Evan PDF"><i class="ti ti-file-type-pdf"></i></a>'
+            : "";
+          return (
+            '<div class="btn-group btn-group-sm user-solution-record-actions" role="group">' +
+            '<a href="' +
+            escapeHtml(data) +
+            '" class="btn btn-sm btn-primary" title="Open solution" aria-label="Open solution"><i class="ti ti-eye"></i></a>' +
+            archiveButton +
+            pdfButton +
+            "</div>"
+          );
         }
       }
     ],
-    order: [[12, "desc"]],
+    order: [[4, "desc"]],
     pageLength: 25,
     lengthMenu: [10, 25, 50, 100],
     scrollX: true,
+    autoWidth: false,
+    language: {
+      search: "Filter visible rows:",
+      searchPlaceholder: "Within loaded rows...",
+      info: "Showing _START_ to _END_ of _TOTAL_ solution records",
+      infoEmpty: "No solution records to show",
+      infoFiltered: "(filtered from _MAX_ loaded records)",
+      lengthMenu: "Show _MENU_ records"
+    }
   });
 })();
 </script>
