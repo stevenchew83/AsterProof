@@ -3260,6 +3260,26 @@ def _problem_sort_key(problem_label: str | None) -> list[tuple[int, int | str]]:
     ]
 
 
+def _contest_heatmap_problem_code_group_label(problem_code: str) -> str:
+    grade_match = re.match(r"^(\d+)\.", problem_code.strip())
+    if grade_match and grade_match.group(1) in {"9", "10", "11"}:
+        return f"Grade {grade_match.group(1)}"
+    if re.match(r"^P\d+", problem_code.strip(), flags=re.IGNORECASE):
+        return "P-codes"
+    return "Other"
+
+
+def _contest_heatmap_problem_code_groups(problem_codes: list[str]) -> list[dict[str, int | str]]:
+    groups: list[dict[str, int | str]] = []
+    for index, problem_code in enumerate(problem_codes):
+        label = _contest_heatmap_problem_code_group_label(problem_code)
+        if groups and groups[-1]["label"] == label:
+            groups[-1]["span"] = int(groups[-1]["span"]) + 1
+        else:
+            groups.append({"label": label, "start_index": index, "span": 1})
+    return groups
+
+
 def _problem_anchor(problem_label: str, fallback: str) -> str:
     return dashboard_problem_anchor(problem_label, fallback)
 
@@ -6127,6 +6147,7 @@ def contest_advanced_analytics_view(request):
                 "contest_completion_heatmap": {
                     "filled_cell_total": 0,
                     "has_partial_cells": False,
+                    "problem_code_groups": [],
                     "problem_code_total": 0,
                     "problem_codes": [],
                     "rows": [],
@@ -6204,6 +6225,10 @@ def contest_advanced_analytics_view(request):
             round(float(row["avg_mohs"]), 2) if row["avg_mohs"] is not None else None
         )
         row["statement_problem_total"] = int(row.get("linked_statement_total") or 0)
+        row["linked_rate"] = round(
+            (row["statement_problem_total"] / row["problem_count"]) * 100,
+            1,
+        ) if row["problem_count"] else 0.0
         row["solved_rate"] = round(
             (row["solved_problem_total"] / row["problem_count"]) * 100,
             1,
@@ -6290,7 +6315,7 @@ def contest_advanced_analytics_view(request):
                         "problem_code": problem_code,
                         "solution_url": "",
                         "state": "empty",
-                        "title": f"{selected_contest} {year} {problem_code}: no statement row",
+                        "title": f"{selected_contest} {year} {problem_code}: no statement",
                     },
                 )
                 continue
@@ -6305,7 +6330,7 @@ def contest_advanced_analytics_view(request):
                 state = "partial"
                 has_partial_heatmap_cells = True
 
-            rows_word = "statement row" if problem_total == 1 else "statement rows"
+            rows_word = "statement" if problem_total == 1 else "statements"
             row_cells.append(
                 {
                     "display": (
@@ -6318,7 +6343,7 @@ def contest_advanced_analytics_view(request):
                     "state": state,
                     "title": (
                         f"{selected_contest} {year} {problem_code}: "
-                        f"{solved_total} of {problem_total} {rows_word} solved by you"
+                        f"{solved_total} of {problem_total} {rows_word} completed by you"
                     ),
                 },
             )
@@ -6346,6 +6371,10 @@ def contest_advanced_analytics_view(request):
         row["avg_mohs"] = (
             round(float(row["avg_mohs"]), 2) if row["avg_mohs"] is not None else None
         )
+        row["share_rate"] = round(
+            (row["problem_count"] / statement_row_total) * 100,
+            1,
+        ) if statement_row_total else 0.0
 
     confidence_rows = list(
         contest_base_eff.exclude(_eff_confidence="")
@@ -6372,6 +6401,22 @@ def contest_advanced_analytics_view(request):
     ]
 
     contest_quick_update_url = contest_completion_quick_update_url(selected_contest)
+    solved_problem_total = sum(int(row["solved_problem_total"] or 0) for row in year_rows)
+    solved_rate = (
+        round((solved_problem_total / statement_row_total) * 100, 1)
+        if statement_row_total
+        else 0.0
+    )
+    linked_rate = (
+        round((statement_problem_total / statement_row_total) * 100, 1)
+        if statement_row_total
+        else 0.0
+    )
+    solution_rate = (
+        round((solution_problem_total / statement_row_total) * 100, 1)
+        if statement_row_total
+        else 0.0
+    )
 
     context = {
         "contest_choices": contest_choices,
@@ -6383,7 +6428,11 @@ def contest_advanced_analytics_view(request):
             "max_mohs": stats["max_mohs"] or 0,
             "problem_count": stats["problem_count"],
             "published_solution_total": published_solution_total,
+            "linked_rate": linked_rate,
             "solution_problem_total": solution_problem_total,
+            "solution_rate": solution_rate,
+            "solved_problem_total": solved_problem_total,
+            "solved_rate": solved_rate,
             "statement_problem_total": statement_problem_total,
             "statement_row_total": statement_row_total,
             "technique_rows": technique_row_total,
@@ -6400,6 +6449,7 @@ def contest_advanced_analytics_view(request):
             "chart": _contest_completion_heatmap_chart_payload(heatmap_rows),
             "filled_cell_total": len(heatmap_counts),
             "has_partial_cells": has_partial_heatmap_cells,
+            "problem_code_groups": _contest_heatmap_problem_code_groups(heatmap_problem_codes),
             "problem_code_total": len(heatmap_problem_codes),
             "problem_codes": heatmap_problem_codes,
             "rows": heatmap_rows,
