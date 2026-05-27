@@ -669,12 +669,12 @@
     <div class="col-12">
       <div class="card">
         <div class="card-header border-0 pb-0">
-          <h4 class="header-title mb-0">Progress over time</h4>
-          <p class="text-muted fs-xs mb-0">Exact completions and MOHS trend.</p>
+          <h4 class="header-title mb-0">Daily completions</h4>
+          <p class="text-muted fs-xs mb-0">Exact completions by date.</p>
         </div>
         <div class="card-body pt-2">
           {% if completion_progress_stats.known_date_total %}
-          <div id="chart-completion-progress-over-time" class="completion-progress-chart"></div>
+          <div id="chart-completion-progress-daily" class="completion-progress-chart"></div>
           {% else %}
           <div class="completion-progress-empty-state">
             <div>
@@ -694,6 +694,22 @@
       </div>
     </div>
   </div>
+
+  {% if completion_progress_stats.known_date_total %}
+  <div class="row g-3 mt-0">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-0">MOHS trend</h4>
+          <p class="text-muted fs-xs mb-0">Total and average MOHS by completion date.</p>
+        </div>
+        <div class="card-body pt-2">
+          <div id="chart-completion-progress-mohs" class="completion-progress-chart"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
 
   <div class="row g-3 mt-0">
     <div class="col-12">
@@ -1109,57 +1125,100 @@
     return chart;
   }
 
-  function renderProgressOverTime(selector, dailyPayload, mohsPayload) {
+  function shortDateLabel(value) {
+    var date = new Date(value + "T00:00:00");
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  }
+
+  function renderDailyCompletions(selector, dailyPayload) {
     var el = document.querySelector(selector);
-    if (!el || typeof ApexCharts === "undefined" || !dailyPayload || !mohsPayload) return;
-    var labels = dailyPayload.labels || mohsPayload.labels || [];
-    if (!labels.length) return;
-    if (!hasValues(dailyPayload.values) && !hasValues(mohsPayload.totalValues) && !hasValues(mohsPayload.averageValues)) return;
+    if (!el || typeof ApexCharts === "undefined" || !dailyPayload || !dailyPayload.labels.length) return;
+    if (!hasValues(dailyPayload.values)) return;
 
     var chart = new ApexCharts(el, {
-      chart: { type: "line", height: 340, toolbar: { show: false }, fontFamily: "inherit" },
-      colors: ["#0d6efd", "#20c997", "#ffc107"],
+      chart: { type: "bar", height: 320, toolbar: { show: false }, fontFamily: "inherit" },
+      colors: ["#0d6efd"],
       dataLabels: { enabled: false },
       grid: { borderColor: "rgba(108,117,125,0.15)", strokeDashArray: 4 },
-      plotOptions: { bar: { borderRadius: 4, columnWidth: "48%" } },
-      series: [
-        { name: "Completions", type: "column", data: dailyPayload.values },
-        { name: "Total MOHS", type: "line", data: mohsPayload.totalValues },
-        { name: "Average MOHS", type: "line", data: mohsPayload.averageValues }
-      ],
-      stroke: { curve: "smooth", width: [0, 3, 3] },
-      tooltip: { shared: true, intersect: false },
-      xaxis: {
-        categories: labels,
-        labels: { rotate: labels.length > 8 ? -45 : 0, style: { fontSize: "11px" } }
+      plotOptions: { bar: { borderRadius: 4, columnWidth: "44%" } },
+      series: [{ name: "Completions", data: dailyPayload.values }],
+      tooltip: {
+        shared: false,
+        intersect: false,
+        y: {
+          formatter: function (value) {
+            return Number(value || 0).toFixed(0);
+          }
+        }
       },
-      yaxis: [{ labels: { style: { fontSize: "11px" } } }]
+      xaxis: {
+        categories: dailyPayload.labels,
+        labels: {
+          formatter: shortDateLabel,
+          rotate: dailyPayload.labels.length > 8 ? -45 : 0,
+          style: { fontSize: "11px" }
+        }
+      },
+      yaxis: [{
+        decimalsInFloat: 0,
+        forceNiceScale: true,
+        labels: { style: { fontSize: "11px" } }
+      }]
     });
     chart.render();
     return chart;
   }
 
-  function renderLine(selector, payload) {
+  function renderMohsTrend(selector, payload) {
     var el = document.querySelector(selector);
     if (!el || typeof ApexCharts === "undefined" || !payload || !payload.labels.length) return;
     if (!hasValues(payload.totalValues) && !hasValues(payload.averageValues)) return;
 
     var chart = new ApexCharts(el, {
       chart: { type: "line", height: 320, toolbar: { show: false }, fontFamily: "inherit" },
-      colors: ["#0d6efd", "#20c997"],
+      colors: ["#20c997", "#ffc107"],
       dataLabels: { enabled: false },
       grid: { borderColor: "rgba(108,117,125,0.15)", strokeDashArray: 4 },
+      legend: { position: "bottom" },
+      plotOptions: { bar: { borderRadius: 4, columnWidth: "44%" } },
       series: [
         { name: "Total MOHS", type: "column", data: payload.totalValues },
         { name: "Average MOHS", type: "line", data: payload.averageValues }
       ],
       stroke: { curve: "smooth", width: [0, 3] },
-      tooltip: { shared: true, intersect: false },
+      tooltip: {
+        shared: true,
+        intersect: false,
+        y: {
+          formatter: function (value) {
+            return Number(value || 0).toFixed(1);
+          }
+        }
+      },
       xaxis: {
         categories: payload.labels,
-        labels: { rotate: payload.labels.length > 8 ? -45 : 0, style: { fontSize: "11px" } }
+        labels: {
+          formatter: shortDateLabel,
+          rotate: payload.labels.length > 8 ? -45 : 0,
+          style: { fontSize: "11px" }
+        }
       },
-      yaxis: [{ labels: { style: { fontSize: "11px" } } }]
+      yaxis: [
+        {
+          decimalsInFloat: 0,
+          forceNiceScale: true,
+          seriesName: "Total MOHS",
+          labels: { style: { fontSize: "11px" } }
+        },
+        {
+          decimalsInFloat: 1,
+          forceNiceScale: true,
+          opposite: true,
+          seriesName: "Average MOHS",
+          labels: { style: { fontSize: "11px" } }
+        }
+      ]
     });
     chart.render();
     return chart;
@@ -1533,7 +1592,8 @@
     renderedProgressCharts[group] = true;
   }
 
-  renderProgressOverTime("#chart-completion-progress-over-time", charts.dailyCompletions, charts.dailyMohs);
+  renderDailyCompletions("#chart-completion-progress-daily", charts.dailyCompletions);
+  renderMohsTrend("#chart-completion-progress-mohs", charts.dailyMohs);
   renderSecondaryCharts("topics");
   document.querySelectorAll('[data-bs-toggle="tab"][data-bs-target^="#completion-progress-"]').forEach(function (tabButton) {
     tabButton.addEventListener("shown.bs.tab", function () {

@@ -6,6 +6,28 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'plugins/datatables/dataTables.bootstrap5.min.css' %}">
+<style>
+  .contest-dashboard-table-tools .dt-search {
+    display: none;
+  }
+
+  .contest-dashboard-table-tools .dt-length,
+  .contest-dashboard-table-tools .dt-info,
+  .contest-dashboard-table-tools .dt-paging {
+    font-size: 0.8rem;
+  }
+
+  .contest-leader-link,
+  .contest-quality-row {
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+  }
+
+  .contest-leader-link:hover,
+  .contest-quality-row:hover {
+    border-color: var(--bs-primary) !important;
+    background-color: var(--bs-primary-bg-subtle);
+  }
+</style>
 {% endblock extra_css %}
 
 {% block page_content %}
@@ -27,6 +49,7 @@
             <div class="flex-grow-1 ms-2">
               <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Distinct contests</p>
               <h3 class="mb-0">{{ contest_total }}</h3>
+              <p class="text-muted fs-xs mb-0">{{ contest_stats.multi_year_contests }} multi-year contests</p>
             </div>
           </div>
         </div>
@@ -44,6 +67,7 @@
             <div class="flex-grow-1 ms-2">
               <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Statement rows</p>
               <h3 class="mb-0">{{ contest_problem_total }}</h3>
+              <p class="text-muted fs-xs mb-0">{{ contest_stats.global_year_span_label }} active row span</p>
             </div>
           </div>
         </div>
@@ -61,6 +85,13 @@
             <div class="flex-grow-1 ms-2">
               <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Avg statements per contest</p>
               <h3 class="mb-0">{{ contest_stats.average_problems_per_contest }}</h3>
+              <p class="text-muted fs-xs mb-0">
+                {% if contest_leaders.biggest %}
+                Largest: {{ contest_leaders.biggest.contest }}
+                {% else %}
+                No contest rows yet
+                {% endif %}
+              </p>
             </div>
           </div>
         </div>
@@ -72,12 +103,15 @@
           <div class="d-flex align-items-center">
             <div class="flex-shrink-0">
               <span class="avatar-title bg-success-subtle text-success rounded">
-                <i class="ti ti-calendar-repeat fs-24"></i>
+                <i class="ti ti-circle-check fs-24"></i>
               </span>
             </div>
             <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Multi-year contests</p>
-              <h3 class="mb-0">{{ contest_stats.multi_year_contests }}</h3>
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Rows with full metadata</p>
+              <h3 class="mb-0">{{ contest_stats.complete_metadata_percent }}%</h3>
+              <p class="text-muted fs-xs mb-0">
+                MOHS {{ contest_stats.mohs_coverage_percent }}% · Topics {{ contest_stats.topic_coverage_percent }}% · Techniques {{ contest_stats.technique_coverage_percent }}%
+              </p>
             </div>
           </div>
         </div>
@@ -91,15 +125,57 @@
   </div>
   {% else %}
 
+  <div class="alert alert-info mt-3 mb-0" role="alert">
+    <div class="d-flex gap-2">
+      <i class="ti ti-bulb fs-22 flex-shrink-0"></i>
+      <div>
+        <p class="fw-semibold mb-1">Dataset readout</p>
+        <p class="mb-0 fs-sm">
+          {{ contest_insights.largest }}
+          {{ contest_insights.longest_running }}
+          {{ contest_insights.hardest }}
+          {{ contest_insights.metadata }}
+        </p>
+      </div>
+    </div>
+  </div>
+
   <div class="row g-3 mt-1">
     <div class="col-xxl-8">
-      <div class="card">
+      <div class="card h-100">
         <div class="card-header border-0 pb-0">
-          <h4 class="header-title mb-0">Contest volume</h4>
-          <p class="text-muted fs-xs mb-0">Top contests ranked by active statement rows</p>
+          <div class="d-flex flex-wrap align-items-start gap-2">
+            <div class="flex-grow-1">
+              <h4 class="header-title mb-0">Ranked contests</h4>
+              <p class="text-muted fs-xs mb-0">Switch metrics without losing the comparison context</p>
+            </div>
+            <span class="badge text-bg-light">Top {{ contest_analytics_chart_limit }}</span>
+          </div>
         </div>
         <div class="card-body pt-2">
-          <div id="chart-contest-volume" style="min-height: 340px;"></div>
+          <div class="d-flex flex-wrap align-items-end gap-2 mb-3">
+            <div>
+              <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold">Metric</label>
+              <div id="contest-ranked-metric-controls" class="btn-group btn-group-sm" role="group" aria-label="Ranked contest metric">
+                <button type="button" class="btn btn-primary active" data-contest-ranked-metric="problem_count">Statements</button>
+                <button type="button" class="btn btn-outline-primary" data-contest-ranked-metric="active_years">Active years</button>
+                <button type="button" class="btn btn-outline-primary" data-contest-ranked-metric="avg_mohs">Avg MOHS</button>
+                <button type="button" class="btn btn-outline-primary" data-contest-ranked-metric="topic_coverage_percent">Topic coverage</button>
+                <button type="button" class="btn btn-outline-primary" data-contest-ranked-metric="techniques_per_problem">Technique density</button>
+              </div>
+            </div>
+            <div>
+              <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="contest-ranked-min-statements">Min sample</label>
+              <select id="contest-ranked-min-statements" class="form-select form-select-sm">
+                <option value="0">All</option>
+                <option value="{{ contest_analytics_low_sample_threshold }}" selected>{{ contest_analytics_low_sample_threshold }}+</option>
+                <option value="25">25+</option>
+                <option value="50">50+</option>
+              </select>
+            </div>
+            <span id="contest-ranked-summary" class="text-muted fs-xs"></span>
+          </div>
+          <div id="contest-ranked-chart" style="min-height: 360px;"></div>
         </div>
       </div>
     </div>
@@ -107,37 +183,67 @@
       <div class="card h-100">
         <div class="card-header border-0 pb-0">
           <h4 class="header-title mb-0">Contest leaders</h4>
-          <p class="text-muted fs-xs mb-0">Quick signals across scale, longevity, difficulty, and breadth</p>
+          <p class="text-muted fs-xs mb-0">Clickable shortcuts into the advanced contest view</p>
         </div>
         <div class="card-body pt-2">
-          <div class="d-flex flex-column gap-3">
-            <div class="border rounded p-3">
+          <div class="d-flex flex-column gap-2">
+            {% if contest_leaders.biggest %}
+            <a href="{{ contest_leaders.biggest.detail_url }}" class="contest-leader-link border rounded p-3 text-reset text-decoration-none">
               <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Largest dataset</p>
               <div class="d-flex align-items-center justify-content-between gap-2">
                 <h5 class="mb-0">{{ contest_leaders.biggest.contest }}</h5>
-                <span class="badge bg-primary-subtle text-primary">{{ contest_leaders.biggest.problem_count }} statements</span>
+                <span class="badge bg-primary-subtle text-primary">{{ contest_leaders.biggest.problem_count }} rows</span>
               </div>
-            </div>
-            <div class="border rounded p-3">
+            </a>
+            {% endif %}
+            {% if contest_leaders.longest_running %}
+            <a href="{{ contest_leaders.longest_running.detail_url }}" class="contest-leader-link border rounded p-3 text-reset text-decoration-none">
               <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Longest-running</p>
               <div class="d-flex align-items-center justify-content-between gap-2">
                 <h5 class="mb-0">{{ contest_leaders.longest_running.contest }}</h5>
                 <span class="badge bg-info-subtle text-info">{{ contest_leaders.longest_running.active_years }} years</span>
               </div>
-            </div>
-            <div class="border rounded p-3">
+            </a>
+            {% endif %}
+            {% if contest_leaders.hardest %}
+            <a href="{{ contest_leaders.hardest.detail_url }}" class="contest-leader-link border rounded p-3 text-reset text-decoration-none">
               <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Hardest on average</p>
               <div class="d-flex align-items-center justify-content-between gap-2">
                 <h5 class="mb-0">{{ contest_leaders.hardest.contest }}</h5>
                 <span class="badge bg-warning-subtle text-warning">Avg MOHS {{ contest_leaders.hardest.avg_mohs }}</span>
               </div>
-            </div>
-            <div class="border rounded p-3">
+            </a>
+            {% endif %}
+            {% if contest_leaders.broadest %}
+            <a href="{{ contest_leaders.broadest.detail_url }}" class="contest-leader-link border rounded p-3 text-reset text-decoration-none">
               <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Broadest topic mix</p>
               <div class="d-flex align-items-center justify-content-between gap-2">
                 <h5 class="mb-0">{{ contest_leaders.broadest.contest }}</h5>
                 <span class="badge bg-success-subtle text-success">{{ contest_leaders.broadest.distinct_topics }} topics</span>
               </div>
+            </a>
+            {% endif %}
+          </div>
+
+          <hr class="my-3">
+
+          <div id="contest-data-quality-watchlist">
+            <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+              <h5 class="mb-0">Data quality watchlist</h5>
+              <span class="badge bg-secondary-subtle text-secondary">{{ contest_quality_counts.missing_mohs }} with missing MOHS</span>
+            </div>
+            <div class="d-flex flex-column gap-2">
+              {% for contest_row in data_quality_watchlist %}
+              <a href="{{ contest_row.detail_url }}" class="contest-quality-row border rounded p-2 text-reset text-decoration-none">
+                <div class="d-flex align-items-center justify-content-between gap-2">
+                  <span class="fw-semibold text-truncate">{{ contest_row.contest }}</span>
+                  <span class="badge text-bg-light">{{ contest_row.complete_metadata_percent }}% complete</span>
+                </div>
+                <p class="text-muted fs-xs mb-0">
+                  Missing: MOHS {{ contest_row.missing_mohs_count }}, topics {{ contest_row.missing_topic_count }}, techniques {{ contest_row.missing_technique_count }}
+                </p>
+              </a>
+              {% endfor %}
             </div>
           </div>
         </div>
@@ -146,50 +252,14 @@
   </div>
 
   <div class="row g-3 mt-0">
-    <div class="col-xl-6">
+    <div class="col-12">
       <div class="card">
         <div class="card-header border-0 pb-0">
-          <h4 class="header-title mb-0">Active year span</h4>
-          <p class="text-muted fs-xs mb-0">Contests with the widest year coverage in the dataset</p>
+          <h4 class="header-title mb-0">Topic mix by contest</h4>
+          <p class="text-muted fs-xs mb-0">Top contests by statement volume, stacked by effective topic metadata</p>
         </div>
         <div class="card-body pt-2">
-          <div id="chart-active-years" style="min-height: 320px;"></div>
-        </div>
-      </div>
-    </div>
-    <div class="col-xl-6">
-      <div class="card">
-        <div class="card-header border-0 pb-0">
-          <h4 class="header-title mb-0">Average MOHS by contest</h4>
-          <p class="text-muted fs-xs mb-0">Higher bars indicate consistently tougher problem sets</p>
-        </div>
-        <div class="card-body pt-2">
-          <div id="chart-avg-mohs" style="min-height: 320px;"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="row g-3 mt-0">
-    <div class="col-xl-6">
-      <div class="card">
-        <div class="card-header border-0 pb-0">
-          <h4 class="header-title mb-0">Topic breadth</h4>
-          <p class="text-muted fs-xs mb-0">Distinct topic labels represented within each contest</p>
-        </div>
-        <div class="card-body pt-2">
-          <div id="chart-topic-breadth" style="min-height: 320px;"></div>
-        </div>
-      </div>
-    </div>
-    <div class="col-xl-6">
-      <div class="card">
-        <div class="card-header border-0 pb-0">
-          <h4 class="header-title mb-0">Technique density</h4>
-          <p class="text-muted fs-xs mb-0">Parsed technique rows per statement, highlighting annotation depth</p>
-        </div>
-        <div class="card-body pt-2">
-          <div id="chart-technique-density" style="min-height: 320px;"></div>
+          <div id="contest-topic-composition-chart" style="min-height: 360px;"></div>
         </div>
       </div>
     </div>
@@ -201,11 +271,36 @@
         <div class="card-header border-bottom d-flex flex-wrap align-items-center gap-2">
           <div class="flex-grow-1">
             <h4 class="header-title mb-0">Contest directory</h4>
-            <p class="text-muted fs-xs mb-0">Search, sort, and compare contest-level metrics in-browser</p>
+            <p class="text-muted fs-xs mb-0">Search, filter, and compare contest-level metrics in-browser</p>
           </div>
         </div>
         <div class="card-body">
-          <div class="table-responsive">
+          <div class="d-flex flex-wrap align-items-end gap-2 mb-3">
+            <div>
+              <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="contest-directory-search">Search contests</label>
+              <input
+                id="contest-directory-search"
+                type="search"
+                class="form-control form-control-sm"
+                placeholder="Search contest, year span, or badge"
+              >
+            </div>
+            <div>
+              <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="contest-directory-quality-filter">Quality filter</label>
+              <select id="contest-directory-quality-filter" class="form-select form-select-sm">
+                <option value="all">All contests</option>
+                <option value="low_sample">Low sample</option>
+                <option value="missing_mohs">Missing MOHS</option>
+                <option value="missing_topic">Missing topic</option>
+                <option value="no_techniques">No techniques</option>
+              </select>
+            </div>
+            <button type="button" id="contest-directory-reset" class="btn btn-outline-secondary btn-sm">Reset</button>
+            <span id="contest-directory-filter-summary" class="text-muted fs-xs">
+              {{ contest_quality_counts.missing_topics }} with missing topics · {{ contest_quality_counts.no_techniques }} with no techniques
+            </span>
+          </div>
+          <div class="table-responsive contest-dashboard-table-tools">
             <table id="contest-analytics-table" class="table table-striped table-bordered align-middle w-100"></table>
           </div>
         </div>
@@ -231,17 +326,53 @@
   var tableEl = document.getElementById("contest-dashboard-table-data");
   if (!dataEl || !tableEl || typeof ApexCharts === "undefined") return;
 
-  var palette = ["#0d6efd", "#198754", "#fd7e14", "#0dcaf0", "#d63384"];
   var charts = JSON.parse(dataEl.textContent);
   var rows = JSON.parse(tableEl.textContent);
+  var rankedChart = null;
+  var rankedRows = [];
+  var rankedLimit = Number("{{ contest_analytics_chart_limit }}") || 12;
 
-  function formatMetric(value) {
-    if (typeof value !== "number") return value;
-    return Number.isInteger(value) ? String(value) : value.toFixed(2);
-  }
+  var metricConfig = {
+    problem_count: {
+      color: "#0d6efd",
+      label: "Statements",
+      sampleField: "problem_count",
+      suffix: "",
+      valueField: "problem_count"
+    },
+    active_years: {
+      color: "#198754",
+      label: "Active years",
+      sampleField: "problem_count",
+      suffix: "",
+      valueField: "active_years"
+    },
+    avg_mohs: {
+      color: "#fd7e14",
+      label: "Avg MOHS",
+      requireField: "has_mohs",
+      sampleField: "mohs_statement_count",
+      suffix: "",
+      valueField: "avg_mohs"
+    },
+    topic_coverage_percent: {
+      color: "#0dcaf0",
+      label: "Topic coverage",
+      sampleField: "problem_count",
+      suffix: "%",
+      valueField: "topic_coverage_percent"
+    },
+    techniques_per_problem: {
+      color: "#d63384",
+      label: "Technique density",
+      sampleField: "problem_count",
+      suffix: "",
+      valueField: "techniques_per_problem"
+    }
+  };
 
   function escapeHtml(value) {
-    return String(value)
+    return String(value == null ? "" : value)
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
@@ -249,81 +380,246 @@
       .replace(/'/g, "&#39;");
   }
 
-  function barOptions(payload, color) {
+  function formatMetric(value, suffix) {
+    var numberValue = Number(value || 0);
+    var rendered = Number.isInteger(numberValue) ? String(numberValue) : numberValue.toFixed(2);
+    return suffix ? rendered + suffix : rendered;
+  }
+
+  function rankedOptions(metricKey, labels, values) {
+    var config = metricConfig[metricKey] || metricConfig.problem_count;
     return {
-      chart: { type: "bar", height: Math.max(320, 34 * payload.labels.length), toolbar: { show: false }, fontFamily: "inherit" },
-      series: [{ name: "Value", data: payload.values }],
-      plotOptions: { bar: { borderRadius: 3, horizontal: true, barHeight: "72%" } },
-      dataLabels: {
-        enabled: payload.values.length <= 12,
-        formatter: function (value) { return formatMetric(value); }
-      },
-      tooltip: {
-        y: {
-          formatter: function (value) { return formatMetric(value); }
+      chart: {
+        type: "bar",
+        height: Math.max(360, 34 * Math.max(labels.length, 8)),
+        toolbar: { show: false },
+        fontFamily: "inherit",
+        events: {
+          dataPointSelection: function (_event, _chartContext, chartConfig) {
+            var row = rankedRows[chartConfig.dataPointIndex];
+            if (row && row.detail_url) {
+              window.location.href = row.detail_url;
+            }
+          }
         }
       },
-      colors: [color],
-      grid: { strokeDashArray: 4, borderColor: "rgba(108,117,125,0.15)" },
-      xaxis: {
-        categories: payload.labels,
-        labels: { style: { fontSize: "11px" } },
+      colors: [config.color],
+      dataLabels: {
+        enabled: labels.length <= rankedLimit,
+        formatter: function (value) { return formatMetric(value, config.suffix); }
       },
+      grid: { strokeDashArray: 4, borderColor: "rgba(108,117,125,0.15)" },
+      noData: { text: "No contests match this sample threshold" },
+      plotOptions: { bar: { borderRadius: 3, horizontal: true, barHeight: "72%" } },
+      series: [{ name: config.label, data: values }],
+      tooltip: {
+        y: {
+          formatter: function (value, opts) {
+            var row = rankedRows[opts.dataPointIndex];
+            var sample = row ? Number(row[config.sampleField] || 0) : 0;
+            return formatMetric(value, config.suffix) + " from " + sample + " sample rows";
+          }
+        }
+      },
+      xaxis: {
+        categories: labels,
+        labels: { style: { fontSize: "11px" } }
+      },
+      yaxis: {
+        labels: {
+          maxWidth: 260,
+          style: { fontSize: "11px" }
+        }
+      }
     };
   }
 
-  function renderBar(sel, payload, idx) {
-    var el = document.querySelector(sel);
-    if (!el || !payload.labels.length) return;
-    var chart = new ApexCharts(el, barOptions(payload, palette[idx % palette.length]));
-    chart.render();
+  function selectedMetricKey() {
+    var active = document.querySelector("[data-contest-ranked-metric].active");
+    return active ? active.getAttribute("data-contest-ranked-metric") : "problem_count";
   }
 
-  renderBar("#chart-contest-volume", charts.byProblemVolume, 0);
-  renderBar("#chart-active-years", charts.byActiveYears, 1);
-  renderBar("#chart-avg-mohs", charts.byAvgMohs, 2);
-  renderBar("#chart-topic-breadth", charts.byTopicBreadth, 3);
-  renderBar("#chart-technique-density", charts.byTechniqueDensity, 4);
+  function selectedMinSample() {
+    var select = document.getElementById("contest-ranked-min-statements");
+    return select ? Number(select.value || 0) : 0;
+  }
+
+  function renderRankedChart() {
+    var metricKey = selectedMetricKey();
+    var config = metricConfig[metricKey] || metricConfig.problem_count;
+    var minSample = selectedMinSample();
+    rankedRows = rows
+      .filter(function (row) {
+        if (config.requireField && !row[config.requireField]) return false;
+        return Number(row[config.sampleField] || 0) >= minSample;
+      })
+      .sort(function (a, b) {
+        var valueDiff = Number(b[config.valueField] || 0) - Number(a[config.valueField] || 0);
+        if (valueDiff !== 0) return valueDiff;
+        var countDiff = Number(b.problem_count || 0) - Number(a.problem_count || 0);
+        if (countDiff !== 0) return countDiff;
+        return String(a.contest || "").localeCompare(String(b.contest || ""));
+      })
+      .slice(0, rankedLimit);
+
+    var labels = rankedRows.map(function (row) { return row.contest; });
+    var values = rankedRows.map(function (row) { return Number(row[config.valueField] || 0); });
+    var chartEl = document.getElementById("contest-ranked-chart");
+    var summaryEl = document.getElementById("contest-ranked-summary");
+    if (summaryEl) {
+      summaryEl.textContent = rankedRows.length + " contests shown";
+    }
+    if (!chartEl) return;
+    if (!rankedChart) {
+      rankedChart = new ApexCharts(chartEl, rankedOptions(metricKey, labels, values));
+      rankedChart.render();
+      return;
+    }
+    rankedChart.updateOptions(
+      rankedOptions(metricKey, labels, values),
+      false,
+      true,
+    );
+  }
+
+  function renderTopicComposition() {
+    var chartEl = document.getElementById("contest-topic-composition-chart");
+    var payload = charts.topicComposition || {};
+    var labels = payload.labels || [];
+    var series = payload.series || [];
+    if (!chartEl || !labels.length || !series.length) return;
+    var palette = ["#0d6efd", "#198754", "#fd7e14", "#0dcaf0", "#d63384", "#6c757d"];
+    new ApexCharts(chartEl, {
+      chart: {
+        type: "bar",
+        height: 380,
+        stacked: true,
+        toolbar: { show: false },
+        fontFamily: "inherit"
+      },
+      colors: palette,
+      dataLabels: { enabled: false },
+      grid: { strokeDashArray: 4, borderColor: "rgba(108,117,125,0.15)" },
+      legend: { position: "top", horizontalAlign: "left" },
+      plotOptions: { bar: { borderRadius: 3, columnWidth: "58%" } },
+      series: series,
+      tooltip: { shared: true, intersect: false },
+      xaxis: {
+        categories: labels,
+        labels: { rotate: labels.length > 6 ? -45 : 0, style: { fontSize: "11px" } }
+      },
+      yaxis: { labels: { style: { fontSize: "11px" } } }
+    }).render();
+  }
+
+  function qualityBadgeClass(label) {
+    if (label === "Low sample") return "bg-secondary-subtle text-secondary";
+    if (label === "No MOHS") return "bg-warning-subtle text-warning";
+    if (label === "No topic") return "bg-info-subtle text-info";
+    if (label === "No techniques") return "bg-danger-subtle text-danger";
+    return "text-bg-light";
+  }
+
+  function qualityFilterMatches(row, filterValue) {
+    if (filterValue === "low_sample") return Boolean(row.is_low_sample);
+    if (filterValue === "missing_mohs") return Number(row.missing_mohs_count || 0) > 0;
+    if (filterValue === "missing_topic") return Number(row.missing_topic_count || 0) > 0;
+    if (filterValue === "no_techniques") return !row.has_techniques;
+    return true;
+  }
+
+  document.querySelectorAll("[data-contest-ranked-metric]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      document.querySelectorAll("[data-contest-ranked-metric]").forEach(function (metricButton) {
+        metricButton.classList.remove("active", "btn-primary");
+        metricButton.classList.add("btn-outline-primary");
+      });
+      button.classList.add("active", "btn-primary");
+      button.classList.remove("btn-outline-primary");
+      renderRankedChart();
+    });
+  });
+
+  var minSampleSelect = document.getElementById("contest-ranked-min-statements");
+  if (minSampleSelect) {
+    minSampleSelect.addEventListener("change", renderRankedChart);
+  }
+
+  renderRankedChart();
+  renderTopicComposition();
 
   if (typeof DataTable === "undefined") return;
 
-  new DataTable("#contest-analytics-table", {
+  var table = new DataTable("#contest-analytics-table", {
     data: rows,
     columns: [
       {
         data: "contest",
         title: "Contest",
         render: function (data, type, row) {
-          if (type === "display") {
-            return '<a href="' + row.detail_url + '" class="fw-semibold text-decoration-none">' + escapeHtml(data) + "</a>";
+          if (type !== "display") return data;
+          var badges = (row.quality_badges || []).map(function (label) {
+            return '<span class="badge ' + qualityBadgeClass(label) + '">' + escapeHtml(label) + '</span>';
+          }).join(" ");
+          return (
+            '<a href="' + escapeHtml(row.detail_url) + '" class="fw-semibold text-decoration-none">' +
+            escapeHtml(data) +
+            "</a>" +
+            (badges ? '<div class="d-flex flex-wrap gap-1 mt-1">' + badges + "</div>" : "")
+          );
+        }
+      },
+      { data: "problem_count", title: "Statements", className: "text-end text-nowrap" },
+      { data: "year_span_label", title: "Year span", className: "text-nowrap" },
+      { data: "active_years", title: "Active years", className: "text-end text-nowrap" },
+      {
+        data: "avg_mohs",
+        title: "Avg MOHS",
+        className: "text-end text-nowrap",
+        render: function (data, type, row) {
+          if (type === "display" || type === "filter") {
+            return row.has_mohs ? formatMetric(data, "") : "-";
           }
           return data;
         }
       },
-      { data: "problem_count", title: "Statements", className: "text-nowrap" },
-      { data: "year_span_label", title: "Year span", className: "text-nowrap" },
-      { data: "active_years", title: "Active years", className: "text-nowrap" },
-      { data: "distinct_topics", title: "Topics", className: "text-nowrap" },
       {
-        data: "avg_mohs",
-        title: "Avg MOHS",
-        className: "text-nowrap",
+        data: "mohs_coverage_percent",
+        title: "MOHS coverage",
+        className: "text-end text-nowrap",
         render: function (data, type) {
-          if (type === "display" || type === "filter") return formatMetric(Number(data || 0));
+          if (type === "display" || type === "filter") return formatMetric(data, "%");
           return data;
         }
       },
-      { data: "max_mohs", title: "Max MOHS", className: "text-nowrap" },
-      { data: "technique_rows", title: "Technique rows", className: "text-nowrap" },
+      {
+        data: "topic_coverage_percent",
+        title: "Topic coverage",
+        className: "text-end text-nowrap",
+        render: function (data, type) {
+          if (type === "display" || type === "filter") return formatMetric(data, "%");
+          return data;
+        }
+      },
+      {
+        data: "technique_coverage_percent",
+        title: "Technique coverage",
+        className: "text-end text-nowrap",
+        render: function (data, type) {
+          if (type === "display" || type === "filter") return formatMetric(data, "%");
+          return data;
+        }
+      },
       {
         data: "techniques_per_problem",
         title: "Techniques / statement",
-        className: "text-nowrap",
+        className: "text-end text-nowrap",
         render: function (data, type) {
-          if (type === "display" || type === "filter") return formatMetric(Number(data || 0));
+          if (type === "display" || type === "filter") return formatMetric(data, "");
           return data;
         }
       },
+      { data: "quality_issue_count", title: "Quality flags", className: "text-end text-nowrap" },
     ],
     order: [[1, "desc"], [0, "asc"]],
     pageLength: 25,
@@ -331,6 +627,39 @@
     scrollX: true,
     autoWidth: false,
   });
+
+  var searchInput = document.getElementById("contest-directory-search");
+  var qualityFilter = document.getElementById("contest-directory-quality-filter");
+  var resetButton = document.getElementById("contest-directory-reset");
+
+  DataTable.ext.search.push(function (settings, _data, dataIndex, rowData) {
+    if (!settings.nTable || settings.nTable.id !== "contest-analytics-table") return true;
+    var row = rowData || table.row(dataIndex).data();
+    if (!row) return true;
+    return qualityFilterMatches(row, qualityFilter ? qualityFilter.value : "all");
+  });
+
+  if (searchInput) {
+    searchInput.addEventListener("input", function () {
+      table.search(searchInput.value || "");
+      table.draw();
+    });
+  }
+
+  if (qualityFilter) {
+    qualityFilter.addEventListener("change", function () {
+      table.draw();
+    });
+  }
+
+  if (resetButton) {
+    resetButton.addEventListener("click", function () {
+      if (searchInput) searchInput.value = "";
+      if (qualityFilter) qualityFilter.value = "all";
+      table.search("");
+      table.draw();
+    });
+  }
 })();
 </script>
 {% endif %}

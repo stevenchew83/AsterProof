@@ -2,80 +2,198 @@
 
 {% block title %}View analytics{% endblock title %}
 
+{% block extra_css %}
+<style>
+  .page-view-filter-grid {
+    display: grid;
+    gap: .75rem;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+
+  .page-view-filter-field {
+    grid-column: span 2;
+  }
+
+  .page-view-filter-field.is-wide {
+    grid-column: span 3;
+  }
+
+  .page-view-filter-field.is-actions,
+  .page-view-filter-field.is-toggles {
+    grid-column: span 12;
+  }
+
+  .page-view-surface-row {
+    display: grid;
+    gap: .75rem;
+    grid-template-columns: minmax(9rem, 13rem) minmax(10rem, 1fr) minmax(8rem, auto);
+    padding: .85rem 0;
+  }
+
+  .page-view-surface-row + .page-view-surface-row {
+    border-top: 1px solid var(--ins-border-color);
+  }
+
+  .page-view-surface-progress {
+    height: .45rem;
+  }
+
+  .page-view-path-action {
+    width: 2rem;
+  }
+
+  .page-view-mobile-list {
+    display: grid;
+    gap: .75rem;
+  }
+
+  .page-view-mobile-row {
+    border: 1px solid var(--ins-border-color);
+    border-radius: .5rem;
+    padding: .85rem;
+  }
+
+  @media (max-width: 1199.98px) {
+    .page-view-filter-field,
+    .page-view-filter-field.is-wide {
+      grid-column: span 4;
+    }
+  }
+
+  @media (max-width: 767.98px) {
+    .page-view-filter-field,
+    .page-view-filter-field.is-wide {
+      grid-column: span 12;
+    }
+
+    .page-view-surface-row {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+{% endblock extra_css %}
+
 {% block page_content %}
 <div class="container-fluid">
 
   {% include 'partials/page-title.html' with title='View analytics' subtitle='Admin' %}
 
   <div class="row g-3 mt-0">
-    <div class="col-sm-6 col-xl-3">
-      <div class="card m-0">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header border-bottom py-2">
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <div>
+              <h4 class="header-title mb-0">Analytics filters</h4>
+              <p class="text-muted fs-xs mb-0">
+                Showing {{ page_view_date_range.label }} · {{ page_view_stats.total }} views · {{ page_view_stats.known_user_total }} known user{{ page_view_stats.known_user_total|pluralize }}
+              </p>
+            </div>
+            <span class="badge bg-secondary-subtle text-secondary">{{ page_view_stats.anonymous_view_total }} anonymous view{{ page_view_stats.anonymous_view_total|pluralize }}</span>
+          </div>
+        </div>
         <div class="card-body">
-          <div class="d-flex align-items-center">
+          <form method="get" class="page-view-filter-grid">
+            <div class="page-view-filter-field">
+              <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="page-view-range">Range</label>
+              <select id="page-view-range" name="range" class="form-select form-select-sm">
+                {% for range_option in page_view_range_options %}
+                <option value="{{ range_option.value }}" {% if range_option.value == page_view_filters.range %}selected{% endif %}>{{ range_option.label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="page-view-filter-field">
+              <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="page-view-start">Start</label>
+              <input id="page-view-start" type="date" name="start" value="{{ page_view_filters.start }}" class="form-control form-control-sm">
+            </div>
+            <div class="page-view-filter-field">
+              <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="page-view-end">End</label>
+              <input id="page-view-end" type="date" name="end" value="{{ page_view_filters.end }}" class="form-control form-control-sm">
+            </div>
+            <div class="page-view-filter-field">
+              <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="page-view-surface">Surface</label>
+              <select id="page-view-surface" name="surface" class="form-select form-select-sm">
+                <option value="">All surfaces</option>
+                {% for surface_option in page_view_surface_options %}
+                <option value="{{ surface_option.value }}" {% if surface_option.value == page_view_filters.surface %}selected{% endif %}>{{ surface_option.label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="page-view-filter-field is-wide">
+              <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="page-view-user">User</label>
+              <select id="page-view-user" name="user" class="form-select form-select-sm">
+                <option value="">All users</option>
+                {% for user_option in page_view_user_options %}
+                <option value="{{ user_option.value }}" {% if user_option.value == page_view_filters.user %}selected{% endif %}>{{ user_option.label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="page-view-filter-field is-wide">
+              <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="page-view-q">Recent search</label>
+              <input id="page-view-q" type="search" name="q" value="{{ page_view_filters.q }}" class="form-control form-control-sm" placeholder="Label, path, user...">
+            </div>
+            <div class="page-view-filter-field is-toggles">
+              <div class="d-flex flex-wrap align-items-center gap-3">
+                <div class="form-check form-switch mb-0">
+                  <input class="form-check-input" type="checkbox" name="include_admins" value="1" id="page-view-include-admins" {% if page_view_filters.include_admins %}checked{% endif %}>
+                  <label class="form-check-label" for="page-view-include-admins">Include admins</label>
+                </div>
+                <input type="hidden" name="include_anonymous" value="0">
+                <div class="form-check form-switch mb-0">
+                  <input class="form-check-input" type="checkbox" name="include_anonymous" value="1" id="page-view-include-anonymous" {% if page_view_filters.include_anonymous == '1' %}checked{% endif %}>
+                  <label class="form-check-label" for="page-view-include-anonymous">Include anonymous</label>
+                </div>
+              </div>
+            </div>
+            <div class="page-view-filter-field is-actions">
+              <div class="d-flex flex-wrap align-items-center gap-2">
+                <button type="submit" class="btn btn-sm btn-primary">
+                  <i class="ti ti-filter me-1"></i>Apply filters
+                </button>
+                <a href="{% url 'pages:page_view_analytics' %}" class="btn btn-sm btn-outline-secondary">
+                  <i class="ti ti-refresh me-1"></i>Reset
+                </a>
+                <span class="text-muted fs-xs">{{ page_view_date_range.label }}</span>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-0">
+    {% for row in page_view_kpi_rows %}
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0 h-100">
+        <div class="card-body">
+          <div class="d-flex align-items-start">
             <div class="flex-shrink-0">
-              <span class="avatar-title bg-primary-subtle text-primary rounded">
-                <i class="ti ti-file-text fs-24"></i>
+              <span class="avatar-title {{ row.badge_class }} rounded">
+                <i class="{{ row.icon_class }} fs-24"></i>
               </span>
             </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Problem statements</p>
-              <h3 class="mb-0">{{ page_view_stats.problem_statement_view_total }}</h3>
+            <div class="flex-grow-1 ms-2 min-w-0">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">{{ row.kpi_label }}</p>
+              <h3 class="mb-1">{{ row.view_total }}</h3>
+              <div class="d-flex flex-wrap align-items-center gap-1">
+                <span class="badge {{ row.delta_badge_class }}">{{ row.delta_label }}</span>
+                <span class="text-muted fs-xs">{{ row.known_user_total }} user{{ row.known_user_total|pluralize }}</span>
+              </div>
+              <p class="text-muted fs-xs mb-0 mt-1">
+                Latest:
+                {% if row.latest_at_label %}
+                <span data-bs-toggle="tooltip" title="{{ row.latest_at_title }}">{{ row.latest_at_label }}</span>
+                {% else %}
+                —
+                {% endif %}
+              </p>
             </div>
           </div>
         </div>
       </div>
     </div>
-    <div class="col-sm-6 col-xl-3">
-      <div class="card m-0">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-info-subtle text-info rounded">
-                <i class="ti ti-writing fs-24"></i>
-              </span>
-            </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Solutions</p>
-              <h3 class="mb-0">{{ page_view_stats.solution_view_total }}</h3>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-6 col-xl-3">
-      <div class="card m-0">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-warning-subtle text-warning rounded">
-                <i class="ti ti-list-details fs-24"></i>
-              </span>
-            </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Lists</p>
-              <h3 class="mb-0">{{ page_view_stats.list_view_total }}</h3>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-6 col-xl-3">
-      <div class="card m-0">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-success-subtle text-success rounded">
-                <i class="ti ti-trophy fs-24"></i>
-              </span>
-            </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Contests</p>
-              <h3 class="mb-0">{{ page_view_stats.contest_view_total }}</h3>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    {% endfor %}
   </div>
 
   <div class="row g-3 mt-1">
@@ -84,9 +202,9 @@
         <div class="card-header border-bottom d-flex flex-wrap align-items-center gap-2">
           <div class="flex-grow-1">
             <h4 class="header-title mb-0">View volume by surface</h4>
-            <p class="text-muted fs-xs mb-0">{{ page_view_stats.total }} total views from {{ page_view_stats.unique_user_total }} user{{ page_view_stats.unique_user_total|pluralize }}</p>
+            <p class="text-muted fs-xs mb-0">{{ page_view_stats.total }} total views from {{ page_view_stats.known_user_total }} known user{{ page_view_stats.known_user_total|pluralize }}</p>
           </div>
-          <span class="badge bg-secondary-subtle text-secondary">Latest activity</span>
+          <span class="badge bg-secondary-subtle text-secondary">{{ page_view_date_range.label }}</span>
         </div>
         <div class="card-body">
           {% if page_view_stats.total == 0 %}
@@ -94,27 +212,24 @@
             View counts will appear after students open statement, solution, list, or contest pages.
           </div>
           {% else %}
-          <div class="table-responsive">
-            <table class="table table-striped table-bordered align-middle mb-0">
-              <thead>
-                <tr>
-                  <th>Surface</th>
-                  <th class="text-end">Views</th>
-                  <th class="text-end">Users</th>
-                  <th>Latest</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for row in page_view_type_rows %}
-                <tr>
-                  <td>{{ row.view_type_label }}</td>
-                  <td class="text-end">{{ row.view_total }}</td>
-                  <td class="text-end">{{ row.unique_user_total }}</td>
-                  <td>{{ row.latest_at_label|default:'—' }}</td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
+          <div>
+            {% for row in page_view_type_rows %}
+            <div class="page-view-surface-row align-items-center">
+              <div class="d-flex align-items-center gap-2">
+                <span class="badge {{ row.badge_class }}">{{ row.short_label }}</span>
+                <span class="fw-semibold">{{ row.view_type_label }}</span>
+              </div>
+              <div>
+                <div class="progress page-view-surface-progress">
+                  <div class="progress-bar {{ row.bar_class }}" role="progressbar" style="width: {{ row.bar_width }}%;" aria-valuenow="{{ row.bar_width }}" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+              </div>
+              <div class="text-md-end">
+                <div class="fw-semibold">{{ row.view_total }} view{{ row.view_total|pluralize }}</div>
+                <div class="text-muted fs-xs">{{ row.known_user_total }} user{{ row.known_user_total|pluralize }} · {% if row.latest_at_label %}<span data-bs-toggle="tooltip" title="{{ row.latest_at_title }}">{{ row.latest_at_label }}</span>{% else %}No activity{% endif %}</div>
+              </div>
+            </div>
+            {% endfor %}
           </div>
           {% endif %}
         </div>
@@ -124,6 +239,14 @@
 
   {% if page_view_stats.total > 0 %}
   <div class="row g-3 mt-0">
+    <div class="col-12">
+      <div class="d-flex flex-wrap align-items-end justify-content-between gap-2">
+        <div>
+          <h4 class="header-title mb-0">Top content</h4>
+          <p class="text-muted fs-xs mb-0">Most viewed statements and solutions in the selected range</p>
+        </div>
+      </div>
+    </div>
     <div class="col-xl-6">
       <div class="card h-100">
         <div class="card-header border-0 pb-0">
@@ -146,15 +269,15 @@
                 <tr>
                   <td>
                     {% if row.url %}
-                    <a href="{{ row.url }}" class="fw-semibold text-decoration-none">{{ row.label }}</a>
+                    <a href="{{ row.url }}" class="fw-semibold text-decoration-none">{{ row.display_label }}</a>
                     {% else %}
-                    <span class="fw-semibold">{{ row.label }}</span>
+                    <span class="fw-semibold">{{ row.display_label }}</span>
                     {% endif %}
                     <div class="text-muted fs-12">{{ row.contest_name }}{% if row.contest_year %} {{ row.contest_year }}{% endif %}</div>
                   </td>
                   <td class="text-end">{{ row.view_total }}</td>
-                  <td class="text-end">{{ row.unique_user_total }}</td>
-                  <td>{{ row.latest_at_label }}</td>
+                  <td class="text-end">{{ row.known_user_total }}</td>
+                  <td>{% if row.latest_at_label %}<span data-bs-toggle="tooltip" title="{{ row.latest_at_title }}">{{ row.latest_at_label }}</span>{% else %}—{% endif %}</td>
                 </tr>
                 {% empty %}
                 <tr><td colspan="4" class="text-muted">No statement views yet.</td></tr>
@@ -188,15 +311,15 @@
                 <tr>
                   <td>
                     {% if row.url %}
-                    <a href="{{ row.url }}" class="fw-semibold text-decoration-none">{{ row.label }}</a>
+                    <a href="{{ row.url }}" class="fw-semibold text-decoration-none">{{ row.display_label }}</a>
                     {% else %}
-                    <span class="fw-semibold">{{ row.label }}</span>
+                    <span class="fw-semibold">{{ row.display_label }}</span>
                     {% endif %}
                     <div class="text-muted fs-12">{{ row.contest_name }}{% if row.contest_year %} {{ row.contest_year }}{% endif %}</div>
                   </td>
                   <td class="text-end">{{ row.view_total }}</td>
-                  <td class="text-end">{{ row.unique_user_total }}</td>
-                  <td>{{ row.latest_at_label }}</td>
+                  <td class="text-end">{{ row.known_user_total }}</td>
+                  <td>{% if row.latest_at_label %}<span data-bs-toggle="tooltip" title="{{ row.latest_at_title }}">{{ row.latest_at_label }}</span>{% else %}—{% endif %}</td>
                 </tr>
                 {% empty %}
                 <tr><td colspan="4" class="text-muted">No solution views yet.</td></tr>
@@ -210,6 +333,12 @@
   </div>
 
   <div class="row g-3 mt-0">
+    <div class="col-12">
+      <div>
+        <h4 class="header-title mb-0">List and contest traffic</h4>
+        <p class="text-muted fs-xs mb-0">Browse and contest-listing activity in the selected range</p>
+      </div>
+    </div>
     <div class="col-xl-6">
       <div class="card h-100">
         <div class="card-header border-0 pb-0">
@@ -230,10 +359,19 @@
               <tbody>
                 {% for row in page_view_top_lists %}
                 <tr>
-                  <td><a href="{{ row.url }}" class="fw-semibold text-decoration-none">{{ row.label }}</a></td>
+                  <td>
+                    <a href="{{ row.url }}" class="fw-semibold text-decoration-none">{{ row.display_label }}</a>
+                    {% if row.filter_chips %}
+                    <div class="d-flex flex-wrap gap-1 mt-1">
+                      {% for chip in row.filter_chips %}
+                      <span class="badge {{ chip.badge_class }}">{{ chip.label }}</span>
+                      {% endfor %}
+                    </div>
+                    {% endif %}
+                  </td>
                   <td class="text-end">{{ row.view_total }}</td>
-                  <td class="text-end">{{ row.unique_user_total }}</td>
-                  <td>{{ row.latest_at_label }}</td>
+                  <td class="text-end">{{ row.known_user_total }}</td>
+                  <td>{% if row.latest_at_label %}<span data-bs-toggle="tooltip" title="{{ row.latest_at_title }}">{{ row.latest_at_label }}</span>{% else %}—{% endif %}</td>
                 </tr>
                 {% empty %}
                 <tr><td colspan="4" class="text-muted">No list views yet.</td></tr>
@@ -273,8 +411,8 @@
                     {% endif %}
                   </td>
                   <td class="text-end">{{ row.view_total }}</td>
-                  <td class="text-end">{{ row.unique_user_total }}</td>
-                  <td>{{ row.latest_at_label }}</td>
+                  <td class="text-end">{{ row.known_user_total }}</td>
+                  <td>{% if row.latest_at_label %}<span data-bs-toggle="tooltip" title="{{ row.latest_at_title }}">{{ row.latest_at_label }}</span>{% else %}—{% endif %}</td>
                 </tr>
                 {% empty %}
                 <tr><td colspan="4" class="text-muted">No contest views yet.</td></tr>
@@ -291,11 +429,11 @@
     <div class="col-12">
       <div class="card">
         <div class="card-header border-bottom">
-          <h4 class="header-title mb-0">Recent views</h4>
-          <p class="text-muted fs-xs mb-0">Latest {{ page_view_recent_rows|length }} tracked page views</p>
+          <h4 class="header-title mb-0">Recent activity</h4>
+          <p class="text-muted fs-xs mb-0">Latest {{ page_view_recent_rows|length }} matching page views</p>
         </div>
         <div class="card-body">
-          <div class="table-responsive">
+          <div class="table-responsive d-none d-lg-block">
             <table class="table table-striped table-bordered align-middle mb-0">
               <thead>
                 <tr>
@@ -303,27 +441,81 @@
                   <th>Surface</th>
                   <th>Label</th>
                   <th>User</th>
-                  <th>Path</th>
+                  <th class="text-center">Path</th>
                 </tr>
               </thead>
               <tbody>
                 {% for row in page_view_recent_rows %}
                 <tr>
-                  <td class="text-nowrap">{{ row.created_at_label }}</td>
-                  <td>{{ row.view_type_label }}</td>
+                  <td class="text-nowrap">
+                    <span data-bs-toggle="tooltip" title="{{ row.created_at_title }}">{{ row.created_at_label }}</span>
+                  </td>
+                  <td><span class="badge {{ row.surface_badge_class }}">{{ row.view_type_short_label }}</span></td>
                   <td>
                     {% if row.url %}
                     <a href="{{ row.url }}" class="fw-semibold text-decoration-none">{{ row.label|default:row.view_type_label }}</a>
                     {% else %}
-                    {{ row.label|default:row.view_type_label }}
+                    <span class="fw-semibold">{{ row.label|default:row.view_type_label }}</span>
+                    {% endif %}
+                    {% if row.filter_chips %}
+                    <div class="d-flex flex-wrap gap-1 mt-1">
+                      {% for chip in row.filter_chips %}
+                      <span class="badge {{ chip.badge_class }}">{{ chip.label }}</span>
+                      {% endfor %}
+                    </div>
                     {% endif %}
                   </td>
-                  <td>{{ row.user_label|default:'—' }}</td>
-                  <td class="text-muted fs-12">{{ row.path }}</td>
+                  <td>{{ row.user_label }}</td>
+                  <td class="text-center">
+                    {% if row.path %}
+                    <button type="button" class="btn btn-sm btn-icon btn-outline-secondary page-view-path-action page-view-copy-path" data-page-view-path="{{ row.path }}" data-bs-toggle="tooltip" title="{{ row.path }}" aria-label="Copy path">
+                      <i class="ti ti-copy"></i>
+                    </button>
+                    {% else %}
+                    <span class="text-muted">—</span>
+                    {% endif %}
+                  </td>
                 </tr>
+                {% empty %}
+                <tr><td colspan="5" class="text-muted">No matching page views.</td></tr>
                 {% endfor %}
               </tbody>
             </table>
+          </div>
+
+          <div class="page-view-mobile-list d-lg-none">
+            {% for row in page_view_recent_rows %}
+            <div class="page-view-mobile-row">
+              <div class="d-flex align-items-start justify-content-between gap-2">
+                <div class="min-w-0">
+                  <div class="d-flex flex-wrap align-items-center gap-1 mb-1">
+                    <span class="badge {{ row.surface_badge_class }}">{{ row.view_type_short_label }}</span>
+                    <span class="text-muted fs-xs" data-bs-toggle="tooltip" title="{{ row.created_at_title }}">{{ row.created_at_label }}</span>
+                  </div>
+                  {% if row.url %}
+                  <a href="{{ row.url }}" class="fw-semibold text-decoration-none">{{ row.label|default:row.view_type_label }}</a>
+                  {% else %}
+                  <span class="fw-semibold">{{ row.label|default:row.view_type_label }}</span>
+                  {% endif %}
+                  <div class="text-muted fs-xs">{{ row.user_label }}</div>
+                  {% if row.filter_chips %}
+                  <div class="d-flex flex-wrap gap-1 mt-2">
+                    {% for chip in row.filter_chips %}
+                    <span class="badge {{ chip.badge_class }}">{{ chip.label }}</span>
+                    {% endfor %}
+                  </div>
+                  {% endif %}
+                </div>
+                {% if row.path %}
+                <button type="button" class="btn btn-sm btn-icon btn-outline-secondary page-view-path-action page-view-copy-path" data-page-view-path="{{ row.path }}" data-bs-toggle="tooltip" title="{{ row.path }}" aria-label="Copy path">
+                  <i class="ti ti-copy"></i>
+                </button>
+                {% endif %}
+              </div>
+            </div>
+            {% empty %}
+            <div class="alert alert-info mb-0" role="alert">No matching page views.</div>
+            {% endfor %}
           </div>
         </div>
       </div>
@@ -332,3 +524,50 @@
   {% endif %}
 </div>
 {% endblock page_content %}
+
+{% block extra_javascript %}
+<script>
+(function () {
+  function fallbackCopy(text) {
+    var textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.setAttribute("readonly", "");
+    textArea.style.position = "fixed";
+    textArea.style.opacity = "0";
+    document.body.appendChild(textArea);
+    textArea.select();
+    try {
+      document.execCommand("copy");
+    } finally {
+      document.body.removeChild(textArea);
+    }
+    return Promise.resolve();
+  }
+
+  function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text);
+    }
+    return fallbackCopy(text);
+  }
+
+  document.querySelectorAll(".page-view-copy-path").forEach(function (button) {
+    var defaultHtml = button.innerHTML;
+    button.addEventListener("click", function () {
+      var path = button.getAttribute("data-page-view-path") || "";
+      if (!path) return;
+      copyText(path).then(function () {
+        button.innerHTML = '<i class="ti ti-check"></i>';
+        button.classList.remove("btn-outline-secondary");
+        button.classList.add("btn-success");
+        window.setTimeout(function () {
+          button.innerHTML = defaultHtml;
+          button.classList.remove("btn-success");
+          button.classList.add("btn-outline-secondary");
+        }, 1200);
+      });
+    });
+  });
+})();
+</script>
+{% endblock extra_javascript %}

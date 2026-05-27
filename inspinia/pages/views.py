@@ -148,6 +148,8 @@ from inspinia.users.roles import user_has_admin_role
 
 CONTEST_TOPIC_PREVIEW_LIMIT = 3
 CONTEST_PROBLEM_PREVIEW_LIMIT = 6
+CONTEST_ANALYTICS_CHART_LIMIT = 12
+CONTEST_ANALYTICS_LOW_SAMPLE_THRESHOLD = 10
 STATEMENT_DELETE_PREVIEW_LIMIT = 3
 STATEMENT_DELETE_TABLE_PAGE_LENGTH = 50
 STATEMENT_DELETE_STALE_SELECTION_ERROR = "One or more selected statement rows no longer exist."
@@ -186,6 +188,12 @@ MAIN_TOPIC_CODE_ORDER = ("A", "C", "G", "N")
 CONTEST_MOHS_SUMMARY_HIDE_THRESHOLD = 20
 STATEMENT_LINKER_ERROR_PREVIEW_LIMIT = 5
 STATEMENT_METADATA_ERROR_PREVIEW_LIMIT = 5
+STATEMENT_ANALYTICS_HEATMAP_LIMIT = 20
+STATEMENT_ANALYTICS_LOW_COVERAGE_RATE = 80
+STATEMENT_ANALYTICS_LOW_COVERAGE_MIN_STATEMENTS = 5
+STATEMENT_ANALYTICS_RECENT_YEAR = 2020
+STATEMENT_ANALYTICS_SUCCESS_RATE = 90
+STATEMENT_ANALYTICS_WARNING_RATE = 60
 COMPLETION_BOARD_INITIAL_ROW_LIMIT = 30
 COMPLETION_BOARD_ROW_LOAD_STEP = 30
 ADMIN_TABLE_LATEST_LIMIT = 100
@@ -408,6 +416,14 @@ def _rows_to_bar_payload(
     return {
         "labels": [str(r[label_key]) for r in rows],
         "values": values,
+    }
+
+
+def _with_bar_payload_metadata(payload: dict, *, series_name: str, filter_param: str) -> dict:
+    return {
+        **payload,
+        "filterParam": filter_param,
+        "seriesName": series_name,
     }
 
 
@@ -1510,6 +1526,14 @@ def _statement_dashboard_rows(base) -> list[dict]:
         row["linked_count"] = linked_count
         row["unlinked_count"] = statement_count - linked_count
         row["link_rate"] = round((linked_count / statement_count) * 100, 2) if statement_count else 0.0
+        row["has_unlinked"] = row["unlinked_count"] > 0
+        row["is_low_coverage"] = (
+            statement_count >= STATEMENT_ANALYTICS_LOW_COVERAGE_MIN_STATEMENTS
+            and row["link_rate"] < STATEMENT_ANALYTICS_LOW_COVERAGE_RATE
+        )
+        row["is_recent"] = int(row["contest_year"]) >= STATEMENT_ANALYTICS_RECENT_YEAR
+        row["link_rate_label"] = _format_statement_dashboard_percent(row["link_rate"])
+        row["link_rate_variant"] = _statement_dashboard_rate_variant(row["link_rate"])
         row["last_updated_label"] = (
             timezone.localtime(row["last_updated"]).strftime("%Y-%m-%d %H:%M")
             if row["last_updated"] is not None
@@ -1526,11 +1550,257 @@ def _statement_dashboard_rows(base) -> list[dict]:
     return rows
 
 
+def _format_statement_dashboard_count(value: float | None) -> str:
+    return f"{int(value or 0):,}"
+
+
+def _format_statement_dashboard_percent(value: float | None) -> str:
+    numeric_value = float(value or 0)
+    rendered = str(int(numeric_value)) if numeric_value.is_integer() else f"{numeric_value:.2f}"
+    return f"{rendered}%"
+
+
+def _statement_dashboard_rate_variant(value: float | None) -> str:
+    numeric_value = float(value or 0)
+    if numeric_value >= STATEMENT_ANALYTICS_SUCCESS_RATE:
+        return "success"
+    if numeric_value >= STATEMENT_ANALYTICS_WARNING_RATE:
+        return "warning"
+    return "danger"
+
+
+def _statement_attention_item(
+    config: dict[str, str],
+    row: dict | None,
+    value: str,
+    *,
+    empty_target_label: str = "No statement sets",
+    empty_value: str = "",
+) -> dict[str, object]:
+    if row is None:
+        return {
+            "key": config["key"],
+            "label": config["label"],
+            "target_label": empty_target_label,
+            "value": empty_value,
+            "variant": "secondary",
+            "icon": config["icon"],
+            "url": "",
+        }
+
+    return {
+        "key": config["key"],
+        "label": config["label"],
+        "target_label": row["contest_year_label"],
+        "value": value,
+        "variant": config["variant"],
+        "icon": config["icon"],
+        "url": row.get("contest_year_url", ""),
+    }
+
+
+def _statement_dashboard_attention(rows: list[dict]) -> list[dict[str, object]]:
+    unlinked_rows = [row for row in rows if row["unlinked_count"] > 0]
+    largest_backlog = (
+        max(
+            unlinked_rows,
+            key=lambda row: (
+                row["unlinked_count"],
+                row["statement_count"],
+                int(row["contest_year"]),
+                row["contest_year_label"],
+            ),
+        )
+        if unlinked_rows
+        else None
+    )
+    low_coverage_rows = [row for row in rows if row["is_low_coverage"]]
+    lowest_coverage = (
+        min(
+            low_coverage_rows,
+            key=lambda row: (
+                row["link_rate"],
+                -row["unlinked_count"],
+                -row["statement_count"],
+                row["contest_year_label"],
+            ),
+        )
+        if low_coverage_rows
+        else None
+    )
+    oldest_unlinked = (
+        min(
+            unlinked_rows,
+            key=lambda row: (
+                int(row["contest_year"]),
+                -row["unlinked_count"],
+                row["contest_year_label"],
+            ),
+        )
+        if unlinked_rows
+        else None
+    )
+    newest_unlinked = (
+        max(
+            unlinked_rows,
+            key=lambda row: (
+                int(row["contest_year"]),
+                row["unlinked_count"],
+                row["contest_year_label"],
+            ),
+        )
+        if unlinked_rows
+        else None
+    )
+
+    return [
+        _statement_attention_item(
+            {
+                "icon": "ti-alert-triangle",
+                "key": "largest_backlog",
+                "label": "Largest backlog",
+                "variant": "warning",
+            },
+            row=largest_backlog,
+            value=f"{largest_backlog['unlinked_count']} unlinked" if largest_backlog else "",
+        ),
+        _statement_attention_item(
+            {
+                "icon": "ti-link-off",
+                "key": "lowest_coverage",
+                "label": "Lowest meaningful coverage",
+                "variant": "danger",
+            },
+            row=lowest_coverage,
+            value=f"{lowest_coverage['link_rate_label']} linked" if lowest_coverage else "At least 5 statements",
+            empty_target_label="No qualifying sets",
+        ),
+        _statement_attention_item(
+            {
+                "icon": "ti-calendar-alert",
+                "key": "oldest_unlinked",
+                "label": "Oldest unlinked",
+                "variant": "secondary",
+            },
+            row=oldest_unlinked,
+            value=str(oldest_unlinked["contest_year"]) if oldest_unlinked else "",
+        ),
+        _statement_attention_item(
+            {
+                "icon": "ti-calendar-plus",
+                "key": "newest_unlinked",
+                "label": "Newest unlinked",
+                "variant": "info",
+            },
+            row=newest_unlinked,
+            value=str(newest_unlinked["contest_year"]) if newest_unlinked else "",
+        ),
+    ]
+
+
+def _statement_contest_totals(rows: list[dict]) -> dict[str, dict[str, int | float | str]]:
+    totals: dict[str, dict[str, int | float | str]] = {}
+    for row in rows:
+        contest_name = str(row["contest_name"])
+        contest_total = totals.setdefault(
+            contest_name,
+            {
+                "contest_name": contest_name,
+                "statement_count": 0,
+                "unlinked_count": 0,
+                "max_year": 0,
+                "min_link_rate": 100.0,
+            },
+        )
+        contest_total["statement_count"] = int(contest_total["statement_count"]) + int(row["statement_count"] or 0)
+        contest_total["unlinked_count"] = int(contest_total["unlinked_count"]) + int(row["unlinked_count"] or 0)
+        contest_total["max_year"] = max(int(contest_total["max_year"]), int(row["contest_year"]))
+        contest_total["min_link_rate"] = min(float(contest_total["min_link_rate"]), float(row["link_rate"]))
+    return totals
+
+
+def _statement_rows_for_contests(rows: list[dict], contest_names: list[str]) -> list[dict]:
+    selected = set(contest_names)
+    return [row for row in rows if row["contest_name"] in selected]
+
+
+def _statement_heatmap_contests_by_backlog(rows: list[dict]) -> list[str]:
+    totals = _statement_contest_totals(rows)
+    return [
+        str(total["contest_name"])
+        for total in sorted(
+            totals.values(),
+            key=lambda total: (
+                -int(total["unlinked_count"]),
+                -int(total["statement_count"]),
+                -int(total["max_year"]),
+                str(total["contest_name"]),
+            ),
+        )
+        if int(total["unlinked_count"]) > 0
+    ]
+
+
+def _statement_heatmap_contests_by_low_coverage(rows: list[dict]) -> list[str]:
+    low_coverage_contests = {str(row["contest_name"]) for row in rows if row["is_low_coverage"]}
+    totals = _statement_contest_totals([row for row in rows if row["contest_name"] in low_coverage_contests])
+    return [
+        str(total["contest_name"])
+        for total in sorted(
+            totals.values(),
+            key=lambda total: (
+                float(total["min_link_rate"]),
+                -int(total["unlinked_count"]),
+                -int(total["statement_count"]),
+                str(total["contest_name"]),
+            ),
+        )
+    ]
+
+
+def _statement_heatmap_contests_by_volume(rows: list[dict]) -> list[str]:
+    totals = _statement_contest_totals(rows)
+    return [
+        str(total["contest_name"])
+        for total in sorted(
+            totals.values(),
+            key=lambda total: (
+                -int(total["statement_count"]),
+                -int(total["max_year"]),
+                str(total["contest_name"]),
+            ),
+        )
+    ]
+
+
+def _statement_heatmap_contests_by_recent_backlog(rows: list[dict]) -> list[str]:
+    recent_rows = [
+        row
+        for row in rows
+        if int(row["contest_year"]) >= STATEMENT_ANALYTICS_RECENT_YEAR and int(row["unlinked_count"]) > 0
+    ]
+    totals = _statement_contest_totals(recent_rows)
+    return [
+        str(total["contest_name"])
+        for total in sorted(
+            totals.values(),
+            key=lambda total: (
+                -int(total["max_year"]),
+                -int(total["unlinked_count"]),
+                str(total["contest_name"]),
+            ),
+        )
+    ]
+
+
 def _statement_heatmap_payload(rows: list[dict]) -> dict[str, object]:
     return _contest_year_heatmap_payload(
         rows,
         value_key="statement_count",
-        url_key="contest_year_url",
+        config={
+            "metric_label": "Statement rows",
+            "url_key": "contest_year_url",
+        },
     )
 
 
@@ -1538,10 +1808,25 @@ def _contest_year_heatmap_payload(
     rows: list[dict],
     *,
     value_key: str,
-    url_key: str | None = None,
+    config: dict[str, object] | None = None,
 ) -> dict[str, object]:
+    payload_config = config or {}
+    url_key_value = str(payload_config.get("url_key") or "")
+    url_key = url_key_value or None
+    metric_label = str(payload_config.get("metric_label") or "")
+    mode = str(payload_config.get("mode") or "")
+    ordered_contests = payload_config.get("ordered_contests")
+    is_limited = bool(payload_config.get("is_limited", False))
+
     if not rows:
-        return {"max_value": 0, "series": [], "years": []}
+        return {
+            "is_limited": is_limited,
+            "max_value": 0,
+            "metric_label": metric_label,
+            "mode": mode,
+            "series": [],
+            "years": [],
+        }
 
     years = sorted({int(row["contest_year"]) for row in rows})
     value_by_contest_year: dict[str, dict[int, int]] = defaultdict(dict)
@@ -1559,14 +1844,20 @@ def _contest_year_heatmap_payload(
                 url_by_contest_year[contest_name][contest_year] = url
         contest_totals[contest_name] += value
 
-    ordered_contests = sorted(
-        contest_totals,
-        key=lambda contest_name: (-contest_totals[contest_name], contest_name),
-    )
+    if not isinstance(ordered_contests, list):
+        ordered_contests = sorted(
+            contest_totals,
+            key=lambda contest_name: (-contest_totals[contest_name], contest_name),
+        )
+    else:
+        ordered_contests = [contest_name for contest_name in ordered_contests if contest_name in contest_totals]
     max_value = max(int(row[value_key] or 0) for row in rows)
 
     return {
+        "is_limited": is_limited,
         "max_value": max_value,
+        "metric_label": metric_label,
+        "mode": mode,
         "series": [
             {
                 "data": [
@@ -1589,6 +1880,81 @@ def _contest_year_heatmap_payload(
             for contest_name in ordered_contests
         ],
         "years": [str(year) for year in years],
+    }
+
+
+def _statement_heatmap_views(rows: list[dict]) -> dict[str, dict[str, object]]:
+    backlog_contests = _statement_heatmap_contests_by_backlog(rows)
+    low_coverage_contests = _statement_heatmap_contests_by_low_coverage(rows)
+    volume_contests = _statement_heatmap_contests_by_volume(rows)
+    recent_contests = _statement_heatmap_contests_by_recent_backlog(rows)
+    all_contests = _statement_heatmap_contests_by_backlog(rows)
+    all_contests.extend(
+        contest
+        for contest in _statement_heatmap_contests_by_volume(rows)
+        if contest not in all_contests
+    )
+
+    backlog_limited = backlog_contests[:STATEMENT_ANALYTICS_HEATMAP_LIMIT]
+    low_coverage_limited = low_coverage_contests[:STATEMENT_ANALYTICS_HEATMAP_LIMIT]
+    volume_limited = volume_contests[:STATEMENT_ANALYTICS_HEATMAP_LIMIT]
+    recent_limited = recent_contests[:STATEMENT_ANALYTICS_HEATMAP_LIMIT]
+
+    return {
+        "backlog": _contest_year_heatmap_payload(
+            _statement_rows_for_contests(rows, backlog_limited),
+            value_key="unlinked_count",
+            config={
+                "is_limited": len(backlog_contests) > STATEMENT_ANALYTICS_HEATMAP_LIMIT,
+                "metric_label": "Unlinked statement rows",
+                "mode": "backlog",
+                "ordered_contests": backlog_limited,
+                "url_key": "contest_year_url",
+            },
+        ),
+        "lowCoverage": _contest_year_heatmap_payload(
+            _statement_rows_for_contests(rows, low_coverage_limited),
+            value_key="unlinked_count",
+            config={
+                "is_limited": len(low_coverage_contests) > STATEMENT_ANALYTICS_HEATMAP_LIMIT,
+                "metric_label": "Unlinked rows in low-coverage sets",
+                "mode": "lowCoverage",
+                "ordered_contests": low_coverage_limited,
+                "url_key": "contest_year_url",
+            },
+        ),
+        "volume": _contest_year_heatmap_payload(
+            _statement_rows_for_contests(rows, volume_limited),
+            value_key="statement_count",
+            config={
+                "is_limited": len(volume_contests) > STATEMENT_ANALYTICS_HEATMAP_LIMIT,
+                "metric_label": "Statement rows",
+                "mode": "volume",
+                "ordered_contests": volume_limited,
+                "url_key": "contest_year_url",
+            },
+        ),
+        "recent": _contest_year_heatmap_payload(
+            _statement_rows_for_contests(rows, recent_limited),
+            value_key="unlinked_count",
+            config={
+                "is_limited": len(recent_contests) > STATEMENT_ANALYTICS_HEATMAP_LIMIT,
+                "metric_label": f"Unlinked statement rows since {STATEMENT_ANALYTICS_RECENT_YEAR}",
+                "mode": "recent",
+                "ordered_contests": recent_limited,
+                "url_key": "contest_year_url",
+            },
+        ),
+        "all": _contest_year_heatmap_payload(
+            _statement_rows_for_contests(rows, all_contests),
+            value_key="unlinked_count",
+            config={
+                "metric_label": "Unlinked statement rows",
+                "mode": "all",
+                "ordered_contests": all_contests,
+                "url_key": "contest_year_url",
+            },
+        ),
     }
 
 
@@ -1898,6 +2264,7 @@ def _contest_mohs_summary_rows(user: User) -> list[dict[str, object]]:
             "contest_url": contest_dashboard_listing_url(contest_name),
             "level_labels": level_labels,
             "levels": ", ".join(level_labels),
+            "mohs_total": sum(all_mohs_values),
             "total_count": len(all_mohs_values),
             "topic_averages": topic_averages,
             "topic_counts": topic_counts,
@@ -1937,6 +2304,7 @@ def contest_mohs_summary_view(request):
     rows = _contest_mohs_summary_rows(request.user)
     contest_total = len(rows)
     total_statement_count = sum(int(row["total_count"]) for row in rows)
+    total_mohs = sum(int(row.get("mohs_total") or 0) for row in rows)
     visible_over_threshold = sum(
         1
         for row in rows
@@ -1950,6 +2318,11 @@ def contest_mohs_summary_view(request):
         "contest_mohs_summary_stats": {
             "contest_total": contest_total,
             "has_user_averages": has_user_averages,
+            "overall_average_mohs": (
+                round(total_mohs / total_statement_count, 2)
+                if total_statement_count
+                else None
+            ),
             "rank_description": (
                 "Ranked by My Avg from completed problems"
                 if has_user_averages
@@ -1959,6 +2332,10 @@ def contest_mohs_summary_view(request):
             "total_statement_count": total_statement_count,
             "visible_over_threshold": visible_over_threshold,
         },
+        "contest_mohs_topic_legend": [
+            {"code": topic, "label": display_topic_label(topic)}
+            for topic in MAIN_TOPIC_CODE_ORDER
+        ],
     }
     return render(request, "pages/contest-mohs-summary.html", context)
 
@@ -2055,6 +2432,17 @@ def _solution_status_badge_class(status: str) -> str:
         ProblemSolution.Status.DRAFT: "text-bg-warning",
         ProblemSolution.Status.PUBLISHED: "text-bg-success",
         ProblemSolution.Status.SUBMITTED: "text-bg-info",
+    }.get(status, "text-bg-light")
+
+
+def _completion_status_badge_class(status: str) -> str:
+    return {
+        UserProblemCompletion.Status.UNATTEMPTED: "text-bg-light",
+        UserProblemCompletion.Status.ATTEMPTED: "text-bg-warning",
+        UserProblemCompletion.Status.SOLVED: "text-bg-success",
+        UserProblemCompletion.Status.CHECKED: "text-bg-info",
+        UserProblemCompletion.Status.WRITTEN: "text-bg-primary",
+        UserProblemCompletion.Status.PUBLISHED: "text-bg-success",
     }.get(status, "text-bg-light")
 
 
@@ -2414,6 +2802,7 @@ def _admin_completion_listing_rows(
                 "user_url": reverse("users:detail", args=[user.pk]),
                 "year": contest_year,
                 **completion_metadata_payload(completion),
+                "status_badge_class": _completion_status_badge_class(completion.status),
             },
         )
 
@@ -2422,6 +2811,10 @@ def _admin_completion_listing_rows(
     return table_rows, {
         "contest_total": len({row["contest"] for row in table_rows if row["contest"]}),
         "known_date_total": known_date_total,
+        "missing_solution_total": sum(1 for row in table_rows if not row["solution_status"]),
+        "published_solution_total": sum(
+            1 for row in table_rows if row["solution_status"] == ProblemSolution.Status.PUBLISHED
+        ),
         "record_total": len(completions),
         "solution_total": completion_with_solution_total,
         "user_total": len({completion.user_id for completion in completions}),
@@ -2514,6 +2907,10 @@ def _admin_completion_listing_stats(rows: list[dict]) -> dict[str, int]:
     return {
         "contest_total": len({row["contest"] for row in rows}),
         "known_date_total": sum(1 for row in rows if row["completion_date"] != "Unknown"),
+        "missing_solution_total": sum(1 for row in rows if not row["solution_status"]),
+        "published_solution_total": sum(
+            1 for row in rows if row["solution_status"] == ProblemSolution.Status.PUBLISHED
+        ),
         "record_total": len(rows),
         "solution_total": sum(1 for row in rows if row["solution_status"]),
         "user_total": len({row["user_email"] for row in rows}),
@@ -2574,6 +2971,293 @@ def _user_solution_record_active_filter_chips(filters: dict[str, str]) -> list[d
             },
         )
     return chips
+
+
+def _completion_record_choice_label(choices, value: str) -> str:
+    return dict(choices).get(value, value.replace("_", " ").title())
+
+
+def _completion_record_date_status_label(value: str) -> str:
+    return {"known": "Known date", "unknown": "Unknown date"}.get(value, value.replace("_", " ").title())
+
+
+def _completion_record_solution_status_label(value: str) -> str:
+    if value == "none":
+        return "No solution"
+    return _completion_record_choice_label(ProblemSolution.Status.choices, value)
+
+
+def _completion_record_user_display_label(email: str, user_label: str = "") -> str:
+    if not user_label or user_label == email:
+        return email
+    return f"{user_label} ({email})"
+
+
+def _completion_record_user_labels(rows: list[dict], selected_user: str = "") -> dict[str, str]:
+    row_labels = {
+        row["user_email"]: _completion_record_user_display_label(row["user_email"], row["user_label"])
+        for row in rows
+        if row["user_email"]
+    }
+    emails = set(row_labels)
+    if selected_user:
+        emails.add(selected_user)
+    if not emails:
+        return {}
+
+    user_labels = row_labels.copy()
+    users_by_email = {
+        user.email: _completion_record_user_display_label(user.email, user.name or user.email)
+        for user in User.objects.filter(email__in=emails).only("email", "name")
+    }
+    user_labels.update(users_by_email)
+    for email in emails:
+        user_labels.setdefault(email, email)
+    return user_labels
+
+
+def _completion_record_filter_options(
+    rows: list[dict],
+    *,
+    selected_filters: dict[str, str],
+) -> dict[str, list]:
+    selected_contest = selected_filters["contest"]
+    selected_user = selected_filters["user"]
+    selected_date_status = selected_filters["date_status"]
+    selected_solution_status = selected_filters["solution_status"]
+    selected_status = selected_filters["status"]
+    selected_confidence = selected_filters["confidence"]
+    contests = {row["contest"] for row in rows if row["contest"]}
+    if selected_contest:
+        contests.add(selected_contest)
+
+    date_statuses = {
+        label
+        for label, present in (
+            ("known", any(row["completion_date"] != "Unknown" for row in rows)),
+            ("unknown", any(row["completion_date"] == "Unknown" for row in rows)),
+        )
+        if present
+    }
+    if selected_date_status in {"known", "unknown"}:
+        date_statuses.add(selected_date_status)
+
+    solution_statuses = set()
+    if any(not row["solution_status"] for row in rows):
+        solution_statuses.add("none")
+    solution_statuses.update(row["solution_status"] for row in rows if row["solution_status"])
+    if selected_solution_status:
+        solution_statuses.add(selected_solution_status)
+    recognized_solution_statuses = {value for value, _label in ProblemSolution.Status.choices}
+    ordered_solution_statuses = (
+        (["none"] if "none" in solution_statuses else [])
+        + [
+            status
+            for status, _label in ProblemSolution.Status.choices
+            if status in solution_statuses
+        ]
+        + [
+            status
+            for status in sorted(solution_statuses)
+            if status != "none" and status not in recognized_solution_statuses
+        ]
+    )
+
+    selected_statuses = {row["status"] for row in rows if row["status"]}
+    if selected_status:
+        selected_statuses.add(selected_status)
+    selected_confidences = {row["confidence"] for row in rows if row["confidence"]}
+    if selected_confidence:
+        selected_confidences.add(selected_confidence)
+
+    user_labels = _completion_record_user_labels(rows, selected_user)
+    return {
+        "contests": sorted(contests),
+        "date_statuses": [status for status in ("known", "unknown") if status in date_statuses],
+        "solution_statuses": ordered_solution_statuses,
+        "statuses": [
+            {"value": value, "label": label}
+            for value, label in UserProblemCompletion.Status.choices
+            if value in selected_statuses
+        ],
+        "confidences": [
+            {"value": value, "label": label}
+            for value, label in UserProblemCompletion.Confidence.choices
+            if value in selected_confidences
+        ],
+        "users": [
+            {"label": label, "value": email}
+            for email, label in sorted(user_labels.items(), key=lambda item: item[1].lower())
+        ],
+    }
+
+
+def _completion_record_remove_filter_url(query_params, key: str) -> str:
+    params = query_params.copy()
+    params.pop(key, None)
+    query_string = params.urlencode()
+    base_url = reverse("pages:completion_record_list")
+    return f"{base_url}?{query_string}" if query_string else base_url
+
+
+def _completion_record_active_filters(
+    *,
+    query_params,
+    selected_filters: dict[str, str],
+    user_labels: dict[str, str],
+) -> list[dict[str, str]]:
+    active_filters: list[dict[str, str]] = []
+    filter_labels = {
+        "q": ("Search", lambda value: value),
+        "contest": ("Contest", lambda value: value),
+        "user": ("User", lambda value: user_labels.get(value, value)),
+        "date_status": ("Date", _completion_record_date_status_label),
+        "status": (
+            "Status",
+            lambda value: _completion_record_choice_label(UserProblemCompletion.Status.choices, value),
+        ),
+        "confidence": (
+            "Confidence",
+            lambda value: _completion_record_choice_label(UserProblemCompletion.Confidence.choices, value),
+        ),
+        "solution_status": ("Solution", _completion_record_solution_status_label),
+    }
+    for key, value in selected_filters.items():
+        if not value:
+            continue
+        label, value_labeler = filter_labels[key]
+        active_filters.append(
+            {
+                "key": key,
+                "label": label,
+                "remove_url": _completion_record_remove_filter_url(query_params, key),
+                "value": value_labeler(value),
+            },
+        )
+    return active_filters
+
+
+def _completion_record_selected_filters(request) -> dict[str, str]:
+    return {
+        "q": (request.GET.get("q") or "").strip(),
+        "contest": (request.GET.get("contest") or "").strip(),
+        "user": (request.GET.get("user") or "").strip(),
+        "date_status": (request.GET.get("date_status") or "").strip(),
+        "solution_status": (request.GET.get("solution_status") or "").strip(),
+        "status": (request.GET.get("status") or "").strip(),
+        "confidence": (request.GET.get("confidence") or "").strip(),
+    }
+
+
+def _completion_record_base_queryset():
+    return UserProblemCompletion.objects.select_related(
+        "user",
+        "problem",
+        "statement",
+        "statement__linked_problem",
+    ).annotate(
+        _effective_contest=Coalesce(
+            "statement__contest_name",
+            "problem__contest",
+            Value("", output_field=CharField()),
+        ),
+        _effective_problem=Coalesce(
+            "statement__problem_code",
+            "problem__problem",
+            Value("", output_field=CharField()),
+        ),
+        _effective_problem_label=Coalesce(
+            "statement__contest_year_problem",
+            "problem__contest_year_problem",
+            Value("", output_field=CharField()),
+        ),
+        _effective_topic=Coalesce(
+            "statement__linked_problem__topic",
+            "problem__topic",
+            Value("", output_field=CharField()),
+        ),
+        _effective_problem_id=Coalesce(
+            "statement__linked_problem_id",
+            "problem_id",
+        ),
+    )
+
+
+def _completion_record_solution_status_queryset():
+    return ProblemSolution.objects.filter(
+        author_id=OuterRef("user_id"),
+        problem_id=OuterRef("_effective_problem_id"),
+    )
+
+
+def _completion_record_apply_basic_filters(completion_queryset, selected_filters: dict[str, str]):
+    if selected_filters["contest"]:
+        completion_queryset = completion_queryset.filter(_effective_contest=selected_filters["contest"])
+    if selected_filters["user"]:
+        completion_queryset = completion_queryset.filter(user__email=selected_filters["user"])
+    if selected_filters["date_status"] == "known":
+        completion_queryset = completion_queryset.filter(completion_date__isnull=False)
+    elif selected_filters["date_status"] == "unknown":
+        completion_queryset = completion_queryset.filter(completion_date__isnull=True)
+    if selected_filters["status"]:
+        completion_queryset = completion_queryset.filter(status=selected_filters["status"])
+    if selected_filters["confidence"]:
+        completion_queryset = completion_queryset.filter(confidence=selected_filters["confidence"])
+    return completion_queryset
+
+
+def _completion_record_apply_solution_filter(
+    completion_queryset,
+    *,
+    selected_solution_status: str,
+    solution_status_queryset,
+):
+    if selected_solution_status == "none":
+        return completion_queryset.annotate(
+            _has_effective_solution=Exists(solution_status_queryset),
+        ).filter(_has_effective_solution=False)
+    if selected_solution_status:
+        return completion_queryset.annotate(
+            _has_selected_solution_status=Exists(
+                solution_status_queryset.filter(status=selected_solution_status),
+            ),
+        ).filter(_has_selected_solution_status=True)
+    return completion_queryset
+
+
+def _completion_record_apply_search(
+    completion_queryset,
+    *,
+    search_query: str,
+    solution_status_queryset,
+):
+    if not search_query:
+        return completion_queryset
+
+    completion_queryset = completion_queryset.annotate(
+        _effective_solution_status=Subquery(
+            solution_status_queryset.order_by("-updated_at", "-id").values("status")[:1],
+        ),
+    )
+    for token in search_query.split():
+        token_query = (
+            Q(user__name__icontains=token)
+            | Q(user__email__icontains=token)
+            | Q(_effective_contest__icontains=token)
+            | Q(_effective_problem__icontains=token)
+            | Q(_effective_problem_label__icontains=token)
+            | Q(_effective_topic__icontains=token)
+            | Q(_effective_solution_status__icontains=token)
+            | Q(status__icontains=token)
+            | Q(main_obstacle__icontains=token)
+            | Q(key_technique__icontains=token)
+            | Q(post_mortem__icontains=token)
+            | Q(confidence__icontains=token)
+        )
+        if token.isdigit():
+            token_query |= Q(statement__contest_year=int(token)) | Q(problem__year=int(token))
+        completion_queryset = completion_queryset.filter(token_query)
+    return completion_queryset
 
 
 def _coerce_year_filter(raw_value: str | None, available_years: set[int]) -> int | None:
@@ -3187,6 +3871,10 @@ def _format_year_span_label(year_min: int | None, year_max: int | None) -> str |
     return str(year_min) if year_min == year_max else f"{year_min}-{year_max}"
 
 
+def _percentage(part: float, total: float) -> float:
+    return round((part / total) * 100, 2) if total else 0.0
+
+
 def _contest_inventory_rows() -> list[dict]:
     inventory: dict[str, dict] = {}
 
@@ -3324,6 +4012,26 @@ def _problem_sort_key(problem_label: str | None) -> list[tuple[int, int | str]]:
         for part in parts
         if part
     ]
+
+
+def _contest_heatmap_problem_code_group_label(problem_code: str) -> str:
+    grade_match = re.match(r"^(\d+)\.", problem_code.strip())
+    if grade_match and grade_match.group(1) in {"9", "10", "11"}:
+        return f"Grade {grade_match.group(1)}"
+    if re.match(r"^P\d+", problem_code.strip(), flags=re.IGNORECASE):
+        return "P-codes"
+    return "Other"
+
+
+def _contest_heatmap_problem_code_groups(problem_codes: list[str]) -> list[dict[str, int | str]]:
+    groups: list[dict[str, int | str]] = []
+    for index, problem_code in enumerate(problem_codes):
+        label = _contest_heatmap_problem_code_group_label(problem_code)
+        if groups and groups[-1]["label"] == label:
+            groups[-1]["span"] = int(groups[-1]["span"]) + 1
+        else:
+            groups.append({"label": label, "start_index": index, "span": 1})
+    return groups
 
 
 def _problem_anchor(problem_label: str, fallback: str) -> str:
@@ -3559,6 +4267,216 @@ def _build_topic_tag_directory_rows(
 
     directory_rows.sort(key=lambda row: (-row["problem_count"], row["technique"]))
     return directory_rows
+
+
+def _format_count_label(count: int, singular: str, plural: str | None = None) -> str:
+    unit = singular if count == 1 else (plural or f"{singular}s")
+    return f"{count} {unit}"
+
+
+def _technique_dashboard_url(params: dict[str, str | int | None]) -> str:
+    query_params = {
+        key: str(value)
+        for key, value in params.items()
+        if value is not None and str(value).strip()
+    }
+    query_string = urlencode(query_params)
+    base_url = reverse("pages:technique_dashboard")
+    return f"{base_url}?{query_string}" if query_string else base_url
+
+
+def _build_technique_active_filter_rows(filters: dict[str, str]) -> list[dict]:
+    labels = {
+        "q": "Search",
+        "contest": "Contest",
+        "topic": "Topic",
+        "domain": "Domain",
+        "year": "Year",
+    }
+    rows: list[dict] = []
+    for param_name in ("q", "contest", "topic", "domain", "year"):
+        value = filters.get(param_name, "")
+        if not value:
+            continue
+        remaining_filters = {key: val for key, val in filters.items() if key != param_name}
+        rows.append(
+            {
+                "label": labels[param_name],
+                "param": param_name,
+                "remove_url": _technique_dashboard_url(remaining_filters),
+                "value": value,
+            },
+        )
+    return rows
+
+
+def _build_technique_filter_options(tag_rows: list[ProblemTopicTechnique]) -> dict:
+    by_year_counter: Counter[int] = Counter()
+    contests = set()
+    domains = set()
+    topics = set()
+
+    for tag_row in tag_rows:
+        record = tag_row.record
+        if record.contest:
+            contests.add(record.contest)
+        topic_label = display_topic_label(record.topic)
+        if topic_label:
+            topics.add(topic_label)
+        if record.year is not None:
+            by_year_counter[int(record.year)] += 1
+        for domain_name in tag_row.domains or []:
+            if domain_name:
+                domains.add(domain_name)
+
+    return {
+        "contests": sorted(contests),
+        "domains": sorted(domains),
+        "topics": sorted(topics),
+        "years": [str(year_value) for year_value in sorted(by_year_counter, reverse=True)],
+    }
+
+
+def _filter_technique_tag_rows(
+    tag_rows: list[ProblemTopicTechnique],
+    *,
+    contest: str = "",
+    domain: str = "",
+    topic: str = "",
+    year: str = "",
+) -> list[ProblemTopicTechnique]:
+    year_value = int(year) if year.isdigit() else None
+    filtered_rows: list[ProblemTopicTechnique] = []
+
+    for tag_row in tag_rows:
+        record = tag_row.record
+        if contest and record.contest != contest:
+            continue
+        if topic and display_topic_label(record.topic) != topic:
+            continue
+        if domain and domain not in (tag_row.domains or []):
+            continue
+        if year_value is not None and record.year != year_value:
+            continue
+        filtered_rows.append(tag_row)
+
+    return filtered_rows
+
+
+def _build_technique_leader_rows(tag_directory: list[dict], current_filters: dict[str, str]) -> list[dict]:
+    if not tag_directory:
+        return []
+
+    leader_specs = [
+        (
+            "Most used",
+            sorted(tag_directory, key=lambda row: (-row["problem_count"], row["technique"]))[0],
+            lambda row: _format_count_label(row["problem_count"], "problem"),
+            "bg-primary-subtle text-primary",
+        ),
+        (
+            "Broadest contest coverage",
+            sorted(
+                tag_directory,
+                key=lambda row: (-row["contest_count"], -row["problem_count"], row["technique"]),
+            )[0],
+            lambda row: _format_count_label(row["contest_count"], "contest"),
+            "bg-info-subtle text-info",
+        ),
+        (
+            "Widest topic mix",
+            sorted(
+                tag_directory,
+                key=lambda row: (-row["topic_count"], -row["problem_count"], row["technique"]),
+            )[0],
+            lambda row: _format_count_label(row["topic_count"], "topic", "topics"),
+            "bg-warning-subtle text-warning",
+        ),
+        (
+            "Broadest domain mix",
+            sorted(
+                tag_directory,
+                key=lambda row: (-row["domain_count"], -row["problem_count"], row["technique"]),
+            )[0],
+            lambda row: _format_count_label(row["domain_count"], "domain"),
+            "bg-secondary-subtle text-secondary",
+        ),
+        (
+            "Highest average MOHS",
+            sorted(
+                tag_directory,
+                key=lambda row: (-row["avg_mohs"], -row["problem_count"], row["technique"]),
+            )[0],
+            lambda row: f"{row['avg_mohs']} avg / {_format_count_label(row['problem_count'], 'problem')}",
+            "bg-success-subtle text-success",
+        ),
+        (
+            "Longest-running",
+            sorted(
+                tag_directory,
+                key=lambda row: (-row["active_years"], -row["problem_count"], row["technique"]),
+            )[0],
+            lambda row: _format_count_label(row["active_years"], "year"),
+            "bg-dark-subtle text-body",
+        ),
+    ]
+
+    leader_rows: list[dict] = []
+    for label, row, value_label, badge_class in leader_specs:
+        leader_rows.append(
+            {
+                "badge_class": badge_class,
+                "label": label,
+                "technique": row["technique"],
+                "url": _technique_dashboard_url({**current_filters, "q": row["technique"]}),
+                "value_label": value_label(row),
+            },
+        )
+    return leader_rows
+
+
+def _build_technique_topic_volume_payload(tag_rows: list[ProblemTopicTechnique]) -> dict:
+    topic_counter: Counter[str] = Counter()
+    for tag_row in tag_rows:
+        topic_label = display_topic_label(tag_row.record.topic)
+        if topic_label:
+            topic_counter[topic_label] += 1
+    rows = [
+        {"topic": topic_label, "c": count}
+        for topic_label, count in sorted(topic_counter.items())
+    ]
+    return _with_bar_payload_metadata(
+        _rows_to_bar_payload(rows, "topic"),
+        filter_param="topic",
+        series_name="Technique rows",
+    )
+
+
+def _build_technique_avg_mohs_scatter_payload(tag_directory: list[dict]) -> dict:
+    points = [
+        {
+            "avg_mohs": float(row["avg_mohs"]),
+            "filter_param": "q",
+            "filter_value": row["technique"],
+            "max_mohs": row["max_mohs"],
+            "problem_count": row["problem_count"],
+            "technique": row["technique"],
+            "x": row["problem_count"],
+            "y": float(row["avg_mohs"]),
+        }
+        for row in sorted(
+            tag_directory,
+            key=lambda row: (-row["avg_mohs"], -row["problem_count"], row["technique"]),
+        )
+    ]
+    return {
+        "series": [
+            {
+                "data": points,
+                "name": "Average MOHS",
+            },
+        ],
+    }
 
 
 @login_required
@@ -4809,99 +5727,22 @@ def my_completion_progress_analytics_view(request):
 def completion_record_list_view(request):
     """Admin inventory of all saved user completion rows."""
     _require_admin_tools_access(request)
-    search_query = (request.GET.get("q") or "").strip()
-    selected_contest = (request.GET.get("contest") or "").strip()
-    selected_user = (request.GET.get("user") or "").strip()
-    selected_date_status = (request.GET.get("date_status") or "").strip()
-    selected_solution_status = (request.GET.get("solution_status") or "").strip()
-    selected_status = (request.GET.get("status") or "").strip()
-    selected_confidence = (request.GET.get("confidence") or "").strip()
-
-    completion_queryset = (
-        UserProblemCompletion.objects.select_related(
-            "user",
-            "problem",
-            "statement",
-            "statement__linked_problem",
-        )
-        .annotate(
-            _effective_contest=Coalesce(
-                "statement__contest_name",
-                "problem__contest",
-                Value("", output_field=CharField()),
-            ),
-            _effective_problem=Coalesce(
-                "statement__problem_code",
-                "problem__problem",
-                Value("", output_field=CharField()),
-            ),
-            _effective_problem_label=Coalesce(
-                "statement__contest_year_problem",
-                "problem__contest_year_problem",
-                Value("", output_field=CharField()),
-            ),
-            _effective_topic=Coalesce(
-                "statement__linked_problem__topic",
-                "problem__topic",
-                Value("", output_field=CharField()),
-            ),
-            _effective_problem_id=Coalesce(
-                "statement__linked_problem_id",
-                "problem_id",
-            ),
-        )
+    selected_filters = _completion_record_selected_filters(request)
+    solution_status_queryset = _completion_record_solution_status_queryset()
+    completion_queryset = _completion_record_apply_basic_filters(
+        _completion_record_base_queryset(),
+        selected_filters,
     )
-    solution_status_queryset = ProblemSolution.objects.filter(
-        author_id=OuterRef("user_id"),
-        problem_id=OuterRef("_effective_problem_id"),
+    completion_queryset = _completion_record_apply_solution_filter(
+        completion_queryset,
+        selected_solution_status=selected_filters["solution_status"],
+        solution_status_queryset=solution_status_queryset,
     )
-
-    if selected_contest:
-        completion_queryset = completion_queryset.filter(_effective_contest=selected_contest)
-    if selected_user:
-        completion_queryset = completion_queryset.filter(user__email=selected_user)
-    if selected_date_status == "known":
-        completion_queryset = completion_queryset.filter(completion_date__isnull=False)
-    elif selected_date_status == "unknown":
-        completion_queryset = completion_queryset.filter(completion_date__isnull=True)
-    if selected_status:
-        completion_queryset = completion_queryset.filter(status=selected_status)
-    if selected_confidence:
-        completion_queryset = completion_queryset.filter(confidence=selected_confidence)
-    if selected_solution_status == "none":
-        completion_queryset = completion_queryset.annotate(
-            _has_effective_solution=Exists(solution_status_queryset),
-        ).filter(_has_effective_solution=False)
-    elif selected_solution_status:
-        completion_queryset = completion_queryset.annotate(
-            _has_selected_solution_status=Exists(
-                solution_status_queryset.filter(status=selected_solution_status),
-            ),
-        ).filter(_has_selected_solution_status=True)
-    if search_query:
-        completion_queryset = completion_queryset.annotate(
-            _effective_solution_status=Subquery(
-                solution_status_queryset.order_by("-updated_at", "-id").values("status")[:1],
-            ),
-        )
-        for token in search_query.split():
-            token_query = (
-                Q(user__name__icontains=token)
-                | Q(user__email__icontains=token)
-                | Q(_effective_contest__icontains=token)
-                | Q(_effective_problem__icontains=token)
-                | Q(_effective_problem_label__icontains=token)
-                | Q(_effective_topic__icontains=token)
-                | Q(_effective_solution_status__icontains=token)
-                | Q(status__icontains=token)
-                | Q(main_obstacle__icontains=token)
-                | Q(key_technique__icontains=token)
-                | Q(post_mortem__icontains=token)
-                | Q(confidence__icontains=token)
-            )
-            if token.isdigit():
-                token_query |= Q(statement__contest_year=int(token)) | Q(problem__year=int(token))
-            completion_queryset = completion_queryset.filter(token_query)
+    completion_queryset = _completion_record_apply_search(
+        completion_queryset,
+        search_query=selected_filters["q"],
+        solution_status_queryset=solution_status_queryset,
+    )
 
     latest_completions = list(
         completion_queryset.order_by("-updated_at", "-id")[: ADMIN_TABLE_LATEST_LIMIT + 1],
@@ -4912,61 +5753,27 @@ def completion_record_list_view(request):
     )
     completion_visible_total = len(completion_rows)
 
-    completion_filter_options = {
-        "contests": sorted({row["contest"] for row in completion_rows if row["contest"]}),
-        "date_statuses": [
-            label
-            for label, present in (
-                ("known", any(row["completion_date"] != "Unknown" for row in completion_rows)),
-                ("unknown", any(row["completion_date"] == "Unknown" for row in completion_rows)),
-            )
-            if present
-        ],
-        "solution_statuses": (
-            (["none"] if any(not row["solution_status"] for row in completion_rows) else [])
-            + [
-                status
-                for status, _label in ProblemSolution.Status.choices
-                if any(row["solution_status"] == status for row in completion_rows)
-            ]
-        ),
-        "statuses": [
-            {"value": value, "label": label}
-            for value, label in UserProblemCompletion.Status.choices
-            if any(row["status"] == value for row in completion_rows)
-        ],
-        "confidences": [
-            {"value": value, "label": label}
-            for value, label in UserProblemCompletion.Confidence.choices
-            if any(row["confidence"] == value for row in completion_rows)
-        ],
-        "users": [
-            {
-                "label": row["user_label"] if row["user_label"] == row["user_email"] else f"{row['user_label']} ({row['user_email']})",
-                "value": row["user_email"],
-            }
-            for row in {
-                row["user_email"]: {
-                    "user_email": row["user_email"],
-                    "user_label": row["user_label"],
-                }
-                for row in completion_rows
-            }.values()
-        ],
-    }
-
+    completion_filter_options = _completion_record_filter_options(
+        completion_rows,
+        selected_filters=selected_filters,
+    )
     completion_stats = _admin_completion_listing_stats(completion_rows)
+    completion_active_filters = _completion_record_active_filters(
+        query_params=request.GET,
+        selected_filters=selected_filters,
+        user_labels={user["value"]: user["label"] for user in completion_filter_options["users"]},
+    )
     context = {
+        "completion_record_active_filters": completion_active_filters,
+        "completion_record_advanced_filters_open": bool(
+            selected_filters["date_status"]
+            or selected_filters["status"]
+            or selected_filters["confidence"]
+            or selected_filters["solution_status"],
+        ),
         "completion_record_filter_options": completion_filter_options,
-        "completion_record_filters": {
-            "date_status": selected_date_status,
-            "q": search_query,
-            "solution_status": selected_solution_status,
-            "status": selected_status,
-            "confidence": selected_confidence,
-            "contest": selected_contest,
-            "user": selected_user,
-        },
+        "completion_record_filters": selected_filters,
+        "completion_record_has_active_filters": bool(completion_active_filters),
         "completion_record_rows": completion_rows,
         "completion_record_stats": completion_stats,
         "completion_record_visible_total": completion_visible_total,
@@ -5071,7 +5878,7 @@ def user_solution_record_list_view(request):
 def page_view_analytics_view(request):
     """Admin dashboard for archive and solution page-view activity."""
     _require_admin_tools_access(request)
-    return render(request, "pages/page-view-analytics.html", build_page_view_analytics_context())
+    return render(request, "pages/page-view-analytics.html", build_page_view_analytics_context(request.GET))
 
 
 @login_required
@@ -5318,9 +6125,13 @@ def problem_statement_list_view(request):
             view_type=PageViewEvent.ViewType.LIST,
             label="Problem statement list",
             metadata={
+                "confidence": fconfidence,
                 "filtered_total": statement_filtered_total,
                 "kind": "statement_list",
+                "mohs_max": fmohs_max,
+                "mohs_min": fmohs_min,
                 "q": fq,
+                "topic": ftopic,
                 "year": fyear,
             },
         ),
@@ -5480,6 +6291,7 @@ def problem_statement_analytics_view(request):
     statement_set_total = len(dashboard_rows)
     contest_total = base.values("contest_name").distinct().count()
     linked_total = base.filter(linked_problem__isnull=False).count()
+    unlinked_total = statement_total - linked_total
     year_bounds = base.aggregate(year_min=Min("contest_year"), year_max=Max("contest_year"))
 
     year_min = year_bounds["year_min"]
@@ -5517,19 +6329,31 @@ def problem_statement_analytics_view(request):
         else None
     )
 
+    statement_heatmap_views = _statement_heatmap_views(dashboard_rows)
     charts_payload = {
-        "statementCountHeatmap": _statement_heatmap_payload(dashboard_rows),
+        "statementCountHeatmap": statement_heatmap_views["volume"],
+        "statementDefaultHeatmapView": "backlog",
+        "statementHeatmapViews": statement_heatmap_views,
         "statementYearBarChart": _statement_year_bar_payload(dashboard_rows),
     }
 
     context = {
         "statement_dashboard_total": statement_set_total,
+        "statement_dashboard_total_label": _format_statement_dashboard_count(statement_set_total),
         "statement_dashboard_statement_total": statement_total,
+        "statement_dashboard_statement_total_label": _format_statement_dashboard_count(statement_total),
         "statement_dashboard_stats": {
             "average_statements_per_set": average_statements_per_set,
             "contest_total": contest_total,
+            "contest_total_label": _format_statement_dashboard_count(contest_total),
             "linked_total": linked_total,
+            "linked_total_label": _format_statement_dashboard_count(linked_total),
             "overall_link_rate": overall_link_rate,
+            "overall_link_rate_label": _format_statement_dashboard_percent(overall_link_rate),
+            "overall_link_rate_variant": _statement_dashboard_rate_variant(overall_link_rate),
+            "statement_total_label": _format_statement_dashboard_count(statement_total),
+            "unlinked_total": unlinked_total,
+            "unlinked_total_label": _format_statement_dashboard_count(unlinked_total),
             "year_range_label": year_range_label,
         },
         "statement_dashboard_leaders": {
@@ -5538,6 +6362,7 @@ def problem_statement_analytics_view(request):
             "biggest_backlog": biggest_backlog_set,
             "newest": newest_set,
         },
+        "statement_dashboard_attention": _statement_dashboard_attention(dashboard_rows),
         "statement_dashboard_rows": dashboard_rows,
         "charts_payload": charts_payload,
     }
@@ -6113,16 +6938,78 @@ def contest_dashboard_listing_bulk_update_view(request):
     return redirect(redirect_url)
 
 
-@login_required
-def contest_analytics_view(request):
-    """Contest analytics: contest-level summaries, charts, and ranked table."""
-    _require_admin_tools_access(request)
+def _contest_analytics_technique_stats_by_contest(base) -> dict[str, dict[str, int]]:
+    return {
+        row["contest_name"]: {
+            "technique_rows": int(row["technique_rows"] or 0),
+            "technique_statement_count": int(row["technique_statement_count"] or 0),
+        }
+        for row in base.values("contest_name").annotate(
+            technique_rows=Count("statement_topic_techniques"),
+            technique_statement_count=Count(
+                "id",
+                filter=Q(statement_topic_techniques__isnull=False),
+                distinct=True,
+            ),
+        )
+    }
 
-    base = _active_dashboard_statements()
-    problem_total = base.count()
 
-    base_eff = annotate_effective_statement_analytics(base)
-    contest_rows = list(
+def _contest_analytics_quality_badges(row: dict) -> list[str]:
+    quality_badges = []
+    if row["is_low_sample"]:
+        quality_badges.append("Low sample")
+    if not row["has_mohs"]:
+        quality_badges.append("No MOHS")
+    if not row["has_topic"]:
+        quality_badges.append("No topic")
+    if not row["has_techniques"]:
+        quality_badges.append("No techniques")
+    return quality_badges
+
+
+def _contest_analytics_enriched_row(row: dict, technique_stats: dict[str, int]) -> dict:
+    row["contest"] = row.pop("contest_name")
+    row["technique_rows"] = technique_stats["technique_rows"]
+    row["technique_statement_count"] = technique_stats["technique_statement_count"]
+    row["avg_mohs"] = round(float(row["avg_mohs"] or 0), 2)
+    row["mohs_statement_count"] = int(row["mohs_statement_count"] or 0)
+    row["topic_statement_count"] = int(row["topic_statement_count"] or 0)
+    row["complete_metadata_count"] = int(row["complete_metadata_count"] or 0)
+    row["missing_mohs_count"] = row["problem_count"] - row["mohs_statement_count"]
+    row["missing_topic_count"] = row["problem_count"] - row["topic_statement_count"]
+    row["missing_technique_count"] = row["problem_count"] - row["technique_statement_count"]
+    row["mohs_coverage_percent"] = _percentage(row["mohs_statement_count"], row["problem_count"])
+    row["topic_coverage_percent"] = _percentage(row["topic_statement_count"], row["problem_count"])
+    row["technique_coverage_percent"] = _percentage(
+        row["technique_statement_count"],
+        row["problem_count"],
+    )
+    row["complete_metadata_percent"] = _percentage(
+        row["complete_metadata_count"],
+        row["problem_count"],
+    )
+    row["techniques_per_problem"] = round(row["technique_rows"] / row["problem_count"], 2)
+    row["has_mohs"] = row["mohs_statement_count"] > 0
+    row["has_topic"] = row["topic_statement_count"] > 0
+    row["has_techniques"] = row["technique_statement_count"] > 0
+    row["is_low_sample"] = row["problem_count"] < CONTEST_ANALYTICS_LOW_SAMPLE_THRESHOLD
+    row["quality_issue_count"] = sum(
+        [
+            row["missing_mohs_count"] > 0,
+            row["missing_topic_count"] > 0,
+            row["missing_technique_count"] > 0,
+            row["is_low_sample"],
+        ],
+    )
+    row["quality_badges"] = _contest_analytics_quality_badges(row)
+    row["year_span_label"] = _format_year_span_label(row["year_min"], row["year_max"]) or "-"
+    row["detail_url"] = _contest_query_url("pages:contest_advanced_dashboard", row["contest"])
+    return row
+
+
+def _contest_analytics_rows(base, base_eff) -> list[dict]:
+    rows = list(
         base_eff.values("contest_name")
         .annotate(
             problem_count=Count("id"),
@@ -6136,109 +7023,216 @@ def contest_analytics_view(request):
             ),
             avg_mohs=Avg("_eff_mohs"),
             max_mohs=Max("_eff_mohs"),
+            mohs_statement_count=Count(
+                "id",
+                filter=Q(_eff_mohs__isnull=False),
+                distinct=True,
+            ),
+            topic_statement_count=Count(
+                "id",
+                filter=~Q(_eff_topic=""),
+                distinct=True,
+            ),
+            complete_metadata_count=Count(
+                "id",
+                filter=Q(_eff_mohs__isnull=False)
+                & ~Q(_eff_topic="")
+                & Q(_has_statement_technique=True),
+                distinct=True,
+            ),
         )
         .order_by("-problem_count", "contest_name"),
     )
-    technique_rows_by_contest = {
-        row["contest_name"]: int(row["c"])
-        for row in base.values("contest_name").annotate(c=Count("statement_topic_techniques"))
+    technique_stats_by_contest = _contest_analytics_technique_stats_by_contest(base)
+    empty_technique_stats = {
+        "technique_rows": 0,
+        "technique_statement_count": 0,
     }
-    for row in contest_rows:
-        row["contest"] = row.pop("contest_name")
-        row["technique_rows"] = technique_rows_by_contest.get(row["contest"], 0)
-        row["avg_mohs"] = round(float(row["avg_mohs"] or 0), 2)
-        row["techniques_per_problem"] = round(row["technique_rows"] / row["problem_count"], 2)
-        row["year_span_label"] = (
-            str(row["year_min"])
-            if row["year_min"] == row["year_max"]
-            else f"{row['year_min']}-{row['year_max']}"
+    return [
+        _contest_analytics_enriched_row(
+            row,
+            technique_stats_by_contest.get(row["contest_name"], empty_technique_stats),
         )
-        row["detail_url"] = _contest_query_url("pages:contest_advanced_dashboard", row["contest"])
+        for row in rows
+    ]
 
-    contest_total = len(contest_rows)
-    multi_year_contests = sum(1 for row in contest_rows if row["active_years"] > 1)
-    average_problems_per_contest = round(problem_total / contest_total, 2) if contest_total else 0.0
 
-    biggest_contest = contest_rows[0] if contest_rows else None
-    longest_running_contest = (
-        max(contest_rows, key=lambda row: (row["active_years"], row["problem_count"], row["contest"]))
-        if contest_rows
-        else None
-    )
-    hardest_contest = (
-        max(contest_rows, key=lambda row: (row["avg_mohs"], row["problem_count"], row["contest"]))
-        if contest_rows
-        else None
-    )
-    broadest_contest = (
-        max(contest_rows, key=lambda row: (row["distinct_topics"], row["problem_count"], row["contest"]))
-        if contest_rows
-        else None
-    )
+def _contest_analytics_topic_composition_payload(base_eff, contest_rows: list[dict]) -> dict:
+    top_topic_contests = contest_rows[:CONTEST_ANALYTICS_CHART_LIMIT]
+    top_topic_contest_names = [row["contest"] for row in top_topic_contests]
+    topic_counts_by_contest: dict[str, Counter[str]] = {
+        contest_name: Counter() for contest_name in top_topic_contest_names
+    }
+    topic_totals: Counter[str] = Counter()
+    if top_topic_contest_names:
+        for topic_row in (
+            base_eff.filter(contest_name__in=top_topic_contest_names)
+            .values("contest_name", "_eff_topic")
+            .annotate(c=Count("id"))
+        ):
+            contest_name = topic_row["contest_name"]
+            raw_topic = str(topic_row["_eff_topic"] or "").strip()
+            topic_label = display_topic_label(raw_topic) if raw_topic else "Missing topic"
+            count = int(topic_row["c"] or 0)
+            topic_counts_by_contest[contest_name][topic_label] += count
+            topic_totals[topic_label] += count
 
-    charts_payload = {
-        "byProblemVolume": _rows_to_bar_payload(
-            contest_rows[:12],
-            "contest",
-            value_key="problem_count",
+    topic_series_labels = sorted(
+        [topic_label for topic_label in topic_totals if topic_label != "Missing topic"],
+        key=lambda topic_label: (-topic_totals[topic_label], topic_label),
+    )
+    if "Missing topic" in topic_totals:
+        topic_series_labels.append("Missing topic")
+
+    return {
+        "labels": top_topic_contest_names,
+        "series": [
+            {
+                "name": topic_label,
+                "data": [
+                    topic_counts_by_contest[contest_name].get(topic_label, 0)
+                    for contest_name in top_topic_contest_names
+                ],
+            }
+            for topic_label in topic_series_labels
+        ],
+    }
+
+
+def _contest_analytics_leaders(contest_rows: list[dict]) -> dict[str, dict | None]:
+    hardest_candidates = [
+        row
+        for row in contest_rows
+        if row["mohs_statement_count"] >= CONTEST_ANALYTICS_LOW_SAMPLE_THRESHOLD
+    ]
+    return {
+        "biggest": contest_rows[0] if contest_rows else None,
+        "longest_running": max(
+            contest_rows,
+            key=lambda row: (row["active_years"], row["problem_count"], row["contest"]),
+        ) if contest_rows else None,
+        "hardest": max(
+            hardest_candidates,
+            key=lambda row: (row["avg_mohs"], row["mohs_statement_count"], row["contest"]),
+        ) if hardest_candidates else None,
+        "broadest": max(
+            contest_rows,
+            key=lambda row: (row["distinct_topics"], row["problem_count"], row["contest"]),
+        ) if contest_rows else None,
+        "worst_metadata": min(
+            contest_rows,
+            key=lambda row: (
+                row["complete_metadata_percent"],
+                -row["quality_issue_count"],
+                -row["problem_count"],
+                row["contest"],
+            ),
+        ) if contest_rows else None,
+    }
+
+
+def _contest_analytics_insights(leaders: dict[str, dict | None], contest_rows: list[dict]) -> dict[str, str]:
+    biggest = leaders["biggest"]
+    longest_running = leaders["longest_running"]
+    hardest = leaders["hardest"]
+    worst_metadata = leaders["worst_metadata"]
+    return {
+        "largest": (
+            f"{biggest['contest']} has the largest dataset with {biggest['problem_count']} statement rows."
+            if biggest
+            else ""
         ),
-        "byActiveYears": _rows_to_bar_payload(
-            sorted(
-                contest_rows,
-                key=lambda row: (row["active_years"], row["problem_count"], row["contest"]),
-                reverse=True,
-            )[:12],
-            "contest",
-            value_key="active_years",
+        "longest_running": (
+            f"{longest_running['contest']} has the widest year coverage "
+            f"at {longest_running['active_years']} active years."
+            if longest_running
+            else ""
         ),
-        "byAvgMohs": _rows_to_bar_payload(
-            sorted(
-                contest_rows,
-                key=lambda row: (row["avg_mohs"], row["problem_count"], row["contest"]),
-                reverse=True,
-            )[:12],
-            "contest",
-            value_key="avg_mohs",
-            decimals=2,
+        "hardest": (
+            f"{hardest['contest']} is hardest on average among contests with at least "
+            f"{CONTEST_ANALYTICS_LOW_SAMPLE_THRESHOLD} MOHS-backed rows (avg MOHS {hardest['avg_mohs']})."
+            if hardest
+            else (
+                f"No contest has {CONTEST_ANALYTICS_LOW_SAMPLE_THRESHOLD} MOHS-backed rows yet."
+                if contest_rows
+                else ""
+            )
         ),
-        "byTopicBreadth": _rows_to_bar_payload(
-            sorted(
-                contest_rows,
-                key=lambda row: (row["distinct_topics"], row["problem_count"], row["contest"]),
-                reverse=True,
-            )[:12],
-            "contest",
-            value_key="distinct_topics",
-        ),
-        "byTechniqueDensity": _rows_to_bar_payload(
-            sorted(
-                contest_rows,
-                key=lambda row: (row["techniques_per_problem"], row["problem_count"], row["contest"]),
-                reverse=True,
-            )[:12],
-            "contest",
-            value_key="techniques_per_problem",
-            decimals=2,
+        "metadata": (
+            f"{worst_metadata['contest']} needs the most metadata attention "
+            f"({worst_metadata['complete_metadata_percent']}% complete)."
+            if worst_metadata
+            else ""
         ),
     }
 
-    context = {
+
+def _contest_analytics_context(base) -> dict:
+    problem_total = base.count()
+    base_eff = annotate_effective_statement_analytics(base).annotate(
+        _has_statement_technique=Exists(
+            StatementTopicTechnique.objects.filter(statement_id=OuterRef("pk")),
+        ),
+    )
+    contest_rows = _contest_analytics_rows(base, base_eff)
+    contest_total = len(contest_rows)
+    complete_metadata_total = sum(row["complete_metadata_count"] for row in contest_rows)
+    mohs_statement_total = sum(row["mohs_statement_count"] for row in contest_rows)
+    topic_statement_total = sum(row["topic_statement_count"] for row in contest_rows)
+    technique_statement_total = sum(row["technique_statement_count"] for row in contest_rows)
+    global_year_min = min((row["year_min"] for row in contest_rows if row["year_min"]), default=None)
+    global_year_max = max((row["year_max"] for row in contest_rows if row["year_max"]), default=None)
+    leaders = _contest_analytics_leaders(contest_rows)
+
+    return {
         "contest_total": contest_total,
         "contest_problem_total": problem_total,
+        "contest_quality_counts": {
+            "missing_mohs": sum(1 for row in contest_rows if row["missing_mohs_count"] > 0),
+            "missing_topics": sum(1 for row in contest_rows if row["missing_topic_count"] > 0),
+            "no_techniques": sum(1 for row in contest_rows if not row["has_techniques"]),
+        },
         "contest_stats": {
-            "average_problems_per_contest": average_problems_per_contest,
-            "multi_year_contests": multi_year_contests,
+            "average_problems_per_contest": round(problem_total / contest_total, 2)
+            if contest_total
+            else 0.0,
+            "complete_metadata_percent": _percentage(complete_metadata_total, problem_total),
+            "global_year_span_label": _format_year_span_label(global_year_min, global_year_max) or "-",
+            "mohs_coverage_percent": _percentage(mohs_statement_total, problem_total),
+            "multi_year_contests": sum(1 for row in contest_rows if row["active_years"] > 1),
+            "technique_coverage_percent": _percentage(technique_statement_total, problem_total),
+            "topic_coverage_percent": _percentage(topic_statement_total, problem_total),
         },
-        "contest_leaders": {
-            "biggest": biggest_contest,
-            "longest_running": longest_running_contest,
-            "hardest": hardest_contest,
-            "broadest": broadest_contest,
-        },
+        "contest_insights": _contest_analytics_insights(leaders, contest_rows),
+        "contest_leaders": leaders,
+        "contest_analytics_chart_limit": CONTEST_ANALYTICS_CHART_LIMIT,
+        "contest_analytics_low_sample_threshold": CONTEST_ANALYTICS_LOW_SAMPLE_THRESHOLD,
+        "data_quality_watchlist": sorted(
+            contest_rows,
+            key=lambda row: (
+                -row["quality_issue_count"],
+                row["complete_metadata_percent"],
+                -row["problem_count"],
+                row["contest"],
+            ),
+        )[:5],
         "contest_rows": contest_rows,
-        "charts_payload": charts_payload,
+        "charts_payload": {
+            "topicComposition": _contest_analytics_topic_composition_payload(base_eff, contest_rows),
+        },
     }
-    return render(request, "pages/contest-analytics.html", context)
+
+
+@login_required
+def contest_analytics_view(request):
+    """Contest analytics: contest-level summaries, charts, and ranked table."""
+    _require_admin_tools_access(request)
+
+    return render(
+        request,
+        "pages/contest-analytics.html",
+        _contest_analytics_context(_active_dashboard_statements()),
+    )
 
 
 @login_required
@@ -6263,6 +7257,7 @@ def contest_advanced_analytics_view(request):
                 "contest_completion_heatmap": {
                     "filled_cell_total": 0,
                     "has_partial_cells": False,
+                    "problem_code_groups": [],
                     "problem_code_total": 0,
                     "problem_codes": [],
                     "rows": [],
@@ -6340,6 +7335,10 @@ def contest_advanced_analytics_view(request):
             round(float(row["avg_mohs"]), 2) if row["avg_mohs"] is not None else None
         )
         row["statement_problem_total"] = int(row.get("linked_statement_total") or 0)
+        row["linked_rate"] = round(
+            (row["statement_problem_total"] / row["problem_count"]) * 100,
+            1,
+        ) if row["problem_count"] else 0.0
         row["solved_rate"] = round(
             (row["solved_problem_total"] / row["problem_count"]) * 100,
             1,
@@ -6426,7 +7425,7 @@ def contest_advanced_analytics_view(request):
                         "problem_code": problem_code,
                         "solution_url": "",
                         "state": "empty",
-                        "title": f"{selected_contest} {year} {problem_code}: no statement row",
+                        "title": f"{selected_contest} {year} {problem_code}: no statement",
                     },
                 )
                 continue
@@ -6441,7 +7440,7 @@ def contest_advanced_analytics_view(request):
                 state = "partial"
                 has_partial_heatmap_cells = True
 
-            rows_word = "statement row" if problem_total == 1 else "statement rows"
+            rows_word = "statement" if problem_total == 1 else "statements"
             row_cells.append(
                 {
                     "display": (
@@ -6454,7 +7453,7 @@ def contest_advanced_analytics_view(request):
                     "state": state,
                     "title": (
                         f"{selected_contest} {year} {problem_code}: "
-                        f"{solved_total} of {problem_total} {rows_word} solved by you"
+                        f"{solved_total} of {problem_total} {rows_word} completed by you"
                     ),
                 },
             )
@@ -6482,6 +7481,10 @@ def contest_advanced_analytics_view(request):
         row["avg_mohs"] = (
             round(float(row["avg_mohs"]), 2) if row["avg_mohs"] is not None else None
         )
+        row["share_rate"] = round(
+            (row["problem_count"] / statement_row_total) * 100,
+            1,
+        ) if statement_row_total else 0.0
 
     confidence_rows = list(
         contest_base_eff.exclude(_eff_confidence="")
@@ -6508,6 +7511,22 @@ def contest_advanced_analytics_view(request):
     ]
 
     contest_quick_update_url = contest_completion_quick_update_url(selected_contest)
+    solved_problem_total = sum(int(row["solved_problem_total"] or 0) for row in year_rows)
+    solved_rate = (
+        round((solved_problem_total / statement_row_total) * 100, 1)
+        if statement_row_total
+        else 0.0
+    )
+    linked_rate = (
+        round((statement_problem_total / statement_row_total) * 100, 1)
+        if statement_row_total
+        else 0.0
+    )
+    solution_rate = (
+        round((solution_problem_total / statement_row_total) * 100, 1)
+        if statement_row_total
+        else 0.0
+    )
 
     context = {
         "contest_choices": contest_choices,
@@ -6519,7 +7538,11 @@ def contest_advanced_analytics_view(request):
             "max_mohs": stats["max_mohs"] or 0,
             "problem_count": stats["problem_count"],
             "published_solution_total": published_solution_total,
+            "linked_rate": linked_rate,
             "solution_problem_total": solution_problem_total,
+            "solution_rate": solution_rate,
+            "solved_problem_total": solved_problem_total,
+            "solved_rate": solved_rate,
             "statement_problem_total": statement_problem_total,
             "statement_row_total": statement_row_total,
             "technique_rows": technique_row_total,
@@ -6536,6 +7559,7 @@ def contest_advanced_analytics_view(request):
             "chart": _contest_completion_heatmap_chart_payload(heatmap_rows),
             "filled_cell_total": len(heatmap_counts),
             "has_partial_cells": has_partial_heatmap_cells,
+            "problem_code_groups": _contest_heatmap_problem_code_groups(heatmap_problem_codes),
             "problem_code_total": len(heatmap_problem_codes),
             "problem_codes": heatmap_problem_codes,
             "rows": heatmap_rows,
@@ -6557,6 +7581,15 @@ def topic_tag_analytics_view(request):
     _require_admin_tools_access(request)
 
     initial_search_query = (request.GET.get("q") or "").strip()
+    selected_filters = {
+        "q": initial_search_query,
+        "contest": (request.GET.get("contest") or "").strip(),
+        "topic": (request.GET.get("topic") or "").strip(),
+        "domain": (request.GET.get("domain") or "").strip().upper(),
+        "year": (request.GET.get("year") or "").strip(),
+    }
+    if selected_filters["year"] and not selected_filters["year"].isdigit():
+        selected_filters["year"] = ""
 
     tag_queryset = ProblemTopicTechnique.objects.select_related("record")
     if initial_search_query:
@@ -6573,14 +7606,28 @@ def topic_tag_analytics_view(request):
                 token_filter |= Q(record__year=int(token))
             tag_queryset = tag_queryset.filter(token_filter)
 
-    technique_filtered_total = tag_queryset.count()
-    tag_rows = list(
-        tag_queryset.order_by("-record__created_at", "-id")[:ADMIN_TABLE_LATEST_LIMIT],
+    q_scoped_tag_rows = list(
+        tag_queryset.order_by(
+            "technique",
+            "-record__year",
+            "record__contest",
+            "record__problem",
+            "id",
+        ),
+    )
+    technique_filter_options = _build_technique_filter_options(q_scoped_tag_rows)
+    tag_rows = _filter_technique_tag_rows(
+        q_scoped_tag_rows,
+        contest=selected_filters["contest"],
+        domain=selected_filters["domain"],
+        topic=selected_filters["topic"],
+        year=selected_filters["year"],
     )
     tag_directory = _build_topic_tag_directory_rows(tag_rows)
 
     technique_total = len(tag_directory)
     technique_row_total = len(tag_rows)
+    technique_filtered_total = technique_row_total
     tagged_problem_total = len({tag_row.record_id for tag_row in tag_rows})
     distinct_contests = sorted({tag_row.record.contest for tag_row in tag_rows if tag_row.record.contest})
     distinct_domains = sorted(
@@ -6589,18 +7636,20 @@ def topic_tag_analytics_view(request):
             for tag_row in tag_rows
             for domain_name in (tag_row.domains or [])
             if domain_name
-        }
+        },
     )
     distinct_topics = sorted(
         {
             display_topic_label(tag_row.record.topic)
             for tag_row in tag_rows
             if display_topic_label(tag_row.record.topic)
-        }
+        },
     )
     average_techniques_per_problem = (
         round(technique_row_total / tagged_problem_total, 2) if tagged_problem_total else 0.0
     )
+    active_filter_rows = _build_technique_active_filter_rows(selected_filters)
+    scope_label = "Filtered dataset" if active_filter_rows else "All technique rows"
 
     by_year_counter: Counter[int] = Counter()
     by_domain_counter: Counter[str] = Counter()
@@ -6623,119 +7672,94 @@ def topic_tag_analytics_view(request):
         )[:12]
     ]
 
-    most_used_technique = tag_directory[0] if tag_directory else None
-    broadest_contest_technique = (
-        sorted(
-            tag_directory,
-            key=lambda row: (-row["contest_count"], -row["problem_count"], row["technique"]),
-        )[0]
-        if tag_directory
-        else None
-    )
-    broadest_domain_technique = (
-        sorted(
-            tag_directory,
-            key=lambda row: (-row["domain_count"], -row["problem_count"], row["technique"]),
-        )[0]
-        if tag_directory
-        else None
-    )
-    widest_topic_technique = (
-        sorted(
-            tag_directory,
-            key=lambda row: (-row["topic_count"], -row["problem_count"], row["technique"]),
-        )[0]
-        if tag_directory
-        else None
-    )
-    longest_running_technique = (
-        sorted(
-            tag_directory,
-            key=lambda row: (-row["active_years"], -row["problem_count"], row["technique"]),
-        )[0]
-        if tag_directory
-        else None
-    )
-    highest_avg_mohs_technique = (
-        sorted(
-            tag_directory,
-            key=lambda row: (-row["avg_mohs"], -row["problem_count"], row["technique"]),
-        )[0]
-        if tag_directory
-        else None
-    )
-
     charts_payload = {
-        "byProblemVolume": _rows_to_bar_payload(
-            tag_directory[:12],
-            "technique",
-            value_key="problem_count",
+        "byProblemVolume": _with_bar_payload_metadata(
+            _rows_to_bar_payload(
+                tag_directory[:12],
+                "technique",
+                value_key="problem_count",
+            ),
+            filter_param="q",
+            series_name="Problems",
         ),
-        "byContestCoverage": _rows_to_bar_payload(
-            sorted(
-                tag_directory,
-                key=lambda row: (-row["contest_count"], -row["problem_count"], row["technique"]),
-            )[:12],
-            "technique",
-            value_key="contest_count",
+        "byContestCoverage": _with_bar_payload_metadata(
+            _rows_to_bar_payload(
+                sorted(
+                    tag_directory,
+                    key=lambda row: (-row["contest_count"], -row["problem_count"], row["technique"]),
+                )[:12],
+                "technique",
+                value_key="contest_count",
+            ),
+            filter_param="q",
+            series_name="Contests",
         ),
-        "byDomainBreadth": _rows_to_bar_payload(
-            sorted(
-                tag_directory,
-                key=lambda row: (-row["domain_count"], -row["problem_count"], row["technique"]),
-            )[:12],
-            "technique",
-            value_key="domain_count",
+        "byDomainBreadth": _with_bar_payload_metadata(
+            _rows_to_bar_payload(
+                sorted(
+                    tag_directory,
+                    key=lambda row: (-row["domain_count"], -row["problem_count"], row["technique"]),
+                )[:12],
+                "technique",
+                value_key="domain_count",
+            ),
+            filter_param="q",
+            series_name="Domains",
         ),
-        "byTopicBreadth": _rows_to_bar_payload(
-            sorted(
-                tag_directory,
-                key=lambda row: (-row["topic_count"], -row["problem_count"], row["technique"]),
-            )[:12],
-            "technique",
-            value_key="topic_count",
+        "byTopicVolume": _build_technique_topic_volume_payload(tag_rows),
+        "byAvgMohs": _with_bar_payload_metadata(
+            _rows_to_bar_payload(
+                sorted(
+                    tag_directory,
+                    key=lambda row: (-row["avg_mohs"], -row["problem_count"], row["technique"]),
+                )[:12],
+                "technique",
+                value_key="avg_mohs",
+                decimals=2,
+            ),
+            filter_param="q",
+            series_name="Avg MOHS",
         ),
-        "byAvgMohs": _rows_to_bar_payload(
-            sorted(
-                tag_directory,
-                key=lambda row: (-row["avg_mohs"], -row["problem_count"], row["technique"]),
-            )[:12],
-            "technique",
-            value_key="avg_mohs",
-            decimals=2,
+        "byAvgMohsScatter": _build_technique_avg_mohs_scatter_payload(tag_directory),
+        "byYearActivity": _with_bar_payload_metadata(
+            _rows_to_bar_payload(
+                year_activity_rows,
+                "year",
+            ),
+            filter_param="year",
+            series_name="Technique rows",
         ),
-        "byYearActivity": _rows_to_bar_payload(year_activity_rows, "year"),
-        "byDomainVolume": _rows_to_bar_payload(domain_volume_rows, "domain"),
+        "byDomainVolume": _with_bar_payload_metadata(
+            _rows_to_bar_payload(
+                domain_volume_rows,
+                "domain",
+            ),
+            filter_param="domain",
+            series_name="Technique rows",
+        ),
     }
+    technique_leader_rows = _build_technique_leader_rows(tag_directory, selected_filters)
 
     context = {
+        "has_any_technique_rows": ProblemTopicTechnique.objects.exists(),
+        "has_technique_source_rows": bool(q_scoped_tag_rows),
         "technique_total": technique_total,
         "technique_row_total": technique_row_total,
         "technique_filtered_total": technique_filtered_total,
-        "technique_result_limit": ADMIN_TABLE_LATEST_LIMIT,
-        "technique_is_capped": technique_filtered_total > technique_row_total,
         "tagged_problem_total": tagged_problem_total,
         "initial_search_query": initial_search_query,
+        "technique_active_filters": active_filter_rows,
+        "technique_filters": selected_filters,
+        "technique_reset_url": reverse("pages:technique_dashboard"),
+        "technique_scope_label": scope_label,
         "technique_stats": {
             "contest_total": len(distinct_contests),
             "domain_total": len(distinct_domains),
             "topic_total": len(distinct_topics),
             "average_techniques_per_problem": average_techniques_per_problem,
         },
-        "technique_leaders": {
-            "most_used": most_used_technique,
-            "broadest_contest": broadest_contest_technique,
-            "broadest_domain": broadest_domain_technique,
-            "widest_topic": widest_topic_technique,
-            "longest_running": longest_running_technique,
-            "highest_avg_mohs": highest_avg_mohs_technique,
-        },
-        "technique_filter_options": {
-            "contests": distinct_contests,
-            "domains": distinct_domains,
-            "topics": distinct_topics,
-            "years": [str(year_value) for year_value in sorted(by_year_counter, reverse=True)],
-        },
+        "technique_leader_rows": technique_leader_rows,
+        "technique_filter_options": technique_filter_options,
         "technique_rows": tag_directory,
         "charts_payload": charts_payload,
     }

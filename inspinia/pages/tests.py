@@ -4620,6 +4620,109 @@ def test_contest_dashboard_rows_include_advanced_analytics_links(client):
     assert "row.detail_url" in response_html
 
 
+def test_contest_dashboard_exposes_quality_payload_and_redesign_hooks(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+
+    rich_statements = []
+    for problem_number in range(1, 11):
+        rich_statements.append(
+            ContestProblemStatement.objects.create(
+                contest_year=2026,
+                contest_name="USAMO",
+                problem_number=problem_number,
+                problem_code=f"P{problem_number}",
+                day_label="Day 1",
+                statement_latex=f"Statement {problem_number}",
+                topic="ALG" if problem_number <= 8 else "",
+                mohs=5 if problem_number <= 8 else None,
+            ),
+        )
+    for statement in rich_statements[:7]:
+        StatementTopicTechnique.objects.create(statement=statement, technique="INVARIANT", domains=["C"])
+    StatementTopicTechnique.objects.create(
+        statement=rich_statements[0],
+        technique="PIGEONHOLE",
+        domains=["C"],
+    )
+
+    for problem_number in range(1, 4):
+        ContestProblemStatement.objects.create(
+            contest_year=2026,
+            contest_name="Tiny Cup",
+            problem_number=problem_number,
+            problem_code=f"P{problem_number}",
+            day_label="Day 1",
+            statement_latex=f"Tiny statement {problem_number}",
+        )
+
+    response = client.get(reverse("pages:contest_dashboard"))
+
+    assert response.status_code == HTTPStatus.OK
+    rows_by_contest = {row["contest"]: row for row in response.context["contest_rows"]}
+    rich_row = rows_by_contest["USAMO"]
+    assert rich_row["problem_count"] == 10
+    assert rich_row["mohs_statement_count"] == 8
+    assert rich_row["missing_mohs_count"] == 2
+    assert rich_row["mohs_coverage_percent"] == 80.0
+    assert rich_row["topic_statement_count"] == 8
+    assert rich_row["missing_topic_count"] == 2
+    assert rich_row["topic_coverage_percent"] == 80.0
+    assert rich_row["technique_rows"] == 8
+    assert rich_row["technique_statement_count"] == 7
+    assert rich_row["missing_technique_count"] == 3
+    assert rich_row["technique_coverage_percent"] == 70.0
+    assert rich_row["has_mohs"] is True
+    assert rich_row["has_topic"] is True
+    assert rich_row["has_techniques"] is True
+    assert rich_row["is_low_sample"] is False
+
+    tiny_row = rows_by_contest["Tiny Cup"]
+    assert tiny_row["is_low_sample"] is True
+    assert tiny_row["has_mohs"] is False
+    assert tiny_row["has_topic"] is False
+    assert tiny_row["has_techniques"] is False
+    assert tiny_row["quality_badges"] == ["Low sample", "No MOHS", "No topic", "No techniques"]
+
+    assert response.context["contest_stats"]["global_year_span_label"] == "2026"
+    assert response.context["contest_stats"]["complete_metadata_percent"] == 53.85
+    assert response.context["contest_quality_counts"]["missing_mohs"] == 2
+    assert response.context["contest_quality_counts"]["missing_topics"] == 2
+    assert response.context["contest_quality_counts"]["no_techniques"] == 1
+    assert response.context["charts_payload"]["topicComposition"]["labels"] == ["USAMO", "Tiny Cup"]
+    assert "Missing topic" in [
+        series["name"] for series in response.context["charts_payload"]["topicComposition"]["series"]
+    ]
+
+    response_html = response.content.decode("utf-8")
+    for hook_id in [
+        "contest-ranked-chart",
+        "contest-ranked-metric-controls",
+        "contest-ranked-min-statements",
+        "contest-data-quality-watchlist",
+        "contest-topic-composition-chart",
+        "contest-directory-search",
+        "contest-directory-quality-filter",
+    ]:
+        assert f'id="{hook_id}"' in response_html
+    assert response_html.count("dataTables.min.js") == 1
+    assert response_html.count("apexcharts.min.js") == 1
+
+
+def test_contest_dashboard_empty_dataset_keeps_import_prompt_without_chart_initializers(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+
+    response = client.get(reverse("pages:contest_dashboard"))
+
+    assert response.status_code == HTTPStatus.OK
+    response_html = response.content.decode("utf-8")
+    assert "No contest data yet." in response_html
+    assert 'id="contest-ranked-chart"' not in response_html
+    assert "new ApexCharts" not in response_html
+    assert "new DataTable" not in response_html
+
+
 def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     solution_author = UserFactory()
@@ -4692,12 +4795,17 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
     assert response.context["contest_stats"]["problem_count"] == 2
     assert response.context["contest_stats"]["statement_problem_total"] == 1
     assert response.context["contest_stats"]["statement_row_total"] == 2
+    assert response.context["contest_stats"]["solved_problem_total"] == 1
+    assert response.context["contest_stats"]["solved_rate"] == 50.0
+    assert response.context["contest_stats"]["linked_rate"] == 50.0
+    assert response.context["contest_stats"]["solution_rate"] == 50.0
     assert response.context["contest_stats"]["published_solution_total"] == 1
     assert response.context["contest_quick_update_url"] == (
         reverse("pages:completion_quick_update") + "?contest=USAMO"
     )
     heatmap = response.context["contest_completion_heatmap"]
     assert heatmap["problem_codes"] == ["P1", "P2"]
+    assert heatmap["problem_code_groups"] == [{"label": "P-codes", "start_index": 0, "span": 2}]
     heatmap_2026 = next(row for row in heatmap["rows"] if row["year"] == 2026)
     heatmap_2025 = next(row for row in heatmap["rows"] if row["year"] == 2025)
     heatmap_2026_p1 = next(cell for cell in heatmap_2026["cells"] if cell["problem_code"] == "P1")
@@ -4728,7 +4836,7 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
                         args=[problem_one.problem_uuid],
                     ),
                     "state": "solved",
-                    "title": "USAMO 2026 P1: 1 of 1 statement row solved by you",
+                    "title": "USAMO 2026 P1: 1 of 1 statement completed by you",
                     "x": "P1",
                     "y": 3,
                 },
@@ -4736,7 +4844,7 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
                     "display": "",
                     "solution_url": "",
                     "state": "empty",
-                    "title": "USAMO 2026 P2: no statement row",
+                    "title": "USAMO 2026 P2: no statement",
                     "x": "P2",
                     "y": 0,
                 },
@@ -4749,7 +4857,7 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
                     "display": "",
                     "solution_url": "",
                     "state": "empty",
-                    "title": "USAMO 2025 P1: no statement row",
+                    "title": "USAMO 2025 P1: no statement",
                     "x": "P1",
                     "y": 0,
                 },
@@ -4757,7 +4865,7 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
                     "display": "•",
                     "solution_url": "",
                     "state": "unsolved",
-                    "title": "USAMO 2025 P2: 0 of 1 statement row solved by you",
+                    "title": "USAMO 2025 P2: 0 of 1 statement completed by you",
                     "x": "P2",
                     "y": 1,
                 },
@@ -4768,6 +4876,7 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
     year_2025 = next(row for row in response.context["year_rows"] if row["year"] == 2025)
     assert year_2026["problem_count"] == 1
     assert year_2026["statement_problem_total"] == 1
+    assert year_2026["linked_rate"] == 100.0
     assert year_2026["solved_problem_total"] == 1
     assert year_2026["solved_rate"] == 100.0
     assert year_2026["year_detail_url"] == (
@@ -4775,21 +4884,35 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
     )
     assert year_2025["problem_count"] == 1
     assert year_2025["statement_problem_total"] == 0
+    assert year_2025["linked_rate"] == 0.0
     assert year_2025["solved_problem_total"] == 0
     assert year_2025["solved_rate"] == 0.0
     assert year_2025["year_detail_url"] == (
         reverse("pages:completion_quick_update") + "?contest=USAMO&year=2025"
     )
+    topic_rows = response.context["topic_rows"]
+    assert [row["share_rate"] for row in topic_rows] == [50.0]
     response_html = response.content.decode("utf-8")
-    assert "Contest advanced analytics" in response_html
+    assert "Contest progress" in response_html
+    assert "Contest advanced analytics" not in response_html
+    assert "Change contest" in response_html
+    assert "Contest selector" not in response_html
     assert "Completion heatmap" in response_html
-    assert "Your completions" in response_html
+    assert "Completed" in response_html
+    assert "Unstarted" in response_html
+    assert "No statement" in response_html
+    assert "No completion from you yet" not in response_html
+    assert "statement row" not in response_html
     assert 'id="chart-contest-completion-heatmap"' in response_html
     assert "contest-advanced-heatmap-data" in response_html
     assert "dataPointSelection" in response_html
+    assert "dataPointMouseEnter" in response_html
+    assert "dataPointMouseLeave" in response_html
+    assert "--contest-completion-heatmap-solved" in response_html
     assert "point.solution_url" in response_html
     assert "event.metaKey || event.ctrlKey" in response_html
     assert 'window.open(point.solution_url, "_blank", "noopener")' in response_html
+    assert "contest-completion-heatmap-clickable" not in response_html
     assert "plugins/apexcharts/apexcharts.min.js" in response_html
     assert "contest-completion-heatmap-table" not in response_html
     assert '<input id="contest-advanced-selector" type="search" name="contest" value="USAMO"' in response_html
@@ -4797,15 +4920,49 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
     assert '<datalist id="contest-advanced-options">' in response_html
     assert '<option value="USAMO" label="2 statements">' in response_html
     assert '<select id="contest-advanced-selector"' not in response_html
-    assert "Year breakdown" in response_html
-    assert "Statement-linked" in response_html
+    assert "Years" in response_html
+    assert "Linked" in response_html
     assert "Solved" in response_html
-    assert "Solved rate" in response_html
     assert reverse("pages:completion_quick_update") + "?contest=USAMO&amp;year=2026" in response_html
     assert reverse("pages:contest_dashboard_listing") not in response_html
     assert "Open contest listing" not in response_html
-    assert "Topic mix" in response_html
-    assert "Recent statements" in response_html
+    assert "Topics" in response_html
+    assert "Data quality" in response_html
+    assert "Recent updates" in response_html
+
+
+def test_contest_advanced_analytics_groups_heatmap_problem_codes(client):
+    user = UserFactory()
+    client.force_login(user)
+    for code in ["9.1", "9.2", "10.1", "11.1", "P1"]:
+        ContestProblemStatement.objects.create(
+            contest_year=2026,
+            contest_name="Grade Cup",
+            problem_number=1,
+            problem_code=code,
+            day_label="Day 1",
+            statement_latex=f"Statement {code}",
+        )
+
+    response = client.get(reverse("pages:contest_advanced_dashboard"), {"contest": "Grade Cup"})
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["contest_completion_heatmap"]["problem_codes"] == [
+        "9.1",
+        "9.2",
+        "10.1",
+        "11.1",
+        "P1",
+    ]
+    assert response.context["contest_completion_heatmap"]["problem_code_groups"] == [
+        {"label": "Grade 9", "start_index": 0, "span": 2},
+        {"label": "Grade 10", "start_index": 2, "span": 1},
+        {"label": "Grade 11", "start_index": 3, "span": 1},
+        {"label": "P-codes", "start_index": 4, "span": 1},
+    ]
+    response_html = response.content.decode("utf-8")
+    assert 'data-problem-code-group="Grade 9"' in response_html
+    assert 'style="--contest-completion-group-span: 2;"' in response_html
 
 
 def test_contest_advanced_analytics_requires_login(client):
@@ -5035,6 +5192,10 @@ def test_contest_mohs_summary_ranks_by_current_user_average(client):
     user = UserFactory()
     other = UserFactory()
     client.force_login(user)
+    ContestMetadata.objects.create(
+        contest="Hard Cup",
+        tags=["Olympiad", "International"],
+    )
 
     hard_statement = ContestProblemStatement.objects.create(
         contest_year=2026,
@@ -5075,7 +5236,17 @@ def test_contest_mohs_summary_ranks_by_current_user_average(client):
     assert response.status_code == HTTPStatus.OK
     rows = response.context["contest_mohs_summary_rows"]
     assert [row["contest"] for row in rows] == ["Hard Cup", "Easier Cup", "Unsolved Cup"]
+    assert response.context["contest_mohs_topic_legend"] == [
+        {"code": "A", "label": "Algebra"},
+        {"code": "C", "label": "Combinatorics"},
+        {"code": "G", "label": "Geometry"},
+        {"code": "N", "label": "Number Theory"},
+    ]
+    assert response.context["contest_mohs_summary_stats"]["has_user_averages"] is True
+    assert response.context["contest_mohs_summary_stats"]["overall_average_mohs"] == 31.67
     hard_row = rows[0]
+    assert hard_row["level_labels"] == ["Olympiad", "International"]
+    assert hard_row["levels"] == "Olympiad, International"
     assert hard_row["topic_averages"]["A"] == 40.0
     assert hard_row["topic_counts"]["A"] == 1
     assert hard_row["average_mohs"] == 40.0
@@ -5130,9 +5301,13 @@ def test_contest_mohs_summary_without_user_average_ranks_by_average_mohs(client)
     assert response.context["contest_mohs_summary_stats"]["rank_description"] == "Ranked by contest average MOHS"
 
 
-def test_contest_mohs_summary_renders_table_and_hide_low_count_toggle(client):
+def test_contest_mohs_summary_renders_table_without_my_average_when_user_has_no_completions(client):
     user = UserFactory()
     client.force_login(user)
+    ContestMetadata.objects.create(
+        contest="Large Cup",
+        tags=["Olympiad", "National"],
+    )
     for problem_number in range(1, 22):
         ContestProblemStatement.objects.create(
             contest_year=2026,
@@ -5144,7 +5319,6 @@ def test_contest_mohs_summary_renders_table_and_hide_low_count_toggle(client):
             topic="COMB",
             mohs=30,
         )
-    ContestMetadata.objects.create(contest="Large Cup", tags=["Olympiad", "National"])
     ContestProblemStatement.objects.create(
         contest_year=2026,
         contest_name="Small Cup",
@@ -5164,30 +5338,82 @@ def test_contest_mohs_summary_renders_table_and_hide_low_count_toggle(client):
     response_html = response.content.decode("utf-8")
     assert "Contest MOHS summary" in response_html
     assert 'id="contest-mohs-summary-table"' in response_html
+    assert 'data-has-user-averages="false"' in response_html
     assert 'id="contest-mohs-filter-all"' in response_html
-    assert 'id="contest-mohs-filter-threshold"' in response_html
+    assert 'id="contest-mohs-filter-reliable"' in response_html
+    assert 'id="contest-mohs-filter-category-shortlist"' in response_html
+    assert 'id="contest-mohs-sort-average"' in response_html
+    assert 'id="contest-mohs-sort-user-average"' not in response_html
+    assert 'id="contest-mohs-filter-threshold"' not in response_html
     assert 'id="contest-mohs-hide-low-count"' not in response_html
     assert "data-hide-threshold=\"20\"" in response_html
     assert 'data-has-user-averages="false"' in response_html
     assert "DataTable.ext.search.push" in response_html
     assert "numeric.toFixed(2)" in response_html
     assert "Problems with MOHS" in response_html
-    assert "With My Avg" in response_html
-    assert "20+ problem contests" in response_html
-    assert "My Avg" in response_html
+    assert "Avg MOHS" in response_html
+    assert "Completed contests" in response_html
+    assert "Reliable contests" in response_html
+    assert "Reliable 20+" in response_html
+    assert "Algebra" in response_html
+    assert "Combinatorics" in response_html
+    assert "Geometry" in response_html
+    assert "Number Theory" in response_html
     assert "MOHS Count" in response_html
-    assert "Topic averages" in response_html
-    assert "Overall" in response_html
     assert "No completed contests yet" in response_html
+    assert "Add quick completions" in response_html
+    assert "My Avg" not in response_html
     assert "A Count" not in response_html
     assert "C Count" not in response_html
     assert "G Count" not in response_html
     assert "N Count" not in response_html
     assert "MOHS rows" not in response_html
     assert "With usr average" not in response_html
+    assert "With My Avg" not in response_html
     assert "Total Count of MOHS2" not in response_html
     assert "Usr Average" not in response_html
+    assert "Contest Link" not in response_html
+    assert ">Open<" not in response_html
     assert reverse("pages:contest_dashboard_listing") + "?contest=Large+Cup" in response_html
+
+
+def test_contest_mohs_summary_renders_my_average_when_user_has_completions(client):
+    user = UserFactory()
+    client.force_login(user)
+    completed_statement = ContestProblemStatement.objects.create(
+        contest_year=2026,
+        contest_name="Completed Cup",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Completed statement",
+        topic="ALG",
+        mohs=40,
+    )
+    ContestProblemStatement.objects.create(
+        contest_year=2026,
+        contest_name="Completed Cup",
+        problem_number=2,
+        problem_code="P2",
+        day_label="Day 1",
+        statement_latex="Second completed statement",
+        topic="GEO",
+        mohs=30,
+    )
+    UserProblemCompletion.objects.create(
+        user=user,
+        statement=completed_statement,
+        completion_date=date(2026, 1, 1),
+    )
+
+    response = client.get(reverse("pages:contest_mohs_summary"))
+
+    assert response.status_code == HTTPStatus.OK
+    response_html = response.content.decode("utf-8")
+    assert 'data-has-user-averages="true"' in response_html
+    assert 'id="contest-mohs-sort-user-average"' in response_html
+    assert 'id="contest-mohs-filter-category-completed"' in response_html
+    assert "My Avg" in response_html
 
 
 def test_contest_dashboard_listing_view_filters_selected_contest_and_year_for_admin(client):
@@ -6824,7 +7050,10 @@ def test_completion_record_list_renders_admin_inventory(client):
     response_html = response.content.decode("utf-8")
     assert "Completion info listing" in response_html
     assert 'id="completion-record-table"' in response_html
-    assert 'order: [[18, "desc"]]' in response_html
+    assert 'order: [[7, "desc"]]' in response_html
+    assert "Filter loaded rows:" in response_html
+    assert "Within latest rows" in response_html
+    assert "row().child" in response_html
     assert "Known dates" not in response_html
     assert "With solutions" not in response_html
 
@@ -6870,10 +7099,13 @@ def test_completion_record_list_includes_study_progress_fields(client):
     assert row["post_mortem"] == "State the lifting step before expanding cases."
     assert row["reattempt_date"] == "2026-07-24"
     assert row["confidence_label"] == "Medium"
+    assert row["status_badge_class"] == "text-bg-info"
     response_html = response.content.decode("utf-8")
     assert 'title: "Status"' in response_html
-    assert 'title: "Time spent"' in response_html
-    assert 'title: "Post-mortem"' in response_html
+    assert "completion-record-detail-panel" in response_html
+    assert "Time spent" in response_html
+    assert "First idea found?" in response_html
+    assert "Post-mortem" in response_html
 
 
 def test_completion_record_list_shows_average_user_set_difficulty_after_mohs(client):
@@ -6919,10 +7151,166 @@ def test_completion_record_list_shows_average_user_set_difficulty_after_mohs(cli
     assert row["difficulty_rating_count"] == expected_difficulty_rating_count
     response_html = response.content.decode("utf-8")
     assert 'title: "Avg difficulty"' in response_html
-    assert response_html.index('{ data: "mohs", title: "MOHS"') < response_html.index(
+    assert response_html.index('title: "Problem"') < response_html.index(
         'data: "average_difficulty_rating"',
-    ) < response_html.index('data: "completion_date"')
-    assert 'order: [[18, "desc"]]' in response_html
+    ) < response_html.index('title: "Status"')
+    assert "MOHS" in response_html
+    assert 'order: [[7, "desc"]]' in response_html
+
+
+def test_completion_record_list_renders_compact_kpis_and_missing_solution_stats(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    published_user = UserFactory(name="Published Solver")
+    missing_user = UserFactory(name="Missing Solver")
+    client.force_login(admin_user)
+    published_problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="ALG",
+        mohs=6,
+        contest="USAMO",
+        problem="P1",
+        contest_year_problem="USAMO 2026 P1",
+    )
+    missing_problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="GEO",
+        mohs=8,
+        contest="IMO",
+        problem="P2",
+        contest_year_problem="IMO 2026 P2",
+    )
+    UserProblemCompletion.objects.create(
+        user=published_user,
+        problem=published_problem,
+        completion_date=date(2026, 7, 10),
+    )
+    UserProblemCompletion.objects.create(
+        user=missing_user,
+        problem=missing_problem,
+        completion_date=date(2026, 7, 11),
+    )
+    ProblemSolution.objects.create(
+        problem=published_problem,
+        author=published_user,
+        status=ProblemSolution.Status.PUBLISHED,
+    )
+
+    response = client.get(reverse("pages:completion_record_list"))
+
+    expected_record_total = 2
+    expected_user_total = 2
+    expected_contest_total = 2
+    expected_published_solution_total = 1
+    expected_missing_solution_total = 1
+
+    assert response.status_code == HTTPStatus.OK
+    stats = response.context["completion_record_stats"]
+    assert stats["record_total"] == expected_record_total
+    assert stats["user_total"] == expected_user_total
+    assert stats["contest_total"] == expected_contest_total
+    assert stats["published_solution_total"] == expected_published_solution_total
+    assert stats["missing_solution_total"] == expected_missing_solution_total
+    response_html = response.content.decode("utf-8")
+    assert "Loaded rows" in response_html
+    assert "Users" in response_html
+    assert "Contests" in response_html
+    assert "Published" in response_html
+    assert "No solution" in response_html
+
+
+def test_completion_record_list_renders_active_filter_chips_and_opens_advanced_filters(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    completion_user = UserFactory(name="Ada Lovelace", email="ada@example.com")
+    client.force_login(admin_user)
+    problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="ALG",
+        mohs=6,
+        contest="USAMO",
+        problem="P1",
+        contest_year_problem="USAMO 2026 P1",
+    )
+    UserProblemCompletion.objects.create(
+        user=completion_user,
+        problem=problem,
+        completion_date=date(2026, 7, 10),
+        status=UserProblemCompletion.Status.CHECKED,
+        confidence=UserProblemCompletion.Confidence.HIGH,
+    )
+
+    response = client.get(
+        reverse("pages:completion_record_list"),
+        {
+            "q": "Ada",
+            "contest": "USAMO",
+            "user": "ada@example.com",
+            "date_status": "known",
+            "status": UserProblemCompletion.Status.CHECKED,
+            "confidence": UserProblemCompletion.Confidence.HIGH,
+            "solution_status": "none",
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["completion_record_has_active_filters"] is True
+    assert response.context["completion_record_advanced_filters_open"] is True
+    chips = response.context["completion_record_active_filters"]
+    chip_labels = {(chip["label"], chip["value"]) for chip in chips}
+    assert ("Search", "Ada") in chip_labels
+    assert ("Contest", "USAMO") in chip_labels
+    assert ("User", "Ada Lovelace (ada@example.com)") in chip_labels
+    assert ("Date", "Known date") in chip_labels
+    assert ("Status", "Checked") in chip_labels
+    assert ("Confidence", "High") in chip_labels
+    assert ("Solution", "No solution") in chip_labels
+    status_chip = next(chip for chip in chips if chip["label"] == "Status")
+    assert "?status=" not in status_chip["remove_url"]
+    assert "&status=" not in status_chip["remove_url"]
+    assert "q=Ada" in status_chip["remove_url"]
+    response_html = response.content.decode("utf-8")
+    assert "completion-record-advanced-filters" in response_html
+    assert 'class="collapse show"' in response_html
+    assert "Active filters" in response_html
+
+
+def test_completion_record_list_preserves_selected_options_when_filtered_rows_are_empty(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="ALG",
+        mohs=6,
+        contest="USAMO",
+        problem="P1",
+        contest_year_problem="USAMO 2026 P1",
+    )
+    UserProblemCompletion.objects.create(
+        user=UserFactory(name="Ada Lovelace", email="ada@example.com"),
+        problem=problem,
+        completion_date=date(2026, 7, 10),
+    )
+
+    response = client.get(
+        reverse("pages:completion_record_list"),
+        {
+            "contest": "IMO",
+            "user": "missing@example.com",
+            "status": UserProblemCompletion.Status.WRITTEN,
+            "confidence": UserProblemCompletion.Confidence.LOW,
+            "solution_status": ProblemSolution.Status.PUBLISHED,
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["completion_record_rows"] == []
+    assert response.context["completion_record_has_active_filters"] is True
+    response_html = response.content.decode("utf-8")
+    assert "No completion rows match the current filters." in response_html
+    assert 'value="IMO" selected' in response_html
+    assert 'value="missing@example.com" selected' in response_html
+    assert f'value="{UserProblemCompletion.Status.WRITTEN}" selected' in response_html
+    assert f'value="{UserProblemCompletion.Confidence.LOW}" selected' in response_html
+    assert f'value="{ProblemSolution.Status.PUBLISHED}" selected' in response_html
 
 
 def test_completion_record_list_caps_to_latest_100_by_updated_at(client):
@@ -6959,6 +7347,7 @@ def test_completion_record_list_caps_to_latest_100_by_updated_at(client):
     assert response.context["completion_record_visible_total"] == 100
     assert response.context["completion_record_result_limit"] == 100
     assert response.context["completion_record_is_capped"] is True
+    assert "Latest 100" in response.content.decode("utf-8")
 
 
 def test_completion_record_list_does_not_cap_exactly_100_records(client):
@@ -7312,14 +7701,25 @@ def test_page_view_analytics_tracks_core_archive_surfaces_for_admin(client):
     response = client.get(reverse("pages:page_view_analytics"))
 
     assert response.status_code == HTTPStatus.OK
-    assert response.context["page_view_stats"] == {
+    page_view_stats = response.context["page_view_stats"]
+    assert {
+        "contest_view_total": page_view_stats["contest_view_total"],
+        "list_view_total": page_view_stats["list_view_total"],
+        "problem_statement_view_total": page_view_stats["problem_statement_view_total"],
+        "solution_view_total": page_view_stats["solution_view_total"],
+        "total": page_view_stats["total"],
+        "known_user_total": page_view_stats["known_user_total"],
+        "anonymous_view_total": page_view_stats["anonymous_view_total"],
+    } == {
         "contest_view_total": 1,
         "list_view_total": 2,
         "problem_statement_view_total": 1,
         "solution_view_total": 1,
         "total": 5,
-        "unique_user_total": 1,
+        "known_user_total": 1,
+        "anonymous_view_total": 0,
     }
+    assert response.context["page_view_date_range"].range_key == "30d"
     assert [row["view_type"] for row in response.context["page_view_type_rows"]] == [
         PageViewEvent.ViewType.PROBLEM_STATEMENT,
         PageViewEvent.ViewType.SOLUTION,
@@ -7342,7 +7742,264 @@ def test_page_view_analytics_tracks_core_archive_surfaces_for_admin(client):
     }
     assert response.context["page_view_top_contests"][0]["contest_name"] == "IMO"
     assert response.context["page_view_top_contests"][0]["view_total"] == 1
-    assert "View analytics" in response.content.decode("utf-8")
+    response_html = response.content.decode("utf-8")
+    assert "View analytics" in response_html
+    assert "Statement views" in response_html
+    assert "Solution views" in response_html
+    assert "page-view-copy-path" in response_html
+    assert 'data-bs-toggle="tooltip"' in response_html
+
+
+def test_page_view_analytics_defaults_to_recent_non_admin_and_anonymous_traffic(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    student = UserFactory(name="Student One", email="student@example.com")
+    traffic_admin = UserFactory(role=User.Role.ADMIN, email="traffic-admin@example.com")
+    superuser = UserFactory(is_superuser=True, email="superuser@example.com")
+    now = timezone.now()
+
+    PageViewEvent.objects.create(
+        user=student,
+        view_type=PageViewEvent.ViewType.SOLUTION,
+        label="Recent student",
+        path="/solutions/recent/",
+        created_at=now - timedelta(days=2),
+    )
+    PageViewEvent.objects.create(
+        user=None,
+        view_type=PageViewEvent.ViewType.LIST,
+        label="Anonymous share",
+        path="/problem-lists/share/recent/",
+        created_at=now - timedelta(days=1),
+    )
+    PageViewEvent.objects.create(
+        user=traffic_admin,
+        view_type=PageViewEvent.ViewType.CONTEST,
+        label="Admin traffic",
+        path="/dashboard/contests/listing/?contest=IMO",
+        created_at=now,
+    )
+    PageViewEvent.objects.create(
+        user=superuser,
+        view_type=PageViewEvent.ViewType.PROBLEM_STATEMENT,
+        label="Superuser traffic",
+        path="/dashboard/problem-statements/old/",
+        created_at=now,
+    )
+    PageViewEvent.objects.create(
+        user=student,
+        view_type=PageViewEvent.ViewType.SOLUTION,
+        label="Old student",
+        path="/solutions/old/",
+        created_at=now - timedelta(days=45),
+    )
+
+    client.force_login(admin_user)
+    response = client.get(reverse("pages:page_view_analytics"))
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["page_view_date_range"].range_key == "30d"
+    assert response.context["page_view_filters"]["include_admins"] == ""
+    assert response.context["page_view_filters"]["include_anonymous"] == "1"
+    assert response.context["page_view_stats"]["total"] == 2
+    assert response.context["page_view_stats"]["known_user_total"] == 1
+    assert response.context["page_view_stats"]["anonymous_view_total"] == 1
+    assert [row["label"] for row in response.context["page_view_recent_rows"]] == [
+        "Anonymous share",
+        "Recent student",
+    ]
+
+
+def test_page_view_analytics_include_toggles_change_audience(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    student = UserFactory(email="student@example.com")
+    traffic_admin = UserFactory(role=User.Role.ADMIN, email="traffic-admin@example.com")
+    now = timezone.now()
+    PageViewEvent.objects.create(
+        user=student,
+        view_type=PageViewEvent.ViewType.SOLUTION,
+        label="Student",
+        path="/solutions/student/",
+        created_at=now,
+    )
+    PageViewEvent.objects.create(
+        user=None,
+        view_type=PageViewEvent.ViewType.LIST,
+        label="Anonymous",
+        path="/problem-lists/share/anonymous/",
+        created_at=now,
+    )
+    PageViewEvent.objects.create(
+        user=traffic_admin,
+        view_type=PageViewEvent.ViewType.CONTEST,
+        label="Admin",
+        path="/dashboard/contests/listing/?contest=IMO",
+        created_at=now,
+    )
+
+    client.force_login(admin_user)
+    include_admins = client.get(reverse("pages:page_view_analytics"), {"include_admins": "1"})
+    authenticated_only = client.get(reverse("pages:page_view_analytics"), {"include_anonymous": "0"})
+
+    assert include_admins.context["page_view_stats"]["total"] == 3
+    assert include_admins.context["page_view_stats"]["known_user_total"] == 2
+    assert authenticated_only.context["page_view_stats"]["total"] == 1
+    assert authenticated_only.context["page_view_stats"]["anonymous_view_total"] == 0
+
+
+@pytest.mark.parametrize(
+    ("params", "expected_labels"),
+    [
+        ({"range": "today"}, ["Today"]),
+        ({"range": "7d"}, ["Today", "Six days ago"]),
+        ({"range": "30d"}, ["Today", "Six days ago", "Twenty nine days ago"]),
+        ({"range": "all"}, ["Today", "Six days ago", "Twenty nine days ago", "Forty days ago", "Custom range"]),
+        (
+            {"range": "custom", "start": "2026-01-10", "end": "2026-01-12"},
+            ["Custom range"],
+        ),
+        (
+            {"range": "custom", "start": "not-a-date", "end": "2026-01-12"},
+            ["Today", "Six days ago", "Twenty nine days ago"],
+        ),
+    ],
+)
+def test_page_view_analytics_date_ranges_filter_views(client, params, expected_labels):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    viewer = UserFactory(email="viewer@example.com")
+    today = timezone.localdate()
+
+    dated_rows = [
+        ("Today", today),
+        ("Six days ago", today - timedelta(days=6)),
+        ("Twenty nine days ago", today - timedelta(days=29)),
+        ("Forty days ago", today - timedelta(days=40)),
+    ]
+    for label, day in dated_rows:
+        PageViewEvent.objects.create(
+            user=viewer,
+            view_type=PageViewEvent.ViewType.SOLUTION,
+            label=label,
+            path=f"/solutions/{label.lower().replace(' ', '-')}/",
+            created_at=timezone.make_aware(datetime.combine(day, datetime.min.time())),
+        )
+    PageViewEvent.objects.create(
+        user=viewer,
+        view_type=PageViewEvent.ViewType.SOLUTION,
+        label="Custom range",
+        path="/solutions/custom/",
+        created_at=timezone.make_aware(datetime(2026, 1, 11, 12, 0)),
+    )
+
+    client.force_login(admin_user)
+    response = client.get(reverse("pages:page_view_analytics"), params)
+
+    assert [row["label"] for row in response.context["page_view_recent_rows"]] == expected_labels
+
+
+def test_page_view_analytics_kpi_trend_compares_previous_period(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    viewer = UserFactory(email="viewer@example.com")
+    today = timezone.localdate()
+    current_day = today - timedelta(days=5)
+    previous_day = today - timedelta(days=10)
+    before_previous_day = today - timedelta(days=15)
+    for index in range(3):
+        PageViewEvent.objects.create(
+            user=viewer,
+            view_type=PageViewEvent.ViewType.SOLUTION,
+            label=f"Current {index}",
+            path=f"/solutions/current-{index}/",
+            created_at=timezone.make_aware(datetime.combine(current_day, datetime.min.time())),
+        )
+    PageViewEvent.objects.create(
+        user=viewer,
+        view_type=PageViewEvent.ViewType.SOLUTION,
+        label="Previous",
+        path="/solutions/previous/",
+        created_at=timezone.make_aware(datetime.combine(previous_day, datetime.min.time())),
+    )
+    PageViewEvent.objects.create(
+        user=viewer,
+        view_type=PageViewEvent.ViewType.SOLUTION,
+        label="Before previous",
+        path="/solutions/before-previous/",
+        created_at=timezone.make_aware(datetime.combine(before_previous_day, datetime.min.time())),
+    )
+
+    client.force_login(admin_user)
+    response = client.get(reverse("pages:page_view_analytics"), {"range": "7d"})
+
+    kpis_by_type = {row["view_type"]: row for row in response.context["page_view_kpi_rows"]}
+    assert kpis_by_type[PageViewEvent.ViewType.SOLUTION]["view_total"] == 3
+    assert kpis_by_type[PageViewEvent.ViewType.SOLUTION]["previous_view_total"] == 1
+    assert kpis_by_type[PageViewEvent.ViewType.SOLUTION]["delta"] == 2
+    assert kpis_by_type[PageViewEvent.ViewType.SOLUTION]["delta_label"] == "+2 vs previous period"
+
+
+def test_page_view_analytics_recent_filters_by_surface_user_and_query(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    alpha = UserFactory(name="Alpha Viewer", email="alpha@example.com")
+    beta = UserFactory(name="Beta Viewer", email="beta@example.com")
+    now = timezone.now()
+    PageViewEvent.objects.create(
+        user=alpha,
+        view_type=PageViewEvent.ViewType.SOLUTION,
+        label="Alpha geometry",
+        path="/solutions/alpha-geometry/",
+        created_at=now,
+    )
+    PageViewEvent.objects.create(
+        user=beta,
+        view_type=PageViewEvent.ViewType.LIST,
+        label="Beta number theory",
+        path="/dashboard/problem-statements/?topic=Number+Theory",
+        created_at=now,
+    )
+    PageViewEvent.objects.create(
+        user=None,
+        view_type=PageViewEvent.ViewType.SOLUTION,
+        label="Anonymous geometry",
+        path="/solutions/anonymous-geometry/",
+        created_at=now,
+    )
+
+    client.force_login(admin_user)
+    response = client.get(
+        reverse("pages:page_view_analytics"),
+        {"surface": PageViewEvent.ViewType.SOLUTION, "user": str(alpha.pk), "q": "geometry"},
+    )
+
+    assert [row["label"] for row in response.context["page_view_recent_rows"]] == ["Alpha geometry"]
+    assert response.context["page_view_filters"]["surface"] == PageViewEvent.ViewType.SOLUTION
+    assert response.context["page_view_filters"]["user"] == str(alpha.pk)
+    assert response.context["page_view_filters"]["q"] == "geometry"
+
+
+def test_page_view_analytics_list_paths_render_filter_chips(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    viewer = UserFactory(email="viewer@example.com")
+    PageViewEvent.objects.create(
+        user=viewer,
+        view_type=PageViewEvent.ViewType.LIST,
+        label="Problem statement list",
+        path=(
+            "/dashboard/problem-statements/?q=JBMO+Shortlist&year=&topic=Number+Theory"
+            "&confidence=High&mohs_min=&mohs_max=20"
+        ),
+        metadata={"kind": "statement_list"},
+    )
+
+    client.force_login(admin_user)
+    response = client.get(reverse("pages:page_view_analytics"))
+
+    top_list = response.context["page_view_top_lists"][0]
+    assert top_list["display_label"] == "Problem statements"
+    assert [chip["label"] for chip in top_list["filter_chips"]] == [
+        "JBMO Shortlist",
+        "Number Theory",
+        "High confidence",
+        "MOHS <= 20",
+    ]
 
 
 def test_page_view_analytics_requires_admin_access(client):
@@ -8233,15 +8890,15 @@ def test_completion_progress_analytics_renders_admin_dashboard(client):
     )
     assert today_cell["count"] == 1
     response_html = response.content.decode("utf-8")
-    assert "Progress over time" in response_html
+    assert "Daily completions" in response_html
+    assert "MOHS trend" in response_html
     assert "Activity calendar" in response_html
     assert "Contest coverage" in response_html
     assert "Yearly completion heatmap" not in response_html
-    assert "Daily completions" not in response_html
-    assert "Daily MOHS" not in response_html
     assert "Advanced filters" in response_html
     assert 'data-bs-target="#completion-progress-advanced-filters"' in response_html
-    assert 'id="chart-completion-progress-over-time"' in response_html
+    assert 'id="chart-completion-progress-daily"' in response_html
+    assert 'id="chart-completion-progress-mohs"' in response_html
     assert 'class="completion-progress-yearly-grid"' in response_html
     assert 'data-bs-toggle="tooltip"' in response_html
     assert "initCompletionProgressTooltips();" in response_html
@@ -8249,7 +8906,7 @@ def test_completion_progress_analytics_renders_admin_dashboard(client):
     assert response_html.index("Contest coverage") < response_html.index("Filtered completion rows")
     assert "Progress analytics" in response_html
     assert "Completion progress" in response_html
-    assert 'id="chart-completion-progress-daily"' not in response_html
+    assert 'id="chart-completion-progress-over-time"' not in response_html
     assert 'id="completion-progress-table"' in response_html
     apex_guard_start = response_html.index("__asterproofApexHadAmd")
     apex_script = response_html.index("plugins/apexcharts/apexcharts.min")
@@ -9902,6 +10559,8 @@ def test_problem_analytics_dashboard_exposes_contest_year_mohs_pivot_table(clien
     assert 'id="problem-analytics-mohs-filter"' in response_html
     assert 'id="problem-analytics-topic-filter"' in response_html
     assert 'id="problem-analytics-hide-empty"' in response_html
+    assert response_html.count('class="avatar-md flex-shrink-0"') >= 5
+    assert "avatar-title bg-primary-subtle text-primary rounded flex-shrink-0" not in response_html
     assert 'id="contest-year-mohs-search"' in response_html
     assert 'id="contest-year-mohs-reset"' in response_html
     assert 'id="contest-year-mohs-copy"' in response_html
@@ -10043,7 +10702,7 @@ def test_problem_analytics_dashboard_keeps_admin_access_requirements(client):
     assert response.status_code == HTTPStatus.FORBIDDEN
 
 
-def test_technique_dashboard_exposes_filters_and_legacy_alias(client):
+def test_technique_dashboard_exposes_filters_scope_and_legacy_alias(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
 
@@ -10094,6 +10753,8 @@ def test_technique_dashboard_exposes_filters_and_legacy_alias(client):
         "topics": ["Algebra", "Combinatorics", "Number Theory"],
         "years": ["2025", "2024"],
     }
+    assert response.context["technique_scope_label"] == "All technique rows"
+    assert response.context["technique_active_filters"] == []
     lte_row = next(row for row in response.context["technique_rows"] if row["technique"] == "LTE")
     assert lte_row["problem_count"] == 2
     assert lte_row["contest_count"] == 2
@@ -10103,6 +10764,35 @@ def test_technique_dashboard_exposes_filters_and_legacy_alias(client):
     assert lte_row["year_span_label"] == "2024-2025"
     assert lte_row["sample_contests_label"] == "EGMO, IMO"
     assert lte_row["search_href"] == reverse("pages:topic_tag_dashboard") + "?q=LTE"
+    assert response.context["charts_payload"]["byProblemVolume"]["seriesName"] == "Problems"
+    assert response.context["charts_payload"]["byTopicVolume"] == {
+        "filterParam": "topic",
+        "labels": ["Algebra", "Combinatorics", "Number Theory"],
+        "seriesName": "Technique rows",
+        "values": [2, 1, 1],
+    }
+    scatter_points = response.context["charts_payload"]["byAvgMohsScatter"]["series"][0]["data"]
+    lte_point = next(point for point in scatter_points if point["technique"] == "LTE")
+    assert lte_point == {
+        "avg_mohs": 30.0,
+        "filter_param": "q",
+        "filter_value": "LTE",
+        "max_mohs": 35,
+        "problem_count": 2,
+        "technique": "LTE",
+        "x": 2,
+        "y": 30.0,
+    }
+    leader_labels = {row["label"] for row in response.context["technique_leader_rows"]}
+    assert {
+        "Most used",
+        "Broadest contest coverage",
+        "Widest topic mix",
+        "Broadest domain mix",
+        "Highest average MOHS",
+        "Longest-running",
+    } <= leader_labels
+    assert any(row["value_label"] == "2 problems" for row in response.context["technique_leader_rows"])
 
     response_html = response.content.decode("utf-8")
     assert "Technique analytics" in response_html
@@ -10113,6 +10803,9 @@ def test_technique_dashboard_exposes_filters_and_legacy_alias(client):
     assert 'id="technique-dashboard-year-filter"' in response_html
     assert 'id="technique-dashboard-reset"' in response_html
     assert 'id="technique-analytics-table"' in response_html
+    assert 'id="technique-dashboard-data-source"' in response_html
+    assert 'id="technique-dashboard-chart-tabs"' in response_html
+    assert "Filtered dataset" not in response_html
     assert "ProblemTopicTechnique" in response_html
 
     legacy_response = client.get(reverse("pages:topic_tag_dashboard"))
@@ -10120,7 +10813,7 @@ def test_technique_dashboard_exposes_filters_and_legacy_alias(client):
     assert legacy_response.context["technique_total"] == 3
 
 
-def test_technique_dashboard_caps_to_latest_100_rows_by_record_created_at(client):
+def test_technique_dashboard_uses_all_matched_rows_instead_of_latest_100_cap(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
     now = timezone.now()
@@ -10148,20 +10841,24 @@ def test_technique_dashboard_caps_to_latest_100_rows_by_record_created_at(client
     assert response.status_code == HTTPStatus.OK
     rows = response.context["technique_rows"]
     technique_names = {row["technique"] for row in rows}
-    assert len(rows) == 100
+    assert len(rows) == ADMIN_TABLE_LATEST_LIMIT + 20
     assert "TAG-1" in technique_names
     assert "TAG-100" in technique_names
-    assert "TAG-101" not in technique_names
-    assert "TAG-120" not in technique_names
-    assert response.context["technique_row_total"] == 100
-    assert response.context["technique_filtered_total"] == 120
-    assert response.context["technique_result_limit"] == 100
-    assert response.context["technique_is_capped"] is True
+    assert "TAG-101" in technique_names
+    assert "TAG-120" in technique_names
+    assert response.context["technique_total"] == ADMIN_TABLE_LATEST_LIMIT + 20
+    assert response.context["technique_row_total"] == ADMIN_TABLE_LATEST_LIMIT + 20
+    assert response.context["technique_filtered_total"] == ADMIN_TABLE_LATEST_LIMIT + 20
+    assert response.context["tagged_problem_total"] == ADMIN_TABLE_LATEST_LIMIT + 20
+    assert "technique_result_limit" not in response.context
+    assert "technique_is_capped" not in response.context
+    assert response.context["charts_payload"]["byProblemVolume"]["values"]
     response_html = response.content.decode("utf-8")
-    assert "Showing latest 100 rows out of 120 matches." in response_html
+    assert "Showing latest 100 rows" not in response_html
+    assert "All technique rows" in response_html
 
 
-def test_technique_dashboard_applies_search_before_latest_100_cap(client):
+def test_technique_dashboard_applies_search_to_full_dataset(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
     now = timezone.now()
@@ -10204,21 +10901,114 @@ def test_technique_dashboard_applies_search_before_latest_100_cap(client):
 
     broad = client.get(reverse("pages:technique_dashboard"), {"q": "IMO"})
     assert broad.status_code == HTTPStatus.OK
-    assert len(broad.context["technique_rows"]) == 100
+    assert len(broad.context["technique_rows"]) == 120
     assert broad.context["technique_filtered_total"] == 120
-    assert broad.context["technique_is_capped"] is True
     assert broad.context["initial_search_query"] == "IMO"
+    assert broad.context["technique_active_filters"][0]["value"] == "IMO"
 
     narrow = client.get(reverse("pages:technique_dashboard"), {"q": "USAMO"})
     assert narrow.status_code == HTTPStatus.OK
     assert len(narrow.context["technique_rows"]) == 3
     assert narrow.context["technique_filtered_total"] == 3
-    assert narrow.context["technique_is_capped"] is False
     assert narrow.context["initial_search_query"] == "USAMO"
     assert all(
         row["contests"] == ["USAMO"]
         for row in narrow.context["technique_rows"]
     )
+
+
+def test_technique_dashboard_exact_filters_are_server_side_and_combined(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+
+    imo_algebra = ProblemSolveRecord.objects.create(
+        year=2025,
+        topic="ALG",
+        mohs=25,
+        contest="IMO",
+        problem="P1",
+        contest_year_problem="IMO 2025 P1",
+    )
+    imo_number_theory = ProblemSolveRecord.objects.create(
+        year=2025,
+        topic="NT",
+        mohs=15,
+        contest="IMO",
+        problem="P2",
+        contest_year_problem="IMO 2025 P2",
+    )
+    egmo_number_theory = ProblemSolveRecord.objects.create(
+        year=2024,
+        topic="NT",
+        mohs=35,
+        contest="EGMO",
+        problem="P3",
+        contest_year_problem="EGMO 2024 P3",
+    )
+    bmo_combinatorics = ProblemSolveRecord.objects.create(
+        year=2025,
+        topic="COMB",
+        mohs=20,
+        contest="BMO",
+        problem="P4",
+        contest_year_problem="BMO 2025 P4",
+    )
+    ProblemTopicTechnique.objects.create(record=imo_algebra, technique="LTE", domains=["NT"])
+    ProblemTopicTechnique.objects.create(record=imo_number_theory, technique="PARITY", domains=["COMB"])
+    ProblemTopicTechnique.objects.create(record=egmo_number_theory, technique="LTE", domains=["NT"])
+    ProblemTopicTechnique.objects.create(record=bmo_combinatorics, technique="INVARIANTS", domains=["ALG", "COMB"])
+
+    contest_response = client.get(reverse("pages:technique_dashboard"), {"contest": "IMO"})
+    assert contest_response.status_code == HTTPStatus.OK
+    assert contest_response.context["technique_row_total"] == 2
+    assert {row["technique"] for row in contest_response.context["technique_rows"]} == {"LTE", "PARITY"}
+    assert contest_response.context["technique_filter_options"]["contests"] == ["BMO", "EGMO", "IMO"]
+    assert contest_response.context["technique_scope_label"] == "Filtered dataset"
+    assert contest_response.context["technique_active_filters"][0]["label"] == "Contest"
+    assert "contest=IMO" in contest_response.content.decode("utf-8")
+
+    topic_response = client.get(reverse("pages:technique_dashboard"), {"topic": "Number Theory"})
+    assert topic_response.status_code == HTTPStatus.OK
+    assert topic_response.context["technique_row_total"] == 2
+    assert {row["technique"] for row in topic_response.context["technique_rows"]} == {"LTE", "PARITY"}
+    assert topic_response.context["charts_payload"]["byTopicVolume"] == {
+        "filterParam": "topic",
+        "labels": ["Number Theory"],
+        "seriesName": "Technique rows",
+        "values": [2],
+    }
+
+    domain_response = client.get(reverse("pages:technique_dashboard"), {"domain": "COMB"})
+    assert domain_response.status_code == HTTPStatus.OK
+    assert domain_response.context["technique_row_total"] == 2
+    assert {row["technique"] for row in domain_response.context["technique_rows"]} == {"INVARIANTS", "PARITY"}
+    assert domain_response.context["charts_payload"]["byDomainVolume"] == {
+        "filterParam": "domain",
+        "labels": ["COMB", "ALG"],
+        "seriesName": "Technique rows",
+        "values": [2, 1],
+    }
+
+    year_response = client.get(reverse("pages:technique_dashboard"), {"year": "2025"})
+    assert year_response.status_code == HTTPStatus.OK
+    assert year_response.context["technique_row_total"] == 3
+    assert {row["technique"] for row in year_response.context["technique_rows"]} == {
+        "INVARIANTS",
+        "LTE",
+        "PARITY",
+    }
+
+    combined_response = client.get(
+        reverse("pages:technique_dashboard"),
+        {"contest": "IMO", "domain": "COMB"},
+    )
+    assert combined_response.status_code == HTTPStatus.OK
+    assert combined_response.context["technique_row_total"] == 1
+    assert combined_response.context["technique_rows"][0]["technique"] == "PARITY"
+    assert [item["label"] for item in combined_response.context["technique_active_filters"]] == [
+        "Contest",
+        "Domain",
+    ]
 
 
 def test_problem_statement_linker_shows_rows_suggestions_and_candidate_groups(client):
@@ -11253,13 +12043,32 @@ def test_problem_statement_analytics_groups_rows_by_contest_and_year_for_admin(c
     assert response.context["statement_dashboard_stats"] == {
         "average_statements_per_set": EXPECTED_AVERAGE_STATEMENTS_PER_SET,
         "contest_total": EXPECTED_CONTEST_TOTAL,
+        "contest_total_label": "2",
         "linked_total": 1,
+        "linked_total_label": "1",
         "overall_link_rate": EXPECTED_STATEMENT_OVERALL_LINK_RATE,
+        "overall_link_rate_label": "33.33%",
+        "overall_link_rate_variant": "danger",
+        "statement_total_label": "3",
+        "unlinked_total": 2,
+        "unlinked_total_label": "2",
         "year_range_label": "2025-2026",
     }
     assert response.context["statement_dashboard_leaders"]["biggest"]["contest_year_label"] == (
         f"{SPAIN_OLYMPIAD_NAME} {SPAIN_OLYMPIAD_YEAR}"
     )
+    attention_items = response.context["statement_dashboard_attention"]
+    assert [item["key"] for item in attention_items] == [
+        "largest_backlog",
+        "lowest_coverage",
+        "oldest_unlinked",
+        "newest_unlinked",
+    ]
+    assert attention_items[0]["target_label"] == f"{SPAIN_OLYMPIAD_NAME} {SPAIN_OLYMPIAD_YEAR}"
+    assert attention_items[0]["value"] == "1 unlinked"
+    assert attention_items[1]["target_label"] == "No qualifying sets"
+    assert attention_items[2]["target_label"] == "Nepal National Olympiad (IMO Pre-TST) 2025"
+    assert attention_items[3]["target_label"] == f"{SPAIN_OLYMPIAD_NAME} {SPAIN_OLYMPIAD_YEAR}"
     dashboard_row = next(
         row
         for row in response.context["statement_dashboard_rows"]
@@ -11269,16 +12078,34 @@ def test_problem_statement_analytics_groups_rows_by_contest_and_year_for_admin(c
     assert dashboard_row["linked_count"] == 1
     assert dashboard_row["unlinked_count"] == 1
     assert dashboard_row["link_rate"] == EXPECTED_SPAIN_STATEMENT_LINK_RATE
+    assert dashboard_row["has_unlinked"] is True
+    assert dashboard_row["is_low_coverage"] is False
+    assert dashboard_row["is_recent"] is True
+    assert dashboard_row["link_rate_label"] == "50%"
+    assert dashboard_row["link_rate_variant"] == "danger"
     expected_master_url = problem_statement_contest_year_master_url(
         SPAIN_OLYMPIAD_NAME,
         SPAIN_OLYMPIAD_YEAR,
     )
     assert dashboard_row["contest_year_url"] == expected_master_url
-    heatmap_payload = response.context["charts_payload"]["statementCountHeatmap"]
-    assert heatmap_payload["years"] == ["2025", "2026"]
-    assert heatmap_payload["max_value"] == EXPECTED_STATEMENT_SET_TOTAL
-    assert heatmap_payload["series"][0]["name"] == SPAIN_OLYMPIAD_NAME
-    assert heatmap_payload["series"][0]["data"] == [
+    heatmap_views = response.context["charts_payload"]["statementHeatmapViews"]
+    assert set(heatmap_views) == {"backlog", "lowCoverage", "volume", "recent", "all"}
+    assert response.context["charts_payload"]["statementDefaultHeatmapView"] == "backlog"
+    backlog_payload = heatmap_views["backlog"]
+    assert backlog_payload["metric_label"] == "Unlinked statement rows"
+    assert backlog_payload["years"] == ["2025", "2026"]
+    assert backlog_payload["max_value"] == 1
+    assert backlog_payload["series"][0]["name"] == SPAIN_OLYMPIAD_NAME
+    assert backlog_payload["series"][0]["data"] == [
+        {"x": "2025", "y": 0},
+        {"x": "2026", "y": 1, "url": expected_master_url},
+    ]
+    volume_payload = heatmap_views["volume"]
+    assert response.context["charts_payload"]["statementCountHeatmap"] == volume_payload
+    assert volume_payload["metric_label"] == "Statement rows"
+    assert volume_payload["max_value"] == EXPECTED_STATEMENT_SET_TOTAL
+    assert volume_payload["series"][0]["name"] == SPAIN_OLYMPIAD_NAME
+    assert volume_payload["series"][0]["data"] == [
         {"x": "2025", "y": 0},
         {"x": "2026", "y": EXPECTED_STATEMENT_SET_TOTAL, "url": expected_master_url},
     ]
@@ -11288,16 +12115,120 @@ def test_problem_statement_analytics_groups_rows_by_contest_and_year_for_admin(c
     response_html = response.content.decode("utf-8")
     assert "Problem statement analytics" in response_html
     assert 'id="chart-statement-heatmap"' in response_html
+    assert 'id="problem-statement-dashboard-table-data"' in response_html
     assert "contest_year_url" in response_html
     assert "dataPointSelection" in response_html
     assert "window.location.href" in response_html
     assert 'id="chart-year-bars"' in response_html
-    assert "Contest-year statement heatmap" in response_html
+    assert "Unlinked statement backlog heatmap" in response_html
+    assert 'data-statement-heatmap-mode="backlog"' in response_html
+    assert 'data-statement-analytics-filter="unlinked"' in response_html
+    assert 'data-statement-analytics-filter="low-coverage"' in response_html
+    assert 'data-statement-analytics-filter="recent"' in response_html
+    assert 'data-statement-analytics-filter="complete"' in response_html
+    assert "progress-bar" in response_html
+    assert "Open contest-year" in response_html
     assert "Statement rows by year" in response_html
     assert "Bar graph of year-only imported statement coverage across the archive." in response_html
     assert "Contest-year statement volume" not in response_html
     assert "Link rate by contest-year" not in response_html
     assert reverse("pages:problem_statement_dashboard") in response_html
+
+
+def test_problem_statement_analytics_caps_default_heatmap_and_keeps_all_view(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    linked_volume_records = [
+        ProblemSolveRecord.objects.create(
+            year=2026,
+            topic="ALG",
+            mohs=1,
+            contest="Linked Volume",
+            problem=f"P{i}",
+            contest_year_problem=f"Linked Volume 2026 P{i}",
+        )
+        for i in range(1, 26)
+    ]
+    for index, linked_record in enumerate(linked_volume_records, start=1):
+        ContestProblemStatement.objects.create(
+            contest_year=2026,
+            contest_name="Linked Volume",
+            problem_number=index,
+            day_label="Day 1",
+            statement_latex=f"Linked volume statement {index}",
+            linked_problem=linked_record,
+        )
+    for contest_index in range(1, 22):
+        ContestProblemStatement.objects.create(
+            contest_year=2026,
+            contest_name=f"Backlog Contest {contest_index:02d}",
+            problem_number=1,
+            day_label="Day 1",
+            statement_latex=f"Backlog statement {contest_index}",
+        )
+
+    response = client.get(reverse("pages:problem_statement_dashboard"))
+
+    assert response.status_code == HTTPStatus.OK
+    heatmap_views = response.context["charts_payload"]["statementHeatmapViews"]
+    assert len(heatmap_views["backlog"]["series"]) == 20
+    assert len(heatmap_views["all"]["series"]) == 22
+    assert "Linked Volume" not in {series["name"] for series in heatmap_views["backlog"]["series"]}
+    assert heatmap_views["volume"]["series"][0]["name"] == "Linked Volume"
+    assert heatmap_views["volume"]["series"][0]["data"] == [
+        {
+            "url": problem_statement_contest_year_master_url("Linked Volume", 2026),
+            "x": "2026",
+            "y": 25,
+        },
+    ]
+
+
+def test_problem_statement_analytics_flags_low_coverage_only_for_meaningful_sets(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    linked_record = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="NT",
+        mohs=3,
+        contest="Low Coverage",
+        problem="P1",
+        contest_year_problem="Low Coverage 2026 P1",
+    )
+    for index in range(1, 6):
+        ContestProblemStatement.objects.create(
+            contest_year=2026,
+            contest_name="Low Coverage",
+            problem_number=index,
+            day_label="Day 1",
+            statement_latex=f"Low coverage statement {index}",
+            linked_problem=linked_record if index == 1 else None,
+        )
+    for index in range(1, 5):
+        ContestProblemStatement.objects.create(
+            contest_year=2026,
+            contest_name="Tiny Unlinked",
+            problem_number=index,
+            day_label="Day 1",
+            statement_latex=f"Tiny unlinked statement {index}",
+        )
+
+    response = client.get(reverse("pages:problem_statement_dashboard"))
+
+    assert response.status_code == HTTPStatus.OK
+    rows = response.context["statement_dashboard_rows"]
+    low_coverage_row = next(row for row in rows if row["contest_name"] == "Low Coverage")
+    tiny_row = next(row for row in rows if row["contest_name"] == "Tiny Unlinked")
+    assert low_coverage_row["link_rate"] == 20.0
+    assert low_coverage_row["is_low_coverage"] is True
+    assert low_coverage_row["link_rate_label"] == "20%"
+    assert low_coverage_row["link_rate_variant"] == "danger"
+    assert tiny_row["link_rate"] == 0.0
+    assert tiny_row["is_low_coverage"] is False
+    attention_items = response.context["statement_dashboard_attention"]
+    assert attention_items[1]["key"] == "lowest_coverage"
+    assert attention_items[1]["target_label"] == "Low Coverage 2026"
+    assert attention_items[1]["value"] == "20% linked"
 
 
 def test_latex_preview_parse_action_builds_structured_preview_without_saving(client):

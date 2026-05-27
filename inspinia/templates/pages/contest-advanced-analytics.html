@@ -2,10 +2,65 @@
 
 {% load static %}
 
-{% block title %}Contest advanced analytics{% endblock title %}
+{% block title %}Contest progress{% endblock title %}
 
 {% block extra_css %}
 <style>
+  .contest-progress-page {
+    --contest-completion-heatmap-solved: #2fbf71;
+    --contest-completion-heatmap-partial: #f1b44c;
+    --contest-completion-heatmap-unsolved: #e9b8be;
+    --contest-completion-heatmap-empty: #d6d9e0;
+    --contest-completion-heatmap-label: #11203b;
+    --contest-completion-heatmap-border: rgba(255, 255, 255, 0.72);
+  }
+
+  [data-bs-theme="dark"] .contest-progress-page {
+    --contest-completion-heatmap-solved: #31c48d;
+    --contest-completion-heatmap-partial: #d99b36;
+    --contest-completion-heatmap-unsolved: #704049;
+    --contest-completion-heatmap-empty: #343a46;
+    --contest-completion-heatmap-label: #f4f7fb;
+    --contest-completion-heatmap-border: rgba(255, 255, 255, 0.16);
+  }
+
+  .contest-progress-toolbar-form {
+    display: grid;
+    grid-template-columns: minmax(14rem, 1fr) auto;
+    gap: 0.75rem;
+    align-items: end;
+  }
+
+  .contest-progress-actions {
+    justify-content: flex-end;
+  }
+
+  .contest-progress-overview-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .contest-progress-overview-item {
+    min-width: 0;
+    padding: 1rem;
+  }
+
+  .contest-progress-overview-item + .contest-progress-overview-item {
+    border-left: 1px solid var(--bs-border-color);
+  }
+
+  .contest-progress-overview-icon {
+    display: inline-flex;
+    flex: 0 0 2.25rem;
+    height: 2.25rem;
+    min-width: 2.25rem;
+    width: 2.25rem;
+  }
+
+  .contest-progress-mini-progress {
+    min-width: 8rem;
+  }
+
   .contest-completion-legend {
     gap: 0.75rem;
   }
@@ -28,19 +83,19 @@
   }
 
   .contest-completion-legend-swatch-solved {
-    background: #2fbf71;
+    background: var(--contest-completion-heatmap-solved);
   }
 
   .contest-completion-legend-swatch-partial {
-    background: #f1b44c;
+    background: var(--contest-completion-heatmap-partial);
   }
 
   .contest-completion-legend-swatch-unsolved {
-    background: #e25563;
+    background: var(--contest-completion-heatmap-unsolved);
   }
 
   .contest-completion-legend-swatch-empty {
-    background: #d6d9e0;
+    background: var(--contest-completion-heatmap-empty);
   }
 
   .contest-completion-heatmap-scroll {
@@ -49,21 +104,72 @@
     padding-bottom: 0.25rem;
   }
 
+  .contest-completion-group-strip {
+    display: grid;
+    gap: 1px;
+    margin-bottom: 0.35rem;
+  }
+
+  .contest-completion-group-label {
+    grid-column: span var(--contest-completion-group-span);
+    min-width: 0;
+    padding: 0.3rem 0.45rem;
+    text-align: center;
+    color: var(--bs-secondary-color);
+    background: var(--bs-tertiary-bg);
+    border: 1px solid var(--bs-border-color);
+    border-radius: 0.35rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1.1;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
   #chart-contest-completion-heatmap {
     min-height: 240px;
   }
 
-  #chart-contest-completion-heatmap.contest-completion-heatmap-clickable .apexcharts-heatmap-rect,
-  #chart-contest-completion-heatmap.contest-completion-heatmap-clickable .apexcharts-series rect {
-    cursor: pointer;
+  @media (max-width: 1199.98px) {
+    .contest-progress-overview-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .contest-progress-overview-item:nth-child(3),
+    .contest-progress-overview-item:nth-child(5) {
+      border-left: 0;
+    }
+
+    .contest-progress-overview-item:nth-child(n + 3) {
+      border-top: 1px solid var(--bs-border-color);
+    }
   }
- </style>
+
+  @media (max-width: 767.98px) {
+    .contest-progress-toolbar-form {
+      grid-template-columns: 1fr;
+    }
+
+    .contest-progress-actions {
+      justify-content: flex-start;
+    }
+
+    .contest-progress-overview-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .contest-progress-overview-item + .contest-progress-overview-item {
+      border-left: 0;
+      border-top: 1px solid var(--bs-border-color);
+    }
+  }
+</style>
 {% endblock extra_css %}
 
 {% block page_content %}
-<div class="container-fluid">
+<div class="container-fluid contest-progress-page">
 
-  {% include 'partials/page-title.html' with title='Contest advanced analytics' subtitle=selected_contest|default:'Contest drill-down' %}
+  {% include 'partials/page-title.html' with title='Contest progress' subtitle=selected_contest|default:'Contest drill-down' %}
 
   {% if not has_contests %}
   <div class="alert alert-info mt-3" role="alert">
@@ -74,42 +180,131 @@
   <div class="row g-3 mt-0">
     <div class="col-12">
       <div class="card">
-        <div class="card-header border-bottom">
-          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
-            <div>
-              <h4 class="header-title mb-0">Contest selector</h4>
-              <p class="text-muted fs-xs mb-0">Switch statement-backed contests with a query-string selector and keep this page shareable.</p>
+        <div class="card-body">
+          <div class="d-flex flex-wrap align-items-end justify-content-between gap-3">
+            <div class="flex-grow-1">
+              <h4 class="header-title mb-2">Change contest</h4>
+              <form method="get" class="contest-progress-toolbar-form">
+                <div>
+                  <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="contest-advanced-selector">Contest</label>
+                  <div class="input-group">
+                    <span class="input-group-text">
+                      <i class="ti ti-search" aria-hidden="true"></i>
+                    </span>
+                    <input id="contest-advanced-selector" type="search" name="contest" value="{{ selected_contest }}" class="form-control" list="contest-advanced-options" autocomplete="off" placeholder="Search contest">
+                  </div>
+                  <datalist id="contest-advanced-options">
+                    {% for row in contest_choices %}
+                    <option value="{{ row.contest }}" label="{{ row.problem_count }} statements"></option>
+                    {% endfor %}
+                  </datalist>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                  <i class="ti ti-refresh me-1"></i>Load
+                </button>
+              </form>
             </div>
-            <div class="d-flex flex-wrap gap-2">
+            <div class="d-flex flex-wrap gap-2 contest-progress-actions">
               {% if show_analytics_dashboard_link %}
-              <a href="{% url 'pages:contest_dashboard' %}" class="btn btn-outline-secondary btn-sm">Back to contest directory</a>
+              <a href="{% url 'pages:contest_dashboard' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="ti ti-layout-grid me-1"></i>Directory
+              </a>
               {% endif %}
               {% if contest_quick_update_url %}
-              <a href="{{ contest_quick_update_url }}" class="btn btn-outline-primary btn-sm">Open quick completions</a>
+              <a href="{{ contest_quick_update_url }}" class="btn btn-outline-primary btn-sm">
+                <i class="ti ti-calendar-check me-1"></i>Quick completions
+              </a>
               {% endif %}
             </div>
           </div>
         </div>
-        <div class="card-body">
-          <form method="get" class="row g-2 align-items-end">
-            <div class="col-md-8 col-xl-6">
-              <label class="form-label" for="contest-advanced-selector">Contest</label>
-              <div class="input-group">
-                <span class="input-group-text">
-                  <i class="ti ti-search" aria-hidden="true"></i>
-                </span>
-                <input id="contest-advanced-selector" type="search" name="contest" value="{{ selected_contest }}" class="form-control" list="contest-advanced-options" autocomplete="off" placeholder="Search contest">
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-0">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2">
+          <div>
+            <h4 class="header-title mb-0">{{ selected_contest }} overview</h4>
+            <p class="text-muted fs-xs mb-0">{{ contest_stats.year_span_label }} &middot; {{ contest_stats.problem_count }} statements</p>
+          </div>
+          <span class="badge bg-primary-subtle text-primary">{{ contest_stats.solved_rate|floatformat:1 }}% complete</span>
+        </div>
+        <div class="contest-progress-overview-grid">
+          <div class="contest-progress-overview-item">
+            <div class="d-flex align-items-center">
+              <span class="avatar-title bg-success-subtle text-success rounded contest-progress-overview-icon">
+                <i class="ti ti-circle-check fs-22"></i>
+              </span>
+              <div class="flex-grow-1 ms-2">
+                <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Solved</p>
+                <h3 class="mb-0">{{ contest_stats.solved_problem_total }} / {{ contest_stats.problem_count }}</h3>
+                <p class="text-muted fs-xs mb-0">{{ contest_stats.solved_rate|floatformat:1 }}% complete</p>
               </div>
-              <datalist id="contest-advanced-options">
-                {% for row in contest_choices %}
-                <option value="{{ row.contest }}" label="{{ row.problem_count }} statements"></option>
-                {% endfor %}
-              </datalist>
             </div>
-            <div class="col-md-4 col-xl-2">
-              <button type="submit" class="btn btn-primary w-100">Load analytics</button>
+          </div>
+          <div class="contest-progress-overview-item">
+            <div class="d-flex align-items-center">
+              <span class="avatar-title bg-primary-subtle text-primary rounded contest-progress-overview-icon">
+                <i class="ti ti-link fs-22"></i>
+              </span>
+              <div class="flex-grow-1 ms-2">
+                <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Linked</p>
+                <h3 class="mb-0">{{ contest_stats.statement_problem_total }} / {{ contest_stats.problem_count }}</h3>
+                <p class="text-muted fs-xs mb-0">{{ contest_stats.linked_rate|floatformat:1 }}% statement coverage</p>
+              </div>
             </div>
-          </form>
+          </div>
+          <div class="contest-progress-overview-item">
+            <div class="d-flex align-items-center">
+              <span class="avatar-title bg-info-subtle text-info rounded contest-progress-overview-icon">
+                <i class="ti ti-calendar-stats fs-22"></i>
+              </span>
+              <div class="flex-grow-1 ms-2">
+                <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Active years</p>
+                <h3 class="mb-0">{{ contest_stats.active_years }}</h3>
+                <p class="text-muted fs-xs mb-0">{{ contest_stats.distinct_topics }} topics</p>
+              </div>
+            </div>
+          </div>
+          <div class="contest-progress-overview-item">
+            <div class="d-flex align-items-center">
+              <span class="avatar-title bg-warning-subtle text-warning rounded contest-progress-overview-icon">
+                <i class="ti ti-chart-arcs fs-22"></i>
+              </span>
+              <div class="flex-grow-1 ms-2">
+                <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Avg MOHS</p>
+                <h3 class="mb-0">{{ contest_stats.avg_mohs|floatformat:2 }}</h3>
+                <p class="text-muted fs-xs mb-0">Max linked MOHS {{ contest_stats.max_mohs }}</p>
+              </div>
+            </div>
+          </div>
+          <div class="contest-progress-overview-item">
+            <div class="d-flex align-items-center">
+              <span class="avatar-title bg-secondary-subtle text-secondary rounded contest-progress-overview-icon">
+                <i class="ti ti-file-pencil fs-22"></i>
+              </span>
+              <div class="flex-grow-1 ms-2">
+                <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Solutions</p>
+                <h3 class="mb-0">{{ contest_stats.solution_problem_total }}</h3>
+                <p class="text-muted fs-xs mb-0">{{ contest_stats.published_solution_total }} published &middot; {{ contest_stats.solution_rate|floatformat:1 }}% available</p>
+              </div>
+            </div>
+          </div>
+          <div class="contest-progress-overview-item">
+            <div class="d-flex align-items-center">
+              <span class="avatar-title bg-secondary-subtle text-secondary rounded contest-progress-overview-icon">
+                <i class="ti ti-sitemap fs-22"></i>
+              </span>
+              <div class="flex-grow-1 ms-2">
+                <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Techniques</p>
+                <h3 class="mb-0">{{ contest_stats.technique_rows }}</h3>
+                <p class="text-muted fs-xs mb-0">{{ contest_stats.techniques_per_problem|floatformat:2 }} per statement</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -121,10 +316,10 @@
         <div class="card-header border-bottom d-flex flex-wrap align-items-center gap-2">
           <div class="flex-grow-1">
             <h4 class="header-title mb-0">Completion heatmap</h4>
-            <p class="text-muted fs-xs mb-0">Year-by-problem completion coverage for this contest. Green shows your completions on those rows; red means you have not completed any row in that cell yet.</p>
+            <p class="text-muted fs-xs mb-0">Year-by-problem coverage for this contest. Cells open linked solution workspaces when a statement is linked.</p>
           </div>
           <span class="badge text-bg-light">
-            {{ contest_completion_heatmap.year_total }} years · {{ contest_completion_heatmap.problem_code_total }} codes
+            {{ contest_completion_heatmap.year_total }} years &middot; {{ contest_completion_heatmap.problem_code_total }} codes
           </span>
         </div>
         <div class="card-body">
@@ -132,24 +327,27 @@
           <div class="d-flex flex-wrap align-items-center contest-completion-legend mb-3">
             <span class="contest-completion-legend-item">
               <span class="contest-completion-legend-swatch contest-completion-legend-swatch-solved"></span>
-              Your completions
+              Completed
             </span>
             <span class="contest-completion-legend-item">
               <span class="contest-completion-legend-swatch contest-completion-legend-swatch-unsolved"></span>
-              No completion from you yet
+              Unstarted
             </span>
-            {% if contest_completion_heatmap.has_partial_cells %}
             <span class="contest-completion-legend-item">
               <span class="contest-completion-legend-swatch contest-completion-legend-swatch-partial"></span>
-              Mixed coverage when a year/code has multiple rows
+              Partial
             </span>
-            {% endif %}
             <span class="contest-completion-legend-item">
               <span class="contest-completion-legend-swatch contest-completion-legend-swatch-empty"></span>
-              No statement row for that year/code
+              No statement
             </span>
           </div>
           <div class="contest-completion-heatmap-scroll">
+            <div id="contest-completion-group-strip" class="contest-completion-group-strip" aria-hidden="true">
+              {% for group in contest_completion_heatmap.problem_code_groups %}
+              <span class="contest-completion-group-label" data-problem-code-group="{{ group.label }}" style="--contest-completion-group-span: {{ group.span }};">{{ group.label }}</span>
+              {% endfor %}
+            </div>
             <div id="chart-contest-completion-heatmap"></div>
           </div>
           {% else %}
@@ -162,107 +360,11 @@
     </div>
   </div>
 
-  <div class="row g-3 mt-0">
-    <div class="col-sm-6 col-xl-3">
-      <div class="card m-0">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-primary-subtle text-primary rounded">
-                <i class="ti ti-notebook fs-24"></i>
-              </span>
-            </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Statements</p>
-              <h3 class="mb-0">{{ contest_stats.problem_count }}</h3>
-              <p class="text-muted fs-xs mb-0">{{ contest_stats.year_span_label }}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-6 col-xl-3">
-      <div class="card m-0">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-success-subtle text-success rounded">
-                <i class="ti ti-calendar-stats fs-24"></i>
-              </span>
-            </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Active years</p>
-              <h3 class="mb-0">{{ contest_stats.active_years }}</h3>
-              <p class="text-muted fs-xs mb-0">{{ contest_stats.distinct_topics }} topics</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-6 col-xl-3">
-      <div class="card m-0">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-warning-subtle text-warning rounded">
-                <i class="ti ti-chart-arcs fs-24"></i>
-              </span>
-            </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Linked difficulty</p>
-              <h3 class="mb-0">{{ contest_stats.avg_mohs|floatformat:2 }}</h3>
-              <p class="text-muted fs-xs mb-0">Max linked MOHS {{ contest_stats.max_mohs }}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-6 col-xl-3">
-      <div class="card m-0">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-info-subtle text-info rounded">
-                <i class="ti ti-sitemap fs-24"></i>
-              </span>
-            </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Technique density</p>
-              <h3 class="mb-0">{{ contest_stats.technique_rows }}</h3>
-              <p class="text-muted fs-xs mb-0">{{ contest_stats.techniques_per_problem|floatformat:2 }} per statement</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="row g-3 mt-0">
-    <div class="col-sm-6 col-xl-3">
-      <div class="card m-0">
-        <div class="card-body">
-          <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Linked rows</p>
-          <h3 class="mb-1">{{ contest_stats.statement_problem_total }}</h3>
-          <p class="text-muted fs-xs mb-0">{{ contest_stats.statement_row_total }} active statement rows total</p>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-6 col-xl-3">
-      <div class="card m-0">
-        <div class="card-body">
-          <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Rows with solutions</p>
-          <h3 class="mb-1">{{ contest_stats.solution_problem_total }}</h3>
-          <p class="text-muted fs-xs mb-0">{{ contest_stats.published_solution_total }} statement rows with published solutions</p>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <div class="row g-3 mt-1 mb-4">
     <div class="col-xl-7">
       <div class="card h-100">
         <div class="card-header border-bottom">
-          <h4 class="header-title mb-0">Year breakdown</h4>
+          <h4 class="header-title mb-0">Years</h4>
         </div>
         <div class="card-body">
           <div class="table-responsive">
@@ -274,9 +376,8 @@
                   <th>Avg MOHS</th>
                   <th>Max MOHS</th>
                   <th>Topics</th>
-                  <th>Statement-linked</th>
+                  <th>Linked</th>
                   <th>Solved</th>
-                  <th>Solved rate</th>
                 </tr>
               </thead>
               <tbody>
@@ -290,12 +391,27 @@
                     {% endif %}
                   </td>
                   <td>{{ row.problem_count }}</td>
-                  <td>{% if row.avg_mohs is not None %}{{ row.avg_mohs|floatformat:2 }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
-                  <td>{% if row.max_mohs is not None %}{{ row.max_mohs }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+                  <td>{% if row.avg_mohs is not None %}{{ row.avg_mohs|floatformat:2 }}{% else %}<span class="text-muted">&mdash;</span>{% endif %}</td>
+                  <td>{% if row.max_mohs is not None %}{{ row.max_mohs }}{% else %}<span class="text-muted">&mdash;</span>{% endif %}</td>
                   <td>{{ row.distinct_topics }}</td>
-                  <td>{{ row.statement_problem_total }}</td>
-                  <td>{{ row.solved_problem_total }}</td>
-                  <td>{{ row.solved_rate|floatformat:1 }}%</td>
+                  <td class="contest-progress-mini-progress">
+                    <div class="d-flex justify-content-between gap-2 fs-xs mb-1">
+                      <span>{{ row.statement_problem_total }} / {{ row.problem_count }}</span>
+                      <span class="text-muted">{{ row.linked_rate|floatformat:1 }}%</span>
+                    </div>
+                    <div class="progress progress-sm">
+                      <div class="progress-bar bg-primary" role="progressbar" style="width: {{ row.linked_rate|floatformat:0 }}%;" aria-valuenow="{{ row.linked_rate|floatformat:0 }}" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                  </td>
+                  <td class="contest-progress-mini-progress">
+                    <div class="d-flex justify-content-between gap-2 fs-xs mb-1">
+                      <span>{{ row.solved_problem_total }} / {{ row.problem_count }}</span>
+                      <span class="text-muted">{{ row.solved_rate|floatformat:1 }}%</span>
+                    </div>
+                    <div class="progress progress-sm">
+                      <div class="progress-bar bg-success" role="progressbar" style="width: {{ row.solved_rate|floatformat:0 }}%;" aria-valuenow="{{ row.solved_rate|floatformat:0 }}" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                  </td>
                 </tr>
                 {% endfor %}
               </tbody>
@@ -307,7 +423,7 @@
     <div class="col-xl-5">
       <div class="card h-100">
         <div class="card-header border-bottom">
-          <h4 class="header-title mb-0">Topic mix</h4>
+          <h4 class="header-title mb-0">Topics</h4>
         </div>
         <div class="card-body">
           <div class="table-responsive">
@@ -315,7 +431,7 @@
               <thead>
                 <tr class="text-muted fs-xs text-uppercase">
                   <th>Topic</th>
-                  <th>Statements</th>
+                  <th>Share</th>
                   <th>Avg MOHS</th>
                   <th>Max MOHS</th>
                 </tr>
@@ -324,9 +440,17 @@
                 {% for row in topic_rows %}
                 <tr>
                   <td class="fw-semibold">{{ row.topic }}</td>
-                  <td>{{ row.problem_count }}</td>
-                  <td>{% if row.avg_mohs is not None %}{{ row.avg_mohs|floatformat:2 }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
-                  <td>{% if row.max_mohs is not None %}{{ row.max_mohs }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+                  <td class="contest-progress-mini-progress">
+                    <div class="d-flex justify-content-between gap-2 fs-xs mb-1">
+                      <span>{{ row.problem_count }} statements</span>
+                      <span class="text-muted">{{ row.share_rate|floatformat:1 }}%</span>
+                    </div>
+                    <div class="progress progress-sm">
+                      <div class="progress-bar bg-info" role="progressbar" style="width: {{ row.share_rate|floatformat:0 }}%;" aria-valuenow="{{ row.share_rate|floatformat:0 }}" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                  </td>
+                  <td>{% if row.avg_mohs is not None %}{{ row.avg_mohs|floatformat:2 }}{% else %}<span class="text-muted">&mdash;</span>{% endif %}</td>
+                  <td>{% if row.max_mohs is not None %}{{ row.max_mohs }}{% else %}<span class="text-muted">&mdash;</span>{% endif %}</td>
                 </tr>
                 {% empty %}
                 <tr>
@@ -345,7 +469,7 @@
     <div class="col-xl-6">
       <div class="card h-100">
         <div class="card-header border-bottom">
-          <h4 class="header-title mb-0">Confidence split (linked only)</h4>
+          <h4 class="header-title mb-0">Data quality</h4>
         </div>
         <div class="card-body">
           <div class="table-responsive">
@@ -376,7 +500,7 @@
     <div class="col-xl-6">
       <div class="card h-100">
         <div class="card-header border-bottom">
-          <h4 class="header-title mb-0">Recent statements</h4>
+          <h4 class="header-title mb-0">Recent updates</h4>
         </div>
         <div class="card-body">
           <div class="table-responsive">
@@ -393,8 +517,8 @@
                 {% for row in recent_statement_rows %}
                 <tr>
                   <td class="fw-semibold">{{ row.problem_code }}</td>
-                  <td>{% if row.is_linked %}<span class="badge bg-success-subtle text-success border border-success-subtle">Linked</span>{% else %}<span class="badge bg-light text-dark border">Unlinked</span>{% endif %}</td>
-                  <td>{% if row.day_label %}{{ row.day_label }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+                  <td>{% if row.is_linked %}<span class="badge bg-success-subtle text-success border border-success-subtle">Linked</span>{% else %}<span class="badge text-bg-light border">Unlinked</span>{% endif %}</td>
+                  <td>{% if row.day_label %}{{ row.day_label }}{% else %}<span class="text-muted">&mdash;</span>{% endif %}</td>
                   <td>{{ row.updated_at_label }}</td>
                 </tr>
                 {% empty %}
@@ -424,6 +548,7 @@
 (function () {
   var dataEl = document.getElementById("contest-advanced-heatmap-data");
   var chartEl = document.getElementById("chart-contest-completion-heatmap");
+  var groupStripEl = document.getElementById("contest-completion-group-strip");
   if (!dataEl || !chartEl || typeof ApexCharts === "undefined") return;
 
   var payload = JSON.parse(dataEl.textContent || "{}");
@@ -438,26 +563,33 @@
       .replace(/'/g, "&#039;");
   }
 
+  function cssColor(name, fallback) {
+    var value = getComputedStyle(chartEl).getPropertyValue(name).trim();
+    return value || fallback;
+  }
+
+  var heatmapColors = {
+    empty: cssColor("--contest-completion-heatmap-empty", "#d6d9e0"),
+    unsolved: cssColor("--contest-completion-heatmap-unsolved", "#e9b8be"),
+    partial: cssColor("--contest-completion-heatmap-partial", "#f1b44c"),
+    solved: cssColor("--contest-completion-heatmap-solved", "#2fbf71"),
+    label: cssColor("--contest-completion-heatmap-label", "#11203b"),
+    border: cssColor("--contest-completion-heatmap-border", "rgba(255,255,255,0.72)")
+  };
+
   var pointCount = payload.series[0] && payload.series[0].data ? payload.series[0].data.length : 0;
-  /* Narrower min width per year column so more of the grid fits without horizontal scroll. */
-  chartEl.style.minWidth = String(Math.max(480, pointCount * 48 + 96)) + "px";
+  var minWidth = String(Math.max(480, pointCount * 48 + 96)) + "px";
+  chartEl.style.minWidth = minWidth;
+  if (groupStripEl) {
+    groupStripEl.style.minWidth = minWidth;
+    groupStripEl.style.gridTemplateColumns = "repeat(" + String(Math.max(pointCount, 1)) + ", minmax(48px, 1fr))";
+  }
 
   function pointFromOptions(opts) {
     if (!opts || opts.seriesIndex < 0 || opts.dataPointIndex < 0) return null;
     var row = payload.series[opts.seriesIndex];
     if (!row || !row.data) return null;
     return row.data[opts.dataPointIndex] || null;
-  }
-
-  function hasLinkedPoints() {
-    for (var rowIndex = 0; rowIndex < payload.series.length; rowIndex += 1) {
-      var row = payload.series[rowIndex];
-      var data = row && row.data ? row.data : [];
-      for (var pointIndex = 0; pointIndex < data.length; pointIndex += 1) {
-        if (data[pointIndex].solution_url) return true;
-      }
-    }
-    return false;
   }
 
   function openProblemSolution(event, opts) {
@@ -470,8 +602,20 @@
     window.location.assign(point.solution_url);
   }
 
-  if (hasLinkedPoints()) {
-    chartEl.classList.add("contest-completion-heatmap-clickable");
+  function updateHeatmapCursor(event, opts) {
+    var point = pointFromOptions(opts);
+    var cursor = point && point.solution_url ? "pointer" : "";
+    chartEl.style.cursor = cursor;
+    if (event && event.target && event.target.style) {
+      event.target.style.cursor = cursor;
+    }
+  }
+
+  function clearHeatmapCursor(event) {
+    chartEl.style.cursor = "";
+    if (event && event.target && event.target.style) {
+      event.target.style.cursor = "";
+    }
   }
 
   var chart = new ApexCharts(chartEl, {
@@ -483,6 +627,12 @@
       events: {
         dataPointSelection: function (event, _chartContext, opts) {
           openProblemSolution(event, opts);
+        },
+        dataPointMouseEnter: function (event, _chartContext, opts) {
+          updateHeatmapCursor(event, opts);
+        },
+        dataPointMouseLeave: function (event) {
+          clearHeatmapCursor(event);
         }
       }
     },
@@ -492,7 +642,7 @@
       style: {
         fontSize: "9px",
         fontWeight: 700,
-        colors: ["#11203b"]
+        colors: [heatmapColors.label]
       },
       formatter: function (_value, opts) {
         var point = opts.w.config.series[opts.seriesIndex].data[opts.dataPointIndex];
@@ -501,7 +651,7 @@
     },
     stroke: {
       width: 1,
-      colors: ["rgba(255,255,255,0.72)"]
+      colors: [heatmapColors.border]
     },
     plotOptions: {
       heatmap: {
@@ -510,10 +660,10 @@
         useFillColorAsStroke: false,
         colorScale: {
           ranges: [
-            { from: 0, to: 0, color: "#d6d9e0", name: "Empty" },
-            { from: 1, to: 1, color: "#e25563", name: "Unsolved" },
-            { from: 2, to: 2, color: "#f1b44c", name: "Partial" },
-            { from: 3, to: 3, color: "#2fbf71", name: "Solved" }
+            { from: 0, to: 0, color: heatmapColors.empty, name: "No statement" },
+            { from: 1, to: 1, color: heatmapColors.unsolved, name: "Unstarted" },
+            { from: 2, to: 2, color: heatmapColors.partial, name: "Partial" },
+            { from: 3, to: 3, color: heatmapColors.solved, name: "Completed" }
           ]
         }
       }
@@ -538,7 +688,13 @@
     tooltip: {
       custom: function (opts) {
         var point = opts.w.config.series[opts.seriesIndex].data[opts.dataPointIndex];
-        return '<div class="apexcharts-theme-light p-2 fs-xs">' + escapeHtml(point.title || "") + "</div>";
+        var action = point.solution_url ? "Open solution" : "No linked solution yet";
+        return (
+          '<div class="apexcharts-theme-light p-2 fs-xs">' +
+          '<div class="fw-semibold">' + escapeHtml(point.title || "") + "</div>" +
+          '<div class="text-muted mt-1">' + escapeHtml(action) + "</div>" +
+          "</div>"
+        );
       }
     },
     grid: {
