@@ -9344,10 +9344,7 @@ def test_contest_existence_audit_accepts_pasted_source_text(client, monkeypatch)
     assert 'id="contest-existence-audit-export"' in response_html
 
 
-def test_problem_analytics_dashboard_exposes_contest_year_mohs_pivot_table(client):
-    admin_user = UserFactory(role=User.Role.ADMIN)
-    client.force_login(admin_user)
-
+def _create_problem_analytics_fixture():
     apmo_problem = ProblemSolveRecord.objects.create(
         year=2026,
         topic="COMB",
@@ -9456,64 +9453,234 @@ def test_problem_analytics_dashboard_exposes_contest_year_mohs_pivot_table(clien
         day_label="Day 1",
         statement_latex="JBMO 2024 P1 statement",
     )
+    StatementTopicTechnique.objects.create(
+        statement_id=ContestProblemStatement.objects.get(contest_name="IMO", problem_code="P1").id,
+        technique="ALGEBRAIC MANIPULATION",
+    )
+    StatementTopicTechnique.objects.create(
+        statement_id=ContestProblemStatement.objects.get(contest_name="BMO", problem_code="P1").id,
+        technique="INVARIANTS",
+    )
+
+
+def test_problem_analytics_dashboard_exposes_contest_year_mohs_pivot_table(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    _create_problem_analytics_fixture()
 
     response = client.get(reverse("pages:dashboard"))
 
     assert response.status_code == HTTPStatus.OK
     assert response.context["analytics_total"] == 6
+    assert "analytics_filters" in response.context
+    assert "analytics_filter_options" in response.context
+    assert "analytics_summary" in response.context
+    assert "analytics_quality" in response.context
+    assert response.context["analytics_filters"]["hide_empty"] is True
+    assert response.context["analytics_summary"]["active_statements"] == 6
+    assert response.context["analytics_summary"]["filtered_statements"] == 6
+    assert response.context["analytics_summary"]["with_mohs"] == 5
+    assert response.context["analytics_summary"]["missing_mohs"] == 1
+    assert response.context["analytics_summary"]["technique_rows"] == 2
     assert response.context["charts_payload"]["byYear"]["labels"] == ["2024", "2025", "2026"]
+    assert response.context["charts_payload"]["byYear"]["values"] == [2, 2, 2]
+    assert response.context["charts_payload"]["byMohs"] == {
+        "labels": ["4", "7", "8"],
+        "values": [3, 1, 1],
+        "colors": ["#198754", "#198754", "#198754"],
+    }
     pivot_payload = response.context["charts_payload"]["contestYearMohsPivotTable"]
-    assert pivot_payload["contest_names"] == ["APMO", "BMO", "EGMO", "IMO", "JBMO"]
+    assert pivot_payload["contest_names"] == ["APMO", "BMO", "EGMO", "IMO"]
     assert pivot_payload["year_values"] == ["2026", "2025", "2024"]
     assert pivot_payload["mohs_values"] == ["4", "7", "8"]
+    assert pivot_payload["column_totals"] == {"4": 3, "7": 1, "8": 1}
+    assert pivot_payload["grand_total"] == 5
+    assert pivot_payload["max_cell_count"] == 2
+    assert pivot_payload["hidden_empty_rows"] == 1
+    assert pivot_payload["empty_rows_available"] == 1
     assert pivot_payload["table_rows"] == [
         {
             "contest_name": "APMO",
             "contest_year": 2026,
             "contest_year_label": "APMO 2026",
+            "row_total": 1,
+            "has_mohs": True,
             "mohs_counts": {"4": 0, "7": 1, "8": 0},
         },
         {
             "contest_name": "BMO",
             "contest_year": 2026,
             "contest_year_label": "BMO 2026",
+            "row_total": 1,
+            "has_mohs": True,
             "mohs_counts": {"4": 1, "7": 0, "8": 0},
         },
         {
             "contest_name": "EGMO",
             "contest_year": 2024,
             "contest_year_label": "EGMO 2024",
+            "row_total": 1,
+            "has_mohs": True,
             "mohs_counts": {"4": 0, "7": 0, "8": 1},
         },
         {
             "contest_name": "IMO",
             "contest_year": 2025,
             "contest_year_label": "IMO 2025",
+            "row_total": 2,
+            "has_mohs": True,
             "mohs_counts": {"4": 2, "7": 0, "8": 0},
-        },
-        {
-            "contest_name": "JBMO",
-            "contest_year": 2024,
-            "contest_year_label": "JBMO 2024",
-            "mohs_counts": {"4": 0, "7": 0, "8": 0},
         },
     ]
     response_html = response.content.decode("utf-8")
     assert "Problem analytics" in response_html
+    assert "Data quality" in response_html
     assert "Contest-year vs MOHS pivot table" in response_html
+    assert 'id="problem-analytics-search"' in response_html
+    assert 'id="problem-analytics-contest-filter"' in response_html
+    assert 'id="problem-analytics-year-filter"' in response_html
+    assert 'id="problem-analytics-mohs-filter"' in response_html
+    assert 'id="problem-analytics-topic-filter"' in response_html
+    assert 'id="problem-analytics-hide-empty"' in response_html
     assert 'id="contest-year-mohs-search"' in response_html
-    assert 'id="contest-year-mohs-contest-filter"' in response_html
-    assert 'id="contest-year-mohs-year-filter"' in response_html
     assert 'id="contest-year-mohs-reset"' in response_html
+    assert 'id="contest-year-mohs-copy"' in response_html
+    assert 'id="contest-year-mohs-export-csv"' in response_html
+    assert 'id="contest-year-mohs-density-toggle"' in response_html
     assert 'id="contest-year-mohs-pivot-table"' in response_html
-    assert "Pivot DataTable with index, search, and filters." in response_html
+    assert 'id="contest-year-mohs-contest-filter"' not in response_html
+    assert 'id="contest-year-mohs-year-filter"' not in response_html
+    assert "Pivot DataTable with index, search, and filters." not in response_html
     assert "All statements" not in response_html
     assert 'id="problems-analytics-table"' not in response_html
     assert 'id="dashboard-table-data"' not in response_html
-    assert (
-        "Problem statements define the rows, contest-year runs down the left, MOHS values sit across the top, "
-        "and each cell shows the problem count." in response_html
+
+
+def test_problem_analytics_dashboard_filters_summary_charts_and_pivot(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    _create_problem_analytics_fixture()
+
+    response = client.get(reverse("pages:dashboard"), {"contest": "IMO", "year": "2025", "mohs": "4"})
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["analytics_filters"]["contest"] == "IMO"
+    assert response.context["analytics_filters"]["year"] == "2025"
+    assert response.context["analytics_filters"]["mohs"] == "4"
+    assert response.context["analytics_summary"]["filtered_statements"] == 2
+    assert response.context["analytics_summary"]["with_mohs"] == 2
+    assert response.context["analytics_summary"]["distinct_contests"] == 1
+    assert response.context["charts_payload"]["byYear"] == {"labels": ["2025"], "values": [2]}
+    assert response.context["charts_payload"]["byMohs"]["labels"] == ["4"]
+    assert response.context["charts_payload"]["byMohs"]["values"] == [2]
+    assert response.context["charts_payload"]["contestYearMohsPivotTable"]["table_rows"] == [
+        {
+            "contest_name": "IMO",
+            "contest_year": 2025,
+            "contest_year_label": "IMO 2025",
+            "row_total": 2,
+            "has_mohs": True,
+            "mohs_counts": {"4": 2},
+        },
+    ]
+
+
+def test_problem_analytics_dashboard_can_show_empty_pivot_rows(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    _create_problem_analytics_fixture()
+
+    response = client.get(reverse("pages:dashboard"), {"hide_empty": "0"})
+
+    assert response.status_code == HTTPStatus.OK
+    pivot_payload = response.context["charts_payload"]["contestYearMohsPivotTable"]
+    assert response.context["analytics_filters"]["hide_empty"] is False
+    assert pivot_payload["hidden_empty_rows"] == 0
+    assert pivot_payload["empty_rows_available"] == 1
+    assert pivot_payload["table_rows"][-1] == {
+        "contest_name": "JBMO",
+        "contest_year": 2024,
+        "contest_year_label": "JBMO 2024",
+        "row_total": 0,
+        "has_mohs": False,
+        "mohs_counts": {"4": 0, "7": 0, "8": 0},
+    }
+
+
+def test_problem_analytics_dashboard_uses_problem_uuid_mohs_fallback(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="NT",
+        mohs=25,
+        contest="APMO",
+        problem="P1",
+        contest_year_problem="APMO 2026 P1",
     )
+    ContestProblemStatement.objects.create(
+        problem_uuid=problem.problem_uuid,
+        contest_year=2026,
+        contest_name="APMO",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="APMO 2026 P1 statement",
+    )
+
+    response = client.get(reverse("pages:dashboard"))
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["analytics_summary"]["with_mohs"] == 1
+    assert response.context["charts_payload"]["byMohs"]["labels"] == ["25"]
+    assert response.context["charts_payload"]["contestYearMohsPivotTable"]["table_rows"][0]["mohs_counts"] == {"25": 1}
+
+
+def test_problem_analytics_dashboard_flags_duplicate_contest_name_variants(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    cyrillic_a_contest_name = f"Macedonian Mathematical Olympi{chr(0x0430)}d"
+    contest_names = [
+        "JAPAN MO FINAL",
+        "Japan MO Finals",
+        "Macedonian Mathematical Olympiad",
+        cyrillic_a_contest_name,
+    ]
+    for index, contest_name in enumerate(contest_names, start=1):
+        ContestProblemStatement.objects.create(
+            contest_year=2026,
+            contest_name=contest_name,
+            problem_number=index,
+            problem_code=f"P{index}",
+            day_label="Day 1",
+            mohs=5,
+            statement_latex=f"{contest_name} statement",
+        )
+
+    response = client.get(reverse("pages:dashboard"))
+
+    assert response.status_code == HTTPStatus.OK
+    duplicate_labels = [
+        group["label"]
+        for group in response.context["analytics_quality"]["duplicate_contest_groups"]
+    ]
+    assert any("JAPAN MO FINAL" in label and "Japan MO Finals" in label for label in duplicate_labels)
+    assert any(
+        "Macedonian Mathematical Olympiad" in label and cyrillic_a_contest_name in label
+        for label in duplicate_labels
+    )
+
+
+def test_problem_analytics_dashboard_keeps_admin_access_requirements(client):
+    url = reverse("pages:dashboard")
+
+    response = client.get(url)
+    assert response.status_code == HTTPStatus.FOUND
+
+    normal_user = UserFactory(role=User.Role.NORMAL)
+    client.force_login(normal_user)
+    response = client.get(url)
+    assert response.status_code == HTTPStatus.FORBIDDEN
 
 
 def test_technique_dashboard_exposes_filters_and_legacy_alias(client):

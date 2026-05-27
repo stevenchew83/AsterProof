@@ -102,6 +102,7 @@ from inspinia.pages.models import UserProblemDifficultyRating
 from inspinia.pages.page_view_analytics import build_page_view_analytics_context
 from inspinia.pages.page_views import PageViewPayload
 from inspinia.pages.page_views import record_page_view
+from inspinia.pages.problem_analytics import build_problem_analytics_context
 from inspinia.pages.problem_completion_import import import_problem_completion_text_for_user
 from inspinia.pages.problem_import import ProblemImportValidationError
 from inspinia.pages.problem_import import build_parsed_preview_payload
@@ -4998,74 +4999,7 @@ def dashboard_analytics_view(request):
     """Problem analytics: charts and pivot views."""
     _require_admin_tools_access(request)
 
-    base = _active_dashboard_statements()
-    total = base.count()
-
-    base_eff = annotate_effective_statement_analytics(base)
-    stats = base_eff.aggregate(
-        year_min=Min("contest_year"),
-        year_max=Max("contest_year"),
-        contest_n=Count("contest_name", distinct=True),
-    )
-    stats["topic_n"] = (
-        base_eff.exclude(_eff_topic="")
-        .values("_eff_topic")
-        .distinct()
-        .count()
-    )
-    technique_total = base.aggregate(total=Count("statement_topic_techniques"))["total"] or 0
-
-    by_year = list(base.values("contest_year").annotate(c=Count("id")).order_by("contest_year"))
-    for row in by_year:
-        row["year"] = row.pop("contest_year")
-    by_topic = list(
-        base_eff.exclude(_eff_topic="")
-        .values("_eff_topic")
-        .annotate(c=Count("id"))
-        .order_by("-c", "_eff_topic")[:18]
-    )
-    for row in by_topic:
-        raw_topic = row.pop("_eff_topic")
-        row["topic"] = display_topic_label(raw_topic) if raw_topic else "Unlinked"
-    by_contest = list(
-        base.values("contest_name").annotate(c=Count("id")).order_by("-c", "contest_name")[:12]
-    )
-    for row in by_contest:
-        row["contest"] = row.pop("contest_name")
-    by_mohs = list(
-        base_eff.filter(_eff_mohs__isnull=False)
-        .values("_eff_mohs")
-        .annotate(c=Count("id"))
-        .order_by("_eff_mohs")
-    )
-    for row in by_mohs:
-        row["mohs"] = row.pop("_eff_mohs")
-    top_techniques = list(
-        base.filter(statement_topic_techniques__technique__isnull=False)
-        .exclude(statement_topic_techniques__technique="")
-        .values("statement_topic_techniques__technique")
-        .annotate(c=Count("id", distinct=True))
-        .order_by("-c", "statement_topic_techniques__technique")[:18]
-    )
-    for row in top_techniques:
-        row["technique"] = row.pop("statement_topic_techniques__technique")
-    contest_year_mohs_pivot_table = _contest_year_mohs_pivot_payload()
-
-    charts_payload = {
-        "byYear": _rows_to_bar_payload(by_year, "year"),
-        "byTopic": _rows_to_bar_payload(by_topic, "topic"),
-        "byContest": _rows_to_bar_payload(by_contest, "contest"),
-        "byMohs": _rows_to_bar_payload(by_mohs, "mohs"),
-        "topTechniques": _rows_to_bar_payload(top_techniques, "technique"),
-        "contestYearMohsPivotTable": contest_year_mohs_pivot_table,
-    }
-
-    context = {
-        "analytics_total": total,
-        "analytics_stats": stats,
-        "analytics_technique_total": technique_total,
-        "charts_payload": charts_payload,
-    }
+    context = build_problem_analytics_context(request.GET, _active_dashboard_statements())
     return render(request, "pages/dashboard-analytics.html", context)
 
 
