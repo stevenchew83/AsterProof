@@ -830,6 +830,7 @@ def _statement_table_rows(base, *, user=None) -> list[dict]:
                 "linked_problem_uuid": linked_problem_uuid,
                 "problem_code": statement.problem_code,
                 "statement_uuid": str(statement.statement_uuid),
+                "statement_detail_url": reverse("pages:problem_statement_detail", args=[statement.statement_uuid]),
                 "problem_uuid": str(statement.problem_uuid),
                 "linked_problem_mohs": linked_problem_mohs,
                 "linked_problem_mohs_url": linked_problem_mohs_url,
@@ -870,6 +871,55 @@ def _statement_table_rows(base, *, user=None) -> list[dict]:
         )
 
     return table_rows
+
+
+def _problem_statement_list_loaded_summary(
+    *,
+    filtered_total: int,
+    visible_total: int,
+) -> str:
+    if filtered_total == 0:
+        return "No rows match current filters"
+    if visible_total < filtered_total:
+        return f"Loaded {visible_total} of {filtered_total} matching rows"
+    return f"Loaded {filtered_total} matching row{'s' if filtered_total != 1 else ''}"
+
+
+def _problem_statement_list_filter_url(filters: dict[str, str], *, omit: str) -> str:
+    query = {
+        key: value
+        for key, value in filters.items()
+        if key != omit and str(value or "").strip()
+    }
+    base_url = reverse("pages:problem_statement_list")
+    if not query:
+        return base_url
+    return f"{base_url}?{urlencode(query)}"
+
+
+def _problem_statement_list_active_filter_chips(filters: dict[str, str]) -> list[dict[str, str]]:
+    filter_labels = [
+        ("q", "Search"),
+        ("year", "Year"),
+        ("topic", "Topic"),
+        ("confidence", "Confidence"),
+        ("mohs_min", "MOHS from"),
+        ("mohs_max", "MOHS to"),
+    ]
+    chips = []
+    for key, label in filter_labels:
+        value = str(filters.get(key) or "").strip()
+        if not value:
+            continue
+        chips.append(
+            {
+                "badge_class": "bg-primary-subtle text-primary border border-primary-subtle",
+                "label": label,
+                "remove_url": _problem_statement_list_filter_url(filters, omit=key),
+                "value": value,
+            },
+        )
+    return chips
 
 
 def _format_imo_slot_label(value: object) -> str:
@@ -6092,6 +6142,16 @@ def problem_statement_list_view(request):
     _ = json.dumps(statement_datatable_rows, cls=DjangoJSONEncoder, allow_nan=False)
     copy_tsv = _statement_table_rows_copy_tsv(visible_statement_rows)
 
+    statement_list_filters = {
+        "q": fq,
+        "year": fyear,
+        "topic": ftopic,
+        "confidence": fconfidence,
+        "mohs_min": fmohs_min,
+        "mohs_max": fmohs_max,
+    }
+    active_filter_chips = _problem_statement_list_active_filter_chips(statement_list_filters)
+
     context = {
         "statement_total": statement_total,
         "statement_stats": {
@@ -6106,14 +6166,14 @@ def problem_statement_list_view(request):
         "statement_visible_total": statement_visible_total,
         "statement_result_limit": ADMIN_TABLE_LATEST_LIMIT,
         "statement_is_capped": statement_filtered_total > statement_visible_total,
-        "statement_list_filters": {
-            "q": fq,
-            "year": fyear,
-            "topic": ftopic,
-            "confidence": fconfidence,
-            "mohs_min": fmohs_min,
-            "mohs_max": fmohs_max,
-        },
+        "statement_list_filters": statement_list_filters,
+        "statement_loaded_summary": _problem_statement_list_loaded_summary(
+            filtered_total=statement_filtered_total,
+            visible_total=statement_visible_total,
+        ),
+        "statement_has_active_filters": bool(active_filter_chips),
+        "statement_has_advanced_filters": bool(fconfidence or fmohs_min or fmohs_max),
+        "statement_active_filter_chips": active_filter_chips,
         "statement_filter_years": filter_options["years"],
         "statement_filter_topics": filter_options["topics"],
         "statement_filter_confidences": filter_options["confidences"],
