@@ -11,6 +11,7 @@ from inspinia.training.views import submission_detail_view
 from inspinia.training.views import subtopic_detail_view
 from inspinia.training.views import topic_detail_view
 from inspinia.training.views import trainer_dashboard_view
+from inspinia.training.views import trainer_material_preview_view
 from inspinia.training.views import trainer_materials_view
 from inspinia.training.views import trainer_problems_view
 from inspinia.training.views import trainer_submissions_view
@@ -29,6 +30,7 @@ urlpatterns = [
     path("submissions/<int:submission_id>/", submission_detail_view, name="submission_detail"),
     path("trainer/", trainer_dashboard_view, name="trainer_dashboard"),
     path("trainer/topics/", trainer_topics_view, name="trainer_topics"),
+    path("trainer/materials/preview/", trainer_material_preview_view, name="trainer_material_preview"),
     path("trainer/materials/", trainer_materials_view, name="trainer_materials"),
     path("trainer/problems/", trainer_problems_view, name="trainer_problems"),
     path("trainer/submissions/", trainer_submissions_view, name="trainer_submissions"),

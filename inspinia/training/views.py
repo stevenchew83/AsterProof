@@ -8,6 +8,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db.models import Count
 from django.db.models import Q
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
 from django.shortcuts import render
@@ -643,6 +644,18 @@ def trainer_materials_view(request):
             "selected_material": instance,
             "selected_subtopic": selected_subtopic,
             **_trainer_materials_workspace_context(request, selected_subtopic),
+        },
+    )
+
+
+@login_required
+@require_http_methods(["POST"])
+def trainer_material_preview_view(request):
+    _require_trainer_or_admin(request)
+    return JsonResponse(
+        {
+            "ok": True,
+            "html": str(render_markdown(request.POST.get("content_markdown", ""))),
         },
     )
 

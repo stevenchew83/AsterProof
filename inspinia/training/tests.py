@@ -236,6 +236,9 @@ def test_markdown_renderer_sanitizes_html_and_preserves_math():
         render_markdown(
             "# Inequalities\n\n"
             "Use $a^2+b^2 \\ge 2ab$.\n\n"
+            "\\[\n"
+            "(c+x)^2-(b+x)^2 > c^2-b^2 > a^2\n"
+            "\\]\n\n"
             "<script>alert('x')</script>"
             '<a href="javascript:alert(1)" onclick="alert(2)">bad</a>\n\n'
             "[good](https://example.com)",
@@ -244,6 +247,8 @@ def test_markdown_renderer_sanitizes_html_and_preserves_math():
 
     assert "<h1>Inequalities</h1>" in html
     assert "$a^2+b^2 \\ge 2ab$" in html
+    assert "\\[" in html
+    assert "\\]" in html
     assert "<script" not in html
     assert "onclick" not in html
     assert "javascript:" not in html
@@ -516,6 +521,18 @@ def test_trainer_materials_workspace_exposes_rich_markdown_tools_and_checkpoint_
     assert 'data-format-action="heading"' in html
     assert 'data-format-action="display-math"' in html
     assert 'data-preview-source="id_content_markdown"' in html
+    assert 'data-preview-url="' in html
+    assert 'class="training-material-preview"' in html
+    assert 'class="training-material-preview lh-lg"' not in html
+    assert "font-size: .94rem;" in html
+    assert "line-height: 1.7;" in html
+    assert "max-width: 72ch;" in html
+    assert ".training-material-preview li::marker" in html
+    assert ".training-material-preview blockquote" in html
+    assert ".training-material-preview code" in html
+    assert '.training-material-preview mjx-container[display="true"]' in html
+    assert ".training-material-preview hr" in html
+    assert ".training-material-preview table" in html
     assert "Add checkpoint problem" in html
     assert 'name="form_kind" value="checkpoint_problem"' in html
     assert 'name="checkpoint-title"' in html
@@ -525,6 +542,57 @@ def test_trainer_materials_workspace_exposes_rich_markdown_tools_and_checkpoint_
     assert html.count('id="id_subtopic"') == 1
     assert html.count('id="id_title"') == 1
     assert str(material.subtopic_id) in html
+
+
+def test_trainer_material_preview_requires_login(client):
+    response = client.post(
+        reverse("training:trainer_material_preview"),
+        {"content_markdown": "# Hidden"},
+    )
+
+    login_url = reverse("account_login")
+    assert response.status_code == HTTPStatus.FOUND
+    assert response.url == f"{login_url}?next={reverse('training:trainer_material_preview')}"
+
+
+def test_student_cannot_render_trainer_material_preview(client):
+    student = UserFactory(role=User.Role.NORMAL)
+    client.force_login(student)
+
+    response = client.post(
+        reverse("training:trainer_material_preview"),
+        {"content_markdown": "# Hidden"},
+    )
+
+    assert response.status_code == HTTPStatus.FORBIDDEN
+
+
+def test_trainer_material_preview_renders_markdown_with_saved_renderer(client):
+    trainer = UserFactory(role=User.Role.TRAINER)
+    client.force_login(trainer)
+    source = """# Lesson
+
+| Step | Reason |
+| --- | --- |
+| 1 | Base case |
+
+---
+
+```
+a*b
+```"""
+
+    response = client.post(
+        reverse("training:trainer_material_preview"),
+        {"content_markdown": source},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    payload = response.json()
+    assert payload == {"ok": True, "html": str(render_markdown(source))}
+    assert "<table>" in payload["html"]
+    assert "<hr>" in payload["html"]
+    assert "<pre><code>" in payload["html"]
 
 
 def test_trainer_materials_quick_creates_checkpoint_problem(client):
