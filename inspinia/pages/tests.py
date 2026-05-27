@@ -11773,13 +11773,32 @@ def test_problem_statement_analytics_groups_rows_by_contest_and_year_for_admin(c
     assert response.context["statement_dashboard_stats"] == {
         "average_statements_per_set": EXPECTED_AVERAGE_STATEMENTS_PER_SET,
         "contest_total": EXPECTED_CONTEST_TOTAL,
+        "contest_total_label": "2",
         "linked_total": 1,
+        "linked_total_label": "1",
         "overall_link_rate": EXPECTED_STATEMENT_OVERALL_LINK_RATE,
+        "overall_link_rate_label": "33.33%",
+        "overall_link_rate_variant": "danger",
+        "statement_total_label": "3",
+        "unlinked_total": 2,
+        "unlinked_total_label": "2",
         "year_range_label": "2025-2026",
     }
     assert response.context["statement_dashboard_leaders"]["biggest"]["contest_year_label"] == (
         f"{SPAIN_OLYMPIAD_NAME} {SPAIN_OLYMPIAD_YEAR}"
     )
+    attention_items = response.context["statement_dashboard_attention"]
+    assert [item["key"] for item in attention_items] == [
+        "largest_backlog",
+        "lowest_coverage",
+        "oldest_unlinked",
+        "newest_unlinked",
+    ]
+    assert attention_items[0]["target_label"] == f"{SPAIN_OLYMPIAD_NAME} {SPAIN_OLYMPIAD_YEAR}"
+    assert attention_items[0]["value"] == "1 unlinked"
+    assert attention_items[1]["target_label"] == "No qualifying sets"
+    assert attention_items[2]["target_label"] == "Nepal National Olympiad (IMO Pre-TST) 2025"
+    assert attention_items[3]["target_label"] == f"{SPAIN_OLYMPIAD_NAME} {SPAIN_OLYMPIAD_YEAR}"
     dashboard_row = next(
         row
         for row in response.context["statement_dashboard_rows"]
@@ -11789,16 +11808,34 @@ def test_problem_statement_analytics_groups_rows_by_contest_and_year_for_admin(c
     assert dashboard_row["linked_count"] == 1
     assert dashboard_row["unlinked_count"] == 1
     assert dashboard_row["link_rate"] == EXPECTED_SPAIN_STATEMENT_LINK_RATE
+    assert dashboard_row["has_unlinked"] is True
+    assert dashboard_row["is_low_coverage"] is False
+    assert dashboard_row["is_recent"] is True
+    assert dashboard_row["link_rate_label"] == "50%"
+    assert dashboard_row["link_rate_variant"] == "danger"
     expected_master_url = problem_statement_contest_year_master_url(
         SPAIN_OLYMPIAD_NAME,
         SPAIN_OLYMPIAD_YEAR,
     )
     assert dashboard_row["contest_year_url"] == expected_master_url
-    heatmap_payload = response.context["charts_payload"]["statementCountHeatmap"]
-    assert heatmap_payload["years"] == ["2025", "2026"]
-    assert heatmap_payload["max_value"] == EXPECTED_STATEMENT_SET_TOTAL
-    assert heatmap_payload["series"][0]["name"] == SPAIN_OLYMPIAD_NAME
-    assert heatmap_payload["series"][0]["data"] == [
+    heatmap_views = response.context["charts_payload"]["statementHeatmapViews"]
+    assert set(heatmap_views) == {"backlog", "lowCoverage", "volume", "recent", "all"}
+    assert response.context["charts_payload"]["statementDefaultHeatmapView"] == "backlog"
+    backlog_payload = heatmap_views["backlog"]
+    assert backlog_payload["metric_label"] == "Unlinked statement rows"
+    assert backlog_payload["years"] == ["2025", "2026"]
+    assert backlog_payload["max_value"] == 1
+    assert backlog_payload["series"][0]["name"] == SPAIN_OLYMPIAD_NAME
+    assert backlog_payload["series"][0]["data"] == [
+        {"x": "2025", "y": 0},
+        {"x": "2026", "y": 1, "url": expected_master_url},
+    ]
+    volume_payload = heatmap_views["volume"]
+    assert response.context["charts_payload"]["statementCountHeatmap"] == volume_payload
+    assert volume_payload["metric_label"] == "Statement rows"
+    assert volume_payload["max_value"] == EXPECTED_STATEMENT_SET_TOTAL
+    assert volume_payload["series"][0]["name"] == SPAIN_OLYMPIAD_NAME
+    assert volume_payload["series"][0]["data"] == [
         {"x": "2025", "y": 0},
         {"x": "2026", "y": EXPECTED_STATEMENT_SET_TOTAL, "url": expected_master_url},
     ]
@@ -11808,16 +11845,120 @@ def test_problem_statement_analytics_groups_rows_by_contest_and_year_for_admin(c
     response_html = response.content.decode("utf-8")
     assert "Problem statement analytics" in response_html
     assert 'id="chart-statement-heatmap"' in response_html
+    assert 'id="problem-statement-dashboard-table-data"' in response_html
     assert "contest_year_url" in response_html
     assert "dataPointSelection" in response_html
     assert "window.location.href" in response_html
     assert 'id="chart-year-bars"' in response_html
-    assert "Contest-year statement heatmap" in response_html
+    assert "Unlinked statement backlog heatmap" in response_html
+    assert 'data-statement-heatmap-mode="backlog"' in response_html
+    assert 'data-statement-analytics-filter="unlinked"' in response_html
+    assert 'data-statement-analytics-filter="low-coverage"' in response_html
+    assert 'data-statement-analytics-filter="recent"' in response_html
+    assert 'data-statement-analytics-filter="complete"' in response_html
+    assert "progress-bar" in response_html
+    assert "Open contest-year" in response_html
     assert "Statement rows by year" in response_html
     assert "Bar graph of year-only imported statement coverage across the archive." in response_html
     assert "Contest-year statement volume" not in response_html
     assert "Link rate by contest-year" not in response_html
     assert reverse("pages:problem_statement_dashboard") in response_html
+
+
+def test_problem_statement_analytics_caps_default_heatmap_and_keeps_all_view(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    linked_volume_records = [
+        ProblemSolveRecord.objects.create(
+            year=2026,
+            topic="ALG",
+            mohs=1,
+            contest="Linked Volume",
+            problem=f"P{i}",
+            contest_year_problem=f"Linked Volume 2026 P{i}",
+        )
+        for i in range(1, 26)
+    ]
+    for index, linked_record in enumerate(linked_volume_records, start=1):
+        ContestProblemStatement.objects.create(
+            contest_year=2026,
+            contest_name="Linked Volume",
+            problem_number=index,
+            day_label="Day 1",
+            statement_latex=f"Linked volume statement {index}",
+            linked_problem=linked_record,
+        )
+    for contest_index in range(1, 22):
+        ContestProblemStatement.objects.create(
+            contest_year=2026,
+            contest_name=f"Backlog Contest {contest_index:02d}",
+            problem_number=1,
+            day_label="Day 1",
+            statement_latex=f"Backlog statement {contest_index}",
+        )
+
+    response = client.get(reverse("pages:problem_statement_dashboard"))
+
+    assert response.status_code == HTTPStatus.OK
+    heatmap_views = response.context["charts_payload"]["statementHeatmapViews"]
+    assert len(heatmap_views["backlog"]["series"]) == 20
+    assert len(heatmap_views["all"]["series"]) == 22
+    assert "Linked Volume" not in {series["name"] for series in heatmap_views["backlog"]["series"]}
+    assert heatmap_views["volume"]["series"][0]["name"] == "Linked Volume"
+    assert heatmap_views["volume"]["series"][0]["data"] == [
+        {
+            "url": problem_statement_contest_year_master_url("Linked Volume", 2026),
+            "x": "2026",
+            "y": 25,
+        },
+    ]
+
+
+def test_problem_statement_analytics_flags_low_coverage_only_for_meaningful_sets(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    linked_record = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="NT",
+        mohs=3,
+        contest="Low Coverage",
+        problem="P1",
+        contest_year_problem="Low Coverage 2026 P1",
+    )
+    for index in range(1, 6):
+        ContestProblemStatement.objects.create(
+            contest_year=2026,
+            contest_name="Low Coverage",
+            problem_number=index,
+            day_label="Day 1",
+            statement_latex=f"Low coverage statement {index}",
+            linked_problem=linked_record if index == 1 else None,
+        )
+    for index in range(1, 5):
+        ContestProblemStatement.objects.create(
+            contest_year=2026,
+            contest_name="Tiny Unlinked",
+            problem_number=index,
+            day_label="Day 1",
+            statement_latex=f"Tiny unlinked statement {index}",
+        )
+
+    response = client.get(reverse("pages:problem_statement_dashboard"))
+
+    assert response.status_code == HTTPStatus.OK
+    rows = response.context["statement_dashboard_rows"]
+    low_coverage_row = next(row for row in rows if row["contest_name"] == "Low Coverage")
+    tiny_row = next(row for row in rows if row["contest_name"] == "Tiny Unlinked")
+    assert low_coverage_row["link_rate"] == 20.0
+    assert low_coverage_row["is_low_coverage"] is True
+    assert low_coverage_row["link_rate_label"] == "20%"
+    assert low_coverage_row["link_rate_variant"] == "danger"
+    assert tiny_row["link_rate"] == 0.0
+    assert tiny_row["is_low_coverage"] is False
+    attention_items = response.context["statement_dashboard_attention"]
+    assert attention_items[1]["key"] == "lowest_coverage"
+    assert attention_items[1]["target_label"] == "Low Coverage 2026"
+    assert attention_items[1]["value"] == "20% linked"
 
 
 def test_latex_preview_parse_action_builds_structured_preview_without_saving(client):

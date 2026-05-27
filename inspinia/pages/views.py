@@ -188,6 +188,12 @@ MAIN_TOPIC_CODE_ORDER = ("A", "C", "G", "N")
 CONTEST_MOHS_SUMMARY_HIDE_THRESHOLD = 20
 STATEMENT_LINKER_ERROR_PREVIEW_LIMIT = 5
 STATEMENT_METADATA_ERROR_PREVIEW_LIMIT = 5
+STATEMENT_ANALYTICS_HEATMAP_LIMIT = 20
+STATEMENT_ANALYTICS_LOW_COVERAGE_RATE = 80
+STATEMENT_ANALYTICS_LOW_COVERAGE_MIN_STATEMENTS = 5
+STATEMENT_ANALYTICS_RECENT_YEAR = 2020
+STATEMENT_ANALYTICS_SUCCESS_RATE = 90
+STATEMENT_ANALYTICS_WARNING_RATE = 60
 COMPLETION_BOARD_INITIAL_ROW_LIMIT = 30
 COMPLETION_BOARD_ROW_LOAD_STEP = 30
 ADMIN_TABLE_LATEST_LIMIT = 100
@@ -1520,6 +1526,14 @@ def _statement_dashboard_rows(base) -> list[dict]:
         row["linked_count"] = linked_count
         row["unlinked_count"] = statement_count - linked_count
         row["link_rate"] = round((linked_count / statement_count) * 100, 2) if statement_count else 0.0
+        row["has_unlinked"] = row["unlinked_count"] > 0
+        row["is_low_coverage"] = (
+            statement_count >= STATEMENT_ANALYTICS_LOW_COVERAGE_MIN_STATEMENTS
+            and row["link_rate"] < STATEMENT_ANALYTICS_LOW_COVERAGE_RATE
+        )
+        row["is_recent"] = int(row["contest_year"]) >= STATEMENT_ANALYTICS_RECENT_YEAR
+        row["link_rate_label"] = _format_statement_dashboard_percent(row["link_rate"])
+        row["link_rate_variant"] = _statement_dashboard_rate_variant(row["link_rate"])
         row["last_updated_label"] = (
             timezone.localtime(row["last_updated"]).strftime("%Y-%m-%d %H:%M")
             if row["last_updated"] is not None
@@ -1536,11 +1550,257 @@ def _statement_dashboard_rows(base) -> list[dict]:
     return rows
 
 
+def _format_statement_dashboard_count(value: float | None) -> str:
+    return f"{int(value or 0):,}"
+
+
+def _format_statement_dashboard_percent(value: float | None) -> str:
+    numeric_value = float(value or 0)
+    rendered = str(int(numeric_value)) if numeric_value.is_integer() else f"{numeric_value:.2f}"
+    return f"{rendered}%"
+
+
+def _statement_dashboard_rate_variant(value: float | None) -> str:
+    numeric_value = float(value or 0)
+    if numeric_value >= STATEMENT_ANALYTICS_SUCCESS_RATE:
+        return "success"
+    if numeric_value >= STATEMENT_ANALYTICS_WARNING_RATE:
+        return "warning"
+    return "danger"
+
+
+def _statement_attention_item(
+    config: dict[str, str],
+    row: dict | None,
+    value: str,
+    *,
+    empty_target_label: str = "No statement sets",
+    empty_value: str = "",
+) -> dict[str, object]:
+    if row is None:
+        return {
+            "key": config["key"],
+            "label": config["label"],
+            "target_label": empty_target_label,
+            "value": empty_value,
+            "variant": "secondary",
+            "icon": config["icon"],
+            "url": "",
+        }
+
+    return {
+        "key": config["key"],
+        "label": config["label"],
+        "target_label": row["contest_year_label"],
+        "value": value,
+        "variant": config["variant"],
+        "icon": config["icon"],
+        "url": row.get("contest_year_url", ""),
+    }
+
+
+def _statement_dashboard_attention(rows: list[dict]) -> list[dict[str, object]]:
+    unlinked_rows = [row for row in rows if row["unlinked_count"] > 0]
+    largest_backlog = (
+        max(
+            unlinked_rows,
+            key=lambda row: (
+                row["unlinked_count"],
+                row["statement_count"],
+                int(row["contest_year"]),
+                row["contest_year_label"],
+            ),
+        )
+        if unlinked_rows
+        else None
+    )
+    low_coverage_rows = [row for row in rows if row["is_low_coverage"]]
+    lowest_coverage = (
+        min(
+            low_coverage_rows,
+            key=lambda row: (
+                row["link_rate"],
+                -row["unlinked_count"],
+                -row["statement_count"],
+                row["contest_year_label"],
+            ),
+        )
+        if low_coverage_rows
+        else None
+    )
+    oldest_unlinked = (
+        min(
+            unlinked_rows,
+            key=lambda row: (
+                int(row["contest_year"]),
+                -row["unlinked_count"],
+                row["contest_year_label"],
+            ),
+        )
+        if unlinked_rows
+        else None
+    )
+    newest_unlinked = (
+        max(
+            unlinked_rows,
+            key=lambda row: (
+                int(row["contest_year"]),
+                row["unlinked_count"],
+                row["contest_year_label"],
+            ),
+        )
+        if unlinked_rows
+        else None
+    )
+
+    return [
+        _statement_attention_item(
+            {
+                "icon": "ti-alert-triangle",
+                "key": "largest_backlog",
+                "label": "Largest backlog",
+                "variant": "warning",
+            },
+            row=largest_backlog,
+            value=f"{largest_backlog['unlinked_count']} unlinked" if largest_backlog else "",
+        ),
+        _statement_attention_item(
+            {
+                "icon": "ti-link-off",
+                "key": "lowest_coverage",
+                "label": "Lowest meaningful coverage",
+                "variant": "danger",
+            },
+            row=lowest_coverage,
+            value=f"{lowest_coverage['link_rate_label']} linked" if lowest_coverage else "At least 5 statements",
+            empty_target_label="No qualifying sets",
+        ),
+        _statement_attention_item(
+            {
+                "icon": "ti-calendar-alert",
+                "key": "oldest_unlinked",
+                "label": "Oldest unlinked",
+                "variant": "secondary",
+            },
+            row=oldest_unlinked,
+            value=str(oldest_unlinked["contest_year"]) if oldest_unlinked else "",
+        ),
+        _statement_attention_item(
+            {
+                "icon": "ti-calendar-plus",
+                "key": "newest_unlinked",
+                "label": "Newest unlinked",
+                "variant": "info",
+            },
+            row=newest_unlinked,
+            value=str(newest_unlinked["contest_year"]) if newest_unlinked else "",
+        ),
+    ]
+
+
+def _statement_contest_totals(rows: list[dict]) -> dict[str, dict[str, int | float | str]]:
+    totals: dict[str, dict[str, int | float | str]] = {}
+    for row in rows:
+        contest_name = str(row["contest_name"])
+        contest_total = totals.setdefault(
+            contest_name,
+            {
+                "contest_name": contest_name,
+                "statement_count": 0,
+                "unlinked_count": 0,
+                "max_year": 0,
+                "min_link_rate": 100.0,
+            },
+        )
+        contest_total["statement_count"] = int(contest_total["statement_count"]) + int(row["statement_count"] or 0)
+        contest_total["unlinked_count"] = int(contest_total["unlinked_count"]) + int(row["unlinked_count"] or 0)
+        contest_total["max_year"] = max(int(contest_total["max_year"]), int(row["contest_year"]))
+        contest_total["min_link_rate"] = min(float(contest_total["min_link_rate"]), float(row["link_rate"]))
+    return totals
+
+
+def _statement_rows_for_contests(rows: list[dict], contest_names: list[str]) -> list[dict]:
+    selected = set(contest_names)
+    return [row for row in rows if row["contest_name"] in selected]
+
+
+def _statement_heatmap_contests_by_backlog(rows: list[dict]) -> list[str]:
+    totals = _statement_contest_totals(rows)
+    return [
+        str(total["contest_name"])
+        for total in sorted(
+            totals.values(),
+            key=lambda total: (
+                -int(total["unlinked_count"]),
+                -int(total["statement_count"]),
+                -int(total["max_year"]),
+                str(total["contest_name"]),
+            ),
+        )
+        if int(total["unlinked_count"]) > 0
+    ]
+
+
+def _statement_heatmap_contests_by_low_coverage(rows: list[dict]) -> list[str]:
+    low_coverage_contests = {str(row["contest_name"]) for row in rows if row["is_low_coverage"]}
+    totals = _statement_contest_totals([row for row in rows if row["contest_name"] in low_coverage_contests])
+    return [
+        str(total["contest_name"])
+        for total in sorted(
+            totals.values(),
+            key=lambda total: (
+                float(total["min_link_rate"]),
+                -int(total["unlinked_count"]),
+                -int(total["statement_count"]),
+                str(total["contest_name"]),
+            ),
+        )
+    ]
+
+
+def _statement_heatmap_contests_by_volume(rows: list[dict]) -> list[str]:
+    totals = _statement_contest_totals(rows)
+    return [
+        str(total["contest_name"])
+        for total in sorted(
+            totals.values(),
+            key=lambda total: (
+                -int(total["statement_count"]),
+                -int(total["max_year"]),
+                str(total["contest_name"]),
+            ),
+        )
+    ]
+
+
+def _statement_heatmap_contests_by_recent_backlog(rows: list[dict]) -> list[str]:
+    recent_rows = [
+        row
+        for row in rows
+        if int(row["contest_year"]) >= STATEMENT_ANALYTICS_RECENT_YEAR and int(row["unlinked_count"]) > 0
+    ]
+    totals = _statement_contest_totals(recent_rows)
+    return [
+        str(total["contest_name"])
+        for total in sorted(
+            totals.values(),
+            key=lambda total: (
+                -int(total["max_year"]),
+                -int(total["unlinked_count"]),
+                str(total["contest_name"]),
+            ),
+        )
+    ]
+
+
 def _statement_heatmap_payload(rows: list[dict]) -> dict[str, object]:
     return _contest_year_heatmap_payload(
         rows,
         value_key="statement_count",
-        url_key="contest_year_url",
+        config={
+            "metric_label": "Statement rows",
+            "url_key": "contest_year_url",
+        },
     )
 
 
@@ -1548,10 +1808,25 @@ def _contest_year_heatmap_payload(
     rows: list[dict],
     *,
     value_key: str,
-    url_key: str | None = None,
+    config: dict[str, object] | None = None,
 ) -> dict[str, object]:
+    payload_config = config or {}
+    url_key_value = str(payload_config.get("url_key") or "")
+    url_key = url_key_value or None
+    metric_label = str(payload_config.get("metric_label") or "")
+    mode = str(payload_config.get("mode") or "")
+    ordered_contests = payload_config.get("ordered_contests")
+    is_limited = bool(payload_config.get("is_limited", False))
+
     if not rows:
-        return {"max_value": 0, "series": [], "years": []}
+        return {
+            "is_limited": is_limited,
+            "max_value": 0,
+            "metric_label": metric_label,
+            "mode": mode,
+            "series": [],
+            "years": [],
+        }
 
     years = sorted({int(row["contest_year"]) for row in rows})
     value_by_contest_year: dict[str, dict[int, int]] = defaultdict(dict)
@@ -1569,14 +1844,20 @@ def _contest_year_heatmap_payload(
                 url_by_contest_year[contest_name][contest_year] = url
         contest_totals[contest_name] += value
 
-    ordered_contests = sorted(
-        contest_totals,
-        key=lambda contest_name: (-contest_totals[contest_name], contest_name),
-    )
+    if not isinstance(ordered_contests, list):
+        ordered_contests = sorted(
+            contest_totals,
+            key=lambda contest_name: (-contest_totals[contest_name], contest_name),
+        )
+    else:
+        ordered_contests = [contest_name for contest_name in ordered_contests if contest_name in contest_totals]
     max_value = max(int(row[value_key] or 0) for row in rows)
 
     return {
+        "is_limited": is_limited,
         "max_value": max_value,
+        "metric_label": metric_label,
+        "mode": mode,
         "series": [
             {
                 "data": [
@@ -1599,6 +1880,81 @@ def _contest_year_heatmap_payload(
             for contest_name in ordered_contests
         ],
         "years": [str(year) for year in years],
+    }
+
+
+def _statement_heatmap_views(rows: list[dict]) -> dict[str, dict[str, object]]:
+    backlog_contests = _statement_heatmap_contests_by_backlog(rows)
+    low_coverage_contests = _statement_heatmap_contests_by_low_coverage(rows)
+    volume_contests = _statement_heatmap_contests_by_volume(rows)
+    recent_contests = _statement_heatmap_contests_by_recent_backlog(rows)
+    all_contests = _statement_heatmap_contests_by_backlog(rows)
+    all_contests.extend(
+        contest
+        for contest in _statement_heatmap_contests_by_volume(rows)
+        if contest not in all_contests
+    )
+
+    backlog_limited = backlog_contests[:STATEMENT_ANALYTICS_HEATMAP_LIMIT]
+    low_coverage_limited = low_coverage_contests[:STATEMENT_ANALYTICS_HEATMAP_LIMIT]
+    volume_limited = volume_contests[:STATEMENT_ANALYTICS_HEATMAP_LIMIT]
+    recent_limited = recent_contests[:STATEMENT_ANALYTICS_HEATMAP_LIMIT]
+
+    return {
+        "backlog": _contest_year_heatmap_payload(
+            _statement_rows_for_contests(rows, backlog_limited),
+            value_key="unlinked_count",
+            config={
+                "is_limited": len(backlog_contests) > STATEMENT_ANALYTICS_HEATMAP_LIMIT,
+                "metric_label": "Unlinked statement rows",
+                "mode": "backlog",
+                "ordered_contests": backlog_limited,
+                "url_key": "contest_year_url",
+            },
+        ),
+        "lowCoverage": _contest_year_heatmap_payload(
+            _statement_rows_for_contests(rows, low_coverage_limited),
+            value_key="unlinked_count",
+            config={
+                "is_limited": len(low_coverage_contests) > STATEMENT_ANALYTICS_HEATMAP_LIMIT,
+                "metric_label": "Unlinked rows in low-coverage sets",
+                "mode": "lowCoverage",
+                "ordered_contests": low_coverage_limited,
+                "url_key": "contest_year_url",
+            },
+        ),
+        "volume": _contest_year_heatmap_payload(
+            _statement_rows_for_contests(rows, volume_limited),
+            value_key="statement_count",
+            config={
+                "is_limited": len(volume_contests) > STATEMENT_ANALYTICS_HEATMAP_LIMIT,
+                "metric_label": "Statement rows",
+                "mode": "volume",
+                "ordered_contests": volume_limited,
+                "url_key": "contest_year_url",
+            },
+        ),
+        "recent": _contest_year_heatmap_payload(
+            _statement_rows_for_contests(rows, recent_limited),
+            value_key="unlinked_count",
+            config={
+                "is_limited": len(recent_contests) > STATEMENT_ANALYTICS_HEATMAP_LIMIT,
+                "metric_label": f"Unlinked statement rows since {STATEMENT_ANALYTICS_RECENT_YEAR}",
+                "mode": "recent",
+                "ordered_contests": recent_limited,
+                "url_key": "contest_year_url",
+            },
+        ),
+        "all": _contest_year_heatmap_payload(
+            _statement_rows_for_contests(rows, all_contests),
+            value_key="unlinked_count",
+            config={
+                "metric_label": "Unlinked statement rows",
+                "mode": "all",
+                "ordered_contests": all_contests,
+                "url_key": "contest_year_url",
+            },
+        ),
     }
 
 
@@ -5683,6 +6039,7 @@ def problem_statement_analytics_view(request):
     statement_set_total = len(dashboard_rows)
     contest_total = base.values("contest_name").distinct().count()
     linked_total = base.filter(linked_problem__isnull=False).count()
+    unlinked_total = statement_total - linked_total
     year_bounds = base.aggregate(year_min=Min("contest_year"), year_max=Max("contest_year"))
 
     year_min = year_bounds["year_min"]
@@ -5720,19 +6077,31 @@ def problem_statement_analytics_view(request):
         else None
     )
 
+    statement_heatmap_views = _statement_heatmap_views(dashboard_rows)
     charts_payload = {
-        "statementCountHeatmap": _statement_heatmap_payload(dashboard_rows),
+        "statementCountHeatmap": statement_heatmap_views["volume"],
+        "statementDefaultHeatmapView": "backlog",
+        "statementHeatmapViews": statement_heatmap_views,
         "statementYearBarChart": _statement_year_bar_payload(dashboard_rows),
     }
 
     context = {
         "statement_dashboard_total": statement_set_total,
+        "statement_dashboard_total_label": _format_statement_dashboard_count(statement_set_total),
         "statement_dashboard_statement_total": statement_total,
+        "statement_dashboard_statement_total_label": _format_statement_dashboard_count(statement_total),
         "statement_dashboard_stats": {
             "average_statements_per_set": average_statements_per_set,
             "contest_total": contest_total,
+            "contest_total_label": _format_statement_dashboard_count(contest_total),
             "linked_total": linked_total,
+            "linked_total_label": _format_statement_dashboard_count(linked_total),
             "overall_link_rate": overall_link_rate,
+            "overall_link_rate_label": _format_statement_dashboard_percent(overall_link_rate),
+            "overall_link_rate_variant": _statement_dashboard_rate_variant(overall_link_rate),
+            "statement_total_label": _format_statement_dashboard_count(statement_total),
+            "unlinked_total": unlinked_total,
+            "unlinked_total_label": _format_statement_dashboard_count(unlinked_total),
             "year_range_label": year_range_label,
         },
         "statement_dashboard_leaders": {
@@ -5741,6 +6110,7 @@ def problem_statement_analytics_view(request):
             "biggest_backlog": biggest_backlog_set,
             "newest": newest_set,
         },
+        "statement_dashboard_attention": _statement_dashboard_attention(dashboard_rows),
         "statement_dashboard_rows": dashboard_rows,
         "charts_payload": charts_payload,
     }
