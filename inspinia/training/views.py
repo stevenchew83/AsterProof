@@ -555,6 +555,18 @@ def _trainer_materials_workspace_context(request, selected_subtopic: Subtopic | 
 
 
 @login_required
+@require_http_methods(["POST"])
+def trainer_material_preview_view(request):
+    _require_trainer_or_admin(request)
+    return JsonResponse(
+        {
+            "html": str(render_markdown(request.POST.get("content_markdown", ""))),
+            "ok": True,
+        },
+    )
+
+
+@login_required
 @require_http_methods(["GET", "POST"])
 def trainer_topics_view(request):
     _require_trainer_or_admin(request)
@@ -646,19 +658,6 @@ def trainer_materials_view(request):
             **_trainer_materials_workspace_context(request, selected_subtopic),
         },
     )
-
-
-@login_required
-@require_http_methods(["POST"])
-def trainer_material_preview_view(request):
-    _require_trainer_or_admin(request)
-    return JsonResponse(
-        {
-            "ok": True,
-            "html": str(render_markdown(request.POST.get("content_markdown", ""))),
-        },
-    )
-
 
 @login_required
 @require_http_methods(["GET", "POST"])

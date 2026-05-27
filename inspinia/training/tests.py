@@ -513,6 +513,7 @@ def test_trainer_materials_workspace_exposes_rich_markdown_tools_and_checkpoint_
     assert response.status_code == HTTPStatus.OK
     html = response.content.decode("utf-8")
     assert 'data-training-material-editor="true"' in html
+    assert f'data-preview-url="{reverse("training:trainer_material_preview")}"' in html
     assert 'data-editor-mode="write"' in html
     assert 'data-editor-mode="preview"' in html
     assert 'data-editor-mode="split"' in html
@@ -567,10 +568,13 @@ def test_student_cannot_render_trainer_material_preview(client):
     assert response.status_code == HTTPStatus.FORBIDDEN
 
 
-def test_trainer_material_preview_renders_markdown_with_saved_renderer(client):
+def test_trainer_material_preview_uses_server_markdown_renderer(client):
     trainer = UserFactory(role=User.Role.TRAINER)
     client.force_login(trainer)
-    source = """# Lesson
+    source = """# Foundations: Mathematical Induction
+
+1. **Base case:** P(n0) is true.
+2. **Inductive step:** P(n) implies P(n+1).
 
 | Step | Reason |
 | --- | --- |
@@ -578,21 +582,35 @@ def test_trainer_material_preview_renders_markdown_with_saved_renderer(client):
 
 ---
 
+Now
+
+> (c-b)(c+b)
+
 ```
 a*b
-```"""
+```
+
+\\[
+(c+x)^2-(b+x)^2 > c^2-b^2 > a^2
+\\]"""
 
     response = client.post(
         reverse("training:trainer_material_preview"),
         {"content_markdown": source},
+        HTTP_X_REQUESTED_WITH="XMLHttpRequest",
     )
 
     assert response.status_code == HTTPStatus.OK
     payload = response.json()
-    assert payload == {"ok": True, "html": str(render_markdown(source))}
+    assert payload["ok"] is True
+    assert payload["html"] == str(render_markdown(source))
+    assert "<h1>Foundations: Mathematical Induction</h1>" in payload["html"]
+    assert "<hr" in payload["html"]
+    assert "<ol>" in payload["html"]
+    assert "<blockquote>" in payload["html"]
     assert "<table>" in payload["html"]
-    assert "<hr>" in payload["html"]
     assert "<pre><code>" in payload["html"]
+    assert "\\[" in payload["html"]
 
 
 def test_trainer_materials_quick_creates_checkpoint_problem(client):
