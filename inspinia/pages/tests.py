@@ -6086,6 +6086,8 @@ def test_completion_quick_update_renders_user_mohs_controls(client):
     assert reverse("pages:problem_statement_difficulty_rating_save") in response_html
     assert "js-quick-completion-user-mohs-save" in response_html
     assert "quick-completion-user-mohs-editor" in response_html
+    assert "js-quick-completion-user-mohs-toggle" in response_html
+    assert "dropdown-menu" in response_html
 
 
 def test_completion_quick_update_save_updates_current_user_only(client):
@@ -6565,13 +6567,18 @@ def test_completion_quick_update_renders_datatable_with_status_filter(client):
     assert row_by_problem["P1"]["completion_date"] == "2026-04-20"
     assert row_by_problem["P2"]["completion_state_kind"] == "unsolved"
     response_html = response.content.decode("utf-8")
-    assert "Completion date editor" in response_html
+    assert "Completion logger" in response_html
     assert "dataTables.bootstrap5.min.css" in response_html
     assert "dataTables.min.js" in response_html
     assert 'id="quick-completion-table"' in response_html
     assert 'id="quick-completion-status-filter"' in response_html
+    assert 'id="quick-completion-detail-editor"' in response_html
+    assert 'id="quick-completion-advanced-filters"' in response_html
+    assert 'data-bs-toggle="collapse"' in response_html
     assert 'data-completion-state="solved"' in response_html
     assert 'data-completion-state="unsolved"' in response_html
+    assert 'data-completion-date="2026-04-20"' in response_html
+    assert 'data-status="solved"' in response_html
     assert 'new DataTable("#quick-completion-table"' in response_html
     assert "DataTable.ext.search.push" in response_html
     assert "Completion status" in response_html
@@ -6584,13 +6591,18 @@ def test_completion_quick_update_renders_datatable_with_status_filter(client):
         "<th>User MOHS</th>",
     )
     assert header_html.index("<th>User MOHS</th>") < header_html.index(
-        "<th>Current completion</th>",
+        "<th>Completion</th>",
     )
-    assert header_html.index("<th>Current completion</th>") < header_html.index(
+    assert header_html.index("<th>Completion</th>") < header_html.index(
+        "<th>Study summary</th>",
+    )
+    assert header_html.index("<th>Study summary</th>") < header_html.index(
         "<th>Actions</th>"
     )
-    assert header_html.index("<th>Actions</th>") < header_html.index("<th>Status</th>")
-    assert "targets: [5, 7, 17]" in response_html
+    assert "<th>Status</th>" not in header_html
+    assert "<th>Time spent</th>" not in header_html
+    assert "<th>YYYY-MM-DD</th>" not in header_html
+    assert "targets: [2, 5]" in response_html
     assert "loaded rows" in response_html
 
 
