@@ -378,6 +378,28 @@ def test_trainer_topics_page_uses_split_taxonomy_workspace(client):
     assert subtopic.title in html
 
 
+def test_trainer_topics_table_keeps_subtopic_edit_and_adds_material_creation_action(client):
+    trainer = UserFactory(role=User.Role.TRAINER)
+    _topic, subtopic, _material, _problem = _topic_tree()
+    client.force_login(trainer)
+
+    response = client.get(reverse("training:trainer_topics"))
+
+    assert response.status_code == HTTPStatus.OK
+    html = response.content.decode("utf-8")
+    edit_url = f"{reverse('training:trainer_topics')}?edit_subtopic={subtopic.id}"
+    create_material_url = f"{reverse('training:trainer_materials')}?subtopic={subtopic.id}"
+    assert f'href="{edit_url}"' in html
+    assert f'href="{create_material_url}"' in html
+    assert "Create material" in html
+
+    material_response = client.get(create_material_url)
+
+    assert material_response.status_code == HTTPStatus.OK
+    assert material_response.context["form"].initial["subtopic"] == subtopic.id
+    assert material_response.context["selected_material"] is None
+
+
 def test_student_cannot_award_submission_points(client):
     _thresholds()
     student = UserFactory(role=User.Role.NORMAL)

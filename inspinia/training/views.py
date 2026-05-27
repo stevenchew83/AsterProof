@@ -455,6 +455,25 @@ def _topic_workspace_stats(topics: list[Topic], subtopics: list[Subtopic]) -> di
     }
 
 
+def _material_workspace_initial_data(
+    material: Material | None,
+    subtopic: Subtopic | None,
+) -> tuple[dict[str, int], dict[str, int | str]]:
+    material_initial = {}
+    checkpoint_initial = {
+        "difficulty": Problem.Difficulty.INTRODUCTORY,
+        "is_published": True,
+        "max_points": 20,
+    }
+    if material is not None:
+        checkpoint_initial["subtopic"] = material.subtopic_id
+        checkpoint_initial["order"] = material.order + 10
+    elif subtopic is not None:
+        material_initial["subtopic"] = subtopic.id
+        checkpoint_initial["subtopic"] = subtopic.id
+    return material_initial, checkpoint_initial
+
+
 @login_required
 @require_http_methods(["GET", "POST"])
 def trainer_topics_view(request):
@@ -516,14 +535,10 @@ def trainer_materials_view(request):
     instance = (
         Material.objects.select_related("subtopic", "subtopic__topic").filter(pk=request.GET.get("edit")).first()
     )
-    checkpoint_initial = {
-        "difficulty": Problem.Difficulty.INTRODUCTORY,
-        "is_published": True,
-        "max_points": 20,
-    }
-    if instance is not None:
-        checkpoint_initial["subtopic"] = instance.subtopic_id
-        checkpoint_initial["order"] = instance.order + 10
+    selected_subtopic = None
+    if instance is None and request.GET.get("subtopic"):
+        selected_subtopic = get_object_or_404(Subtopic, pk=request.GET["subtopic"])
+    material_initial, checkpoint_initial = _material_workspace_initial_data(instance, selected_subtopic)
 
     if request.method == "POST":
         form_kind = request.POST.get("form_kind", "material")
@@ -558,7 +573,7 @@ def trainer_materials_view(request):
                 messages.success(request, "Material saved.")
                 return _redirect_with_edit("training:trainer_materials", material.id)
     else:
-        form = MaterialForm(instance=instance)
+        form = MaterialForm(instance=instance, initial=material_initial)
         checkpoint_form = CheckpointProblemForm(initial=checkpoint_initial)
 
     checkpoint_problems = Problem.objects.select_related("subtopic", "subtopic__topic")
