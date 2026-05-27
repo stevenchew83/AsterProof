@@ -5015,7 +5015,7 @@ def user_solution_record_list_view(request):
 def page_view_analytics_view(request):
     """Admin dashboard for archive and solution page-view activity."""
     _require_admin_tools_access(request)
-    return render(request, "pages/page-view-analytics.html", build_page_view_analytics_context())
+    return render(request, "pages/page-view-analytics.html", build_page_view_analytics_context(request.GET))
 
 
 @login_required
@@ -5262,9 +5262,13 @@ def problem_statement_list_view(request):
             view_type=PageViewEvent.ViewType.LIST,
             label="Problem statement list",
             metadata={
+                "confidence": fconfidence,
                 "filtered_total": statement_filtered_total,
                 "kind": "statement_list",
+                "mohs_max": fmohs_max,
+                "mohs_min": fmohs_min,
                 "q": fq,
+                "topic": ftopic,
                 "year": fyear,
             },
         ),
