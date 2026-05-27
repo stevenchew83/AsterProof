@@ -4619,6 +4619,109 @@ def test_contest_dashboard_rows_include_advanced_analytics_links(client):
     assert "row.detail_url" in response_html
 
 
+def test_contest_dashboard_exposes_quality_payload_and_redesign_hooks(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+
+    rich_statements = []
+    for problem_number in range(1, 11):
+        rich_statements.append(
+            ContestProblemStatement.objects.create(
+                contest_year=2026,
+                contest_name="USAMO",
+                problem_number=problem_number,
+                problem_code=f"P{problem_number}",
+                day_label="Day 1",
+                statement_latex=f"Statement {problem_number}",
+                topic="ALG" if problem_number <= 8 else "",
+                mohs=5 if problem_number <= 8 else None,
+            ),
+        )
+    for statement in rich_statements[:7]:
+        StatementTopicTechnique.objects.create(statement=statement, technique="INVARIANT", domains=["C"])
+    StatementTopicTechnique.objects.create(
+        statement=rich_statements[0],
+        technique="PIGEONHOLE",
+        domains=["C"],
+    )
+
+    for problem_number in range(1, 4):
+        ContestProblemStatement.objects.create(
+            contest_year=2026,
+            contest_name="Tiny Cup",
+            problem_number=problem_number,
+            problem_code=f"P{problem_number}",
+            day_label="Day 1",
+            statement_latex=f"Tiny statement {problem_number}",
+        )
+
+    response = client.get(reverse("pages:contest_dashboard"))
+
+    assert response.status_code == HTTPStatus.OK
+    rows_by_contest = {row["contest"]: row for row in response.context["contest_rows"]}
+    rich_row = rows_by_contest["USAMO"]
+    assert rich_row["problem_count"] == 10
+    assert rich_row["mohs_statement_count"] == 8
+    assert rich_row["missing_mohs_count"] == 2
+    assert rich_row["mohs_coverage_percent"] == 80.0
+    assert rich_row["topic_statement_count"] == 8
+    assert rich_row["missing_topic_count"] == 2
+    assert rich_row["topic_coverage_percent"] == 80.0
+    assert rich_row["technique_rows"] == 8
+    assert rich_row["technique_statement_count"] == 7
+    assert rich_row["missing_technique_count"] == 3
+    assert rich_row["technique_coverage_percent"] == 70.0
+    assert rich_row["has_mohs"] is True
+    assert rich_row["has_topic"] is True
+    assert rich_row["has_techniques"] is True
+    assert rich_row["is_low_sample"] is False
+
+    tiny_row = rows_by_contest["Tiny Cup"]
+    assert tiny_row["is_low_sample"] is True
+    assert tiny_row["has_mohs"] is False
+    assert tiny_row["has_topic"] is False
+    assert tiny_row["has_techniques"] is False
+    assert tiny_row["quality_badges"] == ["Low sample", "No MOHS", "No topic", "No techniques"]
+
+    assert response.context["contest_stats"]["global_year_span_label"] == "2026"
+    assert response.context["contest_stats"]["complete_metadata_percent"] == 53.85
+    assert response.context["contest_quality_counts"]["missing_mohs"] == 2
+    assert response.context["contest_quality_counts"]["missing_topics"] == 2
+    assert response.context["contest_quality_counts"]["no_techniques"] == 1
+    assert response.context["charts_payload"]["topicComposition"]["labels"] == ["USAMO", "Tiny Cup"]
+    assert "Missing topic" in [
+        series["name"] for series in response.context["charts_payload"]["topicComposition"]["series"]
+    ]
+
+    response_html = response.content.decode("utf-8")
+    for hook_id in [
+        "contest-ranked-chart",
+        "contest-ranked-metric-controls",
+        "contest-ranked-min-statements",
+        "contest-data-quality-watchlist",
+        "contest-topic-composition-chart",
+        "contest-directory-search",
+        "contest-directory-quality-filter",
+    ]:
+        assert f'id="{hook_id}"' in response_html
+    assert response_html.count("dataTables.min.js") == 1
+    assert response_html.count("apexcharts.min.js") == 1
+
+
+def test_contest_dashboard_empty_dataset_keeps_import_prompt_without_chart_initializers(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+
+    response = client.get(reverse("pages:contest_dashboard"))
+
+    assert response.status_code == HTTPStatus.OK
+    response_html = response.content.decode("utf-8")
+    assert "No contest data yet." in response_html
+    assert 'id="contest-ranked-chart"' not in response_html
+    assert "new ApexCharts" not in response_html
+    assert "new DataTable" not in response_html
+
+
 def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     solution_author = UserFactory()

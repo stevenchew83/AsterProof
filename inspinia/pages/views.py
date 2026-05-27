@@ -148,6 +148,8 @@ from inspinia.users.roles import user_has_admin_role
 
 CONTEST_TOPIC_PREVIEW_LIMIT = 3
 CONTEST_PROBLEM_PREVIEW_LIMIT = 6
+CONTEST_ANALYTICS_CHART_LIMIT = 12
+CONTEST_ANALYTICS_LOW_SAMPLE_THRESHOLD = 10
 STATEMENT_DELETE_PREVIEW_LIMIT = 3
 STATEMENT_DELETE_TABLE_PAGE_LENGTH = 50
 STATEMENT_DELETE_STALE_SELECTION_ERROR = "One or more selected statement rows no longer exist."
@@ -3141,6 +3143,10 @@ def _format_year_span_label(year_min: int | None, year_max: int | None) -> str |
     return str(year_min) if year_min == year_max else f"{year_min}-{year_max}"
 
 
+def _percentage(part: float, total: float) -> float:
+    return round((part / total) * 100, 2) if total else 0.0
+
+
 def _contest_inventory_rows() -> list[dict]:
     inventory: dict[str, dict] = {}
 
@@ -6057,16 +6063,78 @@ def contest_dashboard_listing_bulk_update_view(request):
     return redirect(redirect_url)
 
 
-@login_required
-def contest_analytics_view(request):
-    """Contest analytics: contest-level summaries, charts, and ranked table."""
-    _require_admin_tools_access(request)
+def _contest_analytics_technique_stats_by_contest(base) -> dict[str, dict[str, int]]:
+    return {
+        row["contest_name"]: {
+            "technique_rows": int(row["technique_rows"] or 0),
+            "technique_statement_count": int(row["technique_statement_count"] or 0),
+        }
+        for row in base.values("contest_name").annotate(
+            technique_rows=Count("statement_topic_techniques"),
+            technique_statement_count=Count(
+                "id",
+                filter=Q(statement_topic_techniques__isnull=False),
+                distinct=True,
+            ),
+        )
+    }
 
-    base = _active_dashboard_statements()
-    problem_total = base.count()
 
-    base_eff = annotate_effective_statement_analytics(base)
-    contest_rows = list(
+def _contest_analytics_quality_badges(row: dict) -> list[str]:
+    quality_badges = []
+    if row["is_low_sample"]:
+        quality_badges.append("Low sample")
+    if not row["has_mohs"]:
+        quality_badges.append("No MOHS")
+    if not row["has_topic"]:
+        quality_badges.append("No topic")
+    if not row["has_techniques"]:
+        quality_badges.append("No techniques")
+    return quality_badges
+
+
+def _contest_analytics_enriched_row(row: dict, technique_stats: dict[str, int]) -> dict:
+    row["contest"] = row.pop("contest_name")
+    row["technique_rows"] = technique_stats["technique_rows"]
+    row["technique_statement_count"] = technique_stats["technique_statement_count"]
+    row["avg_mohs"] = round(float(row["avg_mohs"] or 0), 2)
+    row["mohs_statement_count"] = int(row["mohs_statement_count"] or 0)
+    row["topic_statement_count"] = int(row["topic_statement_count"] or 0)
+    row["complete_metadata_count"] = int(row["complete_metadata_count"] or 0)
+    row["missing_mohs_count"] = row["problem_count"] - row["mohs_statement_count"]
+    row["missing_topic_count"] = row["problem_count"] - row["topic_statement_count"]
+    row["missing_technique_count"] = row["problem_count"] - row["technique_statement_count"]
+    row["mohs_coverage_percent"] = _percentage(row["mohs_statement_count"], row["problem_count"])
+    row["topic_coverage_percent"] = _percentage(row["topic_statement_count"], row["problem_count"])
+    row["technique_coverage_percent"] = _percentage(
+        row["technique_statement_count"],
+        row["problem_count"],
+    )
+    row["complete_metadata_percent"] = _percentage(
+        row["complete_metadata_count"],
+        row["problem_count"],
+    )
+    row["techniques_per_problem"] = round(row["technique_rows"] / row["problem_count"], 2)
+    row["has_mohs"] = row["mohs_statement_count"] > 0
+    row["has_topic"] = row["topic_statement_count"] > 0
+    row["has_techniques"] = row["technique_statement_count"] > 0
+    row["is_low_sample"] = row["problem_count"] < CONTEST_ANALYTICS_LOW_SAMPLE_THRESHOLD
+    row["quality_issue_count"] = sum(
+        [
+            row["missing_mohs_count"] > 0,
+            row["missing_topic_count"] > 0,
+            row["missing_technique_count"] > 0,
+            row["is_low_sample"],
+        ],
+    )
+    row["quality_badges"] = _contest_analytics_quality_badges(row)
+    row["year_span_label"] = _format_year_span_label(row["year_min"], row["year_max"]) or "-"
+    row["detail_url"] = _contest_query_url("pages:contest_advanced_dashboard", row["contest"])
+    return row
+
+
+def _contest_analytics_rows(base, base_eff) -> list[dict]:
+    rows = list(
         base_eff.values("contest_name")
         .annotate(
             problem_count=Count("id"),
@@ -6080,109 +6148,216 @@ def contest_analytics_view(request):
             ),
             avg_mohs=Avg("_eff_mohs"),
             max_mohs=Max("_eff_mohs"),
+            mohs_statement_count=Count(
+                "id",
+                filter=Q(_eff_mohs__isnull=False),
+                distinct=True,
+            ),
+            topic_statement_count=Count(
+                "id",
+                filter=~Q(_eff_topic=""),
+                distinct=True,
+            ),
+            complete_metadata_count=Count(
+                "id",
+                filter=Q(_eff_mohs__isnull=False)
+                & ~Q(_eff_topic="")
+                & Q(_has_statement_technique=True),
+                distinct=True,
+            ),
         )
         .order_by("-problem_count", "contest_name"),
     )
-    technique_rows_by_contest = {
-        row["contest_name"]: int(row["c"])
-        for row in base.values("contest_name").annotate(c=Count("statement_topic_techniques"))
+    technique_stats_by_contest = _contest_analytics_technique_stats_by_contest(base)
+    empty_technique_stats = {
+        "technique_rows": 0,
+        "technique_statement_count": 0,
     }
-    for row in contest_rows:
-        row["contest"] = row.pop("contest_name")
-        row["technique_rows"] = technique_rows_by_contest.get(row["contest"], 0)
-        row["avg_mohs"] = round(float(row["avg_mohs"] or 0), 2)
-        row["techniques_per_problem"] = round(row["technique_rows"] / row["problem_count"], 2)
-        row["year_span_label"] = (
-            str(row["year_min"])
-            if row["year_min"] == row["year_max"]
-            else f"{row['year_min']}-{row['year_max']}"
+    return [
+        _contest_analytics_enriched_row(
+            row,
+            technique_stats_by_contest.get(row["contest_name"], empty_technique_stats),
         )
-        row["detail_url"] = _contest_query_url("pages:contest_advanced_dashboard", row["contest"])
+        for row in rows
+    ]
 
-    contest_total = len(contest_rows)
-    multi_year_contests = sum(1 for row in contest_rows if row["active_years"] > 1)
-    average_problems_per_contest = round(problem_total / contest_total, 2) if contest_total else 0.0
 
-    biggest_contest = contest_rows[0] if contest_rows else None
-    longest_running_contest = (
-        max(contest_rows, key=lambda row: (row["active_years"], row["problem_count"], row["contest"]))
-        if contest_rows
-        else None
-    )
-    hardest_contest = (
-        max(contest_rows, key=lambda row: (row["avg_mohs"], row["problem_count"], row["contest"]))
-        if contest_rows
-        else None
-    )
-    broadest_contest = (
-        max(contest_rows, key=lambda row: (row["distinct_topics"], row["problem_count"], row["contest"]))
-        if contest_rows
-        else None
-    )
+def _contest_analytics_topic_composition_payload(base_eff, contest_rows: list[dict]) -> dict:
+    top_topic_contests = contest_rows[:CONTEST_ANALYTICS_CHART_LIMIT]
+    top_topic_contest_names = [row["contest"] for row in top_topic_contests]
+    topic_counts_by_contest: dict[str, Counter[str]] = {
+        contest_name: Counter() for contest_name in top_topic_contest_names
+    }
+    topic_totals: Counter[str] = Counter()
+    if top_topic_contest_names:
+        for topic_row in (
+            base_eff.filter(contest_name__in=top_topic_contest_names)
+            .values("contest_name", "_eff_topic")
+            .annotate(c=Count("id"))
+        ):
+            contest_name = topic_row["contest_name"]
+            raw_topic = str(topic_row["_eff_topic"] or "").strip()
+            topic_label = display_topic_label(raw_topic) if raw_topic else "Missing topic"
+            count = int(topic_row["c"] or 0)
+            topic_counts_by_contest[contest_name][topic_label] += count
+            topic_totals[topic_label] += count
 
-    charts_payload = {
-        "byProblemVolume": _rows_to_bar_payload(
-            contest_rows[:12],
-            "contest",
-            value_key="problem_count",
+    topic_series_labels = sorted(
+        [topic_label for topic_label in topic_totals if topic_label != "Missing topic"],
+        key=lambda topic_label: (-topic_totals[topic_label], topic_label),
+    )
+    if "Missing topic" in topic_totals:
+        topic_series_labels.append("Missing topic")
+
+    return {
+        "labels": top_topic_contest_names,
+        "series": [
+            {
+                "name": topic_label,
+                "data": [
+                    topic_counts_by_contest[contest_name].get(topic_label, 0)
+                    for contest_name in top_topic_contest_names
+                ],
+            }
+            for topic_label in topic_series_labels
+        ],
+    }
+
+
+def _contest_analytics_leaders(contest_rows: list[dict]) -> dict[str, dict | None]:
+    hardest_candidates = [
+        row
+        for row in contest_rows
+        if row["mohs_statement_count"] >= CONTEST_ANALYTICS_LOW_SAMPLE_THRESHOLD
+    ]
+    return {
+        "biggest": contest_rows[0] if contest_rows else None,
+        "longest_running": max(
+            contest_rows,
+            key=lambda row: (row["active_years"], row["problem_count"], row["contest"]),
+        ) if contest_rows else None,
+        "hardest": max(
+            hardest_candidates,
+            key=lambda row: (row["avg_mohs"], row["mohs_statement_count"], row["contest"]),
+        ) if hardest_candidates else None,
+        "broadest": max(
+            contest_rows,
+            key=lambda row: (row["distinct_topics"], row["problem_count"], row["contest"]),
+        ) if contest_rows else None,
+        "worst_metadata": min(
+            contest_rows,
+            key=lambda row: (
+                row["complete_metadata_percent"],
+                -row["quality_issue_count"],
+                -row["problem_count"],
+                row["contest"],
+            ),
+        ) if contest_rows else None,
+    }
+
+
+def _contest_analytics_insights(leaders: dict[str, dict | None], contest_rows: list[dict]) -> dict[str, str]:
+    biggest = leaders["biggest"]
+    longest_running = leaders["longest_running"]
+    hardest = leaders["hardest"]
+    worst_metadata = leaders["worst_metadata"]
+    return {
+        "largest": (
+            f"{biggest['contest']} has the largest dataset with {biggest['problem_count']} statement rows."
+            if biggest
+            else ""
         ),
-        "byActiveYears": _rows_to_bar_payload(
-            sorted(
-                contest_rows,
-                key=lambda row: (row["active_years"], row["problem_count"], row["contest"]),
-                reverse=True,
-            )[:12],
-            "contest",
-            value_key="active_years",
+        "longest_running": (
+            f"{longest_running['contest']} has the widest year coverage "
+            f"at {longest_running['active_years']} active years."
+            if longest_running
+            else ""
         ),
-        "byAvgMohs": _rows_to_bar_payload(
-            sorted(
-                contest_rows,
-                key=lambda row: (row["avg_mohs"], row["problem_count"], row["contest"]),
-                reverse=True,
-            )[:12],
-            "contest",
-            value_key="avg_mohs",
-            decimals=2,
+        "hardest": (
+            f"{hardest['contest']} is hardest on average among contests with at least "
+            f"{CONTEST_ANALYTICS_LOW_SAMPLE_THRESHOLD} MOHS-backed rows (avg MOHS {hardest['avg_mohs']})."
+            if hardest
+            else (
+                f"No contest has {CONTEST_ANALYTICS_LOW_SAMPLE_THRESHOLD} MOHS-backed rows yet."
+                if contest_rows
+                else ""
+            )
         ),
-        "byTopicBreadth": _rows_to_bar_payload(
-            sorted(
-                contest_rows,
-                key=lambda row: (row["distinct_topics"], row["problem_count"], row["contest"]),
-                reverse=True,
-            )[:12],
-            "contest",
-            value_key="distinct_topics",
-        ),
-        "byTechniqueDensity": _rows_to_bar_payload(
-            sorted(
-                contest_rows,
-                key=lambda row: (row["techniques_per_problem"], row["problem_count"], row["contest"]),
-                reverse=True,
-            )[:12],
-            "contest",
-            value_key="techniques_per_problem",
-            decimals=2,
+        "metadata": (
+            f"{worst_metadata['contest']} needs the most metadata attention "
+            f"({worst_metadata['complete_metadata_percent']}% complete)."
+            if worst_metadata
+            else ""
         ),
     }
 
-    context = {
+
+def _contest_analytics_context(base) -> dict:
+    problem_total = base.count()
+    base_eff = annotate_effective_statement_analytics(base).annotate(
+        _has_statement_technique=Exists(
+            StatementTopicTechnique.objects.filter(statement_id=OuterRef("pk")),
+        ),
+    )
+    contest_rows = _contest_analytics_rows(base, base_eff)
+    contest_total = len(contest_rows)
+    complete_metadata_total = sum(row["complete_metadata_count"] for row in contest_rows)
+    mohs_statement_total = sum(row["mohs_statement_count"] for row in contest_rows)
+    topic_statement_total = sum(row["topic_statement_count"] for row in contest_rows)
+    technique_statement_total = sum(row["technique_statement_count"] for row in contest_rows)
+    global_year_min = min((row["year_min"] for row in contest_rows if row["year_min"]), default=None)
+    global_year_max = max((row["year_max"] for row in contest_rows if row["year_max"]), default=None)
+    leaders = _contest_analytics_leaders(contest_rows)
+
+    return {
         "contest_total": contest_total,
         "contest_problem_total": problem_total,
+        "contest_quality_counts": {
+            "missing_mohs": sum(1 for row in contest_rows if row["missing_mohs_count"] > 0),
+            "missing_topics": sum(1 for row in contest_rows if row["missing_topic_count"] > 0),
+            "no_techniques": sum(1 for row in contest_rows if not row["has_techniques"]),
+        },
         "contest_stats": {
-            "average_problems_per_contest": average_problems_per_contest,
-            "multi_year_contests": multi_year_contests,
+            "average_problems_per_contest": round(problem_total / contest_total, 2)
+            if contest_total
+            else 0.0,
+            "complete_metadata_percent": _percentage(complete_metadata_total, problem_total),
+            "global_year_span_label": _format_year_span_label(global_year_min, global_year_max) or "-",
+            "mohs_coverage_percent": _percentage(mohs_statement_total, problem_total),
+            "multi_year_contests": sum(1 for row in contest_rows if row["active_years"] > 1),
+            "technique_coverage_percent": _percentage(technique_statement_total, problem_total),
+            "topic_coverage_percent": _percentage(topic_statement_total, problem_total),
         },
-        "contest_leaders": {
-            "biggest": biggest_contest,
-            "longest_running": longest_running_contest,
-            "hardest": hardest_contest,
-            "broadest": broadest_contest,
-        },
+        "contest_insights": _contest_analytics_insights(leaders, contest_rows),
+        "contest_leaders": leaders,
+        "contest_analytics_chart_limit": CONTEST_ANALYTICS_CHART_LIMIT,
+        "contest_analytics_low_sample_threshold": CONTEST_ANALYTICS_LOW_SAMPLE_THRESHOLD,
+        "data_quality_watchlist": sorted(
+            contest_rows,
+            key=lambda row: (
+                -row["quality_issue_count"],
+                row["complete_metadata_percent"],
+                -row["problem_count"],
+                row["contest"],
+            ),
+        )[:5],
         "contest_rows": contest_rows,
-        "charts_payload": charts_payload,
+        "charts_payload": {
+            "topicComposition": _contest_analytics_topic_composition_payload(base_eff, contest_rows),
+        },
     }
-    return render(request, "pages/contest-analytics.html", context)
+
+
+@login_required
+def contest_analytics_view(request):
+    """Contest analytics: contest-level summaries, charts, and ranked table."""
+    _require_admin_tools_access(request)
+
+    return render(
+        request,
+        "pages/contest-analytics.html",
+        _contest_analytics_context(_active_dashboard_statements()),
+    )
 
 
 @login_required
