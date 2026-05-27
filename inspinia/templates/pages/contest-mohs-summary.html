@@ -289,13 +289,7 @@
         <div class="card-header border-0 pb-0 d-flex flex-wrap align-items-start gap-3">
           <div class="flex-grow-1">
             <h4 class="header-title mb-0">Contest table</h4>
-            <p class="text-muted fs-xs mb-0">
-              {% if contest_mohs_summary_stats.has_user_averages %}
-                Ranked by personal completion difficulty or contest average.
-              {% else %}
-                Ranked by contest average MOHS.
-              {% endif %}
-            </p>
+            <p class="text-muted fs-xs mb-0">{{ contest_mohs_summary_stats.rank_description }}</p>
           </div>
           {% if contest_mohs_summary_rows %}
           <div class="contest-mohs-controls d-flex flex-wrap justify-content-end gap-2">

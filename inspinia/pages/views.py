@@ -48,8 +48,10 @@ from inspinia.pages.completion_progress import COMPLETION_PROGRESS_RANGE_OPTIONS
 from inspinia.pages.completion_progress import CompletionProgressFilters
 from inspinia.pages.completion_progress import completion_progress_charts_payload
 from inspinia.pages.completion_progress import completion_progress_contest_heatmap_payload
+from inspinia.pages.completion_progress import completion_progress_contest_options
 from inspinia.pages.completion_progress import completion_progress_csv_rows
 from inspinia.pages.completion_progress import completion_progress_filter_options
+from inspinia.pages.completion_progress import completion_progress_insights_payload
 from inspinia.pages.completion_progress import completion_progress_stats
 from inspinia.pages.completion_progress import completion_progress_table_rows
 from inspinia.pages.completion_progress import completion_progress_user_options
@@ -102,6 +104,7 @@ from inspinia.pages.models import UserProblemDifficultyRating
 from inspinia.pages.page_view_analytics import build_page_view_analytics_context
 from inspinia.pages.page_views import PageViewPayload
 from inspinia.pages.page_views import record_page_view
+from inspinia.pages.problem_analytics import build_problem_analytics_context
 from inspinia.pages.problem_completion_import import import_problem_completion_text_for_user
 from inspinia.pages.problem_import import ProblemImportValidationError
 from inspinia.pages.problem_import import build_parsed_preview_payload
@@ -1888,7 +1891,7 @@ def _contest_mohs_summary_rows(user: User) -> list[dict[str, object]]:
         user_mohs_values = bucket["user_mohs_values"]
         user_average = _average_or_none(user_mohs_values)
         metadata = metadata_by_contest.get(contest_name)
-        level_labels = list(metadata.tags or []) if metadata is not None else []
+        level_labels = [str(tag) for tag in metadata.tags or []] if metadata is not None else []
         row = {
             "average_mohs": _average_or_none(all_mohs_values),
             "contest": contest_name,
@@ -1908,21 +1911,30 @@ def _contest_mohs_summary_rows(user: User) -> list[dict[str, object]]:
             row[f"count_{topic.lower()}"] = topic_counts[topic]
         rows.append(row)
 
-    rows.sort(
-        key=lambda row: (
-            row["user_average_mohs"] is None,
-            -(row["user_average_mohs"] or -1),
-            -row["user_completion_count"],
-            -row["total_count"],
-            row["contest"].lower(),
-        ),
-    )
+    if any(row["user_average_mohs"] is not None for row in rows):
+        rows.sort(
+            key=lambda row: (
+                row["user_average_mohs"] is None,
+                -(row["user_average_mohs"] or -1),
+                -row["user_completion_count"],
+                -row["total_count"],
+                row["contest"].lower(),
+            ),
+        )
+    else:
+        rows.sort(
+            key=lambda row: (
+                -(row["average_mohs"] or -1),
+                -row["total_count"],
+                row["contest"].lower(),
+            ),
+        )
     return rows
 
 
 @login_required
 def contest_mohs_summary_view(request):
-    """Contest-level topic MOHS averages ranked by the current user's completions."""
+    """Contest-level topic MOHS averages ranked by user completions when present."""
     rows = _contest_mohs_summary_rows(request.user)
     contest_total = len(rows)
     total_statement_count = sum(int(row["total_count"]) for row in rows)
@@ -1944,6 +1956,11 @@ def contest_mohs_summary_view(request):
                 round(total_mohs / total_statement_count, 2)
                 if total_statement_count
                 else None
+            ),
+            "rank_description": (
+                "Ranked by My Avg from completed problems"
+                if has_user_averages
+                else "Ranked by contest average MOHS"
             ),
             "rows_with_user_average": rows_with_user_average,
             "total_statement_count": total_statement_count,
@@ -3278,6 +3295,56 @@ def _problem_anchor(problem_label: str, fallback: str) -> str:
     return dashboard_problem_anchor(problem_label, fallback)
 
 
+def _contest_listing_statement_preview(statement_latex: str, max_length: int = 160) -> str:
+    preview = re.sub(r"\[asy\].*?\[/asy\]", " ", statement_latex or "", flags=re.DOTALL | re.IGNORECASE)
+    preview = re.sub(r"\s+", " ", preview).strip()
+    if len(preview) <= max_length:
+        return preview
+    return preview[: max_length - 3].rstrip() + "..."
+
+
+def _contest_listing_filter_url(contest_name: str, **filters: str) -> str:
+    query = {"contest": contest_name}
+    for key in ("q", "year", "mohs", "topic", "tag"):
+        value = filters.get(key, "")
+        if value:
+            query[key] = value
+    return reverse("pages:contest_dashboard_listing") + "?" + urlencode(query)
+
+
+def _contest_listing_active_filter_chips(
+    *,
+    contest_name: str,
+    filters: dict[str, str],
+) -> list[dict[str, str]]:
+    chip_specs = [
+        ("q", "Search", "bg-primary-subtle text-primary"),
+        ("year", "Year", "bg-secondary-subtle text-secondary"),
+        ("mohs", "MOHS", "bg-warning-subtle text-warning"),
+        ("topic", "Topic", "bg-info-subtle text-info"),
+        ("tag", "Tag", "bg-success-subtle text-success"),
+    ]
+    chips = []
+    for key, label, badge_class in chip_specs:
+        value = filters[key]
+        if not value:
+            continue
+        remaining_filters = {
+            filter_key: filter_value
+            for filter_key, filter_value in filters.items()
+            if filter_key != key
+        }
+        chips.append(
+            {
+                "badge_class": badge_class,
+                "label": label,
+                "remove_url": _contest_listing_filter_url(contest_name, **remaining_filters),
+                "value": value,
+            },
+        )
+    return chips
+
+
 def _build_contest_directory_rows(base) -> list[dict]:
     contest_rows = list(
         base.values("contest")
@@ -3786,6 +3853,36 @@ def _completion_quick_update_resolve_post_user(
     return target_user, None, 200
 
 
+def _completion_quick_update_bool_value(value: bool | None) -> str:
+    if value is True:
+        return "yes"
+    if value is False:
+        return "no"
+    return ""
+
+
+def _completion_quick_update_study_summary(metadata_payload: dict[str, object]) -> str:
+    parts = []
+    status_label = str(metadata_payload.get("status_label") or "")
+    time_spent_display = str(metadata_payload.get("time_spent_display") or "")
+    key_technique = str(metadata_payload.get("key_technique") or "")
+    confidence_label = str(metadata_payload.get("confidence_label") or "")
+    obstacle_label = str(metadata_payload.get("main_obstacle_label") or "")
+
+    if status_label:
+        parts.append(status_label)
+    if time_spent_display:
+        parts.append(time_spent_display)
+    if key_technique:
+        parts.append(key_technique)
+    if obstacle_label:
+        parts.append(f"Obstacle: {obstacle_label}")
+    if confidence_label:
+        parts.append(f"{confidence_label} confidence")
+
+    return " - ".join(parts[:3]) if parts else "No study details"
+
+
 def _completion_quick_update_row(
     statement: ContestProblemStatement,
     *,
@@ -3819,6 +3916,7 @@ def _completion_quick_update_row(
         if linked_problem is not None
         else reverse("pages:problem_statement_detail", args=[statement.statement_uuid])
     )
+    metadata_payload = completion_metadata_payload(completion)
     return {
         "completion_date": completion_date.isoformat() if completion_date else "",
         "completion_display": completion_display,
@@ -3833,13 +3931,20 @@ def _completion_quick_update_row(
         "problem_code": statement.problem_code,
         "problem_detail_url": problem_detail_url,
         "statement_uuid": str(statement.statement_uuid),
+        "study_summary": _completion_quick_update_study_summary(metadata_payload),
         "topic": display_topic_label(topic) if topic else "",
         "year": int(statement.contest_year),
         **(
             difficulty_payload
             or _difficulty_rating_payload(user_rating=None, average_rating=None, rating_count=0)
         ),
-        **completion_metadata_payload(completion),
+        **metadata_payload,
+        "first_idea_found_value": _completion_quick_update_bool_value(
+            metadata_payload.get("first_idea_found"),
+        ),
+        "proof_completed_value": _completion_quick_update_bool_value(
+            metadata_payload.get("proof_completed"),
+        ),
     }
 
 
@@ -4550,6 +4655,19 @@ def _render_completion_progress_analytics(
             end_date=date_range.end_date,
         ),
     )
+    comparison_scoped_rows = filter_completion_progress_rows(
+        all_rows,
+        CompletionProgressFilters(
+            start_date=None,
+            end_date=None,
+            contest=selected_contest,
+            topic=selected_topic,
+            mohs_min=selected_mohs_min,
+            mohs_max=selected_mohs_max,
+            solution_status=selected_solution_status,
+            search_query=search_query,
+        ),
+    )
     filtered_rows = filter_completion_progress_rows(
         all_rows,
         CompletionProgressFilters(
@@ -4581,6 +4699,7 @@ def _render_completion_progress_analytics(
             contest=selected_contest,
             user=selected_user,
         ),
+        "completion_progress_contest_options": completion_progress_contest_options(date_scoped_rows),
         "completion_progress_date_range": date_range,
         "completion_progress_yearly_heatmap": completion_progress_yearly_heatmap_payload(
             filtered_rows,
@@ -4603,8 +4722,16 @@ def _render_completion_progress_analytics(
         "completion_progress_can_edit_difficulty": can_edit_difficulty,
         "completion_progress_difficulty_save_url": reverse("pages:problem_statement_difficulty_rating_save"),
         "completion_progress_export_metadata": _completion_progress_export_metadata(selected_user, today=today),
+        "completion_progress_insights": completion_progress_insights_payload(
+            filtered_rows,
+            comparison_rows=comparison_scoped_rows,
+            start_date=date_range.start_date,
+            end_date=date_range.end_date,
+            today=today,
+        ),
         "completion_progress_page_subtitle": "Progress analytics",
         "completion_progress_page_title": page_title,
+        "completion_progress_quick_update_url": reverse("pages:completion_quick_update"),
         "completion_progress_range_options": COMPLETION_PROGRESS_RANGE_OPTIONS,
         "completion_progress_reset_url": reverse(reset_url_name),
         "completion_progress_rows": table_rows,
@@ -4907,74 +5034,7 @@ def dashboard_analytics_view(request):
     """Problem analytics: charts and pivot views."""
     _require_admin_tools_access(request)
 
-    base = _active_dashboard_statements()
-    total = base.count()
-
-    base_eff = annotate_effective_statement_analytics(base)
-    stats = base_eff.aggregate(
-        year_min=Min("contest_year"),
-        year_max=Max("contest_year"),
-        contest_n=Count("contest_name", distinct=True),
-    )
-    stats["topic_n"] = (
-        base_eff.exclude(_eff_topic="")
-        .values("_eff_topic")
-        .distinct()
-        .count()
-    )
-    technique_total = base.aggregate(total=Count("statement_topic_techniques"))["total"] or 0
-
-    by_year = list(base.values("contest_year").annotate(c=Count("id")).order_by("contest_year"))
-    for row in by_year:
-        row["year"] = row.pop("contest_year")
-    by_topic = list(
-        base_eff.exclude(_eff_topic="")
-        .values("_eff_topic")
-        .annotate(c=Count("id"))
-        .order_by("-c", "_eff_topic")[:18]
-    )
-    for row in by_topic:
-        raw_topic = row.pop("_eff_topic")
-        row["topic"] = display_topic_label(raw_topic) if raw_topic else "Unlinked"
-    by_contest = list(
-        base.values("contest_name").annotate(c=Count("id")).order_by("-c", "contest_name")[:12]
-    )
-    for row in by_contest:
-        row["contest"] = row.pop("contest_name")
-    by_mohs = list(
-        base_eff.filter(_eff_mohs__isnull=False)
-        .values("_eff_mohs")
-        .annotate(c=Count("id"))
-        .order_by("_eff_mohs")
-    )
-    for row in by_mohs:
-        row["mohs"] = row.pop("_eff_mohs")
-    top_techniques = list(
-        base.filter(statement_topic_techniques__technique__isnull=False)
-        .exclude(statement_topic_techniques__technique="")
-        .values("statement_topic_techniques__technique")
-        .annotate(c=Count("id", distinct=True))
-        .order_by("-c", "statement_topic_techniques__technique")[:18]
-    )
-    for row in top_techniques:
-        row["technique"] = row.pop("statement_topic_techniques__technique")
-    contest_year_mohs_pivot_table = _contest_year_mohs_pivot_payload()
-
-    charts_payload = {
-        "byYear": _rows_to_bar_payload(by_year, "year"),
-        "byTopic": _rows_to_bar_payload(by_topic, "topic"),
-        "byContest": _rows_to_bar_payload(by_contest, "contest"),
-        "byMohs": _rows_to_bar_payload(by_mohs, "mohs"),
-        "topTechniques": _rows_to_bar_payload(top_techniques, "technique"),
-        "contestYearMohsPivotTable": contest_year_mohs_pivot_table,
-    }
-
-    context = {
-        "analytics_total": total,
-        "analytics_stats": stats,
-        "analytics_technique_total": technique_total,
-        "charts_payload": charts_payload,
-    }
+    context = build_problem_analytics_context(request.GET, _active_dashboard_statements())
     return render(request, "pages/dashboard-analytics.html", context)
 
 
@@ -5774,6 +5834,7 @@ def _build_dashboard_contest_statement_listing_context(
                 "statement_has_asymptote": render_payload["statement_has_asymptote"],
                 "statement_id": statement.id,
                 "statement_latex": statement.statement_latex,
+                "statement_preview": _contest_listing_statement_preview(statement.statement_latex),
                 "statement_render_segments": render_payload["statement_render_segments"],
                 "statement_updated_at_label": timezone.localtime(statement.updated_at).strftime("%Y-%m-%d"),
                 "technique_count": len(topic_tags),
@@ -5828,8 +5889,23 @@ def _build_dashboard_contest_statement_listing_context(
             if topic
         ),
     )
+    completion_summary = {
+        "solved_visible_total": sum(1 for row in problem_rows if row["is_completed"]),
+    }
+    active_filter_chips = _contest_listing_active_filter_chips(
+        contest_name=contest_name,
+        filters={
+            "q": initial_search_query,
+            "year": selected_year,
+            "mohs": selected_mohs,
+            "topic": selected_topic,
+            "tag": selected_tag,
+        },
+    )
 
     context = {
+        "active_filter_chips": active_filter_chips,
+        "completion_summary": completion_summary,
         "contest_problem_total": int(stats["statement_n"] or 0),
         "contest_problem_stats": {
             "avg_mohs": round(float(stats["avg_mohs"] or 0), 1),
@@ -5852,6 +5928,7 @@ def _build_dashboard_contest_statement_listing_context(
         "has_active_filters": bool(
             initial_search_query or selected_mohs or selected_year or selected_topic or selected_tag,
         ),
+        "has_advanced_filters": bool(selected_mohs or selected_year or selected_topic or selected_tag),
         "initial_search_query": initial_search_query,
         "matching_problem_total": len(problem_rows),
         "matching_problem_filtered_total": matching_problem_filtered_total,
