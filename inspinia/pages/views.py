@@ -2530,6 +2530,52 @@ def _admin_solution_listing_stats(rows: list[dict]) -> dict[str, int]:
     }
 
 
+def _user_solution_record_filter_url(**filters: str) -> str:
+    query = {}
+    for key in ("q", "contest", "user", "status"):
+        value = filters.get(key, "")
+        if value:
+            query[key] = value
+    url = reverse("pages:user_solution_record_list")
+    if not query:
+        return url
+    return url + "?" + urlencode(query)
+
+
+def _user_solution_record_active_filter_chips(filters: dict[str, str]) -> list[dict[str, str]]:
+    chip_specs = [
+        ("q", "Search", "bg-primary-subtle text-primary"),
+        ("contest", "Contest", "bg-secondary-subtle text-secondary"),
+        ("user", "User", "bg-info-subtle text-info"),
+        ("status", "Status", "bg-success-subtle text-success"),
+    ]
+    chips = []
+    for key, label, badge_class in chip_specs:
+        value = filters[key]
+        if not value:
+            continue
+        display_value = value
+        if key == "status":
+            try:
+                display_value = ProblemSolution.Status(value).label
+            except ValueError:
+                display_value = value.title()
+        remaining_filters = {
+            filter_key: filter_value
+            for filter_key, filter_value in filters.items()
+            if filter_key != key
+        }
+        chips.append(
+            {
+                "badge_class": badge_class,
+                "label": label,
+                "remove_url": _user_solution_record_filter_url(**remaining_filters),
+                "value": display_value,
+            },
+        )
+    return chips
+
+
 def _coerce_year_filter(raw_value: str | None, available_years: set[int]) -> int | None:
     if not raw_value:
         return None
@@ -4980,7 +5026,11 @@ def user_solution_record_list_view(request):
         ],
         "users": [
             {
-                "label": row["user_label"] if row["user_label"] == row["user_email"] else f"{row['user_label']} ({row['user_email']})",
+                "label": (
+                    row["user_label"]
+                    if row["user_label"] == row["user_email"]
+                    else f"{row['user_label']} ({row['user_email']})"
+                ),
                 "value": row["user_email"],
             }
             for row in {
@@ -4994,19 +5044,25 @@ def user_solution_record_list_view(request):
     }
 
     solution_stats = _admin_solution_listing_stats(solution_rows)
+    solution_filters = {
+        "contest": selected_contest,
+        "q": search_query,
+        "status": selected_status,
+        "user": selected_user,
+    }
+    active_filter_chips = _user_solution_record_active_filter_chips(solution_filters)
     context = {
         "user_solution_record_filter_options": solution_filter_options,
-        "user_solution_record_filters": {
-            "contest": selected_contest,
-            "q": search_query,
-            "status": selected_status,
-            "user": selected_user,
-        },
+        "user_solution_record_filters": solution_filters,
+        "user_solution_record_active_filter_chips": active_filter_chips,
+        "user_solution_record_filtered_total": solution_filtered_total,
+        "user_solution_record_has_active_filters": bool(active_filter_chips),
+        "user_solution_record_is_capped": solution_filtered_total > solution_visible_total,
+        "user_solution_record_latest_updated_at": solution_rows[0]["updated_at"] if solution_rows else "—",
         "user_solution_record_rows": solution_rows,
         "user_solution_record_stats": solution_stats,
         "user_solution_record_visible_total": solution_visible_total,
         "user_solution_record_result_limit": ADMIN_TABLE_LATEST_LIMIT,
-        "user_solution_record_is_capped": solution_filtered_total > solution_visible_total,
     }
     return render(request, "pages/user-solution-record-list.html", context)
 
