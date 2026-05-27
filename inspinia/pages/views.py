@@ -3839,6 +3839,36 @@ def _completion_quick_update_resolve_post_user(
     return target_user, None, 200
 
 
+def _completion_quick_update_bool_value(value: bool | None) -> str:
+    if value is True:
+        return "yes"
+    if value is False:
+        return "no"
+    return ""
+
+
+def _completion_quick_update_study_summary(metadata_payload: dict[str, object]) -> str:
+    parts = []
+    status_label = str(metadata_payload.get("status_label") or "")
+    time_spent_display = str(metadata_payload.get("time_spent_display") or "")
+    key_technique = str(metadata_payload.get("key_technique") or "")
+    confidence_label = str(metadata_payload.get("confidence_label") or "")
+    obstacle_label = str(metadata_payload.get("main_obstacle_label") or "")
+
+    if status_label:
+        parts.append(status_label)
+    if time_spent_display:
+        parts.append(time_spent_display)
+    if key_technique:
+        parts.append(key_technique)
+    if obstacle_label:
+        parts.append(f"Obstacle: {obstacle_label}")
+    if confidence_label:
+        parts.append(f"{confidence_label} confidence")
+
+    return " - ".join(parts[:3]) if parts else "No study details"
+
+
 def _completion_quick_update_row(
     statement: ContestProblemStatement,
     *,
@@ -3872,6 +3902,7 @@ def _completion_quick_update_row(
         if linked_problem is not None
         else reverse("pages:problem_statement_detail", args=[statement.statement_uuid])
     )
+    metadata_payload = completion_metadata_payload(completion)
     return {
         "completion_date": completion_date.isoformat() if completion_date else "",
         "completion_display": completion_display,
@@ -3886,13 +3917,20 @@ def _completion_quick_update_row(
         "problem_code": statement.problem_code,
         "problem_detail_url": problem_detail_url,
         "statement_uuid": str(statement.statement_uuid),
+        "study_summary": _completion_quick_update_study_summary(metadata_payload),
         "topic": display_topic_label(topic) if topic else "",
         "year": int(statement.contest_year),
         **(
             difficulty_payload
             or _difficulty_rating_payload(user_rating=None, average_rating=None, rating_count=0)
         ),
-        **completion_metadata_payload(completion),
+        **metadata_payload,
+        "first_idea_found_value": _completion_quick_update_bool_value(
+            metadata_payload.get("first_idea_found"),
+        ),
+        "proof_completed_value": _completion_quick_update_bool_value(
+            metadata_payload.get("proof_completed"),
+        ),
     }
 
 
