@@ -508,6 +508,7 @@ def test_trainer_materials_workspace_exposes_rich_markdown_tools_and_checkpoint_
     assert response.status_code == HTTPStatus.OK
     html = response.content.decode("utf-8")
     assert 'data-training-material-editor="true"' in html
+    assert f'data-preview-url="{reverse("training:trainer_material_preview")}"' in html
     assert 'data-editor-mode="write"' in html
     assert 'data-editor-mode="preview"' in html
     assert 'data-editor-mode="split"' in html
@@ -525,6 +526,35 @@ def test_trainer_materials_workspace_exposes_rich_markdown_tools_and_checkpoint_
     assert html.count('id="id_subtopic"') == 1
     assert html.count('id="id_title"') == 1
     assert str(material.subtopic_id) in html
+
+
+def test_trainer_material_preview_uses_server_markdown_renderer(client):
+    trainer = UserFactory(role=User.Role.TRAINER)
+    client.force_login(trainer)
+    source = (
+        "# Foundations: Mathematical Induction\n\n"
+        "1. **Base case:** P(n0) is true.\n"
+        "2. **Inductive step:** P(n) implies P(n+1).\n\n"
+        "---\n\n"
+        "Now\n\n"
+        "> (c-b)(c+b)\n\n"
+        "so $c^2 > a^2+b^2$."
+    )
+
+    response = client.post(
+        reverse("training:trainer_material_preview"),
+        {"content_markdown": source},
+        HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    payload = response.json()
+    assert payload["ok"] is True
+    assert payload["html"] == str(render_markdown(source))
+    assert "<h1>Foundations: Mathematical Induction</h1>" in payload["html"]
+    assert "<hr" in payload["html"]
+    assert "<ol>" in payload["html"]
+    assert "<blockquote>" in payload["html"]
 
 
 def test_trainer_materials_quick_creates_checkpoint_problem(client):
