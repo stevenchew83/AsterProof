@@ -7,62 +7,106 @@
 {% block extra_css %}
 {% if statement_total > 0 %}
 <style>
-  .statement-toolbar {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: end;
-    justify-content: space-between;
-    gap: 1rem 1.25rem;
-    padding-bottom: 1rem;
-    margin-bottom: 1rem;
-    border-bottom: 1px solid var(--ins-border-color);
-  }
-
-  .statement-toolbar-copy {
-    min-width: min(24rem, 100%);
-  }
-
-  .statement-range-filters {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: end;
-    gap: 0.75rem;
-  }
-
-  .statement-range-field {
-    min-width: 7rem;
-  }
-
-  .statement-select-field {
-    min-width: 10rem;
-  }
-
-  .statement-search-field {
-    min-width: 12rem;
-    flex: 1 1 14rem;
-  }
-
-  .statement-range-field .form-control {
-    min-height: calc(1.5em + 0.65rem + 2px);
-  }
-
+  .statement-filter-chip,
   .statement-inline-link {
     display: inline-flex;
     align-items: center;
-    gap: 0.35rem;
+    gap: .35rem;
     text-decoration: none;
   }
 
+  .statement-filter-chip:hover,
   .statement-inline-link:hover {
     color: var(--ins-primary);
   }
 
+  .statement-filter-chip,
   .statement-inline-link {
     font-weight: 600;
   }
 
+  .statement-filter-chip:focus-visible,
+  .statement-inline-link:focus-visible,
+  #problem-statements-table .btn:focus-visible,
+  #problem-statements-copy:focus-visible {
+    outline: 2px solid rgba(var(--bs-primary-rgb), .45);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 .18rem rgba(var(--bs-primary-rgb), .18);
+  }
+
+  .statement-loaded-strip {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem 1rem;
+    padding: .75rem 0;
+    border-top: 1px solid var(--ins-border-color);
+    border-bottom: 1px solid var(--ins-border-color);
+  }
+
+  .statement-table-shell {
+    width: 100%;
+  }
+
+  .statement-table-meta {
+    font-size: .82rem;
+    color: var(--ins-secondary-color);
+  }
+
+  #problem-statements-table_wrapper .dt-layout-row {
+    margin: .5rem 0;
+    align-items: center;
+    gap: .75rem 1rem;
+  }
+
+  #problem-statements-table_wrapper .dt-length label,
+  #problem-statements-table_wrapper .dt-search label {
+    color: var(--bs-secondary-color);
+    font-size: .75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  #problem-statements-table_wrapper .dt-length .form-select,
+  #problem-statements-table_wrapper .dt-search .form-control {
+    font-size: .8125rem;
+    min-height: calc(1.5em + .5rem + 2px);
+    padding-bottom: .25rem;
+    padding-top: .25rem;
+  }
+
+  #problem-statements-table thead th {
+    background-color: var(--bs-tertiary-bg);
+    color: var(--bs-secondary-color);
+    font-size: .7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
   #problem-statements-table tbody td {
     vertical-align: top;
+  }
+
+  .statement-problem-cell {
+    min-width: 18rem;
+  }
+
+  .statement-sticky-col {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: var(--bs-body-bg) !important;
+    box-shadow: .35rem 0 .7rem rgba(var(--bs-body-color-rgb), .07);
+  }
+
+  #problem-statements-table thead .statement-sticky-col {
+    z-index: 5;
+    background: var(--bs-tertiary-bg) !important;
+  }
+
+  [data-bs-theme="dark"] .statement-sticky-col {
+    box-shadow: .35rem 0 .7rem rgba(0, 0, 0, .24);
   }
 
   .statement-completion-status {
@@ -77,13 +121,26 @@
     width: fit-content;
   }
 
-  .statement-table-shell {
-    width: 100%;
+  .statement-topic-tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .25rem .5rem;
+    max-width: 28rem;
+    max-height: 3.35rem;
+    overflow: hidden;
   }
 
-  .statement-table-meta {
-    font-size: 0.82rem;
-    color: var(--ins-secondary-color);
+  .statement-signal-stack {
+    display: grid;
+    gap: .25rem;
+    min-width: 9rem;
+  }
+
+  @media (max-width: 767.98px) {
+    .statement-sticky-col {
+      position: static;
+      box-shadow: none;
+    }
   }
 
 </style>
@@ -193,20 +250,32 @@
           <div class="flex-grow-1">
             <h4 class="header-title mb-0">All problem statements</h4>
             <p class="text-muted fs-xs mb-0">
-              Form filters and search load rows from the server. The table filter box narrows within the rows already loaded below.
+              Filters load matching rows from the server. Table search filters only loaded rows.
             </p>
           </div>
-          <span class="badge text-bg-light">{{ statement_stats.contest_total }} contests</span>
+          <div class="d-flex flex-wrap align-items-center gap-2">
+            <span class="badge text-bg-light">{{ statement_stats.contest_total }} contests</span>
+            {% if show_problem_import_link %}
+            <form method="post" class="d-inline-flex mb-0">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="recheck_links">
+              <button type="submit" id="problem-statements-recheck-links" class="btn btn-outline-secondary btn-sm">
+                <i class="ti ti-link-check me-1"></i>Recheck problem links
+              </button>
+            </form>
+            {% endif %}
+          </div>
         </div>
         <div class="card-body">
-          <div class="statement-toolbar">
-            <div class="statement-toolbar-copy">
-              <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Linked metadata</p>
-              <h5 class="mb-1">Filter and search</h5>
-              <p class="text-muted fs-xs mb-0">Use search plus year, topic, confidence, and MOHS range, then Apply filters. After rows load, use the table filter to search within the grid. The grid defaults to 25 rows per page; change the page size with the table control.</p>
-            </div>
-            <form method="get" class="statement-range-filters align-items-end" action="{% url 'pages:problem_statement_list' %}">
-              <div class="statement-search-field">
+          <div class="mb-3">
+            <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Library search</p>
+            <h5 class="mb-1">Find problem statements</h5>
+            <p class="text-muted fs-xs mb-0">Search and filters choose which rows load. The table controls below sort, page, and filter the loaded rows.</p>
+          </div>
+
+          <form method="get" action="{% url 'pages:problem_statement_list' %}" class="mb-3">
+            <div class="row g-2 align-items-end">
+              <div class="col-md-6 col-xl-4">
                 <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-search-q">Search</label>
                 <input
                   type="search"
@@ -218,7 +287,7 @@
                   autocomplete="off"
                 >
               </div>
-              <div class="statement-select-field">
+              <div class="col-sm-6 col-md-3 col-xl-2">
                 <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-year-filter">Year</label>
                 <select id="statement-year-filter" name="year" class="form-select form-select-sm">
                   <option value="">All years</option>
@@ -227,7 +296,7 @@
                   {% endfor %}
                 </select>
               </div>
-              <div class="statement-select-field">
+              <div class="col-sm-6 col-md-3 col-xl-2">
                 <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-topic-filter">Topic</label>
                 <select id="statement-topic-filter" name="topic" class="form-select form-select-sm">
                   <option value="">All topics</option>
@@ -236,78 +305,98 @@
                   {% endfor %}
                 </select>
               </div>
-              <div class="statement-select-field">
-                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-confidence-filter">Confidence</label>
-                <select id="statement-confidence-filter" name="confidence" class="form-select form-select-sm">
-                  <option value="">All confidence</option>
-                  {% for c in statement_filter_confidences %}
-                  <option value="{{ c }}"{% if statement_list_filters.confidence == c %} selected{% endif %}>{{ c|truncatechars:40 }}</option>
-                  {% endfor %}
-                </select>
+              <div class="col-md-12 col-xl-4">
+                <div class="d-flex flex-wrap gap-2">
+                  <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="ti ti-filter me-1"></i>Apply filters
+                  </button>
+                  <button
+                    class="btn btn-outline-secondary btn-sm"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#statement-advanced-filters"
+                    aria-expanded="{% if statement_has_advanced_filters %}true{% else %}false{% endif %}"
+                    aria-controls="statement-advanced-filters"
+                  >
+                    <i class="ti ti-adjustments-horizontal me-1"></i>Advanced filters
+                  </button>
+                  {% if statement_has_active_filters %}
+                  <a href="{% url 'pages:problem_statement_list' %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="ti ti-refresh me-1"></i>Reset
+                  </a>
+                  {% endif %}
+                </div>
               </div>
-              <div class="statement-range-field">
-                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-mohs-min">MOHS from</label>
-                <input id="statement-mohs-min" name="mohs_min" type="number" min="0" step="1" class="form-control form-control-sm" placeholder="Min" value="{{ statement_list_filters.mohs_min }}">
-              </div>
-              <div class="statement-range-field">
-                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-mohs-max">MOHS to</label>
-                <input id="statement-mohs-max" name="mohs_max" type="number" min="0" step="1" class="form-control form-control-sm" placeholder="Max" value="{{ statement_list_filters.mohs_max }}">
-              </div>
-              <button type="submit" class="btn btn-primary btn-sm">Apply filters</button>
-              <a href="{% url 'pages:problem_statement_list' %}" class="btn btn-outline-secondary btn-sm">Reset</a>
-            </form>
-            <div class="statement-range-filters align-items-end mt-2 mt-md-0">
-              <button type="button" id="problem-statements-copy" class="btn btn-outline-primary btn-sm">
-                <i class="ti ti-copy me-1"></i>Copy filtered rows
-              </button>
-              {% if show_problem_import_link %}
-              <form method="post" class="d-inline-flex">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="recheck_links">
-                <button type="submit" id="problem-statements-recheck-links" class="btn btn-primary btn-sm">
-                  <i class="ti ti-link-check me-1"></i>Recheck problem links
-                </button>
-              </form>
-              {% endif %}
             </div>
-          </div>
-          {% if statement_is_capped %}
-          <div class="alert alert-info py-2 mb-2" role="alert">
-            Showing latest {{ statement_result_limit }} rows out of {{ statement_filtered_total }} matches. Use search and filters to narrow further.
+
+            <div id="statement-advanced-filters" class="collapse{% if statement_has_advanced_filters %} show{% endif %} mt-2">
+              <div class="row g-2 align-items-end">
+                <div class="col-md-6 col-xl-4">
+                  <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-confidence-filter">Confidence</label>
+                  <select id="statement-confidence-filter" name="confidence" class="form-select form-select-sm">
+                    <option value="">All confidence</option>
+                    {% for c in statement_filter_confidences %}
+                    <option value="{{ c }}"{% if statement_list_filters.confidence == c %} selected{% endif %}>{{ c|truncatechars:40 }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="col-sm-6 col-md-3 col-xl-2">
+                  <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-mohs-min">MOHS from</label>
+                  <input id="statement-mohs-min" name="mohs_min" type="number" min="0" step="1" class="form-control form-control-sm" placeholder="Min" value="{{ statement_list_filters.mohs_min }}">
+                </div>
+                <div class="col-sm-6 col-md-3 col-xl-2">
+                  <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-mohs-max">MOHS to</label>
+                  <input id="statement-mohs-max" name="mohs_max" type="number" min="0" step="1" class="form-control form-control-sm" placeholder="Max" value="{{ statement_list_filters.mohs_max }}">
+                </div>
+              </div>
+            </div>
+          </form>
+
+          {% if statement_active_filter_chips %}
+          <div class="d-flex flex-wrap gap-2 mb-3">
+            {% for chip in statement_active_filter_chips %}
+            <a href="{{ chip.remove_url }}" class="badge {{ chip.badge_class }} statement-filter-chip">
+              <span>{{ chip.label }}: {{ chip.value }}</span>
+              <i class="ti ti-x"></i>
+            </a>
+            {% endfor %}
           </div>
           {% endif %}
-          <p class="statement-table-meta mb-2">
-            {% if statement_filtered_total %}
-            {% if statement_is_capped %}
-            Showing {{ statement_visible_total }} latest matching row{{ statement_visible_total|pluralize }} ({{ statement_filtered_total }} match current filters; {{ statement_total }} total in library). Sort and page in the table; change which rows load with Search and Apply filters above.
-            {% else %}
-            Showing {{ statement_filtered_total }} matching row{{ statement_filtered_total|pluralize }} ({{ statement_total }} total in library). Sort and page in the table; change which rows load with Search and Apply filters above.
-            {% endif %}
-            {% else %}
-            No rows match the current filters ({{ statement_total }} total in library).
-            {% endif %}
-          </p>
+
+          <div class="statement-loaded-strip mb-3">
+            <p id="problem-statements-loaded-status" class="statement-table-meta mb-0">
+              {{ statement_loaded_summary }}
+              {% if statement_filtered_total and statement_total != statement_filtered_total %}
+              <span class="text-muted">({{ statement_total }} total in library)</span>
+              {% endif %}
+            </p>
+            <div class="d-flex flex-wrap align-items-center gap-2">
+              <button type="button" id="problem-statements-copy" class="btn btn-outline-primary btn-sm">
+                <i class="ti ti-copy me-1"></i>Copy loaded rows
+              </button>
+              <span id="problem-statements-copy-status" class="text-muted fs-xs" aria-live="polite"></span>
+            </div>
+          </div>
+
           {% if statement_filtered_total > 0 %}
           {{ statement_datatable_rows|json_script:"problem-statements-table-data" }}
+          <div id="problem-statements-table-alert" class="alert alert-warning d-none" role="alert">
+            Statement table data could not be loaded.
+          </div>
           <div class="statement-table-shell">
             <table id="problem-statements-table"
-              class="table table-striped table-bordered align-middle w-100"
+              class="table table-sm table-hover table-bordered align-middle w-100 mb-0"
+              aria-describedby="problem-statements-loaded-status"
             >
               <thead class="table-light">
                 <tr>
-                  <th class="text-nowrap">Year</th>
-                  <th>Contest</th>
-                  <th class="text-nowrap">Topic</th>
-                  <th class="text-nowrap">Problem code</th>
-                  <th class="text-nowrap">Day</th>
-                  <th>Solved</th>
+                  <th>Problem</th>
+                  <th class="text-nowrap">Topic / MOHS</th>
+                  <th class="text-nowrap">Completion</th>
                   <th>Topic tags</th>
-                  <th class="text-nowrap">MOHS</th>
+                  <th class="text-nowrap">Signals</th>
                   <th class="text-nowrap">Avg difficulty</th>
-                  <th class="text-nowrap">Confidence</th>
-                  <th class="text-nowrap">IMO slot</th>
                   <th class="text-nowrap">Updated</th>
-                  <th class="text-nowrap">Solution</th>
                   <th class="d-none" aria-hidden="true"></th>
                   <th class="d-none" aria-hidden="true"></th>
                 </tr>
@@ -316,31 +405,18 @@
             </table>
           </div>
           {% else %}
-          <div class="statement-table-shell table-responsive">
-            <table class="table table-striped table-bordered align-middle w-100">
-              <thead class="table-light">
-                <tr>
-                  <th class="text-nowrap">Year</th>
-                  <th>Contest</th>
-                  <th class="text-nowrap">Topic</th>
-                  <th class="text-nowrap">Problem code</th>
-                  <th class="text-nowrap">Day</th>
-                  <th>Solved</th>
-                  <th>Topic tags</th>
-                  <th class="text-nowrap">MOHS</th>
-                  <th class="text-nowrap">Avg difficulty</th>
-                  <th class="text-nowrap">Confidence</th>
-                  <th class="text-nowrap">IMO slot</th>
-                  <th class="text-nowrap">Updated</th>
-                  <th class="text-nowrap">Solution</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td colspan="13" class="text-muted text-center py-4">No rows match the current filters.</td>
-                </tr>
-              </tbody>
-            </table>
+          <div id="problem-statements-empty-state" class="alert alert-info mb-0" role="alert">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+              <div>
+                <strong>No rows match current filters.</strong>
+                <span class="d-block fs-xs">Clear filters or broaden the search to load statement rows.</span>
+              </div>
+              {% if statement_has_active_filters %}
+              <a href="{% url 'pages:problem_statement_list' %}" class="btn btn-outline-primary btn-sm">
+                <i class="ti ti-refresh me-1"></i>Reset filters
+              </a>
+              {% endif %}
+            </div>
           </div>
           {% endif %}
         </div>
@@ -364,17 +440,20 @@
   if (!copyBtn || !payload) return;
 
   var defaultHtml = copyBtn.innerHTML;
+  var statusEl = document.getElementById("problem-statements-copy-status");
   var timer = null;
 
-  function setState(html, btnClass) {
+  function setState(html, btnClass, statusText) {
     copyBtn.classList.remove("btn-outline-primary", "btn-success", "btn-outline-secondary", "btn-danger");
     copyBtn.classList.add(btnClass);
     copyBtn.innerHTML = html;
+    if (statusEl) statusEl.textContent = statusText || "";
     if (timer) clearTimeout(timer);
     timer = window.setTimeout(function () {
       copyBtn.classList.remove("btn-success", "btn-outline-secondary", "btn-danger");
       copyBtn.classList.add("btn-outline-primary");
       copyBtn.innerHTML = defaultHtml;
+      if (statusEl) statusEl.textContent = "";
     }, 2200);
   }
 
@@ -405,7 +484,7 @@
   copyBtn.addEventListener("click", function () {
     var text = payload.value || "";
     if (!text.trim()) {
-      setState('<i class="ti ti-table-off me-1"></i>No rows to copy', "btn-outline-secondary");
+      setState('<i class="ti ti-table-off me-1"></i>No rows to copy', "btn-outline-secondary", "No rows to copy");
       return;
     }
     copyText(text)
@@ -413,10 +492,11 @@
         var lines = text.split(/\r?\n/).filter(function (line) { return line.trim().length; });
         var dataRows = Math.max(0, lines.length - 1);
         var label = dataRows === 1 ? "row" : "rows";
-        setState('<i class="ti ti-check me-1"></i>Copied ' + dataRows + " " + label, "btn-success");
+        var message = "Copied " + dataRows + " " + label;
+        setState('<i class="ti ti-check me-1"></i>' + message, "btn-success", message);
       })
       .catch(function () {
-        setState('<i class="ti ti-alert-circle me-1"></i>Copy failed', "btn-danger");
+        setState('<i class="ti ti-alert-circle me-1"></i>Copy failed', "btn-danger", "Copy failed");
       });
   });
 })();
@@ -425,9 +505,32 @@
 <script>
 (function () {
   var dataEl = document.getElementById("problem-statements-table-data");
-  if (!dataEl || typeof DataTable === "undefined") return;
+  var alertEl = document.getElementById("problem-statements-table-alert");
 
-  var rows = JSON.parse(dataEl.textContent);
+  function showTableAlert(message) {
+    if (!alertEl) return;
+    alertEl.textContent = message || "Statement table data could not be loaded.";
+    alertEl.classList.remove("d-none");
+  }
+
+  if (!dataEl) {
+    showTableAlert("Statement table data is missing.");
+    return;
+  }
+
+  if (typeof DataTable === "undefined") {
+    showTableAlert("Statement table controls could not be loaded. Refresh and try again.");
+    return;
+  }
+
+  var rows = [];
+
+  try {
+    rows = JSON.parse(dataEl.textContent);
+  } catch (err) {
+    showTableAlert("Statement table data could not be parsed. Refresh and try again.");
+    return;
+  }
 
   function escapeHtml(value) {
     return String(value)
@@ -449,6 +552,17 @@
     return n === 1 ? "1 rating" : n + " ratings";
   }
 
+  function mutedDash() {
+    return '<span class="text-muted fs-xs">\u2014</span>';
+  }
+
+  function problemLabel(row) {
+    var fallback = [row.contest_name, row.contest_year, row.problem_code]
+      .filter(function (item) { return item !== null && item !== undefined && String(item).trim(); })
+      .join(" ");
+    return row.contest_year_problem || fallback || "Problem statement";
+  }
+
   new DataTable("#problem-statements-table", {
     data: rows,
     layout: {
@@ -460,14 +574,14 @@
       bottom: ["info", "paging"],
     },
     language: {
-      search: "Filter table:",
-      searchPlaceholder: "Within loaded rows…",
-      info: "Showing _START_ to _END_ of _TOTAL_ statement rows",
-      infoEmpty: "No statement rows to show",
-      infoFiltered: "(filtered from _MAX_ row(s) on this page)",
+      search: "Filter loaded rows:",
+      searchPlaceholder: "Within loaded rows...",
+      info: "Showing _START_ to _END_ of _TOTAL_ loaded rows",
+      infoEmpty: "No loaded rows to show",
+      infoFiltered: "(filtered from _MAX_ loaded row(s))",
       lengthMenu: "Show _MENU_ rows",
     },
-    order: [[11, "desc"]],
+    order: [[6, "desc"]],
     pageLength: 25,
     lengthMenu: [10, 25, 50, 100],
     scrollX: true,
@@ -478,48 +592,100 @@
     },
     columns: [
       {
-        data: "contest_year",
-        className: "text-nowrap",
-        render: function (data, type) {
-          if (type === "sort") return Number(data) || 0;
-          return data;
-        }
-      },
-      { data: "contest_name" },
-      {
-        data: "linked_problem_topic",
-        className: "text-nowrap",
-        render: function (data, type) {
-          var t = data || "";
-          if (type === "display") {
-            if (!t) return '<span class="text-muted fs-xs">\u2014</span>';
-            return '<span class="fw-semibold">' + escapeHtml(t) + "</span>";
+        data: null,
+        className: "statement-problem-cell statement-sticky-col",
+        render: function (_data, type, row) {
+          var label = problemLabel(row);
+          var day = row.day_label || "";
+          var hasDay = day && day !== "Unlabeled";
+          var actionUrl = row.is_linked ? row.problem_destination_url : row.statement_detail_url;
+          var actionLabel = row.is_linked ? (row.problem_destination_label || "Open") : "Open statement";
+          var actionClass = row.is_linked ? "btn-outline-primary" : "btn-outline-secondary";
+
+          if (type === "sort") return row.updated_at_sort || label;
+          if (type === "filter") {
+            return [
+              label,
+              row.contest_name || "",
+              row.contest_year || "",
+              row.problem_code || "",
+              hasDay ? day : "",
+              actionLabel,
+            ].join(" ");
           }
-          return t;
-        }
-      },
-      { data: "problem_code", className: "text-nowrap" },
-      {
-        data: "day_label",
-        className: "text-nowrap",
-        render: function (data, type) {
-          var d = data || "";
-          if (type === "filter" || type === "sort") return d === "Unlabeled" ? "" : d;
-          if (!d || d === "Unlabeled") return type === "display" ? '<span class="text-muted fs-xs">\u2014</span>' : "";
-          if (type === "display") {
-            var short = ellipsize(d, 30);
-            return '<span title="' + escapeHtml(d) + '">' + escapeHtml(short) + "</span>";
+          if (type !== "display") return label;
+
+          var action = "";
+          if (actionUrl) {
+            action =
+              '<a href="' +
+              actionUrl +
+              '" class="btn ' +
+              actionClass +
+              ' btn-sm">' +
+              escapeHtml(actionLabel) +
+              "</a>";
           }
-          return d;
+
+          return (
+            '<div class="d-flex flex-column flex-xl-row align-items-start align-items-xl-center gap-2">' +
+            '<div class="min-w-0 flex-grow-1">' +
+            '<div class="fw-semibold text-body">' +
+            escapeHtml(label) +
+            "</div>" +
+            (hasDay ? '<div class="text-muted fs-xs">' + escapeHtml(day) + "</div>" : "") +
+            "</div>" +
+            action +
+            "</div>"
+          );
         }
       },
       {
         data: null,
+        className: "text-nowrap",
+        render: function (_data, type, row) {
+          var topic = row.linked_problem_topic || "";
+          var mohs = row.linked_problem_mohs;
+          var hasMohs = mohs !== null && mohs !== undefined && mohs !== "";
+
+          if (type === "sort") return (topic || "zz") + " " + (hasMohs ? Number(mohs) : -1);
+          if (type === "filter") return topic + " " + (hasMohs ? String(mohs) : "");
+          if (type !== "display") return topic;
+
+          var topicHtml = topic
+            ? '<span class="badge text-bg-light border">' + escapeHtml(topic) + "</span>"
+            : mutedDash();
+          var mohsHtml = mutedDash();
+          if (hasMohs) {
+            mohsHtml = '<span class="fw-semibold">MOHS ' + Number(mohs) + "</span>";
+            if (row.linked_problem_mohs_url) {
+              mohsHtml =
+                '<a class="statement-inline-link fw-semibold" href="' +
+                row.linked_problem_mohs_url +
+                '">MOHS ' +
+                Number(mohs) +
+                "</a>";
+            }
+          }
+
+          return (
+            '<div class="d-flex flex-column align-items-start gap-1">' +
+            topicHtml +
+            '<span class="fs-xs">' +
+            mohsHtml +
+            "</span>" +
+            "</div>"
+          );
+        }
+      },
+      {
+        data: null,
+        className: "text-nowrap",
         render: function (_data, type, row) {
           if (!row.is_linked) {
             if (type === "sort") return "000-not-linked";
             if (type === "filter") return "not linked";
-            return type === "display" ? '<span class="text-muted fs-xs">Not linked</span>' : "Not linked";
+            return type === "display" ? '<span class="badge text-bg-light border">Not linked</span>' : "Not linked";
           }
           var kind = row.user_completion_state_kind || "";
           var badgeClass = "text-bg-light";
@@ -550,40 +716,77 @@
         render: function (_data, type, row) {
           var links = row.linked_problem_topic_tag_links || [];
           var tags = row.linked_problem_topic_tags || [];
+          var tagTitle = tags.join(", ");
           if (type === "filter") return tags.join(" ");
           if (type === "sort") return tags.join(", ");
           if (!links.length) {
-            if (!tags.length) return type === "display" ? '<span class="text-muted fs-xs">\u2014</span>' : "";
-            return type === "display" ? escapeHtml(tags.join(", ")) : tags.join(", ");
+            if (!tags.length) return type === "display" ? mutedDash() : "";
+            return type === "display"
+              ? '<div class="statement-topic-tag-list" title="' + escapeHtml(tagTitle) + '">' + escapeHtml(tagTitle) + "</div>"
+              : tagTitle;
           }
           if (type !== "display") return tags.join(" ");
           var parts = links.map(function (item) {
             var lab = escapeHtml(String(item.label || ""));
             var u = item.url || "";
-            if (u) return '<a class="statement-inline-link" href="' + u + '">' + lab + "</a>";
+            if (u) return '<a class="statement-inline-link" href="' + u + '" title="' + lab + '">' + lab + "</a>";
             return lab;
           });
-          return parts.join(", ");
+          return '<div class="statement-topic-tag-list" title="' + escapeHtml(tagTitle) + '">' + parts.join(", ") + "</div>";
         }
       },
       {
-        data: "linked_problem_mohs",
-        className: "text-nowrap",
-        render: function (data, type, row) {
-          if (data === null || data === undefined || data === "") {
-            if (type === "display") return '<span class="text-muted fs-xs">\u2014</span>';
-            if (type === "sort") return -1;
-            return "";
+        data: null,
+        className: "text-nowrap small",
+        render: function (_data, type, row) {
+          var confidence = row.linked_problem_confidence || "";
+          var slot = row.linked_problem_imo_slot_display || "";
+          var raw = row.linked_problem_imo_slot_guess_value || "";
+          if (type === "sort" || type === "filter") return confidence + " " + slot + " " + raw;
+          if (type !== "display") return confidence + " " + slot;
+          if (!confidence && !slot) return mutedDash();
+
+          var confidenceHtml = mutedDash();
+          if (confidence) {
+            var shortConfidence = ellipsize(confidence, 24);
+            confidenceHtml = '<span title="' + escapeHtml(confidence) + '">' + escapeHtml(shortConfidence) + "</span>";
+            if (row.linked_problem_confidence_url) {
+              confidenceHtml =
+                '<a class="statement-inline-link" href="' +
+                row.linked_problem_confidence_url +
+                '" title="' +
+                escapeHtml(confidence) +
+                '">' +
+                escapeHtml(shortConfidence) +
+                "</a>";
+            }
           }
-          var num = Number(data);
-          if (type === "sort") return num;
-          if (type === "filter") return String(num);
-          if (type !== "display") return num;
-          var inner = '<span class="fw-semibold">' + num + "</span>";
-          if (row.linked_problem_mohs_url) {
-            inner = '<a class="statement-inline-link fw-semibold" href="' + row.linked_problem_mohs_url + '">' + num + "</a>";
+
+          var slotHtml = mutedDash();
+          if (slot) {
+            slotHtml = '<span title="' + escapeHtml(slot) + '">' + escapeHtml(slot) + "</span>";
+            if (row.linked_problem_imo_slot_url) {
+              slotHtml =
+                '<a class="statement-inline-link" href="' +
+                row.linked_problem_imo_slot_url +
+                '" title="' +
+                escapeHtml(slot) +
+                '">' +
+                escapeHtml(slot) +
+                "</a>";
+            }
           }
-          return inner;
+
+          return (
+            '<div class="statement-signal-stack">' +
+            '<div><span class="text-muted">Confidence:</span> ' +
+            confidenceHtml +
+            "</div>" +
+            '<div><span class="text-muted">IMO:</span> ' +
+            slotHtml +
+            "</div>" +
+            "</div>"
+          );
         }
       },
       {
@@ -595,7 +798,7 @@
           if (!count || data === null || data === undefined || data === "") {
             if (type === "sort") return -1;
             if (type === "filter") return "";
-            return type === "display" ? '<span class="text-muted fs-xs">\u2014</span>' : "";
+            return type === "display" ? mutedDash() : "";
           }
           if (type === "sort") return Number(data);
           if (type === "filter") return display + " " + ratingCountLabel(count);
@@ -611,64 +814,11 @@
         }
       },
       {
-        data: "linked_problem_confidence",
-        className: "text-nowrap small",
-        render: function (data, type, row) {
-          var c = data || "";
-          if (!c) return type === "display" ? '<span class="text-muted fs-xs">\u2014</span>' : "";
-          if (type === "sort" || type === "filter") return c;
-          var short = ellipsize(c, 20);
-          if (type === "display" && row.linked_problem_confidence_url) {
-            return (
-              '<a class="statement-inline-link" href="' +
-              row.linked_problem_confidence_url +
-              '" title="' +
-              escapeHtml(c) +
-              '">' +
-              escapeHtml(short) +
-              "</a>"
-            );
-          }
-          if (type === "display") {
-            return '<span title="' + escapeHtml(c) + '">' + escapeHtml(short) + "</span>";
-          }
-          return c;
-        }
-      },
-      {
-        data: "linked_problem_imo_slot_display",
-        className: "text-nowrap",
-        render: function (data, type, row) {
-          var raw = row.linked_problem_imo_slot_guess_value || "";
-          if (type === "filter" || type === "sort") return (data || "") + " " + raw;
-          if (!data) return type === "display" ? '<span class="text-muted fs-xs">\u2014</span>' : "";
-          if (type === "display" && row.linked_problem_imo_slot_url) {
-            return '<a class="statement-inline-link" href="' + row.linked_problem_imo_slot_url + '">' + escapeHtml(data) + "</a>";
-          }
-          if (type === "display") return escapeHtml(data);
-          return data;
-        }
-      },
-      {
         data: "updated_at",
         className: "text-nowrap small",
         render: function (data, type, row) {
           if (type === "sort") return row.updated_at_sort || "";
           if (type === "filter") return data || "";
-          return data;
-        }
-      },
-      {
-        data: "problem_destination_url",
-        orderable: false,
-        className: "text-nowrap",
-        render: function (data, type, row) {
-          if (type === "filter") return (row.problem_destination_label || "") + " " + (data || "");
-          if (!data) return type === "display" ? '<span class="text-muted fs-xs">\u2014</span>' : "";
-          if (type === "display") {
-            var label = escapeHtml(row.problem_destination_label || "Open");
-            return '<a href="' + data + '" class="btn btn-outline-primary btn-sm">' + label + "</a>";
-          }
           return data;
         }
       },

@@ -11200,11 +11200,23 @@ def test_problem_statement_list_shows_statement_rows_and_link_counts(client):
         "solutions:problem_solution_edit",
         args=[linked_record.problem_uuid],
     )
+    assert linked_row["statement_detail_url"] == reverse(
+        "pages:problem_statement_detail",
+        args=[linked_statement.statement_uuid],
+    )
+    unlinked_row = next(row for row in response.context["statement_table_rows"] if not row["is_linked"])
+    assert unlinked_row["statement_detail_url"] == reverse(
+        "pages:problem_statement_detail",
+        args=[unlinked_row["statement_uuid"]],
+    )
     response_html = response.content.decode("utf-8")
     assert linked_row["user_completion_date"] == "2025-08-28"
     assert linked_row["user_completion_display"] == "2025-08-28"
     assert linked_row["user_completion_state_kind"] == "solved"
     assert linked_row["user_completion_state_label"] == "Solved on 2025-08-28"
+    assert response.context["statement_has_active_filters"] is False
+    assert response.context["statement_active_filter_chips"] == []
+    assert response.context["statement_loaded_summary"] == "Loaded 2 matching rows"
     assert "Problem statements" in response_html
     assert 'id="statement-year-filter"' in response_html
     assert 'id="statement-topic-filter"' in response_html
@@ -11213,18 +11225,31 @@ def test_problem_statement_list_shows_statement_rows_and_link_counts(client):
     assert 'id="statement-mohs-max"' in response_html
     assert 'id="statement-search-q"' in response_html
     assert 'id="problem-statements-copy"' in response_html
-    assert "Copy filtered rows" in response_html
-    assert "Filter and search" in response_html
+    assert 'id="problem-statements-copy-status"' in response_html
+    assert 'id="problem-statements-loaded-status"' in response_html
+    assert "Copy loaded rows" in response_html
+    assert "Find problem statements" in response_html
+    assert "Advanced filters" in response_html
+    assert "Open statement" in response_html
+    assert "Loaded 2 matching rows" in response_html
     assert 'id="problem-statements-table"' in response_html
     assert "<thead" in response_html
     assert SPAIN_OLYMPIAD_NAME in response_html
     assert "Number Theory" in response_html
     assert "P2, P5" in response_html
+    assert "<th>Problem</th>" in response_html
+    assert "Topic / MOHS</th>" in response_html
+    assert "Signals</th>" in response_html
+    assert "<th>Problem code</th>" not in response_html
     assert "dataTables.bootstrap5.min.css" in response_html
     assert "dataTables.min.js" in response_html
     assert 'new DataTable("#problem-statements-table"' in response_html
     assert 'id="problem-statements-table-data"' in response_html
-    assert "Filter table:" in response_html
+    assert "Filter loaded rows:" in response_html
+    assert "Within loaded rows..." in response_html
+    assert "problem-statements-table-alert" in response_html
+    assert 'aria-describedby="problem-statements-loaded-status"' in response_html
+    assert 'order: [[6, "desc"]]' in response_html
     assert 'top: ["pageLength", "search", "paging"]' in response_html
     assert 'aria-label="Statement pages"' not in response_html
     assert "dataTables_filter" not in response_html.lower()
@@ -11272,6 +11297,8 @@ def test_problem_statement_list_caps_to_latest_100_by_updated_at(client):
     assert response.context["statement_visible_total"] == 100
     assert response.context["statement_result_limit"] == 100
     assert response.context["statement_is_capped"] is True
+    assert response.context["statement_loaded_summary"] == "Loaded 100 of 120 matching rows"
+    assert "Loaded 100 of 120 matching rows" in response.content.decode("utf-8")
 
 
 def test_problem_statement_list_formats_updated_at_in_local_timezone(client):
@@ -11331,12 +11358,78 @@ def test_problem_statement_list_filter_applies_before_latest_100_cap(client):
     assert broad.status_code == HTTPStatus.OK
     assert len(broad.context["statement_datatable_rows"]) == 100
     assert broad.context["statement_is_capped"] is True
+    assert broad.context["statement_loaded_summary"] == "Loaded 100 of 120 matching rows"
 
     narrow = client.get(reverse("pages:problem_statement_list"), {"q": "USAMO"})
     assert narrow.status_code == HTTPStatus.OK
     assert len(narrow.context["statement_datatable_rows"]) == 3
     assert all(row["contest_name"] == "USAMO" for row in narrow.context["statement_datatable_rows"])
     assert narrow.context["statement_is_capped"] is False
+    assert narrow.context["statement_has_active_filters"] is True
+    assert narrow.context["statement_loaded_summary"] == "Loaded 3 matching rows"
+    assert narrow.context["statement_active_filter_chips"][0]["label"] == "Search"
+    assert narrow.context["statement_active_filter_chips"][0]["value"] == "USAMO"
+    assert narrow.context["statement_active_filter_chips"][0]["remove_url"] == reverse(
+        "pages:problem_statement_list",
+    )
+
+
+def test_problem_statement_list_shows_active_filter_chips_for_server_filters(client):
+    user = UserFactory()
+    client.force_login(user)
+    ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="GEO",
+        mohs=30,
+        confidence="Medium",
+        contest="IMO",
+        problem="P2",
+        contest_year_problem="IMO 2026 P2",
+    )
+    ContestProblemStatement.objects.create(
+        contest_year=2026,
+        contest_name="IMO",
+        problem_number=2,
+        problem_code="P2",
+        day_label="Day 1",
+        statement_latex="Geometry statement",
+        topic="GEO",
+        mohs=30,
+        confidence="Medium",
+    )
+
+    response = client.get(
+        reverse("pages:problem_statement_list"),
+        {
+            "q": "Geometry",
+            "year": "2026",
+            "topic": "Geometry",
+            "confidence": "Medium",
+            "mohs_min": "20",
+            "mohs_max": "40",
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["statement_has_active_filters"] is True
+    chips = response.context["statement_active_filter_chips"]
+    assert [(chip["label"], chip["value"]) for chip in chips] == [
+        ("Search", "Geometry"),
+        ("Year", "2026"),
+        ("Topic", "Geometry"),
+        ("Confidence", "Medium"),
+        ("MOHS from", "20"),
+        ("MOHS to", "40"),
+    ]
+    assert chips[0]["remove_url"].endswith("year=2026&topic=Geometry&confidence=Medium&mohs_min=20&mohs_max=40")
+    response_html = response.content.decode("utf-8")
+    assert "Search: Geometry" in response_html
+    assert "Year: 2026" in response_html
+    assert "Topic: Geometry" in response_html
+    assert "Confidence: Medium" in response_html
+    assert "MOHS from: 20" in response_html
+    assert "MOHS to: 40" in response_html
+    assert 'id="statement-advanced-filters" class="collapse show' in response_html
 
 
 def test_problem_statement_list_invalid_mohs_filters_are_non_fatal(client):
@@ -11386,17 +11479,14 @@ def test_problem_statement_list_skips_datatables_when_filters_match_nothing(clie
     )
     assert response.status_code == HTTPStatus.OK
     assert response.context["statement_filtered_total"] == 0
+    assert response.context["statement_loaded_summary"] == "No rows match current filters"
+    assert response.context["statement_has_active_filters"] is True
     response_html = response.content.decode("utf-8")
     assert "datatables" not in response_html.lower()
     assert 'new DataTable("#problem-statements-table"' not in response_html
-    zero_results_shell_match = re.search(
-        r'<div class="(?P<classes>statement-table-shell[^"]*)">\s*'
-        r'<table(?![^>]*id="problem-statements-table")[^>]*>',
-        response_html,
-        re.S,
-    )
-    assert zero_results_shell_match is not None
-    assert "table-responsive" in zero_results_shell_match.group("classes")
+    assert "No rows match current filters" in response_html
+    assert "Reset filters" in response_html
+    assert 'id="problem-statements-empty-state"' in response_html
 
 
 def test_problem_statement_contest_year_master_requires_login(client):
