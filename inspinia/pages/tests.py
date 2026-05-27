@@ -5029,6 +5029,10 @@ def test_contest_mohs_summary_ranks_by_current_user_average(client):
     user = UserFactory()
     other = UserFactory()
     client.force_login(user)
+    ContestMetadata.objects.create(
+        contest="Hard Cup",
+        tags=["Olympiad", "International"],
+    )
 
     hard_statement = ContestProblemStatement.objects.create(
         contest_year=2026,
@@ -5069,7 +5073,17 @@ def test_contest_mohs_summary_ranks_by_current_user_average(client):
     assert response.status_code == HTTPStatus.OK
     rows = response.context["contest_mohs_summary_rows"]
     assert [row["contest"] for row in rows] == ["Hard Cup", "Easier Cup", "Unsolved Cup"]
+    assert response.context["contest_mohs_topic_legend"] == [
+        {"code": "A", "label": "Algebra"},
+        {"code": "C", "label": "Combinatorics"},
+        {"code": "G", "label": "Geometry"},
+        {"code": "N", "label": "Number Theory"},
+    ]
+    assert response.context["contest_mohs_summary_stats"]["has_user_averages"] is True
+    assert response.context["contest_mohs_summary_stats"]["overall_average_mohs"] == 31.67
     hard_row = rows[0]
+    assert hard_row["level_labels"] == ["Olympiad", "International"]
+    assert hard_row["levels"] == "Olympiad, International"
     assert hard_row["topic_averages"]["A"] == 40.0
     assert hard_row["topic_counts"]["A"] == 1
     assert hard_row["average_mohs"] == 40.0
@@ -5084,9 +5098,13 @@ def test_contest_mohs_summary_ranks_by_current_user_average(client):
     assert unsolved_row["user_completion_count"] == 0
 
 
-def test_contest_mohs_summary_renders_table_and_hide_low_count_toggle(client):
+def test_contest_mohs_summary_renders_table_without_my_average_when_user_has_no_completions(client):
     user = UserFactory()
     client.force_login(user)
+    ContestMetadata.objects.create(
+        contest="Large Cup",
+        tags=["Olympiad", "International"],
+    )
     for problem_number in range(1, 22):
         ContestProblemStatement.objects.create(
             contest_year=2026,
@@ -5115,17 +5133,76 @@ def test_contest_mohs_summary_renders_table_and_hide_low_count_toggle(client):
     response_html = response.content.decode("utf-8")
     assert "Contest MOHS summary" in response_html
     assert 'id="contest-mohs-summary-table"' in response_html
-    assert 'id="contest-mohs-hide-low-count"' in response_html
+    assert 'data-has-user-averages="false"' in response_html
+    assert 'id="contest-mohs-filter-all"' in response_html
+    assert 'id="contest-mohs-filter-reliable"' in response_html
+    assert 'id="contest-mohs-filter-category-shortlist"' in response_html
+    assert 'id="contest-mohs-sort-average"' in response_html
+    assert 'id="contest-mohs-sort-user-average"' not in response_html
+    assert 'id="contest-mohs-hide-low-count"' not in response_html
     assert "data-hide-threshold=\"20\"" in response_html
     assert "DataTable.ext.search.push" in response_html
     assert "numeric.toFixed(2)" in response_html
+    assert "Problems with MOHS" in response_html
+    assert "Avg MOHS" in response_html
+    assert "Completed contests" in response_html
+    assert "Reliable contests" in response_html
+    assert "Reliable 20+" in response_html
+    assert "Algebra" in response_html
+    assert "Combinatorics" in response_html
+    assert "Geometry" in response_html
+    assert "Number Theory" in response_html
+    assert "MOHS Count" in response_html
+    assert "Add quick completions" in response_html
+    assert "My Avg" not in response_html
     assert "A Count" not in response_html
     assert "C Count" not in response_html
     assert "G Count" not in response_html
     assert "N Count" not in response_html
-    assert "Total Count of MOHS2" in response_html
-    assert "Usr Average" in response_html
+    assert "Total Count of MOHS2" not in response_html
+    assert "Usr Average" not in response_html
+    assert "Contest Link" not in response_html
+    assert ">Open<" not in response_html
     assert reverse("pages:contest_dashboard_listing") + "?contest=Large+Cup" in response_html
+
+
+def test_contest_mohs_summary_renders_my_average_when_user_has_completions(client):
+    user = UserFactory()
+    client.force_login(user)
+    completed_statement = ContestProblemStatement.objects.create(
+        contest_year=2026,
+        contest_name="Completed Cup",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Completed statement",
+        topic="ALG",
+        mohs=40,
+    )
+    ContestProblemStatement.objects.create(
+        contest_year=2026,
+        contest_name="Completed Cup",
+        problem_number=2,
+        problem_code="P2",
+        day_label="Day 1",
+        statement_latex="Second completed statement",
+        topic="GEO",
+        mohs=30,
+    )
+    UserProblemCompletion.objects.create(
+        user=user,
+        statement=completed_statement,
+        completion_date=date(2026, 1, 1),
+    )
+
+    response = client.get(reverse("pages:contest_mohs_summary"))
+
+    assert response.status_code == HTTPStatus.OK
+    response_html = response.content.decode("utf-8")
+    assert 'data-has-user-averages="true"' in response_html
+    assert 'id="contest-mohs-sort-user-average"' in response_html
+    assert 'id="contest-mohs-filter-category-completed"' in response_html
+    assert "My Avg" in response_html
 
 
 def test_contest_dashboard_listing_view_filters_selected_contest_and_year_for_admin(client):
