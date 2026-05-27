@@ -9795,6 +9795,8 @@ def test_problem_analytics_dashboard_exposes_contest_year_mohs_pivot_table(clien
     assert 'id="problem-analytics-mohs-filter"' in response_html
     assert 'id="problem-analytics-topic-filter"' in response_html
     assert 'id="problem-analytics-hide-empty"' in response_html
+    assert response_html.count('class="avatar-md flex-shrink-0"') >= 5
+    assert "avatar-title bg-primary-subtle text-primary rounded flex-shrink-0" not in response_html
     assert 'id="contest-year-mohs-search"' in response_html
     assert 'id="contest-year-mohs-reset"' in response_html
     assert 'id="contest-year-mohs-copy"' in response_html
