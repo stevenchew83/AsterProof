@@ -7,6 +7,82 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'plugins/datatables/dataTables.bootstrap5.min.css' %}">
 <style>
+  .completion-record-kpi .card-body {
+    padding: .85rem;
+  }
+
+  .completion-record-filter-card .card-body {
+    padding: .85rem;
+  }
+
+  .completion-record-advanced-fields {
+    border-top: 1px solid var(--ins-border-color);
+    margin-top: .85rem;
+    padding-top: .85rem;
+  }
+
+  .completion-record-filter-chips {
+    border-top: 1px solid var(--ins-border-color);
+    margin-top: .85rem;
+    padding-top: .75rem;
+  }
+
+  .completion-record-filter-chip {
+    align-items: center;
+    display: inline-flex;
+    gap: .25rem;
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  .completion-record-detail-toggle {
+    height: 1.8rem;
+    width: 1.8rem;
+  }
+
+  .completion-record-problem-meta,
+  .completion-record-detail-meta {
+    line-height: 1.35;
+  }
+
+  .completion-record-detail-panel {
+    background: var(--bs-tertiary-bg);
+    border: 1px solid var(--ins-border-color);
+    border-radius: .35rem;
+    padding: .85rem;
+  }
+
+  .completion-record-detail-grid {
+    display: grid;
+    gap: .75rem 1rem;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .completion-record-detail-grid dt {
+    color: var(--bs-secondary-color);
+    font-size: .75rem;
+    font-weight: 600;
+    margin-bottom: .15rem;
+    text-transform: uppercase;
+  }
+
+  .completion-record-detail-grid dd {
+    margin-bottom: 0;
+  }
+
+  #completion-record-table th:first-child,
+  #completion-record-table td:first-child {
+    text-align: center;
+    width: 2.25rem;
+  }
+
+  #completion-record-table thead th {
+    background: var(--bs-body-bg);
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+
   #completion-record-table_wrapper .dt-layout-row {
     margin: .5rem 0;
   }
@@ -26,6 +102,18 @@
     padding-bottom: .25rem;
     padding-top: .25rem;
   }
+
+  @media (max-width: 991.98px) {
+    .completion-record-detail-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 575.98px) {
+    .completion-record-detail-grid {
+      grid-template-columns: 1fr;
+    }
+  }
 </style>
 {% endblock extra_css %}
 
@@ -34,114 +122,236 @@
 
   {% include 'partials/page-title.html' with title='Completion records' subtitle='Admin inventory' %}
 
+  <div class="row row-cols-1 row-cols-sm-2 row-cols-xl-5 g-3 mt-0 mb-3 completion-record-kpi">
+    <div class="col">
+      <div class="card m-0 h-100">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <span class="avatar-title bg-primary-subtle text-primary rounded flex-shrink-0">
+              <i class="ti ti-list-check fs-24"></i>
+            </span>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Loaded rows</p>
+              <h3 class="mb-0">{{ completion_record_visible_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="card m-0 h-100">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <span class="avatar-title bg-info-subtle text-info rounded flex-shrink-0">
+              <i class="ti ti-users fs-24"></i>
+            </span>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Users</p>
+              <h3 class="mb-0">{{ completion_record_stats.user_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="card m-0 h-100">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <span class="avatar-title bg-warning-subtle text-warning rounded flex-shrink-0">
+              <i class="ti ti-trophy fs-24"></i>
+            </span>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Contests</p>
+              <h3 class="mb-0">{{ completion_record_stats.contest_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="card m-0 h-100">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <span class="avatar-title bg-success-subtle text-success rounded flex-shrink-0">
+              <i class="ti ti-file-check fs-24"></i>
+            </span>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Published</p>
+              <h3 class="mb-0">{{ completion_record_stats.published_solution_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="card m-0 h-100">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <span class="avatar-title bg-secondary-subtle text-secondary rounded flex-shrink-0">
+              <i class="ti ti-file-x fs-24"></i>
+            </span>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">No solution</p>
+              <h3 class="mb-0">{{ completion_record_stats.missing_solution_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="row g-3 mt-0 mb-3">
     <div class="col-12">
-      <div class="card">
+      <div class="card completion-record-filter-card">
         <div class="card-header border-bottom py-2">
           <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
             <div>
               <h4 class="header-title mb-0">Completion info listing</h4>
+              <p class="text-muted fs-xs mb-0">Server filters load matching rows; the table filter narrows within the loaded rows.</p>
             </div>
-            <div class="d-flex flex-wrap gap-1">
-              <span class="badge bg-primary-subtle text-primary">{{ completion_record_visible_total }} loaded</span>
-              <span class="badge bg-secondary-subtle text-secondary">{{ completion_record_stats.contest_total }} contests</span>
+            <div class="d-flex flex-wrap align-items-center justify-content-end gap-2">
+              {% if completion_record_is_capped %}
+              <span class="badge bg-info-subtle text-info">Latest {{ completion_record_result_limit }}</span>
+              <span class="text-muted fs-xs">Use filters to find older entries.</span>
+              {% else %}
+              <span class="badge bg-secondary-subtle text-secondary">{{ completion_record_visible_total }} loaded</span>
+              {% endif %}
             </div>
           </div>
         </div>
-        <div class="card-body p-2 p-md-3">
-          {% if completion_record_rows or completion_record_filter_options.contests or completion_record_filter_options.users %}
-          <form method="get" class="row g-2 align-items-end mb-3">
-            <div class="col-md-6 col-xl-3">
-              <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-record-q">Search</label>
-              <input
-                id="completion-record-q"
-                type="text"
-                name="q"
-                class="form-control form-control-sm"
-                value="{{ completion_record_filters.q }}"
-                placeholder="User, contest, problem, topic"
-              >
+        <div class="card-body">
+          <form method="get">
+            <div class="row g-2 align-items-end">
+              <div class="col-md-6 col-xl-3">
+                <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-record-q">Search</label>
+                <input
+                  id="completion-record-q"
+                  type="text"
+                  name="q"
+                  class="form-control form-control-sm"
+                  value="{{ completion_record_filters.q }}"
+                  placeholder="User, contest, problem, topic"
+                >
+              </div>
+              <div class="col-md-6 col-xl-2">
+                <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-record-contest">Contest</label>
+                <select id="completion-record-contest" name="contest" class="form-select form-select-sm">
+                  <option value="">All contests</option>
+                  {% for contest in completion_record_filter_options.contests %}
+                  <option value="{{ contest }}" {% if contest == completion_record_filters.contest %}selected{% endif %}>{{ contest }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-6 col-xl-3">
+                <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-record-user">User</label>
+                <select id="completion-record-user" name="user" class="form-select form-select-sm">
+                  <option value="">All users</option>
+                  {% for user_row in completion_record_filter_options.users %}
+                  <option value="{{ user_row.value }}" {% if user_row.value == completion_record_filters.user %}selected{% endif %}>{{ user_row.label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-6 col-xl-4">
+                <div class="d-flex flex-wrap gap-2">
+                  <button type="submit" class="btn btn-sm btn-primary">
+                    <i class="ti ti-filter me-1"></i>Apply filters
+                  </button>
+                  <button
+                    class="btn btn-sm btn-outline-secondary"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#completion-record-advanced-filters"
+                    aria-expanded="{% if completion_record_advanced_filters_open %}true{% else %}false{% endif %}"
+                    aria-controls="completion-record-advanced-filters"
+                  >
+                    <i class="ti ti-adjustments-horizontal me-1"></i>More filters
+                  </button>
+                  <a href="{% url 'pages:completion_record_list' %}" class="btn btn-sm btn-outline-secondary">
+                    <i class="ti ti-refresh me-1"></i>Reset
+                  </a>
+                </div>
+              </div>
             </div>
-            <div class="col-md-6 col-xl-2">
-              <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-record-contest">Contest</label>
-              <select id="completion-record-contest" name="contest" class="form-select form-select-sm">
-                <option value="">All contests</option>
-                {% for contest in completion_record_filter_options.contests %}
-                <option value="{{ contest }}" {% if contest == completion_record_filters.contest %}selected{% endif %}>{{ contest }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="col-md-6 col-xl-3">
-              <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-record-user">User</label>
-              <select id="completion-record-user" name="user" class="form-select form-select-sm">
-                <option value="">All users</option>
-                {% for user_row in completion_record_filter_options.users %}
-                <option value="{{ user_row.value }}" {% if user_row.value == completion_record_filters.user %}selected{% endif %}>{{ user_row.label }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="col-md-3 col-xl-1">
-              <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-record-date-status">Date</label>
-              <select id="completion-record-date-status" name="date_status" class="form-select form-select-sm">
-                <option value="">All dates</option>
-                {% for status in completion_record_filter_options.date_statuses %}
-                <option value="{{ status }}" {% if status == completion_record_filters.date_status %}selected{% endif %}>
-                  {% if status == "known" %}Known date{% else %}Unknown date{% endif %}
-                </option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="col-md-3 col-xl-1">
-              <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-record-status">Status</label>
-              <select id="completion-record-status" name="status" class="form-select form-select-sm">
-                <option value="">All</option>
-                {% for status in completion_record_filter_options.statuses %}
-                <option value="{{ status.value }}" {% if status.value == completion_record_filters.status %}selected{% endif %}>{{ status.label }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="col-md-3 col-xl-1">
-              <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-record-confidence">Confidence</label>
-              <select id="completion-record-confidence" name="confidence" class="form-select form-select-sm">
-                <option value="">All</option>
-                {% for confidence in completion_record_filter_options.confidences %}
-                <option value="{{ confidence.value }}" {% if confidence.value == completion_record_filters.confidence %}selected{% endif %}>{{ confidence.label }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="col-md-3 col-xl-2">
-              <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-record-solution-status">Solution</label>
-              <select id="completion-record-solution-status" name="solution_status" class="form-select form-select-sm">
-                <option value="">All solutions</option>
-                {% for status in completion_record_filter_options.solution_statuses %}
-                <option value="{{ status }}" {% if status == completion_record_filters.solution_status %}selected{% endif %}>
-                  {% if status == "none" %}No solution{% elif status == "draft" %}Draft{% elif status == "published" %}Published{% else %}{{ status|title }}{% endif %}
-                </option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="col-md-3 col-xl-1 d-flex gap-1">
-              <button type="submit" class="btn btn-sm btn-primary flex-fill" title="Apply filters" aria-label="Apply filters">
-                <i class="ti ti-filter"></i>
-              </button>
-              <a href="{% url 'pages:completion_record_list' %}" class="btn btn-sm btn-outline-secondary flex-fill" title="Reset filters" aria-label="Reset filters">
-                <i class="ti ti-refresh"></i>
-              </a>
+
+            <div id="completion-record-advanced-filters" class="collapse{% if completion_record_advanced_filters_open %} show{% endif %}">
+              <div class="row g-2 align-items-end completion-record-advanced-fields">
+                <div class="col-md-3 col-xl-2">
+                  <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-record-date-status">Date</label>
+                  <select id="completion-record-date-status" name="date_status" class="form-select form-select-sm">
+                    <option value="">All dates</option>
+                    {% for status in completion_record_filter_options.date_statuses %}
+                    <option value="{{ status }}" {% if status == completion_record_filters.date_status %}selected{% endif %}>
+                      {% if status == "known" %}Known date{% else %}Unknown date{% endif %}
+                    </option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="col-md-3 col-xl-2">
+                  <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-record-status">Status</label>
+                  <select id="completion-record-status" name="status" class="form-select form-select-sm">
+                    <option value="">All statuses</option>
+                    {% for status in completion_record_filter_options.statuses %}
+                    <option value="{{ status.value }}" {% if status.value == completion_record_filters.status %}selected{% endif %}>{{ status.label }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="col-md-3 col-xl-2">
+                  <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-record-confidence">Confidence</label>
+                  <select id="completion-record-confidence" name="confidence" class="form-select form-select-sm">
+                    <option value="">All confidence</option>
+                    {% for confidence in completion_record_filter_options.confidences %}
+                    <option value="{{ confidence.value }}" {% if confidence.value == completion_record_filters.confidence %}selected{% endif %}>{{ confidence.label }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="col-md-3 col-xl-2">
+                  <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-record-solution-status">Solution</label>
+                  <select id="completion-record-solution-status" name="solution_status" class="form-select form-select-sm">
+                    <option value="">All solutions</option>
+                    {% for status in completion_record_filter_options.solution_statuses %}
+                    <option value="{{ status }}" {% if status == completion_record_filters.solution_status %}selected{% endif %}>
+                      {% if status == "none" %}No solution{% elif status == "draft" %}Draft{% elif status == "published" %}Published{% elif status == "submitted" %}Submitted{% elif status == "archived" %}Archived{% else %}{{ status|title }}{% endif %}
+                    </option>
+                    {% endfor %}
+                  </select>
+                </div>
+              </div>
             </div>
           </form>
-          {% endif %}
-          {% if completion_record_is_capped %}
-          <div class="alert alert-info py-1 px-2 mb-2 fs-sm" role="alert">
-            Showing latest {{ completion_record_result_limit }} matching records. Use search and filters to find older entries.
+
+          {% if completion_record_active_filters %}
+          <div class="completion-record-filter-chips">
+            <p class="text-muted mb-2 fs-xs text-uppercase fw-semibold">Active filters</p>
+            <div class="d-flex flex-wrap gap-1">
+              {% for chip in completion_record_active_filters %}
+              <a href="{{ chip.remove_url }}" class="badge rounded-pill text-bg-light border text-decoration-none completion-record-filter-chip" aria-label="Remove {{ chip.label }} filter">
+                <span>{{ chip.label }}: {{ chip.value }}</span>
+                <i class="ti ti-x"></i>
+              </a>
+              {% endfor %}
+            </div>
           </div>
           {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-0 mb-3">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body p-2 p-md-3">
           {% if completion_record_rows %}
           <div class="table-responsive">
             <table id="completion-record-table" class="table table-sm table-hover table-striped align-middle w-100 mb-0"></table>
           </div>
           {% else %}
           <div class="alert alert-info py-2 mb-0" role="alert">
+            {% if completion_record_has_active_filters %}
+            No completion rows match the current filters.
+            {% else %}
             No completion rows have been saved yet.
+            {% endif %}
           </div>
           {% endif %}
         </div>
@@ -159,7 +369,8 @@
 <script>
 (function () {
   var tableEl = document.getElementById("completion-record-table-data");
-  if (!tableEl || typeof DataTable === "undefined") return;
+  var gridEl = document.getElementById("completion-record-table");
+  if (!tableEl || !gridEl || typeof DataTable === "undefined") return;
 
   var rows = JSON.parse(tableEl.textContent);
 
@@ -172,13 +383,114 @@
       .replace(/'/g, "&#39;");
   }
 
+  function present(value) {
+    return value !== null && value !== undefined && value !== "";
+  }
+
+  function mutedDash() {
+    return '<span class="text-muted fs-xs">-</span>';
+  }
+
+  function displayOrDash(value) {
+    return present(value) ? escapeHtml(value) : mutedDash();
+  }
+
   function ratingCountLabel(count) {
     return count === 1 ? "1 rating" : count + " ratings";
   }
 
-  new DataTable("#completion-record-table", {
+  function problemMeta(row) {
+    var pieces = [];
+    if (present(row.contest)) pieces.push(row.contest);
+    if (present(row.year)) pieces.push(row.year);
+    if (present(row.topic)) pieces.push(row.topic);
+    if (present(row.mohs)) pieces.push("MOHS " + row.mohs);
+    return pieces.join(" | ");
+  }
+
+  function detailTerm(label, value) {
+    return "<div><dt>" + escapeHtml(label) + "</dt><dd>" + displayOrDash(value) + "</dd></div>";
+  }
+
+  function detailLink(label, href) {
+    if (!href) return "";
+    return (
+      '<a href="' +
+      escapeHtml(href) +
+      '" class="btn btn-sm btn-outline-secondary">' +
+      escapeHtml(label) +
+      "</a>"
+    );
+  }
+
+  function detailSearchText(row) {
+    return [
+      row.user_label,
+      row.user_email,
+      row.problem_label,
+      row.contest,
+      row.year,
+      row.problem,
+      row.topic,
+      row.mohs,
+      row.average_difficulty_display,
+      row.status_label,
+      row.solution_status_label,
+      row.time_spent_display,
+      row.first_idea_found_label,
+      row.proof_completed_label,
+      row.main_obstacle_label,
+      row.key_technique,
+      row.post_mortem,
+      row.reattempt_date,
+      row.confidence_label,
+      row.completion_date,
+      row.updated_at
+    ].filter(present).join(" ");
+  }
+
+  function formatCompletionRecordDetails(row) {
+    var links = [
+      detailLink("Problem", row.problem_url),
+      detailLink("Archive", row.archive_url)
+    ].filter(Boolean).join(" ");
+
+    return (
+      '<div class="completion-record-detail-panel">' +
+      '<dl class="completion-record-detail-grid mb-3">' +
+      detailTerm("Time spent", row.time_spent_display) +
+      detailTerm("First idea found?", row.first_idea_found_label) +
+      detailTerm("Proof completed?", row.proof_completed_label) +
+      detailTerm("Main obstacle", row.main_obstacle_label) +
+      detailTerm("Key technique", row.key_technique) +
+      detailTerm("Post-mortem", row.post_mortem) +
+      detailTerm("Reattempt date", row.reattempt_date) +
+      detailTerm("Confidence", row.confidence_label) +
+      "</dl>" +
+      '<div class="d-flex flex-wrap gap-2">' +
+      links +
+      "</div>" +
+      "</div>"
+    );
+  }
+
+  var tableApi = new DataTable("#completion-record-table", {
     data: rows,
     columns: [
+      {
+        data: null,
+        title: "",
+        className: "text-nowrap",
+        orderable: false,
+        searchable: false,
+        render: function () {
+          return (
+            '<button type="button" class="btn btn-sm btn-outline-secondary btn-icon completion-record-detail-toggle" data-completion-record-details aria-label="Show completion details" title="Show details">' +
+            '<i class="ti ti-chevron-down"></i>' +
+            "</button>"
+          );
+        }
+      },
       {
         data: "user_label",
         title: "User",
@@ -189,20 +501,18 @@
           return data + " " + row.user_email;
         }
       },
-      { data: "contest", title: "Contest" },
-      { data: "year", title: "Year", className: "text-nowrap" },
       {
-        data: "problem_label",
+        data: null,
         title: "Problem",
         render: function (data, type, row) {
-          if (type === "display" && row.problem_url) {
-            return '<a href="' + row.problem_url + '" class="text-decoration-none">' + escapeHtml(data) + "</a>";
-          }
-          return data;
+          var meta = problemMeta(row);
+          if (type === "filter") return detailSearchText(row);
+          if (type !== "display") return row.problem_label + " " + meta;
+          var problemLabel = escapeHtml(row.problem_label || row.problem || "");
+          var problemLink = row.problem_url ? '<a href="' + row.problem_url + '" class="fw-semibold text-decoration-none">' + problemLabel + "</a>" : problemLabel;
+          return problemLink + '<div class="text-muted fs-12 completion-record-problem-meta">' + escapeHtml(meta) + "</div>";
         }
       },
-      { data: "topic", title: "Topic", className: "text-nowrap" },
-      { data: "mohs", title: "MOHS", className: "text-nowrap" },
       {
         data: "average_difficulty_rating",
         title: "Avg difficulty",
@@ -213,7 +523,7 @@
           if (!count || data === null || data === undefined || data === "") {
             if (type === "sort" || type === "type") return -1;
             if (type === "filter") return "";
-            return type === "display" ? '<span class="text-muted fs-xs">&mdash;</span>' : "";
+            return type === "display" ? mutedDash() : "";
           }
           if (type === "sort" || type === "type") return Number(data);
           if (type === "filter") return display + " " + ratingCountLabel(count);
@@ -235,39 +545,16 @@
         render: function (data, type, row) {
           if (type === "filter") return (data || "") + " " + (row.status || "");
           if (type !== "display") return data || "";
-          return '<span class="badge text-bg-light">' + escapeHtml(data || "Unattempted") + "</span>";
+          return '<span class="badge ' + row.status_badge_class + '">' + escapeHtml(data || "Unattempted") + "</span>";
         }
       },
-      { data: "time_spent_display", title: "Time spent", className: "text-nowrap" },
-      { data: "first_idea_found_label", title: "First idea found?", className: "text-nowrap" },
-      { data: "proof_completed_label", title: "Proof completed?", className: "text-nowrap" },
-      { data: "main_obstacle_label", title: "Main obstacle", className: "text-nowrap" },
-      { data: "key_technique", title: "Key technique", className: "text-nowrap" },
-      {
-        data: "post_mortem",
-        title: "Post-mortem",
-        render: function (data, type) {
-          if (type !== "display") return data || "";
-          return data ? '<span class="d-inline-block text-truncate" style="max-width: 18rem;" title="' + escapeHtml(data) + '">' + escapeHtml(data) + "</span>" : '<span class="text-muted fs-xs">-</span>';
-        }
-      },
-      {
-        data: "reattempt_date",
-        title: "Reattempt date",
-        className: "text-nowrap",
-        render: function (data, type, row) {
-          if (type === "sort" || type === "type") return row.reattempt_date_sort;
-          return data || "";
-        }
-      },
-      { data: "confidence_label", title: "Confidence", className: "text-nowrap" },
       {
         data: "completion_date",
         title: "Completed",
         className: "text-nowrap",
         render: function (data, type, row) {
           if (type === "sort" || type === "type") return row.completion_date_sort;
-          return data;
+          return data === "Unknown" ? mutedDash() : data;
         }
       },
       {
@@ -289,12 +576,55 @@
           if (type === "sort" || type === "type") return row.updated_at_sort;
           return data;
         }
+      },
+      {
+        data: null,
+        title: "Loaded search",
+        visible: false,
+        render: function (data, type, row) {
+          return type === "filter" ? detailSearchText(row) : "";
+        }
       }
     ],
-    order: [[18, "desc"]],
+    order: [[7, "desc"]],
     pageLength: 25,
     lengthMenu: [10, 25, 50, 100],
     scrollX: true,
+    autoWidth: false,
+    language: {
+      search: "Filter loaded rows:",
+      searchPlaceholder: "Within latest rows...",
+      info: "Showing _START_ to _END_ of _TOTAL_ loaded rows",
+      infoEmpty: "No loaded rows to show",
+      infoFiltered: "(filtered from _MAX_ loaded row(s))",
+      lengthMenu: "Show _MENU_ rows",
+      zeroRecords: "No loaded rows match the table filter."
+    }
+  });
+
+  gridEl.addEventListener("click", function (event) {
+    var button = event.target.closest("[data-completion-record-details]");
+    if (!button) return;
+
+    var tr = button.closest("tr");
+    var rowApi = tableApi.row(tr);
+    var icon = button.querySelector("i");
+
+    // Uses DataTables row().child() for the expandable completion detail panel.
+    if (rowApi.child.isShown()) {
+      rowApi.child.hide();
+      tr.classList.remove("shown");
+      button.setAttribute("aria-label", "Show completion details");
+      button.setAttribute("title", "Show details");
+      if (icon) icon.className = "ti ti-chevron-down";
+      return;
+    }
+
+    rowApi.child(formatCompletionRecordDetails(rowApi.data())).show();
+    tr.classList.add("shown");
+    button.setAttribute("aria-label", "Hide completion details");
+    button.setAttribute("title", "Hide details");
+    if (icon) icon.className = "ti ti-chevron-up";
   });
 })();
 </script>

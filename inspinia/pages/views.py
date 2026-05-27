@@ -2058,6 +2058,17 @@ def _solution_status_badge_class(status: str) -> str:
     }.get(status, "text-bg-light")
 
 
+def _completion_status_badge_class(status: str) -> str:
+    return {
+        UserProblemCompletion.Status.UNATTEMPTED: "text-bg-light",
+        UserProblemCompletion.Status.ATTEMPTED: "text-bg-warning",
+        UserProblemCompletion.Status.SOLVED: "text-bg-success",
+        UserProblemCompletion.Status.CHECKED: "text-bg-info",
+        UserProblemCompletion.Status.WRITTEN: "text-bg-primary",
+        UserProblemCompletion.Status.PUBLISHED: "text-bg-success",
+    }.get(status, "text-bg-light")
+
+
 def _user_completion_heatmap_payload(
     completion_dates: list[date],
     *,
@@ -2414,6 +2425,7 @@ def _admin_completion_listing_rows(
                 "user_url": reverse("users:detail", args=[user.pk]),
                 "year": contest_year,
                 **completion_metadata_payload(completion),
+                "status_badge_class": _completion_status_badge_class(completion.status),
             },
         )
 
@@ -2422,6 +2434,10 @@ def _admin_completion_listing_rows(
     return table_rows, {
         "contest_total": len({row["contest"] for row in table_rows if row["contest"]}),
         "known_date_total": known_date_total,
+        "missing_solution_total": sum(1 for row in table_rows if not row["solution_status"]),
+        "published_solution_total": sum(
+            1 for row in table_rows if row["solution_status"] == ProblemSolution.Status.PUBLISHED
+        ),
         "record_total": len(completions),
         "solution_total": completion_with_solution_total,
         "user_total": len({completion.user_id for completion in completions}),
@@ -2514,6 +2530,10 @@ def _admin_completion_listing_stats(rows: list[dict]) -> dict[str, int]:
     return {
         "contest_total": len({row["contest"] for row in rows}),
         "known_date_total": sum(1 for row in rows if row["completion_date"] != "Unknown"),
+        "missing_solution_total": sum(1 for row in rows if not row["solution_status"]),
+        "published_solution_total": sum(
+            1 for row in rows if row["solution_status"] == ProblemSolution.Status.PUBLISHED
+        ),
         "record_total": len(rows),
         "solution_total": sum(1 for row in rows if row["solution_status"]),
         "user_total": len({row["user_email"] for row in rows}),
@@ -2528,6 +2548,293 @@ def _admin_solution_listing_stats(rows: list[dict]) -> dict[str, int]:
         "published_total": sum(1 for row in rows if row["status"] == ProblemSolution.Status.PUBLISHED),
         "solution_total": len(rows),
     }
+
+
+def _completion_record_choice_label(choices, value: str) -> str:
+    return dict(choices).get(value, value.replace("_", " ").title())
+
+
+def _completion_record_date_status_label(value: str) -> str:
+    return {"known": "Known date", "unknown": "Unknown date"}.get(value, value.replace("_", " ").title())
+
+
+def _completion_record_solution_status_label(value: str) -> str:
+    if value == "none":
+        return "No solution"
+    return _completion_record_choice_label(ProblemSolution.Status.choices, value)
+
+
+def _completion_record_user_display_label(email: str, user_label: str = "") -> str:
+    if not user_label or user_label == email:
+        return email
+    return f"{user_label} ({email})"
+
+
+def _completion_record_user_labels(rows: list[dict], selected_user: str = "") -> dict[str, str]:
+    row_labels = {
+        row["user_email"]: _completion_record_user_display_label(row["user_email"], row["user_label"])
+        for row in rows
+        if row["user_email"]
+    }
+    emails = set(row_labels)
+    if selected_user:
+        emails.add(selected_user)
+    if not emails:
+        return {}
+
+    user_labels = row_labels.copy()
+    users_by_email = {
+        user.email: _completion_record_user_display_label(user.email, user.name or user.email)
+        for user in User.objects.filter(email__in=emails).only("email", "name")
+    }
+    user_labels.update(users_by_email)
+    for email in emails:
+        user_labels.setdefault(email, email)
+    return user_labels
+
+
+def _completion_record_filter_options(
+    rows: list[dict],
+    *,
+    selected_filters: dict[str, str],
+) -> dict[str, list]:
+    selected_contest = selected_filters["contest"]
+    selected_user = selected_filters["user"]
+    selected_date_status = selected_filters["date_status"]
+    selected_solution_status = selected_filters["solution_status"]
+    selected_status = selected_filters["status"]
+    selected_confidence = selected_filters["confidence"]
+    contests = {row["contest"] for row in rows if row["contest"]}
+    if selected_contest:
+        contests.add(selected_contest)
+
+    date_statuses = {
+        label
+        for label, present in (
+            ("known", any(row["completion_date"] != "Unknown" for row in rows)),
+            ("unknown", any(row["completion_date"] == "Unknown" for row in rows)),
+        )
+        if present
+    }
+    if selected_date_status in {"known", "unknown"}:
+        date_statuses.add(selected_date_status)
+
+    solution_statuses = set()
+    if any(not row["solution_status"] for row in rows):
+        solution_statuses.add("none")
+    solution_statuses.update(row["solution_status"] for row in rows if row["solution_status"])
+    if selected_solution_status:
+        solution_statuses.add(selected_solution_status)
+    recognized_solution_statuses = {value for value, _label in ProblemSolution.Status.choices}
+    ordered_solution_statuses = (
+        (["none"] if "none" in solution_statuses else [])
+        + [
+            status
+            for status, _label in ProblemSolution.Status.choices
+            if status in solution_statuses
+        ]
+        + [
+            status
+            for status in sorted(solution_statuses)
+            if status != "none" and status not in recognized_solution_statuses
+        ]
+    )
+
+    selected_statuses = {row["status"] for row in rows if row["status"]}
+    if selected_status:
+        selected_statuses.add(selected_status)
+    selected_confidences = {row["confidence"] for row in rows if row["confidence"]}
+    if selected_confidence:
+        selected_confidences.add(selected_confidence)
+
+    user_labels = _completion_record_user_labels(rows, selected_user)
+    return {
+        "contests": sorted(contests),
+        "date_statuses": [status for status in ("known", "unknown") if status in date_statuses],
+        "solution_statuses": ordered_solution_statuses,
+        "statuses": [
+            {"value": value, "label": label}
+            for value, label in UserProblemCompletion.Status.choices
+            if value in selected_statuses
+        ],
+        "confidences": [
+            {"value": value, "label": label}
+            for value, label in UserProblemCompletion.Confidence.choices
+            if value in selected_confidences
+        ],
+        "users": [
+            {"label": label, "value": email}
+            for email, label in sorted(user_labels.items(), key=lambda item: item[1].lower())
+        ],
+    }
+
+
+def _completion_record_remove_filter_url(query_params, key: str) -> str:
+    params = query_params.copy()
+    params.pop(key, None)
+    query_string = params.urlencode()
+    base_url = reverse("pages:completion_record_list")
+    return f"{base_url}?{query_string}" if query_string else base_url
+
+
+def _completion_record_active_filters(
+    *,
+    query_params,
+    selected_filters: dict[str, str],
+    user_labels: dict[str, str],
+) -> list[dict[str, str]]:
+    active_filters: list[dict[str, str]] = []
+    filter_labels = {
+        "q": ("Search", lambda value: value),
+        "contest": ("Contest", lambda value: value),
+        "user": ("User", lambda value: user_labels.get(value, value)),
+        "date_status": ("Date", _completion_record_date_status_label),
+        "status": (
+            "Status",
+            lambda value: _completion_record_choice_label(UserProblemCompletion.Status.choices, value),
+        ),
+        "confidence": (
+            "Confidence",
+            lambda value: _completion_record_choice_label(UserProblemCompletion.Confidence.choices, value),
+        ),
+        "solution_status": ("Solution", _completion_record_solution_status_label),
+    }
+    for key, value in selected_filters.items():
+        if not value:
+            continue
+        label, value_labeler = filter_labels[key]
+        active_filters.append(
+            {
+                "key": key,
+                "label": label,
+                "remove_url": _completion_record_remove_filter_url(query_params, key),
+                "value": value_labeler(value),
+            },
+        )
+    return active_filters
+
+
+def _completion_record_selected_filters(request) -> dict[str, str]:
+    return {
+        "q": (request.GET.get("q") or "").strip(),
+        "contest": (request.GET.get("contest") or "").strip(),
+        "user": (request.GET.get("user") or "").strip(),
+        "date_status": (request.GET.get("date_status") or "").strip(),
+        "solution_status": (request.GET.get("solution_status") or "").strip(),
+        "status": (request.GET.get("status") or "").strip(),
+        "confidence": (request.GET.get("confidence") or "").strip(),
+    }
+
+
+def _completion_record_base_queryset():
+    return UserProblemCompletion.objects.select_related(
+        "user",
+        "problem",
+        "statement",
+        "statement__linked_problem",
+    ).annotate(
+        _effective_contest=Coalesce(
+            "statement__contest_name",
+            "problem__contest",
+            Value("", output_field=CharField()),
+        ),
+        _effective_problem=Coalesce(
+            "statement__problem_code",
+            "problem__problem",
+            Value("", output_field=CharField()),
+        ),
+        _effective_problem_label=Coalesce(
+            "statement__contest_year_problem",
+            "problem__contest_year_problem",
+            Value("", output_field=CharField()),
+        ),
+        _effective_topic=Coalesce(
+            "statement__linked_problem__topic",
+            "problem__topic",
+            Value("", output_field=CharField()),
+        ),
+        _effective_problem_id=Coalesce(
+            "statement__linked_problem_id",
+            "problem_id",
+        ),
+    )
+
+
+def _completion_record_solution_status_queryset():
+    return ProblemSolution.objects.filter(
+        author_id=OuterRef("user_id"),
+        problem_id=OuterRef("_effective_problem_id"),
+    )
+
+
+def _completion_record_apply_basic_filters(completion_queryset, selected_filters: dict[str, str]):
+    if selected_filters["contest"]:
+        completion_queryset = completion_queryset.filter(_effective_contest=selected_filters["contest"])
+    if selected_filters["user"]:
+        completion_queryset = completion_queryset.filter(user__email=selected_filters["user"])
+    if selected_filters["date_status"] == "known":
+        completion_queryset = completion_queryset.filter(completion_date__isnull=False)
+    elif selected_filters["date_status"] == "unknown":
+        completion_queryset = completion_queryset.filter(completion_date__isnull=True)
+    if selected_filters["status"]:
+        completion_queryset = completion_queryset.filter(status=selected_filters["status"])
+    if selected_filters["confidence"]:
+        completion_queryset = completion_queryset.filter(confidence=selected_filters["confidence"])
+    return completion_queryset
+
+
+def _completion_record_apply_solution_filter(
+    completion_queryset,
+    *,
+    selected_solution_status: str,
+    solution_status_queryset,
+):
+    if selected_solution_status == "none":
+        return completion_queryset.annotate(
+            _has_effective_solution=Exists(solution_status_queryset),
+        ).filter(_has_effective_solution=False)
+    if selected_solution_status:
+        return completion_queryset.annotate(
+            _has_selected_solution_status=Exists(
+                solution_status_queryset.filter(status=selected_solution_status),
+            ),
+        ).filter(_has_selected_solution_status=True)
+    return completion_queryset
+
+
+def _completion_record_apply_search(
+    completion_queryset,
+    *,
+    search_query: str,
+    solution_status_queryset,
+):
+    if not search_query:
+        return completion_queryset
+
+    completion_queryset = completion_queryset.annotate(
+        _effective_solution_status=Subquery(
+            solution_status_queryset.order_by("-updated_at", "-id").values("status")[:1],
+        ),
+    )
+    for token in search_query.split():
+        token_query = (
+            Q(user__name__icontains=token)
+            | Q(user__email__icontains=token)
+            | Q(_effective_contest__icontains=token)
+            | Q(_effective_problem__icontains=token)
+            | Q(_effective_problem_label__icontains=token)
+            | Q(_effective_topic__icontains=token)
+            | Q(_effective_solution_status__icontains=token)
+            | Q(status__icontains=token)
+            | Q(main_obstacle__icontains=token)
+            | Q(key_technique__icontains=token)
+            | Q(post_mortem__icontains=token)
+            | Q(confidence__icontains=token)
+        )
+        if token.isdigit():
+            token_query |= Q(statement__contest_year=int(token)) | Q(problem__year=int(token))
+        completion_queryset = completion_queryset.filter(token_query)
+    return completion_queryset
 
 
 def _coerce_year_filter(raw_value: str | None, available_years: set[int]) -> int | None:
@@ -4763,99 +5070,22 @@ def my_completion_progress_analytics_view(request):
 def completion_record_list_view(request):
     """Admin inventory of all saved user completion rows."""
     _require_admin_tools_access(request)
-    search_query = (request.GET.get("q") or "").strip()
-    selected_contest = (request.GET.get("contest") or "").strip()
-    selected_user = (request.GET.get("user") or "").strip()
-    selected_date_status = (request.GET.get("date_status") or "").strip()
-    selected_solution_status = (request.GET.get("solution_status") or "").strip()
-    selected_status = (request.GET.get("status") or "").strip()
-    selected_confidence = (request.GET.get("confidence") or "").strip()
-
-    completion_queryset = (
-        UserProblemCompletion.objects.select_related(
-            "user",
-            "problem",
-            "statement",
-            "statement__linked_problem",
-        )
-        .annotate(
-            _effective_contest=Coalesce(
-                "statement__contest_name",
-                "problem__contest",
-                Value("", output_field=CharField()),
-            ),
-            _effective_problem=Coalesce(
-                "statement__problem_code",
-                "problem__problem",
-                Value("", output_field=CharField()),
-            ),
-            _effective_problem_label=Coalesce(
-                "statement__contest_year_problem",
-                "problem__contest_year_problem",
-                Value("", output_field=CharField()),
-            ),
-            _effective_topic=Coalesce(
-                "statement__linked_problem__topic",
-                "problem__topic",
-                Value("", output_field=CharField()),
-            ),
-            _effective_problem_id=Coalesce(
-                "statement__linked_problem_id",
-                "problem_id",
-            ),
-        )
+    selected_filters = _completion_record_selected_filters(request)
+    solution_status_queryset = _completion_record_solution_status_queryset()
+    completion_queryset = _completion_record_apply_basic_filters(
+        _completion_record_base_queryset(),
+        selected_filters,
     )
-    solution_status_queryset = ProblemSolution.objects.filter(
-        author_id=OuterRef("user_id"),
-        problem_id=OuterRef("_effective_problem_id"),
+    completion_queryset = _completion_record_apply_solution_filter(
+        completion_queryset,
+        selected_solution_status=selected_filters["solution_status"],
+        solution_status_queryset=solution_status_queryset,
     )
-
-    if selected_contest:
-        completion_queryset = completion_queryset.filter(_effective_contest=selected_contest)
-    if selected_user:
-        completion_queryset = completion_queryset.filter(user__email=selected_user)
-    if selected_date_status == "known":
-        completion_queryset = completion_queryset.filter(completion_date__isnull=False)
-    elif selected_date_status == "unknown":
-        completion_queryset = completion_queryset.filter(completion_date__isnull=True)
-    if selected_status:
-        completion_queryset = completion_queryset.filter(status=selected_status)
-    if selected_confidence:
-        completion_queryset = completion_queryset.filter(confidence=selected_confidence)
-    if selected_solution_status == "none":
-        completion_queryset = completion_queryset.annotate(
-            _has_effective_solution=Exists(solution_status_queryset),
-        ).filter(_has_effective_solution=False)
-    elif selected_solution_status:
-        completion_queryset = completion_queryset.annotate(
-            _has_selected_solution_status=Exists(
-                solution_status_queryset.filter(status=selected_solution_status),
-            ),
-        ).filter(_has_selected_solution_status=True)
-    if search_query:
-        completion_queryset = completion_queryset.annotate(
-            _effective_solution_status=Subquery(
-                solution_status_queryset.order_by("-updated_at", "-id").values("status")[:1],
-            ),
-        )
-        for token in search_query.split():
-            token_query = (
-                Q(user__name__icontains=token)
-                | Q(user__email__icontains=token)
-                | Q(_effective_contest__icontains=token)
-                | Q(_effective_problem__icontains=token)
-                | Q(_effective_problem_label__icontains=token)
-                | Q(_effective_topic__icontains=token)
-                | Q(_effective_solution_status__icontains=token)
-                | Q(status__icontains=token)
-                | Q(main_obstacle__icontains=token)
-                | Q(key_technique__icontains=token)
-                | Q(post_mortem__icontains=token)
-                | Q(confidence__icontains=token)
-            )
-            if token.isdigit():
-                token_query |= Q(statement__contest_year=int(token)) | Q(problem__year=int(token))
-            completion_queryset = completion_queryset.filter(token_query)
+    completion_queryset = _completion_record_apply_search(
+        completion_queryset,
+        search_query=selected_filters["q"],
+        solution_status_queryset=solution_status_queryset,
+    )
 
     latest_completions = list(
         completion_queryset.order_by("-updated_at", "-id")[: ADMIN_TABLE_LATEST_LIMIT + 1],
@@ -4866,61 +5096,27 @@ def completion_record_list_view(request):
     )
     completion_visible_total = len(completion_rows)
 
-    completion_filter_options = {
-        "contests": sorted({row["contest"] for row in completion_rows if row["contest"]}),
-        "date_statuses": [
-            label
-            for label, present in (
-                ("known", any(row["completion_date"] != "Unknown" for row in completion_rows)),
-                ("unknown", any(row["completion_date"] == "Unknown" for row in completion_rows)),
-            )
-            if present
-        ],
-        "solution_statuses": (
-            (["none"] if any(not row["solution_status"] for row in completion_rows) else [])
-            + [
-                status
-                for status, _label in ProblemSolution.Status.choices
-                if any(row["solution_status"] == status for row in completion_rows)
-            ]
-        ),
-        "statuses": [
-            {"value": value, "label": label}
-            for value, label in UserProblemCompletion.Status.choices
-            if any(row["status"] == value for row in completion_rows)
-        ],
-        "confidences": [
-            {"value": value, "label": label}
-            for value, label in UserProblemCompletion.Confidence.choices
-            if any(row["confidence"] == value for row in completion_rows)
-        ],
-        "users": [
-            {
-                "label": row["user_label"] if row["user_label"] == row["user_email"] else f"{row['user_label']} ({row['user_email']})",
-                "value": row["user_email"],
-            }
-            for row in {
-                row["user_email"]: {
-                    "user_email": row["user_email"],
-                    "user_label": row["user_label"],
-                }
-                for row in completion_rows
-            }.values()
-        ],
-    }
-
+    completion_filter_options = _completion_record_filter_options(
+        completion_rows,
+        selected_filters=selected_filters,
+    )
     completion_stats = _admin_completion_listing_stats(completion_rows)
+    completion_active_filters = _completion_record_active_filters(
+        query_params=request.GET,
+        selected_filters=selected_filters,
+        user_labels={user["value"]: user["label"] for user in completion_filter_options["users"]},
+    )
     context = {
+        "completion_record_active_filters": completion_active_filters,
+        "completion_record_advanced_filters_open": bool(
+            selected_filters["date_status"]
+            or selected_filters["status"]
+            or selected_filters["confidence"]
+            or selected_filters["solution_status"],
+        ),
         "completion_record_filter_options": completion_filter_options,
-        "completion_record_filters": {
-            "date_status": selected_date_status,
-            "q": search_query,
-            "solution_status": selected_solution_status,
-            "status": selected_status,
-            "confidence": selected_confidence,
-            "contest": selected_contest,
-            "user": selected_user,
-        },
+        "completion_record_filters": selected_filters,
+        "completion_record_has_active_filters": bool(completion_active_filters),
         "completion_record_rows": completion_rows,
         "completion_record_stats": completion_stats,
         "completion_record_visible_total": completion_visible_total,

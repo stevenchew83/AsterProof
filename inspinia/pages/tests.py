@@ -6823,7 +6823,10 @@ def test_completion_record_list_renders_admin_inventory(client):
     response_html = response.content.decode("utf-8")
     assert "Completion info listing" in response_html
     assert 'id="completion-record-table"' in response_html
-    assert 'order: [[18, "desc"]]' in response_html
+    assert 'order: [[7, "desc"]]' in response_html
+    assert "Filter loaded rows:" in response_html
+    assert "Within latest rows" in response_html
+    assert "row().child" in response_html
     assert "Known dates" not in response_html
     assert "With solutions" not in response_html
 
@@ -6869,10 +6872,13 @@ def test_completion_record_list_includes_study_progress_fields(client):
     assert row["post_mortem"] == "State the lifting step before expanding cases."
     assert row["reattempt_date"] == "2026-07-24"
     assert row["confidence_label"] == "Medium"
+    assert row["status_badge_class"] == "text-bg-info"
     response_html = response.content.decode("utf-8")
     assert 'title: "Status"' in response_html
-    assert 'title: "Time spent"' in response_html
-    assert 'title: "Post-mortem"' in response_html
+    assert "completion-record-detail-panel" in response_html
+    assert "Time spent" in response_html
+    assert "First idea found?" in response_html
+    assert "Post-mortem" in response_html
 
 
 def test_completion_record_list_shows_average_user_set_difficulty_after_mohs(client):
@@ -6918,10 +6924,166 @@ def test_completion_record_list_shows_average_user_set_difficulty_after_mohs(cli
     assert row["difficulty_rating_count"] == expected_difficulty_rating_count
     response_html = response.content.decode("utf-8")
     assert 'title: "Avg difficulty"' in response_html
-    assert response_html.index('{ data: "mohs", title: "MOHS"') < response_html.index(
+    assert response_html.index('title: "Problem"') < response_html.index(
         'data: "average_difficulty_rating"',
-    ) < response_html.index('data: "completion_date"')
-    assert 'order: [[18, "desc"]]' in response_html
+    ) < response_html.index('title: "Status"')
+    assert "MOHS" in response_html
+    assert 'order: [[7, "desc"]]' in response_html
+
+
+def test_completion_record_list_renders_compact_kpis_and_missing_solution_stats(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    published_user = UserFactory(name="Published Solver")
+    missing_user = UserFactory(name="Missing Solver")
+    client.force_login(admin_user)
+    published_problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="ALG",
+        mohs=6,
+        contest="USAMO",
+        problem="P1",
+        contest_year_problem="USAMO 2026 P1",
+    )
+    missing_problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="GEO",
+        mohs=8,
+        contest="IMO",
+        problem="P2",
+        contest_year_problem="IMO 2026 P2",
+    )
+    UserProblemCompletion.objects.create(
+        user=published_user,
+        problem=published_problem,
+        completion_date=date(2026, 7, 10),
+    )
+    UserProblemCompletion.objects.create(
+        user=missing_user,
+        problem=missing_problem,
+        completion_date=date(2026, 7, 11),
+    )
+    ProblemSolution.objects.create(
+        problem=published_problem,
+        author=published_user,
+        status=ProblemSolution.Status.PUBLISHED,
+    )
+
+    response = client.get(reverse("pages:completion_record_list"))
+
+    expected_record_total = 2
+    expected_user_total = 2
+    expected_contest_total = 2
+    expected_published_solution_total = 1
+    expected_missing_solution_total = 1
+
+    assert response.status_code == HTTPStatus.OK
+    stats = response.context["completion_record_stats"]
+    assert stats["record_total"] == expected_record_total
+    assert stats["user_total"] == expected_user_total
+    assert stats["contest_total"] == expected_contest_total
+    assert stats["published_solution_total"] == expected_published_solution_total
+    assert stats["missing_solution_total"] == expected_missing_solution_total
+    response_html = response.content.decode("utf-8")
+    assert "Loaded rows" in response_html
+    assert "Users" in response_html
+    assert "Contests" in response_html
+    assert "Published" in response_html
+    assert "No solution" in response_html
+
+
+def test_completion_record_list_renders_active_filter_chips_and_opens_advanced_filters(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    completion_user = UserFactory(name="Ada Lovelace", email="ada@example.com")
+    client.force_login(admin_user)
+    problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="ALG",
+        mohs=6,
+        contest="USAMO",
+        problem="P1",
+        contest_year_problem="USAMO 2026 P1",
+    )
+    UserProblemCompletion.objects.create(
+        user=completion_user,
+        problem=problem,
+        completion_date=date(2026, 7, 10),
+        status=UserProblemCompletion.Status.CHECKED,
+        confidence=UserProblemCompletion.Confidence.HIGH,
+    )
+
+    response = client.get(
+        reverse("pages:completion_record_list"),
+        {
+            "q": "Ada",
+            "contest": "USAMO",
+            "user": "ada@example.com",
+            "date_status": "known",
+            "status": UserProblemCompletion.Status.CHECKED,
+            "confidence": UserProblemCompletion.Confidence.HIGH,
+            "solution_status": "none",
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["completion_record_has_active_filters"] is True
+    assert response.context["completion_record_advanced_filters_open"] is True
+    chips = response.context["completion_record_active_filters"]
+    chip_labels = {(chip["label"], chip["value"]) for chip in chips}
+    assert ("Search", "Ada") in chip_labels
+    assert ("Contest", "USAMO") in chip_labels
+    assert ("User", "Ada Lovelace (ada@example.com)") in chip_labels
+    assert ("Date", "Known date") in chip_labels
+    assert ("Status", "Checked") in chip_labels
+    assert ("Confidence", "High") in chip_labels
+    assert ("Solution", "No solution") in chip_labels
+    status_chip = next(chip for chip in chips if chip["label"] == "Status")
+    assert "?status=" not in status_chip["remove_url"]
+    assert "&status=" not in status_chip["remove_url"]
+    assert "q=Ada" in status_chip["remove_url"]
+    response_html = response.content.decode("utf-8")
+    assert "completion-record-advanced-filters" in response_html
+    assert 'class="collapse show"' in response_html
+    assert "Active filters" in response_html
+
+
+def test_completion_record_list_preserves_selected_options_when_filtered_rows_are_empty(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="ALG",
+        mohs=6,
+        contest="USAMO",
+        problem="P1",
+        contest_year_problem="USAMO 2026 P1",
+    )
+    UserProblemCompletion.objects.create(
+        user=UserFactory(name="Ada Lovelace", email="ada@example.com"),
+        problem=problem,
+        completion_date=date(2026, 7, 10),
+    )
+
+    response = client.get(
+        reverse("pages:completion_record_list"),
+        {
+            "contest": "IMO",
+            "user": "missing@example.com",
+            "status": UserProblemCompletion.Status.WRITTEN,
+            "confidence": UserProblemCompletion.Confidence.LOW,
+            "solution_status": ProblemSolution.Status.PUBLISHED,
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["completion_record_rows"] == []
+    assert response.context["completion_record_has_active_filters"] is True
+    response_html = response.content.decode("utf-8")
+    assert "No completion rows match the current filters." in response_html
+    assert 'value="IMO" selected' in response_html
+    assert 'value="missing@example.com" selected' in response_html
+    assert f'value="{UserProblemCompletion.Status.WRITTEN}" selected' in response_html
+    assert f'value="{UserProblemCompletion.Confidence.LOW}" selected' in response_html
+    assert f'value="{ProblemSolution.Status.PUBLISHED}" selected' in response_html
 
 
 def test_completion_record_list_caps_to_latest_100_by_updated_at(client):
@@ -6958,6 +7120,7 @@ def test_completion_record_list_caps_to_latest_100_by_updated_at(client):
     assert response.context["completion_record_visible_total"] == 100
     assert response.context["completion_record_result_limit"] == 100
     assert response.context["completion_record_is_capped"] is True
+    assert "Latest 100" in response.content.decode("utf-8")
 
 
 def test_completion_record_list_does_not_cap_exactly_100_records(client):
