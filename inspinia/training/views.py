@@ -455,23 +455,102 @@ def _topic_workspace_stats(topics: list[Topic], subtopics: list[Subtopic]) -> di
     }
 
 
-def _material_workspace_initial_data(
-    material: Material | None,
-    subtopic: Subtopic | None,
-) -> tuple[dict[str, int], dict[str, int | str]]:
-    material_initial = {}
-    checkpoint_initial = {
+def _trainer_material_by_id(value: str | None) -> Material | None:
+    if not value or not value.isdigit():
+        return None
+    return Material.objects.select_related("subtopic", "subtopic__topic").filter(pk=int(value)).first()
+
+
+def _trainer_subtopic_by_id(value: str | None) -> Subtopic | None:
+    if not value or not value.isdigit():
+        return None
+    return Subtopic.objects.select_related("topic").filter(pk=int(value)).first()
+
+
+def _material_initial_for_subtopic(material: Material | None, subtopic: Subtopic | None) -> dict[str, int]:
+    return {"subtopic": subtopic.id} if material is None and subtopic is not None else {}
+
+
+def _checkpoint_initial_for_material(material: Material | None) -> dict[str, object]:
+    initial: dict[str, object] = {
         "difficulty": Problem.Difficulty.INTRODUCTORY,
         "is_published": True,
         "max_points": 20,
     }
     if material is not None:
-        checkpoint_initial["subtopic"] = material.subtopic_id
-        checkpoint_initial["order"] = material.order + 10
-    elif subtopic is not None:
-        material_initial["subtopic"] = subtopic.id
-        checkpoint_initial["subtopic"] = subtopic.id
-    return material_initial, checkpoint_initial
+        initial["subtopic"] = material.subtopic_id
+        initial["order"] = material.order + 10
+    return initial
+
+
+def _checkpoint_form_for_material(material: Material | None, data=None) -> CheckpointProblemForm:
+    kwargs = {
+        "initial": _checkpoint_initial_for_material(material),
+        "locked_subtopic": material.subtopic if material is not None else None,
+        "prefix": "checkpoint",
+    }
+    if data is not None:
+        return CheckpointProblemForm(data, **kwargs)
+    return CheckpointProblemForm(**kwargs)
+
+
+def _save_checkpoint_problem(request, material: Material, form: CheckpointProblemForm):
+    problem = form.save(commit=False)
+    problem.subtopic = material.subtopic
+    if problem.created_by_id is None:
+        problem.created_by = request.user
+    problem.save()
+    messages.success(request, "Checkpoint problem saved.")
+    return _redirect_with_edit("training:trainer_materials", material.id)
+
+
+def _handle_checkpoint_material_post(request, selected_subtopic: Subtopic | None):
+    material = _trainer_material_by_id(request.POST.get("material_id"))
+    selected_subtopic = material.subtopic if material is not None else selected_subtopic
+    form = MaterialForm(instance=material)
+    checkpoint_form = _checkpoint_form_for_material(material, request.POST)
+    if material is None:
+        messages.error(request, "Select a material before adding a checkpoint problem.")
+        return material, selected_subtopic, form, checkpoint_form, None
+    if checkpoint_form.is_valid():
+        response = _save_checkpoint_problem(request, material, checkpoint_form)
+        return material, selected_subtopic, form, checkpoint_form, response
+    return material, selected_subtopic, form, checkpoint_form, None
+
+
+def _handle_material_post(request):
+    material = _trainer_material_by_id(request.POST.get("item_id"))
+    selected_subtopic = (
+        material.subtopic if material is not None else _trainer_subtopic_by_id(request.POST.get("subtopic"))
+    )
+    form = MaterialForm(request.POST, instance=material)
+    checkpoint_form = _checkpoint_form_for_material(material)
+    if form.is_valid():
+        saved_material = form.save(commit=False)
+        if saved_material.created_by_id is None:
+            saved_material.created_by = request.user
+        saved_material.save()
+        messages.success(request, "Material saved.")
+        response = _redirect_with_edit("training:trainer_materials", saved_material.id)
+        return material, selected_subtopic, form, checkpoint_form, response
+    return material, selected_subtopic, form, checkpoint_form, None
+
+
+def _trainer_materials_workspace_context(request, selected_subtopic: Subtopic | None) -> dict:
+    focused_materials = _material_queryset_for_user(request.user)
+    checkpoint_problems = _problem_queryset_for_user(request.user)
+    if selected_subtopic is not None:
+        focused_materials = focused_materials.filter(subtopic=selected_subtopic)
+        checkpoint_problems = checkpoint_problems.filter(subtopic=selected_subtopic)
+    focused_materials = focused_materials.annotate(checkpoint_count=Count("subtopic__problems", distinct=True))
+    return {
+        "checkpoint_problems": checkpoint_problems.order_by("order", "title", "id")[:8],
+        "focused_materials": focused_materials,
+        "material_total": focused_materials.count(),
+        "materials": focused_materials,
+        "published_material_total": focused_materials.filter(is_published=True).count(),
+        "subtopic_problem_total": checkpoint_problems.count(),
+    }
 
 
 @login_required
@@ -532,67 +611,38 @@ def trainer_topics_view(request):
 @require_http_methods(["GET", "POST"])
 def trainer_materials_view(request):
     _require_trainer_or_admin(request)
-    instance = (
-        Material.objects.select_related("subtopic", "subtopic__topic").filter(pk=request.GET.get("edit")).first()
+    instance = _trainer_material_by_id(request.GET.get("edit"))
+    selected_subtopic = (
+        instance.subtopic if instance is not None else _trainer_subtopic_by_id(request.GET.get("subtopic"))
     )
-    selected_subtopic = None
-    if instance is None and request.GET.get("subtopic"):
-        selected_subtopic = get_object_or_404(Subtopic, pk=request.GET["subtopic"])
-    material_initial, checkpoint_initial = _material_workspace_initial_data(instance, selected_subtopic)
 
     if request.method == "POST":
-        form_kind = request.POST.get("form_kind", "material")
-        if form_kind == "checkpoint_problem":
-            instance = (
-                Material.objects.select_related("subtopic", "subtopic__topic")
-                .filter(pk=request.POST.get("material_id"))
-                .first()
+        if request.POST.get("form_kind", "material") == "checkpoint_problem":
+            instance, selected_subtopic, form, checkpoint_form, response = _handle_checkpoint_material_post(
+                request,
+                selected_subtopic,
             )
-            form = MaterialForm(instance=instance)
-            checkpoint_form = CheckpointProblemForm(request.POST)
-            if checkpoint_form.is_valid():
-                problem = checkpoint_form.save(commit=False)
-                if problem.created_by_id is None:
-                    problem.created_by = request.user
-                problem.save()
-                messages.success(request, "Checkpoint problem saved.")
-                return _redirect_with_edit("training:trainer_materials", instance.id if instance is not None else None)
         else:
-            instance = (
-                Material.objects.select_related("subtopic", "subtopic__topic")
-                .filter(pk=request.POST.get("item_id"))
-                .first()
-            )
-            form = MaterialForm(request.POST, instance=instance)
-            checkpoint_form = CheckpointProblemForm(initial=checkpoint_initial)
-            if form.is_valid():
-                material = form.save(commit=False)
-                if material.created_by_id is None:
-                    material.created_by = request.user
-                material.save()
-                messages.success(request, "Material saved.")
-                return _redirect_with_edit("training:trainer_materials", material.id)
+            instance, selected_subtopic, form, checkpoint_form, response = _handle_material_post(request)
+        if response is not None:
+            return response
     else:
-        form = MaterialForm(instance=instance, initial=material_initial)
-        checkpoint_form = CheckpointProblemForm(initial=checkpoint_initial)
-
-    checkpoint_problems = Problem.objects.select_related("subtopic", "subtopic__topic")
-    if instance is not None:
-        checkpoint_problems = checkpoint_problems.filter(subtopic=instance.subtopic)
+        form = MaterialForm(
+            instance=instance,
+            initial=_material_initial_for_subtopic(instance, selected_subtopic),
+        )
+        checkpoint_form = _checkpoint_form_for_material(instance)
 
     return render(
         request,
         "training/trainer/materials.html",
         {
             "checkpoint_form": checkpoint_form,
-            "checkpoint_problems": checkpoint_problems.order_by("order", "title", "id")[:8],
             "form": form,
-            "material_total": Material.objects.count(),
-            "materials": Material.objects.select_related("subtopic", "subtopic__topic"),
-            "published_material_total": Material.objects.filter(is_published=True).count(),
             "rendered_material_preview": render_markdown(instance.content_markdown) if instance is not None else "",
             "selected_material": instance,
-            "subtopic_problem_total": checkpoint_problems.count(),
+            "selected_subtopic": selected_subtopic,
+            **_trainer_materials_workspace_context(request, selected_subtopic),
         },
     )
 

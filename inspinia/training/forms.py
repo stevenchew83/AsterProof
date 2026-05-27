@@ -81,6 +81,14 @@ class CheckpointProblemForm(BootstrapModelForm):
         help_text="Leave blank to generate from the title.",
     )
 
+    def __init__(self, *args, locked_subtopic: Subtopic | None = None, **kwargs):
+        self.locked_subtopic = locked_subtopic
+        super().__init__(*args, **kwargs)
+        if locked_subtopic is not None:
+            self.fields["subtopic"].initial = locked_subtopic.pk
+            self.fields["subtopic"].required = False
+            self.fields["subtopic"].widget = forms.HiddenInput()
+
     class Meta:
         model = Problem
         fields = [
@@ -102,6 +110,11 @@ class CheckpointProblemForm(BootstrapModelForm):
                 },
             ),
         }
+
+    def clean_subtopic(self) -> Subtopic:
+        if self.locked_subtopic is not None:
+            return self.locked_subtopic
+        return self.cleaned_data["subtopic"]
 
 
 class ProblemForm(BootstrapModelForm):

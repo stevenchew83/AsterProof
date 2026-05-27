@@ -508,11 +508,22 @@ def test_trainer_materials_workspace_exposes_rich_markdown_tools_and_checkpoint_
     assert response.status_code == HTTPStatus.OK
     html = response.content.decode("utf-8")
     assert 'data-training-material-editor="true"' in html
+    assert 'data-editor-mode="write"' in html
+    assert 'data-editor-mode="preview"' in html
+    assert 'data-editor-mode="split"' in html
+    assert 'data-toolbar-group="formatting"' in html
+    assert 'data-toolbar-group="math"' in html
     assert 'data-format-action="heading"' in html
     assert 'data-format-action="display-math"' in html
     assert 'data-preview-source="id_content_markdown"' in html
     assert "Add checkpoint problem" in html
     assert 'name="form_kind" value="checkpoint_problem"' in html
+    assert 'name="checkpoint-title"' in html
+    assert 'id="id_checkpoint-title"' in html
+    assert 'name="checkpoint-subtopic"' in html
+    assert 'id="id_subtopic"' in html
+    assert html.count('id="id_subtopic"') == 1
+    assert html.count('id="id_title"') == 1
     assert str(material.subtopic_id) in html
 
 
@@ -526,14 +537,13 @@ def test_trainer_materials_quick_creates_checkpoint_problem(client):
         {
             "form_kind": "checkpoint_problem",
             "material_id": str(material.id),
-            "subtopic": str(subtopic.id),
-            "title": "Proof-writing checkpoint",
-            "slug": "",
-            "statement_markdown": "Prove that $a^2-b^2=(a-b)(a+b)$.",
-            "difficulty": Problem.Difficulty.INTRODUCTORY,
-            "max_points": str(CHECKPOINT_PROBLEM_POINTS),
-            "order": "15",
-            "is_published": "on",
+            "checkpoint-title": "Proof-writing checkpoint",
+            "checkpoint-slug": "",
+            "checkpoint-statement_markdown": "Prove that $a^2-b^2=(a-b)(a+b)$.",
+            "checkpoint-difficulty": Problem.Difficulty.INTRODUCTORY,
+            "checkpoint-max_points": str(CHECKPOINT_PROBLEM_POINTS),
+            "checkpoint-order": "15",
+            "checkpoint-is_published": "on",
         },
     )
 
@@ -545,6 +555,75 @@ def test_trainer_materials_quick_creates_checkpoint_problem(client):
     assert problem.max_points == CHECKPOINT_PROBLEM_POINTS
     assert problem.created_by == trainer
     assert response["Location"] == f"{reverse('training:trainer_materials')}?edit={material.id}"
+
+
+def test_trainer_materials_focuses_subtopic_from_query(client):
+    trainer = UserFactory(role=User.Role.TRAINER)
+    topic, subtopic, material, _problem = _topic_tree()
+    other_subtopic = Subtopic.objects.create(
+        topic=topic,
+        title="Equations",
+        slug="equations",
+        order=2,
+    )
+    Material.objects.create(
+        subtopic=other_subtopic,
+        title="Equation basics",
+        slug="equation-basics",
+        content_markdown="Solve $x+1=2$.",
+        order=2,
+        created_by=trainer,
+    )
+    client.force_login(trainer)
+
+    response = client.get(f"{reverse('training:trainer_materials')}?subtopic={subtopic.id}")
+
+    assert response.status_code == HTTPStatus.OK
+    html = response.content.decode("utf-8")
+    assert "Focused subtopic" in html
+    assert "Algebraic identities" in html
+    assert "Factoring patterns" in html
+    assert "Equation basics" not in html
+    assert f'<option value="{subtopic.id}" selected>' in html
+    assert f"?subtopic={subtopic.id}" in html
+
+
+def test_trainer_materials_without_selected_material_defers_checkpoint_form(client):
+    trainer = UserFactory(role=User.Role.TRAINER)
+    _topic, subtopic, _material, _problem = _topic_tree()
+    client.force_login(trainer)
+
+    response = client.get(f"{reverse('training:trainer_materials')}?subtopic={subtopic.id}")
+
+    assert response.status_code == HTTPStatus.OK
+    html = response.content.decode("utf-8")
+    assert "Save or select a material before adding checkpoints." in html
+    assert 'name="checkpoint-title"' not in html
+
+
+def test_trainer_materials_rejects_checkpoint_without_selected_material(client):
+    trainer = UserFactory(role=User.Role.TRAINER)
+    _topic, _subtopic, _material, _problem = _topic_tree()
+    client.force_login(trainer)
+
+    response = client.post(
+        reverse("training:trainer_materials"),
+        {
+            "form_kind": "checkpoint_problem",
+            "material_id": "",
+            "checkpoint-title": "Detached checkpoint",
+            "checkpoint-slug": "",
+            "checkpoint-statement_markdown": "Prove a detached statement.",
+            "checkpoint-difficulty": Problem.Difficulty.INTRODUCTORY,
+            "checkpoint-max_points": str(CHECKPOINT_PROBLEM_POINTS),
+            "checkpoint-order": "15",
+            "checkpoint-is_published": "on",
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert not Problem.objects.filter(title="Detached checkpoint").exists()
+    assert "Select a material before adding a checkpoint problem." in response.content.decode("utf-8")
 
 
 def test_trainer_topics_marks_imo_syllabus_subtopics(client):
