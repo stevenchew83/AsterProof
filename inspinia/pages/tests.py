@@ -8203,15 +8203,15 @@ def test_completion_progress_analytics_renders_admin_dashboard(client):
     )
     assert today_cell["count"] == 1
     response_html = response.content.decode("utf-8")
-    assert "Progress over time" in response_html
+    assert "Daily completions" in response_html
+    assert "MOHS trend" in response_html
     assert "Activity calendar" in response_html
     assert "Contest coverage" in response_html
     assert "Yearly completion heatmap" not in response_html
-    assert "Daily completions" not in response_html
-    assert "Daily MOHS" not in response_html
     assert "Advanced filters" in response_html
     assert 'data-bs-target="#completion-progress-advanced-filters"' in response_html
-    assert 'id="chart-completion-progress-over-time"' in response_html
+    assert 'id="chart-completion-progress-daily"' in response_html
+    assert 'id="chart-completion-progress-mohs"' in response_html
     assert 'class="completion-progress-yearly-grid"' in response_html
     assert 'data-bs-toggle="tooltip"' in response_html
     assert "initCompletionProgressTooltips();" in response_html
@@ -8219,7 +8219,7 @@ def test_completion_progress_analytics_renders_admin_dashboard(client):
     assert response_html.index("Contest coverage") < response_html.index("Filtered completion rows")
     assert "Progress analytics" in response_html
     assert "Completion progress" in response_html
-    assert 'id="chart-completion-progress-daily"' not in response_html
+    assert 'id="chart-completion-progress-over-time"' not in response_html
     assert 'id="completion-progress-table"' in response_html
     apex_guard_start = response_html.index("__asterproofApexHadAmd")
     apex_script = response_html.index("plugins/apexcharts/apexcharts.min")
