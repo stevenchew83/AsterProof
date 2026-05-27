@@ -1898,6 +1898,7 @@ def _contest_mohs_summary_rows(user: User) -> list[dict[str, object]]:
             "contest_url": contest_dashboard_listing_url(contest_name),
             "level_labels": level_labels,
             "levels": ", ".join(level_labels),
+            "mohs_total": sum(all_mohs_values),
             "total_count": len(all_mohs_values),
             "topic_averages": topic_averages,
             "topic_counts": topic_counts,
@@ -1937,6 +1938,7 @@ def contest_mohs_summary_view(request):
     rows = _contest_mohs_summary_rows(request.user)
     contest_total = len(rows)
     total_statement_count = sum(int(row["total_count"]) for row in rows)
+    total_mohs = sum(int(row.get("mohs_total") or 0) for row in rows)
     visible_over_threshold = sum(
         1
         for row in rows
@@ -1950,6 +1952,11 @@ def contest_mohs_summary_view(request):
         "contest_mohs_summary_stats": {
             "contest_total": contest_total,
             "has_user_averages": has_user_averages,
+            "overall_average_mohs": (
+                round(total_mohs / total_statement_count, 2)
+                if total_statement_count
+                else None
+            ),
             "rank_description": (
                 "Ranked by My Avg from completed problems"
                 if has_user_averages
@@ -1959,6 +1966,10 @@ def contest_mohs_summary_view(request):
             "total_statement_count": total_statement_count,
             "visible_over_threshold": visible_over_threshold,
         },
+        "contest_mohs_topic_legend": [
+            {"code": topic, "label": display_topic_label(topic)}
+            for topic in MAIN_TOPIC_CODE_ORDER
+        ],
     }
     return render(request, "pages/contest-mohs-summary.html", context)
 

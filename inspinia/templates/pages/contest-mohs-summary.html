@@ -27,7 +27,7 @@
     padding-top: .25rem;
   }
 
-  #contest-mohs-summary-table thead tr:first-child th {
+  #contest-mohs-summary-table thead th {
     background-color: var(--bs-tertiary-bg);
     color: var(--bs-secondary-color);
     font-size: .7rem;
@@ -36,15 +36,150 @@
   }
 
   #contest-mohs-summary-table .contest-mohs-contest {
-    min-width: 13rem;
-  }
-
-  #contest-mohs-summary-table .contest-mohs-open-col {
-    width: 1%;
+    min-width: 14rem;
   }
 
   #contest-mohs-summary-table .contest-mohs-levels {
     min-width: 10rem;
+  }
+
+  #contest-mohs-summary-table .contest-mohs-sticky-column {
+    background: var(--bs-body-bg) !important;
+    box-shadow: .35rem 0 .7rem rgba(15, 23, 42, .07);
+    left: 0;
+    position: sticky;
+    z-index: 2;
+  }
+
+  #contest-mohs-summary-table thead .contest-mohs-sticky-column {
+    background: var(--bs-tertiary-bg) !important;
+    z-index: 5;
+  }
+
+  [data-bs-theme="dark"] #contest-mohs-summary-table .contest-mohs-sticky-column {
+    box-shadow: .35rem 0 .7rem rgba(0, 0, 0, .24);
+  }
+
+  .contest-mohs-controls .btn:focus-visible,
+  .contest-mohs-contest-link:focus-visible {
+    box-shadow: 0 0 0 .18rem rgba(var(--bs-primary-rgb), .22);
+    outline: 2px solid rgba(var(--bs-primary-rgb), .45);
+    outline-offset: 2px;
+  }
+
+  .contest-mohs-contest-link {
+    align-items: center;
+    display: inline-flex;
+    gap: .35rem;
+  }
+
+  .contest-mohs-heat {
+    border: 1px solid transparent;
+    border-radius: .25rem;
+    display: inline-block;
+    font-weight: 600;
+    min-width: 3.65rem;
+    padding: .12rem .38rem;
+    text-align: right;
+  }
+
+  .contest-mohs-heat-low {
+    background: var(--bs-secondary-bg);
+    border-color: var(--bs-border-color);
+    color: var(--bs-secondary-color);
+  }
+
+  .contest-mohs-heat-moderate {
+    background: var(--bs-info-bg-subtle);
+    border-color: var(--bs-info-border-subtle);
+    color: var(--bs-info-text-emphasis);
+  }
+
+  .contest-mohs-heat-hard {
+    background: var(--bs-warning-bg-subtle);
+    border-color: var(--bs-warning-border-subtle);
+    color: var(--bs-warning-text-emphasis);
+  }
+
+  .contest-mohs-heat-very-hard {
+    background: var(--bs-danger-bg-subtle);
+    border-color: var(--bs-danger-border-subtle);
+    color: var(--bs-danger-text-emphasis);
+  }
+
+  .contest-mohs-topic-count {
+    display: block;
+    line-height: 1.15;
+    margin-top: .12rem;
+  }
+
+  .contest-mohs-count-cell {
+    align-items: flex-end;
+    display: inline-flex;
+    flex-direction: column;
+    gap: .22rem;
+  }
+
+  .contest-mohs-confidence {
+    background: var(--bs-secondary-bg);
+    border-radius: 999px;
+    height: .25rem;
+    overflow: hidden;
+    width: 4.5rem;
+  }
+
+  .contest-mohs-confidence span {
+    background: var(--bs-primary);
+    display: block;
+    height: 100%;
+  }
+
+  .contest-mohs-topic-summary {
+    min-width: 11rem;
+    white-space: normal;
+  }
+
+  @media (max-width: 767.98px) {
+    .card-header .contest-mohs-controls.justify-content-end {
+      justify-content: flex-start !important;
+      width: 100%;
+    }
+
+    .contest-mohs-controls .btn-group {
+      display: flex;
+      flex-wrap: wrap;
+      min-width: 0;
+      width: 100%;
+    }
+
+    .contest-mohs-controls .btn-group > .btn {
+      border-radius: var(--bs-border-radius-sm) !important;
+      flex: 1 1 50%;
+      margin: 0;
+    }
+
+    .contest-mohs-controls .btn-group[aria-label="Contest type filter"] > .btn {
+      flex-basis: 33.333%;
+    }
+
+    #contest-mohs-summary-table .contest-mohs-contest {
+      min-width: 10rem;
+      white-space: normal;
+    }
+
+    .contest-mohs-topic-summary {
+      min-width: 8.5rem;
+    }
+
+    .contest-mohs-heat {
+      min-width: 3.1rem;
+      padding-left: .28rem;
+      padding-right: .28rem;
+    }
+
+    .contest-mohs-confidence {
+      width: 3.4rem;
+    }
   }
 </style>
 {% endblock extra_css %}
@@ -54,9 +189,9 @@
 
   {% include 'partials/page-title.html' with title='Contest MOHS summary' subtitle='Archive' %}
 
-  <div class="row g-3 mt-0">
-    <div class="col-sm-6 col-xl-3">
-      <div class="card m-0">
+  <div class="row row-cols-1 row-cols-sm-2 row-cols-xl-5 g-3 mt-0">
+    <div class="col">
+      <div class="card m-0 h-100">
         <div class="card-body">
           <div class="d-flex align-items-center">
             <div class="flex-shrink-0">
@@ -72,8 +207,8 @@
         </div>
       </div>
     </div>
-    <div class="col-sm-6 col-xl-3">
-      <div class="card m-0">
+    <div class="col">
+      <div class="card m-0 h-100">
         <div class="card-body">
           <div class="d-flex align-items-center">
             <div class="flex-shrink-0">
@@ -89,8 +224,31 @@
         </div>
       </div>
     </div>
-    <div class="col-sm-6 col-xl-3">
-      <div class="card m-0">
+    <div class="col">
+      <div class="card m-0 h-100">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-danger-subtle text-danger rounded">
+                <i class="ti ti-flame fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Avg MOHS</p>
+              <h3 class="mb-0">
+                {% if contest_mohs_summary_stats.overall_average_mohs is not None %}
+                  {{ contest_mohs_summary_stats.overall_average_mohs|floatformat:2 }}
+                {% else %}
+                  --
+                {% endif %}
+              </h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="card m-0 h-100">
         <div class="card-body">
           <div class="d-flex align-items-center">
             <div class="flex-shrink-0">
@@ -99,15 +257,15 @@
               </span>
             </div>
             <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">With My Avg</p>
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Completed contests</p>
               <h3 class="mb-0">{{ contest_mohs_summary_stats.rows_with_user_average }}</h3>
             </div>
           </div>
         </div>
       </div>
     </div>
-    <div class="col-sm-6 col-xl-3">
-      <div class="card m-0">
+    <div class="col">
+      <div class="card m-0 h-100">
         <div class="card-body">
           <div class="d-flex align-items-center">
             <div class="flex-shrink-0">
@@ -116,7 +274,7 @@
               </span>
             </div>
             <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">{{ contest_mohs_summary_hide_threshold }}+ problem contests</p>
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Reliable contests</p>
               <h3 class="mb-0">{{ contest_mohs_summary_stats.visible_over_threshold }}</h3>
             </div>
           </div>
@@ -128,46 +286,52 @@
   <div class="row g-3 mt-1 mb-4">
     <div class="col-12">
       <div class="card">
-        <div class="card-header border-0 pb-0 d-flex flex-wrap align-items-center gap-2">
+        <div class="card-header border-0 pb-0 d-flex flex-wrap align-items-start gap-3">
           <div class="flex-grow-1">
             <h4 class="header-title mb-0">Contest table</h4>
             <p class="text-muted fs-xs mb-0">{{ contest_mohs_summary_stats.rank_description }}</p>
           </div>
           {% if contest_mohs_summary_rows %}
-          <div class="btn-group btn-group-sm" role="group" aria-label="MOHS count filter">
-            <button
-              id="contest-mohs-filter-all"
-              type="button"
-              class="btn btn-primary"
-              data-min-count="0"
-              aria-pressed="true"
-            >
-              All
-            </button>
-            <button
-              id="contest-mohs-filter-threshold"
-              type="button"
-              class="btn btn-outline-secondary"
-              data-hide-threshold="{{ contest_mohs_summary_hide_threshold }}"
-              data-min-count="{{ contest_mohs_summary_hide_threshold }}"
-              aria-pressed="false"
-            >
-              {{ contest_mohs_summary_hide_threshold }}+
-            </button>
+          <div class="contest-mohs-controls d-flex flex-wrap justify-content-end gap-2">
+            <div class="btn-group btn-group-sm" role="group" aria-label="Reliability filter">
+              <button id="contest-mohs-filter-all" type="button" class="btn btn-primary" data-filter-kind="reliability" data-min-count="0" aria-pressed="true">All</button>
+              <button id="contest-mohs-filter-reliable" type="button" class="btn btn-outline-secondary" data-filter-kind="reliability" data-hide-threshold="{{ contest_mohs_summary_hide_threshold }}" data-min-count="{{ contest_mohs_summary_hide_threshold }}" aria-pressed="false">Reliable {{ contest_mohs_summary_hide_threshold }}+</button>
+            </div>
+            <div class="btn-group btn-group-sm" role="group" aria-label="Contest type filter">
+              <button id="contest-mohs-filter-category-all" type="button" class="btn btn-primary" data-filter-kind="category" data-category="all" aria-pressed="true">All types</button>
+              <button id="contest-mohs-filter-category-international" type="button" class="btn btn-outline-secondary" data-filter-kind="category" data-category="international" aria-pressed="false">International</button>
+              <button id="contest-mohs-filter-category-olympiad" type="button" class="btn btn-outline-secondary" data-filter-kind="category" data-category="olympiad" aria-pressed="false">Olympiad</button>
+              <button id="contest-mohs-filter-category-shortlist" type="button" class="btn btn-outline-secondary" data-filter-kind="category" data-category="shortlist" aria-pressed="false">Shortlist</button>
+              <button id="contest-mohs-filter-category-tst" type="button" class="btn btn-outline-secondary" data-filter-kind="category" data-category="tst" aria-pressed="false">TST</button>
+              {% if contest_mohs_summary_stats.has_user_averages %}
+              <button id="contest-mohs-filter-category-completed" type="button" class="btn btn-outline-secondary" data-filter-kind="category" data-category="completed" aria-pressed="false">My completed</button>
+              {% endif %}
+            </div>
+            <div class="btn-group btn-group-sm" role="group" aria-label="Sort table">
+              <button id="contest-mohs-sort-average" type="button" class="btn {% if not contest_mohs_summary_stats.has_user_averages %}btn-primary{% else %}btn-outline-secondary{% endif %}" data-sort-key="average" aria-pressed="{% if contest_mohs_summary_stats.has_user_averages %}false{% else %}true{% endif %}">Average</button>
+              {% if contest_mohs_summary_stats.has_user_averages %}
+              <button id="contest-mohs-sort-user-average" type="button" class="btn btn-primary" data-sort-key="userAverage" aria-pressed="true">My Avg</button>
+              {% endif %}
+              <button id="contest-mohs-sort-count" type="button" class="btn btn-outline-secondary" data-sort-key="count" aria-pressed="false">MOHS Count</button>
+            </div>
           </div>
           {% endif %}
         </div>
         <div class="card-body pt-2">
           {% if contest_mohs_summary_rows %}
           <div class="border rounded bg-body-tertiary px-3 py-2 mb-2 d-flex flex-wrap align-items-center gap-2">
-            <span class="text-muted fs-xs">
-              <i class="ti ti-info-circle me-1"></i>Use MOHS Count to judge how reliable each contest average is.
+            <span class="text-muted fs-xs fw-semibold text-uppercase">
+              <i class="ti ti-info-circle me-1"></i>Topics
             </span>
+            {% for topic in contest_mohs_topic_legend %}
+              <span class="badge text-bg-light border" data-bs-toggle="tooltip" data-bs-title="{{ topic.code }} = {{ topic.label }}">{{ topic.code }} {{ topic.label }}</span>
+            {% endfor %}
+            <span class="text-muted fs-xs">Use MOHS Count to judge how reliable each contest average is.</span>
             {% if not contest_mohs_summary_stats.has_user_averages %}
             <span class="text-muted fs-xs">
               No completed contests yet.
               <a href="{% url 'pages:completion_quick_update' %}" class="fw-semibold">Add quick completions</a>
-              to unlock My Avg rankings.
+              to unlock personal rankings.
             </span>
             {% endif %}
           </div>
@@ -175,27 +339,8 @@
             <table
               id="contest-mohs-summary-table"
               class="table table-sm table-striped table-bordered align-middle w-100 mb-0"
-              data-has-user-averages="{{ contest_mohs_summary_stats.has_user_averages|yesno:'true,false' }}"
-            >
-              <thead class="thead-sm">
-                <tr data-dt-order="disable">
-                  <th scope="col" rowspan="2" class="contest-mohs-contest">Contest</th>
-                  <th scope="col" rowspan="2" class="contest-mohs-open-col text-nowrap">Open</th>
-                  <th scope="colgroup" colspan="4" class="text-center">Topic averages</th>
-                  <th scope="colgroup" colspan="3" class="text-center">Overall</th>
-                  <th scope="col" rowspan="2" class="contest-mohs-levels">Levels</th>
-                </tr>
-                <tr>
-                  <th scope="col" class="text-end text-nowrap">A</th>
-                  <th scope="col" class="text-end text-nowrap">C</th>
-                  <th scope="col" class="text-end text-nowrap">G</th>
-                  <th scope="col" class="text-end text-nowrap">N</th>
-                  <th scope="col" class="text-end text-nowrap">Average</th>
-                  <th scope="col" class="text-end text-nowrap">My Avg</th>
-                  <th scope="col" class="text-end text-nowrap">MOHS Count</th>
-                </tr>
-              </thead>
-            </table>
+              data-has-user-averages="{% if contest_mohs_summary_stats.has_user_averages %}true{% else %}false{% endif %}"
+            ></table>
           </div>
           {% else %}
           <div class="alert alert-info mb-0" role="alert">
@@ -209,6 +354,7 @@
 </div>
 
 {{ contest_mohs_summary_rows|json_script:"contest-mohs-summary-table-data" }}
+{{ contest_mohs_topic_legend|json_script:"contest-mohs-topic-legend-data" }}
 {% endblock page_content %}
 
 {% block extra_javascript %}
@@ -217,18 +363,23 @@
 <script>
 (function () {
   var tableEl = document.getElementById("contest-mohs-summary-table-data");
+  var legendEl = document.getElementById("contest-mohs-topic-legend-data");
   var summaryTable = document.getElementById("contest-mohs-summary-table");
-  var filterButtons = [
-    document.getElementById("contest-mohs-filter-all"),
-    document.getElementById("contest-mohs-filter-threshold")
-  ].filter(Boolean);
-  if (!tableEl || typeof DataTable === "undefined") return;
+  if (!tableEl || !summaryTable || typeof DataTable === "undefined") return;
 
   var rows = JSON.parse(tableEl.textContent);
+  var topicLegend = legendEl ? JSON.parse(legendEl.textContent) : [];
+  var topicLabels = topicLegend.reduce(function (labels, topic) {
+    labels[topic.code] = topic.label;
+    return labels;
+  }, {});
+  var hasUserAverages = summaryTable.getAttribute("data-has-user-averages") === "true";
   var activeMinCount = 0;
-  var hasUserAverages = summaryTable ? summaryTable.getAttribute("data-has-user-averages") === "true" : false;
-  var defaultOrder = hasUserAverages ? [[7, "desc"], [8, "desc"], [0, "asc"]] : [[6, "desc"], [8, "desc"], [0, "asc"]];
+  var activeCategory = "all";
+  var activeSortKey = hasUserAverages ? "userAverage" : "average";
   var tableApi = null;
+  var columnIndexByKey = {};
+  var mobileQuery = window.matchMedia ? window.matchMedia("(max-width: 767.98px)") : null;
 
   function escapeHtml(value) {
     return String(value)
@@ -248,28 +399,79 @@
     return numeric.toFixed(2);
   }
 
-  function formatCount(value) {
+  function numericSortValue(value) {
+    if (value === null || value === undefined || value === "") return -1;
+    var numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric : -1;
+  }
+
+  function heatClass(value) {
+    var numeric = Number(value);
+    if (!Number.isFinite(numeric)) return "";
+    if (numeric < 20) return "contest-mohs-heat-low";
+    if (numeric < 30) return "contest-mohs-heat-moderate";
+    if (numeric < 35) return "contest-mohs-heat-hard";
+    return "contest-mohs-heat-very-hard";
+  }
+
+  function heatMetric(value) {
     if (value === null || value === undefined || value === "") {
       return '<span class="text-muted fs-xs">&mdash;</span>';
     }
-    var numeric = Number(value);
-    if (!Number.isFinite(numeric)) return escapeHtml(value);
-    return String(numeric);
+    return '<span class="contest-mohs-heat ' + heatClass(value) + '">' + formatAverageMetric(value) + '</span>';
   }
 
-  function numericRender(data, type) {
-    if (type === "sort" || type === "type") {
-      return data === null || data === undefined || data === "" ? -1 : Number(data);
+  function averageRender(data, type) {
+    if (type === "sort" || type === "type") return numericSortValue(data);
+    if (type === "filter") return data === null || data === undefined ? "" : String(data);
+    return heatMetric(data);
+  }
+
+  function topicRender(topicCode) {
+    return function (data, type, row) {
+      var count = Number(row["count_" + topicCode.toLowerCase()] || 0);
+      if (type === "sort" || type === "type") return numericSortValue(data);
+      if (type === "filter") {
+        return data === null || data === undefined ? "" : topicCode + " " + data + " n=" + count;
+      }
+      if (data === null || data === undefined || data === "") {
+        return '<span class="text-muted fs-xs">&mdash;</span>';
+      }
+      return heatMetric(data) + '<span class="contest-mohs-topic-count text-muted fs-xs">n=' + count + '</span>';
+    };
+  }
+
+  function topicSummaryRender(_data, type, row) {
+    if (type !== "display") {
+      return ["A", "C", "G", "N"].map(function (topicCode) {
+        var value = row["avg_" + topicCode.toLowerCase()];
+        return topicCode + " " + (value === null || value === undefined ? "" : value);
+      }).join(" ");
     }
-    if (type === "filter") {
-      return data === null || data === undefined || data === "" ? "" : String(data);
-    }
-    return formatAverageMetric(data);
+    return '<div class="contest-mohs-topic-summary">' + ["A", "C", "G", "N"].map(function (topicCode) {
+      var value = row["avg_" + topicCode.toLowerCase()];
+      return '<span class="me-2 text-nowrap"><span class="fw-semibold">' + topicCode + '</span> ' + formatAverageMetric(value) + '</span>';
+    }).join('<span class="text-muted">&middot;</span> ') + '</div>';
+  }
+
+  function countBadge(value) {
+    var count = Number(value || 0);
+    if (count < 10) return { label: "Low sample", className: "bg-secondary-subtle text-secondary", width: 25 };
+    if (count < 20) return { label: "Limited", className: "bg-warning-subtle text-warning", width: 45 };
+    if (count < 100) return { label: "Reliable", className: "bg-success-subtle text-success", width: 72 };
+    return { label: "Large sample", className: "bg-primary-subtle text-primary", width: 100 };
   }
 
   function countRender(data, type) {
-    if (type === "display") return formatCount(data);
-    return Number(data || 0);
+    var count = Number(data || 0);
+    if (type === "sort" || type === "type") return count;
+    if (type === "filter") return String(count);
+    var badge = countBadge(count);
+    return '<span class="contest-mohs-count-cell">'
+      + '<span class="fw-semibold">' + count + '</span>'
+      + '<span class="badge ' + badge.className + '">' + badge.label + '</span>'
+      + '<span class="contest-mohs-confidence" aria-hidden="true"><span style="width: ' + badge.width + '%"></span></span>'
+      + '</span>';
   }
 
   function levelRender(data, type, row) {
@@ -281,63 +483,129 @@
     }).join("");
   }
 
+  function contestRender(data, type, row) {
+    if (type !== "display") return data;
+    return '<a href="' + row.contest_url + '" class="contest-mohs-contest-link fw-semibold text-decoration-none" aria-label="Open ' + escapeHtml(data) + '">'
+      + '<span>' + escapeHtml(data) + '</span><i class="ti ti-arrow-right fs-16" aria-hidden="true"></i></a>';
+  }
+
+  function topicTitle(topicCode) {
+    var label = topicLabels[topicCode] || topicCode;
+    return '<span data-bs-toggle="tooltip" data-bs-title="' + escapeHtml(topicCode + " = " + label) + '">' + topicCode + '</span>';
+  }
+
+  var columnDefinitions = [
+    { key: "contest", data: "contest", title: "Contest", className: "contest-mohs-contest contest-mohs-sticky-column", render: contestRender },
+    { key: "topicA", data: "avg_a", title: topicTitle("A"), className: "text-end text-nowrap", render: topicRender("A") },
+    { key: "topicC", data: "avg_c", title: topicTitle("C"), className: "text-end text-nowrap", render: topicRender("C") },
+    { key: "topicG", data: "avg_g", title: topicTitle("G"), className: "text-end text-nowrap", render: topicRender("G") },
+    { key: "topicN", data: "avg_n", title: topicTitle("N"), className: "text-end text-nowrap", render: topicRender("N") },
+    { key: "average", data: "average_mohs", title: "Average", className: "text-end text-nowrap", render: averageRender },
+    {% if contest_mohs_summary_stats.has_user_averages %}
+    {
+      key: "userAverage",
+      data: "user_average_mohs",
+      title: "My Avg",
+      className: "text-end text-nowrap",
+      render: function (data, type, row) {
+        if (type === "sort" || type === "type") return Number(row.user_average_sort || -1);
+        if (type === "filter") return data === null || data === undefined ? "" : String(data);
+        if (data === null || data === undefined) return '<span class="text-muted fs-xs">&mdash;</span>';
+        return '<span class="fw-semibold">' + formatAverageMetric(data) + '</span><div class="text-muted fs-xs">' + Number(row.user_completion_count || 0) + " completed</div>";
+      }
+    },
+    { key: "userCompletionCount", data: "user_completion_count", title: "Completed count", visible: false, searchable: false },
+    {% endif %}
+    { key: "count", data: "total_count", title: "MOHS Count", className: "text-end text-nowrap", render: countRender },
+    { key: "topicsMobile", data: null, title: "Topics", className: "contest-mohs-mobile-topics", orderable: false, render: topicSummaryRender, visible: false },
+    { key: "levels", data: "levels", title: "Levels", className: "contest-mohs-levels", render: levelRender }
+  ];
+
+  columnDefinitions.forEach(function (column, index) {
+    columnIndexByKey[column.key] = index;
+  });
+
+  function dataTableColumns() {
+    return columnDefinitions.map(function (column) {
+      var copy = {};
+      Object.keys(column).forEach(function (key) {
+        if (key !== "key") copy[key] = column[key];
+      });
+      return copy;
+    });
+  }
+
+  var sortOrders = {
+    average: [[columnIndexByKey.average, "desc"], [columnIndexByKey.count, "desc"], [columnIndexByKey.contest, "asc"]],
+    count: [[columnIndexByKey.count, "desc"], [columnIndexByKey.average, "desc"], [columnIndexByKey.contest, "asc"]]
+  };
+  if (hasUserAverages && columnIndexByKey.userAverage !== undefined) {
+    sortOrders.userAverage = [
+      [columnIndexByKey.userAverage, "desc"],
+      [columnIndexByKey.userCompletionCount, "desc"],
+      [columnIndexByKey.count, "desc"],
+      [columnIndexByKey.contest, "asc"]
+    ];
+  }
+
+  function rowMatchesCategory(row) {
+    var contest = String(row.contest || "").toLowerCase();
+    var levels = Array.isArray(row.level_labels) ? row.level_labels.map(function (label) {
+      return String(label || "").toLowerCase();
+    }) : [];
+    if (activeCategory === "all") return true;
+    if (activeCategory === "international" || activeCategory === "olympiad") {
+      return levels.indexOf(activeCategory) !== -1;
+    }
+    if (activeCategory === "shortlist") return contest.indexOf("shortlist") !== -1;
+    if (activeCategory === "tst") return contest.indexOf("tst") !== -1;
+    if (activeCategory === "completed") return Number(row.user_completion_count || 0) > 0;
+    return true;
+  }
+
   DataTable.ext.search.push(function (settings, _data, dataIndex, rowData) {
     if (!settings.nTable || settings.nTable.id !== "contest-mohs-summary-table") return true;
-    if (!activeMinCount) return true;
     var row = rowData || (tableApi ? tableApi.row(dataIndex).data() : null);
-    return row ? Number(row.total_count || 0) >= activeMinCount : true;
+    if (!row) return true;
+    if (activeMinCount && Number(row.total_count || 0) < activeMinCount) return false;
+    return rowMatchesCategory(row);
   });
+
+  function setButtonGroupState(buttons, activeButton) {
+    buttons.forEach(function (button) {
+      var isActive = button === activeButton;
+      button.setAttribute("aria-pressed", isActive ? "true" : "false");
+      button.classList.toggle("btn-primary", isActive);
+      button.classList.toggle("btn-outline-secondary", !isActive);
+    });
+  }
+
+  function initTableTooltips() {
+    if (typeof bootstrap === "undefined" || !bootstrap.Tooltip) return;
+    summaryTable.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (element) {
+      bootstrap.Tooltip.getOrCreateInstance(element, {
+        boundary: document.body,
+        container: "body",
+        trigger: "hover focus"
+      });
+    });
+  }
+
+  function setResponsiveColumns() {
+    if (!tableApi || !mobileQuery) return;
+    var isMobile = mobileQuery.matches;
+    ["topicA", "topicC", "topicG", "topicN", "levels"].forEach(function (key) {
+      tableApi.column(columnIndexByKey[key]).visible(!isMobile, false);
+    });
+    tableApi.column(columnIndexByKey.topicsMobile).visible(isMobile, false);
+    tableApi.columns.adjust().draw(false);
+    initTableTooltips();
+  }
 
   tableApi = new DataTable("#contest-mohs-summary-table", {
     data: rows,
-    columns: [
-      {
-        data: "contest",
-        title: "Contest",
-        className: "contest-mohs-contest",
-        render: function (data, type, row) {
-          if (type === "display") {
-            return '<a href="' + row.contest_url + '" class="fw-semibold text-decoration-none">' + escapeHtml(data) + "</a>";
-          }
-          return data;
-        }
-      },
-      {
-        data: "contest_url",
-        title: "Open",
-        className: "contest-mohs-open-col text-nowrap",
-        orderable: false,
-        searchable: false,
-        render: function (data, type) {
-          if (type !== "display") return data;
-          return '<a href="' + data + '" class="btn btn-sm btn-outline-primary"><i class="ti ti-arrow-right me-1"></i>Open</a>';
-        }
-      },
-      { data: "avg_a", title: "A", className: "text-end text-nowrap", render: numericRender },
-      { data: "avg_c", title: "C", className: "text-end text-nowrap", render: numericRender },
-      { data: "avg_g", title: "G", className: "text-end text-nowrap", render: numericRender },
-      { data: "avg_n", title: "N", className: "text-end text-nowrap", render: numericRender },
-      { data: "average_mohs", title: "Average", className: "text-end text-nowrap", render: numericRender },
-      {
-        data: "user_average_mohs",
-        title: "My Avg",
-        className: "text-end text-nowrap",
-        render: function (data, type, row) {
-          if (type === "sort" || type === "type") return Number(row.user_average_sort || -1);
-          if (type === "filter") return data === null || data === undefined ? "" : String(data);
-          if (data === null || data === undefined) return '<span class="text-muted fs-xs">&mdash;</span>';
-          return '<span class="fw-semibold">' + formatAverageMetric(data) + '</span><div class="text-muted fs-xs">' + Number(row.user_completion_count || 0) + " completed</div>";
-        }
-      },
-      { data: "total_count", title: "MOHS Count", className: "text-end text-nowrap", render: countRender },
-      {
-        data: "levels",
-        title: "Levels",
-        className: "contest-mohs-levels",
-        render: levelRender
-      }
-    ],
-    order: defaultOrder,
+    columns: dataTableColumns(),
+    order: sortOrders[activeSortKey],
     pageLength: 25,
     lengthMenu: [10, 25, 50, 100],
     scrollX: true,
@@ -359,22 +627,41 @@
     }
   });
 
-  function setActiveMinCount(minCount) {
-    activeMinCount = minCount;
-    filterButtons.forEach(function (button) {
-      var buttonMinCount = Number(button.getAttribute("data-min-count") || 0);
-      var isActive = buttonMinCount === activeMinCount;
-      button.setAttribute("aria-pressed", isActive ? "true" : "false");
-      button.classList.toggle("btn-primary", isActive);
-      button.classList.toggle("btn-outline-secondary", !isActive);
-    });
-    tableApi.draw();
+  tableApi.on("draw", initTableTooltips);
+  initTableTooltips();
+  setResponsiveColumns();
+
+  if (mobileQuery) {
+    if (typeof mobileQuery.addEventListener === "function") {
+      mobileQuery.addEventListener("change", setResponsiveColumns);
+    } else if (typeof mobileQuery.addListener === "function") {
+      mobileQuery.addListener(setResponsiveColumns);
+    }
   }
 
-  filterButtons.forEach(function (button) {
+  document.querySelectorAll('[data-filter-kind="reliability"]').forEach(function (button, _index, buttons) {
     button.addEventListener("click", function () {
-      var minCount = Number(button.getAttribute("data-min-count") || 0);
-      setActiveMinCount(minCount || 0);
+      activeMinCount = Number(button.getAttribute("data-min-count") || 0);
+      setButtonGroupState(Array.prototype.slice.call(buttons), button);
+      tableApi.draw();
+    });
+  });
+
+  document.querySelectorAll('[data-filter-kind="category"]').forEach(function (button, _index, buttons) {
+    button.addEventListener("click", function () {
+      activeCategory = button.getAttribute("data-category") || "all";
+      setButtonGroupState(Array.prototype.slice.call(buttons), button);
+      tableApi.draw();
+    });
+  });
+
+  document.querySelectorAll('[data-sort-key]').forEach(function (button, _index, buttons) {
+    button.addEventListener("click", function () {
+      var sortKey = button.getAttribute("data-sort-key") || "average";
+      if (!sortOrders[sortKey]) return;
+      activeSortKey = sortKey;
+      setButtonGroupState(Array.prototype.slice.call(buttons), button);
+      tableApi.order(sortOrders[activeSortKey]).draw();
     });
   });
 })();
