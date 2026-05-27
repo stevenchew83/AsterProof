@@ -4691,12 +4691,17 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
     assert response.context["contest_stats"]["problem_count"] == 2
     assert response.context["contest_stats"]["statement_problem_total"] == 1
     assert response.context["contest_stats"]["statement_row_total"] == 2
+    assert response.context["contest_stats"]["solved_problem_total"] == 1
+    assert response.context["contest_stats"]["solved_rate"] == 50.0
+    assert response.context["contest_stats"]["linked_rate"] == 50.0
+    assert response.context["contest_stats"]["solution_rate"] == 50.0
     assert response.context["contest_stats"]["published_solution_total"] == 1
     assert response.context["contest_quick_update_url"] == (
         reverse("pages:completion_quick_update") + "?contest=USAMO"
     )
     heatmap = response.context["contest_completion_heatmap"]
     assert heatmap["problem_codes"] == ["P1", "P2"]
+    assert heatmap["problem_code_groups"] == [{"label": "P-codes", "start_index": 0, "span": 2}]
     heatmap_2026 = next(row for row in heatmap["rows"] if row["year"] == 2026)
     heatmap_2025 = next(row for row in heatmap["rows"] if row["year"] == 2025)
     heatmap_2026_p1 = next(cell for cell in heatmap_2026["cells"] if cell["problem_code"] == "P1")
@@ -4727,7 +4732,7 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
                         args=[problem_one.problem_uuid],
                     ),
                     "state": "solved",
-                    "title": "USAMO 2026 P1: 1 of 1 statement row solved by you",
+                    "title": "USAMO 2026 P1: 1 of 1 statement completed by you",
                     "x": "P1",
                     "y": 3,
                 },
@@ -4735,7 +4740,7 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
                     "display": "",
                     "solution_url": "",
                     "state": "empty",
-                    "title": "USAMO 2026 P2: no statement row",
+                    "title": "USAMO 2026 P2: no statement",
                     "x": "P2",
                     "y": 0,
                 },
@@ -4748,7 +4753,7 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
                     "display": "",
                     "solution_url": "",
                     "state": "empty",
-                    "title": "USAMO 2025 P1: no statement row",
+                    "title": "USAMO 2025 P1: no statement",
                     "x": "P1",
                     "y": 0,
                 },
@@ -4756,7 +4761,7 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
                     "display": "•",
                     "solution_url": "",
                     "state": "unsolved",
-                    "title": "USAMO 2025 P2: 0 of 1 statement row solved by you",
+                    "title": "USAMO 2025 P2: 0 of 1 statement completed by you",
                     "x": "P2",
                     "y": 1,
                 },
@@ -4767,6 +4772,7 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
     year_2025 = next(row for row in response.context["year_rows"] if row["year"] == 2025)
     assert year_2026["problem_count"] == 1
     assert year_2026["statement_problem_total"] == 1
+    assert year_2026["linked_rate"] == 100.0
     assert year_2026["solved_problem_total"] == 1
     assert year_2026["solved_rate"] == 100.0
     assert year_2026["year_detail_url"] == (
@@ -4774,21 +4780,35 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
     )
     assert year_2025["problem_count"] == 1
     assert year_2025["statement_problem_total"] == 0
+    assert year_2025["linked_rate"] == 0.0
     assert year_2025["solved_problem_total"] == 0
     assert year_2025["solved_rate"] == 0.0
     assert year_2025["year_detail_url"] == (
         reverse("pages:completion_quick_update") + "?contest=USAMO&year=2025"
     )
+    topic_rows = response.context["topic_rows"]
+    assert [row["share_rate"] for row in topic_rows] == [50.0]
     response_html = response.content.decode("utf-8")
-    assert "Contest advanced analytics" in response_html
+    assert "Contest progress" in response_html
+    assert "Contest advanced analytics" not in response_html
+    assert "Change contest" in response_html
+    assert "Contest selector" not in response_html
     assert "Completion heatmap" in response_html
-    assert "Your completions" in response_html
+    assert "Completed" in response_html
+    assert "Unstarted" in response_html
+    assert "No statement" in response_html
+    assert "No completion from you yet" not in response_html
+    assert "statement row" not in response_html
     assert 'id="chart-contest-completion-heatmap"' in response_html
     assert "contest-advanced-heatmap-data" in response_html
     assert "dataPointSelection" in response_html
+    assert "dataPointMouseEnter" in response_html
+    assert "dataPointMouseLeave" in response_html
+    assert "--contest-completion-heatmap-solved" in response_html
     assert "point.solution_url" in response_html
     assert "event.metaKey || event.ctrlKey" in response_html
     assert 'window.open(point.solution_url, "_blank", "noopener")' in response_html
+    assert "contest-completion-heatmap-clickable" not in response_html
     assert "plugins/apexcharts/apexcharts.min.js" in response_html
     assert "contest-completion-heatmap-table" not in response_html
     assert '<input id="contest-advanced-selector" type="search" name="contest" value="USAMO"' in response_html
@@ -4796,15 +4816,49 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
     assert '<datalist id="contest-advanced-options">' in response_html
     assert '<option value="USAMO" label="2 statements">' in response_html
     assert '<select id="contest-advanced-selector"' not in response_html
-    assert "Year breakdown" in response_html
-    assert "Statement-linked" in response_html
+    assert "Years" in response_html
+    assert "Linked" in response_html
     assert "Solved" in response_html
-    assert "Solved rate" in response_html
     assert reverse("pages:completion_quick_update") + "?contest=USAMO&amp;year=2026" in response_html
     assert reverse("pages:contest_dashboard_listing") not in response_html
     assert "Open contest listing" not in response_html
-    assert "Topic mix" in response_html
-    assert "Recent statements" in response_html
+    assert "Topics" in response_html
+    assert "Data quality" in response_html
+    assert "Recent updates" in response_html
+
+
+def test_contest_advanced_analytics_groups_heatmap_problem_codes(client):
+    user = UserFactory()
+    client.force_login(user)
+    for code in ["9.1", "9.2", "10.1", "11.1", "P1"]:
+        ContestProblemStatement.objects.create(
+            contest_year=2026,
+            contest_name="Grade Cup",
+            problem_number=1,
+            problem_code=code,
+            day_label="Day 1",
+            statement_latex=f"Statement {code}",
+        )
+
+    response = client.get(reverse("pages:contest_advanced_dashboard"), {"contest": "Grade Cup"})
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["contest_completion_heatmap"]["problem_codes"] == [
+        "9.1",
+        "9.2",
+        "10.1",
+        "11.1",
+        "P1",
+    ]
+    assert response.context["contest_completion_heatmap"]["problem_code_groups"] == [
+        {"label": "Grade 9", "start_index": 0, "span": 2},
+        {"label": "Grade 10", "start_index": 2, "span": 1},
+        {"label": "Grade 11", "start_index": 3, "span": 1},
+        {"label": "P-codes", "start_index": 4, "span": 1},
+    ]
+    response_html = response.content.decode("utf-8")
+    assert 'data-problem-code-group="Grade 9"' in response_html
+    assert 'style="--contest-completion-group-span: 2;"' in response_html
 
 
 def test_contest_advanced_analytics_requires_login(client):
