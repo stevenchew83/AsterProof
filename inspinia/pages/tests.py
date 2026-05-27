@@ -7508,14 +7508,25 @@ def test_page_view_analytics_tracks_core_archive_surfaces_for_admin(client):
     response = client.get(reverse("pages:page_view_analytics"))
 
     assert response.status_code == HTTPStatus.OK
-    assert response.context["page_view_stats"] == {
+    page_view_stats = response.context["page_view_stats"]
+    assert {
+        "contest_view_total": page_view_stats["contest_view_total"],
+        "list_view_total": page_view_stats["list_view_total"],
+        "problem_statement_view_total": page_view_stats["problem_statement_view_total"],
+        "solution_view_total": page_view_stats["solution_view_total"],
+        "total": page_view_stats["total"],
+        "known_user_total": page_view_stats["known_user_total"],
+        "anonymous_view_total": page_view_stats["anonymous_view_total"],
+    } == {
         "contest_view_total": 1,
         "list_view_total": 2,
         "problem_statement_view_total": 1,
         "solution_view_total": 1,
         "total": 5,
-        "unique_user_total": 1,
+        "known_user_total": 1,
+        "anonymous_view_total": 0,
     }
+    assert response.context["page_view_date_range"].range_key == "30d"
     assert [row["view_type"] for row in response.context["page_view_type_rows"]] == [
         PageViewEvent.ViewType.PROBLEM_STATEMENT,
         PageViewEvent.ViewType.SOLUTION,
@@ -7538,7 +7549,264 @@ def test_page_view_analytics_tracks_core_archive_surfaces_for_admin(client):
     }
     assert response.context["page_view_top_contests"][0]["contest_name"] == "IMO"
     assert response.context["page_view_top_contests"][0]["view_total"] == 1
-    assert "View analytics" in response.content.decode("utf-8")
+    response_html = response.content.decode("utf-8")
+    assert "View analytics" in response_html
+    assert "Statement views" in response_html
+    assert "Solution views" in response_html
+    assert "page-view-copy-path" in response_html
+    assert 'data-bs-toggle="tooltip"' in response_html
+
+
+def test_page_view_analytics_defaults_to_recent_non_admin_and_anonymous_traffic(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    student = UserFactory(name="Student One", email="student@example.com")
+    traffic_admin = UserFactory(role=User.Role.ADMIN, email="traffic-admin@example.com")
+    superuser = UserFactory(is_superuser=True, email="superuser@example.com")
+    now = timezone.now()
+
+    PageViewEvent.objects.create(
+        user=student,
+        view_type=PageViewEvent.ViewType.SOLUTION,
+        label="Recent student",
+        path="/solutions/recent/",
+        created_at=now - timedelta(days=2),
+    )
+    PageViewEvent.objects.create(
+        user=None,
+        view_type=PageViewEvent.ViewType.LIST,
+        label="Anonymous share",
+        path="/problem-lists/share/recent/",
+        created_at=now - timedelta(days=1),
+    )
+    PageViewEvent.objects.create(
+        user=traffic_admin,
+        view_type=PageViewEvent.ViewType.CONTEST,
+        label="Admin traffic",
+        path="/dashboard/contests/listing/?contest=IMO",
+        created_at=now,
+    )
+    PageViewEvent.objects.create(
+        user=superuser,
+        view_type=PageViewEvent.ViewType.PROBLEM_STATEMENT,
+        label="Superuser traffic",
+        path="/dashboard/problem-statements/old/",
+        created_at=now,
+    )
+    PageViewEvent.objects.create(
+        user=student,
+        view_type=PageViewEvent.ViewType.SOLUTION,
+        label="Old student",
+        path="/solutions/old/",
+        created_at=now - timedelta(days=45),
+    )
+
+    client.force_login(admin_user)
+    response = client.get(reverse("pages:page_view_analytics"))
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["page_view_date_range"].range_key == "30d"
+    assert response.context["page_view_filters"]["include_admins"] == ""
+    assert response.context["page_view_filters"]["include_anonymous"] == "1"
+    assert response.context["page_view_stats"]["total"] == 2
+    assert response.context["page_view_stats"]["known_user_total"] == 1
+    assert response.context["page_view_stats"]["anonymous_view_total"] == 1
+    assert [row["label"] for row in response.context["page_view_recent_rows"]] == [
+        "Anonymous share",
+        "Recent student",
+    ]
+
+
+def test_page_view_analytics_include_toggles_change_audience(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    student = UserFactory(email="student@example.com")
+    traffic_admin = UserFactory(role=User.Role.ADMIN, email="traffic-admin@example.com")
+    now = timezone.now()
+    PageViewEvent.objects.create(
+        user=student,
+        view_type=PageViewEvent.ViewType.SOLUTION,
+        label="Student",
+        path="/solutions/student/",
+        created_at=now,
+    )
+    PageViewEvent.objects.create(
+        user=None,
+        view_type=PageViewEvent.ViewType.LIST,
+        label="Anonymous",
+        path="/problem-lists/share/anonymous/",
+        created_at=now,
+    )
+    PageViewEvent.objects.create(
+        user=traffic_admin,
+        view_type=PageViewEvent.ViewType.CONTEST,
+        label="Admin",
+        path="/dashboard/contests/listing/?contest=IMO",
+        created_at=now,
+    )
+
+    client.force_login(admin_user)
+    include_admins = client.get(reverse("pages:page_view_analytics"), {"include_admins": "1"})
+    authenticated_only = client.get(reverse("pages:page_view_analytics"), {"include_anonymous": "0"})
+
+    assert include_admins.context["page_view_stats"]["total"] == 3
+    assert include_admins.context["page_view_stats"]["known_user_total"] == 2
+    assert authenticated_only.context["page_view_stats"]["total"] == 1
+    assert authenticated_only.context["page_view_stats"]["anonymous_view_total"] == 0
+
+
+@pytest.mark.parametrize(
+    ("params", "expected_labels"),
+    [
+        ({"range": "today"}, ["Today"]),
+        ({"range": "7d"}, ["Today", "Six days ago"]),
+        ({"range": "30d"}, ["Today", "Six days ago", "Twenty nine days ago"]),
+        ({"range": "all"}, ["Today", "Six days ago", "Twenty nine days ago", "Forty days ago", "Custom range"]),
+        (
+            {"range": "custom", "start": "2026-01-10", "end": "2026-01-12"},
+            ["Custom range"],
+        ),
+        (
+            {"range": "custom", "start": "not-a-date", "end": "2026-01-12"},
+            ["Today", "Six days ago", "Twenty nine days ago"],
+        ),
+    ],
+)
+def test_page_view_analytics_date_ranges_filter_views(client, params, expected_labels):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    viewer = UserFactory(email="viewer@example.com")
+    today = timezone.localdate()
+
+    dated_rows = [
+        ("Today", today),
+        ("Six days ago", today - timedelta(days=6)),
+        ("Twenty nine days ago", today - timedelta(days=29)),
+        ("Forty days ago", today - timedelta(days=40)),
+    ]
+    for label, day in dated_rows:
+        PageViewEvent.objects.create(
+            user=viewer,
+            view_type=PageViewEvent.ViewType.SOLUTION,
+            label=label,
+            path=f"/solutions/{label.lower().replace(' ', '-')}/",
+            created_at=timezone.make_aware(datetime.combine(day, datetime.min.time())),
+        )
+    PageViewEvent.objects.create(
+        user=viewer,
+        view_type=PageViewEvent.ViewType.SOLUTION,
+        label="Custom range",
+        path="/solutions/custom/",
+        created_at=timezone.make_aware(datetime(2026, 1, 11, 12, 0)),
+    )
+
+    client.force_login(admin_user)
+    response = client.get(reverse("pages:page_view_analytics"), params)
+
+    assert [row["label"] for row in response.context["page_view_recent_rows"]] == expected_labels
+
+
+def test_page_view_analytics_kpi_trend_compares_previous_period(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    viewer = UserFactory(email="viewer@example.com")
+    today = timezone.localdate()
+    current_day = today - timedelta(days=5)
+    previous_day = today - timedelta(days=10)
+    before_previous_day = today - timedelta(days=15)
+    for index in range(3):
+        PageViewEvent.objects.create(
+            user=viewer,
+            view_type=PageViewEvent.ViewType.SOLUTION,
+            label=f"Current {index}",
+            path=f"/solutions/current-{index}/",
+            created_at=timezone.make_aware(datetime.combine(current_day, datetime.min.time())),
+        )
+    PageViewEvent.objects.create(
+        user=viewer,
+        view_type=PageViewEvent.ViewType.SOLUTION,
+        label="Previous",
+        path="/solutions/previous/",
+        created_at=timezone.make_aware(datetime.combine(previous_day, datetime.min.time())),
+    )
+    PageViewEvent.objects.create(
+        user=viewer,
+        view_type=PageViewEvent.ViewType.SOLUTION,
+        label="Before previous",
+        path="/solutions/before-previous/",
+        created_at=timezone.make_aware(datetime.combine(before_previous_day, datetime.min.time())),
+    )
+
+    client.force_login(admin_user)
+    response = client.get(reverse("pages:page_view_analytics"), {"range": "7d"})
+
+    kpis_by_type = {row["view_type"]: row for row in response.context["page_view_kpi_rows"]}
+    assert kpis_by_type[PageViewEvent.ViewType.SOLUTION]["view_total"] == 3
+    assert kpis_by_type[PageViewEvent.ViewType.SOLUTION]["previous_view_total"] == 1
+    assert kpis_by_type[PageViewEvent.ViewType.SOLUTION]["delta"] == 2
+    assert kpis_by_type[PageViewEvent.ViewType.SOLUTION]["delta_label"] == "+2 vs previous period"
+
+
+def test_page_view_analytics_recent_filters_by_surface_user_and_query(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    alpha = UserFactory(name="Alpha Viewer", email="alpha@example.com")
+    beta = UserFactory(name="Beta Viewer", email="beta@example.com")
+    now = timezone.now()
+    PageViewEvent.objects.create(
+        user=alpha,
+        view_type=PageViewEvent.ViewType.SOLUTION,
+        label="Alpha geometry",
+        path="/solutions/alpha-geometry/",
+        created_at=now,
+    )
+    PageViewEvent.objects.create(
+        user=beta,
+        view_type=PageViewEvent.ViewType.LIST,
+        label="Beta number theory",
+        path="/dashboard/problem-statements/?topic=Number+Theory",
+        created_at=now,
+    )
+    PageViewEvent.objects.create(
+        user=None,
+        view_type=PageViewEvent.ViewType.SOLUTION,
+        label="Anonymous geometry",
+        path="/solutions/anonymous-geometry/",
+        created_at=now,
+    )
+
+    client.force_login(admin_user)
+    response = client.get(
+        reverse("pages:page_view_analytics"),
+        {"surface": PageViewEvent.ViewType.SOLUTION, "user": str(alpha.pk), "q": "geometry"},
+    )
+
+    assert [row["label"] for row in response.context["page_view_recent_rows"]] == ["Alpha geometry"]
+    assert response.context["page_view_filters"]["surface"] == PageViewEvent.ViewType.SOLUTION
+    assert response.context["page_view_filters"]["user"] == str(alpha.pk)
+    assert response.context["page_view_filters"]["q"] == "geometry"
+
+
+def test_page_view_analytics_list_paths_render_filter_chips(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    viewer = UserFactory(email="viewer@example.com")
+    PageViewEvent.objects.create(
+        user=viewer,
+        view_type=PageViewEvent.ViewType.LIST,
+        label="Problem statement list",
+        path=(
+            "/dashboard/problem-statements/?q=JBMO+Shortlist&year=&topic=Number+Theory"
+            "&confidence=High&mohs_min=&mohs_max=20"
+        ),
+        metadata={"kind": "statement_list"},
+    )
+
+    client.force_login(admin_user)
+    response = client.get(reverse("pages:page_view_analytics"))
+
+    top_list = response.context["page_view_top_lists"][0]
+    assert top_list["display_label"] == "Problem statements"
+    assert [chip["label"] for chip in top_list["filter_chips"]] == [
+        "JBMO Shortlist",
+        "Number Theory",
+        "High confidence",
+        "MOHS <= 20",
+    ]
 
 
 def test_page_view_analytics_requires_admin_access(client):
