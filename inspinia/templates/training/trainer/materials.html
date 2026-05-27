@@ -82,19 +82,159 @@
   .training-preview-pane {
     background: var(--bs-secondary-bg);
     border-left: 1px solid var(--bs-border-color);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
     min-height: 520px;
     overflow: auto;
     padding: 1.25rem;
   }
 
-  .training-material-preview h1,
-  .training-material-preview h2,
-  .training-material-preview h3 {
-    margin-top: 1rem;
+  .training-preview-pane > p {
+    align-self: stretch;
+  }
+
+  .training-material-preview {
+    background: var(--bs-body-bg);
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    box-shadow: var(--bs-box-shadow-sm);
+    color: var(--bs-body-color);
+    font-size: .94rem;
+    line-height: 1.7;
+    max-width: 72ch;
+    padding: 1.25rem;
+    width: 100%;
   }
 
   .training-material-preview > :first-child {
     margin-top: 0;
+  }
+
+  .training-material-preview > :last-child {
+    margin-bottom: 0;
+  }
+
+  .training-material-preview h1 {
+    color: var(--bs-primary);
+    font-size: 1.45rem;
+    line-height: 1.25;
+    margin: 0 0 1rem;
+  }
+
+  .training-material-preview h2 {
+    border-left: 3px solid var(--bs-primary);
+    color: var(--bs-body-color);
+    font-size: 1.15rem;
+    line-height: 1.35;
+    margin: 1.5rem 0 .75rem;
+    padding-left: .65rem;
+  }
+
+  .training-material-preview h3 {
+    color: var(--bs-info);
+    font-size: 1rem;
+    line-height: 1.4;
+    margin: 1.25rem 0 .5rem;
+  }
+
+  .training-material-preview p,
+  .training-material-preview ul,
+  .training-material-preview ol,
+  .training-material-preview pre,
+  .training-material-preview blockquote,
+  .training-material-preview table {
+    margin-bottom: .85rem;
+  }
+
+  .training-material-preview ul,
+  .training-material-preview ol {
+    padding-left: 1.25rem;
+  }
+
+  .training-material-preview li + li {
+    margin-top: .25rem;
+  }
+
+  .training-material-preview li::marker {
+    color: var(--bs-primary);
+    font-weight: 600;
+  }
+
+  .training-material-preview blockquote {
+    background: var(--bs-primary-bg-subtle);
+    border-left: .25rem solid var(--bs-primary);
+    border-radius: 0 var(--bs-border-radius) var(--bs-border-radius) 0;
+    color: var(--bs-body-color);
+    padding: .85rem 1rem;
+  }
+
+  .training-material-preview blockquote > :last-child {
+    margin-bottom: 0;
+  }
+
+  .training-material-preview code {
+    background: var(--bs-tertiary-bg);
+    border: 1px solid var(--bs-border-color);
+    border-radius: .25rem;
+    color: var(--bs-code-color);
+    font-size: .85em;
+    padding: .1rem .3rem;
+  }
+
+  .training-material-preview pre {
+    background: var(--bs-tertiary-bg);
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    color: var(--bs-body-color);
+    font-size: .86rem;
+    line-height: 1.55;
+    overflow-x: auto;
+    padding: .85rem 1rem;
+  }
+
+  .training-material-preview pre code {
+    background: transparent;
+    border: 0;
+    color: inherit;
+    font-size: inherit;
+    padding: 0;
+  }
+
+  .training-material-preview mjx-container[display="true"] {
+    display: block;
+    margin: 1rem 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: .25rem 0;
+    text-align: center;
+  }
+
+  .training-material-preview hr {
+    border: 0;
+    border-top: 1px solid var(--bs-border-color);
+    margin: 1.5rem 0;
+    opacity: 1;
+  }
+
+  .training-material-preview table {
+    border-collapse: collapse;
+    font-size: .9rem;
+    width: 100%;
+  }
+
+  .training-material-preview th,
+  .training-material-preview td {
+    border: 1px solid var(--bs-border-color);
+    padding: .45rem .6rem;
+    vertical-align: top;
+  }
+
+  .training-material-preview thead th {
+    background: var(--bs-tertiary-bg);
+    color: var(--bs-secondary-color);
+    font-weight: 600;
   }
 
   .training-material-row-active {
@@ -263,7 +403,7 @@
                   </div>
                   <div class="training-preview-pane">
                     <p class="text-muted mb-2 fs-xs text-uppercase fw-semibold">Preview</p>
-                    <div id="material-preview" data-material-preview data-mathjax-scope class="training-material-preview lh-lg">
+                    <div id="material-preview" data-material-preview data-mathjax-scope class="training-material-preview">
                       {% if rendered_material_preview %}
                         {{ rendered_material_preview }}
                       {% else %}

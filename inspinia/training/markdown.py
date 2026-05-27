@@ -37,12 +37,19 @@ ALLOWED_MARKDOWN_ATTRIBUTES = {
     "th": ["align"],
 }
 ALLOWED_MARKDOWN_PROTOCOLS = {"http", "https", "mailto"}
+MATH_DELIMITER_PLACEHOLDERS = {
+    r"\[": "ASTERPROOF_MATH_DISPLAY_OPEN",
+    r"\]": "ASTERPROOF_MATH_DISPLAY_CLOSE",
+    r"\(": "ASTERPROOF_MATH_INLINE_OPEN",
+    r"\)": "ASTERPROOF_MATH_INLINE_CLOSE",
+}
 
 
 def render_markdown(value: str) -> SafeString:
     """Render trainer-authored Markdown while stripping unsafe HTML."""
+    source = _protect_math_delimiters(value or "")
     raw_html = markdown_lib.markdown(
-        value or "",
+        source,
         extensions=["extra", "sane_lists"],
         output_format="html",
     )
@@ -54,7 +61,20 @@ def render_markdown(value: str) -> SafeString:
         strip=True,
     )
     linked = bleach.linkify(cleaned, callbacks=[_external_link_attrs])
+    linked = _restore_math_delimiters(linked)
     return mark_safe(linked)  # noqa: S308
+
+
+def _protect_math_delimiters(value: str) -> str:
+    for delimiter, placeholder in MATH_DELIMITER_PLACEHOLDERS.items():
+        value = value.replace(delimiter, placeholder)
+    return value
+
+
+def _restore_math_delimiters(value: str) -> str:
+    for delimiter, placeholder in MATH_DELIMITER_PLACEHOLDERS.items():
+        value = value.replace(placeholder, delimiter)
+    return value
 
 
 def _external_link_attrs(attrs, new=False):  # noqa: FBT002

@@ -659,7 +659,6 @@ def trainer_materials_view(request):
         },
     )
 
-
 @login_required
 @require_http_methods(["GET", "POST"])
 def trainer_problems_view(request):
