@@ -332,6 +332,48 @@ def completion_progress_charts_payload(
     }
 
 
+def completion_progress_topic_mohs_matrix_payload(
+    rows: Iterable[CompletionProgressRow],
+) -> dict[str, object]:
+    row_list = list(rows)
+    counts_by_topic_mohs: dict[str, Counter[int]] = defaultdict(Counter)
+    mohs_values = sorted({row.mohs for row in row_list if row.mohs is not None})
+    for row in row_list:
+        if row.mohs is None:
+            continue
+        counts_by_topic_mohs[row.topic or "Unlinked"][row.mohs] += 1
+
+    topics = sorted(counts_by_topic_mohs, key=_topic_sort_key)
+    matrix_rows = []
+    row_totals = {}
+    max_cell_count = 0
+    for topic in topics:
+        cells = []
+        row_total = 0
+        for mohs in mohs_values:
+            count = counts_by_topic_mohs[topic].get(mohs, 0)
+            row_total += count
+            max_cell_count = max(max_cell_count, count)
+            cells.append({"count": count, "mohs": str(mohs)})
+        row_totals[topic] = row_total
+        matrix_rows.append({"cells": cells, "topic": topic, "total": row_total})
+
+    column_totals = {
+        str(mohs): sum(counts_by_topic_mohs[topic].get(mohs, 0) for topic in topics)
+        for mohs in mohs_values
+    }
+    grand_total = sum(column_totals.values())
+
+    return {
+        "column_totals": column_totals,
+        "grand_total": grand_total,
+        "max_cell_count": max_cell_count,
+        "mohs_values": [str(mohs) for mohs in mohs_values],
+        "row_totals": row_totals,
+        "rows": matrix_rows,
+    }
+
+
 def completion_progress_yearly_heatmap_payload(
     rows: Iterable[CompletionProgressRow],
     *,

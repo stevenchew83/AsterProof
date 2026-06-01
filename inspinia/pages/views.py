@@ -54,6 +54,7 @@ from inspinia.pages.completion_progress import completion_progress_filter_option
 from inspinia.pages.completion_progress import completion_progress_insights_payload
 from inspinia.pages.completion_progress import completion_progress_stats
 from inspinia.pages.completion_progress import completion_progress_table_rows
+from inspinia.pages.completion_progress import completion_progress_topic_mohs_matrix_payload
 from inspinia.pages.completion_progress import completion_progress_user_options
 from inspinia.pages.completion_progress import completion_progress_yearly_heatmap_payload
 from inspinia.pages.completion_progress import default_completion_progress_user
@@ -5756,6 +5757,7 @@ def _render_completion_progress_analytics(
         "completion_progress_show_difficulty": show_difficulty,
         "completion_progress_stats": completion_progress_stats(filtered_rows, today=today),
         "completion_progress_table_rows": table_rows,
+        "completion_progress_topic_mohs_matrix": completion_progress_topic_mohs_matrix_payload(filtered_rows),
         "completion_progress_user_options": completion_progress_user_options() if can_select_user else [],
     }
     return render(request, "pages/completion-progress-analytics.html", context)

@@ -8911,6 +8911,42 @@ def test_completion_progress_analytics_renders_admin_dashboard(client):
     assert chart_payload["dailyMohs"]["totalValues"][-2:] == [15, 20]
     assert chart_payload["topicTotals"]["labels"] == ["Algebra", "Geometry", "Number Theory"]
     assert chart_payload["topicTotals"]["values"] == [1, 1, 1]
+    assert response.context["completion_progress_topic_mohs_matrix"] == {
+        "column_totals": {"15": 1, "20": 1, "35": 1},
+        "grand_total": 3,
+        "max_cell_count": 1,
+        "mohs_values": ["15", "20", "35"],
+        "row_totals": {"Algebra": 1, "Geometry": 1, "Number Theory": 1},
+        "rows": [
+            {
+                "cells": [
+                    {"count": 0, "mohs": "15"},
+                    {"count": 1, "mohs": "20"},
+                    {"count": 0, "mohs": "35"},
+                ],
+                "topic": "Algebra",
+                "total": 1,
+            },
+            {
+                "cells": [
+                    {"count": 0, "mohs": "15"},
+                    {"count": 0, "mohs": "20"},
+                    {"count": 1, "mohs": "35"},
+                ],
+                "topic": "Geometry",
+                "total": 1,
+            },
+            {
+                "cells": [
+                    {"count": 1, "mohs": "15"},
+                    {"count": 0, "mohs": "20"},
+                    {"count": 0, "mohs": "35"},
+                ],
+                "topic": "Number Theory",
+                "total": 1,
+            },
+        ],
+    }
     assert chart_payload["solutionStatus"]["labels"] == ["Draft", "No solution"]
     assert chart_payload["solutionStatus"]["values"] == [1, 2]
     yearly_heatmap = response.context["completion_progress_yearly_heatmap"]
@@ -8927,6 +8963,10 @@ def test_completion_progress_analytics_renders_admin_dashboard(client):
     response_html = response.content.decode("utf-8")
     assert "Daily completions" in response_html
     assert "MOHS trend" in response_html
+    assert "Topic x MOHS matrix" in response_html
+    assert 'id="completion-progress-topic-mohs-matrix"' in response_html
+    assert 'data-completion-progress-topic-mohs-export="copy"' in response_html
+    assert 'data-completion-progress-topic-mohs-export="csv"' in response_html
     assert "Activity calendar" in response_html
     assert "Contest coverage" in response_html
     assert "Yearly completion heatmap" not in response_html

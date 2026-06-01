@@ -323,6 +323,44 @@
     min-height: 1rem;
   }
 
+  .completion-progress-matrix-wrap {
+    border: 1px solid var(--ins-border-color);
+    border-radius: .5rem;
+    overflow-x: auto;
+  }
+
+  #completion-progress-topic-mohs-matrix {
+    min-width: 42rem;
+  }
+
+  #completion-progress-topic-mohs-matrix th,
+  #completion-progress-topic-mohs-matrix td {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .completion-progress-matrix-topic {
+    min-width: 9rem;
+  }
+
+  .completion-progress-matrix-cell {
+    min-width: 4.25rem;
+  }
+
+  .completion-progress-matrix-cell.is-active {
+    background: rgba(var(--bs-primary-rgb), .11);
+    color: var(--bs-primary);
+    font-weight: 700;
+  }
+
+  .completion-progress-matrix-actions .btn {
+    min-width: 6.75rem;
+  }
+
+  .completion-progress-matrix-status {
+    min-height: 1rem;
+  }
+
   .completion-progress-difficulty-editor {
     min-width: 10rem;
   }
@@ -791,6 +829,70 @@
                   </div>
                   {% endif %}
                 </div>
+                <div class="col-12">
+                  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                    <div>
+                      <h4 class="header-title mb-0">Topic x MOHS matrix</h4>
+                      <p class="text-muted fs-xs mb-2">Number of completed problem statements by topic and MOHS.</p>
+                    </div>
+                    {% if completion_progress_topic_mohs_matrix.rows %}
+                    <div class="btn-group btn-group-sm completion-progress-matrix-actions" role="group" aria-label="Topic MOHS matrix export options">
+                      <button type="button" class="btn btn-outline-secondary" data-completion-progress-topic-mohs-export="copy">
+                        <i class="ti ti-copy me-1"></i>Copy
+                      </button>
+                      <button type="button" class="btn btn-outline-secondary" data-completion-progress-topic-mohs-export="csv">
+                        <i class="ti ti-file-spreadsheet me-1"></i>CSV
+                      </button>
+                    </div>
+                    {% endif %}
+                  </div>
+                  {% if completion_progress_topic_mohs_matrix.rows %}
+                  <p id="completion-progress-topic-mohs-export-status" class="completion-progress-matrix-status text-muted fs-xs mb-2 d-none" role="status" aria-live="polite"></p>
+                  <div class="completion-progress-matrix-wrap">
+                    <table id="completion-progress-topic-mohs-matrix" class="table table-sm table-hover align-middle mb-0">
+                      <thead>
+                        <tr>
+                          <th scope="col" class="completion-progress-matrix-topic">Topic</th>
+                          {% for mohs in completion_progress_topic_mohs_matrix.mohs_values %}
+                          <th scope="col" class="text-end">MOHS {{ mohs }}</th>
+                          {% endfor %}
+                          <th scope="col" class="text-end">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for matrix_row in completion_progress_topic_mohs_matrix.rows %}
+                        <tr>
+                          <th scope="row" class="completion-progress-matrix-topic">{{ matrix_row.topic }}</th>
+                          {% for cell in matrix_row.cells %}
+                          <td
+                            class="completion-progress-matrix-cell text-end{% if cell.count %} is-active{% endif %}"
+                            title="{{ matrix_row.topic }} MOHS {{ cell.mohs }}: {{ cell.count }} completion{{ cell.count|pluralize }}"
+                          >{{ cell.count }}</td>
+                          {% endfor %}
+                          <td class="text-end fw-semibold">{{ matrix_row.total }}</td>
+                        </tr>
+                        {% endfor %}
+                      </tbody>
+                      <tfoot>
+                        <tr>
+                          <th scope="row" class="completion-progress-matrix-topic">Total</th>
+                          {% for mohs, count in completion_progress_topic_mohs_matrix.column_totals.items %}
+                          <td class="text-end fw-semibold">{{ count }}</td>
+                          {% endfor %}
+                          <td class="text-end fw-bold">{{ completion_progress_topic_mohs_matrix.grand_total }}</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                  {% else %}
+                  <div class="completion-progress-empty-state is-compact">
+                    <div>
+                      <h5 class="mb-1">No MOHS matrix yet.</h5>
+                      <p class="text-muted fs-xs mb-0">The matrix appears after filtered rows include at least one completed statement with MOHS metadata.</p>
+                    </div>
+                  </div>
+                  {% endif %}
+                </div>
               </div>
             </div>
             <div class="tab-pane fade" id="completion-progress-solutions-pane" role="tabpanel" aria-labelledby="completion-progress-solutions-tab" tabindex="0">
@@ -1053,6 +1155,7 @@
 
 {{ completion_progress_charts_payload|json_script:"completion-progress-chart-data" }}
 {{ completion_progress_table_rows|json_script:"completion-progress-table-data" }}
+{{ completion_progress_topic_mohs_matrix|json_script:"completion-progress-topic-mohs-matrix-data" }}
 {{ completion_progress_contest_heatmap.chart|json_script:"completion-progress-contest-heatmap-data" }}
 {{ completion_progress_export_metadata|json_script:"completion-progress-export-metadata" }}
 {% if completion_progress_rows and completion_progress_can_edit_difficulty %}
@@ -1069,9 +1172,11 @@
 (function () {
   var chartDataEl = document.getElementById("completion-progress-chart-data");
   var tableDataEl = document.getElementById("completion-progress-table-data");
+  var topicMohsMatrixDataEl = document.getElementById("completion-progress-topic-mohs-matrix-data");
   var contestHeatmapDataEl = document.getElementById("completion-progress-contest-heatmap-data");
   var exportMetadataEl = document.getElementById("completion-progress-export-metadata");
   var charts = chartDataEl ? JSON.parse(chartDataEl.textContent) : {};
+  var topicMohsMatrix = topicMohsMatrixDataEl ? JSON.parse(topicMohsMatrixDataEl.textContent || "{}") : {};
   var exportMetadata = exportMetadataEl ? JSON.parse(exportMetadataEl.textContent || "{}") : {};
   var contestHeatmapChart = null;
   var contestHeatmapPayload = null;
@@ -1553,6 +1658,110 @@
     });
   }
 
+  function topicMohsMatrixCsvValue(value) {
+    var text = String(value == null ? "" : value);
+    if (!/[",\n]/.test(text)) return text;
+    return '"' + text.replace(/"/g, '""') + '"';
+  }
+
+  function topicMohsMatrixCsv() {
+    var mohsValues = topicMohsMatrix.mohs_values || [];
+    var rows = topicMohsMatrix.rows || [];
+    if (!rows.length || !mohsValues.length) return "";
+    var csvRows = [
+      ["Topic"].concat(mohsValues.map(function (mohs) { return "MOHS " + mohs; }), ["Total"])
+    ];
+    rows.forEach(function (row) {
+      csvRows.push(
+        [row.topic].concat(
+          (row.cells || []).map(function (cell) { return Number(cell.count || 0); }),
+          [Number(row.total || 0)]
+        )
+      );
+    });
+    csvRows.push(
+      ["Total"].concat(
+        mohsValues.map(function (mohs) {
+          return Number((topicMohsMatrix.column_totals || {})[mohs] || 0);
+        }),
+        [Number(topicMohsMatrix.grand_total || 0)]
+      )
+    );
+    return csvRows.map(function (row) {
+      return row.map(topicMohsMatrixCsvValue).join(",");
+    }).join("\n");
+  }
+
+  function setTopicMohsMatrixStatus(message, isError) {
+    var statusEl = document.getElementById("completion-progress-topic-mohs-export-status");
+    if (!statusEl) return;
+    statusEl.textContent = message || "";
+    statusEl.classList.toggle("d-none", !message);
+    statusEl.classList.toggle("text-danger", Boolean(isError));
+    statusEl.classList.toggle("text-muted", !isError);
+  }
+
+  function topicMohsMatrixFilename() {
+    var userLabel = exportMetadata.user_label || "completion-progress";
+    var dateLabel = exportMetadata.generated_date || new Date().toISOString().slice(0, 10);
+    var slug = (userLabel + "-topic-mohs-matrix-" + dateLabel)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+    return (slug || "topic-mohs-matrix") + ".csv";
+  }
+
+  function copyTopicMohsMatrix(csvText) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(csvText);
+    }
+    var textarea = document.createElement("textarea");
+    textarea.value = csvText;
+    textarea.setAttribute("readonly", "readonly");
+    textarea.style.position = "fixed";
+    textarea.style.left = "-9999px";
+    document.body.appendChild(textarea);
+    textarea.select();
+    var ok = document.execCommand("copy");
+    textarea.remove();
+    return ok ? Promise.resolve() : Promise.reject(new Error("Copy failed"));
+  }
+
+  function downloadTopicMohsMatrix(csvText) {
+    var blob = new Blob([csvText], { type: "text/csv;charset=utf-8" });
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement("a");
+    link.href = url;
+    link.download = topicMohsMatrixFilename();
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function wireTopicMohsMatrixExports() {
+    document.querySelectorAll("[data-completion-progress-topic-mohs-export]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        var csvText = topicMohsMatrixCsv();
+        var action = button.getAttribute("data-completion-progress-topic-mohs-export");
+        if (!csvText) {
+          setTopicMohsMatrixStatus("No matrix data is available to export.", true);
+          return;
+        }
+        if (action === "copy") {
+          copyTopicMohsMatrix(csvText).then(function () {
+            setTopicMohsMatrixStatus("Matrix copied.");
+          }).catch(function () {
+            setTopicMohsMatrixStatus("Matrix copy failed. Use CSV instead.", true);
+          });
+          return;
+        }
+        downloadTopicMohsMatrix(csvText);
+        setTopicMohsMatrixStatus("CSV download started.");
+      });
+    });
+  }
+
   function renderDonut(selector, payload) {
     var el = document.querySelector(selector);
     if (!el || typeof ApexCharts === "undefined" || !payload || !hasValues(payload.values)) return;
@@ -1604,6 +1813,7 @@
     });
   });
   wireContestHeatmapExports();
+  wireTopicMohsMatrixExports();
   renderContestHeatmap();
   initCompletionProgressTooltips();
 
