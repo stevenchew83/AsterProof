@@ -125,7 +125,6 @@
                   placeholder="USAMO 2026 P1"
                 >
               </div>
-              {% with advanced_filters_open=completion_quick_update_filters.q %}
               <div class="col-md-12 col-xl">
                 <div class="d-flex flex-wrap gap-2">
                   <button type="submit" class="btn btn-primary">
@@ -136,7 +135,7 @@
                     type="button"
                     data-bs-toggle="collapse"
                     data-bs-target="#quick-completion-advanced-filters"
-                    aria-expanded="{% if advanced_filters_open %}true{% else %}false{% endif %}"
+                    aria-expanded="{% if completion_quick_update_advanced_filters_open %}true{% else %}false{% endif %}"
                     aria-controls="quick-completion-advanced-filters"
                   >
                     <i class="ti ti-adjustments-horizontal me-1"></i>Advanced
@@ -145,7 +144,7 @@
                 </div>
               </div>
             </div>
-            <div id="quick-completion-advanced-filters" class="collapse{% if advanced_filters_open %} show{% endif %} mt-2">
+            <div id="quick-completion-advanced-filters" class="collapse{% if completion_quick_update_advanced_filters_open %} show{% endif %} mt-2">
               <div class="row g-2 align-items-end">
                 <div class="col-md-6 col-xl-3">
                   <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="quick-completion-q">Search</label>
@@ -158,9 +157,34 @@
                     placeholder="Topic, tag, text"
                   >
                 </div>
+                <div class="col-md-3 col-xl-2">
+                  <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="quick-completion-mohs-min">MOHS min</label>
+                  <input
+                    id="quick-completion-mohs-min"
+                    name="mohs_min"
+                    type="number"
+                    min="0"
+                    step="1"
+                    class="form-control"
+                    value="{{ completion_quick_update_filters.mohs_min }}"
+                    placeholder="Min"
+                  >
+                </div>
+                <div class="col-md-3 col-xl-2">
+                  <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="quick-completion-mohs-max">MOHS max</label>
+                  <input
+                    id="quick-completion-mohs-max"
+                    name="mohs_max"
+                    type="number"
+                    min="0"
+                    step="1"
+                    class="form-control"
+                    value="{{ completion_quick_update_filters.mohs_max }}"
+                    placeholder="Max"
+                  >
+                </div>
               </div>
             </div>
-            {% endwith %}
           </form>
           {% if completion_quick_update_can_select_user %}
           <p class="text-muted fs-xs mb-0 mt-3">
