@@ -4929,11 +4929,21 @@ def completion_quick_update_view(request):
     selected_year = (request.GET.get("year") or "").strip()
     selected_problem = (request.GET.get("problem") or "").strip()
     selected_problem_label = (request.GET.get("problem_label") or "").strip()
+    selected_mohs_min = (request.GET.get("mohs_min") or "").strip()
+    selected_mohs_max = (request.GET.get("mohs_max") or "").strip()
     search_query = (request.GET.get("q") or "").strip()
     can_select_user = user_has_admin_role(request.user)
     selected_user = _completion_quick_update_resolve_get_user(request)
     has_search_filters = any(
-        [selected_contest, selected_year, selected_problem, selected_problem_label, search_query],
+        [
+            selected_contest,
+            selected_year,
+            selected_problem,
+            selected_problem_label,
+            selected_mohs_min,
+            selected_mohs_max,
+            search_query,
+        ],
     )
 
     year_base = statement_base
@@ -4952,8 +4962,8 @@ def completion_quick_update_view(request):
         year=selected_year,
         topic="",
         confidence="",
-        mohs_min="",
-        mohs_max="",
+        mohs_min=selected_mohs_min,
+        mohs_max=selected_mohs_max,
     )
     filtered_statements = _completion_quick_update_apply_problem_filter(
         filtered_statements,
@@ -5000,12 +5010,16 @@ def completion_quick_update_view(request):
         )
         for statement in statements
     ]
+    advanced_filters_open = any([search_query, selected_mohs_min, selected_mohs_max])
 
     context = {
+        "completion_quick_update_advanced_filters_open": advanced_filters_open,
         "completion_quick_update_can_select_user": can_select_user,
         "completion_quick_update_contest_choices": contest_choices,
         "completion_quick_update_filters": {
             "contest": selected_contest,
+            "mohs_max": selected_mohs_max,
+            "mohs_min": selected_mohs_min,
             "problem": selected_problem,
             "problem_label": selected_problem_label,
             "q": search_query,

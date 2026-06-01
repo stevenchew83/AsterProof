@@ -5877,11 +5877,12 @@ def _create_quick_completion_statement(
     year: int = 2026,
     problem_code: str = "P1",
     problem_number: int = 1,
+    mohs: int = 6,
 ) -> ContestProblemStatement:
     problem = ProblemSolveRecord.objects.create(
         year=year,
         topic="ALG",
-        mohs=6,
+        mohs=mohs,
         contest=contest,
         problem=problem_code,
         contest_year_problem=f"{contest} {year} {problem_code}",
@@ -6216,6 +6217,8 @@ def test_completion_quick_update_filters_by_contest_year_and_problem_text(client
     assert response.status_code == HTTPStatus.OK
     assert response.context["completion_quick_update_filters"] == {
         "contest": "USAMO",
+        "mohs_max": "",
+        "mohs_min": "",
         "problem": "1",
         "problem_label": "",
         "q": "",
@@ -6255,6 +6258,38 @@ def test_completion_quick_update_filters_by_problem_label(client):
     assert 'value="USAMO 2026 P1"' in response_html
     assert "USAMO 2026 P2" not in response_html
     assert "USAMO 2026 P10" not in response_html
+
+
+def test_completion_quick_update_filters_by_mohs_range(client):
+    user = UserFactory()
+    client.force_login(user)
+    _create_quick_completion_statement(problem_code="P1", problem_number=1, mohs=10)
+    matching_statement = _create_quick_completion_statement(
+        problem_code="P2",
+        problem_number=2,
+        mohs=18,
+    )
+    _create_quick_completion_statement(problem_code="P3", problem_number=3, mohs=25)
+
+    response = client.get(
+        reverse("pages:completion_quick_update"),
+        {"mohs_min": "15", "mohs_max": "20"},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["completion_quick_update_filters"]["mohs_min"] == "15"
+    assert response.context["completion_quick_update_filters"]["mohs_max"] == "20"
+    rows = response.context["completion_quick_update_rows"]
+    assert [row["statement_uuid"] for row in rows] == [str(matching_statement.statement_uuid)]
+    response_html = response.content.decode("utf-8")
+    assert 'name="mohs_min"' in response_html
+    assert 'value="15"' in response_html
+    assert 'name="mohs_max"' in response_html
+    assert 'value="20"' in response_html
+    assert 'id="quick-completion-advanced-filters" class="collapse show' in response_html
+    assert "MOHS 18" in response_html
+    assert "MOHS 10" not in response_html
+    assert "MOHS 25" not in response_html
 
 
 def test_completion_quick_update_defaults_to_recent_statement_limit(client):
