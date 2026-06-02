@@ -296,6 +296,9 @@
               </select>
             </div>
             <button type="button" id="contest-directory-reset" class="btn btn-outline-secondary btn-sm">Reset</button>
+            <button type="button" id="contest-directory-copy" class="btn btn-outline-primary btn-sm">
+              <i class="ti ti-copy me-1"></i>Copy filtered rows
+            </button>
             <span id="contest-directory-filter-summary" class="text-muted fs-xs">
               {{ contest_quality_counts.missing_topics }} with missing topics · {{ contest_quality_counts.no_techniques }} with no techniques
             </span>
@@ -528,6 +531,76 @@
     return true;
   }
 
+  function tableRowsForExport(table) {
+    return table.rows({ search: "applied" }).indexes().toArray().map(function (rowIndex) {
+      return table.row(rowIndex).data();
+    });
+  }
+
+  function exportContestRows(rows) {
+    var headers = [
+      "Contest",
+      "Statements",
+      "Year span",
+      "Active years",
+      "Avg MOHS",
+      "Missing MOHS",
+      "Missing topics",
+      "MOHS coverage",
+      "Topic coverage",
+      "Technique coverage",
+      "Techniques / statement",
+      "Quality flags"
+    ];
+    var lines = [headers];
+    rows.forEach(function (row) {
+      lines.push([
+        row.contest,
+        row.problem_count,
+        row.year_span_label,
+        row.active_years,
+        row.has_mohs ? row.avg_mohs : "",
+        row.missing_mohs_count,
+        row.missing_topic_count,
+        formatMetric(row.mohs_coverage_percent, "%"),
+        formatMetric(row.topic_coverage_percent, "%"),
+        formatMetric(row.technique_coverage_percent, "%"),
+        formatMetric(row.techniques_per_problem, ""),
+        row.quality_issue_count
+      ]);
+    });
+    return lines.map(function (line) {
+      return line.map(function (value) {
+        var text = String(value == null ? "" : value);
+        return text.replace(/\t/g, " ").replace(/\r?\n/g, " ");
+      }).join("\t");
+    }).join("\n");
+  }
+
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text);
+    }
+    return new Promise(function (resolve, reject) {
+      var area = document.createElement("textarea");
+      area.value = text;
+      area.setAttribute("readonly", "");
+      area.style.position = "fixed";
+      area.style.opacity = "0";
+      document.body.appendChild(area);
+      area.focus();
+      area.select();
+      try {
+        document.execCommand("copy");
+        document.body.removeChild(area);
+        resolve();
+      } catch (err) {
+        document.body.removeChild(area);
+        reject(err);
+      }
+    });
+  }
+
   document.querySelectorAll("[data-contest-ranked-metric]").forEach(function (button) {
     button.addEventListener("click", function () {
       document.querySelectorAll("[data-contest-ranked-metric]").forEach(function (metricButton) {
@@ -583,6 +656,8 @@
           return data;
         }
       },
+      { data: "missing_mohs_count", title: "Missing MOHS", className: "text-end text-nowrap" },
+      { data: "missing_topic_count", title: "Missing topics", className: "text-end text-nowrap" },
       {
         data: "mohs_coverage_percent",
         title: "MOHS coverage",
@@ -631,6 +706,22 @@
   var searchInput = document.getElementById("contest-directory-search");
   var qualityFilter = document.getElementById("contest-directory-quality-filter");
   var resetButton = document.getElementById("contest-directory-reset");
+  var copyButton = document.getElementById("contest-directory-copy");
+  var copyButtonDefaultHtml = copyButton ? copyButton.innerHTML : "";
+  var copyButtonTimer = null;
+
+  function setCopyButtonState(html, btnClass) {
+    if (!copyButton) return;
+    copyButton.classList.remove("btn-outline-primary", "btn-success", "btn-outline-secondary", "btn-danger");
+    copyButton.classList.add(btnClass);
+    copyButton.innerHTML = html;
+    if (copyButtonTimer) clearTimeout(copyButtonTimer);
+    copyButtonTimer = window.setTimeout(function () {
+      copyButton.classList.remove("btn-success", "btn-outline-secondary", "btn-danger");
+      copyButton.classList.add("btn-outline-primary");
+      copyButton.innerHTML = copyButtonDefaultHtml;
+    }, 2200);
+  }
 
   DataTable.ext.search.push(function (settings, _data, dataIndex, rowData) {
     if (!settings.nTable || settings.nTable.id !== "contest-analytics-table") return true;
@@ -658,6 +749,27 @@
       if (qualityFilter) qualityFilter.value = "all";
       table.search("");
       table.draw();
+    });
+  }
+
+  if (copyButton) {
+    copyButton.addEventListener("click", function () {
+      var exportRows = tableRowsForExport(table);
+      if (!exportRows.length) {
+        setCopyButtonState('<i class="ti ti-table-off me-1"></i>No rows to copy', "btn-outline-secondary");
+        return;
+      }
+      copyText(exportContestRows(exportRows))
+        .then(function () {
+          var label = exportRows.length === 1 ? "row" : "rows";
+          setCopyButtonState(
+            '<i class="ti ti-check me-1"></i>Copied ' + exportRows.length + " " + label,
+            "btn-success"
+          );
+        })
+        .catch(function () {
+          setCopyButtonState('<i class="ti ti-alert-circle me-1"></i>Copy failed', "btn-danger");
+        });
     });
   }
 })();
