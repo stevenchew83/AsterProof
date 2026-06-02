@@ -4703,8 +4703,11 @@ def test_contest_dashboard_exposes_quality_payload_and_redesign_hooks(client):
         "contest-topic-composition-chart",
         "contest-directory-search",
         "contest-directory-quality-filter",
+        "contest-directory-copy",
     ]:
         assert f'id="{hook_id}"' in response_html
+    assert 'title: "Missing MOHS"' in response_html
+    assert 'title: "Missing topics"' in response_html
     assert response_html.count("dataTables.min.js") == 1
     assert response_html.count("apexcharts.min.js") == 1
 
