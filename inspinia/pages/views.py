@@ -200,7 +200,7 @@ COMPLETION_BOARD_INITIAL_ROW_LIMIT = 30
 COMPLETION_BOARD_ROW_LOAD_STEP = 30
 ADMIN_TABLE_LATEST_LIMIT = 100
 COMPLETION_QUICK_UPDATE_RECENT_LIMIT = ADMIN_TABLE_LATEST_LIMIT
-COMPLETION_QUICK_UPDATE_SEARCH_LIMIT = 200
+COMPLETION_QUICK_UPDATE_SEARCH_LIMIT = 500
 
 
 class ProblemStatementCsvImportValidationError(ValueError):
@@ -4851,6 +4851,26 @@ def _completion_quick_update_apply_problem_label_filter(queryset, raw_value: str
     return queryset
 
 
+def _completion_quick_update_apply_subtopics_filter(queryset, raw_value: str):
+    subtopics_query = (raw_value or "").strip()
+    if not subtopics_query:
+        return queryset
+    queryset = queryset.alias(
+        _has_statement_subtopics=Exists(
+            StatementTopicTechnique.objects.filter(statement_id=OuterRef("pk")),
+        ),
+    )
+    for token in subtopics_query.split():
+        queryset = queryset.filter(
+            Q(statement_topic_techniques__technique__icontains=token)
+            | (
+                Q(_has_statement_subtopics=False)
+                & Q(linked_problem__topic_techniques__technique__icontains=token)
+            ),
+        )
+    return queryset
+
+
 def _completion_quick_update_parse_user_id(raw_value: str) -> int | None:
     try:
         user_id = int(raw_value)
@@ -4927,6 +4947,7 @@ def _completion_quick_update_row(
     *,
     completion_by_statement_id: dict[int, UserProblemCompletion],
     difficulty_payload: dict[str, object] | None = None,
+    subtopics: list[str] | None = None,
 ) -> dict[str, object]:
     completion = completion_by_statement_id.get(statement.id)
     is_completed = _completion_is_solved(completion)
@@ -4971,6 +4992,7 @@ def _completion_quick_update_row(
         "problem_detail_url": problem_detail_url,
         "statement_uuid": str(statement.statement_uuid),
         "study_summary": _completion_quick_update_study_summary(metadata_payload),
+        "subtopics": subtopics or [],
         "topic": display_topic_label(topic) if topic else "",
         "year": int(statement.contest_year),
         **(
@@ -4985,6 +5007,57 @@ def _completion_quick_update_row(
             metadata_payload.get("proof_completed"),
         ),
     }
+
+
+def _completion_quick_update_subtopics_by_statement_id(
+    statements: list[ContestProblemStatement],
+) -> dict[int, list[str]]:
+    if not statements:
+        return {}
+
+    statement_ids = [statement.id for statement in statements]
+    linked_problem_ids = sorted(
+        {
+            statement.linked_problem_id
+            for statement in statements
+            if statement.linked_problem_id is not None
+        },
+    )
+    statement_subtopics_by_id: dict[int, list[str]] = defaultdict(list)
+    seen_statement_subtopics: dict[int, set[str]] = defaultdict(set)
+    for tag_row in (
+        StatementTopicTechnique.objects.filter(statement_id__in=statement_ids)
+        .values("statement_id", "technique")
+        .order_by("technique", "statement_id")
+    ):
+        statement_id = tag_row["statement_id"]
+        technique = tag_row["technique"]
+        if technique in seen_statement_subtopics[statement_id]:
+            continue
+        seen_statement_subtopics[statement_id].add(technique)
+        statement_subtopics_by_id[statement_id].append(technique)
+
+    linked_subtopics_by_record_id: dict[int, list[str]] = defaultdict(list)
+    seen_linked_subtopics: dict[int, set[str]] = defaultdict(set)
+    if linked_problem_ids:
+        for tag_row in (
+            ProblemTopicTechnique.objects.filter(record_id__in=linked_problem_ids)
+            .values("record_id", "technique")
+            .order_by("technique", "record_id")
+        ):
+            record_id = tag_row["record_id"]
+            technique = tag_row["technique"]
+            if technique in seen_linked_subtopics[record_id]:
+                continue
+            seen_linked_subtopics[record_id].add(technique)
+            linked_subtopics_by_record_id[record_id].append(technique)
+
+    subtopics_by_statement_id: dict[int, list[str]] = {}
+    for statement in statements:
+        subtopics_by_statement_id[statement.id] = statement_subtopics_by_id.get(
+            statement.id,
+        ) or linked_subtopics_by_record_id.get(statement.linked_problem_id, [])
+    return subtopics_by_statement_id
 
 
 def _completion_quick_update_result_summary(
@@ -5017,6 +5090,7 @@ def completion_quick_update_view(request):
     selected_problem_label = (request.GET.get("problem_label") or "").strip()
     selected_mohs_min = (request.GET.get("mohs_min") or "").strip()
     selected_mohs_max = (request.GET.get("mohs_max") or "").strip()
+    selected_subtopics = (request.GET.get("subtopics") or "").strip()
     search_query = (request.GET.get("q") or "").strip()
     can_select_user = user_has_admin_role(request.user)
     selected_user = _completion_quick_update_resolve_get_user(request)
@@ -5028,6 +5102,7 @@ def completion_quick_update_view(request):
             selected_problem_label,
             selected_mohs_min,
             selected_mohs_max,
+            selected_subtopics,
             search_query,
         ],
     )
@@ -5059,6 +5134,10 @@ def completion_quick_update_view(request):
         filtered_statements,
         selected_problem_label,
     ).distinct()
+    filtered_statements = _completion_quick_update_apply_subtopics_filter(
+        filtered_statements,
+        selected_subtopics,
+    ).distinct()
     matching_total = filtered_statements.count()
     result_limit = (
         COMPLETION_QUICK_UPDATE_SEARCH_LIMIT
@@ -5088,15 +5167,17 @@ def completion_quick_update_view(request):
         statement_ids=[statement.id for statement in statements],
         user=selected_user,
     )
+    subtopics_by_statement_id = _completion_quick_update_subtopics_by_statement_id(statements)
     rows = [
         _completion_quick_update_row(
             statement,
             completion_by_statement_id=completion_by_statement_id,
             difficulty_payload=difficulty_payloads.get(statement.id),
+            subtopics=subtopics_by_statement_id.get(statement.id),
         )
         for statement in statements
     ]
-    advanced_filters_open = any([search_query, selected_mohs_min, selected_mohs_max])
+    advanced_filters_open = any([search_query, selected_subtopics, selected_mohs_min, selected_mohs_max])
 
     context = {
         "completion_quick_update_advanced_filters_open": advanced_filters_open,
@@ -5109,6 +5190,7 @@ def completion_quick_update_view(request):
             "problem": selected_problem,
             "problem_label": selected_problem_label,
             "q": search_query,
+            "subtopics": selected_subtopics,
             "target_user_id": str(selected_user.id) if can_select_user and selected_user != request.user else "",
             "year": selected_year,
         },
