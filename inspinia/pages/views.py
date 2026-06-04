@@ -2588,11 +2588,37 @@ def _user_completion_monthly_bar_payload(
         for completion_date in completion_dates
         if start_date <= completion_date <= end_date
     )
+    exact_values = [exact_counts_by_month.get(month_start, 0) for month_start in month_starts]
+    display_values = exact_values.copy()
+    forecast_values: list[int | None] = [None for _month_start in month_starts]
+    forecast = None
+    current_month_start = date(end_date.year, end_date.month, 1)
+    if current_month_start in month_starts:
+        current_month_index = month_starts.index(current_month_start)
+        current_month_actual = exact_values[current_month_index]
+        days_in_month = (_shift_month(current_month_start, 1) - timedelta(days=1)).day
+        if current_month_actual > 0 and end_date.day < days_in_month:
+            projected_value = max(
+                current_month_actual,
+                math.floor((current_month_actual * days_in_month / end_date.day) + 0.5),
+            )
+            display_values[current_month_index] = projected_value
+            forecast_values[current_month_index] = projected_value
+            forecast = {
+                "actual_value": current_month_actual,
+                "day_of_month": end_date.day,
+                "days_in_month": days_in_month,
+                "label": current_month_start.strftime("%b %Y"),
+                "value": projected_value,
+            }
     return {
+        "display_values": display_values,
         "estimated_values": [0 for _month_start in month_starts],
-        "exact_values": [exact_counts_by_month.get(month_start, 0) for month_start in month_starts],
+        "exact_values": exact_values,
+        "forecast": forecast,
+        "forecast_values": forecast_values,
         "labels": [month_start.strftime("%b %Y") for month_start in month_starts],
-        "values": [exact_counts_by_month.get(month_start, 0) for month_start in month_starts],
+        "values": exact_values,
     }
 
 
