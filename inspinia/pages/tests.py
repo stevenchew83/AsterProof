@@ -6294,7 +6294,8 @@ def test_completion_quick_update_filters_by_mohs_range(client):
     assert 'value="15"' in response_html
     assert 'name="mohs_max"' in response_html
     assert 'value="20"' in response_html
-    assert 'id="quick-completion-advanced-filters" class="collapse show' in response_html
+    assert 'id="quick-completion-secondary-filters"' in response_html
+    assert 'id="quick-completion-advanced-filters"' not in response_html
     assert "MOHS 18" in response_html
     assert "MOHS 10" not in response_html
     assert "MOHS 25" not in response_html
@@ -6330,7 +6331,8 @@ def test_completion_quick_update_filters_by_subtopics(client):
     response_html = response.content.decode("utf-8")
     assert 'name="subtopics"' in response_html
     assert 'value="LTE"' in response_html
-    assert 'id="quick-completion-advanced-filters" class="collapse show' in response_html
+    assert 'id="quick-completion-secondary-filters"' in response_html
+    assert 'id="quick-completion-advanced-filters"' not in response_html
     assert "Subtopics" in response_html
     assert "ANGLE CHASE" not in response_html
 
@@ -7026,8 +7028,28 @@ def test_completion_quick_update_renders_datatable_with_status_filter(client):
     assert 'id="quick-completion-table"' in response_html
     assert 'id="quick-completion-status-filter"' in response_html
     assert 'id="quick-completion-detail-editor"' in response_html
-    assert 'id="quick-completion-advanced-filters"' in response_html
-    assert 'data-bs-toggle="collapse"' in response_html
+    assert 'id="quick-completion-primary-filters"' in response_html
+    assert 'id="quick-completion-secondary-filters"' in response_html
+    assert 'id="quick-completion-advanced-filters"' not in response_html
+    assert 'data-bs-target="#quick-completion-advanced-filters"' not in response_html
+    primary_filter_html = response_html[
+        response_html.index('id="quick-completion-primary-filters"') : response_html.index(
+            'id="quick-completion-secondary-filters"',
+        )
+    ]
+    secondary_filter_html = response_html[
+        response_html.index('id="quick-completion-secondary-filters"') : response_html.index(
+            '</form>',
+        )
+    ]
+    assert 'name="contest"' in primary_filter_html
+    assert 'name="year"' in primary_filter_html
+    assert 'name="problem"' in primary_filter_html
+    assert 'name="problem_label"' in primary_filter_html
+    assert 'name="q"' in secondary_filter_html
+    assert 'name="subtopics"' in secondary_filter_html
+    assert 'name="mohs_min"' in secondary_filter_html
+    assert 'name="mohs_max"' in secondary_filter_html
     assert 'data-completion-state="solved"' in response_html
     assert 'data-completion-state="unsolved"' in response_html
     assert 'data-completion-date="2026-04-20"' in response_html
