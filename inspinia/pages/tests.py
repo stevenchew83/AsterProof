@@ -17,6 +17,7 @@ import pytest
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.management import call_command
 from django.db import IntegrityError
 from django.db import connection
 from django.db import transaction
@@ -11738,6 +11739,83 @@ def test_problem_statement_list_completion_toggle_updates_user_completion_date(c
     assert completion.completion_date == date(2025, 8, 28)
 
 
+def test_problem_statement_list_completion_toggle_updates_exact_duplicate_statements(client):
+    user = UserFactory()
+    client.force_login(user)
+    linked_record = ProblemSolveRecord.objects.create(
+        year=SPAIN_OLYMPIAD_YEAR,
+        topic="NT",
+        mohs=4,
+        contest=SPAIN_OLYMPIAD_NAME,
+        problem="P1",
+        contest_year_problem=f"{SPAIN_OLYMPIAD_NAME} {SPAIN_OLYMPIAD_YEAR} P1",
+    )
+    duplicate_record = ProblemSolveRecord.objects.create(
+        year=SPAIN_OLYMPIAD_YEAR + 1,
+        topic="NT",
+        mohs=5,
+        contest="Taiwan TST Round 2",
+        problem="P4",
+        contest_year_problem=f"Taiwan TST Round 2 {SPAIN_OLYMPIAD_YEAR + 1} P4",
+    )
+    similar_record = ProblemSolveRecord.objects.create(
+        year=SPAIN_OLYMPIAD_YEAR + 1,
+        topic="NT",
+        mohs=5,
+        contest="Japan TST",
+        problem="P7",
+        contest_year_problem=f"Japan TST {SPAIN_OLYMPIAD_YEAR + 1} P7",
+    )
+    statement = ContestProblemStatement.objects.create(
+        contest_year=SPAIN_OLYMPIAD_YEAR,
+        contest_name=SPAIN_OLYMPIAD_NAME,
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Let n be a positive integer. Prove the claim.",
+        linked_problem=linked_record,
+    )
+    duplicate_statement = ContestProblemStatement.objects.create(
+        contest_year=SPAIN_OLYMPIAD_YEAR + 1,
+        contest_name="Taiwan TST Round 2",
+        problem_number=4,
+        problem_code="P4",
+        day_label="Round 2",
+        statement_latex="  let   n be a positive integer. prove the CLAIM.  ",
+        linked_problem=duplicate_record,
+    )
+    similar_statement = ContestProblemStatement.objects.create(
+        contest_year=SPAIN_OLYMPIAD_YEAR + 1,
+        contest_name="Japan TST",
+        problem_number=7,
+        problem_code="P7",
+        day_label="Team selection",
+        statement_latex="Let n be a positive integer. Prove the stronger claim.",
+        linked_problem=similar_record,
+    )
+
+    response = client.post(
+        reverse("pages:completion_board_toggle"),
+        {
+            "action": "set_date",
+            "completion_date": "2025-08-28",
+            "problem_uuid": str(linked_record.problem_uuid),
+        },
+        HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert UserProblemCompletion.objects.get(user=user, statement=statement).completion_date == date(
+        2025,
+        8,
+        28,
+    )
+    duplicate_completion = UserProblemCompletion.objects.get(user=user, statement=duplicate_statement)
+    assert duplicate_completion.problem is None
+    assert duplicate_completion.completion_date == date(2025, 8, 28)
+    assert not UserProblemCompletion.objects.filter(user=user, statement=similar_statement).exists()
+
+
 def test_problem_statement_list_recheck_links_updates_matching_rows_for_admin(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
@@ -14040,6 +14118,194 @@ def test_user_activity_dashboard_imports_completion_rows_for_current_user(client
         "Updated 2 completion row(s). 1 marked Done without an exact date." in str(message)
         for message in response.context["messages"]
     )
+
+
+def test_user_activity_dashboard_completion_import_updates_exact_duplicate_statements(client):
+    user = UserFactory()
+    client.force_login(user)
+    record = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="C",
+        mohs=6,
+        contest="IMO Shortlist",
+        problem="C3",
+        contest_year_problem="IMO Shortlist 2026 C3",
+    )
+    duplicate_record = ProblemSolveRecord.objects.create(
+        year=2027,
+        topic="C",
+        mohs=6,
+        contest="Taiwan TST Round 2",
+        problem="P4",
+        contest_year_problem="Taiwan TST Round 2 2027 P4",
+    )
+    statement = ContestProblemStatement.objects.create(
+        linked_problem=record,
+        contest_year=2026,
+        contest_name="IMO Shortlist",
+        problem_number=3,
+        problem_code="C3",
+        day_label="Combinatorics",
+        statement_latex="Let n be a positive integer. Sisyphus performs a sequence of turns.",
+    )
+    duplicate_statement = ContestProblemStatement.objects.create(
+        linked_problem=duplicate_record,
+        contest_year=2027,
+        contest_name="Taiwan TST Round 2",
+        problem_number=4,
+        problem_code="P4",
+        day_label="Round 2",
+        statement_latex=" let n  be a positive integer. sisyphus performs a sequence of TURNS. ",
+    )
+
+    response = client.post(
+        reverse("pages:user_activity_dashboard"),
+        data={
+            "action": "import_completions",
+            "source_text": f"PROBLEM UUID Date\n{record.problem_uuid}\t2025-08-28",
+        },
+        follow=True,
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert UserProblemCompletion.objects.get(user=user, statement=statement).completion_date == date(
+        2025,
+        8,
+        28,
+    )
+    assert UserProblemCompletion.objects.get(
+        user=user,
+        statement=duplicate_statement,
+    ).completion_date == date(2025, 8, 28)
+    assert not UserProblemCompletion.objects.filter(user=user, problem=record).exists()
+
+
+def test_backfill_duplicate_statement_completions_creates_missing_duplicates_only(client):
+    user = UserFactory()
+    legacy_problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="C",
+        mohs=6,
+        contest="IMO Shortlist",
+        problem="C3",
+        contest_year_problem="IMO Shortlist 2026 C3",
+    )
+    legacy_duplicate_problem = ProblemSolveRecord.objects.create(
+        year=2027,
+        topic="C",
+        mohs=6,
+        contest="Taiwan TST Round 2",
+        problem="P4",
+        contest_year_problem="Taiwan TST Round 2 2027 P4",
+    )
+    statement_problem = ProblemSolveRecord.objects.create(
+        year=2028,
+        topic="G",
+        mohs=7,
+        contest="IMO Shortlist",
+        problem="G2",
+        contest_year_problem="IMO Shortlist 2028 G2",
+    )
+    statement_duplicate_problem = ProblemSolveRecord.objects.create(
+        year=2029,
+        topic="G",
+        mohs=7,
+        contest="Japan TST",
+        problem="P5",
+        contest_year_problem="Japan TST 2029 P5",
+    )
+    legacy_statement = ContestProblemStatement.objects.create(
+        linked_problem=legacy_problem,
+        contest_year=2026,
+        contest_name="IMO Shortlist",
+        problem_number=3,
+        problem_code="C3",
+        day_label="Combinatorics",
+        statement_latex="Let n be a positive integer. Sisyphus performs a sequence of turns.",
+    )
+    legacy_duplicate_statement = ContestProblemStatement.objects.create(
+        linked_problem=legacy_duplicate_problem,
+        contest_year=2027,
+        contest_name="Taiwan TST Round 2",
+        problem_number=4,
+        problem_code="P4",
+        day_label="Round 2",
+        statement_latex=" let n  be a positive integer. sisyphus performs a sequence of TURNS. ",
+    )
+    statement_completion_source = ContestProblemStatement.objects.create(
+        linked_problem=statement_problem,
+        contest_year=2028,
+        contest_name="IMO Shortlist",
+        problem_number=2,
+        problem_code="G2",
+        day_label="Geometry",
+        statement_latex="Let ABC be a triangle. Prove that the circles are tangent.",
+    )
+    statement_completion_duplicate = ContestProblemStatement.objects.create(
+        linked_problem=statement_duplicate_problem,
+        contest_year=2029,
+        contest_name="Japan TST",
+        problem_number=5,
+        problem_code="P5",
+        day_label="Team selection",
+        statement_latex=" LET   ABC be a triangle. prove that the circles are tangent. ",
+    )
+    similar_statement = ContestProblemStatement.objects.create(
+        contest_year=2029,
+        contest_name="Korea TST",
+        problem_number=6,
+        problem_code="P6",
+        day_label="Team selection",
+        statement_latex="Let ABC be a triangle. Prove that the circles are not tangent.",
+    )
+    UserProblemCompletion.objects.create(
+        user=user,
+        problem=legacy_problem,
+        completion_date=date(2025, 8, 28),
+        status=UserProblemCompletion.Status.SOLVED,
+    )
+    UserProblemCompletion.objects.create(
+        user=user,
+        statement=statement_completion_source,
+        completion_date=None,
+        status=UserProblemCompletion.Status.WRITTEN,
+        proof_completed=True,
+    )
+
+    dry_run_output = StringIO()
+    call_command("backfill_duplicate_statement_completions", dry_run=True, stdout=dry_run_output)
+
+    assert "Dry run. Created 2 duplicate completion row(s)." in dry_run_output.getvalue()
+    assert UserProblemCompletion.objects.filter(user=user).count() == 2
+
+    output = StringIO()
+    call_command("backfill_duplicate_statement_completions", stdout=output)
+
+    assert "Created 2 duplicate completion row(s)." in output.getvalue()
+    assert not UserProblemCompletion.objects.filter(user=user, statement=legacy_statement).exists()
+    legacy_duplicate_completion = UserProblemCompletion.objects.get(
+        user=user,
+        statement=legacy_duplicate_statement,
+    )
+    assert legacy_duplicate_completion.problem is None
+    assert legacy_duplicate_completion.completion_date == date(2025, 8, 28)
+    assert legacy_duplicate_completion.status == UserProblemCompletion.Status.SOLVED
+
+    statement_duplicate_completion = UserProblemCompletion.objects.get(
+        user=user,
+        statement=statement_completion_duplicate,
+    )
+    assert statement_duplicate_completion.problem is None
+    assert statement_duplicate_completion.completion_date is None
+    assert statement_duplicate_completion.status == UserProblemCompletion.Status.WRITTEN
+    assert statement_duplicate_completion.proof_completed is True
+    assert not UserProblemCompletion.objects.filter(user=user, statement=similar_statement).exists()
+
+    second_output = StringIO()
+    call_command("backfill_duplicate_statement_completions", stdout=second_output)
+
+    assert "Created 0 duplicate completion row(s)." in second_output.getvalue()
+    assert UserProblemCompletion.objects.filter(user=user).count() == 4
 
 
 def test_user_activity_dashboard_shows_completion_import_errors(client):

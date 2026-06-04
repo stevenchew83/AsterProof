@@ -57,8 +57,12 @@ def _collapse_whitespace(text: str) -> str:
     return WHITESPACE_RE.sub(" ", (text or "").strip())
 
 
-def _normalize_exact_text(statement_latex: str) -> str:
+def normalize_exact_statement_text(statement_latex: str) -> str:
     return _collapse_whitespace(statement_latex).casefold()
+
+
+def _normalize_exact_text(statement_latex: str) -> str:
+    return normalize_exact_statement_text(statement_latex)
 
 
 def _normalize_similarity_text(statement_latex: str) -> str:

@@ -17,6 +17,8 @@ import pandas as pd
 from django.contrib.auth import get_user_model
 from django.db import transaction
 
+from inspinia.pages.completion_duplicates import linked_statement_for_completion_problem
+from inspinia.pages.completion_duplicates import upsert_exact_duplicate_statement_completions
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
 from inspinia.pages.models import UserProblemCompletion
@@ -67,6 +69,83 @@ class ProblemCompletionImportResult:
     n_completions: int = 0
     n_unknown_dates: int = 0
     warnings: list[str] = field(default_factory=list)
+
+
+def _upsert_completion_for_resolved_row(
+    *,
+    user,
+    statement: ContestProblemStatement | None,
+    problem: ProblemSolveRecord | None,
+    completion_date: date | None,
+) -> None:
+    if statement is None and problem is not None:
+        statement = linked_statement_for_completion_problem(problem)
+
+    defaults = {
+        "completion_date": completion_date,
+        "status": UserProblemCompletion.Status.SOLVED,
+    }
+    if statement is not None:
+        upsert_exact_duplicate_statement_completions(
+            user=user,
+            statement=statement,
+            defaults=defaults,
+        )
+        return
+
+    if problem is not None:
+        UserProblemCompletion.objects.update_or_create(
+            user=user,
+            problem=problem,
+            defaults=defaults,
+        )
+
+
+def _completion_problem_label(row: PreparedCompletionImportRow) -> str:
+    if row.statement_uuid is not None:
+        return str(row.statement_uuid)
+    if row.problem_uuid is not None:
+        return str(row.problem_uuid)
+    return f"{row.year} {row.contest} {row.problem}"
+
+
+def _resolve_prepared_completion_row(
+    row: PreparedCompletionImportRow,
+    *,
+    statement_by_uuid_cache: dict[UUID, ContestProblemStatement | None],
+    problem_by_uuid_cache: dict[UUID, ProblemSolveRecord | None],
+    problem_by_natural_key_cache: dict[tuple[int, str, str], ProblemSolveRecord | None],
+) -> tuple[ContestProblemStatement | None, ProblemSolveRecord | None]:
+    if row.statement_uuid is not None:
+        if row.statement_uuid not in statement_by_uuid_cache:
+            statement_by_uuid_cache[row.statement_uuid] = (
+                ContestProblemStatement.objects.select_related("linked_problem")
+                .filter(statement_uuid=row.statement_uuid)
+                .first()
+            )
+        statement = statement_by_uuid_cache[row.statement_uuid]
+        return statement, statement.linked_problem if statement is not None else None
+
+    if row.problem_uuid is not None:
+        if row.problem_uuid not in problem_by_uuid_cache:
+            problem_by_uuid_cache[row.problem_uuid] = (
+                ProblemSolveRecord.objects.filter(problem_uuid=row.problem_uuid).first()
+            )
+        return None, problem_by_uuid_cache[row.problem_uuid]
+
+    assert row.year is not None
+    assert row.contest is not None
+    assert row.problem is not None
+    natural_key = (row.year, row.contest, row.problem)
+    if natural_key not in problem_by_natural_key_cache:
+        problem_by_natural_key_cache[natural_key] = (
+            ProblemSolveRecord.objects.filter(
+                year=row.year,
+                contest=row.contest,
+                problem=row.problem,
+            ).first()
+        )
+    return None, problem_by_natural_key_cache[natural_key]
 
 
 def _parse_completion_value(value: Any) -> tuple[bool, date | None, bool]:
@@ -215,65 +294,24 @@ def import_problem_completion_dataframe(df: pd.DataFrame) -> ProblemCompletionIm
                 result.warnings.append(f"Skipped row for {row.user_email}: user not found.")
                 continue
 
-            statement: ContestProblemStatement | None = None
-            problem: ProblemSolveRecord | None
-            if row.statement_uuid is not None:
-                if row.statement_uuid not in statement_by_uuid_cache:
-                    statement_by_uuid_cache[row.statement_uuid] = (
-                        ContestProblemStatement.objects.select_related("linked_problem")
-                        .filter(statement_uuid=row.statement_uuid)
-                        .first()
-                    )
-                statement = statement_by_uuid_cache[row.statement_uuid]
-                problem = statement.linked_problem if statement is not None else None
-            elif row.problem_uuid is not None:
-                if row.problem_uuid not in problem_by_uuid_cache:
-                    problem_by_uuid_cache[row.problem_uuid] = (
-                        ProblemSolveRecord.objects.filter(problem_uuid=row.problem_uuid).first()
-                    )
-                problem = problem_by_uuid_cache[row.problem_uuid]
-            else:
-                assert row.year is not None
-                assert row.contest is not None
-                assert row.problem is not None
-                natural_key = (row.year, row.contest, row.problem)
-                if natural_key not in problem_by_natural_key_cache:
-                    problem_by_natural_key_cache[natural_key] = (
-                        ProblemSolveRecord.objects.filter(
-                            year=row.year,
-                            contest=row.contest,
-                            problem=row.problem,
-                        ).first()
-                    )
-                problem = problem_by_natural_key_cache[natural_key]
-
+            statement, problem = _resolve_prepared_completion_row(
+                row,
+                statement_by_uuid_cache=statement_by_uuid_cache,
+                problem_by_uuid_cache=problem_by_uuid_cache,
+                problem_by_natural_key_cache=problem_by_natural_key_cache,
+            )
             if statement is None and problem is None:
-                problem_label = (
-                    str(row.statement_uuid)
-                    if row.statement_uuid is not None
-                    else (
-                    str(row.problem_uuid)
-                    if row.problem_uuid is not None
-                    else f"{row.year} {row.contest} {row.problem}"
-                    )
-                )
                 result.warnings.append(
-                    f"Skipped row for {row.user_email}: problem not found ({problem_label}).",
+                    f"Skipped row for {row.user_email}: problem not found ({_completion_problem_label(row)}).",
                 )
                 continue
 
-            if statement is not None:
-                UserProblemCompletion.objects.update_or_create(
-                    user=user,
-                    statement=statement,
-                    defaults={"completion_date": row.completion_date, "problem": None},
-                )
-            else:
-                UserProblemCompletion.objects.update_or_create(
-                    user=user,
-                    problem=problem,
-                    defaults={"completion_date": row.completion_date},
-                )
+            _upsert_completion_for_resolved_row(
+                user=user,
+                statement=statement,
+                problem=problem,
+                completion_date=row.completion_date,
+            )
             result.n_completions += 1
             if row.date_unknown:
                 result.n_unknown_dates += 1
@@ -379,18 +417,12 @@ def import_problem_completion_text_for_user(user, source_text: str) -> ProblemCo
                 )
                 continue
 
-            if statement is not None:
-                UserProblemCompletion.objects.update_or_create(
-                    user=user,
-                    statement=statement,
-                    defaults={"completion_date": row.completion_date, "problem": None},
-                )
-            else:
-                UserProblemCompletion.objects.update_or_create(
-                    user=user,
-                    problem=problem,
-                    defaults={"completion_date": row.completion_date},
-                )
+            _upsert_completion_for_resolved_row(
+                user=user,
+                statement=statement,
+                problem=problem,
+                completion_date=row.completion_date,
+            )
             result.n_completions += 1
             if row.date_unknown:
                 result.n_unknown_dates += 1
