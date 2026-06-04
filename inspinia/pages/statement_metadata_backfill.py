@@ -25,6 +25,9 @@ from inspinia.pages.topic_tags_parse import parse_topic_tags_cell
 STATEMENT_METADATA_EXPORT_COLUMNS = [
     "STATEMENT UUID",
     "PROBLEM UUID",
+    "LINK STATUS",
+    "LINKED PROBLEM UUID",
+    "LINKED PROBLEM LABEL",
     "CONTEST YEAR",
     "CONTEST NAME",
     "CONTEST PROBLEM",
@@ -46,6 +49,9 @@ STATEMENT_METADATA_EDITABLE_COLUMNS = (
     "IMO slot guess",
     "Topic tags",
 )
+STATEMENT_METADATA_LINK_COLUMNS = (
+    "LINKED PROBLEM UUID",
+)
 STATEMENT_METADATA_STATEMENT_IDENTITY_COLUMNS = (
     "CONTEST YEAR",
     "CONTEST NAME",
@@ -59,6 +65,7 @@ STATEMENT_METADATA_STATEMENT_IDENTITY_COLUMNS = (
 STATEMENT_METADATA_SHEET_CONTEXT_COLUMNS = ("CONTEST PROBLEM",)
 STATEMENT_METADATA_ROW_VALUE_COLUMNS = (
     *STATEMENT_METADATA_EDITABLE_COLUMNS,
+    *STATEMENT_METADATA_LINK_COLUMNS,
     *STATEMENT_METADATA_STATEMENT_IDENTITY_COLUMNS,
     *STATEMENT_METADATA_SHEET_CONTEXT_COLUMNS,
 )
@@ -99,6 +106,7 @@ class PreparedStatementMetadataRow:
     confidence: str | None
     existing_record: ProblemSolveRecord | None
     imo_slot_guess: str | None
+    linked_problem_uuid: uuid.UUID | None
     mohs: int | None
     raw_topic_tags: str | None
     row_number: int
@@ -110,6 +118,7 @@ class PreparedStatementMetadataRow:
 class RawStatementMetadataRow:
     confidence: str | None
     imo_slot_guess: str | None
+    linked_problem_uuid: uuid.UUID | None
     mohs: int | None
     problem_uuid: uuid.UUID | None
     raw_cells: dict[str, object]
@@ -122,6 +131,10 @@ class RawStatementMetadataRow:
 def _statement_label(statement: ContestProblemStatement) -> str:
     day_label = statement.day_label or "Unlabeled"
     return f"{statement.contest_year_problem} · {day_label}"
+
+
+def _problem_label(record: ProblemSolveRecord) -> str:
+    return record.contest_year_problem or f"{record.contest} {record.year} {record.problem}"
 
 
 def _cell_str(value: object) -> str | None:
@@ -196,6 +209,18 @@ def _build_statement_problem_lookup(
     }
 
 
+def _build_problem_lookup_by_uuid(
+    problem_uuids: list[uuid.UUID | None],
+) -> dict[uuid.UUID, ProblemSolveRecord]:
+    requested_problem_uuids = [problem_uuid for problem_uuid in problem_uuids if problem_uuid is not None]
+    if not requested_problem_uuids:
+        return {}
+    return {
+        record.problem_uuid: record
+        for record in ProblemSolveRecord.objects.filter(problem_uuid__in=requested_problem_uuids)
+    }
+
+
 def _resolved_problem_for_statement(
     statement: ContestProblemStatement,
     *,
@@ -221,10 +246,14 @@ def build_statement_metadata_export_dataframe(
             statement,
             records_by_uuid=records_by_uuid,
         )
+        linked_problem = statement.linked_problem if statement.linked_problem_id else None
         rows.append(
             {
                 "STATEMENT UUID": str(statement.statement_uuid),
                 "PROBLEM UUID": str(statement.problem_uuid),
+                "LINK STATUS": "Linked" if linked_problem is not None else "Unlinked",
+                "LINKED PROBLEM UUID": str(linked_problem.problem_uuid) if linked_problem is not None else "",
+                "LINKED PROBLEM LABEL": _problem_label(linked_problem) if linked_problem is not None else "",
                 "CONTEST YEAR": statement.contest_year,
                 "CONTEST NAME": statement.contest_name,
                 "CONTEST PROBLEM": statement.contest_year_problem,
@@ -388,6 +417,7 @@ def _parse_raw_statement_metadata_sheet_rows(
         cells = row_series.to_dict()
         statement_uuid_raw = _cell_str(cells.get("STATEMENT UUID"))
         problem_uuid_raw = _cell_str(cells.get("PROBLEM UUID"))
+        linked_problem_uuid_raw = _cell_str(cells.get("LINKED PROBLEM UUID"))
         statement_uuid = (
             _parse_uuid_cell(statement_uuid_raw, row_number=row_number, label="STATEMENT UUID")
             if statement_uuid_raw
@@ -396,6 +426,15 @@ def _parse_raw_statement_metadata_sheet_rows(
         problem_uuid = (
             _parse_uuid_cell(problem_uuid_raw, row_number=row_number, label="PROBLEM UUID")
             if problem_uuid_raw
+            else None
+        )
+        linked_problem_uuid = (
+            _parse_uuid_cell(
+                linked_problem_uuid_raw,
+                row_number=row_number,
+                label="LINKED PROBLEM UUID",
+            )
+            if linked_problem_uuid_raw
             else None
         )
         if statement_uuid is None and problem_uuid is None:
@@ -411,6 +450,7 @@ def _parse_raw_statement_metadata_sheet_rows(
             RawStatementMetadataRow(
                 confidence=_cell_str(cells.get("Confidence")),
                 imo_slot_guess=_cell_str(cells.get("IMO slot guess")),
+                linked_problem_uuid=linked_problem_uuid,
                 mohs=mohs,
                 problem_uuid=problem_uuid,
                 raw_cells=cells,
@@ -644,11 +684,14 @@ def _build_prepared_statement_metadata_row(
         statement,
         records_by_uuid=ctx.records_by_uuid,
     )
+    if raw_row.linked_problem_uuid is not None:
+        existing_record = ctx.records_by_uuid.get(raw_row.linked_problem_uuid)
 
     return PreparedStatementMetadataRow(
         confidence=raw_row.confidence,
         existing_record=existing_record,
         imo_slot_guess=raw_row.imo_slot_guess,
+        linked_problem_uuid=raw_row.linked_problem_uuid,
         mohs=raw_row.mohs,
         raw_topic_tags=raw_row.raw_topic_tags,
         row_number=raw_row.row_number,
@@ -675,6 +718,9 @@ def _prepare_statement_metadata_rows(
 
     requested_statement_uuids = [row.statement_uuid for row in raw_rows if row.statement_uuid is not None]
     requested_problem_uuids = [row.problem_uuid for row in raw_rows if row.problem_uuid is not None]
+    requested_linked_problem_uuids = [
+        row.linked_problem_uuid for row in raw_rows if row.linked_problem_uuid is not None
+    ]
     statements = list(
         ContestProblemStatement.objects.select_related("linked_problem").filter(
             models.Q(statement_uuid__in=requested_statement_uuids)
@@ -685,6 +731,7 @@ def _prepare_statement_metadata_rows(
     statements_by_problem_uuid = {statement.problem_uuid: statement for statement in statements}
 
     records_by_uuid = _build_statement_problem_lookup(statements)
+    records_by_uuid.update(_build_problem_lookup_by_uuid(requested_linked_problem_uuids))
     ctx = _StatementMetadataPrepareContext(
         statements_by_statement_uuid=statements_by_statement_uuid,
         statements_by_problem_uuid=statements_by_problem_uuid,
@@ -876,7 +923,7 @@ def _import_metadata_upsert_problem_record(
             msg = "Cannot create a problem row without both TOPIC and MOHS."
             raise StatementMetadataBackfillValidationError(msg)
         record = ProblemSolveRecord(
-            problem_uuid=statement.problem_uuid,
+            problem_uuid=prepared_row.linked_problem_uuid or statement.problem_uuid,
             year=statement.contest_year,
             topic=topic,
             mohs=mohs,
@@ -964,7 +1011,8 @@ def import_statement_metadata_dataframe(
     for prepared_row in prepared_rows:
         statement = prepared_row.statement
         if prepared_row.existing_record is not None or (
-            prepared_row.topic is not None and prepared_row.mohs is not None
+            prepared_row.linked_problem_uuid is not None
+            or (prepared_row.topic is not None and prepared_row.mohs is not None)
         ):
             record = _import_metadata_upsert_problem_record(prepared_row, statement, result=result)
             _import_metadata_sync_statement_with_sheet_and_link(

@@ -72,8 +72,8 @@ class StatementMetadataWorkbookForm(forms.Form):
         label="Statement metadata workbook",
         required=False,
         help_text=(
-            "Upload a .xlsx file keyed by STATEMENT UUID with TOPIC, MOHS, "
-            "Confidence, IMO slot guess, and Topic tags columns."
+            "Upload a .xlsx file keyed by STATEMENT UUID. Include LINKED PROBLEM UUID to "
+            "link or relink rows, plus TOPIC, MOHS, Confidence, IMO slot guess, and Topic tags."
         ),
         widget=forms.ClearableFileInput(
             attrs={
@@ -89,9 +89,9 @@ class StatementMetadataWorkbookForm(forms.Form):
         label="Pasted metadata rows",
         strip=False,
         help_text=(
-            "Paste TSV or CSV rows with a header row. Include STATEMENT UUID plus any "
-            "subset of TOPIC, MOHS, Confidence, IMO slot guess, and Topic tags. "
-            "Blank cells keep existing values."
+            "Paste TSV or CSV rows with a header row. Include STATEMENT UUID plus any subset of "
+            "LINKED PROBLEM UUID, TOPIC, MOHS, Confidence, IMO slot guess, and Topic tags. Blank "
+            "cells keep existing values."
         ),
         widget=forms.Textarea(
             attrs={
@@ -99,8 +99,9 @@ class StatementMetadataWorkbookForm(forms.Form):
                 "rows": 8,
                 "spellcheck": "false",
                 "placeholder": (
-                    "STATEMENT UUID\tTOPIC\tMOHS\tConfidence\tIMO slot guess\tTopic tags\n"
-                    "003d6ee5-ded7-47f9-a901-f78ea9c5788b\tG\t25\tMedium\tP1/4\tGeo - circles"
+                    "STATEMENT UUID\tLINKED PROBLEM UUID\tTOPIC\tMOHS\tConfidence\tIMO slot guess\tTopic tags\n"
+                    "003d6ee5-ded7-47f9-a901-f78ea9c5788b\t"
+                    "c1c44fe6-26ef-42d1-88f4-25c31fcb9772\tG\t25\tMedium\tP1/4\tGeo - circles"
                 ),
             },
         ),
