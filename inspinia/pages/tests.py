@@ -9,6 +9,7 @@ from http import HTTPStatus
 from io import BytesIO
 from io import StringIO
 from pathlib import Path
+from unittest.mock import patch
 from urllib.parse import urlencode
 
 import pandas as pd
@@ -14047,6 +14048,71 @@ def test_user_activity_dashboard_shows_only_current_users_completion_history(cli
     assert "Apply filters" in response_html
     assert "bootstrap.Tooltip.getOrCreateInstance" in response_html
     assert reverse("pages:user_activity_dashboard") in response_html
+
+
+def test_user_activity_dashboard_forecasts_current_month_completion_bar(client):
+    user = UserFactory()
+    client.force_login(user)
+    today = date(2026, 6, 4)
+    previous_month_date = date(2026, 5, 31)
+    current_month_actual = 3
+    current_month_forecast = 23
+
+    previous_problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="ALG",
+        mohs=4,
+        contest="BMO",
+        problem="P1",
+        contest_year_problem="BMO 2026 P1",
+    )
+    UserProblemCompletion.objects.create(
+        user=user,
+        problem=previous_problem,
+        completion_date=previous_month_date,
+    )
+
+    for index in range(current_month_actual):
+        problem = ProblemSolveRecord.objects.create(
+            year=2026,
+            topic="NT",
+            mohs=5,
+            contest="IMO",
+            problem=f"P{index + 1}",
+            contest_year_problem=f"IMO 2026 P{index + 1}",
+        )
+        UserProblemCompletion.objects.create(
+            user=user,
+            problem=problem,
+            completion_date=today,
+        )
+
+    with patch("inspinia.pages.views.timezone.localdate", return_value=today):
+        response = client.get(reverse("pages:user_activity_dashboard"))
+
+    assert response.status_code == HTTPStatus.OK
+    month_payload = response.context["activity_charts_payload"]["completionsByMonth"]
+    current_month_index = month_payload["labels"].index("Jun 2026")
+    previous_month_index = month_payload["labels"].index("May 2026")
+
+    assert month_payload["exact_values"][previous_month_index] == 1
+    assert month_payload["values"][previous_month_index] == 1
+    assert month_payload["display_values"][previous_month_index] == 1
+    assert month_payload["forecast_values"][previous_month_index] is None
+    assert month_payload["exact_values"][current_month_index] == current_month_actual
+    assert month_payload["values"][current_month_index] == current_month_actual
+    assert month_payload["display_values"][current_month_index] == current_month_forecast
+    assert month_payload["forecast_values"][current_month_index] == current_month_forecast
+    assert month_payload["forecast"] == {
+        "actual_value": current_month_actual,
+        "day_of_month": 4,
+        "days_in_month": 30,
+        "label": "Jun 2026",
+        "value": current_month_forecast,
+    }
+    response_html = response.content.decode("utf-8")
+    assert "Current month forecast" in response_html
+    assert "3 completions through day 4 of 30" in response_html
 
 
 def test_user_activity_dashboard_paginates_completion_history_table(client):

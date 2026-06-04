@@ -198,6 +198,15 @@
     margin-bottom: 0;
   }
 
+  #chart-user-completions-by-month .apexcharts-legend {
+    display: none !important;
+  }
+
+  #chart-user-completions-by-month .apexcharts-canvas,
+  #chart-user-completions-by-month .apexcharts-svg {
+    max-width: 100%;
+  }
+
   @media (max-width: 767.98px) {
     .activity-filter-row,
     .activity-toolbar {
@@ -393,6 +402,12 @@
         <div class="card-header border-0 pb-0">
           <h4 class="header-title mb-0">Completion count by month</h4>
           <p class="text-muted fs-xs mb-0">Monthly totals across the most recent heatmap window with exact dates from {{ activity_month_window_label }}. Rows marked <code>Done</code> without a date are excluded.</p>
+          {% if activity_charts_payload.completionsByMonth.forecast %}
+          <p class="text-muted fs-xs mb-0 mt-1">
+            <span class="badge text-bg-warning-subtle text-warning-emphasis me-1">Current month forecast</span>
+            {{ activity_charts_payload.completionsByMonth.forecast.value }} projected from {{ activity_charts_payload.completionsByMonth.forecast.actual_value }} completions through day {{ activity_charts_payload.completionsByMonth.forecast.day_of_month }} of {{ activity_charts_payload.completionsByMonth.forecast.days_in_month }}.
+          </p>
+          {% endif %}
         </div>
         <div class="card-body pt-2">
           <div id="chart-user-completions-by-month" style="min-height: 320px;"></div>
@@ -823,50 +838,92 @@
     var monthPayload = charts.completionsByMonth || { labels: [], values: [] };
     var monthChartEl = document.querySelector("#chart-user-completions-by-month");
     if (monthChartEl && monthPayload.labels.length) {
-      var monthChart = new ApexCharts(monthChartEl, {
-        chart: {
-          type: "bar",
-          height: 320,
-          toolbar: { show: false },
-          fontFamily: "inherit"
-        },
-        series: [{ name: "Completions", data: monthPayload.values }],
-        colors: ["#0d6efd"],
-        plotOptions: {
-          bar: {
-            borderRadius: 4,
-            columnWidth: "56%"
-          }
-        },
-        dataLabels: {
-          enabled: monthPayload.values.length <= 14
-        },
-        xaxis: {
-          categories: monthPayload.labels,
-          labels: {
-            rotate: monthPayload.labels.length > 8 ? -45 : 0,
-            hideOverlappingLabels: false,
-            style: { fontSize: "11px" }
-          }
-        },
-        yaxis: {
-          labels: {
-            style: { fontSize: "11px" }
-          }
-        },
-        tooltip: {
-          y: {
-            formatter: function (value) {
-              return String(value) + " completion" + (value === 1 ? "" : "s");
+      var monthValues = monthPayload.display_values || monthPayload.values || [];
+      var monthExactValues = monthPayload.exact_values || monthPayload.values || [];
+      var monthForecastValues = monthPayload.forecast_values || [];
+      var monthForecast = monthPayload.forecast || null;
+      function isForecastMonth(index) {
+        return monthForecastValues[index] !== null && typeof monthForecastValues[index] !== "undefined";
+      }
+      function monthChartWidth() {
+        var chartRect = monthChartEl.getBoundingClientRect();
+        var viewportWidth = document.documentElement.clientWidth || window.innerWidth || 0;
+        var visibleWidth = viewportWidth ? viewportWidth - chartRect.left - 24 : 0;
+        return Math.max(
+          280,
+          Math.floor(
+            Math.min(
+              monthChartEl.clientWidth || visibleWidth,
+              visibleWidth || monthChartEl.clientWidth
+            )
+          )
+        );
+      }
+      function renderMonthlyChart() {
+        var monthChart = new ApexCharts(monthChartEl, {
+          chart: {
+            type: "bar",
+            height: 320,
+            width: monthChartWidth(),
+            toolbar: { show: false },
+            fontFamily: "inherit"
+          },
+          legend: {
+            show: false
+          },
+          series: [{ name: "Completions", data: monthValues }],
+          colors: [function (options) {
+            return isForecastMonth(options.dataPointIndex) ? "#f59f00" : "#0d6efd";
+          }],
+          plotOptions: {
+            bar: {
+              borderRadius: 4,
+              columnWidth: "56%"
             }
+          },
+          dataLabels: {
+            enabled: monthValues.length <= 14,
+            formatter: function (value, options) {
+              return isForecastMonth(options.dataPointIndex) ? "~" + String(value) : String(value);
+            }
+          },
+          xaxis: {
+            categories: monthPayload.labels,
+            labels: {
+              rotate: monthPayload.labels.length > 8 ? -45 : 0,
+              hideOverlappingLabels: false,
+              style: { fontSize: "11px" }
+            }
+          },
+          yaxis: {
+            labels: {
+              style: { fontSize: "11px" }
+            }
+          },
+          tooltip: {
+            y: {
+              formatter: function (value, options) {
+                var index = options.dataPointIndex;
+                if (isForecastMonth(index) && monthForecast) {
+                  return (
+                    String(value) + " projected completions (" +
+                    String(monthExactValues[index]) + " actual through day " +
+                    String(monthForecast.day_of_month) + " of " +
+                    String(monthForecast.days_in_month) + ")"
+                  );
+                }
+                return String(value) + " completion" + (value === 1 ? "" : "s");
+              }
+            }
+          },
+          grid: {
+            strokeDashArray: 4,
+            borderColor: "rgba(108,117,125,0.15)"
           }
-        },
-        grid: {
-          strokeDashArray: 4,
-          borderColor: "rgba(108,117,125,0.15)"
-        }
-      });
-      monthChart.render();
+        });
+        monthChart.render();
+      }
+      window.setTimeout(renderMonthlyChart, 250);
     }
   }
 })();
