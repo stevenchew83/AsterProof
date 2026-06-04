@@ -5177,10 +5177,7 @@ def completion_quick_update_view(request):
         )
         for statement in statements
     ]
-    advanced_filters_open = any([search_query, selected_subtopics, selected_mohs_min, selected_mohs_max])
-
     context = {
-        "completion_quick_update_advanced_filters_open": advanced_filters_open,
         "completion_quick_update_can_select_user": can_select_user,
         "completion_quick_update_contest_choices": contest_choices,
         "completion_quick_update_filters": {

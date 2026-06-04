@@ -69,16 +69,16 @@
           <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
             <div>
               <h4 class="header-title mb-0">Find problem rows</h4>
-              <p class="text-muted fs-xs mb-0">Search by contest, year, problem code, and label. Use advanced filters for topic, subtopic, or text search.</p>
+              <p class="text-muted fs-xs mb-0">Search by contest, year, problem code, label, subtopic, MOHS, or statement text.</p>
             </div>
             <span class="badge text-bg-light">{{ completion_quick_update_result_summary }}</span>
           </div>
         </div>
         <div class="card-body pt-2">
           <form method="get" action="{% url 'pages:completion_quick_update' %}">
-            <div class="row g-2 align-items-end">
+            <div id="quick-completion-primary-filters" class="row g-2 align-items-end">
               {% if completion_quick_update_can_select_user %}
-              <div class="col-md-6 col-xl-3">
+              <div class="col-md-6 col-xl-2">
                 <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="quick-completion-user">User</label>
                 <select id="quick-completion-user" name="target_user_id" class="form-select">
                   <option value="">Me: {{ request.user.email }}</option>
@@ -129,74 +129,62 @@
                   placeholder="USAMO 2026 P1"
                 >
               </div>
-              <div class="col-md-12 col-xl">
+            </div>
+            <div id="quick-completion-secondary-filters" class="row g-2 align-items-end mt-2">
+              <div class="col-md-6 col-xl-3">
+                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="quick-completion-q">Search</label>
+                <input
+                  id="quick-completion-q"
+                  name="q"
+                  type="search"
+                  class="form-control"
+                  value="{{ completion_quick_update_filters.q }}"
+                  placeholder="Topic, tag, text"
+                >
+              </div>
+              <div class="col-md-6 col-xl-3">
+                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="quick-completion-subtopics">Subtopics</label>
+                <input
+                  id="quick-completion-subtopics"
+                  name="subtopics"
+                  type="search"
+                  class="form-control"
+                  value="{{ completion_quick_update_filters.subtopics }}"
+                  placeholder="LTE, angle chase"
+                >
+              </div>
+              <div class="col-md-3 col-xl-2">
+                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="quick-completion-mohs-min">MOHS min</label>
+                <input
+                  id="quick-completion-mohs-min"
+                  name="mohs_min"
+                  type="number"
+                  min="0"
+                  step="1"
+                  class="form-control"
+                  value="{{ completion_quick_update_filters.mohs_min }}"
+                  placeholder="Min"
+                >
+              </div>
+              <div class="col-md-3 col-xl-2">
+                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="quick-completion-mohs-max">MOHS max</label>
+                <input
+                  id="quick-completion-mohs-max"
+                  name="mohs_max"
+                  type="number"
+                  min="0"
+                  step="1"
+                  class="form-control"
+                  value="{{ completion_quick_update_filters.mohs_max }}"
+                  placeholder="Max"
+                >
+              </div>
+              <div class="col-md-6 col-xl-2">
                 <div class="d-flex flex-wrap gap-2">
                   <button type="submit" class="btn btn-primary">
                     <i class="ti ti-search me-1"></i>Search
                   </button>
-                  <button
-                    class="btn btn-outline-secondary"
-                    type="button"
-                    data-bs-toggle="collapse"
-                    data-bs-target="#quick-completion-advanced-filters"
-                    aria-expanded="{% if completion_quick_update_advanced_filters_open %}true{% else %}false{% endif %}"
-                    aria-controls="quick-completion-advanced-filters"
-                  >
-                    <i class="ti ti-adjustments-horizontal me-1"></i>Advanced
-                  </button>
                   <a href="{% url 'pages:completion_quick_update' %}" class="btn btn-outline-secondary">Reset</a>
-                </div>
-              </div>
-            </div>
-            <div id="quick-completion-advanced-filters" class="collapse{% if completion_quick_update_advanced_filters_open %} show{% endif %} mt-2">
-              <div class="row g-2 align-items-end">
-                <div class="col-md-6 col-xl-3">
-                  <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="quick-completion-q">Search</label>
-                  <input
-                    id="quick-completion-q"
-                    name="q"
-                    type="search"
-                    class="form-control"
-                    value="{{ completion_quick_update_filters.q }}"
-                    placeholder="Topic, tag, text"
-                  >
-                </div>
-                <div class="col-md-6 col-xl-3">
-                  <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="quick-completion-subtopics">Subtopics</label>
-                  <input
-                    id="quick-completion-subtopics"
-                    name="subtopics"
-                    type="search"
-                    class="form-control"
-                    value="{{ completion_quick_update_filters.subtopics }}"
-                    placeholder="LTE, angle chase"
-                  >
-                </div>
-                <div class="col-md-3 col-xl-2">
-                  <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="quick-completion-mohs-min">MOHS min</label>
-                  <input
-                    id="quick-completion-mohs-min"
-                    name="mohs_min"
-                    type="number"
-                    min="0"
-                    step="1"
-                    class="form-control"
-                    value="{{ completion_quick_update_filters.mohs_min }}"
-                    placeholder="Min"
-                  >
-                </div>
-                <div class="col-md-3 col-xl-2">
-                  <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="quick-completion-mohs-max">MOHS max</label>
-                  <input
-                    id="quick-completion-mohs-max"
-                    name="mohs_max"
-                    type="number"
-                    min="0"
-                    step="1"
-                    class="form-control"
-                    value="{{ completion_quick_update_filters.mohs_max }}"
-                    placeholder="Max"
-                  >
                 </div>
               </div>
             </div>
