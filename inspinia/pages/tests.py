@@ -14308,6 +14308,93 @@ def test_backfill_duplicate_statement_completions_creates_missing_duplicates_onl
     assert UserProblemCompletion.objects.filter(user=user).count() == 4
 
 
+def test_backfill_duplicate_statement_completions_indexes_statement_text_once(monkeypatch):
+    from inspinia.pages import completion_duplicates
+
+    user = UserFactory()
+    first_source_problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="C",
+        mohs=6,
+        contest="IMO Shortlist",
+        problem="C3",
+        contest_year_problem="IMO Shortlist 2026 C3",
+    )
+    second_source_problem = ProblemSolveRecord.objects.create(
+        year=2027,
+        topic="G",
+        mohs=7,
+        contest="IMO Shortlist",
+        problem="G2",
+        contest_year_problem="IMO Shortlist 2027 G2",
+    )
+    first_source_statement = ContestProblemStatement.objects.create(
+        linked_problem=first_source_problem,
+        contest_year=2026,
+        contest_name="IMO Shortlist",
+        problem_number=3,
+        problem_code="C3",
+        statement_latex="Let n be a positive integer. Prove the claim.",
+    )
+    ContestProblemStatement.objects.create(
+        contest_year=2027,
+        contest_name="Taiwan TST",
+        problem_number=4,
+        problem_code="P4",
+        statement_latex=" let n  be a positive integer. prove the CLAIM. ",
+    )
+    second_source_statement = ContestProblemStatement.objects.create(
+        linked_problem=second_source_problem,
+        contest_year=2027,
+        contest_name="IMO Shortlist",
+        problem_number=2,
+        problem_code="G2",
+        statement_latex="Let ABC be a triangle. Prove the circles are tangent.",
+    )
+    ContestProblemStatement.objects.create(
+        contest_year=2028,
+        contest_name="Japan TST",
+        problem_number=5,
+        problem_code="P5",
+        statement_latex=" LET ABC be a triangle. prove the circles are tangent. ",
+    )
+    ContestProblemStatement.objects.create(
+        contest_year=2029,
+        contest_name="Korea TST",
+        problem_number=6,
+        problem_code="P6",
+        statement_latex="Let ABC be a triangle. Prove the circles are not tangent.",
+    )
+    UserProblemCompletion.objects.create(
+        user=user,
+        statement=first_source_statement,
+        status=UserProblemCompletion.Status.SOLVED,
+    )
+    UserProblemCompletion.objects.create(
+        user=user,
+        statement=second_source_statement,
+        status=UserProblemCompletion.Status.WRITTEN,
+    )
+
+    normalize_call_count = 0
+    original_normalize = completion_duplicates.normalize_exact_statement_text
+
+    def counting_normalize(statement_latex: str) -> str:
+        nonlocal normalize_call_count
+        normalize_call_count += 1
+        return original_normalize(statement_latex)
+
+    monkeypatch.setattr(
+        completion_duplicates,
+        "normalize_exact_statement_text",
+        counting_normalize,
+    )
+
+    completion_duplicates.backfill_exact_duplicate_statement_completions(dry_run=True)
+
+    assert normalize_call_count == ContestProblemStatement.objects.count()
+
+
 def test_user_activity_dashboard_shows_completion_import_errors(client):
     user = UserFactory()
     client.force_login(user)
