@@ -60,6 +60,7 @@ from inspinia.pages.completion_progress import default_completion_progress_user
 from inspinia.pages.completion_progress import filter_completion_progress_rows
 from inspinia.pages.completion_progress import normalize_completion_progress_rows
 from inspinia.pages.completion_progress import resolve_completion_progress_date_range
+from inspinia.pages.completion_duplicates import upsert_exact_duplicate_statement_completions
 from inspinia.pages.completion_record_fields import SOLVED_STATUSES
 from inspinia.pages.completion_record_fields import completion_metadata_from_post
 from inspinia.pages.completion_record_fields import completion_metadata_payload
@@ -3473,7 +3474,7 @@ def _completion_board_apply_action(
         assert statement is not None
         defaults = defaults_for_completion(completion_date, solved_default=True)
         defaults["problem"] = None
-        UserProblemCompletion.objects.update_or_create(
+        upsert_exact_duplicate_statement_completions(
             user=user,
             statement=statement,
             defaults=defaults,
@@ -3553,15 +3554,23 @@ def _completion_board_apply_action(
         }
         existing_date = completion.completion_date if completion is not None else None
         if statement is not None:
-            UserProblemCompletion.objects.update_or_create(
-                user=user,
-                statement=statement,
-                defaults={
-                    "completion_date": existing_date,
-                    "problem": None,
-                    **detail_defaults,
-                },
-            )
+            statement_defaults = {
+                "completion_date": existing_date,
+                "problem": None,
+                **detail_defaults,
+            }
+            if is_completion_status_solved(str(statement_defaults.get("status") or "")):
+                upsert_exact_duplicate_statement_completions(
+                    user=user,
+                    statement=statement,
+                    defaults=statement_defaults,
+                )
+            else:
+                UserProblemCompletion.objects.update_or_create(
+                    user=user,
+                    statement=statement,
+                    defaults=statement_defaults,
+                )
         elif problem is not None:
             UserProblemCompletion.objects.update_or_create(
                 user=user,
