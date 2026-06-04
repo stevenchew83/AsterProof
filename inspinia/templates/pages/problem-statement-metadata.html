@@ -29,17 +29,17 @@
         <div class="card-body">
           <p class="text-muted">
             Download all statement rows as an <code>.xlsx</code> workbook with editable
+            link columns (<code>LINKED PROBLEM UUID</code>) and metadata columns:
             <code>TOPIC</code>, <code>MOHS</code>, <code>Confidence</code>,
-            <code>IMO slot guess</code>, and <code>Topic tags</code> columns, plus identity fields
-            (<code>CONTEST YEAR</code>, <code>CONTEST NAME</code>, <code>DAY LABEL</code>,
-            <code>PROBLEM NUMBER</code>, <code>PROBLEM CODE</code>, and <code>STATEMENT LATEX</code>)
+            <code>IMO slot guess</code>, and <code>Topic tags</code>. It also includes
+            <code>LINK STATUS</code>, <code>LINKED PROBLEM LABEL</code>, and identity fields
             for context while you edit.
           </p>
           <p class="text-muted mb-4">
             On import, each row updates the statement identified by <code>STATEMENT UUID</code> (with
-            <code>PROBLEM UUID</code> as a legacy fallback). Blank import rows are ignored, and blank
-            cells keep existing values. Identity columns are exported for context only and are ignored
-            on import, so you can fill many lines in one workbook and upload once.
+            <code>PROBLEM UUID</code> as a legacy fallback). Filled identity cells can update the
+            statement row, and a filled <code>LINKED PROBLEM UUID</code> links or relinks the tracked
+            problem row. Blank import rows are ignored, and blank cells keep existing values.
           </p>
           <a
             href="{% url 'pages:problem_statement_metadata' %}?action=export"
@@ -60,11 +60,14 @@
         <div class="card-body">
           <p class="text-muted">
             This updates each <code>ContestProblemStatement</code> row by <code>STATEMENT UUID</code>,
-            upserts the linked <code>ProblemSolveRecord</code> metadata, and keeps the link in sync automatically.
+            links or relinks by <code>LINKED PROBLEM UUID</code>, upserts the linked
+            <code>ProblemSolveRecord</code> metadata, and keeps the link in sync automatically.
           </p>
           <p class="text-muted">
             Use this when you want to bulk update metadata for multiple statement rows without editing them one by one.
-            Upload a workbook or paste TSV/CSV rows with a header row. Blank cells keep existing values.
+            Upload a workbook or paste TSV/CSV rows with a header row. Blank cells keep existing values, while
+            a new linked problem UUID creates a tracked problem row when <code>TOPIC</code> and <code>MOHS</code>
+            are present.
           </p>
           <form
             id="statement-metadata-import-form"

@@ -113,6 +113,9 @@ EXPECTED_STATEMENT_EXPORT_COLUMNS = [
 EXPECTED_STATEMENT_METADATA_EXPORT_COLUMNS = [
     "STATEMENT UUID",
     "PROBLEM UUID",
+    "LINK STATUS",
+    "LINKED PROBLEM UUID",
+    "LINKED PROBLEM LABEL",
     "CONTEST YEAR",
     "CONTEST NAME",
     "CONTEST PROBLEM",
@@ -12995,8 +12998,9 @@ def test_problem_statement_metadata_page_renders_tools_for_admin(client):
     assert "Import metadata" in response_html
     assert "Pasted metadata rows" in response_html
     assert "Blank cells keep existing values." in response_html
-    assert "Identity columns are exported for context only" in response_html
-    assert "are ignored" in response_html
+    assert "Filled identity cells can update the" in response_html
+    assert "LINKED PROBLEM UUID" in response_html
+    assert "links or relinks the tracked" in response_html
     assert "Browser editor" not in response_html
     assert "?action=export" in response_html
     assert 'id="statement-metadata-import-form"' in response_html
@@ -13257,6 +13261,9 @@ def test_problem_statement_metadata_page_exports_workbook_for_admin(client):
     assert exported_rows == [{
         "STATEMENT UUID": str(statement.statement_uuid),
         "PROBLEM UUID": str(linked_problem.problem_uuid),
+        "LINK STATUS": "Linked",
+        "LINKED PROBLEM UUID": str(linked_problem.problem_uuid),
+        "LINKED PROBLEM LABEL": "Israel TST 2026 P1",
         "CONTEST YEAR": "2026",
         "CONTEST NAME": "Israel TST",
         "CONTEST PROBLEM": "Israel TST 2026 P1",
@@ -13300,6 +13307,9 @@ def test_problem_statement_metadata_export_strips_illegal_excel_characters(clien
     assert exported_dataframe.to_dict(orient="records") == [{
         "STATEMENT UUID": str(ContestProblemStatement.objects.get().statement_uuid),
         "PROBLEM UUID": str(linked_problem.problem_uuid),
+        "LINK STATUS": "Linked",
+        "LINKED PROBLEM UUID": str(linked_problem.problem_uuid),
+        "LINKED PROBLEM LABEL": "Israel TST 2026 P1",
         "CONTEST YEAR": "2026",
         "CONTEST NAME": "Israel TST",
         "CONTEST PROBLEM": "Israel TST 2026 P1",
@@ -13900,6 +13910,94 @@ def test_problem_statement_metadata_page_imports_pasted_rows_and_creates_problem
         in str(message)
         for message in response.context["messages"]
     )
+
+
+def test_statement_metadata_import_relinks_to_explicit_linked_problem_uuid():
+    target_problem = ProblemSolveRecord.objects.create(
+        year=2024,
+        topic="A",
+        mohs=18,
+        confidence="Low",
+        contest="Brazil Team Selection Test",
+        problem="P9",
+        contest_year_problem="Brazil Team Selection Test 2024 P9",
+    )
+    statement = ContestProblemStatement.objects.create(
+        contest_year=2022,
+        contest_name="Germany Team Selection Test",
+        problem_number=1,
+        problem_code="P1",
+        day_label="AIMO 1",
+        statement_latex="Relink me",
+    )
+    original_statement_problem_uuid = statement.problem_uuid
+    dataframe = statement_metadata_dataframe_from_rows([
+        {
+            "STATEMENT UUID": str(statement.statement_uuid),
+            "LINKED PROBLEM UUID": str(target_problem.problem_uuid),
+            "TOPIC": "G",
+            "MOHS": 25,
+            "Confidence": "Medium",
+            "IMO slot guess": "P1/4",
+            "Topic tags": "Geo - circles",
+        },
+    ])
+
+    result = import_statement_metadata_dataframe(dataframe, replace_tags=True)
+
+    statement.refresh_from_db()
+    target_problem.refresh_from_db()
+    assert result.created_count == 0
+    assert result.linked_count == 1
+    assert statement.linked_problem_id == target_problem.id
+    assert statement.problem_uuid == target_problem.problem_uuid
+    assert statement.problem_uuid != original_statement_problem_uuid
+    assert target_problem.year == 2022
+    assert target_problem.contest == "Germany Team Selection Test"
+    assert target_problem.problem == "P1"
+    assert target_problem.contest_year_problem == "Germany Team Selection Test 2022 P1"
+    assert target_problem.topic == "G"
+    assert target_problem.mohs == 25
+    assert target_problem.confidence == "Medium"
+    assert target_problem.imo_slot_guess == "P1/4"
+    assert target_problem.topic_tags == "Geo - circles"
+
+
+def test_statement_metadata_import_creates_explicit_linked_problem_uuid():
+    statement = ContestProblemStatement.objects.create(
+        contest_year=2022,
+        contest_name="Germany Team Selection Test",
+        problem_number=1,
+        problem_code="P1",
+        day_label="AIMO 1",
+        statement_latex="Create explicit linked problem",
+    )
+    linked_problem_uuid = uuid.uuid4()
+    dataframe = statement_metadata_dataframe_from_rows([
+        {
+            "STATEMENT UUID": str(statement.statement_uuid),
+            "LINKED PROBLEM UUID": str(linked_problem_uuid),
+            "TOPIC": "G",
+            "MOHS": 25,
+            "Confidence": "Medium",
+            "IMO slot guess": "P1/4",
+            "Topic tags": "Geo - circles",
+        },
+    ])
+
+    result = import_statement_metadata_dataframe(dataframe, replace_tags=True)
+
+    statement.refresh_from_db()
+    created_problem = ProblemSolveRecord.objects.get(problem_uuid=linked_problem_uuid)
+    assert result.created_count == 1
+    assert result.linked_count == 1
+    assert statement.linked_problem_id == created_problem.id
+    assert statement.problem_uuid == linked_problem_uuid
+    assert created_problem.year == 2022
+    assert created_problem.contest == "Germany Team Selection Test"
+    assert created_problem.problem == "P1"
+    assert created_problem.topic == "G"
+    assert created_problem.mohs == 25
 
 
 def test_problem_statement_metadata_import_creates_new_problem_row_for_different_uuid_same_key(client):
