@@ -39,6 +39,10 @@
     min-width: 10rem;
   }
 
+  .quick-completion-subtopics-cell {
+    min-width: 12rem;
+  }
+
   .quick-completion-mohs-dropdown {
     min-width: 13rem;
   }
@@ -65,7 +69,7 @@
           <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
             <div>
               <h4 class="header-title mb-0">Find problem rows</h4>
-              <p class="text-muted fs-xs mb-0">Search by contest, year, problem code, and label. Use advanced filters for topic or text search.</p>
+              <p class="text-muted fs-xs mb-0">Search by contest, year, problem code, and label. Use advanced filters for topic, subtopic, or text search.</p>
             </div>
             <span class="badge text-bg-light">{{ completion_quick_update_result_summary }}</span>
           </div>
@@ -157,6 +161,17 @@
                     placeholder="Topic, tag, text"
                   >
                 </div>
+                <div class="col-md-6 col-xl-3">
+                  <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="quick-completion-subtopics">Subtopics</label>
+                  <input
+                    id="quick-completion-subtopics"
+                    name="subtopics"
+                    type="search"
+                    class="form-control"
+                    value="{{ completion_quick_update_filters.subtopics }}"
+                    placeholder="LTE, angle chase"
+                  >
+                </div>
                 <div class="col-md-3 col-xl-2">
                   <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="quick-completion-mohs-min">MOHS min</label>
                   <input
@@ -242,6 +257,7 @@
                 <tr>
                   <th>Problem</th>
                   <th>Topic / MOHS</th>
+                  <th>Subtopics</th>
                   <th>User MOHS</th>
                   <th>Completion</th>
                   <th>Study summary</th>
@@ -266,6 +282,7 @@
                   data-label="{{ row.label }}"
                   data-problem-url="{{ row.problem_detail_url }}"
                   data-topic="{{ row.topic }}"
+                  data-subtopics="{{ row.subtopics|join:', ' }}"
                   data-mohs="{{ row.mohs|default_if_none:'' }}"
                 >
                   <td class="quick-completion-problem-cell">
@@ -288,6 +305,17 @@
                     {% endif %}
                     {% if row.mohs is not None %}
                     <span class="text-muted fs-xs ms-1">MOHS {{ row.mohs }}</span>
+                    {% endif %}
+                  </td>
+                  <td class="quick-completion-subtopics-cell" data-sort-value="{{ row.subtopics|join:' ' }}">
+                    {% if row.subtopics %}
+                    <div class="d-flex flex-wrap gap-1">
+                      {% for subtopic in row.subtopics %}
+                      <span class="badge bg-light text-dark border">{{ subtopic }}</span>
+                      {% endfor %}
+                    </div>
+                    {% else %}
+                    <span class="text-muted fs-xs">No subtopics</span>
                     {% endif %}
                   </td>
                   <td>
@@ -824,7 +852,7 @@
         autoWidth: false,
         columnDefs: [
           {
-            targets: [2, 5],
+            targets: [3, 6],
             orderable: false,
             searchable: false
           }

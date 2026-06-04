@@ -70,7 +70,6 @@ from inspinia.pages.statement_metadata_backfill import StatementMetadataBackfill
 from inspinia.pages.statement_metadata_backfill import import_statement_metadata_dataframe
 from inspinia.pages.statement_metadata_backfill import statement_metadata_dataframe_from_rows
 from inspinia.pages.views import ADMIN_TABLE_LATEST_LIMIT
-from inspinia.pages.views import COMPLETION_QUICK_UPDATE_SEARCH_LIMIT
 from inspinia.problemsets.models import ProblemList
 from inspinia.problemsets.models import ProblemListItem
 from inspinia.solutions.models import ProblemSolution
@@ -6230,6 +6229,7 @@ def test_completion_quick_update_filters_by_contest_year_and_problem_text(client
         "problem": "1",
         "problem_label": "",
         "q": "",
+        "subtopics": "",
         "target_user_id": "",
         "year": "2026",
     }
@@ -6300,6 +6300,108 @@ def test_completion_quick_update_filters_by_mohs_range(client):
     assert "MOHS 25" not in response_html
 
 
+def test_completion_quick_update_filters_by_subtopics(client):
+    user = UserFactory()
+    client.force_login(user)
+    matching_statement = _create_quick_completion_statement(problem_code="P1", problem_number=1)
+    fallback_statement = _create_quick_completion_statement(problem_code="P2", problem_number=2)
+    _create_quick_completion_statement(problem_code="P3", problem_number=3)
+    StatementTopicTechnique.objects.create(
+        statement=matching_statement,
+        technique="LTE",
+        domains=["NT"],
+    )
+    ProblemTopicTechnique.objects.create(
+        record=fallback_statement.linked_problem,
+        technique="ANGLE CHASE",
+        domains=["GEO"],
+    )
+
+    response = client.get(
+        reverse("pages:completion_quick_update"),
+        {"subtopics": "LTE"},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["completion_quick_update_filters"]["subtopics"] == "LTE"
+    rows = response.context["completion_quick_update_rows"]
+    assert [row["statement_uuid"] for row in rows] == [str(matching_statement.statement_uuid)]
+    assert rows[0]["subtopics"] == ["LTE"]
+    response_html = response.content.decode("utf-8")
+    assert 'name="subtopics"' in response_html
+    assert 'value="LTE"' in response_html
+    assert 'id="quick-completion-advanced-filters" class="collapse show' in response_html
+    assert "Subtopics" in response_html
+    assert "ANGLE CHASE" not in response_html
+
+
+def test_completion_quick_update_subtopics_column_prefers_statement_tags_with_linked_fallback(client):
+    user = UserFactory()
+    client.force_login(user)
+    statement_tagged = _create_quick_completion_statement(problem_code="P1", problem_number=1)
+    linked_fallback = _create_quick_completion_statement(problem_code="P2", problem_number=2)
+    StatementTopicTechnique.objects.create(
+        statement=statement_tagged,
+        technique="INVARIANTS",
+        domains=["COMB"],
+    )
+    ProblemTopicTechnique.objects.create(
+        record=statement_tagged.linked_problem,
+        technique="DO NOT DISPLAY",
+        domains=["ALG"],
+    )
+    ProblemTopicTechnique.objects.create(
+        record=linked_fallback.linked_problem,
+        technique="ANGLE CHASE",
+        domains=["GEO"],
+    )
+
+    response = client.get(reverse("pages:completion_quick_update"))
+
+    assert response.status_code == HTTPStatus.OK
+    row_by_problem = {
+        row["problem_code"]: row
+        for row in response.context["completion_quick_update_rows"]
+    }
+    assert row_by_problem["P1"]["subtopics"] == ["INVARIANTS"]
+    assert row_by_problem["P2"]["subtopics"] == ["ANGLE CHASE"]
+    response_html = response.content.decode("utf-8")
+    assert "INVARIANTS" in response_html
+    assert "ANGLE CHASE" in response_html
+    assert "DO NOT DISPLAY" not in response_html
+
+
+def test_completion_quick_update_subtopics_filter_uses_linked_tags_only_as_fallback(client):
+    user = UserFactory()
+    client.force_login(user)
+    statement_tagged = _create_quick_completion_statement(problem_code="P1", problem_number=1)
+    linked_fallback = _create_quick_completion_statement(problem_code="P2", problem_number=2)
+    StatementTopicTechnique.objects.create(
+        statement=statement_tagged,
+        technique="INVARIANTS",
+        domains=["COMB"],
+    )
+    ProblemTopicTechnique.objects.create(
+        record=statement_tagged.linked_problem,
+        technique="DO NOT MATCH",
+        domains=["ALG"],
+    )
+    ProblemTopicTechnique.objects.create(
+        record=linked_fallback.linked_problem,
+        technique="DO NOT MATCH",
+        domains=["ALG"],
+    )
+
+    response = client.get(
+        reverse("pages:completion_quick_update"),
+        {"subtopics": "DO NOT MATCH"},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    rows = response.context["completion_quick_update_rows"]
+    assert [row["problem_code"] for row in rows] == ["P2"]
+
+
 def test_completion_quick_update_defaults_to_recent_statement_limit(client):
     user = UserFactory()
     client.force_login(user)
@@ -6333,17 +6435,18 @@ def test_completion_quick_update_defaults_to_recent_statement_limit(client):
     assert str(oldest_statement.statement_uuid) not in {row["statement_uuid"] for row in rows}
 
 
-def test_completion_quick_update_search_results_are_capped_at_200_rows(client):
+def test_completion_quick_update_search_results_are_capped_at_500_rows(client):
     user = UserFactory()
     client.force_login(user)
     hidden_statement = None
+    expected_search_limit = 500
 
-    for offset in range(COMPLETION_QUICK_UPDATE_SEARCH_LIMIT + 1):
+    for offset in range(expected_search_limit + 1):
         statement = _create_quick_completion_statement(
             problem_code=f"P{offset + 1}",
             problem_number=offset + 1,
         )
-        if offset == COMPLETION_QUICK_UPDATE_SEARCH_LIMIT:
+        if offset == expected_search_limit:
             hidden_statement = statement
 
     assert hidden_statement is not None
@@ -6354,11 +6457,11 @@ def test_completion_quick_update_search_results_are_capped_at_200_rows(client):
     rows = response.context["completion_quick_update_rows"]
     assert (
         response.context["completion_quick_update_matching_total"]
-        == COMPLETION_QUICK_UPDATE_SEARCH_LIMIT + 1
+        == expected_search_limit + 1
     )
-    assert response.context["completion_quick_update_visible_total"] == COMPLETION_QUICK_UPDATE_SEARCH_LIMIT
-    assert response.context["completion_quick_update_result_limit"] == COMPLETION_QUICK_UPDATE_SEARCH_LIMIT
-    assert len(rows) == COMPLETION_QUICK_UPDATE_SEARCH_LIMIT
+    assert response.context["completion_quick_update_visible_total"] == expected_search_limit
+    assert response.context["completion_quick_update_result_limit"] == expected_search_limit
+    assert len(rows) == expected_search_limit
     assert str(hidden_statement.statement_uuid) not in {row["statement_uuid"] for row in rows}
 
 
@@ -6938,6 +7041,9 @@ def test_completion_quick_update_renders_datatable_with_status_filter(client):
         response_html.index("<thead>") : response_html.index("</thead>")
     ]
     assert header_html.index("<th>Topic / MOHS</th>") < header_html.index(
+        "<th>Subtopics</th>",
+    )
+    assert header_html.index("<th>Subtopics</th>") < header_html.index(
         "<th>User MOHS</th>",
     )
     assert header_html.index("<th>User MOHS</th>") < header_html.index(
@@ -6952,7 +7058,7 @@ def test_completion_quick_update_renders_datatable_with_status_filter(client):
     assert "<th>Status</th>" not in header_html
     assert "<th>Time spent</th>" not in header_html
     assert "<th>YYYY-MM-DD</th>" not in header_html
-    assert "targets: [2, 5]" in response_html
+    assert "targets: [3, 6]" in response_html
     assert "loaded rows" in response_html
 
 
