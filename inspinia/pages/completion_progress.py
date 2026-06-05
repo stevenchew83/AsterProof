@@ -15,6 +15,7 @@ from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import UserProblemCompletion
 from inspinia.pages.statement_analytics import effective_mohs
 from inspinia.pages.statement_analytics import effective_topic
+from inspinia.pages.statement_duplicates import normalize_exact_statement_text
 from inspinia.pages.topic_labels import display_topic_label
 from inspinia.solutions.models import ProblemSolution
 from inspinia.users.models import User
@@ -78,6 +79,7 @@ class CompletionProgressRow:
     solution_status: str
     solution_status_badge_class: str
     solution_status_label: str
+    statement_dedup_key: str
     statement_uuid: str
     topic: str
     updated_at_label: str
@@ -169,8 +171,23 @@ def normalize_completion_progress_rows(
 ) -> list[CompletionProgressRow]:
     completion_list = list(completions)
     solution_status_by_key = _solution_status_lookup(completion_list)
-    rows = [_completion_progress_row(completion, solution_status_by_key) for completion in completion_list]
+    statement_text_by_problem_id = _linked_statement_text_by_problem_id(completion_list)
+    rows = [
+        _completion_progress_row(
+            completion,
+            solution_status_by_key,
+            statement_text_by_problem_id=statement_text_by_problem_id,
+        )
+        for completion in completion_list
+    ]
     return sort_completion_progress_rows(rows)
+
+
+def dedupe_completion_progress_rows(rows: Iterable[CompletionProgressRow]) -> list[CompletionProgressRow]:
+    rows_by_dedup_key: dict[str, CompletionProgressRow] = {}
+    for row in sort_completion_progress_rows(rows):
+        rows_by_dedup_key.setdefault(row.statement_dedup_key, row)
+    return sort_completion_progress_rows(rows_by_dedup_key.values())
 
 
 def sort_completion_progress_rows(rows: Iterable[CompletionProgressRow]) -> list[CompletionProgressRow]:
@@ -835,6 +852,8 @@ def completion_progress_csv_rows(rows: Iterable[CompletionProgressRow]) -> list[
 def _completion_progress_row(
     completion: UserProblemCompletion,
     solution_status_by_key: dict[tuple[int, int], str],
+    *,
+    statement_text_by_problem_id: dict[int, str],
 ) -> CompletionProgressRow:
     statement = completion.statement
     problem = (
@@ -875,6 +894,10 @@ def _completion_progress_row(
         solution_status=solution_status,
         solution_status_badge_class=_solution_status_badge_class(solution_status),
         solution_status_label=_solution_status_label(solution_status),
+        statement_dedup_key=_statement_dedup_key(
+            completion,
+            statement_text_by_problem_id=statement_text_by_problem_id,
+        ),
         statement_uuid=str(statement.statement_uuid) if statement is not None else "",
         topic=topic,
         updated_at_label=timezone.localtime(completion.updated_at).strftime("%Y-%m-%d %H:%M"),
@@ -884,6 +907,50 @@ def _completion_progress_row(
         user_label=completion.user.name or completion.user.email,
         year=year,
     )
+
+
+def _linked_statement_text_by_problem_id(completions: list[UserProblemCompletion]) -> dict[int, str]:
+    problem_ids = {
+        completion.problem_id
+        for completion in completions
+        if completion.statement_id is None and completion.problem_id is not None
+    }
+    if not problem_ids:
+        return {}
+
+    statement_text_by_problem_id: dict[int, str] = {}
+    statement_rows = (
+        ContestProblemStatement.objects.filter(linked_problem_id__in=problem_ids)
+        .only("linked_problem_id", "statement_latex")
+        .order_by("contest_year", "contest_name", "day_label", "problem_number", "problem_code", "id")
+    )
+    for statement in statement_rows.iterator():
+        normalized_statement_text = normalize_exact_statement_text(statement.statement_latex)
+        if normalized_statement_text and statement.linked_problem_id is not None:
+            statement_text_by_problem_id.setdefault(statement.linked_problem_id, normalized_statement_text)
+    return statement_text_by_problem_id
+
+
+def _statement_dedup_key(
+    completion: UserProblemCompletion,
+    *,
+    statement_text_by_problem_id: dict[int, str],
+) -> str:
+    statement = completion.statement
+    if statement is not None:
+        normalized_statement_text = normalize_exact_statement_text(statement.statement_latex)
+        if normalized_statement_text:
+            return f"statement:{normalized_statement_text}"
+
+    if completion.problem_id is not None:
+        normalized_statement_text = statement_text_by_problem_id.get(completion.problem_id, "")
+        if normalized_statement_text:
+            return f"statement:{normalized_statement_text}"
+
+    problem = _effective_problem(completion)
+    if problem is not None:
+        return f"problem:{problem.problem_uuid}"
+    return f"completion:{completion.id}"
 
 
 def _solution_status_lookup(completions: list[UserProblemCompletion]) -> dict[tuple[int, int], str]:
