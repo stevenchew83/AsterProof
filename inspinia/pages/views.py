@@ -57,6 +57,7 @@ from inspinia.pages.completion_progress import completion_progress_table_rows
 from inspinia.pages.completion_progress import completion_progress_topic_mohs_matrix_payload
 from inspinia.pages.completion_progress import completion_progress_user_options
 from inspinia.pages.completion_progress import completion_progress_yearly_heatmap_payload
+from inspinia.pages.completion_progress import dedupe_completion_progress_rows
 from inspinia.pages.completion_progress import default_completion_progress_user
 from inspinia.pages.completion_progress import filter_completion_progress_rows
 from inspinia.pages.completion_progress import normalize_completion_progress_rows
@@ -5816,6 +5817,8 @@ def _render_completion_progress_analytics(
             search_query=search_query,
         ),
     )
+    analytics_filtered_rows = dedupe_completion_progress_rows(filtered_rows)
+    analytics_comparison_scoped_rows = dedupe_completion_progress_rows(comparison_scoped_rows)
 
     if request.GET.get("export") == "csv":
         return _completion_progress_csv_response(filtered_rows, selected_user)
@@ -5826,7 +5829,7 @@ def _render_completion_progress_analytics(
     show_difficulty = can_edit_difficulty or _completion_progress_has_user_difficulty(table_rows)
     context = {
         "completion_progress_charts_payload": completion_progress_charts_payload(
-            filtered_rows,
+            analytics_filtered_rows,
             start_date=date_range.start_date,
             end_date=date_range.end_date,
         ),
@@ -5837,7 +5840,7 @@ def _render_completion_progress_analytics(
         "completion_progress_contest_options": completion_progress_contest_options(date_scoped_rows),
         "completion_progress_date_range": date_range,
         "completion_progress_yearly_heatmap": completion_progress_yearly_heatmap_payload(
-            filtered_rows,
+            analytics_filtered_rows,
             end_date=date_range.end_date or today,
         ),
         "completion_progress_filter_options": completion_progress_filter_options(date_scoped_rows),
@@ -5858,8 +5861,8 @@ def _render_completion_progress_analytics(
         "completion_progress_difficulty_save_url": reverse("pages:problem_statement_difficulty_rating_save"),
         "completion_progress_export_metadata": _completion_progress_export_metadata(selected_user, today=today),
         "completion_progress_insights": completion_progress_insights_payload(
-            filtered_rows,
-            comparison_rows=comparison_scoped_rows,
+            analytics_filtered_rows,
+            comparison_rows=analytics_comparison_scoped_rows,
             start_date=date_range.start_date,
             end_date=date_range.end_date,
             today=today,
@@ -5872,9 +5875,11 @@ def _render_completion_progress_analytics(
         "completion_progress_rows": table_rows,
         "completion_progress_selected_user": selected_user,
         "completion_progress_show_difficulty": show_difficulty,
-        "completion_progress_stats": completion_progress_stats(filtered_rows, today=today),
+        "completion_progress_stats": completion_progress_stats(analytics_filtered_rows, today=today),
         "completion_progress_table_rows": table_rows,
-        "completion_progress_topic_mohs_matrix": completion_progress_topic_mohs_matrix_payload(filtered_rows),
+        "completion_progress_topic_mohs_matrix": completion_progress_topic_mohs_matrix_payload(
+            analytics_filtered_rows,
+        ),
         "completion_progress_user_options": completion_progress_user_options() if can_select_user else [],
     }
     return render(request, "pages/completion-progress-analytics.html", context)

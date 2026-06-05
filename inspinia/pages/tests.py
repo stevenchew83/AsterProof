@@ -9114,6 +9114,79 @@ def test_completion_progress_analytics_renders_admin_dashboard(client):
     assert 'tabindex="0"' not in response_html[zero_index : zero_index + 240]
 
 
+def test_completion_progress_analytics_dedupes_duplicate_statement_metrics_but_keeps_rows(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    completion_user = UserFactory(name="Duplicate Statement User", email="duplicate-progress@example.com")
+    client.force_login(admin_user)
+    today = timezone.localdate()
+    duplicate_statement_latex = "Prove that duplicate statements count once."
+
+    first_problem = ProblemSolveRecord.objects.create(
+        year=today.year,
+        topic="ALG",
+        mohs=20,
+        contest="Contest A",
+        problem="P1",
+        contest_year_problem=f"Contest A {today.year} P1",
+    )
+    second_problem = ProblemSolveRecord.objects.create(
+        year=today.year,
+        topic="ALG",
+        mohs=20,
+        contest="Contest B",
+        problem="P4",
+        contest_year_problem=f"Contest B {today.year} P4",
+    )
+    first_statement = ContestProblemStatement.objects.create(
+        linked_problem=first_problem,
+        contest_year=today.year,
+        contest_name="Contest A",
+        problem_number=1,
+        problem_code="P1",
+        statement_latex=duplicate_statement_latex,
+    )
+    second_statement = ContestProblemStatement.objects.create(
+        linked_problem=second_problem,
+        contest_year=today.year,
+        contest_name="Contest B",
+        problem_number=4,
+        problem_code="P4",
+        statement_latex=duplicate_statement_latex,
+    )
+    UserProblemCompletion.objects.create(user=completion_user, statement=first_statement, completion_date=today)
+    UserProblemCompletion.objects.create(user=completion_user, statement=second_statement, completion_date=today)
+
+    response = client.get(
+        reverse("pages:completion_progress_analytics"),
+        {"range": "all", "user": str(completion_user.pk)},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["completion_progress_stats"]["solved_total"] == 1
+    assert response.context["completion_progress_stats"]["known_date_total"] == 1
+    assert response.context["completion_progress_stats"]["total_mohs"] == 20
+    assert response.context["completion_progress_charts_payload"]["dailyCompletions"]["values"] == [1]
+    assert response.context["completion_progress_charts_payload"]["topicTotals"] == {
+        "labels": ["Algebra"],
+        "values": [1],
+    }
+    assert response.context["completion_progress_yearly_heatmap"]["exact_total"] == 1
+    assert response.context["completion_progress_topic_mohs_matrix"]["grand_total"] == 1
+    assert len(response.context["completion_progress_rows"]) == 2
+
+    csv_response = client.get(
+        reverse("pages:completion_progress_analytics"),
+        {"range": "all", "user": str(completion_user.pk), "export": "csv"},
+    )
+
+    assert csv_response.status_code == HTTPStatus.OK
+    csv_rows = list(csv.DictReader(StringIO(csv_response.content.decode("utf-8"))))
+    assert [row["Problem"] for row in csv_rows] == [
+        f"Contest A {today.year} P1",
+        f"Contest B {today.year} P4",
+    ]
+
+
 def test_completion_progress_analytics_renders_empty_states_for_filtered_out_rows(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     completion_user = UserFactory(name="Empty State User", email="empty-progress@example.com")
