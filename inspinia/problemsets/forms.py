@@ -6,15 +6,31 @@ from inspinia.problemsets.models import ProblemList
 class ProblemListForm(forms.ModelForm):
     class Meta:
         model = ProblemList
-        fields = ("title", "description", "hide_source", "hide_topic", "hide_mohs", "hide_subtopics")
+        fields = (
+            "title",
+            "description",
+            "hide_source",
+            "hide_topic",
+            "hide_mohs",
+            "hide_subtopics",
+            "hide_core_ideas",
+            "hide_rationale",
+            "hide_pitfalls",
+        )
         labels = {
+            "hide_core_ideas": "Hide core idea",
             "hide_mohs": "Hide MOHS",
+            "hide_pitfalls": "Hide common pitfalls",
+            "hide_rationale": "Hide rationale",
             "hide_source": "Hide original source",
             "hide_subtopics": "Hide subtopics",
             "hide_topic": "Hide topic",
         }
         help_texts = {
+            "hide_core_ideas": "Remove core idea notes from the public share page.",
             "hide_mohs": "Remove difficulty labels from the public and workspace list views.",
+            "hide_pitfalls": "Remove common pitfalls notes from the public share page.",
+            "hide_rationale": "Remove rationale notes from the public share page.",
             "hide_source": "Use custom titles or generic problem numbers without revealing contest source.",
             "hide_subtopics": "Hide searchable topic-technique tags on public and workspace list views.",
             "hide_topic": "Remove broad topic labels from the public and workspace list views.",
@@ -33,10 +49,13 @@ class ProblemListForm(forms.ModelForm):
                     "placeholder": "What should another student use this list for?",
                 },
             ),
+            "hide_core_ideas": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "hide_source": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "hide_topic": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "hide_mohs": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "hide_subtopics": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "hide_rationale": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "hide_pitfalls": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
 
     def clean_title(self) -> str:

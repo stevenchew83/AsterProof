@@ -33,5 +33,29 @@
       <div class="text-muted fs-xs">{{ form.hide_subtopics.help_text }}</div>
       {% for error in form.hide_subtopics.errors %}<div class="text-danger fs-xs mt-1">{{ error }}</div>{% endfor %}
     </div>
+    <div class="col-md-6">
+      <div class="form-check form-switch">
+        {{ form.hide_core_ideas }}
+        <label class="form-check-label" for="{{ form.hide_core_ideas.id_for_label }}">{{ form.hide_core_ideas.label }}</label>
+      </div>
+      <div class="text-muted fs-xs">{{ form.hide_core_ideas.help_text }}</div>
+      {% for error in form.hide_core_ideas.errors %}<div class="text-danger fs-xs mt-1">{{ error }}</div>{% endfor %}
+    </div>
+    <div class="col-md-6">
+      <div class="form-check form-switch">
+        {{ form.hide_rationale }}
+        <label class="form-check-label" for="{{ form.hide_rationale.id_for_label }}">{{ form.hide_rationale.label }}</label>
+      </div>
+      <div class="text-muted fs-xs">{{ form.hide_rationale.help_text }}</div>
+      {% for error in form.hide_rationale.errors %}<div class="text-danger fs-xs mt-1">{{ error }}</div>{% endfor %}
+    </div>
+    <div class="col-md-6">
+      <div class="form-check form-switch">
+        {{ form.hide_pitfalls }}
+        <label class="form-check-label" for="{{ form.hide_pitfalls.id_for_label }}">{{ form.hide_pitfalls.label }}</label>
+      </div>
+      <div class="text-muted fs-xs">{{ form.hide_pitfalls.help_text }}</div>
+      {% for error in form.hide_pitfalls.errors %}<div class="text-danger fs-xs mt-1">{{ error }}</div>{% endfor %}
+    </div>
   </div>
 </div>

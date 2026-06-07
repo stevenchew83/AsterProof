@@ -26,9 +26,12 @@ EXPECTED_TWO_PROBLEM_SEARCH_MATCHES = 2
 def _problem(**overrides) -> ProblemSolveRecord:
     values = {
         "contest": "IMO",
+        "core_ideas": "",
         "is_active": True,
         "mohs": 5,
         "problem": "P1",
+        "rationale": "",
+        "pitfalls": "",
         "topic": "ALG",
         "topic_tags": "ALG - inequalities",
         "year": 2026,
@@ -40,18 +43,29 @@ def _problem(**overrides) -> ProblemSolveRecord:
         contest=values["contest"],
         problem=values["problem"],
         contest_year_problem=f"{values['contest']} {values['year']} {values['problem']}",
+        core_ideas=values["core_ideas"],
         is_active=values["is_active"],
         topic_tags=values["topic_tags"],
+        rationale=values["rationale"],
+        pitfalls=values["pitfalls"],
     )
 
 
-def _statement(problem: ProblemSolveRecord, statement_latex: str = "Prove that $a+b \\ge c$."):
+def _statement(problem: ProblemSolveRecord, statement_latex: str = "Prove that $a+b \\ge c$.", **overrides):
+    values = {
+        "core_ideas": problem.core_ideas,
+        "rationale": problem.rationale,
+        "pitfalls": problem.pitfalls,
+    } | overrides
     return ContestProblemStatement.objects.create(
         linked_problem=problem,
         contest_year=problem.year,
         contest_name=problem.contest,
+        core_ideas=values["core_ideas"],
         problem_number=1,
         problem_code=problem.problem,
+        rationale=values["rationale"],
+        pitfalls=values["pitfalls"],
         statement_latex=statement_latex,
         topic=problem.topic,
         mohs=problem.mohs,
@@ -727,6 +741,99 @@ def test_public_share_page_respects_display_options_and_custom_title(client):
     assert "Geometry" not in response_html
     assert "MOHS 12" not in response_html
     assert "ANGLE CHASE" not in response_html
+
+
+def test_public_share_page_shows_problem_notes_when_allowed(client):
+    author = UserFactory(name="Exam Maker")
+    problem = _problem(
+        core_ideas="Core ideas: Use a hidden symmetry.",
+        rationale="Rationale: The symmetry explains why the bound is sharp.",
+        pitfalls="Common pitfalls: Expanding too early.",
+        topic="GEO",
+        mohs=12,
+    )
+    _statement(
+        problem,
+        "Find all triangles with $AB=AC$.",
+        core_ideas="Core ideas: Prefer the statement copy.",
+        rationale="Rationale: The statement row is the curated source.",
+        pitfalls="Common pitfalls: Ignoring the equal sides.",
+    )
+    fallback_problem = _problem(
+        contest="USAMO",
+        core_ideas="Core ideas: Track the invariant.",
+        rationale="Rationale: The invariant controls every move.",
+        pitfalls="Common pitfalls: Missing the terminal case.",
+        mohs=9,
+        problem="P2",
+        topic="COM",
+        year=2025,
+    )
+    problem_list = _problem_list(author=author, visibility=ProblemList.Visibility.PUBLIC)
+    ProblemListItem.objects.create(problem_list=problem_list, problem=problem, position=1)
+    ProblemListItem.objects.create(problem_list=problem_list, problem=fallback_problem, position=2)
+
+    response = client.get(problem_list.public_url())
+
+    assert response.status_code == HTTPStatus.OK
+    response_html = response.content.decode("utf-8")
+    assert "Core idea" in response_html
+    assert "Rationale" in response_html
+    assert "Common pitfalls" in response_html
+    assert "Prefer the statement copy." in response_html
+    assert "The statement row is the curated source." in response_html
+    assert "Ignoring the equal sides." in response_html
+    assert "Use a hidden symmetry." not in response_html
+    assert "Track the invariant." in response_html
+    assert "The invariant controls every move." in response_html
+    assert "Missing the terminal case." in response_html
+
+
+def test_problem_list_edit_options_hide_problem_notes_from_public_page(client):
+    author = UserFactory(name="Exam Maker")
+    client.force_login(author)
+    problem = _problem(
+        core_ideas="Core ideas: Use a hidden symmetry.",
+        rationale="Rationale: The symmetry explains why the bound is sharp.",
+        pitfalls="Common pitfalls: Expanding too early.",
+        topic="GEO",
+        mohs=12,
+    )
+    _statement(problem, "Find all triangles with $AB=AC$.")
+    problem_list = _problem_list(author=author, visibility=ProblemList.Visibility.PUBLIC)
+    ProblemListItem.objects.create(problem_list=problem_list, problem=problem, position=1)
+
+    edit_response = client.get(reverse("problemsets:edit", args=[problem_list.list_uuid]))
+
+    assert edit_response.status_code == HTTPStatus.OK
+    edit_html = edit_response.content.decode("utf-8")
+    assert "Hide core idea" in edit_html
+    assert "Hide rationale" in edit_html
+    assert "Hide common pitfalls" in edit_html
+
+    save_response = client.post(
+        reverse("problemsets:edit", args=[problem_list.list_uuid]),
+        {
+            "title": problem_list.title,
+            "description": problem_list.description,
+            "hide_core_ideas": "on",
+            "hide_rationale": "on",
+            "hide_pitfalls": "on",
+        },
+        follow=True,
+    )
+
+    assert save_response.status_code == HTTPStatus.OK
+    response = client.get(problem_list.public_url())
+
+    assert response.status_code == HTTPStatus.OK
+    response_html = response.content.decode("utf-8")
+    assert "Core idea" not in response_html
+    assert "Rationale" not in response_html
+    assert "Common pitfalls" not in response_html
+    assert "Use a hidden symmetry." not in response_html
+    assert "The symmetry explains why the bound is sharp." not in response_html
+    assert "Expanding too early." not in response_html
 
 
 def test_public_share_page_shows_comments_and_collapsed_hints(client):
