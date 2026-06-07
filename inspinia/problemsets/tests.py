@@ -1072,6 +1072,38 @@ def test_problem_list_pdf_source_respects_display_options_and_custom_titles():
     assert "ANGLE CHASE" not in tex_source
 
 
+def test_problem_list_pdf_source_includes_allowed_problem_notes():
+    from inspinia.problemsets.pdf_latex import build_problem_list_tex_source
+    from inspinia.problemsets.selectors import problem_list_item_rows
+
+    problem = _problem(
+        core_ideas="Core ideas: Use a hidden symmetry.",
+        rationale="Rationale: The symmetry explains the bound.",
+        pitfalls="Common pitfalls: Expanding too early.",
+        topic="GEO",
+        mohs=12,
+    )
+    _statement(
+        problem,
+        "Find all triangles with $AB=AC$.",
+        core_ideas="Core ideas: Prefer the statement copy.",
+        rationale="Rationale: The statement row is the curated source.",
+        pitfalls="Common pitfalls: Ignoring the equal sides.",
+    )
+    problem_list = _problem_list(title="Mock paper", visibility=ProblemList.Visibility.PUBLIC)
+    problem_list.hide_rationale = True
+    problem_list.save()
+    ProblemListItem.objects.create(problem_list=problem_list, problem=problem, position=1)
+
+    tex_source = build_problem_list_tex_source(problem_list, problem_list_item_rows(problem_list))
+
+    assert r"\textbf{Core idea:} Prefer the statement copy." in tex_source
+    assert r"\textbf{Common pitfalls:} Ignoring the equal sides." in tex_source
+    assert "Use a hidden symmetry." not in tex_source
+    assert "Rationale:" not in tex_source
+    assert "The statement row is the curated source." not in tex_source
+
+
 def test_private_list_share_url_returns_not_found(client):
     problem_list = _problem_list(visibility=ProblemList.Visibility.PRIVATE)
 
