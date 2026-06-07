@@ -18,7 +18,7 @@ TOPIC_BLOCK_RE = re.compile(
 )
 
 # If a cell accidentally includes trailing columns as text, stop here.
-TRUNCATE_RE = re.compile(r"\b(?:Rationale|Common pitfalls)\b", flags=re.IGNORECASE)
+TRUNCATE_RE = re.compile(r"\b(?:Core ideas|Rationale|Common pitfalls)\b", flags=re.IGNORECASE)
 
 
 def clean_token(s: str) -> str:

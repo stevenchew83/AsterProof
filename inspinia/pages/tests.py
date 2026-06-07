@@ -95,6 +95,7 @@ EXPECTED_EXPORT_COLUMNS = [
     "Topic tags",
     "Confidence",
     "IMO slot guess",
+    "Core ideas",
     "Rationale",
     "Pitfalls",
 ]
@@ -328,6 +329,21 @@ EXPECTED_HANDLE_SUMMARY_ROWS = (
             f"Alg/CA {EN_DASH} polynomials over C; asymptotic leading term; "
             "geometric image condition"
         ),
+        "core_ideas": (
+            "Rotate B into a bounded-real-part strip\n"
+            "Look along rays in the sector and compare with the leading term\n"
+            "A nonconstant polynomial cannot stay inside a fixed strip on an unbounded sector"
+        ),
+        "rationale": (
+            "Once you translate the condition into “bounded real part on a whole sector,” "
+            "the leading-term argument is standard and decisive. The search space is tiny after "
+            "the right rephrasing."
+        ),
+        "common_pitfalls": (
+            "Missing the strip-rotation trick; overcomplicating with "
+            "Liouville/entire-function language when a raywise leading-term check already kills "
+            "nonconstant cases."
+        ),
     },
     {
         "confidence": "Medium",
@@ -379,15 +395,6 @@ EXPECTED_HANDLE_SUMMARY_ROWS = (
             "characteristic polynomial; permutation structure"
         ),
     },
-)
-EXPECTED_HANDLE_SUMMARY_EXPORT_TSV = "\n".join(
-    [
-        "MOHS\tCONFIDENCE\tIMO SLOT\tTOPICS TAG",
-        *(
-            f'{row["mohs"]}\t{row["confidence"]}\t{row["imo_slot"]}\t{row["topic_tags"]}'
-            for row in EXPECTED_HANDLE_SUMMARY_ROWS
-        ),
-    ]
 )
 BALKAN_SHORTLIST_YEAR = 2024
 BALKAN_SHORTLIST_NAME = "Balkan MO Shortlist"
@@ -850,6 +857,7 @@ def test_import_problem_dataframe_creates_records_and_normalized_fields():
             "SOLVE DATE": "2026-01-15",
             "Confidence": "High",
             "IMO slot guess": "IMO slot guess: P1/4",
+            "Core ideas": "Core ideas: Normalize into parity classes.",
             "Rationale": "Rationale: Short parity punchline.",
             "Pitfalls": "Common pitfalls: Greedy reasoning.",
         },
@@ -865,6 +873,7 @@ def test_import_problem_dataframe_creates_records_and_normalized_fields():
     assert record.contest == "ISRAEL TST"
     assert record.problem == "P2"
     assert record.imo_slot_guess_value == "1,4"
+    assert record.core_ideas_value == "Normalize into parity classes."
     assert record.rationale_value == "Short parity punchline."
     assert record.pitfalls_value == "Greedy reasoning."
     assert list(
@@ -883,6 +892,7 @@ def test_import_problem_dataframe_merges_domains_and_refreshes_derived_values():
             "CONTEST PROBLEM": "ISRAEL TST 2026 P2",
             "Topic tags": "Topic tags: ALG - invariants",
             "IMO slot guess": "IMO slot guess: P1/4",
+            "Core ideas": "Core ideas: Initial normalization.",
             "Rationale": "Rationale: Initial explanation.",
             "Pitfalls": "Common pitfalls: Initial pitfall.",
         },
@@ -899,6 +909,7 @@ def test_import_problem_dataframe_merges_domains_and_refreshes_derived_values():
             "CONTEST PROBLEM": "ISRAEL TST 2026 P2",
             "Topic tags": "Topic tags: COMB - invariants; NT - LTE",
             "IMO slot guess": "IMO slot guess: P2/5",
+            "Core ideas": "Core ideas: Updated normalization.",
             "Rationale": "Rationale: Updated explanation.",
             "Pitfalls": "Common pitfalls: Updated pitfall.",
         },
@@ -916,6 +927,7 @@ def test_import_problem_dataframe_merges_domains_and_refreshes_derived_values():
     )
     assert record.mohs == UPDATED_MOHS
     assert record.imo_slot_guess_value == "2,5"
+    assert record.core_ideas_value == "Updated normalization."
     assert record.rationale_value == "Updated explanation."
     assert record.pitfalls_value == "Updated pitfall."
 
@@ -9971,9 +9983,23 @@ def test_handle_summary_parser_extracts_export_rows():
     assert parsed_rows[0].confidence == first_expected_row["confidence"]
     assert parsed_rows[0].imo_slot == first_expected_row["imo_slot"]
     assert parsed_rows[0].topic_tags == first_expected_row["topic_tags"]
+    assert parsed_rows[0].core_ideas == first_expected_row["core_ideas"]
+    assert parsed_rows[0].rationale == first_expected_row["rationale"]
+    assert parsed_rows[0].common_pitfalls == first_expected_row["common_pitfalls"]
     assert parsed_rows[3].confidence == "Medium-Low"
     assert preview_payload["row_count"] == 6
-    assert preview_payload["export_tsv"] == EXPECTED_HANDLE_SUMMARY_EXPORT_TSV
+    assert preview_payload["export_tsv"].splitlines()[0] == (
+        "MOHS\tCONFIDENCE\tIMO SLOT\tTOPICS TAG\tCORE IDEAS\tRATIONALE\tCOMMON PITFALLS"
+    )
+    assert preview_payload["export_tsv"].splitlines()[1] == (
+        f'{first_expected_row["mohs"]}\t{first_expected_row["confidence"]}\t'
+        f'{first_expected_row["imo_slot"]}\t{first_expected_row["topic_tags"]}\t'
+        "Rotate B into a bounded-real-part strip "
+        "Look along rays in the sector and compare with the leading term "
+        "A nonconstant polynomial cannot stay inside a fixed strip on an unbounded sector\t"
+        f'{first_expected_row["rationale"]}\t'
+        f'{first_expected_row["common_pitfalls"]}'
+    )
 
 
 def test_handle_summary_parser_accepts_mohs_ranges_and_uses_lower_bound():
@@ -9987,17 +10013,39 @@ def test_handle_summary_parser_accepts_mohs_ranges_and_uses_lower_bound():
     assert parsed_rows[0].confidence == "High"
     assert parsed_rows[0].imo_slot == "P1/4"
     assert parsed_rows[0].topic_tags == "Alg/estimation; telescoping; integral comparison"
+    assert parsed_rows[0].core_ideas == (
+        "Compare 1/sqrt(k) against differences like 2(sqrt(k+1) - sqrt(k))\n"
+        "Use a telescoping or integral squeeze for the partial sum\n"
+        "Narrow N numerically with endpoint control"
+    )
+    assert parsed_rows[0].rationale == (
+        "This is a clean estimate problem with very low search cost. The only real task is "
+        "picking the right comparison and handling the final localization carefully."
+    )
+    assert parsed_rows[0].common_pitfalls == (
+        "Using only the crude estimate sum about 2sqrt(N), which is not sharp enough by "
+        "itself; losing track of endpoint errors."
+    )
     assert parsed_rows[-1].handle == "No infinite arithmetic progression of chaotic integers"
     assert parsed_rows[-1].mohs == 42
     assert parsed_rows[-1].confidence == "Low"
     assert preview_payload["row_count"] == 12
     assert (
         preview_payload["export_tsv"].splitlines()[1]
-        == "8\tHigh\tP1/4\tAlg/estimation; telescoping; integral comparison"
+        == (
+            "8\tHigh\tP1/4\tAlg/estimation; telescoping; integral comparison\t"
+            "Compare 1/sqrt(k) against differences like 2(sqrt(k+1) - sqrt(k)) "
+            "Use a telescoping or integral squeeze for the partial sum "
+            "Narrow N numerically with endpoint control\t"
+            "This is a clean estimate problem with very low search cost. The only real task is "
+            "picking the right comparison and handling the final localization carefully.\t"
+            "Using only the crude estimate sum about 2sqrt(N), which is not sharp enough by "
+            "itself; losing track of endpoint errors."
+        )
     )
     assert (
         preview_payload["export_tsv"].splitlines()[-1]
-        == "42\tLow\tP3/6\tNT - additive forms; congruences; arithmetic progressions"
+        .startswith("42\tLow\tP3/6\tNT - additive forms; congruences; arithmetic progressions\t")
     )
 
 
@@ -10020,8 +10068,38 @@ def test_handle_summary_parser_accepts_open_ended_mohs_band_and_uses_lower_bound
     assert preview_payload["row_count"] == 1
     assert (
         preview_payload["export_tsv"].splitlines()[1]
-        == "50\tMedium\tP3/6\tNT - harmonic numbers / p-adic congruences / sparse sets"
+        == "50\tMedium\tP3/6\tNT - harmonic numbers / p-adic congruences / sparse sets\t\t\t"
     )
+
+
+def test_handle_summary_parser_accepts_zero_and_annotated_mohs_lines():
+    parsed_rows = parse_handle_summary_text(
+        "\n".join(
+            [
+                "Handle: Warm-up direct substitution",
+                "Estimated MOHS: 0M",
+                "IMO slot guess: P1/4",
+                "Topic tags: Alg - substitution",
+                "Confidence: High",
+                "Handle: Circumradius wording issue",
+                'Estimated MOHS: 15M, assuming "circumcentre" means "circumradius"',
+                "IMO slot guess: P1/4",
+                "Topic tags: Geo - circles",
+                "Confidence: Medium",
+                "Handle: Prime typo salvage",
+                'Estimated MOHS: Unrateable as written; likely 20M if corrected to "prove n is prime"',
+                "IMO slot guess: P2/5",
+                "Topic tags: NT - primes",
+                "Confidence: Low",
+            ]
+        )
+    )
+    preview_payload = build_handle_summary_preview_payload(parsed_rows)
+
+    assert [row.mohs for row in parsed_rows] == [0, 15, 20]
+    assert preview_payload["export_tsv"].splitlines()[1].startswith("0\tHigh\tP1/4\tAlg - substitution\t")
+    assert preview_payload["export_tsv"].splitlines()[2].startswith("15\tMedium\tP1/4\tGeo - circles\t")
+    assert preview_payload["export_tsv"].splitlines()[3].startswith("20\tLow\tP2/5\tNT - primes\t")
 
 
 def test_handle_summary_parser_accepts_mohs_range_with_to_word():
@@ -10042,6 +10120,7 @@ def test_handle_summary_parser_accepts_mohs_range_with_to_word():
     assert len(parsed_rows) == 1
     assert parsed_rows[0].mohs == 20
     assert parsed_rows[0].handle == "Red-blue averaging cards"
+    assert parsed_rows[0].core_ideas == "Sort red and blue separately."
 
 
 def test_contest_existence_audit_parser_reads_year_prefixed_contest_headers():
@@ -10582,6 +10661,8 @@ def test_handle_summary_parser_allows_admin_access(client):
     assert "Handle summary parser" in response_html
     assert "MOHS" in response_html
     assert "TOPICS TAG" in response_html
+    assert "CORE IDEAS" in response_html
+    assert "COMMON PITFALLS" in response_html
     assert 'id="handle-summary-parser-form"' in response_html
 
 
@@ -13011,10 +13092,14 @@ def test_handle_summary_parser_post_builds_export_table(client):
     assert response.status_code == HTTPStatus.OK
     assert response.context["preview_payload"]["row_count"] == 6
     assert response.context["preview_payload"]["rows"][0] == first_expected_row
-    assert response.context["preview_payload"]["export_tsv"] == EXPECTED_HANDLE_SUMMARY_EXPORT_TSV
+    assert response.context["preview_payload"]["export_tsv"].splitlines()[0] == (
+        "MOHS\tCONFIDENCE\tIMO SLOT\tTOPICS TAG\tCORE IDEAS\tRATIONALE\tCOMMON PITFALLS"
+    )
     response_html = response.content.decode("utf-8")
     assert "Parsed rows" in response_html
     assert "Copy TSV" in response_html
+    assert "Core ideas" in response_html
+    assert "Common pitfalls" in response_html
     assert "Recurrence-permutation triples in Z_n" in response_html
 
 

@@ -46,6 +46,7 @@ EXPORT_COLUMNS = [
     "Topic tags",
     "Confidence",
     "IMO slot guess",
+    "Core ideas",
     "Rationale",
     "Pitfalls",
 ]
@@ -220,6 +221,7 @@ def prepare_import_rows(df: pd.DataFrame) -> tuple[list[PreparedImportRow], list
             "confidence": _cell_str(row.get("Confidence")),
             "imo_slot_guess": _cell_str(row.get("IMO slot guess")),
             "topic_tags": _cell_str(row.get("Topic tags")),
+            "core_ideas": _cell_str(row.get("Core ideas")),
             "rationale": _cell_str(row.get("Rationale")),
             "pitfalls": _cell_str(row.get("Pitfalls")),
         }
@@ -278,6 +280,7 @@ def build_parsed_preview_payload(
                 "confidence": d.get("confidence") or "",
                 "imo_slot_guess": d.get("imo_slot_guess") or "",
                 "topic_tags_raw": d.get("topic_tags") or "",
+                "core_ideas": d.get("core_ideas") or "",
                 "rationale": d.get("rationale") or "",
                 "pitfalls": d.get("pitfalls") or "",
                 "parsed_technique_count": str(len(p.techniques)),
@@ -351,6 +354,7 @@ def build_problem_export_dataframe(records: list[ProblemSolveRecord]) -> pd.Data
             "Topic tags": _topic_tags_export_value(record),
             "Confidence": record.confidence or "",
             "IMO slot guess": record.imo_slot_guess or "",
+            "Core ideas": record.core_ideas or "",
             "Rationale": record.rationale or "",
             "Pitfalls": record.pitfalls or "",
         }

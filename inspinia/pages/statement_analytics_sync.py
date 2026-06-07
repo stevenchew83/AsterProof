@@ -8,9 +8,50 @@ from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemTopicTechnique
 from inspinia.pages.models import StatementTopicTechnique
 
+TEXT_ANALYTICS_FIELD_PAIRS = (
+    ("topic", "topic"),
+    ("source_contest", "contest"),
+    ("source_problem", "problem"),
+    ("confidence", "confidence"),
+    ("imo_slot_guess", "imo_slot_guess"),
+    ("topic_tags", "topic_tags"),
+    ("core_ideas", "core_ideas"),
+    ("rationale", "rationale"),
+    ("pitfalls", "pitfalls"),
+)
+
 
 def _is_blank_str(value: str | None) -> bool:
     return value is None or not str(value).strip()
+
+
+def _copy_text_if_blank(statement: ContestProblemStatement, record, statement_field: str, record_field: str) -> bool:
+    if not _is_blank_str(getattr(statement, statement_field)):
+        return False
+    setattr(statement, statement_field, getattr(record, record_field) or None)
+    return True
+
+
+def _copy_mohs_if_missing(statement: ContestProblemStatement, record) -> bool:
+    if statement.mohs is not None:
+        return False
+    statement.mohs = record.mohs
+    return True
+
+
+def _copy_workbook_label_if_missing(statement: ContestProblemStatement, record) -> bool:
+    if statement.workbook_contest_year_problem is not None or not record.contest_year_problem:
+        return False
+    statement.workbook_contest_year_problem = record.contest_year_problem
+    return True
+
+
+def _fill_statement_analytics_gaps(statement: ContestProblemStatement, record) -> bool:
+    changed = False
+    for statement_field, record_field in TEXT_ANALYTICS_FIELD_PAIRS:
+        changed = _copy_text_if_blank(statement, record, statement_field, record_field) or changed
+    changed = _copy_mohs_if_missing(statement, record) or changed
+    return _copy_workbook_label_if_missing(statement, record) or changed
 
 
 @transaction.atomic
@@ -25,38 +66,7 @@ def sync_statement_analytics_from_linked_problem(statement: ContestProblemStatem
     if record is None:
         return False
 
-    changed = False
-    if _is_blank_str(statement.topic):
-        statement.topic = record.topic
-        changed = True
-    if statement.mohs is None:
-        statement.mohs = record.mohs
-        changed = True
-    if _is_blank_str(statement.source_contest):
-        statement.source_contest = record.contest
-        changed = True
-    if _is_blank_str(statement.source_problem):
-        statement.source_problem = record.problem
-        changed = True
-    if statement.workbook_contest_year_problem is None and record.contest_year_problem:
-        statement.workbook_contest_year_problem = record.contest_year_problem
-        changed = True
-    if _is_blank_str(statement.confidence):
-        statement.confidence = record.confidence or None
-        changed = True
-    if _is_blank_str(statement.imo_slot_guess):
-        statement.imo_slot_guess = record.imo_slot_guess
-        changed = True
-    if _is_blank_str(statement.topic_tags):
-        statement.topic_tags = record.topic_tags
-        changed = True
-    if _is_blank_str(statement.rationale):
-        statement.rationale = record.rationale
-        changed = True
-    if _is_blank_str(statement.pitfalls):
-        statement.pitfalls = record.pitfalls
-        changed = True
-
+    changed = _fill_statement_analytics_gaps(statement, record)
     if changed:
         statement.save()
 

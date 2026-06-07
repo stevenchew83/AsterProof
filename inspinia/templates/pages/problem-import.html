@@ -40,7 +40,7 @@
           <p class="text-muted mb-4">
             The export includes <code>YEAR</code>, <code>TOPIC</code>, <code>MOHS</code>, <code>CONTEST</code>,
             <code>PROBLEM</code>, <code>CONTEST PROBLEM</code>, <code>Topic tags</code>, <code>Confidence</code>,
-            <code>IMO slot guess</code>, <code>Rationale</code>, and <code>Pitfalls</code>.
+            <code>IMO slot guess</code>, <code>Core ideas</code>, <code>Rationale</code>, and <code>Pitfalls</code>.
           </p>
           <a
             href="{% url 'pages:problem_import' %}?action=export"
@@ -81,7 +81,7 @@
           <p class="text-muted">
             Expected columns include <code>YEAR</code>, <code>TOPIC</code>, <code>MOHS</code>, <code>CONTEST</code>,
             <code>PROBLEM</code>, <code>CONTEST PROBLEM</code>, <code>Topic tags</code>, and optional
-            <code>Confidence</code>, <code>IMO slot guess</code>, <code>Rationale</code>,
+            <code>Confidence</code>, <code>IMO slot guess</code>, <code>Core ideas</code>, <code>Rationale</code>,
             <code>Pitfalls</code>.
           </p>
           <form
@@ -443,6 +443,7 @@
     { data: "confidence", title: "Confidence" },
     { data: "imo_slot_guess", title: "IMO slot guess" },
     { data: "topic_tags_raw", title: "Topic tags (raw)", className: "text-wrap" },
+    { data: "core_ideas", title: "Core ideas", className: "text-wrap" },
     { data: "rationale", title: "Rationale", className: "text-wrap" },
     { data: "pitfalls", title: "Pitfalls", className: "text-wrap" },
     { data: "parsed_technique_count", title: "# techniques", className: "text-nowrap" },

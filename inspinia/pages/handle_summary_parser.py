@@ -16,6 +16,9 @@ class ParsedHandleSummaryRow:
     confidence: str
     imo_slot: str
     topic_tags: str
+    core_ideas: str
+    rationale: str
+    common_pitfalls: str
 
 
 class HandleSummaryPreviewRow(TypedDict):
@@ -24,6 +27,9 @@ class HandleSummaryPreviewRow(TypedDict):
     confidence: str
     imo_slot: str
     topic_tags: str
+    core_ideas: str
+    rationale: str
+    common_pitfalls: str
 
 
 class HandleSummaryPreviewPayload(TypedDict):
@@ -32,17 +38,31 @@ class HandleSummaryPreviewPayload(TypedDict):
     rows: list[HandleSummaryPreviewRow]
 
 
-FIELD_PREFIX_MAP = {
-    "Confidence:": "confidence",
-    "Estimated MOHS:": "mohs",
-    "IMO slot guess:": "imo_slot",
-    "Topic tags:": "topic_tags",
-}
+FIELD_PATTERNS = (
+    (re.compile(r"^Confidence\s*:\s*(?P<value>.*)$", flags=re.IGNORECASE), "confidence"),
+    (re.compile(r"^Estimated\s+MOHS\s*:\s*(?P<value>.*)$", flags=re.IGNORECASE), "mohs"),
+    (re.compile(r"^IMO\s+slot\s+guess\s*:\s*(?P<value>.*)$", flags=re.IGNORECASE), "imo_slot"),
+    (re.compile(r"^Topic\s+tags\s*:\s*(?P<value>.*)$", flags=re.IGNORECASE), "topic_tags"),
+    (re.compile(r"^Core\s+ideas\s*:\s*(?P<value>.*)$", flags=re.IGNORECASE), "core_ideas"),
+    (
+        re.compile(
+            r"^Rationale(?:\s*\(\s*\d+\s*[-\u2013\u2014\u2212]\s*\d+\s*lines?\s*\))?\s*:\s*(?P<value>.*)$",
+            flags=re.IGNORECASE,
+        ),
+        "rationale",
+    ),
+    (
+        re.compile(r"^Common\s+pitfalls\s*:\s*(?P<value>.*)$", flags=re.IGNORECASE),
+        "common_pitfalls",
+    ),
+)
+MULTILINE_FIELDS = frozenset({"core_ideas", "rationale", "common_pitfalls"})
 MOHS_RE = re.compile(
     r"^(?P<lower>\d+)(?:\s*M)?(?P<plus>\+)?"
     r"(?:(?:\s*[-\u2013]\s*|\s+to\s+)(?P<upper>\d+)(?:\s*M)?)?$",
     flags=re.IGNORECASE,
 )
+ANNOTATED_MOHS_RE = re.compile(r"\b(?P<value>\d+)\s*M\b", flags=re.IGNORECASE)
 HANDLE_LINE_PREFIX = "Handle:"
 
 
@@ -50,10 +70,22 @@ def _normalize_text(value: str) -> str:
     return " ".join(value.strip().split())
 
 
+def _normalize_multiline_text(value: str) -> str:
+    return "\n".join(line.strip() for line in value.strip().splitlines() if line.strip())
+
+
+def _export_text(value: str) -> str:
+    return _normalize_text(value)
+
+
 def _parse_mohs_value(raw_value: str, *, handle: str) -> int:
     normalized_value = _normalize_text(raw_value)
     match = MOHS_RE.fullmatch(normalized_value)
     if match is None:
+        annotated_match = ANNOTATED_MOHS_RE.search(normalized_value)
+        if annotated_match is not None:
+            return int(annotated_match.group("value"))
+
         msg = f'Handle "{handle}" has an invalid Estimated MOHS value: "{raw_value.strip()}".'
         raise HandleSummaryParseValidationError(msg)
 
@@ -107,6 +139,9 @@ def _build_row_from_block(block: dict[str, str]) -> ParsedHandleSummaryRow:
         confidence=_normalize_text(block["confidence"]),
         imo_slot=_normalize_text(block["imo_slot"]),
         topic_tags=_normalize_text(block["topic_tags"]),
+        core_ideas=_normalize_multiline_text(block.get("core_ideas", "")),
+        rationale=_normalize_multiline_text(block.get("rationale", "")),
+        common_pitfalls=_normalize_multiline_text(block.get("common_pitfalls", "")),
     )
 
 
@@ -122,10 +157,20 @@ def _parse_handle_line(line: str) -> dict[str, str] | None:
 
 
 def _extract_field_update(line: str) -> tuple[str, str] | None:
-    for prefix, field_name in FIELD_PREFIX_MAP.items():
-        if line.startswith(prefix):
-            return field_name, line.partition(":")[2].strip()
+    for pattern, field_name in FIELD_PATTERNS:
+        match = pattern.match(line)
+        if match is not None:
+            return field_name, match.group("value").strip()
     return None
+
+
+def _append_multiline_field_value(
+    current_block: dict[str, str],
+    field_name: str,
+    line: str,
+) -> None:
+    previous_value = current_block.get(field_name, "")
+    current_block[field_name] = f"{previous_value}\n{line.strip()}".strip()
 
 
 def _flush_handle_summary_block(
@@ -144,6 +189,7 @@ def parse_handle_summary_text(raw_text: str) -> tuple[ParsedHandleSummaryRow, ..
 
     rows: list[ParsedHandleSummaryRow] = []
     current_block: dict[str, str] = {}
+    current_multiline_field: str | None = None
 
     for raw_line in raw_text.splitlines():
         line = raw_line.strip()
@@ -154,6 +200,7 @@ def parse_handle_summary_text(raw_text: str) -> tuple[ParsedHandleSummaryRow, ..
         if handle_block is not None:
             current_block = _flush_handle_summary_block(rows, current_block)
             current_block = handle_block
+            current_multiline_field = None
             continue
 
         if not current_block:
@@ -163,6 +210,11 @@ def parse_handle_summary_text(raw_text: str) -> tuple[ParsedHandleSummaryRow, ..
         if field_update is not None:
             field_name, field_value = field_update
             current_block[field_name] = field_value
+            current_multiline_field = field_name if field_name in MULTILINE_FIELDS else None
+            continue
+
+        if current_multiline_field is not None:
+            _append_multiline_field_value(current_block, current_multiline_field, line)
 
     _flush_handle_summary_block(rows, current_block)
 
@@ -183,12 +235,27 @@ def build_handle_summary_preview_payload(
             "imo_slot": row.imo_slot,
             "mohs": row.mohs,
             "topic_tags": row.topic_tags,
+            "core_ideas": row.core_ideas,
+            "rationale": row.rationale,
+            "common_pitfalls": row.common_pitfalls,
         }
         for row in rows
     ]
-    export_lines = ["MOHS\tCONFIDENCE\tIMO SLOT\tTOPICS TAG"]
+    export_lines = [
+        "MOHS\tCONFIDENCE\tIMO SLOT\tTOPICS TAG\tCORE IDEAS\tRATIONALE\tCOMMON PITFALLS",
+    ]
     export_lines.extend(
-        f"{row.mohs}\t{row.confidence}\t{row.imo_slot}\t{row.topic_tags}"
+        "\t".join(
+            [
+                str(row.mohs),
+                row.confidence,
+                row.imo_slot,
+                row.topic_tags,
+                _export_text(row.core_ideas),
+                _export_text(row.rationale),
+                _export_text(row.common_pitfalls),
+            ],
+        )
         for row in rows
     )
     return {

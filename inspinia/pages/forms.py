@@ -14,7 +14,7 @@ class ProblemXlsxImportForm(forms.Form):
         label="Excel workbook",
         help_text=(
             "Upload a .xlsx file with columns YEAR, TOPIC, MOHS, CONTEST, PROBLEM, "
-            "CONTEST PROBLEM, Topic tags, ..."
+            "CONTEST PROBLEM, Topic tags, Core ideas, Rationale, Pitfalls, ..."
         ),
         widget=forms.ClearableFileInput(
             attrs={
@@ -308,6 +308,10 @@ class HandleSummaryParserForm(forms.Form):
                     "Estimated MOHS: 8M-12M\n"
                     "IMO slot guess: P1/4\n"
                     "Topic tags: Alg/CA - polynomials over C; asymptotic leading term\n"
+                    "Core ideas:\n"
+                    "Compare the leading term on rays\n"
+                    "Rationale (1-2 lines): Direct after the right normalization.\n"
+                    "Common pitfalls: Applying a global theorem too early.\n"
                     "Confidence: High"
                 ),
             },

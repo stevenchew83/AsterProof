@@ -169,6 +169,7 @@ def _statement_rows_are_merge_compatible(
         "confidence",
         "imo_slot_guess",
         "topic_tags",
+        "core_ideas",
         "rationale",
         "pitfalls",
     )
@@ -388,6 +389,10 @@ def _merge_statement_row_into_target(
     target_statement.topic_tags = _statement_merge_text_value(
         target_statement.topic_tags,
         source_statement.topic_tags,
+    )
+    target_statement.core_ideas = _statement_merge_text_value(
+        target_statement.core_ideas,
+        source_statement.core_ideas,
     )
     target_statement.rationale = _statement_merge_text_value(
         target_statement.rationale,

@@ -6,6 +6,7 @@ from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils import timezone
 
+from inspinia.pages.analytics_field_parse import parse_core_ideas_value
 from inspinia.pages.analytics_field_parse import parse_imo_slot_guess_value
 from inspinia.pages.analytics_field_parse import parse_pitfalls_value
 from inspinia.pages.analytics_field_parse import parse_rationale_value
@@ -47,6 +48,9 @@ class ProblemSolveRecord(models.Model):
     # - "IMO slot guess: -" -> NULL
     imo_slot_guess_value = models.TextField(null=True, blank=True)
     topic_tags = models.TextField(null=True, blank=True)
+    core_ideas = models.TextField(null=True, blank=True)
+    # Core ideas text with a leading "Core ideas:" prefix removed.
+    core_ideas_value = models.TextField(null=True, blank=True)
     rationale = models.TextField(null=True, blank=True)
     # Rationale text with prefixes removed (for example "Rationale:" / "Rationale (1-2 lines):").
     rationale_value = models.TextField(null=True, blank=True)
@@ -65,6 +69,7 @@ class ProblemSolveRecord(models.Model):
 
     def save(self, *args, **kwargs) -> None:
         self.imo_slot_guess_value = parse_imo_slot_guess_value(self.imo_slot_guess)
+        self.core_ideas_value = parse_core_ideas_value(self.core_ideas)
         self.rationale_value = parse_rationale_value(self.rationale)
         self.pitfalls_value = parse_pitfalls_value(self.pitfalls)
 
@@ -72,6 +77,7 @@ class ProblemSolveRecord(models.Model):
         if update_fields is not None:
             kwargs["update_fields"] = set(update_fields) | {
                 "imo_slot_guess_value",
+                "core_ideas_value",
                 "rationale_value",
                 "pitfalls_value",
             }
@@ -157,6 +163,8 @@ class ContestProblemStatement(models.Model):
     imo_slot_guess = models.TextField(null=True, blank=True)
     imo_slot_guess_value = models.TextField(null=True, blank=True)
     topic_tags = models.TextField(null=True, blank=True)
+    core_ideas = models.TextField(null=True, blank=True)
+    core_ideas_value = models.TextField(null=True, blank=True)
     rationale = models.TextField(null=True, blank=True)
     rationale_value = models.TextField(null=True, blank=True)
     pitfalls = models.TextField(null=True, blank=True)
@@ -185,6 +193,7 @@ class ContestProblemStatement(models.Model):
         self.problem_code = (self.problem_code or "").strip().upper() or f"P{self.problem_number}"
         self.contest_year_problem = f"{self.contest_name} {self.contest_year} {self.problem_code}"
         self.imo_slot_guess_value = parse_imo_slot_guess_value(self.imo_slot_guess)
+        self.core_ideas_value = parse_core_ideas_value(self.core_ideas)
         self.rationale_value = parse_rationale_value(self.rationale)
         self.pitfalls_value = parse_pitfalls_value(self.pitfalls)
 
@@ -195,6 +204,7 @@ class ContestProblemStatement(models.Model):
                 "problem_uuid",
                 "problem_code",
                 "imo_slot_guess_value",
+                "core_ideas_value",
                 "rationale_value",
                 "pitfalls_value",
             }
