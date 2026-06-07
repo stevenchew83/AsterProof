@@ -206,6 +206,7 @@
           <div>
             <h4 class="header-title mb-0">Completion logger</h4>
             <p class="text-muted fs-xs mb-0">Use row actions for quick changes. Open Edit for exact dates and study details.</p>
+            <p class="text-muted fs-xs mb-0 js-quick-completion-timezone-label">Local timezone: detecting...</p>
           </div>
           <span class="badge text-bg-light">
             {{ completion_quick_update_result_summary }}
@@ -239,6 +240,7 @@
               data-difficulty-min="{{ completion_quick_update_difficulty_min }}"
               data-difficulty-max="{{ completion_quick_update_difficulty_max }}"
               data-target-user-id="{{ completion_quick_update_filters.target_user_id }}"
+              data-server-today="{{ completion_quick_update_today }}"
               data-today="{{ completion_quick_update_today }}"
             >
               <thead>
@@ -538,13 +540,40 @@
     var difficultyMax = Number(table.getAttribute("data-difficulty-max") || "60");
     var statusFilter = document.getElementById("quick-completion-status-filter");
     var targetUserId = table.getAttribute("data-target-user-id") || "";
-    var todayValue = table.getAttribute("data-today") || "";
+    var serverTodayValue = table.getAttribute("data-server-today") || table.getAttribute("data-today") || "";
+    var browserTimezone = browserTimezoneName();
+    var todayValue = localTodayValue() || serverTodayValue;
+    var timezoneLabel = document.querySelector(".js-quick-completion-timezone-label");
     var detailEditor = document.getElementById("quick-completion-detail-editor");
     var detailForm = document.getElementById("quick-completion-detail-form");
     var detailOffcanvas = detailEditor && window.bootstrap ? new window.bootstrap.Offcanvas(detailEditor) : null;
     var detailState = { row: null };
     var tableApi = null;
     if (!csrfTokenInput || !saveUrl) return;
+
+    function twoDigit(value) {
+      return value < 10 ? "0" + value : String(value);
+    }
+
+    function localTodayValue() {
+      var now = new Date();
+      if (Number.isNaN(now.getTime())) return "";
+      return now.getFullYear() + "-" + twoDigit(now.getMonth() + 1) + "-" + twoDigit(now.getDate());
+    }
+
+    function browserTimezoneName() {
+      try {
+        return Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+      } catch (_error) {
+        return "";
+      }
+    }
+
+    if (timezoneLabel) {
+      timezoneLabel.textContent = browserTimezone
+        ? "Local timezone: " + browserTimezone + " - Today: " + todayValue
+        : "Local timezone: browser local time - Today: " + todayValue;
+    }
 
     var detailFields = {
       title: document.getElementById("quick-completion-detail-title"),
@@ -897,6 +926,9 @@
       });
       if (targetUserId) {
         params.set("target_user_id", targetUserId);
+      }
+      if (browserTimezone) {
+        params.set("completion_timezone", browserTimezone);
       }
       var metadataPayload = metadata || rowMetadata(row);
       Object.keys(metadataPayload).forEach(function (key) {
