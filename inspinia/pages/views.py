@@ -46,6 +46,7 @@ from django.utils.text import slugify
 
 from inspinia.pages.asymptote_render import build_statement_render_segments
 from inspinia.pages.asymptote_render import has_asymptote_blocks
+from inspinia.pages.completion_duplicates import upsert_exact_duplicate_statement_completions
 from inspinia.pages.completion_progress import COMPLETION_PROGRESS_RANGE_OPTIONS
 from inspinia.pages.completion_progress import CompletionProgressFilters
 from inspinia.pages.completion_progress import completion_progress_charts_payload
@@ -64,7 +65,6 @@ from inspinia.pages.completion_progress import default_completion_progress_user
 from inspinia.pages.completion_progress import filter_completion_progress_rows
 from inspinia.pages.completion_progress import normalize_completion_progress_rows
 from inspinia.pages.completion_progress import resolve_completion_progress_date_range
-from inspinia.pages.completion_duplicates import upsert_exact_duplicate_statement_completions
 from inspinia.pages.completion_record_fields import SOLVED_STATUSES
 from inspinia.pages.completion_record_fields import completion_metadata_from_post
 from inspinia.pages.completion_record_fields import completion_metadata_payload
@@ -120,8 +120,11 @@ from inspinia.pages.problem_import import import_problem_dataframe
 from inspinia.pages.statement_analytics import annotate_effective_statement_analytics
 from inspinia.pages.statement_analytics import contest_key_for_public_slug
 from inspinia.pages.statement_analytics import effective_confidence
+from inspinia.pages.statement_analytics import effective_core_ideas_value
 from inspinia.pages.statement_analytics import effective_imo_slot_guess_value
 from inspinia.pages.statement_analytics import effective_mohs
+from inspinia.pages.statement_analytics import effective_pitfalls_value
+from inspinia.pages.statement_analytics import effective_rationale_value
 from inspinia.pages.statement_analytics import effective_topic
 from inspinia.pages.statement_analytics_sync import sync_statement_analytics_from_linked_problem
 from inspinia.pages.statement_duplicates import build_statement_duplicate_report
@@ -1001,6 +1004,9 @@ def _filter_statement_queryset(  # noqa: C901
                 | Q(_eff_topic__icontains=token)
                 | Q(_eff_confidence__icontains=token)
                 | Q(_eff_imo_slot_guess_value__icontains=token)
+                | Q(_eff_core_ideas_value__icontains=token)
+                | Q(_eff_rationale_value__icontains=token)
+                | Q(_eff_pitfalls_value__icontains=token)
                 | Q(statement_topic_techniques__technique__icontains=token)
                 | Q(linked_problem__topic_techniques__technique__icontains=token)
             )
@@ -4998,12 +5004,15 @@ def _completion_quick_update_row(
         "completion_state_label": completion_state_label,
         "contest": statement.contest_name,
         "contest_detail_url": _contest_query_url("pages:contest_advanced_dashboard", statement.contest_name),
+        "core_ideas": effective_core_ideas_value(statement),
         "day_label": statement.day_label or "",
         "is_completed": is_completed,
         "label": label,
         "mohs": effective_mohs(statement),
+        "pitfalls": effective_pitfalls_value(statement),
         "problem_code": statement.problem_code,
         "problem_detail_url": problem_detail_url,
+        "rationale": effective_rationale_value(statement),
         "statement_uuid": str(statement.statement_uuid),
         "study_summary": _completion_quick_update_study_summary(metadata_payload),
         "subtopics": subtopics or [],

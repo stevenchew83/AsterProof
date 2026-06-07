@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from django.db.models import CharField
 from django.db.models import F
 from django.db.models import IntegerField
@@ -10,7 +12,8 @@ from django.db.models import Value
 from django.db.models.functions import Coalesce
 from django.db.models.functions import NullIf
 
-from inspinia.pages.models import ContestProblemStatement
+if TYPE_CHECKING:
+    from inspinia.pages.models import ContestProblemStatement
 
 
 def annotate_effective_statement_analytics(queryset):
@@ -36,6 +39,24 @@ def annotate_effective_statement_analytics(queryset):
         _eff_imo_slot_guess_value=Coalesce(
             NullIf(F("imo_slot_guess_value"), Value("")),
             NullIf(F("linked_problem__imo_slot_guess_value"), Value("")),
+            Value(""),
+            output_field=TextField(),
+        ),
+        _eff_core_ideas_value=Coalesce(
+            NullIf(F("core_ideas_value"), Value("")),
+            NullIf(F("linked_problem__core_ideas_value"), Value("")),
+            Value(""),
+            output_field=TextField(),
+        ),
+        _eff_rationale_value=Coalesce(
+            NullIf(F("rationale_value"), Value("")),
+            NullIf(F("linked_problem__rationale_value"), Value("")),
+            Value(""),
+            output_field=TextField(),
+        ),
+        _eff_pitfalls_value=Coalesce(
+            NullIf(F("pitfalls_value"), Value("")),
+            NullIf(F("linked_problem__pitfalls_value"), Value("")),
             Value(""),
             output_field=TextField(),
         ),
@@ -75,6 +96,33 @@ def effective_imo_slot_guess_value(statement: ContestProblemStatement) -> str:
     linked = statement.linked_problem
     if linked is not None and (linked.imo_slot_guess_value or "").strip():
         return str(linked.imo_slot_guess_value).strip()
+    return ""
+
+
+def effective_core_ideas_value(statement: ContestProblemStatement) -> str:
+    if (statement.core_ideas_value or "").strip():
+        return str(statement.core_ideas_value).strip()
+    linked = statement.linked_problem
+    if linked is not None and (linked.core_ideas_value or "").strip():
+        return str(linked.core_ideas_value).strip()
+    return ""
+
+
+def effective_rationale_value(statement: ContestProblemStatement) -> str:
+    if (statement.rationale_value or "").strip():
+        return str(statement.rationale_value).strip()
+    linked = statement.linked_problem
+    if linked is not None and (linked.rationale_value or "").strip():
+        return str(linked.rationale_value).strip()
+    return ""
+
+
+def effective_pitfalls_value(statement: ContestProblemStatement) -> str:
+    if (statement.pitfalls_value or "").strip():
+        return str(statement.pitfalls_value).strip()
+    linked = statement.linked_problem
+    if linked is not None and (linked.pitfalls_value or "").strip():
+        return str(linked.pitfalls_value).strip()
     return ""
 
 
