@@ -5878,6 +5878,31 @@ def test_completion_board_toggle_accepts_statement_uuid_for_unlinked_statement(c
     assert completion.completion_date is None
 
 
+def test_completion_board_toggle_accepts_browser_local_today_when_server_date_is_behind(client):
+    user = UserFactory()
+    client.force_login(user)
+    statement = _create_quick_completion_statement()
+    fixed_utc_now = datetime(2026, 6, 6, 16, 30, tzinfo=datetime_timezone.utc)
+
+    with timezone.override("UTC"), patch("inspinia.pages.views.timezone.now", return_value=fixed_utc_now):
+        response = client.post(
+            reverse("pages:completion_board_toggle"),
+            {
+                "action": "set_date",
+                "completion_date": "2026-06-07",
+                "completion_timezone": "Asia/Kuala_Lumpur",
+                "statement_uuid": str(statement.statement_uuid),
+            },
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+    assert response.status_code == HTTPStatus.OK
+    payload = response.json()
+    assert payload["completion_date"] == "2026-06-07"
+    completion = UserProblemCompletion.objects.get(user=user, statement=statement)
+    assert completion.completion_date == date(2026, 6, 7)
+
+
 def _create_quick_completion_statement(
     *,
     contest: str = "USAMO",
@@ -6769,6 +6794,31 @@ def test_completion_quick_update_save_rejects_future_date_without_changing_compl
     assert completion.completion_date == date(2025, 1, 1)
 
 
+def test_completion_quick_update_save_accepts_browser_local_today_when_server_date_is_behind(client):
+    user = UserFactory()
+    client.force_login(user)
+    statement = _create_quick_completion_statement()
+    fixed_utc_now = datetime(2026, 6, 6, 16, 30, tzinfo=datetime_timezone.utc)
+
+    with timezone.override("UTC"), patch("inspinia.pages.views.timezone.now", return_value=fixed_utc_now):
+        response = client.post(
+            reverse("pages:completion_quick_update_save"),
+            {
+                "action": "set_date",
+                "completion_date": "2026-06-07",
+                "completion_timezone": "Asia/Kuala_Lumpur",
+                "statement_uuid": str(statement.statement_uuid),
+            },
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+    assert response.status_code == HTTPStatus.OK
+    payload = response.json()
+    assert payload["completion_date"] == "2026-06-07"
+    completion = UserProblemCompletion.objects.get(user=user, statement=statement)
+    assert completion.completion_date == date(2026, 6, 7)
+
+
 def test_contest_dashboard_listing_bulk_update_sets_selected_rows_inactive(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
@@ -7024,6 +7074,8 @@ def test_completion_quick_update_renders_datatable_with_status_filter(client):
     assert "dataTables.bootstrap5.min.css" in response_html
     assert "dataTables.min.js" in response_html
     assert 'id="quick-completion-table"' in response_html
+    assert 'data-server-today="' in response_html
+    assert 'js-quick-completion-timezone-label' in response_html
     assert 'id="quick-completion-status-filter"' in response_html
     assert 'id="quick-completion-detail-editor"' in response_html
     assert 'id="quick-completion-advanced-filters"' in response_html

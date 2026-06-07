@@ -458,6 +458,8 @@ def test_problem_solution_list_exposes_completion_date_control(client):
     assert 'pattern="\\d{4}-\\d{2}-\\d{2}"' in response_html
     assert 'value="2026-01-24"' in response_html
     assert reverse("pages:completion_board_toggle") in response_html
+    assert "js-solution-completion-timezone-label" in response_html
+    assert "data-server-today" in response_html
     assert "js-solution-completion-save" in response_html
 
 

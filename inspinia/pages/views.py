@@ -10,6 +10,8 @@ from datetime import timedelta
 from io import StringIO
 from types import SimpleNamespace
 from urllib.parse import urlencode
+from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfoNotFoundError
 
 from django.conf import settings
 from django.contrib import messages
@@ -198,6 +200,7 @@ STATEMENT_ANALYTICS_SUCCESS_RATE = 90
 STATEMENT_ANALYTICS_WARNING_RATE = 60
 COMPLETION_BOARD_INITIAL_ROW_LIMIT = 30
 COMPLETION_BOARD_ROW_LOAD_STEP = 30
+COMPLETION_TIMEZONE_MAX_LENGTH = 128
 ADMIN_TABLE_LATEST_LIMIT = 100
 COMPLETION_QUICK_UPDATE_RECENT_LIMIT = ADMIN_TABLE_LATEST_LIMIT
 COMPLETION_QUICK_UPDATE_SEARCH_LIMIT = 500
@@ -3504,6 +3507,16 @@ def _completion_board_parse_requested_date(
     return completion_date, None
 
 
+def _completion_request_today(request) -> date:
+    raw_timezone = (request.POST.get("completion_timezone") or "").strip()
+    if raw_timezone and len(raw_timezone) <= COMPLETION_TIMEZONE_MAX_LENGTH:
+        try:
+            return timezone.localdate(timezone.now(), ZoneInfo(raw_timezone))
+        except (ValueError, ZoneInfoNotFoundError):
+            pass
+    return timezone.localdate()
+
+
 def _completion_board_apply_action(
     *,
     action: str,
@@ -4676,7 +4689,7 @@ def completion_board_toggle_view(request):
         )
         if metadata_error is not None:
             return JsonResponse({"error": metadata_error}, status=400)
-    today = timezone.localdate()
+    today = _completion_request_today(request)
     is_solved, completion_date, error_message = _completion_board_apply_action(
         action=action,
         statement=statement,
@@ -5338,7 +5351,7 @@ def completion_quick_update_save_view(request):
         statement=statement,
         problem=problem,
         raw_completion_date=(request.POST.get("completion_date") or "").strip(),
-        today=timezone.localdate(),
+        today=_completion_request_today(request),
         user=target_user,
         metadata_defaults=metadata_defaults,
     )

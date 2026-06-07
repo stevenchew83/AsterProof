@@ -182,6 +182,7 @@
                 data-problem-uuid="{{ completion_problem_uuid }}"
                 data-save-url="{{ completion_save_url }}"
                 data-statement-uuid="{{ completion_statement_uuid }}"
+                data-server-today="{{ completion_today }}"
               >
                 <label class="text-muted mb-1 fs-xs text-uppercase fw-semibold" for="solution-completion-date">Your complete date</label>
                 <div class="input-group input-group-sm">
@@ -217,6 +218,7 @@
                   <button type="button" class="btn btn-light btn-sm js-solution-completion-today">Today</button>
                   <button type="button" class="btn btn-outline-secondary btn-sm js-solution-completion-clear">Clear</button>
                 </div>
+                <div class="text-muted fs-xs mt-1 js-solution-completion-timezone-label">Local timezone: detecting...</div>
                 <div class="text-danger fs-xs mt-1 d-none js-solution-completion-error"></div>
               </div>
             </div>
@@ -521,13 +523,40 @@ window.ASTERPROOF_SOLUTION_MEDIA = {
   if (!editor || !csrfTokenInput) return;
 
   var saveUrl = editor.getAttribute("data-save-url") || "";
-  var todayValue = "{{ completion_today|escapejs }}";
+  var serverTodayValue = editor.getAttribute("data-server-today") || "{{ completion_today|escapejs }}";
+  var browserTimezone = browserTimezoneName();
+  var todayValue = localTodayValue() || serverTodayValue;
   var input = editor.querySelector(".js-solution-completion-date");
   var saveButton = editor.querySelector(".js-solution-completion-save");
   var todayButton = editor.querySelector(".js-solution-completion-today");
   var clearButton = editor.querySelector(".js-solution-completion-clear");
+  var timezoneLabel = editor.querySelector(".js-solution-completion-timezone-label");
   var displayEl = editor.querySelector(".js-solution-completion-display");
   var errorEl = editor.querySelector(".js-solution-completion-error");
+
+  function twoDigit(value) {
+    return value < 10 ? "0" + value : String(value);
+  }
+
+  function localTodayValue() {
+    var now = new Date();
+    if (Number.isNaN(now.getTime())) return "";
+    return now.getFullYear() + "-" + twoDigit(now.getMonth() + 1) + "-" + twoDigit(now.getDate());
+  }
+
+  function browserTimezoneName() {
+    try {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+    } catch (_error) {
+      return "";
+    }
+  }
+
+  if (timezoneLabel) {
+    timezoneLabel.textContent = browserTimezone
+      ? "Local timezone: " + browserTimezone + " - Today: " + todayValue
+      : "Local timezone: browser local time - Today: " + todayValue;
+  }
 
   function setError(message) {
     if (!errorEl) return;
@@ -589,6 +618,9 @@ window.ASTERPROOF_SOLUTION_MEDIA = {
       action: action,
       completion_date: completionDate || ""
     });
+    if (browserTimezone) {
+      params.set("completion_timezone", browserTimezone);
+    }
     var statementUuid = editor.getAttribute("data-statement-uuid") || "";
     var problemUuid = editor.getAttribute("data-problem-uuid") || "";
     if (statementUuid) {
