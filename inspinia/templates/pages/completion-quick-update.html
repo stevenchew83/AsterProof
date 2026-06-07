@@ -39,6 +39,15 @@
     min-width: 10rem;
   }
 
+  .quick-completion-insights-cell {
+    min-width: 16rem;
+  }
+
+  .quick-completion-insight-body {
+    max-width: 28rem;
+    white-space: normal;
+  }
+
   .quick-completion-subtopics-cell {
     min-width: 12rem;
   }
@@ -251,6 +260,7 @@
                   <th>User MOHS</th>
                   <th>Completion</th>
                   <th>Study summary</th>
+                  <th>Insights</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -362,6 +372,55 @@
                   </td>
                   <td class="quick-completion-study-summary">
                     <span class="js-quick-completion-summary">{{ row.study_summary }}</span>
+                  </td>
+                  <td class="quick-completion-insights-cell">
+                    <div class="d-flex flex-wrap gap-1">
+                      <button
+                        type="button"
+                        class="btn btn-outline-secondary btn-sm js-quick-completion-insight-toggle"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#quick-completion-core-ideas-{{ row.statement_uuid }}"
+                        data-quick-completion-insight="core-ideas"
+                        aria-expanded="false"
+                        aria-controls="quick-completion-core-ideas-{{ row.statement_uuid }}"
+                      >
+                        <i class="ti ti-bulb me-1"></i>Core ideas
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-outline-secondary btn-sm js-quick-completion-insight-toggle"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#quick-completion-rationale-{{ row.statement_uuid }}"
+                        data-quick-completion-insight="rationale"
+                        aria-expanded="false"
+                        aria-controls="quick-completion-rationale-{{ row.statement_uuid }}"
+                      >
+                        <i class="ti ti-message-circle me-1"></i>Rationale
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-outline-secondary btn-sm js-quick-completion-insight-toggle"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#quick-completion-pitfalls-{{ row.statement_uuid }}"
+                        data-quick-completion-insight="pitfalls"
+                        aria-expanded="false"
+                        aria-controls="quick-completion-pitfalls-{{ row.statement_uuid }}"
+                      >
+                        <i class="ti ti-alert-triangle me-1"></i>Pitfalls
+                      </button>
+                    </div>
+                    <div id="quick-completion-core-ideas-{{ row.statement_uuid }}" class="collapse mt-2 quick-completion-insight-body">
+                      <div class="text-muted fs-xs text-uppercase fw-semibold mb-1">Core ideas</div>
+                      <div class="fs-sm">{% if row.core_ideas %}{{ row.core_ideas|linebreaksbr }}{% else %}<span class="text-muted">None</span>{% endif %}</div>
+                    </div>
+                    <div id="quick-completion-rationale-{{ row.statement_uuid }}" class="collapse mt-2 quick-completion-insight-body">
+                      <div class="text-muted fs-xs text-uppercase fw-semibold mb-1">Rationale</div>
+                      <div class="fs-sm">{% if row.rationale %}{{ row.rationale|linebreaksbr }}{% else %}<span class="text-muted">None</span>{% endif %}</div>
+                    </div>
+                    <div id="quick-completion-pitfalls-{{ row.statement_uuid }}" class="collapse mt-2 quick-completion-insight-body">
+                      <div class="text-muted fs-xs text-uppercase fw-semibold mb-1">Common pitfalls</div>
+                      <div class="fs-sm">{% if row.pitfalls %}{{ row.pitfalls|linebreaksbr }}{% else %}<span class="text-muted">None</span>{% endif %}</div>
+                    </div>
                   </td>
                   <td>
                     <div class="quick-completion-actions d-flex flex-wrap gap-1">
@@ -869,8 +928,11 @@
         autoWidth: false,
         columnDefs: [
           {
-            targets: [3, 6],
-            orderable: false,
+            targets: [3, 6, 7],
+            orderable: false
+          },
+          {
+            targets: [3, 7],
             searchable: false
           }
         ],

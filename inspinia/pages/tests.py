@@ -5925,6 +5925,12 @@ def _create_quick_completion_statement(
     problem_code: str = "P1",
     problem_number: int = 1,
     mohs: int = 6,
+    core_ideas: str = "",
+    rationale: str = "",
+    pitfalls: str = "",
+    linked_core_ideas: str = "",
+    linked_rationale: str = "",
+    linked_pitfalls: str = "",
 ) -> ContestProblemStatement:
     problem = ProblemSolveRecord.objects.create(
         year=year,
@@ -5933,6 +5939,9 @@ def _create_quick_completion_statement(
         contest=contest,
         problem=problem_code,
         contest_year_problem=f"{contest} {year} {problem_code}",
+        core_ideas=linked_core_ideas,
+        rationale=linked_rationale,
+        pitfalls=linked_pitfalls,
     )
     return ContestProblemStatement.objects.create(
         linked_problem=problem,
@@ -5943,6 +5952,9 @@ def _create_quick_completion_statement(
         day_label="Day 1",
         statement_latex=f"{contest} {year} {problem_code} statement",
         is_active=True,
+        core_ideas=core_ideas,
+        rationale=rationale,
+        pitfalls=pitfalls,
     )
 
 
@@ -6375,6 +6387,81 @@ def test_completion_quick_update_filters_by_subtopics(client):
     assert 'id="quick-completion-advanced-filters"' not in response_html
     assert "Subtopics" in response_html
     assert "ANGLE CHASE" not in response_html
+
+
+def test_completion_quick_update_search_matches_analytics_explanation_fields(client):
+    user = UserFactory()
+    client.force_login(user)
+    statement_core = _create_quick_completion_statement(
+        problem_code="P1",
+        problem_number=1,
+        core_ideas="Core ideas: Use a parity lattice invariant.",
+    )
+    statement_rationale = _create_quick_completion_statement(
+        problem_code="P2",
+        problem_number=2,
+        linked_rationale="Rationale: The descent explains why every path terminates.",
+    )
+    statement_pitfalls = _create_quick_completion_statement(
+        problem_code="P3",
+        problem_number=3,
+        pitfalls="Common pitfalls: Assuming convexity too early.",
+    )
+    _create_quick_completion_statement(
+        problem_code="P4",
+        problem_number=4,
+        core_ideas="Core ideas: Angle chase.",
+        linked_rationale="Rationale: Use cyclicity.",
+        pitfalls="Common pitfalls: Overcounting.",
+    )
+
+    response = client.get(reverse("pages:completion_quick_update"), {"q": "lattice"})
+
+    assert response.status_code == HTTPStatus.OK
+    rows = response.context["completion_quick_update_rows"]
+    assert [row["statement_uuid"] for row in rows] == [str(statement_core.statement_uuid)]
+
+    response = client.get(reverse("pages:completion_quick_update"), {"q": "descent"})
+
+    assert response.status_code == HTTPStatus.OK
+    rows = response.context["completion_quick_update_rows"]
+    assert [row["statement_uuid"] for row in rows] == [str(statement_rationale.statement_uuid)]
+
+    response = client.get(reverse("pages:completion_quick_update"), {"q": "convexity"})
+
+    assert response.status_code == HTTPStatus.OK
+    rows = response.context["completion_quick_update_rows"]
+    assert [row["statement_uuid"] for row in rows] == [str(statement_pitfalls.statement_uuid)]
+
+
+def test_completion_quick_update_renders_analytics_toggle_buttons_and_search_text(client):
+    user = UserFactory()
+    client.force_login(user)
+    _create_quick_completion_statement(
+        core_ideas="Core ideas: Normalize the parity classes.",
+        rationale="Rationale: The invariant gives a monotone quantity.",
+        pitfalls="Common pitfalls: Forgetting the terminal case.",
+    )
+
+    response = client.get(reverse("pages:completion_quick_update"))
+
+    assert response.status_code == HTTPStatus.OK
+    row = response.context["completion_quick_update_rows"][0]
+    assert row["core_ideas"] == "Normalize the parity classes."
+    assert row["rationale"] == "The invariant gives a monotone quantity."
+    assert row["pitfalls"] == "Forgetting the terminal case."
+    response_html = response.content.decode("utf-8")
+    header_html = response_html[
+        response_html.index("<thead>") : response_html.index("</thead>")
+    ]
+    assert header_html.index("<th>Insights</th>") < header_html.index("<th>Actions</th>")
+    assert "js-quick-completion-insight-toggle" in response_html
+    assert "data-quick-completion-insight=\"core-ideas\"" in response_html
+    assert "data-quick-completion-insight=\"rationale\"" in response_html
+    assert "data-quick-completion-insight=\"pitfalls\"" in response_html
+    assert "Normalize the parity classes." in response_html
+    assert "The invariant gives a monotone quantity." in response_html
+    assert "Forgetting the terminal case." in response_html
 
 
 def test_completion_quick_update_subtopics_column_prefers_statement_tags_with_linked_fallback(client):
@@ -7142,12 +7229,16 @@ def test_completion_quick_update_renders_datatable_with_status_filter(client):
         "<th>Study summary</th>",
     )
     assert header_html.index("<th>Study summary</th>") < header_html.index(
+        "<th>Insights</th>",
+    )
+    assert header_html.index("<th>Insights</th>") < header_html.index(
         "<th>Actions</th>"
     )
     assert "<th>Status</th>" not in header_html
     assert "<th>Time spent</th>" not in header_html
     assert "<th>YYYY-MM-DD</th>" not in header_html
-    assert "targets: [3, 6]" in response_html
+    assert "targets: [3, 6, 7]" in response_html
+    assert "targets: [3, 7]" in response_html
     assert "loaded rows" in response_html
 
 
