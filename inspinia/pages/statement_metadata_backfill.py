@@ -40,6 +40,9 @@ STATEMENT_METADATA_EXPORT_COLUMNS = [
     "Confidence",
     "IMO slot guess",
     "Topic tags",
+    "Core ideas",
+    "Rationale",
+    "Common pitfalls",
 ]
 STATEMENT_METADATA_IDENTIFIER_COLUMNS = ("STATEMENT UUID", "PROBLEM UUID")
 STATEMENT_METADATA_EDITABLE_COLUMNS = (
@@ -48,6 +51,9 @@ STATEMENT_METADATA_EDITABLE_COLUMNS = (
     "Confidence",
     "IMO slot guess",
     "Topic tags",
+    "Core ideas",
+    "Rationale",
+    "Common pitfalls",
 )
 STATEMENT_METADATA_LINK_COLUMNS = (
     "LINKED PROBLEM UUID",
@@ -69,6 +75,16 @@ STATEMENT_METADATA_ROW_VALUE_COLUMNS = (
     *STATEMENT_METADATA_STATEMENT_IDENTITY_COLUMNS,
     *STATEMENT_METADATA_SHEET_CONTEXT_COLUMNS,
 )
+STATEMENT_METADATA_MODEL_FIELD_PAIRS = (
+    ("topic", "topic"),
+    ("mohs", "mohs"),
+    ("confidence", "confidence"),
+    ("imo_slot_guess", "imo_slot_guess"),
+    ("topic_tags", "raw_topic_tags"),
+    ("core_ideas", "core_ideas"),
+    ("rationale", "rationale"),
+    ("pitfalls", "pitfalls"),
+)
 
 _STATEMENT_METADATA_HEADER_CANONICAL: dict[str, str] = {}
 for _header in (
@@ -76,6 +92,7 @@ for _header in (
     *STATEMENT_METADATA_SHEET_CONTEXT_COLUMNS,
 ):
     _STATEMENT_METADATA_HEADER_CANONICAL[_header.casefold()] = _header
+_STATEMENT_METADATA_HEADER_CANONICAL["pitfalls"] = "Common pitfalls"
 
 
 class StatementMetadataBackfillValidationError(ValueError):
@@ -103,12 +120,15 @@ class StatementMetadataBackfillImportResult:
 
 @dataclass(frozen=True)
 class PreparedStatementMetadataRow:
+    core_ideas: str | None
     confidence: str | None
     existing_record: ProblemSolveRecord | None
     imo_slot_guess: str | None
     linked_problem_uuid: uuid.UUID | None
     mohs: int | None
+    pitfalls: str | None
     raw_topic_tags: str | None
+    rationale: str | None
     row_number: int
     statement: ContestProblemStatement
     topic: str | None
@@ -116,13 +136,16 @@ class PreparedStatementMetadataRow:
 
 @dataclass(frozen=True)
 class RawStatementMetadataRow:
+    core_ideas: str | None
     confidence: str | None
     imo_slot_guess: str | None
     linked_problem_uuid: uuid.UUID | None
     mohs: int | None
+    pitfalls: str | None
     problem_uuid: uuid.UUID | None
     raw_cells: dict[str, object]
     raw_topic_tags: str | None
+    rationale: str | None
     row_number: int
     statement_uuid: uuid.UUID | None
     topic: str | None
@@ -135,6 +158,30 @@ def _statement_label(statement: ContestProblemStatement) -> str:
 
 def _problem_label(record: ProblemSolveRecord) -> str:
     return record.contest_year_problem or f"{record.contest} {record.year} {record.problem}"
+
+
+def _metadata_export_value(
+    statement: ContestProblemStatement,
+    record: ProblemSolveRecord | None,
+    field_name: str,
+) -> object:
+    statement_value = getattr(statement, field_name)
+    if statement_value is not None and str(statement_value).strip():
+        return statement_value
+    if record is None:
+        return ""
+    return getattr(record, field_name) or ""
+
+
+def _metadata_export_mohs(
+    statement: ContestProblemStatement,
+    record: ProblemSolveRecord | None,
+) -> int | str:
+    if statement.mohs is not None:
+        return statement.mohs
+    if record is None:
+        return ""
+    return record.mohs
 
 
 def _cell_str(value: object) -> str | None:
@@ -261,11 +308,14 @@ def build_statement_metadata_export_dataframe(
                 "PROBLEM NUMBER": statement.problem_number,
                 "PROBLEM CODE": statement.problem_code,
                 "STATEMENT LATEX": statement.statement_latex,
-                "TOPIC": record.topic if record is not None else "",
-                "MOHS": record.mohs if record is not None else "",
-                "Confidence": record.confidence if record is not None else "",
-                "IMO slot guess": record.imo_slot_guess if record is not None else "",
-                "Topic tags": record.topic_tags if record is not None else "",
+                "TOPIC": _metadata_export_value(statement, record, "topic"),
+                "MOHS": _metadata_export_mohs(statement, record),
+                "Confidence": _metadata_export_value(statement, record, "confidence"),
+                "IMO slot guess": _metadata_export_value(statement, record, "imo_slot_guess"),
+                "Topic tags": _metadata_export_value(statement, record, "topic_tags"),
+                "Core ideas": _metadata_export_value(statement, record, "core_ideas"),
+                "Rationale": _metadata_export_value(statement, record, "rationale"),
+                "Common pitfalls": _metadata_export_value(statement, record, "pitfalls"),
             },
         )
     return pd.DataFrame(rows, columns=STATEMENT_METADATA_EXPORT_COLUMNS)
@@ -448,13 +498,16 @@ def _parse_raw_statement_metadata_sheet_rows(
 
         raw_rows.append(
             RawStatementMetadataRow(
+                core_ideas=_cell_str(cells.get("Core ideas")),
                 confidence=_cell_str(cells.get("Confidence")),
                 imo_slot_guess=_cell_str(cells.get("IMO slot guess")),
                 linked_problem_uuid=linked_problem_uuid,
                 mohs=mohs,
+                pitfalls=_cell_str(cells.get("Common pitfalls")),
                 problem_uuid=problem_uuid,
                 raw_cells=cells,
                 raw_topic_tags=_cell_str(cells.get("Topic tags")),
+                rationale=_cell_str(cells.get("Rationale")),
                 row_number=row_number,
                 statement_uuid=statement_uuid,
                 topic=topic,
@@ -688,12 +741,15 @@ def _build_prepared_statement_metadata_row(
         existing_record = ctx.records_by_uuid.get(raw_row.linked_problem_uuid)
 
     return PreparedStatementMetadataRow(
+        core_ideas=raw_row.core_ideas,
         confidence=raw_row.confidence,
         existing_record=existing_record,
         imo_slot_guess=raw_row.imo_slot_guess,
         linked_problem_uuid=raw_row.linked_problem_uuid,
         mohs=raw_row.mohs,
+        pitfalls=raw_row.pitfalls,
         raw_topic_tags=raw_row.raw_topic_tags,
+        rationale=raw_row.rationale,
         row_number=raw_row.row_number,
         statement=statement,
         topic=raw_row.topic,
@@ -756,16 +812,10 @@ def _import_metadata_update_existing_problem_record(
         "problem": statement.problem_code,
         "contest_year_problem": statement.contest_year_problem,
     }
-    if prepared_row.topic is not None:
-        field_values["topic"] = prepared_row.topic
-    if prepared_row.mohs is not None:
-        field_values["mohs"] = prepared_row.mohs
-    if prepared_row.confidence is not None:
-        field_values["confidence"] = prepared_row.confidence
-    if prepared_row.imo_slot_guess is not None:
-        field_values["imo_slot_guess"] = prepared_row.imo_slot_guess
-    if prepared_row.raw_topic_tags is not None:
-        field_values["topic_tags"] = prepared_row.raw_topic_tags
+    for field_name, prepared_attr in STATEMENT_METADATA_MODEL_FIELD_PAIRS:
+        next_value = getattr(prepared_row, prepared_attr)
+        if next_value is not None:
+            field_values[field_name] = next_value
     for field_name, next_value in field_values.items():
         if getattr(record, field_name) != next_value:
             setattr(record, field_name, next_value)
@@ -868,21 +918,11 @@ def _apply_prepared_row_to_statement_analytics(
 ) -> None:
     """Copy sheet analytics onto the statement row (canonical CPS fields)."""
     update_fields: set[str] = set()
-    if prepared_row.topic is not None and statement.topic != prepared_row.topic:
-        statement.topic = prepared_row.topic
-        update_fields.add("topic")
-    if prepared_row.mohs is not None and statement.mohs != prepared_row.mohs:
-        statement.mohs = prepared_row.mohs
-        update_fields.add("mohs")
-    if prepared_row.confidence is not None and statement.confidence != prepared_row.confidence:
-        statement.confidence = prepared_row.confidence
-        update_fields.add("confidence")
-    if prepared_row.imo_slot_guess is not None and statement.imo_slot_guess != prepared_row.imo_slot_guess:
-        statement.imo_slot_guess = prepared_row.imo_slot_guess
-        update_fields.add("imo_slot_guess")
-    if prepared_row.raw_topic_tags is not None and statement.topic_tags != prepared_row.raw_topic_tags:
-        statement.topic_tags = prepared_row.raw_topic_tags
-        update_fields.add("topic_tags")
+    for field_name, prepared_attr in STATEMENT_METADATA_MODEL_FIELD_PAIRS:
+        next_value = getattr(prepared_row, prepared_attr)
+        if next_value is not None and getattr(statement, field_name) != next_value:
+            setattr(statement, field_name, next_value)
+            update_fields.add(field_name)
 
     if update_fields:
         update_fields.add("updated_at")
@@ -933,6 +973,9 @@ def _import_metadata_upsert_problem_record(
             confidence=prepared_row.confidence,
             imo_slot_guess=prepared_row.imo_slot_guess,
             topic_tags=prepared_row.raw_topic_tags,
+            core_ideas=prepared_row.core_ideas,
+            rationale=prepared_row.rationale,
+            pitfalls=prepared_row.pitfalls,
         )
         record.save()
         result.created_count += 1

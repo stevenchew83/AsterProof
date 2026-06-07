@@ -128,6 +128,9 @@ EXPECTED_STATEMENT_METADATA_EXPORT_COLUMNS = [
     "Confidence",
     "IMO slot guess",
     "Topic tags",
+    "Core ideas",
+    "Rationale",
+    "Common pitfalls",
 ]
 EXPECTED_CONTEST_TOTAL = 2
 EXPECTED_CONTEST_PROBLEM_TOTAL = 3
@@ -13339,6 +13342,9 @@ def test_problem_statement_metadata_page_renders_tools_for_admin(client):
     assert "Filled identity cells can update the" in response_html
     assert "LINKED PROBLEM UUID" in response_html
     assert "links or relinks the tracked" in response_html
+    assert "Core ideas" in response_html
+    assert "Rationale" in response_html
+    assert "Common pitfalls" in response_html
     assert "Browser editor" not in response_html
     assert "?action=export" in response_html
     assert 'id="statement-metadata-import-form"' in response_html
@@ -13575,6 +13581,9 @@ def test_problem_statement_metadata_page_exports_workbook_for_admin(client):
         contest_year_problem="Israel TST 2026 P1",
         imo_slot_guess="P1/4",
         topic_tags="Geo – circles; isogonality",
+        core_ideas="Core ideas: Find the hidden cyclic quadrilateral.",
+        rationale="Rationale: Synthetic geometry setup.",
+        pitfalls="Common pitfalls: Chasing too many angles.",
     )
     statement = ContestProblemStatement.objects.create(
         linked_problem=linked_problem,
@@ -13614,6 +13623,9 @@ def test_problem_statement_metadata_page_exports_workbook_for_admin(client):
         "Confidence": "Medium",
         "IMO slot guess": "P1/4",
         "Topic tags": "Geo – circles; isogonality",
+        "Core ideas": "Core ideas: Find the hidden cyclic quadrilateral.",
+        "Rationale": "Rationale: Synthetic geometry setup.",
+        "Common pitfalls": "Common pitfalls: Chasing too many angles.",
     }]
 
 
@@ -13660,6 +13672,9 @@ def test_problem_statement_metadata_export_strips_illegal_excel_characters(clien
         "Confidence": "",
         "IMO slot guess": "",
         "Topic tags": "",
+        "Core ideas": "",
+        "Rationale": "",
+        "Common pitfalls": "",
     }]
 
 
@@ -13694,6 +13709,9 @@ def test_problem_statement_metadata_page_imports_workbook_and_creates_problem_ro
                     "Confidence": "Medium",
                     "IMO slot guess": "P1/4",
                     "Topic tags": "Geo – circles; isogonality",
+                    "Core ideas": "Core ideas: Invert around the incircle.",
+                    "Rationale": "Rationale: One clean transformation exposes the target.",
+                    "Common pitfalls": "Common pitfalls: Treating the figure as generic.",
                 },
                 {
                     "STATEMENT UUID": str(uuid.uuid4()),
@@ -13710,6 +13728,9 @@ def test_problem_statement_metadata_page_imports_workbook_and_creates_problem_ro
                     "Confidence": "",
                     "IMO slot guess": "",
                     "Topic tags": "",
+                    "Core ideas": "",
+                    "Rationale": "",
+                    "Common pitfalls": "",
                 },
             ),
         },
@@ -13729,6 +13750,16 @@ def test_problem_statement_metadata_page_imports_workbook_and_creates_problem_ro
     assert created_problem.confidence == "Medium"
     assert created_problem.imo_slot_guess == "P1/4"
     assert created_problem.topic_tags == "Geo – circles; isogonality"
+    assert created_problem.core_ideas == "Core ideas: Invert around the incircle."
+    assert created_problem.core_ideas_value == "Invert around the incircle."
+    assert created_problem.rationale == "Rationale: One clean transformation exposes the target."
+    assert created_problem.rationale_value == "One clean transformation exposes the target."
+    assert created_problem.pitfalls == "Common pitfalls: Treating the figure as generic."
+    assert created_problem.pitfalls_value == "Treating the figure as generic."
+    assert statement.core_ideas == "Core ideas: Invert around the incircle."
+    assert statement.core_ideas_value == "Invert around the incircle."
+    assert statement.rationale == "Rationale: One clean transformation exposes the target."
+    assert statement.pitfalls == "Common pitfalls: Treating the figure as generic."
     saved_tags = list(
         ProblemTopicTechnique.objects.filter(record=created_problem).order_by("technique")
     )
@@ -14135,6 +14166,9 @@ def test_statement_metadata_import_mirrors_analytics_onto_statement_when_linked(
             "Confidence": "Medium",
             "IMO slot guess": "P3/6",
             "Topic tags": "Comb – test",
+            "Core ideas": "Core ideas: Encode the invariant.",
+            "Rationale": "Rationale: The invariant explains the bound.",
+            "Pitfalls": "Common pitfalls: Missing the terminal case.",
         },
     ]
     dataframe = statement_metadata_dataframe_from_rows(rows)
@@ -14143,8 +14177,14 @@ def test_statement_metadata_import_mirrors_analytics_onto_statement_when_linked(
     existing_problem.refresh_from_db()
     assert existing_problem.mohs == 40
     assert existing_problem.confidence == "Medium"
+    assert existing_problem.core_ideas == "Core ideas: Encode the invariant."
+    assert existing_problem.rationale == "Rationale: The invariant explains the bound."
+    assert existing_problem.pitfalls == "Common pitfalls: Missing the terminal case."
     assert statement.mohs == 40
     assert statement.confidence == "Medium"
+    assert statement.core_ideas == "Core ideas: Encode the invariant."
+    assert statement.rationale == "Rationale: The invariant explains the bound."
+    assert statement.pitfalls == "Common pitfalls: Missing the terminal case."
 
 
 def test_statement_metadata_import_accepts_lowercase_mohs_column_header():

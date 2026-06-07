@@ -31,7 +31,8 @@
             Download all statement rows as an <code>.xlsx</code> workbook with editable
             link columns (<code>LINKED PROBLEM UUID</code>) and metadata columns:
             <code>TOPIC</code>, <code>MOHS</code>, <code>Confidence</code>,
-            <code>IMO slot guess</code>, and <code>Topic tags</code>. It also includes
+            <code>IMO slot guess</code>, <code>Topic tags</code>, <code>Core ideas</code>,
+            <code>Rationale</code>, and <code>Common pitfalls</code>. It also includes
             <code>LINK STATUS</code>, <code>LINKED PROBLEM LABEL</code>, and identity fields
             for context while you edit.
           </p>
@@ -67,7 +68,7 @@
             Use this when you want to bulk update metadata for multiple statement rows without editing them one by one.
             Upload a workbook or paste TSV/CSV rows with a header row. Blank cells keep existing values, while
             a new linked problem UUID creates a tracked problem row when <code>TOPIC</code> and <code>MOHS</code>
-            are present.
+            are present. <code>Pitfalls</code> is also accepted as an import header for common pitfalls.
           </p>
           <form
             id="statement-metadata-import-form"
