@@ -442,8 +442,8 @@ def _parse_raw_statement_metadata_sheet_rows(
             raise StatementMetadataBackfillValidationError(msg)
         topic = _cell_str(cells.get("TOPIC"))
         mohs = _cell_int(cells.get("MOHS"))
-        if mohs is not None and mohs <= 0:
-            msg = f'Row {row_number}: "MOHS" must be a positive integer.'
+        if mohs is not None and mohs < 0:
+            msg = f'Row {row_number}: "MOHS" must be a non-negative integer.'
             raise StatementMetadataBackfillValidationError(msg)
 
         raw_rows.append(

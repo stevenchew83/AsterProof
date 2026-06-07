@@ -14018,6 +14018,48 @@ def test_problem_statement_metadata_page_imports_pasted_rows_and_creates_problem
     )
 
 
+def test_problem_statement_metadata_page_imports_pasted_rows_with_zero_mohs(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    statement = ContestProblemStatement.objects.create(
+        contest_year=2026,
+        contest_name="Israel TST",
+        problem_number=5,
+        problem_code="P5",
+        day_label="Day 2",
+        statement_latex="Paste this zero MOHS metadata",
+    )
+
+    response = client.post(
+        reverse("pages:problem_statement_metadata"),
+        {
+            "replace_tags": "on",
+            "source_text": (
+                "STATEMENT UUID\tTOPIC\tMOHS\tConfidence\tIMO slot guess\tTopic tags\n"
+                f"{statement.statement_uuid}\tG\t0\tMedium\tP2/5\tGeo - circles\n"
+            ),
+        },
+        follow=True,
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    statement.refresh_from_db()
+    created_problem = ProblemSolveRecord.objects.get(problem_uuid=statement.problem_uuid)
+    assert statement.linked_problem_id == created_problem.id
+    assert statement.mohs == 0
+    assert created_problem.topic == "G"
+    assert created_problem.mohs == 0
+    success_message = (
+        "Statement metadata import finished. Processed 1 row(s): 1 created, "
+        "0 updated, 1 linked, 1 technique row(s) touched, "
+        "0 untouched import row(s) skipped."
+    )
+    assert any(
+        success_message in str(message)
+        for message in response.context["messages"]
+    )
+
+
 def test_statement_metadata_import_relinks_to_explicit_linked_problem_uuid():
     target_problem = ProblemSolveRecord.objects.create(
         year=2024,
