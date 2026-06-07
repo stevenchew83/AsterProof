@@ -68,6 +68,14 @@ def build_problem_list_tex_source(problem_list: ProblemList, item_rows: list[dic
             tags = latex_escape_plain_text(", ".join(topic_tags))
             lines.extend([rf"\textbf{{Tags:}} {tags}", ""])
 
+        problem_notes = row.get("problem_notes") or []
+        for note in problem_notes:
+            label = latex_escape_plain_text(note["label"])
+            value = latex_escape_plain_text(note["value"])
+            lines.append(rf"\textbf{{{label}:}} {value}")
+        if problem_notes:
+            lines.append("")
+
         statement = row.get("statement")
         statement_latex = ((statement.statement_latex if statement is not None else "") or "").strip()
         if statement_latex:
