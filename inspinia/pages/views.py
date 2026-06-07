@@ -8093,6 +8093,9 @@ def _statement_metadata_dataframe_from_post(post_data) -> tuple[object | None, s
     raw_confidences = post_data.getlist("confidence")
     raw_imo_slot_guesses = post_data.getlist("imo_slot_guess")
     raw_topic_tags = post_data.getlist("topic_tags")
+    raw_core_ideas = post_data.getlist("core_ideas")
+    raw_rationales = post_data.getlist("rationale")
+    raw_pitfalls = post_data.getlist("common_pitfalls") or post_data.getlist("pitfalls")
 
     if not raw_statement_uuids:
         return None, "Stage at least one metadata row before saving."
@@ -8108,6 +8111,21 @@ def _statement_metadata_dataframe_from_post(post_data) -> tuple[object | None, s
     if any(length != expected_length for length in raw_column_lengths.values()):
         return None, "Submitted bulk metadata is incomplete. Please reload the page and try again."
 
+    optional_column_lengths = {
+        "core_ideas": len(raw_core_ideas),
+        "rationale": len(raw_rationales),
+        "pitfalls": len(raw_pitfalls),
+    }
+    if any(length not in {0, expected_length} for length in optional_column_lengths.values()):
+        return None, "Submitted bulk metadata is incomplete. Please reload the page and try again."
+
+    if not raw_core_ideas:
+        raw_core_ideas = [""] * expected_length
+    if not raw_rationales:
+        raw_rationales = [""] * expected_length
+    if not raw_pitfalls:
+        raw_pitfalls = [""] * expected_length
+
     rows = [
         {
             "STATEMENT UUID": raw_statement_uuids[index],
@@ -8116,6 +8134,9 @@ def _statement_metadata_dataframe_from_post(post_data) -> tuple[object | None, s
             "Confidence": raw_confidences[index],
             "IMO slot guess": raw_imo_slot_guesses[index],
             "Topic tags": raw_topic_tags[index],
+            "Core ideas": raw_core_ideas[index],
+            "Rationale": raw_rationales[index],
+            "Common pitfalls": raw_pitfalls[index],
         }
         for index in range(expected_length)
     ]
