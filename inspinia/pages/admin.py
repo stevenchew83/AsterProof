@@ -88,6 +88,7 @@ class ProblemSolveRecordAdmin(admin.ModelAdmin):
         "contest",
         "problem",
         "imo_slot_guess_value",
+        "core_ideas_value",
         "rationale_value",
         "pitfalls_value",
     )

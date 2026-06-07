@@ -10,7 +10,7 @@
     min-height: 18rem;
   }
 
-  .handle-summary-topic-cell {
+  .handle-summary-long-cell {
     min-width: 28rem;
     white-space: pre-wrap;
     word-break: break-word;
@@ -39,8 +39,8 @@
       <form id="handle-summary-parser-form" method="post" class="card">
         {% csrf_token %}
         <div class="card-header border-0 pb-0">
-          <h4 class="header-title mb-0">Paste repeated Handle blocks and extract MOHS, confidence, IMO slot, and topic tags</h4>
-          <p class="text-muted fs-xs mb-0">The parser reads each <code>Handle:</code> block and exports a tab-separated table with the exact columns <code>MOHS</code>, <code>CONFIDENCE</code>, <code>IMO SLOT</code>, and <code>TOPICS TAG</code>. <code>Estimated MOHS</code> accepts a single value like <code>15M</code>, a range like <code>8M-12M</code>, or an open band like <code>50M+</code>; non-singleton forms export their lower bound.</p>
+          <h4 class="header-title mb-0">Paste repeated Handle blocks and extract archive metadata</h4>
+          <p class="text-muted fs-xs mb-0">The parser reads each <code>Handle:</code> block and exports a tab-separated table with <code>MOHS</code>, <code>CONFIDENCE</code>, <code>IMO SLOT</code>, <code>TOPICS TAG</code>, <code>CORE IDEAS</code>, <code>RATIONALE</code>, and <code>COMMON PITFALLS</code>. <code>Estimated MOHS</code> accepts a single value like <code>15M</code>, a range like <code>8M-12M</code>, or an open band like <code>50M+</code>; non-singleton forms export their lower bound.</p>
         </div>
         <div class="card-body pt-2">
           {% if form.non_field_errors %}
@@ -98,7 +98,7 @@
             id="handle-summary-export"
             class="form-control font-monospace handle-summary-export"
             readonly
-          >{% if preview_payload %}{{ preview_payload.export_tsv }}{% else %}MOHS	CONFIDENCE	IMO SLOT	TOPICS TAG{% endif %}</textarea>
+          >{% if preview_payload %}{{ preview_payload.export_tsv }}{% else %}MOHS	CONFIDENCE	IMO SLOT	TOPICS TAG	CORE IDEAS	RATIONALE	COMMON PITFALLS{% endif %}</textarea>
         </div>
       </div>
     </div>
@@ -141,6 +141,9 @@
                   <th scope="col">Confidence</th>
                   <th scope="col">IMO slot</th>
                   <th scope="col">Topic tags</th>
+                  <th scope="col">Core ideas</th>
+                  <th scope="col">Rationale</th>
+                  <th scope="col">Common pitfalls</th>
                 </tr>
               </thead>
               <tbody>
@@ -150,7 +153,10 @@
                   <td>{{ row.mohs }}</td>
                   <td>{{ row.confidence }}</td>
                   <td>{{ row.imo_slot }}</td>
-                  <td class="handle-summary-topic-cell">{{ row.topic_tags }}</td>
+                  <td class="handle-summary-long-cell">{{ row.topic_tags }}</td>
+                  <td class="handle-summary-long-cell">{{ row.core_ideas }}</td>
+                  <td class="handle-summary-long-cell">{{ row.rationale }}</td>
+                  <td class="handle-summary-long-cell">{{ row.common_pitfalls }}</td>
                 </tr>
                 {% endfor %}
               </tbody>

@@ -1,4 +1,4 @@
-"""Shared parsing for analytics text fields (IMO slot, rationale, pitfalls)."""
+"""Shared parsing for analytics text fields (IMO slot, notes, pitfalls)."""
 
 from __future__ import annotations
 
@@ -65,6 +65,24 @@ def parse_rationale_value(raw: str | None) -> str | None:
         flags=re.IGNORECASE | re.DOTALL,
     )
     m = rationale_re.match(normalized)
+    if m:
+        return m.group("value").strip() or None
+
+    return text
+
+
+def parse_core_ideas_value(raw: str | None) -> str | None:
+    if raw is None:
+        return None
+    text = str(raw).strip()
+    if not text:
+        return None
+
+    core_ideas_re = re.compile(
+        r"^\s*Core\s+ideas\s*:\s*(?P<value>.+?)\s*$",
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    m = core_ideas_re.match(text)
     if m:
         return m.group("value").strip() or None
 
