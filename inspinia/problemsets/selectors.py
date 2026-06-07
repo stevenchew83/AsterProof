@@ -208,6 +208,7 @@ def problem_list_item_rows(
                 "position": item.position,
                 "problem": problem,
                 "problem_label": source_label,
+                "problem_notes": _problem_note_rows(problem_list, problem, statement),
                 "problem_uuid": str(problem.problem_uuid),
                 "show_source_context": bool(custom_title and not problem_list.hide_source),
                 "solution_editor_url": reverse("solutions:problem_solution_edit", args=[problem.problem_uuid]),
@@ -221,6 +222,38 @@ def problem_list_item_rows(
             },
         )
     return rows
+
+
+def _problem_note_rows(
+    problem_list: ProblemList,
+    problem: ProblemSolveRecord,
+    statement: ContestProblemStatement | None,
+) -> list[dict[str, str]]:
+    note_fields = (
+        ("Core idea", "core_ideas_value", "hide_core_ideas"),
+        ("Rationale", "rationale_value", "hide_rationale"),
+        ("Common pitfalls", "pitfalls_value", "hide_pitfalls"),
+    )
+    rows = []
+    for label, value_attr, hidden_attr in note_fields:
+        if getattr(problem_list, hidden_attr):
+            continue
+        value = _problem_note_value(problem, statement, value_attr)
+        if value:
+            rows.append({"label": label, "value": value})
+    return rows
+
+
+def _problem_note_value(
+    problem: ProblemSolveRecord,
+    statement: ContestProblemStatement | None,
+    value_attr: str,
+) -> str:
+    if statement is not None:
+        statement_value = (getattr(statement, value_attr, "") or "").strip()
+        if statement_value:
+            return statement_value
+    return (getattr(problem, value_attr, "") or "").strip()
 
 
 def problem_list_picker_rows(problem_list: ProblemList) -> list[dict]:

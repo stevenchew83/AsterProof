@@ -29,6 +29,9 @@ class ProblemListAdmin(admin.ModelAdmin):
         "hide_topic",
         "hide_mohs",
         "hide_subtopics",
+        "hide_core_ideas",
+        "hide_rationale",
+        "hide_pitfalls",
         "created_at",
         "updated_at",
     )
