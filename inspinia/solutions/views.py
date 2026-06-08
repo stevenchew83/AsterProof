@@ -36,6 +36,8 @@ from inspinia.pages.models import DIFFICULTY_RATING_MIN
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import PageViewEvent
 from inspinia.pages.models import ProblemSolveRecord
+from inspinia.pages.models import ProblemTopicTechnique
+from inspinia.pages.models import StatementTopicTechnique
 from inspinia.pages.models import UserProblemCompletion
 from inspinia.pages.models import UserProblemDifficultyRating
 from inspinia.pages.page_views import PageViewPayload
@@ -109,6 +111,40 @@ def _problem_solution_prefetch():
     return Prefetch(
         "blocks",
         queryset=ProblemSolutionBlock.objects.select_related("block_type").order_by("position", "id"),
+    )
+
+
+def _topic_tag_display_rows(tag_rows) -> list[dict[str, str]]:
+    rows: list[dict[str, str]] = []
+    seen_techniques: set[str] = set()
+    for tag_row in tag_rows:
+        technique = (tag_row.technique or "").strip()
+        if not technique or technique in seen_techniques:
+            continue
+        seen_techniques.add(technique)
+        rows.append(
+            {
+                "domains_label": ", ".join(tag_row.domains or []),
+                "technique": technique,
+            },
+        )
+    return rows
+
+
+def _problem_context_topic_tag_rows(
+    *,
+    problem: ProblemSolveRecord,
+    statement_entry: ContestProblemStatement | None,
+) -> list[dict[str, str]]:
+    if statement_entry is not None:
+        statement_rows = _topic_tag_display_rows(
+            StatementTopicTechnique.objects.filter(statement=statement_entry).order_by("technique", "id"),
+        )
+        if statement_rows:
+            return statement_rows
+
+    return _topic_tag_display_rows(
+        ProblemTopicTechnique.objects.filter(record=problem).order_by("technique", "id"),
     )
 
 
@@ -232,6 +268,7 @@ def _problem_context(problem: ProblemSolveRecord) -> dict:
         "statement_render_segments": (
             build_statement_render_segments(statement_entry.statement_latex) if statement_entry else []
         ),
+        "topic_tag_rows": _problem_context_topic_tag_rows(problem=problem, statement_entry=statement_entry),
     }
 
 
