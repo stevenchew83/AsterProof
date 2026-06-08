@@ -542,17 +542,23 @@ def test_problem_list_problem_search_includes_problem_and_statement_note_content
     archive_note_problem = _problem(
         contest="Balkan MO",
         core_ideas="Core ideas: Use telescoping after pairing the fractions.",
+        pitfalls="Common pitfalls: Dropping the sign after pairing.",
         problem="P4",
+        rationale="Rationale: This keeps cancellation visible.",
         year=2024,
     )
     statement_note_problem = _problem(
         contest="USAMO",
+        core_ideas="Core ideas: Archive fallback.",
+        pitfalls="Common pitfalls: Archive fallback.",
         problem="P5",
         rationale="",
         year=2025,
     )
     _statement(
         statement_note_problem,
+        core_ideas="Core ideas: Prefer the inversion center.",
+        pitfalls="Common pitfalls: Forgetting the orientation.",
         rationale="Rationale: Inversion makes the cyclic angles visible.",
     )
 
@@ -566,10 +572,20 @@ def test_problem_list_problem_search_includes_problem_and_statement_note_content
     )
 
     assert archive_response.status_code == HTTPStatus.OK
+    archive_row = archive_response.json()["results"][0]
+    assert archive_row["problem_uuid"] == str(archive_note_problem.problem_uuid)
+    assert archive_row["core_ideas"] == "Use telescoping after pairing the fractions."
+    assert archive_row["rationale"] == "This keeps cancellation visible."
+    assert archive_row["pitfalls"] == "Dropping the sign after pairing."
     assert [row["problem_uuid"] for row in archive_response.json()["results"]] == [
         str(archive_note_problem.problem_uuid),
     ]
     assert statement_response.status_code == HTTPStatus.OK
+    statement_row = statement_response.json()["results"][0]
+    assert statement_row["problem_uuid"] == str(statement_note_problem.problem_uuid)
+    assert statement_row["core_ideas"] == "Prefer the inversion center."
+    assert statement_row["rationale"] == "Inversion makes the cyclic angles visible."
+    assert statement_row["pitfalls"] == "Forgetting the orientation."
     assert [row["problem_uuid"] for row in statement_response.json()["results"]] == [
         str(statement_note_problem.problem_uuid),
     ]
@@ -716,8 +732,14 @@ def test_problem_list_edit_page_stacks_panels_and_initializes_datatables(client)
     assert 'class="col-xxl-7"' not in response_html
     assert 'id="problem-list-search-results-table"' in response_html
     assert 'id="problem-list-sequence-table"' in response_html
+    assert "<th>Core idea</th>" in response_html
+    assert "<th>Rationale</th>" in response_html
+    assert "<th>Common pitfalls</th>" in response_html
     assert 'new DataTable("#problem-list-search-results-table"' in response_html
     assert 'new DataTable("#problem-list-sequence-table"' in response_html
+    assert '{ data: "core_ideas" }' in response_html
+    assert '{ data: "rationale" }' in response_html
+    assert '{ data: "pitfalls" }' in response_html
     assert 'data-draft-action=\\"toggle-notes\\"' in response_html
     assert "problem-list-draft-note-summary" in response_html
     assert ".child(draftNotesPanel(row, index))" in response_html
