@@ -161,6 +161,39 @@ def test_problem_list_workspace_routes_require_login(client, url_name):
     assert response.url == f"{reverse(settings.LOGIN_URL)}?next={url}"
 
 
+def test_my_problem_lists_renders_curated_lists_as_table(client):
+    author = UserFactory()
+    voter = UserFactory()
+    client.force_login(author)
+    problem_list = _problem_list(
+        author=author,
+        title="ELMO Shortlist 25-30",
+        visibility=ProblemList.Visibility.PUBLIC,
+    )
+    ProblemListItem.objects.create(problem_list=problem_list, problem=_problem(), position=1)
+    ProblemListVote.objects.create(problem_list=problem_list, user=voter, value=ProblemListVote.Value.UP)
+
+    response = client.get(reverse("problemsets:my_lists"))
+
+    response_html = response.content.decode("utf-8")
+    assert response.status_code == HTTPStatus.OK
+    assert 'data-problem-list-table="owned-lists"' in response_html
+    assert '<th scope="col">List</th>' in response_html
+    assert '<th scope="col">Visibility</th>' in response_html
+    assert '<th scope="col">Problems</th>' in response_html
+    assert '<th scope="col">Score</th>' in response_html
+    assert '<th scope="col">Votes</th>' in response_html
+    assert '<th scope="col">Updated</th>' in response_html
+    assert '<th scope="col" class="text-end">Actions</th>' in response_html
+    assert "ELMO Shortlist 25-30" in response_html
+    assert "A short ordered practice list." in response_html
+    assert "1 problem" in response_html
+    assert "1 up / 0 down" in response_html
+    assert reverse("problemsets:detail", args=[problem_list.list_uuid]) in response_html
+    assert reverse("problemsets:edit", args=[problem_list.list_uuid]) in response_html
+    assert problem_list.public_url() in response_html
+
+
 def test_problem_list_detail_and_edit_require_login(client):
     problem_list = _problem_list()
 
