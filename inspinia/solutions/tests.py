@@ -987,12 +987,13 @@ def test_build_solution_tex_declares_unicode_math_symbols_for_pdf_latex():
         blocks=blocks,
         media_root=Path(settings.MEDIA_ROOT),
         problem_label="Z",
-        problem_statement_latex="Find all integers $n$ with $n ≠ 0$.",
+        problem_statement_latex="Find all integers $n$ with $n ≠ 0$ and $a₁ > 0$.",
     )
 
     assert r"\DeclareUnicodeCharacter{2260}{\ensuremath{\ne}}" in tex
+    assert r"\DeclareUnicodeCharacter{2081}{\ensuremath{{}_{1}}}" in tex
     assert tex.index(r"\DeclareUnicodeCharacter{2260}") < tex.index(r"\begin{document}")
-    assert "Find all integers $n$ with $n ≠ 0$." in tex
+    assert "Find all integers $n$ with $n ≠ 0$ and $a₁ > 0$." in tex
 
 
 def test_graphicspath_tex_wraps_directory_for_graphicx(tmp_path):

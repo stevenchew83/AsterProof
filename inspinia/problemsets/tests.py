@@ -1217,15 +1217,16 @@ def test_problem_list_pdf_source_declares_unicode_math_symbols_for_pdf_latex():
     from inspinia.problemsets.selectors import problem_list_item_rows
 
     problem = _problem()
-    _statement(problem, "Find all integers $n$ with $n ≠ 0$.")
+    _statement(problem, "Find all integers $n$ with $n ≠ 0$ and $a₁ > 0$.")
     problem_list = _problem_list(title="Unicode statement", visibility=ProblemList.Visibility.PUBLIC)
     ProblemListItem.objects.create(problem_list=problem_list, problem=problem, position=1)
 
     tex_source = build_problem_list_tex_source(problem_list, problem_list_item_rows(problem_list))
 
     assert r"\DeclareUnicodeCharacter{2260}{\ensuremath{\ne}}" in tex_source
+    assert r"\DeclareUnicodeCharacter{2081}{\ensuremath{{}_{1}}}" in tex_source
     assert tex_source.index(r"\DeclareUnicodeCharacter{2260}") < tex_source.index(r"\begin{document}")
-    assert "Find all integers $n$ with $n ≠ 0$." in tex_source
+    assert "Find all integers $n$ with $n ≠ 0$ and $a₁ > 0$." in tex_source
 
 
 def test_private_list_share_url_returns_not_found(client):
