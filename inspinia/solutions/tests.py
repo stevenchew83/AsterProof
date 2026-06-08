@@ -16,6 +16,8 @@ from PIL import Image
 
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
+from inspinia.pages.models import ProblemTopicTechnique
+from inspinia.pages.models import StatementTopicTechnique
 from inspinia.pages.models import UserProblemCompletion
 from inspinia.pages.models import UserProblemDifficultyRating
 from inspinia.problemsets.models import ProblemList
@@ -404,6 +406,66 @@ def test_problem_solution_list_shows_static_solution_guidance_panel(client):
     assert "Choose the main objects and relations before writing details." in response_html
     assert "Connect each move back to the exact condition you need to prove." in response_html
     assert "Assuming a diagram relation before it has been justified." in response_html
+
+
+def test_problem_solution_list_shows_parsed_topic_tags_as_hidden_subtopics(client):
+    user = UserFactory()
+    client.force_login(user)
+    problem = _problem(contest="ELMO Shortlist", year=2019, problem="G1")
+    ContestProblemStatement.objects.create(
+        linked_problem=problem,
+        contest_year=2019,
+        contest_name="ELMO Shortlist",
+        problem_number=1,
+        problem_code="G1",
+        day_label="Geometry",
+        statement_latex="Let ABC be an acute triangle.",
+    )
+    ProblemTopicTechnique.objects.create(record=problem, technique="spiral similarity", domains=["geo"])
+    ProblemTopicTechnique.objects.create(record=problem, technique="angle chase", domains=["geo"])
+
+    response = client.get(reverse("solutions:problem_solution_list", args=[problem.problem_uuid]))
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["problem_data"]["topic_tag_rows"] == [
+        {"domains_label": "GEO", "technique": "ANGLE CHASE"},
+        {"domains_label": "GEO", "technique": "SPIRAL SIMILARITY"},
+    ]
+    response_html = response.content.decode("utf-8")
+    assert "Subtopics" in response_html
+    assert 'data-bs-target="#solution-subtopics-panel"' in response_html
+    assert 'aria-expanded="false"' in response_html
+    assert 'id="solution-subtopics-panel" class="collapse' in response_html
+    assert "ANGLE CHASE" in response_html
+    assert "SPIRAL SIMILARITY" in response_html
+
+
+def test_problem_solution_list_prefers_statement_topic_tags_for_subtopics(client):
+    user = UserFactory()
+    client.force_login(user)
+    problem = _problem(contest="ELMO Shortlist", year=2019, problem="G1")
+    statement = ContestProblemStatement.objects.create(
+        linked_problem=problem,
+        contest_year=2019,
+        contest_name="ELMO Shortlist",
+        problem_number=1,
+        problem_code="G1",
+        day_label="Geometry",
+        statement_latex="Let ABC be an acute triangle.",
+    )
+    ProblemTopicTechnique.objects.create(record=problem, technique="angle chase", domains=["geo"])
+    StatementTopicTechnique.objects.create(
+        statement=statement,
+        technique="cyclic quadrilateral",
+        domains=["geo"],
+    )
+
+    response = client.get(reverse("solutions:problem_solution_list", args=[problem.problem_uuid]))
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["problem_data"]["topic_tag_rows"] == [
+        {"domains_label": "GEO", "technique": "CYCLIC QUADRILATERAL"},
+    ]
 
 
 def test_problem_solution_list_exposes_statement_difficulty_and_problem_list_controls(client):
