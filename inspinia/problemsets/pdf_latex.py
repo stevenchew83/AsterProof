@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from inspinia.solutions.pdf_latex import compile_solution_tex_to_pdf
 from inspinia.solutions.pdf_latex import latex_escape_plain_text
+from inspinia.solutions.pdf_latex import latex_unicode_character_declarations
 
 if TYPE_CHECKING:
     from inspinia.problemsets.models import ProblemList
@@ -40,6 +41,7 @@ def build_problem_list_tex_source(problem_list: ProblemList, item_rows: list[dic
     lines: list[str] = [
         r"\documentclass[11pt]{scrartcl}",
         r"\usepackage[sexy,noasy]{evan}",
+        *latex_unicode_character_declarations(),
         rf"\title{{{title}}}",
         rf"\author{{{author}}}",
         rf"\date{{{date_str}}}",

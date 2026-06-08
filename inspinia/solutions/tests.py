@@ -980,6 +980,25 @@ def test_build_solution_tex_wraps_problem_statement_in_mdpurplebox():
     assert r"Let $ABC$ be a triangle. Prove $a+b>c$." in tex
 
 
+def test_build_solution_tex_declares_unicode_math_symbols_for_pdf_latex():
+    user = UserFactory(name="Author Display")
+    problem = _problem()
+    solution = _solution_with_blocks(problem=problem, author=user, blocks=[])
+    blocks = list(solution.blocks.order_by("position"))
+
+    tex = build_solution_tex_source(
+        solution=solution,
+        blocks=blocks,
+        media_root=Path(settings.MEDIA_ROOT),
+        problem_label="Z",
+        problem_statement_latex="Find all integers $n$ with $n ≠ 0$.",
+    )
+
+    assert r"\DeclareUnicodeCharacter{2260}{\ensuremath{\ne}}" in tex
+    assert tex.index(r"\DeclareUnicodeCharacter{2260}") < tex.index(r"\begin{document}")
+    assert "Find all integers $n$ with $n ≠ 0$." in tex
+
+
 def test_graphicspath_tex_wraps_directory_for_graphicx(tmp_path):
     media_root = tmp_path / "ap-media"
     assert _graphicspath_tex(media_root) == rf"{{{media_root.resolve().as_posix()}/}}"
