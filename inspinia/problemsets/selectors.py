@@ -33,6 +33,14 @@ PROBLEM_LIST_PROBLEM_SEARCH_MAX_LIMIT = 100
 PROBLEM_LIST_PROBLEM_SEARCH_FACET_LIMIT = 8
 _MOHS_QUERY_KEY = "mohs"
 _PROBLEM_CODE_TOKEN_RE = re.compile(r"^p\d+[a-z]?$", re.IGNORECASE)
+_PROBLEM_NOTE_SEARCH_FIELDS = (
+    "core_ideas",
+    "core_ideas_value",
+    "rationale",
+    "rationale_value",
+    "pitfalls",
+    "pitfalls_value",
+)
 _QUERY_FIELD_ALIASES = {
     "c": "contest",
     "contest": "contest",
@@ -647,6 +655,7 @@ def _label_rank_query(search_text: str, tag: str) -> Q | None:
             Q(contest_year_problem__icontains=token)
             | Q(topic_tags__icontains=token)
             | Q(topic_techniques__technique__icontains=token)
+            | _problem_note_search_query(token)
         )
         has_query = True
     if tag:
@@ -674,6 +683,7 @@ def _problem_search_query(search_text: str) -> Q:
         | Q(topic__icontains=search_text)
         | Q(topic_tags__icontains=search_text)
         | Q(topic_techniques__technique__icontains=search_text)
+        | _problem_note_search_query(search_text)
     )
     if search_text.isdigit():
         numeric_value = int(search_text)
@@ -688,6 +698,15 @@ def _problem_search_query(search_text: str) -> Q:
     with suppress(ValueError):
         query |= Q(problem_uuid=uuid.UUID(search_text))
     return query
+
+
+def _problem_note_search_query(search_text: str) -> Q:
+    archive_query = Q()
+    statement_query = Q()
+    for field_name in _PROBLEM_NOTE_SEARCH_FIELDS:
+        archive_query |= Q(**{f"{field_name}__icontains": search_text})
+        statement_query |= Q(**{f"statement_entries__{field_name}__icontains": search_text})
+    return archive_query | (Q(statement_entries__is_active=True) & statement_query)
 
 
 def _latest_statement_by_problem_id(problem_ids: list[int]) -> dict[int, ContestProblemStatement]:

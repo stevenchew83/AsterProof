@@ -82,6 +82,40 @@ def _problem_list(*, author=None, title: str = "Geometry warmups", visibility: s
     )
 
 
+def _assert_problem_list_edit_page_contract(response_html: str, problem_list: ProblemList):
+    assert reverse("problemsets:problem_search", args=[problem_list.list_uuid]) in response_html
+    assert reverse("problemsets:save_items", args=[problem_list.list_uuid]) in response_html
+    assert "problem-list-draft-data" in response_html
+    assert "problem-list-search-facets" in response_html
+    assert "problem-list-search-contest" in response_html
+    assert "problem-list-load-more" in response_html
+    assert "problem-list-builder-layout" in response_html
+    assert "problem-list-active-filters" in response_html
+    assert "problem-list-sequence-panel" in response_html
+    assert "problem-list-draft-notes-row" in response_html
+    assert "problem-list-note-textarea" in response_html
+    assert "problem-list-copy-share-url" in response_html
+    assert "problem-list-statement-preview" in response_html
+    assert "problem-list-unlinked-confirm-modal" in response_html
+    assert "data-preview-problem" in response_html
+    assert "data-confirm-unlinked-add" in response_html
+    assert "Add problem without a statement?" in response_html
+    assert "statementStatusBadge" in response_html
+    assert "openStatementPreview" in response_html
+    assert "data-copy-share-url" in response_html
+    expected_added_button_js = (
+        'buttonLabel = isAdded ? "<i class=\\"ti ti-check me-1\\"></i>Added" '
+        ': "<i class=\\"ti ti-plus me-1\\"></i>Add";'
+    )
+    assert expected_added_button_js in response_html
+    assert "User MOHS" in response_html
+    assert "Curator hint" in response_html
+    assert "Curator comment" in response_html
+    assert "Hide original source" in response_html
+    assert "Optional title for public view" in response_html
+    assert "Paste an active problem UUID" not in response_html
+
+
 def test_problem_list_item_enforces_unique_problem_and_position():
     problem_list = _problem_list()
     first_problem = _problem()
@@ -465,6 +499,46 @@ def test_problem_list_problem_search_applies_advanced_filters(client):
     assert [row["problem_uuid"] for row in payload["results"]] == [str(matching_problem.problem_uuid)]
 
 
+def test_problem_list_problem_search_includes_problem_and_statement_note_content(client):
+    author = UserFactory()
+    client.force_login(author)
+    problem_list = _problem_list(author=author)
+    archive_note_problem = _problem(
+        contest="Balkan MO",
+        core_ideas="Core ideas: Use telescoping after pairing the fractions.",
+        problem="P4",
+        year=2024,
+    )
+    statement_note_problem = _problem(
+        contest="USAMO",
+        problem="P5",
+        rationale="",
+        year=2025,
+    )
+    _statement(
+        statement_note_problem,
+        rationale="Rationale: Inversion makes the cyclic angles visible.",
+    )
+
+    archive_response = client.get(
+        reverse("problemsets:problem_search", args=[problem_list.list_uuid]),
+        {"q": "telescoping"},
+    )
+    statement_response = client.get(
+        reverse("problemsets:problem_search", args=[problem_list.list_uuid]),
+        {"q": "inversion"},
+    )
+
+    assert archive_response.status_code == HTTPStatus.OK
+    assert [row["problem_uuid"] for row in archive_response.json()["results"]] == [
+        str(archive_note_problem.problem_uuid),
+    ]
+    assert statement_response.status_code == HTTPStatus.OK
+    assert [row["problem_uuid"] for row in statement_response.json()["results"]] == [
+        str(statement_note_problem.problem_uuid),
+    ]
+
+
 def test_problem_list_save_items_endpoint_requires_author_and_replaces_sequence(client):
     author = UserFactory()
     other_user = UserFactory()
@@ -583,37 +657,30 @@ def test_problem_list_edit_page_exposes_picker_payload_and_save_urls(client):
     assert draft_rows[1]["statement_uuid"] == ""
     assert draft_rows[1]["statement_preview"] == ""
     response_html = response.content.decode("utf-8")
-    assert reverse("problemsets:problem_search", args=[problem_list.list_uuid]) in response_html
-    assert reverse("problemsets:save_items", args=[problem_list.list_uuid]) in response_html
-    assert "problem-list-draft-data" in response_html
-    assert "problem-list-search-facets" in response_html
-    assert "problem-list-search-contest" in response_html
-    assert "problem-list-load-more" in response_html
-    assert "problem-list-builder-layout" in response_html
-    assert "problem-list-active-filters" in response_html
-    assert "problem-list-sequence-panel" in response_html
-    assert "problem-list-draft-notes-row" in response_html
-    assert "problem-list-note-textarea" in response_html
-    assert "problem-list-copy-share-url" in response_html
-    assert "problem-list-statement-preview" in response_html
-    assert "problem-list-unlinked-confirm-modal" in response_html
-    assert "data-preview-problem" in response_html
-    assert "data-confirm-unlinked-add" in response_html
-    assert "Add problem without a statement?" in response_html
-    assert "statementStatusBadge" in response_html
-    assert "openStatementPreview" in response_html
-    assert "data-copy-share-url" in response_html
-    expected_added_button_js = (
-        'buttonLabel = isAdded ? "<i class=\\"ti ti-check me-1\\"></i>Added" '
-        ': "<i class=\\"ti ti-plus me-1\\"></i>Add";'
-    )
-    assert expected_added_button_js in response_html
-    assert "User MOHS" in response_html
-    assert "Curator hint" in response_html
-    assert "Curator comment" in response_html
-    assert "Hide original source" in response_html
-    assert "Optional title for public view" in response_html
-    assert "Paste an active problem UUID" not in response_html
+    _assert_problem_list_edit_page_contract(response_html, problem_list)
+
+
+def test_problem_list_edit_page_stacks_panels_and_initializes_datatables(client):
+    user = UserFactory()
+    client.force_login(user)
+    problem_list = _problem_list(author=user)
+
+    response = client.get(reverse("problemsets:edit", args=[problem_list.list_uuid]))
+
+    assert response.status_code == HTTPStatus.OK
+    response_html = response.content.decode("utf-8")
+    panel_positions = [
+        response_html.index("List settings"),
+        response_html.index("Sharing"),
+        response_html.index("Find problems"),
+        response_html.index("Problem sequence"),
+    ]
+    assert panel_positions == sorted(panel_positions)
+    assert 'id="problem-list-search-results-table"' in response_html
+    assert 'id="problem-list-sequence-table"' in response_html
+    assert 'new DataTable("#problem-list-search-results-table"' in response_html
+    assert 'new DataTable("#problem-list-sequence-table"' in response_html
+    assert "problem-list-sticky-panel" not in response_html
 
 
 def test_add_item_view_redirects_to_safe_next_and_rejects_external_next(client):

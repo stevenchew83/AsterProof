@@ -1,8 +1,11 @@
 {% extends 'layouts/vertical.html' %}
 
+{% load static %}
+
 {% block title %}Edit {{ problem_list.title }}{% endblock title %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="{% static 'plugins/datatables/dataTables.bootstrap5.min.css' %}">
 <style>
   .problem-list-summary-icon {
     align-items: center;
@@ -23,10 +26,6 @@
 
   .problem-list-builder-layout .form-label {
     margin-bottom: .35rem;
-  }
-
-  .problem-list-sticky-panel {
-    top: 5.25rem;
   }
 
   .problem-list-meta-badges,
@@ -60,6 +59,42 @@
     vertical-align: top;
   }
 
+  #problem-list-search-results-table_wrapper .dt-layout-row,
+  #problem-list-sequence-table_wrapper .dt-layout-row {
+    align-items: center;
+    gap: .75rem 1rem;
+    margin: .5rem 0;
+  }
+
+  #problem-list-search-results-table_wrapper .dt-length label,
+  #problem-list-search-results-table_wrapper .dt-search label,
+  #problem-list-sequence-table_wrapper .dt-length label,
+  #problem-list-sequence-table_wrapper .dt-search label {
+    color: var(--bs-secondary-color);
+    font-size: .75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  #problem-list-search-results-table_wrapper .dt-length .form-select,
+  #problem-list-search-results-table_wrapper .dt-search .form-control,
+  #problem-list-sequence-table_wrapper .dt-length .form-select,
+  #problem-list-sequence-table_wrapper .dt-search .form-control {
+    font-size: .8125rem;
+    min-height: calc(1.5em + .5rem + 2px);
+    padding-bottom: .25rem;
+    padding-top: .25rem;
+  }
+
+  #problem-list-search-results-table thead th,
+  #problem-list-sequence-table thead th {
+    background-color: var(--bs-tertiary-bg);
+    color: var(--bs-secondary-color);
+    font-size: .7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
   .problem-list-search-group td {
     background: var(--bs-light);
   }
@@ -74,15 +109,6 @@
 
   .problem-list-sequence-table {
     min-width: 46rem;
-  }
-
-  .problem-list-draft-summary-row td {
-    border-bottom-width: 0;
-  }
-
-  .problem-list-draft-notes-row td {
-    border-top-width: 0;
-    padding-top: 0;
   }
 
   .problem-list-draft-notes-panel {
@@ -125,12 +151,6 @@
     }
     100% {
       background-color: transparent;
-    }
-  }
-
-  @media (min-width: 1200px) {
-    .card.problem-list-sticky-panel {
-      position: sticky;
     }
   }
 
@@ -190,8 +210,7 @@
     </div>
   </div>
 
-  <div id="problem-list-builder-layout" class="row g-3 align-items-start mt-0 problem-list-builder-layout">
-    <div class="col-xxl-8 col-xl-7 order-2 order-xl-1">
+  <div id="problem-list-builder-layout" class="d-grid gap-3 mt-0 problem-list-builder-layout">
       <div class="row g-3">
         <div class="col-xxl-5">
           <div class="card h-100">
@@ -267,11 +286,11 @@
         </div>
       </div>
 
-      <div class="card mt-3" data-problem-search-url="{% url 'problemsets:problem_search' problem_list.list_uuid %}">
+      <div class="card" data-problem-search-url="{% url 'problemsets:problem_search' problem_list.list_uuid %}">
         <div class="card-header border-bottom d-flex flex-wrap align-items-start justify-content-between gap-2">
           <div>
             <h4 class="header-title mb-0">Find problems</h4>
-            <p class="text-muted fs-xs mb-0">Search the active archive by contest, year, topic, MOHS, tag, label, or UUID.</p>
+            <p class="text-muted fs-xs mb-0">Search the active archive by contest, year, topic, notes, MOHS, tag, label, or UUID.</p>
           </div>
           <button class="btn btn-light btn-sm border" type="button" data-bs-toggle="collapse" data-bs-target="#problem-list-advanced-filters" aria-expanded="true" aria-controls="problem-list-advanced-filters">
             <i class="ti ti-adjustments-horizontal me-1"></i>Filters
@@ -282,7 +301,7 @@
             <label class="form-label" for="problem-list-search-input">Search archive</label>
             <div class="input-group">
               <span class="input-group-text"><i class="ti ti-search"></i></span>
-              <input id="problem-list-search-input" type="search" class="form-control" placeholder="IMO 2026 P1, geometry, LTE, MOHS 12...">
+              <input id="problem-list-search-input" type="search" class="form-control" placeholder="IMO 2026 P1, geometry, core idea, MOHS 12...">
               <button id="problem-list-search-button" type="submit" class="btn btn-primary">
                 <i class="ti ti-search me-1"></i>Search
               </button>
@@ -330,7 +349,7 @@
           </div>
 
           <div class="table-responsive mt-2">
-            <table class="table table-striped table-hover align-middle problem-list-picker-table mb-0">
+            <table id="problem-list-search-results-table" class="table table-striped table-hover align-middle problem-list-picker-table w-100 mb-0">
               <thead>
                 <tr>
                   <th>Problem</th>
@@ -340,11 +359,7 @@
                   <th class="text-end">Actions</th>
                 </tr>
               </thead>
-              <tbody id="problem-list-search-results">
-                <tr>
-                  <td colspan="5" class="text-muted fs-sm">No search has been run yet.</td>
-                </tr>
-              </tbody>
+              <tbody id="problem-list-search-results"></tbody>
             </table>
           </div>
           <div class="d-flex justify-content-center mt-3">
@@ -394,10 +409,7 @@
           </div>
         </div>
       </div>
-    </div>
-
-    <div class="col-xxl-4 col-xl-5 order-1 order-xl-2">
-      <div id="problem-list-sequence-panel" class="card problem-list-sticky-panel">
+      <div id="problem-list-sequence-panel" class="card">
         <div class="card-header border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2">
           <div>
             <h4 class="header-title mb-0">Problem sequence</h4>
@@ -415,7 +427,7 @@
             {% csrf_token %}
             <div id="problem-list-hidden-order-fields"></div>
             <div class="table-responsive">
-              <table class="table table-striped table-hover align-middle problem-list-picker-table problem-list-sequence-table mb-0">
+              <table id="problem-list-sequence-table" class="table table-striped table-hover align-middle problem-list-picker-table problem-list-sequence-table w-100 mb-0">
                 <thead>
                   <tr>
                     <th>Order</th>
@@ -440,12 +452,12 @@
       </div>
     </div>
   </div>
-</div>
 
 {{ problem_list_draft_rows|json_script:"problem-list-draft-data" }}
 {% endblock page_content %}
 
 {% block extra_javascript %}
+{% include 'partials/datatables-vendor-scripts.html' %}
 <script>
 (function () {
   var draftDataEl = document.getElementById("problem-list-draft-data");
@@ -463,6 +475,7 @@
   var activeFilters = document.getElementById("problem-list-active-filters");
   var searchFacets = document.getElementById("problem-list-search-facets");
   var searchStatus = document.getElementById("problem-list-search-status");
+  var searchResultsTableNode = document.getElementById("problem-list-search-results-table");
   var searchResultsBody = document.getElementById("problem-list-search-results");
   var loadMoreButton = document.getElementById("problem-list-load-more");
   var statementPreview = document.getElementById("problem-list-statement-preview");
@@ -471,6 +484,7 @@
   var previewAddButton = document.getElementById("problem-list-preview-add-button");
   var unlinkedConfirmModal = document.getElementById("problem-list-unlinked-confirm-modal");
   var confirmUnlinkedAddButton = document.querySelector("[data-confirm-unlinked-add]");
+  var draftTableNode = document.getElementById("problem-list-sequence-table");
   var draftBody = document.getElementById("problem-list-draft-rows");
   var saveForm = document.getElementById("problem-list-save-form");
   var hiddenOrderFields = document.getElementById("problem-list-hidden-order-fields");
@@ -488,7 +502,10 @@
   var previewRow = null;
   var pendingUnlinkedRow = null;
   var searchLimit = 50;
+  var searchHasRun = false;
   var searchHasMore = false;
+  var searchResultsTable = null;
+  var draftTable = null;
   var originalDraftKey = draftKey(draftRows);
   var searchButtonDefaultHtml = searchButton ? searchButton.innerHTML : "";
   var filterFields = [
@@ -509,6 +526,92 @@
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#39;");
+  }
+
+  function updateDataTableEmptyMessage(table, message) {
+    if (!table || typeof table.settings !== "function") return;
+    var settings = table.settings()[0];
+    if (settings && settings.oLanguage) {
+      settings.oLanguage.sEmptyTable = message;
+    }
+  }
+
+  function initDataTables() {
+    if (typeof DataTable === "undefined") return;
+
+    if (searchResultsTableNode) {
+      searchResultsTable = new DataTable("#problem-list-search-results-table", {
+        layout: {
+          topStart: "pageLength",
+          topEnd: "search",
+          bottomStart: "info",
+          bottomEnd: "paging"
+        },
+        language: {
+          emptyTable: "No search has been run yet.",
+          search: "Filter table:",
+          searchPlaceholder: "Within loaded results...",
+          info: "Showing _START_ to _END_ of _TOTAL_ problems",
+          infoEmpty: "No loaded problems",
+          lengthMenu: "Show _MENU_ problems"
+        },
+        order: [],
+        pageLength: 25,
+        lengthMenu: [10, 25, 50, 100],
+        scrollX: true,
+        autoWidth: false,
+        columns: [
+          { data: "problem" },
+          { data: "metadata" },
+          { data: "user_mohs" },
+          { data: "tags" },
+          { data: "actions", orderable: false, searchable: false, className: "text-end" }
+        ],
+        createdRow: function (rowNode, rowData) {
+          rowNode.setAttribute("data-result-uuid", rowData.problem_uuid);
+        }
+      });
+    }
+
+    if (draftTableNode) {
+      draftTable = new DataTable("#problem-list-sequence-table", {
+        layout: {
+          topStart: "pageLength",
+          topEnd: "search",
+          bottomStart: "info",
+          bottomEnd: "paging"
+        },
+        language: {
+          emptyTable: "Search above and add at least one active problem to build the sequence.",
+          search: "Filter table:",
+          searchPlaceholder: "Within sequence...",
+          info: "Showing _START_ to _END_ of _TOTAL_ sequence rows",
+          infoEmpty: "No sequence rows",
+          lengthMenu: "Show _MENU_ rows"
+        },
+        ordering: false,
+        pageLength: 25,
+        lengthMenu: [10, 25, 50, 100],
+        scrollX: true,
+        autoWidth: false,
+        columns: [
+          { data: "order" },
+          { data: "problem" },
+          { data: "metadata" },
+          { data: "user_mohs" },
+          { data: "tags" },
+          { data: "actions", className: "text-end" }
+        ],
+        createdRow: function (rowNode, rowData) {
+          rowNode.setAttribute("data-draft-uuid", rowData.problem_uuid);
+          if (rowData.row_class) {
+            rowData.row_class.split(" ").forEach(function (className) {
+              if (className) rowNode.classList.add(className);
+            });
+          }
+        }
+      });
+    }
   }
 
   function draftKey(rows) {
@@ -752,10 +855,69 @@
     }
   }
 
+  function draftNotesPanel(row, index) {
+    return [
+      "<div class=\"problem-list-draft-notes-row mt-2\">",
+      "<div class=\"problem-list-draft-notes-panel\">",
+      "<div>",
+      "<label class=\"form-label fs-xs text-uppercase fw-semibold text-muted mb-1\" for=\"problem-list-custom-title-" + String(index) + "\">Custom title</label>",
+      "<input id=\"problem-list-custom-title-" + String(index) + "\" type=\"text\" class=\"form-control form-control-sm\" maxlength=\"160\" placeholder=\"Optional title for public view\" value=\"" + escapeHtml(row.custom_title || "") + "\" data-draft-field=\"custom_title\">",
+      "</div>",
+      "<div>",
+      "<label class=\"form-label fs-xs text-uppercase fw-semibold text-muted mb-1\" for=\"problem-list-hint-" + String(index) + "\">Curator hint</label>",
+      "<textarea id=\"problem-list-hint-" + String(index) + "\" class=\"form-control form-control-sm problem-list-note-textarea\" rows=\"3\" placeholder=\"Hidden until the reader opens it\" data-draft-field=\"hint\">" + escapeHtml(row.hint || "") + "</textarea>",
+      "</div>",
+      "<div>",
+      "<label class=\"form-label fs-xs text-uppercase fw-semibold text-muted mb-1\" for=\"problem-list-comment-" + String(index) + "\">Curator comment</label>",
+      "<textarea id=\"problem-list-comment-" + String(index) + "\" class=\"form-control form-control-sm problem-list-note-textarea\" rows=\"3\" placeholder=\"Visible note for this problem\" data-draft-field=\"comment\">" + escapeHtml(row.comment || "") + "</textarea>",
+      "</div>",
+      "</div>",
+      "</div>"
+    ].join("");
+  }
+
+  function draftTableRowData(row, index) {
+    var inactiveBadge = row.is_active ? "" : "<span class=\"badge bg-warning-subtle text-warning mt-1\">Inactive problem; public pages hide this row</span>";
+    var summaryRowClass = "problem-list-draft-summary-row" + (row._justAdded ? " problem-list-row-added" : "");
+    var upDisabled = index === 0 ? " disabled" : "";
+    var downDisabled = index === draftRows.length - 1 ? " disabled" : "";
+    var editableSearchText = [row.custom_title, row.hint, row.comment].filter(Boolean).join(" ");
+    return {
+      problem_uuid: row.problem_uuid,
+      row_class: summaryRowClass,
+      order: "<span class=\"d-inline-flex align-items-center gap-1 text-nowrap fw-semibold\"><i class=\"ti ti-grip-vertical problem-list-order-handle\"></i>#" + String(index + 1) + "</span>",
+      problem: [
+        "<div class=\"fw-semibold\">" + escapeHtml(row.problem_label) + "</div>",
+        "<div class=\"text-muted fs-xs\">" + escapeHtml(row.problem_uuid) + "</div>",
+        "<div class=\"mt-1\">" + statementStatusBadge(row) + "</div>",
+        inactiveBadge,
+        "<span class=\"visually-hidden\" data-draft-search-text>" + escapeHtml(editableSearchText) + "</span>",
+        draftNotesPanel(row, index)
+      ].join(""),
+      metadata: metadataBadges(row),
+      user_mohs: "<span class=\"text-nowrap\">" + userMohsCell(row) + "</span>",
+      tags: tagBadges(row),
+      actions: [
+        "<div class=\"d-inline-flex flex-wrap justify-content-end gap-2\">",
+        "<button type=\"button\" class=\"btn btn-outline-secondary btn-sm\" data-draft-action=\"up\" aria-label=\"Move " + escapeHtml(row.problem_label) + " up\"" + upDisabled + "><i class=\"ti ti-arrow-up\"></i></button>",
+        "<button type=\"button\" class=\"btn btn-outline-secondary btn-sm\" data-draft-action=\"down\" aria-label=\"Move " + escapeHtml(row.problem_label) + " down\"" + downDisabled + "><i class=\"ti ti-arrow-down\"></i></button>",
+        "<button type=\"button\" class=\"btn btn-outline-danger btn-sm\" data-draft-action=\"remove\" aria-label=\"Remove " + escapeHtml(row.problem_label) + "\"><i class=\"ti ti-trash me-1\"></i>Remove</button>",
+        "</div>"
+      ].join("")
+    };
+  }
+
   function renderDraftRows() {
     syncDraftFormState();
 
-    if (!draftRows.length) {
+    var rowData = draftRows.map(function (row, index) {
+      return draftTableRowData(row, index);
+    });
+    if (draftTable) {
+      draftTable.clear();
+      draftTable.rows.add(rowData);
+      draftTable.draw();
+    } else if (!rowData.length) {
       draftBody.innerHTML = [
         "<tr>",
         "<td colspan=\"6\">",
@@ -763,106 +925,78 @@
         "</td>",
         "</tr>"
       ].join("");
-      return;
+    } else {
+      draftBody.innerHTML = rowData.map(function (row) {
+        return [
+          "<tr class=\"" + escapeHtml(row.row_class) + "\" data-draft-uuid=\"" + escapeHtml(row.problem_uuid) + "\">",
+          "<td>" + row.order + "</td>",
+          "<td>" + row.problem + "</td>",
+          "<td>" + row.metadata + "</td>",
+          "<td>" + row.user_mohs + "</td>",
+          "<td>" + row.tags + "</td>",
+          "<td class=\"text-end\">" + row.actions + "</td>",
+          "</tr>"
+        ].join("");
+      }).join("");
     }
 
-    draftBody.innerHTML = draftRows.map(function (row, index) {
-      var inactiveBadge = row.is_active ? "" : "<span class=\"badge bg-warning-subtle text-warning mt-1\">Inactive problem; public pages hide this row</span>";
-      var summaryRowClass = "problem-list-draft-summary-row" + (row._justAdded ? " problem-list-row-added" : "");
-      var notesRowClass = "problem-list-draft-notes-row" + (row._justAdded ? " problem-list-row-added" : "");
-      var upDisabled = index === 0 ? " disabled" : "";
-      var downDisabled = index === draftRows.length - 1 ? " disabled" : "";
-      return [
-        "<tr class=\"" + summaryRowClass + "\" data-draft-uuid=\"" + escapeHtml(row.problem_uuid) + "\">",
-        "<td class=\"text-nowrap fw-semibold\"><span class=\"d-inline-flex align-items-center gap-1\"><i class=\"ti ti-grip-vertical problem-list-order-handle\"></i>#" + String(index + 1) + "</span></td>",
-        "<td>",
-        "<div class=\"fw-semibold\">" + escapeHtml(row.problem_label) + "</div>",
-        "<div class=\"text-muted fs-xs\">" + escapeHtml(row.problem_uuid) + "</div>",
-        "<div class=\"mt-1\">" + statementStatusBadge(row) + "</div>",
-        inactiveBadge,
-        "</td>",
-        "<td>" + metadataBadges(row) + "</td>",
-        "<td class=\"text-nowrap\">" + userMohsCell(row) + "</td>",
-        "<td>" + tagBadges(row) + "</td>",
-        "<td class=\"text-end\">",
-        "<div class=\"d-inline-flex flex-wrap justify-content-end gap-2\">",
-        "<button type=\"button\" class=\"btn btn-outline-secondary btn-sm\" data-draft-action=\"up\" aria-label=\"Move " + escapeHtml(row.problem_label) + " up\"" + upDisabled + "><i class=\"ti ti-arrow-up\"></i></button>",
-        "<button type=\"button\" class=\"btn btn-outline-secondary btn-sm\" data-draft-action=\"down\" aria-label=\"Move " + escapeHtml(row.problem_label) + " down\"" + downDisabled + "><i class=\"ti ti-arrow-down\"></i></button>",
-        "<button type=\"button\" class=\"btn btn-outline-danger btn-sm\" data-draft-action=\"remove\" aria-label=\"Remove " + escapeHtml(row.problem_label) + "\"><i class=\"ti ti-trash me-1\"></i>Remove</button>",
-        "</div>",
-        "</td>",
-        "</tr>",
-        "<tr class=\"" + notesRowClass + "\" data-draft-uuid=\"" + escapeHtml(row.problem_uuid) + "\">",
-        "<td colspan=\"6\" class=\"problem-list-draft-notes-cell\">",
-        "<div class=\"problem-list-draft-notes-panel\">",
-        "<div>",
-        "<label class=\"form-label fs-xs text-uppercase fw-semibold text-muted mb-1\" for=\"problem-list-custom-title-" + String(index) + "\">Custom title</label>",
-        "<input id=\"problem-list-custom-title-" + String(index) + "\" type=\"text\" class=\"form-control form-control-sm\" maxlength=\"160\" placeholder=\"Optional title for public view\" value=\"" + escapeHtml(row.custom_title || "") + "\" data-draft-field=\"custom_title\">",
-        "</div>",
-        "<div>",
-        "<label class=\"form-label fs-xs text-uppercase fw-semibold text-muted mb-1\" for=\"problem-list-hint-" + String(index) + "\">Curator hint</label>",
-        "<textarea id=\"problem-list-hint-" + String(index) + "\" class=\"form-control form-control-sm problem-list-note-textarea\" rows=\"3\" placeholder=\"Hidden until the reader opens it\" data-draft-field=\"hint\">" + escapeHtml(row.hint || "") + "</textarea>",
-        "</div>",
-        "<div>",
-        "<label class=\"form-label fs-xs text-uppercase fw-semibold text-muted mb-1\" for=\"problem-list-comment-" + String(index) + "\">Curator comment</label>",
-        "<textarea id=\"problem-list-comment-" + String(index) + "\" class=\"form-control form-control-sm problem-list-note-textarea\" rows=\"3\" placeholder=\"Visible note for this problem\" data-draft-field=\"comment\">" + escapeHtml(row.comment || "") + "</textarea>",
-        "</div>",
-        "</div>",
-        "</td>",
-        "</tr>"
-      ].join("");
-    }).join("");
     draftRows.forEach(function (row) {
       row._justAdded = false;
     });
   }
 
-  function renderSearchResults(rows) {
-    var renderedRows = rows || [];
-    if (!renderedRows.length) {
-      searchResultsBody.innerHTML = "<tr><td colspan=\"5\" class=\"text-muted fs-sm\">No active problems match this search.</td></tr>";
-      return;
-    }
-
-    var lastGroupKey = "";
-    var htmlRows = [];
-    renderedRows.forEach(function (row) {
-      var groupKey = String(row.contest || "") + "|" + String(row.year || "");
-      if (groupKey !== lastGroupKey) {
-        lastGroupKey = groupKey;
-        htmlRows.push([
-          "<tr class=\"problem-list-search-group\">",
-          "<td colspan=\"5\" class=\"text-muted fs-xs text-uppercase fw-semibold\">",
-          escapeHtml(row.contest || "Unlabeled contest") + " · " + escapeHtml(row.year || "Unlabeled year"),
-          "</td>",
-          "</tr>"
-        ].join(""));
-      }
-      var isAdded = draftContains(row.problem_uuid);
-      var buttonClass = isAdded ? "btn-outline-secondary" : "btn-primary";
-      var buttonLabel = isAdded ? "<i class=\"ti ti-check me-1\"></i>Added" : "<i class=\"ti ti-plus me-1\"></i>Add";
-      var disabled = isAdded ? " disabled" : "";
-      htmlRows.push([
-        "<tr data-result-uuid=\"" + escapeHtml(row.problem_uuid) + "\">",
-        "<td>",
+  function searchTableRowData(row) {
+    var isAdded = draftContains(row.problem_uuid);
+    var buttonClass = isAdded ? "btn-outline-secondary" : "btn-primary";
+    var buttonLabel = isAdded ? "<i class=\"ti ti-check me-1\"></i>Added" : "<i class=\"ti ti-plus me-1\"></i>Add";
+    var disabled = isAdded ? " disabled" : "";
+    return {
+      problem_uuid: row.problem_uuid,
+      problem: [
         "<div class=\"fw-semibold\">" + escapeHtml(row.problem_label) + "</div>",
         "<div class=\"text-muted fs-xs\">" + escapeHtml(row.contest) + " " + escapeHtml(row.year) + " · " + escapeHtml(row.problem_uuid) + "</div>",
-        "<div class=\"mt-1\">" + statementStatusBadge(row) + "</div>",
-        "</td>",
-        "<td>" + metadataBadges(row) + "</td>",
-        "<td class=\"text-nowrap\">" + userMohsCell(row) + "</td>",
-        "<td>" + tagBadges(row) + "</td>",
-        "<td class=\"text-end\">",
+        "<div class=\"mt-1\">" + statementStatusBadge(row) + "</div>"
+      ].join(""),
+      metadata: metadataBadges(row),
+      user_mohs: "<span class=\"text-nowrap\">" + userMohsCell(row) + "</span>",
+      tags: tagBadges(row),
+      actions: [
         "<div class=\"d-inline-flex flex-wrap justify-content-end gap-2\">",
         "<button type=\"button\" class=\"btn btn-outline-secondary btn-sm\" data-preview-problem><i class=\"ti ti-eye me-1\"></i>Preview</button>",
         "<a href=\"" + escapeHtml(row.archive_url) + "\" class=\"btn btn-outline-secondary btn-sm\" target=\"_blank\" rel=\"noopener\"><i class=\"ti ti-archive me-1\"></i>Archive</a>",
         "<button type=\"button\" class=\"btn " + buttonClass + " btn-sm\" data-add-problem" + disabled + ">" + buttonLabel + "</button>",
-        "</div>",
-        "</td>",
+        "</div>"
+      ].join("")
+    };
+  }
+
+  function renderSearchResults(rows) {
+    var rowData = (rows || []).map(searchTableRowData);
+    var emptyMessage = searchHasRun ? "No active problems match this search." : "No search has been run yet.";
+    if (searchResultsTable) {
+      updateDataTableEmptyMessage(searchResultsTable, emptyMessage);
+      searchResultsTable.clear();
+      searchResultsTable.rows.add(rowData);
+      searchResultsTable.draw();
+      return;
+    }
+
+    if (!rowData.length) {
+      searchResultsBody.innerHTML = "<tr><td colspan=\"5\" class=\"text-muted fs-sm\">" + escapeHtml(emptyMessage) + "</td></tr>";
+      return;
+    }
+
+    searchResultsBody.innerHTML = rowData.map(function (row) {
+      return [
+        "<tr data-result-uuid=\"" + escapeHtml(row.problem_uuid) + "\">",
+        "<td>" + row.problem + "</td>",
+        "<td>" + row.metadata + "</td>",
+        "<td>" + row.user_mohs + "</td>",
+        "<td>" + row.tags + "</td>",
+        "<td class=\"text-end\">" + row.actions + "</td>",
         "</tr>"
-      ].join(""));
-    });
-    searchResultsBody.innerHTML = htmlRows.join("");
+      ].join("");
+    }).join("");
   }
 
   function renderFacets(facets) {
@@ -940,6 +1074,7 @@
           throw new Error("Could not search active problems.");
         }
         var nextRows = result.payload.results || [];
+        searchHasRun = true;
         latestResults = appendResults ? latestResults.concat(nextRows) : nextRows;
         searchHasMore = Boolean(result.payload.has_more);
         renderSearchResults(latestResults);
@@ -952,7 +1087,14 @@
         }
       })
       .catch(function (error) {
-        searchResultsBody.innerHTML = "<tr><td colspan=\"5\" class=\"text-danger fs-sm\">" + escapeHtml(error.message || "Could not search active problems.") + "</td></tr>";
+        searchHasRun = true;
+        if (searchResultsTable) {
+          updateDataTableEmptyMessage(searchResultsTable, error.message || "Could not search active problems.");
+          searchResultsTable.clear();
+          searchResultsTable.draw();
+        } else {
+          searchResultsBody.innerHTML = "<tr><td colspan=\"5\" class=\"text-danger fs-sm\">" + escapeHtml(error.message || "Could not search active problems.") + "</td></tr>";
+        }
         if (searchStatus) {
           searchStatus.textContent = "";
         }
@@ -1078,6 +1220,13 @@
     var fieldName = input.getAttribute("data-draft-field");
     if (["comment", "custom_title", "hint"].indexOf(fieldName) === -1) return;
     row[fieldName] = input.value || "";
+    var draftSearchTextNode = rowNode.querySelector("[data-draft-search-text]");
+    if (draftSearchTextNode) {
+      draftSearchTextNode.textContent = [row.custom_title, row.hint, row.comment].filter(Boolean).join(" ");
+    }
+    if (draftTable && typeof draftTable.row === "function") {
+      draftTable.row(rowNode).invalidate("dom");
+    }
     syncDraftFormState();
   });
 
@@ -1114,6 +1263,7 @@
     });
   }
 
+  initDataTables();
   renderDraftRows();
   renderActiveFilters();
 })();
