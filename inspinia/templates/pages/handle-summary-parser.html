@@ -88,9 +88,9 @@
             <p class="text-muted fs-xs mb-0">Header row included. Paste this straight into a spreadsheet.</p>
           </div>
           {% if preview_payload %}
-          <span class="badge bg-primary-subtle text-primary">{{ preview_payload.row_count }} row{{ preview_payload.row_count|pluralize }}</span>
+          <span id="handle-summary-export-status" class="badge bg-primary-subtle text-primary">{{ preview_payload.row_count }} row{{ preview_payload.row_count|pluralize }}</span>
           {% else %}
-          <span class="badge bg-secondary-subtle text-secondary">Waiting for input</span>
+          <span id="handle-summary-export-status" class="badge bg-secondary-subtle text-secondary">Waiting for input</span>
           {% endif %}
         </div>
         <div class="card-body">
@@ -105,6 +105,7 @@
   </div>
 
   {% if preview_payload %}
+  <div id="handle-summary-results">
   <div class="row g-3 mt-0">
     <div class="col-sm-6 col-xl-3">
       <div class="card m-0">
@@ -146,7 +147,7 @@
                   <th scope="col">Common pitfalls</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody id="handle-summary-results-body">
                 {% for row in preview_payload.rows %}
                 <tr>
                   <td>{{ row.handle }}</td>
@@ -166,6 +167,7 @@
       </div>
     </div>
   </div>
+  </div>
   {% endif %}
 </div>
 
@@ -178,10 +180,50 @@
     var copyButton = document.getElementById("handle-summary-copy");
     var input = document.getElementById("handle-summary-parser-input");
     var exportBox = document.getElementById("handle-summary-export");
+    var exportStatus = document.getElementById("handle-summary-export-status");
+    var results = document.getElementById("handle-summary-results");
+    var parsedRowsBody = document.getElementById("handle-summary-results-body");
+    var defaultExportValue = [
+      "MOHS",
+      "CONFIDENCE",
+      "IMO SLOT",
+      "TOPICS TAG",
+      "CORE IDEAS",
+      "RATIONALE",
+      "COMMON PITFALLS"
+    ].join("\t");
+
+    function setExportWaitingStatus() {
+      if (!exportStatus) {
+        return;
+      }
+      exportStatus.textContent = "Waiting for input";
+      exportStatus.classList.remove("bg-primary-subtle", "text-primary");
+      exportStatus.classList.add("bg-secondary-subtle", "text-secondary");
+    }
+
+    function clearParsedRows() {
+      if (parsedRowsBody) {
+        while (parsedRowsBody.firstChild) {
+          parsedRowsBody.removeChild(parsedRowsBody.firstChild);
+        }
+      }
+      if (results) {
+        results.hidden = true;
+      }
+    }
 
     if (clearButton && input) {
       clearButton.addEventListener("click", function() {
         input.value = "";
+        if (exportBox) {
+          exportBox.value = defaultExportValue;
+        }
+        if (copyButton) {
+          copyButton.hidden = true;
+        }
+        setExportWaitingStatus();
+        clearParsedRows();
         input.focus();
       });
     }
