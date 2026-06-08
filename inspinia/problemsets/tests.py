@@ -90,9 +90,12 @@ def _assert_problem_list_edit_page_contract(response_html: str, problem_list: Pr
     assert "problem-list-search-contest" in response_html
     assert "problem-list-load-more" in response_html
     assert "problem-list-builder-layout" in response_html
+    assert "problem-list-settings-panel" in response_html
+    assert "problem-list-sharing-panel" in response_html
     assert "problem-list-active-filters" in response_html
     assert "problem-list-sequence-panel" in response_html
     assert "problem-list-draft-notes-row" in response_html
+    assert "problem-list-draft-notes-panel-compact" in response_html
     assert "problem-list-note-textarea" in response_html
     assert "problem-list-copy-share-url" in response_html
     assert "problem-list-statement-preview" in response_html
@@ -670,16 +673,21 @@ def test_problem_list_edit_page_stacks_panels_and_initializes_datatables(client)
     assert response.status_code == HTTPStatus.OK
     response_html = response.content.decode("utf-8")
     panel_positions = [
-        response_html.index("List settings"),
-        response_html.index("Sharing"),
+        response_html.index('id="problem-list-settings-panel"'),
+        response_html.index('id="problem-list-sharing-panel"'),
         response_html.index("Find problems"),
         response_html.index("Problem sequence"),
     ]
     assert panel_positions == sorted(panel_positions)
+    assert 'class="col-xxl-5"' not in response_html
+    assert 'class="col-xxl-7"' not in response_html
     assert 'id="problem-list-search-results-table"' in response_html
     assert 'id="problem-list-sequence-table"' in response_html
     assert 'new DataTable("#problem-list-search-results-table"' in response_html
     assert 'new DataTable("#problem-list-sequence-table"' in response_html
+    assert 'data-draft-action=\\"toggle-notes\\"' in response_html
+    assert "problem-list-draft-note-summary" in response_html
+    assert ".child(draftNotesPanel(row, index))" in response_html
     assert "problem-list-sticky-panel" not in response_html
 
 
