@@ -81,6 +81,83 @@ _LATEX_ESCAPES = (
     ("~", r"\textasciitilde{}"),
 )
 
+_UNICODE_LATEX_DECLARATIONS = (
+    ("00B0", r"\ensuremath{{}^{\circ}}"),
+    ("00B1", r"\ensuremath{\pm}"),
+    ("00B7", r"\ensuremath{\cdot}"),
+    ("00D7", r"\ensuremath{\times}"),
+    ("00F7", r"\ensuremath{\div}"),
+    ("0393", r"\ensuremath{\Gamma}"),
+    ("0394", r"\ensuremath{\Delta}"),
+    ("0398", r"\ensuremath{\Theta}"),
+    ("039B", r"\ensuremath{\Lambda}"),
+    ("039E", r"\ensuremath{\Xi}"),
+    ("03A0", r"\ensuremath{\Pi}"),
+    ("03A3", r"\ensuremath{\Sigma}"),
+    ("03A6", r"\ensuremath{\Phi}"),
+    ("03A8", r"\ensuremath{\Psi}"),
+    ("03A9", r"\ensuremath{\Omega}"),
+    ("03B1", r"\ensuremath{\alpha}"),
+    ("03B2", r"\ensuremath{\beta}"),
+    ("03B3", r"\ensuremath{\gamma}"),
+    ("03B4", r"\ensuremath{\delta}"),
+    ("03B5", r"\ensuremath{\epsilon}"),
+    ("03B6", r"\ensuremath{\zeta}"),
+    ("03B7", r"\ensuremath{\eta}"),
+    ("03B8", r"\ensuremath{\theta}"),
+    ("03B9", r"\ensuremath{\iota}"),
+    ("03BA", r"\ensuremath{\kappa}"),
+    ("03BB", r"\ensuremath{\lambda}"),
+    ("03BC", r"\ensuremath{\mu}"),
+    ("03BD", r"\ensuremath{\nu}"),
+    ("03BE", r"\ensuremath{\xi}"),
+    ("03C0", r"\ensuremath{\pi}"),
+    ("03C1", r"\ensuremath{\rho}"),
+    ("03C3", r"\ensuremath{\sigma}"),
+    ("03C4", r"\ensuremath{\tau}"),
+    ("03C5", r"\ensuremath{\upsilon}"),
+    ("03C6", r"\ensuremath{\phi}"),
+    ("03C7", r"\ensuremath{\chi}"),
+    ("03C8", r"\ensuremath{\psi}"),
+    ("03C9", r"\ensuremath{\omega}"),
+    ("2026", r"\ldots{}"),
+    ("2102", r"\ensuremath{\mathbb{C}}"),
+    ("2115", r"\ensuremath{\mathbb{N}}"),
+    ("211A", r"\ensuremath{\mathbb{Q}}"),
+    ("211D", r"\ensuremath{\mathbb{R}}"),
+    ("2124", r"\ensuremath{\mathbb{Z}}"),
+    ("2190", r"\ensuremath{\leftarrow}"),
+    ("2192", r"\ensuremath{\rightarrow}"),
+    ("2194", r"\ensuremath{\leftrightarrow}"),
+    ("21D0", r"\ensuremath{\Leftarrow}"),
+    ("21D2", r"\ensuremath{\Rightarrow}"),
+    ("21D4", r"\ensuremath{\Leftrightarrow}"),
+    ("2200", r"\ensuremath{\forall}"),
+    ("2202", r"\ensuremath{\partial}"),
+    ("2203", r"\ensuremath{\exists}"),
+    ("2205", r"\ensuremath{\emptyset}"),
+    ("2208", r"\ensuremath{\in}"),
+    ("2209", r"\ensuremath{\notin}"),
+    ("2212", r"\ensuremath{-}"),
+    ("221E", r"\ensuremath{\infty}"),
+    ("2220", r"\ensuremath{\angle}"),
+    ("2229", r"\ensuremath{\cap}"),
+    ("222A", r"\ensuremath{\cup}"),
+    ("222B", r"\ensuremath{\int}"),
+    ("223C", r"\ensuremath{\sim}"),
+    ("2248", r"\ensuremath{\approx}"),
+    ("2260", r"\ensuremath{\ne}"),
+    ("2261", r"\ensuremath{\equiv}"),
+    ("2264", r"\ensuremath{\leq}"),
+    ("2265", r"\ensuremath{\geq}"),
+    ("2282", r"\ensuremath{\subset}"),
+    ("2283", r"\ensuremath{\supset}"),
+    ("2286", r"\ensuremath{\subseteq}"),
+    ("2287", r"\ensuremath{\supseteq}"),
+    ("22A5", r"\ensuremath{\perp}"),
+    ("2225", r"\ensuremath{\parallel}"),
+)
+
 
 def latex_escape_plain_text(value: str) -> str:
     if not value:
@@ -89,6 +166,13 @@ def latex_escape_plain_text(value: str) -> str:
     for a, b in _LATEX_ESCAPES:
         out = out.replace(a, b)
     return out
+
+
+def latex_unicode_character_declarations() -> list[str]:
+    return [
+        rf"\DeclareUnicodeCharacter{{{codepoint}}}{{{replacement}}}"
+        for codepoint, replacement in _UNICODE_LATEX_DECLARATIONS
+    ]
 
 
 def _block_heading(block: ProblemSolutionBlock) -> str:
@@ -296,6 +380,7 @@ def build_solution_tex_source(
     lines: list[str] = [
         r"\documentclass[11pt]{scrartcl}",
         r"\usepackage[sexy,noasy]{evan}",
+        *latex_unicode_character_declarations(),
         rf"\graphicspath{{{gp}}}",
         rf"\title{{{title}}}",
         rf"\author{{{author}}}",
