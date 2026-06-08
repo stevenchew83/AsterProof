@@ -81,6 +81,11 @@ _LATEX_ESCAPES = (
     ("~", r"\textasciitilde{}"),
 )
 
+_LATEX_UNICODE_MATH_NORMALIZATIONS = (
+    ("=\u0338", "≠"),
+    ("\u0338=", "≠"),
+)
+
 _UNICODE_LATEX_DECLARATIONS = (
     ("00B0", r"\ensuremath{{}^{\circ}}"),
     ("00B1", r"\ensuremath{\pm}"),
@@ -179,10 +184,17 @@ _UNICODE_LATEX_DECLARATIONS = (
 )
 
 
+def normalize_latex_unicode_math(value: str) -> str:
+    out = value or ""
+    for source, replacement in _LATEX_UNICODE_MATH_NORMALIZATIONS:
+        out = out.replace(source, replacement)
+    return out
+
+
 def latex_escape_plain_text(value: str) -> str:
     if not value:
         return ""
-    out = value
+    out = normalize_latex_unicode_math(value)
     for a, b in _LATEX_ESCAPES:
         out = out.replace(a, b)
     return out
@@ -482,7 +494,7 @@ def compile_solution_tex_to_pdf(
         tmp_path = Path(tmp)
         shutil.copy2(EVAN_STY_PATH, tmp_path / "evan.sty")
         main_tex = tmp_path / "main.tex"
-        main_tex.write_text(tex_source, encoding="utf-8")
+        main_tex.write_text(normalize_latex_unicode_math(tex_source), encoding="utf-8")
         cmd = [
             latex_binary,
             "-pdf",

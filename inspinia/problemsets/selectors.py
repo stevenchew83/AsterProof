@@ -41,6 +41,26 @@ _PROBLEM_NOTE_SEARCH_FIELDS = (
     "pitfalls",
     "pitfalls_value",
 )
+_PROBLEM_NOTE_FIELDS = (
+    ("Core idea", "core_ideas_value", "hide_core_ideas"),
+    ("Rationale", "rationale_value", "hide_rationale"),
+    ("Common pitfalls", "pitfalls_value", "hide_pitfalls"),
+)
+_PROBLEM_NOTE_LABEL_TO_HIDE_ATTR = {
+    label: hidden_attr for label, _value_attr, hidden_attr in _PROBLEM_NOTE_FIELDS
+}
+_PROBLEM_NOTE_LABEL_ORDER = tuple(label for label, _value_attr, _hidden_attr in _PROBLEM_NOTE_FIELDS)
+_PROBLEM_NOTE_SECTION_LABELS = {
+    "core idea": "Core idea",
+    "core ideas": "Core idea",
+    "rationale": "Rationale",
+    "common pitfalls": "Common pitfalls",
+    "pitfalls": "Common pitfalls",
+}
+_PROBLEM_NOTE_SECTION_RE = re.compile(
+    r"(?P<label>Core ideas?|Rationale|Common pitfalls|Pitfalls)\s*:",
+    re.IGNORECASE,
+)
 _QUERY_FIELD_ALIASES = {
     "c": "contest",
     "contest": "contest",
@@ -237,19 +257,67 @@ def _problem_note_rows(
     problem: ProblemSolveRecord,
     statement: ContestProblemStatement | None,
 ) -> list[dict[str, str]]:
-    note_fields = (
-        ("Core idea", "core_ideas_value", "hide_core_ideas"),
-        ("Rationale", "rationale_value", "hide_rationale"),
-        ("Common pitfalls", "pitfalls_value", "hide_pitfalls"),
-    )
-    rows = []
-    for label, value_attr, hidden_attr in note_fields:
+    raw_values: dict[str, str] = {}
+    for label, value_attr, hidden_attr in _PROBLEM_NOTE_FIELDS:
         if getattr(problem_list, hidden_attr):
             continue
         value = _problem_note_value(problem, statement, value_attr)
         if value:
-            rows.append({"label": label, "value": value})
-    return rows
+            raw_values[label] = value
+
+    note_values: dict[str, str] = {}
+    for label in _PROBLEM_NOTE_LABEL_ORDER:
+        value = raw_values.get(label, "")
+        if not value:
+            continue
+        for parsed_label, parsed_value in _split_problem_note_sections(value, default_label=label):
+            if getattr(problem_list, _PROBLEM_NOTE_LABEL_TO_HIDE_ATTR[parsed_label]):
+                continue
+            if parsed_label != label and raw_values.get(parsed_label):
+                continue
+            _append_problem_note_value(note_values, parsed_label, parsed_value)
+
+    return [
+        {"label": label, "value": note_values[label]}
+        for label in _PROBLEM_NOTE_LABEL_ORDER
+        if note_values.get(label)
+    ]
+
+
+def _split_problem_note_sections(value: str, *, default_label: str) -> list[tuple[str, str]]:
+    text = (value or "").strip()
+    if not text:
+        return []
+
+    matches = list(_PROBLEM_NOTE_SECTION_RE.finditer(text))
+    if not matches:
+        return [(default_label, text)]
+
+    sections: list[tuple[str, str]] = []
+    leading_text = text[: matches[0].start()].strip()
+    if leading_text:
+        sections.append((default_label, leading_text))
+
+    for index, match in enumerate(matches):
+        raw_label = re.sub(r"\s+", " ", match.group("label").strip().casefold())
+        label = _PROBLEM_NOTE_SECTION_LABELS[raw_label]
+        next_start = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+        section_text = text[match.end() : next_start].strip()
+        if section_text:
+            sections.append((label, section_text))
+    return sections
+
+
+def _append_problem_note_value(note_values: dict[str, str], label: str, value: str) -> None:
+    normalized_value = re.sub(r"\s+", " ", value).strip()
+    if not normalized_value:
+        return
+    existing_value = note_values.get(label)
+    if not existing_value:
+        note_values[label] = normalized_value
+        return
+    if normalized_value not in existing_value:
+        note_values[label] = f"{existing_value}\n{normalized_value}"
 
 
 def _problem_note_value(

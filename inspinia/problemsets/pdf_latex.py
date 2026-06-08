@@ -71,11 +71,13 @@ def build_problem_list_tex_source(problem_list: ProblemList, item_rows: list[dic
             lines.extend([rf"\textbf{{Tags:}} {tags}", ""])
 
         problem_notes = row.get("problem_notes") or []
-        for note in problem_notes:
-            label = latex_escape_plain_text(note["label"])
-            value = latex_escape_plain_text(note["value"])
-            lines.append(rf"\textbf{{{label}:}} {value}")
         if problem_notes:
+            lines.append(r"\begin{itemize}")
+            for note in problem_notes:
+                label = latex_escape_plain_text(note["label"])
+                value = latex_escape_plain_text(note["value"])
+                lines.append(rf"\item \textbf{{{label}:}} {value}")
+            lines.append(r"\end{itemize}")
             lines.append("")
 
         statement = row.get("statement")

@@ -21,6 +21,7 @@ from inspinia.users.tests.factories import UserFactory
 
 pytestmark = pytest.mark.django_db
 EXPECTED_TWO_PROBLEM_SEARCH_MATCHES = 2
+EXPECTED_PROBLEM_NOTE_SECTION_COUNT = 3
 
 
 def _problem(**overrides) -> ProblemSolveRecord:
@@ -919,6 +920,37 @@ def test_public_share_page_shows_problem_notes_when_allowed(client):
     assert "Missing the terminal case." in response_html
 
 
+def test_public_share_page_splits_embedded_problem_note_labels_into_point_form(client):
+    problem = _problem(
+        core_ideas=(
+            "Core idea: Test y = 0 and x = 0 to control f(0). "
+            "Separate the f(0) = 0 and f(0) ̸= 0 cases. "
+            "Rationale: The candidate solutions are easy to guess, but ruling out pathological "
+            "functions takes some care. "
+            "Common pitfalls: Dividing by f(y) without proving nonzero; assuming injectivity too early."
+        ),
+        rationale="",
+        pitfalls="",
+        topic="ALG",
+        mohs=25,
+    )
+    _statement(problem, "Find all functions satisfying the equation.")
+    problem_list = _problem_list(visibility=ProblemList.Visibility.PUBLIC)
+    ProblemListItem.objects.create(problem_list=problem_list, problem=problem, position=1)
+
+    response = client.get(problem_list.public_url())
+
+    assert response.status_code == HTTPStatus.OK
+    response_html = response.content.decode("utf-8")
+    assert response_html.count("problem-list-public-analytics-note-item") == EXPECTED_PROBLEM_NOTE_SECTION_COUNT
+    assert response_html.index("Core idea") < response_html.index("Rationale") < response_html.index("Common pitfalls")
+    assert "Test y = 0 and x = 0 to control f(0)." in response_html
+    assert "The candidate solutions are easy to guess" in response_html
+    assert "Dividing by f(y) without proving nonzero" in response_html
+    assert "Rationale: The candidate solutions" not in response_html
+    assert "Common pitfalls: Dividing by f(y)" not in response_html
+
+
 def test_problem_list_edit_options_hide_problem_notes_from_public_page(client):
     author = UserFactory(name="Exam Maker")
     client.force_login(author)
@@ -1232,6 +1264,38 @@ def test_problem_list_pdf_source_includes_allowed_problem_notes():
     assert "Use a hidden symmetry." not in tex_source
     assert "Rationale:" not in tex_source
     assert "The statement row is the curated source." not in tex_source
+
+
+def test_problem_list_pdf_source_splits_embedded_problem_note_labels_into_bullets():
+    from inspinia.problemsets.pdf_latex import build_problem_list_tex_source
+    from inspinia.problemsets.selectors import problem_list_item_rows
+
+    problem = _problem(
+        core_ideas=(
+            "Core idea: Test y = 0 and x = 0 to control f(0). "
+            "Separate the f(0) = 0 and f(0) ̸= 0 cases. "
+            "Rationale: The candidate solutions are easy to guess, but ruling out pathological "
+            "functions takes some care. "
+            "Common pitfalls: Dividing by f(y) without proving nonzero; assuming injectivity too early."
+        ),
+        rationale="",
+        pitfalls="",
+        topic="ALG",
+        mohs=25,
+    )
+    _statement(problem, "Find all functions satisfying the equation.")
+    problem_list = _problem_list(title="Mock paper", visibility=ProblemList.Visibility.PUBLIC)
+    ProblemListItem.objects.create(problem_list=problem_list, problem=problem, position=1)
+
+    tex_source = build_problem_list_tex_source(problem_list, problem_list_item_rows(problem_list))
+
+    assert r"\begin{itemize}" in tex_source
+    assert r"\item \textbf{Core idea:} Test y = 0 and x = 0 to control f(0)." in tex_source
+    assert r"\item \textbf{Rationale:} The candidate solutions are easy to guess" in tex_source
+    assert r"\item \textbf{Common pitfalls:} Dividing by f(y) without proving nonzero" in tex_source
+    assert r"\item \textbf{Core idea:} Core idea:" not in tex_source
+    assert "f(0) ≠ 0 cases." in tex_source
+    assert "f(0) ̸= 0 cases." not in tex_source
 
 
 def test_problem_list_pdf_source_declares_unicode_math_symbols_for_pdf_latex():
