@@ -302,13 +302,15 @@
         </div>
         {% endif %}
         {% if row.problem_notes %}
-        <div class="d-grid gap-2 mb-3">
+        <div class="problem-list-public-analytics-note p-3 mb-3">
+          <ul class="mb-0 ps-3">
           {% for note in row.problem_notes %}
-          <div class="problem-list-public-analytics-note p-3">
-            <p class="problem-list-public-analytics-label mb-1">{{ note.label }}</p>
-            <div>{{ note.value|linebreaksbr }}</div>
-          </div>
+            <li class="problem-list-public-analytics-note-item mb-1">
+              <span class="problem-list-public-analytics-label">{{ note.label }}:</span>
+              <span>{{ note.value|linebreaksbr }}</span>
+            </li>
           {% endfor %}
+          </ul>
         </div>
         {% endif %}
         {% if row.comment or row.hint %}
