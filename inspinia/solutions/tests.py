@@ -380,7 +380,7 @@ def test_problem_solution_list_shows_my_solution_and_only_other_published_soluti
     assert 'textbullet: "\\\\bullet"' in response_html
 
 
-def test_problem_solution_list_shows_static_solution_guidance_panel(client):
+def test_problem_solution_list_shows_static_solution_guidance_panel_as_hidden_hints(client):
     user = UserFactory()
     client.force_login(user)
     problem = _problem(contest="ELMO Shortlist", year=2019, problem="G1")
@@ -398,7 +398,11 @@ def test_problem_solution_list_shows_static_solution_guidance_panel(client):
 
     assert response.status_code == HTTPStatus.OK
     response_html = response.content.decode("utf-8")
+    assert "Hints" in response_html
     assert "Solution guide" in response_html
+    assert 'data-bs-target="#solution-guide-panel"' in response_html
+    assert 'aria-controls="solution-guide-panel"' in response_html
+    assert 'id="solution-guide-panel" class="collapse' in response_html
     assert 'data-bs-toggle="pill"' in response_html
     assert "Core ideas" in response_html
     assert "Rationale" in response_html
