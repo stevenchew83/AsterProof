@@ -151,7 +151,7 @@
                   placeholder="Topic, tag, text"
                 >
               </div>
-              <div class="col-md-6 col-xl-3">
+              <div class="col-md-6 col-xl-2">
                 <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="quick-completion-subtopics">Subtopics</label>
                 <input
                   id="quick-completion-subtopics"
@@ -162,7 +162,15 @@
                   placeholder="LTE, angle chase"
                 >
               </div>
-              <div class="col-md-3 col-xl-2">
+              <div class="col-md-4 col-xl-2">
+                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="quick-completion-core-ideas">Core ideas</label>
+                <select id="quick-completion-core-ideas" name="core_ideas" class="form-select">
+                  <option value="">Any</option>
+                  <option value="has"{% if completion_quick_update_filters.core_ideas == "has" %} selected{% endif %}>Has core ideas</option>
+                  <option value="missing"{% if completion_quick_update_filters.core_ideas == "missing" %} selected{% endif %}>Missing core ideas</option>
+                </select>
+              </div>
+              <div class="col-md-4 col-xl-1">
                 <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="quick-completion-mohs-min">MOHS min</label>
                 <input
                   id="quick-completion-mohs-min"
@@ -175,7 +183,7 @@
                   placeholder="Min"
                 >
               </div>
-              <div class="col-md-3 col-xl-2">
+              <div class="col-md-4 col-xl-1">
                 <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="quick-completion-mohs-max">MOHS max</label>
                 <input
                   id="quick-completion-mohs-max"
@@ -188,7 +196,7 @@
                   placeholder="Max"
                 >
               </div>
-              <div class="col-md-6 col-xl-2">
+              <div class="col-md-6 col-xl-3">
                 <div class="d-flex flex-wrap gap-2">
                   <button type="submit" class="btn btn-primary">
                     <i class="ti ti-search me-1"></i>Search

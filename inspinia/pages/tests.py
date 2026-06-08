@@ -6276,6 +6276,7 @@ def test_completion_quick_update_filters_by_contest_year_and_problem_text(client
     assert response.status_code == HTTPStatus.OK
     assert response.context["completion_quick_update_filters"] == {
         "contest": "USAMO",
+        "core_ideas": "",
         "mohs_max": "",
         "mohs_min": "",
         "problem": "1",
@@ -6432,6 +6433,42 @@ def test_completion_quick_update_search_matches_analytics_explanation_fields(cli
     assert response.status_code == HTTPStatus.OK
     rows = response.context["completion_quick_update_rows"]
     assert [row["statement_uuid"] for row in rows] == [str(statement_pitfalls.statement_uuid)]
+
+
+def test_completion_quick_update_filters_by_effective_core_ideas_availability(client):
+    user = UserFactory()
+    client.force_login(user)
+    statement_core = _create_quick_completion_statement(
+        problem_code="P1",
+        problem_number=1,
+        core_ideas="Core ideas: Use a parity lattice invariant.",
+    )
+    linked_core = _create_quick_completion_statement(
+        problem_code="P2",
+        problem_number=2,
+        linked_core_ideas="Core ideas: Angle chase from the linked record.",
+    )
+    missing_core = _create_quick_completion_statement(problem_code="P3", problem_number=3)
+
+    response = client.get(reverse("pages:completion_quick_update"), {"core_ideas": "has"})
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["completion_quick_update_filters"]["core_ideas"] == "has"
+    rows = response.context["completion_quick_update_rows"]
+    assert [row["statement_uuid"] for row in rows] == [
+        str(statement_core.statement_uuid),
+        str(linked_core.statement_uuid),
+    ]
+    response_html = response.content.decode("utf-8")
+    assert 'name="core_ideas"' in response_html
+    assert '<option value="has" selected>Has core ideas</option>' in response_html
+    assert "USAMO 2026 P3" not in response_html
+
+    response = client.get(reverse("pages:completion_quick_update"), {"core_ideas": "missing"})
+
+    assert response.status_code == HTTPStatus.OK
+    rows = response.context["completion_quick_update_rows"]
+    assert [row["statement_uuid"] for row in rows] == [str(missing_core.statement_uuid)]
 
 
 def test_completion_quick_update_renders_analytics_toggle_buttons_and_search_text(client):

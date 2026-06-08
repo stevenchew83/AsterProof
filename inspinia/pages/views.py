@@ -4891,6 +4891,15 @@ def _completion_quick_update_apply_subtopics_filter(queryset, raw_value: str):
     return queryset
 
 
+def _completion_quick_update_apply_core_ideas_filter(queryset, raw_value: str):
+    value = (raw_value or "").strip().lower()
+    if value == "has":
+        return queryset.exclude(_eff_core_ideas_value="")
+    if value == "missing":
+        return queryset.filter(_eff_core_ideas_value="")
+    return queryset
+
+
 def _completion_quick_update_parse_user_id(raw_value: str) -> int | None:
     try:
         user_id = int(raw_value)
@@ -5111,6 +5120,9 @@ def completion_quick_update_view(request):
     selected_year = (request.GET.get("year") or "").strip()
     selected_problem = (request.GET.get("problem") or "").strip()
     selected_problem_label = (request.GET.get("problem_label") or "").strip()
+    selected_core_ideas = (request.GET.get("core_ideas") or "").strip().lower()
+    if selected_core_ideas not in {"has", "missing"}:
+        selected_core_ideas = ""
     selected_mohs_min = (request.GET.get("mohs_min") or "").strip()
     selected_mohs_max = (request.GET.get("mohs_max") or "").strip()
     selected_subtopics = (request.GET.get("subtopics") or "").strip()
@@ -5120,6 +5132,7 @@ def completion_quick_update_view(request):
     has_search_filters = any(
         [
             selected_contest,
+            selected_core_ideas,
             selected_year,
             selected_problem,
             selected_problem_label,
@@ -5161,6 +5174,10 @@ def completion_quick_update_view(request):
         filtered_statements,
         selected_subtopics,
     ).distinct()
+    filtered_statements = _completion_quick_update_apply_core_ideas_filter(
+        filtered_statements,
+        selected_core_ideas,
+    )
     matching_total = filtered_statements.count()
     result_limit = (
         COMPLETION_QUICK_UPDATE_SEARCH_LIMIT
@@ -5205,6 +5222,7 @@ def completion_quick_update_view(request):
         "completion_quick_update_contest_choices": contest_choices,
         "completion_quick_update_filters": {
             "contest": selected_contest,
+            "core_ideas": selected_core_ideas,
             "mohs_max": selected_mohs_max,
             "mohs_min": selected_mohs_min,
             "problem": selected_problem,
