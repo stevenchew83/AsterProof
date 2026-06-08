@@ -59,6 +59,20 @@
     vertical-align: top;
   }
 
+  .problem-list-picker-note-cell {
+    max-width: 18rem;
+    min-width: 12rem;
+    white-space: normal;
+  }
+
+  .problem-list-picker-note-text {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+  }
+
   #problem-list-search-results-table_wrapper .dt-layout-row,
   #problem-list-sequence-table_wrapper .dt-layout-row {
     align-items: center;
@@ -430,6 +444,9 @@
                   <th>Metadata</th>
                   <th>User MOHS</th>
                   <th>Tags</th>
+                  <th>Core idea</th>
+                  <th>Rationale</th>
+                  <th>Common pitfalls</th>
                   <th class="text-end">Actions</th>
                 </tr>
               </thead>
@@ -639,6 +656,9 @@
           { data: "metadata" },
           { data: "user_mohs" },
           { data: "tags" },
+          { data: "core_ideas" },
+          { data: "rationale" },
+          { data: "pitfalls" },
           { data: "actions", orderable: false, searchable: false, className: "text-end" }
         ],
         createdRow: function (rowNode, rowData) {
@@ -731,6 +751,13 @@
       return "<span class=\"text-muted\">&mdash;</span>";
     }
     return "<span class=\"fw-semibold\">" + escapeHtml(row.user_mohs) + "</span>";
+  }
+
+  function problemNoteCell(value) {
+    if (value === null || value === undefined || value === "") {
+      return "<span class=\"text-muted fs-xs\">&mdash;</span>";
+    }
+    return "<div class=\"problem-list-picker-note-cell\"><span class=\"problem-list-picker-note-text\">" + escapeHtml(value) + "</span></div>";
   }
 
   function statementStatusBadge(row) {
@@ -1110,6 +1137,9 @@
       metadata: metadataBadges(row),
       user_mohs: "<span class=\"text-nowrap\">" + userMohsCell(row) + "</span>",
       tags: tagBadges(row),
+      core_ideas: problemNoteCell(row.core_ideas),
+      rationale: problemNoteCell(row.rationale),
+      pitfalls: problemNoteCell(row.pitfalls),
       actions: [
         "<div class=\"d-inline-flex flex-wrap justify-content-end gap-2\">",
         "<button type=\"button\" class=\"btn btn-outline-secondary btn-sm\" data-preview-problem><i class=\"ti ti-eye me-1\"></i>Preview</button>",
@@ -1132,7 +1162,7 @@
     }
 
     if (!rowData.length) {
-      searchResultsBody.innerHTML = "<tr><td colspan=\"5\" class=\"text-muted fs-sm\">" + escapeHtml(emptyMessage) + "</td></tr>";
+      searchResultsBody.innerHTML = "<tr><td colspan=\"8\" class=\"text-muted fs-sm\">" + escapeHtml(emptyMessage) + "</td></tr>";
       return;
     }
 
@@ -1143,6 +1173,9 @@
         "<td>" + row.metadata + "</td>",
         "<td>" + row.user_mohs + "</td>",
         "<td>" + row.tags + "</td>",
+        "<td>" + row.core_ideas + "</td>",
+        "<td>" + row.rationale + "</td>",
+        "<td>" + row.pitfalls + "</td>",
         "<td class=\"text-end\">" + row.actions + "</td>",
         "</tr>"
       ].join("");
@@ -1243,7 +1276,7 @@
           searchResultsTable.clear();
           searchResultsTable.draw();
         } else {
-          searchResultsBody.innerHTML = "<tr><td colspan=\"5\" class=\"text-danger fs-sm\">" + escapeHtml(error.message || "Could not search active problems.") + "</td></tr>";
+          searchResultsBody.innerHTML = "<tr><td colspan=\"8\" class=\"text-danger fs-sm\">" + escapeHtml(error.message || "Could not search active problems.") + "</td></tr>";
         }
         if (searchStatus) {
           searchStatus.textContent = "";
