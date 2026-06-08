@@ -86,37 +86,58 @@
     </div>
     <div class="card-body">
       {% if problem_list_rows %}
-      <div class="row g-3">
-        {% for row in problem_list_rows %}
-        <div class="col-xl-4 col-md-6">
-          <div class="card border h-100 mb-0">
-            <div class="card-body d-flex flex-column">
-              <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-2">
-                <h5 class="mb-0">{{ row.title }}</h5>
+      <div class="table-responsive" data-problem-list-table="owned-lists">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th scope="col">List</th>
+              <th scope="col">Visibility</th>
+              <th scope="col">Problems</th>
+              <th scope="col">Score</th>
+              <th scope="col">Votes</th>
+              <th scope="col">Updated</th>
+              <th scope="col" class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in problem_list_rows %}
+            <tr>
+              <td>
+                <div class="fw-semibold text-body">{{ row.title }}</div>
+                {% if row.description %}
+                <div class="text-muted fs-sm mt-1">{{ row.description|truncatechars:160 }}</div>
+                {% endif %}
+              </td>
+              <td>
                 <span class="badge {% if row.visibility == 'public' %}bg-success-subtle text-success{% else %}bg-secondary-subtle text-secondary{% endif %}">
                   {{ row.visibility_label }}
                 </span>
-              </div>
-              {% if row.description %}
-              <p class="text-muted fs-sm">{{ row.description|truncatechars:180 }}</p>
-              {% endif %}
-              <div class="d-flex flex-wrap gap-2 mb-3">
-                <span class="badge bg-light text-dark border">{{ row.item_count }} problems</span>
+              </td>
+              <td class="text-nowrap">{{ row.item_count }} problem{{ row.item_count|pluralize }}</td>
+              <td class="text-nowrap">
                 <span class="badge bg-primary-subtle text-primary">Score {{ row.score }}</span>
-                <span class="badge bg-light text-dark border">{{ row.upvote_count }} up / {{ row.downvote_count }} down</span>
-              </div>
-              <p class="text-muted fs-xs mb-3">Updated {{ row.updated_at_label }}</p>
-              <div class="mt-auto d-flex flex-wrap gap-2">
-                <a href="{{ row.detail_url }}" class="btn btn-outline-primary btn-sm">Open</a>
-                <a href="{{ row.edit_url }}" class="btn btn-primary btn-sm">Edit</a>
-                {% if row.visibility == 'public' %}
-                <a href="{{ row.public_url }}" class="btn btn-outline-secondary btn-sm">Share page</a>
-                {% endif %}
-              </div>
-            </div>
-          </div>
-        </div>
-        {% endfor %}
+              </td>
+              <td class="text-nowrap">{{ row.upvote_count }} up / {{ row.downvote_count }} down</td>
+              <td class="text-nowrap text-muted fs-sm">{{ row.updated_at_label }}</td>
+              <td class="text-end">
+                <div class="d-inline-flex flex-wrap justify-content-end gap-2">
+                  <a href="{{ row.detail_url }}" class="btn btn-outline-primary btn-sm">
+                    <i class="ti ti-eye me-1"></i>Open
+                  </a>
+                  <a href="{{ row.edit_url }}" class="btn btn-primary btn-sm">
+                    <i class="ti ti-pencil me-1"></i>Edit
+                  </a>
+                  {% if row.visibility == 'public' %}
+                  <a href="{{ row.public_url }}" class="btn btn-outline-secondary btn-sm">
+                    <i class="ti ti-share me-1"></i>Share
+                  </a>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
       {% else %}
       <div class="alert alert-info mb-0" role="alert">
