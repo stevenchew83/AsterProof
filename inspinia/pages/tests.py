@@ -13234,6 +13234,28 @@ def test_handle_summary_parser_post_builds_export_table(client):
     assert "Recurrence-permutation triples in Z_n" in response_html
 
 
+def test_handle_summary_parser_clear_control_resets_rendered_results(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+
+    response = client.post(
+        reverse("pages:handle_summary_parser"),
+        {"source_text": HANDLE_SUMMARY_PARSER_SAMPLE},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    response_html = response.content.decode("utf-8")
+    assert 'id="handle-summary-export-status"' in response_html
+    assert 'id="handle-summary-results"' in response_html
+    assert 'id="handle-summary-results-body"' in response_html
+    assert 'var results = document.getElementById("handle-summary-results");' in response_html
+    assert 'var parsedRowsBody = document.getElementById("handle-summary-results-body");' in response_html
+    assert "exportBox.value = defaultExportValue;" in response_html
+    assert "copyButton.hidden = true;" in response_html
+    assert "results.hidden = true;" in response_html
+    assert "parsedRowsBody.removeChild(parsedRowsBody.firstChild);" in response_html
+
+
 def test_statement_render_preview_returns_rendered_asymptote_html(client, monkeypatch):
     user = UserFactory()
     client.force_login(user)
