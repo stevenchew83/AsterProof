@@ -33,6 +33,21 @@
     background: var(--bs-tertiary-bg);
   }
 
+  .solution-guide-panel {
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    padding: 1rem;
+    background: var(--bs-tertiary-bg);
+  }
+
+  .solution-guide-panel .nav-pills {
+    gap: 0.5rem;
+  }
+
+  .solution-guide-panel .nav-link {
+    min-width: 9rem;
+  }
+
   .solution-difficulty-editor,
   .solution-completion-editor,
   .solution-problem-list-actions {
@@ -95,6 +110,93 @@
             A linked statement is not available for this problem yet.
           </div>
           {% endif %}
+          <section class="solution-guide-panel mt-3" aria-labelledby="solution-guide-title">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+              <div>
+                <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Solution guide</p>
+                <h5 id="solution-guide-title" class="mb-0">Proof planning notes</h5>
+              </div>
+            </div>
+            <div class="nav nav-pills" id="solution-guide-tabs" role="tablist" aria-label="Solution guide sections">
+              <button
+                class="nav-link active"
+                id="solution-guide-core-tab"
+                data-bs-toggle="pill"
+                data-bs-target="#solution-guide-core"
+                type="button"
+                role="tab"
+                aria-controls="solution-guide-core"
+                aria-selected="true"
+              >
+                <i class="ti ti-bulb me-1"></i>Core ideas
+              </button>
+              <button
+                class="nav-link"
+                id="solution-guide-rationale-tab"
+                data-bs-toggle="pill"
+                data-bs-target="#solution-guide-rationale"
+                type="button"
+                role="tab"
+                aria-controls="solution-guide-rationale"
+                aria-selected="false"
+              >
+                <i class="ti ti-route me-1"></i>Rationale
+              </button>
+              <button
+                class="nav-link"
+                id="solution-guide-pitfalls-tab"
+                data-bs-toggle="pill"
+                data-bs-target="#solution-guide-pitfalls"
+                type="button"
+                role="tab"
+                aria-controls="solution-guide-pitfalls"
+                aria-selected="false"
+              >
+                <i class="ti ti-alert-triangle me-1"></i>Common pitfalls
+              </button>
+            </div>
+            <div class="tab-content mt-3" id="solution-guide-content">
+              <div
+                class="tab-pane fade show active"
+                id="solution-guide-core"
+                role="tabpanel"
+                aria-labelledby="solution-guide-core-tab"
+                tabindex="0"
+              >
+                <ul class="mb-0 ps-3">
+                  <li>Choose the main objects and relations before writing details.</li>
+                  <li>Translate the desired conclusion into an equivalent condition.</li>
+                  <li>Track reusable facts such as equal angles, cyclic points, and symmetry.</li>
+                </ul>
+              </div>
+              <div
+                class="tab-pane fade"
+                id="solution-guide-rationale"
+                role="tabpanel"
+                aria-labelledby="solution-guide-rationale-tab"
+                tabindex="0"
+              >
+                <ul class="mb-0 ps-3">
+                  <li>Connect each move back to the exact condition you need to prove.</li>
+                  <li>Prefer claims that reduce the configuration instead of expanding it.</li>
+                  <li>Record why each constructed point or line matters to the target.</li>
+                </ul>
+              </div>
+              <div
+                class="tab-pane fade"
+                id="solution-guide-pitfalls"
+                role="tabpanel"
+                aria-labelledby="solution-guide-pitfalls-tab"
+                tabindex="0"
+              >
+                <ul class="mb-0 ps-3">
+                  <li>Assuming a diagram relation before it has been justified.</li>
+                  <li>Chasing too many facts without naming the next target.</li>
+                  <li>Treating a special-looking diagram as a proof of the general case.</li>
+                </ul>
+              </div>
+            </div>
+          </section>
         </div>
       </div>
     </div>

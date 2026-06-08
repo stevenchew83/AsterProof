@@ -378,6 +378,34 @@ def test_problem_solution_list_shows_my_solution_and_only_other_published_soluti
     assert 'textbullet: "\\\\bullet"' in response_html
 
 
+def test_problem_solution_list_shows_static_solution_guidance_panel(client):
+    user = UserFactory()
+    client.force_login(user)
+    problem = _problem(contest="ELMO Shortlist", year=2019, problem="G1")
+    ContestProblemStatement.objects.create(
+        linked_problem=problem,
+        contest_year=2019,
+        contest_name="ELMO Shortlist",
+        problem_number=1,
+        problem_code="G1",
+        day_label="Geometry",
+        statement_latex="Let ABC be an acute triangle.",
+    )
+
+    response = client.get(reverse("solutions:problem_solution_list", args=[problem.problem_uuid]))
+
+    assert response.status_code == HTTPStatus.OK
+    response_html = response.content.decode("utf-8")
+    assert "Solution guide" in response_html
+    assert 'data-bs-toggle="pill"' in response_html
+    assert "Core ideas" in response_html
+    assert "Rationale" in response_html
+    assert "Common pitfalls" in response_html
+    assert "Choose the main objects and relations before writing details." in response_html
+    assert "Connect each move back to the exact condition you need to prove." in response_html
+    assert "Assuming a diagram relation before it has been justified." in response_html
+
+
 def test_problem_solution_list_exposes_statement_difficulty_and_problem_list_controls(client):
     user = UserFactory()
     other_user = UserFactory()
