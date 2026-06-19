@@ -30,6 +30,46 @@ def normalize_topic_tag(s: str | None) -> str:
     return clean_token(s or "").upper()
 
 
+def _merge_parsed_topic_entries(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    by_technique: dict[str, dict[str, Any]] = {}
+    for entry in entries:
+        technique = normalize_topic_tag(entry.get("technique"))
+        if not technique:
+            continue
+
+        key = technique.casefold()
+        domains = domains_dedup_preserve_order(entry.get("domains") or [])
+        if key in by_technique:
+            by_technique[key]["domains"] = merge_domain_lists(
+                by_technique[key]["domains"],
+                domains,
+            )
+            continue
+
+        by_technique[key] = {"technique": technique, "domains": domains}
+    return list(by_technique.values())
+
+
+def _multiline_topic_tag_lines(text: str) -> list[str]:
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    if len(lines) <= 1:
+        return []
+    if normalize_topic_tag(lines[0]) in {"SUBTOPIC", "SUBTOPICS"}:
+        lines = lines[1:]
+    return lines
+
+
+def _parse_topic_tag_text(text: str) -> list[dict[str, Any]]:
+    lines = _multiline_topic_tag_lines(text)
+    if not lines:
+        return _merge_parsed_topic_entries(parse_topic_tags_value(text))
+
+    entries: list[dict[str, Any]] = []
+    for line in lines:
+        entries.extend(parse_topic_tags_value(line))
+    return _merge_parsed_topic_entries(entries)
+
+
 def compute_problem_key(year: int, contest: str, problem: str) -> str:
     """Stable opaque key from YEAR + CONTEST + PROBLEM (for exports or non-Django stores)."""
     key_str = f"{year}|{clean_token(contest)}|{clean_token(problem)}"
@@ -84,14 +124,14 @@ def parse_topic_tags_cell(cell_text: Any) -> list[dict[str, Any]]:
     matches = list(TOPIC_BLOCK_RE.finditer(text))
     if not matches:
         text2 = TRUNCATE_RE.split(text, maxsplit=1)[0].strip()
-        return parse_topic_tags_value(text2)
+        return _parse_topic_tag_text(text2)
 
     out: list[dict[str, Any]] = []
     for mm in matches:
         block = mm.group(1).strip()
         block = TRUNCATE_RE.split(block, maxsplit=1)[0].strip()
-        out.extend(parse_topic_tags_value(block))
-    return out
+        out.extend(_parse_topic_tag_text(block))
+    return _merge_parsed_topic_entries(out)
 
 
 def domains_dedup_preserve_order(domains: list[str] | None) -> list[str]:

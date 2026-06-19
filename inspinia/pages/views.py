@@ -146,6 +146,8 @@ from inspinia.pages.statement_metadata_backfill import import_statement_metadata
 from inspinia.pages.statement_metadata_backfill import statement_metadata_dataframe_from_excel
 from inspinia.pages.statement_metadata_backfill import statement_metadata_dataframe_from_rows
 from inspinia.pages.statement_metadata_backfill import statement_metadata_dataframe_from_text
+from inspinia.pages.subtopic_cleanup import apply_subtopic_cleanup
+from inspinia.pages.subtopic_cleanup import build_subtopic_cleanup_preview
 from inspinia.pages.topic_labels import FULL_TOPIC_LABEL_MAP
 from inspinia.pages.topic_labels import display_topic_label
 from inspinia.problemsets.selectors import problem_list_add_target_rows
@@ -8777,9 +8779,27 @@ def problem_statement_metadata_view(request):
         return export_handler()
 
     form = StatementMetadataWorkbookForm()
+    subtopic_cleanup_preview = None
     if request.method == "POST":
         action = (request.POST.get("action") or "").strip()
-        if action == "save_grid":
+        if action == "preview_subtopic_cleanup":
+            subtopic_cleanup_preview = build_subtopic_cleanup_preview()
+        elif action == "apply_subtopic_cleanup":
+            if request.POST.get("confirm_subtopic_cleanup") != "1":
+                messages.error(request, "Preview subtopic cleanup before applying changes.")
+            else:
+                result = apply_subtopic_cleanup()
+                messages.success(
+                    request,
+                    (
+                        "Subtopic cleanup applied. "
+                        f"Updated {result.updated_count} parsed tag row(s), "
+                        f"merged {result.deleted_count} duplicate row(s), and "
+                        f"rewrote {result.raw_update_count} raw metadata field(s)."
+                    ),
+                )
+                return redirect("pages:problem_statement_metadata")
+        elif action == "save_grid":
             metadata_df, validation_error = _statement_metadata_dataframe_from_post(request.POST)
             if validation_error is not None:
                 messages.error(request, validation_error)
@@ -8834,5 +8854,6 @@ def problem_statement_metadata_view(request):
         {
             "form": form,
             "statement_metadata_total": ContestProblemStatement.objects.count(),
+            "subtopic_cleanup_preview": subtopic_cleanup_preview,
         },
     )

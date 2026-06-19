@@ -69,6 +69,7 @@ from inspinia.pages.statement_import import parse_contest_problem_statements
 from inspinia.pages.statement_metadata_backfill import StatementMetadataBackfillValidationError
 from inspinia.pages.statement_metadata_backfill import import_statement_metadata_dataframe
 from inspinia.pages.statement_metadata_backfill import statement_metadata_dataframe_from_rows
+from inspinia.pages.topic_tags_parse import parse_topic_tags_cell
 from inspinia.pages.views import ADMIN_TABLE_LATEST_LIMIT
 from inspinia.problemsets.models import ProblemList
 from inspinia.problemsets.models import ProblemListItem
@@ -806,6 +807,26 @@ def _pdf_upload(
     payload: bytes = b"%PDF-1.4\n%upload\n",
 ) -> SimpleUploadedFile:
     return SimpleUploadedFile(name, payload, content_type="application/pdf")
+
+
+def test_parse_topic_tags_cell_accepts_exported_subtopic_column_lines():
+    parsed = parse_topic_tags_cell(
+        "Subtopic\n"
+        "$P$-ADIC CONTINUITY/MAHLER\n"
+        "(\\MATHBB Z/5^K)^\\TIMES(Z/2K)\u00d7\n"
+        "(ALT) COMPLEX PLANE\n"
+        "ALG — INEQUALITIES; AM-GM; TANGENT-STYLE BOUND\n"
+        "2-ADIC VALUATION / PARITY\n"
+        "2-adic valuation / parity",
+    )
+
+    assert parsed == [
+        {"technique": "$P$-ADIC CONTINUITY/MAHLER", "domains": []},
+        {"technique": "(\\MATHBB Z/5^K)^\\TIMES(Z/2K)\u00d7", "domains": []},
+        {"technique": "(ALT) COMPLEX PLANE", "domains": []},
+        {"technique": "ALG — INEQUALITIES; AM-GM; TANGENT-STYLE BOUND", "domains": []},
+        {"technique": "2-ADIC VALUATION / PARITY", "domains": []},
+    ]
 
 
 def test_dataframe_from_excel_strips_headers_and_requires_columns():
@@ -13564,6 +13585,7 @@ def test_problem_statement_metadata_page_renders_tools_for_admin(client):
     assert "Statement metadata" in response_html
     assert "Export metadata workbook" in response_html
     assert "Export subtopics workbook" in response_html
+    assert "Clean up subtopics" in response_html
     assert "Import metadata" in response_html
     assert "Pasted metadata rows" in response_html
     assert "Blank cells keep existing values." in response_html
@@ -13577,6 +13599,7 @@ def test_problem_statement_metadata_page_renders_tools_for_admin(client):
     assert "?action=export" in response_html
     assert "?action=export_subtopics" in response_html
     assert 'id="statement-subtopics-export"' in response_html
+    assert 'id="statement-subtopic-cleanup-form"' in response_html
     assert 'id="statement-metadata-import-form"' in response_html
 
 
@@ -13928,6 +13951,135 @@ def test_problem_statement_metadata_page_exports_unique_subtopics_for_admin(clie
         {"Subtopic": "INVERSION"},
         {"Subtopic": "ISOGONALITY"},
     ]
+
+
+def test_problem_statement_metadata_page_previews_subtopic_cleanup_without_mutating(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    record = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="A",
+        mohs=25,
+        contest="Israel TST",
+        problem="P1",
+        contest_year_problem="Israel TST 2026 P1",
+        topic_tags="Topic tags: Alg - am/gm; unknown fragment",
+    )
+    statement = ContestProblemStatement.objects.create(
+        contest_year=2026,
+        contest_name="Israel TST",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Preview cleanup statement",
+        topic_tags="Topic tags: Geo - miquel point",
+    )
+    problem_alias = ProblemTopicTechnique.objects.create(
+        record=record,
+        technique="am/gm",
+        domains=["alg"],
+    )
+    ProblemTopicTechnique.objects.create(
+        record=record,
+        technique="unknown fragment",
+        domains=["alg"],
+    )
+    statement_alias = StatementTopicTechnique.objects.create(
+        statement=statement,
+        technique="miquel point",
+        domains=["geo"],
+    )
+
+    response = client.post(
+        reverse("pages:problem_statement_metadata"),
+        {"action": "preview_subtopic_cleanup"},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    preview = response.context["subtopic_cleanup_preview"]
+    assert preview["change_count"] == 2
+    assert preview["unmatched_count"] == 1
+    response_html = response.content.decode("utf-8")
+    assert "AM-GM" in response_html
+    assert "Inequalities and optimization" in response_html
+    assert "MIQUEL POINT" in response_html
+    assert "Circle geometry" in response_html
+    assert "UNKNOWN FRAGMENT" in response_html
+
+    problem_alias.refresh_from_db()
+    statement_alias.refresh_from_db()
+    record.refresh_from_db()
+    statement.refresh_from_db()
+    assert problem_alias.technique == "AM/GM"
+    assert problem_alias.main_topic == ""
+    assert problem_alias.canonical_subtopic == ""
+    assert statement_alias.technique == "MIQUEL POINT"
+    assert statement_alias.main_topic == ""
+    assert statement_alias.canonical_subtopic == ""
+    assert record.topic_tags == "Topic tags: Alg - am/gm; unknown fragment"
+    assert statement.topic_tags == "Topic tags: Geo - miquel point"
+
+
+def test_problem_statement_metadata_page_applies_subtopic_cleanup_and_rewrites_raw_tags(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    record = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="A",
+        mohs=25,
+        contest="Israel TST",
+        problem="P1",
+        contest_year_problem="Israel TST 2026 P1",
+        topic_tags="Topic tags: Alg - am/gm; AM-GM; unknown fragment",
+    )
+    statement = ContestProblemStatement.objects.create(
+        contest_year=2026,
+        contest_name="Israel TST",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Apply cleanup statement",
+        topic_tags="Topic tags: Geo - miquel point",
+    )
+    ProblemTopicTechnique.objects.create(record=record, technique="am/gm", domains=["alg"])
+    ProblemTopicTechnique.objects.create(record=record, technique="AM-GM", domains=["ineq"])
+    ProblemTopicTechnique.objects.create(record=record, technique="unknown fragment", domains=["alg"])
+    StatementTopicTechnique.objects.create(statement=statement, technique="miquel point", domains=["geo"])
+
+    response = client.post(
+        reverse("pages:problem_statement_metadata"),
+        {
+            "action": "apply_subtopic_cleanup",
+            "confirm_subtopic_cleanup": "1",
+        },
+        follow=True,
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    problem_tags = list(ProblemTopicTechnique.objects.filter(record=record).order_by("technique"))
+    assert [(tag.technique, tag.main_topic, tag.canonical_subtopic) for tag in problem_tags] == [
+        ("AM-GM", "ALG", "Inequalities and optimization"),
+        ("UNKNOWN FRAGMENT", "", ""),
+    ]
+    assert problem_tags[0].domains == ["ALG", "INEQ"]
+    statement_tag = StatementTopicTechnique.objects.get(statement=statement)
+    assert statement_tag.technique == "MIQUEL POINT"
+    assert statement_tag.main_topic == "GEO"
+    assert statement_tag.canonical_subtopic == "Circle geometry"
+    assert statement_tag.domains == ["GEO"]
+
+    record.refresh_from_db()
+    statement.refresh_from_db()
+    assert record.topic_tags == (
+        "Topic tags: ALG / Inequalities and optimization - AM-GM; "
+        "ALG - UNKNOWN FRAGMENT"
+    )
+    assert statement.topic_tags == "Topic tags: GEO / Circle geometry - MIQUEL POINT"
+    assert any(
+        "Subtopic cleanup applied. Updated 2 parsed tag row(s), merged 1 duplicate row(s), and rewrote 2 raw metadata field(s)."
+        in str(message)
+        for message in response.context["messages"]
+    )
 
 
 def test_problem_statement_metadata_export_strips_illegal_excel_characters(client):
