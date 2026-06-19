@@ -134,6 +134,14 @@ EXPECTED_STATEMENT_METADATA_EXPORT_COLUMNS = [
     "Common pitfalls",
 ]
 EXPECTED_SUBTOPIC_EXPORT_COLUMNS = ["Subtopic"]
+EXPECTED_UNMATCHED_SUBTOPIC_EXPORT_COLUMNS = [
+    "Subtopic",
+    "Occurrences",
+    "Problem rows",
+    "Statement rows",
+    "Existing domains",
+    "Example problem",
+]
 EXPECTED_CONTEST_TOTAL = 2
 EXPECTED_CONTEST_PROBLEM_TOTAL = 3
 EXPECTED_AVERAGE_PROBLEMS_PER_CONTEST = 1.5
@@ -13978,6 +13986,87 @@ def test_problem_statement_metadata_page_exports_unique_subtopics_for_admin(clie
     ]
 
 
+def test_problem_statement_metadata_page_exports_unmatched_subtopic_review_for_admin(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    first_problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="A",
+        mohs=25,
+        contest="Israel TST",
+        problem="P1",
+        contest_year_problem="Israel TST 2026 P1",
+    )
+    second_problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="G",
+        mohs=30,
+        contest="Israel TST",
+        problem="P2",
+        contest_year_problem="Israel TST 2026 P2",
+    )
+    statement = ContestProblemStatement.objects.create(
+        contest_year=2026,
+        contest_name="Israel TST",
+        problem_number=3,
+        problem_code="P3",
+        day_label="Day 2",
+        statement_latex="Unmatched export statement",
+    )
+    ProblemTopicTechnique.objects.create(
+        record=first_problem,
+        technique="cyclic",
+        domains=["alg"],
+    )
+    ProblemTopicTechnique.objects.create(
+        record=first_problem,
+        technique="am-gm",
+        domains=["alg"],
+    )
+    ProblemTopicTechnique.objects.create(
+        record=second_problem,
+        technique="CYCLIC",
+        domains=["geo"],
+    )
+    StatementTopicTechnique.objects.create(
+        statement=statement,
+        technique="hyperbolic cosines",
+        domains=["alg"],
+    )
+
+    response = client.get(
+        reverse("pages:problem_statement_metadata"),
+        {"action": "export_unmatched_subtopics"},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response["Content-Type"].startswith(WORKBOOK_CONTENT_TYPE)
+    assert response["Content-Disposition"].startswith(
+        'attachment; filename="asterproof-unmatched-subtopics-',
+    )
+    exported_dataframe = pd.read_excel(BytesIO(response.content), dtype=str).fillna("")
+    exported_rows = exported_dataframe.to_dict(orient="records")
+    assert list(exported_dataframe.columns) == EXPECTED_UNMATCHED_SUBTOPIC_EXPORT_COLUMNS
+    assert exported_rows == [
+        {
+            "Subtopic": "CYCLIC",
+            "Occurrences": "2",
+            "Problem rows": "2",
+            "Statement rows": "0",
+            "Existing domains": "ALG, GEO",
+            "Example problem": "Israel TST 2026 P1",
+        },
+        {
+            "Subtopic": "HYPERBOLIC COSINES",
+            "Occurrences": "1",
+            "Problem rows": "0",
+            "Statement rows": "1",
+            "Existing domains": "ALG",
+            "Example problem": "Israel TST 2026 P3",
+        },
+    ]
+
+
 def test_problem_statement_metadata_page_previews_subtopic_cleanup_without_mutating(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
@@ -14115,6 +14204,64 @@ def test_problem_statement_metadata_cleanup_preview_matches_broad_subtopic_alias
         "INVARIANTS": ("COMB", "Coloring, tiling, grids, and invariants"),
     }
     assert preview["unmatched"] == [{"technique": "CYCLIC"}]
+
+
+def test_problem_statement_metadata_cleanup_preview_shows_unmatched_review_table(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="A",
+        mohs=25,
+        contest="Israel TST",
+        problem="P1",
+        contest_year_problem="Israel TST 2026 P1",
+    )
+    statement = ContestProblemStatement.objects.create(
+        contest_year=2026,
+        contest_name="Israel TST",
+        problem_number=2,
+        problem_code="P2",
+        day_label="Day 1",
+        statement_latex="Unmatched preview statement",
+    )
+    ProblemTopicTechnique.objects.create(
+        record=problem,
+        technique="cyclic",
+        domains=["comb"],
+    )
+    StatementTopicTechnique.objects.create(
+        statement=statement,
+        technique="CYCLIC",
+        domains=["geo"],
+    )
+    StatementTopicTechnique.objects.create(
+        statement=statement,
+        technique="hyperbolic cosines",
+        domains=["alg"],
+    )
+
+    response = client.post(
+        reverse("pages:problem_statement_metadata"),
+        {"action": "preview_subtopic_cleanup"},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    preview = response.context["subtopic_cleanup_preview"]
+    assert preview["unmatched_review_count"] == 2
+    assert preview["unmatched_review"][0] == {
+        "subtopic": "CYCLIC",
+        "occurrences": 2,
+        "problem_rows": 1,
+        "statement_rows": 1,
+        "existing_domains": "COMB, GEO",
+        "example_problem": "Israel TST 2026 P1",
+    }
+    response_html = response.content.decode("utf-8")
+    assert 'id="statement-unmatched-subtopics-export"' in response_html
+    assert "Unmatched subtopics review" in response_html
+    assert "Occurrences" in response_html
+    assert "HYPERBOLIC COSINES" in response_html
 
 
 def test_problem_statement_metadata_subtopic_cleanup_preview_avoids_large_statement_fields(client):

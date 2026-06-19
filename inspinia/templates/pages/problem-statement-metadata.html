@@ -236,16 +236,51 @@
       {% endif %}
       {% endif %}
 
-      {% if subtopic_cleanup_preview.unmatched %}
+      {% if subtopic_cleanup_preview.unmatched_review %}
       <div class="mt-3">
-        <p class="text-muted mb-2 fs-xs text-uppercase fw-semibold">Unmatched tags</p>
-        <div class="d-flex flex-wrap gap-1">
-          {% for row in subtopic_cleanup_preview.unmatched %}
-          <span class="badge bg-light text-dark border">{{ row.technique }}</span>
-          {% endfor %}
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+          <div>
+            <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Unmatched subtopics review</p>
+            <p class="text-muted fs-xs mb-0">
+              Grouped by normalized subtopic, with one full workbook row per unmatched subtopic.
+            </p>
+          </div>
+          <a
+            href="{% url 'pages:problem_statement_metadata' %}?action=export_unmatched_subtopics"
+            class="btn btn-sm btn-outline-success"
+            id="statement-unmatched-subtopics-export"
+          >
+            <i class="ti ti-file-spreadsheet me-1"></i> Export unmatched
+          </a>
         </div>
-        {% if subtopic_cleanup_preview.unmatched_truncated %}
-        <p class="text-muted fs-xs mt-2 mb-0">Only the first unmatched tags are shown.</p>
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Subtopic</th>
+                <th class="text-end">Occurrences</th>
+                <th class="text-end">Problem rows</th>
+                <th class="text-end">Statement rows</th>
+                <th>Existing domains</th>
+                <th>Example problem</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in subtopic_cleanup_preview.unmatched_review %}
+              <tr>
+                <td><code>{{ row.subtopic }}</code></td>
+                <td class="text-end">{{ row.occurrences }}</td>
+                <td class="text-end">{{ row.problem_rows }}</td>
+                <td class="text-end">{{ row.statement_rows }}</td>
+                <td>{{ row.existing_domains|default:"-" }}</td>
+                <td>{{ row.example_problem }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% if subtopic_cleanup_preview.unmatched_review_truncated %}
+        <p class="text-muted fs-xs mt-2 mb-0">Only the first unmatched subtopics are shown.</p>
         {% endif %}
       </div>
       {% endif %}

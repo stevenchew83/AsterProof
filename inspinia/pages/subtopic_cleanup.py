@@ -212,10 +212,89 @@ def _preview_change(kind: str, tag, entry: SubtopicTaxonomyEntry, parent_label: 
     }
 
 
+def _record_unmatched_subtopic(
+    unmatched_by_key: OrderedDict[str, dict[str, object]],
+    *,
+    parent_label: str,
+    source: str,
+    tag,
+) -> None:
+    key = _taxonomy_key(tag.technique)
+    if not key:
+        return
+
+    row = unmatched_by_key.setdefault(
+        key,
+        {
+            "_domains": [],
+            "example_problem": parent_label,
+            "occurrences": 0,
+            "problem_rows": 0,
+            "statement_rows": 0,
+            "subtopic": normalize_topic_tag(tag.technique),
+        },
+    )
+    row["occurrences"] = int(row["occurrences"]) + 1
+    if source == "problem":
+        row["problem_rows"] = int(row["problem_rows"]) + 1
+    else:
+        row["statement_rows"] = int(row["statement_rows"]) + 1
+    row["_domains"] = domains_dedup_preserve_order([
+        *list(row["_domains"]),
+        *(tag.domains or []),
+    ])
+
+
+def _format_unmatched_subtopic_rows(
+    unmatched_by_key: OrderedDict[str, dict[str, object]],
+) -> list[dict[str, object]]:
+    rows = [
+        {
+            "example_problem": row["example_problem"],
+            "existing_domains": ", ".join(row["_domains"]),
+            "occurrences": row["occurrences"],
+            "problem_rows": row["problem_rows"],
+            "statement_rows": row["statement_rows"],
+            "subtopic": row["subtopic"],
+        }
+        for row in unmatched_by_key.values()
+    ]
+    return sorted(rows, key=lambda row: (-int(row["occurrences"]), str(row["subtopic"]).casefold()))
+
+
+def build_unmatched_subtopic_review(*, limit: int | None = None) -> dict[str, object]:
+    unmatched_by_key: OrderedDict[str, dict[str, object]] = OrderedDict()
+
+    for tag in _problem_tag_rows():
+        if taxonomy_entry_for_technique(tag.technique) is None:
+            _record_unmatched_subtopic(
+                unmatched_by_key,
+                parent_label=_problem_parent_label(tag),
+                source="problem",
+                tag=tag,
+            )
+
+    for tag in _statement_tag_rows():
+        if taxonomy_entry_for_technique(tag.technique) is None:
+            _record_unmatched_subtopic(
+                unmatched_by_key,
+                parent_label=_statement_parent_label(tag),
+                source="statement",
+                tag=tag,
+            )
+
+    rows = _format_unmatched_subtopic_rows(unmatched_by_key)
+    return {
+        "row_count": len(rows),
+        "rows": rows[:limit] if limit is not None else rows,
+        "truncated": limit is not None and len(rows) > limit,
+    }
+
+
 def build_subtopic_cleanup_preview(*, limit: int = 50) -> dict[str, object]:
     changes: list[dict[str, str]] = []
     change_count = 0
-    unmatched_by_key: OrderedDict[str, str] = OrderedDict()
+    unmatched_by_key: OrderedDict[str, dict[str, object]] = OrderedDict()
     raw_parent_keys: set[tuple[str, int]] = set()
     duplicate_count = 0
     duplicate_groups: defaultdict[tuple[str, int, str], int] = defaultdict(int)
@@ -229,7 +308,12 @@ def build_subtopic_cleanup_preview(*, limit: int = 50) -> dict[str, object]:
         for tag in tag_rows:
             entry = taxonomy_entry_for_technique(tag.technique)
             if entry is None:
-                unmatched_by_key.setdefault(_taxonomy_key(tag.technique), tag.technique)
+                _record_unmatched_subtopic(
+                    unmatched_by_key,
+                    parent_label=parent_label_getter(tag),
+                    source=parent_key_kind,
+                    tag=tag,
+                )
                 continue
             parent_id = parent_id_getter(tag)
             raw_parent_keys.add((parent_key_kind, parent_id))
@@ -243,9 +327,10 @@ def build_subtopic_cleanup_preview(*, limit: int = 50) -> dict[str, object]:
         if group_size > 1:
             duplicate_count += group_size - 1
 
+    unmatched_review = _format_unmatched_subtopic_rows(unmatched_by_key)
     unmatched = [
-        {"technique": technique}
-        for technique in unmatched_by_key.values()
+        {"technique": str(row["subtopic"])}
+        for row in unmatched_review
     ]
     return {
         "change_count": change_count,
@@ -256,6 +341,9 @@ def build_subtopic_cleanup_preview(*, limit: int = 50) -> dict[str, object]:
         "raw_update_count": len(raw_parent_keys),
         "unmatched": unmatched[:limit],
         "unmatched_count": len(unmatched),
+        "unmatched_review": unmatched_review[:limit],
+        "unmatched_review_count": len(unmatched_review),
+        "unmatched_review_truncated": len(unmatched_review) > limit,
         "unmatched_truncated": len(unmatched) > limit,
     }
 
