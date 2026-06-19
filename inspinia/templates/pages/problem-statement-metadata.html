@@ -22,7 +22,7 @@
 
   <div class="row g-3 mt-3">
     <div class="col-xl-4">
-      <div class="card h-100">
+      <div class="card">
         <div class="card-header border-bottom">
           <h4 class="header-title mb-0">Export metadata workbook</h4>
         </div>
@@ -48,6 +48,28 @@
             id="statement-metadata-export"
           >
             <i class="ti ti-file-export me-1"></i> Export metadata workbook
+          </a>
+        </div>
+      </div>
+
+      <div class="card mt-3">
+        <div class="card-header border-bottom">
+          <h4 class="header-title mb-0">Export subtopics workbook</h4>
+        </div>
+        <div class="card-body">
+          <p class="text-muted">
+            Download a deduplicated <code>.xlsx</code> list of every parsed subtopic
+            label from statement metadata and problem metadata.
+          </p>
+          <p class="text-muted mb-4">
+            The workbook has one <code>Subtopic</code> column with one subtopic per row.
+          </p>
+          <a
+            href="{% url 'pages:problem_statement_metadata' %}?action=export_subtopics"
+            class="btn btn-outline-success"
+            id="statement-subtopics-export"
+          >
+            <i class="ti ti-file-spreadsheet me-1"></i> Export subtopics workbook
           </a>
         </div>
       </div>

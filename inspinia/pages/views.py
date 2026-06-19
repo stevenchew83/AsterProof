@@ -141,6 +141,7 @@ from inspinia.pages.statement_import import parse_contest_problem_statements
 from inspinia.pages.statement_import import relink_problem_statement_rows
 from inspinia.pages.statement_metadata_backfill import StatementMetadataBackfillValidationError
 from inspinia.pages.statement_metadata_backfill import build_statement_metadata_export_workbook_bytes
+from inspinia.pages.statement_metadata_backfill import build_statement_subtopic_export_workbook_bytes
 from inspinia.pages.statement_metadata_backfill import import_statement_metadata_dataframe
 from inspinia.pages.statement_metadata_backfill import statement_metadata_dataframe_from_excel
 from inspinia.pages.statement_metadata_backfill import statement_metadata_dataframe_from_rows
@@ -8182,6 +8183,23 @@ def _export_statement_metadata_workbook_response() -> HttpResponse:
     return response
 
 
+def _export_statement_subtopic_workbook_response() -> HttpResponse:
+    workbook_bytes = build_statement_subtopic_export_workbook_bytes()
+    timestamp = timezone.localtime().strftime("%Y%m%d-%H%M%S")
+    response = HttpResponse(workbook_bytes, content_type=XLSX_CONTENT_TYPE)
+    response["Content-Disposition"] = (
+        f'attachment; filename="asterproof-statement-subtopics-{timestamp}.xlsx"'
+    )
+    return response
+
+
+def _statement_metadata_export_handler(action: str | None):
+    return {
+        "export": _export_statement_metadata_workbook_response,
+        "export_subtopics": _export_statement_subtopic_workbook_response,
+    }.get(action)
+
+
 def _statement_metadata_dataframe_from_post(post_data) -> tuple[object | None, str | None]:
     raw_statement_uuids = [str(value or "").strip() for value in post_data.getlist("statement_uuid")]
     raw_topics = post_data.getlist("topic")
@@ -8753,8 +8771,10 @@ def problem_import_view(request):
 def problem_statement_metadata_view(request):
     _require_admin_tools_access(request)
 
-    if request.method == "GET" and request.GET.get("action") == "export":
-        return _export_statement_metadata_workbook_response()
+    if request.method == "GET" and (
+        export_handler := _statement_metadata_export_handler(request.GET.get("action"))
+    ):
+        return export_handler()
 
     form = StatementMetadataWorkbookForm()
     if request.method == "POST":
