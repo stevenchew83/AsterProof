@@ -14206,6 +14206,71 @@ def test_problem_statement_metadata_cleanup_preview_matches_broad_subtopic_alias
     assert preview["unmatched"] == [{"technique": "CYCLIC"}]
 
 
+def test_problem_statement_metadata_cleanup_preview_matches_high_volume_subtopic_aliases(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    record = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="A",
+        mohs=25,
+        contest="Israel TST",
+        problem="P1",
+        contest_year_problem="Israel TST 2026 P1",
+        topic_tags="Topic tags: high-volume aliases",
+    )
+    expected_aliases = {
+        "ANGLE BISECTOR": ("GEO", "Core Euclidean geometry"),
+        "ANGLE CHASE": ("GEO", "Core Euclidean geometry"),
+        "CIRCUMCENTERS": ("GEO", "Triangle centers and triangle configurations"),
+        "CONVEXITY": ("ALG", "Inequalities and optimization"),
+        "COORDINATES": ("GEO", "Core Euclidean geometry"),
+        "CRT": ("NT", "Congruences and modular arithmetic"),
+        "CYCLICITY": ("GEO", "Circle geometry"),
+        "DIOPHANTINE": ("NT", "Diophantine equations and descent"),
+        "DIVISOR FUNCTION": ("NT", "Arithmetic functions"),
+        "EXPONENTIAL DIOPHANTINE": ("NT", "Diophantine equations and descent"),
+        "FINITE FIELDS": ("ALG", "Algebraic structures and linear algebra"),
+        "FLOOR FUNCTIONS": ("ALG", "Functional equations"),
+        "FUNCTIONAL EQUATION": ("ALG", "Functional equations"),
+        "INEQUALITY": ("ALG", "Inequalities and optimization"),
+        "MIQUEL": ("GEO", "Circle geometry"),
+        "MIDPOINTS": ("GEO", "Triangle centers and triangle configurations"),
+        "MODULAR RESIDUES": ("NT", "Congruences and modular arithmetic"),
+        "PIGEONHOLE": ("COMB", "Pigeonhole, extremal principle, and averaging"),
+        "RADICAL AXES": ("GEO", "Circle geometry"),
+        "REARRANGEMENT": ("ALG", "Inequalities and optimization"),
+        "RECURRENCE": ("ALG", "Sequences, recurrences, and series"),
+        "REFLECTIONS": ("GEO", "Transformational geometry"),
+        "RESIDUES": ("NT", "Congruences and modular arithmetic"),
+        "ROOTS OF UNITY": ("ALG", "Polynomials and algebraic manipulation"),
+        "SIMILARITY": ("GEO", "Transformational geometry"),
+        "SMOOTHING": ("ALG", "Inequalities and optimization"),
+        "SUBSTITUTIONS": ("ALG", "Equations, substitutions, and transformations"),
+        "TANGENCY": ("GEO", "Circle geometry"),
+        "TANGENT-CHORD": ("GEO", "Circle geometry"),
+        "TILINGS": ("COMB", "Coloring, tiling, grids, and invariants"),
+        "TRIGONOMETRY": ("GEO", "Core Euclidean geometry"),
+        "VALUATIONS": ("NT", "p-adic and valuation methods"),
+    }
+    for technique in expected_aliases:
+        ProblemTopicTechnique.objects.create(record=record, technique=technique, domains=["mixed"])
+
+    response = client.post(
+        reverse("pages:problem_statement_metadata"),
+        {"action": "preview_subtopic_cleanup"},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    preview = response.context["subtopic_cleanup_preview"]
+    assert preview["change_count"] == len(expected_aliases)
+    assert preview["unmatched_count"] == 0
+    changes_by_technique = {
+        row["technique"]: (row["main_topic"], row["canonical_subtopic"])
+        for row in preview["changes"]
+    }
+    assert changes_by_technique == expected_aliases
+
+
 def test_problem_statement_metadata_cleanup_preview_shows_unmatched_review_table(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
@@ -14255,6 +14320,7 @@ def test_problem_statement_metadata_cleanup_preview_shows_unmatched_review_table
         "problem_rows": 1,
         "statement_rows": 1,
         "existing_domains": "COMB, GEO",
+        "existing_domains_preview": "COMB, GEO",
         "example_problem": "Israel TST 2026 P1",
     }
     response_html = response.content.decode("utf-8")
@@ -14262,6 +14328,37 @@ def test_problem_statement_metadata_cleanup_preview_shows_unmatched_review_table
     assert "Unmatched subtopics review" in response_html
     assert "Occurrences" in response_html
     assert "HYPERBOLIC COSINES" in response_html
+
+
+def test_problem_statement_metadata_cleanup_preview_compacts_noisy_domain_lists(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="A",
+        mohs=25,
+        contest="Israel TST",
+        problem="P1",
+        contest_year_problem="Israel TST 2026 P1",
+    )
+    ProblemTopicTechnique.objects.create(
+        record=problem,
+        technique="unknown noisy tag",
+        domains=["comb", "geo", "nt", "alg", "fe", "graph"],
+    )
+
+    response = client.post(
+        reverse("pages:problem_statement_metadata"),
+        {"action": "preview_subtopic_cleanup"},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    preview = response.context["subtopic_cleanup_preview"]
+    assert preview["unmatched_review"][0]["existing_domains"] == "COMB, GEO, NT, ALG, FE, GRAPH"
+    assert preview["unmatched_review"][0]["existing_domains_preview"] == "COMB, GEO, NT, ALG, +2 more"
+    response_html = response.content.decode("utf-8")
+    assert "COMB, GEO, NT, ALG, +2 more" in response_html
+    assert "COMB, GEO, NT, ALG, FE, GRAPH" not in response_html
 
 
 def test_problem_statement_metadata_subtopic_cleanup_preview_avoids_large_statement_fields(client):

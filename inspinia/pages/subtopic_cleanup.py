@@ -37,29 +37,61 @@ class SubtopicCleanupApplyResult:
     updated_count: int
 
 
+UNMATCHED_DOMAIN_PREVIEW_LIMIT = 4
+
 ADDITIONAL_SUBTOPIC_ALIASES: tuple[tuple[str, str, str], ...] = (
     ("ALG", "Inequalities and optimization", "inequalities"),
+    ("ALG", "Inequalities and optimization", "inequality"),
     ("ALG", "Inequalities and optimization", "extremal inequalities"),
     ("ALG", "Inequalities and optimization", "optimization"),
     ("ALG", "Inequalities and optimization", "concavity"),
+    ("ALG", "Inequalities and optimization", "convexity"),
+    ("ALG", "Inequalities and optimization", "rearrangement"),
+    ("ALG", "Inequalities and optimization", "smoothing"),
     ("ALG", "Polynomials and algebraic manipulation", "polynomial structure"),
     ("ALG", "Polynomials and algebraic manipulation", "exponential polynomials"),
     ("ALG", "Polynomials and algebraic manipulation", "integer coefficients"),
+    ("ALG", "Polynomials and algebraic manipulation", "roots of unity"),
     ("ALG", "Sequences, recurrences, and series", "recurrences"),
+    ("ALG", "Sequences, recurrences, and series", "recurrence"),
     ("ALG", "Sequences, recurrences, and series", "telescoping"),
     ("ALG", "Sequences, recurrences, and series", "sums of powers"),
     ("ALG", "Functional equations", "functional equations disguised"),
     ("ALG", "Functional equations", "functional equations on Q"),
+    ("ALG", "Functional equations", "functional equation"),
     ("ALG", "Functional equations", "differentiability"),
     ("ALG", "Functional equations", "iteration"),
+    ("ALG", "Functional equations", "floor functions"),
     ("ALG", "Algebraic structures and linear algebra", "linear algebra mod 2"),
+    ("ALG", "Algebraic structures and linear algebra", "finite fields"),
+    ("ALG", "Equations, substitutions, and transformations", "substitutions"),
+    ("NT", "Congruences and modular arithmetic", "CRT"),
+    ("NT", "Congruences and modular arithmetic", "residues"),
+    ("NT", "Congruences and modular arithmetic", "modular residues"),
+    ("NT", "p-adic and valuation methods", "valuations"),
+    ("NT", "Diophantine equations and descent", "diophantine"),
     ("NT", "Diophantine equations and descent", "diophantine approximation"),
+    ("NT", "Diophantine equations and descent", "exponential diophantine"),
     ("NT", "Diophantine equations and descent", "geometry of numbers"),
     ("NT", "Additive and multiplicative number theory", "additive representations"),
+    ("NT", "Arithmetic functions", "divisor function"),
     ("GEO", "Core Euclidean geometry", "geometry"),
     ("GEO", "Core Euclidean geometry", "trig"),
+    ("GEO", "Core Euclidean geometry", "trigonometry"),
+    ("GEO", "Core Euclidean geometry", "coordinates"),
+    ("GEO", "Core Euclidean geometry", "angle chase"),
+    ("GEO", "Core Euclidean geometry", "angle bisector"),
     ("GEO", "Core Euclidean geometry", "complex numbers"),
     ("GEO", "Core Euclidean geometry", "complex vectors"),
+    ("GEO", "Triangle centers and triangle configurations", "midpoints"),
+    ("GEO", "Triangle centers and triangle configurations", "circumcenters"),
+    ("GEO", "Circle geometry", "tangency"),
+    ("GEO", "Circle geometry", "cyclicity"),
+    ("GEO", "Circle geometry", "Miquel"),
+    ("GEO", "Circle geometry", "radical axes"),
+    ("GEO", "Circle geometry", "tangent-chord"),
+    ("GEO", "Transformational geometry", "reflections"),
+    ("GEO", "Transformational geometry", "similarity"),
     ("COMB", "Counting and enumerative combinatorics", "growth and counting"),
     ("COMB", "Graph theory", "hamiltonian paths"),
     ("COMB", "Graph theory", "geometric graphs"),
@@ -72,6 +104,7 @@ ADDITIONAL_SUBTOPIC_ALIASES: tuple[tuple[str, str, str], ...] = (
     ("COMB", "Coloring, tiling, grids, and invariants", "paths on grids"),
     ("COMB", "Coloring, tiling, grids, and invariants", "dissections"),
     ("COMB", "Coloring, tiling, grids, and invariants", "local patterns"),
+    ("COMB", "Coloring, tiling, grids, and invariants", "tilings"),
     ("COMB", "Games, strategies, and processes", "game"),
     ("COMB", "Games, strategies, and processes", "strategy"),
     ("COMB", "Games, strategies, and processes", "worst-case search"),
@@ -79,6 +112,7 @@ ADDITIONAL_SUBTOPIC_ALIASES: tuple[tuple[str, str, str], ...] = (
     ("COMB", "Games, strategies, and processes", "pursuit games"),
     ("COMB", "Games, strategies, and processes", "multiset process"),
     ("COMB", "Pigeonhole, extremal principle, and averaging", "extremal"),
+    ("COMB", "Pigeonhole, extremal principle, and averaging", "pigeonhole"),
     ("COMB", "Probability, entropy, coding, and information methods", "coding"),
     ("COMB", "Algorithms, automata, words, and constructive combinatorics", "word problem"),
     ("COMB", "Algorithms, automata, words, and constructive combinatorics", "strings"),
@@ -245,6 +279,14 @@ def _record_unmatched_subtopic(
     ])
 
 
+def _format_unmatched_domains_preview(domains: list[str]) -> str:
+    if len(domains) <= UNMATCHED_DOMAIN_PREVIEW_LIMIT:
+        return ", ".join(domains)
+    visible_domains = domains[:UNMATCHED_DOMAIN_PREVIEW_LIMIT]
+    hidden_count = len(domains) - UNMATCHED_DOMAIN_PREVIEW_LIMIT
+    return f"{', '.join(visible_domains)}, +{hidden_count} more"
+
+
 def _format_unmatched_subtopic_rows(
     unmatched_by_key: OrderedDict[str, dict[str, object]],
 ) -> list[dict[str, object]]:
@@ -252,6 +294,7 @@ def _format_unmatched_subtopic_rows(
         {
             "example_problem": row["example_problem"],
             "existing_domains": ", ".join(row["_domains"]),
+            "existing_domains_preview": _format_unmatched_domains_preview(list(row["_domains"])),
             "occurrences": row["occurrences"],
             "problem_rows": row["problem_rows"],
             "statement_rows": row["statement_rows"],

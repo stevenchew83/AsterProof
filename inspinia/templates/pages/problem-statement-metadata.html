@@ -272,7 +272,7 @@
                 <td class="text-end">{{ row.occurrences }}</td>
                 <td class="text-end">{{ row.problem_rows }}</td>
                 <td class="text-end">{{ row.statement_rows }}</td>
-                <td>{{ row.existing_domains|default:"-" }}</td>
+                <td>{{ row.existing_domains_preview|default:"-" }}</td>
                 <td>{{ row.example_problem }}</td>
               </tr>
               {% endfor %}
