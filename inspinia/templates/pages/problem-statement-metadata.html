@@ -229,7 +229,11 @@
       <p class="text-muted fs-xs mt-2 mb-0">Only the first preview rows are shown.</p>
       {% endif %}
       {% else %}
+      {% if subtopic_cleanup_preview.raw_update_count %}
+      <div class="alert alert-info mb-0">No parsed tag rows need taxonomy updates, but matched raw metadata fields can still be normalized.</div>
+      {% else %}
       <div class="alert alert-info mb-0">No deterministic cleanup changes found.</div>
+      {% endif %}
       {% endif %}
 
       {% if subtopic_cleanup_preview.unmatched %}
