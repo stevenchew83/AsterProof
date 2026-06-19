@@ -4874,25 +4874,50 @@ def _completion_quick_update_apply_problem_label_filter(queryset, raw_value: str
     return queryset
 
 
-def _completion_quick_update_apply_subtopics_filter(queryset, raw_value: str):
-    subtopics_query = (raw_value or "").strip()
-    if not subtopics_query:
+def _completion_quick_update_filter_terms(raw_value: str) -> list[str]:
+    filter_query = (raw_value or "").strip()
+    if not filter_query:
+        return []
+    if "," in filter_query:
+        return [part.strip() for part in filter_query.split(",") if part.strip()]
+    return filter_query.split()
+
+
+def _completion_quick_update_apply_technique_filter(queryset, raw_value: str):
+    technique_terms = _completion_quick_update_filter_terms(raw_value)
+    if not technique_terms:
         return queryset
-    if "," in subtopics_query:
-        subtopic_terms = [part.strip() for part in subtopics_query.split(",") if part.strip()]
-    else:
-        subtopic_terms = subtopics_query.split()
     queryset = queryset.alias(
-        _has_statement_subtopics=Exists(
+        _has_statement_tags=Exists(
+            StatementTopicTechnique.objects.filter(statement_id=OuterRef("pk")),
+        ),
+    )
+    for token in technique_terms:
+        queryset = queryset.filter(
+            Q(statement_topic_techniques__technique__icontains=token)
+            | (
+                Q(_has_statement_tags=False)
+                & Q(linked_problem__topic_techniques__technique__icontains=token)
+            ),
+        )
+    return queryset
+
+
+def _completion_quick_update_apply_subtopics_filter(queryset, raw_value: str):
+    subtopic_terms = _completion_quick_update_filter_terms(raw_value)
+    if not subtopic_terms:
+        return queryset
+    queryset = queryset.alias(
+        _has_statement_tags=Exists(
             StatementTopicTechnique.objects.filter(statement_id=OuterRef("pk")),
         ),
     )
     for token in subtopic_terms:
         queryset = queryset.filter(
-            Q(statement_topic_techniques__technique__icontains=token)
+            Q(statement_topic_techniques__canonical_subtopic__icontains=token)
             | (
-                Q(_has_statement_subtopics=False)
-                & Q(linked_problem__topic_techniques__technique__icontains=token)
+                Q(_has_statement_tags=False)
+                & Q(linked_problem__topic_techniques__canonical_subtopic__icontains=token)
             ),
         )
     return queryset
@@ -5135,56 +5160,63 @@ def _completion_quick_update_result_summary(
     return f"{visible_total} recent row{'s' if visible_total != 1 else ''}"
 
 
-def _completion_quick_update_selected_technique_labels(raw_value: str) -> list[str]:
-    technique_query = (raw_value or "").strip()
-    if not technique_query:
+def _completion_quick_update_selected_filter_labels(raw_value: str) -> list[str]:
+    filter_query = (raw_value or "").strip()
+    if not filter_query:
         return []
-    if "," in technique_query:
-        return [part.strip() for part in technique_query.split(",") if part.strip()]
-    return [technique_query]
+    if "," in filter_query:
+        return [part.strip() for part in filter_query.split(",") if part.strip()]
+    return [filter_query]
 
 
-def _completion_quick_update_format_technique_labels(labels: list[str]) -> str:
+def _completion_quick_update_format_filter_labels(labels: list[str]) -> str:
     return ", ".join(label for label in labels if label.strip())
 
 
-def _completion_quick_update_filter_url(filters: dict[str, str], *, subtopics: str) -> str:
+def _completion_quick_update_filter_url(
+    filters: dict[str, str],
+    *,
+    filter_name: str,
+    filter_value: str,
+) -> str:
     query = {
         key: value
         for key, value in filters.items()
-        if key != "subtopics" and value
+        if key != filter_name and value
     }
-    if subtopics:
-        query["subtopics"] = subtopics
+    if filter_value:
+        query[filter_name] = filter_value
     query_string = urlencode(query)
     base_url = reverse("pages:completion_quick_update")
     return f"{base_url}?{query_string}" if query_string else base_url
 
 
-def _completion_quick_update_technique_links(
-    techniques: list[str],
+def _completion_quick_update_filter_links(
+    labels: list[str],
     *,
+    filter_name: str,
     selected_filters: dict[str, str],
 ) -> list[dict[str, object]]:
-    selected_labels = _completion_quick_update_selected_technique_labels(
-        selected_filters.get("subtopics", ""),
+    selected_labels = _completion_quick_update_selected_filter_labels(
+        selected_filters.get(filter_name, ""),
     )
     selected_label_keys = {label.casefold() for label in selected_labels}
     links = []
-    for technique in techniques:
-        technique_key = technique.casefold()
-        is_selected = technique_key in selected_label_keys
+    for label in labels:
+        label_key = label.casefold()
+        is_selected = label_key in selected_label_keys
         if is_selected:
-            next_labels = [label for label in selected_labels if label.casefold() != technique_key]
+            next_labels = [item for item in selected_labels if item.casefold() != label_key]
         else:
-            next_labels = [*selected_labels, technique]
+            next_labels = [*selected_labels, label]
         links.append(
             {
                 "is_selected": is_selected,
-                "label": technique,
+                "label": label,
                 "url": _completion_quick_update_filter_url(
                     selected_filters,
-                    subtopics=_completion_quick_update_format_technique_labels(next_labels),
+                    filter_name=filter_name,
+                    filter_value=_completion_quick_update_format_filter_labels(next_labels),
                 ),
             },
         )
@@ -5210,6 +5242,7 @@ def completion_quick_update_view(request):
     selected_mohs_min = (request.GET.get("mohs_min") or "").strip()
     selected_mohs_max = (request.GET.get("mohs_max") or "").strip()
     selected_subtopics = (request.GET.get("subtopics") or "").strip()
+    selected_technique = (request.GET.get("technique") or "").strip()
     search_query = (request.GET.get("q") or "").strip()
     can_select_user = user_has_admin_role(request.user)
     selected_user = _completion_quick_update_resolve_get_user(request)
@@ -5223,6 +5256,7 @@ def completion_quick_update_view(request):
             selected_mohs_min,
             selected_mohs_max,
             selected_subtopics,
+            selected_technique,
             search_query,
         ],
     )
@@ -5253,6 +5287,10 @@ def completion_quick_update_view(request):
     filtered_statements = _completion_quick_update_apply_problem_label_filter(
         filtered_statements,
         selected_problem_label,
+    ).distinct()
+    filtered_statements = _completion_quick_update_apply_technique_filter(
+        filtered_statements,
+        selected_technique,
     ).distinct()
     filtered_statements = _completion_quick_update_apply_subtopics_filter(
         filtered_statements,
@@ -5301,6 +5339,7 @@ def completion_quick_update_view(request):
         "problem_label": selected_problem_label,
         "q": search_query,
         "subtopics": selected_subtopics,
+        "technique": selected_technique,
         "target_user_id": (
             str(selected_user.id)
             if can_select_user and selected_user != request.user
@@ -5321,8 +5360,14 @@ def completion_quick_update_view(request):
             subtopics=tag_payload["subtopics"],
             techniques=tag_payload["techniques"],
         )
-        row["technique_links"] = _completion_quick_update_technique_links(
+        row["subtopic_links"] = _completion_quick_update_filter_links(
+            row["subtopics"],
+            filter_name="subtopics",
+            selected_filters=selected_filters,
+        )
+        row["technique_links"] = _completion_quick_update_filter_links(
             row["techniques"],
+            filter_name="technique",
             selected_filters=selected_filters,
         )
         rows.append(row)
