@@ -13,6 +13,7 @@ from inspinia.pages.analytics_field_parse import parse_rationale_value
 from inspinia.pages.contest_names import PROJECT_CONTEST_NAME_MAX_LENGTH
 from inspinia.pages.contest_names import normalize_contest_name
 from inspinia.pages.contest_names import normalize_text_list
+from inspinia.pages.topic_tags_parse import clean_token
 from inspinia.pages.topic_tags_parse import domains_dedup_preserve_order
 from inspinia.pages.topic_tags_parse import normalize_topic_tag
 
@@ -100,6 +101,8 @@ class ProblemTopicTechnique(models.Model):
     )
     technique = models.CharField(max_length=512)
     domains = models.JSONField(blank=True, default=list)
+    main_topic = models.CharField(blank=True, max_length=16)
+    canonical_subtopic = models.CharField(blank=True, max_length=160)
 
     class Meta:
         constraints = [
@@ -115,6 +118,8 @@ class ProblemTopicTechnique(models.Model):
     def save(self, *args, **kwargs) -> None:
         normalized_technique = normalize_topic_tag(self.technique)
         normalized_domains = domains_dedup_preserve_order(self.domains or [])
+        normalized_main_topic = normalize_topic_tag(self.main_topic)
+        normalized_canonical_subtopic = clean_token(self.canonical_subtopic)
 
         update_fields = kwargs.get("update_fields")
         normalized_update_fields = set(update_fields) if update_fields is not None else None
@@ -128,6 +133,16 @@ class ProblemTopicTechnique(models.Model):
             self.domains = normalized_domains
             if normalized_update_fields is not None:
                 normalized_update_fields.add("domains")
+
+        if self.main_topic != normalized_main_topic:
+            self.main_topic = normalized_main_topic
+            if normalized_update_fields is not None:
+                normalized_update_fields.add("main_topic")
+
+        if self.canonical_subtopic != normalized_canonical_subtopic:
+            self.canonical_subtopic = normalized_canonical_subtopic
+            if normalized_update_fields is not None:
+                normalized_update_fields.add("canonical_subtopic")
 
         if normalized_update_fields is not None:
             kwargs["update_fields"] = normalized_update_fields
@@ -222,6 +237,8 @@ class StatementTopicTechnique(models.Model):
     )
     technique = models.CharField(max_length=512)
     domains = models.JSONField(blank=True, default=list)
+    main_topic = models.CharField(blank=True, max_length=16)
+    canonical_subtopic = models.CharField(blank=True, max_length=160)
 
     class Meta:
         constraints = [
@@ -237,6 +254,8 @@ class StatementTopicTechnique(models.Model):
     def save(self, *args, **kwargs) -> None:
         normalized_technique = normalize_topic_tag(self.technique)
         normalized_domains = domains_dedup_preserve_order(self.domains or [])
+        normalized_main_topic = normalize_topic_tag(self.main_topic)
+        normalized_canonical_subtopic = clean_token(self.canonical_subtopic)
 
         update_fields = kwargs.get("update_fields")
         normalized_update_fields = set(update_fields) if update_fields is not None else None
@@ -250,6 +269,16 @@ class StatementTopicTechnique(models.Model):
             self.domains = normalized_domains
             if normalized_update_fields is not None:
                 normalized_update_fields.add("domains")
+
+        if self.main_topic != normalized_main_topic:
+            self.main_topic = normalized_main_topic
+            if normalized_update_fields is not None:
+                normalized_update_fields.add("main_topic")
+
+        if self.canonical_subtopic != normalized_canonical_subtopic:
+            self.canonical_subtopic = normalized_canonical_subtopic
+            if normalized_update_fields is not None:
+                normalized_update_fields.add("canonical_subtopic")
 
         if normalized_update_fields is not None:
             kwargs["update_fields"] = normalized_update_fields
