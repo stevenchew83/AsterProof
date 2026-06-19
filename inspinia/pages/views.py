@@ -4875,12 +4875,16 @@ def _completion_quick_update_apply_subtopics_filter(queryset, raw_value: str):
     subtopics_query = (raw_value or "").strip()
     if not subtopics_query:
         return queryset
+    if "," in subtopics_query:
+        subtopic_terms = [part.strip() for part in subtopics_query.split(",") if part.strip()]
+    else:
+        subtopic_terms = subtopics_query.split()
     queryset = queryset.alias(
         _has_statement_subtopics=Exists(
             StatementTopicTechnique.objects.filter(statement_id=OuterRef("pk")),
         ),
     )
-    for token in subtopics_query.split():
+    for token in subtopic_terms:
         queryset = queryset.filter(
             Q(statement_topic_techniques__technique__icontains=token)
             | (
@@ -5107,6 +5111,62 @@ def _completion_quick_update_result_summary(
     return f"{visible_total} recent row{'s' if visible_total != 1 else ''}"
 
 
+def _completion_quick_update_selected_subtopic_labels(raw_value: str) -> list[str]:
+    subtopics_query = (raw_value or "").strip()
+    if not subtopics_query:
+        return []
+    if "," in subtopics_query:
+        return [part.strip() for part in subtopics_query.split(",") if part.strip()]
+    return [subtopics_query]
+
+
+def _completion_quick_update_format_subtopic_labels(labels: list[str]) -> str:
+    return ", ".join(label for label in labels if label.strip())
+
+
+def _completion_quick_update_filter_url(filters: dict[str, str], *, subtopics: str) -> str:
+    query = {
+        key: value
+        for key, value in filters.items()
+        if key != "subtopics" and value
+    }
+    if subtopics:
+        query["subtopics"] = subtopics
+    query_string = urlencode(query)
+    base_url = reverse("pages:completion_quick_update")
+    return f"{base_url}?{query_string}" if query_string else base_url
+
+
+def _completion_quick_update_subtopic_links(
+    subtopics: list[str],
+    *,
+    selected_filters: dict[str, str],
+) -> list[dict[str, object]]:
+    selected_labels = _completion_quick_update_selected_subtopic_labels(
+        selected_filters.get("subtopics", ""),
+    )
+    selected_label_keys = {label.casefold() for label in selected_labels}
+    links = []
+    for subtopic in subtopics:
+        subtopic_key = subtopic.casefold()
+        is_selected = subtopic_key in selected_label_keys
+        if is_selected:
+            next_labels = [label for label in selected_labels if label.casefold() != subtopic_key]
+        else:
+            next_labels = [*selected_labels, subtopic]
+        links.append(
+            {
+                "is_selected": is_selected,
+                "label": subtopic,
+                "url": _completion_quick_update_filter_url(
+                    selected_filters,
+                    subtopics=_completion_quick_update_format_subtopic_labels(next_labels),
+                ),
+            },
+        )
+    return links
+
+
 @login_required
 def completion_quick_update_view(request):
     """Fast statement search and completion-date update page."""
@@ -5208,30 +5268,39 @@ def completion_quick_update_view(request):
         user=selected_user,
     )
     subtopics_by_statement_id = _completion_quick_update_subtopics_by_statement_id(statements)
-    rows = [
-        _completion_quick_update_row(
+    selected_filters = {
+        "contest": selected_contest,
+        "core_ideas": selected_core_ideas,
+        "mohs_max": selected_mohs_max,
+        "mohs_min": selected_mohs_min,
+        "problem": selected_problem,
+        "problem_label": selected_problem_label,
+        "q": search_query,
+        "subtopics": selected_subtopics,
+        "target_user_id": (
+            str(selected_user.id)
+            if can_select_user and selected_user != request.user
+            else ""
+        ),
+        "year": selected_year,
+    }
+    rows = []
+    for statement in statements:
+        row = _completion_quick_update_row(
             statement,
             completion_by_statement_id=completion_by_statement_id,
             difficulty_payload=difficulty_payloads.get(statement.id),
             subtopics=subtopics_by_statement_id.get(statement.id),
         )
-        for statement in statements
-    ]
+        row["subtopic_links"] = _completion_quick_update_subtopic_links(
+            row["subtopics"],
+            selected_filters=selected_filters,
+        )
+        rows.append(row)
     context = {
         "completion_quick_update_can_select_user": can_select_user,
         "completion_quick_update_contest_choices": contest_choices,
-        "completion_quick_update_filters": {
-            "contest": selected_contest,
-            "core_ideas": selected_core_ideas,
-            "mohs_max": selected_mohs_max,
-            "mohs_min": selected_mohs_min,
-            "problem": selected_problem,
-            "problem_label": selected_problem_label,
-            "q": search_query,
-            "subtopics": selected_subtopics,
-            "target_user_id": str(selected_user.id) if can_select_user and selected_user != request.user else "",
-            "year": selected_year,
-        },
+        "completion_quick_update_filters": selected_filters,
         "completion_quick_update_matching_total": matching_total,
         "completion_quick_update_is_capped": visible_total < matching_total,
         "completion_quick_update_difficulty_max": DIFFICULTY_RATING_MAX,

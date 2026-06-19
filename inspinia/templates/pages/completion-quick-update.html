@@ -52,6 +52,22 @@
     min-width: 12rem;
   }
 
+  .quick-completion-subtopic-link {
+    transition: background-color .15s ease, border-color .15s ease, color .15s ease;
+  }
+
+  .quick-completion-subtopic-link:hover,
+  .quick-completion-subtopic-link:focus-visible {
+    background-color: var(--bs-primary-bg-subtle) !important;
+    border-color: var(--bs-primary-border-subtle) !important;
+    color: var(--bs-primary-text-emphasis) !important;
+  }
+
+  .quick-completion-subtopic-link:focus-visible {
+    outline: 2px solid var(--bs-primary);
+    outline-offset: 2px;
+  }
+
   .quick-completion-mohs-dropdown {
     min-width: 13rem;
   }
@@ -318,8 +334,13 @@
                   <td class="quick-completion-subtopics-cell" data-sort-value="{{ row.subtopics|join:' ' }}">
                     {% if row.subtopics %}
                     <div class="d-flex flex-wrap gap-1">
-                      {% for subtopic in row.subtopics %}
-                      <span class="badge bg-light text-dark border">{{ subtopic }}</span>
+                      {% for subtopic_link in row.subtopic_links %}
+                      <a
+                        href="{{ subtopic_link.url }}"
+                        class="badge border text-decoration-none quick-completion-subtopic-link {% if subtopic_link.is_selected %}bg-primary-subtle text-primary border-primary-subtle{% else %}bg-light text-dark{% endif %}"
+                        title="{% if subtopic_link.is_selected %}Remove matching subtopic{% else %}Add matching subtopic{% endif %}"
+                        aria-label="{% if subtopic_link.is_selected %}Remove subtopic {{ subtopic_link.label }} from filter{% else %}Find problems with subtopic {{ subtopic_link.label }}{% endif %}"
+                      >{{ subtopic_link.label }}</a>
                       {% endfor %}
                     </div>
                     {% else %}
