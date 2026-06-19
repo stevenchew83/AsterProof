@@ -6402,13 +6402,15 @@ def test_completion_quick_update_filters_by_subtopics(client):
     assert response.context["completion_quick_update_filters"]["subtopics"] == "LTE"
     rows = response.context["completion_quick_update_rows"]
     assert [row["statement_uuid"] for row in rows] == [str(matching_statement.statement_uuid)]
-    assert rows[0]["subtopics"] == ["LTE"]
+    assert rows[0]["subtopics"] == []
+    assert rows[0]["techniques"] == ["LTE"]
     response_html = response.content.decode("utf-8")
     assert 'name="subtopics"' in response_html
     assert 'value="LTE"' in response_html
     assert 'id="quick-completion-secondary-filters"' in response_html
     assert 'id="quick-completion-advanced-filters"' not in response_html
     assert "Subtopics" in response_html
+    assert "Technique" in response_html
     assert "ANGLE CHASE" not in response_html
 
 
@@ -6442,7 +6444,7 @@ def test_completion_quick_update_filters_by_comma_separated_subtopics_as_and_ter
     assert [row["statement_uuid"] for row in rows] == [str(matching_statement.statement_uuid)]
 
 
-def test_completion_quick_update_subtopic_badges_toggle_matching_filter(client):
+def test_completion_quick_update_technique_badges_toggle_matching_filter(client):
     user = UserFactory()
     client.force_login(user)
     statement = _create_quick_completion_statement(problem_code="P1", problem_number=1)
@@ -6460,7 +6462,7 @@ def test_completion_quick_update_subtopic_badges_toggle_matching_filter(client):
 
     assert response.status_code == HTTPStatus.OK
     row = response.context["completion_quick_update_rows"][0]
-    link_by_label = {link["label"]: link for link in row["subtopic_links"]}
+    link_by_label = {link["label"]: link for link in row["technique_links"]}
     base_url = reverse("pages:completion_quick_update")
     assert link_by_label["ANGLE CHASE"] == {
         "is_selected": True,
@@ -6481,11 +6483,11 @@ def test_completion_quick_update_subtopic_badges_toggle_matching_filter(client):
         f'href="{base_url}?q=USAMO&amp;year=2026'
         '&amp;subtopics=ANGLE+CHASE%2C+SPIRAL+SIMILARITY"'
     ) in response_html
-    assert "quick-completion-subtopic-link" in response_html
-    assert 'title="Remove matching subtopic"' in response_html
-    assert 'title="Add matching subtopic"' in response_html
-    assert 'aria-label="Remove subtopic ANGLE CHASE from filter"' in response_html
-    assert 'aria-label="Find problems with subtopic SPIRAL SIMILARITY"' in response_html
+    assert "quick-completion-technique-link" in response_html
+    assert 'title="Remove matching technique"' in response_html
+    assert 'title="Add matching technique"' in response_html
+    assert 'aria-label="Remove technique ANGLE CHASE from filter"' in response_html
+    assert 'aria-label="Find problems with technique SPIRAL SIMILARITY"' in response_html
 
 
 def test_completion_quick_update_search_matches_analytics_explanation_fields(client):
@@ -6599,7 +6601,7 @@ def test_completion_quick_update_renders_analytics_toggle_buttons_and_search_tex
     assert "Forgetting the terminal case." in response_html
 
 
-def test_completion_quick_update_subtopics_column_prefers_statement_tags_with_linked_fallback(client):
+def test_completion_quick_update_shows_subtopics_and_techniques_as_separate_columns(client):
     user = UserFactory()
     client.force_login(user)
     statement_tagged = _create_quick_completion_statement(problem_code="P1", problem_number=1)
@@ -6608,16 +6610,19 @@ def test_completion_quick_update_subtopics_column_prefers_statement_tags_with_li
         statement=statement_tagged,
         technique="INVARIANTS",
         domains=["COMB"],
+        canonical_subtopic="Invariants",
     )
     ProblemTopicTechnique.objects.create(
         record=statement_tagged.linked_problem,
         technique="DO NOT DISPLAY",
         domains=["ALG"],
+        canonical_subtopic="Do not display",
     )
     ProblemTopicTechnique.objects.create(
         record=linked_fallback.linked_problem,
         technique="ANGLE CHASE",
         domains=["GEO"],
+        canonical_subtopic="Angle chasing",
     )
 
     response = client.get(reverse("pages:completion_quick_update"))
@@ -6627,12 +6632,22 @@ def test_completion_quick_update_subtopics_column_prefers_statement_tags_with_li
         row["problem_code"]: row
         for row in response.context["completion_quick_update_rows"]
     }
-    assert row_by_problem["P1"]["subtopics"] == ["INVARIANTS"]
-    assert row_by_problem["P2"]["subtopics"] == ["ANGLE CHASE"]
+    assert row_by_problem["P1"]["subtopics"] == ["Invariants"]
+    assert row_by_problem["P1"]["techniques"] == ["INVARIANTS"]
+    assert row_by_problem["P2"]["subtopics"] == ["Angle chasing"]
+    assert row_by_problem["P2"]["techniques"] == ["ANGLE CHASE"]
     response_html = response.content.decode("utf-8")
+    header_html = response_html[
+        response_html.index("<thead>") : response_html.index("</thead>")
+    ]
+    assert header_html.index("<th>Subtopics</th>") < header_html.index("<th>Technique</th>")
+    assert header_html.index("<th>Technique</th>") < header_html.index("<th>User MOHS</th>")
     assert "INVARIANTS" in response_html
+    assert "Invariants" in response_html
     assert "ANGLE CHASE" in response_html
+    assert "Angle chasing" in response_html
     assert "DO NOT DISPLAY" not in response_html
+    assert "Do not display" not in response_html
 
 
 def test_completion_quick_update_subtopics_filter_uses_linked_tags_only_as_fallback(client):
@@ -7355,6 +7370,9 @@ def test_completion_quick_update_renders_datatable_with_status_filter(client):
         "<th>Subtopics</th>",
     )
     assert header_html.index("<th>Subtopics</th>") < header_html.index(
+        "<th>Technique</th>",
+    )
+    assert header_html.index("<th>Technique</th>") < header_html.index(
         "<th>User MOHS</th>",
     )
     assert header_html.index("<th>User MOHS</th>") < header_html.index(
@@ -7372,8 +7390,8 @@ def test_completion_quick_update_renders_datatable_with_status_filter(client):
     assert "<th>Status</th>" not in header_html
     assert "<th>Time spent</th>" not in header_html
     assert "<th>YYYY-MM-DD</th>" not in header_html
-    assert "targets: [3, 6, 7]" in response_html
-    assert "targets: [3, 7]" in response_html
+    assert "targets: [4, 7, 8]" in response_html
+    assert "targets: [4, 8]" in response_html
     assert "loaded rows" in response_html
 
 

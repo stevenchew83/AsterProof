@@ -4984,6 +4984,7 @@ def _completion_quick_update_row(
     completion_by_statement_id: dict[int, UserProblemCompletion],
     difficulty_payload: dict[str, object] | None = None,
     subtopics: list[str] | None = None,
+    techniques: list[str] | None = None,
 ) -> dict[str, object]:
     completion = completion_by_statement_id.get(statement.id)
     is_completed = _completion_is_solved(completion)
@@ -5032,6 +5033,7 @@ def _completion_quick_update_row(
         "statement_uuid": str(statement.statement_uuid),
         "study_summary": _completion_quick_update_study_summary(metadata_payload),
         "subtopics": subtopics or [],
+        "techniques": techniques or [],
         "topic": display_topic_label(topic) if topic else "",
         "year": int(statement.contest_year),
         **(
@@ -5048,9 +5050,9 @@ def _completion_quick_update_row(
     }
 
 
-def _completion_quick_update_subtopics_by_statement_id(
+def _completion_quick_update_tag_payload_by_statement_id(
     statements: list[ContestProblemStatement],
-) -> dict[int, list[str]]:
+) -> dict[int, dict[str, list[str]]]:
     if not statements:
         return {}
 
@@ -5062,41 +5064,60 @@ def _completion_quick_update_subtopics_by_statement_id(
             if statement.linked_problem_id is not None
         },
     )
-    statement_subtopics_by_id: dict[int, list[str]] = defaultdict(list)
-    seen_statement_subtopics: dict[int, set[str]] = defaultdict(set)
+    statement_tags_by_id: dict[int, dict[str, list[str]]] = defaultdict(
+        lambda: {"subtopics": [], "techniques": []},
+    )
+    seen_statement_tags: dict[int, dict[str, set[str]]] = defaultdict(
+        lambda: {"subtopics": set(), "techniques": set()},
+    )
     for tag_row in (
         StatementTopicTechnique.objects.filter(statement_id__in=statement_ids)
-        .values("statement_id", "technique")
+        .values("statement_id", "technique", "canonical_subtopic")
         .order_by("technique", "statement_id")
     ):
         statement_id = tag_row["statement_id"]
-        technique = tag_row["technique"]
-        if technique in seen_statement_subtopics[statement_id]:
-            continue
-        seen_statement_subtopics[statement_id].add(technique)
-        statement_subtopics_by_id[statement_id].append(technique)
+        for key, value in (
+            ("subtopics", tag_row["canonical_subtopic"]),
+            ("techniques", tag_row["technique"]),
+        ):
+            label = str(value or "").strip()
+            if not label or label in seen_statement_tags[statement_id][key]:
+                continue
+            seen_statement_tags[statement_id][key].add(label)
+            statement_tags_by_id[statement_id][key].append(label)
 
-    linked_subtopics_by_record_id: dict[int, list[str]] = defaultdict(list)
-    seen_linked_subtopics: dict[int, set[str]] = defaultdict(set)
+    linked_tags_by_record_id: dict[int, dict[str, list[str]]] = defaultdict(
+        lambda: {"subtopics": [], "techniques": []},
+    )
+    seen_linked_tags: dict[int, dict[str, set[str]]] = defaultdict(
+        lambda: {"subtopics": set(), "techniques": set()},
+    )
     if linked_problem_ids:
         for tag_row in (
             ProblemTopicTechnique.objects.filter(record_id__in=linked_problem_ids)
-            .values("record_id", "technique")
+            .values("record_id", "technique", "canonical_subtopic")
             .order_by("technique", "record_id")
         ):
             record_id = tag_row["record_id"]
-            technique = tag_row["technique"]
-            if technique in seen_linked_subtopics[record_id]:
-                continue
-            seen_linked_subtopics[record_id].add(technique)
-            linked_subtopics_by_record_id[record_id].append(technique)
+            for key, value in (
+                ("subtopics", tag_row["canonical_subtopic"]),
+                ("techniques", tag_row["technique"]),
+            ):
+                label = str(value or "").strip()
+                if not label or label in seen_linked_tags[record_id][key]:
+                    continue
+                seen_linked_tags[record_id][key].add(label)
+                linked_tags_by_record_id[record_id][key].append(label)
 
-    subtopics_by_statement_id: dict[int, list[str]] = {}
+    tag_payload_by_statement_id: dict[int, dict[str, list[str]]] = {}
     for statement in statements:
-        subtopics_by_statement_id[statement.id] = statement_subtopics_by_id.get(
+        tag_payload_by_statement_id[statement.id] = statement_tags_by_id.get(
             statement.id,
-        ) or linked_subtopics_by_record_id.get(statement.linked_problem_id, [])
-    return subtopics_by_statement_id
+        ) or linked_tags_by_record_id.get(
+            statement.linked_problem_id,
+            {"subtopics": [], "techniques": []},
+        )
+    return tag_payload_by_statement_id
 
 
 def _completion_quick_update_result_summary(
@@ -5114,16 +5135,16 @@ def _completion_quick_update_result_summary(
     return f"{visible_total} recent row{'s' if visible_total != 1 else ''}"
 
 
-def _completion_quick_update_selected_subtopic_labels(raw_value: str) -> list[str]:
-    subtopics_query = (raw_value or "").strip()
-    if not subtopics_query:
+def _completion_quick_update_selected_technique_labels(raw_value: str) -> list[str]:
+    technique_query = (raw_value or "").strip()
+    if not technique_query:
         return []
-    if "," in subtopics_query:
-        return [part.strip() for part in subtopics_query.split(",") if part.strip()]
-    return [subtopics_query]
+    if "," in technique_query:
+        return [part.strip() for part in technique_query.split(",") if part.strip()]
+    return [technique_query]
 
 
-def _completion_quick_update_format_subtopic_labels(labels: list[str]) -> str:
+def _completion_quick_update_format_technique_labels(labels: list[str]) -> str:
     return ", ".join(label for label in labels if label.strip())
 
 
@@ -5140,30 +5161,30 @@ def _completion_quick_update_filter_url(filters: dict[str, str], *, subtopics: s
     return f"{base_url}?{query_string}" if query_string else base_url
 
 
-def _completion_quick_update_subtopic_links(
-    subtopics: list[str],
+def _completion_quick_update_technique_links(
+    techniques: list[str],
     *,
     selected_filters: dict[str, str],
 ) -> list[dict[str, object]]:
-    selected_labels = _completion_quick_update_selected_subtopic_labels(
+    selected_labels = _completion_quick_update_selected_technique_labels(
         selected_filters.get("subtopics", ""),
     )
     selected_label_keys = {label.casefold() for label in selected_labels}
     links = []
-    for subtopic in subtopics:
-        subtopic_key = subtopic.casefold()
-        is_selected = subtopic_key in selected_label_keys
+    for technique in techniques:
+        technique_key = technique.casefold()
+        is_selected = technique_key in selected_label_keys
         if is_selected:
-            next_labels = [label for label in selected_labels if label.casefold() != subtopic_key]
+            next_labels = [label for label in selected_labels if label.casefold() != technique_key]
         else:
-            next_labels = [*selected_labels, subtopic]
+            next_labels = [*selected_labels, technique]
         links.append(
             {
                 "is_selected": is_selected,
-                "label": subtopic,
+                "label": technique,
                 "url": _completion_quick_update_filter_url(
                     selected_filters,
-                    subtopics=_completion_quick_update_format_subtopic_labels(next_labels),
+                    subtopics=_completion_quick_update_format_technique_labels(next_labels),
                 ),
             },
         )
@@ -5270,7 +5291,7 @@ def completion_quick_update_view(request):
         statement_ids=[statement.id for statement in statements],
         user=selected_user,
     )
-    subtopics_by_statement_id = _completion_quick_update_subtopics_by_statement_id(statements)
+    tag_payload_by_statement_id = _completion_quick_update_tag_payload_by_statement_id(statements)
     selected_filters = {
         "contest": selected_contest,
         "core_ideas": selected_core_ideas,
@@ -5289,14 +5310,19 @@ def completion_quick_update_view(request):
     }
     rows = []
     for statement in statements:
+        tag_payload = tag_payload_by_statement_id.get(
+            statement.id,
+            {"subtopics": [], "techniques": []},
+        )
         row = _completion_quick_update_row(
             statement,
             completion_by_statement_id=completion_by_statement_id,
             difficulty_payload=difficulty_payloads.get(statement.id),
-            subtopics=subtopics_by_statement_id.get(statement.id),
+            subtopics=tag_payload["subtopics"],
+            techniques=tag_payload["techniques"],
         )
-        row["subtopic_links"] = _completion_quick_update_subtopic_links(
-            row["subtopics"],
+        row["technique_links"] = _completion_quick_update_technique_links(
+            row["techniques"],
             selected_filters=selected_filters,
         )
         rows.append(row)
