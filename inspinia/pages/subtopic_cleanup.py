@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from django.db import transaction
+from django.utils import timezone
 
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
@@ -82,14 +83,40 @@ def _statement_parent_label(tag: StatementTopicTechnique) -> str:
 def _problem_tag_rows() -> Iterable[ProblemTopicTechnique]:
     return (
         ProblemTopicTechnique.objects.select_related("record")
+        .only(
+            "id",
+            "record_id",
+            "technique",
+            "domains",
+            "main_topic",
+            "canonical_subtopic",
+            "record__contest_year_problem",
+            "record__contest",
+            "record__year",
+            "record__problem",
+        )
         .order_by("record_id", "id")
+        .iterator(chunk_size=1000)
     )
 
 
 def _statement_tag_rows() -> Iterable[StatementTopicTechnique]:
     return (
         StatementTopicTechnique.objects.select_related("statement")
+        .only(
+            "id",
+            "statement_id",
+            "technique",
+            "domains",
+            "main_topic",
+            "canonical_subtopic",
+            "statement__contest_year_problem",
+            "statement__contest_name",
+            "statement__contest_year",
+            "statement__problem_code",
+        )
         .order_by("statement_id", "id")
+        .iterator(chunk_size=1000)
     )
 
 
@@ -117,6 +144,7 @@ def _preview_change(kind: str, tag, entry: SubtopicTaxonomyEntry, parent_label: 
 
 def build_subtopic_cleanup_preview(*, limit: int = 50) -> dict[str, object]:
     changes: list[dict[str, str]] = []
+    change_count = 0
     unmatched_by_key: OrderedDict[str, str] = OrderedDict()
     raw_parent_keys: set[tuple[str, int]] = set()
     duplicate_count = 0
@@ -137,7 +165,9 @@ def build_subtopic_cleanup_preview(*, limit: int = 50) -> dict[str, object]:
             raw_parent_keys.add((parent_key_kind, parent_id))
             duplicate_groups[(parent_key_kind, parent_id, entry.stored_technique)] += 1
             if _tag_needs_update(tag, entry):
-                changes.append(_preview_change(kind, tag, entry, parent_label_getter(tag)))
+                change_count += 1
+                if len(changes) < limit:
+                    changes.append(_preview_change(kind, tag, entry, parent_label_getter(tag)))
 
     for group_size in duplicate_groups.values():
         if group_size > 1:
@@ -148,9 +178,9 @@ def build_subtopic_cleanup_preview(*, limit: int = 50) -> dict[str, object]:
         for technique in unmatched_by_key.values()
     ]
     return {
-        "change_count": len(changes),
-        "changes": changes[:limit],
-        "changes_truncated": len(changes) > limit,
+        "change_count": change_count,
+        "changes": changes,
+        "changes_truncated": change_count > limit,
         "duplicate_count": duplicate_count,
         "has_changes": bool(changes or duplicate_count),
         "raw_update_count": len(raw_parent_keys),
@@ -214,24 +244,33 @@ def _format_raw_topic_tags(tag_rows: Iterable) -> str:
 
 
 def _rewrite_problem_topic_tags(record_id: int) -> bool:
-    record = ProblemSolveRecord.objects.get(id=record_id)
-    tag_rows = ProblemTopicTechnique.objects.filter(record_id=record_id).order_by("id")
+    record = ProblemSolveRecord.objects.values("topic_tags").get(id=record_id)
+    tag_rows = (
+        ProblemTopicTechnique.objects.filter(record_id=record_id)
+        .only("id", "technique", "domains", "main_topic", "canonical_subtopic")
+        .order_by("id")
+    )
     next_value = _format_raw_topic_tags(tag_rows)
-    if record.topic_tags == next_value:
+    if record["topic_tags"] == next_value:
         return False
-    record.topic_tags = next_value
-    record.save(update_fields=["topic_tags"])
+    ProblemSolveRecord.objects.filter(id=record_id).update(topic_tags=next_value)
     return True
 
 
 def _rewrite_statement_topic_tags(statement_id: int) -> bool:
-    statement = ContestProblemStatement.objects.get(id=statement_id)
-    tag_rows = StatementTopicTechnique.objects.filter(statement_id=statement_id).order_by("id")
+    statement = ContestProblemStatement.objects.values("topic_tags").get(id=statement_id)
+    tag_rows = (
+        StatementTopicTechnique.objects.filter(statement_id=statement_id)
+        .only("id", "technique", "domains", "main_topic", "canonical_subtopic")
+        .order_by("id")
+    )
     next_value = _format_raw_topic_tags(tag_rows)
-    if statement.topic_tags == next_value:
+    if statement["topic_tags"] == next_value:
         return False
-    statement.topic_tags = next_value
-    statement.save(update_fields=["topic_tags", "updated_at"])
+    ContestProblemStatement.objects.filter(id=statement_id).update(
+        topic_tags=next_value,
+        updated_at=timezone.now(),
+    )
     return True
 
 

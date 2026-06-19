@@ -13580,7 +13580,7 @@ def test_problem_statement_metadata_page_renders_tools_for_admin(client):
     response = client.get(reverse("pages:problem_statement_metadata"))
 
     assert response.status_code == HTTPStatus.OK
-    assert response.context["statement_metadata_total"] == 1
+    assert response.context["statement_metadata_has_rows"] is True
     response_html = response.content.decode("utf-8")
     assert "Statement metadata" in response_html
     assert "Export metadata workbook" in response_html
@@ -13603,7 +13603,7 @@ def test_problem_statement_metadata_page_renders_tools_for_admin(client):
     assert 'id="statement-metadata-import-form"' in response_html
 
 
-def test_problem_statement_metadata_page_reports_full_statement_count(client):
+def test_problem_statement_metadata_page_handles_large_statement_counts_without_editor(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
     for i in range(ADMIN_TABLE_LATEST_LIMIT + 1):
@@ -13619,9 +13619,34 @@ def test_problem_statement_metadata_page_reports_full_statement_count(client):
     response = client.get(reverse("pages:problem_statement_metadata"))
 
     assert response.status_code == HTTPStatus.OK
-    assert response.context["statement_metadata_total"] == ADMIN_TABLE_LATEST_LIMIT + 1
+    assert response.context["statement_metadata_has_rows"] is True
     response_html = response.content.decode("utf-8")
     assert "Browser editor" not in response_html
+
+
+def test_problem_statement_metadata_page_avoids_count_query_for_empty_state(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    ContestProblemStatement.objects.create(
+        contest_year=2026,
+        contest_name="Israel TST",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Metadata page should not count all rows",
+    )
+
+    with CaptureQueriesContext(connection) as queries:
+        response = client.get(reverse("pages:problem_statement_metadata"))
+
+    assert response.status_code == HTTPStatus.OK
+    statement_queries = [
+        query["sql"]
+        for query in queries
+        if "pages_contestproblemstatement" in query["sql"]
+    ]
+    assert statement_queries
+    assert all("COUNT(" not in query.upper() for query in statement_queries)
 
 
 def test_problem_statement_metadata_page_bulk_saves_staged_rows_for_admin(client):
@@ -14018,6 +14043,36 @@ def test_problem_statement_metadata_page_previews_subtopic_cleanup_without_mutat
     assert statement_alias.canonical_subtopic == ""
     assert record.topic_tags == "Topic tags: Alg - am/gm; unknown fragment"
     assert statement.topic_tags == "Topic tags: Geo - miquel point"
+
+
+def test_problem_statement_metadata_subtopic_cleanup_preview_avoids_large_statement_fields(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    statement = ContestProblemStatement.objects.create(
+        contest_year=2026,
+        contest_name="Israel TST",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="x" * 10_000,
+        topic_tags="Topic tags: Geo - miquel point",
+    )
+    StatementTopicTechnique.objects.create(statement=statement, technique="miquel point", domains=["geo"])
+
+    with CaptureQueriesContext(connection) as queries:
+        response = client.post(
+            reverse("pages:problem_statement_metadata"),
+            {"action": "preview_subtopic_cleanup"},
+        )
+
+    assert response.status_code == HTTPStatus.OK
+    statement_tag_queries = [
+        query["sql"]
+        for query in queries
+        if "pages_statementtopictechnique" in query["sql"]
+    ]
+    assert statement_tag_queries
+    assert all("statement_latex" not in query for query in statement_tag_queries)
 
 
 def test_problem_statement_metadata_page_applies_subtopic_cleanup_and_rewrites_raw_tags(client):

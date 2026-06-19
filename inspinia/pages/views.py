@@ -8853,7 +8853,7 @@ def problem_statement_metadata_view(request):
         "pages/problem-statement-metadata.html",
         {
             "form": form,
-            "statement_metadata_total": ContestProblemStatement.objects.count(),
+            "statement_metadata_has_rows": ContestProblemStatement.objects.exists(),
             "subtopic_cleanup_preview": subtopic_cleanup_preview,
         },
     )

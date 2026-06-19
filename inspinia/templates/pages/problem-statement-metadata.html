@@ -249,7 +249,7 @@
   </div>
   {% endif %}
 
-  {% if statement_metadata_total == 0 %}
+  {% if not statement_metadata_has_rows %}
   <div class="alert alert-info mt-4" role="alert">
     <strong>No statement rows yet.</strong>
     Save parsed results from <a href="{% url 'pages:latex_preview' %}" class="alert-link">LaTeX preview</a> to build this table.
