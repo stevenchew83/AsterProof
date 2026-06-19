@@ -14045,6 +14045,78 @@ def test_problem_statement_metadata_page_previews_subtopic_cleanup_without_mutat
     assert statement.topic_tags == "Topic tags: Geo - miquel point"
 
 
+def test_problem_statement_metadata_cleanup_preview_treats_raw_rewrites_as_actionable(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    record = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="A",
+        mohs=25,
+        contest="Israel TST",
+        problem="P1",
+        contest_year_problem="Israel TST 2026 P1",
+        topic_tags="Topic tags: Alg - AM-GM",
+    )
+    ProblemTopicTechnique.objects.create(
+        record=record,
+        technique="AM-GM",
+        domains=["ALG"],
+        main_topic="ALG",
+        canonical_subtopic="Inequalities and optimization",
+    )
+
+    response = client.post(
+        reverse("pages:problem_statement_metadata"),
+        {"action": "preview_subtopic_cleanup"},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    preview = response.context["subtopic_cleanup_preview"]
+    assert preview["change_count"] == 0
+    assert preview["duplicate_count"] == 0
+    assert preview["raw_update_count"] == 1
+    assert preview["has_changes"] is True
+    response_html = response.content.decode("utf-8")
+    assert "Apply cleanup" in response_html
+    assert "No deterministic cleanup changes found." not in response_html
+
+
+def test_problem_statement_metadata_cleanup_preview_matches_broad_subtopic_aliases(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    record = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="A",
+        mohs=25,
+        contest="Israel TST",
+        problem="P1",
+        contest_year_problem="Israel TST 2026 P1",
+        topic_tags="Topic tags: Alg - inequalities; trig; invariants; cyclic",
+    )
+    for technique in ["inequalities", "trig", "invariants", "cyclic"]:
+        ProblemTopicTechnique.objects.create(record=record, technique=technique, domains=["alg"])
+
+    response = client.post(
+        reverse("pages:problem_statement_metadata"),
+        {"action": "preview_subtopic_cleanup"},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    preview = response.context["subtopic_cleanup_preview"]
+    assert preview["change_count"] == 3
+    assert preview["unmatched_count"] == 1
+    changes_by_technique = {
+        row["technique"]: (row["main_topic"], row["canonical_subtopic"])
+        for row in preview["changes"]
+    }
+    assert changes_by_technique == {
+        "INEQUALITIES": ("ALG", "Inequalities and optimization"),
+        "TRIG": ("GEO", "Core Euclidean geometry"),
+        "INVARIANTS": ("COMB", "Coloring, tiling, grids, and invariants"),
+    }
+    assert preview["unmatched"] == [{"technique": "CYCLIC"}]
+
+
 def test_problem_statement_metadata_subtopic_cleanup_preview_avoids_large_statement_fields(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)

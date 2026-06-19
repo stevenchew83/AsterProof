@@ -37,6 +37,55 @@ class SubtopicCleanupApplyResult:
     updated_count: int
 
 
+ADDITIONAL_SUBTOPIC_ALIASES: tuple[tuple[str, str, str], ...] = (
+    ("ALG", "Inequalities and optimization", "inequalities"),
+    ("ALG", "Inequalities and optimization", "extremal inequalities"),
+    ("ALG", "Inequalities and optimization", "optimization"),
+    ("ALG", "Inequalities and optimization", "concavity"),
+    ("ALG", "Polynomials and algebraic manipulation", "polynomial structure"),
+    ("ALG", "Polynomials and algebraic manipulation", "exponential polynomials"),
+    ("ALG", "Polynomials and algebraic manipulation", "integer coefficients"),
+    ("ALG", "Sequences, recurrences, and series", "recurrences"),
+    ("ALG", "Sequences, recurrences, and series", "telescoping"),
+    ("ALG", "Sequences, recurrences, and series", "sums of powers"),
+    ("ALG", "Functional equations", "functional equations disguised"),
+    ("ALG", "Functional equations", "functional equations on Q"),
+    ("ALG", "Functional equations", "differentiability"),
+    ("ALG", "Functional equations", "iteration"),
+    ("ALG", "Algebraic structures and linear algebra", "linear algebra mod 2"),
+    ("NT", "Diophantine equations and descent", "diophantine approximation"),
+    ("NT", "Diophantine equations and descent", "geometry of numbers"),
+    ("NT", "Additive and multiplicative number theory", "additive representations"),
+    ("GEO", "Core Euclidean geometry", "geometry"),
+    ("GEO", "Core Euclidean geometry", "trig"),
+    ("GEO", "Core Euclidean geometry", "complex numbers"),
+    ("GEO", "Core Euclidean geometry", "complex vectors"),
+    ("COMB", "Counting and enumerative combinatorics", "growth and counting"),
+    ("COMB", "Graph theory", "hamiltonian paths"),
+    ("COMB", "Graph theory", "geometric graphs"),
+    ("COMB", "Set systems, posets, and extremal set theory", "sequences of sets"),
+    ("COMB", "Coloring, tiling, grids, and invariants", "invariants"),
+    ("COMB", "Coloring, tiling, grids, and invariants", "invariants on permutations"),
+    ("COMB", "Coloring, tiling, grids, and invariants", "colorings"),
+    ("COMB", "Coloring, tiling, grids, and invariants", "grids"),
+    ("COMB", "Coloring, tiling, grids, and invariants", "3D grids"),
+    ("COMB", "Coloring, tiling, grids, and invariants", "paths on grids"),
+    ("COMB", "Coloring, tiling, grids, and invariants", "dissections"),
+    ("COMB", "Coloring, tiling, grids, and invariants", "local patterns"),
+    ("COMB", "Games, strategies, and processes", "game"),
+    ("COMB", "Games, strategies, and processes", "strategy"),
+    ("COMB", "Games, strategies, and processes", "worst-case search"),
+    ("COMB", "Games, strategies, and processes", "adversarial"),
+    ("COMB", "Games, strategies, and processes", "pursuit games"),
+    ("COMB", "Games, strategies, and processes", "multiset process"),
+    ("COMB", "Pigeonhole, extremal principle, and averaging", "extremal"),
+    ("COMB", "Probability, entropy, coding, and information methods", "coding"),
+    ("COMB", "Algorithms, automata, words, and constructive combinatorics", "word problem"),
+    ("COMB", "Algorithms, automata, words, and constructive combinatorics", "strings"),
+    ("COMB", "Algorithms, automata, words, and constructive combinatorics", "constructive / obstructions"),
+)
+
+
 def _taxonomy_key(value: str) -> str:
     normalized = unicodedata.normalize("NFKD", value or "")
     normalized = normalized.casefold()
@@ -44,16 +93,37 @@ def _taxonomy_key(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", "", normalized)
 
 
+def _taxonomy_entry(
+    main_topic: str,
+    canonical_subtopic: str,
+    technique: str,
+) -> SubtopicTaxonomyEntry:
+    return SubtopicTaxonomyEntry(
+        main_topic=main_topic,
+        canonical_subtopic=canonical_subtopic,
+        technique=technique,
+        stored_technique=normalize_topic_tag(technique),
+    )
+
+
 def _build_taxonomy_lookup() -> dict[str, SubtopicTaxonomyEntry]:
     lookup: dict[str, SubtopicTaxonomyEntry] = {}
+    canonical_pairs: set[tuple[str, str]] = set()
     for main_topic, canonical_subtopic, technique in CANONICAL_SUBTOPIC_TAXONOMY:
-        entry = SubtopicTaxonomyEntry(
-            main_topic=main_topic,
-            canonical_subtopic=canonical_subtopic,
-            technique=technique,
-            stored_technique=normalize_topic_tag(technique),
+        pair = (main_topic, canonical_subtopic)
+        if pair not in canonical_pairs:
+            canonical_pairs.add(pair)
+            canonical_entry = _taxonomy_entry(main_topic, canonical_subtopic, canonical_subtopic)
+            lookup.setdefault(_taxonomy_key(canonical_subtopic), canonical_entry)
+        lookup.setdefault(
+            _taxonomy_key(technique),
+            _taxonomy_entry(main_topic, canonical_subtopic, technique),
         )
-        lookup.setdefault(_taxonomy_key(technique), entry)
+    for main_topic, canonical_subtopic, alias in ADDITIONAL_SUBTOPIC_ALIASES:
+        lookup.setdefault(
+            _taxonomy_key(alias),
+            _taxonomy_entry(main_topic, canonical_subtopic, alias),
+        )
     return lookup
 
 
@@ -182,7 +252,7 @@ def build_subtopic_cleanup_preview(*, limit: int = 50) -> dict[str, object]:
         "changes": changes,
         "changes_truncated": change_count > limit,
         "duplicate_count": duplicate_count,
-        "has_changes": bool(changes or duplicate_count),
+        "has_changes": bool(change_count or duplicate_count or raw_parent_keys),
         "raw_update_count": len(raw_parent_keys),
         "unmatched": unmatched[:limit],
         "unmatched_count": len(unmatched),
