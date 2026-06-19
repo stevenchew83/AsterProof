@@ -6313,6 +6313,7 @@ def test_completion_quick_update_filters_by_contest_year_and_problem_text(client
         "problem_label": "",
         "q": "",
         "subtopics": "",
+        "technique": "",
         "target_user_id": "",
         "year": "2026",
     }
@@ -6384,7 +6385,7 @@ def test_completion_quick_update_filters_by_mohs_range(client):
     assert "MOHS 25" not in response_html
 
 
-def test_completion_quick_update_filters_by_subtopics(client):
+def test_completion_quick_update_filters_by_technique(client):
     user = UserFactory()
     client.force_login(user)
     matching_statement = _create_quick_completion_statement(problem_code="P1", problem_number=1)
@@ -6403,18 +6404,20 @@ def test_completion_quick_update_filters_by_subtopics(client):
 
     response = client.get(
         reverse("pages:completion_quick_update"),
-        {"subtopics": "LTE"},
+        {"technique": "LTE"},
     )
 
     assert response.status_code == HTTPStatus.OK
-    assert response.context["completion_quick_update_filters"]["subtopics"] == "LTE"
+    assert response.context["completion_quick_update_filters"]["technique"] == "LTE"
+    assert response.context["completion_quick_update_filters"]["subtopics"] == ""
     rows = response.context["completion_quick_update_rows"]
     assert [row["statement_uuid"] for row in rows] == [str(matching_statement.statement_uuid)]
     assert rows[0]["subtopics"] == []
     assert rows[0]["techniques"] == ["LTE"]
     response_html = response.content.decode("utf-8")
-    assert 'name="subtopics"' in response_html
+    assert 'name="technique"' in response_html
     assert 'value="LTE"' in response_html
+    assert 'name="subtopics"' in response_html
     assert 'id="quick-completion-secondary-filters"' in response_html
     assert 'id="quick-completion-advanced-filters"' not in response_html
     assert "Subtopics" in response_html
@@ -6422,7 +6425,33 @@ def test_completion_quick_update_filters_by_subtopics(client):
     assert "ANGLE CHASE" not in response_html
 
 
-def test_completion_quick_update_filters_by_comma_separated_subtopics_as_and_terms(client):
+def test_completion_quick_update_old_subtopics_query_does_not_filter_techniques(client):
+    user = UserFactory()
+    client.force_login(user)
+    matching_statement = _create_quick_completion_statement(problem_code="P1", problem_number=1)
+    other_statement = _create_quick_completion_statement(problem_code="P2", problem_number=2)
+    StatementTopicTechnique.objects.create(
+        statement=matching_statement,
+        technique="LTE",
+        domains=["NT"],
+    )
+    StatementTopicTechnique.objects.create(
+        statement=other_statement,
+        technique="ANGLE CHASE",
+        domains=["GEO"],
+    )
+
+    response = client.get(
+        reverse("pages:completion_quick_update"),
+        {"subtopics": "LTE"},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["completion_quick_update_filters"]["subtopics"] == "LTE"
+    assert response.context["completion_quick_update_rows"] == []
+
+
+def test_completion_quick_update_filters_by_comma_separated_techniques_as_and_terms(client):
     user = UserFactory()
     client.force_login(user)
     matching_statement = _create_quick_completion_statement(problem_code="P1", problem_number=1)
@@ -6441,15 +6470,51 @@ def test_completion_quick_update_filters_by_comma_separated_subtopics_as_and_ter
 
     response = client.get(
         reverse("pages:completion_quick_update"),
-        {"subtopics": "ANGLE CHASE, SPIRAL SIMILARITY"},
+        {"technique": "ANGLE CHASE, SPIRAL SIMILARITY"},
     )
 
     assert response.status_code == HTTPStatus.OK
-    assert response.context["completion_quick_update_filters"]["subtopics"] == (
+    assert response.context["completion_quick_update_filters"]["technique"] == (
         "ANGLE CHASE, SPIRAL SIMILARITY"
     )
     rows = response.context["completion_quick_update_rows"]
     assert [row["statement_uuid"] for row in rows] == [str(matching_statement.statement_uuid)]
+
+
+def test_completion_quick_update_filters_by_subtopics(client):
+    user = UserFactory()
+    client.force_login(user)
+    matching_statement = _create_quick_completion_statement(problem_code="P1", problem_number=1)
+    fallback_statement = _create_quick_completion_statement(problem_code="P2", problem_number=2)
+    _create_quick_completion_statement(problem_code="P3", problem_number=3)
+    StatementTopicTechnique.objects.create(
+        statement=matching_statement,
+        technique="LTE",
+        domains=["NT"],
+        canonical_subtopic="Valuations",
+    )
+    ProblemTopicTechnique.objects.create(
+        record=fallback_statement.linked_problem,
+        technique="ANGLE CHASE",
+        domains=["GEO"],
+        canonical_subtopic="Circle geometry",
+    )
+
+    response = client.get(
+        reverse("pages:completion_quick_update"),
+        {"subtopics": "Valuations"},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["completion_quick_update_filters"]["subtopics"] == "Valuations"
+    rows = response.context["completion_quick_update_rows"]
+    assert [row["statement_uuid"] for row in rows] == [str(matching_statement.statement_uuid)]
+    assert rows[0]["subtopics"] == ["Valuations"]
+    assert rows[0]["techniques"] == ["LTE"]
+    response_html = response.content.decode("utf-8")
+    assert 'name="subtopics"' in response_html
+    assert 'value="Valuations"' in response_html
+    assert "Circle geometry" not in response_html
 
 
 def test_completion_quick_update_technique_badges_toggle_matching_filter(client):
@@ -6465,7 +6530,7 @@ def test_completion_quick_update_technique_badges_toggle_matching_filter(client)
 
     response = client.get(
         reverse("pages:completion_quick_update"),
-        {"q": "USAMO", "year": "2026", "subtopics": "ANGLE CHASE"},
+        {"q": "USAMO", "year": "2026", "technique": "ANGLE CHASE"},
     )
 
     assert response.status_code == HTTPStatus.OK
@@ -6482,20 +6547,72 @@ def test_completion_quick_update_technique_badges_toggle_matching_filter(client)
         "label": "SPIRAL SIMILARITY",
         "url": (
             f"{base_url}?q=USAMO&year=2026"
-            "&subtopics=ANGLE+CHASE%2C+SPIRAL+SIMILARITY"
+            "&technique=ANGLE+CHASE%2C+SPIRAL+SIMILARITY"
         ),
     }
     response_html = response.content.decode("utf-8")
     assert f'href="{base_url}?q=USAMO&amp;year=2026"' in response_html
     assert (
         f'href="{base_url}?q=USAMO&amp;year=2026'
-        '&amp;subtopics=ANGLE+CHASE%2C+SPIRAL+SIMILARITY"'
+        '&amp;technique=ANGLE+CHASE%2C+SPIRAL+SIMILARITY"'
     ) in response_html
     assert "quick-completion-technique-link" in response_html
     assert 'title="Remove matching technique"' in response_html
     assert 'title="Add matching technique"' in response_html
     assert 'aria-label="Remove technique ANGLE CHASE from filter"' in response_html
     assert 'aria-label="Find problems with technique SPIRAL SIMILARITY"' in response_html
+
+
+def test_completion_quick_update_subtopic_badges_toggle_matching_filter(client):
+    user = UserFactory()
+    client.force_login(user)
+    statement = _create_quick_completion_statement(problem_code="P1", problem_number=1)
+    StatementTopicTechnique.objects.create(
+        statement=statement,
+        technique="LTE",
+        domains=["NT"],
+        canonical_subtopic="Valuations",
+    )
+    StatementTopicTechnique.objects.create(
+        statement=statement,
+        technique="EXTREMAL CONSTRUCTION",
+        domains=["COMB"],
+        canonical_subtopic="Extremal principle",
+    )
+
+    response = client.get(
+        reverse("pages:completion_quick_update"),
+        {"q": "USAMO", "year": "2026", "subtopics": "Valuations"},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    row = response.context["completion_quick_update_rows"][0]
+    link_by_label = {link["label"]: link for link in row["subtopic_links"]}
+    base_url = reverse("pages:completion_quick_update")
+    assert link_by_label["Valuations"] == {
+        "is_selected": True,
+        "label": "Valuations",
+        "url": f"{base_url}?q=USAMO&year=2026",
+    }
+    assert link_by_label["Extremal principle"] == {
+        "is_selected": False,
+        "label": "Extremal principle",
+        "url": (
+            f"{base_url}?q=USAMO&year=2026"
+            "&subtopics=Valuations%2C+Extremal+principle"
+        ),
+    }
+    response_html = response.content.decode("utf-8")
+    assert f'href="{base_url}?q=USAMO&amp;year=2026"' in response_html
+    assert (
+        f'href="{base_url}?q=USAMO&amp;year=2026'
+        '&amp;subtopics=Valuations%2C+Extremal+principle"'
+    ) in response_html
+    assert "quick-completion-subtopic-link" in response_html
+    assert 'title="Remove matching subtopic"' in response_html
+    assert 'title="Add matching subtopic"' in response_html
+    assert 'aria-label="Remove subtopic Valuations from filter"' in response_html
+    assert 'aria-label="Find problems with subtopic Extremal principle"' in response_html
 
 
 def test_completion_quick_update_search_matches_analytics_explanation_fields(client):
@@ -6658,7 +6775,7 @@ def test_completion_quick_update_shows_subtopics_and_techniques_as_separate_colu
     assert "Do not display" not in response_html
 
 
-def test_completion_quick_update_subtopics_filter_uses_linked_tags_only_as_fallback(client):
+def test_completion_quick_update_technique_filter_uses_linked_tags_only_as_fallback(client):
     user = UserFactory()
     client.force_login(user)
     statement_tagged = _create_quick_completion_statement(problem_code="P1", problem_number=1)
@@ -6681,7 +6798,7 @@ def test_completion_quick_update_subtopics_filter_uses_linked_tags_only_as_fallb
 
     response = client.get(
         reverse("pages:completion_quick_update"),
-        {"subtopics": "DO NOT MATCH"},
+        {"technique": "DO NOT MATCH"},
     )
 
     assert response.status_code == HTTPStatus.OK

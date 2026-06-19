@@ -53,10 +53,13 @@
     min-width: 12rem;
   }
 
+  .quick-completion-subtopic-link,
   .quick-completion-technique-link {
     transition: background-color .15s ease, border-color .15s ease, color .15s ease;
   }
 
+  .quick-completion-subtopic-link:hover,
+  .quick-completion-subtopic-link:focus-visible,
   .quick-completion-technique-link:hover,
   .quick-completion-technique-link:focus-visible {
     background-color: var(--bs-primary-bg-subtle) !important;
@@ -64,6 +67,7 @@
     color: var(--bs-primary-text-emphasis) !important;
   }
 
+  .quick-completion-subtopic-link:focus-visible,
   .quick-completion-technique-link:focus-visible {
     outline: 2px solid var(--bs-primary);
     outline-offset: 2px;
@@ -157,7 +161,7 @@
               </div>
             </div>
             <div id="quick-completion-secondary-filters" class="row g-2 align-items-end mt-2">
-              <div class="col-md-6 col-xl-3">
+              <div class="col-md-6 col-xl-2">
                 <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="quick-completion-q">Search</label>
                 <input
                   id="quick-completion-q"
@@ -169,6 +173,17 @@
                 >
               </div>
               <div class="col-md-6 col-xl-2">
+                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="quick-completion-technique">Technique</label>
+                <input
+                  id="quick-completion-technique"
+                  name="technique"
+                  type="search"
+                  class="form-control"
+                  value="{{ completion_quick_update_filters.technique }}"
+                  placeholder="LTE, angle chase"
+                >
+              </div>
+              <div class="col-md-6 col-xl-2">
                 <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="quick-completion-subtopics">Subtopics</label>
                 <input
                   id="quick-completion-subtopics"
@@ -176,7 +191,7 @@
                   type="search"
                   class="form-control"
                   value="{{ completion_quick_update_filters.subtopics }}"
-                  placeholder="LTE, angle chase"
+                  placeholder="Valuations"
                 >
               </div>
               <div class="col-md-4 col-xl-2">
@@ -213,7 +228,7 @@
                   placeholder="Max"
                 >
               </div>
-              <div class="col-md-6 col-xl-3">
+              <div class="col-md-6 col-xl-2">
                 <div class="d-flex flex-wrap gap-2">
                   <button type="submit" class="btn btn-primary">
                     <i class="ti ti-search me-1"></i>Search
@@ -337,8 +352,13 @@
                   <td class="quick-completion-subtopics-cell" data-sort-value="{{ row.subtopics|join:' ' }}">
                     {% if row.subtopics %}
                     <div class="d-flex flex-wrap gap-1">
-                      {% for subtopic in row.subtopics %}
-                      <span class="badge bg-light text-dark border">{{ subtopic }}</span>
+                      {% for subtopic_link in row.subtopic_links %}
+                      <a
+                        href="{{ subtopic_link.url }}"
+                        class="badge border text-decoration-none quick-completion-subtopic-link {% if subtopic_link.is_selected %}bg-primary-subtle text-primary border-primary-subtle{% else %}bg-light text-dark{% endif %}"
+                        title="{% if subtopic_link.is_selected %}Remove matching subtopic{% else %}Add matching subtopic{% endif %}"
+                        aria-label="{% if subtopic_link.is_selected %}Remove subtopic {{ subtopic_link.label }} from filter{% else %}Find problems with subtopic {{ subtopic_link.label }}{% endif %}"
+                      >{{ subtopic_link.label }}</a>
                       {% endfor %}
                     </div>
                     {% else %}
