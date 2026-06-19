@@ -19,6 +19,7 @@ from inspinia.pages.models import StatementTopicTechnique
 from inspinia.pages.problem_import import dataframe_to_safe_excel_bytes
 from inspinia.pages.problem_import import sync_problem_topic_techniques
 from inspinia.pages.statement_analytics_sync import sync_statement_analytics_from_linked_problem
+from inspinia.pages.subtopic_cleanup import build_unmatched_subtopic_review
 from inspinia.pages.topic_tags_parse import domains_dedup_preserve_order
 from inspinia.pages.topic_tags_parse import merge_domain_lists
 from inspinia.pages.topic_tags_parse import parse_topic_tags_cell
@@ -46,6 +47,14 @@ STATEMENT_METADATA_EXPORT_COLUMNS = [
     "Common pitfalls",
 ]
 STATEMENT_SUBTOPIC_EXPORT_COLUMNS = ["Subtopic"]
+STATEMENT_UNMATCHED_SUBTOPIC_EXPORT_COLUMNS = [
+    "Subtopic",
+    "Occurrences",
+    "Problem rows",
+    "Statement rows",
+    "Existing domains",
+    "Example problem",
+]
 STATEMENT_METADATA_IDENTIFIER_COLUMNS = ("STATEMENT UUID", "PROBLEM UUID")
 STATEMENT_METADATA_EDITABLE_COLUMNS = (
     "TOPIC",
@@ -351,6 +360,27 @@ def build_statement_subtopic_export_dataframe() -> pd.DataFrame:
 
 def build_statement_subtopic_export_workbook_bytes() -> bytes:
     export_df = build_statement_subtopic_export_dataframe()
+    return dataframe_to_safe_excel_bytes(export_df)
+
+
+def build_statement_unmatched_subtopic_export_dataframe() -> pd.DataFrame:
+    review = build_unmatched_subtopic_review()
+    rows = [
+        {
+            "Example problem": row["example_problem"],
+            "Existing domains": row["existing_domains"],
+            "Occurrences": row["occurrences"],
+            "Problem rows": row["problem_rows"],
+            "Statement rows": row["statement_rows"],
+            "Subtopic": row["subtopic"],
+        }
+        for row in review["rows"]
+    ]
+    return pd.DataFrame(rows, columns=STATEMENT_UNMATCHED_SUBTOPIC_EXPORT_COLUMNS)
+
+
+def build_statement_unmatched_subtopic_export_workbook_bytes() -> bytes:
+    export_df = build_statement_unmatched_subtopic_export_dataframe()
     return dataframe_to_safe_excel_bytes(export_df)
 
 
