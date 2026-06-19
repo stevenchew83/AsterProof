@@ -14,6 +14,7 @@ from django.db import transaction
 from inspinia.pages.contest_names import normalize_contest_name
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
+from inspinia.pages.models import ProblemTopicTechnique
 from inspinia.pages.models import StatementTopicTechnique
 from inspinia.pages.problem_import import dataframe_to_safe_excel_bytes
 from inspinia.pages.problem_import import sync_problem_topic_techniques
@@ -44,6 +45,7 @@ STATEMENT_METADATA_EXPORT_COLUMNS = [
     "Rationale",
     "Common pitfalls",
 ]
+STATEMENT_SUBTOPIC_EXPORT_COLUMNS = ["Subtopic"]
 STATEMENT_METADATA_IDENTIFIER_COLUMNS = ("STATEMENT UUID", "PROBLEM UUID")
 STATEMENT_METADATA_EDITABLE_COLUMNS = (
     "TOPIC",
@@ -325,6 +327,30 @@ def build_statement_metadata_export_workbook_bytes(
     statements: list[ContestProblemStatement],
 ) -> bytes:
     export_df = build_statement_metadata_export_dataframe(statements)
+    return dataframe_to_safe_excel_bytes(export_df)
+
+
+def _unique_subtopic_labels() -> list[str]:
+    subtopics_by_key: dict[str, str] = {}
+    querysets = (
+        StatementTopicTechnique.objects.values_list("technique", flat=True),
+        ProblemTopicTechnique.objects.values_list("technique", flat=True),
+    )
+    for queryset in querysets:
+        for raw_subtopic in queryset:
+            subtopic = str(raw_subtopic or "").strip()
+            if subtopic:
+                subtopics_by_key.setdefault(subtopic.casefold(), subtopic)
+    return sorted(subtopics_by_key.values(), key=str.casefold)
+
+
+def build_statement_subtopic_export_dataframe() -> pd.DataFrame:
+    rows = [{"Subtopic": subtopic} for subtopic in _unique_subtopic_labels()]
+    return pd.DataFrame(rows, columns=STATEMENT_SUBTOPIC_EXPORT_COLUMNS)
+
+
+def build_statement_subtopic_export_workbook_bytes() -> bytes:
+    export_df = build_statement_subtopic_export_dataframe()
     return dataframe_to_safe_excel_bytes(export_df)
 
 

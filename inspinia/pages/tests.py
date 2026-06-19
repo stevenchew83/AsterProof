@@ -132,6 +132,7 @@ EXPECTED_STATEMENT_METADATA_EXPORT_COLUMNS = [
     "Rationale",
     "Common pitfalls",
 ]
+EXPECTED_SUBTOPIC_EXPORT_COLUMNS = ["Subtopic"]
 EXPECTED_CONTEST_TOTAL = 2
 EXPECTED_CONTEST_PROBLEM_TOTAL = 3
 EXPECTED_AVERAGE_PROBLEMS_PER_CONTEST = 1.5
@@ -13486,6 +13487,7 @@ def test_problem_statement_metadata_page_renders_tools_for_admin(client):
     response_html = response.content.decode("utf-8")
     assert "Statement metadata" in response_html
     assert "Export metadata workbook" in response_html
+    assert "Export subtopics workbook" in response_html
     assert "Import metadata" in response_html
     assert "Pasted metadata rows" in response_html
     assert "Blank cells keep existing values." in response_html
@@ -13497,6 +13499,8 @@ def test_problem_statement_metadata_page_renders_tools_for_admin(client):
     assert "Common pitfalls" in response_html
     assert "Browser editor" not in response_html
     assert "?action=export" in response_html
+    assert "?action=export_subtopics" in response_html
+    assert 'id="statement-subtopics-export"' in response_html
     assert 'id="statement-metadata-import-form"' in response_html
 
 
@@ -13777,6 +13781,77 @@ def test_problem_statement_metadata_page_exports_workbook_for_admin(client):
         "Rationale": "Rationale: Synthetic geometry setup.",
         "Common pitfalls": "Common pitfalls: Chasing too many angles.",
     }]
+
+
+def test_problem_statement_metadata_page_exports_unique_subtopics_for_admin(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    linked_problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="G",
+        mohs=25,
+        contest="Israel TST",
+        problem="P1",
+        contest_year_problem="Israel TST 2026 P1",
+    )
+    linked_statement = ContestProblemStatement.objects.create(
+        linked_problem=linked_problem,
+        contest_year=2026,
+        contest_name="Israel TST",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Subtopic export statement",
+    )
+    unlinked_statement = ContestProblemStatement.objects.create(
+        contest_year=2026,
+        contest_name="Israel TST",
+        problem_number=2,
+        problem_code="P2",
+        day_label="Day 1",
+        statement_latex="Second subtopic export statement",
+    )
+    ProblemTopicTechnique.objects.create(
+        record=linked_problem,
+        technique="CIRCLES",
+        domains=["GEO"],
+    )
+    ProblemTopicTechnique.objects.create(
+        record=linked_problem,
+        technique="INVERSION",
+        domains=["GEO"],
+    )
+    StatementTopicTechnique.objects.create(
+        statement=linked_statement,
+        technique="CIRCLES",
+        domains=["GEO"],
+    )
+    StatementTopicTechnique.objects.create(
+        statement=linked_statement,
+        technique="ISOGONALITY",
+        domains=["GEO"],
+    )
+    StatementTopicTechnique.objects.create(
+        statement=unlinked_statement,
+        technique="INVERSION",
+        domains=["GEO"],
+    )
+
+    response = client.get(reverse("pages:problem_statement_metadata"), {"action": "export_subtopics"})
+
+    assert response.status_code == HTTPStatus.OK
+    assert response["Content-Type"].startswith(WORKBOOK_CONTENT_TYPE)
+    assert response["Content-Disposition"].startswith(
+        'attachment; filename="asterproof-statement-subtopics-',
+    )
+    exported_dataframe = pd.read_excel(BytesIO(response.content), dtype=str).fillna("")
+    exported_rows = exported_dataframe.to_dict(orient="records")
+    assert list(exported_dataframe.columns) == EXPECTED_SUBTOPIC_EXPORT_COLUMNS
+    assert exported_rows == [
+        {"Subtopic": "CIRCLES"},
+        {"Subtopic": "INVERSION"},
+        {"Subtopic": "ISOGONALITY"},
+    ]
 
 
 def test_problem_statement_metadata_export_strips_illegal_excel_characters(client):
