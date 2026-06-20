@@ -15501,7 +15501,12 @@ def test_problem_statement_metadata_cleanup_preview_matches_broad_subtopic_alias
         ("CEVIAN COORDINATES", "GEO", "Core Euclidean geometry", "CEVIAN COORDINATES"),
         ("CAUCHY-SCHWARZ/ENGEL", "ALG", "Inequalities and optimization", "CAUCHY-SCHWARZ / ENGEL FORM"),
         ("ENGEL FORM", "ALG", "Inequalities and optimization", "CAUCHY-SCHWARZ / ENGEL FORM"),
-        ("JENSEN CONVEXITY", "ALG", "Inequalities and optimization", "JENSEN / CONVEXITY"),
+        (
+            "JENSEN CONVEXITY",
+            "ALG",
+            "Inequalities and optimization",
+            "CONVEXITY / JENSEN METHODS",
+        ),
         ("SMOOTHING", "ALG", "Inequalities and optimization", "SMOOTHING"),
         ("UVW", "ALG", "Inequalities and optimization", "UVW / PQR METHOD"),
         ("POLYNOMIAL INEQUALITIES", "ALG", "Inequalities and optimization", "POLYNOMIAL INEQUALITIES"),
@@ -15754,6 +15759,295 @@ def test_subtopic_cleanup_maps_attached_alias_rules_to_existing_taxonomy(
     ],
 )
 def test_subtopic_cleanup_maps_normalized_algebra_rules_to_existing_taxonomy(
+    raw_tag,
+    main_topic,
+    canonical_subtopic,
+    stored_technique,
+):
+    entry = taxonomy_entry_for_technique(raw_tag)
+
+    assert entry is not None
+    assert entry.main_topic == main_topic
+    assert entry.canonical_subtopic == canonical_subtopic
+    assert entry.stored_technique == stored_technique
+
+
+@pytest.mark.parametrize(
+    ("raw_tag", "main_topic", "canonical_subtopic", "stored_technique"),
+    [
+        (
+            "ANGLE CHASING/COORDINATES",
+            "GEO",
+            "Core Euclidean geometry",
+            "CORE EUCLIDEAN GEOMETRY",
+        ),
+        (
+            "INEQUALITIES/OPTIMIZATION",
+            "ALG",
+            "Inequalities and optimization",
+            "INEQUALITIES AND OPTIMIZATION",
+        ),
+        (
+            "INEQUALITIES (CAUCHY/ENGEL",
+            "ALG",
+            "Inequalities and optimization",
+            "CAUCHY-SCHWARZ / ENGEL FORM",
+        ),
+        (
+            "ALGEBRAIC MANIPULATION",
+            "ALG",
+            "Polynomials and algebraic manipulation",
+            "POLYNOMIALS AND ALGEBRAIC MANIPULATION",
+        ),
+        (
+            "ALGEBRAIC IDENTITIES",
+            "ALG",
+            "Polynomials and algebraic manipulation",
+            "POLYNOMIAL IDENTITIES",
+        ),
+        (
+            "RECURSIVE SEQUENCES",
+            "ALG",
+            "Sequences, recurrences, and series",
+            "SEQUENCES, RECURRENCES, AND SERIES",
+        ),
+        (
+            "CONSTRUCTION",
+            "COMB",
+            "Algorithms, automata, words, and constructive combinatorics",
+            "CONSTRUCTIVE METHODS",
+        ),
+        (
+            "CONSTRUCTIVE CLASSIFICATION",
+            "COMB",
+            "Algorithms, automata, words, and constructive combinatorics",
+            "CONSTRUCTIVE METHODS",
+        ),
+        (
+            "CONSTRUCTION/COUNTEREXAMPLE",
+            "COMB",
+            "Algorithms, automata, words, and constructive combinatorics",
+            "COUNTEREXAMPLE CONSTRUCTION",
+        ),
+        (
+            "EXTREMAL GRAPH",
+            "COMB",
+            "Pigeonhole, extremal principle, and averaging",
+            "EXTREMAL GRAPH",
+        ),
+        (
+            "EXTREMAL INEQUALITY",
+            "ALG",
+            "Inequalities and optimization",
+            "EXTREMAL INEQUALITY",
+        ),
+        (
+            "INVARIANTS/MONOVARIANTS",
+            "COMB",
+            "Pigeonhole, extremal principle, and averaging",
+            "INVARIANTS / MONOVARIANTS",
+        ),
+        (
+            "POTENTIAL FUNCTIONS",
+            "COMB",
+            "Pigeonhole, extremal principle, and averaging",
+            "ENERGY / POTENTIAL METHOD",
+        ),
+        (
+            "DYNAMICAL SYSTEMS",
+            "ALG",
+            "Sequences, recurrences, and series",
+            "DYNAMICS / ITERATION / FIXED POINTS",
+        ),
+        (
+            "FIXED POINTS",
+            "ALG",
+            "Sequences, recurrences, and series",
+            "DYNAMICS / ITERATION / FIXED POINTS",
+        ),
+        (
+            "MODULAR RESIDUES",
+            "NT",
+            "Congruences and modular arithmetic",
+            "MODULAR ARITHMETIC / RESIDUES",
+        ),
+        (
+            "MOD P",
+            "NT",
+            "Congruences and modular arithmetic",
+            "MODULAR ARITHMETIC / RESIDUES",
+        ),
+        (
+            "CRT",
+            "NT",
+            "Congruences and modular arithmetic",
+            "CHINESE REMAINDER THEOREM",
+        ),
+        (
+            "P-ADIC DIVISIBILITY",
+            "NT",
+            "p-adic and valuation methods",
+            "VALUATIONS / P-ADIC METHODS",
+        ),
+        (
+            "ORDERS",
+            "NT",
+            "Congruences and modular arithmetic",
+            "MULTIPLICATIVE ORDERS / LTE",
+        ),
+        (
+            "GCD/LCM",
+            "NT",
+            "Divisibility, gcd, lcm, and primes",
+            "GCD / LCM",
+        ),
+        (
+            "PARITY SPLIT",
+            "COMB",
+            "Coloring, tiling, grids, and invariants",
+            "PARITY METHODS",
+        ),
+        (
+            "CASE ANALYSIS",
+            "COMB",
+            "Pigeonhole, extremal principle, and averaging",
+            "CASEWORK / FINITE CHECKING",
+        ),
+        (
+            "ASYMPTOTIC BOUNDS",
+            "ALG",
+            "Inequalities and optimization",
+            "BOUNDING / ESTIMATES",
+        ),
+        (
+            "INJECTIVE MAPS",
+            "ALG",
+            "Functional equations",
+            "INJECTIVITY / SURJECTIVITY / BIJECTIVITY",
+        ),
+        (
+            "CONVEXITY/SMOOTHING",
+            "ALG",
+            "Inequalities and optimization",
+            "CONVEXITY / JENSEN METHODS",
+        ),
+        (
+            "UVW/SMOOTHING",
+            "ALG",
+            "Inequalities and optimization",
+            "UVW / PQR METHOD",
+        ),
+        (
+            "REARRANGEMENT/MAJORIZATION",
+            "ALG",
+            "Inequalities and optimization",
+            "REARRANGEMENT / MAJORIZATION",
+        ),
+        (
+            "CYCLIC SUMS)",
+            "ALG",
+            "Equations, substitutions, and transformations",
+            "CYCLIC SUMS",
+        ),
+        (
+            "SYMMETRIC IDENTITIES",
+            "ALG",
+            "Equations, substitutions, and transformations",
+            "SYMMETRIC SUMS / IDENTITIES",
+        ),
+        (
+            "ZSIGMONDY/LTE",
+            "NT",
+            "p-adic and valuation methods",
+            "MULTIPLICATIVE ORDERS / LTE",
+        ),
+        (
+            "SUMS OF SQUARES",
+            "ALG",
+            "Inequalities and optimization",
+            "SUM OF SQUARES",
+        ),
+        (
+            "PERMUTATION STRUCTURE",
+            "COMB",
+            "Counting and enumerative combinatorics",
+            "PERMUTATIONS / SWAPS",
+        ),
+        (
+            "PERIODIC FUNCTIONS",
+            "ALG",
+            "Sequences, recurrences, and series",
+            "PERIODICITY",
+        ),
+        (
+            "PARTIAL SUMS",
+            "ALG",
+            "Sequences, recurrences, and series",
+            "SUMS / PREFIXES / SUMMATION",
+        ),
+        (
+            "TELESCOPING PRODUCT",
+            "ALG",
+            "Sequences, recurrences, and series",
+            "TELESCOPING",
+        ),
+        (
+            "RATIONAL ROOT THEOREM",
+            "ALG",
+            "Polynomials and algebraic manipulation",
+            "RATIONAL / INTEGER ROOTS",
+        ),
+        (
+            "DISCRIMINANT BOUNDS",
+            "ALG",
+            "Polynomials and algebraic manipulation",
+            "DISCRIMINANT METHODS",
+        ),
+        (
+            "ROOT COUNTING",
+            "ALG",
+            "Polynomials and algebraic manipulation",
+            "POLYNOMIAL ROOTS",
+        ),
+        (
+            "CYCLOTOMIC FACTORS",
+            "ALG",
+            "Polynomials and algebraic manipulation",
+            "ROOTS OF UNITY / CYCLOTOMIC",
+        ),
+        (
+            "INTEGER POLYNOMIALS",
+            "ALG",
+            "Polynomials and algebraic manipulation",
+            "INTEGER-VALUED POLYNOMIALS / FUNCTIONS",
+        ),
+        (
+            "COEFFICIENT ANALYSIS",
+            "ALG",
+            "Polynomials and algebraic manipulation",
+            "COEFFICIENT METHODS",
+        ),
+        (
+            "DEGREE ARGUMENT",
+            "ALG",
+            "Polynomials and algebraic manipulation",
+            "DEGREE ARGUMENTS",
+        ),
+        (
+            "ALG \u2014 FACTORIZATION",
+            "ALG",
+            "Polynomials and algebraic manipulation",
+            "FACTORIZATION",
+        ),
+        (
+            "ALG\u201a\xc4\xecFACTORISATION",
+            "ALG",
+            "Polynomials and algebraic manipulation",
+            "FACTORIZATION",
+        ),
+    ],
+)
+def test_subtopic_cleanup_maps_recommended_schema_alias_rules_to_existing_taxonomy(
     raw_tag,
     main_topic,
     canonical_subtopic,
