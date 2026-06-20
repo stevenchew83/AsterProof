@@ -11910,9 +11910,13 @@ def test_technique_progress_gaps_page_defaults_to_subtopic_rows(client):
     assert all(row["type"] == "Subtopic" for row in gaps_response.context["technique_progress_gap_rows"])
     response_html = gaps_response.content.decode("utf-8")
     assert "Subtopic practice gaps" in response_html
+    assert 'id="technique-progress-gaps-table"' in response_html
+    assert 'data-rows-url="/dashboard/techniques/gaps/?kind=subtopics&amp;topic=all&amp;format=datatable"' in response_html
+    assert 'data-page-length="50"' in response_html
+    assert "plugins/datatables/dataTables.bootstrap5.min.css" in response_html
+    assert 'order: [[coverageColumnIndex, "desc"]]' in response_html
     assert "<th scope=\"col\">Type</th>" not in response_html
     assert "Technique gaps" in response_html
-    assert "PARITY" in response_html
     assert reverse("pages:completion_quick_update") in response_html
 
 
@@ -11946,6 +11950,11 @@ def test_technique_progress_gaps_page_preserves_admin_selected_user(client):
     response_html = response.content.decode("utf-8")
     assert "target-progress@example.com" in response_html
     assert f"?user={selected_user.pk}" in response_html
+    assert (
+        f'data-rows-url="/dashboard/techniques/gaps/?user={selected_user.pk}'
+        "&amp;kind=subtopics&amp;topic=all&amp;format=datatable"
+        '"'
+    ) in response_html
 
 
 def test_technique_progress_gaps_page_technique_mode_lists_techniques(client):
@@ -11974,6 +11983,7 @@ def test_technique_progress_gaps_page_technique_mode_lists_techniques(client):
     response_html = response.content.decode("utf-8")
     assert "Technique practice gaps" in response_html
     assert "<th scope=\"col\">Type</th>" not in response_html
+    assert "ANGLE CHASE" not in response_html
 
 
 def test_technique_progress_gaps_page_all_mode_suppresses_duplicate_technique_labels(client):
@@ -12106,7 +12116,7 @@ def test_technique_progress_gaps_page_filters_by_main_topic(client):
     ] == ["Circle geometry"]
     response_html = response.content.decode("utf-8")
     assert "Inequalities" not in response_html
-    assert "Circle geometry" in response_html
+    assert "Circle geometry" not in response_html
 
     combinatorics_response = client.get(
         reverse("pages:technique_progress_gaps"),
@@ -12157,7 +12167,7 @@ def test_technique_progress_gaps_page_topic_tabs_preserve_user_and_kind(client):
     )
 
 
-def test_technique_progress_gaps_page_paginates_rows_and_preserves_filters(client):
+def test_technique_progress_gaps_page_exposes_datatable_feed_and_preserves_filters(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     selected_user = UserFactory()
     client.force_login(admin_user)
@@ -12198,7 +12208,155 @@ def test_technique_progress_gaps_page_paginates_rows_and_preserves_filters(clien
         for row in second_page.context["technique_progress_gap_rows"]
     ] == ["Gap 51", "Gap 52"]
     response_html = first_page.content.decode("utf-8")
-    assert f"?page=2&amp;user={selected_user.pk}&amp;kind=subtopics&amp;topic=algebra" in response_html
+    assert (
+        f'data-rows-url="/dashboard/techniques/gaps/?user={selected_user.pk}'
+        "&amp;kind=subtopics&amp;topic=algebra&amp;format=datatable"
+        '"'
+    ) in response_html
+    assert "pagination-boxed" not in response_html
+
+
+def test_technique_progress_gaps_datatable_defaults_to_coverage_desc(client):
+    user = UserFactory()
+    client.force_login(user)
+    high_coverage_solved = _create_technique_progress_statement(
+        problem_code="P1",
+        problem_number=1,
+        statement_tags=[
+            {
+                "technique": "HIGH A",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": "High coverage",
+            },
+        ],
+    )
+    _create_technique_progress_statement(
+        problem_code="P2",
+        problem_number=2,
+        statement_tags=[
+            {
+                "technique": "HIGH B",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": "High coverage",
+            },
+        ],
+    )
+    medium_coverage_solved = _create_technique_progress_statement(
+        problem_code="P3",
+        problem_number=3,
+        statement_tags=[
+            {
+                "technique": "MEDIUM A",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": "Medium coverage",
+            },
+        ],
+    )
+    for index in range(4, 6):
+        _create_technique_progress_statement(
+            problem_code=f"P{index}",
+            problem_number=index,
+            statement_tags=[
+                {
+                    "technique": f"MEDIUM {index}",
+                    "domains": ["ALG"],
+                    "main_topic": "ALG",
+                    "canonical_subtopic": "Medium coverage",
+                },
+            ],
+        )
+    for index in range(6, 8):
+        _create_technique_progress_statement(
+            problem_code=f"P{index}",
+            problem_number=index,
+            statement_tags=[
+                {
+                    "technique": f"LOW {index}",
+                    "domains": ["ALG"],
+                    "main_topic": "ALG",
+                    "canonical_subtopic": "Low coverage",
+                },
+            ],
+        )
+    UserProblemCompletion.objects.create(
+        user=user,
+        statement=high_coverage_solved,
+        status=UserProblemCompletion.Status.SOLVED,
+    )
+    UserProblemCompletion.objects.create(
+        user=user,
+        statement=medium_coverage_solved,
+        status=UserProblemCompletion.Status.SOLVED,
+    )
+
+    response = client.get(
+        reverse("pages:technique_progress_gaps"),
+        {
+            "format": "datatable",
+            "kind": "subtopics",
+            "topic": "algebra",
+            "draw": "3",
+            "start": "0",
+            "length": "50",
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    payload = response.json()
+    assert payload["draw"] == 3
+    assert payload["recordsTotal"] == 3
+    assert payload["recordsFiltered"] == 3
+    assert [
+        row["label"]
+        for row in payload["data"]
+    ] == ["High coverage", "Medium coverage", "Low coverage"]
+    assert [
+        row["completion_percent"]
+        for row in payload["data"]
+    ] == [EXPECTED_PROGRESS_HALF_PERCENT, 33, 0]
+
+
+def test_technique_progress_gaps_datatable_searches_all_matching_rows(client):
+    user = UserFactory()
+    client.force_login(user)
+    for index in range(1, 53):
+        _create_technique_progress_statement(
+            problem_code=f"P{index}",
+            problem_number=index,
+            statement_tags=[
+                {
+                    "technique": f"TECHNIQUE {index:02d}",
+                    "domains": ["ALG"],
+                    "main_topic": "ALG",
+                    "canonical_subtopic": f"Gap {index:02d}",
+                },
+            ],
+        )
+
+    response = client.get(
+        reverse("pages:technique_progress_gaps"),
+        {
+            "format": "datatable",
+            "kind": "subtopics",
+            "topic": "algebra",
+            "draw": "4",
+            "start": "0",
+            "length": "50",
+            "search[value]": "Gap 52",
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    payload = response.json()
+    assert payload["recordsTotal"] == 52
+    assert payload["recordsFiltered"] == 1
+    assert [
+        row["label"]
+        for row in payload["data"]
+    ] == ["Gap 52"]
 
 
 def test_technique_progress_gaps_page_requires_login(client):
