@@ -121,6 +121,7 @@ def build_technique_progress_gaps_context(
     raw_user_id: str = "",
     raw_kind: str = "",
     raw_topic: str = "",
+    raw_min_total: str = "",
 ) -> dict[str, object]:
     payload = _build_progress_payload(request_user=request_user, raw_user_id=raw_user_id)
     base_context = payload["base_context"]
@@ -128,7 +129,13 @@ def build_technique_progress_gaps_context(
     can_select_user = bool(base_context["technique_progress_can_select_user"])
     gap_kind = _gap_kind(raw_kind)
     gap_topic = _gap_topic(raw_topic)
-    gap_rows = _filtered_gap_rows(payload=payload, gap_kind=gap_kind, gap_topic=gap_topic)
+    gap_min_total = _gap_min_total(raw_min_total)
+    gap_rows = _filtered_gap_rows(
+        payload=payload,
+        gap_kind=gap_kind,
+        gap_topic=gap_topic,
+        gap_min_total=gap_min_total,
+    )
     return {
         **base_context,
         "technique_progress_gap_export_url": _gap_url(
@@ -136,6 +143,7 @@ def build_technique_progress_gaps_context(
             can_select_user=can_select_user,
             gap_kind=gap_kind,
             gap_topic=gap_topic,
+            gap_min_total=gap_min_total,
             extra_query={"export": "csv"},
         ),
         "technique_progress_gap_kind": gap_kind,
@@ -144,6 +152,14 @@ def build_technique_progress_gaps_context(
             can_select_user=can_select_user,
             active_kind=gap_kind,
             active_topic=gap_topic,
+            active_min_total=gap_min_total,
+        ),
+        "technique_progress_gap_min_total": gap_min_total,
+        "technique_progress_gap_min_total_reset_url": _gap_url(
+            selected_user=selected_user,
+            can_select_user=can_select_user,
+            gap_kind=gap_kind,
+            gap_topic=gap_topic,
         ),
         "technique_progress_gap_result_summary": _gap_result_summary(
             gap_rows,
@@ -158,6 +174,7 @@ def build_technique_progress_gaps_context(
             can_select_user=can_select_user,
             active_kind=gap_kind,
             active_topic=gap_topic,
+            active_min_total=gap_min_total,
         ),
         "technique_progress_stats": payload["stats"],
     }
@@ -169,12 +186,15 @@ def build_technique_progress_gaps_csv_response(
     raw_user_id: str = "",
     raw_kind: str = "",
     raw_topic: str = "",
+    raw_min_total: str = "",
 ) -> HttpResponse:
     payload = _build_progress_payload(request_user=request_user, raw_user_id=raw_user_id)
+    gap_min_total = _gap_min_total(raw_min_total)
     gap_rows = _filtered_gap_rows(
         payload=payload,
         gap_kind=_gap_kind(raw_kind),
         gap_topic=_gap_topic(raw_topic),
+        gap_min_total=gap_min_total,
     )
     response = HttpResponse(content_type=GAP_CSV_CONTENT_TYPE)
     response["Content-Disposition"] = 'attachment; filename="technique-progress-gaps.csv"'
@@ -184,19 +204,26 @@ def build_technique_progress_gaps_csv_response(
     return response
 
 
-def build_technique_progress_gaps_datatable_payload(
+def build_technique_progress_gaps_datatable_payload(  # noqa: PLR0913
     *,
     request_user: User,
     raw_user_id: str = "",
     raw_kind: str = "",
     raw_topic: str = "",
+    raw_min_total: str = "",
     params: Mapping[str, str] | None = None,
 ) -> dict[str, object]:
     params = params or {}
     payload = _build_progress_payload(request_user=request_user, raw_user_id=raw_user_id)
     gap_kind = _gap_kind(raw_kind)
     gap_topic = _gap_topic(raw_topic)
-    gap_rows = _filtered_gap_rows(payload=payload, gap_kind=gap_kind, gap_topic=gap_topic)
+    gap_min_total = _gap_min_total(raw_min_total)
+    gap_rows = _filtered_gap_rows(
+        payload=payload,
+        gap_kind=gap_kind,
+        gap_topic=gap_topic,
+        gap_min_total=gap_min_total,
+    )
 
     draw = _datatable_int(params.get("draw"), default=0)
     start = _datatable_int(params.get("start"), default=0)
@@ -395,6 +422,10 @@ def _gap_topic(raw_topic: str) -> str:
     return normalized_topic if normalized_topic in GAP_TOPIC_SLUGS else GAP_TOPIC_ALL
 
 
+def _gap_min_total(raw_min_total: str) -> int:
+    return _datatable_int(raw_min_total, default=0)
+
+
 def _rows_for_gap_kind(
     *,
     gap_kind: str,
@@ -436,13 +467,29 @@ def _filtered_gap_rows(
     payload: dict[str, object],
     gap_kind: str,
     gap_topic: str,
+    gap_min_total: int,
 ) -> list[dict[str, object]]:
     gap_rows = _rows_for_gap_kind(
         gap_kind=gap_kind,
         subtopic_rows=payload["subtopic_rows"],
         technique_rows=payload["technique_rows"],
     )
-    return _filter_gap_rows_by_topic(gap_rows, gap_topic=gap_topic)
+    gap_rows = _filter_gap_rows_by_topic(gap_rows, gap_topic=gap_topic)
+    return _filter_gap_rows_by_min_total(gap_rows, gap_min_total=gap_min_total)
+
+
+def _filter_gap_rows_by_min_total(
+    rows: list[dict[str, object]],
+    *,
+    gap_min_total: int,
+) -> list[dict[str, object]]:
+    if gap_min_total <= 0:
+        return rows
+    return [
+        row
+        for row in rows
+        if int(row.get("total", 0)) >= gap_min_total
+    ]
 
 
 def _gap_kind_options(
@@ -451,6 +498,7 @@ def _gap_kind_options(
     can_select_user: bool,
     active_kind: str,
     active_topic: str,
+    active_min_total: int,
 ) -> list[dict[str, object]]:
     options = [
         {"label": "Subtopics", "value": GAP_KIND_SUBTOPICS},
@@ -466,6 +514,7 @@ def _gap_kind_options(
                 can_select_user=can_select_user,
                 gap_kind=str(option["value"]),
                 gap_topic=active_topic,
+                gap_min_total=active_min_total,
             ),
         }
         for option in options
@@ -478,6 +527,7 @@ def _gap_topic_tabs(
     can_select_user: bool,
     active_kind: str,
     active_topic: str,
+    active_min_total: int,
 ) -> list[dict[str, object]]:
     return [
         {
@@ -488,6 +538,7 @@ def _gap_topic_tabs(
                 can_select_user=can_select_user,
                 gap_kind=active_kind,
                 gap_topic=topic_slug,
+                gap_min_total=active_min_total,
             ),
             "value": topic_slug,
         }
@@ -495,12 +546,13 @@ def _gap_topic_tabs(
     ]
 
 
-def _gap_url(
+def _gap_url(  # noqa: PLR0913
     *,
     selected_user: User,
     can_select_user: bool,
     gap_kind: str,
     gap_topic: str,
+    gap_min_total: int = 0,
     extra_query: dict[str, str] | None = None,
 ) -> str:
     query: dict[str, str] = {}
@@ -508,6 +560,8 @@ def _gap_url(
         query["user"] = str(selected_user.pk)
     query["kind"] = gap_kind
     query["topic"] = gap_topic
+    if gap_min_total > 0:
+        query["min_total"] = str(gap_min_total)
     if extra_query:
         query.update(extra_query)
     return f"{reverse('pages:technique_progress_gaps')}?{urlencode(query)}"
@@ -519,12 +573,15 @@ def _gap_pagination_suffix(
     can_select_user: bool,
     gap_kind: str,
     gap_topic: str,
+    gap_min_total: int = 0,
 ) -> str:
     query: dict[str, str] = {}
     if can_select_user:
         query["user"] = str(selected_user.pk)
     query["kind"] = gap_kind
     query["topic"] = gap_topic
+    if gap_min_total > 0:
+        query["min_total"] = str(gap_min_total)
     query_string = urlencode(query)
     return f"&{query_string}" if query_string else ""
 
