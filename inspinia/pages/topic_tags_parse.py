@@ -20,10 +20,43 @@ TOPIC_BLOCK_RE = re.compile(
 # If a cell accidentally includes trailing columns as text, stop here.
 TRUNCATE_RE = re.compile(r"\b(?:Core ideas|Rationale|Common pitfalls)\b", flags=re.IGNORECASE)
 
+TOPIC_TAG_TEXT_REPAIRS: tuple[tuple[str, str], ...] = (
+    ("\u221a\xf1", "\u00f6"),
+    ("\u221a\xd1", "\u00d6"),
+    ("\u221a\xe2", "\u00e9"),
+    ("\u221a\xf2", "\u00f3"),
+    ("\u201a\xc4\xf4", "'"),
+    ("\u201a\xc4\xf2", "'"),
+    ("\u201a\xc4\xec", "-"),
+    ("\u201a\xc4\xee", "-"),
+    ("\u201a\xc4\xfa", '"'),
+    ("\u201a\xc4\xf9", '"'),
+    ("\u201a\xdc\xed", "->"),
+    ("\u201a\xdc\x92", "->"),
+    ("\u201a\xd1\xa4", "Z"),
+    ("\u2014", "-"),
+    ("\u2013", "-"),
+)
+
+
+TOPIC_TAG_WORD_REPAIRS: tuple[tuple[re.Pattern[str], str], ...] = (
+    (re.compile(r"\bHOLDER\b", flags=re.IGNORECASE), "H\u00d6LDER"),
+    (re.compile(r"\bMOBIUS\b", flags=re.IGNORECASE), "M\u00d6BIUS"),
+)
+
 
 def clean_token(s: str) -> str:
     s = (s or "").strip()
     return re.sub(r"\s+", " ", s)
+
+
+def repair_topic_tag_text(s: str | None) -> str:
+    repaired = clean_token(s or "")
+    for old, new in TOPIC_TAG_TEXT_REPAIRS:
+        repaired = repaired.replace(old, new)
+    for pattern, replacement in TOPIC_TAG_WORD_REPAIRS:
+        repaired = pattern.sub(replacement, repaired)
+    return clean_token(repaired)
 
 
 def normalize_topic_tag(s: str | None) -> str:
@@ -39,6 +72,7 @@ def _merge_parsed_topic_entries(entries: list[dict[str, Any]]) -> list[dict[str,
 
         key = technique.casefold()
         domains = domains_dedup_preserve_order(entry.get("domains") or [])
+        raw_tag = clean_token(entry.get("raw_tag") or entry.get("technique"))
         if key in by_technique:
             by_technique[key]["domains"] = merge_domain_lists(
                 by_technique[key]["domains"],
@@ -46,7 +80,7 @@ def _merge_parsed_topic_entries(entries: list[dict[str, Any]]) -> list[dict[str,
             )
             continue
 
-        by_technique[key] = {"technique": technique, "domains": domains}
+        by_technique[key] = {"technique": technique, "domains": domains, "raw_tag": raw_tag}
     return list(by_technique.values())
 
 
@@ -86,8 +120,9 @@ def parse_topic_tags_value(block_text: str) -> list[dict[str, Any]]:
 
     m = DASH_RE.search(s)
     if not m:
-        t = normalize_topic_tag(s)
-        return [{"technique": t, "domains": []}] if t else []
+        raw_tag = clean_token(s)
+        t = normalize_topic_tag(repair_topic_tag_text(raw_tag))
+        return [{"technique": t, "domains": [], "raw_tag": raw_tag}] if t else []
 
     domain_str = s[: m.start()].strip()
     rest = s[m.end() :].strip()
@@ -107,9 +142,10 @@ def parse_topic_tags_value(block_text: str) -> list[dict[str, Any]]:
             seg_domains = initial_domains
             tech_str = seg
 
-        techniques = [normalize_topic_tag(t) for t in tech_str.split(",")]
-        techniques = [t for t in techniques if t]
-        out.extend({"technique": technique, "domains": seg_domains} for technique in techniques)
+        for raw_token in [clean_token(t) for t in tech_str.split(",")]:
+            technique = normalize_topic_tag(repair_topic_tag_text(raw_token))
+            if technique:
+                out.append({"technique": technique, "domains": seg_domains, "raw_tag": raw_token})
 
     return out
 

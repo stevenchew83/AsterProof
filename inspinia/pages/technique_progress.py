@@ -49,6 +49,7 @@ GAP_DATATABLE_SORT_FIELDS = {
 }
 MAIN_TOPIC_ORDER = ["Algebra", "Number Theory", "Geometry", "Combinatorics"]
 OTHER_TOPIC_LABEL = "Other"
+SUBTOPIC_SUPPRESSED_NORMALIZATION_STATUSES = {"corrupt", "invalid", "lemma", "method"}
 MAIN_TOPIC_SLUGS = {
     "algebra": "Algebra",
     "number-theory": "Number Theory",
@@ -305,14 +306,14 @@ def _build_progress_payload(
     )
     tagged_rows = _tagged_statement_rows(user=selected_user)
     technique_rows = _aggregate_progress_rows(
-        tagged_rows,
+        _technique_progress_rows(tagged_rows),
         label_key="technique",
         type_label="Technique",
         selected_user=selected_user,
         can_select_user=can_select_user,
     )
     subtopic_rows = _aggregate_progress_rows(
-        tagged_rows,
+        _subtopic_progress_rows(tagged_rows),
         label_key="subtopic",
         type_label="Subtopic",
         selected_user=selected_user,
@@ -348,6 +349,26 @@ def _build_progress_payload(
         "subtopic_rows": subtopic_rows,
         "technique_rows": technique_rows,
     }
+
+
+def _subtopic_progress_rows(tagged_rows: list[dict[str, object]]) -> list[dict[str, object]]:
+    rows = []
+    for row in tagged_rows:
+        status = str(row.get("normalization_status") or "").casefold()
+        if status in SUBTOPIC_SUPPRESSED_NORMALIZATION_STATUSES:
+            continue
+        rows.append(row)
+    return rows
+
+
+def _technique_progress_rows(tagged_rows: list[dict[str, object]]) -> list[dict[str, object]]:
+    rows = []
+    for row in tagged_rows:
+        status = str(row.get("normalization_status") or "").casefold()
+        if status in {"corrupt", "invalid"}:
+            continue
+        rows.append(row)
+    return rows
 
 
 def _base_context(
@@ -761,6 +782,7 @@ def _tagged_statement_rows(*, user: User) -> list[dict[str, object]]:
                 {
                     "is_solved": is_solved,
                     "main_topic": display_topic_label(main_topic) if main_topic else fallback_topic,
+                    "normalization_status": str(tag.get("normalization_status") or "").strip(),
                     "statement_id": statement.id,
                     "subtopic": str(tag.get("canonical_subtopic") or "").strip() or technique,
                     "technique": technique,
@@ -774,7 +796,7 @@ def _statement_tags_by_statement_id(statement_ids: list[int]) -> dict[int, list[
     seen: set[tuple[int, str]] = set()
     for tag_row in (
         StatementTopicTechnique.objects.filter(statement_id__in=statement_ids)
-        .values("statement_id", "technique", "main_topic", "canonical_subtopic")
+        .values("statement_id", "technique", "main_topic", "canonical_subtopic", "normalization_status")
         .order_by("technique", "statement_id", "id")
     ):
         statement_id = int(tag_row["statement_id"])
@@ -794,7 +816,7 @@ def _problem_tags_by_record_id(record_ids: list[int]) -> dict[int, list[dict[str
         return tags_by_record_id
     for tag_row in (
         ProblemTopicTechnique.objects.filter(record_id__in=record_ids)
-        .values("record_id", "technique", "main_topic", "canonical_subtopic")
+        .values("record_id", "technique", "main_topic", "canonical_subtopic", "normalization_status")
         .order_by("technique", "record_id", "id")
     ):
         record_id = int(tag_row["record_id"])

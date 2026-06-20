@@ -321,10 +321,33 @@ def _merge_statement_topic_techniques(
         merged_domains = normalize_text_list(
             [*(target_technique.domains or []), *(source_technique.domains or [])],
         )
+        merged_raw_tags = _merge_statement_topic_raw_tags(
+            target_technique.raw_tag or target_technique.technique,
+            source_technique.raw_tag or source_technique.technique,
+        )
+        updated_fields: list[str] = []
         if merged_domains != list(target_technique.domains or []):
             target_technique.domains = merged_domains
-            target_technique.save(update_fields=["domains"])
+            updated_fields.append("domains")
+        for field_name, source_value in (
+            ("main_topic", source_technique.main_topic),
+            ("canonical_subtopic", source_technique.canonical_subtopic),
+            ("normalization_status", source_technique.normalization_status),
+            ("normalization_confidence", source_technique.normalization_confidence),
+        ):
+            if not getattr(target_technique, field_name) and source_value:
+                setattr(target_technique, field_name, source_value)
+                updated_fields.append(field_name)
+        if target_technique.raw_tag != merged_raw_tags:
+            target_technique.raw_tag = merged_raw_tags
+            updated_fields.append("raw_tag")
+        if updated_fields:
+            target_technique.save(update_fields=updated_fields)
         source_technique.delete()
+
+
+def _merge_statement_topic_raw_tags(*values: str) -> str:
+    return "; ".join(normalize_text_list(values))[:512]
 
 
 def _merge_statement_completion_rows(

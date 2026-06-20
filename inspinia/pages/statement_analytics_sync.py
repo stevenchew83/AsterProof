@@ -77,6 +77,11 @@ def sync_statement_analytics_from_linked_problem(statement: ContestProblemStatem
                 statement=statement,
                 technique=pt.technique,
                 domains=list(pt.domains or []),
+                main_topic=pt.main_topic,
+                canonical_subtopic=pt.canonical_subtopic,
+                raw_tag=pt.raw_tag,
+                normalization_status=pt.normalization_status,
+                normalization_confidence=pt.normalization_confidence,
             )
             st.save()
             techniques_changed = True
