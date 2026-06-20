@@ -84,6 +84,12 @@ EXPECTED_ONE_TECHNIQUE = 1
 EXPECTED_TWO_TECHNIQUES = 2
 EXPECTED_MULTI_CONTEST_RENAME_TOTAL = 2
 UPDATED_MOHS = 5
+EXPECTED_PROGRESS_HALF_PERCENT = 50
+EXPECTED_PROGRESS_TAGGED_STATEMENT_TOTAL = 2
+EXPECTED_PROGRESS_SOLVED_STATUS_TOTAL = 4
+EXPECTED_PROGRESS_STATUS_TOTAL = 6
+EXPECTED_PROGRESS_UNSOLVED_STATUS_TOTAL = 2
+EXPECTED_PROGRESS_STATUS_PERCENT = 67
 WORKBOOK_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 EXPECTED_EXPORT_COLUMNS = [
     "PROBLEM UUID",
@@ -5042,7 +5048,8 @@ def test_archive_hub_renders_current_archive_workflow_links(client):
     assert reverse("pages:completion_quick_update") in response_html
     assert reverse("pages:user_activity_dashboard") in response_html
     assert reverse("solutions:problem_solution_create") in response_html
-    assert reverse("pages:topic_tag_dashboard") in response_html
+    assert reverse("pages:technique_dashboard") in response_html
+    assert reverse("pages:topic_tag_dashboard") not in response_html
 
 
 def test_problem_list_redirects_to_archive_hub_for_authenticated_user(client):
@@ -11348,7 +11355,285 @@ def test_problem_analytics_dashboard_keeps_admin_access_requirements(client):
     assert response.status_code == HTTPStatus.FORBIDDEN
 
 
-def test_technique_dashboard_exposes_filters_scope_and_legacy_alias(client):
+def _create_technique_progress_statement(  # noqa: PLR0913
+    *,
+    contest: str = "USAMO",
+    year: int = 2026,
+    problem_code: str = "P1",
+    problem_number: int = 1,
+    topic: str = "ALG",
+    mohs: int = 6,
+    linked_tags: list[dict] | None = None,
+    statement_tags: list[dict] | None = None,
+) -> ContestProblemStatement:
+    problem = ProblemSolveRecord.objects.create(
+        year=year,
+        topic=topic,
+        mohs=mohs,
+        contest=contest,
+        problem=problem_code,
+        contest_year_problem=f"{contest} {year} {problem_code}",
+    )
+    statement = ContestProblemStatement.objects.create(
+        linked_problem=problem,
+        contest_year=year,
+        contest_name=contest,
+        problem_number=problem_number,
+        problem_code=problem_code,
+        day_label="Day 1",
+        statement_latex=f"{contest} {year} {problem_code} statement",
+        is_active=True,
+        topic=topic,
+        mohs=mohs,
+    )
+    for tag in linked_tags or []:
+        ProblemTopicTechnique.objects.create(
+            record=problem,
+            technique=tag["technique"],
+            domains=tag.get("domains", []),
+            main_topic=tag.get("main_topic", ""),
+            canonical_subtopic=tag.get("canonical_subtopic", ""),
+        )
+    for tag in statement_tags or []:
+        StatementTopicTechnique.objects.create(
+            statement=statement,
+            technique=tag["technique"],
+            domains=tag.get("domains", []),
+            main_topic=tag.get("main_topic", ""),
+            canonical_subtopic=tag.get("canonical_subtopic", ""),
+        )
+    return statement
+
+
+def test_technique_progress_dashboard_renders_for_signed_in_user(client):
+    user = UserFactory()
+    client.force_login(user)
+    solved_statement = _create_technique_progress_statement(
+        problem_code="P1",
+        problem_number=1,
+        statement_tags=[
+            {
+                "technique": "ANGLE CHASE",
+                "domains": ["GEO"],
+                "main_topic": "GEO",
+                "canonical_subtopic": "Circle geometry",
+            },
+        ],
+    )
+    _create_technique_progress_statement(
+        problem_code="P2",
+        problem_number=2,
+        statement_tags=[
+            {
+                "technique": "SPIRAL SIMILARITY",
+                "domains": ["GEO"],
+                "main_topic": "GEO",
+                "canonical_subtopic": "Circle geometry",
+            },
+        ],
+    )
+    UserProblemCompletion.objects.create(
+        user=user,
+        statement=solved_statement,
+        status=UserProblemCompletion.Status.SOLVED,
+    )
+
+    response = client.get(reverse("pages:technique_dashboard"))
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["technique_progress_selected_user"] == user
+    assert response.context["technique_progress_can_select_user"] is False
+    assert response.context["technique_progress_stats"] == {
+        "completion_percent": EXPECTED_PROGRESS_HALF_PERCENT,
+        "completed_statement_total": 1,
+        "incomplete_subtopic_total": 1,
+        "incomplete_technique_total": 1,
+        "subtopic_total": 1,
+        "tagged_statement_total": EXPECTED_PROGRESS_TAGGED_STATEMENT_TOTAL,
+        "technique_total": EXPECTED_PROGRESS_TAGGED_STATEMENT_TOTAL,
+    }
+    subtopic_row = response.context["technique_progress_subtopic_rows"][0]
+    assert subtopic_row["label"] == "Circle geometry"
+    assert subtopic_row["total"] == EXPECTED_PROGRESS_TAGGED_STATEMENT_TOTAL
+    assert subtopic_row["solved"] == 1
+    assert subtopic_row["remaining"] == 1
+    assert subtopic_row["completion_percent"] == EXPECTED_PROGRESS_HALF_PERCENT
+    response_html = response.content.decode("utf-8")
+    assert "Technique progress" in response_html
+    assert "Practice remaining" in response_html
+    assert 'id="technique-progress-user"' not in response_html
+
+
+def test_technique_progress_dashboard_ignores_user_param_for_non_admin(client):
+    user = UserFactory()
+    other_user = UserFactory()
+    client.force_login(user)
+    statement = _create_technique_progress_statement(
+        statement_tags=[{"technique": "LTE", "domains": ["NT"], "canonical_subtopic": "Valuations"}],
+    )
+    UserProblemCompletion.objects.create(
+        user=other_user,
+        statement=statement,
+        status=UserProblemCompletion.Status.SOLVED,
+    )
+
+    response = client.get(reverse("pages:technique_dashboard"), {"user": str(other_user.pk)})
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["technique_progress_selected_user"] == user
+    assert response.context["technique_progress_stats"]["completed_statement_total"] == 0
+    assert response.context["technique_progress_stats"]["incomplete_technique_total"] == 1
+
+
+def test_technique_progress_dashboard_admin_can_select_user(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    selected_user = UserFactory(name="Selected Student", email="selected@example.com")
+    other_user = UserFactory(name="Other Student", email="other-progress@example.com")
+    client.force_login(admin_user)
+    selected_statement = _create_technique_progress_statement(
+        problem_code="P1",
+        problem_number=1,
+        statement_tags=[{"technique": "INVARIANTS", "domains": ["COMB"]}],
+    )
+    other_statement = _create_technique_progress_statement(
+        problem_code="P2",
+        problem_number=2,
+        statement_tags=[{"technique": "ANGLE CHASE", "domains": ["GEO"]}],
+    )
+    UserProblemCompletion.objects.create(
+        user=selected_user,
+        statement=selected_statement,
+        status=UserProblemCompletion.Status.SOLVED,
+    )
+    UserProblemCompletion.objects.create(
+        user=other_user,
+        statement=other_statement,
+        status=UserProblemCompletion.Status.SOLVED,
+    )
+
+    response = client.get(reverse("pages:technique_dashboard"), {"user": str(selected_user.pk)})
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["technique_progress_selected_user"] == selected_user
+    assert response.context["technique_progress_can_select_user"] is True
+    assert response.context["technique_progress_stats"]["completed_statement_total"] == 1
+    assert response.context["technique_progress_filters"]["user"] == str(selected_user.pk)
+    assert {
+        option["value"]
+        for option in response.context["technique_progress_user_options"]
+    } >= {str(selected_user.pk), str(other_user.pk)}
+    response_html = response.content.decode("utf-8")
+    assert 'id="technique-progress-user"' in response_html
+    assert "selected@example.com" in response_html
+
+
+def test_technique_progress_dashboard_counts_solved_statuses_only(client):
+    user = UserFactory()
+    client.force_login(user)
+    statuses = [
+        UserProblemCompletion.Status.SOLVED,
+        UserProblemCompletion.Status.CHECKED,
+        UserProblemCompletion.Status.WRITTEN,
+        UserProblemCompletion.Status.PUBLISHED,
+        UserProblemCompletion.Status.ATTEMPTED,
+        UserProblemCompletion.Status.UNATTEMPTED,
+    ]
+    for index, status in enumerate(statuses, start=1):
+        statement = _create_technique_progress_statement(
+            problem_code=f"P{index}",
+            problem_number=index,
+            statement_tags=[{"technique": "MASS POINTS", "domains": ["GEO"]}],
+        )
+        UserProblemCompletion.objects.create(user=user, statement=statement, status=status)
+
+    response = client.get(reverse("pages:technique_dashboard"))
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["technique_progress_stats"]["completed_statement_total"] == (
+        EXPECTED_PROGRESS_SOLVED_STATUS_TOTAL
+    )
+    technique_row = response.context["technique_progress_technique_rows"][0]
+    assert technique_row["label"] == "MASS POINTS"
+    assert technique_row["total"] == EXPECTED_PROGRESS_STATUS_TOTAL
+    assert technique_row["solved"] == EXPECTED_PROGRESS_SOLVED_STATUS_TOTAL
+    assert technique_row["remaining"] == EXPECTED_PROGRESS_UNSOLVED_STATUS_TOTAL
+    assert technique_row["completion_percent"] == EXPECTED_PROGRESS_STATUS_PERCENT
+
+
+def test_technique_progress_dashboard_prefers_statement_tags_with_problem_fallback(client):
+    user = UserFactory()
+    client.force_login(user)
+    _create_technique_progress_statement(
+        problem_code="P1",
+        problem_number=1,
+        linked_tags=[{"technique": "DO NOT DISPLAY", "domains": ["ALG"]}],
+        statement_tags=[
+            {
+                "technique": "INVARIANTS",
+                "domains": ["COMB"],
+                "main_topic": "COMB",
+                "canonical_subtopic": "Invariants",
+            },
+        ],
+    )
+    _create_technique_progress_statement(
+        problem_code="P2",
+        problem_number=2,
+        linked_tags=[
+            {
+                "technique": "ANGLE CHASE",
+                "domains": ["GEO"],
+                "main_topic": "GEO",
+                "canonical_subtopic": "Circle geometry",
+            },
+        ],
+    )
+
+    response = client.get(reverse("pages:technique_dashboard"))
+
+    assert response.status_code == HTTPStatus.OK
+    technique_labels = {row["label"] for row in response.context["technique_progress_technique_rows"]}
+    subtopic_labels = {row["label"] for row in response.context["technique_progress_subtopic_rows"]}
+    assert technique_labels == {"ANGLE CHASE", "INVARIANTS"}
+    assert subtopic_labels == {"Circle geometry", "Invariants"}
+    assert "DO NOT DISPLAY" not in response.content.decode("utf-8")
+
+
+def test_technique_progress_dashboard_exposes_practice_links(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    selected_user = UserFactory()
+    client.force_login(admin_user)
+    _create_technique_progress_statement(
+        statement_tags=[
+            {
+                "technique": "ANGLE CHASE",
+                "domains": ["GEO"],
+                "main_topic": "GEO",
+                "canonical_subtopic": "Circle geometry",
+            },
+        ],
+    )
+
+    response = client.get(reverse("pages:technique_dashboard"), {"user": str(selected_user.pk)})
+
+    assert response.status_code == HTTPStatus.OK
+    quick_update_url = reverse("pages:completion_quick_update")
+    technique_row = response.context["technique_progress_technique_rows"][0]
+    subtopic_row = response.context["technique_progress_subtopic_rows"][0]
+    assert technique_row["practice_url"] == (
+        f"{quick_update_url}?target_user_id={selected_user.pk}&subtopics=ANGLE+CHASE"
+    )
+    assert subtopic_row["practice_url"] == (
+        f"{quick_update_url}?target_user_id={selected_user.pk}&subtopics=Circle+geometry"
+    )
+    assert response.context["technique_progress_next_gaps"][0]["practice_url"] == subtopic_row["practice_url"]
+    response_html = response.content.decode("utf-8")
+    assert "Practice remaining" in response_html
+    assert "subtopics=ANGLE+CHASE" in response_html
+    assert "subtopics=Circle+geometry" in response_html
+
+
+def test_technique_tag_dashboard_exposes_filters_scope(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
 
@@ -11381,7 +11666,7 @@ def test_technique_dashboard_exposes_filters_scope_and_legacy_alias(client):
     ProblemTopicTechnique.objects.create(record=egmo_problem, technique="LTE", domains=["NT"])
     ProblemTopicTechnique.objects.create(record=bmo_problem, technique="INVARIANTS", domains=["ALG", "COMB"])
 
-    response = client.get(reverse("pages:technique_dashboard"))
+    response = client.get(reverse("pages:topic_tag_dashboard"))
 
     assert response.status_code == HTTPStatus.OK
     assert response.context["technique_total"] == 3
@@ -11454,12 +11739,8 @@ def test_technique_dashboard_exposes_filters_scope_and_legacy_alias(client):
     assert "Filtered dataset" not in response_html
     assert "ProblemTopicTechnique" in response_html
 
-    legacy_response = client.get(reverse("pages:topic_tag_dashboard"))
-    assert legacy_response.status_code == HTTPStatus.OK
-    assert legacy_response.context["technique_total"] == 3
 
-
-def test_technique_dashboard_uses_all_matched_rows_instead_of_latest_100_cap(client):
+def test_technique_tag_dashboard_uses_all_matched_rows_instead_of_latest_100_cap(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
     now = timezone.now()
@@ -11482,7 +11763,7 @@ def test_technique_dashboard_uses_all_matched_rows_instead_of_latest_100_cap(cli
             domains=["NT"],
         )
 
-    response = client.get(reverse("pages:technique_dashboard"))
+    response = client.get(reverse("pages:topic_tag_dashboard"))
 
     assert response.status_code == HTTPStatus.OK
     rows = response.context["technique_rows"]
@@ -11504,7 +11785,7 @@ def test_technique_dashboard_uses_all_matched_rows_instead_of_latest_100_cap(cli
     assert "All technique rows" in response_html
 
 
-def test_technique_dashboard_applies_search_to_full_dataset(client):
+def test_technique_tag_dashboard_applies_search_to_full_dataset(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
     now = timezone.now()
@@ -11545,14 +11826,14 @@ def test_technique_dashboard_applies_search_to_full_dataset(client):
             domains=["GEO"],
         )
 
-    broad = client.get(reverse("pages:technique_dashboard"), {"q": "IMO"})
+    broad = client.get(reverse("pages:topic_tag_dashboard"), {"q": "IMO"})
     assert broad.status_code == HTTPStatus.OK
     assert len(broad.context["technique_rows"]) == 120
     assert broad.context["technique_filtered_total"] == 120
     assert broad.context["initial_search_query"] == "IMO"
     assert broad.context["technique_active_filters"][0]["value"] == "IMO"
 
-    narrow = client.get(reverse("pages:technique_dashboard"), {"q": "USAMO"})
+    narrow = client.get(reverse("pages:topic_tag_dashboard"), {"q": "USAMO"})
     assert narrow.status_code == HTTPStatus.OK
     assert len(narrow.context["technique_rows"]) == 3
     assert narrow.context["technique_filtered_total"] == 3
@@ -11563,7 +11844,7 @@ def test_technique_dashboard_applies_search_to_full_dataset(client):
     )
 
 
-def test_technique_dashboard_exact_filters_are_server_side_and_combined(client):
+def test_technique_tag_dashboard_exact_filters_are_server_side_and_combined(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
 
@@ -11604,7 +11885,7 @@ def test_technique_dashboard_exact_filters_are_server_side_and_combined(client):
     ProblemTopicTechnique.objects.create(record=egmo_number_theory, technique="LTE", domains=["NT"])
     ProblemTopicTechnique.objects.create(record=bmo_combinatorics, technique="INVARIANTS", domains=["ALG", "COMB"])
 
-    contest_response = client.get(reverse("pages:technique_dashboard"), {"contest": "IMO"})
+    contest_response = client.get(reverse("pages:topic_tag_dashboard"), {"contest": "IMO"})
     assert contest_response.status_code == HTTPStatus.OK
     assert contest_response.context["technique_row_total"] == 2
     assert {row["technique"] for row in contest_response.context["technique_rows"]} == {"LTE", "PARITY"}
@@ -11613,7 +11894,7 @@ def test_technique_dashboard_exact_filters_are_server_side_and_combined(client):
     assert contest_response.context["technique_active_filters"][0]["label"] == "Contest"
     assert "contest=IMO" in contest_response.content.decode("utf-8")
 
-    topic_response = client.get(reverse("pages:technique_dashboard"), {"topic": "Number Theory"})
+    topic_response = client.get(reverse("pages:topic_tag_dashboard"), {"topic": "Number Theory"})
     assert topic_response.status_code == HTTPStatus.OK
     assert topic_response.context["technique_row_total"] == 2
     assert {row["technique"] for row in topic_response.context["technique_rows"]} == {"LTE", "PARITY"}
@@ -11624,7 +11905,7 @@ def test_technique_dashboard_exact_filters_are_server_side_and_combined(client):
         "values": [2],
     }
 
-    domain_response = client.get(reverse("pages:technique_dashboard"), {"domain": "COMB"})
+    domain_response = client.get(reverse("pages:topic_tag_dashboard"), {"domain": "COMB"})
     assert domain_response.status_code == HTTPStatus.OK
     assert domain_response.context["technique_row_total"] == 2
     assert {row["technique"] for row in domain_response.context["technique_rows"]} == {"INVARIANTS", "PARITY"}
@@ -11635,7 +11916,7 @@ def test_technique_dashboard_exact_filters_are_server_side_and_combined(client):
         "values": [2, 1],
     }
 
-    year_response = client.get(reverse("pages:technique_dashboard"), {"year": "2025"})
+    year_response = client.get(reverse("pages:topic_tag_dashboard"), {"year": "2025"})
     assert year_response.status_code == HTTPStatus.OK
     assert year_response.context["technique_row_total"] == 3
     assert {row["technique"] for row in year_response.context["technique_rows"]} == {
@@ -11645,7 +11926,7 @@ def test_technique_dashboard_exact_filters_are_server_side_and_combined(client):
     }
 
     combined_response = client.get(
-        reverse("pages:technique_dashboard"),
+        reverse("pages:topic_tag_dashboard"),
         {"contest": "IMO", "domain": "COMB"},
     )
     assert combined_response.status_code == HTTPStatus.OK
@@ -16469,7 +16750,9 @@ def test_dashboard_sidebar_shows_personal_progress_link_for_authenticated_user(c
     assert response.status_code == HTTPStatus.OK
     side_nav_html = _rendered_side_nav_html(response)
     assert "My progress" in side_nav_html
+    assert "Technique progress" in side_nav_html
     assert reverse("pages:my_completion_progress_analytics") in side_nav_html
+    assert reverse("pages:technique_dashboard") in side_nav_html
     assert "Progress analytics" not in side_nav_html
 
 
@@ -16490,10 +16773,11 @@ def test_dashboard_sidebar_groups_links_into_balanced_workflow_sections_for_admi
         "Utilities",
         "Admin",
         "My progress",
+        "Technique progress",
         "Quick completions",
         "Contest MOHS",
         "Ranking imports",
-        "Technique analytics",
+        "Topic tag analytics",
         "View analytics",
         "Completion records",
         "Progress analytics",
@@ -16504,7 +16788,15 @@ def test_dashboard_sidebar_groups_links_into_balanced_workflow_sections_for_admi
         "Delete statement",
         "Handle parser",
     ]
-    absent_labels = ["Personal", "Analytics", "Curation", "Tools", "Completion board", "Import center"]
+    absent_labels = [
+        "Personal",
+        "Analytics",
+        "Curation",
+        "Tools",
+        "Completion board",
+        "Import center",
+        "Technique analytics",
+    ]
 
     for label in present_labels:
         assert label in side_nav_html
@@ -16515,6 +16807,7 @@ def test_dashboard_sidebar_groups_links_into_balanced_workflow_sections_for_admi
         "My account",
         "My activity",
         "My progress",
+        "Technique progress",
         "Quick completions",
         "Contest progress",
         "Contest MOHS",
@@ -16528,7 +16821,7 @@ def test_dashboard_sidebar_groups_links_into_balanced_workflow_sections_for_admi
         "Ranking imports",
         "Problem analytics",
         "Contest analytics",
-        "Technique analytics",
+        "Topic tag analytics",
         "Statement analytics",
         "View analytics",
         "Completion records",
