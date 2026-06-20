@@ -149,6 +149,7 @@ from inspinia.pages.statement_metadata_backfill import statement_metadata_datafr
 from inspinia.pages.statement_metadata_backfill import statement_metadata_dataframe_from_text
 from inspinia.pages.subtopic_cleanup import apply_subtopic_cleanup
 from inspinia.pages.subtopic_cleanup import build_subtopic_cleanup_preview
+from inspinia.pages.technique_progress import build_technique_progress_context
 from inspinia.pages.topic_labels import FULL_TOPIC_LABEL_MAP
 from inspinia.pages.topic_labels import display_topic_label
 from inspinia.problemsets.selectors import problem_list_add_target_rows
@@ -4391,7 +4392,7 @@ def _technique_dashboard_url(params: dict[str, str | int | None]) -> str:
         if value is not None and str(value).strip()
     }
     query_string = urlencode(query_params)
-    base_url = reverse("pages:technique_dashboard")
+    base_url = reverse("pages:topic_tag_dashboard")
     return f"{base_url}?{query_string}" if query_string else base_url
 
 
@@ -6855,10 +6856,10 @@ def archive_hub_view(request):
                 "url": reverse("solutions:problem_solution_create"),
             },
             {
-                "description": "Technique-tag analytics and tag-driven exploration.",
+                "description": "Subtopic and technique completion gaps with practice links.",
                 "icon": "ti-tags",
-                "title": "Topic tags",
-                "url": reverse("pages:topic_tag_dashboard"),
+                "title": "Technique progress",
+                "url": reverse("pages:technique_dashboard"),
             },
         ],
     }
@@ -7955,6 +7956,15 @@ def contest_advanced_analytics_view(request):
 
 
 @login_required
+def technique_progress_dashboard_view(request):
+    context = build_technique_progress_context(
+        request_user=request.user,
+        raw_user_id=(request.GET.get("user") or "").strip(),
+    )
+    return render(request, "pages/technique-progress.html", context)
+
+
+@login_required
 def topic_tag_analytics_view(request):
     """Technique analytics: coverage, breadth, and difficulty signals per parsed technique."""
     _require_admin_tools_access(request)
@@ -8129,7 +8139,7 @@ def topic_tag_analytics_view(request):
         "initial_search_query": initial_search_query,
         "technique_active_filters": active_filter_rows,
         "technique_filters": selected_filters,
-        "technique_reset_url": reverse("pages:technique_dashboard"),
+        "technique_reset_url": reverse("pages:topic_tag_dashboard"),
         "technique_scope_label": scope_label,
         "technique_stats": {
             "contest_total": len(distinct_contests),
