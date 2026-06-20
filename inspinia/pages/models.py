@@ -21,6 +21,31 @@ DIFFICULTY_RATING_MIN = 0
 DIFFICULTY_RATING_MAX = 60
 
 
+def _normalize_topic_technique_model(instance: models.Model, save_kwargs: dict) -> None:
+    normalized_values = {
+        "technique": normalize_topic_tag(instance.technique),
+        "domains": domains_dedup_preserve_order(instance.domains or []),
+        "main_topic": normalize_topic_tag(instance.main_topic),
+        "canonical_subtopic": clean_token(instance.canonical_subtopic),
+        "raw_tag": clean_token(instance.raw_tag),
+        "normalization_status": clean_token(instance.normalization_status).casefold(),
+        "normalization_confidence": clean_token(instance.normalization_confidence).casefold(),
+    }
+    update_fields = save_kwargs.get("update_fields")
+    normalized_update_fields = set(update_fields) if update_fields is not None else None
+
+    for field_name, normalized_value in normalized_values.items():
+        current_value = list(instance.domains or []) if field_name == "domains" else getattr(instance, field_name)
+        if current_value == normalized_value:
+            continue
+        setattr(instance, field_name, normalized_value)
+        if normalized_update_fields is not None:
+            normalized_update_fields.add(field_name)
+
+    if normalized_update_fields is not None:
+        save_kwargs["update_fields"] = normalized_update_fields
+
+
 class ProblemSolveRecord(models.Model):
     """
     Stores one row from the Excel analytics sheet.
@@ -103,6 +128,9 @@ class ProblemTopicTechnique(models.Model):
     domains = models.JSONField(blank=True, default=list)
     main_topic = models.CharField(blank=True, max_length=16)
     canonical_subtopic = models.CharField(blank=True, max_length=160)
+    raw_tag = models.CharField(blank=True, max_length=512)
+    normalization_status = models.CharField(blank=True, max_length=24)
+    normalization_confidence = models.CharField(blank=True, max_length=16)
 
     class Meta:
         constraints = [
@@ -116,37 +144,7 @@ class ProblemTopicTechnique(models.Model):
         return f"{self.record.pk}: {self.technique}"
 
     def save(self, *args, **kwargs) -> None:
-        normalized_technique = normalize_topic_tag(self.technique)
-        normalized_domains = domains_dedup_preserve_order(self.domains or [])
-        normalized_main_topic = normalize_topic_tag(self.main_topic)
-        normalized_canonical_subtopic = clean_token(self.canonical_subtopic)
-
-        update_fields = kwargs.get("update_fields")
-        normalized_update_fields = set(update_fields) if update_fields is not None else None
-
-        if self.technique != normalized_technique:
-            self.technique = normalized_technique
-            if normalized_update_fields is not None:
-                normalized_update_fields.add("technique")
-
-        if list(self.domains or []) != normalized_domains:
-            self.domains = normalized_domains
-            if normalized_update_fields is not None:
-                normalized_update_fields.add("domains")
-
-        if self.main_topic != normalized_main_topic:
-            self.main_topic = normalized_main_topic
-            if normalized_update_fields is not None:
-                normalized_update_fields.add("main_topic")
-
-        if self.canonical_subtopic != normalized_canonical_subtopic:
-            self.canonical_subtopic = normalized_canonical_subtopic
-            if normalized_update_fields is not None:
-                normalized_update_fields.add("canonical_subtopic")
-
-        if normalized_update_fields is not None:
-            kwargs["update_fields"] = normalized_update_fields
-
+        _normalize_topic_technique_model(self, kwargs)
         super().save(*args, **kwargs)
 
 
@@ -239,6 +237,9 @@ class StatementTopicTechnique(models.Model):
     domains = models.JSONField(blank=True, default=list)
     main_topic = models.CharField(blank=True, max_length=16)
     canonical_subtopic = models.CharField(blank=True, max_length=160)
+    raw_tag = models.CharField(blank=True, max_length=512)
+    normalization_status = models.CharField(blank=True, max_length=24)
+    normalization_confidence = models.CharField(blank=True, max_length=16)
 
     class Meta:
         constraints = [
@@ -252,37 +253,7 @@ class StatementTopicTechnique(models.Model):
         return f"{self.statement_id}: {self.technique}"
 
     def save(self, *args, **kwargs) -> None:
-        normalized_technique = normalize_topic_tag(self.technique)
-        normalized_domains = domains_dedup_preserve_order(self.domains or [])
-        normalized_main_topic = normalize_topic_tag(self.main_topic)
-        normalized_canonical_subtopic = clean_token(self.canonical_subtopic)
-
-        update_fields = kwargs.get("update_fields")
-        normalized_update_fields = set(update_fields) if update_fields is not None else None
-
-        if self.technique != normalized_technique:
-            self.technique = normalized_technique
-            if normalized_update_fields is not None:
-                normalized_update_fields.add("technique")
-
-        if list(self.domains or []) != normalized_domains:
-            self.domains = normalized_domains
-            if normalized_update_fields is not None:
-                normalized_update_fields.add("domains")
-
-        if self.main_topic != normalized_main_topic:
-            self.main_topic = normalized_main_topic
-            if normalized_update_fields is not None:
-                normalized_update_fields.add("main_topic")
-
-        if self.canonical_subtopic != normalized_canonical_subtopic:
-            self.canonical_subtopic = normalized_canonical_subtopic
-            if normalized_update_fields is not None:
-                normalized_update_fields.add("canonical_subtopic")
-
-        if normalized_update_fields is not None:
-            kwargs["update_fields"] = normalized_update_fields
-
+        _normalize_topic_technique_model(self, kwargs)
         super().save(*args, **kwargs)
 
 

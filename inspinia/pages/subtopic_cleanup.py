@@ -17,6 +17,7 @@ from inspinia.pages.models import StatementTopicTechnique
 from inspinia.pages.subtopic_taxonomy import CANONICAL_SUBTOPIC_TAXONOMY
 from inspinia.pages.topic_tags_parse import domains_dedup_preserve_order
 from inspinia.pages.topic_tags_parse import normalize_topic_tag
+from inspinia.pages.topic_tags_parse import repair_topic_tag_text
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -28,6 +29,18 @@ class SubtopicTaxonomyEntry:
     canonical_subtopic: str
     technique: str
     stored_technique: str
+    normalization_status: str = "alias"
+    normalization_confidence: str = "high"
+
+
+@dataclass(frozen=True)
+class TaxonomyPatternRule:
+    main_topic: str
+    canonical_subtopic: str
+    tokens: tuple[str, ...] = ()
+    words: tuple[str, ...] = ()
+    padded_tokens: tuple[str, ...] = ()
+    stored_technique: str | None = None
 
 
 @dataclass(frozen=True)
@@ -52,6 +65,656 @@ def _stored_aliases(
     aliases: tuple[str, ...],
 ) -> tuple[tuple[str, str, str, str], ...]:
     return tuple((main_topic, canonical_subtopic, alias, stored_technique) for alias in aliases)
+
+
+NORMALIZATION_STATUS_CANONICAL = "canonical"
+NORMALIZATION_STATUS_ALIAS = "alias"
+NORMALIZATION_STATUS_METHOD = "method"
+NORMALIZATION_STATUS_INVALID = "invalid"
+NORMALIZATION_STATUS_NEEDS_REVIEW = "needs_review"
+NORMALIZATION_CONFIDENCE_HIGH = "high"
+NORMALIZATION_CONFIDENCE_LOW = "low"
+
+
+FIRST_PASS_CANONICAL_SUBTOPICS: tuple[str, ...] = (
+    "Inequalities and optimization",
+    "Sequences, recurrences, and series",
+    "Polynomials and algebraic manipulation",
+    "Functional equations",
+    "Algebraic structures and linear algebra",
+    "Equations, substitutions, and transformations",
+    "Discrete functions, floors, rounding, and base representation",
+    "Extremal methods, monotonicity, and invariants",
+    "Number-theoretic algebra",
+    "Combinatorial algebra and counting",
+    "Geometry-flavored algebra",
+    "Analytic estimates and asymptotics",
+    "Complex, trigonometric, and Fourier methods",
+    "Data-quality / invalid tag",
+)
+
+
+FIRST_PASS_CANONICAL_MAIN_TOPICS: dict[str, str] = {
+    "Inequalities and optimization": "ALG",
+    "Sequences, recurrences, and series": "ALG",
+    "Polynomials and algebraic manipulation": "ALG",
+    "Functional equations": "ALG",
+    "Algebraic structures and linear algebra": "ALG",
+    "Equations, substitutions, and transformations": "ALG",
+    "Discrete functions, floors, rounding, and base representation": "ALG",
+    "Extremal methods, monotonicity, and invariants": "ALG",
+    "Number-theoretic algebra": "NT",
+    "Combinatorial algebra and counting": "COMB",
+    "Geometry-flavored algebra": "GEO",
+    "Analytic estimates and asymptotics": "ALG",
+    "Complex, trigonometric, and Fourier methods": "ALG",
+    "Data-quality / invalid tag": "",
+}
+
+
+FIRST_PASS_PARENT_ALIASES: tuple[tuple[str, str, str], ...] = (
+    *_parent_aliases(
+        "ALG",
+        "Inequalities and optimization",
+        (
+            "inequality",
+            "inequalities",
+            "cyclic inequality",
+            "cyclic inequalities",
+            "symmetric inequality",
+            "symmetric inequalities",
+            "trigonometric inequality",
+            "variational inequality",
+            "absolute value inequality",
+            "product inequalities",
+            "rank inequalities",
+            "coefficient inequalities",
+            "power means",
+            "tangent-line bound",
+            "lagrange multipliers",
+            "kkt",
+            "lp duality",
+            "linear programming",
+            "one-variable optimization",
+            "quadratic optimization",
+            "constrained minimization",
+            "maximization",
+            "minimization",
+        ),
+    ),
+    *_parent_aliases(
+        "ALG",
+        "Sequences, recurrences, and series",
+        (
+            "sequences",
+            "sequence classification",
+            "sequences/inequalities",
+            "recurrence",
+            "recurrences",
+            "linear recurrence",
+            "binary recursion",
+            "binary recursions",
+            "cyclic recurrence",
+            "cyclic recurrences",
+            "max-plus recurrence",
+            "chebyshev recurrence",
+            "recurrence dynamics",
+            "recurrence estimates",
+            "recurrence structure",
+            "recursive structure",
+            "fibonacci",
+            "fibonacci identities",
+            "fibonacci weights",
+            "fibonacci exponents",
+            "lucas numbers",
+            "geometric series",
+            "geometric sums",
+            "infinite series",
+            "convergent series",
+            "divergent sums",
+            "subsequences",
+            "telescoping",
+            "telescoping sum",
+            "telescoping estimate",
+        ),
+    ),
+    *_parent_aliases(
+        "ALG",
+        "Polynomials and algebraic manipulation",
+        (
+            "polynomial",
+            "polynomials",
+            "polynomial values",
+            "polynomial images",
+            "polynomial composition",
+            "polynomial recurrence",
+            "polynomial construction",
+            "polynomial dynamics",
+            "polynomial inequality",
+            "polynomial irreducibility",
+            "polynomial roots",
+            "polynomials mod p",
+            "permutation polynomials",
+            "real polynomials",
+            "complex polynomials",
+            "factorisation",
+            "factorization",
+            "factor arguments",
+            "factor comparison",
+            "factorial basis",
+            "factoring tricks",
+            "interpolation",
+            "hermite interpolation",
+            "vandermonde",
+            "discriminant",
+            "resultant",
+            "roots",
+            "roots of polynomial",
+            "root dynamics",
+            "coefficients",
+            "coefficient bounds",
+            "binomial identities",
+            "binomial sums",
+            "binomial expansion",
+            "cubic",
+            "cubics",
+            "cubic identity",
+            "cubic factorization",
+            "quadratic",
+            "quadratics",
+            "quadratic polynomials",
+            "chebyshev",
+            "chebyshev polynomials",
+            "finite difference",
+            "finite differences",
+        ),
+    ),
+    *_parent_aliases(
+        "ALG",
+        "Functional equations",
+        (
+            "functional equation",
+            "functional equations",
+            "functional equations on n",
+            "functional equation on sequences",
+            "quadratic fe",
+            "arithmetic functional equations",
+            "discrete functional equation",
+            "differential-functional equation",
+            "functional rigidity",
+            "functional iteration",
+            "functional graph",
+            "functional inequalities",
+            "cauchy equation",
+            "cauchy equation stability",
+            "cauchy over q",
+            "additive functions",
+            "multiplicative cauchy",
+            "exponential cauchy",
+            "real functions",
+            "integer functions",
+            "wild functions",
+            "recursive functions",
+            "injectivity",
+            "surjectivity",
+            "forced linearity",
+            "functions; inequalities; casework",
+        ),
+    ),
+    *_parent_aliases(
+        "ALG",
+        "Algebraic structures and linear algebra",
+        (
+            "algebraic structures",
+            "linear algebra",
+            "modular linear algebra",
+            "constructive linear algebra",
+            "matrix",
+            "matrices",
+            "nilpotent matrices",
+            "skew-symmetric matrices",
+            "determinant",
+            "determinants",
+            "eigenvalue",
+            "eigenvalues",
+            "rank",
+            "trace",
+            "adjugate",
+            "cofactors",
+            "groups",
+            "cyclic groups",
+            "abelian groups",
+            "additive groups",
+            "multiplicative group",
+            "p-groups",
+            "group action",
+            "group structure",
+            "cosets",
+            "generators",
+            "rings",
+            "boolean rings",
+            "division rings",
+            "reduced rings",
+            "field theory",
+            "cubic fields",
+            "ufd",
+            "ideals",
+            "polynomial ideals",
+            "commutators",
+            "centralizers",
+            "nilpotent",
+            "nilpotence",
+            "nilradical",
+            "units",
+            "unit group",
+        ),
+    ),
+    *_parent_aliases(
+        "ALG",
+        "Equations, substitutions, and transformations",
+        (
+            "equations",
+            "systems",
+            "linear equations",
+            "cyclic equations",
+            "coupled equations",
+            "substitutions",
+            "substitution",
+            "special substitutions",
+            "strategic substitutions",
+            "symmetric substitutions",
+            "ratio substitution",
+            "rational substitution",
+            "trig substitution",
+            "trigonometric substitution",
+            "ravi-type substitution",
+            "log substitution",
+            "z substitution",
+            "homogenization",
+            "homogeneous reduction",
+            "normalization",
+            "scaling",
+            "affine normalization",
+            "affine transformation",
+            "transformations",
+            "translation",
+            "translations",
+            "rotations/translations",
+            "mobius transformation",
+            "m\u00f6bius transformation",
+            "parametrization",
+            "rational parametrization",
+            "reparametrization",
+            "variable reduction",
+            "variable separation",
+            "linearization",
+            "rationalization",
+            "clearing denominators",
+        ),
+    ),
+    *_parent_aliases(
+        "ALG",
+        "Discrete functions, floors, rounding, and base representation",
+        (
+            "floor function",
+            "floor functions",
+            "floors",
+            "floor sums",
+            "floor/fractional part",
+            "floors/fractional parts",
+            "floor stabilization",
+            "rounding",
+            "rounding identities",
+            "modulo 1 rounding",
+            "integer part structure",
+            "discrete intermediate value",
+            "discrete ivt",
+            "discrete functions",
+            "discrete structure",
+            "discrete differences",
+            "base representation",
+            "base-10 constructions",
+            "base-2/base-3 expansions",
+            "binary expansion",
+            "binary structure",
+            "binary decomposition",
+            "dyadic decomposition",
+            "dyadic blocks",
+            "dyadic intervals",
+            "digit counting",
+            "digit bounds",
+            "digit extraction",
+            "decimal structure",
+            "decimal carries",
+            "automata",
+            "automatic sequence",
+            "beatty sequence",
+        ),
+    ),
+    *_parent_aliases(
+        "ALG",
+        "Extremal methods, monotonicity, and invariants",
+        (
+            "extremal",
+            "extremal argument",
+            "extremal thinking",
+            "extremal ordering",
+            "extremal configurations",
+            "extremal sets",
+            "extremal subsets",
+            "extremal structure",
+            "extremal process",
+            "extremal contradiction",
+            "extremal examples",
+            "extremal values",
+            "minimax",
+            "min-max",
+            "max/min",
+            "bounding",
+            "bounding by extrema",
+            "monotonicity",
+            "monotone functions",
+            "monotone maps",
+            "monotone arrays",
+            "monotonicity forcing",
+            "ordering",
+            "ordered variables",
+            "order relations",
+            "growth",
+            "growth control",
+            "growth/monotonicity",
+            "invariant",
+            "invariants",
+            "invariant polynomials",
+            "monovariants",
+            "descent",
+            "finite descent",
+            "infinite descent",
+            "stability",
+            "rigidity",
+            "uniqueness",
+            "classification",
+        ),
+    ),
+    *_parent_aliases(
+        "NT",
+        "Number-theoretic algebra",
+        (
+            "divisibility",
+            "divisibility sequences",
+            "divisibility descent",
+            "gcd",
+            "gcd design",
+            "valuations",
+            "rational valuations",
+            "p-adic",
+            "p-adic integrality",
+            "modular",
+            "modular rigidity",
+            "congruence",
+            "residues",
+            "division algorithm",
+            "vieta",
+            "vieta jumping",
+            "pell",
+            "pell-type",
+            "zsigmondy",
+            "lucas-sequence",
+            "factorials",
+            "squares",
+            "squarefree",
+            "square classes",
+            "sums of two squares",
+            "powers of two",
+            "prime structure",
+            "distinct prime factors",
+            "algebraic integers",
+            "algebraic conjugates",
+            "rationality",
+            "rationals",
+            "rational numbers",
+            "irrationality",
+            "integrality",
+            "integer values",
+            "integer functions",
+            "integer polynomials",
+            "norm form",
+            "eisenstein norm form",
+        ),
+    ),
+    *_parent_aliases(
+        "COMB",
+        "Combinatorial algebra and counting",
+        (
+            "counting",
+            "countability",
+            "counting roots",
+            "counting preimages",
+            "pairing",
+            "reciprocal pairing",
+            "symmetry/pairing",
+            "charging",
+            "double counting",
+            "inclusion-exclusion",
+            "permutation",
+            "permutations",
+            "permutation inequality",
+            "permutation swaps",
+            "graph",
+            "graph independence",
+            "graph components",
+            "graph ordering",
+            "weighted graph",
+            "matching",
+            "set operations",
+            "set coloring",
+            "subset choice",
+            "finite chains",
+            "ordered sets",
+            "game strategy",
+            "strategy pairing",
+            "dp",
+            "dynamic programming",
+            "random walk",
+            "probability method",
+            "lattice walks",
+            "dyck path bijection",
+        ),
+    ),
+    *_parent_aliases(
+        "GEO",
+        "Geometry-flavored algebra",
+        (
+            "coordinates",
+            "coordinate geometry",
+            "geometry on r^2",
+            "lattice points",
+            "integer lattice",
+            "regular polygon",
+            "equilateral triangle",
+            "triangle condition",
+            "triangle constraints",
+            "triangle inequality",
+            "area formulas",
+            "area computation",
+            "heron formula",
+            "tangent lengths",
+            "tangential quads",
+            "unit circle",
+            "unit disk",
+            "rotation",
+            "rotation symmetry",
+            "vector geometry",
+            "unit vectors",
+            "convex geometry",
+            "discrete geometry",
+            "constructibility",
+            "affine geometry",
+            "complex plane",
+            "complex numbers; vector geometry",
+        ),
+    ),
+    *_parent_aliases(
+        "ALG",
+        "Analytic estimates and asymptotics",
+        (
+            "asymptotics",
+            "asymptotic",
+            "asymptotic dominance",
+            "asymptotic inequalities",
+            "approximation",
+            "limit",
+            "limsup",
+            "convergence",
+            "dominated convergence",
+            "calculus",
+            "derivative",
+            "mean value",
+            "mvt",
+            "integral",
+            "integration by parts",
+            "improper integrals",
+            "topology",
+            "topology of r",
+            "compactness",
+            "baire",
+            "density",
+            "density of q",
+            "density of rationals",
+            "continuity",
+            "discontinuity",
+            "lipschitz",
+            "differential equation",
+            "ode",
+            "darboux property",
+        ),
+    ),
+    *_parent_aliases(
+        "ALG",
+        "Complex, trigonometric, and Fourier methods",
+        (
+            "complex",
+            "complex numbers",
+            "complex rotations",
+            "complex conjugation",
+            "roots on a circle",
+            "argument principle",
+            "rouche",
+            "rouch\u00e9",
+            "fourier",
+            "discrete fourier transform",
+            "parseval",
+            "trigonometric",
+            "trig",
+            "trig identities",
+            "trigonometric identities",
+            "trigonometric sums",
+            "trigonometric form",
+            "trigonometric parameterization",
+            "product-to-sine",
+            "sine identities",
+            "chebyshev/sine",
+            "hyperbolic",
+            "hyperbolic cosine identity",
+        ),
+    ),
+)
+
+
+FIRST_PASS_STORED_ALIASES: tuple[tuple[str, str, str, str], ...] = (
+    *_stored_aliases(
+        "ALG",
+        "Functional equations",
+        "Functional equations",
+        ("functional equation", "functional equations"),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Inequalities and optimization",
+        "Inequalities and optimization",
+        ("inequality", "inequalities"),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Sequences, recurrences, and series",
+        "Sequences, recurrences, and series",
+        ("sequence", "sequences", "recurrence", "recurrences"),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Polynomials and algebraic manipulation",
+        "Polynomials and algebraic manipulation",
+        ("polynomial", "polynomials"),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "Geometry-flavored algebra",
+        "Coordinate geometry",
+        ("coordinate", "coordinates", "coordinate geometry"),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Inequalities and optimization",
+        "Cauchy-Schwarz / Engel form",
+        (
+            "am-gm/cauchy",
+            "cauchy/am-gm",
+            "am-gm / cauchy",
+            "cauchy / am-gm",
+            "cauchy-schwarz",
+            "cauchy",
+        ),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Inequalities and optimization",
+        "H\u00f6lder",
+        ("h\u00f6lder", "holder", "h\u221a\xf1lder"),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Functional equations",
+        "Polynomial functional equation",
+        ("polynomial functional equation", "polynomial fe"),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Polynomials and algebraic manipulation",
+        "Factorization",
+        (
+            "factorisation",
+            "alg factorisation",
+            "alg - factorisation",
+        ),
+    ),
+)
+
+
+METHOD_ONLY_TAGS: tuple[str, ...] = (
+    "contradiction",
+    "contraposition",
+    "impossibility",
+    "existence/uniqueness",
+    "statement check",
+    "statement flaw",
+    "red herring",
+    "degeneracy check",
+)
+
+
+INVALID_TAGS: tuple[str, ...] = (
+    "1",
+    "11",
+    "1)",
+    "1]",
+    "p",
+    "q",
+    "r",
+    "y",
+    "y]",
+    "zx",
+    "yz",
+)
 
 
 ADDITIONAL_SUBTOPIC_ALIASES: tuple[tuple[str, str, str], ...] = (
@@ -505,7 +1168,7 @@ STORED_TECHNIQUE_SUBTOPIC_ALIASES: tuple[tuple[str, str, str, str], ...] = (
     *_stored_aliases(
         "ALG",
         "Inequalities and optimization",
-        "Holder",
+        "H\u00f6lder",
         (
             "holder",
             "holder-type",
@@ -1608,6 +2271,7 @@ TAXONOMY_AREA_PREFIX_RE = re.compile(
 
 
 def _taxonomy_key(value: str) -> str:
+    value = repair_topic_tag_text(value)
     for old, new in TAXONOMY_TEXT_REPLACEMENTS:
         value = value.replace(old, new)
     value = TAXONOMY_AREA_PREFIX_RE.sub("", value or "")
@@ -1623,17 +2287,29 @@ def _taxonomy_entry(
     technique: str,
     *,
     stored_technique: str | None = None,
+    normalization: tuple[str, str] = (NORMALIZATION_STATUS_ALIAS, NORMALIZATION_CONFIDENCE_HIGH),
 ) -> SubtopicTaxonomyEntry:
     return SubtopicTaxonomyEntry(
         main_topic=main_topic,
         canonical_subtopic=canonical_subtopic,
         technique=technique,
         stored_technique=normalize_topic_tag(stored_technique or technique),
+        normalization_status=normalization[0],
+        normalization_confidence=normalization[1],
     )
 
 
-def _build_taxonomy_lookup() -> dict[str, SubtopicTaxonomyEntry]:
-    lookup: dict[str, SubtopicTaxonomyEntry] = {}
+def _add_first_pass_canonical_entries(lookup: dict[str, SubtopicTaxonomyEntry]) -> None:
+    for canonical_subtopic in FIRST_PASS_CANONICAL_SUBTOPICS:
+        lookup[_taxonomy_key(canonical_subtopic)] = _taxonomy_entry(
+            FIRST_PASS_CANONICAL_MAIN_TOPICS[canonical_subtopic],
+            canonical_subtopic,
+            canonical_subtopic,
+            normalization=(NORMALIZATION_STATUS_CANONICAL, NORMALIZATION_CONFIDENCE_HIGH),
+        )
+
+
+def _add_existing_taxonomy_entries(lookup: dict[str, SubtopicTaxonomyEntry]) -> None:
     canonical_pairs: set[tuple[str, str]] = set()
     for main_topic, canonical_subtopic, technique in CANONICAL_SUBTOPIC_TAXONOMY:
         pair = (main_topic, canonical_subtopic)
@@ -1645,6 +2321,9 @@ def _build_taxonomy_lookup() -> dict[str, SubtopicTaxonomyEntry]:
             _taxonomy_key(technique),
             _taxonomy_entry(main_topic, canonical_subtopic, technique),
         )
+
+
+def _add_parent_collapse_entries(lookup: dict[str, SubtopicTaxonomyEntry]) -> None:
     for main_topic, canonical_subtopic, alias in PARENT_COLLAPSE_SUBTOPIC_ALIASES:
         lookup[_taxonomy_key(alias)] = _taxonomy_entry(
             main_topic,
@@ -1652,6 +2331,9 @@ def _build_taxonomy_lookup() -> dict[str, SubtopicTaxonomyEntry]:
             alias,
             stored_technique=canonical_subtopic,
         )
+
+
+def _add_stored_technique_entries(lookup: dict[str, SubtopicTaxonomyEntry]) -> None:
     for main_topic, canonical_subtopic, alias, stored_technique in STORED_TECHNIQUE_SUBTOPIC_ALIASES:
         lookup[_taxonomy_key(alias)] = _taxonomy_entry(
             main_topic,
@@ -1659,19 +2341,258 @@ def _build_taxonomy_lookup() -> dict[str, SubtopicTaxonomyEntry]:
             alias,
             stored_technique=stored_technique,
         )
+
+
+def _add_additional_alias_entries(lookup: dict[str, SubtopicTaxonomyEntry]) -> None:
     for main_topic, canonical_subtopic, alias in ADDITIONAL_SUBTOPIC_ALIASES:
         lookup.setdefault(
             _taxonomy_key(alias),
             _taxonomy_entry(main_topic, canonical_subtopic, alias),
         )
+
+
+def _add_first_pass_parent_entries(lookup: dict[str, SubtopicTaxonomyEntry]) -> None:
+    for main_topic, canonical_subtopic, alias in FIRST_PASS_PARENT_ALIASES:
+        lookup[_taxonomy_key(alias)] = _taxonomy_entry(
+            main_topic,
+            canonical_subtopic,
+            alias,
+        )
+
+
+def _add_first_pass_stored_entries(lookup: dict[str, SubtopicTaxonomyEntry]) -> None:
+    for main_topic, canonical_subtopic, alias, stored_technique in FIRST_PASS_STORED_ALIASES:
+        lookup[_taxonomy_key(alias)] = _taxonomy_entry(
+            main_topic,
+            canonical_subtopic,
+            alias,
+            stored_technique=stored_technique,
+        )
+
+
+def _add_status_entries(lookup: dict[str, SubtopicTaxonomyEntry]) -> None:
+    for alias in METHOD_ONLY_TAGS:
+        lookup[_taxonomy_key(alias)] = _taxonomy_entry(
+            "",
+            "",
+            alias,
+            normalization=(NORMALIZATION_STATUS_METHOD, NORMALIZATION_CONFIDENCE_HIGH),
+        )
+    for alias in INVALID_TAGS:
+        lookup[_taxonomy_key(alias)] = _taxonomy_entry(
+            "",
+            "Data-quality / invalid tag",
+            alias,
+            normalization=(NORMALIZATION_STATUS_INVALID, NORMALIZATION_CONFIDENCE_HIGH),
+        )
+
+
+def _build_taxonomy_lookup() -> dict[str, SubtopicTaxonomyEntry]:
+    lookup: dict[str, SubtopicTaxonomyEntry] = {}
+    _add_first_pass_canonical_entries(lookup)
+    _add_existing_taxonomy_entries(lookup)
+    _add_parent_collapse_entries(lookup)
+    _add_stored_technique_entries(lookup)
+    _add_additional_alias_entries(lookup)
+    _add_first_pass_parent_entries(lookup)
+    _add_first_pass_stored_entries(lookup)
+    _add_status_entries(lookup)
     return lookup
 
 
 TAXONOMY_LOOKUP = _build_taxonomy_lookup()
 
 
+GARBAGE_FRAGMENT_MAX_LENGTH = 2
+
+EXCEPTION_PATTERN_RULES: tuple[TaxonomyPatternRule, ...] = (
+    TaxonomyPatternRule("ALG", "Functional equations", tokens=("CAUCHY EQUATION",)),
+    TaxonomyPatternRule(
+        "ALG",
+        "Functional equations",
+        tokens=("POLYNOMIAL FE", "POLYNOMIAL FUNCTIONAL EQUATION"),
+        stored_technique="Polynomial functional equation",
+    ),
+    TaxonomyPatternRule("ALG", "Functional equations", tokens=("FUNCTIONAL GRAPH",)),
+    TaxonomyPatternRule(
+        "ALG",
+        "Equations, substitutions, and transformations",
+        tokens=("RATIONAL PARAMETRIZATION",),
+    ),
+    TaxonomyPatternRule("GEO", "Geometry-flavored algebra", tokens=("TANGENT LENGTH",)),
+    TaxonomyPatternRule("ALG", "Inequalities and optimization", tokens=("TRIGONOMETRIC INEQUALITY",)),
+    TaxonomyPatternRule(
+        "ALG",
+        "Complex, trigonometric, and Fourier methods",
+        tokens=("TRIGONOMETRIC IDENTIT", "TRIG IDENTIT"),
+    ),
+)
+
+GENERIC_PATTERN_RULES: tuple[TaxonomyPatternRule, ...] = (
+    TaxonomyPatternRule(
+        "ALG",
+        "Inequalities and optimization",
+        tokens=("INEQUAL",),
+        words=("KARAMATA", "SCHUR", "MUIRHEAD", "SMOOTHING", "UVW", "SOS"),
+    ),
+    TaxonomyPatternRule(
+        "ALG",
+        "Sequences, recurrences, and series",
+        tokens=("RECURREN", "RECURS", "FIBONACCI", "LUCAS", "TELESCOP", "SEQUENCE"),
+    ),
+    TaxonomyPatternRule(
+        "ALG",
+        "Polynomials and algebraic manipulation",
+        tokens=("POLYNOMIAL", "FACTOR", "INTERPOL", "ROOT", "COEFFICIENT", "DISCRIMINANT"),
+    ),
+    TaxonomyPatternRule(
+        "ALG",
+        "Discrete functions, floors, rounding, and base representation",
+        tokens=("FLOOR", "ROUND", "BASE", "BINARY", "DYADIC", "DIGIT", "DECIMAL", "AUTOMATA"),
+    ),
+    TaxonomyPatternRule(
+        "ALG",
+        "Extremal methods, monotonicity, and invariants",
+        tokens=("EXTREMAL", "MONOTON", "RIGID", "INVARIANT", "MONOVARIANT"),
+        words=("ORDERING", "GROWTH", "DESCENT", "MINIMAX", "STABILITY", "UNIQUENESS"),
+    ),
+    TaxonomyPatternRule(
+        "NT",
+        "Number-theoretic algebra",
+        tokens=("VIETA", "DIVIS", "VALUATION", "P-ADIC", "MODULAR", "CONGRUENCE", "GCD"),
+        words=("PELL", "SQUARES", "FACTORIALS", "INTEGRALITY"),
+    ),
+    TaxonomyPatternRule(
+        "COMB",
+        "Combinatorial algebra and counting",
+        tokens=("COUNT", "PAIRING", "PERMUT", "GRAPH", "MATCHING", "GAME", "DYNAMIC PROGRAMMING"),
+    ),
+    TaxonomyPatternRule(
+        "GEO",
+        "Geometry-flavored algebra",
+        tokens=("COORDINATE", "LATTICE", "POLYGON", "TRIANGLE", "TANGENT", "ROTATION", "VECTOR"),
+    ),
+    TaxonomyPatternRule(
+        "ALG",
+        "Analytic estimates and asymptotics",
+        tokens=("ASYMPTOT", "APPROX", "LIMIT", "CONVERGEN", "CALCULUS", "DERIVATIVE", "INTEGRAL"),
+    ),
+    TaxonomyPatternRule(
+        "ALG",
+        "Complex, trigonometric, and Fourier methods",
+        tokens=("TRIG", "FOURIER", "PARSEVAL", "HYPERBOLIC"),
+        padded_tokens=(" COMPLEX ",),
+    ),
+)
+
+
+def _invalid_pattern_entry(repaired: str, normalized: str, key: str) -> SubtopicTaxonomyEntry | None:
+    if len(key) <= GARBAGE_FRAGMENT_MAX_LENGTH and not key.isdigit():
+        return _taxonomy_entry(
+            "",
+            "Data-quality / invalid tag",
+            normalized,
+            normalization=(NORMALIZATION_STATUS_INVALID, NORMALIZATION_CONFIDENCE_HIGH),
+        )
+    if key.isdigit() or re.fullmatch(r"\d+\)?", repaired.strip()):
+        return _taxonomy_entry(
+            "",
+            "Data-quality / invalid tag",
+            normalized,
+            normalization=(NORMALIZATION_STATUS_INVALID, NORMALIZATION_CONFIDENCE_HIGH),
+        )
+    return None
+
+
+def _pattern_rule_matches(
+    rule: TaxonomyPatternRule,
+    *,
+    normalized: str,
+    words: set[str],
+    padded_text: str,
+) -> bool:
+    return (
+        any(token in normalized for token in rule.tokens)
+        or any(word in words for word in rule.words)
+        or any(token in padded_text for token in rule.padded_tokens)
+    )
+
+
+def _entry_from_pattern_rules(
+    normalized: str,
+    words: set[str],
+    rules: tuple[TaxonomyPatternRule, ...],
+) -> SubtopicTaxonomyEntry | None:
+    padded_text = f" {normalized} "
+    for rule in rules:
+        if not _pattern_rule_matches(rule, normalized=normalized, words=words, padded_text=padded_text):
+            continue
+        return _taxonomy_entry(
+            rule.main_topic,
+            rule.canonical_subtopic,
+            normalized,
+            stored_technique=rule.stored_technique,
+        )
+    return None
+
+
+def _pattern_taxonomy_entry(technique: str) -> SubtopicTaxonomyEntry | None:
+    repaired = repair_topic_tag_text(technique)
+    normalized = normalize_topic_tag(repaired)
+    key = _taxonomy_key(repaired)
+    if not key:
+        return None
+
+    invalid_entry = _invalid_pattern_entry(repaired, normalized, key)
+    if invalid_entry is not None:
+        return invalid_entry
+
+    words = set(re.findall(r"[A-Z0-9]+", normalized))
+    return _entry_from_pattern_rules(
+        normalized,
+        words,
+        EXCEPTION_PATTERN_RULES,
+    ) or _entry_from_pattern_rules(normalized, words, GENERIC_PATTERN_RULES)
+
+
 def taxonomy_entry_for_technique(technique: str) -> SubtopicTaxonomyEntry | None:
-    return TAXONOMY_LOOKUP.get(_taxonomy_key(technique))
+    return TAXONOMY_LOOKUP.get(_taxonomy_key(technique)) or _pattern_taxonomy_entry(technique)
+
+
+def classified_topic_tag_fields(
+    *,
+    technique: str,
+    domains: list[str] | None,
+    raw_tag: str | None = None,
+) -> dict[str, object]:
+    repaired_technique = repair_topic_tag_text(technique)
+    normalized_technique = normalize_topic_tag(repaired_technique)
+    source_raw_tag = raw_tag or technique
+    entry = taxonomy_entry_for_technique(repaired_technique)
+    domain_list = domains_dedup_preserve_order(domains or [])
+
+    if entry is None:
+        return {
+            "canonical_subtopic": "",
+            "domains": domain_list,
+            "main_topic": "",
+            "normalization_confidence": NORMALIZATION_CONFIDENCE_LOW,
+            "normalization_status": NORMALIZATION_STATUS_NEEDS_REVIEW,
+            "raw_tag": source_raw_tag,
+            "technique": normalized_technique,
+        }
+
+    if entry.main_topic:
+        domain_list = domains_dedup_preserve_order([entry.main_topic, *domain_list])
+    return {
+        "canonical_subtopic": entry.canonical_subtopic,
+        "domains": domain_list,
+        "main_topic": entry.main_topic,
+        "normalization_confidence": entry.normalization_confidence,
+        "normalization_status": entry.normalization_status,
+        "raw_tag": source_raw_tag,
+        "technique": entry.stored_technique,
+    }
 
 
 def _tag_domains_with_main_topic(domains: list[str], main_topic: str) -> list[str]:
@@ -1700,6 +2621,9 @@ def _problem_tag_rows() -> Iterable[ProblemTopicTechnique]:
             "domains",
             "main_topic",
             "canonical_subtopic",
+            "raw_tag",
+            "normalization_status",
+            "normalization_confidence",
             "record__contest_year_problem",
             "record__contest",
             "record__year",
@@ -1720,6 +2644,9 @@ def _statement_tag_rows() -> Iterable[StatementTopicTechnique]:
             "domains",
             "main_topic",
             "canonical_subtopic",
+            "raw_tag",
+            "normalization_status",
+            "normalization_confidence",
             "statement__contest_year_problem",
             "statement__contest_name",
             "statement__contest_year",
@@ -1736,6 +2663,9 @@ def _tag_needs_update(tag, entry: SubtopicTaxonomyEntry) -> bool:
         or tag.main_topic != entry.main_topic
         or tag.canonical_subtopic != entry.canonical_subtopic
         or tag.domains != _tag_domains_with_main_topic(tag.domains or [], entry.main_topic)
+        or not tag.raw_tag
+        or tag.normalization_status != entry.normalization_status
+        or tag.normalization_confidence != entry.normalization_confidence
     )
 
 
@@ -1747,7 +2677,10 @@ def _preview_change(kind: str, tag, entry: SubtopicTaxonomyEntry, parent_label: 
         "current_technique": tag.technique,
         "kind": kind,
         "main_topic": entry.main_topic,
+        "normalization_confidence": entry.normalization_confidence,
+        "normalization_status": entry.normalization_status,
         "parent_label": parent_label,
+        "raw_tag": tag.raw_tag or tag.technique,
         "technique": entry.stored_technique,
     }
 
@@ -1838,6 +2771,7 @@ def build_subtopic_cleanup_preview(*, limit: int = 50) -> dict[str, object]:
     raw_parent_keys: set[tuple[str, int]] = set()
     duplicate_count = 0
     duplicate_groups: defaultdict[tuple[str, int, str], int] = defaultdict(int)
+    invalid_count = 0
 
     tag_sources = (
         ("Problem row", _problem_tag_rows(), lambda tag: tag.record_id, _problem_parent_label),
@@ -1858,6 +2792,10 @@ def build_subtopic_cleanup_preview(*, limit: int = 50) -> dict[str, object]:
             parent_id = parent_id_getter(tag)
             raw_parent_keys.add((parent_key_kind, parent_id))
             duplicate_groups[(parent_key_kind, parent_id, entry.stored_technique)] += 1
+            if entry.normalization_status in {
+                NORMALIZATION_STATUS_INVALID,
+            }:
+                invalid_count += 1
             if _tag_needs_update(tag, entry):
                 change_count += 1
                 if len(changes) < limit:
@@ -1878,6 +2816,7 @@ def build_subtopic_cleanup_preview(*, limit: int = 50) -> dict[str, object]:
         "changes_truncated": change_count > limit,
         "duplicate_count": duplicate_count,
         "has_changes": bool(change_count or duplicate_count or raw_parent_keys),
+        "invalid_count": invalid_count,
         "raw_update_count": len(raw_parent_keys),
         "unmatched": unmatched[:limit],
         "unmatched_count": len(unmatched),
@@ -1895,25 +2834,54 @@ def _select_keeper(rows: list, target_technique: str):
     return rows[0]
 
 
+def _merge_tag_raw_values(rows: list) -> str:
+    merged: list[str] = []
+    seen: set[str] = set()
+    for row in rows:
+        raw_value = (row.raw_tag or row.technique or "").strip()
+        key = raw_value.casefold()
+        if raw_value and key not in seen:
+            seen.add(key)
+            merged.append(raw_value)
+    return "; ".join(merged)[:512]
+
+
 def _apply_parent_group(rows: list, entry: SubtopicTaxonomyEntry) -> tuple[int, int]:
     keeper = _select_keeper(rows, entry.stored_technique)
     merged_domains = [entry.main_topic]
     for row in rows:
         merged_domains.extend(row.domains or [])
     merged_domains = domains_dedup_preserve_order(merged_domains)
+    merged_raw_tag = _merge_tag_raw_values(rows)
 
     changed = (
         keeper.technique != entry.stored_technique
         or keeper.main_topic != entry.main_topic
         or keeper.canonical_subtopic != entry.canonical_subtopic
         or keeper.domains != merged_domains
+        or keeper.raw_tag != merged_raw_tag
+        or keeper.normalization_status != entry.normalization_status
+        or keeper.normalization_confidence != entry.normalization_confidence
     )
     if changed:
         keeper.technique = entry.stored_technique
         keeper.main_topic = entry.main_topic
         keeper.canonical_subtopic = entry.canonical_subtopic
         keeper.domains = merged_domains
-        keeper.save(update_fields=["technique", "main_topic", "canonical_subtopic", "domains"])
+        keeper.raw_tag = merged_raw_tag
+        keeper.normalization_status = entry.normalization_status
+        keeper.normalization_confidence = entry.normalization_confidence
+        keeper.save(
+            update_fields=[
+                "technique",
+                "main_topic",
+                "canonical_subtopic",
+                "domains",
+                "raw_tag",
+                "normalization_status",
+                "normalization_confidence",
+            ],
+        )
 
     duplicate_ids = [row.id for row in rows if row.id != keeper.id]
     if duplicate_ids:

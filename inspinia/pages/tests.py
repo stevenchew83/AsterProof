@@ -840,11 +840,53 @@ def test_parse_topic_tags_cell_accepts_exported_subtopic_column_lines():
     )
 
     assert parsed == [
-        {"technique": "$P$-ADIC CONTINUITY/MAHLER", "domains": []},
-        {"technique": "(\\MATHBB Z/5^K)^\\TIMES(Z/2K)\u00d7", "domains": []},
-        {"technique": "(ALT) COMPLEX PLANE", "domains": []},
-        {"technique": "ALG — INEQUALITIES; AM-GM; TANGENT-STYLE BOUND", "domains": []},
-        {"technique": "2-ADIC VALUATION / PARITY", "domains": []},
+        {
+            "technique": "$P$-ADIC CONTINUITY/MAHLER",
+            "domains": [],
+            "raw_tag": "$P$-ADIC CONTINUITY/MAHLER",
+        },
+        {
+            "technique": "(\\MATHBB Z/5^K)^\\TIMES(Z/2K)\u00d7",
+            "domains": [],
+            "raw_tag": "(\\MATHBB Z/5^K)^\\TIMES(Z/2K)\u00d7",
+        },
+        {"technique": "(ALT) COMPLEX PLANE", "domains": [], "raw_tag": "(ALT) COMPLEX PLANE"},
+        {
+            "technique": "ALG - INEQUALITIES; AM-GM; TANGENT-STYLE BOUND",
+            "domains": [],
+            "raw_tag": "ALG — INEQUALITIES; AM-GM; TANGENT-STYLE BOUND",
+        },
+        {
+            "technique": "2-ADIC VALUATION / PARITY",
+            "domains": [],
+            "raw_tag": "2-ADIC VALUATION / PARITY",
+        },
+    ]
+
+
+def test_parse_topic_tags_cell_preserves_raw_tag_and_repairs_mojibake():
+    parsed = parse_topic_tags_cell(
+        "Topic tags: ALG - H\u221a\xf1LDER; M\u221a\xf1BIUS TRANSFORMATION; "
+        "Rolle\u201a\xc4\xf4s theorem; Pr\u221a\xe2kopa inequality",
+    )
+
+    assert parsed == [
+        {"technique": "H\u00d6LDER", "domains": ["ALG"], "raw_tag": "H\u221a\xf1LDER"},
+        {
+            "technique": "M\u00d6BIUS TRANSFORMATION",
+            "domains": ["ALG"],
+            "raw_tag": "M\u221a\xf1BIUS TRANSFORMATION",
+        },
+        {
+            "technique": "ROLLE'S THEOREM",
+            "domains": ["ALG"],
+            "raw_tag": "Rolle\u201a\xc4\xf4s theorem",
+        },
+        {
+            "technique": "PR\u00c9KOPA INEQUALITY",
+            "domains": ["ALG"],
+            "raw_tag": "Pr\u221a\xe2kopa inequality",
+        },
     ]
 
 
@@ -922,7 +964,43 @@ def test_import_problem_dataframe_creates_records_and_normalized_fields():
     assert record.pitfalls_value == "Greedy reasoning."
     assert list(
         record.topic_techniques.order_by("technique").values_list("technique", flat=True),
-    ) == ["LTE", "PARITY"]
+    ) == ["LTE", "PARITY METHODS"]
+
+
+def test_import_problem_dataframe_classifies_topic_tags_with_normalization_metadata():
+    dataframe = _analytics_rows(
+        {
+            "YEAR": 2026,
+            "TOPIC": "ALG",
+            "MOHS": 25,
+            "CONTEST": "Israel TST",
+            "PROBLEM": "P1",
+            "CONTEST PROBLEM": "Israel TST 2026 P1",
+            "Topic tags": "Topic tags: ALG - cauchy equation; floor functions; 1]",
+        },
+    )
+
+    result = import_problem_dataframe(dataframe, replace_tags=False)
+
+    assert result.n_records == EXPECTED_RECORD_COUNT
+    record = ProblemSolveRecord.objects.get(year=2026, contest="Israel TST", problem="P1")
+    tags = {
+        tag.technique: tag
+        for tag in record.topic_techniques.order_by("technique")
+    }
+    assert tags["CAUCHY EQUATION"].raw_tag == "cauchy equation"
+    assert tags["CAUCHY EQUATION"].main_topic == "ALG"
+    assert tags["CAUCHY EQUATION"].canonical_subtopic == "Functional equations"
+    assert tags["CAUCHY EQUATION"].normalization_status == "alias"
+    assert tags["CAUCHY EQUATION"].normalization_confidence == "high"
+    assert tags["FLOOR FUNCTIONS"].raw_tag == "floor functions"
+    assert tags["FLOOR FUNCTIONS"].canonical_subtopic == (
+        "Discrete functions, floors, rounding, and base representation"
+    )
+    assert tags["FLOOR FUNCTIONS"].normalization_status == "alias"
+    assert tags["1]"].raw_tag == "1]"
+    assert tags["1]"].canonical_subtopic == "Data-quality / invalid tag"
+    assert tags["1]"].normalization_status == "invalid"
 
 
 def test_import_problem_dataframe_merges_domains_and_refreshes_derived_values():
@@ -11541,6 +11619,9 @@ def _create_technique_progress_statement(  # noqa: PLR0913
             domains=tag.get("domains", []),
             main_topic=tag.get("main_topic", ""),
             canonical_subtopic=tag.get("canonical_subtopic", ""),
+            raw_tag=tag.get("raw_tag", ""),
+            normalization_status=tag.get("normalization_status", ""),
+            normalization_confidence=tag.get("normalization_confidence", ""),
         )
     for tag in statement_tags or []:
         StatementTopicTechnique.objects.create(
@@ -11549,6 +11630,9 @@ def _create_technique_progress_statement(  # noqa: PLR0913
             domains=tag.get("domains", []),
             main_topic=tag.get("main_topic", ""),
             canonical_subtopic=tag.get("canonical_subtopic", ""),
+            raw_tag=tag.get("raw_tag", ""),
+            normalization_status=tag.get("normalization_status", ""),
+            normalization_confidence=tag.get("normalization_confidence", ""),
         )
     return statement
 
@@ -12186,6 +12270,99 @@ def test_technique_progress_gaps_page_filters_by_main_topic(client):
         row["label"]
         for row in combinatorics_response.context["technique_progress_gap_rows"]
     ] == ["Shared parity"]
+
+
+def test_technique_progress_gaps_page_groups_normalized_algebra_subtopics_and_hides_invalid_rows(client):
+    user = UserFactory()
+    client.force_login(user)
+    normalized_extremal = "Extremal methods, monotonicity, and invariants"
+    normalized_discrete = "Discrete functions, floors, rounding, and base representation"
+    for index, technique in enumerate(["MONOTONICITY", "RIGIDITY", "EXTREMAL SETS"], start=1):
+        _create_technique_progress_statement(
+            problem_code=f"E{index}",
+            problem_number=index,
+            statement_tags=[
+                {
+                    "technique": technique,
+                    "domains": ["ALG"],
+                    "main_topic": "ALG",
+                    "canonical_subtopic": normalized_extremal,
+                    "raw_tag": technique,
+                    "normalization_status": "alias",
+                    "normalization_confidence": "high",
+                },
+            ],
+        )
+    _create_technique_progress_statement(
+        problem_code="F1",
+        problem_number=10,
+        statement_tags=[
+            {
+                "technique": "FLOOR FUNCTIONS",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": normalized_discrete,
+                "raw_tag": "FLOOR FUNCTIONS",
+                "normalization_status": "alias",
+                "normalization_confidence": "high",
+            },
+        ],
+    )
+    _create_technique_progress_statement(
+        problem_code="M1",
+        problem_number=20,
+        statement_tags=[
+            {
+                "technique": "CONTRADICTION",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": "",
+                "raw_tag": "CONTRADICTION",
+                "normalization_status": "method",
+                "normalization_confidence": "high",
+            },
+        ],
+    )
+    _create_technique_progress_statement(
+        problem_code="I1",
+        problem_number=21,
+        statement_tags=[
+            {
+                "technique": "1]",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": "Data-quality / invalid tag",
+                "raw_tag": "1]",
+                "normalization_status": "invalid",
+                "normalization_confidence": "high",
+            },
+        ],
+    )
+
+    response = client.get(reverse("pages:technique_progress_gaps"), {"kind": "subtopics", "topic": "algebra"})
+
+    assert response.status_code == HTTPStatus.OK
+    rows = response.context["technique_progress_gap_rows"]
+    assert [row["label"] for row in rows] == [normalized_extremal, normalized_discrete]
+    assert rows[0]["total"] == 3
+    assert rows[1]["total"] == 1
+    response_html = response.content.decode("utf-8")
+    assert "CONTRADICTION" not in response_html
+    assert "Data-quality / invalid tag" not in response_html
+
+    technique_response = client.get(
+        reverse("pages:technique_progress_gaps"),
+        {"kind": "techniques", "topic": "algebra"},
+    )
+
+    assert technique_response.status_code == HTTPStatus.OK
+    technique_labels = [
+        row["label"]
+        for row in technique_response.context["technique_progress_gap_rows"]
+    ]
+    assert "CONTRADICTION" in technique_labels
+    assert "MONOTONICITY" in technique_labels
+    assert "1]" not in technique_labels
 
 
 def test_technique_progress_gaps_page_topic_tabs_preserve_user_and_kind(client):
@@ -15324,7 +15501,7 @@ def test_problem_statement_metadata_page_exports_unmatched_subtopic_review_for_a
     )
     StatementTopicTechnique.objects.create(
         statement=statement,
-        technique="hyperbolic cosines",
+        technique="mystery flavor",
         domains=["alg"],
     )
 
@@ -15343,7 +15520,7 @@ def test_problem_statement_metadata_page_exports_unmatched_subtopic_review_for_a
     assert list(exported_dataframe.columns) == EXPECTED_UNMATCHED_SUBTOPIC_EXPORT_COLUMNS
     assert exported_rows == [
         {
-            "Subtopic": "HYPERBOLIC COSINES",
+            "Subtopic": "MYSTERY FLAVOR",
             "Occurrences": "1",
             "Problem rows": "0",
             "Statement rows": "1",
@@ -15447,7 +15624,7 @@ def test_problem_statement_metadata_cleanup_preview_treats_raw_rewrites_as_actio
 
     assert response.status_code == HTTPStatus.OK
     preview = response.context["subtopic_cleanup_preview"]
-    assert preview["change_count"] == 0
+    assert preview["change_count"] == 1
     assert preview["duplicate_count"] == 0
     assert preview["raw_update_count"] == 1
     assert preview["has_changes"] is True
@@ -15486,8 +15663,8 @@ def test_problem_statement_metadata_cleanup_preview_matches_broad_subtopic_alias
     }
     assert changes_by_technique == {
         "INEQUALITIES AND OPTIMIZATION": ("ALG", "Inequalities and optimization"),
-        "TRIG": ("GEO", "Core Euclidean geometry"),
-        "INVARIANTS": ("COMB", "Coloring, tiling, grids, and invariants"),
+        "TRIG": ("ALG", "Complex, trigonometric, and Fourier methods"),
+        "INVARIANTS": ("ALG", "Extremal methods, monotonicity, and invariants"),
         "CYCLIC": ("GEO", "Circle geometry"),
     }
     assert preview["unmatched"] == []
@@ -15610,7 +15787,7 @@ def test_subtopic_cleanup_maps_attached_alias_rules_to_existing_taxonomy(
             "H\u221a\xf1LDER-TYPE",
             "ALG",
             "Inequalities and optimization",
-            "HOLDER",
+            "H\u00d6LDER",
         ),
         (
             "JENSEN/LOG CONCAVITY",
@@ -15717,8 +15894,8 @@ def test_subtopic_cleanup_maps_attached_alias_rules_to_existing_taxonomy(
         (
             "M\u221a\xf1BIUS TRANSFORMATION",
             "ALG",
-            "Algebraic structures and linear algebra",
-            "MOBIUS / FRACTIONAL-LINEAR TRANSFORMATION",
+            "Equations, substitutions, and transformations",
+            "M\u00d6BIUS TRANSFORMATION",
         ),
         (
             "RANK/KERNEL/IMAGE",
@@ -16018,9 +16195,9 @@ def test_subtopic_cleanup_maps_normalized_algebra_rules_to_existing_taxonomy(
         ),
         (
             "INTEGER POLYNOMIALS",
-            "ALG",
-            "Polynomials and algebraic manipulation",
-            "INTEGER-VALUED POLYNOMIALS / FUNCTIONS",
+            "NT",
+            "Number-theoretic algebra",
+            "INTEGER POLYNOMIALS",
         ),
         (
             "COEFFICIENT ANALYSIS",
@@ -16060,6 +16237,125 @@ def test_subtopic_cleanup_maps_recommended_schema_alias_rules_to_existing_taxono
     assert entry.main_topic == main_topic
     assert entry.canonical_subtopic == canonical_subtopic
     assert entry.stored_technique == stored_technique
+
+
+@pytest.mark.parametrize(
+    ("raw_tag", "main_topic", "canonical_subtopic", "stored_technique", "status"),
+    [
+        ("CYCLIC INEQUALITY", "ALG", "Inequalities and optimization", "CYCLIC INEQUALITY", "alias"),
+        (
+            "LINEAR RECURRENCE",
+            "ALG",
+            "Sequences, recurrences, and series",
+            "LINEAR RECURRENCE",
+            "alias",
+        ),
+        (
+            "POLYNOMIAL ROOTS",
+            "ALG",
+            "Polynomials and algebraic manipulation",
+            "POLYNOMIAL ROOTS",
+            "alias",
+        ),
+        ("CYCLIC GROUPS", "ALG", "Algebraic structures and linear algebra", "CYCLIC GROUPS", "alias"),
+        (
+            "FLOOR FUNCTIONS",
+            "ALG",
+            "Discrete functions, floors, rounding, and base representation",
+            "FLOOR FUNCTIONS",
+            "alias",
+        ),
+        (
+            "EXTREMAL ORDERING",
+            "ALG",
+            "Extremal methods, monotonicity, and invariants",
+            "EXTREMAL ORDERING",
+            "alias",
+        ),
+        (
+            "MONOTONICITY",
+            "ALG",
+            "Extremal methods, monotonicity, and invariants",
+            "MONOTONICITY",
+            "alias",
+        ),
+        ("VIETA", "NT", "Number-theoretic algebra", "VIETA", "alias"),
+        (
+            "PAIRING",
+            "COMB",
+            "Combinatorial algebra and counting",
+            "PAIRING",
+            "alias",
+        ),
+        (
+            "LATTICE POINTS",
+            "GEO",
+            "Geometry-flavored algebra",
+            "LATTICE POINTS",
+            "alias",
+        ),
+        (
+            "ASYMPTOTICS",
+            "ALG",
+            "Analytic estimates and asymptotics",
+            "ASYMPTOTICS",
+            "alias",
+        ),
+        (
+            "TRIG IDENTITIES",
+            "ALG",
+            "Complex, trigonometric, and Fourier methods",
+            "TRIG IDENTITIES",
+            "alias",
+        ),
+        ("CONTRADICTION", "", "", "CONTRADICTION", "method"),
+        ("1]", "", "Data-quality / invalid tag", "1]", "invalid"),
+    ],
+)
+def test_subtopic_cleanup_classifies_first_pass_canonical_algebra_tags(
+    raw_tag,
+    main_topic,
+    canonical_subtopic,
+    stored_technique,
+    status,
+):
+    entry = taxonomy_entry_for_technique(raw_tag)
+
+    assert entry is not None
+    assert entry.main_topic == main_topic
+    assert entry.canonical_subtopic == canonical_subtopic
+    assert entry.stored_technique == stored_technique
+    assert entry.normalization_status == status
+    assert entry.normalization_confidence == "high"
+
+
+@pytest.mark.parametrize(
+    ("raw_tag", "canonical_subtopic", "stored_technique"),
+    [
+        ("CAUCHY EQUATION", "Functional equations", "CAUCHY EQUATION"),
+        ("POLYNOMIAL FE", "Functional equations", "POLYNOMIAL FUNCTIONAL EQUATION"),
+        ("FUNCTIONAL GRAPH", "Functional equations", "FUNCTIONAL GRAPH"),
+        (
+            "RATIONAL PARAMETRIZATION",
+            "Equations, substitutions, and transformations",
+            "RATIONAL PARAMETRIZATION",
+        ),
+        ("TANGENT LENGTHS", "Geometry-flavored algebra", "TANGENT LENGTHS"),
+        ("TRIGONOMETRIC INEQUALITY", "Inequalities and optimization", "TRIGONOMETRIC INEQUALITY"),
+        ("TRIGONOMETRIC IDENTITIES", "Complex, trigonometric, and Fourier methods", "TRIGONOMETRIC IDENTITIES"),
+    ],
+)
+def test_subtopic_cleanup_applies_specific_exception_rules_before_generic_patterns(
+    raw_tag,
+    canonical_subtopic,
+    stored_technique,
+):
+    entry = taxonomy_entry_for_technique(raw_tag)
+
+    assert entry is not None
+    assert entry.canonical_subtopic == canonical_subtopic
+    assert entry.stored_technique == stored_technique
+    assert entry.normalization_status == "alias"
 
 
 def test_subtopic_cleanup_apply_updates_alias_when_target_label_is_not_lookup_key():
@@ -16130,6 +16426,94 @@ def test_subtopic_cleanup_apply_merges_existing_target_row_that_is_not_lookup_ke
         == "Topic tags: COMB / Algorithms, automata, words, and constructive combinatorics - "
         "CONSTRUCTIVE METHODS"
     )
+
+
+def test_subtopic_cleanup_preview_reports_invalid_and_metadata_columns(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    record = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="A",
+        mohs=25,
+        contest="Israel TST",
+        problem="P1",
+        contest_year_problem="Israel TST 2026 P1",
+        topic_tags="Topic tags: ALG - 1]; monotonicity",
+    )
+    ProblemTopicTechnique.objects.create(record=record, technique="1]", domains=["alg"], raw_tag="1]")
+    ProblemTopicTechnique.objects.create(
+        record=record,
+        technique="monotonicity",
+        domains=["alg"],
+        raw_tag="monotonicity",
+    )
+
+    response = client.post(
+        reverse("pages:problem_statement_metadata"),
+        {"action": "preview_subtopic_cleanup"},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    preview = response.context["subtopic_cleanup_preview"]
+    assert preview["invalid_count"] == 1
+    assert preview["change_count"] == 2
+    changes = {row["current_technique"]: row for row in preview["changes"]}
+    assert changes["1]"]["normalization_status"] == "invalid"
+    assert changes["1]"]["normalization_confidence"] == "high"
+    assert changes["1]"]["raw_tag"] == "1]"
+    assert changes["MONOTONICITY"]["canonical_subtopic"] == "Extremal methods, monotonicity, and invariants"
+    response_html = response.content.decode("utf-8")
+    assert "Status" in response_html
+    assert "Confidence" in response_html
+    assert "Raw tag" in response_html
+
+
+def test_subtopic_cleanup_apply_collapses_algebra_first_pass_duplicate_families():
+    record = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="A",
+        mohs=25,
+        contest="Israel TST",
+        problem="P1",
+        contest_year_problem="Israel TST 2026 P1",
+        topic_tags=(
+            "Topic tags: ALG - monotonicity; rigidity; extremal ordering; "
+            "floor functions; floors; cyclic groups; vieta; polynomial fe; "
+            "trigonometric identities"
+        ),
+    )
+    for technique in [
+        "monotonicity",
+        "rigidity",
+        "extremal ordering",
+        "floor functions",
+        "floors",
+        "cyclic groups",
+        "vieta",
+        "polynomial fe",
+        "trigonometric identities",
+    ]:
+        ProblemTopicTechnique.objects.create(record=record, technique=technique, domains=["alg"], raw_tag=technique)
+
+    result = apply_subtopic_cleanup()
+
+    assert result.updated_count == 9
+    tags = {
+        tag.technique: tag
+        for tag in ProblemTopicTechnique.objects.filter(record=record).order_by("technique")
+    }
+    assert tags["MONOTONICITY"].canonical_subtopic == "Extremal methods, monotonicity, and invariants"
+    assert tags["RIGIDITY"].canonical_subtopic == "Extremal methods, monotonicity, and invariants"
+    assert tags["EXTREMAL ORDERING"].canonical_subtopic == "Extremal methods, monotonicity, and invariants"
+    assert tags["FLOOR FUNCTIONS"].canonical_subtopic == (
+        "Discrete functions, floors, rounding, and base representation"
+    )
+    assert tags["FLOORS"].canonical_subtopic == "Discrete functions, floors, rounding, and base representation"
+    assert tags["CYCLIC GROUPS"].canonical_subtopic == "Algebraic structures and linear algebra"
+    assert tags["VIETA"].canonical_subtopic == "Number-theoretic algebra"
+    assert tags["POLYNOMIAL FUNCTIONAL EQUATION"].canonical_subtopic == "Functional equations"
+    assert tags["TRIGONOMETRIC IDENTITIES"].canonical_subtopic == "Complex, trigonometric, and Fourier methods"
+    assert {tag.normalization_status for tag in tags.values()} == {"alias"}
 
 
 def test_problem_statement_metadata_cleanup_applies_parent_and_child_granularity_aliases(client):
@@ -16230,8 +16614,8 @@ def test_problem_statement_metadata_cleanup_applies_parent_and_child_granularity
     )
     assert current_to_target["COORDINATES"] == (
         "GEO",
-        "Core Euclidean geometry",
-        "CORE EUCLIDEAN GEOMETRY",
+        "Geometry-flavored algebra",
+        "COORDINATE GEOMETRY",
     )
 
     apply_response = client.post(
@@ -16255,7 +16639,7 @@ def test_problem_statement_metadata_cleanup_applies_parent_and_child_granularity
             "Inequalities and optimization",
         ),
         ("CONVEXITY", "ALG", "Inequalities and optimization"),
-        ("CORE EUCLIDEAN GEOMETRY", "GEO", "Core Euclidean geometry"),
+        ("COORDINATE GEOMETRY", "GEO", "Geometry-flavored algebra"),
         (
             "FACTORIZATION",
             "ALG",
@@ -16293,7 +16677,7 @@ def test_problem_statement_metadata_cleanup_applies_parent_and_child_granularity
         "ALG / Sequences, recurrences, and series - SEQUENCES, RECURRENCES, AND SERIES; "
         "ALG / Polynomials and algebraic manipulation - "
         "POLYNOMIALS AND ALGEBRAIC MANIPULATION, FACTORIZATION, INTERPOLATION; "
-        "GEO / Core Euclidean geometry - CORE EUCLIDEAN GEOMETRY"
+        "GEO / Geometry-flavored algebra - COORDINATE GEOMETRY"
     )
 
 
@@ -16328,7 +16712,7 @@ def test_problem_statement_metadata_cleanup_preview_shows_unmatched_review_table
     )
     StatementTopicTechnique.objects.create(
         statement=statement,
-        technique="hyperbolic cosines",
+        technique="mystery flavor",
         domains=["alg"],
     )
 
@@ -16341,7 +16725,7 @@ def test_problem_statement_metadata_cleanup_preview_shows_unmatched_review_table
     preview = response.context["subtopic_cleanup_preview"]
     assert preview["unmatched_review_count"] == 1
     assert preview["unmatched_review"][0] == {
-        "subtopic": "HYPERBOLIC COSINES",
+        "subtopic": "MYSTERY FLAVOR",
         "occurrences": 1,
         "problem_rows": 0,
         "statement_rows": 1,
@@ -16352,7 +16736,7 @@ def test_problem_statement_metadata_cleanup_preview_shows_unmatched_review_table
     assert 'id="statement-unmatched-subtopics-export"' in response_html
     assert "Unmatched subtopics review" in response_html
     assert "Occurrences" in response_html
-    assert "HYPERBOLIC COSINES" in response_html
+    assert "MYSTERY FLAVOR" in response_html
 
 
 def test_problem_statement_metadata_subtopic_cleanup_preview_avoids_large_statement_fields(client):
@@ -17003,6 +17387,44 @@ def test_statement_metadata_import_mirrors_analytics_onto_statement_when_linked(
     assert statement.core_ideas == "Core ideas: Encode the invariant."
     assert statement.rationale == "Rationale: The invariant explains the bound."
     assert statement.pitfalls == "Common pitfalls: Missing the terminal case."
+
+
+def test_statement_metadata_import_classifies_topic_tags_with_normalization_metadata():
+    statement = ContestProblemStatement.objects.create(
+        contest_year=2026,
+        contest_name="Israel TST",
+        problem_number=2,
+        problem_code="P2",
+        day_label="Day 1",
+        statement_latex="Metadata classification statement",
+    )
+    rows = [
+        {
+            "STATEMENT UUID": str(statement.statement_uuid),
+            "TOPIC": "ALG",
+            "MOHS": 25,
+            "Topic tags": "Topic tags: ALG - Cauchy/AM-GM; rational parametrization; Q",
+        },
+    ]
+    dataframe = statement_metadata_dataframe_from_rows(rows)
+
+    result = import_statement_metadata_dataframe(dataframe, replace_tags=False)
+
+    assert result.technique_count == 3
+    tags = {
+        tag.technique: tag
+        for tag in StatementTopicTechnique.objects.filter(statement=statement).order_by("technique")
+    }
+    assert tags["CAUCHY-SCHWARZ / ENGEL FORM"].raw_tag == "Cauchy/AM-GM"
+    assert tags["CAUCHY-SCHWARZ / ENGEL FORM"].canonical_subtopic == "Inequalities and optimization"
+    assert tags["CAUCHY-SCHWARZ / ENGEL FORM"].normalization_status == "alias"
+    assert tags["CAUCHY-SCHWARZ / ENGEL FORM"].normalization_confidence == "high"
+    assert tags["RATIONAL PARAMETRIZATION"].raw_tag == "rational parametrization"
+    assert tags["RATIONAL PARAMETRIZATION"].canonical_subtopic == "Equations, substitutions, and transformations"
+    assert tags["RATIONAL PARAMETRIZATION"].normalization_status == "alias"
+    assert tags["Q"].raw_tag == "Q"
+    assert tags["Q"].canonical_subtopic == "Data-quality / invalid tag"
+    assert tags["Q"].normalization_status == "invalid"
 
 
 def test_statement_metadata_import_accepts_lowercase_mohs_column_header():

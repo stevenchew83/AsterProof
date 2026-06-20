@@ -21,6 +21,7 @@ from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
 from inspinia.pages.models import ProblemTopicTechnique
 from inspinia.pages.statement_analytics_sync import sync_statement_analytics_from_linked_problem
+from inspinia.pages.subtopic_cleanup import classified_topic_tag_fields
 from inspinia.pages.topic_tags_parse import domains_dedup_preserve_order
 from inspinia.pages.topic_tags_parse import merge_domain_lists
 from inspinia.pages.topic_tags_parse import parse_contest_problem_string
@@ -446,13 +447,24 @@ def _upsert_topic_technique(
     record: ProblemSolveRecord,
     technique: str,
     domain_list: list[str],
+    taxonomy_fields: dict[str, object],
     replace_tags: bool,
 ) -> int:
+    raw_tag = str(taxonomy_fields["raw_tag"])
+    main_topic = str(taxonomy_fields["main_topic"])
+    canonical_subtopic = str(taxonomy_fields["canonical_subtopic"])
+    normalization_status = str(taxonomy_fields["normalization_status"])
+    normalization_confidence = str(taxonomy_fields["normalization_confidence"])
     if replace_tags:
         ProblemTopicTechnique.objects.create(
             record=record,
             technique=technique,
             domains=domain_list,
+            raw_tag=raw_tag,
+            main_topic=main_topic,
+            canonical_subtopic=canonical_subtopic,
+            normalization_status=normalization_status,
+            normalization_confidence=normalization_confidence,
         )
         return 1
 
@@ -467,6 +479,11 @@ def _upsert_topic_technique(
             record=record,
             technique=technique,
             domains=domain_list,
+            raw_tag=raw_tag,
+            main_topic=main_topic,
+            canonical_subtopic=canonical_subtopic,
+            normalization_status=normalization_status,
+            normalization_confidence=normalization_confidence,
         )
         return 1
 
@@ -480,6 +497,9 @@ def _upsert_topic_technique(
         ProblemTopicTechnique.objects.filter(pk__in=duplicate_ids).delete()
 
     merged_domains = merge_domain_lists(merged_domains, domain_list)
+    merged_raw_tags = _merge_raw_tag_values(
+        [obj.raw_tag or obj.technique, *(tag.raw_tag or tag.technique for tag in matching_tags[1:]), raw_tag],
+    )
 
     updated_fields: list[str] = []
     if obj.technique != technique:
@@ -488,6 +508,16 @@ def _upsert_topic_technique(
     if merged_domains != (obj.domains or []):
         obj.domains = merged_domains
         updated_fields.append("domains")
+    for field_name, value in (
+        ("raw_tag", merged_raw_tags),
+        ("main_topic", main_topic),
+        ("canonical_subtopic", canonical_subtopic),
+        ("normalization_status", normalization_status),
+        ("normalization_confidence", normalization_confidence),
+    ):
+        if getattr(obj, field_name) != value:
+            setattr(obj, field_name, value)
+            updated_fields.append(field_name)
 
     if updated_fields:
         obj.save(update_fields=updated_fields)
@@ -496,21 +526,34 @@ def _upsert_topic_technique(
     return 1 if duplicate_ids else 0
 
 
+def _merge_raw_tag_values(values: list[str]) -> str:
+    merged: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        cleaned = (value or "").strip()
+        key = cleaned.casefold()
+        if cleaned and key not in seen:
+            seen.add(key)
+            merged.append(cleaned)
+    return "; ".join(merged)[:512]
+
+
 def sync_problem_topic_techniques(
     *,
     record: ProblemSolveRecord,
     raw_topic_tags: str | None,
     replace_tags: bool,
 ) -> int:
-    parsed_entries: list[tuple[str, list[str]]] = []
+    parsed_entries: list[dict[str, object]] = []
     for item in parse_topic_tags_cell(raw_topic_tags):
         technique = (item.get("technique") or "").strip()
         if not technique:
             continue
         parsed_entries.append(
-            (
-                technique,
-                domains_dedup_preserve_order(item.get("domains") or []),
+            classified_topic_tag_fields(
+                technique=technique,
+                domains=domains_dedup_preserve_order(item.get("domains") or []),
+                raw_tag=str(item.get("raw_tag") or technique),
             ),
         )
 
@@ -518,11 +561,12 @@ def sync_problem_topic_techniques(
         ProblemTopicTechnique.objects.filter(record=record).delete()
 
     touched_count = 0
-    for technique, domain_list in parsed_entries:
+    for entry in parsed_entries:
         touched_count += _upsert_topic_technique(
             record=record,
-            technique=technique,
-            domain_list=domain_list,
+            technique=str(entry["technique"]),
+            domain_list=list(entry["domains"]),
+            taxonomy_fields=entry,
             replace_tags=replace_tags,
         )
 

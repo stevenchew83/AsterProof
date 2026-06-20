@@ -209,6 +209,9 @@
               <th>Main topic</th>
               <th>Canonical subtopic</th>
               <th>Technique</th>
+              <th>Status</th>
+              <th>Confidence</th>
+              <th>Raw tag</th>
             </tr>
           </thead>
           <tbody>
@@ -220,6 +223,9 @@
               <td><span class="badge bg-primary-subtle text-primary">{{ row.main_topic }}</span></td>
               <td>{{ row.canonical_subtopic }}</td>
               <td><code>{{ row.technique }}</code></td>
+              <td><span class="badge bg-secondary-subtle text-secondary">{{ row.normalization_status }}</span></td>
+              <td>{{ row.normalization_confidence }}</td>
+              <td><code>{{ row.raw_tag }}</code></td>
             </tr>
             {% endfor %}
           </tbody>
