@@ -15495,15 +15495,20 @@ def test_problem_statement_metadata_cleanup_preview_matches_broad_subtopic_alias
 @pytest.mark.parametrize(
     ("raw_tag", "main_topic", "canonical_subtopic", "stored_technique"),
     [
-        ("INTEGER FUNCTIONAL EQUATION", "ALG", "Functional equations", "INTEGER FUNCTIONAL EQUATIONS"),
+        ("INTEGER FUNCTIONAL EQUATION", "ALG", "Functional equations", "INTEGER DOMAIN"),
         ("DIVISIBILITY FE", "ALG", "Functional equations", "DIVISIBILITY FE"),
         ("AFFINE/COORDINATE METHODS", "GEO", "Core Euclidean geometry", "AFFINE/COORDINATE METHODS"),
         ("CEVIAN COORDINATES", "GEO", "Core Euclidean geometry", "CEVIAN COORDINATES"),
-        ("CAUCHY-SCHWARZ/ENGEL", "ALG", "Inequalities and optimization", "CAUCHY-SCHWARZ/ENGEL"),
-        ("ENGEL FORM", "ALG", "Inequalities and optimization", "ENGEL FORM"),
-        ("JENSEN CONVEXITY", "ALG", "Inequalities and optimization", "JENSEN / CONVEXITY"),
+        ("CAUCHY-SCHWARZ/ENGEL", "ALG", "Inequalities and optimization", "CAUCHY-SCHWARZ / ENGEL FORM"),
+        ("ENGEL FORM", "ALG", "Inequalities and optimization", "CAUCHY-SCHWARZ / ENGEL FORM"),
+        (
+            "JENSEN CONVEXITY",
+            "ALG",
+            "Inequalities and optimization",
+            "CONVEXITY / JENSEN METHODS",
+        ),
         ("SMOOTHING", "ALG", "Inequalities and optimization", "SMOOTHING"),
-        ("UVW", "ALG", "Inequalities and optimization", "UVW"),
+        ("UVW", "ALG", "Inequalities and optimization", "UVW / PQR METHOD"),
         ("POLYNOMIAL INEQUALITIES", "ALG", "Inequalities and optimization", "POLYNOMIAL INEQUALITIES"),
         ("FLOOR RECURRENCE", "ALG", "Sequences, recurrences, and series", "FLOOR RECURRENCE"),
         ("PELL-TYPE RECURRENCE", "NT", "Diophantine equations and descent", "PELL-TYPE RECURRENCES"),
@@ -15512,7 +15517,7 @@ def test_problem_statement_metadata_cleanup_preview_matches_broad_subtopic_alias
         ("INTERPOLATION", "ALG", "Polynomials and algebraic manipulation", "INTERPOLATION"),
         ("DIVISIBILITY/CONGRUENCES", "NT", "Divisibility, gcd, lcm, and primes", "DIVISIBILITY/CONGRUENCES"),
         ("ORDERS/LTE", "NT", "p-adic and valuation methods", "ORDERS/LTE"),
-        ("P-ADIC STRUCTURE", "NT", "p-adic and valuation methods", "P-ADIC / VALUATION METHODS"),
+        ("P-ADIC STRUCTURE", "NT", "p-adic and valuation methods", "P-ADIC METHODS"),
         ("DIOPHANTINE FACTORIZATION", "NT", "Diophantine equations and descent", "DIOPHANTINE FACTORIZATION"),
         (
             "CONSTRUCTIVE SCHEDULING",
@@ -15536,6 +15541,513 @@ def test_problem_statement_metadata_cleanup_preview_matches_broad_subtopic_alias
     ],
 )
 def test_subtopic_cleanup_maps_attached_alias_rules_to_existing_taxonomy(
+    raw_tag,
+    main_topic,
+    canonical_subtopic,
+    stored_technique,
+):
+    entry = taxonomy_entry_for_technique(raw_tag)
+
+    assert entry is not None
+    assert entry.main_topic == main_topic
+    assert entry.canonical_subtopic == canonical_subtopic
+    assert entry.stored_technique == stored_technique
+
+
+@pytest.mark.parametrize(
+    ("raw_tag", "main_topic", "canonical_subtopic", "stored_technique"),
+    [
+        (
+            "FUNCTIONAL CONDITION",
+            "ALG",
+            "Functional equations",
+            "FUNCTIONAL EQUATIONS",
+        ),
+        (
+            "FUNCTIONAL EQUATION ON INTEGERS",
+            "ALG",
+            "Functional equations",
+            "INTEGER DOMAIN",
+        ),
+        (
+            "FUNCTIONAL EQUATIONS (RATIONAL DOMAIN)",
+            "ALG",
+            "Functional equations",
+            "RATIONAL DOMAIN",
+        ),
+        (
+            "FUNCTIONAL EQUATION ON COEFFICIENTS",
+            "ALG",
+            "Functional equations",
+            "POLYNOMIAL / COEFFICIENT FE",
+        ),
+        (
+            "FUNCTIONAL EQUATION / MONOTONE ARITHMETIC STRUCTURE",
+            "ALG",
+            "Functional equations",
+            "FUNCTIONAL INEQUALITIES",
+        ),
+        (
+            "FUNCTIONAL DYNAMICS / M\u00d6BIUS TRANSFORM",
+            "ALG",
+            "Functional equations",
+            "ITERATION / DYNAMICS",
+        ),
+        (
+            "INEQUALITY LEMMA",
+            "ALG",
+            "Inequalities and optimization",
+            "INEQUALITIES AND OPTIMIZATION",
+        ),
+        (
+            "CAUCHY/ENGEL",
+            "ALG",
+            "Inequalities and optimization",
+            "CAUCHY-SCHWARZ / ENGEL FORM",
+        ),
+        (
+            "H\u221a\xf1LDER-TYPE",
+            "ALG",
+            "Inequalities and optimization",
+            "HOLDER",
+        ),
+        (
+            "JENSEN/LOG CONCAVITY",
+            "ALG",
+            "Inequalities and optimization",
+            "JENSEN / CONVEXITY",
+        ),
+        (
+            "MAJORIZATION/KARAMATA",
+            "ALG",
+            "Inequalities and optimization",
+            "MAJORIZATION / KARAMATA",
+        ),
+        (
+            "UVW/SYMMETRIC REDUCTION",
+            "ALG",
+            "Inequalities and optimization",
+            "UVW / PQR METHOD",
+        ),
+        (
+            "SOS/POSITIVITY",
+            "ALG",
+            "Inequalities and optimization",
+            "SUM OF SQUARES",
+        ),
+        (
+            "TANGENT-LINE ESTIMATE",
+            "ALG",
+            "Inequalities and optimization",
+            "TANGENT LINE METHOD",
+        ),
+        (
+            "BEST CONSTANT SEARCH",
+            "ALG",
+            "Inequalities and optimization",
+            "BEST CONSTANT / EQUALITY CASE",
+        ),
+        (
+            "POLYNOMIAL IDENTIFICATION",
+            "ALG",
+            "Polynomials and algebraic manipulation",
+            "POLYNOMIAL IDENTITIES",
+        ),
+        (
+            "FINITE-DIFFERENCE IDENTITY",
+            "ALG",
+            "Polynomials and algebraic manipulation",
+            "FINITE DIFFERENCES",
+        ),
+        (
+            "REAL-ROOTED POLYNOMIALS/INTERLACING/PERTURBATION",
+            "ALG",
+            "Polynomials and algebraic manipulation",
+            "REAL-ROOTEDNESS / INTERLACING",
+        ),
+        (
+            "ROOTS OF UNITY AVERAGING",
+            "ALG",
+            "Polynomials and algebraic manipulation",
+            "ROOTS OF UNITY / CYCLOTOMIC",
+        ),
+        (
+            "ZERO-SET RIGIDITY",
+            "ALG",
+            "Polynomials and algebraic manipulation",
+            "ZERO-SET METHOD",
+        ),
+        (
+            "FEJ\u221a\xe2R\u201a\xc4\xecRIESZ",
+            "ALG",
+            "Polynomials and algebraic manipulation",
+            "FEJER-RIESZ",
+        ),
+        (
+            "RECURRENCE ASYMPTOTICS",
+            "ALG",
+            "Sequences, recurrences, and series",
+            "RECURRENCE GROWTH / ASYMPTOTICS",
+        ),
+        (
+            "FIBONACCI/CHEBYSHEV",
+            "ALG",
+            "Sequences, recurrences, and series",
+            "FIBONACCI / LUCAS / CHEBYSHEV",
+        ),
+        (
+            "TELESCOPING PRODUCT BOUNDS",
+            "ALG",
+            "Sequences, recurrences, and series",
+            "TELESCOPING",
+        ),
+        (
+            "INJECTIVITY/SURJECTIVITY TACTICS",
+            "ALG",
+            "Functional equations",
+            "INJECTIVITY / SURJECTIVITY",
+        ),
+        (
+            "FLOOR/CEILING INEQUALITIES",
+            "ALG",
+            "Sequences, recurrences, and series",
+            "FLOOR / CEILING / FRACTIONAL PART",
+        ),
+        (
+            "M\u221a\xf1BIUS TRANSFORMATION",
+            "ALG",
+            "Algebraic structures and linear algebra",
+            "MOBIUS / FRACTIONAL-LINEAR TRANSFORMATION",
+        ),
+        (
+            "RANK/KERNEL/IMAGE",
+            "ALG",
+            "Algebraic structures and linear algebra",
+            "RANK / KERNEL / IMAGE",
+        ),
+        (
+            "FINITE SEMIGROUPS",
+            "ALG",
+            "Algebraic structures and linear algebra",
+            "FINITE ALGEBRAIC STRUCTURES",
+        ),
+        (
+            "P-ADIC/NEWTON POLYGON IDEAS",
+            "NT",
+            "p-adic and valuation methods",
+            "P-ADIC METHODS",
+        ),
+        (
+            "SUBSTITUTION XYZ=1",
+            "ALG",
+            "Equations, substitutions, and transformations",
+            "PRODUCT NORMALIZATION",
+        ),
+        (
+            "SYMMETRIC/CYCLIC EXPRESSIONS",
+            "ALG",
+            "Equations, substitutions, and transformations",
+            "SYMMETRIC / CYCLIC EXPRESSIONS",
+        ),
+        (
+            "LYAPUNOV ENERGY",
+            "COMB",
+            "Pigeonhole, extremal principle, and averaging",
+            "ENERGY / POTENTIAL METHOD",
+        ),
+        ("IVP/DARBOUX", "ALG", "Functional equations", "IVT / DARBOUX"),
+    ],
+)
+def test_subtopic_cleanup_maps_normalized_algebra_rules_to_existing_taxonomy(
+    raw_tag,
+    main_topic,
+    canonical_subtopic,
+    stored_technique,
+):
+    entry = taxonomy_entry_for_technique(raw_tag)
+
+    assert entry is not None
+    assert entry.main_topic == main_topic
+    assert entry.canonical_subtopic == canonical_subtopic
+    assert entry.stored_technique == stored_technique
+
+
+@pytest.mark.parametrize(
+    ("raw_tag", "main_topic", "canonical_subtopic", "stored_technique"),
+    [
+        (
+            "ANGLE CHASING/COORDINATES",
+            "GEO",
+            "Core Euclidean geometry",
+            "CORE EUCLIDEAN GEOMETRY",
+        ),
+        (
+            "INEQUALITIES/OPTIMIZATION",
+            "ALG",
+            "Inequalities and optimization",
+            "INEQUALITIES AND OPTIMIZATION",
+        ),
+        (
+            "INEQUALITIES (CAUCHY/ENGEL",
+            "ALG",
+            "Inequalities and optimization",
+            "CAUCHY-SCHWARZ / ENGEL FORM",
+        ),
+        (
+            "ALGEBRAIC MANIPULATION",
+            "ALG",
+            "Polynomials and algebraic manipulation",
+            "POLYNOMIALS AND ALGEBRAIC MANIPULATION",
+        ),
+        (
+            "ALGEBRAIC IDENTITIES",
+            "ALG",
+            "Polynomials and algebraic manipulation",
+            "POLYNOMIAL IDENTITIES",
+        ),
+        (
+            "RECURSIVE SEQUENCES",
+            "ALG",
+            "Sequences, recurrences, and series",
+            "SEQUENCES, RECURRENCES, AND SERIES",
+        ),
+        (
+            "CONSTRUCTION",
+            "COMB",
+            "Algorithms, automata, words, and constructive combinatorics",
+            "CONSTRUCTIVE METHODS",
+        ),
+        (
+            "CONSTRUCTIVE CLASSIFICATION",
+            "COMB",
+            "Algorithms, automata, words, and constructive combinatorics",
+            "CONSTRUCTIVE METHODS",
+        ),
+        (
+            "CONSTRUCTION/COUNTEREXAMPLE",
+            "COMB",
+            "Algorithms, automata, words, and constructive combinatorics",
+            "COUNTEREXAMPLE CONSTRUCTION",
+        ),
+        (
+            "EXTREMAL GRAPH",
+            "COMB",
+            "Pigeonhole, extremal principle, and averaging",
+            "EXTREMAL GRAPH",
+        ),
+        (
+            "EXTREMAL INEQUALITY",
+            "ALG",
+            "Inequalities and optimization",
+            "EXTREMAL INEQUALITY",
+        ),
+        (
+            "INVARIANTS/MONOVARIANTS",
+            "COMB",
+            "Pigeonhole, extremal principle, and averaging",
+            "INVARIANTS / MONOVARIANTS",
+        ),
+        (
+            "POTENTIAL FUNCTIONS",
+            "COMB",
+            "Pigeonhole, extremal principle, and averaging",
+            "ENERGY / POTENTIAL METHOD",
+        ),
+        (
+            "DYNAMICAL SYSTEMS",
+            "ALG",
+            "Sequences, recurrences, and series",
+            "DYNAMICS / ITERATION / FIXED POINTS",
+        ),
+        (
+            "FIXED POINTS",
+            "ALG",
+            "Sequences, recurrences, and series",
+            "DYNAMICS / ITERATION / FIXED POINTS",
+        ),
+        (
+            "MODULAR RESIDUES",
+            "NT",
+            "Congruences and modular arithmetic",
+            "MODULAR ARITHMETIC / RESIDUES",
+        ),
+        (
+            "MOD P",
+            "NT",
+            "Congruences and modular arithmetic",
+            "MODULAR ARITHMETIC / RESIDUES",
+        ),
+        (
+            "CRT",
+            "NT",
+            "Congruences and modular arithmetic",
+            "CHINESE REMAINDER THEOREM",
+        ),
+        (
+            "P-ADIC DIVISIBILITY",
+            "NT",
+            "p-adic and valuation methods",
+            "VALUATIONS / P-ADIC METHODS",
+        ),
+        (
+            "ORDERS",
+            "NT",
+            "Congruences and modular arithmetic",
+            "MULTIPLICATIVE ORDERS / LTE",
+        ),
+        (
+            "GCD/LCM",
+            "NT",
+            "Divisibility, gcd, lcm, and primes",
+            "GCD / LCM",
+        ),
+        (
+            "PARITY SPLIT",
+            "COMB",
+            "Coloring, tiling, grids, and invariants",
+            "PARITY METHODS",
+        ),
+        (
+            "CASE ANALYSIS",
+            "COMB",
+            "Pigeonhole, extremal principle, and averaging",
+            "CASEWORK / FINITE CHECKING",
+        ),
+        (
+            "ASYMPTOTIC BOUNDS",
+            "ALG",
+            "Inequalities and optimization",
+            "BOUNDING / ESTIMATES",
+        ),
+        (
+            "INJECTIVE MAPS",
+            "ALG",
+            "Functional equations",
+            "INJECTIVITY / SURJECTIVITY / BIJECTIVITY",
+        ),
+        (
+            "CONVEXITY/SMOOTHING",
+            "ALG",
+            "Inequalities and optimization",
+            "CONVEXITY / JENSEN METHODS",
+        ),
+        (
+            "UVW/SMOOTHING",
+            "ALG",
+            "Inequalities and optimization",
+            "UVW / PQR METHOD",
+        ),
+        (
+            "REARRANGEMENT/MAJORIZATION",
+            "ALG",
+            "Inequalities and optimization",
+            "REARRANGEMENT / MAJORIZATION",
+        ),
+        (
+            "CYCLIC SUMS)",
+            "ALG",
+            "Equations, substitutions, and transformations",
+            "CYCLIC SUMS",
+        ),
+        (
+            "SYMMETRIC IDENTITIES",
+            "ALG",
+            "Equations, substitutions, and transformations",
+            "SYMMETRIC SUMS / IDENTITIES",
+        ),
+        (
+            "ZSIGMONDY/LTE",
+            "NT",
+            "p-adic and valuation methods",
+            "MULTIPLICATIVE ORDERS / LTE",
+        ),
+        (
+            "SUMS OF SQUARES",
+            "ALG",
+            "Inequalities and optimization",
+            "SUM OF SQUARES",
+        ),
+        (
+            "PERMUTATION STRUCTURE",
+            "COMB",
+            "Counting and enumerative combinatorics",
+            "PERMUTATIONS / SWAPS",
+        ),
+        (
+            "PERIODIC FUNCTIONS",
+            "ALG",
+            "Sequences, recurrences, and series",
+            "PERIODICITY",
+        ),
+        (
+            "PARTIAL SUMS",
+            "ALG",
+            "Sequences, recurrences, and series",
+            "SUMS / PREFIXES / SUMMATION",
+        ),
+        (
+            "TELESCOPING PRODUCT",
+            "ALG",
+            "Sequences, recurrences, and series",
+            "TELESCOPING",
+        ),
+        (
+            "RATIONAL ROOT THEOREM",
+            "ALG",
+            "Polynomials and algebraic manipulation",
+            "RATIONAL / INTEGER ROOTS",
+        ),
+        (
+            "DISCRIMINANT BOUNDS",
+            "ALG",
+            "Polynomials and algebraic manipulation",
+            "DISCRIMINANT METHODS",
+        ),
+        (
+            "ROOT COUNTING",
+            "ALG",
+            "Polynomials and algebraic manipulation",
+            "POLYNOMIAL ROOTS",
+        ),
+        (
+            "CYCLOTOMIC FACTORS",
+            "ALG",
+            "Polynomials and algebraic manipulation",
+            "ROOTS OF UNITY / CYCLOTOMIC",
+        ),
+        (
+            "INTEGER POLYNOMIALS",
+            "ALG",
+            "Polynomials and algebraic manipulation",
+            "INTEGER-VALUED POLYNOMIALS / FUNCTIONS",
+        ),
+        (
+            "COEFFICIENT ANALYSIS",
+            "ALG",
+            "Polynomials and algebraic manipulation",
+            "COEFFICIENT METHODS",
+        ),
+        (
+            "DEGREE ARGUMENT",
+            "ALG",
+            "Polynomials and algebraic manipulation",
+            "DEGREE ARGUMENTS",
+        ),
+        (
+            "ALG \u2014 FACTORIZATION",
+            "ALG",
+            "Polynomials and algebraic manipulation",
+            "FACTORIZATION",
+        ),
+        (
+            "ALG\u201a\xc4\xecFACTORISATION",
+            "ALG",
+            "Polynomials and algebraic manipulation",
+            "FACTORIZATION",
+        ),
+    ],
+)
+def test_subtopic_cleanup_maps_recommended_schema_alias_rules_to_existing_taxonomy(
     raw_tag,
     main_topic,
     canonical_subtopic,
@@ -15592,8 +16104,9 @@ def test_problem_statement_metadata_cleanup_applies_parent_and_child_granularity
 
     assert preview_response.status_code == HTTPStatus.OK
     preview = preview_response.context["subtopic_cleanup_preview"]
+    expected_duplicate_count = 3
     assert preview["unmatched_count"] == 0
-    assert preview["duplicate_count"] == 5
+    assert preview["duplicate_count"] == expected_duplicate_count
     assert preview["raw_update_count"] == 1
     current_to_target = {
         row["current_technique"]: (row["main_topic"], row["canonical_subtopic"], row["technique"])
@@ -15612,7 +16125,12 @@ def test_problem_statement_metadata_cleanup_applies_parent_and_child_granularity
     assert current_to_target["CAUCHY"] == (
         "ALG",
         "Inequalities and optimization",
-        "INEQUALITIES AND OPTIMIZATION",
+        "CAUCHY-SCHWARZ / ENGEL FORM",
+    )
+    assert current_to_target["CONVEXITY"] == (
+        "ALG",
+        "Inequalities and optimization",
+        "CONVEXITY",
     )
     assert current_to_target["RECURRENCE"] == (
         "ALG",
@@ -15627,7 +16145,7 @@ def test_problem_statement_metadata_cleanup_applies_parent_and_child_granularity
     assert current_to_target["UVW"] == (
         "ALG",
         "Inequalities and optimization",
-        "UVW",
+        "UVW / PQR METHOD",
     )
     assert current_to_target["FACTORISATION"] == (
         "ALG",
@@ -15660,6 +16178,12 @@ def test_problem_statement_metadata_cleanup_applies_parent_and_child_granularity
         .order_by("technique")
         .values_list("technique", "main_topic", "canonical_subtopic"),
     ) == [
+        (
+            "CAUCHY-SCHWARZ / ENGEL FORM",
+            "ALG",
+            "Inequalities and optimization",
+        ),
+        ("CONVEXITY", "ALG", "Inequalities and optimization"),
         ("CORE EUCLIDEAN GEOMETRY", "GEO", "Core Euclidean geometry"),
         (
             "FACTORIZATION",
@@ -15688,12 +16212,13 @@ def test_problem_statement_metadata_cleanup_applies_parent_and_child_granularity
             "Sequences, recurrences, and series",
         ),
         ("SMOOTHING", "ALG", "Inequalities and optimization"),
-        ("UVW", "ALG", "Inequalities and optimization"),
+        ("UVW / PQR METHOD", "ALG", "Inequalities and optimization"),
     ]
     record.refresh_from_db()
     assert record.topic_tags == (
         "Topic tags: ALG / Functional equations - FUNCTIONAL EQUATIONS; "
-        "ALG / Inequalities and optimization - INEQUALITIES AND OPTIMIZATION, SMOOTHING, UVW; "
+        "ALG / Inequalities and optimization - INEQUALITIES AND OPTIMIZATION, "
+        "CAUCHY-SCHWARZ / ENGEL FORM, CONVEXITY, SMOOTHING, UVW / PQR METHOD; "
         "ALG / Sequences, recurrences, and series - SEQUENCES, RECURRENCES, AND SERIES; "
         "ALG / Polynomials and algebraic manipulation - "
         "POLYNOMIALS AND ALGEBRAIC MANIPULATION, FACTORIZATION, INTERPOLATION; "
