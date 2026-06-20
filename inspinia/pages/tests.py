@@ -69,6 +69,7 @@ from inspinia.pages.statement_import import parse_contest_problem_statements
 from inspinia.pages.statement_metadata_backfill import StatementMetadataBackfillValidationError
 from inspinia.pages.statement_metadata_backfill import import_statement_metadata_dataframe
 from inspinia.pages.statement_metadata_backfill import statement_metadata_dataframe_from_rows
+from inspinia.pages.subtopic_cleanup import apply_subtopic_cleanup
 from inspinia.pages.subtopic_cleanup import taxonomy_entry_for_technique
 from inspinia.pages.topic_tags_parse import parse_topic_tags_cell
 from inspinia.pages.views import ADMIN_TABLE_LATEST_LIMIT
@@ -16059,6 +16060,76 @@ def test_subtopic_cleanup_maps_recommended_schema_alias_rules_to_existing_taxono
     assert entry.main_topic == main_topic
     assert entry.canonical_subtopic == canonical_subtopic
     assert entry.stored_technique == stored_technique
+
+
+def test_subtopic_cleanup_apply_updates_alias_when_target_label_is_not_lookup_key():
+    record = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="C",
+        mohs=25,
+        contest="Israel TST",
+        problem="P1",
+        contest_year_problem="Israel TST 2026 P1",
+        topic_tags="Topic tags: Comb - construction",
+    )
+    ProblemTopicTechnique.objects.create(
+        record=record,
+        technique="construction",
+        domains=["comb"],
+    )
+
+    result = apply_subtopic_cleanup()
+
+    assert result.updated_count == 1
+    tag = ProblemTopicTechnique.objects.get(record=record)
+    assert tag.technique == "CONSTRUCTIVE METHODS"
+    assert tag.main_topic == "COMB"
+    assert tag.canonical_subtopic == "Algorithms, automata, words, and constructive combinatorics"
+    assert tag.domains == ["COMB"]
+    record.refresh_from_db()
+    assert (
+        record.topic_tags
+        == "Topic tags: COMB / Algorithms, automata, words, and constructive combinatorics - "
+        "CONSTRUCTIVE METHODS"
+    )
+
+
+def test_subtopic_cleanup_apply_merges_existing_target_row_that_is_not_lookup_key():
+    statement = ContestProblemStatement.objects.create(
+        contest_year=2026,
+        contest_name="Israel TST",
+        problem_number=1,
+        problem_code="P1",
+        day_label="Day 1",
+        statement_latex="Constructive statement",
+        topic_tags="Topic tags: Comb - construction; constructive methods",
+    )
+    StatementTopicTechnique.objects.create(
+        statement=statement,
+        technique="construction",
+        domains=["comb"],
+    )
+    StatementTopicTechnique.objects.create(
+        statement=statement,
+        technique="constructive methods",
+        domains=["extra"],
+    )
+
+    result = apply_subtopic_cleanup()
+
+    assert result.updated_count == 1
+    assert result.deleted_count == 1
+    tag = StatementTopicTechnique.objects.get(statement=statement)
+    assert tag.technique == "CONSTRUCTIVE METHODS"
+    assert tag.main_topic == "COMB"
+    assert tag.canonical_subtopic == "Algorithms, automata, words, and constructive combinatorics"
+    assert tag.domains == ["COMB", "EXTRA"]
+    statement.refresh_from_db()
+    assert (
+        statement.topic_tags
+        == "Topic tags: COMB / Algorithms, automata, words, and constructive combinatorics - "
+        "CONSTRUCTIVE METHODS"
+    )
 
 
 def test_problem_statement_metadata_cleanup_applies_parent_and_child_granularity_aliases(client):

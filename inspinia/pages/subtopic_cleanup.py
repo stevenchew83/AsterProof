@@ -1922,6 +1922,14 @@ def _apply_parent_group(rows: list, entry: SubtopicTaxonomyEntry) -> tuple[int, 
     return (1 if changed else 0), len(duplicate_ids)
 
 
+def _include_existing_target_row(existing_target, target_technique: str, rows: list) -> list:
+    if any(row.technique == target_technique for row in rows):
+        return rows
+    if existing_target is None:
+        return rows
+    return [existing_target, *rows]
+
+
 def _format_raw_topic_tags(tag_rows: Iterable) -> str:
     grouped: OrderedDict[str, list[str]] = OrderedDict()
     for tag in tag_rows:
@@ -1976,20 +1984,26 @@ def _apply_problem_tag_cleanup() -> SubtopicCleanupApplyResult:
     updated_count = 0
     deleted_count = 0
     touched_record_ids: set[int] = set()
-    grouped_rows: defaultdict[tuple[int, str], list[ProblemTopicTechnique]] = defaultdict(list)
+    grouped_rows: dict[tuple[int, str], tuple[SubtopicTaxonomyEntry, list[ProblemTopicTechnique]]] = {}
+    rows_by_technique: dict[tuple[int, str], ProblemTopicTechnique] = {}
 
     for tag in _problem_tag_rows():
+        rows_by_technique[(tag.record_id, tag.technique)] = tag
         entry = taxonomy_entry_for_technique(tag.technique)
         if entry is None:
             continue
-        grouped_rows[(tag.record_id, entry.stored_technique)].append(tag)
+        key = (tag.record_id, entry.stored_technique)
+        rows = grouped_rows.setdefault(key, (entry, []))[1]
+        rows.append(tag)
         touched_record_ids.add(tag.record_id)
 
-    for (_record_id, target_technique), rows in grouped_rows.items():
-        entry = taxonomy_entry_for_technique(target_technique)
-        if entry is None:
-            continue
-        updated, deleted = _apply_parent_group(rows, entry)
+    for (record_id, target_technique), (entry, rows) in grouped_rows.items():
+        merged_rows = _include_existing_target_row(
+            rows_by_technique.get((record_id, target_technique)),
+            target_technique,
+            rows,
+        )
+        updated, deleted = _apply_parent_group(merged_rows, entry)
         updated_count += updated
         deleted_count += deleted
 
@@ -2009,20 +2023,26 @@ def _apply_statement_tag_cleanup() -> SubtopicCleanupApplyResult:
     updated_count = 0
     deleted_count = 0
     touched_statement_ids: set[int] = set()
-    grouped_rows: defaultdict[tuple[int, str], list[StatementTopicTechnique]] = defaultdict(list)
+    grouped_rows: dict[tuple[int, str], tuple[SubtopicTaxonomyEntry, list[StatementTopicTechnique]]] = {}
+    rows_by_technique: dict[tuple[int, str], StatementTopicTechnique] = {}
 
     for tag in _statement_tag_rows():
+        rows_by_technique[(tag.statement_id, tag.technique)] = tag
         entry = taxonomy_entry_for_technique(tag.technique)
         if entry is None:
             continue
-        grouped_rows[(tag.statement_id, entry.stored_technique)].append(tag)
+        key = (tag.statement_id, entry.stored_technique)
+        rows = grouped_rows.setdefault(key, (entry, []))[1]
+        rows.append(tag)
         touched_statement_ids.add(tag.statement_id)
 
-    for (_statement_id, target_technique), rows in grouped_rows.items():
-        entry = taxonomy_entry_for_technique(target_technique)
-        if entry is None:
-            continue
-        updated, deleted = _apply_parent_group(rows, entry)
+    for (statement_id, target_technique), (entry, rows) in grouped_rows.items():
+        merged_rows = _include_existing_target_row(
+            rows_by_technique.get((statement_id, target_technique)),
+            target_technique,
+            rows,
+        )
+        updated, deleted = _apply_parent_group(merged_rows, entry)
         updated_count += updated
         deleted_count += deleted
 
