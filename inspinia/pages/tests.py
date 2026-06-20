@@ -90,6 +90,8 @@ EXPECTED_PROGRESS_SOLVED_STATUS_TOTAL = 4
 EXPECTED_PROGRESS_STATUS_TOTAL = 6
 EXPECTED_PROGRESS_UNSOLVED_STATUS_TOTAL = 2
 EXPECTED_PROGRESS_STATUS_PERCENT = 67
+EXPECTED_PROGRESS_MAIN_TOPIC_TOTAL = 4
+EXPECTED_PROGRESS_NEXT_GAP_LIMIT = 6
 WORKBOOK_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 EXPECTED_EXPORT_COLUMNS = [
     "PROBLEM UUID",
@@ -11458,9 +11460,27 @@ def test_technique_progress_dashboard_renders_for_signed_in_user(client):
     assert subtopic_row["solved"] == 1
     assert subtopic_row["remaining"] == 1
     assert subtopic_row["completion_percent"] == EXPECTED_PROGRESS_HALF_PERCENT
+    topic_rows = {
+        row["label"]: row
+        for row in response.context["technique_progress_main_topic_rows"]
+    }
+    assert list(topic_rows) == ["Algebra", "Number Theory", "Geometry", "Combinatorics"]
+    assert topic_rows["Geometry"]["total"] == EXPECTED_PROGRESS_TAGGED_STATEMENT_TOTAL
+    assert topic_rows["Geometry"]["solved"] == 1
+    assert topic_rows["Geometry"]["remaining"] == 1
+    assert topic_rows["Geometry"]["completion_percent"] == EXPECTED_PROGRESS_HALF_PERCENT
+    assert topic_rows["Geometry"]["incomplete_subtopic_total"] == 1
     response_html = response.content.decode("utf-8")
     assert "Technique progress" in response_html
     assert "Practice remaining" in response_html
+    assert "View all gaps" in response_html
+    assert reverse("pages:technique_progress_gaps") in response_html
+    assert "<th scope=\"col\">Topic</th>" in response_html
+    assert "Main topic progress" in response_html
+    assert "Subtopic progress" not in response_html
+    assert "Tagged statements" not in response_html
+    assert "Incomplete subtopics" not in response_html
+    assert "Incomplete techniques" not in response_html
     assert 'id="technique-progress-user"' not in response_html
 
 
@@ -11518,6 +11538,17 @@ def test_technique_progress_dashboard_admin_can_select_user(client):
     assert response.context["technique_progress_can_select_user"] is True
     assert response.context["technique_progress_stats"]["completed_statement_total"] == 1
     assert response.context["technique_progress_filters"]["user"] == str(selected_user.pk)
+    assert response.context["technique_progress_all_gaps_url"] == (
+        f"{reverse('pages:technique_progress_gaps')}?user={selected_user.pk}"
+    )
+    algebra_row = next(
+        row
+        for row in response.context["technique_progress_main_topic_rows"]
+        if row["label"] == "Algebra"
+    )
+    assert algebra_row["topic_detail_url"] == (
+        f"{reverse('pages:technique_progress_topic_detail', kwargs={'topic_slug': 'algebra'})}?user={selected_user.pk}"
+    )
     assert {
         option["value"]
         for option in response.context["technique_progress_user_options"]
@@ -11627,10 +11658,255 @@ def test_technique_progress_dashboard_exposes_practice_links(client):
         f"{quick_update_url}?target_user_id={selected_user.pk}&subtopics=Circle+geometry"
     )
     assert response.context["technique_progress_next_gaps"][0]["practice_url"] == subtopic_row["practice_url"]
+    assert response.context["technique_progress_all_gaps_url"] == (
+        f"{reverse('pages:technique_progress_gaps')}?user={selected_user.pk}"
+    )
     response_html = response.content.decode("utf-8")
     assert "Practice remaining" in response_html
     assert "subtopics=ANGLE+CHASE" in response_html
     assert "subtopics=Circle+geometry" in response_html
+
+
+def test_technique_progress_dashboard_groups_subtopics_by_main_topic(client):
+    user = UserFactory()
+    client.force_login(user)
+    algebra_statement = _create_technique_progress_statement(
+        problem_code="P1",
+        problem_number=1,
+        topic="ALG",
+        statement_tags=[
+            {
+                "technique": "INEQUALITIES",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": "Inequalities and optimization",
+            },
+        ],
+    )
+    _create_technique_progress_statement(
+        problem_code="P2",
+        problem_number=2,
+        topic="NT",
+        statement_tags=[
+            {
+                "technique": "LTE",
+                "domains": ["NT"],
+                "main_topic": "NT",
+                "canonical_subtopic": "Valuations",
+            },
+        ],
+    )
+    _create_technique_progress_statement(
+        problem_code="P3",
+        problem_number=3,
+        topic="GEO",
+        statement_tags=[
+            {
+                "technique": "ANGLE CHASE",
+                "domains": ["GEO"],
+                "main_topic": "GEO",
+                "canonical_subtopic": "Circle geometry",
+            },
+        ],
+    )
+    UserProblemCompletion.objects.create(
+        user=user,
+        statement=algebra_statement,
+        status=UserProblemCompletion.Status.SOLVED,
+    )
+
+    response = client.get(reverse("pages:technique_dashboard"))
+
+    assert response.status_code == HTTPStatus.OK
+    topic_rows = {
+        row["label"]: row
+        for row in response.context["technique_progress_main_topic_rows"]
+    }
+    assert list(topic_rows) == ["Algebra", "Number Theory", "Geometry", "Combinatorics"]
+    assert len(topic_rows) == EXPECTED_PROGRESS_MAIN_TOPIC_TOTAL
+    assert topic_rows["Algebra"]["solved"] == 1
+    assert topic_rows["Algebra"]["remaining"] == 0
+    assert topic_rows["Algebra"]["incomplete_subtopic_total"] == 0
+    assert topic_rows["Number Theory"]["remaining"] == 1
+    assert topic_rows["Geometry"]["remaining"] == 1
+    assert topic_rows["Combinatorics"]["total"] == 0
+    assert topic_rows["Combinatorics"]["topic_detail_url"] == reverse(
+        "pages:technique_progress_topic_detail",
+        kwargs={"topic_slug": "combinatorics"},
+    )
+
+
+def test_technique_progress_gaps_page_lists_all_incomplete_areas(client):
+    user = UserFactory()
+    client.force_login(user)
+    for index in range(1, 8):
+        _create_technique_progress_statement(
+            problem_code=f"P{index}",
+            problem_number=index,
+            statement_tags=[
+                {
+                    "technique": f"TECHNIQUE {index}",
+                    "domains": ["ALG"],
+                    "main_topic": "ALG",
+                    "canonical_subtopic": f"Gap subtopic {index}",
+                },
+            ],
+        )
+
+    dashboard_response = client.get(reverse("pages:technique_dashboard"))
+    gaps_response = client.get(reverse("pages:technique_progress_gaps"))
+
+    assert dashboard_response.status_code == HTTPStatus.OK
+    assert len(dashboard_response.context["technique_progress_next_gaps"]) == EXPECTED_PROGRESS_NEXT_GAP_LIMIT
+    assert gaps_response.status_code == HTTPStatus.OK
+    gap_labels = {
+        row["label"]
+        for row in gaps_response.context["technique_progress_gap_rows"]
+    }
+    assert "Gap subtopic 7" in gap_labels
+    assert "TECHNIQUE 7" in gap_labels
+    assert len(gap_labels) == 14
+    response_html = gaps_response.content.decode("utf-8")
+    assert "All practice gaps" in response_html
+    assert "Gap subtopic 7" in response_html
+    assert reverse("pages:completion_quick_update") in response_html
+
+
+def test_technique_progress_gaps_page_preserves_admin_selected_user(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    selected_user = UserFactory(email="target-progress@example.com")
+    client.force_login(admin_user)
+    _create_technique_progress_statement(
+        statement_tags=[
+            {
+                "technique": "ANGLE CHASE",
+                "domains": ["GEO"],
+                "main_topic": "GEO",
+                "canonical_subtopic": "Circle geometry",
+            },
+        ],
+    )
+
+    response = client.get(reverse("pages:technique_progress_gaps"), {"user": str(selected_user.pk)})
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["technique_progress_selected_user"] == selected_user
+    subtopic_row = next(
+        row
+        for row in response.context["technique_progress_gap_rows"]
+        if row["label"] == "Circle geometry"
+    )
+    assert subtopic_row["practice_url"] == (
+        f"{reverse('pages:completion_quick_update')}?target_user_id={selected_user.pk}&subtopics=Circle+geometry"
+    )
+    response_html = response.content.decode("utf-8")
+    assert "target-progress@example.com" in response_html
+    assert f"?user={selected_user.pk}" in response_html
+
+
+def test_technique_progress_gaps_page_requires_login(client):
+    response = client.get(reverse("pages:technique_progress_gaps"))
+
+    assert response.status_code == HTTPStatus.FOUND
+    assert response.url == f"{reverse('account_login')}?next={reverse('pages:technique_progress_gaps')}"
+
+
+def test_technique_progress_topic_detail_lists_only_selected_topic_subtopics(client):
+    user = UserFactory()
+    client.force_login(user)
+    solved_geometry = _create_technique_progress_statement(
+        problem_code="P1",
+        problem_number=1,
+        topic="GEO",
+        statement_tags=[
+            {
+                "technique": "ANGLE CHASE",
+                "domains": ["GEO"],
+                "main_topic": "GEO",
+                "canonical_subtopic": "Circle geometry",
+            },
+        ],
+    )
+    _create_technique_progress_statement(
+        problem_code="P2",
+        problem_number=2,
+        topic="ALG",
+        statement_tags=[
+            {
+                "technique": "INEQUALITIES",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": "Inequalities and optimization",
+            },
+        ],
+    )
+    UserProblemCompletion.objects.create(
+        user=user,
+        statement=solved_geometry,
+        status=UserProblemCompletion.Status.SOLVED,
+    )
+
+    response = client.get(
+        reverse("pages:technique_progress_topic_detail", kwargs={"topic_slug": "geometry"}),
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["technique_progress_topic_label"] == "Geometry"
+    assert response.context["technique_progress_topic_summary"]["total"] == 1
+    assert response.context["technique_progress_topic_summary"]["solved"] == 1
+    assert response.context["technique_progress_topic_summary"]["remaining"] == 0
+    subtopic_labels = {
+        row["label"]
+        for row in response.context["technique_progress_topic_subtopic_rows"]
+    }
+    assert subtopic_labels == {"Circle geometry"}
+    response_html = response.content.decode("utf-8")
+    assert "Geometry progress" in response_html
+    assert "Circle geometry" in response_html
+    assert "Inequalities and optimization" not in response_html
+
+
+def test_technique_progress_topic_detail_returns_404_for_invalid_topic(client):
+    client.force_login(UserFactory())
+
+    response = client.get(
+        reverse("pages:technique_progress_topic_detail", kwargs={"topic_slug": "calculus"}),
+    )
+
+    assert response.status_code == HTTPStatus.NOT_FOUND
+
+
+def test_technique_progress_topic_detail_preserves_admin_selected_user(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    selected_user = UserFactory(email="selected-topic@example.com")
+    client.force_login(admin_user)
+    _create_technique_progress_statement(
+        statement_tags=[
+            {
+                "technique": "ANGLE CHASE",
+                "domains": ["GEO"],
+                "main_topic": "GEO",
+                "canonical_subtopic": "Circle geometry",
+            },
+        ],
+    )
+
+    response = client.get(
+        reverse("pages:technique_progress_topic_detail", kwargs={"topic_slug": "geometry"}),
+        {"user": str(selected_user.pk)},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["technique_progress_selected_user"] == selected_user
+    assert response.context["technique_progress_dashboard_url"] == (
+        f"{reverse('pages:technique_dashboard')}?user={selected_user.pk}"
+    )
+    assert response.context["technique_progress_topic_subtopic_rows"][0]["practice_url"] == (
+        f"{reverse('pages:completion_quick_update')}?target_user_id={selected_user.pk}&subtopics=Circle+geometry"
+    )
+    response_html = response.content.decode("utf-8")
+    assert "selected-topic@example.com" in response_html
+    assert f"?user={selected_user.pk}" in response_html
 
 
 def test_technique_tag_dashboard_exposes_filters_scope(client):

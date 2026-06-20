@@ -17,6 +17,15 @@ from inspinia.users.models import User
 from inspinia.users.roles import user_has_admin_role
 
 NEXT_GAP_LIMIT = 6
+MAIN_TOPIC_ORDER = ["Algebra", "Number Theory", "Geometry", "Combinatorics"]
+OTHER_TOPIC_LABEL = "Other"
+MAIN_TOPIC_SLUGS = {
+    "algebra": "Algebra",
+    "number-theory": "Number Theory",
+    "geometry": "Geometry",
+    "combinatorics": "Combinatorics",
+    "other": OTHER_TOPIC_LABEL,
+}
 
 
 def technique_progress_user_options() -> list[dict[str, str]]:
@@ -57,6 +66,82 @@ def build_technique_progress_context(
     request_user: User,
     raw_user_id: str = "",
 ) -> dict[str, object]:
+    payload = _build_progress_payload(request_user=request_user, raw_user_id=raw_user_id)
+    return {
+        **payload["base_context"],
+        "technique_progress_main_topic_rows": payload["main_topic_rows"],
+        "technique_progress_next_gaps": payload["next_gaps"],
+        "technique_progress_stats": payload["stats"],
+        "technique_progress_subtopic_rows": payload["subtopic_rows"],
+        "technique_progress_technique_rows": payload["technique_rows"],
+    }
+
+
+def build_technique_progress_gaps_context(
+    *,
+    request_user: User,
+    raw_user_id: str = "",
+) -> dict[str, object]:
+    payload = _build_progress_payload(request_user=request_user, raw_user_id=raw_user_id)
+    return {
+        **payload["base_context"],
+        "technique_progress_gap_rows": payload["gap_rows"],
+        "technique_progress_stats": payload["stats"],
+    }
+
+
+def build_technique_progress_topic_context(
+    *,
+    request_user: User,
+    raw_user_id: str = "",
+    topic_slug: str,
+) -> dict[str, object]:
+    topic_label = MAIN_TOPIC_SLUGS.get(topic_slug)
+    if topic_label is None:
+        raise ValueError(topic_slug)
+
+    selected_user, can_select_user = resolve_technique_progress_user(
+        request_user=request_user,
+        raw_user_id=raw_user_id,
+    )
+    tagged_rows = _tagged_statement_rows(user=selected_user)
+    topic_tagged_rows = [
+        row
+        for row in tagged_rows
+        if _main_topic_label(row) == topic_label
+    ]
+    topic_subtopic_rows = _aggregate_progress_rows(
+        topic_tagged_rows,
+        label_key="subtopic",
+        type_label="Subtopic",
+        selected_user=selected_user,
+        can_select_user=can_select_user,
+    )
+    summary = _summary_from_tagged_rows(topic_tagged_rows)
+    summary["incomplete_subtopic_total"] = sum(1 for row in topic_subtopic_rows if row["remaining"])
+    summary["subtopic_total"] = len(topic_subtopic_rows)
+    return {
+        **_base_context(
+            selected_user=selected_user,
+            can_select_user=can_select_user,
+        ),
+        "technique_progress_dashboard_url": _page_url(
+            "pages:technique_dashboard",
+            selected_user=selected_user,
+            can_select_user=can_select_user,
+        ),
+        "technique_progress_topic_label": topic_label,
+        "technique_progress_topic_slug": topic_slug,
+        "technique_progress_topic_subtopic_rows": topic_subtopic_rows,
+        "technique_progress_topic_summary": summary,
+    }
+
+
+def _build_progress_payload(
+    *,
+    request_user: User,
+    raw_user_id: str,
+) -> dict[str, object]:
     selected_user, can_select_user = resolve_technique_progress_user(
         request_user=request_user,
         raw_user_id=raw_user_id,
@@ -76,46 +161,98 @@ def build_technique_progress_context(
         selected_user=selected_user,
         can_select_user=can_select_user,
     )
-    tagged_statement_ids = {row["statement_id"] for row in tagged_rows}
-    completed_statement_ids = {
-        row["statement_id"]
-        for row in tagged_rows
-        if row["is_solved"]
-    }
-    tagged_statement_total = len(tagged_statement_ids)
-    completed_statement_total = len(completed_statement_ids)
+    summary = _summary_from_tagged_rows(tagged_rows)
     stats = {
-        "completion_percent": _percent(completed_statement_total, tagged_statement_total),
-        "completed_statement_total": completed_statement_total,
+        "completion_percent": summary["completion_percent"],
+        "completed_statement_total": summary["solved"],
         "incomplete_subtopic_total": sum(1 for row in subtopic_rows if row["remaining"]),
         "incomplete_technique_total": sum(1 for row in technique_rows if row["remaining"]),
         "subtopic_total": len(subtopic_rows),
-        "tagged_statement_total": tagged_statement_total,
+        "tagged_statement_total": summary["total"],
         "technique_total": len(technique_rows),
     }
-    next_gaps = sorted(
+    gap_rows = _gap_rows(subtopic_rows=subtopic_rows, technique_rows=technique_rows)
+    next_gaps = _next_gap_rows(subtopic_rows=subtopic_rows, technique_rows=technique_rows)
+    return {
+        "base_context": _base_context(
+            selected_user=selected_user,
+            can_select_user=can_select_user,
+            has_completed=bool(summary["solved"]),
+            has_tagged_statements=bool(summary["total"]),
+        ),
+        "gap_rows": gap_rows,
+        "main_topic_rows": _main_topic_rows(
+            tagged_rows,
+            selected_user=selected_user,
+            can_select_user=can_select_user,
+        ),
+        "next_gaps": next_gaps,
+        "stats": stats,
+        "subtopic_rows": subtopic_rows,
+        "technique_rows": technique_rows,
+    }
+
+
+def _base_context(
+    *,
+    selected_user: User,
+    can_select_user: bool,
+    has_completed: bool = False,
+    has_tagged_statements: bool = False,
+) -> dict[str, object]:
+    return {
+        "technique_progress_all_gaps_url": _page_url(
+            "pages:technique_progress_gaps",
+            selected_user=selected_user,
+            can_select_user=can_select_user,
+        ),
+        "technique_progress_can_select_user": can_select_user,
+        "technique_progress_dashboard_url": _page_url(
+            "pages:technique_dashboard",
+            selected_user=selected_user,
+            can_select_user=can_select_user,
+        ),
+        "technique_progress_filters": {
+            "user": str(selected_user.pk) if can_select_user else "",
+        },
+        "technique_progress_has_completed": has_completed,
+        "technique_progress_has_tagged_statements": has_tagged_statements,
+        "technique_progress_quick_update_url": reverse("pages:completion_quick_update"),
+        "technique_progress_selected_user": selected_user,
+        "technique_progress_user_options": technique_progress_user_options() if can_select_user else [],
+    }
+
+
+def _gap_rows(
+    *,
+    subtopic_rows: list[dict[str, object]],
+    technique_rows: list[dict[str, object]],
+) -> list[dict[str, object]]:
+    return sorted(
         [
             *[dict(row, type="Subtopic") for row in subtopic_rows if row["remaining"]],
             *[dict(row, type="Technique") for row in technique_rows if row["remaining"]],
         ],
-        key=lambda row: (-int(row["remaining"]), 0 if row["type"] == "Subtopic" else 1, str(row["label"]).casefold()),
-    )[:NEXT_GAP_LIMIT]
+        key=lambda row: (-int(row["remaining"]), str(row["label"]).casefold(), str(row["type"]).casefold()),
+    )
 
-    return {
-        "technique_progress_can_select_user": can_select_user,
-        "technique_progress_filters": {
-            "user": str(selected_user.pk) if can_select_user else "",
-        },
-        "technique_progress_has_completed": bool(completed_statement_ids),
-        "technique_progress_has_tagged_statements": bool(tagged_statement_ids),
-        "technique_progress_next_gaps": next_gaps,
-        "technique_progress_quick_update_url": reverse("pages:completion_quick_update"),
-        "technique_progress_selected_user": selected_user,
-        "technique_progress_stats": stats,
-        "technique_progress_subtopic_rows": subtopic_rows,
-        "technique_progress_technique_rows": technique_rows,
-        "technique_progress_user_options": technique_progress_user_options() if can_select_user else [],
-    }
+
+def _next_gap_rows(
+    *,
+    subtopic_rows: list[dict[str, object]],
+    technique_rows: list[dict[str, object]],
+) -> list[dict[str, object]]:
+    return sorted(
+        [
+            *[dict(row, type="Subtopic") for row in subtopic_rows if row["remaining"]],
+            *[dict(row, type="Technique") for row in technique_rows if row["remaining"]],
+        ],
+        key=lambda row: (
+            -int(row["remaining"]),
+            0 if row["type"] == "Subtopic" else 1,
+            str(row["label"]).casefold(),
+        ),
+    )[:NEXT_GAP_LIMIT]
 
 
 def _tagged_statement_rows(*, user: User) -> list[dict[str, object]]:
@@ -313,6 +450,96 @@ def _aggregate_progress_rows(
             str(row["label"]).casefold(),
         ),
     )
+
+
+def _main_topic_rows(
+    tagged_rows: list[dict[str, object]],
+    *,
+    selected_user: User,
+    can_select_user: bool,
+) -> list[dict[str, object]]:
+    topics_with_data = {_main_topic_label(row) for row in tagged_rows}
+    topic_labels = [
+        *MAIN_TOPIC_ORDER,
+        *sorted(topics_with_data - set(MAIN_TOPIC_ORDER) - {OTHER_TOPIC_LABEL}),
+    ]
+    if OTHER_TOPIC_LABEL in topics_with_data:
+        topic_labels.append(OTHER_TOPIC_LABEL)
+
+    rows = []
+    for topic_label in topic_labels:
+        topic_rows = [
+            row
+            for row in tagged_rows
+            if _main_topic_label(row) == topic_label
+        ]
+        summary = _summary_from_tagged_rows(topic_rows)
+        subtopic_rows = _aggregate_progress_rows(
+            topic_rows,
+            label_key="subtopic",
+            type_label="Subtopic",
+            selected_user=selected_user,
+            can_select_user=can_select_user,
+        )
+        rows.append(
+            {
+                "completion_percent": summary["completion_percent"],
+                "incomplete_subtopic_total": sum(1 for row in subtopic_rows if row["remaining"]),
+                "label": topic_label,
+                "remaining": summary["remaining"],
+                "slug": _topic_slug(topic_label),
+                "solved": summary["solved"],
+                "subtopic_total": len(subtopic_rows),
+                "topic_detail_url": _page_url(
+                    "pages:technique_progress_topic_detail",
+                    selected_user=selected_user,
+                    can_select_user=can_select_user,
+                    kwargs={"topic_slug": _topic_slug(topic_label)},
+                ),
+                "total": summary["total"],
+            },
+        )
+    return rows
+
+
+def _summary_from_tagged_rows(tagged_rows: list[dict[str, object]]) -> dict[str, int]:
+    statement_ids = {row["statement_id"] for row in tagged_rows}
+    solved_statement_ids = {
+        row["statement_id"]
+        for row in tagged_rows
+        if row["is_solved"]
+    }
+    total = len(statement_ids)
+    solved = len(solved_statement_ids)
+    remaining = total - solved
+    return {
+        "completion_percent": _percent(solved, total),
+        "remaining": remaining,
+        "solved": solved,
+        "total": total,
+    }
+
+
+def _main_topic_label(row: dict[str, object]) -> str:
+    label = str(row.get("main_topic") or "").strip()
+    return label if label in MAIN_TOPIC_ORDER else OTHER_TOPIC_LABEL
+
+
+def _topic_slug(label: str) -> str:
+    return label.casefold().replace(" ", "-")
+
+
+def _page_url(
+    route_name: str,
+    *,
+    selected_user: User,
+    can_select_user: bool,
+    kwargs: dict[str, str] | None = None,
+) -> str:
+    base_url = reverse(route_name, kwargs=kwargs)
+    if not can_select_user:
+        return base_url
+    return f"{base_url}?{urlencode({'user': str(selected_user.pk)})}"
 
 
 def _practice_url(label: str, *, selected_user: User, can_select_user: bool) -> str:

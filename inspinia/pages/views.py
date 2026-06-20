@@ -149,6 +149,8 @@ from inspinia.pages.statement_metadata_backfill import statement_metadata_datafr
 from inspinia.pages.subtopic_cleanup import apply_subtopic_cleanup
 from inspinia.pages.subtopic_cleanup import build_subtopic_cleanup_preview
 from inspinia.pages.technique_progress import build_technique_progress_context
+from inspinia.pages.technique_progress import build_technique_progress_gaps_context
+from inspinia.pages.technique_progress import build_technique_progress_topic_context
 from inspinia.pages.topic_labels import FULL_TOPIC_LABEL_MAP
 from inspinia.pages.topic_labels import display_topic_label
 from inspinia.problemsets.selectors import problem_list_add_target_rows
@@ -7890,6 +7892,28 @@ def technique_progress_dashboard_view(request):
         raw_user_id=(request.GET.get("user") or "").strip(),
     )
     return render(request, "pages/technique-progress.html", context)
+
+
+@login_required
+def technique_progress_gaps_view(request):
+    context = build_technique_progress_gaps_context(
+        request_user=request.user,
+        raw_user_id=(request.GET.get("user") or "").strip(),
+    )
+    return render(request, "pages/technique-progress-gaps.html", context)
+
+
+@login_required
+def technique_progress_topic_detail_view(request, topic_slug):
+    try:
+        context = build_technique_progress_topic_context(
+            request_user=request.user,
+            raw_user_id=(request.GET.get("user") or "").strip(),
+            topic_slug=topic_slug,
+        )
+    except ValueError as exc:
+        raise Http404("Technique progress topic was not found.") from exc
+    return render(request, "pages/technique-progress-topic.html", context)
 
 
 @login_required
