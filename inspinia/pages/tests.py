@@ -92,6 +92,7 @@ EXPECTED_PROGRESS_UNSOLVED_STATUS_TOTAL = 2
 EXPECTED_PROGRESS_STATUS_PERCENT = 67
 EXPECTED_PROGRESS_MAIN_TOPIC_TOTAL = 4
 EXPECTED_PROGRESS_NEXT_GAP_LIMIT = 6
+EXPECTED_PROGRESS_GAP_PAGE_SIZE = 50
 WORKBOOK_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 EXPECTED_EXPORT_COLUMNS = [
     "PROBLEM UUID",
@@ -11879,39 +11880,39 @@ def test_technique_progress_dashboard_groups_subtopics_by_main_topic(client):
     )
 
 
-def test_technique_progress_gaps_page_lists_all_incomplete_areas(client):
+def test_technique_progress_gaps_page_defaults_to_subtopic_rows(client):
     user = UserFactory()
     client.force_login(user)
-    for index in range(1, 8):
-        _create_technique_progress_statement(
-            problem_code=f"P{index}",
-            problem_number=index,
-            statement_tags=[
-                {
-                    "technique": f"TECHNIQUE {index}",
-                    "domains": ["ALG"],
-                    "main_topic": "ALG",
-                    "canonical_subtopic": f"Gap subtopic {index}",
-                },
-            ],
-        )
+    _create_technique_progress_statement(
+        problem_code="P1",
+        problem_number=1,
+        statement_tags=[
+            {
+                "technique": "PARITY",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": "PARITY",
+            },
+        ],
+    )
 
     dashboard_response = client.get(reverse("pages:technique_dashboard"))
     gaps_response = client.get(reverse("pages:technique_progress_gaps"))
 
     assert dashboard_response.status_code == HTTPStatus.OK
-    assert len(dashboard_response.context["technique_progress_next_gaps"]) == EXPECTED_PROGRESS_NEXT_GAP_LIMIT
     assert gaps_response.status_code == HTTPStatus.OK
-    gap_labels = {
+    assert gaps_response.context["technique_progress_gap_kind"] == "subtopics"
+    assert gaps_response.context["technique_progress_gap_topic"] == "all"
+    assert [
         row["label"]
         for row in gaps_response.context["technique_progress_gap_rows"]
-    }
-    assert "Gap subtopic 7" in gap_labels
-    assert "TECHNIQUE 7" in gap_labels
-    assert len(gap_labels) == 14
+    ] == ["PARITY"]
+    assert all(row["type"] == "Subtopic" for row in gaps_response.context["technique_progress_gap_rows"])
     response_html = gaps_response.content.decode("utf-8")
-    assert "All practice gaps" in response_html
-    assert "Gap subtopic 7" in response_html
+    assert "Subtopic practice gaps" in response_html
+    assert "<th scope=\"col\">Type</th>" not in response_html
+    assert "Technique gaps" in response_html
+    assert "PARITY" in response_html
     assert reverse("pages:completion_quick_update") in response_html
 
 
@@ -11945,6 +11946,259 @@ def test_technique_progress_gaps_page_preserves_admin_selected_user(client):
     response_html = response.content.decode("utf-8")
     assert "target-progress@example.com" in response_html
     assert f"?user={selected_user.pk}" in response_html
+
+
+def test_technique_progress_gaps_page_technique_mode_lists_techniques(client):
+    user = UserFactory()
+    client.force_login(user)
+    _create_technique_progress_statement(
+        statement_tags=[
+            {
+                "technique": "ANGLE CHASE",
+                "domains": ["GEO"],
+                "main_topic": "GEO",
+                "canonical_subtopic": "Circle geometry",
+            },
+        ],
+    )
+
+    response = client.get(reverse("pages:technique_progress_gaps"), {"kind": "techniques"})
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["technique_progress_gap_kind"] == "techniques"
+    assert [
+        row["label"]
+        for row in response.context["technique_progress_gap_rows"]
+    ] == ["ANGLE CHASE"]
+    assert all(row["type"] == "Technique" for row in response.context["technique_progress_gap_rows"])
+    response_html = response.content.decode("utf-8")
+    assert "Technique practice gaps" in response_html
+    assert "<th scope=\"col\">Type</th>" not in response_html
+
+
+def test_technique_progress_gaps_page_all_mode_suppresses_duplicate_technique_labels(client):
+    user = UserFactory()
+    client.force_login(user)
+    _create_technique_progress_statement(
+        problem_code="P1",
+        problem_number=1,
+        statement_tags=[
+            {
+                "technique": "PARITY",
+                "domains": ["COMB"],
+                "main_topic": "COMB",
+                "canonical_subtopic": "PARITY",
+            },
+        ],
+    )
+    _create_technique_progress_statement(
+        problem_code="P2",
+        problem_number=2,
+        statement_tags=[
+            {
+                "technique": "ANGLE CHASE",
+                "domains": ["GEO"],
+                "main_topic": "GEO",
+                "canonical_subtopic": "Circle geometry",
+            },
+        ],
+    )
+
+    response = client.get(reverse("pages:technique_progress_gaps"), {"kind": "all"})
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["technique_progress_gap_kind"] == "all"
+    labels_and_types = [
+        (row["label"], row["type"])
+        for row in response.context["technique_progress_gap_rows"]
+    ]
+    assert ("Circle geometry", "Subtopic") in labels_and_types
+    assert ("ANGLE CHASE", "Technique") in labels_and_types
+    assert ("PARITY", "Subtopic") in labels_and_types
+    assert ("PARITY", "Technique") not in labels_and_types
+    response_html = response.content.decode("utf-8")
+    assert "All practice gaps" in response_html
+    assert "<th scope=\"col\">Type</th>" in response_html
+
+
+def test_technique_progress_gaps_page_invalid_kind_falls_back_to_subtopics(client):
+    client.force_login(UserFactory())
+    _create_technique_progress_statement(
+        statement_tags=[
+            {
+                "technique": "LTE",
+                "domains": ["NT"],
+                "main_topic": "NT",
+                "canonical_subtopic": "Valuations",
+            },
+        ],
+    )
+
+    response = client.get(reverse("pages:technique_progress_gaps"), {"kind": "everything"})
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["technique_progress_gap_kind"] == "subtopics"
+    assert [
+        row["label"]
+        for row in response.context["technique_progress_gap_rows"]
+    ] == ["Valuations"]
+
+
+def test_technique_progress_gaps_page_filters_by_main_topic(client):
+    user = UserFactory()
+    client.force_login(user)
+    _create_technique_progress_statement(
+        problem_code="P1",
+        problem_number=1,
+        statement_tags=[
+            {
+                "technique": "INEQUALITIES",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": "Inequalities",
+            },
+        ],
+    )
+    _create_technique_progress_statement(
+        problem_code="P2",
+        problem_number=2,
+        statement_tags=[
+            {
+                "technique": "ANGLE CHASE",
+                "domains": ["GEO"],
+                "main_topic": "GEO",
+                "canonical_subtopic": "Circle geometry",
+            },
+        ],
+    )
+    _create_technique_progress_statement(
+        problem_code="P3",
+        problem_number=3,
+        statement_tags=[
+            {
+                "technique": "PARITY",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": "Shared parity",
+            },
+        ],
+    )
+    _create_technique_progress_statement(
+        problem_code="P4",
+        problem_number=4,
+        statement_tags=[
+            {
+                "technique": "PARITY",
+                "domains": ["COMB"],
+                "main_topic": "COMB",
+                "canonical_subtopic": "Shared parity",
+            },
+        ],
+    )
+
+    response = client.get(reverse("pages:technique_progress_gaps"), {"topic": "geometry"})
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["technique_progress_gap_topic"] == "geometry"
+    assert [
+        row["label"]
+        for row in response.context["technique_progress_gap_rows"]
+    ] == ["Circle geometry"]
+    response_html = response.content.decode("utf-8")
+    assert "Inequalities" not in response_html
+    assert "Circle geometry" in response_html
+
+    combinatorics_response = client.get(
+        reverse("pages:technique_progress_gaps"),
+        {"topic": "combinatorics"},
+    )
+    assert combinatorics_response.status_code == HTTPStatus.OK
+    assert [
+        row["label"]
+        for row in combinatorics_response.context["technique_progress_gap_rows"]
+    ] == ["Shared parity"]
+
+
+def test_technique_progress_gaps_page_topic_tabs_preserve_user_and_kind(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    selected_user = UserFactory()
+    client.force_login(admin_user)
+    _create_technique_progress_statement(
+        statement_tags=[
+            {
+                "technique": "ANGLE CHASE",
+                "domains": ["GEO"],
+                "main_topic": "GEO",
+                "canonical_subtopic": "Circle geometry",
+            },
+        ],
+    )
+
+    response = client.get(
+        reverse("pages:technique_progress_gaps"),
+        {"user": str(selected_user.pk), "kind": "techniques", "topic": "geometry", "page": "3"},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    tabs = {
+        tab["label"]: tab
+        for tab in response.context["technique_progress_gap_topic_tabs"]
+    }
+    assert tabs["Geometry"]["is_active"] is True
+    assert tabs["Algebra"]["url"] == (
+        f"{reverse('pages:technique_progress_gaps')}?user={selected_user.pk}&kind=techniques&topic=algebra"
+    )
+    kind_options = {
+        option["value"]: option
+        for option in response.context["technique_progress_gap_kind_options"]
+    }
+    assert kind_options["subtopics"]["url"] == (
+        f"{reverse('pages:technique_progress_gaps')}?user={selected_user.pk}&kind=subtopics&topic=geometry"
+    )
+
+
+def test_technique_progress_gaps_page_paginates_rows_and_preserves_filters(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    selected_user = UserFactory()
+    client.force_login(admin_user)
+    for index in range(1, 53):
+        _create_technique_progress_statement(
+            problem_code=f"P{index}",
+            problem_number=index,
+            statement_tags=[
+                {
+                    "technique": f"TECHNIQUE {index:02d}",
+                    "domains": ["ALG"],
+                    "main_topic": "ALG",
+                    "canonical_subtopic": f"Gap {index:02d}",
+                },
+            ],
+        )
+
+    first_page = client.get(
+        reverse("pages:technique_progress_gaps"),
+        {"user": str(selected_user.pk), "kind": "subtopics", "topic": "algebra"},
+    )
+    second_page = client.get(
+        reverse("pages:technique_progress_gaps"),
+        {"user": str(selected_user.pk), "kind": "subtopics", "topic": "algebra", "page": "2"},
+    )
+
+    assert first_page.status_code == HTTPStatus.OK
+    assert first_page.context["technique_progress_gap_page_obj"].paginator.count == 52
+    assert len(first_page.context["technique_progress_gap_rows"]) == EXPECTED_PROGRESS_GAP_PAGE_SIZE
+    assert first_page.context["technique_progress_gap_result_summary"] == "Showing 1-50 of 52 subtopic gaps"
+    assert first_page.context["technique_progress_gap_pagination_suffix"] == (
+        f"&user={selected_user.pk}&kind=subtopics&topic=algebra"
+    )
+    assert second_page.status_code == HTTPStatus.OK
+    assert second_page.context["technique_progress_gap_page_obj"].number == 2
+    assert [
+        row["label"]
+        for row in second_page.context["technique_progress_gap_rows"]
+    ] == ["Gap 51", "Gap 52"]
+    response_html = first_page.content.decode("utf-8")
+    assert f"?page=2&amp;user={selected_user.pk}&amp;kind=subtopics&amp;topic=algebra" in response_html
 
 
 def test_technique_progress_gaps_page_requires_login(client):
