@@ -151,6 +151,7 @@ from inspinia.pages.subtopic_cleanup import apply_subtopic_cleanup
 from inspinia.pages.subtopic_cleanup import build_subtopic_cleanup_preview
 from inspinia.pages.technique_progress import build_technique_progress_context
 from inspinia.pages.technique_progress import build_technique_progress_gaps_context
+from inspinia.pages.technique_progress import build_technique_progress_gaps_csv_response
 from inspinia.pages.technique_progress import build_technique_progress_gaps_datatable_payload
 from inspinia.pages.technique_progress import build_technique_progress_topic_context
 from inspinia.pages.topic_labels import FULL_TOPIC_LABEL_MAP
@@ -7969,6 +7970,14 @@ def technique_progress_dashboard_view(request):
 
 @login_required
 def technique_progress_gaps_view(request):
+    if request.GET.get("export") == "csv":
+        return build_technique_progress_gaps_csv_response(
+            request_user=request.user,
+            raw_user_id=(request.GET.get("user") or "").strip(),
+            raw_kind=(request.GET.get("kind") or "").strip(),
+            raw_topic=(request.GET.get("topic") or "").strip(),
+        )
+
     if request.GET.get("format") == "datatable":
         return JsonResponse(
             build_technique_progress_gaps_datatable_payload(
@@ -7985,7 +7994,6 @@ def technique_progress_gaps_view(request):
         raw_user_id=(request.GET.get("user") or "").strip(),
         raw_kind=(request.GET.get("kind") or "").strip(),
         raw_topic=(request.GET.get("topic") or "").strip(),
-        raw_page=(request.GET.get("page") or "").strip(),
     )
     return render(request, "pages/technique-progress-gaps.html", context)
 
