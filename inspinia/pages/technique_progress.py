@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from urllib.parse import urlencode
 
+from django.core.paginator import Paginator
 from django.db.models import F
 from django.urls import reverse
 
@@ -17,6 +18,11 @@ from inspinia.users.models import User
 from inspinia.users.roles import user_has_admin_role
 
 NEXT_GAP_LIMIT = 6
+GAP_PAGE_SIZE = 50
+GAP_KIND_SUBTOPICS = "subtopics"
+GAP_KIND_TECHNIQUES = "techniques"
+GAP_KIND_ALL = "all"
+GAP_KIND_CHOICES = {GAP_KIND_SUBTOPICS, GAP_KIND_TECHNIQUES, GAP_KIND_ALL}
 MAIN_TOPIC_ORDER = ["Algebra", "Number Theory", "Geometry", "Combinatorics"]
 OTHER_TOPIC_LABEL = "Other"
 MAIN_TOPIC_SLUGS = {
@@ -25,6 +31,14 @@ MAIN_TOPIC_SLUGS = {
     "geometry": "Geometry",
     "combinatorics": "Combinatorics",
     "other": OTHER_TOPIC_LABEL,
+}
+GAP_TOPIC_ALL = "all"
+GAP_TOPIC_SLUGS = {
+    GAP_TOPIC_ALL: "All",
+    "algebra": "Algebra",
+    "number-theory": "Number Theory",
+    "geometry": "Geometry",
+    "combinatorics": "Combinatorics",
 }
 
 
@@ -81,11 +95,53 @@ def build_technique_progress_gaps_context(
     *,
     request_user: User,
     raw_user_id: str = "",
+    raw_kind: str = "",
+    raw_topic: str = "",
+    raw_page: str = "",
 ) -> dict[str, object]:
     payload = _build_progress_payload(request_user=request_user, raw_user_id=raw_user_id)
+    base_context = payload["base_context"]
+    selected_user = base_context["technique_progress_selected_user"]
+    can_select_user = bool(base_context["technique_progress_can_select_user"])
+    gap_kind = _gap_kind(raw_kind)
+    gap_topic = _gap_topic(raw_topic)
+    gap_rows = _rows_for_gap_kind(
+        gap_kind=gap_kind,
+        subtopic_rows=payload["subtopic_rows"],
+        technique_rows=payload["technique_rows"],
+    )
+    gap_rows = _filter_gap_rows_by_topic(gap_rows, gap_topic=gap_topic)
+    page_obj = Paginator(gap_rows, GAP_PAGE_SIZE).get_page(raw_page)
     return {
-        **payload["base_context"],
-        "technique_progress_gap_rows": payload["gap_rows"],
+        **base_context,
+        "technique_progress_gap_kind": gap_kind,
+        "technique_progress_gap_kind_options": _gap_kind_options(
+            selected_user=selected_user,
+            can_select_user=can_select_user,
+            active_kind=gap_kind,
+            active_topic=gap_topic,
+        ),
+        "technique_progress_gap_page_obj": page_obj,
+        "technique_progress_gap_pagination_suffix": _gap_pagination_suffix(
+            selected_user=selected_user,
+            can_select_user=can_select_user,
+            gap_kind=gap_kind,
+            gap_topic=gap_topic,
+        ),
+        "technique_progress_gap_result_summary": _gap_result_summary(
+            page_obj,
+            gap_kind=gap_kind,
+        ),
+        "technique_progress_gap_rows": list(page_obj.object_list),
+        "technique_progress_gap_show_type_column": gap_kind == GAP_KIND_ALL,
+        "technique_progress_gap_title": _gap_title(gap_kind),
+        "technique_progress_gap_topic": gap_topic,
+        "technique_progress_gap_topic_tabs": _gap_topic_tabs(
+            selected_user=selected_user,
+            can_select_user=can_select_user,
+            active_kind=gap_kind,
+            active_topic=gap_topic,
+        ),
         "technique_progress_stats": payload["stats"],
     }
 
@@ -253,6 +309,153 @@ def _next_gap_rows(
             str(row["label"]).casefold(),
         ),
     )[:NEXT_GAP_LIMIT]
+
+
+def _gap_kind(raw_kind: str) -> str:
+    normalized_kind = (raw_kind or "").strip().casefold()
+    return normalized_kind if normalized_kind in GAP_KIND_CHOICES else GAP_KIND_SUBTOPICS
+
+
+def _gap_topic(raw_topic: str) -> str:
+    normalized_topic = (raw_topic or "").strip().casefold()
+    return normalized_topic if normalized_topic in GAP_TOPIC_SLUGS else GAP_TOPIC_ALL
+
+
+def _rows_for_gap_kind(
+    *,
+    gap_kind: str,
+    subtopic_rows: list[dict[str, object]],
+    technique_rows: list[dict[str, object]],
+) -> list[dict[str, object]]:
+    visible_subtopic_rows = [dict(row, type="Subtopic") for row in subtopic_rows if row["remaining"]]
+    visible_technique_rows = [dict(row, type="Technique") for row in technique_rows if row["remaining"]]
+    if gap_kind == GAP_KIND_TECHNIQUES:
+        return visible_technique_rows
+    if gap_kind == GAP_KIND_ALL:
+        subtopic_labels = {str(row["label"]).casefold() for row in visible_subtopic_rows}
+        non_duplicate_technique_rows = [
+            row
+            for row in visible_technique_rows
+            if str(row["label"]).casefold() not in subtopic_labels
+        ]
+        return [*visible_subtopic_rows, *non_duplicate_technique_rows]
+    return visible_subtopic_rows
+
+
+def _filter_gap_rows_by_topic(
+    rows: list[dict[str, object]],
+    *,
+    gap_topic: str,
+) -> list[dict[str, object]]:
+    if gap_topic == GAP_TOPIC_ALL:
+        return rows
+    topic_label = GAP_TOPIC_SLUGS[gap_topic]
+    return [
+        row
+        for row in rows
+        if topic_label in row.get("main_topic_labels", [])
+    ]
+
+
+def _gap_kind_options(
+    *,
+    selected_user: User,
+    can_select_user: bool,
+    active_kind: str,
+    active_topic: str,
+) -> list[dict[str, object]]:
+    options = [
+        {"label": "Subtopics", "value": GAP_KIND_SUBTOPICS},
+        {"label": "Technique gaps", "value": GAP_KIND_TECHNIQUES},
+        {"label": "All", "value": GAP_KIND_ALL},
+    ]
+    return [
+        {
+            **option,
+            "is_active": option["value"] == active_kind,
+            "url": _gap_url(
+                selected_user=selected_user,
+                can_select_user=can_select_user,
+                gap_kind=str(option["value"]),
+                gap_topic=active_topic,
+            ),
+        }
+        for option in options
+    ]
+
+
+def _gap_topic_tabs(
+    *,
+    selected_user: User,
+    can_select_user: bool,
+    active_kind: str,
+    active_topic: str,
+) -> list[dict[str, object]]:
+    return [
+        {
+            "is_active": topic_slug == active_topic,
+            "label": topic_label,
+            "url": _gap_url(
+                selected_user=selected_user,
+                can_select_user=can_select_user,
+                gap_kind=active_kind,
+                gap_topic=topic_slug,
+            ),
+            "value": topic_slug,
+        }
+        for topic_slug, topic_label in GAP_TOPIC_SLUGS.items()
+    ]
+
+
+def _gap_url(
+    *,
+    selected_user: User,
+    can_select_user: bool,
+    gap_kind: str,
+    gap_topic: str,
+) -> str:
+    query: dict[str, str] = {}
+    if can_select_user:
+        query["user"] = str(selected_user.pk)
+    query["kind"] = gap_kind
+    query["topic"] = gap_topic
+    return f"{reverse('pages:technique_progress_gaps')}?{urlencode(query)}"
+
+
+def _gap_pagination_suffix(
+    *,
+    selected_user: User,
+    can_select_user: bool,
+    gap_kind: str,
+    gap_topic: str,
+) -> str:
+    query: dict[str, str] = {}
+    if can_select_user:
+        query["user"] = str(selected_user.pk)
+    query["kind"] = gap_kind
+    query["topic"] = gap_topic
+    query_string = urlencode(query)
+    return f"&{query_string}" if query_string else ""
+
+
+def _gap_result_summary(page_obj, *, gap_kind: str) -> str:
+    row_total = page_obj.paginator.count
+    noun = {
+        GAP_KIND_SUBTOPICS: "subtopic gaps",
+        GAP_KIND_TECHNIQUES: "technique gaps",
+        GAP_KIND_ALL: "practice gaps",
+    }[gap_kind]
+    if not row_total:
+        return f"Showing 0 of 0 {noun}"
+    return f"Showing {page_obj.start_index()}-{page_obj.end_index()} of {row_total} {noun}"
+
+
+def _gap_title(gap_kind: str) -> str:
+    return {
+        GAP_KIND_SUBTOPICS: "Subtopic practice gaps",
+        GAP_KIND_TECHNIQUES: "Technique practice gaps",
+        GAP_KIND_ALL: "All practice gaps",
+    }[gap_kind]
 
 
 def _tagged_statement_rows(*, user: User) -> list[dict[str, object]]:
@@ -430,6 +633,7 @@ def _aggregate_progress_rows(
             {
                 "completion_percent": _percent(solved, total),
                 "label": label,
+                "main_topic_labels": main_topics,
                 "main_topic_label": ", ".join(main_topics),
                 "practice_url": _practice_url(
                     label,
