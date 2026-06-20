@@ -37,6 +37,23 @@ class SubtopicCleanupApplyResult:
     updated_count: int
 
 
+def _parent_aliases(
+    main_topic: str,
+    canonical_subtopic: str,
+    aliases: tuple[str, ...],
+) -> tuple[tuple[str, str, str], ...]:
+    return tuple((main_topic, canonical_subtopic, alias) for alias in aliases)
+
+
+def _stored_aliases(
+    main_topic: str,
+    canonical_subtopic: str,
+    stored_technique: str,
+    aliases: tuple[str, ...],
+) -> tuple[tuple[str, str, str, str], ...]:
+    return tuple((main_topic, canonical_subtopic, alias, stored_technique) for alias in aliases)
+
+
 ADDITIONAL_SUBTOPIC_ALIASES: tuple[tuple[str, str, str], ...] = (
     ("ALG", "Inequalities and optimization", "inequalities"),
     ("ALG", "Inequalities and optimization", "extremal inequalities"),
@@ -98,6 +115,49 @@ PARENT_COLLAPSE_SUBTOPIC_ALIASES: tuple[tuple[str, str, str], ...] = (
     ("ALG", "Inequalities and optimization", "convexity"),
     ("ALG", "Sequences, recurrences, and series", "recurrence"),
     ("ALG", "Sequences, recurrences, and series", "recurrences"),
+    *_parent_aliases(
+        "ALG",
+        "Functional equations",
+        (
+            "fe",
+            "functional condition",
+            "functional conditions",
+            "functional values",
+            "functional families",
+        ),
+    ),
+    *_parent_aliases(
+        "ALG",
+        "Inequalities and optimization",
+        (
+            "inequality lemma",
+            "inequality forcing",
+            "nonlinear inequality",
+            "sequence inequality",
+            "single-variable inequality",
+        ),
+    ),
+    *_parent_aliases(
+        "ALG",
+        "Polynomials and algebraic manipulation",
+        (
+            "polynomial",
+            "polynomials",
+            "polynomial actions",
+            "polynomial constraints",
+        ),
+    ),
+    *_parent_aliases(
+        "ALG",
+        "Sequences, recurrences, and series",
+        (
+            "sequence",
+            "sequences",
+            "integer sequence",
+            "integer sequences",
+            "sequencing real numbers",
+        ),
+    ),
 )
 
 
@@ -254,10 +314,649 @@ STORED_TECHNIQUE_SUBTOPIC_ALIASES: tuple[tuple[str, str, str, str], ...] = (
     ("COMB", "Coloring, tiling, grids, and invariants", "grid operations", "Grid operations"),
     ("COMB", "Pigeonhole, extremal principle, and averaging", "area pigeonhole", "Area pigeonhole"),
     ("GEO", "Core Euclidean geometry", "parallelogram law", "Parallelogram law"),
+    *_stored_aliases(
+        "ALG",
+        "Functional equations",
+        "Integer domain",
+        (
+            "integer functional equation",
+            "integer functional equations",
+            "functional equation on integers",
+            "functional equations on integers",
+            "functions on integers",
+            "functional equation on n",
+            "functional equation on z",
+            "functional equations on z",
+        ),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Functional equations",
+        "Real domain",
+        ("real functional equation", "real functional equations", "functional equations over r"),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Functional equations",
+        "Rational domain",
+        (
+            "functional equations rational domain",
+            "functional equations (rational domain)",
+            "rational-domain functional equations",
+            "rational domain",
+            "rational-domain rigidity",
+            "rational-domain linearity",
+        ),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Functional equations",
+        "Polynomial / coefficient FE",
+        (
+            "functional equation on coefficients",
+            "functional equations on coefficients",
+            "coefficient functional equation",
+            "functional equations (polynomials)",
+        ),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Functional equations",
+        "Polynomial-type behavior",
+        (
+            "polynomial-type rigidity",
+            "polynomial-type / quadratic behavior",
+            "quadratic-type functional equation",
+            "quadratic-type functional equations",
+        ),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Functional equations",
+        "Iteration / dynamics",
+        (
+            "functional equations / iteration",
+            "functional equation / iteration",
+            "functional recursion",
+            "functional dynamics",
+            "functional dynamics / mobius transform",
+        ),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Functional equations",
+        "Symmetry / affine structure",
+        (
+            "functional equations / symmetry",
+            "functional equation / symmetry",
+            "functional equations (2 variables) / counting / affine structure",
+            "two-variable functional equations",
+        ),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Functional equations",
+        "Functional inequalities",
+        (
+            "functional inequalities",
+            "functional inequality",
+            "functional inequality / monotone arithmetic structure",
+            "functional equation / monotone arithmetic structure",
+        ),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Functional equations",
+        "Continuity / regularity",
+        (
+            "fe-style continuity",
+            "functional equations; real analysis; continuity; isometries",
+            "continuity in functional equations",
+        ),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Functional equations",
+        "Set-valued functions",
+        ("set-valued functional equation", "set-valued functional equations"),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Functional equations",
+        "Geometric FE",
+        ("geometric functional equations", "geometric functional equation"),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Functional equations",
+        "Injectivity / surjectivity",
+        (
+            "injectivity/surjectivity tactics",
+            "injectivity/surjectivity",
+            "injective/surjective functions",
+        ),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Functional equations",
+        "Image / value set",
+        ("image/range", "image/range analysis", "range/value set", "value set"),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Functional equations",
+        "Linearity forcing",
+        ("linearity forcing", "additivity/linearity forcing", "affine forcing"),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Functional equations",
+        "IVT / Darboux",
+        ("ivp/darboux", "ivt/darboux", "intermediate value/darboux"),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Inequalities and optimization",
+        "Cauchy-Schwarz / Engel form",
+        (
+            "cauchy",
+            "cauchy/engel",
+            "cauchy engel",
+            "cauchy engel form",
+            "cauchy-schwarz/engel",
+            "cauchy-schwarz engel",
+            "cauchy-schwarz/engel form",
+            "cauchy/titu",
+            "titu/cauchy",
+            "titu lemma",
+            "titu's lemma",
+            "engel form",
+            "qm/cauchy",
+            "rms/cauchy",
+            "triangle/cauchy",
+            "dyadic decomposition; cauchy-schwarz",
+        ),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Inequalities and optimization",
+        "Holder",
+        (
+            "holder",
+            "holder-type",
+            "holder type",
+            "holder inequality",
+            "holder estimates",
+        ),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Inequalities and optimization",
+        "Jensen / convexity",
+        (
+            "jensen",
+            "jensen/log concavity",
+            "jensen convexity",
+            "jensen convexity/concavity",
+            "jensen / convexity",
+            "jensen-style smoothing",
+            "weighted jensen",
+        ),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Inequalities and optimization",
+        "Majorization / Karamata",
+        (
+            "majorization/karamata",
+            "majorization",
+            "karamata",
+            "karamata inequality",
+            "majorization smoothing",
+        ),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Inequalities and optimization",
+        "Schur / Maclaurin / Muirhead",
+        (
+            "schur",
+            "maclaurin",
+            "muirhead",
+            "schur/maclaurin",
+            "schur/muirhead",
+            "schur/am-gm",
+            "newton/maclaurin",
+        ),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Inequalities and optimization",
+        "UVW / pqr method",
+        ("uvw", "uvw method", "uvw/symmetric reduction", "pqr method", "pqr/uvw"),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Inequalities and optimization",
+        "Smoothing",
+        ("smoothing", "smoothing/equalization", "equalization", "smoothing method"),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Inequalities and optimization",
+        "Sum of squares",
+        ("sos", "sos/positivity", "sum of squares", "sum-of-squares", "sos decomposition"),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Inequalities and optimization",
+        "Classical mean inequalities",
+        ("am-gm variants", "mean inequalities", "classical mean inequalities"),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Inequalities and optimization",
+        "Harmonic estimates",
+        ("harmonic estimates", "harmonic bounds", "harmonic inequality"),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Inequalities and optimization",
+        "Tangent line method",
+        ("tangent-line estimate", "tangent line estimate", "tangent-line method", "tangent-line bounding"),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Inequalities and optimization",
+        "Convexity",
+        ("convexity", "convexity method", "convexity/concavity", "log-convexity", "log concavity"),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Inequalities and optimization",
+        "Homogeneity / homogenization",
+        ("homogeneity", "homogenization", "homogeneous inequality", "homogeneous inequalities"),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Inequalities and optimization",
+        "Best constant / equality case",
+        (
+            "best constant search",
+            "best constant",
+            "equality case",
+            "equality cases",
+            "equality forcing",
+        ),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Inequalities and optimization",
+        "Triangle substitutions",
+        (
+            "ravi substitution",
+            "ravi/triangle substitutions",
+            "triangle substitution",
+            "triangle substitutions",
+            "triangle-substitution inequalities",
+        ),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Polynomials and algebraic manipulation",
+        "Polynomial identities",
+        (
+            "polynomial identification",
+            "polynomial identity",
+            "polynomial identities",
+            "identity theorem",
+            "polynomial zero identity",
+        ),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Polynomials and algebraic manipulation",
+        "Coefficient comparison",
+        (
+            "coefficient comparison",
+            "coefficient chase",
+            "coefficient extraction",
+            "coefficient method",
+        ),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Polynomials and algebraic manipulation",
+        "Factorization",
+        (
+            "factorisation",
+            "factorization",
+            "factor theorem",
+            "factorization tricks",
+            "polynomial factorization",
+        ),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Polynomials and algebraic manipulation",
+        "Irreducibility",
+        ("irreducibility", "eisenstein", "eisenstein criterion", "gauss lemma"),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Polynomials and algebraic manipulation",
+        "Interpolation",
+        (
+            "interpolation",
+            "lagrange interpolation",
+            "newton interpolation",
+            "polynomial interpolation",
+        ),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Polynomials and algebraic manipulation",
+        "Finite differences",
+        (
+            "finite-difference identity",
+            "finite differences",
+            "finite-difference method",
+            "divided differences",
+        ),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Polynomials and algebraic manipulation",
+        "Root location / relations",
+        ("root location", "root relations", "polynomial roots", "root bounds"),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Polynomials and algebraic manipulation",
+        "Real-rootedness / interlacing",
+        (
+            "real-rooted polynomials/interlacing/perturbation",
+            "real-rootedness",
+            "real-rooted polynomials",
+            "root interlacing",
+            "interlacing",
+        ),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Polynomials and algebraic manipulation",
+        "Roots of unity / cyclotomic",
+        (
+            "roots of unity averaging",
+            "roots of unity",
+            "roots of unity filter",
+            "cyclotomic",
+            "cyclotomic polynomials",
+        ),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Polynomials and algebraic manipulation",
+        "Symmetric polynomials / Vieta-Newton",
+        (
+            "symmetric polynomials",
+            "vieta-newton",
+            "vieta/newton",
+            "vieta relations",
+            "newton sums",
+        ),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Polynomials and algebraic manipulation",
+        "Homogeneous polynomials",
+        ("homogeneous polynomials", "homogeneous polynomial"),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Polynomials and algebraic manipulation",
+        "Special polynomial families",
+        (
+            "chebyshev polynomials",
+            "reciprocal polynomials",
+            "self-reciprocal polynomials",
+            "trigonometric polynomials",
+        ),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Polynomials and algebraic manipulation",
+        "Zero-set method",
+        ("zero-set rigidity", "zero-set method", "zero-set analysis"),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Polynomials and algebraic manipulation",
+        "Fejer-Riesz",
+        (
+            "fejer-riesz",
+            "fejer/riesz",
+            "fejer/riesz-type extremals",
+            "fejer-riesz-type extremals",
+        ),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Sequences, recurrences, and series",
+        "Recurrence growth / asymptotics",
+        (
+            "recurrence asymptotics",
+            "growth/asymptotics",
+            "recurrence growth",
+            "linear recurrence asymptotics",
+        ),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Sequences, recurrences, and series",
+        "Linearization / telescoping",
+        ("linearization/telescoping", "recurrence linearization", "telescoping recurrence"),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Sequences, recurrences, and series",
+        "Fibonacci / Lucas / Chebyshev",
+        (
+            "fibonacci/chebyshev",
+            "fibonacci/lucas",
+            "fibonacci",
+            "lucas sequences",
+            "chebyshev recurrences",
+        ),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Sequences, recurrences, and series",
+        "Zeckendorf",
+        ("zeckendorf", "zeckendorf representation", "zeckendorf decomposition"),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Sequences, recurrences, and series",
+        "Generating functions",
+        (
+            "generating functions",
+            "generating function",
+            "formal power series",
+            "series/generating functions",
+        ),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Sequences, recurrences, and series",
+        "Summation techniques",
+        ("summation techniques", "summation by parts", "abel summation", "sums of powers"),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Sequences, recurrences, and series",
+        "Telescoping",
+        (
+            "telescoping",
+            "telescoping sums",
+            "telescoping products",
+            "telescoping product bounds",
+        ),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Sequences, recurrences, and series",
+        "Periodicity",
+        ("periodicity", "periodic sequences", "eventual periodicity", "recurrence modulo m"),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Sequences, recurrences, and series",
+        "Floor / ceiling / fractional part",
+        (
+            "floor/ceiling inequalities",
+            "floor ceiling inequalities",
+            "floor/ceiling",
+            "floor and ceiling",
+            "fractional parts",
+            "fractional part",
+            "floor sequences",
+            "beatty sequences",
+        ),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Sequences, recurrences, and series",
+        "Iteration / fixed points",
+        ("iteration", "iterative processes", "dynamical sequences", "fixed-point iteration"),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Algebraic structures and linear algebra",
+        "Mobius / fractional-linear transformation",
+        (
+            "mobius transformation",
+            "mobius transformations",
+            "mobius transform",
+            "linear fractional transformation",
+            "fractional-linear transformation",
+        ),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Algebraic structures and linear algebra",
+        "Rank / kernel / image",
+        ("rank/kernel/image", "rank kernel image", "kernel/image", "rank-nullity"),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Algebraic structures and linear algebra",
+        "Finite algebraic structures",
+        (
+            "finite semigroups",
+            "semigroups",
+            "monoids",
+            "finite groups",
+            "finite rings",
+            "finite fields",
+        ),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Algebraic structures and linear algebra",
+        "Grobner bases",
+        ("grobner", "grobner basis", "grobner bases"),
+    ),
+    *_stored_aliases(
+        "NT",
+        "p-adic and valuation methods",
+        "p-adic methods",
+        (
+            "p-adic/newton polygon ideas",
+            "p-adic methods",
+            "p-adic arguments",
+            "p-adic structure",
+            "p-adic valuation",
+            "newton polygon",
+        ),
+    ),
+    *_stored_aliases(
+        "NT",
+        "Congruences and modular arithmetic",
+        "Modular methods",
+        (
+            "modular methods",
+            "modular arithmetic",
+            "modular constraints",
+            "modular obstruction",
+            "modular obstructions",
+        ),
+    ),
+    *_stored_aliases(
+        "NT",
+        "Divisibility, gcd, lcm, and primes",
+        "GCD / divisibility",
+        ("gcd/divisibility", "divisibility/gcd", "gcd dynamics", "divisibility obstruction"),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Equations, substitutions, and transformations",
+        "Product normalization",
+        ("substitution xyz=1", "xyz=1", "product normalization", "normalization xyz"),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Equations, substitutions, and transformations",
+        "Symmetric / cyclic expressions",
+        (
+            "symmetric/cyclic expressions",
+            "symmetric cyclic expressions",
+            "symmetric and cyclic expressions",
+            "cyclic expressions",
+        ),
+    ),
+    *_stored_aliases(
+        "ALG",
+        "Equations, substitutions, and transformations",
+        "Substitution / transformation",
+        ("substitution/transformation", "substitution tactics", "change of variables"),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Pigeonhole, extremal principle, and averaging",
+        "Energy / potential method",
+        ("lyapunov energy", "energy method", "potential method", "potential function"),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Pigeonhole, extremal principle, and averaging",
+        "Invariants / monovariants",
+        ("monovariant", "invariant/monovariant", "ordering invariant", "descent invariant"),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Set systems, posets, and extremal set theory",
+        "Folner-type sets",
+        ("folner", "folner sets", "folner-type sets"),
+    ),
+)
+
+
+TAXONOMY_TEXT_REPLACEMENTS: tuple[tuple[str, str], ...] = (
+    ("\u221a\xf1", "o"),
+    ("\u221a\xd1", "O"),
+    ("\u221a\xe2", "e"),
+    ("\u221a\xf2", "o"),
+    ("\u201a\xc4\xec", "-"),
+    ("\u201a\xc4\xee", "-"),
+    ("\u201a\xc4\xfa", '"'),
+    ("\u201a\xc4\xf9", '"'),
 )
 
 
 def _taxonomy_key(value: str) -> str:
+    for old, new in TAXONOMY_TEXT_REPLACEMENTS:
+        value = value.replace(old, new)
     normalized = unicodedata.normalize("NFKD", value or "")
     normalized = normalized.casefold()
     normalized = normalized.replace("\\", "")
