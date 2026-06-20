@@ -74,6 +74,17 @@ NORMALIZATION_STATUS_INVALID = "invalid"
 NORMALIZATION_STATUS_NEEDS_REVIEW = "needs_review"
 NORMALIZATION_CONFIDENCE_HIGH = "high"
 NORMALIZATION_CONFIDENCE_LOW = "low"
+SUBTOPIC_CLEANUP_BATCH_SIZE = 1000
+
+TAG_NORMALIZATION_UPDATE_FIELDS = [
+    "technique",
+    "main_topic",
+    "canonical_subtopic",
+    "domains",
+    "raw_tag",
+    "normalization_status",
+    "normalization_confidence",
+]
 
 
 FIRST_PASS_CANONICAL_SUBTOPICS: tuple[str, ...] = (
@@ -2657,6 +2668,42 @@ def _statement_tag_rows() -> Iterable[StatementTopicTechnique]:
     )
 
 
+def _problem_cleanup_tag_rows() -> Iterable[ProblemTopicTechnique]:
+    return (
+        ProblemTopicTechnique.objects.only(
+            "id",
+            "record_id",
+            "technique",
+            "domains",
+            "main_topic",
+            "canonical_subtopic",
+            "raw_tag",
+            "normalization_status",
+            "normalization_confidence",
+        )
+        .order_by("record_id", "id")
+        .iterator(chunk_size=SUBTOPIC_CLEANUP_BATCH_SIZE)
+    )
+
+
+def _statement_cleanup_tag_rows() -> Iterable[StatementTopicTechnique]:
+    return (
+        StatementTopicTechnique.objects.only(
+            "id",
+            "statement_id",
+            "technique",
+            "domains",
+            "main_topic",
+            "canonical_subtopic",
+            "raw_tag",
+            "normalization_status",
+            "normalization_confidence",
+        )
+        .order_by("statement_id", "id")
+        .iterator(chunk_size=SUBTOPIC_CLEANUP_BATCH_SIZE)
+    )
+
+
 def _tag_needs_update(tag, entry: SubtopicTaxonomyEntry) -> bool:
     return (
         tag.technique != entry.stored_technique
@@ -2846,7 +2893,7 @@ def _merge_tag_raw_values(rows: list) -> str:
     return "; ".join(merged)[:512]
 
 
-def _apply_parent_group(rows: list, entry: SubtopicTaxonomyEntry) -> tuple[int, int]:
+def _prepare_parent_group_update(rows: list, entry: SubtopicTaxonomyEntry) -> tuple[object | None, list[int]]:
     keeper = _select_keeper(rows, entry.stored_technique)
     merged_domains = [entry.main_topic]
     for row in rows:
@@ -2871,23 +2918,22 @@ def _apply_parent_group(rows: list, entry: SubtopicTaxonomyEntry) -> tuple[int, 
         keeper.raw_tag = merged_raw_tag
         keeper.normalization_status = entry.normalization_status
         keeper.normalization_confidence = entry.normalization_confidence
-        keeper.save(
-            update_fields=[
-                "technique",
-                "main_topic",
-                "canonical_subtopic",
-                "domains",
-                "raw_tag",
-                "normalization_status",
-                "normalization_confidence",
-            ],
-        )
 
     duplicate_ids = [row.id for row in rows if row.id != keeper.id]
+    return (keeper if changed else None), duplicate_ids
+
+
+def _apply_parent_group(rows: list, entry: SubtopicTaxonomyEntry) -> tuple[int, int]:
+    updated_row, duplicate_ids = _prepare_parent_group_update(rows, entry)
     if duplicate_ids:
         rows[0].__class__.objects.filter(id__in=duplicate_ids).delete()
-
-    return (1 if changed else 0), len(duplicate_ids)
+    if updated_row is not None:
+        updated_row.__class__.objects.bulk_update(
+            [updated_row],
+            TAG_NORMALIZATION_UPDATE_FIELDS,
+            batch_size=SUBTOPIC_CLEANUP_BATCH_SIZE,
+        )
+    return (1 if updated_row is not None else 0), len(duplicate_ids)
 
 
 def _include_existing_target_row(existing_target, target_technique: str, rows: list) -> list:
@@ -2898,14 +2944,44 @@ def _include_existing_target_row(existing_target, target_technique: str, rows: l
     return [existing_target, *rows]
 
 
+def _chunked_ids(ids: Iterable[int]) -> Iterable[list[int]]:
+    sorted_ids = sorted(ids)
+    for index in range(0, len(sorted_ids), SUBTOPIC_CLEANUP_BATCH_SIZE):
+        yield sorted_ids[index:index + SUBTOPIC_CLEANUP_BATCH_SIZE]
+
+
+def _bulk_update_tag_rows(model, rows: list) -> None:
+    if not rows:
+        return
+    model.objects.bulk_update(
+        rows,
+        TAG_NORMALIZATION_UPDATE_FIELDS,
+        batch_size=SUBTOPIC_CLEANUP_BATCH_SIZE,
+    )
+
+
+def _bulk_delete_tag_ids(model, ids: list[int]) -> None:
+    if not ids:
+        return
+    for id_batch in _chunked_ids(ids):
+        model.objects.filter(id__in=id_batch).delete()
+
+
+def _format_tag_value(tag, field_name: str):
+    if isinstance(tag, dict):
+        return tag.get(field_name)
+    return getattr(tag, field_name)
+
+
 def _format_raw_topic_tags(tag_rows: Iterable) -> str:
     grouped: OrderedDict[str, list[str]] = OrderedDict()
     for tag in tag_rows:
-        if tag.main_topic and tag.canonical_subtopic:
-            prefix = f"{tag.main_topic} / {tag.canonical_subtopic}"
-        else:
-            prefix = "/".join(tag.domains or [])
-        grouped.setdefault(prefix, []).append(tag.technique)
+        main_topic = _format_tag_value(tag, "main_topic")
+        canonical_subtopic = _format_tag_value(tag, "canonical_subtopic")
+        domains = _format_tag_value(tag, "domains") or []
+        technique = _format_tag_value(tag, "technique")
+        prefix = f"{main_topic} / {canonical_subtopic}" if main_topic and canonical_subtopic else "/".join(domains)
+        grouped.setdefault(prefix, []).append(technique)
 
     segments = []
     for prefix, techniques in grouped.items():
@@ -2917,11 +2993,94 @@ def _format_raw_topic_tags(tag_rows: Iterable) -> str:
     return f"Topic tags: {'; '.join(segments)}" if segments else ""
 
 
+def _formatted_topic_tags_by_parent_batch(
+    *,
+    parent_field_name: str,
+    parent_ids: list[int],
+    tag_model,
+) -> dict[int, str]:
+    parent_id_field = f"{parent_field_name}_id"
+    grouped_rows: dict[int, list[dict[str, object]]] = {
+        parent_id: []
+        for parent_id in parent_ids
+    }
+    tag_rows = (
+        tag_model.objects.filter(**{f"{parent_id_field}__in": parent_ids})
+        .values(
+            parent_id_field,
+            "technique",
+            "domains",
+            "main_topic",
+            "canonical_subtopic",
+        )
+        .order_by(parent_id_field, "id")
+        .iterator(chunk_size=SUBTOPIC_CLEANUP_BATCH_SIZE)
+    )
+    for tag in tag_rows:
+        grouped_rows.setdefault(tag[parent_id_field], []).append(tag)
+    return {
+        parent_id: _format_raw_topic_tags(grouped_rows.get(parent_id, []))
+        for parent_id in parent_ids
+    }
+
+
+def _bulk_rewrite_topic_tags(
+    *,
+    parent_ids: set[int],
+    parent_model,
+    tag_model,
+    parent_field_name: str,
+    timestamp_field_name: str | None = None,
+) -> int:
+    updated_count = 0
+    pending_updates = []
+    update_fields = ["topic_tags"]
+    if timestamp_field_name:
+        update_fields.append(timestamp_field_name)
+
+    for parent_id_batch in _chunked_ids(parent_ids):
+        current_values = {
+            row["id"]: row["topic_tags"]
+            for row in parent_model.objects.filter(id__in=parent_id_batch).values("id", "topic_tags")
+        }
+        next_values = _formatted_topic_tags_by_parent_batch(
+            parent_field_name=parent_field_name,
+            parent_ids=parent_id_batch,
+            tag_model=tag_model,
+        )
+        updated_at = timezone.now()
+        for parent_id in parent_id_batch:
+            next_value = next_values.get(parent_id, "")
+            if current_values.get(parent_id) == next_value:
+                continue
+            parent = parent_model(id=parent_id, topic_tags=next_value)
+            if timestamp_field_name:
+                setattr(parent, timestamp_field_name, updated_at)
+            pending_updates.append(parent)
+            updated_count += 1
+
+        if len(pending_updates) >= SUBTOPIC_CLEANUP_BATCH_SIZE:
+            parent_model.objects.bulk_update(
+                pending_updates,
+                update_fields,
+                batch_size=SUBTOPIC_CLEANUP_BATCH_SIZE,
+            )
+            pending_updates = []
+
+    if pending_updates:
+        parent_model.objects.bulk_update(
+            pending_updates,
+            update_fields,
+            batch_size=SUBTOPIC_CLEANUP_BATCH_SIZE,
+        )
+    return updated_count
+
+
 def _rewrite_problem_topic_tags(record_id: int) -> bool:
     record = ProblemSolveRecord.objects.values("topic_tags").get(id=record_id)
     tag_rows = (
         ProblemTopicTechnique.objects.filter(record_id=record_id)
-        .only("id", "technique", "domains", "main_topic", "canonical_subtopic")
+        .values("technique", "domains", "main_topic", "canonical_subtopic")
         .order_by("id")
     )
     next_value = _format_raw_topic_tags(tag_rows)
@@ -2935,7 +3094,7 @@ def _rewrite_statement_topic_tags(statement_id: int) -> bool:
     statement = ContestProblemStatement.objects.values("topic_tags").get(id=statement_id)
     tag_rows = (
         StatementTopicTechnique.objects.filter(statement_id=statement_id)
-        .only("id", "technique", "domains", "main_topic", "canonical_subtopic")
+        .values("technique", "domains", "main_topic", "canonical_subtopic")
         .order_by("id")
     )
     next_value = _format_raw_topic_tags(tag_rows)
@@ -2949,13 +3108,13 @@ def _rewrite_statement_topic_tags(statement_id: int) -> bool:
 
 
 def _apply_problem_tag_cleanup() -> SubtopicCleanupApplyResult:
-    updated_count = 0
-    deleted_count = 0
+    updated_rows: list[ProblemTopicTechnique] = []
+    duplicate_ids: list[int] = []
     touched_record_ids: set[int] = set()
     grouped_rows: dict[tuple[int, str], tuple[SubtopicTaxonomyEntry, list[ProblemTopicTechnique]]] = {}
     rows_by_technique: dict[tuple[int, str], ProblemTopicTechnique] = {}
 
-    for tag in _problem_tag_rows():
+    for tag in _problem_cleanup_tag_rows():
         rows_by_technique[(tag.record_id, tag.technique)] = tag
         entry = taxonomy_entry_for_technique(tag.technique)
         if entry is None:
@@ -2971,30 +3130,34 @@ def _apply_problem_tag_cleanup() -> SubtopicCleanupApplyResult:
             target_technique,
             rows,
         )
-        updated, deleted = _apply_parent_group(merged_rows, entry)
-        updated_count += updated
-        deleted_count += deleted
+        updated_row, row_duplicate_ids = _prepare_parent_group_update(merged_rows, entry)
+        if updated_row is not None:
+            updated_rows.append(updated_row)
+        duplicate_ids.extend(row_duplicate_ids)
 
-    raw_update_count = sum(
-        1
-        for record_id in touched_record_ids
-        if _rewrite_problem_topic_tags(record_id)
+    _bulk_delete_tag_ids(ProblemTopicTechnique, duplicate_ids)
+    _bulk_update_tag_rows(ProblemTopicTechnique, updated_rows)
+    raw_update_count = _bulk_rewrite_topic_tags(
+        parent_ids=touched_record_ids,
+        parent_model=ProblemSolveRecord,
+        tag_model=ProblemTopicTechnique,
+        parent_field_name="record",
     )
     return SubtopicCleanupApplyResult(
-        deleted_count=deleted_count,
+        deleted_count=len(duplicate_ids),
         raw_update_count=raw_update_count,
-        updated_count=updated_count,
+        updated_count=len(updated_rows),
     )
 
 
 def _apply_statement_tag_cleanup() -> SubtopicCleanupApplyResult:
-    updated_count = 0
-    deleted_count = 0
+    updated_rows: list[StatementTopicTechnique] = []
+    duplicate_ids: list[int] = []
     touched_statement_ids: set[int] = set()
     grouped_rows: dict[tuple[int, str], tuple[SubtopicTaxonomyEntry, list[StatementTopicTechnique]]] = {}
     rows_by_technique: dict[tuple[int, str], StatementTopicTechnique] = {}
 
-    for tag in _statement_tag_rows():
+    for tag in _statement_cleanup_tag_rows():
         rows_by_technique[(tag.statement_id, tag.technique)] = tag
         entry = taxonomy_entry_for_technique(tag.technique)
         if entry is None:
@@ -3010,19 +3173,24 @@ def _apply_statement_tag_cleanup() -> SubtopicCleanupApplyResult:
             target_technique,
             rows,
         )
-        updated, deleted = _apply_parent_group(merged_rows, entry)
-        updated_count += updated
-        deleted_count += deleted
+        updated_row, row_duplicate_ids = _prepare_parent_group_update(merged_rows, entry)
+        if updated_row is not None:
+            updated_rows.append(updated_row)
+        duplicate_ids.extend(row_duplicate_ids)
 
-    raw_update_count = sum(
-        1
-        for statement_id in touched_statement_ids
-        if _rewrite_statement_topic_tags(statement_id)
+    _bulk_delete_tag_ids(StatementTopicTechnique, duplicate_ids)
+    _bulk_update_tag_rows(StatementTopicTechnique, updated_rows)
+    raw_update_count = _bulk_rewrite_topic_tags(
+        parent_ids=touched_statement_ids,
+        parent_model=ContestProblemStatement,
+        tag_model=StatementTopicTechnique,
+        parent_field_name="statement",
+        timestamp_field_name="updated_at",
     )
     return SubtopicCleanupApplyResult(
-        deleted_count=deleted_count,
+        deleted_count=len(duplicate_ids),
         raw_update_count=raw_update_count,
-        updated_count=updated_count,
+        updated_count=len(updated_rows),
     )
 
 
