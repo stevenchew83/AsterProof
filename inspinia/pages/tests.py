@@ -16801,6 +16801,38 @@ def test_problem_statement_metadata_subtopic_cleanup_preview_avoids_large_statem
     assert all("statement_latex" not in query for query in statement_tag_queries)
 
 
+def test_subtopic_cleanup_apply_batches_statement_raw_tag_rewrites():
+    statement_count = 6
+    max_statement_tag_selects = 3
+    for index in range(statement_count):
+        statement = ContestProblemStatement.objects.create(
+            contest_year=2026,
+            contest_name="Israel TST",
+            problem_number=index + 1,
+            problem_code=f"P{index + 1}",
+            day_label="Day 1",
+            statement_latex="Apply cleanup statement",
+            topic_tags="Topic tags: Geo - miquel point",
+        )
+        StatementTopicTechnique.objects.create(
+            statement=statement,
+            technique="miquel point",
+            domains=["geo"],
+        )
+
+    with CaptureQueriesContext(connection) as queries:
+        result = apply_subtopic_cleanup()
+
+    statement_tag_selects = [
+        query["sql"]
+        for query in queries
+        if query["sql"].startswith("SELECT")
+        and "pages_statementtopictechnique" in query["sql"]
+    ]
+    assert result.raw_update_count == statement_count
+    assert len(statement_tag_selects) <= max_statement_tag_selects
+
+
 def test_problem_statement_metadata_page_applies_subtopic_cleanup_and_rewrites_raw_tags(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
