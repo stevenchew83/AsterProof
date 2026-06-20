@@ -740,6 +740,17 @@ def _tagged_statement_rows(*, user: User) -> list[dict[str, object]]:
     statements = list(
         ContestProblemStatement.objects.filter(is_active=True)
         .select_related("linked_problem")
+        .only(
+            "id",
+            "linked_problem_id",
+            "topic",
+            "contest_year",
+            "contest_name",
+            "problem_number",
+            "problem_code",
+            "linked_problem__id",
+            "linked_problem__topic",
+        )
         .order_by("-contest_year", "contest_name", "problem_number", "problem_code", "id"),
     )
     if not statements:

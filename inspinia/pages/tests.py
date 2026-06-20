@@ -11860,6 +11860,38 @@ def test_technique_progress_dashboard_prefers_statement_tags_with_problem_fallba
     assert "DO NOT DISPLAY" not in response.content.decode("utf-8")
 
 
+def test_technique_progress_gaps_page_defers_heavy_statement_fields(client):
+    user = UserFactory()
+    client.force_login(user)
+    _create_technique_progress_statement(
+        statement_tags=[
+            {
+                "technique": "INEQUALITIES",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": "Inequalities and optimization",
+            },
+        ],
+    )
+
+    with CaptureQueriesContext(connection) as captured_queries:
+        response = client.get(
+            reverse("pages:technique_progress_gaps"),
+            {"kind": "subtopics", "topic": "algebra"},
+        )
+
+    assert response.status_code == HTTPStatus.OK
+    statement_query = next(
+        query["sql"]
+        for query in captured_queries.captured_queries
+        if 'FROM "pages_contestproblemstatement"' in query["sql"]
+        and 'ORDER BY "pages_contestproblemstatement"."contest_year"' in query["sql"]
+    )
+    assert '"pages_contestproblemstatement"."statement_latex"' not in statement_query
+    assert '"pages_contestproblemstatement"."core_ideas"' not in statement_query
+    assert '"pages_problemsolverecord"."core_ideas"' not in statement_query
+
+
 def test_technique_progress_dashboard_exposes_practice_links(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     selected_user = UserFactory()
