@@ -59,72 +59,6 @@
     </div>
   </div>
 
-  <div class="row g-3 mt-0">
-    <div class="col-sm-6 col-xl-3">
-      <div class="card">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-primary-subtle text-primary rounded"><i class="ti ti-tags fs-24"></i></span>
-            </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Tagged statements</p>
-              <h3 class="mb-0">{{ technique_progress_stats.tagged_statement_total }}</h3>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-6 col-xl-3">
-      <div class="card">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-success-subtle text-success rounded"><i class="ti ti-checks fs-24"></i></span>
-            </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Completed</p>
-              <h3 class="mb-0">{{ technique_progress_stats.completed_statement_total }}</h3>
-              <span class="text-muted fs-xs">{{ technique_progress_stats.completion_percent }}% coverage</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-6 col-xl-3">
-      <div class="card">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-warning-subtle text-warning rounded"><i class="ti ti-target-arrow fs-24"></i></span>
-            </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Incomplete subtopics</p>
-              <h3 class="mb-0">{{ technique_progress_stats.incomplete_subtopic_total }}</h3>
-              <span class="text-muted fs-xs">{{ technique_progress_stats.subtopic_total }} total</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-6 col-xl-3">
-      <div class="card">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-info-subtle text-info rounded"><i class="ti ti-list-check fs-24"></i></span>
-            </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Incomplete techniques</p>
-              <h3 class="mb-0">{{ technique_progress_stats.incomplete_technique_total }}</h3>
-              <span class="text-muted fs-xs">{{ technique_progress_stats.technique_total }} total</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
   {% if not technique_progress_has_tagged_statements %}
   <div class="alert alert-info mt-3" role="alert">
     No active tagged statements are available yet.
@@ -140,8 +74,15 @@
     <div class="col-12">
       <div class="card">
         <div class="card-header border-0 pb-0">
-          <h4 class="header-title mb-0">Practice remaining</h4>
-          <p class="text-muted fs-xs mb-0">Incomplete areas with the most remaining tagged statements.</p>
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <div>
+              <h4 class="header-title mb-0">Practice remaining</h4>
+              <p class="text-muted fs-xs mb-0">Incomplete areas with the most remaining tagged statements.</p>
+            </div>
+            <a href="{{ technique_progress_all_gaps_url }}" class="btn btn-sm btn-outline-primary">
+              <i class="ti ti-list-details me-1"></i>View all gaps
+            </a>
+          </div>
         </div>
         <div class="card-body pt-2">
           {% if technique_progress_next_gaps %}
@@ -151,6 +92,8 @@
                 <tr>
                   <th scope="col">Area</th>
                   <th scope="col">Type</th>
+                  <th scope="col">Topic</th>
+                  <th scope="col">Completed</th>
                   <th scope="col">Remaining</th>
                   <th scope="col">Coverage</th>
                   <th scope="col" class="text-end">Action</th>
@@ -161,7 +104,9 @@
                 <tr>
                   <td class="fw-semibold">{{ row.label }}</td>
                   <td><span class="badge bg-secondary-subtle text-secondary">{{ row.type }}</span></td>
-                  <td>{{ row.remaining }} of {{ row.total }}</td>
+                  <td class="text-muted">{{ row.main_topic_label|default:"-" }}</td>
+                  <td>{{ row.solved }} of {{ row.total }}</td>
+                  <td>{{ row.remaining }}</td>
                   <td>
                     <div class="d-flex align-items-center gap-2 technique-progress-bar">
                       <div class="progress flex-grow-1" style="height: .45rem;">
@@ -191,95 +136,33 @@
     </div>
   </div>
 
-  <div class="row g-3 mt-0">
-    <div class="col-12">
-      <div class="card">
-        <div class="card-header border-0 pb-0">
-          <h4 class="header-title mb-0">Subtopic progress</h4>
-          <p class="text-muted fs-xs mb-0">Canonical subtopics, with technique labels used when no canonical subtopic exists.</p>
-        </div>
-        <div class="card-body pt-2">
-          {% if technique_progress_subtopic_rows %}
-          <div class="table-responsive">
-            <table class="table table-sm table-striped align-middle mb-0">
-              <thead>
-                <tr>
-                  <th scope="col">Subtopic</th>
-                  <th scope="col">Topic</th>
-                  <th scope="col">Completed</th>
-                  <th scope="col">Remaining</th>
-                  <th scope="col">Coverage</th>
-                  <th scope="col" class="text-end">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for row in technique_progress_subtopic_rows %}
-                <tr>
-                  <td class="fw-semibold">{{ row.label }}</td>
-                  <td class="text-muted">{{ row.main_topic_label|default:"-" }}</td>
-                  <td>{{ row.solved }} of {{ row.total }}</td>
-                  <td>
-                    {% if row.remaining %}
-                    <span class="badge bg-warning-subtle text-warning">{{ row.remaining }}</span>
-                    {% else %}
-                    <span class="badge bg-success-subtle text-success">Complete</span>
-                    {% endif %}
-                  </td>
-                  <td>
-                    <div class="d-flex align-items-center gap-2 technique-progress-bar">
-                      <div class="progress flex-grow-1" style="height: .45rem;">
-                        <div class="progress-bar" role="progressbar" style="width: {{ row.completion_percent }}%;" aria-valuenow="{{ row.completion_percent }}" aria-valuemin="0" aria-valuemax="100"></div>
-                      </div>
-                      <span class="text-muted fs-xs">{{ row.completion_percent }}%</span>
-                    </div>
-                  </td>
-                  <td class="text-end">
-                    <a href="{{ row.practice_url }}" class="btn btn-sm btn-outline-primary">Practice</a>
-                  </td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-          {% else %}
-          <div class="technique-progress-empty">
-            <div>
-              <h5 class="mb-1">No subtopics found.</h5>
-              <p class="text-muted fs-xs mb-0">Import or clean statement subtopics to populate this table.</p>
-            </div>
-          </div>
-          {% endif %}
-        </div>
-      </div>
-    </div>
-  </div>
-
   <div class="row g-3 mt-0 mb-4">
     <div class="col-12">
       <div class="card">
         <div class="card-header border-0 pb-0">
-          <h4 class="header-title mb-0">Technique progress</h4>
-          <p class="text-muted fs-xs mb-0">Parsed technique tags from active statements and linked problem fallback rows.</p>
+          <h4 class="header-title mb-0">Main topic progress</h4>
+          <p class="text-muted fs-xs mb-0">Progress grouped by the four olympiad topic families.</p>
         </div>
         <div class="card-body pt-2">
-          {% if technique_progress_technique_rows %}
+          {% if technique_progress_main_topic_rows %}
           <div class="table-responsive">
             <table class="table table-sm table-striped align-middle mb-0">
               <thead>
                 <tr>
-                  <th scope="col">Technique</th>
                   <th scope="col">Topic</th>
+                  <th scope="col">Tagged</th>
                   <th scope="col">Completed</th>
                   <th scope="col">Remaining</th>
+                  <th scope="col">Open subtopics</th>
                   <th scope="col">Coverage</th>
                   <th scope="col" class="text-end">Action</th>
                 </tr>
               </thead>
               <tbody>
-                {% for row in technique_progress_technique_rows %}
+                {% for row in technique_progress_main_topic_rows %}
                 <tr>
                   <td class="fw-semibold">{{ row.label }}</td>
-                  <td class="text-muted">{{ row.main_topic_label|default:"-" }}</td>
+                  <td>{{ row.total }}</td>
                   <td>{{ row.solved }} of {{ row.total }}</td>
                   <td>
                     {% if row.remaining %}
@@ -288,6 +171,7 @@
                     <span class="badge bg-success-subtle text-success">Complete</span>
                     {% endif %}
                   </td>
+                  <td>{{ row.incomplete_subtopic_total }} of {{ row.subtopic_total }}</td>
                   <td>
                     <div class="d-flex align-items-center gap-2 technique-progress-bar">
                       <div class="progress flex-grow-1" style="height: .45rem;">
@@ -297,7 +181,7 @@
                     </div>
                   </td>
                   <td class="text-end">
-                    <a href="{{ row.practice_url }}" class="btn btn-sm btn-outline-primary">Practice</a>
+                    <a href="{{ row.topic_detail_url }}" class="btn btn-sm btn-outline-primary">View details</a>
                   </td>
                 </tr>
                 {% endfor %}
@@ -307,8 +191,8 @@
           {% else %}
           <div class="technique-progress-empty">
             <div>
-              <h5 class="mb-1">No techniques found.</h5>
-              <p class="text-muted fs-xs mb-0">Import parsed technique tags to populate this table.</p>
+              <h5 class="mb-1">No topics found.</h5>
+              <p class="text-muted fs-xs mb-0">Import or clean statement topic tags to populate this table.</p>
             </div>
           </div>
           {% endif %}
