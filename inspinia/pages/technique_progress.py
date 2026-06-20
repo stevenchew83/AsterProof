@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import csv
 from collections import defaultdict
 from typing import TYPE_CHECKING
 from urllib.parse import urlencode
 
-from django.core.paginator import Paginator
 from django.db.models import F
+from django.http import HttpResponse
 from django.urls import reverse
 
 from inspinia.pages.completion_record_fields import is_completion_status_solved
@@ -23,6 +24,16 @@ if TYPE_CHECKING:
 
 NEXT_GAP_LIMIT = 6
 GAP_PAGE_SIZE = 50
+GAP_CSV_CONTENT_TYPE = "text/csv; charset=utf-8"
+GAP_CSV_FIELDNAMES = [
+    "Area",
+    "Type",
+    "Topic",
+    "Completed",
+    "Remaining",
+    "Coverage",
+    "Practice URL",
+]
 GAP_KIND_SUBTOPICS = "subtopics"
 GAP_KIND_TECHNIQUES = "techniques"
 GAP_KIND_ALL = "all"
@@ -104,14 +115,13 @@ def build_technique_progress_context(
     }
 
 
-def build_technique_progress_gaps_context(  # noqa: PLR0913
+def build_technique_progress_gaps_context(
     *,
     request_user: User,
     raw_user_id: str = "",
     raw_kind: str = "",
     raw_topic: str = "",
     raw_min_total: str = "",
-    raw_page: str = "",
 ) -> dict[str, object]:
     payload = _build_progress_payload(request_user=request_user, raw_user_id=raw_user_id)
     base_context = payload["base_context"]
@@ -120,16 +130,22 @@ def build_technique_progress_gaps_context(  # noqa: PLR0913
     gap_kind = _gap_kind(raw_kind)
     gap_topic = _gap_topic(raw_topic)
     gap_min_total = _gap_min_total(raw_min_total)
-    gap_rows = _rows_for_gap_kind(
+    gap_rows = _filtered_gap_rows(
+        payload=payload,
         gap_kind=gap_kind,
-        subtopic_rows=payload["subtopic_rows"],
-        technique_rows=payload["technique_rows"],
+        gap_topic=gap_topic,
+        gap_min_total=gap_min_total,
     )
-    gap_rows = _filter_gap_rows_by_topic(gap_rows, gap_topic=gap_topic)
-    gap_rows = _filter_gap_rows_by_min_total(gap_rows, gap_min_total=gap_min_total)
-    page_obj = Paginator(gap_rows, GAP_PAGE_SIZE).get_page(raw_page)
     return {
         **base_context,
+        "technique_progress_gap_export_url": _gap_url(
+            selected_user=selected_user,
+            can_select_user=can_select_user,
+            gap_kind=gap_kind,
+            gap_topic=gap_topic,
+            gap_min_total=gap_min_total,
+            extra_query={"export": "csv"},
+        ),
         "technique_progress_gap_kind": gap_kind,
         "technique_progress_gap_kind_options": _gap_kind_options(
             selected_user=selected_user,
@@ -145,27 +161,11 @@ def build_technique_progress_gaps_context(  # noqa: PLR0913
             gap_kind=gap_kind,
             gap_topic=gap_topic,
         ),
-        "technique_progress_gap_page_obj": page_obj,
-        "technique_progress_gap_pagination_suffix": _gap_pagination_suffix(
-            selected_user=selected_user,
-            can_select_user=can_select_user,
-            gap_kind=gap_kind,
-            gap_topic=gap_topic,
-            gap_min_total=gap_min_total,
-        ),
         "technique_progress_gap_result_summary": _gap_result_summary(
-            page_obj,
+            gap_rows,
             gap_kind=gap_kind,
         ),
-        "technique_progress_gap_rows": list(page_obj.object_list),
-        "technique_progress_gap_rows_url": _gap_url(
-            selected_user=selected_user,
-            can_select_user=can_select_user,
-            gap_kind=gap_kind,
-            gap_topic=gap_topic,
-            gap_min_total=gap_min_total,
-            extra_query={"format": "datatable"},
-        ),
+        "technique_progress_gap_rows": gap_rows,
         "technique_progress_gap_show_type_column": gap_kind == GAP_KIND_ALL,
         "technique_progress_gap_title": _gap_title(gap_kind),
         "technique_progress_gap_topic": gap_topic,
@@ -178,6 +178,30 @@ def build_technique_progress_gaps_context(  # noqa: PLR0913
         ),
         "technique_progress_stats": payload["stats"],
     }
+
+
+def build_technique_progress_gaps_csv_response(
+    *,
+    request_user: User,
+    raw_user_id: str = "",
+    raw_kind: str = "",
+    raw_topic: str = "",
+    raw_min_total: str = "",
+) -> HttpResponse:
+    payload = _build_progress_payload(request_user=request_user, raw_user_id=raw_user_id)
+    gap_min_total = _gap_min_total(raw_min_total)
+    gap_rows = _filtered_gap_rows(
+        payload=payload,
+        gap_kind=_gap_kind(raw_kind),
+        gap_topic=_gap_topic(raw_topic),
+        gap_min_total=gap_min_total,
+    )
+    response = HttpResponse(content_type=GAP_CSV_CONTENT_TYPE)
+    response["Content-Disposition"] = 'attachment; filename="technique-progress-gaps.csv"'
+    writer = csv.DictWriter(response, fieldnames=GAP_CSV_FIELDNAMES)
+    writer.writeheader()
+    writer.writerows(_gap_csv_row(row) for row in gap_rows)
+    return response
 
 
 def build_technique_progress_gaps_datatable_payload(  # noqa: PLR0913
@@ -194,13 +218,12 @@ def build_technique_progress_gaps_datatable_payload(  # noqa: PLR0913
     gap_kind = _gap_kind(raw_kind)
     gap_topic = _gap_topic(raw_topic)
     gap_min_total = _gap_min_total(raw_min_total)
-    gap_rows = _rows_for_gap_kind(
+    gap_rows = _filtered_gap_rows(
+        payload=payload,
         gap_kind=gap_kind,
-        subtopic_rows=payload["subtopic_rows"],
-        technique_rows=payload["technique_rows"],
+        gap_topic=gap_topic,
+        gap_min_total=gap_min_total,
     )
-    gap_rows = _filter_gap_rows_by_topic(gap_rows, gap_topic=gap_topic)
-    gap_rows = _filter_gap_rows_by_min_total(gap_rows, gap_min_total=gap_min_total)
 
     draw = _datatable_int(params.get("draw"), default=0)
     start = _datatable_int(params.get("start"), default=0)
@@ -439,6 +462,22 @@ def _filter_gap_rows_by_topic(
     ]
 
 
+def _filtered_gap_rows(
+    *,
+    payload: dict[str, object],
+    gap_kind: str,
+    gap_topic: str,
+    gap_min_total: int,
+) -> list[dict[str, object]]:
+    gap_rows = _rows_for_gap_kind(
+        gap_kind=gap_kind,
+        subtopic_rows=payload["subtopic_rows"],
+        technique_rows=payload["technique_rows"],
+    )
+    gap_rows = _filter_gap_rows_by_topic(gap_rows, gap_topic=gap_topic)
+    return _filter_gap_rows_by_min_total(gap_rows, gap_min_total=gap_min_total)
+
+
 def _filter_gap_rows_by_min_total(
     rows: list[dict[str, object]],
     *,
@@ -547,8 +586,8 @@ def _gap_pagination_suffix(
     return f"&{query_string}" if query_string else ""
 
 
-def _gap_result_summary(page_obj, *, gap_kind: str) -> str:
-    row_total = page_obj.paginator.count
+def _gap_result_summary(rows: list[dict[str, object]], *, gap_kind: str) -> str:
+    row_total = len(rows)
     noun = {
         GAP_KIND_SUBTOPICS: "subtopic gaps",
         GAP_KIND_TECHNIQUES: "technique gaps",
@@ -556,7 +595,7 @@ def _gap_result_summary(page_obj, *, gap_kind: str) -> str:
     }[gap_kind]
     if not row_total:
         return f"Showing 0 of 0 {noun}"
-    return f"Showing {page_obj.start_index()}-{page_obj.end_index()} of {row_total} {noun}"
+    return f"Showing {row_total} {noun}"
 
 
 def _gap_title(gap_kind: str) -> str:
@@ -659,6 +698,20 @@ def _gap_datatable_row(row: dict[str, object]) -> dict[str, object]:
         "solved_total_label": f"{solved} of {total}",
         "total": total,
         "type": row["type"],
+    }
+
+
+def _gap_csv_row(row: dict[str, object]) -> dict[str, object]:
+    solved = int(row["solved"])
+    total = int(row["total"])
+    return {
+        "Area": row["label"],
+        "Type": row["type"],
+        "Topic": row["main_topic_label"] or "-",
+        "Completed": f"{solved} of {total}",
+        "Remaining": int(row["remaining"]),
+        "Coverage": f"{row['completion_percent']}%",
+        "Practice URL": row["practice_url"],
     }
 
 

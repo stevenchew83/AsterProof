@@ -11926,10 +11926,13 @@ def test_technique_progress_gaps_page_filters_by_minimum_total_statements(client
     assert 'id="technique-progress-min-total"' in response_html
     assert 'name="min_total"' in response_html
     assert 'value="3"' in response_html
+    assert "Large sample" in response_html
+    assert "Small sample" not in response_html
     assert (
-        'data-rows-url="/dashboard/techniques/gaps/?kind=subtopics&amp;topic=algebra'
-        '&amp;min_total=3&amp;format=datatable"'
+        'href="/dashboard/techniques/gaps/?kind=subtopics&amp;topic=algebra'
+        '&amp;min_total=3&amp;export=csv"'
     ) in response_html
+    assert 'data-rows-url="' not in response_html
 
 
 def test_technique_progress_gaps_page_defaults_to_subtopic_rows(client):
@@ -11963,7 +11966,9 @@ def test_technique_progress_gaps_page_defaults_to_subtopic_rows(client):
     response_html = gaps_response.content.decode("utf-8")
     assert "Subtopic practice gaps" in response_html
     assert 'id="technique-progress-gaps-table"' in response_html
-    assert 'data-rows-url="/dashboard/techniques/gaps/?kind=subtopics&amp;topic=all&amp;format=datatable"' in response_html
+    assert 'id="technique-progress-gaps-export"' in response_html
+    assert 'href="/dashboard/techniques/gaps/?kind=subtopics&amp;topic=all&amp;export=csv"' in response_html
+    assert 'data-rows-url="' not in response_html
     assert 'data-page-length="50"' in response_html
     assert "plugins/datatables/dataTables.bootstrap5.min.css" in response_html
     assert 'order: [[coverageColumnIndex, "desc"]]' in response_html
@@ -12004,8 +12009,8 @@ def test_technique_progress_gaps_page_preserves_admin_selected_user(client):
     assert "target-progress@example.com" in response_html
     assert f"?user={selected_user.pk}" in response_html
     assert (
-        f'data-rows-url="/dashboard/techniques/gaps/?user={selected_user.pk}'
-        "&amp;kind=subtopics&amp;topic=all&amp;format=datatable"
+        f'href="/dashboard/techniques/gaps/?user={selected_user.pk}'
+        "&amp;kind=subtopics&amp;topic=all&amp;export=csv"
         '"'
     ) in response_html
 
@@ -12036,7 +12041,7 @@ def test_technique_progress_gaps_page_technique_mode_lists_techniques(client):
     response_html = response.content.decode("utf-8")
     assert "Technique practice gaps" in response_html
     assert "<th scope=\"col\">Type</th>" not in response_html
-    assert "ANGLE CHASE" not in response_html
+    assert "ANGLE CHASE" in response_html
 
 
 def test_technique_progress_gaps_page_all_mode_suppresses_duplicate_technique_labels(client):
@@ -12169,7 +12174,7 @@ def test_technique_progress_gaps_page_filters_by_main_topic(client):
     ] == ["Circle geometry"]
     response_html = response.content.decode("utf-8")
     assert "Inequalities" not in response_html
-    assert "Circle geometry" not in response_html
+    assert "Circle geometry" in response_html
 
     combinatorics_response = client.get(
         reverse("pages:technique_progress_gaps"),
@@ -12228,7 +12233,7 @@ def test_technique_progress_gaps_page_topic_tabs_preserve_user_and_kind(client):
     )
 
 
-def test_technique_progress_gaps_page_exposes_datatable_feed_and_preserves_filters(client):
+def test_technique_progress_gaps_page_uses_client_side_datatable_and_preserves_filters(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     selected_user = UserFactory()
     client.force_login(admin_user)
@@ -12250,31 +12255,101 @@ def test_technique_progress_gaps_page_exposes_datatable_feed_and_preserves_filte
         reverse("pages:technique_progress_gaps"),
         {"user": str(selected_user.pk), "kind": "subtopics", "topic": "algebra"},
     )
-    second_page = client.get(
-        reverse("pages:technique_progress_gaps"),
-        {"user": str(selected_user.pk), "kind": "subtopics", "topic": "algebra", "page": "2"},
-    )
-
     assert first_page.status_code == HTTPStatus.OK
-    assert first_page.context["technique_progress_gap_page_obj"].paginator.count == 52
-    assert len(first_page.context["technique_progress_gap_rows"]) == EXPECTED_PROGRESS_GAP_PAGE_SIZE
-    assert first_page.context["technique_progress_gap_result_summary"] == "Showing 1-50 of 52 subtopic gaps"
-    assert first_page.context["technique_progress_gap_pagination_suffix"] == (
-        f"&user={selected_user.pk}&kind=subtopics&topic=algebra"
+    assert len(first_page.context["technique_progress_gap_rows"]) == 52
+    assert first_page.context["technique_progress_gap_result_summary"] == "Showing 52 subtopic gaps"
+    assert first_page.context["technique_progress_gap_export_url"] == (
+        f"{reverse('pages:technique_progress_gaps')}?user={selected_user.pk}"
+        "&kind=subtopics&topic=algebra&export=csv"
     )
-    assert second_page.status_code == HTTPStatus.OK
-    assert second_page.context["technique_progress_gap_page_obj"].number == 2
-    assert [
-        row["label"]
-        for row in second_page.context["technique_progress_gap_rows"]
-    ] == ["Gap 51", "Gap 52"]
     response_html = first_page.content.decode("utf-8")
+    assert "serverSide: true" not in response_html
+    assert "ajax:" not in response_html
+    assert 'id="technique-progress-gaps-export"' in response_html
+    assert (
+        f'href="/dashboard/techniques/gaps/?user={selected_user.pk}'
+        "&amp;kind=subtopics&amp;topic=algebra&amp;export=csv"
+        '"'
+    ) in response_html
+    assert "Gap 01" in response_html
+    assert "Gap 52" in response_html
     assert (
         f'data-rows-url="/dashboard/techniques/gaps/?user={selected_user.pk}'
         "&amp;kind=subtopics&amp;topic=algebra&amp;format=datatable"
         '"'
-    ) in response_html
+    ) not in response_html
     assert "pagination-boxed" not in response_html
+
+    second_page = client.get(
+        reverse("pages:technique_progress_gaps"),
+        {"user": str(selected_user.pk), "kind": "subtopics", "topic": "algebra", "page": "2"},
+    )
+    assert second_page.status_code == HTTPStatus.OK
+    assert len(second_page.context["technique_progress_gap_rows"]) == 52
+    assert [
+        row["label"]
+        for row in second_page.context["technique_progress_gap_rows"][-2:]
+    ] == ["Gap 51", "Gap 52"]
+
+
+def test_technique_progress_gaps_export_csv_uses_url_filters_and_ignores_datatable_search(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    selected_user = UserFactory()
+    client.force_login(admin_user)
+    _create_technique_progress_statement(
+        problem_code="P1",
+        problem_number=1,
+        statement_tags=[
+            {
+                "technique": "INEQUALITY",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": "Algebra gap",
+            },
+        ],
+    )
+    _create_technique_progress_statement(
+        problem_code="P2",
+        problem_number=2,
+        statement_tags=[
+            {
+                "technique": "ANGLE CHASE",
+                "domains": ["GEO"],
+                "main_topic": "GEO",
+                "canonical_subtopic": "Geometry gap",
+            },
+        ],
+    )
+
+    response = client.get(
+        reverse("pages:technique_progress_gaps"),
+        {
+            "user": str(selected_user.pk),
+            "kind": "subtopics",
+            "topic": "algebra",
+            "export": "csv",
+            "search[value]": "does not match",
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response["Content-Type"] == "text/csv; charset=utf-8"
+    assert 'filename="technique-progress-gaps.csv"' in response["Content-Disposition"]
+    csv_rows = list(csv.DictReader(StringIO(response.content.decode("utf-8"))))
+    assert csv_rows == [
+        {
+            "Area": "Algebra gap",
+            "Type": "Subtopic",
+            "Topic": "Algebra",
+            "Completed": "0 of 1",
+            "Remaining": "1",
+            "Coverage": "0%",
+            "Practice URL": (
+                f"{reverse('pages:completion_quick_update')}"
+                f"?target_user_id={selected_user.pk}&subtopics=Algebra+gap"
+            ),
+        },
+    ]
 
 
 def test_technique_progress_gaps_datatable_defaults_to_coverage_desc(client):

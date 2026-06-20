@@ -98,10 +98,19 @@
               <h4 class="header-title mb-0">{{ technique_progress_gap_title }}</h4>
               <p class="text-muted fs-xs mb-0">{{ technique_progress_gap_result_summary }}. Search and sort across all matching gaps.</p>
             </div>
-            <div class="btn-group btn-group-sm" role="group" aria-label="Practice gap type">
-              {% for option in technique_progress_gap_kind_options %}
-              <a href="{{ option.url }}" class="btn {% if option.is_active %}btn-primary{% else %}btn-outline-primary{% endif %}">{{ option.label }}</a>
-              {% endfor %}
+            <div class="d-flex flex-wrap align-items-center gap-2">
+              <a
+                href="{{ technique_progress_gap_export_url }}"
+                id="technique-progress-gaps-export"
+                class="btn btn-sm btn-outline-success"
+              >
+                <i class="ti ti-table-export me-1"></i>Export CSV
+              </a>
+              <div class="btn-group btn-group-sm" role="group" aria-label="Practice gap type">
+                {% for option in technique_progress_gap_kind_options %}
+                <a href="{{ option.url }}" class="btn {% if option.is_active %}btn-primary{% else %}btn-outline-primary{% endif %}">{{ option.label }}</a>
+                {% endfor %}
+              </div>
             </div>
           </div>
         </div>
@@ -147,7 +156,6 @@
               id="technique-progress-gaps-table"
               class="table table-sm table-hover align-middle mb-0 w-100"
               data-page-length="50"
-              data-rows-url="{{ technique_progress_gap_rows_url }}"
               data-show-type-column="{% if technique_progress_gap_show_type_column %}true{% else %}false{% endif %}"
             >
               <thead>
@@ -163,7 +171,37 @@
                   <th scope="col" class="text-end">Action</th>
                 </tr>
               </thead>
-              <tbody></tbody>
+              <tbody>
+                {% for row in technique_progress_gap_rows %}
+                <tr>
+                  <td><span class="fw-semibold">{{ row.label }}</span></td>
+                  {% if technique_progress_gap_show_type_column %}
+                  <td><span class="badge bg-secondary-subtle text-secondary">{{ row.type }}</span></td>
+                  {% endif %}
+                  <td>{{ row.main_topic_label|default:'-' }}</td>
+                  <td data-order="{{ row.solved }}">{{ row.solved }} of {{ row.total }}</td>
+                  <td data-order="{{ row.remaining }}">{{ row.remaining }}</td>
+                  <td data-order="{{ row.completion_percent }}">
+                    <div class="d-flex align-items-center gap-2 technique-progress-bar">
+                      <div class="progress flex-grow-1" style="height: .45rem;">
+                        <div
+                          class="progress-bar"
+                          role="progressbar"
+                          style="width: {{ row.completion_percent }}%;"
+                          aria-valuenow="{{ row.completion_percent }}"
+                          aria-valuemin="0"
+                          aria-valuemax="100"
+                        ></div>
+                      </div>
+                      <span class="text-muted fs-xs">{{ row.completion_percent }}%</span>
+                    </div>
+                  </td>
+                  <td class="text-end">
+                    <a href="{{ row.practice_url }}" class="btn btn-sm btn-outline-primary">Practice</a>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
             </table>
           </div>
         </div>
@@ -186,80 +224,10 @@
   var coverageColumnIndex = showTypeColumn ? 5 : 4;
   var actionColumnIndex = showTypeColumn ? 6 : 5;
 
-  function escapeHtml(value) {
-    return String(value === undefined || value === null ? "" : value)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#39;");
-  }
-
-  function renderText(data, type) {
-    if (type !== "display") return data || "";
-    return escapeHtml(data || "");
-  }
-
-  function renderArea(data, type) {
-    if (type !== "display") return data || "";
-    return '<span class="fw-semibold">' + escapeHtml(data || "") + "</span>";
-  }
-
-  function renderType(data, type) {
-    if (type !== "display") return data || "";
-    return '<span class="badge bg-secondary-subtle text-secondary">' + escapeHtml(data || "") + "</span>";
-  }
-
-  function renderCoverage(data, type, row) {
-    var percent = Number(data || 0);
-    if (type !== "display") return percent;
-    return [
-      '<div class="d-flex align-items-center gap-2 technique-progress-bar">',
-      '<div class="progress flex-grow-1" style="height: .45rem;">',
-      '<div class="progress-bar" role="progressbar" style="width: ',
-      percent,
-      '%;" aria-valuenow="',
-      percent,
-      '" aria-valuemin="0" aria-valuemax="100"></div>',
-      "</div>",
-      '<span class="text-muted fs-xs">',
-      escapeHtml(row && row.coverage_label ? row.coverage_label : percent + "%"),
-      "</span>",
-      "</div>"
-    ].join("");
-  }
-
-  function renderPractice(data, type) {
-    if (type !== "display") return data || "";
-    return '<a href="' + escapeHtml(data || "#") + '" class="btn btn-sm btn-outline-primary">Practice</a>';
-  }
-
-  var columns = [
-    { data: "label", name: "label", render: renderArea },
-    { data: "main_topic_label", name: "main_topic_label", render: renderText },
-    { data: "solved_total_label", name: "solved_total_label", render: renderText },
-    { data: "remaining", name: "remaining", render: renderText },
-    { data: "completion_percent", name: "completion_percent", render: renderCoverage },
-    { data: "practice_url", name: "practice_url", render: renderPractice, className: "text-end", orderable: false, searchable: false }
-  ];
-
-  if (showTypeColumn) {
-    columns.splice(1, 0, { data: "type", name: "type", render: renderType });
-  }
-
   new DataTable(tableElement, {
-    serverSide: true,
-    processing: true,
     pageLength: pageLength,
     lengthChange: false,
     order: [[coverageColumnIndex, "desc"]],
-    ajax: {
-      url: tableElement.dataset.rowsUrl,
-      data: function (data) {
-        data.length = pageLength;
-      }
-    },
-    columns: columns,
     columnDefs: [
       { targets: actionColumnIndex, orderable: false, searchable: false }
     ],
