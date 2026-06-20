@@ -11737,6 +11737,57 @@ def test_technique_progress_dashboard_groups_subtopics_by_main_topic(client):
     )
 
 
+def test_technique_progress_gaps_page_filters_by_minimum_total_statements(client):
+    user = UserFactory()
+    client.force_login(user)
+    for index in range(1, 3):
+        _create_technique_progress_statement(
+            problem_code=f"S{index}",
+            problem_number=index,
+            statement_tags=[
+                {
+                    "technique": f"SMALL {index}",
+                    "domains": ["ALG"],
+                    "main_topic": "ALG",
+                    "canonical_subtopic": "Small sample",
+                },
+            ],
+        )
+    for index in range(1, 4):
+        _create_technique_progress_statement(
+            problem_code=f"L{index}",
+            problem_number=index + 10,
+            statement_tags=[
+                {
+                    "technique": f"LARGE {index}",
+                    "domains": ["ALG"],
+                    "main_topic": "ALG",
+                    "canonical_subtopic": "Large sample",
+                },
+            ],
+        )
+
+    response = client.get(
+        reverse("pages:technique_progress_gaps"),
+        {"topic": "algebra", "min_total": "3"},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["technique_progress_gap_min_total"] == 3
+    assert [
+        row["label"]
+        for row in response.context["technique_progress_gap_rows"]
+    ] == ["Large sample"]
+    response_html = response.content.decode("utf-8")
+    assert 'id="technique-progress-min-total"' in response_html
+    assert 'name="min_total"' in response_html
+    assert 'value="3"' in response_html
+    assert (
+        'data-rows-url="/dashboard/techniques/gaps/?kind=subtopics&amp;topic=algebra'
+        '&amp;min_total=3&amp;format=datatable"'
+    ) in response_html
+
+
 def test_technique_progress_gaps_page_defaults_to_subtopic_rows(client):
     user = UserFactory()
     client.force_login(user)
@@ -11772,6 +11823,7 @@ def test_technique_progress_gaps_page_defaults_to_subtopic_rows(client):
     assert 'data-page-length="50"' in response_html
     assert "plugins/datatables/dataTables.bootstrap5.min.css" in response_html
     assert 'order: [[coverageColumnIndex, "desc"]]' in response_html
+    assert 'id="technique-progress-min-total"' in response_html
     assert "<th scope=\"col\">Type</th>" not in response_html
     assert "Technique gaps" in response_html
     assert reverse("pages:completion_quick_update") in response_html
@@ -12003,7 +12055,13 @@ def test_technique_progress_gaps_page_topic_tabs_preserve_user_and_kind(client):
 
     response = client.get(
         reverse("pages:technique_progress_gaps"),
-        {"user": str(selected_user.pk), "kind": "techniques", "topic": "geometry", "page": "3"},
+        {
+            "user": str(selected_user.pk),
+            "kind": "techniques",
+            "topic": "geometry",
+            "page": "3",
+            "min_total": "12",
+        },
     )
 
     assert response.status_code == HTTPStatus.OK
@@ -12013,14 +12071,16 @@ def test_technique_progress_gaps_page_topic_tabs_preserve_user_and_kind(client):
     }
     assert tabs["Geometry"]["is_active"] is True
     assert tabs["Algebra"]["url"] == (
-        f"{reverse('pages:technique_progress_gaps')}?user={selected_user.pk}&kind=techniques&topic=algebra"
+        f"{reverse('pages:technique_progress_gaps')}?user={selected_user.pk}"
+        "&kind=techniques&topic=algebra&min_total=12"
     )
     kind_options = {
         option["value"]: option
         for option in response.context["technique_progress_gap_kind_options"]
     }
     assert kind_options["subtopics"]["url"] == (
-        f"{reverse('pages:technique_progress_gaps')}?user={selected_user.pk}&kind=subtopics&topic=geometry"
+        f"{reverse('pages:technique_progress_gaps')}?user={selected_user.pk}"
+        "&kind=subtopics&topic=geometry&min_total=12"
     )
 
 
@@ -12214,6 +12274,59 @@ def test_technique_progress_gaps_datatable_searches_all_matching_rows(client):
         row["label"]
         for row in payload["data"]
     ] == ["Gap 52"]
+
+
+def test_technique_progress_gaps_datatable_filters_by_minimum_total_statements(client):
+    user = UserFactory()
+    client.force_login(user)
+    for index in range(1, 3):
+        _create_technique_progress_statement(
+            problem_code=f"S{index}",
+            problem_number=index,
+            statement_tags=[
+                {
+                    "technique": f"SMALL {index}",
+                    "domains": ["ALG"],
+                    "main_topic": "ALG",
+                    "canonical_subtopic": "Small sample",
+                },
+            ],
+        )
+    for index in range(1, 4):
+        _create_technique_progress_statement(
+            problem_code=f"L{index}",
+            problem_number=index + 10,
+            statement_tags=[
+                {
+                    "technique": f"LARGE {index}",
+                    "domains": ["ALG"],
+                    "main_topic": "ALG",
+                    "canonical_subtopic": "Large sample",
+                },
+            ],
+        )
+
+    response = client.get(
+        reverse("pages:technique_progress_gaps"),
+        {
+            "format": "datatable",
+            "kind": "subtopics",
+            "topic": "algebra",
+            "min_total": "3",
+            "draw": "5",
+            "start": "0",
+            "length": "50",
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    payload = response.json()
+    assert payload["recordsTotal"] == 1
+    assert payload["recordsFiltered"] == 1
+    assert [
+        row["label"]
+        for row in payload["data"]
+    ] == ["Large sample"]
 
 
 def test_technique_progress_gaps_page_requires_login(client):
