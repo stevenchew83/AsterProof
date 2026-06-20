@@ -69,6 +69,7 @@ from inspinia.pages.statement_import import parse_contest_problem_statements
 from inspinia.pages.statement_metadata_backfill import StatementMetadataBackfillValidationError
 from inspinia.pages.statement_metadata_backfill import import_statement_metadata_dataframe
 from inspinia.pages.statement_metadata_backfill import statement_metadata_dataframe_from_rows
+from inspinia.pages.subtopic_cleanup import taxonomy_entry_for_technique
 from inspinia.pages.topic_tags_parse import parse_topic_tags_cell
 from inspinia.pages.views import ADMIN_TABLE_LATEST_LIMIT
 from inspinia.problemsets.models import ProblemList
@@ -15153,14 +15154,6 @@ def test_problem_statement_metadata_page_exports_unmatched_subtopic_review_for_a
     assert list(exported_dataframe.columns) == EXPECTED_UNMATCHED_SUBTOPIC_EXPORT_COLUMNS
     assert exported_rows == [
         {
-            "Subtopic": "CYCLIC",
-            "Occurrences": "2",
-            "Problem rows": "2",
-            "Statement rows": "0",
-            "Existing domains": "ALG, GEO",
-            "Example problem": "Israel TST 2026 P1",
-        },
-        {
             "Subtopic": "HYPERBOLIC COSINES",
             "Occurrences": "1",
             "Problem rows": "0",
@@ -15296,18 +15289,228 @@ def test_problem_statement_metadata_cleanup_preview_matches_broad_subtopic_alias
 
     assert response.status_code == HTTPStatus.OK
     preview = response.context["subtopic_cleanup_preview"]
-    assert preview["change_count"] == 3
-    assert preview["unmatched_count"] == 1
+    assert preview["change_count"] == 4
+    assert preview["unmatched_count"] == 0
     changes_by_technique = {
         row["technique"]: (row["main_topic"], row["canonical_subtopic"])
         for row in preview["changes"]
     }
     assert changes_by_technique == {
-        "INEQUALITIES": ("ALG", "Inequalities and optimization"),
+        "INEQUALITIES AND OPTIMIZATION": ("ALG", "Inequalities and optimization"),
         "TRIG": ("GEO", "Core Euclidean geometry"),
         "INVARIANTS": ("COMB", "Coloring, tiling, grids, and invariants"),
+        "CYCLIC": ("GEO", "Circle geometry"),
     }
-    assert preview["unmatched"] == [{"technique": "CYCLIC"}]
+    assert preview["unmatched"] == []
+
+
+@pytest.mark.parametrize(
+    ("raw_tag", "main_topic", "canonical_subtopic", "stored_technique"),
+    [
+        ("INTEGER FUNCTIONAL EQUATION", "ALG", "Functional equations", "INTEGER FUNCTIONAL EQUATIONS"),
+        ("DIVISIBILITY FE", "ALG", "Functional equations", "DIVISIBILITY FE"),
+        ("AFFINE/COORDINATE METHODS", "GEO", "Core Euclidean geometry", "AFFINE/COORDINATE METHODS"),
+        ("CEVIAN COORDINATES", "GEO", "Core Euclidean geometry", "CEVIAN COORDINATES"),
+        ("CAUCHY-SCHWARZ/ENGEL", "ALG", "Inequalities and optimization", "CAUCHY-SCHWARZ/ENGEL"),
+        ("ENGEL FORM", "ALG", "Inequalities and optimization", "ENGEL FORM"),
+        ("JENSEN CONVEXITY", "ALG", "Inequalities and optimization", "JENSEN / CONVEXITY"),
+        ("SMOOTHING", "ALG", "Inequalities and optimization", "SMOOTHING"),
+        ("UVW", "ALG", "Inequalities and optimization", "UVW"),
+        ("POLYNOMIAL INEQUALITIES", "ALG", "Inequalities and optimization", "POLYNOMIAL INEQUALITIES"),
+        ("FLOOR RECURRENCE", "ALG", "Sequences, recurrences, and series", "FLOOR RECURRENCE"),
+        ("PELL-TYPE RECURRENCE", "NT", "Diophantine equations and descent", "PELL-TYPE RECURRENCES"),
+        ("HARMONIC SUM", "ALG", "Sequences, recurrences, and series", "HARMONIC SUMS"),
+        ("FACTORISATION", "ALG", "Polynomials and algebraic manipulation", "FACTORIZATION"),
+        ("INTERPOLATION", "ALG", "Polynomials and algebraic manipulation", "INTERPOLATION"),
+        ("DIVISIBILITY/CONGRUENCES", "NT", "Divisibility, gcd, lcm, and primes", "DIVISIBILITY/CONGRUENCES"),
+        ("ORDERS/LTE", "NT", "p-adic and valuation methods", "ORDERS/LTE"),
+        ("P-ADIC STRUCTURE", "NT", "p-adic and valuation methods", "P-ADIC / VALUATION METHODS"),
+        ("DIOPHANTINE FACTORIZATION", "NT", "Diophantine equations and descent", "DIOPHANTINE FACTORIZATION"),
+        (
+            "CONSTRUCTIVE SCHEDULING",
+            "COMB",
+            "Algorithms, automata, words, and constructive combinatorics",
+            "CONSTRUCTIVE SCHEDULING",
+        ),
+        ("GREEDY/MATCHING", "COMB", "Graph theory", "GREEDY/MATCHING"),
+        ("GRAPH MODELING", "COMB", "Graph theory", "GRAPH MODELING"),
+        ("INVARIANTS/PAIRING", "COMB", "Pigeonhole, extremal principle, and averaging", "INVARIANTS/PAIRING"),
+        ("CYCLIC", "GEO", "Circle geometry", "CYCLIC"),
+        ("COAXAL SYSTEMS", "GEO", "Circle geometry", "COAXALITY / RADICAL AXIS"),
+        ("MIQUEL-TYPE POINT", "GEO", "Circle geometry", "MIQUEL GEOMETRY"),
+        ("MIQUEL/REIM", "GEO", "Circle geometry", "MIQUEL / REIM"),
+        ("ORTHOCENTER GEOMETRY", "GEO", "Triangle centers and triangle configurations", "ORTHOCENTER GEOMETRY"),
+        ("INCENTER LEMMA", "GEO", "Triangle centers and triangle configurations", "INCENTER LEMMA"),
+        ("ISOGONAL/POLAR", "GEO", "Projective and advanced geometry", "ISOGONAL / POLAR"),
+        ("INVERSION AT AAA", "GEO", "Projective and advanced geometry", "INVERSION AT AAA"),
+        ("GRID COUNTING", "COMB", "Coloring, tiling, grids, and invariants", "GRID COUNTING"),
+        ("PICK/SHOELACE", "GEO", "Core Euclidean geometry", "PICK/SHOELACE"),
+    ],
+)
+def test_subtopic_cleanup_maps_attached_alias_rules_to_existing_taxonomy(
+    raw_tag,
+    main_topic,
+    canonical_subtopic,
+    stored_technique,
+):
+    entry = taxonomy_entry_for_technique(raw_tag)
+
+    assert entry is not None
+    assert entry.main_topic == main_topic
+    assert entry.canonical_subtopic == canonical_subtopic
+    assert entry.stored_technique == stored_technique
+
+
+def test_problem_statement_metadata_cleanup_applies_parent_and_child_granularity_aliases(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    record = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="A",
+        mohs=25,
+        contest="Israel TST",
+        problem="P1",
+        contest_year_problem="Israel TST 2026 P1",
+        topic_tags=(
+            "Topic tags: ALG - Functional equations; FUNCTIONAL EQUATION; "
+            "Inequality; CAUCHY; CONVEXITY; SMOOTHING; UVW; "
+            "Sequences, recurrences, and series; RECURRENCE; "
+            "Polynomials and algebraic manipulation; FACTORISATION; INTERPOLATION; "
+            "GEO - Coordinates; COORDINATE GEOMETRY"
+        ),
+    )
+    for technique in [
+        "Functional equations",
+        "FUNCTIONAL EQUATION",
+        "Inequality",
+        "CAUCHY",
+        "CONVEXITY",
+        "SMOOTHING",
+        "UVW",
+        "Sequences, recurrences, and series",
+        "RECURRENCE",
+        "Polynomials and algebraic manipulation",
+        "FACTORISATION",
+        "INTERPOLATION",
+        "Coordinates",
+        "COORDINATE GEOMETRY",
+    ]:
+        ProblemTopicTechnique.objects.create(record=record, technique=technique, domains=["alg"])
+
+    preview_response = client.post(
+        reverse("pages:problem_statement_metadata"),
+        {"action": "preview_subtopic_cleanup"},
+    )
+
+    assert preview_response.status_code == HTTPStatus.OK
+    preview = preview_response.context["subtopic_cleanup_preview"]
+    assert preview["unmatched_count"] == 0
+    assert preview["duplicate_count"] == 5
+    assert preview["raw_update_count"] == 1
+    current_to_target = {
+        row["current_technique"]: (row["main_topic"], row["canonical_subtopic"], row["technique"])
+        for row in preview["changes"]
+    }
+    assert current_to_target["FUNCTIONAL EQUATION"] == (
+        "ALG",
+        "Functional equations",
+        "FUNCTIONAL EQUATIONS",
+    )
+    assert current_to_target["INEQUALITY"] == (
+        "ALG",
+        "Inequalities and optimization",
+        "INEQUALITIES AND OPTIMIZATION",
+    )
+    assert current_to_target["CAUCHY"] == (
+        "ALG",
+        "Inequalities and optimization",
+        "INEQUALITIES AND OPTIMIZATION",
+    )
+    assert current_to_target["RECURRENCE"] == (
+        "ALG",
+        "Sequences, recurrences, and series",
+        "SEQUENCES, RECURRENCES, AND SERIES",
+    )
+    assert current_to_target["SMOOTHING"] == (
+        "ALG",
+        "Inequalities and optimization",
+        "SMOOTHING",
+    )
+    assert current_to_target["UVW"] == (
+        "ALG",
+        "Inequalities and optimization",
+        "UVW",
+    )
+    assert current_to_target["FACTORISATION"] == (
+        "ALG",
+        "Polynomials and algebraic manipulation",
+        "FACTORIZATION",
+    )
+    assert current_to_target["INTERPOLATION"] == (
+        "ALG",
+        "Polynomials and algebraic manipulation",
+        "INTERPOLATION",
+    )
+    assert current_to_target["COORDINATES"] == (
+        "GEO",
+        "Core Euclidean geometry",
+        "CORE EUCLIDEAN GEOMETRY",
+    )
+
+    apply_response = client.post(
+        reverse("pages:problem_statement_metadata"),
+        {
+            "action": "apply_subtopic_cleanup",
+            "confirm_subtopic_cleanup": "1",
+        },
+        follow=True,
+    )
+
+    assert apply_response.status_code == HTTPStatus.OK
+    assert list(
+        ProblemTopicTechnique.objects.filter(record=record)
+        .order_by("technique")
+        .values_list("technique", "main_topic", "canonical_subtopic"),
+    ) == [
+        ("CORE EUCLIDEAN GEOMETRY", "GEO", "Core Euclidean geometry"),
+        (
+            "FACTORIZATION",
+            "ALG",
+            "Polynomials and algebraic manipulation",
+        ),
+        ("FUNCTIONAL EQUATIONS", "ALG", "Functional equations"),
+        (
+            "INEQUALITIES AND OPTIMIZATION",
+            "ALG",
+            "Inequalities and optimization",
+        ),
+        (
+            "INTERPOLATION",
+            "ALG",
+            "Polynomials and algebraic manipulation",
+        ),
+        (
+            "POLYNOMIALS AND ALGEBRAIC MANIPULATION",
+            "ALG",
+            "Polynomials and algebraic manipulation",
+        ),
+        (
+            "SEQUENCES, RECURRENCES, AND SERIES",
+            "ALG",
+            "Sequences, recurrences, and series",
+        ),
+        ("SMOOTHING", "ALG", "Inequalities and optimization"),
+        ("UVW", "ALG", "Inequalities and optimization"),
+    ]
+    record.refresh_from_db()
+    assert record.topic_tags == (
+        "Topic tags: ALG / Functional equations - FUNCTIONAL EQUATIONS; "
+        "ALG / Inequalities and optimization - INEQUALITIES AND OPTIMIZATION, SMOOTHING, UVW; "
+        "ALG / Sequences, recurrences, and series - SEQUENCES, RECURRENCES, AND SERIES; "
+        "ALG / Polynomials and algebraic manipulation - "
+        "POLYNOMIALS AND ALGEBRAIC MANIPULATION, FACTORIZATION, INTERPOLATION; "
+        "GEO / Core Euclidean geometry - CORE EUCLIDEAN GEOMETRY"
+    )
 
 
 def test_problem_statement_metadata_cleanup_preview_shows_unmatched_review_table(client):
@@ -15352,14 +15555,14 @@ def test_problem_statement_metadata_cleanup_preview_shows_unmatched_review_table
 
     assert response.status_code == HTTPStatus.OK
     preview = response.context["subtopic_cleanup_preview"]
-    assert preview["unmatched_review_count"] == 2
+    assert preview["unmatched_review_count"] == 1
     assert preview["unmatched_review"][0] == {
-        "subtopic": "CYCLIC",
-        "occurrences": 2,
-        "problem_rows": 1,
+        "subtopic": "HYPERBOLIC COSINES",
+        "occurrences": 1,
+        "problem_rows": 0,
         "statement_rows": 1,
-        "existing_domains": "COMB, GEO",
-        "example_problem": "Israel TST 2026 P1",
+        "existing_domains": "ALG",
+        "example_problem": "Israel TST 2026 P2",
     }
     response_html = response.content.decode("utf-8")
     assert 'id="statement-unmatched-subtopics-export"' in response_html
