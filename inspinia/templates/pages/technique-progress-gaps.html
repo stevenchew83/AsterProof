@@ -65,6 +65,7 @@
               <form method="get" class="d-flex flex-wrap align-items-end gap-2">
                 <input type="hidden" name="kind" value="{{ technique_progress_gap_kind }}">
                 <input type="hidden" name="topic" value="{{ technique_progress_gap_topic }}">
+                <input type="hidden" name="min_total" value="{% if technique_progress_gap_min_total %}{{ technique_progress_gap_min_total }}{% endif %}">
                 <div>
                   <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="technique-progress-user">User</label>
                   <select id="technique-progress-user" name="user" class="form-select form-select-sm">
@@ -112,6 +113,34 @@
             </li>
             {% endfor %}
           </ul>
+
+          <form method="get" class="d-flex flex-wrap align-items-end gap-2 mb-3">
+            {% if technique_progress_can_select_user %}
+            <input type="hidden" name="user" value="{{ technique_progress_filters.user }}">
+            {% endif %}
+            <input type="hidden" name="kind" value="{{ technique_progress_gap_kind }}">
+            <input type="hidden" name="topic" value="{{ technique_progress_gap_topic }}">
+            <div>
+              <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="technique-progress-min-total">Minimum statements</label>
+              <input
+                id="technique-progress-min-total"
+                class="form-control form-control-sm"
+                type="number"
+                name="min_total"
+                value="{% if technique_progress_gap_min_total %}{{ technique_progress_gap_min_total }}{% endif %}"
+                min="0"
+                step="1"
+                placeholder="0"
+                style="max-width: 9rem;"
+              >
+            </div>
+            <button type="submit" class="btn btn-sm btn-primary">
+              <i class="ti ti-filter me-1"></i>Apply
+            </button>
+            {% if technique_progress_gap_min_total %}
+            <a href="{{ technique_progress_gap_min_total_reset_url }}" class="btn btn-sm btn-outline-secondary">Clear</a>
+            {% endif %}
+          </form>
 
           <div class="table-responsive">
             <table

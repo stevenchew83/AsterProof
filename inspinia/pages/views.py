@@ -7976,6 +7976,7 @@ def technique_progress_gaps_view(request):
                 raw_user_id=(request.GET.get("user") or "").strip(),
                 raw_kind=(request.GET.get("kind") or "").strip(),
                 raw_topic=(request.GET.get("topic") or "").strip(),
+                raw_min_total=(request.GET.get("min_total") or "").strip(),
                 params=request.GET,
             ),
         )
@@ -7985,6 +7986,7 @@ def technique_progress_gaps_view(request):
         raw_user_id=(request.GET.get("user") or "").strip(),
         raw_kind=(request.GET.get("kind") or "").strip(),
         raw_topic=(request.GET.get("topic") or "").strip(),
+        raw_min_total=(request.GET.get("min_total") or "").strip(),
         raw_page=(request.GET.get("page") or "").strip(),
     )
     return render(request, "pages/technique-progress-gaps.html", context)
