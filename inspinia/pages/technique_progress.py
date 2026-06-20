@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from typing import TYPE_CHECKING
 from urllib.parse import urlencode
 
 from django.core.paginator import Paginator
@@ -17,12 +18,24 @@ from inspinia.pages.topic_labels import display_topic_label
 from inspinia.users.models import User
 from inspinia.users.roles import user_has_admin_role
 
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
 NEXT_GAP_LIMIT = 6
 GAP_PAGE_SIZE = 50
 GAP_KIND_SUBTOPICS = "subtopics"
 GAP_KIND_TECHNIQUES = "techniques"
 GAP_KIND_ALL = "all"
 GAP_KIND_CHOICES = {GAP_KIND_SUBTOPICS, GAP_KIND_TECHNIQUES, GAP_KIND_ALL}
+GAP_DATATABLE_DEFAULT_SORT_FIELD = "completion_percent"
+GAP_DATATABLE_SORT_FIELDS = {
+    "completion_percent",
+    "label",
+    "main_topic_label",
+    "remaining",
+    "solved_total_label",
+    "type",
+}
 MAIN_TOPIC_ORDER = ["Algebra", "Number Theory", "Geometry", "Combinatorics"]
 OTHER_TOPIC_LABEL = "Other"
 MAIN_TOPIC_SLUGS = {
@@ -133,6 +146,13 @@ def build_technique_progress_gaps_context(
             gap_kind=gap_kind,
         ),
         "technique_progress_gap_rows": list(page_obj.object_list),
+        "technique_progress_gap_rows_url": _gap_url(
+            selected_user=selected_user,
+            can_select_user=can_select_user,
+            gap_kind=gap_kind,
+            gap_topic=gap_topic,
+            extra_query={"format": "datatable"},
+        ),
         "technique_progress_gap_show_type_column": gap_kind == GAP_KIND_ALL,
         "technique_progress_gap_title": _gap_title(gap_kind),
         "technique_progress_gap_topic": gap_topic,
@@ -143,6 +163,47 @@ def build_technique_progress_gaps_context(
             active_topic=gap_topic,
         ),
         "technique_progress_stats": payload["stats"],
+    }
+
+
+def build_technique_progress_gaps_datatable_payload(
+    *,
+    request_user: User,
+    raw_user_id: str = "",
+    raw_kind: str = "",
+    raw_topic: str = "",
+    params: Mapping[str, str] | None = None,
+) -> dict[str, object]:
+    params = params or {}
+    payload = _build_progress_payload(request_user=request_user, raw_user_id=raw_user_id)
+    gap_kind = _gap_kind(raw_kind)
+    gap_topic = _gap_topic(raw_topic)
+    gap_rows = _rows_for_gap_kind(
+        gap_kind=gap_kind,
+        subtopic_rows=payload["subtopic_rows"],
+        technique_rows=payload["technique_rows"],
+    )
+    gap_rows = _filter_gap_rows_by_topic(gap_rows, gap_topic=gap_topic)
+
+    draw = _datatable_int(params.get("draw"), default=0)
+    start = _datatable_int(params.get("start"), default=0)
+    requested_length = _datatable_int(params.get("length"), default=GAP_PAGE_SIZE)
+    page_length = min(max(requested_length, 1), GAP_PAGE_SIZE)
+
+    records_total = len(gap_rows)
+    searched_rows = _search_gap_rows(gap_rows, raw_search=params.get("search[value]", ""))
+    sorted_rows = _sort_gap_rows_for_datatable(
+        searched_rows,
+        params=params,
+        gap_kind=gap_kind,
+    )
+    page_rows = sorted_rows[start : start + page_length]
+
+    return {
+        "draw": draw,
+        "recordsTotal": records_total,
+        "recordsFiltered": len(searched_rows),
+        "data": [_gap_datatable_row(row) for row in page_rows],
     }
 
 
@@ -413,12 +474,15 @@ def _gap_url(
     can_select_user: bool,
     gap_kind: str,
     gap_topic: str,
+    extra_query: dict[str, str] | None = None,
 ) -> str:
     query: dict[str, str] = {}
     if can_select_user:
         query["user"] = str(selected_user.pk)
     query["kind"] = gap_kind
     query["topic"] = gap_topic
+    if extra_query:
+        query.update(extra_query)
     return f"{reverse('pages:technique_progress_gaps')}?{urlencode(query)}"
 
 
@@ -456,6 +520,101 @@ def _gap_title(gap_kind: str) -> str:
         GAP_KIND_TECHNIQUES: "Technique practice gaps",
         GAP_KIND_ALL: "All practice gaps",
     }[gap_kind]
+
+
+def _datatable_int(raw_value: str | None, *, default: int = 0) -> int:
+    try:
+        value = int(raw_value or "")
+    except (TypeError, ValueError):
+        return default
+    return max(value, 0)
+
+
+def _search_gap_rows(
+    rows: list[dict[str, object]],
+    *,
+    raw_search: str | None,
+) -> list[dict[str, object]]:
+    search_term = str(raw_search or "").strip().casefold()
+    if not search_term:
+        return rows
+    return [
+        row
+        for row in rows
+        if search_term in _gap_search_haystack(row)
+    ]
+
+
+def _gap_search_haystack(row: dict[str, object]) -> str:
+    values = [
+        row.get("label", ""),
+        row.get("type", ""),
+        row.get("main_topic_label", ""),
+        row.get("solved", ""),
+        row.get("total", ""),
+        row.get("remaining", ""),
+        row.get("completion_percent", ""),
+        f"{row.get('solved', '')} of {row.get('total', '')}",
+    ]
+    return " ".join(str(value) for value in values).casefold()
+
+
+def _sort_gap_rows_for_datatable(
+    rows: list[dict[str, object]],
+    *,
+    params: Mapping[str, str],
+    gap_kind: str,
+) -> list[dict[str, object]]:
+    sort_field = _gap_datatable_sort_field(params, gap_kind=gap_kind)
+    sort_direction = str(params.get("order[0][dir]") or "desc").casefold()
+    sort_descending = sort_direction != "asc"
+    sorted_rows = sorted(rows, key=lambda row: str(row.get("label", "")).casefold())
+    return sorted(
+        sorted_rows,
+        key=lambda row: _gap_datatable_sort_value(row, sort_field),
+        reverse=sort_descending,
+    )
+
+
+def _gap_datatable_sort_field(params: Mapping[str, str], *, gap_kind: str) -> str:
+    default_column_index = 5 if gap_kind == GAP_KIND_ALL else 4
+    column_index = _datatable_int(
+        params.get("order[0][column]"),
+        default=default_column_index,
+    )
+    requested_field = str(
+        params.get(f"columns[{column_index}][data]")
+        or params.get(f"columns[{column_index}][name]")
+        or "",
+    )
+    if requested_field in GAP_DATATABLE_SORT_FIELDS:
+        return requested_field
+    return GAP_DATATABLE_DEFAULT_SORT_FIELD
+
+
+def _gap_datatable_sort_value(row: dict[str, object], sort_field: str) -> object:
+    if sort_field == "solved_total_label":
+        return int(row.get("solved", 0))
+    if sort_field in {"completion_percent", "remaining"}:
+        return int(row.get(sort_field, 0))
+    return str(row.get(sort_field, "")).casefold()
+
+
+def _gap_datatable_row(row: dict[str, object]) -> dict[str, object]:
+    solved = int(row["solved"])
+    total = int(row["total"])
+    return {
+        "completion_percent": int(row["completion_percent"]),
+        "coverage_label": f"{row['completion_percent']}%",
+        "label": row["label"],
+        "main_topic_label": row["main_topic_label"] or "-",
+        "practice_url": row["practice_url"],
+        "remaining": int(row["remaining"]),
+        "solved": solved,
+        "solved_total_label": f"{solved} of {total}",
+        "total": total,
+        "type": row["type"],
+    }
 
 
 def _tagged_statement_rows(*, user: User) -> list[dict[str, object]]:

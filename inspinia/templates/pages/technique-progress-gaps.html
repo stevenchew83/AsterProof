@@ -1,8 +1,11 @@
 {% extends 'layouts/vertical.html' %}
 
+{% load static %}
+
 {% block title %}{{ technique_progress_gap_title }}{% endblock title %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="{% static 'plugins/datatables/dataTables.bootstrap5.min.css' %}">
 <style>
   .technique-progress-bar {
     min-width: 6.5rem;
@@ -15,6 +18,29 @@
     display: flex;
     min-height: 160px;
     padding: 1.25rem;
+  }
+
+  #technique-progress-gaps-table_wrapper .dt-layout-row {
+    align-items: center;
+    gap: 0.75rem 1rem;
+    margin: 0;
+    padding: 0.75rem 0;
+  }
+
+  #technique-progress-gaps-table_wrapper .dt-length label,
+  #technique-progress-gaps-table_wrapper .dt-info,
+  #technique-progress-gaps-table_wrapper .dt-search label {
+    color: var(--ins-secondary-color);
+    font-size: 0.82rem;
+    margin-bottom: 0;
+  }
+
+  #technique-progress-gaps-table_wrapper .dt-search input {
+    min-width: min(18rem, 100%);
+  }
+
+  #technique-progress-gaps-table_wrapper .dt-paging .pagination {
+    margin-bottom: 0;
   }
 </style>
 {% endblock extra_css %}
@@ -69,7 +95,7 @@
           <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
             <div>
               <h4 class="header-title mb-0">{{ technique_progress_gap_title }}</h4>
-              <p class="text-muted fs-xs mb-0">{{ technique_progress_gap_result_summary }}</p>
+              <p class="text-muted fs-xs mb-0">{{ technique_progress_gap_result_summary }}. Search and sort across all matching gaps.</p>
             </div>
             <div class="btn-group btn-group-sm" role="group" aria-label="Practice gap type">
               {% for option in technique_progress_gap_kind_options %}
@@ -87,9 +113,14 @@
             {% endfor %}
           </ul>
 
-          {% if technique_progress_gap_rows %}
           <div class="table-responsive">
-            <table class="table table-sm table-hover align-middle mb-0">
+            <table
+              id="technique-progress-gaps-table"
+              class="table table-sm table-hover align-middle mb-0 w-100"
+              data-page-length="50"
+              data-rows-url="{{ technique_progress_gap_rows_url }}"
+              data-show-type-column="{% if technique_progress_gap_show_type_column %}true{% else %}false{% endif %}"
+            >
               <thead>
                 <tr>
                   <th scope="col">Area</th>
@@ -103,59 +134,9 @@
                   <th scope="col" class="text-end">Action</th>
                 </tr>
               </thead>
-              <tbody>
-                {% for row in technique_progress_gap_page_obj %}
-                <tr>
-                  <td class="fw-semibold">{{ row.label }}</td>
-                  {% if technique_progress_gap_show_type_column %}
-                  <td><span class="badge bg-secondary-subtle text-secondary">{{ row.type }}</span></td>
-                  {% endif %}
-                  <td class="text-muted">{{ row.main_topic_label|default:"-" }}</td>
-                  <td>{{ row.solved }} of {{ row.total }}</td>
-                  <td>{{ row.remaining }}</td>
-                  <td>
-                    <div class="d-flex align-items-center gap-2 technique-progress-bar">
-                      <div class="progress flex-grow-1" style="height: .45rem;">
-                        <div class="progress-bar" role="progressbar" style="width: {{ row.completion_percent }}%;" aria-valuenow="{{ row.completion_percent }}" aria-valuemin="0" aria-valuemax="100"></div>
-                      </div>
-                      <span class="text-muted fs-xs">{{ row.completion_percent }}%</span>
-                    </div>
-                  </td>
-                  <td class="text-end">
-                    <a href="{{ row.practice_url }}" class="btn btn-sm btn-outline-primary">Practice</a>
-                  </td>
-                </tr>
-                {% endfor %}
-              </tbody>
+              <tbody></tbody>
             </table>
           </div>
-          {% if technique_progress_gap_page_obj.paginator.num_pages > 1 %}
-          <nav class="mt-3" aria-label="Practice gaps pagination">
-            <ul class="pagination pagination-boxed">
-              {% if technique_progress_gap_page_obj.has_previous %}
-              <li class="page-item">
-                <a class="page-link" href="?page={{ technique_progress_gap_page_obj.previous_page_number }}{{ technique_progress_gap_pagination_suffix }}">Previous</a>
-              </li>
-              {% endif %}
-              <li class="page-item active">
-                <span class="page-link">{{ technique_progress_gap_page_obj.number }}</span>
-              </li>
-              {% if technique_progress_gap_page_obj.has_next %}
-              <li class="page-item">
-                <a class="page-link" href="?page={{ technique_progress_gap_page_obj.next_page_number }}{{ technique_progress_gap_pagination_suffix }}">Next</a>
-              </li>
-              {% endif %}
-            </ul>
-          </nav>
-          {% endif %}
-          {% else %}
-          <div class="technique-progress-empty">
-            <div>
-              <h5 class="mb-1">No remaining gaps.</h5>
-              <p class="text-muted fs-xs mb-0">Every tagged subtopic and technique has at least one solved statement.</p>
-            </div>
-          </div>
-          {% endif %}
         </div>
       </div>
     </div>
@@ -163,3 +144,106 @@
 </div>
 
 {% endblock page_content %}
+
+{% block extra_javascript %}
+{% include 'partials/datatables-vendor-scripts.html' %}
+<script>
+(function () {
+  var tableElement = document.getElementById("technique-progress-gaps-table");
+  if (!tableElement || typeof DataTable !== "function") return;
+
+  var showTypeColumn = tableElement.dataset.showTypeColumn === "true";
+  var pageLength = Number(tableElement.dataset.pageLength || 50);
+  var coverageColumnIndex = showTypeColumn ? 5 : 4;
+  var actionColumnIndex = showTypeColumn ? 6 : 5;
+
+  function escapeHtml(value) {
+    return String(value === undefined || value === null ? "" : value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function renderText(data, type) {
+    if (type !== "display") return data || "";
+    return escapeHtml(data || "");
+  }
+
+  function renderArea(data, type) {
+    if (type !== "display") return data || "";
+    return '<span class="fw-semibold">' + escapeHtml(data || "") + "</span>";
+  }
+
+  function renderType(data, type) {
+    if (type !== "display") return data || "";
+    return '<span class="badge bg-secondary-subtle text-secondary">' + escapeHtml(data || "") + "</span>";
+  }
+
+  function renderCoverage(data, type, row) {
+    var percent = Number(data || 0);
+    if (type !== "display") return percent;
+    return [
+      '<div class="d-flex align-items-center gap-2 technique-progress-bar">',
+      '<div class="progress flex-grow-1" style="height: .45rem;">',
+      '<div class="progress-bar" role="progressbar" style="width: ',
+      percent,
+      '%;" aria-valuenow="',
+      percent,
+      '" aria-valuemin="0" aria-valuemax="100"></div>',
+      "</div>",
+      '<span class="text-muted fs-xs">',
+      escapeHtml(row && row.coverage_label ? row.coverage_label : percent + "%"),
+      "</span>",
+      "</div>"
+    ].join("");
+  }
+
+  function renderPractice(data, type) {
+    if (type !== "display") return data || "";
+    return '<a href="' + escapeHtml(data || "#") + '" class="btn btn-sm btn-outline-primary">Practice</a>';
+  }
+
+  var columns = [
+    { data: "label", name: "label", render: renderArea },
+    { data: "main_topic_label", name: "main_topic_label", render: renderText },
+    { data: "solved_total_label", name: "solved_total_label", render: renderText },
+    { data: "remaining", name: "remaining", render: renderText },
+    { data: "completion_percent", name: "completion_percent", render: renderCoverage },
+    { data: "practice_url", name: "practice_url", render: renderPractice, className: "text-end", orderable: false, searchable: false }
+  ];
+
+  if (showTypeColumn) {
+    columns.splice(1, 0, { data: "type", name: "type", render: renderType });
+  }
+
+  new DataTable(tableElement, {
+    serverSide: true,
+    processing: true,
+    pageLength: pageLength,
+    lengthChange: false,
+    order: [[coverageColumnIndex, "desc"]],
+    ajax: {
+      url: tableElement.dataset.rowsUrl,
+      data: function (data) {
+        data.length = pageLength;
+      }
+    },
+    columns: columns,
+    columnDefs: [
+      { targets: actionColumnIndex, orderable: false, searchable: false }
+    ],
+    autoWidth: false,
+    language: {
+      info: "Showing _START_ to _END_ of _TOTAL_ practice gaps",
+      infoEmpty: "No practice gaps to show",
+      lengthMenu: "Show _MENU_ gaps",
+      processing: "Loading practice gaps...",
+      search: "Filter:",
+      zeroRecords: "No practice gaps match the current filter."
+    }
+  });
+})();
+</script>
+{% endblock extra_javascript %}
