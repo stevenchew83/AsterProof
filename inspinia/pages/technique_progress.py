@@ -120,13 +120,14 @@ def build_technique_progress_context(
     }
 
 
-def build_technique_progress_gaps_context(
+def build_technique_progress_gaps_context(  # noqa: PLR0913
     *,
     request_user: User,
     raw_user_id: str = "",
     raw_kind: str = "",
     raw_topic: str = "",
     raw_min_total: str = "",
+    raw_canonical_subtopic: str = "",
 ) -> dict[str, object]:
     payload = _build_progress_payload(request_user=request_user, raw_user_id=raw_user_id)
     base_context = payload["base_context"]
@@ -135,20 +136,37 @@ def build_technique_progress_gaps_context(
     gap_kind = _gap_kind(raw_kind)
     gap_topic = _gap_topic(raw_topic)
     gap_min_total = _gap_min_total(raw_min_total)
+    gap_canonical_subtopic = _gap_canonical_subtopic(raw_canonical_subtopic)
     gap_rows = _filtered_gap_rows(
         payload=payload,
         gap_kind=gap_kind,
         gap_topic=gap_topic,
         gap_min_total=gap_min_total,
+        gap_canonical_subtopic=gap_canonical_subtopic,
+    )
+    gap_rows = _gap_rows_with_drilldown_urls(
+        gap_rows,
+        selected_user=selected_user,
+        can_select_user=can_select_user,
+        gap_topic=gap_topic,
     )
     return {
         **base_context,
+        "technique_progress_gap_canonical_subtopic": gap_canonical_subtopic,
+        "technique_progress_gap_canonical_subtopic_reset_url": _gap_url(
+            selected_user=selected_user,
+            can_select_user=can_select_user,
+            gap_kind=gap_kind,
+            gap_topic=gap_topic,
+            gap_min_total=gap_min_total,
+        ),
         "technique_progress_gap_export_url": _gap_url(
             selected_user=selected_user,
             can_select_user=can_select_user,
             gap_kind=gap_kind,
             gap_topic=gap_topic,
             gap_min_total=gap_min_total,
+            gap_canonical_subtopic=gap_canonical_subtopic,
             extra_query={"export": "csv"},
         ),
         "technique_progress_gap_kind": gap_kind,
@@ -158,6 +176,7 @@ def build_technique_progress_gaps_context(
             active_kind=gap_kind,
             active_topic=gap_topic,
             active_min_total=gap_min_total,
+            active_canonical_subtopic=gap_canonical_subtopic,
         ),
         "technique_progress_gap_first_column_label": _gap_first_column_label(gap_kind),
         "technique_progress_gap_min_total": gap_min_total,
@@ -166,6 +185,7 @@ def build_technique_progress_gaps_context(
             can_select_user=can_select_user,
             gap_kind=gap_kind,
             gap_topic=gap_topic,
+            gap_canonical_subtopic=gap_canonical_subtopic,
         ),
         "technique_progress_gap_result_summary": _gap_result_summary(
             gap_rows,
@@ -181,18 +201,20 @@ def build_technique_progress_gaps_context(
             active_kind=gap_kind,
             active_topic=gap_topic,
             active_min_total=gap_min_total,
+            active_canonical_subtopic=gap_canonical_subtopic,
         ),
         "technique_progress_stats": payload["stats"],
     }
 
 
-def build_technique_progress_gaps_csv_response(
+def build_technique_progress_gaps_csv_response(  # noqa: PLR0913
     *,
     request_user: User,
     raw_user_id: str = "",
     raw_kind: str = "",
     raw_topic: str = "",
     raw_min_total: str = "",
+    raw_canonical_subtopic: str = "",
 ) -> HttpResponse:
     payload = _build_progress_payload(request_user=request_user, raw_user_id=raw_user_id)
     gap_min_total = _gap_min_total(raw_min_total)
@@ -201,6 +223,7 @@ def build_technique_progress_gaps_csv_response(
         gap_kind=_gap_kind(raw_kind),
         gap_topic=_gap_topic(raw_topic),
         gap_min_total=gap_min_total,
+        gap_canonical_subtopic=_gap_canonical_subtopic(raw_canonical_subtopic),
     )
     response = HttpResponse(content_type=GAP_CSV_CONTENT_TYPE)
     response["Content-Disposition"] = 'attachment; filename="technique-progress-gaps.csv"'
@@ -217,6 +240,7 @@ def build_technique_progress_gaps_datatable_payload(  # noqa: PLR0913
     raw_kind: str = "",
     raw_topic: str = "",
     raw_min_total: str = "",
+    raw_canonical_subtopic: str = "",
     params: Mapping[str, str] | None = None,
 ) -> dict[str, object]:
     params = params or {}
@@ -224,11 +248,19 @@ def build_technique_progress_gaps_datatable_payload(  # noqa: PLR0913
     gap_kind = _gap_kind(raw_kind)
     gap_topic = _gap_topic(raw_topic)
     gap_min_total = _gap_min_total(raw_min_total)
+    gap_canonical_subtopic = _gap_canonical_subtopic(raw_canonical_subtopic)
     gap_rows = _filtered_gap_rows(
         payload=payload,
         gap_kind=gap_kind,
         gap_topic=gap_topic,
         gap_min_total=gap_min_total,
+        gap_canonical_subtopic=gap_canonical_subtopic,
+    )
+    gap_rows = _gap_rows_with_drilldown_urls(
+        gap_rows,
+        selected_user=payload["base_context"]["technique_progress_selected_user"],
+        can_select_user=bool(payload["base_context"]["technique_progress_can_select_user"]),
+        gap_topic=gap_topic,
     )
 
     draw = _datatable_int(params.get("draw"), default=0)
@@ -455,6 +487,10 @@ def _gap_min_total(raw_min_total: str) -> int:
     return _datatable_int(raw_min_total, default=0)
 
 
+def _gap_canonical_subtopic(raw_canonical_subtopic: str) -> str:
+    return str(raw_canonical_subtopic or "").strip()
+
+
 def _rows_for_gap_kind(
     *,
     gap_kind: str,
@@ -491,12 +527,29 @@ def _filter_gap_rows_by_topic(
     ]
 
 
+def _filter_gap_rows_by_canonical_subtopic(
+    rows: list[dict[str, object]],
+    *,
+    gap_canonical_subtopic: str,
+) -> list[dict[str, object]]:
+    if not gap_canonical_subtopic:
+        return rows
+    normalized_canonical_subtopic = gap_canonical_subtopic.casefold()
+    return [
+        row
+        for row in rows
+        if normalized_canonical_subtopic
+        in {str(label).casefold() for label in row.get("canonical_subtopic_labels", [])}
+    ]
+
+
 def _filtered_gap_rows(
     *,
     payload: dict[str, object],
     gap_kind: str,
     gap_topic: str,
     gap_min_total: int,
+    gap_canonical_subtopic: str,
 ) -> list[dict[str, object]]:
     gap_rows = _rows_for_gap_kind(
         gap_kind=gap_kind,
@@ -504,6 +557,10 @@ def _filtered_gap_rows(
         technique_rows=payload["technique_rows"],
     )
     gap_rows = _filter_gap_rows_by_topic(gap_rows, gap_topic=gap_topic)
+    gap_rows = _filter_gap_rows_by_canonical_subtopic(
+        gap_rows,
+        gap_canonical_subtopic=gap_canonical_subtopic,
+    )
     return _filter_gap_rows_by_min_total(gap_rows, gap_min_total=gap_min_total)
 
 
@@ -521,13 +578,14 @@ def _filter_gap_rows_by_min_total(
     ]
 
 
-def _gap_kind_options(
+def _gap_kind_options(  # noqa: PLR0913
     *,
     selected_user: User,
     can_select_user: bool,
     active_kind: str,
     active_topic: str,
     active_min_total: int,
+    active_canonical_subtopic: str,
 ) -> list[dict[str, object]]:
     options = [
         {"label": "Subtopics", "value": GAP_KIND_SUBTOPICS},
@@ -544,19 +602,21 @@ def _gap_kind_options(
                 gap_kind=str(option["value"]),
                 gap_topic=active_topic,
                 gap_min_total=active_min_total,
+                gap_canonical_subtopic=active_canonical_subtopic,
             ),
         }
         for option in options
     ]
 
 
-def _gap_topic_tabs(
+def _gap_topic_tabs(  # noqa: PLR0913
     *,
     selected_user: User,
     can_select_user: bool,
     active_kind: str,
     active_topic: str,
     active_min_total: int,
+    active_canonical_subtopic: str,
 ) -> list[dict[str, object]]:
     return [
         {
@@ -568,6 +628,7 @@ def _gap_topic_tabs(
                 gap_kind=active_kind,
                 gap_topic=topic_slug,
                 gap_min_total=active_min_total,
+                gap_canonical_subtopic=active_canonical_subtopic,
             ),
             "value": topic_slug,
         }
@@ -582,6 +643,7 @@ def _gap_url(  # noqa: PLR0913
     gap_kind: str,
     gap_topic: str,
     gap_min_total: int = 0,
+    gap_canonical_subtopic: str = "",
     extra_query: dict[str, str] | None = None,
 ) -> str:
     query: dict[str, str] = {}
@@ -591,9 +653,35 @@ def _gap_url(  # noqa: PLR0913
     query["topic"] = gap_topic
     if gap_min_total > 0:
         query["min_total"] = str(gap_min_total)
+    if gap_canonical_subtopic:
+        query["canonical_subtopic"] = gap_canonical_subtopic
     if extra_query:
         query.update(extra_query)
     return f"{reverse('pages:technique_progress_gaps')}?{urlencode(query)}"
+
+
+def _gap_rows_with_drilldown_urls(
+    rows: list[dict[str, object]],
+    *,
+    selected_user: User,
+    can_select_user: bool,
+    gap_topic: str,
+) -> list[dict[str, object]]:
+    enriched_rows = []
+    for row in rows:
+        enriched_row = dict(row)
+        if row["type"] == "Subtopic" and row.get("canonical_subtopic"):
+            enriched_row["drilldown_url"] = _gap_url(
+                selected_user=selected_user,
+                can_select_user=can_select_user,
+                gap_kind=GAP_KIND_TECHNIQUES,
+                gap_topic=gap_topic,
+                gap_canonical_subtopic=str(row["canonical_subtopic"]),
+            )
+        else:
+            enriched_row["drilldown_url"] = ""
+        enriched_rows.append(enriched_row)
+    return enriched_rows
 
 
 def _gap_pagination_suffix(
@@ -730,6 +818,7 @@ def _gap_datatable_row(row: dict[str, object]) -> dict[str, object]:
         "canonical_subtopic": row.get("canonical_subtopic", ""),
         "completion_percent": int(row["completion_percent"]),
         "coverage_label": f"{row['completion_percent']}%",
+        "drilldown_url": row.get("drilldown_url", ""),
         "label": row["label"],
         "main_topic_label": row["main_topic_label"] or "-",
         "practice_url": row["practice_url"],
@@ -960,6 +1049,7 @@ def _aggregate_progress_rows(
         rows.append(
             {
                 "canonical_subtopic": canonical_subtopic,
+                "canonical_subtopic_labels": canonical_subtopics,
                 "completion_percent": _percent(solved, total),
                 "label": label,
                 "main_topic_labels": main_topics,

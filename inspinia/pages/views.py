@@ -7977,6 +7977,7 @@ def technique_progress_gaps_view(request):
             raw_kind=(request.GET.get("kind") or "").strip(),
             raw_topic=(request.GET.get("topic") or "").strip(),
             raw_min_total=(request.GET.get("min_total") or "").strip(),
+            raw_canonical_subtopic=(request.GET.get("canonical_subtopic") or "").strip(),
         )
 
     if request.GET.get("format") == "datatable":
@@ -7987,6 +7988,7 @@ def technique_progress_gaps_view(request):
                 raw_kind=(request.GET.get("kind") or "").strip(),
                 raw_topic=(request.GET.get("topic") or "").strip(),
                 raw_min_total=(request.GET.get("min_total") or "").strip(),
+                raw_canonical_subtopic=(request.GET.get("canonical_subtopic") or "").strip(),
                 params=request.GET,
             ),
         )
@@ -7997,6 +7999,7 @@ def technique_progress_gaps_view(request):
         raw_kind=(request.GET.get("kind") or "").strip(),
         raw_topic=(request.GET.get("topic") or "").strip(),
         raw_min_total=(request.GET.get("min_total") or "").strip(),
+        raw_canonical_subtopic=(request.GET.get("canonical_subtopic") or "").strip(),
     )
     return render(request, "pages/technique-progress-gaps.html", context)
 

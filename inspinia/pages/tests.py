@@ -12215,6 +12215,98 @@ def test_technique_progress_gaps_page_calculates_coverage_by_canonical_subtopic(
     assert rows[0]["completion_percent"] == 75
 
 
+def test_technique_progress_gaps_page_links_canonical_subtopic_to_technique_drilldown(client):
+    user = UserFactory()
+    client.force_login(user)
+    canonical_subtopic = "Equations, substitutions, and transformations"
+    _create_technique_progress_statement(
+        statement_tags=[
+            {
+                "technique": "INJECTIVITY TRICKS",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": canonical_subtopic,
+            },
+        ],
+    )
+
+    response = client.get(reverse("pages:technique_progress_gaps"), {"kind": "subtopics", "topic": "algebra"})
+
+    assert response.status_code == HTTPStatus.OK
+    row = response.context["technique_progress_gap_rows"][0]
+    expected_url = (
+        f"{reverse('pages:technique_progress_gaps')}?"
+        f"{urlencode({'kind': 'techniques', 'topic': 'algebra', 'canonical_subtopic': canonical_subtopic})}"
+    )
+    assert row["drilldown_url"] == expected_url
+    response_html = response.content.decode("utf-8")
+    assert f'href="{expected_url.replace("&", "&amp;")}"' in response_html
+
+
+def test_technique_progress_gaps_page_filters_techniques_by_canonical_subtopic(client):
+    user = UserFactory()
+    client.force_login(user)
+    canonical_subtopic = "Equations, substitutions, and transformations"
+    other_subtopic = "Inequalities and optimization"
+    _create_technique_progress_statement(
+        problem_code="E1",
+        problem_number=1,
+        statement_tags=[
+            {
+                "technique": "INJECTIVITY TRICKS",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": canonical_subtopic,
+            },
+        ],
+    )
+    _create_technique_progress_statement(
+        problem_code="E2",
+        problem_number=2,
+        statement_tags=[
+            {
+                "technique": "ZERO FORCING",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": canonical_subtopic,
+            },
+        ],
+    )
+    _create_technique_progress_statement(
+        problem_code="I1",
+        problem_number=3,
+        statement_tags=[
+            {
+                "technique": "AM-GM",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": other_subtopic,
+            },
+        ],
+    )
+
+    response = client.get(
+        reverse("pages:technique_progress_gaps"),
+        {
+            "kind": "techniques",
+            "topic": "algebra",
+            "canonical_subtopic": canonical_subtopic,
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["technique_progress_gap_kind"] == "techniques"
+    assert response.context["technique_progress_gap_canonical_subtopic"] == canonical_subtopic
+    assert [
+        row["label"]
+        for row in response.context["technique_progress_gap_rows"]
+    ] == ["INJECTIVITY TRICKS", "ZERO FORCING"]
+    response_html = response.content.decode("utf-8")
+    assert canonical_subtopic in response_html
+    assert other_subtopic not in response_html
+    assert "AM-GM" not in response_html
+
+
 def test_technique_progress_gaps_page_counts_canonical_subtopic_once_per_statement(client):
     user = UserFactory()
     client.force_login(user)
@@ -12988,6 +13080,10 @@ def test_technique_progress_gaps_datatable_searches_canonical_subtopic_technique
     assert payload["recordsFiltered"] == 1
     assert payload["data"][0]["label"] == canonical_subtopic
     assert payload["data"][0]["canonical_subtopic"] == canonical_subtopic
+    assert payload["data"][0]["drilldown_url"] == (
+        f"{reverse('pages:technique_progress_gaps')}?"
+        f"{urlencode({'kind': 'techniques', 'topic': 'algebra', 'canonical_subtopic': canonical_subtopic})}"
+    )
 
 
 def test_technique_progress_gaps_datatable_searches_all_matching_rows(client):

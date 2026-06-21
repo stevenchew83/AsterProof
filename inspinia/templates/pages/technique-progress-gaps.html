@@ -66,6 +66,9 @@
                 <input type="hidden" name="kind" value="{{ technique_progress_gap_kind }}">
                 <input type="hidden" name="topic" value="{{ technique_progress_gap_topic }}">
                 <input type="hidden" name="min_total" value="{% if technique_progress_gap_min_total %}{{ technique_progress_gap_min_total }}{% endif %}">
+                {% if technique_progress_gap_canonical_subtopic %}
+                <input type="hidden" name="canonical_subtopic" value="{{ technique_progress_gap_canonical_subtopic }}">
+                {% endif %}
                 <div>
                   <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="technique-progress-user">User</label>
                   <select id="technique-progress-user" name="user" class="form-select form-select-sm">
@@ -129,6 +132,9 @@
             {% endif %}
             <input type="hidden" name="kind" value="{{ technique_progress_gap_kind }}">
             <input type="hidden" name="topic" value="{{ technique_progress_gap_topic }}">
+            {% if technique_progress_gap_canonical_subtopic %}
+            <input type="hidden" name="canonical_subtopic" value="{{ technique_progress_gap_canonical_subtopic }}">
+            {% endif %}
             <div>
               <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="technique-progress-min-total">Minimum statements</label>
               <input
@@ -150,6 +156,12 @@
             <a href="{{ technique_progress_gap_min_total_reset_url }}" class="btn btn-sm btn-outline-secondary">Clear</a>
             {% endif %}
           </form>
+          {% if technique_progress_gap_canonical_subtopic %}
+          <div class="alert alert-info py-2 mb-3" role="alert">
+            <span class="fw-semibold">{{ technique_progress_gap_canonical_subtopic }}</span>
+            <a href="{{ technique_progress_gap_canonical_subtopic_reset_url }}" class="alert-link ms-2">Clear</a>
+          </div>
+          {% endif %}
 
           <div class="table-responsive">
             <table
@@ -176,7 +188,13 @@
                 <tr>
                   <td>
                     <span class="fw-semibold">
-                      {% if technique_progress_gap_kind == 'subtopics' %}{{ row.canonical_subtopic }}{% else %}{{ row.label }}{% endif %}
+                      {% if row.drilldown_url %}
+                      <a href="{{ row.drilldown_url }}">{{ row.canonical_subtopic }}</a>
+                      {% elif technique_progress_gap_kind == 'subtopics' %}
+                      {{ row.canonical_subtopic }}
+                      {% else %}
+                      {{ row.label }}
+                      {% endif %}
                     </span>
                   </td>
                   {% if technique_progress_gap_show_type_column %}
