@@ -4932,6 +4932,82 @@ def _completion_quick_update_apply_subtopics_filter(queryset, raw_value: str):
     return queryset
 
 
+COMPLETION_QUICK_UPDATE_LAYER_FIELDS = {
+    "objects": "object_tags",
+    "methods": "technique_tags",
+    "lemmas": "lemma_theorem_tags",
+    "proof_roles": "proof_roles",
+}
+COMPLETION_QUICK_UPDATE_LAYER_LABELS = {
+    "objects": "Object tag",
+    "methods": "Technique tag",
+    "lemmas": "Lemma/Theorem tag",
+    "proof_roles": "Proof role",
+}
+
+
+def _completion_quick_update_layer_kind(raw_value: str) -> str:
+    layer_kind = (raw_value or "").strip()
+    return layer_kind if layer_kind in COMPLETION_QUICK_UPDATE_LAYER_FIELDS else ""
+
+
+def _completion_quick_update_apply_layer_filter(queryset, *, raw_kind: str, raw_tag: str):
+    layer_kind = _completion_quick_update_layer_kind(raw_kind)
+    layer_tag = (raw_tag or "").strip()
+    if not layer_kind or not layer_tag:
+        return queryset
+
+    layer_field = COMPLETION_QUICK_UPDATE_LAYER_FIELDS[layer_kind]
+    candidate_statement_rows = list(
+        queryset.values_list("id", "linked_problem_id"),
+    )
+    candidate_statement_ids = [statement_id for statement_id, _linked_id in candidate_statement_rows]
+    if not candidate_statement_ids:
+        return queryset.none()
+
+    statement_ids_with_tags = set(
+        StatementTopicTechnique.objects.filter(statement_id__in=candidate_statement_ids)
+        .values_list("statement_id", flat=True)
+        .distinct(),
+    )
+    matching_statement_ids = {
+        int(tag_row["statement_id"])
+        for tag_row in StatementTopicTechnique.objects.filter(statement_id__in=candidate_statement_ids)
+        .values("statement_id", layer_field)
+        if layer_tag in {str(value) for value in (tag_row[layer_field] or [])}
+    }
+
+    linked_problem_ids = sorted(
+        {
+            linked_problem_id
+            for _statement_id, linked_problem_id in candidate_statement_rows
+            if linked_problem_id is not None
+        },
+    )
+    matching_problem_ids = {
+        int(tag_row["record_id"])
+        for tag_row in ProblemTopicTechnique.objects.filter(record_id__in=linked_problem_ids)
+        .values("record_id", layer_field)
+        if layer_tag in {str(value) for value in (tag_row[layer_field] or [])}
+    }
+    fallback_statement_ids = {
+        statement_id
+        for statement_id, linked_problem_id in candidate_statement_rows
+        if statement_id not in statement_ids_with_tags
+        and linked_problem_id in matching_problem_ids
+    }
+    return queryset.filter(id__in=matching_statement_ids | fallback_statement_ids)
+
+
+def _completion_quick_update_layer_filter_clear_url(request) -> str:
+    query = request.GET.copy()
+    query.pop("layer_kind", None)
+    query.pop("layer_tag", None)
+    query_string = query.urlencode()
+    base_url = reverse("pages:completion_quick_update")
+    return f"{base_url}?{query_string}" if query_string else base_url
+
+
 def _completion_quick_update_apply_core_ideas_filter(queryset, raw_value: str):
     value = (raw_value or "").strip().lower()
     if value == "has":
@@ -5232,6 +5308,87 @@ def _completion_quick_update_filter_links(
     return links
 
 
+def _completion_quick_update_selected_filters(
+    *,
+    can_select_user: bool,
+    request_user,
+    search_query: str,
+    selected_contest: str,
+    selected_core_ideas: str,
+    selected_layer_kind: str,
+    selected_layer_tag: str,
+    selected_mohs_max: str,
+    selected_mohs_min: str,
+    selected_problem: str,
+    selected_problem_label: str,
+    selected_subtopics: str,
+    selected_technique: str,
+    selected_user,
+    selected_year: str,
+) -> dict[str, str]:
+    filters = {
+        "contest": selected_contest,
+        "core_ideas": selected_core_ideas,
+        "mohs_max": selected_mohs_max,
+        "mohs_min": selected_mohs_min,
+        "problem": selected_problem,
+        "problem_label": selected_problem_label,
+        "q": search_query,
+        "subtopics": selected_subtopics,
+        "technique": selected_technique,
+        "target_user_id": (
+            str(selected_user.id)
+            if can_select_user and selected_user != request_user
+            else ""
+        ),
+        "year": selected_year,
+    }
+    if selected_layer_kind and selected_layer_tag:
+        filters.update(
+            {
+                "layer_kind": selected_layer_kind,
+                "layer_label": COMPLETION_QUICK_UPDATE_LAYER_LABELS[selected_layer_kind],
+                "layer_tag": selected_layer_tag,
+            },
+        )
+    return filters
+
+
+def _completion_quick_update_rows(
+    statements,
+    *,
+    completion_by_statement_id: dict[int, UserProblemCompletion],
+    difficulty_payloads: dict[int, dict[str, object]],
+    selected_filters: dict[str, str],
+    tag_payload_by_statement_id: dict[int, dict[str, list[str]]],
+) -> list[dict[str, object]]:
+    rows = []
+    for statement in statements:
+        tag_payload = tag_payload_by_statement_id.get(
+            statement.id,
+            {"subtopics": [], "techniques": []},
+        )
+        row = _completion_quick_update_row(
+            statement,
+            completion_by_statement_id=completion_by_statement_id,
+            difficulty_payload=difficulty_payloads.get(statement.id),
+            subtopics=tag_payload["subtopics"],
+            techniques=tag_payload["techniques"],
+        )
+        row["subtopic_links"] = _completion_quick_update_filter_links(
+            row["subtopics"],
+            filter_name="subtopics",
+            selected_filters=selected_filters,
+        )
+        row["technique_links"] = _completion_quick_update_filter_links(
+            row["techniques"],
+            filter_name="technique",
+            selected_filters=selected_filters,
+        )
+        rows.append(row)
+    return rows
+
+
 @login_required
 def completion_quick_update_view(request):
     """Fast statement search and completion-date update page."""
@@ -5252,6 +5409,8 @@ def completion_quick_update_view(request):
     selected_mohs_max = (request.GET.get("mohs_max") or "").strip()
     selected_subtopics = (request.GET.get("subtopics") or "").strip()
     selected_technique = (request.GET.get("technique") or "").strip()
+    selected_layer_kind = _completion_quick_update_layer_kind(request.GET.get("layer_kind") or "")
+    selected_layer_tag = (request.GET.get("layer_tag") or "").strip() if selected_layer_kind else ""
     search_query = (request.GET.get("q") or "").strip()
     can_select_user = user_has_admin_role(request.user)
     selected_user = _completion_quick_update_resolve_get_user(request)
@@ -5266,6 +5425,7 @@ def completion_quick_update_view(request):
             selected_mohs_max,
             selected_subtopics,
             selected_technique,
+            selected_layer_kind and selected_layer_tag,
             search_query,
         ],
     )
@@ -5305,6 +5465,11 @@ def completion_quick_update_view(request):
         filtered_statements,
         selected_subtopics,
     ).distinct()
+    filtered_statements = _completion_quick_update_apply_layer_filter(
+        filtered_statements,
+        raw_kind=selected_layer_kind,
+        raw_tag=selected_layer_tag,
+    ).distinct()
     filtered_statements = _completion_quick_update_apply_core_ideas_filter(
         filtered_statements,
         selected_core_ideas,
@@ -5339,51 +5504,35 @@ def completion_quick_update_view(request):
         user=selected_user,
     )
     tag_payload_by_statement_id = _completion_quick_update_tag_payload_by_statement_id(statements)
-    selected_filters = {
-        "contest": selected_contest,
-        "core_ideas": selected_core_ideas,
-        "mohs_max": selected_mohs_max,
-        "mohs_min": selected_mohs_min,
-        "problem": selected_problem,
-        "problem_label": selected_problem_label,
-        "q": search_query,
-        "subtopics": selected_subtopics,
-        "technique": selected_technique,
-        "target_user_id": (
-            str(selected_user.id)
-            if can_select_user and selected_user != request.user
-            else ""
-        ),
-        "year": selected_year,
-    }
-    rows = []
-    for statement in statements:
-        tag_payload = tag_payload_by_statement_id.get(
-            statement.id,
-            {"subtopics": [], "techniques": []},
-        )
-        row = _completion_quick_update_row(
-            statement,
-            completion_by_statement_id=completion_by_statement_id,
-            difficulty_payload=difficulty_payloads.get(statement.id),
-            subtopics=tag_payload["subtopics"],
-            techniques=tag_payload["techniques"],
-        )
-        row["subtopic_links"] = _completion_quick_update_filter_links(
-            row["subtopics"],
-            filter_name="subtopics",
-            selected_filters=selected_filters,
-        )
-        row["technique_links"] = _completion_quick_update_filter_links(
-            row["techniques"],
-            filter_name="technique",
-            selected_filters=selected_filters,
-        )
-        rows.append(row)
+    selected_filters = _completion_quick_update_selected_filters(
+        can_select_user=can_select_user,
+        request_user=request.user,
+        search_query=search_query,
+        selected_contest=selected_contest,
+        selected_core_ideas=selected_core_ideas,
+        selected_layer_kind=selected_layer_kind,
+        selected_layer_tag=selected_layer_tag,
+        selected_mohs_max=selected_mohs_max,
+        selected_mohs_min=selected_mohs_min,
+        selected_problem=selected_problem,
+        selected_problem_label=selected_problem_label,
+        selected_subtopics=selected_subtopics,
+        selected_technique=selected_technique,
+        selected_user=selected_user,
+        selected_year=selected_year,
+    )
+    rows = _completion_quick_update_rows(
+        statements,
+        completion_by_statement_id=completion_by_statement_id,
+        difficulty_payloads=difficulty_payloads,
+        selected_filters=selected_filters,
+        tag_payload_by_statement_id=tag_payload_by_statement_id,
+    )
     context = {
         "completion_quick_update_can_select_user": can_select_user,
         "completion_quick_update_contest_choices": contest_choices,
         "completion_quick_update_filters": selected_filters,
+        "completion_quick_update_layer_filter_clear_url": _completion_quick_update_layer_filter_clear_url(request),
         "completion_quick_update_matching_total": matching_total,
         "completion_quick_update_is_capped": visible_total < matching_total,
         "completion_quick_update_difficulty_max": DIFFICULTY_RATING_MAX,

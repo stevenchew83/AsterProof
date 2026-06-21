@@ -26,6 +26,7 @@ if TYPE_CHECKING:
     from collections.abc import Mapping
 
 NEXT_GAP_LIMIT = 6
+SUBTOPIC_LAYER_PREVIEW_LIMIT = 3
 GAP_PAGE_SIZE = 50
 GAP_CSV_CONTENT_TYPE = "text/csv; charset=utf-8"
 GAP_CSV_FIELDNAMES = [
@@ -54,7 +55,7 @@ GAP_KIND_CHOICES = {
     GAP_KIND_PROOF_ROLES,
     GAP_KIND_ALL,
 }
-GAP_DATATABLE_DEFAULT_SORT_FIELD = "completion_percent"
+GAP_DATATABLE_DEFAULT_SORT_FIELD = "remaining"
 GAP_DATATABLE_SORT_FIELDS = {
     "canonical_subtopic",
     "canonical_subtopic_label",
@@ -91,18 +92,49 @@ GAP_TOPIC_SLUGS = {
     "geometry": "Geometry",
     "combinatorics": "Combinatorics",
 }
+LAYER_GAP_KIND_CONFIG = {
+    GAP_KIND_OBJECTS: {
+        "fact_layer": TechniqueProgressFact.Layer.OBJECT,
+        "label": "Object tags",
+        "layer_key": "object_tags",
+        "noun": "object gaps",
+        "type": "Object",
+    },
+    GAP_KIND_METHODS: {
+        "fact_layer": TechniqueProgressFact.Layer.METHOD,
+        "label": "Technique tags",
+        "layer_key": "technique_tags",
+        "noun": "technique-tag gaps",
+        "type": "Technique",
+    },
+    GAP_KIND_LEMMAS: {
+        "fact_layer": TechniqueProgressFact.Layer.LEMMA,
+        "label": "Lemma/Theorem tags",
+        "layer_key": "lemma_theorem_tags",
+        "noun": "lemma/theorem gaps",
+        "type": "Lemma/Theorem",
+    },
+    GAP_KIND_PROOF_ROLES: {
+        "fact_layer": TechniqueProgressFact.Layer.PROOF_ROLE,
+        "label": "Proof roles",
+        "layer_key": "proof_roles",
+        "noun": "proof-role gaps",
+        "type": "Proof role",
+    },
+}
+LAYER_GAP_KINDS = tuple(LAYER_GAP_KIND_CONFIG)
 
 
 def _layers_for_gap_kind(gap_kind: str) -> set[str]:
     layer_sets = {
         GAP_KIND_TECHNIQUES: {TechniqueProgressFact.Layer.TECHNIQUE},
-        GAP_KIND_OBJECTS: {TechniqueProgressFact.Layer.OBJECT},
-        GAP_KIND_METHODS: {TechniqueProgressFact.Layer.METHOD},
-        GAP_KIND_LEMMAS: {TechniqueProgressFact.Layer.LEMMA},
-        GAP_KIND_PROOF_ROLES: {TechniqueProgressFact.Layer.PROOF_ROLE},
+        GAP_KIND_OBJECTS: {str(LAYER_GAP_KIND_CONFIG[GAP_KIND_OBJECTS]["fact_layer"])},
+        GAP_KIND_METHODS: {str(LAYER_GAP_KIND_CONFIG[GAP_KIND_METHODS]["fact_layer"])},
+        GAP_KIND_LEMMAS: {str(LAYER_GAP_KIND_CONFIG[GAP_KIND_LEMMAS]["fact_layer"])},
+        GAP_KIND_PROOF_ROLES: {str(LAYER_GAP_KIND_CONFIG[GAP_KIND_PROOF_ROLES]["fact_layer"])},
         GAP_KIND_ALL: {
-            TechniqueProgressFact.Layer.SUBTOPIC,
-            TechniqueProgressFact.Layer.TECHNIQUE,
+            str(LAYER_GAP_KIND_CONFIG[layer_kind]["fact_layer"])
+            for layer_kind in LAYER_GAP_KINDS
         },
     }
     return layer_sets.get(gap_kind, {TechniqueProgressFact.Layer.SUBTOPIC})
@@ -342,12 +374,7 @@ def build_technique_progress_gaps_context(  # noqa: PLR0913
         gap_min_total=gap_min_total,
         gap_canonical_subtopic=gap_canonical_subtopic,
     )
-    gap_rows = _gap_rows_with_drilldown_urls(
-        gap_rows,
-        selected_user=selected_user,
-        can_select_user=can_select_user,
-        gap_topic=gap_topic,
-    )
+    is_drilldown = bool(gap_canonical_subtopic)
     return {
         **base_context,
         "technique_progress_gap_canonical_subtopic": gap_canonical_subtopic,
@@ -376,7 +403,11 @@ def build_technique_progress_gaps_context(  # noqa: PLR0913
             active_min_total=gap_min_total,
             active_canonical_subtopic=gap_canonical_subtopic,
         ),
-        "technique_progress_gap_first_column_label": _gap_first_column_label(gap_kind),
+        "technique_progress_gap_first_column_label": _gap_first_column_label(
+            gap_kind,
+            is_drilldown=is_drilldown,
+        ),
+        "technique_progress_gap_is_drilldown": is_drilldown,
         "technique_progress_gap_min_total": gap_min_total,
         "technique_progress_gap_min_total_reset_url": _gap_url(
             selected_user=selected_user,
@@ -390,7 +421,9 @@ def build_technique_progress_gaps_context(  # noqa: PLR0913
             gap_kind=gap_kind,
         ),
         "technique_progress_gap_rows": gap_rows,
-        "technique_progress_gap_show_canonical_subtopic_column": gap_kind in {GAP_KIND_TECHNIQUES, GAP_KIND_ALL},
+        "technique_progress_gap_show_canonical_subtopic_column": (
+            gap_kind in {GAP_KIND_TECHNIQUES, GAP_KIND_ALL} and not is_drilldown
+        ),
         "technique_progress_gap_show_type_column": gap_kind == GAP_KIND_ALL,
         "technique_progress_gap_title": _gap_title(gap_kind),
         "technique_progress_gap_topic": gap_topic,
@@ -464,12 +497,6 @@ def build_technique_progress_gaps_datatable_payload(  # noqa: PLR0913
         gap_min_total=gap_min_total,
         gap_canonical_subtopic=gap_canonical_subtopic,
     )
-    gap_rows = _gap_rows_with_drilldown_urls(
-        gap_rows,
-        selected_user=payload["base_context"]["technique_progress_selected_user"],
-        can_select_user=bool(payload["base_context"]["technique_progress_can_select_user"]),
-        gap_topic=gap_topic,
-    )
 
     draw = _datatable_int(params.get("draw"), default=0)
     start = _datatable_int(params.get("start"), default=0)
@@ -534,6 +561,18 @@ def build_technique_progress_topic_context(
         selected_user=selected_user,
         can_select_user=can_select_user,
     )
+    topic_layer_rows = _all_layer_progress_rows(
+        topic_tagged_rows,
+        selected_user=selected_user,
+        can_select_user=can_select_user,
+    )
+    topic_subtopic_rows = _subtopic_rows_with_layer_previews(
+        topic_subtopic_rows,
+        layer_rows=topic_layer_rows,
+        selected_user=selected_user,
+        can_select_user=can_select_user,
+        topic_slug=topic_slug,
+    )
     summary = _summary_from_tagged_rows(topic_tagged_rows)
     summary["incomplete_subtopic_total"] = sum(1 for row in topic_subtopic_rows if row["remaining"])
     summary["subtopic_total"] = len(topic_subtopic_rows)
@@ -583,34 +622,15 @@ def _build_progress_payload(
         selected_user=selected_user,
         can_select_user=can_select_user,
     )
-    object_rows = _aggregate_progress_rows(
-        rows_by_layer.get(TechniqueProgressFact.Layer.OBJECT, []),
-        label_key="label",
-        type_label="Object",
-        selected_user=selected_user,
-        can_select_user=can_select_user,
-    )
-    method_rows = _aggregate_progress_rows(
-        rows_by_layer.get(TechniqueProgressFact.Layer.METHOD, []),
-        label_key="label",
-        type_label="Method",
-        selected_user=selected_user,
-        can_select_user=can_select_user,
-    )
-    lemma_rows = _aggregate_progress_rows(
-        rows_by_layer.get(TechniqueProgressFact.Layer.LEMMA, []),
-        label_key="label",
-        type_label="Lemma/Theorem",
-        selected_user=selected_user,
-        can_select_user=can_select_user,
-    )
-    proof_role_rows = _aggregate_progress_rows(
-        rows_by_layer.get(TechniqueProgressFact.Layer.PROOF_ROLE, []),
-        label_key="label",
-        type_label="Proof role",
-        selected_user=selected_user,
-        can_select_user=can_select_user,
-    )
+    layer_rows_by_kind = {
+        layer_kind: _fact_layer_progress_rows(
+            rows_by_layer=rows_by_layer,
+            layer_kind=layer_kind,
+            selected_user=selected_user,
+            can_select_user=can_select_user,
+        )
+        for layer_kind in LAYER_GAP_KINDS
+    }
     summary = _summary_from_tagged_rows(
         rows_by_layer.get(TechniqueProgressFact.Layer.MAIN_TOPIC, tagged_rows),
     )
@@ -633,7 +653,7 @@ def _build_progress_payload(
             has_tagged_statements=bool(summary["total"]),
         ),
         "gap_rows": gap_rows,
-        "lemma_rows": lemma_rows,
+        "lemma_rows": layer_rows_by_kind[GAP_KIND_LEMMAS],
         "main_topic_rows": _main_topic_rows(
             rows_by_layer.get(TechniqueProgressFact.Layer.MAIN_TOPIC, []),
             subtopic_rows=subtopic_rows,
@@ -641,9 +661,9 @@ def _build_progress_payload(
             can_select_user=can_select_user,
         ),
         "next_gaps": next_gaps,
-        "method_rows": method_rows,
-        "object_rows": object_rows,
-        "proof_role_rows": proof_role_rows,
+        "method_rows": layer_rows_by_kind[GAP_KIND_METHODS],
+        "object_rows": layer_rows_by_kind[GAP_KIND_OBJECTS],
+        "proof_role_rows": layer_rows_by_kind[GAP_KIND_PROOF_ROLES],
         "stats": stats,
         "subtopic_rows": subtopic_rows,
         "technique_rows": technique_rows,
@@ -673,31 +693,69 @@ def _technique_progress_rows(tagged_rows: list[dict[str, object]]) -> list[dict[
     return rows
 
 
-def _layer_progress_rows(
-    tagged_rows: list[dict[str, object]],
+def _fact_layer_progress_rows(
     *,
-    layer_key: str,
-    type_label: str,
+    rows_by_layer: dict[str, list[dict[str, object]]],
+    layer_kind: str,
     selected_user: User,
     can_select_user: bool,
 ) -> list[dict[str, object]]:
+    layer_config = LAYER_GAP_KIND_CONFIG[layer_kind]
+    rows = _aggregate_progress_rows(
+        rows_by_layer.get(str(layer_config["fact_layer"]), []),
+        label_key="label",
+        type_label=str(layer_config["type"]),
+        selected_user=selected_user,
+        can_select_user=can_select_user,
+    )
+    return [dict(row, layer_kind=layer_kind) for row in rows]
+
+
+def _layer_progress_rows(
+    tagged_rows: list[dict[str, object]],
+    *,
+    layer_kind: str,
+    selected_user: User,
+    can_select_user: bool,
+) -> list[dict[str, object]]:
+    layer_config = LAYER_GAP_KIND_CONFIG[layer_kind]
     layer_rows: list[dict[str, object]] = []
     for row in tagged_rows:
         status = str(row.get("normalization_status") or "").casefold()
         if status in TECHNIQUE_SUPPRESSED_NORMALIZATION_STATUSES:
             continue
-        for layer_label in row.get(layer_key, []) or []:
+        for layer_label in row.get(str(layer_config["layer_key"]), []) or []:
             label = str(layer_label or "").strip()
             if not label:
                 continue
             layer_rows.append({**row, "layer_label": label})
-    return _aggregate_progress_rows(
+    rows = _aggregate_progress_rows(
         layer_rows,
         label_key="layer_label",
-        type_label=type_label,
+        type_label=str(layer_config["type"]),
         selected_user=selected_user,
         can_select_user=can_select_user,
     )
+    return [dict(row, layer_kind=layer_kind) for row in rows]
+
+
+def _all_layer_progress_rows(
+    tagged_rows: list[dict[str, object]],
+    *,
+    selected_user: User,
+    can_select_user: bool,
+) -> list[dict[str, object]]:
+    rows: list[dict[str, object]] = []
+    for layer_kind in LAYER_GAP_KINDS:
+        rows.extend(
+            _layer_progress_rows(
+                tagged_rows,
+                layer_kind=layer_kind,
+                selected_user=selected_user,
+                can_select_user=can_select_user,
+            ),
+        )
+    return _sort_gap_rows_by_priority(rows)
 
 
 def _base_context(
@@ -729,6 +787,66 @@ def _base_context(
         "technique_progress_selected_user": selected_user,
         "technique_progress_user_options": technique_progress_user_options() if can_select_user else [],
     }
+
+
+def _subtopic_rows_with_layer_previews(
+    subtopic_rows: list[dict[str, object]],
+    *,
+    layer_rows: list[dict[str, object]],
+    selected_user: User,
+    can_select_user: bool,
+    topic_slug: str,
+) -> list[dict[str, object]]:
+    layer_rows_by_subtopic: dict[str, list[dict[str, object]]] = defaultdict(list)
+    for layer_row in layer_rows:
+        if not int(layer_row.get("remaining", 0)):
+            continue
+        for canonical_subtopic in layer_row.get("canonical_subtopic_labels", []) or []:
+            label = str(canonical_subtopic or "").strip()
+            if label:
+                layer_rows_by_subtopic[label].append(layer_row)
+
+    enriched_rows = []
+    for row in subtopic_rows:
+        canonical_subtopic = str(row.get("canonical_subtopic") or row.get("label") or "").strip()
+        preview_rows = _sort_gap_rows_by_priority(layer_rows_by_subtopic.get(canonical_subtopic, []))
+        enriched_rows.append(
+            {
+                **row,
+                "drilldown_url": _gap_url(
+                    selected_user=selected_user,
+                    can_select_user=can_select_user,
+                    gap_kind=GAP_KIND_ALL,
+                    gap_topic=topic_slug,
+                    gap_canonical_subtopic=canonical_subtopic,
+                ),
+                "layer_gap_preview": [
+                    {
+                        "label": preview_row["label"],
+                        "remaining": int(preview_row["remaining"]),
+                        "type": preview_row["type"],
+                    }
+                    for preview_row in preview_rows[:SUBTOPIC_LAYER_PREVIEW_LIMIT]
+                ],
+                "layer_gap_preview_overflow": max(
+                    len(preview_rows) - SUBTOPIC_LAYER_PREVIEW_LIMIT,
+                    0,
+                ),
+            },
+        )
+    return enriched_rows
+
+
+def _sort_gap_rows_by_priority(rows: list[dict[str, object]]) -> list[dict[str, object]]:
+    return sorted(
+        rows,
+        key=lambda row: (
+            int(row.get("remaining", 0)) == 0,
+            -int(row.get("remaining", 0)),
+            str(row.get("label", "")).casefold(),
+            str(row.get("type", "")).casefold(),
+        ),
+    )
 
 
 def _gap_rows(
@@ -798,19 +916,20 @@ def _rows_for_gap_kind(  # noqa: PLR0911, PLR0913
     if gap_kind == GAP_KIND_OBJECTS:
         return [dict(row, type="Object") for row in object_rows if row["remaining"]]
     if gap_kind == GAP_KIND_METHODS:
-        return [dict(row, type="Method") for row in method_rows if row["remaining"]]
+        return [dict(row, type="Technique") for row in method_rows if row["remaining"]]
     if gap_kind == GAP_KIND_LEMMAS:
         return [dict(row, type="Lemma/Theorem") for row in lemma_rows if row["remaining"]]
     if gap_kind == GAP_KIND_PROOF_ROLES:
         return [dict(row, type="Proof role") for row in proof_role_rows if row["remaining"]]
     if gap_kind == GAP_KIND_ALL:
-        subtopic_labels = {str(row["label"]).casefold() for row in visible_subtopic_rows}
-        non_duplicate_technique_rows = [
-            row
-            for row in visible_technique_rows
-            if str(row["label"]).casefold() not in subtopic_labels
-        ]
-        return [*visible_subtopic_rows, *non_duplicate_technique_rows]
+        return _sort_gap_rows_by_priority(
+            [
+                *[dict(row, type="Object") for row in object_rows if row["remaining"]],
+                *[dict(row, type="Technique") for row in method_rows if row["remaining"]],
+                *[dict(row, type="Lemma/Theorem") for row in lemma_rows if row["remaining"]],
+                *[dict(row, type="Proof role") for row in proof_role_rows if row["remaining"]],
+            ],
+        )
     return visible_subtopic_rows
 
 
@@ -867,7 +986,14 @@ def _filtered_gap_rows(
         gap_rows,
         gap_canonical_subtopic=gap_canonical_subtopic,
     )
-    return _filter_gap_rows_by_min_total(gap_rows, gap_min_total=gap_min_total)
+    gap_rows = _filter_gap_rows_by_min_total(gap_rows, gap_min_total=gap_min_total)
+    return _gap_rows_with_urls(
+        gap_rows,
+        selected_user=payload["base_context"]["technique_progress_selected_user"],
+        can_select_user=bool(payload["base_context"]["technique_progress_can_select_user"]),
+        gap_topic=gap_topic,
+        gap_canonical_subtopic=gap_canonical_subtopic,
+    )
 
 
 def _filter_gap_rows_by_min_total(
@@ -893,15 +1019,22 @@ def _gap_kind_options(  # noqa: PLR0913
     active_min_total: int,
     active_canonical_subtopic: str,
 ) -> list[dict[str, object]]:
-    options = [
-        {"label": "Subtopics", "value": GAP_KIND_SUBTOPICS},
-        {"label": "Technique gaps", "value": GAP_KIND_TECHNIQUES},
-        {"label": "Object gaps", "value": GAP_KIND_OBJECTS},
-        {"label": "Method gaps", "value": GAP_KIND_METHODS},
-        {"label": "Lemma/theorem gaps", "value": GAP_KIND_LEMMAS},
-        {"label": "Proof-role gaps", "value": GAP_KIND_PROOF_ROLES},
+    layer_options = [
         {"label": "All", "value": GAP_KIND_ALL},
+        *[
+            {"label": str(LAYER_GAP_KIND_CONFIG[layer_kind]["label"]), "value": layer_kind}
+            for layer_kind in LAYER_GAP_KINDS
+        ],
     ]
+    if active_canonical_subtopic:
+        options = layer_options
+    else:
+        options = [
+            {"label": "Subtopics", "value": GAP_KIND_SUBTOPICS},
+            {"label": "Technique gaps", "value": GAP_KIND_TECHNIQUES},
+            *layer_options[1:],
+            layer_options[0],
+        ]
     return [
         {
             **option,
@@ -970,12 +1103,13 @@ def _gap_url(  # noqa: PLR0913
     return f"{reverse('pages:technique_progress_gaps')}?{urlencode(query)}"
 
 
-def _gap_rows_with_drilldown_urls(
+def _gap_rows_with_urls(
     rows: list[dict[str, object]],
     *,
     selected_user: User,
     can_select_user: bool,
     gap_topic: str,
+    gap_canonical_subtopic: str,
 ) -> list[dict[str, object]]:
     enriched_rows = []
     for row in rows:
@@ -984,12 +1118,25 @@ def _gap_rows_with_drilldown_urls(
             enriched_row["drilldown_url"] = _gap_url(
                 selected_user=selected_user,
                 can_select_user=can_select_user,
-                gap_kind=GAP_KIND_TECHNIQUES,
+                gap_kind=GAP_KIND_ALL,
                 gap_topic=gap_topic,
                 gap_canonical_subtopic=str(row["canonical_subtopic"]),
             )
         else:
             enriched_row["drilldown_url"] = ""
+        layer_kind = str(row.get("layer_kind") or "")
+        if layer_kind:
+            practice_subtopic = (
+                gap_canonical_subtopic
+                or str(row.get("canonical_subtopic") or "").strip()
+            )
+            enriched_row["practice_url"] = _practice_url(
+                practice_subtopic,
+                selected_user=selected_user,
+                can_select_user=can_select_user,
+                layer_kind=layer_kind,
+                layer_tag=str(row["label"]),
+            )
         enriched_rows.append(enriched_row)
     return enriched_rows
 
@@ -1018,11 +1165,11 @@ def _gap_result_summary(rows: list[dict[str, object]], *, gap_kind: str) -> str:
     noun = {
         GAP_KIND_SUBTOPICS: "subtopic gaps",
         GAP_KIND_TECHNIQUES: "technique gaps",
-        GAP_KIND_OBJECTS: "object gaps",
-        GAP_KIND_METHODS: "method gaps",
-        GAP_KIND_LEMMAS: "lemma/theorem gaps",
-        GAP_KIND_PROOF_ROLES: "proof-role gaps",
-        GAP_KIND_ALL: "practice gaps",
+        GAP_KIND_OBJECTS: LAYER_GAP_KIND_CONFIG[GAP_KIND_OBJECTS]["noun"],
+        GAP_KIND_METHODS: LAYER_GAP_KIND_CONFIG[GAP_KIND_METHODS]["noun"],
+        GAP_KIND_LEMMAS: LAYER_GAP_KIND_CONFIG[GAP_KIND_LEMMAS]["noun"],
+        GAP_KIND_PROOF_ROLES: LAYER_GAP_KIND_CONFIG[GAP_KIND_PROOF_ROLES]["noun"],
+        GAP_KIND_ALL: "layer-tag gaps",
     }[gap_kind]
     if not row_total:
         return f"Showing 0 of 0 {noun}"
@@ -1033,23 +1180,26 @@ def _gap_title(gap_kind: str) -> str:
     return {
         GAP_KIND_SUBTOPICS: "Subtopic practice gaps",
         GAP_KIND_TECHNIQUES: "Technique practice gaps",
-        GAP_KIND_OBJECTS: "Object practice gaps",
-        GAP_KIND_METHODS: "Method practice gaps",
+        GAP_KIND_OBJECTS: "Object tag practice gaps",
+        GAP_KIND_METHODS: "Technique tag practice gaps",
         GAP_KIND_LEMMAS: "Lemma/theorem practice gaps",
         GAP_KIND_PROOF_ROLES: "Proof-role practice gaps",
         GAP_KIND_ALL: "All practice gaps",
     }[gap_kind]
 
 
-def _gap_first_column_label(gap_kind: str) -> str:
+def _gap_first_column_label(gap_kind: str, *, is_drilldown: bool) -> str:
+    if gap_kind == GAP_KIND_ALL:
+        return "Gap"
+    if is_drilldown and gap_kind in LAYER_GAP_KINDS:
+        return "Tag"
     return {
         GAP_KIND_SUBTOPICS: "Canonical subtopic",
         GAP_KIND_TECHNIQUES: "Technique",
         GAP_KIND_OBJECTS: "Object",
-        GAP_KIND_METHODS: "Method",
+        GAP_KIND_METHODS: "Technique tag",
         GAP_KIND_LEMMAS: "Lemma/theorem",
         GAP_KIND_PROOF_ROLES: "Proof role",
-        GAP_KIND_ALL: "Area",
     }[gap_kind]
 
 
@@ -1590,11 +1740,22 @@ def _page_url(
     return f"{base_url}?{urlencode({'user': str(selected_user.pk)})}"
 
 
-def _practice_url(label: str, *, selected_user: User, can_select_user: bool) -> str:
+def _practice_url(
+    label: str,
+    *,
+    selected_user: User,
+    can_select_user: bool,
+    layer_kind: str = "",
+    layer_tag: str = "",
+) -> str:
     query: dict[str, str] = {}
     if can_select_user:
         query["target_user_id"] = str(selected_user.pk)
-    query["subtopics"] = label
+    if label:
+        query["subtopics"] = label
+    if layer_kind and layer_tag:
+        query["layer_kind"] = layer_kind
+        query["layer_tag"] = layer_tag
     return f"{reverse('pages:completion_quick_update')}?{urlencode(query)}"
 
 
