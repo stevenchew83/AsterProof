@@ -16,6 +16,22 @@
     min-height: 160px;
     padding: 1.25rem;
   }
+
+  .technique-progress-layer-cell {
+    min-width: 11rem;
+    max-width: 22rem;
+  }
+
+  .technique-progress-layer-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .25rem;
+  }
+
+  .technique-progress-layer-tags .badge {
+    text-align: left;
+    white-space: normal;
+  }
 </style>
 {% endblock extra_css %}
 
@@ -108,6 +124,10 @@
               <thead>
                 <tr>
                   <th scope="col">Canonical subtopic</th>
+                  <th scope="col">Object tag</th>
+                  <th scope="col">Technique tag</th>
+                  <th scope="col">Lemma/Theorem tag</th>
+                  <th scope="col">Proof role</th>
                   <th scope="col">Completed</th>
                   <th scope="col">Remaining</th>
                   <th scope="col">Coverage</th>
@@ -118,6 +138,42 @@
                 {% for row in technique_progress_topic_subtopic_rows %}
                 <tr>
                   <td class="fw-semibold">{{ row.canonical_subtopic }}</td>
+                  <td class="technique-progress-layer-cell">
+                    <div class="technique-progress-layer-tags">
+                      {% for tag in row.object_tags %}
+                      <span class="badge bg-info-subtle text-info">{{ tag }}</span>
+                      {% empty %}
+                      <span class="text-muted fs-xs">-</span>
+                      {% endfor %}
+                    </div>
+                  </td>
+                  <td class="technique-progress-layer-cell">
+                    <div class="technique-progress-layer-tags">
+                      {% for tag in row.technique_tags %}
+                      <span class="badge bg-primary-subtle text-primary">{{ tag }}</span>
+                      {% empty %}
+                      <span class="text-muted fs-xs">-</span>
+                      {% endfor %}
+                    </div>
+                  </td>
+                  <td class="technique-progress-layer-cell">
+                    <div class="technique-progress-layer-tags">
+                      {% for tag in row.lemma_theorem_tags %}
+                      <span class="badge bg-success-subtle text-success">{{ tag }}</span>
+                      {% empty %}
+                      <span class="text-muted fs-xs">-</span>
+                      {% endfor %}
+                    </div>
+                  </td>
+                  <td class="technique-progress-layer-cell">
+                    <div class="technique-progress-layer-tags">
+                      {% for tag in row.proof_roles %}
+                      <span class="badge bg-warning-subtle text-warning">{{ tag }}</span>
+                      {% empty %}
+                      <span class="text-muted fs-xs">-</span>
+                      {% endfor %}
+                    </div>
+                  </td>
                   <td>{{ row.solved }} of {{ row.total }}</td>
                   <td>
                     {% if row.remaining %}
