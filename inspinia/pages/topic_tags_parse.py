@@ -24,6 +24,7 @@ TOPIC_TAG_TEXT_REPAIRS: tuple[tuple[str, str], ...] = (
     ("\u221a\xf1", "\u00f6"),
     ("\u221a\xd1", "\u00d6"),
     ("\u221a\xe2", "\u00e9"),
+    ("\u221a\xfa", "u"),
     ("\u221a\xf2", "\u00f3"),
     ("\u201a\xc4\xf4", "'"),
     ("\u201a\xc4\xf2", "'"),
@@ -37,6 +38,7 @@ TOPIC_TAG_TEXT_REPAIRS: tuple[tuple[str, str], ...] = (
     ("\u0152\u00b6", "PHI"),
     ("\u0152\u00a7", "TAU"),
     ("\u0152\u00a9", "OMEGA"),
+    ("\u00ac\u221e", "\u00b0"),
     ("PPP", "P"),
     ("\u2014", "-"),
     ("\u2013", "-"),
@@ -46,6 +48,10 @@ TOPIC_TAG_TEXT_REPAIRS: tuple[tuple[str, str], ...] = (
 TOPIC_TAG_WORD_REPAIRS: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"\bHOLDER\b", flags=re.IGNORECASE), "H\u00d6LDER"),
     (re.compile(r"\bMOBIUS\b", flags=re.IGNORECASE), "M\u00d6BIUS"),
+    (re.compile(r"\bORTHOCENTRE(S)?\b", flags=re.IGNORECASE), r"ORTHOCENTER\1"),
+    (re.compile(r"\bCIRCUMCENTRE(S)?\b", flags=re.IGNORECASE), r"CIRCUMCENTER\1"),
+    (re.compile(r"\bPARAMETERIZATION\b", flags=re.IGNORECASE), "PARAMETRIZATION"),
+    (re.compile(r"\bCONCURRENCE\b", flags=re.IGNORECASE), "CONCURRENCY"),
 )
 
 

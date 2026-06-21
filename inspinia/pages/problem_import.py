@@ -21,7 +21,7 @@ from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
 from inspinia.pages.models import ProblemTopicTechnique
 from inspinia.pages.statement_analytics_sync import sync_statement_analytics_from_linked_problem
-from inspinia.pages.subtopic_cleanup import classified_topic_tag_fields
+from inspinia.pages.subtopic_cleanup import classified_topic_tag_entries
 from inspinia.pages.topic_tags_parse import domains_dedup_preserve_order
 from inspinia.pages.topic_tags_parse import merge_domain_lists
 from inspinia.pages.topic_tags_parse import parse_contest_problem_string
@@ -549,8 +549,8 @@ def sync_problem_topic_techniques(
         technique = (item.get("technique") or "").strip()
         if not technique:
             continue
-        parsed_entries.append(
-            classified_topic_tag_fields(
+        parsed_entries.extend(
+            classified_topic_tag_entries(
                 technique=technique,
                 domains=domains_dedup_preserve_order(item.get("domains") or []),
                 raw_tag=str(item.get("raw_tag") or technique),

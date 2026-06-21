@@ -8937,6 +8937,7 @@ def problem_statement_metadata_view(request):
                     (
                         "Subtopic cleanup applied. "
                         f"Updated {result.updated_count} parsed tag row(s), "
+                        f"created {result.created_count} split tag row(s), "
                         f"merged {result.deleted_count} duplicate row(s), and "
                         f"rewrote {result.raw_update_count} raw metadata field(s)."
                     ),

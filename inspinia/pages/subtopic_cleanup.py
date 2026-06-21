@@ -54,6 +54,7 @@ class SubtopicCleanupApplyResult:
     deleted_count: int
     raw_update_count: int
     updated_count: int
+    created_count: int = 0
 
 
 def _parent_aliases(
@@ -135,6 +136,18 @@ FIRST_PASS_CANONICAL_SUBTOPICS: tuple[str, ...] = (
     "Lattice and integer geometry methods",
     "Sieve, density, and asymptotic estimates",
     "Primitive divisors and Zsigmondy-type ideas",
+    "Core Euclidean geometry",
+    "Circle geometry",
+    "Triangle centers and configurations",
+    "Transformational geometry",
+    "Analytic and coordinate geometry",
+    "Trigonometric geometry",
+    "Projective and affine geometry",
+    "Geometric inequalities and optimization",
+    "Discrete and combinatorial geometry",
+    "3D and solid geometry",
+    "Locus and continuity geometry",
+    "Construction geometry",
     "Data-quality / invalid tag",
 )
 
@@ -179,6 +192,18 @@ FIRST_PASS_CANONICAL_MAIN_TOPICS: dict[str, str] = {
     "Lattice and integer geometry methods": "NT",
     "Sieve, density, and asymptotic estimates": "NT",
     "Primitive divisors and Zsigmondy-type ideas": "NT",
+    "Core Euclidean geometry": "GEO",
+    "Circle geometry": "GEO",
+    "Triangle centers and configurations": "GEO",
+    "Transformational geometry": "GEO",
+    "Analytic and coordinate geometry": "GEO",
+    "Trigonometric geometry": "GEO",
+    "Projective and affine geometry": "GEO",
+    "Geometric inequalities and optimization": "GEO",
+    "Discrete and combinatorial geometry": "GEO",
+    "3D and solid geometry": "GEO",
+    "Locus and continuity geometry": "GEO",
+    "Construction geometry": "GEO",
     "Data-quality / invalid tag": "",
 }
 
@@ -3018,15 +3043,1129 @@ STORED_TECHNIQUE_SUBTOPIC_ALIASES: tuple[tuple[str, str, str, str], ...] = (
 )
 
 
+GEOMETRY_STORED_ALIASES: tuple[tuple[str, str, str, str], ...] = (
+    *_stored_aliases(
+        "GEO",
+        "Core Euclidean geometry",
+        "Angle chasing",
+        (
+            "angle chasing",
+            "angle chase",
+            "advanced angle chase",
+            "advanced angle chasing",
+            "angle computation",
+            "angle condition",
+            "angle conditions",
+            "angle equality",
+            "equal angles",
+            "equal-angles",
+            "directed angles",
+            "telescoping angles",
+            "arc chasing",
+            "circle angle chase",
+        ),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "Core Euclidean geometry",
+        "Angle bisectors",
+        (
+            "angle bisector",
+            "angle bisectors",
+            "angle-bisector geometry",
+            "angle bisector geometry",
+            "angle bisector theorem",
+            "angle-bisector theorem",
+            "angle bisector formula",
+            "angle bisector length",
+            "external angle bisector",
+            "internal/external angle bisectors",
+        ),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "Core Euclidean geometry",
+        "Parallelism and perpendicularity",
+        (
+            "parallels",
+            "parallelism",
+            "parallel line",
+            "parallel lines",
+            "parallel condition",
+            "parallel projection",
+            "perpendicularity",
+            "perpendiculars",
+            "orthogonality",
+            "orthogonal lines",
+            "right angles",
+            "right angle criterion",
+            "thales",
+            "thales/right angles",
+        ),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "Core Euclidean geometry",
+        "Midpoints and midlines",
+        (
+            "midpoint",
+            "midpoints",
+            "midpoint theorem",
+            "midpoint lemma",
+            "midpoint line",
+            "midline",
+            "midlines",
+            "midpoint relation",
+            "midpoint chase",
+            "midpoint construction",
+            "midpoint collinearity",
+            "midpoint/parallelogram",
+            "varignon",
+            "varignon parallelogram",
+        ),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "Core Euclidean geometry",
+        "Ratio and length chasing",
+        (
+            "ratios",
+            "ratio chase",
+            "ratio chasing",
+            "ratio geometry",
+            "side ratios",
+            "directed ratios",
+            "directed lengths",
+            "signed lengths",
+            "length chase",
+            "length chasing",
+            "length relations",
+            "length relation",
+            "metric ratios",
+            "similar-triangle ratios",
+        ),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "Core Euclidean geometry",
+        "Similarity and congruence",
+        (
+            "similarity",
+            "similitude",
+            "sss similarity",
+            "similarity criterion",
+            "similarity construction",
+            "similarity/trig",
+            "congruence as isometry",
+        ),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "Core Euclidean geometry",
+        "Quadrilateral and polygon geometry",
+        (
+            "quadrilateral",
+            "quadrilaterals",
+            "quad geometry",
+            "quadrilateral angles",
+            "quadrilateral area",
+            "quadrilateral coordinates",
+            "polygon",
+            "polygons",
+            "polygon geometry",
+            "polygonal geometry",
+            "hexagon",
+            "hexagons",
+            "trapezoid",
+            "trapezoids",
+            "trapezium",
+            "parallelogram",
+            "parallelograms",
+            "rectangle",
+            "rectangles",
+            "rhombus",
+        ),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "Core Euclidean geometry",
+        "Special triangles and special angles",
+        (
+            "isosceles",
+            "isosceles geometry",
+            "isosceles symmetry",
+            "right triangles",
+            "right-triangle geometry",
+            "equilateral geometry",
+            "equilateral triangle",
+            "equilateral triangles",
+            "30-60-90 geometry",
+            "60-degree geometry",
+            "60-degree rotation trick",
+            "120-degree geometry",
+            "15-degree geometry",
+            "langley configuration",
+            "golden ratio angles",
+        ),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "Circle geometry",
+        "Circle geometry",
+        (
+            "circle",
+            "circles",
+            "circle geometry",
+            "advanced circle geometry",
+            "circle configuration",
+            "circle configurations",
+            "circle chasing",
+            "circle algebra",
+            "circle equations",
+            "circle equation",
+            "circle centers",
+            "circle center",
+            "circle families",
+            "circle family",
+        ),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "Circle geometry",
+        "Cyclicity",
+        (
+            "cyclic",
+            "cyclicity",
+            "cyclic geometry",
+            "cyclic angles",
+            "cyclic condition",
+            "cyclic conditions",
+            "cyclic criterion",
+            "cyclicity criterion",
+            "cyclic configuration",
+            "cyclic configurations",
+            "cyclic quads",
+            "cyclic quadrilateral",
+            "cyclic quadrilaterals",
+            "cyclic polygons",
+            "cyclic pentagons",
+            "cyclic hexagon",
+            "cyclics",
+        ),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "Circle geometry",
+        "Circumcircle and circumcenter",
+        (
+            "circumcircle",
+            "circumcircles",
+            "circumcircle geometry",
+            "circumcircle condition",
+            "circumcenter",
+            "circumcenters",
+            "circumcentre",
+            "circumcentres",
+            "circle centers",
+            "circumradius",
+            "circumradius formula",
+            "circumradius relation",
+        ),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "Circle geometry",
+        "Arc and chord geometry",
+        (
+            "arc midpoint",
+            "arc midpoints",
+            "arc-midpoint geometry",
+            "arc midpoint lemma",
+            "circle arcs",
+            "circumcircle arcs",
+            "chords",
+            "chord length",
+            "chord lengths",
+            "circle chords",
+            "circle chord",
+            "intersecting chords",
+            "secant-chord",
+        ),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "Circle geometry",
+        "Tangency",
+        (
+            "tangent",
+            "tangents",
+            "tangency",
+            "tangent geometry",
+            "tangent circle",
+            "tangent circles",
+            "tangent line",
+            "tangent lines",
+            "tangent configuration",
+            "circle tangents",
+            "circle tangent",
+            "circle/tangent",
+            "circles/tangent",
+            "tangent-chord",
+            "tangent-secant",
+            "tangent lengths",
+            "tangency lengths",
+            "tangent-radius perpendicularity",
+        ),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "Circle geometry",
+        "Power of a point",
+        (
+            "power of point",
+            "power of a point",
+            "powers of points",
+            "powers of a point",
+            "power",
+            "powers",
+            "power relations",
+            "power/product identities",
+            "equal power",
+            "equal powers",
+            "oriented power",
+            "circle power",
+        ),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "Circle geometry",
+        "Radical axis and coaxality",
+        (
+            "radical axes",
+            "radical axis",
+            "radical axis/coaxality",
+            "radical axes/coaxality",
+            "coaxality",
+            "coaxal lines",
+            "coaxal pencil",
+            "coaxal pencils",
+            "coaxality/radical axis",
+            "coaxality/common point",
+            "coaxal systems",
+        ),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "Circle geometry",
+        "Miquel and spiral similarity",
+        (
+            "miquel",
+            "miquel geometry",
+            "miquel configuration",
+            "miquel configurations",
+            "miquel point",
+            "miquel points",
+            "miquel-style configuration",
+            "miquel-type point",
+            "miquel-type structure",
+            "miquel/cyclic",
+            "miquel/reim",
+            "spiral similarity",
+            "spiral similarities",
+            "spiral geometry",
+            "spiral/miquel",
+            "spiral similarity/miquel",
+            "reim/spiral similarity",
+        ),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "Triangle centers and configurations",
+        "Incenter and incircle",
+        (
+            "incenter",
+            "incenters",
+            "incentre",
+            "incentres",
+            "incenter geometry",
+            "incenter configuration",
+            "incenter formula",
+            "incenter formulas",
+            "incenter lemma",
+            "incircle",
+            "incircles",
+            "incircle geometry",
+            "incircle configuration",
+            "incenter/incircle",
+            "incircle/incenter geometry",
+            "incircle contact",
+            "incircle contact triangle",
+            "incircle tangency",
+        ),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "Triangle centers and configurations",
+        "Excenter and excircle",
+        (
+            "excenter",
+            "excenters",
+            "excentre",
+            "excentres",
+            "excircle",
+            "excircles",
+            "excircle geometry",
+            "excentral geometry",
+            "excenter/excircle",
+            "incenter/excenter",
+            "incircle/excircle",
+            "incenters/excenters",
+        ),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "Triangle centers and configurations",
+        "Orthocenter and altitudes",
+        (
+            "orthocenter",
+            "orthocenters",
+            "orthocentre",
+            "orthocentres",
+            "orthocenter geometry",
+            "orthocenter configuration",
+            "orthocenter/circumcenter",
+            "orthocenter/circumcircle",
+            "altitudes",
+            "altitude geometry",
+            "altitude coordinates",
+            "orthocenter/altitudes",
+        ),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "Triangle centers and configurations",
+        "Orthic, pedal, and Simson geometry",
+        (
+            "orthic",
+            "orthic configuration",
+            "orthic triangle",
+            "orthic feet",
+            "pedal geometry",
+            "pedal triangle",
+            "pedal triangles",
+            "pedal circles",
+            "pedal line",
+            "pedal lines",
+            "simson line",
+            "simson lines",
+            "simson-line flavor",
+            "simson/orthic geometry",
+        ),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "Triangle centers and configurations",
+        "Euler line and nine-point circle",
+        (
+            "nine-point center",
+            "nine-point centers",
+            "nine-point circle",
+            "nine-point geometry",
+            "euler circle",
+            "euler line",
+            "euler lines",
+            "euler line/nine-point center",
+            "euler/nine-point relations",
+        ),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "Triangle centers and configurations",
+        "Median and centroid geometry",
+        (
+            "median",
+            "medians",
+            "median formula",
+            "median symmetry",
+            "centroid",
+            "centroids",
+            "centroid coordinates",
+            "centroid identity",
+            "centroids and midpoints",
+        ),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "Triangle centers and configurations",
+        "Ceva, Menelaus, and cevians",
+        (
+            "ceva",
+            "menelaus",
+            "ceva-menelaus",
+            "ceva/menelaus",
+            "menelaus/ceva",
+            "ceva-style concurrency",
+            "ceva-style ratios",
+            "cevians",
+            "cevian ratios",
+            "ceva-type concurrency",
+            "trig ceva",
+            "trig ceva/menelaus",
+        ),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "Triangle centers and configurations",
+        "Isogonal and symmedian geometry",
+        (
+            "isogonal",
+            "isogonals",
+            "isogonality",
+            "isogonal geometry",
+            "isogonal conjugate",
+            "isogonal conjugates",
+            "isogonal conjugation",
+            "isogonal lines",
+            "isogonal cevians",
+            "symmedian",
+            "symmedians",
+            "isogonal/symmedian",
+            "symmedian/isogonal",
+            "symmedian/tangent",
+        ),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "Analytic and coordinate geometry",
+        "Coordinate and analytic geometry",
+        (
+            "coordinates",
+            "coordinate",
+            "coordinate geometry",
+            "analytic geometry",
+            "analytic setup",
+            "analytic locus",
+            "coordinates possible",
+            "coordinates optional",
+            "coordinates/synthetic",
+            "coordinates/trig",
+            "trig/coordinates",
+            "coordinates/projective",
+            "projective/coordinate geometry",
+        ),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "Analytic and coordinate geometry",
+        "Vector geometry",
+        (
+            "vectors",
+            "vector geometry",
+            "vector bash",
+            "vectors/coordinates",
+            "coordinates/vectors",
+            "vector/coordinate geometry",
+            "unit vectors",
+            "dot product",
+            "dot products",
+            "cross-product",
+            "vector area",
+        ),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "Analytic and coordinate geometry",
+        "Complex geometry",
+        (
+            "complex geometry",
+            "complex coordinates",
+            "complex numbers/vectors",
+            "complex/vector geometry",
+            "vectors/complex",
+            "vector/complex",
+            "complex/coordinates",
+            "coordinates/complex",
+            "unit complex numbers",
+        ),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "Analytic and coordinate geometry",
+        "Barycentrics and trilinears",
+        (
+            "barycentrics",
+            "barycentric",
+            "barycentric coordinates",
+            "barycentric/coordinate geometry",
+            "barycentrics/coordinates",
+            "trilinears",
+            "trilinear coordinates",
+            "trilinears/barycentrics",
+            "barycentrics/trilinears",
+            "barycentric/trilinear coordinates",
+        ),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "Trigonometric geometry",
+        "Trigonometric geometry",
+        (
+            "trigonometry",
+            "trig",
+            "trig geometry",
+            "trig chase",
+            "trig angle chase",
+            "trig bash",
+            "trig ratios",
+            "trig lengths",
+            "trig computation",
+            "trig parametrization",
+            "trigonometric geometry",
+            "sine rule",
+            "sine law",
+            "cosine law",
+            "cosine rule",
+            "sine/cosine rule",
+        ),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "Projective and affine geometry",
+        "Affine geometry",
+        (
+            "affine",
+            "affine geometry",
+            "affine setup",
+            "affine normalization",
+            "affine constructions",
+            "affine transforms",
+            "affine/vector",
+            "affine/coordinate",
+            "affine/projective",
+            "affine/projective geometry",
+            "affine/projective methods",
+        ),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "Projective and affine geometry",
+        "Projective geometry",
+        (
+            "projective",
+            "projective geometry",
+            "projective flavor",
+            "projective configuration",
+            "projective methods",
+            "projective viewpoint",
+            "projective/coordinates",
+            "projective/affine",
+            "projective/analytic",
+            "projective/synthetic",
+            "projective-flavored configuration",
+        ),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "Projective and affine geometry",
+        "Poles, polars, and polarity",
+        (
+            "poles/polars",
+            "pole-polar",
+            "pole/polar",
+            "polar geometry",
+            "polar line",
+            "polars",
+            "polars/poles",
+            "polar/projective",
+            "projective/polar",
+            "tangents/polars",
+            "polar/tangent lines",
+            "isogonal/polar",
+        ),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "Projective and affine geometry",
+        "Cross-ratio and harmonic division",
+        (
+            "cross ratios",
+            "cross-ratio",
+            "cross-ratio invariance",
+            "harmonic division",
+            "harmonic bundles",
+            "harmonic/polar",
+            "projective/harmonic",
+        ),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "Projective and affine geometry",
+        "Pascal, Brianchon, Desargues, Pappus, Reim",
+        (
+            "pascal",
+            "pascal/menelaus",
+            "pascal/brianchon",
+            "brianchon",
+            "desargues",
+            "desargues/orthology",
+            "pappus",
+            "reim",
+            "reim/parallelism",
+            "reim/radical axis",
+            "reim/pascal",
+        ),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "Projective and affine geometry",
+        "Conics and curves",
+        (
+            "conic",
+            "conics",
+            "conic loci",
+            "conic parametrization",
+            "ellipse",
+            "ellipses",
+            "parabola",
+            "hyperbola parametrization",
+            "quadrics",
+            "cone cross-sections",
+        ),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "Transformational geometry",
+        "Inversion",
+        (
+            "inversion",
+            "inversive geometry",
+            "inversion optional",
+            "inversion at a",
+            "inversion at aaa",
+            "inversion at xxx",
+            "inversion/projective",
+            "inversion/homothety",
+            "inversion/spiral similarity",
+            "inversion/coordinates",
+        ),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "Transformational geometry",
+        "Reflection and unfolding",
+        (
+            "reflections",
+            "reflection",
+            "reflection geometry",
+            "reflection trick",
+            "reflection symmetry",
+            "reflection/locus",
+            "midpoint/reflection",
+            "folding",
+            "unfolding",
+            "unfoldings",
+            "billiard unfolding",
+        ),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "Transformational geometry",
+        "Rotation",
+        (
+            "rotation",
+            "rotations",
+            "rotational symmetry",
+            "rotation/reflection",
+            "rotation/vector geometry",
+            "rotation by 90 degrees",
+            "90-degree rotation",
+            "rotations by 60 degrees",
+            "60-degree rotation",
+            "equilateral rotation",
+        ),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "Transformational geometry",
+        "Homothety and similarity centers",
+        (
+            "homothety",
+            "homothety centers",
+            "homothety center",
+            "homothety about ggg",
+            "homothety at ggg",
+            "homothety/inversion",
+            "homothety/similarity",
+            "homothety/tangency",
+            "center of similarity",
+            "exsimilicenters",
+        ),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "Geometric inequalities and optimization",
+        "Area methods",
+        (
+            "area",
+            "areas",
+            "area formula",
+            "area formulas",
+            "area decomposition",
+            "area comparison",
+            "area determinant",
+            "area determinants",
+            "area ratio",
+            "area scaling",
+            "area via sines",
+            "signed area",
+            "signed areas",
+            "shoelace",
+        ),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "Geometric inequalities and optimization",
+        "Metric identities and distance geometry",
+        (
+            "metric",
+            "metric geometry",
+            "metric identity",
+            "metric identities",
+            "metric relation",
+            "metric relations",
+            "distance",
+            "distances",
+            "distance formulas",
+            "distance equations",
+            "distance products",
+            "squared distances",
+            "stewart",
+            "heron formula",
+        ),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "Geometric inequalities and optimization",
+        "Geometric inequalities",
+        (
+            "geometric inequality",
+            "geometric inequalities",
+            "area inequality",
+            "area bounds",
+            "area bound",
+            "metric inequality",
+            "metric inequalities",
+            "length inequality",
+            "length inequalities",
+            "perimeter inequality",
+            "trig inequality",
+            "trigonometric inequality",
+        ),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "Geometric inequalities and optimization",
+        "Extremal and optimization geometry",
+        (
+            "extremal configurations",
+            "extremal distance",
+            "extremal distances",
+            "extremal area",
+            "extremal areas",
+            "extremal length",
+            "extremal perimeter",
+            "distance minimization",
+            "area maximization",
+            "metric optimization",
+            "one-variable optimization",
+        ),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "Geometric inequalities and optimization",
+        "Convex geometry",
+        (
+            "convex geometry",
+            "convexity",
+            "convex position",
+            "convex hulls",
+            "convex hull",
+            "convex covering",
+            "convex quadrilateral",
+            "convex polygons",
+            "support lines",
+            "supporting lines",
+            "width",
+            "widths",
+        ),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "Discrete and combinatorial geometry",
+        "Discrete and combinatorial geometry",
+        (
+            "discrete geometry",
+            "combinatorial geometry",
+            "finite configurations",
+            "point sets",
+            "planar point sets",
+            "line arrangements",
+            "planar arrangements",
+            "arrangements",
+            "triangulations",
+            "planar triangulation",
+            "intersection graphs",
+        ),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "Discrete and combinatorial geometry",
+        "Lattice geometry",
+        (
+            "lattice geometry",
+            "lattice points",
+            "lattice area",
+            "lattice parity",
+            "lattice convexity",
+            "lattice strips",
+            "pick's theorem",
+            "pick-type bounds",
+            "pick-style geometry",
+            "pick/shoelace",
+        ),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "Discrete and combinatorial geometry",
+        "Tilings, dissections, and packing",
+        (
+            "tilings",
+            "tiling constraints",
+            "triangular tiling",
+            "rectangular tilings",
+            "dissection",
+            "dissections",
+            "packing",
+            "disk packing",
+            "circle packing",
+            "covering",
+            "covering directions",
+        ),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "Locus and continuity geometry",
+        "Locus and moving-point geometry",
+        (
+            "locus",
+            "loci",
+            "fixed locus",
+            "fixed-point loci",
+            "circumcenter locus",
+            "circumcenter loci",
+            "moving point",
+            "moving points",
+            "moving point locus",
+            "variable point",
+            "variable points",
+            "variable circle",
+        ),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "Locus and continuity geometry",
+        "Continuity and topology",
+        (
+            "topology",
+            "planar topology",
+            "continuity",
+            "continuity/compactness",
+            "continuity/fixed point",
+            "continuity/intersection",
+            "topological matching",
+        ),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "Construction geometry",
+        "Construction and auxiliary points",
+        (
+            "auxiliary point",
+            "auxiliary construction",
+            "auxiliary triangle",
+            "classical construction",
+            "ruler-compass construction",
+            "ruler/compass construction",
+            "straightedge construction",
+            "constructibility",
+            "restricted tools",
+        ),
+    ),
+    *_stored_aliases(
+        "GEO",
+        "3D and solid geometry",
+        "3D and solid geometry",
+        (
+            "3d",
+            "3d geometry",
+            "solid geometry",
+            "3d analytic",
+            "3d vectors",
+            "3d convex geometry",
+            "3d metric geometry",
+            "3d projection",
+            "plane sections",
+            "spheres",
+            "tetrahedron",
+            "tetrahedra",
+            "prism",
+            "prisms",
+            "polyhedra",
+            "volume",
+            "volume ratios",
+        ),
+    ),
+)
+
+
+GEOMETRY_METHOD_ALIASES: tuple[tuple[str, str], ...] = (
+    ("contradiction", "Contradiction"),
+    ("contraposition", "Contraposition"),
+    ("classification", "Classification"),
+    ("uniqueness", "Uniqueness"),
+    ("existence/uniqueness", "Existence / uniqueness"),
+    ("rigidity", "Rigidity"),
+    ("monotonicity", "Monotonicity"),
+    ("asymptotics", "Asymptotics"),
+    ("reduction", "Reduction"),
+    ("case reduction", "Case reduction"),
+    ("statement check", "Statement check"),
+    ("iff", "IFF"),
+    ("extremal examples", "Extremal examples"),
+    ("extremal small cases", "Extremal small cases"),
+    ("extremal/pigeonhole", "Extremal / pigeonhole"),
+    ("parameterization", "Parametrization"),
+    ("parametrization", "Parametrization"),
+    ("rational parameterization", "Parametrization"),
+    ("rational parametrization", "Parametrization"),
+    ("constructive geometry", "Construction"),
+)
+
+
+GEOMETRY_NON_GEOMETRY_ALIASES: tuple[tuple[str, str, str, str], ...] = (
+    (
+        "NT",
+        "Congruences and modular arithmetic",
+        "residues mod p",
+        "Modular arithmetic / residues",
+    ),
+    (
+        "NT",
+        "Congruences and modular arithmetic",
+        "modulo 4 cases",
+        "Modular arithmetic / residues",
+    ),
+    (
+        "NT",
+        "Chinese remainder theorem and local-to-global methods",
+        "crt construction",
+        "Chinese remainder theorem / local-global",
+    ),
+    (
+        "NT",
+        "Pell-type equations and Vieta jumping",
+        "pell-type construction",
+        "Pell / Vieta jumping",
+    ),
+    (
+        "NT",
+        "Pell-type equations and Vieta jumping",
+        "vieta jumping/divisibility",
+        "Pell / Vieta jumping",
+    ),
+    (
+        "NT",
+        "Quadratic forms and sums of squares",
+        "sums of two squares",
+        "Quadratic forms / sums of squares",
+    ),
+    (
+        "NT",
+        "Algebraic number theory flavor",
+        "unique factorization",
+        "Algebraic number theory",
+    ),
+    (
+        "COMB",
+        "Graph theory",
+        "graph structure",
+        "Graph structure",
+    ),
+    (
+        "COMB",
+        "Graph theory",
+        "graph bipartition",
+        "Graph structure",
+    ),
+    (
+        "COMB",
+        "Graph theory",
+        "flows/matchings",
+        "Graph / matching / ordering model",
+    ),
+    (
+        "ALG",
+        "Inequalities and optimization",
+        "jensen/concavity",
+        "Jensen / convexity",
+    ),
+    (
+        "ALG",
+        "Inequalities and optimization",
+        "uvw/trigonometric reduction",
+        "UVW / pqr method",
+    ),
+    (
+        "ALG",
+        "Inequalities and optimization",
+        "quadratic minimization",
+        "Quadratic optimization",
+    ),
+)
+
+
+GEOMETRY_COMPOUND_SPLITS: dict[str, tuple[str, ...]] = {
+    "MIQUEL/RADICAL AXIS": ("Miquel and spiral similarity", "Radical axis and coaxality"),
+    "INCENTER/CIRCUMCENTER": ("Incenter and incircle", "Circumcircle and circumcenter"),
+    "INCENTER/CIRCUMCENTRE": ("Incenter and incircle", "Circumcircle and circumcenter"),
+    "PROJECTIVE/ANALYTIC GEOMETRY": ("Projective geometry", "Coordinate and analytic geometry"),
+    "COORDINATES/SPIRAL SIMILARITY": ("Coordinate and analytic geometry", "Miquel and spiral similarity"),
+    "GEOMETRY; ARC MIDPOINT; ANGLE BISECTORS; COORDINATES/SPIRAL SIMILARITY": (
+        "Arc and chord geometry",
+        "Angle bisectors",
+        "Coordinate and analytic geometry",
+        "Miquel and spiral similarity",
+    ),
+    "GEO - TANGENT-CHORD; ANGLE BISECTORS; COORDINATES/TRIG": (
+        "Tangency",
+        "Angle bisectors",
+        "Coordinate and analytic geometry",
+        "Trigonometric geometry",
+    ),
+}
+
+
 TAXONOMY_TEXT_REPLACEMENTS: tuple[tuple[str, str], ...] = (
     ("\u221a\xf1", "o"),
     ("\u221a\xd1", "O"),
     ("\u221a\xe2", "e"),
+    ("\u221a\xfa", "u"),
     ("\u221a\xf2", "o"),
     ("\u201a\xc4\xec", "-"),
     ("\u201a\xc4\xee", "-"),
     ("\u201a\xc4\xfa", '"'),
     ("\u201a\xc4\xf9", '"'),
+    ("\u00ac\u221e", "\u00b0"),
 )
 
 
@@ -3185,6 +4324,33 @@ def _add_number_theory_entries(lookup: dict[str, SubtopicTaxonomyEntry]) -> None
         )
 
 
+def _add_geometry_entries(lookup: dict[str, SubtopicTaxonomyEntry]) -> None:
+    for main_topic, canonical_subtopic, alias, stored_technique in GEOMETRY_STORED_ALIASES:
+        entry = _taxonomy_entry(
+            main_topic,
+            canonical_subtopic,
+            alias,
+            stored_technique=stored_technique,
+        )
+        lookup[_taxonomy_key(alias)] = entry
+        lookup.setdefault(_taxonomy_key(stored_technique), entry)
+    for alias, stored_technique in GEOMETRY_METHOD_ALIASES:
+        lookup[_taxonomy_key(alias)] = _taxonomy_entry(
+            "",
+            "",
+            alias,
+            stored_technique=stored_technique,
+            normalization=(NORMALIZATION_STATUS_METHOD, NORMALIZATION_CONFIDENCE_HIGH),
+        )
+    for main_topic, canonical_subtopic, alias, stored_technique in GEOMETRY_NON_GEOMETRY_ALIASES:
+        lookup[_taxonomy_key(alias)] = _taxonomy_entry(
+            main_topic,
+            canonical_subtopic,
+            alias,
+            stored_technique=stored_technique,
+        )
+
+
 def _build_taxonomy_lookup() -> dict[str, SubtopicTaxonomyEntry]:
     lookup: dict[str, SubtopicTaxonomyEntry] = {}
     _add_first_pass_canonical_entries(lookup)
@@ -3204,8 +4370,26 @@ def _build_number_theory_lookup() -> dict[str, SubtopicTaxonomyEntry]:
     return lookup
 
 
+def _build_geometry_lookup() -> dict[str, SubtopicTaxonomyEntry]:
+    lookup: dict[str, SubtopicTaxonomyEntry] = {}
+    _add_geometry_entries(lookup)
+    return lookup
+
+
 TAXONOMY_LOOKUP = _build_taxonomy_lookup()
 NUMBER_THEORY_LOOKUP = _build_number_theory_lookup()
+GEOMETRY_LOOKUP = _build_geometry_lookup()
+GEOMETRY_LEAF_ENTRY_BY_TECHNIQUE = {
+    entry.stored_technique: entry
+    for entry in GEOMETRY_LOOKUP.values()
+    if entry.main_topic == "GEO"
+    and entry.canonical_subtopic
+    and entry.normalization_status == NORMALIZATION_STATUS_ALIAS
+}
+GEOMETRY_COMPOUND_SPLIT_LOOKUP = {
+    _taxonomy_key(alias): stored_techniques
+    for alias, stored_techniques in GEOMETRY_COMPOUND_SPLITS.items()
+}
 
 NUMBER_THEORY_DOMAIN_ALIASES = {"NT", "NUMBER THEORY", "NUMBER_THEORY"}
 NUMBER_THEORY_AMBIGUOUS_KEYS = frozenset(
@@ -3265,6 +4449,50 @@ NUMBER_THEORY_STRONG_TOKENS = (
     "FINITE FIELD",
     "CHARACTER SUM",
     "PISANO",
+)
+
+
+GEOMETRY_DOMAIN_ALIASES = {"GEO", "GEOMETRY"}
+GEOMETRY_STRONG_TOKENS = (
+    "ANGLE",
+    "BISECTOR",
+    "PARALLEL",
+    "PERPENDICULAR",
+    "ORTHOCENTER",
+    "ORTHOCENTRE",
+    "INCENTER",
+    "INCENTRE",
+    "EXCENTER",
+    "EXCENTRE",
+    "CIRCUMCENTER",
+    "CIRCUMCENTRE",
+    "CIRCUMCIRCLE",
+    "CYCLIC",
+    "CIRCLE",
+    "TANGENT",
+    "CHORD",
+    "RADICAL AXIS",
+    "COAXAL",
+    "MIQUEL",
+    "SPIRAL SIMILARITY",
+    "COORDINATE",
+    "VECTOR",
+    "BARYCENTRIC",
+    "TRILINEAR",
+    "PROJECTIVE",
+    "AFFINE",
+    "POLAR",
+    "CROSS-RATIO",
+    "CONIC",
+    "INVERSION",
+    "HOMOTHETY",
+    "ROTATION",
+    "REFLECTION",
+    "LATTICE GEOMETRY",
+    "PICK",
+    "LOCUS",
+    "TETRAHEDRON",
+    "SPHERE",
 )
 
 
@@ -3562,6 +4790,148 @@ NUMBER_THEORY_METHOD_PATTERN_RULES: tuple[TaxonomyPatternRule, ...] = (
 )
 
 
+GEOMETRY_METHOD_PATTERN_RULES: tuple[TaxonomyPatternRule, ...] = (
+    TaxonomyPatternRule("", "", tokens=("CONTRADICTION", "CONTRAPOSITION"), stored_technique="Contradiction"),
+    TaxonomyPatternRule("", "", tokens=("CLASSIFICATION",), stored_technique="Classification"),
+    TaxonomyPatternRule("", "", tokens=("UNIQUENESS",), stored_technique="Uniqueness"),
+    TaxonomyPatternRule("", "", tokens=("RIGID",), stored_technique="Rigidity"),
+    TaxonomyPatternRule("", "", tokens=("MONOTON",), stored_technique="Monotonicity"),
+    TaxonomyPatternRule("", "", tokens=("STATEMENT CHECK", "IFF"), stored_technique="Statement check"),
+    TaxonomyPatternRule("", "", tokens=("PARAMETRIZATION",), stored_technique="Parametrization"),
+    TaxonomyPatternRule("", "", tokens=("CONSTRUCTIVE",), stored_technique="Construction"),
+)
+
+
+GEOMETRY_PATTERN_RULES: tuple[TaxonomyPatternRule, ...] = (
+    TaxonomyPatternRule(
+        "GEO",
+        "Circle geometry",
+        tokens=("MIQUEL", "SPIRAL SIMILARITY"),
+        stored_technique="Miquel and spiral similarity",
+    ),
+    TaxonomyPatternRule(
+        "GEO",
+        "Circle geometry",
+        tokens=("RADICAL AXIS", "COAXAL"),
+        stored_technique="Radical axis and coaxality",
+    ),
+    TaxonomyPatternRule(
+        "GEO",
+        "Circle geometry",
+        tokens=("CYCLIC", "CONCYCLIC"),
+        stored_technique="Cyclicity",
+    ),
+    TaxonomyPatternRule(
+        "GEO",
+        "Circle geometry",
+        tokens=("TANGENT", "TANGENCY"),
+        stored_technique="Tangency",
+    ),
+    TaxonomyPatternRule(
+        "GEO",
+        "Circle geometry",
+        tokens=("POWER OF", "POWER RELATION"),
+        stored_technique="Power of a point",
+    ),
+    TaxonomyPatternRule(
+        "GEO",
+        "Circle geometry",
+        tokens=("CHORD", "ARC"),
+        stored_technique="Arc and chord geometry",
+    ),
+    TaxonomyPatternRule(
+        "GEO",
+        "Triangle centers and configurations",
+        tokens=("INCENTER", "INCIRCLE"),
+        stored_technique="Incenter and incircle",
+    ),
+    TaxonomyPatternRule(
+        "GEO",
+        "Triangle centers and configurations",
+        tokens=("EXCENTER", "EXCIRCLE"),
+        stored_technique="Excenter and excircle",
+    ),
+    TaxonomyPatternRule(
+        "GEO",
+        "Triangle centers and configurations",
+        tokens=("ORTHOCENTER", "ALTITUDE"),
+        stored_technique="Orthocenter and altitudes",
+    ),
+    TaxonomyPatternRule(
+        "GEO",
+        "Analytic and coordinate geometry",
+        tokens=("COORDINATE", "ANALYTIC"),
+        stored_technique="Coordinate and analytic geometry",
+    ),
+    TaxonomyPatternRule(
+        "GEO",
+        "Analytic and coordinate geometry",
+        tokens=("VECTOR", "DOT PRODUCT"),
+        stored_technique="Vector geometry",
+    ),
+    TaxonomyPatternRule(
+        "GEO",
+        "Analytic and coordinate geometry",
+        tokens=("BARYCENTRIC", "TRILINEAR"),
+        stored_technique="Barycentrics and trilinears",
+    ),
+    TaxonomyPatternRule(
+        "GEO",
+        "Projective and affine geometry",
+        tokens=("PROJECTIVE",),
+        stored_technique="Projective geometry",
+    ),
+    TaxonomyPatternRule(
+        "GEO",
+        "Projective and affine geometry",
+        tokens=("AFFINE",),
+        stored_technique="Affine geometry",
+    ),
+    TaxonomyPatternRule(
+        "GEO",
+        "Transformational geometry",
+        tokens=("INVERSION",),
+        stored_technique="Inversion",
+    ),
+    TaxonomyPatternRule(
+        "GEO",
+        "Transformational geometry",
+        tokens=("HOMOTHETY",),
+        stored_technique="Homothety and similarity centers",
+    ),
+    TaxonomyPatternRule(
+        "GEO",
+        "Transformational geometry",
+        tokens=("ROTATION",),
+        stored_technique="Rotation",
+    ),
+    TaxonomyPatternRule(
+        "GEO",
+        "Geometric inequalities and optimization",
+        tokens=("GEOMETRIC INEQUAL", "PERIMETER INEQUAL", "AREA INEQUAL", "METRIC INEQUAL"),
+        stored_technique="Geometric inequalities",
+    ),
+    TaxonomyPatternRule(
+        "GEO",
+        "Discrete and combinatorial geometry",
+        tokens=("LATTICE", "PICK"),
+        stored_technique="Lattice geometry",
+    ),
+    TaxonomyPatternRule(
+        "GEO",
+        "Locus and continuity geometry",
+        tokens=("LOCUS", "LOCI", "MOVING POINT"),
+        stored_technique="Locus and moving-point geometry",
+    ),
+    TaxonomyPatternRule(
+        "GEO",
+        "3D and solid geometry",
+        tokens=("3D", "SOLID", "TETRAHEDRON", "SPHERE", "VOLUME"),
+        stored_technique="3D and solid geometry",
+    ),
+)
+
+
 def _invalid_pattern_entry(repaired: str, normalized: str, key: str) -> SubtopicTaxonomyEntry | None:
     if len(key) <= GARBAGE_FRAGMENT_MAX_LENGTH and not key.isdigit():
         return _taxonomy_entry(
@@ -3658,12 +5028,34 @@ def _domains_include_number_theory(domains: list[str] | tuple[str, ...] | None) 
     return bool(_normalized_domain_set(domains) & NUMBER_THEORY_DOMAIN_ALIASES)
 
 
+def _domains_include_geometry(domains: list[str] | tuple[str, ...] | None) -> bool:
+    return bool(_normalized_domain_set(domains) & GEOMETRY_DOMAIN_ALIASES)
+
+
 def _is_strong_number_theory_technique(technique: str) -> bool:
     repaired = repair_topic_tag_text(technique)
     normalized = normalize_topic_tag(repaired)
     if _taxonomy_key(repaired) in NUMBER_THEORY_AMBIGUOUS_KEYS:
         return False
     return any(token in normalized for token in NUMBER_THEORY_STRONG_TOKENS)
+
+
+GEOMETRY_PLACEHOLDER_POINT_RE = re.compile(
+    r"\b(?:AT|ABOUT|THROUGH)\s+(?:AAA|BBB|GGG|HHH|III|XXX)\b",
+)
+
+
+def _geometry_matching_text(technique: str) -> str:
+    repaired = repair_topic_tag_text(technique)
+    normalized = normalize_topic_tag(repaired)
+    normalized = GEOMETRY_PLACEHOLDER_POINT_RE.sub("", normalized)
+    normalized = re.sub(r"\bON LINE\s+[A-Z]{3,}\b", "ON LINE", normalized)
+    return re.sub(r"\s+", " ", normalized).strip()
+
+
+def _is_strong_geometry_technique(technique: str) -> bool:
+    matching_text = _geometry_matching_text(technique)
+    return any(token in matching_text for token in GEOMETRY_STRONG_TOKENS)
 
 
 def _number_theory_pattern_taxonomy_entry(technique: str) -> SubtopicTaxonomyEntry | None:
@@ -3680,7 +5072,53 @@ def _number_theory_pattern_taxonomy_entry(technique: str) -> SubtopicTaxonomyEnt
     ) or _entry_from_pattern_rules(normalized, words, NUMBER_THEORY_PATTERN_RULES)
 
 
-def taxonomy_entry_for_technique(
+def _geometry_entries_for_technique(
+    technique: str,
+    domains: list[str] | tuple[str, ...] | None = None,
+) -> tuple[SubtopicTaxonomyEntry, ...]:
+    matching_text = _geometry_matching_text(technique)
+    if not _taxonomy_key(matching_text):
+        return ()
+
+    key_candidates = tuple(OrderedDict.fromkeys((
+        _taxonomy_key(technique),
+        _taxonomy_key(matching_text),
+    )))
+    domains_include_geo = _domains_include_geometry(domains)
+    strong_geometry_without_domains = not domains and _is_strong_geometry_technique(technique)
+
+    for key in key_candidates:
+        split_techniques = GEOMETRY_COMPOUND_SPLIT_LOOKUP.get(key)
+        if split_techniques and (domains_include_geo or strong_geometry_without_domains):
+            return tuple(
+                GEOMETRY_LEAF_ENTRY_BY_TECHNIQUE[normalize_topic_tag(stored_technique)]
+                for stored_technique in split_techniques
+            )
+
+    for key in key_candidates:
+        entry = GEOMETRY_LOOKUP.get(key)
+        if entry is None:
+            continue
+        if domains_include_geo or strong_geometry_without_domains:
+            return (entry,)
+        if entry.main_topic != "GEO" and entry.normalization_status == NORMALIZATION_STATUS_ALIAS:
+            return (entry,)
+
+    if not (domains_include_geo or strong_geometry_without_domains):
+        return ()
+
+    normalized = normalize_topic_tag(matching_text)
+    words = set(re.findall(r"[A-Z0-9]+", normalized))
+    entry = _entry_from_pattern_rules(
+        normalized,
+        words,
+        GEOMETRY_METHOD_PATTERN_RULES,
+        normalization=(NORMALIZATION_STATUS_METHOD, NORMALIZATION_CONFIDENCE_HIGH),
+    ) or _entry_from_pattern_rules(normalized, words, GEOMETRY_PATTERN_RULES)
+    return (entry,) if entry is not None else ()
+
+
+def _single_taxonomy_entry_for_technique(
     technique: str,
     domains: list[str] | tuple[str, ...] | None = None,
 ) -> SubtopicTaxonomyEntry | None:
@@ -3716,20 +5154,67 @@ def taxonomy_entry_for_technique(
     return selected_entry or nt_entry
 
 
-def classified_topic_tag_fields(
+def taxonomy_entries_for_technique(
+    technique: str,
+    domains: list[str] | tuple[str, ...] | None = None,
+) -> tuple[SubtopicTaxonomyEntry, ...]:
+    if _domains_include_geometry(domains):
+        geometry_entries = _geometry_entries_for_technique(technique, domains=domains)
+        if geometry_entries:
+            return geometry_entries
+
+    entry = _single_taxonomy_entry_for_technique(technique, domains=domains)
+    if entry is not None:
+        return (entry,)
+
+    geometry_entries = _geometry_entries_for_technique(technique, domains=domains)
+    if geometry_entries:
+        return geometry_entries
+    return ()
+
+
+def taxonomy_entry_for_technique(
+    technique: str,
+    domains: list[str] | tuple[str, ...] | None = None,
+) -> SubtopicTaxonomyEntry | None:
+    entries = taxonomy_entries_for_technique(technique, domains=domains)
+    return entries[0] if entries else None
+
+
+def _classified_topic_tag_fields_for_entry(
+    *,
+    entry: SubtopicTaxonomyEntry,
+    domain_list: list[str],
+    raw_tag: str,
+) -> dict[str, object]:
+    entry_domains = domain_list
+    if entry.main_topic:
+        entry_domains = domains_dedup_preserve_order([entry.main_topic, *domain_list])
+    return {
+        "canonical_subtopic": entry.canonical_subtopic,
+        "domains": entry_domains,
+        "main_topic": entry.main_topic,
+        "normalization_confidence": entry.normalization_confidence,
+        "normalization_status": entry.normalization_status,
+        "raw_tag": raw_tag,
+        "technique": entry.stored_technique,
+    }
+
+
+def classified_topic_tag_entries(
     *,
     technique: str,
     domains: list[str] | None,
     raw_tag: str | None = None,
-) -> dict[str, object]:
+) -> list[dict[str, object]]:
     repaired_technique = repair_topic_tag_text(technique)
     normalized_technique = normalize_topic_tag(repaired_technique)
     source_raw_tag = raw_tag or technique
     domain_list = domains_dedup_preserve_order(domains or [])
-    entry = taxonomy_entry_for_technique(repaired_technique, domains=domain_list)
+    entries = taxonomy_entries_for_technique(repaired_technique, domains=domain_list)
 
-    if entry is None:
-        return {
+    if not entries:
+        return [{
             "canonical_subtopic": "",
             "domains": domain_list,
             "main_topic": "",
@@ -3737,19 +5222,29 @@ def classified_topic_tag_fields(
             "normalization_status": NORMALIZATION_STATUS_NEEDS_REVIEW,
             "raw_tag": source_raw_tag,
             "technique": normalized_technique,
-        }
+        }]
 
-    if entry.main_topic:
-        domain_list = domains_dedup_preserve_order([entry.main_topic, *domain_list])
-    return {
-        "canonical_subtopic": entry.canonical_subtopic,
-        "domains": domain_list,
-        "main_topic": entry.main_topic,
-        "normalization_confidence": entry.normalization_confidence,
-        "normalization_status": entry.normalization_status,
-        "raw_tag": source_raw_tag,
-        "technique": entry.stored_technique,
-    }
+    return [
+        _classified_topic_tag_fields_for_entry(
+            entry=entry,
+            domain_list=domain_list,
+            raw_tag=source_raw_tag,
+        )
+        for entry in entries
+    ]
+
+
+def classified_topic_tag_fields(
+    *,
+    technique: str,
+    domains: list[str] | None,
+    raw_tag: str | None = None,
+) -> dict[str, object]:
+    return classified_topic_tag_entries(
+        technique=technique,
+        domains=domains,
+        raw_tag=raw_tag,
+    )[0]
 
 
 def _tag_domains_with_main_topic(domains: list[str], main_topic: str) -> list[str]:
@@ -3957,7 +5452,7 @@ def build_unmatched_subtopic_review(*, limit: int | None = None) -> dict[str, ob
     }
 
 
-def build_subtopic_cleanup_preview(*, limit: int = 50) -> dict[str, object]:
+def build_subtopic_cleanup_preview(*, limit: int = 50) -> dict[str, object]:  # noqa: C901
     changes: list[dict[str, str]] = []
     change_count = 0
     unmatched_by_key: OrderedDict[str, dict[str, object]] = OrderedDict()
@@ -3965,6 +5460,7 @@ def build_subtopic_cleanup_preview(*, limit: int = 50) -> dict[str, object]:
     duplicate_count = 0
     duplicate_groups: defaultdict[tuple[str, int, str], int] = defaultdict(int)
     invalid_count = 0
+    split_create_count = 0
 
     tag_sources = (
         ("Problem row", _problem_tag_rows(), lambda tag: tag.record_id, _problem_parent_label),
@@ -3973,8 +5469,8 @@ def build_subtopic_cleanup_preview(*, limit: int = 50) -> dict[str, object]:
     for kind, tag_rows, parent_id_getter, parent_label_getter in tag_sources:
         parent_key_kind = "problem" if kind == "Problem row" else "statement"
         for tag in tag_rows:
-            entry = taxonomy_entry_for_technique(tag.technique, domains=tag.domains)
-            if entry is None:
+            entries = taxonomy_entries_for_technique(tag.technique, domains=tag.domains)
+            if not entries:
                 _record_unmatched_subtopic(
                     unmatched_by_key,
                     parent_label=parent_label_getter(tag),
@@ -3984,16 +5480,19 @@ def build_subtopic_cleanup_preview(*, limit: int = 50) -> dict[str, object]:
                 continue
             parent_id = parent_id_getter(tag)
             raw_parent_keys.add((parent_key_kind, parent_id))
-            duplicate_groups[(parent_key_kind, parent_id, entry.stored_technique)] += 1
-            if entry.normalization_status in {
-                NORMALIZATION_STATUS_CORRUPT,
-                NORMALIZATION_STATUS_INVALID,
-            }:
-                invalid_count += 1
-            if _tag_needs_update(tag, entry):
-                change_count += 1
-                if len(changes) < limit:
-                    changes.append(_preview_change(kind, tag, entry, parent_label_getter(tag)))
+            if len(entries) > 1:
+                split_create_count += len(entries) - 1
+            for entry in entries:
+                duplicate_groups[(parent_key_kind, parent_id, entry.stored_technique)] += 1
+                if entry.normalization_status in {
+                    NORMALIZATION_STATUS_CORRUPT,
+                    NORMALIZATION_STATUS_INVALID,
+                }:
+                    invalid_count += 1
+                if _tag_needs_update(tag, entry) or len(entries) > 1:
+                    change_count += 1
+                    if len(changes) < limit:
+                        changes.append(_preview_change(kind, tag, entry, parent_label_getter(tag)))
 
     for group_size in duplicate_groups.values():
         if group_size > 1:
@@ -4012,6 +5511,7 @@ def build_subtopic_cleanup_preview(*, limit: int = 50) -> dict[str, object]:
         "has_changes": bool(change_count or duplicate_count or raw_parent_keys),
         "invalid_count": invalid_count,
         "raw_update_count": len(raw_parent_keys),
+        "split_create_count": split_create_count,
         "unmatched": unmatched[:limit],
         "unmatched_count": len(unmatched),
         "unmatched_review": unmatched_review[:limit],
@@ -4089,6 +5589,123 @@ def _include_existing_target_row(existing_target, target_technique: str, rows: l
     if existing_target is None:
         return rows
     return [existing_target, *rows]
+
+
+def _parent_id_for_tag_row(tag, parent_field_name: str) -> int:
+    return int(getattr(tag, f"{parent_field_name}_id"))
+
+
+def _merged_domains_for_entry(rows: list, entry: SubtopicTaxonomyEntry) -> list[str]:
+    merged_domains = [entry.main_topic]
+    for row in rows:
+        merged_domains.extend(row.domains or [])
+    return domains_dedup_preserve_order(merged_domains)
+
+
+def _tag_row_changed(row, entry: SubtopicTaxonomyEntry, *, domains: list[str], raw_tag: str) -> bool:
+    return (
+        row.technique != entry.stored_technique
+        or row.main_topic != entry.main_topic
+        or row.canonical_subtopic != entry.canonical_subtopic
+        or row.domains != domains
+        or row.raw_tag != raw_tag
+        or row.normalization_status != entry.normalization_status
+        or row.normalization_confidence != entry.normalization_confidence
+    )
+
+
+def _assign_tag_row_fields(row, entry: SubtopicTaxonomyEntry, *, domains: list[str], raw_tag: str) -> None:
+    row.technique = entry.stored_technique
+    row.main_topic = entry.main_topic
+    row.canonical_subtopic = entry.canonical_subtopic
+    row.domains = domains
+    row.raw_tag = raw_tag
+    row.normalization_status = entry.normalization_status
+    row.normalization_confidence = entry.normalization_confidence
+
+
+def _new_tag_row(tag_model, parent_field_name: str, parent_id: int, entry: SubtopicTaxonomyEntry, rows: list):
+    domains = _merged_domains_for_entry(rows, entry)
+    raw_tag = _merge_tag_raw_values(rows)
+    return tag_model(
+        **{f"{parent_field_name}_id": parent_id},
+        technique=entry.stored_technique,
+        main_topic=entry.main_topic,
+        canonical_subtopic=entry.canonical_subtopic,
+        domains=domains,
+        raw_tag=raw_tag,
+        normalization_status=entry.normalization_status,
+        normalization_confidence=entry.normalization_confidence,
+    )
+
+
+def _apply_tag_cleanup(
+    *,
+    tag_model,
+    parent_model,
+    parent_field_name: str,
+    tag_rows: Iterable,
+    timestamp_field_name: str | None = None,
+) -> SubtopicCleanupApplyResult:
+    updated_rows: list = []
+    created_rows: list = []
+    duplicate_ids: list[int] = []
+    touched_parent_ids: set[int] = set()
+    keeper_ids: set[int] = set()
+    classified_source_ids: set[int] = set()
+    rows_by_target: dict[tuple[int, str], object] = {}
+    grouped_rows: dict[tuple[int, str], tuple[SubtopicTaxonomyEntry, list]] = {}
+
+    for tag in tag_rows:
+        parent_id = _parent_id_for_tag_row(tag, parent_field_name)
+        rows_by_target.setdefault((parent_id, tag.technique), tag)
+        entries = taxonomy_entries_for_technique(tag.technique, domains=tag.domains)
+        if not entries:
+            continue
+        classified_source_ids.add(tag.id)
+        touched_parent_ids.add(parent_id)
+        for entry in entries:
+            key = (parent_id, entry.stored_technique)
+            rows = grouped_rows.setdefault(key, (entry, []))[1]
+            rows.append(tag)
+
+    for (parent_id, target_technique), (entry, source_rows) in grouped_rows.items():
+        existing_target = rows_by_target.get((parent_id, target_technique))
+        merge_rows = _include_existing_target_row(existing_target, target_technique, source_rows)
+        domains = _merged_domains_for_entry(merge_rows, entry)
+        raw_tag = _merge_tag_raw_values(merge_rows)
+        keeper = existing_target
+        if keeper is None:
+            keeper = next((row for row in source_rows if row.id not in keeper_ids), None)
+
+        if keeper is None:
+            created_rows.append(_new_tag_row(tag_model, parent_field_name, parent_id, entry, merge_rows))
+            continue
+
+        keeper_ids.add(keeper.id)
+        if _tag_row_changed(keeper, entry, domains=domains, raw_tag=raw_tag):
+            _assign_tag_row_fields(keeper, entry, domains=domains, raw_tag=raw_tag)
+            updated_rows.append(keeper)
+
+    duplicate_ids = sorted(classified_source_ids - keeper_ids)
+
+    _bulk_delete_tag_ids(tag_model, duplicate_ids)
+    _bulk_update_tag_rows(tag_model, updated_rows)
+    if created_rows:
+        tag_model.objects.bulk_create(created_rows, batch_size=SUBTOPIC_CLEANUP_BATCH_SIZE)
+    raw_update_count = _bulk_rewrite_topic_tags(
+        parent_ids=touched_parent_ids,
+        parent_model=parent_model,
+        tag_model=tag_model,
+        parent_field_name=parent_field_name,
+        timestamp_field_name=timestamp_field_name,
+    )
+    return SubtopicCleanupApplyResult(
+        created_count=len(created_rows),
+        deleted_count=len(duplicate_ids),
+        raw_update_count=raw_update_count,
+        updated_count=len(updated_rows),
+    )
 
 
 def _chunked_ids(ids: Iterable[int]) -> Iterable[list[int]]:
@@ -4373,89 +5990,21 @@ def _rewrite_statement_topic_tags(statement_id: int) -> bool:
 
 
 def _apply_problem_tag_cleanup() -> SubtopicCleanupApplyResult:
-    updated_rows: list[ProblemTopicTechnique] = []
-    duplicate_ids: list[int] = []
-    touched_record_ids: set[int] = set()
-    grouped_rows: dict[tuple[int, str], tuple[SubtopicTaxonomyEntry, list[ProblemTopicTechnique]]] = {}
-    rows_by_technique: dict[tuple[int, str], ProblemTopicTechnique] = {}
-
-    for tag in _problem_cleanup_tag_rows():
-        rows_by_technique[(tag.record_id, tag.technique)] = tag
-        entry = taxonomy_entry_for_technique(tag.technique, domains=tag.domains)
-        if entry is None:
-            continue
-        key = (tag.record_id, entry.stored_technique)
-        rows = grouped_rows.setdefault(key, (entry, []))[1]
-        rows.append(tag)
-        touched_record_ids.add(tag.record_id)
-
-    for (record_id, target_technique), (entry, rows) in grouped_rows.items():
-        merged_rows = _include_existing_target_row(
-            rows_by_technique.get((record_id, target_technique)),
-            target_technique,
-            rows,
-        )
-        updated_row, row_duplicate_ids = _prepare_parent_group_update(merged_rows, entry)
-        if updated_row is not None:
-            updated_rows.append(updated_row)
-        duplicate_ids.extend(row_duplicate_ids)
-
-    _bulk_delete_tag_ids(ProblemTopicTechnique, duplicate_ids)
-    _bulk_update_tag_rows(ProblemTopicTechnique, updated_rows)
-    raw_update_count = _bulk_rewrite_topic_tags(
-        parent_ids=touched_record_ids,
+    return _apply_tag_cleanup(
         parent_model=ProblemSolveRecord,
         tag_model=ProblemTopicTechnique,
         parent_field_name="record",
-    )
-    return SubtopicCleanupApplyResult(
-        deleted_count=len(duplicate_ids),
-        raw_update_count=raw_update_count,
-        updated_count=len(updated_rows),
+        tag_rows=_problem_cleanup_tag_rows(),
     )
 
 
 def _apply_statement_tag_cleanup() -> SubtopicCleanupApplyResult:
-    updated_rows: list[StatementTopicTechnique] = []
-    duplicate_ids: list[int] = []
-    touched_statement_ids: set[int] = set()
-    grouped_rows: dict[tuple[int, str], tuple[SubtopicTaxonomyEntry, list[StatementTopicTechnique]]] = {}
-    rows_by_technique: dict[tuple[int, str], StatementTopicTechnique] = {}
-
-    for tag in _statement_cleanup_tag_rows():
-        rows_by_technique[(tag.statement_id, tag.technique)] = tag
-        entry = taxonomy_entry_for_technique(tag.technique, domains=tag.domains)
-        if entry is None:
-            continue
-        key = (tag.statement_id, entry.stored_technique)
-        rows = grouped_rows.setdefault(key, (entry, []))[1]
-        rows.append(tag)
-        touched_statement_ids.add(tag.statement_id)
-
-    for (statement_id, target_technique), (entry, rows) in grouped_rows.items():
-        merged_rows = _include_existing_target_row(
-            rows_by_technique.get((statement_id, target_technique)),
-            target_technique,
-            rows,
-        )
-        updated_row, row_duplicate_ids = _prepare_parent_group_update(merged_rows, entry)
-        if updated_row is not None:
-            updated_rows.append(updated_row)
-        duplicate_ids.extend(row_duplicate_ids)
-
-    _bulk_delete_tag_ids(StatementTopicTechnique, duplicate_ids)
-    _bulk_update_tag_rows(StatementTopicTechnique, updated_rows)
-    raw_update_count = _bulk_rewrite_topic_tags(
-        parent_ids=touched_statement_ids,
+    return _apply_tag_cleanup(
         parent_model=ContestProblemStatement,
         tag_model=StatementTopicTechnique,
         parent_field_name="statement",
+        tag_rows=_statement_cleanup_tag_rows(),
         timestamp_field_name="updated_at",
-    )
-    return SubtopicCleanupApplyResult(
-        deleted_count=len(duplicate_ids),
-        raw_update_count=raw_update_count,
-        updated_count=len(updated_rows),
     )
 
 
@@ -4464,6 +6013,7 @@ def apply_subtopic_cleanup() -> SubtopicCleanupApplyResult:
     problem_result = _apply_problem_tag_cleanup()
     statement_result = _apply_statement_tag_cleanup()
     return SubtopicCleanupApplyResult(
+        created_count=problem_result.created_count + statement_result.created_count,
         deleted_count=problem_result.deleted_count + statement_result.deleted_count,
         raw_update_count=problem_result.raw_update_count + statement_result.raw_update_count,
         updated_count=problem_result.updated_count + statement_result.updated_count,
