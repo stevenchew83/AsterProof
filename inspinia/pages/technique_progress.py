@@ -51,7 +51,9 @@ GAP_DATATABLE_SORT_FIELDS = {
 }
 MAIN_TOPIC_ORDER = ["Algebra", "Number Theory", "Geometry", "Combinatorics"]
 OTHER_TOPIC_LABEL = "Other"
-SUBTOPIC_SUPPRESSED_NORMALIZATION_STATUSES = {"corrupt", "invalid", "lemma", "method"}
+SUBTOPIC_ALWAYS_SUPPRESSED_NORMALIZATION_STATUSES = {"corrupt", "invalid", "metadata"}
+SUBTOPIC_EMPTY_CANONICAL_SUPPRESSED_NORMALIZATION_STATUSES = {"lemma", "method", "needs_review"}
+TECHNIQUE_SUPPRESSED_NORMALIZATION_STATUSES = {"corrupt", "invalid", "metadata"}
 MAIN_TOPIC_SLUGS = {
     "algebra": "Algebra",
     "number-theory": "Number Theory",
@@ -358,7 +360,10 @@ def _subtopic_progress_rows(tagged_rows: list[dict[str, object]]) -> list[dict[s
     rows = []
     for row in tagged_rows:
         status = str(row.get("normalization_status") or "").casefold()
-        if status in SUBTOPIC_SUPPRESSED_NORMALIZATION_STATUSES:
+        canonical_subtopic = str(row.get("canonical_subtopic") or "").strip()
+        if status in SUBTOPIC_ALWAYS_SUPPRESSED_NORMALIZATION_STATUSES:
+            continue
+        if status in SUBTOPIC_EMPTY_CANONICAL_SUPPRESSED_NORMALIZATION_STATUSES and not canonical_subtopic:
             continue
         rows.append(row)
     return rows
@@ -368,7 +373,7 @@ def _technique_progress_rows(tagged_rows: list[dict[str, object]]) -> list[dict[
     rows = []
     for row in tagged_rows:
         status = str(row.get("normalization_status") or "").casefold()
-        if status in {"corrupt", "invalid"}:
+        if status in TECHNIQUE_SUPPRESSED_NORMALIZATION_STATUSES:
             continue
         rows.append(row)
     return rows
@@ -799,16 +804,16 @@ def _tagged_statement_rows(*, user: User) -> list[dict[str, object]]:
             technique = str(tag["technique"] or "").strip()
             if not technique:
                 continue
+            canonical_subtopic = str(tag.get("canonical_subtopic") or "").strip()
             dedupe_key = (statement.id, technique.casefold())
             if dedupe_key in seen_statement_labels:
                 continue
             seen_statement_labels.add(dedupe_key)
             main_topic = str(tag.get("main_topic") or "").strip()
-            canonical_subtopic = str(tag.get("canonical_subtopic") or "").strip()
             rows.append(
                 {
-                    "canonical_subtopic": canonical_subtopic,
                     "is_solved": is_solved,
+                    "canonical_subtopic": canonical_subtopic,
                     "main_topic": display_topic_label(main_topic) if main_topic else fallback_topic,
                     "normalization_status": str(tag.get("normalization_status") or "").strip(),
                     "statement_id": statement.id,

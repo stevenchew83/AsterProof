@@ -34,6 +34,10 @@ TOPIC_TAG_TEXT_REPAIRS: tuple[tuple[str, str], ...] = (
     ("\u201a\xdc\xed", "->"),
     ("\u201a\xdc\x92", "->"),
     ("\u201a\xd1\xa4", "Z"),
+    ("\u0152\u00b6", "PHI"),
+    ("\u0152\u00a7", "TAU"),
+    ("\u0152\u00a9", "OMEGA"),
+    ("PPP", "P"),
     ("\u2014", "-"),
     ("\u2013", "-"),
 )

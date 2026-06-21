@@ -890,6 +890,32 @@ def test_parse_topic_tags_cell_preserves_raw_tag_and_repairs_mojibake():
     ]
 
 
+def test_parse_topic_tags_cell_repairs_number_theory_mojibake_and_garbage_fragments():
+    parsed = parse_topic_tags_cell(
+        "Topic tags: NT - M\u221a\xf1BIUS INVERSION; B\u221a\xe2ZOUT/LINEAR COMBINATIONS; "
+        "FERMAT\u201a\xc4\xf4S THEOREM; \u0152\u00b6(N); \u0152\u00a7; \u0152\u00a9; PPP-ADIC; BBB",
+    )
+
+    assert parsed == [
+        {"technique": "M\u00d6BIUS INVERSION", "domains": ["NT"], "raw_tag": "M\u221a\xf1BIUS INVERSION"},
+        {
+            "technique": "B\u00c9ZOUT/LINEAR COMBINATIONS",
+            "domains": ["NT"],
+            "raw_tag": "B\u221a\xe2ZOUT/LINEAR COMBINATIONS",
+        },
+        {
+            "technique": "FERMAT'S THEOREM",
+            "domains": ["NT"],
+            "raw_tag": "FERMAT\u201a\xc4\xf4S THEOREM",
+        },
+        {"technique": "PHI(N)", "domains": ["NT"], "raw_tag": "\u0152\u00b6(N)"},
+        {"technique": "TAU", "domains": ["NT"], "raw_tag": "\u0152\u00a7"},
+        {"technique": "OMEGA", "domains": ["NT"], "raw_tag": "\u0152\u00a9"},
+        {"technique": "P-ADIC", "domains": ["NT"], "raw_tag": "PPP-ADIC"},
+        {"technique": "BBB", "domains": ["NT"], "raw_tag": "BBB"},
+    ]
+
+
 def test_dataframe_from_excel_strips_headers_and_requires_columns():
     workbook_bytes = _workbook_bytes(
         {
@@ -1001,6 +1027,46 @@ def test_import_problem_dataframe_classifies_topic_tags_with_normalization_metad
     assert tags["1]"].raw_tag == "1]"
     assert tags["1]"].canonical_subtopic == "Data-quality / invalid tag"
     assert tags["1]"].normalization_status == "invalid"
+
+
+def test_import_problem_dataframe_classifies_number_theory_two_layer_tags():
+    dataframe = _analytics_rows(
+        {
+            "YEAR": 2026,
+            "TOPIC": "NT",
+            "MOHS": 25,
+            "CONTEST": "Israel TST",
+            "PROBLEM": "P2",
+            "CONTEST PROBLEM": "Israel TST 2026 P2",
+            "Topic tags": (
+                "Topic tags: NT - CRT; B\u221a\xe2ZOUT/LINEAR COMBINATIONS; "
+                "CONSTRUCTIVE CRT; IMO 2007 P5; \\ALPHA^21"
+            ),
+        },
+    )
+
+    result = import_problem_dataframe(dataframe, replace_tags=False)
+
+    assert result.n_records == EXPECTED_RECORD_COUNT
+    record = ProblemSolveRecord.objects.get(year=2026, contest="Israel TST", problem="P2")
+    tags = {
+        tag.technique: tag
+        for tag in record.topic_techniques.order_by("technique")
+    }
+    assert tags["CHINESE REMAINDER THEOREM / LOCAL-GLOBAL"].raw_tag == "CRT"
+    assert tags["CHINESE REMAINDER THEOREM / LOCAL-GLOBAL"].canonical_subtopic == (
+        "Chinese remainder theorem and local-to-global methods"
+    )
+    assert tags["B\u00c9ZOUT / EUCLIDEAN ALGORITHM"].raw_tag == "B\u221a\xe2ZOUT/LINEAR COMBINATIONS"
+    assert tags["B\u00c9ZOUT / EUCLIDEAN ALGORITHM"].canonical_subtopic == (
+        "Divisibility, gcd, lcm, and factorization"
+    )
+    assert tags["CONSTRUCTION"].canonical_subtopic == ""
+    assert tags["CONSTRUCTION"].normalization_status == "method"
+    assert tags["IMO 2007 P5"].canonical_subtopic == ""
+    assert tags["IMO 2007 P5"].normalization_status == "metadata"
+    assert tags["\\ALPHA^21"].canonical_subtopic == "Data-quality / invalid tag"
+    assert tags["\\ALPHA^21"].normalization_status == "corrupt"
 
 
 def test_import_problem_dataframe_merges_domains_and_refreshes_derived_values():
@@ -12512,6 +12578,109 @@ def test_technique_progress_gaps_page_groups_normalized_algebra_subtopics_and_hi
     assert "1]" not in technique_labels
 
 
+def test_technique_progress_gaps_page_groups_number_theory_parents_and_hides_metadata(client):
+    user = UserFactory()
+    client.force_login(user)
+    crt_parent = "Chinese remainder theorem and local-to-global methods"
+    valuation_parent = "p-adic and valuation methods"
+    zsigmondy_parent = "Primitive divisors and Zsigmondy-type ideas"
+    for index, (technique, parent) in enumerate(
+        [
+            ("CHINESE REMAINDER THEOREM / LOCAL-GLOBAL", crt_parent),
+            ("VALUATIONS / P-ADIC METHODS", valuation_parent),
+            ("PRIMITIVE DIVISORS / ZSIGMONDY", zsigmondy_parent),
+        ],
+        start=1,
+    ):
+        _create_technique_progress_statement(
+            problem_code=f"N{index}",
+            problem_number=index,
+            statement_tags=[
+                {
+                    "technique": technique,
+                    "domains": ["NT"],
+                    "main_topic": "NT",
+                    "canonical_subtopic": parent,
+                    "raw_tag": technique,
+                    "normalization_status": "alias",
+                    "normalization_confidence": "high",
+                },
+            ],
+        )
+    _create_technique_progress_statement(
+        problem_code="NM",
+        problem_number=10,
+        statement_tags=[
+            {
+                "technique": "CONSTRUCTION",
+                "domains": ["NT"],
+                "main_topic": "NT",
+                "canonical_subtopic": "",
+                "raw_tag": "CONSTRUCTIVE CRT",
+                "normalization_status": "method",
+                "normalization_confidence": "high",
+            },
+        ],
+    )
+    _create_technique_progress_statement(
+        problem_code="NS",
+        problem_number=11,
+        statement_tags=[
+            {
+                "technique": "IMO 2007 P5",
+                "domains": ["NT"],
+                "main_topic": "NT",
+                "canonical_subtopic": "",
+                "raw_tag": "IMO 2007 P5",
+                "normalization_status": "metadata",
+                "normalization_confidence": "high",
+            },
+        ],
+    )
+    _create_technique_progress_statement(
+        problem_code="NC",
+        problem_number=12,
+        statement_tags=[
+            {
+                "technique": "\\ALPHA^21",
+                "domains": ["NT"],
+                "main_topic": "NT",
+                "canonical_subtopic": "Data-quality / invalid tag",
+                "raw_tag": "\\ALPHA^21",
+                "normalization_status": "corrupt",
+                "normalization_confidence": "high",
+            },
+        ],
+    )
+
+    response = client.get(reverse("pages:technique_progress_gaps"), {"kind": "subtopics", "topic": "number-theory"})
+
+    assert response.status_code == HTTPStatus.OK
+    labels = [
+        row["label"]
+        for row in response.context["technique_progress_gap_rows"]
+    ]
+    assert labels == [crt_parent, valuation_parent, zsigmondy_parent]
+    response_html = response.content.decode("utf-8")
+    assert "CONSTRUCTION" not in response_html
+    assert "IMO 2007 P5" not in response_html
+    assert "Data-quality / invalid tag" not in response_html
+
+    technique_response = client.get(
+        reverse("pages:technique_progress_gaps"),
+        {"kind": "techniques", "topic": "number-theory"},
+    )
+
+    assert technique_response.status_code == HTTPStatus.OK
+    technique_labels = [
+        row["label"]
+        for row in technique_response.context["technique_progress_gap_rows"]
+    ]
+    assert "CONSTRUCTION" in technique_labels
+    assert "IMO 2007 P5" not in technique_labels
+    assert "\\ALPHA^21" not in technique_labels
+
+
 def test_technique_progress_gaps_page_topic_tabs_preserve_user_and_kind(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     selected_user = UserFactory()
@@ -15877,14 +16046,19 @@ def test_problem_statement_metadata_cleanup_preview_matches_broad_subtopic_alias
         ("UVW", "ALG", "Inequalities and optimization", "UVW / PQR METHOD"),
         ("POLYNOMIAL INEQUALITIES", "ALG", "Inequalities and optimization", "POLYNOMIAL INEQUALITIES"),
         ("FLOOR RECURRENCE", "ALG", "Sequences, recurrences, and series", "FLOOR RECURRENCE"),
-        ("PELL-TYPE RECURRENCE", "NT", "Diophantine equations and descent", "PELL-TYPE RECURRENCES"),
+        ("PELL-TYPE RECURRENCE", "NT", "Pell-type equations and Vieta jumping", "PELL / VIETA JUMPING"),
         ("HARMONIC SUM", "ALG", "Sequences, recurrences, and series", "HARMONIC SUMS"),
         ("FACTORISATION", "ALG", "Polynomials and algebraic manipulation", "FACTORIZATION"),
         ("INTERPOLATION", "ALG", "Polynomials and algebraic manipulation", "INTERPOLATION"),
-        ("DIVISIBILITY/CONGRUENCES", "NT", "Divisibility, gcd, lcm, and primes", "DIVISIBILITY/CONGRUENCES"),
-        ("ORDERS/LTE", "NT", "p-adic and valuation methods", "ORDERS/LTE"),
-        ("P-ADIC STRUCTURE", "NT", "p-adic and valuation methods", "P-ADIC METHODS"),
-        ("DIOPHANTINE FACTORIZATION", "NT", "Diophantine equations and descent", "DIOPHANTINE FACTORIZATION"),
+        (
+            "DIVISIBILITY/CONGRUENCES",
+            "NT",
+            "Divisibility, gcd, lcm, and factorization",
+            "DIVISIBILITY / GCD / FACTORIZATION",
+        ),
+        ("ORDERS/LTE", "NT", "LTE and exponent lifting", "LTE / EXPONENT LIFTING"),
+        ("P-ADIC STRUCTURE", "NT", "p-adic and valuation methods", "VALUATIONS / P-ADIC METHODS"),
+        ("DIOPHANTINE FACTORIZATION", "NT", "Diophantine equations and descent", "DIOPHANTINE EQUATIONS"),
         (
             "CONSTRUCTIVE SCHEDULING",
             "COMB",
@@ -16101,7 +16275,7 @@ def test_subtopic_cleanup_maps_attached_alias_rules_to_existing_taxonomy(
             "P-ADIC/NEWTON POLYGON IDEAS",
             "NT",
             "p-adic and valuation methods",
-            "P-ADIC METHODS",
+            "VALUATIONS / P-ADIC METHODS",
         ),
         (
             "SUBSTITUTION XYZ=1",
@@ -16246,8 +16420,8 @@ def test_subtopic_cleanup_maps_normalized_algebra_rules_to_existing_taxonomy(
         (
             "CRT",
             "NT",
-            "Congruences and modular arithmetic",
-            "CHINESE REMAINDER THEOREM",
+            "Chinese remainder theorem and local-to-global methods",
+            "CHINESE REMAINDER THEOREM / LOCAL-GLOBAL",
         ),
         (
             "P-ADIC DIVISIBILITY",
@@ -16264,8 +16438,8 @@ def test_subtopic_cleanup_maps_normalized_algebra_rules_to_existing_taxonomy(
         (
             "GCD/LCM",
             "NT",
-            "Divisibility, gcd, lcm, and primes",
-            "GCD / LCM",
+            "Divisibility, gcd, lcm, and factorization",
+            "DIVISIBILITY / GCD / FACTORIZATION",
         ),
         (
             "PARITY SPLIT",
@@ -16324,8 +16498,8 @@ def test_subtopic_cleanup_maps_normalized_algebra_rules_to_existing_taxonomy(
         (
             "ZSIGMONDY/LTE",
             "NT",
-            "p-adic and valuation methods",
-            "MULTIPLICATIVE ORDERS / LTE",
+            "Primitive divisors and Zsigmondy-type ideas",
+            "PRIMITIVE DIVISORS / ZSIGMONDY",
         ),
         (
             "SUMS OF SQUARES",
@@ -16467,7 +16641,7 @@ def test_subtopic_cleanup_maps_recommended_schema_alias_rules_to_existing_taxono
             "MONOTONICITY",
             "alias",
         ),
-        ("VIETA", "NT", "Number-theoretic algebra", "VIETA", "alias"),
+        ("VIETA", "NT", "Pell-type equations and Vieta jumping", "PELL / VIETA JUMPING", "alias"),
         (
             "PAIRING",
             "COMB",
@@ -16515,6 +16689,122 @@ def test_subtopic_cleanup_classifies_first_pass_canonical_algebra_tags(
     assert entry.stored_technique == stored_technique
     assert entry.normalization_status == status
     assert entry.normalization_confidence == "high"
+
+
+@pytest.mark.parametrize(
+    ("raw_tag", "canonical_subtopic", "stored_technique"),
+    [
+        ("MODULAR CONGRUENCES", "Congruences and modular arithmetic", "MODULAR ARITHMETIC / RESIDUES"),
+        (
+            "CRT/LOCAL OBSTRUCTIONS",
+            "Chinese remainder theorem and local-to-global methods",
+            "CHINESE REMAINDER THEOREM / LOCAL-GLOBAL",
+        ),
+        (
+            "ORDERS MOD PPP",
+            "Orders, primitive roots, and unit groups",
+            "ORDERS / PRIMITIVE ROOTS / UNIT GROUPS",
+        ),
+        (
+            "B\u221a\xe2ZOUT/LINEAR COMBINATIONS",
+            "Divisibility, gcd, lcm, and factorization",
+            "B\u00c9ZOUT / EUCLIDEAN ALGORITHM",
+        ),
+        ("LARGEST PRIME FACTOR", "Prime numbers and prime divisors", "PRIMES / PRIME DIVISORS"),
+        ("PPP-ADIC VALUATIONS", "p-adic and valuation methods", "VALUATIONS / P-ADIC METHODS"),
+        ("LIFTING EXPONENT", "LTE and exponent lifting", "LTE / EXPONENT LIFTING"),
+        ("QUADRATIC DIOPHANTINE", "Diophantine equations and descent", "DIOPHANTINE EQUATIONS"),
+        ("VIETA JUMPING FLAVOR", "Pell-type equations and Vieta jumping", "PELL / VIETA JUMPING"),
+        (
+            "LEGENDRE SYMBOLS",
+            "Quadratic residues, squares, and squarefree methods",
+            "QUADRATIC RESIDUES / SQUAREFREE",
+        ),
+        ("PYTHAGOREAN TRIPLES", "Quadratic forms and sums of squares", "QUADRATIC FORMS / SUMS OF SQUARES"),
+        ("\u0152\u00b6(N)", "Arithmetic functions and divisor structure", "EULER PHI / TOTIENT"),
+        (
+            "M\u221a\xf1BIUS INVERSION",
+            "M\u00f6bius inversion and inclusion-exclusion",
+            "M\u00d6BIUS INVERSION",
+        ),
+        ("DECIMAL CARRIES", "Base, digit, and carry methods", "BASE / DIGIT / CARRY METHODS"),
+        ("DYADIC DECOMPOSITION", "Binary and dyadic methods", "BINARY / DYADIC METHODS"),
+        ("PISANO PERIOD", "Sequences, recurrences, and finite dynamics", "RECURRENCES / FINITE DYNAMICS"),
+        (
+            "FIBONACCI/LUCAS",
+            "Fibonacci, Lucas, Chebyshev, and special recurrences",
+            "FIBONACCI / LUCAS / CHEBYSHEV",
+        ),
+        (
+            "POLYNOMIALS MODULO P",
+            "Polynomial methods over integers and residues",
+            "POLYNOMIALS OVER INTEGERS / RESIDUES",
+        ),
+        (
+            "CHARACTER SUMS",
+            "Finite fields, characters, and advanced modular tools",
+            "FINITE FIELDS / CHARACTERS",
+        ),
+        ("GAUSSIAN INTEGERS", "Algebraic number theory flavor", "ALGEBRAIC NUMBER THEORY"),
+        ("ZERO-SUM SUBSETS", "Additive number theory and zero-sum methods", "ADDITIVE NUMBER THEORY / ZERO-SUM"),
+        (
+            "NUMERICAL SEMIGROUP",
+            "Multiplicative structure and semigroups",
+            "MULTIPLICATIVE STRUCTURE / SEMIGROUPS",
+        ),
+        (
+            "DIOPHANTINE APPROXIMATION",
+            "Floor, rounding, Beatty, Farey, and approximation methods",
+            "FLOOR / ROUNDING / APPROXIMATION",
+        ),
+        ("PICK-STYLE GEOMETRY", "Lattice and integer geometry methods", "LATTICE / INTEGER GEOMETRY"),
+        ("SMOOTH NUMBERS", "Sieve, density, and asymptotic estimates", "SIEVE / DENSITY / ASYMPTOTICS"),
+        (
+            "ZSIGMONDY FLAVOR",
+            "Primitive divisors and Zsigmondy-type ideas",
+            "PRIMITIVE DIVISORS / ZSIGMONDY",
+        ),
+    ],
+)
+def test_subtopic_cleanup_maps_number_theory_two_layer_parent_buckets(
+    raw_tag,
+    canonical_subtopic,
+    stored_technique,
+):
+    entry = taxonomy_entry_for_technique(raw_tag, domains=["NT"])
+
+    assert entry is not None
+    assert entry.main_topic == "NT"
+    assert entry.canonical_subtopic == canonical_subtopic
+    assert entry.stored_technique == stored_technique
+    assert entry.normalization_status == "alias"
+    assert entry.normalization_confidence == "high"
+
+
+def test_subtopic_cleanup_uses_domains_to_disambiguate_number_theory_tags():
+    nt_entry = taxonomy_entry_for_technique("CYCLIC GROUPS", domains=["NT"])
+    algebra_entry = taxonomy_entry_for_technique("CYCLIC GROUPS", domains=["ALG"])
+    constructive_crt = taxonomy_entry_for_technique("CONSTRUCTIVE CRT", domains=["NT"])
+    source_tag = taxonomy_entry_for_technique("IMO 2007 P5", domains=["NT"])
+    corrupt_tag = taxonomy_entry_for_technique("\\ALPHA^21", domains=["NT"])
+
+    assert nt_entry is not None
+    assert nt_entry.main_topic == "NT"
+    assert nt_entry.canonical_subtopic == "Orders, primitive roots, and unit groups"
+    assert nt_entry.stored_technique == "ORDERS / PRIMITIVE ROOTS / UNIT GROUPS"
+    assert algebra_entry is not None
+    assert algebra_entry.main_topic == "ALG"
+    assert algebra_entry.canonical_subtopic == "Algebraic structures and linear algebra"
+    assert constructive_crt is not None
+    assert constructive_crt.canonical_subtopic == ""
+    assert constructive_crt.stored_technique == "CONSTRUCTION"
+    assert constructive_crt.normalization_status == "method"
+    assert source_tag is not None
+    assert source_tag.canonical_subtopic == ""
+    assert source_tag.normalization_status == "metadata"
+    assert corrupt_tag is not None
+    assert corrupt_tag.canonical_subtopic == "Data-quality / invalid tag"
+    assert corrupt_tag.normalization_status == "corrupt"
 
 
 @pytest.mark.parametrize(
