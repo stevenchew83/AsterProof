@@ -1,5 +1,10 @@
+# The raw SQL in this module is limited to internal PostgreSQL bulk updates with
+# quoted model table names and parameterized row values.
+# ruff: noqa: S608
+
 from __future__ import annotations
 
+import json
 import re
 import unicodedata
 from collections import OrderedDict
@@ -7,6 +12,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from django.db import connection
 from django.db import transaction
 from django.utils import timezone
 
@@ -2950,8 +2956,63 @@ def _chunked_ids(ids: Iterable[int]) -> Iterable[list[int]]:
         yield sorted_ids[index:index + SUBTOPIC_CLEANUP_BATCH_SIZE]
 
 
+def _chunked_rows(rows: list) -> Iterable[list]:
+    for index in range(0, len(rows), SUBTOPIC_CLEANUP_BATCH_SIZE):
+        yield rows[index:index + SUBTOPIC_CLEANUP_BATCH_SIZE]
+
+
+def _quoted_table_name(model) -> str:
+    return connection.ops.quote_name(model._meta.db_table)  # noqa: SLF001
+
+
+def _bulk_update_tag_rows_with_postgres_values(model, rows: list) -> None:
+    table_name = _quoted_table_name(model)
+    with connection.cursor() as cursor:
+        for row_batch in _chunked_rows(rows):
+            placeholders = []
+            params = []
+            for row in row_batch:
+                placeholders.append("(%s, %s, %s, %s, %s::jsonb, %s, %s, %s)")
+                params.extend([
+                    row.id,
+                    row.technique,
+                    row.main_topic,
+                    row.canonical_subtopic,
+                    json.dumps(row.domains or []),
+                    row.raw_tag,
+                    row.normalization_status,
+                    row.normalization_confidence,
+                ])
+            query = f"""
+            UPDATE {table_name} AS target
+            SET
+                technique = data.technique,
+                main_topic = data.main_topic,
+                canonical_subtopic = data.canonical_subtopic,
+                domains = data.domains,
+                raw_tag = data.raw_tag,
+                normalization_status = data.normalization_status,
+                normalization_confidence = data.normalization_confidence
+            FROM (VALUES {", ".join(placeholders)}) AS data(
+                id,
+                technique,
+                main_topic,
+                canonical_subtopic,
+                domains,
+                raw_tag,
+                normalization_status,
+                normalization_confidence
+            )
+            WHERE target.id = data.id
+            """
+            cursor.execute(query, params)
+
+
 def _bulk_update_tag_rows(model, rows: list) -> None:
     if not rows:
+        return
+    if connection.vendor == "postgresql":
+        _bulk_update_tag_rows_with_postgres_values(model, rows)
         return
     model.objects.bulk_update(
         rows,
@@ -3024,6 +3085,72 @@ def _formatted_topic_tags_by_parent_batch(
     }
 
 
+def _bulk_update_topic_tag_parent_rows_with_postgres_values(
+    parent_model,
+    rows: list,
+    *,
+    timestamp_field_name: str | None = None,
+) -> None:
+    table_name = _quoted_table_name(parent_model)
+    timestamp_column = connection.ops.quote_name(timestamp_field_name) if timestamp_field_name else ""
+    with connection.cursor() as cursor:
+        for row_batch in _chunked_rows(rows):
+            placeholders = []
+            params = []
+            for row in row_batch:
+                if timestamp_field_name:
+                    placeholders.append("(%s, %s, %s)")
+                    params.extend([row.id, row.topic_tags, getattr(row, timestamp_field_name)])
+                else:
+                    placeholders.append("(%s, %s)")
+                    params.extend([row.id, row.topic_tags])
+
+            if timestamp_field_name:
+                query = f"""
+                UPDATE {table_name} AS target
+                SET
+                    topic_tags = data.topic_tags,
+                    {timestamp_column} = data.updated_at
+                FROM (VALUES {", ".join(placeholders)}) AS data(id, topic_tags, updated_at)
+                WHERE target.id = data.id
+                """
+                cursor.execute(query, params)
+            else:
+                query = f"""
+                UPDATE {table_name} AS target
+                SET topic_tags = data.topic_tags
+                FROM (VALUES {", ".join(placeholders)}) AS data(id, topic_tags)
+                WHERE target.id = data.id
+                """
+                cursor.execute(query, params)
+
+
+def _bulk_update_topic_tag_parent_rows(
+    parent_model,
+    rows: list,
+    *,
+    timestamp_field_name: str | None = None,
+) -> None:
+    if not rows:
+        return
+    if connection.vendor == "postgresql":
+        _bulk_update_topic_tag_parent_rows_with_postgres_values(
+            parent_model,
+            rows,
+            timestamp_field_name=timestamp_field_name,
+        )
+        return
+
+    update_fields = ["topic_tags"]
+    if timestamp_field_name:
+        update_fields.append(timestamp_field_name)
+    parent_model.objects.bulk_update(
+        rows,
+        update_fields,
+        batch_size=SUBTOPIC_CLEANUP_BATCH_SIZE,
+    )
+
+
 def _bulk_rewrite_topic_tags(
     *,
     parent_ids: set[int],
@@ -3034,9 +3161,6 @@ def _bulk_rewrite_topic_tags(
 ) -> int:
     updated_count = 0
     pending_updates = []
-    update_fields = ["topic_tags"]
-    if timestamp_field_name:
-        update_fields.append(timestamp_field_name)
 
     for parent_id_batch in _chunked_ids(parent_ids):
         current_values = {
@@ -3060,18 +3184,18 @@ def _bulk_rewrite_topic_tags(
             updated_count += 1
 
         if len(pending_updates) >= SUBTOPIC_CLEANUP_BATCH_SIZE:
-            parent_model.objects.bulk_update(
+            _bulk_update_topic_tag_parent_rows(
+                parent_model,
                 pending_updates,
-                update_fields,
-                batch_size=SUBTOPIC_CLEANUP_BATCH_SIZE,
+                timestamp_field_name=timestamp_field_name,
             )
             pending_updates = []
 
     if pending_updates:
-        parent_model.objects.bulk_update(
+        _bulk_update_topic_tag_parent_rows(
+            parent_model,
             pending_updates,
-            update_fields,
-            batch_size=SUBTOPIC_CLEANUP_BATCH_SIZE,
+            timestamp_field_name=timestamp_field_name,
         )
     return updated_count
 
