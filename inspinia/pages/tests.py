@@ -70,7 +70,9 @@ from inspinia.pages.statement_metadata_backfill import StatementMetadataBackfill
 from inspinia.pages.statement_metadata_backfill import import_statement_metadata_dataframe
 from inspinia.pages.statement_metadata_backfill import statement_metadata_dataframe_from_rows
 from inspinia.pages.subtopic_cleanup import apply_subtopic_cleanup
+from inspinia.pages.subtopic_cleanup import classified_topic_tag_entries
 from inspinia.pages.subtopic_cleanup import taxonomy_entry_for_technique
+from inspinia.pages.subtopic_cleanup import taxonomy_entries_for_technique
 from inspinia.pages.topic_tags_parse import parse_topic_tags_cell
 from inspinia.pages.views import ADMIN_TABLE_LATEST_LIMIT
 from inspinia.problemsets.models import ProblemList
@@ -916,6 +918,26 @@ def test_parse_topic_tags_cell_repairs_number_theory_mojibake_and_garbage_fragme
     ]
 
 
+def test_parse_topic_tags_cell_repairs_geometry_spelling_and_encoding_variants():
+    parsed = parse_topic_tags_cell(
+        "Topic tags: GEO - ORTHOCENTRE; CIRCUMCENTRE; PARAMETERIZATION; "
+        "CEVA\u201a\xc4\xecMENELAUS; PL\u221a\xfaCKER; 60\u00ac\u221e ROTATION",
+    )
+
+    assert parsed == [
+        {"technique": "ORTHOCENTER", "domains": ["GEO"], "raw_tag": "ORTHOCENTRE"},
+        {"technique": "CIRCUMCENTER", "domains": ["GEO"], "raw_tag": "CIRCUMCENTRE"},
+        {"technique": "PARAMETRIZATION", "domains": ["GEO"], "raw_tag": "PARAMETERIZATION"},
+        {
+            "technique": "CEVA-MENELAUS",
+            "domains": ["GEO"],
+            "raw_tag": "CEVA\u201a\xc4\xecMENELAUS",
+        },
+        {"technique": "PLUCKER", "domains": ["GEO"], "raw_tag": "PL\u221a\xfaCKER"},
+        {"technique": "60\u00b0 ROTATION", "domains": ["GEO"], "raw_tag": "60\u00ac\u221e ROTATION"},
+    ]
+
+
 def test_dataframe_from_excel_strips_headers_and_requires_columns():
     workbook_bytes = _workbook_bytes(
         {
@@ -1067,6 +1089,41 @@ def test_import_problem_dataframe_classifies_number_theory_two_layer_tags():
     assert tags["IMO 2007 P5"].normalization_status == "metadata"
     assert tags["\\ALPHA^21"].canonical_subtopic == "Data-quality / invalid tag"
     assert tags["\\ALPHA^21"].normalization_status == "corrupt"
+
+
+def test_import_problem_dataframe_splits_geometry_compound_tags():
+    dataframe = _analytics_rows(
+        {
+            "YEAR": 2026,
+            "TOPIC": "GEO",
+            "MOHS": 25,
+            "CONTEST": "Israel TST",
+            "PROBLEM": "P3",
+            "CONTEST PROBLEM": "Israel TST 2026 P3",
+            "Topic tags": (
+                "Topic tags: GEO - MIQUEL/RADICAL AXIS; PROJECTIVE/ANALYTIC GEOMETRY; "
+                "CONSTRUCTIVE GEOMETRY; INVERSION AT XXX"
+            ),
+        },
+    )
+
+    result = import_problem_dataframe(dataframe, replace_tags=False)
+
+    assert result.n_records == EXPECTED_RECORD_COUNT
+    record = ProblemSolveRecord.objects.get(year=2026, contest="Israel TST", problem="P3")
+    tags = {
+        tag.technique: tag
+        for tag in record.topic_techniques.order_by("technique")
+    }
+    assert tags["MIQUEL AND SPIRAL SIMILARITY"].canonical_subtopic == "Circle geometry"
+    assert tags["MIQUEL AND SPIRAL SIMILARITY"].raw_tag == "MIQUEL/RADICAL AXIS"
+    assert tags["RADICAL AXIS AND COAXALITY"].canonical_subtopic == "Circle geometry"
+    assert tags["PROJECTIVE GEOMETRY"].canonical_subtopic == "Projective and affine geometry"
+    assert tags["COORDINATE AND ANALYTIC GEOMETRY"].canonical_subtopic == "Analytic and coordinate geometry"
+    assert tags["CONSTRUCTION"].canonical_subtopic == ""
+    assert tags["CONSTRUCTION"].normalization_status == "method"
+    assert tags["INVERSION"].canonical_subtopic == "Transformational geometry"
+    assert tags["INVERSION"].raw_tag == "INVERSION AT XXX"
 
 
 def test_import_problem_dataframe_merges_domains_and_refreshes_derived_values():
@@ -12681,6 +12738,95 @@ def test_technique_progress_gaps_page_groups_number_theory_parents_and_hides_met
     assert "\\ALPHA^21" not in technique_labels
 
 
+def test_technique_progress_gaps_page_groups_geometry_parents_and_hides_methods(client):
+    user = UserFactory()
+    client.force_login(user)
+    circle_parent = "Circle geometry"
+    analytic_parent = "Analytic and coordinate geometry"
+    projective_parent = "Projective and affine geometry"
+    for index, (technique, parent) in enumerate(
+        [
+            ("CYCLICITY", circle_parent),
+            ("TANGENCY", circle_parent),
+            ("POWER OF A POINT", circle_parent),
+            ("BARYCENTRICS AND TRILINEARS", analytic_parent),
+            ("PROJECTIVE GEOMETRY", projective_parent),
+        ],
+        start=1,
+    ):
+        _create_technique_progress_statement(
+            problem_code=f"G{index}",
+            problem_number=index,
+            statement_tags=[
+                {
+                    "technique": technique,
+                    "domains": ["GEO"],
+                    "main_topic": "GEO",
+                    "canonical_subtopic": parent,
+                    "raw_tag": technique,
+                    "normalization_status": "alias",
+                    "normalization_confidence": "high",
+                },
+            ],
+        )
+    _create_technique_progress_statement(
+        problem_code="GM",
+        problem_number=10,
+        statement_tags=[
+            {
+                "technique": "CONTRADICTION",
+                "domains": ["GEO"],
+                "main_topic": "GEO",
+                "canonical_subtopic": "",
+                "raw_tag": "CONTRADICTION",
+                "normalization_status": "method",
+                "normalization_confidence": "high",
+            },
+        ],
+    )
+    _create_technique_progress_statement(
+        problem_code="GN",
+        problem_number=11,
+        statement_tags=[
+            {
+                "technique": "MODULAR ARITHMETIC / RESIDUES",
+                "domains": ["NT", "GEO"],
+                "main_topic": "NT",
+                "canonical_subtopic": "Congruences and modular arithmetic",
+                "raw_tag": "RESIDUES MOD P",
+                "normalization_status": "alias",
+                "normalization_confidence": "high",
+            },
+        ],
+    )
+
+    response = client.get(reverse("pages:technique_progress_gaps"), {"kind": "subtopics", "topic": "geometry"})
+
+    assert response.status_code == HTTPStatus.OK
+    labels = [
+        row["label"]
+        for row in response.context["technique_progress_gap_rows"]
+    ]
+    assert labels == [circle_parent, analytic_parent, projective_parent]
+    assert response.context["technique_progress_gap_rows"][0]["total"] == 3
+    response_html = response.content.decode("utf-8")
+    assert "CONTRADICTION" not in response_html
+    assert "Congruences and modular arithmetic" not in response_html
+
+    technique_response = client.get(
+        reverse("pages:technique_progress_gaps"),
+        {"kind": "techniques", "topic": "geometry"},
+    )
+
+    assert technique_response.status_code == HTTPStatus.OK
+    technique_labels = [
+        row["label"]
+        for row in technique_response.context["technique_progress_gap_rows"]
+    ]
+    assert "CONTRADICTION" in technique_labels
+    assert "MODULAR ARITHMETIC / RESIDUES" not in technique_labels
+
+
 def test_technique_progress_gaps_page_topic_tabs_preserve_user_and_kind(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     selected_user = UserFactory()
@@ -16781,6 +16927,179 @@ def test_subtopic_cleanup_maps_number_theory_two_layer_parent_buckets(
     assert entry.normalization_confidence == "high"
 
 
+@pytest.mark.parametrize(
+    ("raw_tag", "canonical_subtopic", "stored_technique"),
+    [
+        ("ANGLE CHASE", "Core Euclidean geometry", "ANGLE CHASING"),
+        ("ANGLE-BISECTOR THEOREM", "Core Euclidean geometry", "ANGLE BISECTORS"),
+        ("ORTHOGONALITY", "Core Euclidean geometry", "PARALLELISM AND PERPENDICULARITY"),
+        ("VARIGNON PARALLELOGRAM", "Core Euclidean geometry", "MIDPOINTS AND MIDLINES"),
+        ("DIRECTED RATIOS", "Core Euclidean geometry", "RATIO AND LENGTH CHASING"),
+        ("SIMILITUDE", "Core Euclidean geometry", "SIMILARITY AND CONGRUENCE"),
+        ("TRAPEZIUM", "Core Euclidean geometry", "QUADRILATERAL AND POLYGON GEOMETRY"),
+        ("LANGLEY CONFIGURATION", "Core Euclidean geometry", "SPECIAL TRIANGLES AND SPECIAL ANGLES"),
+        ("CIRCLE CONFIGURATIONS", "Circle geometry", "CIRCLE GEOMETRY"),
+        ("CYCLIC QUADS", "Circle geometry", "CYCLICITY"),
+        ("CIRCUMCENTRE", "Circle geometry", "CIRCUMCIRCLE AND CIRCUMCENTER"),
+        ("SECANT-CHORD", "Circle geometry", "ARC AND CHORD GEOMETRY"),
+        ("TANGENT-SECANT", "Circle geometry", "TANGENCY"),
+        ("POWER RELATIONS", "Circle geometry", "POWER OF A POINT"),
+        ("COAXALITY/COMMON POINT", "Circle geometry", "RADICAL AXIS AND COAXALITY"),
+        ("SPIRAL SIMILARITY/MIQUEL", "Circle geometry", "MIQUEL AND SPIRAL SIMILARITY"),
+        ("INCENTRE", "Triangle centers and configurations", "INCENTER AND INCIRCLE"),
+        ("EXCIRCLE GEOMETRY", "Triangle centers and configurations", "EXCENTER AND EXCIRCLE"),
+        ("ORTHOCENTRE", "Triangle centers and configurations", "ORTHOCENTER AND ALTITUDES"),
+        (
+            "SIMSON-LINE FLAVOR",
+            "Triangle centers and configurations",
+            "ORTHIC, PEDAL, AND SIMSON GEOMETRY",
+        ),
+        (
+            "EULER LINE/NINE-POINT CENTER",
+            "Triangle centers and configurations",
+            "EULER LINE AND NINE-POINT CIRCLE",
+        ),
+        ("CENTROID IDENTITY", "Triangle centers and configurations", "MEDIAN AND CENTROID GEOMETRY"),
+        ("TRIG CEVA/MENELAUS", "Triangle centers and configurations", "CEVA, MENELAUS, AND CEVIANS"),
+        (
+            "SYMMEDIAN/TANGENT",
+            "Triangle centers and configurations",
+            "ISOGONAL AND SYMMEDIAN GEOMETRY",
+        ),
+        (
+            "COORDINATES/TRIG",
+            "Analytic and coordinate geometry",
+            "COORDINATE AND ANALYTIC GEOMETRY",
+        ),
+        ("DOT PRODUCTS", "Analytic and coordinate geometry", "VECTOR GEOMETRY"),
+        ("COMPLEX/COORDINATES", "Analytic and coordinate geometry", "COMPLEX GEOMETRY"),
+        (
+            "TRILINEARS/BARYCENTRICS",
+            "Analytic and coordinate geometry",
+            "BARYCENTRICS AND TRILINEARS",
+        ),
+        ("SINE/COSINE RULE", "Trigonometric geometry", "TRIGONOMETRIC GEOMETRY"),
+        ("AFFINE/PROJECTIVE METHODS", "Projective and affine geometry", "AFFINE GEOMETRY"),
+        ("PROJECTIVE VIEWPOINT", "Projective and affine geometry", "PROJECTIVE GEOMETRY"),
+        ("POLE/POLAR", "Projective and affine geometry", "POLES, POLARS, AND POLARITY"),
+        (
+            "CROSS-RATIO INVARIANCE",
+            "Projective and affine geometry",
+            "CROSS-RATIO AND HARMONIC DIVISION",
+        ),
+        (
+            "PASCAL/BRIANCHON",
+            "Projective and affine geometry",
+            "PASCAL, BRIANCHON, DESARGUES, PAPPUS, REIM",
+        ),
+        ("CONIC LOCI", "Projective and affine geometry", "CONICS AND CURVES"),
+        ("INVERSION AT XXX", "Transformational geometry", "INVERSION"),
+        ("BILLIARD UNFOLDING", "Transformational geometry", "REFLECTION AND UNFOLDING"),
+        ("ROTATION BY 90 DEGREES", "Transformational geometry", "ROTATION"),
+        ("HOMOTHETY ABOUT GGG", "Transformational geometry", "HOMOTHETY AND SIMILARITY CENTERS"),
+        ("SIGNED AREAS", "Geometric inequalities and optimization", "AREA METHODS"),
+        ("STEWART", "Geometric inequalities and optimization", "METRIC IDENTITIES AND DISTANCE GEOMETRY"),
+        ("PERIMETER INEQUALITY", "Geometric inequalities and optimization", "GEOMETRIC INEQUALITIES"),
+        (
+            "AREA MAXIMIZATION",
+            "Geometric inequalities and optimization",
+            "EXTREMAL AND OPTIMIZATION GEOMETRY",
+        ),
+        ("CONVEX HULLS", "Geometric inequalities and optimization", "CONVEX GEOMETRY"),
+        (
+            "LINE ARRANGEMENTS",
+            "Discrete and combinatorial geometry",
+            "DISCRETE AND COMBINATORIAL GEOMETRY",
+        ),
+        ("PICK-STYLE GEOMETRY", "Discrete and combinatorial geometry", "LATTICE GEOMETRY"),
+        ("CIRCLE PACKING", "Discrete and combinatorial geometry", "TILINGS, DISSECTIONS, AND PACKING"),
+        ("MOVING POINT LOCUS", "Locus and continuity geometry", "LOCUS AND MOVING-POINT GEOMETRY"),
+        ("CONTINUITY/COMPACTNESS", "Locus and continuity geometry", "CONTINUITY AND TOPOLOGY"),
+        ("RULER-COMPASS CONSTRUCTION", "Construction geometry", "CONSTRUCTION AND AUXILIARY POINTS"),
+        ("TETRAHEDRON", "3D and solid geometry", "3D AND SOLID GEOMETRY"),
+    ],
+)
+def test_subtopic_cleanup_maps_geometry_controlled_vocabulary_parent_buckets(
+    raw_tag,
+    canonical_subtopic,
+    stored_technique,
+):
+    entry = taxonomy_entry_for_technique(raw_tag, domains=["GEO"])
+
+    assert entry is not None
+    assert entry.main_topic == "GEO"
+    assert entry.canonical_subtopic == canonical_subtopic
+    assert entry.stored_technique == stored_technique
+    assert entry.normalization_status == "alias"
+    assert entry.normalization_confidence == "high"
+
+
+def test_subtopic_cleanup_splits_geometry_compound_tags_into_atomic_entries():
+    split_entries = taxonomy_entries_for_technique("MIQUEL/RADICAL AXIS", domains=["GEO"])
+    assert [
+        (entry.canonical_subtopic, entry.stored_technique)
+        for entry in split_entries
+    ] == [
+        ("Circle geometry", "MIQUEL AND SPIRAL SIMILARITY"),
+        ("Circle geometry", "RADICAL AXIS AND COAXALITY"),
+    ]
+
+    projective_fields = classified_topic_tag_entries(
+        technique="PROJECTIVE/ANALYTIC GEOMETRY",
+        domains=["GEO"],
+        raw_tag="PROJECTIVE/ANALYTIC GEOMETRY",
+    )
+    assert [
+        (field["canonical_subtopic"], field["technique"], field["raw_tag"])
+        for field in projective_fields
+    ] == [
+        (
+            "Projective and affine geometry",
+            "PROJECTIVE GEOMETRY",
+            "PROJECTIVE/ANALYTIC GEOMETRY",
+        ),
+        (
+            "Analytic and coordinate geometry",
+            "COORDINATE AND ANALYTIC GEOMETRY",
+            "PROJECTIVE/ANALYTIC GEOMETRY",
+        ),
+    ]
+
+    incenter_split = taxonomy_entries_for_technique("INCENTER/CIRCUMCENTER", domains=["GEO"])
+    assert [
+        (entry.canonical_subtopic, entry.stored_technique)
+        for entry in incenter_split
+    ] == [
+        ("Triangle centers and configurations", "INCENTER AND INCIRCLE"),
+        ("Circle geometry", "CIRCUMCIRCLE AND CIRCUMCENTER"),
+    ]
+
+
+def test_subtopic_cleanup_routes_geometry_methods_and_other_area_tags():
+    contradiction = taxonomy_entry_for_technique("CONTRADICTION", domains=["GEO"])
+    residues = taxonomy_entry_for_technique("RESIDUES MOD P", domains=["GEO"])
+    graph = taxonomy_entry_for_technique("GRAPH STRUCTURE", domains=["GEO"])
+    jensen = taxonomy_entry_for_technique("JENSEN/CONCAVITY", domains=["GEO"])
+
+    assert contradiction is not None
+    assert contradiction.main_topic == ""
+    assert contradiction.canonical_subtopic == ""
+    assert contradiction.stored_technique == "CONTRADICTION"
+    assert contradiction.normalization_status == "method"
+    assert residues is not None
+    assert residues.main_topic == "NT"
+    assert residues.canonical_subtopic == "Congruences and modular arithmetic"
+    assert residues.stored_technique == "MODULAR ARITHMETIC / RESIDUES"
+    assert graph is not None
+    assert graph.main_topic == "COMB"
+    assert graph.canonical_subtopic == "Graph theory"
+    assert graph.stored_technique == "GRAPH STRUCTURE"
+    assert jensen is not None
+    assert jensen.main_topic == "ALG"
+    assert jensen.canonical_subtopic == "Inequalities and optimization"
+    assert jensen.stored_technique == "JENSEN / CONVEXITY"
+
+
 def test_subtopic_cleanup_uses_domains_to_disambiguate_number_theory_tags():
     nt_entry = taxonomy_entry_for_technique("CYCLIC GROUPS", domains=["NT"])
     algebra_entry = taxonomy_entry_for_technique("CYCLIC GROUPS", domains=["ALG"])
@@ -17279,6 +17598,64 @@ def test_subtopic_cleanup_apply_batches_statement_raw_tag_rewrites():
     assert len(statement_tag_selects) <= max_statement_tag_selects
 
 
+def test_subtopic_cleanup_apply_creates_geometry_split_rows_and_keeps_methods_out_of_subtopics():
+    record = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="G",
+        mohs=25,
+        contest="Israel TST",
+        problem="P3",
+        contest_year_problem="Israel TST 2026 P3",
+        topic_tags=(
+            "Topic tags: GEO - MIQUEL/RADICAL AXIS; PROJECTIVE/ANALYTIC GEOMETRY; "
+            "CONTRADICTION; INVERSION AT XXX"
+        ),
+    )
+    for technique in [
+        "MIQUEL/RADICAL AXIS",
+        "PROJECTIVE/ANALYTIC GEOMETRY",
+        "CONTRADICTION",
+        "INVERSION AT XXX",
+    ]:
+        ProblemTopicTechnique.objects.create(
+            record=record,
+            technique=technique,
+            domains=["geo"],
+            raw_tag=technique,
+        )
+
+    result = apply_subtopic_cleanup()
+
+    assert result.created_count == 2
+    tags = {
+        tag.technique: tag
+        for tag in ProblemTopicTechnique.objects.filter(record=record).order_by("technique")
+    }
+    assert tags["MIQUEL AND SPIRAL SIMILARITY"].canonical_subtopic == "Circle geometry"
+    assert tags["MIQUEL AND SPIRAL SIMILARITY"].raw_tag == "MIQUEL/RADICAL AXIS"
+    assert tags["RADICAL AXIS AND COAXALITY"].canonical_subtopic == "Circle geometry"
+    assert tags["RADICAL AXIS AND COAXALITY"].raw_tag == "MIQUEL/RADICAL AXIS"
+    assert tags["PROJECTIVE GEOMETRY"].canonical_subtopic == "Projective and affine geometry"
+    assert tags["COORDINATE AND ANALYTIC GEOMETRY"].canonical_subtopic == "Analytic and coordinate geometry"
+    assert tags["CONTRADICTION"].canonical_subtopic == ""
+    assert tags["CONTRADICTION"].normalization_status == "method"
+    assert tags["INVERSION"].canonical_subtopic == "Transformational geometry"
+
+    record.refresh_from_db()
+    assert record.topic_tags == (
+        "Topic tags: GEO / Circle geometry - MIQUEL AND SPIRAL SIMILARITY, "
+        "RADICAL AXIS AND COAXALITY; "
+        "GEO / Projective and affine geometry - PROJECTIVE GEOMETRY; "
+        "GEO - CONTRADICTION; GEO / Transformational geometry - INVERSION; "
+        "GEO / Analytic and coordinate geometry - COORDINATE AND ANALYTIC GEOMETRY"
+    )
+
+    second_result = apply_subtopic_cleanup()
+    assert second_result.created_count == 0
+    assert second_result.updated_count == 0
+    assert second_result.deleted_count == 0
+
+
 def test_problem_statement_metadata_page_applies_subtopic_cleanup_and_rewrites_raw_tags(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
@@ -17322,7 +17699,7 @@ def test_problem_statement_metadata_page_applies_subtopic_cleanup_and_rewrites_r
     ]
     assert problem_tags[0].domains == ["ALG", "INEQ"]
     statement_tag = StatementTopicTechnique.objects.get(statement=statement)
-    assert statement_tag.technique == "MIQUEL POINT"
+    assert statement_tag.technique == "MIQUEL AND SPIRAL SIMILARITY"
     assert statement_tag.main_topic == "GEO"
     assert statement_tag.canonical_subtopic == "Circle geometry"
     assert statement_tag.domains == ["GEO"]
@@ -17333,9 +17710,10 @@ def test_problem_statement_metadata_page_applies_subtopic_cleanup_and_rewrites_r
         "Topic tags: ALG / Inequalities and optimization - AM-GM; "
         "ALG - UNKNOWN FRAGMENT"
     )
-    assert statement.topic_tags == "Topic tags: GEO / Circle geometry - MIQUEL POINT"
+    assert statement.topic_tags == "Topic tags: GEO / Circle geometry - MIQUEL AND SPIRAL SIMILARITY"
     assert any(
-        "Subtopic cleanup applied. Updated 2 parsed tag row(s), merged 1 duplicate row(s), and rewrote 2 raw metadata field(s)."
+        "Subtopic cleanup applied. Updated 2 parsed tag row(s), created 0 split tag row(s), "
+        "merged 1 duplicate row(s), and rewrote 2 raw metadata field(s)."
         in str(message)
         for message in response.context["messages"]
     )
@@ -17476,8 +17854,8 @@ def test_problem_statement_metadata_page_imports_workbook_and_creates_problem_ro
         ProblemTopicTechnique.objects.filter(record=created_problem).order_by("technique")
     )
     assert [(tag.technique, tag.domains) for tag in saved_tags] == [
-        ("CIRCLES", ["GEO"]),
-        ("ISOGONALITY", ["GEO"]),
+        ("CIRCLE GEOMETRY", ["GEO"]),
+        ("ISOGONAL AND SYMMEDIAN GEOMETRY", ["GEO"]),
     ]
     assert any(
         "Statement metadata import finished. Processed 1 row(s): 1 created, 0 updated, 1 linked, 2 technique row(s) touched, 1 untouched import row(s) skipped."
@@ -17937,6 +18315,44 @@ def test_statement_metadata_import_classifies_topic_tags_with_normalization_meta
     assert tags["Q"].normalization_status == "invalid"
 
 
+def test_statement_metadata_import_splits_geometry_compound_tags():
+    statement = ContestProblemStatement.objects.create(
+        contest_year=2026,
+        contest_name="Israel TST",
+        problem_number=3,
+        problem_code="P3",
+        day_label="Day 1",
+        statement_latex="Geometry split metadata statement",
+    )
+    rows = [
+        {
+            "STATEMENT UUID": str(statement.statement_uuid),
+            "TOPIC": "GEO",
+            "MOHS": 25,
+            "Topic tags": (
+                "Topic tags: GEO - INCENTER/CIRCUMCENTER; COORDINATES/SPIRAL SIMILARITY; "
+                "CONTRADICTION"
+            ),
+        },
+    ]
+    dataframe = statement_metadata_dataframe_from_rows(rows)
+
+    result = import_statement_metadata_dataframe(dataframe, replace_tags=False)
+
+    assert result.technique_count == 5
+    tags = {
+        tag.technique: tag
+        for tag in StatementTopicTechnique.objects.filter(statement=statement).order_by("technique")
+    }
+    assert tags["INCENTER AND INCIRCLE"].canonical_subtopic == "Triangle centers and configurations"
+    assert tags["INCENTER AND INCIRCLE"].raw_tag == "INCENTER/CIRCUMCENTER"
+    assert tags["CIRCUMCIRCLE AND CIRCUMCENTER"].canonical_subtopic == "Circle geometry"
+    assert tags["COORDINATE AND ANALYTIC GEOMETRY"].canonical_subtopic == "Analytic and coordinate geometry"
+    assert tags["MIQUEL AND SPIRAL SIMILARITY"].canonical_subtopic == "Circle geometry"
+    assert tags["CONTRADICTION"].canonical_subtopic == ""
+    assert tags["CONTRADICTION"].normalization_status == "method"
+
+
 def test_statement_metadata_import_accepts_lowercase_mohs_column_header():
     statement = ContestProblemStatement.objects.create(
         contest_year=2000,
@@ -18030,8 +18446,8 @@ def test_problem_statement_metadata_page_imports_pasted_rows_and_creates_problem
         ProblemTopicTechnique.objects.filter(record=created_problem).order_by("technique")
     )
     assert [(tag.technique, tag.domains) for tag in saved_tags] == [
-        ("CIRCLES", ["GEO"]),
-        ("ISOGONALITY", ["GEO"]),
+        ("CIRCLE GEOMETRY", ["GEO"]),
+        ("ISOGONAL AND SYMMEDIAN GEOMETRY", ["GEO"]),
     ]
     assert any(
         "Statement metadata import finished. Processed 1 row(s): 1 created, 0 updated, 1 linked, 2 technique row(s) touched, 0 untouched import row(s) skipped."
