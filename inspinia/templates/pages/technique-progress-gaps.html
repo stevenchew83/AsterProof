@@ -109,15 +109,27 @@
               >
                 <i class="ti ti-table-export me-1"></i>Export CSV
               </a>
+              {% if not technique_progress_gap_is_drilldown %}
               <div class="btn-group btn-group-sm" role="group" aria-label="Practice gap type">
                 {% for option in technique_progress_gap_kind_options %}
                 <a href="{{ option.url }}" class="btn {% if option.is_active %}btn-primary{% else %}btn-outline-primary{% endif %}">{{ option.label }}</a>
                 {% endfor %}
               </div>
+              {% endif %}
             </div>
           </div>
         </div>
         <div class="card-body pt-2">
+          {% if technique_progress_gap_is_drilldown %}
+          <ul class="nav nav-pills gap-1 mb-3" aria-label="Practice gap layer filter">
+            {% for option in technique_progress_gap_kind_options %}
+            <li class="nav-item">
+              <a class="nav-link py-1 px-2 {% if option.is_active %}active{% endif %}" href="{{ option.url }}">{{ option.label }}</a>
+            </li>
+            {% endfor %}
+          </ul>
+          {% endif %}
+
           <ul class="nav nav-pills gap-1 mb-3" aria-label="Practice gap topic filter">
             {% for tab in technique_progress_gap_topic_tabs %}
             <li class="nav-item">
@@ -169,6 +181,7 @@
               class="table table-sm table-hover align-middle mb-0 w-100"
               data-page-length="50"
               data-show-canonical-subtopic-column="{% if technique_progress_gap_show_canonical_subtopic_column %}true{% else %}false{% endif %}"
+              data-show-topic-column="{% if technique_progress_gap_is_drilldown %}false{% else %}true{% endif %}"
               data-show-type-column="{% if technique_progress_gap_show_type_column %}true{% else %}false{% endif %}"
             >
               <thead>
@@ -180,11 +193,13 @@
                   {% if technique_progress_gap_show_canonical_subtopic_column %}
                   <th scope="col">Canonical Subtopic</th>
                   {% endif %}
+                  {% if not technique_progress_gap_is_drilldown %}
                   <th scope="col">Topic</th>
+                  {% endif %}
                   <th scope="col">Completed</th>
                   <th scope="col">Remaining</th>
                   <th scope="col">Coverage</th>
-                  <th scope="col" class="text-end">Action</th>
+                  <th scope="col" class="text-end">Practice</th>
                 </tr>
               </thead>
               <tbody>
@@ -209,7 +224,9 @@
                     {{ row.canonical_subtopic_label|default:'-' }}
                   </td>
                   {% endif %}
+                  {% if not technique_progress_gap_is_drilldown %}
                   <td>{{ row.main_topic_label|default:'-' }}</td>
+                  {% endif %}
                   <td data-order="{{ row.solved }}">{{ row.solved }} of {{ row.total }}</td>
                   <td data-order="{{ row.remaining }}">{{ row.remaining }}</td>
                   <td data-order="{{ row.completion_percent }}">
@@ -252,16 +269,19 @@
 
   var showTypeColumn = tableElement.dataset.showTypeColumn === "true";
   var showCanonicalSubtopicColumn = tableElement.dataset.showCanonicalSubtopicColumn === "true";
+  var showTopicColumn = tableElement.dataset.showTopicColumn === "true";
   var pageLength = Number(tableElement.dataset.pageLength || 50);
   var typeColumnOffset = showTypeColumn ? 1 : 0;
   var canonicalColumnOffset = showCanonicalSubtopicColumn ? 1 : 0;
-  var coverageColumnIndex = 4 + typeColumnOffset + canonicalColumnOffset;
+  var topicColumnOffset = showTopicColumn ? 1 : 0;
+  var remainingColumnIndex = 2 + typeColumnOffset + canonicalColumnOffset + topicColumnOffset;
+  var coverageColumnIndex = remainingColumnIndex + 1;
   var actionColumnIndex = coverageColumnIndex + 1;
 
   new DataTable(tableElement, {
     pageLength: pageLength,
     lengthChange: false,
-    order: [[coverageColumnIndex, "desc"]],
+    order: [[remainingColumnIndex, "desc"]],
     columnDefs: [
       { targets: actionColumnIndex, orderable: false, searchable: false }
     ],

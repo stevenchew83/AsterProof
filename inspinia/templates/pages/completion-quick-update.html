@@ -106,6 +106,10 @@
         </div>
         <div class="card-body pt-2">
           <form method="get" action="{% url 'pages:completion_quick_update' %}">
+            {% if completion_quick_update_filters.layer_kind and completion_quick_update_filters.layer_tag %}
+            <input type="hidden" name="layer_kind" value="{{ completion_quick_update_filters.layer_kind }}">
+            <input type="hidden" name="layer_tag" value="{{ completion_quick_update_filters.layer_tag }}">
+            {% endif %}
             <div id="quick-completion-primary-filters" class="row g-2 align-items-end">
               {% if completion_quick_update_can_select_user %}
               <div class="col-md-6 col-xl-2">
@@ -242,6 +246,14 @@
           <p class="text-muted fs-xs mb-0 mt-3">
             Editing for <strong>{{ completion_quick_update_selected_user.email }}</strong>.
           </p>
+          {% endif %}
+          {% if completion_quick_update_filters.layer_kind and completion_quick_update_filters.layer_tag %}
+          <div class="alert alert-info py-2 mt-3 mb-0" role="alert">
+            <span class="text-muted fs-xs text-uppercase fw-semibold me-1">Layer filter</span>
+            <span class="fw-semibold">{{ completion_quick_update_filters.layer_label }}:</span>
+            {{ completion_quick_update_filters.layer_tag }}
+            <a href="{{ completion_quick_update_layer_filter_clear_url }}" class="alert-link ms-2">Clear</a>
+          </div>
           {% endif %}
         </div>
       </div>
