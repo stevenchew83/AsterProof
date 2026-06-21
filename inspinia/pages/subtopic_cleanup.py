@@ -76,6 +76,8 @@ def _stored_aliases(
 NORMALIZATION_STATUS_CANONICAL = "canonical"
 NORMALIZATION_STATUS_ALIAS = "alias"
 NORMALIZATION_STATUS_METHOD = "method"
+NORMALIZATION_STATUS_METADATA = "metadata"
+NORMALIZATION_STATUS_CORRUPT = "corrupt"
 NORMALIZATION_STATUS_INVALID = "invalid"
 NORMALIZATION_STATUS_NEEDS_REVIEW = "needs_review"
 NORMALIZATION_CONFIDENCE_HIGH = "high"
@@ -107,6 +109,32 @@ FIRST_PASS_CANONICAL_SUBTOPICS: tuple[str, ...] = (
     "Geometry-flavored algebra",
     "Analytic estimates and asymptotics",
     "Complex, trigonometric, and Fourier methods",
+    "Congruences and modular arithmetic",
+    "Chinese remainder theorem and local-to-global methods",
+    "Orders, primitive roots, and unit groups",
+    "Divisibility, gcd, lcm, and factorization",
+    "Prime numbers and prime divisors",
+    "p-adic and valuation methods",
+    "LTE and exponent lifting",
+    "Diophantine equations and descent",
+    "Pell-type equations and Vieta jumping",
+    "Quadratic residues, squares, and squarefree methods",
+    "Quadratic forms and sums of squares",
+    "Arithmetic functions and divisor structure",
+    "M\u00f6bius inversion and inclusion-exclusion",
+    "Base, digit, and carry methods",
+    "Binary and dyadic methods",
+    "Sequences, recurrences, and finite dynamics",
+    "Fibonacci, Lucas, Chebyshev, and special recurrences",
+    "Polynomial methods over integers and residues",
+    "Finite fields, characters, and advanced modular tools",
+    "Algebraic number theory flavor",
+    "Additive number theory and zero-sum methods",
+    "Multiplicative structure and semigroups",
+    "Floor, rounding, Beatty, Farey, and approximation methods",
+    "Lattice and integer geometry methods",
+    "Sieve, density, and asymptotic estimates",
+    "Primitive divisors and Zsigmondy-type ideas",
     "Data-quality / invalid tag",
 )
 
@@ -125,6 +153,32 @@ FIRST_PASS_CANONICAL_MAIN_TOPICS: dict[str, str] = {
     "Geometry-flavored algebra": "GEO",
     "Analytic estimates and asymptotics": "ALG",
     "Complex, trigonometric, and Fourier methods": "ALG",
+    "Congruences and modular arithmetic": "NT",
+    "Chinese remainder theorem and local-to-global methods": "NT",
+    "Orders, primitive roots, and unit groups": "NT",
+    "Divisibility, gcd, lcm, and factorization": "NT",
+    "Prime numbers and prime divisors": "NT",
+    "p-adic and valuation methods": "NT",
+    "LTE and exponent lifting": "NT",
+    "Diophantine equations and descent": "NT",
+    "Pell-type equations and Vieta jumping": "NT",
+    "Quadratic residues, squares, and squarefree methods": "NT",
+    "Quadratic forms and sums of squares": "NT",
+    "Arithmetic functions and divisor structure": "NT",
+    "M\u00f6bius inversion and inclusion-exclusion": "NT",
+    "Base, digit, and carry methods": "NT",
+    "Binary and dyadic methods": "NT",
+    "Sequences, recurrences, and finite dynamics": "NT",
+    "Fibonacci, Lucas, Chebyshev, and special recurrences": "NT",
+    "Polynomial methods over integers and residues": "NT",
+    "Finite fields, characters, and advanced modular tools": "NT",
+    "Algebraic number theory flavor": "NT",
+    "Additive number theory and zero-sum methods": "NT",
+    "Multiplicative structure and semigroups": "NT",
+    "Floor, rounding, Beatty, Farey, and approximation methods": "NT",
+    "Lattice and integer geometry methods": "NT",
+    "Sieve, density, and asymptotic estimates": "NT",
+    "Primitive divisors and Zsigmondy-type ideas": "NT",
     "Data-quality / invalid tag": "",
 }
 
@@ -722,6 +776,7 @@ METHOD_ONLY_TAGS: tuple[str, ...] = (
 INVALID_TAGS: tuple[str, ...] = (
     "1",
     "11",
+    "13",
     "1)",
     "1]",
     "p",
@@ -731,6 +786,700 @@ INVALID_TAGS: tuple[str, ...] = (
     "y]",
     "zx",
     "yz",
+)
+
+
+NUMBER_THEORY_STORED_ALIASES: tuple[tuple[str, str, str, str], ...] = (
+    *_stored_aliases(
+        "NT",
+        "Congruences and modular arithmetic",
+        "Modular arithmetic / residues",
+        (
+            "congruences",
+            "congrences",
+            "modular arithmetic",
+            "modular congruences",
+            "modular algebra",
+            "modular strategy",
+            "modular contradiction",
+            "modular bounding",
+            "modular restrictions",
+            "modular solvability",
+            "modular parity",
+            "modular systems",
+            "modulo 9",
+            "mod 8",
+            "mod 24",
+            "residues",
+            "residues mod",
+            "complete residues",
+            "residue obstruction",
+            "fermat's theorem",
+            "fermat theorem",
+            "fermat little theorem",
+            "fermat's little theorem",
+            "flt",
+            "wilson theorem",
+            "wilson-type arguments",
+            "euler theorem",
+        ),
+    ),
+    *_stored_aliases(
+        "NT",
+        "Chinese remainder theorem and local-to-global methods",
+        "Chinese remainder theorem / local-global",
+        (
+            "crt",
+            "crt construction",
+            "crt constructions",
+            "constructive crt",
+            "crt/local analysis",
+            "crt/local obstructions",
+            "simultaneous congruences",
+            "local-to-global",
+            "local-global",
+            "local/global obstructions",
+            "local-global/crt",
+        ),
+    ),
+    *_stored_aliases(
+        "NT",
+        "Orders, primitive roots, and unit groups",
+        "Orders / primitive roots / unit groups",
+        (
+            "orders modulo primes",
+            "orders mod primes",
+            "orders mod p",
+            "orders modulo p",
+            "orders mod prime",
+            "orders modulo prime powers",
+            "orders modulo n",
+            "modular order",
+            "order modulo p",
+            "primitive roots",
+            "primitive roots/order",
+            "reduced residues",
+            "units",
+            "unit groups",
+            "units mod",
+            "cyclic groups",
+            "subgroups",
+            "multiplicative subgroups",
+        ),
+    ),
+    *_stored_aliases(
+        "NT",
+        "Divisibility, gcd, lcm, and factorization",
+        "Divisibility / GCD / factorization",
+        (
+            "divisibility",
+            "divisibility / diophantine",
+            "divisibility/congruences",
+            "divisibility structure",
+            "divisibility condition",
+            "divisibility tricks",
+            "gcd",
+            "gcd structure",
+            "gcd trick",
+            "gcd/lcm",
+            "lcm/gcd",
+            "lcm structure",
+            "lcm growth",
+            "factoring",
+            "factorization",
+            "factor structure",
+            "factorial divisibility",
+            "factorials/divisibility",
+            "coprimality",
+            "pairwise coprime",
+        ),
+    ),
+    *_stored_aliases(
+        "NT",
+        "Divisibility, gcd, lcm, and factorization",
+        "B\u00e9zout / Euclidean algorithm",
+        (
+            "bezout",
+            "b\u00e9zout",
+            "bezout/linear combinations",
+            "b\u00e9zout/linear combinations",
+            "euclidean algorithm",
+        ),
+    ),
+    *_stored_aliases(
+        "NT",
+        "Prime numbers and prime divisors",
+        "Primes / prime divisors",
+        (
+            "primes",
+            "prime factors",
+            "prime divisibility",
+            "prime divisors",
+            "prime factor structure",
+            "prime-factor cases",
+            "prime-power cases",
+            "prime powers",
+            "prime avoidance",
+            "prime construction",
+            "infinite primes",
+            "euclid new-prime trick",
+            "largest prime factor",
+            "smallest prime factor",
+            "primes in ap",
+            "primes in residue classes",
+        ),
+    ),
+    *_stored_aliases(
+        "NT",
+        "p-adic and valuation methods",
+        "Valuations / p-adic methods",
+        (
+            "p-adic valuations",
+            "p-adic",
+            "p-adics",
+            "p-adic control",
+            "p-adic flavor",
+            "p-adic units",
+            "p-adic congruences",
+            "2-adic",
+            "2-adic valuations",
+            "2-adic order",
+            "2-adic structure",
+            "2-adic descent",
+            "2-adic lifting",
+            "v2",
+            "v_2",
+            "valuation",
+            "valuations",
+            "valuation structure",
+            "valuations/divisibility",
+            "p-adic divisibility",
+            "p-adic methods",
+            "p-adic structure",
+            "p-adic/newton polygon ideas",
+        ),
+    ),
+    *_stored_aliases(
+        "NT",
+        "LTE and exponent lifting",
+        "LTE / exponent lifting",
+        (
+            "lifting exponent",
+            "lifting exponents",
+            "lifting exponent (lte)",
+            "lte-style lifting",
+            "orders/lte",
+            "lte/valuations",
+            "lte/orders",
+            "lte/congruences",
+            "lte/zsigmondy",
+            "p-adic valuations/lte",
+            "valuation control/lte",
+        ),
+    ),
+    *_stored_aliases("NT", "LTE and exponent lifting", "LTE", ("lte",)),
+    *_stored_aliases(
+        "NT",
+        "Diophantine equations and descent",
+        "Diophantine equations",
+        (
+            "diophantine",
+            "diophantine equation",
+            "diophantine equations",
+            "diophantine descent",
+            "diophantine factorization",
+            "diophantine bounding",
+            "diophantine constraints",
+            "diophantine obstruction",
+            "diophantine systems",
+            "linear diophantine",
+            "quadratic diophantine",
+            "cubic diophantine",
+            "exponential diophantine",
+            "descent/vieta jumping",
+            "finite descent",
+            "infinite descent",
+        ),
+    ),
+    *_stored_aliases(
+        "NT",
+        "Pell-type equations and Vieta jumping",
+        "Pell / Vieta jumping",
+        (
+            "pell",
+            "pell equation",
+            "pell-type",
+            "pell-type equations",
+            "pell-type diophantine",
+            "pell-type identities",
+            "pell-type construction",
+            "pell-type recurrence",
+            "pell-type recurrences",
+            "vieta",
+            "vieta jumping",
+            "vieta jumping flavor",
+            "vieta-style jumping",
+            "vieta/descent",
+            "vieta/discriminant",
+        ),
+    ),
+    *_stored_aliases(
+        "NT",
+        "Quadratic residues, squares, and squarefree methods",
+        "Quadratic residues / squarefree",
+        (
+            "quadratic residue",
+            "quadratic residues",
+            "legendre symbols",
+            "legendre",
+            "squares mod 8",
+            "square residues",
+            "square classes",
+            "square values",
+            "square condition",
+            "square divisibility",
+            "squarefree",
+            "square-free",
+            "squarefree parts",
+            "squarefree kernels",
+            "squarefree obstruction",
+            "bounding between squares",
+        ),
+    ),
+    *_stored_aliases(
+        "NT",
+        "Quadratic forms and sums of squares",
+        "Quadratic forms / sums of squares",
+        (
+            "quadratic form",
+            "quadratic forms",
+            "sums of two squares",
+            "sums-of-two-squares",
+            "two-square theorem",
+            "three-square theorem",
+            "pythagorean triple",
+            "pythagorean triples",
+            "pythagorean parametrization",
+            "rational squares",
+            "rational sums of squares",
+            "integer triangles",
+            "heronian/pythagorean families",
+        ),
+    ),
+    *_stored_aliases(
+        "NT",
+        "Arithmetic functions and divisor structure",
+        "Arithmetic functions / divisor structure",
+        (
+            "arithmetic functions",
+            "divisor function",
+            "divisor functions",
+            "divisor count",
+            "divisor counting",
+            "divisor sum",
+            "divisor-sum function",
+            "sigma functions",
+            "tau",
+            "multiplicative functions",
+            "multiplicativity",
+            "highly composite",
+            "perfect numbers",
+            "abundant divisors",
+            "odd perfect numbers",
+        ),
+    ),
+    *_stored_aliases(
+        "NT",
+        "Arithmetic functions and divisor structure",
+        "Euler phi / totient",
+        ("phi(n)", "phi function", "euler phi", "totient"),
+    ),
+    *_stored_aliases(
+        "NT",
+        "Arithmetic functions and divisor structure",
+        "Prime-factor counting functions",
+        ("omega", "parity of omega"),
+    ),
+    *_stored_aliases(
+        "NT",
+        "M\u00f6bius inversion and inclusion-exclusion",
+        "M\u00f6bius inversion",
+        (
+            "mobius",
+            "m\u00f6bius",
+            "mobius inversion",
+            "m\u00f6bius inversion",
+            "mobius/dirichlet convolution",
+            "m\u00f6bius/dirichlet convolution",
+            "inclusion-exclusion/mobius",
+            "dirichlet convolution",
+        ),
+    ),
+    *_stored_aliases(
+        "NT",
+        "Base, digit, and carry methods",
+        "Base / digit / carry methods",
+        (
+            "base representation",
+            "base expansion",
+            "base-p digits",
+            "base-10",
+            "base-10 digit constraints",
+            "base-b digits",
+            "decimal digits",
+            "decimal expansion",
+            "decimal expansions",
+            "decimal structure",
+            "decimal construction",
+            "decimal concatenation",
+            "digits",
+            "digit sum",
+            "digit sums",
+            "digital sums",
+            "carrying",
+            "carry control",
+            "carries/borrows",
+            "decimal carries",
+            "repdigits",
+            "repunits",
+        ),
+    ),
+    *_stored_aliases(
+        "NT",
+        "Binary and dyadic methods",
+        "Binary / dyadic methods",
+        (
+            "binary",
+            "binary digits",
+            "binary expansion",
+            "binary expansions",
+            "binary representation",
+            "binary representations",
+            "binary structure",
+            "binary blocks",
+            "binary odometer",
+            "powers of two",
+            "powers of 2",
+            "powers of 2 and 5",
+            "dyadic decomposition",
+            "dyadic grouping",
+            "dyadic halving",
+        ),
+    ),
+    *_stored_aliases(
+        "NT",
+        "Sequences, recurrences, and finite dynamics",
+        "Recurrences / finite dynamics",
+        (
+            "recurrence",
+            "recurrences",
+            "linear recurrence",
+            "linear recurrences",
+            "modular recurrence",
+            "recurrence mod p",
+            "recurrence modulo p",
+            "recurrence construction",
+            "recurrence dynamics",
+            "recursive sequence",
+            "recursive structure",
+            "finite dynamics",
+            "finite-state recurrence",
+            "periodicity",
+            "pisano period",
+        ),
+    ),
+    *_stored_aliases(
+        "NT",
+        "Fibonacci, Lucas, Chebyshev, and special recurrences",
+        "Fibonacci / Lucas / Chebyshev",
+        (
+            "fibonacci",
+            "fibonacci identities",
+            "fibonacci modulo m",
+            "fibonacci/lucas",
+            "lucas",
+            "lucas/kummer",
+            "lucas-type congruence",
+            "chebyshev recurrence",
+            "chebyshev-type units",
+            "pell sequence",
+            "stern sequence",
+            "ducci sequence",
+        ),
+    ),
+    *_stored_aliases(
+        "NT",
+        "Polynomial methods over integers and residues",
+        "Polynomials over integers / residues",
+        (
+            "polynomial values",
+            "polynomial values mod n",
+            "polynomial functions mod n",
+            "polynomials modulo n",
+            "polynomials modulo p",
+            "polynomial images",
+            "polynomial maps",
+            "polynomial construction",
+            "polynomial recurrence",
+            "polynomial composition",
+            "polynomial remainders",
+            "permutation polynomials",
+            "hermite criterion",
+            "hermite interpolation",
+        ),
+    ),
+    *_stored_aliases(
+        "NT",
+        "Finite fields, characters, and advanced modular tools",
+        "Finite fields / characters",
+        (
+            "finite field",
+            "finite-field counting",
+            "finite-field polynomials",
+            "finite-field structure",
+            "character sums",
+            "gauss sums",
+            "gauss lemma",
+            "chevalley-warning",
+            "root-of-unity filter",
+            "finite fourier",
+            "cyclotomy",
+        ),
+    ),
+    *_stored_aliases(
+        "NT",
+        "Algebraic number theory flavor",
+        "Algebraic number theory",
+        (
+            "algebraic number theory",
+            "algebraic nt flavor",
+            "algebraic integers",
+            "algebraic conjugates",
+            "algebraic norm",
+            "norms",
+            "norm form",
+            "gaussian integers",
+            "z[sqrt(2)]",
+            "cubic fields",
+            "cyclotomic fields",
+            "cyclotomic structure",
+            "ufd flavor",
+            "unique factorization",
+        ),
+    ),
+    *_stored_aliases(
+        "NT",
+        "Additive number theory and zero-sum methods",
+        "Additive number theory / zero-sum",
+        (
+            "additive number theory",
+            "additive structure",
+            "additive sets",
+            "additive functions",
+            "additive representation",
+            "additive partitions",
+            "sumsets",
+            "zero-sum",
+            "zero-sum subsets",
+            "zero-sum-free sets",
+            "egz",
+            "olson",
+            "cauchy-davenport",
+            "restricted sumset",
+            "ap/gp",
+            "arithmetic progression",
+        ),
+    ),
+    *_stored_aliases(
+        "NT",
+        "Multiplicative structure and semigroups",
+        "Multiplicative structure / semigroups",
+        (
+            "multiplicative structure",
+            "multiplicative",
+            "multiplicative dynamics",
+            "multiplicative relations",
+            "multiplicative coloring",
+            "semigroup",
+            "numerical semigroups",
+            "numerical semigroup",
+            "s-unit flavor",
+            "product set",
+            "products",
+        ),
+    ),
+    *_stored_aliases(
+        "NT",
+        "Floor, rounding, Beatty, Farey, and approximation methods",
+        "Floor / rounding / approximation",
+        (
+            "floor functions",
+            "floor function",
+            "floors",
+            "floor sums",
+            "floor maps",
+            "ceiling function",
+            "rounding",
+            "rounding functions",
+            "beatty",
+            "sturmian",
+            "continued fractions",
+            "farey",
+            "stern-brocot",
+            "rational approximation",
+            "diophantine approximation",
+            "density mod 1",
+            "rotations mod 1",
+        ),
+    ),
+    *_stored_aliases(
+        "NT",
+        "Lattice and integer geometry methods",
+        "Lattice / integer geometry",
+        (
+            "lattice",
+            "lattices",
+            "lattice points",
+            "lattice counting",
+            "lattice geometry",
+            "lattice polygons",
+            "lattice transformation",
+            "visibility",
+            "integer triangle",
+            "rational lattices",
+            "gauss area formula",
+            "pick-style geometry",
+            "pick style geometry",
+        ),
+    ),
+    *_stored_aliases(
+        "NT",
+        "Sieve, density, and asymptotic estimates",
+        "Sieve / density / asymptotics",
+        (
+            "sieve",
+            "elementary sieve",
+            "density",
+            "density estimates",
+            "asymptotics",
+            "asymptotic counting",
+            "asymptotic comparison",
+            "asymptotic contradiction",
+            "sparsity",
+            "smoothness",
+            "smooth numbers",
+            "bertrand-type bounds",
+            "chebyshev bound",
+        ),
+    ),
+    *_stored_aliases(
+        "NT",
+        "Primitive divisors and Zsigmondy-type ideas",
+        "Primitive divisors / Zsigmondy",
+        (
+            "zsigmondy",
+            "zsigmondy flavor",
+            "zsigmondy-type ideas",
+            "zsigmondy/orders",
+            "zsigmondy/lte",
+            "zsigmondy/primitive prime divisors",
+            "primitive divisors",
+            "primitive divisors/zsigmondy",
+            "schur-type prime divisors",
+            "sylvester/schur flavor",
+        ),
+    ),
+)
+
+
+NUMBER_THEORY_METHOD_ALIASES: tuple[tuple[str, str], ...] = (
+    ("extremal argument", "Extremal method"),
+    ("extremal process", "Extremal method"),
+    ("extremal structure", "Extremal method"),
+    ("extremal set", "Extremal method"),
+    ("extremal sets", "Extremal method"),
+    ("extremal subset", "Extremal method"),
+    ("extremal subsets", "Extremal method"),
+    ("extremal ordering", "Extremal method"),
+    ("extremal sequences", "Extremal method"),
+    ("extremal product", "Extremal method"),
+    ("extremal divisors", "Extremal method"),
+    ("extremal minimality", "Extremal method"),
+    ("extremal/minimal counterexample", "Extremal method"),
+    ("constructive", "Construction"),
+    ("constructive number theory", "Construction"),
+    ("constructive divisibility", "Construction"),
+    ("constructive congruences", "Construction"),
+    ("constructive crt", "Construction"),
+    ("constructive sequence", "Construction"),
+    ("constructive search", "Construction"),
+    ("construction of examples", "Construction"),
+    ("contradiction", "Contradiction / obstruction"),
+    ("modular contradiction", "Contradiction / obstruction"),
+    ("obstruction", "Contradiction / obstruction"),
+    ("local obstructions", "Contradiction / obstruction"),
+    ("bounding", "Bounding and estimates"),
+    ("bounds", "Bounding and estimates"),
+    ("growth control", "Bounding and estimates"),
+    ("estimates", "Bounding and estimates"),
+    ("induction", "Induction and descent"),
+    ("finite descent", "Induction and descent"),
+    ("infinite descent", "Induction and descent"),
+    ("invariance", "Invariants, closure, and rigidity"),
+    ("invariants", "Invariants, closure, and rigidity"),
+    ("closure", "Invariants, closure, and rigidity"),
+    ("rigidity", "Invariants, closure, and rigidity"),
+    ("classification", "Invariants, closure, and rigidity"),
+    ("pigeonhole", "Pigeonhole, pairing, injection"),
+    ("pairing", "Pigeonhole, pairing, injection"),
+    ("injection", "Pigeonhole, pairing, injection"),
+    ("bijection", "Pigeonhole, pairing, injection"),
+    ("double counting", "Pigeonhole, pairing, injection"),
+    ("cases", "Casework and finite checking"),
+    ("casework", "Casework and finite checking"),
+    ("finite casework", "Casework and finite checking"),
+    ("finite check", "Casework and finite checking"),
+    ("greedy", "Greedy / optimization / adversarial strategy"),
+    ("game strategy", "Greedy / optimization / adversarial strategy"),
+    ("strategy game", "Greedy / optimization / adversarial strategy"),
+    ("graph connectivity", "Graph / matching / ordering model"),
+    ("graph modeling", "Graph / matching / ordering model"),
+    ("gcd graph", "Graph / matching / ordering model"),
+    ("coprimality graph", "Graph / matching / ordering model"),
+    ("divisibility graph", "Graph / matching / ordering model"),
+    ("matching", "Graph / matching / ordering model"),
+    ("ordering", "Graph / matching / ordering model"),
+    ("parametrization", "Transformations and parametrization"),
+    ("parameterization", "Transformations and parametrization"),
+    ("rational parametrization", "Transformations and parametrization"),
+    ("substitution", "Transformations and parametrization"),
+    ("scaling", "Transformations and parametrization"),
+    ("reduction", "Transformations and parametrization"),
+    ("transformation", "Transformations and parametrization"),
+)
+
+
+METADATA_TAGS: tuple[str, ...] = (
+    "imo 2007 p5",
+    "advanced theorem risk",
+    "caveat",
+    "information ambiguity",
+    "ambiguity",
+    "ambiguity/counterexample",
+)
+
+
+CORRUPT_TAGS: tuple[str, ...] = (
+    "bbb",
+    "nnn",
+    "rrr",
+    "\\alpha",
+    "\\alpha^21",
+    "\u0152\u00eb",
+    "\u0152\u00eb2",
+    "\u0152\u00eb21",
+    "d^2",
+    "z) flavor",
 )
 
 
@@ -2404,6 +3153,38 @@ def _add_status_entries(lookup: dict[str, SubtopicTaxonomyEntry]) -> None:
         )
 
 
+def _add_number_theory_entries(lookup: dict[str, SubtopicTaxonomyEntry]) -> None:
+    for main_topic, canonical_subtopic, alias, stored_technique in NUMBER_THEORY_STORED_ALIASES:
+        lookup[_taxonomy_key(alias)] = _taxonomy_entry(
+            main_topic,
+            canonical_subtopic,
+            alias,
+            stored_technique=stored_technique,
+        )
+    for alias, stored_technique in NUMBER_THEORY_METHOD_ALIASES:
+        lookup[_taxonomy_key(alias)] = _taxonomy_entry(
+            "",
+            "",
+            alias,
+            stored_technique=stored_technique,
+            normalization=(NORMALIZATION_STATUS_METHOD, NORMALIZATION_CONFIDENCE_HIGH),
+        )
+    for alias in METADATA_TAGS:
+        lookup[_taxonomy_key(alias)] = _taxonomy_entry(
+            "",
+            "",
+            alias,
+            normalization=(NORMALIZATION_STATUS_METADATA, NORMALIZATION_CONFIDENCE_HIGH),
+        )
+    for alias in CORRUPT_TAGS:
+        lookup[_taxonomy_key(alias)] = _taxonomy_entry(
+            "",
+            "Data-quality / invalid tag",
+            alias,
+            normalization=(NORMALIZATION_STATUS_CORRUPT, NORMALIZATION_CONFIDENCE_HIGH),
+        )
+
+
 def _build_taxonomy_lookup() -> dict[str, SubtopicTaxonomyEntry]:
     lookup: dict[str, SubtopicTaxonomyEntry] = {}
     _add_first_pass_canonical_entries(lookup)
@@ -2417,7 +3198,74 @@ def _build_taxonomy_lookup() -> dict[str, SubtopicTaxonomyEntry]:
     return lookup
 
 
+def _build_number_theory_lookup() -> dict[str, SubtopicTaxonomyEntry]:
+    lookup: dict[str, SubtopicTaxonomyEntry] = {}
+    _add_number_theory_entries(lookup)
+    return lookup
+
+
 TAXONOMY_LOOKUP = _build_taxonomy_lookup()
+NUMBER_THEORY_LOOKUP = _build_number_theory_lookup()
+
+NUMBER_THEORY_DOMAIN_ALIASES = {"NT", "NUMBER THEORY", "NUMBER_THEORY"}
+NUMBER_THEORY_AMBIGUOUS_KEYS = frozenset(
+    _taxonomy_key(alias)
+    for alias in (
+        "cyclic groups",
+        "lattice",
+        "lattices",
+        "lattice points",
+        "extremal argument",
+        "extremal process",
+        "extremal structure",
+        "graph modeling",
+        "ordering",
+        "parametrization",
+        "rational parametrization",
+        "substitution",
+        "scaling",
+        "transformation",
+    )
+)
+NUMBER_THEORY_STRONG_TOKENS = (
+    "CRT",
+    "P-ADIC",
+    "2-ADIC",
+    "LTE",
+    "ZSIGMONDY",
+    "DIOPHANTINE",
+    "PELL",
+    "VIETA",
+    "LEGENDRE",
+    "BEZOUT",
+    "B\u00c9ZOUT",
+    "FERMAT",
+    "WILSON",
+    "EULER",
+    "TOTIENT",
+    "PHI",
+    "PRIME",
+    "GCD",
+    "LCM",
+    "CONGRUENCE",
+    "CONGRUENCES",
+    "MODULAR",
+    "MODULO",
+    "RESIDUE",
+    "RESIDUES",
+    "DIVISIBILITY",
+    "VALUATION",
+    "M\u00d6BIUS",
+    "MOBIUS",
+    "DIRICHLET",
+    "SIEVE",
+    "SQUAREFREE",
+    "PYTHAGOREAN",
+    "GAUSSIAN INTEGER",
+    "FINITE FIELD",
+    "CHARACTER SUM",
+    "PISANO",
+)
 
 
 GARBAGE_FRAGMENT_MAX_LENGTH = 2
@@ -2503,6 +3351,217 @@ GENERIC_PATTERN_RULES: tuple[TaxonomyPatternRule, ...] = (
 )
 
 
+NUMBER_THEORY_PATTERN_RULES: tuple[TaxonomyPatternRule, ...] = (
+    TaxonomyPatternRule(
+        "NT",
+        "Primitive divisors and Zsigmondy-type ideas",
+        tokens=("ZSIGMONDY", "PRIMITIVE DIVISOR", "PRIMITIVE PRIME"),
+        stored_technique="Primitive divisors / Zsigmondy",
+    ),
+    TaxonomyPatternRule(
+        "NT",
+        "LTE and exponent lifting",
+        tokens=("LTE", "LIFTING EXPONENT", "EXPONENT LIFT"),
+        stored_technique="LTE / exponent lifting",
+    ),
+    TaxonomyPatternRule(
+        "NT",
+        "Chinese remainder theorem and local-to-global methods",
+        tokens=("CRT", "CHINESE REMAINDER", "LOCAL-GLOBAL", "LOCAL TO GLOBAL"),
+        stored_technique="Chinese remainder theorem / local-global",
+    ),
+    TaxonomyPatternRule(
+        "NT",
+        "p-adic and valuation methods",
+        tokens=("P-ADIC", "2-ADIC", "VALUATION", "V_2", "V2"),
+        stored_technique="Valuations / p-adic methods",
+    ),
+    TaxonomyPatternRule(
+        "NT",
+        "Orders, primitive roots, and unit groups",
+        tokens=("PRIMITIVE ROOT", "UNIT GROUP", "UNITS MOD", "ORDER MOD", "ORDERS MOD"),
+        words=("ORDER", "ORDERS"),
+        stored_technique="Orders / primitive roots / unit groups",
+    ),
+    TaxonomyPatternRule(
+        "NT",
+        "Congruences and modular arithmetic",
+        tokens=("CONGRU", "MODULAR", "MODULO", "RESIDUE", "FERMAT", "WILSON", "EULER THEOREM"),
+        padded_tokens=(" MOD ",),
+        stored_technique="Modular arithmetic / residues",
+    ),
+    TaxonomyPatternRule(
+        "NT",
+        "Divisibility, gcd, lcm, and factorization",
+        tokens=("DIVIS", "GCD", "LCM", "COPRIME", "COPRIMAL", "BEZOUT", "B\u00c9ZOUT", "EUCLIDEAN"),
+        stored_technique="Divisibility / GCD / factorization",
+    ),
+    TaxonomyPatternRule(
+        "NT",
+        "Prime numbers and prime divisors",
+        tokens=("PRIME", "FACTOR STRUCTURE", "FACTORIAL DIVISIBILITY"),
+        stored_technique="Primes / prime divisors",
+    ),
+    TaxonomyPatternRule(
+        "NT",
+        "Pell-type equations and Vieta jumping",
+        tokens=("PELL", "VIETA"),
+        stored_technique="Pell / Vieta jumping",
+    ),
+    TaxonomyPatternRule(
+        "NT",
+        "Diophantine equations and descent",
+        tokens=("DIOPHANTINE",),
+        stored_technique="Diophantine equations",
+    ),
+    TaxonomyPatternRule(
+        "NT",
+        "Quadratic residues, squares, and squarefree methods",
+        tokens=("QUADRATIC RESIDUE", "LEGENDRE", "SQUAREFREE", "SQUARE-FREE", "SQUARE CLASS"),
+        stored_technique="Quadratic residues / squarefree",
+    ),
+    TaxonomyPatternRule(
+        "NT",
+        "Quadratic forms and sums of squares",
+        tokens=("SUMS OF SQUARES", "SUMS OF TWO SQUARES", "PYTHAGOREAN", "QUADRATIC FORM"),
+        stored_technique="Quadratic forms / sums of squares",
+    ),
+    TaxonomyPatternRule(
+        "NT",
+        "Arithmetic functions and divisor structure",
+        tokens=("PHI", "TOTIENT", "TAU", "OMEGA", "DIVISOR FUNCTION", "SIGMA FUNCTION"),
+        stored_technique="Arithmetic functions / divisor structure",
+    ),
+    TaxonomyPatternRule(
+        "NT",
+        "M\u00f6bius inversion and inclusion-exclusion",
+        tokens=("M\u00d6BIUS", "MOBIUS", "DIRICHLET CONVOLUTION"),
+        stored_technique="M\u00f6bius inversion",
+    ),
+    TaxonomyPatternRule(
+        "NT",
+        "Base, digit, and carry methods",
+        tokens=("BASE", "DIGIT", "DECIMAL", "CARRY", "CARRIES", "REPUNIT", "REPDIGIT"),
+        stored_technique="Base / digit / carry methods",
+    ),
+    TaxonomyPatternRule(
+        "NT",
+        "Binary and dyadic methods",
+        tokens=("BINARY", "DYADIC", "POWERS OF TWO", "POWERS OF 2"),
+        stored_technique="Binary / dyadic methods",
+    ),
+    TaxonomyPatternRule(
+        "NT",
+        "Fibonacci, Lucas, Chebyshev, and special recurrences",
+        tokens=("FIBONACCI", "LUCAS", "CHEBYSHEV", "PELL SEQUENCE"),
+        stored_technique="Fibonacci / Lucas / Chebyshev",
+    ),
+    TaxonomyPatternRule(
+        "NT",
+        "Sequences, recurrences, and finite dynamics",
+        tokens=("RECURREN", "PERIODIC", "PISANO", "FINITE DYNAMIC", "FINITE-STATE"),
+        stored_technique="Recurrences / finite dynamics",
+    ),
+    TaxonomyPatternRule(
+        "NT",
+        "Polynomial methods over integers and residues",
+        tokens=("POLYNOMIAL",),
+        stored_technique="Polynomials over integers / residues",
+    ),
+    TaxonomyPatternRule(
+        "NT",
+        "Finite fields, characters, and advanced modular tools",
+        tokens=("FINITE FIELD", "CHARACTER SUM", "GAUSS SUM", "CHEVALLEY", "ROOT-OF-UNITY"),
+        stored_technique="Finite fields / characters",
+    ),
+    TaxonomyPatternRule(
+        "NT",
+        "Algebraic number theory flavor",
+        tokens=("ALGEBRAIC INTEGER", "ALGEBRAIC NUMBER", "GAUSSIAN INTEGER", "NORM FORM", "CYCLOTOMIC FIELD"),
+        stored_technique="Algebraic number theory",
+    ),
+    TaxonomyPatternRule(
+        "NT",
+        "Additive number theory and zero-sum methods",
+        tokens=("ZERO-SUM", "SUMSET", "ADDITIVE", "CAUCHY-DAVENPORT"),
+        stored_technique="Additive number theory / zero-sum",
+    ),
+    TaxonomyPatternRule(
+        "NT",
+        "Multiplicative structure and semigroups",
+        tokens=("MULTIPLICATIVE", "SEMIGROUP", "PRODUCT SET"),
+        stored_technique="Multiplicative structure / semigroups",
+    ),
+    TaxonomyPatternRule(
+        "NT",
+        "Floor, rounding, Beatty, Farey, and approximation methods",
+        tokens=("FLOOR", "ROUND", "BEATTY", "FAREY", "APPROXIMATION", "CONTINUED FRACTION"),
+        stored_technique="Floor / rounding / approximation",
+    ),
+    TaxonomyPatternRule(
+        "NT",
+        "Lattice and integer geometry methods",
+        tokens=("LATTICE", "PICK-STYLE", "PICK STYLE", "INTEGER GEOMETRY"),
+        stored_technique="Lattice / integer geometry",
+    ),
+    TaxonomyPatternRule(
+        "NT",
+        "Sieve, density, and asymptotic estimates",
+        tokens=("SIEVE", "DENSITY", "ASYMPTOT", "SPARSITY", "SMOOTH NUMBER", "SMOOTHNESS"),
+        stored_technique="Sieve / density / asymptotics",
+    ),
+)
+
+
+NUMBER_THEORY_METHOD_PATTERN_RULES: tuple[TaxonomyPatternRule, ...] = (
+    TaxonomyPatternRule("", "", tokens=("EXTREMAL",), stored_technique="Extremal method"),
+    TaxonomyPatternRule("", "", tokens=("CONSTRUCTIVE", "CONSTRUCTION"), stored_technique="Construction"),
+    TaxonomyPatternRule(
+        "",
+        "",
+        tokens=("CONTRADICTION", "OBSTRUCTION"),
+        stored_technique="Contradiction / obstruction",
+    ),
+    TaxonomyPatternRule("", "", tokens=("BOUNDING", "BOUNDS", "ESTIMATE"), stored_technique="Bounding and estimates"),
+    TaxonomyPatternRule(
+        "",
+        "",
+        tokens=("INVARIANT", "RIGID", "CLOSURE"),
+        stored_technique="Invariants, closure, and rigidity",
+    ),
+    TaxonomyPatternRule(
+        "",
+        "",
+        tokens=("PIGEONHOLE", "PAIRING", "INJECTION", "BIJECTION"),
+        stored_technique="Pigeonhole, pairing, injection",
+    ),
+    TaxonomyPatternRule(
+        "",
+        "",
+        tokens=("CASEWORK", "FINITE CHECK", "CASES"),
+        stored_technique="Casework and finite checking",
+    ),
+    TaxonomyPatternRule(
+        "",
+        "",
+        tokens=("GREEDY", "GAME STRATEGY"),
+        stored_technique="Greedy / optimization / adversarial strategy",
+    ),
+    TaxonomyPatternRule(
+        "",
+        "",
+        tokens=("GRAPH", "MATCHING", "ORDERING"),
+        stored_technique="Graph / matching / ordering model",
+    ),
+    TaxonomyPatternRule(
+        "",
+        "",
+        tokens=("PARAMETRIZATION", "SUBSTITUTION", "SCALING"),
+        stored_technique="Transformations and parametrization",
+    ),
+)
+
+
 def _invalid_pattern_entry(repaired: str, normalized: str, key: str) -> SubtopicTaxonomyEntry | None:
     if len(key) <= GARBAGE_FRAGMENT_MAX_LENGTH and not key.isdigit():
         return _taxonomy_entry(
@@ -2517,6 +3576,18 @@ def _invalid_pattern_entry(repaired: str, normalized: str, key: str) -> Subtopic
             "Data-quality / invalid tag",
             normalized,
             normalization=(NORMALIZATION_STATUS_INVALID, NORMALIZATION_CONFIDENCE_HIGH),
+        )
+    return None
+
+
+def _corrupt_pattern_entry(repaired: str, normalized: str) -> SubtopicTaxonomyEntry | None:
+    stripped = normalized.strip()
+    if re.fullmatch(r"\\[A-Z]+(?:\^\d+)?", stripped):
+        return _taxonomy_entry(
+            "",
+            "Data-quality / invalid tag",
+            repaired,
+            normalization=(NORMALIZATION_STATUS_CORRUPT, NORMALIZATION_CONFIDENCE_HIGH),
         )
     return None
 
@@ -2539,6 +3610,8 @@ def _entry_from_pattern_rules(
     normalized: str,
     words: set[str],
     rules: tuple[TaxonomyPatternRule, ...],
+    *,
+    normalization: tuple[str, str] = (NORMALIZATION_STATUS_ALIAS, NORMALIZATION_CONFIDENCE_HIGH),
 ) -> SubtopicTaxonomyEntry | None:
     padded_text = f" {normalized} "
     for rule in rules:
@@ -2549,6 +3622,7 @@ def _entry_from_pattern_rules(
             rule.canonical_subtopic,
             normalized,
             stored_technique=rule.stored_technique,
+            normalization=normalization,
         )
     return None
 
@@ -2559,6 +3633,10 @@ def _pattern_taxonomy_entry(technique: str) -> SubtopicTaxonomyEntry | None:
     key = _taxonomy_key(repaired)
     if not key:
         return None
+
+    corrupt_entry = _corrupt_pattern_entry(repaired, normalized)
+    if corrupt_entry is not None:
+        return corrupt_entry
 
     invalid_entry = _invalid_pattern_entry(repaired, normalized, key)
     if invalid_entry is not None:
@@ -2572,8 +3650,70 @@ def _pattern_taxonomy_entry(technique: str) -> SubtopicTaxonomyEntry | None:
     ) or _entry_from_pattern_rules(normalized, words, GENERIC_PATTERN_RULES)
 
 
-def taxonomy_entry_for_technique(technique: str) -> SubtopicTaxonomyEntry | None:
-    return TAXONOMY_LOOKUP.get(_taxonomy_key(technique)) or _pattern_taxonomy_entry(technique)
+def _normalized_domain_set(domains: list[str] | tuple[str, ...] | None) -> set[str]:
+    return {normalize_topic_tag(domain) for domain in (domains or []) if normalize_topic_tag(domain)}
+
+
+def _domains_include_number_theory(domains: list[str] | tuple[str, ...] | None) -> bool:
+    return bool(_normalized_domain_set(domains) & NUMBER_THEORY_DOMAIN_ALIASES)
+
+
+def _is_strong_number_theory_technique(technique: str) -> bool:
+    repaired = repair_topic_tag_text(technique)
+    normalized = normalize_topic_tag(repaired)
+    if _taxonomy_key(repaired) in NUMBER_THEORY_AMBIGUOUS_KEYS:
+        return False
+    return any(token in normalized for token in NUMBER_THEORY_STRONG_TOKENS)
+
+
+def _number_theory_pattern_taxonomy_entry(technique: str) -> SubtopicTaxonomyEntry | None:
+    repaired = repair_topic_tag_text(technique)
+    normalized = normalize_topic_tag(repaired)
+    if not _taxonomy_key(repaired):
+        return None
+    words = set(re.findall(r"[A-Z0-9]+", normalized))
+    return _entry_from_pattern_rules(
+        normalized,
+        words,
+        NUMBER_THEORY_METHOD_PATTERN_RULES,
+        normalization=(NORMALIZATION_STATUS_METHOD, NORMALIZATION_CONFIDENCE_HIGH),
+    ) or _entry_from_pattern_rules(normalized, words, NUMBER_THEORY_PATTERN_RULES)
+
+
+def taxonomy_entry_for_technique(
+    technique: str,
+    domains: list[str] | tuple[str, ...] | None = None,
+) -> SubtopicTaxonomyEntry | None:
+    key = _taxonomy_key(technique)
+    domains_include_nt = _domains_include_number_theory(domains)
+    nt_entry = NUMBER_THEORY_LOOKUP.get(key)
+    strong_number_theory_without_domains = not domains and _is_strong_number_theory_technique(technique)
+    selected_entry: SubtopicTaxonomyEntry | None = None
+
+    if nt_entry is not None and (
+        domains_include_nt
+        or strong_number_theory_without_domains
+        or nt_entry.normalization_status in {
+        NORMALIZATION_STATUS_METADATA,
+        NORMALIZATION_STATUS_CORRUPT,
+        }
+    ):
+        selected_entry = nt_entry
+
+    if selected_entry is None and domains_include_nt:
+        nt_pattern_entry = _number_theory_pattern_taxonomy_entry(technique)
+        if nt_pattern_entry is not None:
+            selected_entry = nt_pattern_entry
+
+    if selected_entry is None:
+        selected_entry = TAXONOMY_LOOKUP.get(key) or _pattern_taxonomy_entry(technique)
+
+    if selected_entry is None:
+        nt_pattern_entry = _number_theory_pattern_taxonomy_entry(technique)
+        if nt_pattern_entry is not None and (domains_include_nt or strong_number_theory_without_domains):
+            selected_entry = nt_pattern_entry
+
+    return selected_entry or nt_entry
 
 
 def classified_topic_tag_fields(
@@ -2585,8 +3725,8 @@ def classified_topic_tag_fields(
     repaired_technique = repair_topic_tag_text(technique)
     normalized_technique = normalize_topic_tag(repaired_technique)
     source_raw_tag = raw_tag or technique
-    entry = taxonomy_entry_for_technique(repaired_technique)
     domain_list = domains_dedup_preserve_order(domains or [])
+    entry = taxonomy_entry_for_technique(repaired_technique, domains=domain_list)
 
     if entry is None:
         return {
@@ -2792,7 +3932,7 @@ def build_unmatched_subtopic_review(*, limit: int | None = None) -> dict[str, ob
     unmatched_by_key: OrderedDict[str, dict[str, object]] = OrderedDict()
 
     for tag in _problem_tag_rows():
-        if taxonomy_entry_for_technique(tag.technique) is None:
+        if taxonomy_entry_for_technique(tag.technique, domains=tag.domains) is None:
             _record_unmatched_subtopic(
                 unmatched_by_key,
                 parent_label=_problem_parent_label(tag),
@@ -2801,7 +3941,7 @@ def build_unmatched_subtopic_review(*, limit: int | None = None) -> dict[str, ob
             )
 
     for tag in _statement_tag_rows():
-        if taxonomy_entry_for_technique(tag.technique) is None:
+        if taxonomy_entry_for_technique(tag.technique, domains=tag.domains) is None:
             _record_unmatched_subtopic(
                 unmatched_by_key,
                 parent_label=_statement_parent_label(tag),
@@ -2833,7 +3973,7 @@ def build_subtopic_cleanup_preview(*, limit: int = 50) -> dict[str, object]:
     for kind, tag_rows, parent_id_getter, parent_label_getter in tag_sources:
         parent_key_kind = "problem" if kind == "Problem row" else "statement"
         for tag in tag_rows:
-            entry = taxonomy_entry_for_technique(tag.technique)
+            entry = taxonomy_entry_for_technique(tag.technique, domains=tag.domains)
             if entry is None:
                 _record_unmatched_subtopic(
                     unmatched_by_key,
@@ -2846,6 +3986,7 @@ def build_subtopic_cleanup_preview(*, limit: int = 50) -> dict[str, object]:
             raw_parent_keys.add((parent_key_kind, parent_id))
             duplicate_groups[(parent_key_kind, parent_id, entry.stored_technique)] += 1
             if entry.normalization_status in {
+                NORMALIZATION_STATUS_CORRUPT,
                 NORMALIZATION_STATUS_INVALID,
             }:
                 invalid_count += 1
@@ -3240,7 +4381,7 @@ def _apply_problem_tag_cleanup() -> SubtopicCleanupApplyResult:
 
     for tag in _problem_cleanup_tag_rows():
         rows_by_technique[(tag.record_id, tag.technique)] = tag
-        entry = taxonomy_entry_for_technique(tag.technique)
+        entry = taxonomy_entry_for_technique(tag.technique, domains=tag.domains)
         if entry is None:
             continue
         key = (tag.record_id, entry.stored_technique)
@@ -3283,7 +4424,7 @@ def _apply_statement_tag_cleanup() -> SubtopicCleanupApplyResult:
 
     for tag in _statement_cleanup_tag_rows():
         rows_by_technique[(tag.statement_id, tag.technique)] = tag
-        entry = taxonomy_entry_for_technique(tag.technique)
+        entry = taxonomy_entry_for_technique(tag.technique, domains=tag.domains)
         if entry is None:
             continue
         key = (tag.statement_id, entry.stored_technique)
