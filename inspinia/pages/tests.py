@@ -938,6 +938,38 @@ def test_parse_topic_tags_cell_repairs_geometry_spelling_and_encoding_variants()
     ]
 
 
+def test_parse_topic_tags_cell_repairs_combinatorics_encoding_variants():
+    parsed = parse_topic_tags_cell(
+        "Topic tags: COMB - ERD\u2248\u00eaS\u201a\xc4\xecSZEKERES; TUR\u221a\u00c5N; "
+        "K\u221a\xf1NIG; BOLLOB\u221a\u00c5S; CARO\u201a\xc4\xecWEI; "
+        "DILWORTH\u201a\xc4\xecMIRSKY; SPRAGUE\u201a\xc4\xecGRUNDY; "
+        "SZEMER\u221a\xe2DI\u201a\xc4\xecTROTTER; F2\\MATHBB F_2F2\u201a\xc4\u2039 LINEAR ALGEBRA; "
+        "FRESHMAN\u201a\xc4\xf4S DREAM; 2\u221a\xf32 GRID",
+    )
+
+    assert parsed == [
+        {"technique": "ERDOS-SZEKERES", "domains": ["COMB"], "raw_tag": "ERD\u2248\u00eaS\u201a\xc4\xecSZEKERES"},
+        {"technique": "TURAN", "domains": ["COMB"], "raw_tag": "TUR\u221a\u00c5N"},
+        {"technique": "KONIG", "domains": ["COMB"], "raw_tag": "K\u221a\xf1NIG"},
+        {"technique": "BOLLOBAS", "domains": ["COMB"], "raw_tag": "BOLLOB\u221a\u00c5S"},
+        {"technique": "CARO-WEI", "domains": ["COMB"], "raw_tag": "CARO\u201a\xc4\xecWEI"},
+        {"technique": "DILWORTH-MIRSKY", "domains": ["COMB"], "raw_tag": "DILWORTH\u201a\xc4\xecMIRSKY"},
+        {"technique": "SPRAGUE-GRUNDY", "domains": ["COMB"], "raw_tag": "SPRAGUE\u201a\xc4\xecGRUNDY"},
+        {
+            "technique": "SZEMEREDI-TROTTER",
+            "domains": ["COMB"],
+            "raw_tag": "SZEMER\u221a\xe2DI\u201a\xc4\xecTROTTER",
+        },
+        {
+            "technique": "F2 / F_2 LINEAR ALGEBRA",
+            "domains": ["COMB"],
+            "raw_tag": "F2\\MATHBB F_2F2\u201a\xc4\u2039 LINEAR ALGEBRA",
+        },
+        {"technique": "FRESHMAN'S DREAM", "domains": ["COMB"], "raw_tag": "FRESHMAN\u201a\xc4\xf4S DREAM"},
+        {"technique": "2X2 GRID", "domains": ["COMB"], "raw_tag": "2\u221a\xf32 GRID"},
+    ]
+
+
 def test_dataframe_from_excel_strips_headers_and_requires_columns():
     workbook_bytes = _workbook_bytes(
         {
@@ -1124,6 +1156,45 @@ def test_import_problem_dataframe_splits_geometry_compound_tags():
     assert tags["CONSTRUCTION"].normalization_status == "method"
     assert tags["INVERSION"].canonical_subtopic == "Transformational geometry"
     assert tags["INVERSION"].raw_tag == "INVERSION AT XXX"
+
+
+def test_import_problem_dataframe_classifies_combinatorics_controlled_vocabulary_tags():
+    dataframe = _analytics_rows(
+        {
+            "YEAR": 2026,
+            "TOPIC": "COMB",
+            "MOHS": 25,
+            "CONTEST": "Israel TST",
+            "PROBLEM": "P4",
+            "CONTEST PROBLEM": "Israel TST 2026 P4",
+            "Topic tags": (
+                "Topic tags: COMB - GRID COLOURING; HALL/K\u221a\xf1NIG; GREEDY; "
+                "CIRCUMCENTERS; RESIDUES MOD P"
+            ),
+        },
+    )
+
+    result = import_problem_dataframe(dataframe, replace_tags=False)
+
+    assert result.n_records == EXPECTED_RECORD_COUNT
+    record = ProblemSolveRecord.objects.get(year=2026, contest="Israel TST", problem="P4")
+    tags = {
+        tag.technique: tag
+        for tag in record.topic_techniques.order_by("technique")
+    }
+    assert tags["GRID COLORING"].raw_tag == "GRID COLOURING"
+    assert tags["GRID COLORING"].main_topic == "COMB"
+    assert tags["GRID COLORING"].canonical_subtopic == "Coloring, tiling, grids, and invariants"
+    assert tags["HALL / KONIG / MATCHING"].raw_tag == "HALL/K\u221a\xf1NIG"
+    assert tags["HALL / KONIG / MATCHING"].canonical_subtopic == (
+        "Discrete optimization, matching, covering, packing, and flows"
+    )
+    assert tags["GREEDY"].canonical_subtopic == ""
+    assert tags["GREEDY"].normalization_status == "method"
+    assert tags["CIRCUMCIRCLE AND CIRCUMCENTER"].main_topic == "GEO"
+    assert tags["CIRCUMCIRCLE AND CIRCUMCENTER"].canonical_subtopic == "Circle geometry"
+    assert tags["MODULAR ARITHMETIC / RESIDUES"].main_topic == "NT"
+    assert tags["MODULAR ARITHMETIC / RESIDUES"].canonical_subtopic == "Congruences and modular arithmetic"
 
 
 def test_import_problem_dataframe_merges_domains_and_refreshes_derived_values():
@@ -12520,6 +12591,121 @@ def test_technique_progress_gaps_page_groups_normalized_algebra_subtopics_and_hi
     assert "1]" not in technique_labels
 
 
+def test_technique_progress_gaps_page_groups_normalized_combinatorics_subtopics(client):
+    user = UserFactory()
+    client.force_login(user)
+    normalized_coloring = "Coloring, tiling, grids, and invariants"
+    normalized_graph = "Graph theory"
+    for index, technique in enumerate(["GRID COLORING", "GRID COLORING", "TILINGS AND POLYOMINOES"], start=1):
+        _create_technique_progress_statement(
+            problem_code=f"C{index}",
+            problem_number=index,
+            topic="COMB",
+            statement_tags=[
+                {
+                    "technique": technique,
+                    "domains": ["COMB"],
+                    "main_topic": "COMB",
+                    "canonical_subtopic": normalized_coloring,
+                    "raw_tag": technique,
+                    "normalization_status": "alias",
+                    "normalization_confidence": "high",
+                },
+            ],
+        )
+    _create_technique_progress_statement(
+        problem_code="G1",
+        problem_number=10,
+        topic="COMB",
+        statement_tags=[
+            {
+                "technique": "GRAPH CYCLES",
+                "domains": ["COMB"],
+                "main_topic": "COMB",
+                "canonical_subtopic": normalized_graph,
+                "raw_tag": "ODD CYCLES",
+                "normalization_status": "alias",
+                "normalization_confidence": "high",
+            },
+        ],
+    )
+    _create_technique_progress_statement(
+        problem_code="M1",
+        problem_number=20,
+        topic="COMB",
+        statement_tags=[
+            {
+                "technique": "GREEDY",
+                "domains": ["COMB"],
+                "main_topic": "",
+                "canonical_subtopic": "",
+                "raw_tag": "GREEDY",
+                "normalization_status": "method",
+                "normalization_confidence": "high",
+            },
+        ],
+    )
+    _create_technique_progress_statement(
+        problem_code="Q1",
+        problem_number=21,
+        topic="COMB",
+        statement_tags=[
+            {
+                "technique": "STATEMENT CAVEAT",
+                "domains": ["COMB"],
+                "main_topic": "",
+                "canonical_subtopic": "",
+                "raw_tag": "STATEMENT CAVEAT",
+                "normalization_status": "metadata",
+                "normalization_confidence": "high",
+            },
+        ],
+    )
+    _create_technique_progress_statement(
+        problem_code="X1",
+        problem_number=22,
+        topic="COMB",
+        statement_tags=[
+            {
+                "technique": "RAMSEY R(3",
+                "domains": ["COMB"],
+                "main_topic": "",
+                "canonical_subtopic": "Data-quality / invalid tag",
+                "raw_tag": "RAMSEY R(3",
+                "normalization_status": "corrupt",
+                "normalization_confidence": "high",
+            },
+        ],
+    )
+
+    response = client.get(reverse("pages:technique_progress_gaps"), {"kind": "subtopics", "topic": "combinatorics"})
+
+    assert response.status_code == HTTPStatus.OK
+    rows = response.context["technique_progress_gap_rows"]
+    assert [row["label"] for row in rows] == [normalized_coloring, normalized_graph]
+    assert rows[0]["total"] == 3
+    assert rows[1]["total"] == 1
+    response_html = response.content.decode("utf-8")
+    assert "GREEDY" not in response_html
+    assert "STATEMENT CAVEAT" not in response_html
+    assert "Data-quality / invalid tag" not in response_html
+
+    technique_response = client.get(
+        reverse("pages:technique_progress_gaps"),
+        {"kind": "techniques", "topic": "combinatorics"},
+    )
+
+    assert technique_response.status_code == HTTPStatus.OK
+    technique_labels = [
+        row["label"]
+        for row in technique_response.context["technique_progress_gap_rows"]
+    ]
+    assert "GREEDY" in technique_labels
+    assert "GRID COLORING" in technique_labels
+    assert "STATEMENT CAVEAT" not in technique_labels
+    assert "RAMSEY R(3" not in technique_labels
+
+
 def test_technique_progress_gaps_page_groups_number_theory_parents_and_hides_metadata(client):
     user = UserFactory()
     client.force_login(user)
@@ -16944,6 +17130,126 @@ def test_subtopic_cleanup_routes_geometry_methods_and_other_area_tags():
     assert jensen.stored_technique == "JENSEN / CONVEXITY"
 
 
+@pytest.mark.parametrize(
+    ("raw_tag", "canonical_subtopic", "stored_technique"),
+    [
+        ("CATALAN NUMBERS", "Counting and enumerative combinatorics", "COUNTING / ENUMERATION"),
+        ("ODD CYCLES", "Graph theory", "GRAPH CYCLES"),
+        ("RAMSEY-TYPE COLORING", "Extremal combinatorics and Ramsey theory", "RAMSEY THEORY"),
+        ("SPERNER/LYM", "Set systems, posets, and order theory", "SPERNER / LYM"),
+        ("GRID COLOURING", "Coloring, tiling, grids, and invariants", "GRID COLORING"),
+        ("ZERO-SUM", "Additive and arithmetic combinatorics", "ADDITIVE COMBINATORICS"),
+        ("F2 LINEAR ALGEBRA", "Algebraic and linear methods in combinatorics", "LINEAR ALGEBRA OVER F2"),
+        ("SZEMEREDI-TROTTER", "Combinatorial and discrete geometry", "INCIDENCE GEOMETRY"),
+        ("STEINER TRIPLE SYSTEMS", "Design theory and finite configurations", "DESIGN THEORY"),
+        (
+            "HALL/KONIG",
+            "Discrete optimization, matching, covering, packing, and flows",
+            "HALL / KONIG / MATCHING",
+        ),
+        ("STURMIAN WORDS", "Algorithms, automata, words, and constructive methods", "WORDS AND AUTOMATA"),
+        ("ADVERSARY ARGUMENTS", "Games, strategies, and adversarial methods", "ADVERSARY STRATEGY"),
+        (
+            "BALANCE-SCALE CODING",
+            "Probability, entropy, coding, and information methods",
+            "WEIGHING / CODING",
+        ),
+        (
+            "CHIP-FIRING FLAVOR",
+            "Processes, dynamics, potential, and reconfiguration",
+            "PROCESSES AND TERMINATION",
+        ),
+        ("HEX LEMMA", "Planar and topological combinatorics", "PLANAR TOPOLOGY"),
+    ],
+)
+def test_subtopic_cleanup_maps_combinatorics_controlled_vocabulary_parent_buckets(
+    raw_tag,
+    canonical_subtopic,
+    stored_technique,
+):
+    entry = taxonomy_entry_for_technique(raw_tag, domains=["COMB"])
+
+    assert entry is not None
+    assert entry.main_topic == "COMB"
+    assert entry.canonical_subtopic == canonical_subtopic
+    assert entry.stored_technique == stored_technique
+    assert entry.normalization_status == "alias"
+    assert entry.normalization_confidence == "high"
+
+
+@pytest.mark.parametrize(
+    ("raw_tag", "main_topic", "canonical_subtopic", "stored_technique"),
+    [
+        ("CYCLIC ORDER", "COMB", "Set systems, posets, and order theory", "CIRCULAR ORDER"),
+        (
+            "CYCLIC GROUPS",
+            "COMB",
+            "Algebraic and linear methods in combinatorics",
+            "CYCLIC GROUP ACTIONS",
+        ),
+        ("DIRECTED CYCLES", "COMB", "Graph theory", "GRAPH CYCLES"),
+        ("CYCLIC GEOMETRY", "GEO", "Circle geometry", "CYCLICITY"),
+        (
+            "CYCLIC PROCESS",
+            "COMB",
+            "Processes, dynamics, potential, and reconfiguration",
+            "PROCESSES AND TERMINATION",
+        ),
+        ("DESIGN THEORY", "COMB", "Design theory and finite configurations", "DESIGN THEORY"),
+        (
+            "WEIGHING DESIGN",
+            "COMB",
+            "Probability, entropy, coding, and information methods",
+            "WEIGHING / CODING",
+        ),
+        ("BOARD DESIGN", "COMB", "Coloring, tiling, grids, and invariants", "GRID METHODS"),
+    ],
+)
+def test_subtopic_cleanup_keeps_combinatorics_cyclic_and_design_families_distinct(
+    raw_tag,
+    main_topic,
+    canonical_subtopic,
+    stored_technique,
+):
+    entry = taxonomy_entry_for_technique(raw_tag, domains=["COMB"])
+
+    assert entry is not None
+    assert entry.main_topic == main_topic
+    assert entry.canonical_subtopic == canonical_subtopic
+    assert entry.stored_technique == stored_technique
+
+
+@pytest.mark.parametrize(
+    ("raw_tag", "stored_technique", "status", "canonical_subtopic"),
+    [
+        ("COMBINATORICS", "COMBINATORICS", "metadata", ""),
+        ("LIKELY", "LIKELY", "metadata", ""),
+        ("STATEMENT CAVEAT", "STATEMENT CAVEAT", "metadata", ""),
+        ("CONSTRUCTION + LOWER BOUND", "CONSTRUCTION / LOWER BOUND", "method", ""),
+        ("LOWER BOUND", "LOWER BOUND", "method", ""),
+        ("CASEWORK", "CASEWORK", "method", ""),
+        ("INDUCTION", "INDUCTION", "method", ""),
+        ("GREEDY", "GREEDY", "method", ""),
+        ("PIGEONHOLE", "PIGEONHOLE", "method", ""),
+        ("RAMSEY R(3", "RAMSEY R(3", "corrupt", "Data-quality / invalid tag"),
+        ("\\CDOT)(R>0", "\\CDOT)(R>0", "corrupt", "Data-quality / invalid tag"),
+    ],
+)
+def test_subtopic_cleanup_classifies_combinatorics_non_content_rows_out_of_subtopics(
+    raw_tag,
+    stored_technique,
+    status,
+    canonical_subtopic,
+):
+    entry = taxonomy_entry_for_technique(raw_tag, domains=["COMB"])
+
+    assert entry is not None
+    assert entry.main_topic == ""
+    assert entry.canonical_subtopic == canonical_subtopic
+    assert entry.stored_technique == stored_technique
+    assert entry.normalization_status == status
+
+
 def test_subtopic_cleanup_uses_domains_to_disambiguate_number_theory_tags():
     nt_entry = taxonomy_entry_for_technique("CYCLIC GROUPS", domains=["NT"])
     algebra_entry = taxonomy_entry_for_technique("CYCLIC GROUPS", domains=["ALG"])
@@ -17021,12 +17327,11 @@ def test_subtopic_cleanup_apply_updates_alias_when_target_label_is_not_lookup_ke
     tag = ProblemTopicTechnique.objects.get(record=record)
     assert tag.technique == "CONSTRUCTIVE METHODS"
     assert tag.main_topic == "COMB"
-    assert tag.canonical_subtopic == "Algorithms, automata, words, and constructive combinatorics"
+    assert tag.canonical_subtopic == "Algorithms, automata, words, and constructive methods"
     assert tag.domains == ["COMB"]
     record.refresh_from_db()
     assert (
-        record.topic_tags
-        == "Topic tags: COMB / Algorithms, automata, words, and constructive combinatorics - "
+        record.topic_tags == "Topic tags: COMB / Algorithms, automata, words, and constructive methods - "
         "CONSTRUCTIVE METHODS"
     )
 
@@ -17059,13 +17364,58 @@ def test_subtopic_cleanup_apply_merges_existing_target_row_that_is_not_lookup_ke
     tag = StatementTopicTechnique.objects.get(statement=statement)
     assert tag.technique == "CONSTRUCTIVE METHODS"
     assert tag.main_topic == "COMB"
-    assert tag.canonical_subtopic == "Algorithms, automata, words, and constructive combinatorics"
+    assert tag.canonical_subtopic == "Algorithms, automata, words, and constructive methods"
     assert tag.domains == ["COMB", "EXTRA"]
     statement.refresh_from_db()
     assert (
-        statement.topic_tags
-        == "Topic tags: COMB / Algorithms, automata, words, and constructive combinatorics - "
+        statement.topic_tags == "Topic tags: COMB / Algorithms, automata, words, and constructive methods - "
         "CONSTRUCTIVE METHODS"
+    )
+
+
+def test_subtopic_cleanup_apply_collapses_combinatorics_duplicate_families():
+    record = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="C",
+        mohs=25,
+        contest="Israel TST",
+        problem="P5",
+        contest_year_problem="Israel TST 2026 P5",
+        topic_tags=(
+            "Topic tags: COMB - GRID COLORING; GRID COLOURING; COLORINGS/GRID CONSTRAINTS; "
+            "CONNECTIVITY/GRID COLORINGS; LINEAR ALGEBRA OVER F2; F2 LINEAR ALGEBRA; GREEDY"
+        ),
+    )
+    for technique in [
+        "GRID COLORING",
+        "GRID COLOURING",
+        "COLORINGS/GRID CONSTRAINTS",
+        "CONNECTIVITY/GRID COLORINGS",
+        "LINEAR ALGEBRA OVER F2",
+        "F2 LINEAR ALGEBRA",
+        "GREEDY",
+    ]:
+        ProblemTopicTechnique.objects.create(record=record, technique=technique, domains=["comb"], raw_tag=technique)
+
+    result = apply_subtopic_cleanup()
+
+    assert result.updated_count == 3
+    assert result.deleted_count == 4
+    tags = {
+        tag.technique: tag
+        for tag in ProblemTopicTechnique.objects.filter(record=record).order_by("technique")
+    }
+    assert list(tags) == ["GREEDY", "GRID COLORING", "LINEAR ALGEBRA OVER F2"]
+    assert tags["GRID COLORING"].main_topic == "COMB"
+    assert tags["GRID COLORING"].canonical_subtopic == "Coloring, tiling, grids, and invariants"
+    assert tags["LINEAR ALGEBRA OVER F2"].canonical_subtopic == "Algebraic and linear methods in combinatorics"
+    assert tags["GREEDY"].canonical_subtopic == ""
+    assert tags["GREEDY"].normalization_status == "method"
+    record.refresh_from_db()
+    assert (
+        record.topic_tags
+        == "Topic tags: COMB / Coloring, tiling, grids, and invariants - GRID COLORING; "
+        "COMB / Algebraic and linear methods in combinatorics - LINEAR ALGEBRA OVER F2; COMB - GREEDY"
     )
 
 
