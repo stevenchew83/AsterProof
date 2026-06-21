@@ -1278,6 +1278,10 @@ def _aggregate_progress_rows(
                 "canonical_subtopics": set(),
                 "label": label,
                 "main_topics": set(),
+                "object_tags": set(),
+                "technique_tags": set(),
+                "lemma_theorem_tags": set(),
+                "proof_roles": set(),
                 "search_terms": set(),
                 "solved_statement_ids": set(),
                 "statement_ids": set(),
@@ -1294,6 +1298,12 @@ def _aggregate_progress_rows(
         technique = str(tagged_row.get("technique") or "").strip()
         if technique:
             bucket["search_terms"].add(technique)
+        for layer_field in TOPIC_TAG_LAYER_FIELDS:
+            for raw_layer_label in tagged_row.get(layer_field, []) or []:
+                layer_label = str(raw_layer_label or "").strip()
+                if layer_label:
+                    bucket[layer_field].add(layer_label)
+                    bucket["search_terms"].add(layer_label)
         for raw_topic_label in tagged_row.get("domain_topic_labels", []) or []:
             topic_label = str(raw_topic_label or "").strip()
             if topic_label:
@@ -1323,14 +1333,18 @@ def _aggregate_progress_rows(
                 "label": label,
                 "main_topic_labels": main_topics,
                 "main_topic_label": ", ".join(main_topics),
+                "object_tags": sorted(bucket["object_tags"], key=str.casefold),
                 "practice_url": _practice_url(
                     label,
                     selected_user=selected_user,
                     can_select_user=can_select_user,
                 ),
+                "lemma_theorem_tags": sorted(bucket["lemma_theorem_tags"], key=str.casefold),
                 "remaining": remaining,
                 "search_text": " ".join(sorted(bucket["search_terms"])),
                 "solved": solved,
+                "proof_roles": sorted(bucket["proof_roles"], key=str.casefold),
+                "technique_tags": sorted(bucket["technique_tags"], key=str.casefold),
                 "total": total,
                 "type": bucket["type"],
             },

@@ -15384,6 +15384,45 @@ def test_technique_tag_dashboard_exposes_filters_scope(client):
     assert "ProblemTopicTechnique" in response_html
 
 
+def test_technique_tag_dashboard_does_not_select_bulky_problem_fields(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="ALG",
+        mohs=5,
+        contest="IMO",
+        problem="P1",
+        contest_year_problem="IMO 2026 P1",
+        topic_tags="Topic tags: ALG / Inequalities and optimization - CAUCHY",
+        core_ideas="large core ideas payload",
+        rationale="large rationale payload",
+        pitfalls="large pitfalls payload",
+    )
+    ProblemTopicTechnique.objects.create(
+        record=problem,
+        technique="CAUCHY",
+        domains=["ALG"],
+    )
+
+    with CaptureQueriesContext(connection) as queries:
+        response = client.get(reverse("pages:topic_tag_dashboard"))
+
+    assert response.status_code == HTTPStatus.OK
+    tag_join_queries = [
+        query["sql"]
+        for query in queries
+        if 'FROM "pages_problemtopictechnique"' in query["sql"]
+        and 'JOIN "pages_problemsolverecord"' in query["sql"]
+    ]
+    assert tag_join_queries
+    joined_sql = "\n".join(tag_join_queries)
+    assert '"pages_problemsolverecord"."topic_tags"' not in joined_sql
+    assert '"pages_problemsolverecord"."core_ideas"' not in joined_sql
+    assert '"pages_problemsolverecord"."rationale"' not in joined_sql
+    assert '"pages_problemsolverecord"."pitfalls"' not in joined_sql
+
+
 def test_technique_tag_dashboard_uses_all_matched_rows_instead_of_latest_100_cap(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
