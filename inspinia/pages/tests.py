@@ -12561,6 +12561,145 @@ def test_technique_progress_gaps_page_technique_mode_lists_techniques(client):
     assert "ANGLE CHASE" in response_html
 
 
+def test_technique_progress_gaps_page_technique_mode_shows_canonical_subtopic_column(client):
+    user = UserFactory()
+    client.force_login(user)
+    canonical_subtopic = "Inequalities and optimization"
+    _create_technique_progress_statement(
+        statement_tags=[
+            {
+                "technique": "CAUCHY-SCHWARZ",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": canonical_subtopic,
+            },
+        ],
+    )
+
+    response = client.get(reverse("pages:technique_progress_gaps"), {"kind": "techniques"})
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["technique_progress_gap_show_canonical_subtopic_column"] is True
+    row = response.context["technique_progress_gap_rows"][0]
+    assert row["canonical_subtopic_label"] == canonical_subtopic
+    response_html = response.content.decode("utf-8")
+    assert "<th scope=\"col\">Technique</th>" in response_html
+    assert "<th scope=\"col\">Canonical Subtopic</th>" in response_html
+    assert response_html.index("<th scope=\"col\">Technique</th>") < response_html.index(
+        "<th scope=\"col\">Canonical Subtopic</th>",
+    )
+    assert response_html.index("<th scope=\"col\">Canonical Subtopic</th>") < response_html.index(
+        "<th scope=\"col\">Topic</th>",
+    )
+    assert canonical_subtopic in response_html
+
+
+def test_technique_progress_gaps_page_subtopic_mode_hides_extra_canonical_subtopic_column(client):
+    user = UserFactory()
+    client.force_login(user)
+    _create_technique_progress_statement(
+        statement_tags=[
+            {
+                "technique": "CAUCHY-SCHWARZ",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": "Inequalities and optimization",
+            },
+        ],
+    )
+
+    response = client.get(reverse("pages:technique_progress_gaps"), {"kind": "subtopics"})
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["technique_progress_gap_show_canonical_subtopic_column"] is False
+    response_html = response.content.decode("utf-8")
+    assert "<th scope=\"col\">Canonical subtopic</th>" in response_html
+    assert "<th scope=\"col\">Canonical Subtopic</th>" not in response_html
+
+
+def test_technique_progress_gaps_page_all_mode_shows_canonical_subtopic_after_type(client):
+    user = UserFactory()
+    client.force_login(user)
+    _create_technique_progress_statement(
+        problem_code="G1",
+        problem_number=1,
+        statement_tags=[
+            {
+                "technique": "HAMILTONIAN CYCLE",
+                "domains": ["COMB"],
+                "main_topic": "COMB",
+                "canonical_subtopic": "Graph theory",
+            },
+        ],
+    )
+    _create_technique_progress_statement(
+        problem_code="G2",
+        problem_number=2,
+        statement_tags=[
+            {
+                "technique": "EXTREMAL ARGUMENT",
+                "domains": ["COMB"],
+                "main_topic": "COMB",
+                "canonical_subtopic": "Graph theory",
+            },
+        ],
+    )
+
+    response = client.get(reverse("pages:technique_progress_gaps"), {"kind": "all"})
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["technique_progress_gap_show_canonical_subtopic_column"] is True
+    response_html = response.content.decode("utf-8")
+    type_header = response_html.index("<th scope=\"col\">Type</th>")
+    canonical_header = response_html.index("<th scope=\"col\">Canonical Subtopic</th>")
+    topic_header = response_html.index("<th scope=\"col\">Topic</th>")
+    assert type_header < canonical_header < topic_header
+    assert all(
+        row["canonical_subtopic_label"] == "Graph theory"
+        for row in response.context["technique_progress_gap_rows"]
+    )
+    assert "Graph theory" in response_html
+
+
+def test_technique_progress_gaps_page_technique_mode_lists_multiple_canonical_subtopics(client):
+    user = UserFactory()
+    client.force_login(user)
+    _create_technique_progress_statement(
+        problem_code="G1",
+        problem_number=1,
+        statement_tags=[
+            {
+                "technique": "GREEDY",
+                "domains": ["COMB"],
+                "main_topic": "COMB",
+                "canonical_subtopic": "Graph theory",
+            },
+        ],
+    )
+    _create_technique_progress_statement(
+        problem_code="A1",
+        problem_number=2,
+        statement_tags=[
+            {
+                "technique": "GREEDY",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": "Inequalities and optimization",
+            },
+        ],
+    )
+
+    response = client.get(reverse("pages:technique_progress_gaps"), {"kind": "techniques"})
+
+    assert response.status_code == HTTPStatus.OK
+    rows = response.context["technique_progress_gap_rows"]
+    assert len(rows) == 1
+    assert rows[0]["label"] == "GREEDY"
+    assert rows[0]["canonical_subtopic"] == ""
+    assert rows[0]["canonical_subtopic_label"] == "Graph theory, Inequalities and optimization"
+    assert "Graph theory, Inequalities and optimization" in response.content.decode("utf-8")
+
+
 def test_technique_progress_gaps_page_all_mode_suppresses_duplicate_technique_labels(client):
     user = UserFactory()
     client.force_login(user)
@@ -13271,6 +13410,48 @@ def test_technique_progress_gaps_export_csv_uses_url_filters_and_ignores_datatab
     ]
 
 
+def test_technique_progress_gaps_export_csv_uses_canonical_subtopic_label_for_techniques(client):
+    user = UserFactory()
+    client.force_login(user)
+    _create_technique_progress_statement(
+        problem_code="G1",
+        problem_number=1,
+        statement_tags=[
+            {
+                "technique": "GREEDY",
+                "domains": ["COMB"],
+                "main_topic": "COMB",
+                "canonical_subtopic": "Graph theory",
+            },
+        ],
+    )
+    _create_technique_progress_statement(
+        problem_code="A1",
+        problem_number=2,
+        statement_tags=[
+            {
+                "technique": "GREEDY",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": "Inequalities and optimization",
+            },
+        ],
+    )
+
+    response = client.get(
+        reverse("pages:technique_progress_gaps"),
+        {
+            "kind": "techniques",
+            "export": "csv",
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    csv_rows = list(csv.DictReader(StringIO(response.content.decode("utf-8"))))
+    assert csv_rows[0]["Area"] == "GREEDY"
+    assert csv_rows[0]["Canonical Subtopic"] == "Graph theory, Inequalities and optimization"
+
+
 def test_technique_progress_gaps_datatable_defaults_to_coverage_desc(client):
     user = UserFactory()
     client.force_login(user)
@@ -13376,6 +13557,68 @@ def test_technique_progress_gaps_datatable_defaults_to_coverage_desc(client):
         row["canonical_subtopic"]
         for row in payload["data"]
     ] == ["High coverage", "Medium coverage", "Low coverage"]
+    assert [
+        row["canonical_subtopic_label"]
+        for row in payload["data"]
+    ] == ["High coverage", "Medium coverage", "Low coverage"]
+
+
+def test_technique_progress_gaps_datatable_sorts_techniques_by_canonical_subtopic_label(client):
+    user = UserFactory()
+    client.force_login(user)
+    _create_technique_progress_statement(
+        problem_code="Z1",
+        problem_number=1,
+        statement_tags=[
+            {
+                "technique": "ZZZ TECHNIQUE",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": "Alpha canonical",
+            },
+        ],
+    )
+    _create_technique_progress_statement(
+        problem_code="A1",
+        problem_number=2,
+        statement_tags=[
+            {
+                "technique": "AAA TECHNIQUE",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": "Zeta canonical",
+            },
+        ],
+    )
+
+    response = client.get(
+        reverse("pages:technique_progress_gaps"),
+        {
+            "format": "datatable",
+            "kind": "techniques",
+            "topic": "algebra",
+            "draw": "7",
+            "start": "0",
+            "length": "50",
+            "order[0][column]": "1",
+            "order[0][dir]": "asc",
+            "columns[1][data]": "canonical_subtopic_label",
+            "search[value]": "canonical",
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    payload = response.json()
+    assert payload["recordsTotal"] == 2
+    assert payload["recordsFiltered"] == 2
+    assert [
+        row["label"]
+        for row in payload["data"]
+    ] == ["ZZZ TECHNIQUE", "AAA TECHNIQUE"]
+    assert [
+        row["canonical_subtopic_label"]
+        for row in payload["data"]
+    ] == ["Alpha canonical", "Zeta canonical"]
 
 
 def test_technique_progress_gaps_datatable_searches_canonical_subtopic_techniques(client):
