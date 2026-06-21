@@ -14822,6 +14822,65 @@ def test_technique_progress_topic_detail_lists_only_selected_topic_subtopics(cli
     assert "Inequalities and optimization" not in response_html
 
 
+def test_technique_progress_topic_detail_lists_subtopic_layer_columns(client):
+    user = UserFactory()
+    client.force_login(user)
+    _create_technique_progress_statement(
+        problem_code="P1",
+        problem_number=1,
+        topic="ALG",
+        statement_tags=[
+            {
+                "technique": "CAUCHY-SCHWARZ",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": "Inequalities and optimization",
+                "object_tags": ["INEQUALITY"],
+                "technique_tags": ["ENGEL FORM"],
+                "lemma_theorem_tags": ["CAUCHY-SCHWARZ"],
+                "proof_roles": ["BOUNDING"],
+            },
+        ],
+    )
+    _create_technique_progress_statement(
+        problem_code="P2",
+        problem_number=2,
+        topic="ALG",
+        statement_tags=[
+            {
+                "technique": "AM-GM",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": "Inequalities and optimization",
+                "object_tags": ["POSITIVE VARIABLES"],
+                "technique_tags": ["HOMOGENIZATION"],
+                "lemma_theorem_tags": ["AM-GM"],
+                "proof_roles": ["EQUALITY CASE"],
+            },
+        ],
+    )
+
+    response = client.get(
+        reverse("pages:technique_progress_topic_detail", kwargs={"topic_slug": "algebra"}),
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    row = response.context["technique_progress_topic_subtopic_rows"][0]
+    assert row["object_tags"] == ["INEQUALITY", "POSITIVE VARIABLES"]
+    assert row["technique_tags"] == ["ENGEL FORM", "HOMOGENIZATION"]
+    assert row["lemma_theorem_tags"] == ["AM-GM", "CAUCHY-SCHWARZ"]
+    assert row["proof_roles"] == ["BOUNDING", "EQUALITY CASE"]
+    response_html = response.content.decode("utf-8")
+    assert "<th scope=\"col\">Object tag</th>" in response_html
+    assert "<th scope=\"col\">Technique tag</th>" in response_html
+    assert "<th scope=\"col\">Lemma/Theorem tag</th>" in response_html
+    assert "<th scope=\"col\">Proof role</th>" in response_html
+    assert "POSITIVE VARIABLES" in response_html
+    assert "HOMOGENIZATION" in response_html
+    assert "CAUCHY-SCHWARZ" in response_html
+    assert "EQUALITY CASE" in response_html
+
+
 def test_technique_progress_topic_detail_returns_404_for_invalid_topic(client):
     client.force_login(UserFactory())
 
