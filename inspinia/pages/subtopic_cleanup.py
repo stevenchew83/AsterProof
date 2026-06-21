@@ -96,6 +96,25 @@ TAG_NORMALIZATION_UPDATE_FIELDS = [
 ]
 
 
+COMBINATORICS_PARENT_GROUPS: tuple[str, ...] = (
+    "Counting and enumerative combinatorics",
+    "Graph theory",
+    "Extremal combinatorics and Ramsey theory",
+    "Set systems, posets, and order theory",
+    "Coloring, tiling, grids, and invariants",
+    "Additive and arithmetic combinatorics",
+    "Algebraic and linear methods in combinatorics",
+    "Combinatorial and discrete geometry",
+    "Design theory and finite configurations",
+    "Discrete optimization, matching, covering, packing, and flows",
+    "Algorithms, automata, words, and constructive methods",
+    "Games, strategies, and adversarial methods",
+    "Probability, entropy, coding, and information methods",
+    "Processes, dynamics, potential, and reconfiguration",
+    "Planar and topological combinatorics",
+)
+
+
 FIRST_PASS_CANONICAL_SUBTOPICS: tuple[str, ...] = (
     "Inequalities and optimization",
     "Sequences, recurrences, and series",
@@ -107,6 +126,7 @@ FIRST_PASS_CANONICAL_SUBTOPICS: tuple[str, ...] = (
     "Extremal methods, monotonicity, and invariants",
     "Number-theoretic algebra",
     "Combinatorial algebra and counting",
+    *COMBINATORICS_PARENT_GROUPS,
     "Geometry-flavored algebra",
     "Analytic estimates and asymptotics",
     "Complex, trigonometric, and Fourier methods",
@@ -163,6 +183,7 @@ FIRST_PASS_CANONICAL_MAIN_TOPICS: dict[str, str] = {
     "Extremal methods, monotonicity, and invariants": "ALG",
     "Number-theoretic algebra": "NT",
     "Combinatorial algebra and counting": "COMB",
+    **dict.fromkeys(COMBINATORICS_PARENT_GROUPS, "COMB"),
     "Geometry-flavored algebra": "GEO",
     "Analytic estimates and asymptotics": "ALG",
     "Complex, trigonometric, and Fourier methods": "ALG",
@@ -4155,6 +4176,813 @@ GEOMETRY_COMPOUND_SPLITS: dict[str, tuple[str, ...]] = {
 }
 
 
+COMBINATORICS_STORED_ALIASES: tuple[tuple[str, str, str, str], ...] = (
+    *_stored_aliases(
+        "COMB",
+        "Counting and enumerative combinatorics",
+        "Counting / enumeration",
+        (
+            "counting",
+            "counting arguments",
+            "countability",
+            "counting roots",
+            "counting preimages",
+            "growth and counting",
+            "generating functions",
+            "catalan",
+            "catalan numbers",
+            "q-binomial",
+            "partitions",
+            "inclusion-exclusion",
+            "sign-reversing involution",
+            "double counting",
+            "dyck path bijection",
+        ),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Graph theory",
+        "Graph theory",
+        (
+            "graph",
+            "graphs",
+            "graph structure",
+            "graph modeling",
+            "graph modelling",
+            "graph interpretation",
+            "graph scheduling",
+            "graph independence",
+            "graph components",
+            "graph ordering",
+            "weighted graph",
+            "geometric graphs",
+            "petersen graph",
+        ),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Graph theory",
+        "Graph cycles",
+        (
+            "cycles",
+            "3-cycles",
+            "odd cycles",
+            "directed cycles",
+            "induced cycles",
+            "longest cycles",
+            "cycle condition",
+            "cycle decomposition",
+            "cycle decompositions",
+        ),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Graph theory",
+        "Hamiltonian paths and cycles",
+        (
+            "hamilton paths",
+            "hamiltonian path",
+            "hamiltonian paths",
+            "hamiltonian cycle",
+            "hamiltonian cycles",
+            "hamilton cycles",
+            "hamiltonian cycle (camion)",
+        ),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Graph theory",
+        "Eulerian paths and cycles",
+        (
+            "euler paths",
+            "euler tours",
+            "euler trails",
+            "euler trails/cycles",
+            "eulerian cycle",
+            "eulerian traversal",
+        ),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Graph theory",
+        "Bipartite graphs",
+        (
+            "bipartite",
+            "bipartition",
+            "bipartite 2-coloring",
+            "bipartite covering",
+            "bipartite coverings",
+            "bipartite incidence",
+            "bipartite structures",
+        ),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Extremal combinatorics and Ramsey theory",
+        "Ramsey theory",
+        (
+            "ramsey",
+            "ramsey flavor",
+            "ramsey coloring",
+            "ramsey theorem",
+            "ramsey-type coloring",
+            "ramsey-type construction",
+            "ramsey-type induction",
+        ),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Extremal combinatorics and Ramsey theory",
+        "Turan / Mantel",
+        (
+            "turan",
+            "turan bound",
+            "turan-type",
+            "mantel/turan",
+            "turan/mantel",
+            "turan/zykov",
+        ),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Extremal combinatorics and Ramsey theory",
+        "Erdos-Szekeres",
+        (
+            "erdos-szekeres",
+            "erdos-szekeres-type selection",
+            "erdos-szekeres/dilworth",
+        ),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Extremal combinatorics and Ramsey theory",
+        "Extremal combinatorics",
+        (
+            "extremal combinatorics",
+            "extremal principle",
+            "extremal configuration",
+            "extremal configurations",
+            "extremal argument",
+            "caro-wei",
+            "kst",
+            "anti-ramsey",
+            "pigeonhole principle",
+        ),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Set systems, posets, and order theory",
+        "Circular order",
+        (
+            "circular order",
+            "cyclic order",
+            "radial order",
+            "circular arrangement",
+            "circular arrangements",
+            "cyclic arrangements",
+            "cyclic arcs",
+            "circular intervals",
+            "cyclic intervals",
+            "intervals on a circle",
+        ),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Set systems, posets, and order theory",
+        "Posets / chains / antichains",
+        (
+            "posets",
+            "order theory",
+            "chains",
+            "antichains",
+            "chain decomposition",
+            "chain decompositions",
+            "product of chains",
+            "order ideals",
+            "ordered structure",
+            "finite chains",
+            "ordered sets",
+        ),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Set systems, posets, and order theory",
+        "Sperner / LYM",
+        ("sperner", "sperner-type", "sperner/antichain", "sperner/lym", "lym"),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Set systems, posets, and order theory",
+        "Dilworth-Mirsky",
+        (
+            "dilworth",
+            "dilworth-type theorem",
+            "dilworth/mirsky",
+            "dilworth/mirsky flavor",
+            "dilworth-mirsky",
+        ),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Set systems, posets, and order theory",
+        "EKR / Helly",
+        (
+            "ekr",
+            "ekr flavor",
+            "ekr-type",
+            "ekr/dictatorship theorem",
+            "helly property",
+            "helly-type lemma",
+            "sunflowers",
+            "laminar families",
+        ),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Coloring, tiling, grids, and invariants",
+        "Grid methods",
+        (
+            "grid",
+            "2d grids",
+            "3d grid",
+            "grid structure",
+            "grid geometry",
+            "grid connectivity",
+            "grid construction",
+            "grid counting",
+            "grid operations",
+            "board design",
+        ),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Coloring, tiling, grids, and invariants",
+        "Grid coloring",
+        (
+            "grid coloring",
+            "grid colorings",
+            "grid colouring",
+            "colorings/grid constraints",
+            "connectivity/grid colorings",
+            "grid parity",
+            "board coloring/cuts",
+        ),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Coloring, tiling, grids, and invariants",
+        "Tilings and polyominoes",
+        (
+            "tilings",
+            "tilings/packings",
+            "tilings/parity",
+            "tiling/packing",
+            "tiling obstruction",
+            "domino tilings",
+            "polyominoes",
+            "equilateral tilings",
+            "dissections",
+        ),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Coloring, tiling, grids, and invariants",
+        "Coloring methods",
+        (
+            "coloring",
+            "colouring",
+            "finite coloring",
+            "infinite coloring",
+            "coloring arguments",
+            "coloring obstruction",
+            "chessboard coloring",
+            "set coloring",
+            "colorings",
+        ),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Coloring, tiling, grids, and invariants",
+        "Parity and invariants",
+        (
+            "parity",
+            "parity strategy",
+            "parity construction",
+            "parity constraints",
+            "parity lemma",
+            "parity/tilings",
+            "parity/involution",
+            "parity/cuts",
+            "mod 2 weights",
+        ),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Coloring, tiling, grids, and invariants",
+        "Invariants",
+        (
+            "invariant",
+            "invariants",
+            "invariants on permutations",
+        ),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Additive and arithmetic combinatorics",
+        "Additive combinatorics",
+        (
+            "additive combinatorics",
+            "additive structures",
+            "additive configurations",
+            "additive constraints",
+            "sum-free",
+            "zero-sum",
+            "sumset design",
+            "sidon-type bounds",
+            "cap sets",
+        ),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Additive and arithmetic combinatorics",
+        "Arithmetic progressions",
+        (
+            "3-term ap avoidance",
+            "3-term ap chains",
+            "3-term arithmetic progressions",
+            "3-term progressions",
+            "arithmetic progressions/thresholds",
+            "structure of aps",
+        ),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Algebraic and linear methods in combinatorics",
+        "Linear algebra over F2",
+        (
+            "linear algebra over f2",
+            "f2 linear algebra",
+            "gf(2) linear algebra",
+            "f_2 linear algebra",
+            "f2-linear algebra",
+            "linear algebra over mod 2",
+            "f2 / f_2 linear algebra",
+        ),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Algebraic and linear methods in combinatorics",
+        "Linear algebra over finite fields",
+        (
+            "linear algebra mod 3",
+            "f_3^3",
+            "finite-field/projective trick",
+            "finite linear algebra",
+        ),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Algebraic and linear methods in combinatorics",
+        "Cyclic group actions",
+        ("cyclic group action", "cyclic group actions", "cyclic groups", "cyclic shifts"),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Algebraic and linear methods in combinatorics",
+        "Matrices and arrays",
+        (
+            "0-1 matrix structure",
+            "boolean matrices",
+            "adjacency matrix",
+            "adjacency matrices",
+            "incidence matrices",
+            "matrix method",
+            "matrix row/column sums",
+            "arrays",
+            "3d arrays",
+            "permutation matrices",
+        ),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Algebraic and linear methods in combinatorics",
+        "Group actions / Burnside",
+        ("group actions", "group action", "burnside", "burnside lemma", "boolean functions"),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Combinatorial and discrete geometry",
+        "Incidence geometry",
+        (
+            "incidence",
+            "incidence bounds",
+            "incidence structures",
+            "incidence matrices",
+            "contest incidence",
+            "3d incidence",
+            "szemeredi-trotter",
+            "szemeredi-trotter-style bound",
+        ),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Combinatorial and discrete geometry",
+        "Convex geometry in combinatorics",
+        (
+            "convex position",
+            "convex hulls",
+            "convex hull cases",
+            "convex layers",
+            "convex quadrilaterals",
+            "convex-position lower bound",
+            "centerpoint theorem",
+        ),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Combinatorial and discrete geometry",
+        "Area method",
+        (
+            "area",
+            "area bound",
+            "area bounds",
+            "area additivity",
+            "area averaging",
+            "area cancellation",
+            "area covering",
+            "area equality",
+            "fake area",
+            "pick theorem",
+        ),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Combinatorial and discrete geometry",
+        "Line and circle arrangements",
+        (
+            "line arrangements",
+            "arrangements of lines",
+            "planar arrangements",
+            "hyperplane arrangement",
+            "hyperplane arrangements",
+            "circle arrangements",
+            "circle intersections",
+            "point sets",
+            "planar point sets",
+        ),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Design theory and finite configurations",
+        "Design theory",
+        (
+            "design theory",
+            "design",
+            "design constraints",
+            "design construction",
+            "block design",
+            "designs (sts)",
+            "designs / steiner triple systems",
+            "steiner triple systems",
+            "latin squares",
+            "latin rectangles",
+            "hadamard matrices",
+            "finite geometries",
+        ),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Discrete optimization, matching, covering, packing, and flows",
+        "Hall / Konig / matching",
+        (
+            "hall",
+            "hall principle",
+            "hall-type argument",
+            "hall-type condition",
+            "hall-type theorem",
+            "hall/konig",
+            "konig theorem",
+            "matching",
+            "matchings",
+            "greedy/matching",
+            "matchings/permutations",
+            "vertex cover",
+            "transversals",
+        ),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Discrete optimization, matching, covering, packing, and flows",
+        "Flows / cuts / separators",
+        (
+            "min-cut",
+            "cuts",
+            "edge cuts",
+            "bonds/minimal cuts",
+            "menger/min-cut",
+            "separators",
+            "tree separators",
+            "edge-disjoint paths",
+            "feedback edge set",
+            "flows/matchings",
+        ),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Discrete optimization, matching, covering, packing, and flows",
+        "Packing and covering",
+        (
+            "packing",
+            "packing/covering",
+            "covering/packing",
+            "greedy packing",
+            "bin packing",
+            "packing/separation",
+            "covering design",
+            "covering systems",
+        ),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Algorithms, automata, words, and constructive methods",
+        "Words and automata",
+        (
+            "words",
+            "word problem",
+            "word operations",
+            "strings",
+            "circular words",
+            "cyclic words",
+            "sturmian words",
+            "synchronizing words",
+            "de bruijn flavor",
+            "de bruijn/thue-morse flavor",
+            "rewriting systems",
+        ),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Algorithms, automata, words, and constructive methods",
+        "Finite-state methods",
+        (
+            "finite state",
+            "finite states",
+            "finite-state dp",
+            "finite-state processes",
+            "finite-state systems",
+            "automaton/state compression",
+            "state compression",
+        ),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Algorithms, automata, words, and constructive methods",
+        "Constructive methods",
+        (
+            "construction",
+            "constructive methods",
+            "constructive families",
+            "constructive arrangement",
+            "constructive examples",
+            "constructive scheduling",
+            "constructive tilings",
+            "constructive algorithm",
+            "constructive algorithms",
+            "constructive strategy",
+            "constructive process",
+            "constructive induction",
+        ),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Games, strategies, and adversarial methods",
+        "Game strategy",
+        (
+            "game",
+            "games",
+            "game strategy",
+            "strategy",
+            "strategy pairing",
+            "finite games",
+            "pursuit games",
+            "maker-breaker",
+            "online strategy",
+        ),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Games, strategies, and adversarial methods",
+        "Adversary strategy",
+        (
+            "adversarial strategy",
+            "adversarial process",
+            "adversarial optimization",
+            "adversarial search",
+            "adversary",
+            "adversary arguments",
+            "adversary/query strategy",
+            "adversarial",
+            "worst-case search",
+        ),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Games, strategies, and adversarial methods",
+        "Sprague-Grundy",
+        ("sprague-grundy", "sprague-grundy theory", "nimbers"),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Probability, entropy, coding, and information methods",
+        "Weighing / coding",
+        (
+            "balance scale",
+            "balance-scale coding",
+            "balance-scale logic",
+            "balance-weighing",
+            "weighing",
+            "weighing design",
+            "weighing strategy",
+        ),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Probability, entropy, coding, and information methods",
+        "Information and coding",
+        (
+            "information",
+            "information strategy",
+            "information theory/decision trees",
+            "coding flavor",
+            "coding theory flavor",
+            "coding",
+            "hadamard code",
+            "hamming metric",
+            "constant-weight codes",
+        ),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Probability, entropy, coding, and information methods",
+        "Probabilistic method",
+        ("probability method", "probabilistic method", "expectation", "entropy", "random walk"),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Processes, dynamics, potential, and reconfiguration",
+        "Processes and termination",
+        (
+            "process",
+            "processes",
+            "process termination",
+            "termination",
+            "dynamical process",
+            "dynamic processes",
+            "cyclic process",
+            "grid process",
+            "grid processes",
+            "grid dynamics",
+            "chip-firing flavor",
+            "toggles",
+            "reconfiguration",
+            "multiset process",
+            "finite process",
+            "finite maps",
+        ),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Processes, dynamics, potential, and reconfiguration",
+        "Potential and energy method",
+        (
+            "potential",
+            "potential/energy method",
+            "potential/energy methods",
+            "weighted potentials",
+            "discrete potential",
+            "random walk/potential",
+        ),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Processes, dynamics, potential, and reconfiguration",
+        "Local-to-global constraints",
+        (
+            "local constraints",
+            "local-to-global constraint",
+            "local-to-global constraints",
+            "local-to-global forcing",
+            "local-to-global propagation",
+            "local forbidden patterns",
+            "local patterns",
+        ),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Planar and topological combinatorics",
+        "Planar topology",
+        (
+            "planar topology",
+            "planar separation",
+            "planar structure",
+            "planar duals/arrangements",
+            "planar separators/duality",
+            "winding number",
+            "hex lemma",
+            "tucker lemma",
+        ),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Planar and topological combinatorics",
+        "Triangulations",
+        (
+            "triangulation",
+            "triangulations",
+            "planar triangulation",
+            "planar triangulations",
+            "fan triangulation",
+            "eulerian triangulations",
+            "catalan-style triangulations",
+        ),
+    ),
+)
+
+
+COMBINATORICS_METHOD_ALIASES: tuple[tuple[str, str], ...] = (
+    ("construction + lower bound", "Construction / lower bound"),
+    ("construction/obstruction", "Construction / obstruction"),
+    ("lower bound", "Lower bound"),
+    ("casework", "Casework"),
+    ("induction", "Induction"),
+    ("greedy", "Greedy"),
+    ("greedy method", "Greedy"),
+    ("greedy strategy", "Greedy"),
+    ("greedy rules", "Greedy"),
+    ("greedy analysis", "Greedy"),
+    ("greedy covering", "Greedy"),
+    ("greedy lower bound", "Greedy"),
+    ("greedy/dp", "Greedy / DP"),
+    ("pigeonhole", "Pigeonhole"),
+    ("averaging", "Averaging"),
+    ("averaging method", "Averaging"),
+    ("averaging process", "Averaging"),
+    ("averaging processes", "Averaging"),
+    ("averaging over states", "Averaging"),
+    ("averaging over translations", "Averaging"),
+    ("degree averaging", "Averaging"),
+    ("matrix averaging", "Averaging"),
+    ("subset averages", "Averaging"),
+    ("bounding", "Bounding"),
+    ("contradiction", "Contradiction"),
+    ("classification", "Classification"),
+    ("uniqueness", "Uniqueness"),
+    ("rigidity", "Rigidity"),
+    ("monotonicity", "Monotonicity"),
+)
+
+
+COMBINATORICS_METADATA_ALIASES: tuple[str, ...] = (
+    "combinatorics",
+    "number theory",
+    "geometry",
+    "likely",
+    "statement caveat",
+    "ambiguous statement",
+    "ambiguity",
+    "small cases",
+)
+
+
+COMBINATORICS_CORRUPT_ALIASES: tuple[str, ...] = (
+    "\u201a\u00e3\u00d6)",
+    "\\cdot)(r>0",
+    "pg(3",
+    "ramsey r(3",
+)
+
+
+COMBINATORICS_NON_COMBINATORICS_ALIASES: tuple[tuple[str, str, str, str], ...] = (
+    ("GEO", "Analytic and coordinate geometry", "barycentrics", "Barycentrics and trilinears"),
+    ("GEO", "Circle geometry", "circumcenters", "Circumcircle and circumcenter"),
+    ("GEO", "Triangle centers and configurations", "nine-point circle machinery", "Euler line and nine-point circle"),
+    (
+        "GEO",
+        "Triangle centers and configurations",
+        "orthic/medial configuration",
+        "Orthic, pedal, and Simson geometry",
+    ),
+    ("GEO", "Circle geometry", "cyclic geometry", "Cyclicity"),
+    ("ALG", "Inequalities and optimization", "am-gm intuition", "AM-GM"),
+    ("ALG", "Inequalities and optimization", "holder/cauchy", "H\u00f6lder / Cauchy"),
+    ("ALG", "Inequalities and optimization", "h\u00f6lder/cauchy", "H\u00f6lder / Cauchy"),
+    ("ALG", "Inequalities and optimization", "convexity/cs", "Convexity / Cauchy-Schwarz"),
+    ("ALG", "Inequalities and optimization", "jensen/concavity", "Jensen / convexity"),
+    ("NT", "Congruences and modular arithmetic", "residues mod p", "Modular arithmetic / residues"),
+    ("NT", "Pell-type equations and Vieta jumping", "vieta jumping/divisibility", "Pell / Vieta jumping"),
+)
+
+
 TAXONOMY_TEXT_REPLACEMENTS: tuple[tuple[str, str], ...] = (
     ("\u221a\xf1", "o"),
     ("\u221a\xd1", "O"),
@@ -4351,6 +5179,47 @@ def _add_geometry_entries(lookup: dict[str, SubtopicTaxonomyEntry]) -> None:
         )
 
 
+def _add_combinatorics_entries(lookup: dict[str, SubtopicTaxonomyEntry]) -> None:
+    for main_topic, canonical_subtopic, alias, stored_technique in COMBINATORICS_STORED_ALIASES:
+        entry = _taxonomy_entry(
+            main_topic,
+            canonical_subtopic,
+            alias,
+            stored_technique=stored_technique,
+        )
+        lookup[_taxonomy_key(alias)] = entry
+        lookup.setdefault(_taxonomy_key(stored_technique), entry)
+    for alias, stored_technique in COMBINATORICS_METHOD_ALIASES:
+        lookup[_taxonomy_key(alias)] = _taxonomy_entry(
+            "",
+            "",
+            alias,
+            stored_technique=stored_technique,
+            normalization=(NORMALIZATION_STATUS_METHOD, NORMALIZATION_CONFIDENCE_HIGH),
+        )
+    for alias in COMBINATORICS_METADATA_ALIASES:
+        lookup[_taxonomy_key(alias)] = _taxonomy_entry(
+            "",
+            "",
+            alias,
+            normalization=(NORMALIZATION_STATUS_METADATA, NORMALIZATION_CONFIDENCE_HIGH),
+        )
+    for alias in COMBINATORICS_CORRUPT_ALIASES:
+        lookup[_taxonomy_key(alias)] = _taxonomy_entry(
+            "",
+            "Data-quality / invalid tag",
+            alias,
+            normalization=(NORMALIZATION_STATUS_CORRUPT, NORMALIZATION_CONFIDENCE_HIGH),
+        )
+    for main_topic, canonical_subtopic, alias, stored_technique in COMBINATORICS_NON_COMBINATORICS_ALIASES:
+        lookup[_taxonomy_key(alias)] = _taxonomy_entry(
+            main_topic,
+            canonical_subtopic,
+            alias,
+            stored_technique=stored_technique,
+        )
+
+
 def _build_taxonomy_lookup() -> dict[str, SubtopicTaxonomyEntry]:
     lookup: dict[str, SubtopicTaxonomyEntry] = {}
     _add_first_pass_canonical_entries(lookup)
@@ -4376,9 +5245,16 @@ def _build_geometry_lookup() -> dict[str, SubtopicTaxonomyEntry]:
     return lookup
 
 
+def _build_combinatorics_lookup() -> dict[str, SubtopicTaxonomyEntry]:
+    lookup: dict[str, SubtopicTaxonomyEntry] = {}
+    _add_combinatorics_entries(lookup)
+    return lookup
+
+
 TAXONOMY_LOOKUP = _build_taxonomy_lookup()
 NUMBER_THEORY_LOOKUP = _build_number_theory_lookup()
 GEOMETRY_LOOKUP = _build_geometry_lookup()
+COMBINATORICS_LOOKUP = _build_combinatorics_lookup()
 GEOMETRY_LEAF_ENTRY_BY_TECHNIQUE = {
     entry.stored_technique: entry
     for entry in GEOMETRY_LOOKUP.values()
@@ -4449,6 +5325,35 @@ NUMBER_THEORY_STRONG_TOKENS = (
     "FINITE FIELD",
     "CHARACTER SUM",
     "PISANO",
+)
+
+
+COMBINATORICS_DOMAIN_ALIASES = {"COMB", "COMBINATORICS"}
+COMBINATORICS_STRONG_TOKENS = (
+    "CATALAN",
+    "RAMSEY",
+    "TURAN",
+    "MANTEL",
+    "ERDOS-SZEKERES",
+    "SPERNER",
+    "DILWORTH",
+    "EKR",
+    "GRID COLOR",
+    "GRID COLOUR",
+    "TILING",
+    "POLYOMINO",
+    "HAMILTON",
+    "EULERIAN",
+    "BIPARTITE",
+    "HALL",
+    "KONIG",
+    "SZEMEREDI-TROTTER",
+    "STEINER",
+    "STURMIAN",
+    "DE BRUIJN",
+    "SPRAGUE-GRUNDY",
+    "CHIP-FIRING",
+    "HEX LEMMA",
 )
 
 
@@ -4575,6 +5480,136 @@ GENERIC_PATTERN_RULES: tuple[TaxonomyPatternRule, ...] = (
         "Complex, trigonometric, and Fourier methods",
         tokens=("TRIG", "FOURIER", "PARSEVAL", "HYPERBOLIC"),
         padded_tokens=(" COMPLEX ",),
+    ),
+)
+
+
+COMBINATORICS_PATTERN_RULES: tuple[TaxonomyPatternRule, ...] = (
+    TaxonomyPatternRule(
+        "COMB",
+        "Extremal combinatorics and Ramsey theory",
+        tokens=("RAMSEY", "TURAN", "MANTEL", "ERDOS-SZEKERES", "CARO-WEI", "ANTI-RAMSEY"),
+        stored_technique="Ramsey / extremal combinatorics",
+    ),
+    TaxonomyPatternRule(
+        "COMB",
+        "Set systems, posets, and order theory",
+        tokens=("SPERNER", "DILWORTH", "MIRSKY", "EKR", "HELLY", "ANTICHAIN", "CHAIN DECOMPOSITION"),
+        stored_technique="Set systems / posets",
+    ),
+    TaxonomyPatternRule(
+        "COMB",
+        "Coloring, tiling, grids, and invariants",
+        tokens=("GRID COLOR", "GRID COLOUR", "COLORINGS/GRID", "BOARD COLOR"),
+        stored_technique="Grid coloring",
+    ),
+    TaxonomyPatternRule(
+        "COMB",
+        "Coloring, tiling, grids, and invariants",
+        tokens=("TILING", "DOMINO", "POLYOMINO", "CHECKERBOARD"),
+        stored_technique="Tilings and polyominoes",
+    ),
+    TaxonomyPatternRule(
+        "COMB",
+        "Coloring, tiling, grids, and invariants",
+        tokens=("COLORING", "COLOURING", "PARITY"),
+        stored_technique="Coloring / parity methods",
+    ),
+    TaxonomyPatternRule(
+        "COMB",
+        "Coloring, tiling, grids, and invariants",
+        tokens=("GRID",),
+        stored_technique="Grid methods",
+    ),
+    TaxonomyPatternRule(
+        "COMB",
+        "Graph theory",
+        tokens=("HAMILTON",),
+        stored_technique="Hamiltonian paths and cycles",
+    ),
+    TaxonomyPatternRule(
+        "COMB",
+        "Graph theory",
+        tokens=("EULERIAN", "EULER TRAIL", "EULER TOUR"),
+        stored_technique="Eulerian paths and cycles",
+    ),
+    TaxonomyPatternRule(
+        "COMB",
+        "Graph theory",
+        tokens=("BIPARTITE",),
+        stored_technique="Bipartite graphs",
+    ),
+    TaxonomyPatternRule(
+        "COMB",
+        "Graph theory",
+        tokens=("CYCLE", "CLIQUE", "INDEPENDENT SET", "CONNECTIVITY", "TOURNAMENT", "TREE"),
+        stored_technique="Graph theory",
+    ),
+    TaxonomyPatternRule(
+        "COMB",
+        "Additive and arithmetic combinatorics",
+        tokens=("ZERO-SUM", "SUMSET", "SUM-FREE", "SIDON", "CAP SET", "ARITHMETIC PROGRESSION"),
+        stored_technique="Additive combinatorics",
+    ),
+    TaxonomyPatternRule(
+        "COMB",
+        "Algebraic and linear methods in combinatorics",
+        tokens=("LINEAR ALGEBRA", "GF(2)", "F_2", "F2", "BOOLEAN MATRIX", "GROUP ACTION", "BURNSIDE"),
+        stored_technique="Algebraic / linear methods",
+    ),
+    TaxonomyPatternRule(
+        "COMB",
+        "Combinatorial and discrete geometry",
+        tokens=("INCIDENCE", "SZEMEREDI-TROTTER", "CONVEX HULL", "LINE ARRANGEMENT", "CIRCLE ARRANGEMENT"),
+        stored_technique="Incidence / discrete geometry",
+    ),
+    TaxonomyPatternRule(
+        "COMB",
+        "Design theory and finite configurations",
+        tokens=("DESIGN", "STEINER", "LATIN SQUARE", "LATIN RECTANGLE", "HADAMARD"),
+        stored_technique="Design theory",
+    ),
+    TaxonomyPatternRule(
+        "COMB",
+        "Discrete optimization, matching, covering, packing, and flows",
+        tokens=("HALL", "KONIG", "MATCHING", "MIN-CUT", "MENGER", "PACKING", "COVERING", "FLOW"),
+        stored_technique="Matching / covering / flows",
+    ),
+    TaxonomyPatternRule(
+        "COMB",
+        "Algorithms, automata, words, and constructive methods",
+        tokens=("WORD", "AUTOMAT", "FINITE-STATE", "DE BRUIJN", "REWRITING"),
+        stored_technique="Words and automata",
+    ),
+    TaxonomyPatternRule(
+        "COMB",
+        "Games, strategies, and adversarial methods",
+        tokens=("GAME", "ADVERSARY", "ADVERSARIAL", "SPRAGUE-GRUNDY", "NIMBER"),
+        stored_technique="Games / adversarial methods",
+    ),
+    TaxonomyPatternRule(
+        "COMB",
+        "Probability, entropy, coding, and information methods",
+        tokens=("WEIGHING", "CODING", "HAMMING", "INFORMATION", "ENTROPY", "PROBABILISTIC"),
+        stored_technique="Probability / information / coding",
+    ),
+    TaxonomyPatternRule(
+        "COMB",
+        "Processes, dynamics, potential, and reconfiguration",
+        tokens=("PROCESS", "TERMINATION", "POTENTIAL", "CHIP-FIRING", "TOGGLE", "RECONFIGURATION"),
+        stored_technique="Processes and termination",
+    ),
+    TaxonomyPatternRule(
+        "COMB",
+        "Planar and topological combinatorics",
+        tokens=("PLANAR", "TRIANGULATION", "HEX LEMMA", "TUCKER LEMMA", "WINDING NUMBER"),
+        stored_technique="Planar topology",
+    ),
+    TaxonomyPatternRule(
+        "COMB",
+        "Counting and enumerative combinatorics",
+        tokens=("CATALAN", "GENERATING FUNCTION", "PARTITION", "INCLUSION-EXCLUSION", "COUNT"),
+        stored_technique="Counting / enumeration",
     ),
 )
 
@@ -5032,12 +6067,22 @@ def _domains_include_geometry(domains: list[str] | tuple[str, ...] | None) -> bo
     return bool(_normalized_domain_set(domains) & GEOMETRY_DOMAIN_ALIASES)
 
 
+def _domains_include_combinatorics(domains: list[str] | tuple[str, ...] | None) -> bool:
+    return bool(_normalized_domain_set(domains) & COMBINATORICS_DOMAIN_ALIASES)
+
+
 def _is_strong_number_theory_technique(technique: str) -> bool:
     repaired = repair_topic_tag_text(technique)
     normalized = normalize_topic_tag(repaired)
     if _taxonomy_key(repaired) in NUMBER_THEORY_AMBIGUOUS_KEYS:
         return False
     return any(token in normalized for token in NUMBER_THEORY_STRONG_TOKENS)
+
+
+def _is_strong_combinatorics_technique(technique: str) -> bool:
+    repaired = repair_topic_tag_text(technique)
+    normalized = normalize_topic_tag(repaired)
+    return any(token in normalized for token in COMBINATORICS_STRONG_TOKENS)
 
 
 GEOMETRY_PLACEHOLDER_POINT_RE = re.compile(
@@ -5070,6 +6115,15 @@ def _number_theory_pattern_taxonomy_entry(technique: str) -> SubtopicTaxonomyEnt
         NUMBER_THEORY_METHOD_PATTERN_RULES,
         normalization=(NORMALIZATION_STATUS_METHOD, NORMALIZATION_CONFIDENCE_HIGH),
     ) or _entry_from_pattern_rules(normalized, words, NUMBER_THEORY_PATTERN_RULES)
+
+
+def _combinatorics_pattern_taxonomy_entry(technique: str) -> SubtopicTaxonomyEntry | None:
+    repaired = repair_topic_tag_text(technique)
+    normalized = normalize_topic_tag(repaired)
+    if not _taxonomy_key(repaired):
+        return None
+    words = set(re.findall(r"[A-Z0-9]+", normalized))
+    return _entry_from_pattern_rules(normalized, words, COMBINATORICS_PATTERN_RULES)
 
 
 def _geometry_entries_for_technique(
@@ -5118,6 +6172,44 @@ def _geometry_entries_for_technique(
     return (entry,) if entry is not None else ()
 
 
+def _combinatorics_entries_for_technique(
+    technique: str,
+    domains: list[str] | tuple[str, ...] | None = None,
+) -> tuple[SubtopicTaxonomyEntry, ...]:
+    repaired = repair_topic_tag_text(technique)
+    normalized = normalize_topic_tag(repaired)
+    key = _taxonomy_key(repaired)
+    if not key:
+        return ()
+
+    domains_include_comb = _domains_include_combinatorics(domains)
+    strong_combinatorics_without_domains = not domains and _is_strong_combinatorics_technique(technique)
+    entry = COMBINATORICS_LOOKUP.get(key)
+    if entry is not None and (
+        domains_include_comb
+        or strong_combinatorics_without_domains
+        or entry.normalization_status in {
+            NORMALIZATION_STATUS_METADATA,
+            NORMALIZATION_STATUS_CORRUPT,
+        }
+    ):
+        return (entry,)
+
+    if not (domains_include_comb or strong_combinatorics_without_domains):
+        return ()
+
+    corrupt_entry = _corrupt_pattern_entry(repaired, normalized)
+    if corrupt_entry is not None:
+        return (corrupt_entry,)
+
+    invalid_entry = _invalid_pattern_entry(repaired, normalized, key)
+    if invalid_entry is not None:
+        return (invalid_entry,)
+
+    pattern_entry = _combinatorics_pattern_taxonomy_entry(repaired)
+    return (pattern_entry,) if pattern_entry is not None else ()
+
+
 def _single_taxonomy_entry_for_technique(
     technique: str,
     domains: list[str] | tuple[str, ...] | None = None,
@@ -5163,9 +6255,18 @@ def taxonomy_entries_for_technique(
         if geometry_entries:
             return geometry_entries
 
+    if _domains_include_combinatorics(domains) or (not domains and _is_strong_combinatorics_technique(technique)):
+        combinatorics_entries = _combinatorics_entries_for_technique(technique, domains=domains)
+        if combinatorics_entries:
+            return combinatorics_entries
+
     entry = _single_taxonomy_entry_for_technique(technique, domains=domains)
     if entry is not None:
         return (entry,)
+
+    combinatorics_entries = _combinatorics_entries_for_technique(technique, domains=domains)
+    if combinatorics_entries:
+        return combinatorics_entries
 
     geometry_entries = _geometry_entries_for_technique(technique, domains=domains)
     if geometry_entries:
