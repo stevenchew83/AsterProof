@@ -27,6 +27,7 @@ GAP_PAGE_SIZE = 50
 GAP_CSV_CONTENT_TYPE = "text/csv; charset=utf-8"
 GAP_CSV_FIELDNAMES = [
     "Area",
+    "Canonical Subtopic",
     "Type",
     "Topic",
     "Completed",
@@ -40,6 +41,7 @@ GAP_KIND_ALL = "all"
 GAP_KIND_CHOICES = {GAP_KIND_SUBTOPICS, GAP_KIND_TECHNIQUES, GAP_KIND_ALL}
 GAP_DATATABLE_DEFAULT_SORT_FIELD = "completion_percent"
 GAP_DATATABLE_SORT_FIELDS = {
+    "canonical_subtopic",
     "completion_percent",
     "label",
     "main_topic_label",
@@ -157,6 +159,7 @@ def build_technique_progress_gaps_context(
             active_topic=gap_topic,
             active_min_total=gap_min_total,
         ),
+        "technique_progress_gap_first_column_label": _gap_first_column_label(gap_kind),
         "technique_progress_gap_min_total": gap_min_total,
         "technique_progress_gap_min_total_reset_url": _gap_url(
             selected_user=selected_user,
@@ -632,6 +635,14 @@ def _gap_title(gap_kind: str) -> str:
     }[gap_kind]
 
 
+def _gap_first_column_label(gap_kind: str) -> str:
+    return {
+        GAP_KIND_SUBTOPICS: "Canonical subtopic",
+        GAP_KIND_TECHNIQUES: "Technique",
+        GAP_KIND_ALL: "Area",
+    }[gap_kind]
+
+
 def _datatable_int(raw_value: str | None, *, default: int = 0) -> int:
     try:
         value = int(raw_value or "")
@@ -657,7 +668,9 @@ def _search_gap_rows(
 
 def _gap_search_haystack(row: dict[str, object]) -> str:
     values = [
+        row.get("canonical_subtopic", ""),
         row.get("label", ""),
+        row.get("search_text", ""),
         row.get("type", ""),
         row.get("main_topic_label", ""),
         row.get("solved", ""),
@@ -714,6 +727,7 @@ def _gap_datatable_row(row: dict[str, object]) -> dict[str, object]:
     solved = int(row["solved"])
     total = int(row["total"])
     return {
+        "canonical_subtopic": row.get("canonical_subtopic", ""),
         "completion_percent": int(row["completion_percent"]),
         "coverage_label": f"{row['completion_percent']}%",
         "label": row["label"],
@@ -732,6 +746,7 @@ def _gap_csv_row(row: dict[str, object]) -> dict[str, object]:
     total = int(row["total"])
     return {
         "Area": row["label"],
+        "Canonical Subtopic": row.get("canonical_subtopic", ""),
         "Type": row["type"],
         "Topic": row["main_topic_label"] or "-",
         "Completed": f"{solved} of {total}",
@@ -802,7 +817,7 @@ def _tagged_statement_rows(*, user: User) -> list[dict[str, object]]:
                     "main_topic": display_topic_label(main_topic) if main_topic else fallback_topic,
                     "normalization_status": str(tag.get("normalization_status") or "").strip(),
                     "statement_id": statement.id,
-                    "subtopic": canonical_subtopic or technique,
+                    "subtopic": canonical_subtopic,
                     "technique": technique,
                 },
             )
@@ -903,8 +918,10 @@ def _aggregate_progress_rows(
         bucket = buckets.setdefault(
             label,
             {
+                "canonical_subtopics": set(),
                 "label": label,
                 "main_topics": set(),
+                "search_terms": set(),
                 "solved_statement_ids": set(),
                 "statement_ids": set(),
                 "type": type_label,
@@ -913,6 +930,13 @@ def _aggregate_progress_rows(
         bucket["statement_ids"].add(tagged_row["statement_id"])
         if tagged_row["is_solved"]:
             bucket["solved_statement_ids"].add(tagged_row["statement_id"])
+        canonical_subtopic = str(tagged_row.get("canonical_subtopic") or "").strip()
+        if canonical_subtopic:
+            bucket["canonical_subtopics"].add(canonical_subtopic)
+            bucket["search_terms"].add(canonical_subtopic)
+        technique = str(tagged_row.get("technique") or "").strip()
+        if technique:
+            bucket["search_terms"].add(technique)
         main_topic = str(tagged_row.get("main_topic") or "").strip()
         if main_topic:
             bucket["main_topics"].add(main_topic)
@@ -926,8 +950,16 @@ def _aggregate_progress_rows(
         remaining = total - solved
         label = str(bucket["label"])
         main_topics = sorted(bucket["main_topics"])
+        canonical_subtopics = sorted(bucket["canonical_subtopics"])
+        if type_label == "Subtopic":
+            canonical_subtopic = label
+        elif len(canonical_subtopics) == 1:
+            canonical_subtopic = canonical_subtopics[0]
+        else:
+            canonical_subtopic = ""
         rows.append(
             {
+                "canonical_subtopic": canonical_subtopic,
                 "completion_percent": _percent(solved, total),
                 "label": label,
                 "main_topic_labels": main_topics,
@@ -938,6 +970,7 @@ def _aggregate_progress_rows(
                     can_select_user=can_select_user,
                 ),
                 "remaining": remaining,
+                "search_text": " ".join(sorted(bucket["search_terms"])),
                 "solved": solved,
                 "total": total,
                 "type": bucket["type"],

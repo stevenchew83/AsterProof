@@ -107,7 +107,7 @@
             <table class="table table-sm table-striped align-middle mb-0">
               <thead>
                 <tr>
-                  <th scope="col">Subtopic</th>
+                  <th scope="col">Canonical subtopic</th>
                   <th scope="col">Completed</th>
                   <th scope="col">Remaining</th>
                   <th scope="col">Coverage</th>
@@ -117,7 +117,7 @@
               <tbody>
                 {% for row in technique_progress_topic_subtopic_rows %}
                 <tr>
-                  <td class="fw-semibold">{{ row.label }}</td>
+                  <td class="fw-semibold">{{ row.canonical_subtopic }}</td>
                   <td>{{ row.solved }} of {{ row.total }}</td>
                   <td>
                     {% if row.remaining %}

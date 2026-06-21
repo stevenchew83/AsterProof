@@ -160,7 +160,7 @@
             >
               <thead>
                 <tr>
-                  <th scope="col">Area</th>
+                  <th scope="col">{{ technique_progress_gap_first_column_label }}</th>
                   {% if technique_progress_gap_show_type_column %}
                   <th scope="col">Type</th>
                   {% endif %}
@@ -174,7 +174,11 @@
               <tbody>
                 {% for row in technique_progress_gap_rows %}
                 <tr>
-                  <td><span class="fw-semibold">{{ row.label }}</span></td>
+                  <td>
+                    <span class="fw-semibold">
+                      {% if technique_progress_gap_kind == 'subtopics' %}{{ row.canonical_subtopic }}{% else %}{{ row.label }}{% endif %}
+                    </span>
+                  </td>
                   {% if technique_progress_gap_show_type_column %}
                   <td><span class="badge bg-secondary-subtle text-secondary">{{ row.type }}</span></td>
                   {% endif %}

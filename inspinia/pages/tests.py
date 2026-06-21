@@ -12157,8 +12157,120 @@ def test_technique_progress_gaps_page_defaults_to_subtopic_rows(client):
     assert 'order: [[coverageColumnIndex, "desc"]]' in response_html
     assert 'id="technique-progress-min-total"' in response_html
     assert "<th scope=\"col\">Type</th>" not in response_html
+    assert "<th scope=\"col\">Canonical subtopic</th>" in response_html
+    assert "<th scope=\"col\">Area</th>" not in response_html
     assert "Technique gaps" in response_html
     assert reverse("pages:completion_quick_update") in response_html
+
+
+def test_technique_progress_gaps_page_calculates_coverage_by_canonical_subtopic(client):
+    user = UserFactory()
+    client.force_login(user)
+    canonical_subtopic = "Equations and transformations"
+    solved_statements = []
+    for index, technique in enumerate(["INJECTIVITY TRICKS", "ZERO FORCING", "SYMMETRIC ESTIMATES"], start=1):
+        solved_statements.append(
+            _create_technique_progress_statement(
+                problem_code=f"S{index}",
+                problem_number=index,
+                statement_tags=[
+                    {
+                        "technique": technique,
+                        "domains": ["ALG"],
+                        "main_topic": "ALG",
+                        "canonical_subtopic": canonical_subtopic,
+                    },
+                ],
+            ),
+        )
+    _create_technique_progress_statement(
+        problem_code="S4",
+        problem_number=4,
+        statement_tags=[
+            {
+                "technique": "SYMMETRIC CYCLIC SUMS",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": canonical_subtopic,
+            },
+        ],
+    )
+    for statement in solved_statements:
+        UserProblemCompletion.objects.create(
+            user=user,
+            statement=statement,
+            status=UserProblemCompletion.Status.SOLVED,
+        )
+
+    response = client.get(reverse("pages:technique_progress_gaps"), {"kind": "subtopics", "topic": "algebra"})
+
+    assert response.status_code == HTTPStatus.OK
+    rows = response.context["technique_progress_gap_rows"]
+    assert len(rows) == 1
+    assert rows[0]["label"] == canonical_subtopic
+    assert rows[0]["canonical_subtopic"] == canonical_subtopic
+    assert rows[0]["solved"] == 3
+    assert rows[0]["total"] == 4
+    assert rows[0]["remaining"] == 1
+    assert rows[0]["completion_percent"] == 75
+
+
+def test_technique_progress_gaps_page_counts_canonical_subtopic_once_per_statement(client):
+    user = UserFactory()
+    client.force_login(user)
+    canonical_subtopic = "Extremal methods, monotonicity, and invariants"
+    _create_technique_progress_statement(
+        statement_tags=[
+            {
+                "technique": "MONOTONICITY",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": canonical_subtopic,
+            },
+            {
+                "technique": "RIGIDITY",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": canonical_subtopic,
+            },
+        ],
+    )
+
+    response = client.get(reverse("pages:technique_progress_gaps"), {"kind": "subtopics", "topic": "algebra"})
+
+    assert response.status_code == HTTPStatus.OK
+    rows = response.context["technique_progress_gap_rows"]
+    assert len(rows) == 1
+    assert rows[0]["label"] == canonical_subtopic
+    assert rows[0]["total"] == 1
+    assert rows[0]["remaining"] == 1
+
+
+def test_technique_progress_gaps_page_excludes_blank_canonical_from_subtopics_only(client):
+    user = UserFactory()
+    client.force_login(user)
+    _create_technique_progress_statement(
+        statement_tags=[
+            {
+                "technique": "VIETA JUMPING",
+                "domains": ["NT"],
+                "main_topic": "NT",
+                "canonical_subtopic": "",
+                "normalization_status": "direct",
+            },
+        ],
+    )
+
+    subtopic_response = client.get(reverse("pages:technique_progress_gaps"), {"kind": "subtopics"})
+    technique_response = client.get(reverse("pages:technique_progress_gaps"), {"kind": "techniques"})
+
+    assert subtopic_response.status_code == HTTPStatus.OK
+    assert technique_response.status_code == HTTPStatus.OK
+    assert subtopic_response.context["technique_progress_gap_rows"] == []
+    assert [
+        row["label"]
+        for row in technique_response.context["technique_progress_gap_rows"]
+    ] == ["VIETA JUMPING"]
 
 
 def test_technique_progress_gaps_page_preserves_admin_selected_user(client):
@@ -12224,6 +12336,8 @@ def test_technique_progress_gaps_page_technique_mode_lists_techniques(client):
     response_html = response.content.decode("utf-8")
     assert "Technique practice gaps" in response_html
     assert "<th scope=\"col\">Type</th>" not in response_html
+    assert "<th scope=\"col\">Technique</th>" in response_html
+    assert "<th scope=\"col\">Area</th>" not in response_html
     assert "ANGLE CHASE" in response_html
 
 
@@ -12368,6 +12482,7 @@ def test_technique_progress_gaps_page_filters_by_main_topic(client):
         row["label"]
         for row in combinatorics_response.context["technique_progress_gap_rows"]
     ] == ["Shared parity"]
+    assert combinatorics_response.context["technique_progress_gap_rows"][0]["total"] == 2
 
 
 def test_technique_progress_gaps_page_groups_normalized_algebra_subtopics_and_hides_invalid_rows(client):
@@ -12718,6 +12833,7 @@ def test_technique_progress_gaps_export_csv_uses_url_filters_and_ignores_datatab
     assert csv_rows == [
         {
             "Area": "Algebra gap",
+            "Canonical Subtopic": "Algebra gap",
             "Type": "Subtopic",
             "Topic": "Algebra",
             "Completed": "0 of 1",
@@ -12832,6 +12948,46 @@ def test_technique_progress_gaps_datatable_defaults_to_coverage_desc(client):
         row["completion_percent"]
         for row in payload["data"]
     ] == [EXPECTED_PROGRESS_HALF_PERCENT, 33, 0]
+    assert [
+        row["canonical_subtopic"]
+        for row in payload["data"]
+    ] == ["High coverage", "Medium coverage", "Low coverage"]
+
+
+def test_technique_progress_gaps_datatable_searches_canonical_subtopic_techniques(client):
+    user = UserFactory()
+    client.force_login(user)
+    canonical_subtopic = "Extremal methods, monotonicity, and invariants"
+    _create_technique_progress_statement(
+        statement_tags=[
+            {
+                "technique": "MONOTONICITY",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": canonical_subtopic,
+            },
+        ],
+    )
+
+    response = client.get(
+        reverse("pages:technique_progress_gaps"),
+        {
+            "format": "datatable",
+            "kind": "subtopics",
+            "topic": "algebra",
+            "draw": "6",
+            "start": "0",
+            "length": "50",
+            "search[value]": "MONOTONICITY",
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    payload = response.json()
+    assert payload["recordsTotal"] == 1
+    assert payload["recordsFiltered"] == 1
+    assert payload["data"][0]["label"] == canonical_subtopic
+    assert payload["data"][0]["canonical_subtopic"] == canonical_subtopic
 
 
 def test_technique_progress_gaps_datatable_searches_all_matching_rows(client):
