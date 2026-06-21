@@ -1,0 +1,1005 @@
+Area	Canonical Subtopic	Object tag	Technique tag	Lemma/Theorem tag	Proof role	Raw imported tag
+Algebra	Polynomials and algebraic manipulation	binomial coefficients	binomial expansion	NULL	coefficient extraction	BINOMIALS
+Combinatorics	Graph theory	bipartite graph	2-coloring	NULL	modeling	BIPARTITE 2-COLORING
+Combinatorics	Graph theory	bipartite covering	covering argument	NULL	covering	BIPARTITE COVERING
+Combinatorics	Graph theory	bipartite covering	covering argument	NULL	covering	BIPARTITE COVERINGS
+Combinatorics	Graph theory	bipartite degree sequence	degree constraints	NULL	characterization	BIPARTITE DEGREE SEQUENCES
+Combinatorics	Graph theory	bipartite graph	edge coloring	Kőnig edge-coloring theorem	coloring	BIPARTITE EDGE COLORING
+Combinatorics	Graph theory	bipartite graph	graph model	NULL	modeling	BIPARTITE GRAPH
+Algebra	Polynomials and algebraic manipulation	bipartite graph factor	factorization	NULL	structural reduction	BIPARTITE GRAPH FACTOR
+Combinatorics	Graph theory	bipartite graph	graph model	NULL	modeling	BIPARTITE GRAPH MODEL
+Combinatorics	Graph theory	bipartite graph	degree constraints	NULL	bounding	BIPARTITE GRAPHS / DEGREE CONSTRAINTS
+Combinatorics	Graph theory	bipartite incidence graph	incidence counting	NULL	modeling	BIPARTITE INCIDENCE
+Combinatorics	Graph theory	bipartite matching	Hall condition	Hall's theorem	existence	BIPARTITE MATCHING/HALL
+Combinatorics	Graph theory	bipartite regular graph	regularity argument	NULL	structural classification	BIPARTITE REGULARITY
+Combinatorics	Graph theory	bipartite structure	bipartite modeling	NULL	modeling	BIPARTITE STRUCTURES
+Combinatorics	Graph theory	bipartite walks	walk counting	NULL	counting	BIPARTITE WALKS
+Combinatorics	Graph theory	rows and columns	bipartite modeling	NULL	modeling	BIPARTITE/ROWS–COLUMNS
+Combinatorics	Graph theory	bipartition	2-part decomposition	NULL	structural setup	BIPARTITION
+Combinatorics	Combinatorial algebra and counting	doubly stochastic matrix	matrix decomposition	Birkhoff-von Neumann theorem	decomposition	BIRKHOFF
+Combinatorics	Graph theory	graph bisection	width bound	NULL	extremal bound	BISECTION WIDTH
+Algebra	Polynomials and algebraic manipulation	bivariate polynomial	polynomial method	NULL	coefficient/zero analysis	BIVARIATE POLYNOMIALS
+Algebra	Inequalities and optimization	random events/probability	negative correlation inequality	BK-type inequality	bounding	BK-TYPE INEQUALITY
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	block structure	local constraints	NULL	structural constraint	BLOCK CONSTRAINTS
+Combinatorics	Set systems, posets, and extremal set theory	block design	design argument	NULL	construction	BLOCK DESIGN
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	block process	dynamics	NULL	invariant	BLOCK DYNAMICS
+Algebra	Algebraic structures and linear algebra	block matrix	matrix decomposition	NULL	structural reduction	BLOCK MATRICES
+Combinatorics	Combinatorial algebra and counting	block matrix	matrix counting	NULL	counting	BLOCK MATRIX COUNTING
+Number Theory	Divisibility, gcd, lcm, and primes	blocks	block decomposition	NULL	reduction	BLOCK METHODS
+Number Theory	Sequences and recurrences	blocks	repetition pattern	NULL	periodicity	BLOCK REPETITION
+Number Theory	Divisibility, gcd, lcm, and primes	blocks	block splitting	NULL	case reduction	BLOCK SPLITTING
+Algebra	Sequences, recurrences, and series	block sums	partial-sum grouping	NULL	bounding	BLOCK SUMS
+Combinatorics	Graph theory	block-cut tree	block-cut decomposition	NULL	structural decomposition	BLOCK-CUT STRUCTURE
+Algebra	Sequences, recurrences, and series	block recurrence	block construction	NULL	construction	BLOCK/RECURRENCE CONSTRUCTIONS
+Combinatorics	Set systems, posets, and extremal set theory	partitions	blocking argument	NULL	obstruction	BLOCKING PARTITIONS
+Combinatorics	Combinatorial geometry	blocking set	incidence blocking	NULL	obstruction	BLOCKING SETS
+Combinatorics	Games and strategies	blocking strategy	strategy stealing/blocking	NULL	obstruction	BLOCKING STRATEGIES
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	blocks	block decomposition	NULL	structural setup	BLOCKS
+Algebra	Extremal methods, monotonicity, and invariants	blow-up configuration	scaling/blow-up	NULL	extremal construction	BLOW-UP
+Number Theory	Divisibility, gcd, lcm, and primes	integer configuration	blow-up argument	NULL	contradiction	BLOW-UP ARGUMENT
+Combinatorics	Coloring, tiling, grids, and invariants	board	board coloring	NULL	invariant	BOARD COLORING
+Combinatorics	Coloring, tiling, grids, and invariants	board cuts	coloring and cutting	NULL	obstruction	BOARD COLORING/CUTS
+Combinatorics	Coloring, tiling, grids, and invariants	board	local constraints	NULL	obstruction	BOARD CONSTRAINTS
+Combinatorics	Combinatorial algebra and counting	board configurations	board counting	NULL	counting	BOARD COUNTING
+Combinatorics	Coloring, tiling, grids, and invariants	board design	constructive tiling	NULL	construction	BOARD DESIGN
+Combinatorics	Games and strategies	board game	strategy analysis	NULL	game strategy	BOARD GAME
+Combinatorics	Combinatorial geometry	board geometry	lattice geometry	NULL	modeling	BOARD GEOMETRY
+Combinatorics	Coloring, tiling, grids, and invariants	boards and colorings	coloring invariant	NULL	invariant	BOARDS & COLORINGS
+Combinatorics	Set systems, posets, and extremal set theory	set pairs	extremal set method	Bollobás-type theorem	upper bound	BOLLOBÁS-TYPE IDEAS
+Combinatorics	Graph theory	cuts and bonds	minimal cut analysis	NULL	connectivity	BONDS/MINIMAL CUTS
+Combinatorics	Graph theory	graph cycles	Bondy-type theorem	Bondy's theorem	structural theorem	BONDY-TYPE THEOREM
+Combinatorics	Counting and enumerative combinatorics	events	inclusion-exclusion bounds	Bonferroni inequalities	bounding	BONFERRONI BOUNDS
+Algebra	Algebraic structures and linear algebra	Boolean algebra	Boolean operations	NULL	structural algebra	BOOLEAN ALGEBRA
+Combinatorics	Combinatorial algebra and counting	Boolean structures	Boolean counting	NULL	counting	BOOLEAN COUNTING
+Combinatorics	Combinatorial algebra and counting	Boolean matrices	matrix counting	NULL	counting	BOOLEAN MATRICES
+Algebra	Algebraic structures and linear algebra	Boolean ring	ring structure	NULL	structural algebra	BOOLEAN RINGS
+Algebra	Extremal methods, monotonicity, and invariants	bounded sequence/bootstrap	bootstrap argument	NULL	boundedness	BOOTSTRAP BOUNDEDNESS
+Combinatorics	Graph theory	percolation process	bootstrap percolation	NULL	closure	BOOTSTRAP PERCOLATION/TRIADIC CLOSURE
+Geometry	Combinatorial geometry	topological/geometric configuration	Borsuk-type argument	Borsuk-Ulam/Borsuk theorem	obstruction	BORSUK-TYPE ARGUMENT
+Algebra	Equations, substitutions, and transformations	boundary cases	boundary check	NULL	case verification	BOUNDARY CHECK
+Algebra	Equations, substitutions, and transformations	boundary cases	boundary checking	NULL	case verification	BOUNDARY CHECKING
+Combinatorics	Combinatorial geometry	boundary components	component counting	NULL	counting	BOUNDARY COMPONENTS
+Combinatorics	Counting and enumerative combinatorics	boundary terms	correction term	NULL	error correction	BOUNDARY CORRECTION
+Algebra	Inequalities and optimization	boundary equality	equality case analysis	NULL	equality case	BOUNDARY EQUALITY
+Algebra	Extremal methods, monotonicity, and invariants	boundary maximum	boundary maximization	NULL	maximization	BOUNDARY MAXIMIZATION
+Combinatorics	Combinatorial geometry	boundary obstruction	obstruction argument	NULL	obstruction	BOUNDARY OBSTRUCTION
+Algebra	Equations, substitutions, and transformations	boundary cases	boundary reduction	NULL	reduction	BOUNDARY REDUCTION
+Combinatorics	Combinatorial geometry	boundary turns	turning/invariant count	NULL	invariant	BOUNDARY TURNS
+Algebra	Inequalities and optimization	boundary equality	boundary/equality analysis	NULL	equality case	BOUNDARY/EQUALITY ANALYSIS
+Algebra	Extremal methods, monotonicity, and invariants	boundary extremum	extremal boundary analysis	NULL	extremal reduction	BOUNDARY/EXTREMAL
+Number Theory	Divisibility, gcd, lcm, and primes	denominators	denominator bounding	NULL	bounding	BOUNDED DENOMINATORS
+Number Theory	Additive/combinatorial number theory	discrepancy	bounded discrepancy	NULL	bounding	BOUNDED DISCREPANCY
+Algebra	Polynomials and algebraic manipulation	factorization	bounded factorization	NULL	structural bound	BOUNDED FACTORIZATION
+Combinatorics	Sequences and recurrences	partial sums	bounded partial sums	NULL	invariant	BOUNDED PARTIAL SUMS
+Number Theory	Diophantine equations	integer perturbation	bounded perturbation	NULL	reduction	BOUNDED PERTURBATION
+Algebra	Inequalities and optimization	ratio	bounded ratio	NULL	bounding	BOUNDED RATIO
+Number Theory	Divisibility, gcd, lcm, and primes	representations	bounded representation	NULL	finiteness	BOUNDED REPRESENTATIONS
+Algebra	Polynomials and algebraic manipulation	roots	root bound	NULL	bounding	BOUNDED ROOTS
+Combinatorics	Graph theory	walk	bounded walk	NULL	reachability	BOUNDED WALK
+Algebra	Extremal methods, monotonicity, and invariants	boundedness	boundedness forcing	NULL	contradiction	BOUNDEDNESS FORCING
+Algebra	Extremal methods, monotonicity, and invariants	boundedness	boundedness trick	NULL	bounding	BOUNDEDNESS TRICK
+Algebra	Extremal methods, monotonicity, and invariants	bootstrap bound	bounding bootstrap	NULL	bootstrap	BOUNDING BOOTSTRAP
+Geometry	Geometry-flavored algebra	bounding box	coordinate equations	NULL	reduction	BOUNDING BOX EQUATIONS
+Algebra	Extremal methods, monotonicity, and invariants	extrema	bounding by extrema	NULL	bounding	BOUNDING BY EXTREMA
+Algebra	Analytic estimates and asymptotics	error term	error bounding	NULL	estimate	BOUNDING ERROR
+Number Theory	Diophantine equations	near-square integer	bounding near a square	NULL	bounding	BOUNDING NEAR A SQUARE
+Algebra	Inequalities and optimization	quadratic	bounding quadratic	NULL	bounding	BOUNDING QUADRATIC
+Algebra	Sequences, recurrences, and series	sequence	sequence bounds	NULL	bounding	BOUNDING SEQUENCES
+Combinatorics	Counting and enumerative combinatorics	terms	termwise bounding	NULL	bounding	BOUNDING TERMWISE
+Algebra	Extremal methods, monotonicity, and invariants	inductive bound	bounding and induction	NULL	induction	BOUNDING/INDUCTION
+Number Theory	Diophantine equations	ordered integers	order/bounding argument	NULL	bounding	BOUNDING/ORDER
+Algebra	Inequalities and optimization	box constraints	constraint optimization	NULL	bounding	BOX CONSTRAINTS
+Combinatorics	Graph theory	intersection graph	boxicity	NULL	representation	BOXICITY
+Algebra	Equations, substitutions, and transformations	branching cases	branching condition	NULL	case split	BRANCHING CONDITION
+Geometry	Core Euclidean geometry	quadrilateral	Bretschneider/splitting	Bretschneider formula	area computation	BRETSCHNEIDER/SPLITTING
+Geometry	Projective geometry	complete quadrilateral	Brianchon/Carnot	Brianchon theorem; Carnot theorem	concurrency/metric relation	BRIANCHON/CARNOT
+Geometry	Core Euclidean geometry	rectangle/point distances	distance identity	British Flag theorem	metric computation	BRITISH FLAG THEOREM
+Geometry	Triangle centers and triangle configurations	Brocard point	triangle-center chase	Brocard point	configuration	BROCARD POINT
+Geometry	Triangle centers and triangle configurations	Brocard-like configuration	angle chase	Brocard-type configuration	configuration	BROCARD-LIKE CONFIGURATION
+Geometry	Triangle centers and triangle configurations	Brocard-like point	triangle-center chase	Brocard-type point	configuration	BROCARD-LIKE POINT
+Geometry	Triangle centers and triangle configurations	Brocard angles	angle chase	Brocard angle	angle chase	BROCARD-STYLE ANGLES
+Geometry	Triangle centers and triangle configurations	Brocard-type points	triangle-center chase	Brocard point	configuration	BROCARD-TYPE POINTS
+Geometry	Triangle centers and triangle configurations	Brocard/DIT	triangle-center method	Brocard; DIT	configuration	BROCARD/DIT
+Combinatorics	Graph theory	C4-free graph	forbidden subgraph	NULL	extremal bound	C4-FREE
+Combinatorics	Graph theory	C4-free bipartite graph	forbidden cycle	NULL	extremal bound	C4-FREE BIPARTITE GRAPHS
+Combinatorics	Graph theory	C4-free graph	forbidden cycle	NULL	extremal bound	C4-FREE GRAPHS
+Algebra	Inequalities and optimization	convex/concave function	calculus-free convexity	NULL	estimate	CALC-FREE CONVEXITY/CONCAVITY TRICKS
+Algebra	Analytic estimates and asymptotics	convex function	calculus convexity	NULL	optimization	CALCULUS/CONVEXITY
+Algebra	Polynomials and algebraic manipulation	factorization	calculus-assisted factorization	NULL	structural reduction	CALCULUS/FACTORIZATION
+Algebra	Polynomials and algebraic manipulation	polynomial	calculus on polynomial	NULL	root/shape analysis	CALCULUS/POLYNOMIAL
+Number Theory	Sequences and recurrences	rational enumeration	continued fractions	Calkin-Wilf tree; Stern-Brocot tree	enumeration	CALKIN–WILF / STERN–BROCOT
+Combinatorics	Counting and enumerative combinatorics	pairs	cancellation pairing	NULL	involution/counting	CANCELLATION PAIRS
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	coin system	greedy coin algorithm	NULL	classification	CANONICAL COIN SYSTEMS
+Number Theory	Divisibility, gcd, lcm, and primes	residue/representative	canonical representative	NULL	normalization	CANONICAL REPRESENTATIVES
+Algebra	Extremal methods, monotonicity, and invariants	ordered cards	card ordering	NULL	extremal ordering	CARD ORDERING
+Number Theory	Additive/combinatorial number theory	cardinality	cardinality argument	NULL	counting	CARDINALITY
+Number Theory	Congruences and modular arithmetic	exponent	Carmichael exponent	Carmichael function	order bound	CARMICHAEL EXPONENT
+Number Theory	Congruences and modular arithmetic	Carmichael function	modular exponent	Carmichael function	order computation	CARMICHAEL FUNCTION
+Geometry	Core Euclidean geometry	triangle distances	Carnot relation	Carnot theorem	metric relation	CARNOT THEOREM
+Combinatorics	Graph theory	independent set	greedy degree bound	Caro-Wei theorem	lower bound	CARO–WEI/GREEDY
+Number Theory	Divisibility, gcd, lcm, and primes	cases	case check	NULL	case verification	CASE CHECK
+Combinatorics, Number Theory	Counting and divisibility	cases	case classification	NULL	classification	CASE CLASSIFICATION
+Combinatorics	Counting and enumerative combinatorics	cases	case counting	NULL	counting	CASE COUNTING
+Number Theory	Diophantine equations	square/non-square cases	case split	NULL	case split	CASE SPLIT BY N SQUARE/NON-SQUARE
+Algebra	Equations, substitutions, and transformations	AAA case	case split	NULL	case split	CASE SPLIT ON AAA
+Number Theory	Diophantine equations	cases	case splitting	NULL	case split	CASE SPLITTING
+Number Theory	Divisibility, gcd, lcm, and primes	cases	case chasing	NULL	casework	CASE-CHASING
+Combinatorics	Coloring, tiling, grids, and invariants	coloring cases	casework/coloring	NULL	casework	CASEWORK/COLORING
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	states	dynamic programming casework	NULL	recursion	CASEWORK/DP
+Combinatorics	Pigeonhole, extremal principle, and averaging	cases	pigeonhole casework	NULL	contradiction	CASEWORK/PIGEONHOLE
+Number Theory	Sequences and recurrences	Fibonacci-like sequence	identity	Cassini identity	identity	CASSINI-TYPE IDENTITY
+Combinatorics	Counting and enumerative combinatorics	Catalan objects	Catalan counting	Catalan numbers	counting	CATALAN COUNTING
+Algebra	Polynomials and algebraic manipulation	Catalan factor	factorization	Catalan numbers	factorization	CATALAN FACTOR
+Combinatorics	Counting and enumerative combinatorics	Catalan structure	recursive decomposition	Catalan numbers	structural decomposition	CATALAN STRUCTURE
+Combinatorics	Counting and enumerative combinatorics	Catalan structures	recursive decomposition	Catalan numbers	structural decomposition	CATALAN STRUCTURES
+Number Theory	Diophantine equations	exponential equation	Catalan special case	Mihăilescu/Catalan theorem	case reduction	CATALAN-SPECIAL CASE
+Combinatorics	Counting and enumerative combinatorics	Catalan objects	Catalan-style counting	Catalan numbers	counting	CATALAN-STYLE COUNTING
+Combinatorics	Counting and enumerative combinatorics	triangulations	Catalan decomposition	Catalan numbers	counting	CATALAN-STYLE TRIANGULATIONS
+Combinatorics	Counting and enumerative combinatorics	Catalan/Kreweras objects	lattice path enumeration	Catalan/Kreweras numbers	counting	CATALAN/KREWERAS TYPE
+Number Theory	Diophantine equations	powers	Catalan/Mihăilescu reduction	Mihăilescu theorem	contradiction	CATALAN/MIHAILESCU
+Combinatorics	Counting and enumerative combinatorics	Catalan/Narayana numbers	refined Catalan counting	Narayana numbers	counting	CATALAN/NARAYANA NUMBERS
+Algebra	Sequences, recurrences, and series	Catalan recursion	recursive counting	Catalan recurrence	recursion	CATALAN/RECURSION
+Algebra	Sequences, recurrences, and series	series	Cauchy condensation	Cauchy condensation test	convergence	CAUCHY CONDENSATION
+Algebra	Inequalities and optimization	equality case	Cauchy equality	Cauchy-Schwarz	equality case	CAUCHY EQUALITY
+Algebra	Inequalities and optimization	equality cases	Cauchy equality cases	Cauchy-Schwarz	equality case	CAUCHY EQUALITY CASES
+Algebra	Functional equations	additive function	stability	Cauchy equation	stability	CAUCHY EQUATION STABILITY
+Algebra	Functional equations	additive function	rational-linearity	Cauchy equation	classification	CAUCHY OVER Q
+Algebra	Functional equations	pathological additive functions	pathology control	Cauchy equation	regularity	CAUCHY PATHOLOGY CONTROL
+Algebra	Inequalities and optimization	vectors/terms	Cauchy-Schwarz equality	Cauchy-Schwarz	equality case	CAUCHY-SCHWARZ EQUALITY
+Algebra	Inequalities and optimization	sum structure	Cauchy-style restructuring	Cauchy-Schwarz	structural reduction	CAUCHY-STYLE STRUCTURE
+Algebra	Inequalities and optimization	terms	Cauchy-type inequality	Cauchy-Schwarz	bounding	CAUCHY-TYPE
+Algebra	Inequalities and optimization	expression behavior	Cauchy-type behavior	Cauchy-Schwarz	structural recognition	CAUCHY-TYPE BEHAVIOR
+Algebra	Inequalities and optimization	condition	Cauchy-type condition	Cauchy-Schwarz	condition forcing	CAUCHY-TYPE CONDITION
+Algebra	Inequalities and optimization	estimates	Cauchy-type estimates	Cauchy-Schwarz	estimate	CAUCHY-TYPE ESTIMATES
+Algebra	Inequalities and optimization	expression	Cauchy-type simplification	Cauchy-Schwarz	simplification	CAUCHY-TYPE SIMPLIFICATION
+Algebra	Inequalities and optimization	means	Cauchy with AM-HM	Cauchy-Schwarz; AM-HM	bounding	CAUCHY/AM-HM
+Algebra	Inequalities and optimization	means	Cauchy with AM-QM	Cauchy-Schwarz; AM-QM	bounding	CAUCHY/AM-QM BOUNDS
+Algebra	Inequalities and optimization	sequences	Cauchy/Chebyshev	Cauchy-Schwarz; Chebyshev inequality	bounding	CAUCHY/CHEBYSHEV
+Algebra	Inequalities and optimization	areas	Cauchy/Jensen estimate	Cauchy-Schwarz; Jensen	bounding	CAUCHY/JENSEN ON AREAS
+Algebra	Inequalities and optimization	estimates	Cauchy/Jensen style	Cauchy-Schwarz; Jensen	estimate	CAUCHY/JENSEN-STYLE ESTIMATES
+Algebra	Inequalities and optimization	convex sequences	Cauchy/Jensen/Karamata	Cauchy-Schwarz; Jensen; Karamata	majorization	CAUCHY/JENSEN/KARAMATA
+Combinatorics	Combinatorial geometry	incidence/volume	Cauchy with Loomis-Whitney	Cauchy-Schwarz; Loomis-Whitney	bounding	CAUCHY/LOOMIS–WHITNEY
+Algebra	Inequalities and optimization	fractions	Cauchy/Nesbitt	Cauchy-Schwarz; Nesbitt	bounding	CAUCHY/NESBITT
+Algebra	Inequalities and optimization	sum of squares	Cauchy/SOS	Cauchy-Schwarz; SOS	equality/bounding	CAUCHY/SOS
+Combinatorics	Graph theory	degrees	Cauchy-Schwarz on degrees	Cauchy-Schwarz	bounding	CAUCHY–SCHWARZ ON DEGREES
+Algebra	Inequalities and optimization	quadratic terms	Cauchy-Schwarz / 2ab bound	Cauchy-Schwarz; 2ab ≤ a^2 + b^2	bounding	CAUCHY–SCHWARZ/2AB≤…
+Combinatorics	Graph theory	Cayley graph	prefix reversal generators	Cayley graph	diameter/modeling	CAYLEY GRAPH (PREFIX REVERSALS)
+Combinatorics	Graph theory	Cayley graph	graph diameter	Cayley graph	diameter bound	CAYLEY GRAPH DIAMETER
+Combinatorics	Graph theory	Cayley graph	group-generated graph	Cayley graph	modeling	CAYLEY GRAPHS
+Combinatorics	Counting and enumerative combinatorics	trees	Prüfer coding	Cayley formula; Prüfer code	counting	CAYLEY/PRUFER
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	cellular automaton	state evolution	NULL	invariant	CELLULAR AUTOMATON
+Algebra	Algebraic structures and linear algebra	center	central element/center	NULL	structural classification	CENTER
+Algebra	Equations, substitutions, and transformations	centered variables	centering trick	NULL	normalization	CENTERING TRICK
+Combinatorics	Combinatorial geometry	point set	ham-sandwich/centerpoint method	Centerpoint theorem	selection	CENTERPOINT THEOREM
+Geometry	Triangle centers and triangle configurations	centers/circumcenters	center chase	NULL	configuration	CENTERS & CIRCUMCENTERS
+Geometry	Circle geometry	variable-circle centers	locus of centers	NULL	locus	CENTERS OF VARIABLE CIRCLES
+Combinatorics	Counting and enumerative combinatorics	central decomposition	decomposition	NULL	structural decomposition	CENTRAL DECOMPOSITION
+Geometry	Transformational geometry	centrally symmetric figure	central symmetrization	NULL	transformation	CENTRAL SYMMETRIZATION
+Geometry	Circle geometry	central and inscribed angles	angle chase	Inscribed angle theorem	angle chase	CENTRAL/INSCRIBED ANGLES
+Algebra	Algebraic structures and linear algebra	centralizer	commutation/centralizer	NULL	structural algebra	CENTRALIZERS
+Geometry	Convex geometry	centrally symmetric convex body	symmetrization	NULL	extremal geometry	CENTRALLY SYMMETRIC CONVEX BODIES
+Geometry	Geometry-flavored algebra	centroid	centroid coordinates	NULL	coordinate setup	CENTROID COORDINATES
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	centroid process	centroid dynamics	NULL	invariant	CENTROID DYNAMICS
+Combinatorics	Graph theory	tree centroid	centroid edge	NULL	decomposition	CENTROID EDGE
+Geometry	Core Euclidean geometry	centroid	centroid identity	NULL	metric relation	CENTROID IDENTITY
+Geometry	Combinatorial geometry	centroid	centroid selection	NULL	selection	CENTROID SELECTION
+Geometry	Triangle centers and triangle configurations	centroid-altitude line	center-line chase	NULL	collinearity	CENTROID-ALTITUDE LINE
+Geometry	Triangle centers and triangle configurations	centroid/altitude line	center-line chase	NULL	collinearity	CENTROID/ALTITUDE LINE
+Geometry	Core Euclidean geometry	centroids and midpoints	midpoint/centroid chase	NULL	configuration	CENTROIDS AND MIDPOINTS
+Geometry	Core Euclidean geometry	cevians	concurrency criterion	Ceva's theorem	concurrency	CEVA (CONCURRENT TRANSVERSALS)
+Geometry	Core Euclidean geometry	cevians	angle-form Ceva	Ceva's theorem	concurrency	CEVA IN ANGLE FORM
+Geometry	Core Euclidean geometry	cevians	Ceva-style concurrency	Ceva's theorem	concurrency	CEVA-STYLE CONCURRENCY
+Geometry	Core Euclidean geometry	cevian ratios	ratio chase	Ceva's theorem	ratio setup	CEVA-STYLE RATIOS
+Geometry	Geometry-flavored algebra	cevians	coordinate Ceva	Ceva's theorem	coordinate setup	CEVA/COORDINATES
+Geometry	Projective geometry	cevians	cross-ratio chase	Ceva's theorem; cross ratio	concurrency	CEVA/CROSS-RATIO
+Geometry	Core Euclidean geometry	cevians	trilinear Ceva/Menelaus	Ceva; Menelaus	concurrency/collinearity	CEVA/MENELAUS (TRILINEARS)
+Geometry	Projective geometry	cevians	Pascal/Ceva combination	Ceva; Pascal	concurrency	CEVA/PASCAL
+Geometry	Core Euclidean geometry	cevians	ratio chase	Ceva's theorem	concurrency	CEVA/RATIO CHASE
+Algebra	Complex, trigonometric, and Fourier methods	cevians	trigonometric Ceva	Ceva's theorem	concurrency	CEVA/TRIG CEVA
+Geometry	Core Euclidean geometry	cevians	trilinears	Ceva's theorem	concurrency	CEVA/TRILINEARS
+Geometry	Core Euclidean geometry	cevians	Ceva-Menelaus	Ceva; Menelaus	concurrency/collinearity	CEVA–MENELAUS
+Geometry	Projective geometry	complete quadrilateral	Ceva-Menelaus	Ceva; Menelaus	concurrency/collinearity	CEVA–MENELAUS IN COMPLETE QUADRILATERAL
+Geometry	Core Euclidean geometry	cevian coordinates	coordinate ratios	Ceva's theorem	coordinate setup	CEVIAN COORDINATES
+Geometry	Core Euclidean geometry	cevian ratios	ratio chase	Ceva's theorem	ratio setup	CEVIAN RATIOS
+Geometry	Circle geometry	cevians and circumcircle	cyclic/cevian chase	Ceva's theorem; circle theorem	concurrency	CEVIAN/CIRCUMCIRCLE
+Geometry	Core Euclidean geometry	cevians/altitudes	altitude-evian chase	NULL	configuration	CEVIANS/ALTITUDES
+Combinatorics	Set systems, posets, and extremal set theory	poset	chain-antichain partition	Dilworth/Mirsky-type theorem	decomposition	CHAIN/ANTICHAIN PARTITION
+Algebra	Complex, trigonometric, and Fourier methods	characters modulo 100	character sums	NULL	sum evaluation	CHARACTER SUMS ON Z/100Z
+Number Theory	Additive/combinatorial number theory	character sums	character-sum viewpoint	NULL	transformation	CHARACTER-SUM VIEWPOINT
+Algebra	Polynomials and algebraic manipulation	characteristic roots	root rigidity	NULL	structural classification	CHARACTERISTIC ROOTS/RIGIDITY
+Algebra	Algebraic structures and linear algebra	characteristic subgroup	group invariance	NULL	structural algebra	CHARACTERISTIC SUBGROUPS
+Algebra	Extremal methods, monotonicity, and invariants	charge/potential	charging invariant	NULL	invariant	CHARGING INVARIANT
+Algebra	Analytic estimates and asymptotics	Chebyshev system	oscillation/variation	NULL	bounding	CHEBYSHEV SYSTEMS
+Algebra	Polynomials and algebraic manipulation	Chebyshev expression	Chebyshev identities	Chebyshev polynomials	identity	CHEBYSHEV UNU_NUN
+Algebra	Inequalities and optimization	Chebyshev bound	Chebyshev-style bounding	Chebyshev inequality	bounding	CHEBYSHEV-STYLE BOUNDS
+Algebra	Equations, substitutions, and transformations	Chebyshev substitution	substitution	Chebyshev polynomials	transformation	CHEBYSHEV-TYPE SUBSTITUTION
+Algebra	Sequences, recurrences, and series	continued fractions	Chebyshev/continued fractions	Chebyshev polynomials	recursion	CHEBYSHEV/CONTINUED FRACTIONS
+Algebra	Polynomials and algebraic manipulation	polynomial	Chebyshev polynomial method	Chebyshev polynomials	extremal polynomial	CHEBYSHEV/POLYNOMIAL METHOD
+Algebra	Complex, trigonometric, and Fourier methods	sine identities	Chebyshev/sine identity	Chebyshev polynomials; sine identities	identity	CHEBYSHEV/SINE IDENTITIES
+Algebra	Complex, trigonometric, and Fourier methods	sine identity	Chebyshev/sine identity	Chebyshev polynomials; sine identity	identity	CHEBYSHEV/SINE IDENTITY
+Combinatorics	Coloring, tiling, grids, and invariants	checkerboard	checkerboard imbalance	NULL	invariant	CHECKERBOARD IMBALANCE
+Combinatorics	Coloring, tiling, grids, and invariants	chessboard	chessboard coloring	NULL	invariant	CHESSBOARD COLORING
+Combinatorics	Combinatorial geometry	chessboard	chessboard geometry	NULL	modeling	CHESSBOARD GEOMETRY
+Combinatorics	Coloring, tiling, grids, and invariants	chessboard	packing argument	NULL	packing	CHESSBOARD PACKING
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	chips	chip movement	NULL	invariant	CHIP MOVEMENT
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	chip-firing process	firing invariant	NULL	dynamics	CHIP-FIRING-LIKE PROCESS
+Combinatorics	Set systems, posets, and extremal set theory	choice function	selection argument	NULL	construction	CHOICE FUNCTIONS
+Combinatorics	Graph theory	chords	chord coloring	NULL	coloring	CHORD COLORING
+Geometry	Circle geometry	chords	chord comparison	NULL	metric comparison	CHORD COMPARISON
+Geometry	Circle geometry	chords	direction chase	NULL	angle/direction	CHORD DIRECTIONS
+Geometry	Circle geometry	chords	chord estimates	NULL	bounding	CHORD ESTIMATES
+Geometry	Circle geometry	chord intersection	power-of-point chase	Intersecting chords theorem	metric relation	CHORD INTERSECTION
+Number Theory	Additive/combinatorial number theory	chord maps	discrete map	NULL	transformation	CHORD MAPS
+Combinatorics	Combinatorial geometry	chord partition	partition argument	NULL	decomposition	CHORD PARTITION
+Combinatorics	Graph theory	chord theorem	chordal/cycle theorem	NULL	structural theorem	CHORD THEOREM
+Algebra	Complex, trigonometric, and Fourier methods	chord	trigonometric substitution	NULL	transformation	CHORD-TRIG SUBSTITUTION
+Combinatorics	Graph theory	chorded cycles	cycle chord analysis	NULL	structural graph	CHORDED CYCLES
+Combinatorics	Graph theory	chordless graph	induced-cycle analysis	NULL	structural graph	CHORDLESS GRAPHS
+Geometry	Circle geometry	chords and radicals	radical-axis chase	Radical axis theorem	metric relation	CHORDS/RADICALS
+Combinatorics	Graph theory	chromatic-critical graph	criticality argument	NULL	extremal coloring	CHROMATIC CRITICALITY
+Combinatorics	Graph theory	chromatic number	graph coloring	NULL	coloring	CHROMATIC NUMBER
+Geometry	Circle geometry	circle	circle algebra	NULL	metric/algebraic computation	CIRCLE ALGEBRA
+Geometry	Circle geometry	circle	angle chase	Inscribed angle theorem	angle chase	CIRCLE ANGLE CHASE
+Combinatorics	Combinatorial geometry	circle arrangement	arrangement counting	NULL	counting	CIRCLE ARRANGEMENTS
+Geometry	Circle geometry	circle	BIC configuration	NULL	configuration	CIRCLE BIC
+Geometry	Circle geometry	circle center	side-center condition	NULL	locus	CIRCLE CENTER ON SIDE
+Geometry	Circle geometry	chord	circle chord theorem	NULL	metric relation	CIRCLE CHORD
+Geometry	Circle geometry	circle constraints	constraint chase	NULL	condition forcing	CIRCLE CONSTRAINTS
+Geometry	Geometry-flavored algebra	circle	coordinate setup	NULL	coordinate computation	CIRCLE COORDINATES
+Algebra	Geometry-flavored algebra	circle covering	covering argument	NULL	covering	CIRCLE COVERING
+Geometry	Circle geometry	circle	criteria for cyclicity	NULL	criterion	CIRCLE CRITERIA
+Geometry	Circle geometry	diameter circle	diameter angle theorem	Thales theorem	angle/metric relation	CIRCLE DIAMETERS
+Geometry	Circle geometry	circle family	family/locus method	NULL	locus	CIRCLE FAMILIES
+Geometry	Circle geometry	circle family	family/locus method	NULL	locus	CIRCLE FAMILY
+Combinatorics	Combinatorial geometry	circle gaps	circular gap argument	NULL	pigeonhole/bounding	CIRCLE GAP
+Geometry	Circle geometry	circle	equal chords/inversion	Equal chords theorem; inversion	metric relation	CIRCLE GEOMETRY / INVERSION / EQUAL CHORDS
+Geometry	Circle geometry	circle	radical-axis/symmetry	Radical axis theorem	structural geometry	CIRCLE GEOMETRY / RADICAL AXIS / SYMMETRY
+Combinatorics	Graph theory	circle graph	intersection graph	NULL	modeling	CIRCLE GROUP
+Geometry	Circle geometry	circle intersection	intersection criterion	NULL	criterion	CIRCLE INTERSECTION CRITERION
+Geometry	Circle geometry	circle involution	involution on circle	NULL	transformation	CIRCLE INVOLUTIONS
+Geometry	Circle geometry	circle locus	locus method	NULL	locus	CIRCLE LOCUS
+Geometry	Circle geometry	projections	projection circle	NULL	locus	CIRCLE OF PROJECTIONS
+Geometry	Geometry-flavored algebra	circle	parametrization	NULL	coordinate setup	CIRCLE PARAMETRIZATION
+Geometry	Circle geometry	power of a point	power chase	Power of a point	metric relation	CIRCLE POWER
+Geometry	Circle geometry	circle reversion	reversion/inversion	NULL	transformation	CIRCLE REVERSION
+Geometry	Combinatorial geometry	circles	separation argument	NULL	separation	CIRCLE SEPARATION
+Geometry	Circle geometry	fixed-point circle	circle through fixed point	NULL	locus	CIRCLE THROUGH FIXED POINT
+Geometry	Geometry-flavored algebra	tangent circle	circle through tangent point	NULL	coordinate/metric relation	CIRCLE THROUGH III TANGENT AT AAA
+Geometry	Circle geometry	moving-point circle	moving circle locus	NULL	locus	CIRCLE THROUGH MOVING POINTS
+Geometry	Circle geometry	centered circle	fixed center condition	NULL	locus	CIRCLE WITH CENTER MMM
+Geometry	Circle geometry	diameter circle	circle with diameter BC	Thales theorem	cyclicity	CIRCLE WITH DIAMETER BC
+Geometry	Circle geometry	fixed-center circle	fixed center condition	NULL	locus	CIRCLE WITH FIXED CENTER
+Geometry	Circle geometry	circle-line incidence	incidence chase	NULL	incidence	CIRCLE-LINE INCIDENCE
+Geometry	Circle geometry	circle and angle bisector	angle-bisector chase	NULL	configuration	CIRCLE/ANGLE BISECTOR
+Geometry	Circle geometry	circle centers	center chase	NULL	locus	CIRCLE/CENTERS
+Geometry	Circle geometry	circle-line degeneration	degenerate circle/line	NULL	limiting case	CIRCLE/LINE DEGENERATION
+Geometry	Circle geometry	circle-line projection	projection	NULL	transformation	CIRCLE/LINE PROJECTION
+Geometry	Geometry-flavored algebra	circle tangent configuration	tangent chase	Tangent-chord theorem	metric relation	CIRCLE/TANGENT CONFIGURATION
+Geometry	Geometry-flavored algebra	circles and tangents	tangent geometry	Tangent-chord theorem	configuration	CIRCLES & TANGENTS
+Geometry	Circle geometry	circles	inversion/homothety	Inversion; homothety	transformation	CIRCLES / INVERSION / HOMOTHETY
+Geometry	Circle geometry	circles and orthocenter	orthocenter/circle chase	NULL	configuration	CIRCLES / ORTHOCENTER CONFIGURATION
+Geometry	Circle geometry	circles and reflections	reflection/cyclicity	NULL	transformation	CIRCLES / REFLECTIONS / CYCLIC QUADRILATERAL
+Geometry	Geometry-flavored algebra	circles/tangents/orthic triangle	angle chase	Tangent-chord theorem	configuration	CIRCLES / TANGENTS / ORTHIC TRIANGLE / ANGLE CHASE
+Geometry	Circle geometry	circles and perpendiculars	perpendicular/circle chase	NULL	configuration	CIRCLES AND PERPENDICULARS
+Combinatorics	Combinatorial geometry	circles through points	incidence counting	NULL	counting	CIRCLES THROUGH POINTS
+Geometry	Circle geometry	circles and angles	angle chase	Inscribed angle theorem	angle chase	CIRCLES/ANGLES
+Geometry	Circle geometry	coaxal circles	coaxality	Radical axis theorem	structural geometry	CIRCLES/COAXALITY
+Geometry	Geometry-flavored algebra	circles and tangent	tangent geometry	Tangent-chord theorem	configuration	CIRCLES/TANGENT
+Combinatorics	Graph theory	circulant graph	cyclic graph model	NULL	modeling	CIRCULANT GRAPH
+Number Theory	Algebraic structures and linear algebra	circulant linear map	modular linear algebra	NULL	structural algebra	CIRCULANT LINEAR MAPS
+Algebra	Algebraic structures and linear algebra	circulant matrix	matrix diagonalization	NULL	structural algebra	CIRCULANT MATRICES
+Combinatorics	Combinatorial algebra and counting	circulant matrix	cyclic counting	NULL	counting	CIRCULANT MATRIX
+Combinatorics	Counting and enumerative combinatorics	circular arrangement	cyclic ordering	NULL	counting	CIRCULAR ARRANGEMENT
+Algebra	Sequences, recurrences, and series	circular binary sequence	cyclic sequence recursion	NULL	recursion	CIRCULAR BINARY SEQUENCE
+Combinatorics	Coloring, tiling, grids, and invariants	circular coloring	cyclic coloring	NULL	coloring	CIRCULAR COLORING
+Combinatorics	Combinatorial geometry	circular distance	distance on cycle/circle	NULL	metric bound	CIRCULAR DISTANCE
+Geometry	Circle geometry	circular locus	locus method	NULL	locus	CIRCULAR LOCUS
+Combinatorics	Counting and enumerative combinatorics	circular permutations	cyclic permutations	NULL	counting	CIRCULAR PERMUTATIONS
+Geometry	Circle geometry	circular segments	segment geometry	NULL	metric computation	CIRCULAR SEGMENTS
+Combinatorics	Combinatorial geometry	circular visibility	visibility graph	NULL	incidence	CIRCULAR VISIBILITY
+Geometry	Convex geometry	circular arc	circular-arc convexity	NULL	convexity	CIRCULAR-ARC CONVEXITY
+Geometry	Triangle centers and triangle configurations	circumcenter	barycentrics	NULL	coordinate setup	CIRCUMCENTER BARYCENTRICS
+Geometry	Triangle centers and triangle configurations	circumcenter	center chase	NULL	configuration	CIRCUMCENTER CHASING
+Geometry	Triangle centers and triangle configurations	circumcenter	collinearity chase	NULL	collinearity	CIRCUMCENTER COLLINEARITY
+Geometry	Triangle centers and triangle configurations	circumcenter	condition forcing	NULL	criterion	CIRCUMCENTER CONDITION
+Geometry	Triangle centers and triangle configurations	circumcenter	criterion	NULL	criterion	CIRCUMCENTER CRITERION
+Geometry	Triangle centers and triangle configurations	circumcenter	distance chase	NULL	metric relation	CIRCUMCENTER DISTANCE
+Geometry	Triangle centers and triangle configurations	circumcenter maps	map/locus method	NULL	transformation	CIRCUMCENTER MAPS
+Geometry	Triangle centers and triangle configurations	circumcenter	symmetry chase	NULL	symmetry	CIRCUMCENTER SYMMETRY
+Geometry	Geometry-flavored algebra	circumcenter vectors	vector method	NULL	coordinate setup	CIRCUMCENTER VECTORS
+Geometry	Triangle centers and triangle configurations	circumcenter/orthocenter	Euler-line style chase	Euler line	configuration	CIRCUMCENTER/ORTHOCENTER GEOMETRY
+Geometry	Triangle centers and triangle configurations	circumcenters on cevians	center-cevian chase	NULL	configuration	CIRCUMCENTERS ON CEVIANS
+Geometry	Circle geometry	circumcircle	computation	NULL	metric computation	CIRCUMCIRCLE COMPUTATION
+Geometry	Circle geometry	circumcircle	cyclicity condition	NULL	criterion	CIRCUMCIRCLE CONDITION
+Geometry	Circle geometry	circumcircle	angle/circle chase	Inscribed angle theorem	configuration	CIRCUMCIRCLE GEOMETRY
+Geometry	Circle geometry	circumcircle of BHC	orthocenter circle chase	NULL	configuration	CIRCUMCIRCLE OF BHC
+Geometry	Geometry-flavored algebra	circumcircle	parametrization	NULL	coordinate setup	CIRCUMCIRCLE PARAMETRIZATION
+Geometry	Circle geometry	circumcircle secant	secant power chase	Power of a point	metric relation	CIRCUMCIRCLE SECANT
+Geometry	Circle geometry	circumcircle tangency	tangent-chord chase	Tangent-chord theorem	configuration	CIRCUMCIRCLE TANGENCY
+Geometry	Circle geometry	circumcircle antipode	antipode construction	NULL	construction	CIRCUMCIRCLE/ANTIPODE
+Geometry	Circle geometry	circumcircle/excenter	excenter circle chase	NULL	configuration	CIRCUMCIRCLE/EXCENTER
+Geometry	Geometry-flavored algebra	circumcircle tangent	tangent-chord chase	Tangent-chord theorem	configuration	CIRCUMCIRCLE/TANGENT
+Geometry	Geometry-flavored algebra	circumcircle tangent	tangent geometry	Tangent-chord theorem	configuration	CIRCUMCIRCLE/TANGENT GEOMETRY
+Geometry	Geometry-flavored algebra	circumcircle tangents	tangent geometry	Tangent-chord theorem	configuration	CIRCUMCIRCLE/TANGENTS
+Geometry	Triangle centers and triangle configurations	circumradius	radius chase	NULL	metric relation	CIRCUMRADIUS CHASE
+Algebra	Inequalities and optimization	circumradius	circumradius inequality	Euler/Routh-type inequalities	bounding	CIRCUMRADIUS INEQUALITY
+Geometry	Triangle centers and triangle configurations	circumradius	radius relation	NULL	metric relation	CIRCUMRADIUS RELATION
+Geometry	Triangle centers and triangle configurations	circumradius and center distance	radius-center distance	NULL	metric relation	CIRCUMRADIUS-CENTER DISTANCE
+Geometry	Core Euclidean geometry	classical construction	compass-straightedge construction	NULL	construction	CLASSICAL CONSTRUCTION
+Combinatorics	Counting and enumerative combinatorics	classification	classification/counting	NULL	classification	CLASSIFICATION/COUNTING
+Combinatorics	Combinatorial algebra and counting	cliques	clique counting	NULL	counting	CLIQUE COUNTING
+Combinatorics	Graph theory	clique cover	covering argument	NULL	covering	CLIQUE COVERS
+Combinatorics	Graph theory	clique hypergraph	hypergraph clique model	NULL	modeling	CLIQUE HYPERGRAPHS
+Combinatorics	Graph theory	clique intersection	intersection argument	NULL	structural graph	CLIQUE INTERSECTION
+Combinatorics	Graph theory	clique number	extremal clique bound	NULL	bounding	CLIQUE NUMBER
+Combinatorics	Graph theory	clique partition	partition argument	NULL	decomposition	CLIQUE PARTITION
+Algebra	Inequalities and optimization	clique counts	count inequalities	NULL	bounding	CLIQUE-COUNT INEQUALITIES
+Algebra	Sequences, recurrences, and series	closed form	closed-form derivation	NULL	formula derivation	CLOSED FORM
+Algebra	Algebraic structures and linear algebra	closure operation	closure	NULL	structural algebra	CLOSURE OPERATIONS
+Algebra	Algebraic structures and linear algebra	closure properties	closure	NULL	structural algebra	CLOSURE PROPERTIES
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	closure rule	closure process	NULL	dynamics	CLOSURE RULE
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	closure classification	closure/classification	NULL	classification	CLOSURE/CLASSIFICATION
+Algebra	Extremal methods, monotonicity, and invariants	closure invariant	closure/invariant	NULL	invariant	CLOSURE/INVARIANTS
+Geometry	Circle geometry	coaxal lines	radical-axis method	Radical axis theorem	collinearity	COAXAL LINES
+Geometry	Circle geometry	coaxal pencil	radical-axis method	Radical axis theorem	structural geometry	COAXAL PENCIL
+Geometry	Circle geometry	coaxal pencils	radical-axis method	Radical axis theorem	structural geometry	COAXAL PENCILS
+Geometry	Circle geometry	coaxal/spiral configuration	spiral similarity	Radical axis theorem; spiral similarity	structural geometry	COAXAL/SPIRAL-STYLE GEOMETRY
+Geometry	Circle geometry	coaxal tangent circles	coaxality/tangency	Radical axis theorem	configuration	COAXAL/TANGENCY
+Geometry	Circle geometry	coaxal tangent circles	coaxality/tangency	Radical axis theorem	configuration	COAXAL/TANGENT CIRCLES
+Geometry	Circle geometry	coaxal circles	common point criterion	Radical axis theorem	concurrency	COAXALITY/COMMON POINT
+Geometry	Circle geometry	diameter circles	coaxality	Radical axis theorem	structural geometry	COAXALITY/DIAMETER CIRCLES
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	code/coding	coding flavor	NULL	modeling	CODING FLAVOR
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	code	coding-theory idea	NULL	modeling	CODING THEORY FLAVOR
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	weights	coding-style weight lemma	NULL	bounding	CODING-STYLE WEIGHT LEMMA
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	code	coding-theory viewpoint	NULL	transformation	CODING-THEORY VIEWPOINT
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	codes/determinacy	coding/determinacy	NULL	structural classification	CODING/DETERMINACY
+Algebra	Polynomials and algebraic manipulation	coefficients	convolution	NULL	coefficient extraction	COEFFICIENT CONVOLUTION
+Algebra	Polynomials and algebraic manipulation	coefficients	coefficient descent	NULL	descent	COEFFICIENT DESCENT
+Algebra	Polynomials and algebraic manipulation	coefficients	coefficient permutations	NULL	symmetry	COEFFICIENT PERMUTATIONS
+Algebra	Polynomials and algebraic manipulation	coefficients	coefficient perturbation	NULL	perturbation	COEFFICIENT PERTURBATION
+Algebra	Polynomials and algebraic manipulation	coefficients	coefficient vanishing	NULL	zero forcing	COEFFICIENT VANISHING
+Number Theory	Additive/combinatorial number theory	image set	cofinite image	NULL	surjectivity/finiteness	COFINITE IMAGE
+Combinatorics	Graph theory	cograph	graph decomposition	NULL	structural graph	COGRAPHS
+Algebra	Polynomials and algebraic manipulation	integer polynomial	Cohn criterion	Cohn irreducibility criterion	irreducibility	COHN CRITERION
+Algebra	Extremal methods, monotonicity, and invariants	coinvariant ring	algebraic invariant	NULL	structural algebra	COINVARIANT RING
+Algebra	Equations, substitutions, and transformations	collapse	collapse argument	NULL	reduction	COLLAPSE
+Geometry	Core Euclidean geometry	collinearity	Gauss/Monge-style line	Gauss line; Monge theorem	collinearity	COLLINEARITY (GAUSS/MONGE FLAVOR)
+Geometry	Core Euclidean geometry	collinearity	criterion	NULL	collinearity	COLLINEARITY CRITERIA
+Geometry	Geometry-flavored algebra	collinearity	determinant test	NULL	coordinate proof	COLLINEARITY DETERMINANT
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	collisions	collision control	NULL	injection/avoidance	COLLISION CONTROL
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	collision process	process invariant	NULL	dynamics	COLLISION PROCESS
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	collision systems	system dynamics	NULL	dynamics	COLLISION SYSTEMS
+Number Theory	Additive/combinatorial number theory	collisions	collision avoidance	NULL	injection	COLLISION-AVOIDANCE
+Combinatorics	Coloring, tiling, grids, and invariants	color classes	color partition	NULL	structural setup	COLOR CLASSES
+Combinatorics	Coloring, tiling, grids, and invariants	color energy	energy counting	NULL	bounding	COLOR ENERGY
+Combinatorics	Coloring, tiling, grids, and invariants	color imbalance	imbalance invariant	NULL	invariant	COLOR IMBALANCE
+Combinatorics	Graph theory	colored degrees	degree sum argument	NULL	bounding	COLOR-DEGREE SUMS
+Combinatorics	Graph theory	colored complete graph	Ramsey-style coloring	Ramsey theorem	modeling	COLORED COMPLETE GRAPHS
+Combinatorics	Graph theory	colored components	component coloring	NULL	decomposition	COLORED COMPONENTS
+Combinatorics	Combinatorial geometry	colored points	colored point-set argument	NULL	configuration	COLORED POINTS
+Algebra	Extremal methods, monotonicity, and invariants	coloring	local-to-global invariant	NULL	invariant	COLORING / INVARIANTS / LOCAL-TO-GLOBAL
+Combinatorics	Coloring, tiling, grids, and invariants	coloring	coloring argument	NULL	obstruction	COLORING ARGUMENTS
+Combinatorics	Coloring, tiling, grids, and invariants	depth coloring	coloring by depth	NULL	invariant	COLORING BY DEPTH
+Combinatorics	Coloring, tiling, grids, and invariants	depth modulo k	coloring by depth mod k	NULL	invariant	COLORING BY DEPTH MOD KKK
+Combinatorics	Coloring, tiling, grids, and invariants	coloring obstruction	obstruction coloring	NULL	obstruction	COLORING OBSTRUCTION
+Geometry	Combinatorial geometry	colored areas	area-coloring obstruction	NULL	obstruction	COLORING/AREA OBSTRUCTION
+Combinatorics	Counting and enumerative combinatorics	coloring	coloring/counting	NULL	counting	COLORING/COUNTING
+Combinatorics	Coloring, tiling, grids, and invariants	height function	coloring/height function	NULL	invariant	COLORING/HEIGHT FUNCTION
+Algebra	Extremal methods, monotonicity, and invariants	coloring	coloring invariant	NULL	invariant	COLORING/INVARIANT
+Combinatorics	Coloring, tiling, grids, and invariants	colorings	coloring	NULL	coloring	COLORINGS
+Combinatorics	Coloring, tiling, grids, and invariants	grid colorings	grid constraints	NULL	obstruction	COLORINGS/GRID CONSTRAINTS
+Combinatorics	Coloring, tiling, grids, and invariants	colouring	coloring	NULL	coloring	COLOURING
+Combinatorics	Extremal combinatorics and probabilistic method	extremal minimum	extremal principle	NULL	lower/upper bound	COMB - EXTREMAL/MINIMUM; STATEMENT CAVEAT
+Combinatorics	Counting and enumerative combinatorics	sorted word	counting modulo n	NULL	counting	COMB - SORTED WORD; COUNTING MODULO N
+Combinatorics	Combinatorial geometry	disks	extremal separation	NULL	extremal subset	COMB GEO - DISKS; SEPARATION; EXTREMAL SUBSETS
+Geometry	Combinatorial geometry	triangular lattice	enumeration/symmetry	NULL	counting	COMB GEO - TRIANGULAR LATTICE; ENUMERATION; SYMMETRY
+Combinatorics	Graph theory	interval graph	extremal construction	NULL	construction	COMB GEOMETRY; INTERVAL GRAPHS; EXTREMAL CONSTRUCTION
+Combinatorics	Graph theory	paths/Hamiltonian obstruction	extremal path argument	Hamiltonian obstruction	extremal obstruction	COMB-GRAPH THEORY; EXTREMAL PATHS; HAMILTONIAN OBSTRUCTION
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	interval covering	continuous extremal scheduling	NULL	optimization	COMB-INTERVAL COVERING; CONTINUOUS EXTREMAL; SCHEDULING
+Combinatorics	Graph theory	matchings/blockers	Hall/Kőnig coloring	Hall; Kőnig	blocking/extremal	COMB-MATCHINGS; HALL/KÖNIG; BLOCKERS; EXTREMAL COLORING
+Combinatorics	Coloring, tiling, grids, and invariants	path parity	parity invariant/chessboard coloring	NULL	invariant	COMB-PARITY INVARIANT; CHESSBOARD COLORING; PATH PARITY
+Combinatorics	Sequences and recurrences	binary strings	recursion/invariant induction	NULL	induction	COMB-RECURSION; BINARY STRINGS; INVARIANT/INDUCTION
+Algebra	Sequences, recurrences, and series	sequence/expression	telescoping convexity	NULL	invariant/estimate	COMB/ALG - INVARIANT; TELESCOPING; CONVEXITY
+Combinatorics	Combinatorial geometry	transversal/stabbing	extremal geometry	NULL	extremal bound	COMB/GEO; EXTREMAL GEOMETRY; TRANSVERSAL/STABBING FLAVOR
+Algebra	Combinatorial algebra and counting	combinatorial algebra	algebraic counting	NULL	modeling	COMBINATORIAL ALGEBRA
+Algebra	Polynomials and algebraic manipulation	combinatorial coefficients	coefficient method	NULL	coefficient extraction	COMBINATORIAL COEFFICIENTS
+Combinatorics	Counting and enumerative combinatorics	combinatorial objects	counting	NULL	counting	COMBINATORIAL COUNTING
+Combinatorics	Set systems, posets, and extremal set theory	combinatorial design	design construction	NULL	construction	COMBINATORIAL DESIGN
+Combinatorics	Games and strategies	combinatorial game	minimax/lattice/divisibility	NULL	strategy	COMBINATORIAL GAMES; LATTICE THEORY; MINIMAX; DIVISIBILITY
+Geometry	Combinatorial geometry	line arrangements	levels	NULL	incidence/counting	COMBINATORIAL GEOMETRY; LINE ARRANGEMENTS; LEVELS
+Combinatorics	Combinatorial geometry	triangulations	parity/extremal counting	NULL	extremal counting	COMBINATORIAL GEOMETRY; TRIANGULATIONS; PARITY; EXTREMAL COUNTING
+Combinatorics	Counting and enumerative combinatorics	combinatorial identities	identity proof	NULL	identity	COMBINATORIAL IDENTITIES
+Algebra	Polynomials and algebraic manipulation	polynomial zeros	combinatorial Nullstellensatz	Combinatorial Nullstellensatz	existence	COMBINATORIAL NULLSTELLENSATZ
+Algebra	Extremal methods, monotonicity, and invariants	potential function	combinatorial potential	NULL	invariant	COMBINATORIAL POTENTIAL THEORY
+Algebra	Sequences, recurrences, and series	combinatorial sums	summation	NULL	sum evaluation	COMBINATORIAL SUMMATION
+Combinatorics	General combinatorics	combinatorics	general combinatorial method	NULL	general tag	COMBINATORICS
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	cellular automata	induction/modular invariant	NULL	invariant	COMBINATORICS; CELLULAR AUTOMATA; INDUCTION; INVARIANTS/MODULAR PATTERNS
+Combinatorics	Combinatorial geometry	cyclic geometry	extremal counting	NULL	extremal counting	COMBINATORICS; CYCLIC GEOMETRY; EXTREMAL COUNTING
+Combinatorics	Graph theory	directed bipartite graph	fixed-point method	Fixed point theorem	fixed point	COMBINATORICS; DIRECTED BIPARTITE GRAPH; FIXED POINT
+Combinatorics	Counting and enumerative combinatorics	generating functions	parity generating function	NULL	counting	COMBINATORICS; GENERATING FUNCTIONS; PARITY
+Algebra	Polynomials and algebraic manipulation	graph factorization	group actions/involutions	NULL	decomposition	COMBINATORICS; GRAPH FACTORIZATION; GROUP ACTIONS; INVOLUTIONS
+Combinatorics	Graph theory	hypergraphs	greedy algorithm	NULL	construction	COMBINATORICS; GREEDY ALGORITHM; HYPERGRAPHS
+Combinatorics	Counting and enumerative combinatorics	permutations	dominance/Bruhat induction	Bruhat order	induction	COMBINATORICS; PERMUTATIONS; DOMINANCE ORDER; BRUHAT ORDER; INDUCTION
+Algebra	Polynomials and algebraic manipulation	convex hulls	probabilistic method/polynomial identity	NULL	existence	COMBINATORICS; PROBABILISTIC METHOD; CONVEX HULLS; POLYNOMIAL IDENTITY
+Algebra	Polynomials and algebraic manipulation	subgroup cosets	roots of unity filter	Roots of unity filter	counting	COMBINATORICS; ROOTS OF UNITY; SUBGROUP COSETS
+Combinatorics	Coloring, tiling, grids, and invariants	tilings	Hall local-to-global condition	Hall's theorem	existence	COMBINATORICS; TILINGS; HALL'S THEOREM; LOCAL-TO-GLOBAL CONDITION
+Geometry	Circle geometry	common chord	radical-axis chase	Radical axis theorem	collinearity	COMMON CHORD
+Combinatorics	Graph theory	common neighbors	neighborhood counting	NULL	bounding	COMMON NEIGHBORS
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	communication protocol	protocol/decision-tree method	NULL	lower bound	COMMUNICATION PROTOCOLS
+Algebra	Algebraic structures and linear algebra	commuting matrices	simultaneous structure	NULL	structural algebra	COMMUTING MATRICES
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	commuting operations	operation swapping	NULL	invariant	COMMUTING OPERATIONS
+Algebra	Algebraic structures and linear algebra	translations	commuting translations	NULL	structural algebra	COMMUTING TRANSLATIONS
+Geometry	Combinatorial geometry	compactness caveat	compactness limitation	NULL	caveat	COMPACTNESS CAVEAT
+Algebra	Extremal methods, monotonicity, and invariants	compactness idea	compactness argument	NULL	existence	COMPACTNESS IDEA
+Algebra	Extremal methods, monotonicity, and invariants	compactness intuition	compactness heuristic	NULL	existence	COMPACTNESS INTUITION
+Algebra	Extremal methods, monotonicity, and invariants	extremal configuration	compactness/extremal argument	NULL	existence	COMPACTNESS/EXTREMAL CONFIGURATION
+Number Theory	Algebraic structures and linear algebra	companion matrix	matrix recurrence	NULL	structural representation	COMPANION MATRIX
+Combinatorics	Graph theory	comparability graph	poset graph model	NULL	modeling	COMPARABILITY GRAPHS
+Algebra	Inequalities and optimization	quantities	comparison inequalities	NULL	comparison	COMPARISON INEQUALITIES
+Algebra	Inequalities and optimization	ordered quantities	comparison principle	NULL	bounding	COMPARISON PRINCIPLE
+Algebra	Inequalities and optimization	expression	comparison/symmetrization/self-composition	NULL	transformation	COMPARISON/SYMMETRIZATION/SELF-COMPOSITION
+Combinatorics	Set systems, posets, and extremal set theory	compatible objects	compatibility condition	NULL	existence	COMPATIBILITY
+Combinatorics	Counting and enumerative combinatorics	complement	complement trick	NULL	transformation	COMPLEMENT
+Combinatorics	Counting and enumerative combinatorics	complement	complement counting	NULL	counting	COMPLEMENT COUNTING
+Combinatorics	Counting and enumerative combinatorics	complement	complement trick	NULL	transformation	COMPLEMENT TRICK
+Algebra	Equations, substitutions, and transformations	complementary boxes	box complement	NULL	transformation	COMPLEMENTARY BOXES
+Algebra	Sequences, recurrences, and series	complementary sequences	complementary sequence method	NULL	decomposition	COMPLEMENTARY SEQUENCES
+Combinatorics	Graph theory	complete bipartite graph	complete bipartite model	NULL	modeling	COMPLETE BIPARTITE GRAPHS
+Combinatorics	Graph theory	complete graph	complete graph model	NULL	modeling	COMPLETE GRAPH MODEL
+Algebra	Polynomials and algebraic manipulation	complete homogeneous sums	symmetric polynomial method	NULL	symmetric sum	COMPLETE HOMOGENEOUS SUMS
+Combinatorics	Additive/combinatorial number theory	complete mapping	group/additive construction	Complete mapping theorem	construction	COMPLETE MAPPINGS
+Geometry	Projective geometry	complete quadrilateral	quadrilateral chase	NULL	configuration	COMPLETE QUADRILATERAL GEOMETRY
+Algebra	Sequences, recurrences, and series	complete sequence	sequence construction	NULL	construction	COMPLETE SEQUENCES
+Algebra	Equations, substitutions, and transformations	quadratic expression	completing the square	NULL	transformation	COMPLETING THE SQUARE
+Algebra	Polynomials and algebraic manipulation	roots of unity	complex polynomial method	Roots of unity filter	coefficient extraction	COMPLEX (ROOTS OF UNITY)
+Algebra	Complex, trigonometric, and Fourier methods	complex numbers	conjugation	NULL	transformation	COMPLEX CONJUGATION
+Algebra	Complex, trigonometric, and Fourier methods	complex differences	vector differences	NULL	coordinate setup	COMPLEX DIFFERENCES
+Algebra	Polynomials and algebraic manipulation	complex polynomial	factorization	NULL	factorization	COMPLEX FACTORIZATION
+Algebra	Inequalities and optimization	complex numbers	complex inequality	NULL	bounding	COMPLEX INEQUALITIES
+Geometry	Geometry-flavored algebra	complex lattice	lattice in complex plane	NULL	coordinate setup	COMPLEX LATTICES
+Algebra	Complex, trigonometric, and Fourier methods	complex modulus	modulus estimate	NULL	bounding	COMPLEX MODULUS
+Algebra	Polynomials and algebraic manipulation	extremal polynomial	Fourier/Parseval/minimax	Parseval identity	extremal polynomial	COMPLEX NUMBERS; EXTREMAL POLYNOMIALS; FOURIER/PARSEVAL; MINIMAX
+Algebra	Polynomials and algebraic manipulation	roots on circle	symmetric sums	NULL	structural polynomial	COMPLEX NUMBERS; ROOTS ON A CIRCLE; SYMMETRIC SUMS
+Algebra	Complex, trigonometric, and Fourier methods	unit circle	real-part maximization	NULL	maximization	COMPLEX NUMBERS; UNIT CIRCLE; REAL-PART MAXIMIZATION
+Algebra	Extremal methods, monotonicity, and invariants	complex vectors	convexity/monotonicity	NULL	extremal comparison	COMPLEX NUMBERS; VECTOR GEOMETRY; CONVEXITY/MONOTONICITY
+Algebra	Complex, trigonometric, and Fourier methods	complex plane	projective geometry setup	NULL	coordinate setup	COMPLEX PLANE/PROJECTIVE GEOMETRY
+Algebra	Polynomials and algebraic manipulation	complex polynomials	root bounds	Gauss-Lucas; Rouché; argument principle	root analysis	COMPLEX POLYNOMIALS; GAUSS-LUCAS; FEWNOMIAL ROOT BOUNDS; ARGUMENT PRINCIPLE/ROUCHÉ
+Algebra	Polynomials and algebraic manipulation	complex polynomial level sets	lemniscate/convexity	NULL	geometric polynomial analysis	COMPLEX POLYNOMIALS; GEOMETRY OF LEVEL SETS; CONVEXITY; LEMNISCATES
+Algebra	Complex, trigonometric, and Fourier methods	complex numbers	complex method possible	NULL	backup method	COMPLEX POSSIBLE
+Algebra	Complex, trigonometric, and Fourier methods	complex rotations	rotation multiplication	NULL	transformation	COMPLEX ROTATIONS
+Geometry	Core Euclidean geometry	complex vectors	vector method	NULL	coordinate setup	COMPLEX VECTORS
+Algebra	Polynomials and algebraic manipulation	complex vectors/roots of unity	roots-of-unity vector method	Roots of unity filter	coordinate/counting	COMPLEX VECTORS/ROOTS OF UNITY
+Geometry	Geometry-flavored algebra	complex/affine setup	affine complex coordinates	NULL	coordinate setup	COMPLEX/AFFINE SETUP
+Geometry	Geometry-flavored algebra	complex barycentrics	barycentric bash	NULL	coordinate proof	COMPLEX/BARYCENTRIC BASH
+Geometry	Geometry-flavored algebra	barycentric coordinates	complex/barycentric setup	NULL	coordinate setup	COMPLEX/BARYCENTRIC COORDINATES
+Geometry	Geometry-flavored algebra	barycentric coordinates	optional barycentric method	NULL	backup method	COMPLEX/BARYCENTRIC OPTIONAL
+Geometry	Geometry-flavored algebra	barycentric coordinates	possible barycentric method	NULL	backup method	COMPLEX/BARYCENTRIC POSSIBLE
+Geometry	Geometry-flavored algebra	barycentric vectors	complex/barycentric vector method	NULL	coordinate setup	COMPLEX/BARYCENTRIC VECTORS
+Geometry	Geometry-flavored algebra	complex coordinate setup	coordinate method	NULL	coordinate proof	COMPLEX/COORDINATE
+Geometry	Circle geometry	inversion	complex/inversion method	Inversion	transformation	COMPLEX/INVERSION
+Geometry	Transformational geometry	spiral similarity	complex spiral similarity	Spiral similarity	transformation	COMPLEX/SPIRAL SIMILARITY
+Geometry	Geometry-flavored algebra	collinearity	complex synthetic collinearity	NULL	collinearity	COMPLEX/SYNTHETIC COLLINEARITY
+Algebra	Complex, trigonometric, and Fourier methods	expression	complex/trig bash	NULL	computation	COMPLEX/TRIG BASH
+Geometry	Geometry-flavored algebra	vector method	complex/vector method	NULL	coordinate proof	COMPLEX/VECTOR METHOD
+Algebra	Polynomials and algebraic manipulation	real expression	complexification	NULL	transformation	COMPLEXIFICATION
+Combinatorics	Graph theory	components	component decomposition	NULL	decomposition	COMPONENTS
+Number Theory	Divisibility, gcd, lcm, and primes	composite numbers	divisibility argument	NULL	classification	COMPOSITE NUMBERS
+Number Theory	Divisibility, gcd, lcm, and primes	composites	divisibility argument	NULL	classification	COMPOSITES
+Geometry	Transformational geometry	isometries	composition of transformations	NULL	transformation	COMPOSITION OF ISOMETRIES
+Number Theory	Diophantine equations	local-global solutions	Hasse principle	Hasse principle	local-global obstruction	COMPOSITION/HASSE PRINCIPLE
+Combinatorics	Set systems, posets, and extremal set theory	set systems	compressions/shifting	NULL	extremal reduction	COMPRESSIONS/EXTREMAL SET SYSTEMS
+Geometry	Geometry-flavored algebra	configuration	computation	NULL	computation	COMPUTATION
+Combinatorics	Combinatorial geometry	computational geometry	algorithmic geometry	NULL	modeling	COMPUTATIONAL GEOMETRY FLAVOR
+Algebra	Inequalities and optimization	concavity	concavity transform	NULL	transformation	CONCAVITY TRANSFORM
+Geometry	Geometry-flavored algebra	concurrency	linear constraints	NULL	coordinate setup	CONCURRENCY AS LINEAR CONSTRAINTS
+Geometry	Core Euclidean geometry	concurrency on AO	line chase	NULL	concurrency	CONCURRENCY ON AO
+Geometry	Core Euclidean geometry	metric relation	condition forcing	NULL	criterion	CONDITION FORCING METRIC RELATION
+Geometry	3D and solid geometry	cone cross-section	section analysis	NULL	geometric reduction	CONE CROSS-SECTIONS
+Algebra	Linear algebra and convexity	cone	cone duality	Farkas-type duality	duality	CONE DUALITY
+Geometry	3D and solid geometry	conic sections	cone section geometry	NULL	configuration	CONE SECTIONS
+Algebra	Linear algebra and convexity	cones	cone method	NULL	duality/bounding	CONES
+Geometry	Core Euclidean geometry	configuration	configuration chase	NULL	configuration	CONFIGURATION CHASE
+
+Area	Canonical Subtopic	Object tag	Technique tag	Lemma/Theorem tag	Proof role	Raw imported tag
+Geometry	Core Euclidean geometry	point configuration	chasing			CONFIGURATION CHASING
+Geometry	Core Euclidean geometry	point configuration	transformation			CONFIGURATION TRANSFORMATION
+Geometry	Core Euclidean geometry	point configuration				CONFIGURATIONS OF POINTS
+Combinatorics	Coloring, tiling, grids, and invariants	coloring	coloring			CONFLICT-FREE COLORING
+Combinatorics	Combinatorial games and processes	rewriting process	confluence			CONFLUENCE
+Combinatorics	Combinatorial games and processes	rewriting process	confluence			CONFLUENCE/ABELIAN PROPERTY
+Geometry	Core Euclidean geometry	triangles				CONGRUENT TRIANGLES
+Geometry	Conics and projective geometry	conic				CONIC
+Combinatorics	Combinatorial algebra and counting	conic	counting		counting	CONIC COUNTING
+Geometry	Conics and projective geometry	conic; locus				CONIC LOCI
+Geometry	Conics and projective geometry	conic	parametrization			CONIC PARAMETRIZATION
+Geometry	Conics and projective geometry	conic intersections; intersections				CONICS/INTERSECTIONS
+Algebra	Algebraic structures and linear algebra	conjugates	conjugation			CONJUGATION
+Algebra	Algebraic structures and linear algebra	conjugates	conjugation			CONJUGATION ACTION
+Algebra	Algebraic structures and linear algebra	unit circle; conjugates	conjugation			CONJUGATION ON UNIT CIRCLE
+Algebra	Algebraic structures and linear algebra	conjugates	conjugation			CONJUGATION SYMMETRY
+Combinatorics	Combinatorial algebra and counting	bipartition; partitions				CONNECTED BIPARTITIONS
+Combinatorics	Graph theory	graph	connectivity			CONNECTIVITY GRAPH
+Combinatorics	Graph theory	grid; coloring	coloring; connectivity			CONNECTIVITY/GRID COLORINGS
+Number Theory	Number theory constructions and pigeonhole	intervals				CONSECUTIVE INTERVALS
+Combinatorics	Graph theory	vertices				CONSECUTIVE VERTICES
+Algebra	Equations, substitutions, and transformations		constancy argument			CONSTANCY ARGUMENT
+Geometry	Core Euclidean geometry	area				CONSTANT AREA
+Algebra	Equations, substitutions, and transformations	constant solutions				CONSTANT SOLUTIONS
+Combinatorics	Set systems, posets, and extremal set theory	constant-weight code				CONSTANT-WEIGHT CODES
+Algebra	Equations, substitutions, and transformations	affine maps				CONSTANTS AND AFFINE MAPS
+Algebra	Inequalities and optimization		optimization			CONSTRAINED MINIMIZATION
+Algebra	Equations, substitutions, and transformations	symmetric forms/functions				CONSTRAINED SYMMETRIC FORMS
+Algebra	Equations, substitutions, and transformations	symmetric forms/functions; functions				CONSTRAINED SYMMETRIC FUNCTIONS
+Algebra	Equations, substitutions, and transformations		constraint manipulation			CONSTRAINT MANIPULATION
+Combinatorics	Extremal combinatorics	bounds	construction; lower-bound construction		construction; lower bound	CONSTRUCTION + LOWER BOUND
+Combinatorics	Extremal combinatorics	bounds	construction; lower-bound construction		construction; lower bound	CONSTRUCTION AND LOWER BOUND
+Combinatorics	Extremal combinatorics	bounds	construction; lower-bound construction		construction; lower bound	CONSTRUCTION PLUS LOWER BOUND
+Algebra	Equations, substitutions, and transformations		construction; classification		construction; classification	CONSTRUCTION/CLASSIFICATION
+Combinatorics	Combinatorial algebra and counting		construction; counting; gadget construction		construction; counting	CONSTRUCTION/COUNTING GADGETS
+Combinatorics	General combinatorial structures	diagonal	construction; diagonalization		construction; diagonal argument	CONSTRUCTION/DIAGONALIZATION
+Combinatorics	Extremal combinatorics		construction; obstruction		construction; obstruction	CONSTRUCTION/OBSTRUCTION
+Number Theory	Number theory constructions and pigeonhole		construction; pigeonhole		construction; pigeonhole	CONSTRUCTION/PIGEONHOLE
+Combinatorics	General combinatorial structures	matrix	construction		construction	CONSTRUCTIONS / MATRICES
+Algebra	Extremal methods, monotonicity, and invariants		construction; extremal method		construction; extremal choice	CONSTRUCTIVE / EXTREMAL
+Algebra	Equations, substitutions, and transformations		construction		construction	CONSTRUCTIVE ALGEBRA
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	algorithm	construction; algorithmic construction		construction	CONSTRUCTIVE ALGORITHM
+Combinatorics	Algorithms, automata, words, and constructive combinatorics		construction		construction	CONSTRUCTIVE ARRANGEMENT
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	bijection	construction; bijection		construction	CONSTRUCTIVE BIJECTION
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	blocks	construction		construction	CONSTRUCTIVE BLOCKS
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	bounds	construction		construction; bounding	CONSTRUCTIVE BOUNDS
+Geometry	Core Euclidean geometry	cases	construction; casework		construction; casework	CONSTRUCTIVE CASES
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	cases	construction; casework		construction; casework	CONSTRUCTIVE CASEWORK
+Combinatorics	Coloring, tiling, grids, and invariants	coloring	coloring; construction		construction	CONSTRUCTIVE COLOURING
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	decomposition	construction; decomposition		construction	CONSTRUCTIVE DECOMPOSITION
+Algebra	Equations, substitutions, and transformations	dynamical process	construction; process analysis		construction	CONSTRUCTIVE DYNAMICS
+Combinatorics	Algorithms, automata, words, and constructive combinatorics		construction		construction	CONSTRUCTIVE EXISTENCE
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	expression	construction		construction	CONSTRUCTIVE EXPRESSION
+Algebra	Extremal methods, monotonicity, and invariants		construction; extremal method		construction; extremal choice	CONSTRUCTIVE EXTREMAL
+Algebra	Extremal methods, monotonicity, and invariants	path/walk	construction; extremal method; path construction		construction; extremal choice	CONSTRUCTIVE EXTREMAL PATH
+Combinatorics	Algorithms, automata, words, and constructive combinatorics		construction; gadget construction		construction	CONSTRUCTIVE GADGETS
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	game	construction		construction	CONSTRUCTIVE GAME
+Combinatorics	Algorithms, automata, words, and constructive combinatorics		construction; generation		construction	CONSTRUCTIVE GENERATION
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	geometric configuration	construction		construction	CONSTRUCTIVE GEOMETRY
+Combinatorics	Algorithms, automata, words, and constructive combinatorics		construction; insertion		construction	CONSTRUCTIVE INSERTION
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	intervals	construction		construction	CONSTRUCTIVE INTERVALS
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	cases	construction; casework		construction; casework	CONSTRUCTIVE MODULO CASES
+Algebra	Sequences, recurrences, and series		construction		construction	CONSTRUCTIVE NT; SEQUENCES; BINOMIAL ESTIMATES
+Combinatorics	Algorithms, automata, words, and constructive combinatorics		construction		construction; optimality	CONSTRUCTIVE OPTIMALITY
+Algebra	Extremal methods, monotonicity, and invariants		construction; ordering		construction	CONSTRUCTIVE ORDERING
+Algebra	Extremal methods, monotonicity, and invariants		construction; ordering; greedy		construction; invariant	CONSTRUCTIVE ORDERING / GREEDY & INVARIANTS / PARTIAL SUMS
+Combinatorics	Algorithms, automata, words, and constructive combinatorics		construction; parity		construction; parity	CONSTRUCTIVE PARITY
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	path/walk	construction; path construction		construction	CONSTRUCTIVE PATH
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	path/walk	construction; path construction		construction	CONSTRUCTIVE PATHING
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	permutation	construction		construction	CONSTRUCTIVE PERMUTATION
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	puzzle	construction		construction	CONSTRUCTIVE PUZZLE
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	reachability relation	construction; reachability		construction	CONSTRUCTIVE REACHABILITY
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	arrangement	construction; rearrangement		construction	CONSTRUCTIVE REARRANGEMENT
+Geometry	Core Euclidean geometry		construction; reduction		construction; reduction	CONSTRUCTIVE REDUCTION
+Combinatorics	Algorithms, automata, words, and constructive combinatorics		construction; sufficiency proof		construction; sufficiency	CONSTRUCTIVE SUFFICIENCY
+Combinatorics	Algorithms, automata, words, and constructive combinatorics		construction; swapping		construction	CONSTRUCTIVE SWAPPING
+Combinatorics	Coloring, tiling, grids, and invariants	tiling	construction; tiling construction		construction	CONSTRUCTIVE TILING
+Combinatorics	Coloring, tiling, grids, and invariants	tiling	construction; tiling construction		construction	CONSTRUCTIVE TILINGS
+Geometry	Geometry-flavored algebra	vectors	construction		construction	CONSTRUCTIVE VECTORS
+Algebra	Extremal methods, monotonicity, and invariants	design	construction; extremal method		construction; extremal choice	CONSTRUCTIVE/EXTREMAL DESIGN
+Geometry	Circle geometry	contact chord				CONTACT CHORD
+Geometry	Circle geometry	contact points				CONTACT POINTS
+Geometry	Circle geometry	tetrahedron				CONTACT TETRAHEDRON
+Geometry	Triangle centers and triangle configurations	orthic triangle		Orthic triangle lemma		CONTACT/ORTHIC TRIANGLE RELATIONS
+Combinatorics	General combinatorial structures		containment; comparison			CONTAINMENT/COMPARISON
+Combinatorics	Combinatorial algebra and counting	incidence configuration	incidence counting			CONTEST INCIDENCE
+Combinatorics	General combinatorial structures	continuous parameter	parity; tangency; continuity		parity	CONTINUITY & TANGENCY PARITY
+Algebra	Analytic estimates and asymptotics	dynamical process; continuous parameter	process analysis; continuity			CONTINUITY / DYNAMICS
+Combinatorics	Combinatorial algebra and counting	continuous parameter	continuity		counterexample	CONTINUITY COUNTEREXAMPLE
+Algebra	Analytic estimates and asymptotics	continuous parameter	continuity			CONTINUITY IMAGE
+Geometry	Continuity and topology methods	continuous parameter	continuity; compactness		compactness	CONTINUITY/COMPACTNESS
+Geometry	Continuity and topology methods	continuous parameter	continuity; fixed point			CONTINUITY/FIXED POINT
+Geometry	Continuity and topology methods	continuous parameter	continuity			CONTINUITY/INTERSECTION
+Combinatorics	General combinatorial structures	continuous parameter	parity; continuity		parity	CONTINUITY/PARITY
+Algebra	Analytic estimates and asymptotics	continuous parameter	continuity; perturbation			CONTINUITY/PERTURBATION
+Algebra	Analytic estimates and asymptotics	continuous parameter	continuity			CONTINUITY/RANGES
+Geometry	Continuity and topology methods	continuous parameter	continuity			CONTINUITY/SYMMETRY
+Geometry	Continuity and topology methods	continuous parameter	continuity			CONTINUITY/TOPOLOGY
+Algebra	Analytic estimates and asymptotics	approximation	continuous approximation			CONTINUOUS APPROXIMATION
+Algebra	Analytic estimates and asymptotics	bijection	bijection			CONTINUOUS BIJECTIONS
+Combinatorics	General combinatorial structures	quantities				CONTINUOUS QUANTITIES
+Geometry	Geometry-flavored algebra	coordinate setup	contraction; coordinate bash			CONTRACTION/COORDINATE ARGUMENT
+Algebra	Equations, substitutions, and transformations		contraction			CONTRACTIONS
+Combinatorics	General combinatorial structures		contradiction		contradiction	CONTRADICTION BY EXTENSION
+Geometry	Core Euclidean geometry	geometric configuration	contradiction		contradiction	CONTRADICTION GEOMETRY
+Combinatorics	Graph theory	graph	contradiction		contradiction	CONTRADICTION GRAPH
+Algebra	Equations, substitutions, and transformations		contraposition			CONTRAPOSITION
+Algebra	Sequences, recurrences, and series	series				CONVERGENT SERIES
+Algebra	Inequalities and optimization	convex combination	convexity			CONVEX COMBINATIONS
+Algebra	Inequalities and optimization	convex envelope	convexity			CONVEX ENVELOPE
+Geometry	Metric, convex, and incidence geometry	hexagon	convexity			CONVEX HEXAGON
+Combinatorics	Combinatorial geometry		convexity			CONVEX LAYERS
+Algebra	Inequalities and optimization		convexity			CONVEX MAPS
+Geometry	Metric, convex, and incidence geometry	octagon	convexity			CONVEX OCTAGON
+Geometry	Metric, convex, and incidence geometry	pentagon	convexity			CONVEX PENTAGON
+Geometry	Geometry-flavored algebra	polygon; diagonal	convexity		diagonal argument	CONVEX POLYGON DIAGONALS
+Geometry	Geometry-flavored algebra	geometric configuration; polygon	convexity			CONVEX POLYGON GEOMETRY
+Algebra	Inequalities and optimization	polygon	convexity			CONVEX POLYGONS/METRIC INEQUALITIES
+Algebra	Inequalities and optimization	polytope	convexity			CONVEX POLYTOPE
+Algebra	Inequalities and optimization		convexity			CONVEX PRIMITIVES
+Algebra	Inequalities and optimization		convexity; projection			CONVEX PROJECTION
+Combinatorics	Combinatorial geometry	quadrilateral	convexity			CONVEX QUADRILATERALS
+Combinatorics	Combinatorial geometry	quadruples	convexity			CONVEX QUADRUPLES
+Combinatorics	Combinatorial geometry	bounds	lower-bound construction; convexity		lower bound	CONVEX-POSITION LOWER BOUND
+Combinatorics	Combinatorial geometry	subsets	convexity			CONVEX-POSITION SUBSETS
+Algebra	Inequalities and optimization		extremal method; convexity		extremal choice	CONVEX/GEOMETRIC EXTREMAL ARGUMENT
+Algebra	Inequalities and optimization	convex envelope	convexity			CONVEXITY ENVELOPE
+Combinatorics	Combinatorial geometry		convexity			CONVEXITY ON (S2)\BINOM{S}{2}(2S‚Äö√Ñ√£)
+Algebra	Inequalities and optimization		convexity			CONVEXITY OVER Q
+Geometry	Metric, convex, and incidence geometry		convexity			CONVEXITY PRESERVATION
+Algebra	Inequalities and optimization		convexity; Cauchy-Schwarz	Cauchy-Schwarz		CONVEXITY/CAUCHY-TYPE
+Combinatorics	Combinatorial geometry	geometric configuration	convexity			CONVEXITY/COMBINATORIAL GEOMETRY
+Combinatorics	Combinatorial geometry		containment; convexity			CONVEXITY/CONTAINMENT
+Combinatorics	Combinatorial geometry		convexity; Cauchy-Schwarz	Cauchy-Schwarz		CONVEXITY/CS
+Algebra	Inequalities and optimization		convexity		extremal choice	CONVEXITY/EXTREME POINTS
+Algebra	Inequalities and optimization		convexity; greedy			CONVEXITY/GREEDY
+Algebra	Inequalities and optimization		convexity; Jensen	Jensen		CONVEXITY/JENSEN FLAVOR
+Algebra	Inequalities and optimization		convexity			CONVEXITY/LM
+Geometry	Metric, convex, and incidence geometry	locus	convexity			CONVEXITY/LOCUS
+Algebra	Inequalities and optimization		convexity; log-convexity			CONVEXITY/LOG-CONVEXITY
+Geometry	Metric, convex, and incidence geometry		convexity			CONVEXITY/ORDER
+Algebra	Inequalities and optimization	arrangement	rearrangement; convexity			CONVEXITY/REARRANGEMENT
+Combinatorics	Combinatorial geometry		convexity			CONVEXITY/VARIANCE
+Combinatorics	Combinatorial geometry		convexity			CONVEXITY/WIDTH
+Combinatorics	Combinatorial geometry		convexity; earthmover/transport			CONVEXITY/‚Äö√Ñ√∫EARTHMOVER‚Äö√Ñ√π
+Geometry	Geometry-flavored algebra	geometric configuration; coordinate setup	coordinate bash			COORD/EUCLIDEAN GEOMETRY
+Geometry	Geometry-flavored algebra	coordinate setup	chasing; coordinate bash; angle chasing			COORDINATE ANGLE CHASE
+Geometry	Geometry-flavored algebra	coordinate setup	coordinate bash; synthetic geometry			COORDINATE BASH / SYNTHETIC RELATION
+Combinatorics	Combinatorial algebra and counting	coordinate setup	counting; coordinate bash		counting	COORDINATE COUNTING
+Geometry	Geometry-flavored algebra	decomposition; coordinate setup	decomposition; coordinate bash			COORDINATE DECOMPOSITION
+Geometry	Geometry-flavored algebra	geometric configuration; locus; coordinate setup	coordinate bash			COORDINATE GEOMETRY; RHOMBUS; INVERSION-LIKE LOCUS
+Geometry	Geometry-flavored algebra	coordinate setup	transformation; coordinate bash			COORDINATE TRANSFORM
+Geometry	Geometry-flavored algebra	coordinate setup	coordinate bash; trigonometric method			COORDINATE/TRIG BASH
+Geometry	Geometry-flavored algebra	coordinate setup	chasing; coordinate bash; trigonometric method			COORDINATE/TRIG CHASE
+Geometry	Geometry-flavored algebra	coordinate setup	coordinate bash	Power of a Point		COORDINATES / POWER-OF-A-POINT
+Geometry	Geometry-flavored algebra	coordinate setup	coordinate bash			COORDINATES OPTIONAL
+Geometry	Geometry-flavored algebra	coordinate setup	coordinate bash; trigonometric method			COORDINATES OR TRIG
+Geometry	Geometry-flavored algebra	coordinate setup	chasing; coordinate bash; angle chasing			COORDINATES/ANGLE CHASING
+Geometry	Geometry-flavored algebra	coordinate setup; barycentric coordinates	coordinate bash; barycentric method	Barycentric coordinates		COORDINATES/BARYCENTRICS
+Geometry	Geometry-flavored algebra	coordinate setup	coordinate bash; homothety	Homothety		COORDINATES/HOMOTHETY
+Geometry	Geometry-flavored algebra	coordinate setup	chasing; coordinate bash			COORDINATES/LENGTH CHASE
+Geometry	Conics and projective geometry	coordinate setup; polar	coordinate bash; pole-polar	Pole-polar		COORDINATES/POLARS
+Geometry	Conics and projective geometry	coordinate setup; polar	coordinate bash; pole-polar	Pole-polar		COORDINATES/POLE-POLAR
+Geometry	Conics and projective geometry	coordinate setup	fixed point; coordinate bash			COORDINATES/PROJECTIVE FIXED POINT
+Geometry	Conics and projective geometry	coordinate setup	coordinate bash			COORDINATES/PROJECTIVE FLAVOR
+Geometry	Geometry-flavored algebra	coordinate setup	coordinate bash; rotation			COORDINATES/ROTATION
+Geometry	Geometry-flavored algebra	coordinate setup	coordinate bash; similarity			COORDINATES/SIMILARITY
+Geometry	Geometry-flavored algebra	coordinate setup	coordinate bash; synthetic geometry			COORDINATES/SYNTHETIC
+Geometry	Geometry-flavored algebra	coordinate setup	coordinate bash; synthetic geometry			COORDINATES/SYNTHETIC HYBRID
+Geometry	Geometry-flavored algebra	coordinate setup	coordinate bash; trigonometric method			COORDINATES/TRIG BASH
+Geometry	Core Euclidean geometry	coordinate setup	coordinate bash; trigonometric method	Trigonometric Ceva		COORDINATES/TRIG CEVA
+Geometry	Geometry-flavored algebra	vectors; coordinate setup	coordinate bash			COORDINATES/VECTOR
+Geometry	Geometry-flavored algebra	geometric configuration; vectors; coordinate setup	coordinate bash			COORDINATES/VECTOR GEOMETRY
+Geometry	Geometry-flavored algebra	vectors; coordinate setup	coordinate bash			COORDINATES/VECTOR SETUP
+Algebra	Equations, substitutions, and transformations	parameters				COPRIME PARAMETERS
+Combinatorics	Combinatorial algebra and counting	corner	counting		counting	CORNER COUNTING
+Algebra	Inequalities and optimization		correlation inequality			CORRELATION INEQUALITIES
+Combinatorics	General combinatorial structures		trapping			CORRIDOR TRAPPING
+Geometry	Circle geometry			Ptolemy; Cosine Rule		COSINE RULE / PTOLEMY
+Combinatorics	Combinatorial algebra and counting		proof split		counterexample; proof split	COUNTEREXAMPLE/PROOF SPLIT
+Combinatorics	Combinatorial algebra and counting		counting		counting	COUNTING ARGUMENT
+Combinatorics	Combinatorial algebra and counting	bounds	counting		bounding; counting	COUNTING BOUNDS
+Combinatorics	Combinatorial algebra and counting	point configuration	counting		counting	COUNTING CONFIGURATIONS
+Combinatorics	Combinatorial algebra and counting	denominator	counting		counting	COUNTING DENOMINATORS
+Combinatorics	Combinatorial algebra and counting	differences	counting		counting	COUNTING DIFFERENCES
+Combinatorics	Combinatorial algebra and counting		counting		counting	COUNTING DISTINCT PARTS
+Combinatorics	Combinatorial games and processes	dynamical process	counting; process analysis		counting	COUNTING DYNAMICS
+Combinatorics	Combinatorial algebra and counting	equations	counting		counting	COUNTING EQUATIONS
+Combinatorics	Combinatorial algebra and counting		counting		counting	COUNTING EXTREMIZERS
+Combinatorics	Combinatorial algebra and counting	functions	counting		counting	COUNTING FUNCTIONS
+Combinatorics	Combinatorial algebra and counting		counting		counting	COUNTING GENERATORS
+Combinatorics	Combinatorial algebra and counting	bounds	lower-bound construction; counting		lower bound; counting	COUNTING LOWER BOUND
+Combinatorics	Combinatorial algebra and counting		counting		counting	COUNTING MULTIPLES
+Combinatorics	Combinatorial algebra and counting		counting		counting	COUNTING MULTIPLICITIES
+Combinatorics	Combinatorial algebra and counting	partitions	counting		counting	COUNTING PARTITIONS
+Combinatorics	Combinatorial algebra and counting	permutation	counting		counting	COUNTING PERMUTATIONS
+Combinatorics	Combinatorial algebra and counting	preimages	counting		counting	COUNTING PREIMAGES
+Combinatorics	Combinatorial games and processes		counting; process analysis		counting	COUNTING PROCESS
+Algebra	Sequences, recurrences, and series		counting		counting	COUNTING RECURRENCE
+Combinatorics	Combinatorial algebra and counting	roots	counting		counting	COUNTING ROOTS
+Combinatorics	Combinatorial algebra and counting	tuples	counting		counting	COUNTING TUPLES
+Combinatorics	Combinatorial algebra and counting		counting; thresholding		counting	COUNTING VIA THRESHOLDING
+Combinatorics	Combinatorial algebra and counting		constraint manipulation; counting		counting	COUNTING WITH CONSTRAINTS
+Combinatorics	Combinatorial algebra and counting		counting		counting	COUNTING/STRUCTURE
+Algebra	Equations, substitutions, and transformations	equations				COUPLED EQUATIONS
+Algebra	Inequalities and optimization	pairs				COVARIANCE OVER PAIRS
+Combinatorics	Set systems, posets, and extremal set theory	set family				COVER-FREE FAMILIES
+Geometry	Geometry-flavored algebra	triangles				COVERAGE BY TRIANGLES
+Combinatorics	Combinatorial geometry	covering	covering			COVERING BY TEST POINTS
+Combinatorics	Set systems, posets, and extremal set theory	covering design; covering; design	covering			COVERING DESIGN
+Combinatorics	Set systems, posets, and extremal set theory	covering design; covering; design	covering			COVERING DESIGNS
+Geometry	Metric, convex, and incidence geometry	covering; directions	covering			COVERING DIRECTIONS
+Combinatorics	Combinatorial geometry	covering	covering			COVERING LEMMA
+Algebra	Equations, substitutions, and transformations	covering	covering			COVERING NUMBERS
+Combinatorics	Combinatorial geometry	pairs; covering	covering			COVERING PAIRS
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	path/walk; covering	path construction; covering			COVERING PATH
+Combinatorics	Combinatorial geometry	covering	covering			COVERING RECTANGLES
+Combinatorics	Combinatorial geometry	covering	covering			COVERING SYSTEMS
+Combinatorics	Combinatorial geometry	covering	covering; packing			COVERING/PACKING
+Combinatorics	Combinatorial geometry	covering	covering			COVERINGS/NETS
+Algebra	Equations, substitutions, and transformations	covering	covering; packing			COVERINGS/PACKINGS
+Combinatorics	Combinatorial algebra and counting	partitions; covering	covering			COVERINGS/PARTITIONS
+Geometry	Core Euclidean geometry		criterion finding		criterion	CRITERION FINDING
+Combinatorics	Extremal combinatorics		obstruction		obstruction	CRITICAL OBSTRUCTION
+Combinatorics	Set systems, posets, and extremal set theory	set family; cross-intersecting family				CROSS-INTERSECTING FAMILIES
+Combinatorics	Set systems, posets, and extremal set theory	cross-intersecting family				CROSS-INTERSECTION
+Geometry	Conics and projective geometry	cross-ratio				CROSS-RATIO INVARIANCE
+Combinatorics	Algorithms, automata, words, and constructive combinatorics		reduction; crossing reduction		reduction	CROSSING REDUCTION
+Combinatorics	Extremal combinatorics		crossing reduction; probabilistic method			CROSSING-NUMBER/PROBABILISTIC
+Combinatorics	Combinatorial geometry			Crystallographic restriction theorem		CRYSTALLOGRAPHIC RESTRICTION
+Combinatorics	Graph theory	graph; cube graph				CUBE GRAPH
+Combinatorics	Combinatorial algebra and counting	partitions; cube partition				CUBE PARTITION
+Combinatorics	Graph theory	graph; cubic polynomial/map				CUBIC BIPARTITE GRAPHS
+Number Theory	Divisibility, gcd, lcm, and primes	cubic polynomial/map	cancellation			CUBIC CANCELLATION
+Algebra	Polynomials and algebraic manipulation	cubic polynomial/map	comparison			CUBIC COMPARISON
+Algebra	Polynomials and algebraic manipulation	cubic polynomial/map; curve				CUBIC CURVES
+Algebra	Analytic estimates and asymptotics	cubic polynomial/map; derivative	derivative method			CUBIC DERIVATIVE
+Algebra	Equations, substitutions, and transformations	equations; cubic polynomial/map				CUBIC EQUATIONS
+Algebra	Polynomials and algebraic manipulation	cubic polynomial/map				CUBIC EXPANSION
+Number Theory	Algebraic and analytic number theory	cubic polynomial/map				CUBIC IMAGE SIZE
+Algebra	Inequalities and optimization	cubic polynomial/map				CUBIC INEQUALITIES
+Algebra	Polynomials and algebraic manipulation	cubic polynomial/map				CUBIC IRRATIONALITY
+Combinatorics	Graph theory	graph; cubic polynomial/map				CUBIC MAPS/TRAILS/EMBEDDED GRAPHS
+Algebra	Extremal methods, monotonicity, and invariants	cubic polynomial/map	monotonicity			CUBIC MONOTONICITY
+Number Theory	Algebraic and analytic number theory	cubic polynomial/map				CUBIC NORM
+Algebra	Polynomials and algebraic manipulation	roots; cubic polynomial/map		Roots of unity		CUBIC ROOTS OF UNITY
+Algebra	Polynomials and algebraic manipulation	cubic polynomial/map				CUBICS
+Algebra	Equations, substitutions, and transformations	distribution function				CUMULATIVE DISTRIBUTION
+Combinatorics	Combinatorial geometry	cup-cap set	construction		construction	CUP-CAP CONSTRUCTION
+Algebra	Equations, substitutions, and transformations	bounds	curvature bound		bounding	CURVATURE BOUND
+Algebra	Equations, substitutions, and transformations	curve				CURVE GENUS
+Geometry	Spatial geometry	curve				CURVES IN SPACE
+Geometry	Metric, convex, and incidence geometry	locus; cut locus				CUT LOCUS
+Combinatorics	General combinatorial structures	cut				CUTS
+Algebra	Extremal methods, monotonicity, and invariants		cutting/gluing		invariant	CUTTING INVARIANT
+Algebra	Extremal methods, monotonicity, and invariants		cutting/gluing		invariant	CUTTING/GLUING INVARIANT
+Combinatorics	Graph theory	coloring; cycle	coloring			CYCLE COLORINGS
+Combinatorics	Graph theory	cycle				CYCLE CONDITION
+Combinatorics	Graph theory	cycle	counting		counting	CYCLE COUNTING
+Combinatorics	Graph theory	decomposition; cycle	decomposition			CYCLE DECOMPOSITIONS
+Combinatorics	Graph theory	cycle				CYCLE DOMINATION
+Combinatorics	Graph theory	cycle			existence	CYCLE EXISTENCE
+Combinatorics	Graph theory	cycle	Laplacian method			CYCLE LAPLACIAN
+Combinatorics	Graph theory	cycle				CYCLE METHOD
+Algebra	Equations, substitutions, and transformations	cycle				CYCLE METRIC
+Combinatorics	Graph theory	blocks; decomposition; cycle	decomposition			CYCLE STRUCTURE/BLOCK DECOMPOSITION
+Combinatorics	Graph theory	cycle				CYCLE-EXTENSION
+Combinatorics	Graph theory	graph; cycle				CYCLE-FREE GRAPHS
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	cyclic arrangement				CYCLIC ARRANGEMENTS
+Algebra, Combinatorics	Combinatorial algebra and counting	cyclic array				CYCLIC ARRAYS
+Number Theory	Modular arithmetic and residues	blocks				CYCLIC BLOCKS
+Geometry	Circle geometry	cyclic bundle				CYCLIC BUNDLES
+Algebra	Discrete functions, floors, rounding, and base representation	cellular automaton				CYCLIC CELLULAR AUTOMATA
+Geometry	Circle geometry	cyclic centers				CYCLIC CENTERS
+Geometry	Circle geometry		chasing			CYCLIC CHASING
+Geometry	Circle geometry	chords				CYCLIC CHORDS
+Combinatorics	Coloring, tiling, grids, and invariants	coloring	coloring			CYCLIC COLORING
+Geometry	Circle geometry	cyclic condition				CYCLIC CONDITIONS
+Combinatorics	General combinatorial structures		construction		construction	CYCLIC CONSTRUCTIONS
+Algebra	Equations, substitutions, and transformations		contradiction		contradiction	CYCLIC CONTRADICTION
+Algebra	Equations, substitutions, and transformations	denominator; cyclic denominators				CYCLIC DENOMINATORS
+Algebra	Equations, substitutions, and transformations	cyclic exponents				CYCLIC EXPONENTS
+Algebra	Extremal methods, monotonicity, and invariants		extremal method		extremal choice	CYCLIC EXTREMAL
+Algebra	Extremal methods, monotonicity, and invariants		extremal method		extremal choice	CYCLIC EXTREMAL SETS
+Algebra	Algebraic structures and linear algebra		group action			CYCLIC GALOIS ACTION
+Combinatorics	General combinatorial structures	cyclic gaps				CYCLIC GAPS
+Combinatorics	Graph theory	graph				CYCLIC GRAPH
+Combinatorics	General combinatorial structures	cyclic group	group action			CYCLIC GROUP ACTION
+Geometry	Circle geometry	polygon; cyclic group				CYCLIC GROUPS/REGULAR POLYGONS
+Number Theory	Modular arithmetic and residues	cyclic indices				CYCLIC INDEXING
+Combinatorics	General combinatorial structures	cyclic indices				CYCLIC INDICES
+Geometry	Circle geometry	intersections; cyclic intersections				CYCLIC INTERSECTIONS
+Geometry	Circle geometry	locus; cyclic locus				CYCLIC LOCI
+Number Theory	Modular arithmetic and residues	matrix; cyclic matrix				CYCLIC MATRICES
+Number Theory	Modular arithmetic and residues	cyclic orbit				CYCLIC ORBITS
+Geometry	Circle geometry	quadrilateral; diagonal			diagonal argument	CYCLIC ORTHODIAGONAL QUADRILATERALS
+Combinatorics	Combinatorial algebra and counting	cyclic pairing	pairing			CYCLIC PAIRING
+Geometry	Circle geometry	pentagon				CYCLIC PENTAGONS
+Geometry	Circle geometry	polygon				CYCLIC POLYGON
+Geometry	Circle geometry	power equality	power-of-a-point style			CYCLIC POWER EQUALITIES
+Number Theory	Modular arithmetic and residues	cyclic prefix sums				CYCLIC PREFIX SUMS
+Combinatorics	Combinatorial games and processes		process analysis			CYCLIC PROCESS
+Number Theory	Modular arithmetic and residues		process analysis			CYCLIC PROCESSES
+Algebra	Equations, substitutions, and transformations	cyclic product	contradiction		contradiction	CYCLIC PRODUCT CONTRADICTION
+Algebra	Equations, substitutions, and transformations	cyclic product	product trick			CYCLIC PRODUCT TRICK
+Geometry	Circle geometry	quadrilateral				CYCLIC QUADRILALS
+Geometry	Conics and projective geometry	quadrilateral				CYCLIC QUADRILATERAL / PEDAL CIRCLES / PROJECTIVE STRUCTURE
+Geometry	Circle geometry	quadrilateral				CYCLIC QUADRILATERAL RATIOS
+Geometry	Circle geometry	pentagon; quadrilateral				CYCLIC QUADRILATERAL/PENTAGON
+Geometry	Circle geometry	quadrilateral		Miquel		CYCLIC QUADRILATERALS/MIQUEL FLAVOR
+Algebra	Equations, substitutions, and transformations	cyclic radicals				CYCLIC RADICALS
+Algebra	Equations, substitutions, and transformations	expression; cyclic rational expression				CYCLIC RATIONAL EXPRESSIONS
+Algebra	Inequalities and optimization	cyclic rational expression				CYCLIC RATIONAL INEQUALITY
+Geometry	Circle geometry	cyclic ratios	ratio chase			CYCLIC RATIOS
+Geometry	Circle geometry	right angles	right-angle cyclicity			CYCLIC RIGHT ANGLES
+Geometry	Circle geometry		rotation			CYCLIC ROTATIONS
+Algebra	Sequences, recurrences, and series	cyclic sequence				CYCLIC SEQUENCE
+Number Theory	Modular arithmetic and residues	cyclic shift operator				CYCLIC SHIFT OPERATOR
+Geometry	Circle geometry	side-point configuration	side-point lemma			CYCLIC SIDE-POINT LEMMA
+Combinatorics	General combinatorial structures	cyclic arrangement				CYCLIC STRUCTURES
+Number Theory	Modular arithmetic and residues	cyclic subgroup				CYCLIC SUBGROUP
+Algebra	Equations, substitutions, and transformations	cyclic differences	cyclic subtraction			CYCLIC SUBTRACTION
+Geometry	Circle geometry	cyclic sum				CYCLIC SUMMATION
+Algebra	Sequences, recurrences, and series		telescoping			CYCLIC TELESCOPING
+Combinatorics	General combinatorial structures	path/walk				CYCLIC TRAVERSAL
+Algebra	Complex, trigonometric, and Fourier methods	cyclic trigonometric expression	trigonometric method			CYCLIC TRIG
+Number Theory	Modular arithmetic and residues	path/walk				CYCLIC WALKS
+Geometry	Circle geometry		angle-bisector criterion			CYCLIC/ANGLE-BISECTOR CRITERIA
+Geometry	Circle geometry		antiparallel lines			CYCLIC/ANTIPARALLEL LINES
+Geometry	Circle geometry		equal angles			CYCLIC/EQUAL-ANGLES
+Geometry	Circle geometry	isosceles structure	isosceles reduction			CYCLIC/ISOSCELES STRUCTURE
+Geometry	Circle geometry			Miquel		CYCLIC/MIQUEL
+Geometry	Circle geometry			Miquel		CYCLIC/MIQUEL FLAVOR
+Geometry	Triangle centers and triangle configurations			Nine-point circle		CYCLIC/NINE-POINT
+Geometry	Triangle centers and triangle configurations			Orthic triangle lemma		CYCLIC/ORTHIC
+Geometry	Triangle centers and triangle configurations			Orthocenter		CYCLIC/ORTHOCENTER
+Geometry	Circle geometry		chasing; angle chasing; perpendicular angle chase			CYCLIC/PERPENDICULAR ANGLE CHASE
+Geometry	Circle geometry			Power of a Point		CYCLIC/POWER OF A POINT
+Geometry	Circle geometry	quadrilateral	angle chasing			CYCLIC/QUADRILATERAL ANGLE CONDITION
+Geometry	Circle geometry	quadrilateral				CYCLIC/QUADRILATERAL CENTERS
+Geometry	Circle geometry	quadrilateral	chasing			CYCLIC/QUADRILATERAL CHASE
+Geometry	Circle geometry	quadrilateral	constraint manipulation			CYCLIC/QUADRILATERAL CONSTRAINTS
+Geometry	Circle geometry	quadrilateral	tangency			CYCLIC/QUADRILATERAL TANGENCY
+Geometry	Circle geometry			Reim		CYCLIC/REIM
+Geometry	Circle geometry		tangency			CYCLIC/TANGENT
+Geometry	Circle geometry		tangency			CYCLIC/TANGENTIAL CRITERIA
+Geometry	Circle geometry	quadrilateral	tangency			CYCLIC/TANGENTIAL QUADRILATERAL
+Geometry	Circle geometry	quadrilateral	tangency			CYCLIC/TANGENTIAL QUADRILATERALS
+Geometry	Circle geometry		criterion finding		criterion	CYCLICITY CRITERION
+Combinatorics	Graph theory		reduction; cycle-space reduction		reduction	CYCLOMATIC REDUCTION
+Number Theory	Algebraic and analytic number theory	expression; cyclotomic expression		Cyclotomic polynomial		CYCLOTOMIC EXPRESSION
+Algebra	Polynomials and algebraic manipulation	cyclotomic expression		Cyclotomic polynomial		CYCLOTOMIC FACTOR (X3‚Äö√†√≠1)(X^3-1)(X3‚Äö√†√≠1)
+Number Theory	Algebraic and analytic number theory	cyclotomic expression		Cyclotomic polynomial		CYCLOTOMIC FLAVOR
+Number Theory	Algebraic and analytic number theory	cyclotomic expression		Cyclotomic polynomial		CYCLOTOMIC UNITS
+Combinatorics	Graph theory	graph				DAG/FEEDBACK EDGE SET
+Geometry	Metric, convex, and incidence geometry			Danzer-Gr√ºnbaum		DANZER-GR‚àö√∫NBAUM TYPE
+Algebra	Analytic estimates and asymptotics	derivative	derivative method	Darboux theorem		DARBOUX PROPERTY OF DERIVATIVES
+Combinatorics	Algorithms, automata, words, and constructive combinatorics			de Bruijn sequence		DE BRUIJN FLAVOR
+Combinatorics	Algorithms, automata, words, and constructive combinatorics			de Bruijn sequence; Thue-Morse		DE BRUIJN/THUE-MORSE FLAVOR
+Algebra	Discrete functions, floors, rounding, and base representation	decimal expansion				DECIMAL STRUCTURE
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	decision tree	decision tree/information			DECISION TREES/INFORMATION THEORY
+Combinatorics	Set systems, posets, and extremal set theory	decision tree	decision tree/information			DECISION TREES/POSETS
+Combinatorics	General combinatorial structures	deck				DECK ARGUMENTS
+Combinatorics	Coloring, tiling, grids, and invariants	coloring	coloring			DEFECTIVE COLORING
+Algebra	Equations, substitutions, and transformations		degeneracy check		degeneracy check	DEGENERACY CHECK
+Geometry	Geometry-flavored algebra	triangles				DEGENERATE TRIANGLES
+Combinatorics	Graph theory	degree	averaging			DEGREE AVERAGING
+Number Theory	Divisibility, gcd, lcm, and primes	degree	classification		classification	DEGREE CLASSIFICATION
+Combinatorics	Graph theory	degree				DEGREE CONDITIONS
+Combinatorics	Graph theory	degree	imbalance argument			DEGREE IMBALANCE
+Algebra	Extremal methods, monotonicity, and invariants	degree			invariant	DEGREE INVARIANTS
+Combinatorics	Graph theory	degree	reduction		reduction	DEGREE REDUCTION
+Algebra	Sequences, recurrences, and series	degree sequence; degree				DEGREE SEQUENCE STRATEGY
+Combinatorics	Graph theory	degree				DEGREE SETS
+Combinatorics	Graph theory	degree				DEGREE STRUCTURE
+Algebra	Analytic estimates and asymptotics	degree				DEGREE/ASYMPTOTICS
+Combinatorics	Graph theory	degree	counting		counting	DEGREE/COUNTING ARGUMENT
+Combinatorics	Graph theory	degree	counting		counting	DEGREE/ENDPOINT COUNTING
+Algebra	Polynomials and algebraic manipulation	degree	constraint manipulation; leading coefficient comparison			DEGREE/LEADING-COEF CONSTRAINTS
+Algebra	Extremal methods, monotonicity, and invariants	degree				DEGREES/GROWTH
+Algebra	Polynomials and algebraic manipulation	degree	leading coefficient comparison			DEGREES/LEADING COEFFICIENT
+Combinatorics	Combinatorial games and processes	game; deletion game				DELETION GAMES
+Combinatorics	Combinatorial games and processes		process analysis			DELETION PROCESS
+Number Theory	Divisibility, gcd, lcm, and primes	denominator	denominator clearing			DENOMINATOR CLEARING
+Algebra	Equations, substitutions, and transformations	denominator	comparison			DENOMINATOR COMPARISON
+Number Theory	Divisibility, gcd, lcm, and primes	denominator	denominator control			DENOMINATOR CONTROL
+Algebra	Extremal methods, monotonicity, and invariants	denominator				DENOMINATOR GROWTH
+Algebra	Equations, substitutions, and transformations	denominator	rewriting			DENOMINATOR REWRITING
+Combinatorics	Graph theory	graph; dense bipartite graph				DENSE BIPARTITE GRAPHS
+Algebra	Equations, substitutions, and transformations	dense classes	density argument			DENSE CLASSES
+Combinatorics	Combinatorial algebra and counting	density	counting		counting	DENSITY COUNTING
+Combinatorics	General combinatorial structures	decomposition; density	decomposition; density decomposition			DENSITY DECOMPOSITION
+Combinatorics	Additive/combinatorial number theory	density	density increment			DENSITY INCREMENT
+Algebra	Equations, substitutions, and transformations	density				DENSITY MOD 2≈í‚Ä†
+Algebra	Analytic estimates and asymptotics	density				DENSITY OF Q
+Algebra	Analytic estimates and asymptotics	density				DENSITY OF RATIONALS
+Algebra	Equations, substitutions, and transformations	partitions; density				DENSITY/PARTITION
+Geometry	Core Euclidean geometry	density	pigeonhole		pigeonhole	DENSITY/PIGEONHOLE
+Combinatorics	Extremal combinatorics		dependent random choice			DEPENDENT RANDOM CHOICE
+Algebra	Analytic estimates and asymptotics	bounds; derivative	derivative method		bounding	DERIVATIVE BOUND
+Algebra	Analytic estimates and asymptotics	derivative	derivative method			DERIVATIVE TEST
+Geometry	Conics and projective geometry			Desargues		DESARGUES / PROJECTIVE FLAVOR
+Geometry	Conics and projective geometry			Desargues		DESARGUES/ORTHOLOGY
+Geometry	Spatial geometry			Descartes circle theorem		DESCARTES/SODDY SPHERES
+Algebra	Polynomials and algebraic manipulation		descent			DESCENT / FACTORIZATION
+Algebra	Polynomials and algebraic manipulation		descent			DESCENT/FACTORIZATION
+Algebra	Extremal methods, monotonicity, and invariants		descent			DESCENT/FLANKING SQUARES
+Algebra	Extremal methods, monotonicity, and invariants		descent	Unique factorization		DESCENT/UFD FLAVOR
+Combinatorics	Set systems, posets, and extremal set theory	design				DESIGN
+Combinatorics	Set systems, posets, and extremal set theory	design	constraint manipulation			DESIGN CONSTRAINTS
+Combinatorics	Set systems, posets, and extremal set theory	design	construction		construction	DESIGN CONSTRUCTION
+Combinatorics	Set systems, posets, and extremal set theory	design	construction		construction	DESIGN-ISH CONSTRUCTION
+Combinatorics	Set systems, posets, and extremal set theory	design; Steiner triple system		Steiner triple system		DESIGNS (STS)
+Combinatorics	Set systems, posets, and extremal set theory	design; Steiner triple system		Steiner triple system		DESIGNS / STEINER TRIPLE SYSTEMS
+Combinatorics	Set systems, posets, and extremal set theory	design	counting; double counting		counting; double counting	DESIGNS/DOUBLE COUNTING
+Number Theory	Divisibility, gcd, lcm, and primes	determinant				DETERMINANT 1
+Geometry	Geometry-flavored algebra	geometric configuration; determinant				DETERMINANT GEOMETRY
+Geometry	Geometry-flavored algebra	determinant				DETERMINANT IDENTITY
+Algebra	Inequalities and optimization	determinant				DETERMINANT INEQUALITIES
+Algebra	Algebraic structures and linear algebra	determinant	linearity			DETERMINANT LINEARITY
+Algebra	Algebraic structures and linear algebra	determinant				DETERMINANT MAP
+Algebra	Algebraic structures and linear algebra	determinant				DETERMINANTAL/ALTERNATING STRUCTURE
+Combinatorics	Combinatorial games and processes		process analysis			DETERMINISTIC PROCESS
+Algebra	Equations, substitutions, and transformations	diagonal	diagonalization		diagonal argument	DIAGONAL ARGUMENT
+Geometry	Core Euclidean geometry	diagonal	comparison		diagonal argument	DIAGONAL COMPARISON
+Geometry	Geometry-flavored algebra	coordinate setup; diagonal	coordinate bash		diagonal argument	DIAGONAL COORDINATES
+Combinatorics	Set systems, posets, and extremal set theory	diagonal			diagonal argument	DIAGONAL LATIN ARRAYS
+Algebra	Equations, substitutions, and transformations	diagonal	diagonal maximum		diagonal argument	DIAGONAL MAXIMA
+Geometry	Core Euclidean geometry	diagonal			diagonal argument	DIAGONAL RATIOS
+Algebra	Equations, substitutions, and transformations	diagonal			diagonal argument	DIAGONAL SUBSTITUTION
+Combinatorics	General combinatorial structures	diagonal	compactness		compactness; diagonal argument	DIAGONAL/COMPACTNESS STYLE
+Algebra	Equations, substitutions, and transformations	diagonal	construction; thresholding		construction; diagonal argument	DIAGONAL/THRESHOLD CONSTRUCTION
+Algebra	Extremal methods, monotonicity, and invariants	diameter	extremal method		extremal choice	DIAMETER EXTREMAL
+Geometry	Metric, convex, and incidence geometry	geometric configuration; diameter				DIAMETER GEOMETRY
+Combinatorics	General combinatorial structures	diameter	parity		parity	DIAMETER PARITY
+Geometry	Metric, convex, and incidence geometry	partitions; diameter				DIAMETER PARTITIONS
+Geometry	Metric, convex, and incidence geometry	diameter				DIAMETER THEOREM
+Combinatorics	General combinatorial structures	dice				DICE/OPPOSITE FACES
+Combinatorics	General combinatorial structures		dichotomy		dichotomy	DICHOTOMY
+Algebra	Polynomials and algebraic manipulation			Dickson polynomials; Chebyshev polynomials		DICKSON/CHEBYSHEV-TYPE SUBSTITUTION
+Geometry	Core Euclidean geometry	differences				DIFFERENCE IDENTITY
+Number Theory	Divisibility, gcd, lcm, and primes	differences				DIFFERENCE OF CUBES
+Combinatorics	General combinatorial structures	differences				DIFFERENCE REPRESENTATIONS
+Number Theory	Divisibility, gcd, lcm, and primes	differences	difference trick			DIFFERENCE TRICK
+Algebra	Equations, substitutions, and transformations	differences				DIFFERENCES
+Algebra	Analytic estimates and asymptotics	differential equation/operator				DIFFERENTIAL EQUATION
+Algebra	Equations, substitutions, and transformations	equations; differential equation/operator				DIFFERENTIAL EQUATIONS
+Algebra	Analytic estimates and asymptotics	differential equation/operator				DIFFERENTIAL OPERATORS
+Algebra	Extremal methods, monotonicity, and invariants	differential equation/operator	rigidity			DIFFERENTIAL RIGIDITY
+Algebra	Functional equations	differential equation/operator				DIFFERENTIAL-FUNCTIONAL EQUATION
+Algebra	Discrete functions, floors, rounding, and base representation	digit function				DIGIT MAP
+Algebra	Discrete functions, floors, rounding, and base representation	digit function				DIGIT METHOD
+Algebra	Discrete functions, floors, rounding, and base representation	permutation; digit function				DIGIT PERMUTATIONS
+Combinatorics	Graph theory	graph	condensation			DIGRAPH CONDENSATION
+Combinatorics	Graph theory	graph				DIGRAPHS
+Combinatorics	Graph theory	graph; cycle				DIGRAPHS/CYCLES
+Geometry	Spatial geometry	dihedral angle				DIHEDRAL ANGLE
+Combinatorics	General combinatorial structures	dihedral symmetry				DIHEDRAL SYMMETRY
+Algebra	Equations, substitutions, and transformations			Dilation		DILATION EQUATION
+Number Theory	Divisibility, gcd, lcm, and primes			Dilation		DILATION TRICK
+Combinatorics	Set systems, posets, and extremal set theory	poset		Dilworth		DILWORTH
+Combinatorics	Set systems, posets, and extremal set theory	poset		Dilworth		DILWORTH-TYPE THEOREM
+Combinatorics	Set systems, posets, and extremal set theory	poset		Dilworth; Mirsky		DILWORTH/MIRSKY
+Combinatorics	Set systems, posets, and extremal set theory	poset		Dilworth; Mirsky		DILWORTH/MIRSKY FLAVOR
+Combinatorics	Set systems, posets, and extremal set theory	poset		Dilworth; Mirsky		DILWORTH/MIRSKY-TYPE REASONING
+Algebra	Algebraic structures and linear algebra	dimension				DIMENSION
+Combinatorics	Combinatorial algebra and counting	dimension				DIMENSION COUNT
+Geometry	Core Euclidean geometry	dimension	obstruction		obstruction	DIMENSION OBSTRUCTION
+Combinatorics	General combinatorial structures	set function	diminishing returns			DIMINISHING RETURNS
+Number Theory	Diophantine equations				degeneracy check	DIOPHANTINE CHECK
+Geometry	Geometry-flavored algebra	coordinate setup	coordinate bash			DIRECTED ANGLES / COORDINATES
+Geometry	Core Euclidean geometry	directed distances	directed-length chase			DIRECTED DISTANCES
+Combinatorics	Graph theory	directed edges				DIRECTED EDGES
+Combinatorics	Graph theory	cycle; directed Euler cycle				DIRECTED EULER CYCLES
+Combinatorics	Graph theory	directed expansion	expansion argument			DIRECTED EXPANSION
+Algebra	Functional equations	graph; functional graph				DIRECTED FUNCTIONAL GRAPH
+Combinatorics	Graph theory	graph; functions; directed graph				DIRECTED GRAPHS / POTENTIAL FUNCTIONS / WORST-CASE STRATEGY
+Combinatorics	Graph theory	graph; directed graph				DIRECTED GRAPHS/TOURNAMENTS
+Combinatorics	Graph theory	grid; directed grid	connectivity			DIRECTED GRID CONNECTIVITY
+Algebra	Inequalities and optimization	directed inequalities	directed inequality			DIRECTED INEQUALITIES
+Combinatorics	Graph theory	directed process	directed process			DIRECTED MOTION
+Combinatorics	Graph theory	graph				DIRECTED MULTIGRAPHS
+Combinatorics	Graph theory	path/walk; directed path	path construction			DIRECTED PATHS
+Combinatorics	Graph theory		process analysis			DIRECTED PROCESS
+Combinatorics	Graph theory	reachability relation	reachability			DIRECTED REACHABILITY
+Combinatorics	Graph theory	directed relation	orientation argument			DIRECTED RELATIONS BY AGE
+Geometry	Core Euclidean geometry		similarity			DIRECTED SIMILARITY
+Geometry	Geometry-flavored algebra	triangles; directed triangles				DIRECTED TRIANGLES
+Geometry	Metric, convex, and incidence geometry	direction classes	direction classification			DIRECTION CLASSES
+Combinatorics	General combinatorial structures			Dirichlet principle		DIRICHLET
+Combinatorics	General combinatorial structures			Dirichlet principle		DIRICHLET CONVOLUTION MOD 2
+Algebra	Analytic estimates and asymptotics	Dirichlet kernel		Dirichlet principle		DIRICHLET KERNEL
+Number Theory	Algebraic and analytic number theory	series; Dirichlet series		Dirichlet principle		DIRICHLET SERIES
+Algebra	Analytic estimates and asymptotics			Dirichlet principle		DIRICHLET TEST
+Number Theory	Number theory constructions and pigeonhole			Dirichlet theorem; Dirichlet principle		DIRICHLET THEOREM
+Number Theory	Number theory constructions and pigeonhole			Dirichlet principle		DIRICHLET-STYLE ARGUMENT
+Geometry	Core Euclidean geometry			Dirichlet approximation; Minkowski; Dirichlet principle		DIRICHLET/MINKOWSKI
+Combinatorics	Coloring, tiling, grids, and invariants	coloring	coloring; discharging			DISCHARGING/COLORING
+Combinatorics	Coloring, tiling, grids, and invariants		counting; discharging		counting	DISCHARGING/LOCAL COUNTING
+Algebra	Analytic estimates and asymptotics	discontinuities				DISCONTINUITIES
+
+----------------

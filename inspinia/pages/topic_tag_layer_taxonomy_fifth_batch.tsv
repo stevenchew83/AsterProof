@@ -1,0 +1,1001 @@
+Area	Canonical Subtopic	Object tag	Technique tag	Lemma/Theorem tag	Proof role	Raw imported tag
+Algebra	Analytic estimates and asymptotics	discontinuity				DISCONTINUITY
+Algebra	Extremal methods, monotonicity, and invariants		invariant, discrepancy method			DISCREPANCY/INVARIANTS
+Number Theory	Number-theoretic algebra		discrepancy method, variance estimate		lower bound, bound	DISCREPANCY/VARIANCE LOWER BOUND
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	discrete algorithms	algorithmic construction			DISCRETE ALGORITHMS
+Algebra	Inequalities and optimization	discrete brunn-minkowski	discrete convexity	Brunn-Minkowski inequality		DISCRETE BRUNN-MINKOWSKI
+Algebra	Discrete functions, floors, rounding, and base representation	discrete differences	finite differences			DISCRETE DIFFERENCES
+Algebra	Sequences, recurrences, and series	difference equation	finite differences			DISCRETE DIFFERENTIAL EQUATION
+Algebra	Algebraic manipulation and equations	discrete energy	energy method			DISCRETE ENERGY
+Algebra	Complex, trigonometric, and Fourier methods		Fourier orthogonality			DISCRETE FOURIER ORTHOGONALITY
+Algebra	Functional equations	functional equation				DISCRETE FUNCTIONAL EQUATION
+Algebra	Functional equations	functional equation				DISCRETE FUNCTIONAL EQUATIONS
+Geometry	Euclidean geometry	geometry configuration	probabilistic method			DISCRETE GEOMETRY; PROBABILISTIC METHOD; SUBSET-SUM GEOMETRY
+Algebra	Extremal methods, monotonicity, and invariants	discrete growth				DISCRETE GROWTH
+Combinatorics	Pigeonhole, extremal principle, and averaging	discrete ham-sandwich flavor	analogy/flavor	ham sandwich theorem		DISCRETE HAM-SANDWICH FLAVOR
+Combinatorics	Pigeonhole, extremal principle, and averaging	discrete harmonic functions				DISCRETE HARMONICITY
+Algebra	Algebraic manipulation and equations		induction		inductive step	DISCRETE INDUCTION
+Algebra	Inequalities and optimization					DISCRETE INEQUALITIES
+Algebra	Discrete functions, floors, rounding, and base representation	discrete ivt		intermediate value theorem		DISCRETE IVT
+Algebra	Inequalities and optimization		convexity	Jensen's inequality		DISCRETE JENSEN
+Algebra	Analytic estimates and asymptotics	discrete Laplace equation				DISCRETE LAPLACE EQUATION
+Algebra	Algebraic manipulation and equations			Leibniz rule		DISCRETE LEIBNIZ RULE
+Number Theory	Modular arithmetic and residues	discrete logarithms				DISCRETE LOGS
+Algebra	Algebraic manipulation and equations	discrete metric				DISCRETE METRIC
+Algebra	Extremal methods, monotonicity, and invariants		monotonicity			DISCRETE MONOTONICITY
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	discrete motion				DISCRETE MOTION
+Algebra	Analytic estimates and asymptotics	operator norm	norm estimate			DISCRETE OPERATOR NORM
+Algebra	Inequalities and optimization	discrete functions		Poincare inequality		DISCRETE POINCARE
+Combinatorics	Pigeonhole, extremal principle, and averaging	discrete potential	potential function			DISCRETE POTENTIAL
+Algebra	Inequalities and optimization	discrete prekopa-leindler flavor	discrete convexity, analogy/flavor	Prekopa-Leindler inequality		DISCRETE PR‚àö√¢KOPA-LEINDLER FLAVOR
+Algebra	Discrete functions, floors, rounding, and base representation	discrete range				DISCRETE RANGE
+Algebra	Discrete functions, floors, rounding, and base representation	discrete structure				DISCRETE STRUCTURE
+Combinatorics	Combinatorial structures and processes	discrete topology				DISCRETE TOPOLOGY
+Algebra	Analytic estimates and asymptotics	discrete variational estimate	variational estimate			DISCRETE VARIATIONAL ESTIMATE
+Algebra	Inequalities and optimization	discrete functions		Wirtinger inequality		DISCRETE WIRTINGER
+Algebra	Inequalities and optimization	discrete functions		Poincare inequality, Wirtinger inequality		DISCRETE WIRTINGER/POINCAR‚àö√¢
+Algebra	Analytic estimates and asymptotics	discrete ‚Äö√§√∫derivative‚Äö√§√π bounds	finite-difference bounds		bound	DISCRETE ‚Äö√Ñ√∫DERIVATIVE‚Äö√Ñ√π BOUNDS
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	discrete model	discretization			DISCRETIZATION
+Algebra	Inequalities and optimization		discrete convexity, discretization	Prekopa-Leindler inequality		DISCRETIZED PR‚àö√¢KOPA‚Äö√Ñ√¨LEINDLER
+Algebra	Polynomials and algebraic manipulation	discriminant	factorization			DISCRIMINANT FACTORIZATION
+Algebra	Polynomials and algebraic manipulation	discriminant, eigenvalues	spectral analysis			DISCRIMINANT/EIGENVALUES
+Algebra	Polynomials and algebraic manipulation	discriminant	elimination, rational-root elimination			DISCRIMINANT/RATIONAL-ROOT ELIMINATION
+Combinatorics	Set systems, posets, and extremal set theory	VC-dimension				DISCS/VC-DIMENSION
+Number Theory	Additive and multiplicative number theory	arithmetic progressions				DISJOINT ARITHMETIC PROGRESSIONS
+Combinatorics	Combinatorial structures and processes	translates				DISJOINT TRANSLATES
+Number Theory	Number-theoretic algebra	disjointness				DISJOINTNESS
+Algebra	Algebraic manipulation and equations	disjunctive condition			criterion	DISJUNCTIVE CONDITION
+Algebra	Algebraic manipulation and equations	disjunctive equations				DISJUNCTIVE EQUATIONS
+Geometry	Euclidean geometry	disk packing	packing			DISK PACKING
+Combinatorics	Coloring, tiling, grids, and invariants	dissections	dissection, similarity			DISSECTION & SIMILARITY
+Combinatorics	Coloring, tiling, grids, and invariants	dissections	dissection, induction		inductive step	DISSECTION INDUCTION
+Combinatorics	Coloring, tiling, grids, and invariants	dissections	dissection			DISSECTIONS
+Geometry	3D and solid geometry	skew lines				DISTANCE BETWEEN SKEW LINES
+Number Theory	Number-theoretic algebra	skew squares				DISTANCE BETWEEN SKEW SQUARES
+Geometry	Geometry-flavored algebra	distance formulas				DISTANCE FORMULAS
+Combinatorics	Combinatorial structures and processes	distance gaps				DISTANCE GAPS
+Combinatorics	Combinatorial algebra and counting	distance graph				DISTANCE GRAPH
+Algebra	Inequalities and optimization	distance inequality				DISTANCE INEQUALITY
+Combinatorics	Combinatorial structures and processes	distance layers				DISTANCE LAYERS
+Geometry	Geometry-flavored algebra	distance multisets				DISTANCE MULTISETS
+Number Theory	Diophantine equations and integer constraints	distance to integers				DISTANCE TO INTEGERS
+Geometry	Geometry-flavored algebra	distance to lines				DISTANCE TO LINES
+Geometry	Geometry-flavored algebra	distance-to-line formula				DISTANCE-TO-LINE FORMULA
+Geometry	Geometry-flavored algebra	distance-to-sides				DISTANCE-TO-SIDES
+Geometry	Geometry-flavored algebra	distances to lines				DISTANCES TO LINES
+Geometry	3D and solid geometry	distances to planes and lines				DISTANCES TO PLANES/LINES
+Number Theory	Additive and multiplicative number theory	distinct differences				DISTINCT DIFFERENCES
+Number Theory	Diophantine equations and integer constraints	distinct integers				DISTINCT INTEGERS
+Number Theory	Number-theoretic algebra	distinct reduced parts				DISTINCT REDUCED PARTS
+Combinatorics	Combinatorial structures and processes	distinctness				DISTINCTNESS
+Combinatorics	Combinatorial algebra and counting	distribution				DISTRIBUTION
+Algebra	Analytic estimates and asymptotics	divergence	divergence estimate			DIVERGENCE ESTIMATE
+Number Theory	Number-theoretic algebra	divergent series	divergence estimate			DIVERGENT SERIES
+Algebra	Sequences, recurrences, and series	divergent series	divergence estimate			DIVERGENT SUMS
+Algebra	Algebraic manipulation and equations	multiplication	divide and conquer			DIVIDE-AND-CONQUER MULTIPLICATION
+Algebra	Algebraic manipulation and equations	domain	domain split, splitting			DOMAIN SPLIT
+Algebra	Algebraic manipulation and equations	domain, sign	sign analysis			DOMAIN/SIGN ANALYSIS
+Algebra	Algebraic manipulation and equations	domains				DOMAINS
+Combinatorics	Combinatorial structures and processes		dominance argument			DOMINANCE
+Combinatorics	Combinatorial structures and processes	dominance intervals	dominance argument			DOMINANCE INTERVALS
+Algebra	Extremal methods, monotonicity, and invariants	largest term	dominance argument			DOMINANCE OF LARGEST TERM
+Algebra	Analytic estimates and asymptotics			dominated convergence theorem		DOMINATED CONVERGENCE
+Algebra	Analytic estimates and asymptotics		epsilon argument, splitting	dominated convergence theorem		DOMINATED CONVERGENCE/EPSILON SPLIT
+Combinatorics	Pigeonhole, extremal principle, and averaging	domination	covering			DOMINATION/COVERING
+Combinatorics	Pigeonhole, extremal principle, and averaging	domination	greedy algorithm			DOMINATION/GREEDY
+Combinatorics	Combinatorial algebra and counting	matching, domino matchings				DOMINO MATCHINGS
+Geometry	Special configurations and special angles					DOUBLE ANGLES
+Combinatorics	Combinatorial algebra and counting		averaging			DOUBLE AVERAGING OVER MOD CLASSES
+Combinatorics	Combinatorial algebra and counting		averaging, double counting			DOUBLE COUNTING / AVERAGING
+Combinatorics	Combinatorial algebra and counting		double counting, incidence Cauchy-Schwarz	Cauchy-Schwarz		DOUBLE COUNTING / CAUCHY-SCHWARZ ON INCIDENCES
+Combinatorics	Combinatorial algebra and counting		double counting, layering			DOUBLE COUNTING/LAYERING
+Combinatorics	Combinatorial algebra and counting		double counting			DOUBLE COUNTING/SURFACE-AREA
+Combinatorics	Combinatorial algebra and counting		double counting, weighting			DOUBLE COUNTING/WEIGHTS
+Combinatorics	Combinatorial structures and processes					DOUBLE COVER
+Algebra	Polynomials and algebraic manipulation	factorials	factorization			DOUBLE FACTORIALS
+Number Theory	Modular arithmetic and residues	doubling map				DOUBLING MAP
+Combinatorics	Set systems, posets, and extremal set theory	downsets				DOWNSETS
+Combinatorics	Coloring, tiling, grids, and invariants	periodic packing	dynamic programming, packing			DP / PERIODIC PACKING
+Combinatorics	Algorithms, automata, words, and constructive combinatorics		dynamic programming		lower bound, bound	DP LOWER BOUNDS
+Combinatorics	Combinatorial algebra and counting		counting, dynamic programming			DP/COUNTING
+Combinatorics	Algorithms, automata, words, and constructive combinatorics		dynamic programming, exchange argument			DP/EXCHANGE
+Combinatorics	Algorithms, automata, words, and constructive combinatorics		dynamic programming, generating functions			DP/GENERATING FUNCTIONS
+Combinatorics	Algorithms, automata, words, and constructive combinatorics		greedy algorithm, dynamic programming			DP/GREEDY STRUCTURE
+Combinatorics	Pigeonhole, extremal principle, and averaging		duality			DUAL BARRIERS
+Combinatorics	Pigeonhole, extremal principle, and averaging	dual polyhedron	duality			DUAL POLYHEDRON
+Combinatorics	Graph theory	dual trees	duality			DUAL TREES
+Algebra	Discrete functions, floors, rounding, and base representation		averaging, dyadic decomposition, dyadic averaging			DYADIC AVERAGING
+Algebra	Discrete functions, floors, rounding, and base representation		dyadic decomposition, density argument			DYADIC DENSITY
+Algebra	Discrete functions, floors, rounding, and base representation		dyadic decomposition			DYADIC DISTANCES
+Algebra	Discrete functions, floors, rounding, and base representation		dyadic decomposition			DYADIC FLOORS
+Algebra	Discrete functions, floors, rounding, and base representation		induction, dyadic decomposition, dyadic induction		inductive step	DYADIC INDUCTION
+Algebra	Discrete functions, floors, rounding, and base representation		dyadic decomposition			DYADIC ITERATION
+Algebra	Discrete functions, floors, rounding, and base representation	dyadic rationals	dyadic decomposition			DYADIC RATIONALS
+Algebra	Discrete functions, floors, rounding, and base representation	dyadic rectangles	dyadic decomposition			DYADIC RECTANGLES
+Algebra	Discrete functions, floors, rounding, and base representation		dyadic decomposition			DYADIC SPEEDS
+Algebra	Discrete functions, floors, rounding, and base representation	dyadic tree	dyadic decomposition			DYADIC TREE
+Algebra	Discrete functions, floors, rounding, and base representation		dyadic decomposition, layer splitting, splitting			DYADIC/LAYER SPLITTING
+Algebra	Discrete functions, floors, rounding, and base representation		dyadic decomposition, odd-part coloring, coloring			DYADIC/ODD-PART COLORING
+Combinatorics	Combinatorial algebra and counting	Dyck path	bijection			DYCK PATH BIJECTION
+Combinatorics	Coloring, tiling, grids, and invariants		coloring			DYNAMIC COLORING
+Combinatorics	Combinatorial algebra and counting		counting			DYNAMIC COUNTING
+Combinatorics	Algorithms, automata, words, and constructive combinatorics					DYNAMIC PROCESSES
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	scheduling				DYNAMIC SCHEDULING
+Number Theory	Number-theoretic algebra	dynamical system				DYNAMICAL BEHAVIOR
+Algebra	Polynomials and algebraic manipulation	dynamical system	factorization			DYNAMICAL FACTORIZATION
+Geometry	Euclidean geometry	dynamical system				DYNAMICAL GEOMETRY
+Combinatorics	Graph theory	cycles, dynamical system				DYNAMICAL SYSTEMS ON CYCLES
+Algebra	Sequences, recurrences, and series	eventual periodicity, sequences, dynamical system				DYNAMICS; SEQUENCES; FLOOR FUNCTION; EVENTUAL PERIODICITY
+Combinatorics	Combinatorial structures and processes					EAR REMOVAL
+Combinatorics	Graph theory	edges	coloring			EDGE COLORINGS
+Combinatorics	Graph theory	edges				EDGE CONTRACTIONS
+Combinatorics	Combinatorial algebra and counting	edges	counting			EDGE COUNTING
+Combinatorics	Graph theory	edges				EDGE COVER
+Combinatorics	Graph theory	edges				EDGE CUTS
+Combinatorics	Graph theory	edges				EDGE SLIDES
+Combinatorics	Graph theory	edges, edge connectivity				EDGE-CONNECTIVITY
+Algebra	Inequalities and optimization	edges				EDGE-ISOPERIMETRIC INEQUALITY
+Combinatorics	Graph theory	effective resistance				EFFECTIVE RESISTANCE
+Number Theory	Modular arithmetic and residues			Erdos-Ginzburg-Ziv theorem	sharpness	EGZ-TYPE SHARPNESS
+Number Theory	Modular arithmetic and residues		pigeonhole principle	Erdos-Ginzburg-Ziv theorem		EGZ/PIGEONHOLE
+Number Theory	Modular arithmetic and residues		eigenvalue method			EIGEN-ANALYSIS OVER Z/PEZ\MATHBB{Z}/P^E\MATHBB{Z}Z/PEZ
+Algebra	Polynomials and algebraic manipulation	eigenvalues, eigenvalue blocks	spectral analysis			EIGENVALUE BLOCKS
+Algebra	Polynomials and algebraic manipulation	eigenvalues, eigenvalue chains	spectral analysis			EIGENVALUE CHAINS
+Combinatorics	Combinatorial structures and processes	eigenvalues	eigenvalue method			EIGENVALUE ESTIMATE
+Combinatorics	Combinatorial structures and processes	eigenvalues	eigenvalue method			EIGENVALUE METHOD
+Algebra	Algebraic structures and linear algebra	eigenvectors	spectral analysis			EIGENVECTORS
+Combinatorics	Set systems, posets, and extremal set theory	intersecting set family		Erdos-Ko-Rado theorem		EKR
+Combinatorics	Set systems, posets, and extremal set theory	intersecting set family	analogy/flavor	Erdos-Ko-Rado theorem		EKR FLAVOR
+Combinatorics	Set systems, posets, and extremal set theory	intersecting set family		Erdos-Ko-Rado theorem		EKR-TYPE
+Combinatorics	Set systems, posets, and extremal set theory	intersecting set family		Erdos-Ko-Rado theorem, dictatorship theorem		EKR/DICTATORSHIP THEOREM
+Geometry	Euclidean geometry					ELEMENTARY EUCLIDEAN
+Geometry	Euclidean geometry	geometry configuration				ELEMENTARY EUCLIDEAN GEOMETRY
+Algebra	Algebraic manipulation and equations	elementary functions				ELEMENTARY FUNCTIONS
+Number Theory	Number-theoretic algebra	groups				ELEMENTARY GROUP THEORY
+Number Theory	Number-theoretic algebra					ELEMENTARY METRIC
+Algebra	Polynomials and algebraic manipulation	elementary symmetric sums, polynomials				ELEMENTARY SYMMETRIC POLYNOMIALS
+Algebra	Polynomials and algebraic manipulation	elementary symmetric sums				ELEMENTARY SYMMETRIC SUMS
+Algebra	Algebraic manipulation and equations		elimination			ELIMINATION PROCESSES
+Geometry	Geometry-flavored algebra	ellipse				ELLIPSE NORMAL
+Geometry	Geometry-flavored algebra	ellipse				ELLIPSE/FOCI
+Geometry	Geometry-flavored algebra	ellipse, ellipses				ELLIPSES
+Number Theory	Diophantine equations and integer constraints	elliptic curve	analogy/flavor			ELLIPTIC CURVE FLAVOR
+Number Theory	Diophantine equations and integer constraints	Hesse curve				ELLIPTIC/HESSE CURVES
+Combinatorics	Combinatorial structures and processes	empty 60-degree sectors				EMPTY 60-DEGREE SECTORS
+Geometry	Geometry-flavored algebra	empty triangles				EMPTY TRIANGLES
+Combinatorics	Algorithms, automata, words, and constructive combinatorics		encoding, localization			ENCODING/LOCALIZATION
+Algebra	Algebraic structures and linear algebra	endomorphisms				ENDOMORPHISMS
+Algebra	Algebraic manipulation and equations			Enestrom-Kakeya theorem		ENESTR‚àö√±M‚Äö√Ñ√¨KAKEYA STYLE
+Combinatorics	Probability, entropy, coding, and information methods		entropy method			ENTROPY
+Combinatorics	Combinatorial algebra and counting		counting, entropy method			ENTROPY/COUNTING
+Geometry	Geometry-flavored algebra	lattice paths, order constraints				ENUMERATION / LATTICE PATHS / ORDER CONSTRAINTS
+Algebra	Sequences, recurrences, and series					ENUMERATION/RECURSION
+Combinatorics	Combinatorial algebra and counting	dynamical system				ENUMERATIVE/PROCESS DYNAMICS
+Geometry	Euclidean geometry					ENVELOPES
+Algebra	Analytic estimates and asymptotics		epsilon argument			EPSILON ARGUMENT
+Algebra	Analytic estimates and asymptotics		epsilon argument			EPSILON COMPARISON
+Geometry	Circle geometry	equal arcs				EQUAL ARCS
+Geometry	Euclidean geometry	equal areas				EQUAL AREAS
+Geometry	Circle geometry	equal chords/sides				EQUAL CHORDS/SIDES
+Geometry	Circle geometry	equal circumradii				EQUAL CIRCUMRADII
+Combinatorics	Combinatorial structures and processes	equal differences				EQUAL DIFFERENCES
+Geometry	Circle geometry	equal power along cevians				EQUAL POWER ALONG CEVIANS
+Geometry	Circle geometry	equal powers				EQUAL POWERS
+Geometry	Circle geometry	equal radii				EQUAL RADII
+Geometry	Euclidean geometry	equal sides				EQUAL SIDES IN QUADRILATERAL
+Geometry	Circle geometry	equal tangent lengths				EQUAL TANGENT LENGTHS
+Geometry	Special configurations and special angles	equal-angle claims				EQUAL-ANGLE CLAIMS
+Geometry	Special configurations and special angles				construction	EQUAL-ANGLES CONSTRUCTIONS
+Geometry	Circle geometry	equal-chord angles				EQUAL-CHORD ANGLES
+Geometry	Geometry-flavored algebra	equal-distance locus			construction	EQUAL-DISTANCE CONSTRUCTION
+Geometry	Geometry-flavored algebra	equal-distance locus				EQUAL-DISTANCE LOCI
+Geometry	Circle geometry	equal-length locus				EQUAL-LENGTH CIRCLES
+Geometry	Geometry-flavored algebra	equal-length locus				EQUAL-LENGTH LOCUS
+Algebra	Algebraic manipulation and equations	equal-multiset trick				EQUAL-MULTISET TRICK
+Geometry	Circle geometry	equal-radius symmetry				EQUAL-RADIUS SYMMETRY
+Combinatorics	Combinatorial structures and processes	equal-sum pairs				EQUAL-SUM PAIRS
+Geometry	Euclidean geometry	equal-sum partition				EQUAL-SUM PARTITION
+Combinatorics	Set systems, posets, and extremal set theory	equal-sum subsets				EQUAL-SUM SUBSETS
+Algebra	Algebraic manipulation and equations				classification, equality case	EQUALITY CLASSIFICATION
+Geometry	Euclidean geometry				construction, equality case	EQUALITY CONSTRUCTION
+Algebra	Algebraic manipulation and equations				verification, equality case	EQUALITY TESTING
+Number Theory	Diophantine equations and integer constraints	integer equations				EQUATIONS IN INTEGERS
+Algebra	Polynomials and algebraic manipulation	symmetric equations				EQUATIONS IN SYMMETRIC FORM
+Geometry	Special configurations and special angles	equiangular hexagon				EQUIANGULAR HEXAGON
+Geometry	Special configurations and special angles	equiangular polygon				EQUIANGULAR POLYGON
+Geometry	Euclidean geometry	equidecomposition				EQUIDECOMPOSITION
+Algebra	Algebraic manipulation and equations	distribution	analogy/flavor			EQUIDISTRIBUTION FLAVOR
+Geometry	Special configurations and special angles	equilateral configuration			criterion	EQUILATERAL CONDITION
+Geometry	Special configurations and special angles	equilateral configuration				EQUILATERAL CONFIGURATIONS
+Geometry	Geometry-flavored algebra	equilateral configuration				EQUILATERAL COORDINATES
+Combinatorics	Coloring, tiling, grids, and invariants	equilateral configuration	tiling			EQUILATERAL TILINGS
+Combinatorics	Coloring, tiling, grids, and invariants	equitable coloring	coloring			EQUITABLE COLORING
+Combinatorics	Combinatorial structures and processes	equitable partition				EQUITABLE PARTITION
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	strings				EQUIVALENCE OF STRINGS
+Algebra	Algebraic manipulation and equations	equivalence relation				EQUIVALENCE RELATION
+Combinatorics	Combinatorial structures and processes	equivalence relation				EQUIVALENCE RELATIONS
+Geometry	Geometric inequalities and optimization		analogy/flavor	Erdos-Mordell inequality		ERD‚âà√™S-MORDELL FLAVOR
+Algebra	Extremal methods, monotonicity, and invariants		extremal argument	Erdos-Szekeres theorem		ERD‚âà√™S-SZEKERES EXTREMAL METHOD
+Algebra	Sequences, recurrences, and series	sequences		Erdos-Szekeres theorem		ERD‚âà√™S-SZEKERES-TYPE SEQUENCE
+Geometry	Euclidean geometry			Erdos-Szekeres theorem		ERD‚âà√™S‚Äö√Ñ√¨SZEKERES N=5
+Combinatorics	Pigeonhole, extremal principle, and averaging			Erdos-Szekeres theorem		ERD‚âà√™S‚Äö√Ñ√¨SZEKERES-TYPE SELECTION
+Combinatorics	Pigeonhole, extremal principle, and averaging		analogy/flavor	Erdos-Szekeres theorem, Dilworth-Mirsky theorem		ERD‚âà√™S‚Äö√Ñ√¨SZEKERES/DILWORTH‚Äö√Ñ√¨MIRSKY FLAVOR
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	erosion process	process invariant			EROSION PROCESS
+Combinatorics	Probability, entropy, coding, and information methods	error-correcting codes				ERROR-CORRECTING CODES
+Combinatorics	Probability, entropy, coding, and information methods	error-correcting codes, covering codes	covering			ERROR-CORRECTING/COVERING CODES
+Combinatorics	Pigeonhole, extremal principle, and averaging	domination, eternal domination				ETERNAL DOMINATION
+Algebra	Sequences, recurrences, and series	Euclid sequences				EUCLID SEQUENCES
+Number Theory	Divisibility, gcd, lcm, and primes		Euclid trick			EUCLID TRICK
+Number Theory	Divisibility, gcd, lcm, and primes		Euclid-type argument			EUCLID-TYPE ARGUMENT
+Number Theory	Divisibility, gcd, lcm, and primes		Euclid-type argument		infinitude	EUCLID-TYPE INFINITUDE
+Geometry	Euclidean geometry	midpoints, orthogonality	Euclidean geometry			EUCLIDEAN / MIDPOINTS / ORTHOGONALITY
+Geometry	Triangle centers and triangle configurations	orthocenter, midpoints	Euclidean geometry			EUCLIDEAN / ORTHOCENTER / MIDPOINTS
+Geometry	Circle geometry	equal chords	ratio chasing, Euclidean construction		construction	EUCLIDEAN / RATIO CHASING / EQUAL-CHORD CONSTRUCTIONS
+Algebra	Sequences, recurrences, and series	dynamical system	Euclidean algorithm			EUCLIDEAN ALGORITHM DYNAMICS
+Geometry	Euclidean geometry		Euclidean construction		construction	EUCLIDEAN CONSTRUCTION
+Algebra	Extremal methods, monotonicity, and invariants	Euclidean configuration	extremal argument			EUCLIDEAN EXTREMAL GEOMETRY
+Geometry	Geometry-flavored algebra	Euclidean metric				EUCLIDEAN METRIC ALGEBRA
+Algebra	Inequalities and optimization	Euclidean norm	norm estimate			EUCLIDEAN NORM
+Geometry	Special configurations and special angles	angles	angle chasing			EUCLIDEAN/ANGLES
+Geometry	Euclidean geometry		synthetic geometry			EUCLIDEAN/SYNTHETIC
+Geometry	Triangle centers and triangle configurations	incenter		Euler incenter formula		EULER INCENTER FORMULA
+Geometry	Geometric inequalities and optimization	triangle radii		Euler inequality		EULER INEQUALITY
+Geometry	Triangle centers and triangle configurations	Euler line, nine-point circle				EULER LINE / NINE-POINT CIRCLE
+Geometry	Triangle centers and triangle configurations	Euler line				EULER LINE GEOMETRY
+Geometry	Triangle centers and triangle configurations	Euler line				EULER LINE OBJECTS
+Geometry	Triangle centers and triangle configurations	Euler line, nine-point center				EULER LINE/NINE-POINT CENTER
+Geometry	Triangle centers and triangle configurations	Euler line, orthocenter				EULER LINE/ORTHOCENTER
+Geometry	Triangle centers and triangle configurations	Euler line, orthocenter				EULER LINE/ORTHOCENTER IDENTITIES
+Geometry	Triangle centers and triangle configurations	Euler line				EULER LINES
+Combinatorics	Graph theory	Euler path				EULER PATHS
+Algebra	Sequences, recurrences, and series	partitions		Euler pentagonal theorem		EULER PENTAGONAL THEOREM
+Number Theory	Divisibility, gcd, lcm, and primes	Euler product				EULER PRODUCTS
+Number Theory	Modular arithmetic and residues	Euler quotient				EULER QUOTIENT
+Geometry	Euclidean geometry			Euler relation OI^2 = R(R - 2r)		EULER RELATION OI2=R(R‚Äö√†√≠2R)OI^2=R(R-2R)OI2=R(R‚Äö√†√≠2R)
+Combinatorics	Graph theory	Euler tour				EULER TOURS
+Combinatorics	Graph theory	Euler trail/cycle				EULER TRAILS/CYCLES
+Geometry	Triangle centers and triangle configurations	Euler line				EULER-LINE PHENOMENA
+Geometry	Triangle centers and triangle configurations	Euler line, Feuerbach point/circle		Feuerbach theorem		EULER/FEUERBACH
+Geometry	Triangle centers and triangle configurations	nine-point circle, Euler line				EULER/NINE-POINT RELATIONS
+Combinatorics	Graph theory	Eulerian cycle				EULERIAN CYCLE
+Combinatorics	Combinatorial algebra and counting	Eulerian graph				EULERIAN GRAPH
+Combinatorics	Graph theory	Eulerian traversal				EULERIAN TRAVERSAL
+Combinatorics	Graph theory	Eulerian triangulations				EULERIAN TRIANGULATIONS
+Combinatorics	Graph theory	distribution	analogy/flavor			EULERIAN-DISTRIBUTION FLAVOR
+Combinatorics	Graph theory					EULERIAN-STYLE CONSTRAINTS
+Combinatorics	Graph theory	planar graph		Euler formula		EULER‚Äö√Ñ√¥S FORMULA
+Algebra	Algebraic manipulation and equations	even part				EVEN PART
+Combinatorics	Combinatorial structures and processes	disjointness, events				EVENT DISJOINTNESS
+Algebra	Extremal methods, monotonicity, and invariants	eventual periodicity			stability	EVENTUAL PERIODICITY/STABILITY
+Number Theory	Diophantine equations and integer constraints	eventual representation				EVENTUAL REPRESENTATION
+Algebra	Extremal methods, monotonicity, and invariants	eventual stability			stability	EVENTUAL STABILITY
+Number Theory	Diophantine equations and integer constraints	eventual property	propagation			EVENTUAL-TO-GLOBAL PROPAGATION
+Number Theory	Number-theoretic algebra		exact comparison		exact result	EXACT COMPARISON
+Number Theory	Additive and multiplicative number theory	covering systems	covering		exact result	EXACT COVERING SYSTEMS
+Combinatorics	Set systems, posets, and extremal set theory	exact covers			exact result	EXACT COVERS
+Algebra	Extremal methods, monotonicity, and invariants	extremal bound	extremal argument		exact bound	EXACT EXTREMAL BOUND
+Geometry	Euclidean geometry				example	EXAMPLES
+Combinatorics	Counting and enumerative combinatorics	excedances				EXCEDANCES
+Geometry	Triangle centers and triangle configurations	excenters, excentral triangle				EXCENTERS/EXCENTRAL TRIANGLE
+Geometry	Triangle centers and triangle configurations	excentral ideas				EXCENTRAL IDEAS
+Geometry	Triangle centers and triangle configurations	excentral triangle				EXCENTRAL TRIANGLE
+Geometry	Triangle centers and triangle configurations	mixtilinear configuration	analogy/flavor			EXCENTRAL/MIXTILINEAR FLAVOR
+Geometry	Triangle centers and triangle configurations	mixtilinear configuration				EXCENTRAL/MIXTILINEAR RELATIONS
+Geometry	Triangle centers and triangle configurations	excircle				EXCIRCLE RECOGNITION
+Geometry	Triangle centers and triangle configurations	excircle				EXCIRCLE TANGENCY LENGTHS
+Geometry	Triangle centers and triangle configurations	excircle				EXCIRCLE/CIRCUMCIRCLE
+Geometry	Triangle centers and triangle configurations	excircle				EXCIRCLE/EXCENTRAL
+Geometry	Triangle centers and triangle configurations	excircle				EXCIRCLE/INCIRCLE HOMOTHETY
+Geometry	Triangle centers and triangle configurations	excircle				EXCIRCLE/TANGENCY
+Algebra	Algebraic manipulation and equations	excluded intervals				EXCLUDED INTERVALS
+Number Theory	Diophantine equations and integer constraints	existence statement			existence	EXISTENCE
+Geometry	Euclidean geometry	existence condition			existence, criterion	EXISTENCE CONDITION
+Geometry	Euclidean geometry	existence criterion			existence, criterion	EXISTENCE CRITERION
+Geometry	Euclidean geometry	extension			existence, extension	EXISTENCE/EXTENSION
+Combinatorics	Probability, entropy, coding, and information methods	expectation flavor	linearity of expectation, analogy/flavor			EXPECTATION FLAVOR
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	exploration with memory				EXPLORATION WITH MEMORY
+Number Theory	Diophantine equations and integer constraints	exponents	exponent constraints			EXPONENT CONSTRAINTS
+Number Theory	Diophantine equations and integer constraints	exponents	exponent control			EXPONENT CONTROL
+Number Theory	Diophantine equations and integer constraints	exponent equations				EXPONENT EQUATIONS
+Number Theory	Diophantine equations and integer constraints	exponents	exponent extraction			EXPONENT EXTRACTION
+Algebra	Polynomials and algebraic manipulation	exponents	factorization			EXPONENT FACTORIZATION
+Algebra	Extremal methods, monotonicity, and invariants	exponents				EXPONENT GROWTH
+Algebra	Algebraic manipulation and equations	exponents	exponent manipulation			EXPONENT MANIPULATION
+Number Theory	Diophantine equations and integer constraints	exponent patterns				EXPONENT PATTERNS
+Number Theory	Diophantine equations and integer constraints	exponents	exponent reduction		reduction	EXPONENT REDUCTION
+Number Theory	Diophantine equations and integer constraints	exponents	exponent replacement			EXPONENT REPLACEMENT
+Number Theory	Diophantine equations and integer constraints	exponents	exponent tuning			EXPONENT TUNING
+Algebra	Functional equations	exponents, exponential expressions		Cauchy exponential equation		EXPONENTIAL CAUCHY ON Q
+Algebra	Inequalities and optimization	exponents, exponential expressions	convexity			EXPONENTIAL CONVEXITY
+Algebra	Algebraic manipulation and equations	exponential denominators				EXPONENTIAL DENOMINATORS
+Number Theory	Diophantine equations and integer constraints	exponents, exponential equations				EXPONENTIAL EQUATIONS
+Number Theory	Diophantine equations and integer constraints	exponential forms				EXPONENTIAL FORMS
+Algebra	Algebraic manipulation and equations	exponential gaps				EXPONENTIAL GAPS
+Algebra	Sequences, recurrences, and series	exponents, exponential generating functions	generating functions			EXPONENTIAL GENERATING FUNCTIONS
+Algebra	Extremal methods, monotonicity, and invariants	exponents, exponential expressions				EXPONENTIAL GROWTH
+Algebra	Inequalities and optimization	exponents, exponential expressions				EXPONENTIAL INEQUALITIES
+Algebra	Sequences, recurrences, and series	exponents, exponential sequences, sequences				EXPONENTIAL SEQUENCES
+Algebra	Polynomials and algebraic manipulation	exponents, exponential expressions	substitution			EXPONENTIAL SUBSTITUTION
+Algebra	Algebraic manipulation and equations	exponential weights	weighting			EXPONENTIAL WEIGHTS
+Geometry	Euclidean geometry	exponents, exponential/logarithmic relations, exponential expressions				EXPONENTIAL/LOGARITHM
+Algebra, Number Theory	Number-theoretic algebra	exponents				EXPONENTS
+Combinatorics	Combinatorial structures and processes	expression complexity				EXPRESSION COMPLEXITY
+Geometry	Euclidean geometry	exsimilicenters				EXSIMILICENTERS
+Algebra	Algebraic manipulation and equations	extension property				EXTENSION PROPERTY
+Geometry	Geometry-flavored algebra	extouch triangle/coordinates				EXTOUCH COORDINATES
+Algebra	Extremal methods, monotonicity, and invariants	intersecting set family	extremal argument	Erdos-Ko-Rado theorem		EXTREMAL (EKR-STYLE)
+Algebra	Extremal methods, monotonicity, and invariants		extremal argument, minimality		minimality	EXTREMAL / MINIMALITY
+Algebra	Extremal methods, monotonicity, and invariants	permutation patterns, geometric combinatorics	extremal argument			EXTREMAL / PERMUTATION PATTERNS / GEOMETRIC COMBINATORICS
+Algebra	Extremal methods, monotonicity, and invariants	2-3 point supports	extremal argument			EXTREMAL 2-3 POINT SUPPORTS
+Algebra	Extremal methods, monotonicity, and invariants	altitudes	extremal argument			EXTREMAL ALTITUDES
+Algebra	Extremal methods, monotonicity, and invariants	angle	extremal argument			EXTREMAL ANGLE
+Algebra	Extremal methods, monotonicity, and invariants	angles	extremal argument			EXTREMAL ANGLES
+Algebra	Extremal methods, monotonicity, and invariants	area, packing	extremal argument, packing			EXTREMAL AREA/PACKING
+Algebra	Extremal methods, monotonicity, and invariants	areas	extremal argument			EXTREMAL AREAS
+Algebra	Extremal methods, monotonicity, and invariants		extremal argument			EXTREMAL ARGUMENTS
+Algebra	Extremal methods, monotonicity, and invariants	array	extremal argument			EXTREMAL ARRAY
+Algebra	Extremal methods, monotonicity, and invariants	averages	extremal argument			EXTREMAL AVERAGES
+Algebra	Discrete functions, floors, rounding, and base representation	binary arrays	extremal argument			EXTREMAL BINARY ARRAYS
+Algebra	Extremal methods, monotonicity, and invariants	bipartite graph	extremal argument			EXTREMAL BIPARTITE GRAPH
+Algebra	Extremal methods, monotonicity, and invariants	bipartite graphs	extremal argument			EXTREMAL BIPARTITE GRAPHS
+Algebra	Extremal methods, monotonicity, and invariants	blocks	extremal argument			EXTREMAL BLOCKS
+Algebra	Extremal methods, monotonicity, and invariants	board placement	extremal argument			EXTREMAL BOARD PLACEMENT
+Algebra	Extremal methods, monotonicity, and invariants	board problems	extremal argument			EXTREMAL BOARD PROBLEMS
+Algebra	Extremal methods, monotonicity, and invariants	board tiling	extremal argument, tiling			EXTREMAL BOARD TILING
+Algebra	Extremal methods, monotonicity, and invariants	bounding	extremal argument		bound	EXTREMAL BOUNDING
+Algebra	Extremal methods, monotonicity, and invariants		extremal argument		bound	EXTREMAL BOUNDS
+Algebra	Extremal methods, monotonicity, and invariants	casework	extremal argument, casework			EXTREMAL CASEWORK
+Algebra	Extremal methods, monotonicity, and invariants	cell	extremal argument			EXTREMAL CELL
+Algebra	Extremal methods, monotonicity, and invariants	certificates	extremal argument		certificate	EXTREMAL CERTIFICATES
+Algebra	Extremal methods, monotonicity, and invariants	characterization	extremal argument		classification	EXTREMAL CHARACTERIZATION
+Algebra	Extremal methods, monotonicity, and invariants	chords	extremal argument			EXTREMAL CHORDS
+Algebra	Polynomials and algebraic manipulation	coefficients	extremal argument			EXTREMAL COEFFICIENTS
+Algebra	Extremal methods, monotonicity, and invariants	colouring	extremal argument, coloring			EXTREMAL COLOURING
+Algebra	Discrete functions, floors, rounding, and base representation	combinatorics; ordered set systems; induction, dyadic structure	extremal argument, induction, dyadic decomposition		inductive step	EXTREMAL COMBINATORICS; ORDERED SET SYSTEMS; INDUCTION/DYADIC STRUCTURE
+Algebra	Extremal methods, monotonicity, and invariants	configurations, convexity, coloring	extremal argument, coloring, convexity			EXTREMAL CONFIGURATIONS / CONVEXITY / COLORING
+Algebra	Extremal methods, monotonicity, and invariants	configurations, double counting, grids	extremal argument, double counting			EXTREMAL CONFIGURATIONS / DOUBLE COUNTING / GRIDS
+Algebra	Extremal methods, monotonicity, and invariants	constants	extremal argument			EXTREMAL CONSTANTS
+Algebra	Extremal methods, monotonicity, and invariants	constraints	extremal argument			EXTREMAL CONSTRAINTS
+Algebra	Extremal methods, monotonicity, and invariants	construction in zn\mathbb{z}^nzn	extremal argument		construction	EXTREMAL CONSTRUCTION IN ZN\MATHBB{Z}^NZN
+Algebra	Extremal methods, monotonicity, and invariants	convolution	extremal argument			EXTREMAL CONVOLUTION
+Algebra	Extremal methods, monotonicity, and invariants	counterexample	extremal argument		counterexample	EXTREMAL COUNTEREXAMPLE
+Algebra	Extremal methods, monotonicity, and invariants	cut condition	extremal argument		criterion	EXTREMAL CUT CONDITION
+Algebra	Extremal methods, monotonicity, and invariants	cutting	extremal argument			EXTREMAL CUTTING
+Algebra	Extremal methods, monotonicity, and invariants	degree bounds	extremal argument		bound	EXTREMAL DEGREE BOUNDS
+Algebra	Extremal methods, monotonicity, and invariants	diagonals	extremal argument			EXTREMAL DIAGONALS
+Algebra	Extremal methods, monotonicity, and invariants	digraphs	extremal argument			EXTREMAL DIGRAPHS
+Algebra	Extremal methods, monotonicity, and invariants	directions	extremal argument			EXTREMAL DIRECTIONS
+Algebra	Extremal methods, monotonicity, and invariants	distinct values	extremal argument			EXTREMAL DISTINCT VALUES
+Algebra	Extremal methods, monotonicity, and invariants	distribution	extremal argument			EXTREMAL DISTRIBUTION
+Algebra	Extremal methods, monotonicity, and invariants		extremal argument, double counting			EXTREMAL DOUBLE COUNTING
+Algebra	Extremal methods, monotonicity, and invariants	edges, edges in convex bipartite graphs	extremal argument			EXTREMAL EDGES IN CONVEX BIPARTITE GRAPHS
+Algebra	Extremal methods, monotonicity, and invariants	equality	extremal argument		equality case	EXTREMAL EQUALITY
+Algebra	Inequalities and optimization	functional inequality	extremal argument			EXTREMAL FUNCTIONAL INEQUALITY
+Algebra	Extremal methods, monotonicity, and invariants	functions	extremal argument			EXTREMAL FUNCTIONS
+Algebra	Extremal methods, monotonicity, and invariants	gap	extremal argument			EXTREMAL GAP
+Algebra	Extremal methods, monotonicity, and invariants	geometric configuration, classical theorem	extremal argument			EXTREMAL GEOMETRY/CLASSICAL THEOREM
+Algebra	Extremal methods, monotonicity, and invariants	graph	extremal argument	Turan theorem, Mantel theorem		EXTREMAL GRAPH (TUR‚àö√ÖN/MANTEL)
+Algebra	Extremal methods, monotonicity, and invariants	graph coloring	extremal argument, coloring			EXTREMAL GRAPH COLORING
+Algebra	Extremal methods, monotonicity, and invariants	geometry configuration, graph geometry	extremal argument			EXTREMAL GRAPH GEOMETRY
+Algebra	Extremal methods, monotonicity, and invariants	graph labeling	extremal argument			EXTREMAL GRAPH LABELING
+Algebra	Extremal methods, monotonicity, and invariants	graphs, diameter two	extremal argument			EXTREMAL GRAPHS / DIAMETER TWO
+Algebra	Extremal methods, monotonicity, and invariants	grid, weighted coloring, double counting	extremal argument, double counting, weighting, coloring			EXTREMAL GRID / WEIGHTED COLORING / DOUBLE COUNTING
+Algebra	Extremal methods, monotonicity, and invariants	grid packing	extremal argument, packing			EXTREMAL GRID PACKING
+Algebra	Extremal methods, monotonicity, and invariants	guarantee	extremal argument		existence guarantee	EXTREMAL GUARANTEE
+Algebra	Extremal methods, monotonicity, and invariants	hypergraphs	extremal argument			EXTREMAL HYPERGRAPHS
+Algebra	Extremal methods, monotonicity, and invariants	image sets	extremal argument			EXTREMAL IMAGE SETS
+Algebra	Extremal methods, monotonicity, and invariants	incidence	extremal argument			EXTREMAL INCIDENCE
+Algebra	Extremal methods, monotonicity, and invariants	increments	extremal argument			EXTREMAL INCREMENTS
+Algebra	Extremal methods, monotonicity, and invariants	independent sets	extremal argument			EXTREMAL INDEPENDENT SETS
+Algebra	Extremal methods, monotonicity, and invariants	index	extremal argument			EXTREMAL INDEX
+Algebra	Extremal methods, monotonicity, and invariants	initial pairing	extremal argument, pairing			EXTREMAL INITIAL PAIRING
+Algebra	Extremal methods, monotonicity, and invariants	initial resource	extremal argument			EXTREMAL INITIAL RESOURCE
+Algebra	Extremal methods, monotonicity, and invariants	integers	extremal argument			EXTREMAL INTEGERS
+Algebra	Extremal methods, monotonicity, and invariants	integral	extremal argument			EXTREMAL INTEGRAL
+Algebra	Extremal methods, monotonicity, and invariants	interval argument	extremal argument			EXTREMAL INTERVAL ARGUMENT
+Algebra	Extremal methods, monotonicity, and invariants	kernel	extremal argument			EXTREMAL KERNEL
+Algebra	Extremal methods, monotonicity, and invariants	labeling	extremal argument			EXTREMAL LABELING
+Algebra	Extremal methods, monotonicity, and invariants	lattice	extremal argument			EXTREMAL LATTICE
+Algebra	Extremal methods, monotonicity, and invariants	layering	extremal argument, layering			EXTREMAL LAYERING
+Algebra	Extremal methods, monotonicity, and invariants	leaves	extremal argument			EXTREMAL LEAVES
+Algebra	Extremal methods, monotonicity, and invariants	linearization	extremal argument			EXTREMAL LINEARIZATION
+Algebra	Extremal methods, monotonicity, and invariants	matching	extremal argument			EXTREMAL MATCHING
+Algebra	Extremal methods, monotonicity, and invariants	max-min	extremal argument			EXTREMAL MAX-MIN
+Algebra	Extremal methods, monotonicity, and invariants	measure	extremal argument			EXTREMAL MEASURE
+Algebra	Extremal methods, monotonicity, and invariants	metric	extremal argument			EXTREMAL METRIC
+Algebra	Extremal methods, monotonicity, and invariants	minimal-counterexample	extremal argument, minimal counterexample		counterexample	EXTREMAL MINIMAL-COUNTEREXAMPLE
+Algebra	Extremal methods, monotonicity, and invariants	extremal minimality	extremal argument, minimality			EXTREMAL MINIMALITY
+Algebra	Extremal methods, monotonicity, and invariants	monomial	extremal argument			EXTREMAL MONOMIAL
+Algebra	Extremal methods, monotonicity, and invariants	move choice	extremal argument			EXTREMAL MOVE CHOICE
+Algebra	Extremal methods, monotonicity, and invariants	multisets	extremal argument			EXTREMAL MULTISETS
+Algebra	Extremal methods, monotonicity, and invariants	object	extremal argument			EXTREMAL OBJECT
+Algebra	Extremal methods, monotonicity, and invariants	obstruction	extremal argument		obstruction	EXTREMAL OBSTRUCTION
+Algebra	Extremal methods, monotonicity, and invariants	on cyclic orders	extremal argument			EXTREMAL ON CYCLIC ORDERS
+Algebra	Extremal methods, monotonicity, and invariants	operations	extremal argument			EXTREMAL OPERATIONS
+Algebra	Extremal methods, monotonicity, and invariants	pairing	extremal argument, pairing			EXTREMAL PAIRING
+Algebra	Extremal methods, monotonicity, and invariants	parallelogram	extremal argument			EXTREMAL PARALLELOGRAM
+Algebra	Extremal methods, monotonicity, and invariants	partitions	extremal argument			EXTREMAL PARTITIONS
+Algebra	Extremal methods, monotonicity, and invariants	path sum	extremal argument			EXTREMAL PATH SUM
+Algebra	Extremal methods, monotonicity, and invariants	paths	extremal argument			EXTREMAL PATHS
+Algebra	Extremal methods, monotonicity, and invariants	pattern	extremal argument			EXTREMAL PATTERN
+Algebra	Extremal methods, monotonicity, and invariants	perimeter	extremal argument			EXTREMAL PERIMETER
+Algebra	Extremal methods, monotonicity, and invariants	permutation	extremal argument			EXTREMAL PERMUTATION
+Algebra	Extremal methods, monotonicity, and invariants	placement	extremal argument			EXTREMAL PLACEMENT
+Algebra	Extremal methods, monotonicity, and invariants	play	extremal argument			EXTREMAL PLAY
+Algebra	Extremal methods, monotonicity, and invariants	point choice	extremal argument			EXTREMAL POINT CHOICE
+Algebra	Extremal methods, monotonicity, and invariants	polygon	extremal argument			EXTREMAL POLYGON
+Algebra	Extremal methods, monotonicity, and invariants	polygons	extremal argument			EXTREMAL POLYGONS
+Algebra	Extremal methods, monotonicity, and invariants	posets	extremal argument			EXTREMAL POSETS
+Algebra	Extremal methods, monotonicity, and invariants		extremal principle			EXTREMAL PRINCIPLE (EV)
+Algebra	Extremal methods, monotonicity, and invariants	product	extremal argument			EXTREMAL PRODUCT
+Algebra	Extremal methods, monotonicity, and invariants	quadratic forms	extremal argument			EXTREMAL QUADRATIC FORMS
+Algebra	Extremal methods, monotonicity, and invariants	ratio	extremal argument			EXTREMAL RATIO
+Algebra	Extremal methods, monotonicity, and invariants	real sets	extremal argument			EXTREMAL REAL SETS
+Algebra	Sequences, recurrences, and series	recurrence	extremal argument			EXTREMAL RECURRENCE
+Algebra	Extremal methods, monotonicity, and invariants		extremal argument		reduction	EXTREMAL REDUCTION
+Algebra	Extremal methods, monotonicity, and invariants	regions	extremal argument			EXTREMAL REGIONS
+Algebra	Extremal methods, monotonicity, and invariants	scheduling	extremal argument			EXTREMAL SCHEDULING
+Algebra	Extremal methods, monotonicity, and invariants	score function	extremal argument			EXTREMAL SCORE FUNCTION
+Algebra	Extremal methods, monotonicity, and invariants	set functions	extremal argument			EXTREMAL SET FUNCTIONS
+Algebra	Extremal methods, monotonicity, and invariants	distance graph, sets	extremal argument			EXTREMAL SETS / DISTANCE GRAPH
+Algebra	Extremal methods, monotonicity, and invariants	side lengths	extremal argument			EXTREMAL SIDE LENGTHS
+Algebra	Extremal methods, monotonicity, and invariants	signs	extremal argument			EXTREMAL SIGNS
+Algebra	Extremal methods, monotonicity, and invariants	small cases	extremal argument, casework			EXTREMAL SMALL CASES
+Algebra	Inequalities and optimization	smoothing	extremal argument, smoothing			EXTREMAL SMOOTHING
+Algebra	Extremal methods, monotonicity, and invariants	stability	extremal argument		stability	EXTREMAL STABILITY
+Algebra	Extremal methods, monotonicity, and invariants	subgraphs	extremal argument			EXTREMAL SUBGRAPHS
+Algebra	Extremal methods, monotonicity, and invariants	sublattices	extremal argument			EXTREMAL SUBLATTICES
+Algebra	Extremal methods, monotonicity, and invariants	subset swap	extremal argument, swap argument			EXTREMAL SUBSET SWAP
+Algebra	Extremal methods, monotonicity, and invariants	support	extremal argument			EXTREMAL SUPPORT
+Algebra	Extremal methods, monotonicity, and invariants	swapping	extremal argument, swap argument			EXTREMAL SWAPPING
+Algebra	Extremal methods, monotonicity, and invariants	testing	extremal argument		verification	EXTREMAL TESTING
+Algebra	Extremal methods, monotonicity, and invariants	extremal thinking	extremal argument			EXTREMAL THINKING
+Algebra	Extremal methods, monotonicity, and invariants	threshold	extremal argument			EXTREMAL THRESHOLD
+Algebra	Extremal methods, monotonicity, and invariants	trajectories	extremal argument			EXTREMAL TRAJECTORIES
+Algebra	Extremal methods, monotonicity, and invariants	transitivity	extremal argument, transitivity			EXTREMAL TRANSITIVITY
+Algebra	Extremal methods, monotonicity, and invariants	under fixed sum	extremal argument			EXTREMAL UNDER FIXED SUM
+Algebra	Inequalities and optimization	value	extremal argument			EXTREMAL VALUE
+Algebra	Extremal methods, monotonicity, and invariants	variance	extremal argument, variance estimate			EXTREMAL VARIANCE
+Algebra	Extremal methods, monotonicity, and invariants	volume	extremal argument			EXTREMAL VOLUME
+Algebra	Extremal methods, monotonicity, and invariants	voting	extremal argument			EXTREMAL VOTING
+Algebra	Extremal methods, monotonicity, and invariants	weights	extremal argument, weighting			EXTREMAL WEIGHTS
+Algebra	Extremal methods, monotonicity, and invariants	adversarial game	extremal argument			EXTREMAL/ADVERSARIAL GAME
+Algebra	Extremal methods, monotonicity, and invariants		extremal argument, compactness-style argument			EXTREMAL/COMPACTNESS-STYLE ARGUMENT
+Algebra	Extremal methods, monotonicity, and invariants	compression	extremal argument			EXTREMAL/COMPRESSION
+Algebra	Extremal methods, monotonicity, and invariants		extremal argument, convexity			EXTREMAL/CONVEXITY
+Algebra	Extremal methods, monotonicity, and invariants	dirac-ore flavor	extremal argument, analogy/flavor	Dirac-Ore theorem		EXTREMAL/DIRAC-ORE FLAVOR
+Algebra	Extremal methods, monotonicity, and invariants		extremal argument, greedy algorithm			EXTREMAL/GREEDY
+Algebra	Extremal methods, monotonicity, and invariants		extremal argument, induction		inductive step	EXTREMAL/INDUCTION
+Algebra	Extremal methods, monotonicity, and invariants		extremal argument, invariant			EXTREMAL/INVARIANT
+Algebra	Extremal methods, monotonicity, and invariants		extremal argument, invariant			EXTREMAL/INVARIANTS
+Algebra	Extremal methods, monotonicity, and invariants		extremal argument		last-step argument	EXTREMAL/LAST-STEP ARGUMENT
+Algebra	Extremal methods, monotonicity, and invariants		extremal argument, minimization			EXTREMAL/MINIMIZATION
+Algebra	Extremal methods, monotonicity, and invariants		extremal argument, minimum tracking			EXTREMAL/MINIMUM TRACKING
+Algebra	Extremal methods, monotonicity, and invariants		extremal argument, monotonicity			EXTREMAL/MONOTONICITY
+Algebra	Extremal methods, monotonicity, and invariants	ramsey-free	extremal argument			EXTREMAL/RAMSEY-FREE
+Algebra	Extremal methods, monotonicity, and invariants		extremal argument		supremum argument	EXTREMAL/SUPREMUM
+Algebra	Extremal methods, monotonicity, and invariants	topological configuration	extremal argument			EXTREMAL/TOPOLOGICAL
+Algebra	Inequalities and optimization	trigonometric inequality	extremal argument			EXTREMAL/TRIG INEQUALITY
+Algebra	Extremal methods, monotonicity, and invariants	worst-case	extremal argument		worst-case analysis	EXTREMAL/WORST-CASE
+Combinatorics	Set systems, posets, and extremal set theory	F2 vector space	linear algebra over F2			F2 \MATHBB F_2F2‚Äö√Ñ√£ SET SYSTEMS/CODES
+Combinatorics	Set systems, posets, and extremal set theory	F2 vector space	linear algebra over F2			F2 LINEAR STRUCTURE
+Geometry	Geometry-flavored algebra	F2 vector space	linear algebra over F2			F2 VECTORS
+Combinatorics	Set systems, posets, and extremal set theory	F2 vector space	linear algebra over F2			F2-LINEAR ALGEBRA
+Algebra	Polynomials and algebraic manipulation	F2 vector space, polynomials	linear algebra over F2			F_2 POLYNOMIALS
+Combinatorics	Combinatorial algebra and counting		counting			FACE COUNTING
+Algebra	Polynomials and algebraic manipulation		factorization			FACTOR ARGUMENTS
+Algebra	Polynomials and algebraic manipulation		factorization			FACTOR COMPARISON
+Algebra	Polynomials and algebraic manipulation		factorization			FACTOR COMPLEXITY
+Algebra	Polynomials and algebraic manipulation		factorization			FACTOR CONSTRAINTS
+Algebra	Polynomials and algebraic manipulation		factorization			FACTOR MANIPULATION
+Algebra	Polynomials and algebraic manipulation		factorization			FACTOR PAIRS
+Algebra	Polynomials and algebraic manipulation		factorization			FACTOR RATIOS
+Algebra	Polynomials and algebraic manipulation		factorization			FACTOR-CHAINS
+Algebra	Polynomials and algebraic manipulation		factorization		bound	FACTOR/BOUNDS
+Algebra	Polynomials and algebraic manipulation	factorials	factorization			FACTORIAL BASIS
+Algebra	Polynomials and algebraic manipulation	factorials	factorization			FACTORIAL CANCELLATION
+Algebra	Polynomials and algebraic manipulation	factorials	factorization			FACTORIAL COMPARISON
+Algebra	Polynomials and algebraic manipulation	factorials	dominance argument, factorization			FACTORIAL DOMINANCE
+Algebra	Polynomials and algebraic manipulation	factorials	factorization			FACTORIAL GROWTH
+Algebra	Polynomials and algebraic manipulation	factorials	factorization			FACTORIAL IDENTITIES
+Algebra	Polynomials and algebraic manipulation	factorials	factorization			FACTORIAL INPUTS
+
+Area	Canonical Subtopic	Object tag	Technique tag	Lemma/Theorem tag	Proof role	Raw imported tag
+Algebra	Polynomials and algebraic manipulation	factorials modulo n	factorial manipulation; modular reduction		congruence obstruction	FACTORIAL MODULUS
+Algebra	Polynomials and algebraic manipulation	factorial products	factorization; product manipulation			FACTORIAL PRODUCTS
+Algebra	Polynomials and algebraic manipulation	factorial sums	algebraic summation; factorial identities			FACTORIAL SUMS
+Algebra	Polynomials and algebraic manipulation	factorial towers	growth comparison; recursive factorial structure			FACTORIAL TOWERS
+Algebra	Polynomials and algebraic manipulation	factorials	factorial trick; factor extraction			FACTORIAL TRICK
+Algebra	Polynomials and algebraic manipulation	factorial-type products	product factorization			FACTORIAL-TYPE PRODUCTS
+Algebra	Polynomials and algebraic manipulation	factorials and powers	exponent comparison; factorial divisibility			FACTORIALS AND POWERS
+Algebra	Polynomials and algebraic manipulation	factors; algebraic expressions	factoring trick			FACTORING TRICKS
+Algebra	Polynomials and algebraic manipulation	factorization patterns	factorization argument			FACTORIZATION ARGUMENTS
+Algebra	Algebraic structures and linear algebra	factorization monoids	monoid factorization			FACTORIZATION MONOIDS
+Algebra	Extremal methods, monotonicity, and invariants	factorization descent	factorization; descent		descent	FACTORIZATION/DESCENT
+Algebra	Polynomials and algebraic manipulation	discriminants	factorization; discriminant method			FACTORIZATION/DISCRIMINANTS
+Algebra	Polynomials and algebraic manipulation	parametric factors	factorization; parameterization		parameterization	FACTORIZATION/PARAMETERIZATION
+Geometry	Geometric inequalities and optimization	orthic triangle perimeter	geometric minimization	Fagnano problem	extremal/minimization	FAGNANO/ORTHIC PERIMETER
+Combinatorics	Combinatorial algebra and counting	area model	false counting; invariant check		obstruction	FAKE AREA
+Algebra	Extremal methods, monotonicity, and invariants	fake count	invariant			FAKE-COUNT INVARIANT
+Combinatorics	Coloring, tiling, grids, and invariants	polygon triangulation	fan triangulation		construction	FAN TRIANGULATION
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	rational fractions	mediants; tree construction	Farey sequence; Stern-Brocot tree	construction	FAREY/STERN-BROCOT
+Combinatorics	Combinatorial algebra and counting	linear constraints	dual certificate	Farkas lemma	feasibility certificate	FARKAS-LEMMA VIEWPOINT
+Combinatorics	Combinatorial algebra and counting	farthest graph	graph model; distance relation			FARTHEST GRAPH
+Algebra	Sequences, recurrences, and series	power sums	moment identities	Faulhaber formulas		FAULHABER MOMENTS
+Combinatorics	Pigeonhole, extremal principle, and averaging	feasible configurations	feasibility analysis			FEASIBILITY
+Combinatorics	Graph theory	directed graph feedback arcs	feedback arc set; graph orientation		obstruction/optimization	FEEDBACK ARC SET
+Combinatorics	Graph theory	graph feedback edges	feedback edge set; cycle breaking		obstruction/optimization	FEEDBACK EDGE SET
+Geometry	Circle geometry	feet of perpendiculars	circle through feet			FEET CIRCLES
+Algebra	Geometric inequalities and optimization	point configurations	energy/extremal point method	Fekete points	extremal	FEKETE POINTS
+Combinatorics	Analytic estimates and asymptotics	subadditive structure	Fekete-style subadditivity	Fekete lemma	extremal/asymptotic	FEKETE/SUBADDITIVITY FLAVOR
+Geometry	Geometric inequalities and optimization	median point; facility location	distance minimization	Fermat-Weber point	optimization	FERMAT-WEBER POINT
+Geometry	Triangle centers and triangle configurations	Fermat point; Miquel point	spiral similarity; circle chasing	Fermat point; Miquel point		FERMAT/MIQUEL POINT
+Combinatorics	Set systems, posets, and extremal set theory	Ferrers boards	rook polynomial / board representation			FERRERS BOARDS
+Combinatorics	Set systems, posets, and extremal set theory	Ferrers diagram	partition diagram; Young diagram			FERRERS DIAGRAM
+Combinatorics	Set systems, posets, and extremal set theory	Ferrers matrices	0-1 matrix structure; Ferrers order			FERRERS MATRICES
+Combinatorics	Combinatorial algebra and counting	Ferrers graph; chain graph	graph representation; nested neighborhoods			FERRERS/CHAIN GRAPHS
+Geometry	Circle geometry	incircle/excircle tangency	tangency chase	Feuerbach-type tangency		FEUERBACH-TYPE TANGENCY
+Algebra	Extremal methods, monotonicity, and invariants	fibers; preimages	fiber size rigidity		rigidity	FIBER SIZE RIGIDITY
+Algebra	Functional equations	fibers; preimages	preimage analysis			FIBERS/PREIMAGES
+Algebra	Sequences, recurrences, and series	Fibonacci objects	recurrence counting	Fibonacci recurrence	counting	FIBONACCI COUNTING
+Algebra	Sequences, recurrences, and series	Fibonacci exponents	recurrence; exponential growth	Fibonacci recurrence		FIBONACCI EXPONENTS
+Algebra	Sequences, recurrences, and series	Fibonacci-type objects	recurrence counting	Fibonacci recurrence	counting	FIBONACCI-TYPE COUNTING
+Algebra	Sequences, recurrences, and series	recurrence objects	Fibonacci-flavored recurrence	Fibonacci recurrence		FIBONACCI/RECURRENCE FLAVOR
+Algebra	Algebraic structures and linear algebra	fields	field structure; field extensions			FIELD THEORY
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	words; periodic strings	periodicity argument	Fine-Wilf theorem	rigidity	FINE–WILF-TYPE ARGUMENTS
+Combinatorics	Combinatorial geometry	finite arrangements	incidence arrangement			FINITE ARRANGEMENT
+Number Theory	Discrete functions, floors, rounding, and base representation	automaton states	finite automaton; digit recurrence			FINITE AUTOMATON
+Algebra	Pigeonhole, extremal principle, and averaging	finite bad set	avoidance argument		obstruction	FINITE AVOIDANCE
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	branching process	finite branching		case split	FINITE BRANCHING
+Combinatorics	Pigeonhole, extremal principle, and averaging	finite cases	case analysis		casework	FINITE CASE
+Combinatorics	Pigeonhole, extremal principle, and averaging	finite cases	case analysis		casework	FINITE CASES
+Algebra	Algebraic structures and linear algebra	finite closure	closure under operations			FINITE CLOSURE
+Combinatorics	Coloring, tiling, grids, and invariants	finite colorings	coloring argument			FINITE COLORINGS
+Number Theory	Modular arithmetic and congruences	finite cycles	cycle modulo n			FINITE CYCLES
+Algebra	Extremal methods, monotonicity, and invariants	finite descent	descent		descent	FINITE DESCENT
+Algebra	Discrete functions, floors, rounding, and base representation	finite differences; binomial sums; parity	finite difference method; parity			FINITE DIFFERENCES / BINOMIAL SUMS / PARITY
+Algebra	Discrete functions, floors, rounding, and base representation	digit sets	base representation; finite digit set			FINITE DIGIT SETS
+Algebra	Algebraic structures and linear algebra	discrete harmonic functions	finite Dirichlet problem	maximum principle		FINITE DIRICHLET PROBLEM
+Number Theory	Pigeonhole, extremal principle, and averaging	finite enumeration	exhaustive enumeration		finite check	FINITE ENUMERATION
+Algebra	Extremal methods, monotonicity, and invariants	finite extremal set	extremal selection		extremal	FINITE EXTREMAL
+Algebra	Functional equations	finite fibers	fiber analysis			FINITE FIBERS
+Combinatorics	Pigeonhole, extremal principle, and averaging	finite forcing	forcing argument		existence/forcing	FINITE FORCING
+Algebra	Complex, trigonometric, and Fourier methods	characters on Z_p	finite Fourier transform; character sums			FINITE FOURIER/CHARACTERS ON Z_p
+Combinatorics	Combinatorial algebra and counting	counting functions	finite Fourier counting; character sums		counting	FINITE FOURIER/COUNTING
+Combinatorics	Pigeonhole, extremal principle, and averaging	finite games	game tree; strategy stealing			FINITE GAMES
+Combinatorics	Algebraic structures and linear algebra	finitely generated structures	generation argument			FINITE GENERATION
+Geometry	Finite geometry	affine plane over F_p; caps; arcs	finite geometry; finite-field model			FINITE GEOMETRY; AFFINE PLANE OVER F_p; CAPS/ARCS
+Combinatorics	Combinatorial algebra and counting	finite graph dynamics	graph process; iteration			FINITE GRAPH DYNAMICS
+Algebra	Functional equations	finite image	image restriction			FINITE IMAGE
+Geometry	Geometry-flavored algebra	finite lattices	lattice geometry			FINITE LATTICES
+Combinatorics	Algebraic structures and linear algebra	vector spaces over finite fields	linear algebra over finite fields			FINITE LINEAR ALGEBRA
+Number Theory	Modular arithmetic and congruences	discrete logarithms	finite logarithm			FINITE LOGARITHM
+Combinatorics	Pigeonhole, extremal principle, and averaging	finite maps	pigeonhole on functions		pigeonhole	FINITE MAPS
+Geometry	Metric geometry	finite metric spaces	distance structure			FINITE METRIC GEOMETRY
+Algebra	Algebraic structures and linear algebra	finite monoids	monoid structure			FINITE MONOIDS
+Combinatorics	Pigeonhole, extremal principle, and averaging	obstructions	finite obstruction		obstruction	FINITE OBSTRUCTION
+Combinatorics	Pigeonhole, extremal principle, and averaging	finite perturbations	perturbation argument			FINITE PERTURBATIONS
+Combinatorics	Pigeonhole, extremal principle, and averaging	finite sets	pigeonhole principle		pigeonhole	FINITE PIGEONHOLE
+Combinatorics	Combinatorial geometry	finite point configurations	incidence; position argument			FINITE POINT CONFIGURATIONS
+Combinatorics	Set systems, posets, and extremal set theory	finite posets	order argument			FINITE POSETS
+Combinatorics	Pigeonhole, extremal principle, and averaging	finite process	termination argument		termination	FINITE PROCESS
+Combinatorics	Pigeonhole, extremal principle, and averaging	finite processes	termination argument		termination	FINITE PROCESSES
+Number Theory	Finite fields and finite geometry	projective plane over finite field	finite projective geometry			FINITE PROJECTIVE PLANE
+Algebra	Algebraic structures and linear algebra	quotient structures	finite quotients			FINITE QUOTIENTS
+Combinatorics	Combinatorial geometry	finite real sets	order/geometry of finite sets			FINITE REAL SETS
+Number Theory	Finite rings and modular arithmetic	finite rings	ring structure modulo n			FINITE RING BEHAVIOR
+Geometry	Geometry-flavored algebra	finite rotation groups	group action; symmetry			FINITE ROTATION GROUPS
+Number Theory	Pigeonhole, extremal principle, and averaging	finite search	search pruning		finite check	FINITE SEARCH PRUNING
+Algebra	Extremal methods, monotonicity, and invariants	finite search states	invariant-aided search pruning		invariant/finite check	FINITE SEARCH WITH INVARIANTS
+Algebra	Algebraic structures and linear algebra	finite semigroups	semigroup structure			FINITE SEMIGROUP
+Algebra	Discrete functions, floors, rounding, and base representation	finite semigroups; automata	finite-state transition; automaton			FINITE SEMIGROUPS/AUTOMATA
+Combinatorics	Combinatorial geometry	finite separation	separating line/partition argument			FINITE SEPARATION
+Number Theory	Additive and multiplicative number theory	finite set structure	structure theorem flavor			FINITE SET STRUCTURE
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	finite states	state transition			FINITE STATE
+Algebra	Algebraic structures and linear algebra	finite structures	structural classification			FINITE STRUCTURES
+Combinatorics	Algebraic structures and linear algebra	finite subgroups	group action; subgroup structure			FINITE SUBGROUPS
+Number Theory	Extremal methods, monotonicity, and invariants	finite subsets	subset optimization		optimization	FINITE SUBSET OPTIMIZATION
+Combinatorics	Set systems, posets, and extremal set theory	ultrafilters	finite ultrafilter argument			FINITE ULTRAFILTER
+Geometry	Geometry-flavored algebra	vector spaces over finite fields	finite vector-space geometry			FINITE VECTOR SPACES
+Number Theory	Pigeonhole, extremal principle, and averaging	finite cases	verification		finite check	FINITE VERIFICATION
+Combinatorics	Discrete functions, floors, rounding, and base representation	finite-difference equations	finite difference method			FINITE-DIFFERENCE EQUATIONS
+Algebra	Extremal methods, monotonicity, and invariants	finite differences	finite-difference rigidity		rigidity	FINITE-DIFFERENCE RIGIDITY
+Combinatorics	Algebraic structures and linear algebra	finite-dimensional solution spaces	linear algebra dimension count			FINITE-DIMENSIONAL SOLUTION SPACES
+Number Theory	Finite fields and finite geometry	finite-field identities	polynomial identity over finite fields			FINITE-FIELD IDENTITIES
+Number Theory	Finite fields and finite geometry	finite-field norm	norm map over finite fields			FINITE-FIELD NORM
+Combinatorics	Finite fields and finite geometry	projective finite-field configuration	finite-field/projective trick			FINITE-FIELD/PROJECTIVE TRICK
+Algebra	Functional equations	finite image parameter	parameter restriction by finite image			FINITE-IMAGE PARAMETER
+Number Theory	Algorithms, automata, words, and constructive combinatorics	finite-memory dynamics	state recurrence			FINITE-MEMORY DYNAMICS
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	finite-set dynamics	iterative set process			FINITE-SET DYNAMICS
+Combinatorics	Functional equations	finite-set images	image-set analysis			FINITE-SET IMAGES
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	finite-state dynamics	state machine; transition graph			FINITE-STATE DYNAMICS
+Combinatorics	Combinatorial algebra and counting	finite-state games	state graph; game strategy			FINITE-STATE GAMES
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	finite-state processes	state transition; automaton			FINITE-STATE PROCESSES
+Algebra	Sequences, recurrences, and series	finite-state recurrence	recurrence with finite states			FINITE-STATE RECURRENCE
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	finite-state systems	automaton/state system			FINITE-STATE SYSTEMS
+Number Theory	Pigeonhole, extremal principle, and averaging	finiteness vs infinitude	finiteness contradiction		contradiction	FINITENESS VS INFINITUDE
+Algebra	Extremal methods, monotonicity, and invariants	finiteness descent	descent; minimal counterexample		descent	FINITENESS/DESCENT
+Combinatorics	Pigeonhole, extremal principle, and averaging	first appearance	minimal counterexample; first occurrence		minimality	FIRST APPEARANCES
+Combinatorics	Combinatorial algebra and counting	first moment	averaging; expectation	first moment method	counting/averaging	FIRST MOMENT
+Number Theory	Extremal methods, monotonicity, and invariants	first passage	minimal index argument		minimality	FIRST-PASSAGE ARGUMENT
+Geometry	Projective geometry	fivefold concurrency	concurrency chase			FIVEFOLD CONCURRENCY
+Geometry	Angle chasing	fixed angles	angle chasing			FIXED ANGLES
+Geometry	Circle geometry	fixed circle	circle invariant			FIXED CIRCLE
+Geometry	Circle geometry	point on fixed circle	locus/circle invariant			FIXED CIRCLE POINT
+Geometry	Locus geometry	fixed point locus	locus determination			FIXED POINT LOCUS
+Algebra	Extremal methods, monotonicity, and invariants	fixed point	fixed-point uniqueness		uniqueness	FIXED POINT UNIQUENESS
+Geometry	Circle geometry	fixed point; circle pencil	coaxal/circle pencil			FIXED POINT/CIRCLE PENCIL
+Geometry	Circle geometry	fixed point; coaxal circles	coaxality			FIXED POINT/COAXALITY
+Number Theory	Functional equations	fixed values	homothety of values; fixed-point analysis			FIXED POINTS/HOMOTHETY OF VALUES
+Geometry	Locus geometry	fixed locus	locus argument			FIXED-LOCUS
+Combinatorics	Combinatorial algebra and counting	fixed points	fixed-point counting	Burnside-style viewpoint	counting	FIXED-POINT COUNTING
+Number Theory	Functional equations	fixed points	forcing fixed point		forcing	FIXED-POINT FORCING
+Geometry	Locus geometry	fixed-point loci	locus determination			FIXED-POINT LOCI
+Algebra	Functional equations	fixed point obstruction	orbit obstruction		obstruction	FIXED-POINT OBSTRUCTION
+Combinatorics	Functional equations	fixed points	fixed-point style argument			FIXED-POINT STYLE
+Algebra	Geometry-flavored algebra	fixed-slope points	slope constraint			FIXED-SLOPE POINTS
+Geometry	Geometric inequalities and optimization	fixed sum	length/sum lemma		extremal	FIXED-SUM LEMMA
+Algebra	Inequalities and optimization	fixed-sum variables	maximization under fixed sum		optimization	FIXED-SUM MAXIMIZATION
+Geometry	Geometric packing	flat torus packing	packing on torus		extremal	FLAT TORUS PACKING
+Geometry	Metric geometry	flat configurations	flatness argument			FLATNESS
+Combinatorics	Combinatorial algebra and counting	flip graph	reconfiguration graph			FLIP GRAPH
+Algebra	Discrete functions, floors, rounding, and base representation	floor division	floor manipulation			FLOOR DIVISION
+Algebra	Discrete functions, floors, rounding, and base representation	floor maps	discrete map; floor function			FLOOR MAPS
+Algebra	Sequences, recurrences, and series	floor recurrence	recurrence with floor function			FLOOR RECURRENCE
+Algebra	Discrete functions, floors, rounding, and base representation	floor-function counterexamples	counterexample construction		counterexample	FLOOR-FUNCTION COUNTEREXAMPLES
+Algebra	Discrete functions, floors, rounding, and base representation	floor sums; sawtooth functions	floor-sum estimates; fractional parts		estimation	FLOOR-SUM/SAWTOOTH ESTIMATES
+Algebra	Discrete functions, floors, rounding, and base representation	floors; fractional parts	fractional-part analysis			FLOORS/FRACTIONAL PARTS
+Number Theory	Graph theory	flow matrix	linear flow/invariant matrix			FLOW MATRIX
+Combinatorics	Graph theory	cycle graph	flow on cycle			FLOW ON A CYCLE
+Combinatorics	Graph theory	cycles	flow on cycles			FLOW ON CYCLES
+Algebra	Extremal methods, monotonicity, and invariants	flow process	flow invariant		invariant	FLOW/INVARIANT
+Combinatorics	Combinatorial algebra and counting	flows; matchings	network flow; matching			FLOWS/MATCHINGS
+Number Theory	Modular arithmetic and congruences	FLT cycles	Fermat congruence cycles	Fermat's little theorem	cycle analysis	FLT CYCLES
+Geometry	Conic geometry	foci	conic focus property			FOCI
+Geometry	Transformations and symmetry	folding	folding transformation			FOLDING
+Combinatorics	Coloring, tiling, grids, and invariants	folded configurations	folding lemma	Folding lemma		FOLDING LEMMA
+Combinatorics	Combinatorial algebra and counting	permutations	folding permutation construction		construction	FOLDING PERMUTATIONS
+Geometry	Transformations and symmetry	folding; reflection	reflection transformation			FOLDING/REFLECTION
+Combinatorics	Graph theory	hypergraphs; Berge cycles	forbidden Berge-cycle		obstruction	FORBIDDEN BERGE-CYCLE
+Combinatorics	Combinatorial geometry	distances	forbidden distance graph		obstruction	FORBIDDEN DISTANCES
+Combinatorics	Combinatorial algebra and counting	ratios	forbidden equal ratios		obstruction	FORBIDDEN EQUAL RATIOS
+Combinatorics	Combinatorial algebra and counting	matrices	forbidden pattern in matrix		obstruction	FORBIDDEN MATRIX PATTERN
+Combinatorics	Combinatorial algebra and counting	pairs	forbidden-pair condition		obstruction	FORBIDDEN PAIRS
+Combinatorics	Coloring, tiling, grids, and invariants	patterns	forbidden pattern argument		obstruction	FORBIDDEN PATTERNS
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	words; powers	forbidden power-free word		obstruction	FORBIDDEN POWERS
+Combinatorics	Combinatorial algebra and counting	triples	forbidden triple condition		obstruction	FORBIDDEN TRIPLES
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	words	forbidden-word automaton		obstruction	FORBIDDEN WORDS
+Algebra	Functional equations	functions	forced linearity		rigidity	FORCED LINEARITY
+Combinatorics	Games and strategies	moves	forced move analysis		strategy	FORCED MOVES
+Number Theory	Functional equations	constants	free-variable forcing		forcing	FORCING CONSTANTS VIA A FREE VARIABLE
+Combinatorics	Combinatorial algebra and counting	identifiable structures	forcing; identifiability		rigidity	FORCING/IDENTIFIABILITY
+Combinatorics	Graph theory	graph colorings	coloring theorem	Four color theorem		FOUR COLOR THEOREM
+Combinatorics	Combinatorial algebra and counting	four-point configurations	double counting		counting	FOUR-POINT COUNTING
+Algebra	Complex, trigonometric, and Fourier methods	Fourier modes	Fourier decomposition			FOURIER MODES
+Algebra	Complex, trigonometric, and Fourier methods	graph edges	Fourier edge decomposition			FOURIER/EDGE DECOMPOSITION
+Algebra	Complex, trigonometric, and Fourier methods	functions	Fourier transform; Parseval identity	Parseval identity		FOURIER/PARSEVAL
+Combinatorics	Combinatorial algebra and counting	matchings	fractional matching; LP relaxation			FRACTIONAL MATCHING
+Algebra	Functional equations	fractional-linear maps	iteration of Möbius transform			FRACTIONAL-LINEAR ITERATION
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	blocks; frequencies	block-frequency analysis			FREQUENCIES/BLOCK STRUCTURE
+Combinatorics	Modular arithmetic and congruences	binomial powers	mod prime simplification	Freshman's dream	congruence	FRESHMAN'S DREAM
+Combinatorics	Combinatorial algebra and counting	friendship graph	common-neighbor graph	Friendship theorem		FRIENDSHIP GRAPH
+Combinatorics	Graph theory	friendship graph	graph theorem	Friendship theorem		FRIENDSHIP THEOREM
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	Frobenius coin-type objects	Frobenius-style construction	Frobenius coin problem	construction	FROBENIUS-STYLE CONSTRUCTION
+Number Theory	Diophantine equations	Frobenius-type equations	Frobenius-type obstruction			FROBENIUS-TYPE
+Combinatorics	Combinatorial algebra and counting	Frobenius-type objects	Frobenius-type counting		counting	FROBENIUS-TYPE COUNTING
+Number Theory	Geometry-flavored number theory	Frobenius-type geometry	geometric number theory viewpoint			FROBENIUS-TYPE GEOMETRY
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	length constraints	Frobenius-type length obstruction		obstruction	FROBENIUS-TYPE LENGTH OBSTRUCTION
+Combinatorics	Functional equations	functions	functional constraints			FUNCTIONAL CONSTRAINTS
+Algebra	Functional equations	functions	functional construction		construction	FUNCTIONAL CONSTRUCTIONS
+Algebra	Functional equations	functions	functional decomposition			FUNCTIONAL DECOMPOSITION
+Combinatorics	Combinatorial algebra and counting	functional digraph on edges	edge functional graph			FUNCTIONAL DIGRAPH ON EDGES
+Number Theory	Functional equations	functions on positive integers	number-theoretic functional equation			FUNCTIONAL EQUATION ON POSITIVE INTEGERS
+Algebra	Functional equations	sequences	functional equation on sequences			FUNCTIONAL EQUATION ON SEQUENCES
+Algebra	Functional equations	Cauchy-style functions	Cauchy equation method	Cauchy functional equation	rigidity	FUNCTIONAL EQUATIONS (CAUCHY-STYLE)
+Algebra	Functional equations	injective/shift functions	injectivity; shift argument			FUNCTIONAL EQUATIONS (INJECTIVITY/SHIFT)
+Algebra	Polynomials and algebraic manipulation	polynomial-type functions	polynomialization; finite differences			FUNCTIONAL EQUATIONS / POLYNOMIAL-TYPE BEHAVIOR
+Number Theory	Functional equations	finite-domain functions	finite functional equation			FUNCTIONAL EQUATIONS FINITE
+Algebra	Discrete functions, floors, rounding, and base representation	integer-valued additive functions; floor	additivity; floor analysis			FUNCTIONAL EQUATIONS; INTEGER-VALUED ADDITIVE FUNCTIONS; FLOOR
+Geometry	Geometry-flavored algebra	functional geometry	functional-geometric translation			FUNCTIONAL GEOMETRY
+Algebra	Functional equations	functional graph of g(x)	orbit graph; iteration			FUNCTIONAL GRAPH OF G(X)
+Algebra	Functional equations	functional graph	functional graph viewpoint			FUNCTIONAL GRAPH VIEWPOINT
+Algebra	Functional equations	functional graph; orbit	orbit construction		construction	FUNCTIONAL GRAPH/ORBIT CONSTRUCTION
+Algebra	Inequalities and optimization	functions; inequalities	differentiability propagation; quadratic rigidity		rigidity	FUNCTIONAL INEQUALITIES; DIFFERENTIABILITY PROPAGATION; QUADRATIC RIGIDITY
+Algebra	Inequalities and optimization	functions; inequalities	monotonicity; exponential limit		limit/monotonicity	FUNCTIONAL INEQUALITIES; MONOTONICITY; EXPONENTIAL LIMIT
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	iterations; cycles	functional iteration; cycle structure			FUNCTIONAL ITERATION / CYCLE STRUCTURE
+Algebra	Extremal methods, monotonicity, and invariants	functions	monotonicity argument		monotonicity	FUNCTIONAL MONOTONICITY
+Algebra	Inequalities and optimization	functionals	optimization of functions		optimization	FUNCTIONAL OPTIMIZATION
+Algebra	Functional equations	functions	functional rigidity		rigidity	FUNCTIONAL RIGIDITY
+Algebra	Extremal methods, monotonicity, and invariants	functions	extremal counting		counting/extremal	FUNCTIONS/EXTREMAL COUNTING
+Algebra	Functional equations	functions; inequalities	casework; functional equation			FUNCTIONS; INEQUALITIES; CASEWORK
+Algebra	Analytic estimates and asymptotics	amenable boxes	Følner box idea	Følner condition	averaging	FØLNER-BOX IDEA
+Combinatorics	Combinatorial algebra and counting	bipartite degree sequences	matrix/degree sequence realization	Gale-Ryser theorem	existence	GALE-RYSER STYLE
+Combinatorics	Graph theory	edge colorings	Gallai coloring structure	Gallai coloring		GALLAI COLORINGS
+Combinatorics	Graph theory	graph paths/colorings	structural graph theorem	Gallai theorem		GALLAI THEOREM
+Combinatorics	Graph theory	directed paths	orientation-path theorem	Gallai-Roy theorem		GALLAI-ROY PATH THEOREM
+Combinatorics	Graph theory	graph color/path structures	Gallai-type decomposition	Gallai-type ideas		GALLAI-TYPE IDEAS
+Number Theory	Algebraic number theory	conjugates; roots	Galois symmetry			GALOIS SYMMETRY
+Algebra	Extremal methods, monotonicity, and invariants	games	invariant strategy		invariant	GAME/INVARIANTS
+Algebra	Extremal methods, monotonicity, and invariants	games; symmetries	invariants; symmetry strategy		invariant	GAMES / INVARIANTS / SYMMETRY
+Algebra	Extremal methods, monotonicity, and invariants	games; permutations	modular invariant		invariant	GAMES / PERMUTATIONS / MODULAR INVARIANTS
+Algebra	Extremal methods, monotonicity, and invariants	games	invariants		invariant	GAMES AND INVARIANTS
+Combinatorics	Combinatorial algebra and counting	grid games	game strategy on grids			GAMES ON GRIDS
+Combinatorics	Combinatorial algebra and counting	grid coloring games	game strategy; coloring			GAMES/GRID COLORING
+Algebra	Extremal methods, monotonicity, and invariants	games	invariants		invariant	GAMES/INVARIANTS
+Combinatorics	Combinatorial algebra and counting	games	potential function		invariant	GAMES/POTENTIAL FUNCTIONS
+Combinatorics	Combinatorial algebra and counting	games; processes	process analysis			GAMES/PROCESSES
+Combinatorics	Combinatorial algebra and counting	games	strategy analysis		strategy	GAMES/STRATEGY
+Combinatorics	Pigeonhole, extremal principle, and averaging	gaps	gap argument		extremal	GAP ARGUMENT
+Combinatorics	Pigeonhole, extremal principle, and averaging	gaps	gap bound		bound	GAP BOUND
+Combinatorics	Pigeonhole, extremal principle, and averaging	gaps	gap constraints		obstruction	GAP CONSTRAINTS
+Algebra	Extremal methods, monotonicity, and invariants	gaps	growth of gaps		growth/monotonicity	GAP GROWTH
+Algebra	Extremal methods, monotonicity, and invariants	gaps	gap monotonicity		monotonicity	GAP MONOTONICITY
+Number Theory	Pigeonhole, extremal principle, and averaging	gaps	gap principle		obstruction	GAP PRINCIPLE
+Combinatorics	Pigeonhole, extremal principle, and averaging	gaps	gap strategy		strategy	GAP STRATEGY
+Number Theory	Additive and multiplicative number theory	gap sums	sum over gaps			GAP SUMS
+Number Theory	Divisibility and modular arithmetic	residues	Gauss lemma flavor	Gauss lemma		GAUSS LEMMA FLAVOR
+Number Theory	Polynomials and algebraic manipulation	content of polynomial	Gauss lemma; primitive polynomial	Gauss lemma	content argument	GAUSS LEMMA/CONTENT
+Number Theory	Algebraic number theory	Gaussian integers	Gaussian-integer viewpoint			GAUSSIAN-INTEGER VIEWPOINT
+Combinatorics	Combinatorial geometry	point sets	general position assumption			GENERAL POSITION
+Algebra	Algebraic structures and linear algebra	generalized inverse	inverse construction			GENERALIZED INVERSE
+Combinatorics	Combinatorial algebra and counting	generating functions; Vandermonde sums	generating functions; binomial identities	Vandermonde identity	counting	GENERATING FUNCTIONS/VANDERMONDE-TYPE SUMS
+Algebra	Polynomials and algebraic manipulation	generating polynomials	polynomial generating function			GENERATING POLYNOMIALS
+Algebra	Sequences, recurrences, and series	generating series	series generating function			GENERATING SERIES
+Algebra	Algebraic structures and linear algebra	generic element	generic choice argument			GENERIC CHOICE
+Combinatorics	Combinatorial geometry	generic configuration	generic position			GENERIC POSITION
+Geometry	Geometry-flavored algebra	3D configuration; coordinates; centers	coordinate geometry; center chase			GEO - 3D GEOMETRY; COORDINATES; INCENTER/ORTHOCENTER
+Geometry	Geometry-flavored algebra	tangent-chord; angle bisectors	coordinate/trig geometry	Tangent-chord theorem		GEO - TANGENT-CHORD; ANGLE BISECTORS; COORDINATES/TRIG
+Algebra	Complex, trigonometric, and Fourier methods	triangle geometry	trig chase; sine rule	Sine rule		GEO - TRIG CHASE; SINE RULE; SPECIAL ANGLE
+Geometry	Geometry-flavored algebra	vectors; rotations; midpoint	vector geometry; rotation			GEO - VECTORS; ROTATIONS; MIDPOINT
+Geometry	Angle chasing	angle bisectors; triangle	angle chasing; sine rule	Sine rule		GEO — ANGLE CHASING; ANGLE BISECTORS; SINE RULE
+Geometry	Circle geometry	Miquel circles; angle bisectors	Miquel configuration; affine midpoint	Miquel theorem		GEO — MIQUEL-STYLE CIRCLES; ANGLE BISECTORS; AFFINE MIDPOINT
+Geometry	Triangle centers and triangle configurations	orthocenter; incenter; cyclic angles	center chase; angle computation			GEO — ORTHOCENTER; INCENTER; CYCLIC ANGLES; COMPUTATION
+Algebra	Geometry-flavored algebra	geometric substitution	substitution from geometry			GEO-FLAVORED SUBSTITUTION
+Geometry	Geometry-flavored algebra	homothety centers; tangents; concurrence	homothety; Ceva/Brianchon-type argument	Ceva; Brianchon-type concurrence	concurrency	GEO-HOMOTHETY CENTERS; TANGENTS; CEVA/BRIANCHON-TYPE CONCURRENCE
+Geometry	Geometry-flavored algebra	tangent circles; altitude configuration	coordinates; tangent-circle geometry			GEO-TANGENT CIRCLES; ALTITUDE CONFIGURATION; COORDINATES
+Combinatorics	Combinatorial geometry	geometric configurations	configuration analysis			GEOMETRIC CONFIGURATIONS
+Combinatorics	Combinatorial geometry	geometric graph/connectivity	connectivity in geometric setting			GEOMETRIC CONNECTIVITY
+Geometry	Geometric inequalities and optimization	geometric covering	covering argument		covering bound	GEOMETRIC COVERING
+Algebra	Analytic estimates and asymptotics	geometric coverings; density	density estimate; covering			GEOMETRIC COVERINGS / DENSITY
+Combinatorics	Combinatorial algebra and counting	geometric graph coloring	graph coloring in geometric graph			GEOMETRIC GRAPH COLORING
+Algebra	Extremal methods, monotonicity, and invariants	geometric graphs; crossings	extremal graph geometry		extremal	GEOMETRIC GRAPHS / CROSSINGS / EXTREMAL
+Geometry	Induction and construction	geometric configurations	geometric induction		induction	GEOMETRIC INDUCTION
+Algebra	Inequalities and optimization	geometric quantities	geometric inequality			GEOMETRIC INEQUALITIES
+Geometry	Triangle geometry	right triangle segments	geometric mean theorem	Geometric mean theorem		GEOMETRIC MEAN THEOREM
+Algebra	Inequalities and optimization	geometric means	AM-GM / geometric mean			GEOMETRIC MEANS
+Geometry	Geometric inequalities and optimization	packing configurations	geometric packing		extremal	GEOMETRIC PACKING
+Algebra	Pigeonhole, extremal principle, and averaging	geometric objects	geometric pigeonhole		pigeonhole	GEOMETRIC PIGEONHOLE
+Algebra	Sequences, recurrences, and series	geometric progression	GP structure			GEOMETRIC PROGRESSION
+Algebra	Sequences, recurrences, and series	gaps in geometric progression	growth comparison			GEOMETRIC PROGRESSION OF GAPS
+Combinatorics	Combinatorial geometry	slopes	slope counting			GEOMETRIC SLOPES
+Combinatorics	Combinatorial geometry	transversals	geometric transversal argument			GEOMETRIC TRANSVERSALS
+Combinatorics	Combinatorial algebra and counting	geometry graph	graph model of geometry			GEOMETRY GRAPH
+Combinatorics	Combinatorial geometry	point sets	geometry of point sets			GEOMETRY OF POINT SETS
+Combinatorics	Combinatorial geometry	regular pentagons	pentagon geometry			GEOMETRY OF REGULAR PENTAGONS
+Geometry	Geometry-flavored algebra	regular polygons	symmetry; polygon geometry			GEOMETRY OF REGULAR POLYGONS
+Algebra	Polynomials and algebraic manipulation	roots	geometry of roots; root configuration			GEOMETRY OF ROOTS
+Geometry	Geometry-flavored algebra	vectors	vector geometry			GEOMETRY OF VECTORS
+Combinatorics	Combinatorial algebra and counting	cyclic groups	geometry on cyclic groups			GEOMETRY ON CYCLIC GROUPS
+Geometry	Geometry-flavored algebra	plane geometry in R^2	coordinate/vector geometry			GEOMETRY ON R^2
+Algebra	Complex, trigonometric, and Fourier methods	triangle configuration	trig Ceva/Menelaus; spiral similarity	Ceva; Menelaus	concurrency/collinearity	GEOMETRY; ANGLE CHASING; TRIG CEVA/MENELAUS; SPIRAL SIMILARITY
+Geometry	Geometry-flavored algebra	arc midpoint; angle bisectors	coordinates; spiral similarity			GEOMETRY; ARC MIDPOINT; ANGLE BISECTORS; COORDINATES/SPIRAL SIMILARITY
+Combinatorics	Combinatorial geometry	convex polyhedra	antipodal support planes; Euler characteristic; duality	Euler characteristic	extremal/duality	GEOMETRY; CONVEX POLYHEDRA; ANTIPODAL SUPPORT PLANES; EULER CHARACTERISTIC; DUALITY
+Geometry	Geometry-flavored algebra	circles; projections	coordinate bash; circle geometry			GEOMETRY; COORDINATE BASH; CIRCLE GEOMETRY; PROJECTIONS
+Geometry	Circle geometry	cyclic quadrilaterals	spiral similarity; angle chasing			GEOMETRY; CYCLIC QUADRILATERALS; SPIRAL SIMILARITY; ANGLE CHASING
+Geometry	Triangle centers and triangle configurations	excircles; tangency lengths	tangency chase; perpendicularity; angle computation			GEOMETRY; EXCIRCLES; TANGENCY LENGTHS; PERPENDICULARITY; ANGLE COMPUTATION
+Algebra	Extremal methods, monotonicity, and invariants	distances; enclosing triangle	extremal distance argument		extremal	GEOMETRY; EXTREMAL DISTANCE; ENCLOSING TRIANGLE
+Geometry	Geometry-flavored algebra	homothety; circle tangency; concurrence	coordinates; homothety			GEOMETRY; HOMOTHETY; CIRCLE TANGENCY; COORDINATES; CONCURRENCE
+Geometry	Geometry-flavored algebra	incenter; contact chord	coordinates/trig; angle condition			GEOMETRY; INCENTER; CONTACT CHORD; ANGLE CONDITION; COORDINATES/TRIG
+Geometry	Triangle centers and triangle configurations	incenters; excenters	spiral similarity; cyclic quadrilateral			GEOMETRY; INCENTERS/EXCENTERS; SPIRAL SIMILARITY; CYCLIC QUADRILATERALS
+Algebra	Inequalities and optimization	geometric lengths	extremal length ordering		extremal	GEOMETRY; INEQUALITIES; EXTREMAL LENGTH ORDERING
+Geometry	Triangle and quadrilateral configurations	quadrilateral; isogonal/orthogonal structure	existence proof			GEOMETRY; QUADRILATERAL; ISOGONAL/ORTHOGONAL STRUCTURE; EXISTENCE
+Geometry	Circle geometry	tangency; altitudes; circle of AEF	tangency and altitude chase			GEOMETRY; TANGENCY; ALTITUDES; CIRCLE OF AEF
+Geometry	Circle geometry	trapezoid; directed angles	circle criterion			GEOMETRY; TRAPEZOID; DIRECTED ANGLES; CIRCLE CRITERION
+Geometry	Projective geometry	trapezoids; cyclicity	spiral similarity; projective flavor			GEOMETRY; TRAPEZOIDS; SPIRAL SIMILARITY; CYCLICITY; PROJECTIVE FLAVOR
+Geometry	Geometry-flavored algebra	triangle centers; arc midpoint; homothety	external tangents; similarity			GEOMETRY; TRIANGLE CENTERS; ARC MIDPOINTS; HOMOTHETY; EXTERNAL TANGENTS; SIMILARITY
+Geometry	Geometry-flavored algebra	vector area	trigonometric optimization; vector area		optimization	GEOMETRY; VECTOR AREA; TRIGONOMETRIC OPTIMIZATION
+Geometry	Projective geometry	spiral similarity; tangency; orthocenter	projective geometry; spiral similarity			GEO–PROJECTIVE; SPIRAL SIMILARITY; TANGENCY; ORTHOCENTER
+Geometry	Constructions	equal tangency; equilateral centers	ruler-compass construction		construction	GEO–RULER-COMPASS CONSTRUCTION; EQUAL TANGENCY; EQUILATERAL CENTERS
+Geometry	Circle geometry	tangency; spiral similarity; coaxal circles	cyclic/coaxal geometry			GEO–TANGENCY; SPIRAL SIMILARITY; COAXAL/CYCLIC GEOMETRY
+Geometry	Triangle centers and triangle configurations	Gergonne point	contact triangle; cevians	Gergonne point	concurrency	GERGONNE POINT
+Geometry	Triangle centers and triangle configurations	Gergonne point; EFG circle	contact-circle configuration	Gergonne point		GERGONNE/EFG CIRCLE
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	particles	ghost-particle trick		construction	GHOST-PARTICLE TRICK
+Combinatorics	Invariants and symmetry	card/order configurations	Gilbreath principle	Gilbreath principle	invariant	GILBREATH PRINCIPLE
+Combinatorics	Graph theory	graph girth	girth condition		obstruction	GIRTH CONDITIONS
+Geometry	Global configuration	global geometric configuration	configuration synthesis			GLOBAL CONFIGURATION
+Geometry	Geometry-flavored algebra	global consistency	consistency chase		rigidity	GLOBAL CONSISTENCY
+Combinatorics	Pigeonhole, extremal principle, and averaging	global pigeonhole	pigeonhole principle		pigeonhole	GLOBAL PIGEONHOLE
+Algebra	Sequences, recurrences, and series	global sums	summing over all variables			GLOBAL SUMS
+Geometry	Angle chasing	golden ratio angles	angle chase with golden ratio			GOLDEN RATIO ANGLES
+Geometry	Geometry-flavored algebra	golden triangle	special triangle geometry			GOLDEN TRIANGLE
+Geometry	Angle chasing	golden angle	angle chasing			GOLDEN-ANGLE CHASE
+Geometry	Angle chasing	golden angle geometry	special angle geometry			GOLDEN-ANGLE GEOMETRY
+Geometry	Angle chasing	golden-ratio angles	angle chase with golden ratio			GOLDEN-RATIO ANGLES
+Geometry	Geometric inequalities and optimization	golden ratio condition	ratio condition			GOLDEN-RATIO CONDITION
+Combinatorics	Combinatorial design	distinct-distance marks	Golomb ruler construction		construction/optimization	GOLOMB RULERS
+Algebra	Sequences, recurrences, and series	Golomb sequence	self-descriptive recurrence	Golomb sequence		GOLOMB SEQUENCE
+Combinatorics	Graph theory	triangles in graphs	Goodman bound	Goodman's theorem/bound	counting	GOODMAN BOUND
+Combinatorics	Combinatorial algebra and counting	graph counts	Goodman-style counting	Goodman's theorem	counting	GOODMANESQUE COUNTS
+Number Theory	Sequences, recurrences, and series	Goodstein process	base-change process	Goodstein theorem	termination	GOODSTEIN-TYPE PROCESS
+Combinatorics	Graph theory	communication graph	gossip problem			GOSSIP PROBLEM
+Combinatorics	Graph theory	graph labeling	graceful labeling			GRACEFUL LABELING
+Combinatorics	Combinatorial algebra and counting	permutations	graceful permutation construction		construction	GRACEFUL PERMUTATION
+Number Theory	Algebraic structures and linear algebra	Gram matrix	inner-product matrix			GRAM MATRIX
+Combinatorics	Algebraic structures and linear algebra	Gram matrices	Gram matrix bounds		bound	GRAM MATRIX BOUNDS
+Combinatorics	Combinatorial algebra and counting	graphs	averaging over graph		averaging	GRAPH / AVERAGING
+Combinatorics	Combinatorial algebra and counting	river-crossing graph	state graph model			GRAPH / RIVER-CROSSING PUZZLE
+Combinatorics	Combinatorial algebra and counting	graphs	graph algorithm			GRAPH ALGORITHMS
+Algebra	Extremal methods, monotonicity, and invariants	graph coloring	coloring invariant		invariant	GRAPH COLORING/INVARIANTS
+Combinatorics	Combinatorial algebra and counting	connectivity; non-bipartiteness	graph connectivity; parity/odd cycle		obstruction	GRAPH CONNECTIVITY/NON-BIPARTITENESS
+Combinatorics	Combinatorial algebra and counting	graph constructions	constructive graph method		construction	GRAPH CONSTRUCTIONS
+Combinatorics	Combinatorial algebra and counting	graph cuts; barriers	cut argument; barrier method		obstruction	GRAPH CUTS/BARRIERS
+Algebra	Sequences, recurrences, and series	graph degree sequence	degree sequence recurrence/counting			GRAPH DEGREE SEQUENCE
+Combinatorics	Combinatorial algebra and counting	graph degrees	degree counting		counting	GRAPH DEGREE/COUNTING
+Combinatorics	Combinatorial algebra and counting	graph degrees	degree analysis			GRAPH DEGREES
+Combinatorics	Combinatorial algebra and counting	graph distance	distance graph argument			GRAPH DISTANCE
+Combinatorics	Combinatorial algebra and counting	graph distances	distance counting/structure			GRAPH DISTANCES
+Combinatorics	Combinatorial algebra and counting	domination in graphs	domination argument			GRAPH DOMINATION
+Combinatorics	Combinatorial algebra and counting	total domination	domination argument			GRAPH DOMINATION (TOTAL DOMINATION)
+Combinatorics	Combinatorial algebra and counting	graph edges/vertices	double counting		counting	GRAPH DOUBLE COUNTING
+Combinatorics	Combinatorial algebra and counting	graph edges	edge count			GRAPH EDGES
+Combinatorics	Combinatorial algebra and counting	graph edges; coloring	edge-color relation			GRAPH EDGES VS COLORING
+Combinatorics	Combinatorial algebra and counting	graph embeddings	embedding argument			GRAPH EMBEDDINGS
+Combinatorics	Graph theory	graph games	game strategy on graph			GRAPH GAMES
+Combinatorics	Combinatorial algebra and counting	Hamilton paths	graph path construction			GRAPH HAMILTON PATHS
+Combinatorics	Combinatorial algebra and counting	Hamiltonicity	Hamilton cycle/path argument			GRAPH HAMILTONICITY
+Algebra	Inequalities and optimization	graph parameters	graph inequality			GRAPH INEQUALITIES
+Combinatorics	Graph theory	graph model	graph interpretation			GRAPH INTERPRETATION
+Algebra	Extremal methods, monotonicity, and invariants	graphs	graph invariant		invariant	GRAPH INVARIANT
+Combinatorics	Combinatorial algebra and counting	graph labels	labeling argument			GRAPH LABELS
+Combinatorics	Combinatorial algebra and counting	knight graph matching	matching on graph	Hall-style matching	existence	GRAPH MATCHING (KNIGHT GRAPH)
+Combinatorics	Combinatorial algebra and counting	graph model; degree parity	parity degree argument		parity	GRAPH MODEL/DEGREE PARITY
+Combinatorics	Graph theory	graph model	graph modeling			GRAPH MODELING
+Combinatorics	Combinatorial algebra and counting	graph motion	dynamic graph process			GRAPH MOTION
+Combinatorics	Combinatorial algebra and counting	graph moves	reconfiguration/move graph			GRAPH MOVES
+Combinatorics	Combinatorial algebra and counting	dissections	graph of dissections			GRAPH OF DISSECTIONS
+Combinatorics	Combinatorial algebra and counting	jumps	graph of jumps			GRAPH OF JUMPS
+Combinatorics	Combinatorial algebra and counting	graph operators	operator on graph			GRAPH OPERATORS
+Combinatorics	Combinatorial algebra and counting	graph orientations	orientation argument			GRAPH ORIENTATIONS
+Combinatorics	Combinatorial algebra and counting	graph packing	packing argument		extremal	GRAPH PACKING
+Combinatorics	Combinatorial algebra and counting	Ramsey graph	graph Ramsey argument	Ramsey theorem		GRAPH RAMSEY
+Combinatorics	Combinatorial algebra and counting	graph realization	realizability argument			GRAPH REALIZATION
+Combinatorics	Combinatorial algebra and counting	graph reconstruction	reconstruction argument			GRAPH RECONSTRUCTION
+Combinatorics	Combinatorial algebra and counting	graph regularity	regular graph structure			GRAPH REGULARITY
+Combinatorics	Combinatorial algebra and counting	graph relation	relation graph model			GRAPH RELATION
+Combinatorics	Combinatorial algebra and counting	graph representations	representation by graph			GRAPH REPRESENTATIONS
+Combinatorics	Graph theory	graph scheduling	scheduling graph model			GRAPH SCHEDULING
+Combinatorics	Combinatorial algebra and counting	graph switching	switching argument			GRAPH SWITCHING
+Combinatorics	Combinatorial algebra and counting	forests; symmetry	graph theory; forest argument			GRAPH THEORY / FORESTS / SYMMETRY
+Combinatorics	Combinatorial algebra and counting	Hamiltonian paths	parity argument		parity	GRAPH THEORY / HAMILTONIAN PATHS / PARITY
+Combinatorics	Combinatorial algebra and counting	coloring; complement graph	Nordhaus-Gaddum type argument	Nordhaus-Gaddum theorem		GRAPH THEORY / NORDHAUS-GADDUM / COLORING
+Combinatorics	Combinatorial algebra and counting	perfect matchings	matching theory	Hall/Tutte-style matching	existence	GRAPH THEORY / PERFECT MATCHINGS
+Combinatorics	Combinatorial algebra and counting	trees; 1-Lipschitz maps	tree metric; Lipschitz map			GRAPH THEORY / TREES / 1-LIPSCHITZ MAPS
+Algebra	Extremal methods, monotonicity, and invariants	extremal graphs	extremal graph theory		extremal	GRAPH THEORY/EXTREMAL GRAPH THEORY
+Algebra	Extremal methods, monotonicity, and invariants	defective coloring	extremal coloring; Brooks-type argument	Brooks-type theorem	extremal	GRAPH THEORY; DEFECTIVE COLORING; EXTREMAL COLORING; BROOKS-TYPE ARGUMENTS
+Combinatorics	Combinatorial algebra and counting	graphs; harmonic functions	linear algebra; maximum principle	Maximum principle	rigidity	GRAPH THEORY; LINEAR ALGEBRA; HARMONIC FUNCTIONS; MAXIMUM PRINCIPLE
+Combinatorics	Combinatorial algebra and counting	graph tours	Euler/Hamilton-style tour argument			GRAPH TOURS
+Combinatorics	Combinatorial algebra and counting	graph transformation	transformation argument			GRAPH TRANSFORMATION
+Combinatorics	Combinatorial algebra and counting	graph transformations	transformation argument			GRAPH TRANSFORMATIONS
+Combinatorics	Combinatorial algebra and counting	graph transpositions	transposition graph			GRAPH TRANSPOSITIONS
+Combinatorics	Combinatorial algebra and counting	graphs	graph viewpoint			GRAPH VIEWPOINT
+Combinatorics	Combinatorial algebra and counting	graph weights	weighted graph argument			GRAPH WEIGHTS
+Combinatorics	Combinatorial algebra and counting	graph pairing	pairing argument		involution/pairing	GRAPH/PAIRING
+Combinatorics	Combinatorial algebra and counting	graph path encoding	encoding by paths			GRAPH/PATH ENCODING
+Combinatorics	Combinatorial algebra and counting	tree separator	separator argument		partition	GRAPH/TREE SEPARATOR
+Algebra	Sequences, recurrences, and series	graphical sequences	degree sequence realization			GRAPHICAL SEQUENCES
+Combinatorics	Combinatorial algebra and counting	graphing	graph representation			GRAPHING
+Combinatorics	Combinatorial algebra and counting	graph edge decomposition	decomposition into edges/paths		decomposition	GRAPHS / EDGE DECOMPOSITION
+Combinatorics	Combinatorial algebra and counting	graphs with degree constraints	degree counting/realization			GRAPHS WITH DEGREE CONSTRAINTS
+Combinatorics	Combinatorial algebra and counting	graphs; block designs	incidence graph/block design			GRAPHS/BLOCK DESIGNS
+Combinatorics	Combinatorial algebra and counting	common-neighbor graph	common-neighbor counting		counting	GRAPHS/COMMON-NEIGHBOR GRAPH
+Combinatorics	Combinatorial algebra and counting	graphs; permutations	permutation graph/action			GRAPHS/PERMUTATIONS
+Combinatorics	Combinatorial algebra and counting	strongly regular graphs	eigenvalue/common-neighbor analysis			GRAPHS/STRONGLY REGULAR
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	Gray code	construction by adjacent changes	Gray code construction	construction	GRAY-CODE STYLE CONSTRUCTIONS
+Geometry	Spherical geometry	great circles	spherical geometry			GREAT CIRCLES
+Combinatorics	Pigeonhole, extremal principle, and averaging	choices	greedy algorithm		construction	GREEDY ALGORITHM
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	greedy choice	greedy correctness proof		induction/exchange	GREEDY ALGORITHM CORRECTNESS
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	greedy process	greedy analysis			GREEDY ANALYSIS
+Algebra	Analytic estimates and asymptotics	approximation sequence	greedy approximation		approximation	GREEDY APPROXIMATION
+Combinatorics	Pigeonhole, extremal principle, and averaging	blocking sets	greedy blocking		extremal	GREEDY BLOCKING
+Combinatorics	Pigeonhole, extremal principle, and averaging	choices	greedy choice		construction	GREEDY CHOICE
+Combinatorics	Pigeonhole, extremal principle, and averaging	covered objects	greedy coverage		covering	GREEDY COVERAGE
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	embeddings	greedy embedding		construction	GREEDY EMBEDDING
+Algebra	Extremal methods, monotonicity, and invariants	paths	greedy extremal path		extremal	GREEDY EXTREMAL PATH
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	greedy counterexample	greedy failure analysis		counterexample	GREEDY FAILS
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	intervals	greedy interval lemma	greedy interval lemma		GREEDY INTERVAL LEMMA
+Algebra	Discrete functions, floors, rounding, and base representation	intervals	greedy interval decomposition		decomposition	GREEDY INTERVALS
+Combinatorics	Pigeonhole, extremal principle, and averaging	extremal size	greedy lower bound		lower bound	GREEDY LOWER BOUND
+Combinatorics	Pigeonhole, extremal principle, and averaging	packings	maximal greedy packing		extremal/packing	GREEDY MAXIMAL PACKING
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	components/parts	greedy merging		construction	GREEDY MERGING
+Combinatorics	Pigeonhole, extremal principle, and averaging	choices	greedy method		construction	GREEDY METHOD
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	partitions	greedy partition		construction	GREEDY PARTITION
+Algebra	Discrete functions, floors, rounding, and base representation	rounded values	greedy rounding		rounding	GREEDY ROUNDING
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	rules	greedy rule			GREEDY RULES
+Number Theory	Sequences, recurrences, and series	stabilizing sequence	greedy stabilization		termination	GREEDY STABILIZATION
+Combinatorics	Pigeonhole, extremal principle, and averaging	strategy	greedy strategy		strategy	GREEDY STRATEGY
+Combinatorics	Graph theory	trees	greedy tree embedding		construction	GREEDY TREE EMBEDDING
+Combinatorics	Games and strategies	adversarial process	greedy/adversarial analysis		strategy	GREEDY/ADVERSARIAL PROCESSES
+Algebra	Sequences, recurrences, and series	complete sequence	greedy complete-sequence criterion		construction	GREEDY/COMPLETE SEQUENCE
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	codes/trees	Huffman greedy algorithm	Huffman coding	optimization	GREEDY/HUFFMAN
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	inductive construction	greedy induction		induction	GREEDY/INDUCTION
+Combinatorics	Combinatorial optimization	matroid parity	greedy/matroid parity	Matroid parity	optimization	GREEDY/MATROID PARITY
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	schedules	greedy scheduling		optimization	GREEDY/SCHEDULING
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	state transitions	greedy state transition			GREEDY/STATE TRANSITIONS
+Combinatorics	Coloring, tiling, grids, and invariants	grid	grid argument			GRID ARGUMENT
+Combinatorics	Coloring, tiling, grids, and invariants	grid arithmetic	coordinate/grid arithmetic			GRID ARITHMETIC
+Combinatorics	Graph theory	grid graph bandwidth	bandwidth of grid graph		optimization	GRID BANDWIDTH
+Combinatorics	Set systems, posets, and extremal set theory	grid chains	chain decomposition in grid poset			GRID CHAINS
+Combinatorics	Coloring, tiling, grids, and invariants	grid colorings	grid coloring		coloring	GRID COLORINGS
+Combinatorics	Coloring, tiling, grids, and invariants	grid colouring	grid coloring		coloring	GRID COLOURING
+Combinatorics	Graph theory	grid components	component analysis			GRID COMPONENTS
+Combinatorics	Graph theory	grid connectivity	connectivity in grid graph			GRID CONNECTIVITY
+Combinatorics	Coloring, tiling, grids, and invariants	grid cells	grid counting		counting	GRID COUNTING
+Combinatorics	Combinatorial algebra and counting	grid graph	grid graph construction		construction	GRID GRAPH CONSTRUCTION
+Combinatorics	Graph theory	grid Hamiltonian cycles	Hamiltonian cycle in grid graph			GRID HAMILTONIAN CYCLES
+Combinatorics	Graph theory	grid Hamiltonian paths	Hamiltonian path in grid graph			GRID HAMILTONIAN PATHS
+Combinatorics	Combinatorial geometry	grid incidence	incidence counting			GRID INCIDENCE
+Combinatorics	Coloring, tiling, grids, and invariants	grid induction	induction on rows/columns		induction	GRID INDUCTION
+Algebra	Polynomials and algebraic manipulation	grid interpolation	interpolation on grid			GRID INTERPOLATION
+Algebra	Extremal methods, monotonicity, and invariants	grid configurations	grid invariant		invariant	GRID INVARIANT
+Combinatorics	Coloring, tiling, grids, and invariants	grid configurations	grid invariants		invariant	GRID INVARIANTS
+Combinatorics	Geometric inequalities and optimization	grid sets	isoperimetric inequality on grid		extremal	GRID ISOPERIMETRY
+Combinatorics	Graph theory	grid labeling	labeling grid graph			GRID LABELING
+Combinatorics	Metric geometry	grid metric	L1/Manhattan distance			GRID METRIC
+Algebra	Extremal methods, monotonicity, and invariants	grid configuration	grid monotonicity		monotonicity	GRID MONOTONICITY
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	grid motion	motion on grid			GRID MOTION
+Combinatorics	Coloring, tiling, grids, and invariants	grid operations	grid transformation/invariant			GRID OPERATIONS
+Algebra	Extremal methods, monotonicity, and invariants	grid packing	extremal grid packing		extremal/packing	GRID PACKING/EXTREMAL
+Combinatorics	Coloring, tiling, grids, and invariants	grid parity	parity coloring		parity	GRID PARITY
+Geometry	Geometry-flavored algebra	grid polygons	lattice polygon geometry			GRID POLYGONS
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	grid process	process on grid			GRID PROCESS
+Combinatorics	Coloring, tiling, grids, and invariants	grid puzzles	grid invariant/puzzle strategy			GRID PUZZLES
+Combinatorics	Graph theory	grid reconfiguration	reconfiguration on grid			GRID RECONFIGURATION
+Combinatorics	Coloring, tiling, grids, and invariants	grid rectangles	rectangle counting/tiling			GRID RECTANGLES
+Combinatorics	Combinatorial geometry	grid separation	separating grid points			GRID SEPARATION
+Combinatorics	Graph theory	grid Steiner tree	Steiner tree on grid		optimization	GRID STEINER TREE
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	grid strategy	strategy on grid		strategy	GRID STRATEGY
+Combinatorics	Coloring, tiling, grids, and invariants	grid strips	strip decomposition			GRID STRIPS
+Combinatorics	Coloring, tiling, grids, and invariants	grid structure	structural grid argument			GRID STRUCTURE
+Combinatorics	Combinatorial algebra and counting	grid sums	summing over grid			GRID SUMS
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	grid transformations	transformation on grid			GRID TRANSFORMATIONS
+Algebra	Polynomials and algebraic manipulation	grid zeros	zero set on grid			GRID ZEROS
+Combinatorics	Combinatorial algebra and counting	grid graph	graph model			GRID-GRAPH
+Combinatorics	Coloring, tiling, grids, and invariants	grid tilings	tiling invariant			GRID/TILINGS
+Combinatorics	Coloring, tiling, grids, and invariants	gridlines	line-grid structure			GRIDLINES
+Combinatorics	Set systems, posets, and extremal set theory	grids; posets	product poset structure			GRIDS / POSETS
+Combinatorics	Combinatorial geometry	grid coverings	covering grid points		covering	GRIDS/COVERINGS
+Algebra	Complex, trigonometric, and Fourier methods	group characters	character theory			GROUP CHARACTERS
+Number Theory	Algebraic structures and linear algebra	group exponent	exponent of group			GROUP EXPONENT
+Combinatorics	Algebraic structures and linear algebra	group generation	generating set argument			GROUP GENERATION
+Algebra	Algebraic structures and linear algebra	group action/invariance	invariance under group action		invariant	GROUP INVARIANCE
+Algebra	Algebraic structures and linear algebra	group invariants	invariant under group action		invariant	GROUP INVARIANTS
+Number Theory	Algebraic structures and linear algebra	group law	group operation			GROUP LAW
+Algebra	Extremal methods, monotonicity, and invariants	groups; involutions	counting involutions; threshold		extremal/counting	GROUP THEORY; COUNTING; INVOLUTIONS; EXTREMAL THRESHOLD
+Combinatorics	Algebraic structures and linear algebra	cosets	group/coset method			GROUP/COSET METHOD
+Algebra	Extremal methods, monotonicity, and invariants	growth rates	growth balancing		estimation	GROWTH BALANCING
+Algebra	Extremal methods, monotonicity, and invariants	growth rates	growth bound		bound	GROWTH BOUND
+Algebra	Extremal methods, monotonicity, and invariants	growth condition	growth comparison			GROWTH CONDITION
+Algebra	Extremal methods, monotonicity, and invariants	growth regimes	growth dichotomy		case split	GROWTH DICHOTOMY
+Algebra	Extremal methods, monotonicity, and invariants	growth process	growth lemma	growth lemma	bound	GROWTH LEMMA
+Algebra	Extremal methods, monotonicity, and invariants	quadratics	growth of quadratics		growth comparison	GROWTH OF QUADRATICS
+Algebra	Extremal methods, monotonicity, and invariants	growth process	iterative growth argument		growth/termination	GROWTH PROCESS
+Algebra	Extremal methods, monotonicity, and invariants	counting growth	growth/counting		counting	GROWTH/COUNTING
+Algebra	Polynomials and algebraic manipulation	polynomial systems	Gröbner-style reduction	Gröbner basis	reduction	GRÖBNER-STYLE REDUCTION
+Combinatorics	Coding theory	Hadamard code	error-correcting code	Hadamard code		HADAMARD CODE
+Algebra	Inequalities and optimization	matrices/determinants	Hadamard inequality	Hadamard inequality	bound	HADAMARD INEQUALITY
+Combinatorics	Combinatorial design	Hadamard matrices	orthogonal matrix/design			HADAMARD MATRICES
+Combinatorics	Graph theory	graph partitions	Hajnal-type lemma	Hajnal-type lemma		HAJNAL-TYPE LEMMA
+Geometry	Trigonometric geometry	half-angle expressions	half-angle algebra			HALF-ANGLE ALGEBRA
+Algebra	Inequalities and optimization	half-angle expressions	half-angle inequality		inequality	HALF-ANGLE INEQUALITY
+Geometry	Trigonometric geometry	half-angles	half-angle formula			HALF-ANGLES
+Combinatorics	Combinatorial geometry	half-planes	half-plane cuts		separation	HALF-PLANE CUTS
+Combinatorics	Combinatorial geometry	half-planes	separation by half-plane		separation	HALF-PLANE SEPARATION
+Geometry	Geometric inequalities and optimization	half-planes; area	area method with half-planes		area bound	HALF-PLANE/AREA METHOD
+Combinatorics	Combinatorial algebra and counting	bipartite matching	Hall matching criterion	Hall's theorem	existence	HALL MATCHING
+Combinatorics	Combinatorial algebra and counting	set systems; matchings	Hall principle	Hall's theorem	existence	HALL PRINCIPLE
+Combinatorics	Algebraic structures and linear algebra	Hall subgroups	subgroup structure	Hall subgroup		HALL SUBGROUPS
+Combinatorics	Combinatorial algebra and counting	expansion condition	Hall-type expansion	Hall's theorem	existence	HALL-TYPE EXPANSION
+Combinatorics	Combinatorial algebra and counting	matchings	Hall-type matching	Hall's theorem	existence	HALL-TYPE MATCHING
+Combinatorics	Combinatorial algebra and counting	matchings; transversals	Hall-type reasoning	Hall's theorem	existence	HALL-TYPE REASONING
+
+----------------

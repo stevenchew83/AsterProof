@@ -1,0 +1,199 @@
+Area	Canonical Subtopic	Object tag	Technique tag	Lemma/Theorem tag	Proof role	Raw imported tag
+Number Theory	Rationality, integrality, and algebraic number structure	rational values	rationality analysis	rationality criteria	criterion	RATIONAL STEP SIZES; RATIONAL VALUES; RATIONALITY CRITERIA; RATIONAL/IRRATIONAL SPLIT
+Algebra	Equations, substitutions, and transformations	rational expression	rational substitution		reduction	RATIONAL SUBSTITUTION; RATIONAL TRANSFORMS; REPARAMETRIZATION
+Algebra	Symmetric algebra and identities	symmetric sums	rational bash	Newton sums	computation	RATIONAL SYMMETRIC SUMS; SYMMETRIC RATIONAL BASH; SYMMETRIC SUMS/NEWTON SUMS
+Algebra	Sequences, recurrences, and series	telescoping sum	rational telescoping		simplification	RATIONAL TELESCOPING
+Geometry	Geometry-flavored algebra	rational triangle	parametrization		construction	RATIONAL TRIANGLES
+Geometry	Geometry-flavored algebra	cevian ratios	ratio chase	Ceva	computation	RATIOS ON CEVIANS
+Algebra	Equations, substitutions, and transformations	triangle semiperimeter variables	Ravi substitution		reduction	RAVI-TYPE SUBSTITUTION; UVW/RAVI
+Algebra	Algebraic structures and linear algebra	quadratic form	Rayleigh quotient	Cauchy-Schwarz	extremal bound	RAYLEIGH QUOTIENT; RAYLEIGH QUOTIENTS/CS
+Combinatorics	Set systems, posets, and extremal set theory	reachability poset	antichain argument		obstruction	REACHABILITY POSETS; REACHABILITY/ANTICHAINS
+Combinatorics	Games, strategies, and processes	reachable states	state recursion		invariant	REACHABLE STATES; REACHABLE STATES / RECURSION
+Algebra	Algebraic structures and linear algebra	real linear map	linear algebra		structure	REAL LINEAR MAPS; REAL-LINEAR MAPS; SEMILINEAR MAPS
+Algebra	Polynomials and algebraic manipulation	real roots	root counting		criterion	REAL ROOT COUNTING; REAL-ROOT CRITERIA; REAL-ROOT STRUCTURE
+Algebra	Polynomials and algebraic manipulation	real-rooted polynomial	factorization; interlacing		obstruction	REAL-ROOT FACTORIZATION; REAL-ROOT INTERLACING; REAL-ROOT OBSTRUCTION; REAL-ROOTEDNESS / SYMMETRIC SUMS / FACTOR SELECTION
+Algebra	Sequences, recurrences, and series	real sequence	Sidon-style structure		bound	REAL SEQUENCES/SIDON FLAVOR
+Algebra	Equations, substitutions, and transformations	reciprocal expression	reciprocal substitution; reciprocal linearization		reduction	RECIPROCAL LINEARIZATION; RECIPROCAL MAP; RECIPROCAL NORMALIZATION; RECIPROCAL SUBSTITUTION
+Algebra	Polynomials and algebraic manipulation	reciprocal polynomial	reciprocal factor analysis		factorization	RECIPROCAL COEFFICIENTS; RECIPROCAL FACTORS; RECIPROCAL POLYNOMIAL; RECIPROCAL/CYCLOTOMIC FLAVOR
+Algebra	Inequalities and optimization	reciprocal inequality	bounding		inequality proof	RECIPROCAL INEQUALITY; WEIGHTED RECIPROCAL BOUNDS
+Geometry	Circle geometry	reciprocal distances	distance lemma	reciprocal theorem	criterion	RECIPROCAL THEOREM; RECIPROCAL-DISTANCE LEMMAS
+Number Theory	Additive and multiplicative number theory	reciprocity structure	descent	reciprocity	descent	RECIPROCITY; RECIPROCAL/SELF-RECIPROCAL ANALYSIS
+Combinatorics	Games, strategies, and processes	reconfiguration graph	state transition		reachability	RECONFIGURATION; REVERSIBILITY
+Geometry	Synthetic and metric geometry	rectangle	midpoint / diagonal geometry		criterion	RECTANGLE; RECTANGLE CRITERION; RECTANGLE SYMMETRY
+Combinatorics	Coloring, tiling, grids, and invariants	rectangle grid	packing; partition; stabbing		obstruction	RECTANGLE OBSTRUCTION; RECTANGLE PACKING; RECTANGLE PARTITION; RECTANGLE PARTITIONS; RECTANGLE STABBING
+Geometry	Geometry-flavored algebra	rectangle in triangle	area / ratio algebra		construction	RECTANGLES IN TRIANGLES
+Combinatorics	Coloring, tiling, grids, and invariants	rectangular dissection	tiling invariant		decomposition	RECTANGULAR DISSECTIONS; RECTANGULAR TILINGS; RECTANGULATIONS
+Algebra	Sequences, recurrences, and series	recurrence	recurrence relation	Mobius map	iteration	RECURRENCE / M√ñBIUS MAP; RECURRENCE AROUND A CYCLE; RECURRENCE OPTIMIZATION; RECURRENCE STABILITY
+Algebra	Sequences, recurrences, and series	recurrence	automaton; interval dynamics		state evolution	RECURRENCE/AUTOMATON; RECURRENCE/INTERVAL DYNAMICS; RECURRENCES OVER F2
+Algebra	Sequences, recurrences, and series	recursive structure	recursion; induction		characterization	RECURSION/GROWTH; RECURSIVE ALGORITHMS; RECURSIVE CHARACTERIZATION; RECURSIVE FAMILIES
+Algebra	Sequences, recurrences, and series	recursive polynomial	recursive definition		construction	RECURSIVE POLYNOMIALS; STERN-TYPE POLYNOMIALS
+Algebra	Algebraic structures and linear algebra	ring	ring invariant		invariant	REDUCED RINGS; RING THEORY; RING INVARIANTS; UNIT GROUP; UFD
+Number Theory	Congruences and residues	residue class	modular reduction		obstruction	REDUCIBILITY MOD PPP; RESIDUES MOD 20; RESIDUES MOD N
+Geometry	Transformational geometry	reflection	reflection trick		construction	REFLECTED CIRCUMCIRCLE; REFLECTED LINES; REFLECTION GEOMETRY; REFLECTION TRICK
+Geometry	Circle geometry	reflected circle / tangent	reflection about tangent	tangent-chord theorem	angle chase	REFLECTION ABOUT TANGENT AT A; REFLECTIONS / CIRCLE GEOMETRY / SYMMETRY
+Geometry	Transformational geometry	isogonal reflection	reflection / isogonal conjugacy		transformation	REFLECTION/ISOGONAL LINE; REFLECTIONS/ISOGONAL; REFLECTIONS/ISOGONAL CONJUGACY
+Geometry	Transformational geometry	orthic triangle	reflection		configuration	REFLECTIONS/ORTHIC TRIANGLE
+Combinatorics	Games, strategies, and processes	reflected state	mirroring	reflection principle	strategy	REFLECTION PRINCIPLE; REFLECTION/INVOLUTION; REFLECTIONS/TURNING
+Combinatorics	Coloring, tiling, grids, and invariants	planar regions	region counting		counting	REGION COUNTING; REGION COMPLEXITY
+Combinatorics	Combinatorial algebra and counting	region graph	graph model		encoding	REGION GRAPH
+Geometry	Special configurations and special angles	regular polygon	regular polygon construction		construction	REGULAR DECAGON; REGULAR HEXAGON; REGULAR PENTAGON STRUCTURE; REGULAR POLYGON CONSTRUCTION
+Geometry	Geometry-flavored algebra	regular polygon distances	metric algebra		computation	REGULAR POLYGON DISTANCES; REGULAR POLYGON WIDTHS
+Combinatorics	Graph theory	regular graph	degree regularity		structure	REGULAR DIGRAPHS; REGULAR GRAPH; STRONGLY REGULAR GRAPHS
+Combinatorics	Counting and enumerative combinatorics	regular polygon	orbit counting		counting	REGULAR POLYGON COUNTING
+Geometry	Circle geometry	cyclic quadrilateral	REIM; radical axis; parallelism	REIM	criterion	REIM; REIM/PARALLELISM; REIM/RADICAL AXIS
+Algebra	Equations, substitutions, and transformations	relative motion	speed-rate equation		modeling	RELATIVE SPEED; SPEED/DISTANCE; TIME/RATE
+Combinatorics	Pigeonhole, extremal principle, and averaging	replacement structure	replacement argument		transformation	REPLACEMENT ARGUMENT
+Number Theory	Rationality, integrality, and algebraic number structure	representation	representation argument		classification	REPRESENTATION; UNIQUE REPRESENTATION; UNIVERSAL SUBREPRESENTATION
+Algebra	Algebraic structures and linear algebra	representation	representation theory		structure	REPRESENTATION THEORY
+Combinatorics	Graph theory	route / path	rerouting		transformation	REROUTING
+Combinatorics	Combinatorial algebra and counting	residue graph	graph encoding		encoding	RESIDUE GRAPHS
+Combinatorics	Additive/combinatorial number theory	restricted sumset	additive combinatorics		construction	RESTRICTED SUMSETS
+Geometry	Synthetic and metric geometry	restricted construction	restricted tools		construction	RESTRICTED CONSTRUCTIONS; RESTRICTED TOOLS
+Algebra	Polynomials and algebraic manipulation	resultant	resultant-lite		elimination	RESULTANT-LITE
+Number Theory	Diophantine equations and descent	reversal structure	reversal trick		descent	REVERSAL TRICK
+Algebra	Sequences, recurrences, and series	recurrence	reverse recursion		backward induction	REVERSE RECURSION
+Algebra	Inequalities and optimization	Chebyshev-type inequality	reverse Chebyshev		comparison	REVERSE CHEBYSHEV
+Geometry	Synthetic and metric geometry	rhombus	angle bisectors		criterion	RHOMBUS ANGLE BISECTORS
+Algebra	Analytic estimates and asymptotics	integrable function	Riemann integrability		criterion	RIEMANN INTEGRABILITY
+Geometry	Circle geometry	right angle / circle	right-circle trick	Thales	criterion	RIGHT ANGLE CRITERION; RIGHT-ANGLE CRITERION; RIGHT CIRCLES; RIGHT-CIRCLE TRICK
+Geometry	Geometry-flavored algebra	right triangle	altitude; similarity; incenter		metric computation	RIGHT TRIANGLE ALTITUDE; RIGHT-TRIANGLE ALTITUDE; RIGHT-TRIANGLE SIMILARITY; RIGHT-TRIANGLE INCENTER
+Geometry	Geometry-flavored algebra	right angle projection	tangent trick		angle chase	RIGHT-ANGLE PROJECTIONS; RIGHT-ANGLE/TANGENT TRICKS
+Algebra	Extremal methods, monotonicity, and invariants	rigid structure	rigidity		uniqueness	RIGID MOTION; RIGIDITY & REFLECTIONS; RIGIDITY/COUNTING
+Algebra	Inequalities and optimization	mean inequality	RMS-AM; AM-HM	RMS-AM	inequality proof	RMS-AM; RMS/AM-HM; WEIGHTED AM-GM/HM
+Combinatorics	Counting and enumerative combinatorics	rook placement	rook polynomial		counting	ROOK POLYNOMIALS; ROOKS
+Algebra	Polynomials and algebraic manipulation	polynomial root	root bound / root structure		localization	ROOT MODULI; ROOT POWER SUMS; ROOT PROPAGATION; ROOT SEPARATION; ROOT SPACING
+Algebra	Polynomials and algebraic manipulation	roots of unity	roots-of-unity filter		filtering	ROOTS OF UNITY/FILTERING; ROOTS-OF-UNITY WEIGHTS
+Geometry	Geometric inequalities and optimization	convex hull / width	rotating calipers		optimization	ROTATING CALIPERS
+Geometry	Geometry-flavored algebra	rotation	affine / vector / complex rotation		transformation	ROTATION AS AFFINE MAP; ROTATION BY 90 DEGREES; ROTATION/VECTOR GEOMETRY; ROTATIONS/COMPLEX
+Geometry	Geometry-flavored algebra	spiral similarity	rotation		transformation	ROTATIONS/SPIRAL SIMILARITY; SPIRAL SIMILARITY/COORDINATES
+Combinatorics	Graph theory	Hamiltonian path extension	rotation-extension	Pósa	construction	ROTATION-EXTENSION (P√ìSA)
+Algebra	Discrete functions, floors, rounding, and base representation	rounding function	rounding intervals / assignment		optimization	ROUNDING FUNCTIONS; ROUNDING IDENTITIES; ROUNDING INTERVALS; ROUNDING/ASSIGNMENT
+Algebra	Discrete functions, floors, rounding, and base representation	round-robin schedule	construction		construction	ROUND-ROBIN CONSTRUCTION; ROUND-ROBIN SCHEDULES
+Combinatorics	Coloring, tiling, grids, and invariants	row-column grid	row-column operations; toggles		invariant	ROW/COLUMN OPERATIONS; ROW-COLUMN OPERATIONS/INVARIANTS; ROW/COLUMN TOGGLES
+Combinatorics	Combinatorial algebra and counting	incidence matrix	row/column incidence		counting	ROW/COLUMN INCIDENCE; ROW SUMS; ROW TRANSITIONS
+Geometry	Synthetic and metric geometry	ruler-compass construction	straightedge / compass construction		construction	RULER-COMPASS CONSTRUCTION; RULER/COMPASS CONSTRUCTION; STRAIGHTEDGE CONSTRUCTION
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	run lengths	run decomposition		encoding	RUN DECOMPOSITION; RUN LENGTHS; RUNS ON CIRCLE
+Number Theory	Algebraic number structure	Salem-type number	algebraic integer analysis		structure	SALEM-TYPE NUMBERS
+Combinatorics	Graph theory	saturated graph	saturation		extremal construction	SATURATED GRAPHS; WEAK SATURATION; TRIANGLE-SATURATED GRAPHS
+Algebra	Inequalities and optimization	Schur-type inequality	Schur; Jensen; Maclaurin	Schur	inequality proof	SCHUR BOUND; SCHUR-CONVEXITY; SCHUR-TYPE ARGUMENT; SCHUR/MACLAURIN/UVW FLAVOR
+Algebra	Sequences, recurrences, and series	score sequence	tournament score sequence		characterization	SCORE SEQUENCES/TOURNAMENTS
+Combinatorics	Set systems, posets, and extremal set theory	system of distinct representatives	matching	Hall	existence	SDR; SDR/MATCHING
+Combinatorics	Games, strategies, and processes	search game	adversarial strategy		strategy	SEARCH GAME; SEARCH GAMES/ADVERSARIAL STRATEGY; SEARCH STRATEGIES
+Geometry	Circle geometry	secant / tangent	secant-chord; tangent-chord	tangent-chord theorem	angle chase	SECANT-CHORD; SECANTS VS TANGENTS; TANGENT-CHORD ANGLES
+Combinatorics	Games, strategies, and processes	game state	second-player response		strategy	SECOND-PLAYER RESPONSE; STRATEGY STEALING/MIRRORING
+Combinatorics	Coloring, tiling, grids, and invariants	sector partition	sector decomposition		partition	SECTOR PARTITION; SECTORS
+Geometry	Synthetic and metric geometry	segment intersection	crossing / separation		extremal choice	SEGMENT INTERSECTION; SEGMENT INTERSECTION EXTREMAL
+Algebra	Extremal methods, monotonicity, and invariants	self-amplifying sequence	growth invariant		growth bound	SELF-AMPLIFYING GROWTH
+Algebra	Functional equations	self-composition	iteration		functional equation	SELF-COMPOSITION; SET-VALUED FUNCTIONS
+Algebra	Sequences, recurrences, and series	self-referential sequence	recursion		characterization	SELF-REFERENTIAL SEQUENCES
+Number Theory	Additive and multiplicative number theory	self-similar set	scaling		construction	SELF-SIMILAR SET; SELF-SIMILAR SETS
+Geometry	Transformational geometry	self-similar tiling	dilation / scaling		construction	SELF-SIMILAR TILINGS
+Algebra	Algebraic structures and linear algebra	semigroup	semigroup dynamics		structure	SEMIGROUP DYNAMICS; SEMIRING
+Geometry	Geometry-flavored algebra	semilattice map	homomorphism		structure	SEMILATTICE HOMOMORPHISMS
+Algebra	Inequalities and optimization	separable inequality	variable separation		reduction	SEPARABLE INEQUALITY; VARIABLE SEPARATION
+Geometry	Synthetic and metric geometry	separating line	separation argument		separation	SEPARATING LINE; SEPARATING LINES; SEPARATION
+Algebra	Sequences, recurrences, and series	sequence	decomposition; prefix sums; averaging		invariant	SEQUENCE DECOMPOSITION; SEQUENCES & PREFIX SUMS; SEQUENCES/AVERAGING; SEQUENCES/INVARIANTS
+Algebra	Sequences, recurrences, and series	sequence	finite differences; monotonicity		convergence	SEQUENCES / FINITE DIFFERENCES / MONOTONICITY; SEQUENCES; CONVERGENCE; INVARIANCE; HARMONIC DIVERGENCE
+Combinatorics	Combinatorial algebra and counting	set	set coloring; set counting; set operations		counting	SET COLORING; SET COUNTING; SET OPERATIONS
+Combinatorics	Set systems, posets, and extremal set theory	set system	partition; encoding; function		structure	SET ENCODING; SET FUNCTIONS; SET PARTITION
+Number Theory	Additive and multiplicative number theory	subset sum	subset-sum coding		uniqueness	SUBSET-SUM; SUBSET-SUM CODING; SUBSET-SUM UNIQUENESS (DISSOCIATED SETS)
+Combinatorics	Combinatorial algebra and counting	subset choice	subset constraints		selection	SUBSET CHOICE; SUBSET CONSTRAINTS; SUBSET PRODUCTS
+Algebra	Extremal methods, monotonicity, and invariants	sharp example	extremal function		sharpness	SHARP EXAMPLES; SHARP EXTREMAL FUNCTION; SHARP INVARIANTS; SHARPNESS CONSTRUCTION
+Algebra	Algebraic structures and linear algebra	shift operator	operator method		transformation	SHIFT OPERATORS
+Combinatorics	Set systems, posets, and extremal set theory	family compression	shifting / compression		reduction	SHIFTING/COMPRESSION
+Geometry	Synthetic and metric geometry	side length	side algebra; side-angle comparison		metric chase	SIDE ALGEBRA; SIDE-LENGTH ALGEBRA; SIDE-ANGLE COMPARISON
+Algebra	Inequalities and optimization	side-length inequality	triangle inequality		inequality proof	SIDE-ANGLE INEQUALITIES; TRIANGLE INEQUALITY TRICKS; TRIANGLE INEQUALITY REFINEMENT
+Combinatorics	Additive/combinatorial number theory	Sidon set	Sidon bound		extremal bound	SIDON-TYPE BOUNDS; SIDON-TYPE FAMILIES; WEAK SIDON SETS
+Algebra	Equations, substitutions, and transformations	sign pattern	sign split; case control		case split	SIGN; SIGN CHANGE; SIGN CHOICE; SIGN SPLIT; SIGN/CASE CONTROL
+Combinatorics	Combinatorial algebra and counting	signed graph / signed counting	sign enumeration		counting	SIGN COUNTING; SIGNED GRAPHS; SIGNED COUNTING; SIGNED ENUMERATION
+Geometry	Geometry-flavored algebra	similarity	similar-triangle ratios		metric chase	SIMILAR-TRIANGLE RATIOS; SIMILARITY / HOMOTHETY; SIMILARITY CONSTRUCTION
+Geometry	Circle geometry	Simson line	Simson / Steiner line	Simson line	configuration	SIMSON/ANTI-STEINER LINES; SIMSON/STEINER LINES; SIMSON/ORTHIC GEOMETRY
+Algebra	Complex, trigonometric, and Fourier methods	sine expression	sine identities; sine rule		computation	SINE IDENTITIES; SINE/COSINE RULE; TRIG/SINE LAW
+Algebra	Algebraic structures and linear algebra	skew-symmetric matrix	matrix method		linear algebra	SKEW-SYMMETRIC MATRICES; SYMMETRIC MATRICES
+Combinatorics	Coloring, tiling, grids, and invariants	sliding puzzle	parity / invariant		obstruction	SLIDING PUZZLE; SLIDING PUZZLES; SLIDING-WINDOW SUMS
+Number Theory	Congruences and residues	small residue / representative	small-case forcing		finite check	SMALL REPRESENTATIVES; SMALL-CASE FORCING; SMALL-CASE HUNT
+Algebra	Inequalities and optimization	smoothing variable	smoothing; convexity; majorization	Jensen	inequality proof	SMOOTHING/CONVEXITY; SMOOTHING/MAJORIZATION; SMOOTHING/JENSEN-STYLE; SMOOTHING/UVW
+Geometry	Triangle centers and triangle configurations	Sondat configuration	orthologic triangles	Sondat theorem	theorem application	SONDAT THEOREM
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	sorting process	adjacent swaps; sorting network		algorithm	SORTING ALGORITHM; SORTING BY ADJACENT SWAPS; SORTING NETWORKS
+Algebra	Inequalities and optimization	sum of squares	SOS factorization		inequality proof	SOS FACTORIZATION; SOS-STYLE FACTORIZATION; SOS/UVW; SOS/WEIGHTED AM-GM
+Geometry	Synthetic and metric geometry	special locus / special triangle	construction		configuration	SPECIAL LOCI; SPECIAL TRIANGLE; SPECIAL VALUES
+Algebra	Polynomials and algebraic manipulation	special factor	factor selection		factorization	SPECIAL FACTORS; TIDY FACTORIZATION
+Algebra	Algebraic structures and linear algebra	eigenvalue / spectrum	spectral method		bound	SPECTRAL BOUNDS; SPECTRAL INVARIANTS; SPECTRAL METHODS; SPECTRAL/EIGENVALUE METHOD
+Combinatorics	Set systems, posets, and extremal set theory	antichain	LYM method	Sperner	extremal bound	SPERNER-TYPE; SPERNER/LYM
+Geometry	Solid geometry	sphere / tetrahedron	projection / volume / surface		metric computation	SPHERE EQUATION; SPHERICAL PROJECTION; TETRAHEDRON CENTROID; TETRAHEDRON INCENTER
+Geometry	Triangle centers and triangle configurations	Spieker center	triangle-center structure	Spieker center	configuration	SPIEKER CENTER; SPIEKER-TYPE STRUCTURE
+Geometry	Circle geometry	spiral similarity	angle chase; inversion; Miquel	Miquel	transformation	SPIRAL SIMILARITY / MIQUEL / INVERSION; SPIRAL/CIRCLE GEOMETRY
+Algebra	Complex, trigonometric, and Fourier methods	spiral similarity	trig Ceva; directed angles	trig Ceva	computation	SPIRAL SIMILARITY / TRIG; SPIRAL SIMILARITY / TRIG CEVA / DIRECTED ANGLES
+Combinatorics	Games, strategies, and processes	impartial game	Sprague-Grundy analysis	Sprague-Grundy	strategy	SPRAGUE-GRUNDY FLAVOR; SPRAGUE‚ÄìGRUNDY FLAVOR
+Algebra	Polynomials and algebraic manipulation	square root expression	square-root substitution		transformation	SQUARE-ROOT COMPARISON; SQUARE-ROOT GROWTH; SQUARE-ROOT SUBSTITUTION
+Algebra	Inequalities and optimization	square-root inequality	square-root smoothing		inequality proof	SQUARE-ROOT SMOOTHING
+Number Theory	Number-theoretic algebra	square / squarefree structure	parity; exponent analysis		obstruction	SQUARE EXPONENTS; SQUARE-FREE CRITERION; SQUARES/PARITY; STRUCTURE OF SQUARES
+Geometry	Special configurations and special angles	square	square construction; square symmetry		construction	SQUARE CONSTRUCTION; SQUARE GEOMETRY; SQUARE SYMMETRY
+Algebra	Sequences, recurrences, and series	Stanley sequence	recursive construction		construction	STANLEY SEQUENCES
+Combinatorics	Games, strategies, and processes	state graph	state compression; state evolution		invariant	STATE COMPRESSION; STATE EVOLUTION; STATE-GRAPH CONNECTIVITY
+Algebra	Data quality / statement checking	statement	ambiguity / flaw detection		statement check	STATEMENT AMBIGUITY; STATEMENT FLAW; STATEMENT-CHECKING
+Geometry	Synthetic and metric geometry	median / cevian	Stewart computation	Stewart theorem	metric chase	STEWART; STEWART/MEDIAN; STEWART/MENELAUS; STEWART‚ÄôS THEOREM
+Algebra	Sequences, recurrences, and series	sequence quotient	Stolz-Cesaro	Stolz-Cesaro	convergence	STOLZ-CES√ÄRO
+Combinatorics	Games, strategies, and processes	strategy game	strategy stealing; pairing		strategy	STRATEGY STEALING / PAIRING GAME; STRATEGY/BOARD FILLING; STRATEGY/INVARIANTS
+Algebra	Extremal methods, monotonicity, and invariants	structural ordering	invariant / monotonicity		structure	STRUCTURAL ORDERING; STRUCTURAL PROPAGATION; STRUCTURAL SUBSTITUTION
+Combinatorics	Graph theory	graph structure	structural lemma		structure	STRUCTURAL GRAPH LEMMA; STRUCTURAL GRAPH THEORY
+Number Theory	Additive and multiplicative number theory	arithmetic progression	additive structure		structure	STRUCTURE OF APS; STRUCTURE ON INTEGERS
+Algebra	Analytic estimates and asymptotics	subadditive sequence	subadditivity	Fekete-type lemma	limit bound	SUBADDITIVITY VARIANT; SUBADDITIVITY/FEKETE-TYPE
+Number Theory	Algebraic structures and linear algebra	subgroup	group structure	Sylow	classification	SUBGROUPS OF Z; SYLOW STRUCTURE; SUBGROUP OF ...
+Algebra	Equations, substitutions, and transformations	variable expression	substitution trick		reduction	SUBSTITUTION TRICKS; SUBSTITUTION/ISOLATION; SUBSTITUTION/SYMMETRY
+Number Theory	Additive and multiplicative number theory	sum-free set	additive coloring		construction	SUM-FREE SET; SUM-FREE SETS; SUM-FREE COLORING; SUM-FREE DESIGN
+Algebra	Sequences, recurrences, and series	superincreasing sequence	greedy representation		construction	SUPERINCREASING SEQUENCES
+Combinatorics	Set systems, posets, and extremal set theory	sunflower	delta-system method	Sunflower lemma	disjointization	SUNFLOWER/DELTA-SYSTEM; SUNFLOWER/DISJOINTIZATION
+Geometry	Geometric inequalities and optimization	support function / width	convex support function		optimization	SUPPORT FUNCTION/WIDTHS; SUPPORT FUNCTIONS; WIDTHS/SUPPORT FUNCTIONS
+Combinatorics	Counting and enumerative combinatorics	surjection	inclusion-exclusion / counting		counting	SURJECTIONS
+Algebra	Equations, substitutions, and transformations	surjective function	image argument		contradiction	SURJECTIONS ON Z; SURJECTIVITY CONTRADICTION; SURJECTIVITY TRICKS
+Geometry	Triangle centers and triangle configurations	symmedian	tangent lemma; harmonic; polar	symmedian lemma	configuration	SYMMEDIAN/HARMONIC; SYMMEDIAN/POLAR; SYMMEDIAN/TANGENT LEMMA
+Algebra	Symmetric algebra and identities	symmetric equation	symmetric factorization		reduction	SYMMETRIC CONDITION; SYMMETRIC EQUATIONS; SYMMETRIC FACTORIZATION
+Algebra	Inequalities and optimization	symmetric inequality	UVW; equalization		inequality proof	SYMMETRIC BOUNDS; SYMMETRIC POLYNOMIAL INEQUALITIES; UVW/SYMMETRIC ALGEBRA
+Geometry	Transformational geometry	symmetry	symmetry forcing; orbit analysis		uniqueness	SYMMETRY FORCING; SYMMETRY GROUPS; SYMMETRY/RIGID MOTIONS; SYMMETRY/UNIQUENESS
+Combinatorics	Group actions and symmetry	symmetry orbit	group action		counting	SYMMETRY/GROUP ACTION; SYMMETRY ORBITS; SYMMETRY OBSTRUCTION
+Geometry	Projective and advanced geometry	synthetic configuration	projective / metric synthetic proof		proof style	SYNTHETIC GEOMETRY; SYNTHETIC/METRIC GEOMETRY; SYNTHETIC CONFIGURATION
+Geometry	Circle geometry	tangent configuration	tangent-chord; power; polar	tangent-chord theorem	angle chase	TANGENT/CHORD; TANGENT/CHORD ANGLES; TANGENTS/POWER OF A POINT
+Geometry	Geometry-flavored algebra	tangent length / tangent polygon	tangent length algebra		metric computation	TANGENT LENGTH; TANGENT POLYGON; TANGENTIAL POLYGON CRITERION
+Geometry	Projective and advanced geometry	polar / tangent	tangents and polars	pole-polar theorem	transformation	TANGENTS & POLARS; TANGENTS AND POLARS; TANGENT/POLAR
+Algebra	Inequalities and optimization	tangent line	tangent-line method; convexity		bound	TANGENT-LINE/CONVEXITY LEMMA; TANGENT/SOS METHODS; UVW/TANGENT-LINE METHODS
+Algebra	Analytic estimates and asymptotics	Taylor expansion	local bound; MVT	Taylor; mean value theorem	estimate	TAYLOR/LOCAL BOUND; TAYLOR/MVT
+Algebra	Sequences, recurrences, and series	telescoping sum/product	telescoping		simplification	TELESCOPING SUM; TELESCOPING COMPARISON; TELESCOPING/PAIRING; TELESCOPING/PRODUCT TRICK
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	ternary string	block encoding		construction	TERNARY BLOCKS; TERNARY STRINGS; TERNARY OUTCOMES
+Geometry	Circle geometry	right angle / diameter circle	Thales circle	Thales theorem	criterion	THALES; THALES CIRCLE; THALES/RIGHT ANGLES
+Combinatorics	Coloring, tiling, grids, and invariants	tiling	coloring invariant; discharging		obstruction	TILING CONSTRAINTS; TILING INVARIANTS; TILING OBSTRUCTION; TILING/DISCHARGING
+Combinatorics	Combinatorial algebra and counting	tiling graph	matching / double counting		counting	TILINGS/DOUBLE COUNTING; TILINGS/MATCHINGS; TILINGS/GRAPH COLORING
+Algebra	Algebraic structures and linear algebra	Toeplitz matrix	matrix method		linear algebra	TOEPLITZ MATRICES
+Combinatorics	Graph theory	topological graph	crossing / matching		structure	TOPOLOGICAL GRAPH THEORY; TOPOLOGICAL MATCHING
+Algebra	Analytic estimates and asymptotics	real topology	topology of R		continuity	TOPOLOGY OF R; TOPOLOGY-FLAVORED INVARIANT
+Combinatorics	Graph theory	tournament	score / process / constraints		structure	TOURNAMENT COUNTING; TOURNAMENT SCORING; TOURNAMENT CONSTRAINTS
+Algebra	Algebraic structures and linear algebra	trace	trace / eigenvalues / commutator		computation	TRACE; TRACE/EIGENVALUES; TRACE OF COMMUTATOR
+Combinatorics	Flow and transport methods	transport process	transportation / flow		redistribution	TRANSPORT; TRANSPORTATION; TRANSPORTATION/FLOWS
+Geometry	Synthetic and metric geometry	trapezoid	homothety; coordinates		metric chase	TRAPEZOID; TRAPEZOID COORDINATES; TRAPEZOID HOMOTHETY
+Combinatorics	Graph theory	tree	separator; degree constraint; propagation		induction	TREE METRICS; TREE SEPARATORS; TREES/DEGREE CONSTRAINTS
+Geometry	Triangle centers and triangle configurations	triangle center	inradius / area / perimeter relation		configuration	TRIANGLE CENTERS (H); TRIANGLE CENTERS / INRADIUS / AREA-PERIMETER RELATIONS
+Geometry	Geometry-flavored algebra	triangle metric	cosine identity; medians; coordinates		computation	TRIANGLE COSINE IDENTITY; TRIANGLE MEDIANS; TRIANGLE COORDINATES
+Combinatorics	Graph theory	triangle-free graph	extremal graph method	Mantel / Turán	obstruction	TRIANGLE-FREE GRAPH; TRIANGLE-FREE GRAPHS; TRIANGLE-FREE EDGES
+Algebra	Complex, trigonometric, and Fourier methods	trigonometric expression	trig bash; trig Ceva; trig identities	trig Ceva	computation	TRIG BASH; TRIG CEVA/LAW OF COSINES; TRIG IDENTITIES
+Algebra	Inequalities and optimization	trigonometric inequality	trig substitution; convexity		inequality proof	TRIG INEQUALITIES; TRIG/AREA INEQUALITY; TRIG/VECTOR INEQUALITIES
+Geometry	Geometry-flavored algebra	trilinear / barycentric coordinates	coordinate chase		computation	TRILINEAR/BARYCENTRIC COORDINATES; TRILINEARS/COORDINATES
+Combinatorics	Graph theory	extremal graph	symmetrization	Turán; Mantel; Zykov	upper bound	TUR√ÅN BOUND; TUR√ÅN/MANTEL; TUR√ÅN/ZYKOV SYMMETRIZATION
+Combinatorics	Graph theory	matching / factor	matching theorem	Tutte theorem	existence	TUTTE THEOREM
+Algebra	Algebraic structures and linear algebra	unique factorization domain	UFD / Gauss lemma	Gauss lemma	factorization	UFD; UFD/GAUSS
+Geometry	Circle geometry	unit circle	complex numbers on unit circle		parametrization	UNIT CIRCLE GEOMETRY; UNIT COMPLEX NUMBERS; UNIT-CIRCLE CONSTRAINTS
+Combinatorics	Graph theory	unit-distance graph	graph geometry		construction	UNIT-DISTANCE GRAPH; UNIT-DISTANCE GRAPHS
+Algebra	Inequalities and optimization	symmetric variables	UVW method	UVW	extremal reduction	UVW FLAVOR; UVW/BOUNDARY EXTREMAL; UVW/EQUALIZATION; UVW/EXTREMAL REDUCTION
+Algebra	Polynomials and algebraic manipulation	determinant / product	Vandermonde product	Vandermonde determinant	computation	VANDERMONDE DETERMINANT; VANDERMONDE-TYPE PRODUCT
+Geometry	Synthetic and metric geometry	midpoint parallelogram	Varignon construction	Varignon theorem	construction	VARIGNON; VARIGNON PARALLELOGRAM
+Geometry	Geometry-flavored algebra	vector configuration	vector bash; coordinate geometry		computation	VECTOR BASH; VECTOR/COORDINATE GEOMETRY; VECTORS/BARYCENTRICS
+Algebra	Inequalities and optimization	vector inequality	norm / area / determinant optimization		inequality proof	VECTOR INEQUALITIES; VECTOR/AREA INEQUALITIES; VECTOR/DETERMINANT OPTIMIZATION
+Algebra	Polynomials and algebraic manipulation	polynomial roots	Vieta / root sums	Vieta	coefficient comparison	VIETA/ROOT SUMS
+Geometry	Synthetic and metric geometry	equilateral triangle	distance sum	Viviani theorem	theorem application	VIVIANI THEOREM
+Combinatorics	Games, strategies, and processes	weighing puzzle	weighing strategy		strategy	WEIGHING; WEIGHING PUZZLES; WEIGHING STRATEGY
+Algebra	Extremal methods, monotonicity, and invariants	weighted potential	weighted invariant		invariant	WEIGHTED EXTREMAL PRINCIPLE; WEIGHTED INVARIANT; WEIGHTED POTENTIALS
+Combinatorics	Combinatorial algebra and counting	weighted graph	weighted counting		counting	WEIGHTED COMPLETE GRAPHS; WEIGHTED COUNTING; WEIGHTED GRAPH BOUND
+Combinatorics	Algorithms, automata, words, and constructive combinatorics	word	automaton; rewriting; substitution		encoding	WORD REWRITING; WORDS & SUBSTITUTIONS; WORDS/AUTOMATA
+Algebra	Algebraic structures and linear algebra	word in matrix	matrix word method		structure	WORDS IN MATRICES
+Algebra	Equations, substitutions, and transformations	zero set	zero forcing / zero structure		case split	ZERO ANALYSIS; ZERO CASES; ZERO FORCING; ZERO-SET STRUCTURE
+Number Theory	Additive and multiplicative number theory	zero-sum set	zero-sum argument		obstruction	ZERO-SUM CONSTRAINT; ZERO-SUM-FREE WORDS; ZERO-SUM/DFT VIEW
+Geometry	Convex and discrete geometry	zonotope	support function / vector sum		construction	ZONOTOPES
