@@ -8056,7 +8056,22 @@ def topic_tag_analytics_view(request):
     if selected_filters["year"] and not selected_filters["year"].isdigit():
         selected_filters["year"] = ""
 
-    tag_queryset = ProblemTopicTechnique.objects.select_related("record")
+    tag_queryset = (
+        ProblemTopicTechnique.objects.select_related("record")
+        .only(
+            "id",
+            "record_id",
+            "technique",
+            "domains",
+            "record__id",
+            "record__year",
+            "record__topic",
+            "record__mohs",
+            "record__contest",
+            "record__problem",
+            "record__contest_year_problem",
+        )
+    )
     if initial_search_query:
         for token in initial_search_query.split():
             token_filter = (

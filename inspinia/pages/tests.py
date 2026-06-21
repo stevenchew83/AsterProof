@@ -15144,6 +15144,65 @@ def test_technique_progress_topic_detail_lists_only_selected_topic_subtopics(cli
     assert "Inequalities and optimization" not in response_html
 
 
+def test_technique_progress_topic_detail_lists_subtopic_layer_columns(client):
+    user = UserFactory()
+    client.force_login(user)
+    _create_technique_progress_statement(
+        problem_code="P1",
+        problem_number=1,
+        topic="ALG",
+        statement_tags=[
+            {
+                "technique": "CAUCHY-SCHWARZ",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": "Inequalities and optimization",
+                "object_tags": ["INEQUALITY"],
+                "technique_tags": ["ENGEL FORM"],
+                "lemma_theorem_tags": ["CAUCHY-SCHWARZ"],
+                "proof_roles": ["BOUNDING"],
+            },
+        ],
+    )
+    _create_technique_progress_statement(
+        problem_code="P2",
+        problem_number=2,
+        topic="ALG",
+        statement_tags=[
+            {
+                "technique": "AM-GM",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": "Inequalities and optimization",
+                "object_tags": ["POSITIVE VARIABLES"],
+                "technique_tags": ["HOMOGENIZATION"],
+                "lemma_theorem_tags": ["AM-GM"],
+                "proof_roles": ["EQUALITY CASE"],
+            },
+        ],
+    )
+
+    response = client.get(
+        reverse("pages:technique_progress_topic_detail", kwargs={"topic_slug": "algebra"}),
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    row = response.context["technique_progress_topic_subtopic_rows"][0]
+    assert row["object_tags"] == ["INEQUALITY", "POSITIVE VARIABLES"]
+    assert row["technique_tags"] == ["ENGEL FORM", "HOMOGENIZATION"]
+    assert row["lemma_theorem_tags"] == ["AM-GM", "CAUCHY-SCHWARZ"]
+    assert row["proof_roles"] == ["BOUNDING", "EQUALITY CASE"]
+    response_html = response.content.decode("utf-8")
+    assert "<th scope=\"col\">Object tag</th>" in response_html
+    assert "<th scope=\"col\">Technique tag</th>" in response_html
+    assert "<th scope=\"col\">Lemma/Theorem tag</th>" in response_html
+    assert "<th scope=\"col\">Proof role</th>" in response_html
+    assert "POSITIVE VARIABLES" in response_html
+    assert "HOMOGENIZATION" in response_html
+    assert "CAUCHY-SCHWARZ" in response_html
+    assert "EQUALITY CASE" in response_html
+
+
 def test_technique_progress_topic_detail_returns_404_for_invalid_topic(client):
     client.force_login(UserFactory())
 
@@ -15292,6 +15351,45 @@ def test_technique_tag_dashboard_exposes_filters_scope(client):
     assert 'id="technique-dashboard-chart-tabs"' in response_html
     assert "Filtered dataset" not in response_html
     assert "ProblemTopicTechnique" in response_html
+
+
+def test_technique_tag_dashboard_does_not_select_bulky_problem_fields(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="ALG",
+        mohs=5,
+        contest="IMO",
+        problem="P1",
+        contest_year_problem="IMO 2026 P1",
+        topic_tags="Topic tags: ALG / Inequalities and optimization - CAUCHY",
+        core_ideas="large core ideas payload",
+        rationale="large rationale payload",
+        pitfalls="large pitfalls payload",
+    )
+    ProblemTopicTechnique.objects.create(
+        record=problem,
+        technique="CAUCHY",
+        domains=["ALG"],
+    )
+
+    with CaptureQueriesContext(connection) as queries:
+        response = client.get(reverse("pages:topic_tag_dashboard"))
+
+    assert response.status_code == HTTPStatus.OK
+    tag_join_queries = [
+        query["sql"]
+        for query in queries
+        if 'FROM "pages_problemtopictechnique"' in query["sql"]
+        and 'JOIN "pages_problemsolverecord"' in query["sql"]
+    ]
+    assert tag_join_queries
+    joined_sql = "\n".join(tag_join_queries)
+    assert '"pages_problemsolverecord"."topic_tags"' not in joined_sql
+    assert '"pages_problemsolverecord"."core_ideas"' not in joined_sql
+    assert '"pages_problemsolverecord"."rationale"' not in joined_sql
+    assert '"pages_problemsolverecord"."pitfalls"' not in joined_sql
 
 
 def test_technique_tag_dashboard_uses_all_matched_rows_instead_of_latest_100_cap(client):

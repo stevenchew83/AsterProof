@@ -70,6 +70,12 @@ OTHER_TOPIC_LABEL = "Other"
 SUBTOPIC_ALWAYS_SUPPRESSED_NORMALIZATION_STATUSES = {"corrupt", "invalid", "metadata"}
 SUBTOPIC_EMPTY_CANONICAL_SUPPRESSED_NORMALIZATION_STATUSES = {"lemma", "method", "needs_review"}
 TECHNIQUE_SUPPRESSED_NORMALIZATION_STATUSES = {"corrupt", "invalid", "metadata"}
+FACT_LAYER_METADATA_FIELDS = {
+    TechniqueProgressFact.Layer.OBJECT: "object_tags",
+    TechniqueProgressFact.Layer.METHOD: "technique_tags",
+    TechniqueProgressFact.Layer.LEMMA: "lemma_theorem_tags",
+    TechniqueProgressFact.Layer.PROOF_ROLE: "proof_roles",
+}
 MAIN_TOPIC_SLUGS = {
     "algebra": "Algebra",
     "number-theory": "Number Theory",
@@ -106,6 +112,7 @@ def _progress_fact_rows(
     *,
     user: User,
     layers: set[str],
+    include_layer_metadata: bool = False,
 ) -> list[dict[str, object]]:
     fact_rows = list(
         TechniqueProgressFact.objects.filter(layer__in=layers)
@@ -129,6 +136,38 @@ def _progress_fact_rows(
         int(row["statement_id"]): row["linked_problem_id"]
         for row in fact_rows
     }
+    statement_ids = sorted(statement_problem_ids)
+    metadata_source_rows = [
+        row
+        for row in fact_rows
+        if row["layer"] in FACT_LAYER_METADATA_FIELDS
+    ]
+    if include_layer_metadata:
+        metadata_source_rows = list(
+            TechniqueProgressFact.objects.filter(
+                statement_id__in=statement_ids,
+                layer__in=FACT_LAYER_METADATA_FIELDS,
+            )
+            .values("label", "layer", "statement_id")
+            .order_by("layer", "label", "statement_id", "id"),
+        )
+    layer_metadata_by_statement_id: dict[int, dict[str, set[str]]] = {
+        statement_id: {field_name: set() for field_name in TOPIC_TAG_LAYER_FIELDS}
+        for statement_id in statement_ids
+    }
+    for metadata_row in metadata_source_rows:
+        field_name = FACT_LAYER_METADATA_FIELDS.get(str(metadata_row["layer"]))
+        if not field_name:
+            continue
+        label = str(metadata_row.get("label") or "").strip()
+        if not label:
+            continue
+        statement_metadata = layer_metadata_by_statement_id.setdefault(
+            int(metadata_row["statement_id"]),
+            {field_name: set() for field_name in TOPIC_TAG_LAYER_FIELDS},
+        )
+        statement_metadata.setdefault(field_name, set()).add(label)
+
     completion_by_statement_id = _completion_by_catalog_statement_id(
         statement_problem_ids=statement_problem_ids,
         user=user,
@@ -143,6 +182,10 @@ def _progress_fact_rows(
         label = str(fact["label"] or "")
         main_topic_labels = list(fact.get("main_topic_labels") or [])
         canonical_subtopic = str(fact.get("canonical_subtopic") or "")
+        layer_metadata = layer_metadata_by_statement_id.get(
+            statement_id,
+            {field_name: set() for field_name in TOPIC_TAG_LAYER_FIELDS},
+        )
         rows.append(
             {
                 "canonical_subtopic": canonical_subtopic,
@@ -153,10 +196,14 @@ def _progress_fact_rows(
                 "layer": layer,
                 "main_topic": str(fact.get("main_topic") or (main_topic_labels[0] if main_topic_labels else "")),
                 "main_topic_labels": main_topic_labels,
+                "object_tags": sorted(layer_metadata.get("object_tags", set()), key=str.casefold),
+                "lemma_theorem_tags": sorted(layer_metadata.get("lemma_theorem_tags", set()), key=str.casefold),
+                "proof_roles": sorted(layer_metadata.get("proof_roles", set()), key=str.casefold),
                 "search_text": str(fact.get("search_text") or ""),
                 "statement_id": statement_id,
                 "subtopic": label if layer == TechniqueProgressFact.Layer.SUBTOPIC else canonical_subtopic,
                 "technique": label if layer == TechniqueProgressFact.Layer.TECHNIQUE else "",
+                "technique_tags": sorted(layer_metadata.get("technique_tags", set()), key=str.casefold),
             },
         )
     return rows
@@ -466,6 +513,7 @@ def build_technique_progress_topic_context(
             TechniqueProgressFact.Layer.MAIN_TOPIC,
             TechniqueProgressFact.Layer.SUBTOPIC,
         },
+        include_layer_metadata=True,
     )
     main_topic_fact_rows = _rows_for_layer(tagged_rows, TechniqueProgressFact.Layer.MAIN_TOPIC)
     subtopic_fact_rows = _rows_for_layer(tagged_rows, TechniqueProgressFact.Layer.SUBTOPIC)
@@ -1318,6 +1366,10 @@ def _aggregate_progress_rows(
                 "canonical_subtopics": set(),
                 "label": label,
                 "main_topics": set(),
+                "object_tags": set(),
+                "technique_tags": set(),
+                "lemma_theorem_tags": set(),
+                "proof_roles": set(),
                 "search_terms": set(),
                 "solved_statement_ids": set(),
                 "statement_ids": set(),
@@ -1353,14 +1405,18 @@ def _aggregate_progress_rows(
                 "label": label,
                 "main_topic_labels": main_topics,
                 "main_topic_label": ", ".join(main_topics),
+                "object_tags": sorted(bucket["object_tags"], key=str.casefold),
                 "practice_url": _practice_url(
                     label,
                     selected_user=selected_user,
                     can_select_user=can_select_user,
                 ),
+                "lemma_theorem_tags": sorted(bucket["lemma_theorem_tags"], key=str.casefold),
                 "remaining": remaining,
                 "search_text": " ".join(sorted(bucket["search_terms"])),
                 "solved": solved,
+                "proof_roles": sorted(bucket["proof_roles"], key=str.casefold),
+                "technique_tags": sorted(bucket["technique_tags"], key=str.casefold),
                 "total": total,
                 "type": bucket["type"],
             },
@@ -1396,6 +1452,12 @@ def _add_progress_row_metadata(
     search_text = str(tagged_row.get("search_text") or "").strip()
     if search_text:
         bucket["search_terms"].add(search_text)
+    for layer_field in TOPIC_TAG_LAYER_FIELDS:
+        for raw_layer_label in tagged_row.get(layer_field, []) or []:
+            layer_label = str(raw_layer_label or "").strip()
+            if layer_label:
+                bucket[layer_field].add(layer_label)
+                bucket["search_terms"].add(layer_label)
 
     for raw_topic_label in [
         *(tagged_row.get("domain_topic_labels", []) or []),
