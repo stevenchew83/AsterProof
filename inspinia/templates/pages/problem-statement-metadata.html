@@ -222,7 +222,12 @@
               <td class="text-nowrap">{{ row.kind }}</td>
               <td>{{ row.parent_label }}</td>
               <td><code>{{ row.current_technique }}</code></td>
-              <td><span class="badge bg-primary-subtle text-primary">{{ row.main_topic }}</span></td>
+              <td>
+                <span class="badge bg-primary-subtle text-primary">{{ row.domains|default:row.main_topic }}</span>
+                {% if row.area_corrected %}
+                <span class="badge bg-warning-subtle text-warning ms-1">area corrected</span>
+                {% endif %}
+              </td>
               <td>{{ row.canonical_subtopic }}</td>
               <td><code>{{ row.technique }}</code></td>
               <td>

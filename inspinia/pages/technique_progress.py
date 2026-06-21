@@ -1007,11 +1007,23 @@ def _tagged_statement_rows(*, user: User) -> list[dict[str, object]]:
                 continue
             seen_statement_labels.add(dedupe_key)
             main_topic = str(tag.get("main_topic") or "").strip()
+            topic_labels = _topic_labels_for_domains(
+                tag.get("domains") or [],
+                fallback_topic=fallback_topic,
+                main_topic=main_topic,
+            )
+            display_main_topic = (
+                display_topic_label(main_topic)
+                if main_topic
+                else (topic_labels[0] if topic_labels else fallback_topic)
+            )
             rows.append(
                 {
                     "is_solved": is_solved,
                     "canonical_subtopic": canonical_subtopic,
-                    "main_topic": display_topic_label(main_topic) if main_topic else fallback_topic,
+                    "domain_topic_labels": topic_labels,
+                    "domains": list(tag.get("domains") or []),
+                    "main_topic": display_main_topic,
                     "normalization_status": str(tag.get("normalization_status") or "").strip(),
                     "object_tags": list(tag.get("object_tags") or []),
                     "technique_tags": list(tag.get("technique_tags") or []),
@@ -1033,6 +1045,7 @@ def _statement_tags_by_statement_id(statement_ids: list[int]) -> dict[int, list[
         .values(
             "statement_id",
             "technique",
+            "domains",
             "main_topic",
             "canonical_subtopic",
             "normalization_status",
@@ -1060,6 +1073,7 @@ def _problem_tags_by_record_id(record_ids: list[int]) -> dict[int, list[dict[str
         .values(
             "record_id",
             "technique",
+            "domains",
             "main_topic",
             "canonical_subtopic",
             "normalization_status",
@@ -1152,9 +1166,10 @@ def _aggregate_progress_rows(
         technique = str(tagged_row.get("technique") or "").strip()
         if technique:
             bucket["search_terms"].add(technique)
-        main_topic = str(tagged_row.get("main_topic") or "").strip()
-        if main_topic:
-            bucket["main_topics"].add(main_topic)
+        for raw_topic_label in tagged_row.get("domain_topic_labels", []) or []:
+            topic_label = str(raw_topic_label or "").strip()
+            if topic_label:
+                bucket["main_topics"].add(topic_label)
 
     rows = []
     for bucket in buckets.values():
@@ -1286,6 +1301,26 @@ def _summary_from_tagged_rows(tagged_rows: list[dict[str, object]]) -> dict[str,
 def _main_topic_label(row: dict[str, object]) -> str:
     label = str(row.get("main_topic") or "").strip()
     return label if label in MAIN_TOPIC_ORDER else OTHER_TOPIC_LABEL
+
+
+def _topic_labels_for_domains(
+    domains: list[str],
+    *,
+    fallback_topic: str,
+    main_topic: str,
+) -> list[str]:
+    labels: list[str] = []
+    for domain in domains or []:
+        label = display_topic_label(str(domain or "").strip())
+        if label and label not in labels:
+            labels.append(label)
+    if main_topic:
+        main_topic_label = display_topic_label(main_topic)
+        if main_topic_label and main_topic_label not in labels:
+            labels.insert(0, main_topic_label)
+    if not labels and fallback_topic:
+        labels.append(fallback_topic)
+    return labels
 
 
 def _topic_slug(label: str) -> str:

@@ -24,6 +24,7 @@ TOPIC_TAG_TEXT_REPAIRS: tuple[tuple[str, str], ...] = (
     ("\u221a\xf1", "\u00f6"),
     ("\u221a\xd1", "\u00d6"),
     ("\u221a\xe2", "\u00e9"),
+    ("\u221a\xec", "\u00f3"),
     ("\u221a\xfa", "u"),
     ("\u221a\xf2", "\u00f3"),
     ("\u221a\u00c5", "A"),

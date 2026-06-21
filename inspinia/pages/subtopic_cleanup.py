@@ -10,6 +10,7 @@ import unicodedata
 from collections import OrderedDict
 from collections import defaultdict
 from dataclasses import dataclass
+from dataclasses import replace
 from typing import TYPE_CHECKING
 
 from django.db import connection
@@ -23,6 +24,8 @@ from inspinia.pages.models import ProblemTopicTechnique
 from inspinia.pages.models import StatementTopicTechnique
 from inspinia.pages.models import normalize_topic_tag_list
 from inspinia.pages.subtopic_taxonomy import CANONICAL_SUBTOPIC_TAXONOMY
+from inspinia.pages.topic_tag_layer_taxonomy import LAYERED_TOPIC_TAG_MAPPINGS
+from inspinia.pages.topic_tag_layer_taxonomy import LayeredTopicTagMapping
 from inspinia.pages.topic_tags_parse import domains_dedup_preserve_order
 from inspinia.pages.topic_tags_parse import normalize_topic_tag
 from inspinia.pages.topic_tags_parse import repair_topic_tag_text
@@ -37,12 +40,14 @@ class SubtopicTaxonomyEntry:
     canonical_subtopic: str
     technique: str
     stored_technique: str
+    domains: tuple[str, ...] = ()
     normalization_status: str = "alias"
     normalization_confidence: str = "high"
     object_tags: tuple[str, ...] = ()
     technique_tags: tuple[str, ...] = ()
     lemma_theorem_tags: tuple[str, ...] = ()
     proof_roles: tuple[str, ...] = ()
+    preserve_source_domains: bool = True
 
 
 @dataclass(frozen=True)
@@ -167,6 +172,37 @@ OBJECT_LAYER_PATTERNS: tuple[str, ...] = (
 
 def _layer_tuple(values) -> tuple[str, ...]:
     return tuple(normalize_topic_tag_list(values))
+
+
+def _domain_tuple(values) -> tuple[str, ...]:
+    return tuple(domains_dedup_preserve_order(list(values or [])))
+
+
+CANONICAL_TOPIC_DOMAIN_BY_ALIAS = {
+    "A": "ALG",
+    "ALG": "ALG",
+    "ALGEBRA": "ALG",
+    "C": "COMB",
+    "COMB": "COMB",
+    "COMBINATORICS": "COMB",
+    "G": "GEO",
+    "GEO": "GEO",
+    "GEOMETRY": "GEO",
+    "N": "NT",
+    "NT": "NT",
+    "NUMBER THEORY": "NT",
+    "NUMBER_THEORY": "NT",
+    "NUMBER-THEORY": "NT",
+}
+
+
+def _source_area_domains(domains: list[str] | tuple[str, ...] | None) -> list[str]:
+    canonical_domains: list[str] = []
+    for domain in domains_dedup_preserve_order(list(domains or [])):
+        canonical_domain = CANONICAL_TOPIC_DOMAIN_BY_ALIAS.get(domain)
+        if canonical_domain:
+            canonical_domains.append(canonical_domain)
+    return domains_dedup_preserve_order(canonical_domains)
 
 
 def _layer_fields_for_entry(  # noqa: PLR0911, PLR0913
@@ -4784,6 +4820,7 @@ COMBINATORICS_STORED_ALIASES: tuple[tuple[str, str, str, str], ...] = (
             "hall-type condition",
             "hall-type theorem",
             "hall/konig",
+            "hall/matching",
             "konig theorem",
             "matching",
             "matchings",
@@ -4799,6 +4836,7 @@ COMBINATORICS_STORED_ALIASES: tuple[tuple[str, str, str, str], ...] = (
         "Flows / cuts / separators",
         (
             "min-cut",
+            "max-flow/min-cut",
             "cuts",
             "edge cuts",
             "bonds/minimal cuts",
@@ -4943,6 +4981,12 @@ COMBINATORICS_STORED_ALIASES: tuple[tuple[str, str, str, str], ...] = (
             "hamming metric",
             "constant-weight codes",
         ),
+    ),
+    *_stored_aliases(
+        "COMB",
+        "Probability, entropy, coding, and information methods",
+        "Probability / information / coding",
+        ("coding theory",),
     ),
     *_stored_aliases(
         "COMB",
@@ -5137,19 +5181,26 @@ def _taxonomy_key(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", "", normalized)
 
 
+def _layered_exact_key(value: str) -> str:
+    return f"exact:{normalize_topic_tag(repair_topic_tag_text(value))}"
+
+
 def _taxonomy_entry(  # noqa: PLR0913
     main_topic: str,
     canonical_subtopic: str,
     technique: str,
     *,
     stored_technique: str | None = None,
+    domains=None,
     normalization: tuple[str, str] = (NORMALIZATION_STATUS_ALIAS, NORMALIZATION_CONFIDENCE_HIGH),
     object_tags=None,
     technique_tags=None,
     lemma_theorem_tags=None,
     proof_roles=None,
+    preserve_source_domains: bool = True,
 ) -> SubtopicTaxonomyEntry:
     stored = normalize_topic_tag(stored_technique or technique)
+    entry_domains = _domain_tuple(domains)
     layer_fields = _layer_fields_for_entry(
         main_topic=main_topic,
         canonical_subtopic=canonical_subtopic,
@@ -5163,12 +5214,58 @@ def _taxonomy_entry(  # noqa: PLR0913
     return SubtopicTaxonomyEntry(
         main_topic=main_topic,
         canonical_subtopic=canonical_subtopic,
+        domains=entry_domains,
         technique=technique,
         stored_technique=stored,
         normalization_status=normalization[0],
         normalization_confidence=normalization[1],
+        preserve_source_domains=preserve_source_domains,
         **layer_fields,
     )
+
+
+def _entry_from_layered_mapping(
+    mapping: LayeredTopicTagMapping,
+    alias: str,
+) -> SubtopicTaxonomyEntry:
+    main_topic = mapping.main_topic
+    if not main_topic and len(mapping.domains) == 1:
+        main_topic = mapping.domains[0]
+    canonical_subtopic = mapping.canonical_subtopic
+    if mapping.normalization_status == NORMALIZATION_STATUS_METHOD:
+        canonical_subtopic = ""
+    return _taxonomy_entry(
+        main_topic,
+        canonical_subtopic,
+        alias,
+        domains=mapping.domains,
+        lemma_theorem_tags=mapping.lemma_theorem_tags,
+        normalization=(mapping.normalization_status, mapping.normalization_confidence),
+        object_tags=mapping.object_tags,
+        preserve_source_domains=mapping.preserve_source_domains,
+        proof_roles=mapping.proof_roles,
+        stored_technique=mapping.stored_technique,
+        technique_tags=mapping.technique_tags,
+    )
+
+
+def _build_layered_tag_lookup() -> dict[str, SubtopicTaxonomyEntry]:
+    lookup: dict[str, SubtopicTaxonomyEntry] = {}
+    for mapping in LAYERED_TOPIC_TAG_MAPPINGS:
+        for alias in mapping.aliases:
+            entry = _entry_from_layered_mapping(mapping, alias)
+            lookup[_layered_exact_key(alias)] = entry
+            lookup[_taxonomy_key(alias)] = entry
+        stored_entry = _entry_from_layered_mapping(mapping, mapping.stored_technique)
+        lookup.setdefault(
+            _layered_exact_key(mapping.stored_technique),
+            stored_entry,
+        )
+        lookup.setdefault(
+            _taxonomy_key(mapping.stored_technique),
+            stored_entry,
+        )
+    return lookup
 
 
 def _add_first_pass_canonical_entries(lookup: dict[str, SubtopicTaxonomyEntry]) -> None:
@@ -5390,6 +5487,7 @@ def _build_combinatorics_lookup() -> dict[str, SubtopicTaxonomyEntry]:
     return lookup
 
 
+LAYERED_TAG_LOOKUP = _build_layered_tag_lookup()
 TAXONOMY_LOOKUP = _build_taxonomy_lookup()
 NUMBER_THEORY_LOOKUP = _build_number_theory_lookup()
 GEOMETRY_LOOKUP = _build_geometry_lookup()
@@ -6349,6 +6447,74 @@ def _combinatorics_entries_for_technique(
     return (pattern_entry,) if pattern_entry is not None else ()
 
 
+def _exact_domain_entries_for_technique(
+    technique: str,
+    domains: list[str] | tuple[str, ...] | None = None,
+) -> tuple[SubtopicTaxonomyEntry, ...]:
+    repaired = repair_topic_tag_text(technique)
+    key = _taxonomy_key(repaired)
+    if not key:
+        return ()
+
+    if _domains_include_geometry(domains):
+        geometry_entries = _geometry_entries_for_technique(technique, domains=domains)
+        if geometry_entries:
+            return geometry_entries
+
+    if _domains_include_combinatorics(domains):
+        combinatorics_entry = COMBINATORICS_LOOKUP.get(key)
+        if combinatorics_entry is not None:
+            return (combinatorics_entry,)
+
+    if _domains_include_number_theory(domains):
+        number_theory_entry = NUMBER_THEORY_LOOKUP.get(key)
+        if number_theory_entry is not None:
+            return (number_theory_entry,)
+
+    if "ALG" in _normalized_domain_set(domains):
+        algebra_entry = TAXONOMY_LOOKUP.get(key)
+        if algebra_entry is not None:
+            return (algebra_entry,)
+
+    return ()
+
+
+def _entry_with_layered_fields(
+    preferred_entry: SubtopicTaxonomyEntry,
+    layered_entry: SubtopicTaxonomyEntry | None,
+) -> SubtopicTaxonomyEntry:
+    if layered_entry is None:
+        return preferred_entry
+    if (
+        layered_entry.normalization_status == NORMALIZATION_STATUS_METHOD
+        and preferred_entry.normalization_status == NORMALIZATION_STATUS_METHOD
+    ):
+        return layered_entry
+    if not layered_entry.preserve_source_domains:
+        return layered_entry
+    if preferred_entry.normalization_status != NORMALIZATION_STATUS_ALIAS:
+        return preferred_entry
+    return replace(
+        preferred_entry,
+        domains=layered_entry.domains or preferred_entry.domains,
+        normalization_confidence=layered_entry.normalization_confidence,
+        object_tags=layered_entry.object_tags or preferred_entry.object_tags,
+        technique_tags=layered_entry.technique_tags or preferred_entry.technique_tags,
+        lemma_theorem_tags=layered_entry.lemma_theorem_tags or preferred_entry.lemma_theorem_tags,
+        proof_roles=layered_entry.proof_roles or preferred_entry.proof_roles,
+        preserve_source_domains=layered_entry.preserve_source_domains,
+    )
+
+
+def _entries_with_layered_fields(
+    preferred_entries: tuple[SubtopicTaxonomyEntry, ...],
+    layered_entry: SubtopicTaxonomyEntry | None,
+) -> tuple[SubtopicTaxonomyEntry, ...]:
+    if len(preferred_entries) != 1:
+        return preferred_entries
+    return (_entry_with_layered_fields(preferred_entries[0], layered_entry),)
+
+
 def _single_taxonomy_entry_for_technique(
     technique: str,
     domains: list[str] | tuple[str, ...] | None = None,
@@ -6385,32 +6551,66 @@ def _single_taxonomy_entry_for_technique(
     return selected_entry or nt_entry
 
 
-def taxonomy_entries_for_technique(
+def taxonomy_entries_for_technique(  # noqa: C901, PLR0911
     technique: str,
     domains: list[str] | tuple[str, ...] | None = None,
 ) -> tuple[SubtopicTaxonomyEntry, ...]:
+    layered_keys = tuple(OrderedDict.fromkeys((
+        _layered_exact_key(technique),
+        _layered_exact_key(_geometry_matching_text(technique)),
+        _taxonomy_key(technique),
+        _taxonomy_key(_geometry_matching_text(technique)),
+    )))
+    layered_entry: SubtopicTaxonomyEntry | None = None
+    for layered_key in layered_keys:
+        layered_entry = LAYERED_TAG_LOOKUP.get(layered_key)
+        if layered_entry is not None:
+            break
+
+    exact_domain_entries = _exact_domain_entries_for_technique(technique, domains=domains)
+    if exact_domain_entries:
+        return _entries_with_layered_fields(exact_domain_entries, layered_entry)
+
+    if layered_entry is not None:
+        return (layered_entry,)
+
     if _domains_include_geometry(domains):
         geometry_entries = _geometry_entries_for_technique(technique, domains=domains)
         if geometry_entries:
-            return geometry_entries
+            return _entries_with_layered_fields(geometry_entries, layered_entry)
 
     if _domains_include_combinatorics(domains) or (not domains and _is_strong_combinatorics_technique(technique)):
         combinatorics_entries = _combinatorics_entries_for_technique(technique, domains=domains)
         if combinatorics_entries:
-            return combinatorics_entries
+            return _entries_with_layered_fields(combinatorics_entries, layered_entry)
 
     entry = _single_taxonomy_entry_for_technique(technique, domains=domains)
     if entry is not None:
-        return (entry,)
+        return _entries_with_layered_fields((entry,), layered_entry)
 
     combinatorics_entries = _combinatorics_entries_for_technique(technique, domains=domains)
     if combinatorics_entries:
-        return combinatorics_entries
+        return _entries_with_layered_fields(combinatorics_entries, layered_entry)
 
     geometry_entries = _geometry_entries_for_technique(technique, domains=domains)
     if geometry_entries:
-        return geometry_entries
+        return _entries_with_layered_fields(geometry_entries, layered_entry)
     return ()
+
+
+def _domains_for_entry(
+    entry: SubtopicTaxonomyEntry,
+    source_domains: list[str] | tuple[str, ...] | None,
+) -> list[str]:
+    entry_domains = list(entry.domains)
+    source_area_domains = _source_area_domains(source_domains)
+    if not entry_domains and entry.main_topic:
+        entry_domains = [entry.main_topic]
+    if not entry.preserve_source_domains:
+        return domains_dedup_preserve_order(entry_domains)
+    if entry_domains:
+        return domains_dedup_preserve_order([*entry_domains, *source_area_domains])
+    return source_area_domains
 
 
 def taxonomy_entry_for_technique(
@@ -6427,9 +6627,7 @@ def _classified_topic_tag_fields_for_entry(
     domain_list: list[str],
     raw_tag: str,
 ) -> dict[str, object]:
-    entry_domains = domain_list
-    if entry.main_topic:
-        entry_domains = domains_dedup_preserve_order([entry.main_topic, *domain_list])
+    entry_domains = _domains_for_entry(entry, domain_list)
     return {
         "canonical_subtopic": entry.canonical_subtopic,
         "domains": entry_domains,
@@ -6454,7 +6652,7 @@ def classified_topic_tag_entries(
     repaired_technique = repair_topic_tag_text(technique)
     normalized_technique = normalize_topic_tag(repaired_technique)
     source_raw_tag = raw_tag or technique
-    domain_list = domains_dedup_preserve_order(domains or [])
+    domain_list = _source_area_domains(domains or [])
     entries = taxonomy_entries_for_technique(repaired_technique, domains=domain_list)
 
     if not entries:
@@ -6465,7 +6663,7 @@ def classified_topic_tag_entries(
             "normalization_confidence": NORMALIZATION_CONFIDENCE_LOW,
             "normalization_status": NORMALIZATION_STATUS_NEEDS_REVIEW,
             "object_tags": [],
-            "technique_tags": [normalized_technique] if normalized_technique else [],
+            "technique_tags": [],
             "lemma_theorem_tags": [],
             "proof_roles": [],
             "raw_tag": source_raw_tag,
@@ -6497,6 +6695,10 @@ def classified_topic_tag_fields(
 
 def _tag_domains_with_main_topic(domains: list[str], main_topic: str) -> list[str]:
     return domains_dedup_preserve_order([main_topic, *(domains or [])])
+
+
+def _tag_domains_for_entry(tag, entry: SubtopicTaxonomyEntry) -> list[str]:
+    return _domains_for_entry(entry, tag.domains or [])
 
 
 def _problem_parent_label(tag: ProblemTopicTechnique) -> str:
@@ -6629,7 +6831,7 @@ def _tag_needs_update(tag, entry: SubtopicTaxonomyEntry) -> bool:
         tag.technique != entry.stored_technique
         or tag.main_topic != entry.main_topic
         or tag.canonical_subtopic != entry.canonical_subtopic
-        or tag.domains != _tag_domains_with_main_topic(tag.domains or [], entry.main_topic)
+        or tag.domains != _tag_domains_for_entry(tag, entry)
         or not tag.raw_tag
         or tag.normalization_status != entry.normalization_status
         or tag.normalization_confidence != entry.normalization_confidence
@@ -6640,12 +6842,16 @@ def _tag_needs_update(tag, entry: SubtopicTaxonomyEntry) -> bool:
     )
 
 
-def _preview_change(kind: str, tag, entry: SubtopicTaxonomyEntry, parent_label: str) -> dict[str, str]:
+def _preview_change(kind: str, tag, entry: SubtopicTaxonomyEntry, parent_label: str) -> dict[str, object]:
+    next_domains = _tag_domains_for_entry(tag, entry)
     return {
         "canonical_subtopic": entry.canonical_subtopic,
+        "area_corrected": tag.domains != next_domains,
+        "current_domains": ", ".join(tag.domains or []),
         "current_main_topic": tag.main_topic,
         "current_subtopic": tag.canonical_subtopic,
         "current_technique": tag.technique,
+        "domains": ", ".join(next_domains),
         "kind": kind,
         "main_topic": entry.main_topic,
         "normalization_confidence": entry.normalization_confidence,
@@ -6741,7 +6947,7 @@ def build_unmatched_subtopic_review(*, limit: int | None = None) -> dict[str, ob
 
 
 def build_subtopic_cleanup_preview(*, limit: int = 50) -> dict[str, object]:  # noqa: C901
-    changes: list[dict[str, str]] = []
+    changes: list[dict[str, object]] = []
     change_count = 0
     unmatched_by_key: OrderedDict[str, dict[str, object]] = OrderedDict()
     raw_parent_keys: set[tuple[str, int]] = set()
@@ -6830,10 +7036,7 @@ def _merge_tag_raw_values(rows: list) -> str:
 
 def _prepare_parent_group_update(rows: list, entry: SubtopicTaxonomyEntry) -> tuple[object | None, list[int]]:
     keeper = _select_keeper(rows, entry.stored_technique)
-    merged_domains = [entry.main_topic]
-    for row in rows:
-        merged_domains.extend(row.domains or [])
-    merged_domains = domains_dedup_preserve_order(merged_domains)
+    merged_domains = _merged_domains_for_entry(rows, entry)
     merged_raw_tag = _merge_tag_raw_values(rows)
     merged_layer_values = {
         field_name: _merge_tag_layer_values(rows, entry, field_name)
@@ -6891,9 +7094,13 @@ def _parent_id_for_tag_row(tag, parent_field_name: str) -> int:
 
 
 def _merged_domains_for_entry(rows: list, entry: SubtopicTaxonomyEntry) -> list[str]:
-    merged_domains = [entry.main_topic]
+    merged_domains = list(entry.domains)
+    if not merged_domains and entry.main_topic:
+        merged_domains = [entry.main_topic]
+    if not entry.preserve_source_domains:
+        return domains_dedup_preserve_order(merged_domains)
     for row in rows:
-        merged_domains.extend(row.domains or [])
+        merged_domains.extend(_source_area_domains(row.domains or []))
     return domains_dedup_preserve_order(merged_domains)
 
 
@@ -7136,7 +7343,13 @@ def _format_raw_topic_tags(tag_rows: Iterable) -> str:
         canonical_subtopic = _format_tag_value(tag, "canonical_subtopic")
         domains = _format_tag_value(tag, "domains") or []
         technique = _format_tag_value(tag, "technique")
-        prefix = f"{main_topic} / {canonical_subtopic}" if main_topic and canonical_subtopic else "/".join(domains)
+        domain_prefix = "/".join(domains)
+        if canonical_subtopic and domain_prefix:
+            prefix = f"{domain_prefix} / {canonical_subtopic}"
+        elif main_topic and canonical_subtopic:
+            prefix = f"{main_topic} / {canonical_subtopic}"
+        else:
+            prefix = domain_prefix
         grouped.setdefault(prefix, []).append(technique)
 
     segments = []
