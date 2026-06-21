@@ -55,6 +55,7 @@ GAP_KIND_CHOICES = {
 GAP_DATATABLE_DEFAULT_SORT_FIELD = "completion_percent"
 GAP_DATATABLE_SORT_FIELDS = {
     "canonical_subtopic",
+    "canonical_subtopic_label",
     "completion_percent",
     "label",
     "main_topic_label",
@@ -205,6 +206,7 @@ def build_technique_progress_gaps_context(  # noqa: PLR0913
             gap_kind=gap_kind,
         ),
         "technique_progress_gap_rows": gap_rows,
+        "technique_progress_gap_show_canonical_subtopic_column": gap_kind in {GAP_KIND_TECHNIQUES, GAP_KIND_ALL},
         "technique_progress_gap_show_type_column": gap_kind == GAP_KIND_ALL,
         "technique_progress_gap_title": _gap_title(gap_kind),
         "technique_progress_gap_topic": gap_topic,
@@ -861,6 +863,7 @@ def _search_gap_rows(
 def _gap_search_haystack(row: dict[str, object]) -> str:
     values = [
         row.get("canonical_subtopic", ""),
+        row.get("canonical_subtopic_label", ""),
         row.get("label", ""),
         row.get("search_text", ""),
         row.get("type", ""),
@@ -920,6 +923,7 @@ def _gap_datatable_row(row: dict[str, object]) -> dict[str, object]:
     total = int(row["total"])
     return {
         "canonical_subtopic": row.get("canonical_subtopic", ""),
+        "canonical_subtopic_label": row.get("canonical_subtopic_label", ""),
         "completion_percent": int(row["completion_percent"]),
         "coverage_label": f"{row['completion_percent']}%",
         "drilldown_url": row.get("drilldown_url", ""),
@@ -939,7 +943,7 @@ def _gap_csv_row(row: dict[str, object]) -> dict[str, object]:
     total = int(row["total"])
     return {
         "Area": row["label"],
-        "Canonical Subtopic": row.get("canonical_subtopic", ""),
+        "Canonical Subtopic": row.get("canonical_subtopic_label", ""),
         "Type": row["type"],
         "Topic": row["main_topic_label"] or "-",
         "Completed": f"{solved} of {total}",
@@ -1162,15 +1166,15 @@ def _aggregate_progress_rows(
         label = str(bucket["label"])
         main_topics = sorted(bucket["main_topics"])
         canonical_subtopics = sorted(bucket["canonical_subtopics"])
-        if type_label == "Subtopic":
-            canonical_subtopic = label
-        elif len(canonical_subtopics) == 1:
-            canonical_subtopic = canonical_subtopics[0]
-        else:
-            canonical_subtopic = ""
+        canonical_subtopic, canonical_subtopic_label = _canonical_subtopic_display_values(
+            type_label=type_label,
+            label=label,
+            canonical_subtopics=canonical_subtopics,
+        )
         rows.append(
             {
                 "canonical_subtopic": canonical_subtopic,
+                "canonical_subtopic_label": canonical_subtopic_label,
                 "canonical_subtopic_labels": canonical_subtopics,
                 "completion_percent": _percent(solved, total),
                 "label": label,
@@ -1196,6 +1200,19 @@ def _aggregate_progress_rows(
             str(row["label"]).casefold(),
         ),
     )
+
+
+def _canonical_subtopic_display_values(
+    *,
+    type_label: str,
+    label: str,
+    canonical_subtopics: list[str],
+) -> tuple[str, str]:
+    if type_label == "Subtopic":
+        return label, label
+    if len(canonical_subtopics) == 1:
+        return canonical_subtopics[0], canonical_subtopics[0]
+    return "", ", ".join(canonical_subtopics)
 
 
 def _main_topic_rows(

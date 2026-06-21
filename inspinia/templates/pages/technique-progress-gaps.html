@@ -168,6 +168,7 @@
               id="technique-progress-gaps-table"
               class="table table-sm table-hover align-middle mb-0 w-100"
               data-page-length="50"
+              data-show-canonical-subtopic-column="{% if technique_progress_gap_show_canonical_subtopic_column %}true{% else %}false{% endif %}"
               data-show-type-column="{% if technique_progress_gap_show_type_column %}true{% else %}false{% endif %}"
             >
               <thead>
@@ -175,6 +176,9 @@
                   <th scope="col">{{ technique_progress_gap_first_column_label }}</th>
                   {% if technique_progress_gap_show_type_column %}
                   <th scope="col">Type</th>
+                  {% endif %}
+                  {% if technique_progress_gap_show_canonical_subtopic_column %}
+                  <th scope="col">Canonical Subtopic</th>
                   {% endif %}
                   <th scope="col">Topic</th>
                   <th scope="col">Completed</th>
@@ -199,6 +203,11 @@
                   </td>
                   {% if technique_progress_gap_show_type_column %}
                   <td><span class="badge bg-secondary-subtle text-secondary">{{ row.type }}</span></td>
+                  {% endif %}
+                  {% if technique_progress_gap_show_canonical_subtopic_column %}
+                  <td data-order="{{ row.canonical_subtopic_label }}">
+                    {{ row.canonical_subtopic_label|default:'-' }}
+                  </td>
                   {% endif %}
                   <td>{{ row.main_topic_label|default:'-' }}</td>
                   <td data-order="{{ row.solved }}">{{ row.solved }} of {{ row.total }}</td>
@@ -242,9 +251,12 @@
   if (!tableElement || typeof DataTable !== "function") return;
 
   var showTypeColumn = tableElement.dataset.showTypeColumn === "true";
+  var showCanonicalSubtopicColumn = tableElement.dataset.showCanonicalSubtopicColumn === "true";
   var pageLength = Number(tableElement.dataset.pageLength || 50);
-  var coverageColumnIndex = showTypeColumn ? 5 : 4;
-  var actionColumnIndex = showTypeColumn ? 6 : 5;
+  var typeColumnOffset = showTypeColumn ? 1 : 0;
+  var canonicalColumnOffset = showCanonicalSubtopicColumn ? 1 : 0;
+  var coverageColumnIndex = 4 + typeColumnOffset + canonicalColumnOffset;
+  var actionColumnIndex = coverageColumnIndex + 1;
 
   new DataTable(tableElement, {
     pageLength: pageLength,
