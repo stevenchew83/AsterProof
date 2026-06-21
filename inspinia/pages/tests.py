@@ -71,8 +71,8 @@ from inspinia.pages.statement_metadata_backfill import import_statement_metadata
 from inspinia.pages.statement_metadata_backfill import statement_metadata_dataframe_from_rows
 from inspinia.pages.subtopic_cleanup import apply_subtopic_cleanup
 from inspinia.pages.subtopic_cleanup import classified_topic_tag_entries
-from inspinia.pages.subtopic_cleanup import taxonomy_entry_for_technique
 from inspinia.pages.subtopic_cleanup import taxonomy_entries_for_technique
+from inspinia.pages.subtopic_cleanup import taxonomy_entry_for_technique
 from inspinia.pages.topic_tags_parse import parse_topic_tags_cell
 from inspinia.pages.views import ADMIN_TABLE_LATEST_LIMIT
 from inspinia.problemsets.models import ProblemList
@@ -12260,7 +12260,263 @@ def _create_technique_progress_statement(  # noqa: PLR0913
             lemma_theorem_tags=tag.get("lemma_theorem_tags", []),
             proof_roles=tag.get("proof_roles", []),
         )
+    from inspinia.pages.technique_progress_catalog import sync_technique_progress_facts_for_statement
+
+    sync_technique_progress_facts_for_statement(statement.id)
     return statement
+
+
+def test_technique_progress_catalog_prefers_statement_tags_over_linked_problem_tags():
+    statement = _create_technique_progress_statement(
+        linked_tags=[
+            {
+                "technique": "DO NOT DISPLAY",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": "Linked fallback",
+            },
+        ],
+        statement_tags=[
+            {
+                "technique": "INVARIANTS",
+                "domains": ["COMB"],
+                "main_topic": "COMB",
+                "canonical_subtopic": "Extremal methods, monotonicity, and invariants",
+                "object_tags": ["COLORING"],
+                "technique_tags": ["MONOVARIANT"],
+                "lemma_theorem_tags": ["PIGEONHOLE PRINCIPLE"],
+                "proof_roles": ["BOUNDING"],
+            },
+        ],
+    )
+
+    from inspinia.pages.models import TechniqueProgressFact
+
+    fact_labels = set(
+        TechniqueProgressFact.objects.filter(statement=statement).values_list("layer", "label"),
+    )
+
+    assert ("technique", "INVARIANTS") in fact_labels
+    assert ("subtopic", "Extremal methods, monotonicity, and invariants") in fact_labels
+    assert ("main_topic", "Combinatorics") in fact_labels
+    assert ("object", "COLORING") in fact_labels
+    assert ("method", "MONOVARIANT") in fact_labels
+    assert ("lemma", "PIGEONHOLE PRINCIPLE") in fact_labels
+    assert ("proof_role", "BOUNDING") in fact_labels
+    assert all(label != "DO NOT DISPLAY" for _, label in fact_labels)
+
+
+def test_technique_progress_catalog_uses_linked_tags_when_statement_tags_are_absent():
+    statement = _create_technique_progress_statement(
+        linked_tags=[
+            {
+                "technique": "LTE",
+                "domains": ["NT"],
+                "main_topic": "NT",
+                "canonical_subtopic": "Valuations and lifting exponent",
+            },
+        ],
+    )
+
+    from inspinia.pages.models import TechniqueProgressFact
+
+    fact_labels = set(
+        TechniqueProgressFact.objects.filter(statement=statement).values_list("layer", "label"),
+    )
+
+    assert ("technique", "LTE") in fact_labels
+    assert ("subtopic", "Valuations and lifting exponent") in fact_labels
+    assert ("main_topic", "Number Theory") in fact_labels
+
+
+def test_technique_progress_catalog_dedupes_statement_labels_and_preserves_search_metadata():
+    statement = _create_technique_progress_statement(
+        statement_tags=[
+            {
+                "technique": "ANGLE CHASE",
+                "domains": ["GEO"],
+                "main_topic": "GEO",
+                "canonical_subtopic": "Circle geometry",
+                "technique_tags": ["SYNTHETIC ANGLES"],
+            },
+            {
+                "technique": "DIRECTED ANGLES",
+                "domains": ["GEO"],
+                "main_topic": "GEO",
+                "canonical_subtopic": "Core Euclidean geometry",
+                "technique_tags": ["SYNTHETIC ANGLES"],
+            },
+        ],
+    )
+
+    from inspinia.pages.models import TechniqueProgressFact
+
+    technique_fact = TechniqueProgressFact.objects.get(statement=statement, layer="method", label="SYNTHETIC ANGLES")
+
+    assert TechniqueProgressFact.objects.filter(statement=statement, layer="method").count() == 1
+    assert technique_fact.canonical_subtopic_labels == ["Circle geometry", "Core Euclidean geometry"]
+    assert technique_fact.main_topic_labels == ["Geometry"]
+    assert "SYNTHETIC ANGLES" in technique_fact.search_text
+    assert "Circle geometry" in technique_fact.search_text
+    assert "Core Euclidean geometry" in technique_fact.search_text
+
+
+def test_recompute_technique_progress_catalog_command_rebuilds_all_rows():
+    statement = _create_technique_progress_statement(
+        statement_tags=[
+            {
+                "technique": "MASS POINTS",
+                "domains": ["GEO"],
+                "main_topic": "GEO",
+                "canonical_subtopic": "Core Euclidean geometry",
+            },
+        ],
+    )
+
+    from inspinia.pages.models import TechniqueProgressCatalogState
+    from inspinia.pages.models import TechniqueProgressFact
+
+    TechniqueProgressFact.objects.all().delete()
+
+    output = StringIO()
+    call_command("recompute_technique_progress_catalog", stdout=output)
+
+    assert TechniqueProgressFact.objects.filter(
+        statement=statement,
+        layer="technique",
+        label="MASS POINTS",
+    ).exists()
+    state = TechniqueProgressCatalogState.objects.get(singleton_key=1)
+    assert state.needs_rebuild is False
+    assert state.fact_count == TechniqueProgressFact.objects.count()
+    assert "Recomputed technique progress catalog" in output.getvalue()
+
+
+@pytest.mark.django_db(transaction=True)
+def test_technique_progress_catalog_signal_removes_inactive_statement_facts():
+    statement = _create_technique_progress_statement(
+        statement_tags=[
+            {
+                "technique": "ANGLE CHASE",
+                "domains": ["GEO"],
+                "main_topic": "GEO",
+                "canonical_subtopic": "Circle geometry",
+            },
+        ],
+    )
+
+    from inspinia.pages.models import TechniqueProgressFact
+
+    assert TechniqueProgressFact.objects.filter(statement=statement).exists()
+
+    statement.is_active = False
+    statement.save(update_fields={"is_active"})
+
+    assert not TechniqueProgressFact.objects.filter(statement=statement).exists()
+
+
+@pytest.mark.django_db(transaction=True)
+def test_technique_progress_catalog_signal_refreshes_linked_problem_tag_changes():
+    statement = _create_technique_progress_statement(
+        linked_tags=[
+            {
+                "technique": "LTE",
+                "domains": ["NT"],
+                "main_topic": "NT",
+                "canonical_subtopic": "Valuations and lifting exponent",
+            },
+        ],
+    )
+
+    from inspinia.pages.models import TechniqueProgressFact
+
+    assert TechniqueProgressFact.objects.filter(statement=statement, layer="technique", label="LTE").exists()
+
+    ProblemTopicTechnique.objects.filter(record=statement.linked_problem, technique="LTE").delete()
+    ProblemTopicTechnique.objects.create(
+        record=statement.linked_problem,
+        technique="ZSIGMONDY",
+        domains=["NT"],
+        main_topic="NT",
+        canonical_subtopic="Primes and divisibility",
+    )
+
+    assert not TechniqueProgressFact.objects.filter(statement=statement, layer="technique", label="LTE").exists()
+    assert TechniqueProgressFact.objects.filter(statement=statement, layer="technique", label="ZSIGMONDY").exists()
+
+
+def test_technique_progress_catalog_rebuild_view_requires_admin(client):
+    client.force_login(UserFactory(role=User.Role.NORMAL))
+
+    response = client.post(reverse("pages:technique_progress_catalog_rebuild"))
+
+    assert response.status_code == HTTPStatus.FORBIDDEN
+
+
+def test_technique_progress_catalog_rebuild_view_refreshes_facts_and_redirects_admin(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    statement = _create_technique_progress_statement(
+        statement_tags=[
+            {
+                "technique": "MASS POINTS",
+                "domains": ["GEO"],
+                "main_topic": "GEO",
+                "canonical_subtopic": "Core Euclidean geometry",
+            },
+        ],
+    )
+
+    from inspinia.pages.models import TechniqueProgressCatalogState
+    from inspinia.pages.models import TechniqueProgressFact
+
+    TechniqueProgressFact.objects.all().delete()
+
+    response = client.post(
+        reverse("pages:technique_progress_catalog_rebuild"),
+        {"next": reverse("pages:technique_dashboard")},
+    )
+
+    assert response.status_code == HTTPStatus.FOUND
+    assert response.url == reverse("pages:technique_dashboard")
+    assert TechniqueProgressFact.objects.filter(statement=statement, layer="technique", label="MASS POINTS").exists()
+    state = TechniqueProgressCatalogState.objects.get(singleton_key=1)
+    assert state.needs_rebuild is False
+
+
+def test_technique_progress_dashboard_shows_catalog_freshness_and_admin_refresh_button(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    _create_technique_progress_statement(
+        statement_tags=[
+            {
+                "technique": "INVARIANTS",
+                "domains": ["COMB"],
+                "main_topic": "COMB",
+                "canonical_subtopic": "Extremal methods, monotonicity, and invariants",
+            },
+        ],
+    )
+
+    from inspinia.pages.models import TechniqueProgressCatalogState
+
+    TechniqueProgressCatalogState.objects.update_or_create(
+        singleton_key=1,
+        defaults={
+            "last_refreshed_at": timezone.now(),
+            "needs_rebuild": False,
+            "fact_count": 3,
+            "last_error": "",
+        },
+    )
+
+    response = client.get(reverse("pages:technique_dashboard"))
+
+    response_html = response.content.decode("utf-8")
+    assert "Coverage data:" in response_html
+    assert "Current" in response_html
+    assert "Refresh catalog" in response_html
+    assert reverse("pages:technique_progress_catalog_rebuild") in response_html
 
 
 def test_technique_progress_dashboard_renders_for_signed_in_user(client):
@@ -12486,7 +12742,74 @@ def test_technique_progress_dashboard_prefers_statement_tags_with_problem_fallba
     assert "DO NOT DISPLAY" not in response.content.decode("utf-8")
 
 
-def test_technique_progress_gaps_page_defers_heavy_statement_fields(client):
+def test_technique_progress_dashboard_reads_precomputed_catalog_without_source_tag_queries(client):
+    user = UserFactory()
+    client.force_login(user)
+    _create_technique_progress_statement(
+        statement_tags=[
+            {
+                "technique": "INVARIANTS",
+                "domains": ["COMB"],
+                "main_topic": "COMB",
+                "canonical_subtopic": "Extremal methods, monotonicity, and invariants",
+            },
+        ],
+    )
+
+    with CaptureQueriesContext(connection) as captured_queries:
+        response = client.get(reverse("pages:technique_dashboard"))
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["technique_progress_technique_rows"][0]["label"] == "INVARIANTS"
+    source_tag_queries = [
+        query["sql"]
+        for query in captured_queries.captured_queries
+        if 'FROM "pages_statementtopictechnique"' in query["sql"]
+        or 'FROM "pages_problemtopictechnique"' in query["sql"]
+    ]
+    assert source_tag_queries == []
+
+
+def test_technique_progress_dashboard_reflects_completion_changes_without_rebuilding_catalog(client):
+    user = UserFactory()
+    client.force_login(user)
+    statement = _create_technique_progress_statement(
+        statement_tags=[
+            {
+                "technique": "ANGLE CHASE",
+                "domains": ["GEO"],
+                "main_topic": "GEO",
+                "canonical_subtopic": "Circle geometry",
+            },
+        ],
+    )
+
+    from inspinia.pages.models import TechniqueProgressFact
+
+    fact_updated_at = TechniqueProgressFact.objects.get(
+        statement=statement,
+        layer="technique",
+        label="ANGLE CHASE",
+    ).updated_at
+
+    initial_response = client.get(reverse("pages:technique_dashboard"))
+    assert initial_response.context["technique_progress_stats"]["completed_statement_total"] == 0
+
+    UserProblemCompletion.objects.create(
+        user=user,
+        statement=statement,
+        status=UserProblemCompletion.Status.SOLVED,
+    )
+
+    updated_response = client.get(reverse("pages:technique_dashboard"))
+
+    assert updated_response.context["technique_progress_stats"]["completed_statement_total"] == 1
+    assert TechniqueProgressFact.objects.get(statement=statement, layer="technique", label="ANGLE CHASE").updated_at == (
+        fact_updated_at
+    )
+
+
+def test_technique_progress_gaps_page_uses_catalog_without_statement_or_source_tag_queries(client):
     user = UserFactory()
     client.force_login(user)
     _create_technique_progress_statement(
@@ -12507,15 +12830,14 @@ def test_technique_progress_gaps_page_defers_heavy_statement_fields(client):
         )
 
     assert response.status_code == HTTPStatus.OK
-    statement_query = next(
+    source_table_queries = [
         query["sql"]
         for query in captured_queries.captured_queries
         if 'FROM "pages_contestproblemstatement"' in query["sql"]
-        and 'ORDER BY "pages_contestproblemstatement"."contest_year"' in query["sql"]
-    )
-    assert '"pages_contestproblemstatement"."statement_latex"' not in statement_query
-    assert '"pages_contestproblemstatement"."core_ideas"' not in statement_query
-    assert '"pages_problemsolverecord"."core_ideas"' not in statement_query
+        or 'FROM "pages_statementtopictechnique"' in query["sql"]
+        or 'FROM "pages_problemtopictechnique"' in query["sql"]
+    ]
+    assert source_table_queries == []
 
 
 def test_technique_progress_dashboard_exposes_practice_links(client):

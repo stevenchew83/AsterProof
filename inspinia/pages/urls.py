@@ -36,6 +36,7 @@ from inspinia.pages.views import problem_statement_list_view
 from inspinia.pages.views import problem_statement_metadata_view
 from inspinia.pages.views import root_page_view
 from inspinia.pages.views import statement_render_preview_view
+from inspinia.pages.views import technique_progress_catalog_rebuild_view
 from inspinia.pages.views import technique_progress_dashboard_view
 from inspinia.pages.views import technique_progress_gaps_view
 from inspinia.pages.views import technique_progress_topic_detail_view
@@ -94,6 +95,11 @@ urlpatterns = [
         "dashboard/contests/listing/bulk-update/",
         contest_dashboard_listing_bulk_update_view,
         name="contest_dashboard_listing_bulk_update",
+    ),
+    path(
+        "dashboard/techniques/catalog/rebuild/",
+        technique_progress_catalog_rebuild_view,
+        name="technique_progress_catalog_rebuild",
     ),
     path("dashboard/techniques/gaps/", technique_progress_gaps_view, name="technique_progress_gaps"),
     path(

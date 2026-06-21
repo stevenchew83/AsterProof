@@ -42,7 +42,9 @@ from django.shortcuts import render
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.text import slugify
+from django.views.decorators.http import require_POST
 
 from inspinia.pages.asymptote_render import build_statement_render_segments
 from inspinia.pages.asymptote_render import has_asymptote_blocks
@@ -154,6 +156,7 @@ from inspinia.pages.technique_progress import build_technique_progress_gaps_cont
 from inspinia.pages.technique_progress import build_technique_progress_gaps_csv_response
 from inspinia.pages.technique_progress import build_technique_progress_gaps_datatable_payload
 from inspinia.pages.technique_progress import build_technique_progress_topic_context
+from inspinia.pages.technique_progress_catalog import rebuild_technique_progress_catalog
 from inspinia.pages.topic_labels import FULL_TOPIC_LABEL_MAP
 from inspinia.pages.topic_labels import display_topic_label
 from inspinia.problemsets.selectors import problem_list_add_target_rows
@@ -7957,6 +7960,26 @@ def contest_advanced_analytics_view(request):
         "year_rows": year_rows,
     }
     return render(request, "pages/contest-advanced-analytics.html", context)
+
+
+@login_required
+@require_POST
+def technique_progress_catalog_rebuild_view(request):
+    _require_admin_tools_access(request)
+
+    refreshed_count = rebuild_technique_progress_catalog()
+    messages.success(
+        request,
+        f"Recomputed technique progress catalog with {refreshed_count} fact row(s).",
+    )
+    redirect_to = (request.POST.get("next") or request.META.get("HTTP_REFERER") or "").strip()
+    if not url_has_allowed_host_and_scheme(
+        redirect_to,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        redirect_to = reverse("pages:technique_dashboard")
+    return redirect(redirect_to)
 
 
 @login_required
