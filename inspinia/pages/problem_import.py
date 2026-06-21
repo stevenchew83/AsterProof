@@ -17,9 +17,11 @@ from openpyxl import Workbook
 from openpyxl.cell.cell import ILLEGAL_CHARACTERS_RE
 from openpyxl.utils.dataframe import dataframe_to_rows
 
+from inspinia.pages.models import TOPIC_TAG_LAYER_FIELDS
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
 from inspinia.pages.models import ProblemTopicTechnique
+from inspinia.pages.models import normalize_topic_tag_list
 from inspinia.pages.statement_analytics_sync import sync_statement_analytics_from_linked_problem
 from inspinia.pages.subtopic_cleanup import classified_topic_tag_entries
 from inspinia.pages.topic_tags_parse import domains_dedup_preserve_order
@@ -455,6 +457,10 @@ def _upsert_topic_technique(
     canonical_subtopic = str(taxonomy_fields["canonical_subtopic"])
     normalization_status = str(taxonomy_fields["normalization_status"])
     normalization_confidence = str(taxonomy_fields["normalization_confidence"])
+    layer_values = {
+        field_name: normalize_topic_tag_list(taxonomy_fields.get(field_name) or [])
+        for field_name in TOPIC_TAG_LAYER_FIELDS
+    }
     if replace_tags:
         ProblemTopicTechnique.objects.create(
             record=record,
@@ -465,6 +471,7 @@ def _upsert_topic_technique(
             canonical_subtopic=canonical_subtopic,
             normalization_status=normalization_status,
             normalization_confidence=normalization_confidence,
+            **layer_values,
         )
         return 1
 
@@ -484,6 +491,7 @@ def _upsert_topic_technique(
             canonical_subtopic=canonical_subtopic,
             normalization_status=normalization_status,
             normalization_confidence=normalization_confidence,
+            **layer_values,
         )
         return 1
 
@@ -500,6 +508,13 @@ def _upsert_topic_technique(
     merged_raw_tags = _merge_raw_tag_values(
         [obj.raw_tag or obj.technique, *(tag.raw_tag or tag.technique for tag in matching_tags[1:]), raw_tag],
     )
+    merged_layer_values = {
+        field_name: _merge_topic_tag_layer_values([
+            *(getattr(tag, field_name, []) for tag in matching_tags),
+            layer_values[field_name],
+        ])
+        for field_name in TOPIC_TAG_LAYER_FIELDS
+    }
 
     updated_fields: list[str] = []
     if obj.technique != technique:
@@ -514,6 +529,7 @@ def _upsert_topic_technique(
         ("canonical_subtopic", canonical_subtopic),
         ("normalization_status", normalization_status),
         ("normalization_confidence", normalization_confidence),
+        *merged_layer_values.items(),
     ):
         if getattr(obj, field_name) != value:
             setattr(obj, field_name, value)
@@ -536,6 +552,16 @@ def _merge_raw_tag_values(values: list[str]) -> str:
             seen.add(key)
             merged.append(cleaned)
     return "; ".join(merged)[:512]
+
+
+def _merge_topic_tag_layer_values(values: list) -> list[str]:
+    merged_values: list[str] = []
+    for value in values:
+        if isinstance(value, str):
+            merged_values.append(value)
+        else:
+            merged_values.extend(value or [])
+    return normalize_topic_tag_list(merged_values)
 
 
 def sync_problem_topic_techniques(

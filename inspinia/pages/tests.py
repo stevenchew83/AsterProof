@@ -1045,6 +1045,11 @@ def test_import_problem_dataframe_creates_records_and_normalized_fields():
     assert list(
         record.topic_techniques.order_by("technique").values_list("technique", flat=True),
     ) == ["LTE", "PARITY METHODS"]
+    lte_tag = record.topic_techniques.get(technique="LTE")
+    parity_tag = record.topic_techniques.get(technique="PARITY METHODS")
+    assert lte_tag.lemma_theorem_tags == ["LTE"]
+    assert lte_tag.object_tags == []
+    assert parity_tag.technique_tags == ["PARITY METHODS"]
 
 
 def test_import_problem_dataframe_classifies_topic_tags_with_normalization_metadata():
@@ -1073,14 +1078,20 @@ def test_import_problem_dataframe_classifies_topic_tags_with_normalization_metad
     assert tags["CAUCHY EQUATION"].canonical_subtopic == "Functional equations"
     assert tags["CAUCHY EQUATION"].normalization_status == "alias"
     assert tags["CAUCHY EQUATION"].normalization_confidence == "high"
+    assert tags["CAUCHY EQUATION"].lemma_theorem_tags == ["CAUCHY EQUATION"]
     assert tags["FLOOR FUNCTIONS"].raw_tag == "floor functions"
     assert tags["FLOOR FUNCTIONS"].canonical_subtopic == (
         "Discrete functions, floors, rounding, and base representation"
     )
+    assert tags["FLOOR FUNCTIONS"].object_tags == ["FLOOR FUNCTIONS"]
     assert tags["FLOOR FUNCTIONS"].normalization_status == "alias"
     assert tags["1]"].raw_tag == "1]"
     assert tags["1]"].canonical_subtopic == "Data-quality / invalid tag"
     assert tags["1]"].normalization_status == "invalid"
+    assert tags["1]"].object_tags == []
+    assert tags["1]"].technique_tags == []
+    assert tags["1]"].lemma_theorem_tags == []
+    assert tags["1]"].proof_roles == []
 
 
 def test_import_problem_dataframe_classifies_number_theory_two_layer_tags():
@@ -1111,16 +1122,23 @@ def test_import_problem_dataframe_classifies_number_theory_two_layer_tags():
     assert tags["CHINESE REMAINDER THEOREM / LOCAL-GLOBAL"].canonical_subtopic == (
         "Chinese remainder theorem and local-to-global methods"
     )
+    assert tags["CHINESE REMAINDER THEOREM / LOCAL-GLOBAL"].lemma_theorem_tags == [
+        "CHINESE REMAINDER THEOREM / LOCAL-GLOBAL",
+    ]
     assert tags["B\u00c9ZOUT / EUCLIDEAN ALGORITHM"].raw_tag == "B\u221a\xe2ZOUT/LINEAR COMBINATIONS"
     assert tags["B\u00c9ZOUT / EUCLIDEAN ALGORITHM"].canonical_subtopic == (
         "Divisibility, gcd, lcm, and factorization"
     )
+    assert tags["B\u00c9ZOUT / EUCLIDEAN ALGORITHM"].technique_tags == ["B\u00c9ZOUT / EUCLIDEAN ALGORITHM"]
     assert tags["CONSTRUCTION"].canonical_subtopic == ""
     assert tags["CONSTRUCTION"].normalization_status == "method"
+    assert tags["CONSTRUCTION"].proof_roles == ["CONSTRUCTION"]
     assert tags["IMO 2007 P5"].canonical_subtopic == ""
     assert tags["IMO 2007 P5"].normalization_status == "metadata"
+    assert tags["IMO 2007 P5"].proof_roles == []
     assert tags["\\ALPHA^21"].canonical_subtopic == "Data-quality / invalid tag"
     assert tags["\\ALPHA^21"].normalization_status == "corrupt"
+    assert tags["\\ALPHA^21"].lemma_theorem_tags == []
 
 
 def test_import_problem_dataframe_splits_geometry_compound_tags():
@@ -1149,13 +1167,17 @@ def test_import_problem_dataframe_splits_geometry_compound_tags():
     }
     assert tags["MIQUEL AND SPIRAL SIMILARITY"].canonical_subtopic == "Circle geometry"
     assert tags["MIQUEL AND SPIRAL SIMILARITY"].raw_tag == "MIQUEL/RADICAL AXIS"
+    assert tags["MIQUEL AND SPIRAL SIMILARITY"].object_tags == ["MIQUEL AND SPIRAL SIMILARITY"]
     assert tags["RADICAL AXIS AND COAXALITY"].canonical_subtopic == "Circle geometry"
+    assert tags["RADICAL AXIS AND COAXALITY"].lemma_theorem_tags == ["RADICAL AXIS AND COAXALITY"]
     assert tags["PROJECTIVE GEOMETRY"].canonical_subtopic == "Projective and affine geometry"
     assert tags["COORDINATE AND ANALYTIC GEOMETRY"].canonical_subtopic == "Analytic and coordinate geometry"
     assert tags["CONSTRUCTION"].canonical_subtopic == ""
     assert tags["CONSTRUCTION"].normalization_status == "method"
+    assert tags["CONSTRUCTION"].proof_roles == ["CONSTRUCTION"]
     assert tags["INVERSION"].canonical_subtopic == "Transformational geometry"
     assert tags["INVERSION"].raw_tag == "INVERSION AT XXX"
+    assert tags["INVERSION"].technique_tags == ["INVERSION"]
 
 
 def test_import_problem_dataframe_classifies_combinatorics_controlled_vocabulary_tags():
@@ -1185,14 +1207,18 @@ def test_import_problem_dataframe_classifies_combinatorics_controlled_vocabulary
     assert tags["GRID COLORING"].raw_tag == "GRID COLOURING"
     assert tags["GRID COLORING"].main_topic == "COMB"
     assert tags["GRID COLORING"].canonical_subtopic == "Coloring, tiling, grids, and invariants"
+    assert tags["GRID COLORING"].technique_tags == ["GRID COLORING"]
     assert tags["HALL / KONIG / MATCHING"].raw_tag == "HALL/K\u221a\xf1NIG"
     assert tags["HALL / KONIG / MATCHING"].canonical_subtopic == (
         "Discrete optimization, matching, covering, packing, and flows"
     )
+    assert tags["HALL / KONIG / MATCHING"].lemma_theorem_tags == ["HALL / KONIG / MATCHING"]
     assert tags["GREEDY"].canonical_subtopic == ""
     assert tags["GREEDY"].normalization_status == "method"
+    assert tags["GREEDY"].proof_roles == ["GREEDY"]
     assert tags["CIRCUMCIRCLE AND CIRCUMCENTER"].main_topic == "GEO"
     assert tags["CIRCUMCIRCLE AND CIRCUMCENTER"].canonical_subtopic == "Circle geometry"
+    assert tags["CIRCUMCIRCLE AND CIRCUMCENTER"].object_tags == ["CIRCUMCIRCLE AND CIRCUMCENTER"]
     assert tags["MODULAR ARITHMETIC / RESIDUES"].main_topic == "NT"
     assert tags["MODULAR ARITHMETIC / RESIDUES"].canonical_subtopic == "Congruences and modular arithmetic"
 
@@ -1250,6 +1276,49 @@ def test_import_problem_dataframe_merges_domains_and_refreshes_derived_values():
     invariants = ProblemTopicTechnique.objects.get(record=record, technique="INVARIANTS")
     assert invariants.domains == ["ALG", "COMB"]
     assert ProblemTopicTechnique.objects.get(record=record, technique="LTE").domains == ["NT"]
+
+
+def test_import_problem_dataframe_merges_layer_fields_when_replace_tags_is_false():
+    record = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="C",
+        mohs=4,
+        contest="ISRAEL TST",
+        problem="P6",
+        contest_year_problem="ISRAEL TST 2026 P6",
+    )
+    ProblemTopicTechnique.objects.create(
+        record=record,
+        technique="GRID COLORING",
+        domains=["COMB"],
+        canonical_subtopic="Coloring, tiling, grids, and invariants",
+        main_topic="COMB",
+        raw_tag="GRID COLORING",
+        technique_tags=["PARITY COLORING"],
+        object_tags=["GRID"],
+        lemma_theorem_tags=["OLDER LEMMA"],
+        proof_roles=["OBSTRUCTION"],
+    )
+    dataframe = _analytics_rows(
+        {
+            "YEAR": 2026,
+            "TOPIC": "COMB",
+            "MOHS": 4,
+            "CONTEST": "ISRAEL TST",
+            "PROBLEM": "P6",
+            "CONTEST PROBLEM": "ISRAEL TST 2026 P6",
+            "Topic tags": "Topic tags: COMB - GRID COLOURING",
+        },
+    )
+
+    import_problem_dataframe(dataframe, replace_tags=False)
+
+    tag = ProblemTopicTechnique.objects.get(record=record, technique="GRID COLORING")
+    assert tag.raw_tag == "GRID COLORING; GRID COLOURING"
+    assert tag.object_tags == ["GRID"]
+    assert tag.technique_tags == ["PARITY COLORING", "GRID COLORING"]
+    assert tag.lemma_theorem_tags == ["OLDER LEMMA"]
+    assert tag.proof_roles == ["OBSTRUCTION"]
 
 
 def test_import_problem_dataframe_adopts_existing_statement_problem_uuid():
@@ -11816,6 +11885,10 @@ def _create_technique_progress_statement(  # noqa: PLR0913
             raw_tag=tag.get("raw_tag", ""),
             normalization_status=tag.get("normalization_status", ""),
             normalization_confidence=tag.get("normalization_confidence", ""),
+            object_tags=tag.get("object_tags", []),
+            technique_tags=tag.get("technique_tags", []),
+            lemma_theorem_tags=tag.get("lemma_theorem_tags", []),
+            proof_roles=tag.get("proof_roles", []),
         )
     for tag in statement_tags or []:
         StatementTopicTechnique.objects.create(
@@ -11827,6 +11900,10 @@ def _create_technique_progress_statement(  # noqa: PLR0913
             raw_tag=tag.get("raw_tag", ""),
             normalization_status=tag.get("normalization_status", ""),
             normalization_confidence=tag.get("normalization_confidence", ""),
+            object_tags=tag.get("object_tags", []),
+            technique_tags=tag.get("technique_tags", []),
+            lemma_theorem_tags=tag.get("lemma_theorem_tags", []),
+            proof_roles=tag.get("proof_roles", []),
         )
     return statement
 
@@ -12559,6 +12636,70 @@ def test_technique_progress_gaps_page_technique_mode_lists_techniques(client):
     assert "<th scope=\"col\">Technique</th>" in response_html
     assert "<th scope=\"col\">Area</th>" not in response_html
     assert "ANGLE CHASE" in response_html
+
+
+@pytest.mark.parametrize(
+    ("kind", "expected_label", "expected_type"),
+    [
+        ("objects", "HAMILTONIAN PATHS AND CYCLES", "Object"),
+        ("methods", "GRID COLORING", "Method"),
+        ("lemmas", "TURAN / MANTEL", "Lemma/Theorem"),
+        ("proof_roles", "CONSTRUCTION / LOWER BOUND", "Proof role"),
+    ],
+)
+def test_technique_progress_gaps_page_lists_layer_gap_modes(client, kind, expected_label, expected_type):
+    user = UserFactory()
+    client.force_login(user)
+    _create_technique_progress_statement(
+        topic="COMB",
+        statement_tags=[
+            {
+                "technique": "HAMILTONIAN PATHS AND CYCLES",
+                "domains": ["COMB"],
+                "main_topic": "COMB",
+                "canonical_subtopic": "Graph theory",
+                "object_tags": ["HAMILTONIAN PATHS AND CYCLES"],
+            },
+            {
+                "technique": "GRID COLORING",
+                "domains": ["COMB"],
+                "main_topic": "COMB",
+                "canonical_subtopic": "Coloring, tiling, grids, and invariants",
+                "technique_tags": ["GRID COLORING"],
+            },
+            {
+                "technique": "TURAN / MANTEL",
+                "domains": ["COMB"],
+                "main_topic": "COMB",
+                "canonical_subtopic": "Extremal combinatorics and Ramsey theory",
+                "lemma_theorem_tags": ["TURAN / MANTEL"],
+            },
+            {
+                "technique": "CONSTRUCTION / LOWER BOUND",
+                "domains": ["COMB"],
+                "normalization_status": "method",
+                "proof_roles": ["CONSTRUCTION / LOWER BOUND"],
+            },
+            {
+                "technique": "STATEMENT CAVEAT",
+                "domains": ["COMB"],
+                "normalization_status": "metadata",
+                "proof_roles": ["STATEMENT CAVEAT"],
+            },
+        ],
+    )
+
+    response = client.get(reverse("pages:technique_progress_gaps"), {"kind": kind, "topic": "combinatorics"})
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["technique_progress_gap_kind"] == kind
+    assert [
+        (row["label"], row["type"])
+        for row in response.context["technique_progress_gap_rows"]
+    ] == [(expected_label, expected_type)]
+    response_html = response.content.decode("utf-8")
+    assert expected_label in response_html
+    assert "STATEMENT CAVEAT" not in response_html
 
 
 def test_technique_progress_gaps_page_technique_mode_shows_canonical_subtopic_column(client):
@@ -17800,6 +17941,59 @@ def test_subtopic_cleanup_applies_specific_exception_rules_before_generic_patter
     assert entry.normalization_status == "alias"
 
 
+def test_classified_topic_tag_entries_populates_layer_fields_for_all_main_topics():
+    cases = [
+        ("POLYNOMIAL ROOTS", ["ALG"], "object_tags", ["POLYNOMIAL ROOTS"]),
+        ("CAUCHY", ["ALG"], "lemma_theorem_tags", ["CAUCHY-SCHWARZ / ENGEL FORM"]),
+        ("SUBSTITUTION", ["ALG"], "technique_tags", ["SUBSTITUTION"]),
+        ("CRT", ["NT"], "lemma_theorem_tags", ["CHINESE REMAINDER THEOREM / LOCAL-GLOBAL"]),
+        ("VIETA JUMPING", ["NT"], "technique_tags", ["PELL / VIETA JUMPING"]),
+        ("CYCLIC QUADRILATERAL", ["GEO"], "object_tags", ["CYCLICITY"]),
+        ("INVERSION", ["GEO"], "technique_tags", ["INVERSION"]),
+        ("POWER OF POINT", ["GEO"], "lemma_theorem_tags", ["POWER OF A POINT"]),
+        ("HAMILTONIAN CYCLE", ["COMB"], "object_tags", ["HAMILTONIAN PATHS AND CYCLES"]),
+        ("GRID COLORING", ["COMB"], "technique_tags", ["GRID COLORING"]),
+        ("TURAN", ["COMB"], "lemma_theorem_tags", ["TURAN / MANTEL"]),
+    ]
+
+    for raw_tag, domains, layer_name, expected_values in cases:
+        fields = classified_topic_tag_entries(
+            technique=raw_tag,
+            domains=domains,
+            raw_tag=raw_tag,
+        )[0]
+
+        assert fields[layer_name] == expected_values
+        other_layer_names = {
+            "object_tags",
+            "technique_tags",
+            "lemma_theorem_tags",
+            "proof_roles",
+        } - {layer_name}
+        assert all(fields[other_layer_name] == [] for other_layer_name in other_layer_names)
+
+    method_fields = classified_topic_tag_entries(
+        technique="CONSTRUCTION + LOWER BOUND",
+        domains=["COMB"],
+        raw_tag="CONSTRUCTION + LOWER BOUND",
+    )[0]
+    invalid_fields = classified_topic_tag_entries(
+        technique="1]",
+        domains=["ALG"],
+        raw_tag="1]",
+    )[0]
+
+    assert method_fields["canonical_subtopic"] == ""
+    assert method_fields["normalization_status"] == "method"
+    assert method_fields["proof_roles"] == ["CONSTRUCTION / LOWER BOUND"]
+    assert method_fields["technique_tags"] == []
+    assert invalid_fields["normalization_status"] == "invalid"
+    assert invalid_fields["object_tags"] == []
+    assert invalid_fields["technique_tags"] == []
+    assert invalid_fields["lemma_theorem_tags"] == []
+    assert invalid_fields["proof_roles"] == []
+
+
 def test_subtopic_cleanup_apply_updates_alias_when_target_label_is_not_lookup_key():
     record = ProblemSolveRecord.objects.create(
         year=2026,
@@ -17903,15 +18097,59 @@ def test_subtopic_cleanup_apply_collapses_combinatorics_duplicate_families():
     assert list(tags) == ["GREEDY", "GRID COLORING", "LINEAR ALGEBRA OVER F2"]
     assert tags["GRID COLORING"].main_topic == "COMB"
     assert tags["GRID COLORING"].canonical_subtopic == "Coloring, tiling, grids, and invariants"
+    assert tags["GRID COLORING"].technique_tags == ["GRID COLORING"]
     assert tags["LINEAR ALGEBRA OVER F2"].canonical_subtopic == "Algebraic and linear methods in combinatorics"
+    assert tags["LINEAR ALGEBRA OVER F2"].technique_tags == ["LINEAR ALGEBRA OVER F2"]
     assert tags["GREEDY"].canonical_subtopic == ""
     assert tags["GREEDY"].normalization_status == "method"
+    assert tags["GREEDY"].proof_roles == ["GREEDY"]
     record.refresh_from_db()
     assert (
         record.topic_tags
         == "Topic tags: COMB / Coloring, tiling, grids, and invariants - GRID COLORING; "
         "COMB / Algebraic and linear methods in combinatorics - LINEAR ALGEBRA OVER F2; COMB - GREEDY"
     )
+
+
+def test_backfill_topic_tag_layers_command_updates_existing_rows():
+    record = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="A",
+        mohs=25,
+        contest="Israel TST",
+        problem="P7",
+        contest_year_problem="Israel TST 2026 P7",
+    )
+    problem_tag = ProblemTopicTechnique.objects.create(
+        record=record,
+        technique="CAUCHY",
+        domains=["ALG"],
+        raw_tag="CAUCHY",
+    )
+    statement = ContestProblemStatement.objects.create(
+        contest_year=2026,
+        contest_name="Israel TST",
+        problem_number=8,
+        problem_code="P8",
+        day_label="Day 1",
+        statement_latex="Backfill statement",
+        topic="COMB",
+    )
+    statement_tag = StatementTopicTechnique.objects.create(
+        statement=statement,
+        technique="GRID COLORING",
+        domains=["COMB"],
+        raw_tag="GRID COLORING",
+    )
+
+    out = StringIO()
+    call_command("backfill_topic_tag_layers", batch_size=1, stdout=out)
+
+    problem_tag.refresh_from_db()
+    statement_tag.refresh_from_db()
+    assert problem_tag.lemma_theorem_tags == ["CAUCHY-SCHWARZ / ENGEL FORM"]
+    assert statement_tag.technique_tags == ["GRID COLORING"]
+    assert "Updated 2 parsed tag row(s)" in out.getvalue()
 
 
 def test_subtopic_cleanup_preview_reports_invalid_and_metadata_columns(client):
@@ -18223,6 +18461,7 @@ def test_problem_statement_metadata_cleanup_preview_shows_unmatched_review_table
     assert "Unmatched subtopics review" in response_html
     assert "Occurrences" in response_html
     assert "MYSTERY FLAVOR" in response_html
+    assert "Layers" in response_html
 
 
 def test_problem_statement_metadata_subtopic_cleanup_preview_avoids_large_statement_fields(client):
@@ -21564,7 +21803,15 @@ def test_sync_statement_analytics_from_linked_problem_copies_when_statement_empt
         confidence="High",
         imo_slot_guess="P1/4",
     )
-    ProblemTopicTechnique.objects.create(record=record, technique="ANGLE", domains=["GEO"])
+    ProblemTopicTechnique.objects.create(
+        record=record,
+        technique="ANGLE",
+        domains=["GEO"],
+        object_tags=["TRIANGLE"],
+        technique_tags=["ANGLE CHASING"],
+        lemma_theorem_tags=["CEVA"],
+        proof_roles=["AUXILIARY CONSTRUCTION"],
+    )
     statement = ContestProblemStatement.objects.create(
         contest_year=2026,
         contest_name="TST",
@@ -21592,6 +21839,11 @@ def test_sync_statement_analytics_from_linked_problem_copies_when_statement_empt
     assert list(
         StatementTopicTechnique.objects.filter(statement=statement).values_list("technique", flat=True),
     ) == ["ANGLE"]
+    statement_tag = StatementTopicTechnique.objects.get(statement=statement, technique="ANGLE")
+    assert statement_tag.object_tags == ["TRIANGLE"]
+    assert statement_tag.technique_tags == ["ANGLE CHASING"]
+    assert statement_tag.lemma_theorem_tags == ["CEVA"]
+    assert statement_tag.proof_roles == ["AUXILIARY CONSTRUCTION"]
 
 
 @pytest.mark.django_db
@@ -21608,3 +21860,43 @@ def test_statement_topic_technique_uppercase_on_save():
     st.refresh_from_db()
     assert st.technique == "LTE"
     assert st.domains == ["NT"]
+
+
+@pytest.mark.django_db
+def test_topic_technique_layer_fields_default_and_normalize_on_save():
+    record = ProblemSolveRecord.objects.create(
+        year=2025,
+        topic="C",
+        mohs=5,
+        contest="X",
+        problem="P1",
+    )
+    problem_tag = ProblemTopicTechnique.objects.create(record=record, technique="grid coloring")
+    problem_tag.refresh_from_db()
+    assert problem_tag.object_tags == []
+    assert problem_tag.technique_tags == []
+    assert problem_tag.lemma_theorem_tags == []
+    assert problem_tag.proof_roles == []
+
+    statement = ContestProblemStatement.objects.create(
+        contest_year=2025,
+        contest_name="X",
+        problem_number=2,
+        problem_code="P2",
+        statement_latex="z",
+    )
+    statement_tag = StatementTopicTechnique.objects.create(
+        statement=statement,
+        technique="hall",
+        object_tags=[" hamiltonian cycle ", "HAMILTONIAN CYCLE", ""],
+        technique_tags="grid coloring",
+        lemma_theorem_tags=["Turan", "TURAN"],
+        proof_roles=[" contradiction ", None, "CONTRADICTION"],
+    )
+
+    statement_tag.refresh_from_db()
+    assert statement_tag.technique == "HALL"
+    assert statement_tag.object_tags == ["HAMILTONIAN CYCLE"]
+    assert statement_tag.technique_tags == ["GRID COLORING"]
+    assert statement_tag.lemma_theorem_tags == ["TURAN"]
+    assert statement_tag.proof_roles == ["CONTRADICTION"]

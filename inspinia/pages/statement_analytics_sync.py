@@ -82,6 +82,10 @@ def sync_statement_analytics_from_linked_problem(statement: ContestProblemStatem
                 raw_tag=pt.raw_tag,
                 normalization_status=pt.normalization_status,
                 normalization_confidence=pt.normalization_confidence,
+                object_tags=list(pt.object_tags or []),
+                technique_tags=list(pt.technique_tags or []),
+                lemma_theorem_tags=list(pt.lemma_theorem_tags or []),
+                proof_roles=list(pt.proof_roles or []),
             )
             st.save()
             techniques_changed = True
