@@ -14,8 +14,10 @@ from inspinia.pages.models import TOPIC_TAG_LAYER_FIELDS
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemTopicTechnique
 from inspinia.pages.models import StatementTopicTechnique
+from inspinia.pages.models import TechniqueProgressFact
 from inspinia.pages.models import UserProblemCompletion
 from inspinia.pages.statement_analytics import effective_topic
+from inspinia.pages.technique_progress_catalog import technique_progress_catalog_status_context
 from inspinia.pages.topic_labels import display_topic_label
 from inspinia.users.models import User
 from inspinia.users.roles import user_has_admin_role
@@ -85,6 +87,129 @@ GAP_TOPIC_SLUGS = {
 }
 
 
+def _layers_for_gap_kind(gap_kind: str) -> set[str]:
+    layer_sets = {
+        GAP_KIND_TECHNIQUES: {TechniqueProgressFact.Layer.TECHNIQUE},
+        GAP_KIND_OBJECTS: {TechniqueProgressFact.Layer.OBJECT},
+        GAP_KIND_METHODS: {TechniqueProgressFact.Layer.METHOD},
+        GAP_KIND_LEMMAS: {TechniqueProgressFact.Layer.LEMMA},
+        GAP_KIND_PROOF_ROLES: {TechniqueProgressFact.Layer.PROOF_ROLE},
+        GAP_KIND_ALL: {
+            TechniqueProgressFact.Layer.SUBTOPIC,
+            TechniqueProgressFact.Layer.TECHNIQUE,
+        },
+    }
+    return layer_sets.get(gap_kind, {TechniqueProgressFact.Layer.SUBTOPIC})
+
+
+def _progress_fact_rows(
+    *,
+    user: User,
+    layers: set[str],
+) -> list[dict[str, object]]:
+    fact_rows = list(
+        TechniqueProgressFact.objects.filter(layer__in=layers)
+        .values(
+            "canonical_subtopic",
+            "canonical_subtopic_labels",
+            "label",
+            "layer",
+            "linked_problem_id",
+            "main_topic",
+            "main_topic_labels",
+            "search_text",
+            "statement_id",
+        )
+        .order_by("layer", "label", "statement_id", "id"),
+    )
+    if not fact_rows:
+        return []
+
+    statement_problem_ids = {
+        int(row["statement_id"]): row["linked_problem_id"]
+        for row in fact_rows
+    }
+    completion_by_statement_id = _completion_by_catalog_statement_id(
+        statement_problem_ids=statement_problem_ids,
+        user=user,
+    )
+
+    rows = []
+    for fact in fact_rows:
+        statement_id = int(fact["statement_id"])
+        completion = completion_by_statement_id.get(statement_id)
+        is_solved = completion is not None and is_completion_status_solved(completion.status)
+        layer = str(fact["layer"])
+        label = str(fact["label"] or "")
+        main_topic_labels = list(fact.get("main_topic_labels") or [])
+        canonical_subtopic = str(fact.get("canonical_subtopic") or "")
+        rows.append(
+            {
+                "canonical_subtopic": canonical_subtopic,
+                "canonical_subtopic_labels": list(fact.get("canonical_subtopic_labels") or []),
+                "domain_topic_labels": main_topic_labels,
+                "is_solved": is_solved,
+                "label": label,
+                "layer": layer,
+                "main_topic": str(fact.get("main_topic") or (main_topic_labels[0] if main_topic_labels else "")),
+                "main_topic_labels": main_topic_labels,
+                "search_text": str(fact.get("search_text") or ""),
+                "statement_id": statement_id,
+                "subtopic": label if layer == TechniqueProgressFact.Layer.SUBTOPIC else canonical_subtopic,
+                "technique": label if layer == TechniqueProgressFact.Layer.TECHNIQUE else "",
+            },
+        )
+    return rows
+
+
+def _completion_by_catalog_statement_id(
+    *,
+    statement_problem_ids: dict[int, int | None],
+    user: User,
+) -> dict[int, UserProblemCompletion]:
+    statement_ids = sorted(statement_problem_ids)
+    completion_by_statement_id = {
+        completion.statement_id: completion
+        for completion in UserProblemCompletion.objects.filter(
+            user=user,
+            statement_id__in=statement_ids,
+        ).order_by(F("completion_date").desc(nulls_last=True), "-updated_at", "-id")
+        if completion.statement_id is not None
+    }
+    linked_problem_ids = sorted(
+        {
+            problem_id
+            for problem_id in statement_problem_ids.values()
+            if problem_id is not None
+        },
+    )
+    if not linked_problem_ids:
+        return completion_by_statement_id
+
+    legacy_completion_by_problem_id = {
+        completion.problem_id: completion
+        for completion in UserProblemCompletion.objects.filter(
+            user=user,
+            problem_id__in=linked_problem_ids,
+        ).order_by(F("completion_date").desc(nulls_last=True), "-updated_at", "-id")
+        if completion.problem_id is not None
+    }
+    for statement_id, problem_id in statement_problem_ids.items():
+        if statement_id in completion_by_statement_id:
+            continue
+        if problem_id in legacy_completion_by_problem_id:
+            completion_by_statement_id[statement_id] = legacy_completion_by_problem_id[problem_id]
+    return completion_by_statement_id
+
+
+def _rows_for_layer(rows: list[dict[str, object]], layer: str) -> list[dict[str, object]]:
+    return [
+        row
+        for row in rows
+        if row.get("layer") == layer
+    ]
+
+
 def technique_progress_user_options() -> list[dict[str, str]]:
     options = []
     for user in User.objects.filter(is_active=True).order_by("name", "email", "id"):
@@ -123,7 +248,15 @@ def build_technique_progress_context(
     request_user: User,
     raw_user_id: str = "",
 ) -> dict[str, object]:
-    payload = _build_progress_payload(request_user=request_user, raw_user_id=raw_user_id)
+    payload = _build_progress_payload(
+        request_user=request_user,
+        raw_user_id=raw_user_id,
+        required_layers={
+            TechniqueProgressFact.Layer.MAIN_TOPIC,
+            TechniqueProgressFact.Layer.SUBTOPIC,
+            TechniqueProgressFact.Layer.TECHNIQUE,
+        },
+    )
     return {
         **payload["base_context"],
         "technique_progress_main_topic_rows": payload["main_topic_rows"],
@@ -143,11 +276,15 @@ def build_technique_progress_gaps_context(  # noqa: PLR0913
     raw_min_total: str = "",
     raw_canonical_subtopic: str = "",
 ) -> dict[str, object]:
-    payload = _build_progress_payload(request_user=request_user, raw_user_id=raw_user_id)
+    gap_kind = _gap_kind(raw_kind)
+    payload = _build_progress_payload(
+        request_user=request_user,
+        raw_user_id=raw_user_id,
+        required_layers=_layers_for_gap_kind(gap_kind),
+    )
     base_context = payload["base_context"]
     selected_user = base_context["technique_progress_selected_user"]
     can_select_user = bool(base_context["technique_progress_can_select_user"])
-    gap_kind = _gap_kind(raw_kind)
     gap_topic = _gap_topic(raw_topic)
     gap_min_total = _gap_min_total(raw_min_total)
     gap_canonical_subtopic = _gap_canonical_subtopic(raw_canonical_subtopic)
@@ -231,11 +368,16 @@ def build_technique_progress_gaps_csv_response(  # noqa: PLR0913
     raw_min_total: str = "",
     raw_canonical_subtopic: str = "",
 ) -> HttpResponse:
-    payload = _build_progress_payload(request_user=request_user, raw_user_id=raw_user_id)
+    gap_kind = _gap_kind(raw_kind)
+    payload = _build_progress_payload(
+        request_user=request_user,
+        raw_user_id=raw_user_id,
+        required_layers=_layers_for_gap_kind(gap_kind),
+    )
     gap_min_total = _gap_min_total(raw_min_total)
     gap_rows = _filtered_gap_rows(
         payload=payload,
-        gap_kind=_gap_kind(raw_kind),
+        gap_kind=gap_kind,
         gap_topic=_gap_topic(raw_topic),
         gap_min_total=gap_min_total,
         gap_canonical_subtopic=_gap_canonical_subtopic(raw_canonical_subtopic),
@@ -259,8 +401,12 @@ def build_technique_progress_gaps_datatable_payload(  # noqa: PLR0913
     params: Mapping[str, str] | None = None,
 ) -> dict[str, object]:
     params = params or {}
-    payload = _build_progress_payload(request_user=request_user, raw_user_id=raw_user_id)
     gap_kind = _gap_kind(raw_kind)
+    payload = _build_progress_payload(
+        request_user=request_user,
+        raw_user_id=raw_user_id,
+        required_layers=_layers_for_gap_kind(gap_kind),
+    )
     gap_topic = _gap_topic(raw_topic)
     gap_min_total = _gap_min_total(raw_min_total)
     gap_canonical_subtopic = _gap_canonical_subtopic(raw_canonical_subtopic)
@@ -314,15 +460,28 @@ def build_technique_progress_topic_context(
         request_user=request_user,
         raw_user_id=raw_user_id,
     )
-    tagged_rows = _tagged_statement_rows(user=selected_user)
+    tagged_rows = _progress_fact_rows(
+        user=selected_user,
+        layers={
+            TechniqueProgressFact.Layer.MAIN_TOPIC,
+            TechniqueProgressFact.Layer.SUBTOPIC,
+        },
+    )
+    main_topic_fact_rows = _rows_for_layer(tagged_rows, TechniqueProgressFact.Layer.MAIN_TOPIC)
+    subtopic_fact_rows = _rows_for_layer(tagged_rows, TechniqueProgressFact.Layer.SUBTOPIC)
     topic_tagged_rows = [
         row
-        for row in tagged_rows
-        if _main_topic_label(row) == topic_label
+        for row in main_topic_fact_rows
+        if row["label"] == topic_label
+    ]
+    topic_subtopic_fact_rows = [
+        row
+        for row in subtopic_fact_rows
+        if topic_label in row.get("main_topic_labels", [])
     ]
     topic_subtopic_rows = _aggregate_progress_rows(
-        topic_tagged_rows,
-        label_key="subtopic",
+        topic_subtopic_fact_rows,
+        label_key="label",
         type_label="Subtopic",
         selected_user=selected_user,
         can_select_user=can_select_user,
@@ -351,55 +510,62 @@ def _build_progress_payload(
     *,
     request_user: User,
     raw_user_id: str,
+    required_layers: set[str],
 ) -> dict[str, object]:
     selected_user, can_select_user = resolve_technique_progress_user(
         request_user=request_user,
         raw_user_id=raw_user_id,
     )
-    tagged_rows = _tagged_statement_rows(user=selected_user)
+    tagged_rows = _progress_fact_rows(user=selected_user, layers=required_layers)
+    rows_by_layer = {
+        layer: _rows_for_layer(tagged_rows, layer)
+        for layer in required_layers
+    }
     technique_rows = _aggregate_progress_rows(
-        _technique_progress_rows(tagged_rows),
-        label_key="technique",
+        rows_by_layer.get(TechniqueProgressFact.Layer.TECHNIQUE, []),
+        label_key="label",
         type_label="Technique",
         selected_user=selected_user,
         can_select_user=can_select_user,
     )
     subtopic_rows = _aggregate_progress_rows(
-        _subtopic_progress_rows(tagged_rows),
-        label_key="subtopic",
+        rows_by_layer.get(TechniqueProgressFact.Layer.SUBTOPIC, []),
+        label_key="label",
         type_label="Subtopic",
         selected_user=selected_user,
         can_select_user=can_select_user,
     )
-    object_rows = _layer_progress_rows(
-        tagged_rows,
-        layer_key="object_tags",
+    object_rows = _aggregate_progress_rows(
+        rows_by_layer.get(TechniqueProgressFact.Layer.OBJECT, []),
+        label_key="label",
         type_label="Object",
         selected_user=selected_user,
         can_select_user=can_select_user,
     )
-    method_rows = _layer_progress_rows(
-        tagged_rows,
-        layer_key="technique_tags",
+    method_rows = _aggregate_progress_rows(
+        rows_by_layer.get(TechniqueProgressFact.Layer.METHOD, []),
+        label_key="label",
         type_label="Method",
         selected_user=selected_user,
         can_select_user=can_select_user,
     )
-    lemma_rows = _layer_progress_rows(
-        tagged_rows,
-        layer_key="lemma_theorem_tags",
+    lemma_rows = _aggregate_progress_rows(
+        rows_by_layer.get(TechniqueProgressFact.Layer.LEMMA, []),
+        label_key="label",
         type_label="Lemma/Theorem",
         selected_user=selected_user,
         can_select_user=can_select_user,
     )
-    proof_role_rows = _layer_progress_rows(
-        tagged_rows,
-        layer_key="proof_roles",
+    proof_role_rows = _aggregate_progress_rows(
+        rows_by_layer.get(TechniqueProgressFact.Layer.PROOF_ROLE, []),
+        label_key="label",
         type_label="Proof role",
         selected_user=selected_user,
         can_select_user=can_select_user,
     )
-    summary = _summary_from_tagged_rows(tagged_rows)
+    summary = _summary_from_tagged_rows(
+        rows_by_layer.get(TechniqueProgressFact.Layer.MAIN_TOPIC, tagged_rows),
+    )
     stats = {
         "completion_percent": summary["completion_percent"],
         "completed_statement_total": summary["solved"],
@@ -421,7 +587,8 @@ def _build_progress_payload(
         "gap_rows": gap_rows,
         "lemma_rows": lemma_rows,
         "main_topic_rows": _main_topic_rows(
-            tagged_rows,
+            rows_by_layer.get(TechniqueProgressFact.Layer.MAIN_TOPIC, []),
+            subtopic_rows=subtopic_rows,
             selected_user=selected_user,
             can_select_user=can_select_user,
         ),
@@ -493,6 +660,7 @@ def _base_context(
     has_tagged_statements: bool = False,
 ) -> dict[str, object]:
     return {
+        **technique_progress_catalog_status_context(),
         "technique_progress_all_gaps_url": _page_url(
             "pages:technique_progress_gaps",
             selected_user=selected_user,
@@ -1159,17 +1327,7 @@ def _aggregate_progress_rows(
         bucket["statement_ids"].add(tagged_row["statement_id"])
         if tagged_row["is_solved"]:
             bucket["solved_statement_ids"].add(tagged_row["statement_id"])
-        canonical_subtopic = str(tagged_row.get("canonical_subtopic") or "").strip()
-        if canonical_subtopic:
-            bucket["canonical_subtopics"].add(canonical_subtopic)
-            bucket["search_terms"].add(canonical_subtopic)
-        technique = str(tagged_row.get("technique") or "").strip()
-        if technique:
-            bucket["search_terms"].add(technique)
-        for raw_topic_label in tagged_row.get("domain_topic_labels", []) or []:
-            topic_label = str(raw_topic_label or "").strip()
-            if topic_label:
-                bucket["main_topics"].add(topic_label)
+        _add_progress_row_metadata(bucket=bucket, tagged_row=tagged_row)
 
     rows = []
     for bucket in buckets.values():
@@ -1217,6 +1375,37 @@ def _aggregate_progress_rows(
     )
 
 
+def _add_progress_row_metadata(
+    *,
+    bucket: dict[str, object],
+    tagged_row: dict[str, object],
+) -> None:
+    canonical_subtopic = str(tagged_row.get("canonical_subtopic") or "").strip()
+    if canonical_subtopic:
+        bucket["canonical_subtopics"].add(canonical_subtopic)
+        bucket["search_terms"].add(canonical_subtopic)
+    for raw_canonical_subtopic in tagged_row.get("canonical_subtopic_labels", []) or []:
+        canonical_subtopic_label = str(raw_canonical_subtopic or "").strip()
+        if canonical_subtopic_label:
+            bucket["canonical_subtopics"].add(canonical_subtopic_label)
+            bucket["search_terms"].add(canonical_subtopic_label)
+
+    technique = str(tagged_row.get("technique") or "").strip()
+    if technique:
+        bucket["search_terms"].add(technique)
+    search_text = str(tagged_row.get("search_text") or "").strip()
+    if search_text:
+        bucket["search_terms"].add(search_text)
+
+    for raw_topic_label in [
+        *(tagged_row.get("domain_topic_labels", []) or []),
+        *(tagged_row.get("main_topic_labels", []) or []),
+    ]:
+        topic_label = str(raw_topic_label or "").strip()
+        if topic_label:
+            bucket["main_topics"].add(topic_label)
+
+
 def _canonical_subtopic_display_values(
     *,
     type_label: str,
@@ -1233,10 +1422,11 @@ def _canonical_subtopic_display_values(
 def _main_topic_rows(
     tagged_rows: list[dict[str, object]],
     *,
+    subtopic_rows: list[dict[str, object]],
     selected_user: User,
     can_select_user: bool,
 ) -> list[dict[str, object]]:
-    topics_with_data = {_main_topic_label(row) for row in tagged_rows}
+    topics_with_data = {str(row.get("label") or "") for row in tagged_rows}
     topic_labels = [
         *MAIN_TOPIC_ORDER,
         *sorted(topics_with_data - set(MAIN_TOPIC_ORDER) - {OTHER_TOPIC_LABEL}),
@@ -1249,25 +1439,23 @@ def _main_topic_rows(
         topic_rows = [
             row
             for row in tagged_rows
-            if _main_topic_label(row) == topic_label
+            if row.get("label") == topic_label
         ]
         summary = _summary_from_tagged_rows(topic_rows)
-        subtopic_rows = _aggregate_progress_rows(
-            topic_rows,
-            label_key="subtopic",
-            type_label="Subtopic",
-            selected_user=selected_user,
-            can_select_user=can_select_user,
-        )
+        topic_subtopic_rows = [
+            row
+            for row in subtopic_rows
+            if topic_label in row.get("main_topic_labels", [])
+        ]
         rows.append(
             {
                 "completion_percent": summary["completion_percent"],
-                "incomplete_subtopic_total": sum(1 for row in subtopic_rows if row["remaining"]),
+                "incomplete_subtopic_total": sum(1 for row in topic_subtopic_rows if row["remaining"]),
                 "label": topic_label,
                 "remaining": summary["remaining"],
                 "slug": _topic_slug(topic_label),
                 "solved": summary["solved"],
-                "subtopic_total": len(subtopic_rows),
+                "subtopic_total": len(topic_subtopic_rows),
                 "topic_detail_url": _page_url(
                     "pages:technique_progress_topic_detail",
                     selected_user=selected_user,

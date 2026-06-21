@@ -470,6 +470,88 @@ class UserProblemCompletion(models.Model):
         )
 
 
+class TechniqueProgressFact(models.Model):
+    class Layer(models.TextChoices):
+        MAIN_TOPIC = "main_topic", "Main topic"
+        SUBTOPIC = "subtopic", "Subtopic"
+        TECHNIQUE = "technique", "Technique"
+        OBJECT = "object", "Object"
+        METHOD = "method", "Method"
+        LEMMA = "lemma", "Lemma/Theorem"
+        PROOF_ROLE = "proof_role", "Proof role"
+
+    statement = models.ForeignKey(
+        ContestProblemStatement,
+        on_delete=models.CASCADE,
+        related_name="technique_progress_facts",
+    )
+    linked_problem = models.ForeignKey(
+        ProblemSolveRecord,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="technique_progress_facts",
+    )
+    layer = models.CharField(max_length=16, choices=Layer.choices, db_index=True)
+    label = models.CharField(max_length=512)
+    label_key = models.CharField(max_length=512)
+    canonical_subtopic = models.CharField(blank=True, max_length=160)
+    canonical_subtopic_labels = models.JSONField(blank=True, default=list)
+    main_topic = models.CharField(blank=True, max_length=32)
+    main_topic_labels = models.JSONField(blank=True, default=list)
+    search_text = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["layer", "label", "statement_id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["statement", "layer", "label_key"],
+                name="pages_techprogressfact_unique_statement_layer_label",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["layer", "label_key"], name="pages_tpf_layer_label_idx"),
+            models.Index(fields=["linked_problem", "layer"], name="pages_tpf_problem_layer_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.statement_id}: {self.layer} / {self.label}"
+
+    def save(self, *args, **kwargs) -> None:
+        self.label = (self.label or "").strip()
+        self.label_key = (self.label_key or self.label).strip().casefold()
+
+        update_fields = kwargs.get("update_fields")
+        if update_fields is not None:
+            kwargs["update_fields"] = set(update_fields) | {"label", "label_key"}
+
+        super().save(*args, **kwargs)
+
+
+class TechniqueProgressCatalogState(models.Model):
+    singleton_key = models.PositiveSmallIntegerField(default=1, unique=True, editable=False)
+    last_refreshed_at = models.DateTimeField(null=True, blank=True)
+    needs_rebuild = models.BooleanField(default=True)
+    fact_count = models.PositiveIntegerField(default=0)
+    last_error = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Technique progress catalog state"
+        verbose_name_plural = "Technique progress catalog state"
+
+    def __str__(self) -> str:
+        status = "needs rebuild" if self.needs_rebuild else "current"
+        return f"Technique progress catalog: {status}"
+
+    def save(self, *args, **kwargs) -> None:
+        self.singleton_key = 1
+        super().save(*args, **kwargs)
+
+
 class UserProblemDifficultyRating(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
