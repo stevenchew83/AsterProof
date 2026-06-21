@@ -210,6 +210,7 @@
               <th>Main topic</th>
               <th>Canonical subtopic</th>
               <th>Technique</th>
+              <th>Layers</th>
               <th>Status</th>
               <th>Confidence</th>
               <th>Raw tag</th>
@@ -224,6 +225,13 @@
               <td><span class="badge bg-primary-subtle text-primary">{{ row.main_topic }}</span></td>
               <td>{{ row.canonical_subtopic }}</td>
               <td><code>{{ row.technique }}</code></td>
+              <td>
+                {% if row.layers %}
+                <span class="badge bg-info-subtle text-info text-wrap text-start">{{ row.layers }}</span>
+                {% else %}
+                <span class="text-muted fs-xs">-</span>
+                {% endif %}
+              </td>
               <td><span class="badge bg-secondary-subtle text-secondary">{{ row.normalization_status }}</span></td>
               <td>{{ row.normalization_confidence }}</td>
               <td><code>{{ row.raw_tag }}</code></td>

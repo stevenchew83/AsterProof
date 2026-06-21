@@ -19,6 +19,34 @@ from inspinia.pages.topic_tags_parse import normalize_topic_tag
 
 DIFFICULTY_RATING_MIN = 0
 DIFFICULTY_RATING_MAX = 60
+TOPIC_TAG_LAYER_FIELDS = (
+    "object_tags",
+    "technique_tags",
+    "lemma_theorem_tags",
+    "proof_roles",
+)
+
+
+def normalize_topic_tag_list(values) -> list[str]:
+    if values is None:
+        raw_values = []
+    elif isinstance(values, str):
+        raw_values = [values]
+    else:
+        raw_values = values
+
+    normalized_values: list[str] = []
+    seen_values: set[str] = set()
+    for raw_value in raw_values or []:
+        normalized_value = normalize_topic_tag(raw_value)
+        if not normalized_value:
+            continue
+        seen_key = normalized_value.casefold()
+        if seen_key in seen_values:
+            continue
+        seen_values.add(seen_key)
+        normalized_values.append(normalized_value)
+    return normalized_values
 
 
 def _normalize_topic_technique_model(instance: models.Model, save_kwargs: dict) -> None:
@@ -31,11 +59,19 @@ def _normalize_topic_technique_model(instance: models.Model, save_kwargs: dict) 
         "normalization_status": clean_token(instance.normalization_status).casefold(),
         "normalization_confidence": clean_token(instance.normalization_confidence).casefold(),
     }
+    for field_name in TOPIC_TAG_LAYER_FIELDS:
+        normalized_values[field_name] = normalize_topic_tag_list(getattr(instance, field_name, []))
+
     update_fields = save_kwargs.get("update_fields")
     normalized_update_fields = set(update_fields) if update_fields is not None else None
 
     for field_name, normalized_value in normalized_values.items():
-        current_value = list(instance.domains or []) if field_name == "domains" else getattr(instance, field_name)
+        if field_name == "domains":
+            current_value = list(instance.domains or [])
+        elif field_name in TOPIC_TAG_LAYER_FIELDS:
+            current_value = getattr(instance, field_name, [])
+        else:
+            current_value = getattr(instance, field_name)
         if current_value == normalized_value:
             continue
         setattr(instance, field_name, normalized_value)
@@ -131,6 +167,10 @@ class ProblemTopicTechnique(models.Model):
     raw_tag = models.CharField(blank=True, max_length=512)
     normalization_status = models.CharField(blank=True, max_length=24)
     normalization_confidence = models.CharField(blank=True, max_length=16)
+    object_tags = models.JSONField(blank=True, default=list)
+    technique_tags = models.JSONField(blank=True, default=list)
+    lemma_theorem_tags = models.JSONField(blank=True, default=list)
+    proof_roles = models.JSONField(blank=True, default=list)
 
     class Meta:
         constraints = [
@@ -240,6 +280,10 @@ class StatementTopicTechnique(models.Model):
     raw_tag = models.CharField(blank=True, max_length=512)
     normalization_status = models.CharField(blank=True, max_length=24)
     normalization_confidence = models.CharField(blank=True, max_length=16)
+    object_tags = models.JSONField(blank=True, default=list)
+    technique_tags = models.JSONField(blank=True, default=list)
+    lemma_theorem_tags = models.JSONField(blank=True, default=list)
+    proof_roles = models.JSONField(blank=True, default=list)
 
     class Meta:
         constraints = [

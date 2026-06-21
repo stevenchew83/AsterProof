@@ -16,10 +16,12 @@ from django.db import connection
 from django.db import transaction
 from django.utils import timezone
 
+from inspinia.pages.models import TOPIC_TAG_LAYER_FIELDS
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
 from inspinia.pages.models import ProblemTopicTechnique
 from inspinia.pages.models import StatementTopicTechnique
+from inspinia.pages.models import normalize_topic_tag_list
 from inspinia.pages.subtopic_taxonomy import CANONICAL_SUBTOPIC_TAXONOMY
 from inspinia.pages.topic_tags_parse import domains_dedup_preserve_order
 from inspinia.pages.topic_tags_parse import normalize_topic_tag
@@ -37,6 +39,10 @@ class SubtopicTaxonomyEntry:
     stored_technique: str
     normalization_status: str = "alias"
     normalization_confidence: str = "high"
+    object_tags: tuple[str, ...] = ()
+    technique_tags: tuple[str, ...] = ()
+    lemma_theorem_tags: tuple[str, ...] = ()
+    proof_roles: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -84,6 +90,122 @@ NORMALIZATION_STATUS_NEEDS_REVIEW = "needs_review"
 NORMALIZATION_CONFIDENCE_HIGH = "high"
 NORMALIZATION_CONFIDENCE_LOW = "low"
 SUBTOPIC_CLEANUP_BATCH_SIZE = 1000
+NO_LAYER_NORMALIZATION_STATUSES = {
+    NORMALIZATION_STATUS_METADATA,
+    NORMALIZATION_STATUS_CORRUPT,
+    NORMALIZATION_STATUS_INVALID,
+}
+
+
+LEMMA_THEOREM_LAYER_PATTERNS: tuple[str, ...] = (
+    "AM-GM",
+    "BRIANCHON",
+    "CARO",
+    "CAUCHY",
+    "CEVA",
+    "CHINESE REMAINDER",
+    "CRT",
+    "DESARGUES",
+    "DILWORTH",
+    "ENGEL",
+    "ERDOS-SZEKERES",
+    "FERMAT",
+    "HALL",
+    "HOLDER",
+    "JENSEN",
+    "KONIG",
+    "LTE",
+    "LYM",
+    "MANTEL",
+    "MENELAUS",
+    "MIRSKY",
+    "MUIRHEAD",
+    "PAPPUS",
+    "PASCAL",
+    "PICK",
+    "POWER OF A POINT",
+    "RADICAL AXIS",
+    "RAMSEY",
+    "SCHUR",
+    "SIMSON",
+    "SPERNER",
+    "STEWART",
+    "TURAN",
+    "WEI",
+    "WILSON",
+    "ZSIGMONDY",
+)
+OBJECT_LAYER_PATTERNS: tuple[str, ...] = (
+    "BASE",
+    "BIPARTITE",
+    "CIRCLE",
+    "CIRCUM",
+    "CYCLIC",
+    "DIGIT",
+    "DIOPHANTINE EQUATIONS",
+    "EULERIAN",
+    "EXCENTER",
+    "EXCIRCLE",
+    "FLOOR",
+    "GRAPH CYCLES",
+    "HAMILTONIAN",
+    "INCENTER",
+    "INCIRCLE",
+    "LATTICE",
+    "MIQUEL",
+    "ORTHOCENTER",
+    "PELL EQUATION",
+    "POINT",
+    "POLYNOMIAL ROOTS",
+    "POSETS",
+    "PRIME",
+    "RESIDUE",
+    "ROOTS",
+    "TRIANGLE",
+)
+
+
+def _layer_tuple(values) -> tuple[str, ...]:
+    return tuple(normalize_topic_tag_list(values))
+
+
+def _layer_fields_for_entry(  # noqa: PLR0911, PLR0913
+    *,
+    main_topic: str,
+    canonical_subtopic: str,
+    stored_technique: str,
+    normalization_status: str,
+    object_tags=None,
+    technique_tags=None,
+    lemma_theorem_tags=None,
+    proof_roles=None,
+) -> dict[str, tuple[str, ...]]:
+    explicit_layers = {
+        "object_tags": _layer_tuple(object_tags),
+        "technique_tags": _layer_tuple(technique_tags),
+        "lemma_theorem_tags": _layer_tuple(lemma_theorem_tags),
+        "proof_roles": _layer_tuple(proof_roles),
+    }
+    if any(explicit_layers.values()):
+        return explicit_layers
+    if normalization_status in NO_LAYER_NORMALIZATION_STATUSES:
+        return explicit_layers
+
+    stored = normalize_topic_tag(stored_technique)
+    if not stored:
+        return explicit_layers
+    if normalization_status == NORMALIZATION_STATUS_METHOD:
+        explicit_layers["proof_roles"] = (stored,)
+        return explicit_layers
+    if any(pattern in stored for pattern in LEMMA_THEOREM_LAYER_PATTERNS):
+        explicit_layers["lemma_theorem_tags"] = (stored,)
+        return explicit_layers
+    if any(pattern in stored for pattern in OBJECT_LAYER_PATTERNS):
+        explicit_layers["object_tags"] = (stored,)
+        return explicit_layers
+    if canonical_subtopic:
+        explicit_layers["technique_tags"] = (stored,)
+    return explicit_layers
 
 TAG_NORMALIZATION_UPDATE_FIELDS = [
     "technique",
@@ -93,6 +215,7 @@ TAG_NORMALIZATION_UPDATE_FIELDS = [
     "raw_tag",
     "normalization_status",
     "normalization_confidence",
+    *TOPIC_TAG_LAYER_FIELDS,
 ]
 
 
@@ -5014,21 +5137,37 @@ def _taxonomy_key(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", "", normalized)
 
 
-def _taxonomy_entry(
+def _taxonomy_entry(  # noqa: PLR0913
     main_topic: str,
     canonical_subtopic: str,
     technique: str,
     *,
     stored_technique: str | None = None,
     normalization: tuple[str, str] = (NORMALIZATION_STATUS_ALIAS, NORMALIZATION_CONFIDENCE_HIGH),
+    object_tags=None,
+    technique_tags=None,
+    lemma_theorem_tags=None,
+    proof_roles=None,
 ) -> SubtopicTaxonomyEntry:
+    stored = normalize_topic_tag(stored_technique or technique)
+    layer_fields = _layer_fields_for_entry(
+        main_topic=main_topic,
+        canonical_subtopic=canonical_subtopic,
+        stored_technique=stored,
+        normalization_status=normalization[0],
+        object_tags=object_tags,
+        technique_tags=technique_tags,
+        lemma_theorem_tags=lemma_theorem_tags,
+        proof_roles=proof_roles,
+    )
     return SubtopicTaxonomyEntry(
         main_topic=main_topic,
         canonical_subtopic=canonical_subtopic,
         technique=technique,
-        stored_technique=normalize_topic_tag(stored_technique or technique),
+        stored_technique=stored,
         normalization_status=normalization[0],
         normalization_confidence=normalization[1],
+        **layer_fields,
     )
 
 
@@ -6297,6 +6436,10 @@ def _classified_topic_tag_fields_for_entry(
         "main_topic": entry.main_topic,
         "normalization_confidence": entry.normalization_confidence,
         "normalization_status": entry.normalization_status,
+        "object_tags": list(entry.object_tags),
+        "technique_tags": list(entry.technique_tags),
+        "lemma_theorem_tags": list(entry.lemma_theorem_tags),
+        "proof_roles": list(entry.proof_roles),
         "raw_tag": raw_tag,
         "technique": entry.stored_technique,
     }
@@ -6321,6 +6464,10 @@ def classified_topic_tag_entries(
             "main_topic": "",
             "normalization_confidence": NORMALIZATION_CONFIDENCE_LOW,
             "normalization_status": NORMALIZATION_STATUS_NEEDS_REVIEW,
+            "object_tags": [],
+            "technique_tags": [normalized_technique] if normalized_technique else [],
+            "lemma_theorem_tags": [],
+            "proof_roles": [],
             "raw_tag": source_raw_tag,
             "technique": normalized_technique,
         }]
@@ -6377,6 +6524,7 @@ def _problem_tag_rows() -> Iterable[ProblemTopicTechnique]:
             "raw_tag",
             "normalization_status",
             "normalization_confidence",
+            *TOPIC_TAG_LAYER_FIELDS,
             "record__contest_year_problem",
             "record__contest",
             "record__year",
@@ -6400,6 +6548,7 @@ def _statement_tag_rows() -> Iterable[StatementTopicTechnique]:
             "raw_tag",
             "normalization_status",
             "normalization_confidence",
+            *TOPIC_TAG_LAYER_FIELDS,
             "statement__contest_year_problem",
             "statement__contest_name",
             "statement__contest_year",
@@ -6422,6 +6571,7 @@ def _problem_cleanup_tag_rows() -> Iterable[ProblemTopicTechnique]:
             "raw_tag",
             "normalization_status",
             "normalization_confidence",
+            *TOPIC_TAG_LAYER_FIELDS,
         )
         .order_by("record_id", "id")
         .iterator(chunk_size=SUBTOPIC_CLEANUP_BATCH_SIZE)
@@ -6440,10 +6590,38 @@ def _statement_cleanup_tag_rows() -> Iterable[StatementTopicTechnique]:
             "raw_tag",
             "normalization_status",
             "normalization_confidence",
+            *TOPIC_TAG_LAYER_FIELDS,
         )
         .order_by("statement_id", "id")
         .iterator(chunk_size=SUBTOPIC_CLEANUP_BATCH_SIZE)
     )
+
+
+def _entry_layer_values(entry: SubtopicTaxonomyEntry, field_name: str) -> list[str]:
+    return list(getattr(entry, field_name, ()) or [])
+
+
+def _merge_tag_layer_values(rows: list, entry: SubtopicTaxonomyEntry, field_name: str) -> list[str]:
+    values: list[str] = []
+    for row in rows:
+        values.extend(getattr(row, field_name, []) or [])
+    values.extend(_entry_layer_values(entry, field_name))
+    return normalize_topic_tag_list(values)
+
+
+def _entry_layer_summary(entry: SubtopicTaxonomyEntry) -> str:
+    labels = (
+        ("Object", entry.object_tags),
+        ("Technique", entry.technique_tags),
+        ("Lemma/Theorem", entry.lemma_theorem_tags),
+        ("Proof role", entry.proof_roles),
+    )
+    parts = [
+        f"{label}: {', '.join(values)}"
+        for label, values in labels
+        if values
+    ]
+    return "; ".join(parts)
 
 
 def _tag_needs_update(tag, entry: SubtopicTaxonomyEntry) -> bool:
@@ -6455,6 +6633,10 @@ def _tag_needs_update(tag, entry: SubtopicTaxonomyEntry) -> bool:
         or not tag.raw_tag
         or tag.normalization_status != entry.normalization_status
         or tag.normalization_confidence != entry.normalization_confidence
+        or any(
+            getattr(tag, field_name, []) != _merge_tag_layer_values([tag], entry, field_name)
+            for field_name in TOPIC_TAG_LAYER_FIELDS
+        )
     )
 
 
@@ -6471,6 +6653,11 @@ def _preview_change(kind: str, tag, entry: SubtopicTaxonomyEntry, parent_label: 
         "parent_label": parent_label,
         "raw_tag": tag.raw_tag or tag.technique,
         "technique": entry.stored_technique,
+        "layers": _entry_layer_summary(entry),
+        "object_tags": ", ".join(entry.object_tags),
+        "technique_tags": ", ".join(entry.technique_tags),
+        "lemma_theorem_tags": ", ".join(entry.lemma_theorem_tags),
+        "proof_roles": ", ".join(entry.proof_roles),
     }
 
 
@@ -6648,6 +6835,10 @@ def _prepare_parent_group_update(rows: list, entry: SubtopicTaxonomyEntry) -> tu
         merged_domains.extend(row.domains or [])
     merged_domains = domains_dedup_preserve_order(merged_domains)
     merged_raw_tag = _merge_tag_raw_values(rows)
+    merged_layer_values = {
+        field_name: _merge_tag_layer_values(rows, entry, field_name)
+        for field_name in TOPIC_TAG_LAYER_FIELDS
+    }
 
     changed = (
         keeper.technique != entry.stored_technique
@@ -6657,6 +6848,7 @@ def _prepare_parent_group_update(rows: list, entry: SubtopicTaxonomyEntry) -> tu
         or keeper.raw_tag != merged_raw_tag
         or keeper.normalization_status != entry.normalization_status
         or keeper.normalization_confidence != entry.normalization_confidence
+        or any(getattr(keeper, field_name, []) != value for field_name, value in merged_layer_values.items())
     )
     if changed:
         keeper.technique = entry.stored_technique
@@ -6666,6 +6858,8 @@ def _prepare_parent_group_update(rows: list, entry: SubtopicTaxonomyEntry) -> tu
         keeper.raw_tag = merged_raw_tag
         keeper.normalization_status = entry.normalization_status
         keeper.normalization_confidence = entry.normalization_confidence
+        for field_name, value in merged_layer_values.items():
+            setattr(keeper, field_name, value)
 
     duplicate_ids = [row.id for row in rows if row.id != keeper.id]
     return (keeper if changed else None), duplicate_ids
@@ -6703,7 +6897,19 @@ def _merged_domains_for_entry(rows: list, entry: SubtopicTaxonomyEntry) -> list[
     return domains_dedup_preserve_order(merged_domains)
 
 
-def _tag_row_changed(row, entry: SubtopicTaxonomyEntry, *, domains: list[str], raw_tag: str) -> bool:
+def _tag_row_changed(
+    row,
+    entry: SubtopicTaxonomyEntry,
+    *,
+    domains: list[str],
+    raw_tag: str,
+    merge_rows: list | None = None,
+) -> bool:
+    layer_rows = merge_rows or [row]
+    merged_layer_values = {
+        field_name: _merge_tag_layer_values(layer_rows, entry, field_name)
+        for field_name in TOPIC_TAG_LAYER_FIELDS
+    }
     return (
         row.technique != entry.stored_technique
         or row.main_topic != entry.main_topic
@@ -6712,10 +6918,18 @@ def _tag_row_changed(row, entry: SubtopicTaxonomyEntry, *, domains: list[str], r
         or row.raw_tag != raw_tag
         or row.normalization_status != entry.normalization_status
         or row.normalization_confidence != entry.normalization_confidence
+        or any(getattr(row, field_name, []) != value for field_name, value in merged_layer_values.items())
     )
 
 
-def _assign_tag_row_fields(row, entry: SubtopicTaxonomyEntry, *, domains: list[str], raw_tag: str) -> None:
+def _assign_tag_row_fields(
+    row,
+    entry: SubtopicTaxonomyEntry,
+    *,
+    domains: list[str],
+    raw_tag: str,
+    merge_rows: list | None = None,
+) -> None:
     row.technique = entry.stored_technique
     row.main_topic = entry.main_topic
     row.canonical_subtopic = entry.canonical_subtopic
@@ -6723,6 +6937,9 @@ def _assign_tag_row_fields(row, entry: SubtopicTaxonomyEntry, *, domains: list[s
     row.raw_tag = raw_tag
     row.normalization_status = entry.normalization_status
     row.normalization_confidence = entry.normalization_confidence
+    layer_rows = merge_rows or [row]
+    for field_name in TOPIC_TAG_LAYER_FIELDS:
+        setattr(row, field_name, _merge_tag_layer_values(layer_rows, entry, field_name))
 
 
 def _new_tag_row(tag_model, parent_field_name: str, parent_id: int, entry: SubtopicTaxonomyEntry, rows: list):
@@ -6737,6 +6954,10 @@ def _new_tag_row(tag_model, parent_field_name: str, parent_id: int, entry: Subto
         raw_tag=raw_tag,
         normalization_status=entry.normalization_status,
         normalization_confidence=entry.normalization_confidence,
+        object_tags=_merge_tag_layer_values(rows, entry, "object_tags"),
+        technique_tags=_merge_tag_layer_values(rows, entry, "technique_tags"),
+        lemma_theorem_tags=_merge_tag_layer_values(rows, entry, "lemma_theorem_tags"),
+        proof_roles=_merge_tag_layer_values(rows, entry, "proof_roles"),
     )
 
 
@@ -6784,8 +7005,8 @@ def _apply_tag_cleanup(
             continue
 
         keeper_ids.add(keeper.id)
-        if _tag_row_changed(keeper, entry, domains=domains, raw_tag=raw_tag):
-            _assign_tag_row_fields(keeper, entry, domains=domains, raw_tag=raw_tag)
+        if _tag_row_changed(keeper, entry, domains=domains, raw_tag=raw_tag, merge_rows=merge_rows):
+            _assign_tag_row_fields(keeper, entry, domains=domains, raw_tag=raw_tag, merge_rows=merge_rows)
             updated_rows.append(keeper)
 
     duplicate_ids = sorted(classified_source_ids - keeper_ids)
@@ -6831,7 +7052,10 @@ def _bulk_update_tag_rows_with_postgres_values(model, rows: list) -> None:
             placeholders = []
             params = []
             for row in row_batch:
-                placeholders.append("(%s, %s, %s, %s, %s::jsonb, %s, %s, %s)")
+                placeholders.append(
+                    "(%s, %s, %s, %s, %s::jsonb, %s, %s, %s, "
+                    "%s::jsonb, %s::jsonb, %s::jsonb, %s::jsonb)",
+                )
                 params.extend([
                     row.id,
                     row.technique,
@@ -6841,6 +7065,10 @@ def _bulk_update_tag_rows_with_postgres_values(model, rows: list) -> None:
                     row.raw_tag,
                     row.normalization_status,
                     row.normalization_confidence,
+                    json.dumps(row.object_tags or []),
+                    json.dumps(row.technique_tags or []),
+                    json.dumps(row.lemma_theorem_tags or []),
+                    json.dumps(row.proof_roles or []),
                 ])
             query = f"""
             UPDATE {table_name} AS target
@@ -6851,7 +7079,11 @@ def _bulk_update_tag_rows_with_postgres_values(model, rows: list) -> None:
                 domains = data.domains,
                 raw_tag = data.raw_tag,
                 normalization_status = data.normalization_status,
-                normalization_confidence = data.normalization_confidence
+                normalization_confidence = data.normalization_confidence,
+                object_tags = data.object_tags,
+                technique_tags = data.technique_tags,
+                lemma_theorem_tags = data.lemma_theorem_tags,
+                proof_roles = data.proof_roles
             FROM (VALUES {", ".join(placeholders)}) AS data(
                 id,
                 technique,
@@ -6860,7 +7092,11 @@ def _bulk_update_tag_rows_with_postgres_values(model, rows: list) -> None:
                 domains,
                 raw_tag,
                 normalization_status,
-                normalization_confidence
+                normalization_confidence,
+                object_tags,
+                technique_tags,
+                lemma_theorem_tags,
+                proof_roles
             )
             WHERE target.id = data.id
             """

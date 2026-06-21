@@ -10,6 +10,7 @@ from django.http import HttpResponse
 from django.urls import reverse
 
 from inspinia.pages.completion_record_fields import is_completion_status_solved
+from inspinia.pages.models import TOPIC_TAG_LAYER_FIELDS
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemTopicTechnique
 from inspinia.pages.models import StatementTopicTechnique
@@ -37,8 +38,20 @@ GAP_CSV_FIELDNAMES = [
 ]
 GAP_KIND_SUBTOPICS = "subtopics"
 GAP_KIND_TECHNIQUES = "techniques"
+GAP_KIND_OBJECTS = "objects"
+GAP_KIND_METHODS = "methods"
+GAP_KIND_LEMMAS = "lemmas"
+GAP_KIND_PROOF_ROLES = "proof_roles"
 GAP_KIND_ALL = "all"
-GAP_KIND_CHOICES = {GAP_KIND_SUBTOPICS, GAP_KIND_TECHNIQUES, GAP_KIND_ALL}
+GAP_KIND_CHOICES = {
+    GAP_KIND_SUBTOPICS,
+    GAP_KIND_TECHNIQUES,
+    GAP_KIND_OBJECTS,
+    GAP_KIND_METHODS,
+    GAP_KIND_LEMMAS,
+    GAP_KIND_PROOF_ROLES,
+    GAP_KIND_ALL,
+}
 GAP_DATATABLE_DEFAULT_SORT_FIELD = "completion_percent"
 GAP_DATATABLE_SORT_FIELDS = {
     "canonical_subtopic",
@@ -356,6 +369,34 @@ def _build_progress_payload(
         selected_user=selected_user,
         can_select_user=can_select_user,
     )
+    object_rows = _layer_progress_rows(
+        tagged_rows,
+        layer_key="object_tags",
+        type_label="Object",
+        selected_user=selected_user,
+        can_select_user=can_select_user,
+    )
+    method_rows = _layer_progress_rows(
+        tagged_rows,
+        layer_key="technique_tags",
+        type_label="Method",
+        selected_user=selected_user,
+        can_select_user=can_select_user,
+    )
+    lemma_rows = _layer_progress_rows(
+        tagged_rows,
+        layer_key="lemma_theorem_tags",
+        type_label="Lemma/Theorem",
+        selected_user=selected_user,
+        can_select_user=can_select_user,
+    )
+    proof_role_rows = _layer_progress_rows(
+        tagged_rows,
+        layer_key="proof_roles",
+        type_label="Proof role",
+        selected_user=selected_user,
+        can_select_user=can_select_user,
+    )
     summary = _summary_from_tagged_rows(tagged_rows)
     stats = {
         "completion_percent": summary["completion_percent"],
@@ -376,12 +417,16 @@ def _build_progress_payload(
             has_tagged_statements=bool(summary["total"]),
         ),
         "gap_rows": gap_rows,
+        "lemma_rows": lemma_rows,
         "main_topic_rows": _main_topic_rows(
             tagged_rows,
             selected_user=selected_user,
             can_select_user=can_select_user,
         ),
         "next_gaps": next_gaps,
+        "method_rows": method_rows,
+        "object_rows": object_rows,
+        "proof_role_rows": proof_role_rows,
         "stats": stats,
         "subtopic_rows": subtopic_rows,
         "technique_rows": technique_rows,
@@ -409,6 +454,33 @@ def _technique_progress_rows(tagged_rows: list[dict[str, object]]) -> list[dict[
             continue
         rows.append(row)
     return rows
+
+
+def _layer_progress_rows(
+    tagged_rows: list[dict[str, object]],
+    *,
+    layer_key: str,
+    type_label: str,
+    selected_user: User,
+    can_select_user: bool,
+) -> list[dict[str, object]]:
+    layer_rows: list[dict[str, object]] = []
+    for row in tagged_rows:
+        status = str(row.get("normalization_status") or "").casefold()
+        if status in TECHNIQUE_SUPPRESSED_NORMALIZATION_STATUSES:
+            continue
+        for layer_label in row.get(layer_key, []) or []:
+            label = str(layer_label or "").strip()
+            if not label:
+                continue
+            layer_rows.append({**row, "layer_label": label})
+    return _aggregate_progress_rows(
+        layer_rows,
+        label_key="layer_label",
+        type_label=type_label,
+        selected_user=selected_user,
+        can_select_user=can_select_user,
+    )
 
 
 def _base_context(
@@ -491,16 +563,28 @@ def _gap_canonical_subtopic(raw_canonical_subtopic: str) -> str:
     return str(raw_canonical_subtopic or "").strip()
 
 
-def _rows_for_gap_kind(
+def _rows_for_gap_kind(  # noqa: PLR0911, PLR0913
     *,
     gap_kind: str,
     subtopic_rows: list[dict[str, object]],
     technique_rows: list[dict[str, object]],
+    object_rows: list[dict[str, object]],
+    method_rows: list[dict[str, object]],
+    lemma_rows: list[dict[str, object]],
+    proof_role_rows: list[dict[str, object]],
 ) -> list[dict[str, object]]:
     visible_subtopic_rows = [dict(row, type="Subtopic") for row in subtopic_rows if row["remaining"]]
     visible_technique_rows = [dict(row, type="Technique") for row in technique_rows if row["remaining"]]
     if gap_kind == GAP_KIND_TECHNIQUES:
         return visible_technique_rows
+    if gap_kind == GAP_KIND_OBJECTS:
+        return [dict(row, type="Object") for row in object_rows if row["remaining"]]
+    if gap_kind == GAP_KIND_METHODS:
+        return [dict(row, type="Method") for row in method_rows if row["remaining"]]
+    if gap_kind == GAP_KIND_LEMMAS:
+        return [dict(row, type="Lemma/Theorem") for row in lemma_rows if row["remaining"]]
+    if gap_kind == GAP_KIND_PROOF_ROLES:
+        return [dict(row, type="Proof role") for row in proof_role_rows if row["remaining"]]
     if gap_kind == GAP_KIND_ALL:
         subtopic_labels = {str(row["label"]).casefold() for row in visible_subtopic_rows}
         non_duplicate_technique_rows = [
@@ -555,6 +639,10 @@ def _filtered_gap_rows(
         gap_kind=gap_kind,
         subtopic_rows=payload["subtopic_rows"],
         technique_rows=payload["technique_rows"],
+        object_rows=payload["object_rows"],
+        method_rows=payload["method_rows"],
+        lemma_rows=payload["lemma_rows"],
+        proof_role_rows=payload["proof_role_rows"],
     )
     gap_rows = _filter_gap_rows_by_topic(gap_rows, gap_topic=gap_topic)
     gap_rows = _filter_gap_rows_by_canonical_subtopic(
@@ -590,6 +678,10 @@ def _gap_kind_options(  # noqa: PLR0913
     options = [
         {"label": "Subtopics", "value": GAP_KIND_SUBTOPICS},
         {"label": "Technique gaps", "value": GAP_KIND_TECHNIQUES},
+        {"label": "Object gaps", "value": GAP_KIND_OBJECTS},
+        {"label": "Method gaps", "value": GAP_KIND_METHODS},
+        {"label": "Lemma/theorem gaps", "value": GAP_KIND_LEMMAS},
+        {"label": "Proof-role gaps", "value": GAP_KIND_PROOF_ROLES},
         {"label": "All", "value": GAP_KIND_ALL},
     ]
     return [
@@ -708,6 +800,10 @@ def _gap_result_summary(rows: list[dict[str, object]], *, gap_kind: str) -> str:
     noun = {
         GAP_KIND_SUBTOPICS: "subtopic gaps",
         GAP_KIND_TECHNIQUES: "technique gaps",
+        GAP_KIND_OBJECTS: "object gaps",
+        GAP_KIND_METHODS: "method gaps",
+        GAP_KIND_LEMMAS: "lemma/theorem gaps",
+        GAP_KIND_PROOF_ROLES: "proof-role gaps",
         GAP_KIND_ALL: "practice gaps",
     }[gap_kind]
     if not row_total:
@@ -719,6 +815,10 @@ def _gap_title(gap_kind: str) -> str:
     return {
         GAP_KIND_SUBTOPICS: "Subtopic practice gaps",
         GAP_KIND_TECHNIQUES: "Technique practice gaps",
+        GAP_KIND_OBJECTS: "Object practice gaps",
+        GAP_KIND_METHODS: "Method practice gaps",
+        GAP_KIND_LEMMAS: "Lemma/theorem practice gaps",
+        GAP_KIND_PROOF_ROLES: "Proof-role practice gaps",
         GAP_KIND_ALL: "All practice gaps",
     }[gap_kind]
 
@@ -727,6 +827,10 @@ def _gap_first_column_label(gap_kind: str) -> str:
     return {
         GAP_KIND_SUBTOPICS: "Canonical subtopic",
         GAP_KIND_TECHNIQUES: "Technique",
+        GAP_KIND_OBJECTS: "Object",
+        GAP_KIND_METHODS: "Method",
+        GAP_KIND_LEMMAS: "Lemma/theorem",
+        GAP_KIND_PROOF_ROLES: "Proof role",
         GAP_KIND_ALL: "Area",
     }[gap_kind]
 
@@ -905,6 +1009,10 @@ def _tagged_statement_rows(*, user: User) -> list[dict[str, object]]:
                     "canonical_subtopic": canonical_subtopic,
                     "main_topic": display_topic_label(main_topic) if main_topic else fallback_topic,
                     "normalization_status": str(tag.get("normalization_status") or "").strip(),
+                    "object_tags": list(tag.get("object_tags") or []),
+                    "technique_tags": list(tag.get("technique_tags") or []),
+                    "lemma_theorem_tags": list(tag.get("lemma_theorem_tags") or []),
+                    "proof_roles": list(tag.get("proof_roles") or []),
                     "statement_id": statement.id,
                     "subtopic": canonical_subtopic,
                     "technique": technique,
@@ -918,7 +1026,14 @@ def _statement_tags_by_statement_id(statement_ids: list[int]) -> dict[int, list[
     seen: set[tuple[int, str]] = set()
     for tag_row in (
         StatementTopicTechnique.objects.filter(statement_id__in=statement_ids)
-        .values("statement_id", "technique", "main_topic", "canonical_subtopic", "normalization_status")
+        .values(
+            "statement_id",
+            "technique",
+            "main_topic",
+            "canonical_subtopic",
+            "normalization_status",
+            *TOPIC_TAG_LAYER_FIELDS,
+        )
         .order_by("technique", "statement_id", "id")
     ):
         statement_id = int(tag_row["statement_id"])
@@ -938,7 +1053,14 @@ def _problem_tags_by_record_id(record_ids: list[int]) -> dict[int, list[dict[str
         return tags_by_record_id
     for tag_row in (
         ProblemTopicTechnique.objects.filter(record_id__in=record_ids)
-        .values("record_id", "technique", "main_topic", "canonical_subtopic", "normalization_status")
+        .values(
+            "record_id",
+            "technique",
+            "main_topic",
+            "canonical_subtopic",
+            "normalization_status",
+            *TOPIC_TAG_LAYER_FIELDS,
+        )
         .order_by("technique", "record_id", "id")
     ):
         record_id = int(tag_row["record_id"])
