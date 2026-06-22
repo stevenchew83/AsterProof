@@ -51,6 +51,7 @@ from inspinia.pages.models import PageViewEvent
 from inspinia.pages.models import ProblemSolveRecord
 from inspinia.pages.models import ProblemTopicTechnique
 from inspinia.pages.models import StatementTopicTechnique
+from inspinia.pages.models import TechniqueProgressFact
 from inspinia.pages.models import UserProblemCompletion
 from inspinia.pages.models import UserProblemDifficultyRating
 from inspinia.pages.problem_import import ProblemImportValidationError
@@ -7015,6 +7016,8 @@ def test_completion_quick_update_filters_by_contest_year_and_problem_text(client
     assert response.context["completion_quick_update_filters"] == {
         "contest": "USAMO",
         "core_ideas": "",
+        "layer_kind": "",
+        "layer_tag": "",
         "mohs_max": "",
         "mohs_min": "",
         "problem": "1",
@@ -7223,6 +7226,117 @@ def test_completion_quick_update_filters_by_subtopics(client):
     assert 'name="subtopics"' in response_html
     assert 'value="Valuations"' in response_html
     assert "Circle geometry" not in response_html
+
+
+def test_completion_quick_update_filters_by_exact_layer_tag(client):
+    user = UserFactory()
+    client.force_login(user)
+    matching_statement = _create_quick_completion_statement(problem_code="P1", problem_number=1)
+    same_subtopic_statement = _create_quick_completion_statement(problem_code="P2", problem_number=2)
+    other_statement = _create_quick_completion_statement(problem_code="P3", problem_number=3)
+    for statement, label in (
+        (matching_statement, "POWER OF A POINT"),
+        (same_subtopic_statement, "RADICAL AXIS"),
+        (other_statement, "POWER OF A POINT"),
+    ):
+        TechniqueProgressFact.objects.create(
+            statement=statement,
+            linked_problem=statement.linked_problem,
+            layer=TechniqueProgressFact.Layer.LEMMA
+            if statement != other_statement
+            else TechniqueProgressFact.Layer.METHOD,
+            label=label,
+            canonical_subtopic="Circle geometry",
+        )
+
+    response = client.get(
+        reverse("pages:completion_quick_update"),
+        {
+            "layer_kind": "lemmas",
+            "layer_tag": "power of a point",
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["completion_quick_update_filters"]["layer_kind"] == "lemmas"
+    assert response.context["completion_quick_update_filters"]["layer_tag"] == "power of a point"
+    assert response.context["completion_quick_update_matching_total_is_exact"] is False
+    rows = response.context["completion_quick_update_rows"]
+    assert [row["statement_uuid"] for row in rows] == [str(matching_statement.statement_uuid)]
+    response_html = response.content.decode("utf-8")
+    assert "Lemma/Theorem: power of a point" in response_html
+    assert 'name="layer_kind"' in response_html
+    assert 'name="layer_tag"' in response_html
+    assert "USAMO 2026 P2" not in response_html
+    assert "USAMO 2026 P3" not in response_html
+
+
+def test_completion_quick_update_ignores_invalid_layer_filter(client):
+    user = UserFactory()
+    client.force_login(user)
+    statement = _create_quick_completion_statement(problem_code="P1", problem_number=1)
+    TechniqueProgressFact.objects.create(
+        statement=statement,
+        linked_problem=statement.linked_problem,
+        layer=TechniqueProgressFact.Layer.LEMMA,
+        label="POWER OF A POINT",
+    )
+
+    response = client.get(
+        reverse("pages:completion_quick_update"),
+        {
+            "layer_kind": "unknown",
+            "layer_tag": "POWER OF A POINT",
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["completion_quick_update_filters"]["layer_kind"] == ""
+    assert response.context["completion_quick_update_filters"]["layer_tag"] == ""
+    assert response.context["completion_quick_update_matching_total_is_exact"] is True
+    rows = response.context["completion_quick_update_rows"]
+    assert [row["statement_uuid"] for row in rows] == [str(statement.statement_uuid)]
+
+
+def test_completion_quick_update_layer_filter_uses_capped_result_without_exact_count(client):
+    user = UserFactory()
+    client.force_login(user)
+    hidden_statement = None
+
+    for offset in range(501):
+        statement = _create_quick_completion_statement(
+            problem_code=f"P{offset + 1}",
+            problem_number=offset + 1,
+        )
+        TechniqueProgressFact.objects.create(
+            statement=statement,
+            linked_problem=statement.linked_problem,
+            layer=TechniqueProgressFact.Layer.LEMMA,
+            label="POWER OF A POINT",
+        )
+        if offset == 500:
+            hidden_statement = statement
+
+    assert hidden_statement is not None
+
+    response = client.get(
+        reverse("pages:completion_quick_update"),
+        {
+            "layer_kind": "lemmas",
+            "layer_tag": "POWER OF A POINT",
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    rows = response.context["completion_quick_update_rows"]
+    assert response.context["completion_quick_update_matching_total_is_exact"] is False
+    assert response.context["completion_quick_update_matching_total"] == 500
+    assert response.context["completion_quick_update_visible_total"] == 500
+    assert response.context["completion_quick_update_is_capped"] is True
+    assert len(rows) == 500
+    assert str(hidden_statement.statement_uuid) not in {row["statement_uuid"] for row in rows}
+    response_html = response.content.decode("utf-8")
+    assert "Showing first 500 matching rows" in response_html
 
 
 def test_completion_quick_update_technique_badges_toggle_matching_filter(client):
@@ -12862,10 +12976,10 @@ def test_technique_progress_dashboard_exposes_practice_links(client):
     technique_row = response.context["technique_progress_technique_rows"][0]
     subtopic_row = response.context["technique_progress_subtopic_rows"][0]
     assert technique_row["practice_url"] == (
-        f"{quick_update_url}?target_user_id={selected_user.pk}&subtopics=ANGLE+CHASE"
+        f"{quick_update_url}?target_user_id={selected_user.pk}&layer_kind=techniques&layer_tag=ANGLE+CHASE"
     )
     assert subtopic_row["practice_url"] == (
-        f"{quick_update_url}?target_user_id={selected_user.pk}&subtopics=Circle+geometry"
+        f"{quick_update_url}?target_user_id={selected_user.pk}&layer_kind=subtopics&layer_tag=Circle+geometry"
     )
     assert response.context["technique_progress_next_gaps"][0]["practice_url"] == subtopic_row["practice_url"]
     assert response.context["technique_progress_all_gaps_url"] == (
@@ -12873,8 +12987,10 @@ def test_technique_progress_dashboard_exposes_practice_links(client):
     )
     response_html = response.content.decode("utf-8")
     assert "Practice remaining" in response_html
-    assert "subtopics=ANGLE+CHASE" in response_html
-    assert "subtopics=Circle+geometry" in response_html
+    assert "layer_kind=techniques" in response_html
+    assert "layer_tag=ANGLE+CHASE" in response_html
+    assert "layer_kind=subtopics" in response_html
+    assert "layer_tag=Circle+geometry" in response_html
 
 
 def test_technique_progress_dashboard_groups_subtopics_by_main_topic(client):
@@ -13272,7 +13388,8 @@ def test_technique_progress_gaps_page_preserves_admin_selected_user(client):
         if row["label"] == "Circle geometry"
     )
     assert subtopic_row["practice_url"] == (
-        f"{reverse('pages:completion_quick_update')}?target_user_id={selected_user.pk}&subtopics=Circle+geometry"
+        f"{reverse('pages:completion_quick_update')}"
+        f"?target_user_id={selected_user.pk}&layer_kind=subtopics&layer_tag=Circle+geometry"
     )
     response_html = response.content.decode("utf-8")
     assert "target-progress@example.com" in response_html
@@ -14732,7 +14849,7 @@ def test_technique_progress_gaps_export_csv_uses_url_filters_and_ignores_datatab
             "Coverage": "0%",
             "Practice URL": (
                 f"{reverse('pages:completion_quick_update')}"
-                f"?target_user_id={selected_user.pk}&subtopics=Algebra+gap"
+                f"?target_user_id={selected_user.pk}&layer_kind=subtopics&layer_tag=Algebra+gap"
             ),
         },
     ]
@@ -15239,7 +15356,8 @@ def test_technique_progress_topic_detail_preserves_admin_selected_user(client):
         f"{reverse('pages:technique_dashboard')}?user={selected_user.pk}"
     )
     assert response.context["technique_progress_topic_subtopic_rows"][0]["practice_url"] == (
-        f"{reverse('pages:completion_quick_update')}?target_user_id={selected_user.pk}&subtopics=Circle+geometry"
+        f"{reverse('pages:completion_quick_update')}"
+        f"?target_user_id={selected_user.pk}&layer_kind=subtopics&layer_tag=Circle+geometry"
     )
     response_html = response.content.decode("utf-8")
     assert "selected-topic@example.com" in response_html

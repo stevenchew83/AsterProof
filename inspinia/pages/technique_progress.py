@@ -54,6 +54,14 @@ GAP_KIND_CHOICES = {
     GAP_KIND_PROOF_ROLES,
     GAP_KIND_ALL,
 }
+GAP_KIND_BY_TYPE_LABEL = {
+    "Lemma/Theorem": GAP_KIND_LEMMAS,
+    "Method": GAP_KIND_METHODS,
+    "Object": GAP_KIND_OBJECTS,
+    "Proof role": GAP_KIND_PROOF_ROLES,
+    "Subtopic": GAP_KIND_SUBTOPICS,
+    "Technique": GAP_KIND_TECHNIQUES,
+}
 GAP_DATATABLE_DEFAULT_SORT_FIELD = "completion_percent"
 GAP_DATATABLE_SORT_FIELDS = {
     "canonical_subtopic",
@@ -1408,6 +1416,7 @@ def _aggregate_progress_rows(
                 "object_tags": sorted(bucket["object_tags"], key=str.casefold),
                 "practice_url": _practice_url(
                     label,
+                    layer_kind=GAP_KIND_BY_TYPE_LABEL.get(type_label, GAP_KIND_TECHNIQUES),
                     selected_user=selected_user,
                     can_select_user=can_select_user,
                 ),
@@ -1590,11 +1599,18 @@ def _page_url(
     return f"{base_url}?{urlencode({'user': str(selected_user.pk)})}"
 
 
-def _practice_url(label: str, *, selected_user: User, can_select_user: bool) -> str:
+def _practice_url(
+    label: str,
+    *,
+    layer_kind: str,
+    selected_user: User,
+    can_select_user: bool,
+) -> str:
     query: dict[str, str] = {}
     if can_select_user:
         query["target_user_id"] = str(selected_user.pk)
-    query["subtopics"] = label
+    query["layer_kind"] = layer_kind
+    query["layer_tag"] = label
     return f"{reverse('pages:completion_quick_update')}?{urlencode(query)}"
 
 
