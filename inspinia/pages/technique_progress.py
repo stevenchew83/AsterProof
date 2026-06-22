@@ -2144,3 +2144,9 @@ def _percent(numerator: int, denominator: int) -> int:
     if not denominator:
         return 0
     return round((numerator / denominator) * 100)
+
+
+def _average_mohs(values: list[int]) -> float | None:
+    if not values:
+        return None
+    return round(sum(values) / len(values), 1)
