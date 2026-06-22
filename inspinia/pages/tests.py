@@ -15861,6 +15861,73 @@ def test_technique_progress_topic_detail_lists_only_selected_topic_subtopics(cli
     assert "Inequalities and optimization" not in response_html
 
 
+def test_technique_progress_topic_detail_averages_mohs_for_solved_subtopic_rows(client):
+    user = UserFactory()
+    client.force_login(user)
+    canonical_subtopic = "Circle geometry"
+    expected_solved_avg_mohs = 6
+    solved_low = _create_technique_progress_statement(
+        problem_code="G1",
+        problem_number=1,
+        topic="GEO",
+        mohs=4,
+        statement_tags=[
+            {
+                "technique": "ANGLE CHASE",
+                "domains": ["GEO"],
+                "main_topic": "GEO",
+                "canonical_subtopic": canonical_subtopic,
+            },
+        ],
+    )
+    solved_high = _create_technique_progress_statement(
+        problem_code="G2",
+        problem_number=2,
+        topic="GEO",
+        mohs=8,
+        statement_tags=[
+            {
+                "technique": "TANGENCY",
+                "domains": ["GEO"],
+                "main_topic": "GEO",
+                "canonical_subtopic": canonical_subtopic,
+            },
+        ],
+    )
+    _create_technique_progress_statement(
+        problem_code="G3",
+        problem_number=3,
+        topic="GEO",
+        mohs=20,
+        statement_tags=[
+            {
+                "technique": "SPIRAL SIMILARITY",
+                "domains": ["GEO"],
+                "main_topic": "GEO",
+                "canonical_subtopic": canonical_subtopic,
+            },
+        ],
+    )
+    for statement in [solved_low, solved_high]:
+        UserProblemCompletion.objects.create(
+            user=user,
+            statement=statement,
+            status=UserProblemCompletion.Status.SOLVED,
+        )
+
+    response = client.get(
+        reverse("pages:technique_progress_topic_detail", kwargs={"topic_slug": "geometry"}),
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    row = response.context["technique_progress_topic_subtopic_rows"][0]
+    assert row["solved_avg_mohs"] == expected_solved_avg_mohs
+    response_html = response.content.decode("utf-8")
+    assert "<th scope=\"col\">Avg MOHS</th>" in response_html
+    assert "<span class=\"fw-semibold\">6.0</span>" in response_html
+    assert "20.0" not in response_html
+
+
 def test_technique_progress_topic_detail_shows_layer_gap_preview_and_explore_url(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     selected_user = UserFactory(email="layer-preview@example.com")

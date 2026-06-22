@@ -262,6 +262,7 @@ def _progress_fact_rows(
         for row in fact_rows
     }
     statement_ids = sorted(statement_problem_ids)
+    mohs_by_statement_id = _effective_mohs_by_statement_id(statement_ids)
     metadata_source_rows = [
         row
         for row in fact_rows
@@ -321,6 +322,7 @@ def _progress_fact_rows(
                 "layer": layer,
                 "main_topic": str(fact.get("main_topic") or (main_topic_labels[0] if main_topic_labels else "")),
                 "main_topic_labels": main_topic_labels,
+                "mohs": mohs_by_statement_id.get(statement_id),
                 "object_tags": sorted(layer_metadata.get("object_tags", set()), key=str.casefold),
                 "lemma_theorem_tags": sorted(layer_metadata.get("lemma_theorem_tags", set()), key=str.casefold),
                 "proof_roles": sorted(layer_metadata.get("proof_roles", set()), key=str.casefold),
@@ -332,6 +334,19 @@ def _progress_fact_rows(
             },
         )
     return rows
+
+
+def _effective_mohs_by_statement_id(statement_ids: list[int]) -> dict[int, int]:
+    mohs_by_statement_id = {}
+    for row in ContestProblemStatement.objects.filter(id__in=statement_ids).values(
+        "id",
+        "mohs",
+        "linked_problem__mohs",
+    ):
+        mohs = row["mohs"] if row["mohs"] is not None else row["linked_problem__mohs"]
+        if mohs is not None:
+            mohs_by_statement_id[int(row["id"])] = int(mohs)
+    return mohs_by_statement_id
 
 
 def _completion_by_catalog_statement_id(
@@ -1831,6 +1846,7 @@ def _aggregate_progress_rows(
                 "lemma_theorem_tags": set(),
                 "proof_roles": set(),
                 "search_terms": set(),
+                "solved_mohs_by_statement_id": {},
                 "solved_statement_ids": set(),
                 "statement_ids": set(),
                 "type": type_label,
@@ -1839,6 +1855,10 @@ def _aggregate_progress_rows(
         bucket["statement_ids"].add(tagged_row["statement_id"])
         if tagged_row["is_solved"]:
             bucket["solved_statement_ids"].add(tagged_row["statement_id"])
+            if tagged_row.get("mohs") is not None:
+                bucket["solved_mohs_by_statement_id"][int(tagged_row["statement_id"])] = int(
+                    tagged_row["mohs"],
+                )
         _add_progress_row_metadata(bucket=bucket, tagged_row=tagged_row)
 
     rows = []
@@ -1856,6 +1876,7 @@ def _aggregate_progress_rows(
             label=label,
             canonical_subtopics=canonical_subtopics,
         )
+        solved_mohs_values = list(bucket["solved_mohs_by_statement_id"].values())
         rows.append(
             {
                 "canonical_subtopic": canonical_subtopic,
@@ -1875,6 +1896,7 @@ def _aggregate_progress_rows(
                 "remaining": remaining,
                 "search_text": " ".join(sorted(bucket["search_terms"])),
                 "solved": solved,
+                "solved_avg_mohs": _average_mohs(solved_mohs_values),
                 "proof_roles": sorted(bucket["proof_roles"], key=str.casefold),
                 "technique_tags": sorted(bucket["technique_tags"], key=str.casefold),
                 "total": total,
@@ -2073,3 +2095,9 @@ def _percent(numerator: int, denominator: int) -> int:
     if not denominator:
         return 0
     return round((numerator / denominator) * 100)
+
+
+def _average_mohs(values: list[int]) -> float | None:
+    if not values:
+        return None
+    return round(sum(values) / len(values), 1)
