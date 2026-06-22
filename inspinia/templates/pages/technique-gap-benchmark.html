@@ -34,6 +34,18 @@
   </div>
   {% endif %}
 
+  {% if not benchmark_schema_ready %}
+  <div class="alert alert-warning mt-3" role="alert">
+    <h4 class="alert-heading">Benchmark database migration required</h4>
+    <p class="mb-2">Run the latest Django migrations before using the benchmark batch workflow.</p>
+    {% if benchmark_schema_status.missing %}
+    <div class="font-monospace fs-sm">
+      Missing schema: {{ benchmark_schema_status.missing|join:', ' }}
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
   <div class="row g-3 mt-0">
     <div class="col-12">
       <div class="card">
@@ -42,6 +54,7 @@
             <h4 class="header-title mb-0">Benchmark Coverage Dashboard</h4>
             <p class="text-muted fs-xs mb-0">Actionable benchmark coverage for the selected user's current practice gaps.</p>
           </div>
+          {% if benchmark_schema_ready %}
           <form method="post" class="m-0">
             {% csrf_token %}
             <input type="hidden" name="action" value="create_export_batch">
@@ -56,6 +69,7 @@
               <i class="ti ti-package-export me-1"></i>Create next batch
             </button>
           </form>
+          {% endif %}
         </div>
         <div class="card-body">
           <div class="row g-3">
@@ -193,6 +207,7 @@
     </div>
   </div>
 
+  {% if benchmark_schema_ready %}
   <div class="row g-3 mt-0">
     <div class="col-12">
       <form method="post" class="card">
@@ -514,6 +529,7 @@
       </div>
     </div>
   </div>
+  {% endif %}
 </div>
 
 {% endblock page_content %}
