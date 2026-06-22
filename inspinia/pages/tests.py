@@ -13406,6 +13406,93 @@ def test_technique_progress_gaps_page_calculates_coverage_by_canonical_subtopic(
     assert rows[0]["completion_percent"] == 75
 
 
+def test_technique_progress_gaps_page_shows_average_solved_mohs_for_gap(client):
+    user = UserFactory()
+    client.force_login(user)
+    canonical_subtopic = "Inequalities and optimization"
+    solved_statement = _create_technique_progress_statement(
+        problem_code="S1",
+        problem_number=1,
+        mohs=4,
+        statement_tags=[
+            {
+                "technique": "QUADRATIC ESTIMATE",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": canonical_subtopic,
+                "object_tags": ["QUADRATIC EXPRESSION"],
+            },
+        ],
+    )
+    linked_fallback_statement = _create_technique_progress_statement(
+        problem_code="S2",
+        problem_number=2,
+        mohs=8,
+        statement_tags=[
+            {
+                "technique": "QUADRATIC SMOOTHING",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": canonical_subtopic,
+                "object_tags": ["QUADRATIC EXPRESSION"],
+            },
+        ],
+    )
+    ContestProblemStatement.objects.filter(pk=linked_fallback_statement.pk).update(mohs=None)
+    _create_technique_progress_statement(
+        problem_code="S3",
+        problem_number=3,
+        mohs=30,
+        statement_tags=[
+            {
+                "technique": "UNSOLVED QUADRATIC",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": canonical_subtopic,
+                "object_tags": ["QUADRATIC EXPRESSION", "UNSOLVED ONLY"],
+            },
+        ],
+    )
+    for statement in [solved_statement, linked_fallback_statement]:
+        UserProblemCompletion.objects.create(
+            user=user,
+            statement=statement,
+            status=UserProblemCompletion.Status.SOLVED,
+        )
+
+    response = client.get(
+        reverse("pages:technique_progress_gaps"),
+        {"kind": "all", "topic": "algebra", "canonical_subtopic": canonical_subtopic},
+    )
+    rows = _technique_progress_gap_datatable_rows(
+        client,
+        {"kind": "all", "topic": "algebra", "canonical_subtopic": canonical_subtopic},
+    )
+    row_by_label = {str(row["label"]): row for row in rows}
+    csv_response = client.get(
+        reverse("pages:technique_progress_gaps"),
+        {
+            "kind": "all",
+            "topic": "algebra",
+            "canonical_subtopic": canonical_subtopic,
+            "export": "csv",
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert "Avg MOHS" in response.content.decode("utf-8")
+    assert row_by_label["QUADRATIC EXPRESSION"]["average_solved_mohs"] == 6.0
+    assert row_by_label["QUADRATIC EXPRESSION"]["average_solved_mohs_label"] == "6.0"
+    assert row_by_label["UNSOLVED ONLY"]["average_solved_mohs"] is None
+    assert row_by_label["UNSOLVED ONLY"]["average_solved_mohs_label"] == "-"
+    csv_rows = {
+        row["Area"]: row
+        for row in csv.DictReader(StringIO(csv_response.content.decode("utf-8")))
+    }
+    assert csv_rows["QUADRATIC EXPRESSION"]["Avg MOHS"] == "6.0"
+    assert csv_rows["UNSOLVED ONLY"]["Avg MOHS"] == "-"
+
+
 def test_technique_progress_gaps_page_links_canonical_subtopic_to_technique_drilldown(client):
     user = UserFactory()
     client.force_login(user)
@@ -15204,6 +15291,7 @@ def test_technique_progress_gaps_export_csv_uses_url_filters_and_ignores_datatab
             "Type": "Subtopic",
             "Topic": "Algebra",
             "Completed": "0 of 1",
+            "Avg MOHS": "-",
             "Remaining": "1",
             "Coverage": "0%",
             "Practice URL": (
