@@ -17,20 +17,8 @@
     padding: 1.25rem;
   }
 
-  .technique-progress-layer-cell {
-    min-width: 11rem;
-    max-width: 22rem;
-  }
-
-  .technique-progress-layer-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: .25rem;
-  }
-
-  .technique-progress-layer-tags .badge {
-    text-align: left;
-    white-space: normal;
+  .technique-progress-gap-preview {
+    max-width: 48rem;
   }
 </style>
 {% endblock extra_css %}
@@ -149,10 +137,6 @@
               <thead>
                 <tr>
                   <th scope="col">Canonical subtopic</th>
-                  <th scope="col">Object tag</th>
-                  <th scope="col">Technique tag</th>
-                  <th scope="col">Lemma/Theorem tag</th>
-                  <th scope="col">Proof role</th>
                   <th scope="col">Completed</th>
                   <th scope="col">Remaining</th>
                   <th scope="col">Coverage</th>
@@ -162,42 +146,19 @@
               <tbody>
                 {% for row in technique_progress_topic_subtopic_rows %}
                 <tr>
-                  <td class="fw-semibold">{{ row.canonical_subtopic }}</td>
-                  <td class="technique-progress-layer-cell">
-                    <div class="technique-progress-layer-tags">
-                      {% for tag in row.object_tags %}
-                      <span class="badge bg-info-subtle text-info">{{ tag }}</span>
-                      {% empty %}
-                      <span class="text-muted fs-xs">-</span>
+                  <td>
+                    <div class="fw-semibold">{{ row.canonical_subtopic }}</div>
+                    {% if row.layer_gap_preview %}
+                    <div class="d-flex flex-wrap align-items-center gap-1 mt-1 technique-progress-gap-preview">
+                      <span class="text-muted fs-xs">Top gaps:</span>
+                      {% for preview in row.layer_gap_preview %}
+                      <span class="badge bg-light text-dark border">{{ preview.label }} {{ preview.remaining }}</span>
                       {% endfor %}
+                      {% if row.layer_gap_preview_overflow %}
+                      <span class="badge bg-secondary-subtle text-secondary">+{{ row.layer_gap_preview_overflow }} more</span>
+                      {% endif %}
                     </div>
-                  </td>
-                  <td class="technique-progress-layer-cell">
-                    <div class="technique-progress-layer-tags">
-                      {% for tag in row.technique_tags %}
-                      <span class="badge bg-primary-subtle text-primary">{{ tag }}</span>
-                      {% empty %}
-                      <span class="text-muted fs-xs">-</span>
-                      {% endfor %}
-                    </div>
-                  </td>
-                  <td class="technique-progress-layer-cell">
-                    <div class="technique-progress-layer-tags">
-                      {% for tag in row.lemma_theorem_tags %}
-                      <span class="badge bg-success-subtle text-success">{{ tag }}</span>
-                      {% empty %}
-                      <span class="text-muted fs-xs">-</span>
-                      {% endfor %}
-                    </div>
-                  </td>
-                  <td class="technique-progress-layer-cell">
-                    <div class="technique-progress-layer-tags">
-                      {% for tag in row.proof_roles %}
-                      <span class="badge bg-warning-subtle text-warning">{{ tag }}</span>
-                      {% empty %}
-                      <span class="text-muted fs-xs">-</span>
-                      {% endfor %}
-                    </div>
+                    {% endif %}
                   </td>
                   <td>{{ row.solved }} of {{ row.total }}</td>
                   <td>
@@ -216,7 +177,7 @@
                     </div>
                   </td>
                   <td class="text-end">
-                    <a href="{{ row.practice_url }}" class="btn btn-sm btn-outline-primary">Practice</a>
+                    <a href="{{ row.drilldown_url }}" class="btn btn-sm btn-outline-primary">Explore gaps</a>
                   </td>
                 </tr>
                 {% endfor %}

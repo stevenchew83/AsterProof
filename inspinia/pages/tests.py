@@ -76,6 +76,7 @@ from inspinia.pages.subtopic_cleanup import taxonomy_entries_for_technique
 from inspinia.pages.subtopic_cleanup import taxonomy_entry_for_technique
 from inspinia.pages.topic_tags_parse import parse_topic_tags_cell
 from inspinia.pages.views import ADMIN_TABLE_LATEST_LIMIT
+from inspinia.pages.views import COMPLETION_QUICK_UPDATE_SEARCH_LIMIT
 from inspinia.problemsets.models import ProblemList
 from inspinia.problemsets.models import ProblemListItem
 from inspinia.solutions.models import ProblemSolution
@@ -6697,6 +6698,15 @@ def _create_quick_completion_statement(
     )
 
 
+def _sync_quick_completion_statement_facts(*statements: ContestProblemStatement) -> None:
+    from inspinia.pages.technique_progress_catalog import (
+        sync_technique_progress_facts_for_statement,
+    )
+
+    for statement in statements:
+        sync_technique_progress_facts_for_statement(statement.id)
+
+
 def test_problem_statement_difficulty_rating_accepts_boundary_values():
     user = UserFactory()
     low_statement = _create_quick_completion_statement(problem_code="P1", problem_number=1)
@@ -7016,8 +7026,6 @@ def test_completion_quick_update_filters_by_contest_year_and_problem_text(client
     assert response.context["completion_quick_update_filters"] == {
         "contest": "USAMO",
         "core_ideas": "",
-        "layer_kind": "",
-        "layer_tag": "",
         "mohs_max": "",
         "mohs_min": "",
         "problem": "1",
@@ -7228,26 +7236,104 @@ def test_completion_quick_update_filters_by_subtopics(client):
     assert "Circle geometry" not in response_html
 
 
-def test_completion_quick_update_filters_by_exact_layer_tag(client):
+def test_completion_quick_update_filters_by_exact_statement_layer_tag(client):
     user = UserFactory()
     client.force_login(user)
+    canonical_subtopic = "Inequalities and optimization"
     matching_statement = _create_quick_completion_statement(problem_code="P1", problem_number=1)
-    same_subtopic_statement = _create_quick_completion_statement(problem_code="P2", problem_number=2)
-    other_statement = _create_quick_completion_statement(problem_code="P3", problem_number=3)
-    for statement, label in (
-        (matching_statement, "POWER OF A POINT"),
-        (same_subtopic_statement, "RADICAL AXIS"),
-        (other_statement, "POWER OF A POINT"),
-    ):
-        TechniqueProgressFact.objects.create(
-            statement=statement,
-            linked_problem=statement.linked_problem,
-            layer=TechniqueProgressFact.Layer.LEMMA
-            if statement != other_statement
-            else TechniqueProgressFact.Layer.METHOD,
-            label=label,
-            canonical_subtopic="Circle geometry",
-        )
+    other_layer_statement = _create_quick_completion_statement(problem_code="P2", problem_number=2)
+    other_subtopic_statement = _create_quick_completion_statement(problem_code="P3", problem_number=3)
+    StatementTopicTechnique.objects.create(
+        statement=matching_statement,
+        technique="PRIMARY A",
+        domains=["ALG"],
+        main_topic="ALG",
+        canonical_subtopic=canonical_subtopic,
+        object_tags=["INEQUALITY EXPRESSION"],
+    )
+    StatementTopicTechnique.objects.create(
+        statement=other_layer_statement,
+        technique="PRIMARY B",
+        domains=["ALG"],
+        main_topic="ALG",
+        canonical_subtopic=canonical_subtopic,
+        object_tags=["SMOOTHING VARIABLE"],
+    )
+    StatementTopicTechnique.objects.create(
+        statement=other_subtopic_statement,
+        technique="PRIMARY C",
+        domains=["ALG"],
+        main_topic="ALG",
+        canonical_subtopic="Graph theory",
+        object_tags=["INEQUALITY EXPRESSION"],
+    )
+    _sync_quick_completion_statement_facts(
+        matching_statement,
+        other_layer_statement,
+        other_subtopic_statement,
+    )
+
+    response = client.get(
+        reverse("pages:completion_quick_update"),
+        {
+            "subtopics": canonical_subtopic,
+            "layer_kind": "objects",
+            "layer_tag": "inequality expression",
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["completion_quick_update_filters"]["subtopics"] == canonical_subtopic
+    assert response.context["completion_quick_update_filters"]["layer_kind"] == "objects"
+    assert response.context["completion_quick_update_filters"]["layer_tag"] == "inequality expression"
+    rows = response.context["completion_quick_update_rows"]
+    assert [row["statement_uuid"] for row in rows] == [str(matching_statement.statement_uuid)]
+    response_html = response.content.decode("utf-8")
+    assert 'name="layer_kind"' in response_html
+    assert 'value="objects"' in response_html
+    assert 'name="layer_tag"' in response_html
+    assert 'value="inequality expression"' in response_html
+    assert "Layer filter" in response_html
+    assert "inequality expression" in response_html
+    assert "SMOOTHING VARIABLE" not in response_html
+
+
+def test_completion_quick_update_filters_by_exact_lemma_layer_tag(client):
+    user = UserFactory()
+    client.force_login(user)
+    canonical_subtopic = "Circle geometry"
+    matching_statement = _create_quick_completion_statement(problem_code="P1", problem_number=1)
+    other_lemma_statement = _create_quick_completion_statement(problem_code="P2", problem_number=2)
+    other_layer_statement = _create_quick_completion_statement(problem_code="P3", problem_number=3)
+    StatementTopicTechnique.objects.create(
+        statement=matching_statement,
+        technique="POWER SETUP",
+        domains=["GEO"],
+        main_topic="GEO",
+        canonical_subtopic=canonical_subtopic,
+        lemma_theorem_tags=["POWER OF A POINT"],
+    )
+    StatementTopicTechnique.objects.create(
+        statement=other_lemma_statement,
+        technique="POWER SETUP",
+        domains=["GEO"],
+        main_topic="GEO",
+        canonical_subtopic=canonical_subtopic,
+        lemma_theorem_tags=["SIMSON LINE"],
+    )
+    StatementTopicTechnique.objects.create(
+        statement=other_layer_statement,
+        technique="POWER SETUP",
+        domains=["GEO"],
+        main_topic="GEO",
+        canonical_subtopic=canonical_subtopic,
+        technique_tags=["POWER OF A POINT"],
+    )
+    _sync_quick_completion_statement_facts(
+        matching_statement,
+        other_lemma_statement,
+        other_layer_statement,
+    )
 
     response = client.get(
         reverse("pages:completion_quick_update"),
@@ -7263,61 +7349,100 @@ def test_completion_quick_update_filters_by_exact_layer_tag(client):
     assert response.context["completion_quick_update_matching_total_is_exact"] is False
     rows = response.context["completion_quick_update_rows"]
     assert [row["statement_uuid"] for row in rows] == [str(matching_statement.statement_uuid)]
-    response_html = response.content.decode("utf-8")
-    assert "Lemma/Theorem: power of a point" in response_html
-    assert 'name="layer_kind"' in response_html
-    assert 'name="layer_tag"' in response_html
-    assert "USAMO 2026 P2" not in response_html
-    assert "USAMO 2026 P3" not in response_html
 
 
-def test_completion_quick_update_ignores_invalid_layer_filter(client):
+def test_completion_quick_update_layer_filter_uses_linked_problem_fallback_only_without_statement_tags(client):
     user = UserFactory()
     client.force_login(user)
-    statement = _create_quick_completion_statement(problem_code="P1", problem_number=1)
-    TechniqueProgressFact.objects.create(
-        statement=statement,
-        linked_problem=statement.linked_problem,
-        layer=TechniqueProgressFact.Layer.LEMMA,
-        label="POWER OF A POINT",
+    fallback_statement = _create_quick_completion_statement(problem_code="P1", problem_number=1)
+    statement_tagged_nonmatch = _create_quick_completion_statement(problem_code="P2", problem_number=2)
+    ProblemTopicTechnique.objects.create(
+        record=fallback_statement.linked_problem,
+        technique="FALLBACK PRIMARY",
+        domains=["ALG"],
+        main_topic="ALG",
+        canonical_subtopic="Inequalities and optimization",
+        object_tags=["FALLBACK OBJECT"],
     )
+    ProblemTopicTechnique.objects.create(
+        record=statement_tagged_nonmatch.linked_problem,
+        technique="LINKED PRIMARY",
+        domains=["ALG"],
+        main_topic="ALG",
+        canonical_subtopic="Inequalities and optimization",
+        object_tags=["FALLBACK OBJECT"],
+    )
+    StatementTopicTechnique.objects.create(
+        statement=statement_tagged_nonmatch,
+        technique="STATEMENT PRIMARY",
+        domains=["ALG"],
+        main_topic="ALG",
+        canonical_subtopic="Inequalities and optimization",
+        object_tags=["STATEMENT OBJECT"],
+    )
+    _sync_quick_completion_statement_facts(fallback_statement, statement_tagged_nonmatch)
 
     response = client.get(
+        reverse("pages:completion_quick_update"),
+        {
+            "layer_kind": "objects",
+            "layer_tag": "FALLBACK OBJECT",
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    rows = response.context["completion_quick_update_rows"]
+    assert [row["statement_uuid"] for row in rows] == [str(fallback_statement.statement_uuid)]
+    assert response.context["completion_quick_update_filters"]["layer_kind"] == "objects"
+    assert response.context["completion_quick_update_filters"]["layer_tag"] == "FALLBACK OBJECT"
+
+
+def test_completion_quick_update_invalid_or_blank_layer_filter_is_ignored(client):
+    user = UserFactory()
+    client.force_login(user)
+    _create_quick_completion_statement(problem_code="P1", problem_number=1)
+    _create_quick_completion_statement(problem_code="P2", problem_number=2)
+
+    invalid_response = client.get(
         reverse("pages:completion_quick_update"),
         {
             "layer_kind": "unknown",
             "layer_tag": "POWER OF A POINT",
         },
     )
+    blank_response = client.get(
+        reverse("pages:completion_quick_update"),
+        {
+            "layer_kind": "lemmas",
+            "layer_tag": "",
+        },
+    )
 
-    assert response.status_code == HTTPStatus.OK
-    assert response.context["completion_quick_update_filters"]["layer_kind"] == ""
-    assert response.context["completion_quick_update_filters"]["layer_tag"] == ""
-    assert response.context["completion_quick_update_matching_total_is_exact"] is True
-    rows = response.context["completion_quick_update_rows"]
-    assert [row["statement_uuid"] for row in rows] == [str(statement.statement_uuid)]
+    assert invalid_response.status_code == HTTPStatus.OK
+    assert blank_response.status_code == HTTPStatus.OK
+    assert "layer_kind" not in invalid_response.context["completion_quick_update_filters"]
+    assert "layer_tag" not in invalid_response.context["completion_quick_update_filters"]
+    assert "layer_kind" not in blank_response.context["completion_quick_update_filters"]
+    assert "layer_tag" not in blank_response.context["completion_quick_update_filters"]
+    assert len(invalid_response.context["completion_quick_update_rows"]) == 2
+    assert len(blank_response.context["completion_quick_update_rows"]) == 2
 
 
-def test_completion_quick_update_layer_filter_uses_capped_result_without_exact_count(client):
+def test_completion_quick_update_layer_filter_fetches_limit_plus_one_without_exact_count(client):
     user = UserFactory()
     client.force_login(user)
-    hidden_statement = None
-
-    for offset in range(501):
+    for index in range(COMPLETION_QUICK_UPDATE_SEARCH_LIMIT + 1):
         statement = _create_quick_completion_statement(
-            problem_code=f"P{offset + 1}",
-            problem_number=offset + 1,
+            problem_code=f"P{index + 1}",
+            problem_number=index + 1,
         )
         TechniqueProgressFact.objects.create(
             statement=statement,
             linked_problem=statement.linked_problem,
             layer=TechniqueProgressFact.Layer.LEMMA,
             label="POWER OF A POINT",
+            label_key="power of a point",
         )
-        if offset == 500:
-            hidden_statement = statement
-
-    assert hidden_statement is not None
 
     response = client.get(
         reverse("pages:completion_quick_update"),
@@ -7328,15 +7453,14 @@ def test_completion_quick_update_layer_filter_uses_capped_result_without_exact_c
     )
 
     assert response.status_code == HTTPStatus.OK
-    rows = response.context["completion_quick_update_rows"]
-    assert response.context["completion_quick_update_matching_total_is_exact"] is False
-    assert response.context["completion_quick_update_matching_total"] == 500
-    assert response.context["completion_quick_update_visible_total"] == 500
+    assert len(response.context["completion_quick_update_rows"]) == COMPLETION_QUICK_UPDATE_SEARCH_LIMIT
+    assert response.context["completion_quick_update_visible_total"] == COMPLETION_QUICK_UPDATE_SEARCH_LIMIT
+    assert response.context["completion_quick_update_matching_total"] == COMPLETION_QUICK_UPDATE_SEARCH_LIMIT
     assert response.context["completion_quick_update_is_capped"] is True
-    assert len(rows) == 500
-    assert str(hidden_statement.statement_uuid) not in {row["statement_uuid"] for row in rows}
-    response_html = response.content.decode("utf-8")
-    assert "Showing first 500 matching rows" in response_html
+    assert response.context["completion_quick_update_matching_total_is_exact"] is False
+    assert response.context["completion_quick_update_result_summary"] == (
+        f"Showing first {COMPLETION_QUICK_UPDATE_SEARCH_LIMIT} matching rows"
+    )
 
 
 def test_completion_quick_update_technique_badges_toggle_matching_filter(client):
@@ -12976,10 +13100,12 @@ def test_technique_progress_dashboard_exposes_practice_links(client):
     technique_row = response.context["technique_progress_technique_rows"][0]
     subtopic_row = response.context["technique_progress_subtopic_rows"][0]
     assert technique_row["practice_url"] == (
-        f"{quick_update_url}?target_user_id={selected_user.pk}&layer_kind=techniques&layer_tag=ANGLE+CHASE"
+        f"{quick_update_url}?target_user_id={selected_user.pk}"
+        "&layer_kind=techniques&layer_tag=ANGLE+CHASE"
     )
     assert subtopic_row["practice_url"] == (
-        f"{quick_update_url}?target_user_id={selected_user.pk}&layer_kind=subtopics&layer_tag=Circle+geometry"
+        f"{quick_update_url}?target_user_id={selected_user.pk}"
+        "&layer_kind=subtopics&layer_tag=Circle+geometry"
     )
     assert response.context["technique_progress_next_gaps"][0]["practice_url"] == subtopic_row["practice_url"]
     assert response.context["technique_progress_all_gaps_url"] == (
@@ -13152,7 +13278,7 @@ def test_technique_progress_gaps_page_defaults_to_subtopic_rows(client):
     assert 'data-rows-url="' not in response_html
     assert 'data-page-length="50"' in response_html
     assert "plugins/datatables/dataTables.bootstrap5.min.css" in response_html
-    assert 'order: [[coverageColumnIndex, "desc"]]' in response_html
+    assert 'order: [[remainingColumnIndex, "desc"]]' in response_html
     assert 'id="technique-progress-min-total"' in response_html
     assert "<th scope=\"col\">Type</th>" not in response_html
     assert "<th scope=\"col\">Canonical subtopic</th>" in response_html
@@ -13234,7 +13360,7 @@ def test_technique_progress_gaps_page_links_canonical_subtopic_to_technique_dril
     row = response.context["technique_progress_gap_rows"][0]
     expected_url = (
         f"{reverse('pages:technique_progress_gaps')}?"
-        f"{urlencode({'kind': 'techniques', 'topic': 'algebra', 'canonical_subtopic': canonical_subtopic})}"
+        f"{urlencode({'kind': 'all', 'topic': 'algebra', 'canonical_subtopic': canonical_subtopic})}"
     )
     assert row["drilldown_url"] == expected_url
     response_html = response.content.decode("utf-8")
@@ -13388,8 +13514,8 @@ def test_technique_progress_gaps_page_preserves_admin_selected_user(client):
         if row["label"] == "Circle geometry"
     )
     assert subtopic_row["practice_url"] == (
-        f"{reverse('pages:completion_quick_update')}"
-        f"?target_user_id={selected_user.pk}&layer_kind=subtopics&layer_tag=Circle+geometry"
+        f"{reverse('pages:completion_quick_update')}?target_user_id={selected_user.pk}"
+        "&layer_kind=subtopics&layer_tag=Circle+geometry"
     )
     response_html = response.content.decode("utf-8")
     assert "target-progress@example.com" in response_html
@@ -13436,7 +13562,7 @@ def test_technique_progress_gaps_page_technique_mode_lists_techniques(client):
     ("kind", "expected_label", "expected_type"),
     [
         ("objects", "HAMILTONIAN PATHS AND CYCLES", "Object"),
-        ("methods", "GRID COLORING", "Method"),
+        ("methods", "GRID COLORING", "Technique"),
         ("lemmas", "TURAN / MANTEL", "Lemma/Theorem"),
         ("proof_roles", "CONSTRUCTION / LOWER BOUND", "Proof role"),
     ],
@@ -13494,6 +13620,94 @@ def test_technique_progress_gaps_page_lists_layer_gap_modes(client, kind, expect
     response_html = response.content.decode("utf-8")
     assert expected_label in response_html
     assert "STATEMENT CAVEAT" not in response_html
+
+
+@pytest.mark.parametrize(
+    ("kind", "expected_label", "expected_type"),
+    [
+        ("objects", "INEQUALITY EXPRESSION", "Object"),
+        ("methods", "CAUCHY-SCHWARZ", "Technique"),
+        ("lemmas", "CAUCHY", "Lemma/Theorem"),
+        ("proof_roles", "BOUND", "Proof role"),
+    ],
+)
+def test_technique_progress_gaps_layer_tabs_filter_drilldown_rows_and_practice_links(
+    client,
+    kind,
+    expected_label,
+    expected_type,
+):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    selected_user = UserFactory(email="layer-tab-target@example.com")
+    client.force_login(admin_user)
+    canonical_subtopic = "Inequalities and optimization"
+    _create_technique_progress_statement(
+        problem_code="A1",
+        problem_number=1,
+        statement_tags=[
+            {
+                "technique": "PRIMARY ALG",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": canonical_subtopic,
+                "object_tags": ["INEQUALITY EXPRESSION"],
+                "technique_tags": ["CAUCHY-SCHWARZ"],
+                "lemma_theorem_tags": ["CAUCHY"],
+                "proof_roles": ["BOUND"],
+            },
+        ],
+    )
+    _create_technique_progress_statement(
+        problem_code="C1",
+        problem_number=2,
+        topic="COMB",
+        statement_tags=[
+            {
+                "technique": "PRIMARY COMB",
+                "domains": ["COMB"],
+                "main_topic": "COMB",
+                "canonical_subtopic": "Graph theory",
+                "object_tags": ["GRAPH"],
+                "technique_tags": ["EXTREMAL METHOD"],
+                "lemma_theorem_tags": ["TURAN"],
+                "proof_roles": ["CONSTRUCTION"],
+            },
+        ],
+    )
+
+    response = client.get(
+        reverse("pages:technique_progress_gaps"),
+        {
+            "user": str(selected_user.pk),
+            "kind": kind,
+            "topic": "algebra",
+            "canonical_subtopic": canonical_subtopic,
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["technique_progress_gap_kind"] == kind
+    assert response.context["technique_progress_gap_canonical_subtopic"] == canonical_subtopic
+    assert [
+        (row["label"], row["type"])
+        for row in response.context["technique_progress_gap_rows"]
+    ] == [(expected_label, expected_type)]
+    practice_url = (
+        f"{reverse('pages:completion_quick_update')}?"
+        f"{urlencode({'target_user_id': selected_user.pk, 'layer_kind': kind, 'layer_tag': expected_label})}"
+    )
+    assert response.context["technique_progress_gap_rows"][0]["practice_url"] == practice_url
+    response_html = response.content.decode("utf-8")
+    assert "<th scope=\"col\">Tag</th>" in response_html
+    assert "<th scope=\"col\">Type</th>" not in response_html
+    assert "<th scope=\"col\">Canonical Subtopic</th>" not in response_html
+    assert "Object tags" in response_html
+    assert "Technique tags" in response_html
+    assert "Lemma/Theorem tags" in response_html
+    assert "Proof roles" in response_html
+    assert expected_label in response_html
+    assert "GRAPH" not in response_html
+    assert f'href="{practice_url.replace("&", "&amp;")}"' in response_html
 
 
 def test_technique_progress_gaps_page_filters_layer_rows_by_all_domains(client):
@@ -14069,6 +14283,7 @@ def test_technique_progress_gaps_page_all_mode_shows_canonical_subtopic_after_ty
                 "domains": ["COMB"],
                 "main_topic": "COMB",
                 "canonical_subtopic": "Graph theory",
+                "object_tags": ["GRAPH"],
             },
         ],
     )
@@ -14081,6 +14296,7 @@ def test_technique_progress_gaps_page_all_mode_shows_canonical_subtopic_after_ty
                 "domains": ["COMB"],
                 "main_topic": "COMB",
                 "canonical_subtopic": "Graph theory",
+                "technique_tags": ["EXTREMAL ARGUMENT"],
             },
         ],
     )
@@ -14140,7 +14356,7 @@ def test_technique_progress_gaps_page_technique_mode_lists_multiple_canonical_su
     assert "Graph theory, Inequalities and optimization" in response.content.decode("utf-8")
 
 
-def test_technique_progress_gaps_page_all_mode_suppresses_duplicate_technique_labels(client):
+def test_technique_progress_gaps_page_all_mode_lists_layer_rows_not_primary_rows(client):
     user = UserFactory()
     client.force_login(user)
     _create_technique_progress_statement(
@@ -14148,10 +14364,14 @@ def test_technique_progress_gaps_page_all_mode_suppresses_duplicate_technique_la
         problem_number=1,
         statement_tags=[
             {
-                "technique": "PARITY",
-                "domains": ["COMB"],
-                "main_topic": "COMB",
-                "canonical_subtopic": "PARITY",
+                "technique": "PRIMARY TECHNIQUE",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": "Inequalities and optimization",
+                "object_tags": ["INEQUALITY EXPRESSION"],
+                "technique_tags": ["CAUCHY-SCHWARZ"],
+                "lemma_theorem_tags": ["CAUCHY"],
+                "proof_roles": ["BOUND"],
             },
         ],
     )
@@ -14160,15 +14380,26 @@ def test_technique_progress_gaps_page_all_mode_suppresses_duplicate_technique_la
         problem_number=2,
         statement_tags=[
             {
-                "technique": "ANGLE CHASE",
-                "domains": ["GEO"],
-                "main_topic": "GEO",
-                "canonical_subtopic": "Circle geometry",
+                "technique": "OTHER PRIMARY",
+                "domains": ["COMB"],
+                "main_topic": "COMB",
+                "canonical_subtopic": "Graph theory",
+                "object_tags": ["GRAPH"],
+                "technique_tags": ["EXTREMAL METHOD"],
+                "lemma_theorem_tags": ["TURAN"],
+                "proof_roles": ["CONSTRUCTION"],
             },
         ],
     )
 
-    response = client.get(reverse("pages:technique_progress_gaps"), {"kind": "all"})
+    response = client.get(
+        reverse("pages:technique_progress_gaps"),
+        {
+            "kind": "all",
+            "topic": "algebra",
+            "canonical_subtopic": "Inequalities and optimization",
+        },
+    )
 
     assert response.status_code == HTTPStatus.OK
     assert response.context["technique_progress_gap_kind"] == "all"
@@ -14176,13 +14407,23 @@ def test_technique_progress_gaps_page_all_mode_suppresses_duplicate_technique_la
         (row["label"], row["type"])
         for row in response.context["technique_progress_gap_rows"]
     ]
-    assert ("Circle geometry", "Subtopic") in labels_and_types
-    assert ("ANGLE CHASE", "Technique") in labels_and_types
-    assert ("PARITY", "Subtopic") in labels_and_types
-    assert ("PARITY", "Technique") not in labels_and_types
+    assert labels_and_types == [
+        ("BOUND", "Proof role"),
+        ("CAUCHY", "Lemma/Theorem"),
+        ("CAUCHY-SCHWARZ", "Technique"),
+        ("INEQUALITY EXPRESSION", "Object"),
+    ]
     response_html = response.content.decode("utf-8")
     assert "All practice gaps" in response_html
+    assert "<th scope=\"col\">Gap</th>" in response_html
     assert "<th scope=\"col\">Type</th>" in response_html
+    assert "<th scope=\"col\">Canonical Subtopic</th>" not in response_html
+    assert "PRIMARY TECHNIQUE" not in response_html
+    assert "Inequalities and optimization" in response_html
+    assert "Object tags" in response_html
+    assert "Technique tags" in response_html
+    assert "Lemma/Theorem tags" in response_html
+    assert "Proof roles" in response_html
 
 
 def test_technique_progress_gaps_page_invalid_kind_falls_back_to_subtopics(client):
@@ -14897,7 +15138,105 @@ def test_technique_progress_gaps_export_csv_uses_canonical_subtopic_label_for_te
     assert csv_rows[0]["Canonical Subtopic"] == "Graph theory, Inequalities and optimization"
 
 
-def test_technique_progress_gaps_datatable_defaults_to_coverage_desc(client):
+def test_technique_progress_gaps_export_and_datatable_respect_layer_drilldown_filters(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    selected_user = UserFactory()
+    client.force_login(admin_user)
+    canonical_subtopic = "Inequalities and optimization"
+    _create_technique_progress_statement(
+        problem_code="A1",
+        problem_number=1,
+        statement_tags=[
+            {
+                "technique": "PRIMARY ALG",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": canonical_subtopic,
+                "object_tags": ["INEQUALITY EXPRESSION"],
+            },
+        ],
+    )
+    _create_technique_progress_statement(
+        problem_code="A2",
+        problem_number=2,
+        statement_tags=[
+            {
+                "technique": "PRIMARY ALG 2",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": canonical_subtopic,
+                "object_tags": ["SMOOTHING VARIABLE"],
+            },
+        ],
+    )
+    _create_technique_progress_statement(
+        problem_code="G1",
+        problem_number=3,
+        topic="GEO",
+        statement_tags=[
+            {
+                "technique": "PRIMARY GEO",
+                "domains": ["GEO"],
+                "main_topic": "GEO",
+                "canonical_subtopic": "Circle geometry",
+                "object_tags": ["CIRCLE"],
+            },
+        ],
+    )
+
+    csv_response = client.get(
+        reverse("pages:technique_progress_gaps"),
+        {
+            "user": str(selected_user.pk),
+            "kind": "objects",
+            "topic": "algebra",
+            "canonical_subtopic": canonical_subtopic,
+            "min_total": "1",
+            "export": "csv",
+        },
+    )
+    datatable_response = client.get(
+        reverse("pages:technique_progress_gaps"),
+        {
+            "user": str(selected_user.pk),
+            "kind": "objects",
+            "topic": "algebra",
+            "canonical_subtopic": canonical_subtopic,
+            "min_total": "1",
+            "format": "datatable",
+            "draw": "9",
+            "start": "0",
+            "length": "50",
+            "search[value]": "EXPRESSION",
+        },
+    )
+
+    assert csv_response.status_code == HTTPStatus.OK
+    csv_rows = list(csv.DictReader(StringIO(csv_response.content.decode("utf-8"))))
+    assert [row["Area"] for row in csv_rows] == ["INEQUALITY EXPRESSION", "SMOOTHING VARIABLE"]
+    assert {row["Canonical Subtopic"] for row in csv_rows} == {canonical_subtopic}
+    assert all(row["Type"] == "Object" for row in csv_rows)
+    assert all(
+        row["Practice URL"]
+        == (
+            f"{reverse('pages:completion_quick_update')}?"
+            f"{urlencode({'target_user_id': selected_user.pk, 'layer_kind': 'objects', 'layer_tag': row['Area']})}"
+        )
+        for row in csv_rows
+    )
+
+    assert datatable_response.status_code == HTTPStatus.OK
+    payload = datatable_response.json()
+    assert payload["draw"] == 9
+    assert payload["recordsTotal"] == 2
+    assert payload["recordsFiltered"] == 1
+    assert payload["data"][0]["label"] == "INEQUALITY EXPRESSION"
+    assert payload["data"][0]["canonical_subtopic_label"] == canonical_subtopic
+    assert "layer_kind=objects" in payload["data"][0]["practice_url"]
+    assert "layer_tag=INEQUALITY+EXPRESSION" in payload["data"][0]["practice_url"]
+
+
+def test_technique_progress_gaps_datatable_defaults_to_remaining_desc(client):
     user = UserFactory()
     client.force_login(user)
     high_coverage_solved = _create_technique_progress_statement(
@@ -14993,19 +15332,19 @@ def test_technique_progress_gaps_datatable_defaults_to_coverage_desc(client):
     assert [
         row["label"]
         for row in payload["data"]
-    ] == ["High coverage", "Medium coverage", "Low coverage"]
+    ] == ["Low coverage", "Medium coverage", "High coverage"]
     assert [
-        row["completion_percent"]
+        row["remaining"]
         for row in payload["data"]
-    ] == [EXPECTED_PROGRESS_HALF_PERCENT, 33, 0]
+    ] == [2, 2, 1]
     assert [
         row["canonical_subtopic"]
         for row in payload["data"]
-    ] == ["High coverage", "Medium coverage", "Low coverage"]
+    ] == ["Low coverage", "Medium coverage", "High coverage"]
     assert [
         row["canonical_subtopic_label"]
         for row in payload["data"]
-    ] == ["High coverage", "Medium coverage", "Low coverage"]
+    ] == ["Low coverage", "Medium coverage", "High coverage"]
 
 
 def test_technique_progress_gaps_datatable_sorts_techniques_by_canonical_subtopic_label(client):
@@ -15102,7 +15441,7 @@ def test_technique_progress_gaps_datatable_searches_canonical_subtopic_technique
     assert payload["data"][0]["canonical_subtopic"] == canonical_subtopic
     assert payload["data"][0]["drilldown_url"] == (
         f"{reverse('pages:technique_progress_gaps')}?"
-        f"{urlencode({'kind': 'techniques', 'topic': 'algebra', 'canonical_subtopic': canonical_subtopic})}"
+        f"{urlencode({'kind': 'all', 'topic': 'algebra', 'canonical_subtopic': canonical_subtopic})}"
     )
 
 
@@ -15261,63 +15600,101 @@ def test_technique_progress_topic_detail_lists_only_selected_topic_subtopics(cli
     assert "Inequalities and optimization" not in response_html
 
 
-def test_technique_progress_topic_detail_lists_subtopic_layer_columns(client):
-    user = UserFactory()
-    client.force_login(user)
-    _create_technique_progress_statement(
-        problem_code="P1",
+def test_technique_progress_topic_detail_shows_layer_gap_preview_and_explore_url(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    selected_user = UserFactory(email="layer-preview@example.com")
+    client.force_login(admin_user)
+    canonical_subtopic = "Inequalities and optimization"
+    solved_statement = _create_technique_progress_statement(
+        problem_code="A1",
         problem_number=1,
-        topic="ALG",
         statement_tags=[
             {
-                "technique": "CAUCHY-SCHWARZ",
+                "technique": "PRIMARY A",
                 "domains": ["ALG"],
                 "main_topic": "ALG",
-                "canonical_subtopic": "Inequalities and optimization",
-                "object_tags": ["INEQUALITY"],
-                "technique_tags": ["ENGEL FORM"],
-                "lemma_theorem_tags": ["CAUCHY-SCHWARZ"],
-                "proof_roles": ["BOUNDING"],
+                "canonical_subtopic": canonical_subtopic,
+                "object_tags": ["EXPRESSION"],
+                "technique_tags": ["AM-GM"],
+                "lemma_theorem_tags": ["CAUCHY"],
+                "proof_roles": ["BOUND"],
             },
         ],
     )
-    _create_technique_progress_statement(
-        problem_code="P2",
-        problem_number=2,
-        topic="ALG",
-        statement_tags=[
+    for index, tag_payload in enumerate(
+        [
             {
-                "technique": "AM-GM",
-                "domains": ["ALG"],
-                "main_topic": "ALG",
-                "canonical_subtopic": "Inequalities and optimization",
-                "object_tags": ["POSITIVE VARIABLES"],
-                "technique_tags": ["HOMOGENIZATION"],
-                "lemma_theorem_tags": ["AM-GM"],
-                "proof_roles": ["EQUALITY CASE"],
+                "object_tags": ["EXPRESSION"],
+                "technique_tags": ["AM-GM"],
+                "lemma_theorem_tags": ["CAUCHY"],
+                "proof_roles": ["BOUND"],
+            },
+            {
+                "object_tags": ["EXPRESSION"],
+                "technique_tags": ["CONVEXITY"],
+                "lemma_theorem_tags": ["JENSEN"],
+                "proof_roles": ["ESTIMATE"],
+            },
+            {
+                "object_tags": ["RATIONAL EXPRESSION"],
+                "technique_tags": ["SMOOTHING"],
+                "lemma_theorem_tags": ["CAUCHY"],
+                "proof_roles": ["BOUND"],
             },
         ],
+        start=2,
+    ):
+        _create_technique_progress_statement(
+            problem_code=f"A{index}",
+            problem_number=index,
+            statement_tags=[
+                {
+                    "technique": f"PRIMARY {index}",
+                    "domains": ["ALG"],
+                    "main_topic": "ALG",
+                    "canonical_subtopic": canonical_subtopic,
+                    **tag_payload,
+                },
+            ],
+        )
+    UserProblemCompletion.objects.create(
+        user=selected_user,
+        statement=solved_statement,
+        status=UserProblemCompletion.Status.SOLVED,
     )
 
     response = client.get(
         reverse("pages:technique_progress_topic_detail", kwargs={"topic_slug": "algebra"}),
+        {"user": str(selected_user.pk)},
     )
 
     assert response.status_code == HTTPStatus.OK
     row = response.context["technique_progress_topic_subtopic_rows"][0]
-    assert row["object_tags"] == ["INEQUALITY", "POSITIVE VARIABLES"]
-    assert row["technique_tags"] == ["ENGEL FORM", "HOMOGENIZATION"]
-    assert row["lemma_theorem_tags"] == ["AM-GM", "CAUCHY-SCHWARZ"]
-    assert row["proof_roles"] == ["BOUNDING", "EQUALITY CASE"]
+    assert row["label"] == canonical_subtopic
+    assert row["layer_gap_preview"] == [
+        {"label": "BOUND", "remaining": 2, "type": "Proof role"},
+        {"label": "CAUCHY", "remaining": 2, "type": "Lemma/Theorem"},
+        {"label": "EXPRESSION", "remaining": 2, "type": "Object"},
+    ]
+    assert row["layer_gap_preview_overflow"] == 6
+    assert row["drilldown_url"] == (
+        f"{reverse('pages:technique_progress_gaps')}?"
+        f"{urlencode({'user': selected_user.pk, 'kind': 'all', 'topic': 'algebra', 'canonical_subtopic': canonical_subtopic})}"
+    )
     response_html = response.content.decode("utf-8")
-    assert "<th scope=\"col\">Object tag</th>" in response_html
-    assert "<th scope=\"col\">Technique tag</th>" in response_html
-    assert "<th scope=\"col\">Lemma/Theorem tag</th>" in response_html
-    assert "<th scope=\"col\">Proof role</th>" in response_html
-    assert "POSITIVE VARIABLES" in response_html
-    assert "HOMOGENIZATION" in response_html
-    assert "CAUCHY-SCHWARZ" in response_html
-    assert "EQUALITY CASE" in response_html
+    assert "<th scope=\"col\">Canonical subtopic</th>" in response_html
+    assert "<th scope=\"col\">Completed</th>" in response_html
+    assert "<th scope=\"col\">Remaining</th>" in response_html
+    assert "<th scope=\"col\">Coverage</th>" in response_html
+    assert "<th scope=\"col\" class=\"text-end\">Action</th>" in response_html
+    assert "Top gaps:" in response_html
+    assert "BOUND 2" in response_html
+    assert "+6 more" in response_html
+    assert "Explore gaps" in response_html
+    assert "Object tag" not in response_html
+    assert "Technique tag" not in response_html
+    assert "Lemma/Theorem tag" not in response_html
+    assert "Proof role" not in response_html
 
 
 def test_technique_progress_topic_detail_returns_404_for_invalid_topic(client):
@@ -15356,8 +15733,8 @@ def test_technique_progress_topic_detail_preserves_admin_selected_user(client):
         f"{reverse('pages:technique_dashboard')}?user={selected_user.pk}"
     )
     assert response.context["technique_progress_topic_subtopic_rows"][0]["practice_url"] == (
-        f"{reverse('pages:completion_quick_update')}"
-        f"?target_user_id={selected_user.pk}&layer_kind=subtopics&layer_tag=Circle+geometry"
+        f"{reverse('pages:completion_quick_update')}?target_user_id={selected_user.pk}"
+        "&layer_kind=subtopics&layer_tag=Circle+geometry"
     )
     response_html = response.content.decode("utf-8")
     assert "selected-topic@example.com" in response_html

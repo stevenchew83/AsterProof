@@ -242,20 +242,18 @@
               </div>
             </div>
           </form>
-          {% if completion_quick_update_filters.layer_kind and completion_quick_update_filters.layer_tag %}
-          <div class="d-flex flex-wrap align-items-center gap-2 mt-3">
-            <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
-              {{ completion_quick_update_layer_filter_label }}: {{ completion_quick_update_filters.layer_tag }}
-            </span>
-            <a href="{{ completion_quick_update_clear_layer_filter_url }}" class="link-secondary fs-xs text-decoration-none">
-              Clear layer filter
-            </a>
-          </div>
-          {% endif %}
           {% if completion_quick_update_can_select_user %}
           <p class="text-muted fs-xs mb-0 mt-3">
             Editing for <strong>{{ completion_quick_update_selected_user.email }}</strong>.
           </p>
+          {% endif %}
+          {% if completion_quick_update_filters.layer_kind and completion_quick_update_filters.layer_tag %}
+          <div class="alert alert-info py-2 mt-3 mb-0" role="alert">
+            <span class="text-muted fs-xs text-uppercase fw-semibold me-1">Layer filter</span>
+            <span class="fw-semibold">{{ completion_quick_update_filters.layer_label }}:</span>
+            {{ completion_quick_update_filters.layer_tag }}
+            <a href="{{ completion_quick_update_layer_filter_clear_url }}" class="alert-link ms-2">Clear</a>
+          </div>
           {% endif %}
         </div>
       </div>
