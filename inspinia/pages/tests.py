@@ -13825,46 +13825,19 @@ def test_technique_gap_benchmark_page_exports_total_benchmarkable_rows_csv(clien
     _create_technique_progress_statement(
         statement_tags=[
             {
-                "technique": "PARITY",
-                "domains": ["NT"],
-                "main_topic": "Number Theory",
-                "canonical_subtopic": "PARITY",
+                "technique": "PARITY METHODS",
+                "domains": ["ALG", "C", "G", "NT"],
+                "canonical_subtopic": "Coloring, tiling, grids, and invariants",
+                "object_tags": ["PARITY CLASS"],
             },
         ],
-    )
-    TechniqueBenchmark.objects.create(
-        kind=TechniqueBenchmark.Kind.CANONICAL_SUBTOPIC,
-        label="PARITY",
-        normalized_label="Parity",
-        parent_family="Divisibility and invariants",
-        primary_area="Number Theory",
-        syllabus_core=5,
-        contest_frequency=5,
-        transfer_value=5,
-        prerequisite_value=5,
-        concept_load=1,
-        recognition_burden=2,
-        execution_load=2,
-        proof_fragility=2,
-        cross_topic_dependency=2,
-        typical_mohs_min=0,
-        typical_mohs_max=15,
-        jbmo_weight="1.10",
-        national_weight="1.20",
-        imo_tst_weight="1.30",
-        training_type="Drill",
-        target_level="Foundation",
-        benchmark_confidence=95,
-        rationale="Core invariant method.",
-        pitfalls="Overusing parity alone.",
-        recommended_sequence="Drill parity before modular arithmetic.",
     )
     url = reverse("pages:technique_gap_benchmark")
 
     page_response = client.get(url, {"min_total": "1"})
 
     assert page_response.status_code == HTTPStatus.OK
-    assert page_response.context["benchmark_coverage"]["counts"]["total"] == 2
+    assert page_response.context["benchmark_coverage"]["counts"]["total"] == 3
     assert "Export benchmarkable rows CSV" in page_response.content.decode("utf-8")
     assert "export=benchmarkable_csv" in page_response.content.decode("utf-8")
 
@@ -13876,60 +13849,58 @@ def test_technique_gap_benchmark_page_exports_total_benchmarkable_rows_csv(clien
     assert csv_response["Content-Disposition"] == 'attachment; filename="technique-benchmarkable-rows.csv"'
     assert reader.fieldnames == [
         "row_key",
-        "normalized_label",
-        "parent_family",
-        "primary_area",
-        "syllabus_core",
-        "contest_frequency",
-        "transfer_value",
-        "prerequisite_value",
-        "concept_load",
-        "recognition_burden",
-        "execution_load",
-        "proof_fragility",
-        "cross_topic_dependency",
-        "typical_mohs_min",
-        "typical_mohs_max",
-        "jbmo_weight",
-        "national_weight",
-        "imo_tst_weight",
-        "training_type",
-        "target_level",
-        "benchmark_confidence",
-        "rationale",
-        "pitfalls",
-        "recommended_sequence",
+        "kind",
+        "label",
+        "label_key",
+        "areas/0",
+        "areas/1",
+        "canonical_subtopic",
+        "type",
+        "completed",
+        "total",
+        "remaining",
+        "coverage_percent",
+        "avg_solved_mohs",
+        "existing_benchmark",
+        "areas/2",
+        "areas/3",
     ]
     rows_by_key = {row["row_key"]: row for row in csv_rows}
-    assert rows_by_key["canonical_subtopic:parity"]["normalized_label"] == "Parity"
-    assert rows_by_key["canonical_subtopic:parity"]["parent_family"] == "Divisibility and invariants"
-    assert rows_by_key["canonical_subtopic:parity"]["jbmo_weight"] == "1.10"
-    assert rows_by_key["canonical_subtopic:parity"]["rationale"] == "Core invariant method."
-    assert rows_by_key["technique:parity"] == {
-        "row_key": "technique:parity",
-        "normalized_label": "",
-        "parent_family": "",
-        "primary_area": "",
-        "syllabus_core": "",
-        "contest_frequency": "",
-        "transfer_value": "",
-        "prerequisite_value": "",
-        "concept_load": "",
-        "recognition_burden": "",
-        "execution_load": "",
-        "proof_fragility": "",
-        "cross_topic_dependency": "",
-        "typical_mohs_min": "",
-        "typical_mohs_max": "",
-        "jbmo_weight": "",
-        "national_weight": "",
-        "imo_tst_weight": "",
-        "training_type": "",
-        "target_level": "",
-        "benchmark_confidence": "",
-        "rationale": "",
-        "pitfalls": "",
-        "recommended_sequence": "",
+    assert rows_by_key["technique:parity-methods"] == {
+        "row_key": "technique:parity-methods",
+        "kind": "technique",
+        "label": "PARITY METHODS",
+        "label_key": "parity-methods",
+        "areas/0": "Algebra",
+        "areas/1": "Combinatorics",
+        "canonical_subtopic": "Coloring, tiling, grids, and invariants",
+        "type": "Technique",
+        "completed": "0",
+        "total": "1",
+        "remaining": "1",
+        "coverage_percent": "0",
+        "avg_solved_mohs": "",
+        "existing_benchmark": "",
+        "areas/2": "Geometry",
+        "areas/3": "Number Theory",
+    }
+    assert rows_by_key["object:parity-class"] == {
+        "row_key": "object:parity-class",
+        "kind": "object",
+        "label": "PARITY CLASS",
+        "label_key": "parity-class",
+        "areas/0": "Algebra",
+        "areas/1": "Combinatorics",
+        "canonical_subtopic": "Coloring, tiling, grids, and invariants",
+        "type": "Object",
+        "completed": "0",
+        "total": "1",
+        "remaining": "1",
+        "coverage_percent": "0",
+        "avg_solved_mohs": "",
+        "existing_benchmark": "",
+        "areas/2": "Geometry",
+        "areas/3": "Number Theory",
     }
 
 
