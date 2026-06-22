@@ -7352,6 +7352,47 @@ def test_completion_quick_update_filters_by_exact_lemma_layer_tag(client):
     assert [row["statement_uuid"] for row in rows] == [str(matching_statement.statement_uuid)]
 
 
+def test_completion_quick_update_layer_filter_uses_fact_subtopic_context_and_ignores_legacy_technique_param(
+    client,
+):
+    user = UserFactory()
+    client.force_login(user)
+    statement = _create_quick_completion_statement(problem_code="P1", problem_number=1)
+    TechniqueProgressFact.objects.create(
+        statement=statement,
+        linked_problem=statement.linked_problem,
+        layer=TechniqueProgressFact.Layer.LEMMA,
+        label="POWER OF A POINT",
+        label_key="power of a point",
+    )
+    TechniqueProgressFact.objects.create(
+        statement=statement,
+        linked_problem=statement.linked_problem,
+        layer=TechniqueProgressFact.Layer.SUBTOPIC,
+        label="Circle geometry",
+        label_key="circle geometry",
+    )
+
+    response = client.get(
+        reverse("pages:completion_quick_update"),
+        {
+            "subtopics": "Circle geometry",
+            "technique": "POWER OF A POINT",
+            "layer_kind": "lemmas",
+            "layer_label": "Lemma/Theorem tag",
+            "layer_tag": "POWER OF A POINT",
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    rows = response.context["completion_quick_update_rows"]
+    assert [row["statement_uuid"] for row in rows] == [str(statement.statement_uuid)]
+    assert response.context["completion_quick_update_filters"]["subtopics"] == "Circle geometry"
+    assert response.context["completion_quick_update_filters"]["technique"] == "POWER OF A POINT"
+    assert response.context["completion_quick_update_filters"]["layer_kind"] == "lemmas"
+    assert response.context["completion_quick_update_filters"]["layer_tag"] == "POWER OF A POINT"
+
+
 def test_completion_quick_update_layer_filter_uses_linked_problem_fallback_only_without_statement_tags(client):
     user = UserFactory()
     client.force_login(user)
