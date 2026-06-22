@@ -13394,6 +13394,49 @@ def test_technique_benchmark_import_preview_validates_golden_fixture_without_mut
     assert TechniqueBenchmark.objects.count() == 0
 
 
+def test_technique_benchmark_import_preview_rows_include_benchmark_details():
+    from inspinia.pages.technique_benchmarking.importing import preview_benchmark_import
+
+    preview = preview_benchmark_import(
+        _golden_benchmark_payload_text(),
+        known_row_keys=_golden_benchmark_row_keys(),
+    )
+
+    row = preview.preview_rows[0]
+
+    assert {
+        key: row["details"][key]
+        for key in [
+            "primary_area",
+            "target_level",
+            "training_type",
+            "benchmark_confidence",
+            "typical_mohs_band",
+            "importance_score",
+            "difficulty_score",
+            "importance_inputs",
+            "difficulty_inputs",
+            "profile_weights",
+            "changed_fields",
+        ]
+    } == {
+        "primary_area": "Number Theory",
+        "target_level": "Foundation",
+        "training_type": "Drill",
+        "benchmark_confidence": 95,
+        "typical_mohs_band": "0M-15M",
+        "importance_score": "4.61",
+        "difficulty_score": "1.75",
+        "importance_inputs": "Syllabus 5 · Frequency 5 · Transfer 5 · Prerequisite 5",
+        "difficulty_inputs": "Concept 1 · Recognition 2 · Execution 2 · Fragility 2 · Dependency 2",
+        "profile_weights": "JBMO 1.20 · National 1.10 · IMO/TST 1.00",
+        "changed_fields": [],
+    }
+    assert row["details"]["rationale"].startswith("Parity is a core low-barrier invariant")
+    assert row["details"]["pitfalls"].startswith("Students often use parity")
+    assert row["details"]["recommended_sequence"].startswith("Train parity")
+
+
 def test_technique_benchmark_import_parser_detects_source_export_payload():
     from inspinia.pages.technique_benchmarking.export import build_benchmark_export_payload
     from inspinia.pages.technique_benchmarking.importing import BenchmarkImportValidationError
@@ -13888,6 +13931,31 @@ def test_technique_gap_benchmark_page_exports_total_benchmarkable_rows_csv(clien
         "pitfalls": "",
         "recommended_sequence": "",
     }
+
+
+def test_technique_gap_benchmark_page_preview_shows_benchmark_details(client):
+    user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(user)
+    _create_golden_benchmark_gap_statements()
+
+    response = client.post(
+        reverse("pages:technique_gap_benchmark"),
+        {
+            "action": "preview",
+            "pasted_response": _golden_benchmark_payload_text(),
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    html = response.content.decode("utf-8")
+    assert "MOHS 0M-15M" in html
+    assert "Importance 4.61" in html
+    assert "Difficulty 1.75" in html
+    assert "Syllabus 5 · Frequency 5 · Transfer 5 · Prerequisite 5" in html
+    assert "Concept 1 · Recognition 2 · Execution 2 · Fragility 2 · Dependency 2" in html
+    assert "JBMO 1.20 · National 1.10 · IMO/TST 1.00" in html
+    assert "Parity is a core low-barrier invariant" in html
+    assert "No errors" in html
 
 
 def test_technique_gap_benchmark_page_mark_reviewed_clears_quality_flags(client):

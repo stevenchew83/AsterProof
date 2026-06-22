@@ -412,8 +412,9 @@
                 <tr>
                   <th scope="col">Status</th>
                   <th scope="col">Row key</th>
-                  <th scope="col">Label</th>
-                  <th scope="col">Parent family</th>
+                  <th scope="col">Benchmark summary</th>
+                  <th scope="col">Scores</th>
+                  <th scope="col">Notes</th>
                   <th scope="col">Errors</th>
                 </tr>
               </thead>
@@ -422,13 +423,53 @@
                 <tr>
                   <td><span class="badge bg-secondary-subtle text-secondary">{{ row.status }}</span></td>
                   <td class="font-monospace">{{ row.row_key }}</td>
-                  <td>{{ row.label|default:'-' }}</td>
-                  <td>{{ row.new.parent_family|default:'-' }}</td>
+                  <td class="benchmark-preview-cell">
+                    <div class="fw-semibold">{{ row.label|default:'-' }}</div>
+                    <div class="text-muted fs-xs">{{ row.new.parent_family|default:'-' }}</div>
+                    {% if row.details %}
+                    <div class="mt-1 d-flex flex-wrap gap-1">
+                      <span class="badge bg-primary-subtle text-primary">{{ row.details.primary_area|default:'Mixed' }}</span>
+                      <span class="badge bg-info-subtle text-info">{{ row.details.training_type|default:'-' }}</span>
+                      <span class="badge bg-secondary-subtle text-secondary">{{ row.details.target_level|default:'-' }}</span>
+                      {% if row.details.typical_mohs_band %}
+                      <span class="badge bg-warning-subtle text-warning">MOHS {{ row.details.typical_mohs_band }}</span>
+                      {% endif %}
+                      {% if row.details.benchmark_confidence is not None %}
+                      <span class="badge bg-success-subtle text-success">Confidence {{ row.details.benchmark_confidence }}</span>
+                      {% endif %}
+                    </div>
+                    {% if row.details.changed_fields %}
+                    <div class="text-warning fs-xs mt-1">Changed: {{ row.details.changed_fields|join:', ' }}</div>
+                    {% endif %}
+                    {% endif %}
+                  </td>
+                  <td class="benchmark-preview-cell">
+                    {% if row.details %}
+                    <div class="d-flex flex-wrap gap-1 mb-1">
+                      <span class="badge bg-primary-subtle text-primary">Importance {{ row.details.importance_score }}</span>
+                      <span class="badge bg-secondary-subtle text-secondary">Difficulty {{ row.details.difficulty_score }}</span>
+                    </div>
+                    <div class="fs-xs">{{ row.details.importance_inputs }}</div>
+                    <div class="fs-xs">{{ row.details.difficulty_inputs }}</div>
+                    <div class="text-muted fs-xs">{{ row.details.profile_weights }}</div>
+                    {% else %}
+                    <span class="text-muted">-</span>
+                    {% endif %}
+                  </td>
+                  <td class="benchmark-preview-cell">
+                    {% if row.details %}
+                    <div><span class="fw-semibold">Rationale:</span> {{ row.details.rationale|default:'-' }}</div>
+                    <div class="mt-1"><span class="fw-semibold">Pitfalls:</span> {{ row.details.pitfalls|default:'-' }}</div>
+                    <div class="mt-1"><span class="fw-semibold">Sequence:</span> {{ row.details.recommended_sequence|default:'-' }}</div>
+                    {% else %}
+                    <span class="text-muted">-</span>
+                    {% endif %}
+                  </td>
                   <td class="benchmark-preview-cell">
                     {% if row.errors %}
-                      {{ row.errors|join:', ' }}
+                      <span class="text-danger">{{ row.errors|join:', ' }}</span>
                     {% else %}
-                      <span class="text-muted">-</span>
+                      <span class="text-muted">No errors</span>
                     {% endif %}
                   </td>
                 </tr>

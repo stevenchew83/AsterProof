@@ -79,6 +79,31 @@ MODEL_UPDATE_FIELDS = (
     "recommended_sequence",
     "source_version",
 )
+PREVIEW_CHANGED_FIELD_LABELS = {
+    "normalized_label": "Normalized label",
+    "parent_family": "Parent family",
+    "primary_area": "Primary area",
+    "syllabus_core": "Syllabus",
+    "contest_frequency": "Frequency",
+    "transfer_value": "Transfer",
+    "prerequisite_value": "Prerequisite",
+    "concept_load": "Concept",
+    "recognition_burden": "Recognition",
+    "execution_load": "Execution",
+    "proof_fragility": "Fragility",
+    "cross_topic_dependency": "Dependency",
+    "typical_mohs_min": "MOHS min",
+    "typical_mohs_max": "MOHS max",
+    "jbmo_weight": "JBMO weight",
+    "national_weight": "National weight",
+    "imo_tst_weight": "IMO/TST weight",
+    "training_type": "Training type",
+    "target_level": "Target level",
+    "benchmark_confidence": "Confidence",
+    "rationale": "Rationale",
+    "pitfalls": "Pitfalls",
+    "recommended_sequence": "Recommended sequence",
+}
 
 
 class BenchmarkImportValidationError(ValueError):
@@ -163,6 +188,7 @@ def preview_benchmark_import(
                 "label": new_snapshot["label"],
                 "old": old_snapshot,
                 "new": new_snapshot,
+                "details": _preview_details(old_snapshot, new_snapshot),
             },
         )
 
@@ -600,6 +626,70 @@ def _preview_status(
     if old_snapshot is None:
         return "new"
     return "unchanged" if old_snapshot == new_snapshot else "changed"
+
+
+def _preview_details(
+    old_snapshot: dict[str, Any] | None,
+    new_snapshot: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "primary_area": new_snapshot.get("primary_area") or "",
+        "target_level": new_snapshot.get("target_level") or "",
+        "training_type": new_snapshot.get("training_type") or "",
+        "benchmark_confidence": new_snapshot.get("benchmark_confidence"),
+        "typical_mohs_band": _mohs_band(new_snapshot),
+        "importance_score": _decimal_display(new_snapshot.get("importance_score")),
+        "difficulty_score": _decimal_display(new_snapshot.get("difficulty_score")),
+        "importance_inputs": (
+            f"Syllabus {new_snapshot.get('syllabus_core')} · "
+            f"Frequency {new_snapshot.get('contest_frequency')} · "
+            f"Transfer {new_snapshot.get('transfer_value')} · "
+            f"Prerequisite {new_snapshot.get('prerequisite_value')}"
+        ),
+        "difficulty_inputs": (
+            f"Concept {new_snapshot.get('concept_load')} · "
+            f"Recognition {new_snapshot.get('recognition_burden')} · "
+            f"Execution {new_snapshot.get('execution_load')} · "
+            f"Fragility {new_snapshot.get('proof_fragility')} · "
+            f"Dependency {new_snapshot.get('cross_topic_dependency')}"
+        ),
+        "profile_weights": (
+            f"JBMO {_decimal_display(new_snapshot.get('jbmo_weight'))} · "
+            f"National {_decimal_display(new_snapshot.get('national_weight'))} · "
+            f"IMO/TST {_decimal_display(new_snapshot.get('imo_tst_weight'))}"
+        ),
+        "rationale": new_snapshot.get("rationale") or "",
+        "pitfalls": new_snapshot.get("pitfalls") or "",
+        "recommended_sequence": new_snapshot.get("recommended_sequence") or "",
+        "changed_fields": _changed_field_labels(old_snapshot, new_snapshot),
+    }
+
+
+def _mohs_band(snapshot: dict[str, Any]) -> str:
+    mohs_min = snapshot.get("typical_mohs_min")
+    mohs_max = snapshot.get("typical_mohs_max")
+    if mohs_min is None or mohs_max is None:
+        return ""
+    return f"{mohs_min}M-{mohs_max}M"
+
+
+def _decimal_display(value: object) -> str:
+    if value is None:
+        return ""
+    return f"{Decimal(str(value)):.2f}"
+
+
+def _changed_field_labels(
+    old_snapshot: dict[str, Any] | None,
+    new_snapshot: dict[str, Any],
+) -> list[str]:
+    if old_snapshot is None:
+        return []
+    changed_fields = []
+    for field_name, label in PREVIEW_CHANGED_FIELD_LABELS.items():
+        if old_snapshot.get(field_name) != new_snapshot.get(field_name):
+            changed_fields.append(label)
+    return changed_fields
 
 
 def _apply_snapshot_to_benchmark(benchmark: TechniqueBenchmark, snapshot: dict[str, Any]) -> None:
