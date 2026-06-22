@@ -514,6 +514,8 @@ class TechniqueProgressFact(models.Model):
         indexes = [
             models.Index(fields=["layer", "label_key"], name="pages_tpf_layer_label_idx"),
             models.Index(fields=["linked_problem", "layer"], name="pages_tpf_problem_layer_idx"),
+            models.Index(fields=["layer", "main_topic"], name="pages_tpf_layer_main_idx"),
+            models.Index(fields=["layer", "canonical_subtopic"], name="pages_tpf_layer_canon_idx"),
         ]
 
     def __str__(self) -> str:

@@ -1,11 +1,18 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 from collections import defaultdict
 from typing import TYPE_CHECKING
 from urllib.parse import urlencode
 
+from django.core.cache import cache
+from django.db import connection
+from django.db.models import Count
 from django.db.models import F
+from django.db.models import Max
+from django.db.models import Q
+from django.db.models import QuerySet
 from django.http import HttpResponse
 from django.urls import reverse
 
@@ -14,6 +21,7 @@ from inspinia.pages.models import TOPIC_TAG_LAYER_FIELDS
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemTopicTechnique
 from inspinia.pages.models import StatementTopicTechnique
+from inspinia.pages.models import TechniqueProgressCatalogState
 from inspinia.pages.models import TechniqueProgressFact
 from inspinia.pages.models import UserProblemCompletion
 from inspinia.pages.statement_analytics import effective_topic
@@ -27,6 +35,8 @@ if TYPE_CHECKING:
 
 NEXT_GAP_LIMIT = 6
 GAP_PAGE_SIZE = 50
+GAP_CACHE_TIMEOUT_SECONDS = 15 * 60
+GAP_CACHE_VERSION = "v1"
 GAP_CSV_CONTENT_TYPE = "text/csv; charset=utf-8"
 GAP_CSV_FIELDNAMES = [
     "Area",
@@ -93,6 +103,75 @@ GAP_TOPIC_SLUGS = {
 }
 
 
+def _filter_progress_fact_queryset(
+    queryset: QuerySet[TechniqueProgressFact],
+    *,
+    gap_topic: str,
+    gap_canonical_subtopic: str,
+) -> QuerySet[TechniqueProgressFact]:
+    if gap_topic != GAP_TOPIC_ALL:
+        topic_label = GAP_TOPIC_SLUGS[gap_topic]
+        queryset = queryset.filter(Q(main_topic=topic_label) | Q(main_topic_labels__contains=[topic_label]))
+    if gap_canonical_subtopic:
+        queryset = queryset.filter(
+            Q(canonical_subtopic__iexact=gap_canonical_subtopic)
+            | Q(canonical_subtopic_labels__contains=[gap_canonical_subtopic]),
+        )
+    return queryset
+
+
+def _filter_fact_rows_by_topic(
+    rows: list[dict[str, object]],
+    *,
+    gap_topic: str,
+) -> list[dict[str, object]]:
+    if gap_topic == GAP_TOPIC_ALL:
+        return rows
+    topic_label = GAP_TOPIC_SLUGS[gap_topic]
+    return [
+        row
+        for row in rows
+        if _fact_row_has_topic(row, topic_label=topic_label)
+    ]
+
+
+def _fact_row_has_topic(row: dict[str, object], *, topic_label: str) -> bool:
+    if str(row.get("main_topic") or "") == topic_label:
+        return True
+    return topic_label in [str(label) for label in row.get("main_topic_labels", []) or []]
+
+
+def _filter_fact_rows_by_canonical_subtopic(
+    rows: list[dict[str, object]],
+    *,
+    gap_canonical_subtopic: str,
+) -> list[dict[str, object]]:
+    if not gap_canonical_subtopic:
+        return rows
+    normalized_canonical_subtopic = gap_canonical_subtopic.casefold()
+    return [
+        row
+        for row in rows
+        if _fact_row_has_canonical_subtopic(
+            row,
+            normalized_canonical_subtopic=normalized_canonical_subtopic,
+        )
+    ]
+
+
+def _fact_row_has_canonical_subtopic(
+    row: dict[str, object],
+    *,
+    normalized_canonical_subtopic: str,
+) -> bool:
+    if str(row.get("canonical_subtopic") or "").casefold() == normalized_canonical_subtopic:
+        return True
+    return normalized_canonical_subtopic in {
+        str(label).casefold()
+        for label in row.get("canonical_subtopic_labels", []) or []
+    }
+
+
 def _layers_for_gap_kind(gap_kind: str) -> set[str]:
     layer_sets = {
         GAP_KIND_TECHNIQUES: {TechniqueProgressFact.Layer.TECHNIQUE},
@@ -113,9 +192,18 @@ def _progress_fact_rows(
     user: User,
     layers: set[str],
     include_layer_metadata: bool = False,
+    gap_topic: str = GAP_TOPIC_ALL,
+    gap_canonical_subtopic: str = "",
 ) -> list[dict[str, object]]:
+    fact_queryset = TechniqueProgressFact.objects.filter(layer__in=layers)
+    if connection.vendor == "postgresql":
+        fact_queryset = _filter_progress_fact_queryset(
+            fact_queryset,
+            gap_topic=gap_topic,
+            gap_canonical_subtopic=gap_canonical_subtopic,
+        )
     fact_rows = list(
-        TechniqueProgressFact.objects.filter(layer__in=layers)
+        fact_queryset
         .values(
             "canonical_subtopic",
             "canonical_subtopic_labels",
@@ -128,6 +216,11 @@ def _progress_fact_rows(
             "statement_id",
         )
         .order_by("layer", "label", "statement_id", "id"),
+    )
+    fact_rows = _filter_fact_rows_by_topic(fact_rows, gap_topic=gap_topic)
+    fact_rows = _filter_fact_rows_by_canonical_subtopic(
+        fact_rows,
+        gap_canonical_subtopic=gap_canonical_subtopic,
     )
     if not fact_rows:
         return []
@@ -176,8 +269,8 @@ def _progress_fact_rows(
     rows = []
     for fact in fact_rows:
         statement_id = int(fact["statement_id"])
-        completion = completion_by_statement_id.get(statement_id)
-        is_solved = completion is not None and is_completion_status_solved(completion.status)
+        completion_status = completion_by_statement_id.get(statement_id)
+        is_solved = completion_status is not None and is_completion_status_solved(completion_status)
         layer = str(fact["layer"])
         label = str(fact["label"] or "")
         main_topic_labels = list(fact.get("main_topic_labels") or [])
@@ -213,15 +306,17 @@ def _completion_by_catalog_statement_id(
     *,
     statement_problem_ids: dict[int, int | None],
     user: User,
-) -> dict[int, UserProblemCompletion]:
+) -> dict[int, str]:
     statement_ids = sorted(statement_problem_ids)
     completion_by_statement_id = {
-        completion.statement_id: completion
-        for completion in UserProblemCompletion.objects.filter(
+        int(row["statement_id"]): str(row["status"])
+        for row in UserProblemCompletion.objects.filter(
             user=user,
             statement_id__in=statement_ids,
-        ).order_by(F("completion_date").desc(nulls_last=True), "-updated_at", "-id")
-        if completion.statement_id is not None
+        )
+        .order_by()
+        .values("statement_id", "problem_id", "status")
+        if row["statement_id"] is not None
     }
     linked_problem_ids = sorted(
         {
@@ -234,12 +329,14 @@ def _completion_by_catalog_statement_id(
         return completion_by_statement_id
 
     legacy_completion_by_problem_id = {
-        completion.problem_id: completion
-        for completion in UserProblemCompletion.objects.filter(
+        int(row["problem_id"]): str(row["status"])
+        for row in UserProblemCompletion.objects.filter(
             user=user,
             problem_id__in=linked_problem_ids,
-        ).order_by(F("completion_date").desc(nulls_last=True), "-updated_at", "-id")
-        if completion.problem_id is not None
+        )
+        .order_by()
+        .values("statement_id", "problem_id", "status")
+        if row["problem_id"] is not None
     }
     for statement_id, problem_id in statement_problem_ids.items():
         if statement_id in completion_by_statement_id:
@@ -323,30 +420,24 @@ def build_technique_progress_gaps_context(  # noqa: PLR0913
     raw_min_total: str = "",
     raw_canonical_subtopic: str = "",
 ) -> dict[str, object]:
-    gap_kind = _gap_kind(raw_kind)
-    payload = _build_progress_payload(
+    (
+        selected_user,
+        can_select_user,
+        gap_kind,
+        gap_topic,
+        gap_min_total,
+        gap_canonical_subtopic,
+    ) = _resolve_gap_request(
         request_user=request_user,
         raw_user_id=raw_user_id,
-        required_layers=_layers_for_gap_kind(gap_kind),
+        raw_kind=raw_kind,
+        raw_topic=raw_topic,
+        raw_min_total=raw_min_total,
+        raw_canonical_subtopic=raw_canonical_subtopic,
     )
-    base_context = payload["base_context"]
-    selected_user = base_context["technique_progress_selected_user"]
-    can_select_user = bool(base_context["technique_progress_can_select_user"])
-    gap_topic = _gap_topic(raw_topic)
-    gap_min_total = _gap_min_total(raw_min_total)
-    gap_canonical_subtopic = _gap_canonical_subtopic(raw_canonical_subtopic)
-    gap_rows = _filtered_gap_rows(
-        payload=payload,
-        gap_kind=gap_kind,
-        gap_topic=gap_topic,
-        gap_min_total=gap_min_total,
-        gap_canonical_subtopic=gap_canonical_subtopic,
-    )
-    gap_rows = _gap_rows_with_drilldown_urls(
-        gap_rows,
+    base_context = _base_context(
         selected_user=selected_user,
         can_select_user=can_select_user,
-        gap_topic=gap_topic,
     )
     return {
         **base_context,
@@ -367,6 +458,15 @@ def build_technique_progress_gaps_context(  # noqa: PLR0913
             gap_canonical_subtopic=gap_canonical_subtopic,
             extra_query={"export": "csv"},
         ),
+        "technique_progress_gap_rows_url": _gap_url(
+            selected_user=selected_user,
+            can_select_user=can_select_user,
+            gap_kind=gap_kind,
+            gap_topic=gap_topic,
+            gap_min_total=gap_min_total,
+            gap_canonical_subtopic=gap_canonical_subtopic,
+            extra_query={"format": "datatable"},
+        ),
         "technique_progress_gap_kind": gap_kind,
         "technique_progress_gap_kind_options": _gap_kind_options(
             selected_user=selected_user,
@@ -385,11 +485,7 @@ def build_technique_progress_gaps_context(  # noqa: PLR0913
             gap_topic=gap_topic,
             gap_canonical_subtopic=gap_canonical_subtopic,
         ),
-        "technique_progress_gap_result_summary": _gap_result_summary(
-            gap_rows,
-            gap_kind=gap_kind,
-        ),
-        "technique_progress_gap_rows": gap_rows,
+        "technique_progress_gap_result_summary": _gap_loading_summary(gap_kind=gap_kind),
         "technique_progress_gap_show_canonical_subtopic_column": gap_kind in {GAP_KIND_TECHNIQUES, GAP_KIND_ALL},
         "technique_progress_gap_show_type_column": gap_kind == GAP_KIND_ALL,
         "technique_progress_gap_title": _gap_title(gap_kind),
@@ -402,7 +498,6 @@ def build_technique_progress_gaps_context(  # noqa: PLR0913
             active_min_total=gap_min_total,
             active_canonical_subtopic=gap_canonical_subtopic,
         ),
-        "technique_progress_stats": payload["stats"],
     }
 
 
@@ -415,19 +510,13 @@ def build_technique_progress_gaps_csv_response(  # noqa: PLR0913
     raw_min_total: str = "",
     raw_canonical_subtopic: str = "",
 ) -> HttpResponse:
-    gap_kind = _gap_kind(raw_kind)
-    payload = _build_progress_payload(
+    _gap_kind, gap_rows = _gap_rows_for_request(
         request_user=request_user,
         raw_user_id=raw_user_id,
-        required_layers=_layers_for_gap_kind(gap_kind),
-    )
-    gap_min_total = _gap_min_total(raw_min_total)
-    gap_rows = _filtered_gap_rows(
-        payload=payload,
-        gap_kind=gap_kind,
-        gap_topic=_gap_topic(raw_topic),
-        gap_min_total=gap_min_total,
-        gap_canonical_subtopic=_gap_canonical_subtopic(raw_canonical_subtopic),
+        raw_kind=raw_kind,
+        raw_topic=raw_topic,
+        raw_min_total=raw_min_total,
+        raw_canonical_subtopic=raw_canonical_subtopic,
     )
     response = HttpResponse(content_type=GAP_CSV_CONTENT_TYPE)
     response["Content-Disposition"] = 'attachment; filename="technique-progress-gaps.csv"'
@@ -448,27 +537,13 @@ def build_technique_progress_gaps_datatable_payload(  # noqa: PLR0913
     params: Mapping[str, str] | None = None,
 ) -> dict[str, object]:
     params = params or {}
-    gap_kind = _gap_kind(raw_kind)
-    payload = _build_progress_payload(
+    gap_kind, gap_rows = _gap_rows_for_request(
         request_user=request_user,
         raw_user_id=raw_user_id,
-        required_layers=_layers_for_gap_kind(gap_kind),
-    )
-    gap_topic = _gap_topic(raw_topic)
-    gap_min_total = _gap_min_total(raw_min_total)
-    gap_canonical_subtopic = _gap_canonical_subtopic(raw_canonical_subtopic)
-    gap_rows = _filtered_gap_rows(
-        payload=payload,
-        gap_kind=gap_kind,
-        gap_topic=gap_topic,
-        gap_min_total=gap_min_total,
-        gap_canonical_subtopic=gap_canonical_subtopic,
-    )
-    gap_rows = _gap_rows_with_drilldown_urls(
-        gap_rows,
-        selected_user=payload["base_context"]["technique_progress_selected_user"],
-        can_select_user=bool(payload["base_context"]["technique_progress_can_select_user"]),
-        gap_topic=gap_topic,
+        raw_kind=raw_kind,
+        raw_topic=raw_topic,
+        raw_min_total=raw_min_total,
+        raw_canonical_subtopic=raw_canonical_subtopic,
     )
 
     draw = _datatable_int(params.get("draw"), default=0)
@@ -491,6 +566,164 @@ def build_technique_progress_gaps_datatable_payload(  # noqa: PLR0913
         "recordsFiltered": len(searched_rows),
         "data": [_gap_datatable_row(row) for row in page_rows],
     }
+
+
+def _resolve_gap_request(  # noqa: PLR0913
+    *,
+    request_user: User,
+    raw_user_id: str,
+    raw_kind: str,
+    raw_topic: str,
+    raw_min_total: str,
+    raw_canonical_subtopic: str,
+) -> tuple[User, bool, str, str, int, str]:
+    selected_user, can_select_user = resolve_technique_progress_user(
+        request_user=request_user,
+        raw_user_id=raw_user_id,
+    )
+    return (
+        selected_user,
+        can_select_user,
+        _gap_kind(raw_kind),
+        _gap_topic(raw_topic),
+        _gap_min_total(raw_min_total),
+        _gap_canonical_subtopic(raw_canonical_subtopic),
+    )
+
+
+def _gap_rows_for_request(  # noqa: PLR0913
+    *,
+    request_user: User,
+    raw_user_id: str,
+    raw_kind: str,
+    raw_topic: str,
+    raw_min_total: str,
+    raw_canonical_subtopic: str,
+) -> tuple[str, list[dict[str, object]]]:
+    (
+        selected_user,
+        can_select_user,
+        gap_kind,
+        gap_topic,
+        gap_min_total,
+        gap_canonical_subtopic,
+    ) = _resolve_gap_request(
+        request_user=request_user,
+        raw_user_id=raw_user_id,
+        raw_kind=raw_kind,
+        raw_topic=raw_topic,
+        raw_min_total=raw_min_total,
+        raw_canonical_subtopic=raw_canonical_subtopic,
+    )
+    return (
+        gap_kind,
+        _cached_filtered_gap_rows(
+            request_user=request_user,
+            raw_user_id=raw_user_id,
+            selected_user=selected_user,
+            can_select_user=can_select_user,
+            gap_kind=gap_kind,
+            gap_topic=gap_topic,
+            gap_min_total=gap_min_total,
+            gap_canonical_subtopic=gap_canonical_subtopic,
+        ),
+    )
+
+
+def _cached_filtered_gap_rows(  # noqa: PLR0913
+    *,
+    request_user: User,
+    raw_user_id: str,
+    selected_user: User,
+    can_select_user: bool,
+    gap_kind: str,
+    gap_topic: str,
+    gap_min_total: int,
+    gap_canonical_subtopic: str,
+) -> list[dict[str, object]]:
+    cache_key = _gap_rows_cache_key(
+        selected_user=selected_user,
+        can_select_user=can_select_user,
+        gap_kind=gap_kind,
+        gap_topic=gap_topic,
+        gap_min_total=gap_min_total,
+        gap_canonical_subtopic=gap_canonical_subtopic,
+    )
+    cached_rows = cache.get(cache_key)
+    if cached_rows is not None:
+        return cached_rows
+
+    payload = _build_progress_payload(
+        request_user=request_user,
+        raw_user_id=raw_user_id,
+        required_layers=_layers_for_gap_kind(gap_kind),
+        include_user_options=False,
+        gap_topic=gap_topic,
+        gap_canonical_subtopic=gap_canonical_subtopic,
+    )
+    gap_rows = _filtered_gap_rows(
+        payload=payload,
+        gap_kind=gap_kind,
+        gap_topic=gap_topic,
+        gap_min_total=gap_min_total,
+        gap_canonical_subtopic=gap_canonical_subtopic,
+    )
+    gap_rows = _gap_rows_with_drilldown_urls(
+        gap_rows,
+        selected_user=selected_user,
+        can_select_user=can_select_user,
+        gap_topic=gap_topic,
+    )
+    cache.set(cache_key, gap_rows, GAP_CACHE_TIMEOUT_SECONDS)
+    return gap_rows
+
+
+def _gap_rows_cache_key(  # noqa: PLR0913
+    *,
+    selected_user: User,
+    can_select_user: bool,
+    gap_kind: str,
+    gap_topic: str,
+    gap_min_total: int,
+    gap_canonical_subtopic: str,
+) -> str:
+    key_payload = "|".join(
+        [
+            GAP_CACHE_VERSION,
+            f"user={selected_user.pk}",
+            f"can_select_user={int(can_select_user)}",
+            f"kind={gap_kind}",
+            f"topic={gap_topic}",
+            f"canonical_subtopic={gap_canonical_subtopic}",
+            f"min_total={gap_min_total}",
+            f"catalog={_catalog_cache_marker()}",
+            f"completion={_completion_cache_marker(selected_user)}",
+        ],
+    )
+    digest = hashlib.sha256(key_payload.encode("utf-8")).hexdigest()
+    return f"technique-gaps:{GAP_CACHE_VERSION}:{digest}"
+
+
+def _catalog_cache_marker() -> str:
+    catalog_state = (
+        TechniqueProgressCatalogState.objects.only("updated_at", "fact_count", "needs_rebuild")
+        .filter(singleton_key=1)
+        .first()
+    )
+    if catalog_state is None:
+        return "missing"
+    updated_at = catalog_state.updated_at.isoformat() if catalog_state.updated_at else ""
+    return f"{updated_at}:{catalog_state.fact_count}:{int(catalog_state.needs_rebuild)}"
+
+
+def _completion_cache_marker(user: User) -> str:
+    marker = UserProblemCompletion.objects.filter(user=user).aggregate(
+        completion_count=Count("id"),
+        latest_updated_at=Max("updated_at"),
+    )
+    latest_updated_at = marker["latest_updated_at"]
+    latest_marker = latest_updated_at.isoformat() if latest_updated_at else ""
+    return f"{marker['completion_count'] or 0}:{latest_marker}"
 
 
 def build_technique_progress_topic_context(
@@ -554,17 +787,25 @@ def build_technique_progress_topic_context(
     }
 
 
-def _build_progress_payload(
+def _build_progress_payload(  # noqa: PLR0913
     *,
     request_user: User,
     raw_user_id: str,
     required_layers: set[str],
+    include_user_options: bool = True,
+    gap_topic: str = GAP_TOPIC_ALL,
+    gap_canonical_subtopic: str = "",
 ) -> dict[str, object]:
     selected_user, can_select_user = resolve_technique_progress_user(
         request_user=request_user,
         raw_user_id=raw_user_id,
     )
-    tagged_rows = _progress_fact_rows(user=selected_user, layers=required_layers)
+    tagged_rows = _progress_fact_rows(
+        user=selected_user,
+        layers=required_layers,
+        gap_topic=gap_topic,
+        gap_canonical_subtopic=gap_canonical_subtopic,
+    )
     rows_by_layer = {
         layer: _rows_for_layer(tagged_rows, layer)
         for layer in required_layers
@@ -631,6 +872,7 @@ def _build_progress_payload(
             can_select_user=can_select_user,
             has_completed=bool(summary["solved"]),
             has_tagged_statements=bool(summary["total"]),
+            include_user_options=include_user_options,
         ),
         "gap_rows": gap_rows,
         "lemma_rows": lemma_rows,
@@ -706,6 +948,7 @@ def _base_context(
     can_select_user: bool,
     has_completed: bool = False,
     has_tagged_statements: bool = False,
+    include_user_options: bool = True,
 ) -> dict[str, object]:
     return {
         **technique_progress_catalog_status_context(),
@@ -727,7 +970,9 @@ def _base_context(
         "technique_progress_has_tagged_statements": has_tagged_statements,
         "technique_progress_quick_update_url": reverse("pages:completion_quick_update"),
         "technique_progress_selected_user": selected_user,
-        "technique_progress_user_options": technique_progress_user_options() if can_select_user else [],
+        "technique_progress_user_options": (
+            technique_progress_user_options() if can_select_user and include_user_options else []
+        ),
     }
 
 
@@ -1029,6 +1274,19 @@ def _gap_result_summary(rows: list[dict[str, object]], *, gap_kind: str) -> str:
     return f"Showing {row_total} {noun}"
 
 
+def _gap_loading_summary(*, gap_kind: str) -> str:
+    noun = {
+        GAP_KIND_SUBTOPICS: "subtopic gaps",
+        GAP_KIND_TECHNIQUES: "technique gaps",
+        GAP_KIND_OBJECTS: "object gaps",
+        GAP_KIND_METHODS: "method gaps",
+        GAP_KIND_LEMMAS: "lemma/theorem gaps",
+        GAP_KIND_PROOF_ROLES: "proof-role gaps",
+        GAP_KIND_ALL: "practice gaps",
+    }[gap_kind]
+    return f"Loading {noun}"
+
+
 def _gap_title(gap_kind: str) -> str:
     return {
         GAP_KIND_SUBTOPICS: "Subtopic practice gaps",
@@ -1102,9 +1360,8 @@ def _sort_gap_rows_for_datatable(
     sort_field = _gap_datatable_sort_field(params, gap_kind=gap_kind)
     sort_direction = str(params.get("order[0][dir]") or "desc").casefold()
     sort_descending = sort_direction != "asc"
-    sorted_rows = sorted(rows, key=lambda row: str(row.get("label", "")).casefold())
     return sorted(
-        sorted_rows,
+        rows,
         key=lambda row: _gap_datatable_sort_value(row, sort_field),
         reverse=sort_descending,
     )
