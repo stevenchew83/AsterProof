@@ -13776,6 +13776,27 @@ def test_technique_gap_benchmark_page_creates_export_batch_applies_and_restores(
     assert TechniqueBenchmark.objects.count() == 0
 
 
+def test_technique_gap_benchmark_page_shows_migration_warning_when_schema_is_not_ready(client):
+    user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(user)
+    _create_golden_benchmark_gap_statements()
+
+    with patch(
+        "inspinia.pages.views.technique_benchmark_schema_status",
+        return_value={
+            "ready": False,
+            "missing": ["pages_techniquebenchmarkexportbatch", "pages_techniquebenchmark.quality_flags"],
+        },
+    ):
+        response = client.get(reverse("pages:technique_gap_benchmark"), {"min_total": "1"})
+
+    assert response.status_code == HTTPStatus.OK
+    html = response.content.decode("utf-8")
+    assert "Benchmark database migration required" in html
+    assert "pages_techniquebenchmarkexportbatch" in html
+    assert "Create frozen export batch" not in html
+
+
 def test_technique_gap_benchmark_page_mark_reviewed_clears_quality_flags(client):
     user = UserFactory(role=User.Role.ADMIN)
     client.force_login(user)
