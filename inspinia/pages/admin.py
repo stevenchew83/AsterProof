@@ -7,6 +7,9 @@ from .models import ContestProblemStatement
 from .models import ProblemSolveRecord
 from .models import ProblemTopicTechnique
 from .models import StatementTopicTechnique
+from .models import TechniqueBenchmark
+from .models import TechniqueBenchmarkAlias
+from .models import TechniqueBenchmarkImportBatch
 from .models import UserProblemCompletion
 from .models import UserProblemDifficultyRating
 
@@ -171,3 +174,49 @@ class ContestMetadataAdmin(admin.ModelAdmin):
     @admin.display(description="Tags")
     def tags_preview(self, obj: ContestMetadata) -> str:
         return ", ".join(obj.tags or []) or "-"
+
+
+@admin.register(TechniqueBenchmark)
+class TechniqueBenchmarkAdmin(admin.ModelAdmin):
+    list_display = (
+        "kind",
+        "label",
+        "parent_family",
+        "primary_area",
+        "importance_score",
+        "difficulty_score",
+        "training_type",
+        "target_level",
+        "benchmark_confidence",
+        "updated_at",
+    )
+    search_fields = ("label", "label_key", "normalized_label", "parent_family", "rationale")
+    list_filter = ("kind", "primary_area", "training_type", "target_level")
+    readonly_fields = ("created_at", "updated_at", "importance_score", "difficulty_score", "typical_mohs_center")
+
+
+@admin.register(TechniqueBenchmarkAlias)
+class TechniqueBenchmarkAliasAdmin(admin.ModelAdmin):
+    list_display = ("kind", "alias_label", "alias_key", "benchmark", "reason", "updated_at")
+    search_fields = ("alias_label", "alias_key", "benchmark__label", "reason")
+    list_filter = ("kind",)
+    readonly_fields = ("created_at", "updated_at")
+
+
+@admin.register(TechniqueBenchmarkImportBatch)
+class TechniqueBenchmarkImportBatchAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "status",
+        "created_by",
+        "rows_total",
+        "rows_valid",
+        "rows_invalid",
+        "rows_created",
+        "rows_updated",
+        "rows_unchanged",
+        "created_at",
+    )
+    search_fields = ("created_by__email", "prompt_text", "pasted_response", "error_summary")
+    list_filter = ("status", "source")
+    readonly_fields = ("created_at", "applied_at", "restored_at")

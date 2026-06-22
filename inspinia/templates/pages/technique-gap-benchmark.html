@@ -1,0 +1,277 @@
+{% extends 'layouts/vertical.html' %}
+
+{% load i18n %}
+
+{% block title %}Technique gap benchmarks{% endblock title %}
+
+{% block extra_css %}
+<style>
+  .benchmark-copy-box {
+    min-height: 18rem;
+  }
+
+  .benchmark-preview-cell {
+    min-width: 18rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+</style>
+{% endblock extra_css %}
+
+{% block page_content %}
+
+<div class="container-fluid">
+  {% include 'partials/page-title.html' with title='Technique gap benchmarks' subtitle='Workspace tool' %}
+
+  {% if messages %}
+  <div class="mt-3">
+    {% for message in messages %}
+      <div class="alert alert-{% if message.tags == 'error' %}danger{% elif message.tags == 'debug' %}secondary{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="{% translate 'Close' %}"></button>
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="row g-3 mt-0">
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-primary-subtle text-primary rounded">
+                <i class="ti ti-list-search fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Exported gaps</p>
+              <h3 class="mb-0">{{ export_payload.row_count }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-info-subtle text-info rounded">
+                <i class="ti ti-schema fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Schema</p>
+              <h3 class="mb-0 fs-lg">{{ export_payload.schema_version }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% if applied_batch %}
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-success-subtle text-success rounded">
+                <i class="ti ti-database-import fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Applied batch</p>
+              <h3 class="mb-0">#{{ applied_batch.pk }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="row g-3 mt-0">
+    <div class="col-xl-6">
+      <div class="card h-100">
+        <div class="card-header border-bottom d-flex justify-content-between align-items-center gap-2">
+          <div>
+            <h4 class="header-title mb-0">ChatGPT prompt</h4>
+            <p class="text-muted fs-xs mb-0">Copy this prompt with the current filtered gap rows.</p>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-secondary benchmark-copy" data-copy-target="benchmark-prompt">
+            <i class="ti ti-copy me-1"></i>Copy
+          </button>
+        </div>
+        <div class="card-body">
+          <textarea id="benchmark-prompt" name="prompt_text" class="form-control font-monospace benchmark-copy-box" readonly>{{ export_prompt }}</textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-6">
+      <form method="post" class="card h-100">
+        {% csrf_token %}
+        <div class="card-header border-bottom d-flex justify-content-between align-items-center gap-2">
+          <div>
+            <h4 class="header-title mb-0">Import response</h4>
+            <p class="text-muted fs-xs mb-0">Preview validates rows before apply.</p>
+          </div>
+          <div class="d-flex flex-wrap gap-2">
+            <button type="submit" name="action" value="preview" class="btn btn-sm btn-primary">
+              <i class="ti ti-eye me-1"></i>Preview
+            </button>
+            <button type="submit" name="action" value="apply" class="btn btn-sm btn-success">
+              <i class="ti ti-database-import me-1"></i>Apply valid rows
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <input type="hidden" name="prompt_text" value="{{ export_prompt }}">
+          {% if form.non_field_errors %}
+          <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+          {% endif %}
+          <label class="form-label" for="{{ form.pasted_response.id_for_label }}">ChatGPT response</label>
+          {{ form.pasted_response }}
+          {% for error in form.pasted_response.errors %}
+          <div class="invalid-feedback d-block">{{ error }}</div>
+          {% endfor %}
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-0">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header border-bottom d-flex justify-content-between align-items-center gap-2">
+          <div>
+            <h4 class="header-title mb-0">Export JSON</h4>
+            <p class="text-muted fs-xs mb-0">Strict payload embedded in the prompt.</p>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-secondary benchmark-copy" data-copy-target="benchmark-json">
+            <i class="ti ti-copy me-1"></i>Copy JSON
+          </button>
+        </div>
+        <div class="card-body">
+          <textarea id="benchmark-json" class="form-control font-monospace" rows="10" readonly>{{ export_payload_json }}</textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if preview_result %}
+  <div class="row g-3 mt-0">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header border-bottom">
+          <h4 class="header-title mb-0">Preview diff</h4>
+          <p class="text-muted fs-xs mb-0">{{ preview_result.rows_valid }} valid, {{ preview_result.rows_invalid }} invalid.</p>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-sm table-striped align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th scope="col">Status</th>
+                  <th scope="col">Row key</th>
+                  <th scope="col">Label</th>
+                  <th scope="col">Parent family</th>
+                  <th scope="col">Errors</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in preview_result.preview_rows %}
+                <tr>
+                  <td><span class="badge bg-secondary-subtle text-secondary">{{ row.status }}</span></td>
+                  <td class="font-monospace">{{ row.row_key }}</td>
+                  <td>{{ row.label|default:'-' }}</td>
+                  <td>{{ row.new.parent_family|default:'-' }}</td>
+                  <td class="benchmark-preview-cell">
+                    {% if row.errors %}
+                      {{ row.errors|join:', ' }}
+                    {% else %}
+                      <span class="text-muted">-</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="row g-3 mt-0 mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header border-bottom">
+          <h4 class="header-title mb-0">Recent batches</h4>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th scope="col">Batch</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Rows</th>
+                  <th scope="col">Created</th>
+                  <th scope="col" class="text-end">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for batch in recent_batches %}
+                <tr>
+                  <td>#{{ batch.pk }}</td>
+                  <td>{{ batch.get_status_display }}</td>
+                  <td>{{ batch.rows_valid }} valid / {{ batch.rows_invalid }} invalid</td>
+                  <td>{{ batch.created_at|date:'Y-m-d H:i' }}</td>
+                  <td class="text-end">
+                    {% if batch.status == 'applied' %}
+                    <form method="post" class="d-inline">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="restore">
+                      <input type="hidden" name="batch_id" value="{{ batch.pk }}">
+                      <button type="submit" class="btn btn-sm btn-outline-warning">
+                        <i class="ti ti-restore me-1"></i>Restore previous values
+                      </button>
+                    </form>
+                    {% else %}
+                    <span class="text-muted fs-xs">-</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="5" class="text-muted text-center py-3">No benchmark import batches yet.</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock page_content %}
+
+{% block extra_javascript %}
+<script>
+  (function() {
+    document.querySelectorAll(".benchmark-copy").forEach(function(button) {
+      button.addEventListener("click", function() {
+        var target = document.getElementById(button.dataset.copyTarget || "");
+        if (!target) return;
+        target.select();
+        target.setSelectionRange(0, target.value.length);
+        navigator.clipboard.writeText(target.value).catch(function() {});
+      });
+    });
+  })();
+</script>
+{% endblock extra_javascript %}

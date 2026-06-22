@@ -94,6 +94,7 @@ from inspinia.pages.forms import ProblemStatementEditorUpdateForm
 from inspinia.pages.forms import ProblemStatementImportForm
 from inspinia.pages.forms import ProblemXlsxImportForm
 from inspinia.pages.forms import StatementMetadataWorkbookForm
+from inspinia.pages.forms import TechniqueBenchmarkImportForm
 from inspinia.pages.handle_summary_parser import HandleSummaryParseValidationError
 from inspinia.pages.handle_summary_parser import HandleSummaryPreviewPayload
 from inspinia.pages.handle_summary_parser import build_handle_summary_preview_payload
@@ -106,6 +107,7 @@ from inspinia.pages.models import PageViewEvent
 from inspinia.pages.models import ProblemSolveRecord
 from inspinia.pages.models import ProblemTopicTechnique
 from inspinia.pages.models import StatementTopicTechnique
+from inspinia.pages.models import TechniqueBenchmarkImportBatch
 from inspinia.pages.models import TechniqueProgressFact
 from inspinia.pages.models import UserProblemCompletion
 from inspinia.pages.models import UserProblemDifficultyRating
@@ -152,11 +154,18 @@ from inspinia.pages.statement_metadata_backfill import statement_metadata_datafr
 from inspinia.pages.statement_metadata_backfill import statement_metadata_dataframe_from_text
 from inspinia.pages.subtopic_cleanup import apply_subtopic_cleanup
 from inspinia.pages.subtopic_cleanup import build_subtopic_cleanup_preview
+from inspinia.pages.technique_benchmarking.export import build_benchmark_export_payload
+from inspinia.pages.technique_benchmarking.export import build_benchmark_prompt
+from inspinia.pages.technique_benchmarking.importing import BenchmarkImportValidationError
+from inspinia.pages.technique_benchmarking.importing import apply_benchmark_import
+from inspinia.pages.technique_benchmarking.importing import preview_benchmark_import
+from inspinia.pages.technique_benchmarking.importing import restore_benchmark_import_batch
 from inspinia.pages.technique_progress import build_technique_progress_context
 from inspinia.pages.technique_progress import build_technique_progress_gaps_context
 from inspinia.pages.technique_progress import build_technique_progress_gaps_csv_response
 from inspinia.pages.technique_progress import build_technique_progress_gaps_datatable_payload
 from inspinia.pages.technique_progress import build_technique_progress_topic_context
+from inspinia.pages.technique_progress import technique_progress_gap_rows_for_benchmark_export
 from inspinia.pages.technique_progress_catalog import rebuild_technique_progress_catalog
 from inspinia.pages.topic_labels import FULL_TOPIC_LABEL_MAP
 from inspinia.pages.topic_labels import display_topic_label
@@ -8205,6 +8214,7 @@ def technique_progress_gaps_view(request):
             raw_topic=(request.GET.get("topic") or "").strip(),
             raw_min_total=(request.GET.get("min_total") or "").strip(),
             raw_canonical_subtopic=(request.GET.get("canonical_subtopic") or "").strip(),
+            raw_target_profile=(request.GET.get("target_profile") or "").strip(),
         )
 
     if request.GET.get("format") == "datatable":
@@ -8229,6 +8239,133 @@ def technique_progress_gaps_view(request):
         raw_canonical_subtopic=(request.GET.get("canonical_subtopic") or "").strip(),
     )
     return render(request, "pages/technique-progress-gaps.html", context)
+
+
+@login_required
+def technique_gap_benchmark_view(request):
+    _require_admin_tools_access(request)
+
+    action = (request.POST.get("action") or "").strip()
+    preview_result = None
+    applied_batch = None
+    restored_stats = None
+
+    gap_rows = technique_progress_gap_rows_for_benchmark_export(
+        request_user=request.user,
+        raw_user_id=(request.GET.get("user") or "").strip(),
+        raw_kind=(request.GET.get("kind") or "").strip(),
+        raw_topic=(request.GET.get("topic") or "").strip(),
+        raw_min_total=(request.GET.get("min_total") or "").strip(),
+        raw_canonical_subtopic=(request.GET.get("canonical_subtopic") or "").strip(),
+    )
+    target_profile = (request.GET.get("target_profile") or "national").strip()
+    export_payload = build_benchmark_export_payload(
+        gap_rows,
+        target_profile=target_profile,
+        include_existing_benchmark=True,
+        filters={
+            "kind": (request.GET.get("kind") or "subtopics").strip(),
+            "topic": (request.GET.get("topic") or "all").strip(),
+            "min_total": (request.GET.get("min_total") or "").strip(),
+            "canonical_subtopic": (request.GET.get("canonical_subtopic") or "").strip(),
+        },
+    )
+    known_row_keys = {str(row["row_key"]) for row in export_payload["rows"]}
+    export_payload_json = json.dumps(export_payload, cls=DjangoJSONEncoder, ensure_ascii=False, indent=2)
+    export_prompt = build_benchmark_prompt(export_payload)
+
+    if request.method == "POST" and action == "restore":
+        batch = TechniqueBenchmarkImportBatch.objects.filter(pk=request.POST.get("batch_id")).first()
+        if batch is None:
+            messages.error(request, "Benchmark import batch was not found.")
+        else:
+            restored_stats = restore_benchmark_import_batch(batch)
+            messages.success(
+                request,
+                (
+                    "Restored benchmark values from batch "
+                    f"#{batch.pk}: {restored_stats['restored']} restored, "
+                    f"{restored_stats['deleted']} deleted."
+                ),
+            )
+            record_event(
+                event_type=AuditEvent.EventType.IMPORT_COMPLETED,
+                message=f"Restored technique benchmark import batch #{batch.pk}.",
+                request=request,
+                metadata={"batch_id": batch.pk, **restored_stats},
+            )
+        form = TechniqueBenchmarkImportForm()
+    elif request.method == "POST":
+        form = TechniqueBenchmarkImportForm(request.POST)
+        if form.is_valid():
+            try:
+                preview_result = preview_benchmark_import(
+                    form.cleaned_data["pasted_response"],
+                    known_row_keys=known_row_keys,
+                )
+            except BenchmarkImportValidationError as exc:
+                messages.error(request, str(exc))
+                record_event(
+                    event_type=AuditEvent.EventType.IMPORT_FAILED,
+                    message=f"Technique benchmark import failed validation: {exc}",
+                    request=request,
+                    metadata={"error": str(exc)},
+                )
+            else:
+                messages.info(
+                    request,
+                    (
+                        f"Previewed {preview_result.rows_total} benchmark row(s): "
+                        f"{preview_result.rows_valid} valid, {preview_result.rows_invalid} invalid."
+                    ),
+                )
+                if action == "apply":
+                    applied_batch = apply_benchmark_import(
+                        preview_result,
+                        user=request.user,
+                        prompt_text=form.cleaned_data.get("prompt_text", ""),
+                        pasted_response=form.cleaned_data["pasted_response"],
+                    )
+                    messages.success(
+                        request,
+                        (
+                            f"Applied {applied_batch.rows_valid} valid benchmark row(s): "
+                            f"{applied_batch.rows_created} created, "
+                            f"{applied_batch.rows_updated} updated, "
+                            f"{applied_batch.rows_unchanged} unchanged."
+                        ),
+                    )
+                    record_event(
+                        event_type=AuditEvent.EventType.IMPORT_COMPLETED,
+                        message=f"Applied technique benchmark import batch #{applied_batch.pk}.",
+                        request=request,
+                        metadata={
+                            "batch_id": applied_batch.pk,
+                            "rows_valid": applied_batch.rows_valid,
+                            "rows_invalid": applied_batch.rows_invalid,
+                            "rows_created": applied_batch.rows_created,
+                            "rows_updated": applied_batch.rows_updated,
+                            "rows_unchanged": applied_batch.rows_unchanged,
+                        },
+                    )
+    else:
+        form = TechniqueBenchmarkImportForm()
+
+    recent_batches = TechniqueBenchmarkImportBatch.objects.select_related("created_by").order_by("-created_at")[:8]
+    return render(
+        request,
+        "pages/technique-gap-benchmark.html",
+        {
+            "applied_batch": applied_batch,
+            "export_payload": export_payload,
+            "export_payload_json": export_payload_json,
+            "export_prompt": export_prompt,
+            "form": form,
+            "preview_result": preview_result,
+            "recent_batches": recent_batches,
+            "restored_stats": restored_stats,
+        },
+    )
 
 
 @login_required

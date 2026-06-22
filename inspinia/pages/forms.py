@@ -7,6 +7,7 @@ from inspinia.pages.contest_names import PROJECT_CONTEST_NAME_MAX_LENGTH
 from inspinia.pages.contest_names import STATEMENT_CONTEST_NAME_MAX_LENGTH
 from inspinia.pages.contest_names import normalize_contest_name
 from inspinia.pages.contest_names import normalize_text_list
+from inspinia.pages.technique_benchmarking.importing import MAX_PASTED_RESPONSE_BYTES
 
 
 class ProblemXlsxImportForm(forms.Form):
@@ -329,6 +330,43 @@ class HandleSummaryParserForm(forms.Form):
             msg = "Paste at least one Handle block."
             raise forms.ValidationError(msg)
         return text
+
+
+class TechniqueBenchmarkImportForm(forms.Form):
+    prompt_text = forms.CharField(
+        required=False,
+        label="Exported prompt",
+        strip=False,
+        widget=forms.Textarea(
+            attrs={
+                "class": "form-control font-monospace",
+                "rows": 8,
+                "spellcheck": "false",
+            },
+        ),
+    )
+    pasted_response = forms.CharField(
+        label="ChatGPT response",
+        strip=False,
+        widget=forms.Textarea(
+            attrs={
+                "class": "form-control font-monospace",
+                "rows": 18,
+                "spellcheck": "false",
+                "placeholder": '{"schema_version": "technique-gap-benchmark-v1", "rows": [...]}',
+            },
+        ),
+    )
+
+    def clean_pasted_response(self):
+        value = self.cleaned_data["pasted_response"]
+        if not value.strip():
+            msg = "Paste ChatGPT JSON output before previewing."
+            raise forms.ValidationError(msg)
+        if len(value.encode("utf-8")) > MAX_PASTED_RESPONSE_BYTES:
+            msg = "Pasted response is too large."
+            raise forms.ValidationError(msg)
+        return value
 
 
 class ContestExistenceAuditForm(forms.Form):

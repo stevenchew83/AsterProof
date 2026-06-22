@@ -1,4 +1,5 @@
 import csv
+import json
 import re
 import uuid
 from datetime import date
@@ -52,6 +53,9 @@ from inspinia.pages.models import PageViewEvent
 from inspinia.pages.models import ProblemSolveRecord
 from inspinia.pages.models import ProblemTopicTechnique
 from inspinia.pages.models import StatementTopicTechnique
+from inspinia.pages.models import TechniqueBenchmark
+from inspinia.pages.models import TechniqueBenchmarkAlias
+from inspinia.pages.models import TechniqueBenchmarkImportBatch
 from inspinia.pages.models import TechniqueProgressFact
 from inspinia.pages.models import UserProblemCompletion
 from inspinia.pages.models import UserProblemDifficultyRating
@@ -13252,6 +13256,455 @@ def _technique_progress_gap_datatable_labels(client, params: dict[str, str] | No
     return [str(row["label"]) for row in _technique_progress_gap_datatable_rows(client, params)]
 
 
+def test_technique_benchmark_key_normalization_and_row_keys():
+    from inspinia.pages.technique_benchmarking.keys import benchmark_kind_for_gap_row
+    from inspinia.pages.technique_benchmarking.keys import benchmark_row_key
+    from inspinia.pages.technique_benchmarking.keys import normalize_benchmark_key
+
+    assert normalize_benchmark_key("FUNCTIONAL EQUATION") == "functional-equation"
+    assert normalize_benchmark_key("UVW/SMOOTHING") == "uvw-smoothing"
+    assert normalize_benchmark_key(" A & B --- C ") == "a-and-b-c"
+
+    subtopic_row = {"label": "Functional equations", "layer_kind": "subtopics", "type": "Subtopic"}
+    method_row = {"label": "Cauchy", "layer_kind": "methods", "type": "Technique"}
+
+    assert benchmark_kind_for_gap_row(subtopic_row) == TechniqueBenchmark.Kind.CANONICAL_SUBTOPIC
+    assert benchmark_row_key(subtopic_row) == "canonical_subtopic:functional-equations"
+    assert benchmark_kind_for_gap_row(method_row) == TechniqueBenchmark.Kind.METHOD
+    assert benchmark_row_key(method_row) == "method:cauchy"
+
+
+def test_technique_benchmark_model_save_normalizes_keys_and_scores():
+    benchmark = TechniqueBenchmark.objects.create(
+        kind=TechniqueBenchmark.Kind.CANONICAL_SUBTOPIC,
+        label="FUNCTIONAL EQUATION",
+        parent_family="Functional equations",
+        syllabus_core=4,
+        contest_frequency=3,
+        transfer_value=4,
+        prerequisite_value=4,
+        concept_load=4,
+        recognition_burden=5,
+        execution_load=4,
+        proof_fragility=4,
+        cross_topic_dependency=4,
+        typical_mohs_min=15,
+        typical_mohs_max=40,
+    )
+
+    benchmark.refresh_from_db()
+
+    assert benchmark.label_key == "functional-equation"
+    assert float(benchmark.importance_score) == pytest.approx(3.45)
+    assert float(benchmark.difficulty_score) == pytest.approx(4.25)
+    assert float(benchmark.typical_mohs_center) == pytest.approx(27.5)
+
+
+def test_technique_benchmark_alias_lookup_requires_explicit_alias():
+    from inspinia.pages.technique_benchmarking.scoring import benchmark_lookup_for_gap_rows
+
+    benchmark = TechniqueBenchmark.objects.create(
+        kind=TechniqueBenchmark.Kind.CANONICAL_SUBTOPIC,
+        label="Coordinate geometry",
+        parent_family="Analytic geometry",
+    )
+    gap_row = {"label": "COORDINATES", "layer_kind": "subtopics", "type": "Subtopic"}
+
+    assert benchmark_lookup_for_gap_rows([gap_row])[benchmark_row_key_for_test(gap_row)]["benchmark"] is None
+
+    TechniqueBenchmarkAlias.objects.create(
+        kind=TechniqueBenchmark.Kind.CANONICAL_SUBTOPIC,
+        alias_label="COORDINATES",
+        benchmark=benchmark,
+        reason="Legacy short label",
+    )
+
+    lookup = benchmark_lookup_for_gap_rows([gap_row])
+    matched = lookup[benchmark_row_key_for_test(gap_row)]
+
+    assert matched["benchmark"] == benchmark
+    assert matched["matched_by_alias"] is True
+
+
+def benchmark_row_key_for_test(row: dict[str, object]) -> str:
+    from inspinia.pages.technique_benchmarking.keys import benchmark_row_key
+
+    return benchmark_row_key(row)
+
+
+def test_technique_benchmark_golden_fixture_is_valid_json():
+    fixture_path = Path("inspinia/pages/testdata/technique_benchmark_golden_v1.json")
+    payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+
+    assert payload["schema_version"] == "technique-gap-benchmark-v1"
+    assert [row["normalized_label"] for row in payload["rows"]] == [
+        "Parity",
+        "Pigeonhole",
+        "Factorisation",
+        "Cauchy",
+        "Functional equation",
+        "Tangency",
+        "Valuations",
+        "Exponential Diophantine",
+    ]
+
+
+def _golden_benchmark_payload_text() -> str:
+    return Path("inspinia/pages/testdata/technique_benchmark_golden_v1.json").read_text(encoding="utf-8")
+
+
+def _golden_benchmark_row_keys() -> set[str]:
+    return {
+        row["row_key"]
+        for row in json.loads(_golden_benchmark_payload_text())["rows"]
+    }
+
+
+def _create_golden_benchmark_gap_statements():
+    payload = json.loads(_golden_benchmark_payload_text())
+    for index, row in enumerate(payload["rows"], start=1):
+        _create_technique_progress_statement(
+            problem_code=f"B{index}",
+            problem_number=index,
+            statement_tags=[
+                {
+                    "technique": row["normalized_label"].upper(),
+                    "domains": ["ALG"],
+                    "main_topic": row["primary_area"],
+                    "canonical_subtopic": row["normalized_label"],
+                },
+            ],
+        )
+
+
+def test_technique_benchmark_import_preview_validates_golden_fixture_without_mutation():
+    from inspinia.pages.technique_benchmarking.importing import preview_benchmark_import
+
+    preview = preview_benchmark_import(
+        _golden_benchmark_payload_text(),
+        known_row_keys=_golden_benchmark_row_keys(),
+    )
+
+    assert preview.rows_total == 8
+    assert preview.rows_valid == 8
+    assert preview.rows_invalid == 0
+    assert preview.preview_rows[0]["status"] == "new"
+    assert "canonical_subtopic:parity" in preview.preview_payload["new_rows"]
+    assert TechniqueBenchmark.objects.count() == 0
+
+
+def test_technique_benchmark_import_rejects_unknown_future_schema_version():
+    from inspinia.pages.technique_benchmarking.importing import BenchmarkImportValidationError
+    from inspinia.pages.technique_benchmarking.importing import preview_benchmark_import
+
+    payload = json.loads(_golden_benchmark_payload_text())
+    payload["schema_version"] = "technique-gap-benchmark-v2"
+
+    with pytest.raises(BenchmarkImportValidationError, match="Unsupported benchmark schema version"):
+        preview_benchmark_import(json.dumps(payload), known_row_keys=_golden_benchmark_row_keys())
+
+
+def test_technique_benchmark_import_preview_reports_row_errors():
+    from inspinia.pages.technique_benchmarking.importing import preview_benchmark_import
+
+    payload = json.loads(_golden_benchmark_payload_text())
+    payload["rows"][1]["row_key"] = payload["rows"][0]["row_key"]
+    payload["rows"][2]["syllabus_core"] = 6
+    payload["rows"][3]["rationale"] = ""
+
+    preview = preview_benchmark_import(
+        json.dumps(payload),
+        known_row_keys=_golden_benchmark_row_keys(),
+    )
+
+    assert preview.rows_valid == 5
+    assert preview.rows_invalid == 3
+    error_messages = " ".join(
+        error
+        for row in preview.invalid_rows
+        for error in row["errors"]
+    )
+    assert "Duplicate row_key" in error_messages
+    assert "syllabus_core must be between 1 and 5" in error_messages
+    assert "rationale is required" in error_messages
+
+
+def test_technique_benchmark_import_apply_and_restore_new_rows():
+    from inspinia.pages.technique_benchmarking.importing import apply_benchmark_import
+    from inspinia.pages.technique_benchmarking.importing import preview_benchmark_import
+    from inspinia.pages.technique_benchmarking.importing import restore_benchmark_import_batch
+
+    user = UserFactory(role=User.Role.ADMIN)
+    preview = preview_benchmark_import(
+        _golden_benchmark_payload_text(),
+        known_row_keys=_golden_benchmark_row_keys(),
+    )
+
+    batch = apply_benchmark_import(
+        preview,
+        user=user,
+        prompt_text="Prompt",
+        pasted_response=_golden_benchmark_payload_text(),
+    )
+
+    assert batch.status == TechniqueBenchmarkImportBatch.Status.APPLIED
+    assert batch.rows_created == 8
+    assert TechniqueBenchmark.objects.filter(label_key="parity").exists()
+    assert batch.preview_payload["old_rows"]["canonical_subtopic:parity"] is None
+
+    restore_stats = restore_benchmark_import_batch(batch)
+
+    batch.refresh_from_db()
+    assert restore_stats["deleted"] == 8
+    assert batch.status == TechniqueBenchmarkImportBatch.Status.RESTORED
+    assert TechniqueBenchmark.objects.count() == 0
+
+
+def test_technique_benchmark_export_payload_and_prompt_include_row_keys():
+    from inspinia.pages.technique_benchmarking.export import build_benchmark_export_payload
+    from inspinia.pages.technique_benchmarking.export import build_benchmark_prompt
+
+    benchmark = TechniqueBenchmark.objects.create(
+        kind=TechniqueBenchmark.Kind.CANONICAL_SUBTOPIC,
+        label="PARITY",
+        parent_family="Divisibility and invariants",
+        syllabus_core=5,
+        contest_frequency=5,
+        transfer_value=5,
+        prerequisite_value=5,
+        concept_load=1,
+        recognition_burden=2,
+        execution_load=2,
+        proof_fragility=2,
+        cross_topic_dependency=2,
+        training_type="Drill",
+    )
+    rows = [
+        {
+            "label": "PARITY",
+            "layer_kind": "subtopics",
+            "type": "Subtopic",
+            "main_topic_labels": ["Number Theory"],
+            "solved": 2,
+            "total": 10,
+            "remaining": 8,
+            "completion_percent": 20,
+            "average_solved_mohs": 7.5,
+        },
+    ]
+
+    payload = build_benchmark_export_payload(
+        rows,
+        target_profile="national",
+        include_existing_benchmark=True,
+    )
+    prompt = build_benchmark_prompt(payload)
+
+    assert payload["schema_version"] == "technique-gap-benchmark-v1"
+    assert payload["rows"][0]["row_key"] == "canonical_subtopic:parity"
+    assert payload["rows"][0]["existing_benchmark"]["parent_family"] == benchmark.parent_family
+    assert "Return strict JSON only" in prompt
+    assert "technique-gap-benchmark-v1" in prompt
+    assert '"row_key": "canonical_subtopic:parity"' in prompt
+
+
+def test_technique_gap_benchmark_page_exports_applies_and_restores(client):
+    user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(user)
+    _create_golden_benchmark_gap_statements()
+    url = reverse("pages:technique_gap_benchmark")
+
+    response = client.get(url, {"min_total": "1"})
+
+    assert response.status_code == HTTPStatus.OK
+    html = response.content.decode("utf-8")
+    assert "Technique gap benchmarks" in html
+    assert "technique-gap-benchmark-v1" in html
+    assert "canonical_subtopic:parity" in html
+    assert 'name="pasted_response"' in html
+
+    apply_response = client.post(
+        url,
+        {
+            "action": "apply",
+            "prompt_text": "Prompt",
+            "pasted_response": _golden_benchmark_payload_text(),
+        },
+    )
+
+    assert apply_response.status_code == HTTPStatus.OK
+    assert TechniqueBenchmark.objects.count() == 8
+    batch = TechniqueBenchmarkImportBatch.objects.get()
+    assert batch.status == TechniqueBenchmarkImportBatch.Status.APPLIED
+
+    restore_response = client.post(
+        url,
+        {
+            "action": "restore",
+            "batch_id": str(batch.pk),
+        },
+    )
+
+    assert restore_response.status_code == HTTPStatus.OK
+    batch.refresh_from_db()
+    assert batch.status == TechniqueBenchmarkImportBatch.Status.RESTORED
+    assert TechniqueBenchmark.objects.count() == 0
+
+
+def test_technique_progress_gaps_datatable_includes_benchmark_scores_and_ranks(client):
+    user = UserFactory()
+    client.force_login(user)
+    _create_technique_progress_statement(
+        problem_code="P1",
+        problem_number=1,
+        statement_tags=[
+            {
+                "technique": "PARITY",
+                "domains": ["NT"],
+                "main_topic": "NT",
+                "canonical_subtopic": "PARITY",
+            },
+        ],
+    )
+    _create_technique_progress_statement(
+        problem_code="P2",
+        problem_number=2,
+        statement_tags=[
+            {
+                "technique": "RARE",
+                "domains": ["NT"],
+                "main_topic": "NT",
+                "canonical_subtopic": "EXPONENTIAL DIOPHANTINE",
+            },
+        ],
+    )
+    TechniqueBenchmark.objects.create(
+        kind=TechniqueBenchmark.Kind.CANONICAL_SUBTOPIC,
+        label="PARITY",
+        parent_family="Divisibility and invariants",
+        primary_area="Number Theory",
+        syllabus_core=5,
+        contest_frequency=5,
+        transfer_value=5,
+        prerequisite_value=5,
+        concept_load=1,
+        recognition_burden=2,
+        execution_load=2,
+        proof_fragility=2,
+        cross_topic_dependency=2,
+        typical_mohs_min=0,
+        typical_mohs_max=15,
+        training_type="Drill",
+        target_level="Foundation",
+        benchmark_confidence=95,
+    )
+    TechniqueBenchmark.objects.create(
+        kind=TechniqueBenchmark.Kind.CANONICAL_SUBTOPIC,
+        label="EXPONENTIAL DIOPHANTINE",
+        parent_family="Diophantine equations",
+        primary_area="Number Theory",
+        syllabus_core=3,
+        contest_frequency=2,
+        transfer_value=3,
+        prerequisite_value=3,
+        concept_load=5,
+        recognition_burden=5,
+        execution_load=5,
+        proof_fragility=5,
+        cross_topic_dependency=5,
+        typical_mohs_min=20,
+        typical_mohs_max=50,
+        training_type="Postpone",
+        target_level="Specialist",
+        benchmark_confidence=82,
+    )
+
+    rows = _technique_progress_gap_datatable_rows(client)
+
+    assert rows[0]["label"] == "PARITY"
+    assert rows[0]["benchmark_status"] == "complete"
+    assert rows[0]["priority_rank"] == 1
+    assert rows[0]["priority_score"] > rows[1]["priority_score"]
+    assert rows[0]["final_training_type"] == "Drill"
+    assert rows[0]["parent_family"] == "Divisibility and invariants"
+    assert rows[0]["typical_mohs_band"] == "0M-15M"
+
+
+def test_technique_progress_gaps_datatable_benchmark_refreshes_after_import(client):
+    user = UserFactory()
+    client.force_login(user)
+    _create_technique_progress_statement(
+        statement_tags=[
+            {
+                "technique": "PARITY",
+                "domains": ["NT"],
+                "main_topic": "NT",
+                "canonical_subtopic": "PARITY",
+            },
+        ],
+    )
+
+    before_rows = _technique_progress_gap_datatable_rows(client)
+    assert before_rows[0]["benchmark_status"] == "missing"
+
+    TechniqueBenchmark.objects.create(
+        kind=TechniqueBenchmark.Kind.CANONICAL_SUBTOPIC,
+        label="PARITY",
+        parent_family="Divisibility and invariants",
+        syllabus_core=5,
+        contest_frequency=5,
+        transfer_value=5,
+        prerequisite_value=5,
+        concept_load=1,
+        recognition_burden=2,
+        execution_load=2,
+        proof_fragility=2,
+        cross_topic_dependency=2,
+    )
+
+    after_rows = _technique_progress_gap_datatable_rows(client)
+    assert after_rows[0]["benchmark_status"] == "complete"
+    assert after_rows[0]["priority_score"] is not None
+
+
+def test_technique_progress_gaps_csv_includes_benchmark_fields(client):
+    user = UserFactory()
+    client.force_login(user)
+    _create_technique_progress_statement(
+        statement_tags=[
+            {
+                "technique": "PARITY",
+                "domains": ["NT"],
+                "main_topic": "NT",
+                "canonical_subtopic": "PARITY",
+            },
+        ],
+    )
+    TechniqueBenchmark.objects.create(
+        kind=TechniqueBenchmark.Kind.CANONICAL_SUBTOPIC,
+        label="PARITY",
+        parent_family="Divisibility and invariants",
+        syllabus_core=5,
+        contest_frequency=5,
+        transfer_value=5,
+        prerequisite_value=5,
+        concept_load=1,
+        recognition_burden=2,
+        execution_load=2,
+        proof_fragility=2,
+        cross_topic_dependency=2,
+        training_type="Drill",
+    )
+
+    response = client.get(reverse("pages:technique_progress_gaps"), {"export": "csv"})
+    csv_rows = list(csv.DictReader(StringIO(response.content.decode("utf-8"))))
+
+    assert "Priority" in csv_rows[0]
+    assert "Importance" in csv_rows[0]
+    assert csv_rows[0]["Parent family"] == "Divisibility and invariants"
+    assert csv_rows[0]["Benchmark status"] == "complete"
+
+
 def test_technique_progress_gaps_page_filters_by_minimum_total_statements(client):
     user = UserFactory()
     client.force_login(user)
@@ -13345,7 +13798,7 @@ def test_technique_progress_gaps_page_defaults_to_subtopic_rows(client):
     assert "ajax:" in response_html
     assert "columns:" in response_html
     assert "searchDelay: 300" in response_html
-    assert 'order: [[remainingColumnIndex, "desc"]]' in response_html
+    assert 'order: [[priorityColumnIndex, "desc"]]' in response_html
     assert 'id="technique-progress-min-total"' in response_html
     assert "<th scope=\"col\">Type</th>" not in response_html
     assert "<th scope=\"col\">Canonical subtopic</th>" in response_html
@@ -15290,6 +15743,17 @@ def test_technique_progress_gaps_export_csv_uses_url_filters_and_ignores_datatab
             "Canonical Subtopic": "Algebra gap",
             "Type": "Subtopic",
             "Topic": "Algebra",
+            "Benchmark status": "missing",
+            "Rank": "",
+            "Priority": "",
+            "Efficiency": "",
+            "Gap pressure": "100.0",
+            "Importance": "",
+            "Difficulty": "",
+            "Parent family": "",
+            "Action": "",
+            "MOHS band": "",
+            "Confidence": "",
             "Completed": "0 of 1",
             "Avg MOHS": "-",
             "Remaining": "1",

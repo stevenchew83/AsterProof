@@ -21,10 +21,18 @@ from inspinia.pages.models import TOPIC_TAG_LAYER_FIELDS
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemTopicTechnique
 from inspinia.pages.models import StatementTopicTechnique
+from inspinia.pages.models import TechniqueBenchmark
+from inspinia.pages.models import TechniqueBenchmarkAlias
 from inspinia.pages.models import TechniqueProgressCatalogState
 from inspinia.pages.models import TechniqueProgressFact
 from inspinia.pages.models import UserProblemCompletion
 from inspinia.pages.statement_analytics import effective_topic
+from inspinia.pages.technique_benchmarking.keys import benchmark_row_key
+from inspinia.pages.technique_benchmarking.scoring import benchmark_lookup_for_gap_rows
+from inspinia.pages.technique_benchmarking.scoring import benchmark_quality_status
+from inspinia.pages.technique_benchmarking.scoring import computed_scores_for_row
+from inspinia.pages.technique_benchmarking.scoring import final_training_type
+from inspinia.pages.technique_benchmarking.scoring import normalize_target_profile
 from inspinia.pages.technique_progress_catalog import technique_progress_catalog_status_context
 from inspinia.pages.topic_labels import display_topic_label
 from inspinia.users.models import User
@@ -38,13 +46,24 @@ NEXT_GAP_LIMIT = 6
 SUBTOPIC_LAYER_PREVIEW_LIMIT = 3
 GAP_PAGE_SIZE = 50
 GAP_CACHE_TIMEOUT_SECONDS = 15 * 60
-GAP_CACHE_VERSION = "v1"
+GAP_CACHE_VERSION = "v2"
 GAP_CSV_CONTENT_TYPE = "text/csv; charset=utf-8"
 GAP_CSV_FIELDNAMES = [
     "Area",
     "Canonical Subtopic",
     "Type",
     "Topic",
+    "Benchmark status",
+    "Rank",
+    "Priority",
+    "Efficiency",
+    "Gap pressure",
+    "Importance",
+    "Difficulty",
+    "Parent family",
+    "Action",
+    "MOHS band",
+    "Confidence",
     "Completed",
     "Avg MOHS",
     "Remaining",
@@ -67,16 +86,27 @@ GAP_KIND_CHOICES = {
     GAP_KIND_PROOF_ROLES,
     GAP_KIND_ALL,
 }
-GAP_DATATABLE_DEFAULT_SORT_FIELD = "remaining"
+GAP_DATATABLE_DEFAULT_SORT_FIELD = "priority_score"
 GAP_DATATABLE_SORT_FIELDS = {
+    "benchmark_confidence",
+    "benchmark_status",
     "canonical_subtopic",
     "canonical_subtopic_label",
+    "difficulty_score",
+    "efficiency_score",
+    "final_training_type",
+    "gap_pressure",
     "average_solved_mohs",
     "completion_percent",
+    "importance_score",
     "label",
     "main_topic_label",
+    "parent_family",
+    "priority_rank",
+    "priority_score",
     "remaining",
     "solved_total_label",
+    "target_level",
     "type",
 }
 MAIN_TOPIC_ORDER = ["Algebra", "Number Theory", "Geometry", "Combinatorics"]
@@ -504,6 +534,14 @@ def build_technique_progress_gaps_context(  # noqa: PLR0913
             gap_canonical_subtopic=gap_canonical_subtopic,
             extra_query={"export": "csv"},
         ),
+        "technique_progress_gap_benchmark_url": _gap_benchmark_url(
+            selected_user=selected_user,
+            can_select_user=can_select_user,
+            gap_kind=gap_kind,
+            gap_topic=gap_topic,
+            gap_min_total=gap_min_total,
+            gap_canonical_subtopic=gap_canonical_subtopic,
+        ),
         "technique_progress_gap_rows_url": _gap_url(
             selected_user=selected_user,
             can_select_user=can_select_user,
@@ -526,6 +564,7 @@ def build_technique_progress_gaps_context(  # noqa: PLR0913
             gap_kind,
             is_drilldown=is_drilldown,
         ),
+        "technique_progress_can_manage_benchmarks": can_select_user,
         "technique_progress_gap_is_drilldown": is_drilldown,
         "technique_progress_gap_min_total": gap_min_total,
         "technique_progress_gap_min_total_reset_url": _gap_url(
@@ -561,6 +600,7 @@ def build_technique_progress_gaps_csv_response(  # noqa: PLR0913
     raw_topic: str = "",
     raw_min_total: str = "",
     raw_canonical_subtopic: str = "",
+    raw_target_profile: str = "",
 ) -> HttpResponse:
     _gap_kind, gap_rows = _gap_rows_for_request(
         request_user=request_user,
@@ -570,12 +610,36 @@ def build_technique_progress_gaps_csv_response(  # noqa: PLR0913
         raw_min_total=raw_min_total,
         raw_canonical_subtopic=raw_canonical_subtopic,
     )
+    gap_rows = _score_and_rank_gap_rows(
+        _enrich_gap_rows_with_benchmarks(gap_rows),
+        target_profile=raw_target_profile,
+    )
     response = HttpResponse(content_type=GAP_CSV_CONTENT_TYPE)
     response["Content-Disposition"] = 'attachment; filename="technique-progress-gaps.csv"'
     writer = csv.DictWriter(response, fieldnames=GAP_CSV_FIELDNAMES)
     writer.writeheader()
     writer.writerows(_gap_csv_row(row) for row in gap_rows)
     return response
+
+
+def technique_progress_gap_rows_for_benchmark_export(  # noqa: PLR0913
+    *,
+    request_user: User,
+    raw_user_id: str = "",
+    raw_kind: str = "",
+    raw_topic: str = "",
+    raw_min_total: str = "",
+    raw_canonical_subtopic: str = "",
+) -> list[dict[str, object]]:
+    _gap_kind, gap_rows = _gap_rows_for_request(
+        request_user=request_user,
+        raw_user_id=raw_user_id,
+        raw_kind=raw_kind,
+        raw_topic=raw_topic,
+        raw_min_total=raw_min_total,
+        raw_canonical_subtopic=raw_canonical_subtopic,
+    )
+    return gap_rows
 
 
 def build_technique_progress_gaps_datatable_payload(  # noqa: PLR0913
@@ -589,6 +653,7 @@ def build_technique_progress_gaps_datatable_payload(  # noqa: PLR0913
     params: Mapping[str, str] | None = None,
 ) -> dict[str, object]:
     params = params or {}
+    target_profile = normalize_target_profile(params.get("target_profile"))
     gap_kind, gap_rows = _gap_rows_for_request(
         request_user=request_user,
         raw_user_id=raw_user_id,
@@ -604,9 +669,17 @@ def build_technique_progress_gaps_datatable_payload(  # noqa: PLR0913
     page_length = min(max(requested_length, 1), GAP_PAGE_SIZE)
 
     records_total = len(gap_rows)
-    searched_rows = _search_gap_rows(gap_rows, raw_search=params.get("search[value]", ""))
+    enriched_rows = _enrich_gap_rows_with_benchmarks(gap_rows)
+    searched_rows = _search_gap_rows(enriched_rows, raw_search=params.get("search[value]", ""))
+    benchmark_filtered_rows = _filter_gap_rows_by_benchmark_params(searched_rows, params=params)
+    scored_rows = _score_gap_rows(
+        benchmark_filtered_rows,
+        target_profile=target_profile,
+    )
+    score_filtered_rows = _filter_scored_gap_rows_by_benchmark_params(scored_rows, params=params)
+    ranked_rows = _assign_gap_priority_ranks(score_filtered_rows)
     sorted_rows = _sort_gap_rows_for_datatable(
-        searched_rows,
+        ranked_rows,
         params=params,
         gap_kind=gap_kind,
     )
@@ -615,7 +688,7 @@ def build_technique_progress_gaps_datatable_payload(  # noqa: PLR0913
     return {
         "draw": draw,
         "recordsTotal": records_total,
-        "recordsFiltered": len(searched_rows),
+        "recordsFiltered": len(ranked_rows),
         "data": [_gap_datatable_row(row) for row in page_rows],
     }
 
@@ -744,6 +817,7 @@ def _gap_rows_cache_key(  # noqa: PLR0913
             f"min_total={gap_min_total}",
             f"catalog={_catalog_cache_marker()}",
             f"completion={_completion_cache_marker(selected_user)}",
+            f"benchmark={_benchmark_cache_marker()}",
         ],
     )
     digest = hashlib.sha256(key_payload.encode("utf-8")).hexdigest()
@@ -770,6 +844,226 @@ def _completion_cache_marker(user: User) -> str:
     latest_updated_at = marker["latest_updated_at"]
     latest_marker = latest_updated_at.isoformat() if latest_updated_at else ""
     return f"{marker['completion_count'] or 0}:{latest_marker}"
+
+
+def _benchmark_cache_marker() -> str:
+    benchmark_marker = TechniqueBenchmark.objects.aggregate(
+        benchmark_count=Count("id"),
+        latest_benchmark_updated_at=Max("updated_at"),
+    )
+    alias_marker = TechniqueBenchmarkAlias.objects.aggregate(
+        alias_count=Count("id"),
+        latest_alias_updated_at=Max("updated_at"),
+    )
+    latest_benchmark = benchmark_marker["latest_benchmark_updated_at"]
+    latest_alias = alias_marker["latest_alias_updated_at"]
+    return ":".join(
+        [
+            str(benchmark_marker["benchmark_count"] or 0),
+            latest_benchmark.isoformat() if latest_benchmark else "",
+            str(alias_marker["alias_count"] or 0),
+            latest_alias.isoformat() if latest_alias else "",
+        ],
+    )
+
+
+def _enrich_gap_rows_with_benchmarks(rows: list[dict[str, object]]) -> list[dict[str, object]]:
+    lookup = benchmark_lookup_for_gap_rows(rows)
+    enriched_rows = []
+    for row in rows:
+        row_key = benchmark_row_key(row)
+        lookup_entry = lookup.get(row_key, {})
+        benchmark = lookup_entry.get("benchmark")
+        matched_by_alias = bool(lookup_entry.get("matched_by_alias"))
+        alias_reason = str(lookup_entry.get("alias_reason") or "")
+        status = benchmark_quality_status(
+            benchmark=benchmark,
+            matched_by_alias=matched_by_alias,
+            alias_reason=alias_reason,
+        )
+        enriched_row = {
+            **row,
+            "_benchmark": benchmark,
+            "benchmark_matched_by_alias": matched_by_alias,
+            "benchmark_row_key": row_key,
+            "benchmark_status": status,
+            "parent_family": "",
+            "primary_area": "",
+            "target_level": "",
+            "benchmark_training_type": "",
+            "benchmark_confidence": None,
+            "rationale": "",
+            "typical_mohs_band": "",
+            "syllabus_core": None,
+            "contest_frequency": None,
+            "transfer_value": None,
+            "prerequisite_value": None,
+        }
+        if benchmark is not None:
+            enriched_row.update(
+                {
+                    "parent_family": benchmark.parent_family,
+                    "primary_area": benchmark.primary_area,
+                    "target_level": benchmark.target_level,
+                    "benchmark_training_type": benchmark.training_type,
+                    "benchmark_confidence": benchmark.benchmark_confidence,
+                    "rationale": benchmark.rationale,
+                    "typical_mohs_band": _typical_mohs_band(benchmark),
+                    "syllabus_core": benchmark.syllabus_core,
+                    "contest_frequency": benchmark.contest_frequency,
+                    "transfer_value": benchmark.transfer_value,
+                    "prerequisite_value": benchmark.prerequisite_value,
+                },
+            )
+        enriched_rows.append(enriched_row)
+    return enriched_rows
+
+
+def _score_and_rank_gap_rows(
+    rows: list[dict[str, object]],
+    *,
+    target_profile: str,
+) -> list[dict[str, object]]:
+    return _assign_gap_priority_ranks(
+        _score_gap_rows(rows, target_profile=target_profile),
+    )
+
+
+def _score_gap_rows(
+    rows: list[dict[str, object]],
+    *,
+    target_profile: str,
+) -> list[dict[str, object]]:
+    if not rows:
+        return []
+    max_remaining = max(int(row.get("remaining", 0)) for row in rows)
+    scored_rows = []
+    for row in rows:
+        benchmark = row.get("_benchmark")
+        scores = computed_scores_for_row(
+            row,
+            benchmark=benchmark,
+            max_remaining=max_remaining,
+            target_profile=target_profile,
+        )
+        final_action = final_training_type(
+            benchmark=benchmark,
+            priority_score=scores["priority_score"],
+            difficulty_score=scores["difficulty_score"],
+            efficiency_score=scores["efficiency_score"],
+        )
+        scored_rows.append(
+            {
+                **row,
+                **scores,
+                "final_training_type": final_action,
+            },
+        )
+    return scored_rows
+
+
+def _assign_gap_priority_ranks(rows: list[dict[str, object]]) -> list[dict[str, object]]:
+    ranked_rows = [dict(row, priority_rank=None) for row in rows]
+    sorted_by_priority = sorted(
+        ranked_rows,
+        key=lambda row: (
+            row.get("priority_score") is None,
+            -float(row.get("priority_score") or 0),
+            -int(row.get("remaining", 0)),
+            str(row.get("label", "")).casefold(),
+        ),
+    )
+    for index, row in enumerate(sorted_by_priority, start=1):
+        row["priority_rank"] = index if row.get("priority_score") is not None else None
+    rank_by_key = {
+        (row.get("benchmark_row_key"), row.get("label"), row.get("type")): row.get("priority_rank")
+        for row in sorted_by_priority
+    }
+    return [
+        {
+            **row,
+            "priority_rank": rank_by_key.get((row.get("benchmark_row_key"), row.get("label"), row.get("type"))),
+        }
+        for row in ranked_rows
+    ]
+
+
+def _filter_gap_rows_by_benchmark_params(
+    rows: list[dict[str, object]],
+    *,
+    params: Mapping[str, str],
+) -> list[dict[str, object]]:
+    benchmark_status = str(params.get("benchmark_status") or "").strip()
+    training_type = str(params.get("training_type") or "").strip()
+    target_level = str(params.get("target_level") or "").strip()
+    parent_family = str(params.get("parent_family") or "").strip().casefold()
+    filtered_rows = rows
+    if benchmark_status:
+        filtered_rows = [row for row in filtered_rows if row.get("benchmark_status") == benchmark_status]
+    if training_type:
+        filtered_rows = [
+            row for row in filtered_rows if row.get("benchmark_training_type") == training_type
+        ]
+    if target_level:
+        filtered_rows = [row for row in filtered_rows if row.get("target_level") == target_level]
+    if parent_family:
+        filtered_rows = [
+            row
+            for row in filtered_rows
+            if parent_family in str(row.get("parent_family") or "").casefold()
+        ]
+    return filtered_rows
+
+
+def _filter_scored_gap_rows_by_benchmark_params(
+    rows: list[dict[str, object]],
+    *,
+    params: Mapping[str, str],
+) -> list[dict[str, object]]:
+    priority_min = _optional_float(params.get("priority_min"))
+    difficulty_max = _optional_float(params.get("difficulty_max"))
+    efficiency_min = _optional_float(params.get("efficiency_min"))
+    filtered_rows = rows
+    if priority_min is not None:
+        filtered_rows = [
+            row
+            for row in filtered_rows
+            if row.get("priority_score") is not None and float(row["priority_score"]) >= priority_min
+        ]
+    if difficulty_max is not None:
+        filtered_rows = [
+            row
+            for row in filtered_rows
+            if row.get("difficulty_score") is not None and float(row["difficulty_score"]) <= difficulty_max
+        ]
+    if efficiency_min is not None:
+        filtered_rows = [
+            row
+            for row in filtered_rows
+            if row.get("efficiency_score") is not None and float(row["efficiency_score"]) >= efficiency_min
+        ]
+    return filtered_rows
+
+
+def _optional_float(raw_value: str | None) -> float | None:
+    if raw_value in (None, ""):
+        return None
+    try:
+        return float(raw_value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _typical_mohs_band(benchmark: TechniqueBenchmark) -> str:
+    if benchmark.typical_mohs_min is None or benchmark.typical_mohs_max is None:
+        return ""
+    return f"{benchmark.typical_mohs_min}M-{benchmark.typical_mohs_max}M"
+
+
+def _display_decimal(value: object) -> float | None:
+    if value is None:
+        return None
+    return round(float(value), 2)
 
 
 def build_technique_progress_topic_context(
@@ -1418,6 +1712,27 @@ def _gap_url(  # noqa: PLR0913
     return f"{reverse('pages:technique_progress_gaps')}?{urlencode(query)}"
 
 
+def _gap_benchmark_url(  # noqa: PLR0913
+    *,
+    selected_user: User,
+    can_select_user: bool,
+    gap_kind: str,
+    gap_topic: str,
+    gap_min_total: int = 0,
+    gap_canonical_subtopic: str = "",
+) -> str:
+    query: dict[str, str] = {}
+    if can_select_user:
+        query["user"] = str(selected_user.pk)
+    query["kind"] = gap_kind
+    query["topic"] = gap_topic
+    if gap_min_total > 0:
+        query["min_total"] = str(gap_min_total)
+    if gap_canonical_subtopic:
+        query["canonical_subtopic"] = gap_canonical_subtopic
+    return f"{reverse('pages:technique_gap_benchmark')}?{urlencode(query)}"
+
+
 def _gap_rows_with_urls(
     rows: list[dict[str, object]],
     *,
@@ -1565,6 +1880,16 @@ def _gap_search_haystack(row: dict[str, object]) -> str:
         f"{row.get('solved', '')} of {row.get('total', '')}",
         row.get("average_solved_mohs", ""),
         row.get("average_solved_mohs_label", ""),
+        row.get("benchmark_status", ""),
+        row.get("parent_family", ""),
+        row.get("primary_area", ""),
+        row.get("target_level", ""),
+        row.get("benchmark_training_type", ""),
+        row.get("final_training_type", ""),
+        row.get("rationale", ""),
+        row.get("priority_score", ""),
+        row.get("importance_score", ""),
+        row.get("difficulty_score", ""),
     ]
     return " ".join(str(value) for value in values).casefold()
 
@@ -1603,13 +1928,31 @@ def _gap_datatable_sort_field(params: Mapping[str, str], *, gap_kind: str) -> st
 
 def _gap_datatable_sort_value(row: dict[str, object], sort_field: str) -> object:
     if sort_field == "solved_total_label":
-        return int(row.get("solved", 0))
-    if sort_field == "average_solved_mohs":
+        sort_value: object = int(row.get("solved", 0))
+    elif sort_field == "average_solved_mohs":
         value = row.get("average_solved_mohs")
-        return float(value) if value is not None else -1
-    if sort_field in {"completion_percent", "remaining"}:
-        return int(row.get(sort_field, 0))
-    return str(row.get(sort_field, "")).casefold()
+        sort_value = float(value) if value is not None else -1
+    elif sort_field in {
+        "benchmark_confidence",
+        "completion_percent",
+        "difficulty_score",
+        "efficiency_score",
+        "gap_pressure",
+        "importance_score",
+        "priority_rank",
+        "priority_score",
+        "remaining",
+    }:
+        value = row.get(sort_field)
+        if value is None:
+            sort_value = -1
+        elif sort_field in {"completion_percent", "priority_rank", "remaining", "benchmark_confidence"}:
+            sort_value = int(value)
+        else:
+            sort_value = float(value)
+    else:
+        sort_value = str(row.get(sort_field, "")).casefold()
+    return sort_value
 
 
 def _gap_datatable_row(row: dict[str, object]) -> dict[str, object]:
@@ -1618,19 +1961,33 @@ def _gap_datatable_row(row: dict[str, object]) -> dict[str, object]:
     return {
         "average_solved_mohs": row.get("average_solved_mohs"),
         "average_solved_mohs_label": row.get("average_solved_mohs_label", "-"),
+        "benchmark_confidence": row.get("benchmark_confidence"),
+        "benchmark_status": row.get("benchmark_status", "missing"),
+        "benchmark_training_type": row.get("benchmark_training_type", ""),
         "canonical_subtopic": row.get("canonical_subtopic", ""),
         "canonical_subtopic_label": row.get("canonical_subtopic_label", ""),
         "completion_percent": int(row["completion_percent"]),
         "coverage_label": f"{row['completion_percent']}%",
+        "deep_work_score": _display_decimal(row.get("deep_work_score")),
+        "difficulty_score": _display_decimal(row.get("difficulty_score")),
         "drilldown_url": row.get("drilldown_url", ""),
+        "efficiency_score": _display_decimal(row.get("efficiency_score")),
+        "final_training_type": row.get("final_training_type", ""),
+        "gap_pressure": _display_decimal(row.get("gap_pressure")),
+        "importance_score": _display_decimal(row.get("importance_score")),
         "label": row["label"],
         "main_topic_label": row["main_topic_label"] or "-",
+        "parent_family": row.get("parent_family", ""),
         "practice_url": row["practice_url"],
+        "priority_rank": row.get("priority_rank"),
+        "priority_score": _display_decimal(row.get("priority_score")),
         "remaining": int(row["remaining"]),
+        "target_level": row.get("target_level", ""),
         "solved": solved,
         "solved_total_label": f"{solved} of {total}",
         "total": total,
         "type": row["type"],
+        "typical_mohs_band": row.get("typical_mohs_band", ""),
     }
 
 
@@ -1642,6 +1999,17 @@ def _gap_csv_row(row: dict[str, object]) -> dict[str, object]:
         "Canonical Subtopic": row.get("canonical_subtopic_label", ""),
         "Type": row["type"],
         "Topic": row["main_topic_label"] or "-",
+        "Benchmark status": row.get("benchmark_status", "missing"),
+        "Rank": row.get("priority_rank") or "",
+        "Priority": _display_decimal(row.get("priority_score")) or "",
+        "Efficiency": _display_decimal(row.get("efficiency_score")) or "",
+        "Gap pressure": _display_decimal(row.get("gap_pressure")) or "",
+        "Importance": _display_decimal(row.get("importance_score")) or "",
+        "Difficulty": _display_decimal(row.get("difficulty_score")) or "",
+        "Parent family": row.get("parent_family", ""),
+        "Action": row.get("final_training_type", ""),
+        "MOHS band": row.get("typical_mohs_band", ""),
+        "Confidence": row.get("benchmark_confidence") or "",
         "Completed": f"{solved} of {total}",
         "Avg MOHS": row.get("average_solved_mohs_label", "-"),
         "Remaining": int(row["remaining"]),
