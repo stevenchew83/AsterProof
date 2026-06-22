@@ -16,29 +16,21 @@ from inspinia.pages.technique_benchmarking.scoring import benchmark_lookup_for_g
 BENCHMARKABLE_CSV_CONTENT_TYPE = "text/csv; charset=utf-8"
 BENCHMARKABLE_CSV_FIELDNAMES = [
     "row_key",
-    "normalized_label",
-    "parent_family",
-    "primary_area",
-    "syllabus_core",
-    "contest_frequency",
-    "transfer_value",
-    "prerequisite_value",
-    "concept_load",
-    "recognition_burden",
-    "execution_load",
-    "proof_fragility",
-    "cross_topic_dependency",
-    "typical_mohs_min",
-    "typical_mohs_max",
-    "jbmo_weight",
-    "national_weight",
-    "imo_tst_weight",
-    "training_type",
-    "target_level",
-    "benchmark_confidence",
-    "rationale",
-    "pitfalls",
-    "recommended_sequence",
+    "kind",
+    "label",
+    "label_key",
+    "areas/0",
+    "areas/1",
+    "canonical_subtopic",
+    "type",
+    "completed",
+    "total",
+    "remaining",
+    "coverage_percent",
+    "avg_solved_mohs",
+    "existing_benchmark",
+    "areas/2",
+    "areas/3",
 ]
 
 
@@ -101,16 +93,27 @@ def build_benchmarkable_rows_csv_response(rows: list[dict[str, object]]) -> Http
 
 
 def _benchmarkable_csv_row(row: dict[str, object]) -> dict[str, str]:
-    csv_row = dict.fromkeys(BENCHMARKABLE_CSV_FIELDNAMES, "")
-    csv_row["row_key"] = str(row.get("benchmark_row_key") or benchmark_row_key(row))
-
     benchmark = row.get("benchmark")
-    if benchmark is None:
-        return csv_row
-
-    for field in BENCHMARKABLE_CSV_FIELDNAMES[1:]:
-        csv_row[field] = _csv_cell_value(getattr(benchmark, field, ""))
-    return csv_row
+    existing_benchmark = _existing_benchmark_payload(benchmark) if benchmark is not None else None
+    areas = list(row.get("main_topic_labels") or [])
+    return {
+        "row_key": str(row.get("benchmark_row_key") or benchmark_row_key(row)),
+        "kind": benchmark_kind_for_gap_row(row),
+        "label": str(row.get("label") or ""),
+        "label_key": benchmark_label_key_for_gap_row(row),
+        "areas/0": _list_cell(areas, 0),
+        "areas/1": _list_cell(areas, 1),
+        "canonical_subtopic": str(row.get("canonical_subtopic") or ""),
+        "type": str(row.get("type") or ""),
+        "completed": _csv_cell_value(row.get("solved")),
+        "total": _csv_cell_value(row.get("total")),
+        "remaining": _csv_cell_value(row.get("remaining")),
+        "coverage_percent": _csv_cell_value(row.get("completion_percent")),
+        "avg_solved_mohs": _csv_cell_value(row.get("average_solved_mohs")),
+        "existing_benchmark": _json_csv_cell(existing_benchmark),
+        "areas/2": _list_cell(areas, 2),
+        "areas/3": _list_cell(areas, 3),
+    }
 
 
 def build_benchmark_prompt(payload: dict[str, Any], *, export_batch=None) -> str:
@@ -201,6 +204,19 @@ def _csv_cell_value(value: object) -> str:
     if value is None:
         return ""
     return str(value)
+
+
+def _list_cell(values: list[object], index: int) -> str:
+    try:
+        return str(values[index] or "")
+    except IndexError:
+        return ""
+
+
+def _json_csv_cell(value: object) -> str:
+    if value is None:
+        return ""
+    return json.dumps(value, ensure_ascii=False, sort_keys=True, default=_json_default)
 
 
 def _json_default(value: object) -> object:
