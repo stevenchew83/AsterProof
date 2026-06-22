@@ -167,9 +167,11 @@ from inspinia.pages.technique_benchmarking.coverage import build_benchmark_cover
 from inspinia.pages.technique_benchmarking.export import build_benchmark_export_payload
 from inspinia.pages.technique_benchmarking.export import build_benchmark_prompt
 from inspinia.pages.technique_benchmarking.importing import BenchmarkImportValidationError
+from inspinia.pages.technique_benchmarking.importing import SCHEMA_VERSION
 from inspinia.pages.technique_benchmarking.importing import apply_benchmark_import
 from inspinia.pages.technique_benchmarking.importing import preview_benchmark_import
 from inspinia.pages.technique_benchmarking.importing import restore_benchmark_import_batch
+from inspinia.pages.technique_benchmarking.schema import technique_benchmark_schema_status
 from inspinia.pages.technique_progress import build_technique_progress_context
 from inspinia.pages.technique_progress import build_technique_progress_gaps_context
 from inspinia.pages.technique_progress import build_technique_progress_gaps_csv_response
@@ -8266,6 +8268,50 @@ def technique_gap_benchmark_view(request):  # noqa: C901, PLR0912, PLR0915
     raw_min_total = (request.GET.get("min_total") or "").strip()
     raw_canonical_subtopic = (request.GET.get("canonical_subtopic") or "").strip()
     target_profile = (request.POST.get("target_profile") or request.GET.get("target_profile") or "national").strip()
+    schema_status = technique_benchmark_schema_status()
+    if not schema_status["ready"]:
+        messages.warning(request, "Benchmark database migration required before this tool can run.")
+        form = TechniqueBenchmarkImportForm()
+        empty_counts = {
+            "total": 0,
+            "missing": 0,
+            "partial": 0,
+            "complete": 0,
+            "needs_review": 0,
+        }
+        return render(
+            request,
+            "pages/technique-gap-benchmark.html",
+            {
+                "active_export_batch": None,
+                "applied_batch": None,
+                "batch_size_choices": BATCH_SIZE_CHOICES,
+                "batch_scope_options": batch_scope_options(),
+                "batch_sort_options": batch_sort_options(),
+                "benchmark_coverage": {
+                    "counts": empty_counts,
+                    "by_kind": {},
+                    "by_area": {},
+                    "rows": [],
+                },
+                "benchmark_kind_options": kind_filter_options(),
+                "benchmark_schema_status": schema_status,
+                "benchmark_schema_ready": False,
+                "export_payload": {
+                    "schema_version": SCHEMA_VERSION,
+                    "row_count": 0,
+                    "rows": [],
+                },
+                "export_payload_json": "",
+                "export_prompt": "",
+                "form": form,
+                "preview_result": None,
+                "recent_export_batches": [],
+                "recent_batches": [],
+                "restored_stats": None,
+                "target_profile": target_profile,
+            },
+        )
     batch_id = (request.POST.get("export_batch_id") or request.GET.get("batch") or "").strip()
     if batch_id:
         active_export_batch = TechniqueBenchmarkExportBatch.objects.filter(pk=batch_id).first()
@@ -8445,6 +8491,8 @@ def technique_gap_benchmark_view(request):  # noqa: C901, PLR0912, PLR0915
             "batch_sort_options": batch_sort_options(),
             "benchmark_coverage": coverage_summary,
             "benchmark_kind_options": kind_filter_options(),
+            "benchmark_schema_status": schema_status,
+            "benchmark_schema_ready": True,
             "export_payload": export_payload,
             "export_payload_json": export_payload_json,
             "export_prompt": export_prompt,
