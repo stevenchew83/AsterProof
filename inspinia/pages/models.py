@@ -1,4 +1,5 @@
 import uuid
+from decimal import Decimal
 
 from django.conf import settings
 from django.core.validators import MaxValueValidator
@@ -551,6 +552,251 @@ class TechniqueProgressCatalogState(models.Model):
 
     def save(self, *args, **kwargs) -> None:
         self.singleton_key = 1
+        super().save(*args, **kwargs)
+
+
+class TechniqueBenchmarkImportBatch(models.Model):
+    class Status(models.TextChoices):
+        PREVIEWED = "previewed", "Previewed"
+        APPLIED = "applied", "Applied"
+        FAILED = "failed", "Failed"
+        RESTORED = "restored", "Restored"
+
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="technique_benchmark_import_batches",
+    )
+    status = models.CharField(max_length=32, choices=Status.choices)
+    source = models.CharField(max_length=64, default="chatgpt_copy_paste")
+    prompt_text = models.TextField(blank=True)
+    pasted_response = models.TextField(blank=True)
+    rows_total = models.PositiveIntegerField(default=0)
+    rows_valid = models.PositiveIntegerField(default=0)
+    rows_invalid = models.PositiveIntegerField(default=0)
+    rows_created = models.PositiveIntegerField(default=0)
+    rows_updated = models.PositiveIntegerField(default=0)
+    rows_unchanged = models.PositiveIntegerField(default=0)
+    error_summary = models.TextField(blank=True)
+    preview_payload = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    applied_at = models.DateTimeField(null=True, blank=True)
+    restored_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+
+    def __str__(self) -> str:
+        return f"Technique benchmark import {self.pk or 'unsaved'} ({self.status})"
+
+
+class TechniqueBenchmark(models.Model):
+    class Kind(models.TextChoices):
+        CANONICAL_SUBTOPIC = "canonical_subtopic", "Canonical subtopic"
+        TECHNIQUE = "technique", "Technique"
+        OBJECT = "object", "Object"
+        METHOD = "method", "Method"
+        LEMMA = "lemma", "Lemma/Theorem"
+        PROOF_ROLE = "proof_role", "Proof role"
+        PARENT_FAMILY = "parent_family", "Parent family"
+
+    TRAINING_TYPES = {
+        "Drill",
+        "Deep block",
+        "Mixed mock",
+        "Review",
+        "Postpone",
+    }
+    TARGET_LEVELS = {
+        "Foundation",
+        "JBMO",
+        "National",
+        "IMO/TST",
+        "Specialist",
+    }
+
+    kind = models.CharField(max_length=32, choices=Kind.choices)
+    label = models.CharField(max_length=255)
+    label_key = models.CharField(max_length=255)
+    normalized_label = models.CharField(max_length=255, blank=True)
+    parent_family = models.CharField(max_length=255, blank=True)
+    primary_area = models.CharField(max_length=64, blank=True)
+    area_labels = models.JSONField(default=list, blank=True)
+
+    syllabus_core = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1), MaxValueValidator(5)],
+    )
+    contest_frequency = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1), MaxValueValidator(5)],
+    )
+    transfer_value = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1), MaxValueValidator(5)],
+    )
+    prerequisite_value = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1), MaxValueValidator(5)],
+    )
+
+    concept_load = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1), MaxValueValidator(5)],
+    )
+    recognition_burden = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1), MaxValueValidator(5)],
+    )
+    execution_load = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1), MaxValueValidator(5)],
+    )
+    proof_fragility = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1), MaxValueValidator(5)],
+    )
+    cross_topic_dependency = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1), MaxValueValidator(5)],
+    )
+
+    difficulty_score = models.DecimalField(max_digits=4, decimal_places=2, null=True, blank=True)
+    importance_score = models.DecimalField(max_digits=4, decimal_places=2, null=True, blank=True)
+
+    typical_mohs_min = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0), MaxValueValidator(60)],
+    )
+    typical_mohs_max = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0), MaxValueValidator(60)],
+    )
+    typical_mohs_center = models.DecimalField(max_digits=4, decimal_places=1, null=True, blank=True)
+
+    jbmo_weight = models.DecimalField(max_digits=4, decimal_places=2, default=Decimal("1.00"))
+    national_weight = models.DecimalField(max_digits=4, decimal_places=2, default=Decimal("1.00"))
+    imo_tst_weight = models.DecimalField(max_digits=4, decimal_places=2, default=Decimal("1.00"))
+
+    training_type = models.CharField(max_length=64, blank=True)
+    target_level = models.CharField(max_length=64, blank=True)
+    benchmark_confidence = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+    )
+    rationale = models.TextField(blank=True)
+    pitfalls = models.TextField(blank=True)
+    recommended_sequence = models.TextField(blank=True)
+    source_version = models.CharField(max_length=64, blank=True)
+    imported_from_batch = models.ForeignKey(
+        TechniqueBenchmarkImportBatch,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="benchmarks",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["kind", "label"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["kind", "label_key"],
+                name="uniq_technique_benchmark_kind_label_key",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["kind", "label_key"], name="pages_tb_kind_label_idx"),
+            models.Index(fields=["parent_family"], name="pages_tb_parent_family_idx"),
+            models.Index(fields=["primary_area"], name="pages_tb_primary_area_idx"),
+            models.Index(fields=["importance_score"], name="pages_tb_importance_idx"),
+            models.Index(fields=["difficulty_score"], name="pages_tb_difficulty_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.kind}: {self.label}"
+
+    def save(self, *args, **kwargs) -> None:
+        from inspinia.pages.technique_benchmarking.keys import normalize_benchmark_key
+        from inspinia.pages.technique_benchmarking.scoring import calculate_static_difficulty_score
+        from inspinia.pages.technique_benchmarking.scoring import calculate_static_importance_score
+
+        self.label = (self.label or "").strip()
+        self.label_key = normalize_benchmark_key(self.label_key or self.label)
+        if not self.normalized_label:
+            self.normalized_label = self.label
+        self.importance_score = calculate_static_importance_score(self)
+        self.difficulty_score = calculate_static_difficulty_score(self)
+        if self.typical_mohs_min is not None and self.typical_mohs_max is not None:
+            self.typical_mohs_center = Decimal(self.typical_mohs_min + self.typical_mohs_max) / Decimal("2")
+        else:
+            self.typical_mohs_center = None
+
+        update_fields = kwargs.get("update_fields")
+        if update_fields is not None:
+            kwargs["update_fields"] = set(update_fields) | {
+                "label",
+                "label_key",
+                "normalized_label",
+                "importance_score",
+                "difficulty_score",
+                "typical_mohs_center",
+            }
+
+        super().save(*args, **kwargs)
+
+
+class TechniqueBenchmarkAlias(models.Model):
+    kind = models.CharField(max_length=32, choices=TechniqueBenchmark.Kind.choices)
+    alias_label = models.CharField(max_length=255)
+    alias_key = models.CharField(max_length=255)
+    benchmark = models.ForeignKey(
+        TechniqueBenchmark,
+        on_delete=models.CASCADE,
+        related_name="aliases",
+    )
+    reason = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["kind", "alias_label"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["kind", "alias_key"],
+                name="uniq_technique_benchmark_alias_kind_key",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["kind", "alias_key"], name="pages_tba_kind_key_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.kind}: {self.alias_label} -> {self.benchmark}"
+
+    def save(self, *args, **kwargs) -> None:
+        from inspinia.pages.technique_benchmarking.keys import normalize_benchmark_key
+
+        self.alias_label = (self.alias_label or "").strip()
+        self.alias_key = normalize_benchmark_key(self.alias_key or self.alias_label)
+
+        update_fields = kwargs.get("update_fields")
+        if update_fields is not None:
+            kwargs["update_fields"] = set(update_fields) | {"alias_label", "alias_key"}
+
         super().save(*args, **kwargs)
 
 

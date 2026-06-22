@@ -134,6 +134,15 @@
               >
                 <i class="ti ti-table-export me-1"></i>Export CSV
               </a>
+              {% if technique_progress_can_manage_benchmarks %}
+              <a
+                href="{{ technique_progress_gap_benchmark_url }}"
+                id="technique-progress-gaps-benchmark"
+                class="btn btn-sm btn-outline-secondary"
+              >
+                <i class="ti ti-brain me-1"></i>Benchmark gaps
+              </a>
+              {% endif %}
               {% if not technique_progress_gap_is_drilldown %}
               <div class="btn-group btn-group-sm" role="group" aria-label="Practice gap type">
                 {% for option in technique_progress_gap_kind_options %}
@@ -223,6 +232,16 @@
                   {% if not technique_progress_gap_is_drilldown %}
                   <th scope="col">Topic</th>
                   {% endif %}
+                  <th scope="col">Rank</th>
+                  <th scope="col">Priority</th>
+                  <th scope="col">Efficiency</th>
+                  <th scope="col">Gap pressure</th>
+                  <th scope="col">Importance</th>
+                  <th scope="col">Difficulty</th>
+                  <th scope="col">Parent family</th>
+                  <th scope="col">Action</th>
+                  <th scope="col">MOHS band</th>
+                  <th scope="col">Confidence</th>
                   <th scope="col">Completed</th>
                   <th scope="col">Avg MOHS</th>
                   <th scope="col">Remaining</th>
@@ -285,6 +304,36 @@
     return '<span class="badge bg-secondary-subtle text-secondary">' + escapeHtml(data) + "</span>";
   }
 
+  function renderRank(data, type) {
+    if (type !== "display") return data === null || data === undefined || data === "" ? 999999 : Number(data);
+    if (data === null || data === undefined || data === "") return '<span class="text-muted">-</span>';
+    return '<span class="badge bg-primary-subtle text-primary">#' + escapeHtml(data) + "</span>";
+  }
+
+  function renderScore(data, type) {
+    if (type !== "display") return data === null || data === undefined || data === "" ? -1 : Number(data);
+    if (data === null || data === undefined || data === "") return '<span class="text-muted">-</span>';
+    return escapeHtml(Number(data).toFixed(2));
+  }
+
+  function renderBenchmarkText(data, type) {
+    if (type !== "display") return displayValue(data, "");
+    var value = displayValue(data, "-");
+    if (value === "-") return '<span class="text-muted">-</span>';
+    return escapeHtml(value);
+  }
+
+  function renderAction(data, type, row) {
+    var value = displayValue(data || row.benchmark_training_type, "");
+    if (type !== "display") return value;
+    if (!value) return '<span class="text-muted">-</span>';
+    var className = "bg-secondary-subtle text-secondary";
+    if (value === "Drill") className = "bg-success-subtle text-success";
+    if (value === "Deep block") className = "bg-warning-subtle text-warning";
+    if (value === "Postpone") className = "bg-light text-muted";
+    return '<span class="badge ' + className + '">' + escapeHtml(value) + "</span>";
+  }
+
   function renderCompleted(data, type, row) {
     if (type !== "display") return Number(row.solved || 0);
     return escapeHtml(displayValue(data, "0 of 0"));
@@ -324,10 +373,6 @@
   var showCanonicalSubtopicColumn = tableElement.dataset.showCanonicalSubtopicColumn === "true";
   var showTopicColumn = tableElement.dataset.showTopicColumn === "true";
   var pageLength = Number(tableElement.dataset.pageLength || 50);
-  var typeColumnOffset = showTypeColumn ? 1 : 0;
-  var canonicalColumnOffset = showCanonicalSubtopicColumn ? 1 : 0;
-  var topicColumnOffset = showTopicColumn ? 1 : 0;
-  var remainingColumnIndex = 3 + typeColumnOffset + canonicalColumnOffset + topicColumnOffset;
   var columns = [
     { data: "label", name: "label", render: renderGapLabel }
   ];
@@ -345,6 +390,21 @@
   if (showTopicColumn) {
     columns.push({ data: "main_topic_label", name: "main_topic_label", render: renderText });
   }
+  columns.push(
+    { data: "priority_rank", name: "priority_rank", render: renderRank },
+    { data: "priority_score", name: "priority_score", render: renderScore },
+    { data: "efficiency_score", name: "efficiency_score", render: renderScore },
+    { data: "gap_pressure", name: "gap_pressure", render: renderScore },
+    { data: "importance_score", name: "importance_score", render: renderScore },
+    { data: "difficulty_score", name: "difficulty_score", render: renderScore },
+    { data: "parent_family", name: "parent_family", render: renderBenchmarkText },
+    { data: "final_training_type", name: "final_training_type", render: renderAction },
+    { data: "typical_mohs_band", name: "typical_mohs_band", render: renderBenchmarkText },
+    { data: "benchmark_confidence", name: "benchmark_confidence", render: renderScore }
+  );
+  var priorityColumnIndex = columns.findIndex(function(column) {
+    return column.name === "priority_score";
+  });
   columns.push(
     { data: "solved_total_label", name: "solved_total_label", render: renderCompleted },
     { data: "average_solved_mohs", name: "average_solved_mohs", render: renderAverageMohs },
@@ -370,7 +430,7 @@
     searchDelay: 300,
     pageLength: pageLength,
     lengthChange: false,
-    order: [[remainingColumnIndex, "desc"]],
+    order: [[priorityColumnIndex, "desc"]],
     autoWidth: false,
     language: {
       info: "Showing _START_ to _END_ of _TOTAL_ practice gaps",
