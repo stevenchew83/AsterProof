@@ -800,6 +800,12 @@ def build_technique_progress_topic_context(
         selected_user=selected_user,
         can_select_user=can_select_user,
     )
+    topic_subtopic_rows = _rows_with_layer_practice_urls(
+        topic_subtopic_rows,
+        layer_kind=GAP_KIND_SUBTOPICS,
+        selected_user=selected_user,
+        can_select_user=can_select_user,
+    )
     topic_layer_rows = _all_layer_progress_rows(
         topic_tagged_rows,
         selected_user=selected_user,
@@ -862,10 +868,22 @@ def _build_progress_payload(  # noqa: PLR0913
         selected_user=selected_user,
         can_select_user=can_select_user,
     )
+    technique_rows = _rows_with_layer_practice_urls(
+        technique_rows,
+        layer_kind=GAP_KIND_TECHNIQUES,
+        selected_user=selected_user,
+        can_select_user=can_select_user,
+    )
     subtopic_rows = _aggregate_progress_rows(
         rows_by_layer.get(TechniqueProgressFact.Layer.SUBTOPIC, []),
         label_key="label",
         type_label="Subtopic",
+        selected_user=selected_user,
+        can_select_user=can_select_user,
+    )
+    subtopic_rows = _rows_with_layer_practice_urls(
+        subtopic_rows,
+        layer_kind=GAP_KIND_SUBTOPICS,
         selected_user=selected_user,
         can_select_user=can_select_user,
     )
@@ -956,7 +974,12 @@ def _fact_layer_progress_rows(
         selected_user=selected_user,
         can_select_user=can_select_user,
     )
-    return [dict(row, layer_kind=layer_kind) for row in rows]
+    return _rows_with_layer_practice_urls(
+        rows,
+        layer_kind=layer_kind,
+        selected_user=selected_user,
+        can_select_user=can_select_user,
+    )
 
 
 def _layer_progress_rows(
@@ -984,7 +1007,35 @@ def _layer_progress_rows(
         selected_user=selected_user,
         can_select_user=can_select_user,
     )
-    return [dict(row, layer_kind=layer_kind) for row in rows]
+    return _rows_with_layer_practice_urls(
+        rows,
+        layer_kind=layer_kind,
+        selected_user=selected_user,
+        can_select_user=can_select_user,
+    )
+
+
+def _rows_with_layer_practice_urls(
+    rows: list[dict[str, object]],
+    *,
+    layer_kind: str,
+    selected_user: User,
+    can_select_user: bool,
+) -> list[dict[str, object]]:
+    return [
+        {
+            **row,
+            "layer_kind": layer_kind,
+            "practice_url": _practice_url(
+                "",
+                selected_user=selected_user,
+                can_select_user=can_select_user,
+                layer_kind=layer_kind,
+                layer_tag=str(row["label"]),
+            ),
+        }
+        for row in rows
+    ]
 
 
 def _all_layer_progress_rows(
@@ -1377,12 +1428,8 @@ def _gap_rows_with_urls(
             enriched_row["drilldown_url"] = ""
         layer_kind = str(row.get("layer_kind") or "")
         if layer_kind:
-            practice_subtopic = (
-                gap_canonical_subtopic
-                or str(row.get("canonical_subtopic") or "").strip()
-            )
             enriched_row["practice_url"] = _practice_url(
-                practice_subtopic,
+                "",
                 selected_user=selected_user,
                 can_select_user=can_select_user,
                 layer_kind=layer_kind,
@@ -2014,11 +2061,11 @@ def _practice_url(
     query: dict[str, str] = {}
     if can_select_user:
         query["target_user_id"] = str(selected_user.pk)
-    if label:
-        query["subtopics"] = label
     if layer_kind and layer_tag:
         query["layer_kind"] = layer_kind
         query["layer_tag"] = layer_tag
+    elif label:
+        query["subtopics"] = label
     return f"{reverse('pages:completion_quick_update')}?{urlencode(query)}"
 
 

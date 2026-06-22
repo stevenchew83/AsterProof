@@ -106,6 +106,7 @@ from inspinia.pages.models import PageViewEvent
 from inspinia.pages.models import ProblemSolveRecord
 from inspinia.pages.models import ProblemTopicTechnique
 from inspinia.pages.models import StatementTopicTechnique
+from inspinia.pages.models import TechniqueProgressFact
 from inspinia.pages.models import UserProblemCompletion
 from inspinia.pages.models import UserProblemDifficultyRating
 from inspinia.pages.page_view_analytics import build_page_view_analytics_context
@@ -4933,12 +4934,24 @@ def _completion_quick_update_apply_subtopics_filter(queryset, raw_value: str):
 
 
 COMPLETION_QUICK_UPDATE_LAYER_FIELDS = {
+    "subtopics": "canonical_subtopic",
+    "techniques": "technique",
     "objects": "object_tags",
     "methods": "technique_tags",
     "lemmas": "lemma_theorem_tags",
     "proof_roles": "proof_roles",
 }
+COMPLETION_QUICK_UPDATE_FACT_LAYERS = {
+    "subtopics": TechniqueProgressFact.Layer.SUBTOPIC,
+    "techniques": TechniqueProgressFact.Layer.TECHNIQUE,
+    "objects": TechniqueProgressFact.Layer.OBJECT,
+    "methods": TechniqueProgressFact.Layer.METHOD,
+    "lemmas": TechniqueProgressFact.Layer.LEMMA,
+    "proof_roles": TechniqueProgressFact.Layer.PROOF_ROLE,
+}
 COMPLETION_QUICK_UPDATE_LAYER_LABELS = {
+    "subtopics": "Subtopic",
+    "techniques": "Technique",
     "objects": "Object tag",
     "methods": "Technique tag",
     "lemmas": "Lemma/Theorem tag",
@@ -4948,55 +4961,38 @@ COMPLETION_QUICK_UPDATE_LAYER_LABELS = {
 
 def _completion_quick_update_layer_kind(raw_value: str) -> str:
     layer_kind = (raw_value or "").strip()
-    return layer_kind if layer_kind in COMPLETION_QUICK_UPDATE_LAYER_FIELDS else ""
+    return layer_kind if layer_kind in COMPLETION_QUICK_UPDATE_FACT_LAYERS else ""
+
+
+def _completion_quick_update_resolve_layer_filter(
+    *,
+    raw_kind: str,
+    raw_tag: str,
+) -> tuple[str, str]:
+    layer_kind = _completion_quick_update_layer_kind(raw_kind)
+    label_key = (raw_tag or "").strip().casefold()
+    if not layer_kind or not label_key:
+        return "", ""
+    return str(COMPLETION_QUICK_UPDATE_FACT_LAYERS[layer_kind]), label_key
 
 
 def _completion_quick_update_apply_layer_filter(queryset, *, raw_kind: str, raw_tag: str):
-    layer_kind = _completion_quick_update_layer_kind(raw_kind)
-    layer_tag = (raw_tag or "").strip()
-    if not layer_kind or not layer_tag:
+    layer, label_key = _completion_quick_update_resolve_layer_filter(
+        raw_kind=raw_kind,
+        raw_tag=raw_tag,
+    )
+    if not layer or not label_key:
         return queryset
 
-    layer_field = COMPLETION_QUICK_UPDATE_LAYER_FIELDS[layer_kind]
-    candidate_statement_rows = list(
-        queryset.values_list("id", "linked_problem_id"),
+    return queryset.filter(
+        Exists(
+            TechniqueProgressFact.objects.filter(
+                statement_id=OuterRef("pk"),
+                layer=layer,
+                label_key=label_key,
+            ),
+        ),
     )
-    candidate_statement_ids = [statement_id for statement_id, _linked_id in candidate_statement_rows]
-    if not candidate_statement_ids:
-        return queryset.none()
-
-    statement_ids_with_tags = set(
-        StatementTopicTechnique.objects.filter(statement_id__in=candidate_statement_ids)
-        .values_list("statement_id", flat=True)
-        .distinct(),
-    )
-    matching_statement_ids = {
-        int(tag_row["statement_id"])
-        for tag_row in StatementTopicTechnique.objects.filter(statement_id__in=candidate_statement_ids)
-        .values("statement_id", layer_field)
-        if layer_tag in {str(value) for value in (tag_row[layer_field] or [])}
-    }
-
-    linked_problem_ids = sorted(
-        {
-            linked_problem_id
-            for _statement_id, linked_problem_id in candidate_statement_rows
-            if linked_problem_id is not None
-        },
-    )
-    matching_problem_ids = {
-        int(tag_row["record_id"])
-        for tag_row in ProblemTopicTechnique.objects.filter(record_id__in=linked_problem_ids)
-        .values("record_id", layer_field)
-        if layer_tag in {str(value) for value in (tag_row[layer_field] or [])}
-    }
-    fallback_statement_ids = {
-        statement_id
-        for statement_id, linked_problem_id in candidate_statement_rows
-        if statement_id not in statement_ids_with_tags
-        and linked_problem_id in matching_problem_ids
-    }
-    return queryset.filter(id__in=matching_statement_ids | fallback_statement_ids)
 
 
 def _completion_quick_update_layer_filter_clear_url(request) -> str:
@@ -5233,9 +5229,15 @@ def _completion_quick_update_tag_payload_by_statement_id(
 def _completion_quick_update_result_summary(
     *,
     has_search_filters: bool,
+    is_capped: bool,
     matching_total: int,
+    matching_total_is_exact: bool,
     visible_total: int,
 ) -> str:
+    if not matching_total_is_exact:
+        if is_capped:
+            return f"Showing first {visible_total} matching rows"
+        return f"{visible_total} matching row{'s' if visible_total != 1 else ''}"
     if has_search_filters:
         if visible_total < matching_total:
             return f"Showing {visible_total} of {matching_total} matching rows"
@@ -5243,6 +5245,25 @@ def _completion_quick_update_result_summary(
     if visible_total < matching_total:
         return f"Showing {visible_total} recent rows of {matching_total} total"
     return f"{visible_total} recent row{'s' if visible_total != 1 else ''}"
+
+
+def _completion_quick_update_fetch_limited(
+    queryset,
+    *,
+    limit: int,
+    skip_exact_total: bool,
+) -> tuple[list[ContestProblemStatement], int, bool, int, bool]:
+    if skip_exact_total:
+        rows = list(queryset[: limit + 1])
+        is_capped = len(rows) > limit
+        statements = rows[:limit]
+        visible_total = len(statements)
+        return statements, visible_total, is_capped, visible_total, False
+
+    matching_total = queryset.count()
+    statements = list(queryset[:limit])
+    visible_total = len(statements)
+    return statements, visible_total, visible_total < matching_total, matching_total, True
 
 
 def _completion_quick_update_selected_filter_labels(raw_value: str) -> list[str]:
@@ -5474,12 +5495,12 @@ def completion_quick_update_view(request):
         filtered_statements,
         selected_core_ideas,
     )
-    matching_total = filtered_statements.count()
     result_limit = (
         COMPLETION_QUICK_UPDATE_SEARCH_LIMIT
         if has_search_filters
         else COMPLETION_QUICK_UPDATE_RECENT_LIMIT
     )
+    skip_exact_total = bool(selected_layer_kind and selected_layer_tag)
     if has_search_filters:
         filtered_statements = filtered_statements.order_by(
             "-contest_year",
@@ -5491,10 +5512,17 @@ def completion_quick_update_view(request):
         )
     else:
         filtered_statements = filtered_statements.order_by("-updated_at", "-id")
-    statements = list(
-        filtered_statements[:result_limit],
+    (
+        statements,
+        visible_total,
+        is_capped,
+        matching_total,
+        matching_total_is_exact,
+    ) = _completion_quick_update_fetch_limited(
+        filtered_statements,
+        limit=result_limit,
+        skip_exact_total=skip_exact_total,
     )
-    visible_total = len(statements)
     completion_by_statement_id = _statement_completions_by_statement_id(
         statements,
         user=selected_user,
@@ -5534,7 +5562,8 @@ def completion_quick_update_view(request):
         "completion_quick_update_filters": selected_filters,
         "completion_quick_update_layer_filter_clear_url": _completion_quick_update_layer_filter_clear_url(request),
         "completion_quick_update_matching_total": matching_total,
-        "completion_quick_update_is_capped": visible_total < matching_total,
+        "completion_quick_update_matching_total_is_exact": matching_total_is_exact,
+        "completion_quick_update_is_capped": is_capped,
         "completion_quick_update_difficulty_max": DIFFICULTY_RATING_MAX,
         "completion_quick_update_difficulty_min": DIFFICULTY_RATING_MIN,
         "completion_quick_update_difficulty_save_url": reverse(
@@ -5544,7 +5573,9 @@ def completion_quick_update_view(request):
         "completion_quick_update_result_limit": result_limit,
         "completion_quick_update_result_summary": _completion_quick_update_result_summary(
             has_search_filters=has_search_filters,
+            is_capped=is_capped,
             matching_total=matching_total,
+            matching_total_is_exact=matching_total_is_exact,
             visible_total=visible_total,
         ),
         "completion_quick_update_save_url": reverse("pages:completion_quick_update_save"),
