@@ -224,6 +224,7 @@
                   <th scope="col">Topic</th>
                   {% endif %}
                   <th scope="col">Completed</th>
+                  <th scope="col">Avg MOHS</th>
                   <th scope="col">Remaining</th>
                   <th scope="col">Coverage</th>
                   <th scope="col" class="text-end">Practice</th>
@@ -289,6 +290,16 @@
     return escapeHtml(displayValue(data, "0 of 0"));
   }
 
+  function renderAverageMohs(data, type, row) {
+    var sortValue = row.average_solved_mohs;
+    if (type !== "display") {
+      return sortValue === null || sortValue === undefined || sortValue === "" ? -1 : Number(sortValue);
+    }
+    var label = displayValue(row.average_solved_mohs_label, "-");
+    if (label === "-") return '<span class="text-muted">-</span>';
+    return escapeHtml(label);
+  }
+
   function renderCoverage(data, type, row) {
     var percent = Math.max(0, Math.min(100, Number(data || 0)));
     if (type !== "display") return percent;
@@ -316,7 +327,7 @@
   var typeColumnOffset = showTypeColumn ? 1 : 0;
   var canonicalColumnOffset = showCanonicalSubtopicColumn ? 1 : 0;
   var topicColumnOffset = showTopicColumn ? 1 : 0;
-  var remainingColumnIndex = 2 + typeColumnOffset + canonicalColumnOffset + topicColumnOffset;
+  var remainingColumnIndex = 3 + typeColumnOffset + canonicalColumnOffset + topicColumnOffset;
   var columns = [
     { data: "label", name: "label", render: renderGapLabel }
   ];
@@ -336,6 +347,7 @@
   }
   columns.push(
     { data: "solved_total_label", name: "solved_total_label", render: renderCompleted },
+    { data: "average_solved_mohs", name: "average_solved_mohs", render: renderAverageMohs },
     { data: "remaining", name: "remaining", render: renderText },
     { data: "completion_percent", name: "completion_percent", render: renderCoverage },
     {

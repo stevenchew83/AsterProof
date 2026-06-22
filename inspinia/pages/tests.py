@@ -7352,6 +7352,47 @@ def test_completion_quick_update_filters_by_exact_lemma_layer_tag(client):
     assert [row["statement_uuid"] for row in rows] == [str(matching_statement.statement_uuid)]
 
 
+def test_completion_quick_update_layer_filter_uses_fact_subtopic_context_and_ignores_legacy_technique_param(
+    client,
+):
+    user = UserFactory()
+    client.force_login(user)
+    statement = _create_quick_completion_statement(problem_code="P1", problem_number=1)
+    TechniqueProgressFact.objects.create(
+        statement=statement,
+        linked_problem=statement.linked_problem,
+        layer=TechniqueProgressFact.Layer.LEMMA,
+        label="POWER OF A POINT",
+        label_key="power of a point",
+    )
+    TechniqueProgressFact.objects.create(
+        statement=statement,
+        linked_problem=statement.linked_problem,
+        layer=TechniqueProgressFact.Layer.SUBTOPIC,
+        label="Circle geometry",
+        label_key="circle geometry",
+    )
+
+    response = client.get(
+        reverse("pages:completion_quick_update"),
+        {
+            "subtopics": "Circle geometry",
+            "technique": "POWER OF A POINT",
+            "layer_kind": "lemmas",
+            "layer_label": "Lemma/Theorem tag",
+            "layer_tag": "POWER OF A POINT",
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    rows = response.context["completion_quick_update_rows"]
+    assert [row["statement_uuid"] for row in rows] == [str(statement.statement_uuid)]
+    assert response.context["completion_quick_update_filters"]["subtopics"] == "Circle geometry"
+    assert response.context["completion_quick_update_filters"]["technique"] == "POWER OF A POINT"
+    assert response.context["completion_quick_update_filters"]["layer_kind"] == "lemmas"
+    assert response.context["completion_quick_update_filters"]["layer_tag"] == "POWER OF A POINT"
+
+
 def test_completion_quick_update_layer_filter_uses_linked_problem_fallback_only_without_statement_tags(client):
     user = UserFactory()
     client.force_login(user)
@@ -13365,6 +13406,93 @@ def test_technique_progress_gaps_page_calculates_coverage_by_canonical_subtopic(
     assert rows[0]["completion_percent"] == 75
 
 
+def test_technique_progress_gaps_page_shows_average_solved_mohs_for_gap(client):
+    user = UserFactory()
+    client.force_login(user)
+    canonical_subtopic = "Inequalities and optimization"
+    solved_statement = _create_technique_progress_statement(
+        problem_code="S1",
+        problem_number=1,
+        mohs=4,
+        statement_tags=[
+            {
+                "technique": "QUADRATIC ESTIMATE",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": canonical_subtopic,
+                "object_tags": ["QUADRATIC EXPRESSION"],
+            },
+        ],
+    )
+    linked_fallback_statement = _create_technique_progress_statement(
+        problem_code="S2",
+        problem_number=2,
+        mohs=8,
+        statement_tags=[
+            {
+                "technique": "QUADRATIC SMOOTHING",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": canonical_subtopic,
+                "object_tags": ["QUADRATIC EXPRESSION"],
+            },
+        ],
+    )
+    ContestProblemStatement.objects.filter(pk=linked_fallback_statement.pk).update(mohs=None)
+    _create_technique_progress_statement(
+        problem_code="S3",
+        problem_number=3,
+        mohs=30,
+        statement_tags=[
+            {
+                "technique": "UNSOLVED QUADRATIC",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": canonical_subtopic,
+                "object_tags": ["QUADRATIC EXPRESSION", "UNSOLVED ONLY"],
+            },
+        ],
+    )
+    for statement in [solved_statement, linked_fallback_statement]:
+        UserProblemCompletion.objects.create(
+            user=user,
+            statement=statement,
+            status=UserProblemCompletion.Status.SOLVED,
+        )
+
+    response = client.get(
+        reverse("pages:technique_progress_gaps"),
+        {"kind": "all", "topic": "algebra", "canonical_subtopic": canonical_subtopic},
+    )
+    rows = _technique_progress_gap_datatable_rows(
+        client,
+        {"kind": "all", "topic": "algebra", "canonical_subtopic": canonical_subtopic},
+    )
+    row_by_label = {str(row["label"]): row for row in rows}
+    csv_response = client.get(
+        reverse("pages:technique_progress_gaps"),
+        {
+            "kind": "all",
+            "topic": "algebra",
+            "canonical_subtopic": canonical_subtopic,
+            "export": "csv",
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert "Avg MOHS" in response.content.decode("utf-8")
+    assert row_by_label["QUADRATIC EXPRESSION"]["average_solved_mohs"] == 6.0
+    assert row_by_label["QUADRATIC EXPRESSION"]["average_solved_mohs_label"] == "6.0"
+    assert row_by_label["UNSOLVED ONLY"]["average_solved_mohs"] is None
+    assert row_by_label["UNSOLVED ONLY"]["average_solved_mohs_label"] == "-"
+    csv_rows = {
+        row["Area"]: row
+        for row in csv.DictReader(StringIO(csv_response.content.decode("utf-8")))
+    }
+    assert csv_rows["QUADRATIC EXPRESSION"]["Avg MOHS"] == "6.0"
+    assert csv_rows["UNSOLVED ONLY"]["Avg MOHS"] == "-"
+
+
 def test_technique_progress_gaps_page_links_canonical_subtopic_to_technique_drilldown(client):
     user = UserFactory()
     client.force_login(user)
@@ -15163,6 +15291,7 @@ def test_technique_progress_gaps_export_csv_uses_url_filters_and_ignores_datatab
             "Type": "Subtopic",
             "Topic": "Algebra",
             "Completed": "0 of 1",
+            "Avg MOHS": "-",
             "Remaining": "1",
             "Coverage": "0%",
             "Practice URL": (
@@ -15921,7 +16050,8 @@ def test_technique_progress_topic_detail_averages_mohs_for_solved_subtopic_rows(
 
     assert response.status_code == HTTPStatus.OK
     row = response.context["technique_progress_topic_subtopic_rows"][0]
-    assert row["solved_avg_mohs"] == expected_solved_avg_mohs
+    assert row["average_solved_mohs"] == expected_solved_avg_mohs
+    assert row["average_solved_mohs_label"] == "6.0"
     response_html = response.content.decode("utf-8")
     assert "<th scope=\"col\">Avg MOHS</th>" in response_html
     assert "<span class=\"fw-semibold\">6.0</span>" in response_html

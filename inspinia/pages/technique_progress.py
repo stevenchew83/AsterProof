@@ -31,6 +31,7 @@ from inspinia.users.models import User
 from inspinia.users.roles import user_has_admin_role
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
     from collections.abc import Mapping
 
 NEXT_GAP_LIMIT = 6
@@ -45,6 +46,7 @@ GAP_CSV_FIELDNAMES = [
     "Type",
     "Topic",
     "Completed",
+    "Avg MOHS",
     "Remaining",
     "Coverage",
     "Practice URL",
@@ -69,6 +71,7 @@ GAP_DATATABLE_DEFAULT_SORT_FIELD = "remaining"
 GAP_DATATABLE_SORT_FIELDS = {
     "canonical_subtopic",
     "canonical_subtopic_label",
+    "average_solved_mohs",
     "completion_percent",
     "label",
     "main_topic_label",
@@ -242,10 +245,12 @@ def _progress_fact_rows(
             "label",
             "layer",
             "linked_problem_id",
+            "linked_problem__mohs",
             "main_topic",
             "main_topic_labels",
             "search_text",
             "statement_id",
+            "statement__mohs",
         )
         .order_by("layer", "label", "statement_id", "id"),
     )
@@ -262,7 +267,6 @@ def _progress_fact_rows(
         for row in fact_rows
     }
     statement_ids = sorted(statement_problem_ids)
-    mohs_by_statement_id = _effective_mohs_by_statement_id(statement_ids)
     metadata_source_rows = [
         row
         for row in fact_rows
@@ -322,7 +326,7 @@ def _progress_fact_rows(
                 "layer": layer,
                 "main_topic": str(fact.get("main_topic") or (main_topic_labels[0] if main_topic_labels else "")),
                 "main_topic_labels": main_topic_labels,
-                "mohs": mohs_by_statement_id.get(statement_id),
+                "mohs": _fact_effective_mohs(fact),
                 "object_tags": sorted(layer_metadata.get("object_tags", set()), key=str.casefold),
                 "lemma_theorem_tags": sorted(layer_metadata.get("lemma_theorem_tags", set()), key=str.casefold),
                 "proof_roles": sorted(layer_metadata.get("proof_roles", set()), key=str.casefold),
@@ -336,17 +340,11 @@ def _progress_fact_rows(
     return rows
 
 
-def _effective_mohs_by_statement_id(statement_ids: list[int]) -> dict[int, int]:
-    mohs_by_statement_id = {}
-    for row in ContestProblemStatement.objects.filter(id__in=statement_ids).values(
-        "id",
-        "mohs",
-        "linked_problem__mohs",
-    ):
-        mohs = row["mohs"] if row["mohs"] is not None else row["linked_problem__mohs"]
-        if mohs is not None:
-            mohs_by_statement_id[int(row["id"])] = int(mohs)
-    return mohs_by_statement_id
+def _fact_effective_mohs(fact: dict[str, object]) -> int | None:
+    for value in [fact.get("statement__mohs"), fact.get("linked_problem__mohs")]:
+        if value is not None:
+            return int(value)
+    return None
 
 
 def _completion_by_catalog_statement_id(
@@ -1565,6 +1563,8 @@ def _gap_search_haystack(row: dict[str, object]) -> str:
         row.get("remaining", ""),
         row.get("completion_percent", ""),
         f"{row.get('solved', '')} of {row.get('total', '')}",
+        row.get("average_solved_mohs", ""),
+        row.get("average_solved_mohs_label", ""),
     ]
     return " ".join(str(value) for value in values).casefold()
 
@@ -1604,6 +1604,9 @@ def _gap_datatable_sort_field(params: Mapping[str, str], *, gap_kind: str) -> st
 def _gap_datatable_sort_value(row: dict[str, object], sort_field: str) -> object:
     if sort_field == "solved_total_label":
         return int(row.get("solved", 0))
+    if sort_field == "average_solved_mohs":
+        value = row.get("average_solved_mohs")
+        return float(value) if value is not None else -1
     if sort_field in {"completion_percent", "remaining"}:
         return int(row.get(sort_field, 0))
     return str(row.get(sort_field, "")).casefold()
@@ -1613,6 +1616,8 @@ def _gap_datatable_row(row: dict[str, object]) -> dict[str, object]:
     solved = int(row["solved"])
     total = int(row["total"])
     return {
+        "average_solved_mohs": row.get("average_solved_mohs"),
+        "average_solved_mohs_label": row.get("average_solved_mohs_label", "-"),
         "canonical_subtopic": row.get("canonical_subtopic", ""),
         "canonical_subtopic_label": row.get("canonical_subtopic_label", ""),
         "completion_percent": int(row["completion_percent"]),
@@ -1638,6 +1643,7 @@ def _gap_csv_row(row: dict[str, object]) -> dict[str, object]:
         "Type": row["type"],
         "Topic": row["main_topic_label"] or "-",
         "Completed": f"{solved} of {total}",
+        "Avg MOHS": row.get("average_solved_mohs_label", "-"),
         "Remaining": int(row["remaining"]),
         "Coverage": f"{row['completion_percent']}%",
         "Practice URL": row["practice_url"],
@@ -1854,11 +1860,11 @@ def _aggregate_progress_rows(
         )
         bucket["statement_ids"].add(tagged_row["statement_id"])
         if tagged_row["is_solved"]:
-            bucket["solved_statement_ids"].add(tagged_row["statement_id"])
-            if tagged_row.get("mohs") is not None:
-                bucket["solved_mohs_by_statement_id"][int(tagged_row["statement_id"])] = int(
-                    tagged_row["mohs"],
-                )
+            statement_id = tagged_row["statement_id"]
+            bucket["solved_statement_ids"].add(statement_id)
+            mohs = tagged_row.get("mohs")
+            if mohs is not None:
+                bucket["solved_mohs_by_statement_id"][statement_id] = int(mohs)
         _add_progress_row_metadata(bucket=bucket, tagged_row=tagged_row)
 
     rows = []
@@ -1876,9 +1882,11 @@ def _aggregate_progress_rows(
             label=label,
             canonical_subtopics=canonical_subtopics,
         )
-        solved_mohs_values = list(bucket["solved_mohs_by_statement_id"].values())
+        average_solved_mohs = _average_mohs(bucket["solved_mohs_by_statement_id"].values())
         rows.append(
             {
+                "average_solved_mohs": average_solved_mohs,
+                "average_solved_mohs_label": _average_mohs_label(average_solved_mohs),
                 "canonical_subtopic": canonical_subtopic,
                 "canonical_subtopic_label": canonical_subtopic_label,
                 "canonical_subtopic_labels": canonical_subtopics,
@@ -1896,7 +1904,6 @@ def _aggregate_progress_rows(
                 "remaining": remaining,
                 "search_text": " ".join(sorted(bucket["search_terms"])),
                 "solved": solved,
-                "solved_avg_mohs": _average_mohs(solved_mohs_values),
                 "proof_roles": sorted(bucket["proof_roles"], key=str.casefold),
                 "technique_tags": sorted(bucket["technique_tags"], key=str.casefold),
                 "total": total,
@@ -1913,41 +1920,83 @@ def _aggregate_progress_rows(
     )
 
 
+def _average_mohs(mohs_values: Iterable[int]) -> float | None:
+    values = [int(value) for value in mohs_values]
+    if not values:
+        return None
+    return round(sum(values) / len(values), 1)
+
+
+def _average_mohs_label(value: float | None) -> str:
+    if value is None:
+        return "-"
+    return f"{value:.1f}"
+
+
 def _add_progress_row_metadata(
     *,
     bucket: dict[str, object],
     tagged_row: dict[str, object],
 ) -> None:
-    canonical_subtopic = str(tagged_row.get("canonical_subtopic") or "").strip()
-    if canonical_subtopic:
-        bucket["canonical_subtopics"].add(canonical_subtopic)
-        bucket["search_terms"].add(canonical_subtopic)
+    _add_bucket_value(
+        bucket=bucket,
+        field_name="canonical_subtopics",
+        raw_value=tagged_row.get("canonical_subtopic"),
+        include_search=True,
+    )
     for raw_canonical_subtopic in tagged_row.get("canonical_subtopic_labels", []) or []:
-        canonical_subtopic_label = str(raw_canonical_subtopic or "").strip()
-        if canonical_subtopic_label:
-            bucket["canonical_subtopics"].add(canonical_subtopic_label)
-            bucket["search_terms"].add(canonical_subtopic_label)
+        _add_bucket_value(
+            bucket=bucket,
+            field_name="canonical_subtopics",
+            raw_value=raw_canonical_subtopic,
+            include_search=True,
+        )
 
-    technique = str(tagged_row.get("technique") or "").strip()
-    if technique:
-        bucket["search_terms"].add(technique)
-    search_text = str(tagged_row.get("search_text") or "").strip()
-    if search_text:
-        bucket["search_terms"].add(search_text)
+    _add_bucket_search_term(bucket=bucket, raw_value=tagged_row.get("technique"))
+    _add_bucket_search_term(bucket=bucket, raw_value=tagged_row.get("search_text"))
     for layer_field in TOPIC_TAG_LAYER_FIELDS:
         for raw_layer_label in tagged_row.get(layer_field, []) or []:
-            layer_label = str(raw_layer_label or "").strip()
-            if layer_label:
-                bucket[layer_field].add(layer_label)
-                bucket["search_terms"].add(layer_label)
+            _add_bucket_value(
+                bucket=bucket,
+                field_name=layer_field,
+                raw_value=raw_layer_label,
+                include_search=True,
+            )
 
     for raw_topic_label in [
         *(tagged_row.get("domain_topic_labels", []) or []),
         *(tagged_row.get("main_topic_labels", []) or []),
     ]:
-        topic_label = str(raw_topic_label or "").strip()
-        if topic_label:
-            bucket["main_topics"].add(topic_label)
+        _add_bucket_value(
+            bucket=bucket,
+            field_name="main_topics",
+            raw_value=raw_topic_label,
+        )
+
+
+def _add_bucket_value(
+    *,
+    bucket: dict[str, object],
+    field_name: str,
+    raw_value: object,
+    include_search: bool = False,
+) -> None:
+    value = str(raw_value or "").strip()
+    if not value:
+        return
+    bucket[field_name].add(value)
+    if include_search:
+        bucket["search_terms"].add(value)
+
+
+def _add_bucket_search_term(
+    *,
+    bucket: dict[str, object],
+    raw_value: object,
+) -> None:
+    value = str(raw_value or "").strip()
+    if value:
+        bucket["search_terms"].add(value)
 
 
 def _canonical_subtopic_display_values(

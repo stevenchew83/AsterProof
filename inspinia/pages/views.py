@@ -5279,6 +5279,23 @@ def _completion_quick_update_format_filter_labels(labels: list[str]) -> str:
     return ", ".join(label for label in labels if label.strip())
 
 
+def _completion_quick_update_apply_subtopic_fact_context(queryset, raw_value: str):
+    for label in _completion_quick_update_selected_filter_labels(raw_value):
+        label_key = label.strip().casefold()
+        if not label_key:
+            continue
+        queryset = queryset.filter(
+            Exists(
+                TechniqueProgressFact.objects.filter(
+                    statement_id=OuterRef("pk"),
+                    layer=TechniqueProgressFact.Layer.SUBTOPIC,
+                    label_key=label_key,
+                ),
+            ),
+        )
+    return queryset
+
+
 def _completion_quick_update_filter_url(
     filters: dict[str, str],
     *,
@@ -5432,6 +5449,7 @@ def completion_quick_update_view(request):
     selected_technique = (request.GET.get("technique") or "").strip()
     selected_layer_kind = _completion_quick_update_layer_kind(request.GET.get("layer_kind") or "")
     selected_layer_tag = (request.GET.get("layer_tag") or "").strip() if selected_layer_kind else ""
+    has_layer_filter = bool(selected_layer_kind and selected_layer_tag)
     search_query = (request.GET.get("q") or "").strip()
     can_select_user = user_has_admin_role(request.user)
     selected_user = _completion_quick_update_resolve_get_user(request)
@@ -5446,7 +5464,7 @@ def completion_quick_update_view(request):
             selected_mohs_max,
             selected_subtopics,
             selected_technique,
-            selected_layer_kind and selected_layer_tag,
+            has_layer_filter,
             search_query,
         ],
     )
@@ -5478,19 +5496,25 @@ def completion_quick_update_view(request):
         filtered_statements,
         selected_problem_label,
     ).distinct()
-    filtered_statements = _completion_quick_update_apply_technique_filter(
-        filtered_statements,
-        selected_technique,
-    ).distinct()
-    filtered_statements = _completion_quick_update_apply_subtopics_filter(
-        filtered_statements,
-        selected_subtopics,
-    ).distinct()
-    filtered_statements = _completion_quick_update_apply_layer_filter(
-        filtered_statements,
-        raw_kind=selected_layer_kind,
-        raw_tag=selected_layer_tag,
-    ).distinct()
+    if has_layer_filter:
+        filtered_statements = _completion_quick_update_apply_layer_filter(
+            filtered_statements,
+            raw_kind=selected_layer_kind,
+            raw_tag=selected_layer_tag,
+        )
+        filtered_statements = _completion_quick_update_apply_subtopic_fact_context(
+            filtered_statements,
+            selected_subtopics,
+        )
+    else:
+        filtered_statements = _completion_quick_update_apply_technique_filter(
+            filtered_statements,
+            selected_technique,
+        ).distinct()
+        filtered_statements = _completion_quick_update_apply_subtopics_filter(
+            filtered_statements,
+            selected_subtopics,
+        ).distinct()
     filtered_statements = _completion_quick_update_apply_core_ideas_filter(
         filtered_statements,
         selected_core_ideas,
@@ -5500,7 +5524,7 @@ def completion_quick_update_view(request):
         if has_search_filters
         else COMPLETION_QUICK_UPDATE_RECENT_LIMIT
     )
-    skip_exact_total = bool(selected_layer_kind and selected_layer_tag)
+    skip_exact_total = has_layer_filter
     if has_search_filters:
         filtered_statements = filtered_statements.order_by(
             "-contest_year",
