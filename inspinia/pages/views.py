@@ -166,6 +166,7 @@ from inspinia.pages.technique_benchmarking.batches import mark_export_batch_prev
 from inspinia.pages.technique_benchmarking.coverage import build_benchmark_coverage_summary
 from inspinia.pages.technique_benchmarking.export import build_benchmark_export_payload
 from inspinia.pages.technique_benchmarking.export import build_benchmark_prompt
+from inspinia.pages.technique_benchmarking.export import build_benchmarkable_rows_csv_response
 from inspinia.pages.technique_benchmarking.importing import BenchmarkImportValidationError
 from inspinia.pages.technique_benchmarking.importing import apply_benchmark_import
 from inspinia.pages.technique_benchmarking.importing import preview_benchmark_import
@@ -8251,6 +8252,14 @@ def technique_progress_gaps_view(request):
     return render(request, "pages/technique-progress-gaps.html", context)
 
 
+def _technique_benchmarkable_csv_url(request, *, target_profile: str) -> str:
+    query = request.GET.copy()
+    query["export"] = "benchmarkable_csv"
+    query["target_profile"] = target_profile or "national"
+    query.pop("batch", None)
+    return f"{reverse('pages:technique_gap_benchmark')}?{query.urlencode()}"
+
+
 @login_required
 def technique_gap_benchmark_view(request):  # noqa: C901, PLR0912, PLR0915
     _require_admin_tools_access(request)
@@ -8267,6 +8276,18 @@ def technique_gap_benchmark_view(request):  # noqa: C901, PLR0912, PLR0915
     raw_canonical_subtopic = (request.GET.get("canonical_subtopic") or "").strip()
     target_profile = (request.POST.get("target_profile") or request.GET.get("target_profile") or "national").strip()
     batch_id = (request.POST.get("export_batch_id") or request.GET.get("batch") or "").strip()
+
+    if request.method == "GET" and (request.GET.get("export") or "").strip() == "benchmarkable_csv":
+        coverage_summary = build_benchmark_coverage_summary(
+            request_user=request.user,
+            raw_user_id=raw_user_id,
+            raw_topic=raw_topic,
+            raw_min_total=raw_min_total,
+            raw_canonical_subtopic=raw_canonical_subtopic,
+            target_profile=target_profile,
+        )
+        return build_benchmarkable_rows_csv_response(coverage_summary["rows"])
+
     if batch_id:
         active_export_batch = TechniqueBenchmarkExportBatch.objects.filter(pk=batch_id).first()
 
@@ -8444,6 +8465,7 @@ def technique_gap_benchmark_view(request):  # noqa: C901, PLR0912, PLR0915
             "batch_scope_options": batch_scope_options(),
             "batch_sort_options": batch_sort_options(),
             "benchmark_coverage": coverage_summary,
+            "benchmarkable_csv_url": _technique_benchmarkable_csv_url(request, target_profile=target_profile),
             "benchmark_kind_options": kind_filter_options(),
             "export_payload": export_payload,
             "export_payload_json": export_payload_json,

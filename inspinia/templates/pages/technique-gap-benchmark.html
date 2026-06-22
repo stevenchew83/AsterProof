@@ -195,6 +195,29 @@
 
   <div class="row g-3 mt-0">
     <div class="col-12">
+      <div class="card">
+        <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-3">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-primary-subtle text-primary rounded">
+                <i class="ti ti-file-type-csv fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <h4 class="header-title mb-0">Export benchmarkable rows CSV</h4>
+              <p class="text-muted fs-xs mb-0">Download {{ benchmark_coverage.counts.total }} total benchmarkable rows with benchmark fields when available.</p>
+            </div>
+          </div>
+          <a href="{{ benchmarkable_csv_url }}" class="btn btn-outline-primary">
+            <i class="ti ti-download me-1"></i>Export CSV
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-0">
+    <div class="col-12">
       <form method="post" class="card">
         {% csrf_token %}
         <input type="hidden" name="action" value="create_export_batch">

@@ -13776,6 +13776,120 @@ def test_technique_gap_benchmark_page_creates_export_batch_applies_and_restores(
     assert TechniqueBenchmark.objects.count() == 0
 
 
+def test_technique_gap_benchmark_page_exports_total_benchmarkable_rows_csv(client):
+    user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(user)
+    _create_technique_progress_statement(
+        statement_tags=[
+            {
+                "technique": "PARITY",
+                "domains": ["NT"],
+                "main_topic": "Number Theory",
+                "canonical_subtopic": "PARITY",
+            },
+        ],
+    )
+    TechniqueBenchmark.objects.create(
+        kind=TechniqueBenchmark.Kind.CANONICAL_SUBTOPIC,
+        label="PARITY",
+        normalized_label="Parity",
+        parent_family="Divisibility and invariants",
+        primary_area="Number Theory",
+        syllabus_core=5,
+        contest_frequency=5,
+        transfer_value=5,
+        prerequisite_value=5,
+        concept_load=1,
+        recognition_burden=2,
+        execution_load=2,
+        proof_fragility=2,
+        cross_topic_dependency=2,
+        typical_mohs_min=0,
+        typical_mohs_max=15,
+        jbmo_weight="1.10",
+        national_weight="1.20",
+        imo_tst_weight="1.30",
+        training_type="Drill",
+        target_level="Foundation",
+        benchmark_confidence=95,
+        rationale="Core invariant method.",
+        pitfalls="Overusing parity alone.",
+        recommended_sequence="Drill parity before modular arithmetic.",
+    )
+    url = reverse("pages:technique_gap_benchmark")
+
+    page_response = client.get(url, {"min_total": "1"})
+
+    assert page_response.status_code == HTTPStatus.OK
+    assert page_response.context["benchmark_coverage"]["counts"]["total"] == 2
+    assert "Export benchmarkable rows CSV" in page_response.content.decode("utf-8")
+    assert "export=benchmarkable_csv" in page_response.content.decode("utf-8")
+
+    csv_response = client.get(url, {"min_total": "1", "export": "benchmarkable_csv"})
+    reader = csv.DictReader(StringIO(csv_response.content.decode("utf-8")))
+    csv_rows = list(reader)
+
+    assert csv_response.status_code == HTTPStatus.OK
+    assert csv_response["Content-Disposition"] == 'attachment; filename="technique-benchmarkable-rows.csv"'
+    assert reader.fieldnames == [
+        "row_key",
+        "normalized_label",
+        "parent_family",
+        "primary_area",
+        "syllabus_core",
+        "contest_frequency",
+        "transfer_value",
+        "prerequisite_value",
+        "concept_load",
+        "recognition_burden",
+        "execution_load",
+        "proof_fragility",
+        "cross_topic_dependency",
+        "typical_mohs_min",
+        "typical_mohs_max",
+        "jbmo_weight",
+        "national_weight",
+        "imo_tst_weight",
+        "training_type",
+        "target_level",
+        "benchmark_confidence",
+        "rationale",
+        "pitfalls",
+        "recommended_sequence",
+    ]
+    rows_by_key = {row["row_key"]: row for row in csv_rows}
+    assert rows_by_key["canonical_subtopic:parity"]["normalized_label"] == "Parity"
+    assert rows_by_key["canonical_subtopic:parity"]["parent_family"] == "Divisibility and invariants"
+    assert rows_by_key["canonical_subtopic:parity"]["jbmo_weight"] == "1.10"
+    assert rows_by_key["canonical_subtopic:parity"]["rationale"] == "Core invariant method."
+    assert rows_by_key["technique:parity"] == {
+        "row_key": "technique:parity",
+        "normalized_label": "",
+        "parent_family": "",
+        "primary_area": "",
+        "syllabus_core": "",
+        "contest_frequency": "",
+        "transfer_value": "",
+        "prerequisite_value": "",
+        "concept_load": "",
+        "recognition_burden": "",
+        "execution_load": "",
+        "proof_fragility": "",
+        "cross_topic_dependency": "",
+        "typical_mohs_min": "",
+        "typical_mohs_max": "",
+        "jbmo_weight": "",
+        "national_weight": "",
+        "imo_tst_weight": "",
+        "training_type": "",
+        "target_level": "",
+        "benchmark_confidence": "",
+        "rationale": "",
+        "pitfalls": "",
+        "recommended_sequence": "",
+    }
+
+
 def test_technique_gap_benchmark_page_mark_reviewed_clears_quality_flags(client):
     user = UserFactory(role=User.Role.ADMIN)
     client.force_login(user)
