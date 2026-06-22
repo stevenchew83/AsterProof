@@ -205,6 +205,8 @@
               id="technique-progress-gaps-table"
               class="table table-sm table-hover align-middle mb-0 w-100"
               data-page-length="50"
+              data-rows-url="{{ technique_progress_gap_rows_url }}"
+              data-gap-kind="{{ technique_progress_gap_kind }}"
               data-show-canonical-subtopic-column="{% if technique_progress_gap_show_canonical_subtopic_column %}true{% else %}false{% endif %}"
               data-show-topic-column="{% if technique_progress_gap_is_drilldown %}false{% else %}true{% endif %}"
               data-show-type-column="{% if technique_progress_gap_show_type_column %}true{% else %}false{% endif %}"
@@ -227,54 +229,7 @@
                   <th scope="col" class="text-end">Practice</th>
                 </tr>
               </thead>
-              <tbody>
-                {% for row in technique_progress_gap_rows %}
-                <tr>
-                  <td>
-                    <span class="fw-semibold">
-                      {% if row.drilldown_url %}
-                      <a href="{{ row.drilldown_url }}">{{ row.canonical_subtopic }}</a>
-                      {% elif technique_progress_gap_kind == 'subtopics' %}
-                      {{ row.canonical_subtopic }}
-                      {% else %}
-                      {{ row.label }}
-                      {% endif %}
-                    </span>
-                  </td>
-                  {% if technique_progress_gap_show_type_column %}
-                  <td><span class="badge bg-secondary-subtle text-secondary">{{ row.type }}</span></td>
-                  {% endif %}
-                  {% if technique_progress_gap_show_canonical_subtopic_column %}
-                  <td data-order="{{ row.canonical_subtopic_label }}">
-                    {{ row.canonical_subtopic_label|default:'-' }}
-                  </td>
-                  {% endif %}
-                  {% if not technique_progress_gap_is_drilldown %}
-                  <td>{{ row.main_topic_label|default:'-' }}</td>
-                  {% endif %}
-                  <td data-order="{{ row.solved }}">{{ row.solved }} of {{ row.total }}</td>
-                  <td data-order="{{ row.remaining }}">{{ row.remaining }}</td>
-                  <td data-order="{{ row.completion_percent }}">
-                    <div class="d-flex align-items-center gap-2 technique-progress-bar">
-                      <div class="progress flex-grow-1" style="height: .45rem;">
-                        <div
-                          class="progress-bar"
-                          role="progressbar"
-                          style="width: {{ row.completion_percent }}%;"
-                          aria-valuenow="{{ row.completion_percent }}"
-                          aria-valuemin="0"
-                          aria-valuemax="100"
-                        ></div>
-                      </div>
-                      <span class="text-muted fs-xs">{{ row.completion_percent }}%</span>
-                    </div>
-                  </td>
-                  <td class="text-end">
-                    <a href="{{ row.practice_url }}" class="btn btn-sm btn-outline-primary">Practice</a>
-                  </td>
-                </tr>
-                {% endfor %}
-              </tbody>
+              <tbody></tbody>
             </table>
           </div>
         </div>
@@ -292,6 +247,68 @@
   var tableElement = document.getElementById("technique-progress-gaps-table");
   if (!tableElement || typeof DataTable !== "function") return;
 
+  function displayValue(value, fallback) {
+    if (value === null || value === undefined || value === "") return fallback;
+    return String(value);
+  }
+
+  function escapeHtml(value) {
+    var node = document.createElement("div");
+    node.textContent = displayValue(value, "");
+    return node.innerHTML;
+  }
+
+  function renderText(data, type) {
+    if (type !== "display") return displayValue(data, "");
+    return escapeHtml(displayValue(data, "-"));
+  }
+
+  function renderGapLabel(data, type, row) {
+    var label = tableElement.dataset.gapKind === "subtopics"
+      ? displayValue(row.canonical_subtopic, data)
+      : displayValue(data, "");
+    if (type !== "display") return label;
+
+    var visibleLabel = row.drilldown_url
+      ? displayValue(row.canonical_subtopic, label)
+      : label;
+    var labelHtml = escapeHtml(visibleLabel);
+    if (row.drilldown_url) {
+      labelHtml = '<a href="' + escapeHtml(row.drilldown_url) + '">' + labelHtml + "</a>";
+    }
+    return '<span class="fw-semibold">' + labelHtml + "</span>";
+  }
+
+  function renderType(data, type) {
+    if (type !== "display") return displayValue(data, "");
+    return '<span class="badge bg-secondary-subtle text-secondary">' + escapeHtml(data) + "</span>";
+  }
+
+  function renderCompleted(data, type, row) {
+    if (type !== "display") return Number(row.solved || 0);
+    return escapeHtml(displayValue(data, "0 of 0"));
+  }
+
+  function renderCoverage(data, type, row) {
+    var percent = Math.max(0, Math.min(100, Number(data || 0)));
+    if (type !== "display") return percent;
+    var coverageLabel = escapeHtml(displayValue(row.coverage_label, percent + "%"));
+    return [
+      '<div class="d-flex align-items-center gap-2 technique-progress-bar">',
+        '<div class="progress flex-grow-1" style="height: .45rem;">',
+          '<div class="progress-bar" role="progressbar" style="width: ' + percent + '%;"',
+            ' aria-valuenow="' + percent + '" aria-valuemin="0" aria-valuemax="100"></div>',
+        '</div>',
+        '<span class="text-muted fs-xs">' + coverageLabel + "</span>",
+      "</div>"
+    ].join("");
+  }
+
+  function renderPractice(data, type) {
+    if (type !== "display") return displayValue(data, "");
+    return '<a href="' + escapeHtml(data) + '" class="btn btn-sm btn-outline-primary">Practice</a>';
+  }
+
   var showTypeColumn = tableElement.dataset.showTypeColumn === "true";
   var showCanonicalSubtopicColumn = tableElement.dataset.showCanonicalSubtopicColumn === "true";
   var showTopicColumn = tableElement.dataset.showTopicColumn === "true";
@@ -300,16 +317,48 @@
   var canonicalColumnOffset = showCanonicalSubtopicColumn ? 1 : 0;
   var topicColumnOffset = showTopicColumn ? 1 : 0;
   var remainingColumnIndex = 2 + typeColumnOffset + canonicalColumnOffset + topicColumnOffset;
-  var coverageColumnIndex = remainingColumnIndex + 1;
-  var actionColumnIndex = coverageColumnIndex + 1;
+  var columns = [
+    { data: "label", name: "label", render: renderGapLabel }
+  ];
+
+  if (showTypeColumn) {
+    columns.push({ data: "type", name: "type", render: renderType });
+  }
+  if (showCanonicalSubtopicColumn) {
+    columns.push({
+      data: "canonical_subtopic_label",
+      name: "canonical_subtopic_label",
+      render: renderText
+    });
+  }
+  if (showTopicColumn) {
+    columns.push({ data: "main_topic_label", name: "main_topic_label", render: renderText });
+  }
+  columns.push(
+    { data: "solved_total_label", name: "solved_total_label", render: renderCompleted },
+    { data: "remaining", name: "remaining", render: renderText },
+    { data: "completion_percent", name: "completion_percent", render: renderCoverage },
+    {
+      data: "practice_url",
+      name: "practice_url",
+      className: "text-end",
+      orderable: false,
+      searchable: false,
+      render: renderPractice
+    }
+  );
 
   new DataTable(tableElement, {
+    serverSide: true,
+    processing: true,
+    ajax: {
+      url: tableElement.dataset.rowsUrl
+    },
+    columns: columns,
+    searchDelay: 300,
     pageLength: pageLength,
     lengthChange: false,
     order: [[remainingColumnIndex, "desc"]],
-    columnDefs: [
-      { targets: actionColumnIndex, orderable: false, searchable: false }
-    ],
     autoWidth: false,
     language: {
       info: "Showing _START_ to _END_ of _TOTAL_ practice gaps",

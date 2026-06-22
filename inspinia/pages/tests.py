@@ -15,6 +15,7 @@ from urllib.parse import urlencode
 import pandas as pd
 import pytest
 from django.conf import settings
+from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management import call_command
@@ -13048,6 +13049,28 @@ def test_technique_progress_dashboard_groups_subtopics_by_main_topic(client):
     )
 
 
+def _technique_progress_gap_datatable_payload(client, params: dict[str, str] | None = None) -> dict[str, object]:
+    query = {
+        "format": "datatable",
+        "draw": "1",
+        "start": "0",
+        "length": str(EXPECTED_PROGRESS_GAP_PAGE_SIZE),
+    }
+    if params:
+        query.update(params)
+    response = client.get(reverse("pages:technique_progress_gaps"), query)
+    assert response.status_code == HTTPStatus.OK
+    return response.json()
+
+
+def _technique_progress_gap_datatable_rows(client, params: dict[str, str] | None = None) -> list[dict[str, object]]:
+    return _technique_progress_gap_datatable_payload(client, params)["data"]
+
+
+def _technique_progress_gap_datatable_labels(client, params: dict[str, str] | None = None) -> list[str]:
+    return [str(row["label"]) for row in _technique_progress_gap_datatable_rows(client, params)]
+
+
 def test_technique_progress_gaps_page_filters_by_minimum_total_statements(client):
     user = UserFactory()
     client.force_login(user)
@@ -13085,21 +13108,21 @@ def test_technique_progress_gaps_page_filters_by_minimum_total_statements(client
 
     assert response.status_code == HTTPStatus.OK
     assert response.context["technique_progress_gap_min_total"] == 3
-    assert [
-        row["label"]
-        for row in response.context["technique_progress_gap_rows"]
-    ] == ["Large sample"]
+    assert _technique_progress_gap_datatable_labels(client, {"topic": "algebra", "min_total": "3"}) == ["Large sample"]
     response_html = response.content.decode("utf-8")
     assert 'id="technique-progress-min-total"' in response_html
     assert 'name="min_total"' in response_html
     assert 'value="3"' in response_html
-    assert "Large sample" in response_html
+    assert "Large sample" not in response_html
     assert "Small sample" not in response_html
     assert (
         'href="/dashboard/techniques/gaps/?kind=subtopics&amp;topic=algebra'
         '&amp;min_total=3&amp;export=csv"'
     ) in response_html
-    assert 'data-rows-url="' not in response_html
+    assert (
+        'data-rows-url="/dashboard/techniques/gaps/?kind=subtopics&amp;topic=algebra'
+        '&amp;min_total=3&amp;format=datatable"'
+    ) in response_html
 
 
 def test_technique_progress_gaps_page_defaults_to_subtopic_rows(client):
@@ -13125,26 +13148,29 @@ def test_technique_progress_gaps_page_defaults_to_subtopic_rows(client):
     assert gaps_response.status_code == HTTPStatus.OK
     assert gaps_response.context["technique_progress_gap_kind"] == "subtopics"
     assert gaps_response.context["technique_progress_gap_topic"] == "all"
-    assert [
-        row["label"]
-        for row in gaps_response.context["technique_progress_gap_rows"]
-    ] == ["PARITY"]
-    assert all(row["type"] == "Subtopic" for row in gaps_response.context["technique_progress_gap_rows"])
+    rows = _technique_progress_gap_datatable_rows(client)
+    assert [row["label"] for row in rows] == ["PARITY"]
+    assert all(row["type"] == "Subtopic" for row in rows)
     response_html = gaps_response.content.decode("utf-8")
     assert "Subtopic practice gaps" in response_html
     assert 'id="technique-progress-gaps-table"' in response_html
     assert 'id="technique-progress-gaps-export"' in response_html
     assert 'href="/dashboard/techniques/gaps/?kind=subtopics&amp;topic=all&amp;export=csv"' in response_html
-    assert 'data-rows-url="' not in response_html
+    assert 'data-rows-url="/dashboard/techniques/gaps/?kind=subtopics&amp;topic=all&amp;format=datatable"' in response_html
     assert 'data-page-length="50"' in response_html
     assert "plugins/datatables/dataTables.bootstrap5.min.css" in response_html
+    assert "serverSide: true" in response_html
+    assert "processing: true" in response_html
+    assert "ajax:" in response_html
+    assert "columns:" in response_html
+    assert "searchDelay: 300" in response_html
     assert 'order: [[remainingColumnIndex, "desc"]]' in response_html
     assert 'id="technique-progress-min-total"' in response_html
     assert "<th scope=\"col\">Type</th>" not in response_html
     assert "<th scope=\"col\">Canonical subtopic</th>" in response_html
     assert "<th scope=\"col\">Area</th>" not in response_html
     assert "Technique gaps" in response_html
-    assert reverse("pages:completion_quick_update") in response_html
+    assert "subtopics=PARITY" not in response_html
 
 
 def test_technique_progress_gaps_page_calculates_coverage_by_canonical_subtopic(client):
@@ -13189,7 +13215,7 @@ def test_technique_progress_gaps_page_calculates_coverage_by_canonical_subtopic(
     response = client.get(reverse("pages:technique_progress_gaps"), {"kind": "subtopics", "topic": "algebra"})
 
     assert response.status_code == HTTPStatus.OK
-    rows = response.context["technique_progress_gap_rows"]
+    rows = _technique_progress_gap_datatable_rows(client, {"kind": "subtopics", "topic": "algebra"})
     assert len(rows) == 1
     assert rows[0]["label"] == canonical_subtopic
     assert rows[0]["canonical_subtopic"] == canonical_subtopic
@@ -13217,14 +13243,14 @@ def test_technique_progress_gaps_page_links_canonical_subtopic_to_technique_dril
     response = client.get(reverse("pages:technique_progress_gaps"), {"kind": "subtopics", "topic": "algebra"})
 
     assert response.status_code == HTTPStatus.OK
-    row = response.context["technique_progress_gap_rows"][0]
+    row = _technique_progress_gap_datatable_rows(client, {"kind": "subtopics", "topic": "algebra"})[0]
     expected_url = (
         f"{reverse('pages:technique_progress_gaps')}?"
         f"{urlencode({'kind': 'all', 'topic': 'algebra', 'canonical_subtopic': canonical_subtopic})}"
     )
     assert row["drilldown_url"] == expected_url
     response_html = response.content.decode("utf-8")
-    assert f'href="{expected_url.replace("&", "&amp;")}"' in response_html
+    assert f'href="{expected_url.replace("&", "&amp;")}"' not in response_html
 
 
 def test_technique_progress_gaps_page_filters_techniques_by_canonical_subtopic(client):
@@ -13281,10 +13307,14 @@ def test_technique_progress_gaps_page_filters_techniques_by_canonical_subtopic(c
     assert response.status_code == HTTPStatus.OK
     assert response.context["technique_progress_gap_kind"] == "techniques"
     assert response.context["technique_progress_gap_canonical_subtopic"] == canonical_subtopic
-    assert [
-        row["label"]
-        for row in response.context["technique_progress_gap_rows"]
-    ] == ["INJECTIVITY TRICKS", "ZERO FORCING"]
+    assert _technique_progress_gap_datatable_labels(
+        client,
+        {
+            "kind": "techniques",
+            "topic": "algebra",
+            "canonical_subtopic": canonical_subtopic,
+        },
+    ) == ["INJECTIVITY TRICKS", "ZERO FORCING"]
     response_html = response.content.decode("utf-8")
     assert canonical_subtopic in response_html
     assert other_subtopic not in response_html
@@ -13315,7 +13345,7 @@ def test_technique_progress_gaps_page_counts_canonical_subtopic_once_per_stateme
     response = client.get(reverse("pages:technique_progress_gaps"), {"kind": "subtopics", "topic": "algebra"})
 
     assert response.status_code == HTTPStatus.OK
-    rows = response.context["technique_progress_gap_rows"]
+    rows = _technique_progress_gap_datatable_rows(client, {"kind": "subtopics", "topic": "algebra"})
     assert len(rows) == 1
     assert rows[0]["label"] == canonical_subtopic
     assert rows[0]["total"] == 1
@@ -13342,11 +13372,8 @@ def test_technique_progress_gaps_page_excludes_blank_canonical_from_subtopics_on
 
     assert subtopic_response.status_code == HTTPStatus.OK
     assert technique_response.status_code == HTTPStatus.OK
-    assert subtopic_response.context["technique_progress_gap_rows"] == []
-    assert [
-        row["label"]
-        for row in technique_response.context["technique_progress_gap_rows"]
-    ] == ["VIETA JUMPING"]
+    assert _technique_progress_gap_datatable_rows(client, {"kind": "subtopics"}) == []
+    assert _technique_progress_gap_datatable_labels(client, {"kind": "techniques"}) == ["VIETA JUMPING"]
 
 
 def test_technique_progress_gaps_page_preserves_admin_selected_user(client):
@@ -13370,11 +13397,15 @@ def test_technique_progress_gaps_page_preserves_admin_selected_user(client):
     assert response.context["technique_progress_selected_user"] == selected_user
     subtopic_row = next(
         row
-        for row in response.context["technique_progress_gap_rows"]
+        for row in _technique_progress_gap_datatable_rows(client, {"user": str(selected_user.pk)})
         if row["label"] == "Circle geometry"
     )
     assert subtopic_row["practice_url"] == (
         f"{reverse('pages:completion_quick_update')}?target_user_id={selected_user.pk}&subtopics=Circle+geometry"
+    )
+    assert subtopic_row["drilldown_url"] == (
+        f"{reverse('pages:technique_progress_gaps')}?user={selected_user.pk}"
+        "&kind=all&topic=all&canonical_subtopic=Circle+geometry"
     )
     response_html = response.content.decode("utf-8")
     assert "target-progress@example.com" in response_html
@@ -13404,17 +13435,15 @@ def test_technique_progress_gaps_page_technique_mode_lists_techniques(client):
 
     assert response.status_code == HTTPStatus.OK
     assert response.context["technique_progress_gap_kind"] == "techniques"
-    assert [
-        row["label"]
-        for row in response.context["technique_progress_gap_rows"]
-    ] == ["ANGLE CHASE"]
-    assert all(row["type"] == "Technique" for row in response.context["technique_progress_gap_rows"])
+    rows = _technique_progress_gap_datatable_rows(client, {"kind": "techniques"})
+    assert [row["label"] for row in rows] == ["ANGLE CHASE"]
+    assert all(row["type"] == "Technique" for row in rows)
     response_html = response.content.decode("utf-8")
     assert "Technique practice gaps" in response_html
     assert "<th scope=\"col\">Type</th>" not in response_html
     assert "<th scope=\"col\">Technique</th>" in response_html
     assert "<th scope=\"col\">Area</th>" not in response_html
-    assert "ANGLE CHASE" in response_html
+    assert "ANGLE CHASE" not in response_html
 
 
 @pytest.mark.parametrize(
@@ -13474,10 +13503,10 @@ def test_technique_progress_gaps_page_lists_layer_gap_modes(client, kind, expect
     assert response.context["technique_progress_gap_kind"] == kind
     assert [
         (row["label"], row["type"])
-        for row in response.context["technique_progress_gap_rows"]
+        for row in _technique_progress_gap_datatable_rows(client, {"kind": kind, "topic": "combinatorics"})
     ] == [(expected_label, expected_type)]
     response_html = response.content.decode("utf-8")
-    assert expected_label in response_html
+    assert expected_label not in response_html
     assert "STATEMENT CAVEAT" not in response_html
 
 
@@ -13547,15 +13576,24 @@ def test_technique_progress_gaps_layer_tabs_filter_drilldown_rows_and_practice_l
     assert response.status_code == HTTPStatus.OK
     assert response.context["technique_progress_gap_kind"] == kind
     assert response.context["technique_progress_gap_canonical_subtopic"] == canonical_subtopic
+    datatable_rows = _technique_progress_gap_datatable_rows(
+        client,
+        {
+            "user": str(selected_user.pk),
+            "kind": kind,
+            "topic": "algebra",
+            "canonical_subtopic": canonical_subtopic,
+        },
+    )
     assert [
         (row["label"], row["type"])
-        for row in response.context["technique_progress_gap_rows"]
+        for row in datatable_rows
     ] == [(expected_label, expected_type)]
     practice_url = (
         f"{reverse('pages:completion_quick_update')}?"
         f"{urlencode({'target_user_id': selected_user.pk, 'subtopics': canonical_subtopic, 'layer_kind': kind, 'layer_tag': expected_label})}"
     )
-    assert response.context["technique_progress_gap_rows"][0]["practice_url"] == practice_url
+    assert datatable_rows[0]["practice_url"] == practice_url
     response_html = response.content.decode("utf-8")
     assert "<th scope=\"col\">Tag</th>" in response_html
     assert "<th scope=\"col\">Type</th>" not in response_html
@@ -13564,9 +13602,9 @@ def test_technique_progress_gaps_layer_tabs_filter_drilldown_rows_and_practice_l
     assert "Technique tags" in response_html
     assert "Lemma/Theorem tags" in response_html
     assert "Proof roles" in response_html
-    assert expected_label in response_html
+    assert expected_label not in response_html
     assert "GRAPH" not in response_html
-    assert f'href="{practice_url.replace("&", "&amp;")}"' in response_html
+    assert f'href="{practice_url.replace("&", "&amp;")}"' not in response_html
 
 
 def test_technique_progress_gaps_page_filters_layer_rows_by_all_domains(client):
@@ -13596,9 +13634,11 @@ def test_technique_progress_gaps_page_filters_layer_rows_by_all_domains(client):
 
     assert nt_response.status_code == HTTPStatus.OK
     assert comb_response.status_code == HTTPStatus.OK
-    assert [row["label"] for row in nt_response.context["technique_progress_gap_rows"]] == ["DISCREPANCY METHOD"]
-    assert [row["label"] for row in comb_response.context["technique_progress_gap_rows"]] == ["DISCREPANCY METHOD"]
-    assert nt_response.context["technique_progress_gap_rows"][0]["main_topic_label"] == "Combinatorics, Number Theory"
+    nt_rows = _technique_progress_gap_datatable_rows(client, {"kind": "methods", "topic": "number-theory"})
+    comb_rows = _technique_progress_gap_datatable_rows(client, {"kind": "methods", "topic": "combinatorics"})
+    assert [row["label"] for row in nt_rows] == ["DISCREPANCY METHOD"]
+    assert [row["label"] for row in comb_rows] == ["DISCREPANCY METHOD"]
+    assert nt_rows[0]["main_topic_label"] == "Combinatorics, Number Theory"
 
 
 def test_technique_progress_gaps_page_lists_attached_layer_mapping_rows(client):
@@ -13629,27 +13669,31 @@ def test_technique_progress_gaps_page_lists_attached_layer_mapping_rows(client):
     assert method_response.status_code == HTTPStatus.OK
     assert lemma_response.status_code == HTTPStatus.OK
     assert proof_response.status_code == HTTPStatus.OK
+    object_labels = {row["label"] for row in _technique_progress_gap_datatable_rows(client, {"kind": "objects"})}
+    method_labels = {row["label"] for row in _technique_progress_gap_datatable_rows(client, {"kind": "methods"})}
+    lemma_labels = {row["label"] for row in _technique_progress_gap_datatable_rows(client, {"kind": "lemmas"})}
+    proof_labels = {row["label"] for row in _technique_progress_gap_datatable_rows(client, {"kind": "proof_roles"})}
     assert {
         "CODE",
         "EULER PHI / TOTIENT FUNCTION",
         "POSET",
         "TRIANGLE WITH TRANSVERSAL",
-    }.issubset({row["label"] for row in object_response.context["technique_progress_gap_rows"]})
+    }.issubset(object_labels)
     assert {
         "ARITHMETIC FUNCTION ANALYSIS",
         "CHAIN-ANTICHAIN METHOD",
         "CODING BOUND",
-    }.issubset({row["label"] for row in method_response.context["technique_progress_gap_rows"]})
+    }.issubset(method_labels)
     assert {
         "EULER THEOREM",
         "MENELAUS",
         "SPERNER",
-    }.issubset({row["label"] for row in lemma_response.context["technique_progress_gap_rows"]})
+    }.issubset(lemma_labels)
     assert {
         "COLLINEARITY",
         "UPPER BOUND / STRUCTURE",
         "UPPER/LOWER BOUND",
-    }.issubset({row["label"] for row in proof_response.context["technique_progress_gap_rows"]})
+    }.issubset(proof_labels)
 
 
 def test_technique_progress_gaps_page_lists_pasted_batch_layer_mapping_rows(client):
@@ -13680,28 +13724,32 @@ def test_technique_progress_gaps_page_lists_pasted_batch_layer_mapping_rows(clie
     assert method_response.status_code == HTTPStatus.OK
     assert lemma_response.status_code == HTTPStatus.OK
     assert proof_response.status_code == HTTPStatus.OK
+    object_labels = {row["label"] for row in _technique_progress_gap_datatable_rows(client, {"kind": "objects"})}
+    method_labels = {row["label"] for row in _technique_progress_gap_datatable_rows(client, {"kind": "methods"})}
+    lemma_labels = {row["label"] for row in _technique_progress_gap_datatable_rows(client, {"kind": "lemmas"})}
+    proof_labels = {row["label"] for row in _technique_progress_gap_datatable_rows(client, {"kind": "proof_roles"})}
     assert {
         "FLOW NETWORK/CUT",
         "OMEGA FUNCTION/PARITY",
         "SEQUENCE/PROCESS",
         "TANGENTIAL QUADRILATERAL",
-    }.issubset({row["label"] for row in object_response.context["technique_progress_gap_rows"]})
+    }.issubset(object_labels)
     assert {
         "GREEDY DESCENT",
         "MAX-FLOW MIN-CUT",
         "PARITY OF OMEGA",
         "TANGENT-LENGTH METHOD",
-    }.issubset({row["label"] for row in method_response.context["technique_progress_gap_rows"]})
+    }.issubset(method_labels)
     assert {
         "MAX-FLOW/MIN-CUT",
         "PITOT THEOREM",
-    }.issubset({row["label"] for row in lemma_response.context["technique_progress_gap_rows"]})
+    }.issubset(lemma_labels)
     assert {
         "COMPUTATION",
         "DESCENT",
         "INVARIANT",
         "OPTIMIZATION",
-    }.issubset({row["label"] for row in proof_response.context["technique_progress_gap_rows"]})
+    }.issubset(proof_labels)
 
 
 def test_technique_progress_gaps_page_lists_second_pasted_batch_layer_mapping_rows(client):
@@ -13749,32 +13797,36 @@ def test_technique_progress_gaps_page_lists_second_pasted_batch_layer_mapping_ro
     assert lemma_response.status_code == HTTPStatus.OK
     assert proof_response.status_code == HTTPStatus.OK
     assert subtopic_response.status_code == HTTPStatus.OK
+    object_labels = {row["label"] for row in _technique_progress_gap_datatable_rows(client, {"kind": "objects"})}
+    method_labels = {row["label"] for row in _technique_progress_gap_datatable_rows(client, {"kind": "methods"})}
+    lemma_labels = {row["label"] for row in _technique_progress_gap_datatable_rows(client, {"kind": "lemmas"})}
+    proof_labels = {row["label"] for row in _technique_progress_gap_datatable_rows(client, {"kind": "proof_roles"})}
     assert {
         "CIRCLE",
         "F_2 VECTOR SPACE",
         "FLOOR FUNCTION",
         "MATCHING",
-    }.issubset({row["label"] for row in object_response.context["technique_progress_gap_rows"]})
+    }.issubset(object_labels)
     assert {
         "F_2 LINEAR ALGEBRA",
         "TANGENT-LINE BOUND",
         "TRIG CEVA / TRIG MENELAUS",
-    }.issubset({row["label"] for row in method_response.context["technique_progress_gap_rows"]})
+    }.issubset(method_labels)
     assert {
         "KUMMER THEOREM",
         "PASCAL THEOREM",
         "PITOT THEOREM",
         "SPERNER THEOREM",
-    }.issubset({row["label"] for row in lemma_response.context["technique_progress_gap_rows"]})
+    }.issubset(lemma_labels)
     assert {
         "CONSTRUCTION / LOWER BOUND",
         "COUNTEREXAMPLE",
         "LOWER BOUND",
         "TERMINATION",
-    }.issubset({row["label"] for row in proof_response.context["technique_progress_gap_rows"]})
+    }.issubset(proof_labels)
     assert "CONSTRUCTION/LOWER BOUND" not in {
         row["label"]
-        for row in subtopic_response.context["technique_progress_gap_rows"]
+        for row in _technique_progress_gap_datatable_rows(client, {"kind": "subtopics"})
     }
 
 
@@ -13812,30 +13864,34 @@ def test_technique_progress_gaps_page_lists_third_pasted_batch_layer_mapping_row
     assert method_response.status_code == HTTPStatus.OK
     assert lemma_response.status_code == HTTPStatus.OK
     assert proof_response.status_code == HTTPStatus.OK
+    object_labels = {row["label"] for row in _technique_progress_gap_datatable_rows(client, {"kind": "objects"})}
+    method_labels = {row["label"] for row in _technique_progress_gap_datatable_rows(client, {"kind": "methods"})}
+    lemma_labels = {row["label"] for row in _technique_progress_gap_datatable_rows(client, {"kind": "lemmas"})}
+    proof_labels = {row["label"] for row in _technique_progress_gap_datatable_rows(client, {"kind": "proof_roles"})}
     assert {
         "HAMMING BALL",
         "HYPERGRAPH",
         "MATCHING",
         "P-ADIC ROOT",
         "SIMILAR TRIANGLES",
-    }.issubset({row["label"] for row in object_response.context["technique_progress_gap_rows"]})
+    }.issubset(object_labels)
     assert {
         "HALL CONDITION",
         "HIDDEN SIMILARITY",
         "LIFTING",
         "MATCHING",
         "SPHERE PACKING",
-    }.issubset({row["label"] for row in method_response.context["technique_progress_gap_rows"]})
+    }.issubset(method_labels)
     assert {
         "HALL",
         "HAMMING BOUND",
         "HENSEL",
-    }.issubset({row["label"] for row in lemma_response.context["technique_progress_gap_rows"]})
+    }.issubset(lemma_labels)
     assert {
         "CONTRADICTION",
         "EXISTENCE",
         "UPPER BOUND",
-    }.issubset({row["label"] for row in proof_response.context["technique_progress_gap_rows"]})
+    }.issubset(proof_labels)
 
 
 def test_technique_progress_gaps_page_lists_fourth_pasted_batch_layer_mapping_rows(client):
@@ -13871,28 +13927,32 @@ def test_technique_progress_gaps_page_lists_fourth_pasted_batch_layer_mapping_ro
     assert method_response.status_code == HTTPStatus.OK
     assert lemma_response.status_code == HTTPStatus.OK
     assert proof_response.status_code == HTTPStatus.OK
+    object_labels = {row["label"] for row in _technique_progress_gap_datatable_rows(client, {"kind": "objects"})}
+    method_labels = {row["label"] for row in _technique_progress_gap_datatable_rows(client, {"kind": "methods"})}
+    lemma_labels = {row["label"] for row in _technique_progress_gap_datatable_rows(client, {"kind": "lemmas"})}
+    proof_labels = {row["label"] for row in _technique_progress_gap_datatable_rows(client, {"kind": "proof_roles"})}
     assert {
         "BINOMIAL COEFFICIENTS",
         "BIPARTITE GRAPH",
         "COORDINATE SETUP",
         "DIAMETER CIRCLE",
-    }.issubset({row["label"] for row in object_response.context["technique_progress_gap_rows"]})
+    }.issubset(object_labels)
     assert {
         "BINOMIAL EXPANSION",
         "CIRCLE WITH DIAMETER BC",
         "EDGE COLORING",
         "POLE-POLAR",
-    }.issubset({row["label"] for row in method_response.context["technique_progress_gap_rows"]})
+    }.issubset(method_labels)
     assert {
         "KŐNIG EDGE-COLORING THEOREM",
         "POLE-POLAR",
         "THALES THEOREM",
-    }.issubset({row["label"] for row in lemma_response.context["technique_progress_gap_rows"]})
+    }.issubset(lemma_labels)
     assert {
         "COEFFICIENT EXTRACTION",
         "COLORING",
         "CYCLICITY",
-    }.issubset({row["label"] for row in proof_response.context["technique_progress_gap_rows"]})
+    }.issubset(proof_labels)
 
 
 def test_technique_progress_gaps_page_lists_fifth_pasted_batch_layer_mapping_rows(client):
@@ -13929,25 +13989,29 @@ def test_technique_progress_gaps_page_lists_fifth_pasted_batch_layer_mapping_row
     assert method_response.status_code == HTTPStatus.OK
     assert lemma_response.status_code == HTTPStatus.OK
     assert proof_response.status_code == HTTPStatus.OK
+    object_labels = {row["label"] for row in _technique_progress_gap_datatable_rows(client, {"kind": "objects"})}
+    method_labels = {row["label"] for row in _technique_progress_gap_datatable_rows(client, {"kind": "methods"})}
+    lemma_labels = {row["label"] for row in _technique_progress_gap_datatable_rows(client, {"kind": "lemmas"})}
+    proof_labels = {row["label"] for row in _technique_progress_gap_datatable_rows(client, {"kind": "proof_roles"})}
     assert {
         "DISCRETE BRUNN-MINKOWSKI",
         "DISTANCE-TO-LINE FORMULA",
-    }.issubset({row["label"] for row in object_response.context["technique_progress_gap_rows"]})
+    }.issubset(object_labels)
     assert {
         "DISCRETE CONVEXITY",
         "DOUBLE COUNTING",
         "PIGEONHOLE PRINCIPLE",
         "VARIANCE ESTIMATE",
-    }.issubset({row["label"] for row in method_response.context["technique_progress_gap_rows"]})
+    }.issubset(method_labels)
     assert {
         "BRUNN-MINKOWSKI INEQUALITY",
         "CAUCHY-SCHWARZ",
         "ERDOS-GINZBURG-ZIV THEOREM",
-    }.issubset({row["label"] for row in lemma_response.context["technique_progress_gap_rows"]})
+    }.issubset(lemma_labels)
     assert {
         "BOUND",
         "LOWER BOUND",
-    }.issubset({row["label"] for row in proof_response.context["technique_progress_gap_rows"]})
+    }.issubset(proof_labels)
 
 
 def test_technique_progress_gaps_page_lists_sixth_pasted_batch_layer_mapping_rows(client):
@@ -13984,31 +14048,35 @@ def test_technique_progress_gaps_page_lists_sixth_pasted_batch_layer_mapping_row
     assert method_response.status_code == HTTPStatus.OK
     assert lemma_response.status_code == HTTPStatus.OK
     assert proof_response.status_code == HTTPStatus.OK
+    object_labels = {row["label"] for row in _technique_progress_gap_datatable_rows(client, {"kind": "objects"})}
+    method_labels = {row["label"] for row in _technique_progress_gap_datatable_rows(client, {"kind": "methods"})}
+    lemma_labels = {row["label"] for row in _technique_progress_gap_datatable_rows(client, {"kind": "lemmas"})}
+    proof_labels = {row["label"] for row in _technique_progress_gap_datatable_rows(client, {"kind": "proof_roles"})}
     assert {
         "HAMILTONIAN PATH EXTENSION",
         "RATIONAL VALUES",
         "TRIANGLE SEMIPERIMETER VARIABLES",
-    }.issubset({row["label"] for row in object_response.context["technique_progress_gap_rows"]})
+    }.issubset(object_labels)
     assert {
         "RATIONALITY ANALYSIS",
         "RAVI SUBSTITUTION",
         "ROTATION-EXTENSION",
         "STEWART COMPUTATION",
         "SYMMETRIZATION",
-    }.issubset({row["label"] for row in method_response.context["technique_progress_gap_rows"]})
+    }.issubset(method_labels)
     assert {
         "MANTEL",
         "PÓSA",
         "RATIONALITY CRITERIA",
         "STEWART THEOREM",
         "TURÁN",
-    }.issubset({row["label"] for row in lemma_response.context["technique_progress_gap_rows"]})
+    }.issubset(lemma_labels)
     assert {
         "CONSTRUCTION",
         "CRITERION",
         "METRIC CHASE",
         "UPPER BOUND",
-    }.issubset({row["label"] for row in proof_response.context["technique_progress_gap_rows"]})
+    }.issubset(proof_labels)
 
 
 def test_technique_progress_gaps_page_lists_seventh_pasted_batch_layer_mapping_rows(client):
@@ -14045,33 +14113,37 @@ def test_technique_progress_gaps_page_lists_seventh_pasted_batch_layer_mapping_r
     assert method_response.status_code == HTTPStatus.OK
     assert lemma_response.status_code == HTTPStatus.OK
     assert proof_response.status_code == HTTPStatus.OK
+    object_labels = {row["label"] for row in _technique_progress_gap_datatable_rows(client, {"kind": "objects"})}
+    method_labels = {row["label"] for row in _technique_progress_gap_datatable_rows(client, {"kind": "methods"})}
+    lemma_labels = {row["label"] for row in _technique_progress_gap_datatable_rows(client, {"kind": "lemmas"})}
+    proof_labels = {row["label"] for row in _technique_progress_gap_datatable_rows(client, {"kind": "proof_roles"})}
     assert {
         "CUT",
         "MIDPOINT",
         "MIQUEL POINT/CONFIGURATION",
         "MODULAR CONSTRAINT",
         "NILPOTENT ELEMENT/OPERATOR",
-    }.issubset({row["label"] for row in object_response.context["technique_progress_gap_rows"]})
+    }.issubset(object_labels)
     assert {
         "CYCLIC QUADRILATERALS",
         "FLOW-DUALITY",
         "HOMOTHETY",
         "NILPOTENCE",
         "QUADRATIC RESIDUES",
-    }.issubset({row["label"] for row in method_response.context["technique_progress_gap_rows"]})
+    }.issubset(method_labels)
     assert {
         "CHINESE REMAINDER THEOREM",
         "MAX-FLOW MIN-CUT",
         "MIDPOINT THEOREM",
         "MIQUEL THEOREM",
         "NILPOTENCE CRITERION",
-    }.issubset({row["label"] for row in lemma_response.context["technique_progress_gap_rows"]})
+    }.issubset(lemma_labels)
     assert {
         "ANGLE CHASE",
         "CONSTRUCTION",
         "OBSTRUCTION",
         "STRUCTURE PROOF",
-    }.issubset({row["label"] for row in proof_response.context["technique_progress_gap_rows"]})
+    }.issubset(proof_labels)
 
 
 def test_technique_progress_gaps_page_technique_mode_shows_canonical_subtopic_column(client):
@@ -14093,7 +14165,7 @@ def test_technique_progress_gaps_page_technique_mode_shows_canonical_subtopic_co
 
     assert response.status_code == HTTPStatus.OK
     assert response.context["technique_progress_gap_show_canonical_subtopic_column"] is True
-    row = response.context["technique_progress_gap_rows"][0]
+    row = _technique_progress_gap_datatable_rows(client, {"kind": "techniques"})[0]
     assert row["canonical_subtopic_label"] == canonical_subtopic
     response_html = response.content.decode("utf-8")
     assert "<th scope=\"col\">Technique</th>" in response_html
@@ -14104,7 +14176,7 @@ def test_technique_progress_gaps_page_technique_mode_shows_canonical_subtopic_co
     assert response_html.index("<th scope=\"col\">Canonical Subtopic</th>") < response_html.index(
         "<th scope=\"col\">Topic</th>",
     )
-    assert canonical_subtopic in response_html
+    assert canonical_subtopic not in response_html
 
 
 def test_technique_progress_gaps_page_subtopic_mode_hides_extra_canonical_subtopic_column(client):
@@ -14171,9 +14243,9 @@ def test_technique_progress_gaps_page_all_mode_shows_canonical_subtopic_after_ty
     assert type_header < canonical_header < topic_header
     assert all(
         row["canonical_subtopic_label"] == "Graph theory"
-        for row in response.context["technique_progress_gap_rows"]
+        for row in _technique_progress_gap_datatable_rows(client, {"kind": "all"})
     )
-    assert "Graph theory" in response_html
+    assert "Graph theory" not in response_html
 
 
 def test_technique_progress_gaps_page_technique_mode_lists_multiple_canonical_subtopics(client):
@@ -14207,12 +14279,12 @@ def test_technique_progress_gaps_page_technique_mode_lists_multiple_canonical_su
     response = client.get(reverse("pages:technique_progress_gaps"), {"kind": "techniques"})
 
     assert response.status_code == HTTPStatus.OK
-    rows = response.context["technique_progress_gap_rows"]
+    rows = _technique_progress_gap_datatable_rows(client, {"kind": "techniques"})
     assert len(rows) == 1
     assert rows[0]["label"] == "GREEDY"
     assert rows[0]["canonical_subtopic"] == ""
     assert rows[0]["canonical_subtopic_label"] == "Graph theory, Inequalities and optimization"
-    assert "Graph theory, Inequalities and optimization" in response.content.decode("utf-8")
+    assert "Graph theory, Inequalities and optimization" not in response.content.decode("utf-8")
 
 
 def test_technique_progress_gaps_page_all_mode_lists_layer_rows_not_primary_rows(client):
@@ -14264,7 +14336,14 @@ def test_technique_progress_gaps_page_all_mode_lists_layer_rows_not_primary_rows
     assert response.context["technique_progress_gap_kind"] == "all"
     labels_and_types = [
         (row["label"], row["type"])
-        for row in response.context["technique_progress_gap_rows"]
+        for row in _technique_progress_gap_datatable_rows(
+            client,
+            {
+                "kind": "all",
+                "topic": "algebra",
+                "canonical_subtopic": "Inequalities and optimization",
+            },
+        )
     ]
     assert labels_and_types == [
         ("BOUND", "Proof role"),
@@ -14302,10 +14381,7 @@ def test_technique_progress_gaps_page_invalid_kind_falls_back_to_subtopics(clien
 
     assert response.status_code == HTTPStatus.OK
     assert response.context["technique_progress_gap_kind"] == "subtopics"
-    assert [
-        row["label"]
-        for row in response.context["technique_progress_gap_rows"]
-    ] == ["Valuations"]
+    assert _technique_progress_gap_datatable_labels(client, {"kind": "everything"}) == ["Valuations"]
 
 
 def test_technique_progress_gaps_page_filters_by_main_topic(client):
@@ -14364,24 +14440,19 @@ def test_technique_progress_gaps_page_filters_by_main_topic(client):
 
     assert response.status_code == HTTPStatus.OK
     assert response.context["technique_progress_gap_topic"] == "geometry"
-    assert [
-        row["label"]
-        for row in response.context["technique_progress_gap_rows"]
-    ] == ["Circle geometry"]
+    assert _technique_progress_gap_datatable_labels(client, {"topic": "geometry"}) == ["Circle geometry"]
     response_html = response.content.decode("utf-8")
     assert "Inequalities" not in response_html
-    assert "Circle geometry" in response_html
+    assert "Circle geometry" not in response_html
 
     combinatorics_response = client.get(
         reverse("pages:technique_progress_gaps"),
         {"topic": "combinatorics"},
     )
     assert combinatorics_response.status_code == HTTPStatus.OK
-    assert [
-        row["label"]
-        for row in combinatorics_response.context["technique_progress_gap_rows"]
-    ] == ["Shared parity"]
-    assert combinatorics_response.context["technique_progress_gap_rows"][0]["total"] == 2
+    combinatorics_rows = _technique_progress_gap_datatable_rows(client, {"topic": "combinatorics"})
+    assert [row["label"] for row in combinatorics_rows] == ["Shared parity"]
+    assert combinatorics_rows[0]["total"] == 1
 
 
 def test_technique_progress_gaps_page_groups_normalized_algebra_subtopics_and_hides_invalid_rows(client):
@@ -14454,7 +14525,7 @@ def test_technique_progress_gaps_page_groups_normalized_algebra_subtopics_and_hi
     response = client.get(reverse("pages:technique_progress_gaps"), {"kind": "subtopics", "topic": "algebra"})
 
     assert response.status_code == HTTPStatus.OK
-    rows = response.context["technique_progress_gap_rows"]
+    rows = _technique_progress_gap_datatable_rows(client, {"kind": "subtopics", "topic": "algebra"})
     assert [row["label"] for row in rows] == [normalized_extremal, normalized_discrete]
     assert rows[0]["total"] == 3
     assert rows[1]["total"] == 1
@@ -14470,7 +14541,7 @@ def test_technique_progress_gaps_page_groups_normalized_algebra_subtopics_and_hi
     assert technique_response.status_code == HTTPStatus.OK
     technique_labels = [
         row["label"]
-        for row in technique_response.context["technique_progress_gap_rows"]
+        for row in _technique_progress_gap_datatable_rows(client, {"kind": "techniques", "topic": "algebra"})
     ]
     assert "CONTRADICTION" in technique_labels
     assert "MONOTONICITY" in technique_labels
@@ -14567,7 +14638,7 @@ def test_technique_progress_gaps_page_groups_normalized_combinatorics_subtopics(
     response = client.get(reverse("pages:technique_progress_gaps"), {"kind": "subtopics", "topic": "combinatorics"})
 
     assert response.status_code == HTTPStatus.OK
-    rows = response.context["technique_progress_gap_rows"]
+    rows = _technique_progress_gap_datatable_rows(client, {"kind": "subtopics", "topic": "combinatorics"})
     assert [row["label"] for row in rows] == [normalized_coloring, normalized_graph]
     assert rows[0]["total"] == 3
     assert rows[1]["total"] == 1
@@ -14584,7 +14655,7 @@ def test_technique_progress_gaps_page_groups_normalized_combinatorics_subtopics(
     assert technique_response.status_code == HTTPStatus.OK
     technique_labels = [
         row["label"]
-        for row in technique_response.context["technique_progress_gap_rows"]
+        for row in _technique_progress_gap_datatable_rows(client, {"kind": "techniques", "topic": "combinatorics"})
     ]
     assert "GREEDY" in technique_labels
     assert "GRID COLORING" in technique_labels
@@ -14672,7 +14743,7 @@ def test_technique_progress_gaps_page_groups_number_theory_parents_and_hides_met
     assert response.status_code == HTTPStatus.OK
     labels = [
         row["label"]
-        for row in response.context["technique_progress_gap_rows"]
+        for row in _technique_progress_gap_datatable_rows(client, {"kind": "subtopics", "topic": "number-theory"})
     ]
     assert labels == [crt_parent, valuation_parent, zsigmondy_parent]
     response_html = response.content.decode("utf-8")
@@ -14688,7 +14759,7 @@ def test_technique_progress_gaps_page_groups_number_theory_parents_and_hides_met
     assert technique_response.status_code == HTTPStatus.OK
     technique_labels = [
         row["label"]
-        for row in technique_response.context["technique_progress_gap_rows"]
+        for row in _technique_progress_gap_datatable_rows(client, {"kind": "techniques", "topic": "number-theory"})
     ]
     assert "CONSTRUCTION" in technique_labels
     assert "IMO 2007 P5" not in technique_labels
@@ -14760,20 +14831,18 @@ def test_technique_progress_gaps_page_groups_geometry_parents_and_hides_methods(
     response = client.get(reverse("pages:technique_progress_gaps"), {"kind": "subtopics", "topic": "geometry"})
 
     assert response.status_code == HTTPStatus.OK
-    labels = [
-        row["label"]
-        for row in response.context["technique_progress_gap_rows"]
-    ]
+    rows = _technique_progress_gap_datatable_rows(client, {"kind": "subtopics", "topic": "geometry"})
+    labels = [row["label"] for row in rows]
     assert labels == [
         circle_parent,
         analytic_parent,
         "Congruences and modular arithmetic",
         projective_parent,
     ]
-    assert response.context["technique_progress_gap_rows"][0]["total"] == 3
+    assert rows[0]["total"] == 3
     response_html = response.content.decode("utf-8")
     assert "CONTRADICTION" not in response_html
-    assert "Congruences and modular arithmetic" in response_html
+    assert "Congruences and modular arithmetic" not in response_html
 
     technique_response = client.get(
         reverse("pages:technique_progress_gaps"),
@@ -14783,7 +14852,7 @@ def test_technique_progress_gaps_page_groups_geometry_parents_and_hides_methods(
     assert technique_response.status_code == HTTPStatus.OK
     technique_labels = [
         row["label"]
-        for row in technique_response.context["technique_progress_gap_rows"]
+        for row in _technique_progress_gap_datatable_rows(client, {"kind": "techniques", "topic": "geometry"})
     ]
     assert "CONTRADICTION" in technique_labels
     assert "MODULAR ARITHMETIC / RESIDUES" in technique_labels
@@ -14835,7 +14904,7 @@ def test_technique_progress_gaps_page_topic_tabs_preserve_user_and_kind(client):
     )
 
 
-def test_technique_progress_gaps_page_uses_client_side_datatable_and_preserves_filters(client):
+def test_technique_progress_gaps_page_uses_server_side_datatable_and_preserves_filters(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     selected_user = UserFactory()
     client.force_login(admin_user)
@@ -14858,40 +14927,48 @@ def test_technique_progress_gaps_page_uses_client_side_datatable_and_preserves_f
         {"user": str(selected_user.pk), "kind": "subtopics", "topic": "algebra"},
     )
     assert first_page.status_code == HTTPStatus.OK
-    assert len(first_page.context["technique_progress_gap_rows"]) == 52
-    assert first_page.context["technique_progress_gap_result_summary"] == "Showing 52 subtopic gaps"
     assert first_page.context["technique_progress_gap_export_url"] == (
         f"{reverse('pages:technique_progress_gaps')}?user={selected_user.pk}"
         "&kind=subtopics&topic=algebra&export=csv"
     )
+    assert first_page.context["technique_progress_gap_rows_url"] == (
+        f"{reverse('pages:technique_progress_gaps')}?user={selected_user.pk}"
+        "&kind=subtopics&topic=algebra&format=datatable"
+    )
     response_html = first_page.content.decode("utf-8")
-    assert "serverSide: true" not in response_html
-    assert "ajax:" not in response_html
+    assert "serverSide: true" in response_html
+    assert "processing: true" in response_html
+    assert "ajax:" in response_html
+    assert "columns:" in response_html
+    assert "searchDelay: 300" in response_html
     assert 'id="technique-progress-gaps-export"' in response_html
     assert (
         f'href="/dashboard/techniques/gaps/?user={selected_user.pk}'
         "&amp;kind=subtopics&amp;topic=algebra&amp;export=csv"
         '"'
     ) in response_html
-    assert "Gap 01" in response_html
-    assert "Gap 52" in response_html
+    assert "Gap 01" not in response_html
+    assert "Gap 52" not in response_html
     assert (
         f'data-rows-url="/dashboard/techniques/gaps/?user={selected_user.pk}'
         "&amp;kind=subtopics&amp;topic=algebra&amp;format=datatable"
         '"'
-    ) not in response_html
+    ) in response_html
     assert "pagination-boxed" not in response_html
 
-    second_page = client.get(
-        reverse("pages:technique_progress_gaps"),
-        {"user": str(selected_user.pk), "kind": "subtopics", "topic": "algebra", "page": "2"},
+    second_payload = _technique_progress_gap_datatable_payload(
+        client,
+        {
+            "user": str(selected_user.pk),
+            "kind": "subtopics",
+            "topic": "algebra",
+            "draw": "2",
+            "start": "50",
+            "length": "50",
+        },
     )
-    assert second_page.status_code == HTTPStatus.OK
-    assert len(second_page.context["technique_progress_gap_rows"]) == 52
-    assert [
-        row["label"]
-        for row in second_page.context["technique_progress_gap_rows"][-2:]
-    ] == ["Gap 51", "Gap 52"]
+    assert second_payload["recordsTotal"] == 52
+    assert [row["label"] for row in second_payload["data"]] == ["Gap 51", "Gap 52"]
 
 
 def test_technique_progress_gaps_export_csv_uses_url_filters_and_ignores_datatable_search(client):
@@ -15395,6 +15472,190 @@ def test_technique_progress_gaps_datatable_filters_by_minimum_total_statements(c
         row["label"]
         for row in payload["data"]
     ] == ["Large sample"]
+
+
+def test_technique_progress_gaps_datatable_clamps_invalid_length_and_order_inputs(client):
+    user = UserFactory()
+    client.force_login(user)
+    for index in range(1, 53):
+        _create_technique_progress_statement(
+            problem_code=f"P{index}",
+            problem_number=index,
+            statement_tags=[
+                {
+                    "technique": f"TECHNIQUE {index:02d}",
+                    "domains": ["ALG"],
+                    "main_topic": "ALG",
+                    "canonical_subtopic": f"Gap {index:02d}",
+                },
+            ],
+        )
+
+    payload = _technique_progress_gap_datatable_payload(
+        client,
+        {
+            "kind": "subtopics",
+            "topic": "algebra",
+            "length": "999",
+            "order[0][column]": "999",
+            "order[0][dir]": "sideways",
+            "columns[999][data]": "not_allowed",
+        },
+    )
+
+    assert payload["recordsTotal"] == 52
+    assert len(payload["data"]) == EXPECTED_PROGRESS_GAP_PAGE_SIZE
+    assert [row["label"] for row in payload["data"][:2]] == ["Gap 01", "Gap 02"]
+
+
+def test_technique_progress_gaps_datatable_reuses_cached_base_rows(client):
+    user = UserFactory()
+    client.force_login(user)
+    _create_technique_progress_statement(
+        statement_tags=[
+            {
+                "technique": "ANGLE CHASE",
+                "domains": ["GEO"],
+                "main_topic": "GEO",
+                "canonical_subtopic": "Circle geometry",
+            },
+        ],
+    )
+
+    cache.clear()
+    first_payload = _technique_progress_gap_datatable_payload(
+        client,
+        {
+            "kind": "subtopics",
+            "topic": "geometry",
+            "draw": "1",
+        },
+    )
+
+    with patch("inspinia.pages.technique_progress._progress_fact_rows", side_effect=AssertionError("cache miss")):
+        second_payload = _technique_progress_gap_datatable_payload(
+            client,
+            {
+                "kind": "subtopics",
+                "topic": "geometry",
+                "draw": "2",
+            },
+        )
+
+    assert first_payload["recordsTotal"] == 1
+    assert second_payload["draw"] == 2
+    assert second_payload["recordsTotal"] == 1
+    assert second_payload["data"][0]["label"] == "Circle geometry"
+
+
+def test_technique_progress_gaps_datatable_cache_invalidates_when_user_completion_changes(client):
+    user = UserFactory()
+    client.force_login(user)
+    statement = _create_technique_progress_statement(
+        statement_tags=[
+            {
+                "technique": "ANGLE CHASE",
+                "domains": ["GEO"],
+                "main_topic": "GEO",
+                "canonical_subtopic": "Circle geometry",
+            },
+        ],
+    )
+
+    cache.clear()
+    first_payload = _technique_progress_gap_datatable_payload(
+        client,
+        {
+            "kind": "subtopics",
+            "topic": "geometry",
+        },
+    )
+    UserProblemCompletion.objects.create(
+        user=user,
+        statement=statement,
+        status=UserProblemCompletion.Status.SOLVED,
+    )
+    second_payload = _technique_progress_gap_datatable_payload(
+        client,
+        {
+            "kind": "subtopics",
+            "topic": "geometry",
+        },
+    )
+
+    assert first_payload["data"][0]["completion_percent"] == 0
+    assert second_payload["recordsTotal"] == 0
+
+
+def test_technique_progress_gaps_datatable_cache_invalidates_when_catalog_state_changes(client):
+    user = UserFactory()
+    client.force_login(user)
+    _create_technique_progress_statement(
+        problem_code="P1",
+        problem_number=1,
+        statement_tags=[
+            {
+                "technique": "ANGLE CHASE",
+                "domains": ["GEO"],
+                "main_topic": "GEO",
+                "canonical_subtopic": "Circle geometry",
+            },
+        ],
+    )
+
+    from inspinia.pages.models import TechniqueProgressCatalogState
+
+    cache.clear()
+    first_payload = _technique_progress_gap_datatable_payload(
+        client,
+        {
+            "kind": "subtopics",
+            "topic": "geometry",
+        },
+    )
+    _create_technique_progress_statement(
+        problem_code="P2",
+        problem_number=2,
+        statement_tags=[
+            {
+                "technique": "POWER OF A POINT",
+                "domains": ["GEO"],
+                "main_topic": "GEO",
+                "canonical_subtopic": "Circle geometry",
+            },
+        ],
+    )
+    TechniqueProgressCatalogState.objects.update_or_create(
+        singleton_key=1,
+        defaults={
+            "last_refreshed_at": timezone.now(),
+            "needs_rebuild": False,
+            "fact_count": 4,
+            "last_error": "",
+        },
+    )
+    second_payload = _technique_progress_gap_datatable_payload(
+        client,
+        {
+            "kind": "subtopics",
+            "topic": "geometry",
+        },
+    )
+
+    assert first_payload["data"][0]["total"] == 1
+    assert second_payload["data"][0]["total"] == 2
+
+
+def test_technique_progress_fact_declares_gap_filter_indexes():
+    from inspinia.pages.models import TechniqueProgressFact
+
+    index_field_sets = {
+        tuple(index.fields)
+        for index in TechniqueProgressFact._meta.indexes
+    }
+
+    assert ("layer", "main_topic") in index_field_sets
+    assert ("layer", "canonical_subtopic") in index_field_sets
 
 
 def test_technique_progress_gaps_page_requires_login(client):
