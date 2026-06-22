@@ -60,14 +60,23 @@ def build_benchmark_export_payload(
     }
 
 
-def build_benchmark_prompt(payload: dict[str, Any]) -> str:
+def build_benchmark_prompt(payload: dict[str, Any], *, export_batch=None) -> str:
     payload_json = json.dumps(payload, ensure_ascii=False, indent=2, default=_json_default)
+    batch_context = ""
+    if export_batch is not None:
+        batch_context = (
+            f"Export batch: #{export_batch.pk}\n"
+            f"Scope: {export_batch.scope_mode}\n"
+            f"Expected rows: {export_batch.row_count}\n"
+            f"Target profile: {export_batch.target_profile}\n\n"
+        )
     return (
         "You are a math olympiad curriculum analyst.\n\n"
         "Task:\n"
         "Benchmark the following AsterProof subtopic practice gaps. The project does not have an "
         "internal AI model, so your output will be imported back into a Django table. "
         "Return strict JSON only.\n\n"
+        f"{batch_context}"
         "Important:\n"
         f'- Use schema_version "{SCHEMA_VERSION}".\n'
         "- Do not change row_key.\n"

@@ -5,15 +5,19 @@ The technique gap dashboard supports a manual ChatGPT import/export loop for cur
 ## Workflow
 
 1. Open `Dashboard -> Techniques -> Gaps`.
-2. Filter the gap table to the rows you want to benchmark.
-3. Click `Benchmark gaps`.
-4. Copy the generated prompt into ChatGPT.
-5. Paste ChatGPT's JSON response back into AsterProof.
-6. Click `Preview`.
-7. Review invalid rows and changed rows.
-8. Click `Apply valid rows`.
+2. Click `Benchmark gaps`.
+3. Review the Benchmark Coverage Dashboard counts across all actionable gap kinds.
+4. Click `Create next batch`, or use the Batch Export Wizard to choose scope, kind, size, and sort.
+5. Copy `Step 1: Copy this prompt to ChatGPT`.
+6. Paste ChatGPT's benchmark response into `Step 2: Paste ChatGPT benchmark JSON`.
+7. Click `Preview`.
+8. Review new, changed, invalid, and missing rows.
+9. Click `Apply validated rows`.
+10. Repeat with the next batch until the missing count is cleared.
 
 The importer accepts schema version `technique-gap-benchmark-v1` only. Future versions are rejected until the importer is explicitly updated.
+
+Imports validate against the frozen `TechniqueBenchmarkExportBatch` row keys, not the current filter state. This keeps a response valid even if an admin changes filters after copying the prompt.
 
 ## What ChatGPT Populates
 
@@ -47,8 +51,10 @@ Ranks are computed after filtering and before DataTables pagination, so rank val
 
 Imports are previewed before apply. Apply writes valid rows transactionally and stores old/new snapshots in the import batch. Admins can restore previous values from an applied batch; newly created benchmarks from that batch are deleted during restore.
 
+The paste parser accepts strict JSON, fenced JSON, JSONL, markdown tables, and ChatGPT prose containing JSON. If an admin accidentally pastes the source export payload instead of ChatGPT's benchmark response, the importer shows a specific warning and refuses to preview it as benchmark metadata.
+
 Limits:
 
 - pasted response max: 2 MB
-- rows per import max: 300
+- rows per import max: 250
 - rationale, pitfalls, recommended sequence max: 500 characters each

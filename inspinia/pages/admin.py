@@ -9,6 +9,7 @@ from .models import ProblemTopicTechnique
 from .models import StatementTopicTechnique
 from .models import TechniqueBenchmark
 from .models import TechniqueBenchmarkAlias
+from .models import TechniqueBenchmarkExportBatch
 from .models import TechniqueBenchmarkImportBatch
 from .models import UserProblemCompletion
 from .models import UserProblemDifficultyRating
@@ -203,11 +204,54 @@ class TechniqueBenchmarkAliasAdmin(admin.ModelAdmin):
     readonly_fields = ("created_at", "updated_at")
 
 
+@admin.register(TechniqueBenchmarkExportBatch)
+class TechniqueBenchmarkExportBatchAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "status",
+        "scope_mode",
+        "target_profile",
+        "row_count",
+        "batch_size",
+        "created_by",
+        "created_at",
+    )
+    search_fields = ("created_by__email", "prompt_text")
+    list_filter = ("status", "scope_mode", "target_profile")
+    readonly_fields = (
+        "schema_version",
+        "target_profile",
+        "scope_mode",
+        "kind_filters",
+        "topic_filters",
+        "min_total",
+        "coverage_max",
+        "remaining_min",
+        "batch_size",
+        "sort_mode",
+        "frozen_row_keys",
+        "source_payload",
+        "prompt_text",
+        "row_count",
+        "status",
+        "created_by",
+        "created_at",
+        "updated_at",
+    )
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+
 @admin.register(TechniqueBenchmarkImportBatch)
 class TechniqueBenchmarkImportBatchAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "status",
+        "export_batch",
         "created_by",
         "rows_total",
         "rows_valid",
@@ -218,5 +262,5 @@ class TechniqueBenchmarkImportBatchAdmin(admin.ModelAdmin):
         "created_at",
     )
     search_fields = ("created_by__email", "prompt_text", "pasted_response", "error_summary")
-    list_filter = ("status", "source")
+    list_filter = ("status", "source", "export_batch")
     readonly_fields = ("created_at", "applied_at", "restored_at")

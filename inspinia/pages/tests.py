@@ -55,6 +55,7 @@ from inspinia.pages.models import ProblemTopicTechnique
 from inspinia.pages.models import StatementTopicTechnique
 from inspinia.pages.models import TechniqueBenchmark
 from inspinia.pages.models import TechniqueBenchmarkAlias
+from inspinia.pages.models import TechniqueBenchmarkExportBatch
 from inspinia.pages.models import TechniqueBenchmarkImportBatch
 from inspinia.pages.models import TechniqueProgressFact
 from inspinia.pages.models import UserProblemCompletion
@@ -13393,6 +13394,54 @@ def test_technique_benchmark_import_preview_validates_golden_fixture_without_mut
     assert TechniqueBenchmark.objects.count() == 0
 
 
+def test_technique_benchmark_import_parser_detects_source_export_payload():
+    from inspinia.pages.technique_benchmarking.export import build_benchmark_export_payload
+    from inspinia.pages.technique_benchmarking.importing import BenchmarkImportValidationError
+    from inspinia.pages.technique_benchmarking.importing import preview_benchmark_import
+
+    source_payload = build_benchmark_export_payload(
+        [
+            {
+                "label": "PARITY",
+                "layer_kind": "subtopics",
+                "type": "Subtopic",
+                "main_topic_labels": ["Number Theory"],
+                "solved": 2,
+                "total": 10,
+                "remaining": 8,
+                "completion_percent": 20,
+            },
+        ],
+    )
+
+    with pytest.raises(BenchmarkImportValidationError, match="source export payload"):
+        preview_benchmark_import(
+            json.dumps(source_payload),
+            known_row_keys={"canonical_subtopic:parity"},
+        )
+
+
+def test_technique_benchmark_import_parser_accepts_markdown_table():
+    from inspinia.pages.technique_benchmarking.importing import preview_benchmark_import
+
+    table = """
+| row_key | normalized_label | parent_family | primary_area | syllabus_core | contest_frequency | transfer_value | prerequisite_value | concept_load | recognition_burden | execution_load | proof_fragility | cross_topic_dependency | typical_mohs_min | typical_mohs_max | jbmo_weight | national_weight | imo_tst_weight | training_type | target_level | benchmark_confidence | rationale | pitfalls | recommended_sequence |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| canonical_subtopic:parity | Parity | Divisibility and invariants | Number Theory | 5 | 5 | 5 | 5 | 1 | 2 | 2 | 2 | 2 | 0 | 15 | 1.10 | 1.00 | 1.00 | Drill | Foundation | 95 | Core invariant method. | Overusing parity alone. | Drill parity before modular arithmetic. |
+"""
+
+    preview = preview_benchmark_import(
+        table,
+        known_row_keys={"canonical_subtopic:parity"},
+    )
+
+    assert preview.rows_total == 1
+    assert preview.rows_valid == 1
+    assert preview.preview_payload["new_rows"]["canonical_subtopic:parity"]["parent_family"] == (
+        "Divisibility and invariants"
+    )
+
+
 def test_technique_benchmark_import_rejects_unknown_future_schema_version():
     from inspinia.pages.technique_benchmarking.importing import BenchmarkImportValidationError
     from inspinia.pages.technique_benchmarking.importing import preview_benchmark_import
@@ -13460,6 +13509,149 @@ def test_technique_benchmark_import_apply_and_restore_new_rows():
     assert TechniqueBenchmark.objects.count() == 0
 
 
+def test_technique_benchmark_coverage_summary_counts_actionable_rows_by_status_and_kind():
+    from inspinia.pages.technique_benchmarking.coverage import build_benchmark_coverage_summary
+
+    user = UserFactory()
+    _create_technique_progress_statement(
+        problem_code="C1",
+        statement_tags=[
+            {
+                "technique": "PARITY",
+                "domains": ["NT"],
+                "main_topic": "Number Theory",
+                "canonical_subtopic": "PARITY",
+                "object_tags": ["TRIANGLE"],
+                "technique_tags": ["CAUCHY"],
+                "lemma_theorem_tags": ["CEVA"],
+                "proof_roles": ["CONSTRUCTION"],
+            },
+        ],
+    )
+    TechniqueBenchmark.objects.create(
+        kind=TechniqueBenchmark.Kind.CANONICAL_SUBTOPIC,
+        label="PARITY",
+        parent_family="Divisibility and invariants",
+        primary_area="Number Theory",
+        syllabus_core=5,
+        contest_frequency=5,
+        transfer_value=5,
+        prerequisite_value=5,
+        concept_load=1,
+        recognition_burden=2,
+        execution_load=2,
+        proof_fragility=2,
+        cross_topic_dependency=2,
+        benchmark_confidence=95,
+    )
+    TechniqueBenchmark.objects.create(
+        kind=TechniqueBenchmark.Kind.TECHNIQUE,
+        label="PARITY",
+        parent_family="Divisibility and invariants",
+    )
+    TechniqueBenchmark.objects.create(
+        kind=TechniqueBenchmark.Kind.OBJECT,
+        label="TRIANGLE",
+        parent_family="Triangle geometry",
+        primary_area="Geometry",
+        syllabus_core=5,
+        contest_frequency=5,
+        transfer_value=4,
+        prerequisite_value=5,
+        concept_load=2,
+        recognition_burden=2,
+        execution_load=2,
+        proof_fragility=2,
+        cross_topic_dependency=2,
+        benchmark_confidence=60,
+    )
+
+    summary = build_benchmark_coverage_summary(
+        request_user=user,
+        raw_user_id="",
+        target_profile="national",
+    )
+
+    assert summary["counts"] == {
+        "total": 6,
+        "missing": 3,
+        "partial": 1,
+        "complete": 1,
+        "needs_review": 1,
+    }
+    assert summary["by_kind"]["subtopics"]["total"] == 1
+    assert summary["by_kind"]["techniques"]["partial"] == 1
+    assert summary["by_kind"]["objects"]["needs_review"] == 1
+    assert summary["by_kind"]["methods"]["missing"] == 1
+    assert summary["by_area"]["Number Theory"]["total"] >= 1
+
+
+def test_technique_benchmark_export_batch_freezes_rows_and_preview_uses_batch_keys():
+    from inspinia.pages.technique_benchmarking.batches import create_benchmark_export_batch
+    from inspinia.pages.technique_benchmarking.importing import preview_benchmark_import
+
+    user = UserFactory(role=User.Role.ADMIN)
+    _create_golden_benchmark_gap_statements()
+
+    export_batch = create_benchmark_export_batch(
+        request_user=user,
+        created_by=user,
+        raw_user_id="",
+        scope_mode="all_missing",
+        kind_filters=["subtopics"],
+        target_profile="national",
+        batch_size=2,
+        sort_mode="label",
+    )
+    payload = json.loads(_golden_benchmark_payload_text())
+    payload["rows"] = [
+        row
+        for row in payload["rows"]
+        if row["row_key"] in export_batch.frozen_row_keys
+    ]
+
+    preview = preview_benchmark_import(json.dumps(payload), export_batch=export_batch)
+
+    assert export_batch.status == TechniqueBenchmarkExportBatch.Status.EXPORTED
+    assert export_batch.row_count == 2
+    assert len(export_batch.frozen_row_keys) == 2
+    assert preview.rows_valid == 2
+    assert preview.preview_payload["export_batch_id"] == export_batch.pk
+    assert preview.preview_payload["missing_row_keys"] == []
+
+
+def test_technique_benchmark_export_batch_preview_reports_missing_and_unknown_rows():
+    from inspinia.pages.technique_benchmarking.batches import create_benchmark_export_batch
+    from inspinia.pages.technique_benchmarking.importing import preview_benchmark_import
+
+    user = UserFactory(role=User.Role.ADMIN)
+    _create_golden_benchmark_gap_statements()
+    export_batch = create_benchmark_export_batch(
+        request_user=user,
+        created_by=user,
+        raw_user_id="",
+        scope_mode="all_missing",
+        kind_filters=["subtopics"],
+        target_profile="national",
+        batch_size=2,
+        sort_mode="label",
+    )
+    payload = json.loads(_golden_benchmark_payload_text())
+    payload["rows"] = [
+        row
+        for row in payload["rows"]
+        if row["row_key"] == export_batch.frozen_row_keys[0]
+    ]
+    payload["rows"].append({**payload["rows"][0], "row_key": "canonical_subtopic:not-in-batch"})
+
+    preview = preview_benchmark_import(json.dumps(payload), export_batch=export_batch)
+
+    assert preview.rows_valid == 1
+    assert preview.rows_invalid == 1
+    assert preview.preview_payload["missing_row_keys"] == [export_batch.frozen_row_keys[1]]
+    assert "Unknown row_key" in preview.invalid_rows[0]["errors"][0]
+
+
 def test_technique_benchmark_export_payload_and_prompt_include_row_keys():
     from inspinia.pages.technique_benchmarking.export import build_benchmark_export_payload
     from inspinia.pages.technique_benchmarking.export import build_benchmark_prompt
@@ -13508,7 +13700,7 @@ def test_technique_benchmark_export_payload_and_prompt_include_row_keys():
     assert '"row_key": "canonical_subtopic:parity"' in prompt
 
 
-def test_technique_gap_benchmark_page_exports_applies_and_restores(client):
+def test_technique_gap_benchmark_page_creates_export_batch_applies_and_restores(client):
     user = UserFactory(role=User.Role.ADMIN)
     client.force_login(user)
     _create_golden_benchmark_gap_statements()
@@ -13519,23 +13711,56 @@ def test_technique_gap_benchmark_page_exports_applies_and_restores(client):
     assert response.status_code == HTTPStatus.OK
     html = response.content.decode("utf-8")
     assert "Technique gap benchmarks" in html
+    assert "Benchmark Coverage Dashboard" in html
+    assert "Create next batch" in html
+    assert "Step 1: Copy this prompt to ChatGPT" in html
+    assert "Advanced: source rows sent to ChatGPT" in html
+    assert "Step 2: Paste ChatGPT benchmark JSON" in html
+    assert "Mark reviewed" in html
+    assert "Preview parsed benchmark rows" not in html
     assert "technique-gap-benchmark-v1" in html
     assert "canonical_subtopic:parity" in html
     assert 'name="pasted_response"' in html
 
+    create_batch_response = client.post(
+        url,
+        {
+            "action": "create_export_batch",
+            "scope_mode": "all_missing",
+            "kind_filters": ["subtopics"],
+            "batch_size": "2",
+            "sort_mode": "label",
+            "target_profile": "national",
+        },
+    )
+
+    assert create_batch_response.status_code == HTTPStatus.OK
+    export_batch = TechniqueBenchmarkExportBatch.objects.get()
+    assert export_batch.row_count == 2
+
+    payload = json.loads(_golden_benchmark_payload_text())
+    payload["rows"] = [
+        row
+        for row in payload["rows"]
+        if row["row_key"] in export_batch.frozen_row_keys
+    ]
     apply_response = client.post(
         url,
         {
             "action": "apply",
-            "prompt_text": "Prompt",
-            "pasted_response": _golden_benchmark_payload_text(),
+            "export_batch_id": str(export_batch.pk),
+            "prompt_text": export_batch.prompt_text,
+            "pasted_response": json.dumps(payload),
         },
     )
 
     assert apply_response.status_code == HTTPStatus.OK
-    assert TechniqueBenchmark.objects.count() == 8
+    assert TechniqueBenchmark.objects.count() == 2
     batch = TechniqueBenchmarkImportBatch.objects.get()
     assert batch.status == TechniqueBenchmarkImportBatch.Status.APPLIED
+    assert batch.export_batch == export_batch
+    export_batch.refresh_from_db()
+    assert export_batch.status == TechniqueBenchmarkExportBatch.Status.APPLIED
 
     restore_response = client.post(
         url,
@@ -13549,6 +13774,38 @@ def test_technique_gap_benchmark_page_exports_applies_and_restores(client):
     batch.refresh_from_db()
     assert batch.status == TechniqueBenchmarkImportBatch.Status.RESTORED
     assert TechniqueBenchmark.objects.count() == 0
+
+
+def test_technique_gap_benchmark_page_mark_reviewed_clears_quality_flags(client):
+    user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(user)
+    benchmark = TechniqueBenchmark.objects.create(
+        kind=TechniqueBenchmark.Kind.CANONICAL_SUBTOPIC,
+        label="PARITY",
+        parent_family="Divisibility and invariants",
+        syllabus_core=5,
+        contest_frequency=5,
+        transfer_value=5,
+        prerequisite_value=5,
+        concept_load=1,
+        recognition_burden=2,
+        execution_load=2,
+        proof_fragility=2,
+        cross_topic_dependency=2,
+        quality_flags=["parent_family_changed"],
+    )
+
+    response = client.post(
+        reverse("pages:technique_gap_benchmark"),
+        {
+            "action": "mark_reviewed",
+            "row_keys": "canonical_subtopic:parity",
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    benchmark.refresh_from_db()
+    assert benchmark.quality_flags == []
 
 
 def test_technique_progress_gaps_datatable_includes_benchmark_scores_and_ranks(client):

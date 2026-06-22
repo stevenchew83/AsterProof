@@ -555,6 +555,50 @@ class TechniqueProgressCatalogState(models.Model):
         super().save(*args, **kwargs)
 
 
+class TechniqueBenchmarkExportBatch(models.Model):
+    class Status(models.TextChoices):
+        EXPORTED = "exported", "Exported"
+        PREVIEWED = "previewed", "Previewed"
+        APPLIED = "applied", "Applied"
+        CANCELLED = "cancelled", "Cancelled"
+
+    schema_version = models.CharField(max_length=64)
+    target_profile = models.CharField(max_length=32, default="national")
+    scope_mode = models.CharField(max_length=64)
+    kind_filters = models.JSONField(default=list, blank=True)
+    topic_filters = models.JSONField(default=dict, blank=True)
+    min_total = models.PositiveIntegerField(default=0)
+    coverage_max = models.PositiveSmallIntegerField(null=True, blank=True)
+    remaining_min = models.PositiveIntegerField(default=0)
+    batch_size = models.PositiveSmallIntegerField(
+        default=50,
+        validators=[MinValueValidator(1), MaxValueValidator(250)],
+    )
+    sort_mode = models.CharField(max_length=64, default="high_remaining_low_coverage")
+    frozen_row_keys = models.JSONField(default=list, blank=True)
+    source_payload = models.JSONField(default=dict, blank=True)
+    prompt_text = models.TextField(blank=True)
+    row_count = models.PositiveIntegerField(default=0)
+    status = models.CharField(max_length=32, choices=Status.choices, default=Status.EXPORTED)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="technique_benchmark_export_batches",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+        indexes = [
+            models.Index(fields=["status", "created_at"], name="pages_tbeb_status_created_idx"),
+            models.Index(fields=["scope_mode"], name="pages_tbeb_scope_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"Technique benchmark export {self.pk or 'unsaved'} ({self.status})"
+
+
 class TechniqueBenchmarkImportBatch(models.Model):
     class Status(models.TextChoices):
         PREVIEWED = "previewed", "Previewed"
@@ -566,6 +610,13 @@ class TechniqueBenchmarkImportBatch(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
         related_name="technique_benchmark_import_batches",
+    )
+    export_batch = models.ForeignKey(
+        TechniqueBenchmarkExportBatch,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="import_batches",
     )
     status = models.CharField(max_length=32, choices=Status.choices)
     source = models.CharField(max_length=64, default="chatgpt_copy_paste")
@@ -696,6 +747,7 @@ class TechniqueBenchmark(models.Model):
         blank=True,
         validators=[MinValueValidator(0), MaxValueValidator(100)],
     )
+    quality_flags = models.JSONField(default=list, blank=True)
     rationale = models.TextField(blank=True)
     pitfalls = models.TextField(blank=True)
     recommended_sequence = models.TextField(blank=True)

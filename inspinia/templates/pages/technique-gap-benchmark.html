@@ -35,106 +35,250 @@
   {% endif %}
 
   <div class="row g-3 mt-0">
-    <div class="col-sm-6 col-xl-3">
-      <div class="card m-0">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header border-0 pb-0 d-flex flex-wrap justify-content-between align-items-start gap-2">
+          <div>
+            <h4 class="header-title mb-0">Benchmark Coverage Dashboard</h4>
+            <p class="text-muted fs-xs mb-0">Actionable benchmark coverage for the selected user's current practice gaps.</p>
+          </div>
+          <form method="post" class="m-0">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_export_batch">
+            <input type="hidden" name="scope_mode" value="all_missing">
+            <input type="hidden" name="batch_size" value="50">
+            <input type="hidden" name="sort_mode" value="high_remaining_low_coverage">
+            <input type="hidden" name="target_profile" value="{{ target_profile }}">
+            {% for option in benchmark_kind_options %}
+            <input type="hidden" name="kind_filters" value="{{ option.value }}">
+            {% endfor %}
+            <button type="submit" class="btn btn-primary">
+              <i class="ti ti-package-export me-1"></i>Create next batch
+            </button>
+          </form>
+        </div>
         <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-primary-subtle text-primary rounded">
-                <i class="ti ti-list-search fs-24"></i>
-              </span>
+          <div class="row g-3">
+            <div class="col-sm-6 col-xl">
+              <div class="d-flex align-items-center">
+                <div class="flex-shrink-0">
+                  <span class="avatar-title bg-primary-subtle text-primary rounded">
+                    <i class="ti ti-list-search fs-24"></i>
+                  </span>
+                </div>
+                <div class="flex-grow-1 ms-2">
+                  <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Total benchmarkable rows</p>
+                  <h3 class="mb-0">{{ benchmark_coverage.counts.total }}</h3>
+                </div>
+              </div>
             </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Exported gaps</p>
-              <h3 class="mb-0">{{ export_payload.row_count }}</h3>
+            <div class="col-sm-6 col-xl">
+              <div class="d-flex align-items-center">
+                <div class="flex-shrink-0">
+                  <span class="avatar-title bg-warning-subtle text-warning rounded">
+                    <i class="ti ti-alert-circle fs-24"></i>
+                  </span>
+                </div>
+                <div class="flex-grow-1 ms-2">
+                  <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Missing benchmarks</p>
+                  <h3 class="mb-0">{{ benchmark_coverage.counts.missing }}</h3>
+                </div>
+              </div>
+            </div>
+            <div class="col-sm-6 col-xl">
+              <div class="d-flex align-items-center">
+                <div class="flex-shrink-0">
+                  <span class="avatar-title bg-info-subtle text-info rounded">
+                    <i class="ti ti-adjustments fs-24"></i>
+                  </span>
+                </div>
+                <div class="flex-grow-1 ms-2">
+                  <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Partial</p>
+                  <h3 class="mb-0">{{ benchmark_coverage.counts.partial }}</h3>
+                </div>
+              </div>
+            </div>
+            <div class="col-sm-6 col-xl">
+              <div class="d-flex align-items-center">
+                <div class="flex-shrink-0">
+                  <span class="avatar-title bg-success-subtle text-success rounded">
+                    <i class="ti ti-circle-check fs-24"></i>
+                  </span>
+                </div>
+                <div class="flex-grow-1 ms-2">
+                  <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Complete</p>
+                  <h3 class="mb-0">{{ benchmark_coverage.counts.complete }}</h3>
+                </div>
+              </div>
+            </div>
+            <div class="col-sm-6 col-xl">
+              <div class="d-flex align-items-center">
+                <div class="flex-shrink-0">
+                  <span class="avatar-title bg-danger-subtle text-danger rounded">
+                    <i class="ti ti-eye-exclamation fs-24"></i>
+                  </span>
+                </div>
+                <div class="flex-grow-1 ms-2">
+                  <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Needs review</p>
+                  <h3 class="mb-0">{{ benchmark_coverage.counts.needs_review }}</h3>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row g-3 mt-1">
+            <div class="col-xl-6">
+              <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                  <thead class="table-light">
+                    <tr>
+                      <th scope="col">Kind</th>
+                      <th scope="col">Total</th>
+                      <th scope="col">Missing</th>
+                      <th scope="col">Partial</th>
+                      <th scope="col">Complete</th>
+                      <th scope="col">Needs review</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for kind, stats in benchmark_coverage.by_kind.items %}
+                    <tr>
+                      <td>{{ stats.label }}</td>
+                      <td>{{ stats.total }}</td>
+                      <td>{{ stats.missing }}</td>
+                      <td>{{ stats.partial }}</td>
+                      <td>{{ stats.complete }}</td>
+                      <td>{{ stats.needs_review }}</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="col-xl-6">
+              <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                  <thead class="table-light">
+                    <tr>
+                      <th scope="col">Area/topic</th>
+                      <th scope="col">Total</th>
+                      <th scope="col">Missing</th>
+                      <th scope="col">Partial</th>
+                      <th scope="col">Complete</th>
+                      <th scope="col">Needs review</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for area, stats in benchmark_coverage.by_area.items %}
+                    <tr>
+                      <td>{{ area }}</td>
+                      <td>{{ stats.total }}</td>
+                      <td>{{ stats.missing }}</td>
+                      <td>{{ stats.partial }}</td>
+                      <td>{{ stats.complete }}</td>
+                      <td>{{ stats.needs_review }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                      <td colspan="6" class="text-muted text-center py-3">No actionable gap rows yet.</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
-    <div class="col-sm-6 col-xl-3">
-      <div class="card m-0">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-info-subtle text-info rounded">
-                <i class="ti ti-schema fs-24"></i>
-              </span>
-            </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Schema</p>
-              <h3 class="mb-0 fs-lg">{{ export_payload.schema_version }}</h3>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    {% if applied_batch %}
-    <div class="col-sm-6 col-xl-3">
-      <div class="card m-0">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-success-subtle text-success rounded">
-                <i class="ti ti-database-import fs-24"></i>
-              </span>
-            </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Applied batch</p>
-              <h3 class="mb-0">#{{ applied_batch.pk }}</h3>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    {% endif %}
   </div>
 
   <div class="row g-3 mt-0">
-    <div class="col-xl-6">
-      <div class="card h-100">
-        <div class="card-header border-bottom d-flex justify-content-between align-items-center gap-2">
-          <div>
-            <h4 class="header-title mb-0">ChatGPT prompt</h4>
-            <p class="text-muted fs-xs mb-0">Copy this prompt with the current filtered gap rows.</p>
+    <div class="col-12">
+      <form method="post" class="card">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="create_export_batch">
+        <div class="card-header border-bottom">
+          <h4 class="header-title mb-0">Batch Export Wizard</h4>
+          <p class="text-muted fs-xs mb-0">Create a frozen batch before sending rows to ChatGPT.</p>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-3">
+              <label class="form-label" for="benchmark-scope-mode">Scope</label>
+              <select id="benchmark-scope-mode" name="scope_mode" class="form-select">
+                {% for option in batch_scope_options %}
+                <option value="{{ option.value }}" {% if option.value == 'all_missing' %}selected{% endif %}>{{ option.label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label" for="benchmark-batch-size">Batch size</label>
+              <select id="benchmark-batch-size" name="batch_size" class="form-select">
+                {% for size in batch_size_choices %}
+                <option value="{{ size }}" {% if size == 50 %}selected{% endif %}>{{ size }} rows</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label" for="benchmark-sort-mode">Sort</label>
+              <select id="benchmark-sort-mode" name="sort_mode" class="form-select">
+                {% for option in batch_sort_options %}
+                <option value="{{ option.value }}" {% if option.value == 'high_remaining_low_coverage' %}selected{% endif %}>{{ option.label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label" for="benchmark-target-profile">Target profile</label>
+              <select id="benchmark-target-profile" name="target_profile" class="form-select">
+                <option value="national" {% if target_profile == 'national' %}selected{% endif %}>National</option>
+                <option value="jbmo" {% if target_profile == 'jbmo' %}selected{% endif %}>JBMO</option>
+                <option value="imo_tst" {% if target_profile == 'imo_tst' %}selected{% endif %}>IMO/TST</option>
+              </select>
+            </div>
+            <div class="col-lg-6">
+              <label class="form-label">Kind</label>
+              <div class="d-flex flex-wrap gap-3">
+                {% for option in benchmark_kind_options %}
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="kind_filters" id="kind-{{ option.value }}" value="{{ option.value }}" checked>
+                  <label class="form-check-label" for="kind-{{ option.value }}">{{ option.label }}</label>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+            <div class="col-lg-6">
+              <label class="form-label" for="benchmark-custom-row-keys">Custom selected rows</label>
+              <textarea id="benchmark-custom-row-keys" name="custom_row_keys" class="form-control font-monospace" rows="3" placeholder="canonical_subtopic:parity&#10;method:cauchy"></textarea>
+            </div>
           </div>
-          <button type="button" class="btn btn-sm btn-outline-secondary benchmark-copy" data-copy-target="benchmark-prompt">
-            <i class="ti ti-copy me-1"></i>Copy
+        </div>
+        <div class="card-footer text-end">
+          <button type="submit" class="btn btn-primary">
+            <i class="ti ti-package-export me-1"></i>Create frozen export batch
           </button>
         </div>
-        <div class="card-body">
-          <textarea id="benchmark-prompt" name="prompt_text" class="form-control font-monospace benchmark-copy-box" readonly>{{ export_prompt }}</textarea>
-        </div>
-      </div>
+      </form>
     </div>
+  </div>
 
-    <div class="col-xl-6">
-      <form method="post" class="card h-100">
+  <div class="row g-3 mt-0">
+    <div class="col-12">
+      <form method="post" class="card">
         {% csrf_token %}
-        <div class="card-header border-bottom d-flex justify-content-between align-items-center gap-2">
-          <div>
-            <h4 class="header-title mb-0">Import response</h4>
-            <p class="text-muted fs-xs mb-0">Preview validates rows before apply.</p>
-          </div>
-          <div class="d-flex flex-wrap gap-2">
-            <button type="submit" name="action" value="preview" class="btn btn-sm btn-primary">
-              <i class="ti ti-eye me-1"></i>Preview
-            </button>
-            <button type="submit" name="action" value="apply" class="btn btn-sm btn-success">
-              <i class="ti ti-database-import me-1"></i>Apply valid rows
-            </button>
-          </div>
+        <input type="hidden" name="action" value="mark_reviewed">
+        <div class="card-header border-bottom">
+          <h4 class="header-title mb-0">Mark reviewed</h4>
+          <p class="text-muted fs-xs mb-0">Clear persisted review flags for explicit benchmark row keys.</p>
         </div>
         <div class="card-body">
-          <input type="hidden" name="prompt_text" value="{{ export_prompt }}">
-          {% if form.non_field_errors %}
-          <div class="alert alert-danger">{{ form.non_field_errors }}</div>
-          {% endif %}
-          <label class="form-label" for="{{ form.pasted_response.id_for_label }}">ChatGPT response</label>
-          {{ form.pasted_response }}
-          {% for error in form.pasted_response.errors %}
-          <div class="invalid-feedback d-block">{{ error }}</div>
-          {% endfor %}
+          <label class="form-label" for="benchmark-reviewed-row-keys">Benchmark row keys</label>
+          <textarea id="benchmark-reviewed-row-keys" name="row_keys" class="form-control font-monospace" rows="3" placeholder="canonical_subtopic:parity&#10;method:cauchy"></textarea>
+        </div>
+        <div class="card-footer text-end">
+          <button type="submit" class="btn btn-outline-secondary">
+            <i class="ti ti-circle-check me-1"></i>Mark reviewed
+          </button>
         </div>
       </form>
     </div>
@@ -143,17 +287,82 @@
   <div class="row g-3 mt-0">
     <div class="col-12">
       <div class="card">
-        <div class="card-header border-bottom d-flex justify-content-between align-items-center gap-2">
+        <div class="card-header border-bottom d-flex flex-wrap justify-content-between align-items-start gap-2">
           <div>
-            <h4 class="header-title mb-0">Export JSON</h4>
-            <p class="text-muted fs-xs mb-0">Strict payload embedded in the prompt.</p>
+            <h4 class="header-title mb-0">
+              {% if active_export_batch %}Batch #{{ active_export_batch.pk }}{% else %}Current view preview{% endif %}
+            </h4>
+            <p class="text-muted fs-xs mb-0">
+              {% if active_export_batch %}
+                Scope: {{ active_export_batch.scope_mode }} · Rows: {{ active_export_batch.row_count }} · Status: {{ active_export_batch.get_status_display }}
+              {% else %}
+                Create a frozen batch for the safest import workflow. This preview shows the current filtered rows only.
+              {% endif %}
+            </p>
           </div>
-          <button type="button" class="btn btn-sm btn-outline-secondary benchmark-copy" data-copy-target="benchmark-json">
-            <i class="ti ti-copy me-1"></i>Copy JSON
-          </button>
+          <span class="badge bg-info-subtle text-info">{{ export_payload.schema_version }}</span>
         </div>
         <div class="card-body">
-          <textarea id="benchmark-json" class="form-control font-monospace" rows="10" readonly>{{ export_payload_json }}</textarea>
+          <div class="row g-3">
+            <div class="col-xl-6">
+              <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+                <div>
+                  <h4 class="header-title mb-0">Step 1: Copy this prompt to ChatGPT</h4>
+                  <p class="text-muted fs-xs mb-0">Expected rows: {{ export_payload.row_count }}</p>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-secondary benchmark-copy" data-copy-target="benchmark-prompt">
+                  <i class="ti ti-copy me-1"></i>Copy
+                </button>
+              </div>
+              <textarea id="benchmark-prompt" name="prompt_text" class="form-control font-monospace benchmark-copy-box" readonly>{{ export_prompt }}</textarea>
+            </div>
+            <div class="col-xl-6">
+              <form method="post" class="h-100 d-flex flex-column">
+                {% csrf_token %}
+                {% if active_export_batch %}
+                <input type="hidden" name="export_batch_id" value="{{ active_export_batch.pk }}">
+                {% endif %}
+                <input type="hidden" name="prompt_text" value="{{ export_prompt }}">
+                <input type="hidden" name="target_profile" value="{{ target_profile }}">
+                <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+                  <div>
+                    <h4 class="header-title mb-0">Step 2: Paste ChatGPT benchmark JSON</h4>
+                    <p class="text-muted fs-xs mb-0">Paste anything parser accepts JSON, JSONL, fenced JSON, and markdown tables.</p>
+                  </div>
+                  <div class="d-flex flex-wrap gap-2">
+                    <button type="submit" name="action" value="preview" class="btn btn-sm btn-primary">
+                      <i class="ti ti-eye me-1"></i>Preview
+                    </button>
+                    <button type="submit" name="action" value="apply" class="btn btn-sm btn-success">
+                      <i class="ti ti-database-import me-1"></i>Apply validated rows
+                    </button>
+                  </div>
+                </div>
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                {% endif %}
+                <label class="form-label" for="{{ form.pasted_response.id_for_label }}">ChatGPT response</label>
+                {{ form.pasted_response }}
+                {% for error in form.pasted_response.errors %}
+                <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+              </form>
+            </div>
+          </div>
+
+          <div class="mt-3">
+            <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#benchmark-source-json" aria-expanded="false" aria-controls="benchmark-source-json">
+              <i class="ti ti-code me-1"></i>Advanced: source rows sent to ChatGPT
+            </button>
+            <div class="collapse mt-2" id="benchmark-source-json">
+              <div class="d-flex justify-content-end mb-2">
+                <button type="button" class="btn btn-sm btn-outline-secondary benchmark-copy" data-copy-target="benchmark-json">
+                  <i class="ti ti-copy me-1"></i>Copy JSON
+                </button>
+              </div>
+              <textarea id="benchmark-json" class="form-control font-monospace" rows="10" readonly>{{ export_payload_json }}</textarea>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -164,8 +373,14 @@
     <div class="col-12">
       <div class="card">
         <div class="card-header border-bottom">
-          <h4 class="header-title mb-0">Preview diff</h4>
-          <p class="text-muted fs-xs mb-0">{{ preview_result.rows_valid }} valid, {{ preview_result.rows_invalid }} invalid.</p>
+          <h4 class="header-title mb-0">Preview parsed benchmark rows</h4>
+          <p class="text-muted fs-xs mb-0">
+            Expected {{ preview_result.preview_payload.expected_row_count }} ·
+            received {{ preview_result.preview_payload.received_row_count }} ·
+            {{ preview_result.rows_valid }} valid ·
+            {{ preview_result.rows_invalid }} invalid ·
+            {{ preview_result.preview_payload.missing_row_keys|length }} missing from response
+          </p>
         </div>
         <div class="card-body p-0">
           <div class="table-responsive">
@@ -198,6 +413,11 @@
               </tbody>
             </table>
           </div>
+          {% if preview_result.preview_payload.missing_row_keys %}
+          <div class="alert alert-warning m-3">
+            Missing row keys: {{ preview_result.preview_payload.missing_row_keys|join:', ' }}
+          </div>
+          {% endif %}
         </div>
       </div>
     </div>
@@ -205,10 +425,48 @@
   {% endif %}
 
   <div class="row g-3 mt-0 mb-4">
-    <div class="col-12">
-      <div class="card">
+    <div class="col-xl-6">
+      <div class="card h-100">
         <div class="card-header border-bottom">
-          <h4 class="header-title mb-0">Recent batches</h4>
+          <h4 class="header-title mb-0">Recent export batches</h4>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th scope="col">Batch</th>
+                  <th scope="col">Scope</th>
+                  <th scope="col">Rows</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Created</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for batch in recent_export_batches %}
+                <tr>
+                  <td><a href="?batch={{ batch.pk }}">#{{ batch.pk }}</a></td>
+                  <td>{{ batch.scope_mode }}</td>
+                  <td>{{ batch.row_count }}</td>
+                  <td>{{ batch.get_status_display }}</td>
+                  <td>{{ batch.created_at|date:'Y-m-d H:i' }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="5" class="text-muted text-center py-3">No export batches yet.</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-6">
+      <div class="card h-100">
+        <div class="card-header border-bottom">
+          <h4 class="header-title mb-0">Recent import batches</h4>
         </div>
         <div class="card-body p-0">
           <div class="table-responsive">
@@ -225,7 +483,7 @@
               <tbody>
                 {% for batch in recent_batches %}
                 <tr>
-                  <td>#{{ batch.pk }}</td>
+                  <td>#{{ batch.pk }}{% if batch.export_batch %} <span class="text-muted fs-xs">from #{{ batch.export_batch.pk }}</span>{% endif %}</td>
                   <td>{{ batch.get_status_display }}</td>
                   <td>{{ batch.rows_valid }} valid / {{ batch.rows_invalid }} invalid</td>
                   <td>{{ batch.created_at|date:'Y-m-d H:i' }}</td>

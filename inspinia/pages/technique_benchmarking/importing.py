@@ -13,6 +13,7 @@ from django.utils import timezone
 
 from inspinia.pages.models import TechniqueBenchmark
 from inspinia.pages.models import TechniqueBenchmarkAlias
+from inspinia.pages.models import TechniqueBenchmarkExportBatch
 from inspinia.pages.models import TechniqueBenchmarkImportBatch
 from inspinia.pages.technique_benchmarking.keys import build_benchmark_row_key
 from inspinia.pages.technique_benchmarking.keys import parse_benchmark_row_key
@@ -21,8 +22,9 @@ from inspinia.pages.technique_benchmarking.scoring import calculate_static_impor
 
 SCHEMA_VERSION = "technique-gap-benchmark-v1"
 MAX_PASTED_RESPONSE_BYTES = 2 * 1024 * 1024
-MAX_IMPORT_ROWS = 300
+MAX_IMPORT_ROWS = 250
 MAX_LONG_TEXT_CHARS = 500
+MIN_MARKDOWN_TABLE_LINES = 3
 SCORE_MIN = 1
 SCORE_MAX = 5
 MOHS_MIN = 0
@@ -71,6 +73,7 @@ MODEL_UPDATE_FIELDS = (
     "training_type",
     "target_level",
     "benchmark_confidence",
+    "quality_flags",
     "rationale",
     "pitfalls",
     "recommended_sequence",
@@ -98,14 +101,13 @@ def preview_benchmark_import(
     pasted_response: str,
     *,
     known_row_keys: set[str] | None = None,
+    export_batch: TechniqueBenchmarkExportBatch | None = None,
 ) -> BenchmarkImportPreview:
     schema_version, raw_rows = parse_benchmark_import_response(pasted_response)
-    normalized_known_keys = {
-        _normalize_row_key(row_key)
-        for row_key in known_row_keys
-    } if known_row_keys is not None else _known_row_keys_from_database()
+    normalized_known_keys = _expected_row_keys(known_row_keys=known_row_keys, export_batch=export_batch)
 
     seen_row_keys: set[str] = set()
+    received_row_keys: set[str] = set()
     valid_rows: list[dict[str, Any]] = []
     invalid_rows: list[dict[str, Any]] = []
     preview_rows: list[dict[str, Any]] = []
@@ -114,6 +116,9 @@ def preview_benchmark_import(
     changed_parent_family_row_keys: list[str] = []
 
     for index, raw_row in enumerate(raw_rows, start=1):
+        raw_row_key = _normalize_row_key(str(raw_row.get("row_key") or ""))
+        if raw_row_key:
+            received_row_keys.add(raw_row_key)
         normalized_row, errors = _validate_raw_row(
             raw_row,
             index=index,
@@ -146,6 +151,10 @@ def preview_benchmark_import(
             and old_snapshot.get("parent_family") != new_snapshot.get("parent_family")
         ):
             changed_parent_family_row_keys.append(row_key)
+            new_snapshot["quality_flags"] = _quality_flags_with(
+                new_snapshot.get("quality_flags"),
+                "parent_family_changed",
+            )
         preview_rows.append(
             {
                 "index": index,
@@ -163,6 +172,10 @@ def preview_benchmark_import(
         "new_rows": new_rows,
         "invalid_rows": invalid_rows,
         "changed_parent_family_row_keys": changed_parent_family_row_keys,
+        "export_batch_id": export_batch.pk if export_batch is not None else None,
+        "expected_row_count": len(normalized_known_keys),
+        "received_row_count": len(received_row_keys),
+        "missing_row_keys": sorted(normalized_known_keys - received_row_keys),
     }
     return BenchmarkImportPreview(
         schema_version=schema_version,
@@ -189,12 +202,21 @@ def parse_benchmark_import_response(pasted_response: str) -> tuple[str, list[dic
     if parsed_payload is None:
         parsed_payload = _parse_jsonl_payload(raw_text)
     if parsed_payload is None:
+        parsed_payload = _parse_markdown_table_payload(raw_text)
+    if parsed_payload is None:
         parsed_payload = _parse_tsv_payload(raw_text)
     if parsed_payload is None:
-        msg = "Benchmark response must be valid JSON, fenced JSON, JSONL, or TSV."
+        msg = "Benchmark response must be valid JSON, fenced JSON, JSONL, markdown table, or TSV."
         raise BenchmarkImportValidationError(msg)
 
     schema_version, rows = _rows_from_payload(parsed_payload)
+    if _looks_like_source_export_rows(rows):
+        msg = (
+            "This looks like the source export payload, not ChatGPT's benchmark response. "
+            "It contains completed/total/remaining fields but no syllabus_core or difficulty fields. "
+            "Paste the JSON object returned by ChatGPT."
+        )
+        raise BenchmarkImportValidationError(msg)
     if schema_version != SCHEMA_VERSION:
         msg = f"Unsupported benchmark schema version: {schema_version or 'missing'}."
         raise BenchmarkImportValidationError(msg)
@@ -211,9 +233,11 @@ def apply_benchmark_import(
     user,
     prompt_text: str = "",
     pasted_response: str = "",
+    export_batch: TechniqueBenchmarkExportBatch | None = None,
 ) -> TechniqueBenchmarkImportBatch:
     batch = TechniqueBenchmarkImportBatch.objects.create(
         created_by=user,
+        export_batch=export_batch,
         status=TechniqueBenchmarkImportBatch.Status.APPLIED,
         prompt_text=prompt_text,
         pasted_response=pasted_response,
@@ -313,12 +337,28 @@ def _parse_json_payload(raw_text: str) -> Any | None:
     fenced_match = re.search(r"```(?:json)?\s*(?P<payload>.*?)```", raw_text, flags=re.DOTALL | re.IGNORECASE)
     if fenced_match is not None:
         candidates.insert(0, fenced_match.group("payload").strip())
+    extracted_payload = _extract_json_from_prose(raw_text)
+    if extracted_payload:
+        candidates.append(extracted_payload)
     for candidate in candidates:
         try:
             return json.loads(candidate)
         except json.JSONDecodeError:
             continue
     return None
+
+
+def _extract_json_from_prose(raw_text: str) -> str:
+    decoder = json.JSONDecoder()
+    for index, character in enumerate(raw_text):
+        if character not in "[{":
+            continue
+        try:
+            _payload, end = decoder.raw_decode(raw_text[index:])
+        except json.JSONDecodeError:
+            continue
+        return raw_text[index : index + end]
+    return ""
 
 
 def _parse_jsonl_payload(raw_text: str) -> list[dict[str, Any]] | None:
@@ -337,6 +377,51 @@ def _parse_jsonl_payload(raw_text: str) -> list[dict[str, Any]] | None:
     return rows or None
 
 
+def _parse_markdown_table_payload(raw_text: str) -> list[dict[str, Any]] | None:
+    lines = [line.strip() for line in raw_text.splitlines() if line.strip().startswith("|")]
+    if len(lines) < MIN_MARKDOWN_TABLE_LINES:
+        return None
+    header_cells = _markdown_cells(lines[0])
+    separator_cells = _markdown_cells(lines[1])
+    if not header_cells or "row_key" not in {_normalize_header(cell) for cell in header_cells}:
+        return None
+    if not all(set(cell.replace(":", "").strip()) <= {"-"} for cell in separator_cells):
+        return None
+
+    headers = [_normalize_header(cell) for cell in header_cells]
+    rows = []
+    for line in lines[2:]:
+        cells = _markdown_cells(line)
+        if len(cells) != len(headers):
+            return None
+        row = {
+            header: cell
+            for header, cell in zip(headers, cells, strict=True)
+            if header
+        }
+        rows.append(row)
+    return rows or None
+
+
+def _markdown_cells(line: str) -> list[str]:
+    stripped_line = line.strip()
+    if stripped_line.startswith("|"):
+        stripped_line = stripped_line[1:]
+    if stripped_line.endswith("|"):
+        stripped_line = stripped_line[:-1]
+    return [cell.strip() for cell in stripped_line.split("|")]
+
+
+def _normalize_header(header: str) -> str:
+    normalized = re.sub(r"[^a-z0-9]+", "_", str(header or "").strip().casefold()).strip("_")
+    aliases = {
+        "mohs_min": "typical_mohs_min",
+        "mohs_max": "typical_mohs_max",
+        "confidence": "benchmark_confidence",
+    }
+    return aliases.get(normalized, normalized)
+
+
 def _parse_tsv_payload(raw_text: str) -> list[dict[str, Any]] | None:
     if "\t" not in raw_text:
         return None
@@ -352,7 +437,11 @@ def _rows_from_payload(payload: Any) -> tuple[str, list[dict[str, Any]]]:
         rows = payload.get("rows")
     elif isinstance(payload, list):
         rows = payload
-        schema_version = str(rows[0].get("schema_version") if rows and isinstance(rows[0], dict) else SCHEMA_VERSION)
+        schema_version = str(
+            rows[0].get("schema_version") or SCHEMA_VERSION
+            if rows and isinstance(rows[0], dict)
+            else SCHEMA_VERSION,
+        )
     else:
         rows = None
         schema_version = ""
@@ -360,6 +449,22 @@ def _rows_from_payload(payload: Any) -> tuple[str, list[dict[str, Any]]]:
         msg = "Benchmark response must contain a rows array."
         raise BenchmarkImportValidationError(msg)
     return schema_version or SCHEMA_VERSION, rows
+
+
+def _looks_like_source_export_rows(rows: list[dict[str, Any]]) -> bool:
+    if not rows:
+        return False
+    source_fields = {"completed", "total", "remaining", "coverage_percent"}
+    benchmark_fields = {"syllabus_core", "concept_load", "recognition_burden"}
+    source_like_count = 0
+    benchmark_like_count = 0
+    for row in rows:
+        row_fields = set(row)
+        if source_fields & row_fields:
+            source_like_count += 1
+        if benchmark_fields & row_fields:
+            benchmark_like_count += 1
+    return source_like_count > 0 and benchmark_like_count == 0
 
 
 def _validate_raw_row(  # noqa: C901, PLR0912
@@ -475,6 +580,7 @@ def _snapshot_from_import_row(
         training_type=row["training_type"],
         target_level=row["target_level"],
         benchmark_confidence=row["benchmark_confidence"],
+        quality_flags=list(getattr(existing_benchmark, "quality_flags", []) or []),
         rationale=row["rationale"],
         pitfalls=row["pitfalls"],
         recommended_sequence=row["recommended_sequence"],
@@ -509,6 +615,33 @@ def _apply_snapshot_to_benchmark(benchmark: TechniqueBenchmark, snapshot: dict[s
         } and value is not None:
             value = Decimal(str(value))
         setattr(benchmark, field_name, value)
+
+
+def _expected_row_keys(
+    *,
+    known_row_keys: set[str] | None,
+    export_batch: TechniqueBenchmarkExportBatch | None,
+) -> set[str]:
+    if export_batch is not None:
+        return {
+            _normalize_row_key(row_key)
+            for row_key in export_batch.frozen_row_keys
+            if _normalize_row_key(row_key)
+        }
+    if known_row_keys is not None:
+        return {
+            _normalize_row_key(row_key)
+            for row_key in known_row_keys
+            if _normalize_row_key(row_key)
+        }
+    return _known_row_keys_from_database()
+
+
+def _quality_flags_with(raw_flags: object, flag: str) -> list[str]:
+    flags = [str(value) for value in raw_flags or [] if str(value or "").strip()]
+    if flag not in flags:
+        flags.append(flag)
+    return flags
 
 
 def _known_row_keys_from_database() -> set[str]:
