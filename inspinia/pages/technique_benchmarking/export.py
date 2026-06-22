@@ -1,14 +1,45 @@
 from __future__ import annotations
 
+import csv
 import json
 from decimal import Decimal
 from typing import Any
+
+from django.http import HttpResponse
 
 from inspinia.pages.technique_benchmarking.importing import SCHEMA_VERSION
 from inspinia.pages.technique_benchmarking.keys import benchmark_kind_for_gap_row
 from inspinia.pages.technique_benchmarking.keys import benchmark_label_key_for_gap_row
 from inspinia.pages.technique_benchmarking.keys import benchmark_row_key
 from inspinia.pages.technique_benchmarking.scoring import benchmark_lookup_for_gap_rows
+
+BENCHMARKABLE_CSV_CONTENT_TYPE = "text/csv; charset=utf-8"
+BENCHMARKABLE_CSV_FIELDNAMES = [
+    "row_key",
+    "normalized_label",
+    "parent_family",
+    "primary_area",
+    "syllabus_core",
+    "contest_frequency",
+    "transfer_value",
+    "prerequisite_value",
+    "concept_load",
+    "recognition_burden",
+    "execution_load",
+    "proof_fragility",
+    "cross_topic_dependency",
+    "typical_mohs_min",
+    "typical_mohs_max",
+    "jbmo_weight",
+    "national_weight",
+    "imo_tst_weight",
+    "training_type",
+    "target_level",
+    "benchmark_confidence",
+    "rationale",
+    "pitfalls",
+    "recommended_sequence",
+]
 
 
 def build_benchmark_export_payload(
@@ -58,6 +89,28 @@ def build_benchmark_export_payload(
         },
         "rows": export_rows,
     }
+
+
+def build_benchmarkable_rows_csv_response(rows: list[dict[str, object]]) -> HttpResponse:
+    response = HttpResponse(content_type=BENCHMARKABLE_CSV_CONTENT_TYPE)
+    response["Content-Disposition"] = 'attachment; filename="technique-benchmarkable-rows.csv"'
+    writer = csv.DictWriter(response, fieldnames=BENCHMARKABLE_CSV_FIELDNAMES)
+    writer.writeheader()
+    writer.writerows(_benchmarkable_csv_row(row) for row in rows)
+    return response
+
+
+def _benchmarkable_csv_row(row: dict[str, object]) -> dict[str, str]:
+    csv_row = dict.fromkeys(BENCHMARKABLE_CSV_FIELDNAMES, "")
+    csv_row["row_key"] = str(row.get("benchmark_row_key") or benchmark_row_key(row))
+
+    benchmark = row.get("benchmark")
+    if benchmark is None:
+        return csv_row
+
+    for field in BENCHMARKABLE_CSV_FIELDNAMES[1:]:
+        csv_row[field] = _csv_cell_value(getattr(benchmark, field, ""))
+    return csv_row
 
 
 def build_benchmark_prompt(payload: dict[str, Any], *, export_batch=None) -> str:
@@ -142,6 +195,12 @@ def _existing_benchmark_payload(benchmark) -> dict[str, Any]:
 
 def _decimal_to_float(value: Decimal | None) -> float | None:
     return float(value) if value is not None else None
+
+
+def _csv_cell_value(value: object) -> str:
+    if value is None:
+        return ""
+    return str(value)
 
 
 def _json_default(value: object) -> object:
