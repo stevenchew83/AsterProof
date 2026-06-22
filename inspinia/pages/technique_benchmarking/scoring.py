@@ -245,6 +245,8 @@ def _needs_review(
     matched_by_alias: bool,
     alias_reason: str,
 ) -> bool:
+    if getattr(benchmark, "quality_flags", None):
+        return True
     if benchmark.benchmark_confidence is not None and benchmark.benchmark_confidence < REVIEW_CONFIDENCE_THRESHOLD:
         return True
     if benchmark.typical_mohs_min is not None and benchmark.typical_mohs_max is not None:
