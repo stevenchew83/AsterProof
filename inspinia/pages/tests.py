@@ -16124,6 +16124,9 @@ def test_technique_progress_gaps_page_uses_server_side_datatable_and_preserves_f
     assert "serverSide: true" in response_html
     assert "processing: true" in response_html
     assert "ajax:" in response_html
+    assert 'data-csrf-token="' in response_html
+    assert 'type: "POST"' in response_html
+    assert '"X-CSRFToken": tableElement.dataset.csrfToken' in response_html
     assert "columns:" in response_html
     assert "searchDelay: 300" in response_html
     assert 'id="technique-progress-gaps-export"' in response_html
@@ -16154,6 +16157,58 @@ def test_technique_progress_gaps_page_uses_server_side_datatable_and_preserves_f
     )
     assert second_payload["recordsTotal"] == 52
     assert [row["label"] for row in second_payload["data"]] == ["Gap 51", "Gap 52"]
+
+
+def test_technique_progress_gaps_datatable_accepts_post_body_params_with_url_filters(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    selected_user = UserFactory()
+    client.force_login(admin_user)
+    for index in range(1, 53):
+        _create_technique_progress_statement(
+            problem_code=f"P{index}",
+            problem_number=index,
+            statement_tags=[
+                {
+                    "technique": f"TECHNIQUE {index:02d}",
+                    "domains": ["ALG"],
+                    "main_topic": "ALG",
+                    "canonical_subtopic": f"Gap {index:02d}",
+                },
+            ],
+        )
+    _create_technique_progress_statement(
+        problem_code="G1",
+        problem_number=101,
+        topic="GEO",
+        statement_tags=[
+            {
+                "technique": "ANGLE CHASE",
+                "domains": ["GEO"],
+                "main_topic": "GEO",
+                "canonical_subtopic": "Circle geometry",
+            },
+        ],
+    )
+
+    response = client.post(
+        f"{reverse('pages:technique_progress_gaps')}?"
+        f"{urlencode({'user': selected_user.pk, 'kind': 'subtopics', 'topic': 'algebra', 'format': 'datatable'})}",
+        {
+            "draw": "7",
+            "start": "50",
+            "length": "50",
+            "order[0][column]": "0",
+            "order[0][dir]": "asc",
+            "columns[0][data]": "label",
+            "columns[0][name]": "label",
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    payload = response.json()
+    assert payload["draw"] == 7
+    assert payload["recordsTotal"] == 52
+    assert [row["label"] for row in payload["data"]] == ["Gap 51", "Gap 52"]
 
 
 def test_technique_progress_gaps_export_csv_uses_url_filters_and_ignores_datatable_search(client):

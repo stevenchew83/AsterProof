@@ -8228,16 +8228,17 @@ def technique_progress_gaps_view(request):
             raw_target_profile=(request.GET.get("target_profile") or "").strip(),
         )
 
-    if request.GET.get("format") == "datatable":
+    datatable_params = _technique_progress_gaps_datatable_params(request)
+    if datatable_params.get("format") == "datatable":
         return JsonResponse(
             build_technique_progress_gaps_datatable_payload(
                 request_user=request.user,
-                raw_user_id=(request.GET.get("user") or "").strip(),
-                raw_kind=(request.GET.get("kind") or "").strip(),
-                raw_topic=(request.GET.get("topic") or "").strip(),
-                raw_min_total=(request.GET.get("min_total") or "").strip(),
-                raw_canonical_subtopic=(request.GET.get("canonical_subtopic") or "").strip(),
-                params=request.GET,
+                raw_user_id=(datatable_params.get("user") or "").strip(),
+                raw_kind=(datatable_params.get("kind") or "").strip(),
+                raw_topic=(datatable_params.get("topic") or "").strip(),
+                raw_min_total=(datatable_params.get("min_total") or "").strip(),
+                raw_canonical_subtopic=(datatable_params.get("canonical_subtopic") or "").strip(),
+                params=datatable_params,
             ),
         )
 
@@ -8250,6 +8251,14 @@ def technique_progress_gaps_view(request):
         raw_canonical_subtopic=(request.GET.get("canonical_subtopic") or "").strip(),
     )
     return render(request, "pages/technique-progress-gaps.html", context)
+
+
+def _technique_progress_gaps_datatable_params(request):
+    if request.method != "POST":
+        return request.GET
+    params = request.GET.copy()
+    params.update(request.POST)
+    return params
 
 
 def _technique_benchmarkable_csv_url(request, *, target_profile: str) -> str:
