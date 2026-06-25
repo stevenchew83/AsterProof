@@ -16685,6 +16685,44 @@ def test_technique_progress_gaps_datatable_short_circuits_unknown_canonical_subt
     assert payload["data"] == []
 
 
+def test_technique_progress_fact_queryset_uses_indexable_canonical_subtopic_filter():
+    from inspinia.pages.technique_progress import _filter_progress_fact_queryset
+
+    class _QuerySetSpy:
+        def __init__(self) -> None:
+            self.calls = []
+
+        def filter(self, *args, **kwargs):
+            self.calls.append((args, kwargs))
+            return self
+
+    def lookup_names(q_object):
+        names = []
+        for child in q_object.children:
+            if isinstance(child, tuple):
+                names.append(child[0])
+            else:
+                names.extend(lookup_names(child))
+        return names
+
+    queryset = _QuerySetSpy()
+
+    _filter_progress_fact_queryset(
+        queryset,
+        gap_topic="all",
+        gap_canonical_subtopic="Congruences and modular arithmetic",
+    )
+
+    lookups = [
+        lookup
+        for args, _kwargs in queryset.calls
+        for q_object in args
+        for lookup in lookup_names(q_object)
+    ]
+    assert "canonical_subtopic" in lookups
+    assert "canonical_subtopic__iexact" not in lookups
+
+
 def test_technique_progress_gaps_datatable_reuses_cached_base_rows(client):
     user = UserFactory()
     client.force_login(user)
