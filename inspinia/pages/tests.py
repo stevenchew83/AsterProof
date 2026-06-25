@@ -17208,6 +17208,195 @@ def test_technique_progress_topic_detail_shows_layer_gap_preview_and_explore_url
     assert "Proof role" not in response_html
 
 
+def test_technique_progress_topic_detail_reuses_cached_payload(client):
+    user = UserFactory()
+    client.force_login(user)
+    _create_technique_progress_statement(
+        statement_tags=[
+            {
+                "technique": "INEQUALITIES",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": "Inequalities and optimization",
+            },
+        ],
+    )
+
+    cache.clear()
+    first_response = client.get(
+        reverse("pages:technique_progress_topic_detail", kwargs={"topic_slug": "algebra"}),
+    )
+
+    with patch("inspinia.pages.technique_progress._progress_fact_rows", side_effect=AssertionError("cache miss")):
+        second_response = client.get(
+            reverse("pages:technique_progress_topic_detail", kwargs={"topic_slug": "algebra"}),
+        )
+
+    assert first_response.status_code == HTTPStatus.OK
+    assert second_response.status_code == HTTPStatus.OK
+    assert second_response.context["technique_progress_topic_summary"]["total"] == 1
+
+
+def test_technique_progress_topic_detail_cache_key_changes_when_completion_changes(client):
+    from inspinia.pages.technique_progress import _topic_detail_cache_key
+
+    user = UserFactory()
+    client.force_login(user)
+    statement = _create_technique_progress_statement(
+        statement_tags=[
+            {
+                "technique": "INEQUALITIES",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": "Inequalities and optimization",
+            },
+        ],
+    )
+
+    cache.clear()
+    first_response = client.get(
+        reverse("pages:technique_progress_topic_detail", kwargs={"topic_slug": "algebra"}),
+    )
+    first_cache_key = _topic_detail_cache_key(
+        selected_user=user,
+        can_select_user=False,
+        topic_slug="algebra",
+    )
+    UserProblemCompletion.objects.create(
+        user=user,
+        statement=statement,
+        status=UserProblemCompletion.Status.SOLVED,
+    )
+    second_cache_key = _topic_detail_cache_key(
+        selected_user=user,
+        can_select_user=False,
+        topic_slug="algebra",
+    )
+    second_response = client.get(
+        reverse("pages:technique_progress_topic_detail", kwargs={"topic_slug": "algebra"}),
+    )
+
+    assert first_response.context["technique_progress_topic_summary"]["solved"] == 0
+    assert cache.get(first_cache_key) is not None
+    assert second_cache_key != first_cache_key
+    assert second_response.context["technique_progress_topic_summary"]["solved"] == 1
+
+
+def test_technique_progress_topic_detail_cache_key_changes_when_catalog_marker_changes(client):
+    from inspinia.pages.models import TechniqueProgressCatalogState
+    from inspinia.pages.technique_progress import _topic_detail_cache_key
+
+    expected_updated_statement_total = 2
+    user = UserFactory()
+    client.force_login(user)
+    _create_technique_progress_statement(
+        problem_code="A1",
+        problem_number=1,
+        statement_tags=[
+            {
+                "technique": "INEQUALITIES",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": "Inequalities and optimization",
+            },
+        ],
+    )
+
+    cache.clear()
+    first_response = client.get(
+        reverse("pages:technique_progress_topic_detail", kwargs={"topic_slug": "algebra"}),
+    )
+    first_cache_key = _topic_detail_cache_key(
+        selected_user=user,
+        can_select_user=False,
+        topic_slug="algebra",
+    )
+    _create_technique_progress_statement(
+        problem_code="A2",
+        problem_number=2,
+        statement_tags=[
+            {
+                "technique": "CONVEXITY",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": "Inequalities and optimization",
+            },
+        ],
+    )
+    TechniqueProgressCatalogState.objects.update_or_create(
+        singleton_key=1,
+        defaults={
+            "last_refreshed_at": timezone.now(),
+            "needs_rebuild": False,
+            "fact_count": TechniqueProgressFact.objects.count(),
+            "last_error": "",
+        },
+    )
+    second_cache_key = _topic_detail_cache_key(
+        selected_user=user,
+        can_select_user=False,
+        topic_slug="algebra",
+    )
+    second_response = client.get(
+        reverse("pages:technique_progress_topic_detail", kwargs={"topic_slug": "algebra"}),
+    )
+
+    assert first_response.context["technique_progress_topic_summary"]["total"] == 1
+    assert cache.get(first_cache_key) is not None
+    assert second_cache_key != first_cache_key
+    assert second_response.context["technique_progress_topic_summary"]["total"] == expected_updated_statement_total
+
+
+def test_technique_progress_topic_detail_preview_reuses_cached_all_layer_gap_rows(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    selected_user = UserFactory(email="cached-preview@example.com")
+    client.force_login(admin_user)
+    canonical_subtopic = "Inequalities and optimization"
+    _create_technique_progress_statement(
+        statement_tags=[
+            {
+                "technique": "INEQUALITIES",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": canonical_subtopic,
+            },
+        ],
+    )
+    cached_gap_rows = [
+        {
+            "canonical_subtopic_labels": [canonical_subtopic],
+            "label": "SENTINEL METHOD",
+            "remaining": 7,
+            "type": "Technique",
+        },
+        {
+            "canonical_subtopic_labels": [canonical_subtopic],
+            "label": "SENTINEL OBJECT",
+            "remaining": 3,
+            "type": "Object",
+        },
+    ]
+
+    cache.clear()
+    with patch(
+        "inspinia.pages.technique_progress._cached_filtered_gap_rows",
+        return_value=cached_gap_rows,
+    ) as cached_gap_rows_mock:
+        response = client.get(
+            reverse("pages:technique_progress_topic_detail", kwargs={"topic_slug": "algebra"}),
+            {"user": str(selected_user.pk)},
+        )
+
+    row = response.context["technique_progress_topic_subtopic_rows"][0]
+    assert response.status_code == HTTPStatus.OK
+    cached_gap_rows_mock.assert_called_once()
+    assert row["layer_gap_preview"] == [
+        {"label": "SENTINEL METHOD", "remaining": 7, "type": "Technique"},
+        {"label": "SENTINEL OBJECT", "remaining": 3, "type": "Object"},
+    ]
+    assert row["layer_gap_preview_overflow"] == 0
+
+
 def test_technique_progress_topic_detail_returns_404_for_invalid_topic(client):
     client.force_login(UserFactory())
 

@@ -47,6 +47,7 @@ SUBTOPIC_LAYER_PREVIEW_LIMIT = 3
 GAP_PAGE_SIZE = 50
 GAP_CACHE_TIMEOUT_SECONDS = 15 * 60
 GAP_CACHE_VERSION = "v2"
+TOPIC_DETAIL_CACHE_VERSION = "v1"
 GAP_CSV_CONTENT_TYPE = "text/csv; charset=utf-8"
 GAP_CSV_FIELDNAMES = [
     "Area",
@@ -1110,13 +1111,95 @@ def build_technique_progress_topic_context(
         request_user=request_user,
         raw_user_id=raw_user_id,
     )
+    payload = _cached_topic_detail_payload(
+        request_user=request_user,
+        raw_user_id=raw_user_id,
+        selected_user=selected_user,
+        can_select_user=can_select_user,
+        topic_slug=topic_slug,
+    )
+    return {
+        **_base_context(
+            selected_user=selected_user,
+            can_select_user=can_select_user,
+        ),
+        "technique_progress_dashboard_url": _page_url(
+            "pages:technique_dashboard",
+            selected_user=selected_user,
+            can_select_user=can_select_user,
+        ),
+        **payload,
+    }
+
+
+def _cached_topic_detail_payload(
+    *,
+    request_user: User,
+    raw_user_id: str,
+    selected_user: User,
+    can_select_user: bool,
+    topic_slug: str,
+) -> dict[str, object]:
+    cache_key = _topic_detail_cache_key(
+        selected_user=selected_user,
+        can_select_user=can_select_user,
+        topic_slug=topic_slug,
+    )
+    cached_payload = cache.get(cache_key)
+    if cached_payload is not None:
+        return cached_payload
+
+    payload = _build_topic_detail_payload(
+        request_user=request_user,
+        raw_user_id=raw_user_id,
+        selected_user=selected_user,
+        can_select_user=can_select_user,
+        topic_slug=topic_slug,
+        topic_label=MAIN_TOPIC_SLUGS[topic_slug],
+    )
+    cache.set(cache_key, payload, GAP_CACHE_TIMEOUT_SECONDS)
+    return payload
+
+
+def _topic_detail_cache_key(
+    *,
+    selected_user: User,
+    can_select_user: bool,
+    topic_slug: str,
+) -> str:
+    key_payload = "|".join(
+        [
+            TOPIC_DETAIL_CACHE_VERSION,
+            f"user={selected_user.pk}",
+            f"can_select_user={int(can_select_user)}",
+            f"topic={topic_slug}",
+            f"catalog={_catalog_cache_marker()}",
+            f"completion={_completion_cache_marker(selected_user)}",
+        ],
+    )
+    digest = hashlib.sha256(key_payload.encode("utf-8")).hexdigest()
+    return f"technique-topic-detail:{TOPIC_DETAIL_CACHE_VERSION}:{digest}"
+
+
+def _build_topic_detail_payload(  # noqa: PLR0913
+    *,
+    request_user: User,
+    raw_user_id: str,
+    selected_user: User,
+    can_select_user: bool,
+    topic_slug: str,
+    topic_label: str,
+) -> dict[str, object]:
+    gap_topic = topic_slug if topic_slug in GAP_TOPIC_SLUGS else GAP_TOPIC_ALL
+    use_uncached_layer_metadata = gap_topic == GAP_TOPIC_ALL
     tagged_rows = _progress_fact_rows(
         user=selected_user,
         layers={
             TechniqueProgressFact.Layer.MAIN_TOPIC,
             TechniqueProgressFact.Layer.SUBTOPIC,
         },
-        include_layer_metadata=True,
+        include_layer_metadata=use_uncached_layer_metadata,
+        gap_topic=gap_topic,
     )
     main_topic_fact_rows = _rows_for_layer(tagged_rows, TechniqueProgressFact.Layer.MAIN_TOPIC)
     subtopic_fact_rows = _rows_for_layer(tagged_rows, TechniqueProgressFact.Layer.SUBTOPIC)
@@ -1143,11 +1226,23 @@ def build_technique_progress_topic_context(
         selected_user=selected_user,
         can_select_user=can_select_user,
     )
-    topic_layer_rows = _all_layer_progress_rows(
-        topic_tagged_rows,
-        selected_user=selected_user,
-        can_select_user=can_select_user,
-    )
+    if gap_topic == GAP_TOPIC_ALL:
+        topic_layer_rows = _all_layer_progress_rows(
+            topic_tagged_rows,
+            selected_user=selected_user,
+            can_select_user=can_select_user,
+        )
+    else:
+        topic_layer_rows = _cached_filtered_gap_rows(
+            request_user=request_user,
+            raw_user_id=raw_user_id,
+            selected_user=selected_user,
+            can_select_user=can_select_user,
+            gap_kind=GAP_KIND_ALL,
+            gap_topic=gap_topic,
+            gap_min_total=0,
+            gap_canonical_subtopic="",
+        )
     topic_subtopic_rows = _subtopic_rows_with_layer_previews(
         topic_subtopic_rows,
         layer_rows=topic_layer_rows,
@@ -1159,15 +1254,6 @@ def build_technique_progress_topic_context(
     summary["incomplete_subtopic_total"] = sum(1 for row in topic_subtopic_rows if row["remaining"])
     summary["subtopic_total"] = len(topic_subtopic_rows)
     return {
-        **_base_context(
-            selected_user=selected_user,
-            can_select_user=can_select_user,
-        ),
-        "technique_progress_dashboard_url": _page_url(
-            "pages:technique_dashboard",
-            selected_user=selected_user,
-            can_select_user=can_select_user,
-        ),
         "technique_progress_topic_label": topic_label,
         "technique_progress_topic_slug": topic_slug,
         "technique_progress_topic_subtopic_rows": topic_subtopic_rows,
