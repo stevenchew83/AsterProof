@@ -16652,6 +16652,39 @@ def test_technique_progress_gaps_datatable_clamps_invalid_length_and_order_input
     assert [row["label"] for row in payload["data"][:2]] == ["Gap 01", "Gap 02"]
 
 
+def test_technique_progress_gaps_datatable_short_circuits_unknown_canonical_subtopic(client):
+    user = UserFactory()
+    client.force_login(user)
+    _create_technique_progress_statement(
+        problem_code="N1",
+        problem_number=1,
+        topic="NT",
+        statement_tags=[
+            {
+                "technique": "MODULAR ARITHMETIC",
+                "domains": ["NT"],
+                "main_topic": "NT",
+                "canonical_subtopic": "Congruences and modular arithmetic",
+                "object_tags": ["RESIDUE CLASS"],
+            },
+        ],
+    )
+
+    with patch("inspinia.pages.technique_progress._build_progress_payload", side_effect=AssertionError("slow path")):
+        payload = _technique_progress_gap_datatable_payload(
+            client,
+            {
+                "kind": "all",
+                "topic": "number-theory",
+                "canonical_subtopic": "Congruences and modaular arithmetic",
+            },
+        )
+
+    assert payload["recordsTotal"] == 0
+    assert payload["recordsFiltered"] == 0
+    assert payload["data"] == []
+
+
 def test_technique_progress_gaps_datatable_reuses_cached_base_rows(client):
     user = UserFactory()
     client.force_login(user)
