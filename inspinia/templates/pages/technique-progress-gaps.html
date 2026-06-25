@@ -215,6 +215,7 @@
               class="table table-sm table-hover align-middle mb-0 w-100"
               data-page-length="50"
               data-rows-url="{{ technique_progress_gap_rows_url }}"
+              data-csrf-token="{{ csrf_token }}"
               data-gap-kind="{{ technique_progress_gap_kind }}"
               data-show-canonical-subtopic-column="{% if technique_progress_gap_show_canonical_subtopic_column %}true{% else %}false{% endif %}"
               data-show-topic-column="{% if technique_progress_gap_is_drilldown %}false{% else %}true{% endif %}"
@@ -424,7 +425,11 @@
     serverSide: true,
     processing: true,
     ajax: {
-      url: tableElement.dataset.rowsUrl
+      url: tableElement.dataset.rowsUrl,
+      type: "POST",
+      headers: {
+        "X-CSRFToken": tableElement.dataset.csrfToken
+      }
     },
     columns: columns,
     searchDelay: 300,
