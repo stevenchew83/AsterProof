@@ -461,20 +461,6 @@ def _upsert_topic_technique(
         field_name: normalize_topic_tag_list(taxonomy_fields.get(field_name) or [])
         for field_name in TOPIC_TAG_LAYER_FIELDS
     }
-    if replace_tags:
-        ProblemTopicTechnique.objects.create(
-            record=record,
-            technique=technique,
-            domains=domain_list,
-            raw_tag=raw_tag,
-            main_topic=main_topic,
-            canonical_subtopic=canonical_subtopic,
-            normalization_status=normalization_status,
-            normalization_confidence=normalization_confidence,
-            **layer_values,
-        )
-        return 1
-
     matching_tags = list(
         ProblemTopicTechnique.objects.filter(
             record=record,

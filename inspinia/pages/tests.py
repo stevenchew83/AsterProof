@@ -23869,6 +23869,69 @@ def test_problem_statement_metadata_page_imports_workbook_and_creates_problem_ro
     )
 
 
+def test_problem_statement_metadata_replace_tags_merges_duplicate_canonical_problem_tags(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    existing_problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="C",
+        mohs=30,
+        contest="USAJMO",
+        problem="P5",
+        contest_year_problem="USAJMO 2026 P5",
+        topic_tags="Comb - old tag",
+    )
+    statement = ContestProblemStatement.objects.create(
+        linked_problem=existing_problem,
+        contest_year=2026,
+        contest_name="USAJMO",
+        problem_number=5,
+        problem_code="P5",
+        day_label="Day 2",
+        statement_latex="A digit DP statement",
+    )
+
+    response = client.post(
+        reverse("pages:problem_statement_metadata"),
+        {
+            "replace_tags": "on",
+            "file": _xlsx_upload(
+                {
+                    "STATEMENT UUID": str(statement.statement_uuid),
+                    "PROBLEM UUID": str(statement.problem_uuid),
+                    "LINKED PROBLEM UUID": str(existing_problem.problem_uuid),
+                    "CONTEST YEAR": 2026,
+                    "CONTEST NAME": "USAJMO",
+                    "CONTEST PROBLEM": "USAJMO 2026 P5",
+                    "DAY LABEL": "Day 2",
+                    "PROBLEM NUMBER": 5,
+                    "PROBLEM CODE": "P5",
+                    "STATEMENT LATEX": "A digit DP statement",
+                    "TOPIC": "C",
+                    "MOHS": 30,
+                    "Confidence": "High",
+                    "IMO slot guess": "P2/5",
+                    "Topic tags": "Comb/NT - digit DP, carries, induction, characterization",
+                },
+            ),
+        },
+        follow=True,
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    duplicate_tag = ProblemTopicTechnique.objects.get(
+        record=existing_problem,
+        technique="BASE / DIGIT / CARRY METHODS",
+    )
+    assert set(duplicate_tag.domains) == {"COMB", "NT"}
+    assert duplicate_tag.raw_tag == "digit DP; carries"
+    assert any(
+        "Statement metadata import finished. Processed 1 row(s): 0 created, 1 updated, 1 linked"
+        in str(message)
+        for message in response.context["messages"]
+    )
+
+
 def test_problem_statement_metadata_page_imports_multiple_rows_and_updates_existing_problem(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
