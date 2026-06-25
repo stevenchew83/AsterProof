@@ -206,7 +206,7 @@ def benchmark_lookup_for_gap_rows(rows: list[dict[str, object]]) -> dict[str, di
     }
     direct_benchmarks = {
         (benchmark.kind, benchmark.label_key): benchmark
-        for benchmark in TechniqueBenchmark.objects.filter(
+        for benchmark in TechniqueBenchmark.objects.select_related("imported_from_batch").filter(
             kind__in={kind for kind, _label_key in kind_key_pairs},
             label_key__in={label_key for _kind, label_key in kind_key_pairs},
         )
@@ -216,7 +216,7 @@ def benchmark_lookup_for_gap_rows(rows: list[dict[str, object]]) -> dict[str, di
         for alias in TechniqueBenchmarkAlias.objects.filter(
             kind__in={kind for kind, _label_key in kind_key_pairs},
             alias_key__in={label_key for _kind, label_key in kind_key_pairs},
-        ).select_related("benchmark")
+        ).select_related("benchmark", "benchmark__imported_from_batch")
     }
 
     lookup = {}

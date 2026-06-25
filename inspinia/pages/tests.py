@@ -13327,6 +13327,59 @@ def test_technique_benchmark_alias_lookup_requires_explicit_alias():
     assert matched["matched_by_alias"] is True
 
 
+def test_technique_gap_benchmark_enrichment_prefetches_import_batches():
+    from inspinia.pages.technique_progress import _enrich_gap_rows_with_benchmarks
+
+    user = UserFactory()
+    import_batch = TechniqueBenchmarkImportBatch.objects.create(
+        created_by=user,
+        status=TechniqueBenchmarkImportBatch.Status.APPLIED,
+        preview_payload={"changed_parent_family_row_keys": []},
+    )
+    benchmark_defaults = {
+        "parent_family": "Inequalities",
+        "primary_area": "Algebra",
+        "syllabus_core": 5,
+        "contest_frequency": 5,
+        "transfer_value": 5,
+        "prerequisite_value": 5,
+        "concept_load": 2,
+        "recognition_burden": 2,
+        "execution_load": 2,
+        "proof_fragility": 2,
+        "cross_topic_dependency": 2,
+        "typical_mohs_min": 0,
+        "typical_mohs_max": 10,
+        "benchmark_confidence": 95,
+        "imported_from_batch": import_batch,
+    }
+    TechniqueBenchmark.objects.create(
+        kind=TechniqueBenchmark.Kind.OBJECT,
+        label="INEQUALITY EXPRESSION",
+        **benchmark_defaults,
+    )
+    aliased_benchmark = TechniqueBenchmark.objects.create(
+        kind=TechniqueBenchmark.Kind.METHOD,
+        label="AM-GM",
+        **benchmark_defaults,
+    )
+    TechniqueBenchmarkAlias.objects.create(
+        kind=TechniqueBenchmark.Kind.METHOD,
+        alias_label="ARITHMETIC MEAN",
+        benchmark=aliased_benchmark,
+    )
+
+    rows = [
+        {"label": "INEQUALITY EXPRESSION", "layer_kind": "objects", "type": "Object"},
+        {"label": "ARITHMETIC MEAN", "layer_kind": "methods", "type": "Technique"},
+    ]
+    with CaptureQueriesContext(connection) as queries:
+        enriched_rows = _enrich_gap_rows_with_benchmarks(rows)
+
+    assert [row["benchmark_status"] for row in enriched_rows] == ["complete", "complete"]
+    assert len(queries) == 2
+
+
 def benchmark_row_key_for_test(row: dict[str, object]) -> str:
     from inspinia.pages.technique_benchmarking.keys import benchmark_row_key
 
