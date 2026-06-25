@@ -179,7 +179,7 @@ def _filter_progress_fact_queryset(
         queryset = queryset.filter(Q(main_topic=topic_label) | Q(main_topic_labels__contains=[topic_label]))
     if gap_canonical_subtopic:
         queryset = queryset.filter(
-            Q(canonical_subtopic__iexact=gap_canonical_subtopic)
+            Q(canonical_subtopic=gap_canonical_subtopic)
             | Q(canonical_subtopic_labels__contains=[gap_canonical_subtopic]),
         )
     return queryset
