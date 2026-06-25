@@ -766,6 +766,13 @@ def _cached_filtered_gap_rows(  # noqa: PLR0913
     gap_min_total: int,
     gap_canonical_subtopic: str,
 ) -> list[dict[str, object]]:
+    if not _gap_canonical_subtopic_has_catalog_rows(
+        gap_kind=gap_kind,
+        gap_topic=gap_topic,
+        gap_canonical_subtopic=gap_canonical_subtopic,
+    ):
+        return []
+
     cache_key = _gap_rows_cache_key(
         selected_user=selected_user,
         can_select_user=can_select_user,
@@ -795,6 +802,29 @@ def _cached_filtered_gap_rows(  # noqa: PLR0913
     )
     cache.set(cache_key, gap_rows, GAP_CACHE_TIMEOUT_SECONDS)
     return gap_rows
+
+
+def _gap_canonical_subtopic_has_catalog_rows(
+    *,
+    gap_kind: str,
+    gap_topic: str,
+    gap_canonical_subtopic: str,
+) -> bool:
+    if not gap_canonical_subtopic:
+        return True
+
+    queryset = TechniqueProgressFact.objects.filter(layer__in=_layers_for_gap_kind(gap_kind))
+    if gap_topic != GAP_TOPIC_ALL:
+        topic_label = GAP_TOPIC_SLUGS[gap_topic]
+        topic_filter = Q(main_topic=topic_label)
+        if connection.features.supports_json_field_contains:
+            topic_filter |= Q(main_topic_labels__contains=[topic_label])
+        queryset = queryset.filter(topic_filter)
+
+    subtopic_filter = Q(canonical_subtopic=gap_canonical_subtopic)
+    if connection.features.supports_json_field_contains:
+        subtopic_filter |= Q(canonical_subtopic_labels__contains=[gap_canonical_subtopic])
+    return queryset.filter(subtopic_filter).exists()
 
 
 def _gap_rows_cache_key(  # noqa: PLR0913
