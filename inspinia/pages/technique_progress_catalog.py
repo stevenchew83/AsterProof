@@ -405,10 +405,16 @@ def _catalog_state() -> TechniqueProgressCatalogState:
 
 def _mark_catalog_stale() -> None:
     state = _catalog_state()
-    if state.needs_rebuild:
+    update_fields = {"updated_at"}
+    if not state.needs_rebuild:
+        state.needs_rebuild = True
+        update_fields.add("needs_rebuild")
+    if state.last_error:
+        state.last_error = ""
+        update_fields.add("last_error")
+    if len(update_fields) == 1:
         return
-    state.needs_rebuild = True
-    state.save(update_fields={"needs_rebuild", "updated_at"})
+    state.save(update_fields=update_fields)
 
 
 def _mark_catalog_refreshed(*, full_refresh: bool) -> None:

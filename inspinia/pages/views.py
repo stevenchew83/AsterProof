@@ -8194,8 +8194,7 @@ def technique_progress_catalog_rebuild_view(request):
     request_technique_progress_catalog_rebuild()
     messages.success(
         request,
-        "Technique progress catalog rebuild requested. "
-        "The scheduled catalog command will refresh the stored coverage facts.",
+        "Technique progress catalog rebuild queued.",
     )
     redirect_to = (request.POST.get("next") or request.META.get("HTTP_REFERER") or "").strip()
     if not url_has_allowed_host_and_scheme(

@@ -20,6 +20,7 @@ from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.db import IntegrityError
 from django.db import connection
 from django.db import transaction
@@ -12679,6 +12680,7 @@ def test_recompute_technique_progress_catalog_command_rebuilds_all_rows():
 
 def test_recompute_technique_progress_catalog_command_if_stale_skips_current_catalog():
     from inspinia.pages.models import TechniqueProgressCatalogState
+    from inspinia.pages.models import TechniqueProgressFact
 
     TechniqueProgressCatalogState.objects.update_or_create(
         singleton_key=1,
@@ -12715,6 +12717,99 @@ def test_recompute_technique_progress_catalog_command_if_stale_uses_rebuild_lock
 
     assert "already running" in output.getvalue()
     cache.delete(CATALOG_REBUILD_LOCK_KEY)
+
+
+def test_recompute_technique_progress_catalog_command_skips_when_queued_only_and_current():
+    from inspinia.pages.models import TechniqueProgressCatalogState
+
+    TechniqueProgressCatalogState.objects.update_or_create(
+        singleton_key=1,
+        defaults={
+            "last_refreshed_at": timezone.now(),
+            "needs_rebuild": False,
+            "fact_count": 0,
+            "last_error": "",
+        },
+    )
+
+    output = StringIO()
+    with patch(
+        "inspinia.pages.management.commands.recompute_technique_progress_catalog.rebuild_technique_progress_catalog",
+        side_effect=AssertionError("unexpected rebuild"),
+    ):
+        call_command("recompute_technique_progress_catalog", queued_only=True, stdout=output)
+
+    assert "No queued rebuild." in output.getvalue()
+
+
+def test_recompute_technique_progress_catalog_command_runs_queued_rebuild():
+    statement = _create_technique_progress_statement(
+        statement_tags=[
+            {
+                "technique": "MASS POINTS",
+                "domains": ["GEO"],
+                "main_topic": "GEO",
+                "canonical_subtopic": "Core Euclidean geometry",
+            },
+        ],
+    )
+
+    from inspinia.pages.models import TechniqueProgressCatalogState
+    from inspinia.pages.models import TechniqueProgressFact
+
+    TechniqueProgressFact.objects.all().delete()
+    TechniqueProgressCatalogState.objects.update_or_create(
+        singleton_key=1,
+        defaults={
+            "last_refreshed_at": timezone.now(),
+            "needs_rebuild": True,
+            "fact_count": 0,
+            "last_error": "",
+        },
+    )
+
+    output = StringIO()
+    call_command("recompute_technique_progress_catalog", queued_only=True, stdout=output)
+
+    assert TechniqueProgressFact.objects.filter(
+        statement=statement,
+        layer="technique",
+        label="MASS POINTS",
+    ).exists()
+    state = TechniqueProgressCatalogState.objects.get(singleton_key=1)
+    assert state.needs_rebuild is False
+    assert "Recomputed technique progress catalog" in output.getvalue()
+
+
+def test_check_cache_health_command_succeeds():
+    output = StringIO()
+
+    call_command("check_cache_health", stdout=output)
+
+    output_text = output.getvalue()
+    assert "Cache health check succeeded" in output_text
+    assert "backend=" in output_text
+
+
+def test_check_cache_health_command_errors_when_cache_set_fails(monkeypatch):
+    from inspinia.pages.management.commands import check_cache_health
+
+    cache_backend = check_cache_health.caches["default"]
+    monkeypatch.setattr(cache_backend, "set", lambda *args, **kwargs: False)
+
+    with pytest.raises(CommandError, match="write failed"):
+        call_command("check_cache_health")
+
+
+def test_check_cache_health_command_errors_when_cache_readback_mismatches(monkeypatch):
+    from inspinia.pages.management.commands import check_cache_health
+
+    cache_backend = check_cache_health.caches["default"]
+    monkeypatch.setattr(cache_backend, "set", lambda *args, **kwargs: True)
+    monkeypatch.setattr(cache_backend, "get", lambda *args, **kwargs: "wrong-value")
+
+    with pytest.raises(CommandError, match="readback mismatch"):
+        call_command("check_cache_health")
 
 
 @pytest.mark.django_db(transaction=True)
@@ -12795,7 +12890,7 @@ def test_technique_progress_catalog_rebuild_view_requires_admin(client):
     assert response.status_code == HTTPStatus.FORBIDDEN
 
 
-def test_technique_progress_catalog_rebuild_view_marks_stale_and_redirects_admin(client):
+def test_technique_progress_catalog_rebuild_view_queues_facts_and_redirects_admin(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
     statement = _create_technique_progress_statement(
@@ -12819,7 +12914,7 @@ def test_technique_progress_catalog_rebuild_view_marks_stale_and_redirects_admin
             "last_refreshed_at": timezone.now(),
             "needs_rebuild": False,
             "fact_count": 0,
-            "last_error": "",
+            "last_error": "old error",
         },
     )
 
@@ -12832,9 +12927,14 @@ def test_technique_progress_catalog_rebuild_view_marks_stale_and_redirects_admin
     assert response.status_code == HTTPStatus.FOUND
     assert response.url == reverse("pages:technique_dashboard")
     rebuild_mock.assert_not_called()
-    assert not TechniqueProgressFact.objects.filter(statement=statement, layer="technique", label="MASS POINTS").exists()
+    assert not TechniqueProgressFact.objects.filter(
+        statement=statement,
+        layer="technique",
+        label="MASS POINTS",
+    ).exists()
     state = TechniqueProgressCatalogState.objects.get(singleton_key=1)
     assert state.needs_rebuild is True
+    assert state.last_error == ""
 
 
 def test_technique_progress_dashboard_shows_catalog_freshness_and_admin_refresh_button(client):
@@ -13021,6 +13121,51 @@ def test_technique_progress_dashboard_admin_can_select_user(client):
     response_html = response.content.decode("utf-8")
     assert 'id="technique-progress-user"' in response_html
     assert "selected@example.com" in response_html
+
+
+def test_technique_progress_dashboard_caches_expensive_payload_per_selected_user_and_mode(client):
+    cache.clear()
+    selected_user = UserFactory()
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    _create_technique_progress_statement(
+        statement_tags=[
+            {
+                "technique": "ANGLE CHASE",
+                "domains": ["GEO"],
+                "main_topic": "GEO",
+                "canonical_subtopic": "Circle geometry",
+            },
+        ],
+    )
+
+    from inspinia.pages import technique_progress
+
+    original_dashboard_payload = technique_progress._dashboard_payload_from_aggregates
+    with patch(
+        "inspinia.pages.technique_progress._dashboard_payload_from_aggregates",
+        wraps=original_dashboard_payload,
+    ) as dashboard_payload_mock:
+        client.force_login(selected_user)
+        first_response = client.get(reverse("pages:technique_dashboard"))
+        second_response = client.get(reverse("pages:technique_dashboard"))
+
+        assert first_response.status_code == HTTPStatus.OK
+        assert second_response.status_code == HTTPStatus.OK
+        assert dashboard_payload_mock.call_count == 1
+
+        client.force_login(admin_user)
+        admin_response = client.get(
+            reverse("pages:technique_dashboard"),
+            {"user": str(selected_user.pk)},
+        )
+
+        assert admin_response.status_code == HTTPStatus.OK
+        assert dashboard_payload_mock.call_count == 2
+        assert admin_response.context["technique_progress_can_select_user"] is True
+        assert (
+            f"target_user_id={selected_user.pk}"
+            in admin_response.context["technique_progress_next_gaps"][0]["practice_url"]
+        )
 
 
 def test_technique_progress_user_options_reuses_cached_builder():

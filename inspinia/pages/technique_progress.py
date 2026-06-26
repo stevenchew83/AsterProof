@@ -52,7 +52,7 @@ GAP_PAGE_SIZE = 50
 # cold rebuilds without serving stale progress.
 GAP_CACHE_TIMEOUT_SECONDS = 6 * 60 * 60
 GAP_CACHE_VERSION = "v2"
-DASHBOARD_CACHE_TIMEOUT_SECONDS = 15 * 60
+DASHBOARD_CACHE_TIMEOUT_SECONDS = GAP_CACHE_TIMEOUT_SECONDS
 DASHBOARD_CACHE_VERSION = "v1"
 TOPIC_DETAIL_CACHE_VERSION = "v1"
 USER_OPTIONS_CACHE_TIMEOUT_SECONDS = 15 * 60
@@ -1697,11 +1697,14 @@ def _build_progress_payload(  # noqa: PLR0913
     include_user_options: bool = True,
     gap_topic: str = GAP_TOPIC_ALL,
     gap_canonical_subtopic: str = "",
+    selected_user: User | None = None,
+    can_select_user: bool | None = None,
 ) -> dict[str, object]:
-    selected_user, can_select_user = resolve_technique_progress_user(
-        request_user=request_user,
-        raw_user_id=raw_user_id,
-    )
+    if selected_user is None or can_select_user is None:
+        selected_user, can_select_user = resolve_technique_progress_user(
+            request_user=request_user,
+            raw_user_id=raw_user_id,
+        )
     tagged_rows = _progress_fact_rows(
         user=selected_user,
         layers=required_layers,
