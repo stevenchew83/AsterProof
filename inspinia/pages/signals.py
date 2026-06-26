@@ -7,7 +7,9 @@ from django.dispatch import receiver
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemTopicTechnique
 from inspinia.pages.models import StatementTopicTechnique
+from inspinia.pages.technique_progress import mark_technique_progress_user_options_stale
 from inspinia.pages.technique_progress_catalog import queue_technique_progress_catalog_refresh
+from inspinia.users.models import User
 
 
 @receiver(post_save, sender=ContestProblemStatement)
@@ -26,3 +28,9 @@ def queue_statement_tag_catalog_refresh(sender, instance: StatementTopicTechniqu
 @receiver(post_delete, sender=ProblemTopicTechnique)
 def queue_problem_tag_catalog_refresh(sender, instance: ProblemTopicTechnique, **kwargs) -> None:
     queue_technique_progress_catalog_refresh(problem_ids=[instance.record_id])
+
+
+@receiver(post_save, sender=User)
+@receiver(post_delete, sender=User)
+def expire_technique_progress_user_options(sender, instance: User, **kwargs) -> None:
+    mark_technique_progress_user_options_stale()

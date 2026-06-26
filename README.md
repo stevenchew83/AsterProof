@@ -188,6 +188,17 @@ uv run python manage.py check
 
 Run `npm run build` after SCSS or shared asset changes under `inspinia/static/`.
 
+## Scheduled maintenance
+
+The technique progress dashboard uses precomputed catalog facts. Production should run the stale-only rebuild command on
+a scheduler such as cron or a systemd timer:
+
+```bash
+python manage.py recompute_technique_progress_catalog --if-stale
+```
+
+Admin dashboard buttons only mark the catalog as needing rebuild; this scheduled command performs the expensive refresh.
+
 ## Agent docs
 
 This repo now includes layered `AGENTS.md` files so coding agents can pick up path-specific constraints before they start editing:

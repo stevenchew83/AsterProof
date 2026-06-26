@@ -103,7 +103,7 @@
                 {% csrf_token %}
                 <input type="hidden" name="next" value="{{ request.get_full_path }}">
                 <button type="submit" class="btn btn-sm btn-outline-secondary">
-                  <i class="ti ti-refresh me-1"></i>Refresh catalog
+                  <i class="ti ti-refresh me-1"></i>Request rebuild
                 </button>
               </form>
               {% endif %}

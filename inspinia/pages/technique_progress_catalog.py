@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from django.db import transaction
 from django.db.models import Count
 from django.utils import timezone
 
@@ -108,12 +107,17 @@ def queue_technique_progress_catalog_refresh(
         return
 
     _mark_catalog_stale()
-    transaction.on_commit(
-        lambda: rebuild_technique_progress_catalog(
-            statement_ids=requested_statement_ids,
-            problem_ids=requested_problem_ids,
-        ),
-    )
+
+
+def request_technique_progress_catalog_rebuild() -> None:
+    _mark_catalog_stale()
+
+
+def technique_progress_catalog_needs_rebuild() -> bool:
+    state = TechniqueProgressCatalogState.objects.filter(singleton_key=1).first()
+    if state is None:
+        return True
+    return state.last_refreshed_at is None or state.needs_rebuild or bool(state.last_error)
 
 
 def technique_progress_catalog_status_context() -> dict[str, object]:
@@ -401,6 +405,8 @@ def _catalog_state() -> TechniqueProgressCatalogState:
 
 def _mark_catalog_stale() -> None:
     state = _catalog_state()
+    if state.needs_rebuild:
+        return
     state.needs_rebuild = True
     state.save(update_fields={"needs_rebuild", "updated_at"})
 
