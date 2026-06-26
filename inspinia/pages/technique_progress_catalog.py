@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from django.db import transaction
 from django.db.models import Count
 from django.utils import timezone
 
@@ -108,12 +107,17 @@ def queue_technique_progress_catalog_refresh(
         return
 
     _mark_catalog_stale()
-    transaction.on_commit(
-        lambda: rebuild_technique_progress_catalog(
-            statement_ids=requested_statement_ids,
-            problem_ids=requested_problem_ids,
-        ),
-    )
+
+
+def request_technique_progress_catalog_rebuild() -> None:
+    _mark_catalog_stale()
+
+
+def technique_progress_catalog_needs_rebuild() -> bool:
+    state = TechniqueProgressCatalogState.objects.filter(singleton_key=1).first()
+    if state is None:
+        return True
+    return state.last_refreshed_at is None or state.needs_rebuild or bool(state.last_error)
 
 
 def technique_progress_catalog_status_context() -> dict[str, object]:
@@ -129,13 +133,6 @@ def technique_progress_catalog_status_context() -> dict[str, object]:
         "technique_progress_catalog_last_refreshed_at": state.last_refreshed_at,
         "technique_progress_catalog_needs_rebuild": state.needs_rebuild,
     }
-
-
-def queue_full_technique_progress_catalog_rebuild() -> None:
-    state = _catalog_state()
-    state.needs_rebuild = True
-    state.last_error = ""
-    state.save(update_fields={"last_error", "needs_rebuild", "updated_at"})
 
 
 def _facts_for_statement(statement: ContestProblemStatement) -> list[TechniqueProgressFact]:
@@ -408,8 +405,16 @@ def _catalog_state() -> TechniqueProgressCatalogState:
 
 def _mark_catalog_stale() -> None:
     state = _catalog_state()
-    state.needs_rebuild = True
-    state.save(update_fields={"needs_rebuild", "updated_at"})
+    update_fields = {"updated_at"}
+    if not state.needs_rebuild:
+        state.needs_rebuild = True
+        update_fields.add("needs_rebuild")
+    if state.last_error:
+        state.last_error = ""
+        update_fields.add("last_error")
+    if len(update_fields) == 1:
+        return
+    state.save(update_fields=update_fields)
 
 
 def _mark_catalog_refreshed(*, full_refresh: bool) -> None:

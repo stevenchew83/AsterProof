@@ -9,12 +9,15 @@ from urllib.parse import urlencode
 from django.core.cache import cache
 from django.db import connection
 from django.db.models import Count
+from django.db.models import Exists
 from django.db.models import F
 from django.db.models import Max
+from django.db.models import OuterRef
 from django.db.models import Q
 from django.db.models import QuerySet
 from django.http import HttpResponse
 from django.urls import reverse
+from django.utils import timezone
 
 from inspinia.pages.completion_record_fields import is_completion_status_solved
 from inspinia.pages.models import TOPIC_TAG_LAYER_FIELDS
@@ -45,10 +48,16 @@ if TYPE_CHECKING:
 NEXT_GAP_LIMIT = 6
 SUBTOPIC_LAYER_PREVIEW_LIMIT = 3
 GAP_PAGE_SIZE = 50
-GAP_CACHE_TIMEOUT_SECONDS = 15 * 60
+# Cache keys include catalog/completion/benchmark markers, so longer TTLs reduce
+# cold rebuilds without serving stale progress.
+GAP_CACHE_TIMEOUT_SECONDS = 6 * 60 * 60
 GAP_CACHE_VERSION = "v2"
+DASHBOARD_CACHE_TIMEOUT_SECONDS = GAP_CACHE_TIMEOUT_SECONDS
 DASHBOARD_CACHE_VERSION = "v1"
 TOPIC_DETAIL_CACHE_VERSION = "v1"
+USER_OPTIONS_CACHE_TIMEOUT_SECONDS = 15 * 60
+USER_OPTIONS_CACHE_VERSION = "v1"
+USER_OPTIONS_STALE_MARKER_KEY = f"technique-user-options-marker:{USER_OPTIONS_CACHE_VERSION}"
 GAP_CSV_CONTENT_TYPE = "text/csv; charset=utf-8"
 GAP_CSV_FIELDNAMES = [
     "Area",
@@ -168,6 +177,11 @@ LAYER_GAP_KIND_CONFIG = {
     },
 }
 LAYER_GAP_KINDS = tuple(LAYER_GAP_KIND_CONFIG)
+SOLVED_COMPLETION_STATUSES = tuple(
+    status
+    for status, _label in UserProblemCompletion.Status.choices
+    if is_completion_status_solved(status)
+)
 
 
 def _filter_progress_fact_queryset(
@@ -283,8 +297,7 @@ def _progress_fact_rows(
             "search_text",
             "statement_id",
             "statement__mohs",
-        )
-        .order_by("layer", "label", "statement_id", "id"),
+        ),
     )
     fact_rows = _filter_fact_rows_by_topic(fact_rows, gap_topic=gap_topic)
     fact_rows = _filter_fact_rows_by_canonical_subtopic(
@@ -431,7 +444,54 @@ def _rows_for_layer(rows: list[dict[str, object]], layer: str) -> list[dict[str,
     ]
 
 
+def mark_technique_progress_user_options_stale() -> None:
+    cache.set(
+        USER_OPTIONS_STALE_MARKER_KEY,
+        timezone.now().isoformat(),
+        timeout=USER_OPTIONS_CACHE_TIMEOUT_SECONDS,
+    )
+
+
 def technique_progress_user_options() -> list[dict[str, str]]:
+    cache_key = _technique_progress_user_options_cache_key()
+    cached_options = cache.get(cache_key)
+    if cached_options is not None:
+        return cached_options
+
+    options = _uncached_technique_progress_user_options()
+    cache.set(cache_key, options, USER_OPTIONS_CACHE_TIMEOUT_SECONDS)
+    return options
+
+
+def _technique_progress_user_options_cache_key() -> str:
+    key_payload = "|".join(
+        [
+            USER_OPTIONS_CACHE_VERSION,
+            f"active={_active_user_options_cache_marker()}",
+            f"stale={cache.get(USER_OPTIONS_STALE_MARKER_KEY) or ''}",
+        ],
+    )
+    digest = hashlib.sha256(key_payload.encode("utf-8")).hexdigest()
+    return f"technique-user-options:{USER_OPTIONS_CACHE_VERSION}:{digest}"
+
+
+def _active_user_options_cache_marker() -> str:
+    marker = User.objects.filter(is_active=True).aggregate(
+        active_count=Count("id"),
+        latest_date_joined=Max("date_joined"),
+        latest_id=Max("id"),
+    )
+    latest_date_joined = marker["latest_date_joined"]
+    return ":".join(
+        [
+            str(marker["active_count"] or 0),
+            latest_date_joined.isoformat() if latest_date_joined else "",
+            str(marker["latest_id"] or 0),
+        ],
+    )
+
+
+def _uncached_technique_progress_user_options() -> list[dict[str, str]]:
     options = []
     for user in User.objects.filter(is_active=True).order_by("name", "email", "id"):
         user_label = user.name or user.email
@@ -474,8 +534,6 @@ def build_technique_progress_context(
         raw_user_id=raw_user_id,
     )
     payload = _cached_dashboard_payload(
-        request_user=request_user,
-        raw_user_id=raw_user_id,
         selected_user=selected_user,
         can_select_user=can_select_user,
     )
@@ -496,8 +554,6 @@ def build_technique_progress_context(
 
 def _cached_dashboard_payload(
     *,
-    request_user: User,
-    raw_user_id: str,
     selected_user: User,
     can_select_user: bool,
 ) -> dict[str, object]:
@@ -509,27 +565,12 @@ def _cached_dashboard_payload(
     if cached_payload is not None:
         return cached_payload
 
-    payload = _build_progress_payload(
-        request_user=request_user,
-        raw_user_id=raw_user_id,
-        required_layers={
-            TechniqueProgressFact.Layer.MAIN_TOPIC,
-            TechniqueProgressFact.Layer.SUBTOPIC,
-            TechniqueProgressFact.Layer.TECHNIQUE,
-        },
-        include_user_options=False,
+    payload = _dashboard_payload_from_aggregates(
         selected_user=selected_user,
         can_select_user=can_select_user,
     )
-    dashboard_payload = {
-        "main_topic_rows": payload["main_topic_rows"],
-        "next_gaps": payload["next_gaps"],
-        "stats": payload["stats"],
-        "subtopic_rows": payload["subtopic_rows"],
-        "technique_rows": payload["technique_rows"],
-    }
-    cache.set(cache_key, dashboard_payload, GAP_CACHE_TIMEOUT_SECONDS)
-    return dashboard_payload
+    cache.set(cache_key, payload, DASHBOARD_CACHE_TIMEOUT_SECONDS)
+    return payload
 
 
 def _dashboard_cache_key(
@@ -1322,6 +1363,330 @@ def _build_topic_detail_payload(  # noqa: PLR0913
         "technique_progress_topic_subtopic_rows": topic_subtopic_rows,
         "technique_progress_topic_summary": summary,
     }
+
+
+def _dashboard_payload_from_aggregates(
+    *,
+    selected_user: User,
+    can_select_user: bool,
+) -> dict[str, object]:
+    layers = {
+        TechniqueProgressFact.Layer.MAIN_TOPIC,
+        TechniqueProgressFact.Layer.SUBTOPIC,
+        TechniqueProgressFact.Layer.TECHNIQUE,
+    }
+    counts_by_key = _dashboard_progress_counts_by_layer_label(
+        user=selected_user,
+        layers=layers,
+    )
+    metadata_by_key = _dashboard_progress_metadata_by_layer_label(layers=layers)
+    main_topic_rows = _dashboard_aggregate_rows(
+        counts_by_key=counts_by_key,
+        metadata_by_key=metadata_by_key,
+        layer=TechniqueProgressFact.Layer.MAIN_TOPIC,
+        type_label="Topic",
+        selected_user=selected_user,
+        can_select_user=can_select_user,
+    )
+    subtopic_rows = _dashboard_aggregate_rows(
+        counts_by_key=counts_by_key,
+        metadata_by_key=metadata_by_key,
+        layer=TechniqueProgressFact.Layer.SUBTOPIC,
+        type_label="Subtopic",
+        selected_user=selected_user,
+        can_select_user=can_select_user,
+    )
+    technique_rows = _dashboard_aggregate_rows(
+        counts_by_key=counts_by_key,
+        metadata_by_key=metadata_by_key,
+        layer=TechniqueProgressFact.Layer.TECHNIQUE,
+        type_label="Technique",
+        selected_user=selected_user,
+        can_select_user=can_select_user,
+    )
+    summary = _dashboard_summary_from_main_topic_facts(user=selected_user)
+    stats = {
+        "completion_percent": summary["completion_percent"],
+        "completed_statement_total": summary["solved"],
+        "incomplete_subtopic_total": sum(1 for row in subtopic_rows if row["remaining"]),
+        "incomplete_technique_total": sum(1 for row in technique_rows if row["remaining"]),
+        "subtopic_total": len(subtopic_rows),
+        "tagged_statement_total": summary["total"],
+        "technique_total": len(technique_rows),
+    }
+    return {
+        "main_topic_rows": _dashboard_main_topic_rows(
+            main_topic_rows=main_topic_rows,
+            subtopic_rows=subtopic_rows,
+            selected_user=selected_user,
+            can_select_user=can_select_user,
+        ),
+        "next_gaps": _next_gap_rows(subtopic_rows=subtopic_rows, technique_rows=technique_rows),
+        "stats": stats,
+        "subtopic_rows": subtopic_rows,
+        "technique_rows": technique_rows,
+    }
+
+
+def _dashboard_fact_queryset_with_completion(
+    *,
+    user: User,
+    layers: set[str],
+) -> QuerySet[TechniqueProgressFact]:
+    statement_completion = UserProblemCompletion.objects.filter(
+        user=user,
+        statement_id=OuterRef("statement_id"),
+    )
+    statement_completion_solved = statement_completion.filter(status__in=SOLVED_COMPLETION_STATUSES)
+    problem_completion_solved = UserProblemCompletion.objects.filter(
+        user=user,
+        problem_id=OuterRef("linked_problem_id"),
+        status__in=SOLVED_COMPLETION_STATUSES,
+    )
+    return TechniqueProgressFact.objects.filter(layer__in=layers).annotate(
+        _dashboard_statement_completion_exists=Exists(statement_completion),
+        _dashboard_statement_completion_solved=Exists(statement_completion_solved),
+        _dashboard_problem_completion_solved=Exists(problem_completion_solved),
+    )
+
+
+def _dashboard_solved_filter() -> Q:
+    return Q(_dashboard_statement_completion_solved=True) | (
+        Q(_dashboard_statement_completion_exists=False)
+        & Q(_dashboard_problem_completion_solved=True)
+    )
+
+
+def _dashboard_progress_counts_by_layer_label(
+    *,
+    user: User,
+    layers: set[str],
+) -> dict[tuple[str, str], dict[str, int]]:
+    counts_by_key: dict[tuple[str, str], dict[str, int]] = {}
+    for row in (
+        _dashboard_fact_queryset_with_completion(user=user, layers=layers)
+        .values("layer", "label")
+        .annotate(
+            total=Count("statement_id", distinct=True),
+            solved=Count(
+                "statement_id",
+                filter=_dashboard_solved_filter(),
+                distinct=True,
+            ),
+        )
+    ):
+        key = (str(row["layer"]), str(row["label"] or ""))
+        counts_by_key[key] = {
+            "solved": int(row["solved"] or 0),
+            "total": int(row["total"] or 0),
+        }
+    return counts_by_key
+
+
+def _dashboard_progress_metadata_by_layer_label(
+    *,
+    layers: set[str],
+) -> dict[tuple[str, str], dict[str, object]]:
+    metadata_by_key: dict[tuple[str, str], dict[str, object]] = {}
+    for fact in (
+        TechniqueProgressFact.objects.filter(layer__in=layers)
+        .values(
+            "canonical_subtopic",
+            "canonical_subtopic_labels",
+            "label",
+            "layer",
+            "main_topic",
+            "main_topic_labels",
+        )
+        .distinct()
+    ):
+        layer = str(fact["layer"])
+        label = str(fact["label"] or "")
+        key = (layer, label)
+        metadata = metadata_by_key.setdefault(
+            key,
+            {
+                "canonical_subtopics": set(),
+                "main_topics": set(),
+                "search_terms": {label} if label else set(),
+            },
+        )
+        _add_bucket_value(
+            bucket=metadata,
+            field_name="canonical_subtopics",
+            raw_value=fact.get("canonical_subtopic"),
+            include_search=True,
+        )
+        for canonical_subtopic in fact.get("canonical_subtopic_labels", []) or []:
+            _add_bucket_value(
+                bucket=metadata,
+                field_name="canonical_subtopics",
+                raw_value=canonical_subtopic,
+                include_search=True,
+            )
+        _add_bucket_value(
+            bucket=metadata,
+            field_name="main_topics",
+            raw_value=fact.get("main_topic"),
+        )
+        for main_topic in fact.get("main_topic_labels", []) or []:
+            _add_bucket_value(
+                bucket=metadata,
+                field_name="main_topics",
+                raw_value=main_topic,
+            )
+    return metadata_by_key
+
+
+def _dashboard_summary_from_main_topic_facts(*, user: User) -> dict[str, int]:
+    summary = _dashboard_fact_queryset_with_completion(
+        user=user,
+        layers={TechniqueProgressFact.Layer.MAIN_TOPIC},
+    ).aggregate(
+        total=Count("statement_id", distinct=True),
+        solved=Count(
+            "statement_id",
+            filter=_dashboard_solved_filter(),
+            distinct=True,
+        ),
+    )
+    total = int(summary["total"] or 0)
+    solved = int(summary["solved"] or 0)
+    return {
+        "completion_percent": _percent(solved, total),
+        "remaining": total - solved,
+        "solved": solved,
+        "total": total,
+    }
+
+
+def _dashboard_aggregate_rows(  # noqa: PLR0913
+    *,
+    counts_by_key: dict[tuple[str, str], dict[str, int]],
+    metadata_by_key: dict[tuple[str, str], dict[str, object]],
+    layer: str,
+    type_label: str,
+    selected_user: User,
+    can_select_user: bool,
+) -> list[dict[str, object]]:
+    rows: list[dict[str, object]] = []
+    layer_kind_by_layer = {
+        TechniqueProgressFact.Layer.SUBTOPIC: GAP_KIND_SUBTOPICS,
+        TechniqueProgressFact.Layer.TECHNIQUE: GAP_KIND_TECHNIQUES,
+    }
+    for (row_layer, label), counts in counts_by_key.items():
+        if row_layer != layer or not label:
+            continue
+        metadata = metadata_by_key.get(
+            (row_layer, label),
+            {
+                "canonical_subtopics": set(),
+                "main_topics": set(),
+                "search_terms": {label},
+            },
+        )
+        total = int(counts["total"])
+        solved = int(counts["solved"])
+        remaining = total - solved
+        main_topics = sorted(metadata["main_topics"], key=str.casefold)
+        canonical_subtopics = sorted(metadata["canonical_subtopics"], key=str.casefold)
+        canonical_subtopic, canonical_subtopic_label = _canonical_subtopic_display_values(
+            type_label=type_label,
+            label=label,
+            canonical_subtopics=canonical_subtopics,
+        )
+        layer_kind = layer_kind_by_layer.get(layer, "")
+        rows.append(
+            {
+                "average_solved_mohs": None,
+                "average_solved_mohs_label": "-",
+                "canonical_subtopic": canonical_subtopic,
+                "canonical_subtopic_label": canonical_subtopic_label,
+                "canonical_subtopic_labels": canonical_subtopics,
+                "completion_percent": _percent(solved, total),
+                "label": label,
+                "layer_kind": layer_kind,
+                "main_topic_labels": main_topics,
+                "main_topic_label": ", ".join(main_topics),
+                "object_tags": [],
+                "practice_url": _practice_url(
+                    "",
+                    selected_user=selected_user,
+                    can_select_user=can_select_user,
+                    layer_kind=layer_kind,
+                    layer_tag=label,
+                )
+                if layer_kind
+                else "",
+                "lemma_theorem_tags": [],
+                "remaining": remaining,
+                "search_text": " ".join(sorted(metadata["search_terms"], key=str.casefold)),
+                "solved": solved,
+                "proof_roles": [],
+                "technique_tags": [],
+                "total": total,
+                "type": type_label,
+            },
+        )
+    return sorted(
+        rows,
+        key=lambda row: (
+            int(row["remaining"]) == 0,
+            -int(row["remaining"]),
+            str(row["label"]).casefold(),
+        ),
+    )
+
+
+def _dashboard_main_topic_rows(
+    *,
+    main_topic_rows: list[dict[str, object]],
+    subtopic_rows: list[dict[str, object]],
+    selected_user: User,
+    can_select_user: bool,
+) -> list[dict[str, object]]:
+    rows_by_label = {
+        str(row["label"]): row
+        for row in main_topic_rows
+    }
+    topics_with_data = set(rows_by_label)
+    topic_labels = [
+        *MAIN_TOPIC_ORDER,
+        *sorted(topics_with_data - set(MAIN_TOPIC_ORDER) - {OTHER_TOPIC_LABEL}),
+    ]
+    if OTHER_TOPIC_LABEL in topics_with_data:
+        topic_labels.append(OTHER_TOPIC_LABEL)
+
+    rows = []
+    for topic_label in topic_labels:
+        topic_row = rows_by_label.get(topic_label, {})
+        topic_subtopic_rows = [
+            row
+            for row in subtopic_rows
+            if topic_label in row.get("main_topic_labels", [])
+        ]
+        total = int(topic_row.get("total", 0))
+        solved = int(topic_row.get("solved", 0))
+        remaining = total - solved
+        rows.append(
+            {
+                "completion_percent": _percent(solved, total),
+                "incomplete_subtopic_total": sum(1 for row in topic_subtopic_rows if row["remaining"]),
+                "label": topic_label,
+                "remaining": remaining,
+                "slug": _topic_slug(topic_label),
+                "solved": solved,
+                "subtopic_total": len(topic_subtopic_rows),
+                "topic_detail_url": _page_url(
+                    "pages:technique_progress_topic_detail",
+                    selected_user=selected_user,
+                    can_select_user=can_select_user,
+                    kwargs={"topic_slug": _topic_slug(topic_label)},
+                ),
+                "total": total,
+            },
+        )
+    return rows
 
 
 def _build_progress_payload(  # noqa: PLR0913

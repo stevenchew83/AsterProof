@@ -12678,6 +12678,47 @@ def test_recompute_technique_progress_catalog_command_rebuilds_all_rows():
     assert "Recomputed technique progress catalog" in output.getvalue()
 
 
+def test_recompute_technique_progress_catalog_command_if_stale_skips_current_catalog():
+    from inspinia.pages.models import TechniqueProgressCatalogState
+    from inspinia.pages.models import TechniqueProgressFact
+
+    TechniqueProgressCatalogState.objects.update_or_create(
+        singleton_key=1,
+        defaults={
+            "last_refreshed_at": timezone.now(),
+            "needs_rebuild": False,
+            "fact_count": TechniqueProgressFact.objects.count(),
+            "last_error": "",
+        },
+    )
+
+    output = StringIO()
+    with patch(
+        "inspinia.pages.management.commands.recompute_technique_progress_catalog.rebuild_technique_progress_catalog",
+        side_effect=AssertionError("unexpected rebuild"),
+    ):
+        call_command("recompute_technique_progress_catalog", "--if-stale", stdout=output)
+
+    assert "already current" in output.getvalue()
+
+
+def test_recompute_technique_progress_catalog_command_if_stale_uses_rebuild_lock():
+    from inspinia.pages.management.commands.recompute_technique_progress_catalog import CATALOG_REBUILD_LOCK_KEY
+
+    cache.clear()
+    assert cache.add(CATALOG_REBUILD_LOCK_KEY, "locked", timeout=60) is True
+
+    output = StringIO()
+    with patch(
+        "inspinia.pages.management.commands.recompute_technique_progress_catalog.rebuild_technique_progress_catalog",
+        side_effect=AssertionError("unexpected rebuild"),
+    ):
+        call_command("recompute_technique_progress_catalog", "--if-stale", stdout=output)
+
+    assert "already running" in output.getvalue()
+    cache.delete(CATALOG_REBUILD_LOCK_KEY)
+
+
 def test_recompute_technique_progress_catalog_command_skips_when_queued_only_and_current():
     from inspinia.pages.models import TechniqueProgressCatalogState
 
@@ -12730,7 +12771,11 @@ def test_recompute_technique_progress_catalog_command_runs_queued_rebuild():
     output = StringIO()
     call_command("recompute_technique_progress_catalog", queued_only=True, stdout=output)
 
-    assert TechniqueProgressFact.objects.filter(statement=statement, layer="technique", label="MASS POINTS").exists()
+    assert TechniqueProgressFact.objects.filter(
+        statement=statement,
+        layer="technique",
+        label="MASS POINTS",
+    ).exists()
     state = TechniqueProgressCatalogState.objects.get(singleton_key=1)
     assert state.needs_rebuild is False
     assert "Recomputed technique progress catalog" in output.getvalue()
@@ -12787,7 +12832,11 @@ def test_technique_progress_catalog_signal_removes_inactive_statement_facts():
     statement.is_active = False
     statement.save(update_fields={"is_active"})
 
-    assert not TechniqueProgressFact.objects.filter(statement=statement).exists()
+    from inspinia.pages.models import TechniqueProgressCatalogState
+
+    state = TechniqueProgressCatalogState.objects.get(singleton_key=1)
+    assert state.needs_rebuild is True
+    assert TechniqueProgressFact.objects.filter(statement=statement).exists()
 
 
 @pytest.mark.django_db(transaction=True)
@@ -12807,6 +12856,17 @@ def test_technique_progress_catalog_signal_refreshes_linked_problem_tag_changes(
 
     assert TechniqueProgressFact.objects.filter(statement=statement, layer="technique", label="LTE").exists()
 
+    from inspinia.pages.models import TechniqueProgressCatalogState
+
+    TechniqueProgressCatalogState.objects.update_or_create(
+        singleton_key=1,
+        defaults={
+            "last_refreshed_at": timezone.now(),
+            "needs_rebuild": False,
+            "fact_count": TechniqueProgressFact.objects.count(),
+            "last_error": "",
+        },
+    )
     ProblemTopicTechnique.objects.filter(record=statement.linked_problem, technique="LTE").delete()
     ProblemTopicTechnique.objects.create(
         record=statement.linked_problem,
@@ -12816,8 +12876,10 @@ def test_technique_progress_catalog_signal_refreshes_linked_problem_tag_changes(
         canonical_subtopic="Primes and divisibility",
     )
 
-    assert not TechniqueProgressFact.objects.filter(statement=statement, layer="technique", label="LTE").exists()
-    assert TechniqueProgressFact.objects.filter(statement=statement, layer="technique", label="ZSIGMONDY").exists()
+    state = TechniqueProgressCatalogState.objects.get(singleton_key=1)
+    assert state.needs_rebuild is True
+    assert TechniqueProgressFact.objects.filter(statement=statement, layer="technique", label="LTE").exists()
+    assert not TechniqueProgressFact.objects.filter(statement=statement, layer="technique", label="ZSIGMONDY").exists()
 
 
 def test_technique_progress_catalog_rebuild_view_requires_admin(client):
@@ -12846,14 +12908,25 @@ def test_technique_progress_catalog_rebuild_view_queues_facts_and_redirects_admi
     from inspinia.pages.models import TechniqueProgressFact
 
     TechniqueProgressFact.objects.all().delete()
-
-    response = client.post(
-        reverse("pages:technique_progress_catalog_rebuild"),
-        {"next": reverse("pages:technique_dashboard")},
+    TechniqueProgressCatalogState.objects.update_or_create(
+        singleton_key=1,
+        defaults={
+            "last_refreshed_at": timezone.now(),
+            "needs_rebuild": False,
+            "fact_count": 0,
+            "last_error": "old error",
+        },
     )
+
+    with patch("inspinia.pages.technique_progress_catalog.rebuild_technique_progress_catalog") as rebuild_mock:
+        response = client.post(
+            reverse("pages:technique_progress_catalog_rebuild"),
+            {"next": reverse("pages:technique_dashboard")},
+        )
 
     assert response.status_code == HTTPStatus.FOUND
     assert response.url == reverse("pages:technique_dashboard")
+    rebuild_mock.assert_not_called()
     assert not TechniqueProgressFact.objects.filter(
         statement=statement,
         layer="technique",
@@ -12895,7 +12968,7 @@ def test_technique_progress_dashboard_shows_catalog_freshness_and_admin_refresh_
     response_html = response.content.decode("utf-8")
     assert "Coverage data:" in response_html
     assert "Current" in response_html
-    assert "Refresh catalog" in response_html
+    assert "Request rebuild" in response_html
     assert reverse("pages:technique_progress_catalog_rebuild") in response_html
 
 
@@ -13067,18 +13140,18 @@ def test_technique_progress_dashboard_caches_expensive_payload_per_selected_user
 
     from inspinia.pages import technique_progress
 
-    original_progress_fact_rows = technique_progress._progress_fact_rows
+    original_dashboard_payload = technique_progress._dashboard_payload_from_aggregates
     with patch(
-        "inspinia.pages.technique_progress._progress_fact_rows",
-        wraps=original_progress_fact_rows,
-    ) as progress_fact_rows_mock:
+        "inspinia.pages.technique_progress._dashboard_payload_from_aggregates",
+        wraps=original_dashboard_payload,
+    ) as dashboard_payload_mock:
         client.force_login(selected_user)
         first_response = client.get(reverse("pages:technique_dashboard"))
         second_response = client.get(reverse("pages:technique_dashboard"))
 
         assert first_response.status_code == HTTPStatus.OK
         assert second_response.status_code == HTTPStatus.OK
-        assert progress_fact_rows_mock.call_count == 1
+        assert dashboard_payload_mock.call_count == 1
 
         client.force_login(admin_user)
         admin_response = client.get(
@@ -13087,7 +13160,7 @@ def test_technique_progress_dashboard_caches_expensive_payload_per_selected_user
         )
 
         assert admin_response.status_code == HTTPStatus.OK
-        assert progress_fact_rows_mock.call_count == 2
+        assert dashboard_payload_mock.call_count == 2
         assert admin_response.context["technique_progress_can_select_user"] is True
         assert (
             f"target_user_id={selected_user.pk}"
@@ -13095,107 +13168,37 @@ def test_technique_progress_dashboard_caches_expensive_payload_per_selected_user
         )
 
 
-def test_technique_progress_dashboard_cache_invalidates_when_catalog_state_changes(client):
+def test_technique_progress_user_options_reuses_cached_builder():
+    from inspinia.pages.technique_progress import technique_progress_user_options
+
+    selected_user = UserFactory(name="Selected Student", email="selected-cache@example.com")
+
     cache.clear()
-    user = UserFactory()
-    client.force_login(user)
-    _create_technique_progress_statement(
-        statement_tags=[
-            {
-                "technique": "ANGLE CHASE",
-                "domains": ["GEO"],
-                "main_topic": "GEO",
-                "canonical_subtopic": "Circle geometry",
-            },
-        ],
-    )
+    first_options = technique_progress_user_options()
 
-    from inspinia.pages import technique_progress
-    from inspinia.pages.models import TechniqueProgressCatalogState
-
-    original_progress_fact_rows = technique_progress._progress_fact_rows
     with patch(
-        "inspinia.pages.technique_progress._progress_fact_rows",
-        wraps=original_progress_fact_rows,
-    ) as progress_fact_rows_mock:
-        first_response = client.get(reverse("pages:technique_dashboard"))
-        assert first_response.status_code == HTTPStatus.OK
-        assert progress_fact_rows_mock.call_count == 1
+        "inspinia.pages.technique_progress._uncached_technique_progress_user_options",
+        side_effect=AssertionError("cache miss"),
+    ):
+        second_options = technique_progress_user_options()
 
-        TechniqueProgressCatalogState.objects.update_or_create(
-            singleton_key=1,
-            defaults={
-                "last_refreshed_at": timezone.now(),
-                "needs_rebuild": False,
-                "fact_count": 42,
-                "last_error": "",
-            },
-        )
-
-        second_response = client.get(reverse("pages:technique_dashboard"))
-
-        assert second_response.status_code == HTTPStatus.OK
-        assert progress_fact_rows_mock.call_count == 2
+    assert {option["value"] for option in first_options} >= {str(selected_user.pk)}
+    assert second_options == first_options
 
 
-def test_technique_progress_dashboard_cache_invalidates_when_user_completion_changes(client):
+def test_technique_progress_user_options_cache_changes_when_user_updates():
+    from inspinia.pages.technique_progress import technique_progress_user_options
+
+    selected_user = UserFactory(name="Old Name", email="user-options-update@example.com")
+
     cache.clear()
-    user = UserFactory()
-    client.force_login(user)
-    statement = _create_technique_progress_statement(
-        statement_tags=[
-            {
-                "technique": "ANGLE CHASE",
-                "domains": ["GEO"],
-                "main_topic": "GEO",
-                "canonical_subtopic": "Circle geometry",
-            },
-        ],
-    )
+    first_options = technique_progress_user_options()
+    selected_user.name = "New Name"
+    selected_user.save(update_fields={"name"})
+    second_options = technique_progress_user_options()
 
-    from inspinia.pages import technique_progress
-
-    original_progress_fact_rows = technique_progress._progress_fact_rows
-    with patch(
-        "inspinia.pages.technique_progress._progress_fact_rows",
-        wraps=original_progress_fact_rows,
-    ) as progress_fact_rows_mock:
-        first_response = client.get(reverse("pages:technique_dashboard"))
-        assert first_response.status_code == HTTPStatus.OK
-        assert (
-            first_response.context["technique_progress_stats"]["completed_statement_total"] == 0
-        )
-        assert progress_fact_rows_mock.call_count == 1
-
-        completion = UserProblemCompletion.objects.create(
-            user=user,
-            statement=statement,
-            status=UserProblemCompletion.Status.SOLVED,
-        )
-        second_response = client.get(reverse("pages:technique_dashboard"))
-        third_response = client.get(reverse("pages:technique_dashboard"))
-
-        assert second_response.status_code == HTTPStatus.OK
-        assert third_response.status_code == HTTPStatus.OK
-        assert (
-            second_response.context["technique_progress_stats"]["completed_statement_total"] == 1
-        )
-        assert (
-            third_response.context["technique_progress_stats"]["completed_statement_total"] == 1
-        )
-        assert progress_fact_rows_mock.call_count == 2
-
-        UserProblemCompletion.objects.filter(pk=completion.pk).update(
-            status=UserProblemCompletion.Status.ATTEMPTED,
-            updated_at=timezone.now() + timedelta(seconds=1),
-        )
-        fourth_response = client.get(reverse("pages:technique_dashboard"))
-
-        assert fourth_response.status_code == HTTPStatus.OK
-        assert (
-            fourth_response.context["technique_progress_stats"]["completed_statement_total"] == 0
-        )
-        assert progress_fact_rows_mock.call_count == 3
+    assert any("Old Name" in option["label"] for option in first_options)
+    assert any("New Name" in option["label"] for option in second_options)
 
 
 def test_technique_progress_dashboard_counts_solved_statuses_only(client):
@@ -13296,6 +13299,199 @@ def test_technique_progress_dashboard_reads_precomputed_catalog_without_source_t
         or 'FROM "pages_problemtopictechnique"' in query["sql"]
     ]
     assert source_tag_queries == []
+
+
+def test_technique_progress_dashboard_uses_aggregate_rows_without_raw_fact_materialization(client):
+    user = UserFactory()
+    client.force_login(user)
+    _create_technique_progress_statement(
+        statement_tags=[
+            {
+                "technique": "INVARIANTS",
+                "domains": ["COMB"],
+                "main_topic": "COMB",
+                "canonical_subtopic": "Extremal methods, monotonicity, and invariants",
+            },
+        ],
+    )
+
+    cache.clear()
+    with patch("inspinia.pages.technique_progress._progress_fact_rows", side_effect=AssertionError("raw scan")):
+        response = client.get(reverse("pages:technique_dashboard"))
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["technique_progress_technique_rows"][0]["label"] == "INVARIANTS"
+
+
+def test_technique_progress_dashboard_reuses_cached_payload(client):
+    user = UserFactory()
+    client.force_login(user)
+    _create_technique_progress_statement(
+        statement_tags=[
+            {
+                "technique": "ANGLE CHASE",
+                "domains": ["GEO"],
+                "main_topic": "GEO",
+                "canonical_subtopic": "Circle geometry",
+            },
+        ],
+    )
+
+    cache.clear()
+    first_response = client.get(reverse("pages:technique_dashboard"))
+
+    with patch(
+        "inspinia.pages.technique_progress._dashboard_payload_from_aggregates",
+        side_effect=AssertionError("cache miss"),
+    ):
+        second_response = client.get(reverse("pages:technique_dashboard"))
+
+    assert first_response.status_code == HTTPStatus.OK
+    assert second_response.status_code == HTTPStatus.OK
+    assert second_response.context["technique_progress_stats"]["tagged_statement_total"] == 1
+
+
+def test_technique_progress_dashboard_cache_key_changes_when_completion_changes(client):
+    from inspinia.pages.technique_progress import _dashboard_cache_key
+
+    user = UserFactory()
+    client.force_login(user)
+    statement = _create_technique_progress_statement(
+        statement_tags=[
+            {
+                "technique": "ANGLE CHASE",
+                "domains": ["GEO"],
+                "main_topic": "GEO",
+                "canonical_subtopic": "Circle geometry",
+            },
+        ],
+    )
+
+    cache.clear()
+    first_response = client.get(reverse("pages:technique_dashboard"))
+    first_cache_key = _dashboard_cache_key(selected_user=user, can_select_user=False)
+    UserProblemCompletion.objects.create(
+        user=user,
+        statement=statement,
+        status=UserProblemCompletion.Status.SOLVED,
+    )
+    second_cache_key = _dashboard_cache_key(selected_user=user, can_select_user=False)
+    second_response = client.get(reverse("pages:technique_dashboard"))
+
+    assert first_response.context["technique_progress_stats"]["completed_statement_total"] == 0
+    assert cache.get(first_cache_key) is not None
+    assert second_cache_key != first_cache_key
+    assert second_response.context["technique_progress_stats"]["completed_statement_total"] == 1
+
+
+def test_technique_progress_dashboard_cache_key_changes_when_catalog_marker_changes(client):
+    from inspinia.pages.models import TechniqueProgressCatalogState
+    from inspinia.pages.technique_progress import _dashboard_cache_key
+
+    expected_statement_total = 2
+    user = UserFactory()
+    client.force_login(user)
+    _create_technique_progress_statement(
+        problem_code="P1",
+        problem_number=1,
+        statement_tags=[
+            {
+                "technique": "ANGLE CHASE",
+                "domains": ["GEO"],
+                "main_topic": "GEO",
+                "canonical_subtopic": "Circle geometry",
+            },
+        ],
+    )
+
+    cache.clear()
+    first_response = client.get(reverse("pages:technique_dashboard"))
+    first_cache_key = _dashboard_cache_key(selected_user=user, can_select_user=False)
+    _create_technique_progress_statement(
+        problem_code="P2",
+        problem_number=2,
+        statement_tags=[
+            {
+                "technique": "POWER OF A POINT",
+                "domains": ["GEO"],
+                "main_topic": "GEO",
+                "canonical_subtopic": "Circle geometry",
+            },
+        ],
+    )
+    TechniqueProgressCatalogState.objects.update_or_create(
+        singleton_key=1,
+        defaults={
+            "last_refreshed_at": timezone.now(),
+            "needs_rebuild": False,
+            "fact_count": TechniqueProgressFact.objects.count(),
+            "last_error": "",
+        },
+    )
+    second_cache_key = _dashboard_cache_key(selected_user=user, can_select_user=False)
+    second_response = client.get(reverse("pages:technique_dashboard"))
+
+    assert first_response.context["technique_progress_stats"]["tagged_statement_total"] == 1
+    assert cache.get(first_cache_key) is not None
+    assert second_cache_key != first_cache_key
+    assert second_response.context["technique_progress_stats"]["tagged_statement_total"] == expected_statement_total
+
+
+def test_technique_progress_dashboard_statement_completion_overrides_legacy_problem_completion(client):
+    user = UserFactory()
+    client.force_login(user)
+    statement = _create_technique_progress_statement(
+        statement_tags=[
+            {
+                "technique": "ANGLE CHASE",
+                "domains": ["GEO"],
+                "main_topic": "GEO",
+                "canonical_subtopic": "Circle geometry",
+            },
+        ],
+    )
+    UserProblemCompletion.objects.create(
+        user=user,
+        problem=statement.linked_problem,
+        status=UserProblemCompletion.Status.SOLVED,
+    )
+    UserProblemCompletion.objects.create(
+        user=user,
+        statement=statement,
+        status=UserProblemCompletion.Status.ATTEMPTED,
+    )
+
+    response = client.get(reverse("pages:technique_dashboard"))
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["technique_progress_stats"]["completed_statement_total"] == 0
+    assert response.context["technique_progress_subtopic_rows"][0]["solved"] == 0
+
+
+def test_technique_progress_dashboard_counts_legacy_problem_completion_without_statement_completion(client):
+    user = UserFactory()
+    client.force_login(user)
+    statement = _create_technique_progress_statement(
+        statement_tags=[
+            {
+                "technique": "ANGLE CHASE",
+                "domains": ["GEO"],
+                "main_topic": "GEO",
+                "canonical_subtopic": "Circle geometry",
+            },
+        ],
+    )
+    UserProblemCompletion.objects.create(
+        user=user,
+        problem=statement.linked_problem,
+        status=UserProblemCompletion.Status.SOLVED,
+    )
+
+    response = client.get(reverse("pages:technique_dashboard"))
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["technique_progress_stats"]["completed_statement_total"] == 1
+    assert response.context["technique_progress_subtopic_rows"][0]["solved"] == 1
 
 
 def test_technique_progress_dashboard_reflects_completion_changes_without_rebuilding_catalog(client):
@@ -17224,6 +17420,15 @@ def test_technique_progress_fact_declares_gap_filter_indexes():
     assert ("layer", "canonical_subtopic") in index_field_sets
 
 
+def test_user_problem_completion_has_user_updated_cache_marker_index():
+    index_fields_by_name = {
+        index.name: tuple(index.fields)
+        for index in UserProblemCompletion._meta.indexes  # noqa: SLF001
+    }
+
+    assert index_fields_by_name["pages_upc_user_updated_idx"] == ("user", "-updated_at")
+
+
 def test_technique_progress_gaps_page_requires_login(client):
     response = client.get(reverse("pages:technique_progress_gaps"))
 
@@ -17478,6 +17683,34 @@ def test_technique_progress_topic_detail_reuses_cached_payload(client):
     assert first_response.status_code == HTTPStatus.OK
     assert second_response.status_code == HTTPStatus.OK
     assert second_response.context["technique_progress_topic_summary"]["total"] == 1
+
+
+def test_technique_progress_topic_detail_cache_uses_six_hour_timeout(client):
+    from inspinia.pages.technique_progress import GAP_CACHE_TIMEOUT_SECONDS
+
+    user = UserFactory()
+    client.force_login(user)
+    _create_technique_progress_statement(
+        statement_tags=[
+            {
+                "technique": "INEQUALITIES",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": "Inequalities and optimization",
+            },
+        ],
+    )
+
+    cache.clear()
+    with patch("inspinia.pages.technique_progress.cache.set") as cache_set:
+        response = client.get(
+            reverse("pages:technique_progress_topic_detail", kwargs={"topic_slug": "algebra"}),
+        )
+
+    assert response.status_code == HTTPStatus.OK
+    assert GAP_CACHE_TIMEOUT_SECONDS == 6 * 60 * 60
+    assert cache_set.call_args_list
+    assert all(call.args[2] == GAP_CACHE_TIMEOUT_SECONDS for call in cache_set.call_args_list)
 
 
 def test_technique_progress_topic_detail_cache_key_changes_when_completion_changes(client):
