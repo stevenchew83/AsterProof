@@ -16981,6 +16981,15 @@ def test_technique_progress_fact_declares_gap_filter_indexes():
     assert ("layer", "canonical_subtopic") in index_field_sets
 
 
+def test_user_problem_completion_has_user_updated_cache_marker_index():
+    index_fields_by_name = {
+        index.name: tuple(index.fields)
+        for index in UserProblemCompletion._meta.indexes  # noqa: SLF001
+    }
+
+    assert index_fields_by_name["pages_upc_user_updated_idx"] == ("user", "-updated_at")
+
+
 def test_technique_progress_gaps_page_requires_login(client):
     response = client.get(reverse("pages:technique_progress_gaps"))
 
@@ -17235,6 +17244,34 @@ def test_technique_progress_topic_detail_reuses_cached_payload(client):
     assert first_response.status_code == HTTPStatus.OK
     assert second_response.status_code == HTTPStatus.OK
     assert second_response.context["technique_progress_topic_summary"]["total"] == 1
+
+
+def test_technique_progress_topic_detail_cache_uses_six_hour_timeout(client):
+    from inspinia.pages.technique_progress import GAP_CACHE_TIMEOUT_SECONDS
+
+    user = UserFactory()
+    client.force_login(user)
+    _create_technique_progress_statement(
+        statement_tags=[
+            {
+                "technique": "INEQUALITIES",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": "Inequalities and optimization",
+            },
+        ],
+    )
+
+    cache.clear()
+    with patch("inspinia.pages.technique_progress.cache.set") as cache_set:
+        response = client.get(
+            reverse("pages:technique_progress_topic_detail", kwargs={"topic_slug": "algebra"}),
+        )
+
+    assert response.status_code == HTTPStatus.OK
+    assert GAP_CACHE_TIMEOUT_SECONDS == 6 * 60 * 60
+    assert cache_set.call_args_list
+    assert all(call.args[2] == GAP_CACHE_TIMEOUT_SECONDS for call in cache_set.call_args_list)
 
 
 def test_technique_progress_topic_detail_cache_key_changes_when_completion_changes(client):

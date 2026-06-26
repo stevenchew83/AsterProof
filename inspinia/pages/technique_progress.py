@@ -45,7 +45,9 @@ if TYPE_CHECKING:
 NEXT_GAP_LIMIT = 6
 SUBTOPIC_LAYER_PREVIEW_LIMIT = 3
 GAP_PAGE_SIZE = 50
-GAP_CACHE_TIMEOUT_SECONDS = 15 * 60
+# Cache keys include catalog/completion/benchmark markers, so longer TTLs reduce
+# cold rebuilds without serving stale progress.
+GAP_CACHE_TIMEOUT_SECONDS = 6 * 60 * 60
 GAP_CACHE_VERSION = "v2"
 TOPIC_DETAIL_CACHE_VERSION = "v1"
 GAP_CSV_CONTENT_TYPE = "text/csv; charset=utf-8"
