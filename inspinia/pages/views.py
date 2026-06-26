@@ -177,7 +177,7 @@ from inspinia.pages.technique_progress import build_technique_progress_gaps_csv_
 from inspinia.pages.technique_progress import build_technique_progress_gaps_datatable_payload
 from inspinia.pages.technique_progress import build_technique_progress_topic_context
 from inspinia.pages.technique_progress import technique_progress_gap_rows_for_benchmark_export
-from inspinia.pages.technique_progress_catalog import rebuild_technique_progress_catalog
+from inspinia.pages.technique_progress_catalog import queue_full_technique_progress_catalog_rebuild
 from inspinia.pages.topic_labels import FULL_TOPIC_LABEL_MAP
 from inspinia.pages.topic_labels import display_topic_label
 from inspinia.problemsets.selectors import problem_list_add_target_rows
@@ -8191,10 +8191,10 @@ def contest_advanced_analytics_view(request):
 def technique_progress_catalog_rebuild_view(request):
     _require_admin_tools_access(request)
 
-    refreshed_count = rebuild_technique_progress_catalog()
+    queue_full_technique_progress_catalog_rebuild()
     messages.success(
         request,
-        f"Recomputed technique progress catalog with {refreshed_count} fact row(s).",
+        "Technique progress catalog rebuild queued.",
     )
     redirect_to = (request.POST.get("next") or request.META.get("HTTP_REFERER") or "").strip()
     if not url_has_allowed_host_and_scheme(

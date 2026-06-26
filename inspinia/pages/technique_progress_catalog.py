@@ -131,6 +131,13 @@ def technique_progress_catalog_status_context() -> dict[str, object]:
     }
 
 
+def queue_full_technique_progress_catalog_rebuild() -> None:
+    state = _catalog_state()
+    state.needs_rebuild = True
+    state.last_error = ""
+    state.save(update_fields={"last_error", "needs_rebuild", "updated_at"})
+
+
 def _facts_for_statement(statement: ContestProblemStatement) -> list[TechniqueProgressFact]:
     tag_rows = _effective_tag_rows(statement)
     if not tag_rows:

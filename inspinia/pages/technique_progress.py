@@ -47,6 +47,7 @@ SUBTOPIC_LAYER_PREVIEW_LIMIT = 3
 GAP_PAGE_SIZE = 50
 GAP_CACHE_TIMEOUT_SECONDS = 15 * 60
 GAP_CACHE_VERSION = "v2"
+DASHBOARD_CACHE_VERSION = "v1"
 TOPIC_DETAIL_CACHE_VERSION = "v1"
 GAP_CSV_CONTENT_TYPE = "text/csv; charset=utf-8"
 GAP_CSV_FIELDNAMES = [
@@ -468,6 +469,46 @@ def build_technique_progress_context(
     request_user: User,
     raw_user_id: str = "",
 ) -> dict[str, object]:
+    selected_user, can_select_user = resolve_technique_progress_user(
+        request_user=request_user,
+        raw_user_id=raw_user_id,
+    )
+    payload = _cached_dashboard_payload(
+        request_user=request_user,
+        raw_user_id=raw_user_id,
+        selected_user=selected_user,
+        can_select_user=can_select_user,
+    )
+    return {
+        **_base_context(
+            selected_user=selected_user,
+            can_select_user=can_select_user,
+            has_completed=bool(payload["stats"]["completed_statement_total"]),
+            has_tagged_statements=bool(payload["stats"]["tagged_statement_total"]),
+        ),
+        "technique_progress_main_topic_rows": payload["main_topic_rows"],
+        "technique_progress_next_gaps": payload["next_gaps"],
+        "technique_progress_stats": payload["stats"],
+        "technique_progress_subtopic_rows": payload["subtopic_rows"],
+        "technique_progress_technique_rows": payload["technique_rows"],
+    }
+
+
+def _cached_dashboard_payload(
+    *,
+    request_user: User,
+    raw_user_id: str,
+    selected_user: User,
+    can_select_user: bool,
+) -> dict[str, object]:
+    cache_key = _dashboard_cache_key(
+        selected_user=selected_user,
+        can_select_user=can_select_user,
+    )
+    cached_payload = cache.get(cache_key)
+    if cached_payload is not None:
+        return cached_payload
+
     payload = _build_progress_payload(
         request_user=request_user,
         raw_user_id=raw_user_id,
@@ -476,15 +517,37 @@ def build_technique_progress_context(
             TechniqueProgressFact.Layer.SUBTOPIC,
             TechniqueProgressFact.Layer.TECHNIQUE,
         },
+        include_user_options=False,
+        selected_user=selected_user,
+        can_select_user=can_select_user,
     )
-    return {
-        **payload["base_context"],
-        "technique_progress_main_topic_rows": payload["main_topic_rows"],
-        "technique_progress_next_gaps": payload["next_gaps"],
-        "technique_progress_stats": payload["stats"],
-        "technique_progress_subtopic_rows": payload["subtopic_rows"],
-        "technique_progress_technique_rows": payload["technique_rows"],
+    dashboard_payload = {
+        "main_topic_rows": payload["main_topic_rows"],
+        "next_gaps": payload["next_gaps"],
+        "stats": payload["stats"],
+        "subtopic_rows": payload["subtopic_rows"],
+        "technique_rows": payload["technique_rows"],
     }
+    cache.set(cache_key, dashboard_payload, GAP_CACHE_TIMEOUT_SECONDS)
+    return dashboard_payload
+
+
+def _dashboard_cache_key(
+    *,
+    selected_user: User,
+    can_select_user: bool,
+) -> str:
+    key_payload = "|".join(
+        [
+            DASHBOARD_CACHE_VERSION,
+            f"user={selected_user.pk}",
+            f"can_select_user={int(can_select_user)}",
+            f"catalog={_catalog_cache_marker()}",
+            f"completion={_completion_cache_marker(selected_user)}",
+        ],
+    )
+    digest = hashlib.sha256(key_payload.encode("utf-8")).hexdigest()
+    return f"technique-dashboard:{DASHBOARD_CACHE_VERSION}:{digest}"
 
 
 def build_technique_progress_gaps_context(  # noqa: PLR0913
@@ -1269,11 +1332,14 @@ def _build_progress_payload(  # noqa: PLR0913
     include_user_options: bool = True,
     gap_topic: str = GAP_TOPIC_ALL,
     gap_canonical_subtopic: str = "",
+    selected_user: User | None = None,
+    can_select_user: bool | None = None,
 ) -> dict[str, object]:
-    selected_user, can_select_user = resolve_technique_progress_user(
-        request_user=request_user,
-        raw_user_id=raw_user_id,
-    )
+    if selected_user is None or can_select_user is None:
+        selected_user, can_select_user = resolve_technique_progress_user(
+            request_user=request_user,
+            raw_user_id=raw_user_id,
+        )
     tagged_rows = _progress_fact_rows(
         user=selected_user,
         layers=required_layers,
