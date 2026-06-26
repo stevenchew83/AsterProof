@@ -456,6 +456,7 @@ class UserProblemCompletion(models.Model):
         ]
         indexes = [
             models.Index(fields=["-updated_at", "-id"], name="pages_upc_updated_id_idx"),
+            models.Index(fields=["user", "-updated_at"], name="pages_upc_user_updated_idx"),
         ]
 
     def __str__(self) -> str:
