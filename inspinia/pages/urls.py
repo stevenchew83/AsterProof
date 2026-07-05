@@ -37,6 +37,7 @@ from inspinia.pages.views import problem_statement_metadata_view
 from inspinia.pages.views import root_page_view
 from inspinia.pages.views import statement_render_preview_view
 from inspinia.pages.views import technique_benchmark_import_view
+from inspinia.pages.views import technique_benchmark_list_view
 from inspinia.pages.views import technique_gap_benchmark_view
 from inspinia.pages.views import technique_progress_catalog_rebuild_view
 from inspinia.pages.views import technique_progress_dashboard_view
@@ -113,6 +114,7 @@ urlpatterns = [
         technique_benchmark_import_view,
         name="technique_benchmark_import",
     ),
+    path("dashboard/technique-benchmarks/", technique_benchmark_list_view, name="technique_benchmark_list"),
     path("dashboard/techniques/gaps/", technique_progress_gaps_view, name="technique_progress_gaps"),
     path(
         "dashboard/techniques/topics/<slug:topic_slug>/",
