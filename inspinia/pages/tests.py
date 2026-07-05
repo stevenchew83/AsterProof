@@ -16819,6 +16819,50 @@ def test_technique_progress_gaps_export_xlsx_builds_multi_sheet_workbook(client)
     )
 
 
+def test_technique_progress_gaps_export_xlsx_reuses_gap_rows_for_topic_sheets(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    selected_user = UserFactory()
+    client.force_login(admin_user)
+    _create_technique_progress_statement(
+        problem_code="P1",
+        problem_number=1,
+        statement_tags=[
+            {
+                "technique": "INEQUALITY",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": "Algebra gap",
+                "object_tags": ["QUADRATIC EXPRESSION"],
+                "technique_tags": ["CAUCHY-SCHWARZ"],
+            },
+        ],
+    )
+
+    with patch(
+        "inspinia.pages.technique_progress._cached_topic_detail_payload",
+        side_effect=AssertionError("slow topic detail path"),
+    ):
+        response = client.get(
+            reverse("pages:technique_progress_gaps"),
+            {
+                "user": str(selected_user.pk),
+                "kind": "all",
+                "topic": "all",
+                "export": "xlsx",
+            },
+        )
+
+    assert response.status_code == HTTPStatus.OK
+    workbook = pd.ExcelFile(BytesIO(response.content))
+    subtopic_rows = workbook.parse("Algebra Subtopics", dtype=str).fillna("").to_dict(orient="records")
+    assert subtopic_rows[0]["Canonical subtopic"] == "Algebra gap"
+    assert "CAUCHY-SCHWARZ 1" in subtopic_rows[0]["Top gaps"]
+    assert "QUADRATIC EXPRESSION 1" in subtopic_rows[0]["Top gaps"]
+
+    gap_rows = workbook.parse("Practice Gaps", dtype=str).fillna("").to_dict(orient="records")
+    assert {row["Area"] for row in gap_rows} == {"CAUCHY-SCHWARZ", "QUADRATIC EXPRESSION"}
+
+
 def test_technique_progress_gaps_export_xlsx_ignores_user_param_for_non_admin(client):
     user = UserFactory()
     other_user = UserFactory()
