@@ -172,6 +172,7 @@ from inspinia.pages.technique_benchmarking.importing import apply_benchmark_impo
 from inspinia.pages.technique_benchmarking.importing import preview_benchmark_import
 from inspinia.pages.technique_benchmarking.importing import restore_benchmark_import_batch
 from inspinia.pages.technique_progress import build_technique_progress_context
+from inspinia.pages.technique_progress import build_technique_progress_export_response
 from inspinia.pages.technique_progress import build_technique_progress_gaps_context
 from inspinia.pages.technique_progress import build_technique_progress_gaps_csv_response
 from inspinia.pages.technique_progress import build_technique_progress_gaps_datatable_payload
@@ -8218,8 +8219,19 @@ def technique_progress_dashboard_view(request):
 
 @login_required
 def technique_progress_gaps_view(request):
-    if request.GET.get("export") == "csv":
+    export_format = request.GET.get("export")
+    if export_format == "csv":
         return build_technique_progress_gaps_csv_response(
+            request_user=request.user,
+            raw_user_id=(request.GET.get("user") or "").strip(),
+            raw_kind=(request.GET.get("kind") or "").strip(),
+            raw_topic=(request.GET.get("topic") or "").strip(),
+            raw_min_total=(request.GET.get("min_total") or "").strip(),
+            raw_canonical_subtopic=(request.GET.get("canonical_subtopic") or "").strip(),
+            raw_target_profile=(request.GET.get("target_profile") or "").strip(),
+        )
+    if export_format == "xlsx":
+        return build_technique_progress_export_response(
             request_user=request.user,
             raw_user_id=(request.GET.get("user") or "").strip(),
             raw_kind=(request.GET.get("kind") or "").strip(),
@@ -8250,6 +8262,7 @@ def technique_progress_gaps_view(request):
         raw_topic=(request.GET.get("topic") or "").strip(),
         raw_min_total=(request.GET.get("min_total") or "").strip(),
         raw_canonical_subtopic=(request.GET.get("canonical_subtopic") or "").strip(),
+        raw_target_profile=(request.GET.get("target_profile") or "").strip(),
     )
     return render(request, "pages/technique-progress-gaps.html", context)
 

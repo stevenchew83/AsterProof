@@ -30,6 +30,7 @@ from inspinia.pages.topic_tags_parse import parse_contest_problem_string
 from inspinia.pages.topic_tags_parse import parse_topic_tags_cell
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
     from pathlib import Path
 
 REQUIRED_COLUMNS = frozenset(
@@ -66,6 +67,7 @@ STATEMENT_EXPORT_COLUMNS = [
 ]
 PROBLEM_NUMBER_RE = re.compile(r"^\s*P?(?P<number>\d+)\s*$", flags=re.IGNORECASE)
 STATEMENT_PROBLEM_CODE_RE = re.compile(r"^\s*(?:(?P<prefix>[A-Za-z]{1,4})\s*)?(?P<number>\d+)\s*$")
+EXCEL_SHEET_TITLE_INVALID_RE = re.compile(r"[\[\]:*?/\\]")
 
 
 @dataclass
@@ -366,11 +368,7 @@ def build_problem_export_dataframe(records: list[ProblemSolveRecord]) -> pd.Data
     return pd.DataFrame(rows, columns=EXPORT_COLUMNS)
 
 
-def dataframe_to_safe_excel_bytes(dataframe: pd.DataFrame) -> bytes:
-    buffer = io.BytesIO()
-    workbook = Workbook()
-    worksheet = workbook.active
-
+def _write_safe_dataframe_to_worksheet(worksheet, dataframe: pd.DataFrame) -> None:
     for row_index, row in enumerate(dataframe_to_rows(dataframe, index=False, header=True), start=1):
         for column_index, value in enumerate(row, start=1):
             cell = worksheet.cell(row=row_index, column=column_index)
@@ -385,8 +383,48 @@ def dataframe_to_safe_excel_bytes(dataframe: pd.DataFrame) -> bytes:
                 continue
             cell.value = value
 
+
+def dataframe_to_safe_excel_bytes(dataframe: pd.DataFrame) -> bytes:
+    buffer = io.BytesIO()
+    workbook = Workbook()
+    worksheet = workbook.active
+    _write_safe_dataframe_to_worksheet(worksheet, dataframe)
     workbook.save(buffer)
     return buffer.getvalue()
+
+
+def dataframes_to_safe_excel_bytes(dataframes: Mapping[str, pd.DataFrame]) -> bytes:
+    buffer = io.BytesIO()
+    workbook = Workbook()
+    used_titles: set[str] = set()
+
+    if not dataframes:
+        _write_safe_dataframe_to_worksheet(workbook.active, pd.DataFrame())
+        workbook.save(buffer)
+        return buffer.getvalue()
+
+    first_sheet = workbook.active
+    for index, (title, dataframe) in enumerate(dataframes.items()):
+        worksheet = first_sheet if index == 0 else workbook.create_sheet()
+        worksheet.title = _safe_excel_sheet_title(title, used_titles)
+        _write_safe_dataframe_to_worksheet(worksheet, dataframe)
+
+    workbook.save(buffer)
+    return buffer.getvalue()
+
+
+def _safe_excel_sheet_title(raw_title: str, used_titles: set[str]) -> str:
+    title = EXCEL_SHEET_TITLE_INVALID_RE.sub(" ", str(raw_title or "Sheet")).strip()
+    title = " ".join(title.split()) or "Sheet"
+    base_title = title[:31] or "Sheet"
+    sheet_title = base_title
+    suffix_number = 2
+    while sheet_title in used_titles:
+        suffix = f" {suffix_number}"
+        sheet_title = f"{base_title[:31 - len(suffix)]}{suffix}"
+        suffix_number += 1
+    used_titles.add(sheet_title)
+    return sheet_title
 
 
 def build_problem_export_workbook_bytes(records: list[ProblemSolveRecord]) -> bytes:

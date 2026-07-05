@@ -13452,8 +13452,18 @@ def test_technique_progress_dashboard_exposes_practice_links(client):
     assert response.context["technique_progress_all_gaps_url"] == (
         f"{reverse('pages:technique_progress_gaps')}?user={selected_user.pk}"
     )
+    assert response.context["technique_progress_export_url"] == (
+        f"{reverse('pages:technique_progress_gaps')}?user={selected_user.pk}"
+        "&kind=all&topic=all&export=xlsx"
+    )
     response_html = response.content.decode("utf-8")
     assert "Practice remaining" in response_html
+    assert 'id="technique-progress-export-xlsx"' in response_html
+    assert (
+        f'href="/dashboard/techniques/gaps/?user={selected_user.pk}'
+        "&amp;kind=all&amp;topic=all&amp;export=xlsx"
+        '"'
+    ) in response_html
     assert "layer_kind=techniques" in response_html
     assert "layer_tag=ANGLE+CHASE" in response_html
     assert "layer_kind=subtopics" in response_html
@@ -16403,12 +16413,21 @@ def test_technique_progress_gaps_page_uses_server_side_datatable_and_preserves_f
 
     first_page = client.get(
         reverse("pages:technique_progress_gaps"),
-        {"user": str(selected_user.pk), "kind": "subtopics", "topic": "algebra"},
+        {
+            "user": str(selected_user.pk),
+            "kind": "subtopics",
+            "topic": "algebra",
+            "target_profile": "imo_tst",
+        },
     )
     assert first_page.status_code == HTTPStatus.OK
     assert first_page.context["technique_progress_gap_export_url"] == (
         f"{reverse('pages:technique_progress_gaps')}?user={selected_user.pk}"
-        "&kind=subtopics&topic=algebra&export=csv"
+        "&kind=subtopics&topic=algebra&target_profile=imo_tst&export=csv"
+    )
+    assert first_page.context["technique_progress_gap_excel_export_url"] == (
+        f"{reverse('pages:technique_progress_gaps')}?user={selected_user.pk}"
+        "&kind=subtopics&topic=algebra&target_profile=imo_tst&export=xlsx"
     )
     assert first_page.context["technique_progress_gap_rows_url"] == (
         f"{reverse('pages:technique_progress_gaps')}?user={selected_user.pk}"
@@ -16424,9 +16443,15 @@ def test_technique_progress_gaps_page_uses_server_side_datatable_and_preserves_f
     assert "columns:" in response_html
     assert "searchDelay: 300" in response_html
     assert 'id="technique-progress-gaps-export"' in response_html
+    assert 'id="technique-progress-gaps-export-xlsx"' in response_html
     assert (
         f'href="/dashboard/techniques/gaps/?user={selected_user.pk}'
-        "&amp;kind=subtopics&amp;topic=algebra&amp;export=csv"
+        "&amp;kind=subtopics&amp;topic=algebra&amp;target_profile=imo_tst&amp;export=csv"
+        '"'
+    ) in response_html
+    assert (
+        f'href="/dashboard/techniques/gaps/?user={selected_user.pk}'
+        "&amp;kind=subtopics&amp;topic=algebra&amp;target_profile=imo_tst&amp;export=xlsx"
         '"'
     ) in response_html
     assert "Gap 01" not in response_html
@@ -16576,6 +16601,117 @@ def test_technique_progress_gaps_export_csv_uses_url_filters_and_ignores_datatab
             ),
         },
     ]
+
+
+def test_technique_progress_gaps_export_xlsx_builds_multi_sheet_workbook(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    selected_user = UserFactory()
+    client.force_login(admin_user)
+    _create_technique_progress_statement(
+        problem_code="P1",
+        problem_number=1,
+        statement_tags=[
+            {
+                "technique": "INEQUALITY",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": "Algebra gap",
+            },
+        ],
+    )
+    _create_technique_progress_statement(
+        problem_code="P2",
+        problem_number=2,
+        topic="GEO",
+        statement_tags=[
+            {
+                "technique": "ANGLE CHASE",
+                "domains": ["GEO"],
+                "main_topic": "GEO",
+                "canonical_subtopic": "Geometry gap",
+            },
+        ],
+    )
+
+    response = client.get(
+        reverse("pages:technique_progress_gaps"),
+        {
+            "user": str(selected_user.pk),
+            "kind": "subtopics",
+            "topic": "algebra",
+            "export": "xlsx",
+            "search[value]": "does not match",
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response["Content-Type"].startswith(WORKBOOK_CONTENT_TYPE)
+    assert response["Content-Disposition"].startswith(
+        'attachment; filename="asterproof-technique-progress-',
+    )
+    workbook = pd.ExcelFile(BytesIO(response.content))
+    assert workbook.sheet_names[:5] == [
+        "Summary",
+        "Practice Remaining",
+        "Main Topics",
+        "All Subtopics",
+        "All Techniques",
+    ]
+    assert "Algebra Subtopics" in workbook.sheet_names
+    assert "Geometry Subtopics" in workbook.sheet_names
+    assert workbook.sheet_names[-1] == "Practice Gaps"
+
+    summary_rows = workbook.parse("Summary", dtype=str).fillna("").to_dict(orient="records")
+    assert {"Field": "Selected user email", "Value": selected_user.email} in summary_rows
+    assert {"Field": "Gap kind", "Value": "subtopics"} in summary_rows
+    assert {"Field": "Gap topic", "Value": "algebra"} in summary_rows
+
+    gap_rows = workbook.parse("Practice Gaps", dtype=str).fillna("").to_dict(orient="records")
+    assert [row["Area"] for row in gap_rows] == ["Algebra gap"]
+    assert gap_rows[0]["Practice URL"] == (
+        f"{reverse('pages:completion_quick_update')}"
+        f"?target_user_id={selected_user.pk}&layer_kind=subtopics&layer_tag=Algebra+gap"
+    )
+
+
+def test_technique_progress_gaps_export_xlsx_ignores_user_param_for_non_admin(client):
+    user = UserFactory()
+    other_user = UserFactory()
+    client.force_login(user)
+    _create_technique_progress_statement(
+        problem_code="P1",
+        problem_number=1,
+        statement_tags=[
+            {
+                "technique": "INEQUALITY",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": "Algebra gap",
+            },
+        ],
+    )
+
+    response = client.get(
+        reverse("pages:technique_progress_gaps"),
+        {
+            "user": str(other_user.pk),
+            "kind": "subtopics",
+            "topic": "algebra",
+            "export": "xlsx",
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    workbook = pd.ExcelFile(BytesIO(response.content))
+    summary_rows = workbook.parse("Summary", dtype=str).fillna("").to_dict(orient="records")
+    assert {"Field": "Selected user email", "Value": user.email} in summary_rows
+    assert {"Field": "Requested user id", "Value": str(other_user.pk)} in summary_rows
+
+    gap_rows = workbook.parse("Practice Gaps", dtype=str).fillna("").to_dict(orient="records")
+    assert gap_rows[0]["Practice URL"] == (
+        f"{reverse('pages:completion_quick_update')}?layer_kind=subtopics&layer_tag=Algebra+gap"
+    )
+    assert f"target_user_id={other_user.pk}" not in gap_rows[0]["Practice URL"]
 
 
 def test_technique_progress_gaps_export_csv_uses_canonical_subtopic_label_for_techniques(client):

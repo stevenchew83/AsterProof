@@ -6,6 +6,7 @@ from collections import defaultdict
 from typing import TYPE_CHECKING
 from urllib.parse import urlencode
 
+import pandas as pd
 from django.core.cache import cache
 from django.db import connection
 from django.db.models import Count
@@ -29,6 +30,7 @@ from inspinia.pages.models import TechniqueBenchmarkAlias
 from inspinia.pages.models import TechniqueProgressCatalogState
 from inspinia.pages.models import TechniqueProgressFact
 from inspinia.pages.models import UserProblemCompletion
+from inspinia.pages.problem_import import dataframes_to_safe_excel_bytes
 from inspinia.pages.statement_analytics import effective_topic
 from inspinia.pages.technique_benchmarking.keys import benchmark_row_key
 from inspinia.pages.technique_benchmarking.scoring import benchmark_lookup_for_gap_rows
@@ -59,6 +61,7 @@ USER_OPTIONS_CACHE_TIMEOUT_SECONDS = 15 * 60
 USER_OPTIONS_CACHE_VERSION = "v1"
 USER_OPTIONS_STALE_MARKER_KEY = f"technique-user-options-marker:{USER_OPTIONS_CACHE_VERSION}"
 GAP_CSV_CONTENT_TYPE = "text/csv; charset=utf-8"
+TECHNIQUE_PROGRESS_XLSX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 GAP_CSV_FIELDNAMES = [
     "Area",
     "Canonical Subtopic",
@@ -81,6 +84,36 @@ GAP_CSV_FIELDNAMES = [
     "Coverage",
     "Practice URL",
 ]
+PROGRESS_EXPORT_FIELDNAMES = [
+    "Area",
+    "Type",
+    "Topic",
+    "Completed",
+    "Avg MOHS",
+    "Remaining",
+    "Coverage",
+    "Practice URL",
+]
+MAIN_TOPIC_EXPORT_FIELDNAMES = [
+    "Topic",
+    "Tagged",
+    "Completed",
+    "Remaining",
+    "Open subtopics",
+    "Coverage",
+    "Details URL",
+]
+TOPIC_SUBTOPIC_EXPORT_FIELDNAMES = [
+    "Canonical subtopic",
+    "Top gaps",
+    "Completed",
+    "Avg MOHS",
+    "Remaining",
+    "Coverage",
+    "Explore URL",
+    "Practice URL",
+]
+SUMMARY_EXPORT_FIELDNAMES = ["Field", "Value"]
 GAP_KIND_SUBTOPICS = "subtopics"
 GAP_KIND_TECHNIQUES = "techniques"
 GAP_KIND_OBJECTS = "objects"
@@ -599,6 +632,7 @@ def build_technique_progress_gaps_context(  # noqa: PLR0913
     raw_topic: str = "",
     raw_min_total: str = "",
     raw_canonical_subtopic: str = "",
+    raw_target_profile: str = "",
 ) -> dict[str, object]:
     (
         selected_user,
@@ -637,7 +671,16 @@ def build_technique_progress_gaps_context(  # noqa: PLR0913
             gap_topic=gap_topic,
             gap_min_total=gap_min_total,
             gap_canonical_subtopic=gap_canonical_subtopic,
-            extra_query={"export": "csv"},
+            extra_query=_gap_export_extra_query("csv", raw_target_profile=raw_target_profile),
+        ),
+        "technique_progress_gap_excel_export_url": _gap_url(
+            selected_user=selected_user,
+            can_select_user=can_select_user,
+            gap_kind=gap_kind,
+            gap_topic=gap_topic,
+            gap_min_total=gap_min_total,
+            gap_canonical_subtopic=gap_canonical_subtopic,
+            extra_query=_gap_export_extra_query("xlsx", raw_target_profile=raw_target_profile),
         ),
         "technique_progress_gap_benchmark_url": _gap_benchmark_url(
             selected_user=selected_user,
@@ -707,17 +750,14 @@ def build_technique_progress_gaps_csv_response(  # noqa: PLR0913
     raw_canonical_subtopic: str = "",
     raw_target_profile: str = "",
 ) -> HttpResponse:
-    _gap_kind, gap_rows = _gap_rows_for_request(
+    _gap_kind, gap_rows = _gap_export_rows_for_request(
         request_user=request_user,
         raw_user_id=raw_user_id,
         raw_kind=raw_kind,
         raw_topic=raw_topic,
         raw_min_total=raw_min_total,
         raw_canonical_subtopic=raw_canonical_subtopic,
-    )
-    gap_rows = _score_and_rank_gap_rows(
-        _enrich_gap_rows_with_benchmarks(gap_rows),
-        target_profile=raw_target_profile,
+        raw_target_profile=raw_target_profile,
     )
     response = HttpResponse(content_type=GAP_CSV_CONTENT_TYPE)
     response["Content-Disposition"] = 'attachment; filename="technique-progress-gaps.csv"'
@@ -725,6 +765,126 @@ def build_technique_progress_gaps_csv_response(  # noqa: PLR0913
     writer.writeheader()
     writer.writerows(_gap_csv_row(row) for row in gap_rows)
     return response
+
+
+def build_technique_progress_export_response(  # noqa: PLR0913
+    *,
+    request_user: User,
+    raw_user_id: str = "",
+    raw_kind: str = "",
+    raw_topic: str = "",
+    raw_min_total: str = "",
+    raw_canonical_subtopic: str = "",
+    raw_target_profile: str = "",
+) -> HttpResponse:
+    workbook_bytes = build_technique_progress_export_workbook_bytes(
+        request_user=request_user,
+        raw_user_id=raw_user_id,
+        raw_kind=raw_kind,
+        raw_topic=raw_topic,
+        raw_min_total=raw_min_total,
+        raw_canonical_subtopic=raw_canonical_subtopic,
+        raw_target_profile=raw_target_profile,
+    )
+    timestamp = timezone.localtime().strftime("%Y%m%d-%H%M%S")
+    response = HttpResponse(workbook_bytes, content_type=TECHNIQUE_PROGRESS_XLSX_CONTENT_TYPE)
+    response["Content-Disposition"] = f'attachment; filename="asterproof-technique-progress-{timestamp}.xlsx"'
+    return response
+
+
+def build_technique_progress_export_workbook_bytes(  # noqa: PLR0913
+    *,
+    request_user: User,
+    raw_user_id: str = "",
+    raw_kind: str = "",
+    raw_topic: str = "",
+    raw_min_total: str = "",
+    raw_canonical_subtopic: str = "",
+    raw_target_profile: str = "",
+) -> bytes:
+    (
+        selected_user,
+        can_select_user,
+        gap_kind,
+        gap_topic,
+        gap_min_total,
+        gap_canonical_subtopic,
+    ) = _resolve_gap_request(
+        request_user=request_user,
+        raw_user_id=raw_user_id,
+        raw_kind=raw_kind,
+        raw_topic=raw_topic,
+        raw_min_total=raw_min_total,
+        raw_canonical_subtopic=raw_canonical_subtopic,
+    )
+    dashboard_payload = _cached_dashboard_payload(
+        selected_user=selected_user,
+        can_select_user=can_select_user,
+    )
+    _export_gap_kind, gap_rows = _gap_export_rows_for_request(
+        request_user=request_user,
+        raw_user_id=raw_user_id,
+        raw_kind=raw_kind,
+        raw_topic=raw_topic,
+        raw_min_total=raw_min_total,
+        raw_canonical_subtopic=raw_canonical_subtopic,
+        raw_target_profile=raw_target_profile,
+    )
+    dataframes: dict[str, pd.DataFrame] = {
+        "Summary": pd.DataFrame(
+            _technique_progress_export_summary_rows(
+                selected_user=selected_user,
+                can_select_user=can_select_user,
+                raw_user_id=raw_user_id,
+                gap_kind=gap_kind,
+                gap_topic=gap_topic,
+                gap_min_total=gap_min_total,
+                gap_canonical_subtopic=gap_canonical_subtopic,
+                raw_target_profile=raw_target_profile,
+            ),
+            columns=SUMMARY_EXPORT_FIELDNAMES,
+        ),
+        "Practice Remaining": pd.DataFrame(
+            [_progress_export_row(row) for row in dashboard_payload["next_gaps"]],
+            columns=PROGRESS_EXPORT_FIELDNAMES,
+        ),
+        "Main Topics": pd.DataFrame(
+            [_main_topic_export_row(row) for row in dashboard_payload["main_topic_rows"]],
+            columns=MAIN_TOPIC_EXPORT_FIELDNAMES,
+        ),
+        "All Subtopics": pd.DataFrame(
+            [_progress_export_row(row) for row in dashboard_payload["subtopic_rows"]],
+            columns=PROGRESS_EXPORT_FIELDNAMES,
+        ),
+        "All Techniques": pd.DataFrame(
+            [_progress_export_row(row) for row in dashboard_payload["technique_rows"]],
+            columns=PROGRESS_EXPORT_FIELDNAMES,
+        ),
+    }
+    for topic_row in dashboard_payload["main_topic_rows"]:
+        topic_slug = str(topic_row.get("slug") or "")
+        topic_label = str(topic_row.get("label") or "")
+        if not int(topic_row.get("total") or 0) or topic_slug not in MAIN_TOPIC_SLUGS:
+            continue
+        topic_payload = _cached_topic_detail_payload(
+            request_user=request_user,
+            raw_user_id=raw_user_id,
+            selected_user=selected_user,
+            can_select_user=can_select_user,
+            topic_slug=topic_slug,
+        )
+        dataframes[f"{topic_label} Subtopics"] = pd.DataFrame(
+            [
+                _topic_subtopic_export_row(row)
+                for row in topic_payload["technique_progress_topic_subtopic_rows"]
+            ],
+            columns=TOPIC_SUBTOPIC_EXPORT_FIELDNAMES,
+        )
+    dataframes["Practice Gaps"] = pd.DataFrame(
+        [_gap_csv_row(row) for row in gap_rows],
+        columns=GAP_CSV_FIELDNAMES,
+    )
+    return dataframes_to_safe_excel_bytes(dataframes)
 
 
 def technique_progress_gap_rows_for_benchmark_export(  # noqa: PLR0913
@@ -745,6 +905,116 @@ def technique_progress_gap_rows_for_benchmark_export(  # noqa: PLR0913
         raw_canonical_subtopic=raw_canonical_subtopic,
     )
     return gap_rows
+
+
+def _gap_export_rows_for_request(  # noqa: PLR0913
+    *,
+    request_user: User,
+    raw_user_id: str,
+    raw_kind: str,
+    raw_topic: str,
+    raw_min_total: str,
+    raw_canonical_subtopic: str,
+    raw_target_profile: str,
+) -> tuple[str, list[dict[str, object]]]:
+    gap_kind, gap_rows = _gap_rows_for_request(
+        request_user=request_user,
+        raw_user_id=raw_user_id,
+        raw_kind=raw_kind,
+        raw_topic=raw_topic,
+        raw_min_total=raw_min_total,
+        raw_canonical_subtopic=raw_canonical_subtopic,
+    )
+    return (
+        gap_kind,
+        _score_and_rank_gap_rows(
+            _enrich_gap_rows_with_benchmarks(gap_rows),
+            target_profile=raw_target_profile,
+        ),
+    )
+
+
+def _technique_progress_export_summary_rows(  # noqa: PLR0913
+    *,
+    selected_user: User,
+    can_select_user: bool,
+    raw_user_id: str,
+    gap_kind: str,
+    gap_topic: str,
+    gap_min_total: int,
+    gap_canonical_subtopic: str,
+    raw_target_profile: str,
+) -> list[dict[str, str]]:
+    selected_user_label = selected_user.name or selected_user.email
+    return [
+        {"Field": "Selected user", "Value": selected_user_label},
+        {"Field": "Selected user email", "Value": selected_user.email},
+        {"Field": "Requested user id", "Value": raw_user_id},
+        {"Field": "Can select user", "Value": "yes" if can_select_user else "no"},
+        {"Field": "Gap kind", "Value": gap_kind},
+        {"Field": "Gap topic", "Value": gap_topic},
+        {"Field": "Minimum statements", "Value": str(gap_min_total)},
+        {"Field": "Canonical subtopic", "Value": gap_canonical_subtopic},
+        {"Field": "Target profile", "Value": normalize_target_profile(raw_target_profile)},
+        {"Field": "Generated at", "Value": timezone.localtime().strftime("%Y-%m-%d %H:%M:%S %Z")},
+    ]
+
+
+def _progress_export_row(row: dict[str, object]) -> dict[str, object]:
+    return {
+        "Area": row.get("label", ""),
+        "Type": row.get("type", ""),
+        "Topic": row.get("main_topic_label") or "-",
+        "Completed": _completed_export_label(row),
+        "Avg MOHS": row.get("average_solved_mohs_label", "-"),
+        "Remaining": int(row.get("remaining") or 0),
+        "Coverage": _coverage_export_label(row),
+        "Practice URL": row.get("practice_url", ""),
+    }
+
+
+def _main_topic_export_row(row: dict[str, object]) -> dict[str, object]:
+    return {
+        "Topic": row.get("label", ""),
+        "Tagged": int(row.get("total") or 0),
+        "Completed": _completed_export_label(row),
+        "Remaining": int(row.get("remaining") or 0),
+        "Open subtopics": f"{row.get('incomplete_subtopic_total', 0)} of {row.get('subtopic_total', 0)}",
+        "Coverage": _coverage_export_label(row),
+        "Details URL": row.get("topic_detail_url", ""),
+    }
+
+
+def _topic_subtopic_export_row(row: dict[str, object]) -> dict[str, object]:
+    return {
+        "Canonical subtopic": row.get("canonical_subtopic") or row.get("label", ""),
+        "Top gaps": _layer_gap_preview_export_value(row),
+        "Completed": _completed_export_label(row),
+        "Avg MOHS": row.get("average_solved_mohs_label", "-"),
+        "Remaining": int(row.get("remaining") or 0),
+        "Coverage": _coverage_export_label(row),
+        "Explore URL": row.get("drilldown_url", ""),
+        "Practice URL": row.get("practice_url", ""),
+    }
+
+
+def _layer_gap_preview_export_value(row: dict[str, object]) -> str:
+    preview_values = [
+        f"{preview.get('label', '')} {preview.get('remaining', '')}".strip()
+        for preview in row.get("layer_gap_preview", []) or []
+    ]
+    overflow = int(row.get("layer_gap_preview_overflow") or 0)
+    if overflow:
+        preview_values.append(f"+{overflow} more")
+    return "; ".join(value for value in preview_values if value)
+
+
+def _completed_export_label(row: dict[str, object]) -> str:
+    return f"{int(row.get('solved') or 0)} of {int(row.get('total') or 0)}"
+
+
+def _coverage_export_label(row: dict[str, object]) -> str:
+    return f"{int(row.get('completion_percent') or 0)}%"
 
 
 def build_technique_progress_gaps_datatable_payload(  # noqa: PLR0913
@@ -1929,6 +2199,13 @@ def _base_context(
             selected_user=selected_user,
             can_select_user=can_select_user,
         ),
+        "technique_progress_export_url": _gap_url(
+            selected_user=selected_user,
+            can_select_user=can_select_user,
+            gap_kind=GAP_KIND_ALL,
+            gap_topic=GAP_TOPIC_ALL,
+            extra_query={"export": "xlsx"},
+        ),
         "technique_progress_filters": {
             "user": str(selected_user.pk) if can_select_user else "",
         },
@@ -2254,6 +2531,15 @@ def _gap_url(  # noqa: PLR0913
     if extra_query:
         query.update(extra_query)
     return f"{reverse('pages:technique_progress_gaps')}?{urlencode(query)}"
+
+
+def _gap_export_extra_query(export_format: str, *, raw_target_profile: str = "") -> dict[str, str]:
+    query: dict[str, str] = {}
+    target_profile = str(raw_target_profile or "").strip()
+    if target_profile:
+        query["target_profile"] = target_profile
+    query["export"] = export_format
+    return query
 
 
 def _gap_benchmark_url(  # noqa: PLR0913
