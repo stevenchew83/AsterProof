@@ -666,9 +666,11 @@ def _import_row_key(raw_row: dict[str, Any], *, normalized_known_keys: set[str])
     if not kind:
         kind = _benchmark_kind_from_existing_rows(label_key)
     if not kind:
+        kind = _benchmark_kind_from_title_label_row(raw_row)
+    if not kind:
         return "", [
             "Bare row_key values require Practice URL, Type, a current gap-row match, "
-            "or an existing unique benchmark match.",
+            "an existing unique benchmark match, or a title-label canonical subtopic row.",
         ]
     return build_benchmark_row_key(kind, label_key), []
 
@@ -706,6 +708,14 @@ def _benchmark_kind_from_existing_rows(label_key: str) -> str:
     return matches.pop() if len(matches) == 1 else ""
 
 
+def _benchmark_kind_from_title_label_row(raw_row: dict[str, Any]) -> str:
+    raw_row_key = _clean_text(raw_row.get("row_key"))
+    normalized_label = _clean_text(raw_row.get("normalized_label"))
+    if raw_row_key and normalized_label and raw_row_key == normalized_label:
+        return str(TechniqueBenchmark.Kind.CANONICAL_SUBTOPIC)
+    return ""
+
+
 def _primary_area_from_topic(value: Any) -> str:
     topic = _clean_text(value)
     if not topic:
@@ -733,7 +743,7 @@ def _alias_suggestions_from_import_row(raw_row: dict[str, Any], *, label_key: st
     if isinstance(alias_suggestions, list):
         raw_values.extend(alias_suggestions)
     elif alias_suggestions:
-        raw_values.extend(str(alias_suggestions).split(","))
+        raw_values.extend(_split_alias_suggestions(alias_suggestions))
 
     for field_name, value in raw_row.items():
         if _normalize_header(field_name).startswith("alias_suggestions_"):
@@ -749,6 +759,12 @@ def _alias_suggestions_from_import_row(raw_row: dict[str, Any], *, label_key: st
         aliases.append(alias_label)
         seen_alias_keys.add(alias_key)
     return aliases
+
+
+def _split_alias_suggestions(value: Any) -> list[str]:
+    raw_value = str(value)
+    delimiter = ";" if ";" in raw_value else ","
+    return raw_value.split(delimiter)
 
 
 def _validate_raw_row(  # noqa: C901, PLR0912, PLR0915

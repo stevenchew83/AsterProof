@@ -14205,6 +14205,49 @@ def test_technique_benchmark_import_parser_accepts_csv_table_with_known_row_cont
     assert preview.valid_rows[1]["row_key"] == "object:residues"
 
 
+def test_technique_benchmark_import_parser_treats_title_label_csv_rows_as_canonical_subtopics():
+    from inspinia.pages.technique_benchmarking.importing import preview_benchmark_import
+
+    TechniqueBenchmark.objects.create(
+        kind=TechniqueBenchmark.Kind.CANONICAL_SUBTOPIC,
+        label="Core Euclidean geometry",
+        parent_family="Euclidean and circle geometry",
+    )
+    TechniqueBenchmark.objects.create(
+        kind=TechniqueBenchmark.Kind.METHOD,
+        label="Core Euclidean geometry",
+        parent_family="Euclidean proof methods",
+    )
+    csv_table = (
+        "row_key,normalized_label,parent_family,primary_area,syllabus_core,contest_frequency,"
+        "transfer_value,prerequisite_value,concept_load,recognition_burden,execution_load,"
+        "proof_fragility,cross_topic_dependency,typical_mohs_min,typical_mohs_max,jbmo_weight,"
+        "national_weight,imo_tst_weight,training_type,target_level,benchmark_confidence,"
+        "key_insight_spoiler_free,rationale,pitfalls,recommended_sequence,alias_suggestions\n"
+        '"Core Euclidean geometry","Core Euclidean geometry","Euclidean and circle geometry","Geometry",'
+        '5,5,4,5,3,3,3,3,4,0,40,1.50,1.50,1.25,"Deep block","National",95,'
+        '"Recognize how angles and similarity form local proof grammar.",'
+        '"This is the base language of olympiad geometry.",'
+        '"Skipping fundamentals creates brittle solutions.",'
+        '"Start with angles, similarity, congruence, and area.",'
+        '"angle chasing; similarity; congruence; area method; parallel lines"\n'
+    )
+
+    preview = preview_benchmark_import(csv_table)
+
+    assert preview.rows_total == 1
+    assert preview.rows_valid == 1
+    assert preview.rows_invalid == 0
+    assert preview.valid_rows[0]["row_key"] == "canonical_subtopic:core-euclidean-geometry"
+    assert preview.valid_rows[0]["alias_suggestions"] == [
+        "angle chasing",
+        "similarity",
+        "congruence",
+        "area method",
+        "parallel lines",
+    ]
+
+
 def test_technique_benchmark_import_rejects_unknown_future_schema_version():
     from inspinia.pages.technique_benchmarking.importing import BenchmarkImportValidationError
     from inspinia.pages.technique_benchmarking.importing import preview_benchmark_import
