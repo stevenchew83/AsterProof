@@ -27,6 +27,8 @@ SCHEMA_VERSION = "technique-gap-benchmark-v1"
 MAX_PASTED_RESPONSE_BYTES = 2 * 1024 * 1024
 MAX_IMPORT_ROWS = 250
 MAX_LONG_TEXT_CHARS = 500
+MAX_BENCHMARK_TEXT_CHARS = 255
+MAX_PRIMARY_AREA_CHARS = 64
 MIN_MARKDOWN_TABLE_LINES = 3
 SCORE_MIN = 1
 SCORE_MAX = 5
@@ -48,6 +50,12 @@ SCORE_FIELDS = (
 )
 WEIGHT_FIELDS = ("jbmo_weight", "national_weight", "imo_tst_weight")
 TEXT_LIMIT_FIELDS = ("rationale", "pitfalls", "recommended_sequence")
+MODEL_TEXT_LIMIT_FIELDS = {
+    "label_key": MAX_BENCHMARK_TEXT_CHARS,
+    "normalized_label": MAX_BENCHMARK_TEXT_CHARS,
+    "parent_family": MAX_BENCHMARK_TEXT_CHARS,
+    "primary_area": MAX_PRIMARY_AREA_CHARS,
+}
 TRAINING_TYPES = TechniqueBenchmark.TRAINING_TYPES
 TARGET_LEVELS = TechniqueBenchmark.TARGET_LEVELS
 LAYER_KIND_TO_BENCHMARK_KIND = {
@@ -808,6 +816,9 @@ def _validate_raw_row(  # noqa: C901, PLR0912, PLR0915
         errors.append("normalized_label is required.")
     if not normalized_row["parent_family"]:
         errors.append("parent_family is required.")
+    for field_name, max_chars in MODEL_TEXT_LIMIT_FIELDS.items():
+        if len(str(normalized_row.get(field_name) or "")) > max_chars:
+            errors.append(f"{field_name} must be {max_chars} characters or fewer.")
 
     for field_name in SCORE_FIELDS:
         normalized_row[field_name] = _coerce_int(raw_row.get(field_name))
@@ -856,6 +867,11 @@ def _validate_raw_row(  # noqa: C901, PLR0912, PLR0915
     area_labels = raw_row.get("area_labels")
     normalized_row["area_labels"] = area_labels if isinstance(area_labels, list) else []
     normalized_row["alias_suggestions"] = _alias_suggestions_from_import_row(raw_row, label_key=label_key)
+    for alias_label in normalized_row["alias_suggestions"]:
+        alias_key = normalize_benchmark_key(alias_label)
+        if len(alias_label) > MAX_BENCHMARK_TEXT_CHARS or len(alias_key) > MAX_BENCHMARK_TEXT_CHARS:
+            errors.append(f"alias_suggestions entries must be {MAX_BENCHMARK_TEXT_CHARS} characters or fewer.")
+            break
     normalized_row["index"] = index
     return normalized_row, errors
 
