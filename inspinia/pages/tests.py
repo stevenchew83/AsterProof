@@ -14169,6 +14169,42 @@ def test_technique_benchmark_import_parser_accepts_enriched_table_with_source_ki
     assert TechniqueBenchmark.objects.count() == 0
 
 
+def test_technique_benchmark_import_parser_accepts_csv_table_with_known_row_context():
+    from inspinia.pages.technique_benchmarking.importing import preview_benchmark_import
+
+    csv_table = (
+        "row_key,normalized_label,parent_family,primary_area,syllabus_core,contest_frequency,"
+        "transfer_value,prerequisite_value,concept_load,recognition_burden,execution_load,"
+        "proof_fragility,cross_topic_dependency,typical_mohs_min,typical_mohs_max,jbmo_weight,"
+        "national_weight,imo_tst_weight,training_type,target_level,benchmark_confidence,"
+        "rationale,pitfalls,recommended_sequence,alias_suggestions/0,alias_suggestions/1\n"
+        'FACTORIZATION,Factorization,Algebraic and arithmetic manipulation,Mixed,5,5,5,5,3,4,4,3,4,0,45,'
+        '1.35,1.45,1.3,Deep block,National,92,'
+        '"Factorization is useful in algebra, number theory, and inequalities.",'
+        '"Students over-expand, then miss structure.",'
+        '"Learn factorization first, then apply it.",'
+        "polynomial factorization,difference of squares\n"
+        "RESIDUES,Residues,Number theory foundations,Number Theory,5,5,4,5,2,2,2,2,2,0,30,"
+        "1.45,1.35,1.05,Drill,Foundation,94,"
+        "Residue thinking controls modular cases.,Students choose weak moduli.,Start after divisibility.,"
+        "remainders,residue classes\n"
+    )
+
+    preview = preview_benchmark_import(
+        csv_table,
+        known_row_keys={"method:factorization", "object:residues"},
+    )
+
+    assert preview.rows_total == 2
+    assert preview.rows_valid == 2
+    assert preview.valid_rows[0]["row_key"] == "method:factorization"
+    assert preview.valid_rows[0]["alias_suggestions"] == [
+        "polynomial factorization",
+        "difference of squares",
+    ]
+    assert preview.valid_rows[1]["row_key"] == "object:residues"
+
+
 def test_technique_benchmark_import_rejects_unknown_future_schema_version():
     from inspinia.pages.technique_benchmarking.importing import BenchmarkImportValidationError
     from inspinia.pages.technique_benchmarking.importing import preview_benchmark_import

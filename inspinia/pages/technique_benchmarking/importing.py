@@ -253,15 +253,9 @@ def parse_benchmark_import_response(pasted_response: str) -> tuple[str, list[dic
         msg = "Pasted benchmark response is too large."
         raise BenchmarkImportValidationError(msg)
 
-    parsed_payload = _parse_json_payload(raw_text)
+    parsed_payload = _parse_supported_payload(raw_text)
     if parsed_payload is None:
-        parsed_payload = _parse_jsonl_payload(raw_text)
-    if parsed_payload is None:
-        parsed_payload = _parse_markdown_table_payload(raw_text)
-    if parsed_payload is None:
-        parsed_payload = _parse_tsv_payload(raw_text)
-    if parsed_payload is None:
-        msg = "Benchmark response must be valid JSON, fenced JSON, JSONL, markdown table, or TSV."
+        msg = "Benchmark response must be valid JSON, fenced JSON, JSONL, markdown table, CSV, or TSV."
         raise BenchmarkImportValidationError(msg)
 
     schema_version, rows = _rows_from_payload(parsed_payload)
@@ -499,6 +493,20 @@ def _parse_json_payload(raw_text: str) -> Any | None:
     return None
 
 
+def _parse_supported_payload(raw_text: str) -> Any | None:
+    for parser in (
+        _parse_json_payload,
+        _parse_jsonl_payload,
+        _parse_markdown_table_payload,
+        _parse_tsv_payload,
+        _parse_csv_payload,
+    ):
+        parsed_payload = parser(raw_text)
+        if parsed_payload is not None:
+            return parsed_payload
+    return None
+
+
 def _extract_json_from_prose(raw_text: str) -> str:
     decoder = json.JSONDecoder()
     for index, character in enumerate(raw_text):
@@ -577,7 +585,18 @@ def _normalize_header(header: str) -> str:
 def _parse_tsv_payload(raw_text: str) -> list[dict[str, Any]] | None:
     if "\t" not in raw_text:
         return None
-    reader = csv.DictReader(io.StringIO(raw_text), delimiter="\t")
+    return _parse_delimited_payload(raw_text, delimiter="\t")
+
+
+def _parse_csv_payload(raw_text: str) -> list[dict[str, Any]] | None:
+    first_line = next((line for line in raw_text.splitlines() if line.strip()), "")
+    if "," not in first_line:
+        return None
+    return _parse_delimited_payload(raw_text, delimiter=",")
+
+
+def _parse_delimited_payload(raw_text: str, *, delimiter: str) -> list[dict[str, Any]] | None:
+    reader = csv.DictReader(io.StringIO(raw_text), delimiter=delimiter)
     if not reader.fieldnames:
         return None
     normalized_fieldnames = [_normalize_header(field_name) for field_name in reader.fieldnames]
@@ -590,7 +609,8 @@ def _parse_tsv_payload(raw_text: str) -> list[dict[str, Any]] | None:
             normalized_field_name = _normalize_header(field_name)
             if normalized_field_name:
                 row[normalized_field_name] = value
-        rows.append(row)
+        if any(_clean_text(value) for value in row.values()):
+            rows.append(row)
     return rows
 
 
