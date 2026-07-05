@@ -152,7 +152,8 @@ def preview_benchmark_import(
     export_batch: TechniqueBenchmarkExportBatch | None = None,
 ) -> BenchmarkImportPreview:
     schema_version, raw_rows = parse_benchmark_import_response(pasted_response)
-    normalized_known_keys = _expected_row_keys(known_row_keys=known_row_keys, export_batch=export_batch)
+    inference_row_keys = _inference_row_keys(known_row_keys=known_row_keys, export_batch=export_batch)
+    expected_row_keys = _expected_row_keys(export_batch=export_batch)
 
     seen_row_keys: set[str] = set()
     received_row_keys: set[str] = set()
@@ -169,7 +170,8 @@ def preview_benchmark_import(
         normalized_row, errors = _validate_raw_row(
             raw_row,
             index=index,
-            normalized_known_keys=normalized_known_keys,
+            inference_row_keys=inference_row_keys,
+            expected_row_keys=expected_row_keys,
             seen_row_keys=seen_row_keys,
         )
         row_key = str(normalized_row.get("row_key") or raw_row.get("row_key") or f"row-{index}")
@@ -228,9 +230,9 @@ def preview_benchmark_import(
         "invalid_rows": invalid_rows,
         "changed_parent_family_row_keys": changed_parent_family_row_keys,
         "export_batch_id": export_batch.pk if export_batch is not None else None,
-        "expected_row_count": len(normalized_known_keys),
+        "expected_row_count": len(expected_row_keys),
         "received_row_count": len(received_row_keys),
-        "missing_row_keys": sorted(normalized_known_keys - received_row_keys),
+        "missing_row_keys": sorted(expected_row_keys - received_row_keys),
     }
     return BenchmarkImportPreview(
         schema_version=schema_version,
@@ -650,7 +652,7 @@ def _looks_like_source_export_rows(rows: list[dict[str, Any]]) -> bool:
     return source_like_count > 0 and benchmark_like_count == 0
 
 
-def _import_row_key(raw_row: dict[str, Any], *, normalized_known_keys: set[str]) -> tuple[str, list[str]]:
+def _import_row_key(raw_row: dict[str, Any], *, inference_row_keys: set[str]) -> tuple[str, list[str]]:
     raw_row_key = _clean_text(raw_row.get("row_key"))
     if ":" in raw_row_key:
         return _normalize_row_key(raw_row_key), []
@@ -662,7 +664,7 @@ def _import_row_key(raw_row: dict[str, Any], *, normalized_known_keys: set[str])
 
     kind = _benchmark_kind_from_import_context(raw_row)
     if not kind:
-        kind = _benchmark_kind_from_known_rows(label_key, normalized_known_keys)
+        kind = _benchmark_kind_from_known_rows(label_key, inference_row_keys)
     if not kind:
         kind = _benchmark_kind_from_existing_rows(label_key)
     if not kind:
@@ -711,7 +713,9 @@ def _benchmark_kind_from_existing_rows(label_key: str) -> str:
 def _benchmark_kind_from_title_label_row(raw_row: dict[str, Any]) -> str:
     raw_row_key = _clean_text(raw_row.get("row_key"))
     normalized_label = _clean_text(raw_row.get("normalized_label"))
-    if raw_row_key and normalized_label and raw_row_key == normalized_label:
+    raw_row_key_label_key = normalize_benchmark_key(raw_row_key)
+    normalized_label_key = normalize_benchmark_key(normalized_label)
+    if raw_row_key_label_key and raw_row_key_label_key == normalized_label_key:
         return str(TechniqueBenchmark.Kind.CANONICAL_SUBTOPIC)
     return ""
 
@@ -771,16 +775,17 @@ def _validate_raw_row(  # noqa: C901, PLR0912, PLR0915
     raw_row: dict[str, Any],
     *,
     index: int,
-    normalized_known_keys: set[str],
+    inference_row_keys: set[str],
+    expected_row_keys: set[str],
     seen_row_keys: set[str],
 ) -> tuple[dict[str, Any], list[str]]:
     errors: list[str] = []
-    row_key, row_key_errors = _import_row_key(raw_row, normalized_known_keys=normalized_known_keys)
+    row_key, row_key_errors = _import_row_key(raw_row, inference_row_keys=inference_row_keys)
     errors.extend(row_key_errors)
     kind, label_key = parse_benchmark_row_key(row_key)
     if not row_key or not kind or not label_key:
         errors.append("row_key is required.")
-    elif normalized_known_keys and row_key not in normalized_known_keys:
+    elif expected_row_keys and row_key not in expected_row_keys:
         errors.append(f"Unknown row_key: {row_key}.")
     elif row_key in seen_row_keys:
         errors.append(f"Duplicate row_key: {row_key}.")
@@ -986,24 +991,34 @@ def _apply_snapshot_to_benchmark(benchmark: TechniqueBenchmark, snapshot: dict[s
         setattr(benchmark, field_name, value)
 
 
-def _expected_row_keys(
+def _inference_row_keys(
     *,
     known_row_keys: set[str] | None,
     export_batch: TechniqueBenchmarkExportBatch | None,
 ) -> set[str]:
     if export_batch is not None:
-        return {
-            _normalize_row_key(row_key)
-            for row_key in export_batch.frozen_row_keys
-            if _normalize_row_key(row_key)
-        }
+        return _normalized_row_key_set(export_batch.frozen_row_keys)
     if known_row_keys is not None:
-        return {
-            _normalize_row_key(row_key)
-            for row_key in known_row_keys
-            if _normalize_row_key(row_key)
-        }
+        return _normalized_row_key_set(known_row_keys)
     return set()
+
+
+def _expected_row_keys(
+    *,
+    export_batch: TechniqueBenchmarkExportBatch | None,
+) -> set[str]:
+    if export_batch is not None:
+        return _normalized_row_key_set(export_batch.frozen_row_keys)
+    return set()
+
+
+def _normalized_row_key_set(row_keys: object) -> set[str]:
+    return {
+        normalized_row_key
+        for row_key in row_keys or []
+        for normalized_row_key in [_normalize_row_key(row_key)]
+        if normalized_row_key
+    }
 
 
 def _quality_flags_with(raw_flags: object, flag: str) -> list[str]:
