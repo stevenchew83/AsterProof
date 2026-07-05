@@ -830,6 +830,16 @@ def build_technique_progress_export_workbook_bytes(  # noqa: PLR0913
         raw_canonical_subtopic=raw_canonical_subtopic,
         raw_target_profile=raw_target_profile,
     )
+    topic_layer_rows = _export_topic_layer_rows(
+        request_user=request_user,
+        raw_user_id=raw_user_id,
+        gap_kind=gap_kind,
+        gap_topic=gap_topic,
+        gap_min_total=gap_min_total,
+        gap_canonical_subtopic=gap_canonical_subtopic,
+        raw_target_profile=raw_target_profile,
+        current_gap_rows=gap_rows,
+    )
     dataframes: dict[str, pd.DataFrame] = {
         "Summary": pd.DataFrame(
             _technique_progress_export_summary_rows(
@@ -866,17 +876,18 @@ def build_technique_progress_export_workbook_bytes(  # noqa: PLR0913
         topic_label = str(topic_row.get("label") or "")
         if not int(topic_row.get("total") or 0) or topic_slug not in MAIN_TOPIC_SLUGS:
             continue
-        topic_payload = _cached_topic_detail_payload(
-            request_user=request_user,
-            raw_user_id=raw_user_id,
+        topic_subtopic_rows = _topic_subtopic_rows_for_export(
+            subtopic_rows=dashboard_payload["subtopic_rows"],
+            layer_rows=topic_layer_rows,
             selected_user=selected_user,
             can_select_user=can_select_user,
             topic_slug=topic_slug,
+            topic_label=topic_label,
         )
         dataframes[f"{topic_label} Subtopics"] = pd.DataFrame(
             [
                 _topic_subtopic_export_row(row)
-                for row in topic_payload["technique_progress_topic_subtopic_rows"]
+                for row in topic_subtopic_rows
             ],
             columns=TOPIC_SUBTOPIC_EXPORT_FIELDNAMES,
         )
@@ -931,6 +942,59 @@ def _gap_export_rows_for_request(  # noqa: PLR0913
             _enrich_gap_rows_with_benchmarks(gap_rows),
             target_profile=raw_target_profile,
         ),
+    )
+
+
+def _export_topic_layer_rows(  # noqa: PLR0913
+    *,
+    request_user: User,
+    raw_user_id: str,
+    gap_kind: str,
+    gap_topic: str,
+    gap_min_total: int,
+    gap_canonical_subtopic: str,
+    raw_target_profile: str,
+    current_gap_rows: list[dict[str, object]],
+) -> list[dict[str, object]]:
+    if (
+        gap_kind == GAP_KIND_ALL
+        and gap_topic == GAP_TOPIC_ALL
+        and gap_min_total == 0
+        and not gap_canonical_subtopic
+    ):
+        return current_gap_rows
+    _gap_kind, layer_rows = _gap_export_rows_for_request(
+        request_user=request_user,
+        raw_user_id=raw_user_id,
+        raw_kind=GAP_KIND_ALL,
+        raw_topic=GAP_TOPIC_ALL,
+        raw_min_total="",
+        raw_canonical_subtopic="",
+        raw_target_profile=raw_target_profile,
+    )
+    return layer_rows
+
+
+def _topic_subtopic_rows_for_export(  # noqa: PLR0913
+    *,
+    subtopic_rows: list[dict[str, object]],
+    layer_rows: list[dict[str, object]],
+    selected_user: User,
+    can_select_user: bool,
+    topic_slug: str,
+    topic_label: str,
+) -> list[dict[str, object]]:
+    topic_subtopic_rows = [
+        row
+        for row in subtopic_rows
+        if topic_label in row.get("main_topic_labels", [])
+    ]
+    return _subtopic_rows_with_layer_previews(
+        topic_subtopic_rows,
+        layer_rows=layer_rows,
+        selected_user=selected_user,
+        can_select_user=can_select_user,
+        topic_slug=topic_slug,
     )
 
 
