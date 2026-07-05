@@ -7,6 +7,8 @@ import re
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any
+from urllib.parse import parse_qs
+from urllib.parse import urlparse
 
 from django.db import transaction
 from django.utils import timezone
@@ -16,6 +18,7 @@ from inspinia.pages.models import TechniqueBenchmarkAlias
 from inspinia.pages.models import TechniqueBenchmarkExportBatch
 from inspinia.pages.models import TechniqueBenchmarkImportBatch
 from inspinia.pages.technique_benchmarking.keys import build_benchmark_row_key
+from inspinia.pages.technique_benchmarking.keys import normalize_benchmark_key
 from inspinia.pages.technique_benchmarking.keys import parse_benchmark_row_key
 from inspinia.pages.technique_benchmarking.scoring import calculate_static_difficulty_score
 from inspinia.pages.technique_benchmarking.scoring import calculate_static_importance_score
@@ -47,6 +50,26 @@ WEIGHT_FIELDS = ("jbmo_weight", "national_weight", "imo_tst_weight")
 TEXT_LIMIT_FIELDS = ("rationale", "pitfalls", "recommended_sequence")
 TRAINING_TYPES = TechniqueBenchmark.TRAINING_TYPES
 TARGET_LEVELS = TechniqueBenchmark.TARGET_LEVELS
+LAYER_KIND_TO_BENCHMARK_KIND = {
+    "subtopics": TechniqueBenchmark.Kind.CANONICAL_SUBTOPIC,
+    "techniques": TechniqueBenchmark.Kind.TECHNIQUE,
+    "objects": TechniqueBenchmark.Kind.OBJECT,
+    "methods": TechniqueBenchmark.Kind.METHOD,
+    "lemmas": TechniqueBenchmark.Kind.LEMMA,
+    "proof_roles": TechniqueBenchmark.Kind.PROOF_ROLE,
+}
+TYPE_TO_BENCHMARK_KIND = {
+    "canonical subtopic": TechniqueBenchmark.Kind.CANONICAL_SUBTOPIC,
+    "subtopic": TechniqueBenchmark.Kind.CANONICAL_SUBTOPIC,
+    "technique": TechniqueBenchmark.Kind.TECHNIQUE,
+    "object": TechniqueBenchmark.Kind.OBJECT,
+    "method": TechniqueBenchmark.Kind.METHOD,
+    "lemma": TechniqueBenchmark.Kind.LEMMA,
+    "lemma theorem": TechniqueBenchmark.Kind.LEMMA,
+    "lemma/theorem": TechniqueBenchmark.Kind.LEMMA,
+    "proof role": TechniqueBenchmark.Kind.PROOF_ROLE,
+    "parent family": TechniqueBenchmark.Kind.PARENT_FAMILY,
+}
 MODEL_UPDATE_FIELDS = (
     "label",
     "normalized_label",
@@ -138,12 +161,11 @@ def preview_benchmark_import(
     preview_rows: list[dict[str, Any]] = []
     old_rows: dict[str, dict[str, Any] | None] = {}
     new_rows: dict[str, dict[str, Any]] = {}
+    old_aliases: dict[str, dict[str, Any] | None] = {}
+    new_aliases: dict[str, dict[str, Any]] = {}
     changed_parent_family_row_keys: list[str] = []
 
     for index, raw_row in enumerate(raw_rows, start=1):
-        raw_row_key = _normalize_row_key(str(raw_row.get("row_key") or ""))
-        if raw_row_key:
-            received_row_keys.add(raw_row_key)
         normalized_row, errors = _validate_raw_row(
             raw_row,
             index=index,
@@ -151,6 +173,8 @@ def preview_benchmark_import(
             seen_row_keys=seen_row_keys,
         )
         row_key = str(normalized_row.get("row_key") or raw_row.get("row_key") or f"row-{index}")
+        if normalized_row.get("row_key"):
+            received_row_keys.add(str(normalized_row["row_key"]))
         if errors:
             invalid_row = {
                 "index": index,
@@ -170,6 +194,9 @@ def preview_benchmark_import(
         new_snapshot = _snapshot_from_import_row(normalized_row, existing_benchmark=benchmark)
         old_rows[row_key] = old_snapshot
         new_rows[row_key] = new_snapshot
+        row_old_aliases, row_new_aliases = _alias_snapshots_from_import_row(normalized_row)
+        old_aliases.update(row_old_aliases)
+        new_aliases.update(row_new_aliases)
         if (
             old_snapshot is not None
             and old_snapshot.get("parent_family")
@@ -196,6 +223,8 @@ def preview_benchmark_import(
         "schema_version": schema_version,
         "old_rows": old_rows,
         "new_rows": new_rows,
+        "old_aliases": old_aliases,
+        "new_aliases": new_aliases,
         "invalid_rows": invalid_rows,
         "changed_parent_family_row_keys": changed_parent_family_row_keys,
         "export_batch_id": export_batch.pk if export_batch is not None else None,
@@ -280,19 +309,23 @@ def apply_benchmark_import(
         row_key = row["row_key"]
         old_snapshot = preview.preview_payload["old_rows"].get(row_key)
         new_snapshot = preview.preview_payload["new_rows"][row_key]
-        if old_snapshot == new_snapshot:
-            unchanged_count += 1
-            continue
 
         benchmark = TechniqueBenchmark.objects.filter(kind=row["kind"], label_key=row["label_key"]).first()
         if benchmark is None:
             benchmark = TechniqueBenchmark(kind=row["kind"], label_key=row["label_key"])
             created_count += 1
-        else:
+        elif old_snapshot != new_snapshot:
             updated_count += 1
-        _apply_snapshot_to_benchmark(benchmark, new_snapshot)
-        benchmark.imported_from_batch = batch
-        benchmark.save()
+        else:
+            unchanged_count += 1
+
+        if old_snapshot != new_snapshot:
+            _apply_snapshot_to_benchmark(benchmark, new_snapshot)
+            benchmark.imported_from_batch = batch
+            benchmark.save()
+        else:
+            benchmark.save()
+        _apply_alias_suggestions(benchmark, row)
 
     batch.rows_created = created_count
     batch.rows_updated = updated_count
@@ -333,6 +366,8 @@ def restore_benchmark_import_batch(batch: TechniqueBenchmarkImportBatch) -> dict
         benchmark.save()
         restored += 1
 
+    _restore_alias_snapshots(payload)
+
     batch.status = TechniqueBenchmarkImportBatch.Status.RESTORED
     batch.restored_at = timezone.now()
     batch.save(update_fields=["status", "restored_at"])
@@ -356,6 +391,96 @@ def snapshot_benchmark(benchmark: TechniqueBenchmark | None) -> dict[str, Any] |
             value = str(value)
         snapshot[field_name] = value
     return snapshot
+
+
+def snapshot_alias(alias: TechniqueBenchmarkAlias | None) -> dict[str, Any] | None:
+    if alias is None:
+        return None
+    return {
+        "kind": alias.kind,
+        "alias_label": alias.alias_label,
+        "alias_key": alias.alias_key,
+        "benchmark_row_key": build_benchmark_row_key(alias.benchmark.kind, alias.benchmark.label_key),
+        "reason": alias.reason,
+    }
+
+
+def _alias_snapshots_from_import_row(
+    row: dict[str, Any],
+) -> tuple[dict[str, dict[str, Any] | None], dict[str, dict[str, Any]]]:
+    old_aliases: dict[str, dict[str, Any] | None] = {}
+    new_aliases: dict[str, dict[str, Any]] = {}
+    for alias_label in row.get("alias_suggestions") or []:
+        alias_key = normalize_benchmark_key(alias_label)
+        if not alias_key or alias_key == row["label_key"]:
+            continue
+        alias_row_key = build_benchmark_row_key(row["kind"], alias_key)
+        alias = TechniqueBenchmarkAlias.objects.select_related("benchmark").filter(
+            kind=row["kind"],
+            alias_key=alias_key,
+        ).first()
+        old_aliases[alias_row_key] = snapshot_alias(alias)
+        new_aliases[alias_row_key] = {
+            "kind": row["kind"],
+            "alias_label": alias_label,
+            "alias_key": alias_key,
+            "benchmark_row_key": row["row_key"],
+            "reason": "Imported benchmark alias suggestion.",
+        }
+    return old_aliases, new_aliases
+
+
+def _apply_alias_suggestions(benchmark: TechniqueBenchmark, row: dict[str, Any]) -> None:
+    for alias_label in row.get("alias_suggestions") or []:
+        alias_key = normalize_benchmark_key(alias_label)
+        if not alias_key or alias_key == benchmark.label_key:
+            continue
+        TechniqueBenchmarkAlias.objects.update_or_create(
+            kind=benchmark.kind,
+            alias_key=alias_key,
+            defaults={
+                "alias_label": alias_label,
+                "benchmark": benchmark,
+                "reason": "Imported benchmark alias suggestion.",
+            },
+        )
+
+
+def _restore_alias_snapshots(payload: dict[str, Any]) -> None:
+    old_aliases = payload.get("old_aliases") or {}
+    new_aliases = payload.get("new_aliases") or {}
+    for alias_row_key in new_aliases:
+        kind, alias_key = parse_benchmark_row_key(alias_row_key)
+        if not kind or not alias_key:
+            continue
+        alias = TechniqueBenchmarkAlias.objects.filter(kind=kind, alias_key=alias_key).first()
+        old_snapshot = old_aliases.get(alias_row_key)
+        if old_snapshot is None:
+            if alias is not None:
+                alias.delete()
+            continue
+
+        benchmark = _benchmark_from_row_key(str(old_snapshot.get("benchmark_row_key") or ""))
+        if benchmark is None:
+            if alias is not None:
+                alias.delete()
+            continue
+        TechniqueBenchmarkAlias.objects.update_or_create(
+            kind=old_snapshot["kind"],
+            alias_key=old_snapshot["alias_key"],
+            defaults={
+                "alias_label": old_snapshot["alias_label"],
+                "benchmark": benchmark,
+                "reason": old_snapshot.get("reason") or "",
+            },
+        )
+
+
+def _benchmark_from_row_key(row_key: str) -> TechniqueBenchmark | None:
+    kind, label_key = parse_benchmark_row_key(row_key)
+    if not kind or not label_key:
+        return None
+    return TechniqueBenchmark.objects.filter(kind=kind, label_key=label_key).first()
 
 
 def _parse_json_payload(raw_text: str) -> Any | None:
@@ -441,6 +566,7 @@ def _markdown_cells(line: str) -> list[str]:
 def _normalize_header(header: str) -> str:
     normalized = re.sub(r"[^a-z0-9]+", "_", str(header or "").strip().casefold()).strip("_")
     aliases = {
+        "action": "training_type",
         "mohs_min": "typical_mohs_min",
         "mohs_max": "typical_mohs_max",
         "confidence": "benchmark_confidence",
@@ -452,9 +578,20 @@ def _parse_tsv_payload(raw_text: str) -> list[dict[str, Any]] | None:
     if "\t" not in raw_text:
         return None
     reader = csv.DictReader(io.StringIO(raw_text), delimiter="\t")
-    if not reader.fieldnames or "row_key" not in reader.fieldnames:
+    if not reader.fieldnames:
         return None
-    return [dict(row) for row in reader]
+    normalized_fieldnames = [_normalize_header(field_name) for field_name in reader.fieldnames]
+    if "row_key" not in normalized_fieldnames and "area" not in normalized_fieldnames:
+        return None
+    rows: list[dict[str, Any]] = []
+    for raw_row in reader:
+        row: dict[str, Any] = {}
+        for field_name, value in raw_row.items():
+            normalized_field_name = _normalize_header(field_name)
+            if normalized_field_name:
+                row[normalized_field_name] = value
+        rows.append(row)
+    return rows
 
 
 def _rows_from_payload(payload: Any) -> tuple[str, list[dict[str, Any]]]:
@@ -493,7 +630,108 @@ def _looks_like_source_export_rows(rows: list[dict[str, Any]]) -> bool:
     return source_like_count > 0 and benchmark_like_count == 0
 
 
-def _validate_raw_row(  # noqa: C901, PLR0912
+def _import_row_key(raw_row: dict[str, Any], *, normalized_known_keys: set[str]) -> tuple[str, list[str]]:
+    raw_row_key = _clean_text(raw_row.get("row_key"))
+    if ":" in raw_row_key:
+        return _normalize_row_key(raw_row_key), []
+
+    label = raw_row_key or _clean_text(raw_row.get("area")) or _clean_text(raw_row.get("normalized_label"))
+    label_key = normalize_benchmark_key(label)
+    if not label_key:
+        return "", ["row_key or area is required."]
+
+    kind = _benchmark_kind_from_import_context(raw_row)
+    if not kind:
+        kind = _benchmark_kind_from_known_rows(label_key, normalized_known_keys)
+    if not kind:
+        kind = _benchmark_kind_from_existing_rows(label_key)
+    if not kind:
+        return "", [
+            "Bare row_key values require Practice URL, Type, a current gap-row match, "
+            "or an existing unique benchmark match.",
+        ]
+    return build_benchmark_row_key(kind, label_key), []
+
+
+def _benchmark_kind_from_import_context(raw_row: dict[str, Any]) -> str:
+    practice_url = _clean_text(raw_row.get("practice_url"))
+    if practice_url:
+        query = parse_qs(urlparse(practice_url).query)
+        layer_kind = str((query.get("layer_kind") or [""])[0]).strip().casefold()
+        if layer_kind in LAYER_KIND_TO_BENCHMARK_KIND:
+            return str(LAYER_KIND_TO_BENCHMARK_KIND[layer_kind])
+
+    raw_type = _clean_text(raw_row.get("type")).casefold()
+    if raw_type in TYPE_TO_BENCHMARK_KIND:
+        return str(TYPE_TO_BENCHMARK_KIND[raw_type])
+    normalized_type = re.sub(r"[^a-z0-9]+", " ", raw_type).strip()
+    return str(TYPE_TO_BENCHMARK_KIND.get(normalized_type, ""))
+
+
+def _benchmark_kind_from_known_rows(label_key: str, normalized_known_keys: set[str]) -> str:
+    matches = {
+        kind
+        for row_key in normalized_known_keys
+        for kind, known_label_key in [parse_benchmark_row_key(row_key)]
+        if known_label_key == label_key
+    }
+    return matches.pop() if len(matches) == 1 else ""
+
+
+def _benchmark_kind_from_existing_rows(label_key: str) -> str:
+    matches = set(TechniqueBenchmark.objects.filter(label_key=label_key).values_list("kind", flat=True))
+    matches.update(
+        TechniqueBenchmarkAlias.objects.filter(alias_key=label_key).values_list("kind", flat=True),
+    )
+    return matches.pop() if len(matches) == 1 else ""
+
+
+def _primary_area_from_topic(value: Any) -> str:
+    topic = _clean_text(value)
+    if not topic:
+        return ""
+    topic_parts = [part.strip() for part in topic.split(",") if part.strip()]
+    return topic_parts[0] if len(topic_parts) == 1 else "Mixed"
+
+
+def _mohs_bounds_from_import_row(raw_row: dict[str, Any]) -> tuple[int | None, int | None]:
+    mohs_min = _coerce_optional_int(raw_row.get("typical_mohs_min"))
+    mohs_max = _coerce_optional_int(raw_row.get("typical_mohs_max"))
+    if mohs_min is not None or mohs_max is not None:
+        return mohs_min, mohs_max
+
+    raw_band = _clean_text(raw_row.get("mohs_band"))
+    match = re.search(r"(?P<min>\d+)\s*M?\s*-\s*(?P<max>\d+)\s*M?", raw_band, flags=re.IGNORECASE)
+    if match is None:
+        return None, None
+    return int(match.group("min")), int(match.group("max"))
+
+
+def _alias_suggestions_from_import_row(raw_row: dict[str, Any], *, label_key: str) -> list[str]:
+    raw_values: list[Any] = []
+    alias_suggestions = raw_row.get("alias_suggestions")
+    if isinstance(alias_suggestions, list):
+        raw_values.extend(alias_suggestions)
+    elif alias_suggestions:
+        raw_values.extend(str(alias_suggestions).split(","))
+
+    for field_name, value in raw_row.items():
+        if _normalize_header(field_name).startswith("alias_suggestions_"):
+            raw_values.append(value)
+
+    aliases: list[str] = []
+    seen_alias_keys = {label_key}
+    for raw_value in raw_values:
+        alias_label = _clean_text(raw_value)
+        alias_key = normalize_benchmark_key(alias_label)
+        if not alias_label or not alias_key or alias_key in seen_alias_keys:
+            continue
+        aliases.append(alias_label)
+        seen_alias_keys.add(alias_key)
+    return aliases
+
+
+def _validate_raw_row(  # noqa: C901, PLR0912, PLR0915
     raw_row: dict[str, Any],
     *,
     index: int,
@@ -501,24 +739,28 @@ def _validate_raw_row(  # noqa: C901, PLR0912
     seen_row_keys: set[str],
 ) -> tuple[dict[str, Any], list[str]]:
     errors: list[str] = []
-    row_key = _normalize_row_key(str(raw_row.get("row_key") or ""))
+    row_key, row_key_errors = _import_row_key(raw_row, normalized_known_keys=normalized_known_keys)
+    errors.extend(row_key_errors)
     kind, label_key = parse_benchmark_row_key(row_key)
     if not row_key or not kind or not label_key:
         errors.append("row_key is required.")
-    elif row_key not in normalized_known_keys:
+    elif normalized_known_keys and row_key not in normalized_known_keys:
         errors.append(f"Unknown row_key: {row_key}.")
     elif row_key in seen_row_keys:
         errors.append(f"Duplicate row_key: {row_key}.")
     else:
         seen_row_keys.add(row_key)
 
+    normalized_label = _clean_text(raw_row.get("normalized_label")) or _clean_text(raw_row.get("area"))
+    primary_area = _clean_text(raw_row.get("primary_area")) or _primary_area_from_topic(raw_row.get("topic"))
+    typical_mohs_min, typical_mohs_max = _mohs_bounds_from_import_row(raw_row)
     normalized_row: dict[str, Any] = {
         "row_key": row_key,
         "kind": kind,
         "label_key": label_key,
-        "normalized_label": _clean_text(raw_row.get("normalized_label")),
+        "normalized_label": normalized_label,
         "parent_family": _clean_text(raw_row.get("parent_family")),
-        "primary_area": _clean_text(raw_row.get("primary_area")),
+        "primary_area": primary_area,
         "source_version": SCHEMA_VERSION,
     }
     if not normalized_row["normalized_label"]:
@@ -531,8 +773,8 @@ def _validate_raw_row(  # noqa: C901, PLR0912
         if normalized_row[field_name] is None or not SCORE_MIN <= normalized_row[field_name] <= SCORE_MAX:
             errors.append(f"{field_name} must be between {SCORE_MIN} and {SCORE_MAX}.")
 
-    normalized_row["typical_mohs_min"] = _coerce_optional_int(raw_row.get("typical_mohs_min"))
-    normalized_row["typical_mohs_max"] = _coerce_optional_int(raw_row.get("typical_mohs_max"))
+    normalized_row["typical_mohs_min"] = typical_mohs_min
+    normalized_row["typical_mohs_max"] = typical_mohs_max
     for field_name in ("typical_mohs_min", "typical_mohs_max"):
         value = normalized_row[field_name]
         if value is not None and not MOHS_MIN <= value <= MOHS_MAX:
@@ -572,6 +814,7 @@ def _validate_raw_row(  # noqa: C901, PLR0912
 
     area_labels = raw_row.get("area_labels")
     normalized_row["area_labels"] = area_labels if isinstance(area_labels, list) else []
+    normalized_row["alias_suggestions"] = _alias_suggestions_from_import_row(raw_row, label_key=label_key)
     normalized_row["index"] = index
     return normalized_row, errors
 
@@ -724,7 +967,7 @@ def _expected_row_keys(
             for row_key in known_row_keys
             if _normalize_row_key(row_key)
         }
-    return _known_row_keys_from_database()
+    return set()
 
 
 def _quality_flags_with(raw_flags: object, flag: str) -> list[str]:

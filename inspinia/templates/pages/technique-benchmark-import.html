@@ -1,0 +1,192 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}Technique benchmark import{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid">
+  {% include 'partials/page-title.html' with title='Technique benchmark import' subtitle='Utilities' %}
+
+  <div class="row g-3">
+    <div class="col-12 col-xl-8">
+      <div class="card">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-0">Paste benchmark table</h4>
+          <p class="text-muted fs-xs mb-0">Accepts JSON benchmark payloads, TSV, markdown tables, JSONL, and fenced JSON. Bare row keys resolve against current gap rows.</p>
+        </div>
+        <div class="card-body pt-2">
+          <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+              <label class="form-label" for="{{ form.pasted_response.id_for_label }}">Benchmark table</label>
+              {{ form.pasted_response }}
+              {% for error in form.pasted_response.errors %}
+              <div class="invalid-feedback d-block">{{ error }}</div>
+              {% endfor %}
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+              <button type="submit" name="action" value="preview" class="btn btn-outline-primary">
+                <i class="ti ti-eye me-1"></i>Preview
+              </button>
+              <button type="submit" name="action" value="apply" class="btn btn-primary">
+                <i class="ti ti-database-import me-1"></i>Apply import
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-xl-4">
+      <div class="card">
+        <div class="card-header border-0 pb-0">
+          <h4 class="header-title mb-0">Mark reviewed</h4>
+          <p class="text-muted fs-xs mb-0">Clear review flags for explicit benchmark row keys.</p>
+        </div>
+        <div class="card-body pt-2">
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="mark_reviewed">
+            <label class="form-label" for="benchmark-reviewed-row-keys">Benchmark row keys</label>
+            <textarea id="benchmark-reviewed-row-keys" name="row_keys" class="form-control font-monospace" rows="5" placeholder="method:factorization&#10;object:residues"></textarea>
+            <button type="submit" class="btn btn-outline-secondary mt-2">
+              <i class="ti ti-checks me-1"></i>Mark reviewed
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if preview_result %}
+  <div class="card mt-3">
+    <div class="card-header border-0 pb-0">
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+        <div>
+          <h4 class="header-title mb-0">Preview parsed benchmark rows</h4>
+          <p class="text-muted fs-xs mb-0">
+            {{ preview_result.rows_total }} total, {{ preview_result.rows_valid }} valid, {{ preview_result.rows_invalid }} invalid.
+          </p>
+        </div>
+        {% if applied_batch %}
+        <span class="badge bg-success-subtle text-success">Applied batch #{{ applied_batch.pk }}</span>
+        {% endif %}
+      </div>
+    </div>
+    <div class="card-body pt-2">
+      <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle mb-0">
+          <thead>
+            <tr>
+              <th>Status</th>
+              <th>Row key</th>
+              <th>Label</th>
+              <th>Benchmark details</th>
+              <th>Errors</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in preview_result.preview_rows %}
+            <tr>
+              <td>
+                {% if row.status == 'error' %}
+                <span class="badge bg-danger-subtle text-danger">Error</span>
+                {% elif row.status == 'new' %}
+                <span class="badge bg-primary-subtle text-primary">New</span>
+                {% elif row.status == 'changed' %}
+                <span class="badge bg-warning-subtle text-warning">Changed</span>
+                {% else %}
+                <span class="badge bg-secondary-subtle text-secondary">Unchanged</span>
+                {% endif %}
+              </td>
+              <td class="font-monospace fs-xs">{{ row.row_key }}</td>
+              <td>{{ row.label|default:'-' }}</td>
+              <td>
+                {% if row.details %}
+                <div class="d-flex flex-wrap gap-1 mb-1">
+                  {% if row.details.typical_mohs_band %}<span class="badge bg-info-subtle text-info">MOHS {{ row.details.typical_mohs_band }}</span>{% endif %}
+                  {% if row.details.importance_score %}<span class="badge bg-success-subtle text-success">Importance {{ row.details.importance_score }}</span>{% endif %}
+                  {% if row.details.difficulty_score %}<span class="badge bg-warning-subtle text-warning">Difficulty {{ row.details.difficulty_score }}</span>{% endif %}
+                </div>
+                <div class="text-muted fs-xs">{{ row.details.importance_inputs }}</div>
+                <div class="text-muted fs-xs">{{ row.details.difficulty_inputs }}</div>
+                <div class="text-muted fs-xs">{{ row.details.profile_weights }}</div>
+                {% if row.details.rationale %}
+                <div class="fs-xs mt-1">{{ row.details.rationale }}</div>
+                {% endif %}
+                {% else %}
+                <span class="text-muted">-</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if row.errors %}
+                <ul class="mb-0 ps-3">
+                  {% for error in row.errors %}
+                  <li>{{ error }}</li>
+                  {% endfor %}
+                </ul>
+                {% else %}
+                <span class="text-muted">No errors</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="5" class="text-muted text-center py-3">No parsed rows yet.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="card mt-3">
+    <div class="card-header border-0 pb-0">
+      <h4 class="header-title mb-0">Recent import batches</h4>
+      <p class="text-muted fs-xs mb-0">Restore reverses benchmark field updates and imported alias suggestions.</p>
+    </div>
+    <div class="card-body pt-2">
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead>
+            <tr>
+              <th>Batch</th>
+              <th>Status</th>
+              <th>Rows</th>
+              <th>Created</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for batch in recent_batches %}
+            <tr>
+              <td>#{{ batch.pk }}</td>
+              <td>{{ batch.status }}</td>
+              <td>{{ batch.rows_valid }} valid / {{ batch.rows_invalid }} invalid</td>
+              <td>{{ batch.created_at|date:'Y-m-d H:i' }}</td>
+              <td class="text-end">
+                {% if batch.status != 'restored' %}
+                <form method="post" class="d-inline">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="restore">
+                  <input type="hidden" name="batch_id" value="{{ batch.pk }}">
+                  <button type="submit" class="btn btn-sm btn-outline-secondary">
+                    <i class="ti ti-restore me-1"></i>Restore
+                  </button>
+                </form>
+                {% endif %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="5" class="text-muted text-center py-3">No benchmark import batches yet.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock page_content %}

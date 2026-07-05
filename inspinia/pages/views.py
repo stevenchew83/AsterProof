@@ -107,7 +107,6 @@ from inspinia.pages.models import PageViewEvent
 from inspinia.pages.models import ProblemSolveRecord
 from inspinia.pages.models import ProblemTopicTechnique
 from inspinia.pages.models import StatementTopicTechnique
-from inspinia.pages.models import TechniqueBenchmarkExportBatch
 from inspinia.pages.models import TechniqueBenchmarkImportBatch
 from inspinia.pages.models import TechniqueProgressFact
 from inspinia.pages.models import UserProblemCompletion
@@ -155,22 +154,12 @@ from inspinia.pages.statement_metadata_backfill import statement_metadata_datafr
 from inspinia.pages.statement_metadata_backfill import statement_metadata_dataframe_from_text
 from inspinia.pages.subtopic_cleanup import apply_subtopic_cleanup
 from inspinia.pages.subtopic_cleanup import build_subtopic_cleanup_preview
-from inspinia.pages.technique_benchmarking.batches import BATCH_SIZE_CHOICES
-from inspinia.pages.technique_benchmarking.batches import batch_scope_options
-from inspinia.pages.technique_benchmarking.batches import batch_sort_options
-from inspinia.pages.technique_benchmarking.batches import create_benchmark_export_batch
-from inspinia.pages.technique_benchmarking.batches import kind_filter_options
 from inspinia.pages.technique_benchmarking.batches import mark_benchmark_rows_reviewed
-from inspinia.pages.technique_benchmarking.batches import mark_export_batch_applied
-from inspinia.pages.technique_benchmarking.batches import mark_export_batch_previewed
-from inspinia.pages.technique_benchmarking.coverage import build_benchmark_coverage_summary
-from inspinia.pages.technique_benchmarking.export import build_benchmark_export_payload
-from inspinia.pages.technique_benchmarking.export import build_benchmark_prompt
-from inspinia.pages.technique_benchmarking.export import build_benchmarkable_rows_csv_response
 from inspinia.pages.technique_benchmarking.importing import BenchmarkImportValidationError
 from inspinia.pages.technique_benchmarking.importing import apply_benchmark_import
 from inspinia.pages.technique_benchmarking.importing import preview_benchmark_import
 from inspinia.pages.technique_benchmarking.importing import restore_benchmark_import_batch
+from inspinia.pages.technique_benchmarking.keys import benchmark_row_key
 from inspinia.pages.technique_progress import build_technique_progress_context
 from inspinia.pages.technique_progress import build_technique_progress_export_response
 from inspinia.pages.technique_progress import build_technique_progress_gaps_context
@@ -187,6 +176,15 @@ from inspinia.users.models import AuditEvent
 from inspinia.users.models import User
 from inspinia.users.monitoring import record_event
 from inspinia.users.roles import user_has_admin_role
+
+BENCHMARK_IMPORT_GAP_KINDS = (
+    "subtopics",
+    "techniques",
+    "objects",
+    "methods",
+    "lemmas",
+    "proof_roles",
+)
 
 CONTEST_TOPIC_PREVIEW_LIMIT = 3
 CONTEST_PROBLEM_PREVIEW_LIMIT = 6
@@ -8274,65 +8272,14 @@ def _technique_progress_gaps_datatable_params(request):
     return params
 
 
-def _technique_benchmarkable_csv_url(request, *, target_profile: str) -> str:
-    query = request.GET.copy()
-    query["export"] = "benchmarkable_csv"
-    query["target_profile"] = target_profile or "national"
-    query.pop("batch", None)
-    return f"{reverse('pages:technique_gap_benchmark')}?{query.urlencode()}"
-
-
 @login_required
-def technique_gap_benchmark_view(request):  # noqa: C901, PLR0912, PLR0915
+def technique_benchmark_import_view(request):
     _require_admin_tools_access(request)
 
     action = (request.POST.get("action") or "").strip()
     preview_result = None
     applied_batch = None
-    active_export_batch = None
     restored_stats = None
-    raw_user_id = (request.GET.get("user") or "").strip()
-    raw_kind = (request.GET.get("kind") or "").strip()
-    raw_topic = (request.GET.get("topic") or "").strip()
-    raw_min_total = (request.GET.get("min_total") or "").strip()
-    raw_canonical_subtopic = (request.GET.get("canonical_subtopic") or "").strip()
-    target_profile = (request.POST.get("target_profile") or request.GET.get("target_profile") or "national").strip()
-    batch_id = (request.POST.get("export_batch_id") or request.GET.get("batch") or "").strip()
-
-    if request.method == "GET" and (request.GET.get("export") or "").strip() == "benchmarkable_csv":
-        coverage_summary = build_benchmark_coverage_summary(
-            request_user=request.user,
-            raw_user_id=raw_user_id,
-            raw_topic=raw_topic,
-            raw_min_total=raw_min_total,
-            raw_canonical_subtopic=raw_canonical_subtopic,
-            target_profile=target_profile,
-        )
-        return build_benchmarkable_rows_csv_response(coverage_summary["rows"])
-
-    if batch_id:
-        active_export_batch = TechniqueBenchmarkExportBatch.objects.filter(pk=batch_id).first()
-
-    current_gap_rows = technique_progress_gap_rows_for_benchmark_export(
-        request_user=request.user,
-        raw_user_id=raw_user_id,
-        raw_kind=raw_kind,
-        raw_topic=raw_topic,
-        raw_min_total=raw_min_total,
-        raw_canonical_subtopic=raw_canonical_subtopic,
-    )
-    current_export_payload = build_benchmark_export_payload(
-        current_gap_rows,
-        target_profile=target_profile,
-        include_existing_benchmark=True,
-        filters={
-            "kind": raw_kind or "subtopics",
-            "topic": raw_topic or "all",
-            "min_total": raw_min_total,
-            "canonical_subtopic": raw_canonical_subtopic,
-        },
-    )
-    current_known_row_keys = {str(row["row_key"]) for row in current_export_payload["rows"]}
 
     if request.method == "POST" and action == "restore":
         batch = TechniqueBenchmarkImportBatch.objects.filter(pk=request.POST.get("batch_id")).first()
@@ -8359,48 +8306,13 @@ def technique_gap_benchmark_view(request):  # noqa: C901, PLR0912, PLR0915
         reviewed_count = mark_benchmark_rows_reviewed(request.POST.get("row_keys", ""))
         messages.success(request, f"Marked {reviewed_count} benchmark row(s) reviewed.")
         form = TechniqueBenchmarkImportForm()
-    elif request.method == "POST" and action == "create_export_batch":
-        active_export_batch = create_benchmark_export_batch(
-            request_user=request.user,
-            created_by=request.user,
-            raw_user_id=raw_user_id,
-            raw_topic=raw_topic,
-            raw_min_total=raw_min_total,
-            raw_canonical_subtopic=raw_canonical_subtopic,
-            raw_kind=raw_kind,
-            scope_mode=(request.POST.get("scope_mode") or "").strip(),
-            kind_filters=request.POST.getlist("kind_filters"),
-            target_profile=target_profile,
-            batch_size=request.POST.get("batch_size", "50"),
-            sort_mode=(request.POST.get("sort_mode") or "").strip(),
-            custom_row_keys=request.POST.get("custom_row_keys", ""),
-        )
-        if active_export_batch.row_count:
-            messages.success(
-                request,
-                f"Created export batch #{active_export_batch.pk} with {active_export_batch.row_count} frozen row(s).",
-            )
-        else:
-            messages.warning(request, f"Created export batch #{active_export_batch.pk}, but it has no matching rows.")
-        record_event(
-            event_type=AuditEvent.EventType.IMPORT_PREVIEWED,
-            message=f"Created technique benchmark export batch #{active_export_batch.pk}.",
-            request=request,
-            metadata={
-                "export_batch_id": active_export_batch.pk,
-                "scope_mode": active_export_batch.scope_mode,
-                "row_count": active_export_batch.row_count,
-            },
-        )
-        form = TechniqueBenchmarkImportForm()
     elif request.method == "POST":
         form = TechniqueBenchmarkImportForm(request.POST)
         if form.is_valid():
             try:
                 preview_result = preview_benchmark_import(
                     form.cleaned_data["pasted_response"],
-                    known_row_keys=current_known_row_keys,
-                    export_batch=active_export_batch,
+                    known_row_keys=_benchmark_import_known_row_keys(request),
                 )
             except BenchmarkImportValidationError as exc:
                 messages.error(request, str(exc))
@@ -8418,18 +8330,13 @@ def technique_gap_benchmark_view(request):  # noqa: C901, PLR0912, PLR0915
                         f"{preview_result.rows_valid} valid, {preview_result.rows_invalid} invalid."
                     ),
                 )
-                if active_export_batch is not None:
-                    mark_export_batch_previewed(active_export_batch)
                 if action == "apply":
                     applied_batch = apply_benchmark_import(
                         preview_result,
                         user=request.user,
                         prompt_text=form.cleaned_data.get("prompt_text", ""),
                         pasted_response=form.cleaned_data["pasted_response"],
-                        export_batch=active_export_batch,
                     )
-                    if active_export_batch is not None:
-                        mark_export_batch_applied(active_export_batch)
                     messages.success(
                         request,
                         (
@@ -8455,51 +8362,50 @@ def technique_gap_benchmark_view(request):  # noqa: C901, PLR0912, PLR0915
     else:
         form = TechniqueBenchmarkImportForm()
 
-    if active_export_batch is not None:
-        active_export_batch.refresh_from_db()
-        export_payload = active_export_batch.source_payload
-        export_prompt = active_export_batch.prompt_text
-    else:
-        export_payload = current_export_payload
-        export_prompt = build_benchmark_prompt(export_payload)
-    export_payload_json = json.dumps(export_payload, cls=DjangoJSONEncoder, ensure_ascii=False, indent=2)
-    coverage_summary = build_benchmark_coverage_summary(
-        request_user=request.user,
-        raw_user_id=raw_user_id,
-        raw_topic=raw_topic,
-        raw_min_total=raw_min_total,
-        raw_canonical_subtopic=raw_canonical_subtopic,
-        target_profile=target_profile,
-    )
     recent_batches = TechniqueBenchmarkImportBatch.objects.select_related("created_by", "export_batch").order_by(
-        "-created_at",
-    )[:8]
-    recent_export_batches = TechniqueBenchmarkExportBatch.objects.select_related("created_by").order_by(
         "-created_at",
     )[:8]
     return render(
         request,
-        "pages/technique-gap-benchmark.html",
+        "pages/technique-benchmark-import.html",
         {
-            "active_export_batch": active_export_batch,
             "applied_batch": applied_batch,
-            "batch_size_choices": BATCH_SIZE_CHOICES,
-            "batch_scope_options": batch_scope_options(),
-            "batch_sort_options": batch_sort_options(),
-            "benchmark_coverage": coverage_summary,
-            "benchmarkable_csv_url": _technique_benchmarkable_csv_url(request, target_profile=target_profile),
-            "benchmark_kind_options": kind_filter_options(),
-            "export_payload": export_payload,
-            "export_payload_json": export_payload_json,
-            "export_prompt": export_prompt,
             "form": form,
             "preview_result": preview_result,
-            "recent_export_batches": recent_export_batches,
             "recent_batches": recent_batches,
             "restored_stats": restored_stats,
-            "target_profile": target_profile,
         },
     )
+
+
+def _benchmark_import_known_row_keys(request) -> set[str]:
+    row_keys: set[str] = set()
+    raw_user_id = (request.GET.get("user") or "").strip()
+    raw_topic = (request.GET.get("topic") or "").strip()
+    raw_min_total = (request.GET.get("min_total") or "").strip()
+    raw_canonical_subtopic = (request.GET.get("canonical_subtopic") or "").strip()
+    for gap_kind in BENCHMARK_IMPORT_GAP_KINDS:
+        gap_rows = technique_progress_gap_rows_for_benchmark_export(
+            request_user=request.user,
+            raw_user_id=raw_user_id,
+            raw_kind=gap_kind,
+            raw_topic=raw_topic,
+            raw_min_total=raw_min_total,
+            raw_canonical_subtopic=raw_canonical_subtopic,
+        )
+        row_keys.update(
+            row_key
+            for row in gap_rows
+            for row_key in [benchmark_row_key(row)]
+            if row_key
+        )
+    return row_keys
+
+
+@login_required
+def technique_gap_benchmark_view(request):
+    _require_admin_tools_access(request)
+    return redirect("pages:technique_benchmark_import")
 
 
 @login_required

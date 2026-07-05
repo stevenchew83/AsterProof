@@ -335,7 +335,7 @@ class HandleSummaryParserForm(forms.Form):
 class TechniqueBenchmarkImportForm(forms.Form):
     prompt_text = forms.CharField(
         required=False,
-        label="Exported prompt",
+        label="Import notes",
         strip=False,
         widget=forms.Textarea(
             attrs={
@@ -346,14 +346,14 @@ class TechniqueBenchmarkImportForm(forms.Form):
         ),
     )
     pasted_response = forms.CharField(
-        label="ChatGPT response",
+        label="Benchmark table",
         strip=False,
         widget=forms.Textarea(
             attrs={
                 "class": "form-control font-monospace",
                 "rows": 18,
                 "spellcheck": "false",
-                "placeholder": '{"schema_version": "technique-gap-benchmark-v1", "rows": [...]}',
+                "placeholder": "row_key\tnormalized_label\tparent_family\tprimary_area\t...",
             },
         ),
     )
@@ -361,7 +361,7 @@ class TechniqueBenchmarkImportForm(forms.Form):
     def clean_pasted_response(self):
         value = self.cleaned_data["pasted_response"]
         if not value.strip():
-            msg = "Paste ChatGPT JSON output before previewing."
+            msg = "Paste a benchmark table before previewing."
             raise forms.ValidationError(msg)
         if len(value.encode("utf-8")) > MAX_PASTED_RESPONSE_BYTES:
             msg = "Pasted response is too large."

@@ -13987,6 +13987,188 @@ def test_technique_benchmark_import_parser_accepts_markdown_table():
     )
 
 
+def _benchmark_import_table_text() -> str:
+    return (
+        "row_key\tnormalized_label\tparent_family\tprimary_area\tsyllabus_core\tcontest_frequency\t"
+        "transfer_value\tprerequisite_value\tconcept_load\trecognition_burden\texecution_load\t"
+        "proof_fragility\tcross_topic_dependency\ttypical_mohs_min\ttypical_mohs_max\tjbmo_weight\t"
+        "national_weight\timo_tst_weight\ttraining_type\ttarget_level\tbenchmark_confidence\t"
+        "rationale\tpitfalls\trecommended_sequence\talias_suggestions/0\talias_suggestions/1\tType\t"
+        "Practice URL\n"
+        "FACTORIZATION\tFactorization\tAlgebraic and arithmetic manipulation\tMixed\t5\t5\t5\t5\t3\t4\t4\t3\t4\t0\t45\t1.35\t1.45\t1.30\t"
+        "Deep block\tNational\t92\tFactorization is one of the highest-transfer tools.\tStudents over-expand too early.\tLearn arithmetic factorization first.\t"
+        "polynomial factorization\tdifference of squares\tTechnique\t/dashboard/completion-quick-update/?target_user_id=1&layer_kind=methods&layer_tag=FACTORIZATION\n"
+        "RESIDUES\tResidues\tNumber theory foundations\tNumber Theory\t5\t5\t4\t5\t2\t2\t2\t2\t2\t0\t30\t1.45\t1.35\t1.05\t"
+        "Drill\tFoundation\t94\tResidue thinking is the concrete layer of modular arithmetic.\tStudents often choose weak moduli.\tStart after divisibility.\t"
+        "remainders\tresidue classes\tObject\t/dashboard/completion-quick-update/?target_user_id=1&layer_kind=objects&layer_tag=RESIDUES\n"
+    )
+
+
+def _benchmark_import_json_text() -> str:
+    return json.dumps(
+        {
+            "schema_version": "technique-gap-benchmark-v1",
+            "rows": [
+                {
+                    "row_key": "FACTORIZATION",
+                    "normalized_label": "Factorization",
+                    "parent_family": "Algebraic and arithmetic manipulation",
+                    "primary_area": "Mixed",
+                    "syllabus_core": 5,
+                    "contest_frequency": 5,
+                    "transfer_value": 5,
+                    "prerequisite_value": 5,
+                    "concept_load": 3,
+                    "recognition_burden": 4,
+                    "execution_load": 4,
+                    "proof_fragility": 3,
+                    "cross_topic_dependency": 4,
+                    "typical_mohs_min": 0,
+                    "typical_mohs_max": 45,
+                    "jbmo_weight": 1.35,
+                    "national_weight": 1.45,
+                    "imo_tst_weight": 1.3,
+                    "training_type": "Deep block",
+                    "target_level": "National",
+                    "benchmark_confidence": 92,
+                    "key_insight_spoiler_free": "Students must learn to see useful factors.",
+                    "rationale": "Factorization is one of the highest-transfer tools.",
+                    "pitfalls": "Students over-expand too early.",
+                    "recommended_sequence": "Learn arithmetic factorization first.",
+                    "alias_suggestions": [
+                        "algebraic factorization",
+                        "polynomial factorization",
+                    ],
+                },
+                {
+                    "row_key": "RESIDUES",
+                    "normalized_label": "Residues",
+                    "parent_family": "Number theory foundations",
+                    "primary_area": "Number Theory",
+                    "syllabus_core": 5,
+                    "contest_frequency": 5,
+                    "transfer_value": 4,
+                    "prerequisite_value": 5,
+                    "concept_load": 2,
+                    "recognition_burden": 2,
+                    "execution_load": 2,
+                    "proof_fragility": 2,
+                    "cross_topic_dependency": 2,
+                    "typical_mohs_min": 0,
+                    "typical_mohs_max": 30,
+                    "jbmo_weight": 1.45,
+                    "national_weight": 1.35,
+                    "imo_tst_weight": 1.05,
+                    "training_type": "Drill",
+                    "target_level": "Foundation",
+                    "benchmark_confidence": 94,
+                    "key_insight_spoiler_free": "Students must classify by useful residues.",
+                    "rationale": "Residue thinking is the concrete working layer of modular arithmetic.",
+                    "pitfalls": "Students often choose weak moduli.",
+                    "recommended_sequence": "Start after basic divisibility.",
+                    "alias_suggestions": ["remainders", "residue classes"],
+                },
+                {
+                    "row_key": "CONSTRUCTION",
+                    "normalized_label": "Construction",
+                    "parent_family": "Constructive and existential proof roles",
+                    "primary_area": "Mixed",
+                    "syllabus_core": 4,
+                    "contest_frequency": 3,
+                    "transfer_value": 4,
+                    "prerequisite_value": 3,
+                    "concept_load": 4,
+                    "recognition_burden": 5,
+                    "execution_load": 4,
+                    "proof_fragility": 4,
+                    "cross_topic_dependency": 5,
+                    "typical_mohs_min": 10,
+                    "typical_mohs_max": 50,
+                    "jbmo_weight": 0.75,
+                    "national_weight": 1.05,
+                    "imo_tst_weight": 1.4,
+                    "training_type": "Mixed mock",
+                    "target_level": "IMO/TST",
+                    "benchmark_confidence": 80,
+                    "key_insight_spoiler_free": "Students must build examples preserving constraints.",
+                    "rationale": "Construction is a broad proof role across all olympiad areas.",
+                    "pitfalls": "Students often miss a hidden universal condition.",
+                    "recommended_sequence": "Build foundations in each area first.",
+                    "alias_suggestions": ["existence construction", "explicit example"],
+                },
+                {
+                    "row_key": "BÉZOUT",
+                    "normalized_label": "Bezout",
+                    "parent_family": "Number theory foundations",
+                    "primary_area": "Number Theory",
+                    "syllabus_core": 4,
+                    "contest_frequency": 4,
+                    "transfer_value": 4,
+                    "prerequisite_value": 4,
+                    "concept_load": 2,
+                    "recognition_burden": 3,
+                    "execution_load": 3,
+                    "proof_fragility": 3,
+                    "cross_topic_dependency": 3,
+                    "typical_mohs_min": 5,
+                    "typical_mohs_max": 40,
+                    "jbmo_weight": 1.05,
+                    "national_weight": 1.25,
+                    "imo_tst_weight": 1.15,
+                    "training_type": "Deep block",
+                    "target_level": "National",
+                    "benchmark_confidence": 91,
+                    "key_insight_spoiler_free": "Students must convert gcd into a linear combination.",
+                    "rationale": "Bezout bridges gcd facts to constructive divisibility arguments.",
+                    "pitfalls": "Students remember the statement but miss the direction.",
+                    "recommended_sequence": "Study gcd and Euclidean algorithm first.",
+                    "alias_suggestions": ["Bezout identity", "integer linear combination"],
+                },
+            ],
+            "summary": {
+                "coach_comment": "This gap set mainly tests arithmetic and proof-strategy foundations.",
+            },
+        },
+        ensure_ascii=False,
+    )
+
+
+def _create_benchmark_import_gap_context() -> None:
+    _create_technique_progress_statement(
+        problem_code="J1",
+        statement_tags=[
+            {
+                "technique": "FOUNDATIONS",
+                "domains": ["NT"],
+                "main_topic": "Number Theory",
+                "canonical_subtopic": "Number theory foundations",
+                "technique_tags": ["FACTORIZATION"],
+                "object_tags": ["RESIDUES"],
+                "lemma_theorem_tags": ["BÉZOUT"],
+                "proof_roles": ["CONSTRUCTION"],
+            },
+        ],
+    )
+
+
+def test_technique_benchmark_import_parser_accepts_enriched_table_with_source_kind_context():
+    from inspinia.pages.technique_benchmarking.importing import preview_benchmark_import
+
+    preview = preview_benchmark_import(_benchmark_import_table_text())
+
+    assert preview.rows_total == 2
+    assert preview.rows_valid == 2
+    assert preview.rows_invalid == 0
+    assert preview.valid_rows[0]["row_key"] == "method:factorization"
+    assert preview.valid_rows[0]["kind"] == TechniqueBenchmark.Kind.METHOD
+    assert preview.valid_rows[0]["alias_suggestions"] == [
+        "polynomial factorization",
+        "difference of squares",
+    ]
+    assert preview.preview_payload["new_rows"]["object:residues"]["parent_family"] == "Number theory foundations"
+    assert TechniqueBenchmark.objects.count() == 0
+
+
 def test_technique_benchmark_import_rejects_unknown_future_schema_version():
     from inspinia.pages.technique_benchmarking.importing import BenchmarkImportValidationError
     from inspinia.pages.technique_benchmarking.importing import preview_benchmark_import
@@ -14052,6 +14234,35 @@ def test_technique_benchmark_import_apply_and_restore_new_rows():
     assert restore_stats["deleted"] == 8
     assert batch.status == TechniqueBenchmarkImportBatch.Status.RESTORED
     assert TechniqueBenchmark.objects.count() == 0
+
+
+def test_technique_benchmark_import_apply_creates_alias_suggestions_and_restore_removes_them():
+    from inspinia.pages.technique_benchmarking.importing import apply_benchmark_import
+    from inspinia.pages.technique_benchmarking.importing import preview_benchmark_import
+    from inspinia.pages.technique_benchmarking.importing import restore_benchmark_import_batch
+
+    user = UserFactory(role=User.Role.ADMIN)
+    preview = preview_benchmark_import(_benchmark_import_table_text())
+
+    batch = apply_benchmark_import(
+        preview,
+        user=user,
+        pasted_response=_benchmark_import_table_text(),
+    )
+
+    benchmark = TechniqueBenchmark.objects.get(kind=TechniqueBenchmark.Kind.METHOD, label_key="factorization")
+    assert batch.rows_created == 2
+    assert TechniqueBenchmarkAlias.objects.filter(
+        kind=TechniqueBenchmark.Kind.METHOD,
+        alias_key="polynomial-factorization",
+        benchmark=benchmark,
+    ).exists()
+
+    restore_stats = restore_benchmark_import_batch(batch)
+
+    assert restore_stats["deleted"] == 2
+    assert TechniqueBenchmark.objects.count() == 0
+    assert TechniqueBenchmarkAlias.objects.count() == 0
 
 
 def test_technique_benchmark_coverage_summary_counts_actionable_rows_by_status_and_kind():
@@ -14245,57 +14456,28 @@ def test_technique_benchmark_export_payload_and_prompt_include_row_keys():
     assert '"row_key": "canonical_subtopic:parity"' in prompt
 
 
-def test_technique_gap_benchmark_page_creates_export_batch_applies_and_restores(client):
+def test_technique_benchmark_import_page_applies_table_and_restores(client):
     user = UserFactory(role=User.Role.ADMIN)
     client.force_login(user)
-    _create_golden_benchmark_gap_statements()
-    url = reverse("pages:technique_gap_benchmark")
+    url = reverse("pages:technique_benchmark_import")
 
-    response = client.get(url, {"min_total": "1"})
+    response = client.get(url)
 
     assert response.status_code == HTTPStatus.OK
     html = response.content.decode("utf-8")
-    assert "Technique gap benchmarks" in html
-    assert "Benchmark Coverage Dashboard" in html
-    assert "Create next batch" in html
-    assert "Step 1: Copy this prompt to ChatGPT" in html
-    assert "Advanced: source rows sent to ChatGPT" in html
-    assert "Step 2: Paste ChatGPT benchmark JSON" in html
+    assert "Technique benchmark import" in html
+    assert "Utilities" in html
+    assert "Paste benchmark table" in html
+    assert "Step 1: Copy this prompt to ChatGPT" not in html
     assert "Mark reviewed" in html
     assert "Preview parsed benchmark rows" not in html
-    assert "technique-gap-benchmark-v1" in html
-    assert "canonical_subtopic:parity" in html
     assert 'name="pasted_response"' in html
 
-    create_batch_response = client.post(
-        url,
-        {
-            "action": "create_export_batch",
-            "scope_mode": "all_missing",
-            "kind_filters": ["subtopics"],
-            "batch_size": "2",
-            "sort_mode": "label",
-            "target_profile": "national",
-        },
-    )
-
-    assert create_batch_response.status_code == HTTPStatus.OK
-    export_batch = TechniqueBenchmarkExportBatch.objects.get()
-    assert export_batch.row_count == 2
-
-    payload = json.loads(_golden_benchmark_payload_text())
-    payload["rows"] = [
-        row
-        for row in payload["rows"]
-        if row["row_key"] in export_batch.frozen_row_keys
-    ]
     apply_response = client.post(
         url,
         {
             "action": "apply",
-            "export_batch_id": str(export_batch.pk),
-            "prompt_text": export_batch.prompt_text,
-            "pasted_response": json.dumps(payload),
+            "pasted_response": _benchmark_import_table_text(),
         },
     )
 
@@ -14303,9 +14485,8 @@ def test_technique_gap_benchmark_page_creates_export_batch_applies_and_restores(
     assert TechniqueBenchmark.objects.count() == 2
     batch = TechniqueBenchmarkImportBatch.objects.get()
     assert batch.status == TechniqueBenchmarkImportBatch.Status.APPLIED
-    assert batch.export_batch == export_batch
-    export_batch.refresh_from_db()
-    assert export_batch.status == TechniqueBenchmarkExportBatch.Status.APPLIED
+    assert batch.export_batch is None
+    assert TechniqueBenchmark.objects.filter(kind=TechniqueBenchmark.Kind.METHOD, label_key="factorization").exists()
 
     restore_response = client.post(
         url,
@@ -14321,117 +14502,55 @@ def test_technique_gap_benchmark_page_creates_export_batch_applies_and_restores(
     assert TechniqueBenchmark.objects.count() == 0
 
 
-def test_technique_gap_benchmark_page_exports_total_benchmarkable_rows_csv(client):
+def test_technique_benchmark_import_page_resolves_bare_json_row_keys_from_current_gap_rows(client):
     user = UserFactory(role=User.Role.ADMIN)
     client.force_login(user)
-    _create_technique_progress_statement(
-        statement_tags=[
-            {
-                "technique": "PARITY METHODS",
-                "domains": ["ALG", "C", "G", "NT"],
-                "canonical_subtopic": "Coloring, tiling, grids, and invariants",
-                "object_tags": ["PARITY CLASS"],
-            },
-        ],
-    )
-    url = reverse("pages:technique_gap_benchmark")
-
-    page_response = client.get(url, {"min_total": "1"})
-
-    assert page_response.status_code == HTTPStatus.OK
-    assert page_response.context["benchmark_coverage"]["counts"]["total"] == 3
-    assert "Export benchmarkable rows CSV" in page_response.content.decode("utf-8")
-    assert "export=benchmarkable_csv" in page_response.content.decode("utf-8")
-
-    csv_response = client.get(url, {"min_total": "1", "export": "benchmarkable_csv"})
-    reader = csv.DictReader(StringIO(csv_response.content.decode("utf-8")))
-    csv_rows = list(reader)
-
-    assert csv_response.status_code == HTTPStatus.OK
-    assert csv_response["Content-Disposition"] == 'attachment; filename="technique-benchmarkable-rows.csv"'
-    assert reader.fieldnames == [
-        "row_key",
-        "kind",
-        "label",
-        "label_key",
-        "areas/0",
-        "areas/1",
-        "canonical_subtopic",
-        "type",
-        "completed",
-        "total",
-        "remaining",
-        "coverage_percent",
-        "avg_solved_mohs",
-        "existing_benchmark",
-        "areas/2",
-        "areas/3",
-    ]
-    rows_by_key = {row["row_key"]: row for row in csv_rows}
-    assert rows_by_key["technique:parity-methods"] == {
-        "row_key": "technique:parity-methods",
-        "kind": "technique",
-        "label": "PARITY METHODS",
-        "label_key": "parity-methods",
-        "areas/0": "Algebra",
-        "areas/1": "Combinatorics",
-        "canonical_subtopic": "Coloring, tiling, grids, and invariants",
-        "type": "Technique",
-        "completed": "0",
-        "total": "1",
-        "remaining": "1",
-        "coverage_percent": "0",
-        "avg_solved_mohs": "",
-        "existing_benchmark": "",
-        "areas/2": "Geometry",
-        "areas/3": "Number Theory",
-    }
-    assert rows_by_key["object:parity-class"] == {
-        "row_key": "object:parity-class",
-        "kind": "object",
-        "label": "PARITY CLASS",
-        "label_key": "parity-class",
-        "areas/0": "Algebra",
-        "areas/1": "Combinatorics",
-        "canonical_subtopic": "Coloring, tiling, grids, and invariants",
-        "type": "Object",
-        "completed": "0",
-        "total": "1",
-        "remaining": "1",
-        "coverage_percent": "0",
-        "avg_solved_mohs": "",
-        "existing_benchmark": "",
-        "areas/2": "Geometry",
-        "areas/3": "Number Theory",
-    }
-
-
-def test_technique_gap_benchmark_page_preview_shows_benchmark_details(client):
-    user = UserFactory(role=User.Role.ADMIN)
-    client.force_login(user)
-    _create_golden_benchmark_gap_statements()
+    _create_benchmark_import_gap_context()
 
     response = client.post(
-        reverse("pages:technique_gap_benchmark"),
+        reverse("pages:technique_benchmark_import"),
+        {
+            "action": "apply",
+            "pasted_response": _benchmark_import_json_text(),
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert TechniqueBenchmark.objects.filter(kind=TechniqueBenchmark.Kind.METHOD, label_key="factorization").exists()
+    assert TechniqueBenchmark.objects.filter(kind=TechniqueBenchmark.Kind.OBJECT, label_key="residues").exists()
+    assert TechniqueBenchmark.objects.filter(kind=TechniqueBenchmark.Kind.PROOF_ROLE, label_key="construction").exists()
+    assert TechniqueBenchmark.objects.filter(kind=TechniqueBenchmark.Kind.LEMMA, label_key="b-zout").exists()
+    assert TechniqueBenchmarkAlias.objects.filter(
+        kind=TechniqueBenchmark.Kind.METHOD,
+        alias_key="algebraic-factorization",
+    ).exists()
+
+
+def test_technique_benchmark_import_page_preview_shows_benchmark_details(client):
+    user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(user)
+
+    response = client.post(
+        reverse("pages:technique_benchmark_import"),
         {
             "action": "preview",
-            "pasted_response": _golden_benchmark_payload_text(),
+            "pasted_response": _benchmark_import_table_text(),
         },
     )
 
     assert response.status_code == HTTPStatus.OK
     html = response.content.decode("utf-8")
-    assert "MOHS 0M-15M" in html
-    assert "Importance 4.61" in html
-    assert "Difficulty 1.75" in html
+    assert "MOHS 0M-45M" in html
+    assert "Importance 4.65" in html
+    assert "Difficulty 3.60" in html
     assert "Syllabus 5 · Frequency 5 · Transfer 5 · Prerequisite 5" in html
-    assert "Concept 1 · Recognition 2 · Execution 2 · Fragility 2 · Dependency 2" in html
-    assert "JBMO 1.20 · National 1.10 · IMO/TST 1.00" in html
-    assert "Parity is a core low-barrier invariant" in html
+    assert "Concept 3 · Recognition 4 · Execution 4 · Fragility 3 · Dependency 4" in html
+    assert "JBMO 1.35 · National 1.45 · IMO/TST 1.30" in html
+    assert "Factorization is one of the highest-transfer tools" in html
     assert "No errors" in html
 
 
-def test_technique_gap_benchmark_page_mark_reviewed_clears_quality_flags(client):
+def test_technique_benchmark_import_page_mark_reviewed_clears_quality_flags(client):
     user = UserFactory(role=User.Role.ADMIN)
     client.force_login(user)
     benchmark = TechniqueBenchmark.objects.create(
@@ -14451,7 +14570,7 @@ def test_technique_gap_benchmark_page_mark_reviewed_clears_quality_flags(client)
     )
 
     response = client.post(
-        reverse("pages:technique_gap_benchmark"),
+        reverse("pages:technique_benchmark_import"),
         {
             "action": "mark_reviewed",
             "row_keys": "canonical_subtopic:parity",
@@ -14461,6 +14580,16 @@ def test_technique_gap_benchmark_page_mark_reviewed_clears_quality_flags(client)
     assert response.status_code == HTTPStatus.OK
     benchmark.refresh_from_db()
     assert benchmark.quality_flags == []
+
+
+def test_technique_gap_benchmark_legacy_url_redirects_to_import_page(client):
+    user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(user)
+
+    response = client.get(reverse("pages:technique_gap_benchmark"))
+
+    assert response.status_code == HTTPStatus.FOUND
+    assert response["Location"] == reverse("pages:technique_benchmark_import")
 
 
 def test_technique_progress_gaps_datatable_includes_benchmark_scores_and_ranks(client):
