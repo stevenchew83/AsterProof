@@ -8295,27 +8295,64 @@ TECHNIQUE_BENCHMARK_LIST_COLUMNS = [
     {"key": "alias_suggestions", "label": "alias_suggestions"},
 ]
 
+TECHNIQUE_BENCHMARK_DEFAULT_COLUMNS = [
+    "Technique",
+    "Area",
+    "Family",
+    "Training",
+    "Target",
+    "Foundation value",
+    "Load",
+    "MOHS",
+    "Contest weight",
+    "Confidence",
+    "Details",
+]
+
+TECHNIQUE_BENCHMARK_FOUNDATION_SCORE_FIELDS = [
+    ("syllabus_core", "Syllabus core"),
+    ("contest_frequency", "Contest frequency"),
+    ("transfer_value", "Transfer value"),
+    ("prerequisite_value", "Prerequisite value"),
+]
+
+TECHNIQUE_BENCHMARK_LOAD_SCORE_FIELDS = [
+    ("concept_load", "Concept load"),
+    ("recognition_burden", "Recognition burden"),
+    ("execution_load", "Execution load"),
+    ("proof_fragility", "Proof fragility"),
+    ("cross_topic_dependency", "Cross-topic dependency"),
+]
+
+TECHNIQUE_BENCHMARK_CONTEST_WEIGHT_FIELDS = [
+    ("jbmo_weight", "JBMO"),
+    ("national_weight", "National"),
+    ("imo_tst_weight", "IMO/TST"),
+]
+
 
 @login_required
 def technique_benchmark_list_view(request):
     benchmarks = TechniqueBenchmark.objects.prefetch_related("aliases").order_by("kind", "label")
     rows = [_technique_benchmark_list_row(benchmark) for benchmark in benchmarks]
-    for row in rows:
-        row["cells"] = [row[column["key"]] for column in TECHNIQUE_BENCHMARK_LIST_COLUMNS]
     return render(
         request,
         "pages/technique-benchmark-list.html",
         {
             "technique_benchmark_columns": TECHNIQUE_BENCHMARK_LIST_COLUMNS,
+            "technique_benchmark_default_columns": TECHNIQUE_BENCHMARK_DEFAULT_COLUMNS,
+            "technique_benchmark_filter_options": _technique_benchmark_filter_options(rows),
             "technique_benchmark_rows": rows,
+            "technique_benchmark_table_rows": _json_script_safe(rows),
             "technique_benchmark_total": len(rows),
         },
     )
 
 
 def _technique_benchmark_list_row(benchmark: TechniqueBenchmark) -> dict[str, object]:
-    return {
-        "row_key": build_benchmark_row_key(benchmark.kind, benchmark.label_key),
+    row_key = build_benchmark_row_key(benchmark.kind, benchmark.label_key)
+    raw = {
+        "row_key": row_key,
         "normalized_label": benchmark.normalized_label,
         "parent_family": benchmark.parent_family,
         "primary_area": benchmark.primary_area,
@@ -8342,12 +8379,62 @@ def _technique_benchmark_list_row(benchmark: TechniqueBenchmark) -> dict[str, ob
         "recommended_sequence": benchmark.recommended_sequence,
         "alias_suggestions": ", ".join(alias.alias_label for alias in benchmark.aliases.all()),
     }
+    return {
+        **raw,
+        "technique_label": benchmark.normalized_label or benchmark.label,
+        "family": benchmark.parent_family,
+        "area": benchmark.primary_area,
+        "foundation_scores": _benchmark_score_group(raw, TECHNIQUE_BENCHMARK_FOUNDATION_SCORE_FIELDS),
+        "load_scores": _benchmark_score_group(raw, TECHNIQUE_BENCHMARK_LOAD_SCORE_FIELDS),
+        "mohs_range_label": _benchmark_mohs_range_label(benchmark.typical_mohs_min, benchmark.typical_mohs_max),
+        "contest_weights": [
+            {"key": key, "label": label, "value": raw[key]}
+            for key, label in TECHNIQUE_BENCHMARK_CONTEST_WEIGHT_FIELDS
+        ],
+        "confidence_percent": benchmark.benchmark_confidence,
+        "details": {
+            "key_insight_spoiler_free": raw["key_insight_spoiler_free"],
+            "rationale": benchmark.rationale,
+            "pitfalls": benchmark.pitfalls,
+            "recommended_sequence": benchmark.recommended_sequence,
+            "alias_suggestions": raw["alias_suggestions"],
+        },
+        "raw": raw,
+    }
 
 
 def _benchmark_decimal_display(value) -> str:
     if value is None:
         return ""
     return f"{value:.2f}"
+
+
+def _benchmark_score_group(row: dict[str, object], fields: list[tuple[str, str]]) -> list[dict[str, object]]:
+    return [{"key": key, "label": label, "value": row[key]} for key, label in fields]
+
+
+def _benchmark_mohs_range_label(min_value: int | None, max_value: int | None) -> str:
+    if min_value is None and max_value is None:
+        return ""
+    if min_value is None:
+        return f"Up to {max_value} min"
+    if max_value is None:
+        return f"{min_value}+ min"
+    if min_value == max_value:
+        return f"{min_value} min"
+    return f"{min_value}-{max_value} min"
+
+
+def _technique_benchmark_filter_options(rows: list[dict[str, object]]) -> dict[str, list[str]]:
+    return {
+        "areas": _sorted_nonblank_values(row.get("area") for row in rows),
+        "training_types": _sorted_nonblank_values(row.get("training_type") for row in rows),
+        "target_levels": _sorted_nonblank_values(row.get("target_level") for row in rows),
+    }
+
+
+def _sorted_nonblank_values(values) -> list[str]:
+    return sorted({str(value).strip() for value in values if str(value or "").strip()})
 
 
 def _technique_progress_gaps_datatable_params(request):
