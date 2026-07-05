@@ -14248,6 +14248,31 @@ def test_technique_benchmark_import_parser_treats_title_label_csv_rows_as_canoni
     ]
 
 
+def test_technique_benchmark_import_preview_rejects_parent_family_too_long():
+    from inspinia.pages.technique_benchmarking.importing import preview_benchmark_import
+
+    csv_table = (
+        "row_key,normalized_label,parent_family,primary_area,syllabus_core,contest_frequency,"
+        "transfer_value,prerequisite_value,concept_load,recognition_burden,execution_load,"
+        "proof_fragility,cross_topic_dependency,typical_mohs_min,typical_mohs_max,jbmo_weight,"
+        "national_weight,imo_tst_weight,training_type,target_level,benchmark_confidence,"
+        "rationale,pitfalls,recommended_sequence,alias_suggestions\n"
+        f'"canonical_subtopic:long-parent","Long parent","{"A" * 256}","Mixed",'
+        '5,5,5,5,2,3,3,3,3,0,40,1.50,1.50,1.25,"Drill","Foundation",94,'
+        '"A valid rationale before the field length check.",'
+        '"A valid pitfall.",'
+        '"A valid sequence.",'
+        '"long parent"\n'
+    )
+
+    preview = preview_benchmark_import(csv_table)
+
+    assert preview.rows_total == 1
+    assert preview.rows_valid == 0
+    assert preview.rows_invalid == 1
+    assert "parent_family must be 255 characters or fewer." in preview.invalid_rows[0]["errors"]
+
+
 def test_technique_benchmark_import_parser_uses_known_rows_for_inference_not_rejection():
     from inspinia.pages.technique_benchmarking.importing import preview_benchmark_import
 
@@ -14609,6 +14634,40 @@ def test_technique_benchmark_import_page_applies_table_and_restores(client):
     batch.refresh_from_db()
     assert batch.status == TechniqueBenchmarkImportBatch.Status.RESTORED
     assert TechniqueBenchmark.objects.count() == 0
+
+
+def test_technique_benchmark_import_page_rejects_rows_that_exceed_model_field_lengths(client):
+    user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(user)
+    long_parent_family = "A" * 256
+    csv_table = (
+        "row_key,normalized_label,parent_family,primary_area,syllabus_core,contest_frequency,"
+        "transfer_value,prerequisite_value,concept_load,recognition_burden,execution_load,"
+        "proof_fragility,cross_topic_dependency,typical_mohs_min,typical_mohs_max,jbmo_weight,"
+        "national_weight,imo_tst_weight,training_type,target_level,benchmark_confidence,"
+        "rationale,pitfalls,recommended_sequence,alias_suggestions\n"
+        f'"canonical_subtopic:long-parent","Long parent","{long_parent_family}","Mixed",'
+        '5,5,5,5,2,3,3,3,3,0,40,1.50,1.50,1.25,"Drill","Foundation",94,'
+        '"A valid rationale before the field length check.",'
+        '"A valid pitfall.",'
+        '"A valid sequence.",'
+        '"long parent"\n'
+    )
+
+    response = client.post(
+        reverse("pages:technique_benchmark_import"),
+        {
+            "action": "apply",
+            "pasted_response": csv_table,
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert TechniqueBenchmark.objects.count() == 0
+    batch = TechniqueBenchmarkImportBatch.objects.get()
+    assert batch.rows_valid == 0
+    assert batch.rows_invalid == 1
+    assert "parent_family must be 255 characters or fewer." in response.content.decode("utf-8")
 
 
 def test_technique_benchmark_list_requires_login(client):
