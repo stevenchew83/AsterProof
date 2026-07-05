@@ -106,9 +106,18 @@
               <h4 class="header-title mb-0">Practice remaining</h4>
               <p class="text-muted fs-xs mb-0">Incomplete areas with the most remaining tagged statements.</p>
             </div>
-            <a href="{{ technique_progress_all_gaps_url }}" class="btn btn-sm btn-outline-primary">
-              <i class="ti ti-list-details me-1"></i>View all gaps
-            </a>
+            <div class="d-flex flex-wrap align-items-center gap-2">
+              <a
+                href="{{ technique_progress_export_url }}"
+                id="technique-progress-export-xlsx"
+                class="btn btn-sm btn-outline-success"
+              >
+                <i class="ti ti-file-spreadsheet me-1"></i>Export Excel
+              </a>
+              <a href="{{ technique_progress_all_gaps_url }}" class="btn btn-sm btn-outline-primary">
+                <i class="ti ti-list-details me-1"></i>View all gaps
+              </a>
+            </div>
           </div>
         </div>
         <div class="card-body pt-2">
