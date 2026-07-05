@@ -1,0 +1,163 @@
+{% extends 'layouts/vertical.html' %}
+
+{% load static %}
+
+{% block title %}Technique benchmarks{% endblock title %}
+
+{% block extra_css %}
+{% if technique_benchmark_rows %}
+<link rel="stylesheet" href="{% static 'plugins/datatables/dataTables.bootstrap5.min.css' %}">
+{% endif %}
+<style>
+  .technique-benchmark-table-shell {
+    width: 100%;
+  }
+
+  #technique-benchmarks-table_wrapper .dt-layout-row {
+    align-items: center;
+    gap: .75rem 1rem;
+    margin: .5rem 0;
+  }
+
+  #technique-benchmarks-table_wrapper .dt-length label,
+  #technique-benchmarks-table_wrapper .dt-search label {
+    color: var(--bs-secondary-color);
+    font-size: .75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  #technique-benchmarks-table_wrapper .dt-length .form-select,
+  #technique-benchmarks-table_wrapper .dt-search .form-control {
+    font-size: .8125rem;
+    min-height: calc(1.5em + .5rem + 2px);
+    padding-bottom: .25rem;
+    padding-top: .25rem;
+  }
+
+  #technique-benchmarks-table thead th {
+    background-color: var(--bs-tertiary-bg);
+    color: var(--bs-secondary-color);
+    font-size: .7rem;
+    font-weight: 700;
+    text-transform: none;
+  }
+
+  #technique-benchmarks-table tbody td {
+    max-width: 24rem;
+    vertical-align: top;
+  }
+
+  #technique-benchmarks-table tbody td:nth-child(1) {
+    font-family: var(--bs-font-monospace);
+    font-size: .75rem;
+    white-space: nowrap;
+  }
+</style>
+{% endblock extra_css %}
+
+{% block page_content %}
+<div class="container-fluid">
+  {% include 'partials/page-title.html' with title='Technique benchmarks' subtitle='Library' %}
+
+  <div class="row g-3 mt-0">
+    <div class="col-sm-6 col-xl-3">
+      <div class="card m-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <span class="avatar-title bg-primary-subtle text-primary rounded">
+                <i class="ti ti-database-search fs-24"></i>
+              </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Benchmarks</p>
+              <h3 class="mb-0">{{ technique_benchmark_total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mt-3">
+    <div class="card-header border-0 pb-0">
+      <h4 class="header-title mb-0">Benchmark catalog</h4>
+      <p class="text-muted fs-xs mb-0">{{ technique_benchmark_total }} benchmark row{{ technique_benchmark_total|pluralize }} loaded</p>
+    </div>
+    <div class="card-body pt-2">
+      <div id="technique-benchmarks-table-alert" class="alert alert-warning d-none" role="alert"></div>
+      {% if technique_benchmark_rows %}
+      <div class="technique-benchmark-table-shell">
+        <table id="technique-benchmarks-table" class="table table-sm table-hover align-middle mb-0">
+          <thead>
+            <tr>
+              {% for column in technique_benchmark_columns %}
+              <th>{{ column.label }}</th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in technique_benchmark_rows %}
+            <tr>
+              {% for cell in row.cells %}
+              <td>{{ cell|default_if_none:'' }}</td>
+              {% endfor %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="text-center text-muted py-4">No technique benchmarks yet.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock page_content %}
+
+{% block extra_javascript %}
+{% if technique_benchmark_rows %}
+{% include 'partials/datatables-vendor-scripts.html' %}
+<script>
+(function () {
+  var alertEl = document.getElementById("technique-benchmarks-table-alert");
+
+  function showTableAlert(message) {
+    if (!alertEl) return;
+    alertEl.textContent = message || "Technique benchmark table controls could not be loaded.";
+    alertEl.classList.remove("d-none");
+  }
+
+  if (typeof DataTable === "undefined") {
+    showTableAlert("Technique benchmark table controls could not be loaded. Refresh and try again.");
+    return;
+  }
+
+  new DataTable("#technique-benchmarks-table", {
+    layout: {
+      topStart: null,
+      topEnd: null,
+      bottomStart: null,
+      bottomEnd: null,
+      top: ["pageLength", "search", "paging"],
+      bottom: ["info", "paging"],
+    },
+    language: {
+      search: "Filter rows:",
+      searchPlaceholder: "Within benchmark rows...",
+      info: "Showing _START_ to _END_ of _TOTAL_ benchmark rows",
+      infoEmpty: "No benchmark rows to show",
+      infoFiltered: "(filtered from _MAX_ benchmark row(s))",
+      lengthMenu: "Show _MENU_ rows",
+    },
+    order: [[0, "asc"]],
+    pageLength: 25,
+    lengthMenu: [10, 25, 50, 100],
+    scrollX: true,
+    autoWidth: false
+  });
+})();
+</script>
+{% endif %}
+{% endblock extra_javascript %}

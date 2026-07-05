@@ -14538,6 +14538,139 @@ def test_technique_benchmark_import_page_applies_table_and_restores(client):
     assert TechniqueBenchmark.objects.count() == 0
 
 
+def test_technique_benchmark_list_requires_login(client):
+    response = client.get(reverse("pages:technique_benchmark_list"))
+
+    assert response.status_code == HTTPStatus.FOUND
+    assert reverse(settings.LOGIN_URL) in response["Location"]
+
+
+def test_technique_benchmark_list_renders_all_kinds_with_requested_columns(client):
+    user = UserFactory()
+    client.force_login(user)
+    method_benchmark = TechniqueBenchmark.objects.create(
+        kind=TechniqueBenchmark.Kind.METHOD,
+        label="Factorization",
+        normalized_label="Factorization",
+        parent_family="Algebraic manipulation",
+        primary_area="Algebra",
+        syllabus_core=5,
+        contest_frequency=5,
+        transfer_value=5,
+        prerequisite_value=5,
+        concept_load=3,
+        recognition_burden=4,
+        execution_load=4,
+        proof_fragility=3,
+        cross_topic_dependency=4,
+        typical_mohs_min=0,
+        typical_mohs_max=45,
+        jbmo_weight="1.35",
+        national_weight="1.45",
+        imo_tst_weight="1.30",
+        training_type="Deep block",
+        target_level="National",
+        benchmark_confidence=92,
+        rationale="Factorization is one of the highest-transfer tools.",
+        pitfalls="Students over-expand too early.",
+        recommended_sequence="Learn arithmetic factorization first.",
+    )
+    TechniqueBenchmarkAlias.objects.create(
+        kind=TechniqueBenchmark.Kind.METHOD,
+        alias_label="algebraic factorization",
+        benchmark=method_benchmark,
+    )
+    TechniqueBenchmark.objects.create(
+        kind=TechniqueBenchmark.Kind.CANONICAL_SUBTOPIC,
+        label="Parity",
+        normalized_label="Parity",
+        parent_family="Divisibility and invariants",
+        primary_area="Number Theory",
+        syllabus_core=5,
+        contest_frequency=4,
+        transfer_value=5,
+        prerequisite_value=4,
+        concept_load=2,
+        recognition_burden=2,
+        execution_load=2,
+        proof_fragility=2,
+        cross_topic_dependency=3,
+        typical_mohs_min=0,
+        typical_mohs_max=30,
+        training_type="Drill",
+        target_level="Foundation",
+        benchmark_confidence=88,
+        rationale="Parity is a core invariant.",
+        pitfalls="Students forget parity is preserved.",
+        recommended_sequence="Study divisibility first.",
+    )
+
+    response = client.get(reverse("pages:technique_benchmark_list"))
+
+    assert response.status_code == HTTPStatus.OK
+    expected_columns = [
+        "row_key",
+        "normalized_label",
+        "parent_family",
+        "primary_area",
+        "syllabus_core",
+        "contest_frequency",
+        "transfer_value",
+        "prerequisite_value",
+        "concept_load",
+        "recognition_burden",
+        "execution_load",
+        "proof_fragility",
+        "cross_topic_dependency",
+        "typical_mohs_min",
+        "typical_mohs_max",
+        "jbmo_weight",
+        "national_weight",
+        "imo_tst_weight",
+        "training_type",
+        "target_level",
+        "benchmark_confidence",
+        "key_insight_spoiler_free",
+        "rationale",
+        "pitfalls",
+        "recommended_sequence",
+        "alias_suggestions",
+    ]
+    assert [column["key"] for column in response.context["technique_benchmark_columns"]] == expected_columns
+    rows_by_key = {row["row_key"]: row for row in response.context["technique_benchmark_rows"]}
+    assert set(rows_by_key) == {"canonical_subtopic:parity", "method:factorization"}
+    method_row = rows_by_key["method:factorization"]
+    assert method_row["normalized_label"] == "Factorization"
+    assert method_row["jbmo_weight"] == "1.35"
+    assert method_row["typical_mohs_max"] == 45
+    assert method_row["key_insight_spoiler_free"] == ""
+    assert method_row["alias_suggestions"] == "algebraic factorization"
+
+    response_html = response.content.decode("utf-8")
+    assert "Technique benchmarks" in response_html
+    assert 'id="technique-benchmarks-table"' in response_html
+    assert 'new DataTable("#technique-benchmarks-table"' in response_html
+    assert "dataTables.bootstrap5.min.css" in response_html
+    assert "dataTables.min.js" in response_html
+    for column_key in expected_columns:
+        assert f"<th>{column_key}</th>" in response_html
+    assert "method:factorization" in response_html
+    assert "canonical_subtopic:parity" in response_html
+    assert "algebraic factorization" in response_html
+
+
+def test_technique_benchmark_list_is_linked_from_library_side_nav(client):
+    user = UserFactory()
+    client.force_login(user)
+
+    response = client.get(reverse("pages:technique_benchmark_list"))
+
+    side_nav_html = _rendered_side_nav_html(response)
+    assert reverse("pages:technique_benchmark_list") in side_nav_html
+    assert "Technique benchmarks" in side_nav_html
+    assert side_nav_html.index("Problem statements") < side_nav_html.index("Technique benchmarks")
+
+
 def test_technique_benchmark_import_page_resolves_bare_json_row_keys_from_current_gap_rows(client):
     user = UserFactory(role=User.Role.ADMIN)
     client.force_login(user)

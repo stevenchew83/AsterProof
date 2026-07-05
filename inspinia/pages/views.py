@@ -107,6 +107,7 @@ from inspinia.pages.models import PageViewEvent
 from inspinia.pages.models import ProblemSolveRecord
 from inspinia.pages.models import ProblemTopicTechnique
 from inspinia.pages.models import StatementTopicTechnique
+from inspinia.pages.models import TechniqueBenchmark
 from inspinia.pages.models import TechniqueBenchmarkImportBatch
 from inspinia.pages.models import TechniqueProgressFact
 from inspinia.pages.models import UserProblemCompletion
@@ -160,6 +161,7 @@ from inspinia.pages.technique_benchmarking.importing import apply_benchmark_impo
 from inspinia.pages.technique_benchmarking.importing import preview_benchmark_import
 from inspinia.pages.technique_benchmarking.importing import restore_benchmark_import_batch
 from inspinia.pages.technique_benchmarking.keys import benchmark_row_key
+from inspinia.pages.technique_benchmarking.keys import build_benchmark_row_key
 from inspinia.pages.technique_progress import build_technique_progress_context
 from inspinia.pages.technique_progress import build_technique_progress_export_response
 from inspinia.pages.technique_progress import build_technique_progress_gaps_context
@@ -8262,6 +8264,90 @@ def technique_progress_gaps_view(request):
         raw_target_profile=(request.GET.get("target_profile") or "").strip(),
     )
     return render(request, "pages/technique-progress-gaps.html", context)
+
+
+TECHNIQUE_BENCHMARK_LIST_COLUMNS = [
+    {"key": "row_key", "label": "row_key"},
+    {"key": "normalized_label", "label": "normalized_label"},
+    {"key": "parent_family", "label": "parent_family"},
+    {"key": "primary_area", "label": "primary_area"},
+    {"key": "syllabus_core", "label": "syllabus_core"},
+    {"key": "contest_frequency", "label": "contest_frequency"},
+    {"key": "transfer_value", "label": "transfer_value"},
+    {"key": "prerequisite_value", "label": "prerequisite_value"},
+    {"key": "concept_load", "label": "concept_load"},
+    {"key": "recognition_burden", "label": "recognition_burden"},
+    {"key": "execution_load", "label": "execution_load"},
+    {"key": "proof_fragility", "label": "proof_fragility"},
+    {"key": "cross_topic_dependency", "label": "cross_topic_dependency"},
+    {"key": "typical_mohs_min", "label": "typical_mohs_min"},
+    {"key": "typical_mohs_max", "label": "typical_mohs_max"},
+    {"key": "jbmo_weight", "label": "jbmo_weight"},
+    {"key": "national_weight", "label": "national_weight"},
+    {"key": "imo_tst_weight", "label": "imo_tst_weight"},
+    {"key": "training_type", "label": "training_type"},
+    {"key": "target_level", "label": "target_level"},
+    {"key": "benchmark_confidence", "label": "benchmark_confidence"},
+    {"key": "key_insight_spoiler_free", "label": "key_insight_spoiler_free"},
+    {"key": "rationale", "label": "rationale"},
+    {"key": "pitfalls", "label": "pitfalls"},
+    {"key": "recommended_sequence", "label": "recommended_sequence"},
+    {"key": "alias_suggestions", "label": "alias_suggestions"},
+]
+
+
+@login_required
+def technique_benchmark_list_view(request):
+    benchmarks = TechniqueBenchmark.objects.prefetch_related("aliases").order_by("kind", "label")
+    rows = [_technique_benchmark_list_row(benchmark) for benchmark in benchmarks]
+    for row in rows:
+        row["cells"] = [row[column["key"]] for column in TECHNIQUE_BENCHMARK_LIST_COLUMNS]
+    return render(
+        request,
+        "pages/technique-benchmark-list.html",
+        {
+            "technique_benchmark_columns": TECHNIQUE_BENCHMARK_LIST_COLUMNS,
+            "technique_benchmark_rows": rows,
+            "technique_benchmark_total": len(rows),
+        },
+    )
+
+
+def _technique_benchmark_list_row(benchmark: TechniqueBenchmark) -> dict[str, object]:
+    return {
+        "row_key": build_benchmark_row_key(benchmark.kind, benchmark.label_key),
+        "normalized_label": benchmark.normalized_label,
+        "parent_family": benchmark.parent_family,
+        "primary_area": benchmark.primary_area,
+        "syllabus_core": benchmark.syllabus_core,
+        "contest_frequency": benchmark.contest_frequency,
+        "transfer_value": benchmark.transfer_value,
+        "prerequisite_value": benchmark.prerequisite_value,
+        "concept_load": benchmark.concept_load,
+        "recognition_burden": benchmark.recognition_burden,
+        "execution_load": benchmark.execution_load,
+        "proof_fragility": benchmark.proof_fragility,
+        "cross_topic_dependency": benchmark.cross_topic_dependency,
+        "typical_mohs_min": benchmark.typical_mohs_min,
+        "typical_mohs_max": benchmark.typical_mohs_max,
+        "jbmo_weight": _benchmark_decimal_display(benchmark.jbmo_weight),
+        "national_weight": _benchmark_decimal_display(benchmark.national_weight),
+        "imo_tst_weight": _benchmark_decimal_display(benchmark.imo_tst_weight),
+        "training_type": benchmark.training_type,
+        "target_level": benchmark.target_level,
+        "benchmark_confidence": benchmark.benchmark_confidence,
+        "key_insight_spoiler_free": "",
+        "rationale": benchmark.rationale,
+        "pitfalls": benchmark.pitfalls,
+        "recommended_sequence": benchmark.recommended_sequence,
+        "alias_suggestions": ", ".join(alias.alias_label for alias in benchmark.aliases.all()),
+    }
+
+
+def _benchmark_decimal_display(value) -> str:
+    if value is None:
+        return ""
+    return f"{value:.2f}"
 
 
 def _technique_progress_gaps_datatable_params(request):
