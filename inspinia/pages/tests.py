@@ -14677,7 +14677,7 @@ def test_technique_benchmark_list_requires_login(client):
     assert reverse(settings.LOGIN_URL) in response["Location"]
 
 
-def test_technique_benchmark_list_renders_all_kinds_with_requested_columns(client):
+def test_technique_benchmark_list_renders_scannable_catalog_grid(client):
     user = UserFactory()
     client.force_login(user)
     method_benchmark = TechniqueBenchmark.objects.create(
@@ -14740,55 +14740,89 @@ def test_technique_benchmark_list_renders_all_kinds_with_requested_columns(clien
     response = client.get(reverse("pages:technique_benchmark_list"))
 
     assert response.status_code == HTTPStatus.OK
-    expected_columns = [
-        "row_key",
-        "normalized_label",
-        "parent_family",
-        "primary_area",
-        "syllabus_core",
-        "contest_frequency",
-        "transfer_value",
-        "prerequisite_value",
-        "concept_load",
-        "recognition_burden",
-        "execution_load",
-        "proof_fragility",
-        "cross_topic_dependency",
-        "typical_mohs_min",
-        "typical_mohs_max",
-        "jbmo_weight",
-        "national_weight",
-        "imo_tst_weight",
-        "training_type",
-        "target_level",
-        "benchmark_confidence",
-        "key_insight_spoiler_free",
-        "rationale",
-        "pitfalls",
-        "recommended_sequence",
-        "alias_suggestions",
-    ]
-    assert [column["key"] for column in response.context["technique_benchmark_columns"]] == expected_columns
     rows_by_key = {row["row_key"]: row for row in response.context["technique_benchmark_rows"]}
     assert set(rows_by_key) == {"canonical_subtopic:parity", "method:factorization"}
     method_row = rows_by_key["method:factorization"]
-    assert method_row["normalized_label"] == "Factorization"
-    assert method_row["jbmo_weight"] == "1.35"
-    assert method_row["typical_mohs_max"] == 45
-    assert method_row["key_insight_spoiler_free"] == ""
-    assert method_row["alias_suggestions"] == "algebraic factorization"
+    assert method_row["technique_label"] == "Factorization"
+    assert method_row["area"] == "Algebra"
+    assert method_row["family"] == "Algebraic manipulation"
+    assert method_row["mohs_range_label"] == "0-45 min"
+    assert method_row["foundation_scores"] == [
+        {"key": "syllabus_core", "label": "Syllabus core", "value": 5},
+        {"key": "contest_frequency", "label": "Contest frequency", "value": 5},
+        {"key": "transfer_value", "label": "Transfer value", "value": 5},
+        {"key": "prerequisite_value", "label": "Prerequisite value", "value": 5},
+    ]
+    assert method_row["load_scores"][-1] == {
+        "key": "cross_topic_dependency",
+        "label": "Cross-topic dependency",
+        "value": 4,
+    }
+    assert method_row["contest_weights"] == [
+        {"key": "jbmo_weight", "label": "JBMO", "value": "1.35"},
+        {"key": "national_weight", "label": "National", "value": "1.45"},
+        {"key": "imo_tst_weight", "label": "IMO/TST", "value": "1.30"},
+    ]
+    assert method_row["confidence_percent"] == 92
+    assert method_row["details"]["alias_suggestions"] == "algebraic factorization"
+    assert method_row["raw"]["row_key"] == "method:factorization"
+
+    assert response.context["technique_benchmark_filter_options"] == {
+        "areas": ["Algebra", "Number Theory"],
+        "training_types": ["Deep block", "Drill"],
+        "target_levels": ["Foundation", "National"],
+    }
+    assert response.context["technique_benchmark_default_columns"] == [
+        "Technique",
+        "Area",
+        "Family",
+        "Training",
+        "Target",
+        "Foundation value",
+        "Load",
+        "MOHS",
+        "Contest weight",
+        "Confidence",
+        "Details",
+    ]
 
     response_html = response.content.decode("utf-8")
     assert "Technique benchmarks" in response_html
     assert 'id="technique-benchmarks-table"' in response_html
+    assert 'id="technique-benchmarks-table-data"' in response_html
     assert 'new DataTable("#technique-benchmarks-table"' in response_html
     assert "dataTables.bootstrap5.min.css" in response_html
     assert "dataTables.min.js" in response_html
-    for column_key in expected_columns:
-        assert f"<th>{column_key}</th>" in response_html
+    for column_label in response.context["technique_benchmark_default_columns"]:
+        assert f"<th>{column_label}</th>" in response_html
+    for raw_header in ("row_key", "normalized_label", "rationale", "pitfalls", "recommended_sequence"):
+        assert f"<th>{raw_header}</th>" not in response_html
+    assert 'data-preset="overview"' in response_html
+    assert 'data-preset="raw"' in response_html
+    assert 'data-filter-kind="area"' in response_html
+    assert 'data-confidence-band="85+"' in response_html
+    assert "benchmark-row-key-subtext" in response_html
+    assert "benchmark-detail-toggle" in response_html
     assert "method:factorization" in response_html
     assert "canonical_subtopic:parity" in response_html
     assert "algebraic factorization" in response_html
+
+
+def test_technique_benchmark_list_skips_datatables_when_empty(client):
+    user = UserFactory()
+    client.force_login(user)
+
+    response = client.get(reverse("pages:technique_benchmark_list"))
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["technique_benchmark_total"] == 0
+    assert response.context["technique_benchmark_rows"] == []
+    response_html = response.content.decode("utf-8")
+    assert "No technique benchmarks yet." in response_html
+    assert "dataTables.bootstrap5.min.css" not in response_html
+    assert "dataTables.min.js" not in response_html
+    assert 'new DataTable("#technique-benchmarks-table"' not in response_html
+    assert 'id="technique-benchmarks-table-data"' not in response_html
 
 
 def test_technique_benchmark_list_is_linked_from_library_side_nav(client):
