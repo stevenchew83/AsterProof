@@ -2563,7 +2563,7 @@ def _gap_benchmark_url(  # noqa: PLR0913
         query["min_total"] = str(gap_min_total)
     if gap_canonical_subtopic:
         query["canonical_subtopic"] = gap_canonical_subtopic
-    return f"{reverse('pages:technique_gap_benchmark')}?{urlencode(query)}"
+    return f"{reverse('pages:technique_benchmark_import')}?{urlencode(query)}"
 
 
 def _gap_rows_with_urls(
