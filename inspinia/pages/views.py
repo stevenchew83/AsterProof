@@ -156,12 +156,12 @@ from inspinia.pages.statement_metadata_backfill import statement_metadata_datafr
 from inspinia.pages.subtopic_cleanup import apply_subtopic_cleanup
 from inspinia.pages.subtopic_cleanup import build_subtopic_cleanup_preview
 from inspinia.pages.technique_benchmarking.batches import mark_benchmark_rows_reviewed
+from inspinia.pages.technique_benchmarking.dashboard import build_technique_benchmark_dashboard_context
 from inspinia.pages.technique_benchmarking.importing import BenchmarkImportValidationError
 from inspinia.pages.technique_benchmarking.importing import apply_benchmark_import
 from inspinia.pages.technique_benchmarking.importing import preview_benchmark_import
 from inspinia.pages.technique_benchmarking.importing import restore_benchmark_import_batch
 from inspinia.pages.technique_benchmarking.keys import benchmark_row_key
-from inspinia.pages.technique_benchmarking.keys import build_benchmark_row_key
 from inspinia.pages.technique_progress import build_technique_progress_context
 from inspinia.pages.technique_progress import build_technique_progress_export_response
 from inspinia.pages.technique_progress import build_technique_progress_gaps_context
@@ -8266,175 +8266,18 @@ def technique_progress_gaps_view(request):
     return render(request, "pages/technique-progress-gaps.html", context)
 
 
-TECHNIQUE_BENCHMARK_LIST_COLUMNS = [
-    {"key": "row_key", "label": "row_key"},
-    {"key": "normalized_label", "label": "normalized_label"},
-    {"key": "parent_family", "label": "parent_family"},
-    {"key": "primary_area", "label": "primary_area"},
-    {"key": "syllabus_core", "label": "syllabus_core"},
-    {"key": "contest_frequency", "label": "contest_frequency"},
-    {"key": "transfer_value", "label": "transfer_value"},
-    {"key": "prerequisite_value", "label": "prerequisite_value"},
-    {"key": "concept_load", "label": "concept_load"},
-    {"key": "recognition_burden", "label": "recognition_burden"},
-    {"key": "execution_load", "label": "execution_load"},
-    {"key": "proof_fragility", "label": "proof_fragility"},
-    {"key": "cross_topic_dependency", "label": "cross_topic_dependency"},
-    {"key": "typical_mohs_min", "label": "typical_mohs_min"},
-    {"key": "typical_mohs_max", "label": "typical_mohs_max"},
-    {"key": "jbmo_weight", "label": "jbmo_weight"},
-    {"key": "national_weight", "label": "national_weight"},
-    {"key": "imo_tst_weight", "label": "imo_tst_weight"},
-    {"key": "training_type", "label": "training_type"},
-    {"key": "target_level", "label": "target_level"},
-    {"key": "benchmark_confidence", "label": "benchmark_confidence"},
-    {"key": "key_insight_spoiler_free", "label": "key_insight_spoiler_free"},
-    {"key": "rationale", "label": "rationale"},
-    {"key": "pitfalls", "label": "pitfalls"},
-    {"key": "recommended_sequence", "label": "recommended_sequence"},
-    {"key": "alias_suggestions", "label": "alias_suggestions"},
-]
-
-TECHNIQUE_BENCHMARK_DEFAULT_COLUMNS = [
-    "Technique",
-    "Area",
-    "Family",
-    "Training",
-    "Target",
-    "Foundation value",
-    "Load",
-    "MOHS",
-    "Contest weight",
-    "Confidence",
-    "Details",
-]
-
-TECHNIQUE_BENCHMARK_FOUNDATION_SCORE_FIELDS = [
-    ("syllabus_core", "Syllabus core"),
-    ("contest_frequency", "Contest frequency"),
-    ("transfer_value", "Transfer value"),
-    ("prerequisite_value", "Prerequisite value"),
-]
-
-TECHNIQUE_BENCHMARK_LOAD_SCORE_FIELDS = [
-    ("concept_load", "Concept load"),
-    ("recognition_burden", "Recognition burden"),
-    ("execution_load", "Execution load"),
-    ("proof_fragility", "Proof fragility"),
-    ("cross_topic_dependency", "Cross-topic dependency"),
-]
-
-TECHNIQUE_BENCHMARK_CONTEST_WEIGHT_FIELDS = [
-    ("jbmo_weight", "JBMO"),
-    ("national_weight", "National"),
-    ("imo_tst_weight", "IMO/TST"),
-]
-
-
 @login_required
 def technique_benchmark_list_view(request):
     benchmarks = TechniqueBenchmark.objects.prefetch_related("aliases").order_by("kind", "label")
-    rows = [_technique_benchmark_list_row(benchmark) for benchmark in benchmarks]
+    context = build_technique_benchmark_dashboard_context(
+        benchmarks,
+        raw_target_profile=request.GET.get("target_profile"),
+    )
     return render(
         request,
         "pages/technique-benchmark-list.html",
-        {
-            "technique_benchmark_columns": TECHNIQUE_BENCHMARK_LIST_COLUMNS,
-            "technique_benchmark_default_columns": TECHNIQUE_BENCHMARK_DEFAULT_COLUMNS,
-            "technique_benchmark_filter_options": _technique_benchmark_filter_options(rows),
-            "technique_benchmark_rows": rows,
-            "technique_benchmark_table_rows": _json_script_safe(rows),
-            "technique_benchmark_total": len(rows),
-        },
+        context,
     )
-
-
-def _technique_benchmark_list_row(benchmark: TechniqueBenchmark) -> dict[str, object]:
-    row_key = build_benchmark_row_key(benchmark.kind, benchmark.label_key)
-    raw = {
-        "row_key": row_key,
-        "normalized_label": benchmark.normalized_label,
-        "parent_family": benchmark.parent_family,
-        "primary_area": benchmark.primary_area,
-        "syllabus_core": benchmark.syllabus_core,
-        "contest_frequency": benchmark.contest_frequency,
-        "transfer_value": benchmark.transfer_value,
-        "prerequisite_value": benchmark.prerequisite_value,
-        "concept_load": benchmark.concept_load,
-        "recognition_burden": benchmark.recognition_burden,
-        "execution_load": benchmark.execution_load,
-        "proof_fragility": benchmark.proof_fragility,
-        "cross_topic_dependency": benchmark.cross_topic_dependency,
-        "typical_mohs_min": benchmark.typical_mohs_min,
-        "typical_mohs_max": benchmark.typical_mohs_max,
-        "jbmo_weight": _benchmark_decimal_display(benchmark.jbmo_weight),
-        "national_weight": _benchmark_decimal_display(benchmark.national_weight),
-        "imo_tst_weight": _benchmark_decimal_display(benchmark.imo_tst_weight),
-        "training_type": benchmark.training_type,
-        "target_level": benchmark.target_level,
-        "benchmark_confidence": benchmark.benchmark_confidence,
-        "key_insight_spoiler_free": "",
-        "rationale": benchmark.rationale,
-        "pitfalls": benchmark.pitfalls,
-        "recommended_sequence": benchmark.recommended_sequence,
-        "alias_suggestions": ", ".join(alias.alias_label for alias in benchmark.aliases.all()),
-    }
-    return {
-        **raw,
-        "technique_label": benchmark.normalized_label or benchmark.label,
-        "family": benchmark.parent_family,
-        "area": benchmark.primary_area,
-        "foundation_scores": _benchmark_score_group(raw, TECHNIQUE_BENCHMARK_FOUNDATION_SCORE_FIELDS),
-        "load_scores": _benchmark_score_group(raw, TECHNIQUE_BENCHMARK_LOAD_SCORE_FIELDS),
-        "mohs_range_label": _benchmark_mohs_range_label(benchmark.typical_mohs_min, benchmark.typical_mohs_max),
-        "contest_weights": [
-            {"key": key, "label": label, "value": raw[key]}
-            for key, label in TECHNIQUE_BENCHMARK_CONTEST_WEIGHT_FIELDS
-        ],
-        "confidence_percent": benchmark.benchmark_confidence,
-        "details": {
-            "key_insight_spoiler_free": raw["key_insight_spoiler_free"],
-            "rationale": benchmark.rationale,
-            "pitfalls": benchmark.pitfalls,
-            "recommended_sequence": benchmark.recommended_sequence,
-            "alias_suggestions": raw["alias_suggestions"],
-        },
-        "raw": raw,
-    }
-
-
-def _benchmark_decimal_display(value) -> str:
-    if value is None:
-        return ""
-    return f"{value:.2f}"
-
-
-def _benchmark_score_group(row: dict[str, object], fields: list[tuple[str, str]]) -> list[dict[str, object]]:
-    return [{"key": key, "label": label, "value": row[key]} for key, label in fields]
-
-
-def _benchmark_mohs_range_label(min_value: int | None, max_value: int | None) -> str:
-    if min_value is None and max_value is None:
-        return ""
-    if min_value is None:
-        return f"Up to {max_value} min"
-    if max_value is None:
-        return f"{min_value}+ min"
-    if min_value == max_value:
-        return f"{min_value} min"
-    return f"{min_value}-{max_value} min"
-
-
-def _technique_benchmark_filter_options(rows: list[dict[str, object]]) -> dict[str, list[str]]:
-    return {
-        "areas": _sorted_nonblank_values(row.get("area") for row in rows),
-        "training_types": _sorted_nonblank_values(row.get("training_type") for row in rows),
-        "target_levels": _sorted_nonblank_values(row.get("target_level") for row in rows),
-    }
-
-
-def _sorted_nonblank_values(values) -> list[str]:
-    return sorted({str(value).strip() for value in values if str(value or "").strip()})
 
 
 def _technique_progress_gaps_datatable_params(request):

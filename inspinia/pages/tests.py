@@ -14677,30 +14677,57 @@ def test_technique_benchmark_list_requires_login(client):
     assert reverse(settings.LOGIN_URL) in response["Location"]
 
 
-def test_technique_benchmark_list_renders_scannable_catalog_grid(client):
+def _create_technique_benchmark(**overrides):
+    defaults = {
+        "kind": TechniqueBenchmark.Kind.METHOD,
+        "label": "Benchmark topic",
+        "normalized_label": overrides.get("label", "Benchmark topic"),
+        "parent_family": "Benchmark family",
+        "primary_area": "Algebra",
+        "syllabus_core": 5,
+        "contest_frequency": 5,
+        "transfer_value": 5,
+        "prerequisite_value": 5,
+        "concept_load": 3,
+        "recognition_burden": 3,
+        "execution_load": 3,
+        "proof_fragility": 3,
+        "cross_topic_dependency": 3,
+        "typical_mohs_min": 0,
+        "typical_mohs_max": 40,
+        "jbmo_weight": "1.00",
+        "national_weight": "1.00",
+        "imo_tst_weight": "1.00",
+        "training_type": "Drill",
+        "target_level": "National",
+        "benchmark_confidence": 90,
+        "rationale": "Useful across many olympiad problems.",
+        "pitfalls": "Students apply it mechanically.",
+        "recommended_sequence": "Review examples before mixed practice.",
+    }
+    defaults.update(overrides)
+    return TechniqueBenchmark.objects.create(**defaults)
+
+
+def test_technique_benchmark_list_renders_benchmark_map_dashboard(client):
     user = UserFactory()
     client.force_login(user)
-    method_benchmark = TechniqueBenchmark.objects.create(
+    method_benchmark = _create_technique_benchmark(
         kind=TechniqueBenchmark.Kind.METHOD,
         label="Factorization",
-        normalized_label="Factorization",
         parent_family="Algebraic manipulation",
         primary_area="Algebra",
-        syllabus_core=5,
-        contest_frequency=5,
-        transfer_value=5,
-        prerequisite_value=5,
         concept_load=3,
-        recognition_burden=4,
-        execution_load=4,
+        recognition_burden=3,
+        execution_load=3,
         proof_fragility=3,
-        cross_topic_dependency=4,
+        cross_topic_dependency=3,
         typical_mohs_min=0,
         typical_mohs_max=45,
         jbmo_weight="1.35",
         national_weight="1.45",
         imo_tst_weight="1.30",
-        training_type="Deep block",
+        training_type="Drill",
         target_level="National",
         benchmark_confidence=92,
         rationale="Factorization is one of the highest-transfer tools.",
@@ -14712,15 +14739,28 @@ def test_technique_benchmark_list_renders_scannable_catalog_grid(client):
         alias_label="algebraic factorization",
         benchmark=method_benchmark,
     )
-    TechniqueBenchmark.objects.create(
+    _create_technique_benchmark(
+        kind=TechniqueBenchmark.Kind.CANONICAL_SUBTOPIC,
+        label="Projective geometry",
+        parent_family="Projective and affine geometry",
+        primary_area="Geometry",
+        concept_load=5,
+        recognition_burden=5,
+        execution_load=4,
+        proof_fragility=4,
+        cross_topic_dependency=4,
+        typical_mohs_min=25,
+        typical_mohs_max=50,
+        training_type="Deep block",
+        target_level="IMO/TST",
+        benchmark_confidence=76,
+    )
+    _create_technique_benchmark(
         kind=TechniqueBenchmark.Kind.CANONICAL_SUBTOPIC,
         label="Parity",
-        normalized_label="Parity",
         parent_family="Divisibility and invariants",
         primary_area="Number Theory",
-        syllabus_core=5,
         contest_frequency=4,
-        transfer_value=5,
         prerequisite_value=4,
         concept_load=2,
         recognition_burden=2,
@@ -14732,83 +14772,100 @@ def test_technique_benchmark_list_renders_scannable_catalog_grid(client):
         training_type="Drill",
         target_level="Foundation",
         benchmark_confidence=88,
-        rationale="Parity is a core invariant.",
-        pitfalls="Students forget parity is preserved.",
-        recommended_sequence="Study divisibility first.",
     )
 
     response = client.get(reverse("pages:technique_benchmark_list"))
 
     assert response.status_code == HTTPStatus.OK
-    rows_by_key = {row["row_key"]: row for row in response.context["technique_benchmark_rows"]}
-    assert set(rows_by_key) == {"canonical_subtopic:parity", "method:factorization"}
-    method_row = rows_by_key["method:factorization"]
-    assert method_row["technique_label"] == "Factorization"
-    assert method_row["area"] == "Algebra"
-    assert method_row["family"] == "Algebraic manipulation"
-    assert method_row["mohs_range_label"] == "0-45 min"
-    assert method_row["foundation_scores"] == [
-        {"key": "syllabus_core", "label": "Syllabus core", "value": 5},
-        {"key": "contest_frequency", "label": "Contest frequency", "value": 5},
-        {"key": "transfer_value", "label": "Transfer value", "value": 5},
-        {"key": "prerequisite_value", "label": "Prerequisite value", "value": 5},
+    assert response.context["technique_benchmark_total"] == 3
+    assert response.context["technique_benchmark_target_profile"] == "national"
+    assert response.context["technique_benchmark_target_profile_label"] == "National"
+    assert [option["key"] for option in response.context["technique_benchmark_target_profile_options"]] == [
+        "jbmo",
+        "national",
+        "imo_tst",
     ]
-    assert method_row["load_scores"][-1] == {
-        "key": "cross_topic_dependency",
-        "label": "Cross-topic dependency",
-        "value": 4,
+    summary_by_key = {
+        card["key"]: card["value"] for card in response.context["technique_benchmark_summary_cards"]
     }
-    assert method_row["contest_weights"] == [
-        {"key": "jbmo_weight", "label": "JBMO", "value": "1.35"},
-        {"key": "national_weight", "label": "National", "value": "1.45"},
-        {"key": "imo_tst_weight", "label": "IMO/TST", "value": "1.30"},
-    ]
-    assert method_row["confidence_percent"] == 92
-    assert method_row["details"]["alias_suggestions"] == "algebraic factorization"
-    assert method_row["raw"]["row_key"] == "method:factorization"
-
-    assert response.context["technique_benchmark_filter_options"] == {
-        "areas": ["Algebra", "Number Theory"],
-        "training_types": ["Deep block", "Drill"],
-        "target_levels": ["Foundation", "National"],
+    assert summary_by_key == {
+        "high_value": 3,
+        "deep_blocks": 1,
+        "quick_wins": 2,
+        "confidence_review": 1,
+        "target_focus": 3,
     }
-    assert response.context["technique_benchmark_default_columns"] == [
+    assert response.context["technique_benchmark_table_columns"] == [
         "Technique",
         "Area",
         "Family",
         "Training",
         "Target",
-        "Foundation value",
-        "Load",
+        "Value",
+        "Difficulty",
         "MOHS",
-        "Contest weight",
         "Confidence",
         "Details",
     ]
+    rows_by_key = {row["row_key"]: row for row in response.context["technique_benchmark_rows"]}
+    assert set(rows_by_key) == {
+        "canonical_subtopic:parity",
+        "canonical_subtopic:projective-geometry",
+        "method:factorization",
+    }
+    method_row = rows_by_key["method:factorization"]
+    assert method_row["value_score"] == "4.65"
+    assert method_row["difficulty_score"] == "3.00"
+    assert method_row["selected_target_weight"] == "1.45"
+    assert method_row["mohs_band_label"] == "0M-45M"
+    assert method_row["confidence_bucket"] == "90+"
+    assert method_row["alias_suggestions"] == "algebraic factorization"
+    assert method_row["detail_groups"]["value_profile"][0] == {"label": "Core", "value": 5}
+    assert method_row["detail_groups"]["difficulty_profile"][0] == {"label": "Concept", "value": 3}
+    assert response.context["technique_benchmark_matrix_payload"]["series"]
+    assert response.context["technique_benchmark_heatmap_payload"]["series"]
 
     response_html = response.content.decode("utf-8")
-    assert "Technique benchmarks" in response_html
+    assert "Benchmark Map" in response_html
+    assert "Technique benchmarks" not in response_html
+    assert 'id="technique-benchmark-matrix"' in response_html
+    assert 'id="technique-benchmark-heatmap"' in response_html
     assert 'id="technique-benchmarks-table"' in response_html
-    assert 'id="technique-benchmarks-table-data"' in response_html
+    assert 'id="technique-benchmark-matrix-data"' in response_html
+    assert 'id="technique-benchmark-heatmap-data"' in response_html
+    assert 'id="technique-benchmark-table-data"' in response_html
     assert 'new DataTable("#technique-benchmarks-table"' in response_html
-    assert "dataTables.bootstrap5.min.css" in response_html
+    assert "apexcharts.min.js" in response_html
     assert "dataTables.min.js" in response_html
-    for column_label in response.context["technique_benchmark_default_columns"]:
-        assert f"<th>{column_label}</th>" in response_html
-    for raw_header in ("row_key", "normalized_label", "rationale", "pitfalls", "recommended_sequence"):
-        assert f"<th>{raw_header}</th>" not in response_html
-    assert 'data-preset="overview"' in response_html
-    assert 'data-preset="raw"' in response_html
-    assert 'data-filter-kind="area"' in response_html
-    assert 'data-confidence-band="85+"' in response_html
-    assert "benchmark-row-key-subtext" in response_html
-    assert "benchmark-detail-toggle" in response_html
     assert "method:factorization" in response_html
-    assert "canonical_subtopic:parity" in response_html
     assert "algebraic factorization" in response_html
 
 
-def test_technique_benchmark_list_skips_datatables_when_empty(client):
+def test_technique_benchmark_list_target_profile_changes_scores_without_saving(client):
+    user = UserFactory()
+    client.force_login(user)
+    benchmark = _create_technique_benchmark(
+        kind=TechniqueBenchmark.Kind.METHOD,
+        label="Vieta jumping",
+        parent_family="Diophantine equations",
+        primary_area="Number Theory",
+        jbmo_weight="0.40",
+        national_weight="1.00",
+        imo_tst_weight="1.80",
+    )
+
+    response = client.get(reverse("pages:technique_benchmark_list"), {"target_profile": "imo_tst"})
+
+    benchmark.refresh_from_db()
+    assert str(benchmark.importance_score) == "4.60"
+    assert response.context["technique_benchmark_target_profile"] == "imo_tst"
+    assert response.context["technique_benchmark_target_profile_label"] == "IMO/TST"
+    row = response.context["technique_benchmark_rows"][0]
+    assert row["selected_target_weight"] == "1.80"
+    assert row["value_score"] == "4.68"
+
+
+def test_technique_benchmark_list_handles_empty_state(client):
     user = UserFactory()
     client.force_login(user)
 
@@ -14817,24 +14874,52 @@ def test_technique_benchmark_list_skips_datatables_when_empty(client):
     assert response.status_code == HTTPStatus.OK
     assert response.context["technique_benchmark_total"] == 0
     assert response.context["technique_benchmark_rows"] == []
+    assert response.context["technique_benchmark_matrix_payload"] == {"series": []}
+    assert response.context["technique_benchmark_heatmap_payload"] == {"series": []}
     response_html = response.content.decode("utf-8")
     assert "No technique benchmarks yet." in response_html
-    assert "dataTables.bootstrap5.min.css" not in response_html
-    assert "dataTables.min.js" not in response_html
-    assert 'new DataTable("#technique-benchmarks-table"' not in response_html
-    assert 'id="technique-benchmarks-table-data"' not in response_html
+    assert reverse("pages:technique_benchmark_import") in response_html
+
+
+def test_technique_benchmark_list_keeps_partial_rows_visible(client):
+    user = UserFactory()
+    client.force_login(user)
+    TechniqueBenchmark.objects.create(
+        kind=TechniqueBenchmark.Kind.METHOD,
+        label="Synthetic inversion",
+        parent_family="Transformations",
+        primary_area="Geometry",
+        syllabus_core=4,
+        contest_frequency=4,
+        transfer_value=4,
+        prerequisite_value=4,
+        training_type="Review",
+        target_level="Specialist",
+        benchmark_confidence=69,
+    )
+
+    response = client.get(reverse("pages:technique_benchmark_list"))
+
+    row = response.context["technique_benchmark_rows"][0]
+    assert row["row_key"] == "method:synthetic-inversion"
+    assert row["value_score"] == "3.70"
+    assert row["difficulty_score"] == ""
+    assert row["confidence_bucket"] == "<70"
+    assert row["chartable"] is False
+    assert response.context["technique_benchmark_matrix_payload"] == {"series": []}
 
 
 def test_technique_benchmark_list_is_linked_from_library_side_nav(client):
-    user = UserFactory()
+    user = UserFactory(role=User.Role.ADMIN)
     client.force_login(user)
 
     response = client.get(reverse("pages:technique_benchmark_list"))
 
     side_nav_html = _rendered_side_nav_html(response)
     assert reverse("pages:technique_benchmark_list") in side_nav_html
-    assert "Technique benchmarks" in side_nav_html
-    assert side_nav_html.index("Problem statements") < side_nav_html.index("Technique benchmarks")
+    assert "Benchmark map" in side_nav_html
+    assert "Benchmark import" in side_nav_html
+    assert side_nav_html.index("Problem statements") < side_nav_html.index("Benchmark map")
 
 
 def test_technique_benchmark_import_page_resolves_bare_json_row_keys_from_current_gap_rows(client):
