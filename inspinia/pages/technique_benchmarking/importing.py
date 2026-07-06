@@ -720,7 +720,11 @@ def _benchmark_kind_from_existing_rows(label_key: str) -> str:
 
 def _benchmark_kind_from_title_label_row(raw_row: dict[str, Any]) -> str:
     raw_row_key = _clean_text(raw_row.get("row_key"))
-    normalized_label = _clean_text(raw_row.get("normalized_label"))
+    normalized_label = (
+        _clean_text(raw_row.get("normalized_label"))
+        or _clean_text(raw_row.get("area"))
+        or raw_row_key
+    )
     raw_row_key_label_key = normalize_benchmark_key(raw_row_key)
     normalized_label_key = normalize_benchmark_key(normalized_label)
     if raw_row_key_label_key and raw_row_key_label_key == normalized_label_key:
@@ -801,6 +805,9 @@ def _validate_raw_row(  # noqa: C901, PLR0912, PLR0915
         seen_row_keys.add(row_key)
 
     normalized_label = _clean_text(raw_row.get("normalized_label")) or _clean_text(raw_row.get("area"))
+    raw_row_key = _clean_text(raw_row.get("row_key"))
+    if not normalized_label and kind == TechniqueBenchmark.Kind.CANONICAL_SUBTOPIC and ":" not in raw_row_key:
+        normalized_label = raw_row_key
     primary_area = _clean_text(raw_row.get("primary_area")) or _primary_area_from_topic(raw_row.get("topic"))
     typical_mohs_min, typical_mohs_max = _mohs_bounds_from_import_row(raw_row)
     normalized_row: dict[str, Any] = {
