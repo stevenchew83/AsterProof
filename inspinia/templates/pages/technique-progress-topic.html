@@ -200,16 +200,16 @@
                   </td>
                   <td class="technique-progress-benchmark-short">{{ row.parent_family|default:'-' }}</td>
                   <td class="technique-progress-benchmark-short">{{ row.curriculum_class|default:'-' }}</td>
-                  <td>{{ row.syllabus_core|default_if_none:'-' }}</td>
-                  <td>{{ row.contest_frequency|default_if_none:'-' }}</td>
-                  <td>{{ row.transfer_value|default_if_none:'-' }}</td>
-                  <td>{{ row.prerequisite_value|default_if_none:'-' }}</td>
-                  <td>{{ row.mohs_scalability|default_if_none:'-' }}</td>
-                  <td>{{ row.concept_load|default_if_none:'-' }}</td>
-                  <td>{{ row.recognition_burden|default_if_none:'-' }}</td>
-                  <td>{{ row.execution_load|default_if_none:'-' }}</td>
-                  <td>{{ row.proof_fragility|default_if_none:'-' }}</td>
-                  <td>{{ row.cross_topic_dependency|default_if_none:'-' }}</td>
+                  <td class="technique-progress-benchmark-short">{{ row.syllabus_core_label|default:'-' }}</td>
+                  <td class="technique-progress-benchmark-short">{{ row.contest_frequency_label|default:'-' }}</td>
+                  <td class="technique-progress-benchmark-short">{{ row.transfer_value_label|default:'-' }}</td>
+                  <td class="technique-progress-benchmark-short">{{ row.prerequisite_value_label|default:'-' }}</td>
+                  <td class="technique-progress-benchmark-text">{{ row.mohs_scalability_label|default:'-' }}</td>
+                  <td class="technique-progress-benchmark-short">{{ row.concept_load_label|default:'-' }}</td>
+                  <td class="technique-progress-benchmark-short">{{ row.recognition_burden_label|default:'-' }}</td>
+                  <td class="technique-progress-benchmark-short">{{ row.execution_load_label|default:'-' }}</td>
+                  <td class="technique-progress-benchmark-short">{{ row.proof_fragility_label|default:'-' }}</td>
+                  <td class="technique-progress-benchmark-short">{{ row.cross_topic_dependency_label|default:'-' }}</td>
                   <td>{{ row.importance_score|default_if_none:'-' }}</td>
                   <td>{{ row.difficulty_score|default_if_none:'-' }}</td>
                   <td>{{ row.typical_mohs_min|default_if_none:'-' }}</td>
