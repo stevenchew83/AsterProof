@@ -18593,6 +18593,16 @@ def test_technique_progress_topic_detail_shows_benchmark_metadata_columns(client
     assert "<th scope=\"col\">Curriculum class</th>" in response_html
     assert "<th scope=\"col\">MOHS scalability</th>" in response_html
     assert "<th scope=\"col\">Alias suggestions</th>" in response_html
+    assert "dataTables.bootstrap5.min.css" in response_html
+    assert "dataTables.min.js" in response_html
+    assert 'id="technique-progress-topic-subtopics-table"' in response_html
+    assert "dataTables-example" in response_html
+    assert "table-bordered" in response_html
+    assert "table-hover" in response_html
+    assert "html5buttons" in response_html
+    assert "Copy" in response_html
+    assert "Print" in response_html
+    assert 'new DataTable("#technique-progress-topic-subtopics-table"' in response_html
     assert "Olympiad algebra foundations" in response_html
     assert "essential foundation" in response_html
     assert "can appear naturally in hard IMO/TST problems" in response_html
