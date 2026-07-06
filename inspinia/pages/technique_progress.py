@@ -153,6 +153,79 @@ GAP_DATATABLE_SORT_FIELDS = {
     "target_level",
     "type",
 }
+BENCHMARK_SCORE_LABELS = {
+    "syllabus_core": {
+        1: "peripheral",
+        2: "useful but not core",
+        3: "standard supporting topic",
+        4: "core olympiad topic",
+        5: "essential foundation",
+    },
+    "contest_frequency": {
+        1: "rare",
+        2: "occasional",
+        3: "regular",
+        4: "common",
+        5: "extremely common",
+    },
+    "transfer_value": {
+        1: "isolated",
+        2: "useful in one family",
+        3: "useful across several subtopics",
+        4: "cross-area method",
+        5: "unlocks many olympiad problems",
+    },
+    "prerequisite_value": {
+        1: "not a prerequisite",
+        2: "useful background",
+        3: "needed for some harder topics",
+        4: "prerequisite for many topics",
+        5: "foundational prerequisite",
+    },
+    "mohs_scalability": {
+        1: "mostly routine or narrow",
+        2: "appears mainly at low to mid level",
+        3: "scales to national-level problems",
+        4: "scales to hard national or IMO medium problems",
+        5: "can appear naturally in hard IMO/TST problems",
+    },
+    "concept_load": {
+        1: "very light",
+        2: "moderate",
+        3: "substantial",
+        4: "heavy",
+        5: "very heavy",
+    },
+    "recognition_burden": {
+        1: "obvious when applicable",
+        2: "usually visible",
+        3: "needs experience",
+        4: "hard to spot",
+        5: "very hidden / insight-heavy",
+    },
+    "execution_load": {
+        1: "short execution",
+        2: "moderate",
+        3: "long but standard",
+        4: "technical",
+        5: "very technical",
+    },
+    "proof_fragility": {
+        1: "robust",
+        2: "minor care needed",
+        3: "easy to miss details",
+        4: "many traps",
+        5: "very fragile",
+    },
+    "cross_topic_dependency": {
+        1: "standalone",
+        2: "small dependency",
+        3: "several dependencies",
+        4: "many dependencies",
+        5: "strongly cross-topic",
+    },
+}
+BENCHMARK_SCORE_LABEL_FIELDS = tuple(BENCHMARK_SCORE_LABELS)
 MAIN_TOPIC_ORDER = ["Algebra", "Number Theory", "Geometry", "Combinatorics"]
 OTHER_TOPIC_LABEL = "Other"
 SUBTOPIC_ALWAYS_SUPPRESSED_NORMALIZATION_STATUSES = {"corrupt", "invalid", "metadata"}
@@ -1389,6 +1462,7 @@ def _enrich_gap_rows_with_benchmarks(rows: list[dict[str, object]]) -> list[dict
             "jbmo_weight": None,
             "national_weight": None,
             "imo_tst_weight": None,
+            **{f"{field_name}_label": "" for field_name in BENCHMARK_SCORE_LABEL_FIELDS},
         }
         if benchmark is not None:
             alias_suggestions = alias_labels_by_benchmark_id.get(benchmark.pk, [])
@@ -1426,10 +1500,27 @@ def _enrich_gap_rows_with_benchmarks(rows: list[dict[str, object]]) -> list[dict
                     "jbmo_weight": benchmark.jbmo_weight,
                     "national_weight": benchmark.national_weight,
                     "imo_tst_weight": benchmark.imo_tst_weight,
+                    **{
+                        f"{field_name}_label": _benchmark_score_label(
+                            field_name,
+                            getattr(benchmark, field_name),
+                        )
+                        for field_name in BENCHMARK_SCORE_LABEL_FIELDS
+                    },
                 },
             )
         enriched_rows.append(enriched_row)
     return enriched_rows
+
+
+def _benchmark_score_label(field_name: str, value: object) -> str:
+    if value is None:
+        return ""
+    try:
+        score = int(value)
+    except (TypeError, ValueError):
+        return ""
+    return BENCHMARK_SCORE_LABELS.get(field_name, {}).get(score, "")
 
 
 def _benchmark_alias_labels_by_id(lookup: dict[str, dict[str, object]]) -> dict[int, list[str]]:
@@ -2878,6 +2969,7 @@ def _gap_search_haystack(row: dict[str, object]) -> str:
         row.get("national_weight", ""),
         row.get("imo_tst_weight", ""),
     ]
+    values.extend(row.get(f"{field_name}_label", "") for field_name in BENCHMARK_SCORE_LABEL_FIELDS)
     return " ".join(str(value) for value in values).casefold()
 
 

@@ -18572,6 +18572,16 @@ def test_technique_progress_topic_detail_shows_benchmark_metadata_columns(client
     assert row["parent_family"] == "Olympiad algebra foundations"
     assert row["curriculum_class"] == "Foundation"
     assert row["mohs_scalability"] == 5
+    assert row["syllabus_core_label"] == "essential foundation"
+    assert row["contest_frequency_label"] == "extremely common"
+    assert row["transfer_value_label"] == "unlocks many olympiad problems"
+    assert row["prerequisite_value_label"] == "foundational prerequisite"
+    assert row["mohs_scalability_label"] == "can appear naturally in hard IMO/TST problems"
+    assert row["concept_load_label"] == "substantial"
+    assert row["recognition_burden_label"] == "needs experience"
+    assert row["execution_load_label"] == "technical"
+    assert row["proof_fragility_label"] == "easy to miss details"
+    assert row["cross_topic_dependency_label"] == "many dependencies"
     assert row["key_insight_spoiler_free"] == "Spot equality cases and bounding structure."
     assert row["alias_suggestions"] == ["optimization"]
     assert row["merge_note"] == "Imported from curriculum benchmark sheet."
@@ -18581,6 +18591,9 @@ def test_technique_progress_topic_detail_shows_benchmark_metadata_columns(client
     assert "<th scope=\"col\">MOHS scalability</th>" in response_html
     assert "<th scope=\"col\">Alias suggestions</th>" in response_html
     assert "Olympiad algebra foundations" in response_html
+    assert "essential foundation" in response_html
+    assert "can appear naturally in hard IMO/TST problems" in response_html
+    assert "many dependencies" in response_html
     assert "Spot equality cases and bounding structure." in response_html
     assert "optimization" in response_html
 
