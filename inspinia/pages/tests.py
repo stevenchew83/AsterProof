@@ -26,6 +26,7 @@ from django.db import connection
 from django.db import transaction
 from django.http import QueryDict
 from django.template.loader import render_to_string
+from django.test import Client
 from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
@@ -17131,9 +17132,9 @@ def test_technique_progress_gaps_page_uses_server_side_datatable_and_preserves_f
     assert "serverSide: true" in response_html
     assert "processing: true" in response_html
     assert "ajax:" in response_html
-    assert 'data-csrf-token="' in response_html
-    assert 'type: "POST"' in response_html
-    assert '"X-CSRFToken": tableElement.dataset.csrfToken' in response_html
+    assert 'data-csrf-token="' not in response_html
+    assert 'type: "GET"' in response_html
+    assert '"X-CSRFToken"' not in response_html
     assert "columns:" in response_html
     assert "searchDelay: 300" in response_html
     assert 'id="technique-progress-gaps-export"' in response_html
@@ -17222,6 +17223,58 @@ def test_technique_progress_gaps_datatable_accepts_post_body_params_with_url_fil
     assert payload["draw"] == 7
     assert payload["recordsTotal"] == 52
     assert [row["label"] for row in payload["data"]] == ["Gap 51", "Gap 52"]
+
+
+@override_settings(CSRF_COOKIE_SECURE=True, CSRF_COOKIE_NAME="__Secure-csrftoken")
+def test_technique_progress_gaps_datatable_get_does_not_require_csrf_cookie():
+    csrf_client = Client(enforce_csrf_checks=True)
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    selected_user = UserFactory()
+    csrf_client.force_login(admin_user)
+    _create_technique_progress_statement(
+        problem_code="C1",
+        problem_number=1,
+        statement_tags=[
+            {
+                "technique": "EXTREMAL ARGUMENT",
+                "domains": ["COMB"],
+                "main_topic": "COMB",
+                "canonical_subtopic": "Graph theory",
+                "object_tags": ["GRAPH"],
+                "technique_tags": ["EXTREMAL METHOD"],
+            },
+        ],
+    )
+
+    page = csrf_client.get(
+        reverse("pages:technique_progress_gaps"),
+        {"user": str(selected_user.pk), "kind": "all", "topic": "combinatorics"},
+    )
+    assert page.status_code == HTTPStatus.OK
+    csrf_client.cookies.pop("__Secure-csrftoken", None)
+
+    response = csrf_client.get(
+        reverse("pages:technique_progress_gaps"),
+        {
+            "user": str(selected_user.pk),
+            "kind": "all",
+            "topic": "combinatorics",
+            "format": "datatable",
+            "draw": "1",
+            "start": "0",
+            "length": "50",
+            "order[0][column]": "5",
+            "order[0][dir]": "desc",
+            "columns[5][data]": "priority_score",
+            "columns[5][name]": "priority_score",
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    payload = response.json()
+    assert payload["draw"] == 1
+    assert payload["recordsTotal"] == 2
+    assert {row["label"] for row in payload["data"]} == {"EXTREMAL METHOD", "GRAPH"}
 
 
 def test_technique_progress_gaps_export_csv_uses_url_filters_and_ignores_datatable_search(client):
