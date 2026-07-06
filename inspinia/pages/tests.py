@@ -17134,6 +17134,9 @@ def test_technique_progress_gaps_page_uses_server_side_datatable_and_preserves_f
     assert "ajax:" in response_html
     assert 'data-csrf-token="' not in response_html
     assert 'type: "GET"' in response_html
+    assert "data: compactTechniqueGapDatatableParams" in response_html
+    assert "columns[\" + orderColumnIndex + \"][data]" in response_html
+    assert "columns[\" + orderColumnIndex + \"][name]" in response_html
     assert '"X-CSRFToken"' not in response_html
     assert "columns:" in response_html
     assert "searchDelay: 300" in response_html
