@@ -412,6 +412,28 @@
   var priorityColumnIndex = columns.findIndex(function(column) {
     return column.name === "priority_score";
   });
+
+  function compactTechniqueGapDatatableParams(data) {
+    var order = data && data.order && data.order.length ? data.order[0] : {};
+    var orderColumnIndex = Number.parseInt(order.column, 10);
+    if (!Number.isFinite(orderColumnIndex) || orderColumnIndex < 0) {
+      orderColumnIndex = priorityColumnIndex;
+    }
+    var orderColumn = data && data.columns ? data.columns[orderColumnIndex] : null;
+    var sortField = orderColumn ? displayValue(orderColumn.name || orderColumn.data, "") : "";
+    var params = {
+      draw: data.draw,
+      start: data.start,
+      length: data.length,
+      "search[value]": data.search && data.search.value ? data.search.value : "",
+      "order[0][column]": orderColumnIndex,
+      "order[0][dir]": order.dir === "asc" ? "asc" : "desc"
+    };
+    params["columns[" + orderColumnIndex + "][data]"] = sortField;
+    params["columns[" + orderColumnIndex + "][name]"] = sortField;
+    return params;
+  }
+
   columns.push(
     { data: "solved_total_label", name: "solved_total_label", render: renderCompleted },
     { data: "average_solved_mohs", name: "average_solved_mohs", render: renderAverageMohs },
@@ -432,7 +454,8 @@
     processing: true,
     ajax: {
       url: tableElement.dataset.rowsUrl,
-      type: "GET"
+      type: "GET",
+      data: compactTechniqueGapDatatableParams
     },
     columns: columns,
     searchDelay: 300,
