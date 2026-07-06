@@ -49,12 +49,19 @@ SCORE_FIELDS = (
     "cross_topic_dependency",
 )
 WEIGHT_FIELDS = ("jbmo_weight", "national_weight", "imo_tst_weight")
-TEXT_LIMIT_FIELDS = ("rationale", "pitfalls", "recommended_sequence")
+TEXT_LIMIT_FIELDS = (
+    "key_insight_spoiler_free",
+    "rationale",
+    "pitfalls",
+    "recommended_sequence",
+    "merge_note",
+)
 MODEL_TEXT_LIMIT_FIELDS = {
     "label_key": MAX_BENCHMARK_TEXT_CHARS,
     "normalized_label": MAX_BENCHMARK_TEXT_CHARS,
     "parent_family": MAX_BENCHMARK_TEXT_CHARS,
     "primary_area": MAX_PRIMARY_AREA_CHARS,
+    "curriculum_class": MAX_PRIMARY_AREA_CHARS,
 }
 TRAINING_TYPES = TechniqueBenchmark.TRAINING_TYPES
 TARGET_LEVELS = TechniqueBenchmark.TARGET_LEVELS
@@ -84,10 +91,12 @@ MODEL_UPDATE_FIELDS = (
     "parent_family",
     "primary_area",
     "area_labels",
+    "curriculum_class",
     "syllabus_core",
     "contest_frequency",
     "transfer_value",
     "prerequisite_value",
+    "mohs_scalability",
     "concept_load",
     "recognition_burden",
     "execution_load",
@@ -105,19 +114,23 @@ MODEL_UPDATE_FIELDS = (
     "target_level",
     "benchmark_confidence",
     "quality_flags",
+    "key_insight_spoiler_free",
     "rationale",
     "pitfalls",
     "recommended_sequence",
+    "merge_note",
     "source_version",
 )
 PREVIEW_CHANGED_FIELD_LABELS = {
     "normalized_label": "Normalized label",
     "parent_family": "Parent family",
     "primary_area": "Primary area",
+    "curriculum_class": "Curriculum class",
     "syllabus_core": "Syllabus",
     "contest_frequency": "Frequency",
     "transfer_value": "Transfer",
     "prerequisite_value": "Prerequisite",
+    "mohs_scalability": "MOHS scalability",
     "concept_load": "Concept",
     "recognition_burden": "Recognition",
     "execution_load": "Execution",
@@ -131,9 +144,11 @@ PREVIEW_CHANGED_FIELD_LABELS = {
     "training_type": "Training type",
     "target_level": "Target level",
     "benchmark_confidence": "Confidence",
+    "key_insight_spoiler_free": "Key insight",
     "rationale": "Rationale",
     "pitfalls": "Pitfalls",
     "recommended_sequence": "Recommended sequence",
+    "merge_note": "Merge note",
 }
 
 
@@ -817,6 +832,7 @@ def _validate_raw_row(  # noqa: C901, PLR0912, PLR0915
         "normalized_label": normalized_label,
         "parent_family": _clean_text(raw_row.get("parent_family")),
         "primary_area": primary_area,
+        "curriculum_class": _clean_text(raw_row.get("curriculum_class")),
         "source_version": SCHEMA_VERSION,
     }
     if not normalized_row["normalized_label"]:
@@ -831,6 +847,12 @@ def _validate_raw_row(  # noqa: C901, PLR0912, PLR0915
         normalized_row[field_name] = _coerce_int(raw_row.get(field_name))
         if normalized_row[field_name] is None or not SCORE_MIN <= normalized_row[field_name] <= SCORE_MAX:
             errors.append(f"{field_name} must be between {SCORE_MIN} and {SCORE_MAX}.")
+    normalized_row["mohs_scalability"] = _coerce_optional_int(raw_row.get("mohs_scalability"))
+    if (
+        normalized_row["mohs_scalability"] is not None
+        and not MOHS_MIN <= normalized_row["mohs_scalability"] <= SCORE_MAX
+    ):
+        errors.append(f"mohs_scalability must be between {MOHS_MIN} and {SCORE_MAX}.")
 
     normalized_row["typical_mohs_min"] = typical_mohs_min
     normalized_row["typical_mohs_max"] = typical_mohs_max
@@ -896,10 +918,12 @@ def _snapshot_from_import_row(
         parent_family=row["parent_family"],
         primary_area=row["primary_area"],
         area_labels=row["area_labels"],
+        curriculum_class=row["curriculum_class"],
         syllabus_core=row["syllabus_core"],
         contest_frequency=row["contest_frequency"],
         transfer_value=row["transfer_value"],
         prerequisite_value=row["prerequisite_value"],
+        mohs_scalability=row["mohs_scalability"],
         concept_load=row["concept_load"],
         recognition_burden=row["recognition_burden"],
         execution_load=row["execution_load"],
@@ -914,9 +938,11 @@ def _snapshot_from_import_row(
         target_level=row["target_level"],
         benchmark_confidence=row["benchmark_confidence"],
         quality_flags=list(getattr(existing_benchmark, "quality_flags", []) or []),
+        key_insight_spoiler_free=row["key_insight_spoiler_free"],
         rationale=row["rationale"],
         pitfalls=row["pitfalls"],
         recommended_sequence=row["recommended_sequence"],
+        merge_note=row["merge_note"],
         source_version=SCHEMA_VERSION,
     )
     benchmark.importance_score = calculate_static_importance_score(benchmark)

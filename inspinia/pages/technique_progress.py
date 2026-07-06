@@ -1338,6 +1338,7 @@ def _benchmark_cache_marker() -> str:
 
 def _enrich_gap_rows_with_benchmarks(rows: list[dict[str, object]]) -> list[dict[str, object]]:
     lookup = benchmark_lookup_for_gap_rows(rows)
+    alias_labels_by_benchmark_id = _benchmark_alias_labels_by_id(lookup)
     enriched_rows = []
     for row in rows:
         row_key = benchmark_row_key(row)
@@ -1358,34 +1359,92 @@ def _enrich_gap_rows_with_benchmarks(rows: list[dict[str, object]]) -> list[dict
             "benchmark_status": status,
             "parent_family": "",
             "primary_area": "",
+            "curriculum_class": "",
             "target_level": "",
+            "training_type": "",
             "benchmark_training_type": "",
             "benchmark_confidence": None,
+            "key_insight_spoiler_free": "",
             "rationale": "",
+            "pitfalls": "",
+            "recommended_sequence": "",
+            "merge_note": "",
+            "alias_suggestions": [],
+            "alias_suggestions_label": "",
             "typical_mohs_band": "",
+            "mohs_scalability": None,
             "syllabus_core": None,
             "contest_frequency": None,
             "transfer_value": None,
             "prerequisite_value": None,
+            "concept_load": None,
+            "recognition_burden": None,
+            "execution_load": None,
+            "proof_fragility": None,
+            "cross_topic_dependency": None,
+            "importance_score": None,
+            "difficulty_score": None,
+            "typical_mohs_min": None,
+            "typical_mohs_max": None,
+            "jbmo_weight": None,
+            "national_weight": None,
+            "imo_tst_weight": None,
         }
         if benchmark is not None:
+            alias_suggestions = alias_labels_by_benchmark_id.get(benchmark.pk, [])
             enriched_row.update(
                 {
                     "parent_family": benchmark.parent_family,
                     "primary_area": benchmark.primary_area,
+                    "curriculum_class": benchmark.curriculum_class,
                     "target_level": benchmark.target_level,
+                    "training_type": benchmark.training_type,
                     "benchmark_training_type": benchmark.training_type,
                     "benchmark_confidence": benchmark.benchmark_confidence,
+                    "key_insight_spoiler_free": benchmark.key_insight_spoiler_free,
                     "rationale": benchmark.rationale,
+                    "pitfalls": benchmark.pitfalls,
+                    "recommended_sequence": benchmark.recommended_sequence,
+                    "merge_note": benchmark.merge_note,
+                    "alias_suggestions": alias_suggestions,
+                    "alias_suggestions_label": "; ".join(alias_suggestions),
                     "typical_mohs_band": _typical_mohs_band(benchmark),
+                    "mohs_scalability": benchmark.mohs_scalability,
                     "syllabus_core": benchmark.syllabus_core,
                     "contest_frequency": benchmark.contest_frequency,
                     "transfer_value": benchmark.transfer_value,
                     "prerequisite_value": benchmark.prerequisite_value,
+                    "concept_load": benchmark.concept_load,
+                    "recognition_burden": benchmark.recognition_burden,
+                    "execution_load": benchmark.execution_load,
+                    "proof_fragility": benchmark.proof_fragility,
+                    "cross_topic_dependency": benchmark.cross_topic_dependency,
+                    "importance_score": benchmark.importance_score,
+                    "difficulty_score": benchmark.difficulty_score,
+                    "typical_mohs_min": benchmark.typical_mohs_min,
+                    "typical_mohs_max": benchmark.typical_mohs_max,
+                    "jbmo_weight": benchmark.jbmo_weight,
+                    "national_weight": benchmark.national_weight,
+                    "imo_tst_weight": benchmark.imo_tst_weight,
                 },
             )
         enriched_rows.append(enriched_row)
     return enriched_rows
+
+
+def _benchmark_alias_labels_by_id(lookup: dict[str, dict[str, object]]) -> dict[int, list[str]]:
+    benchmark_ids = {
+        benchmark.pk
+        for lookup_entry in lookup.values()
+        for benchmark in [lookup_entry.get("benchmark")]
+        if isinstance(benchmark, TechniqueBenchmark) and benchmark.pk is not None
+    }
+    if not benchmark_ids:
+        return {}
+    labels_by_id: dict[int, list[str]] = {benchmark_id: [] for benchmark_id in benchmark_ids}
+    for alias in TechniqueBenchmarkAlias.objects.filter(benchmark_id__in=benchmark_ids).order_by("alias_label"):
+        labels_by_id.setdefault(alias.benchmark_id, []).append(alias.alias_label)
+    return labels_by_id
 
 
 def _score_and_rank_gap_rows(
@@ -1613,6 +1672,7 @@ def _topic_detail_cache_key(
             f"topic={topic_slug}",
             f"catalog={_catalog_cache_marker()}",
             f"completion={_completion_cache_marker(selected_user)}",
+            f"benchmark={_benchmark_cache_marker()}",
         ],
     )
     digest = hashlib.sha256(key_payload.encode("utf-8")).hexdigest()
@@ -1688,6 +1748,14 @@ def _build_topic_detail_payload(  # noqa: PLR0913
         can_select_user=can_select_user,
         topic_slug=topic_slug,
     )
+    topic_subtopic_rows = [
+        {
+            key: value
+            for key, value in row.items()
+            if key != "_benchmark"
+        }
+        for row in _enrich_gap_rows_with_benchmarks(topic_subtopic_rows)
+    ]
     summary = _summary_from_tagged_rows(topic_tagged_rows)
     summary["incomplete_subtopic_total"] = sum(1 for row in topic_subtopic_rows if row["remaining"])
     summary["subtopic_total"] = len(topic_subtopic_rows)
@@ -2780,13 +2848,35 @@ def _gap_search_haystack(row: dict[str, object]) -> str:
         row.get("benchmark_status", ""),
         row.get("parent_family", ""),
         row.get("primary_area", ""),
+        row.get("curriculum_class", ""),
         row.get("target_level", ""),
+        row.get("training_type", ""),
         row.get("benchmark_training_type", ""),
         row.get("final_training_type", ""),
+        row.get("key_insight_spoiler_free", ""),
         row.get("rationale", ""),
+        row.get("pitfalls", ""),
+        row.get("recommended_sequence", ""),
+        row.get("alias_suggestions_label", ""),
+        row.get("merge_note", ""),
         row.get("priority_score", ""),
         row.get("importance_score", ""),
         row.get("difficulty_score", ""),
+        row.get("mohs_scalability", ""),
+        row.get("syllabus_core", ""),
+        row.get("contest_frequency", ""),
+        row.get("transfer_value", ""),
+        row.get("prerequisite_value", ""),
+        row.get("concept_load", ""),
+        row.get("recognition_burden", ""),
+        row.get("execution_load", ""),
+        row.get("proof_fragility", ""),
+        row.get("cross_topic_dependency", ""),
+        row.get("typical_mohs_min", ""),
+        row.get("typical_mohs_max", ""),
+        row.get("jbmo_weight", ""),
+        row.get("national_weight", ""),
+        row.get("imo_tst_weight", ""),
     ]
     return " ".join(str(value) for value in values).casefold()
 
