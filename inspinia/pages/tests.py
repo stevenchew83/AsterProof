@@ -14249,6 +14249,40 @@ def test_technique_benchmark_import_parser_treats_title_label_csv_rows_as_canoni
     ]
 
 
+def test_technique_benchmark_import_parser_uses_bare_row_key_as_canonical_subtopic_label():
+    from inspinia.pages.technique_benchmarking.importing import preview_benchmark_import
+
+    table = (
+        "row_key\tprimary_area\tparent_family\tcurriculum_class\tsyllabus_core\tcontest_frequency\t"
+        "transfer_value\tprerequisite_value\tMOHS_scalability\tconcept_load\trecognition_burden\t"
+        "execution_load\tproof_fragility\tcross_topic_dependency\timportance_score\tdifficulty_score\t"
+        "typical_mohs_min\ttypical_mohs_max\tjbmo_weight\tnational_weight\timo_tst_weight\t"
+        "training_type\ttarget_level\tbenchmark_confidence\tkey_insight_spoiler_free\trationale\t"
+        "pitfalls\trecommended_sequence\talias_suggestions\tmerge_note\n"
+        "Inequalities and optimization\tAlgebra\tOlympiad algebra foundations\tFoundation\t5\t5\t"
+        "5\t5\t5\t3\t3\t4\t3\t4\t5\t3.35\t10\t40\t1.35\t1.45\t1.35\tDrill\tJBMO\t"
+        "96\tSpot equality cases and bounding structure.\tCentral algebra foundation with very high transfer.\t"
+        "Memorizing inequalities without structure.\tBefore factorization; after convexity and optimization.\t"
+        "inequalities;optimization;bounding;convexity;smoothing\t\n"
+    )
+
+    preview = preview_benchmark_import(table)
+
+    assert preview.rows_total == 1
+    assert preview.rows_valid == 1
+    assert preview.rows_invalid == 0
+    assert preview.valid_rows[0]["row_key"] == "canonical_subtopic:inequalities-and-optimization"
+    assert preview.valid_rows[0]["normalized_label"] == "Inequalities and optimization"
+    assert preview.valid_rows[0]["alias_suggestions"] == [
+        "inequalities",
+        "optimization",
+        "bounding",
+        "convexity",
+        "smoothing",
+    ]
+    assert TechniqueBenchmark.objects.count() == 0
+
+
 def test_technique_benchmark_import_preview_rejects_parent_family_too_long():
     from inspinia.pages.technique_benchmarking.importing import preview_benchmark_import
 
