@@ -674,6 +674,7 @@ class TechniqueBenchmark(models.Model):
     parent_family = models.CharField(max_length=255, blank=True)
     primary_area = models.CharField(max_length=64, blank=True)
     area_labels = models.JSONField(default=list, blank=True)
+    curriculum_class = models.CharField(max_length=64, blank=True)
 
     syllabus_core = models.PositiveSmallIntegerField(
         null=True,
@@ -694,6 +695,11 @@ class TechniqueBenchmark(models.Model):
         null=True,
         blank=True,
         validators=[MinValueValidator(1), MaxValueValidator(5)],
+    )
+    mohs_scalability = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0), MaxValueValidator(5)],
     )
 
     concept_load = models.PositiveSmallIntegerField(
@@ -749,9 +755,11 @@ class TechniqueBenchmark(models.Model):
         validators=[MinValueValidator(0), MaxValueValidator(100)],
     )
     quality_flags = models.JSONField(default=list, blank=True)
+    key_insight_spoiler_free = models.TextField(blank=True)
     rationale = models.TextField(blank=True)
     pitfalls = models.TextField(blank=True)
     recommended_sequence = models.TextField(blank=True)
+    merge_note = models.TextField(blank=True)
     source_version = models.CharField(max_length=64, blank=True)
     imported_from_batch = models.ForeignKey(
         TechniqueBenchmarkImportBatch,

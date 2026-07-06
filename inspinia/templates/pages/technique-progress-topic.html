@@ -20,6 +20,15 @@
   .technique-progress-gap-preview {
     max-width: 48rem;
   }
+
+  .technique-progress-benchmark-short {
+    min-width: 7rem;
+  }
+
+  .technique-progress-benchmark-text {
+    min-width: 16rem;
+    white-space: normal;
+  }
 </style>
 {% endblock extra_css %}
 
@@ -137,6 +146,34 @@
               <thead>
                 <tr>
                   <th scope="col">Canonical subtopic</th>
+                  <th scope="col">Parent family</th>
+                  <th scope="col">Curriculum class</th>
+                  <th scope="col">Syllabus core</th>
+                  <th scope="col">Contest frequency</th>
+                  <th scope="col">Transfer value</th>
+                  <th scope="col">Prerequisite value</th>
+                  <th scope="col">MOHS scalability</th>
+                  <th scope="col">Concept load</th>
+                  <th scope="col">Recognition burden</th>
+                  <th scope="col">Execution load</th>
+                  <th scope="col">Proof fragility</th>
+                  <th scope="col">Cross-topic dependency</th>
+                  <th scope="col">Importance score</th>
+                  <th scope="col">Difficulty score</th>
+                  <th scope="col">MOHS min</th>
+                  <th scope="col">MOHS max</th>
+                  <th scope="col">JBMO weight</th>
+                  <th scope="col">National weight</th>
+                  <th scope="col">IMO/TST weight</th>
+                  <th scope="col">Training type</th>
+                  <th scope="col">Target level</th>
+                  <th scope="col">Confidence</th>
+                  <th scope="col">Key insight</th>
+                  <th scope="col">Rationale</th>
+                  <th scope="col">Pitfalls</th>
+                  <th scope="col">Recommended sequence</th>
+                  <th scope="col">Alias suggestions</th>
+                  <th scope="col">Merge note</th>
                   <th scope="col">Completed</th>
                   <th scope="col">Avg MOHS</th>
                   <th scope="col">Remaining</th>
@@ -161,6 +198,34 @@
                     </div>
                     {% endif %}
                   </td>
+                  <td class="technique-progress-benchmark-short">{{ row.parent_family|default:'-' }}</td>
+                  <td class="technique-progress-benchmark-short">{{ row.curriculum_class|default:'-' }}</td>
+                  <td>{{ row.syllabus_core|default_if_none:'-' }}</td>
+                  <td>{{ row.contest_frequency|default_if_none:'-' }}</td>
+                  <td>{{ row.transfer_value|default_if_none:'-' }}</td>
+                  <td>{{ row.prerequisite_value|default_if_none:'-' }}</td>
+                  <td>{{ row.mohs_scalability|default_if_none:'-' }}</td>
+                  <td>{{ row.concept_load|default_if_none:'-' }}</td>
+                  <td>{{ row.recognition_burden|default_if_none:'-' }}</td>
+                  <td>{{ row.execution_load|default_if_none:'-' }}</td>
+                  <td>{{ row.proof_fragility|default_if_none:'-' }}</td>
+                  <td>{{ row.cross_topic_dependency|default_if_none:'-' }}</td>
+                  <td>{{ row.importance_score|default_if_none:'-' }}</td>
+                  <td>{{ row.difficulty_score|default_if_none:'-' }}</td>
+                  <td>{{ row.typical_mohs_min|default_if_none:'-' }}</td>
+                  <td>{{ row.typical_mohs_max|default_if_none:'-' }}</td>
+                  <td>{{ row.jbmo_weight|default_if_none:'-' }}</td>
+                  <td>{{ row.national_weight|default_if_none:'-' }}</td>
+                  <td>{{ row.imo_tst_weight|default_if_none:'-' }}</td>
+                  <td class="technique-progress-benchmark-short">{{ row.training_type|default:'-' }}</td>
+                  <td class="technique-progress-benchmark-short">{{ row.target_level|default:'-' }}</td>
+                  <td>{{ row.benchmark_confidence|default_if_none:'-' }}</td>
+                  <td class="technique-progress-benchmark-text">{{ row.key_insight_spoiler_free|default:'-' }}</td>
+                  <td class="technique-progress-benchmark-text">{{ row.rationale|default:'-' }}</td>
+                  <td class="technique-progress-benchmark-text">{{ row.pitfalls|default:'-' }}</td>
+                  <td class="technique-progress-benchmark-text">{{ row.recommended_sequence|default:'-' }}</td>
+                  <td class="technique-progress-benchmark-text">{{ row.alias_suggestions_label|default:'-' }}</td>
+                  <td class="technique-progress-benchmark-text">{{ row.merge_note|default:'-' }}</td>
                   <td>{{ row.solved }} of {{ row.total }}</td>
                   <td>
                     {% if row.average_solved_mohs is not None %}

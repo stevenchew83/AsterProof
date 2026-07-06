@@ -14283,6 +14283,43 @@ def test_technique_benchmark_import_parser_uses_bare_row_key_as_canonical_subtop
     assert TechniqueBenchmark.objects.count() == 0
 
 
+def test_technique_benchmark_import_apply_preserves_extended_metadata():
+    from inspinia.pages.technique_benchmarking.importing import apply_benchmark_import
+    from inspinia.pages.technique_benchmarking.importing import preview_benchmark_import
+
+    user = UserFactory(role=User.Role.ADMIN)
+    table = (
+        "row_key\tprimary_area\tparent_family\tcurriculum_class\tsyllabus_core\tcontest_frequency\t"
+        "transfer_value\tprerequisite_value\tMOHS_scalability\tconcept_load\trecognition_burden\t"
+        "execution_load\tproof_fragility\tcross_topic_dependency\ttypical_mohs_min\ttypical_mohs_max\t"
+        "jbmo_weight\tnational_weight\timo_tst_weight\ttraining_type\ttarget_level\tbenchmark_confidence\t"
+        "key_insight_spoiler_free\trationale\tpitfalls\trecommended_sequence\talias_suggestions\tmerge_note\n"
+        "Inequalities and optimization\tAlgebra\tOlympiad algebra foundations\tFoundation\t5\t5\t"
+        "5\t5\t5\t3\t3\t4\t3\t4\t10\t40\t1.35\t1.45\t1.35\tDrill\tJBMO\t96\t"
+        "Spot equality cases and bounding structure.\tCentral algebra foundation with very high transfer.\t"
+        "Memorizing inequalities without structure.\tBefore factorization; after convexity and optimization.\t"
+        "inequalities;optimization\tImported from curriculum benchmark sheet.\n"
+    )
+
+    preview = preview_benchmark_import(table)
+    batch = apply_benchmark_import(preview, user=user, pasted_response=table)
+
+    benchmark = TechniqueBenchmark.objects.get(
+        kind=TechniqueBenchmark.Kind.CANONICAL_SUBTOPIC,
+        label_key="inequalities-and-optimization",
+    )
+    assert batch.rows_created == 1
+    assert benchmark.curriculum_class == "Foundation"
+    assert benchmark.mohs_scalability == 5
+    assert benchmark.key_insight_spoiler_free == "Spot equality cases and bounding structure."
+    assert benchmark.merge_note == "Imported from curriculum benchmark sheet."
+    assert TechniqueBenchmarkAlias.objects.filter(
+        kind=TechniqueBenchmark.Kind.CANONICAL_SUBTOPIC,
+        alias_key="inequalities",
+        benchmark=benchmark,
+    ).exists()
+
+
 def test_technique_benchmark_import_preview_rejects_parent_family_too_long():
     from inspinia.pages.technique_benchmarking.importing import preview_benchmark_import
 
@@ -18473,6 +18510,82 @@ def test_technique_progress_topic_detail_shows_layer_gap_preview_and_explore_url
     assert "Technique tag" not in response_html
     assert "Lemma/Theorem tag" not in response_html
     assert "Proof role" not in response_html
+
+
+def test_technique_progress_topic_detail_shows_benchmark_metadata_columns(client):
+    cache.clear()
+    user = UserFactory()
+    client.force_login(user)
+    canonical_subtopic = "Inequalities and optimization"
+    _create_technique_progress_statement(
+        problem_code="BM1",
+        problem_number=1,
+        statement_tags=[
+            {
+                "technique": "INEQUALITY",
+                "domains": ["ALG"],
+                "main_topic": "ALG",
+                "canonical_subtopic": canonical_subtopic,
+            },
+        ],
+    )
+    benchmark = TechniqueBenchmark.objects.create(
+        kind=TechniqueBenchmark.Kind.CANONICAL_SUBTOPIC,
+        label=canonical_subtopic,
+        normalized_label=canonical_subtopic,
+        parent_family="Olympiad algebra foundations",
+        primary_area="Algebra",
+        curriculum_class="Foundation",
+        syllabus_core=5,
+        contest_frequency=5,
+        transfer_value=5,
+        prerequisite_value=5,
+        mohs_scalability=5,
+        concept_load=3,
+        recognition_burden=3,
+        execution_load=4,
+        proof_fragility=3,
+        cross_topic_dependency=4,
+        typical_mohs_min=10,
+        typical_mohs_max=40,
+        jbmo_weight="1.35",
+        national_weight="1.45",
+        imo_tst_weight="1.35",
+        training_type="Drill",
+        target_level="JBMO",
+        benchmark_confidence=96,
+        key_insight_spoiler_free="Spot equality cases and bounding structure.",
+        rationale="Central algebra foundation with very high transfer.",
+        pitfalls="Memorizing inequalities without structure.",
+        recommended_sequence="Before factorization; after convexity and optimization.",
+        merge_note="Imported from curriculum benchmark sheet.",
+    )
+    TechniqueBenchmarkAlias.objects.create(
+        kind=TechniqueBenchmark.Kind.CANONICAL_SUBTOPIC,
+        alias_label="optimization",
+        benchmark=benchmark,
+    )
+
+    response = client.get(
+        reverse("pages:technique_progress_topic_detail", kwargs={"topic_slug": "algebra"}),
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    row = response.context["technique_progress_topic_subtopic_rows"][0]
+    assert row["parent_family"] == "Olympiad algebra foundations"
+    assert row["curriculum_class"] == "Foundation"
+    assert row["mohs_scalability"] == 5
+    assert row["key_insight_spoiler_free"] == "Spot equality cases and bounding structure."
+    assert row["alias_suggestions"] == ["optimization"]
+    assert row["merge_note"] == "Imported from curriculum benchmark sheet."
+    response_html = response.content.decode("utf-8")
+    assert "<th scope=\"col\">Parent family</th>" in response_html
+    assert "<th scope=\"col\">Curriculum class</th>" in response_html
+    assert "<th scope=\"col\">MOHS scalability</th>" in response_html
+    assert "<th scope=\"col\">Alias suggestions</th>" in response_html
+    assert "Olympiad algebra foundations" in response_html
+    assert "Spot equality cases and bounding structure." in response_html
+    assert "optimization" in response_html
 
 
 def test_technique_progress_topic_detail_reuses_cached_payload(client):

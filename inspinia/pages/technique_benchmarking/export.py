@@ -151,10 +151,12 @@ def build_benchmark_prompt(payload: dict[str, Any], *, export_batch=None) -> str
         '      "normalized_label": "string",\n'
         '      "parent_family": "string",\n'
         '      "primary_area": "Algebra|Number Theory|Geometry|Combinatorics|Mixed",\n'
+        '      "curriculum_class": "Foundation|Core|Advanced|Specialist",\n'
         '      "syllabus_core": 1,\n'
         '      "contest_frequency": 1,\n'
         '      "transfer_value": 1,\n'
         '      "prerequisite_value": 1,\n'
+        '      "mohs_scalability": 1,\n'
         '      "concept_load": 1,\n'
         '      "recognition_burden": 1,\n'
         '      "execution_load": 1,\n'
@@ -168,9 +170,12 @@ def build_benchmark_prompt(payload: dict[str, Any], *, export_batch=None) -> str
         '      "training_type": "Drill",\n'
         '      "target_level": "Foundation",\n'
         '      "benchmark_confidence": 80,\n'
+        '      "key_insight_spoiler_free": "compact non-spoiler insight",\n'
         '      "rationale": "one or two concise sentences",\n'
         '      "pitfalls": "common training mistake",\n'
-        '      "recommended_sequence": "what to learn before/after"\n'
+        '      "recommended_sequence": "what to learn before/after",\n'
+        '      "alias_suggestions": "optional semicolon-separated aliases",\n'
+        '      "merge_note": "optional note for duplicate/merge handling"\n'
         "    }\n"
         "  ]\n"
         "}\n\n"
@@ -184,15 +189,32 @@ def _existing_benchmark_payload(benchmark) -> dict[str, Any]:
         "normalized_label": benchmark.normalized_label,
         "parent_family": benchmark.parent_family,
         "primary_area": benchmark.primary_area,
+        "curriculum_class": benchmark.curriculum_class,
         "syllabus_core": benchmark.syllabus_core,
         "contest_frequency": benchmark.contest_frequency,
         "transfer_value": benchmark.transfer_value,
         "prerequisite_value": benchmark.prerequisite_value,
+        "mohs_scalability": benchmark.mohs_scalability,
+        "concept_load": benchmark.concept_load,
+        "recognition_burden": benchmark.recognition_burden,
+        "execution_load": benchmark.execution_load,
+        "proof_fragility": benchmark.proof_fragility,
+        "cross_topic_dependency": benchmark.cross_topic_dependency,
         "difficulty_score": _decimal_to_float(benchmark.difficulty_score),
         "importance_score": _decimal_to_float(benchmark.importance_score),
+        "typical_mohs_min": benchmark.typical_mohs_min,
+        "typical_mohs_max": benchmark.typical_mohs_max,
+        "jbmo_weight": _decimal_to_float(benchmark.jbmo_weight),
+        "national_weight": _decimal_to_float(benchmark.national_weight),
+        "imo_tst_weight": _decimal_to_float(benchmark.imo_tst_weight),
         "training_type": benchmark.training_type,
         "target_level": benchmark.target_level,
         "benchmark_confidence": benchmark.benchmark_confidence,
+        "key_insight_spoiler_free": benchmark.key_insight_spoiler_free,
+        "rationale": benchmark.rationale,
+        "pitfalls": benchmark.pitfalls,
+        "recommended_sequence": benchmark.recommended_sequence,
+        "merge_note": benchmark.merge_note,
     }
 
 
