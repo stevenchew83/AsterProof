@@ -1,8 +1,11 @@
 {% extends 'layouts/vertical.html' %}
 
+{% load static %}
+
 {% block title %}{{ technique_progress_topic_label }} progress{% endblock title %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="{% static 'plugins/datatables/dataTables.bootstrap5.min.css' %}">
 <style>
   .technique-progress-bar {
     min-width: 6.5rem;
@@ -28,6 +31,47 @@
   .technique-progress-benchmark-text {
     min-width: 16rem;
     white-space: normal;
+  }
+
+  #technique-progress-topic-subtopics-table_wrapper .dt-layout-row {
+    align-items: center;
+    gap: .75rem 1rem;
+    margin: 0;
+    padding: .75rem 0;
+  }
+
+  #technique-progress-topic-subtopics-table_wrapper .dt-layout-start {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .75rem;
+  }
+
+  #technique-progress-topic-subtopics-table_wrapper .dt-length label,
+  #technique-progress-topic-subtopics-table_wrapper .dt-info,
+  #technique-progress-topic-subtopics-table_wrapper .dt-search label {
+    color: var(--ins-secondary-color);
+    font-size: .82rem;
+    margin-bottom: 0;
+  }
+
+  #technique-progress-topic-subtopics-table_wrapper .dt-search input {
+    min-width: min(18rem, 100%);
+  }
+
+  #technique-progress-topic-subtopics-table_wrapper .dt-paging .pagination {
+    margin-bottom: 0;
+  }
+
+  .technique-topic-datatable-buttons .btn-default {
+    background-color: var(--ins-body-bg);
+    border-color: var(--ins-border-color);
+    color: var(--ins-body-color);
+  }
+
+  .technique-topic-datatable-buttons .btn-default:hover {
+    background-color: var(--ins-tertiary-bg);
+    border-color: var(--ins-border-color);
   }
 </style>
 {% endblock extra_css %}
@@ -141,8 +185,14 @@
         </div>
         <div class="card-body pt-2">
           {% if technique_progress_topic_subtopic_rows %}
+          <div id="technique-progress-topic-subtopics-buttons" class="html5buttons technique-topic-datatable-buttons d-none">
+            <div class="dt-buttons btn-group">
+              <button type="button" class="btn btn-default btn-sm buttons-copy buttons-html5">Copy</button>
+              <button type="button" class="btn btn-default btn-sm buttons-print">Print</button>
+            </div>
+          </div>
           <div class="table-responsive">
-            <table class="table table-sm table-striped align-middle mb-0">
+            <table id="technique-progress-topic-subtopics-table" class="table table-striped table-bordered table-hover dataTables-example align-middle mb-0">
               <thead>
                 <tr>
                   <th scope="col">Canonical subtopic</th>
@@ -272,3 +322,94 @@
 </div>
 
 {% endblock page_content %}
+
+{% block extra_javascript %}
+{% include 'partials/datatables-vendor-scripts.html' %}
+<script>
+(function () {
+  var tableElement = document.getElementById("technique-progress-topic-subtopics-table");
+  if (!tableElement || typeof DataTable !== "function") return;
+
+  var table = new DataTable("#technique-progress-topic-subtopics-table", {
+    layout: {
+      topStart: "pageLength",
+      topEnd: "search",
+      bottomStart: "info",
+      bottomEnd: "paging"
+    },
+    pageLength: 10,
+    lengthMenu: [10, 25, 50, 100],
+    order: [[31, "desc"]],
+    autoWidth: false,
+    columnDefs: [
+      { targets: [33], orderable: false, searchable: false }
+    ],
+    language: {
+      info: "Showing _START_ to _END_ of _TOTAL_ entries",
+      infoEmpty: "Showing 0 to 0 of 0 entries",
+      infoFiltered: "(filtered from _MAX_ total entries)",
+      lengthMenu: "Show _MENU_ entries",
+      search: "Search:",
+      zeroRecords: "No matching subtopics found."
+    }
+  });
+
+  var buttonGroup = document.getElementById("technique-progress-topic-subtopics-buttons");
+  var wrapper = document.getElementById("technique-progress-topic-subtopics-table_wrapper");
+  var layoutStart = wrapper ? wrapper.querySelector(".dt-layout-start") : null;
+  if (buttonGroup && layoutStart) {
+    layoutStart.insertBefore(buttonGroup, layoutStart.firstChild);
+    buttonGroup.classList.remove("d-none");
+  }
+
+  function cellText(value) {
+    var node = document.createElement("div");
+    node.innerHTML = value === null || value === undefined ? "" : String(value);
+    return node.textContent.replace(/\s+/g, " ").trim();
+  }
+
+  function tableText() {
+    var headers = Array.from(tableElement.querySelectorAll("thead th")).map(function (header) {
+      return header.textContent.trim();
+    });
+    var rows = [headers.join("\t")];
+    table.rows({ search: "applied" }).every(function () {
+      rows.push(this.data().map(cellText).join("\t"));
+    });
+    return rows.join("\n");
+  }
+
+  function fallbackCopy(text) {
+    var textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.left = "-9999px";
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand("copy");
+    textarea.remove();
+  }
+
+  var copyButton = buttonGroup ? buttonGroup.querySelector(".buttons-copy") : null;
+  var printButton = buttonGroup ? buttonGroup.querySelector(".buttons-print") : null;
+  if (copyButton) {
+    copyButton.addEventListener("click", function () {
+      var text = tableText();
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).catch(function () {
+          fallbackCopy(text);
+        });
+      } else {
+        fallbackCopy(text);
+      }
+    });
+  }
+  if (printButton) {
+    printButton.addEventListener("click", function () {
+      window.print();
+    });
+  }
+})();
+</script>
+{% endblock extra_javascript %}
