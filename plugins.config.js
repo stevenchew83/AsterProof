@@ -33,7 +33,9 @@ module.exports = [
         name: "tom-select",
         assets: [
             "./node_modules/tom-select/dist/js/tom-select.base.js",
+            "./node_modules/tom-select/dist/js/tom-select.base.js.map",
             "./node_modules/tom-select/dist/css/tom-select.bootstrap5.min.css",
+            "./node_modules/tom-select/dist/css/tom-select.bootstrap5.min.css.map",
         ],
     },
 ];

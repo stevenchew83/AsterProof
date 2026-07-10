@@ -8673,6 +8673,29 @@ def test_completion_record_list_renders_admin_inventory(client):
     assert "Records with solution" in response_html
 
 
+def test_tom_select_generated_assets_include_referenced_source_map():
+    project_root = Path(settings.BASE_DIR)
+    plugin_config = (project_root / "plugins.config.js").read_text()
+    tom_select_static_dir = project_root / "inspinia/static/plugins/tom-select"
+    source_map_dependencies = (
+        (
+            "./node_modules/tom-select/dist/js/tom-select.base.js.map",
+            "tom-select.base.js",
+            "tom-select.base.js.map",
+        ),
+        (
+            "./node_modules/tom-select/dist/css/tom-select.bootstrap5.min.css.map",
+            "tom-select.bootstrap5.min.css",
+            "tom-select.bootstrap5.min.css.map",
+        ),
+    )
+
+    for configured_asset, source_name, source_map_name in source_map_dependencies:
+        assert configured_asset in plugin_config
+        assert source_map_name in (tom_select_static_dir / source_name).read_text()
+        assert (tom_select_static_dir / source_map_name).is_file()
+
+
 def test_completion_record_list_includes_study_progress_fields(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     completion_user = UserFactory(name="Ada Lovelace")
