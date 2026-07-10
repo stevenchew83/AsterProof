@@ -8650,14 +8650,27 @@ def test_completion_record_list_renders_admin_inventory(client):
     assert first_row["archive_url"].endswith("#usamo-2026-p1")
     assert first_row["problem_url"] == reverse("solutions:problem_solution_list", args=[problem.problem_uuid])
     response_html = response.content.decode("utf-8")
-    assert "Completion info listing" in response_html
+    assert "Recent completion records" in response_html
     assert 'id="completion-record-table"' in response_html
-    assert 'order: [[7, "desc"]]' in response_html
-    assert "Filter loaded rows:" in response_html
-    assert "Within latest rows" in response_html
+    assert 'order: [[columnIndexByKey.updatedSort, "desc"]]' in response_html
+    assert "Search all records" in response_html
+    assert '"Filter these " + rows.length + " results:"' in response_html
+    assert "Within loaded results" in response_html
+    assert "tom-select.bootstrap5.min.css" in response_html
+    assert "tom-select.base.js" in response_html
+    tom_select_guard_index = response_html.index("g.__asterproofTomSelectHadAmd = false")
+    tom_select_script_index = response_html.index("plugins/tom-select/tom-select.base.js")
+    tom_select_restore_index = response_html.index("if (g.__asterproofTomSelectHadAmd")
+    assert tom_select_guard_index < tom_select_script_index < tom_select_restore_index
+    assert "new TomSelect" in response_html
+    assert "onType: function (query)" in response_html
+    assert "delete control.loadedSearches[normalizedQuery]" in response_html
+    assert "USER_OPTIONS_LOAD_DELAY_MS = 300" in response_html
+    assert "loadThrottle: null" in response_html
+    assert "function cancelPendingLoad()" in response_html
     assert "row().child" in response_html
     assert "Known dates" not in response_html
-    assert "With solutions" not in response_html
+    assert "Records with solution" in response_html
 
 
 def test_completion_record_list_includes_study_progress_fields(client):
@@ -8752,12 +8765,50 @@ def test_completion_record_list_shows_average_user_set_difficulty_after_mohs(cli
     assert row["average_difficulty_display"] == "25.0"
     assert row["difficulty_rating_count"] == expected_difficulty_rating_count
     response_html = response.content.decode("utf-8")
-    assert 'title: "Avg difficulty"' in response_html
-    assert response_html.index('title: "Problem"') < response_html.index(
-        'data: "average_difficulty_rating"',
-    ) < response_html.index('title: "Status"')
+    assert 'title: "Avg difficulty"' not in response_html
+    assert 'detailTerm("Average difficulty"' in response_html
+    assert 'detailTerm("Last updated"' in response_html
     assert "MOHS" in response_html
-    assert 'order: [[7, "desc"]]' in response_html
+    assert 'order: [[columnIndexByKey.updatedSort, "desc"]]' in response_html
+
+
+def test_completion_record_list_renders_responsive_accessible_table_contract(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    completion_user = UserFactory(email="email-only@example.com")
+    client.force_login(admin_user)
+    problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="ALG",
+        mohs=6,
+        contest="USAMO",
+        problem="P1",
+        contest_year_problem="USAMO 2026 P1",
+    )
+    completion = UserProblemCompletion.objects.create(
+        user=completion_user,
+        problem=problem,
+        completion_date=date(2026, 7, 10),
+    )
+
+    response = client.get(reverse("pages:completion_record_list"))
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["completion_record_rows"][0]["completion_id"] == completion.pk
+    response_html = response.content.decode("utf-8")
+    assert 'title: \'<span class="visually-hidden">Details</span>\'' in response_html
+    assert 'aria-expanded="false"' in response_html
+    assert 'aria-controls="completion-record-details-' in response_html
+    assert 'role="region"' in response_html
+    assert 'aria-hidden="true"' in response_html
+    assert "function controlledRegionPlaceholder(row)" in response_html
+    assert "controlledRegion.remove()" in response_html
+    assert 'button.insertAdjacentHTML("afterend", controlledRegionPlaceholder(rowApi.data()))' in response_html
+    assert "email !== data" in response_html
+    assert 'scrollX: true' not in response_html
+    assert 'window.matchMedia("(max-width: 991.98px)")' in response_html
+    assert 'window.matchMedia("(max-width: 767.98px)")' in response_html
+    assert 'window.matchMedia("(max-width: 575.98px)")' in response_html
+    assert 'columnIndexByKey.updatedSort' in response_html
 
 
 def test_completion_record_list_renders_compact_kpis_and_missing_solution_stats(client):
@@ -8802,6 +8853,7 @@ def test_completion_record_list_renders_compact_kpis_and_missing_solution_stats(
     expected_record_total = 2
     expected_user_total = 2
     expected_contest_total = 2
+    expected_solution_total = 1
     expected_published_solution_total = 1
     expected_missing_solution_total = 1
 
@@ -8810,14 +8862,16 @@ def test_completion_record_list_renders_compact_kpis_and_missing_solution_stats(
     assert stats["record_total"] == expected_record_total
     assert stats["user_total"] == expected_user_total
     assert stats["contest_total"] == expected_contest_total
+    assert stats["solution_total"] == expected_solution_total
     assert stats["published_solution_total"] == expected_published_solution_total
     assert stats["missing_solution_total"] == expected_missing_solution_total
     response_html = response.content.decode("utf-8")
-    assert "Loaded rows" in response_html
-    assert "Users" in response_html
-    assert "Contests" in response_html
-    assert "Published" in response_html
-    assert "No solution" in response_html
+    assert "Loaded records" in response_html
+    assert "Users in loaded records" in response_html
+    assert "Contests in loaded records" in response_html
+    assert "Records with solution" in response_html
+    assert "Records without solution" in response_html
+    assert "row-cols-2 row-cols-sm-3 row-cols-xl-5" in response_html
 
 
 def test_completion_record_list_renders_active_filter_chips_and_opens_advanced_filters(client):
@@ -8913,6 +8967,187 @@ def test_completion_record_list_preserves_selected_options_when_filtered_rows_ar
     assert f'value="{UserProblemCompletion.Status.WRITTEN}" selected' in response_html
     assert f'value="{UserProblemCompletion.Confidence.LOW}" selected' in response_html
     assert f'value="{ProblemSolution.Status.PUBLISHED}" selected' in response_html
+
+
+def test_completion_record_list_filter_options_cover_records_beyond_latest_cap(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    recent_user = UserFactory(name="Recent Solver", email="recent@example.com")
+    older_user = UserFactory(name="Older Solver", email="older@example.com")
+    client.force_login(admin_user)
+    now = timezone.now()
+
+    for offset in range(ADMIN_TABLE_LATEST_LIMIT):
+        problem = ProblemSolveRecord.objects.create(
+            year=2026,
+            topic="ALG",
+            mohs=4,
+            contest="Recent Contest",
+            problem=f"P{offset + 1}",
+            contest_year_problem=f"Recent Contest 2026 P{offset + 1}",
+        )
+        completion = UserProblemCompletion.objects.create(
+            user=recent_user,
+            problem=problem,
+            completion_date=date(2026, 7, 10),
+        )
+        UserProblemCompletion.objects.filter(pk=completion.pk).update(
+            updated_at=now - timedelta(minutes=offset),
+        )
+
+    older_problem = ProblemSolveRecord.objects.create(
+        year=2025,
+        topic="NT",
+        mohs=5,
+        contest="Historic Contest",
+        problem="P1",
+        contest_year_problem="Historic Contest 2025 P1",
+    )
+    older_completion = UserProblemCompletion.objects.create(
+        user=older_user,
+        problem=older_problem,
+        completion_date=date(2025, 7, 10),
+    )
+    UserProblemCompletion.objects.filter(pk=older_completion.pk).update(
+        updated_at=now - timedelta(days=30),
+    )
+
+    response = client.get(reverse("pages:completion_record_list"))
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["completion_record_is_capped"] is True
+    assert "Historic Contest" in response.context["completion_record_filter_options"]["contests"]
+    assert all(row["contest"] != "Historic Contest" for row in response.context["completion_record_rows"])
+
+    filtered_response = client.get(
+        reverse("pages:completion_record_list"),
+        {"contest": "Historic Contest"},
+    )
+
+    assert filtered_response.status_code == HTTPStatus.OK
+    assert [row["user_email"] for row in filtered_response.context["completion_record_rows"]] == [
+        "older@example.com",
+    ]
+
+
+def test_completion_record_list_filter_options_always_include_fixed_choices(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    completion_user = UserFactory(name="Ada Lovelace")
+    client.force_login(admin_user)
+    problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="ALG",
+        mohs=6,
+        contest="USAMO",
+        problem="P1",
+        contest_year_problem="USAMO 2026 P1",
+    )
+    UserProblemCompletion.objects.create(
+        user=completion_user,
+        problem=problem,
+        completion_date=date(2026, 7, 10),
+    )
+
+    response = client.get(reverse("pages:completion_record_list"))
+
+    assert response.status_code == HTTPStatus.OK
+    options = response.context["completion_record_filter_options"]
+    assert options["date_statuses"] == ["known", "unknown"]
+    assert options["statuses"] == [
+        {"value": value, "label": label}
+        for value, label in UserProblemCompletion.Status.choices
+    ]
+    assert options["confidences"] == [
+        {"value": value, "label": label}
+        for value, label in UserProblemCompletion.Confidence.choices
+    ]
+    assert options["solution_statuses"] == [
+        "none",
+        *(value for value, _label in ProblemSolution.Status.choices),
+    ]
+
+
+def test_completion_record_user_options_requires_admin_and_get(client):
+    endpoint = reverse("pages:completion_record_user_options")
+
+    anonymous_response = client.get(endpoint, {"q": "Ada"})
+
+    assert anonymous_response.status_code == HTTPStatus.FOUND
+
+    normal_user = UserFactory()
+    client.force_login(normal_user)
+    with override_settings(DEBUG=False):
+        forbidden_response = client.get(endpoint, {"q": "Ada"})
+
+    assert forbidden_response.status_code == HTTPStatus.FORBIDDEN
+
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    method_response = client.post(endpoint)
+    blank_response = client.get(endpoint, {"q": "  "})
+
+    assert method_response.status_code == HTTPStatus.METHOD_NOT_ALLOWED
+    assert method_response.headers["Allow"] == "GET"
+    assert blank_response.status_code == HTTPStatus.OK
+    assert blank_response.json() == {"has_more": False, "results": []}
+    assert "no-store" in blank_response.headers["Cache-Control"]
+
+
+def test_completion_record_user_options_searches_all_completion_users_and_caps_results(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+
+    for offset in range(21):
+        completion_user = UserFactory(
+            name=f"Solver {offset:02d}",
+            email=f"solver{offset:02d}@example.com",
+        )
+        problem = ProblemSolveRecord.objects.create(
+            year=2026,
+            topic="ALG",
+            mohs=4,
+            contest="USAMO",
+            problem=f"P{offset + 1}",
+            contest_year_problem=f"USAMO 2026 P{offset + 1}",
+        )
+        UserProblemCompletion.objects.create(
+            user=completion_user,
+            problem=problem,
+            completion_date=date(2026, 7, 10),
+        )
+
+    UserFactory(name="Solver Without Completion", email="solver-no-completion@example.com")
+
+    endpoint = reverse("pages:completion_record_user_options")
+    with CaptureQueriesContext(connection) as queries:
+        response = client.get(endpoint, {"q": "solver"})
+
+    assert response.status_code == HTTPStatus.OK
+    user_option_sql = next(
+        query["sql"]
+        for query in queries
+        if 'FROM "users_user"' in query["sql"]
+        and 'pages_userproblemcompletion' in query["sql"]
+    )
+    assert "EXISTS" in user_option_sql.upper()
+    assert 'INNER JOIN "pages_userproblemcompletion"' not in user_option_sql
+    payload = response.json()
+    assert payload["has_more"] is True
+    assert len(payload["results"]) == 20
+    assert payload["results"][0] == {
+        "label": "Solver 00 (solver00@example.com)",
+        "value": "solver00@example.com",
+    }
+    assert all(option["value"] != "solver-no-completion@example.com" for option in payload["results"])
+
+    email_response = client.get(endpoint, {"q": "20@example.com"})
+
+    assert email_response.status_code == HTTPStatus.OK
+    assert email_response.json()["results"] == [
+        {
+            "label": "Solver 20 (solver20@example.com)",
+            "value": "solver20@example.com",
+        },
+    ]
 
 
 def test_completion_record_list_caps_to_latest_100_by_updated_at(client):
@@ -9671,6 +9906,70 @@ def test_completion_record_list_applies_query_filters(client):
     response_html = response.content.decode("utf-8")
     assert 'name="contest"' in response_html
     assert 'value="ada@example.com" selected' in response_html
+
+
+def test_completion_record_list_search_matches_display_topic_aliases(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    completion_user = UserFactory(name="Topic Solver")
+    client.force_login(admin_user)
+
+    for problem_number, topic in enumerate(("N", "NT", "ALG"), start=1):
+        problem = ProblemSolveRecord.objects.create(
+            year=2026,
+            topic=topic,
+            mohs=5,
+            contest="IMO",
+            problem=f"P{problem_number}",
+            contest_year_problem=f"IMO 2026 P{problem_number}",
+        )
+        UserProblemCompletion.objects.create(
+            user=completion_user,
+            problem=problem,
+            completion_date=date(2026, 7, 10),
+        )
+
+    response = client.get(
+        reverse("pages:completion_record_list"),
+        {"q": "Number Theory"},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert {row["problem"] for row in response.context["completion_record_rows"]} == {"P1", "P2"}
+
+    mixed_response = client.get(
+        reverse("pages:completion_record_list"),
+        {"q": "IMO Number Theory"},
+    )
+
+    assert mixed_response.status_code == HTTPStatus.OK
+    assert {row["problem"] for row in mixed_response.context["completion_record_rows"]} == {"P1", "P2"}
+
+
+def test_completion_record_list_search_keeps_raw_custom_topic_matching(client):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    completion_user = UserFactory(name="Custom Topic Solver")
+    client.force_login(admin_user)
+    problem = ProblemSolveRecord.objects.create(
+        year=2026,
+        topic="Graph Theory",
+        mohs=5,
+        contest="Local Olympiad",
+        problem="P1",
+        contest_year_problem="Local Olympiad 2026 P1",
+    )
+    UserProblemCompletion.objects.create(
+        user=completion_user,
+        problem=problem,
+        completion_date=date(2026, 7, 10),
+    )
+
+    response = client.get(
+        reverse("pages:completion_record_list"),
+        {"q": "Graph"},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert [row["problem"] for row in response.context["completion_record_rows"]] == ["P1"]
 
 
 def test_completion_record_list_filters_no_solution_records(client):

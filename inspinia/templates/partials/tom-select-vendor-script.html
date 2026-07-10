@@ -1,0 +1,47 @@
+{% load static %}
+{% comment %}
+Tom Select's UMD bundle uses the AMD branch when define.amd is truthy, which
+skips assigning window.TomSelect. Clear define.amd only for this vendor load,
+then restore the host page's AMD state.
+{% endcomment %}
+<script>
+(function () {
+  var g = window;
+  var d = g.define;
+  g.__asterproofTomSelectAmdBackup = undefined;
+  g.__asterproofTomSelectHadAmd = false;
+  if (typeof d === "function" && d.amd) {
+    g.__asterproofTomSelectHadAmd = true;
+    g.__asterproofTomSelectAmdBackup = d.amd;
+    try {
+      d.amd = undefined;
+    } catch (e1) {
+      try {
+        delete d.amd;
+      } catch (e2) {
+        /* ignore */
+      }
+    }
+  }
+})();
+</script>
+<script src="{% static 'plugins/tom-select/tom-select.base.js' %}"></script>
+<script>
+(function () {
+  var g = window;
+  if (g.__asterproofTomSelectHadAmd && typeof g.define === "function") {
+    try {
+      g.define.amd = g.__asterproofTomSelectAmdBackup;
+    } catch (e) {
+      /* ignore */
+    }
+  }
+  try {
+    delete g.__asterproofTomSelectHadAmd;
+    delete g.__asterproofTomSelectAmdBackup;
+  } catch (e) {
+    g.__asterproofTomSelectHadAmd = undefined;
+    g.__asterproofTomSelectAmdBackup = undefined;
+  }
+})();
+</script>

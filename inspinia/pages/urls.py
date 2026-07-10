@@ -8,6 +8,7 @@ from inspinia.pages.views import completion_progress_analytics_view
 from inspinia.pages.views import completion_quick_update_save_view
 from inspinia.pages.views import completion_quick_update_view
 from inspinia.pages.views import completion_record_list_view
+from inspinia.pages.views import completion_record_user_options_view
 from inspinia.pages.views import contest_advanced_analytics_view
 from inspinia.pages.views import contest_analytics_view
 from inspinia.pages.views import contest_dashboard_listing_bulk_update_view
@@ -77,6 +78,11 @@ urlpatterns = [
         name="completion_progress_analytics",
     ),
     path("dashboard/completion-records/", completion_record_list_view, name="completion_record_list"),
+    path(
+        "dashboard/completion-records/user-options/",
+        completion_record_user_options_view,
+        name="completion_record_user_options",
+    ),
     path("dashboard/problem-analytics/", dashboard_analytics_view, name="dashboard"),
     path("dashboard/contests/", contest_analytics_view, name="contest_dashboard"),
     path(
