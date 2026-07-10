@@ -34,6 +34,8 @@ from django.db.models import Subquery
 from django.db.models import Value
 from django.db.models.functions import Cast
 from django.db.models.functions import Coalesce
+from django.db.models.functions import Lower
+from django.db.models.functions import NullIf
 from django.http import Http404
 from django.http import HttpResponse
 from django.http import JsonResponse
@@ -44,6 +46,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.text import slugify
+from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
 
 from inspinia.pages.asymptote_render import build_statement_render_segments
@@ -240,6 +243,8 @@ COMPLETION_BOARD_INITIAL_ROW_LIMIT = 30
 COMPLETION_BOARD_ROW_LOAD_STEP = 30
 COMPLETION_TIMEZONE_MAX_LENGTH = 128
 ADMIN_TABLE_LATEST_LIMIT = 100
+COMPLETION_RECORD_USER_OPTIONS_LIMIT = 20
+COMPLETION_RECORD_TOPIC_ALIAS_MIN_LENGTH = 2
 COMPLETION_QUICK_UPDATE_RECENT_LIMIT = ADMIN_TABLE_LATEST_LIMIT
 COMPLETION_QUICK_UPDATE_SEARCH_LIMIT = 500
 
@@ -2890,6 +2895,7 @@ def _admin_completion_listing_rows(
         table_rows.append(
             {
                 "archive_url": archive_url,
+                "completion_id": completion.pk,
                 "completion_date": (
                     completion.completion_date.isoformat() if completion.completion_date is not None else "Unknown"
                 ),
@@ -3115,101 +3121,41 @@ def _completion_record_user_display_label(email: str, user_label: str = "") -> s
     return f"{user_label} ({email})"
 
 
-def _completion_record_user_labels(rows: list[dict], selected_user: str = "") -> dict[str, str]:
-    row_labels = {
-        row["user_email"]: _completion_record_user_display_label(row["user_email"], row["user_label"])
-        for row in rows
-        if row["user_email"]
-    }
-    emails = set(row_labels)
-    if selected_user:
-        emails.add(selected_user)
-    if not emails:
-        return {}
-
-    user_labels = row_labels.copy()
-    users_by_email = {
-        user.email: _completion_record_user_display_label(user.email, user.name or user.email)
-        for user in User.objects.filter(email__in=emails).only("email", "name")
-    }
-    user_labels.update(users_by_email)
-    for email in emails:
-        user_labels.setdefault(email, email)
-    return user_labels
+def _completion_record_selected_user_option(selected_user: str) -> dict[str, str] | None:
+    if not selected_user:
+        return None
+    user = User.objects.filter(email=selected_user).only("email", "name").first()
+    label = selected_user
+    if user is not None:
+        label = _completion_record_user_display_label(user.email, user.name or user.email)
+    return {"label": label, "value": selected_user}
 
 
 def _completion_record_filter_options(
-    rows: list[dict],
+    completion_queryset,
     *,
     selected_filters: dict[str, str],
 ) -> dict[str, list]:
     selected_contest = selected_filters["contest"]
-    selected_user = selected_filters["user"]
-    selected_date_status = selected_filters["date_status"]
-    selected_solution_status = selected_filters["solution_status"]
-    selected_status = selected_filters["status"]
-    selected_confidence = selected_filters["confidence"]
-    contests = {row["contest"] for row in rows if row["contest"]}
+    contests = set(
+        completion_queryset.exclude(_effective_contest="")
+        .order_by("_effective_contest")
+        .values_list("_effective_contest", flat=True)
+        .distinct(),
+    )
     if selected_contest:
         contests.add(selected_contest)
-
-    date_statuses = {
-        label
-        for label, present in (
-            ("known", any(row["completion_date"] != "Unknown" for row in rows)),
-            ("unknown", any(row["completion_date"] == "Unknown" for row in rows)),
-        )
-        if present
-    }
-    if selected_date_status in {"known", "unknown"}:
-        date_statuses.add(selected_date_status)
-
-    solution_statuses = set()
-    if any(not row["solution_status"] for row in rows):
-        solution_statuses.add("none")
-    solution_statuses.update(row["solution_status"] for row in rows if row["solution_status"])
-    if selected_solution_status:
-        solution_statuses.add(selected_solution_status)
-    recognized_solution_statuses = {value for value, _label in ProblemSolution.Status.choices}
-    ordered_solution_statuses = (
-        (["none"] if "none" in solution_statuses else [])
-        + [
-            status
-            for status, _label in ProblemSolution.Status.choices
-            if status in solution_statuses
-        ]
-        + [
-            status
-            for status in sorted(solution_statuses)
-            if status != "none" and status not in recognized_solution_statuses
-        ]
-    )
-
-    selected_statuses = {row["status"] for row in rows if row["status"]}
-    if selected_status:
-        selected_statuses.add(selected_status)
-    selected_confidences = {row["confidence"] for row in rows if row["confidence"]}
-    if selected_confidence:
-        selected_confidences.add(selected_confidence)
-
-    user_labels = _completion_record_user_labels(rows, selected_user)
     return {
         "contests": sorted(contests),
-        "date_statuses": [status for status in ("known", "unknown") if status in date_statuses],
-        "solution_statuses": ordered_solution_statuses,
+        "date_statuses": ["known", "unknown"],
+        "solution_statuses": ["none", *(value for value, _label in ProblemSolution.Status.choices)],
         "statuses": [
             {"value": value, "label": label}
             for value, label in UserProblemCompletion.Status.choices
-            if value in selected_statuses
         ],
         "confidences": [
             {"value": value, "label": label}
             for value, label in UserProblemCompletion.Confidence.choices
-            if value in selected_confidences
-        ],
-        "users": [
-            {"label": label, "value": email}
-            for email, label in sorted(user_labels.items(), key=lambda item: item[1].lower())
         ],
     }
 
@@ -3362,6 +3308,7 @@ def _completion_record_apply_search(
         ),
     )
     for token in search_query.split():
+        topic_aliases = _completion_record_topic_aliases_for_token(token)
         token_query = (
             Q(user__name__icontains=token)
             | Q(user__email__icontains=token)
@@ -3376,10 +3323,36 @@ def _completion_record_apply_search(
             | Q(post_mortem__icontains=token)
             | Q(confidence__icontains=token)
         )
+        for topic_alias in topic_aliases:
+            token_query |= Q(_effective_topic__iexact=topic_alias)
         if token.isdigit():
             token_query |= Q(statement__contest_year=int(token)) | Q(problem__year=int(token))
         completion_queryset = completion_queryset.filter(token_query)
     return completion_queryset
+
+
+def _completion_record_topic_aliases_for_token(token: str) -> set[str]:
+    normalized_token = token.strip().casefold()
+    if not normalized_token:
+        return set()
+
+    exact_labels = {
+        display_label
+        for raw_topic, display_label in FULL_TOPIC_LABEL_MAP.items()
+        if raw_topic.casefold() == normalized_token
+    }
+    matching_labels = exact_labels
+    if not matching_labels and len(normalized_token) >= COMPLETION_RECORD_TOPIC_ALIAS_MIN_LENGTH:
+        matching_labels = {
+            display_label
+            for display_label in FULL_TOPIC_LABEL_MAP.values()
+            if normalized_token in display_label.casefold()
+        }
+    return {
+        raw_topic
+        for raw_topic, display_label in FULL_TOPIC_LABEL_MAP.items()
+        if display_label in matching_labels
+    }
 
 
 def _coerce_year_filter(raw_value: str | None, available_years: set[int]) -> int | None:
@@ -6326,13 +6299,60 @@ def my_completion_progress_analytics_view(request):
 
 
 @login_required
+@never_cache
+def completion_record_user_options_view(request):
+    """Admin-only remote user options for completion-record filtering."""
+    _require_admin_tools_access(request)
+    if request.method != "GET":
+        response = JsonResponse({"error": "GET required."}, status=405)
+        response["Allow"] = "GET"
+        return response
+
+    search_query = (request.GET.get("q") or "").strip()
+    if not search_query:
+        return JsonResponse({"has_more": False, "results": []})
+
+    users = list(
+        User.objects.annotate(
+            _has_completion_records=Exists(
+                UserProblemCompletion.objects.filter(user_id=OuterRef("pk")),
+            ),
+        )
+        .filter(_has_completion_records=True)
+        .filter(Q(name__icontains=search_query) | Q(email__icontains=search_query))
+        .annotate(
+            _completion_record_display_label=Lower(
+                Coalesce(
+                    NullIf("name", Value("")),
+                    "email",
+                    output_field=CharField(),
+                ),
+            ),
+            _completion_record_email_sort=Lower("email"),
+        )
+        .order_by("_completion_record_display_label", "_completion_record_email_sort", "id")
+        .only("id", "email", "name")[: COMPLETION_RECORD_USER_OPTIONS_LIMIT + 1],
+    )
+    has_more = len(users) > COMPLETION_RECORD_USER_OPTIONS_LIMIT
+    results = [
+        {
+            "label": _completion_record_user_display_label(user.email, user.name or user.email),
+            "value": user.email,
+        }
+        for user in users[:COMPLETION_RECORD_USER_OPTIONS_LIMIT]
+    ]
+    return JsonResponse({"has_more": has_more, "results": results})
+
+
+@login_required
 def completion_record_list_view(request):
     """Admin inventory of all saved user completion rows."""
     _require_admin_tools_access(request)
     selected_filters = _completion_record_selected_filters(request)
     solution_status_queryset = _completion_record_solution_status_queryset()
+    base_completion_queryset = _completion_record_base_queryset()
     completion_queryset = _completion_record_apply_basic_filters(
-        _completion_record_base_queryset(),
+        base_completion_queryset,
         selected_filters,
     )
     completion_queryset = _completion_record_apply_solution_filter(
@@ -6356,14 +6376,21 @@ def completion_record_list_view(request):
     completion_visible_total = len(completion_rows)
 
     completion_filter_options = _completion_record_filter_options(
-        completion_rows,
+        base_completion_queryset,
         selected_filters=selected_filters,
     )
+    completion_selected_user_option = _completion_record_selected_user_option(selected_filters["user"])
     completion_stats = _admin_completion_listing_stats(completion_rows)
     completion_active_filters = _completion_record_active_filters(
         query_params=request.GET,
         selected_filters=selected_filters,
-        user_labels={user["value"]: user["label"] for user in completion_filter_options["users"]},
+        user_labels=(
+            {
+                completion_selected_user_option["value"]: completion_selected_user_option["label"],
+            }
+            if completion_selected_user_option is not None
+            else {}
+        ),
     )
     context = {
         "completion_record_active_filters": completion_active_filters,
@@ -6381,6 +6408,8 @@ def completion_record_list_view(request):
         "completion_record_visible_total": completion_visible_total,
         "completion_record_result_limit": ADMIN_TABLE_LATEST_LIMIT,
         "completion_record_is_capped": completion_is_capped,
+        "completion_record_selected_user_option": completion_selected_user_option,
+        "completion_record_user_options_url": reverse("pages:completion_record_user_options"),
     }
     return render(request, "pages/completion-record-list.html", context)
 

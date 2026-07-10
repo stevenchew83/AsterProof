@@ -29,4 +29,11 @@ module.exports = [
             "./node_modules/datatables.net-bs5/css/dataTables.bootstrap5.min.css",
         ],
     },
+    {
+        name: "tom-select",
+        assets: [
+            "./node_modules/tom-select/dist/js/tom-select.base.js",
+            "./node_modules/tom-select/dist/css/tom-select.bootstrap5.min.css",
+        ],
+    },
 ];
