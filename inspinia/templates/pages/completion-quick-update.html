@@ -171,9 +171,13 @@
                   id="quick-completion-q"
                   name="q"
                   type="search"
-                  class="form-control"
+                  class="form-control{% if completion_quick_update_search_error %} is-invalid{% endif %}"
                   value="{{ completion_quick_update_filters.q }}"
                   placeholder="Topic, tag, text"
+                  {% if completion_quick_update_search_error %}
+                  aria-invalid="true"
+                  aria-describedby="quick-completion-search-error"
+                  {% endif %}
                 >
               </div>
               <div class="col-md-6 col-xl-2">
@@ -242,6 +246,11 @@
               </div>
             </div>
           </form>
+          {% if completion_quick_update_search_error %}
+          <div id="quick-completion-search-error" class="alert alert-danger py-2 mt-3 mb-0" role="alert">
+            {{ completion_quick_update_search_error }}
+          </div>
+          {% endif %}
           {% if completion_quick_update_can_select_user %}
           <p class="text-muted fs-xs mb-0 mt-3">
             Editing for <strong>{{ completion_quick_update_selected_user.email }}</strong>.
@@ -642,7 +651,7 @@
               </form>
             </div>
           </div>
-          {% else %}
+          {% elif not completion_quick_update_search_error %}
           <div class="alert alert-warning mb-0" role="alert">
             No active problem statement rows match the current filters.
           </div>

@@ -6715,6 +6715,17 @@ def _sync_quick_completion_statement_facts(*statements: ContestProblemStatement)
         sync_technique_progress_facts_for_statement(statement.id)
 
 
+def _completion_quick_update_result_sql(captured_queries) -> str:
+    result_queries = [
+        query["sql"]
+        for query in captured_queries
+        if 'FROM "pages_contestproblemstatement"' in query["sql"]
+        and f"LIMIT {COMPLETION_QUICK_UPDATE_SEARCH_LIMIT + 1}" in query["sql"]
+    ]
+    assert len(result_queries) == 1
+    return result_queries[0]
+
+
 def test_problem_statement_difficulty_rating_accepts_boundary_values():
     user = UserFactory()
     low_statement = _create_quick_completion_statement(problem_code="P1", problem_number=1)
@@ -7208,6 +7219,42 @@ def test_completion_quick_update_filters_by_comma_separated_techniques_as_and_te
     assert [row["statement_uuid"] for row in rows] == [str(matching_statement.statement_uuid)]
 
 
+@pytest.mark.parametrize(
+    "query_params",
+    [
+        {"technique": "LTE"},
+        {"subtopics": "Valuations"},
+    ],
+)
+def test_completion_quick_update_tag_filters_use_exists_without_outer_tag_joins(
+    client,
+    query_params,
+):
+    user = UserFactory()
+    client.force_login(user)
+    statement = _create_quick_completion_statement(problem_code="P1", problem_number=1)
+    StatementTopicTechnique.objects.create(
+        statement=statement,
+        technique="LTE",
+        domains=["NT"],
+        canonical_subtopic="Valuations",
+    )
+
+    with CaptureQueriesContext(connection) as captured_queries:
+        response = client.get(reverse("pages:completion_quick_update"), query_params)
+
+    assert response.status_code == HTTPStatus.OK
+    assert [row["statement_uuid"] for row in response.context["completion_quick_update_rows"]] == [
+        str(statement.statement_uuid),
+    ]
+    assert response.context["completion_quick_update_matching_total_is_exact"] is True
+    result_sql = _completion_quick_update_result_sql(captured_queries.captured_queries)
+    assert "EXISTS" in result_sql
+    assert 'JOIN "pages_statementtopictechnique"' not in result_sql
+    assert 'JOIN "pages_problemtopictechnique"' not in result_sql
+    assert not any('AS "__count"' in query["sql"] for query in captured_queries.captured_queries)
+
+
 def test_completion_quick_update_filters_by_subtopics(client):
     user = UserFactory()
     client.force_login(user)
@@ -7354,7 +7401,8 @@ def test_completion_quick_update_filters_by_exact_lemma_layer_tag(client):
     assert response.status_code == HTTPStatus.OK
     assert response.context["completion_quick_update_filters"]["layer_kind"] == "lemmas"
     assert response.context["completion_quick_update_filters"]["layer_tag"] == "power of a point"
-    assert response.context["completion_quick_update_matching_total_is_exact"] is False
+    assert response.context["completion_quick_update_matching_total_is_exact"] is True
+    assert response.context["completion_quick_update_result_summary"] == "1 matching row"
     rows = response.context["completion_quick_update_rows"]
     assert [row["statement_uuid"] for row in rows] == [str(matching_statement.statement_uuid)]
 
@@ -7655,6 +7703,182 @@ def test_completion_quick_update_search_matches_analytics_explanation_fields(cli
     assert [row["statement_uuid"] for row in rows] == [str(statement_pitfalls.statement_uuid)]
 
 
+def test_completion_quick_update_phrase_search_uses_exists_and_preserves_order(client):
+    user = UserFactory()
+    client.force_login(user)
+    second_statement = _create_quick_completion_statement(
+        contest="Malaysian Squad Selection Test",
+        year=2023,
+        problem_code="P2",
+        problem_number=2,
+    )
+    first_statement = _create_quick_completion_statement(
+        contest="Malaysian Squad Selection Test",
+        year=2023,
+        problem_code="P1",
+        problem_number=1,
+    )
+    _create_quick_completion_statement(
+        contest="Malaysian IMO Training Camp",
+        year=2023,
+        problem_code="P1",
+        problem_number=1,
+    )
+
+    with CaptureQueriesContext(connection) as captured_queries:
+        response = client.get(
+            reverse("pages:completion_quick_update"),
+            {"q": "Malaysian Squad Selection Test 2023"},
+        )
+
+    assert response.status_code == HTTPStatus.OK
+    expected_statement_uuids = [
+        str(first_statement.statement_uuid),
+        str(second_statement.statement_uuid),
+    ]
+    assert [
+        row["statement_uuid"] for row in response.context["completion_quick_update_rows"]
+    ] == expected_statement_uuids
+    assert response.context["completion_quick_update_matching_total"] == len(
+        expected_statement_uuids,
+    )
+    assert response.context["completion_quick_update_matching_total_is_exact"] is True
+    result_sql = _completion_quick_update_result_sql(captured_queries.captured_queries)
+    assert "EXISTS" in result_sql
+    assert 'JOIN "pages_statementtopictechnique"' not in result_sql
+    assert 'JOIN "pages_problemtopictechnique"' not in result_sql
+    assert not any('AS "__count"' in query["sql"] for query in captured_queries.captured_queries)
+
+
+def test_completion_quick_update_search_terms_match_across_fields_and_both_tag_sources(client):
+    user = UserFactory()
+    client.force_login(user)
+    statement = _create_quick_completion_statement(
+        contest="Regional Olympiad",
+        year=2023,
+        problem_code="P1",
+        problem_number=1,
+    )
+    StatementTopicTechnique.objects.create(
+        statement=statement,
+        technique="SQUAD METHOD",
+        domains=["COMB"],
+    )
+    ProblemTopicTechnique.objects.create(
+        record=statement.linked_problem,
+        technique="SELECTION LEMMA",
+        domains=["COMB"],
+    )
+
+    response = client.get(
+        reverse("pages:completion_quick_update"),
+        {"q": "Regional Squad Selection 2023"},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert [row["statement_uuid"] for row in response.context["completion_quick_update_rows"]] == [
+        str(statement.statement_uuid),
+    ]
+
+
+def test_completion_quick_update_broad_search_caps_without_exact_count(client):
+    user = UserFactory()
+    client.force_login(user)
+    broad_result_limit = 2
+    statements = [
+        _create_quick_completion_statement(
+            problem_code=f"P{problem_number}",
+            problem_number=problem_number,
+        )
+        for problem_number in range(1, 4)
+    ]
+
+    with patch(
+        "inspinia.pages.views.COMPLETION_QUICK_UPDATE_SEARCH_LIMIT",
+        broad_result_limit,
+    ):
+        response = client.get(reverse("pages:completion_quick_update"), {"q": "USAMO"})
+
+    assert response.status_code == HTTPStatus.OK
+    assert [row["statement_uuid"] for row in response.context["completion_quick_update_rows"]] == [
+        str(statements[0].statement_uuid),
+        str(statements[1].statement_uuid),
+    ]
+    assert response.context["completion_quick_update_matching_total"] == broad_result_limit
+    assert response.context["completion_quick_update_matching_total_is_exact"] is False
+    assert response.context["completion_quick_update_is_capped"] is True
+    assert response.context["completion_quick_update_result_summary"] == (
+        f"Showing first {broad_result_limit} matching rows"
+    )
+
+
+def test_completion_quick_update_rejects_more_than_ten_search_terms_without_result_queries(client):
+    user = UserFactory()
+    client.force_login(user)
+    _create_quick_completion_statement(problem_code="P1", problem_number=1)
+    search_query = " ".join(f"term{index}" for index in range(11))
+
+    with (
+        patch("inspinia.pages.views._completion_quick_update_fetch_limited") as fetch_limited,
+        patch(
+            "inspinia.pages.views._statement_completions_by_statement_id",
+        ) as completion_payload,
+        patch(
+            "inspinia.pages.views._difficulty_rating_payloads_by_statement_id",
+        ) as difficulty_payload,
+        patch(
+            "inspinia.pages.views._completion_quick_update_tag_payload_by_statement_id",
+        ) as tag_payload,
+    ):
+        response = client.get(
+            reverse("pages:completion_quick_update"),
+            {
+                "contest": "USAMO",
+                "q": search_query,
+                "subtopics": "Valuations",
+                "technique": "LTE",
+                "year": "2026",
+            },
+        )
+
+    assert response.status_code == HTTPStatus.OK
+    fetch_limited.assert_not_called()
+    completion_payload.assert_not_called()
+    difficulty_payload.assert_not_called()
+    tag_payload.assert_not_called()
+    assert response.context["completion_quick_update_rows"] == []
+    assert response.context["completion_quick_update_result_summary"] == "Search not run"
+    assert response.context["completion_quick_update_matching_total_is_exact"] is False
+    assert response.context["completion_quick_update_filters"]["q"] == search_query
+    assert response.context["completion_quick_update_filters"]["contest"] == "USAMO"
+    assert response.context["completion_quick_update_filters"]["year"] == "2026"
+    assert response.context["completion_quick_update_filters"]["technique"] == "LTE"
+    assert response.context["completion_quick_update_filters"]["subtopics"] == "Valuations"
+    response_html = response.content.decode("utf-8")
+    assert "Search supports at most 10 terms. Shorten the Search field and try again." in response_html
+    assert 'aria-invalid="true"' in response_html
+    assert 'aria-describedby="quick-completion-search-error"' in response_html
+    assert "No active problem statement rows match the current filters." not in response_html
+
+
+def test_completion_quick_update_accepts_ten_search_terms(client):
+    user = UserFactory()
+    client.force_login(user)
+    statement = _create_quick_completion_statement(problem_code="P1", problem_number=1)
+    search_query = " ".join(["USAMO"] * 10)
+
+    response = client.get(
+        reverse("pages:completion_quick_update"),
+        {"q": search_query},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert [row["statement_uuid"] for row in response.context["completion_quick_update_rows"]] == [
+        str(statement.statement_uuid),
+    ]
+    assert response.context["completion_quick_update_search_error"] == ""
+
+
 def test_completion_quick_update_filters_by_effective_core_ideas_availability(client):
     user = UserFactory()
     client.force_login(user)
@@ -7860,6 +8084,7 @@ def test_completion_quick_update_search_results_are_capped_at_500_rows(client):
     )
     assert response.context["completion_quick_update_visible_total"] == expected_search_limit
     assert response.context["completion_quick_update_result_limit"] == expected_search_limit
+    assert response.context["completion_quick_update_matching_total_is_exact"] is True
     assert len(rows) == expected_search_limit
     assert str(hidden_statement.statement_uuid) not in {row["statement_uuid"] for row in rows}
 
