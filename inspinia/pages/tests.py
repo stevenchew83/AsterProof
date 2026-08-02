@@ -8852,10 +8852,13 @@ def test_completion_record_list_renders_admin_inventory(client):
         problem="P1",
         contest_year_problem="USAMO 2026 P1",
     )
-    UserProblemCompletion.objects.create(
+    completion = UserProblemCompletion.objects.create(
         user=completion_user,
         problem=problem,
         completion_date=date(2026, 7, 10),
+    )
+    UserProblemCompletion.objects.filter(pk=completion.pk).update(
+        created_at=datetime(2026, 7, 10, 5, 42, tzinfo=datetime_timezone.utc),
     )
     ProblemSolution.objects.create(
         problem=problem,
@@ -8871,12 +8874,16 @@ def test_completion_record_list_renders_admin_inventory(client):
     first_row = response.context["completion_record_rows"][0]
     assert first_row["user_label"] == "Ada Lovelace"
     assert first_row["completion_date"] == "2026-07-10"
+    assert first_row["completion_datetime"] == "2026-07-10 13:42"
+    assert first_row["completion_date_sort"].startswith("2026-07-10T13:42:00")
     assert first_row["solution_status_label"] == "Draft"
     assert first_row["archive_url"].endswith("#usamo-2026-p1")
     assert first_row["problem_url"] == reverse("solutions:problem_solution_list", args=[problem.problem_uuid])
     response_html = response.content.decode("utf-8")
     assert "Recent completion records" in response_html
+    assert "2026-07-10 13:42" in response_html
     assert 'id="completion-record-table"' in response_html
+    assert 'data: "completion_datetime"' in response_html
     assert 'order: [[columnIndexByKey.updatedSort, "desc"]]' in response_html
     assert "Search all records" in response_html
     assert '"Filter these " + rows.length + " results:"' in response_html

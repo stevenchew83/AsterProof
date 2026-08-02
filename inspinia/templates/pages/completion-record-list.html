@@ -623,6 +623,7 @@
       row.reattempt_date,
       row.confidence_label,
       row.completion_date,
+      row.completion_datetime,
       row.updated_at
     ].filter(present).join(" ");
   }
@@ -658,7 +659,7 @@
       '<div id="' + escapeHtml(detailId) + '" class="completion-record-detail-panel" role="region" aria-label="' + escapeHtml(regionLabel) + '">' +
       '<dl class="completion-record-detail-grid mb-3">' +
       detailTerm("Status", row.status_label) +
-      detailTerm("Completed", row.completion_date === "Unknown" ? "" : row.completion_date) +
+      detailTerm("Completed", row.completion_datetime === "Unknown" ? "" : row.completion_datetime) +
       detailTerm("Solution", row.solution_status_label) +
       detailTerm("Average difficulty", averageDifficultyDetail(row)) +
       detailTerm("Last updated", row.updated_at) +
@@ -748,7 +749,7 @@
     },
     {
       key: "completed",
-      data: "completion_date",
+      data: "completion_datetime",
       title: "Completed",
       className: "text-nowrap",
       render: function (data, type, row) {

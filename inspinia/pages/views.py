@@ -2895,6 +2895,7 @@ def _admin_completion_listing_rows(
         problem = _completion_problem_record(completion)
         statement = completion.statement
         user = completion.user
+        completion_created_at = timezone.localtime(completion.created_at)
         problem_label = _completion_statement_label(completion)
         contest_name = statement.contest_name if statement is not None else (problem.contest if problem is not None else "")
         contest_year = statement.contest_year if statement is not None else (problem.year if problem is not None else "")
@@ -2918,8 +2919,13 @@ def _admin_completion_listing_rows(
                 "completion_date": (
                     completion.completion_date.isoformat() if completion.completion_date is not None else "Unknown"
                 ),
+                "completion_datetime": (
+                    f"{completion.completion_date.isoformat()} {completion_created_at:%H:%M}"
+                    if completion.completion_date is not None
+                    else "Unknown"
+                ),
                 "completion_date_sort": (
-                    completion.completion_date.isoformat()
+                    f"{completion.completion_date.isoformat()}T{completion_created_at:%H:%M:%S.%f}"
                     if completion.completion_date is not None
                     else "0000-00-00"
                 ),
