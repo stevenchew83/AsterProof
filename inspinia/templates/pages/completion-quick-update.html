@@ -8,7 +8,9 @@
 <link rel="stylesheet" href="{% static 'plugins/datatables/dataTables.bootstrap5.min.css' %}">
 <style>
   #quick-completion-table_wrapper .dt-layout-row {
-    margin: .5rem 0;
+    align-items: center;
+    gap: .75rem 1rem;
+    margin: .75rem 0;
   }
 
   #quick-completion-table_wrapper .dt-length label,
@@ -27,30 +29,95 @@
     padding-top: .25rem;
   }
 
+  .quick-completion-filter-chip {
+    align-items: center;
+    display: inline-flex;
+    gap: .35rem;
+    text-decoration: none;
+  }
+
+  .quick-completion-filter-chip:focus-visible,
+  #quick-completion-table .btn:focus-visible,
+  #quick-completion-table a:focus-visible {
+    box-shadow: 0 0 0 .18rem rgba(var(--bs-primary-rgb), .18);
+    outline: 2px solid rgba(var(--bs-primary-rgb), .45);
+    outline-offset: 2px;
+  }
+
+  #quick-completion-table {
+    min-width: 58rem;
+  }
+
+  #quick-completion-table thead th {
+    background: var(--bs-tertiary-bg);
+    color: var(--bs-secondary-color);
+    font-size: .7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  #quick-completion-table tbody td {
+    border-bottom: 1px solid var(--bs-border-color);
+    padding-bottom: .75rem;
+    padding-top: .75rem;
+    vertical-align: middle;
+  }
+
   .quick-completion-problem-cell {
-    min-width: 16rem;
+    background: var(--bs-body-bg) !important;
+    box-shadow: .35rem 0 .7rem rgba(var(--bs-body-color-rgb), .06);
+    left: 0;
+    min-width: 14rem;
+    position: sticky;
+    z-index: 2;
   }
 
-  .quick-completion-actions {
-    min-width: 12rem;
+  #quick-completion-table thead .quick-completion-problem-cell {
+    background: var(--bs-tertiary-bg) !important;
+    z-index: 4;
   }
 
-  .quick-completion-study-summary {
-    min-width: 10rem;
+  .quick-completion-topic-cell {
+    min-width: 7rem;
   }
 
-  .quick-completion-insights-cell {
-    min-width: 16rem;
+  .quick-completion-mohs-cell {
+    min-width: 5rem;
   }
 
-  .quick-completion-insight-body {
-    max-width: 28rem;
-    white-space: normal;
+  .quick-completion-classification-cell {
+    min-width: 13rem;
   }
 
-  .quick-completion-subtopics-cell,
-  .quick-completion-techniques-cell {
-    min-width: 12rem;
+  .quick-completion-progress-cell {
+    min-width: 9.5rem;
+  }
+
+  .quick-completion-more-cell {
+    background: var(--bs-body-bg) !important;
+    box-shadow: -.35rem 0 .7rem rgba(var(--bs-body-color-rgb), .06);
+    min-width: 4.5rem;
+    position: sticky;
+    right: 0;
+    text-align: center;
+    z-index: 5;
+  }
+
+  #quick-completion-table thead .quick-completion-more-cell {
+    background: var(--bs-tertiary-bg) !important;
+    z-index: 4;
+  }
+
+  [data-bs-theme="dark"] .quick-completion-problem-cell,
+  [data-bs-theme="dark"] .quick-completion-more-cell {
+    box-shadow: none;
+  }
+
+  .quick-completion-classification-list,
+  .quick-completion-detail-tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .25rem;
   }
 
   .quick-completion-subtopic-link,
@@ -84,6 +151,133 @@
   .quick-completion-detail-offcanvas {
     --bs-offcanvas-width: min(32rem, 100vw);
   }
+
+  .quick-completion-insight-copy {
+    white-space: pre-line;
+  }
+
+  .quick-completion-mobile-label {
+    display: none;
+  }
+
+  @media (max-width: 767.98px) {
+    #quick-completion-table {
+      display: block;
+      min-width: 0 !important;
+      width: 100% !important;
+    }
+
+    #quick-completion-table thead {
+      display: none;
+    }
+
+    #quick-completion-table tbody {
+      display: grid;
+      gap: .75rem;
+    }
+
+    #quick-completion-table tbody tr {
+      background: var(--bs-body-bg);
+      border: 1px solid var(--bs-border-color);
+      border-radius: var(--bs-border-radius);
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      overflow: visible;
+      padding: .875rem;
+    }
+
+    #quick-completion-table tbody td {
+      border: 0;
+      display: block;
+      min-width: 0;
+      padding: .5rem 0;
+      position: static;
+      text-align: left;
+    }
+
+    #quick-completion-table tbody .quick-completion-problem-cell,
+    #quick-completion-table tbody .quick-completion-classification-cell,
+    #quick-completion-table tbody .quick-completion-progress-cell {
+      box-shadow: none;
+      grid-column: 1 / -1;
+    }
+
+    #quick-completion-table tbody .quick-completion-topic-cell {
+      grid-column: 1;
+      padding-right: .5rem;
+    }
+
+    #quick-completion-table tbody .quick-completion-mohs-cell {
+      grid-column: 2;
+    }
+
+    #quick-completion-table tbody .quick-completion-quick-action-cell {
+      grid-column: 1;
+      padding-bottom: 0;
+      padding-right: .5rem;
+    }
+
+    #quick-completion-table tbody .quick-completion-more-cell {
+      box-shadow: none;
+      grid-column: 2;
+      padding-bottom: 0;
+    }
+
+    #quick-completion-table tbody td[data-label]::before {
+      color: var(--bs-secondary-color);
+      content: attr(data-label);
+      display: block;
+      font-size: .7rem;
+      font-weight: 700;
+      margin-bottom: .35rem;
+      text-transform: uppercase;
+    }
+
+    #quick-completion-table .quick-completion-quick-action-cell .btn {
+      min-height: 44px;
+      width: 100%;
+    }
+
+    #quick-completion-table .quick-completion-more-cell .dropdown-toggle {
+      min-height: 44px;
+      min-width: 44px;
+    }
+
+    #quick-completion-table_wrapper .dt-layout-row {
+      align-items: stretch;
+      display: grid;
+      grid-template-columns: 1fr;
+    }
+
+    #quick-completion-table_wrapper .dt-search,
+    #quick-completion-table_wrapper .dt-length {
+      margin-left: 0 !important;
+      width: 100%;
+    }
+
+    #quick-completion-table_wrapper .dt-length label {
+      align-items: center;
+      display: grid;
+      gap: .5rem;
+      grid-template-columns: auto minmax(5rem, 1fr) auto;
+      width: 100%;
+    }
+
+    #quick-completion-table_wrapper .dt-length select,
+    #quick-completion-table_wrapper .dt-search input {
+      margin-left: 0 !important;
+      width: 100%;
+    }
+
+    #quick-completion-table_wrapper .dt-search {
+      text-align: left;
+    }
+
+    #quick-completion-table_wrapper .dt-search label {
+      display: block;
+      margin-bottom: .35rem;
+    }
+  }
 </style>
 {% endblock extra_css %}
 
@@ -96,13 +290,8 @@
     <div class="col-12">
       <div class="card">
         <div class="card-header border-0 pb-0">
-          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
-            <div>
-              <h4 class="header-title mb-0">Find problem rows</h4>
-              <p class="text-muted fs-xs mb-0">Search by contest, year, problem code, label, subtopic, MOHS, or statement text.</p>
-            </div>
-            <span class="badge text-bg-light">{{ completion_quick_update_result_summary }}</span>
-          </div>
+          <h4 class="header-title mb-0">Find problem rows</h4>
+          <p class="text-muted fs-xs mb-0">These filters choose which problem rows are loaded from the full library.</p>
         </div>
         <div class="card-body pt-2">
           <form method="get" action="{% url 'pages:completion_quick_update' %}">
@@ -114,7 +303,7 @@
               {% if completion_quick_update_can_select_user %}
               <div class="col-md-6 col-xl-2">
                 <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="quick-completion-user">User</label>
-                <select id="quick-completion-user" name="target_user_id" class="form-select">
+                <select id="quick-completion-user" name="target_user_id" class="form-select form-select-sm">
                   <option value="">Me: {{ request.user.email }}</option>
                   {% for user_option in completion_quick_update_user_options %}
                   <option value="{{ user_option.id }}"{% if completion_quick_update_filters.target_user_id == user_option.id|stringformat:'s' %} selected{% endif %}>{{ user_option.label }}</option>
@@ -122,58 +311,15 @@
                 </select>
               </div>
               {% endif %}
-              <div class="col-md-6 col-xl-3">
-                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="quick-completion-contest">Contest</label>
-                <select id="quick-completion-contest" name="contest" class="form-select">
-                  <option value="">All contests</option>
-                  {% for contest_row in completion_quick_update_contest_choices %}
-                  <option value="{{ contest_row.contest_name }}"{% if completion_quick_update_filters.contest == contest_row.contest_name %} selected{% endif %}>{{ contest_row.contest_name }}</option>
-                  {% endfor %}
-                </select>
-              </div>
-              <div class="col-md-4 col-xl-2">
-                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="quick-completion-year">Year</label>
-                <select id="quick-completion-year" name="year" class="form-select">
-                  <option value="">All years</option>
-                  {% for year in completion_quick_update_year_choices %}
-                  <option value="{{ year }}"{% if completion_quick_update_filters.year == year|stringformat:'s' %} selected{% endif %}>{{ year }}</option>
-                  {% endfor %}
-                </select>
-              </div>
-              <div class="col-md-4 col-xl-2">
-                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="quick-completion-problem">Problem</label>
-                <input
-                  id="quick-completion-problem"
-                  name="problem"
-                  type="text"
-                  class="form-control"
-                  value="{{ completion_quick_update_filters.problem }}"
-                  placeholder="P1 or 1"
-                  autocomplete="off"
-                >
-              </div>
-              <div class="col-md-6 col-xl-3">
-                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="quick-completion-problem-label">Problem label</label>
-                <input
-                  id="quick-completion-problem-label"
-                  name="problem_label"
-                  type="search"
-                  class="form-control"
-                  value="{{ completion_quick_update_filters.problem_label }}"
-                  placeholder="USAMO 2026 P1"
-                >
-              </div>
-            </div>
-            <div id="quick-completion-secondary-filters" class="row g-2 align-items-end mt-2">
-              <div class="col-md-6 col-xl-2">
-                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="quick-completion-q">Search</label>
+              <div class="col-md-6 col-xl-4">
+                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="quick-completion-q">Search all problems</label>
                 <input
                   id="quick-completion-q"
                   name="q"
                   type="search"
-                  class="form-control{% if completion_quick_update_search_error %} is-invalid{% endif %}"
+                  class="form-control form-control-sm{% if completion_quick_update_search_error %} is-invalid{% endif %}"
                   value="{{ completion_quick_update_filters.q }}"
-                  placeholder="Topic, tag, text"
+                  placeholder="Contest, topic, tag, or statement text"
                   {% if completion_quick_update_search_error %}
                   aria-invalid="true"
                   aria-describedby="quick-completion-search-error"
@@ -181,67 +327,127 @@
                 >
               </div>
               <div class="col-md-6 col-xl-2">
-                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="quick-completion-technique">Technique</label>
-                <input
-                  id="quick-completion-technique"
-                  name="technique"
-                  type="search"
-                  class="form-control"
-                  value="{{ completion_quick_update_filters.technique }}"
-                  placeholder="LTE, angle chase"
-                >
-              </div>
-              <div class="col-md-6 col-xl-2">
-                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="quick-completion-subtopics">Subtopics</label>
-                <input
-                  id="quick-completion-subtopics"
-                  name="subtopics"
-                  type="search"
-                  class="form-control"
-                  value="{{ completion_quick_update_filters.subtopics }}"
-                  placeholder="Valuations"
-                >
-              </div>
-              <div class="col-md-4 col-xl-2">
-                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="quick-completion-core-ideas">Core ideas</label>
-                <select id="quick-completion-core-ideas" name="core_ideas" class="form-select">
-                  <option value="">Any</option>
-                  <option value="has"{% if completion_quick_update_filters.core_ideas == "has" %} selected{% endif %}>Has core ideas</option>
-                  <option value="missing"{% if completion_quick_update_filters.core_ideas == "missing" %} selected{% endif %}>Missing core ideas</option>
+                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="quick-completion-contest">Contest</label>
+                <select id="quick-completion-contest" name="contest" class="form-select form-select-sm">
+                  <option value="">All contests</option>
+                  {% for contest_row in completion_quick_update_contest_choices %}
+                  <option value="{{ contest_row.contest_name }}"{% if completion_quick_update_filters.contest == contest_row.contest_name %} selected{% endif %}>{{ contest_row.contest_name }}</option>
+                  {% endfor %}
                 </select>
               </div>
-              <div class="col-md-4 col-xl-1">
-                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="quick-completion-mohs-min">MOHS min</label>
-                <input
-                  id="quick-completion-mohs-min"
-                  name="mohs_min"
-                  type="number"
-                  min="0"
-                  step="1"
-                  class="form-control"
-                  value="{{ completion_quick_update_filters.mohs_min }}"
-                  placeholder="Min"
-                >
+              <div class="col-sm-6 col-md-3 col-xl-1">
+                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="quick-completion-year">Year</label>
+                <select id="quick-completion-year" name="year" class="form-select form-select-sm">
+                  <option value="">All years</option>
+                  {% for year in completion_quick_update_year_choices %}
+                  <option value="{{ year }}"{% if completion_quick_update_filters.year == year|stringformat:'s' %} selected{% endif %}>{{ year }}</option>
+                  {% endfor %}
+                </select>
               </div>
-              <div class="col-md-4 col-xl-1">
-                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="quick-completion-mohs-max">MOHS max</label>
-                <input
-                  id="quick-completion-mohs-max"
-                  name="mohs_max"
-                  type="number"
-                  min="0"
-                  step="1"
-                  class="form-control"
-                  value="{{ completion_quick_update_filters.mohs_max }}"
-                  placeholder="Max"
-                >
-              </div>
-              <div class="col-md-6 col-xl-2">
+              <div class="col-md-9 col-xl-3">
                 <div class="d-flex flex-wrap gap-2">
-                  <button type="submit" class="btn btn-primary">
-                    <i class="ti ti-search me-1"></i>Search
+                  <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="ti ti-filter me-1" aria-hidden="true"></i>Apply filters
                   </button>
-                  <a href="{% url 'pages:completion_quick_update' %}" class="btn btn-outline-secondary">Reset</a>
+                  <button
+                    class="btn btn-outline-secondary btn-sm"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#quick-completion-advanced-filters"
+                    aria-expanded="{% if completion_quick_update_advanced_filters_open %}true{% else %}false{% endif %}"
+                    aria-controls="quick-completion-advanced-filters"
+                  >
+                    <i class="ti ti-adjustments-horizontal me-1" aria-hidden="true"></i>Advanced filters
+                  </button>
+                  {% if completion_quick_update_has_server_filters %}
+                  <a href="{% url 'pages:completion_quick_update' %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="ti ti-refresh me-1" aria-hidden="true"></i>Reset all
+                  </a>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <div id="quick-completion-advanced-filters" class="collapse{% if completion_quick_update_advanced_filters_open %} show{% endif %} mt-2">
+              <div class="row g-2 align-items-end">
+                <div class="col-sm-6 col-xl-2">
+                  <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="quick-completion-problem">Problem</label>
+                  <input
+                    id="quick-completion-problem"
+                    name="problem"
+                    type="text"
+                    class="form-control form-control-sm"
+                    value="{{ completion_quick_update_filters.problem }}"
+                    placeholder="P1 or 1"
+                    autocomplete="off"
+                  >
+                </div>
+                <div class="col-md-6 col-xl-3">
+                  <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="quick-completion-problem-label">Problem label</label>
+                  <input
+                    id="quick-completion-problem-label"
+                    name="problem_label"
+                    type="search"
+                    class="form-control form-control-sm"
+                    value="{{ completion_quick_update_filters.problem_label }}"
+                    placeholder="USAMO 2026 P1"
+                  >
+                </div>
+                <div class="col-md-6 col-xl-2">
+                  <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="quick-completion-technique">Technique</label>
+                  <input
+                    id="quick-completion-technique"
+                    name="technique"
+                    type="search"
+                    class="form-control form-control-sm"
+                    value="{{ completion_quick_update_filters.technique }}"
+                    placeholder="LTE, angle chase"
+                  >
+                </div>
+                <div class="col-md-6 col-xl-2">
+                  <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="quick-completion-subtopics">Subtopics</label>
+                  <input
+                    id="quick-completion-subtopics"
+                    name="subtopics"
+                    type="search"
+                    class="form-control form-control-sm"
+                    value="{{ completion_quick_update_filters.subtopics }}"
+                    placeholder="Valuations"
+                  >
+                </div>
+                <div class="col-sm-6 col-xl-1">
+                  <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="quick-completion-core-ideas">Core ideas</label>
+                  <select id="quick-completion-core-ideas" name="core_ideas" class="form-select form-select-sm">
+                    <option value="">Any</option>
+                    <option value="has"{% if completion_quick_update_filters.core_ideas == "has" %} selected{% endif %}>Has core ideas</option>
+                    <option value="missing"{% if completion_quick_update_filters.core_ideas == "missing" %} selected{% endif %}>Missing core ideas</option>
+                  </select>
+                </div>
+                <div class="col-6 col-xl-1">
+                  <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="quick-completion-mohs-min">MOHS min</label>
+                  <input
+                    id="quick-completion-mohs-min"
+                    name="mohs_min"
+                    type="number"
+                    min="0"
+                    step="1"
+                    class="form-control form-control-sm"
+                    value="{{ completion_quick_update_filters.mohs_min }}"
+                    placeholder="Min"
+                  >
+                </div>
+                <div class="col-6 col-xl-1">
+                  <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="quick-completion-mohs-max">MOHS max</label>
+                  <input
+                    id="quick-completion-mohs-max"
+                    name="mohs_max"
+                    type="number"
+                    min="0"
+                    step="1"
+                    class="form-control form-control-sm"
+                    value="{{ completion_quick_update_filters.mohs_max }}"
+                    placeholder="Max"
+                  >
                 </div>
               </div>
             </div>
@@ -256,12 +462,21 @@
             Editing for <strong>{{ completion_quick_update_selected_user.email }}</strong>.
           </p>
           {% endif %}
-          {% if completion_quick_update_filters.layer_kind and completion_quick_update_filters.layer_tag %}
-          <div class="alert alert-info py-2 mt-3 mb-0" role="alert">
-            <span class="text-muted fs-xs text-uppercase fw-semibold me-1">Layer filter</span>
-            <span class="fw-semibold">{{ completion_quick_update_filters.layer_label }}:</span>
-            {{ completion_quick_update_filters.layer_tag }}
-            <a href="{{ completion_quick_update_layer_filter_clear_url }}" class="alert-link ms-2">Clear</a>
+          {% if completion_quick_update_active_filter_chips %}
+          <div class="mt-3">
+            <p class="text-muted mb-2 fs-xs text-uppercase fw-semibold">Active advanced filters</p>
+            <div class="d-flex flex-wrap gap-1">
+              {% for chip in completion_quick_update_active_filter_chips %}
+              <a
+                href="{{ chip.remove_url }}"
+                class="badge rounded-pill text-bg-light border quick-completion-filter-chip"
+                aria-label="Remove {{ chip.label }} filter {{ chip.value }}"
+              >
+                <span>{{ chip.label }}: {{ chip.value }}</span>
+                <i class="ti ti-x" aria-hidden="true"></i>
+              </a>
+              {% endfor %}
+            </div>
           </div>
           {% endif %}
         </div>
@@ -296,15 +511,18 @@
             </div>
             <div class="col-sm-6 col-md-4 col-xl-2">
               <button type="button" id="quick-completion-table-reset" class="btn btn-sm btn-outline-secondary w-100">
-                <i class="ti ti-eraser me-1"></i>Clear table filter
+                <i class="ti ti-eraser me-1" aria-hidden="true"></i>Clear loaded filters
               </button>
+            </div>
+            <div class="col-md-4 col-xl-8">
+              <p class="text-muted fs-xs mb-0">The controls below filter only the rows already loaded on this page.</p>
             </div>
           </div>
 
           <div class="table-responsive">
             <table
               id="quick-completion-table"
-              class="table table-sm table-striped table-bordered align-middle w-100 mb-0"
+              class="table table-sm table-hover align-middle w-100 mb-0"
               data-save-url="{{ completion_quick_update_save_url }}"
               data-difficulty-save-url="{{ completion_quick_update_difficulty_save_url }}"
               data-difficulty-min="{{ completion_quick_update_difficulty_min }}"
@@ -313,17 +531,16 @@
               data-server-today="{{ completion_quick_update_today }}"
               data-today="{{ completion_quick_update_today }}"
             >
+              <caption class="visually-hidden">Problem rows with topic, MOHS, classification, progress, and quick completion actions.</caption>
               <thead>
                 <tr>
-                  <th>Problem</th>
-                  <th>Topic / MOHS</th>
-                  <th>Subtopics</th>
-                  <th>Technique</th>
-                  <th>User MOHS</th>
-                  <th>Completion</th>
-                  <th>Study summary</th>
-                  <th>Insights</th>
-                  <th>Actions</th>
+                  <th scope="col" class="quick-completion-problem-cell">Problem</th>
+                  <th scope="col" class="quick-completion-topic-cell">Topic</th>
+                  <th scope="col" class="quick-completion-mohs-cell">MOHS</th>
+                  <th scope="col">Classification</th>
+                  <th scope="col">Progress</th>
+                  <th scope="col">Quick action</th>
+                  <th scope="col" class="quick-completion-more-cell">More</th>
                 </tr>
               </thead>
               <tbody>
@@ -343,6 +560,11 @@
                   data-confidence="{{ row.confidence }}"
                   data-label="{{ row.label }}"
                   data-problem-url="{{ row.problem_detail_url }}"
+                  data-contest="{{ row.contest }}"
+                  data-contest-url="{{ row.contest_detail_url }}"
+                  data-year="{{ row.year }}"
+                  data-problem-code="{{ row.problem_code }}"
+                  data-day-label="{{ row.day_label }}"
                   data-topic="{{ row.topic }}"
                   data-subtopics="{{ row.subtopics|join:', ' }}"
                   data-techniques="{{ row.techniques|join:', ' }}"
@@ -352,57 +574,99 @@
                     <div class="fw-semibold">
                       <a href="{{ row.problem_detail_url }}" class="link-primary text-decoration-none">{{ row.label }}</a>
                     </div>
-                    <div class="d-flex flex-wrap align-items-center gap-1 text-muted fs-xs">
-                      <a href="{{ row.contest_detail_url }}" class="link-secondary text-decoration-none">{{ row.contest }}</a>
-                      <span>{{ row.year }} {{ row.problem_code }}</span>
-                      {% if row.day_label %}
-                      <span>{{ row.day_label }}</span>
+                    <span class="d-none">{{ row.contest }} {{ row.year }} {{ row.problem_code }} {{ row.day_label }}</span>
+                  </td>
+                  <td class="quick-completion-topic-cell" data-label="Topic">
+                    {% if row.topic %}
+                    <span>{{ row.topic }}</span>
+                    {% else %}
+                    <span class="text-muted fs-xs">Not available</span>
+                    {% endif %}
+                  </td>
+                  <td class="quick-completion-mohs-cell" data-label="MOHS">
+                    {% if row.mohs is not None %}
+                    <span>{{ row.mohs }}</span>
+                    {% else %}
+                    <span class="text-muted fs-xs">Not available</span>
+                    {% endif %}
+                  </td>
+                  <td
+                    class="quick-completion-classification-cell"
+                    data-label="Classification"
+                  >
+                    {% if row.classification_preview_links %}
+                    <div class="quick-completion-classification-list">
+                      {% for classification_link in row.classification_preview_links %}
+                      <a
+                        href="{{ classification_link.url }}"
+                        class="badge border text-decoration-none {% if classification_link.kind == 'subtopic' %}quick-completion-subtopic-link{% else %}quick-completion-technique-link{% endif %} {% if classification_link.is_selected %}bg-primary-subtle text-primary border-primary-subtle{% else %}bg-light text-dark{% endif %}"
+                        title="{% if classification_link.is_selected %}Remove matching {{ classification_link.kind }}{% else %}Add matching {{ classification_link.kind }}{% endif %}"
+                        aria-label="{% if classification_link.is_selected %}Remove {{ classification_link.kind }} {{ classification_link.label }} from filter{% else %}Find problems with {{ classification_link.kind }} {{ classification_link.label }}{% endif %}"
+                      >{{ classification_link.label }}</a>
+                      {% endfor %}
+                      {% if row.classification_overflow_count %}
+                      <button
+                        type="button"
+                        class="btn btn-link btn-sm p-0 js-quick-completion-edit"
+                        data-bs-toggle="offcanvas"
+                        data-bs-target="#quick-completion-detail-editor"
+                        aria-controls="quick-completion-detail-editor"
+                      >
+                        +{{ row.classification_overflow_count }} more
+                      </button>
                       {% endif %}
                     </div>
-                  </td>
-                  <td class="text-nowrap">
-                    {% if row.topic %}
-                    <span class="badge bg-light text-dark border">{{ row.topic }}</span>
                     {% else %}
-                    <span class="text-muted fs-xs">No topic</span>
+                    <span class="text-muted fs-xs">No classification tags</span>
                     {% endif %}
-                    {% if row.mohs is not None %}
-                    <span class="text-muted fs-xs ms-1">MOHS {{ row.mohs }}</span>
-                    {% endif %}
-                  </td>
-                  <td class="quick-completion-subtopics-cell" data-sort-value="{{ row.subtopics|join:' ' }}">
-                    {% if row.subtopics %}
-                    <div class="d-flex flex-wrap gap-1">
-                      {% for subtopic_link in row.subtopic_links %}
-                      <a
-                        href="{{ subtopic_link.url }}"
-                        class="badge border text-decoration-none quick-completion-subtopic-link {% if subtopic_link.is_selected %}bg-primary-subtle text-primary border-primary-subtle{% else %}bg-light text-dark{% endif %}"
-                        title="{% if subtopic_link.is_selected %}Remove matching subtopic{% else %}Add matching subtopic{% endif %}"
-                        aria-label="{% if subtopic_link.is_selected %}Remove subtopic {{ subtopic_link.label }} from filter{% else %}Find problems with subtopic {{ subtopic_link.label }}{% endif %}"
-                      >{{ subtopic_link.label }}</a>
-                      {% endfor %}
+
+                    <div class="d-none js-quick-completion-row-details">
+                      <div class="js-quick-completion-detail-subtopics-source">
+                        {% if row.subtopic_links %}
+                        <div class="quick-completion-detail-tag-list">
+                          {% for subtopic_link in row.subtopic_links %}
+                          <a
+                            href="{{ subtopic_link.url }}"
+                            class="badge border text-decoration-none quick-completion-subtopic-link {% if subtopic_link.is_selected %}bg-primary-subtle text-primary border-primary-subtle{% else %}bg-light text-dark{% endif %}"
+                            title="{% if subtopic_link.is_selected %}Remove matching subtopic{% else %}Add matching subtopic{% endif %}"
+                            aria-label="{% if subtopic_link.is_selected %}Remove subtopic {{ subtopic_link.label }} from filter{% else %}Find problems with subtopic {{ subtopic_link.label }}{% endif %}"
+                          >{{ subtopic_link.label }}</a>
+                          {% endfor %}
+                        </div>
+                        {% else %}
+                        <span class="text-muted fs-sm">Not available</span>
+                        {% endif %}
+                      </div>
+                      <div class="js-quick-completion-detail-techniques-source">
+                        {% if row.technique_links %}
+                        <div class="quick-completion-detail-tag-list">
+                          {% for technique_link in row.technique_links %}
+                          <a
+                            href="{{ technique_link.url }}"
+                            class="badge border text-decoration-none quick-completion-technique-link {% if technique_link.is_selected %}bg-primary-subtle text-primary border-primary-subtle{% else %}bg-light text-dark{% endif %}"
+                            title="{% if technique_link.is_selected %}Remove matching technique{% else %}Add matching technique{% endif %}"
+                            aria-label="{% if technique_link.is_selected %}Remove technique {{ technique_link.label }} from filter{% else %}Find problems with technique {{ technique_link.label }}{% endif %}"
+                          >{{ technique_link.label }}</a>
+                          {% endfor %}
+                        </div>
+                        {% else %}
+                        <span class="text-muted fs-sm">Not available</span>
+                        {% endif %}
+                      </div>
+                      <div class="js-quick-completion-detail-core-ideas-source">{% if row.core_ideas %}{{ row.core_ideas }}{% else %}Not available{% endif %}</div>
+                      <div class="js-quick-completion-detail-rationale-source">{% if row.rationale %}{{ row.rationale }}{% else %}Not available{% endif %}</div>
+                      <div class="js-quick-completion-detail-pitfalls-source">{% if row.pitfalls %}{{ row.pitfalls }}{% else %}Not available{% endif %}</div>
                     </div>
-                    {% else %}
-                    <span class="text-muted fs-xs">No subtopics</span>
-                    {% endif %}
                   </td>
-                  <td class="quick-completion-techniques-cell" data-sort-value="{{ row.techniques|join:' ' }}">
-                    {% if row.techniques %}
-                    <div class="d-flex flex-wrap gap-1">
-                      {% for technique_link in row.technique_links %}
-                      <a
-                        href="{{ technique_link.url }}"
-                        class="badge border text-decoration-none quick-completion-technique-link {% if technique_link.is_selected %}bg-primary-subtle text-primary border-primary-subtle{% else %}bg-light text-dark{% endif %}"
-                        title="{% if technique_link.is_selected %}Remove matching technique{% else %}Add matching technique{% endif %}"
-                        aria-label="{% if technique_link.is_selected %}Remove technique {{ technique_link.label }} from filter{% else %}Find problems with technique {{ technique_link.label }}{% endif %}"
-                      >{{ technique_link.label }}</a>
-                      {% endfor %}
-                    </div>
-                    {% else %}
-                    <span class="text-muted fs-xs">No technique</span>
-                    {% endif %}
-                  </td>
-                  <td>
+                  <td class="quick-completion-progress-cell" data-label="Progress">
+                    <div class="d-grid gap-2 justify-items-start">
+                      <span
+                        class="badge js-quick-completion-display {% if row.completion_state_kind == 'solved' %}bg-success-subtle text-success border border-success-subtle{% elif row.completion_state_kind == 'unknown' %}bg-info-subtle text-info border border-info-subtle{% else %}bg-light text-dark border{% endif %}"
+                        title="{{ row.completion_state_label }}"
+                        aria-live="polite"
+                      >
+                        {{ row.completion_display }}
+                      </span>
                     <div class="dropdown quick-completion-user-mohs-editor" data-statement-uuid="{{ row.statement_uuid }}">
                       {% with user_mohs_value=row.user_difficulty_rating|default_if_none:'' %}
                       <button
@@ -412,7 +676,7 @@
                         data-bs-auto-close="outside"
                         aria-expanded="false"
                       >
-                        <i class="ti ti-gauge me-1"></i>
+                        <i class="ti ti-gauge me-1" aria-hidden="true"></i>
                         <span class="js-quick-completion-user-mohs-label">
                           {% if user_mohs_value == 0 or user_mohs_value %}MOHS {{ user_mohs_value }}{% else %}MOHS -{% endif %}
                         </span>
@@ -431,7 +695,7 @@
                             aria-label="User MOHS"
                           >
                           <button type="button" class="btn btn-outline-primary js-quick-completion-user-mohs-save">
-                            <i class="ti ti-device-floppy me-1"></i>Save
+                            <i class="ti ti-device-floppy me-1" aria-hidden="true"></i>Save
                           </button>
                         </div>
                         <div class="text-muted fs-xs mt-1 js-quick-completion-user-mohs-average">
@@ -441,87 +705,50 @@
                           No ratings yet
                           {% endif %}
                         </div>
-                        <div class="text-danger fs-xs mt-1 d-none js-quick-completion-user-mohs-error"></div>
+                        <div class="text-danger fs-xs mt-1 d-none js-quick-completion-user-mohs-error" role="alert"></div>
                       </div>
                       {% endwith %}
                     </div>
+                      <span class="d-none js-quick-completion-summary">{{ row.study_summary }}</span>
+                      <div class="text-danger fs-xs d-none js-quick-completion-error" role="alert"></div>
+                    </div>
                   </td>
-                  <td class="text-nowrap">
-                    <span
-                      class="badge js-quick-completion-display {% if row.completion_state_kind == 'solved' %}bg-success-subtle text-success border border-success-subtle{% elif row.completion_state_kind == 'unknown' %}bg-info-subtle text-info border border-info-subtle{% else %}bg-light text-dark border{% endif %}"
-                      title="{{ row.completion_state_label }}"
-                    >
-                      {{ row.completion_display }}
-                    </span>
+                  <td class="quick-completion-quick-action-cell">
+                    <button type="button" class="btn btn-primary btn-sm text-nowrap js-quick-completion-today">
+                      <i class="ti ti-calendar-event me-1" aria-hidden="true"></i>Mark today
+                    </button>
                   </td>
-                  <td class="quick-completion-study-summary">
-                    <span class="js-quick-completion-summary">{{ row.study_summary }}</span>
-                  </td>
-                  <td class="quick-completion-insights-cell">
-                    <div class="d-flex flex-wrap gap-1">
+                  <td class="quick-completion-more-cell">
+                    <div class="dropdown">
                       <button
                         type="button"
-                        class="btn btn-outline-secondary btn-sm js-quick-completion-insight-toggle"
-                        data-bs-toggle="collapse"
-                        data-bs-target="#quick-completion-core-ideas-{{ row.statement_uuid }}"
-                        data-quick-completion-insight="core-ideas"
+                        class="btn btn-outline-secondary btn-sm dropdown-toggle js-quick-completion-more-toggle"
+                        data-bs-toggle="dropdown"
+                        data-bs-boundary="viewport"
                         aria-expanded="false"
-                        aria-controls="quick-completion-core-ideas-{{ row.statement_uuid }}"
+                        aria-label="More actions for {{ row.label }}"
                       >
-                        <i class="ti ti-bulb me-1"></i>Core ideas
+                        <i class="ti ti-dots" aria-hidden="true"></i>
                       </button>
-                      <button
-                        type="button"
-                        class="btn btn-outline-secondary btn-sm js-quick-completion-insight-toggle"
-                        data-bs-toggle="collapse"
-                        data-bs-target="#quick-completion-rationale-{{ row.statement_uuid }}"
-                        data-quick-completion-insight="rationale"
-                        aria-expanded="false"
-                        aria-controls="quick-completion-rationale-{{ row.statement_uuid }}"
-                      >
-                        <i class="ti ti-message-circle me-1"></i>Rationale
-                      </button>
-                      <button
-                        type="button"
-                        class="btn btn-outline-secondary btn-sm js-quick-completion-insight-toggle"
-                        data-bs-toggle="collapse"
-                        data-bs-target="#quick-completion-pitfalls-{{ row.statement_uuid }}"
-                        data-quick-completion-insight="pitfalls"
-                        aria-expanded="false"
-                        aria-controls="quick-completion-pitfalls-{{ row.statement_uuid }}"
-                      >
-                        <i class="ti ti-alert-triangle me-1"></i>Pitfalls
-                      </button>
+                      <div class="dropdown-menu dropdown-menu-end shadow-sm">
+                        <button
+                          type="button"
+                          class="dropdown-item js-quick-completion-edit"
+                          data-bs-toggle="offcanvas"
+                          data-bs-target="#quick-completion-detail-editor"
+                          aria-controls="quick-completion-detail-editor"
+                        >
+                          <i class="ti ti-edit me-2" aria-hidden="true"></i>Edit details
+                        </button>
+                        <button type="button" class="dropdown-item js-quick-completion-unknown">
+                          <i class="ti ti-help-circle me-2" aria-hidden="true"></i>Mark solved - unknown date
+                        </button>
+                        <div class="dropdown-divider"></div>
+                        <button type="button" class="dropdown-item text-danger js-quick-completion-clear">
+                          <i class="ti ti-trash me-2" aria-hidden="true"></i>Clear completion and study details
+                        </button>
+                      </div>
                     </div>
-                    <div id="quick-completion-core-ideas-{{ row.statement_uuid }}" class="collapse mt-2 quick-completion-insight-body">
-                      <div class="text-muted fs-xs text-uppercase fw-semibold mb-1">Core ideas</div>
-                      <div class="fs-sm">{% if row.core_ideas %}{{ row.core_ideas|linebreaksbr }}{% else %}<span class="text-muted">None</span>{% endif %}</div>
-                    </div>
-                    <div id="quick-completion-rationale-{{ row.statement_uuid }}" class="collapse mt-2 quick-completion-insight-body">
-                      <div class="text-muted fs-xs text-uppercase fw-semibold mb-1">Rationale</div>
-                      <div class="fs-sm">{% if row.rationale %}{{ row.rationale|linebreaksbr }}{% else %}<span class="text-muted">None</span>{% endif %}</div>
-                    </div>
-                    <div id="quick-completion-pitfalls-{{ row.statement_uuid }}" class="collapse mt-2 quick-completion-insight-body">
-                      <div class="text-muted fs-xs text-uppercase fw-semibold mb-1">Common pitfalls</div>
-                      <div class="fs-sm">{% if row.pitfalls %}{{ row.pitfalls|linebreaksbr }}{% else %}<span class="text-muted">None</span>{% endif %}</div>
-                    </div>
-                  </td>
-                  <td>
-                    <div class="quick-completion-actions d-flex flex-wrap gap-1">
-                      <button type="button" class="btn btn-light btn-sm js-quick-completion-today">
-                        <i class="ti ti-calendar-event me-1"></i>Today
-                      </button>
-                      <button type="button" class="btn btn-outline-info btn-sm js-quick-completion-unknown">
-                        <i class="ti ti-help-circle me-1"></i>Unknown
-                      </button>
-                      <button type="button" class="btn btn-outline-primary btn-sm js-quick-completion-edit">
-                        <i class="ti ti-edit me-1"></i>Edit
-                      </button>
-                      <button type="button" class="btn btn-outline-secondary btn-sm js-quick-completion-clear">
-                        <i class="ti ti-x me-1"></i>Clear
-                      </button>
-                    </div>
-                    <div class="text-danger fs-xs mt-1 d-none js-quick-completion-error"></div>
                   </td>
                 </tr>
                 {% endfor %}
@@ -541,11 +768,61 @@
               <form id="quick-completion-detail-form" class="d-grid gap-3">
                 <div class="border-bottom pb-3">
                   <a href="#" id="quick-completion-detail-problem-link" class="fw-semibold link-primary text-decoration-none">Problem</a>
-                  <div id="quick-completion-detail-meta" class="text-muted fs-xs mt-1"></div>
+                  <div class="text-muted fs-xs mt-1">
+                    <a href="#" id="quick-completion-detail-contest-link" class="link-secondary text-decoration-none"></a>
+                    <span id="quick-completion-detail-meta"></span>
+                  </div>
                   <div class="mt-2">
                     <span id="quick-completion-detail-display" class="badge bg-light text-dark border">Unsolved</span>
                   </div>
                 </div>
+
+                <section aria-labelledby="quick-completion-detail-classification-heading">
+                  <h6 id="quick-completion-detail-classification-heading" class="mb-2">Classification</h6>
+                  <div class="mb-2">
+                    <p class="text-muted fs-xs text-uppercase fw-semibold mb-1">Subtopics</p>
+                    <div id="quick-completion-detail-subtopics"><span class="text-muted fs-sm">Not available</span></div>
+                  </div>
+                  <div>
+                    <p class="text-muted fs-xs text-uppercase fw-semibold mb-1">Techniques</p>
+                    <div id="quick-completion-detail-techniques"><span class="text-muted fs-sm">Not available</span></div>
+                  </div>
+                </section>
+
+                <section aria-labelledby="quick-completion-detail-insights-heading">
+                  <h6 id="quick-completion-detail-insights-heading" class="mb-2">Insights</h6>
+                  <div class="accordion accordion-flush border rounded" id="quick-completion-detail-insights">
+                    <div class="accordion-item">
+                      <h2 class="accordion-header">
+                        <button class="accordion-button collapsed py-2" type="button" data-bs-toggle="collapse" data-bs-target="#quick-completion-detail-core-ideas" aria-expanded="false" aria-controls="quick-completion-detail-core-ideas">Core ideas</button>
+                      </h2>
+                      <div id="quick-completion-detail-core-ideas" class="accordion-collapse collapse" data-bs-parent="#quick-completion-detail-insights">
+                        <div id="quick-completion-detail-core-ideas-copy" class="accordion-body py-2 fs-sm quick-completion-insight-copy">Not available</div>
+                      </div>
+                    </div>
+                    <div class="accordion-item">
+                      <h2 class="accordion-header">
+                        <button class="accordion-button collapsed py-2" type="button" data-bs-toggle="collapse" data-bs-target="#quick-completion-detail-rationale" aria-expanded="false" aria-controls="quick-completion-detail-rationale">Rationale</button>
+                      </h2>
+                      <div id="quick-completion-detail-rationale" class="accordion-collapse collapse" data-bs-parent="#quick-completion-detail-insights">
+                        <div id="quick-completion-detail-rationale-copy" class="accordion-body py-2 fs-sm quick-completion-insight-copy">Not available</div>
+                      </div>
+                    </div>
+                    <div class="accordion-item">
+                      <h2 class="accordion-header">
+                        <button class="accordion-button collapsed py-2" type="button" data-bs-toggle="collapse" data-bs-target="#quick-completion-detail-pitfalls" aria-expanded="false" aria-controls="quick-completion-detail-pitfalls">Common pitfalls</button>
+                      </h2>
+                      <div id="quick-completion-detail-pitfalls" class="accordion-collapse collapse" data-bs-parent="#quick-completion-detail-insights">
+                        <div id="quick-completion-detail-pitfalls-copy" class="accordion-body py-2 fs-sm quick-completion-insight-copy">Not available</div>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <section aria-labelledby="quick-completion-detail-study-heading">
+                  <h6 id="quick-completion-detail-study-heading" class="mb-1">Study record</h6>
+                  <p id="quick-completion-detail-study-summary" class="text-muted fs-sm mb-0">No study details</p>
+                </section>
 
                 <div>
                   <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="quick-completion-detail-date">Completion date</label>
@@ -629,23 +906,23 @@
                   </div>
                 </div>
 
-                <div id="quick-completion-detail-error" class="text-danger fs-xs d-none"></div>
+                <div id="quick-completion-detail-error" class="text-danger fs-xs d-none" role="alert"></div>
 
                 <div class="d-flex flex-wrap gap-2">
                   <button type="button" id="quick-completion-detail-save-date" class="btn btn-primary btn-sm">
-                    <i class="ti ti-device-floppy me-1"></i>Save date
+                    <i class="ti ti-device-floppy me-1" aria-hidden="true"></i>Save date
                   </button>
                   <button type="button" id="quick-completion-detail-save-details" class="btn btn-outline-primary btn-sm">
-                    <i class="ti ti-notes me-1"></i>Save details
+                    <i class="ti ti-notes me-1" aria-hidden="true"></i>Save details
                   </button>
                   <button type="button" id="quick-completion-detail-today" class="btn btn-light btn-sm">
-                    <i class="ti ti-calendar-event me-1"></i>Today
+                    <i class="ti ti-calendar-event me-1" aria-hidden="true"></i>Today
                   </button>
                   <button type="button" id="quick-completion-detail-unknown" class="btn btn-outline-info btn-sm">
-                    <i class="ti ti-help-circle me-1"></i>Unknown
+                    <i class="ti ti-help-circle me-1" aria-hidden="true"></i>Unknown date
                   </button>
-                  <button type="button" id="quick-completion-detail-clear" class="btn btn-outline-secondary btn-sm">
-                    <i class="ti ti-x me-1"></i>Clear
+                  <button type="button" id="quick-completion-detail-clear" class="btn btn-outline-danger btn-sm">
+                    <i class="ti ti-trash me-1" aria-hidden="true"></i>Clear completion and study details
                   </button>
                 </div>
               </form>
@@ -662,6 +939,7 @@
   </div>
 
   <form id="quick-completion-csrf" class="d-none">{% csrf_token %}</form>
+  <div id="quick-completion-live-status" class="visually-hidden" aria-live="polite" aria-atomic="true"></div>
 </div>
 {% endblock page_content %}
 
@@ -687,12 +965,23 @@
     var browserTimezone = browserTimezoneName();
     var todayValue = localTodayValue() || serverTodayValue;
     var timezoneLabel = document.querySelector(".js-quick-completion-timezone-label");
+    var liveStatus = document.getElementById("quick-completion-live-status");
     var detailEditor = document.getElementById("quick-completion-detail-editor");
     var detailForm = document.getElementById("quick-completion-detail-form");
-    var detailOffcanvas = detailEditor && window.bootstrap ? new window.bootstrap.Offcanvas(detailEditor) : null;
-    var detailState = { row: null };
+    var detailState = { row: null, opener: null };
     var tableApi = null;
     if (!csrfTokenInput || !saveUrl) return;
+
+    if (window.bootstrap && window.bootstrap.Dropdown) {
+      table.querySelectorAll(".js-quick-completion-more-toggle").forEach(function (toggle) {
+        window.bootstrap.Dropdown.getOrCreateInstance(toggle, {
+          boundary: "viewport",
+          popperConfig: function (defaultConfig) {
+            return Object.assign({}, defaultConfig, { strategy: "fixed" });
+          }
+        });
+      });
+    }
 
     function twoDigit(value) {
       return value < 10 ? "0" + value : String(value);
@@ -721,6 +1010,7 @@
     var detailFields = {
       title: document.getElementById("quick-completion-detail-title"),
       link: document.getElementById("quick-completion-detail-problem-link"),
+      contestLink: document.getElementById("quick-completion-detail-contest-link"),
       meta: document.getElementById("quick-completion-detail-meta"),
       display: document.getElementById("quick-completion-detail-display"),
       date: document.getElementById("quick-completion-detail-date"),
@@ -733,8 +1023,22 @@
       postMortem: document.getElementById("quick-completion-detail-post-mortem"),
       reattempt: document.getElementById("quick-completion-detail-reattempt"),
       confidence: document.getElementById("quick-completion-detail-confidence"),
-      error: document.getElementById("quick-completion-detail-error")
+      error: document.getElementById("quick-completion-detail-error"),
+      subtopics: document.getElementById("quick-completion-detail-subtopics"),
+      techniques: document.getElementById("quick-completion-detail-techniques"),
+      coreIdeas: document.getElementById("quick-completion-detail-core-ideas-copy"),
+      rationale: document.getElementById("quick-completion-detail-rationale-copy"),
+      pitfalls: document.getElementById("quick-completion-detail-pitfalls-copy"),
+      studySummary: document.getElementById("quick-completion-detail-study-summary")
     };
+
+    function announceStatus(message) {
+      if (!liveStatus) return;
+      liveStatus.textContent = "";
+      window.setTimeout(function () {
+        liveStatus.textContent = message;
+      }, 10);
+    }
 
     function statusClass(stateKind) {
       if (stateKind === "solved") return "bg-success-subtle text-success border border-success-subtle";
@@ -798,16 +1102,27 @@
     }
 
     function setRowBusy(row, isBusy) {
-      row.querySelectorAll("button").forEach(function (el) {
+      row.setAttribute("aria-busy", isBusy ? "true" : "false");
+      row.querySelectorAll(
+        ".js-quick-completion-today, .js-quick-completion-edit, " +
+        ".js-quick-completion-unknown, .js-quick-completion-clear, " +
+        ".js-quick-completion-more-toggle"
+      ).forEach(function (el) {
+        el.disabled = isBusy;
+      });
+    }
+
+    function setDetailFormBusy(isBusy) {
+      if (!detailForm) return;
+      detailForm.setAttribute("aria-busy", isBusy ? "true" : "false");
+      detailForm.querySelectorAll("input, select, button").forEach(function (el) {
         el.disabled = isBusy;
       });
     }
 
     function setDetailBusy(row, isBusy) {
       if (!detailForm || detailState.row !== row) return;
-      detailForm.querySelectorAll("input, select, button").forEach(function (el) {
-        el.disabled = isBusy;
-      });
+      setDetailFormBusy(isBusy);
     }
 
     function userMohsValidationMessage(rawValue) {
@@ -836,6 +1151,7 @@
 
     function setUserMohsBusy(editor, isBusy) {
       if (!editor) return;
+      editor.setAttribute("aria-busy", isBusy ? "true" : "false");
       editor.querySelectorAll("input, button").forEach(function (el) {
         el.disabled = isBusy;
       });
@@ -919,11 +1235,35 @@
       setUserMohsError(editor, "");
     }
 
+    function cloneDetailSource(row, sourceSelector, target) {
+      if (!target) return;
+      var source = row.querySelector(sourceSelector);
+      target.replaceChildren();
+      if (!source) {
+        target.textContent = "Not available";
+        return;
+      }
+      Array.from(source.childNodes).forEach(function (node) {
+        target.appendChild(node.cloneNode(true));
+      });
+    }
+
+    function detailSourceText(row, sourceSelector) {
+      var source = row.querySelector(sourceSelector);
+      return source ? source.textContent.trim() : "Not available";
+    }
+
     function fillDetailFromRow(row) {
       var label = dataValue(row, "label") || "Edit completion";
       var topic = dataValue(row, "topic");
       var mohs = dataValue(row, "mohs");
+      var contest = dataValue(row, "contest");
+      var year = dataValue(row, "year");
+      var problemCode = dataValue(row, "problem-code");
+      var dayLabel = dataValue(row, "day-label");
       var metaParts = [];
+      if (year || problemCode) metaParts.push([year, problemCode].filter(Boolean).join(" "));
+      if (dayLabel) metaParts.push(dayLabel);
       if (topic) metaParts.push(topic);
       if (mohs) metaParts.push("MOHS " + mohs);
 
@@ -933,7 +1273,14 @@
         detailFields.link.textContent = label;
         detailFields.link.href = dataValue(row, "problem-url") || "#";
       }
-      if (detailFields.meta) detailFields.meta.textContent = metaParts.join(" - ");
+      if (detailFields.contestLink) {
+        detailFields.contestLink.textContent = contest;
+        detailFields.contestLink.href = dataValue(row, "contest-url") || "#";
+        detailFields.contestLink.classList.toggle("d-none", !contest);
+      }
+      if (detailFields.meta) {
+        detailFields.meta.textContent = (contest && metaParts.length ? " - " : "") + metaParts.join(" - ");
+      }
       if (detailFields.date) detailFields.date.value = dataValue(row, "completion-date");
       if (detailFields.status) detailFields.status.value = dataValue(row, "status") || "unattempted";
       if (detailFields.timeSpent) detailFields.timeSpent.value = dataValue(row, "time-spent-minutes");
@@ -944,6 +1291,13 @@
       if (detailFields.postMortem) detailFields.postMortem.value = dataValue(row, "post-mortem");
       if (detailFields.reattempt) detailFields.reattempt.value = dataValue(row, "reattempt-date");
       if (detailFields.confidence) detailFields.confidence.value = dataValue(row, "confidence");
+      cloneDetailSource(row, ".js-quick-completion-detail-subtopics-source", detailFields.subtopics);
+      cloneDetailSource(row, ".js-quick-completion-detail-techniques-source", detailFields.techniques);
+      if (detailFields.coreIdeas) detailFields.coreIdeas.textContent = detailSourceText(row, ".js-quick-completion-detail-core-ideas-source");
+      if (detailFields.rationale) detailFields.rationale.textContent = detailSourceText(row, ".js-quick-completion-detail-rationale-source");
+      if (detailFields.pitfalls) detailFields.pitfalls.textContent = detailSourceText(row, ".js-quick-completion-detail-pitfalls-source");
+      var summaryEl = row.querySelector(".js-quick-completion-summary");
+      if (detailFields.studySummary) detailFields.studySummary.textContent = summaryEl ? summaryEl.textContent.trim() : "No study details";
       if (detailFields.display) {
         var displayEl = row.querySelector(".js-quick-completion-display");
         detailFields.display.className = displayEl ? displayEl.className.replace("js-quick-completion-display", "") : "badge bg-light text-dark border";
@@ -952,30 +1306,26 @@
       setDetailError("");
     }
 
-    function openDetail(row) {
+    function openDetail(row, opener) {
       fillDetailFromRow(row);
-      if (detailOffcanvas) {
-        detailOffcanvas.show();
-      }
+      setDetailFormBusy(false);
+      detailState.opener = opener || document.activeElement;
     }
 
-    function promoteStatusForSolvedAction(row, metadata) {
-      var currentStatus = metadata ? metadata.status : dataValue(row, "status");
+    function promotedMetadataForSolvedAction(row, metadata) {
+      var nextMetadata = Object.assign({}, metadata || rowMetadata(row));
+      var currentStatus = nextMetadata.status || dataValue(row, "status");
       if (!currentStatus || currentStatus === "unattempted" || currentStatus === "attempted") {
-        if (metadata) {
-          metadata.status = "solved";
-        } else {
-          setDataValue(row, "status", "solved");
-        }
-        if (detailState.row === row && detailFields.status) {
-          detailFields.status.value = "solved";
-        }
+        nextMetadata.status = "solved";
       }
+      return nextMetadata;
     }
 
-    function applyPayload(row, payload) {
+    function applyPayload(row, payload, action) {
       var displayEl = row.querySelector(".js-quick-completion-display");
       var stateKind = stateKindForPayload(payload);
+      var selectedStatus = statusFilter ? statusFilter.value : "";
+      var rowWillBeHidden = selectedStatus && selectedStatus !== stateKind;
       row.setAttribute("data-completion-state", stateKind);
       setDataValue(row, "completion-date", payload.completion_date || "");
       if (displayEl) {
@@ -993,6 +1343,15 @@
       }
       setRowError(row, "");
       setDetailError("");
+      var actionMessages = {
+        clear: "Completion and study details cleared.",
+        save_details: "Study details saved.",
+        set_date: "Completion date saved.",
+        set_unknown: "Completion marked with an unknown date."
+      };
+      var message = actionMessages[action] || "Completion updated.";
+      if (rowWillBeHidden) message += " The row is now hidden by the loaded completion-status filter.";
+      announceStatus(message);
     }
 
     if (typeof DataTable !== "undefined") {
@@ -1008,15 +1367,15 @@
         order: [],
         pageLength: 25,
         lengthMenu: [10, 25, 50, 100],
-        scrollX: true,
+        scrollX: false,
         autoWidth: false,
         columnDefs: [
           {
-            targets: [4, 7, 8],
+            targets: [4, 5, 6],
             orderable: false
           },
           {
-            targets: [4, 8],
+            targets: [5, 6],
             searchable: false
           }
         ],
@@ -1027,13 +1386,13 @@
           bottomEnd: "paging"
         },
         language: {
-          search: "Filter table:",
-          searchPlaceholder: "Within loaded rows",
+          search: "Filter loaded rows:",
+          searchPlaceholder: "Search these loaded rows",
           info: "Showing _START_ to _END_ of _TOTAL_ loaded rows",
           infoEmpty: "No matching rows to show",
           infoFiltered: "(filtered from _MAX_ loaded row(s))",
           lengthMenu: "Show _MENU_ rows",
-          zeroRecords: "No loaded rows match the current filter."
+          zeroRecords: "No loaded rows match the current loaded-row filters."
         }
       });
     }
@@ -1101,12 +1460,13 @@
           });
         })
         .then(function (payload) {
-          applyPayload(row, payload);
+          applyPayload(row, payload, action);
         })
         .catch(function (error) {
           var message = error.message || "Could not update this completion date.";
           setRowError(row, message);
           if (detailState.row === row) setDetailError(message);
+          announceStatus(message);
         })
         .finally(function () {
           setRowBusy(row, false);
@@ -1160,9 +1520,12 @@
         })
         .then(function (payload) {
           applyUserMohsPayload(row, payload);
+          announceStatus("User MOHS saved.");
         })
         .catch(function (error) {
-          setUserMohsError(editor, error.message || "Could not save this User MOHS value.");
+          var message = error.message || "Could not save this User MOHS value.";
+          setUserMohsError(editor, message);
+          announceStatus(message);
         })
         .finally(function () {
           setUserMohsBusy(editor, false);
@@ -1177,17 +1540,18 @@
         return;
       }
       if (event.target.closest(".js-quick-completion-today")) {
-        promoteStatusForSolvedAction(row);
-        submitAction(row, "set_date", todayValue);
+        submitAction(row, "set_date", todayValue, promotedMetadataForSolvedAction(row));
         return;
       }
       if (event.target.closest(".js-quick-completion-unknown")) {
-        promoteStatusForSolvedAction(row);
-        submitAction(row, "set_unknown", "");
+        submitAction(row, "set_unknown", "", promotedMetadataForSolvedAction(row));
         return;
       }
       if (event.target.closest(".js-quick-completion-edit")) {
-        openDetail(row);
+        var editButton = event.target.closest("button, a");
+        var editDropdown = editButton ? editButton.closest(".dropdown") : null;
+        var editOpener = editDropdown ? editDropdown.querySelector(".dropdown-toggle") : editButton;
+        openDetail(row, editOpener);
         return;
       }
       if (event.target.closest(".js-quick-completion-clear")) {
@@ -1213,8 +1577,7 @@
         var row = detailState.row;
         if (!row) return;
         if (event.target.closest("#quick-completion-detail-save-date")) {
-          var dateMetadata = detailMetadata();
-          promoteStatusForSolvedAction(row, dateMetadata);
+          var dateMetadata = promotedMetadataForSolvedAction(row, detailMetadata());
           submitAction(row, "set_date", detailFields.date ? detailFields.date.value : "", dateMetadata);
           return;
         }
@@ -1223,21 +1586,29 @@
           return;
         }
         if (event.target.closest("#quick-completion-detail-today")) {
-          if (detailFields.date) detailFields.date.value = todayValue;
-          var todayMetadata = detailMetadata();
-          promoteStatusForSolvedAction(row, todayMetadata);
+          var todayMetadata = promotedMetadataForSolvedAction(row, detailMetadata());
           submitAction(row, "set_date", todayValue, todayMetadata);
           return;
         }
         if (event.target.closest("#quick-completion-detail-unknown")) {
-          var unknownMetadata = detailMetadata();
-          promoteStatusForSolvedAction(row, unknownMetadata);
+          var unknownMetadata = promotedMetadataForSolvedAction(row, detailMetadata());
           submitAction(row, "set_unknown", "", unknownMetadata);
           return;
         }
         if (event.target.closest("#quick-completion-detail-clear")) {
           submitAction(row, "clear", "", detailMetadata());
         }
+      });
+    }
+
+    if (detailEditor) {
+      detailEditor.addEventListener("hidden.bs.offcanvas", function () {
+        if (detailState.opener && document.contains(detailState.opener)) {
+          detailState.opener.focus();
+        } else if (statusFilter) {
+          statusFilter.focus();
+        }
+        detailState.opener = null;
       });
     }
   })();
