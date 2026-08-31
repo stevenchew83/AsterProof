@@ -267,6 +267,20 @@ def root_page_view(request):
     return redirect("pages:user_activity_dashboard")
 
 
+def _extract_uploaded_statement_pdf_text(uploaded_pdfs) -> tuple[str, str]:
+    extracted_pdf_texts = []
+    for uploaded_pdf in uploaded_pdfs:
+        try:
+            extracted_pdf_texts.append(extract_statement_text_from_pdf(uploaded_pdf))
+        except ProblemStatementImportValidationError as exc:
+            upload_name = getattr(uploaded_pdf, "name", "Uploaded PDF")
+            msg = f"{upload_name}: {exc}"
+            raise ProblemStatementImportValidationError(msg) from exc
+
+    source_label = "PDF upload" if len(uploaded_pdfs) == 1 else f"{len(uploaded_pdfs)} PDF uploads"
+    return "\n\n".join(extracted_pdf_texts), source_label
+
+
 @login_required
 def latex_preview_view(request):
     _require_admin_tools_access(request)
@@ -280,12 +294,11 @@ def latex_preview_view(request):
             action = request.POST.get("action") or "preview"
             source_text = form.cleaned_data["source_text"]
             source_label = "pasted text"
-            uploaded_pdf = form.cleaned_data.get("file")
+            uploaded_pdfs = form.cleaned_data.get("file") or []
             source_url = form.cleaned_data.get("source_url")
             try:
-                if uploaded_pdf is not None:
-                    source_text = extract_statement_text_from_pdf(uploaded_pdf)
-                    source_label = "PDF upload"
+                if uploaded_pdfs:
+                    source_text, source_label = _extract_uploaded_statement_pdf_text(uploaded_pdfs)
                 elif source_url:
                     fetched_source = fetch_statement_text_from_url(source_url)
                     source_text = fetched_source.text
@@ -294,7 +307,7 @@ def latex_preview_view(request):
             except ProblemStatementImportValidationError as exc:
                 messages.error(request, str(exc))
             else:
-                if uploaded_pdf is not None or source_url:
+                if uploaded_pdfs or source_url:
                     form = ProblemStatementImportForm(initial={"source_text": source_text})
                 parsed_statement_payload = build_problem_statement_preview_payload(parsed_import)
                 for problem in parsed_statement_payload["problems"]:
