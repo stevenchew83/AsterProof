@@ -63,6 +63,7 @@ EXPECTED_DIFFICULTY_RATING_COUNT = 2
 EXPECTED_USER_DIFFICULTY_RATING = 37
 OTHER_USER_DIFFICULTY_RATING = 17
 EXPECTED_AVERAGE_DIFFICULTY_DISPLAY = "27.0"
+EXPECTED_PROBLEM_MOHS = 42
 
 
 def _problem(*, year: int = 2026, contest: str = "IMO", problem: str = "P1") -> ProblemSolveRecord:
@@ -410,6 +411,29 @@ def test_problem_solution_list_shows_static_solution_guidance_panel_as_hidden_hi
     assert "Choose the main objects and relations before writing details." in response_html
     assert "Connect each move back to the exact condition you need to prove." in response_html
     assert "Assuming a diagram relation before it has been justified." in response_html
+
+
+def test_problem_solution_list_shows_statement_mohs_panel(client):
+    user = UserFactory()
+    client.force_login(user)
+    problem = _problem(contest="ELMO Shortlist", year=2019, problem="G1")
+    ContestProblemStatement.objects.create(
+        linked_problem=problem,
+        contest_year=2019,
+        contest_name="ELMO Shortlist",
+        problem_number=1,
+        problem_code="G1",
+        statement_latex="Let ABC be an acute triangle.",
+        mohs=EXPECTED_PROBLEM_MOHS,
+    )
+
+    response = client.get(reverse("solutions:problem_solution_list", args=[problem.problem_uuid]))
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["problem_data"]["problem_mohs"] == EXPECTED_PROBLEM_MOHS
+    response_html = response.content.decode("utf-8")
+    assert ">MOHS</p>" in response_html
+    assert 'id="solution-mohs-value"' in response_html
 
 
 def test_problem_solution_list_shows_parsed_topic_tags_as_hidden_subtopics(client):
