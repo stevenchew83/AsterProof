@@ -53,6 +53,34 @@
     margin: 0 auto;
   }
 
+  .latex-pdf-dropzone {
+    min-height: 8.5rem;
+    border: 2px dashed var(--ins-border-color);
+    border-radius: var(--ins-border-radius-lg);
+    background: var(--ins-tertiary-bg);
+    cursor: pointer;
+    transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+  }
+
+  .latex-pdf-dropzone:hover,
+  .latex-pdf-dropzone:focus-visible,
+  .latex-pdf-dropzone.is-dragging {
+    border-color: var(--ins-primary);
+    background: var(--ins-primary-bg-subtle);
+    box-shadow: 0 0 0 0.2rem rgba(var(--ins-primary-rgb), 0.12);
+    outline: 0;
+  }
+
+  .latex-pdf-dropzone.has-files {
+    border-style: solid;
+    border-color: var(--ins-primary);
+  }
+
+  .latex-pdf-file-list {
+    max-height: 8.5rem;
+    overflow-y: auto;
+  }
+
   @media print {
     .statement-evan-box {
       background: #f3eaff !important;
@@ -122,11 +150,27 @@
           </div>
           <div class="row g-2 mt-1 align-items-end">
             <div class="col-lg-6 col-xl-5">
-              <label class="form-label mb-1" for="{{ form.file.id_for_label }}">Upload contest PDF</label>
-              {{ form.file }}
-              <div class="form-text">Upload one text-based PDF to parse immediately.</div>
+              <label class="form-label mb-1" for="{{ form.file.id_for_label }}">Upload contest PDFs</label>
+              <div
+                class="latex-pdf-dropzone d-flex flex-column align-items-center justify-content-center text-center p-3"
+                id="latex-pdf-dropzone"
+                role="button"
+                tabindex="0"
+                aria-controls="{{ form.file.id_for_label }}"
+              >
+                {{ form.file }}
+                <span class="avatar-md mb-2">
+                  <span class="avatar-title bg-primary-subtle text-primary rounded">
+                    <i class="ti ti-cloud-upload fs-24"></i>
+                  </span>
+                </span>
+                <span class="fw-semibold">Drop PDFs here or click to browse</span>
+                <span class="text-muted fs-xs mt-1" id="latex-pdf-summary">Select multiple text-based PDFs for the same contest.</span>
+              </div>
+              <ul class="latex-pdf-file-list list-group list-group-flush mt-2" id="latex-pdf-file-list" aria-live="polite" hidden></ul>
+              <div class="form-text">Files are combined in the selected order and parsed as one contest.</div>
               <button type="submit" name="action" value="preview" class="btn btn-outline-primary btn-sm mt-2">
-                <i class="ti ti-file-search me-1"></i>Parse uploaded PDF
+                <i class="ti ti-file-search me-1"></i>Parse uploaded PDFs
               </button>
               {% for error in form.file.errors %}
               <div class="invalid-feedback d-block">{{ error }}</div>
@@ -424,6 +468,9 @@ window.MathJax = {
   var clearButton = document.getElementById("latex-preview-clear");
   var autoRender = document.getElementById("latex-preview-auto-render");
   var fileInput = document.getElementById("id_file");
+  var fileDropzone = document.getElementById("latex-pdf-dropzone");
+  var fileSummary = document.getElementById("latex-pdf-summary");
+  var fileList = document.getElementById("latex-pdf-file-list");
   var urlInput = document.getElementById("latex-preview-url");
   var status = document.getElementById("latex-preview-status");
   var csrfTokenInput = document.querySelector('#latex-preview-form input[name="csrfmiddlewaretoken"]');
@@ -605,15 +652,81 @@ window.MathJax = {
     renderTimer = window.setTimeout(renderPreview, 200);
   }
 
+  function formatFileSize(size) {
+    if (size < 1024) return size + " B";
+    if (size < 1024 * 1024) return (size / 1024).toFixed(1) + " KB";
+    return (size / (1024 * 1024)).toFixed(1) + " MB";
+  }
+
+  function updatePdfSelection() {
+    if (!fileInput || !fileDropzone || !fileSummary || !fileList) return;
+    var files = Array.from(fileInput.files || []);
+    fileList.innerHTML = "";
+    fileDropzone.classList.toggle("has-files", files.length > 0);
+    fileList.hidden = files.length === 0;
+
+    if (!files.length) {
+      fileSummary.textContent = "Select multiple text-based PDFs for the same contest.";
+      return;
+    }
+
+    fileSummary.textContent = files.length === 1 ? "1 PDF selected" : files.length + " PDFs selected";
+    files.forEach(function (file, index) {
+      var item = document.createElement("li");
+      item.className = "list-group-item px-0 py-2 d-flex align-items-center gap-2 bg-transparent";
+
+      var icon = document.createElement("i");
+      icon.className = "ti ti-file-type-pdf text-danger fs-22 flex-shrink-0";
+      item.appendChild(icon);
+
+      var details = document.createElement("span");
+      details.className = "flex-grow-1 text-truncate";
+      details.textContent = (index + 1) + ". " + file.name;
+      item.appendChild(details);
+
+      var size = document.createElement("span");
+      size.className = "text-muted fs-xs flex-shrink-0";
+      size.textContent = formatFileSize(file.size);
+      item.appendChild(size);
+      fileList.appendChild(item);
+    });
+  }
+
+  function clearPdfSelection() {
+    if (!fileInput) return;
+    fileInput.value = "";
+    updatePdfSelection();
+  }
+
+  function useDroppedPdfFiles(files) {
+    if (!fileInput) return;
+    var droppedFiles = Array.from(files || []);
+    var invalidFile = droppedFiles.find(function (file) {
+      return !file.name.toLowerCase().endsWith(".pdf");
+    });
+    if (invalidFile) {
+      setStatus("Only PDF files can be uploaded. Remove " + invalidFile.name + " and try again.", "danger");
+      return;
+    }
+    if (!droppedFiles.length) return;
+
+    var transfer = new DataTransfer();
+    droppedFiles.forEach(function (file) {
+      transfer.items.add(file);
+    });
+    fileInput.files = transfer.files;
+    fileInput.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+
   renderButton.addEventListener("click", renderPreview);
   loadSampleButton.addEventListener("click", function () {
-    if (fileInput) fileInput.value = "";
+    clearPdfSelection();
     if (urlInput) urlInput.value = "";
     input.value = sampleText;
     renderPreview();
   });
   clearButton.addEventListener("click", function () {
-    if (fileInput) fileInput.value = "";
+    clearPdfSelection();
     if (urlInput) urlInput.value = "";
     input.value = "";
     showEmptyState();
@@ -621,18 +734,50 @@ window.MathJax = {
   if (fileInput) {
     fileInput.addEventListener("change", function () {
       if (!fileInput.files || !fileInput.files.length) return;
+      updatePdfSelection();
       if (urlInput) urlInput.value = "";
       if (input.value.trim()) {
         input.value = "";
         showEmptyState();
       }
-      setStatus("PDF selected. Click \"Parse uploaded PDF\" or \"Parse structure\".", "info");
+      var count = fileInput.files.length;
+      setStatus(
+        (count === 1 ? "1 PDF selected." : count + " PDFs selected.") +
+        " Click \"Parse uploaded PDFs\" or \"Parse structure\".",
+        "info"
+      );
+    });
+  }
+  if (fileDropzone && fileInput) {
+    fileDropzone.addEventListener("click", function (event) {
+      if (event.target === fileInput) return;
+      fileInput.click();
+    });
+    fileDropzone.addEventListener("keydown", function (event) {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      fileInput.click();
+    });
+    ["dragenter", "dragover"].forEach(function (eventName) {
+      fileDropzone.addEventListener(eventName, function (event) {
+        event.preventDefault();
+        fileDropzone.classList.add("is-dragging");
+      });
+    });
+    ["dragleave", "drop"].forEach(function (eventName) {
+      fileDropzone.addEventListener(eventName, function (event) {
+        event.preventDefault();
+        fileDropzone.classList.remove("is-dragging");
+      });
+    });
+    fileDropzone.addEventListener("drop", function (event) {
+      useDroppedPdfFiles(event.dataTransfer.files);
     });
   }
   if (urlInput) {
     urlInput.addEventListener("input", function () {
       if (!urlInput.value.trim()) return;
-      if (fileInput) fileInput.value = "";
+      clearPdfSelection();
       if (input.value.trim()) {
         input.value = "";
         showEmptyState();
@@ -642,7 +787,7 @@ window.MathJax = {
   }
   input.addEventListener("input", function () {
     if (input.value.trim()) {
-      if (fileInput) fileInput.value = "";
+      clearPdfSelection();
       if (urlInput) urlInput.value = "";
     }
     scheduleRender();
@@ -653,6 +798,7 @@ window.MathJax = {
   });
 
   showEmptyState();
+  updatePdfSelection();
   typesetParsedPreview();
   renderPreview();
 })();

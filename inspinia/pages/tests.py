@@ -21208,6 +21208,34 @@ def test_latex_preview_parse_action_accepts_pdf_upload_and_uses_extracted_text(c
     assert response.context["form"]["source_text"].value().startswith("2026 Spain Mathematical Olympiad")
 
 
+def test_latex_preview_parse_action_combines_multiple_pdf_uploads_in_order(client, monkeypatch):
+    admin_user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin_user)
+    seen_names = []
+
+    def fake_extract(uploaded_pdf):
+        seen_names.append(uploaded_pdf.name)
+        if uploaded_pdf.name == "day-1.pdf":
+            return LATEX_STATEMENT_SAMPLE
+        return "\n"
+
+    monkeypatch.setattr("inspinia.pages.views.extract_statement_text_from_pdf", fake_extract)
+
+    response = client.post(
+        reverse("pages:latex_preview"),
+        {
+            "action": "preview",
+            "source_text": "",
+            "file": [_pdf_upload("day-1.pdf"), _pdf_upload("day-2.pdf")],
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert seen_names == ["day-1.pdf", "day-2.pdf"]
+    assert response.context["parsed_statement_payload"]["contest_name"] == SPAIN_OLYMPIAD_NAME
+    assert "using 2 PDF uploads" in response.content.decode("utf-8")
+
+
 def test_latex_preview_parse_action_accepts_source_url_and_uses_fetched_text(client, monkeypatch):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
@@ -21300,7 +21328,7 @@ def test_latex_preview_rejects_source_text_and_pdf_together(client):
 
     assert response.status_code == HTTPStatus.OK
     html = response.content.decode("utf-8")
-    assert "Use only one input source: pasted contest text, a PDF upload, or a URL." in html
+    assert "Use only one input source: pasted contest text, PDF uploads, or a URL." in html
 
 
 def test_latex_preview_rejects_source_text_and_url_together(client):
@@ -21317,7 +21345,7 @@ def test_latex_preview_rejects_source_text_and_url_together(client):
     )
 
     assert response.status_code == HTTPStatus.OK
-    assert "Use only one input source: pasted contest text, a PDF upload, or a URL." in response.content.decode(
+    assert "Use only one input source: pasted contest text, PDF uploads, or a URL." in response.content.decode(
         "utf-8",
     )
 
@@ -21332,7 +21360,7 @@ def test_latex_preview_rejects_when_no_source_is_provided(client):
     )
 
     assert response.status_code == HTTPStatus.OK
-    assert "Paste contest text, upload a PDF, or enter a URL." in response.content.decode("utf-8")
+    assert "Paste contest text, upload one or more PDFs, or enter a URL." in response.content.decode("utf-8")
 
 
 def test_latex_preview_rejects_non_pdf_upload(client):
@@ -21353,7 +21381,7 @@ def test_latex_preview_rejects_non_pdf_upload(client):
     )
 
     assert response.status_code == HTTPStatus.OK
-    assert response.context["form"].errors["file"] == ["Please upload a .pdf file."]
+    assert response.context["form"].errors["file"] == ["Please upload .pdf files only."]
 
 
 def test_latex_preview_pdf_extraction_error_is_displayed(client, monkeypatch):
@@ -21393,8 +21421,12 @@ def test_latex_preview_page_renders_pdf_upload_control(client):
     assert 'enctype="multipart/form-data"' in html
     assert 'name="file"' in html
     assert 'accept=".pdf,application/pdf"' in html
-    assert "Upload contest PDF" in html
-    assert "Parse uploaded PDF" in html
+    assert "multiple" in html
+    assert 'id="latex-pdf-dropzone"' in html
+    assert 'id="latex-pdf-file-list"' in html
+    assert "Drop PDFs here or click to browse" in html
+    assert "Upload contest PDFs" in html
+    assert "Parse uploaded PDFs" in html
 
 
 def test_latex_preview_page_renders_url_input_control(client):

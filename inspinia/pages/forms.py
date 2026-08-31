@@ -149,13 +149,29 @@ class StatementMetadataWorkbookForm(forms.Form):
         return cleaned_data
 
 
+class MultipleFileInput(forms.ClearableFileInput):
+    allow_multiple_selected = True
+
+
+class MultipleFileField(forms.FileField):
+    widget = MultipleFileInput
+
+    def clean(self, data, initial=None):
+        if not data:
+            return []
+        single_file_clean = super().clean
+        if isinstance(data, (list, tuple)):
+            return [single_file_clean(item, initial) for item in data]
+        return [single_file_clean(data, initial)]
+
+
 class ProblemStatementImportForm(forms.Form):
-    file = forms.FileField(
+    file = MultipleFileField(
         required=False,
-        label="Contest PDF",
-        widget=forms.ClearableFileInput(
+        label="Contest PDFs",
+        widget=MultipleFileInput(
             attrs={
-                "class": "form-control",
+                "class": "visually-hidden",
                 "accept": ".pdf,application/pdf",
             },
         ),
@@ -189,14 +205,13 @@ class ProblemStatementImportForm(forms.Form):
     )
 
     def clean_file(self):
-        uploaded = self.cleaned_data.get("file")
-        if uploaded is None:
-            return None
-        name = getattr(uploaded, "name", "") or ""
-        if not name.lower().endswith(".pdf"):
-            msg = "Please upload a .pdf file."
-            raise forms.ValidationError(msg)
-        return uploaded
+        uploads = self.cleaned_data.get("file") or []
+        for uploaded in uploads:
+            name = getattr(uploaded, "name", "") or ""
+            if not name.lower().endswith(".pdf"):
+                msg = "Please upload .pdf files only."
+                raise forms.ValidationError(msg)
+        return uploads
 
     def clean_source_text(self):
         return (self.cleaned_data.get("source_text") or "").strip()
@@ -211,10 +226,10 @@ class ProblemStatementImportForm(forms.Form):
         source_text = cleaned_data.get("source_text") or ""
         source_count = sum(1 for value in (uploaded, source_url, source_text) if value)
         if source_count > 1:
-            msg = "Use only one input source: pasted contest text, a PDF upload, or a URL."
+            msg = "Use only one input source: pasted contest text, PDF uploads, or a URL."
             raise forms.ValidationError(msg)
         if source_count == 0:
-            msg = "Paste contest text, upload a PDF, or enter a URL."
+            msg = "Paste contest text, upload one or more PDFs, or enter a URL."
             raise forms.ValidationError(msg)
         return cleaned_data
 
