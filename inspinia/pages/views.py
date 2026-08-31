@@ -143,6 +143,7 @@ from inspinia.pages.statement_import import ProblemStatementPreviewPayload
 from inspinia.pages.statement_import import ProblemStatementSavePreviewPayload
 from inspinia.pages.statement_import import build_problem_statement_preview_payload
 from inspinia.pages.statement_import import build_problem_statement_save_preview
+from inspinia.pages.statement_import import combine_extracted_statement_pdf_texts
 from inspinia.pages.statement_import import extract_statement_text_from_pdf
 from inspinia.pages.statement_import import fetch_statement_text_from_url
 from inspinia.pages.statement_import import import_problem_statements
@@ -278,7 +279,7 @@ def _extract_uploaded_statement_pdf_text(uploaded_pdfs) -> tuple[str, str]:
             raise ProblemStatementImportValidationError(msg) from exc
 
     source_label = "PDF upload" if len(uploaded_pdfs) == 1 else f"{len(uploaded_pdfs)} PDF uploads"
-    return "\n\n".join(extracted_pdf_texts), source_label
+    return combine_extracted_statement_pdf_texts(extracted_pdf_texts), source_label
 
 
 @login_required
