@@ -5014,6 +5014,21 @@ COMPLETION_QUICK_UPDATE_LAYER_LABELS = {
     "lemmas": "Lemma/Theorem tag",
     "proof_roles": "Proof role",
 }
+COMPLETION_QUICK_UPDATE_QUERY_FILTER_NAMES = {
+    "contest",
+    "core_ideas",
+    "layer_kind",
+    "layer_tag",
+    "mohs_max",
+    "mohs_min",
+    "problem",
+    "problem_label",
+    "q",
+    "subtopics",
+    "target_user_id",
+    "technique",
+    "year",
+}
 
 
 def _completion_quick_update_layer_kind(raw_value: str) -> str:
@@ -5055,6 +5070,7 @@ def _completion_quick_update_apply_layer_filter(queryset, *, raw_kind: str, raw_
 def _completion_quick_update_layer_filter_clear_url(request) -> str:
     query = request.GET.copy()
     query.pop("layer_kind", None)
+    query.pop("layer_label", None)
     query.pop("layer_tag", None)
     query_string = query.urlencode()
     base_url = reverse("pages:completion_quick_update")
@@ -5362,13 +5378,148 @@ def _completion_quick_update_filter_url(
     query = {
         key: value
         for key, value in filters.items()
-        if key != filter_name and value
+        if key in COMPLETION_QUICK_UPDATE_QUERY_FILTER_NAMES
+        and key != filter_name
+        and value
     }
     if filter_value:
         query[filter_name] = filter_value
     query_string = urlencode(query)
     base_url = reverse("pages:completion_quick_update")
     return f"{base_url}?{query_string}" if query_string else base_url
+
+
+def _completion_quick_update_filter_url_without(
+    filters: dict[str, str],
+    *,
+    filter_names: set[str],
+) -> str:
+    query = {
+        key: value
+        for key, value in filters.items()
+        if key in COMPLETION_QUICK_UPDATE_QUERY_FILTER_NAMES
+        and key not in filter_names
+        and value
+    }
+    query_string = urlencode(query)
+    base_url = reverse("pages:completion_quick_update")
+    return f"{base_url}?{query_string}" if query_string else base_url
+
+
+def _completion_quick_update_active_filter_chips(
+    filters: dict[str, str],
+    *,
+    layer_filter_clear_url: str,
+) -> list[dict[str, str]]:
+    chips = []
+    for key, label in (("problem", "Problem"), ("problem_label", "Problem label")):
+        value = str(filters.get(key) or "").strip()
+        if value:
+            chips.append(
+                {
+                    "label": label,
+                    "remove_url": _completion_quick_update_filter_url(
+                        filters,
+                        filter_name=key,
+                        filter_value="",
+                    ),
+                    "value": value,
+                },
+            )
+
+    for key, label in (("subtopics", "Subtopic"), ("technique", "Technique")):
+        values = _completion_quick_update_selected_filter_labels(filters.get(key, ""))
+        for value in values:
+            remaining_values = [item for item in values if item.casefold() != value.casefold()]
+            chips.append(
+                {
+                    "label": label,
+                    "remove_url": _completion_quick_update_filter_url(
+                        filters,
+                        filter_name=key,
+                        filter_value=_completion_quick_update_format_filter_labels(remaining_values),
+                    ),
+                    "value": value,
+                },
+            )
+
+    core_ideas = str(filters.get("core_ideas") or "").strip()
+    if core_ideas:
+        chips.append(
+            {
+                "label": "Core ideas",
+                "remove_url": _completion_quick_update_filter_url(
+                    filters,
+                    filter_name="core_ideas",
+                    filter_value="",
+                ),
+                "value": "Has core ideas" if core_ideas == "has" else "Missing core ideas",
+            },
+        )
+
+    mohs_min = str(filters.get("mohs_min") or "").strip()
+    mohs_max = str(filters.get("mohs_max") or "").strip()
+    if mohs_min or mohs_max:
+        if mohs_min and mohs_max:
+            mohs_value = f"{mohs_min}\u2013{mohs_max}"
+        elif mohs_min:
+            mohs_value = f"{mohs_min}+"
+        else:
+            mohs_value = f"Up to {mohs_max}"
+        chips.append(
+            {
+                "label": "MOHS",
+                "remove_url": _completion_quick_update_filter_url_without(
+                    filters,
+                    filter_names={"mohs_min", "mohs_max"},
+                ),
+                "value": mohs_value,
+            },
+        )
+
+    layer_kind = str(filters.get("layer_kind") or "").strip()
+    layer_tag = str(filters.get("layer_tag") or "").strip()
+    if layer_kind and layer_tag:
+        chips.append(
+            {
+                "label": str(filters.get("layer_label") or "Layer"),
+                "remove_url": layer_filter_clear_url,
+                "value": layer_tag,
+            },
+        )
+    return chips
+
+
+def _completion_quick_update_filter_presentation_context(
+    request,
+    selected_filters: dict[str, str],
+) -> dict[str, object]:
+    layer_filter_clear_url = _completion_quick_update_layer_filter_clear_url(request)
+    advanced_filter_names = {
+        "core_ideas",
+        "layer_kind",
+        "mohs_max",
+        "mohs_min",
+        "problem",
+        "problem_label",
+        "subtopics",
+        "technique",
+    }
+    return {
+        "completion_quick_update_active_filter_chips": _completion_quick_update_active_filter_chips(
+            selected_filters,
+            layer_filter_clear_url=layer_filter_clear_url,
+        ),
+        "completion_quick_update_advanced_filters_open": any(
+            selected_filters.get(filter_name) for filter_name in advanced_filter_names
+        ),
+        "completion_quick_update_has_server_filters": any(
+            value
+            for key, value in selected_filters.items()
+            if key != "layer_label"
+        ),
+        "completion_quick_update_layer_filter_clear_url": layer_filter_clear_url,
+    }
 
 
 def _completion_quick_update_filter_links(
@@ -5480,6 +5631,20 @@ def _completion_quick_update_rows(
             filter_name="technique",
             selected_filters=selected_filters,
         )
+        classification_links = []
+        seen_classification_labels = set()
+        for kind, links in (
+            ("subtopic", row["subtopic_links"]),
+            ("technique", row["technique_links"]),
+        ):
+            for link in links:
+                label_key = str(link["label"]).casefold()
+                if label_key in seen_classification_labels:
+                    continue
+                seen_classification_labels.add(label_key)
+                classification_links.append({**link, "kind": kind})
+        row["classification_preview_links"] = classification_links[:2]
+        row["classification_overflow_count"] = max(len(classification_links) - 2, 0)
         rows.append(row)
     return rows
 
@@ -5666,7 +5831,6 @@ def completion_quick_update_view(request):
         "completion_quick_update_can_select_user": can_select_user,
         "completion_quick_update_contest_choices": contest_choices,
         "completion_quick_update_filters": selected_filters,
-        "completion_quick_update_layer_filter_clear_url": _completion_quick_update_layer_filter_clear_url(request),
         "completion_quick_update_matching_total": matching_total,
         "completion_quick_update_matching_total_is_exact": matching_total_is_exact,
         "completion_quick_update_is_capped": is_capped,
@@ -5690,6 +5854,7 @@ def completion_quick_update_view(request):
         "completion_status_choices": UserProblemCompletion.Status.choices,
         "completion_obstacle_choices": UserProblemCompletion.MainObstacle.choices,
         "completion_confidence_choices": UserProblemCompletion.Confidence.choices,
+        **_completion_quick_update_filter_presentation_context(request, selected_filters),
     }
     return render(request, "pages/completion-quick-update.html", context)
 

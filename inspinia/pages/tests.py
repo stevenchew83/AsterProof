@@ -11,7 +11,9 @@ from io import BytesIO
 from io import StringIO
 from pathlib import Path
 from unittest.mock import patch
+from urllib.parse import parse_qs
 from urllib.parse import urlencode
+from urllib.parse import urlparse
 
 import pandas as pd
 import pytest
@@ -96,6 +98,7 @@ pytestmark = pytest.mark.django_db
 EXPECTED_RECORD_COUNT = 1
 EXPECTED_ONE_TECHNIQUE = 1
 EXPECTED_TWO_TECHNIQUES = 2
+EXPECTED_COMPACT_COMPLETION_COLUMNS = 7
 EXPECTED_MULTI_CONTEST_RENAME_TOTAL = 2
 UPDATED_MOHS = 5
 EXPECTED_PROGRESS_HALF_PERCENT = 50
@@ -7116,11 +7119,148 @@ def test_completion_quick_update_filters_by_mohs_range(client):
     assert 'value="15"' in response_html
     assert 'name="mohs_max"' in response_html
     assert 'value="20"' in response_html
-    assert 'id="quick-completion-secondary-filters"' in response_html
-    assert 'id="quick-completion-advanced-filters"' not in response_html
-    assert "MOHS 18" in response_html
+    assert response.context["completion_quick_update_advanced_filters_open"] is True
+    assert 'id="quick-completion-advanced-filters" class="collapse show mt-2"' in response_html
+    assert 'aria-expanded="true"' in response_html
+    assert "MOHS: 15\N{EN DASH}20" in response_html
+    assert '<td class="quick-completion-mohs-cell" data-label="MOHS">' in response_html
+    assert "<span>18</span>" in response_html
     assert "MOHS 10" not in response_html
     assert "MOHS 25" not in response_html
+
+
+def test_completion_quick_update_advanced_filter_chips_preserve_unrelated_filters(client):
+    user = UserFactory()
+    client.force_login(user)
+    _create_quick_completion_statement(problem_code="P1", problem_number=1, mohs=18)
+
+    response = client.get(
+        reverse("pages:completion_quick_update"),
+        {
+            "contest": "USAMO",
+            "mohs_max": "20",
+            "mohs_min": "15",
+            "q": "geometry",
+            "subtopics": "Circle geometry, Angle chasing",
+            "technique": "INVERSION, POWER OF A POINT",
+            "year": "2026",
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    chips = response.context["completion_quick_update_active_filter_chips"]
+    assert [(chip["label"], chip["value"]) for chip in chips] == [
+        ("Subtopic", "Circle geometry"),
+        ("Subtopic", "Angle chasing"),
+        ("Technique", "INVERSION"),
+        ("Technique", "POWER OF A POINT"),
+        ("MOHS", "15\N{EN DASH}20"),
+    ]
+
+    inversion_chip = next(chip for chip in chips if chip["value"] == "INVERSION")
+    inversion_query = parse_qs(urlparse(inversion_chip["remove_url"]).query)
+    assert inversion_query["technique"] == ["POWER OF A POINT"]
+    assert inversion_query["subtopics"] == ["Circle geometry, Angle chasing"]
+    assert inversion_query["contest"] == ["USAMO"]
+    assert inversion_query["year"] == ["2026"]
+    assert inversion_query["q"] == ["geometry"]
+    assert inversion_query["mohs_min"] == ["15"]
+    assert inversion_query["mohs_max"] == ["20"]
+
+    mohs_chip = next(chip for chip in chips if chip["label"] == "MOHS")
+    mohs_query = parse_qs(urlparse(mohs_chip["remove_url"]).query)
+    assert "mohs_min" not in mohs_query
+    assert "mohs_max" not in mohs_query
+    assert mohs_query["technique"] == ["INVERSION, POWER OF A POINT"]
+    assert mohs_query["subtopics"] == ["Circle geometry, Angle chasing"]
+
+
+@pytest.mark.parametrize(
+    ("filter_name", "filter_value", "expected_label", "expected_value"),
+    [
+        ("problem", "P1", "Problem", "P1"),
+        ("problem_label", "USAMO 2026 P1", "Problem label", "USAMO 2026 P1"),
+        ("core_ideas", "has", "Core ideas", "Has core ideas"),
+        ("core_ideas", "missing", "Core ideas", "Missing core ideas"),
+    ],
+)
+def test_completion_quick_update_single_advanced_chip_removes_only_its_filter(
+    client,
+    filter_name,
+    filter_value,
+    expected_label,
+    expected_value,
+):
+    user = UserFactory()
+    client.force_login(user)
+    _create_quick_completion_statement(
+        problem_code="P1",
+        problem_number=1,
+        core_ideas="Core ideas: Use an invariant.",
+    )
+    params = {
+        "contest": "USAMO",
+        "q": "USAMO",
+        "year": "2026",
+        filter_name: filter_value,
+    }
+
+    response = client.get(reverse("pages:completion_quick_update"), params)
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["completion_quick_update_advanced_filters_open"] is True
+    chip = response.context["completion_quick_update_active_filter_chips"][0]
+    assert (chip["label"], chip["value"]) == (expected_label, expected_value)
+    remove_query = parse_qs(urlparse(chip["remove_url"]).query)
+    assert filter_name not in remove_query
+    assert remove_query["contest"] == ["USAMO"]
+    assert remove_query["q"] == ["USAMO"]
+    assert remove_query["year"] == ["2026"]
+
+
+def test_completion_quick_update_primary_filters_do_not_open_advanced_section(client):
+    user = UserFactory()
+    client.force_login(user)
+    _create_quick_completion_statement(problem_code="P1", problem_number=1)
+
+    response = client.get(
+        reverse("pages:completion_quick_update"),
+        {"contest": "USAMO", "q": "USAMO", "year": "2026"},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["completion_quick_update_advanced_filters_open"] is False
+    assert response.context["completion_quick_update_active_filter_chips"] == []
+    assert response.context["completion_quick_update_has_server_filters"] is True
+    response_html = response.content.decode("utf-8")
+    assert 'id="quick-completion-advanced-filters" class="collapse mt-2"' in response_html
+    assert 'aria-expanded="false"' in response_html
+    assert f'href="{reverse("pages:completion_quick_update")}"' in response_html
+    assert "Reset all" in response_html
+
+
+@pytest.mark.parametrize(
+    ("params", "expected_value"),
+    [
+        ({"mohs_min": "15"}, "15+"),
+        ({"mohs_max": "20"}, "Up to 20"),
+    ],
+)
+def test_completion_quick_update_open_ended_mohs_chip(client, params, expected_value):
+    user = UserFactory()
+    client.force_login(user)
+    _create_quick_completion_statement(problem_code="P1", problem_number=1, mohs=18)
+
+    response = client.get(reverse("pages:completion_quick_update"), params)
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["completion_quick_update_active_filter_chips"] == [
+        {
+            "label": "MOHS",
+            "remove_url": reverse("pages:completion_quick_update"),
+            "value": expected_value,
+        },
+    ]
 
 
 def test_completion_quick_update_filters_by_technique(client):
@@ -7156,8 +7296,10 @@ def test_completion_quick_update_filters_by_technique(client):
     assert 'name="technique"' in response_html
     assert 'value="LTE"' in response_html
     assert 'name="subtopics"' in response_html
-    assert 'id="quick-completion-secondary-filters"' in response_html
-    assert 'id="quick-completion-advanced-filters"' not in response_html
+    assert response.context["completion_quick_update_advanced_filters_open"] is True
+    assert 'id="quick-completion-advanced-filters" class="collapse show mt-2"' in response_html
+    assert 'aria-expanded="true"' in response_html
+    assert "Technique: LTE" in response_html
     assert "Subtopics" in response_html
     assert "Technique" in response_html
     assert "ANGLE CHASE" not in response_html
@@ -7348,7 +7490,7 @@ def test_completion_quick_update_filters_by_exact_statement_layer_tag(client):
     assert 'value="objects"' in response_html
     assert 'name="layer_tag"' in response_html
     assert 'value="inequality expression"' in response_html
-    assert "Layer filter" in response_html
+    assert "Object tag: inequality expression" in response_html
     assert "inequality expression" in response_html
     assert "SMOOTHING VARIABLE" not in response_html
 
@@ -7446,6 +7588,18 @@ def test_completion_quick_update_layer_filter_uses_fact_subtopic_context_and_ign
     assert response.context["completion_quick_update_filters"]["technique"] == "POWER OF A POINT"
     assert response.context["completion_quick_update_filters"]["layer_kind"] == "lemmas"
     assert response.context["completion_quick_update_filters"]["layer_tag"] == "POWER OF A POINT"
+    assert response.context["completion_quick_update_advanced_filters_open"] is True
+    layer_chip = next(
+        chip
+        for chip in response.context["completion_quick_update_active_filter_chips"]
+        if chip["value"] == "POWER OF A POINT" and chip["label"] == "Lemma/Theorem tag"
+    )
+    clear_query = parse_qs(urlparse(layer_chip["remove_url"]).query)
+    assert "layer_kind" not in clear_query
+    assert "layer_label" not in clear_query
+    assert "layer_tag" not in clear_query
+    assert clear_query["subtopics"] == ["Circle geometry"]
+    assert clear_query["technique"] == ["POWER OF A POINT"]
 
 
 def test_completion_quick_update_layer_filter_uses_linked_problem_fallback_only_without_statement_tags(client):
@@ -7915,7 +8069,7 @@ def test_completion_quick_update_filters_by_effective_core_ideas_availability(cl
     assert [row["statement_uuid"] for row in rows] == [str(missing_core.statement_uuid)]
 
 
-def test_completion_quick_update_renders_analytics_toggle_buttons_and_search_text(client):
+def test_completion_quick_update_renders_insights_in_row_detail_source(client):
     user = UserFactory()
     client.force_login(user)
     _create_quick_completion_statement(
@@ -7932,20 +8086,17 @@ def test_completion_quick_update_renders_analytics_toggle_buttons_and_search_tex
     assert row["rationale"] == "The invariant gives a monotone quantity."
     assert row["pitfalls"] == "Forgetting the terminal case."
     response_html = response.content.decode("utf-8")
-    header_html = response_html[
-        response_html.index("<thead>") : response_html.index("</thead>")
-    ]
-    assert header_html.index("<th>Insights</th>") < header_html.index("<th>Actions</th>")
-    assert "js-quick-completion-insight-toggle" in response_html
-    assert "data-quick-completion-insight=\"core-ideas\"" in response_html
-    assert "data-quick-completion-insight=\"rationale\"" in response_html
-    assert "data-quick-completion-insight=\"pitfalls\"" in response_html
+    assert "js-quick-completion-row-details" in response_html
+    assert "js-quick-completion-detail-core-ideas-source" in response_html
+    assert "js-quick-completion-detail-rationale-source" in response_html
+    assert "js-quick-completion-detail-pitfalls-source" in response_html
+    assert 'id="quick-completion-detail-insights"' in response_html
     assert "Normalize the parity classes." in response_html
     assert "The invariant gives a monotone quantity." in response_html
     assert "Forgetting the terminal case." in response_html
 
 
-def test_completion_quick_update_shows_subtopics_and_techniques_as_separate_columns(client):
+def test_completion_quick_update_shows_full_classification_in_detail_source(client):
     user = UserFactory()
     client.force_login(user)
     statement_tagged = _create_quick_completion_statement(problem_code="P1", problem_number=1)
@@ -7984,14 +8135,62 @@ def test_completion_quick_update_shows_subtopics_and_techniques_as_separate_colu
     header_html = response_html[
         response_html.index("<thead>") : response_html.index("</thead>")
     ]
-    assert header_html.index("<th>Subtopics</th>") < header_html.index("<th>Technique</th>")
-    assert header_html.index("<th>Technique</th>") < header_html.index("<th>User MOHS</th>")
+    assert "Classification" in header_html
+    assert "Subtopics" not in header_html
+    assert "Technique" not in header_html
+    assert "User MOHS" not in header_html
+    assert "js-quick-completion-detail-subtopics-source" in response_html
+    assert "js-quick-completion-detail-techniques-source" in response_html
     assert "INVARIANTS" in response_html
     assert "Invariants" in response_html
     assert "ANGLE CHASE" in response_html
     assert "Angle chasing" in response_html
     assert "DO NOT DISPLAY" not in response_html
     assert "Do not display" not in response_html
+
+
+def test_completion_quick_update_classification_preview_is_unique_and_limited(client):
+    user = UserFactory()
+    client.force_login(user)
+    statement = _create_quick_completion_statement(problem_code="P1", problem_number=1)
+    untagged_statement = _create_quick_completion_statement(problem_code="P2", problem_number=2)
+    StatementTopicTechnique.objects.create(
+        statement=statement,
+        technique="ALPHA",
+        domains=["COMB"],
+        canonical_subtopic="Shared",
+    )
+    StatementTopicTechnique.objects.create(
+        statement=statement,
+        technique="SHARED",
+        domains=["COMB"],
+        canonical_subtopic="Second",
+    )
+    StatementTopicTechnique.objects.create(
+        statement=statement,
+        technique="THIRD",
+        domains=["COMB"],
+    )
+
+    response = client.get(reverse("pages:completion_quick_update"))
+
+    assert response.status_code == HTTPStatus.OK
+    row_by_uuid = {
+        row["statement_uuid"]: row
+        for row in response.context["completion_quick_update_rows"]
+    }
+    tagged_row = row_by_uuid[str(statement.statement_uuid)]
+    assert [link["label"] for link in tagged_row["classification_preview_links"]] == [
+        "Shared",
+        "Second",
+    ]
+    assert tagged_row["classification_overflow_count"] == EXPECTED_TWO_TECHNIQUES
+    assert row_by_uuid[str(untagged_statement.statement_uuid)]["classification_preview_links"] == []
+    assert row_by_uuid[str(untagged_statement.statement_uuid)]["classification_overflow_count"] == 0
+    response_html = response.content.decode("utf-8")
+    assert "+2 more" in response_html
+    assert "ALPHA" in response_html
+    assert "THIRD" in response_html
 
 
 def test_completion_quick_update_technique_filter_uses_linked_tags_only_as_fallback(client):
@@ -8117,8 +8316,9 @@ def test_completion_quick_update_contest_links_to_advanced_contest_dashboard(cli
     row = response.context["completion_quick_update_rows"][0]
     assert row["contest_detail_url"] == detail_url
     response_html = response.content.decode("utf-8")
-    assert f'href="{detail_url}"' in response_html
-    assert ">Argentina TST</a>" in response_html
+    assert f'data-contest-url="{detail_url}"' in response_html
+    assert 'id="quick-completion-detail-contest-link"' in response_html
+    assert 'detailFields.contestLink.href = dataValue(row, "contest-url")' in response_html
 
 
 def test_problem_statement_detail_renders_statement_page(client):
@@ -8614,7 +8814,7 @@ def test_completion_board_toggle_accepts_problem_without_statement(client):
     assert completion.completion_date is None
 
 
-def test_completion_quick_update_renders_datatable_with_status_filter(client):
+def test_completion_quick_update_renders_datatable_with_status_filter(client):  # noqa: PLR0915
     user = UserFactory()
     client.force_login(user)
     solved_problem = ProblemSolveRecord.objects.create(
@@ -8674,31 +8874,31 @@ def test_completion_quick_update_renders_datatable_with_status_filter(client):
     assert "dataTables.min.js" in response_html
     assert 'id="quick-completion-table"' in response_html
     assert 'data-server-today="' in response_html
-    assert 'js-quick-completion-timezone-label' in response_html
+    assert "js-quick-completion-timezone-label" in response_html
     assert 'id="quick-completion-status-filter"' in response_html
     assert 'id="quick-completion-detail-editor"' in response_html
     assert 'id="quick-completion-primary-filters"' in response_html
-    assert 'id="quick-completion-secondary-filters"' in response_html
-    assert 'id="quick-completion-advanced-filters"' not in response_html
-    assert 'data-bs-target="#quick-completion-advanced-filters"' not in response_html
+    assert 'id="quick-completion-advanced-filters" class="collapse mt-2"' in response_html
+    assert 'data-bs-target="#quick-completion-advanced-filters"' in response_html
+    assert 'aria-expanded="false"' in response_html
     primary_filter_html = response_html[
         response_html.index('id="quick-completion-primary-filters"') : response_html.index(
-            'id="quick-completion-secondary-filters"',
+            'id="quick-completion-advanced-filters"',
         )
     ]
-    secondary_filter_html = response_html[
-        response_html.index('id="quick-completion-secondary-filters"') : response_html.index(
-            '</form>',
+    advanced_filter_html = response_html[
+        response_html.index('id="quick-completion-advanced-filters"') : response_html.index(
+            "</form>",
         )
     ]
     assert 'name="contest"' in primary_filter_html
     assert 'name="year"' in primary_filter_html
-    assert 'name="problem"' in primary_filter_html
-    assert 'name="problem_label"' in primary_filter_html
-    assert 'name="q"' in secondary_filter_html
-    assert 'name="subtopics"' in secondary_filter_html
-    assert 'name="mohs_min"' in secondary_filter_html
-    assert 'name="mohs_max"' in secondary_filter_html
+    assert 'name="q"' in primary_filter_html
+    assert 'name="problem"' in advanced_filter_html
+    assert 'name="problem_label"' in advanced_filter_html
+    assert 'name="subtopics"' in advanced_filter_html
+    assert 'name="mohs_min"' in advanced_filter_html
+    assert 'name="mohs_max"' in advanced_filter_html
     assert 'data-completion-state="solved"' in response_html
     assert 'data-completion-state="unsolved"' in response_html
     assert 'data-completion-date="2026-04-20"' in response_html
@@ -8711,33 +8911,39 @@ def test_completion_quick_update_renders_datatable_with_status_filter(client):
     header_html = response_html[
         response_html.index("<thead>") : response_html.index("</thead>")
     ]
-    assert header_html.index("<th>Topic / MOHS</th>") < header_html.index(
-        "<th>Subtopics</th>",
-    )
-    assert header_html.index("<th>Subtopics</th>") < header_html.index(
-        "<th>Technique</th>",
-    )
-    assert header_html.index("<th>Technique</th>") < header_html.index(
-        "<th>User MOHS</th>",
-    )
-    assert header_html.index("<th>User MOHS</th>") < header_html.index(
-        "<th>Completion</th>",
-    )
-    assert header_html.index("<th>Completion</th>") < header_html.index(
-        "<th>Study summary</th>",
-    )
-    assert header_html.index("<th>Study summary</th>") < header_html.index(
-        "<th>Insights</th>",
-    )
-    assert header_html.index("<th>Insights</th>") < header_html.index(
-        "<th>Actions</th>"
-    )
-    assert "<th>Status</th>" not in header_html
-    assert "<th>Time spent</th>" not in header_html
-    assert "<th>YYYY-MM-DD</th>" not in header_html
-    assert "targets: [4, 7, 8]" in response_html
-    assert "targets: [4, 8]" in response_html
+    expected_headers = [
+        "Problem",
+        "Topic",
+        "MOHS",
+        "Classification",
+        "Progress",
+        "Quick action",
+        "More",
+    ]
+    header_positions = [header_html.index(f">{header}</th>") for header in expected_headers]
+    assert header_positions == sorted(header_positions)
+    assert header_html.count("<th ") == EXPECTED_COMPACT_COMPLETION_COLUMNS
+    assert "targets: [4, 5, 6]" in response_html
+    assert "targets: [5, 6]" in response_html
+    assert "scrollX: false" in response_html
+    assert 'search: "Filter loaded rows:"' in response_html
+    assert 'searchPlaceholder: "Search these loaded rows"' in response_html
+    assert "Clear loaded filters" in response_html
     assert "loaded rows" in response_html
+    assert response_html.count(
+        'class="btn btn-primary btn-sm text-nowrap js-quick-completion-today"',
+    ) == len(row_by_problem)
+    assert response_html.count(
+        'class="btn btn-outline-secondary btn-sm dropdown-toggle '
+        'js-quick-completion-more-toggle"',
+    ) == len(row_by_problem)
+    assert 'data-bs-toggle="offcanvas"' in response_html
+    assert 'aria-live="polite"' in response_html
+    assert "strategy: \"fixed\"" in response_html
+    assert "if (detailFields.date) detailFields.date.value = todayValue" not in response_html
+    assert "statusFilter.focus();" in response_html
+    assert "Clear completion and study details" in response_html
+    assert '<caption class="visually-hidden">' in response_html
 
 
 def test_completion_quick_update_announces_recent_backend_cap(client):
