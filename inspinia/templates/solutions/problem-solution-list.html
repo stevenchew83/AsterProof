@@ -292,6 +292,29 @@
         <div class="col-sm-6 col-xl-12">
           <div class="card m-0">
             <div class="card-body">
+              <div class="d-flex align-items-center">
+                <div class="flex-shrink-0">
+                  <span class="avatar-title bg-info-subtle text-info rounded">
+                    <i class="ti ti-gauge fs-24"></i>
+                  </span>
+                </div>
+                <div class="flex-grow-1 ms-2">
+                  <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">MOHS</p>
+                  <h3 id="solution-mohs-value" class="mb-0">
+                    {% if problem_data.problem_mohs is not None %}
+                    {{ problem_data.problem_mohs }}
+                    {% else %}
+                    <span class="text-muted">—</span>
+                    {% endif %}
+                  </h3>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-sm-6 col-xl-12">
+          <div class="card m-0">
+            <div class="card-body">
               <div
                 class="solution-difficulty-editor js-solution-difficulty-editor"
                 data-save-url="{{ difficulty_rating_save_url }}"
