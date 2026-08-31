@@ -73,6 +73,7 @@ from inspinia.pages.statement_import import LATEX_STATEMENT_SAMPLE
 from inspinia.pages.statement_import import URL_FETCH_TIMEOUT_SECONDS
 from inspinia.pages.statement_import import FetchedStatementText
 from inspinia.pages.statement_import import ProblemStatementImportValidationError
+from inspinia.pages.statement_import import combine_extracted_statement_pdf_texts
 from inspinia.pages.statement_import import extract_statement_text_from_pdf
 from inspinia.pages.statement_import import fetch_statement_text_from_url
 from inspinia.pages.statement_import import import_problem_statements
@@ -21387,6 +21388,43 @@ def test_latex_preview_parse_action_builds_structured_preview_without_saving(cli
         "update_problem_codes": [],
     }
     assert 'footnotesize: ""' in response.content.decode("utf-8")
+
+
+def test_combined_pdf_text_normalizes_branded_day_headers_and_extraction_artifacts():
+    expected_year = 2026
+    combined_text = combine_extracted_statement_pdf_texts(
+        [
+            """Malaysian IMO Final Training
+Iran TST 2026 Day 1, 11 June 2026
+Problem 1.A first statement with apply-
+ing operations.
+Problem 2.A second statement with a condition
+with 1 ≤ i ≤ j ≤ m.
+Time limit: 4.5 hours. Each question is worth 7 points.""",
+            """Malaysian IMO Final Training
+Iran TST 2026 Day 2, 12 June 2026
+Problem 3.In a triangle, prove the claim after several
+operations.
+Problem 4.A final statement.
+Time limit: 4.5 hours. Each question is worth 7 points.""",
+        ],
+    )
+
+    parsed_import = parse_contest_problem_statements(combined_text)
+
+    assert parsed_import.contest_year == expected_year
+    assert parsed_import.contest_name == "Iran TST"
+    assert [problem.problem_code for problem in parsed_import.problems] == ["P1", "P2", "P3", "P4"]
+    assert [problem.day_label for problem in parsed_import.problems] == [
+        "Day 1 · 11 June 2026",
+        "Day 1 · 11 June 2026",
+        "Day 2 · 12 June 2026",
+        "Day 2 · 12 June 2026",
+    ]
+    assert "applying operations." in parsed_import.problems[0].statement_latex
+    assert "with 1 ≤ i ≤ j ≤ m." in parsed_import.problems[1].statement_latex
+    assert parsed_import.problems[2].statement_latex.endswith("operations.")
+    assert all("Time limit" not in problem.statement_latex for problem in parsed_import.problems)
 
 
 def test_latex_preview_parse_action_accepts_pdf_upload_and_uses_extracted_text(client, monkeypatch):
