@@ -8,6 +8,8 @@ import pytest
 from scripts.deployment.target import TargetContract
 from scripts.deployment.target import TargetContractError
 
+REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
+
 
 def _contract(**overrides: object) -> dict[str, object]:
     value: dict[str, object] = {
@@ -44,6 +46,14 @@ def test_target_contract_derives_bounded_release_paths() -> None:
 
     assert contract.releases_dir == Path("/srv/asterproof/releases")
     assert contract.incoming_dir == Path("/srv/asterproof/incoming")
+
+
+def test_checked_in_production_target_is_valid() -> None:
+    contract = TargetContract.load(REPOSITORY_ROOT / "deployment/production-target.json")
+
+    assert contract.repository == "stevenchew83/AsterProof"
+    assert contract.repository_id == "1165803960"
+    assert contract.marker == "asterproof-production"
 
 
 @pytest.mark.parametrize(
