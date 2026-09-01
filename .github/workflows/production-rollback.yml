@@ -1,0 +1,236 @@
+name: Production rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      workflow_sha:
+        description: Exact current main commit containing the trusted rollback workflow
+        required: true
+        type: string
+      confirmation:
+        description: Type ROLLBACK_IMMEDIATE_PREVIOUS
+        required: true
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: asterproof-production
+  cancel-in-progress: false
+  queue: max
+
+jobs:
+  inspect:
+    name: Inspect current release before approval
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      active_sha: ${{ steps.health.outputs.active_sha }}
+      active_digest: ${{ steps.health.outputs.active_digest }}
+    steps:
+      - name: Check out trusted workflow commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Validate current-main rollback dispatch
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          WORKFLOW_REF_NAME: ${{ github.ref }}
+          WORKFLOW_SHA: ${{ github.sha }}
+          REQUESTED_SHA: ${{ inputs.workflow_sha }}
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          test "$CONFIRMATION" = ROLLBACK_IMMEDIATE_PREVIOUS
+          python -m scripts.deployment.validate_dispatch dispatch \
+            --event "$EVENT_NAME" --ref "$WORKFLOW_REF_NAME" \
+            --checked-out-sha "$WORKFLOW_SHA" --release-sha "$REQUESTED_SHA" \
+            --migration-class none
+
+      - name: Read and validate public active-release evidence
+        id: health
+        env:
+          HEALTH_URL: ${{ vars.PRODUCTION_HEALTH_URL }}
+        run: |
+          test -n "$HEALTH_URL"
+          curl --fail --silent --show-error --location \
+            --max-time 15 --proto '=https' --tlsv1.2 \
+            -H 'Accept: application/json' -H 'Cache-Control: no-cache' \
+            "${HEALTH_URL}?run=${GITHUB_RUN_ID}" > "$RUNNER_TEMP/active-release.json"
+          python -m scripts.deployment.validate_dispatch health \
+            --response "$RUNNER_TEMP/active-release.json" \
+            --output "$RUNNER_TEMP/active-evidence.json"
+          python - "$RUNNER_TEMP/active-evidence.json" "$GITHUB_OUTPUT" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          evidence = json.loads(Path(sys.argv[1]).read_text())
+          with Path(sys.argv[2]).open("a", encoding="utf-8") as output:
+              output.write(f"active_sha={evidence['active_sha']}\n")
+              output.write(f"active_digest={evidence['active_digest']}\n")
+          PY
+
+      - name: Publish rollback disclosure
+        env:
+          ACTIVE_SHA: ${{ steps.health.outputs.active_sha }}
+          ACTIVE_DIGEST: ${{ steps.health.outputs.active_digest }}
+        run: |
+          {
+            printf '## Rollback approval request\n'
+            printf -- '- Current trusted workflow SHA: `%s`\n' "$GITHUB_SHA"
+            printf -- '- Current production SHA: `%s`\n' "$ACTIVE_SHA"
+            printf -- '- Current production digest: `%s`\n' "$ACTIVE_DIGEST"
+            printf -- '- Requested action: immediate previous eligible release only\n'
+            printf -- '- Database migrations: never reversed automatically\n'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  rollback:
+    name: Approve and roll back production
+    needs: inspect
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment:
+      name: production
+      url: ${{ vars.PRODUCTION_HEALTH_URL }}
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Check out current trusted rollback client
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Revalidate current main after approval
+        env:
+          EXPECTED_SHA: ${{ inputs.workflow_sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          curl --fail --silent --show-error \
+            --max-time 15 --proto '=https' --tlsv1.2 \
+            -H 'Accept: application/vnd.github+json' \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/git/ref/heads/main" \
+            > "$RUNNER_TEMP/main-ref.json"
+          python -m scripts.deployment.validate_dispatch main-ref \
+            --expected-sha "$EXPECTED_SHA" --response "$RUNNER_TEMP/main-ref.json"
+
+      - name: Configure pinned production SSH transport
+        env:
+          DEPLOY_HOST: ${{ secrets.PRODUCTION_SSH_HOST }}
+          DEPLOY_PORT: ${{ secrets.PRODUCTION_SSH_PORT }}
+          DEPLOY_USER: ${{ secrets.PRODUCTION_SSH_USER }}
+          DEPLOY_KEY: ${{ secrets.PRODUCTION_SSH_PRIVATE_KEY }}
+          KNOWN_HOSTS_LINE: ${{ secrets.PRODUCTION_SSH_KNOWN_HOSTS }}
+          TARGET_MARKER: ${{ vars.PRODUCTION_TARGET_MARKER }}
+        run: |
+          set +x
+          install -m 700 -d "$RUNNER_TEMP/asterproof-ssh"
+          printf '%s\n' "$DEPLOY_KEY" > "$RUNNER_TEMP/asterproof-ssh/key"
+          chmod 600 "$RUNNER_TEMP/asterproof-ssh/key"
+          printf '%s\n' "$KNOWN_HOSTS_LINE" > "$RUNNER_TEMP/asterproof-ssh/known_hosts"
+          python -m scripts.deployment.validate_dispatch ssh-contract \
+            --host "$DEPLOY_HOST" --port "$DEPLOY_PORT" --user "$DEPLOY_USER" \
+            --target-marker "$TARGET_MARKER" \
+            --known-hosts "$RUNNER_TEMP/asterproof-ssh/known_hosts"
+          {
+            printf 'Host asterproof-production\n'
+            printf '  HostName %s\n' "$DEPLOY_HOST"
+            printf '  Port %s\n' "$DEPLOY_PORT"
+            printf '  User %s\n' "$DEPLOY_USER"
+            printf '  IdentityFile %s\n' "$RUNNER_TEMP/asterproof-ssh/key"
+            printf '  IdentitiesOnly yes\n'
+            printf '  BatchMode yes\n'
+            printf '  StrictHostKeyChecking yes\n'
+            printf '  UserKnownHostsFile %s\n' "$RUNNER_TEMP/asterproof-ssh/known_hosts"
+            printf '  ConnectTimeout 10\n'
+            printf '  ServerAliveInterval 10\n'
+            printf '  ServerAliveCountMax 2\n'
+            printf '  ClearAllForwardings yes\n'
+            printf '  RequestTTY no\n'
+          } > "$RUNNER_TEMP/asterproof-ssh/config"
+          chmod 600 "$RUNNER_TEMP/asterproof-ssh/config"
+
+      - name: Verify target and submit durable rollback
+        env:
+          WORKFLOW_SHA: ${{ inputs.workflow_sha }}
+          TARGET_MARKER: ${{ vars.PRODUCTION_TARGET_MARKER }}
+          DEPLOYMENT_ID: ${{ github.run_id }}
+        run: |
+          set +x
+          ssh -F "$RUNNER_TEMP/asterproof-ssh/config" asterproof-production 'preflight v1' \
+            > "$RUNNER_TEMP/preflight.json"
+          python -m scripts.deployment.validate_dispatch rollback-target \
+            --target-marker "$TARGET_MARKER" --response "$RUNNER_TEMP/preflight.json" \
+            --output "$RUNNER_TEMP/rollback-target.json"
+          ROLLBACK_SHA="$(python -c 'import json,sys; print(json.load(open(sys.argv[1]))["rollback_sha"])' "$RUNNER_TEMP/rollback-target.json")"
+          ROLLBACK_DIGEST="$(python -c 'import json,sys; print(json.load(open(sys.argv[1]))["rollback_digest"])' "$RUNNER_TEMP/rollback-target.json")"
+          request_token() {
+            local audience="$1"
+            local encoded
+            encoded="$(python -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "$audience")"
+            curl --fail --silent --show-error --max-time 15 \
+              -H "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+              "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=${encoded}" \
+              | python -c 'import json,sys; print(json.load(sys.stdin)["value"])'
+          }
+          send_request() {
+            local command="$1"
+            local audience token
+            audience="$(python -m scripts.deployment.validate_dispatch audience \
+              --operation rollback --run-id "$GITHUB_RUN_ID" --deployment-id "$DEPLOYMENT_ID" \
+              --workflow-sha "$WORKFLOW_SHA" \
+              --release-sha "$ROLLBACK_SHA" --artifact-digest "$ROLLBACK_DIGEST" \
+              --target-marker "$TARGET_MARKER" --migration-class none)"
+            token="$(request_token "$audience")"
+            echo "::add-mask::$token"
+            ASTERPROOF_OIDC_TOKEN="$token" python -m scripts.deployment.validate_dispatch frame \
+              --operation rollback --run-id "$GITHUB_RUN_ID" --deployment-id "$DEPLOYMENT_ID" \
+              --workflow-sha "$WORKFLOW_SHA" \
+              --release-sha "$ROLLBACK_SHA" --artifact-digest "$ROLLBACK_DIGEST" \
+              --target-marker "$TARGET_MARKER" --migration-class none \
+              | ssh -F "$RUNNER_TEMP/asterproof-ssh/config" asterproof-production "$command v1"
+          }
+          send_request submit > "$RUNNER_TEMP/submit.json"
+          for attempt in $(seq 1 300); do
+            python -m scripts.deployment.validate_dispatch status-frame --run-id "$GITHUB_RUN_ID" \
+              | ssh -F "$RUNNER_TEMP/asterproof-ssh/config" asterproof-production 'status v1' \
+              > "$RUNNER_TEMP/status.json"
+            python -m scripts.deployment.validate_dispatch status \
+              --target-marker "$TARGET_MARKER" --response "$RUNNER_TEMP/status.json"
+            state="$(python -c 'import json,sys; print(json.load(open(sys.argv[1]))["state"])' "$RUNNER_TEMP/status.json")"
+            case "$state" in
+              rolled_back) break ;;
+              failed|recovery_required|active) exit 1 ;;
+            esac
+            if [ "$attempt" -eq 300 ]; then
+              echo 'rollback operation did not reach a successful terminal state' >&2
+              exit 1
+            fi
+            sleep 5
+          done
+
+      - name: Record rollback evidence
+        if: always()
+        env:
+          TRUSTED_WORKFLOW_SHA: ${{ inputs.workflow_sha }}
+          ACTIVE_BEFORE: ${{ needs.inspect.outputs.active_sha }}
+          ACTIVE_DIGEST_BEFORE: ${{ needs.inspect.outputs.active_digest }}
+          TARGET_MARKER: ${{ vars.PRODUCTION_TARGET_MARKER }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          {
+            printf '## Production rollback\n'
+            printf -- '- Trusted workflow SHA: `%s`\n' "$TRUSTED_WORKFLOW_SHA"
+            printf -- '- Active SHA before request: `%s`\n' "$ACTIVE_BEFORE"
+            printf -- '- Active digest before request: `%s`\n' "$ACTIVE_DIGEST_BEFORE"
+            printf -- '- Target marker: `%s`\n' "$TARGET_MARKER"
+            printf -- '- Run ID: `%s`\n' "$GITHUB_RUN_ID"
+            printf -- '- Result: `%s`\n' "$JOB_STATUS"
+          } >> "$GITHUB_STEP_SUMMARY"

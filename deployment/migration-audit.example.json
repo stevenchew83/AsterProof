@@ -1,0 +1,8 @@
+{
+  "expected_database_identity_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+  "expected_role": "asterproof_catalog",
+  "format_version": 1,
+  "os_user": "asterproof_audit",
+  "pg_service": "asterproof_audit",
+  "pg_service_file": "/etc/asterproof/pg_service.conf"
+}

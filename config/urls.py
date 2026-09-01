@@ -5,7 +5,10 @@ from django.urls import include
 from django.urls import path
 from django.views import defaults as default_views
 
+from config.health import healthz
+
 urlpatterns = [
+    path("healthz/", healthz, name="healthz"),
     path("admin/", include("inspinia.training.admin_urls", namespace="training_admin")),
     # Django Admin, use {% url 'admin:index' %}
     path(settings.ADMIN_URL, admin.site.urls),

@@ -56,6 +56,18 @@ def test_production_settings_staticfiles_and_media_on_filesystem(monkeypatch):
     assert production.MEDIA_URL == "/media/"
 
 
+def test_production_settings_use_persistent_media_override(monkeypatch, tmp_path):
+    media_root = tmp_path / "shared" / "media"
+
+    production = _load_production_settings(
+        monkeypatch,
+        DJANGO_MEDIA_ROOT=str(media_root),
+        DJANGO_READ_DOT_ENV_FILE="False",
+    )
+
+    assert str(media_root) == production.MEDIA_ROOT
+
+
 def test_staticfiles_settings_use_compressed_manifest_storage():
     staticfiles = _load_staticfiles_settings()
 

@@ -159,17 +159,37 @@ npm run build
 
 If you change dashboard-facing UI, follow [`docs/inspinia-dashboard-style.md`](docs/inspinia-dashboard-style.md).
 
+## Production dependencies
+
+`requirements/production.txt` (including `requirements/base.txt`) is the reviewed production dependency authority.
+`requirements/production.lock` is its fully transitive Python 3.12 Linux lock and includes hashes for every resolved
+distribution. Dependencies also declared in `pyproject.toml` must use the same exact version.
+
+After intentionally editing a production requirement, regenerate without upgrading unrelated packages and validate it:
+
+```bash
+python scripts/deployment/check_production_lock.py --write
+python scripts/deployment/check_production_lock.py --verify-resolution
+```
+
+For an explicitly reviewed dependency upgrade, use
+`python scripts/deployment/check_production_lock.py --write --upgrade` and review the complete lock diff. CI builds a
+hash-verified Linux wheelhouse from this lock, rejects non-wheel wheelhouse output, then proves a fresh environment can
+install from that wheelhouse with network access disabled.
+
 ## Production static files (AWS)
 
-All dashboard JS/CSS and vendored `plugins/` under `inspinia/static/` must be **built and collected** into `STATIC_ROOT` (`staticfiles/` at the repo root) before or during deploy. **User uploads** use `MEDIA_ROOT` (`inspinia/media/`); in production configure your reverse proxy to serve `/media/` from that directory (Django does not serve media when `DEBUG=False`).
+All dashboard JS/CSS and vendored `plugins/` under `inspinia/static/` must be **built and collected** into `STATIC_ROOT` (`staticfiles/` at the repo root) before or during deploy. **User uploads** use the configured `MEDIA_ROOT`; production must set `DJANGO_MEDIA_ROOT` to the confirmed persistent shared-media directory outside versioned releases. Configure the reverse proxy to serve `/media/` from that persistent directory (Django does not serve media when `DEBUG=False`).
 
 **Build + collect (recommended):**
 
 ```bash
-./scripts/build_and_collectstatic.sh
+ASTERPROOF_PYTHON="$PWD/.venv/bin/python" ./scripts/build_and_collectstatic.sh
 ```
 
-Or manually: `npm ci && npm run build`, then `DJANGO_SETTINGS_MODULE=config.settings.staticfiles uv run python manage.py collectstatic --noinput`.
+The script deliberately requires `ASTERPROOF_PYTHON`; point it at a production-lock-installed release or CI environment.
+Or manually: `npm ci && npm run build`, then
+`DJANGO_SETTINGS_MODULE=config.settings.staticfiles .venv/bin/python manage.py collectstatic --noinput`.
 
 **Deploy artifact:** The running app (or reverse proxy) must serve `/static/` from that collected tree — for example WhiteNoise (enabled in production settings) and/or nginx/ALB `alias` to `STATIC_ROOT`. Avoid mixing another origin for the same `/static/...` paths. The production and staticfiles settings use WhiteNoise compressed manifest storage, so collected assets include hashed names plus gzip variants by default, and brotli variants when brotli support is installed.
 
@@ -180,7 +200,7 @@ Or manually: `npm ci && npm run build`, then `DJANGO_SETTINGS_MODULE=config.sett
 Common validation commands:
 
 ```bash
-uv run ruff check config inspinia
+uv run ruff check config scripts
 uv run pytest inspinia/pages/tests.py
 uv run pytest inspinia/users/tests
 uv run python manage.py check
@@ -198,6 +218,25 @@ python manage.py recompute_technique_progress_catalog --if-stale
 ```
 
 Admin dashboard buttons only mark the catalog as needing rebuild; this scheduled command performs the expensive refresh.
+
+## Production deployment
+
+GitHub Actions and the protected `production` environment are the sole normal production authority. A local “merge and
+deploy” request means merging through a pull request and dispatching the exact current `main` SHA through the
+[`Production deploy`](.github/workflows/production-deploy.yml) workflow; it never authorizes a workstation SSH deploy.
+
+- [Normal production release](docs/deployment/production-release.md)
+- [One-time target bootstrap](docs/deployment/production-bootstrap.md)
+- [GitHub governance](docs/deployment/github-administration.md)
+- [Rollback and operation recovery](docs/deployment/rollback-and-recovery.md)
+- [Production monitoring](docs/deployment/production-monitoring.md)
+- [Credential and host-key rotation](docs/deployment/credential-rotation.md)
+- [Host replacement](docs/deployment/host-replacement.md)
+- [Disaster recovery and break glass](docs/deployment/disaster-recovery.md)
+
+All target paths and service identities must come from the confirmed target contract. Historical production paths are
+not authority. Production bootstrap, activation, host mutation, and break-glass recovery remain separately authorized
+operational actions.
 
 ## Agent docs
 

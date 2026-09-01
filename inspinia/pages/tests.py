@@ -14588,7 +14588,10 @@ def test_technique_gap_benchmark_enrichment_prefetches_import_batches():
         enriched_rows = _enrich_gap_rows_with_benchmarks(rows)
 
     assert [row["benchmark_status"] for row in enriched_rows] == ["complete", "complete"]
-    assert len(queries) == 2
+    # Direct benchmarks, alias matches, and the complete alias-label set are
+    # intentionally loaded as three bounded queries. Imported batches remain
+    # select_related in the first two queries rather than becoming N+1 reads.
+    assert len(queries) == 3
 
 
 def benchmark_row_key_for_test(row: dict[str, object]) -> str:
