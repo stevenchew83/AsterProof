@@ -13,8 +13,8 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "bleach", specifier = ">=6.3.0" },
-    { name = "markdown", specifier = ">=3.10.2" },
+    { name = "bleach", specifier = "==6.3.0" },
+    { name = "markdown", specifier = "==3.10.2" },
 ]
 
 [[package]]

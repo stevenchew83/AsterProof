@@ -1,0 +1,35 @@
+[Unit]
+Description=AsterProof deployment operation %i
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+ExecStart=/usr/local/libexec/asterproof-operation-worker --contract /etc/asterproof/deployment-target.json --run-id %i
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectClock=yes
+ProtectControlGroups=yes
+ProtectHome=yes
+ProtectHostname=yes
+ProtectKernelLogs=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+ProtectSystem=strict
+ReadOnlyPaths=/etc/asterproof /usr/local/libexec
+ReadWritePaths=@RELEASE_ROOT@
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictNamespaces=yes
+RestrictRealtime=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+UMask=0077
+TimeoutStartSec=30min
+MemoryMax=2G
+TasksMax=256
+
+[Install]
+WantedBy=multi-user.target

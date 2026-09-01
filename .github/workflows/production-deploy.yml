@@ -1,0 +1,517 @@
+name: Production deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_sha:
+        description: Exact current main commit (40 lowercase hexadecimal characters)
+        required: true
+        type: string
+      migration_class:
+        description: Reviewed release migration class
+        required: true
+        type: choice
+        options:
+          - none
+      initial_adoption:
+        description: Consume the separately authorized non-rollback legacy adoption record
+        required: true
+        default: false
+        type: boolean
+      initial_legacy_sha:
+        description: Exact legacy SHA recorded by adopt-legacy; blank for routine releases
+        required: false
+        default: ""
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: asterproof-production
+  cancel-in-progress: false
+  queue: max
+
+env:
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION: "22.18.0"
+  UV_VERSION: "0.12.6"
+
+jobs:
+  build:
+    name: Verify, build, and attest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    outputs:
+      archive_digest: ${{ steps.release.outputs.archive_digest }}
+      archive_size: ${{ steps.release.outputs.archive_size }}
+      artifact_id: ${{ steps.upload.outputs.artifact-id }}
+      artifact_digest: ${{ steps.upload.outputs.artifact-digest }}
+    steps:
+      - name: Check out workflow commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Validate exact current-main dispatch
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          WORKFLOW_REF_NAME: ${{ github.ref }}
+          WORKFLOW_SHA: ${{ github.sha }}
+          REQUESTED_SHA: ${{ inputs.release_sha }}
+          MIGRATION_CLASS: ${{ inputs.migration_class }}
+          INITIAL_ADOPTION: ${{ inputs.initial_adoption }}
+          INITIAL_LEGACY_SHA: ${{ inputs.initial_legacy_sha }}
+        run: |
+          python -m scripts.deployment.validate_dispatch dispatch \
+            --event "$EVENT_NAME" \
+            --ref "$WORKFLOW_REF_NAME" \
+            --checked-out-sha "$WORKFLOW_SHA" \
+            --release-sha "$REQUESTED_SHA" \
+            --migration-class "$MIGRATION_CLASS" \
+            --initial-legacy-sha "$INITIAL_LEGACY_SHA" \
+            ${{ inputs.initial_adoption && '--initial-adoption' || '' }}
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: false
+
+      - name: Validate locks and tests
+        run: |
+          python -m scripts.deployment.check_production_lock --verify-resolution
+          uv venv .release-quality --python "$PYTHON_VERSION"
+          uv pip install --python .release-quality/bin/python -r requirements/local.txt
+          .release-quality/bin/ruff check config inspinia scripts/deployment
+          .release-quality/bin/python manage.py check
+          .release-quality/bin/python manage.py makemigrations --check --dry-run
+          .release-quality/bin/python -m pytest
+
+      - name: Build binary wheelhouse and offline runtime
+        run: |
+          python -m pip wheel --require-hashes --only-binary=:all: \
+            --wheel-dir .release-wheelhouse -r requirements/production.lock
+          python -m venv .release-runtime
+          .release-runtime/bin/python -m pip install --no-index --require-hashes \
+            --find-links .release-wheelhouse -r requirements/production.lock
+          .release-runtime/bin/python -c "import django, gunicorn, psycopg, bleach, markdown, cryptography"
+
+      - name: Build production static files
+        env:
+          ASTERPROOF_PYTHON: ${{ github.workspace }}/.release-runtime/bin/python
+          DJANGO_SETTINGS_MODULE: config.settings.staticfiles
+        run: ./scripts/build_and_collectstatic.sh
+
+      - name: Build immutable release
+        id: release
+        env:
+          RELEASE_SHA: ${{ inputs.release_sha }}
+          RUN_ID: ${{ github.run_id }}
+          REPOSITORY: ${{ github.repository }}
+          REPOSITORY_ID: ${{ github.repository_id }}
+          OUTPUT_FILE: ${{ runner.temp }}/asterproof-release.tar
+          ENVELOPE_FILE: ${{ runner.temp }}/release-envelope.json
+        run: |
+          python -m scripts.deployment.build_release \
+            --repository-root "$GITHUB_WORKSPACE" \
+            --static-root "$GITHUB_WORKSPACE/staticfiles" \
+            --wheelhouse "$GITHUB_WORKSPACE/.release-wheelhouse" \
+            --output "$OUTPUT_FILE" \
+            --envelope "$ENVELOPE_FILE" \
+            --repository "$REPOSITORY" \
+            --repository-id "$REPOSITORY_ID" \
+            --release-sha "$RELEASE_SHA" \
+            --run-id "$RUN_ID" \
+            --target-platform x86_64-manylinux_2_28
+          python - "$ENVELOPE_FILE" "$GITHUB_OUTPUT" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          envelope = json.loads(Path(sys.argv[1]).read_text())
+          with Path(sys.argv[2]).open("a", encoding="utf-8") as output:
+              output.write(f"archive_digest={envelope['archive_sha256']}\n")
+              output.write(f"archive_size={envelope['archive_size']}\n")
+          PY
+
+      - name: Attest immutable release archive
+        uses: actions/attest-build-provenance@96278af6caaf10aea03fd8d33a09a777ca52d62f # v3.2.0
+        with:
+          subject-path: ${{ runner.temp }}/asterproof-release.tar
+
+      - name: Upload immutable release archive
+        id: upload
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: production-release-${{ inputs.release_sha }}
+          path: |
+            ${{ runner.temp }}/asterproof-release.tar
+            ${{ runner.temp }}/release-envelope.json
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 30
+
+  disclose:
+    name: Publish release and migration disclosure
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      active_sha: ${{ steps.health.outputs.active_sha }}
+      active_digest: ${{ steps.health.outputs.active_digest }}
+    steps:
+      - name: Check out trusted workflow source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.release_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Download exact build artifact
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
+        with:
+          artifact-ids: ${{ needs.build.outputs.artifact_id }}
+          path: ${{ runner.temp }}/candidate
+
+      - name: Verify archive digest
+        env:
+          EXPECTED_DIGEST: ${{ needs.build.outputs.archive_digest }}
+          EXPECTED_SIZE: ${{ needs.build.outputs.archive_size }}
+          RELEASE_FILE: ${{ runner.temp }}/candidate/asterproof-release.tar
+        run: |
+          python - "$RELEASE_FILE" "$EXPECTED_DIGEST" "$EXPECTED_SIZE" <<'PY'
+          import hashlib
+          import sys
+          from pathlib import Path
+
+          path = Path(sys.argv[1])
+          if path.stat().st_size != int(sys.argv[3]):
+              raise SystemExit("release archive size mismatch")
+          if hashlib.sha256(path.read_bytes()).hexdigest() != sys.argv[2]:
+              raise SystemExit("release archive digest mismatch")
+          PY
+
+      - name: Read and validate public active-release evidence
+        id: health
+        if: ${{ !inputs.initial_adoption }}
+        env:
+          HEALTH_URL: ${{ vars.PRODUCTION_HEALTH_URL }}
+        run: |
+          test -n "$HEALTH_URL"
+          curl --fail --silent --show-error --location \
+            --max-time 15 --proto '=https' --tlsv1.2 \
+            -H 'Accept: application/json' -H 'Cache-Control: no-cache' \
+            "${HEALTH_URL}?run=${GITHUB_RUN_ID}" > "$RUNNER_TEMP/active-release.json"
+          python -m scripts.deployment.validate_dispatch health \
+            --response "$RUNNER_TEMP/active-release.json" \
+            --output "$RUNNER_TEMP/active-evidence.json"
+          python - "$RUNNER_TEMP/active-evidence.json" "$GITHUB_OUTPUT" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          evidence = json.loads(Path(sys.argv[1]).read_text())
+          with Path(sys.argv[2]).open("a", encoding="utf-8") as output:
+              output.write(f"active_sha={evidence['active_sha']}\n")
+              output.write(f"active_digest={evidence['active_digest']}\n")
+          PY
+
+      - name: Derive reviewed migration disclosure
+        if: ${{ !inputs.initial_adoption }}
+        env:
+          ACTIVE_SHA: ${{ steps.health.outputs.active_sha }}
+          TARGET_SHA: ${{ inputs.release_sha }}
+          MIGRATION_CLASS: ${{ inputs.migration_class }}
+        run: |
+          python -m scripts.deployment.validate_dispatch migration-disclosure \
+            --active-sha "$ACTIVE_SHA" \
+            --target-sha "$TARGET_SHA" \
+            --registry deployment/migration-classifications.yml \
+            --declared-class "$MIGRATION_CLASS" \
+            --output "$RUNNER_TEMP/migration-disclosure.json"
+          python - "$RUNNER_TEMP/migration-disclosure.json" >> "$GITHUB_STEP_SUMMARY" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          value = json.loads(Path(sys.argv[1]).read_text())
+          print("## Production release disclosure")
+          print(f"- Active SHA: `{value['active_sha']}`")
+          print(f"- Target SHA: `{value['target_sha']}`")
+          print(f"- Migration class: `{value['classification']}`")
+          print(f"- Classified migrations: `{len(value['migrations'])}`")
+          PY
+
+      - name: Record explicit initial-adoption disclosure
+        if: ${{ inputs.initial_adoption }}
+        env:
+          ACTIVE_SHA: ${{ inputs.initial_legacy_sha }}
+          TARGET_SHA: ${{ inputs.release_sha }}
+          MIGRATION_CLASS: ${{ inputs.migration_class }}
+        run: |
+          python -m scripts.deployment.validate_dispatch migration-disclosure \
+            --active-sha "$ACTIVE_SHA" \
+            --target-sha "$TARGET_SHA" \
+            --registry deployment/migration-classifications.yml \
+            --declared-class "$MIGRATION_CLASS" \
+            --output "$RUNNER_TEMP/migration-disclosure.json"
+          python - "$RUNNER_TEMP/migration-disclosure.json" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          value = json.loads(Path(sys.argv[1]).read_text())
+          print("## Initial production adoption")
+          print(f"- Legacy SHA: `{value['active_sha']}`")
+          print(f"- Target SHA: `{value['target_sha']}`")
+          print(f"- Classified migrations: `{len(value['migrations'])}`")
+          print("- Legacy rollback: unavailable")
+          PY
+
+      - name: Upload migration disclosure
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: production-disclosure-${{ inputs.release_sha }}
+          path: ${{ runner.temp }}/migration-disclosure.json
+          if-no-files-found: error
+          retention-days: 30
+
+  deploy:
+    name: Approve and activate production
+    needs: [build, disclose]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment:
+      name: production
+      url: ${{ vars.PRODUCTION_HEALTH_URL }}
+    permissions:
+      contents: read
+      actions: read
+      attestations: read
+      id-token: write
+    steps:
+      - name: Check out current trusted deployment client
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Revalidate current main after approval
+        env:
+          EXPECTED_SHA: ${{ inputs.release_sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          curl --fail --silent --show-error \
+            --max-time 15 --proto '=https' --tlsv1.2 \
+            -H 'Accept: application/vnd.github+json' \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/git/ref/heads/main" \
+            > "$RUNNER_TEMP/main-ref.json"
+          python -m scripts.deployment.validate_dispatch main-ref \
+            --expected-sha "$EXPECTED_SHA" --response "$RUNNER_TEMP/main-ref.json"
+
+      - name: Download approved artifact
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
+        with:
+          artifact-ids: ${{ needs.build.outputs.artifact_id }}
+          path: ${{ runner.temp }}/candidate
+
+      - name: Verify digest and attestation policy
+        env:
+          EXPECTED_DIGEST: ${{ needs.build.outputs.archive_digest }}
+          EXPECTED_SIZE: ${{ needs.build.outputs.archive_size }}
+          RELEASE_SHA: ${{ inputs.release_sha }}
+          GH_TOKEN: ${{ github.token }}
+        working-directory: ${{ runner.temp }}/candidate
+        run: |
+          python - "asterproof-release.tar" "$EXPECTED_DIGEST" "$EXPECTED_SIZE" <<'PY'
+          import hashlib
+          import sys
+          from pathlib import Path
+
+          path = Path(sys.argv[1])
+          if path.stat().st_size != int(sys.argv[3]):
+              raise SystemExit("release archive size mismatch")
+          if hashlib.sha256(path.read_bytes()).hexdigest() != sys.argv[2]:
+              raise SystemExit("release archive digest mismatch")
+          PY
+          gh attestation verify asterproof-release.tar \
+            --repo "$GITHUB_REPOSITORY" \
+            --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/production-deploy.yml" \
+            --signer-digest "$RELEASE_SHA" \
+            --source-ref refs/heads/main \
+            --source-digest "$RELEASE_SHA" \
+            --deny-self-hosted-runners --format json > "$RUNNER_TEMP/attestation-verification.json"
+
+      - name: Configure pinned production SSH transport
+        env:
+          DEPLOY_HOST: ${{ secrets.PRODUCTION_SSH_HOST }}
+          DEPLOY_PORT: ${{ secrets.PRODUCTION_SSH_PORT }}
+          DEPLOY_USER: ${{ secrets.PRODUCTION_SSH_USER }}
+          DEPLOY_KEY: ${{ secrets.PRODUCTION_SSH_PRIVATE_KEY }}
+          KNOWN_HOSTS_LINE: ${{ secrets.PRODUCTION_SSH_KNOWN_HOSTS }}
+          TARGET_MARKER: ${{ vars.PRODUCTION_TARGET_MARKER }}
+        run: |
+          set +x
+          install -m 700 -d "$RUNNER_TEMP/asterproof-ssh"
+          printf '%s\n' "$DEPLOY_KEY" > "$RUNNER_TEMP/asterproof-ssh/key"
+          chmod 600 "$RUNNER_TEMP/asterproof-ssh/key"
+          printf '%s\n' "$KNOWN_HOSTS_LINE" > "$RUNNER_TEMP/asterproof-ssh/known_hosts"
+          python -m scripts.deployment.validate_dispatch ssh-contract \
+            --host "$DEPLOY_HOST" --port "$DEPLOY_PORT" --user "$DEPLOY_USER" \
+            --target-marker "$TARGET_MARKER" \
+            --known-hosts "$RUNNER_TEMP/asterproof-ssh/known_hosts"
+          {
+            printf 'Host asterproof-production\n'
+            printf '  HostName %s\n' "$DEPLOY_HOST"
+            printf '  Port %s\n' "$DEPLOY_PORT"
+            printf '  User %s\n' "$DEPLOY_USER"
+            printf '  IdentityFile %s\n' "$RUNNER_TEMP/asterproof-ssh/key"
+            printf '  IdentitiesOnly yes\n'
+            printf '  BatchMode yes\n'
+            printf '  StrictHostKeyChecking yes\n'
+            printf '  UserKnownHostsFile %s\n' "$RUNNER_TEMP/asterproof-ssh/known_hosts"
+            printf '  ConnectTimeout 10\n'
+            printf '  ServerAliveInterval 10\n'
+            printf '  ServerAliveCountMax 2\n'
+            printf '  ClearAllForwardings yes\n'
+            printf '  RequestTTY no\n'
+          } > "$RUNNER_TEMP/asterproof-ssh/config"
+          chmod 600 "$RUNNER_TEMP/asterproof-ssh/config"
+
+      - name: Preflight, receive, and submit durable deployment
+        env:
+          RELEASE_SHA: ${{ inputs.release_sha }}
+          ARTIFACT_DIGEST: ${{ needs.build.outputs.archive_digest }}
+          EXPECTED_SIZE: ${{ needs.build.outputs.archive_size }}
+          MIGRATION_CLASS: ${{ inputs.migration_class }}
+          TARGET_MARKER: ${{ vars.PRODUCTION_TARGET_MARKER }}
+          DEPLOYMENT_ID: ${{ github.run_id }}
+          RELEASE_FILE: ${{ runner.temp }}/candidate/asterproof-release.tar
+          ACTIVE_SHA: ${{ needs.disclose.outputs.active_sha }}
+          ACTIVE_DIGEST: ${{ needs.disclose.outputs.active_digest }}
+          INITIAL_ADOPTION: ${{ inputs.initial_adoption }}
+          INITIAL_LEGACY_SHA: ${{ inputs.initial_legacy_sha }}
+          REPOSITORY_ID: ${{ github.repository_id }}
+        run: |
+          set +x
+          request_token() {
+            local audience="$1"
+            local encoded
+            encoded="$(python -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "$audience")"
+            curl --fail --silent --show-error --max-time 15 \
+              -H "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+              "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=${encoded}" \
+              | python -c 'import json,sys; print(json.load(sys.stdin)["value"])'
+          }
+          send_request() {
+            local command="$1"
+            local audience token
+            audience="$(python -m scripts.deployment.validate_dispatch audience \
+              --operation deploy --run-id "$GITHUB_RUN_ID" --deployment-id "$DEPLOYMENT_ID" \
+              --workflow-sha "$RELEASE_SHA" \
+              --release-sha "$RELEASE_SHA" --artifact-digest "$ARTIFACT_DIGEST" \
+              --target-marker "$TARGET_MARKER" --migration-class "$MIGRATION_CLASS")"
+            token="$(request_token "$audience")"
+            echo "::add-mask::$token"
+            ASTERPROOF_OIDC_TOKEN="$token" python -m scripts.deployment.validate_dispatch frame \
+              --operation deploy --run-id "$GITHUB_RUN_ID" --deployment-id "$DEPLOYMENT_ID" \
+              --workflow-sha "$RELEASE_SHA" \
+              --release-sha "$RELEASE_SHA" --artifact-digest "$ARTIFACT_DIGEST" \
+              --target-marker "$TARGET_MARKER" --migration-class "$MIGRATION_CLASS" \
+              | ssh -F "$RUNNER_TEMP/asterproof-ssh/config" \
+              asterproof-production "$command v1"
+          }
+          send_request preflight > "$RUNNER_TEMP/preflight.json"
+          adoption_arg=()
+          if [ "$INITIAL_ADOPTION" = "true" ]; then
+            adoption_arg=(--initial-adoption)
+          fi
+          python -m scripts.deployment.validate_dispatch preflight \
+            --target-marker "$TARGET_MARKER" --repository-id "$REPOSITORY_ID" \
+            --active-sha "$ACTIVE_SHA" --active-digest "$ACTIVE_DIGEST" \
+            --expected-legacy-sha "$INITIAL_LEGACY_SHA" \
+            "${adoption_arg[@]}" \
+            --response "$RUNNER_TEMP/preflight.json"
+          audience="$(python -m scripts.deployment.validate_dispatch audience \
+            --operation deploy --run-id "$GITHUB_RUN_ID" --deployment-id "$DEPLOYMENT_ID" \
+            --workflow-sha "$RELEASE_SHA" \
+            --release-sha "$RELEASE_SHA" --artifact-digest "$ARTIFACT_DIGEST" \
+            --target-marker "$TARGET_MARKER" --migration-class "$MIGRATION_CLASS")"
+          token="$(request_token "$audience")"
+          echo "::add-mask::$token"
+          { ASTERPROOF_OIDC_TOKEN="$token" python -m scripts.deployment.validate_dispatch frame \
+              --operation deploy --run-id "$GITHUB_RUN_ID" --deployment-id "$DEPLOYMENT_ID" \
+              --workflow-sha "$RELEASE_SHA" \
+              --release-sha "$RELEASE_SHA" --artifact-digest "$ARTIFACT_DIGEST" \
+              --target-marker "$TARGET_MARKER" --migration-class "$MIGRATION_CLASS" \
+              --artifact-size "$EXPECTED_SIZE"; cat "$RELEASE_FILE"; } \
+            | ssh -F "$RUNNER_TEMP/asterproof-ssh/config" asterproof-production 'receive v1' \
+            > "$RUNNER_TEMP/receive.json"
+          send_request submit > "$RUNNER_TEMP/submit.json"
+          for attempt in $(seq 1 300); do
+            python -m scripts.deployment.validate_dispatch status-frame --run-id "$GITHUB_RUN_ID" \
+              | ssh -F "$RUNNER_TEMP/asterproof-ssh/config" asterproof-production 'status v1' \
+              > "$RUNNER_TEMP/status.json"
+            python -m scripts.deployment.validate_dispatch status \
+              --target-marker "$TARGET_MARKER" --response "$RUNNER_TEMP/status.json"
+            state="$(python -c 'import json,sys; print(json.load(open(sys.argv[1]))["state"])' "$RUNNER_TEMP/status.json")"
+            case "$state" in
+              active) break ;;
+              failed|recovery_required|rolled_back) exit 1 ;;
+            esac
+            if [ "$attempt" -eq 300 ]; then
+              echo 'deployment operation did not reach a successful terminal state' >&2
+              exit 1
+            fi
+            sleep 5
+          done
+
+      - name: Record deployment evidence
+        if: always()
+        env:
+          REQUESTED_SHA: ${{ inputs.release_sha }}
+          ARTIFACT_DIGEST: ${{ needs.build.outputs.archive_digest }}
+          ARTIFACT_ATTESTATION_DIGEST: ${{ needs.build.outputs.artifact_digest }}
+          ACTIVE_BEFORE: ${{ needs.disclose.outputs.active_sha }}
+          INITIAL_ADOPTION: ${{ inputs.initial_adoption }}
+          MIGRATION_CLASS: ${{ inputs.migration_class }}
+          TARGET_MARKER: ${{ vars.PRODUCTION_TARGET_MARKER }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          {
+            printf '## Production deployment\n'
+            printf -- "- Requested SHA: \`%s\`\n" "$REQUESTED_SHA"
+            printf -- "- Archive SHA-256: \`%s\`\n" "$ARTIFACT_DIGEST"
+            printf -- "- GitHub artifact digest: \`%s\`\n" "$ARTIFACT_ATTESTATION_DIGEST"
+            if [ "$INITIAL_ADOPTION" = "true" ]; then
+              printf -- "- Previously active SHA: \`legacy adoption (non-rollback)\`\n"
+            else
+              printf -- "- Previously active SHA: \`%s\`\n" "$ACTIVE_BEFORE"
+            fi
+            printf -- "- Migration class: \`%s\`\n" "$MIGRATION_CLASS"
+            printf -- "- Target marker: \`%s\`\n" "$TARGET_MARKER"
+            printf -- "- Run ID: \`%s\`\n" "$GITHUB_RUN_ID"
+            printf -- "- Result: \`%s\`\n" "$JOB_STATUS"
+          } >> "$GITHUB_STEP_SUMMARY"

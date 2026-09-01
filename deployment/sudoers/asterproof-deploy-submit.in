@@ -1,0 +1,3 @@
+Defaults:@DEPLOY_USER@ !authenticate,env_reset
+@DEPLOY_USER@ ALL=(root) NOPASSWD: /usr/local/libexec/asterproof-authority-check ""
+@DEPLOY_USER@ ALL=(root) NOPASSWD: /usr/local/libexec/asterproof-deploy-submit ""
