@@ -502,16 +502,16 @@ jobs:
         run: |
           {
             printf '## Production deployment\n'
-            printf -- '- Requested SHA: `%s`\n' "$REQUESTED_SHA"
-            printf -- '- Archive SHA-256: `%s`\n' "$ARTIFACT_DIGEST"
-            printf -- '- GitHub artifact digest: `%s`\n' "$ARTIFACT_ATTESTATION_DIGEST"
+            printf -- "- Requested SHA: \`%s\`\n" "$REQUESTED_SHA"
+            printf -- "- Archive SHA-256: \`%s\`\n" "$ARTIFACT_DIGEST"
+            printf -- "- GitHub artifact digest: \`%s\`\n" "$ARTIFACT_ATTESTATION_DIGEST"
             if [ "$INITIAL_ADOPTION" = "true" ]; then
-              printf -- '- Previously active SHA: `legacy adoption (non-rollback)`\n'
+              printf -- "- Previously active SHA: \`legacy adoption (non-rollback)\`\n"
             else
-              printf -- '- Previously active SHA: `%s`\n' "$ACTIVE_BEFORE"
+              printf -- "- Previously active SHA: \`%s\`\n" "$ACTIVE_BEFORE"
             fi
-            printf -- '- Migration class: `%s`\n' "$MIGRATION_CLASS"
-            printf -- '- Target marker: `%s`\n' "$TARGET_MARKER"
-            printf -- '- Run ID: `%s`\n' "$GITHUB_RUN_ID"
-            printf -- '- Result: `%s`\n' "$JOB_STATUS"
+            printf -- "- Migration class: \`%s\`\n" "$MIGRATION_CLASS"
+            printf -- "- Target marker: \`%s\`\n" "$TARGET_MARKER"
+            printf -- "- Run ID: \`%s\`\n" "$GITHUB_RUN_ID"
+            printf -- "- Result: \`%s\`\n" "$JOB_STATUS"
           } >> "$GITHUB_STEP_SUMMARY"

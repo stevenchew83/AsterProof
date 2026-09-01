@@ -81,9 +81,9 @@ jobs:
         run: |
           {
             printf '## Rollback approval request\n'
-            printf -- '- Current trusted workflow SHA: `%s`\n' "$GITHUB_SHA"
-            printf -- '- Current production SHA: `%s`\n' "$ACTIVE_SHA"
-            printf -- '- Current production digest: `%s`\n' "$ACTIVE_DIGEST"
+            printf -- "- Current trusted workflow SHA: \`%s\`\n" "$GITHUB_SHA"
+            printf -- "- Current production SHA: \`%s\`\n" "$ACTIVE_SHA"
+            printf -- "- Current production digest: \`%s\`\n" "$ACTIVE_DIGEST"
             printf -- '- Requested action: immediate previous eligible release only\n'
             printf -- '- Database migrations: never reversed automatically\n'
           } >> "$GITHUB_STEP_SUMMARY"
@@ -227,10 +227,10 @@ jobs:
         run: |
           {
             printf '## Production rollback\n'
-            printf -- '- Trusted workflow SHA: `%s`\n' "$TRUSTED_WORKFLOW_SHA"
-            printf -- '- Active SHA before request: `%s`\n' "$ACTIVE_BEFORE"
-            printf -- '- Active digest before request: `%s`\n' "$ACTIVE_DIGEST_BEFORE"
-            printf -- '- Target marker: `%s`\n' "$TARGET_MARKER"
-            printf -- '- Run ID: `%s`\n' "$GITHUB_RUN_ID"
-            printf -- '- Result: `%s`\n' "$JOB_STATUS"
+            printf -- "- Trusted workflow SHA: \`%s\`\n" "$TRUSTED_WORKFLOW_SHA"
+            printf -- "- Active SHA before request: \`%s\`\n" "$ACTIVE_BEFORE"
+            printf -- "- Active digest before request: \`%s\`\n" "$ACTIVE_DIGEST_BEFORE"
+            printf -- "- Target marker: \`%s\`\n" "$TARGET_MARKER"
+            printf -- "- Run ID: \`%s\`\n" "$GITHUB_RUN_ID"
+            printf -- "- Result: \`%s\`\n" "$JOB_STATUS"
           } >> "$GITHUB_STEP_SUMMARY"
