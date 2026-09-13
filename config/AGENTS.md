@@ -12,10 +12,6 @@ This directory owns settings composition, middleware wiring, and root URL inclus
 
 ## Settings split rules
 
-- Put a setting in `base.py` only if it is truly shared.
-- Keep local-only defaults, debug helpers, and developer ergonomics in `local.py`.
-- Keep production services, caches, storage, and strict security in `production.py`.
-- Keep test-only speedups and isolation in `test.py`.
 - If you add a required environment variable, update `.env.sample` and any relevant setup docs in the same change.
 
 ## Existing project assumptions

@@ -1,6 +1,6 @@
 ---
-description: LaTeX/PDF olympiad solutions — Evan Chen evan.sty layout, colours, headers (KOMA + [sexy])
-alwaysApply: true
+description: Format full compilable olympiad LaTeX/PDF solutions using Evan Chen style.
+alwaysApply: false
 ---
 
 # Evan Chen style for LaTeX → PDF solutions

@@ -1,7 +1,5 @@
 # Dashboard Statement-First Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
-
 **Goal:** Convert dashboard contest/problem analytics and listing flows to use `ContestProblemStatement` as the primary row source while keeping public archive pages on the existing `ProblemSolveRecord` model.
 
 **Architecture:** Add a statement-level active flag and a dashboard-only statement query/enrichment layer, then route dashboard listing and analytics pages through that layer. Preserve solved-date storage in `UserProblemCompletion`, but resolve it from statement rows through `linked_problem` when available.

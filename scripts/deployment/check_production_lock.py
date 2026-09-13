@@ -141,13 +141,24 @@ def validate_lock(source: Path, lock: Path, pyproject: Path) -> None:
 
 
 def validate_resolved_lock(source: Path, lock: Path) -> None:
-    """Re-resolve from source so altered transitive pins cannot validate themselves."""
-    expected = render_lock(source, None, upgrade=False)
-    if lock.read_text(encoding="utf-8") != expected:
-        raise LockError("production lock differs from a clean deterministic resolution")
+    """Resolve source requirements at the locked versions, independently fetching hashes."""
+    expected = render_lock(source, None, upgrade=False, constraints=lock)
+
+    # uv adds constraint/source annotations; comments are not dependency identity.
+    def content(text: str) -> list[str]:
+        return [line.strip() for line in text.splitlines() if line.strip() and not line.lstrip().startswith("#")]
+
+    if content(lock.read_text(encoding="utf-8")) != content(expected):
+        raise LockError("production lock differs from resolution at the locked versions")
 
 
-def render_lock(source: Path, existing_lock: Path | None, *, upgrade: bool) -> str:
+def render_lock(
+    source: Path,
+    existing_lock: Path | None,
+    *,
+    upgrade: bool,
+    constraints: Path | None = None,
+) -> str:
     with tempfile.TemporaryDirectory(prefix="asterproof-lock-") as temp_dir:
         output = Path(temp_dir) / "production.lock"
         if existing_lock and existing_lock.is_file() and not upgrade:
@@ -166,6 +177,19 @@ def render_lock(source: Path, existing_lock: Path | None, *, upgrade: bool) -> s
             "--output-file",
             str(output),
         ]
+        if constraints is not None:
+            # Only versions constrain resolution: never seed the output or trust
+            # supplied hashes. Constraints do not introduce extra dependencies.
+            pins = Path(temp_dir) / "pins.txt"
+            pins.write_text(
+                "".join(
+                    f"{match.group(1)}=={match.group(2)}\n"
+                    for line in constraints.read_text(encoding="utf-8").splitlines()
+                    if (match := LOCK_ENTRY_RE.match(line))
+                ),
+                encoding="utf-8",
+            )
+            command.extend(["--constraint", str(pins)])
         if upgrade:
             command.append("--upgrade")
         environment = os.environ.copy()
@@ -188,7 +212,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--verify-resolution",
         action="store_true",
-        help="resolve from source and require a byte-identical lock",
+        help="verify locked versions and hashes against source dependency resolution",
     )
     return parser.parse_args()
 

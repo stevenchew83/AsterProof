@@ -1,7 +1,5 @@
 # User detail TTFB investigation and fix — implementation plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
-
 **Goal:** Measure server-side time for authenticated HTML (starting with `/users/<pk>/`), identify the dominant bottleneck, and ship a targeted fix with before/after TTFB evidence, per [`docs/superpowers/specs/2026-03-25-user-detail-ttfb-investigation-design.md`](../specs/2026-03-25-user-detail-ttfb-investigation-design.md).
 
 **Architecture:** Add **env-gated** request timing logs for a short production/staging window; compare loopback vs public URL and a second authenticated route; then implement **one primary fix** backed by findings (possibly session/middleware/DB introspection caching or session backend tuning).

@@ -1,7 +1,5 @@
 # Problem Statement List DataTable Alignment Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
-
 **Goal:** Fix the All problem statements table so DataTables header cells and body cells stay aligned, while preserving the existing server-side filter flow and page behavior.
 
 **Architecture:** This is a page-local integration fix, not a DataTables conversion. The plan removes the redundant Bootstrap responsive wrapper from the populated DataTable branch in the statement-list template, keeps DataTables `scrollX` as the single horizontal-scroll owner, and locks that structure in with focused page tests. A manual browser check remains required because the reported defect is visual.

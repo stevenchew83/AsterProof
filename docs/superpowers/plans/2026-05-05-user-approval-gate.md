@@ -1,7 +1,5 @@
 # User Approval Gate Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
-
 **Goal:** Add an admin-controlled user approval workflow so newly registered users cannot access authenticated AsterProof features until an admin approves them.
 
 **Architecture:** Store approval as an additive boolean on the existing custom `User` model, with admins and superusers treated as approved to avoid lockout. Enforce approval centrally through middleware after Django/allauth authentication, while exempting login/signup/logout/account routes and a new approval-pending page. Extend the existing admin-only `User roles` page into a combined role-and-approval console, recording approval changes in `AuditEvent`.
@@ -9,8 +7,6 @@
 **Tech Stack:** Django 5.1, django-allauth, custom `inspinia.users.User`, Django middleware, Bootstrap/Inspinia templates, pytest, factory_boy
 
 ---
-
-**Implementation rules:** Use @superpowers:test-driven-development for each red/green cycle. Use @superpowers:verification-before-completion before claiming implementation is complete.
 
 ## Decisions
 

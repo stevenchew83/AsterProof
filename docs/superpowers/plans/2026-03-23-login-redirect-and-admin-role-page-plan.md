@@ -1,7 +1,5 @@
 # Login Redirect And Admin Role Page Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
-
 **Goal:** Route every successful login to `My activity`, even when `next` is present, while keeping role changes on the existing admin-only `User roles` page and adding focused regression coverage around it.
 
 **Architecture:** Use two redirect control points. Override the custom allauth `AccountAdapter` early enough that non-signup logins supply an explicit redirect target and bypass allauth's usual `next` precedence, then simplify `UserRedirectView` so any remaining `LOGIN_REDIRECT_URL` callers also land on `pages:user_activity_dashboard`. Reuse the existing `manage_user_roles_view` and `users/manage_roles.html`, changing only copy and tests rather than adding a new admin workflow.
@@ -9,8 +7,6 @@
 **Tech Stack:** Django 5.1, django-allauth, Django test client, existing `User` and `AuditEvent` models, Bootstrap/Inspinia templates, pytest
 
 ---
-
-**Implementation rules:** Use @superpowers:test-driven-development for each red/green cycle. Use @superpowers:verification-before-completion before claiming a task is complete.
 
 ## File Map
 

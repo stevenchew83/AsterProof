@@ -1,7 +1,5 @@
 # AWS static single-origin `/static/` implementation plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
-
 **Goal:** Ensure production AWS serves all Django `{% static %}` assets from a single coherent `/static/` tree (built via `npm run build` + `collectstatic`), with S3 used only for media — matching [`docs/superpowers/specs/2026-03-24-aws-static-single-origin-design.md`](../specs/2026-03-24-aws-static-single-origin-design.md).
 
 **Architecture:** Keep current `config/settings/production.py` model (WhiteNoise + filesystem `staticfiles` storage). Fix **process and infrastructure** so deploys always include fresh `STATIC_ROOT` output and nothing in front of the app serves a stale S3 “static” mirror for the same URLs. Document the pipeline in-repo; add a regression test on `STORAGES`; add `scripts/build_and_collectstatic.sh` for repeatable CI/container builds.

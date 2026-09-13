@@ -1,7 +1,5 @@
 # Inspinia Production Vendor Bundle Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
-
 **Goal:** Ensure production ships `inspinia/static/js/vendors.min.js` so the Inspinia shell loads its shared frontend dependencies from `/static/` and authenticated dashboards regain sidenav/DataTables behavior.
 
 **Architecture:** Add a small regression test that fails when the repo is missing the built vendor bundle, then unignore and regenerate that bundle with the existing Gulp pipeline. Keep Django static settings, template load order, and page code unchanged because the confirmed root cause is the missing built asset, not the runtime wiring.

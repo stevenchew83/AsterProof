@@ -1,7 +1,5 @@
 # Solution editor paste images (`\includegraphics`) — implementation plan
 
-> **For agentic workers:** Use subagent-driven-development or executing-plans to implement task-by-task. Steps use checkbox (`- [ ]`) syntax.
-
 **Goal:** Paste images in the solution block textarea; store LaTeX `\includegraphics{...}` with server-hosted files; hybrid MathJax + `<img>` in editor live preview and on `problem-solution-list.html`.
 
 **Architecture:** New `SolutionBodyImage` model + authenticated POST upload; `get_or_create` persist `ProblemSolution` draft when needed; shared static JS splits LaTeX body, allowlists paths, typesets math only; templates pass `MEDIA_URL` / path prefix for URL resolution.

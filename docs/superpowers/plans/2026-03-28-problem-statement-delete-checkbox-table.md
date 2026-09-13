@@ -1,7 +1,5 @@
 # Problem Statement Delete Checkbox Table Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
-
 **Goal:** Replace the single UUID delete form with a searchable checkbox table that lets admins delete multiple statement rows in one action while preserving the current cascade semantics.
 
 **Architecture:** Keep this as a page-local admin workflow. The Django form will validate a submitted list of selected statement UUIDs plus the destructive confirmation checkbox, the view will load/delete the targeted `ContestProblemStatement` rows inside one transaction, and the template will render a DataTable-backed checkbox inventory with a client-side selected-set that submits hidden inputs for the chosen UUIDs. The implementation should reuse existing page patterns such as `_statement_preview_text`, Bootstrap/Inspinia cards, and the local DataTables setup used on other admin pages.

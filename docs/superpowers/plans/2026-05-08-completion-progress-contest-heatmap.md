@@ -1,7 +1,5 @@
 # Completion Progress Contest Heatmap Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
-
 **Goal:** Add a statement-backed contest completion heatmap to completion progress analytics before the filtered rows table, using the existing `contest` query parameter.
 
 **Architecture:** Build the heatmap payload in `inspinia/pages/completion_progress.py` so it is testable outside the large view module. Wire the helper into `_render_completion_progress_analytics`, then render the card in `completion-progress-analytics.html` using the existing ApexCharts stack and the visual pattern from `contest-advanced-analytics`.

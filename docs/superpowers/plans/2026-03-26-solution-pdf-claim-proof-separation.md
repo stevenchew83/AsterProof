@@ -1,7 +1,5 @@
 # Solution PDF Claim Proof Separation Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
-
 **Goal:** Update solution PDF export so claim statements stay in the green claim box, proof text renders separately and unboxed, and top-level block spacing is reduced to one line.
 
 **Architecture:** Keep the existing Evan-template PDF pipeline intact and change only the LaTeX renderer in `inspinia/solutions/pdf_latex.py`. Drive the behavior change with focused generated-TeX tests in `inspinia/solutions/tests.py`, especially around split claim rendering and the spacing constant.
@@ -255,7 +253,5 @@ Only make this commit if Step 4 required follow-up cleanup beyond the main imple
 
 ## Handoff Notes
 
-- Work in a dedicated worktree per @superpowers:using-git-worktrees before implementation.
-- Follow strict TDD order per @superpowers:test-driven-development; do not edit `pdf_latex.py` before you have watched the split-claim test fail.
 - Do not broaden this into a proof-style redesign or a generic theorem-style refactor.
 - If implementation reveals that the split claim renderer needs a tiny helper for blank-line handling, keep it local to `pdf_latex.py` and avoid touching unrelated block types.
