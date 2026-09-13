@@ -16,6 +16,12 @@ For the paths being changed, use the applicable nested `AGENTS.md` files under `
 
 ## Completion and checks
 
+### Read-only command authorization
+
+Read-only commands within the requested task are pre-approved, including production diagnostics. Do not ask for approval before each read-only command; this supersedes the earlier per-command approval requirement for production reads. For production, use the `asterproof-prod` alias, show the exact command and its purpose before execution, and report the exit status and relevant findings afterward. Keep queries bounded and do not expose secrets or unrelated personal data.
+
+This authorization does not cover production writes, deployments, restarts, privilege escalation, credential or permission changes, or copying production files/databases locally. Those retain their existing action-specific approval requirements.
+
 For an implementation request, complete the authorized local edits, relevant checks, and fixes for failures caused by the change without pausing after each reversible step. Finish when the requested behavior is verified and the final diff is reviewed, or report a concrete blocker. Leave unrelated failures outside scope. Existing production and external-action approval boundaries still apply.
 
 Select checks for the touched area; the commands below are not a requirement to run every suite:
