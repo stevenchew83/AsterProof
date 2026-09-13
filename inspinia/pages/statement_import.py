@@ -54,6 +54,19 @@ PDF_MATH_FONT_MARKERS = ("CMMI", "CMSY", "MSBM", "CMEX")
 PDF_TEXT_NUMBER_FONT_MARKERS = ("CMR",)
 PDF_MATH_SYMBOL_RE = re.compile(r"[+\-=<>≤≥×∥±∠◦Γℓ→∞∈⊥|]")
 PDF_AOPS_COPYRIGHT_RE = re.compile(r"^©\s+\d{4}\s+AoPS Incorporated\s+\d+\s*$")
+PDF_CONTEST_DAY_HEADER_RE = re.compile(
+    r"^(?P<contest>.+?)\s+(?P<year>\d{4})\s+"
+    r"(?P<day>Day\s*(?:\d+|[IVXLCDM]+)(?:\s*,\s*.+)?)$",
+    flags=re.IGNORECASE,
+)
+PDF_PROBLEM_KEYWORD_SPACING_RE = re.compile(
+    r"^(?P<label>(?:Problem|Question)\s+\d{1,3}[.):])(?=\S)",
+    flags=re.IGNORECASE | re.MULTILINE,
+)
+PDF_TRAILING_FOOTER_RE = re.compile(
+    r"^(?:Time limit\s*:|Each question is worth\b).*$",
+    flags=re.IGNORECASE,
+)
 PDF_LATEX_REPLACEMENTS = {
     "−": "-",
     "±": r"\pm",
@@ -1249,6 +1262,59 @@ def extract_statement_text_from_pdf(uploaded_file) -> str:
     return extracted_text
 
 
+def _normalize_extracted_statement_pdf_text(text: str) -> str:
+    normalized = re.sub(r"(?<=[A-Za-z])-\n(?=[a-z])", "", text)
+    return PDF_PROBLEM_KEYWORD_SPACING_RE.sub(r"\g<label> ", normalized)
+
+
+def combine_extracted_statement_pdf_texts(extracted_texts: list[str]) -> str:
+    """Combine compatible day PDFs into the canonical parser input shape."""
+    normalized_texts = [_normalize_extracted_statement_pdf_text(text) for text in extracted_texts]
+    parsed_documents: list[tuple[str, int, str, list[str]]] = []
+
+    for text in normalized_texts:
+        lines = text.splitlines()
+        header_match = next(
+            (
+                (index, match)
+                for index, line in enumerate(lines[:5])
+                if (match := PDF_CONTEST_DAY_HEADER_RE.fullmatch(line.strip())) is not None
+            ),
+            None,
+        )
+        if header_match is None:
+            return "\n\n".join(normalized_texts)
+
+        header_index, match = header_match
+        parsed_documents.append(
+            (
+                " ".join(match.group("contest").split()),
+                int(match.group("year")),
+                " ".join(match.group("day").split()),
+                [
+                    line
+                    for line in lines[header_index + 1 :]
+                    if PDF_TRAILING_FOOTER_RE.fullmatch(line.strip()) is None
+                ],
+            ),
+        )
+
+    if not parsed_documents:
+        return ""
+
+    contest_name, contest_year, _, _ = parsed_documents[0]
+    if any(
+        year != contest_year or contest.casefold() != contest_name.casefold()
+        for contest, year, _, _ in parsed_documents[1:]
+    ):
+        return "\n\n".join(normalized_texts)
+
+    combined_lines = [f"{contest_year} {contest_name}"]
+    for _, _, day_label, body_lines in parsed_documents:
+        combined_lines.extend((day_label, *body_lines))
+    return "\n".join(combined_lines)
+
+
 @dataclass(frozen=True)
 class ParsedContestProblemStatement:
     day_label: str
@@ -1408,7 +1474,7 @@ def _is_generic_trailing_metadata_line(line: str) -> bool:
         return True
     if NOTE_METADATA_LINE_RE.fullmatch(stripped_line):
         return True
-    if USERNAME_LINE_RE.fullmatch(stripped_line):
+    if USERNAME_LINE_RE.fullmatch(stripped_line) and not stripped_line.endswith((".", "!", "?")):
         return True
     return _looks_like_author_credit_line(stripped_line)
 
@@ -2267,7 +2333,7 @@ def _can_start_inline_numbered_problem(
 
     prefix = (problem_match.group("prefix") or "").strip()
     if prefix:
-        return True
+        return prefix == prefix.upper()
     if state.current_problem_code and state.current_problem_code.isalpha():
         return False
 

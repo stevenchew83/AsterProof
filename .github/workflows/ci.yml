@@ -1,0 +1,120 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      UV_VERSION: 0.12.6
+      PYTHON_VERSION: "3.12.4"
+      NODE_VERSION: "22.18.0"
+      ACTIONLINT_VERSION: "1.7.7"
+      ACTIONLINT_LINUX_AMD64_SHA256: "023070a287cd8cccd71515fedc843f1985bf96c436b7effaecce67290e7e0757"
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Validate GitHub Actions workflows
+        run: |
+          archive="$RUNNER_TEMP/actionlint.tar.gz"
+          curl --fail --silent --show-error --location \
+            "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz" \
+            --output "$archive"
+          printf '%s  %s\n' "$ACTIONLINT_LINUX_AMD64_SHA256" "$archive" | sha256sum --check --strict
+          tar -xzf "$archive" -C "$RUNNER_TEMP" actionlint
+          "$RUNNER_TEMP/actionlint" \
+            -ignore 'unexpected key "queue" for "concurrency" section' \
+            .github/workflows/*.yml
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: false
+
+      - name: Validate production lock
+        run: python scripts/deployment/check_production_lock.py --verify-resolution
+
+      - name: Build hash-verified Linux wheelhouse
+        run: |
+          python -m pip wheel --require-hashes --wheel-dir .ci-wheelhouse -r requirements/production.lock
+          test -n "$(find .ci-wheelhouse -maxdepth 1 -type f -name '*.whl' -print -quit)"
+          if find .ci-wheelhouse -maxdepth 1 -type f ! -name '*.whl' -print -quit | grep -q .; then
+            echo "wheelhouse contains a non-wheel distribution" >&2
+            exit 1
+          fi
+
+      - name: Prove clean offline production install
+        run: |
+          python - <<'PY'
+          import hashlib
+          from pathlib import Path
+
+          with Path(".ci-wheelhouse-install.lock").open("w", encoding="utf-8") as output:
+              for wheel in sorted(Path(".ci-wheelhouse").glob("*.whl")):
+                  digest = hashlib.sha256(wheel.read_bytes()).hexdigest()
+                  output.write(f"{wheel.as_posix()} --hash=sha256:{digest}\n")
+          PY
+          python -m venv .ci-production
+          .ci-production/bin/python -m pip install --no-index --require-hashes --no-deps -r .ci-wheelhouse-install.lock
+          .ci-production/bin/python -c "import django, gunicorn, psycopg, bleach, markdown, cryptography"
+          .ci-production/bin/python manage.py check --settings=config.settings.staticfiles
+
+      - name: Build and collect production static files
+        env:
+          ASTERPROOF_PYTHON: ${{ github.workspace }}/.ci-production/bin/python
+          DJANGO_SETTINGS_MODULE: config.settings.staticfiles
+        run: ./scripts/build_and_collectstatic.sh
+
+      - name: Verify static manifest and representative assets
+        run: |
+          test -s staticfiles/staticfiles.json
+          .ci-production/bin/python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path("staticfiles")
+          manifest = json.loads((root / "staticfiles.json").read_text())
+          paths = manifest.get("paths", {})
+          for source in ("css/app.min.css", "js/app.js", "js/vendors.min.js"):
+              target = paths.get(source)
+              if not target or not (root / target).is_file():
+                  raise SystemExit(f"static manifest is missing {source}")
+          PY
+
+      - name: Install quality dependencies
+        run: |
+          uv venv .ci-quality --python "${PYTHON_VERSION}"
+          uv pip install --python .ci-quality/bin/python -r requirements/local.txt
+
+      - name: Lint and test
+        run: |
+          # The legacy `inspinia` tree does not yet have a clean Ruff baseline.
+          # Keep the authoritative deployment/configuration path strict while
+          # the full Django test suite remains the application regression gate.
+          .ci-quality/bin/ruff check config scripts
+          .ci-quality/bin/python manage.py check
+          .ci-quality/bin/python -m pytest

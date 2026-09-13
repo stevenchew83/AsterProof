@@ -2,6 +2,7 @@
 from .base import *  # noqa: F403
 from .base import DATABASES
 from .base import INSTALLED_APPS
+from .base import MEDIA_ROOT
 from .base import MIDDLEWARE
 from .base import REDIS_URL
 from .base import env
@@ -84,6 +85,7 @@ SECURE_CONTENT_TYPE_NOSNIFF = env.bool(
 # User uploads use MEDIA_ROOT on disk (see base.py). Serve /media/ from that path
 # in production (e.g. nginx alias); Django does not expose media when DEBUG=False.
 # Collected static assets use STATIC_ROOT and WhiteNoise / the proxy at STATIC_URL.
+MEDIA_ROOT = env("DJANGO_MEDIA_ROOT", default=MEDIA_ROOT)
 STORAGES = {
     "default": {
         "BACKEND": "django.core.files.storage.FileSystemStorage",

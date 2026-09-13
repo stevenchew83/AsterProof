@@ -42,6 +42,7 @@ from inspinia.pages.models import UserProblemCompletion
 from inspinia.pages.models import UserProblemDifficultyRating
 from inspinia.pages.page_views import PageViewPayload
 from inspinia.pages.page_views import record_page_view
+from inspinia.pages.statement_analytics import effective_mohs
 from inspinia.pages.topic_labels import display_topic_label
 from inspinia.problemsets.selectors import problem_list_add_target_rows
 from inspinia.solutions.forms import ProblemSolutionBlockFormSet
@@ -263,6 +264,7 @@ def _problem_context(problem: ProblemSolveRecord) -> dict:
         "problem": problem,
         "problem_anchor": _problem_anchor(problem_label, f"{problem.year}-{problem.problem}"),
         "problem_label": problem_label,
+        "problem_mohs": effective_mohs(statement_entry) if statement_entry else problem.mohs,
         "solutions_url": reverse("solutions:problem_solution_list", args=[problem.problem_uuid]),
         "statement_entry": statement_entry,
         "statement_render_segments": (

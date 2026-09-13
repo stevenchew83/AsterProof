@@ -143,6 +143,7 @@ from inspinia.pages.statement_import import ProblemStatementPreviewPayload
 from inspinia.pages.statement_import import ProblemStatementSavePreviewPayload
 from inspinia.pages.statement_import import build_problem_statement_preview_payload
 from inspinia.pages.statement_import import build_problem_statement_save_preview
+from inspinia.pages.statement_import import combine_extracted_statement_pdf_texts
 from inspinia.pages.statement_import import extract_statement_text_from_pdf
 from inspinia.pages.statement_import import fetch_statement_text_from_url
 from inspinia.pages.statement_import import import_problem_statements
@@ -247,6 +248,7 @@ COMPLETION_RECORD_USER_OPTIONS_LIMIT = 20
 COMPLETION_RECORD_TOPIC_ALIAS_MIN_LENGTH = 2
 COMPLETION_QUICK_UPDATE_RECENT_LIMIT = ADMIN_TABLE_LATEST_LIMIT
 COMPLETION_QUICK_UPDATE_SEARCH_LIMIT = 500
+COMPLETION_QUICK_UPDATE_SEARCH_MAX_TERMS = 10
 
 
 class ProblemStatementCsvImportValidationError(ValueError):
@@ -266,6 +268,20 @@ def root_page_view(request):
     return redirect("pages:user_activity_dashboard")
 
 
+def _extract_uploaded_statement_pdf_text(uploaded_pdfs) -> tuple[str, str]:
+    extracted_pdf_texts = []
+    for uploaded_pdf in uploaded_pdfs:
+        try:
+            extracted_pdf_texts.append(extract_statement_text_from_pdf(uploaded_pdf))
+        except ProblemStatementImportValidationError as exc:
+            upload_name = getattr(uploaded_pdf, "name", "Uploaded PDF")
+            msg = f"{upload_name}: {exc}"
+            raise ProblemStatementImportValidationError(msg) from exc
+
+    source_label = "PDF upload" if len(uploaded_pdfs) == 1 else f"{len(uploaded_pdfs)} PDF uploads"
+    return combine_extracted_statement_pdf_texts(extracted_pdf_texts), source_label
+
+
 @login_required
 def latex_preview_view(request):
     _require_admin_tools_access(request)
@@ -279,12 +295,11 @@ def latex_preview_view(request):
             action = request.POST.get("action") or "preview"
             source_text = form.cleaned_data["source_text"]
             source_label = "pasted text"
-            uploaded_pdf = form.cleaned_data.get("file")
+            uploaded_pdfs = form.cleaned_data.get("file") or []
             source_url = form.cleaned_data.get("source_url")
             try:
-                if uploaded_pdf is not None:
-                    source_text = extract_statement_text_from_pdf(uploaded_pdf)
-                    source_label = "PDF upload"
+                if uploaded_pdfs:
+                    source_text, source_label = _extract_uploaded_statement_pdf_text(uploaded_pdfs)
                 elif source_url:
                     fetched_source = fetch_statement_text_from_url(source_url)
                     source_text = fetched_source.text
@@ -293,7 +308,7 @@ def latex_preview_view(request):
             except ProblemStatementImportValidationError as exc:
                 messages.error(request, str(exc))
             else:
-                if uploaded_pdf is not None or source_url:
+                if uploaded_pdfs or source_url:
                     form = ProblemStatementImportForm(initial={"source_text": source_text})
                 parsed_statement_payload = build_problem_statement_preview_payload(parsed_import)
                 for problem in parsed_statement_payload["problems"]:
@@ -1033,7 +1048,25 @@ def _filter_statement_queryset(  # noqa: C901
         filtered = filtered.filter(_eff_mohs__lte=mx)
 
     if qn:
-        for token in qn.split():
+        for index, token in enumerate(qn.split()):
+            statement_tag_match_alias = f"_search_statement_tag_match_{index}"
+            linked_tag_match_alias = f"_search_linked_tag_match_{index}"
+            filtered = filtered.alias(
+                **{
+                    statement_tag_match_alias: Exists(
+                        StatementTopicTechnique.objects.filter(
+                            statement_id=OuterRef("pk"),
+                            technique__icontains=token,
+                        ),
+                    ),
+                    linked_tag_match_alias: Exists(
+                        ProblemTopicTechnique.objects.filter(
+                            record_id=OuterRef("linked_problem_id"),
+                            technique__icontains=token,
+                        ),
+                    ),
+                },
+            )
             token_query = (
                 Q(contest_name__icontains=token)
                 | Q(contest_year_problem__icontains=token)
@@ -1046,14 +1079,14 @@ def _filter_statement_queryset(  # noqa: C901
                 | Q(_eff_core_ideas_value__icontains=token)
                 | Q(_eff_rationale_value__icontains=token)
                 | Q(_eff_pitfalls_value__icontains=token)
-                | Q(statement_topic_techniques__technique__icontains=token)
-                | Q(linked_problem__topic_techniques__technique__icontains=token)
+                | Q(**{statement_tag_match_alias: True})
+                | Q(**{linked_tag_match_alias: True})
             )
             if token.isdigit():
                 token_query |= Q(contest_year=int(token))
             filtered = filtered.filter(token_query)
 
-    return filtered.distinct()
+    return filtered
 
 
 def _statement_table_rows_copy_tsv(rows: list[dict]) -> str:
@@ -2876,6 +2909,7 @@ def _admin_completion_listing_rows(
         problem = _completion_problem_record(completion)
         statement = completion.statement
         user = completion.user
+        completion_created_at = timezone.localtime(completion.created_at)
         problem_label = _completion_statement_label(completion)
         contest_name = statement.contest_name if statement is not None else (problem.contest if problem is not None else "")
         contest_year = statement.contest_year if statement is not None else (problem.year if problem is not None else "")
@@ -2899,8 +2933,13 @@ def _admin_completion_listing_rows(
                 "completion_date": (
                     completion.completion_date.isoformat() if completion.completion_date is not None else "Unknown"
                 ),
+                "completion_datetime": (
+                    f"{completion.completion_date.isoformat()} {completion_created_at:%H:%M}"
+                    if completion.completion_date is not None
+                    else "Unknown"
+                ),
                 "completion_date_sort": (
-                    completion.completion_date.isoformat()
+                    f"{completion.completion_date.isoformat()}T{completion_created_at:%H:%M:%S.%f}"
                     if completion.completion_date is not None
                     else "0000-00-00"
                 ),
@@ -4887,44 +4926,69 @@ def _completion_quick_update_filter_terms(raw_value: str) -> list[str]:
     return filter_query.split()
 
 
-def _completion_quick_update_apply_technique_filter(queryset, raw_value: str):
-    technique_terms = _completion_quick_update_filter_terms(raw_value)
-    if not technique_terms:
+def _completion_quick_update_apply_tag_filter(
+    queryset,
+    raw_value: str,
+    *,
+    alias_prefix: str,
+    field_name: str,
+):
+    filter_terms = _completion_quick_update_filter_terms(raw_value)
+    if not filter_terms:
         return queryset
+    has_statement_tags_alias = f"_{alias_prefix}_has_statement_tags"
     queryset = queryset.alias(
-        _has_statement_tags=Exists(
-            StatementTopicTechnique.objects.filter(statement_id=OuterRef("pk")),
-        ),
+        **{
+            has_statement_tags_alias: Exists(
+                StatementTopicTechnique.objects.filter(statement_id=OuterRef("pk")),
+            ),
+        },
     )
-    for token in technique_terms:
+    for index, token in enumerate(filter_terms):
+        statement_match_alias = f"_{alias_prefix}_statement_match_{index}"
+        linked_match_alias = f"_{alias_prefix}_linked_match_{index}"
+        queryset = queryset.alias(
+            **{
+                statement_match_alias: Exists(
+                    StatementTopicTechnique.objects.filter(
+                        statement_id=OuterRef("pk"),
+                        **{f"{field_name}__icontains": token},
+                    ),
+                ),
+                linked_match_alias: Exists(
+                    ProblemTopicTechnique.objects.filter(
+                        record_id=OuterRef("linked_problem_id"),
+                        **{f"{field_name}__icontains": token},
+                    ),
+                ),
+            },
+        )
         queryset = queryset.filter(
-            Q(statement_topic_techniques__technique__icontains=token)
+            Q(**{statement_match_alias: True})
             | (
-                Q(_has_statement_tags=False)
-                & Q(linked_problem__topic_techniques__technique__icontains=token)
+                Q(**{has_statement_tags_alias: False})
+                & Q(**{linked_match_alias: True})
             ),
         )
     return queryset
+
+
+def _completion_quick_update_apply_technique_filter(queryset, raw_value: str):
+    return _completion_quick_update_apply_tag_filter(
+        queryset,
+        raw_value,
+        alias_prefix="technique_filter",
+        field_name="technique",
+    )
 
 
 def _completion_quick_update_apply_subtopics_filter(queryset, raw_value: str):
-    subtopic_terms = _completion_quick_update_filter_terms(raw_value)
-    if not subtopic_terms:
-        return queryset
-    queryset = queryset.alias(
-        _has_statement_tags=Exists(
-            StatementTopicTechnique.objects.filter(statement_id=OuterRef("pk")),
-        ),
+    return _completion_quick_update_apply_tag_filter(
+        queryset,
+        raw_value,
+        alias_prefix="subtopic_filter",
+        field_name="canonical_subtopic",
     )
-    for token in subtopic_terms:
-        queryset = queryset.filter(
-            Q(statement_topic_techniques__canonical_subtopic__icontains=token)
-            | (
-                Q(_has_statement_tags=False)
-                & Q(linked_problem__topic_techniques__canonical_subtopic__icontains=token)
-            ),
-        )
-    return queryset
 
 
 COMPLETION_QUICK_UPDATE_LAYER_FIELDS = {
@@ -4950,6 +5014,21 @@ COMPLETION_QUICK_UPDATE_LAYER_LABELS = {
     "methods": "Technique tag",
     "lemmas": "Lemma/Theorem tag",
     "proof_roles": "Proof role",
+}
+COMPLETION_QUICK_UPDATE_QUERY_FILTER_NAMES = {
+    "contest",
+    "core_ideas",
+    "layer_kind",
+    "layer_tag",
+    "mohs_max",
+    "mohs_min",
+    "problem",
+    "problem_label",
+    "q",
+    "subtopics",
+    "target_user_id",
+    "technique",
+    "year",
 }
 
 
@@ -4992,6 +5071,7 @@ def _completion_quick_update_apply_layer_filter(queryset, *, raw_kind: str, raw_
 def _completion_quick_update_layer_filter_clear_url(request) -> str:
     query = request.GET.copy()
     query.pop("layer_kind", None)
+    query.pop("layer_label", None)
     query.pop("layer_tag", None)
     query_string = query.urlencode()
     base_url = reverse("pages:completion_quick_update")
@@ -5252,7 +5332,7 @@ def _completion_quick_update_fetch_limited(
         is_capped = len(rows) > limit
         statements = rows[:limit]
         visible_total = len(statements)
-        return statements, visible_total, is_capped, visible_total, False
+        return statements, visible_total, is_capped, visible_total, not is_capped
 
     matching_total = queryset.count()
     statements = list(queryset[:limit])
@@ -5299,13 +5379,148 @@ def _completion_quick_update_filter_url(
     query = {
         key: value
         for key, value in filters.items()
-        if key != filter_name and value
+        if key in COMPLETION_QUICK_UPDATE_QUERY_FILTER_NAMES
+        and key != filter_name
+        and value
     }
     if filter_value:
         query[filter_name] = filter_value
     query_string = urlencode(query)
     base_url = reverse("pages:completion_quick_update")
     return f"{base_url}?{query_string}" if query_string else base_url
+
+
+def _completion_quick_update_filter_url_without(
+    filters: dict[str, str],
+    *,
+    filter_names: set[str],
+) -> str:
+    query = {
+        key: value
+        for key, value in filters.items()
+        if key in COMPLETION_QUICK_UPDATE_QUERY_FILTER_NAMES
+        and key not in filter_names
+        and value
+    }
+    query_string = urlencode(query)
+    base_url = reverse("pages:completion_quick_update")
+    return f"{base_url}?{query_string}" if query_string else base_url
+
+
+def _completion_quick_update_active_filter_chips(
+    filters: dict[str, str],
+    *,
+    layer_filter_clear_url: str,
+) -> list[dict[str, str]]:
+    chips = []
+    for key, label in (("problem", "Problem"), ("problem_label", "Problem label")):
+        value = str(filters.get(key) or "").strip()
+        if value:
+            chips.append(
+                {
+                    "label": label,
+                    "remove_url": _completion_quick_update_filter_url(
+                        filters,
+                        filter_name=key,
+                        filter_value="",
+                    ),
+                    "value": value,
+                },
+            )
+
+    for key, label in (("subtopics", "Subtopic"), ("technique", "Technique")):
+        values = _completion_quick_update_selected_filter_labels(filters.get(key, ""))
+        for value in values:
+            remaining_values = [item for item in values if item.casefold() != value.casefold()]
+            chips.append(
+                {
+                    "label": label,
+                    "remove_url": _completion_quick_update_filter_url(
+                        filters,
+                        filter_name=key,
+                        filter_value=_completion_quick_update_format_filter_labels(remaining_values),
+                    ),
+                    "value": value,
+                },
+            )
+
+    core_ideas = str(filters.get("core_ideas") or "").strip()
+    if core_ideas:
+        chips.append(
+            {
+                "label": "Core ideas",
+                "remove_url": _completion_quick_update_filter_url(
+                    filters,
+                    filter_name="core_ideas",
+                    filter_value="",
+                ),
+                "value": "Has core ideas" if core_ideas == "has" else "Missing core ideas",
+            },
+        )
+
+    mohs_min = str(filters.get("mohs_min") or "").strip()
+    mohs_max = str(filters.get("mohs_max") or "").strip()
+    if mohs_min or mohs_max:
+        if mohs_min and mohs_max:
+            mohs_value = f"{mohs_min}\u2013{mohs_max}"
+        elif mohs_min:
+            mohs_value = f"{mohs_min}+"
+        else:
+            mohs_value = f"Up to {mohs_max}"
+        chips.append(
+            {
+                "label": "MOHS",
+                "remove_url": _completion_quick_update_filter_url_without(
+                    filters,
+                    filter_names={"mohs_min", "mohs_max"},
+                ),
+                "value": mohs_value,
+            },
+        )
+
+    layer_kind = str(filters.get("layer_kind") or "").strip()
+    layer_tag = str(filters.get("layer_tag") or "").strip()
+    if layer_kind and layer_tag:
+        chips.append(
+            {
+                "label": str(filters.get("layer_label") or "Layer"),
+                "remove_url": layer_filter_clear_url,
+                "value": layer_tag,
+            },
+        )
+    return chips
+
+
+def _completion_quick_update_filter_presentation_context(
+    request,
+    selected_filters: dict[str, str],
+) -> dict[str, object]:
+    layer_filter_clear_url = _completion_quick_update_layer_filter_clear_url(request)
+    advanced_filter_names = {
+        "core_ideas",
+        "layer_kind",
+        "mohs_max",
+        "mohs_min",
+        "problem",
+        "problem_label",
+        "subtopics",
+        "technique",
+    }
+    return {
+        "completion_quick_update_active_filter_chips": _completion_quick_update_active_filter_chips(
+            selected_filters,
+            layer_filter_clear_url=layer_filter_clear_url,
+        ),
+        "completion_quick_update_advanced_filters_open": any(
+            selected_filters.get(filter_name) for filter_name in advanced_filter_names
+        ),
+        "completion_quick_update_has_server_filters": any(
+            value
+            for key, value in selected_filters.items()
+            if key != "layer_label"
+        ),
+        "completion_quick_update_layer_filter_clear_url": layer_filter_clear_url,
+    }
 
 
 def _completion_quick_update_filter_links(
@@ -5417,6 +5632,20 @@ def _completion_quick_update_rows(
             filter_name="technique",
             selected_filters=selected_filters,
         )
+        classification_links = []
+        seen_classification_labels = set()
+        for kind, links in (
+            ("subtopic", row["subtopic_links"]),
+            ("technique", row["technique_links"]),
+        ):
+            for link in links:
+                label_key = str(link["label"]).casefold()
+                if label_key in seen_classification_labels:
+                    continue
+                seen_classification_labels.add(label_key)
+                classification_links.append({**link, "kind": kind})
+        row["classification_preview_links"] = classification_links[:2]
+        row["classification_overflow_count"] = max(len(classification_links) - 2, 0)
         rows.append(row)
     return rows
 
@@ -5445,6 +5674,12 @@ def completion_quick_update_view(request):
     selected_layer_tag = (request.GET.get("layer_tag") or "").strip() if selected_layer_kind else ""
     has_layer_filter = bool(selected_layer_kind and selected_layer_tag)
     search_query = (request.GET.get("q") or "").strip()
+    search_error = (
+        f"Search supports at most {COMPLETION_QUICK_UPDATE_SEARCH_MAX_TERMS} terms. "
+        "Shorten the Search field and try again."
+        if len(search_query.split()) > COMPLETION_QUICK_UPDATE_SEARCH_MAX_TERMS
+        else ""
+    )
     can_select_user = user_has_admin_role(request.user)
     selected_user = _completion_quick_update_resolve_get_user(request)
     has_search_filters = any(
@@ -5469,87 +5704,11 @@ def completion_quick_update_view(request):
     year_choices = list(
         year_base.values_list("contest_year", flat=True).distinct().order_by("-contest_year"),
     )
-
-    filtered_statements = statement_base
-    if selected_contest:
-        filtered_statements = filtered_statements.filter(contest_name=selected_contest)
-    filtered_statements = _filter_statement_queryset(
-        filtered_statements,
-        q=search_query,
-        year=selected_year,
-        topic="",
-        confidence="",
-        mohs_min=selected_mohs_min,
-        mohs_max=selected_mohs_max,
-    )
-    filtered_statements = _completion_quick_update_apply_problem_filter(
-        filtered_statements,
-        selected_problem,
-    ).distinct()
-    filtered_statements = _completion_quick_update_apply_problem_label_filter(
-        filtered_statements,
-        selected_problem_label,
-    ).distinct()
-    if has_layer_filter:
-        filtered_statements = _completion_quick_update_apply_layer_filter(
-            filtered_statements,
-            raw_kind=selected_layer_kind,
-            raw_tag=selected_layer_tag,
-        )
-        filtered_statements = _completion_quick_update_apply_subtopic_fact_context(
-            filtered_statements,
-            selected_subtopics,
-        )
-    else:
-        filtered_statements = _completion_quick_update_apply_technique_filter(
-            filtered_statements,
-            selected_technique,
-        ).distinct()
-        filtered_statements = _completion_quick_update_apply_subtopics_filter(
-            filtered_statements,
-            selected_subtopics,
-        ).distinct()
-    filtered_statements = _completion_quick_update_apply_core_ideas_filter(
-        filtered_statements,
-        selected_core_ideas,
-    )
     result_limit = (
         COMPLETION_QUICK_UPDATE_SEARCH_LIMIT
         if has_search_filters
         else COMPLETION_QUICK_UPDATE_RECENT_LIMIT
     )
-    skip_exact_total = has_layer_filter
-    if has_search_filters:
-        filtered_statements = filtered_statements.order_by(
-            "-contest_year",
-            "contest_name",
-            "problem_number",
-            "problem_code",
-            "day_label",
-            "id",
-        )
-    else:
-        filtered_statements = filtered_statements.order_by("-updated_at", "-id")
-    (
-        statements,
-        visible_total,
-        is_capped,
-        matching_total,
-        matching_total_is_exact,
-    ) = _completion_quick_update_fetch_limited(
-        filtered_statements,
-        limit=result_limit,
-        skip_exact_total=skip_exact_total,
-    )
-    completion_by_statement_id = _statement_completions_by_statement_id(
-        statements,
-        user=selected_user,
-    )
-    difficulty_payloads = _difficulty_rating_payloads_by_statement_id(
-        statement_ids=[statement.id for statement in statements],
-        user=selected_user,
-    )
-    tag_payload_by_statement_id = _completion_quick_update_tag_payload_by_statement_id(statements)
     selected_filters = _completion_quick_update_selected_filters(
         can_select_user=can_select_user,
         request_user=request.user,
@@ -5567,18 +5726,112 @@ def completion_quick_update_view(request):
         selected_user=selected_user,
         selected_year=selected_year,
     )
-    rows = _completion_quick_update_rows(
-        statements,
-        completion_by_statement_id=completion_by_statement_id,
-        difficulty_payloads=difficulty_payloads,
-        selected_filters=selected_filters,
-        tag_payload_by_statement_id=tag_payload_by_statement_id,
-    )
+    if search_error:
+        visible_total = 0
+        is_capped = False
+        matching_total = 0
+        matching_total_is_exact = False
+        rows = []
+        result_summary = "Search not run"
+    else:
+        filtered_statements = statement_base
+        if selected_contest:
+            filtered_statements = filtered_statements.filter(contest_name=selected_contest)
+        filtered_statements = _filter_statement_queryset(
+            filtered_statements,
+            q=search_query,
+            year=selected_year,
+            topic="",
+            confidence="",
+            mohs_min=selected_mohs_min,
+            mohs_max=selected_mohs_max,
+        )
+        filtered_statements = _completion_quick_update_apply_problem_filter(
+            filtered_statements,
+            selected_problem,
+        )
+        filtered_statements = _completion_quick_update_apply_problem_label_filter(
+            filtered_statements,
+            selected_problem_label,
+        )
+        if has_layer_filter:
+            filtered_statements = _completion_quick_update_apply_layer_filter(
+                filtered_statements,
+                raw_kind=selected_layer_kind,
+                raw_tag=selected_layer_tag,
+            )
+            filtered_statements = _completion_quick_update_apply_subtopic_fact_context(
+                filtered_statements,
+                selected_subtopics,
+            )
+        else:
+            filtered_statements = _completion_quick_update_apply_technique_filter(
+                filtered_statements,
+                selected_technique,
+            )
+            filtered_statements = _completion_quick_update_apply_subtopics_filter(
+                filtered_statements,
+                selected_subtopics,
+            )
+        filtered_statements = _completion_quick_update_apply_core_ideas_filter(
+            filtered_statements,
+            selected_core_ideas,
+        )
+        skip_exact_total = bool(
+            search_query
+            or selected_technique
+            or selected_subtopics
+            or has_layer_filter,
+        )
+        if has_search_filters:
+            filtered_statements = filtered_statements.order_by(
+                "-contest_year",
+                "contest_name",
+                "problem_number",
+                "problem_code",
+                "day_label",
+                "id",
+            )
+        else:
+            filtered_statements = filtered_statements.order_by("-updated_at", "-id")
+        (
+            statements,
+            visible_total,
+            is_capped,
+            matching_total,
+            matching_total_is_exact,
+        ) = _completion_quick_update_fetch_limited(
+            filtered_statements,
+            limit=result_limit,
+            skip_exact_total=skip_exact_total,
+        )
+        completion_by_statement_id = _statement_completions_by_statement_id(
+            statements,
+            user=selected_user,
+        )
+        difficulty_payloads = _difficulty_rating_payloads_by_statement_id(
+            statement_ids=[statement.id for statement in statements],
+            user=selected_user,
+        )
+        tag_payload_by_statement_id = _completion_quick_update_tag_payload_by_statement_id(statements)
+        rows = _completion_quick_update_rows(
+            statements,
+            completion_by_statement_id=completion_by_statement_id,
+            difficulty_payloads=difficulty_payloads,
+            selected_filters=selected_filters,
+            tag_payload_by_statement_id=tag_payload_by_statement_id,
+        )
+        result_summary = _completion_quick_update_result_summary(
+            has_search_filters=has_search_filters,
+            is_capped=is_capped,
+            matching_total=matching_total,
+            matching_total_is_exact=matching_total_is_exact,
+            visible_total=visible_total,
+        )
     context = {
         "completion_quick_update_can_select_user": can_select_user,
         "completion_quick_update_contest_choices": contest_choices,
         "completion_quick_update_filters": selected_filters,
-        "completion_quick_update_layer_filter_clear_url": _completion_quick_update_layer_filter_clear_url(request),
         "completion_quick_update_matching_total": matching_total,
         "completion_quick_update_matching_total_is_exact": matching_total_is_exact,
         "completion_quick_update_is_capped": is_capped,
@@ -5589,14 +5842,9 @@ def completion_quick_update_view(request):
         ),
         "completion_quick_update_rows": rows,
         "completion_quick_update_result_limit": result_limit,
-        "completion_quick_update_result_summary": _completion_quick_update_result_summary(
-            has_search_filters=has_search_filters,
-            is_capped=is_capped,
-            matching_total=matching_total,
-            matching_total_is_exact=matching_total_is_exact,
-            visible_total=visible_total,
-        ),
+        "completion_quick_update_result_summary": result_summary,
         "completion_quick_update_save_url": reverse("pages:completion_quick_update_save"),
+        "completion_quick_update_search_error": search_error,
         "completion_quick_update_selected_user": selected_user,
         "completion_quick_update_today": timezone.localdate().isoformat(),
         "completion_quick_update_user_options": (
@@ -5607,6 +5855,7 @@ def completion_quick_update_view(request):
         "completion_status_choices": UserProblemCompletion.Status.choices,
         "completion_obstacle_choices": UserProblemCompletion.MainObstacle.choices,
         "completion_confidence_choices": UserProblemCompletion.Confidence.choices,
+        **_completion_quick_update_filter_presentation_context(request, selected_filters),
     }
     return render(request, "pages/completion-quick-update.html", context)
 
