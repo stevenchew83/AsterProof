@@ -208,6 +208,7 @@ This repo now includes layered `AGENTS.md` files so coding agents can pick up pa
 - [inspinia/AGENTS.md](inspinia/AGENTS.md)
 - [inspinia/pages/AGENTS.md](inspinia/pages/AGENTS.md)
 - [inspinia/users/AGENTS.md](inspinia/users/AGENTS.md)
+- [inspinia/solutions/AGENTS.md](inspinia/solutions/AGENTS.md)
 - [inspinia/templates/AGENTS.md](inspinia/templates/AGENTS.md)
 - [inspinia/static/AGENTS.md](inspinia/static/AGENTS.md)
 

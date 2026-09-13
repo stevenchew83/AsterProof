@@ -1,7 +1,5 @@
 # Admin Latest-100 List Cap Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
-
 **Goal:** Enforce a strict server-side `latest 100` cap (ordered by `updated_at DESC`) for admin listing pages so heavy tables no longer load full datasets.
 
 **Architecture:** Keep existing URLs and filter query params, but move filtering into queryset logic and apply a hard limit (`100`) after filters and ordering. Build DataTables payloads only from capped rows, then show a clear cap notice in each template so users understand that search/filter narrows scope while output remains bounded.

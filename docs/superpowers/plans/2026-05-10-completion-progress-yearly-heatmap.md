@@ -1,7 +1,5 @@
 # Completion Progress Yearly Heatmap Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
-
 **Goal:** Add GitHub-like yearly daily completion heatmaps to `/dashboard/completion-progress/` and `/dashboard/my-progress/`, positioned immediately before the existing contest `Completion heatmap` card.
 
 **Architecture:** Add a small payload helper in `inspinia/pages/completion_progress.py` that converts the already filtered completion rows into stacked 365-day, week-column heatmap sections from the first exact completion to the latest. Wire that payload through `_render_completion_progress_analytics`, render the grids with page-local Bootstrap/Inspinia-aligned CSS in `completion-progress-analytics.html`, and initialize Bootstrap tooltips for accessible day-level detail.

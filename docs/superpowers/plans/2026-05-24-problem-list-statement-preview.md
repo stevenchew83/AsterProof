@@ -1,7 +1,5 @@
 # Problem List Statement Preview Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
-
 **Goal:** Add statement availability, preview, and unlinked-add confirmation to the problem-list editor archive picker.
 
 **Architecture:** Reuse the existing `ContestProblemStatement` lookup in `inspinia/problemsets/selectors.py` and extend the JSON row payload consumed by `edit.html`. Keep UI behavior page-local inside the existing Bootstrap/Inspinia editor template with one offcanvas preview and one confirmation modal.

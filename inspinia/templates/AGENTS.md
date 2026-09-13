@@ -17,7 +17,6 @@ This directory contains project templates for pages, users, account/allauth flow
 
 ## Template discipline
 
-- Use `{% url %}` with namespaced routes instead of hard-coded paths.
 - If a template expects a specific context key or JSON payload shape, update the view and tests in the same change.
 - Preserve stable DOM IDs and hook points used by tests or page JavaScript unless you update those dependents too.
 - Prefer shared partials for repeated markup instead of copying chunks across multiple templates.

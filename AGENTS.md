@@ -1,51 +1,28 @@
 # AsterProof Agent Guide
 
-Start here before touching the repo. Then open the nearest more specific `AGENTS.md` for the path you are editing:
+## Scoped guidance
 
-- `config/AGENTS.md`
-- `inspinia/AGENTS.md`
-- `inspinia/pages/AGENTS.md`
-- `inspinia/users/AGENTS.md`
-- `inspinia/templates/AGENTS.md`
-- `inspinia/static/AGENTS.md`
+For the paths being changed, use the applicable nested `AGENTS.md` files under `config/` and `inspinia/` (including `pages/`, `users/`, `solutions/`, `templates/`, and `static/`).
 
-If a task changes dashboard or admin UI, also read [`docs/inspinia-dashboard-style.md`](docs/inspinia-dashboard-style.md).
+- Dashboard/admin UI: use [the dashboard style contract](docs/inspinia-dashboard-style.md). Keep the bundled Inspinia/Bootstrap 5 shell; do not introduce a parallel UI framework.
+- Full compilable olympiad LaTeX/PDF solutions: follow [the Evan Chen layout rule](.cursor/rules/evan-chen-latex-pdf.mdc).
+- Historical plans under `docs/plans/` and `docs/superpowers/` provide task context, not standing workflow authorization. Their commit, worktree, and deployment steps require explicit user authorization; skill references do not mandate invocation.
 
-When generating **LaTeX or PDF** for olympiad-style written solutions, follow **`.cursor/rules/evan-chen-latex-pdf.mdc`** (`scrartcl`, `\usepackage[sexy]{evan}`, purple problem `mdframed`, claim/proof, KOMA headers).
+## Cross-app invariants
 
-## Project map
+- `ProblemSolveRecord.problem_uuid` connects analytics, statement, solution, and user completion rows; preserve that shared identity.
+- Tool pages generally use `@login_required`; admin actions use `_require_admin_tools_access`. Preserve access boundaries.
+- Templates and views share context keys and DOM hooks. Coordinate changes with their consumers.
 
-- `config/`: settings split, root URL wiring, environment behavior.
-- `inspinia/pages/`: contest/problem archive, workbook imports, problem statements, analytics, and problem completion data.
-- `inspinia/users/`: custom user model, roles, profiles, session tracking, and audit events.
-- `inspinia/templates/`: Django templates for dashboard, account, and profile UI.
-- `inspinia/static/`: SCSS, JS, images, vendored plugins, and compiled frontend assets.
+## Completion and checks
 
-## High-value invariants
+For an implementation request, complete the authorized local edits, relevant checks, and fixes for failures caused by the change without pausing after each reversible step. Finish when the requested behavior is verified and the final diff is reviewed, or report a concrete blocker. Leave unrelated failures outside scope. Existing production and external-action approval boundaries still apply.
 
-- `ProblemSolveRecord.problem_uuid` is the shared identifier that connects analytics rows, statement rows, and user completion rows.
-- `ProblemSolveRecord.topic_tags` keeps raw workbook text; parsed searchable tags live in `ProblemTopicTechnique`.
-- Topic techniques and their domain labels are normalized to uppercase. Preserve that invariant in new import or edit paths.
-- Most tool-style pages are guarded by `@login_required`, and admin-only actions typically route through `_require_admin_tools_access`. Do not widen access casually.
-- The project uses the bundled Inspinia/Bootstrap 5 shell. Do not introduce a parallel UI framework.
+Select checks for the touched area; the commands below are not a requirement to run every suite:
 
-## Default workflow
+- Python: `uv run ruff check` with the changed files; app-specific pytest commands are in nested guides. Add regression coverage for behavior changes. Broaden coverage for shared auth, routing, middleware, or import/linking changes.
+- Settings/routing: `uv run python manage.py check` using the intended local/test environment.
+- SCSS/shared asset sources: `npm run build`.
+- Instruction/documentation-only changes: check references and `git diff --check`; application tests are unnecessary unless executable examples or generated artifacts are affected.
 
-- Inspect the nearest models, views, templates, and tests before editing.
-- Prefer focused changes that match the surrounding pattern.
-- When behavior changes, update the smallest relevant test coverage in the same app.
-- Before finishing, run the cheapest checks that meaningfully cover the touched area.
-
-## Common validation commands
-
-- `uv run ruff check config inspinia`
-- `uv run pytest inspinia/pages/tests.py`
-- `uv run pytest inspinia/users/tests`
-- `uv run python manage.py check`
-- `npm run build` after changes under `inspinia/static/scss/` or shared frontend asset sources
-
-## Known sharp edges
-
-- `inspinia/pages/views.py` is large and mixes landing page, explorers, dashboards, imports, and statement tooling. Search for existing helpers and view names before adding new ones.
-- UI templates and Python views are tightly coupled by context keys and DOM hooks. When one changes, check the other immediately.
-- Settings are intentionally split by environment. If a change is not safe for tests and production, it probably does not belong in `config/settings/base.py`.
+Pytest selects `config.settings.test` through `pyproject.toml`; this is not a guarantee that arbitrary commands or environment overrides are isolated from external services.

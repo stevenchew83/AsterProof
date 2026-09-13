@@ -1,7 +1,5 @@
 # Problem Statement List DataTable Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
-
 **Goal:** Replace the All problem statements HTML table and Django pagination with a client-side DataTables grid (full server-filtered row set in JSON), per-column footer filters, and no DataTables global search; keep the existing GET form Search field and copy-TSV behavior.
 
 **Architecture:** `problem_statement_list_view` continues to build and filter `filtered_rows` in Python. Remove `Paginator` and `statement_list_query`; pass `_json_script_safe(filtered_rows)` as a new context key. The template outputs `json_script` plus an empty `<table id="problem-statements-table">`, loads DataTables assets only when `statement_total > 0` and `statement_filtered_total > 0`, and initializes `new DataTable(...)` with `searching: false`, footer inputs wired to `column().search`, and paging/sorting on the client. Copy-TSV and server filters stay server-side.

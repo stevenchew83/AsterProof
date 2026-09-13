@@ -19,8 +19,4 @@ This directory contains frontend source files, compiled assets, images, and vend
 - After changing SCSS or shared asset sources, run `npm run build`.
 - If you change source assets but skip a rebuild, say so explicitly in your handoff.
 
-## Safe editing checklist
-
-- Check whether a change belongs in SCSS, template markup, or page-local JS before editing static files.
-- Avoid editing minified bundles by hand.
-- Keep iconography and component styling consistent with the rest of the dashboard.
+Avoid editing minified bundles by hand.

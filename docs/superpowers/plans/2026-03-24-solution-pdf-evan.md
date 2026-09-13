@@ -1,7 +1,5 @@
 # Solution PDF (evan.sty) Implementation Plan
 
-> **For agentic workers:** Use task-by-task execution with tests after each cluster.
-
 **Goal:** Server-side PDF export for saved solutions using vendored `evan.sty` and KOMA `scrartcl`.
 
 **Architecture:** Build `.tex` in Python (avoid templating user bodies), compile with `latexmk -pdf` in a temp dir, return `FileResponse`. Same auth as solution edit (author-only).

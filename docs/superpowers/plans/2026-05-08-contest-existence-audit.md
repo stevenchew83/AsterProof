@@ -1,7 +1,5 @@
 # Contest Existence Audit Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
-
 **Goal:** Build a read-only admin page that parses year-prefixed contest headers from pasted scrape text and checks exact contest-year existence in both statement and analytics tables.
 
 **Architecture:** Put parsing, checking, status summaries, suggestions, and TSV generation in a focused helper module under `inspinia/pages/`. Keep the Django view thin: validate form input, call the helper, show messages, and render the existing Inspinia dashboard shell. Add the new tool beside existing admin utilities and cover behavior through parser/helper tests plus view/template smoke tests.

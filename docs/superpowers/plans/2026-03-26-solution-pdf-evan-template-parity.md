@@ -1,7 +1,5 @@
 # Solution PDF Evan Template Parity Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
-
 **Goal:** Update solution-editor PDF export so saved solutions render as genuine Evan-style olympiad writeups instead of paragraph-labeled LaTeX dumps.
 
 **Architecture:** Keep the existing download view, auth checks, temp-dir compilation flow, and error pages. Replace the current generic block-to-LaTeX builder with semantic rendering helpers in `inspinia/solutions/pdf_latex.py`, and drive the change with focused generated-TeX tests in `inspinia/solutions/tests.py`.
