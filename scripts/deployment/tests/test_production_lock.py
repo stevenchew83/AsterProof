@@ -25,8 +25,7 @@ def _fixture_repo(tmp_path: Path) -> tuple[Path, Path, Path]:
     source.write_text("-r base.txt\ngunicorn==23.0.0\n", encoding="utf-8")
     pyproject = tmp_path / "pyproject.toml"
     pyproject.write_text(
-        '[project]\nname = "fixture"\nversion = "0.1.0"\n'
-        'dependencies = ["bleach==6.3.0", "markdown==3.10.2"]\n',
+        '[project]\nname = "fixture"\nversion = "0.1.0"\ndependencies = ["bleach==6.3.0", "markdown==3.10.2"]\n',
         encoding="utf-8",
     )
     lock = requirements / "production.lock"
@@ -87,8 +86,7 @@ def test_malformed_hash_fails(tmp_path):
 def test_pyproject_overlap_drift_fails(tmp_path):
     source, lock, pyproject = _fixture_repo(tmp_path)
     pyproject.write_text(
-        '[project]\nname = "fixture"\nversion = "0.1.0"\n'
-        'dependencies = ["bleach>=6.3.0", "markdown==3.10.2"]\n',
+        '[project]\nname = "fixture"\nversion = "0.1.0"\ndependencies = ["bleach>=6.3.0", "markdown==3.10.2"]\n',
         encoding="utf-8",
     )
 
@@ -102,8 +100,7 @@ def test_regeneration_is_stable_when_resolver_output_is_stable(tmp_path, monkeyp
     def fake_run(command, **kwargs):
         output = Path(command[command.index("--output-file") + 1])
         output.write_text(
-            "bleach==6.3.0 \\\n"
-            "    --hash=sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n",
+            "bleach==6.3.0 \\\n    --hash=sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n",
             encoding="utf-8",
         )
         return subprocess.CompletedProcess(command, 0)
@@ -117,19 +114,45 @@ def test_regeneration_is_stable_when_resolver_output_is_stable(tmp_path, monkeyp
     assert lock_check.SOURCE_HEADER in first
 
 
-def test_resolution_check_does_not_seed_itself_from_existing_lock(tmp_path, monkeypatch):
+def test_resolution_preserves_pins_but_fetches_hashes_independently(tmp_path, monkeypatch):
     source, lock, _ = _fixture_repo(tmp_path)
-    lock.write_text(lock.read_text(encoding="utf-8").replace("gunicorn==23.0.0", "gunicorn==99.0.0"))
+    original = lock.read_text(encoding="utf-8")
 
-    def fake_render(requested_source, existing_lock, *, upgrade):
+    def fake_run(command, **kwargs):
+        output = Path(command[command.index("--output-file") + 1])
+        assert not output.exists()
+        pins = Path(command[command.index("--constraint") + 1]).read_text()
+        assert pins == "bleach==6.3.0\ngunicorn==23.0.0\nmarkdown==3.10.2\n"
+        assert "--hash" not in pins
+        # Newer releases may exist, but the resolver must use these exact pins.
+        output.write_text(original + "    # via constraint\n", encoding="utf-8")
+        return subprocess.CompletedProcess(command, 0)
+
+    monkeypatch.setattr(lock_check.subprocess, "run", fake_run)
+    lock_check.validate_resolved_lock(source, lock)
+    assert lock.read_text(encoding="utf-8") == original
+
+
+@pytest.mark.parametrize("change", ["hash", "missing", "extra"])
+def test_resolution_rejects_changed_lock_content(tmp_path, monkeypatch, change):
+    source, lock, _ = _fixture_repo(tmp_path)
+    original = lock.read_text(encoding="utf-8")
+    if change == "hash":
+        changed = original.replace("a" * 64, "d" * 64)
+    elif change == "missing":
+        changed = original[: original.index("markdown==")]
+    else:
+        changed = original + "unexpected==1.0 --hash=sha256:" + "e" * 64 + "\n"
+    lock.write_text(changed, encoding="utf-8")
+
+    def fake_render(requested_source, existing_lock, *, upgrade, constraints):
         assert requested_source == source
         assert existing_lock is None
-        assert upgrade is False
-        return "clean resolver output\n"
+        assert constraints == lock
+        return original
 
     monkeypatch.setattr(lock_check, "render_lock", fake_render)
-
-    with pytest.raises(lock_check.LockError, match="clean deterministic resolution"):
+    with pytest.raises(lock_check.LockError, match="locked versions"):
         lock_check.validate_resolved_lock(source, lock)
 
 
