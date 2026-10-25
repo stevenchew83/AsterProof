@@ -33,11 +33,17 @@ from inspinia.pages.models import UserProblemCompletion
 from inspinia.pages.problem_import import dataframes_to_safe_excel_bytes
 from inspinia.pages.statement_analytics import effective_topic
 from inspinia.pages.technique_benchmarking.keys import benchmark_row_key
+from inspinia.pages.technique_benchmarking.keys import normalize_benchmark_key
 from inspinia.pages.technique_benchmarking.scoring import benchmark_lookup_for_gap_rows
 from inspinia.pages.technique_benchmarking.scoring import benchmark_quality_status
 from inspinia.pages.technique_benchmarking.scoring import computed_scores_for_row
 from inspinia.pages.technique_benchmarking.scoring import final_training_type
 from inspinia.pages.technique_benchmarking.scoring import normalize_target_profile
+from inspinia.pages.technique_concepts import CATALOG_SHA256
+from inspinia.pages.technique_concepts import CONCEPTS
+from inspinia.pages.technique_concepts import concept_for
+from inspinia.pages.technique_concepts import conflicting_concept_profiles
+from inspinia.pages.technique_concepts import is_algebra_fact
 from inspinia.pages.technique_progress_catalog import technique_progress_catalog_status_context
 from inspinia.pages.topic_labels import display_topic_label
 from inspinia.users.models import User
@@ -53,10 +59,10 @@ GAP_PAGE_SIZE = 50
 # Cache keys include catalog/completion/benchmark markers, so longer TTLs reduce
 # cold rebuilds without serving stale progress.
 GAP_CACHE_TIMEOUT_SECONDS = 6 * 60 * 60
-GAP_CACHE_VERSION = "v2"
+GAP_CACHE_VERSION = f"v4-{CATALOG_SHA256[:12]}"
 DASHBOARD_CACHE_TIMEOUT_SECONDS = GAP_CACHE_TIMEOUT_SECONDS
-DASHBOARD_CACHE_VERSION = "v1"
-TOPIC_DETAIL_CACHE_VERSION = "v1"
+DASHBOARD_CACHE_VERSION = f"v2-{CATALOG_SHA256[:12]}"
+TOPIC_DETAIL_CACHE_VERSION = f"v3-{CATALOG_SHA256[:12]}"
 USER_OPTIONS_CACHE_TIMEOUT_SECONDS = 15 * 60
 USER_OPTIONS_CACHE_VERSION = "v1"
 USER_OPTIONS_STALE_MARKER_KEY = f"technique-user-options-marker:{USER_OPTIONS_CACHE_VERSION}"
@@ -367,8 +373,8 @@ def _layers_for_gap_kind(gap_kind: str) -> set[str]:
         GAP_KIND_LEMMAS: {str(LAYER_GAP_KIND_CONFIG[GAP_KIND_LEMMAS]["fact_layer"])},
         GAP_KIND_PROOF_ROLES: {str(LAYER_GAP_KIND_CONFIG[GAP_KIND_PROOF_ROLES]["fact_layer"])},
         GAP_KIND_ALL: {
-            str(LAYER_GAP_KIND_CONFIG[layer_kind]["fact_layer"])
-            for layer_kind in LAYER_GAP_KINDS
+            TechniqueProgressFact.Layer.SUBTOPIC, TechniqueProgressFact.Layer.TECHNIQUE,
+            *(str(LAYER_GAP_KIND_CONFIG[layer_kind]["fact_layer"]) for layer_kind in LAYER_GAP_KINDS),
         },
     }
     return layer_sets.get(gap_kind, {TechniqueProgressFact.Layer.SUBTOPIC})
@@ -1072,7 +1078,7 @@ def _topic_subtopic_rows_for_export(  # noqa: PLR0913
     ]
     return _subtopic_rows_with_layer_previews(
         topic_subtopic_rows,
-        layer_rows=layer_rows,
+        layer_rows=_scoped_subtopic_gap_rows(user=selected_user, gap_topic=topic_slug),
         selected_user=selected_user,
         can_select_user=can_select_user,
         topic_slug=topic_slug,
@@ -1420,6 +1426,7 @@ def _benchmark_cache_marker() -> str:
 def _enrich_gap_rows_with_benchmarks(rows: list[dict[str, object]]) -> list[dict[str, object]]:
     lookup = benchmark_lookup_for_gap_rows(rows)
     alias_labels_by_benchmark_id = _benchmark_alias_labels_by_id(lookup)
+    concept_conflicts = conflicting_concept_profiles({row["concept_id"] for row in rows if row.get("concept_id")})
     enriched_rows = []
     for row in rows:
         row_key = benchmark_row_key(row)
@@ -1517,6 +1524,15 @@ def _enrich_gap_rows_with_benchmarks(rows: list[dict[str, object]]) -> list[dict
                     },
                 },
             )
+        if row.get("concept_id") in concept_conflicts:
+            enriched_row.update(
+                _benchmark=None, concept_profile_conflict=True, benchmark_status="needs_review",
+                training_type="Review", benchmark_training_type="Review",
+                importance_score=None, difficulty_score=None,
+                merge_note=(
+                    "Role profiles have conflicting ratings; reconcile them in the Benchmark map before ranking."
+                ),
+            )
         enriched_rows.append(enriched_row)
     return enriched_rows
 
@@ -1579,6 +1595,8 @@ def _score_gap_rows(
             difficulty_score=scores["difficulty_score"],
             efficiency_score=scores["efficiency_score"],
         )
+        if row.get("concept_profile_conflict"):
+            final_action = "Review"
         scored_rows.append(
             {
                 **row,
@@ -1823,23 +1841,7 @@ def _build_topic_detail_payload(  # noqa: PLR0913
         selected_user=selected_user,
         can_select_user=can_select_user,
     )
-    if gap_topic == GAP_TOPIC_ALL:
-        topic_layer_rows = _all_layer_progress_rows(
-            topic_tagged_rows,
-            selected_user=selected_user,
-            can_select_user=can_select_user,
-        )
-    else:
-        topic_layer_rows = _cached_filtered_gap_rows(
-            request_user=request_user,
-            raw_user_id=raw_user_id,
-            selected_user=selected_user,
-            can_select_user=can_select_user,
-            gap_kind=GAP_KIND_ALL,
-            gap_topic=gap_topic,
-            gap_min_total=0,
-            gap_canonical_subtopic="",
-        )
+    topic_layer_rows = _scoped_subtopic_gap_rows(user=selected_user, gap_topic=topic_slug)
     topic_subtopic_rows = _subtopic_rows_with_layer_previews(
         topic_subtopic_rows,
         layer_rows=topic_layer_rows,
@@ -2274,6 +2276,12 @@ def _build_progress_payload(  # noqa: PLR0913
             include_user_options=include_user_options,
         ),
         "gap_rows": gap_rows,
+        "ungrouped_rows": _ungrouped_progress_rows(
+            tagged_rows, selected_user=selected_user, can_select_user=can_select_user,
+        ),
+        "concept_rows": _concept_progress_rows(
+            tagged_rows, selected_user=selected_user, can_select_user=can_select_user,
+        ),
         "lemma_rows": layer_rows_by_kind[GAP_KIND_LEMMAS],
         "main_topic_rows": _main_topic_rows(
             rows_by_layer.get(TechniqueProgressFact.Layer.MAIN_TOPIC, []),
@@ -2453,6 +2461,94 @@ def _base_context(
     }
 
 
+def _scoped_subtopic_gap_rows(*, user: User, gap_topic: str) -> list[dict[str, object]]:
+    """Count each statement within its own subtopic, in one streamed fact query.
+
+    An aggregated topic-wide method count cannot be reused for every family in
+    its metadata: those families may contain different statement populations.
+    """
+    types = {str(config["fact_layer"]): str(config["type"]) for config in LAYER_GAP_KIND_CONFIG.values()}
+    queryset = _dashboard_fact_queryset_with_completion(user=user, layers=set(types))
+    if connection.vendor == "postgresql" and gap_topic in GAP_TOPIC_SLUGS:
+        queryset = _filter_progress_fact_queryset(queryset, gap_topic=gap_topic, gap_canonical_subtopic="")
+    buckets = defaultdict(lambda: {"total": set(), "solved": set()})
+    fields = (
+        "statement_id", "label", "layer", "canonical_subtopic", "canonical_subtopic_labels",
+        "main_topic", "main_topic_labels", "_dashboard_statement_completion_exists",
+        "_dashboard_statement_completion_solved", "_dashboard_problem_completion_solved",
+    )
+    for fact in queryset.values(*fields).iterator(chunk_size=1000):
+        if gap_topic != GAP_TOPIC_ALL:
+            topic = GAP_TOPIC_SLUGS.get(gap_topic, OTHER_TOPIC_LABEL)
+            if fact["main_topic"] != topic and topic not in (fact["main_topic_labels"] or []):
+                continue
+        solved = fact["_dashboard_statement_completion_solved"] or (
+            not fact["_dashboard_statement_completion_exists"] and fact["_dashboard_problem_completion_solved"]
+        )
+        families = set(fact["canonical_subtopic_labels"] or [])
+        if fact["canonical_subtopic"]:
+            families.add(fact["canonical_subtopic"])
+        for family in families:
+            concept_id = concept_for(str(fact["layer"]), str(fact["label"])) if is_algebra_fact(fact) else ""
+            layer = "concept" if concept_id else fact["layer"]
+            label = CONCEPTS[concept_id]["label"] if concept_id else fact["label"]
+            bucket = buckets[(family, layer, label)]
+            bucket["total"].add(fact["statement_id"])
+            if solved:
+                bucket["solved"].add(fact["statement_id"])
+    return [
+        {
+            "canonical_subtopic_labels": [family], "label": label,
+            "type": "Concept" if layer == "concept" else types[layer],
+            "total": len(bucket["total"]), "remaining": len(bucket["total"] - bucket["solved"]),
+        }
+        for (family, layer, label), bucket in buckets.items()
+    ]
+
+
+def _ungrouped_progress_rows(tagged_rows: list[dict], *, selected_user: User, can_select_user: bool) -> list[dict]:
+    result = []
+    configs = {str(c["fact_layer"]): (kind, str(c["type"])) for kind, c in LAYER_GAP_KIND_CONFIG.items()}
+    for layer, (kind, type_label) in configs.items():
+        facts = [fact for fact in tagged_rows if fact["layer"] == layer and not (
+            is_algebra_fact(fact) and concept_for(layer, str(fact["label"]))
+        )]
+        rows = _aggregate_progress_rows(
+            facts, label_key="label", type_label=type_label,
+            selected_user=selected_user, can_select_user=can_select_user,
+        )
+        result.extend(_rows_with_layer_practice_urls(
+            rows, layer_kind=kind, selected_user=selected_user, can_select_user=can_select_user,
+        ))
+    return result
+
+
+def _concept_progress_rows(tagged_rows: list[dict], *, selected_user: User, can_select_user: bool) -> list[dict]:
+    members = []
+    roles = defaultdict(set)
+    for fact in tagged_rows:
+        if not is_algebra_fact(fact):
+            continue
+        concept_id = concept_for(str(fact["layer"]), str(fact["label"])) if is_algebra_fact(fact) else ""
+        if concept_id:
+            members.append({**fact, "_concept_id": concept_id})
+            roles[concept_id].add(str(fact["layer"]))
+    rows = _aggregate_progress_rows(
+        members, label_key="_concept_id", type_label="Concept",
+        selected_user=selected_user, can_select_user=can_select_user,
+    )
+    for row in rows:
+        concept_id = row["label"]
+        row.update(
+            concept_id=concept_id, label=CONCEPTS[concept_id]["label"], roles=sorted(roles[concept_id]),
+            layer_kind="concepts", practice_url=_practice_url(
+                "", selected_user=selected_user, can_select_user=can_select_user,
+                layer_kind="concepts", layer_tag=concept_id,
+            ),
+        )
+    return rows
+
+
 def _subtopic_rows_with_layer_previews(
     subtopic_rows: list[dict[str, object]],
     *,
@@ -2473,7 +2569,10 @@ def _subtopic_rows_with_layer_previews(
     enriched_rows = []
     for row in subtopic_rows:
         canonical_subtopic = str(row.get("canonical_subtopic") or row.get("label") or "").strip()
-        preview_rows = _sort_gap_rows_by_priority(layer_rows_by_subtopic.get(canonical_subtopic, []))
+        preview_rows = _sort_gap_rows_by_priority([
+            candidate for candidate in layer_rows_by_subtopic.get(canonical_subtopic, [])
+            if normalize_benchmark_key(str(candidate["label"])) != normalize_benchmark_key(canonical_subtopic)
+        ])
         enriched_rows.append(
             {
                 **row,
@@ -2645,6 +2744,10 @@ def _filtered_gap_rows(
         lemma_rows=payload["lemma_rows"],
         proof_role_rows=payload["proof_role_rows"],
     )
+    if gap_kind == GAP_KIND_ALL:
+        gap_rows = [row for row in payload["ungrouped_rows"] if row["remaining"]] + [
+            row for row in payload["concept_rows"] if row["remaining"]
+        ]
     gap_rows = _filter_gap_rows_by_topic(gap_rows, gap_topic=gap_topic)
     gap_rows = _filter_gap_rows_by_canonical_subtopic(
         gap_rows,
@@ -2825,7 +2928,7 @@ def _gap_rows_with_urls(
                 selected_user=selected_user,
                 can_select_user=can_select_user,
                 layer_kind=layer_kind,
-                layer_tag=str(row["label"]),
+                layer_tag=str(row.get("concept_id") or row["label"]),
             )
         enriched_rows.append(enriched_row)
     return enriched_rows

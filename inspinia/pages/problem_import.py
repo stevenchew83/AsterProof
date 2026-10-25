@@ -22,6 +22,8 @@ from inspinia.pages.algebra_tag_aliases import merge_raw_sources
 from inspinia.pages.algebra_tag_aliases import normalize_import_tag_fields
 from inspinia.pages.algebra_tag_imports import algebra_import_session
 from inspinia.pages.algebra_tag_imports import normalization_active
+from inspinia.pages.algebra_tag_imports import runtime_import_policy
+from inspinia.pages.algebra_tag_imports import vocabulary_policy_session
 from inspinia.pages.models import TOPIC_TAG_LAYER_FIELDS
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
@@ -258,6 +260,7 @@ def prepare_import_rows(df: pd.DataFrame) -> tuple[list[PreparedImportRow], list
     return prepared, warnings
 
 
+@vocabulary_policy_session()
 def build_parsed_preview_payload(
     df: pd.DataFrame,
     *,
@@ -670,6 +673,7 @@ def prepare_topic_tag_entries(
 ) -> list[dict[str, object]]:
     """Shared classification/canonicalization for preview and both write paths."""
     parsed_entries = []
+    policy = runtime_import_policy() if canonicalize and is_algebra_scope(topic, active=active) else None
     for item in parse_topic_tags_cell(raw_topic_tags):
         technique = (item.get("technique") or "").strip()
         if not technique:
@@ -687,6 +691,7 @@ def prepare_topic_tag_entries(
                     topic=topic,
                     active=active,
                     problem_uuid=problem_uuid,
+                    policy=policy,
                 )
                 for entry in entries
             ]

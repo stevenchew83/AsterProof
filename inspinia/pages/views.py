@@ -5009,6 +5009,7 @@ COMPLETION_QUICK_UPDATE_LAYER_FIELDS = {
     "proof_roles": "proof_roles",
 }
 COMPLETION_QUICK_UPDATE_FACT_LAYERS = {
+    "concepts": "concept",
     "subtopics": TechniqueProgressFact.Layer.SUBTOPIC,
     "techniques": TechniqueProgressFact.Layer.TECHNIQUE,
     "objects": TechniqueProgressFact.Layer.OBJECT,
@@ -5017,6 +5018,7 @@ COMPLETION_QUICK_UPDATE_FACT_LAYERS = {
     "proof_roles": TechniqueProgressFact.Layer.PROOF_ROLE,
 }
 COMPLETION_QUICK_UPDATE_LAYER_LABELS = {
+    "concepts": "Concept",
     "subtopics": "Subtopic",
     "techniques": "Technique",
     "objects": "Object tag",
@@ -5059,6 +5061,12 @@ def _completion_quick_update_resolve_layer_filter(
 
 
 def _completion_quick_update_apply_layer_filter(queryset, *, raw_kind: str, raw_tag: str):
+    if raw_kind == "concepts":
+        from inspinia.pages.technique_concepts import concept_fact_filter
+
+        return queryset.filter(Exists(
+            TechniqueProgressFact.objects.filter(statement_id=OuterRef("pk")).filter(concept_fact_filter(raw_tag)),
+        ))
     layer, label_key = _completion_quick_update_resolve_layer_filter(
         raw_kind=raw_kind,
         raw_tag=raw_tag,
@@ -8556,7 +8564,20 @@ def technique_progress_gaps_view(request):
 def technique_benchmark_list_view(request):
     benchmarks = TechniqueBenchmark.objects.all()
     search = (request.GET.get("q") or "").strip()
-    if search:
+    algebra_catalog = (
+        request.GET.get("area", "").casefold() == "algebra"
+        or request.GET.get("row_key", "").startswith("concept:")
+    )
+    if algebra_catalog:
+        from inspinia.pages.technique_concepts import CONCEPT_MEMBER_KEYS
+
+        query = Q(pk__in=[])
+        for members in CONCEPT_MEMBER_KEYS.values():
+            for member in members:
+                kind, key = member.split(":", 1)
+                query |= Q(kind=kind, label_key=key)
+        benchmarks = benchmarks.filter(query)
+    if search and not algebra_catalog:
         for token in search.split():
             benchmarks = benchmarks.filter(
                 Q(label__icontains=token) | Q(normalized_label__icontains=token)
@@ -8566,12 +8587,12 @@ def technique_benchmark_list_view(request):
             )
         benchmarks = benchmarks.distinct()
     for key, field in (("area", "primary_area"), ("family", "parent_family")):
-        if request.GET.get(key):
+        if request.GET.get(key) and not algebra_catalog:
             value = request.GET[key]
             fallback = "Unclassified" if key == "area" else "Unassigned family"
             benchmarks = benchmarks.filter(**{field: "" if value == fallback else value})
     row_key = (request.GET.get("row_key") or "").partition(":")
-    if row_key[1]:
+    if row_key[1] and not algebra_catalog:
         benchmarks = benchmarks.filter(kind=row_key[0], label_key=row_key[2])
     benchmarks = benchmarks.order_by("kind", "label", "id")
     context = build_technique_benchmark_dashboard_context(
@@ -8580,6 +8601,10 @@ def technique_benchmark_list_view(request):
         paginate=True,
         page_number=request.GET.get("page"),
         sort=request.GET.get("sort", "value"),
+        catalog_filters={
+            "search": search, "family": request.GET.get("family", ""), "row_key": request.GET.get("row_key", ""),
+        } if algebra_catalog else None,
+        combine_concepts=algebra_catalog or not request.GET.get("area"),
     )
     params = request.GET.copy()
     params.pop("page", None)

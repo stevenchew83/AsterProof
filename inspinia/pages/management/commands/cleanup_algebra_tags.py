@@ -25,6 +25,7 @@ class Command(BaseCommand):
         "Dry-run the reviewed algebra cleanup. Apply requires an immutable reviewed report and a new audit directory."
     )
     requires_system_checks = []
+    report_builder = staticmethod(build_cleanup_report)
 
     def add_arguments(self, parser) -> None:
         parser.add_argument("--plan", type=Path, default=DEFAULT_PLAN)
@@ -45,7 +46,7 @@ class Command(BaseCommand):
         except (AlgebraAliasError, OSError, ValueError, KeyError) as exc:
             raise CommandError(str(exc)) from exc
 
-    def _run(self, options: dict) -> None:
+    def load_operation(self, options: dict) -> tuple:
         plan_bytes = options["plan"].read_bytes()
         plan_sha = hashlib.sha256(plan_bytes).hexdigest()
         policy = load_policy()
@@ -53,6 +54,16 @@ class Command(BaseCommand):
             message = "The plan hash does not match the packaged reviewed policy."
             raise AlgebraAliasError(message)
         plan = json.loads(plan_bytes)
+        return plan, policy, plan_sha
+
+    def report_summary(self, report: dict) -> dict:
+        return {
+            "mode": "dry-run", "counts": report["counts"], "alias_actions":len(report["alias_actions"]),
+            "conflicts": report["conflicts"],
+        }
+
+    def _run(self, options: dict) -> None:
+        plan, policy, plan_sha = self.load_operation(options)
         if options["apply"]:
             if options["snapshot_input"]:
                 message = "Captured snapshots can never authorize or execute application."
@@ -70,31 +81,23 @@ class Command(BaseCommand):
                 policy=policy,
                 plan_sha256=plan_sha,
                 audit_directory=options["audit_directory"],
+                report_builder=self.report_builder,
             )
             self.stdout.write(json.dumps(receipt))
             return
         if options["snapshot_input"]:
             snapshot = json.loads(options["snapshot_input"].read_bytes())
-            report = build_cleanup_report(snapshot, plan, policy=policy, plan_sha256=plan_sha)
+            report = self.report_builder(snapshot, plan, policy=policy, plan_sha256=plan_sha)
         else:
             with transaction.atomic():
                 if connection.vendor == "postgresql":
                     with connection.cursor() as cursor:
                         cursor.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
                         cursor.execute("SET LOCAL statement_timeout = '15s'")
-                report = build_cleanup_report(capture_snapshot(plan), plan, policy=policy, plan_sha256=plan_sha)
+                report = self.report_builder(capture_snapshot(plan), plan, policy=policy, plan_sha256=plan_sha)
         if options["report"]:
             # Refuse reuse so the reviewed artifact cannot silently change.
             with options["report"].open("x") as handle:
                 json.dump(report, handle, indent=2, ensure_ascii=False, default=str)
                 handle.write("\n")
-        self.stdout.write(
-            json.dumps(
-                {
-                    "mode": "dry-run",
-                    "counts": report["counts"],
-                    "alias_actions": len(report["alias_actions"]),
-                    "conflicts": report["conflicts"],
-                },
-            ),
-        )
+        self.stdout.write(json.dumps(self.report_summary(report)))

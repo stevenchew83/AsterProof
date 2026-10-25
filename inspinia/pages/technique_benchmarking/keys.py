@@ -38,6 +38,10 @@ def normalize_benchmark_key(label: str) -> str:
 
 
 def benchmark_kind_for_gap_row(row: dict[str, object]) -> str:
+    if row.get("concept_id"):
+        from inspinia.pages.technique_concepts import CONCEPTS
+
+        return CONCEPTS[row["concept_id"]]["preferred"].partition(":")[0]
     layer_kind = str(row.get("layer_kind") or "").strip().casefold()
     if layer_kind in GAP_LAYER_KIND_TO_BENCHMARK_KIND:
         return GAP_LAYER_KIND_TO_BENCHMARK_KIND[layer_kind]
@@ -49,10 +53,16 @@ def benchmark_kind_for_gap_row(row: dict[str, object]) -> str:
 
 
 def benchmark_label_key_for_gap_row(row: dict[str, object]) -> str:
+    if row.get("concept_id"):
+        from inspinia.pages.technique_concepts import CONCEPTS
+
+        return CONCEPTS[row["concept_id"]]["preferred"].partition(":")[2]
     return normalize_benchmark_key(str(row.get("label") or ""))
 
 
 def benchmark_row_key(row: dict[str, object]) -> str:
+    if row.get("concept_id"):
+        return f"concept:{row['concept_id']}"
     return build_benchmark_row_key(
         benchmark_kind_for_gap_row(row),
         benchmark_label_key_for_gap_row(row),

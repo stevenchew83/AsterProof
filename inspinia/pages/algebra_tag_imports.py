@@ -16,10 +16,60 @@ from django.db.models.functions import Upper
 from inspinia.pages.algebra_tag_aliases import ALGEBRA_TOPICS
 from inspinia.pages.algebra_tag_aliases import AlgebraAliasError
 from inspinia.pages.algebra_tag_aliases import load_policy
+from inspinia.pages.algebra_vocabulary import combined_import_policy
+from inspinia.pages.algebra_vocabulary import load_vocabulary_plan
 from inspinia.pages.models import TechniqueBenchmarkAlias
 
 IMPORT_LOCK_KEY = 653175041206451
 _active_session = ContextVar("algebra_alias_import_session", default=None)
+_vocabulary_session = ContextVar("algebra_vocabulary_session", default=None)
+
+
+@contextmanager
+def vocabulary_policy_session():
+    if _vocabulary_session.get() is not None:
+        yield
+        return
+    token = _vocabulary_session.set({})
+    try:
+        yield
+    finally:
+        _vocabulary_session.reset(token)
+
+
+def vocabulary_active() -> bool:
+    session = _vocabulary_session.get()
+    if session is not None and "active" in session:
+        return session["active"]
+    active = _vocabulary_metadata_ready() if normalization_active() else False
+    if session is not None:
+        session["active"] = active
+    return active
+
+
+def _vocabulary_metadata_ready() -> bool:
+    rules = load_vocabulary_plan()["activation_aliases"]
+    aliases = {
+        (a.kind, a.alias_key): a for a in TechniqueBenchmarkAlias.objects.select_related("benchmark").filter(
+            alias_key__in=[r["alias_key"] for r in rules],
+            kind__in={r["kind"] for r in rules},
+        )
+    }
+    if not aliases:
+        return False
+    valid = all(
+        (a := aliases.get((r["kind"], r["alias_key"]))) and a.benchmark_id==r["benchmark_id"]
+        and a.benchmark.kind==r["target_kind"] and a.benchmark.label_key==r["target_label_key"]
+        and a.alias_label==r["alias_label"] and a.reason==r["reason"] for r in rules
+    )
+    if not valid:
+        message = "Algebra vocabulary metadata is incomplete or changed; reconcile it before importing Algebra tags."
+        raise AlgebraAliasError(message)
+    return True
+
+
+def runtime_import_policy() -> dict:
+    return combined_import_policy() if vocabulary_active() else load_policy()
 
 
 def normalization_active() -> bool:
@@ -84,6 +134,7 @@ def algebra_import_session():
             cursor.execute("SELECT pg_advisory_xact_lock_shared(%s)", [IMPORT_LOCK_KEY])
     token = _active_session.set(normalization_active())
     try:
-        yield
+        with vocabulary_policy_session():
+            yield
     finally:
         _active_session.reset(token)

@@ -225,7 +225,7 @@ def benchmark_lookup_for_gap_rows(rows: list[dict[str, object]]) -> dict[str, di
         benchmark = direct_benchmarks.get(key_pair)
         alias = None
         matched_by_alias = False
-        if benchmark is None:
+        if benchmark is None and not row.get("concept_id"):
             alias = aliases.get(key_pair)
             if alias is not None:
                 benchmark = alias.benchmark

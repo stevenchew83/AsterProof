@@ -1,0 +1,365 @@
+{
+  "mappings": [
+    {
+      "mapping_id": "S01.1",
+      "source_field": "canonical_subtopic",
+      "source_label": "Combinatorial and discrete geometry",
+      "target_layer": "canonical_subtopic",
+      "target_labels": [
+        "Discrete and combinatorial geometry"
+      ]
+    },
+    {
+      "mapping_id": "S02.2",
+      "source_field": "canonical_subtopic",
+      "source_label": "Algorithms, automata, words, and constructive combinatorics",
+      "target_layer": "canonical_subtopic",
+      "target_labels": [
+        "Algorithms, automata, words, and constructive methods"
+      ]
+    },
+    {
+      "mapping_id": "M01.3",
+      "source_field": "technique_tags",
+      "source_label": "TRIG SUBSTITUTION",
+      "target_layer": "technique_tags",
+      "target_labels": [
+        "TRIGONOMETRIC SUBSTITUTION"
+      ]
+    },
+    {
+      "mapping_id": "M01.3.display",
+      "source_field": "technique",
+      "source_label": "TRIG SUBSTITUTION",
+      "target_layer": "technique",
+      "target_labels": [
+        "TRIGONOMETRIC SUBSTITUTION"
+      ]
+    },
+    {
+      "mapping_id": "M02.4",
+      "source_field": "technique_tags",
+      "source_label": "REDUCTION TO ONE VARIABLE",
+      "target_layer": "technique_tags",
+      "target_labels": [
+        "ONE-VARIABLE REDUCTION"
+      ]
+    },
+    {
+      "mapping_id": "M02.4.display",
+      "source_field": "technique",
+      "source_label": "REDUCTION TO ONE VARIABLE",
+      "target_layer": "technique",
+      "target_labels": [
+        "ONE-VARIABLE REDUCTION"
+      ]
+    },
+    {
+      "mapping_id": "M03.5",
+      "source_field": "technique_tags",
+      "source_label": "COEFFICIENT MATCH",
+      "target_layer": "technique_tags",
+      "target_labels": [
+        "COEFFICIENT COMPARISON"
+      ]
+    },
+    {
+      "mapping_id": "M03.5.display",
+      "source_field": "technique",
+      "source_label": "COEFFICIENT MATCH",
+      "target_layer": "technique",
+      "target_labels": [
+        "COEFFICIENT COMPARISON"
+      ]
+    },
+    {
+      "mapping_id": "M04.6",
+      "source_field": "technique_tags",
+      "source_label": "SOS FACTORIZATION",
+      "target_layer": "technique_tags",
+      "target_labels": [
+        "SUM-OF-SQUARES FACTORIZATION"
+      ]
+    },
+    {
+      "mapping_id": "M04.6.display",
+      "source_field": "technique",
+      "source_label": "SOS FACTORIZATION",
+      "target_layer": "technique",
+      "target_labels": [
+        "SUM-OF-SQUARES FACTORIZATION"
+      ]
+    },
+    {
+      "mapping_id": "M05.7",
+      "source_field": "technique_tags",
+      "source_label": "SIMPLE FACTORIZATION",
+      "target_layer": "technique_tags",
+      "target_labels": [
+        "FACTORIZATION"
+      ]
+    },
+    {
+      "mapping_id": "M05.7.display",
+      "source_field": "technique",
+      "source_label": "SIMPLE FACTORIZATION",
+      "target_layer": "technique",
+      "target_labels": [
+        "FACTORIZATION"
+      ]
+    },
+    {
+      "mapping_id": "M05.8",
+      "source_field": "technique_tags",
+      "source_label": "CLEVER FACTORIZATION",
+      "target_layer": "technique_tags",
+      "target_labels": [
+        "FACTORIZATION"
+      ]
+    },
+    {
+      "mapping_id": "M05.8.display",
+      "source_field": "technique",
+      "source_label": "CLEVER FACTORIZATION",
+      "target_layer": "technique",
+      "target_labels": [
+        "FACTORIZATION"
+      ]
+    },
+    {
+      "mapping_id": "M05.9",
+      "source_field": "technique_tags",
+      "source_label": "FACTOR TRICK",
+      "target_layer": "technique_tags",
+      "target_labels": [
+        "FACTORIZATION"
+      ]
+    },
+    {
+      "mapping_id": "M05.9.display",
+      "source_field": "technique",
+      "source_label": "FACTOR TRICK",
+      "target_layer": "technique",
+      "target_labels": [
+        "FACTORIZATION"
+      ]
+    },
+    {
+      "mapping_id": "S01.1.display",
+      "source_field": "technique",
+      "source_label": "COMBINATORIAL AND DISCRETE GEOMETRY",
+      "target_layer": "technique",
+      "target_labels": [
+        "DISCRETE AND COMBINATORIAL GEOMETRY"
+      ]
+    },
+    {
+      "mapping_id": "S02.2.display",
+      "source_field": "technique",
+      "source_label": "ALGORITHMS, AUTOMATA, WORDS, AND CONSTRUCTIVE COMBINATORICS",
+      "target_layer": "technique",
+      "target_labels": [
+        "ALGORITHMS, AUTOMATA, WORDS, AND CONSTRUCTIVE METHODS"
+      ]
+    },
+    {
+      "mapping_id": "R001",
+      "source_field": "technique",
+      "source_label": "COMPLETING THE SQUARE",
+      "target_layer": "technique",
+      "target_labels": [
+        "COMPLETING SQUARE"
+      ]
+    },
+    {
+      "mapping_id": "R002",
+      "source_field": "technique_tags",
+      "source_label": "COMPLETING THE SQUARE",
+      "target_layer": "technique_tags",
+      "target_labels": [
+        "COMPLETING SQUARE"
+      ]
+    },
+    {
+      "mapping_id": "R003",
+      "source_field": "technique_tags",
+      "source_label": "VIETA'S FORMULAS",
+      "target_layer": "technique_tags",
+      "target_labels": [
+        "VIETA"
+      ]
+    },
+    {
+      "mapping_id": "R004",
+      "source_field": "lemma_theorem_tags",
+      "source_label": "VIETA'S FORMULAS",
+      "target_layer": "lemma_theorem_tags",
+      "target_labels": [
+        "VIETA"
+      ]
+    },
+    {
+      "mapping_id": "R005",
+      "source_field": "technique",
+      "source_label": "PARAMETRIZATION",
+      "target_layer": "technique",
+      "target_labels": [
+        "PARAMETERIZATION"
+      ]
+    },
+    {
+      "mapping_id": "R006",
+      "source_field": "technique_tags",
+      "source_label": "PARAMETRIZATION",
+      "target_layer": "technique_tags",
+      "target_labels": [
+        "PARAMETERIZATION"
+      ]
+    },
+    {
+      "mapping_id": "R007",
+      "source_field": "technique",
+      "source_label": "BERNOULLI INEQUALITY",
+      "target_layer": "technique",
+      "target_labels": [
+        "BERNOULLI"
+      ]
+    },
+    {
+      "mapping_id": "R008",
+      "source_field": "technique_tags",
+      "source_label": "BERNOULLI INEQUALITY",
+      "target_layer": "technique_tags",
+      "target_labels": [
+        "BERNOULLI"
+      ]
+    },
+    {
+      "mapping_id": "R009",
+      "source_field": "object_tags",
+      "source_label": "LINEAR EQUATION",
+      "target_layer": "object_tags",
+      "target_labels": [
+        "LINEAR EQUATIONS"
+      ]
+    },
+    {
+      "mapping_id": "R010",
+      "source_field": "technique",
+      "source_label": "EXTREMAL SEQUENCE",
+      "target_layer": "technique",
+      "target_labels": [
+        "EXTREMAL SEQUENCES"
+      ]
+    },
+    {
+      "mapping_id": "R011",
+      "source_field": "technique_tags",
+      "source_label": "EXTREMAL SEQUENCE",
+      "target_layer": "technique_tags",
+      "target_labels": [
+        "EXTREMAL SEQUENCES"
+      ]
+    },
+    {
+      "mapping_id": "R012",
+      "source_field": "object_tags",
+      "source_label": "TRIGONOMETRIC IDENTITY",
+      "target_layer": "object_tags",
+      "target_labels": [
+        "TRIGONOMETRIC IDENTITIES"
+      ]
+    },
+    {
+      "mapping_id": "R013",
+      "source_field": "technique",
+      "source_label": "GEOMETRIC PROGRESSIONS",
+      "target_layer": "technique",
+      "target_labels": [
+        "GEOMETRIC PROGRESSION"
+      ]
+    },
+    {
+      "mapping_id": "R014",
+      "source_field": "technique",
+      "source_label": "GROUP ACTION",
+      "target_layer": "technique",
+      "target_labels": [
+        "GROUP ACTIONS"
+      ]
+    },
+    {
+      "mapping_id": "R015",
+      "source_field": "technique_tags",
+      "source_label": "GROUP ACTION",
+      "target_layer": "technique_tags",
+      "target_labels": [
+        "GROUP ACTIONS"
+      ]
+    },
+    {
+      "mapping_id": "R016",
+      "source_field": "object_tags",
+      "source_label": "GROUP ACTION",
+      "target_layer": "object_tags",
+      "target_labels": [
+        "GROUP ACTIONS"
+      ]
+    },
+    {
+      "mapping_id": "R017",
+      "source_field": "lemma_theorem_tags",
+      "source_label": "LAGRANGE INTERPOLATION",
+      "target_layer": "lemma_theorem_tags",
+      "target_labels": [
+        "POLYNOMIAL INTERPOLATION"
+      ]
+    },
+    {
+      "mapping_id": "R018",
+      "source_field": "technique",
+      "source_label": "INTERPOLATION",
+      "target_layer": "technique",
+      "target_labels": [
+        "POLYNOMIAL INTERPOLATION"
+      ]
+    },
+    {
+      "mapping_id": "R019",
+      "source_field": "technique_tags",
+      "source_label": "INTERPOLATION",
+      "target_layer": "technique_tags",
+      "target_labels": [
+        "POLYNOMIAL INTERPOLATION"
+      ]
+    }
+  ],
+  "benchmark_alias_actions": [
+    {
+      "action": "insert",
+      "kind": "method",
+      "alias_key": "simple-factorization",
+      "before": null,
+      "candidate_after": {
+        "kind": "method",
+        "alias_label": "SIMPLE FACTORIZATION",
+        "alias_key": "simple-factorization",
+        "benchmark_id": 11,
+        "reason": "Reviewed Algebra vocabulary consolidation v2: equivalent factorization wording."
+      }
+    },
+    {
+      "action": "insert",
+      "kind": "method",
+      "alias_key": "clever-factorization",
+      "before": null,
+      "candidate_after": {
+        "kind": "method",
+        "alias_label": "CLEVER FACTORIZATION",
+        "alias_key": "clever-factorization",
+        "benchmark_id": 11,
+        "reason": "Reviewed Algebra vocabulary consolidation v2: equivalent factorization wording."
+      }
+    }
+  ]
+}

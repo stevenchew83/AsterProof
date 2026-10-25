@@ -15648,9 +15648,9 @@ def test_technique_benchmark_list_renders_benchmark_map_dashboard(client):
     assert set(rows_by_key) == {
         "canonical_subtopic:parity",
         "canonical_subtopic:projective-geometry",
-        "method:factorization",
+        "concept:factorization",
     }
-    method_row = rows_by_key["method:factorization"]
+    method_row = rows_by_key["concept:factorization"]
     assert method_row["value_score"] == "4.65"
     assert method_row["difficulty_score"] == "3.00"
     assert method_row["selected_target_weight"] == "1.45"
@@ -15674,7 +15674,7 @@ def test_technique_benchmark_list_renders_benchmark_map_dashboard(client):
     assert 'new DataTable("#technique-benchmarks-table"' in response_html
     assert "apexcharts.min.js" in response_html
     assert "dataTables.min.js" in response_html
-    assert "method:factorization" in response_html
+    assert "concept:factorization" in response_html
     assert "algebraic factorization" in response_html
 
 
@@ -16232,15 +16232,16 @@ def test_technique_progress_gaps_page_shows_average_solved_mohs_for_gap(client):
 
     assert response.status_code == HTTPStatus.OK
     assert "Avg MOHS" in response.content.decode("utf-8")
-    assert row_by_label["QUADRATIC EXPRESSION"]["average_solved_mohs"] == 6.0
-    assert row_by_label["QUADRATIC EXPRESSION"]["average_solved_mohs_label"] == "6.0"
+    expected_average = 6.0
+    assert row_by_label["Quadratic expressions"]["average_solved_mohs"] == expected_average
+    assert row_by_label["Quadratic expressions"]["average_solved_mohs_label"] == "6.0"
     assert row_by_label["UNSOLVED ONLY"]["average_solved_mohs"] is None
     assert row_by_label["UNSOLVED ONLY"]["average_solved_mohs_label"] == "-"
     csv_rows = {
         row["Area"]: row
         for row in csv.DictReader(StringIO(csv_response.content.decode("utf-8")))
     }
-    assert csv_rows["QUADRATIC EXPRESSION"]["Avg MOHS"] == "6.0"
+    assert csv_rows["Quadratic expressions"]["Avg MOHS"] == "6.0"
     assert csv_rows["UNSOLVED ONLY"]["Avg MOHS"] == "-"
 
 
@@ -17366,10 +17367,9 @@ def test_technique_progress_gaps_page_all_mode_lists_layer_rows_not_primary_rows
         )
     ]
     assert labels_and_types == [
-        ("BOUND", "Proof role"),
-        ("CAUCHY", "Lemma/Theorem"),
-        ("CAUCHY-SCHWARZ", "Technique"),
         ("INEQUALITY EXPRESSION", "Object"),
+        ("BOUND", "Proof role"),
+        ("CAUCHY-SCHWARZ", "Concept"),
     ]
     response_html = response.content.decode("utf-8")
     assert "All practice gaps" in response_html
@@ -18298,10 +18298,10 @@ def test_technique_progress_gaps_export_xlsx_reuses_gap_rows_for_topic_sheets(cl
     subtopic_rows = workbook.parse("Algebra Subtopics", dtype=str).fillna("").to_dict(orient="records")
     assert subtopic_rows[0]["Canonical subtopic"] == "Algebra gap"
     assert "CAUCHY-SCHWARZ 1" in subtopic_rows[0]["Top gaps"]
-    assert "QUADRATIC EXPRESSION 1" in subtopic_rows[0]["Top gaps"]
+    assert "Quadratic expressions 1" in subtopic_rows[0]["Top gaps"]
 
     gap_rows = workbook.parse("Practice Gaps", dtype=str).fillna("").to_dict(orient="records")
-    assert {row["Area"] for row in gap_rows} == {"CAUCHY-SCHWARZ", "QUADRATIC EXPRESSION"}
+    assert {row["Area"] for row in gap_rows} == {"CAUCHY-SCHWARZ", "Quadratic expressions"}
 
 
 def test_technique_progress_gaps_export_xlsx_ignores_user_param_for_non_admin(client):
@@ -19253,7 +19253,7 @@ def test_technique_progress_topic_detail_shows_layer_gap_preview_and_explore_url
     assert row["label"] == canonical_subtopic
     assert row["layer_gap_preview"] == [
         {"label": "BOUND", "remaining": 2, "type": "Proof role"},
-        {"label": "CAUCHY", "remaining": 2, "type": "Lemma/Theorem"},
+        {"label": "CAUCHY-SCHWARZ", "remaining": 2, "type": "Concept"},
         {"label": "EXPRESSION", "remaining": 2, "type": "Object"},
     ]
     assert row["layer_gap_preview_overflow"] == 6
@@ -19543,7 +19543,7 @@ def test_technique_progress_topic_detail_cache_key_changes_when_catalog_marker_c
     assert second_response.context["technique_progress_topic_summary"]["total"] == expected_updated_statement_total
 
 
-def test_technique_progress_topic_detail_preview_reuses_cached_all_layer_gap_rows(client):
+def test_technique_progress_topic_detail_preview_builds_scoped_counts_once(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     selected_user = UserFactory(email="cached-preview@example.com")
     client.force_login(admin_user)
@@ -19575,10 +19575,14 @@ def test_technique_progress_topic_detail_preview_reuses_cached_all_layer_gap_row
 
     cache.clear()
     with patch(
-        "inspinia.pages.technique_progress._cached_filtered_gap_rows",
+        "inspinia.pages.technique_progress._scoped_subtopic_gap_rows",
         return_value=cached_gap_rows,
     ) as cached_gap_rows_mock:
         response = client.get(
+            reverse("pages:technique_progress_topic_detail", kwargs={"topic_slug": "algebra"}),
+            {"user": str(selected_user.pk)},
+        )
+        client.get(
             reverse("pages:technique_progress_topic_detail", kwargs={"topic_slug": "algebra"}),
             {"user": str(selected_user.pk)},
         )

@@ -19,6 +19,7 @@ from inspinia.pages.algebra_tag_aliases import normalize_tag_fields
 from inspinia.pages.algebra_tag_aliases import unique
 
 FIELD_KINDS = {
+    "canonical_subtopic": "canonical_subtopic",
     "technique": "technique",
     "technique_tags": "method",
     "object_tags": "object",
@@ -251,7 +252,10 @@ def _check_alias_scope(snapshot: dict, alias_actions: list, conflicts: list) -> 
     )
 
 
-def _check_benchmark_bindings(snapshot: dict, aliases_projected: dict, tag_actions: list, conflicts: list) -> None:
+def _check_benchmark_bindings(
+    snapshot: dict, aliases_projected: dict, tag_actions: list, conflicts: list,
+    equivalences: dict | None = None,
+) -> None:
     # Check actual names being removed, rather than treating an added facet as a rebinding.
     survivors = {
         (source, row["id"]): row
@@ -264,7 +268,8 @@ def _check_benchmark_bindings(snapshot: dict, aliases_projected: dict, tag_actio
             new_values = after[field] if field in ARRAY_FIELDS else [after[field]]
             for value in set(old_values) - set(new_values):
                 old_id = resolve_benchmark(snapshot, kind, value)
-                if old_id is not None and old_id not in {
+                canonical_id = (equivalences or {}).get(old_id, old_id)
+                if old_id is not None and canonical_id not in {
                     resolve_benchmark(aliases_projected, kind, target) for target in new_values
                 }:
                     conflicts.append(
@@ -317,7 +322,10 @@ def _check_mirrors(snapshot: dict, projected: dict, tag_actions: list, conflicts
     return catalog_ids
 
 
-def build_cleanup_report(snapshot: dict, reviewed_plan: dict, *, policy: dict, plan_sha256: str) -> dict:
+def build_cleanup_report(
+    snapshot: dict, reviewed_plan: dict, *, policy: dict, plan_sha256: str,
+    benchmark_equivalences: dict | None = None,
+) -> dict:
     """No database, filesystem, cache, signal, or model-save side effects."""
     conflicts = []
     expected = {(r["id"], r["field"], r["source"], r["target"]) for r in policy["mappings"]}
@@ -335,7 +343,7 @@ def build_cleanup_report(snapshot: dict, reviewed_plan: dict, *, policy: dict, p
     tag_actions = _tag_actions(snapshot, policy, conflicts)
     projected = projected_snapshot(snapshot, tag_actions, alias_actions)
     _check_activation_targets(projected, policy, conflicts)
-    _check_benchmark_bindings(snapshot, projected, tag_actions, conflicts)
+    _check_benchmark_bindings(snapshot, projected, tag_actions, conflicts, benchmark_equivalences)
     catalog_ids = _check_mirrors(snapshot, projected, tag_actions, conflicts)
     source = {
         key: snapshot[key]

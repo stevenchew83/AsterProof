@@ -107,6 +107,8 @@ def _guard_fingerprints(data: dict) -> dict:
 
 def _outside_alias_usage(plan: dict) -> dict:
     keys = {(r["kind"], r["alias_key"]) for r in plan["benchmark_alias_actions"] if r["action"] == "insert"}
+    if not keys:
+        return {"identity": {"query_effects": "select_only"}, "requested_keys": [], "current_usage": []}
     parents = {
         "problem": {r["id"]: r for r in ProblemSolveRecord.objects.values("id", "topic", "is_active")},
         "statement": {
@@ -146,7 +148,10 @@ def _outside_alias_usage(plan: dict) -> dict:
         }
         for key, value in counts.items()
     ]
-    return {"identity": {"query_effects": "select_only"}, "current_usage": usage}
+    return {
+        "identity": {"query_effects": "select_only"}, "requested_keys":sorted([list(k) for k in keys]),
+        "current_usage": usage,
+    }
 
 
 def capture_snapshot(plan: dict) -> dict:
@@ -295,13 +300,14 @@ def _apply_changes(fresh: dict) -> None:
         queue_technique_progress_catalog_refresh(statement_ids=fresh["catalog_statement_ids"])
 
 
-def apply_reviewed_report(
+def apply_reviewed_report(  # noqa: PLR0913 -- keep the existing audited apply boundary shared by both planners
     reviewed: dict,
     plan: dict,
     *,
     policy: dict,
     plan_sha256: str,
     audit_directory: Path,
+    report_builder=build_cleanup_report,
 ) -> dict:
     """Explicit apply only: lock, replan, audit before DML, then commit atomically."""
     if reviewed["conflicts"]:
@@ -320,7 +326,7 @@ def apply_reviewed_report(
     try:
         with transaction.atomic():
             _lock_dependencies(reviewed)
-            fresh = build_cleanup_report(capture_snapshot(plan), plan, policy=policy, plan_sha256=plan_sha256)
+            fresh = report_builder(capture_snapshot(plan), plan, policy=policy, plan_sha256=plan_sha256)
             _require_matching_review(fresh, reviewed)
             _write_audit(audit_directory / "before-and-after.json", fresh, exclusive=True)
             receipt["status"] = "prepared"
