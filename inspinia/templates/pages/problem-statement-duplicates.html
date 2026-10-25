@@ -90,7 +90,7 @@
               </span>
             </div>
             <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Statements scanned</p>
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Statements in scope</p>
               <h3 class="mb-0">{{ statement_duplicate_stats.statement_total }}</h3>
             </div>
           </div>
@@ -108,7 +108,7 @@
             </div>
             <div class="flex-grow-1 ms-2">
               <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Exact duplicate groups</p>
-              <h3 class="mb-0">{{ statement_duplicate_stats.exact_duplicate_group_total }}</h3>
+              <h3 class="mb-0">{{ statement_duplicate_stats.exact_duplicate_group_total|default_if_none:'—' }}</h3>
             </div>
           </div>
         </div>
@@ -125,7 +125,7 @@
             </div>
             <div class="flex-grow-1 ms-2">
               <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Rows in exact groups</p>
-              <h3 class="mb-0">{{ statement_duplicate_stats.exact_duplicate_row_total }}</h3>
+              <h3 class="mb-0">{{ statement_duplicate_stats.exact_duplicate_row_total|default_if_none:'—' }}</h3>
             </div>
           </div>
         </div>
@@ -142,7 +142,7 @@
             </div>
             <div class="flex-grow-1 ms-2">
               <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Similar candidates</p>
-              <h3 class="mb-0">{{ statement_duplicate_stats.similar_pair_total }}</h3>
+              <h3 class="mb-0">{{ statement_duplicate_stats.similar_pair_total|default_if_none:'—' }}</h3>
             </div>
           </div>
         </div>
@@ -150,12 +150,17 @@
     </div>
   </div>
 
-  {% if statement_duplicate_stats.statement_total == 0 %}
+  {% if statement_duplicate_pending %}
+  <div class="alert alert-info mt-4" role="status">
+    No completed duplicate report is available yet. Please check again shortly; a missing report does not mean there are no duplicates.
+  </div>
+  {% elif statement_duplicate_stats.statement_total == 0 %}
   <div class="alert alert-info mt-4" role="alert">
     <strong>No statement rows yet.</strong>
     Import or save problem statements first, then this page can scan them for exact duplicates and near-duplicate text.
   </div>
   {% else %}
+  <p class="text-muted fs-sm mt-3">Report generated {{ statement_duplicate_generated_at|date:'Y-m-d H:i T' }}.{% if statement_duplicate_stale %} Source data has changed or the report is awaiting its next scheduled refresh; these are the last completed results.{% endif %}</p>
   <div class="alert alert-light statement-duplicate-note mt-4" role="alert">
     <p class="mb-2"><strong>How this page flags matches:</strong></p>
     <p class="mb-2">Exact duplicates collapse case and whitespace only, so formatting-only differences still land in the same group.</p>
@@ -165,6 +170,18 @@
   <div class="row g-3 mt-1">
     <div class="col-12">
       <div class="card">
+        <div class="card-body py-2 d-flex flex-wrap gap-2 align-items-center">
+          {% if statement_duplicate_group %}
+          <a class="btn btn-sm btn-outline-secondary" href="{% url 'pages:problem_statement_duplicates' %}">All exact groups</a>
+          <span class="text-muted fs-sm">Members: page {{ statement_duplicate_member_page }} of {{ statement_duplicate_member_pages }}</span>
+          {% if statement_duplicate_member_previous %}<a href="?group={{ statement_duplicate_group }}&amp;member_page={{ statement_duplicate_member_previous }}" class="btn btn-sm btn-outline-secondary">Previous members</a>{% endif %}
+          {% if statement_duplicate_member_next %}<a href="?group={{ statement_duplicate_group }}&amp;member_page={{ statement_duplicate_member_next }}" class="btn btn-sm btn-outline-secondary">Next members</a>{% endif %}
+          {% else %}
+          <span class="text-muted fs-sm">Exact groups: page {{ statement_duplicate_page }} of {{ statement_duplicate_pages }}</span>
+          {% if statement_duplicate_previous %}<a href="?page={{ statement_duplicate_previous }}" class="btn btn-sm btn-outline-secondary">Previous groups</a>{% endif %}
+          {% if statement_duplicate_next %}<a href="?page={{ statement_duplicate_next }}" class="btn btn-sm btn-outline-secondary">Next groups</a>{% endif %}
+          {% endif %}
+        </div>
         <div class="card-header border-bottom d-flex flex-wrap align-items-center gap-2">
           <div class="flex-grow-1">
             <h4 class="header-title mb-0">Exact duplicate statement groups</h4>
@@ -270,6 +287,10 @@
 
   if (document.getElementById("statement-exact-duplicates-table") && exactRows.length) {
     new DataTable("#statement-exact-duplicates-table", {
+      paging: false,
+      searching: false,
+      ordering: false,
+      info: false,
       data: exactRows,
       columns: [
         {
@@ -291,7 +312,9 @@
           title: "Contest-year problem",
           render: function (data, type, row) {
             if (type !== "display") return data;
-            return renderProblemListCell(row.problem_items || [], data || "");
+            var cell = renderProblemListCell(row.problem_items || [], data || "");
+            if (row.member_total > 25 && row.group_key) cell += '<a class="d-inline-block mt-2" href="?group=' + encodeURIComponent(row.group_key) + '">View all ' + escapeHtml(row.member_total) + ' problem labels</a>';
+            return cell;
           }
         },
         {

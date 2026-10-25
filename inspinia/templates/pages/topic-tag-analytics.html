@@ -117,6 +117,18 @@
           <a href="{{ technique_reset_url }}" id="technique-dashboard-reset" class="btn btn-outline-secondary btn-sm">Reset</a>
         </div>
       </form>
+      <form method="get" class="d-flex flex-wrap gap-2 align-items-center mt-2">
+        {% for key, value in technique_filters.items %}{% if value %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endif %}{% endfor %}
+        <label class="text-muted fs-sm" for="technique-sort">Sort all matching techniques</label>
+        <select id="technique-sort" name="sort" class="form-select form-select-sm w-auto">
+          <option value="problems"{% if technique_sort == 'problems' %} selected{% endif %}>Most problems</option>
+          <option value="contests"{% if technique_sort == 'contests' %} selected{% endif %}>Most contests</option>
+          <option value="mohs"{% if technique_sort == 'mohs' %} selected{% endif %}>Highest average MOHS</option>
+          <option value="years"{% if technique_sort == 'years' %} selected{% endif %}>Most active years</option>
+          <option value="name"{% if technique_sort == 'name' %} selected{% endif %}>Technique name</option>
+        </select>
+        <button class="btn btn-sm btn-outline-secondary" type="submit">Sort</button>
+      </form>
       <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-3">
         <div class="d-flex flex-wrap align-items-center gap-2">
           {% if technique_active_filters %}
@@ -315,7 +327,7 @@
             </div>
             <div class="tab-pane fade" id="technique-dashboard-difficulty-pane" role="tabpanel" aria-labelledby="technique-dashboard-difficulty-tab" tabindex="0">
               <h4 class="header-title mb-0">Average MOHS by technique</h4>
-              <p class="text-muted fs-xs mb-2">X-axis shows problem count; Y-axis shows average MOHS.</p>
+              <p class="text-muted fs-xs mb-2">X-axis shows problem count; Y-axis shows average MOHS.{% if technique_chart_is_capped %} Showing the 200 most-used matching techniques; narrow the filters to explore others.{% endif %}</p>
               <div id="chart-technique-mohs-scatter" style="min-height: 360px;"></div>
             </div>
             <div class="tab-pane fade" id="technique-dashboard-activity-pane" role="tabpanel" aria-labelledby="technique-dashboard-activity-tab" tabindex="0">
@@ -343,6 +355,7 @@
         </div>
         <div class="card-body">
           <div class="table-responsive technique-dashboard-table-tools">
+            {% include 'pages/partials/server-pagination.html' %}
             <table id="technique-analytics-table" class="table table-striped table-bordered align-middle w-100"></table>
           </div>
         </div>
@@ -402,6 +415,7 @@
   function applyChartFilter(param, value) {
     if (!param || !value) return;
     var url = new URL(window.location.href);
+    url.searchParams.delete("page");
     url.searchParams.set(param, value);
     window.location.assign(url.pathname + "?" + url.searchParams.toString());
   }
@@ -611,6 +625,10 @@
     order: [[1, "desc"], [0, "asc"]],
     pageLength: 25,
     lengthMenu: [10, 25, 50, 100],
+    paging: false,
+    searching: false,
+    info: false,
+    ordering: false,
     scrollX: true,
     autoWidth: false,
     drawCallback: function () {

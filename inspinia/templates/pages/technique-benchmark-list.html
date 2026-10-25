@@ -214,6 +214,23 @@
       </a>
     </div>
     <div class="card-body pt-2">
+      <form method="get" class="d-flex flex-wrap gap-2 mb-3">
+        <input type="hidden" name="target_profile" value="{{ technique_benchmark_target_profile }}">
+        <label for="benchmark-search" class="visually-hidden">Search all benchmark rows</label>
+        <input id="benchmark-search" class="form-control form-control-sm w-auto flex-grow-1" type="search" name="q" value="{{ benchmark_search }}" placeholder="Technique, alias, area, family…">
+        <button class="btn btn-sm btn-primary" type="submit">Search all rows</button>
+        <label for="benchmark-sort" class="visually-hidden">Sort all matching benchmarks</label>
+        <select id="benchmark-sort" name="sort" class="form-select form-select-sm w-auto">
+          <option value="value"{% if benchmark_sort == 'value' %} selected{% endif %}>Highest value</option>
+          <option value="difficulty"{% if benchmark_sort == 'difficulty' %} selected{% endif %}>Highest difficulty</option>
+          <option value="confidence"{% if benchmark_sort == 'confidence' %} selected{% endif %}>Highest confidence</option>
+          <option value="name"{% if benchmark_sort == 'name' %} selected{% endif %}>Technique name</option>
+        </select>
+        <button class="btn btn-sm btn-outline-secondary" type="submit">Sort</button>
+        <a class="btn btn-sm btn-outline-secondary" href="?target_profile={{ technique_benchmark_target_profile }}">Reset</a>
+      </form>
+      {% if technique_benchmark_chart_is_capped %}<p class="text-muted fs-xs">The matrix shows the 200 highest-value matching rows. The heatmap shows up to 40 families and 12 areas. Search to explore a smaller scope; every matching benchmark remains available in the paginated catalog.</p>{% endif %}
+      {% include 'pages/partials/server-pagination.html' %}
       <div id="technique-benchmarks-table-alert" class="alert alert-warning d-none" role="alert"></div>
       {% if technique_benchmark_rows %}
       <div class="benchmark-map-table-shell">
@@ -378,8 +395,12 @@
   }
 
   function applyActiveFilter() {
-    if (activeFilterEl) activeFilterEl.textContent = activeFilterLabel();
-    if (table) table.draw();
+    var url = new URL(window.location.href);
+    ["page", "row_key", "area", "family"].forEach(function (key) { url.searchParams.delete(key); });
+    if (activeFilter && activeFilter.rowKey) url.searchParams.set("row_key", activeFilter.rowKey);
+    if (activeFilter && activeFilter.area) url.searchParams.set("area", activeFilter.area);
+    if (activeFilter && activeFilter.family) url.searchParams.set("family", activeFilter.family);
+    window.location.assign(url.pathname + "?" + url.searchParams.toString());
   }
 
   if (typeof DataTable !== "undefined") {
@@ -474,6 +495,10 @@
       order: [[5, "desc"]],
       pageLength: 25,
       lengthMenu: [10, 25, 50, 100],
+      paging: false,
+      searching: false,
+      info: false,
+      ordering: false,
       autoWidth: false
     });
 

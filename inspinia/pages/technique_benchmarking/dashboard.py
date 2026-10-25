@@ -5,6 +5,8 @@ from collections import defaultdict
 from decimal import Decimal
 from statistics import mean
 
+from django.core.paginator import Paginator
+
 from inspinia.pages.technique_benchmarking.keys import build_benchmark_row_key
 from inspinia.pages.technique_benchmarking.scoring import calculate_static_difficulty_score
 from inspinia.pages.technique_benchmarking.scoring import calculate_static_importance_score
@@ -17,6 +19,9 @@ DEEP_BLOCK_DIFFICULTY_MIN = Decimal("4.00")
 CONFIDENCE_REVIEW_THRESHOLD = 80
 CALIBRATION_QUEUE_THRESHOLD = 70
 CONFIDENCE_HIGH_THRESHOLD = 90
+MATRIX_POINT_LIMIT = 200
+HEATMAP_FAMILY_LIMIT = 40
+HEATMAP_AREA_LIMIT = 12
 
 TARGET_PROFILE_OPTIONS = [
     {"key": "jbmo", "label": "JBMO"},
@@ -43,19 +48,60 @@ def build_technique_benchmark_dashboard_context(
     benchmarks,
     *,
     raw_target_profile: str | None = None,
+    paginate: bool = False,
+    page_number=None,
+    sort: str = "value",
 ) -> dict[str, object]:
     target_profile = normalize_target_profile(raw_target_profile)
-    rows = [_benchmark_dashboard_row(benchmark, target_profile=target_profile) for benchmark in benchmarks]
-    matrix_payload = _matrix_payload(rows)
+    rows = [
+        _benchmark_dashboard_row(benchmark, target_profile=target_profile, include_details=not paginate)
+        for benchmark in benchmarks
+    ]
+    rows.sort(key=lambda row: (-(row["value_score_number"] or 0), row["row_key"]))
+    chart_rows = [row for row in rows if row["chartable"]][:MATRIX_POINT_LIMIT]
+    matrix_payload = _matrix_payload(chart_rows)
     heatmap_payload = _heatmap_payload(rows)
+    sort_field = {
+        "value": "value_score_number",
+        "difficulty": "difficulty_score_number",
+        "confidence": "benchmark_confidence",
+        "name": "label",
+    }.get(sort, "value_score_number")
+    rows.sort(
+        key=lambda row: (
+            row[sort_field] is None,
+            row[sort_field].casefold() if sort_field == "label" else -(row[sort_field] or 0),
+            row["row_key"],
+        ),
+    )
+    page = None
+    display_rows = rows
+    if paginate:
+        page = Paginator(rows, 25).get_page(page_number)
+        visible = {
+            item.pk: item
+            for item in benchmarks.filter(pk__in=[row["benchmark_id"] for row in page.object_list])
+            .defer(None)
+            .prefetch_related("aliases")
+        }
+        display_rows = [
+            _benchmark_dashboard_row(visible[row["benchmark_id"]], target_profile=target_profile)
+            for row in page.object_list
+        ]
     return {
-        "technique_benchmark_rows": rows,
+        "page_obj": page,
+        "benchmark_sort": sort,
+        "technique_benchmark_rows": display_rows,
         "technique_benchmark_total": len(rows),
+        "technique_benchmark_chart_is_capped": (
+            len(rows) > MATRIX_POINT_LIMIT
+            or len({row["parent_family"] for row in rows}) > HEATMAP_FAMILY_LIMIT
+            or len({row["primary_area"] for row in rows}) > HEATMAP_AREA_LIMIT
+        ),
         "technique_benchmark_target_profile": target_profile,
         "technique_benchmark_target_profile_label": TARGET_PROFILE_LABELS[target_profile],
         "technique_benchmark_target_profile_options": [
-            {**option, "selected": option["key"] == target_profile}
-            for option in TARGET_PROFILE_OPTIONS
+            {**option, "selected": option["key"] == target_profile} for option in TARGET_PROFILE_OPTIONS
         ],
         "technique_benchmark_summary_cards": _summary_cards(rows, target_profile=target_profile),
         "technique_benchmark_table_columns": TECHNIQUE_BENCHMARK_TABLE_COLUMNS,
@@ -64,12 +110,11 @@ def build_technique_benchmark_dashboard_context(
     }
 
 
-def _benchmark_dashboard_row(benchmark, *, target_profile: str) -> dict[str, object]:
+def _benchmark_dashboard_row(benchmark, *, target_profile: str, include_details: bool = True) -> dict[str, object]:
     value_score = calculate_static_importance_score(benchmark, target_profile=target_profile)
     difficulty_score = calculate_static_difficulty_score(benchmark)
     target_weight = target_weight_for_benchmark(benchmark, target_profile)
     row_key = build_benchmark_row_key(benchmark.kind, benchmark.label_key)
-    aliases = ", ".join(alias.alias_label for alias in benchmark.aliases.all())
     confidence = benchmark.benchmark_confidence
     missing_value_fields = _missing_fields(
         benchmark,
@@ -94,7 +139,8 @@ def _benchmark_dashboard_row(benchmark, *, target_profile: str) -> dict[str, obj
     parent_family = benchmark.parent_family or "Unassigned family"
     training_type = benchmark.training_type or "Unassigned"
     target_level = benchmark.target_level or "Unassigned"
-    return {
+    row = {
+        "benchmark_id": benchmark.pk,
         "row_key": row_key,
         "label": benchmark.normalized_label or benchmark.label,
         "kind": benchmark.kind,
@@ -119,33 +165,40 @@ def _benchmark_dashboard_row(benchmark, *, target_profile: str) -> dict[str, obj
         "confidence_bucket": _confidence_bucket(confidence),
         "confidence_variant": _confidence_variant(confidence),
         "chartable": value_score is not None and difficulty_score is not None,
-        "alias_suggestions": aliases,
-        "rationale": benchmark.rationale,
-        "pitfalls": benchmark.pitfalls,
-        "recommended_sequence": benchmark.recommended_sequence,
-        "missing_value_fields": missing_value_fields,
-        "missing_difficulty_fields": missing_difficulty_fields,
-        "detail_groups": {
-            "value_profile": [
-                {"label": "Core", "value": benchmark.syllabus_core},
-                {"label": "Frequency", "value": benchmark.contest_frequency},
-                {"label": "Transfer", "value": benchmark.transfer_value},
-                {"label": "Prereq", "value": benchmark.prerequisite_value},
-            ],
-            "difficulty_profile": [
-                {"label": "Concept", "value": benchmark.concept_load},
-                {"label": "Recognition", "value": benchmark.recognition_burden},
-                {"label": "Execution", "value": benchmark.execution_load},
-                {"label": "Fragility", "value": benchmark.proof_fragility},
-                {"label": "Dependency", "value": benchmark.cross_topic_dependency},
-            ],
-            "target_weights": [
-                {"label": "JBMO", "value": _decimal_display(benchmark.jbmo_weight)},
-                {"label": "National", "value": _decimal_display(benchmark.national_weight)},
-                {"label": "IMO/TST", "value": _decimal_display(benchmark.imo_tst_weight)},
-            ],
-        },
     }
+    if not include_details:
+        return row
+    row.update(
+        {
+            "alias_suggestions": ", ".join(alias.alias_label for alias in benchmark.aliases.all()),
+            "rationale": benchmark.rationale,
+            "pitfalls": benchmark.pitfalls,
+            "recommended_sequence": benchmark.recommended_sequence,
+            "missing_value_fields": missing_value_fields,
+            "missing_difficulty_fields": missing_difficulty_fields,
+            "detail_groups": {
+                "value_profile": [
+                    {"label": "Core", "value": benchmark.syllabus_core},
+                    {"label": "Frequency", "value": benchmark.contest_frequency},
+                    {"label": "Transfer", "value": benchmark.transfer_value},
+                    {"label": "Prereq", "value": benchmark.prerequisite_value},
+                ],
+                "difficulty_profile": [
+                    {"label": "Concept", "value": benchmark.concept_load},
+                    {"label": "Recognition", "value": benchmark.recognition_burden},
+                    {"label": "Execution", "value": benchmark.execution_load},
+                    {"label": "Fragility", "value": benchmark.proof_fragility},
+                    {"label": "Dependency", "value": benchmark.cross_topic_dependency},
+                ],
+                "target_weights": [
+                    {"label": "JBMO", "value": _decimal_display(benchmark.jbmo_weight)},
+                    {"label": "National", "value": _decimal_display(benchmark.national_weight)},
+                    {"label": "IMO/TST", "value": _decimal_display(benchmark.imo_tst_weight)},
+                ],
+            },
+        },
+    )
+    return row
 
 
 def _summary_cards(rows: list[dict[str, object]], *, target_profile: str) -> list[dict[str, object]]:
@@ -161,20 +214,14 @@ def _summary_cards(rows: list[dict[str, object]], *, target_profile: str) -> lis
     confidence_review_count = sum(
         1
         for row in rows
-        if row["benchmark_confidence"] is not None
-        and row["benchmark_confidence"] < CONFIDENCE_REVIEW_THRESHOLD
+        if row["benchmark_confidence"] is not None and row["benchmark_confidence"] < CONFIDENCE_REVIEW_THRESHOLD
     )
     calibration_queue_count = sum(
         1
         for row in rows
-        if row["benchmark_confidence"] is not None
-        and row["benchmark_confidence"] < CALIBRATION_QUEUE_THRESHOLD
+        if row["benchmark_confidence"] is not None and row["benchmark_confidence"] < CALIBRATION_QUEUE_THRESHOLD
     )
-    target_weights = [
-        Decimal(str(row["selected_target_weight"]))
-        for row in rows
-        if row["selected_target_weight"]
-    ]
+    target_weights = [Decimal(str(row["selected_target_weight"])) for row in rows if row["selected_target_weight"]]
     target_average = _decimal_display(mean(target_weights)) if target_weights else ""
     return [
         {
@@ -243,18 +290,16 @@ def _matrix_payload(rows: list[dict[str, object]]) -> dict[str, object]:
         )
     return {
         "series": [
-            {"name": training_type, "data": points}
-            for training_type, points in sorted(series_by_training.items())
+            {"name": training_type, "data": points} for training_type, points in sorted(series_by_training.items())
         ],
     }
 
 
 def _heatmap_payload(rows: list[dict[str, object]]) -> dict[str, object]:
     families = [
-        family
-        for family, _count in Counter(row["parent_family"] for row in rows).most_common()
+        family for family, _count in Counter(row["parent_family"] for row in rows).most_common(HEATMAP_FAMILY_LIMIT)
     ]
-    areas = sorted({row["primary_area"] for row in rows})
+    areas = sorted({row["primary_area"] for row in rows})[:HEATMAP_AREA_LIMIT]
     values_by_cell = defaultdict(list)
     count_by_cell = Counter()
     for row in rows:
