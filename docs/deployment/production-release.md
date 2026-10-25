@@ -6,7 +6,7 @@ GitHub Actions is the sole normal authority for changing AsterProof production. 
 
 Before dispatch, require all of the following:
 
-- the pull request is merged and the **CI / verify** check succeeded;
+- the pull request is merged and its **CI / verify** check succeeded;
 - the requested SHA is the current `main` SHA and is 40 lowercase hexadecimal characters;
 - [GitHub governance](github-administration.md) has been read back successfully;
 - the target is `READY` under [production bootstrap](production-bootstrap.md);
@@ -19,10 +19,29 @@ Obtain the candidate without relying on a local branch:
 
 ```bash
 gh api repos/stevenchew83/AsterProof/git/ref/heads/main --jq '.object.sha'
-gh run list --repo stevenchew83/AsterProof --workflow CI --branch main --limit 5
+gh pr view <merged-pr-number> --repo stevenchew83/AsterProof \
+  --json state,mergeCommit,statusCheckRollup
 ```
 
 Unknown, blank, stale, or conflicting evidence is No-Go. Do not substitute historical paths, service names, host keys, or SHAs.
+
+## Verification scope
+
+**CI / verify** runs on pull requests, without a duplicate run on pushes to `main`.
+Documentation-only changes get whitespace validation while still completing the
+required check. Runtime changes get lint, Django/migration checks, settings and
+user-access tests, and tests for the affected apps and their known consumers.
+Shared authentication, routing, templates, dependencies, and unknown paths broaden
+coverage. Asset builds, lock-resolution checks, and workflow lint run when their
+inputs change. Selection is defined in `scripts/ci_checks.py`.
+
+The manually dispatched **Production deploy** workflow still runs the complete
+test suite against the exact release SHA, validates the production lock, builds
+the offline runtime and static files, and attests one immutable release archive.
+Subsequent disclosure and deployment stages consume that same verified artifact.
+All existing tests remain available; no production packaging runs for ordinary
+PRs. Shared changes may also require the complete suite during PR verification.
+Deploy and rollback remain manual and retain their production environment gate.
 
 ## Dispatch and approval
 

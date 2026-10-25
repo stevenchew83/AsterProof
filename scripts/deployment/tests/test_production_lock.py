@@ -188,17 +188,21 @@ def test_oidc_crypto_runtime_is_explicit_in_production_authority():
     assert requirements["cryptography"] == ("==", "44.0.3")
 
 
-def test_ci_uses_pinned_actions_and_offline_runtime_install():
+def test_ci_uses_pinned_actions_and_workflow_lint():
     workflow = (REPO_ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
     git_sha_length = 40
 
     action_lines = [line.strip() for line in workflow.splitlines() if "uses:" in line]
     assert action_lines
     assert all("@" in line and len(line.rsplit("@", 1)[1].split()[0]) == git_sha_length for line in action_lines)
+    assert "ACTIONLINT_LINUX_AMD64_SHA256" in workflow
+    assert '"$RUNNER_TEMP/actionlint"' in workflow
+
+
+def test_manual_release_verifies_offline_runtime_and_static_manifest():
+    workflow = (REPO_ROOT / ".github" / "workflows" / "production-deploy.yml").read_text(encoding="utf-8")
     assert "pip wheel --require-hashes" in workflow
     assert "pip install --no-index --require-hashes" in workflow
     assert "import django, gunicorn, psycopg, bleach, markdown, cryptography" in workflow
     assert "config.settings.staticfiles" in workflow
     assert "staticfiles/staticfiles.json" in workflow
-    assert "ACTIONLINT_LINUX_AMD64_SHA256" in workflow
-    assert '"$RUNNER_TEMP/actionlint"' in workflow

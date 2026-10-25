@@ -27,6 +27,11 @@ Create one active `main` ruleset with:
 - branch deletion and force pushes blocked;
 - direct pushes and bypass actors disabled, including administrators where supported.
 
+Keep **CI / verify** as the required PR check. Its documentation-only path still
+finishes successfully; do not use workflow-level path exclusions that leave the
+required check pending. CI does not run again on pushes to `main`; the manually
+dispatched production workflow performs full verification of the release SHA.
+
 Create the `production` environment with:
 
 - deployment branches restricted to `main` only;
