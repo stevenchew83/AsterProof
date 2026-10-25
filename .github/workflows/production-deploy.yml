@@ -99,7 +99,8 @@ jobs:
           python -m scripts.deployment.check_production_lock --verify-resolution
           uv venv .release-quality --python "$PYTHON_VERSION"
           uv pip install --python .release-quality/bin/python -r requirements/local.txt
-          .release-quality/bin/ruff check config inspinia scripts/deployment
+          .release-quality/bin/ruff check config scripts
+          .release-quality/bin/python scripts/check_application_lint.py
           .release-quality/bin/python manage.py check
           .release-quality/bin/python manage.py makemigrations --check --dry-run
           .release-quality/bin/python -m pytest
