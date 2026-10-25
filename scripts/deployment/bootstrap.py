@@ -43,6 +43,7 @@ AUTHORITY_MANIFEST_PATH = Path("/etc/asterproof/authority-manifest.json")
 MIGRATION_AUDIT_CONFIG_PATH = Path("/etc/asterproof/migration-audit.json")
 SECRET_FILE_MODE = 0o600
 ROOT_DIRECTORY_MODE = 0o755
+AUTHORIZED_KEYS_MODE = 0o644
 GIT_SHA1_LENGTH = 40
 
 
@@ -192,7 +193,18 @@ def _read_service(service: str) -> str:
         capture_output=True,
         text=True,
     )
-    return result.stdout if result.returncode == 0 else ""
+    if result.returncode != 0:
+        return ""
+    if service != "nginx.service":
+        return result.stdout
+    # Nginx routes live in its included configuration, not its systemd unit.
+    configuration = subprocess.run(
+        ["/usr/sbin/nginx", "-T"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    return result.stdout + configuration.stdout if configuration.returncode == 0 else result.stdout
 
 
 def _user_exists(user: str) -> bool:
@@ -527,7 +539,8 @@ def install_authority(
     if root == Path("/"):
         os.chown(authorized_keys.parent, 0, 0)
     authorized_keys.parent.chmod(0o755)
-    _write_rendered(authorized_keys, render_authorized_key(deploy_public_key), 0o600)
+    # OpenSSH opens this public-key file as the login user. Root retains write control.
+    _write_rendered(authorized_keys, render_authorized_key(deploy_public_key), AUTHORIZED_KEYS_MODE)
     # Commit the authority generation only after every dependent live file is installed.
     authority_link = authority.with_name(f".{authority.name}.next")
     authority_link.unlink(missing_ok=True)

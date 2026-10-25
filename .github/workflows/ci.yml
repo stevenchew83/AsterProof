@@ -112,9 +112,7 @@ jobs:
 
       - name: Lint and test
         run: |
-          # The legacy `inspinia` tree does not yet have a clean Ruff baseline.
-          # Keep the authoritative deployment/configuration path strict while
-          # the full Django test suite remains the application regression gate.
           .ci-quality/bin/ruff check config scripts
+          .ci-quality/bin/python scripts/check_application_lint.py
           .ci-quality/bin/python manage.py check
           .ci-quality/bin/python -m pytest

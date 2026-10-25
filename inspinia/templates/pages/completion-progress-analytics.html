@@ -433,6 +433,10 @@
 
   {% include 'partials/page-title.html' with title=completion_progress_page_title subtitle=completion_progress_page_subtitle %}
 
+  {% if shared_progress_subject %}
+  {% include 'pages/partials/shared-progress-header.html' %}
+  {% endif %}
+
   <div class="row g-3 mt-0">
     <div class="col-12">
       <div class="card">

@@ -658,6 +658,14 @@ def build_technique_progress_context(
     }
 
 
+def technique_progress_summary(user: User) -> dict:
+    """Return coverage for a subject without granting user selection or management access."""
+    return {
+        **_cached_dashboard_payload(selected_user=user, can_select_user=False),
+        **technique_progress_catalog_status_context(),
+    }
+
+
 def _cached_dashboard_payload(
     *,
     selected_user: User,

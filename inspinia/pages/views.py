@@ -6380,13 +6380,14 @@ def _completion_progress_has_user_difficulty(rows: list[dict[str, object]]) -> b
     return any(row.get("user_difficulty_rating") not in ("", None) for row in rows)
 
 
-def _render_completion_progress_analytics(
+def _render_completion_progress_analytics(  # noqa: PLR0913
     request,
     *,
     selected_user: User | None,
     can_select_user: bool,
     page_title: str,
     reset_url_name: str,
+    extra_context: dict | None = None,
 ):
     today = timezone.localdate()
     date_range = resolve_completion_progress_date_range(
@@ -6518,6 +6519,8 @@ def _render_completion_progress_analytics(
         ),
         "completion_progress_user_options": completion_progress_user_options() if can_select_user else [],
     }
+    if extra_context:
+        context.update(extra_context)
     return render(request, "pages/completion-progress-analytics.html", context)
 
 

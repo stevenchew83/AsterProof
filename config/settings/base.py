@@ -310,3 +310,7 @@ SOCIALACCOUNT_FORMS = {"signup": "inspinia.users.forms.UserSocialSignupForm"}
 
 # Your stuff...
 # ------------------------------------------------------------------------------
+SHARED_PROGRESS_LEARNERS = {
+    "alex": env("DJANGO_PROGRESS_ALEX_EMAIL", default=""),
+    "ben": env("DJANGO_PROGRESS_BEN_EMAIL", default=""),
+}
