@@ -43,6 +43,14 @@ All existing tests remain available; no production packaging runs for ordinary
 PRs. Shared changes may also require the complete suite during PR verification.
 Deploy and rollback remain manual and retain their production environment gate.
 
+Packaging verifies downloads against `requirements/production.lock`. The pinned
+`django-allauth` release is source-only, so Actions builds its wheel; all other
+runtime packages must have binary wheels. A generated `wheelhouse/install.lock`
+requires exactly the reviewed package versions and hashes every resulting wheel.
+Both the clean Actions runtime and the server install those wheels offline with
+hash checking and source builds disabled. The original source lock, generated
+wheel lock, and wheel bytes are all included in the attested release.
+
 ## Dispatch and approval
 
 For a release with no migrations:
