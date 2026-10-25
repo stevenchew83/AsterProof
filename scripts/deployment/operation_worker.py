@@ -273,28 +273,32 @@ class WorkerBackend:
 
     def legacy_source_matches(self, contract: TargetContract, source_root: Path, legacy_sha: str) -> bool:
         try:
-            head = subprocess.run(
-                ["/usr/bin/git", "rev-parse", "HEAD"],
-                cwd=source_root,
-                check=True,
-                capture_output=True,
-                text=True,
-            ).stdout.strip()
-            origin = subprocess.run(
-                ["/usr/bin/git", "remote", "get-url", "origin"],
-                cwd=source_root,
-                check=True,
-                capture_output=True,
-                text=True,
-            ).stdout.strip()
-            status = subprocess.run(
-                ["/usr/bin/git", "status", "--porcelain=v1", "--untracked-files=all"],
-                cwd=source_root,
-                check=True,
-                capture_output=True,
-                text=True,
-            ).stdout
-        except (OSError, subprocess.SubprocessError):
+            owner = pwd.getpwuid(source_root.stat().st_uid).pw_name
+            environment = os.environ.copy()
+            environment.update({
+                "GIT_CONFIG_GLOBAL": "/dev/null",
+                "GIT_CONFIG_NOSYSTEM": "1",
+                "GIT_NO_REPLACE_OBJECTS": "1",
+                "GIT_OPTIONAL_LOCKS": "0",
+                "GIT_TERMINAL_PROMPT": "0",
+                "XDG_CONFIG_HOME": "/nonexistent",
+            })
+
+            def git(*arguments: str) -> str:
+                # Probe an existing owner's checkout without executing its Git config as root.
+                return subprocess.run(
+                    [str(RUNUSER), "--user", owner, "--", "/usr/bin/git", "-c", "core.fsmonitor=false", *arguments],
+                    cwd=source_root,
+                    env=environment,
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                ).stdout
+
+            head = git("rev-parse", "HEAD").strip()
+            origin = git("remote", "get-url", "origin").strip()
+            status = git("status", "--porcelain=v1", "--untracked-files=all")
+        except (KeyError, OSError, subprocess.SubprocessError):
             return False
         normalized = origin.removesuffix(".git").replace("git@github.com:", "https://github.com/")
         return head == legacy_sha and not status and normalized == f"https://github.com/{contract.repository}"
