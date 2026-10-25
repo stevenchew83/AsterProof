@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import pwd
+import re
 import shutil
 import stat
 import subprocess
@@ -160,7 +161,7 @@ def audit_target(
         "repository_source_matches": source_matches(source_root, contract),
         "runtime_matches": python_executable.is_file()
         and runtime_matches(python_executable, contract.python_abi, contract.target_platform),
-        "scheduler_uses_current": current_fragment in scheduler_text,
+        "scheduler_uses_current": _managed_service_text_matches(contract, scheduler_text, executable="python"),
         "ssh_authority_directory": deploy_home.is_dir()
         and deploy_ssh.is_dir()
         and not deploy_home.is_symlink()
@@ -169,10 +170,11 @@ def audit_target(
         and stat.S_IMODE(deploy_ssh.stat().st_mode) == ROOT_DIRECTORY_MODE
         and ownership_matches(deploy_home, "root")
         and ownership_matches(deploy_ssh, "root"),
-        "service_environment_external": str(contract.environment_file) in service_text,
+        "service_environment_external": _service_values(service_text, "EnvironmentFile")
+        == [str(contract.environment_file)],
         "service_identity": contract.service in service_text or bool(service_text),
-        "service_runs_as_app_user": f"User={contract.app_user}" in service_text,
-        "service_uses_current": current_fragment in service_text,
+        "service_runs_as_app_user": _service_values(service_text, "User") == [contract.app_user],
+        "service_uses_current": _managed_service_text_matches(contract, service_text, executable="gunicorn"),
         "shared_root_exists": shared_root.is_dir(),
         "tex_available": tex_executable.is_file(),
         "trusted_authority_matches": _authority_matches(root),
@@ -187,6 +189,31 @@ def audit_target(
 
 
 def _read_service(service: str) -> str:
+    if service != "nginx.service":
+        # systemctl cat includes overridden assignments; show reports the loaded result.
+        result = subprocess.run(
+            [
+                "/usr/bin/systemctl",
+                "show",
+                "--property=Id,User,WorkingDirectory,EnvironmentFiles,ExecStart",
+                "--",
+                service,
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode:
+            return ""
+        values = dict(line.split("=", 1) for line in result.stdout.splitlines() if "=" in line)
+        paths = re.findall(r"\bpath=([^ ;}]+)", values.get("ExecStart", ""))
+        environment_files = re.findall(r"(\S+) \(ignore_errors=(yes|no)\)", values.get("EnvironmentFiles", ""))
+        lines = [f"{key}={values.get(key, '')}" for key in ("Id", "User", "WorkingDirectory")]
+        lines.append("ExecStart=" + (paths[0] if len(paths) == 1 else ""))
+        lines.extend(
+            f"EnvironmentFile={'-' if optional == 'yes' else ''}{path}" for path, optional in environment_files
+        )
+        return "\n".join(lines) + "\n"
     result = subprocess.run(
         ["/usr/bin/systemctl", "cat", "--", service],
         check=False,
@@ -195,8 +222,6 @@ def _read_service(service: str) -> str:
     )
     if result.returncode != 0:
         return ""
-    if service != "nginx.service":
-        return result.stdout
     # Nginx routes live in its included configuration, not its systemd unit.
     configuration = subprocess.run(
         ["/usr/sbin/nginx", "-T"],
@@ -205,6 +230,36 @@ def _read_service(service: str) -> str:
         text=True,
     )
     return result.stdout + configuration.stdout if configuration.returncode == 0 else result.stdout
+
+
+def _service_values(text: str, key: str) -> list[str]:
+    values: list[str] = []
+    for line in text.splitlines():
+        if not line.startswith(key + "="):
+            continue
+        value = line.partition("=")[2].strip()
+        if not value:
+            values.clear()
+        else:
+            values.append(value)
+    return values
+
+
+def _managed_service_text_matches(contract: TargetContract, text: str, *, executable: str) -> bool:
+    starts = _service_values(text, "ExecStart")
+    return (
+        len(starts) == 1
+        and starts[0].split()[0] == f"{contract.release_root}/current/.venv/bin/{executable}"
+        and _service_values(text, "WorkingDirectory") == [f"{contract.release_root}/current"]
+        and _service_values(text, "User") == [contract.app_user]
+        and _service_values(text, "EnvironmentFile") == [str(contract.environment_file)]
+    )
+
+
+def managed_service_configuration_matches(contract: TargetContract) -> bool:
+    return _managed_service_text_matches(contract, _read_service(contract.service), executable="gunicorn") and (
+        _managed_service_text_matches(contract, _read_service(contract.scheduler_service), executable="python")
+    )
 
 
 def _user_exists(user: str) -> bool:

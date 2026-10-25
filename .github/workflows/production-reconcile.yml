@@ -1,0 +1,198 @@
+name: Production recovery verification
+
+on:
+  workflow_dispatch:
+    inputs:
+      workflow_sha:
+        description: Exact current main commit containing this verification workflow
+        required: true
+        type: string
+      release_sha:
+        description: Original immutable application release SHA
+        required: true
+        type: string
+      original_run_id:
+        description: Original production deployment run ID
+        required: true
+        type: string
+      artifact_id:
+        description: Original GitHub release artifact ID
+        required: true
+        type: string
+      artifact_digest:
+        description: Original attested release archive SHA-256
+        required: true
+        type: string
+      state_fingerprint:
+        description: Independently verified unchanged database metadata fingerprint
+        required: true
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: asterproof-production
+  cancel-in-progress: false
+  queue: max
+
+jobs:
+  verify:
+    name: Approve read-only recovery verification
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment:
+      name: production
+      url: ${{ vars.PRODUCTION_HEALTH_URL }}
+    permissions:
+      contents: read
+      actions: read
+      attestations: read
+    env:
+      RELEASE_SHA: ${{ inputs.release_sha }}
+      ORIGINAL_RUN_ID: ${{ inputs.original_run_id }}
+      ARTIFACT_ID: ${{ inputs.artifact_id }}
+      ARTIFACT_DIGEST: ${{ inputs.artifact_digest }}
+      STATE_FINGERPRINT: ${{ inputs.state_fingerprint }}
+      TARGET_MARKER: ${{ vars.PRODUCTION_TARGET_MARKER }}
+    steps:
+      - name: Check out current trusted verification client
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Revalidate current main after approval
+        env:
+          EXPECTED_SHA: ${{ inputs.workflow_sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          EVIDENCE_DIR="$RUNNER_TEMP/recovery-evidence"
+          printf 'EVIDENCE_DIR=%s\n' "$EVIDENCE_DIR" >> "$GITHUB_ENV"
+          python -m scripts.deployment.validate_dispatch dispatch \
+            --event "$GITHUB_EVENT_NAME" --ref "$GITHUB_REF" \
+            --checked-out-sha "$GITHUB_SHA" --release-sha "$EXPECTED_SHA" \
+            --migration-class none
+          python - <<'PY'
+          import os
+          import re
+          for key, pattern in {
+              "RELEASE_SHA": r"[0-9a-f]{40}", "ORIGINAL_RUN_ID": r"[1-9][0-9]*",
+              "ARTIFACT_ID": r"[1-9][0-9]*", "ARTIFACT_DIGEST": r"[0-9a-f]{64}",
+              "STATE_FINGERPRINT": r"[0-9a-f]{64}",
+          }.items():
+              if re.fullmatch(pattern, os.environ[key]) is None:
+                  raise SystemExit(f"invalid {key}")
+          PY
+          mkdir -m 700 "$EVIDENCE_DIR"
+          gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" > "$EVIDENCE_DIR/main-ref.json"
+          python -m scripts.deployment.validate_dispatch main-ref \
+            --expected-sha "$EXPECTED_SHA" --response "$EVIDENCE_DIR/main-ref.json"
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$ORIGINAL_RUN_ID" > "$EVIDENCE_DIR/original-run.json"
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$ARTIFACT_ID" > "$EVIDENCE_DIR/original-artifact.json"
+
+      - name: Download original immutable artifact
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
+        with:
+          artifact-ids: ${{ inputs.artifact_id }}
+          run-id: ${{ inputs.original_run_id }}
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/recovery-evidence
+
+      - name: Verify original archive and attestation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python -m scripts.deployment.recovery_evidence artifact \
+            --directory "$EVIDENCE_DIR" --repository "$GITHUB_REPOSITORY" \
+            --repository-id "$GITHUB_REPOSITORY_ID" --release-sha "$RELEASE_SHA" \
+            --digest "$ARTIFACT_DIGEST" --run-id "$ORIGINAL_RUN_ID" --artifact-id "$ARTIFACT_ID" \
+            --marker "$TARGET_MARKER" --fingerprint "$STATE_FINGERPRINT"
+          gh attestation verify "$EVIDENCE_DIR/asterproof-release.tar" \
+            --repo "$GITHUB_REPOSITORY" \
+            --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/production-deploy.yml" \
+            --signer-digest "$RELEASE_SHA" --source-ref refs/heads/main --source-digest "$RELEASE_SHA" \
+            --deny-self-hosted-runners --format json > "$EVIDENCE_DIR/attestation-verification.json"
+
+      - name: Configure pinned production SSH transport
+        env:
+          DEPLOY_HOST: ${{ secrets.PRODUCTION_SSH_HOST }}
+          DEPLOY_PORT: ${{ secrets.PRODUCTION_SSH_PORT }}
+          DEPLOY_USER: ${{ secrets.PRODUCTION_SSH_USER }}
+          DEPLOY_KEY: ${{ secrets.PRODUCTION_SSH_PRIVATE_KEY }}
+          KNOWN_HOSTS_LINE: ${{ secrets.PRODUCTION_SSH_KNOWN_HOSTS }}
+          TARGET_MARKER: ${{ vars.PRODUCTION_TARGET_MARKER }}
+        run: |
+          set +x
+          install -m 700 -d "$RUNNER_TEMP/asterproof-ssh"
+          printf '%s\n' "$DEPLOY_KEY" > "$RUNNER_TEMP/asterproof-ssh/key"
+          chmod 600 "$RUNNER_TEMP/asterproof-ssh/key"
+          printf '%s\n' "$KNOWN_HOSTS_LINE" > "$RUNNER_TEMP/asterproof-ssh/known_hosts"
+          python -m scripts.deployment.validate_dispatch ssh-contract \
+            --host "$DEPLOY_HOST" --port "$DEPLOY_PORT" --user "$DEPLOY_USER" \
+            --target-marker "$TARGET_MARKER" \
+            --known-hosts "$RUNNER_TEMP/asterproof-ssh/known_hosts"
+          {
+            printf 'Host asterproof-production\n'
+            printf '  HostName %s\n' "$DEPLOY_HOST"
+            printf '  Port %s\n' "$DEPLOY_PORT"
+            printf '  User %s\n' "$DEPLOY_USER"
+            printf '  IdentityFile %s\n' "$RUNNER_TEMP/asterproof-ssh/key"
+            printf '  IdentitiesOnly yes\n'
+            printf '  BatchMode yes\n'
+            printf '  StrictHostKeyChecking yes\n'
+            printf '  UserKnownHostsFile %s\n' "$RUNNER_TEMP/asterproof-ssh/known_hosts"
+            printf '  ConnectTimeout 10\n'
+            printf '  ServerAliveInterval 10\n'
+            printf '  ServerAliveCountMax 2\n'
+            printf '  ClearAllForwardings yes\n'
+            printf '  RequestTTY no\n'
+          } > "$RUNNER_TEMP/asterproof-ssh/config"
+          chmod 600 "$RUNNER_TEMP/asterproof-ssh/config"
+
+      - name: Reconcile public health and durable server evidence
+        env:
+          HEALTH_URL: ${{ vars.PRODUCTION_HEALTH_URL }}
+        run: |
+          test -n "$HEALTH_URL"
+          curl --fail --silent --show-error --max-time 15 --proto '=https' --tlsv1.2 \
+            -H 'Accept: application/json' -H 'Cache-Control: no-cache' \
+            "${HEALTH_URL}?recovery=${GITHUB_RUN_ID}" > "$EVIDENCE_DIR/health.json"
+          ssh -F "$RUNNER_TEMP/asterproof-ssh/config" asterproof-production 'preflight v1' \
+            > "$EVIDENCE_DIR/preflight.json"
+          python -m scripts.deployment.validate_dispatch status-frame --run-id "$ORIGINAL_RUN_ID" \
+            | ssh -F "$RUNNER_TEMP/asterproof-ssh/config" asterproof-production 'status v1' \
+            > "$EVIDENCE_DIR/status.json"
+          python -m scripts.deployment.recovery_evidence reconciliation \
+            --directory "$EVIDENCE_DIR" --repository "$GITHUB_REPOSITORY" \
+            --repository-id "$GITHUB_REPOSITORY_ID" --release-sha "$RELEASE_SHA" \
+            --digest "$ARTIFACT_DIGEST" --run-id "$ORIGINAL_RUN_ID" --artifact-id "$ARTIFACT_ID" \
+            --marker "$TARGET_MARKER" --fingerprint "$STATE_FINGERPRINT"
+
+      - name: Record recovery verification evidence
+        if: always()
+        env:
+          RESULT: ${{ job.status }}
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          with Path(os.environ["GITHUB_STEP_SUMMARY"]).open("a") as output:
+              output.write("## Read-only recovery verification\n")
+              for key in ("GITHUB_SHA", "RELEASE_SHA", "ORIGINAL_RUN_ID", "ARTIFACT_ID",
+                          "ARTIFACT_DIGEST", "STATE_FINGERPRINT", "TARGET_MARKER", "RESULT"):
+                  output.write(f"- {key}: `{os.environ[key]}`\n")
+              output.write("The original failed workflow remains unchanged. No deployment or restart was dispatched.\n")
+          PY
+
+      - name: Retain read-only reconciliation evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: recovery-verification-${{ github.run_id }}
+          path: ${{ runner.temp }}/recovery-evidence/*.json
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Remove temporary SSH credentials
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/asterproof-ssh"
