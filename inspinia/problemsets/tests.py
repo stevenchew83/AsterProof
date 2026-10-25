@@ -14,6 +14,9 @@ from inspinia.pages.models import UserProblemDifficultyRating
 from inspinia.problemsets.models import ProblemList
 from inspinia.problemsets.models import ProblemListItem
 from inspinia.problemsets.models import ProblemListVote
+from inspinia.problemsets.selectors import discover_problem_lists_queryset
+from inspinia.problemsets.selectors import my_problem_lists_queryset
+from inspinia.problemsets.selectors import problem_list_summary_rows
 from inspinia.problemsets.services import ProblemListServiceError
 from inspinia.problemsets.services import replace_problem_list_items
 from inspinia.users.models import User
@@ -22,6 +25,34 @@ from inspinia.users.tests.factories import UserFactory
 pytestmark = pytest.mark.django_db
 EXPECTED_TWO_PROBLEM_SEARCH_MATCHES = 2
 EXPECTED_PROBLEM_NOTE_SECTION_COUNT = 3
+
+
+@pytest.mark.parametrize("discovery", [False, True])
+def test_list_summaries_use_counts_without_loading_items_or_problems(django_assert_num_queries, discovery):
+    author = UserFactory()
+    problem = _problem()
+    list_count = 4
+    for index in range(list_count):
+        problem_list = _problem_list(author=author, title=f"List {index}", visibility=ProblemList.Visibility.PUBLIC)
+        ProblemListItem.objects.create(problem_list=problem_list, problem=problem, position=0)
+    queryset = discover_problem_lists_queryset() if discovery else my_problem_lists_queryset(author)
+
+    with django_assert_num_queries(1) as queries:
+        rows = problem_list_summary_rows(list(queryset))
+
+    assert len(rows) == list_count
+    assert all(row["item_count"] == 1 for row in rows)
+    assert "pages_problemsolverecord" not in queries.captured_queries[0]["sql"]
+
+
+def test_list_summary_keeps_unannotated_fallback(django_assert_num_queries):
+    problem_list = _problem_list()
+    ProblemListItem.objects.create(problem_list=problem_list, problem=_problem(), position=0)
+
+    with django_assert_num_queries(1):
+        rows = problem_list_summary_rows([problem_list])
+
+    assert rows[0]["item_count"] == 1
 
 
 def _problem(**overrides) -> ProblemSolveRecord:

@@ -3,7 +3,6 @@ module.exports = [
         vendorsJS: [
             "./node_modules/jquery/dist/jquery.min.js",
             "./node_modules/bootstrap/dist/js/bootstrap.bundle.min.js",
-            "./node_modules/lucide/dist/umd/lucide.min.js",
             "./node_modules/simplebar/dist/simplebar.min.js",
         ],
 

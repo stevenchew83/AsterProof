@@ -29,10 +29,6 @@ class App {
     // Bootstrap Components
     initComponents() {
 
-        if (typeof lucide.createIcons === 'function') {
-            lucide.createIcons();
-        }
-
         // Popovers
         document.querySelectorAll('[data-bs-toggle="popover"]').forEach(el => {
             new bootstrap.Popover(el);

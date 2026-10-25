@@ -6928,10 +6928,16 @@ def problem_statement_list_view(request):
         return redirect("pages:problem_statement_list")
 
     base = ContestProblemStatement.objects.all()
-    statement_total = base.count()
-    linked_total = base.filter(linked_problem__isnull=False).count()
-    contest_total = base.values("contest_name").distinct().count()
-    year_bounds = base.aggregate(year_min=Min("contest_year"), year_max=Max("contest_year"))
+    year_bounds = base.aggregate(
+        statement_total=Count("id"),
+        linked_total=Count("id", filter=Q(linked_problem__isnull=False)),
+        contest_total=Count("contest_name", distinct=True),
+        year_min=Min("contest_year"),
+        year_max=Max("contest_year"),
+    )
+    statement_total = year_bounds["statement_total"]
+    linked_total = year_bounds["linked_total"]
+    contest_total = year_bounds["contest_total"]
 
     year_min = year_bounds["year_min"]
     year_max = year_bounds["year_max"]
@@ -8264,17 +8270,17 @@ def contest_advanced_analytics_view(request):
     heatmap_solution_urls: dict[tuple[int, str], str] = {}
     heatmap_problem_codes = sorted(
         {
-            str(problem_code).strip()
-            for problem_code in contest_base.values_list("problem_code", flat=True)
-            if problem_code
+            str(record["problem_code"]).strip()
+            for record in contest_statements
+            if record["problem_code"]
         },
         key=_problem_sort_key,
     )
     heatmap_years = sorted(
         {
-            int(year)
-            for year in contest_base.values_list("contest_year", flat=True)
-            if year is not None
+            int(record["contest_year"])
+            for record in contest_statements
+            if record["contest_year"] is not None
         },
         reverse=True,
     )
