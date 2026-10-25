@@ -85,6 +85,7 @@ from inspinia.pages.subtopic_cleanup import apply_subtopic_cleanup
 from inspinia.pages.subtopic_cleanup import classified_topic_tag_entries
 from inspinia.pages.subtopic_cleanup import taxonomy_entries_for_technique
 from inspinia.pages.subtopic_cleanup import taxonomy_entry_for_technique
+from inspinia.pages.topic_tag_analytics import TECHNIQUE_DIRECTORY_PAGE_SIZE
 from inspinia.pages.topic_tags_parse import parse_topic_tags_cell
 from inspinia.pages.views import ADMIN_TABLE_LATEST_LIMIT
 from inspinia.pages.views import COMPLETION_QUICK_UPDATE_SEARCH_LIMIT
@@ -19782,7 +19783,7 @@ def test_technique_tag_dashboard_does_not_select_bulky_problem_fields(client):
     assert '"pages_problemsolverecord"."pitfalls"' not in joined_sql
 
 
-def test_technique_tag_dashboard_uses_all_matched_rows_instead_of_latest_100_cap(client):
+def test_technique_tag_dashboard_paginates_all_matched_rows_without_latest_100_cap(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
     now = timezone.now()
@@ -19810,7 +19811,12 @@ def test_technique_tag_dashboard_uses_all_matched_rows_instead_of_latest_100_cap
     assert response.status_code == HTTPStatus.OK
     rows = response.context["technique_rows"]
     technique_names = {row["technique"] for row in rows}
-    assert len(rows) == ADMIN_TABLE_LATEST_LIMIT + 20
+    assert len(rows) == TECHNIQUE_DIRECTORY_PAGE_SIZE
+    assert response.context["page_obj"].paginator.count == ADMIN_TABLE_LATEST_LIMIT + 20
+    for page_number in range(2, response.context["page_obj"].paginator.num_pages + 1):
+        next_page = client.get(reverse("pages:topic_tag_dashboard"), {"page": page_number})
+        technique_names.update(row["technique"] for row in next_page.context["technique_rows"])
+    assert len(technique_names) == ADMIN_TABLE_LATEST_LIMIT + 20
     assert "TAG-1" in technique_names
     assert "TAG-100" in technique_names
     assert "TAG-101" in technique_names
@@ -19870,7 +19876,8 @@ def test_technique_tag_dashboard_applies_search_to_full_dataset(client):
 
     broad = client.get(reverse("pages:topic_tag_dashboard"), {"q": "IMO"})
     assert broad.status_code == HTTPStatus.OK
-    assert len(broad.context["technique_rows"]) == 120
+    assert len(broad.context["technique_rows"]) == TECHNIQUE_DIRECTORY_PAGE_SIZE
+    assert broad.context["page_obj"].paginator.count == broad.context["technique_filtered_total"]
     assert broad.context["technique_filtered_total"] == 120
     assert broad.context["initial_search_query"] == "IMO"
     assert broad.context["technique_active_filters"][0]["value"] == "IMO"
@@ -21065,6 +21072,9 @@ def test_problem_statement_duplicates_detects_exact_and_similar_matches_for_admi
         statement_latex="Show that $1+1=2$.",
     )
 
+    from inspinia.pages.statement_duplicate_snapshot import refresh_statement_duplicate_snapshot
+
+    assert refresh_statement_duplicate_snapshot(force=True)
     response = client.get(reverse("pages:problem_statement_duplicates"))
 
     assert response.status_code == HTTPStatus.OK

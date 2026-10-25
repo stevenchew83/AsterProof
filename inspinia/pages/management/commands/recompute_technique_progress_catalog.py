@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+from time import monotonic
+
 from django.core.cache import cache
 from django.core.management.base import BaseCommand
 from django.core.management.base import CommandError
 
 from inspinia.pages.models import TechniqueProgressCatalogState
 from inspinia.pages.models import TechniqueProgressFact
+from inspinia.pages.statement_duplicate_snapshot import MANIFEST_KEY as DUPLICATE_REPORT_MANIFEST_KEY
+from inspinia.pages.statement_duplicate_snapshot import refresh_statement_duplicate_snapshot
 from inspinia.pages.technique_progress_catalog import rebuild_technique_progress_catalog
 from inspinia.pages.technique_progress_catalog import technique_progress_catalog_needs_rebuild
 
@@ -45,15 +49,27 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options) -> None:
+        started = monotonic()
+        self._handle_catalog(*args, **options)
+        try:
+            if refresh_statement_duplicate_snapshot(max_seconds=max(0, 25 * 60 - (monotonic() - started))):
+                report = cache.get(DUPLICATE_REPORT_MANIFEST_KEY)
+                self.stdout.write(
+                    "Refreshed statement duplicate report: "
+                    f"{report['statement_total']} statements, {report['exact_duplicate_group_total']} exact groups, "
+                    f"{report['similar_pair_total']} similar pairs, {report['build_seconds']} seconds.",
+                )
+        except Exception as exc:  # noqa: BLE001 -- independent maintenance must preserve the completed catalog run.
+            # Preserve completed catalog maintenance and the previous duplicate
+            # generation if the independent report refresh fails.
+            self.stderr.write(f"Statement duplicate report refresh failed: {type(exc).__name__}")
+
+    def _handle_catalog(self, *args, **options) -> None:
         statement_ids = options.get("statement_ids") or []
         problem_ids = options.get("problem_ids") or []
         queued_only = bool(options.get("queued_only"))
         if_stale = bool(options.get("if_stale"))
-        invalid_ids = [
-            value
-            for value in [*statement_ids, *problem_ids]
-            if value < 1
-        ]
+        invalid_ids = [value for value in [*statement_ids, *problem_ids] if value < 1]
         if invalid_ids:
             msg = "--statement-id and --problem-id values must be positive integers."
             raise CommandError(msg)

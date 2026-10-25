@@ -136,7 +136,7 @@ from inspinia.pages.statement_analytics import effective_pitfalls_value
 from inspinia.pages.statement_analytics import effective_rationale_value
 from inspinia.pages.statement_analytics import effective_topic
 from inspinia.pages.statement_analytics_sync import sync_statement_analytics_from_linked_problem
-from inspinia.pages.statement_duplicates import build_statement_duplicate_report
+from inspinia.pages.statement_duplicate_snapshot import snapshot_context as statement_duplicate_snapshot_context
 from inspinia.pages.statement_import import LATEX_STATEMENT_SAMPLE
 from inspinia.pages.statement_import import ProblemStatementImportValidationError
 from inspinia.pages.statement_import import ProblemStatementPreviewPayload
@@ -176,6 +176,8 @@ from inspinia.pages.technique_progress import technique_progress_gap_rows_for_be
 from inspinia.pages.technique_progress_catalog import request_technique_progress_catalog_rebuild
 from inspinia.pages.topic_labels import FULL_TOPIC_LABEL_MAP
 from inspinia.pages.topic_labels import display_topic_label
+from inspinia.pages.topic_tag_analytics import TOPIC_CHART_POINT_LIMIT
+from inspinia.pages.topic_tag_analytics import topic_tag_analytics_data
 from inspinia.problemsets.selectors import problem_list_add_target_rows
 from inspinia.solutions.models import ProblemSolution
 from inspinia.users.models import AuditEvent
@@ -1322,17 +1324,38 @@ def _statement_linker_payload() -> dict[str, object]:
         .values_list("contest_name", flat=True)
         .distinct(),
     )
-    contest_years_int = {
-        int(y) for y in ContestProblemStatement.objects.values_list("contest_year", flat=True).distinct()
-    }
+    contest_years_int = set(
+        ContestProblemStatement.objects.order_by().values_list("contest_year", flat=True).distinct(),
+    )
     statement_years = sorted(contest_years_int, reverse=True)
     year_values = [str(year) for year in statement_years]
 
+    statements = list(
+        ContestProblemStatement.objects.select_related("linked_problem")
+        .defer(
+            "linked_problem__confidence", "linked_problem__imo_slot_guess", "linked_problem__topic_tags",
+            "linked_problem__core_ideas", "linked_problem__core_ideas_value", "linked_problem__rationale",
+            "linked_problem__rationale_value", "linked_problem__pitfalls", "linked_problem__pitfalls_value",
+        )
+        .order_by("-updated_at", "-id")[:ADMIN_TABLE_LATEST_LIMIT],
+    )
+    visible_contest_years = {(s.contest_name, int(s.contest_year)) for s in statements}
+    visible_problem_scope = Q(pk__in=[])
+    visible_statement_scope = Q(pk__in=[])
+    for contest_name, contest_year in sorted(visible_contest_years):
+        visible_problem_scope |= Q(contest=contest_name, year=contest_year)
+        visible_statement_scope |= Q(contest_name=contest_name, contest_year=contest_year)
+    # UUID suggestions can cross contest/year groups. Preserve that existing lookup,
+    # without loading every full archive record for the global contest/year sets.
+    visible_problem_scope |= Q(
+        problem_uuid__in=[s.problem_uuid for s in statements],
+        contest__in=statement_contests,
+        year__in=statement_years,
+    )
     problems = list(
-        ProblemSolveRecord.objects.filter(
-            contest__in=statement_contests,
-            year__in=statement_years,
-        ).order_by("contest", "-year", "problem"),
+        ProblemSolveRecord.objects.filter(visible_problem_scope)
+        .only("id", "problem_uuid", "contest", "year", "problem", "contest_year_problem", "topic", "mohs")
+        .order_by("contest", "-year", "problem"),
     )
     problems_by_contest_year: dict[tuple[str, int], list[ProblemSolveRecord]] = defaultdict(list)
     problem_by_uuid = {}
@@ -1345,7 +1368,7 @@ def _statement_linker_payload() -> dict[str, object]:
         problems_by_contest_year[(problem.contest, int(problem.year))].append(problem)
 
     claimant_by_problem_uuid: dict = {}
-    for row in ContestProblemStatement.objects.order_by(
+    for row in ContestProblemStatement.objects.filter(problem_uuid__in=problem_by_uuid).order_by(
         "-contest_year",
         "contest_name",
         "day_label",
@@ -1355,28 +1378,13 @@ def _statement_linker_payload() -> dict[str, object]:
     ).values("id", "problem_uuid", "contest_year_problem", "day_label"):
         claimant_by_problem_uuid[row["problem_uuid"]] = SimpleNamespace(**row)
 
-    statement_problem_code_counts = Counter(
-        (
-            contest_name,
-            int(contest_year),
-            (problem_code or "").strip().upper(),
-        )
-        for contest_name, contest_year, problem_code in ContestProblemStatement.objects.values_list(
-            "contest_name",
-            "contest_year",
-            "problem_code",
-        )
-    )
-
-    table_qs = ContestProblemStatement.objects.select_related("linked_problem").order_by(
-        "-updated_at",
-        "-id",
-    )
-    statements = list(table_qs[:ADMIN_TABLE_LATEST_LIMIT])
-
-    visible_contest_years = {
-        (statement.contest_name, int(statement.contest_year)) for statement in statements
-    }
+    statement_problem_code_counts = Counter()
+    for row in (
+        ContestProblemStatement.objects.filter(visible_statement_scope).order_by()
+        .values("contest_name", "contest_year", "problem_code").annotate(total=Count("id"))
+    ):
+        key = (row["contest_name"], int(row["contest_year"]), (row["problem_code"] or "").strip().upper())
+        statement_problem_code_counts[key] += row["total"]
 
     candidate_groups: dict[str, list[dict[str, object]]] = {}
     for contest_name, contest_year in sorted(
@@ -7087,21 +7095,11 @@ def problem_statement_duplicate_view(request):
     """Admin duplicate detector for exact and high-similarity statement rows."""
     _require_admin_tools_access(request)
 
-    statements = list(ContestProblemStatement.objects.select_related("linked_problem").all())
-    duplicate_report = build_statement_duplicate_report(statements)
-
-    context = {
-        "statement_duplicate_stats": {
-            "statement_total": duplicate_report["statement_total"],
-            "exact_duplicate_group_total": duplicate_report["exact_duplicate_group_total"],
-            "exact_duplicate_row_total": duplicate_report["exact_duplicate_row_total"],
-            "similar_pair_total": duplicate_report["similar_pair_total"],
-        },
-        "statement_duplicate_exact_rows": duplicate_report["exact_duplicate_rows"],
-        "statement_duplicate_similar_rows": duplicate_report["similar_pair_rows"],
-        "statement_duplicate_similar_display_total": duplicate_report["similar_pair_display_total"],
-        "statement_duplicate_similar_limit": duplicate_report["similar_pair_limit"],
-    }
+    context = statement_duplicate_snapshot_context(
+        page_number=request.GET.get("page"),
+        group=request.GET.get("group"),
+        member_page=request.GET.get("member_page"),
+    )
     return render(request, "pages/problem-statement-duplicates.html", context)
 
 
@@ -8555,11 +8553,36 @@ def technique_progress_gaps_view(request):
 
 @login_required
 def technique_benchmark_list_view(request):
-    benchmarks = TechniqueBenchmark.objects.prefetch_related("aliases").order_by("kind", "label")
+    benchmarks = TechniqueBenchmark.objects.all()
+    search = (request.GET.get("q") or "").strip()
+    if search:
+        for token in search.split():
+            benchmarks = benchmarks.filter(
+                Q(label__icontains=token) | Q(normalized_label__icontains=token)
+                | Q(primary_area__icontains=token) | Q(parent_family__icontains=token)
+                | Q(training_type__icontains=token) | Q(target_level__icontains=token)
+                | Q(aliases__alias_label__icontains=token),
+            )
+        benchmarks = benchmarks.distinct()
+    for key, field in (("area", "primary_area"), ("family", "parent_family")):
+        if request.GET.get(key):
+            value = request.GET[key]
+            fallback = "Unclassified" if key == "area" else "Unassigned family"
+            benchmarks = benchmarks.filter(**{field: "" if value == fallback else value})
+    row_key = (request.GET.get("row_key") or "").partition(":")
+    if row_key[1]:
+        benchmarks = benchmarks.filter(kind=row_key[0], label_key=row_key[2])
+    benchmarks = benchmarks.order_by("kind", "label", "id")
     context = build_technique_benchmark_dashboard_context(
-        benchmarks,
+        benchmarks.defer("rationale", "pitfalls", "recommended_sequence", "key_insight_spoiler_free", "merge_note"),
         raw_target_profile=request.GET.get("target_profile"),
+        paginate=True,
+        page_number=request.GET.get("page"),
+        sort=request.GET.get("sort", "value"),
     )
+    params = request.GET.copy()
+    params.pop("page", None)
+    context.update(pagination_query=params.urlencode(), benchmark_search=search)
     return render(
         request,
         "pages/technique-benchmark-list.html",
@@ -8740,106 +8763,26 @@ def topic_tag_analytics_view(request):
     if selected_filters["year"] and not selected_filters["year"].isdigit():
         selected_filters["year"] = ""
 
-    tag_queryset = (
-        ProblemTopicTechnique.objects.select_related("record")
-        .only(
-            "id",
-            "record_id",
-            "technique",
-            "domains",
-            "record__id",
-            "record__year",
-            "record__topic",
-            "record__mohs",
-            "record__contest",
-            "record__problem",
-            "record__contest_year_problem",
-        )
+    data = topic_tag_analytics_data(
+        selected_filters, page_number=request.GET.get("page"), sort=request.GET.get("sort", "problems"),
     )
-    if initial_search_query:
-        for token in initial_search_query.split():
-            token_filter = (
-                Q(technique__icontains=token)
-                | Q(domains__icontains=token)
-                | Q(record__contest__icontains=token)
-                | Q(record__problem__icontains=token)
-                | Q(record__contest_year_problem__icontains=token)
-                | Q(record__topic__icontains=token)
-            )
-            if token.isdigit():
-                token_filter |= Q(record__year=int(token))
-            tag_queryset = tag_queryset.filter(token_filter)
-
-    q_scoped_tag_rows = list(
-        tag_queryset.order_by(
-            "technique",
-            "-record__year",
-            "record__contest",
-            "record__problem",
-            "id",
-        ),
-    )
-    technique_filter_options = _build_technique_filter_options(q_scoped_tag_rows)
-    tag_rows = _filter_technique_tag_rows(
-        q_scoped_tag_rows,
-        contest=selected_filters["contest"],
-        domain=selected_filters["domain"],
-        topic=selected_filters["topic"],
-        year=selected_filters["year"],
-    )
-    tag_directory = _build_topic_tag_directory_rows(tag_rows)
-
+    tag_directory = data["directory"]
     technique_total = len(tag_directory)
-    technique_row_total = len(tag_rows)
+    technique_row_total = data["totals"]["rows"]
     technique_filtered_total = technique_row_total
-    tagged_problem_total = len({tag_row.record_id for tag_row in tag_rows})
-    distinct_contests = sorted({tag_row.record.contest for tag_row in tag_rows if tag_row.record.contest})
-    distinct_domains = sorted(
-        {
-            domain_name
-            for tag_row in tag_rows
-            for domain_name in (tag_row.domains or [])
-            if domain_name
-        },
-    )
-    distinct_topics = sorted(
-        {
-            display_topic_label(tag_row.record.topic)
-            for tag_row in tag_rows
-            if display_topic_label(tag_row.record.topic)
-        },
-    )
+    tagged_problem_total = data["totals"]["problems"]
     average_techniques_per_problem = (
         round(technique_row_total / tagged_problem_total, 2) if tagged_problem_total else 0.0
     )
     active_filter_rows = _build_technique_active_filter_rows(selected_filters)
     scope_label = "Filtered dataset" if active_filter_rows else "All technique rows"
-
-    by_year_counter: Counter[int] = Counter()
-    by_domain_counter: Counter[str] = Counter()
-    for tag_row in tag_rows:
-        if tag_row.record.year is not None:
-            by_year_counter[int(tag_row.record.year)] += 1
-        for domain_name in (tag_row.domains or []):
-            if domain_name:
-                by_domain_counter[domain_name] += 1
-
-    year_activity_rows = [
-        {"year": year_value, "c": by_year_counter[year_value]}
-        for year_value in sorted(by_year_counter)
-    ]
-    domain_volume_rows = [
-        {"domain": domain_name, "c": count}
-        for domain_name, count in sorted(
-            by_domain_counter.items(),
-            key=lambda item: (-item[1], item[0]),
-        )[:12]
-    ]
+    year_activity_rows = data["year_volume"]
+    domain_volume_rows = data["domain_volume"]
 
     charts_payload = {
         "byProblemVolume": _with_bar_payload_metadata(
             _rows_to_bar_payload(
-                tag_directory[:12],
+                sorted(tag_directory, key=lambda row: (-row["problem_count"], row["technique"]))[:12],
                 "technique",
                 value_key="problem_count",
             ),
@@ -8870,7 +8813,9 @@ def topic_tag_analytics_view(request):
             filter_param="q",
             series_name="Domains",
         ),
-        "byTopicVolume": _build_technique_topic_volume_payload(tag_rows),
+        "byTopicVolume": _with_bar_payload_metadata(
+            _rows_to_bar_payload(data["topic_volume"], "topic"), filter_param="topic", series_name="Technique rows",
+        ),
         "byAvgMohs": _with_bar_payload_metadata(
             _rows_to_bar_payload(
                 sorted(
@@ -8884,7 +8829,9 @@ def topic_tag_analytics_view(request):
             filter_param="q",
             series_name="Avg MOHS",
         ),
-        "byAvgMohsScatter": _build_technique_avg_mohs_scatter_payload(tag_directory),
+        "byAvgMohsScatter": _build_technique_avg_mohs_scatter_payload(
+            sorted(tag_directory, key=lambda row: (-row["problem_count"], row["technique"]))[:TOPIC_CHART_POINT_LIMIT],
+        ),
         "byYearActivity": _with_bar_payload_metadata(
             _rows_to_bar_payload(
                 year_activity_rows,
@@ -8906,7 +8853,7 @@ def topic_tag_analytics_view(request):
 
     context = {
         "has_any_technique_rows": ProblemTopicTechnique.objects.exists(),
-        "has_technique_source_rows": bool(q_scoped_tag_rows),
+        "has_technique_source_rows": data["has_source"],
         "technique_total": technique_total,
         "technique_row_total": technique_row_total,
         "technique_filtered_total": technique_filtered_total,
@@ -8917,16 +8864,23 @@ def topic_tag_analytics_view(request):
         "technique_reset_url": reverse("pages:topic_tag_dashboard"),
         "technique_scope_label": scope_label,
         "technique_stats": {
-            "contest_total": len(distinct_contests),
-            "domain_total": len(distinct_domains),
-            "topic_total": len(distinct_topics),
+            "contest_total": data["totals"]["contests"],
+            "domain_total": data["domain_total"],
+            "topic_total": data["totals"]["topics"],
             "average_techniques_per_problem": average_techniques_per_problem,
         },
         "technique_leader_rows": technique_leader_rows,
-        "technique_filter_options": technique_filter_options,
-        "technique_rows": tag_directory,
+        "technique_filter_options": data["options"],
+        "technique_rows": data["page"].object_list,
         "charts_payload": charts_payload,
     }
+    params = request.GET.copy()
+    params.pop("page", None)
+    context.update(
+        page_obj=data["page"], pagination_query=params.urlencode(),
+        technique_chart_is_capped=technique_total > TOPIC_CHART_POINT_LIMIT,
+        technique_sort=request.GET.get("sort", "problems"),
+    )
     return render(request, "pages/topic-tag-analytics.html", context)
 
 
