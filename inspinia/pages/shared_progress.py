@@ -15,6 +15,7 @@ PROGRESS_SECTIONS = {
     "techniques": "Technique coverage",
     "training": "Training roadmap",
 }
+COMPARISON_SECTION_LABELS = {"completions": "Completions", "techniques": "Techniques", "training": "Training"}
 
 
 def shared_progress_learners(viewer) -> list[dict]:
@@ -61,6 +62,9 @@ def shared_progress_context(viewer, *, learner: str, section: str) -> dict:
         "shared_progress_label": selected["label"],
         "shared_progress_learner": learner,
         "shared_progress_section": section,
+        "shared_progress_compare_url": (
+            shared_progress_comparison_url(section) if len(learners) == len(LEARNER_LABELS) else ""
+        ),
         "shared_progress_learners": [
             {**entry, "url": shared_progress_section_url(entry["slug"], section)} for entry in learners
         ],
@@ -73,3 +77,29 @@ def shared_progress_context(viewer, *, learner: str, section: str) -> dict:
 
 def shared_progress_section_url(learner: str, section: str) -> str:
     return reverse("pages:shared_progress_section", kwargs={"learner": learner, "section": section})
+
+
+def shared_progress_comparison_url(section: str) -> str:
+    return reverse("pages:shared_progress_comparison_section", kwargs={"section": section})
+
+
+def shared_progress_comparison_context(viewer, *, section: str) -> dict:
+    if section not in PROGRESS_SECTIONS:
+        raise Http404
+    learners = shared_progress_learners(viewer)
+    if not learners:
+        raise PermissionDenied
+    if len(learners) != len(LEARNER_LABELS):
+        raise Http404
+    return {
+        "shared_progress_is_comparison": True,
+        "shared_progress_section": section,
+        "shared_progress_compare_url": shared_progress_comparison_url(section),
+        "shared_progress_learners": [
+            {**entry, "url": shared_progress_section_url(entry["slug"], section)} for entry in learners
+        ],
+        "shared_progress_tabs": [
+            {"key": key, "label": label, "url": shared_progress_comparison_url(key)}
+            for key, label in COMPARISON_SECTION_LABELS.items()
+        ],
+    }

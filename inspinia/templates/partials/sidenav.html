@@ -75,6 +75,12 @@
                 <span class="menu-text">{{ learner.label }}'s progress</span>
             </a></li>
             {% endfor %}
+            {% if shared_progress_comparison_available %}
+            <li class="side-nav-item{% if shared_progress_is_comparison %} active{% endif %}"><a href="{% url 'pages:shared_progress_comparison' %}" class="side-nav-link{% if shared_progress_is_comparison %} active{% endif %}"{% if shared_progress_is_comparison %} aria-current="page"{% endif %}>
+                <span class="menu-icon"><i class="ti ti-arrows-diff"></i></span>
+                <span class="menu-text">Compare Alex &amp; Ben</span>
+            </a></li>
+            {% endif %}
             {% if not shared_progress_links %}
             {% include 'partials/sidenav-link.html' with route_name='pages:my_completion_progress_analytics' label='My progress' icon='chart-line' only %}
             {% include 'partials/sidenav-link.html' with route_name='pages:technique_dashboard' label='Technique progress' icon='tags' only %}

@@ -42,6 +42,7 @@ def training_progress_summary(user) -> dict:
         total = subtopic.material_total + subtopic.problem_total
         completed = subtopic.material_done + subtopic.problem_done
         row = {
+            "id": subtopic.pk,
             "title": subtopic.title,
             "total": total,
             "completed": completed,
@@ -49,7 +50,7 @@ def training_progress_summary(user) -> dict:
         }
         topic = topics.setdefault(
             subtopic.topic_id,
-            {"title": subtopic.topic.title, "subtopics": [], "total": 0, "completed": 0},
+            {"id": subtopic.topic_id, "title": subtopic.topic.title, "subtopics": [], "total": 0, "completed": 0},
         )
         topic["subtopics"].append(row)
         topic["total"] += total

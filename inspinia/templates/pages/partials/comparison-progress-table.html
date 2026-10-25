@@ -1,0 +1,18 @@
+<div class="table-responsive">
+  <table class="table table-sm table-hover align-middle mb-0">
+    <caption class="visually-hidden">Alex and Ben: {{ label|lower }} comparison</caption>
+    <thead><tr><th scope="col" class="w-50">{{ label }}</th><th scope="col" class="w-25">Alex</th><th scope="col" class="w-25">Ben</th></tr></thead>
+    <tbody>
+      {% for row in rows %}
+      {% firstof row.label row.title as progress_label %}
+      <tr>
+        <th scope="row">{{ progress_label }}</th>
+        <td>{% include 'pages/partials/comparison-progress-cell.html' with progress_row=row.alex learner_label='Alex' %}</td>
+        <td>{% include 'pages/partials/comparison-progress-cell.html' with progress_row=row.ben learner_label='Ben' %}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="3" class="text-muted py-3">No {{ label|lower }} are available yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

@@ -1,5 +1,6 @@
 from django.urls import path
 
+from inspinia.pages.shared_progress_views import shared_progress_comparison_view
 from inspinia.pages.shared_progress_views import shared_progress_view
 from inspinia.pages.views import archive_hub_view
 from inspinia.pages.views import completion_board_bulk_view
@@ -52,6 +53,12 @@ from inspinia.pages.views import user_solution_record_list_view
 app_name = "pages"
 
 urlpatterns = [
+    path("dashboard/progress/compare/", shared_progress_comparison_view, name="shared_progress_comparison"),
+    path(
+        "dashboard/progress/compare/<slug:section>/",
+        shared_progress_comparison_view,
+        name="shared_progress_comparison_section",
+    ),
     path("dashboard/progress/<slug:learner>/", shared_progress_view, name="shared_progress"),
     path(
         "dashboard/progress/<slug:learner>/<slug:section>/",

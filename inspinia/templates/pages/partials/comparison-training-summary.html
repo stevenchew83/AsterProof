@@ -1,0 +1,18 @@
+<div class="card h-100">
+  <div class="card-body">
+    <div class="d-flex align-items-center mb-3">
+      <span class="avatar-sm flex-shrink-0"><span class="avatar-title bg-primary-subtle text-primary rounded"><i class="ti ti-school fs-22" aria-hidden="true"></i></span></span>
+      <div class="flex-grow-1 ms-2">
+        <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">{{ label }}</p>
+        <h4 class="mb-0">Level {{ training.level.level_number }} · {{ training.level.name }}</h4>
+      </div>
+    </div>
+    <p class="mb-3">{{ training.points }} training points</p>
+    <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Next subtopic</p>
+    {% if training.next_subtopic %}
+    <p class="mb-0">{{ training.next_subtopic.title }} <span class="text-muted">· {{ training.next_subtopic.topic }}</span></p>
+    {% else %}
+    <p class="text-muted mb-0">No remaining published practice with materials or problems.</p>
+    {% endif %}
+  </div>
+</div>
