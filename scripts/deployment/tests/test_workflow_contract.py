@@ -6,6 +6,7 @@ import os
 import re
 import subprocess
 import sys
+import textwrap
 from datetime import UTC
 from datetime import datetime
 from pathlib import Path
@@ -31,6 +32,27 @@ WORKFLOWS = (
 SHA = "a" * 40
 DIGEST = "b" * 64
 ARTIFACT_SIZE = 4096
+
+
+@pytest.mark.parametrize("workflow", WORKFLOWS, ids=lambda path: path.name)
+def test_request_helper_keeps_masking_commands_out_of_redirected_json(tmp_path, workflow):
+    source = workflow.read_text()
+    match = re.search(r"(?ms)^ {10}send_request\(\) \{.*?^ {10}\}", source)
+    assert match is not None
+    helper = textwrap.dedent(match.group())
+    script = """set -e
+python() { printf 'opaque-frame\\n'; }
+request_token() { printf 'synthetic-token\\n'; }
+ssh() { cat > /dev/null; printf '%s\\n' '{"ok":true}'; }
+""" + helper + '\nsend_request preflight > "$1"\n'
+    evidence = tmp_path / "evidence.json"
+    result = subprocess.run(
+        ["/bin/bash", "-c", script, "protocol-test", str(evidence)],
+        check=True, capture_output=True, text=True,
+    )
+    assert json.loads(evidence.read_text()) == {"ok": True}
+    assert "synthetic-token" not in evidence.read_text()
+    assert "::add-mask::synthetic-token" in result.stderr
 
 
 def test_dispatch_requires_manual_current_main_exact_sha() -> None:

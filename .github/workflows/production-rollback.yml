@@ -189,7 +189,7 @@ jobs:
               --release-sha "$ROLLBACK_SHA" --artifact-digest "$ROLLBACK_DIGEST" \
               --target-marker "$TARGET_MARKER" --migration-class none)"
             token="$(request_token "$audience")"
-            echo "::add-mask::$token"
+            echo "::add-mask::$token" >&2
             ASTERPROOF_OIDC_TOKEN="$token" python -m scripts.deployment.validate_dispatch frame \
               --operation rollback --run-id "$GITHUB_RUN_ID" --deployment-id "$DEPLOYMENT_ID" \
               --workflow-sha "$WORKFLOW_SHA" \
