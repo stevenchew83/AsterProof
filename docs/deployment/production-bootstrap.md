@@ -76,6 +76,13 @@ setting. Verify baseline checks in a matching `oneshot` context; a transient uni
 with different identity or output settings is insufficient. Delegated user
 processes must have zero effective capabilities and retain `NoNewPrivileges`.
 
+Generated runtime aliases such as a virtualenv's `lib64` use internal hardlinks
+to regular files within the same release. This avoids storing a second copy of
+all installed packages while preserving the no-symlink, read-only/root-owned
+runtime boundary. Archive symlinks and hardlinks remain prohibited. Measure the
+fully prepared runtime during bootstrap and preserve the target's free-space
+reserve; archive size alone does not establish deployment capacity.
+
 The audit validates the reviewed repository origin, target runtime/platform, disk threshold, service/proxy/scheduler paths, TeX runtime, OIDC discovery/JWKS reachability, persistent boundaries, and installed authority hashes. Before first installation, only `marker_matches`, `migration_audit_configured`, and `trusted_authority_matches` may be false; every other check must be true.
 
 Before locking the database identity, run the fixed read-only identity command with the reviewed audit role and a placeholder hash, then copy only its returned hash into the final reviewed configuration:

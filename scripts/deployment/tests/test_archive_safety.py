@@ -131,3 +131,21 @@ def test_prepared_runtime_materializes_internal_symlinks(tmp_path: Path) -> None
 
     assert not link.is_symlink()
     assert (link / "package.py").read_text() == "VALUE = 1\n"
+    assert (link / "package.py").stat().st_ino == target.stat().st_ino
+    expected_link_count = 2
+    assert target.stat().st_nlink == expected_link_count
+
+
+def test_prepared_runtime_file_aliases_share_only_internal_regular_files(tmp_path: Path) -> None:
+    destination = tmp_path / "release"
+    destination.mkdir()
+    target = destination / "python3"
+    target.write_bytes(b"interpreter")
+    link = destination / "python"
+    link.symlink_to("python3")
+
+    _materialize_internal_symlinks(destination)
+
+    assert not link.is_symlink()
+    assert link.read_bytes() == b"interpreter"
+    assert link.stat().st_ino == target.stat().st_ino
