@@ -5,8 +5,8 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
-User=root
-Group=root
+# Use the system manager's default root identity. Explicit User=root on systemd 255
+# with seccomp can discard CAP_SETUID, which is needed to delegate to fixed users.
 ExecStart=/usr/local/libexec/asterproof-operation-worker --contract /etc/asterproof/deployment-target.json --run-id %i
 NoNewPrivileges=yes
 PrivateTmp=yes

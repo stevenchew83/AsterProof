@@ -16,6 +16,21 @@ from scripts.deployment.bootstrap import render_authorized_key
 from scripts.deployment.target import TargetContract
 
 
+def test_operation_unit_preserves_default_root_delegation_and_sandbox():
+    template = Path(__file__).resolve().parents[3] / "deployment/systemd/asterproof-deploy-operation@.service.in"
+    text = template.read_text()
+    assert "Type=oneshot\n" in text
+    assert "\nUser=" not in text
+    assert "\nGroup=" not in text
+    assert "AmbientCapabilities=" not in text
+    for setting in (
+        "NoNewPrivileges=yes", "ProtectHome=yes", "ProtectSystem=strict",
+        "RestrictNamespaces=yes", "MemoryDenyWriteExecute=yes",
+        "SystemCallArchitectures=native", "ReadWritePaths=@RELEASE_ROOT@",
+    ):
+        assert setting + "\n" in text
+
+
 def _materialize_test_snapshot(source: Path, _sha: str, destination: Path) -> None:
     (destination / "scripts").mkdir(parents=True)
     shutil.copy2(source / "scripts/__init__.py", destination / "scripts/__init__.py")

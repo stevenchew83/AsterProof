@@ -67,6 +67,15 @@ Before separately authorizing installation, review a literal diff of all propose
 
 Validate rendered systemd and sudoers configuration with platform-native syntax checks before installation. Keep the previous service/proxy/scheduler definitions available through the independently approved host rollback procedure. An application release must never replace its own gateway, helper, unit, sudoers entry, contract, or marker.
 
+The operation unit uses the system service manager's default root identity. Keep
+`User=` and `Group=` omitted: on systemd 255, explicit `User=root` combined with
+seccomp setup can drop `CAP_SETUID`, preventing `runuser` from delegating to the
+existing build/audit users. The [systemd implementation](https://github.com/systemd/systemd/blob/v255/src/core/exec-invoke.c)
+contains this capability-drop path. Retain `NoNewPrivileges=yes` and every sandbox
+setting. Verify baseline checks in a matching `oneshot` context; a transient unit
+with different identity or output settings is insufficient. Delegated user
+processes must have zero effective capabilities and retain `NoNewPrivileges`.
+
 The audit validates the reviewed repository origin, target runtime/platform, disk threshold, service/proxy/scheduler paths, TeX runtime, OIDC discovery/JWKS reachability, persistent boundaries, and installed authority hashes. Before first installation, only `marker_matches`, `migration_audit_configured`, and `trusted_authority_matches` may be false; every other check must be true.
 
 Before locking the database identity, run the fixed read-only identity command with the reviewed audit role and a placeholder hash, then copy only its returned hash into the final reviewed configuration:
