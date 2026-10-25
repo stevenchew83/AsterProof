@@ -89,6 +89,16 @@ def test_shared_completion_export_is_scoped_to_subject(client, learners, complet
     assert "other@example.com" not in csv
 
 
+def test_shared_heading_uses_learner_label_when_display_name_is_blank(client, learners):
+    ben = learners["ben"]
+    ben.name = ""
+    ben.save(update_fields=["name"])
+    client.force_login(learners["alex"])
+    response = client.get(progress_url("ben"))
+    assert response.status_code == HTTPStatus.OK
+    assert "Viewing Ben · Read-only progress" in response.content.decode()
+
+
 @pytest.mark.parametrize("section", ["completions", "techniques", "training"])
 @pytest.mark.parametrize("role", [User.Role.NORMAL, User.Role.ADMIN])
 def test_unrelated_accounts_cannot_access_shared_progress(client, learners, section, role):

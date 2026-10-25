@@ -4,7 +4,7 @@
       <div>
         <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Our progress</p>
         <h3 class="mb-1">{{ shared_progress_label }}'s progress</h3>
-        <p class="text-muted mb-0 fs-sm">Viewing {{ shared_progress_subject.name }} · Read-only progress</p>
+        <p class="text-muted mb-0 fs-sm">Viewing {{ shared_progress_subject.name|default:shared_progress_label }} · Read-only progress</p>
       </div>
       <nav class="btn-group" aria-label="Choose learner">
         {% for learner in shared_progress_learners %}
