@@ -22,6 +22,10 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser) -> None:
         parser.add_argument(
+            "--catalog-only", action="store_true",
+            help="Recompute technique facts without refreshing the independent duplicate report.",
+        )
+        parser.add_argument(
             "--statement-id",
             action="append",
             dest="statement_ids",
@@ -51,6 +55,8 @@ class Command(BaseCommand):
     def handle(self, *args, **options) -> None:
         started = monotonic()
         self._handle_catalog(*args, **options)
+        if options.get("catalog_only"):
+            return
         try:
             if refresh_statement_duplicate_snapshot(max_seconds=max(0, 25 * 60 - (monotonic() - started))):
                 report = cache.get(DUPLICATE_REPORT_MANIFEST_KEY)

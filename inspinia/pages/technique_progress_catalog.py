@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 from django.db.models import Count
 from django.utils import timezone
 
+from inspinia.pages.algebra_tag_aliases import search_aliases
 from inspinia.pages.models import TOPIC_TAG_LAYER_FIELDS
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemTopicTechnique
@@ -165,6 +166,7 @@ def _facts_for_statement(statement: ContestProblemStatement) -> list[TechniquePr
             canonical_subtopic,
             main_topic_label,
             *topic_labels,
+            *search_aliases(tag, topic=effective_topic(statement), active=statement.is_active),
         }
         canonical_subtopics = [canonical_subtopic] if canonical_subtopic else []
         main_topics = _dedupe_preserve_order([main_topic_label, *topic_labels])
@@ -241,6 +243,7 @@ def _statement_tag_rows(statement_id: int) -> list[dict[str, object]]:
             "main_topic",
             "canonical_subtopic",
             "normalization_status",
+            "raw_tag",
             *TOPIC_TAG_LAYER_FIELDS,
         )
         .order_by("technique", "id")
@@ -264,6 +267,7 @@ def _problem_tag_rows(record_id: int) -> list[dict[str, object]]:
             "main_topic",
             "canonical_subtopic",
             "normalization_status",
+            "raw_tag",
             *TOPIC_TAG_LAYER_FIELDS,
         )
         .order_by("technique", "id")

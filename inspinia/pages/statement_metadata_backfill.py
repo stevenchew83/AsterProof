@@ -11,6 +11,10 @@ from django.db import IntegrityError
 from django.db import models
 from django.db import transaction
 
+from inspinia.pages.algebra_tag_aliases import is_algebra_scope
+from inspinia.pages.algebra_tag_aliases import merge_raw_sources
+from inspinia.pages.algebra_tag_imports import algebra_import_session
+from inspinia.pages.algebra_tag_imports import normalization_active
 from inspinia.pages.contest_names import normalize_contest_name
 from inspinia.pages.models import TOPIC_TAG_LAYER_FIELDS
 from inspinia.pages.models import ContestProblemStatement
@@ -19,13 +23,11 @@ from inspinia.pages.models import ProblemTopicTechnique
 from inspinia.pages.models import StatementTopicTechnique
 from inspinia.pages.models import normalize_topic_tag_list
 from inspinia.pages.problem_import import dataframe_to_safe_excel_bytes
+from inspinia.pages.problem_import import prepare_topic_tag_entries
 from inspinia.pages.problem_import import sync_problem_topic_techniques
 from inspinia.pages.statement_analytics_sync import sync_statement_analytics_from_linked_problem
 from inspinia.pages.subtopic_cleanup import build_unmatched_subtopic_review
-from inspinia.pages.subtopic_cleanup import classified_topic_tag_entries
-from inspinia.pages.topic_tags_parse import domains_dedup_preserve_order
 from inspinia.pages.topic_tags_parse import merge_domain_lists
-from inspinia.pages.topic_tags_parse import parse_topic_tags_cell
 
 STATEMENT_METADATA_EXPORT_COLUMNS = [
     "STATEMENT UUID",
@@ -930,8 +932,14 @@ def _upsert_statement_topic_technique(
         StatementTopicTechnique.objects.filter(pk__in=duplicate_ids).delete()
 
     merged_domains = merge_domain_lists(merged_domains, domain_list)
-    merged_raw_tags = _merge_statement_raw_tag_values(
-        [obj.raw_tag or obj.technique, *(tag.raw_tag or tag.technique for tag in matching_tags[1:]), raw_tag],
+    raw_values = [obj.raw_tag or obj.technique, *(tag.raw_tag or tag.technique for tag in matching_tags[1:]), raw_tag]
+    topic = str(statement.topic or "").strip() or (
+        statement.linked_problem.topic if statement.linked_problem_id else ""
+    )
+    merged_raw_tags = (
+        merge_raw_sources(raw_values)
+        if is_algebra_scope(topic, active=statement.is_active) and normalization_active()
+        else _merge_statement_raw_tag_values(raw_values)
     )
     merged_layer_values = {
         field_name: _merge_statement_topic_tag_layer_values([
@@ -989,24 +997,24 @@ def _merge_statement_topic_tag_layer_values(values: list) -> list[str]:
     return normalize_topic_tag_list(merged_values)
 
 
+@transaction.atomic
+@algebra_import_session()
 def sync_statement_topic_techniques(
     *,
     statement: ContestProblemStatement,
     raw_topic_tags: str | None,
     replace_tags: bool,
 ) -> int:
-    parsed_entries: list[dict[str, object]] = []
-    for item in parse_topic_tags_cell(raw_topic_tags):
-        technique = (item.get("technique") or "").strip()
-        if not technique:
-            continue
-        parsed_entries.extend(
-            classified_topic_tag_entries(
-                technique=technique,
-                domains=domains_dedup_preserve_order(item.get("domains") or []),
-                raw_tag=str(item.get("raw_tag") or technique),
-            ),
-        )
+    topic = str(statement.topic or "").strip() or (
+        statement.linked_problem.topic if statement.linked_problem_id else ""
+    )
+    parsed_entries = prepare_topic_tag_entries(
+        raw_topic_tags,
+        topic=topic,
+        active=statement.is_active,
+        problem_uuid=str(statement.problem_uuid),
+        canonicalize=normalization_active(),
+    )
 
     if replace_tags:
         StatementTopicTechnique.objects.filter(statement=statement).delete()
@@ -1156,6 +1164,7 @@ def _import_metadata_link_statement_and_sync(
 
 
 @transaction.atomic
+@algebra_import_session()
 def import_statement_metadata_dataframe(
     df: pd.DataFrame,
     *,
