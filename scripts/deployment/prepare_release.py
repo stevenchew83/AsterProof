@@ -13,6 +13,14 @@ from scripts.deployment.archive_safety import safe_extract
 
 def _materialize_internal_symlinks(destination: Path) -> None:
     root = destination.resolve(strict=True)
+
+    def link_internal_file(source: str, target: str) -> str:
+        path = Path(source)
+        if path.is_symlink() or not path.is_file() or root not in path.resolve(strict=True).parents:
+            raise ValueError("runtime alias source must be a regular file within the release")
+        os.link(path, target, follow_symlinks=False)
+        return target
+
     for path in sorted(destination.rglob("*"), key=lambda item: len(item.parts), reverse=True):
         if not path.is_symlink():
             continue
@@ -24,9 +32,9 @@ def _materialize_internal_symlinks(destination: Path) -> None:
             raise ValueError("prepared release symlink escapes the release")
         path.unlink()
         if target.is_dir():
-            shutil.copytree(target, path, symlinks=False)
+            shutil.copytree(target, path, symlinks=False, copy_function=link_internal_file)
         elif target.is_file():
-            shutil.copy2(target, path)
+            link_internal_file(str(target), str(path))
         else:
             raise ValueError("prepared release symlink target is invalid")
 
