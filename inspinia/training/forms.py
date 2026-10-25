@@ -20,6 +20,8 @@ class BootstrapModelForm(forms.ModelForm):
                 css_class = "form-select"
             current_class = field.widget.attrs.get("class", "")
             field.widget.attrs["class"] = f"{current_class} {css_class}".strip()
+        if "subtopic" in self.fields:
+            self.fields["subtopic"].queryset = self.fields["subtopic"].queryset.select_related("topic")
 
 
 class TopicForm(BootstrapModelForm):

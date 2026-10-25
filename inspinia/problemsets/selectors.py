@@ -110,7 +110,7 @@ def discover_problem_lists_queryset(search_text: str = "", *, include_private: b
     if not include_private:
         base_queryset = base_queryset.filter(visibility=ProblemList.Visibility.PUBLIC)
     queryset = vote_annotations(
-        base_queryset.select_related("author").prefetch_related("items__problem"),
+        base_queryset.select_related("author"),
     )
 
     search_text = (search_text or "").strip()
@@ -137,7 +137,7 @@ def public_problem_lists_queryset(search_text: str = ""):
 
 def my_problem_lists_queryset(user):
     return vote_annotations(
-        ProblemList.objects.filter(author=user).select_related("author").prefetch_related("items__problem"),
+        ProblemList.objects.filter(author=user).select_related("author"),
     ).order_by("-updated_at", "-id")
 
 
@@ -159,7 +159,9 @@ def problem_list_summary_rows(problem_lists: list[ProblemList]) -> list[dict]:
             "detail_url": reverse("problemsets:detail", args=[problem_list.list_uuid]),
             "downvote_count": getattr(problem_list, "downvote_count", 0),
             "edit_url": reverse("problemsets:edit", args=[problem_list.list_uuid]),
-            "item_count": getattr(problem_list, "item_count", problem_list.items.count()),
+            "item_count": (
+                problem_list.item_count if hasattr(problem_list, "item_count") else problem_list.items.count()
+            ),
             "public_url": problem_list.public_url(),
             "score": getattr(problem_list, "score", 0),
             "share_token": str(problem_list.share_token),

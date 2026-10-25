@@ -3,9 +3,13 @@ from http import HTTPStatus
 import pytest
 from django.urls import reverse
 
+from inspinia.training.forms import CheckpointProblemForm
+from inspinia.training.forms import MaterialForm
+from inspinia.training.forms import ProblemForm
 from inspinia.training.markdown import render_markdown
 from inspinia.training.models import LevelThreshold
 from inspinia.training.models import Material
+from inspinia.training.models import MaterialCompletion
 from inspinia.training.models import PointLedger
 from inspinia.training.models import Problem
 from inspinia.training.models import Submission
@@ -14,10 +18,12 @@ from inspinia.training.models import Topic
 from inspinia.training.services import complete_material
 from inspinia.training.services import get_next_level
 from inspinia.training.services import get_subtopic_progress
+from inspinia.training.services import get_subtopic_progress_map
 from inspinia.training.services import get_topic_progress
 from inspinia.training.services import get_user_current_level
 from inspinia.training.services import get_user_total_points
 from inspinia.training.services import review_submission
+from inspinia.training.views import _training_overview_context
 from inspinia.users.models import User
 from inspinia.users.tests.factories import UserFactory
 
@@ -475,6 +481,134 @@ def test_progress_counts_completed_materials_and_accepted_problem_points():
     assert subtopic_progress.completion_percentage == FULL_COMPLETION_PERCENTAGE
     assert topic_progress.earned_points == earned_points
     assert topic_progress.available_points == available_points
+
+
+def test_batched_progress_preserves_published_content_and_duplicate_submission_points(django_assert_num_queries):
+    student = UserFactory()
+    _topic, subtopic, material, problem = _topic_tree()
+    empty_subtopic = Subtopic.objects.create(topic=subtopic.topic, title="Empty", slug="empty")
+    complete_material(user=student, material=material)
+    MaterialCompletion.objects.filter(user=student, material=material).update(points_awarded=7)
+    Submission.objects.bulk_create(
+        [
+            Submission(user=student, problem=problem, status=Submission.Status.ACCEPTED, awarded_points=40),
+            Submission(user=student, problem=problem, status=Submission.Status.PARTIALLY_ACCEPTED, awarded_points=15),
+            Submission(user=student, problem=problem, status=Submission.Status.REJECTED, awarded_points=99),
+            Submission(user=UserFactory(), problem=problem, status=Submission.Status.ACCEPTED, awarded_points=40),
+        ],
+    )
+    hidden_material = Material.objects.create(
+        subtopic=subtopic,
+        title="Hidden",
+        slug="hidden",
+        is_published=False,
+        completion_points=99,
+    )
+    complete_material(user=student, material=hidden_material)
+    hidden_problem = Problem.objects.create(
+        subtopic=subtopic,
+        title="Hidden",
+        slug="hidden",
+        is_published=False,
+        max_points=99,
+    )
+    Submission.objects.create(
+        user=student,
+        problem=hidden_problem,
+        status=Submission.Status.ACCEPTED,
+        awarded_points=99,
+    )
+
+    with django_assert_num_queries(4):
+        progress = get_subtopic_progress_map(student, [subtopic.id, empty_subtopic.id])
+
+    completed = progress[subtopic.id]
+    assert completed.completed_materials == completed.total_materials == 1
+    assert completed.accepted_problems == completed.total_problems == 1
+    expected_earned_points = 7 + 40 + PARTIAL_ACCEPTANCE_POINTS
+    assert completed.earned_points == expected_earned_points
+    assert completed.available_points == material.completion_points + problem.max_points
+    assert completed.completion_percentage == FULL_COMPLETION_PERCENTAGE
+    assert progress[empty_subtopic.id].completion_percentage == 0
+    assert progress[empty_subtopic.id].available_points == 0
+    with django_assert_num_queries(0):
+        assert get_subtopic_progress_map(student, []) == {}
+
+
+def test_training_overview_query_budget_is_independent_of_topic_and_subtopic_count(django_assert_num_queries):
+    Topic.objects.all().delete()
+    student = UserFactory()
+    _topic, subtopic, material, problem = _topic_tree()
+    complete_material(user=student, material=material)
+    Submission.objects.create(user=student, problem=problem, status=Submission.Status.ACCEPTED)
+    with django_assert_num_queries(7):
+        initial_context = _training_overview_context(student)
+    assert initial_context["recommended_subtopic"] is None
+
+    next_topic = Topic.objects.create(title="Next", slug="next", order=2)
+    empty_subtopic = Subtopic.objects.create(topic=next_topic, title="Empty next", slug="empty-next", order=0)
+    for index in range(12):
+        topic = Topic.objects.create(title=f"Topic {index}", slug=f"topic-{index}", order=index + 3)
+        Subtopic.objects.bulk_create(
+            [Subtopic(topic=topic, title=f"Subtopic {number}", slug=f"subtopic-{number}") for number in range(8)],
+        )
+    with django_assert_num_queries(7):
+        expanded_context = _training_overview_context(student)
+        assert expanded_context["recommended_subtopic"].topic.title == next_topic.title
+
+    assert expanded_context["recommended_subtopic"].id == empty_subtopic.id
+    assert expanded_context["topic_rows"][0]["progress"] == initial_context["topic_rows"][0]["progress"]
+    assert get_subtopic_progress(student, subtopic).completion_percentage == FULL_COMPLETION_PERCENTAGE
+
+
+def test_training_overview_preserves_student_and_trainer_publication_rules():
+    Topic.objects.all().delete()
+    student = UserFactory(role=User.Role.NORMAL)
+    trainer = UserFactory(role=User.Role.TRAINER)
+    topic, _subtopic, material, problem = _topic_tree()
+    complete_material(user=student, material=material)
+    Submission.objects.create(user=student, problem=problem, status=Submission.Status.ACCEPTED)
+    hidden_subtopic = Subtopic.objects.create(
+        topic=topic,
+        title="Hidden first",
+        slug="hidden-first",
+        order=0,
+        is_published=False,
+    )
+    Material.objects.create(subtopic=hidden_subtopic, title="Visible material", slug="visible-material")
+    hidden_topic = Topic.objects.create(title="Hidden topic", slug="hidden-topic", is_published=False)
+    Subtopic.objects.create(topic=hidden_topic, title="Published child", slug="published-child")
+
+    student_context = _training_overview_context(student)
+    assert [row["title"] for row in student_context["topic_rows"]] == [topic.title]
+    assert student_context["topic_rows"][0]["subtopic_count"] == 1
+    assert student_context["recommended_subtopic"] is None
+
+    trainer_context = _training_overview_context(trainer)
+    rows_by_title = {row["title"]: row for row in trainer_context["topic_rows"]}
+    assert set(rows_by_title) == {topic.title, hidden_topic.title}
+    expected_visible_subtopic_count = 2
+    assert rows_by_title[topic.title]["subtopic_count"] == expected_visible_subtopic_count
+    assert rows_by_title[topic.title]["progress"].total_materials == 1
+    assert rows_by_title[topic.title]["progress"].available_points == material.completion_points + problem.max_points
+    assert trainer_context["recommended_subtopic"].topic_id == hidden_topic.id
+
+
+@pytest.mark.parametrize("form_class", [MaterialForm, ProblemForm, CheckpointProblemForm])
+def test_training_subtopic_choices_do_not_query_each_topic(form_class, django_assert_num_queries):
+    topic, _subtopic, _material, _problem = _topic_tree()
+    form = form_class()
+    with django_assert_num_queries(1):
+        widget = str(form["subtopic"])
+    assert topic.title in widget
+
+
+def test_level_helpers_reuse_supplied_total_points(django_assert_num_queries):
+    _thresholds()
+    student = UserFactory()
+    with django_assert_num_queries(2):
+        assert get_user_current_level(student, total_points=INITIAL_LEDGER_POINTS).name == "Fibonacci Apprentice"
+        assert get_next_level(student, total_points=INITIAL_LEDGER_POINTS).name == "Euler Solver"
 
 
 def test_sidebar_shows_role_appropriate_training_links(client):

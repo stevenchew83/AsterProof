@@ -33,9 +33,11 @@ from inspinia.training.models import SubmissionAttachment
 from inspinia.training.models import SubmissionComment
 from inspinia.training.models import Subtopic
 from inspinia.training.models import Topic
+from inspinia.training.services import combine_progress_summaries
 from inspinia.training.services import complete_material
 from inspinia.training.services import get_next_level
 from inspinia.training.services import get_subtopic_progress
+from inspinia.training.services import get_subtopic_progress_map
 from inspinia.training.services import get_topic_progress
 from inspinia.training.services import get_user_current_level
 from inspinia.training.services import get_user_total_points
@@ -121,16 +123,28 @@ def _level_progress(total_points: int, current_level: LevelThreshold, next_level
     }
 
 
-def _topic_rows_for_user(user) -> list[dict]:
+def _training_overview_context(user) -> dict:
+    topics = list(_topic_queryset_for_user(user))
+    can_view_unpublished = _can_view_unpublished(user)
+    visible_subtopics = [
+        subtopic
+        for topic in topics
+        for subtopic in topic.subtopics.all()
+        if can_view_unpublished or (topic.is_published and subtopic.is_published)
+    ]
+    progress_by_subtopic = get_subtopic_progress_map(user, [subtopic.id for subtopic in visible_subtopics])
     rows = []
-    for topic in _topic_queryset_for_user(user):
+    for topic in topics:
         subtopics = topic.subtopics.all()
-        visible_subtopics = [
+        topic_visible_subtopics = [
             subtopic
             for subtopic in subtopics
-            if _can_view_unpublished(user) or (topic.is_published and subtopic.is_published)
+            if can_view_unpublished or (topic.is_published and subtopic.is_published)
         ]
-        progress = get_topic_progress(user, topic)
+        # Topic progress has always counted only published subtopics, including for trainers.
+        progress = combine_progress_summaries(
+            progress_by_subtopic[subtopic.id] for subtopic in subtopics if subtopic.is_published
+        )
         available_points = progress.available_points
         rows.append(
             {
@@ -138,37 +152,46 @@ def _topic_rows_for_user(user) -> list[dict]:
                 "description": topic.description,
                 "is_published": topic.is_published,
                 "progress": progress,
-                "subtopic_count": len(visible_subtopics),
+                "subtopic_count": len(topic_visible_subtopics),
                 "title": topic.title,
                 "url": reverse("training:topic_detail", args=[topic.slug]),
             },
         )
-    return rows
-
-
-def _recommended_subtopic(user) -> Subtopic | None:
-    for subtopic in _subtopic_queryset_for_user(user):
-        if get_subtopic_progress(user, subtopic).completion_percentage < FULL_PROGRESS_PERCENTAGE:
-            return subtopic
-    return None
+    recommendation = next(
+        (
+            subtopic
+            for subtopic in _subtopic_queryset_for_user(user)
+            if progress_by_subtopic[subtopic.id].completion_percentage < FULL_PROGRESS_PERCENTAGE
+        ),
+        None,
+    )
+    return {"topic_rows": rows, "recommended_subtopic": recommendation}
 
 
 @login_required
 def dashboard_view(request):
     total_points = get_user_total_points(request.user)
-    current_level = get_user_current_level(request.user)
-    next_level = get_next_level(request.user)
+    current_level = get_user_current_level(request.user, total_points=total_points)
+    next_level = get_next_level(request.user, total_points=total_points)
     submissions = (
         Submission.objects.filter(user=request.user)
         .select_related("problem", "problem__subtopic", "problem__subtopic__topic")
+        .defer("solution_markdown", "problem__statement_markdown", "problem__official_solution_markdown")
         .order_by("-updated_at", "-id")
     )
     recent_comments = (
         SubmissionComment.objects.filter(submission__user=request.user)
         .select_related("author", "submission", "submission__problem")
+        .defer(
+            "body_markdown",
+            "submission__solution_markdown",
+            "submission__problem__statement_markdown",
+            "submission__problem__official_solution_markdown",
+        )
         .order_by("-created_at", "-id")[:5]
     )
-    recommendation = _recommended_subtopic(request.user)
+    overview_context = _training_overview_context(request.user)
+    recommendation = overview_context["recommended_subtopic"]
     return render(
         request,
         "training/dashboard.html",
@@ -184,13 +207,12 @@ def dashboard_view(request):
                 ],
             )[:6],
             "recent_comments": recent_comments,
-            "recommended_subtopic": recommendation,
+            **overview_context,
             "recommended_subtopic_url": (
                 reverse("training:subtopic_detail", args=[recommendation.topic.slug, recommendation.slug])
                 if recommendation is not None
                 else ""
             ),
-            "topic_rows": _topic_rows_for_user(request.user),
             "total_points": total_points,
         },
     )
@@ -198,7 +220,7 @@ def dashboard_view(request):
 
 @login_required
 def roadmap_view(request):
-    return render(request, "training/roadmap.html", {"topic_rows": _topic_rows_for_user(request.user)})
+    return render(request, "training/roadmap.html", _training_overview_context(request.user))
 
 
 @login_required
@@ -206,6 +228,7 @@ def my_submissions_view(request):
     submissions = (
         Submission.objects.filter(user=request.user)
         .select_related("problem", "problem__subtopic", "problem__subtopic__topic")
+        .defer("solution_markdown", "problem__statement_markdown", "problem__official_solution_markdown")
         .order_by("-updated_at", "-id")
     )
     return render(request, "training/my_submissions.html", {"submissions": submissions})

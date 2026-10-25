@@ -10,6 +10,8 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import IntegrityError
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
 from PIL import Image
@@ -216,6 +218,23 @@ def test_my_solution_list_shows_only_current_users_solutions(client):
     assert reverse("solutions:problem_solution_create") in response_html
     assert "My draft" in response_html
     assert "Other published solution" not in response_html
+
+
+def test_my_solution_list_counts_blocks_without_reading_proof_bodies(client):
+    user = UserFactory()
+    client.force_login(user)
+    _solution_with_blocks(
+        problem=_problem(), author=user,
+        blocks=[("Idea", "A large proof body. " * 1000, "idea"), ("Proof", "Done.", "proof")],
+    )
+    _solution_with_blocks(problem=_problem(year=2025), author=user)
+
+    with CaptureQueriesContext(connection) as queries:
+        response = client.get(reverse("solutions:my_solution_list"))
+
+    assert response.status_code == HTTPStatus.OK
+    assert sorted(row["block_count"] for row in response.context["my_solution_rows"]) == [0, 2]
+    assert all('"body_source"' not in query["sql"] for query in queries)
 
 
 def test_problem_solution_create_view_lists_only_statement_backed_problems(client):

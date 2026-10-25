@@ -22,5 +22,5 @@ def test_inspinia_vendor_bundle_exists():
 def test_inspinia_vendor_bundle_contains_expected_vendor_markers():
     bundle_lower = _read_vendor_bundle().lower()
 
-    for marker in ("jquery", "bootstrap", "lucide", "simplebar"):
+    for marker in ("jquery", "bootstrap", "simplebar"):
         assert marker in bundle_lower

@@ -6,7 +6,7 @@ GitHub Actions is the sole normal authority for changing AsterProof production. 
 
 Before dispatch, require all of the following:
 
-- the pull request is merged and its **CI / verify** check succeeded;
+- the pull request is merged and its **CI / verify** check succeeded, unless the owner explicitly authorized a release-scoped CI exception under [GitHub governance](github-administration.md);
 - the requested SHA is the current `main` SHA and is 40 lowercase hexadecimal characters;
 - [GitHub governance](github-administration.md) has been read back successfully;
 - the target is `READY` under [production bootstrap](production-bootstrap.md);
@@ -42,6 +42,14 @@ Subsequent disclosure and deployment stages consume that same verified artifact.
 All existing tests remain available; no production packaging runs for ordinary
 PRs. Shared changes may also require the complete suite during PR verification.
 Deploy and rollback remain manual and retain their production environment gate.
+
+An owner-authorized CI exception may set the manual dispatch input `skip_ci=true`.
+This skips installation and execution of the automated quality suite and records
+the exception in the workflow summary. Production lock validation, reproducible
+packaging, static checks, artifact attestation, migration disclosure, the protected
+environment, preflight, activation, and postflight remain mandatory. Record the
+owner's request, exact release SHA, and available local verification in the release
+record. The default remains `skip_ci=false`.
 
 Packaging verifies downloads against `requirements/production.lock`. The pinned
 `django-allauth` release is source-only, so Actions builds its wheel; all other

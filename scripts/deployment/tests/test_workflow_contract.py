@@ -390,6 +390,32 @@ def test_deploy_workflow_revalidates_main_before_any_ssh_secret_reference() -> N
     assert "migration-disclosure" in text
 
 
+def test_ci_skip_defaults_off_and_only_skips_automated_quality_checks() -> None:
+    text = WORKFLOWS[0].read_text()
+    input_block = text.split("      skip_ci:\n", 1)[1].split("      initial_adoption:\n", 1)[0]
+    assert "default: false" in input_block
+    assert "type: boolean" in input_block
+    quality_step = text.split("      - name: Run automated quality checks\n", 1)[1].split("      - name:", 1)[0]
+    assert "if: ${{ !inputs.skip_ci }}" in quality_step
+    assert ".release-quality/bin/python -m pytest" in quality_step
+    lock_step = text.split("      - name: Validate production lock\n", 1)[1].split("      - name:", 1)[0]
+    assert "--verify-resolution" in lock_step
+    assert "if:" not in lock_step
+    for step_name in (
+        "Build binary wheelhouse and offline runtime",
+        "Build production static files",
+        "Verify static manifest and representative assets",
+        "Build immutable release",
+        "Attest immutable release archive",
+        "Verify digest and attestation policy",
+        "Preflight, receive, and submit durable deployment",
+    ):
+        step = text.split(f"      - name: {step_name}\n", 1)[1].split("      - name:", 1)[0]
+        assert "inputs.skip_ci" not in step
+    assert "Automated quality checks were explicitly skipped" in text
+    assert "Automated quality checks skipped:" in text
+
+
 def test_initial_adoption_is_explicit_and_revalidated_after_environment_approval() -> None:
     text = WORKFLOWS[0].read_text()
 

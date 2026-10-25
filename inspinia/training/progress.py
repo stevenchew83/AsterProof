@@ -58,9 +58,10 @@ def training_progress_summary(user) -> dict:
             next_subtopic = {"title": subtopic.title, "topic": subtopic.topic.title}
     for topic in topics.values():
         topic["percent"] = round(topic["completed"] / topic["total"] * 100) if topic["total"] else 0
+    total_points = get_user_total_points(user)
     return {
         "topics": list(topics.values()),
         "next_subtopic": next_subtopic,
-        "level": get_user_current_level(user),
-        "points": get_user_total_points(user),
+        "level": get_user_current_level(user, total_points=total_points),
+        "points": total_points,
     }

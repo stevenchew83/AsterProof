@@ -291,12 +291,14 @@ def _solution_reference_url(solution: ProblemSolution) -> str:
 def _solution_card_rows(solutions: list[ProblemSolution]) -> list[dict]:
     rows = []
     for solution in solutions:
+        blocks = [] if hasattr(solution, "block_count") else list(solution.blocks.all())
         problem_url = reverse("solutions:problem_solution_list", args=[solution.problem.problem_uuid])
         rows.append(
             {
                 "anchor": f"solution-{solution.id}",
                 "author_label": solution.author.name or solution.author.email,
-                "blocks": list(solution.blocks.all()),
+                "blocks": blocks,
+                "block_count": solution.block_count if hasattr(solution, "block_count") else len(blocks),
                 "edit_url": reverse("solutions:problem_solution_edit", args=[solution.problem.problem_uuid]),
                 "id": solution.id,
                 "is_published": solution.status == ProblemSolution.Status.PUBLISHED,
@@ -741,7 +743,7 @@ def my_solution_list_view(request):
     solutions = list(
         ProblemSolution.objects.filter(author=request.user)
         .select_related("problem", "author")
-        .prefetch_related(_problem_solution_prefetch())
+        .annotate(block_count=Count("blocks"))
         .order_by("-updated_at", "-id"),
     )
     status_counts = Counter(solution.status for solution in solutions)

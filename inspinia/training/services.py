@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from django.core.exceptions import PermissionDenied
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.db.models import Count
 from django.db.models import Sum
 from django.utils import timezone
 
@@ -42,16 +43,16 @@ def get_user_total_points(user_or_id) -> int:
     return int(total or 0)
 
 
-def get_user_current_level(user_or_id) -> LevelThreshold:
-    total = get_user_total_points(user_or_id)
+def get_user_current_level(user_or_id, *, total_points: int | None = None) -> LevelThreshold:
+    total = get_user_total_points(user_or_id) if total_points is None else total_points
     threshold = LevelThreshold.objects.filter(minimum_points__lte=total).order_by("-minimum_points").first()
     if threshold is not None:
         return threshold
     return LevelThreshold(level_number=1, name="Euclid Initiate", minimum_points=0)
 
 
-def get_next_level(user_or_id) -> LevelThreshold | None:
-    total = get_user_total_points(user_or_id)
+def get_next_level(user_or_id, *, total_points: int | None = None) -> LevelThreshold | None:
+    total = get_user_total_points(user_or_id) if total_points is None else total_points
     return LevelThreshold.objects.filter(minimum_points__gt=total).order_by("minimum_points").first()
 
 
@@ -150,67 +151,94 @@ def review_submission(
     return submission
 
 
-def _material_queryset_for_subtopics(subtopic_ids: list[int]):
-    return Material.objects.filter(subtopic_id__in=subtopic_ids, is_published=True)
-
-
-def _problem_queryset_for_subtopics(subtopic_ids: list[int]):
-    return Problem.objects.filter(subtopic_id__in=subtopic_ids, is_published=True)
-
-
-def _progress_for_subtopic_ids(user, subtopic_ids: list[int]) -> ProgressSummary:
+def get_subtopic_progress_map(user, subtopic_ids: list[int]) -> dict[int, ProgressSummary]:
+    """Load published-content progress in four grouped queries, regardless of roadmap size."""
     if not subtopic_ids:
-        return ProgressSummary(0, 0, 0, 0, 0, 0, 0)
+        return {}
 
-    materials = _material_queryset_for_subtopics(subtopic_ids)
-    problems = _problem_queryset_for_subtopics(subtopic_ids)
-    material_ids = list(materials.values_list("id", flat=True))
-    problem_ids = list(problems.values_list("id", flat=True))
+    material_totals = {
+        row["subtopic_id"]: row
+        for row in Material.objects.filter(subtopic_id__in=subtopic_ids, is_published=True)
+        .order_by()
+        .values("subtopic_id")
+        .annotate(total=Count("id"), points=Sum("completion_points"))
+    }
+    problem_totals = {
+        row["subtopic_id"]: row
+        for row in Problem.objects.filter(subtopic_id__in=subtopic_ids, is_published=True)
+        .order_by()
+        .values("subtopic_id")
+        .annotate(total=Count("id"), points=Sum("max_points"))
+    }
+    material_completions = {
+        row["material__subtopic_id"]: row
+        for row in MaterialCompletion.objects.filter(
+            user=user,
+            material__subtopic_id__in=subtopic_ids,
+            material__is_published=True,
+        )
+        .order_by()
+        .values("material__subtopic_id")
+        .annotate(total=Count("id"), points=Sum("points_awarded"))
+    }
+    problem_completions = {
+        row["problem__subtopic_id"]: row
+        for row in Submission.objects.filter(
+            user=user,
+            problem__subtopic_id__in=subtopic_ids,
+            problem__is_published=True,
+            status__in=[Submission.Status.ACCEPTED, Submission.Status.PARTIALLY_ACCEPTED],
+        )
+        .order_by()
+        .values("problem__subtopic_id")
+        .annotate(
+            total=Count("problem_id", distinct=True),
+            points=Sum("awarded_points"),
+        )
+    }
+    summaries = {}
+    for subtopic_id in subtopic_ids:
+        materials = material_totals.get(subtopic_id, {})
+        problems = problem_totals.get(subtopic_id, {})
+        completed_materials = material_completions.get(subtopic_id, {})
+        accepted_problems = problem_completions.get(subtopic_id, {})
+        total_items = materials.get("total", 0) + problems.get("total", 0)
+        completed_items = completed_materials.get("total", 0) + accepted_problems.get("total", 0)
+        summaries[subtopic_id] = ProgressSummary(
+            completed_materials=completed_materials.get("total", 0),
+            total_materials=materials.get("total", 0),
+            accepted_problems=accepted_problems.get("total", 0),
+            total_problems=problems.get("total", 0),
+            earned_points=int((completed_materials.get("points") or 0) + (accepted_problems.get("points") or 0)),
+            available_points=int((materials.get("points") or 0) + (problems.get("points") or 0)),
+            completion_percentage=round((completed_items / total_items) * 100) if total_items else 0,
+        )
+    return summaries
 
-    completed_materials = MaterialCompletion.objects.filter(user=user, material_id__in=material_ids).count()
-    accepted_problem_ids = set(
-        Submission.objects.filter(
-            user=user,
-            problem_id__in=problem_ids,
-            status__in=[Submission.Status.ACCEPTED, Submission.Status.PARTIALLY_ACCEPTED],
-        ).values_list("problem_id", flat=True),
-    )
-    available_points = int(
-        (materials.aggregate(total=Sum("completion_points"))["total"] or 0)
-        + (problems.aggregate(total=Sum("max_points"))["total"] or 0),
-    )
-    material_points = (
-        MaterialCompletion.objects.filter(user=user, material_id__in=material_ids).aggregate(
-            total=Sum("points_awarded"),
-        )["total"]
-        or 0
-    )
-    problem_points = (
-        Submission.objects.filter(
-            user=user,
-            problem_id__in=problem_ids,
-            status__in=[Submission.Status.ACCEPTED, Submission.Status.PARTIALLY_ACCEPTED],
-        ).aggregate(total=Sum("awarded_points"))["total"]
-        or 0
-    )
-    total_items = len(material_ids) + len(problem_ids)
-    completed_items = completed_materials + len(accepted_problem_ids)
-    completion_percentage = round((completed_items / total_items) * 100) if total_items else 0
+
+def combine_progress_summaries(summaries) -> ProgressSummary:
+    summaries = list(summaries)
+    completed_materials = sum(summary.completed_materials for summary in summaries)
+    accepted_problems = sum(summary.accepted_problems for summary in summaries)
+    total_materials = sum(summary.total_materials for summary in summaries)
+    total_problems = sum(summary.total_problems for summary in summaries)
+    total_items = total_materials + total_problems
+    completed_items = completed_materials + accepted_problems
     return ProgressSummary(
         completed_materials=completed_materials,
-        total_materials=len(material_ids),
-        accepted_problems=len(accepted_problem_ids),
-        total_problems=len(problem_ids),
-        earned_points=int(material_points + problem_points),
-        available_points=available_points,
-        completion_percentage=completion_percentage,
+        total_materials=total_materials,
+        accepted_problems=accepted_problems,
+        total_problems=total_problems,
+        earned_points=sum(summary.earned_points for summary in summaries),
+        available_points=sum(summary.available_points for summary in summaries),
+        completion_percentage=round((completed_items / total_items) * 100) if total_items else 0,
     )
 
 
 def get_subtopic_progress(user, subtopic: Subtopic) -> ProgressSummary:
-    return _progress_for_subtopic_ids(user, [subtopic.id])
+    return get_subtopic_progress_map(user, [subtopic.id])[subtopic.id]
 
 
 def get_topic_progress(user, topic: Topic) -> ProgressSummary:
     subtopic_ids = list(topic.subtopics.filter(is_published=True).values_list("id", flat=True))
-    return _progress_for_subtopic_ids(user, subtopic_ids)
+    return combine_progress_summaries(get_subtopic_progress_map(user, subtopic_ids).values())
