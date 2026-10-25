@@ -8,6 +8,7 @@ from django.urls import reverse
 
 from inspinia.users.models import User
 from inspinia.users.roles import user_can_access_app_features
+from inspinia.users.roles import user_has_admin_role
 
 LEARNER_LABELS = {"alex": "Alex", "ben": "Ben"}
 PROGRESS_SECTIONS = {
@@ -27,14 +28,15 @@ def shared_progress_learners(viewer) -> list[dict]:
     }
     if not all(emails.values()) or len(set(emails.values())) != len(LEARNER_LABELS):
         return []
-    # Compare the authenticated identity, never the editable display name or a query parameter.
-    if viewer.email.casefold() not in emails.values():
+    # Admins may inspect this fixed pair; other viewers must be one of the learners.
+    admin = user_has_admin_role(viewer)
+    if not admin and viewer.email.casefold() not in emails.values():
         return []
     matches = list(
         User.objects.filter(is_active=True).filter(Q(email__iexact=emails["alex"]) | Q(email__iexact=emails["ben"])),
     )
     users = {user.email.casefold(): user for user in matches}
-    if len(users) != len(matches) or viewer.pk not in {user.pk for user in matches}:
+    if len(users) != len(matches) or (not admin and viewer.pk not in {user.pk for user in matches}):
         return []
     return [
         {

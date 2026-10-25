@@ -13,6 +13,7 @@ from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import StatementTopicTechnique
 from inspinia.pages.models import UserProblemCompletion
 from inspinia.pages.shared_progress_views import shared_progress_comparison_view
+from inspinia.pages.shared_progress_views import shared_progress_view
 from inspinia.pages.technique_progress_catalog import sync_technique_progress_facts_for_statement
 from inspinia.training.models import Material
 from inspinia.training.models import MaterialCompletion
@@ -105,7 +106,7 @@ def test_shared_heading_uses_learner_label_when_display_name_is_blank(client, le
 
 
 @pytest.mark.parametrize("section", ["completions", "techniques", "training"])
-@pytest.mark.parametrize("role", [User.Role.NORMAL, User.Role.ADMIN])
+@pytest.mark.parametrize("role", [User.Role.NORMAL, User.Role.MODERATOR, User.Role.TRAINER])
 def test_unrelated_accounts_cannot_access_shared_progress(client, learners, section, role):
     outsider = learners["other"]
     outsider.role = role
@@ -259,8 +260,8 @@ def test_comparison_is_available_to_both_learners_with_fixed_subjects(client, le
 
 
 @pytest.mark.parametrize("section", ["completions", "techniques", "training"])
-@pytest.mark.parametrize("role", [User.Role.NORMAL, User.Role.ADMIN])
-def test_comparison_denies_outsiders_including_admins(client, learners, section, role):
+@pytest.mark.parametrize("role", [User.Role.NORMAL, User.Role.MODERATOR, User.Role.TRAINER])
+def test_comparison_denies_unrelated_non_admins(client, learners, section, role):
     outsider = learners["other"]
     outsider.role = role
     outsider.save()
@@ -471,3 +472,109 @@ def test_comparison_default_and_unknown_routes(client, learners):
     assert response.context["shared_progress_section"] == "completions"
     assert client.get(compare_url("unknown")).status_code == HTTPStatus.NOT_FOUND
     assert client.head(compare_url()).status_code == HTTPStatus.OK
+
+
+@pytest.fixture(params=["admin_role", "superuser"])
+def administrator(learners, request):
+    user = learners["other"]
+    if request.param == "admin_role":
+        user.role = User.Role.ADMIN
+    else:
+        user.is_superuser = True
+    user.save()
+    return user
+
+
+@pytest.mark.parametrize("subject", ["alex", "ben"])
+@pytest.mark.parametrize("section", ["completions", "techniques", "training"])
+@pytest.mark.usefixtures("completions")
+def test_admin_can_read_only_configured_learner_progress(client, learners, administrator, subject, section):
+    client.force_login(administrator)
+    response = client.get(
+        progress_url(subject, section), {"user": administrator.pk, "target_user_id": administrator.pk},
+    )
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["shared_progress_subject"] == learners[subject]
+    if section == "completions":
+        assert response.context["completion_progress_selected_user"] == learners[subject]
+        assert response.context["completion_progress_can_edit_difficulty"] is False
+        assert response.context["completion_progress_can_select_user"] is False
+    html = response.content.decode()
+    assert "Read-only progress" in html
+    assert 'data-can-edit-difficulty="true"' not in html
+    assert "target_user_id" not in html
+    assert client.get(progress_url("other", section)).status_code == HTTPStatus.NOT_FOUND
+
+
+@pytest.mark.parametrize("section", ["completions", "techniques", "training"])
+def test_admin_can_compare_only_configured_learners(client, learners, completions, administrator, section):
+    client.force_login(administrator)
+    response = client.get(compare_url(section), {"user": administrator.pk, "target_user_id": administrator.pk})
+    assert response.status_code == HTTPStatus.OK
+    assert [row["user"] for row in response.context["shared_progress_learners"]] == [learners["alex"], learners["ben"]]
+    assert "no-store" in response.headers["Cache-Control"]
+    assert "Read-only progress" in response.content.decode()
+    assert "target_user_id" not in response.content.decode()
+
+
+def test_admin_sidebar_exposes_both_progress_views_and_comparison(client, learners, administrator):
+    client.force_login(administrator)
+    response = client.get(reverse("training:dashboard"))
+    nav = response.content.decode().split('<ul class="side-nav">', 1)[1].split("<!-- Sidenav Menu End -->", 1)[0]
+    for learner in ("alex", "ben"):
+        assert reverse("pages:shared_progress", kwargs={"learner": learner}) in nav
+    assert reverse("pages:shared_progress_comparison") in nav
+
+
+@pytest.mark.parametrize("method", ["post", "put", "patch", "delete"])
+@pytest.mark.parametrize("section", ["completions", "techniques", "training"])
+def test_admin_shared_and_comparison_views_reject_writes(client, completions, administrator, method, section):
+    client.force_login(administrator)
+    before = list(UserProblemCompletion.objects.order_by("pk").values())
+    for url in (progress_url("alex", section), progress_url("ben", section), compare_url(section)):
+        assert getattr(client, method)(url, {"status": "attempted"}).status_code == HTTPStatus.METHOD_NOT_ALLOWED
+    assert list(UserProblemCompletion.objects.order_by("pk").values()) == before
+
+
+@pytest.mark.parametrize("field", ["is_active", "is_approved"])
+def test_admin_access_preserves_learner_availability_checks(client, learners, administrator, field):
+    setattr(learners["ben"], field, False)
+    learners["ben"].save()
+    client.force_login(administrator)
+    assert client.get(progress_url("ben")).status_code == HTTPStatus.NOT_FOUND
+    assert client.get(compare_url()).status_code == HTTPStatus.NOT_FOUND
+    assert client.get(progress_url("alex")).status_code == HTTPStatus.OK
+
+
+@pytest.mark.parametrize("peer_email", ["", "alex@example.com"])
+def test_admin_access_fails_closed_for_invalid_learner_configuration(
+    client, learners, administrator, settings, peer_email,
+):
+    settings.SHARED_PROGRESS_LEARNERS["ben"] = peer_email
+    client.force_login(administrator)
+    assert client.get(progress_url("alex")).status_code == HTTPStatus.FORBIDDEN
+    assert client.get(compare_url()).status_code == HTTPStatus.FORBIDDEN
+
+
+def test_staff_flag_alone_does_not_grant_shared_progress_access(client, learners):
+    user = learners["other"]
+    user.is_staff = True
+    user.save()
+    client.force_login(user)
+    assert client.get(progress_url("alex")).status_code == HTTPStatus.FORBIDDEN
+    assert client.get(compare_url()).status_code == HTTPStatus.FORBIDDEN
+
+
+@pytest.mark.parametrize("section", ["completions", "techniques", "training"])
+def test_admin_progress_views_do_not_write_database_records(learners, completions, administrator, section):
+    request = RequestFactory().get(compare_url(section))
+    request.user = administrator
+    request.session = {}
+    with CaptureQueriesContext(connection) as queries:
+        responses = [shared_progress_comparison_view(request, section=section)]
+        responses.extend(shared_progress_view(request, learner=slug, section=section) for slug in ("alex", "ben"))
+    assert all(response.status_code == HTTPStatus.OK for response in responses)
+    writes = [
+        query["sql"] for query in queries if query["sql"].lstrip().upper().startswith(("INSERT", "UPDATE", "DELETE"))
+    ]
+    assert writes == []
