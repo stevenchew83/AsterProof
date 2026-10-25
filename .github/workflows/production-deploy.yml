@@ -13,6 +13,11 @@ on:
         type: choice
         options:
           - none
+      skip_ci:
+        description: Explicitly skip automated quality checks; retain release integrity and activation checks
+        required: false
+        default: false
+        type: boolean
       initial_adoption:
         description: Consume the separately authorized non-rollback legacy adoption record
         required: true
@@ -96,9 +101,13 @@ jobs:
           version: ${{ env.UV_VERSION }}
           enable-cache: false
 
-      - name: Validate locks and tests
+      - name: Validate production lock
         run: |
           python -m scripts.deployment.check_production_lock --verify-resolution
+
+      - name: Run automated quality checks
+        if: ${{ !inputs.skip_ci }}
+        run: |
           uv venv .release-quality --python "$PYTHON_VERSION"
           uv pip install --python .release-quality/bin/python -r requirements/local.txt
           .release-quality/bin/ruff check config scripts
@@ -106,6 +115,11 @@ jobs:
           .release-quality/bin/python manage.py check
           .release-quality/bin/python manage.py makemigrations --check --dry-run
           .release-quality/bin/python -m pytest
+
+      - name: Record CI exception
+        if: ${{ inputs.skip_ci }}
+        run: |
+          printf '## CI exception\n\nAutomated quality checks were explicitly skipped for this dispatch. Release lock, artifact, migration, approval, and activation checks remain enabled.\n' >> "$GITHUB_STEP_SUMMARY"
 
       - name: Build binary wheelhouse and offline runtime
         run: |
@@ -517,6 +531,7 @@ jobs:
           ACTIVE_BEFORE: ${{ needs.disclose.outputs.active_sha }}
           INITIAL_ADOPTION: ${{ inputs.initial_adoption }}
           MIGRATION_CLASS: ${{ inputs.migration_class }}
+          SKIP_CI: ${{ inputs.skip_ci }}
           TARGET_MARKER: ${{ vars.PRODUCTION_TARGET_MARKER }}
           JOB_STATUS: ${{ job.status }}
         run: |
@@ -531,6 +546,7 @@ jobs:
               printf -- "- Previously active SHA: \`%s\`\n" "$ACTIVE_BEFORE"
             fi
             printf -- "- Migration class: \`%s\`\n" "$MIGRATION_CLASS"
+            printf -- "- Automated quality checks skipped: \`%s\`\n" "$SKIP_CI"
             printf -- "- Target marker: \`%s\`\n" "$TARGET_MARKER"
             printf -- "- Run ID: \`%s\`\n" "$GITHUB_RUN_ID"
             printf -- "- Result: \`%s\`\n" "$JOB_STATUS"

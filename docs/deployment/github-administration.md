@@ -32,6 +32,16 @@ finishes successfully; do not use workflow-level path exclusions that leave the
 required check pending. CI does not run again on pushes to `main`; the manually
 dispatched production workflow performs full verification of the release SHA.
 
+For an explicit owner-authorized release-scoped CI exception, retain a read-back
+of the complete ruleset and temporarily remove only its required `verify` status
+check. Keep pull-request, deletion, force-push, bypass-actor, and production
+environment protections intact. Merge only the reviewed PR head, then immediately
+restore the original ruleset and verify it. Record the owner request, PR/head SHA,
+before/after rules, merge SHA, and UTC times. This exception does not authorize
+direct pushes, fabricated check results, or changes to server credentials or
+authority. The production workflow may use its explicit `skip_ci` input under the
+same release record while retaining artifact and activation checks.
+
 Create the `production` environment with:
 
 - deployment branches restricted to `main` only;
