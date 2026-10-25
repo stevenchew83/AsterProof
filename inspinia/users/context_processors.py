@@ -1,5 +1,6 @@
 from django.conf import settings
 
+from inspinia.pages.shared_progress import LEARNER_LABELS
 from inspinia.pages.shared_progress import shared_progress_learners
 from inspinia.users.roles import user_can_access_app_features
 from inspinia.users.roles import user_can_curate_training
@@ -23,6 +24,7 @@ def app_roles(request):
     can_access_rankings = approved and user_has_moderator_or_admin_role(request.user)
     can_access_admin_tools = approved and (admin or settings.DEBUG)
     can_curate_training = user_can_curate_training(request.user)
+    shared_links = shared_progress_learners(request.user)
     return {
         "is_app_admin": admin,
         "is_app_approved": approved,
@@ -42,7 +44,8 @@ def app_roles(request):
         "show_session_monitor_link": approved and admin,
         "show_solution_workspace_link": approved,
         "show_training_curation_link": can_curate_training,
-        "shared_progress_links": shared_progress_learners(request.user),
+        "shared_progress_links": shared_links,
+        "shared_progress_comparison_available": len(shared_links) == len(LEARNER_LABELS),
         "show_management_links": can_access_admin_tools or can_access_rankings or can_curate_training or trainer,
         "show_training_library_link": approved,
         "show_completion_quick_update_link": approved,

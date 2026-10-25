@@ -1,0 +1,11 @@
+{% if progress_row %}
+  {% if progress_row.total %}
+  <div class="d-flex flex-wrap justify-content-between gap-1 fs-sm">
+    <span>{% if training_rows %}{{ progress_row.completed }}{% else %}{{ progress_row.solved }}{% endif %} / {{ progress_row.total }}</span>
+    <span class="text-muted">{% if training_rows %}{{ progress_row.percent }}{% else %}{{ progress_row.completion_percent }}{% endif %}%</span>
+  </div>
+  <div class="progress progress-sm mt-1" role="progressbar" aria-label="{{ learner_label }}: {{ progress_label }}" aria-valuenow="{% if training_rows %}{{ progress_row.percent }}{% else %}{{ progress_row.completion_percent }}{% endif %}" aria-valuemin="0" aria-valuemax="100">
+    <div class="progress-bar" style="width: {% if training_rows %}{{ progress_row.percent }}{% else %}{{ progress_row.completion_percent }}{% endif %}%"></div>
+  </div>
+  {% else %}<span class="text-muted fs-sm">No items</span>{% endif %}
+{% else %}<span class="text-muted fs-sm">Unavailable</span>{% endif %}
