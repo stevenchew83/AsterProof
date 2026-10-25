@@ -195,7 +195,10 @@ def test_install_requires_marker_confirmation_and_passing_audit(tmp_path: Path) 
         )
 
 
-def test_install_writes_and_rechecks_trusted_authority_manifest(tmp_path: Path) -> None:
+@pytest.mark.parametrize("legacy_process_matches", [True, False])
+def test_install_writes_and_rechecks_trusted_authority_manifest(
+    tmp_path: Path, *, legacy_process_matches: bool,
+) -> None:
     contract, contract_path = _fixture(tmp_path)
     source_root = Path(__file__).parents[3]
     migration_audit_config = _audit_config(tmp_path)
@@ -256,28 +259,37 @@ def test_install_writes_and_rechecks_trusted_authority_manifest(tmp_path: Path) 
         tmp_path / contract.registry_dir.relative_to("/")
     ).stat().st_mode & 0o777 == expected_registry_mode
 
-    adoption = authorize_legacy_adoption(
-        contract,
-        contract_path=tmp_path / "etc/asterproof/deployment-target.json",
-        source_root=source_root,
-        confirmation="LEGACY_NON_ROLLBACK",
-        root=tmp_path,
-        service_reader=_service_reader,
-        user_exists=lambda _user: True,
-        runtime_matches=lambda *_args: True,
-        oidc_reachable=lambda: True,
-        source_matches=lambda *_args: True,
-        ownership_matches=lambda *_args: True,
-        service_uses_source=lambda *_args: True,
-        legacy_sha_reader=lambda _path: "a" * 40,
-        state_fingerprint_reader=lambda _path: "b" * 64,
-    )
+    # Unit files describe the next managed start; the existing process still
+    # has to match the independently supplied legacy checkout.
+    def adopt():
+        return authorize_legacy_adoption(
+            contract,
+            contract_path=tmp_path / "etc/asterproof/deployment-target.json",
+            source_root=source_root,
+            confirmation="LEGACY_NON_ROLLBACK",
+            root=tmp_path,
+            service_reader=_service_reader,
+            user_exists=lambda _user: True,
+            runtime_matches=lambda *_args: True,
+            oidc_reachable=lambda: True,
+            source_matches=lambda *_args: True,
+            ownership_matches=lambda *_args: True,
+            service_uses_source=lambda *_args: legacy_process_matches,
+            legacy_sha_reader=lambda _path: "a" * 40,
+            state_fingerprint_reader=lambda _path: "b" * 64,
+        )
 
+    record = tmp_path / (contract.registry_dir / "adoption.json").relative_to("/")
+    if not legacy_process_matches:
+        with pytest.raises(BootstrapError, match="running service process"):
+            adopt()
+        assert not record.exists()
+        return
+
+    adoption = adopt()
     assert adoption["state"] == "authorized"
     assert adoption["legacy_sha"] == "a" * 40
-    assert (
-        tmp_path / (contract.registry_dir / "adoption.json").relative_to("/")
-    ).stat().st_mode & 0o777 == expected_public_evidence_mode
+    assert record.stat().st_mode & 0o777 == expected_public_evidence_mode
 
 
 def test_install_rejects_deploy_controlled_ssh_directory_symlink_before_mutating_target(tmp_path: Path) -> None:
