@@ -1,0 +1,6 @@
+<li class="side-nav-item">
+    <a href="{% url route_name %}{{ fragment }}" class="side-nav-link">
+        {% if icon %}<span class="menu-icon"><i class="ti ti-{{ icon }}"></i></span>{% endif %}
+        <span class="menu-text">{{ label }}</span>
+    </a>
+</li>

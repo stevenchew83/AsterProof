@@ -1,0 +1,22 @@
+<div class="card">
+  <div class="card-body">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+      <div>
+        <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Our progress</p>
+        <h3 class="mb-1">{{ shared_progress_label }}'s progress</h3>
+        <p class="text-muted mb-0 fs-sm">Viewing {{ shared_progress_subject.name }} · Read-only progress</p>
+      </div>
+      <nav class="btn-group" aria-label="Choose learner">
+        {% for learner in shared_progress_learners %}
+        <a href="{{ learner.url }}" class="btn btn-sm {% if learner.slug == shared_progress_learner %}btn-primary{% else %}btn-outline-primary{% endif %}"{% if learner.slug == shared_progress_learner %} aria-current="page"{% endif %}>{{ learner.label }}</a>
+        {% endfor %}
+      </nav>
+      <a href="{% url 'training:dashboard' %}" class="btn btn-sm btn-outline-primary"><i class="ti ti-arrow-right me-1"></i>Continue my training</a>
+    </div>
+    <nav class="nav nav-pills gap-2 mt-3" aria-label="Progress views">
+      {% for tab in shared_progress_tabs %}
+      <a href="{{ tab.url }}" class="nav-link{% if tab.key == shared_progress_section %} active{% endif %}"{% if tab.key == shared_progress_section %} aria-current="page"{% endif %}>{{ tab.label }}</a>
+      {% endfor %}
+    </nav>
+  </div>
+</div>

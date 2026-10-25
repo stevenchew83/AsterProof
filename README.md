@@ -109,6 +109,8 @@ Trainer review workflow:
 | `/archive/` | Archive workflow hub | Login required |
 | `/problems/` | Temporary redirect to `/archive/` | Login required |
 | `/dashboard/` | Training dashboard with level, points, progress, comments, and recommendations | Login required |
+| `/dashboard/progress/alex/` | Alex's completions, technique coverage, and training roadmap | Configured Alex/Ben accounts only |
+| `/dashboard/progress/ben/` | Ben's completions, technique coverage, and training roadmap | Configured Alex/Ben accounts only |
 | `/dashboard/problem-analytics/` | Problem analytics dashboard | Login required; admin tools only when `DEBUG=False` |
 | `/training/` | Main olympiad training roadmap | Login required |
 | `/materials/<slug>/` | Study material with Markdown and MathJax rendering | Login required; unpublished trainer/admin only |
@@ -141,6 +143,12 @@ Trainer review workflow:
   - `DATABASE_URL`
   - `DJANGO_SECRET_KEY`
 - A repo-local `.env` file is loaded automatically when present. Start from `.env.sample`.
+- Shared progress at `/dashboard/progress/alex/` and `/dashboard/progress/ben/`
+  is restricted to the configured Alex/Ben accounts, while both accounts are active
+  and approved for app access. Set both `DJANGO_PROGRESS_ALEX_EMAIL` and
+  `DJANGO_PROGRESS_BEN_EMAIL` to enable sharing. Display names
+  do not grant access. Shared pages show completions, technique coverage, and the
+  published training roadmap; they do not grant editing or administrator access.
 
 If your PostgreSQL instance is not using the default local socket/current-user setup, set `DATABASE_URL` explicitly, for example:
 

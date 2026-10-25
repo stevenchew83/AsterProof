@@ -1,0 +1,18 @@
+<div class="table-responsive">
+  <table class="table table-sm table-hover align-middle mb-0">
+    <caption class="visually-hidden">{{ shared_progress_label }}'s {{ label|lower }} progress</caption>
+    <thead><tr><th scope="col">{{ label }}</th><th scope="col">Completed</th><th scope="col">Available</th><th scope="col">Coverage</th></tr></thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        <th scope="row">{% if training_rows %}{{ row.title }}{% else %}{{ row.label }}{% endif %}</th>
+        <td>{% if training_rows %}{{ row.completed }}{% else %}{{ row.solved }}{% endif %}</td>
+        <td>{{ row.total }}</td>
+        <td>{% if training_rows %}{{ row.percent }}{% else %}{{ row.completion_percent }}{% endif %}%</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="4" class="text-muted">No {{ label|lower }} progress is available yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

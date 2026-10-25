@@ -15755,7 +15755,7 @@ def test_technique_benchmark_list_is_linked_from_library_side_nav(client):
     assert reverse("pages:technique_benchmark_list") in side_nav_html
     assert "Benchmark map" in side_nav_html
     assert "Benchmark import" in side_nav_html
-    assert side_nav_html.index("Problem statements") < side_nav_html.index("Benchmark map")
+    assert side_nav_html.index("Problem library") < side_nav_html.index("Benchmark map")
 
 
 def test_technique_benchmark_import_page_resolves_bare_json_row_keys_from_current_gap_rows(client):
@@ -28724,7 +28724,7 @@ def test_dashboard_sidebar_shows_personal_progress_link_for_authenticated_user(c
     assert "Progress analytics" not in side_nav_html
 
 
-def test_dashboard_sidebar_groups_links_into_balanced_workflow_sections_for_admin(client):
+def test_dashboard_sidebar_groups_training_first_and_collapses_management_for_admin(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
 
@@ -28732,87 +28732,26 @@ def test_dashboard_sidebar_groups_links_into_balanced_workflow_sections_for_admi
 
     assert response.status_code == HTTPStatus.OK
     side_nav_html = _rendered_side_nav_html(response)
-    present_labels = [
-        "Workspace",
-        "Library",
-        "Rankings",
-        "Insights",
-        "Operations",
-        "Utilities",
-        "Admin",
-        "My progress",
-        "Technique progress",
-        "Quick completions",
-        "Contest MOHS",
-        "Ranking imports",
-        "Topic tag analytics",
-        "View analytics",
-        "Completion records",
-        "Progress analytics",
-        "Solution records",
-        "Statement editor",
-        "Statement metadata",
-        "Statement duplicates",
-        "Delete statement",
-        "Handle parser",
-    ]
-    absent_labels = [
-        "Personal",
-        "Analytics",
-        "Curation",
-        "Tools",
-        "Completion board",
-        "Import center",
-        "Technique analytics",
-    ]
-
-    for label in present_labels:
-        assert label in side_nav_html
-    for label in absent_labels:
-        assert label not in side_nav_html
-
     expected_order = [
-        "My account",
-        "My activity",
-        "My progress",
-        "Technique progress",
-        "Quick completions",
-        "Contest progress",
-        "Contest MOHS",
-        "My solutions",
-        "Problem statements",
-        "Ranking table",
-        "Ranking dashboard",
-        "Students",
-        "Assessments",
-        "Formulas",
-        "Ranking imports",
-        "Problem analytics",
-        "Contest analytics",
-        "Topic tag analytics",
-        "Statement analytics",
-        "View analytics",
-        "Completion records",
-        "Progress analytics",
-        "Solution records",
-        "Problem data",
-        "Contest names",
-        "Contest details",
-        "Statement links",
-        "Statement editor",
-        "Statement metadata",
-        "Statement duplicates",
-        "Delete statement",
-        "LaTeX preview",
-        "Handle parser",
-        "Contest audit",
-        "User roles",
-        "Session monitor",
-        "Event log",
+        "Home", "Training overview", "Train", "Continue training", "Roadmap", "My submissions",
+        "Our progress", "My progress", "Technique progress", "Contest progress", "Contest MOHS",
+        "Problems &amp; resources", "Problem library", "Problem lists", "Discover lists", "Benchmark map",
+        "My work", "Record completions", "My solutions", "My activity", "Tools", "LaTeX preview",
+        "Handle parser", "Advanced analytics", "Problem analytics", "Contest analytics", "Topic tag analytics",
+        "Statement analytics", "View analytics", "Completion records", "Progress analytics", "Solution records",
+        "Management", "Trainer queue", "Training content", "Rankings", "Ranking table", "Ranking dashboard",
+        "Students", "Assessments", "Formulas", "Ranking imports", "Content maintenance", "Problem data",
+        "Contest names", "Contest details", "Statement links", "Statement editor", "Statement metadata",
+        "Statement duplicates", "Delete statement", "Benchmark import", "Contest audit", "Administration",
+        "User roles", "Level settings", "Session monitor", "Event log",
     ]
-    assert [side_nav_html.index(label) for label in expected_order] == sorted(
-        side_nav_html.index(label) for label in expected_order
-    )
+    positions = [side_nav_html.index(label) for label in expected_order]
+    assert positions == sorted(positions)
+    assert 'class="collapse" id="tools-menu"' in side_nav_html
+    assert 'class="collapse" id="management-menu"' in side_nav_html
+    assert "My account" not in side_nav_html
+    assert "Compare" not in side_nav_html
+    assert "Import center" not in side_nav_html
 
 
 def test_topbar_keeps_account_controls_without_page_shortcut_links_for_admin(client):

@@ -2,7 +2,7 @@
 <!-- Sidenav Menu Start -->
 <div class="sidenav-menu">
 
-    <a href="{% url 'pages:user_activity_dashboard' %}" class="logo">
+    <a href="{% url 'training:dashboard' %}" class="logo">
         <span class="logo logo-light">
             <span class="logo-lg"><img src="{% static 'images/logo.png' %}" alt="AsterProof"></span>
             <span class="logo-sm"><img src="{% static 'images/logo-sm.png' %}" alt="AsterProof"></span>
@@ -61,418 +61,134 @@
         </div>
 
         <ul class="side-nav">
-            {% if request.user.is_authenticated and is_app_approved %}
-            <li class="side-nav-title">Workspace</li>
-
-            <li class="side-nav-item">
-                <a href="{% url 'users:detail' request.user.pk %}" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-user-circle"></i></span>
-                    <span class="menu-text">My account</span>
-                </a>
-            </li>
-            {% endif %}
-
-            {% if show_training_dashboard_link %}
-            <li class="side-nav-title">Training</li>
-
-            <li class="side-nav-item">
-                <a href="#training-menu" data-bs-toggle="collapse" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-school"></i></span>
-                    <span class="menu-text">Training hub</span>
-                    <span class="menu-arrow"></span>
-                </a>
-                <div class="collapse" id="training-menu">
-                    <ul class="sub-menu">
-                        <li class="side-nav-item">
-                            <a href="{% url 'training:dashboard' %}" class="side-nav-link">
-                                <span class="menu-text">Dashboard</span>
-                            </a>
-                        </li>
-                        <li class="side-nav-item">
-                            <a href="{% url 'training:roadmap' %}" class="side-nav-link">
-                                <span class="menu-text">Roadmap</span>
-                            </a>
-                        </li>
-                        <li class="side-nav-item">
-                            <a href="{% url 'training:my_submissions' %}" class="side-nav-link">
-                                <span class="menu-text">My submissions</span>
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-            </li>
-            {% endif %}
-
-            {% if show_training_trainer_links %}
-            <li class="side-nav-title">Trainer</li>
-
-            <li class="side-nav-item">
-                <a href="#trainer-menu" data-bs-toggle="collapse" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-user-check"></i></span>
-                    <span class="menu-text">Trainer queue</span>
-                    <span class="menu-arrow"></span>
-                </a>
-                <div class="collapse" id="trainer-menu">
-                    <ul class="sub-menu">
-                        <li class="side-nav-item">
-                            <a href="{% url 'training:trainer_dashboard' %}" class="side-nav-link">
-                                <span class="menu-text">Dashboard</span>
-                            </a>
-                        </li>
-                        <li class="side-nav-item">
-                            <a href="{% url 'training:trainer_topics' %}" class="side-nav-link">
-                                <span class="menu-text">Training content</span>
-                            </a>
-                        </li>
-                        <li class="side-nav-item">
-                            <a href="{% url 'training:trainer_materials' %}" class="side-nav-link">
-                                <span class="menu-text">Materials</span>
-                            </a>
-                        </li>
-                        <li class="side-nav-item">
-                            <a href="{% url 'training:trainer_problems' %}" class="side-nav-link">
-                                <span class="menu-text">Problems</span>
-                            </a>
-                        </li>
-                        <li class="side-nav-item">
-                            <a href="{% url 'training:trainer_submissions' %}" class="side-nav-link">
-                                <span class="menu-text">Submissions</span>
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-            </li>
-            {% endif %}
-
-            {% if show_user_activity_dashboard_link %}
-            <li class="side-nav-item">
-                <a href="{% url 'pages:user_activity_dashboard' %}" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-activity"></i></span>
-                    <span class="menu-text">My activity</span>
-                </a>
-            </li>
-            {% endif %}
-
-            {% if show_my_progress_analytics_link %}
-            <li class="side-nav-item">
-                <a href="{% url 'pages:my_completion_progress_analytics' %}" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-chart-line"></i></span>
-                    <span class="menu-text">My progress</span>
-                </a>
-            </li>
-            {% endif %}
-
-            {% if show_my_progress_analytics_link %}
-            <li class="side-nav-item">
-                <a href="{% url 'pages:technique_dashboard' %}" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-tags"></i></span>
-                    <span class="menu-text">Technique progress</span>
-                </a>
-            </li>
-            {% endif %}
-
-            {% if show_completion_quick_update_link %}
-            <li class="side-nav-item">
-                <a href="{% url 'pages:completion_quick_update' %}" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-calendar-check"></i></span>
-                    <span class="menu-text">Quick completions</span>
-                </a>
-            </li>
-            {% endif %}
-
-            {% if show_contest_advanced_dashboard_link %}
-            <li class="side-nav-item">
-                <a href="{% url 'pages:contest_advanced_dashboard' %}" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-layout-grid"></i></span>
-                    <span class="menu-text">Contest progress</span>
-                </a>
-            </li>
-            <li class="side-nav-item">
-                <a href="{% url 'pages:contest_mohs_summary' %}" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-table-options"></i></span>
-                    <span class="menu-text">Contest MOHS</span>
-                </a>
-            </li>
-            {% endif %}
-
-            {% if show_solution_workspace_link %}
-            <li class="side-nav-item">
-                <a href="{% url 'solutions:my_solution_list' %}" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-file-pencil"></i></span>
-                    <span class="menu-text">My solutions</span>
-                </a>
-            </li>
-            {% endif %}
-
-            {% if show_problem_lists_link %}
-            <li class="side-nav-item">
-                <a href="{% url 'problemsets:my_lists' %}" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-list-details"></i></span>
-                    <span class="menu-text">My problem lists</span>
-                </a>
-            </li>
-            {% endif %}
-
             {% if is_app_approved %}
-            <li class="side-nav-title">Library</li>
-
-            {% if show_training_library_link %}
-            <li class="side-nav-item">
-                <a href="{% url 'training:roadmap' %}" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-school"></i></span>
-                    <span class="menu-text">Training library</span>
-                </a>
-            </li>
+            <li class="side-nav-title">Home</li>
+            {% include 'partials/sidenav-link.html' with route_name='training:dashboard' label='Training overview' icon='home' only %}
+            <li class="side-nav-title">Train</li>
+            {% include 'partials/sidenav-link.html' with route_name='training:dashboard' label='Continue training' icon='arrow-right' fragment='#recommended-next' only %}
+            {% include 'partials/sidenav-link.html' with route_name='training:roadmap' label='Roadmap' icon='map' only %}
+            {% include 'partials/sidenav-link.html' with route_name='training:my_submissions' label='My submissions' icon='send' only %}
+            <li class="side-nav-title">Our progress</li>
+            {% for learner in shared_progress_links %}
+            <li class="side-nav-item{% if learner.slug == shared_progress_learner %} active{% endif %}"><a href="{{ learner.url }}" class="side-nav-link{% if learner.slug == shared_progress_learner %} active{% endif %}"{% if learner.slug == shared_progress_learner %} aria-current="page"{% endif %}>
+                <span class="menu-icon"><i class="ti ti-chart-line"></i></span>
+                <span class="menu-text">{{ learner.label }}'s progress</span>
+            </a></li>
+            {% endfor %}
+            {% if not shared_progress_links %}
+            {% include 'partials/sidenav-link.html' with route_name='pages:my_completion_progress_analytics' label='My progress' icon='chart-line' only %}
+            {% include 'partials/sidenav-link.html' with route_name='pages:technique_dashboard' label='Technique progress' icon='tags' only %}
+            {% include 'partials/sidenav-link.html' with route_name='pages:contest_advanced_dashboard' label='Contest progress' icon='layout-grid' only %}
+            {% include 'partials/sidenav-link.html' with route_name='pages:contest_mohs_summary' label='Contest MOHS' icon='table-options' only %}
             {% endif %}
-
-            <li class="side-nav-item">
-                <a href="{% url 'pages:problem_statement_list' %}" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-file-text"></i></span>
-                    <span class="menu-text">Problem statements</span>
-                </a>
-            </li>
-            <li class="side-nav-item">
-                <a href="{% url 'pages:technique_benchmark_list' %}" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-database-search"></i></span>
-                    <span class="menu-text">Benchmark map</span>
-                </a>
-            </li>
-
+            <li class="side-nav-title">Problems &amp; resources</li>
+            {% include 'partials/sidenav-link.html' with route_name='pages:problem_statement_list' label='Problem library' icon='file-text' only %}
+            {% if show_problem_lists_link %}
+            {% include 'partials/sidenav-link.html' with route_name='problemsets:my_lists' label='Problem lists' icon='list-details' only %}
+            {% endif %}
             {% if show_problem_list_discovery_link %}
+            {% include 'partials/sidenav-link.html' with route_name='problemsets:discover' label='Discover lists' icon='world-search' only %}
+            {% endif %}
+            {% include 'partials/sidenav-link.html' with route_name='pages:technique_benchmark_list' label='Benchmark map' icon='database-search' only %}
+            <li class="side-nav-title">My work</li>
+            {% include 'partials/sidenav-link.html' with route_name='pages:completion_quick_update' label='Record completions' icon='calendar-check' only %}
+            {% if show_solution_workspace_link %}
+            {% include 'partials/sidenav-link.html' with route_name='solutions:my_solution_list' label='My solutions' icon='file-pencil' only %}
+            {% endif %}
+            {% include 'partials/sidenav-link.html' with route_name='pages:user_activity_dashboard' label='My activity' icon='activity' only %}
+            {% if shared_progress_links or show_problem_import_link or show_analytics_dashboard_link %}
             <li class="side-nav-item">
-                <a href="{% url 'problemsets:discover' %}" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-world-search"></i></span>
-                    <span class="menu-text">Discover lists</span>
+                <a href="#tools-menu" data-bs-toggle="collapse" class="side-nav-link" aria-expanded="false" aria-controls="tools-menu">
+                    <span class="menu-icon"><i class="ti ti-tool"></i></span>
+                    <span class="menu-text">Tools</span><span class="menu-arrow"></span>
                 </a>
+                <div class="collapse" id="tools-menu"><ul class="sub-menu">
+            {% if shared_progress_links %}
+            <li class="side-nav-title">Personal progress tools</li>
+            {% include 'partials/sidenav-link.html' with route_name='pages:my_completion_progress_analytics' label='My progress' only %}
+            {% include 'partials/sidenav-link.html' with route_name='pages:technique_dashboard' label='Technique progress' only %}
+            {% include 'partials/sidenav-link.html' with route_name='pages:contest_advanced_dashboard' label='Contest progress' only %}
+            {% include 'partials/sidenav-link.html' with route_name='pages:contest_mohs_summary' label='Contest MOHS' only %}
+            {% endif %}
+            {% if show_problem_import_link %}
+            {% include 'partials/sidenav-link.html' with route_name='pages:latex_preview' label='LaTeX preview' only %}
+            {% endif %}
+            {% if show_problem_import_link %}
+            {% include 'partials/sidenav-link.html' with route_name='pages:handle_summary_parser' label='Handle parser' only %}
+            {% endif %}
+            {% if show_analytics_dashboard_link %}
+            <li class="side-nav-title">Advanced analytics</li>
+            {% include 'partials/sidenav-link.html' with route_name='pages:dashboard' label='Problem analytics' only %}
+            {% include 'partials/sidenav-link.html' with route_name='pages:contest_dashboard' label='Contest analytics' only %}
+            {% include 'partials/sidenav-link.html' with route_name='pages:topic_tag_dashboard' label='Topic tag analytics' only %}
+            {% include 'partials/sidenav-link.html' with route_name='pages:problem_statement_dashboard' label='Statement analytics' only %}
+            {% include 'partials/sidenav-link.html' with route_name='pages:page_view_analytics' label='View analytics' only %}
+            {% include 'partials/sidenav-link.html' with route_name='pages:completion_record_list' label='Completion records' only %}
+            {% include 'partials/sidenav-link.html' with route_name='pages:completion_progress_analytics' label='Progress analytics' only %}
+            {% include 'partials/sidenav-link.html' with route_name='pages:user_solution_record_list' label='Solution records' only %}
+            {% endif %}
+                </ul></div>
             </li>
             {% endif %}
+            {% if show_management_links %}
+            <li class="side-nav-item">
+                <a href="#management-menu" data-bs-toggle="collapse" class="side-nav-link" aria-expanded="false" aria-controls="management-menu">
+                    <span class="menu-icon"><i class="ti ti-settings"></i></span>
+                    <span class="menu-text">Management</span><span class="menu-arrow"></span>
+                </a>
+                <div class="collapse" id="management-menu"><ul class="sub-menu">
+            {% if show_training_trainer_links %}
+            <li class="side-nav-item">
+                <a href="#trainer-menu" data-bs-toggle="collapse" class="side-nav-link" aria-expanded="false" aria-controls="trainer-menu">
+                    <span class="menu-icon"><i class="ti ti-user-check"></i></span>
+                    <span class="menu-text">Trainer queue</span><span class="menu-arrow"></span>
+                </a>
+                <div class="collapse" id="trainer-menu"><ul class="sub-menu">
+            {% include 'partials/sidenav-link.html' with route_name='training:trainer_dashboard' label='Dashboard' only %}
+            {% include 'partials/sidenav-link.html' with route_name='training:trainer_topics' label='Training content' only %}
+            {% include 'partials/sidenav-link.html' with route_name='training:trainer_materials' label='Materials' only %}
+            {% include 'partials/sidenav-link.html' with route_name='training:trainer_problems' label='Problems' only %}
+            {% include 'partials/sidenav-link.html' with route_name='training:trainer_submissions' label='Submissions' only %}
+                </ul></div>
+            </li>
             {% endif %}
-
             {% if show_rankings_link %}
             <li class="side-nav-title">Rankings</li>
-
-            <li class="side-nav-item">
-                <a href="{% url 'rankings:ranking_table' %}" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-list-numbers"></i></span>
-                    <span class="menu-text">Ranking table</span>
-                </a>
-            </li>
-            <li class="side-nav-item">
-                <a href="{% url 'rankings:dashboard' %}" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-chart-donut-2"></i></span>
-                    <span class="menu-text">Ranking dashboard</span>
-                </a>
-            </li>
-            <li class="side-nav-item">
-                <a href="{% url 'rankings:students_list' %}" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-users-group"></i></span>
-                    <span class="menu-text">Students</span>
-                </a>
-            </li>
-            <li class="side-nav-item">
-                <a href="{% url 'rankings:assessments_list' %}" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-file-analytics"></i></span>
-                    <span class="menu-text">Assessments</span>
-                </a>
-            </li>
-            <li class="side-nav-item">
-                <a href="{% url 'rankings:formulas_list' %}" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-function"></i></span>
-                    <span class="menu-text">Formulas</span>
-                </a>
-            </li>
-            <li class="side-nav-item">
-                <a href="{% url 'rankings:import_center' %}" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-table-import"></i></span>
-                    <span class="menu-text">Ranking imports</span>
-                </a>
-            </li>
+            {% include 'partials/sidenav-link.html' with route_name='rankings:ranking_table' label='Ranking table' only %}
+            {% include 'partials/sidenav-link.html' with route_name='rankings:dashboard' label='Ranking dashboard' only %}
+            {% include 'partials/sidenav-link.html' with route_name='rankings:students_list' label='Students' only %}
+            {% include 'partials/sidenav-link.html' with route_name='rankings:assessments_list' label='Assessments' only %}
+            {% include 'partials/sidenav-link.html' with route_name='rankings:formulas_list' label='Formulas' only %}
+            {% include 'partials/sidenav-link.html' with route_name='rankings:import_center' label='Ranking imports' only %}
             {% endif %}
-
-            {% if show_analytics_dashboard_link %}
-            <li class="side-nav-title">Insights</li>
-
-            <li class="side-nav-item">
-                <a href="{% url 'pages:dashboard' %}" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-chart-bar"></i></span>
-                    <span class="menu-text">Problem analytics</span>
-                </a>
-            </li>
-            <li class="side-nav-item">
-                <a href="{% url 'pages:contest_dashboard' %}" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-trophy"></i></span>
-                    <span class="menu-text">Contest analytics</span>
-                </a>
-            </li>
-            <li class="side-nav-item">
-                <a href="{% url 'pages:topic_tag_dashboard' %}" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-tags"></i></span>
-                    <span class="menu-text">Topic tag analytics</span>
-                </a>
-            </li>
-            <li class="side-nav-item">
-                <a href="{% url 'pages:problem_statement_dashboard' %}" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-file-analytics"></i></span>
-                    <span class="menu-text">Statement analytics</span>
-                </a>
-            </li>
-            <li class="side-nav-item">
-                <a href="{% url 'pages:page_view_analytics' %}" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-eye"></i></span>
-                    <span class="menu-text">View analytics</span>
-                </a>
-            </li>
-            <li class="side-nav-item">
-                <a href="{% url 'pages:completion_record_list' %}" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-checklist"></i></span>
-                    <span class="menu-text">Completion records</span>
-                </a>
-            </li>
-            <li class="side-nav-item">
-                <a href="{% url 'pages:completion_progress_analytics' %}" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-chart-line"></i></span>
-                    <span class="menu-text">Progress analytics</span>
-                </a>
-            </li>
-            <li class="side-nav-item">
-                <a href="{% url 'pages:user_solution_record_list' %}" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-writing"></i></span>
-                    <span class="menu-text">Solution records</span>
-                </a>
-            </li>
-            {% endif %}
-
-            {% if show_training_curation_link and not show_problem_import_link %}
-            <li class="side-nav-title">Operations</li>
-
-            <li class="side-nav-item">
-                <a href="{% url 'training:trainer_materials' %}" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-books"></i></span>
-                    <span class="menu-text">Training curation</span>
-                </a>
-            </li>
-            {% endif %}
-
-            {% if show_problem_import_link %}
-            <li class="side-nav-title">Operations</li>
-
             {% if show_training_curation_link %}
-            <li class="side-nav-item">
-                <a href="{% url 'training:trainer_materials' %}" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-books"></i></span>
-                    <span class="menu-text">Training curation</span>
-                </a>
-            </li>
+            {% include 'partials/sidenav-link.html' with route_name='training:trainer_materials' label='Training curation' only %}
             {% endif %}
-
-            <li class="side-nav-item">
-                <a href="{% url 'pages:problem_import' %}" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-file-upload"></i></span>
-                    <span class="menu-text">Problem data</span>
-                </a>
-            </li>
-            <li class="side-nav-item">
-                <a href="{% url 'pages:contest_rename' %}" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-edit"></i></span>
-                    <span class="menu-text">Contest names</span>
-                </a>
-            </li>
-            <li class="side-nav-item">
-                <a href="{% url 'pages:contest_details' %}" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-notebook"></i></span>
-                    <span class="menu-text">Contest details</span>
-                </a>
-            </li>
-            <li class="side-nav-item">
-                <a href="{% url 'pages:problem_statement_linker' %}" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-link-plus"></i></span>
-                    <span class="menu-text">Statement links</span>
-                </a>
-            </li>
-            <li class="side-nav-item">
-                <a href="{% url 'pages:problem_statement_editor' %}" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-edit"></i></span>
-                    <span class="menu-text">Statement editor</span>
-                </a>
-            </li>
-            <li class="side-nav-item">
-                <a href="{% url 'pages:problem_statement_metadata' %}" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-table-import"></i></span>
-                    <span class="menu-text">Statement metadata</span>
-                </a>
-            </li>
-            <li class="side-nav-item">
-                <a href="{% url 'pages:problem_statement_duplicates' %}" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-copy-check"></i></span>
-                    <span class="menu-text">Statement duplicates</span>
-                </a>
-            </li>
-            <li class="side-nav-item">
-                <a href="{% url 'pages:problem_statement_delete_by_uuid' %}" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-trash"></i></span>
-                    <span class="menu-text">Delete statement</span>
-                </a>
-            </li>
-
-            <li class="side-nav-title">Utilities</li>
-
-            <li class="side-nav-item">
-                <a href="{% url 'pages:latex_preview' %}" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-brackets"></i></span>
-                    <span class="menu-text">LaTeX preview</span>
-                </a>
-            </li>
-            <li class="side-nav-item">
-                <a href="{% url 'pages:handle_summary_parser' %}" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-table-export"></i></span>
-                    <span class="menu-text">Handle parser</span>
-                </a>
-            </li>
-            <li class="side-nav-item">
-                <a href="{% url 'pages:technique_benchmark_import' %}" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-database-import"></i></span>
-                    <span class="menu-text">Benchmark import</span>
-                </a>
-            </li>
-            <li class="side-nav-item">
-                <a href="{% url 'pages:contest_existence_audit' %}" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-database-search"></i></span>
-                    <span class="menu-text">Contest audit</span>
-                </a>
-            </li>
+            {% if show_problem_import_link %}
+            <li class="side-nav-title">Content maintenance</li>
+            {% include 'partials/sidenav-link.html' with route_name='pages:problem_import' label='Problem data' only %}
+            {% include 'partials/sidenav-link.html' with route_name='pages:contest_rename' label='Contest names' only %}
+            {% include 'partials/sidenav-link.html' with route_name='pages:contest_details' label='Contest details' only %}
+            {% include 'partials/sidenav-link.html' with route_name='pages:problem_statement_linker' label='Statement links' only %}
+            {% include 'partials/sidenav-link.html' with route_name='pages:problem_statement_editor' label='Statement editor' only %}
+            {% include 'partials/sidenav-link.html' with route_name='pages:problem_statement_metadata' label='Statement metadata' only %}
+            {% include 'partials/sidenav-link.html' with route_name='pages:problem_statement_duplicates' label='Statement duplicates' only %}
+            {% include 'partials/sidenav-link.html' with route_name='pages:problem_statement_delete_by_uuid' label='Delete statement' only %}
+            {% include 'partials/sidenav-link.html' with route_name='pages:technique_benchmark_import' label='Benchmark import' only %}
+            {% include 'partials/sidenav-link.html' with route_name='pages:contest_existence_audit' label='Contest audit' only %}
             {% endif %}
-
             {% if is_app_admin %}
-            <li class="side-nav-title">Admin</li>
-
-            <li class="side-nav-item">
-                <a href="{% url 'users:manage_roles' %}" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-user-cog"></i></span>
-                    <span class="menu-text">User roles</span>
-                </a>
-            </li>
-            <li class="side-nav-item">
-                <a href="{% url 'training:admin_levels' %}" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-stairs-up"></i></span>
-                    <span class="menu-text">Level settings</span>
-                </a>
-            </li>
-
+            <li class="side-nav-title">Administration</li>
+            {% include 'partials/sidenav-link.html' with route_name='users:manage_roles' label='User roles' only %}
+            {% include 'partials/sidenav-link.html' with route_name='training:admin_levels' label='Level settings' only %}
             {% if show_session_monitor_link %}
-            <li class="side-nav-item">
-                <a href="{% url 'users:session_monitor' %}" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-device-laptop"></i></span>
-                    <span class="menu-text">Session monitor</span>
-                </a>
-            </li>
+            {% include 'partials/sidenav-link.html' with route_name='users:session_monitor' label='Session monitor' only %}
             {% endif %}
-
             {% if show_event_log_link %}
-            <li class="side-nav-item">
-                <a href="{% url 'users:event_log' %}" class="side-nav-link">
-                    <span class="menu-icon"><i class="ti ti-logs"></i></span>
-                    <span class="menu-text">Event log</span>
-                </a>
+            {% include 'partials/sidenav-link.html' with route_name='users:event_log' label='Event log' only %}
+            {% endif %}
+            {% endif %}
+                </ul></div>
             </li>
             {% endif %}
             {% endif %}

@@ -1,5 +1,6 @@
 from django.conf import settings
 
+from inspinia.pages.shared_progress import shared_progress_learners
 from inspinia.users.roles import user_can_access_app_features
 from inspinia.users.roles import user_can_curate_training
 from inspinia.users.roles import user_has_admin_role
@@ -41,6 +42,8 @@ def app_roles(request):
         "show_session_monitor_link": approved and admin,
         "show_solution_workspace_link": approved,
         "show_training_curation_link": can_curate_training,
+        "shared_progress_links": shared_progress_learners(request.user),
+        "show_management_links": can_access_admin_tools or can_access_rankings or can_curate_training or trainer,
         "show_training_library_link": approved,
         "show_completion_quick_update_link": approved,
         "show_user_activity_dashboard_link": approved,
