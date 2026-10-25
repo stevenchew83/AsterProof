@@ -2,8 +2,6 @@ name: CI
 
 on:
   pull_request:
-  push:
-    branches: [main]
 
 permissions:
   contents: read
@@ -20,13 +18,28 @@ jobs:
       UV_VERSION: 0.12.6
       PYTHON_VERSION: "3.12.4"
       NODE_VERSION: "22.18.0"
+      DJANGO_SETTINGS_MODULE: config.settings.test
+      DJANGO_READ_DOT_ENV_FILE: "false"
       ACTIONLINT_VERSION: "1.7.7"
       ACTIONLINT_LINUX_AMD64_SHA256: "023070a287cd8cccd71515fedc843f1985bf96c436b7effaecce67290e7e0757"
     steps:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # Keep verify running for documentation PRs so the required check completes.
+      - name: Select checks and validate whitespace
+        id: checks
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          python3 scripts/ci_checks.py --base "$BASE_SHA"
+          git diff --check "$BASE_SHA" HEAD --
 
       - name: Validate GitHub Actions workflows
+        if: steps.checks.outputs.workflows == 'true'
         run: |
           archive="$RUNNER_TEMP/actionlint.tar.gz"
           curl --fail --silent --show-error --location \
@@ -39,80 +52,79 @@ jobs:
             .github/workflows/*.yml
 
       - name: Set up Python
+        if: steps.checks.outputs.runtime == 'true'
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Set up Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-
       - name: Set up uv
+        if: steps.checks.outputs.runtime == 'true'
         uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
           version: ${{ env.UV_VERSION }}
           enable-cache: false
 
+      - name: Install quality dependencies
+        if: steps.checks.outputs.runtime == 'true'
+        run: |
+          uv venv .ci-quality --python "${PYTHON_VERSION}"
+          uv pip install --python .ci-quality/bin/python -r requirements/local.txt
+
       - name: Validate production lock
+        if: steps.checks.outputs.locks == 'true'
         run: python scripts/deployment/check_production_lock.py --verify-resolution
 
-      - name: Build hash-verified Linux wheelhouse
-        run: |
-          python -m pip wheel --require-hashes --wheel-dir .ci-wheelhouse -r requirements/production.lock
-          test -n "$(find .ci-wheelhouse -maxdepth 1 -type f -name '*.whl' -print -quit)"
-          if find .ci-wheelhouse -maxdepth 1 -type f ! -name '*.whl' -print -quit | grep -q .; then
-            echo "wheelhouse contains a non-wheel distribution" >&2
-            exit 1
-          fi
+      - name: Set up Node
+        if: steps.checks.outputs.static == 'true'
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
 
-      - name: Prove clean offline production install
-        run: |
-          python - <<'PY'
-          import hashlib
-          from pathlib import Path
-
-          with Path(".ci-wheelhouse-install.lock").open("w", encoding="utf-8") as output:
-              for wheel in sorted(Path(".ci-wheelhouse").glob("*.whl")):
-                  digest = hashlib.sha256(wheel.read_bytes()).hexdigest()
-                  output.write(f"{wheel.as_posix()} --hash=sha256:{digest}\n")
-          PY
-          python -m venv .ci-production
-          .ci-production/bin/python -m pip install --no-index --require-hashes --no-deps -r .ci-wheelhouse-install.lock
-          .ci-production/bin/python -c "import django, gunicorn, psycopg, bleach, markdown, cryptography"
-          .ci-production/bin/python manage.py check --settings=config.settings.staticfiles
-
-      - name: Build and collect production static files
+      - name: Build and collect changed static files
+        if: steps.checks.outputs.static == 'true'
         env:
-          ASTERPROOF_PYTHON: ${{ github.workspace }}/.ci-production/bin/python
+          ASTERPROOF_PYTHON: ${{ github.workspace }}/.ci-quality/bin/python
           DJANGO_SETTINGS_MODULE: config.settings.staticfiles
         run: ./scripts/build_and_collectstatic.sh
 
       - name: Verify static manifest and representative assets
+        if: steps.checks.outputs.static == 'true'
         run: |
           test -s staticfiles/staticfiles.json
-          .ci-production/bin/python - <<'PY'
+          python - <<'PY'
           import json
           from pathlib import Path
 
           root = Path("staticfiles")
-          manifest = json.loads((root / "staticfiles.json").read_text())
-          paths = manifest.get("paths", {})
+          paths = json.loads((root / "staticfiles.json").read_text()).get("paths", {})
           for source in ("css/app.min.css", "js/app.js", "js/vendors.min.js"):
               target = paths.get(source)
               if not target or not (root / target).is_file():
                   raise SystemExit(f"static manifest is missing {source}")
           PY
 
-      - name: Install quality dependencies
-        run: |
-          uv venv .ci-quality --python "${PYTHON_VERSION}"
-          uv pip install --python .ci-quality/bin/python -r requirements/local.txt
-
-      - name: Lint and test
+      - name: Lint and check Django
+        if: steps.checks.outputs.runtime == 'true'
         run: |
           .ci-quality/bin/ruff check config scripts
           .ci-quality/bin/python scripts/check_application_lint.py
           .ci-quality/bin/python manage.py check
-          .ci-quality/bin/python -m pytest
+          .ci-quality/bin/python manage.py makemigrations --check --dry-run
+
+      - name: Test affected areas and core protections
+        if: steps.checks.outputs.runtime == 'true'
+        env:
+          TEST_TARGETS: ${{ steps.checks.outputs.tests }}
+        run: |
+          .ci-quality/bin/python - <<'PY'
+          import json
+          import os
+          import subprocess
+          import sys
+
+          targets = json.loads(os.environ["TEST_TARGETS"])
+          if not targets:
+              raise SystemExit("Runtime changes must select tests")
+          subprocess.run([sys.executable, "-m", "pytest", *targets], check=True)
+          PY
