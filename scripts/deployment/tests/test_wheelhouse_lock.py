@@ -39,6 +39,26 @@ def test_source_only_package_gets_built_wheel_hash_without_changing_version(tmp_
     assert render_wheelhouse_lock(wheelhouse, source_lock) == content
 
 
+def test_vendored_distribution_metadata_does_not_replace_the_wheel_identity(tmp_path):
+    wheelhouse, source_lock = _fixture(tmp_path)
+    wheel = _wheel(wheelhouse)
+    # Bleach includes vendored html5lib metadata under bleach/_vendor/.
+    with zipfile.ZipFile(wheel, "a") as archive:
+        archive.writestr("package/_vendor/example-1.dist-info/METADATA", "Name: example\nVersion: 1\n")
+    assert f"django-allauth==65.8.0 --hash=sha256:{sha256_file(wheel)}" in render_wheelhouse_lock(
+        wheelhouse, source_lock,
+    )
+
+
+def test_multiple_top_level_metadata_directories_are_still_rejected(tmp_path):
+    wheelhouse, source_lock = _fixture(tmp_path)
+    wheel = _wheel(wheelhouse)
+    with zipfile.ZipFile(wheel, "a") as archive:
+        archive.writestr("example-1.dist-info/METADATA", "Name: example\nVersion: 1\n")
+    with pytest.raises(ValueError, match="exactly one top-level"):
+        render_wheelhouse_lock(wheelhouse, source_lock)
+
+
 @pytest.mark.parametrize("change", ["missing", "extra", "version", "duplicate", "source_archive", "symlink"])
 def test_incomplete_or_changed_wheelhouse_is_rejected(tmp_path, change):
     wheelhouse, source_lock = _fixture(tmp_path)
