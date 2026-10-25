@@ -49,6 +49,9 @@ from django.utils.text import slugify
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
 
+from inspinia.pages.algebra_tag_aliases import AlgebraAliasError
+from inspinia.pages.algebra_tag_imports import normalization_active
+from inspinia.pages.algebra_tag_search import tag_token_query
 from inspinia.pages.asymptote_render import build_statement_render_segments
 from inspinia.pages.asymptote_render import has_asymptote_blocks
 from inspinia.pages.completion_duplicates import upsert_exact_duplicate_statement_completions
@@ -1057,14 +1060,12 @@ def _filter_statement_queryset(  # noqa: C901
                 **{
                     statement_tag_match_alias: Exists(
                         StatementTopicTechnique.objects.filter(
-                            statement_id=OuterRef("pk"),
-                            technique__icontains=token,
+                            tag_token_query(token, source="statement"), statement_id=OuterRef("pk"),
                         ),
                     ),
                     linked_tag_match_alias: Exists(
                         ProblemTopicTechnique.objects.filter(
-                            record_id=OuterRef("linked_problem_id"),
-                            technique__icontains=token,
+                            tag_token_query(token, source="problem"), record_id=OuterRef("linked_problem_id"),
                         ),
                     ),
                 },
@@ -4959,14 +4960,14 @@ def _completion_quick_update_apply_tag_filter(
             **{
                 statement_match_alias: Exists(
                     StatementTopicTechnique.objects.filter(
+                        tag_token_query(token, source="statement", field=field_name),
                         statement_id=OuterRef("pk"),
-                        **{f"{field_name}__icontains": token},
                     ),
                 ),
                 linked_match_alias: Exists(
                     ProblemTopicTechnique.objects.filter(
+                        tag_token_query(token, source="problem", field=field_name),
                         record_id=OuterRef("linked_problem_id"),
-                        **{f"{field_name}__icontains": token},
                     ),
                 ),
             },
@@ -8885,7 +8886,11 @@ def topic_tag_analytics_view(request):
 
 
 def _preview_problem_import(request, workbook_df) -> dict:
-    preview_data = build_parsed_preview_payload(workbook_df)
+    try:
+        preview_data = build_parsed_preview_payload(workbook_df, algebra_aliases_active=normalization_active())
+    except AlgebraAliasError as exc:
+        messages.error(request, str(exc))
+        return {}
     skip_warnings = preview_data.pop("warnings", [])
     msg = (
         f"Parsed preview: {preview_data['total_prepared_problems']} problem row(s) and "
@@ -8925,7 +8930,11 @@ def _emit_warning_messages(request, warnings: list[str], *, overflow_label: str)
 
 
 def _import_problem_workbook(request, workbook_df, *, replace_tags: bool) -> None:
-    result = import_problem_dataframe(workbook_df, replace_tags=replace_tags)
+    try:
+        result = import_problem_dataframe(workbook_df, replace_tags=replace_tags)
+    except AlgebraAliasError as exc:
+        messages.error(request, str(exc))
+        return
     messages.success(
         request,
         f"Import finished. Upserted {result.n_records} problem record(s); "
@@ -9097,7 +9106,7 @@ def _apply_statement_metadata_import(
             metadata_df,
             replace_tags=replace_tags,
         )
-    except StatementMetadataBackfillValidationError as exc:
+    except (StatementMetadataBackfillValidationError, AlgebraAliasError) as exc:
         messages.error(request, str(exc))
         record_event(
             event_type=AuditEvent.EventType.IMPORT_FAILED,

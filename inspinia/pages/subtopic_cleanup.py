@@ -17,6 +17,8 @@ from django.db import connection
 from django.db import transaction
 from django.utils import timezone
 
+from inspinia.pages.algebra_tag_imports import algebra_import_session
+from inspinia.pages.algebra_tag_imports import legacy_taxonomy_rows
 from inspinia.pages.models import TOPIC_TAG_LAYER_FIELDS
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
@@ -6715,7 +6717,7 @@ def _statement_parent_label(tag: StatementTopicTechnique) -> str:
 
 def _problem_tag_rows() -> Iterable[ProblemTopicTechnique]:
     return (
-        ProblemTopicTechnique.objects.select_related("record")
+        legacy_taxonomy_rows(ProblemTopicTechnique.objects.all(), source="problem").select_related("record")
         .only(
             "id",
             "record_id",
@@ -6739,7 +6741,7 @@ def _problem_tag_rows() -> Iterable[ProblemTopicTechnique]:
 
 def _statement_tag_rows() -> Iterable[StatementTopicTechnique]:
     return (
-        StatementTopicTechnique.objects.select_related("statement")
+        legacy_taxonomy_rows(StatementTopicTechnique.objects.all(), source="statement").select_related("statement")
         .only(
             "id",
             "statement_id",
@@ -6763,7 +6765,7 @@ def _statement_tag_rows() -> Iterable[StatementTopicTechnique]:
 
 def _problem_cleanup_tag_rows() -> Iterable[ProblemTopicTechnique]:
     return (
-        ProblemTopicTechnique.objects.only(
+        legacy_taxonomy_rows(ProblemTopicTechnique.objects.all(), source="problem").only(
             "id",
             "record_id",
             "technique",
@@ -6782,7 +6784,7 @@ def _problem_cleanup_tag_rows() -> Iterable[ProblemTopicTechnique]:
 
 def _statement_cleanup_tag_rows() -> Iterable[StatementTopicTechnique]:
     return (
-        StatementTopicTechnique.objects.only(
+        legacy_taxonomy_rows(StatementTopicTechnique.objects.all(), source="statement").only(
             "id",
             "statement_id",
             "technique",
@@ -7559,6 +7561,7 @@ def _apply_statement_tag_cleanup() -> SubtopicCleanupApplyResult:
 
 
 @transaction.atomic
+@algebra_import_session()
 def apply_subtopic_cleanup() -> SubtopicCleanupApplyResult:
     problem_result = _apply_problem_tag_cleanup()
     statement_result = _apply_statement_tag_cleanup()

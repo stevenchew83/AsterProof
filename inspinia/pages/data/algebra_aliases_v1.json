@@ -1,0 +1,528 @@
+{
+  "version": "algebra-aliases-2026-10-25-v1",
+  "reviewed_plan_sha256": "b2687717e4497714f624f8ef4c4f887dbc78453fce57c2762280569f7b0d4b60",
+  "mappings": [
+    {
+      "id": 2,
+      "field": "domains",
+      "source": "ALGEBRA",
+      "target": "ALG"
+    },
+    {
+      "id": 5,
+      "field": "lemma_theorem_tags",
+      "source": "VIETA",
+      "target": "VIETA'S FORMULAS"
+    },
+    {
+      "id": 6,
+      "field": "lemma_theorem_tags",
+      "source": "ABEL SUMMATION",
+      "target": "SUMMATION BY PARTS"
+    },
+    {
+      "id": 7,
+      "field": "lemma_theorem_tags",
+      "source": "HÖLDER INEQUALITY",
+      "target": "HÖLDER"
+    },
+    {
+      "id": 9,
+      "field": "lemma_theorem_tags",
+      "source": "NEWTON SUMS",
+      "target": "NEWTON IDENTITIES"
+    },
+    {
+      "id": 11,
+      "field": "lemma_theorem_tags",
+      "source": "SCHUR’S INEQUALITY",
+      "target": "SCHUR'S INEQUALITY"
+    },
+    {
+      "id": 12,
+      "field": "lemma_theorem_tags",
+      "source": "SOS",
+      "target": "SUM OF SQUARES"
+    },
+    {
+      "id": 14,
+      "field": "object_tags",
+      "source": "FUNCTIONS",
+      "target": "FUNCTION"
+    },
+    {
+      "id": 15,
+      "field": "object_tags",
+      "source": "SEQUENCES",
+      "target": "SEQUENCE"
+    },
+    {
+      "id": 16,
+      "field": "object_tags",
+      "source": "POLYNOMIALS",
+      "target": "POLYNOMIAL"
+    },
+    {
+      "id": 23,
+      "field": "proof_roles",
+      "source": "CASE SPLIT",
+      "target": "CASEWORK"
+    },
+    {
+      "id": 32,
+      "field": "technique",
+      "source": "INVARIANTS",
+      "target": "INVARIANT"
+    },
+    {
+      "id": 43,
+      "field": "technique",
+      "source": "SUBSTITUTIONS",
+      "target": "SUBSTITUTION"
+    },
+    {
+      "id": 50,
+      "field": "technique",
+      "source": "SUMMATION BY PARTS / ABEL SUMMATION",
+      "target": "SUMMATION BY PARTS"
+    },
+    {
+      "id": 53,
+      "field": "technique",
+      "source": "MATRICES",
+      "target": "MATRIX"
+    },
+    {
+      "id": 54,
+      "field": "technique",
+      "source": "MONOVARIANTS",
+      "target": "MONOVARIANT"
+    },
+    {
+      "id": 55,
+      "field": "technique",
+      "source": "FUNCTIONS",
+      "target": "FUNCTION"
+    },
+    {
+      "id": 56,
+      "field": "technique",
+      "source": "SUBSTITUTION TRICKS",
+      "target": "SUBSTITUTION"
+    },
+    {
+      "id": 57,
+      "field": "technique",
+      "source": "TITU/ENGEL",
+      "target": "ENGEL FORM (TITU'S LEMMA)"
+    },
+    {
+      "id": 58,
+      "field": "technique",
+      "source": "COMPLETING SQUARE",
+      "target": "COMPLETING THE SQUARE"
+    },
+    {
+      "id": 59,
+      "field": "technique",
+      "source": "COMPLETING SQUARES",
+      "target": "COMPLETING THE SQUARE"
+    },
+    {
+      "id": 62,
+      "field": "technique",
+      "source": "INJECTIVITY TRICKS",
+      "target": "INJECTIVITY"
+    },
+    {
+      "id": 66,
+      "field": "technique",
+      "source": "ENGEL/TITU",
+      "target": "ENGEL FORM (TITU'S LEMMA)"
+    },
+    {
+      "id": 68,
+      "field": "technique",
+      "source": "TELESCOPING TRICKS",
+      "target": "TELESCOPING"
+    },
+    {
+      "id": 69,
+      "field": "technique",
+      "source": "TITU",
+      "target": "ENGEL FORM (TITU'S LEMMA)"
+    },
+    {
+      "id": 70,
+      "field": "technique",
+      "source": "FACTORING",
+      "target": "FACTORIZATION"
+    },
+    {
+      "id": 72,
+      "field": "technique",
+      "source": "EXTREMAL ARGUMENTS",
+      "target": "EXTREMAL PRINCIPLE"
+    },
+    {
+      "id": 73,
+      "field": "technique",
+      "source": "FINITE DIFFERENCE",
+      "target": "FINITE DIFFERENCES"
+    },
+    {
+      "id": 74,
+      "field": "technique",
+      "source": "INJECTIVITY FORCING",
+      "target": "INJECTIVITY"
+    },
+    {
+      "id": 75,
+      "field": "technique",
+      "source": "INJECTIVITY TRICK",
+      "target": "INJECTIVITY"
+    },
+    {
+      "id": 76,
+      "field": "technique",
+      "source": "REARRANGEMENTS",
+      "target": "REARRANGEMENT INEQUALITY"
+    },
+    {
+      "id": 77,
+      "field": "technique",
+      "source": "SOS (SUM OF SQUARES)",
+      "target": "SUM OF SQUARES"
+    },
+    {
+      "id": 78,
+      "field": "technique",
+      "source": "SPECIAL SUBSTITUTIONS",
+      "target": "SUBSTITUTION"
+    },
+    {
+      "id": 79,
+      "field": "technique",
+      "source": "SUM OF SQUARES EXPANSION",
+      "target": "SUM OF SQUARES"
+    },
+    {
+      "id": 80,
+      "field": "technique",
+      "source": "TELESCOPING IDENTITY",
+      "target": "TELESCOPING"
+    },
+    {
+      "id": 82,
+      "field": "technique",
+      "source": "CLEVER SUBSTITUTIONS",
+      "target": "SUBSTITUTION"
+    },
+    {
+      "id": 83,
+      "field": "technique",
+      "source": "COEFFICIENT COMPARE",
+      "target": "COEFFICIENT COMPARISON"
+    },
+    {
+      "id": 84,
+      "field": "technique",
+      "source": "ENGEL FORM (TITU)",
+      "target": "ENGEL FORM (TITU'S LEMMA)"
+    },
+    {
+      "id": 85,
+      "field": "technique",
+      "source": "ENGEL FORM/TITU",
+      "target": "ENGEL FORM (TITU'S LEMMA)"
+    },
+    {
+      "id": 86,
+      "field": "technique",
+      "source": "ENGEL (TITU)",
+      "target": "ENGEL FORM (TITU'S LEMMA)"
+    },
+    {
+      "id": 87,
+      "field": "technique",
+      "source": "ENGEL/TITU’S LEMMA",
+      "target": "ENGEL FORM (TITU'S LEMMA)"
+    },
+    {
+      "id": 88,
+      "field": "technique",
+      "source": "HOMOGENISATION",
+      "target": "HOMOGENIZATION"
+    },
+    {
+      "id": 89,
+      "field": "technique",
+      "source": "MONOTONICITY TRICK",
+      "target": "MONOTONICITY"
+    },
+    {
+      "id": 90,
+      "field": "technique",
+      "source": "MONOTONICITY TRICKS",
+      "target": "MONOTONICITY"
+    },
+    {
+      "id": 91,
+      "field": "technique",
+      "source": "SCHUR’S INEQUALITY",
+      "target": "SCHUR'S INEQUALITY"
+    },
+    {
+      "id": 92,
+      "field": "technique",
+      "source": "SOS (SUM-OF-SQUARES)",
+      "target": "SUM OF SQUARES"
+    },
+    {
+      "id": 93,
+      "field": "technique",
+      "source": "STANDARD SUBSTITUTIONS",
+      "target": "SUBSTITUTION"
+    },
+    {
+      "id": 94,
+      "field": "technique",
+      "source": "STRATEGIC SUBSTITUTIONS",
+      "target": "SUBSTITUTION"
+    },
+    {
+      "id": 95,
+      "field": "technique",
+      "source": "SURJECTIVITY TRICK",
+      "target": "SURJECTIVITY"
+    },
+    {
+      "id": 96,
+      "field": "technique",
+      "source": "TELESCOPING IDENTITIES",
+      "target": "TELESCOPING"
+    },
+    {
+      "id": 97,
+      "field": "technique",
+      "source": "TELESCOPING TRICK",
+      "target": "TELESCOPING"
+    },
+    {
+      "id": 98,
+      "field": "technique",
+      "source": "TITU/ENGEL FORM",
+      "target": "ENGEL FORM (TITU'S LEMMA)"
+    },
+    {
+      "id": 105,
+      "field": "technique_tags",
+      "source": "ENGEL FORM",
+      "target": "ENGEL FORM (TITU'S LEMMA)"
+    },
+    {
+      "id": 111,
+      "field": "technique_tags",
+      "source": "COMPLETING SQUARE",
+      "target": "COMPLETING THE SQUARE"
+    },
+    {
+      "id": 112,
+      "field": "technique_tags",
+      "source": "HÖLDER INEQUALITY",
+      "target": "HÖLDER"
+    },
+    {
+      "id": 115,
+      "field": "technique_tags",
+      "source": "SUBSTITUTION TRICK",
+      "target": "SUBSTITUTION"
+    },
+    {
+      "id": 116,
+      "field": "technique_tags",
+      "source": "CASE SPLIT",
+      "target": "CASEWORK"
+    },
+    {
+      "id": 118,
+      "field": "technique_tags",
+      "source": "COMPLETING SQUARES",
+      "target": "COMPLETING THE SQUARE"
+    },
+    {
+      "id": 120,
+      "field": "technique_tags",
+      "source": "SCHUR INEQUALITY",
+      "target": "SCHUR'S INEQUALITY"
+    },
+    {
+      "id": 122,
+      "field": "technique_tags",
+      "source": "MATRICES",
+      "target": "MATRIX"
+    },
+    {
+      "id": 123,
+      "field": "technique_tags",
+      "source": "PARTIAL SUMMATION",
+      "target": "SUMMATION BY PARTS"
+    },
+    {
+      "id": 127,
+      "field": "technique_tags",
+      "source": "TELESCOPING TRICKS",
+      "target": "TELESCOPING"
+    },
+    {
+      "id": 128,
+      "field": "technique_tags",
+      "source": "FACTORING",
+      "target": "FACTORIZATION"
+    },
+    {
+      "id": 129,
+      "field": "technique_tags",
+      "source": "FINITE DIFFERENCE METHOD",
+      "target": "FINITE DIFFERENCES"
+    },
+    {
+      "id": 131,
+      "field": "technique_tags",
+      "source": "SOS (SUM OF SQUARES)",
+      "target": "SUM OF SQUARES"
+    },
+    {
+      "id": 132,
+      "field": "technique_tags",
+      "source": "SPECIAL SUBSTITUTIONS",
+      "target": "SUBSTITUTION"
+    },
+    {
+      "id": 133,
+      "field": "technique_tags",
+      "source": "SUM OF SQUARES EXPANSION",
+      "target": "SUM OF SQUARES"
+    },
+    {
+      "id": 134,
+      "field": "technique_tags",
+      "source": "TELESCOPING IDENTITY",
+      "target": "TELESCOPING"
+    },
+    {
+      "id": 135,
+      "field": "technique_tags",
+      "source": "COEFFICIENT COMPARE",
+      "target": "COEFFICIENT COMPARISON"
+    },
+    {
+      "id": 138,
+      "field": "technique_tags",
+      "source": "MONOTONICITY TRICK",
+      "target": "MONOTONICITY"
+    },
+    {
+      "id": 139,
+      "field": "technique_tags",
+      "source": "MONOTONICITY TRICKS",
+      "target": "MONOTONICITY"
+    },
+    {
+      "id": 140,
+      "field": "technique_tags",
+      "source": "SOS (SUM-OF-SQUARES)",
+      "target": "SUM OF SQUARES"
+    },
+    {
+      "id": 141,
+      "field": "technique_tags",
+      "source": "STRATEGIC SUBSTITUTIONS",
+      "target": "SUBSTITUTION"
+    },
+    {
+      "id": 142,
+      "field": "technique_tags",
+      "source": "TELESCOPING IDENTITIES",
+      "target": "TELESCOPING"
+    },
+    {
+      "id": 143,
+      "field": "technique_tags",
+      "source": "TELESCOPING TRICK",
+      "target": "TELESCOPING"
+    },
+    {
+      "id": 144,
+      "field": "technique_tags",
+      "source": "VIETA",
+      "target": "VIETA'S FORMULAS"
+    }
+  ],
+  "specificity": {
+    "problem_uuid": "a4d3cfd4-6bb8-403a-be0c-a157e303cc9d",
+    "sources": [
+      "INJECTIVITY TRICKS",
+      "INJECTIVITY UP TO SIGN"
+    ],
+    "target": "INJECTIVITY UP TO SIGN"
+  },
+  "activation_aliases": [
+    {
+      "kind": "lemma",
+      "alias_key": "vieta-s-formulas",
+      "target_kind": "lemma",
+      "target_label_key": "vieta"
+    },
+    {
+      "kind": "technique",
+      "alias_key": "invariant",
+      "target_kind": "technique",
+      "target_label_key": "invariants"
+    },
+    {
+      "kind": "method",
+      "alias_key": "engel-form-titu-s-lemma",
+      "target_kind": "method",
+      "target_label_key": "engel-form"
+    }
+  ],
+  "shadow_aliases": [
+    {
+      "kind": "canonical_subtopic",
+      "alias_key": "functional-equations"
+    },
+    {
+      "kind": "method",
+      "alias_key": "factorization"
+    },
+    {
+      "kind": "method",
+      "alias_key": "monovariant"
+    },
+    {
+      "kind": "object",
+      "alias_key": "function"
+    },
+    {
+      "kind": "object",
+      "alias_key": "sequence"
+    },
+    {
+      "kind": "proof_role",
+      "alias_key": "casework"
+    },
+    {
+      "kind": "proof_role",
+      "alias_key": "construction"
+    },
+    {
+      "kind": "proof_role",
+      "alias_key": "existence"
+    },
+    {
+      "kind": "proof_role",
+      "alias_key": "inequality-proof"
+    }
+  ]
+}

@@ -20,6 +20,7 @@ from django.db.models.functions import Upper
 from django.urls import reverse
 from django.utils.http import urlencode
 
+from inspinia.pages.algebra_tag_search import tag_token_query
 from inspinia.pages.models import ProblemTopicTechnique
 from inspinia.pages.topic_labels import FULL_TOPIC_LABEL_MAP
 
@@ -56,8 +57,8 @@ def topic_tag_analytics_data(filters, *, page_number=None, sort="problems"):
     )
     for token in filters["q"].split():
         search = (
-            Q(technique__icontains=token)
-            | Q(domains__icontains=token)
+            tag_token_query(token, source="problem")
+            | tag_token_query(token, source="problem", field="domains")
             | Q(record__contest__icontains=token)
             | Q(record__problem__icontains=token)
             | Q(record__contest_year_problem__icontains=token)

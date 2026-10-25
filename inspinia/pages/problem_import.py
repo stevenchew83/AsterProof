@@ -17,6 +17,11 @@ from openpyxl import Workbook
 from openpyxl.cell.cell import ILLEGAL_CHARACTERS_RE
 from openpyxl.utils.dataframe import dataframe_to_rows
 
+from inspinia.pages.algebra_tag_aliases import is_algebra_scope
+from inspinia.pages.algebra_tag_aliases import merge_raw_sources
+from inspinia.pages.algebra_tag_aliases import normalize_import_tag_fields
+from inspinia.pages.algebra_tag_imports import algebra_import_session
+from inspinia.pages.algebra_tag_imports import normalization_active
 from inspinia.pages.models import TOPIC_TAG_LAYER_FIELDS
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
@@ -258,12 +263,30 @@ def build_parsed_preview_payload(
     *,
     max_problems: int = DEFAULT_PREVIEW_MAX_PROBLEMS,
     max_techniques: int = DEFAULT_PREVIEW_MAX_TECHNIQUES,
+    algebra_aliases_active: bool = False,
 ) -> dict[str, Any]:
     """
     JSON-serializable payload for UI: parsed `ProblemSolveRecord`-shaped rows and
     parsed topic-technique rows (as stored), not raw Excel columns.
     """
     prepared, warnings = prepare_import_rows(df)
+    if algebra_aliases_active:
+        for row in prepared:
+            existing = _preview_existing_record(row)
+            if not is_algebra_scope(row.defaults.get("topic"), active=existing.is_active if existing else True):
+                continue
+            entries = prepare_topic_tag_entries(
+                row.defaults.get("topic_tags"),
+                topic=row.defaults.get("topic"),
+                active=existing.is_active if existing else True,
+                problem_uuid=str(existing.problem_uuid) if existing else row.problem_uuid,
+                canonicalize=True,
+            )
+            normalized = {}
+            for entry in entries:
+                name = entry["technique"]
+                normalized[name] = merge_domain_lists(normalized.get(name, []), entry["domains"])
+            row.techniques[:] = list(normalized.items())
     total_sheet_rows = len(df)
     total_prepared = len(prepared)
     total_technique_rows = sum(len(p.techniques) for p in prepared)
@@ -321,6 +344,20 @@ def build_parsed_preview_payload(
         "problems_truncated": problems_truncated,
         "techniques_truncated": techniques_truncated,
     }
+
+
+def _preview_existing_record(row: PreparedImportRow) -> ProblemSolveRecord | None:
+    if row.problem_uuid:
+        return ProblemSolveRecord.objects.filter(problem_uuid=row.problem_uuid).first()
+    matches = ProblemSolveRecord.objects.filter(year=row.year, contest=row.contest, problem=row.problem)
+    if matches.count() == 1:
+        return matches.first()
+    label = row.defaults.get("contest_year_problem")
+    if label:
+        labelled = matches.filter(contest_year_problem=label)
+        if labelled.count() == 1:
+            return labelled.first()
+    return None
 
 
 def _topic_tags_export_value(record: ProblemSolveRecord) -> str:
@@ -529,8 +566,11 @@ def _upsert_topic_technique(
         ProblemTopicTechnique.objects.filter(pk__in=duplicate_ids).delete()
 
     merged_domains = merge_domain_lists(merged_domains, domain_list)
-    merged_raw_tags = _merge_raw_tag_values(
-        [obj.raw_tag or obj.technique, *(tag.raw_tag or tag.technique for tag in matching_tags[1:]), raw_tag],
+    raw_values = [obj.raw_tag or obj.technique, *(tag.raw_tag or tag.technique for tag in matching_tags[1:]), raw_tag]
+    merged_raw_tags = (
+        merge_raw_sources(raw_values)
+        if is_algebra_scope(record.topic, active=record.is_active) and normalization_active()
+        else _merge_raw_tag_values(raw_values)
     )
     merged_layer_values = {
         field_name: _merge_topic_tag_layer_values([
@@ -588,24 +628,21 @@ def _merge_topic_tag_layer_values(values: list) -> list[str]:
     return normalize_topic_tag_list(merged_values)
 
 
+@transaction.atomic
+@algebra_import_session()
 def sync_problem_topic_techniques(
     *,
     record: ProblemSolveRecord,
     raw_topic_tags: str | None,
     replace_tags: bool,
 ) -> int:
-    parsed_entries: list[dict[str, object]] = []
-    for item in parse_topic_tags_cell(raw_topic_tags):
-        technique = (item.get("technique") or "").strip()
-        if not technique:
-            continue
-        parsed_entries.extend(
-            classified_topic_tag_entries(
-                technique=technique,
-                domains=domains_dedup_preserve_order(item.get("domains") or []),
-                raw_tag=str(item.get("raw_tag") or technique),
-            ),
-        )
+    parsed_entries = prepare_topic_tag_entries(
+        raw_topic_tags,
+        topic=record.topic,
+        active=record.is_active,
+        problem_uuid=str(record.problem_uuid),
+        canonicalize=normalization_active(),
+    )
 
     if replace_tags:
         ProblemTopicTechnique.objects.filter(record=record).delete()
@@ -621,6 +658,40 @@ def sync_problem_topic_techniques(
         )
 
     return touched_count
+
+
+def prepare_topic_tag_entries(
+    raw_topic_tags: str | None,
+    *,
+    topic: str | None,
+    active: bool,
+    problem_uuid: str | None,
+    canonicalize: bool,
+) -> list[dict[str, object]]:
+    """Shared classification/canonicalization for preview and both write paths."""
+    parsed_entries = []
+    for item in parse_topic_tags_cell(raw_topic_tags):
+        technique = (item.get("technique") or "").strip()
+        if not technique:
+            continue
+        entries = classified_topic_tag_entries(
+            technique=technique,
+            domains=domains_dedup_preserve_order(item.get("domains") or []),
+            raw_tag=str(item.get("raw_tag") or technique),
+        )
+        if canonicalize:
+            entries = [
+                normalize_import_tag_fields(
+                    entry,
+                    technique,
+                    topic=topic,
+                    active=active,
+                    problem_uuid=problem_uuid,
+                )
+                for entry in entries
+            ]
+        parsed_entries.extend(entries)
+    return parsed_entries
 
 
 def _update_problem_record_from_prepared(
@@ -653,7 +724,7 @@ def import_problem_dataframe(df: pd.DataFrame, *, replace_tags: bool) -> Problem
     prepared, warnings = prepare_import_rows(df)
     result.warnings.extend(warnings)
 
-    with transaction.atomic():
+    with transaction.atomic(), algebra_import_session():
         for p in prepared:
             if p.problem_uuid is not None:
                 record, created = ProblemSolveRecord.objects.update_or_create(

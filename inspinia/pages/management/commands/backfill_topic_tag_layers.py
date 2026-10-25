@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from django.core.management.base import BaseCommand
+from django.db import transaction
 
+from inspinia.pages.algebra_tag_imports import algebra_import_session
+from inspinia.pages.algebra_tag_imports import legacy_taxonomy_rows
 from inspinia.pages.models import TOPIC_TAG_LAYER_FIELDS
 from inspinia.pages.models import ProblemTopicTechnique
 from inspinia.pages.models import StatementTopicTechnique
@@ -20,6 +23,8 @@ class Command(BaseCommand):
             type=int,
         )
 
+    @transaction.atomic
+    @algebra_import_session()
     def handle(self, *args, **options) -> None:
         batch_size = max(int(options["batch_size"]), 1)
         updated_count = 0
@@ -31,7 +36,9 @@ class Command(BaseCommand):
         pending_rows = []
         updated_count = 0
         rows = (
-            model.objects.only("id", "technique", "domains", "raw_tag", *TOPIC_TAG_LAYER_FIELDS)
+            legacy_taxonomy_rows(
+                model.objects.all(), source="problem" if model is ProblemTopicTechnique else "statement",
+            ).only("id", "technique", "domains", "raw_tag", *TOPIC_TAG_LAYER_FIELDS)
             .order_by("id")
             .iterator(chunk_size=batch_size)
         )

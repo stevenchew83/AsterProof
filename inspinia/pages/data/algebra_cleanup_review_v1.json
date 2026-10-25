@@ -1,0 +1,1243 @@
+{
+  "original_mapping_sha256": "962993cc1766c405d72012ffab5b914dcbe0f265454cc01d82e43ea9803954af",
+  "snapshot_sha256": "ce5783d31115073d7dbfe3521ba91fe8931b2e788b70d30d5213f60d38d492d8",
+  "active_parents_only": true,
+  "excluded_normalization_statuses": [
+    "corrupt",
+    "invalid",
+    "metadata"
+  ],
+  "mappings": [
+    {
+      "source_field": "domains",
+      "source_label": "ALGEBRA",
+      "action": "merge_alias",
+      "target_layer": "domains",
+      "family": "Algebra",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "ALG"
+      ],
+      "mapping_id": 2
+    },
+    {
+      "source_field": "lemma_theorem_tags",
+      "source_label": "VIETA",
+      "action": "merge_alias",
+      "target_layer": "lemma_theorem_tags",
+      "family": "Polynomials and algebraic manipulation",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "VIETA'S FORMULAS"
+      ],
+      "mapping_id": 5
+    },
+    {
+      "source_field": "lemma_theorem_tags",
+      "source_label": "ABEL SUMMATION",
+      "action": "reclassify_and_merge_alias",
+      "target_layer": "lemma_theorem_tags",
+      "family": "Sequences, recurrences, and series",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "SUMMATION BY PARTS"
+      ],
+      "mapping_id": 6
+    },
+    {
+      "source_field": "lemma_theorem_tags",
+      "source_label": "HÖLDER INEQUALITY",
+      "action": "merge_alias",
+      "target_layer": "lemma_theorem_tags",
+      "family": "Inequalities and optimization",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "HÖLDER"
+      ],
+      "mapping_id": 7
+    },
+    {
+      "source_field": "lemma_theorem_tags",
+      "source_label": "NEWTON SUMS",
+      "action": "merge_alias",
+      "target_layer": "lemma_theorem_tags",
+      "family": "Polynomials and algebraic manipulation",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "NEWTON IDENTITIES"
+      ],
+      "mapping_id": 9
+    },
+    {
+      "source_field": "lemma_theorem_tags",
+      "source_label": "SCHUR’S INEQUALITY",
+      "action": "merge_alias",
+      "target_layer": "lemma_theorem_tags",
+      "family": "Inequalities and optimization",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "SCHUR'S INEQUALITY"
+      ],
+      "mapping_id": 11
+    },
+    {
+      "source_field": "lemma_theorem_tags",
+      "source_label": "SOS",
+      "action": "reclassify_and_merge_alias",
+      "target_layer": "lemma_theorem_tags",
+      "family": "Inequalities and optimization",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "SUM OF SQUARES"
+      ],
+      "mapping_id": 12
+    },
+    {
+      "source_field": "object_tags",
+      "source_label": "FUNCTIONS",
+      "action": "merge_alias",
+      "target_layer": "object_tags",
+      "family": "Functional equations",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "FUNCTION"
+      ],
+      "mapping_id": 14
+    },
+    {
+      "source_field": "object_tags",
+      "source_label": "SEQUENCES",
+      "action": "merge_alias",
+      "target_layer": "object_tags",
+      "family": "Sequences, recurrences, and series",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "SEQUENCE"
+      ],
+      "mapping_id": 15
+    },
+    {
+      "source_field": "object_tags",
+      "source_label": "POLYNOMIALS",
+      "action": "merge_alias",
+      "target_layer": "object_tags",
+      "family": "Polynomials and algebraic manipulation",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "POLYNOMIAL"
+      ],
+      "mapping_id": 16
+    },
+    {
+      "source_field": "proof_roles",
+      "source_label": "CASE SPLIT",
+      "action": "reclassify_and_merge_alias",
+      "target_layer": "proof_roles",
+      "family": "Shared proof methods: extremal arguments, monotonicity, and invariants",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "CASEWORK"
+      ],
+      "mapping_id": 23
+    },
+    {
+      "source_field": "technique",
+      "source_label": "INVARIANTS",
+      "action": "reclassify_and_merge_alias",
+      "target_layer": "technique",
+      "family": "Shared proof methods: extremal arguments, monotonicity, and invariants",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "INVARIANT"
+      ],
+      "mapping_id": 32
+    },
+    {
+      "source_field": "technique",
+      "source_label": "SUBSTITUTIONS",
+      "action": "reclassify_and_merge_alias",
+      "target_layer": "technique",
+      "family": "Equations, substitutions, and transformations",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "SUBSTITUTION"
+      ],
+      "mapping_id": 43
+    },
+    {
+      "source_field": "technique",
+      "source_label": "SUMMATION BY PARTS / ABEL SUMMATION",
+      "action": "reclassify_and_merge_alias",
+      "target_layer": "technique",
+      "family": "Sequences, recurrences, and series",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "SUMMATION BY PARTS"
+      ],
+      "mapping_id": 50
+    },
+    {
+      "source_field": "technique",
+      "source_label": "MATRICES",
+      "action": "reclassify_and_merge_alias",
+      "target_layer": "technique",
+      "family": "Algebraic structures and linear algebra",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "MATRIX"
+      ],
+      "mapping_id": 53
+    },
+    {
+      "source_field": "technique",
+      "source_label": "MONOVARIANTS",
+      "action": "reclassify_and_merge_alias",
+      "target_layer": "technique",
+      "family": "Shared proof methods: extremal arguments, monotonicity, and invariants",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "MONOVARIANT"
+      ],
+      "mapping_id": 54
+    },
+    {
+      "source_field": "technique",
+      "source_label": "FUNCTIONS",
+      "action": "reclassify_and_merge_alias",
+      "target_layer": "technique",
+      "family": "Functional equations",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "FUNCTION"
+      ],
+      "mapping_id": 55
+    },
+    {
+      "source_field": "technique",
+      "source_label": "SUBSTITUTION TRICKS",
+      "action": "reclassify_and_merge_alias",
+      "target_layer": "technique",
+      "family": "Equations, substitutions, and transformations",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "SUBSTITUTION"
+      ],
+      "mapping_id": 56
+    },
+    {
+      "source_field": "technique",
+      "source_label": "TITU/ENGEL",
+      "action": "reclassify_and_merge_alias",
+      "target_layer": "technique",
+      "family": "Inequalities and optimization",
+      "detail_to_preserve": "Child of CAUCHY-SCHWARZ; retain recognition of the reciprocal-sum form.",
+      "target_labels": [
+        "ENGEL FORM (TITU'S LEMMA)"
+      ],
+      "mapping_id": 57
+    },
+    {
+      "source_field": "technique",
+      "source_label": "COMPLETING SQUARE",
+      "action": "reclassify_and_merge_alias",
+      "target_layer": "technique",
+      "family": "Equations, substitutions, and transformations",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "COMPLETING THE SQUARE"
+      ],
+      "mapping_id": 58
+    },
+    {
+      "source_field": "technique",
+      "source_label": "COMPLETING SQUARES",
+      "action": "reclassify_and_merge_alias",
+      "target_layer": "technique",
+      "family": "Equations, substitutions, and transformations",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "COMPLETING THE SQUARE"
+      ],
+      "mapping_id": 59
+    },
+    {
+      "source_field": "technique",
+      "source_label": "INJECTIVITY TRICKS",
+      "action": "reclassify_and_merge_alias",
+      "target_layer": "technique",
+      "family": "Functional equations",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "INJECTIVITY"
+      ],
+      "mapping_id": 62
+    },
+    {
+      "source_field": "technique",
+      "source_label": "ENGEL/TITU",
+      "action": "reclassify_and_merge_alias",
+      "target_layer": "technique",
+      "family": "Inequalities and optimization",
+      "detail_to_preserve": "Child of CAUCHY-SCHWARZ; retain recognition of the reciprocal-sum form.",
+      "target_labels": [
+        "ENGEL FORM (TITU'S LEMMA)"
+      ],
+      "mapping_id": 66
+    },
+    {
+      "source_field": "technique",
+      "source_label": "TELESCOPING TRICKS",
+      "action": "reclassify_and_merge_alias",
+      "target_layer": "technique",
+      "family": "Sequences, recurrences, and series",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "TELESCOPING"
+      ],
+      "mapping_id": 68
+    },
+    {
+      "source_field": "technique",
+      "source_label": "TITU",
+      "action": "reclassify_and_merge_alias",
+      "target_layer": "technique",
+      "family": "Inequalities and optimization",
+      "detail_to_preserve": "Child of CAUCHY-SCHWARZ; retain recognition of the reciprocal-sum form.",
+      "target_labels": [
+        "ENGEL FORM (TITU'S LEMMA)"
+      ],
+      "mapping_id": 69
+    },
+    {
+      "source_field": "technique",
+      "source_label": "FACTORING",
+      "action": "reclassify_and_merge_alias",
+      "target_layer": "technique",
+      "family": "Polynomials and algebraic manipulation",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "FACTORIZATION"
+      ],
+      "mapping_id": 70
+    },
+    {
+      "source_field": "technique",
+      "source_label": "EXTREMAL ARGUMENTS",
+      "action": "reclassify_and_merge_alias",
+      "target_layer": "technique",
+      "family": "Shared proof methods: extremal arguments, monotonicity, and invariants",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "EXTREMAL PRINCIPLE"
+      ],
+      "mapping_id": 72
+    },
+    {
+      "source_field": "technique",
+      "source_label": "FINITE DIFFERENCE",
+      "action": "reclassify_and_merge_alias",
+      "target_layer": "technique",
+      "family": "Sequences, recurrences, and series",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "FINITE DIFFERENCES"
+      ],
+      "mapping_id": 73
+    },
+    {
+      "source_field": "technique",
+      "source_label": "INJECTIVITY FORCING",
+      "action": "reclassify_and_merge_alias",
+      "target_layer": "technique",
+      "family": "Functional equations",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "INJECTIVITY"
+      ],
+      "mapping_id": 74
+    },
+    {
+      "source_field": "technique",
+      "source_label": "INJECTIVITY TRICK",
+      "action": "reclassify_and_merge_alias",
+      "target_layer": "technique",
+      "family": "Functional equations",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "INJECTIVITY"
+      ],
+      "mapping_id": 75
+    },
+    {
+      "source_field": "technique",
+      "source_label": "REARRANGEMENTS",
+      "action": "reclassify_and_merge_alias",
+      "target_layer": "technique",
+      "family": "Inequalities and optimization",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "REARRANGEMENT INEQUALITY"
+      ],
+      "mapping_id": 76
+    },
+    {
+      "source_field": "technique",
+      "source_label": "SOS (SUM OF SQUARES)",
+      "action": "reclassify_and_merge_alias",
+      "target_layer": "technique",
+      "family": "Inequalities and optimization",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "SUM OF SQUARES"
+      ],
+      "mapping_id": 77
+    },
+    {
+      "source_field": "technique",
+      "source_label": "SPECIAL SUBSTITUTIONS",
+      "action": "reclassify_and_merge_alias",
+      "target_layer": "technique",
+      "family": "Equations, substitutions, and transformations",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "SUBSTITUTION"
+      ],
+      "mapping_id": 78
+    },
+    {
+      "source_field": "technique",
+      "source_label": "SUM OF SQUARES EXPANSION",
+      "action": "reclassify_and_merge_alias",
+      "target_layer": "technique",
+      "family": "Inequalities and optimization",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "SUM OF SQUARES"
+      ],
+      "mapping_id": 79
+    },
+    {
+      "source_field": "technique",
+      "source_label": "TELESCOPING IDENTITY",
+      "action": "reclassify_and_merge_alias",
+      "target_layer": "technique",
+      "family": "Sequences, recurrences, and series",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "TELESCOPING"
+      ],
+      "mapping_id": 80
+    },
+    {
+      "source_field": "technique",
+      "source_label": "CLEVER SUBSTITUTIONS",
+      "action": "reclassify_and_merge_alias",
+      "target_layer": "technique",
+      "family": "Equations, substitutions, and transformations",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "SUBSTITUTION"
+      ],
+      "mapping_id": 82
+    },
+    {
+      "source_field": "technique",
+      "source_label": "COEFFICIENT COMPARE",
+      "action": "reclassify_and_merge_alias",
+      "target_layer": "technique",
+      "family": "Polynomials and algebraic manipulation",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "COEFFICIENT COMPARISON"
+      ],
+      "mapping_id": 83
+    },
+    {
+      "source_field": "technique",
+      "source_label": "ENGEL FORM (TITU)",
+      "action": "reclassify_and_merge_alias",
+      "target_layer": "technique",
+      "family": "Inequalities and optimization",
+      "detail_to_preserve": "Child of CAUCHY-SCHWARZ; retain recognition of the reciprocal-sum form.",
+      "target_labels": [
+        "ENGEL FORM (TITU'S LEMMA)"
+      ],
+      "mapping_id": 84
+    },
+    {
+      "source_field": "technique",
+      "source_label": "ENGEL FORM/TITU",
+      "action": "reclassify_and_merge_alias",
+      "target_layer": "technique",
+      "family": "Inequalities and optimization",
+      "detail_to_preserve": "Child of CAUCHY-SCHWARZ; retain recognition of the reciprocal-sum form.",
+      "target_labels": [
+        "ENGEL FORM (TITU'S LEMMA)"
+      ],
+      "mapping_id": 85
+    },
+    {
+      "source_field": "technique",
+      "source_label": "ENGEL (TITU)",
+      "action": "reclassify_and_merge_alias",
+      "target_layer": "technique",
+      "family": "Inequalities and optimization",
+      "detail_to_preserve": "Child of CAUCHY-SCHWARZ; retain recognition of the reciprocal-sum form.",
+      "target_labels": [
+        "ENGEL FORM (TITU'S LEMMA)"
+      ],
+      "mapping_id": 86
+    },
+    {
+      "source_field": "technique",
+      "source_label": "ENGEL/TITU’S LEMMA",
+      "action": "reclassify_and_merge_alias",
+      "target_layer": "technique",
+      "family": "Inequalities and optimization",
+      "detail_to_preserve": "Child of CAUCHY-SCHWARZ; retain recognition of the reciprocal-sum form.",
+      "target_labels": [
+        "ENGEL FORM (TITU'S LEMMA)"
+      ],
+      "mapping_id": 87
+    },
+    {
+      "source_field": "technique",
+      "source_label": "HOMOGENISATION",
+      "action": "reclassify_and_merge_alias",
+      "target_layer": "technique",
+      "family": "Equations, substitutions, and transformations",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "HOMOGENIZATION"
+      ],
+      "mapping_id": 88
+    },
+    {
+      "source_field": "technique",
+      "source_label": "MONOTONICITY TRICK",
+      "action": "reclassify_and_merge_alias",
+      "target_layer": "technique",
+      "family": "Shared proof methods: extremal arguments, monotonicity, and invariants",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "MONOTONICITY"
+      ],
+      "mapping_id": 89
+    },
+    {
+      "source_field": "technique",
+      "source_label": "MONOTONICITY TRICKS",
+      "action": "reclassify_and_merge_alias",
+      "target_layer": "technique",
+      "family": "Shared proof methods: extremal arguments, monotonicity, and invariants",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "MONOTONICITY"
+      ],
+      "mapping_id": 90
+    },
+    {
+      "source_field": "technique",
+      "source_label": "SCHUR’S INEQUALITY",
+      "action": "reclassify_and_merge_alias",
+      "target_layer": "technique",
+      "family": "Inequalities and optimization",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "SCHUR'S INEQUALITY"
+      ],
+      "mapping_id": 91
+    },
+    {
+      "source_field": "technique",
+      "source_label": "SOS (SUM-OF-SQUARES)",
+      "action": "reclassify_and_merge_alias",
+      "target_layer": "technique",
+      "family": "Inequalities and optimization",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "SUM OF SQUARES"
+      ],
+      "mapping_id": 92
+    },
+    {
+      "source_field": "technique",
+      "source_label": "STANDARD SUBSTITUTIONS",
+      "action": "reclassify_and_merge_alias",
+      "target_layer": "technique",
+      "family": "Equations, substitutions, and transformations",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "SUBSTITUTION"
+      ],
+      "mapping_id": 93
+    },
+    {
+      "source_field": "technique",
+      "source_label": "STRATEGIC SUBSTITUTIONS",
+      "action": "reclassify_and_merge_alias",
+      "target_layer": "technique",
+      "family": "Equations, substitutions, and transformations",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "SUBSTITUTION"
+      ],
+      "mapping_id": 94
+    },
+    {
+      "source_field": "technique",
+      "source_label": "SURJECTIVITY TRICK",
+      "action": "reclassify_and_merge_alias",
+      "target_layer": "technique",
+      "family": "Functional equations",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "SURJECTIVITY"
+      ],
+      "mapping_id": 95
+    },
+    {
+      "source_field": "technique",
+      "source_label": "TELESCOPING IDENTITIES",
+      "action": "reclassify_and_merge_alias",
+      "target_layer": "technique",
+      "family": "Sequences, recurrences, and series",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "TELESCOPING"
+      ],
+      "mapping_id": 96
+    },
+    {
+      "source_field": "technique",
+      "source_label": "TELESCOPING TRICK",
+      "action": "reclassify_and_merge_alias",
+      "target_layer": "technique",
+      "family": "Sequences, recurrences, and series",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "TELESCOPING"
+      ],
+      "mapping_id": 97
+    },
+    {
+      "source_field": "technique",
+      "source_label": "TITU/ENGEL FORM",
+      "action": "reclassify_and_merge_alias",
+      "target_layer": "technique",
+      "family": "Inequalities and optimization",
+      "detail_to_preserve": "Child of CAUCHY-SCHWARZ; retain recognition of the reciprocal-sum form.",
+      "target_labels": [
+        "ENGEL FORM (TITU'S LEMMA)"
+      ],
+      "mapping_id": 98
+    },
+    {
+      "source_field": "technique_tags",
+      "source_label": "ENGEL FORM",
+      "action": "reclassify_and_merge_alias",
+      "target_layer": "technique_tags",
+      "family": "Inequalities and optimization",
+      "detail_to_preserve": "Child of CAUCHY-SCHWARZ; retain recognition of the reciprocal-sum form.",
+      "target_labels": [
+        "ENGEL FORM (TITU'S LEMMA)"
+      ],
+      "mapping_id": 105
+    },
+    {
+      "source_field": "technique_tags",
+      "source_label": "COMPLETING SQUARE",
+      "action": "merge_alias",
+      "target_layer": "technique_tags",
+      "family": "Equations, substitutions, and transformations",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "COMPLETING THE SQUARE"
+      ],
+      "mapping_id": 111
+    },
+    {
+      "source_field": "technique_tags",
+      "source_label": "HÖLDER INEQUALITY",
+      "action": "reclassify_and_merge_alias",
+      "target_layer": "technique_tags",
+      "family": "Inequalities and optimization",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "HÖLDER"
+      ],
+      "mapping_id": 112
+    },
+    {
+      "source_field": "technique_tags",
+      "source_label": "SUBSTITUTION TRICK",
+      "action": "merge_alias",
+      "target_layer": "technique_tags",
+      "family": "Equations, substitutions, and transformations",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "SUBSTITUTION"
+      ],
+      "mapping_id": 115
+    },
+    {
+      "source_field": "technique_tags",
+      "source_label": "CASE SPLIT",
+      "action": "merge_alias",
+      "target_layer": "technique_tags",
+      "family": "Shared proof methods: extremal arguments, monotonicity, and invariants",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "CASEWORK"
+      ],
+      "mapping_id": 116
+    },
+    {
+      "source_field": "technique_tags",
+      "source_label": "COMPLETING SQUARES",
+      "action": "merge_alias",
+      "target_layer": "technique_tags",
+      "family": "Equations, substitutions, and transformations",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "COMPLETING THE SQUARE"
+      ],
+      "mapping_id": 118
+    },
+    {
+      "source_field": "technique_tags",
+      "source_label": "SCHUR INEQUALITY",
+      "action": "reclassify_and_merge_alias",
+      "target_layer": "technique_tags",
+      "family": "Inequalities and optimization",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "SCHUR'S INEQUALITY"
+      ],
+      "mapping_id": 120
+    },
+    {
+      "source_field": "technique_tags",
+      "source_label": "MATRICES",
+      "action": "reclassify_and_merge_alias",
+      "target_layer": "technique_tags",
+      "family": "Algebraic structures and linear algebra",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "MATRIX"
+      ],
+      "mapping_id": 122
+    },
+    {
+      "source_field": "technique_tags",
+      "source_label": "PARTIAL SUMMATION",
+      "action": "merge_alias",
+      "target_layer": "technique_tags",
+      "family": "Sequences, recurrences, and series",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "SUMMATION BY PARTS"
+      ],
+      "mapping_id": 123
+    },
+    {
+      "source_field": "technique_tags",
+      "source_label": "TELESCOPING TRICKS",
+      "action": "merge_alias",
+      "target_layer": "technique_tags",
+      "family": "Sequences, recurrences, and series",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "TELESCOPING"
+      ],
+      "mapping_id": 127
+    },
+    {
+      "source_field": "technique_tags",
+      "source_label": "FACTORING",
+      "action": "merge_alias",
+      "target_layer": "technique_tags",
+      "family": "Polynomials and algebraic manipulation",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "FACTORIZATION"
+      ],
+      "mapping_id": 128
+    },
+    {
+      "source_field": "technique_tags",
+      "source_label": "FINITE DIFFERENCE METHOD",
+      "action": "merge_alias",
+      "target_layer": "technique_tags",
+      "family": "Sequences, recurrences, and series",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "FINITE DIFFERENCES"
+      ],
+      "mapping_id": 129
+    },
+    {
+      "source_field": "technique_tags",
+      "source_label": "SOS (SUM OF SQUARES)",
+      "action": "merge_alias",
+      "target_layer": "technique_tags",
+      "family": "Inequalities and optimization",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "SUM OF SQUARES"
+      ],
+      "mapping_id": 131
+    },
+    {
+      "source_field": "technique_tags",
+      "source_label": "SPECIAL SUBSTITUTIONS",
+      "action": "merge_alias",
+      "target_layer": "technique_tags",
+      "family": "Equations, substitutions, and transformations",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "SUBSTITUTION"
+      ],
+      "mapping_id": 132
+    },
+    {
+      "source_field": "technique_tags",
+      "source_label": "SUM OF SQUARES EXPANSION",
+      "action": "merge_alias",
+      "target_layer": "technique_tags",
+      "family": "Inequalities and optimization",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "SUM OF SQUARES"
+      ],
+      "mapping_id": 133
+    },
+    {
+      "source_field": "technique_tags",
+      "source_label": "TELESCOPING IDENTITY",
+      "action": "merge_alias",
+      "target_layer": "technique_tags",
+      "family": "Sequences, recurrences, and series",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "TELESCOPING"
+      ],
+      "mapping_id": 134
+    },
+    {
+      "source_field": "technique_tags",
+      "source_label": "COEFFICIENT COMPARE",
+      "action": "merge_alias",
+      "target_layer": "technique_tags",
+      "family": "Polynomials and algebraic manipulation",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "COEFFICIENT COMPARISON"
+      ],
+      "mapping_id": 135
+    },
+    {
+      "source_field": "technique_tags",
+      "source_label": "MONOTONICITY TRICK",
+      "action": "merge_alias",
+      "target_layer": "technique_tags",
+      "family": "Shared proof methods: extremal arguments, monotonicity, and invariants",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "MONOTONICITY"
+      ],
+      "mapping_id": 138
+    },
+    {
+      "source_field": "technique_tags",
+      "source_label": "MONOTONICITY TRICKS",
+      "action": "merge_alias",
+      "target_layer": "technique_tags",
+      "family": "Shared proof methods: extremal arguments, monotonicity, and invariants",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "MONOTONICITY"
+      ],
+      "mapping_id": 139
+    },
+    {
+      "source_field": "technique_tags",
+      "source_label": "SOS (SUM-OF-SQUARES)",
+      "action": "merge_alias",
+      "target_layer": "technique_tags",
+      "family": "Inequalities and optimization",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "SUM OF SQUARES"
+      ],
+      "mapping_id": 140
+    },
+    {
+      "source_field": "technique_tags",
+      "source_label": "STRATEGIC SUBSTITUTIONS",
+      "action": "merge_alias",
+      "target_layer": "technique_tags",
+      "family": "Equations, substitutions, and transformations",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "SUBSTITUTION"
+      ],
+      "mapping_id": 141
+    },
+    {
+      "source_field": "technique_tags",
+      "source_label": "TELESCOPING IDENTITIES",
+      "action": "merge_alias",
+      "target_layer": "technique_tags",
+      "family": "Sequences, recurrences, and series",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "TELESCOPING"
+      ],
+      "mapping_id": 142
+    },
+    {
+      "source_field": "technique_tags",
+      "source_label": "TELESCOPING TRICK",
+      "action": "merge_alias",
+      "target_layer": "technique_tags",
+      "family": "Sequences, recurrences, and series",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "TELESCOPING"
+      ],
+      "mapping_id": 143
+    },
+    {
+      "source_field": "technique_tags",
+      "source_label": "VIETA",
+      "action": "reclassify_and_merge_alias",
+      "target_layer": "technique_tags",
+      "family": "Polynomials and algebraic manipulation",
+      "detail_to_preserve": "",
+      "target_labels": [
+        "VIETA'S FORMULAS"
+      ],
+      "mapping_id": 144
+    }
+  ],
+  "row_exceptions": [
+    {
+      "mapping_id": 145,
+      "source": "statement",
+      "row_id": 5601,
+      "parent_id": 1507,
+      "source_field": "technique",
+      "source_label": "INJECTIVITY TRICKS",
+      "target_technique": "INJECTIVITY UP TO SIGN",
+      "add_method": "INJECTIVITY UP TO SIGN",
+      "reason": "Verified stored APMO identity admits x^2, so unqualified injectivity is false; align with linked analytics specificity."
+    },
+    {
+      "mapping_id": 146,
+      "source": "problem",
+      "row_id": 66435,
+      "parent_id": 8841,
+      "source_field": "technique",
+      "source_label": "INJECTIVITY UP TO SIGN",
+      "target_technique": "INJECTIVITY UP TO SIGN",
+      "add_method": "INJECTIVITY UP TO SIGN",
+      "reason": "Mirror the confirmed near-injectivity method on the existing linked analytics tag."
+    }
+  ],
+  "benchmark_alias_actions": [
+    {
+      "action": "insert",
+      "alias_id": null,
+      "kind": "lemma",
+      "alias_key": "vieta-s-formulas",
+      "alias_label": "VIETA'S FORMULAS",
+      "before": null,
+      "candidate_after": {
+        "kind": "lemma",
+        "alias_key": "vieta-s-formulas",
+        "alias_label": "VIETA'S FORMULAS",
+        "benchmark_id": 626,
+        "reason": "Algebra alias cleanup: canonical spelling; existing benchmark and ratings retained."
+      },
+      "mapping_ids": [
+        5
+      ],
+      "runtime_effect": "New canonical name resolves to the existing same-kind benchmark; no score fields edited."
+    },
+    {
+      "action": "insert",
+      "alias_id": null,
+      "kind": "technique",
+      "alias_key": "invariant",
+      "alias_label": "INVARIANT",
+      "before": null,
+      "candidate_after": {
+        "kind": "technique",
+        "alias_key": "invariant",
+        "alias_label": "INVARIANT",
+        "benchmark_id": 84,
+        "reason": "Algebra alias cleanup: canonical spelling; existing benchmark and ratings retained."
+      },
+      "mapping_ids": [
+        32
+      ],
+      "runtime_effect": "New canonical name resolves to the existing same-kind benchmark; no score fields edited."
+    },
+    {
+      "action": "insert",
+      "alias_id": null,
+      "kind": "method",
+      "alias_key": "engel-form-titu-s-lemma",
+      "alias_label": "ENGEL FORM (TITU'S LEMMA)",
+      "before": null,
+      "candidate_after": {
+        "kind": "method",
+        "alias_key": "engel-form-titu-s-lemma",
+        "alias_label": "ENGEL FORM (TITU'S LEMMA)",
+        "benchmark_id": 108,
+        "reason": "Algebra alias cleanup: canonical spelling; existing benchmark and ratings retained."
+      },
+      "mapping_ids": [
+        105
+      ],
+      "runtime_effect": "New canonical name resolves to the existing same-kind benchmark; no score fields edited."
+    },
+    {
+      "action": "update_shadowed_alias",
+      "alias_id": 1961,
+      "kind": "canonical_subtopic",
+      "alias_key": "functional-equations",
+      "alias_label": "functional equations",
+      "before": {
+        "id": 1961,
+        "kind": "canonical_subtopic",
+        "alias_label": "functional equations",
+        "alias_key": "functional-equations",
+        "benchmark_id": 949,
+        "reason": "Imported benchmark alias suggestion."
+      },
+      "candidate_after": {
+        "id": 1961,
+        "kind": "canonical_subtopic",
+        "alias_label": "functional equations",
+        "alias_key": "functional-equations",
+        "benchmark_id": 34,
+        "reason": "Align shadowed alias with its existing direct benchmark; effective lookup unchanged. Previous binding retained in cleanup audit."
+      },
+      "mapping_ids": [],
+      "runtime_effect": "Direct benchmark 34 already wins before and after; no effective rating change."
+    },
+    {
+      "action": "update_shadowed_alias",
+      "alias_id": 1902,
+      "kind": "method",
+      "alias_key": "factorization",
+      "alias_label": "factorization",
+      "before": {
+        "id": 1902,
+        "kind": "method",
+        "alias_label": "factorization",
+        "alias_key": "factorization",
+        "benchmark_id": 1337,
+        "reason": "Imported benchmark alias suggestion."
+      },
+      "candidate_after": {
+        "id": 1902,
+        "kind": "method",
+        "alias_label": "factorization",
+        "alias_key": "factorization",
+        "benchmark_id": 11,
+        "reason": "Align shadowed alias with its existing direct benchmark; effective lookup unchanged. Previous binding retained in cleanup audit."
+      },
+      "mapping_ids": [],
+      "runtime_effect": "Direct benchmark 11 already wins before and after; no effective rating change."
+    },
+    {
+      "action": "update_shadowed_alias",
+      "alias_id": 1392,
+      "kind": "method",
+      "alias_key": "monovariant",
+      "alias_label": "monovariant",
+      "before": {
+        "id": 1392,
+        "kind": "method",
+        "alias_label": "monovariant",
+        "alias_key": "monovariant",
+        "benchmark_id": 1238,
+        "reason": "Imported benchmark alias suggestion."
+      },
+      "candidate_after": {
+        "id": 1392,
+        "kind": "method",
+        "alias_label": "monovariant",
+        "alias_key": "monovariant",
+        "benchmark_id": 1300,
+        "reason": "Align shadowed alias with its existing direct benchmark; effective lookup unchanged. Previous binding retained in cleanup audit."
+      },
+      "mapping_ids": [],
+      "runtime_effect": "Direct benchmark 1300 already wins before and after; no effective rating change."
+    },
+    {
+      "action": "update_shadowed_alias",
+      "alias_id": 2463,
+      "kind": "object",
+      "alias_key": "function",
+      "alias_label": "function",
+      "before": {
+        "id": 2463,
+        "kind": "object",
+        "alias_label": "function",
+        "alias_key": "function",
+        "benchmark_id": 1101,
+        "reason": "Imported benchmark alias suggestion."
+      },
+      "candidate_after": {
+        "id": 2463,
+        "kind": "object",
+        "alias_label": "function",
+        "alias_key": "function",
+        "benchmark_id": 76,
+        "reason": "Align shadowed alias with its existing direct benchmark; effective lookup unchanged. Previous binding retained in cleanup audit."
+      },
+      "mapping_ids": [],
+      "runtime_effect": "Direct benchmark 76 already wins before and after; no effective rating change."
+    },
+    {
+      "action": "update_shadowed_alias",
+      "alias_id": 2462,
+      "kind": "object",
+      "alias_key": "sequence",
+      "alias_label": "sequence",
+      "before": {
+        "id": 2462,
+        "kind": "object",
+        "alias_label": "sequence",
+        "alias_key": "sequence",
+        "benchmark_id": 1101,
+        "reason": "Imported benchmark alias suggestion."
+      },
+      "candidate_after": {
+        "id": 2462,
+        "kind": "object",
+        "alias_label": "sequence",
+        "alias_key": "sequence",
+        "benchmark_id": 697,
+        "reason": "Align shadowed alias with its existing direct benchmark; effective lookup unchanged. Previous binding retained in cleanup audit."
+      },
+      "mapping_ids": [],
+      "runtime_effect": "Direct benchmark 697 already wins before and after; no effective rating change."
+    },
+    {
+      "action": "update_shadowed_alias",
+      "alias_id": 647,
+      "kind": "proof_role",
+      "alias_key": "casework",
+      "alias_label": "casework",
+      "before": {
+        "id": 647,
+        "kind": "proof_role",
+        "alias_label": "casework",
+        "alias_key": "casework",
+        "benchmark_id": 575,
+        "reason": "Imported benchmark alias suggestion."
+      },
+      "candidate_after": {
+        "id": 647,
+        "kind": "proof_role",
+        "alias_label": "casework",
+        "alias_key": "casework",
+        "benchmark_id": 217,
+        "reason": "Align shadowed alias with its existing direct benchmark; effective lookup unchanged. Previous binding retained in cleanup audit."
+      },
+      "mapping_ids": [],
+      "runtime_effect": "Direct benchmark 217 already wins before and after; no effective rating change."
+    },
+    {
+      "action": "update_shadowed_alias",
+      "alias_id": 895,
+      "kind": "proof_role",
+      "alias_key": "construction",
+      "alias_label": "construction",
+      "before": {
+        "id": 895,
+        "kind": "proof_role",
+        "alias_label": "construction",
+        "alias_key": "construction",
+        "benchmark_id": 1374,
+        "reason": "Imported benchmark alias suggestion."
+      },
+      "candidate_after": {
+        "id": 895,
+        "kind": "proof_role",
+        "alias_label": "construction",
+        "alias_key": "construction",
+        "benchmark_id": 15,
+        "reason": "Align shadowed alias with its existing direct benchmark; effective lookup unchanged. Previous binding retained in cleanup audit."
+      },
+      "mapping_ids": [],
+      "runtime_effect": "Direct benchmark 15 already wins before and after; no effective rating change."
+    },
+    {
+      "action": "update_shadowed_alias",
+      "alias_id": 1016,
+      "kind": "proof_role",
+      "alias_key": "existence",
+      "alias_label": "existence",
+      "before": {
+        "id": 1016,
+        "kind": "proof_role",
+        "alias_label": "existence",
+        "alias_key": "existence",
+        "benchmark_id": 1374,
+        "reason": "Imported benchmark alias suggestion."
+      },
+      "candidate_after": {
+        "id": 1016,
+        "kind": "proof_role",
+        "alias_label": "existence",
+        "alias_key": "existence",
+        "benchmark_id": 377,
+        "reason": "Align shadowed alias with its existing direct benchmark; effective lookup unchanged. Previous binding retained in cleanup audit."
+      },
+      "mapping_ids": [],
+      "runtime_effect": "Direct benchmark 377 already wins before and after; no effective rating change."
+    },
+    {
+      "action": "update_shadowed_alias",
+      "alias_id": 3404,
+      "kind": "proof_role",
+      "alias_key": "inequality-proof",
+      "alias_label": "inequality proof",
+      "before": {
+        "id": 3404,
+        "kind": "proof_role",
+        "alias_label": "inequality proof",
+        "alias_key": "inequality-proof",
+        "benchmark_id": 1410,
+        "reason": "Imported benchmark alias suggestion."
+      },
+      "candidate_after": {
+        "id": 3404,
+        "kind": "proof_role",
+        "alias_label": "inequality proof",
+        "alias_key": "inequality-proof",
+        "benchmark_id": 133,
+        "reason": "Align shadowed alias with its existing direct benchmark; effective lookup unchanged. Previous binding retained in cleanup audit."
+      },
+      "mapping_ids": [],
+      "runtime_effect": "Direct benchmark 133 already wins before and after; no effective rating change."
+    }
+  ],
+  "merge_policy": "Exact-parent duplicate only: union tags; retain all source strings in raw_tag without truncation and retain complete before-images in the review audit.",
+  "out_of_scope_alias_keys_excluded": [
+    [
+      "method",
+      "extremal-principle"
+    ],
+    [
+      "method",
+      "invariant"
+    ]
+  ]
+}
