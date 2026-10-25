@@ -35,6 +35,8 @@ env:
   PYTHON_VERSION: "3.12"
   NODE_VERSION: "22.18.0"
   UV_VERSION: "0.12.6"
+  DJANGO_SETTINGS_MODULE: config.settings.test
+  DJANGO_READ_DOT_ENV_FILE: "false"
 
 jobs:
   build:
@@ -119,6 +121,21 @@ jobs:
           ASTERPROOF_PYTHON: ${{ github.workspace }}/.release-runtime/bin/python
           DJANGO_SETTINGS_MODULE: config.settings.staticfiles
         run: ./scripts/build_and_collectstatic.sh
+
+      - name: Verify static manifest and representative assets
+        run: |
+          test -s staticfiles/staticfiles.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path("staticfiles")
+          paths = json.loads((root / "staticfiles.json").read_text()).get("paths", {})
+          for source in ("css/app.min.css", "js/app.js", "js/vendors.min.js"):
+              target = paths.get(source)
+              if not target or not (root / target).is_file():
+                  raise SystemExit(f"static manifest is missing {source}")
+          PY
 
       - name: Build immutable release
         id: release
