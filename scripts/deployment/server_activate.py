@@ -18,6 +18,8 @@ from scripts.deployment.release_state import safe_release_path
 from scripts.deployment.release_state import utc_now
 from scripts.deployment.target import TargetContract
 
+READINESS_POLL_SECONDS = 0.25
+
 
 def activate_release(contract: TargetContract, release_sha: str) -> str | None:
     target = safe_release_path(contract.releases_dir, release_sha)
@@ -167,10 +169,20 @@ def verify_release(
     artifact_digest: str,
     *,
     stabilization_seconds: int = 10,
+    readiness_timeout_seconds: float = 15,
 ) -> dict[str, Any]:
-    initial_processes = verify_service_processes(contract, release_sha)
-    health_check(contract, release_sha, artifact_digest)
-    verify_static_assets(contract, release_sha)
+    deadline = time.monotonic() + readiness_timeout_seconds
+    while True:
+        try:
+            health_check(contract, release_sha, artifact_digest)
+            verify_static_assets(contract, release_sha)
+            # A successful request proves workers have started before their PID snapshot.
+            initial_processes = verify_service_processes(contract, release_sha)
+            break
+        except (OSError, subprocess.SubprocessError, ReleaseStateError) as exc:
+            if time.monotonic() >= deadline:
+                raise ReleaseStateError("release did not become ready before its deadline") from exc
+            time.sleep(READINESS_POLL_SECONDS)
     time.sleep(stabilization_seconds)
     if verify_service_processes(contract, release_sha) != initial_processes:
         raise ReleaseStateError("service process set changed during stabilization")
