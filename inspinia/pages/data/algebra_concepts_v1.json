@@ -1,0 +1,6401 @@
+{
+  "version": "algebra-concept-review-2026-10-26-v1",
+  "reviewed_policy_sha256": "6e2295d2287fb516b5230bbe9d7f97efbc5bc72e0e93ae1263bf46a4b9929cdb",
+  "areas": {
+    "inequalities": "Inequalities and optimization",
+    "polynomials": "Polynomials and algebraic manipulation",
+    "equations": "Equations, substitutions, and transformations",
+    "functional": "Functions and functional equations",
+    "sequences": "Sequences, recurrences, and summation",
+    "linear": "Linear algebra and quadratic forms",
+    "structures": "Algebraic structures and finite fields",
+    "discrete": "Discrete functions, rounding, and finite dynamics",
+    "analytic": "Complex, trigonometric, and analytic tools",
+    "shared": "Shared proof strategies"
+  },
+  "concepts": [
+    {
+      "concept_id": "am-gm",
+      "label": "AM-GM inequality",
+      "area": "inequalities",
+      "area_label": "Inequalities and optimization",
+      "parent_concept": "",
+      "canonical_benchmark_id": 109,
+      "preferred": "lemma:am-gm",
+      "benchmark_resolution": "Preserve the established named-theorem reference. The existing lemma/method/technique vectors agree.",
+      "profiles": [
+        {
+          "id": 109,
+          "kind": "lemma",
+          "label_key": "am-gm",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        },
+        {
+          "id": 111,
+          "kind": "technique",
+          "label_key": "am-gm",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original technique assessment and assumptions; it does not override the canonical reference."
+        },
+        {
+          "id": 140,
+          "kind": "method",
+          "label_key": "am-gm",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original method assessment and assumptions; it does not override the canonical reference."
+        }
+      ],
+      "aliases": [
+        [
+          "lemma",
+          "AM-GM"
+        ],
+        [
+          "method",
+          "AM-GM"
+        ],
+        [
+          "technique",
+          "AM-GM"
+        ]
+      ]
+    },
+    {
+      "concept_id": "cauchy-schwarz",
+      "label": "Cauchy-Schwarz inequality",
+      "area": "inequalities",
+      "area_label": "Inequalities and optimization",
+      "parent_concept": "",
+      "canonical_benchmark_id": 101,
+      "preferred": "lemma:cauchy-schwarz",
+      "benchmark_resolution": "Preserve the established Cauchy-Schwarz theorem reference. Keep quadratic-bound application profile 424; the vague when-applicable label 430 is a legacy assessment, not another theorem.",
+      "profiles": [
+        {
+          "id": 101,
+          "kind": "lemma",
+          "label_key": "cauchy-schwarz",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        },
+        {
+          "id": 104,
+          "kind": "method",
+          "label_key": "cauchy-schwarz",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original method assessment and assumptions; it does not override the canonical reference."
+        },
+        {
+          "id": 424,
+          "kind": "method",
+          "label_key": "cauchy",
+          "usage": "named_application_variant",
+          "usage_reason": "quadratic-bound Cauchy application"
+        },
+        {
+          "id": 430,
+          "kind": "lemma",
+          "label_key": "cauchy-when-applicable",
+          "usage": "legacy_assessment",
+          "usage_reason": "Preserved historically; not a second active default or a new mathematical concept."
+        }
+      ],
+      "aliases": [
+        [
+          "lemma",
+          "CAUCHY"
+        ],
+        [
+          "lemma",
+          "CAUCHY WHEN APPLICABLE"
+        ],
+        [
+          "lemma",
+          "CAUCHY-SCHWARZ"
+        ],
+        [
+          "method",
+          "CAUCHY"
+        ],
+        [
+          "method",
+          "CAUCHY-SCHWARZ"
+        ]
+      ]
+    },
+    {
+      "concept_id": "engel",
+      "label": "Engel form / Titu's lemma",
+      "area": "inequalities",
+      "area_label": "Inequalities and optimization",
+      "parent_concept": "cauchy-schwarz",
+      "canonical_benchmark_id": 107,
+      "preferred": "lemma:engel",
+      "benchmark_resolution": "Preserve the established Engel theorem reference. Cauchy-Schwarz in Engel form and Titu wording are representations of this specialization.",
+      "profiles": [
+        {
+          "id": 106,
+          "kind": "technique",
+          "label_key": "cauchy-schwarz-engel-form",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original technique assessment and assumptions; it does not override the canonical reference."
+        },
+        {
+          "id": 107,
+          "kind": "lemma",
+          "label_key": "engel",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        },
+        {
+          "id": 108,
+          "kind": "method",
+          "label_key": "engel-form",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original method assessment and assumptions; it does not override the canonical reference."
+        }
+      ],
+      "aliases": [
+        [
+          "lemma",
+          "ENGEL"
+        ],
+        [
+          "method",
+          "ENGEL FORM"
+        ],
+        [
+          "method",
+          "ENGEL FORM (TITU'S LEMMA)"
+        ],
+        [
+          "technique",
+          "CAUCHY-SCHWARZ / ENGEL FORM"
+        ],
+        [
+          "technique",
+          "ENGEL"
+        ],
+        [
+          "technique",
+          "ENGEL FORM (TITU'S LEMMA)"
+        ]
+      ]
+    },
+    {
+      "concept_id": "weighted-am-gm",
+      "label": "Weighted AM-GM",
+      "area": "inequalities",
+      "area_label": "Inequalities and optimization",
+      "parent_concept": "am-gm",
+      "canonical_benchmark_id": 408,
+      "preferred": "lemma:weighted-am-gm",
+      "benchmark_resolution": "Preserve the established named weighted-AM-GM reference. Method 410 is an application assessment; legacy technique 409 is not a competing default.",
+      "profiles": [
+        {
+          "id": 408,
+          "kind": "lemma",
+          "label_key": "weighted-am-gm",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        },
+        {
+          "id": 409,
+          "kind": "technique",
+          "label_key": "weighted-am-gm",
+          "usage": "legacy_assessment",
+          "usage_reason": "Preserved historically; not a second active default or a new mathematical concept."
+        },
+        {
+          "id": 410,
+          "kind": "method",
+          "label_key": "weighted-am-gm",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original method assessment and assumptions; it does not override the canonical reference."
+        }
+      ],
+      "aliases": [
+        [
+          "lemma",
+          "WEIGHTED AM-GM"
+        ],
+        [
+          "method",
+          "WEIGHTED AM-GM"
+        ],
+        [
+          "technique",
+          "AM-GM (WEIGHTED)"
+        ],
+        [
+          "technique",
+          "AM–GM (WEIGHTED)"
+        ],
+        [
+          "technique",
+          "AM–GM/WEIGHTED"
+        ],
+        [
+          "technique",
+          "WEIGHTED AM-GM"
+        ]
+      ]
+    },
+    {
+      "concept_id": "jensen",
+      "label": "Jensen's inequality",
+      "area": "inequalities",
+      "area_label": "Inequalities and optimization",
+      "parent_concept": "convexity",
+      "canonical_benchmark_id": 110,
+      "preferred": "lemma:jensen",
+      "benchmark_resolution": "Use the named Jensen theorem; retain its method role with the same vector.",
+      "profiles": [
+        {
+          "id": 110,
+          "kind": "lemma",
+          "label_key": "jensen",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        },
+        {
+          "id": 139,
+          "kind": "method",
+          "label_key": "jensen",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original method assessment and assumptions; it does not override the canonical reference."
+        }
+      ],
+      "aliases": [
+        [
+          "lemma",
+          "JENSEN"
+        ],
+        [
+          "lemma",
+          "JENSEN'S INEQUALITY"
+        ],
+        [
+          "method",
+          "JENSEN"
+        ]
+      ]
+    },
+    {
+      "concept_id": "karamata",
+      "label": "Karamata's inequality",
+      "area": "inequalities",
+      "area_label": "Inequalities and optimization",
+      "parent_concept": "majorization",
+      "canonical_benchmark_id": 115,
+      "preferred": "lemma:karamata",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 115,
+          "kind": "lemma",
+          "label_key": "karamata",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "lemma",
+          "KARAMATA"
+        ]
+      ]
+    },
+    {
+      "concept_id": "schur",
+      "label": "Schur's inequality",
+      "area": "inequalities",
+      "area_label": "Inequalities and optimization",
+      "parent_concept": "",
+      "canonical_benchmark_id": 148,
+      "preferred": "lemma:schur",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 148,
+          "kind": "lemma",
+          "label_key": "schur",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "lemma",
+          "SCHUR"
+        ],
+        [
+          "lemma",
+          "SCHUR'S INEQUALITY"
+        ],
+        [
+          "method",
+          "SCHUR"
+        ],
+        [
+          "method",
+          "SCHUR'S INEQUALITY"
+        ],
+        [
+          "technique",
+          "SCHUR'S INEQUALITY"
+        ]
+      ]
+    },
+    {
+      "concept_id": "muirhead",
+      "label": "Muirhead's inequality",
+      "area": "inequalities",
+      "area_label": "Inequalities and optimization",
+      "parent_concept": "majorization",
+      "canonical_benchmark_id": 398,
+      "preferred": "lemma:muirhead",
+      "benchmark_resolution": "Use the named theorem and its higher-confidence profile; execution-specific method 418 remains a role profile.",
+      "profiles": [
+        {
+          "id": 398,
+          "kind": "lemma",
+          "label_key": "muirhead",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        },
+        {
+          "id": 418,
+          "kind": "method",
+          "label_key": "muirhead",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original method assessment and assumptions; it does not override the canonical reference."
+        }
+      ],
+      "aliases": [
+        [
+          "lemma",
+          "MUIRHEAD"
+        ],
+        [
+          "method",
+          "MUIRHEAD"
+        ]
+      ]
+    },
+    {
+      "concept_id": "nesbitt",
+      "label": "Nesbitt's inequality",
+      "area": "inequalities",
+      "area_label": "Inequalities and optimization",
+      "parent_concept": "",
+      "canonical_benchmark_id": 414,
+      "preferred": "lemma:nesbitt",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 414,
+          "kind": "lemma",
+          "label_key": "nesbitt",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "lemma",
+          "NESBITT"
+        ]
+      ]
+    },
+    {
+      "concept_id": "minkowski",
+      "label": "Minkowski's inequality",
+      "area": "inequalities",
+      "area_label": "Inequalities and optimization",
+      "parent_concept": "",
+      "canonical_benchmark_id": 415,
+      "preferred": "lemma:minkowski-inequality",
+      "benchmark_resolution": "Use the named norm inequality; preserve the heavier method-execution profile 416 separately.",
+      "profiles": [
+        {
+          "id": 415,
+          "kind": "lemma",
+          "label_key": "minkowski-inequality",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        },
+        {
+          "id": 416,
+          "kind": "method",
+          "label_key": "minkowski-inequality",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original method assessment and assumptions; it does not override the canonical reference."
+        }
+      ],
+      "aliases": [
+        [
+          "lemma",
+          "MINKOWSKI"
+        ],
+        [
+          "lemma",
+          "MINKOWSKI INEQUALITY"
+        ],
+        [
+          "method",
+          "MINKOWSKI INEQUALITY"
+        ],
+        [
+          "technique",
+          "MINKOWSKI"
+        ]
+      ]
+    },
+    {
+      "concept_id": "holder",
+      "label": "Hölder's inequality",
+      "area": "inequalities",
+      "area_label": "Inequalities and optimization",
+      "parent_concept": "",
+      "canonical_benchmark_id": null,
+      "preferred": "",
+      "benchmark_resolution": "The mathematical identity is valid; retain it as unscored until dedicated benchmark metadata is reviewed. No values are inferred from a parent or neighbor.",
+      "profiles": [],
+      "aliases": [
+        [
+          "lemma",
+          "HÖLDER"
+        ],
+        [
+          "lemma",
+          "HÖLDER INEQUALITY"
+        ],
+        [
+          "method",
+          "HÖLDER"
+        ],
+        [
+          "method",
+          "HÖLDER INEQUALITY"
+        ],
+        [
+          "technique",
+          "HÖLDER"
+        ]
+      ]
+    },
+    {
+      "concept_id": "bernoulli",
+      "label": "Bernoulli's inequality",
+      "area": "inequalities",
+      "area_label": "Inequalities and optimization",
+      "parent_concept": "",
+      "canonical_benchmark_id": null,
+      "preferred": "",
+      "benchmark_resolution": "The mathematical identity is valid; retain it as unscored until dedicated benchmark metadata is reviewed. No values are inferred from a parent or neighbor.",
+      "profiles": [],
+      "aliases": [
+        [
+          "lemma",
+          "BERNOULLI"
+        ],
+        [
+          "method",
+          "BERNOULLI"
+        ],
+        [
+          "method",
+          "BERNOULLI INEQUALITY"
+        ],
+        [
+          "object",
+          "BERNOULLI INEQUALITY EXPRESSION"
+        ],
+        [
+          "technique",
+          "BERNOULLI"
+        ],
+        [
+          "technique",
+          "BERNOULLI INEQUALITY"
+        ]
+      ]
+    },
+    {
+      "concept_id": "chebyshev-inequality",
+      "label": "Chebyshev's sum inequality",
+      "area": "inequalities",
+      "area_label": "Inequalities and optimization",
+      "parent_concept": "",
+      "canonical_benchmark_id": null,
+      "preferred": "",
+      "benchmark_resolution": "The mathematical identity is valid; retain it as unscored until dedicated benchmark metadata is reviewed. No values are inferred from a parent or neighbor.",
+      "profiles": [],
+      "aliases": []
+    },
+    {
+      "concept_id": "rearrangement",
+      "label": "Rearrangement inequality",
+      "area": "inequalities",
+      "area_label": "Inequalities and optimization",
+      "parent_concept": "",
+      "canonical_benchmark_id": 1504,
+      "preferred": "lemma:rearrangement-principle-when-applicable",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 1504,
+          "kind": "lemma",
+          "label_key": "rearrangement-principle-when-applicable",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "lemma",
+          "REARRANGEMENT PRINCIPLE WHEN APPLICABLE"
+        ],
+        [
+          "method",
+          "REARRANGEMENT INEQUALITY"
+        ],
+        [
+          "technique",
+          "REARRANGEMENT INEQUALITY"
+        ]
+      ]
+    },
+    {
+      "concept_id": "convexity",
+      "label": "Convexity",
+      "area": "inequalities",
+      "area_label": "Inequalities and optimization",
+      "parent_concept": "",
+      "canonical_benchmark_id": 105,
+      "preferred": "method:convexity",
+      "benchmark_resolution": "Use the explicit convexity method for training. Object recognition 114 remains separate; technique 119 duplicates the method vector.",
+      "profiles": [
+        {
+          "id": 105,
+          "kind": "method",
+          "label_key": "convexity",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        },
+        {
+          "id": 114,
+          "kind": "object",
+          "label_key": "convex-function",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original object assessment and assumptions; it does not override the canonical reference."
+        },
+        {
+          "id": 119,
+          "kind": "technique",
+          "label_key": "convexity",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original technique assessment and assumptions; it does not override the canonical reference."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "CONVEXITY"
+        ],
+        [
+          "object",
+          "CONVEX FUNCTION"
+        ],
+        [
+          "object",
+          "CONVEXITY"
+        ],
+        [
+          "technique",
+          "CONVEXITY"
+        ]
+      ]
+    },
+    {
+      "concept_id": "concavity",
+      "label": "Concavity",
+      "area": "inequalities",
+      "area_label": "Inequalities and optimization",
+      "parent_concept": "",
+      "canonical_benchmark_id": 146,
+      "preferred": "method:concavity",
+      "benchmark_resolution": "Use the explicit method assessment. Object 392 is recognition; generic technique 393 is a redundant legacy assessment rather than a separate concept.",
+      "profiles": [
+        {
+          "id": 146,
+          "kind": "method",
+          "label_key": "concavity",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        },
+        {
+          "id": 392,
+          "kind": "object",
+          "label_key": "concave-function",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original object assessment and assumptions; it does not override the canonical reference."
+        },
+        {
+          "id": 393,
+          "kind": "technique",
+          "label_key": "concavity",
+          "usage": "legacy_assessment",
+          "usage_reason": "Preserved historically; not a second active default or a new mathematical concept."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "CONCAVITY"
+        ],
+        [
+          "object",
+          "CONCAVE FUNCTION"
+        ],
+        [
+          "object",
+          "CONCAVITY"
+        ],
+        [
+          "technique",
+          "CONCAVITY"
+        ]
+      ]
+    },
+    {
+      "concept_id": "majorization",
+      "label": "Majorization",
+      "area": "inequalities",
+      "area_label": "Inequalities and optimization",
+      "parent_concept": "",
+      "canonical_benchmark_id": 1561,
+      "preferred": "method:majorization",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 1561,
+          "kind": "method",
+          "label_key": "majorization",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "MAJORIZATION"
+        ]
+      ]
+    },
+    {
+      "concept_id": "smoothing",
+      "label": "Smoothing",
+      "area": "inequalities",
+      "area_label": "Inequalities and optimization",
+      "parent_concept": "",
+      "canonical_benchmark_id": 116,
+      "preferred": "method:smoothing",
+      "benchmark_resolution": "Use the explicit method; the technique profile has an equivalent vector.",
+      "profiles": [
+        {
+          "id": 116,
+          "kind": "method",
+          "label_key": "smoothing",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        },
+        {
+          "id": 118,
+          "kind": "technique",
+          "label_key": "smoothing",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original technique assessment and assumptions; it does not override the canonical reference."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "SMOOTHING"
+        ],
+        [
+          "technique",
+          "SMOOTHING"
+        ]
+      ]
+    },
+    {
+      "concept_id": "sum-of-squares",
+      "label": "Sum of squares",
+      "area": "inequalities",
+      "area_label": "Inequalities and optimization",
+      "parent_concept": "",
+      "canonical_benchmark_id": 135,
+      "preferred": "method:sum-of-squares",
+      "benchmark_resolution": "Use the explicit SOS method. Factorization is a retained proof representation, not a new rating.",
+      "profiles": [
+        {
+          "id": 135,
+          "kind": "method",
+          "label_key": "sum-of-squares",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        },
+        {
+          "id": 136,
+          "kind": "technique",
+          "label_key": "sum-of-squares",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original technique assessment and assumptions; it does not override the canonical reference."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "SOS FACTORIZATION"
+        ],
+        [
+          "method",
+          "SUM OF SQUARES"
+        ],
+        [
+          "method",
+          "SUM-OF-SQUARES FACTORIZATION"
+        ],
+        [
+          "object",
+          "SUM OF SQUARES"
+        ],
+        [
+          "technique",
+          "SOS FACTORIZATION"
+        ],
+        [
+          "technique",
+          "SUM OF SQUARES"
+        ],
+        [
+          "technique",
+          "SUM-OF-SQUARES FACTORIZATION"
+        ]
+      ]
+    },
+    {
+      "concept_id": "uvw",
+      "label": "UVW / PQR symmetric-three-variable methods",
+      "area": "inequalities",
+      "area_label": "Inequalities and optimization",
+      "parent_concept": "",
+      "canonical_benchmark_id": 123,
+      "preferred": "method:uvw-method",
+      "benchmark_resolution": "Use the original explicit UVW method with validated symmetry/degree/domain conditions. Preserve PQR coordinate profiles; repeated UVW profile 403 is a legacy assessment.",
+      "profiles": [
+        {
+          "id": 120,
+          "kind": "lemma",
+          "label_key": "uvw",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original lemma assessment and assumptions; it does not override the canonical reference."
+        },
+        {
+          "id": 123,
+          "kind": "method",
+          "label_key": "uvw-method",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        },
+        {
+          "id": 124,
+          "kind": "lemma",
+          "label_key": "pqr",
+          "usage": "named_application_variant",
+          "usage_reason": "PQR coordinates"
+        },
+        {
+          "id": 125,
+          "kind": "method",
+          "label_key": "pqr-method",
+          "usage": "named_application_variant",
+          "usage_reason": "PQR coordinates"
+        },
+        {
+          "id": 127,
+          "kind": "technique",
+          "label_key": "uvw-pqr-method",
+          "usage": "legacy_assessment",
+          "usage_reason": "Preserved historically; not a second active default or a new mathematical concept."
+        },
+        {
+          "id": 403,
+          "kind": "method",
+          "label_key": "uvw",
+          "usage": "legacy_assessment",
+          "usage_reason": "Preserved historically; not a second active default or a new mathematical concept."
+        }
+      ],
+      "aliases": [
+        [
+          "lemma",
+          "PQR"
+        ],
+        [
+          "lemma",
+          "UVW"
+        ],
+        [
+          "method",
+          "PQR METHOD"
+        ],
+        [
+          "method",
+          "UVW"
+        ],
+        [
+          "method",
+          "UVW METHOD"
+        ]
+      ]
+    },
+    {
+      "concept_id": "homogenization",
+      "label": "Homogeneity and homogenization",
+      "area": "inequalities",
+      "area_label": "Inequalities and optimization",
+      "parent_concept": "",
+      "canonical_benchmark_id": 132,
+      "preferred": "technique:homogeneity-homogenization",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 132,
+          "kind": "technique",
+          "label_key": "homogeneity-homogenization",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "lemma",
+          "HOMOGENEITY PRINCIPLE"
+        ],
+        [
+          "method",
+          "HOMOGENIZATION"
+        ],
+        [
+          "technique",
+          "HOMOGENEITY / HOMOGENIZATION"
+        ],
+        [
+          "technique",
+          "HOMOGENIZATION"
+        ]
+      ]
+    },
+    {
+      "concept_id": "equality-cases",
+      "label": "Equality cases and sharpness",
+      "area": "inequalities",
+      "area_label": "Inequalities and optimization",
+      "parent_concept": "",
+      "canonical_benchmark_id": 432,
+      "preferred": "method:equality-cases",
+      "benchmark_resolution": "Use the explicit equality-case method. Retain sharp-constant task profile 121. The plural proof-role assessment 147 does not define a new technique.",
+      "profiles": [
+        {
+          "id": 121,
+          "kind": "technique",
+          "label_key": "best-constant-equality-case",
+          "usage": "named_application_variant",
+          "usage_reason": "sharp-constant optimization"
+        },
+        {
+          "id": 147,
+          "kind": "proof_role",
+          "label_key": "equality-cases",
+          "usage": "legacy_assessment",
+          "usage_reason": "Preserved historically; not a second active default or a new mathematical concept."
+        },
+        {
+          "id": 431,
+          "kind": "proof_role",
+          "label_key": "equality-case",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original proof_role assessment and assumptions; it does not override the canonical reference."
+        },
+        {
+          "id": 432,
+          "kind": "method",
+          "label_key": "equality-cases",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "BEST CONSTANT / EQUALITY CASE"
+        ],
+        [
+          "method",
+          "EQUALITY CASE ANALYSIS"
+        ],
+        [
+          "method",
+          "EQUALITY CASES"
+        ],
+        [
+          "object",
+          "EQUALITY CASE"
+        ],
+        [
+          "object",
+          "EQUALITY CASES"
+        ],
+        [
+          "proof_role",
+          "EQUALITY CASE"
+        ],
+        [
+          "proof_role",
+          "EQUALITY CASES"
+        ],
+        [
+          "technique",
+          "EQUALITY CASE ANALYSIS"
+        ]
+      ]
+    },
+    {
+      "concept_id": "constrained-optimization",
+      "label": "Constrained optimization",
+      "area": "inequalities",
+      "area_label": "Inequalities and optimization",
+      "parent_concept": "",
+      "canonical_benchmark_id": 427,
+      "preferred": "method:constrained-optimization",
+      "benchmark_resolution": "Use the explicit constrained-optimization method; keep object recognition and earlier technique assessments attached.",
+      "profiles": [
+        {
+          "id": 425,
+          "kind": "object",
+          "label_key": "constrained-extremum",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original object assessment and assumptions; it does not override the canonical reference."
+        },
+        {
+          "id": 426,
+          "kind": "technique",
+          "label_key": "constrained-optimization",
+          "usage": "legacy_assessment",
+          "usage_reason": "Preserved historically; not a second active default or a new mathematical concept."
+        },
+        {
+          "id": 427,
+          "kind": "method",
+          "label_key": "constrained-optimization",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "CONSTRAINED OPTIMIZATION"
+        ],
+        [
+          "object",
+          "CONSTRAINED EXTREMUM"
+        ],
+        [
+          "technique",
+          "CONSTRAINED EXTREMUM"
+        ],
+        [
+          "technique",
+          "CONSTRAINED OPTIMIZATION"
+        ]
+      ]
+    },
+    {
+      "concept_id": "quadratic-optimization",
+      "label": "Quadratic optimization",
+      "area": "inequalities",
+      "area_label": "Inequalities and optimization",
+      "parent_concept": "constrained-optimization",
+      "canonical_benchmark_id": 419,
+      "preferred": "technique:quadratic-optimization",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 419,
+          "kind": "technique",
+          "label_key": "quadratic-optimization",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "QUADRATIC OPTIMIZATION"
+        ],
+        [
+          "technique",
+          "QUADRATIC OPTIMIZATION"
+        ]
+      ]
+    },
+    {
+      "concept_id": "linear-programming",
+      "label": "Linear programming",
+      "area": "inequalities",
+      "area_label": "Inequalities and optimization",
+      "parent_concept": "constrained-optimization",
+      "canonical_benchmark_id": 407,
+      "preferred": "method:linear-programming",
+      "benchmark_resolution": "Use the explicit method; the technique vector is equivalent.",
+      "profiles": [
+        {
+          "id": 406,
+          "kind": "technique",
+          "label_key": "linear-programming",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original technique assessment and assumptions; it does not override the canonical reference."
+        },
+        {
+          "id": 407,
+          "kind": "method",
+          "label_key": "linear-programming",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "LINEAR PROGRAMMING"
+        ],
+        [
+          "technique",
+          "LINEAR PROGRAMMING"
+        ]
+      ]
+    },
+    {
+      "concept_id": "min-max-bounds",
+      "label": "Minimum/maximum bounding",
+      "area": "inequalities",
+      "area_label": "Inequalities and optimization",
+      "parent_concept": "",
+      "canonical_benchmark_id": 435,
+      "preferred": "method:min-max-bounding",
+      "benchmark_resolution": "Use the explicit bounding method. Bound-object recognition remains a role profile; the generic technique assessment is historical.",
+      "profiles": [
+        {
+          "id": 434,
+          "kind": "technique",
+          "label_key": "min-max-bounding",
+          "usage": "legacy_assessment",
+          "usage_reason": "Preserved historically; not a second active default or a new mathematical concept."
+        },
+        {
+          "id": 435,
+          "kind": "method",
+          "label_key": "min-max-bounding",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        },
+        {
+          "id": 436,
+          "kind": "object",
+          "label_key": "minimum-maximum-bound",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original object assessment and assumptions; it does not override the canonical reference."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "MIN-MAX BOUNDING"
+        ],
+        [
+          "object",
+          "MINIMUM/MAXIMUM BOUND"
+        ],
+        [
+          "technique",
+          "MIN-MAX BOUNDING"
+        ]
+      ]
+    },
+    {
+      "concept_id": "polynomial-nonnegativity",
+      "label": "Polynomial nonnegativity",
+      "area": "inequalities",
+      "area_label": "Inequalities and optimization",
+      "parent_concept": "",
+      "canonical_benchmark_id": 439,
+      "preferred": "technique:pointwise-polynomial-inequality",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 439,
+          "kind": "technique",
+          "label_key": "pointwise-polynomial-inequality",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "technique",
+          "POINTWISE POLYNOMIAL INEQUALITY"
+        ]
+      ]
+    },
+    {
+      "concept_id": "cyclic-sums",
+      "label": "Cyclic sums and cyclic summation",
+      "area": "inequalities",
+      "area_label": "Inequalities and optimization",
+      "parent_concept": "",
+      "canonical_benchmark_id": 145,
+      "preferred": "method:cyclic-summation",
+      "benchmark_resolution": "Use the cyclic-summation operation for training; the cyclic-sum curriculum profile remains a role assessment.",
+      "profiles": [
+        {
+          "id": 145,
+          "kind": "method",
+          "label_key": "cyclic-summation",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        },
+        {
+          "id": 746,
+          "kind": "canonical_subtopic",
+          "label_key": "cyclic-sums",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original canonical_subtopic assessment and assumptions; it does not override the canonical reference."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "CYCLIC SUMMATION"
+        ],
+        [
+          "object",
+          "CYCLIC SUMS"
+        ],
+        [
+          "technique",
+          "CYCLIC SUMS"
+        ]
+      ]
+    },
+    {
+      "concept_id": "power-mean",
+      "label": "Power-mean inequalities",
+      "area": "inequalities",
+      "area_label": "Inequalities and optimization",
+      "parent_concept": "",
+      "canonical_benchmark_id": null,
+      "preferred": "",
+      "benchmark_resolution": "The mathematical identity is valid; retain it as unscored until dedicated benchmark metadata is reviewed. No values are inferred from a parent or neighbor.",
+      "profiles": [],
+      "aliases": [
+        [
+          "lemma",
+          "POWER MEAN"
+        ],
+        [
+          "lemma",
+          "POWER MEAN INEQUALITY"
+        ],
+        [
+          "method",
+          "POWER MEANS"
+        ],
+        [
+          "technique",
+          "POWER MEAN"
+        ],
+        [
+          "technique",
+          "POWER MEANS"
+        ]
+      ]
+    },
+    {
+      "concept_id": "log-concavity",
+      "label": "Log-concavity",
+      "area": "inequalities",
+      "area_label": "Inequalities and optimization",
+      "parent_concept": "",
+      "canonical_benchmark_id": null,
+      "preferred": "",
+      "benchmark_resolution": "The mathematical identity is valid; retain it as unscored until dedicated benchmark metadata is reviewed. No values are inferred from a parent or neighbor.",
+      "profiles": [],
+      "aliases": []
+    },
+    {
+      "concept_id": "maclaurin-inequalities",
+      "label": "Maclaurin's inequalities",
+      "area": "inequalities",
+      "area_label": "Inequalities and optimization",
+      "parent_concept": "symmetric-polynomials",
+      "canonical_benchmark_id": null,
+      "preferred": "",
+      "benchmark_resolution": "The mathematical identity is valid; retain it as unscored until dedicated benchmark metadata is reviewed. No values are inferred from a parent or neighbor.",
+      "profiles": [],
+      "aliases": []
+    },
+    {
+      "concept_id": "triangle-inequality",
+      "label": "Triangle inequality",
+      "area": "inequalities",
+      "area_label": "Inequalities and optimization",
+      "parent_concept": "",
+      "canonical_benchmark_id": null,
+      "preferred": "",
+      "benchmark_resolution": "The mathematical identity is valid; retain it as unscored until dedicated benchmark metadata is reviewed. No values are inferred from a parent or neighbor.",
+      "profiles": [],
+      "aliases": [
+        [
+          "lemma",
+          "TRIANGLE INEQUALITY"
+        ],
+        [
+          "method",
+          "TRIANGLE INEQUALITY"
+        ],
+        [
+          "object",
+          "TRIANGLE INEQUALITY"
+        ],
+        [
+          "technique",
+          "TRIANGLE INEQUALITY"
+        ]
+      ]
+    },
+    {
+      "concept_id": "lagrange-multipliers",
+      "label": "Lagrange multipliers",
+      "area": "inequalities",
+      "area_label": "Inequalities and optimization",
+      "parent_concept": "constrained-optimization",
+      "canonical_benchmark_id": null,
+      "preferred": "",
+      "benchmark_resolution": "The mathematical identity is valid; retain it as unscored until dedicated benchmark metadata is reviewed. No values are inferred from a parent or neighbor.",
+      "profiles": [],
+      "aliases": [
+        [
+          "method",
+          "LAGRANGE MULTIPLIER METHOD"
+        ],
+        [
+          "technique",
+          "LAGRANGE MULTIPLIERS"
+        ]
+      ]
+    },
+    {
+      "concept_id": "polynomials",
+      "label": "Polynomials",
+      "area": "polynomials",
+      "area_label": "Polynomials and algebraic manipulation",
+      "parent_concept": "",
+      "canonical_benchmark_id": 612,
+      "preferred": "object:polynomial",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 612,
+          "kind": "object",
+          "label_key": "polynomial",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "object",
+          "POLYNOMIAL"
+        ],
+        [
+          "object",
+          "POLYNOMIALS"
+        ],
+        [
+          "object",
+          "ROOTS"
+        ]
+      ]
+    },
+    {
+      "concept_id": "factorization",
+      "label": "Factorization",
+      "area": "polynomials",
+      "area_label": "Polynomials and algebraic manipulation",
+      "parent_concept": "",
+      "canonical_benchmark_id": 11,
+      "preferred": "method:factorization",
+      "benchmark_resolution": "Preserve the established general factorization method and existing benchmark aliases. Keep the higher-confidence Algebra foundation profile 1337 and elementary curriculum profile 1189 as explicit alternatives; no numerical vector is overwritten.",
+      "profiles": [
+        {
+          "id": 11,
+          "kind": "method",
+          "label_key": "factorization",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        },
+        {
+          "id": 1189,
+          "kind": "canonical_subtopic",
+          "label_key": "factorization",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original canonical_subtopic assessment and assumptions; it does not override the canonical reference."
+        },
+        {
+          "id": 1337,
+          "kind": "method",
+          "label_key": "algebraic-factorization",
+          "usage": "named_application_variant",
+          "usage_reason": "Algebra foundation factorization"
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "ALGEBRAIC FACTORIZATION"
+        ],
+        [
+          "method",
+          "CLEVER FACTORIZATION"
+        ],
+        [
+          "method",
+          "FACTOR TRICK"
+        ],
+        [
+          "method",
+          "FACTORIZATION"
+        ],
+        [
+          "method",
+          "SIMPLE FACTORIZATION"
+        ],
+        [
+          "object",
+          "FACTORIZATION"
+        ],
+        [
+          "technique",
+          "CLEVER FACTORIZATION"
+        ],
+        [
+          "technique",
+          "FACTOR TRICK"
+        ],
+        [
+          "technique",
+          "FACTORIZATION"
+        ],
+        [
+          "technique",
+          "SIMPLE FACTORIZATION"
+        ]
+      ]
+    },
+    {
+      "concept_id": "vieta",
+      "label": "Vieta's formulas",
+      "area": "polynomials",
+      "area_label": "Polynomials and algebraic manipulation",
+      "parent_concept": "",
+      "canonical_benchmark_id": 626,
+      "preferred": "lemma:vieta",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 626,
+          "kind": "lemma",
+          "label_key": "vieta",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "lemma",
+          "VIETA"
+        ],
+        [
+          "lemma",
+          "VIETA'S FORMULAS"
+        ],
+        [
+          "method",
+          "VIETA"
+        ],
+        [
+          "method",
+          "VIETA'S FORMULAS"
+        ]
+      ]
+    },
+    {
+      "concept_id": "completing-square",
+      "label": "Completing the square",
+      "area": "polynomials",
+      "area_label": "Polynomials and algebraic manipulation",
+      "parent_concept": "",
+      "canonical_benchmark_id": 846,
+      "preferred": "canonical_subtopic:completing-square",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 846,
+          "kind": "canonical_subtopic",
+          "label_key": "completing-square",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "COMPLETING SQUARE"
+        ],
+        [
+          "method",
+          "COMPLETING THE SQUARE"
+        ],
+        [
+          "technique",
+          "COMPLETING SQUARE"
+        ],
+        [
+          "technique",
+          "COMPLETING THE SQUARE"
+        ]
+      ]
+    },
+    {
+      "concept_id": "coefficient-comparison",
+      "label": "Coefficient comparison",
+      "area": "polynomials",
+      "area_label": "Polynomials and algebraic manipulation",
+      "parent_concept": "",
+      "canonical_benchmark_id": 634,
+      "preferred": "canonical_subtopic:coefficient-comparison",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 634,
+          "kind": "canonical_subtopic",
+          "label_key": "coefficient-comparison",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "COEFFICIENT COMPARISON"
+        ],
+        [
+          "method",
+          "COEFFICIENT MATCH"
+        ],
+        [
+          "technique",
+          "COEFFICIENT COMPARISON"
+        ],
+        [
+          "technique",
+          "COEFFICIENT MATCH"
+        ]
+      ]
+    },
+    {
+      "concept_id": "coefficient-extraction",
+      "label": "Coefficient extraction",
+      "area": "polynomials",
+      "area_label": "Polynomials and algebraic manipulation",
+      "parent_concept": "",
+      "canonical_benchmark_id": 1465,
+      "preferred": "canonical_subtopic:coefficient-extraction",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 1465,
+          "kind": "canonical_subtopic",
+          "label_key": "coefficient-extraction",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": []
+    },
+    {
+      "concept_id": "polynomial-degree",
+      "label": "Polynomial degree arguments",
+      "area": "polynomials",
+      "area_label": "Polynomials and algebraic manipulation",
+      "parent_concept": "",
+      "canonical_benchmark_id": 968,
+      "preferred": "method:degree-argument",
+      "benchmark_resolution": "Use the general degree-argument profile with higher confidence. Degree forcing 700 is a specific application, not a competing generic rating.",
+      "profiles": [
+        {
+          "id": 700,
+          "kind": "method",
+          "label_key": "degree-forcing",
+          "usage": "named_application_variant",
+          "usage_reason": "degree-forcing application"
+        },
+        {
+          "id": 968,
+          "kind": "method",
+          "label_key": "degree-argument",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "DEGREE ARGUMENT"
+        ],
+        [
+          "method",
+          "DEGREE COMPARISON"
+        ],
+        [
+          "method",
+          "DEGREE FORCING"
+        ],
+        [
+          "method",
+          "LEADING COEFFICIENT"
+        ],
+        [
+          "method",
+          "ROOT BOUND"
+        ]
+      ]
+    },
+    {
+      "concept_id": "polynomial-roots",
+      "label": "Polynomial roots",
+      "area": "polynomials",
+      "area_label": "Polynomials and algebraic manipulation",
+      "parent_concept": "",
+      "canonical_benchmark_id": 789,
+      "preferred": "canonical_subtopic:polynomial-roots",
+      "benchmark_resolution": "Use the polynomial-root curriculum/application profile; root-object recognition 1310 remains a foundation role profile.",
+      "profiles": [
+        {
+          "id": 789,
+          "kind": "canonical_subtopic",
+          "label_key": "polynomial-roots",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        },
+        {
+          "id": 1310,
+          "kind": "object",
+          "label_key": "polynomial-root",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original object assessment and assumptions; it does not override the canonical reference."
+        }
+      ],
+      "aliases": [
+        [
+          "object",
+          "POLYNOMIAL ROOT"
+        ],
+        [
+          "object",
+          "POLYNOMIAL ROOTS"
+        ],
+        [
+          "technique",
+          "POLYNOMIAL ROOTS"
+        ]
+      ]
+    },
+    {
+      "concept_id": "real-rootedness",
+      "label": "Real-rootedness",
+      "area": "polynomials",
+      "area_label": "Polynomials and algebraic manipulation",
+      "parent_concept": "polynomial-roots",
+      "canonical_benchmark_id": 859,
+      "preferred": "object:real-rooted-polynomial",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 859,
+          "kind": "object",
+          "label_key": "real-rooted-polynomial",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "object",
+          "REAL-ROOTED POLYNOMIAL"
+        ]
+      ]
+    },
+    {
+      "concept_id": "interlacing",
+      "label": "Root interlacing",
+      "area": "polynomials",
+      "area_label": "Polynomials and algebraic manipulation",
+      "parent_concept": "real-rootedness",
+      "canonical_benchmark_id": 952,
+      "preferred": "method:interlacing",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 952,
+          "kind": "method",
+          "label_key": "interlacing",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "INTERLACING"
+        ]
+      ]
+    },
+    {
+      "concept_id": "discriminant",
+      "label": "Discriminant methods",
+      "area": "polynomials",
+      "area_label": "Polynomials and algebraic manipulation",
+      "parent_concept": "",
+      "canonical_benchmark_id": 665,
+      "preferred": "canonical_subtopic:discriminant",
+      "benchmark_resolution": "Use the basic discriminant identity with higher confidence and the direct canonical key. Application-heavy assessment 779 is retained as a variant.",
+      "profiles": [
+        {
+          "id": 665,
+          "kind": "canonical_subtopic",
+          "label_key": "discriminant",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        },
+        {
+          "id": 779,
+          "kind": "canonical_subtopic",
+          "label_key": "discriminant-methods",
+          "usage": "named_application_variant",
+          "usage_reason": "discriminant application"
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "DISCRIMINANT"
+        ],
+        [
+          "method",
+          "DISCRIMINANT METHODS"
+        ],
+        [
+          "technique",
+          "DISCRIMINANT"
+        ],
+        [
+          "technique",
+          "DISCRIMINANT METHODS"
+        ]
+      ]
+    },
+    {
+      "concept_id": "quadratic-formula",
+      "label": "Quadratic formula",
+      "area": "polynomials",
+      "area_label": "Polynomials and algebraic manipulation",
+      "parent_concept": "",
+      "canonical_benchmark_id": 857,
+      "preferred": "lemma:quadratic-formula",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 857,
+          "kind": "lemma",
+          "label_key": "quadratic-formula",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "lemma",
+          "QUADRATIC FORMULA"
+        ]
+      ]
+    },
+    {
+      "concept_id": "factor-theorem",
+      "label": "Factor theorem",
+      "area": "polynomials",
+      "area_label": "Polynomials and algebraic manipulation",
+      "parent_concept": "",
+      "canonical_benchmark_id": 691,
+      "preferred": "lemma:factor-theorem",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 691,
+          "kind": "lemma",
+          "label_key": "factor-theorem",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "lemma",
+          "FACTOR THEOREM"
+        ]
+      ]
+    },
+    {
+      "concept_id": "rational-root-test",
+      "label": "Rational root theorem/test",
+      "area": "polynomials",
+      "area_label": "Polynomials and algebraic manipulation",
+      "parent_concept": "polynomial-roots",
+      "canonical_benchmark_id": 1031,
+      "preferred": "lemma:rational-root-test-when-polynomial",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 1031,
+          "kind": "lemma",
+          "label_key": "rational-root-test-when-polynomial",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "lemma",
+          "RATIONAL ROOT TEST"
+        ],
+        [
+          "lemma",
+          "RATIONAL ROOT TEST WHEN POLYNOMIAL"
+        ]
+      ]
+    },
+    {
+      "concept_id": "irreducibility",
+      "label": "Polynomial irreducibility",
+      "area": "polynomials",
+      "area_label": "Polynomials and algebraic manipulation",
+      "parent_concept": "",
+      "canonical_benchmark_id": 837,
+      "preferred": "canonical_subtopic:irreducibility",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 837,
+          "kind": "canonical_subtopic",
+          "label_key": "irreducibility",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "IRREDUCIBILITY"
+        ],
+        [
+          "technique",
+          "IRREDUCIBILITY"
+        ],
+        [
+          "technique",
+          "POLYNOMIAL IRREDUCIBILITY"
+        ]
+      ]
+    },
+    {
+      "concept_id": "polynomial-interpolation",
+      "label": "Polynomial interpolation",
+      "area": "polynomials",
+      "area_label": "Polynomials and algebraic manipulation",
+      "parent_concept": "",
+      "canonical_benchmark_id": 595,
+      "preferred": "canonical_subtopic:interpolation",
+      "benchmark_resolution": "The live definition of 595 is general polynomial interpolation with a justified degree bound. Preserve 292 as a modular/finite-difference application and 703 as the Lagrange formula role.",
+      "profiles": [
+        {
+          "id": 292,
+          "kind": "method",
+          "label_key": "polynomial-interpolation",
+          "usage": "named_application_variant",
+          "usage_reason": "modular / finite-difference interpolation"
+        },
+        {
+          "id": 595,
+          "kind": "canonical_subtopic",
+          "label_key": "interpolation",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        },
+        {
+          "id": 703,
+          "kind": "lemma",
+          "label_key": "lagrange-interpolation",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original lemma assessment and assumptions; it does not override the canonical reference."
+        }
+      ],
+      "aliases": [
+        [
+          "lemma",
+          "LAGRANGE INTERPOLATION"
+        ],
+        [
+          "lemma",
+          "POLYNOMIAL INTERPOLATION"
+        ],
+        [
+          "method",
+          "INTERPOLATION"
+        ],
+        [
+          "method",
+          "POLYNOMIAL INTERPOLATION"
+        ],
+        [
+          "technique",
+          "INTERPOLATION"
+        ],
+        [
+          "technique",
+          "POLYNOMIAL INTERPOLATION"
+        ]
+      ]
+    },
+    {
+      "concept_id": "finite-differences",
+      "label": "Finite differences",
+      "area": "polynomials",
+      "area_label": "Polynomials and algebraic manipulation",
+      "parent_concept": "",
+      "canonical_benchmark_id": 558,
+      "preferred": "canonical_subtopic:finite-differences",
+      "benchmark_resolution": "Use the curriculum profile with higher confidence and the general operation's scope; retain the lemma profile 283.",
+      "profiles": [
+        {
+          "id": 283,
+          "kind": "lemma",
+          "label_key": "finite-differences",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original lemma assessment and assumptions; it does not override the canonical reference."
+        },
+        {
+          "id": 558,
+          "kind": "canonical_subtopic",
+          "label_key": "finite-differences",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "lemma",
+          "FINITE DIFFERENCES"
+        ],
+        [
+          "method",
+          "FINITE DIFFERENCES"
+        ],
+        [
+          "technique",
+          "FINITE DIFFERENCES"
+        ]
+      ]
+    },
+    {
+      "concept_id": "polynomial-method",
+      "label": "Polynomial method",
+      "area": "polynomials",
+      "area_label": "Polynomials and algebraic manipulation",
+      "parent_concept": "",
+      "canonical_benchmark_id": 637,
+      "preferred": "canonical_subtopic:polynomial-method",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 637,
+          "kind": "canonical_subtopic",
+          "label_key": "polynomial-method",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "POLYNOMIAL METHOD"
+        ],
+        [
+          "technique",
+          "POLYNOMIAL METHOD"
+        ]
+      ]
+    },
+    {
+      "concept_id": "symmetric-polynomials",
+      "label": "Symmetric polynomials",
+      "area": "polynomials",
+      "area_label": "Polynomials and algebraic manipulation",
+      "parent_concept": "",
+      "canonical_benchmark_id": 767,
+      "preferred": "canonical_subtopic:symmetric-polynomials-vieta-newton",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 767,
+          "kind": "canonical_subtopic",
+          "label_key": "symmetric-polynomials-vieta-newton",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": []
+    },
+    {
+      "concept_id": "symmetric-sums",
+      "label": "Symmetric sums",
+      "area": "polynomials",
+      "area_label": "Polynomials and algebraic manipulation",
+      "parent_concept": "symmetric-polynomials",
+      "canonical_benchmark_id": 1599,
+      "preferred": "canonical_subtopic:symmetric-sums",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 1599,
+          "kind": "canonical_subtopic",
+          "label_key": "symmetric-sums",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "SYMMETRIC SUMS"
+        ],
+        [
+          "object",
+          "SYMMETRIC SUMS"
+        ]
+      ]
+    },
+    {
+      "concept_id": "power-sums",
+      "label": "Power sums",
+      "area": "polynomials",
+      "area_label": "Polynomials and algebraic manipulation",
+      "parent_concept": "symmetric-polynomials",
+      "canonical_benchmark_id": 671,
+      "preferred": "canonical_subtopic:power-sums",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 671,
+          "kind": "canonical_subtopic",
+          "label_key": "power-sums",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "POWER SUMS"
+        ],
+        [
+          "object",
+          "POWER SUMS"
+        ],
+        [
+          "technique",
+          "POWER SUMS"
+        ]
+      ]
+    },
+    {
+      "concept_id": "newton-identities",
+      "label": "Newton's identities",
+      "area": "polynomials",
+      "area_label": "Polynomials and algebraic manipulation",
+      "parent_concept": "symmetric-polynomials",
+      "canonical_benchmark_id": null,
+      "preferred": "",
+      "benchmark_resolution": "The mathematical identity is valid; retain it as unscored until dedicated benchmark metadata is reviewed. No values are inferred from a parent or neighbor.",
+      "profiles": [],
+      "aliases": [
+        [
+          "lemma",
+          "NEWTON IDENTITIES"
+        ],
+        [
+          "technique",
+          "NEWTON IDENTITIES"
+        ]
+      ]
+    },
+    {
+      "concept_id": "binomial-theorem",
+      "label": "Binomial theorem",
+      "area": "polynomials",
+      "area_label": "Polynomials and algebraic manipulation",
+      "parent_concept": "",
+      "canonical_benchmark_id": 937,
+      "preferred": "lemma:binomial-theorem",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 937,
+          "kind": "lemma",
+          "label_key": "binomial-theorem",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "lemma",
+          "BINOMIAL THEOREM"
+        ],
+        [
+          "technique",
+          "BINOMIAL THEOREM"
+        ]
+      ]
+    },
+    {
+      "concept_id": "vandermonde-determinant",
+      "label": "Vandermonde determinant",
+      "area": "polynomials",
+      "area_label": "Polynomials and algebraic manipulation",
+      "parent_concept": "",
+      "canonical_benchmark_id": 1237,
+      "preferred": "canonical_subtopic:vandermonde-determinant",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 1237,
+          "kind": "canonical_subtopic",
+          "label_key": "vandermonde-determinant",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "lemma",
+          "VANDERMONDE DETERMINANT"
+        ],
+        [
+          "object",
+          "VANDERMONDE DETERMINANT"
+        ],
+        [
+          "technique",
+          "VANDERMONDE DETERMINANT"
+        ]
+      ]
+    },
+    {
+      "concept_id": "resultants",
+      "label": "Resultants",
+      "area": "polynomials",
+      "area_label": "Polynomials and algebraic manipulation",
+      "parent_concept": "",
+      "canonical_benchmark_id": 1432,
+      "preferred": "object:resultant",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 1432,
+          "kind": "object",
+          "label_key": "resultant",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "object",
+          "RESULTANT"
+        ],
+        [
+          "technique",
+          "RESULTANTS"
+        ]
+      ]
+    },
+    {
+      "concept_id": "integer-valued-polynomials",
+      "label": "Integer-valued polynomials",
+      "area": "polynomials",
+      "area_label": "Polynomials and algebraic manipulation",
+      "parent_concept": "",
+      "canonical_benchmark_id": 914,
+      "preferred": "object:integer-valued-polynomial-function",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 914,
+          "kind": "object",
+          "label_key": "integer-valued-polynomial-function",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "object",
+          "FINITE DIFFERENCES"
+        ],
+        [
+          "object",
+          "INTEGER-VALUED POLYNOMIAL"
+        ],
+        [
+          "object",
+          "INTEGER-VALUED POLYNOMIAL/FUNCTION"
+        ],
+        [
+          "technique",
+          "INTEGER-VALUED POLYNOMIALS"
+        ]
+      ]
+    },
+    {
+      "concept_id": "chebyshev-polynomials",
+      "label": "Chebyshev polynomials and recurrence identities",
+      "area": "polynomials",
+      "area_label": "Polynomials and algebraic manipulation",
+      "parent_concept": "",
+      "canonical_benchmark_id": 1461,
+      "preferred": "object:chebyshev-polynomial",
+      "benchmark_resolution": "Use the polynomial object as the underlying reference; recurrence and trigonometric identity profiles are equivalent representation roles. Bare CHEBYSHEV stays quarantined.",
+      "profiles": [
+        {
+          "id": 1461,
+          "kind": "object",
+          "label_key": "chebyshev-polynomial",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        },
+        {
+          "id": 1462,
+          "kind": "canonical_subtopic",
+          "label_key": "chebyshev-recurrence",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original canonical_subtopic assessment and assumptions; it does not override the canonical reference."
+        },
+        {
+          "id": 1463,
+          "kind": "lemma",
+          "label_key": "chebyshev-trigonometric-identity",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original lemma assessment and assumptions; it does not override the canonical reference."
+        }
+      ],
+      "aliases": [
+        [
+          "lemma",
+          "CHEBYSHEV POLYNOMIALS"
+        ],
+        [
+          "lemma",
+          "CHEBYSHEV RECURRENCE"
+        ],
+        [
+          "lemma",
+          "CHEBYSHEV TRIGONOMETRIC IDENTITY"
+        ],
+        [
+          "method",
+          "CHEBYSHEV RECURRENCE"
+        ],
+        [
+          "object",
+          "CHEBYSHEV POLYNOMIAL"
+        ],
+        [
+          "technique",
+          "CHEBYSHEV RECURRENCE"
+        ]
+      ]
+    },
+    {
+      "concept_id": "root-switching",
+      "label": "Root switching",
+      "area": "polynomials",
+      "area_label": "Polynomials and algebraic manipulation",
+      "parent_concept": "polynomial-roots",
+      "canonical_benchmark_id": 860,
+      "preferred": "method:root-switch",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 860,
+          "kind": "method",
+          "label_key": "root-switch",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "ROOT SWITCH"
+        ]
+      ]
+    },
+    {
+      "concept_id": "modular-polynomial-reduction",
+      "label": "Polynomial reduction modulo p",
+      "area": "polynomials",
+      "area_label": "Polynomials and algebraic manipulation",
+      "parent_concept": "",
+      "canonical_benchmark_id": 296,
+      "preferred": "method:modular-reduction",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 296,
+          "kind": "method",
+          "label_key": "modular-reduction",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "MODULAR REDUCTION"
+        ]
+      ]
+    },
+    {
+      "concept_id": "reducibility-mod-p",
+      "label": "Reducibility modulo p",
+      "area": "polynomials",
+      "area_label": "Polynomials and algebraic manipulation",
+      "parent_concept": "modular-polynomial-reduction",
+      "canonical_benchmark_id": 298,
+      "preferred": "technique:reducibility-mod-p",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 298,
+          "kind": "technique",
+          "label_key": "reducibility-mod-p",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "technique",
+          "REDUCIBILITY MOD P"
+        ]
+      ]
+    },
+    {
+      "concept_id": "quadratic-expressions",
+      "label": "Quadratic expressions",
+      "area": "polynomials",
+      "area_label": "Polynomials and algebraic manipulation",
+      "parent_concept": "",
+      "canonical_benchmark_id": 103,
+      "preferred": "object:quadratic-expression",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 103,
+          "kind": "object",
+          "label_key": "quadratic-expression",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "object",
+          "QUADRATIC EXPRESSION"
+        ]
+      ]
+    },
+    {
+      "concept_id": "polynomial-identity-principle",
+      "label": "Polynomial identity principle",
+      "area": "polynomials",
+      "area_label": "Polynomials and algebraic manipulation",
+      "parent_concept": "algebraic-identities",
+      "canonical_benchmark_id": null,
+      "preferred": "",
+      "benchmark_resolution": "The mathematical identity is valid; retain it as unscored until dedicated benchmark metadata is reviewed. No values are inferred from a parent or neighbor.",
+      "profiles": [],
+      "aliases": [
+        [
+          "lemma",
+          "POLYNOMIAL IDENTITY PRINCIPLE"
+        ]
+      ]
+    },
+    {
+      "concept_id": "reciprocal-polynomials",
+      "label": "Self-reciprocal (palindromic) polynomials",
+      "area": "polynomials",
+      "area_label": "Polynomials and algebraic manipulation",
+      "parent_concept": "",
+      "canonical_benchmark_id": null,
+      "preferred": "",
+      "benchmark_resolution": "The mathematical identity is valid; retain it as unscored until dedicated benchmark metadata is reviewed. No values are inferred from a parent or neighbor.",
+      "profiles": [],
+      "aliases": [
+        [
+          "method",
+          "RECIPROCAL/PALINDROMIC POLYNOMIALS"
+        ],
+        [
+          "technique",
+          "RECIPROCAL/PALINDROMIC POLYNOMIALS"
+        ]
+      ]
+    },
+    {
+      "concept_id": "cubic-equations",
+      "label": "Cubic equations and polynomials",
+      "area": "polynomials",
+      "area_label": "Polynomials and algebraic manipulation",
+      "parent_concept": "",
+      "canonical_benchmark_id": null,
+      "preferred": "",
+      "benchmark_resolution": "The mathematical identity is valid; retain it as unscored until dedicated benchmark metadata is reviewed. No values are inferred from a parent or neighbor.",
+      "profiles": [],
+      "aliases": [
+        [
+          "method",
+          "CUBIC EQUATIONS"
+        ],
+        [
+          "method",
+          "CUBICS"
+        ],
+        [
+          "technique",
+          "CUBIC EQUATIONS"
+        ],
+        [
+          "technique",
+          "CUBICS"
+        ]
+      ]
+    },
+    {
+      "concept_id": "rational-functions",
+      "label": "Rational functions",
+      "area": "polynomials",
+      "area_label": "Polynomials and algebraic manipulation",
+      "parent_concept": "",
+      "canonical_benchmark_id": 986,
+      "preferred": "object:rational-function",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 986,
+          "kind": "object",
+          "label_key": "rational-function",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "object",
+          "RATIONAL FUNCTION"
+        ],
+        [
+          "technique",
+          "RATIONAL FUNCTIONS"
+        ]
+      ]
+    },
+    {
+      "concept_id": "partial-fractions",
+      "label": "Partial fractions",
+      "area": "polynomials",
+      "area_label": "Polynomials and algebraic manipulation",
+      "parent_concept": "rational-functions",
+      "canonical_benchmark_id": 985,
+      "preferred": "method:partial-fractions-poles",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 985,
+          "kind": "method",
+          "label_key": "partial-fractions-poles",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "PARTIAL FRACTIONS / POLES"
+        ],
+        [
+          "technique",
+          "PARTIAL FRACTIONS"
+        ]
+      ]
+    },
+    {
+      "concept_id": "continuants",
+      "label": "Continuants",
+      "area": "polynomials",
+      "area_label": "Polynomials and algebraic manipulation",
+      "parent_concept": "determinants",
+      "canonical_benchmark_id": 1628,
+      "preferred": "canonical_subtopic:continuants",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 1628,
+          "kind": "canonical_subtopic",
+          "label_key": "continuants",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "object",
+          "CONTINUANTS"
+        ],
+        [
+          "technique",
+          "CONTINUANTS"
+        ]
+      ]
+    },
+    {
+      "concept_id": "substitution",
+      "label": "Substitution",
+      "area": "equations",
+      "area_label": "Equations, substitutions, and transformations",
+      "parent_concept": "",
+      "canonical_benchmark_id": 542,
+      "preferred": "canonical_subtopic:substitution",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 542,
+          "kind": "canonical_subtopic",
+          "label_key": "substitution",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "technique",
+          "SUBSTITUTION"
+        ]
+      ]
+    },
+    {
+      "concept_id": "normalization",
+      "label": "Normalization",
+      "area": "equations",
+      "area_label": "Equations, substitutions, and transformations",
+      "parent_concept": "",
+      "canonical_benchmark_id": 754,
+      "preferred": "canonical_subtopic:normalization",
+      "benchmark_resolution": "Use the general normalization concept; product and positivity variants keep their source ratings and domain restrictions.",
+      "profiles": [
+        {
+          "id": 400,
+          "kind": "method",
+          "label_key": "normalization-positivity",
+          "usage": "named_application_variant",
+          "usage_reason": "normalization with positivity"
+        },
+        {
+          "id": 754,
+          "kind": "canonical_subtopic",
+          "label_key": "normalization",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        },
+        {
+          "id": 1312,
+          "kind": "canonical_subtopic",
+          "label_key": "product-normalization",
+          "usage": "named_application_variant",
+          "usage_reason": "product normalization"
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "NORMALIZATION / POSITIVITY"
+        ],
+        [
+          "method",
+          "PRODUCT NORMALIZATION"
+        ],
+        [
+          "technique",
+          "NORMALIZATION"
+        ],
+        [
+          "technique",
+          "PRODUCT NORMALIZATION"
+        ]
+      ]
+    },
+    {
+      "concept_id": "parameterization",
+      "label": "Parameterization",
+      "area": "equations",
+      "area_label": "Equations, substitutions, and transformations",
+      "parent_concept": "",
+      "canonical_benchmark_id": 984,
+      "preferred": "canonical_subtopic:parameterization",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 984,
+          "kind": "canonical_subtopic",
+          "label_key": "parameterization",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "PARAMETERIZATION"
+        ],
+        [
+          "method",
+          "PARAMETRIZATION"
+        ],
+        [
+          "technique",
+          "PARAMETERIZATION"
+        ],
+        [
+          "technique",
+          "PARAMETRIZATION"
+        ]
+      ]
+    },
+    {
+      "concept_id": "clearing-denominators",
+      "label": "Clearing denominators",
+      "area": "equations",
+      "area_label": "Equations, substitutions, and transformations",
+      "parent_concept": "",
+      "canonical_benchmark_id": 878,
+      "preferred": "canonical_subtopic:clearing-denominators",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 878,
+          "kind": "canonical_subtopic",
+          "label_key": "clearing-denominators",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "CLEARING DENOMINATORS"
+        ],
+        [
+          "technique",
+          "CLEARING DENOMINATORS"
+        ]
+      ]
+    },
+    {
+      "concept_id": "linearization",
+      "label": "Linearization",
+      "area": "equations",
+      "area_label": "Equations, substitutions, and transformations",
+      "parent_concept": "",
+      "canonical_benchmark_id": 978,
+      "preferred": "canonical_subtopic:linearization",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 978,
+          "kind": "canonical_subtopic",
+          "label_key": "linearization",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "LINEARIZATION"
+        ],
+        [
+          "object",
+          "LINEARIZATION"
+        ],
+        [
+          "technique",
+          "LINEARIZATION"
+        ]
+      ]
+    },
+    {
+      "concept_id": "absolute-value",
+      "label": "Absolute value",
+      "area": "equations",
+      "area_label": "Equations, substitutions, and transformations",
+      "parent_concept": "",
+      "canonical_benchmark_id": 1162,
+      "preferred": "canonical_subtopic:absolute-value",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 1162,
+          "kind": "canonical_subtopic",
+          "label_key": "absolute-value",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "object",
+          "ABSOLUTE VALUE"
+        ],
+        [
+          "technique",
+          "ABSOLUTE VALUE"
+        ]
+      ]
+    },
+    {
+      "concept_id": "symmetry-reduction",
+      "label": "Symmetry reduction",
+      "area": "equations",
+      "area_label": "Equations, substitutions, and transformations",
+      "parent_concept": "",
+      "canonical_benchmark_id": 1322,
+      "preferred": "method:symmetry-reduction",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 1322,
+          "kind": "method",
+          "label_key": "symmetry-reduction",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "SYMMETRY REDUCTION"
+        ],
+        [
+          "technique",
+          "SYMMETRY REDUCTION"
+        ]
+      ]
+    },
+    {
+      "concept_id": "system-transformation",
+      "label": "System transformations",
+      "area": "equations",
+      "area_label": "Equations, substitutions, and transformations",
+      "parent_concept": "",
+      "canonical_benchmark_id": 1324,
+      "preferred": "method:system-transformation",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 1324,
+          "kind": "method",
+          "label_key": "system-transformation",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "CHANGE OF VARIABLES"
+        ],
+        [
+          "method",
+          "SYSTEM TRANSFORMATION"
+        ]
+      ]
+    },
+    {
+      "concept_id": "systems-of-equations",
+      "label": "Systems of equations",
+      "area": "equations",
+      "area_label": "Equations, substitutions, and transformations",
+      "parent_concept": "",
+      "canonical_benchmark_id": 1323,
+      "preferred": "object:system-of-equations",
+      "benchmark_resolution": "Use the explicit systems-of-equations object; the equation-system profile is equivalent.",
+      "profiles": [
+        {
+          "id": 1052,
+          "kind": "object",
+          "label_key": "equation-system",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original object assessment and assumptions; it does not override the canonical reference."
+        },
+        {
+          "id": 1323,
+          "kind": "object",
+          "label_key": "system-of-equations",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "SYSTEMS OF EQUATIONS"
+        ],
+        [
+          "object",
+          "EQUATION/SYSTEM"
+        ],
+        [
+          "object",
+          "SYSTEM OF EQUATIONS"
+        ],
+        [
+          "technique",
+          "SYSTEMS OF EQUATIONS"
+        ]
+      ]
+    },
+    {
+      "concept_id": "linear-equations",
+      "label": "Linear equations",
+      "area": "equations",
+      "area_label": "Equations, substitutions, and transformations",
+      "parent_concept": "systems-of-equations",
+      "canonical_benchmark_id": 1674,
+      "preferred": "canonical_subtopic:linear-equation",
+      "benchmark_resolution": "Both live definitions describe the same core linear-equation skill. Select the higher-confidence foundation assessment; preserve the inconsistent plural assessment 1675 as historical.",
+      "profiles": [
+        {
+          "id": 1674,
+          "kind": "canonical_subtopic",
+          "label_key": "linear-equation",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        },
+        {
+          "id": 1675,
+          "kind": "canonical_subtopic",
+          "label_key": "linear-equations",
+          "usage": "legacy_assessment",
+          "usage_reason": "Preserved historically; not a second active default or a new mathematical concept."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "LINEAR EQUATIONS"
+        ],
+        [
+          "object",
+          "LINEAR EQUATION"
+        ],
+        [
+          "object",
+          "LINEAR EQUATIONS"
+        ],
+        [
+          "technique",
+          "LINEAR EQUATIONS"
+        ]
+      ]
+    },
+    {
+      "concept_id": "range-restriction",
+      "label": "Range restriction",
+      "area": "equations",
+      "area_label": "Equations, substitutions, and transformations",
+      "parent_concept": "",
+      "canonical_benchmark_id": 925,
+      "preferred": "method:range-restriction",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 925,
+          "kind": "method",
+          "label_key": "range-restriction",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "RANGE RESTRICTION"
+        ]
+      ]
+    },
+    {
+      "concept_id": "rationalization",
+      "label": "Rationalization",
+      "area": "equations",
+      "area_label": "Equations, substitutions, and transformations",
+      "parent_concept": "",
+      "canonical_benchmark_id": 429,
+      "preferred": "method:rationalization",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 429,
+          "kind": "method",
+          "label_key": "rationalization",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "RATIONALIZATION"
+        ],
+        [
+          "technique",
+          "RATIONALIZATION"
+        ]
+      ]
+    },
+    {
+      "concept_id": "irrationality",
+      "label": "Rationality and irrationality arguments",
+      "area": "equations",
+      "area_label": "Equations, substitutions, and transformations",
+      "parent_concept": "",
+      "canonical_benchmark_id": 1291,
+      "preferred": "method:irrationality-argument",
+      "benchmark_resolution": "Use the explicit irrationality method with higher confidence. Radical/rationality obstruction and irrational-number recognition remain application/role profiles.",
+      "profiles": [
+        {
+          "id": 696,
+          "kind": "method",
+          "label_key": "rationality-irrationality-obstruction",
+          "usage": "named_application_variant",
+          "usage_reason": "radical/rationality obstruction application"
+        },
+        {
+          "id": 1290,
+          "kind": "object",
+          "label_key": "irrational-number",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original object assessment and assumptions; it does not override the canonical reference."
+        },
+        {
+          "id": 1291,
+          "kind": "method",
+          "label_key": "irrationality-argument",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "IRRATIONALITY ARGUMENT"
+        ],
+        [
+          "method",
+          "RATIONALITY / IRRATIONALITY OBSTRUCTION"
+        ],
+        [
+          "method",
+          "RATIONALITY OBSTRUCTION"
+        ],
+        [
+          "object",
+          "IRRATIONAL NUMBER"
+        ],
+        [
+          "technique",
+          "IRRATIONALITY"
+        ]
+      ]
+    },
+    {
+      "concept_id": "radical-expressions",
+      "label": "Radical expressions",
+      "area": "equations",
+      "area_label": "Equations, substitutions, and transformations",
+      "parent_concept": "",
+      "canonical_benchmark_id": 646,
+      "preferred": "object:radical-expression",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 646,
+          "kind": "object",
+          "label_key": "radical-expression",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "object",
+          "RADICAL EXPRESSION"
+        ]
+      ]
+    },
+    {
+      "concept_id": "algebraic-conjugation",
+      "label": "Algebraic conjugates and conjugate pairing",
+      "area": "equations",
+      "area_label": "Equations, substitutions, and transformations",
+      "parent_concept": "",
+      "canonical_benchmark_id": 1176,
+      "preferred": "method:conjugate-pairing",
+      "benchmark_resolution": "Both live definitions concern algebraic conjugates in algebraic-number-flavored arguments. Use the pairing method and retain the conjugate object profile.",
+      "profiles": [
+        {
+          "id": 1163,
+          "kind": "object",
+          "label_key": "algebraic-conjugates",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original object assessment and assumptions; it does not override the canonical reference."
+        },
+        {
+          "id": 1176,
+          "kind": "method",
+          "label_key": "conjugate-pairing",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "CONJUGATE PAIRING"
+        ],
+        [
+          "object",
+          "ALGEBRAIC CONJUGATES"
+        ],
+        [
+          "object",
+          "CONJUGATES"
+        ],
+        [
+          "object",
+          "NORM"
+        ],
+        [
+          "object",
+          "TRACE"
+        ],
+        [
+          "technique",
+          "ALGEBRAIC CONJUGATION"
+        ]
+      ]
+    },
+    {
+      "concept_id": "one-variable-reduction",
+      "label": "Reduction to one variable",
+      "area": "equations",
+      "area_label": "Equations, substitutions, and transformations",
+      "parent_concept": "",
+      "canonical_benchmark_id": 438,
+      "preferred": "method:one-variable-reduction",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 438,
+          "kind": "method",
+          "label_key": "one-variable-reduction",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "ONE-VARIABLE REDUCTION"
+        ],
+        [
+          "method",
+          "REDUCTION TO ONE VARIABLE"
+        ],
+        [
+          "technique",
+          "ONE-VARIABLE REDUCTION"
+        ],
+        [
+          "technique",
+          "REDUCTION TO ONE VARIABLE"
+        ]
+      ]
+    },
+    {
+      "concept_id": "algebraic-identities",
+      "label": "Algebraic identities",
+      "area": "equations",
+      "area_label": "Equations, substitutions, and transformations",
+      "parent_concept": "",
+      "canonical_benchmark_id": 933,
+      "preferred": "method:algebraic-identity",
+      "benchmark_resolution": "Use the explicit algebraic-identity method. Polynomial identities remain a domain representation and identity comparison a proof strategy; neither creates a competing default.",
+      "profiles": [
+        {
+          "id": 872,
+          "kind": "method",
+          "label_key": "identity-comparison",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original method assessment and assumptions; it does not override the canonical reference."
+        },
+        {
+          "id": 874,
+          "kind": "object",
+          "label_key": "polynomial-identity",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original object assessment and assumptions; it does not override the canonical reference."
+        },
+        {
+          "id": 933,
+          "kind": "method",
+          "label_key": "algebraic-identity",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "ALGEBRAIC IDENTITY"
+        ],
+        [
+          "method",
+          "EXPANSION"
+        ],
+        [
+          "method",
+          "IDENTITY COMPARISON"
+        ],
+        [
+          "object",
+          "POLYNOMIAL IDENTITY"
+        ],
+        [
+          "technique",
+          "ALGEBRAIC IDENTITY"
+        ],
+        [
+          "technique",
+          "POLYNOMIAL IDENTITIES"
+        ]
+      ]
+    },
+    {
+      "concept_id": "expansion",
+      "label": "Algebraic expansion",
+      "area": "equations",
+      "area_label": "Equations, substitutions, and transformations",
+      "parent_concept": "",
+      "canonical_benchmark_id": 1475,
+      "preferred": "canonical_subtopic:expansion",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 1475,
+          "kind": "canonical_subtopic",
+          "label_key": "expansion",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "technique",
+          "EXPANSION"
+        ]
+      ]
+    },
+    {
+      "concept_id": "sign-analysis",
+      "label": "Sign and positivity analysis",
+      "area": "equations",
+      "area_label": "Equations, substitutions, and transformations",
+      "parent_concept": "",
+      "canonical_benchmark_id": 390,
+      "preferred": "method:sign-analysis",
+      "benchmark_resolution": "Use the explicit sign-analysis method; preserve strict positivity and nonnegativity goals, while the older same-name technique assessment remains historical.",
+      "profiles": [
+        {
+          "id": 390,
+          "kind": "method",
+          "label_key": "sign-analysis",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        },
+        {
+          "id": 395,
+          "kind": "technique",
+          "label_key": "positivity",
+          "usage": "named_application_variant",
+          "usage_reason": "positivity recognition"
+        },
+        {
+          "id": 396,
+          "kind": "method",
+          "label_key": "positivity",
+          "usage": "named_application_variant",
+          "usage_reason": "positivity / nonnegativity application"
+        },
+        {
+          "id": 420,
+          "kind": "technique",
+          "label_key": "sign-analysis",
+          "usage": "legacy_assessment",
+          "usage_reason": "Preserved historically; not a second active default or a new mathematical concept."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "POSITIVITY"
+        ],
+        [
+          "method",
+          "SIGN ANALYSIS"
+        ],
+        [
+          "technique",
+          "POSITIVITY"
+        ],
+        [
+          "technique",
+          "SIGN ANALYSIS"
+        ]
+      ]
+    },
+    {
+      "concept_id": "reciprocal-substitution",
+      "label": "Reciprocal substitution",
+      "area": "equations",
+      "area_label": "Equations, substitutions, and transformations",
+      "parent_concept": "substitution",
+      "canonical_benchmark_id": null,
+      "preferred": "",
+      "benchmark_resolution": "The mathematical identity is valid; retain it as unscored until dedicated benchmark metadata is reviewed. No values are inferred from a parent or neighbor.",
+      "profiles": [],
+      "aliases": [
+        [
+          "method",
+          "RECIPROCAL SUBSTITUTION"
+        ],
+        [
+          "technique",
+          "RECIPROCAL SUBSTITUTION"
+        ]
+      ]
+    },
+    {
+      "concept_id": "ravi-substitution",
+      "label": "Ravi substitution",
+      "area": "equations",
+      "area_label": "Equations, substitutions, and transformations",
+      "parent_concept": "substitution",
+      "canonical_benchmark_id": null,
+      "preferred": "",
+      "benchmark_resolution": "The mathematical identity is valid; retain it as unscored until dedicated benchmark metadata is reviewed. No values are inferred from a parent or neighbor.",
+      "profiles": [],
+      "aliases": [
+        [
+          "method",
+          "RAVI SUBSTITUTION"
+        ]
+      ]
+    },
+    {
+      "concept_id": "additive-functions",
+      "label": "Additivity / Cauchy's additive equation",
+      "area": "functional",
+      "area_label": "Functions and functional equations",
+      "parent_concept": "",
+      "canonical_benchmark_id": 1350,
+      "preferred": "canonical_subtopic:cauchy-equation",
+      "benchmark_resolution": "Use the general Cauchy equation profile with the explicit real-domain regularity warning. Retain the positive-rational domain profile 1620; unqualified additivity assessment 1514 is historical.",
+      "profiles": [
+        {
+          "id": 1350,
+          "kind": "canonical_subtopic",
+          "label_key": "cauchy-equation",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        },
+        {
+          "id": 1514,
+          "kind": "canonical_subtopic",
+          "label_key": "additivity",
+          "usage": "legacy_assessment",
+          "usage_reason": "Preserved historically; not a second active default or a new mathematical concept."
+        },
+        {
+          "id": 1620,
+          "kind": "method",
+          "label_key": "cauchy-equation-on-q",
+          "usage": "named_application_variant",
+          "usage_reason": "positive-rational domain"
+        }
+      ],
+      "aliases": [
+        [
+          "lemma",
+          "CAUCHY EQUATION"
+        ],
+        [
+          "lemma",
+          "CAUCHY FUNCTIONAL EQUATION"
+        ],
+        [
+          "method",
+          "ADDITIVE FUNCTIONS"
+        ],
+        [
+          "method",
+          "ADDITIVITY"
+        ],
+        [
+          "method",
+          "CAUCHY EQUATION ON Q+"
+        ],
+        [
+          "method",
+          "FUNCTIONAL EQUATION"
+        ],
+        [
+          "object",
+          "ADDITIVE FUNCTIONS"
+        ],
+        [
+          "object",
+          "CAUCHY EQUATION"
+        ],
+        [
+          "technique",
+          "ADDITIVE FUNCTIONS"
+        ],
+        [
+          "technique",
+          "ADDITIVITY"
+        ],
+        [
+          "technique",
+          "CAUCHY EQUATION"
+        ]
+      ]
+    },
+    {
+      "concept_id": "linearity-forcing",
+      "label": "Linearity forcing",
+      "area": "functional",
+      "area_label": "Functions and functional equations",
+      "parent_concept": "",
+      "canonical_benchmark_id": 1202,
+      "preferred": "canonical_subtopic:linearity-forcing",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 1202,
+          "kind": "canonical_subtopic",
+          "label_key": "linearity-forcing",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "LINEARITY FORCING"
+        ],
+        [
+          "technique",
+          "LINEARITY FORCING"
+        ]
+      ]
+    },
+    {
+      "concept_id": "involution",
+      "label": "Involutions",
+      "area": "functional",
+      "area_label": "Functions and functional equations",
+      "parent_concept": "",
+      "canonical_benchmark_id": 619,
+      "preferred": "canonical_subtopic:involution",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 619,
+          "kind": "canonical_subtopic",
+          "label_key": "involution",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "object",
+          "INVOLUTIONS"
+        ]
+      ]
+    },
+    {
+      "concept_id": "function-composition",
+      "label": "Function composition",
+      "area": "functional",
+      "area_label": "Functions and functional equations",
+      "parent_concept": "",
+      "canonical_benchmark_id": 1256,
+      "preferred": "canonical_subtopic:composition",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 1256,
+          "kind": "canonical_subtopic",
+          "label_key": "composition",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "COMPOSITION"
+        ],
+        [
+          "technique",
+          "COMPOSITION"
+        ]
+      ]
+    },
+    {
+      "concept_id": "function-iteration",
+      "label": "Function iteration",
+      "area": "functional",
+      "area_label": "Functions and functional equations",
+      "parent_concept": "function-composition",
+      "canonical_benchmark_id": 1492,
+      "preferred": "object:iterated-function",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 1492,
+          "kind": "object",
+          "label_key": "iterated-function",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "FUNCTIONAL ITERATION"
+        ],
+        [
+          "object",
+          "FIXED POINT"
+        ],
+        [
+          "object",
+          "ITERATED FUNCTION"
+        ],
+        [
+          "technique",
+          "FUNCTION ITERATION"
+        ],
+        [
+          "technique",
+          "FUNCTIONAL ITERATION"
+        ]
+      ]
+    },
+    {
+      "concept_id": "functional-inequalities",
+      "label": "Functional inequalities",
+      "area": "functional",
+      "area_label": "Functions and functional equations",
+      "parent_concept": "",
+      "canonical_benchmark_id": 666,
+      "preferred": "canonical_subtopic:functional-inequalities",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 666,
+          "kind": "canonical_subtopic",
+          "label_key": "functional-inequalities",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "FUNCTIONAL INEQUALITIES"
+        ],
+        [
+          "technique",
+          "FUNCTIONAL INEQUALITIES"
+        ]
+      ]
+    },
+    {
+      "concept_id": "polynomial-functional-equations",
+      "label": "Polynomial functional equations",
+      "area": "functional",
+      "area_label": "Functions and functional equations",
+      "parent_concept": "",
+      "canonical_benchmark_id": 1093,
+      "preferred": "canonical_subtopic:polynomial-functional-equation",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 1093,
+          "kind": "canonical_subtopic",
+          "label_key": "polynomial-functional-equation",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "object",
+          "POLYNOMIAL FUNCTIONAL EQUATION"
+        ],
+        [
+          "technique",
+          "POLYNOMIAL FUNCTIONAL EQUATION"
+        ],
+        [
+          "technique",
+          "POLYNOMIAL FUNCTIONAL EQUATIONS"
+        ]
+      ]
+    },
+    {
+      "concept_id": "integer-domain-functional-equations",
+      "label": "Functional equations on integers",
+      "area": "functional",
+      "area_label": "Functions and functional equations",
+      "parent_concept": "",
+      "canonical_benchmark_id": 974,
+      "preferred": "method:functional-equation-over-integers",
+      "benchmark_resolution": "Use the actual functional-equation method on integers; object 1377 only recognizes the function's domain. Integer-valued outputs are a separate concept.",
+      "profiles": [
+        {
+          "id": 974,
+          "kind": "method",
+          "label_key": "functional-equation-over-integers",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        },
+        {
+          "id": 1377,
+          "kind": "object",
+          "label_key": "function-on-integers",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original object assessment and assumptions; it does not override the canonical reference."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "FUNCTIONAL EQUATION OVER INTEGERS"
+        ],
+        [
+          "method",
+          "SUBSTITUTION"
+        ],
+        [
+          "object",
+          "FUNCTION ON INTEGERS"
+        ]
+      ]
+    },
+    {
+      "concept_id": "integer-valued-functions",
+      "label": "Integer-valued functions",
+      "area": "functional",
+      "area_label": "Functions and functional equations",
+      "parent_concept": "",
+      "canonical_benchmark_id": 976,
+      "preferred": "object:integer-valued-function",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 976,
+          "kind": "object",
+          "label_key": "integer-valued-function",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "object",
+          "INTEGER-VALUED FUNCTION"
+        ]
+      ]
+    },
+    {
+      "concept_id": "affine-functions",
+      "label": "Affine functions",
+      "area": "functional",
+      "area_label": "Functions and functional equations",
+      "parent_concept": "",
+      "canonical_benchmark_id": 1516,
+      "preferred": "object:affine-function",
+      "benchmark_resolution": "Use the higher-confidence affine-function foundation. Affine ansatz 1515 is a heuristic/application profile, not a proof that an arbitrary solution is affine.",
+      "profiles": [
+        {
+          "id": 1515,
+          "kind": "canonical_subtopic",
+          "label_key": "affine-ansatz",
+          "usage": "named_application_variant",
+          "usage_reason": "affine ansatz heuristic"
+        },
+        {
+          "id": 1516,
+          "kind": "object",
+          "label_key": "affine-function",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "AFFINE ANSATZ"
+        ],
+        [
+          "object",
+          "AFFINE ANSATZ"
+        ],
+        [
+          "object",
+          "AFFINE FUNCTION"
+        ],
+        [
+          "technique",
+          "AFFINE ANSATZ"
+        ],
+        [
+          "technique",
+          "AFFINE FUNCTIONS"
+        ]
+      ]
+    },
+    {
+      "concept_id": "linear-functions",
+      "label": "Linear functions",
+      "area": "functional",
+      "area_label": "Functions and functional equations",
+      "parent_concept": "affine-functions",
+      "canonical_benchmark_id": 1201,
+      "preferred": "object:linear-function",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 1201,
+          "kind": "object",
+          "label_key": "linear-function",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "object",
+          "LINEAR FUNCTION"
+        ],
+        [
+          "technique",
+          "LINEAR FUNCTIONS"
+        ]
+      ]
+    },
+    {
+      "concept_id": "multiplicative-functional-equations",
+      "label": "Multiplicative functional equations",
+      "area": "functional",
+      "area_label": "Functions and functional equations",
+      "parent_concept": "",
+      "canonical_benchmark_id": 1680,
+      "preferred": "object:multiplicative-functional-equation",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 1680,
+          "kind": "object",
+          "label_key": "multiplicative-functional-equation",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "object",
+          "MULTIPLICATIVE FUNCTION"
+        ],
+        [
+          "object",
+          "MULTIPLICATIVE FUNCTIONAL EQUATION"
+        ]
+      ]
+    },
+    {
+      "concept_id": "injectivity",
+      "label": "Injectivity",
+      "area": "functional",
+      "area_label": "Functions and functional equations",
+      "parent_concept": "",
+      "canonical_benchmark_id": null,
+      "preferred": "",
+      "benchmark_resolution": "The mathematical identity is valid; retain it as unscored until dedicated benchmark metadata is reviewed. No values are inferred from a parent or neighbor.",
+      "profiles": [],
+      "aliases": [
+        [
+          "method",
+          "INJECTIVITY"
+        ],
+        [
+          "technique",
+          "INJECTIVITY"
+        ]
+      ]
+    },
+    {
+      "concept_id": "surjectivity",
+      "label": "Surjectivity",
+      "area": "functional",
+      "area_label": "Functions and functional equations",
+      "parent_concept": "",
+      "canonical_benchmark_id": null,
+      "preferred": "",
+      "benchmark_resolution": "The mathematical identity is valid; retain it as unscored until dedicated benchmark metadata is reviewed. No values are inferred from a parent or neighbor.",
+      "profiles": [],
+      "aliases": [
+        [
+          "object",
+          "SURJECTIVE FUNCTION"
+        ],
+        [
+          "technique",
+          "SURJECTIVITY"
+        ]
+      ]
+    },
+    {
+      "concept_id": "bijectivity",
+      "label": "Bijectivity",
+      "area": "functional",
+      "area_label": "Functions and functional equations",
+      "parent_concept": "",
+      "canonical_benchmark_id": null,
+      "preferred": "",
+      "benchmark_resolution": "The mathematical identity is valid; retain it as unscored until dedicated benchmark metadata is reviewed. No values are inferred from a parent or neighbor.",
+      "profiles": [],
+      "aliases": []
+    },
+    {
+      "concept_id": "injectivity-up-to-sign",
+      "label": "Injectivity up to sign",
+      "area": "functional",
+      "area_label": "Functions and functional equations",
+      "parent_concept": "injectivity",
+      "canonical_benchmark_id": null,
+      "preferred": "",
+      "benchmark_resolution": "The mathematical identity is valid; retain it as unscored until dedicated benchmark metadata is reviewed. No values are inferred from a parent or neighbor.",
+      "profiles": [],
+      "aliases": [
+        [
+          "method",
+          "INJECTIVITY UP TO SIGN"
+        ],
+        [
+          "technique",
+          "INJECTIVITY UP TO SIGN"
+        ]
+      ]
+    },
+    {
+      "concept_id": "periodicity",
+      "label": "Periodicity",
+      "area": "functional",
+      "area_label": "Functions and functional equations",
+      "parent_concept": "",
+      "canonical_benchmark_id": null,
+      "preferred": "",
+      "benchmark_resolution": "The mathematical identity is valid; retain it as unscored until dedicated benchmark metadata is reviewed. No values are inferred from a parent or neighbor.",
+      "profiles": [],
+      "aliases": [
+        [
+          "lemma",
+          "EVENTUAL PERIODICITY"
+        ],
+        [
+          "method",
+          "PERIODICITY"
+        ],
+        [
+          "object",
+          "2-PERIODIC STRUCTURE"
+        ],
+        [
+          "object",
+          "EVENTUAL PERIODICITY"
+        ],
+        [
+          "technique",
+          "PERIODICITY"
+        ]
+      ]
+    },
+    {
+      "concept_id": "zero-set-method",
+      "label": "Zero-set method",
+      "area": "functional",
+      "area_label": "Functions and functional equations",
+      "parent_concept": "",
+      "canonical_benchmark_id": 1335,
+      "preferred": "canonical_subtopic:zero-set-method",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 1335,
+          "kind": "canonical_subtopic",
+          "label_key": "zero-set-method",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "ZERO-SET METHOD"
+        ],
+        [
+          "object",
+          "ZERO SET"
+        ],
+        [
+          "technique",
+          "ZERO SET"
+        ],
+        [
+          "technique",
+          "ZERO-SET METHOD"
+        ]
+      ]
+    },
+    {
+      "concept_id": "exponential-equations",
+      "label": "Exponential equations",
+      "area": "functional",
+      "area_label": "Functions and functional equations",
+      "parent_concept": "",
+      "canonical_benchmark_id": null,
+      "preferred": "",
+      "benchmark_resolution": "The mathematical identity is valid; retain it as unscored until dedicated benchmark metadata is reviewed. No values are inferred from a parent or neighbor.",
+      "profiles": [],
+      "aliases": [
+        [
+          "object",
+          "EXPONENTIAL EQUATIONS"
+        ],
+        [
+          "technique",
+          "EXPONENTIAL EQUATIONS"
+        ]
+      ]
+    },
+    {
+      "concept_id": "recurrences",
+      "label": "Recurrence relations",
+      "area": "sequences",
+      "area_label": "Sequences, recurrences, and summation",
+      "parent_concept": "",
+      "canonical_benchmark_id": 1431,
+      "preferred": "method:recurrence-relation",
+      "benchmark_resolution": "Use the explicit general recurrence method. Curriculum 723 and recurrence-identity applications 1506 remain attached profiles.",
+      "profiles": [
+        {
+          "id": 723,
+          "kind": "canonical_subtopic",
+          "label_key": "recurrence",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original canonical_subtopic assessment and assumptions; it does not override the canonical reference."
+        },
+        {
+          "id": 1431,
+          "kind": "method",
+          "label_key": "recurrence-relation",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        },
+        {
+          "id": 1506,
+          "kind": "method",
+          "label_key": "recurrence-identity",
+          "usage": "named_application_variant",
+          "usage_reason": "recurrence identity manipulation"
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "LINEAR RECURRENCE"
+        ],
+        [
+          "method",
+          "RECURRENCE IDENTITY"
+        ],
+        [
+          "method",
+          "RECURRENCE RELATION"
+        ],
+        [
+          "method",
+          "RECURSION"
+        ]
+      ]
+    },
+    {
+      "concept_id": "linear-recurrences",
+      "label": "Linear recurrences",
+      "area": "sequences",
+      "area_label": "Sequences, recurrences, and summation",
+      "parent_concept": "recurrences",
+      "canonical_benchmark_id": 977,
+      "preferred": "canonical_subtopic:linear-recurrence",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 977,
+          "kind": "canonical_subtopic",
+          "label_key": "linear-recurrence",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "object",
+          "LINEAR RECURRENCE"
+        ],
+        [
+          "technique",
+          "LINEAR RECURRENCE"
+        ],
+        [
+          "technique",
+          "LINEAR RECURRENCES"
+        ]
+      ]
+    },
+    {
+      "concept_id": "characteristic-polynomials",
+      "label": "Characteristic polynomials",
+      "area": "sequences",
+      "area_label": "Sequences, recurrences, and summation",
+      "parent_concept": "linear-recurrences",
+      "canonical_benchmark_id": 1250,
+      "preferred": "canonical_subtopic:characteristic-polynomial",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 1250,
+          "kind": "canonical_subtopic",
+          "label_key": "characteristic-polynomial",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "CHARACTERISTIC POLYNOMIAL"
+        ],
+        [
+          "method",
+          "CHARACTERISTIC POLYNOMIALS"
+        ],
+        [
+          "object",
+          "CHARACTERISTIC POLYNOMIAL"
+        ],
+        [
+          "object",
+          "CHARACTERISTIC POLYNOMIALS"
+        ],
+        [
+          "technique",
+          "CHARACTERISTIC POLYNOMIAL"
+        ],
+        [
+          "technique",
+          "CHARACTERISTIC POLYNOMIALS"
+        ]
+      ]
+    },
+    {
+      "concept_id": "generating-functions",
+      "label": "Generating functions",
+      "area": "sequences",
+      "area_label": "Sequences, recurrences, and summation",
+      "parent_concept": "",
+      "canonical_benchmark_id": 692,
+      "preferred": "canonical_subtopic:generating-functions",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 692,
+          "kind": "canonical_subtopic",
+          "label_key": "generating-functions",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "object",
+          "EXPONENTIAL GENERATING FUNCTIONS"
+        ],
+        [
+          "technique",
+          "EXPONENTIAL GENERATING FUNCTIONS"
+        ],
+        [
+          "technique",
+          "GENERATING FUNCTIONS"
+        ]
+      ]
+    },
+    {
+      "concept_id": "telescoping",
+      "label": "Telescoping",
+      "area": "sequences",
+      "area_label": "Sequences, recurrences, and summation",
+      "parent_concept": "",
+      "canonical_benchmark_id": 584,
+      "preferred": "canonical_subtopic:telescoping",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 584,
+          "kind": "canonical_subtopic",
+          "label_key": "telescoping",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "TELESCOPING"
+        ],
+        [
+          "technique",
+          "TELESCOPING"
+        ]
+      ]
+    },
+    {
+      "concept_id": "summation-by-parts",
+      "label": "Summation by parts / Abel summation",
+      "area": "sequences",
+      "area_label": "Sequences, recurrences, and summation",
+      "parent_concept": "",
+      "canonical_benchmark_id": 961,
+      "preferred": "canonical_subtopic:summation-by-parts",
+      "benchmark_resolution": "The live Abel/partial-summation definitions all describe finite summation by parts with boundary control. Select the explicit curriculum profile 961; preserve conflicting synonym assessments 997 and 1688 as historical rather than inventing different formulas.",
+      "profiles": [
+        {
+          "id": 961,
+          "kind": "canonical_subtopic",
+          "label_key": "summation-by-parts",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        },
+        {
+          "id": 997,
+          "kind": "lemma",
+          "label_key": "abel-summation",
+          "usage": "legacy_assessment",
+          "usage_reason": "Preserved historically; not a second active default or a new mathematical concept."
+        },
+        {
+          "id": 1688,
+          "kind": "method",
+          "label_key": "partial-summation",
+          "usage": "legacy_assessment",
+          "usage_reason": "Preserved historically; not a second active default or a new mathematical concept."
+        }
+      ],
+      "aliases": [
+        [
+          "lemma",
+          "SUMMATION BY PARTS"
+        ],
+        [
+          "method",
+          "PARTIAL SUMMATION"
+        ],
+        [
+          "method",
+          "SUMMATION BY PARTS"
+        ],
+        [
+          "object",
+          "SUMMATION BY PARTS"
+        ],
+        [
+          "technique",
+          "SUMMATION BY PARTS"
+        ]
+      ]
+    },
+    {
+      "concept_id": "extremal-sequences",
+      "label": "Extremal sequences",
+      "area": "sequences",
+      "area_label": "Sequences, recurrences, and summation",
+      "parent_concept": "",
+      "canonical_benchmark_id": 806,
+      "preferred": "canonical_subtopic:extremal-sequences",
+      "benchmark_resolution": "Use the established plural curriculum entry. The singular label 1478 has no distinct mathematical definition and remains a historical alternate assessment.",
+      "profiles": [
+        {
+          "id": 806,
+          "kind": "canonical_subtopic",
+          "label_key": "extremal-sequences",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        },
+        {
+          "id": 1478,
+          "kind": "canonical_subtopic",
+          "label_key": "extremal-sequence",
+          "usage": "legacy_assessment",
+          "usage_reason": "Preserved historically; not a second active default or a new mathematical concept."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "EXTREMAL SEQUENCE"
+        ],
+        [
+          "method",
+          "EXTREMAL SEQUENCES"
+        ],
+        [
+          "technique",
+          "EXTREMAL SEQUENCE"
+        ],
+        [
+          "technique",
+          "EXTREMAL SEQUENCES"
+        ]
+      ]
+    },
+    {
+      "concept_id": "cyclic-sequences",
+      "label": "Cyclic sequences",
+      "area": "sequences",
+      "area_label": "Sequences, recurrences, and summation",
+      "parent_concept": "",
+      "canonical_benchmark_id": 1180,
+      "preferred": "canonical_subtopic:cyclic-sequence",
+      "benchmark_resolution": "Use the cyclic-sequence curriculum identity and retain cyclic/circular object recognition as a role profile.",
+      "profiles": [
+        {
+          "id": 1180,
+          "kind": "canonical_subtopic",
+          "label_key": "cyclic-sequence",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        },
+        {
+          "id": 1632,
+          "kind": "object",
+          "label_key": "cyclic-circular-sequence",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original object assessment and assumptions; it does not override the canonical reference."
+        }
+      ],
+      "aliases": [
+        [
+          "object",
+          "CYCLIC SEQUENCE"
+        ],
+        [
+          "object",
+          "CYCLIC/CIRCULAR SEQUENCE"
+        ],
+        [
+          "technique",
+          "CYCLIC SEQUENCE"
+        ],
+        [
+          "technique",
+          "CYCLIC SEQUENCES"
+        ]
+      ]
+    },
+    {
+      "concept_id": "fibonacci-sequences",
+      "label": "Fibonacci sequences",
+      "area": "sequences",
+      "area_label": "Sequences, recurrences, and summation",
+      "parent_concept": "",
+      "canonical_benchmark_id": 1479,
+      "preferred": "object:fibonacci-sequence",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 1479,
+          "kind": "object",
+          "label_key": "fibonacci-sequence",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "object",
+          "FIBONACCI SEQUENCE"
+        ]
+      ]
+    },
+    {
+      "concept_id": "lucas-sequences",
+      "label": "Lucas sequences",
+      "area": "sequences",
+      "area_label": "Sequences, recurrences, and summation",
+      "parent_concept": "",
+      "canonical_benchmark_id": null,
+      "preferred": "",
+      "benchmark_resolution": "The mathematical identity is valid; retain it as unscored until dedicated benchmark metadata is reviewed. No values are inferred from a parent or neighbor.",
+      "profiles": [],
+      "aliases": [
+        [
+          "lemma",
+          "LUCAS SEQUENCE IDENTITIES"
+        ]
+      ]
+    },
+    {
+      "concept_id": "convolution",
+      "label": "Convolution",
+      "area": "sequences",
+      "area_label": "Sequences, recurrences, and summation",
+      "parent_concept": "",
+      "canonical_benchmark_id": 1531,
+      "preferred": "canonical_subtopic:convolution",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 1531,
+          "kind": "canonical_subtopic",
+          "label_key": "convolution",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "CONVOLUTION"
+        ],
+        [
+          "object",
+          "CONVOLUTION"
+        ],
+        [
+          "technique",
+          "CONVOLUTION"
+        ]
+      ]
+    },
+    {
+      "concept_id": "partial-sums",
+      "label": "Partial sums and prefix/tail sums",
+      "area": "sequences",
+      "area_label": "Sequences, recurrences, and summation",
+      "parent_concept": "",
+      "canonical_benchmark_id": 1694,
+      "preferred": "method:prefix-sums",
+      "benchmark_resolution": "Use prefix-sum manipulation as the method. Prefix/tail objects and the complement relationship remain role/representation data.",
+      "profiles": [
+        {
+          "id": 1694,
+          "kind": "method",
+          "label_key": "prefix-sums",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        },
+        {
+          "id": 1695,
+          "kind": "object",
+          "label_key": "prefix-tail-sums",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original object assessment and assumptions; it does not override the canonical reference."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "PREFIX SUMS"
+        ],
+        [
+          "object",
+          "PREFIX/TAIL SUMS"
+        ]
+      ]
+    },
+    {
+      "concept_id": "binomial-sums",
+      "label": "Binomial sums and identities",
+      "area": "sequences",
+      "area_label": "Sequences, recurrences, and summation",
+      "parent_concept": "",
+      "canonical_benchmark_id": 998,
+      "preferred": "object:binomial-sum",
+      "benchmark_resolution": "Use the binomial-sum problem class; retain binomial identity recognition as a representation/application profile.",
+      "profiles": [
+        {
+          "id": 998,
+          "kind": "object",
+          "label_key": "binomial-sum",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        },
+        {
+          "id": 1115,
+          "kind": "object",
+          "label_key": "binomial-identity",
+          "usage": "named_application_variant",
+          "usage_reason": "binomial identity recognition"
+        }
+      ],
+      "aliases": [
+        [
+          "object",
+          "BINOMIAL IDENTITY"
+        ],
+        [
+          "object",
+          "BINOMIAL SUM"
+        ],
+        [
+          "object",
+          "BINOMIAL SUMS"
+        ],
+        [
+          "technique",
+          "BINOMIAL IDENTITY"
+        ],
+        [
+          "technique",
+          "BINOMIAL SUMS"
+        ]
+      ]
+    },
+    {
+      "concept_id": "harmonic-sums",
+      "label": "Harmonic sums",
+      "area": "sequences",
+      "area_label": "Sequences, recurrences, and summation",
+      "parent_concept": "",
+      "canonical_benchmark_id": 912,
+      "preferred": "object:harmonic-sum",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 912,
+          "kind": "object",
+          "label_key": "harmonic-sum",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "HARMONIC SUMS"
+        ],
+        [
+          "object",
+          "HARMONIC SUM"
+        ],
+        [
+          "object",
+          "TELESCOPING"
+        ],
+        [
+          "technique",
+          "HARMONIC SUMS"
+        ]
+      ]
+    },
+    {
+      "concept_id": "subadditivity",
+      "label": "Subadditivity",
+      "area": "sequences",
+      "area_label": "Sequences, recurrences, and summation",
+      "parent_concept": "",
+      "canonical_benchmark_id": 1231,
+      "preferred": "object:subadditive-sequence-function",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 1231,
+          "kind": "object",
+          "label_key": "subadditive-sequence-function",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "SUBADDITIVITY"
+        ],
+        [
+          "object",
+          "SUBADDITIVE SEQUENCE"
+        ],
+        [
+          "object",
+          "SUBADDITIVE SEQUENCE/FUNCTION"
+        ],
+        [
+          "technique",
+          "SUBADDITIVITY"
+        ]
+      ]
+    },
+    {
+      "concept_id": "fekete",
+      "label": "Fekete's lemma",
+      "area": "sequences",
+      "area_label": "Sequences, recurrences, and summation",
+      "parent_concept": "subadditivity",
+      "canonical_benchmark_id": 1136,
+      "preferred": "lemma:fekete-lemma",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 1136,
+          "kind": "lemma",
+          "label_key": "fekete-lemma",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "lemma",
+          "FEKETE LEMMA"
+        ]
+      ]
+    },
+    {
+      "concept_id": "oscillation",
+      "label": "Oscillation",
+      "area": "sequences",
+      "area_label": "Sequences, recurrences, and summation",
+      "parent_concept": "",
+      "canonical_benchmark_id": 288,
+      "preferred": "technique:oscillation",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 288,
+          "kind": "technique",
+          "label_key": "oscillation",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "technique",
+          "OSCILLATION"
+        ]
+      ]
+    },
+    {
+      "concept_id": "limits-convergence",
+      "label": "Limits and convergence",
+      "area": "sequences",
+      "area_label": "Sequences, recurrences, and summation",
+      "parent_concept": "",
+      "canonical_benchmark_id": 1401,
+      "preferred": "method:limit-argument",
+      "benchmark_resolution": "Use the explicit limit argument for training. Limit-object recognition remains a role profile; retain sequence/function assumptions.",
+      "profiles": [
+        {
+          "id": 1400,
+          "kind": "object",
+          "label_key": "limit",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original object assessment and assumptions; it does not override the canonical reference."
+        },
+        {
+          "id": 1401,
+          "kind": "method",
+          "label_key": "limit-argument",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "LIMIT ARGUMENT"
+        ],
+        [
+          "object",
+          "LIMIT"
+        ]
+      ]
+    },
+    {
+      "concept_id": "arithmetic-progressions",
+      "label": "Arithmetic progressions",
+      "area": "sequences",
+      "area_label": "Sequences, recurrences, and summation",
+      "parent_concept": "",
+      "canonical_benchmark_id": 777,
+      "preferred": "canonical_subtopic:arithmetic-progressions",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 777,
+          "kind": "canonical_subtopic",
+          "label_key": "arithmetic-progressions",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "ARITHMETIC PROGRESSIONS"
+        ],
+        [
+          "technique",
+          "ARITHMETIC PROGRESSIONS"
+        ]
+      ]
+    },
+    {
+      "concept_id": "geometric-progressions",
+      "label": "Geometric progressions",
+      "area": "sequences",
+      "area_label": "Sequences, recurrences, and summation",
+      "parent_concept": "",
+      "canonical_benchmark_id": null,
+      "preferred": "",
+      "benchmark_resolution": "The mathematical identity is valid; retain it as unscored until dedicated benchmark metadata is reviewed. No values are inferred from a parent or neighbor.",
+      "profiles": [],
+      "aliases": [
+        [
+          "object",
+          "GEOMETRIC PROGRESSION"
+        ],
+        [
+          "technique",
+          "GEOMETRIC PROGRESSION"
+        ],
+        [
+          "technique",
+          "GEOMETRIC PROGRESSIONS"
+        ]
+      ]
+    },
+    {
+      "concept_id": "matrices",
+      "label": "Matrices",
+      "area": "linear",
+      "area_label": "Linear algebra and quadratic forms",
+      "parent_concept": "",
+      "canonical_benchmark_id": 668,
+      "preferred": "canonical_subtopic:matrices",
+      "benchmark_resolution": "Use the general matrix curriculum with confidence 80. Object 366 belongs to the specialist modular-ring source block and must not grade generic matrix foundations.",
+      "profiles": [
+        {
+          "id": 366,
+          "kind": "object",
+          "label_key": "matrix",
+          "usage": "named_application_variant",
+          "usage_reason": "matrices over modular rings"
+        },
+        {
+          "id": 668,
+          "kind": "canonical_subtopic",
+          "label_key": "matrices",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "MATRIX"
+        ],
+        [
+          "object",
+          "MATRIX"
+        ],
+        [
+          "technique",
+          "MATRICES"
+        ],
+        [
+          "technique",
+          "MATRIX"
+        ]
+      ]
+    },
+    {
+      "concept_id": "determinants",
+      "label": "Determinants",
+      "area": "linear",
+      "area_label": "Linear algebra and quadratic forms",
+      "parent_concept": "",
+      "canonical_benchmark_id": 905,
+      "preferred": "method:determinant-method",
+      "benchmark_resolution": "Use the general determinant method. Number-theoretic determinant object 234 retains its low-confidence specialist assessment and is not the generic default.",
+      "profiles": [
+        {
+          "id": 234,
+          "kind": "object",
+          "label_key": "determinant",
+          "usage": "named_application_variant",
+          "usage_reason": "number-theoretic determinant application"
+        },
+        {
+          "id": 905,
+          "kind": "method",
+          "label_key": "determinant-method",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "DETERMINANT METHOD"
+        ],
+        [
+          "method",
+          "MATRIX METHOD"
+        ],
+        [
+          "method",
+          "RANK"
+        ],
+        [
+          "object",
+          "DETERMINANT"
+        ],
+        [
+          "technique",
+          "DETERMINANT"
+        ],
+        [
+          "technique",
+          "DETERMINANTS"
+        ]
+      ]
+    },
+    {
+      "concept_id": "rank",
+      "label": "Rank",
+      "area": "linear",
+      "area_label": "Linear algebra and quadratic forms",
+      "parent_concept": "",
+      "canonical_benchmark_id": 1316,
+      "preferred": "method:rank-argument",
+      "benchmark_resolution": "Use the rank-argument method; retain the rank curriculum role.",
+      "profiles": [
+        {
+          "id": 1314,
+          "kind": "canonical_subtopic",
+          "label_key": "rank",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original canonical_subtopic assessment and assumptions; it does not override the canonical reference."
+        },
+        {
+          "id": 1316,
+          "kind": "method",
+          "label_key": "rank-argument",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "RANK ARGUMENT"
+        ],
+        [
+          "object",
+          "RANK"
+        ],
+        [
+          "technique",
+          "RANK"
+        ]
+      ]
+    },
+    {
+      "concept_id": "eigenvalues",
+      "label": "Eigenvalues and spectral methods",
+      "area": "linear",
+      "area_label": "Linear algebra and quadratic forms",
+      "parent_concept": "",
+      "canonical_benchmark_id": 1035,
+      "preferred": "method:spectral-method",
+      "benchmark_resolution": "Use the general spectral method. Remove modular-ring method 354 from this general group and assign it to the modular specialist concept; retain eigenvalue curriculum 1638.",
+      "profiles": [
+        {
+          "id": 1035,
+          "kind": "method",
+          "label_key": "spectral-method",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        },
+        {
+          "id": 1638,
+          "kind": "canonical_subtopic",
+          "label_key": "eigenvalues",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original canonical_subtopic assessment and assumptions; it does not override the canonical reference."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "EIGENVALUE METHOD"
+        ],
+        [
+          "method",
+          "EIGENVALUES"
+        ],
+        [
+          "method",
+          "SPECTRAL METHOD"
+        ],
+        [
+          "object",
+          "EIGENVALUES"
+        ],
+        [
+          "technique",
+          "EIGENVALUE METHOD"
+        ],
+        [
+          "technique",
+          "EIGENVALUES"
+        ]
+      ]
+    },
+    {
+      "concept_id": "cyclic-matrices",
+      "label": "Cyclic matrices in the captured modular-ring setting",
+      "area": "linear",
+      "area_label": "Linear algebra and quadratic forms",
+      "parent_concept": "matrices",
+      "canonical_benchmark_id": 337,
+      "preferred": "object:cyclic-matrix",
+      "benchmark_resolution": "Retain the source-defined modular-ring matrix object and equivalent technique role. Do not silently rename these as circulant or companion matrices without a definition.",
+      "profiles": [
+        {
+          "id": 336,
+          "kind": "technique",
+          "label_key": "cyclic-matrices",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original technique assessment and assumptions; it does not override the canonical reference."
+        },
+        {
+          "id": 337,
+          "kind": "object",
+          "label_key": "cyclic-matrix",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "object",
+          "CYCLIC MATRIX"
+        ],
+        [
+          "technique",
+          "CYCLIC MATRICES"
+        ]
+      ]
+    },
+    {
+      "concept_id": "cyclic-shift",
+      "label": "Cyclic shift operators",
+      "area": "linear",
+      "area_label": "Linear algebra and quadratic forms",
+      "parent_concept": "",
+      "canonical_benchmark_id": 343,
+      "preferred": "object:cyclic-shift-operator",
+      "benchmark_resolution": "Use the shift-operator object; the technique vector is equivalent. Keep the original modular-ring assumptions.",
+      "profiles": [
+        {
+          "id": 343,
+          "kind": "object",
+          "label_key": "cyclic-shift-operator",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        },
+        {
+          "id": 344,
+          "kind": "technique",
+          "label_key": "cyclic-shift-operator",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original technique assessment and assumptions; it does not override the canonical reference."
+        }
+      ],
+      "aliases": [
+        [
+          "object",
+          "CYCLIC SHIFT OPERATOR"
+        ],
+        [
+          "technique",
+          "CYCLIC SHIFT OPERATOR"
+        ]
+      ]
+    },
+    {
+      "concept_id": "modular-spectral-methods",
+      "label": "Spectral methods over modular rings",
+      "area": "linear",
+      "area_label": "Linear algebra and quadratic forms",
+      "parent_concept": "eigenvalues",
+      "canonical_benchmark_id": 354,
+      "preferred": "method:eigenvalue-method",
+      "benchmark_resolution": "The live definitions explicitly place both 353 and 354 over modular rings. Use the explicit method profile, preserving its low confidence; do not reuse it as the general eigenvalue rating.",
+      "profiles": [
+        {
+          "id": 353,
+          "kind": "technique",
+          "label_key": "eigen-analysis-over-z-pez-mathbb-z-p-e-mathbb-z-z-pez",
+          "usage": "named_application_variant",
+          "usage_reason": "spectral methods over modular rings"
+        },
+        {
+          "id": 354,
+          "kind": "method",
+          "label_key": "eigenvalue-method",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": []
+    },
+    {
+      "concept_id": "quadratic-forms",
+      "label": "Quadratic forms",
+      "area": "linear",
+      "area_label": "Linear algebra and quadratic forms",
+      "parent_concept": "",
+      "canonical_benchmark_id": 645,
+      "preferred": "canonical_subtopic:quadratic-forms",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 645,
+          "kind": "canonical_subtopic",
+          "label_key": "quadratic-forms",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "QUADRATIC FORMS"
+        ],
+        [
+          "object",
+          "QUADRATIC FORMS"
+        ],
+        [
+          "technique",
+          "QUADRATIC FORMS"
+        ]
+      ]
+    },
+    {
+      "concept_id": "f2-vector-spaces",
+      "label": "Vector spaces over F2",
+      "area": "linear",
+      "area_label": "Linear algebra and quadratic forms",
+      "parent_concept": "",
+      "canonical_benchmark_id": 870,
+      "preferred": "object:f2-vector-space",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 870,
+          "kind": "object",
+          "label_key": "f2-vector-space",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "object",
+          "F2 VECTOR SPACE"
+        ]
+      ]
+    },
+    {
+      "concept_id": "groups",
+      "label": "Groups and group structure",
+      "area": "structures",
+      "area_label": "Algebraic structures and finite fields",
+      "parent_concept": "",
+      "canonical_benchmark_id": 702,
+      "preferred": "canonical_subtopic:group-structure",
+      "benchmark_resolution": "Use the group-structure curriculum. Group-object recognition and narrower cyclic groups remain distinct roles/specializations.",
+      "profiles": [
+        {
+          "id": 702,
+          "kind": "canonical_subtopic",
+          "label_key": "group-structure",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        },
+        {
+          "id": 1141,
+          "kind": "object",
+          "label_key": "group",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original object assessment and assumptions; it does not override the canonical reference."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "GROUP STRUCTURE"
+        ],
+        [
+          "object",
+          "GROUP"
+        ],
+        [
+          "object",
+          "GROUPS"
+        ],
+        [
+          "technique",
+          "GROUP STRUCTURE"
+        ]
+      ]
+    },
+    {
+      "concept_id": "group-actions",
+      "label": "Group actions",
+      "area": "structures",
+      "area_label": "Algebraic structures and finite fields",
+      "parent_concept": "groups",
+      "canonical_benchmark_id": null,
+      "preferred": "",
+      "benchmark_resolution": "The mathematical identity is valid; retain it as unscored until dedicated benchmark metadata is reviewed. No values are inferred from a parent or neighbor.",
+      "profiles": [],
+      "aliases": [
+        [
+          "method",
+          "GROUP ACTION"
+        ],
+        [
+          "method",
+          "GROUP ACTIONS"
+        ],
+        [
+          "object",
+          "GROUP ACTION"
+        ],
+        [
+          "object",
+          "GROUP ACTIONS"
+        ],
+        [
+          "technique",
+          "GROUP ACTION"
+        ],
+        [
+          "technique",
+          "GROUP ACTIONS"
+        ]
+      ]
+    },
+    {
+      "concept_id": "cyclic-groups",
+      "label": "Cyclic groups",
+      "area": "structures",
+      "area_label": "Algebraic structures and finite fields",
+      "parent_concept": "groups",
+      "canonical_benchmark_id": 943,
+      "preferred": "object:cyclic-group",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 943,
+          "kind": "object",
+          "label_key": "cyclic-group",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "object",
+          "CYCLIC GROUP"
+        ],
+        [
+          "technique",
+          "CYCLIC GROUPS"
+        ]
+      ]
+    },
+    {
+      "concept_id": "generators",
+      "label": "Algebraic generators",
+      "area": "structures",
+      "area_label": "Algebraic structures and finite fields",
+      "parent_concept": "",
+      "canonical_benchmark_id": 1655,
+      "preferred": "canonical_subtopic:generators",
+      "benchmark_resolution": "Use the explicit curriculum assessment for training; object 1654 remains a recognition/review profile with the same components.",
+      "profiles": [
+        {
+          "id": 1654,
+          "kind": "object",
+          "label_key": "generator",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original object assessment and assumptions; it does not override the canonical reference."
+        },
+        {
+          "id": 1655,
+          "kind": "canonical_subtopic",
+          "label_key": "generators",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "GENERATORS"
+        ],
+        [
+          "object",
+          "GENERATOR"
+        ],
+        [
+          "technique",
+          "GENERATORS"
+        ]
+      ]
+    },
+    {
+      "concept_id": "rings",
+      "label": "Rings and ring algebra",
+      "area": "structures",
+      "area_label": "Algebraic structures and finite fields",
+      "parent_concept": "",
+      "canonical_benchmark_id": 1152,
+      "preferred": "method:ring-algebra",
+      "benchmark_resolution": "Use the explicit ring-algebra method for training; keep basic ring-object recognition as a separate role profile.",
+      "profiles": [
+        {
+          "id": 988,
+          "kind": "object",
+          "label_key": "ring",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original object assessment and assumptions; it does not override the canonical reference."
+        },
+        {
+          "id": 1152,
+          "kind": "method",
+          "label_key": "ring-algebra",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "RING ALGEBRA"
+        ],
+        [
+          "method",
+          "RING STRUCTURE"
+        ],
+        [
+          "object",
+          "RING"
+        ],
+        [
+          "technique",
+          "RINGS"
+        ]
+      ]
+    },
+    {
+      "concept_id": "quotient-rings",
+      "label": "Quotient rings",
+      "area": "structures",
+      "area_label": "Algebraic structures and finite fields",
+      "parent_concept": "rings",
+      "canonical_benchmark_id": 1427,
+      "preferred": "method:quotient-ring",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 1427,
+          "kind": "method",
+          "label_key": "quotient-ring",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "QUOTIENT RING"
+        ]
+      ]
+    },
+    {
+      "concept_id": "nilpotence",
+      "label": "Nilpotence",
+      "area": "structures",
+      "area_label": "Algebraic structures and finite fields",
+      "parent_concept": "",
+      "canonical_benchmark_id": 1406,
+      "preferred": "canonical_subtopic:nilpotence",
+      "benchmark_resolution": "Use the nilpotence curriculum; element/operator/criterion profiles retain their assumptions and equivalent components.",
+      "profiles": [
+        {
+          "id": 1406,
+          "kind": "canonical_subtopic",
+          "label_key": "nilpotence",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        },
+        {
+          "id": 1407,
+          "kind": "lemma",
+          "label_key": "nilpotence-criterion",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original lemma assessment and assumptions; it does not override the canonical reference."
+        },
+        {
+          "id": 1408,
+          "kind": "object",
+          "label_key": "nilpotent-element-operator",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original object assessment and assumptions; it does not override the canonical reference."
+        }
+      ],
+      "aliases": [
+        [
+          "lemma",
+          "NILPOTENCE CRITERION"
+        ],
+        [
+          "method",
+          "NILPOTENCE"
+        ],
+        [
+          "object",
+          "NILPOTENT ELEMENT/OPERATOR"
+        ],
+        [
+          "technique",
+          "NILPOTENCE"
+        ]
+      ]
+    },
+    {
+      "concept_id": "finite-field-arithmetic",
+      "label": "Finite-field arithmetic",
+      "area": "structures",
+      "area_label": "Algebraic structures and finite fields",
+      "parent_concept": "",
+      "canonical_benchmark_id": 1650,
+      "preferred": "method:finite-field-arithmetic",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 1650,
+          "kind": "method",
+          "label_key": "finite-field-arithmetic",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "FINITE FIELD ARITHMETIC"
+        ]
+      ]
+    },
+    {
+      "concept_id": "polynomials-f2",
+      "label": "Polynomials over F2",
+      "area": "structures",
+      "area_label": "Algebraic structures and finite fields",
+      "parent_concept": "finite-field-arithmetic",
+      "canonical_benchmark_id": 1692,
+      "preferred": "object:polynomial-over-mod-2",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 1692,
+          "kind": "object",
+          "label_key": "polynomial-over-mod-2",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "object",
+          "POLYNOMIAL OVER MOD 2"
+        ]
+      ]
+    },
+    {
+      "concept_id": "frobenius-characteristic-two",
+      "label": "Frobenius identity in characteristic two",
+      "area": "structures",
+      "area_label": "Algebraic structures and finite fields",
+      "parent_concept": "finite-field-arithmetic",
+      "canonical_benchmark_id": 1652,
+      "preferred": "lemma:freshman-s-dream-over-f2-when-applicable",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 1652,
+          "kind": "lemma",
+          "label_key": "freshman-s-dream-over-f2-when-applicable",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "lemma",
+          "FRESHMAN'S DREAM OVER F2 WHEN APPLICABLE"
+        ]
+      ]
+    },
+    {
+      "concept_id": "floor-ceiling",
+      "label": "Floor and ceiling functions",
+      "area": "discrete",
+      "area_label": "Discrete functions, rounding, and finite dynamics",
+      "parent_concept": "",
+      "canonical_benchmark_id": 1282,
+      "preferred": "canonical_subtopic:floor-functions",
+      "benchmark_resolution": "Use the high-confidence floor-function curriculum and equivalent identities profile. General rounding analysis and floor-object recognition retain their application/role profiles.",
+      "profiles": [
+        {
+          "id": 1190,
+          "kind": "method",
+          "label_key": "floor-rounding-analysis",
+          "usage": "named_application_variant",
+          "usage_reason": "floor/rounding analysis"
+        },
+        {
+          "id": 1282,
+          "kind": "canonical_subtopic",
+          "label_key": "floor-functions",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        },
+        {
+          "id": 1283,
+          "kind": "lemma",
+          "label_key": "floor-ceiling-identities",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original lemma assessment and assumptions; it does not override the canonical reference."
+        },
+        {
+          "id": 1433,
+          "kind": "object",
+          "label_key": "rounded-floor-quantity",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original object assessment and assumptions; it does not override the canonical reference."
+        }
+      ],
+      "aliases": [
+        [
+          "lemma",
+          "FLOOR/CEILING IDENTITIES"
+        ],
+        [
+          "method",
+          "FLOOR ANALYSIS"
+        ],
+        [
+          "method",
+          "FLOOR FUNCTIONS"
+        ],
+        [
+          "method",
+          "FLOOR/ROUNDING ANALYSIS"
+        ],
+        [
+          "object",
+          "FLOOR FUNCTION"
+        ],
+        [
+          "object",
+          "ROUNDED/FLOOR QUANTITY"
+        ],
+        [
+          "technique",
+          "FLOOR FUNCTION"
+        ],
+        [
+          "technique",
+          "FLOOR FUNCTIONS"
+        ]
+      ]
+    },
+    {
+      "concept_id": "nearest-integer",
+      "label": "Nearest-integer methods",
+      "area": "discrete",
+      "area_label": "Discrete functions, rounding, and finite dynamics",
+      "parent_concept": "",
+      "canonical_benchmark_id": 1301,
+      "preferred": "method:nearest-integer",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 1301,
+          "kind": "method",
+          "label_key": "nearest-integer",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "NEAREST INTEGER"
+        ],
+        [
+          "method",
+          "ROUNDING"
+        ]
+      ]
+    },
+    {
+      "concept_id": "discrete-intermediate-value",
+      "label": "Discrete intermediate value",
+      "area": "discrete",
+      "area_label": "Discrete functions, rounding, and finite dynamics",
+      "parent_concept": "",
+      "canonical_benchmark_id": 1182,
+      "preferred": "canonical_subtopic:discrete-intermediate-value",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 1182,
+          "kind": "canonical_subtopic",
+          "label_key": "discrete-intermediate-value",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "DISCRETE INTERMEDIATE VALUE"
+        ],
+        [
+          "technique",
+          "DISCRETE INTERMEDIATE VALUE"
+        ]
+      ]
+    },
+    {
+      "concept_id": "binary-representation",
+      "label": "Binary and base representation",
+      "area": "discrete",
+      "area_label": "Discrete functions, rounding, and finite dynamics",
+      "parent_concept": "",
+      "canonical_benchmark_id": 689,
+      "preferred": "method:binary-base-representation",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 689,
+          "kind": "method",
+          "label_key": "binary-base-representation",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "BINARY/BASE REPRESENTATION"
+        ]
+      ]
+    },
+    {
+      "concept_id": "dyadic-scales",
+      "label": "Binary/dyadic scales",
+      "area": "discrete",
+      "area_label": "Discrete functions, rounding, and finite dynamics",
+      "parent_concept": "",
+      "canonical_benchmark_id": 1453,
+      "preferred": "object:binary-dyadic-scale",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 1453,
+          "kind": "object",
+          "label_key": "binary-dyadic-scale",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "DYADIC DECOMPOSITION"
+        ],
+        [
+          "object",
+          "BINARY/DYADIC SCALE"
+        ],
+        [
+          "technique",
+          "DYADIC DECOMPOSITION"
+        ]
+      ]
+    },
+    {
+      "concept_id": "modular-sequences",
+      "label": "Modular sequence methods",
+      "area": "discrete",
+      "area_label": "Discrete functions, rounding, and finite dynamics",
+      "parent_concept": "",
+      "canonical_benchmark_id": 285,
+      "preferred": "method:modular-sequence",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 285,
+          "kind": "method",
+          "label_key": "modular-sequence",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "MODULAR SEQUENCE"
+        ],
+        [
+          "object",
+          "MODULAR SEQUENCE"
+        ],
+        [
+          "technique",
+          "MODULAR SEQUENCES"
+        ]
+      ]
+    },
+    {
+      "concept_id": "modular-recurrences",
+      "label": "Recurrences modulo m",
+      "area": "discrete",
+      "area_label": "Discrete functions, rounding, and finite dynamics",
+      "parent_concept": "modular-sequences",
+      "canonical_benchmark_id": 1702,
+      "preferred": "method:recurrence-modulo-m",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 1702,
+          "kind": "method",
+          "label_key": "recurrence-modulo-m",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "RECURRENCE MODULO M"
+        ]
+      ]
+    },
+    {
+      "concept_id": "functional-graphs",
+      "label": "Functional graphs",
+      "area": "discrete",
+      "area_label": "Discrete functions, rounding, and finite dynamics",
+      "parent_concept": "",
+      "canonical_benchmark_id": 1482,
+      "preferred": "object:functional-graph",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 1482,
+          "kind": "object",
+          "label_key": "functional-graph",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "object",
+          "FUNCTIONAL GRAPH"
+        ],
+        [
+          "technique",
+          "FUNCTIONAL GRAPH"
+        ]
+      ]
+    },
+    {
+      "concept_id": "complex-numbers",
+      "label": "Complex numbers",
+      "area": "analytic",
+      "area_label": "Complex, trigonometric, and analytic tools",
+      "parent_concept": "",
+      "canonical_benchmark_id": 594,
+      "preferred": "canonical_subtopic:complex-numbers",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 594,
+          "kind": "canonical_subtopic",
+          "label_key": "complex-numbers",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "COMPLEX NUMBERS"
+        ],
+        [
+          "technique",
+          "COMPLEX NUMBERS"
+        ]
+      ]
+    },
+    {
+      "concept_id": "roots-of-unity",
+      "label": "Roots of unity",
+      "area": "analytic",
+      "area_label": "Complex, trigonometric, and analytic tools",
+      "parent_concept": "complex-numbers",
+      "canonical_benchmark_id": 639,
+      "preferred": "method:rotation-roots-of-unity",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 639,
+          "kind": "method",
+          "label_key": "rotation-roots-of-unity",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "lemma",
+          "ROOTS OF UNITY"
+        ],
+        [
+          "method",
+          "ROOTS OF UNITY"
+        ],
+        [
+          "method",
+          "ROTATION / ROOTS OF UNITY"
+        ],
+        [
+          "object",
+          "ROOTS OF UNITY"
+        ]
+      ]
+    },
+    {
+      "concept_id": "trigonometric-expressions",
+      "label": "Trigonometric expressions",
+      "area": "analytic",
+      "area_label": "Complex, trigonometric, and analytic tools",
+      "parent_concept": "",
+      "canonical_benchmark_id": 660,
+      "preferred": "object:trigonometric-expression",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 660,
+          "kind": "object",
+          "label_key": "trigonometric-expression",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "object",
+          "TRIGONOMETRIC EXPRESSION"
+        ]
+      ]
+    },
+    {
+      "concept_id": "trigonometric-identities",
+      "label": "Trigonometric identities",
+      "area": "analytic",
+      "area_label": "Complex, trigonometric, and analytic tools",
+      "parent_concept": "",
+      "canonical_benchmark_id": null,
+      "preferred": "",
+      "benchmark_resolution": "The mathematical identity is valid; retain it as unscored until dedicated benchmark metadata is reviewed. No values are inferred from a parent or neighbor.",
+      "profiles": [],
+      "aliases": [
+        [
+          "lemma",
+          "TRIGONOMETRIC IDENTITIES"
+        ],
+        [
+          "object",
+          "TRIGONOMETRIC IDENTITIES"
+        ],
+        [
+          "object",
+          "TRIGONOMETRIC IDENTITY"
+        ],
+        [
+          "technique",
+          "TRIGONOMETRIC IDENTITIES"
+        ]
+      ]
+    },
+    {
+      "concept_id": "trigonometric-substitution",
+      "label": "Trigonometric substitution",
+      "area": "analytic",
+      "area_label": "Complex, trigonometric, and analytic tools",
+      "parent_concept": "",
+      "canonical_benchmark_id": 1327,
+      "preferred": "canonical_subtopic:trig-substitution",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 1327,
+          "kind": "canonical_subtopic",
+          "label_key": "trig-substitution",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "TRIG SUBSTITUTION"
+        ],
+        [
+          "method",
+          "TRIGONOMETRIC SUBSTITUTION"
+        ],
+        [
+          "technique",
+          "TRIG SUBSTITUTION"
+        ],
+        [
+          "technique",
+          "TRIGONOMETRIC SUBSTITUTION"
+        ]
+      ]
+    },
+    {
+      "concept_id": "trigonometric-inequalities",
+      "label": "Trigonometric inequalities",
+      "area": "analytic",
+      "area_label": "Complex, trigonometric, and analytic tools",
+      "parent_concept": "",
+      "canonical_benchmark_id": 1235,
+      "preferred": "object:trigonometric-inequality",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 1235,
+          "kind": "object",
+          "label_key": "trigonometric-inequality",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "TRIGONOMETRIC INEQUALITIES"
+        ],
+        [
+          "object",
+          "TRIGONOMETRIC INEQUALITY"
+        ],
+        [
+          "technique",
+          "TRIGONOMETRIC INEQUALITIES"
+        ],
+        [
+          "technique",
+          "TRIGONOMETRIC INEQUALITY"
+        ]
+      ]
+    },
+    {
+      "concept_id": "logarithms",
+      "label": "Logarithms and logarithmic transformation",
+      "area": "analytic",
+      "area_label": "Complex, trigonometric, and analytic tools",
+      "parent_concept": "",
+      "canonical_benchmark_id": 915,
+      "preferred": "method:log-transform",
+      "benchmark_resolution": "The logarithm object and logarithmic transformation have the same components. Use the method role as the training reference and preserve object recognition.",
+      "profiles": [
+        {
+          "id": 915,
+          "kind": "method",
+          "label_key": "log-transform",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        },
+        {
+          "id": 916,
+          "kind": "object",
+          "label_key": "logarithm",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original object assessment and assumptions; it does not override the canonical reference."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "LOG TRANSFORM"
+        ],
+        [
+          "method",
+          "LOGARITHMIC SUBSTITUTION"
+        ],
+        [
+          "object",
+          "LOGARITHM"
+        ],
+        [
+          "technique",
+          "LOGARITHMIC SUBSTITUTION"
+        ],
+        [
+          "technique",
+          "LOGARITHMS"
+        ]
+      ]
+    },
+    {
+      "concept_id": "asymptotic-estimates",
+      "label": "Asymptotic estimates",
+      "area": "analytic",
+      "area_label": "Complex, trigonometric, and analytic tools",
+      "parent_concept": "",
+      "canonical_benchmark_id": 648,
+      "preferred": "method:asymptotic-estimate",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 648,
+          "kind": "method",
+          "label_key": "asymptotic-estimate",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "ASYMPTOTIC ESTIMATE"
+        ],
+        [
+          "technique",
+          "ASYMPTOTIC ESTIMATES"
+        ]
+      ]
+    },
+    {
+      "concept_id": "growth-estimates",
+      "label": "Growth estimates",
+      "area": "analytic",
+      "area_label": "Complex, trigonometric, and analytic tools",
+      "parent_concept": "",
+      "canonical_benchmark_id": 1063,
+      "preferred": "method:growth-estimate",
+      "benchmark_resolution": "Use the explicit growth-estimate method; preserve sequence/function-growth recognition as a role profile.",
+      "profiles": [
+        {
+          "id": 1034,
+          "kind": "object",
+          "label_key": "sequence-function-growth",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original object assessment and assumptions; it does not override the canonical reference."
+        },
+        {
+          "id": 1063,
+          "kind": "method",
+          "label_key": "growth-estimate",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "GROWTH BOUND"
+        ],
+        [
+          "method",
+          "GROWTH ESTIMATE"
+        ],
+        [
+          "object",
+          "SEQUENCE/FUNCTION GROWTH"
+        ]
+      ]
+    },
+    {
+      "concept_id": "moment-method",
+      "label": "Moment methods",
+      "area": "analytic",
+      "area_label": "Complex, trigonometric, and analytic tools",
+      "parent_concept": "",
+      "canonical_benchmark_id": 1299,
+      "preferred": "method:moment-method",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 1299,
+          "kind": "method",
+          "label_key": "moment-method",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "MOMENT METHOD"
+        ],
+        [
+          "technique",
+          "MOMENT METHODS"
+        ]
+      ]
+    },
+    {
+      "concept_id": "compactness",
+      "label": "Compactness arguments",
+      "area": "analytic",
+      "area_label": "Complex, trigonometric, and analytic tools",
+      "parent_concept": "",
+      "canonical_benchmark_id": 1003,
+      "preferred": "method:compactness-argument",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 1003,
+          "kind": "method",
+          "label_key": "compactness-argument",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "COMPACTNESS ARGUMENT"
+        ],
+        [
+          "method",
+          "LIMITING ARGUMENT"
+        ],
+        [
+          "method",
+          "LOCAL-TO-GLOBAL"
+        ],
+        [
+          "technique",
+          "COMPACTNESS"
+        ]
+      ]
+    },
+    {
+      "concept_id": "continuity",
+      "label": "Continuity",
+      "area": "analytic",
+      "area_label": "Complex, trigonometric, and analytic tools",
+      "parent_concept": "",
+      "canonical_benchmark_id": null,
+      "preferred": "",
+      "benchmark_resolution": "The mathematical identity is valid; retain it as unscored until dedicated benchmark metadata is reviewed. No values are inferred from a parent or neighbor.",
+      "profiles": [],
+      "aliases": []
+    },
+    {
+      "concept_id": "discrete-fourier",
+      "label": "Discrete Fourier transform",
+      "area": "analytic",
+      "area_label": "Complex, trigonometric, and analytic tools",
+      "parent_concept": "",
+      "canonical_benchmark_id": null,
+      "preferred": "",
+      "benchmark_resolution": "The mathematical identity is valid; retain it as unscored until dedicated benchmark metadata is reviewed. No values are inferred from a parent or neighbor.",
+      "profiles": [],
+      "aliases": [
+        [
+          "method",
+          "DISCRETE FOURIER"
+        ],
+        [
+          "method",
+          "DISCRETE FOURIER TRANSFORM"
+        ],
+        [
+          "technique",
+          "DISCRETE FOURIER"
+        ],
+        [
+          "technique",
+          "DISCRETE FOURIER TRANSFORM"
+        ]
+      ]
+    },
+    {
+      "concept_id": "derivatives",
+      "label": "Derivative methods",
+      "area": "analytic",
+      "area_label": "Complex, trigonometric, and analytic tools",
+      "parent_concept": "",
+      "canonical_benchmark_id": null,
+      "preferred": "",
+      "benchmark_resolution": "The mathematical identity is valid; retain it as unscored until dedicated benchmark metadata is reviewed. No values are inferred from a parent or neighbor.",
+      "profiles": [],
+      "aliases": [
+        [
+          "method",
+          "DERIVATIVE"
+        ],
+        [
+          "method",
+          "DERIVATIVE METHOD"
+        ],
+        [
+          "method",
+          "DERIVATIVES-AS-TOOL"
+        ],
+        [
+          "object",
+          "DERIVATIVE"
+        ],
+        [
+          "technique",
+          "DERIVATIVES-AS-TOOL"
+        ]
+      ]
+    },
+    {
+      "concept_id": "integral-estimates",
+      "label": "Integral estimates",
+      "area": "analytic",
+      "area_label": "Complex, trigonometric, and analytic tools",
+      "parent_concept": "",
+      "canonical_benchmark_id": null,
+      "preferred": "",
+      "benchmark_resolution": "The mathematical identity is valid; retain it as unscored until dedicated benchmark metadata is reviewed. No values are inferred from a parent or neighbor.",
+      "profiles": [],
+      "aliases": [
+        [
+          "method",
+          "INTEGRAL ESTIMATE"
+        ],
+        [
+          "method",
+          "INTEGRAL ESTIMATES"
+        ],
+        [
+          "technique",
+          "INTEGRAL ESTIMATES"
+        ]
+      ]
+    },
+    {
+      "concept_id": "mean-value-theorem",
+      "label": "Mean value theorem",
+      "area": "analytic",
+      "area_label": "Complex, trigonometric, and analytic tools",
+      "parent_concept": "",
+      "canonical_benchmark_id": null,
+      "preferred": "",
+      "benchmark_resolution": "The mathematical identity is valid; retain it as unscored until dedicated benchmark metadata is reviewed. No values are inferred from a parent or neighbor.",
+      "profiles": [],
+      "aliases": [
+        [
+          "lemma",
+          "MEAN VALUE THEOREM"
+        ]
+      ]
+    },
+    {
+      "concept_id": "case-analysis",
+      "label": "Case analysis",
+      "area": "shared",
+      "area_label": "Shared proof strategies",
+      "parent_concept": "",
+      "canonical_benchmark_id": 1249,
+      "preferred": "canonical_subtopic:case-split",
+      "benchmark_resolution": "Use the high-confidence general case-split foundation. Keep method control 1618, generic proof-role 149, and modular-casework 217 as explicit role/domain profiles.",
+      "profiles": [
+        {
+          "id": 149,
+          "kind": "proof_role",
+          "label_key": "case-analysis",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original proof_role assessment and assumptions; it does not override the canonical reference."
+        },
+        {
+          "id": 217,
+          "kind": "proof_role",
+          "label_key": "casework",
+          "usage": "named_application_variant",
+          "usage_reason": "modular casework"
+        },
+        {
+          "id": 1249,
+          "kind": "canonical_subtopic",
+          "label_key": "case-split",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        },
+        {
+          "id": 1618,
+          "kind": "method",
+          "label_key": "case-control",
+          "usage": "named_application_variant",
+          "usage_reason": "case-control application"
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "CASE CONTROL"
+        ],
+        [
+          "method",
+          "CASE SPLIT"
+        ],
+        [
+          "object",
+          "CASEWORK"
+        ],
+        [
+          "proof_role",
+          "CASE ANALYSIS"
+        ],
+        [
+          "proof_role",
+          "CASEWORK"
+        ]
+      ]
+    },
+    {
+      "concept_id": "monotonicity",
+      "label": "Monotonicity",
+      "area": "shared",
+      "area_label": "Shared proof strategies",
+      "parent_concept": "",
+      "canonical_benchmark_id": 556,
+      "preferred": "canonical_subtopic:monotonicity",
+      "benchmark_resolution": "Use the high-confidence general monotonicity curriculum; keep monotone-function recognition as a role profile.",
+      "profiles": [
+        {
+          "id": 556,
+          "kind": "canonical_subtopic",
+          "label_key": "monotonicity",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        },
+        {
+          "id": 1078,
+          "kind": "object",
+          "label_key": "monotone-function",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original object assessment and assumptions; it does not override the canonical reference."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "MONOTONICITY"
+        ],
+        [
+          "object",
+          "MONOTONE FUNCTION"
+        ],
+        [
+          "technique",
+          "MONOTONICITY"
+        ]
+      ]
+    },
+    {
+      "concept_id": "induction",
+      "label": "Mathematical induction",
+      "area": "shared",
+      "area_label": "Shared proof strategies",
+      "parent_concept": "",
+      "canonical_benchmark_id": 548,
+      "preferred": "canonical_subtopic:induction",
+      "benchmark_resolution": "Retain the sole existing benchmark; there is no competing profile to reconcile.",
+      "profiles": [
+        {
+          "id": 548,
+          "kind": "canonical_subtopic",
+          "label_key": "induction",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "INDUCTION"
+        ],
+        [
+          "object",
+          "INDUCTION"
+        ],
+        [
+          "technique",
+          "INDUCTION"
+        ]
+      ]
+    },
+    {
+      "concept_id": "invariants",
+      "label": "Invariants",
+      "area": "shared",
+      "area_label": "Shared proof strategies",
+      "parent_concept": "",
+      "canonical_benchmark_id": 1491,
+      "preferred": "method:invariant-argument",
+      "benchmark_resolution": "Use the higher-confidence general invariant-argument method. Keep foundation recognition 1490 and combinatorial/global-proof profiles as domain/role variants.",
+      "profiles": [
+        {
+          "id": 82,
+          "kind": "proof_role",
+          "label_key": "invariant",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original proof_role assessment and assumptions; it does not override the canonical reference."
+        },
+        {
+          "id": 83,
+          "kind": "method",
+          "label_key": "invariants",
+          "usage": "named_application_variant",
+          "usage_reason": "combinatorial invariants"
+        },
+        {
+          "id": 84,
+          "kind": "technique",
+          "label_key": "invariants",
+          "usage": "named_application_variant",
+          "usage_reason": "combinatorial invariant technique"
+        },
+        {
+          "id": 1490,
+          "kind": "canonical_subtopic",
+          "label_key": "invariant",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original canonical_subtopic assessment and assumptions; it does not override the canonical reference."
+        },
+        {
+          "id": 1491,
+          "kind": "method",
+          "label_key": "invariant-argument",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "CONSERVED QUANTITY"
+        ],
+        [
+          "method",
+          "INVARIANT"
+        ],
+        [
+          "method",
+          "INVARIANT ARGUMENT"
+        ],
+        [
+          "method",
+          "INVARIANTS"
+        ],
+        [
+          "object",
+          "INVARIANT"
+        ],
+        [
+          "proof_role",
+          "INVARIANT"
+        ],
+        [
+          "technique",
+          "INVARIANT"
+        ],
+        [
+          "technique",
+          "INVARIANTS"
+        ]
+      ]
+    },
+    {
+      "concept_id": "extremal-principle",
+      "label": "Extremal arguments",
+      "area": "shared",
+      "area_label": "Shared proof strategies",
+      "parent_concept": "",
+      "canonical_benchmark_id": 57,
+      "preferred": "method:extremal-argument",
+      "benchmark_resolution": "Use the general extremal argument. Preserve inequality and extremal-sum application profiles rather than applying them to every extremal proof.",
+      "profiles": [
+        {
+          "id": 57,
+          "kind": "method",
+          "label_key": "extremal-argument",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        },
+        {
+          "id": 399,
+          "kind": "method",
+          "label_key": "extremal-inequality",
+          "usage": "named_application_variant",
+          "usage_reason": "inequality application of extremal arguments"
+        },
+        {
+          "id": 1648,
+          "kind": "method",
+          "label_key": "extremal-sum-argument",
+          "usage": "named_application_variant",
+          "usage_reason": "extremal-sum application"
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "EXTREMAL"
+        ],
+        [
+          "method",
+          "EXTREMAL ARGUMENT"
+        ],
+        [
+          "method",
+          "EXTREMAL INEQUALITY"
+        ],
+        [
+          "method",
+          "EXTREMAL METHOD"
+        ],
+        [
+          "method",
+          "EXTREMAL PRINCIPLE"
+        ],
+        [
+          "method",
+          "EXTREMAL SUM ARGUMENT"
+        ],
+        [
+          "technique",
+          "EXTREMAL"
+        ],
+        [
+          "technique",
+          "EXTREMAL INEQUALITIES"
+        ],
+        [
+          "technique",
+          "EXTREMAL INEQUALITY"
+        ],
+        [
+          "technique",
+          "EXTREMAL METHOD"
+        ],
+        [
+          "technique",
+          "EXTREMAL PRINCIPLE"
+        ]
+      ]
+    },
+    {
+      "concept_id": "pigeonhole",
+      "label": "Pigeonhole principle",
+      "area": "shared",
+      "area_label": "Shared proof strategies",
+      "parent_concept": "",
+      "canonical_benchmark_id": 255,
+      "preferred": "method:pigeonhole",
+      "benchmark_resolution": "Use the generic pigeonhole method. The live profile 372 is explicitly scoped to zero-sum/EGZ applications and must not set the generic default.",
+      "profiles": [
+        {
+          "id": 255,
+          "kind": "method",
+          "label_key": "pigeonhole",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        },
+        {
+          "id": 372,
+          "kind": "method",
+          "label_key": "pigeonhole-principle",
+          "usage": "named_application_variant",
+          "usage_reason": "zero-sum / EGZ pigeonhole application"
+        }
+      ],
+      "aliases": []
+    },
+    {
+      "concept_id": "descent",
+      "label": "Descent",
+      "area": "shared",
+      "area_label": "Shared proof strategies",
+      "parent_concept": "",
+      "canonical_benchmark_id": 75,
+      "preferred": "method:descent",
+      "benchmark_resolution": "Use the explicit descent method. Keep global proof-purpose profile 49 and the well-founded measure requirement attached.",
+      "profiles": [
+        {
+          "id": 49,
+          "kind": "proof_role",
+          "label_key": "descent",
+          "usage": "retained_role_profile",
+          "usage_reason": "Retain the original proof_role assessment and assumptions; it does not override the canonical reference."
+        },
+        {
+          "id": 75,
+          "kind": "method",
+          "label_key": "descent",
+          "usage": "canonical_reference",
+          "usage_reason": "Selected existing assessment for the combined concept view."
+        }
+      ],
+      "aliases": [
+        [
+          "method",
+          "DESCENT"
+        ],
+        [
+          "proof_role",
+          "DESCENT"
+        ],
+        [
+          "technique",
+          "DESCENT"
+        ]
+      ]
+    }
+  ]
+}

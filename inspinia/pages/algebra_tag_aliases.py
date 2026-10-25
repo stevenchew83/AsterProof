@@ -88,27 +88,36 @@ def _apply_specificity(result: dict, *, source: str, problem_uuid: str | None, p
         )
 
 
-def normalize_import_tag_fields(
+def normalize_import_tag_fields(  # noqa: PLR0913 -- shared explicit policy keeps preview and write paths identical
     fields: dict,
     source_technique: str,
     *,
     topic: str | None,
     active: bool = True,
     problem_uuid: str | None = None,
+    policy: dict | None = None,
 ) -> dict:
-    result = normalize_tag_fields(fields, topic=topic, active=active, problem_uuid=problem_uuid)
+    policy = policy or load_policy()
+    result = normalize_tag_fields(fields, topic=topic, active=active, problem_uuid=problem_uuid, policy=policy)
     if (
         not is_algebra_scope(topic, active=active)
         or str(fields.get("normalization_status", "")).strip().casefold() in SUPPRESSED_STATUSES
     ):
         return result
-    policy = load_policy()
     aliases = {r["source"]: r["target"] for r in policy["mappings"] if r["field"] == "technique"}
     # Do not let classification restore an older umbrella name on re-import.
     if source_technique in aliases:
         result["technique"] = aliases[source_technique]
     elif source_technique in aliases.values():
         result["technique"] = source_technique
+    method = policy.get("method_imports", {}).get(source_technique)
+    if method:
+        result["technique"] = method
+        result["technique_tags"] = unique([*result.get("technique_tags", []), method])
+    subtopic = policy.get("subtopic_imports", {}).get(source_technique)
+    if subtopic:
+        result["technique"] = subtopic.upper()
+        result["canonical_subtopic"] = subtopic
     _apply_specificity(result, source=source_technique, problem_uuid=problem_uuid, policy=policy)
     return result
 
@@ -134,7 +143,10 @@ def search_aliases(fields: dict, *, topic: str | None, active: bool = True, poli
         return set()
     if str(fields.get("normalization_status") or "").strip().casefold() in SUPPRESSED_STATUSES:
         return set()
-    policy = policy or load_policy()
+    if policy is None:
+        from inspinia.pages.algebra_vocabulary import combined_import_policy
+
+        policy = combined_import_policy()
     terms = set()
     for rule in policy["mappings"]:
         values = fields.get(rule["field"], []) if rule["field"] in ARRAY_FIELDS else [fields.get(rule["field"], "")]

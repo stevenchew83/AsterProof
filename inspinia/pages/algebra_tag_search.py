@@ -2,7 +2,7 @@
 
 from django.db.models import Q
 
-from inspinia.pages.algebra_tag_aliases import load_policy
+from inspinia.pages.algebra_vocabulary import combined_import_policy
 
 ALGEBRA_PATTERN = r"^\s*(A|ALG|ALGEBRA)\s*$"
 SUPPRESSED_PATTERN = r"^\s*(invalid|corrupt|metadata)\s*$"
@@ -12,7 +12,7 @@ def tag_token_query(token: str, *, source: str, field: str = "technique") -> Q:
     """Retain the normal match and add aliases only on eligible algebra rows."""
     query = Q(**{f"{field}__icontains": token})
     matches = Q()
-    for rule in load_policy()["mappings"]:
+    for rule in combined_import_policy()["mappings"]:
         if rule["field"] != field:
             continue
         if any(token.casefold() in value.casefold() for value in (rule["source"], rule["target"])):

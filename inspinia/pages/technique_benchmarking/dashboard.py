@@ -6,12 +6,18 @@ from decimal import Decimal
 from statistics import mean
 
 from django.core.paginator import Paginator
+from django.db.models import Q
 
+from inspinia.pages.models import TechniqueBenchmark
 from inspinia.pages.technique_benchmarking.keys import build_benchmark_row_key
 from inspinia.pages.technique_benchmarking.scoring import calculate_static_difficulty_score
 from inspinia.pages.technique_benchmarking.scoring import calculate_static_importance_score
 from inspinia.pages.technique_benchmarking.scoring import normalize_target_profile
 from inspinia.pages.technique_benchmarking.scoring import target_weight_for_benchmark
+from inspinia.pages.technique_concepts import CONCEPT_MEMBER_KEYS
+from inspinia.pages.technique_concepts import CONCEPTS
+from inspinia.pages.technique_concepts import PROFILE_FIELDS
+from inspinia.pages.technique_concepts import concept_for_benchmark
 
 HIGH_VALUE_THRESHOLD = Decimal("4.00")
 QUICK_WIN_DIFFICULTY_MAX = Decimal("3.00")
@@ -44,19 +50,46 @@ TECHNIQUE_BENCHMARK_TABLE_COLUMNS = [
 ]
 
 
-def build_technique_benchmark_dashboard_context(
+def build_technique_benchmark_dashboard_context(  # noqa: PLR0913 -- preserve existing dashboard call contract
     benchmarks,
     *,
     raw_target_profile: str | None = None,
     paginate: bool = False,
     page_number=None,
     sort: str = "value",
+    catalog_filters: dict | None = None,
+    combine_concepts: bool = True,
 ) -> dict[str, object]:
     target_profile = normalize_target_profile(raw_target_profile)
     rows = [
         _benchmark_dashboard_row(benchmark, target_profile=target_profile, include_details=not paginate)
         for benchmark in benchmarks
     ]
+    # A filter selects concepts through any member. Load all of their profiles
+    # together so a filtered member cannot silently become the canonical rating.
+    concept_ids = {
+        concept_for_benchmark(row["kind"], row["row_key"].partition(":")[2]) for row in rows
+    } - {""} if combine_concepts else set()
+    if concept_ids:
+        query = Q(pk__in=[])
+        for concept_id in concept_ids:
+            for member in CONCEPT_MEMBER_KEYS[concept_id]:
+                kind, key = member.split(":", 1)
+                query |= Q(kind=kind, label_key=key)
+        members = TechniqueBenchmark.objects.filter(query)
+        if not paginate:
+            members = members.prefetch_related("aliases")
+        by_id = {row["benchmark_id"]: row for row in rows}
+        by_id.update({
+            benchmark.pk: _benchmark_dashboard_row(
+                benchmark, target_profile=target_profile, include_details=not paginate,
+            )
+            for benchmark in members
+        })
+        rows = list(by_id.values())
+    rows = _concept_dashboard_rows(rows, combine_concepts=combine_concepts)
+    if catalog_filters is not None:
+        rows = _algebra_catalog_rows(rows, catalog_filters)
     rows.sort(key=lambda row: (-(row["value_score_number"] or 0), row["row_key"]))
     chart_rows = [row for row in rows if row["chartable"]][:MATRIX_POINT_LIMIT]
     matrix_payload = _matrix_payload(chart_rows)
@@ -80,14 +113,19 @@ def build_technique_benchmark_dashboard_context(
         page = Paginator(rows, 25).get_page(page_number)
         visible = {
             item.pk: item
-            for item in benchmarks.filter(pk__in=[row["benchmark_id"] for row in page.object_list])
-            .defer(None)
+            for item in TechniqueBenchmark.objects.filter(pk__in=[
+                profile_id for row in page.object_list for profile_id in row["profile_ids"]
+            ])
             .prefetch_related("aliases")
         }
-        display_rows = [
-            _benchmark_dashboard_row(visible[row["benchmark_id"]], target_profile=target_profile)
-            for row in page.object_list
-        ]
+        detailed = _concept_dashboard_rows(
+            [_benchmark_dashboard_row(item, target_profile=target_profile) for item in visible.values()],
+            combine_concepts=combine_concepts,
+        )
+        detailed_by_key = {row["row_key"]: row for row in detailed}
+        display_rows = [{**row, **detailed_by_key.get(row["row_key"], {}),
+                         "primary_area": row["primary_area"], "parent_family": row["parent_family"]}
+                        for row in page.object_list]
     return {
         "page_obj": page,
         "benchmark_sort": sort,
@@ -108,6 +146,79 @@ def build_technique_benchmark_dashboard_context(
         "technique_benchmark_matrix_payload": matrix_payload,
         "technique_benchmark_heatmap_payload": heatmap_payload,
     }
+
+
+def _algebra_catalog_rows(rows: list[dict], filters: dict) -> list[dict]:
+    existing = {row["concept_id"]: row for row in rows if row.get("concept_id")}
+    rows = [existing.get(cid) or _unrated_concept_row(cid) for cid in CONCEPTS]
+    for row in rows:
+        definition = CONCEPTS[row["concept_id"]]
+        row.update(primary_area="Algebra", parent_family=definition["area_label"])
+    if filters.get("search"):
+        rows = [row for row in rows if all(
+            token.casefold() in (str(row) + str(CONCEPTS[row["concept_id"]]["aliases"])).casefold()
+            for token in filters.get("search").split()
+        )]
+    if filters.get("family"):
+        rows = [row for row in rows if row["parent_family"] == filters.get("family")]
+    if filters.get("row_key"):
+        rows = [row for row in rows if row["row_key"] == filters.get("row_key")]
+    return rows
+
+
+def _concept_dashboard_rows(rows: list[dict], *, combine_concepts: bool = True) -> list[dict]:
+    groups = defaultdict(list)
+    for row in rows:
+        concept_id = concept_for_benchmark(row["kind"], row["row_key"].partition(":")[2]) if combine_concepts else ""
+        groups[concept_id or row["row_key"]].append(row)
+    result = []
+    for key, profiles in groups.items():
+        definition = CONCEPTS.get(key)
+        profiles.sort(key=lambda row: row["row_key"])
+        preferred = definition["preferred"] if definition else key
+        row = dict(next((item for item in profiles if item["row_key"] == preferred), profiles[0]))
+        row.update(
+            concept_id=key if definition else "", profile_ids=[item["benchmark_id"] for item in profiles],
+            roles=sorted({item["kind_label"] for item in profiles}),
+            profiles=profiles if definition else [], profile_conflicts=[],
+        )
+        if definition:
+            row["label"] = definition["label"]
+            reference = next((item for item in profiles if item["row_key"] == preferred), None)
+            row["reference_resolution"] = definition["benchmark_resolution"]
+            for profile in profiles:
+                contract = next(
+                    p for p in definition["profiles"]
+                    if f"{p['kind']}:{p['label_key']}" == profile["row_key"]
+                )
+                profile["profile_usage"] = contract["usage"]
+                profile["profile_usage_reason"] = contract["usage_reason"]
+            if reference is None:
+                row.update(value_score="", difficulty_score="", value_score_number=None,
+                           difficulty_score_number=None, chartable=False, training_type="Unrated",
+                           target_level="", mohs_band_label="", benchmark_confidence=None,
+                           confidence_label="", selected_target_weight="", selected_target_weight_number=None)
+                if preferred:
+                    row["profile_conflicts"] = ["missing_reviewed_reference"]
+            row["row_key"] = f"concept:{key}"
+        result.append(row)
+    return result
+
+
+def _unrated_concept_row(concept_id: str) -> dict:
+    definition = CONCEPTS[concept_id]
+    # An unsaved model supplies only display defaults; no benchmark is created.
+    placeholder = TechniqueBenchmark(kind="method", label=definition["label"])
+    row = _benchmark_dashboard_row(placeholder, target_profile="national", include_details=False)
+    row.update(
+        concept_id=concept_id, row_key=f"concept:{concept_id}", profile_ids=[], profiles=[],
+        roles=sorted({kind for kind, _label in definition["aliases"]}), profile_conflicts=[],
+        reference_resolution=definition["benchmark_resolution"], chartable=False,
+        value_score="", value_score_number=None, difficulty_score="", difficulty_score_number=None,
+        selected_target_weight="", selected_target_weight_number=None, training_type="Unrated",
+        confidence_label="", benchmark_confidence=None, mohs_band_label="",
+    )
+    return row
 
 
 def _benchmark_dashboard_row(benchmark, *, target_profile: str, include_details: bool = True) -> dict[str, object]:
@@ -165,6 +276,7 @@ def _benchmark_dashboard_row(benchmark, *, target_profile: str, include_details:
         "confidence_bucket": _confidence_bucket(confidence),
         "confidence_variant": _confidence_variant(confidence),
         "chartable": value_score is not None and difficulty_score is not None,
+        "rating_signature": tuple(str(getattr(benchmark, field)) for field in PROFILE_FIELDS),
     }
     if not include_details:
         return row
@@ -206,7 +318,8 @@ def _summary_cards(rows: list[dict[str, object]], *, target_profile: str) -> lis
     quick_win_count = sum(
         1
         for row in rows
-        if _row_decimal(row, "value_score") >= HIGH_VALUE_THRESHOLD
+        if not row.get("profile_conflicts")
+        and _row_decimal(row, "value_score") >= HIGH_VALUE_THRESHOLD
         and row["difficulty_score"]
         and Decimal(str(row["difficulty_score"])) <= QUICK_WIN_DIFFICULTY_MAX
     )
@@ -221,7 +334,10 @@ def _summary_cards(rows: list[dict[str, object]], *, target_profile: str) -> lis
         for row in rows
         if row["benchmark_confidence"] is not None and row["benchmark_confidence"] < CALIBRATION_QUEUE_THRESHOLD
     )
-    target_weights = [Decimal(str(row["selected_target_weight"])) for row in rows if row["selected_target_weight"]]
+    target_weights = [
+        Decimal(str(row["selected_target_weight"])) for row in rows
+        if row["selected_target_weight"] and "selected_target_weight" not in row.get("profile_conflicts", [])
+    ]
     target_average = _decimal_display(mean(target_weights)) if target_weights else ""
     return [
         {
@@ -305,8 +421,8 @@ def _heatmap_payload(rows: list[dict[str, object]]) -> dict[str, object]:
     for row in rows:
         key = (row["primary_area"], row["parent_family"])
         count_by_cell[key] += 1
-        if row["value_score"]:
-            values_by_cell[key].append(float(row["value_score"]))
+        if row["value_score_number"] is not None:
+            values_by_cell[key].append(float(row["value_score_number"]))
 
     series = []
     for area in areas:
@@ -330,6 +446,8 @@ def _heatmap_payload(rows: list[dict[str, object]]) -> dict[str, object]:
 
 
 def _is_deep_block(row: dict[str, object]) -> bool:
+    if row.get("profile_conflicts"):
+        return False
     if row["training_type"] == "Deep block":
         return True
     if not row["value_score"] or not row["difficulty_score"]:
@@ -341,6 +459,8 @@ def _is_deep_block(row: dict[str, object]) -> bool:
 
 
 def _row_decimal(row: dict[str, object], key: str) -> Decimal:
+    if key in row.get("profile_conflicts", []):
+        return Decimal("0")
     value = row.get(key)
     if not value:
         return Decimal("0")

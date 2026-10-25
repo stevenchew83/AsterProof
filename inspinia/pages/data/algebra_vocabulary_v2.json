@@ -1,0 +1,177 @@
+{
+  "version": "algebra-vocabulary-2026-10-25-v2",
+  "mappings": [
+    {
+      "id": "S01.1",
+      "group": "S01",
+      "field": "canonical_subtopic",
+      "source": "Combinatorial and discrete geometry",
+      "target": "Discrete and combinatorial geometry"
+    },
+    {
+      "id": "S02.2",
+      "group": "S02",
+      "field": "canonical_subtopic",
+      "source": "Algorithms, automata, words, and constructive combinatorics",
+      "target": "Algorithms, automata, words, and constructive methods"
+    },
+    {
+      "id": "M01.3",
+      "group": "M01",
+      "field": "technique_tags",
+      "source": "TRIG SUBSTITUTION",
+      "target": "TRIGONOMETRIC SUBSTITUTION"
+    },
+    {
+      "id": "M01.3.display",
+      "group": "M01",
+      "field": "technique",
+      "source": "TRIG SUBSTITUTION",
+      "target": "TRIGONOMETRIC SUBSTITUTION"
+    },
+    {
+      "id": "M02.4",
+      "group": "M02",
+      "field": "technique_tags",
+      "source": "REDUCTION TO ONE VARIABLE",
+      "target": "ONE-VARIABLE REDUCTION"
+    },
+    {
+      "id": "M02.4.display",
+      "group": "M02",
+      "field": "technique",
+      "source": "REDUCTION TO ONE VARIABLE",
+      "target": "ONE-VARIABLE REDUCTION"
+    },
+    {
+      "id": "M03.5",
+      "group": "M03",
+      "field": "technique_tags",
+      "source": "COEFFICIENT MATCH",
+      "target": "COEFFICIENT COMPARISON"
+    },
+    {
+      "id": "M03.5.display",
+      "group": "M03",
+      "field": "technique",
+      "source": "COEFFICIENT MATCH",
+      "target": "COEFFICIENT COMPARISON"
+    },
+    {
+      "id": "M04.6",
+      "group": "M04",
+      "field": "technique_tags",
+      "source": "SOS FACTORIZATION",
+      "target": "SUM-OF-SQUARES FACTORIZATION"
+    },
+    {
+      "id": "M04.6.display",
+      "group": "M04",
+      "field": "technique",
+      "source": "SOS FACTORIZATION",
+      "target": "SUM-OF-SQUARES FACTORIZATION"
+    },
+    {
+      "id": "M05.7",
+      "group": "M05",
+      "field": "technique_tags",
+      "source": "SIMPLE FACTORIZATION",
+      "target": "FACTORIZATION"
+    },
+    {
+      "id": "M05.7.display",
+      "group": "M05",
+      "field": "technique",
+      "source": "SIMPLE FACTORIZATION",
+      "target": "FACTORIZATION"
+    },
+    {
+      "id": "M05.8",
+      "group": "M05",
+      "field": "technique_tags",
+      "source": "CLEVER FACTORIZATION",
+      "target": "FACTORIZATION"
+    },
+    {
+      "id": "M05.8.display",
+      "group": "M05",
+      "field": "technique",
+      "source": "CLEVER FACTORIZATION",
+      "target": "FACTORIZATION"
+    },
+    {
+      "id": "M05.9",
+      "group": "M05",
+      "field": "technique_tags",
+      "source": "FACTOR TRICK",
+      "target": "FACTORIZATION"
+    },
+    {
+      "id": "M05.9.display",
+      "group": "M05",
+      "field": "technique",
+      "source": "FACTOR TRICK",
+      "target": "FACTORIZATION"
+    },
+    {
+      "id": "S01.1.display",
+      "group": "S01",
+      "field": "technique",
+      "source": "COMBINATORIAL AND DISCRETE GEOMETRY",
+      "target": "DISCRETE AND COMBINATORIAL GEOMETRY"
+    },
+    {
+      "id": "S02.2.display",
+      "group": "S02",
+      "field": "technique",
+      "source": "ALGORITHMS, AUTOMATA, WORDS, AND CONSTRUCTIVE COMBINATORICS",
+      "target": "ALGORITHMS, AUTOMATA, WORDS, AND CONSTRUCTIVE METHODS"
+    }
+  ],
+  "benchmark_equivalences": [
+    {
+      "kind": "canonical_subtopic",
+      "source_id": 457,
+      "target_id": 440,
+      "source_key": "combinatorial-and-discrete-geometry",
+      "target_key": "discrete-and-combinatorial-geometry",
+      "source_sha256": "8437fd94257bac61764250e3f6fcaadebad14db6c13a0efc272417ac0f71678b",
+      "target_sha256": "05caa3163000eb4f61d8f8e0a15eb42281d6b64a8961bc999ebf2b3850335e41"
+    },
+    {
+      "kind": "canonical_subtopic",
+      "source_id": 475,
+      "target_id": 27,
+      "source_key": "algorithms-automata-words-and-constructive-combinatorics",
+      "target_key": "algorithms-automata-words-and-constructive-methods",
+      "source_sha256": "579332a9e4669d7866b8eff8375adaab4517631903923a93ea1185ec495b790c",
+      "target_sha256": "4dfd493abb956541fb2d73ddf4206230b6c09fd4e3497c166d747df060839bd8"
+    }
+  ],
+  "activation_aliases": [
+    {
+      "kind": "method",
+      "alias_label": "SIMPLE FACTORIZATION",
+      "alias_key": "simple-factorization",
+      "benchmark_id": 11,
+      "target_kind": "method",
+      "target_label_key": "factorization",
+      "reason": "Reviewed Algebra vocabulary consolidation v2: equivalent factorization wording."
+    },
+    {
+      "kind": "method",
+      "alias_label": "CLEVER FACTORIZATION",
+      "alias_key": "clever-factorization",
+      "benchmark_id": 11,
+      "target_kind": "method",
+      "target_label_key": "factorization",
+      "reason": "Reviewed Algebra vocabulary consolidation v2: equivalent factorization wording."
+    }
+  ],
+  "held_distinctions": [
+    "Sequences, recurrences, and finite dynamics",
+    "Algebraic number theory flavor",
+    "POLYNOMIAL INTERPOLATION",
+    "ALGEBRAIC FACTORIZATION"
+  ]
+}
