@@ -91,6 +91,20 @@ The command is mutating, requires root, installs and hashes the fixed worker hel
 
 The configured Python executable is part of the root-owned authority boundary: it must be stable, outside the replaceable release root, and already contain the hash-reviewed `cryptography` runtime required for OIDC verification. Bootstrap renders every authority entrypoint against this exact audited interpreter and fails closed if its ABI, platform, libc, or import check fails.
 
+## Transition from a running legacy checkout
+
+Bootstrap audits the **unit configuration on disk** with `systemctl cat`; legacy adoption separately checks the **running service cgroup's process working directories**. These are different states. The configured `current` path does not mean the existing process has already moved.
+
+For an initial adoption, the separately reviewed host procedure must:
+
+1. Verify the clean legacy checkout and running processes, shared environment/media readiness, audit database identity, and recovery procedure before staging service changes.
+2. Prepare and syntax-check the exact app, proxy, and scheduler configuration diff. Confirm the actual scheduler mechanism first; an absent unit may mean cron is used or scheduling was never configured. Do not create a dummy unit to satisfy the audit.
+3. Stage the managed unit configuration without restarting the app or starting a scheduler that references the not-yet-created `current` link. Preserve the previous configuration for recovery. Installing authority runs `daemon-reload`; it does not restart the app. This transition needs a staffed window because an unexpected restart or reboot cannot use the missing `current` path.
+4. Install authority from a separate clean checkout at the approved authority SHA. Keep the running legacy checkout unchanged. Use that legacy checkout as `--source-root` for `adopt-legacy`; the installer source and adoption source need not be the same revision or directory.
+5. Record adoption only while the running process still matches the verified legacy source, no managed links/releases exist, and the database fingerprint is verified. Complete the separately authorized first activation before leaving the transition window, or restore the prior configuration through the reviewed recovery procedure.
+
+Do not bypass the managed configuration audit or the legacy process check to complete this transition. Missing credentials, scheduler configuration, host identity, or recovery evidence remain blockers.
+
 ## Baseline adoption
 
 The running production release is rollback-eligible only if all of these are proven: clean known commit, exact repository origin/ID, service and host marker, artifact or reproducible content digest, normalized schema/migration fingerprint, process-bound health evidence, persistent boundaries, and successful immediate/stabilization checks.
