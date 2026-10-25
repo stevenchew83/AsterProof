@@ -29,9 +29,12 @@ def render_wheelhouse_lock(wheelhouse: Path, source_lock: Path) -> str:
             msg = "wheelhouse must contain only regular wheel files"
             raise ValueError(msg)
         with zipfile.ZipFile(path) as wheel:
-            metadata_paths = [name for name in wheel.namelist() if name.endswith(".dist-info/METADATA")]
+            metadata_paths = [
+                name for name in wheel.namelist()
+                if name.count("/") == 1 and name.endswith(".dist-info/METADATA")
+            ]
             if len(metadata_paths) != 1:
-                msg = "wheel must contain exactly one distribution metadata file"
+                msg = f"wheel must contain exactly one top-level distribution metadata file: {path.name}"
                 raise ValueError(msg)
             metadata = email.parser.BytesParser().parsebytes(wheel.read(metadata_paths[0]))
         name = normalize_name(metadata.get("Name", ""))
