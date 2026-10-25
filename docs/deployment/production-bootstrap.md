@@ -85,6 +85,14 @@ reserve; archive size alone does not establish deployment capacity.
 
 The audit validates the reviewed repository origin, target runtime/platform, disk threshold, service/proxy/scheduler paths, TeX runtime, OIDC discovery/JWKS reachability, persistent boundaries, and installed authority hashes. Before first installation, only `marker_matches`, `migration_audit_configured`, and `trusted_authority_matches` may be false; every other check must be true.
 
+Application and catalog-service checks read the loaded `systemctl show` values
+for `ExecStart`, `WorkingDirectory`, `User`, and `EnvironmentFiles`. Both launchers
+must use `current/.venv/bin/` and the single required external environment file.
+Concatenated `systemctl cat` output is insufficient: a drop-in can override the
+launcher while leaving the correct working directory visible in the base unit.
+The forced-command preflight checks these effective settings as part of the
+installed authority check, before accepting another artifact.
+
 Before locking the database identity, run the fixed read-only identity command with the reviewed audit role and a placeholder hash, then copy only its returned hash into the final reviewed configuration:
 
 ```bash

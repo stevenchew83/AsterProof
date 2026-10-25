@@ -32,6 +32,22 @@ Normal deployment remains blocked until all manual changes are reconciled:
 
 An unverifiable or manually edited runtime is a legacy non-rollback-eligible baseline. It requires an adoption/remediation release before returning to `READY`.
 
+For a verified, unchanged artifact already activated by the protected deployment
+workflow, use `Production recovery verification` after the independently
+authorized host correction and registry reconciliation. Supply current main's
+verification-workflow SHA, the original application SHA, deployment run ID,
+artifact ID/digest, and independently checked database metadata fingerprint.
+The protected job downloads and verifies the original archive and attestation,
+then compares public health with forced-command preflight and operation status.
+It issues only `preflight v1` and `status v1`; it cannot repair a host, restart a
+service, consume adoption, alter eligibility, or submit a deployment.
+
+Preserve the failed GitHub run and original server operation/adoption records in
+the recovery audit before any explicitly approved record repair. Do not rewrite
+the failed workflow outcome or make an unverifiable legacy release eligible for
+rollback. A successful verification run supplies reconciliation evidence; it
+does not replace the operator's full cgroup/runtime/static/schema acceptance.
+
 ## Incident exit criteria
 
 Service recovery alone is insufficient. Close the recovery state only when the active SHA/digest/schema evidence is consistent, persistent data ownership is confirmed, all ambiguous operations are terminal, normal authority controls pass, credentials are rotated as required, and named +1h/+4h/+24h follow-ups are assigned.

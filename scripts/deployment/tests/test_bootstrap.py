@@ -118,10 +118,12 @@ def _service_reader(service: str) -> str:
         return (
             "[Service]\nUser=asterproof\nEnvironmentFile=/var/lib/asterproof/environment\n"
             "WorkingDirectory=/srv/asterproof/current\n"
+            "ExecStart=/srv/asterproof/current/.venv/bin/gunicorn config.wsgi:application\n"
         )
     if service == "asterproof-catalog.service":
         return (
-            "[Service]\nExecStart=/srv/asterproof/current/.venv/bin/python "
+            "[Service]\nUser=asterproof\nEnvironmentFile=/var/lib/asterproof/environment\n"
+            "WorkingDirectory=/srv/asterproof/current\nExecStart=/srv/asterproof/current/.venv/bin/python "
             "manage.py recompute_technique_progress_catalog --if-stale\n"
         )
     return (
