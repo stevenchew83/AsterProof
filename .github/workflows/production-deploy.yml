@@ -454,7 +454,7 @@ jobs:
               --release-sha "$RELEASE_SHA" --artifact-digest "$ARTIFACT_DIGEST" \
               --target-marker "$TARGET_MARKER" --migration-class "$MIGRATION_CLASS")"
             token="$(request_token "$audience")"
-            echo "::add-mask::$token"
+            echo "::add-mask::$token" >&2
             ASTERPROOF_OIDC_TOKEN="$token" python -m scripts.deployment.validate_dispatch frame \
               --operation deploy --run-id "$GITHUB_RUN_ID" --deployment-id "$DEPLOYMENT_ID" \
               --workflow-sha "$RELEASE_SHA" \
