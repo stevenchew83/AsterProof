@@ -8604,7 +8604,7 @@ def technique_benchmark_list_view(request):
         sort=request.GET.get("sort", "value"),
         catalog_filters=catalog_filters,
         combine_concepts=bool(catalog_filters) or (
-            not request.GET.get("area") and request.GET.get("view") != "profiles"
+            not request.GET.get("area") and not request.GET.get("row_key") and request.GET.get("view") != "profiles"
         ),
     )
     context.update(

@@ -15546,7 +15546,7 @@ def _create_technique_benchmark(**overrides):
     return TechniqueBenchmark.objects.create(**defaults)
 
 
-def test_technique_benchmark_list_renders_benchmark_map_dashboard(client):
+def test_technique_benchmark_list_renders_original_profile_dashboard(client):
     user = UserFactory()
     client.force_login(user)
     method_benchmark = _create_technique_benchmark(
@@ -15611,7 +15611,7 @@ def test_technique_benchmark_list_renders_benchmark_map_dashboard(client):
         benchmark_confidence=88,
     )
 
-    response = client.get(reverse("pages:technique_benchmark_list"))
+    response = client.get(reverse("pages:technique_benchmark_list"), {"view": "profiles"})
 
     assert response.status_code == HTTPStatus.OK
     assert response.context["technique_benchmark_total"] == 3
@@ -15648,9 +15648,9 @@ def test_technique_benchmark_list_renders_benchmark_map_dashboard(client):
     assert set(rows_by_key) == {
         "canonical_subtopic:parity",
         "canonical_subtopic:projective-geometry",
-        "concept:factorization",
+        "method:factorization",
     }
-    method_row = rows_by_key["concept:factorization"]
+    method_row = rows_by_key["method:factorization"]
     assert method_row["value_score"] == "4.65"
     assert method_row["difficulty_score"] == "3.00"
     assert method_row["selected_target_weight"] == "1.45"
@@ -15674,7 +15674,7 @@ def test_technique_benchmark_list_renders_benchmark_map_dashboard(client):
     assert 'new DataTable("#technique-benchmarks-table"' in response_html
     assert "apexcharts.min.js" in response_html
     assert "dataTables.min.js" in response_html
-    assert "concept:factorization" in response_html
+    assert "method:factorization" in response_html
     assert "algebraic factorization" in response_html
 
 

@@ -7,12 +7,17 @@ from pathlib import Path
 DATA = Path(__file__).parent / "data"
 CATALOG_PATH = DATA / "algebra_concepts_v1.json"
 NUMBER_THEORY_CATALOG_PATH = DATA / "number_theory_concepts_v1.json"
-CATALOG_SHA256 = hashlib.sha256(CATALOG_PATH.read_bytes() + NUMBER_THEORY_CATALOG_PATH.read_bytes()).hexdigest()
+GEOMETRY_CATALOG_PATH = DATA / "geometry_concepts_v1.json"
+CATALOG_SHA256 = hashlib.sha256(
+    CATALOG_PATH.read_bytes() + NUMBER_THEORY_CATALOG_PATH.read_bytes() + GEOMETRY_CATALOG_PATH.read_bytes(),
+).hexdigest()
 CATALOG = json.loads(CATALOG_PATH.read_bytes())
 NUMBER_THEORY_CATALOG = json.loads(NUMBER_THEORY_CATALOG_PATH.read_bytes())
+GEOMETRY_CATALOG = json.loads(GEOMETRY_CATALOG_PATH.read_bytes())
 ALGEBRA_CONCEPTS = {row["concept_id"]: row for row in CATALOG["concepts"]}
 NUMBER_THEORY_CONCEPTS = {row["concept_id"]: row for row in NUMBER_THEORY_CATALOG["concepts"]}
-CONCEPTS = {**ALGEBRA_CONCEPTS, **NUMBER_THEORY_CONCEPTS}
+GEOMETRY_CONCEPTS = {row["concept_id"]: row for row in GEOMETRY_CATALOG["concepts"]}
+CONCEPTS = {**ALGEBRA_CONCEPTS, **NUMBER_THEORY_CONCEPTS, **GEOMETRY_CONCEPTS}
 CONCEPT_REDIRECTS = NUMBER_THEORY_CATALOG["redirects"]
 # Preserve established Algebra captions and public identifiers.
 for _cid, _label in {
@@ -30,6 +35,10 @@ NUMBER_THEORY_BY_MEMBER = {
     (kind, label.strip().casefold()): cid
     for cid, definition in NUMBER_THEORY_CONCEPTS.items() for kind, label in definition["aliases"]
 }
+GEOMETRY_BY_MEMBER = {
+    (kind, label.strip().casefold()): cid
+    for cid, definition in GEOMETRY_CONCEPTS.items() for kind, label in definition["aliases"]
+}
 CONCEPT_BY_PROFILE = {
     (profile["kind"], profile["label_key"]): cid
     for cid, definition in ALGEBRA_CONCEPTS.items() for profile in definition["profiles"]
@@ -37,6 +46,10 @@ CONCEPT_BY_PROFILE = {
 NUMBER_THEORY_BY_PROFILE = {
     (profile["kind"], profile["label_key"]): cid
     for cid, definition in NUMBER_THEORY_CONCEPTS.items() for profile in definition["profiles"]
+}
+GEOMETRY_BY_PROFILE = {
+    (profile["kind"], profile["label_key"]): cid
+    for cid, definition in GEOMETRY_CONCEPTS.items() for profile in definition["profiles"]
 }
 CONCEPT_MEMBER_KEYS = {
     cid: tuple(f"{p['kind']}:{p['label_key']}" for p in definition["profiles"])
@@ -52,6 +65,7 @@ SUBJECT_LABELS = {
     "a": "Algebra", "alg": "Algebra", "algebra": "Algebra",
     "n": "Number Theory", "nt": "Number Theory", "number theory": "Number Theory",
     "number-theory": "Number Theory",
+    "g": "Geometry", "geo": "Geometry", "geometry": "Geometry",
 }
 
 
@@ -68,6 +82,8 @@ def catalog_concept_ids(topic: str = "Algebra", *, scope: str = "core") -> tuple
     subject = SUBJECT_LABELS.get(str(topic).strip().casefold(), "")
     if subject == "Algebra":
         return tuple(ALGEBRA_CONCEPTS)
+    if subject == "Geometry":
+        return tuple(GEOMETRY_CONCEPTS)
     if subject != "Number Theory":
         return ()
     return tuple(cid for cid, definition in NUMBER_THEORY_CONCEPTS.items() if (
@@ -80,13 +96,15 @@ def benchmark_catalog_filters(params) -> dict | None:
     if params.get("view") == "profiles":
         return None
     raw_key = params.get("row_key", "")
+    if raw_key and not raw_key.startswith("concept:"):
+        return None
     concept_id = resolve_concept_id(raw_key.partition(":")[2]) if raw_key.startswith("concept:") else ""
     subject = SUBJECT_LABELS.get(params.get("area", "").strip().casefold(), "") or concept_subject(concept_id)
     if not subject:
         return None
     return {
         "topic": subject,
-        "scope": "all" if concept_id.startswith("nt-") else params.get("scope", "core"),
+        "scope": "all" if concept_id else params.get("scope", "core"),
         "row_key": f"concept:{concept_id}" if concept_id else raw_key,
         "search": (params.get("q") or "").strip(), "family": params.get("family", ""),
     }
@@ -97,6 +115,7 @@ def concept_for(kind: str, label: str, *, topic: str = "Algebra") -> str:
     kind = "canonical_subtopic" if kind == "subtopic" else kind
     members = {
         "Algebra": CONCEPT_BY_MEMBER, "Number Theory": NUMBER_THEORY_BY_MEMBER,
+        "Geometry": GEOMETRY_BY_MEMBER,
     }.get(SUBJECT_LABELS.get(str(topic).strip().casefold(), ""), {})
     return members.get((kind, str(label).strip().casefold()), "")
 
@@ -109,9 +128,14 @@ def concept_for_benchmark(kind: str, label_key: str, *, topic: str = "") -> str:
         return NUMBER_THEORY_BY_PROFILE.get(pair, "")
     if subject == "Algebra":
         return CONCEPT_BY_PROFILE.get(pair, "")
+    if subject == "Geometry":
+        return GEOMETRY_BY_PROFILE.get(pair, "")
     # Preserve established ownership in the unfiltered map. Area catalogs use
-    # explicit subject ownership for the four shared source profiles.
-    return CONCEPT_BY_PROFILE.get(pair, "") or NUMBER_THEORY_BY_PROFILE.get(pair, "")
+    # explicit subject ownership for shared source profiles.
+    return (
+        CONCEPT_BY_PROFILE.get(pair, "") or NUMBER_THEORY_BY_PROFILE.get(pair, "")
+        or GEOMETRY_BY_PROFILE.get(pair, "")
+    )
 
 
 def is_algebra_fact(fact: dict) -> bool:
@@ -135,7 +159,7 @@ def concept_for_fact(fact: dict, *, topic: str = "") -> str:
 
 
 def conflicting_concept_profiles(concept_ids: set[str]) -> set[str]:
-    """Use reviewed references; differing NT vectors never acquire a combined rating."""
+    """Use reviewed references; differing retained vectors never acquire a combined rating."""
     from django.db.models import Q
 
     from inspinia.pages.models import TechniqueBenchmark
