@@ -73,6 +73,7 @@ from inspinia.pages.completion_progress import default_completion_progress_user
 from inspinia.pages.completion_progress import filter_completion_progress_rows
 from inspinia.pages.completion_progress import normalize_completion_progress_rows
 from inspinia.pages.completion_progress import resolve_completion_progress_date_range
+from inspinia.pages.completion_record_areas import completion_record_area_metadata
 from inspinia.pages.completion_record_fields import SOLVED_STATUSES
 from inspinia.pages.completion_record_fields import completion_metadata_from_post
 from inspinia.pages.completion_record_fields import completion_metadata_payload
@@ -2961,6 +2962,9 @@ def _admin_completion_listing_rows(
         )
 
     table_rows = _completion_progress_apply_difficulty_payloads(table_rows, user=None)
+    area_metadata = completion_record_area_metadata(completions)
+    for row in table_rows:
+        row.update(area_metadata[row["completion_id"]])
 
     return table_rows, {
         "contest_total": len({row["contest"] for row in table_rows if row["contest"]}),
@@ -3266,6 +3270,7 @@ def _completion_record_base_queryset():
             Value("", output_field=CharField()),
         ),
         _effective_topic=Coalesce(
+            NullIf("statement__topic", Value("")),
             "statement__linked_problem__topic",
             "problem__topic",
             Value("", output_field=CharField()),

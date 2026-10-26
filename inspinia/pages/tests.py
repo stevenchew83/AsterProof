@@ -9093,8 +9093,8 @@ def test_completion_record_list_renders_admin_inventory(client):
     assert 'data: "completion_datetime"' in response_html
     assert 'order: [[columnIndexByKey.updatedSort, "desc"]]' in response_html
     assert "Search all records" in response_html
-    assert '"Filter these " + rows.length + " results:"' in response_html
-    assert "Within loaded results" in response_html
+    assert 'search: "Filter loaded records:"' in response_html
+    assert "including all mapped areas" in response_html
     assert "tom-select.bootstrap5.min.css" in response_html
     assert "tom-select.base.js" in response_html
     tom_select_guard_index = response_html.index("g.__asterproofTomSelectHadAmd = false")
