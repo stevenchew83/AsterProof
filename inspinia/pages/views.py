@@ -139,6 +139,8 @@ from inspinia.pages.statement_analytics import effective_pitfalls_value
 from inspinia.pages.statement_analytics import effective_rationale_value
 from inspinia.pages.statement_analytics import effective_topic
 from inspinia.pages.statement_analytics_sync import sync_statement_analytics_from_linked_problem
+from inspinia.pages.statement_concept_coverage import statement_concept_search
+from inspinia.pages.statement_concept_coverage import statement_coverage_payloads
 from inspinia.pages.statement_duplicate_snapshot import snapshot_context as statement_duplicate_snapshot_context
 from inspinia.pages.statement_import import LATEX_STATEMENT_SAMPLE
 from inspinia.pages.statement_import import ProblemStatementImportValidationError
@@ -774,34 +776,7 @@ def _statement_table_rows(base, *, user=None) -> list[dict]:
     linked_problem_ids = sorted(
         {statement.linked_problem_id for statement in statements_list if statement.linked_problem_id is not None},
     )
-    topic_tag_rows = list(
-        ProblemTopicTechnique.objects.filter(record_id__in=linked_problem_ids)
-        .values("record_id", "technique")
-        .order_by("technique", "record_id"),
-    )
-    topic_tags_by_problem_id: dict[int, list[str]] = defaultdict(list)
-    seen_topic_tags_by_problem_id: dict[int, set[str]] = defaultdict(set)
-    for tag_row in topic_tag_rows:
-        record_id = tag_row["record_id"]
-        technique = tag_row["technique"]
-        if technique in seen_topic_tags_by_problem_id[record_id]:
-            continue
-        seen_topic_tags_by_problem_id[record_id].add(technique)
-        topic_tags_by_problem_id[record_id].append(technique)
-    stmt_topic_rows = list(
-        StatementTopicTechnique.objects.filter(statement_id__in=statement_ids)
-        .values("statement_id", "technique")
-        .order_by("technique", "statement_id"),
-    )
-    topic_tags_by_statement_id: dict[int, list[str]] = defaultdict(list)
-    seen_topic_tags_by_statement_id: dict[int, set[str]] = defaultdict(set)
-    for tag_row in stmt_topic_rows:
-        statement_id = tag_row["statement_id"]
-        technique = tag_row["technique"]
-        if technique in seen_topic_tags_by_statement_id[statement_id]:
-            continue
-        seen_topic_tags_by_statement_id[statement_id].add(technique)
-        topic_tags_by_statement_id[statement_id].append(technique)
+    coverage_payloads = statement_coverage_payloads(statements_list)
     difficulty_rating_payloads = _difficulty_rating_payloads_by_statement_id(
         statement_ids=statement_ids,
         user=user,
@@ -823,13 +798,9 @@ def _statement_table_rows(base, *, user=None) -> list[dict]:
     for statement in statements_list:
         linked_problem = statement.linked_problem
         linked_problem_topic = ""
-        linked_problem_topic_tags: list[str] = []
         linked_problem_topic_tag_links: list[dict[str, str]] = []
-        linked_problem_mohs = None
         linked_problem_mohs_url = ""
-        linked_problem_confidence = ""
         linked_problem_confidence_url = ""
-        linked_problem_imo_slot_guess_value = ""
         linked_problem_imo_slot_url = ""
         linked_problem_uuid = ""
         user_completion_is_solved = False
@@ -854,9 +825,7 @@ def _statement_table_rows(base, *, user=None) -> list[dict]:
         eff_topic = effective_topic(statement)
         if eff_topic:
             linked_problem_topic = display_topic_label(eff_topic)
-        linked_problem_topic_tags = topic_tags_by_statement_id.get(statement.id, [])
-        if not linked_problem_topic_tags and linked_problem is not None:
-            linked_problem_topic_tags = topic_tags_by_problem_id.get(linked_problem.id, [])
+        linked_problem_topic_tags = coverage_payloads[statement.id]["concept_source_tags"]
         eff_mohs = effective_mohs(statement)
         linked_problem_mohs = eff_mohs
         linked_problem_confidence = effective_confidence(statement)
@@ -910,6 +879,7 @@ def _statement_table_rows(base, *, user=None) -> list[dict]:
                 "linked_problem_imo_slot_url": linked_problem_imo_slot_url,
                 "linked_problem_topic_tags": linked_problem_topic_tags,
                 "linked_problem_topic_tag_links": linked_problem_topic_tag_links,
+                **coverage_payloads[statement.id],
                 **difficulty_rating_payload,
                 "problem_destination_label": (
                     "View"
@@ -1011,7 +981,7 @@ def _statement_topic_filter_values(topic_label: str) -> set[str]:
     return {topic.strip() for topic in topic_values if topic.strip()}
 
 
-def _filter_statement_queryset(  # noqa: C901
+def _filter_statement_queryset(  # noqa: C901, PLR0913 -- explicit library filter dimensions
     base,
     *,
     q: str,
@@ -1020,6 +990,7 @@ def _filter_statement_queryset(  # noqa: C901
     confidence: str,
     mohs_min: str,
     mohs_max: str,
+    include_concepts: bool = False,
 ) -> object:
     filtered = annotate_effective_statement_analytics(
         base.select_related("linked_problem"),
@@ -1088,6 +1059,8 @@ def _filter_statement_queryset(  # noqa: C901
             )
             if token.isdigit():
                 token_query |= Q(contest_year=int(token))
+            if include_concepts:
+                token_query |= statement_concept_search(token)
             filtered = filtered.filter(token_query)
 
     return filtered
@@ -1095,31 +1068,36 @@ def _filter_statement_queryset(  # noqa: C901
 
 def _statement_table_rows_copy_tsv(rows: list[dict]) -> str:
     header = (
-        "Year\tContest\tTopic\tProblem code\tDay\tSolved\tTopic tags\tMOHS\t"
-        "Avg difficulty\tDifficulty ratings\tConfidence\tIMO slot\tUpdated\n"
+        "Year\tContest\tTopic\tProblem code\tDay\tSolved\tArea\tCoverage\tMapping status\tMOHS\t"
+        "Avg difficulty\tDifficulty ratings\tConfidence\tIMO slot\tUpdated\tReview labels\tOriginal tags\n"
     )
     lines = [header]
     for row in rows:
-        tags = ", ".join(row.get("linked_problem_topic_tags") or [])
+        areas = ", ".join(row.get("concept_areas") or [])
+        concepts = ", ".join(c["display"] for c in row.get("concept_coverage") or [])
         mohs = row.get("linked_problem_mohs")
         imo = _format_imo_slot_label(row.get("linked_problem_imo_slot_guess_value") or "")
         lines.append(
             "\t".join(
-                [
+                re.sub(r"[\t\r\n]+", " ", cell) for cell in [
                     str(row.get("contest_year") or ""),
                     str(row.get("contest_name") or ""),
                     str(row.get("linked_problem_topic") or ""),
                     str(row.get("problem_code") or ""),
                     str(row.get("day_label") or ""),
                     str(row.get("user_completion_display") or ""),
-                    tags,
+                    areas,
+                    concepts,
+                    str(row.get("concept_coverage_status") or ""),
                     "" if mohs is None else str(mohs),
                     "" if row.get("average_difficulty_rating") is None else str(row.get("average_difficulty_display")),
                     str(row.get("difficulty_rating_count") or 0),
                     str(row.get("linked_problem_confidence") or ""),
                     imo,
                     str(row.get("updated_at") or ""),
-                ],
+                    ", ".join(row.get("concept_review_labels") or []),
+                    ", ".join(row.get("concept_source_tags") or []),
+                ]
             )
             + "\n",
         )
@@ -6978,6 +6956,7 @@ def problem_statement_list_view(request):
         confidence=fconfidence,
         mohs_min=fmohs_min,
         mohs_max=fmohs_max,
+        include_concepts=True,
     )
     statement_filtered_total = filtered_statements.count()
     visible_statement_rows = (

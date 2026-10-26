@@ -85,24 +85,73 @@
   }
 
   #problem-statements-table tbody td {
-    vertical-align: top;
+    vertical-align: middle;
+    white-space: nowrap;
   }
 
   .statement-problem-cell {
     min-width: 18rem;
   }
 
+  .statement-problem-label,
+  .statement-day-label,
+  .statement-taxonomy-label {
+    display: inline-block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+    max-width: 28rem;
+  }
+
+  .statement-day-label {
+    max-width: 12rem;
+  }
+
+  .statement-area-cell .statement-taxonomy-label {
+    max-width: 20rem;
+  }
+
+  .statement-taxonomy-button {
+    font-size: inherit;
+    white-space: nowrap;
+    text-decoration: none;
+  }
+
+  .statement-taxonomy-dialog {
+    width: min(48rem, calc(100% - 2rem));
+    max-height: 90vh;
+    padding: 0;
+    border: 1px solid var(--ins-border-color);
+    border-radius: var(--ins-border-radius);
+    background: var(--ins-secondary-bg);
+    color: var(--ins-body-color);
+  }
+
+  .statement-taxonomy-dialog::backdrop {
+    background: rgba(var(--ins-body-color-rgb), .35);
+  }
+
+  .statement-taxonomy-content {
+    max-height: 88vh;
+    border: 0;
+  }
+
+  .statement-taxonomy-body {
+    overflow-y: auto;
+  }
+
   .statement-sticky-col {
     position: sticky;
     left: 0;
     z-index: 2;
-    background: var(--bs-body-bg) !important;
+    background: var(--ins-secondary-bg) !important;
     box-shadow: .35rem 0 .7rem rgba(var(--bs-body-color-rgb), .07);
   }
 
   #problem-statements-table thead .statement-sticky-col {
     z-index: 5;
-    background: var(--bs-tertiary-bg) !important;
+    background: var(--ins-tertiary-bg) !important;
   }
 
   [data-bs-theme="dark"] .statement-sticky-col {
@@ -121,18 +170,10 @@
     width: fit-content;
   }
 
-  .statement-topic-tag-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: .25rem .5rem;
-    max-width: 28rem;
-    max-height: 3.35rem;
-    overflow: hidden;
-  }
-
-  .statement-signal-stack {
-    display: grid;
-    gap: .25rem;
+  .statement-signals {
+    display: inline-flex;
+    align-items: center;
+    gap: .65rem;
     min-width: 9rem;
   }
 
@@ -393,7 +434,8 @@
                   <th>Problem</th>
                   <th class="text-nowrap">Topic / MOHS</th>
                   <th class="text-nowrap">Completion</th>
-                  <th>Topic tags</th>
+                  <th>Area</th>
+                  <th title="Canonical concepts covered by the problem">Coverage</th>
                   <th class="text-nowrap">Signals</th>
                   <th class="text-nowrap">Avg difficulty</th>
                   <th class="text-nowrap">Updated</th>
@@ -425,6 +467,29 @@
   </div>
   {% endif %}
 </div>
+{% if statement_filtered_total > 0 %}
+<dialog class="statement-taxonomy-dialog" id="statement-taxonomy-modal" aria-labelledby="statement-taxonomy-title">
+    <div class="card m-0 statement-taxonomy-content">
+      <div class="card-header d-flex align-items-center justify-content-between flex-shrink-0">
+        <h5 class="header-title mb-0" id="statement-taxonomy-title">Problem coverage</h5>
+        <button type="button" class="btn-close" data-taxonomy-close aria-label="Close"></button>
+      </div>
+      <div class="card-body statement-taxonomy-body">
+        <p id="statement-taxonomy-status" class="text-muted"></p>
+        <h6>Areas</h6><p id="statement-taxonomy-areas"></p>
+        <h6>Covered concepts</h6><ul id="statement-taxonomy-concepts" class="mb-3"></ul>
+        <div id="statement-taxonomy-review-section" hidden>
+          <h6>Needs review</h6><ul id="statement-taxonomy-review" class="mb-3"></ul>
+        </div>
+        <h6>Original tags</h6><ul id="statement-taxonomy-sources" class="mb-0"></ul>
+      </div>
+      <div class="card-footer d-flex justify-content-end gap-2 flex-shrink-0">
+        <a id="statement-taxonomy-detail" class="btn btn-outline-primary btn-sm">Open statement</a>
+        <button type="button" class="btn btn-secondary btn-sm" data-taxonomy-close autofocus>Close</button>
+      </div>
+    </div>
+</dialog>
+{% endif %}
 {% endblock page_content %}
 
 {% block extra_javascript %}
@@ -563,6 +628,55 @@
     return row.contest_year_problem || fallback || "Problem statement";
   }
 
+  function taxonomyCell(row, type, isArea) {
+    var labels = isArea ? (row.concept_areas || []) : (row.concept_coverage || []).map(function (c) { return c.display; });
+    var review = row.concept_review_labels || [];
+    var status = row.concept_coverage_status || "Untagged";
+    if (type === "filter") return labels.concat(review, row.concept_source_tags || [], [status]).join(" ");
+    if (type !== "display") return labels.join(", ") || status;
+    var limit = isArea ? 1 : 2;
+    var visible = labels.slice(0, limit).join(", ") || (status === "Mapped" ? "\u2014" : status);
+    var more = labels.length > limit ? '<span class="ms-1 fw-semibold">+' + (labels.length - limit) + '</span>' : '';
+    var held = !isArea && labels.length && review.length
+      ? '<span class="ms-2 text-warning-emphasis">Needs review (' + review.length + ')</span>' : '';
+    return '<button type="button" class="btn btn-link p-0 text-start statement-taxonomy-button" ' +
+      'aria-haspopup="dialog" aria-controls="statement-taxonomy-modal" data-statement-uuid="' +
+      escapeHtml(row.statement_uuid) + '" aria-label="View all areas, concepts and original tags for ' +
+      escapeHtml(problemLabel(row)) + '" title="' + escapeHtml(labels.join(", ") || status) + '">' +
+      '<span class="statement-taxonomy-label">' + escapeHtml(visible) + '</span>' + more + held + '</button>';
+  }
+
+  var rowsByUuid = new Map(rows.map(function (row) { return [row.statement_uuid, row]; }));
+  var taxonomyModal = document.getElementById("statement-taxonomy-modal");
+  function fillList(id, values) {
+    var list = document.getElementById(id);
+    list.replaceChildren();
+    (values.length ? values : ["None"]).forEach(function (value) {
+      var item = document.createElement("li");
+      item.textContent = value;
+      list.appendChild(item);
+    });
+  }
+  document.getElementById("problem-statements-table").addEventListener("click", function (event) {
+    var button = event.target.closest(".statement-taxonomy-button");
+    var row = button && rowsByUuid.get(button.getAttribute("data-statement-uuid"));
+    if (!row) return;
+    document.getElementById("statement-taxonomy-title").textContent = problemLabel(row);
+    document.getElementById("statement-taxonomy-status").textContent = row.concept_coverage_status;
+    document.getElementById("statement-taxonomy-areas").textContent = (row.concept_areas || []).join(", ") || "None mapped";
+    fillList("statement-taxonomy-concepts", (row.concept_coverage || []).map(function (c) {
+      return c.display + " \u00b7 " + c.subject + " \u00b7 " + c.area;
+    }));
+    fillList("statement-taxonomy-review", row.concept_review_labels || []);
+    document.getElementById("statement-taxonomy-review-section").hidden = !(row.concept_review_labels || []).length;
+    fillList("statement-taxonomy-sources", row.concept_source_tags || []);
+    document.getElementById("statement-taxonomy-detail").href = row.statement_detail_url;
+    taxonomyModal.showModal();
+  });
+  taxonomyModal.querySelectorAll("[data-taxonomy-close]").forEach(function (button) {
+    button.addEventListener("click", function () { taxonomyModal.close(); });
+  });
+
   new DataTable("#problem-statements-table", {
     data: rows,
     layout: {
@@ -581,7 +695,7 @@
       infoFiltered: "(filtered from _MAX_ loaded row(s))",
       lengthMenu: "Show _MENU_ rows",
     },
-    order: [[6, "desc"]],
+    order: [[7, "desc"]],
     pageLength: 25,
     lengthMenu: [10, 25, 50, 100],
     scrollX: true,
@@ -628,13 +742,11 @@
           }
 
           return (
-            '<div class="d-flex flex-column flex-xl-row align-items-start align-items-xl-center gap-2">' +
-            '<div class="min-w-0 flex-grow-1">' +
-            '<div class="fw-semibold text-body">' +
+            '<div class="d-inline-flex align-items-center gap-2 text-nowrap">' +
+            '<span class="statement-problem-label fw-semibold text-body" title="' + escapeHtml(label) + '">' +
             escapeHtml(label) +
-            "</div>" +
-            (hasDay ? '<div class="text-muted fs-xs">' + escapeHtml(day) + "</div>" : "") +
-            "</div>" +
+            "</span>" +
+            (hasDay ? '<span class="statement-day-label text-muted fs-xs" title="' + escapeHtml(day) + '">\u00b7 ' + escapeHtml(day) + "</span>" : "") +
             action +
             "</div>"
           );
@@ -669,12 +781,12 @@
           }
 
           return (
-            '<div class="d-flex flex-column align-items-start gap-1">' +
+            '<span class="d-inline-flex align-items-center gap-2">' +
             topicHtml +
             '<span class="fs-xs">' +
             mohsHtml +
             "</span>" +
-            "</div>"
+            "</span>"
           );
         }
       },
@@ -712,28 +824,13 @@
       },
       {
         data: null,
+        className: "small statement-area-cell",
+        render: function (_data, type, row) { return taxonomyCell(row, type, true); }
+      },
+      {
+        data: null,
         className: "small",
-        render: function (_data, type, row) {
-          var links = row.linked_problem_topic_tag_links || [];
-          var tags = row.linked_problem_topic_tags || [];
-          var tagTitle = tags.join(", ");
-          if (type === "filter") return tags.join(" ");
-          if (type === "sort") return tags.join(", ");
-          if (!links.length) {
-            if (!tags.length) return type === "display" ? mutedDash() : "";
-            return type === "display"
-              ? '<div class="statement-topic-tag-list" title="' + escapeHtml(tagTitle) + '">' + escapeHtml(tagTitle) + "</div>"
-              : tagTitle;
-          }
-          if (type !== "display") return tags.join(" ");
-          var parts = links.map(function (item) {
-            var lab = escapeHtml(String(item.label || ""));
-            var u = item.url || "";
-            if (u) return '<a class="statement-inline-link" href="' + u + '" title="' + lab + '">' + lab + "</a>";
-            return lab;
-          });
-          return '<div class="statement-topic-tag-list" title="' + escapeHtml(tagTitle) + '">' + parts.join(", ") + "</div>";
-        }
+        render: function (_data, type, row) { return taxonomyCell(row, type, false); }
       },
       {
         data: null,
@@ -778,14 +875,14 @@
           }
 
           return (
-            '<div class="statement-signal-stack">' +
-            '<div><span class="text-muted">Confidence:</span> ' +
+            '<span class="statement-signals">' +
+            '<span><span class="text-muted">Confidence:</span> ' +
             confidenceHtml +
-            "</div>" +
-            '<div><span class="text-muted">IMO:</span> ' +
+            "</span>" +
+            '<span><span class="text-muted">IMO:</span> ' +
             slotHtml +
-            "</div>" +
-            "</div>"
+            "</span>" +
+            "</span>"
           );
         }
       },
@@ -807,9 +904,9 @@
             '<span class="badge bg-info-subtle text-info border border-info-subtle statement-difficulty-average">' +
             escapeHtml(display) +
             "</span>" +
-            '<div class="text-muted fs-xs mt-1">' +
+            '<span class="text-muted fs-xs ms-1">' +
             escapeHtml(ratingCountLabel(count)) +
-            "</div>"
+            "</span>"
           );
         }
       },
