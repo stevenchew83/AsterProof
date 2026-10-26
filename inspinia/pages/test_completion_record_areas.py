@@ -157,7 +157,8 @@ def test_table_places_area_after_topic_and_keeps_full_details(admin):
     assert html.index('key: "topic"') < html.index('key: "area"') < html.index('key: "mohs"')
     assert "completion-record-ellipsis" in html
     assert "completion-record-problem-meta" not in html
-    assert 'detailTerm("Email", row.user_email)' in html
-    assert 'detailTerm("Area", areaText(row))' in html
+    assert "completion-record-detail-email" in html
+    assert "escapeHtml(row.user_email)" in html
+    assert "completion-record-detail-areas" in html
     assert "including all mapped areas" in html
     assert 'search: "Filter loaded records:"' in html
