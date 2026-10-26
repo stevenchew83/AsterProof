@@ -17,6 +17,7 @@ from inspinia.pages.technique_benchmarking.scoring import target_weight_for_benc
 from inspinia.pages.technique_concepts import CONCEPT_MEMBER_KEYS
 from inspinia.pages.technique_concepts import CONCEPTS
 from inspinia.pages.technique_concepts import PROFILE_FIELDS
+from inspinia.pages.technique_concepts import catalog_concept_ids
 from inspinia.pages.technique_concepts import concept_for_benchmark
 
 HIGH_VALUE_THRESHOLD = Decimal("4.00")
@@ -61,6 +62,7 @@ def build_technique_benchmark_dashboard_context(  # noqa: PLR0913 -- preserve ex
     combine_concepts: bool = True,
 ) -> dict[str, object]:
     target_profile = normalize_target_profile(raw_target_profile)
+    catalog_subject = catalog_filters.get("topic", "Algebra") if catalog_filters is not None else ""
     rows = [
         _benchmark_dashboard_row(benchmark, target_profile=target_profile, include_details=not paginate)
         for benchmark in benchmarks
@@ -68,7 +70,7 @@ def build_technique_benchmark_dashboard_context(  # noqa: PLR0913 -- preserve ex
     # A filter selects concepts through any member. Load all of their profiles
     # together so a filtered member cannot silently become the canonical rating.
     concept_ids = {
-        concept_for_benchmark(row["kind"], row["row_key"].partition(":")[2]) for row in rows
+        concept_for_benchmark(row["kind"], row["row_key"].partition(":")[2], topic=catalog_subject) for row in rows
     } - {""} if combine_concepts else set()
     if concept_ids:
         query = Q(pk__in=[])
@@ -87,9 +89,9 @@ def build_technique_benchmark_dashboard_context(  # noqa: PLR0913 -- preserve ex
             for benchmark in members
         })
         rows = list(by_id.values())
-    rows = _concept_dashboard_rows(rows, combine_concepts=combine_concepts)
+    rows = _concept_dashboard_rows(rows, combine_concepts=combine_concepts, topic=catalog_subject)
     if catalog_filters is not None:
-        rows = _algebra_catalog_rows(rows, catalog_filters)
+        rows = _catalog_rows(rows, catalog_filters)
     rows.sort(key=lambda row: (-(row["value_score_number"] or 0), row["row_key"]))
     chart_rows = [row for row in rows if row["chartable"]][:MATRIX_POINT_LIMIT]
     matrix_payload = _matrix_payload(chart_rows)
@@ -121,6 +123,7 @@ def build_technique_benchmark_dashboard_context(  # noqa: PLR0913 -- preserve ex
         detailed = _concept_dashboard_rows(
             [_benchmark_dashboard_row(item, target_profile=target_profile) for item in visible.values()],
             combine_concepts=combine_concepts,
+            topic=catalog_subject,
         )
         detailed_by_key = {row["row_key"]: row for row in detailed}
         display_rows = [{**row, **detailed_by_key.get(row["row_key"], {}),
@@ -148,12 +151,36 @@ def build_technique_benchmark_dashboard_context(  # noqa: PLR0913 -- preserve ex
     }
 
 
-def _algebra_catalog_rows(rows: list[dict], filters: dict) -> list[dict]:
+def benchmark_navigation_context(params, *, options: list[dict], target_profile: str) -> dict:
+    """Keep the selected subject/profile scope through GET navigation."""
+    params = params.copy()
+    params.pop("page", None)
+    for option in options:
+        target_params = params.copy()
+        target_params["target_profile"] = option["key"]
+        option["query"] = target_params.urlencode()
+    reset_params = params.copy()
+    for key in ("q", "sort", "family", "row_key"):
+        reset_params.pop(key, None)
+    reset_params["target_profile"] = target_profile
+    return {
+        "pagination_query": params.urlencode(),
+        "benchmark_scope_filters": {
+            key: params[key] for key in ("area", "family", "row_key", "scope", "view") if params.get(key)
+        },
+        "benchmark_reset_query": reset_params.urlencode(),
+    }
+
+
+def _catalog_rows(rows: list[dict], filters: dict) -> list[dict]:
     existing = {row["concept_id"]: row for row in rows if row.get("concept_id")}
-    rows = [existing.get(cid) or _unrated_concept_row(cid) for cid in CONCEPTS]
+    subject = filters.get("topic", "Algebra")
+    rows = [existing.get(cid) or _unrated_concept_row(cid) for cid in catalog_concept_ids(
+        subject, scope=filters.get("scope", "core"),
+    )]
     for row in rows:
         definition = CONCEPTS[row["concept_id"]]
-        row.update(primary_area="Algebra", parent_family=definition["area_label"])
+        row.update(primary_area=subject, parent_family=definition["area_label"])
     if filters.get("search"):
         rows = [row for row in rows if all(
             token.casefold() in (str(row) + str(CONCEPTS[row["concept_id"]]["aliases"])).casefold()
@@ -166,10 +193,12 @@ def _algebra_catalog_rows(rows: list[dict], filters: dict) -> list[dict]:
     return rows
 
 
-def _concept_dashboard_rows(rows: list[dict], *, combine_concepts: bool = True) -> list[dict]:
+def _concept_dashboard_rows(rows: list[dict], *, combine_concepts: bool = True, topic: str = "") -> list[dict]:
     groups = defaultdict(list)
     for row in rows:
-        concept_id = concept_for_benchmark(row["kind"], row["row_key"].partition(":")[2]) if combine_concepts else ""
+        concept_id = concept_for_benchmark(
+            row["kind"], row["row_key"].partition(":")[2], topic=topic,
+        ) if combine_concepts else ""
         groups[concept_id or row["row_key"]].append(row)
     result = []
     for key, profiles in groups.items():
@@ -185,6 +214,11 @@ def _concept_dashboard_rows(rows: list[dict], *, combine_concepts: bool = True) 
         if definition:
             row["label"] = definition["label"]
             reference = next((item for item in profiles if item["row_key"] == preferred), None)
+            if definition.get("reference_policy") == "identical_profiles_only" and (
+                not preferred or len({profile["rating_signature"] for profile in profiles}) > 1
+            ):
+                reference = None
+                row["profile_conflicts"] = ["retained_profiles_require_review"]
             row["reference_resolution"] = definition["benchmark_resolution"]
             for profile in profiles:
                 contract = next(
@@ -198,7 +232,9 @@ def _concept_dashboard_rows(rows: list[dict], *, combine_concepts: bool = True) 
                            difficulty_score_number=None, chartable=False, training_type="Unrated",
                            target_level="", mohs_band_label="", benchmark_confidence=None,
                            confidence_label="", selected_target_weight="", selected_target_weight_number=None)
-                if preferred:
+                if definition.get("reference_policy"):
+                    row["benchmark_id"] = None
+                if preferred and not row["profile_conflicts"]:
                     row["profile_conflicts"] = ["missing_reviewed_reference"]
             row["row_key"] = f"concept:{key}"
         result.append(row)

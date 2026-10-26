@@ -163,6 +163,7 @@ from inspinia.pages.statement_metadata_backfill import statement_metadata_datafr
 from inspinia.pages.subtopic_cleanup import apply_subtopic_cleanup
 from inspinia.pages.subtopic_cleanup import build_subtopic_cleanup_preview
 from inspinia.pages.technique_benchmarking.batches import mark_benchmark_rows_reviewed
+from inspinia.pages.technique_benchmarking.dashboard import benchmark_navigation_context
 from inspinia.pages.technique_benchmarking.dashboard import build_technique_benchmark_dashboard_context
 from inspinia.pages.technique_benchmarking.importing import BenchmarkImportValidationError
 from inspinia.pages.technique_benchmarking.importing import apply_benchmark_import
@@ -8562,22 +8563,22 @@ def technique_progress_gaps_view(request):
 
 @login_required
 def technique_benchmark_list_view(request):
+    from inspinia.pages.technique_concepts import benchmark_catalog_filters
+    from inspinia.pages.technique_concepts import catalog_concept_ids
+
     benchmarks = TechniqueBenchmark.objects.all()
     search = (request.GET.get("q") or "").strip()
-    algebra_catalog = (
-        request.GET.get("area", "").casefold() == "algebra"
-        or request.GET.get("row_key", "").startswith("concept:")
-    )
-    if algebra_catalog:
+    catalog_filters = benchmark_catalog_filters(request.GET)
+    if catalog_filters:
         from inspinia.pages.technique_concepts import CONCEPT_MEMBER_KEYS
 
         query = Q(pk__in=[])
-        for members in CONCEPT_MEMBER_KEYS.values():
-            for member in members:
+        for concept_id in catalog_concept_ids(catalog_filters["topic"], scope=catalog_filters["scope"]):
+            for member in CONCEPT_MEMBER_KEYS[concept_id]:
                 kind, key = member.split(":", 1)
                 query |= Q(kind=kind, label_key=key)
         benchmarks = benchmarks.filter(query)
-    if search and not algebra_catalog:
+    if search and not catalog_filters:
         for token in search.split():
             benchmarks = benchmarks.filter(
                 Q(label__icontains=token) | Q(normalized_label__icontains=token)
@@ -8587,12 +8588,12 @@ def technique_benchmark_list_view(request):
             )
         benchmarks = benchmarks.distinct()
     for key, field in (("area", "primary_area"), ("family", "parent_family")):
-        if request.GET.get(key) and not algebra_catalog:
+        if request.GET.get(key) and not catalog_filters:
             value = request.GET[key]
             fallback = "Unclassified" if key == "area" else "Unassigned family"
             benchmarks = benchmarks.filter(**{field: "" if value == fallback else value})
     row_key = (request.GET.get("row_key") or "").partition(":")
-    if row_key[1] and not algebra_catalog:
+    if row_key[1] and not catalog_filters:
         benchmarks = benchmarks.filter(kind=row_key[0], label_key=row_key[2])
     benchmarks = benchmarks.order_by("kind", "label", "id")
     context = build_technique_benchmark_dashboard_context(
@@ -8601,14 +8602,18 @@ def technique_benchmark_list_view(request):
         paginate=True,
         page_number=request.GET.get("page"),
         sort=request.GET.get("sort", "value"),
-        catalog_filters={
-            "search": search, "family": request.GET.get("family", ""), "row_key": request.GET.get("row_key", ""),
-        } if algebra_catalog else None,
-        combine_concepts=algebra_catalog or not request.GET.get("area"),
+        catalog_filters=catalog_filters,
+        combine_concepts=bool(catalog_filters) or (
+            not request.GET.get("area") and request.GET.get("view") != "profiles"
+        ),
     )
-    params = request.GET.copy()
-    params.pop("page", None)
-    context.update(pagination_query=params.urlencode(), benchmark_search=search)
+    context.update(
+        benchmark_search=search,
+        **benchmark_navigation_context(
+            request.GET, options=context["technique_benchmark_target_profile_options"],
+            target_profile=context["technique_benchmark_target_profile"],
+        ),
+    )
     return render(
         request,
         "pages/technique-benchmark-list.html",

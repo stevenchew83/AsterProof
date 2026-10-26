@@ -228,7 +228,7 @@ def test_subtopic_gaps_use_local_counts_union_roles_and_suppress_self_heading(cl
 
 
 def test_full_algebra_catalog_contains_180_including_unscored_definitions(client):
-    from inspinia.pages.technique_concepts import CONCEPTS
+    from inspinia.pages.technique_concepts import ALGEBRA_CONCEPTS as CONCEPTS
 
     user = UserFactory()
     client.force_login(user)
@@ -298,8 +298,8 @@ def test_missing_selected_reference_is_not_replaced_by_another_role():
 
 
 def test_full_captured_catalog_resolves_151_references_and_keeps_29_unrated():
+    from inspinia.pages.technique_concepts import ALGEBRA_CONCEPTS as CONCEPTS
     from inspinia.pages.technique_concepts import CONCEPT_BY_MEMBER
-    from inspinia.pages.technique_concepts import CONCEPTS
 
     profiles = json.loads((Path(__file__).parent / "testdata/algebra_concept_benchmarks_v1.json").read_text())
     TechniqueBenchmark.objects.bulk_create([TechniqueBenchmark(**row) for row in profiles])
@@ -319,7 +319,7 @@ def test_outside_area_keeps_source_profile_and_concept_deep_link_works(client):
     source = benchmark("method", "factorization")
     source.primary_area = "Number Theory"
     source.save()
-    response = client.get(reverse("pages:technique_benchmark_list"), {"area": "Number Theory"})
+    response = client.get(reverse("pages:technique_benchmark_list"), {"area": "Number Theory", "view": "profiles"})
     assert response.context["technique_benchmark_rows"][0]["row_key"] == "method:factorization"
     response = client.get(reverse("pages:technique_benchmark_list"), {"row_key": "concept:factorization"})
     assert response.context["technique_benchmark_total"] == 1
