@@ -18,6 +18,7 @@
   .completion-record-page .form-select,
   .completion-record-page .ts-control { min-height: 2.35rem; }
   .completion-record-page .btn { white-space: nowrap; }
+  .completion-record-page .table-responsive { container-type: inline-size; }
   .completion-record-page a:focus-visible,
   .completion-record-page button:focus-visible { outline: 2px solid var(--ins-primary); outline-offset: 3px; }
   .completion-record-page .completion-record-filter-actions { padding-top: 1.55rem; }
@@ -88,10 +89,6 @@
     width: 1.8rem;
   }
 
-  .completion-record-detail-meta {
-    line-height: 1.35;
-  }
-
   .completion-record-ellipsis { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .completion-record-user-cell { width: 14%; }
   .completion-record-problem-cell { width: 21%; }
@@ -110,32 +107,76 @@
   }
 
   .completion-record-detail-panel {
-    background: var(--ins-tertiary-bg);
+    background: var(--ins-secondary-bg);
     border: 1px solid var(--ins-border-color);
-    border-radius: .35rem;
-    padding: .85rem;
+    border-inline-start: 3px solid var(--ins-primary);
+    border-radius: var(--ins-border-radius);
+    max-width: calc(100vw - 4.5rem);
+    max-width: calc(100cqw - 2rem);
+    padding: .75rem;
+    text-align: left;
     white-space: normal;
   }
 
+  .completion-record-detail-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem .75rem; padding-bottom: .65rem; }
+  .completion-record-detail-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: .3rem .6rem; min-width: 0; }
+  .completion-record-detail-title { font-size: .9375rem; font-weight: 600; letter-spacing: -.015em; line-height: 1.4; margin: 0; overflow-wrap: anywhere; }
+  .completion-record-detail-actions { display: flex; flex-wrap: wrap; gap: .35rem; flex-shrink: 0; }
+  .completion-record-detail-actions .btn { display: inline-flex; align-items: center; gap: .3rem; padding: .3rem .55rem; }
+  #completion-record-table .completion-record-detail-actions .btn-primary { color: var(--ins-btn-color); }
+  .completion-record-detail-overview { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); border-top: 1px solid var(--ins-border-color); }
+  .completion-record-detail-section { min-width: 0; padding-block: .65rem; }
+  .completion-record-detail-section + .completion-record-detail-section { border-left: 1px solid var(--ins-border-color); margin-left: .85rem; padding-left: .85rem; }
+  .completion-record-detail-section-title { display: flex; align-items: center; gap: .35rem; color: var(--ins-secondary-color); font-size: .72rem; font-weight: 600; letter-spacing: .045em; text-transform: uppercase; margin: 0 0 .45rem; }
+  .completion-record-detail-section-title > .ti { color: var(--ins-primary); font-size: .95rem; }
+  .completion-record-detail-identity { display: flex; align-items: center; gap: .5rem; min-width: 0; }
+  .completion-record-detail-avatar { flex-shrink: 0; font-size: .75rem; font-weight: 600; }
+  .completion-record-detail-learner { display: flex; flex-wrap: wrap; align-items: baseline; gap: .25rem .5rem; font-weight: 600; overflow-wrap: anywhere; }
+  .completion-record-detail-email { color: var(--ins-secondary-color); font-size: .75rem; font-weight: 400; overflow-wrap: anywhere; }
   .completion-record-detail-grid {
     display: grid;
-    gap: .75rem 1rem;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: .45rem .75rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin: .5rem 0 0;
   }
-
-  .completion-record-detail-grid dt {
+  .completion-record-detail-grid > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: .15rem .4rem; }
+  .completion-record-detail-grid dt,
+  .completion-record-detail-note dt {
     color: var(--ins-secondary-color);
-    font-size: .75rem;
-    font-weight: 600;
-    margin-bottom: .15rem;
-    text-transform: uppercase;
+    font-size: .72rem;
+    font-weight: 500;
+    margin-bottom: 0;
   }
-
-  .completion-record-detail-grid dd {
+  .completion-record-detail-grid dd,
+  .completion-record-detail-note dd {
+    color: var(--ins-body-color);
+    font-size: .8125rem;
     margin-bottom: 0;
     overflow-wrap: anywhere;
     white-space: pre-wrap;
   }
+  .completion-record-detail-context { grid-template-columns: minmax(0, 1fr) minmax(0, .6fr) minmax(0, 1fr); margin-top: 0; }
+  .completion-record-detail-areas { grid-column: 1 / -1; }
+  .completion-record-detail-areas dd { display: flex; flex-wrap: wrap; gap: .3rem; min-width: 0; }
+  #completion-record-table .completion-record-detail-area { background: var(--ins-primary-bg-subtle); border: 1px solid rgba(var(--ins-primary-rgb), .15); border-radius: var(--ins-border-radius); color: var(--ins-primary-text-emphasis); font-size: .75rem; padding: .15rem .4rem; white-space: normal; }
+  .completion-record-detail-review { display: grid; grid-template-columns: 7.25rem minmax(0, 1fr); align-items: center; gap: .5rem .75rem; border-top: 1px solid var(--ins-border-color); padding-top: .65rem; }
+  .completion-record-detail-review > .completion-record-detail-section-title { margin: 0; }
+  .completion-record-detail-review .completion-record-detail-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: 0; }
+  .completion-record-detail-metrics { background: var(--ins-tertiary-bg); border-radius: var(--ins-border-radius); padding: .5rem .65rem; }
+  .completion-record-detail-metric dt { display: flex; align-items: center; gap: .35rem; }
+  .completion-record-detail-metric dt > .ti { color: var(--ins-primary); font-size: 1rem; }
+  .completion-record-detail-metric dd { font-weight: 600; }
+  .completion-record-detail-reflections { grid-column: 1 / -1; background: rgba(var(--ins-primary-rgb), .04); border: 1px solid var(--ins-border-color-translucent); border-radius: var(--ins-border-radius); padding: .6rem .75rem; }
+  .completion-record-detail-notes { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: .5rem 1rem; margin: 0; }
+  .completion-record-detail-note { min-width: 0; }
+  .completion-record-detail-note-postmortem { grid-column: 1 / -1; border-top: 1px solid var(--ins-border-color-translucent); padding-top: .5rem; }
+  .completion-record-detail-note-postmortem:first-child { border-top: 0; padding-top: 0; }
+  .completion-record-detail-note dd { line-height: 1.5; margin-top: .2rem; }
+  .completion-record-detail-followup { display: flex; flex-wrap: wrap; align-items: baseline; grid-column: 1 / -1; gap: .4rem; font-size: .75rem; }
+  .completion-record-detail-empty { display: flex; align-items: center; gap: .4rem; color: var(--ins-secondary-color); }
+  .completion-record-detail-empty p { margin: 0; }
+  .completion-record-detail-empty .ti { flex-shrink: 0; font-size: 1rem; }
+  #completion-record-table tbody > tr > td[colspan] { padding: .5rem .75rem; text-align: left; white-space: normal; background: var(--ins-tertiary-bg); }
 
   #completion-record-table { table-layout: fixed; min-width: 1100px; font-size: .8125rem; }
   #completion-record-table tbody > tr > td { padding: .4rem .75rem; white-space: nowrap; vertical-align: middle; }
@@ -192,18 +233,19 @@
     .completion-record-topic-cell { width: 14%; }
     .completion-record-area-cell { width: 25%; }
     .completion-record-page .completion-record-filter-actions { padding-top: 0; }
-    .completion-record-detail-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
+    .completion-record-detail-overview { grid-template-columns: 1fr; }
+    .completion-record-detail-section + .completion-record-detail-section { border-left: 0; border-top: 1px solid var(--ins-border-color); margin-left: 0; padding-left: 0; }
+    .completion-record-detail-review .completion-record-detail-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
 
   @media (max-width: 575.98px) {
     .completion-record-page .page-title-head { align-items: start !important; flex-direction: column; }
     .completion-record-page h1 { font-size: 1.5rem; }
     #completion-record-table { min-width: 680px; }
-    .completion-record-detail-grid {
-      grid-template-columns: 1fr;
-    }
+    .completion-record-detail-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .completion-record-detail-review { grid-template-columns: 1fr; }
+    .completion-record-detail-context { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .completion-record-detail-notes { grid-template-columns: 1fr; }
   }
 </style>
 {% endblock extra_css %}
@@ -668,17 +710,61 @@
   }
 
   function detailTerm(label, value) {
-    return "<div><dt>" + escapeHtml(label) + "</dt><dd>" + displayOrDash(value) + "</dd></div>";
+    var content = present(value) ? escapeHtml(value) : '<span class="text-muted">Not recorded</span>';
+    return "<div><dt>" + escapeHtml(label) + "</dt><dd>" + content + "</dd></div>";
   }
 
-  function detailLink(label, href) {
+  function detailBadge(label, badgeClass) {
+    return '<span class="badge ' + escapeHtml(badgeClass || "bg-secondary-subtle text-secondary") + '">' + escapeHtml(label) + '</span>';
+  }
+
+  function detailMetric(label, value, icon) {
+    var content = present(value) ? escapeHtml(value) : '<span class="text-muted fw-normal">Not recorded</span>';
+    return '<div class="completion-record-detail-metric"><dt><i class="ti ti-' + icon + '" aria-hidden="true"></i>' + escapeHtml(label) + '</dt><dd>' + content + '</dd></div>';
+  }
+
+  function detailNote(label, value, isPostMortem) {
+    if (!present(value)) return "";
+    var className = "completion-record-detail-note" + (isPostMortem ? " completion-record-detail-note-postmortem" : "");
+    var icon = isPostMortem ? '<i class="ti ti-notes text-primary me-1" aria-hidden="true"></i>' : '';
+    return '<div class="' + className + '"><dt>' + icon + escapeHtml(label) + '</dt><dd>' + escapeHtml(value) + '</dd></div>';
+  }
+
+  function studyReview(row) {
+    var metrics = [row.time_spent_display, row.first_idea_found_label, row.proof_completed_label, row.confidence_label];
+    var notes = [
+      detailNote("Main obstacle", row.main_obstacle_label),
+      detailNote("Key technique", row.key_technique),
+      detailNote("Post-mortem", row.post_mortem, true)
+    ].join("");
+    var content = "";
+    if (metrics.some(present)) {
+      content += '<dl class="completion-record-detail-grid completion-record-detail-metrics">' +
+        detailMetric("Time spent", row.time_spent_display, "clock") +
+        detailMetric("First idea found?", row.first_idea_found_label, "bulb") +
+        detailMetric("Proof completed?", row.proof_completed_label, "writing") +
+        detailMetric("Confidence", row.confidence_label, "brain") + '</dl>';
+    }
+    if (notes) content += '<div class="completion-record-detail-reflections"><dl class="completion-record-detail-notes">' + notes + '</dl></div>';
+    if (present(row.reattempt_date)) {
+      content += '<div class="completion-record-detail-followup"><i class="ti ti-calendar-repeat" aria-hidden="true"></i><span class="text-muted">Reattempt date</span><strong>' + escapeHtml(row.reattempt_date) + '</strong></div>';
+    }
+    if (!content) {
+      content = '<div class="completion-record-detail-empty"><i class="ti ti-notes" aria-hidden="true"></i><p>No study review recorded</p></div>';
+    }
+    return '<section class="completion-record-detail-review"><h4 class="completion-record-detail-section-title"><i class="ti ti-notes" aria-hidden="true"></i>Study review</h4>' + content + '</section>';
+  }
+
+  function detailLink(label, href, isPrimary) {
     if (!href) return "";
+    var classes = isPrimary ? "btn-primary" : "btn-link text-secondary text-decoration-none";
+    var icon = isPrimary ? "arrow-up-right" : "archive";
     return (
       '<a href="' +
       escapeHtml(href) +
-      '" class="btn btn-sm btn-outline-secondary">' +
+      '" class="btn btn-sm ' + classes + '">' +
       escapeHtml(label) +
-      "</a>"
+      '<i class="ti ti-' + icon + '" aria-hidden="true"></i></a>'
     );
   }
 
@@ -729,41 +815,53 @@
     return '<span id="' + escapeHtml(completionRecordDetailId(row)) + '" hidden></span>';
   }
 
+  function learnerInitials(label) {
+    var parts = String(label).trim().split(/\s+/);
+    if (String(label).indexOf("@") !== -1) return parts[0].charAt(0).toUpperCase();
+    return (parts[0].charAt(0) + (parts.length > 1 ? parts[parts.length - 1].charAt(0) : "")).toUpperCase();
+  }
+
   function formatCompletionRecordDetails(row) {
     var detailId = completionRecordDetailId(row);
     var regionLabel = completionRecordRegionLabel(row);
     var links = [
-      detailLink("Problem", row.problem_url || row.statement_url),
+      detailLink("Open problem", row.problem_url || row.statement_url, true),
       detailLink("Archive", row.archive_url)
-    ].filter(Boolean).join(" ");
+    ].filter(Boolean).join("");
+    var userLabel = row.user_label || row.user_email || "User";
+    var learner = row.user_url
+      ? '<a class="text-decoration-none" href="' + escapeHtml(row.user_url) + '">' + escapeHtml(userLabel) + '</a>'
+      : escapeHtml(userLabel);
+    var email = present(row.user_email) && row.user_email !== userLabel
+      ? '<span class="completion-record-detail-email">' + escapeHtml(row.user_email) + '</span>'
+      : "";
+    var areas = (row.areas || []).map(function (area) {
+      return '<span class="completion-record-detail-area">' + escapeHtml(area) + '</span>';
+    }).join("") || '<span class="text-muted">' + escapeHtml(row.area_mapping_status || "No mapped area") + '</span>';
+    var contest = [row.contest, row.year].filter(present).map(escapeHtml).join(" · ");
 
     return (
       '<div id="' + escapeHtml(detailId) + '" class="completion-record-detail-panel" role="region" aria-label="' + escapeHtml(regionLabel) + '">' +
-      '<dl class="completion-record-detail-grid mb-3">' +
-      detailTerm("User", row.user_label) +
-      detailTerm("Email", row.user_email) +
-      detailTerm("Problem", row.problem_label) +
-      detailTerm("Contest / year", row.contest + " / " + row.year) +
-      detailTerm("Topic", row.topic) +
-      detailTerm("Area", areaText(row)) +
-      detailTerm("MOHS", row.mohs) +
-      detailTerm("Status", row.status_label) +
+      '<header class="completion-record-detail-header"><div class="completion-record-detail-heading">' +
+      '<h3 class="completion-record-detail-title">' + escapeHtml(row.problem_label || row.problem || "Problem") + '</h3>' +
+      detailBadge(row.status_label || "Unattempted", row.status_badge_class) +
+      (contest ? '<span class="text-muted fs-xs">' + contest + '</span>' : '') +
+      '</div>' + (links ? '<div class="completion-record-detail-actions">' + links + '</div>' : '') + '</header>' +
+      '<div class="completion-record-detail-overview">' +
+      '<section class="completion-record-detail-section"><h4 class="completion-record-detail-section-title"><i class="ti ti-user-circle" aria-hidden="true"></i>Record information</h4>' +
+      '<div class="completion-record-detail-identity"><span class="avatar-sm completion-record-detail-avatar" aria-hidden="true"><span class="avatar-title bg-primary-subtle text-primary rounded">' + escapeHtml(learnerInitials(userLabel)) + '</span></span><div class="completion-record-detail-learner">' + learner + email + '</div></div>' +
+      '<dl class="completion-record-detail-grid">' +
       detailTerm("Completed", row.completion_datetime === "Unknown" ? "" : row.completion_datetime) +
-      detailTerm("Solution", row.solution_status_label) +
-      detailTerm("Average difficulty", averageDifficultyDetail(row)) +
       detailTerm("Last updated", row.updated_at) +
-      detailTerm("Time spent", row.time_spent_display) +
-      detailTerm("First idea found?", row.first_idea_found_label) +
-      detailTerm("Proof completed?", row.proof_completed_label) +
-      detailTerm("Main obstacle", row.main_obstacle_label) +
-      detailTerm("Key technique", row.key_technique) +
-      detailTerm("Post-mortem", row.post_mortem) +
-      detailTerm("Reattempt date", row.reattempt_date) +
-      detailTerm("Confidence", row.confidence_label) +
-      "</dl>" +
-      '<div class="d-flex flex-wrap gap-2">' +
-      links +
-      "</div>" +
+      '<div><dt>Solution</dt><dd>' + detailBadge(row.solution_status_label || "No solution", row.solution_status_badge_class) + '</dd></div>' +
+      '</dl></section>' +
+      '<section class="completion-record-detail-section"><h4 class="completion-record-detail-section-title"><i class="ti ti-chart-bar" aria-hidden="true"></i>Problem context</h4><dl class="completion-record-detail-grid completion-record-detail-context">' +
+      detailTerm("Topic", row.topic) +
+      detailTerm("MOHS", row.mohs) +
+      detailTerm("Average difficulty", averageDifficultyDetail(row) || "Not rated yet") +
+      '<div class="completion-record-detail-areas"><dt>' + ((row.areas || []).length > 1 ? 'Areas' : 'Area') + '</dt><dd>' + areas + '</dd></div>' +
+      '</dl></section></div>' +
+      studyReview(row) +
       "</div>"
     );
   }
