@@ -8,6 +8,27 @@
 <link rel="stylesheet" href="{% static 'plugins/datatables/dataTables.bootstrap5.min.css' %}">
 <link rel="stylesheet" href="{% static 'plugins/tom-select/tom-select.bootstrap5.min.css' %}">
 <style>
+  .completion-record-page { padding-bottom: 1.5rem; }
+  .completion-record-page .page-title-head { padding-block: 1.5rem 1rem; gap: 1rem; }
+  .completion-record-page h1 { font-size: 1.75rem; letter-spacing: -.035em; margin: .25rem 0 .4rem; }
+  .completion-record-eyebrow { font-size: .68rem; letter-spacing: .1em; }
+  .completion-record-page .card { margin-bottom: 0; box-shadow: none; border: 1px solid var(--ins-border-color-translucent); }
+  .completion-record-page .header-title { font-size: 1rem; font-weight: 600; letter-spacing: -.015em; }
+  .completion-record-page .form-control,
+  .completion-record-page .form-select,
+  .completion-record-page .ts-control { min-height: 2.35rem; }
+  .completion-record-page .btn { white-space: nowrap; }
+  .completion-record-page a:focus-visible,
+  .completion-record-page button:focus-visible { outline: 2px solid var(--ins-primary); outline-offset: 3px; }
+  .completion-record-page .completion-record-filter-actions { padding-top: 1.55rem; }
+  .completion-record-filter-actions .btn { min-height: 2.35rem; display: inline-flex; align-items: center; }
+  .completion-record-page .completion-record-search-input { position: relative; }
+  .completion-record-search-input > .ti { position: absolute; left: .75rem; top: .7rem; color: var(--ins-secondary-color); }
+  .completion-record-search-input input { padding-left: 2.2rem; }
+  .completion-record-table-heading { padding: 1rem 1.15rem; border-bottom: 1px solid var(--ins-border-color); }
+  .completion-record-scope { font-size: .72rem; color: var(--ins-secondary-color); }
+  .completion-record-summary { font-variant-numeric: tabular-nums; }
+  .completion-record-scope-note { display: flex; gap: .45rem; align-items: center; padding: .65rem 1.15rem; background: var(--ins-tertiary-bg); border-top: 1px solid var(--ins-border-color); }
   .completion-record-kpi .card-body {
     padding: .85rem 1rem;
   }
@@ -33,10 +54,13 @@
 
   .completion-record-kpi h3 {
     line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -.035em;
+    font-size: 1.6rem;
   }
 
   .completion-record-filter-card .card-body {
-    padding: .85rem;
+    padding: 1.15rem;
   }
 
   .completion-record-advanced-fields {
@@ -64,26 +88,33 @@
     width: 1.8rem;
   }
 
-  .completion-record-problem-meta,
   .completion-record-detail-meta {
     line-height: 1.35;
   }
 
-  .completion-record-user-cell,
-  .completion-record-problem-cell {
-    overflow-wrap: anywhere;
-    white-space: normal;
-  }
+  .completion-record-ellipsis { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .completion-record-user-cell { width: 14%; }
+  .completion-record-problem-cell { width: 21%; }
+  .completion-record-topic-cell { width: 10%; }
+  .completion-record-area-cell { width: 20%; }
+  .completion-record-mohs-cell { width: 5%; font-variant-numeric: tabular-nums; text-align: right; }
+  .completion-record-status-cell { width: 8%; }
+  .completion-record-completed-cell { width: 11%; font-variant-numeric: tabular-nums; }
+  .completion-record-solution-cell { width: 8%; }
+  .completion-record-area-value { display: flex; gap: .35rem; align-items: center; min-width: 0; }
+  .completion-record-area-value .badge { flex-shrink: 0; }
+  .completion-record-unmapped { color: var(--ins-secondary-color); font-size: .75rem; }
 
   .completion-record-user-status {
-    min-height: 1rem;
+    margin-bottom: 0;
   }
 
   .completion-record-detail-panel {
-    background: var(--bs-tertiary-bg);
+    background: var(--ins-tertiary-bg);
     border: 1px solid var(--ins-border-color);
     border-radius: .35rem;
     padding: .85rem;
+    white-space: normal;
   }
 
   .completion-record-detail-grid {
@@ -93,7 +124,7 @@
   }
 
   .completion-record-detail-grid dt {
-    color: var(--bs-secondary-color);
+    color: var(--ins-secondary-color);
     font-size: .75rem;
     font-weight: 600;
     margin-bottom: .15rem;
@@ -102,31 +133,48 @@
 
   .completion-record-detail-grid dd {
     margin-bottom: 0;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
   }
+
+  #completion-record-table { table-layout: fixed; min-width: 1100px; font-size: .8125rem; }
+  #completion-record-table tbody > tr > td { padding: .4rem .75rem; white-space: nowrap; vertical-align: middle; }
+  #completion-record-table tbody > tr:not(.shown) > td { border-color: var(--ins-border-color-translucent); }
+  #completion-record-table tbody > tr.shown > td { background: var(--ins-primary-bg-subtle); }
+  #completion-record-table .badge { font-weight: 500; font-size: .7rem; padding: .35em .55em; }
+  #completion-record-table a { color: var(--ins-body-color); }
+  #completion-record-table a:hover { color: var(--ins-primary); }
 
   #completion-record-table th:first-child,
   #completion-record-table td:first-child {
     text-align: center;
-    width: 2.25rem;
+    width: 3%;
   }
 
   #completion-record-table thead th {
-    background: var(--bs-body-bg);
+    background: var(--ins-tertiary-bg);
     position: sticky;
     top: 0;
     z-index: 2;
+    font-size: .65rem;
+    text-transform: uppercase;
+    letter-spacing: .055em;
+    font-weight: 600;
+    color: var(--ins-secondary-color);
+    padding: .75rem;
+    white-space: nowrap;
   }
 
   #completion-record-table_wrapper .dt-layout-row {
-    margin: .5rem 0;
+    margin: 0;
+    padding: .75rem 1.15rem;
   }
 
   #completion-record-table_wrapper .dt-length label,
   #completion-record-table_wrapper .dt-search label {
-    color: var(--bs-secondary-color);
+    color: var(--ins-secondary-color);
     font-size: .75rem;
     font-weight: 600;
-    text-transform: uppercase;
   }
 
   #completion-record-table_wrapper .dt-length .form-select,
@@ -138,12 +186,21 @@
   }
 
   @media (max-width: 991.98px) {
+    #completion-record-table { min-width: 800px; }
+    .completion-record-user-cell { width: 20%; }
+    .completion-record-problem-cell { width: 29%; }
+    .completion-record-topic-cell { width: 14%; }
+    .completion-record-area-cell { width: 25%; }
+    .completion-record-page .completion-record-filter-actions { padding-top: 0; }
     .completion-record-detail-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
 
   @media (max-width: 575.98px) {
+    .completion-record-page .page-title-head { align-items: start !important; flex-direction: column; }
+    .completion-record-page h1 { font-size: 1.5rem; }
+    #completion-record-table { min-width: 680px; }
     .completion-record-detail-grid {
       grid-template-columns: 1fr;
     }
@@ -152,9 +209,16 @@
 {% endblock extra_css %}
 
 {% block page_content %}
-<div class="container-fluid">
+<div class="container-fluid completion-record-page">
 
-  {% include 'partials/page-title.html' with title='Completion records' subtitle='Admin inventory' %}
+  <div class="page-title-head d-flex justify-content-between align-items-center">
+    <div>
+      <span class="completion-record-eyebrow text-muted text-uppercase fw-semibold">Learning activity / Admin</span>
+      <h1>Completion records</h1>
+      <p class="text-muted fs-sm mb-0">Review progress, explore problem areas and find the study notes behind each record.</p>
+    </div>
+    <a href="{% url 'pages:completion_quick_update' %}" class="btn btn-outline-primary"><i class="ti ti-plus me-1" aria-hidden="true"></i>Record progress</a>
+  </div>
 
   <div class="row row-cols-2 row-cols-sm-3 row-cols-xl-5 g-3 mt-0 mb-3 completion-record-kpi">
     <div class="col">
@@ -240,8 +304,8 @@
         <div class="card-header border-bottom py-2">
           <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
             <div>
-              <h4 class="header-title mb-0">Recent completion records</h4>
-              <p class="text-muted fs-xs mb-0">Search and dropdown filters query all saved completion records; the table filter narrows only the loaded results.</p>
+              <h2 class="header-title mb-1">Find completion records</h2>
+              <p class="text-muted fs-xs mb-0">Search and filters apply to all saved records.</p>
             </div>
             <div class="d-flex flex-wrap align-items-center justify-content-end gap-2">
               {% if completion_record_is_capped %}
@@ -255,17 +319,17 @@
         </div>
         <div class="card-body">
           <form method="get">
-            <div class="row g-2 align-items-end">
+            <div class="row g-3 align-items-start">
               <div class="col-md-6 col-xl-3">
                 <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-record-q">Search all records</label>
-                <input
+                <div class="completion-record-search-input"><i class="ti ti-search" aria-hidden="true"></i><input
                   id="completion-record-q"
                   type="text"
                   name="q"
                   class="form-control form-control-sm"
                   value="{{ completion_record_filters.q }}"
                   placeholder="User, contest, problem, topic"
-                >
+                ></div>
               </div>
               <div class="col-md-6 col-xl-2">
                 <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-record-contest">Contest</label>
@@ -290,12 +354,11 @@
                   <option value="{{ completion_record_selected_user_option.value }}" selected>{{ completion_record_selected_user_option.label }}</option>
                   {% endif %}
                 </select>
-                <div id="completion-record-user-status" class="completion-record-user-status text-muted fs-xs mt-1" aria-live="polite">Type a name or email to search all completion users.</div>
               </div>
               <div class="col-md-6 col-xl-4">
-                <div class="d-flex flex-wrap gap-2">
+                <div class="d-flex flex-wrap gap-2 completion-record-filter-actions">
                   <button type="submit" class="btn btn-sm btn-primary">
-                    <i class="ti ti-filter me-1"></i>Apply filters
+                    <i class="ti ti-filter me-1" aria-hidden="true"></i>Apply filters
                   </button>
                   <button
                     class="btn btn-sm btn-outline-secondary"
@@ -305,14 +368,15 @@
                     aria-expanded="{% if completion_record_advanced_filters_open %}true{% else %}false{% endif %}"
                     aria-controls="completion-record-advanced-filters"
                   >
-                    <i class="ti ti-adjustments-horizontal me-1"></i>More filters
+                    <i class="ti ti-adjustments-horizontal me-1" aria-hidden="true"></i>More filters
                   </button>
                   <a href="{% url 'pages:completion_record_list' %}" class="btn btn-sm btn-outline-secondary">
-                    <i class="ti ti-refresh me-1"></i>Reset
+                    <i class="ti ti-refresh me-1" aria-hidden="true"></i>Reset
                   </a>
                 </div>
               </div>
             </div>
+            <p id="completion-record-user-status" class="completion-record-user-status text-muted fs-xs mt-2" aria-live="polite">Type a name or email in User to search all completion users.</p>
 
             <div id="completion-record-advanced-filters" class="collapse{% if completion_record_advanced_filters_open %} show{% endif %}">
               <div class="row g-2 align-items-end completion-record-advanced-fields">
@@ -380,22 +444,27 @@
 
   <div class="row g-3 mt-0 mb-3">
     <div class="col-12">
-      <div class="card">
-        <div class="card-body p-2 p-md-3">
+      <div class="card overflow-hidden">
+        <div class="completion-record-table-heading d-flex flex-wrap justify-content-between align-items-center gap-2">
+          <div><h2 class="header-title mb-1">Recent completion records</h2><span class="completion-record-scope">Newest first · {{ completion_record_visible_total }} loaded{% if completion_record_is_capped %} · latest {{ completion_record_result_limit }} matches{% endif %}</span></div>
+          <span class="text-muted fs-xs"><i class="ti ti-chevron-down me-1" aria-hidden="true"></i>Expand a row for all details</span>
+        </div>
+        <div class="card-body p-0">
           {% if completion_record_rows %}
           <div class="table-responsive">
-            <table id="completion-record-table" class="table table-sm table-hover table-striped align-middle w-100 mb-0"></table>
+            <table id="completion-record-table" class="table table-sm table-hover align-middle w-100 mb-0"><caption class="visually-hidden">Completion records with topic, canonical areas, status and solution details</caption></table>
           </div>
           {% else %}
-          <div class="alert alert-info py-2 mb-0" role="alert">
+          <div class="text-center py-5 px-3" role="status"><i class="ti ti-list-search fs-24 text-muted" aria-hidden="true"></i><h3 class="fs-lg mt-2">No records to show</h3><p class="text-muted mb-3">
             {% if completion_record_has_active_filters %}
             No completion rows match the current filters.
             {% else %}
             No completion rows have been saved yet.
             {% endif %}
-          </div>
+          </p>{% if completion_record_has_active_filters %}<a href="{% url 'pages:completion_record_list' %}" class="btn btn-sm btn-outline-primary">Clear filters</a>{% else %}<a href="{% url 'pages:completion_quick_update' %}" class="btn btn-sm btn-primary">Record progress</a>{% endif %}</div>
           {% endif %}
         </div>
+        {% if completion_record_rows %}<div class="completion-record-scope-note text-muted fs-xs"><i class="ti ti-info-circle" aria-hidden="true"></i><span>The table filter searches these {{ completion_record_visible_total }} loaded records, including all mapped areas. Use the filters above to search all records.</span></div>{% endif %}
       </div>
     </div>
   </div>
@@ -586,6 +655,18 @@
     return pieces.join(" | ");
   }
 
+  function areaText(row) {
+    return (row.areas || []).join(", ");
+  }
+
+  function singleLine(value, href, title) {
+    var text = escapeHtml(value || "");
+    var tooltip = escapeHtml(title || value || "");
+    return href
+      ? '<a class="completion-record-ellipsis fw-semibold text-decoration-none" title="' + tooltip + '" href="' + escapeHtml(href) + '">' + text + '</a>'
+      : '<span class="completion-record-ellipsis" title="' + tooltip + '">' + text + '</span>';
+  }
+
   function detailTerm(label, value) {
     return "<div><dt>" + escapeHtml(label) + "</dt><dd>" + displayOrDash(value) + "</dd></div>";
   }
@@ -610,6 +691,7 @@
       row.year,
       row.problem,
       row.topic,
+      areaText(row),
       row.mohs,
       row.average_difficulty_display,
       row.status_label,
@@ -651,13 +733,20 @@
     var detailId = completionRecordDetailId(row);
     var regionLabel = completionRecordRegionLabel(row);
     var links = [
-      detailLink("Problem", row.problem_url),
+      detailLink("Problem", row.problem_url || row.statement_url),
       detailLink("Archive", row.archive_url)
     ].filter(Boolean).join(" ");
 
     return (
       '<div id="' + escapeHtml(detailId) + '" class="completion-record-detail-panel" role="region" aria-label="' + escapeHtml(regionLabel) + '">' +
       '<dl class="completion-record-detail-grid mb-3">' +
+      detailTerm("User", row.user_label) +
+      detailTerm("Email", row.user_email) +
+      detailTerm("Problem", row.problem_label) +
+      detailTerm("Contest / year", row.contest + " / " + row.year) +
+      detailTerm("Topic", row.topic) +
+      detailTerm("Area", areaText(row)) +
+      detailTerm("MOHS", row.mohs) +
       detailTerm("Status", row.status_label) +
       detailTerm("Completed", row.completion_datetime === "Unknown" ? "" : row.completion_datetime) +
       detailTerm("Solution", row.solution_status_label) +
@@ -712,10 +801,8 @@
       render: function (data, type, row) {
         var email = row.user_email || "";
         if (type === "display") {
-          var emailMeta = email && email !== data
-            ? '<div class="text-muted fs-12">' + escapeHtml(email) + "</div>"
-            : "";
-          return '<a href="' + escapeHtml(row.user_url) + '" class="fw-semibold text-decoration-none">' + escapeHtml(data) + "</a>" + emailMeta;
+          var fullLabel = email && email !== data ? data + " · " + email : data;
+          return singleLine(data, row.user_url, fullLabel);
         }
         return data + " " + email;
       }
@@ -729,18 +816,47 @@
         var meta = problemMeta(row);
         if (type === "filter") return detailSearchText(row);
         if (type !== "display") return row.problem_label + " " + meta;
-        var problemLabel = escapeHtml(row.problem_label || row.problem || "");
-        var problemLink = row.problem_url
-          ? '<a href="' + escapeHtml(row.problem_url) + '" class="fw-semibold text-decoration-none">' + problemLabel + "</a>"
-          : problemLabel;
-        return problemLink + '<div class="text-muted fs-12 completion-record-problem-meta">' + escapeHtml(meta) + "</div>";
+        return singleLine(row.problem_label || row.problem, row.problem_url || row.statement_url, row.problem_label + " · " + meta);
+      }
+    },
+    {
+      key: "topic",
+      data: "topic",
+      title: "Topic",
+      className: "completion-record-topic-cell",
+      render: function (data, type) {
+        return type === "display" ? singleLine(data) : data || "";
+      }
+    },
+    {
+      key: "area",
+      data: null,
+      title: "Area",
+      className: "completion-record-area-cell",
+      render: function (_data, type, row) {
+        var areas = row.areas || [];
+        var text = areaText(row);
+        if (type !== "display") return text;
+        if (!areas.length) return '<span class="completion-record-unmapped" title="' + escapeHtml(row.area_mapping_status || "No mapped area") + '">Unmapped</span>';
+        var extra = areas.length > 1 ? '<span class="badge bg-secondary-subtle text-secondary">+' + (areas.length - 1) + '</span>' : '';
+        return '<span class="completion-record-area-value" title="' + escapeHtml(text) + '"><span class="completion-record-ellipsis">' + escapeHtml(areas[0]) + '</span>' + extra + '</span>';
+      }
+    },
+    {
+      key: "mohs",
+      data: "mohs",
+      title: "MOHS",
+      className: "completion-record-mohs-cell",
+      render: function (data, type) {
+        if (type === "sort" || type === "type") return present(data) ? Number(data) : -1;
+        return displayOrDash(data);
       }
     },
     {
       key: "status",
       data: "status_label",
       title: "Status",
-      className: "text-nowrap",
+      className: "completion-record-status-cell text-nowrap",
       render: function (data, type, row) {
         if (type === "filter") return (data || "") + " " + (row.status || "");
         if (type !== "display") return data || "";
@@ -751,7 +867,7 @@
       key: "completed",
       data: "completion_datetime",
       title: "Completed",
-      className: "text-nowrap",
+      className: "completion-record-completed-cell text-nowrap",
       render: function (data, type, row) {
         if (type === "sort" || type === "type") return row.completion_date_sort;
         return data === "Unknown" ? mutedDash() : escapeHtml(data);
@@ -761,7 +877,7 @@
       key: "solution",
       data: "solution_status_label",
       title: "Solution",
-      className: "text-nowrap",
+      className: "completion-record-solution-cell text-nowrap",
       render: function (data, type, row) {
         if (type === "display") {
           return '<span class="badge ' + escapeHtml(row.solution_status_badge_class) + '">' + escapeHtml(data) + "</span>";
@@ -810,12 +926,12 @@
     lengthMenu: [10, 25, 50, 100],
     autoWidth: false,
     language: {
-      search: "Filter these " + rows.length + " results:",
-      searchPlaceholder: "Within loaded results...",
+      search: "Filter loaded records:",
+      searchPlaceholder: "User, problem, topic or area",
       info: "Showing _START_ to _END_ of _TOTAL_ loaded results",
       infoEmpty: "No loaded results to show",
       infoFiltered: "(filtered from _MAX_ loaded results)",
-      lengthMenu: "Show _MENU_ results",
+      lengthMenu: "Rows per page _MENU_",
       zeroRecords: "No loaded results match the table filter."
     }
   });
@@ -824,6 +940,7 @@
     tableApi.column(columnIndexByKey.solution).visible(!(hideSolutionQuery && hideSolutionQuery.matches), false);
     tableApi.column(columnIndexByKey.completed).visible(!(hideCompletedQuery && hideCompletedQuery.matches), false);
     tableApi.column(columnIndexByKey.status).visible(!(hideStatusQuery && hideStatusQuery.matches), false);
+    tableApi.column(columnIndexByKey.mohs).visible(!(hideCompletedQuery && hideCompletedQuery.matches), false);
     tableApi.columns.adjust().draw(false);
   }
 
