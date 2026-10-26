@@ -8571,12 +8571,13 @@ def technique_benchmark_list_view(request):
     catalog_filters = benchmark_catalog_filters(request.GET)
     if catalog_filters:
         from inspinia.pages.technique_concepts import CONCEPT_MEMBER_KEYS
+        from inspinia.pages.technique_concepts import benchmark_member_filter
 
-        query = Q(pk__in=[])
-        for concept_id in catalog_concept_ids(catalog_filters["topic"], scope=catalog_filters["scope"]):
-            for member in CONCEPT_MEMBER_KEYS[concept_id]:
-                kind, key = member.split(":", 1)
-                query |= Q(kind=kind, label_key=key)
+        query = benchmark_member_filter(
+            member
+            for concept_id in catalog_concept_ids(catalog_filters["topic"], scope=catalog_filters["scope"])
+            for member in CONCEPT_MEMBER_KEYS[concept_id]
+        )
         benchmarks = benchmarks.filter(query)
     if search and not catalog_filters:
         for token in search.split():

@@ -18113,7 +18113,7 @@ def test_technique_progress_gaps_datatable_get_does_not_require_csrf_cookie():
     payload = response.json()
     assert payload["draw"] == 1
     assert payload["recordsTotal"] == 2
-    assert {row["label"] for row in payload["data"]} == {"EXTREMAL METHOD", "GRAPH"}
+    assert {row["label"] for row in payload["data"]} == {"Extremal principle", "Graphs and graph models"}
 
 
 def test_technique_progress_gaps_export_csv_uses_url_filters_and_ignores_datatable_search(client):
