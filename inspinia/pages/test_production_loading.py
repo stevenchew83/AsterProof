@@ -264,24 +264,21 @@ def test_linker_checks_hidden_claimants_and_duplicate_codes_without_loading_arch
     assert all('"rationale"' not in sql for sql in archive_selects)
 
 
-def test_topic_directory_payload_and_scatter_are_bounded_with_full_totals(admin_client):
+def test_concept_directory_payload_is_bounded_with_full_catalogue_totals(admin_client):
     problem = ProblemSolveRecord.objects.create(year=2026, contest="IMO", problem="P1", topic="ALG", mohs=25)
     ProblemTopicTechnique.objects.bulk_create(
-        [
-            ProblemTopicTechnique(record=problem, technique=f"METHOD-{number:04}", domains=["ALG", "NT"])
-            for number in range(230)
-        ],
+        [ProblemTopicTechnique(record=problem, technique=f"METHOD-{n:04}", domains=["ALG"]) for n in range(230)],
     )
+    ProblemTopicTechnique.objects.create(record=problem, technique="AM-GM", domains=["ALG"])
     response = admin_client.get(reverse("pages:topic_tag_dashboard"))
-    assert response.context["technique_row_total"] == 230
-    assert response.context["technique_total"] == 230
-    assert response.context["technique_stats"]["domain_total"] == 2
-    assert len(response.context["technique_rows"]) == 25
-    assert len(response.context["charts_payload"]["byAvgMohsScatter"]["series"][0]["data"]) == 200
+    assert response.context["stats"]["problems"] == 1
+    assert response.context["stats"]["covered"] == 1
+    assert response.context["quality"]["review"] == 1
+    assert len(response.context["concept_page"].object_list) == 25
     assert len(response.content) < 150_000
-    filtered = admin_client.get(reverse("pages:topic_tag_dashboard"), {"domain": "NT", "q": "METHOD-0229"})
-    assert filtered.context["technique_total"] == 1
-    assert filtered.context["technique_rows"][0]["technique"] == "METHOD-0229"
+    filtered = admin_client.get(reverse("pages:topic_tag_dashboard"), {"q": "Jensen", "state": "gaps"})
+    assert filtered.context["concept_page"].paginator.count == 1
+    assert filtered.context["concept_page"][0]["id"] == "jensen"
 
 
 def test_benchmark_payload_pages_details_and_searches_beyond_first_page(admin_client):
@@ -374,13 +371,20 @@ def test_benchmark_matrix_limit_applies_after_chartability_filter(admin_client):
     assert [point["row_key"] for point in points] == ["method:complete"]
 
 
-def test_topic_sort_applies_to_all_matches_before_pagination(admin_client):
-    ordinary = ProblemSolveRecord.objects.create(year=2026, contest="IMO", problem="P1", topic="ALG", mohs=5)
-    hard = ProblemSolveRecord.objects.create(year=2026, contest="IMO", problem="P2", topic="Algebra", mohs=59)
+def test_concept_sort_uses_all_problem_difficulties_before_pagination(admin_client):
+    problems = [
+        ProblemSolveRecord.objects.create(year=2026, contest="IMO", problem=f"P{n}", topic="ALG", mohs=5)
+        for n in range(30)
+    ]
     ProblemTopicTechnique.objects.bulk_create(
-        [ProblemTopicTechnique(record=ordinary, technique=f"A-{n:03}", domains=["ALG"]) for n in range(30)],
+        [ProblemTopicTechnique(record=p, technique="AM-GM", domains=["ALG"]) for p in problems],
     )
-    ProblemTopicTechnique.objects.create(record=hard, technique="Z-HARD", domains=["ALG"])
-    result = admin_client.get(reverse("pages:topic_tag_dashboard"), {"sort": "mohs", "topic": "Algebra"})
-    assert result.context["technique_rows"][0]["technique"] == "Z-HARD"
-    assert result.context["technique_total"] == 31
+    hard = ProblemSolveRecord.objects.create(year=2026, contest="IMO", problem="P31", topic="Algebra", mohs=59)
+    ProblemTopicTechnique.objects.create(
+        record=hard, technique="JENSEN", lemma_theorem_tags=["JENSEN"], domains=["ALG"],
+    )
+    result = admin_client.get(reverse("pages:topic_tag_dashboard"), {"sort": "mohs", "subject": "Algebra"})
+    assert result.context["concept_page"][0]["id"] == "jensen"
+    assert result.context["concept_page"][0]["median_mohs"] == 59
+    assert result.context["stats"]["problems"] == 31
+    assert result.context["stats"]["covered"] == 2

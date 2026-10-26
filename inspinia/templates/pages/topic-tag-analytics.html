@@ -1,644 +1,219 @@
 {% extends 'layouts/vertical.html' %}
+{% load static %}
 
-{% load static i18n %}
-
-{% block title %}Technique analytics{% endblock title %}
+{% block title %}Area & Concept analytics{% endblock title %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'plugins/datatables/dataTables.bootstrap5.min.css' %}">
 <style>
-  .technique-dashboard-table-tools .dt-search {
-    display: none;
+  .concept-analytics { --ca-accent: var(--ins-primary); padding-bottom: 2rem; }
+  .concept-analytics .page-title-head { align-items: center; padding-block: 1.75rem 1.25rem; }
+  .concept-analytics h1 { font-size: clamp(1.5rem, 2.4vw, 2rem); letter-spacing: -.035em; margin: .3rem 0 .5rem; }
+  .concept-analytics .ca-eyebrow { letter-spacing: .12em; font-size: .68rem; }
+  .concept-analytics .header-title { font-size: 1rem; font-weight: 600; letter-spacing: -.015em; }
+  .concept-analytics #mapping-review, .concept-analytics #concept-explorer { scroll-margin-top: 6rem; }
+  .concept-analytics .card { border: 1px solid var(--ins-border-color-translucent); box-shadow: none; }
+  .concept-analytics .ca-stat .card-body { padding: 1.25rem; }
+  .concept-analytics .ca-stat h3 { font-size: 1.85rem; font-variant-numeric: tabular-nums; letter-spacing: -.04em; }
+  .concept-analytics .ca-stat .avatar-title { width: 2.5rem; height: 2.5rem; }
+  .concept-analytics .ca-filter-bar { padding: 1rem 1.25rem; }
+  .concept-analytics .ca-filter-bar .form-label { font-size: .72rem; font-weight: 600; margin-bottom: .4rem; }
+  .concept-analytics .form-control, .concept-analytics .form-select { min-height: 2.5rem; }
+  .concept-analytics .ca-area-row { display: block; padding: 1rem 1.25rem; color: var(--ins-body-color); border-top: 1px solid var(--ins-border-color-translucent); transition: background .15s ease; }
+  .concept-analytics .ca-area-row:hover { background: var(--ins-tertiary-bg); }
+  .concept-analytics .ca-area-title { font-weight: 600; }
+  .concept-analytics .ca-area-row .ti-arrow-up-right { opacity: 0; transition: opacity .15s ease; }
+  .concept-analytics .ca-area-row:hover .ti-arrow-up-right, .concept-analytics .ca-area-row:focus-visible .ti-arrow-up-right { opacity: 1; }
+  .concept-analytics .ca-area-track { height: .3rem; border-radius: 1rem; background: var(--ins-tertiary-bg); overflow: hidden; }
+  .concept-analytics .ca-area-fill { height: 100%; background: var(--ca-accent); border-radius: inherit; }
+  .concept-analytics .ca-ring { position: relative; width: 156px; height: 156px; margin: .5rem auto 1.25rem; }
+  .concept-analytics .ca-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .concept-analytics .ca-ring-track { fill: none; stroke: var(--ins-tertiary-bg); stroke-width: 8; }
+  .concept-analytics .ca-ring-fill { fill: none; stroke: var(--ca-accent); stroke-width: 8; stroke-linecap: round; }
+  .concept-analytics .ca-ring-caption { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+  .concept-analytics .ca-ring-caption strong { font-size: 2rem; letter-spacing: -.04em; }
+  .concept-analytics .ca-quality-row { display: flex; align-items: center; justify-content: space-between; padding: .65rem 0; border-top: 1px solid var(--ins-border-color-translucent); }
+  .concept-analytics .ca-quality-row:first-child { border: 0; }
+  .concept-analytics .ca-dot { display: inline-block; width: .4rem; height: .4rem; border-radius: 50%; margin-right: .5rem; background: var(--ins-secondary-color); }
+  .concept-analytics .ca-dot-primary { background: var(--ca-accent); }
+  .concept-analytics .ca-dot-warning { background: var(--ins-warning); }
+  .concept-analytics .ca-tabs { gap: .3rem; display: flex; flex-wrap: wrap; }
+  .concept-analytics .ca-tab { padding: .55rem .8rem; color: var(--ins-secondary-color); border-radius: var(--ins-border-radius); font-size: .8rem; font-weight: 600; }
+  .concept-analytics .ca-tab.active { color: var(--ins-primary-text-emphasis); background: var(--ins-primary-bg-subtle); }
+  .concept-analytics .ca-tab:hover { background: var(--ins-tertiary-bg); }
+  .concept-analytics .ca-tab-count { margin-left: .35rem; opacity: .75; font-variant-numeric: tabular-nums; }
+  .concept-analytics .ca-search { position: relative; max-width: 23rem; flex: 1 1 14rem; }
+  .concept-analytics .ca-search > .ti { position: absolute; left: .85rem; top: .82rem; color: var(--ins-secondary-color); }
+  .concept-analytics .ca-search input { padding-left: 2.35rem; padding-right: 2.5rem; }
+  .concept-analytics .ca-search button { position: absolute; right: .25rem; top: .2rem; }
+  .concept-analytics .table-responsive { position: relative; }
+  .concept-analytics .ca-filter-bar .btn { white-space: nowrap; }
+  .concept-analytics .ca-table th { font-size: .68rem; letter-spacing: .06em; text-transform: uppercase; color: var(--ins-secondary-color); font-weight: 600; background: var(--ins-tertiary-bg); white-space: nowrap; padding: .85rem 1.25rem; }
+  .concept-analytics .ca-table td { padding: .9rem 1.25rem; vertical-align: middle; }
+  .concept-analytics .ca-table .ca-concept-name { color: var(--ins-body-color); font-weight: 600; }
+  .concept-analytics .ca-table a.ca-concept-name:hover { color: var(--ca-accent); }
+  .concept-analytics .ca-number { font-variant-numeric: tabular-nums; }
+  .concept-analytics .ca-pagination { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: 1rem 1.25rem; flex-wrap: wrap; }
+  .concept-analytics .ca-empty { text-align: center; padding: 3rem 1.25rem; }
+  .concept-analytics .ca-detail { border-left: 3px solid var(--ca-accent); scroll-margin-top: 6rem; }
+  .concept-analytics summary { cursor: pointer; }
+  .concept-analytics summary::marker { color: var(--ins-secondary-color); }
+  .concept-analytics a:focus-visible, .concept-analytics summary:focus-visible { outline: 2px solid var(--ca-accent); outline-offset: 3px; border-radius: var(--ins-border-radius); }
+  @media (max-width: 575.98px) {
+    .concept-analytics .page-title-head { align-items: start; gap: 1rem; }
+    .concept-analytics .ca-stat .card-body { padding: 1rem; }
+    .concept-analytics .ca-stat .avatar-title { display: none; }
+    .concept-analytics .ca-stat .ms-2 { margin-left: 0 !important; }
+    .concept-analytics .ca-area-row, .concept-analytics .ca-table td, .concept-analytics .ca-table th { padding-inline: 1rem; }
+    .concept-analytics .ca-search { max-width: none; flex-basis: 100%; }
+    .concept-analytics .ca-table { min-width: 650px; }
   }
-
-  .technique-dashboard-table-tools .dt-length,
-  .technique-dashboard-table-tools .dt-info,
-  .technique-dashboard-table-tools .dt-paging {
-    font-size: 0.8rem;
-  }
-
-  .technique-dashboard-chart-clickable .apexcharts-bar-area,
-  .technique-dashboard-chart-clickable .apexcharts-marker {
-    cursor: pointer;
-  }
-
-  .technique-dashboard-badge-list {
-    max-width: 18rem;
+  @media (prefers-reduced-motion: reduce) {
+    .concept-analytics *, .concept-analytics *::before { transition: none !important; scroll-behavior: auto !important; }
   }
 </style>
 {% endblock extra_css %}
 
 {% block page_content %}
-
-<div class="container-fluid">
-
-  {% include 'partials/page-title.html' with title='Technique analytics' subtitle='Admin' %}
-
-  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-3">
-    <div class="d-flex flex-wrap align-items-center gap-2">
-      <span class="badge bg-primary-subtle text-primary">{{ technique_scope_label }}</span>
-      <span class="text-muted fs-xs">
-        {{ technique_row_total }} technique rows • {{ technique_total }} techniques • {{ tagged_problem_total }} tagged problems
-      </span>
+<div class="container-fluid concept-analytics">
+  <div class="page-title-head d-flex flex-wrap justify-content-between">
+    <div>
+      <span class="text-muted text-uppercase fw-semibold ca-eyebrow">Problem library / Analytics</span>
+      <h1 class="fw-bold">Areas &amp; concepts</h1>
+      <p class="text-muted mb-0">See what your library covers and where to add problems next.</p>
     </div>
-    <button
-      class="btn btn-outline-secondary btn-sm"
-      type="button"
-      data-bs-toggle="collapse"
-      data-bs-target="#technique-dashboard-data-source"
-      aria-expanded="false"
-      aria-controls="technique-dashboard-data-source"
-    >
-      <i class="ti ti-database-search me-1"></i> Data source
-    </button>
+    <a href="{% url 'pages:problem_statement_list' %}" class="btn btn-outline-secondary"><i class="ti ti-books me-1" aria-hidden="true"></i> Open library <i class="ti ti-arrow-up-right ms-1" aria-hidden="true"></i></a>
   </div>
 
-  <div class="collapse mt-2" id="technique-dashboard-data-source">
-    <div class="alert alert-info mb-0" role="alert">
-      Parsed techniques are stored in <code>ProblemTopicTechnique</code>. The raw workbook cell stays on
-      <code>ProblemSolveRecord.topic_tags</code>; this dashboard shows normalized technique and domain rows from the full matched dataset.
-    </div>
-  </div>
-
-  <div class="card mt-3">
-    <div class="card-body">
-      <form method="get" class="row g-2 align-items-end">
-        <div class="col-sm-6 col-xl-3">
-          <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="technique-dashboard-search">Search</label>
-          <input
-            id="technique-dashboard-search"
-            name="q"
-            type="search"
-            value="{{ initial_search_query }}"
-            class="form-control form-control-sm"
-            placeholder="Technique, contest, topic, year"
-          >
-        </div>
-        <div class="col-sm-6 col-xl-2">
-          <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="technique-dashboard-contest-filter">Contest</label>
-          <select id="technique-dashboard-contest-filter" name="contest" class="form-select form-select-sm">
-            <option value="">All contests</option>
-            {% for contest_name in technique_filter_options.contests %}
-            <option value="{{ contest_name }}" {% if technique_filters.contest == contest_name %}selected{% endif %}>{{ contest_name }}</option>
-            {% endfor %}
+  <div class="card mb-3">
+    <form method="get" class="ca-filter-bar" id="concept-scope-form">
+      {% if filters.q %}<input type="hidden" name="q" value="{{ filters.q }}">{% endif %}
+      {% if filters.state %}<input type="hidden" name="state" value="{{ filters.state }}">{% endif %}
+      <input type="hidden" name="sort" value="{{ filters.sort }}">
+      <div class="row g-3 align-items-end">
+        <div class="col-sm-5 col-xl-3">
+          <label class="form-label" for="concept-subject">Subject</label>
+          <select class="form-select" id="concept-subject" name="subject">
+            <option value="">All subjects</option>
+            {% for subject in subjects %}<option value="{{ subject }}"{% if filters.subject == subject %} selected{% endif %}>{{ subject }}</option>{% endfor %}
           </select>
         </div>
-        <div class="col-sm-6 col-xl-2">
-          <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="technique-dashboard-topic-filter">Topic</label>
-          <select id="technique-dashboard-topic-filter" name="topic" class="form-select form-select-sm">
-            <option value="">All topics</option>
-            {% for topic_name in technique_filter_options.topics %}
-            <option value="{{ topic_name }}" {% if technique_filters.topic == topic_name %}selected{% endif %}>{{ topic_name }}</option>
-            {% endfor %}
+        <div class="col-sm-7 col-xl-5">
+          <label class="form-label" for="concept-area">Area</label>
+          <select class="form-select" id="concept-area" name="area">
+            <option value="">All areas</option>
+            {% for key, label, subject in area_options %}<option value="{{ key }}" data-subject="{{ subject }}"{% if filters.subject and filters.subject != subject %} hidden disabled{% endif %}{% if filters.area == key %} selected{% endif %}>{% if not filters.subject %}{{ subject }} · {% endif %}{{ label }}</option>{% endfor %}
           </select>
         </div>
-        <div class="col-sm-6 col-xl-2">
-          <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="technique-dashboard-domain-filter">Domain</label>
-          <select id="technique-dashboard-domain-filter" name="domain" class="form-select form-select-sm">
-            <option value="">All domains</option>
-            {% for domain_name in technique_filter_options.domains %}
-            <option value="{{ domain_name }}" {% if technique_filters.domain == domain_name %}selected{% endif %}>{{ domain_name }}</option>
-            {% endfor %}
-          </select>
+        <div class="col-xl-4 d-flex flex-wrap align-items-center gap-2">
+          <button class="btn btn-primary" type="submit"><i class="ti ti-adjustments-horizontal me-1" aria-hidden="true"></i> Apply</button>
+          <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#concept-more-filters" aria-controls="concept-more-filters" aria-expanded="{% if filters.contest or filters.year %}true{% else %}false{% endif %}"><i class="ti ti-filter me-1" aria-hidden="true"></i> More filters{% if filters.contest or filters.year %}<span class="visually-hidden"> active</span><span class="ca-dot ca-dot-primary ms-1" aria-hidden="true"></span>{% endif %}</button>
+          {% if active_filters %}<a class="btn btn-link text-muted px-1" href="{{ reset_url }}">Reset</a>{% endif %}
         </div>
-        <div class="col-sm-6 col-xl-1">
-          <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="technique-dashboard-year-filter">Year</label>
-          <select id="technique-dashboard-year-filter" name="year" class="form-select form-select-sm">
-            <option value="">All years</option>
-            {% for year_value in technique_filter_options.years %}
-            <option value="{{ year_value }}" {% if technique_filters.year == year_value %}selected{% endif %}>{{ year_value }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="col-sm-6 col-xl-2 d-flex gap-2">
-          <button type="submit" class="btn btn-primary btn-sm flex-fill">
-            <i class="ti ti-filter me-1"></i> Apply
-          </button>
-          <a href="{{ technique_reset_url }}" id="technique-dashboard-reset" class="btn btn-outline-secondary btn-sm">Reset</a>
-        </div>
-      </form>
-      <form method="get" class="d-flex flex-wrap gap-2 align-items-center mt-2">
-        {% for key, value in technique_filters.items %}{% if value %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endif %}{% endfor %}
-        <label class="text-muted fs-sm" for="technique-sort">Sort all matching techniques</label>
-        <select id="technique-sort" name="sort" class="form-select form-select-sm w-auto">
-          <option value="problems"{% if technique_sort == 'problems' %} selected{% endif %}>Most problems</option>
-          <option value="contests"{% if technique_sort == 'contests' %} selected{% endif %}>Most contests</option>
-          <option value="mohs"{% if technique_sort == 'mohs' %} selected{% endif %}>Highest average MOHS</option>
-          <option value="years"{% if technique_sort == 'years' %} selected{% endif %}>Most active years</option>
-          <option value="name"{% if technique_sort == 'name' %} selected{% endif %}>Technique name</option>
-        </select>
-        <button class="btn btn-sm btn-outline-secondary" type="submit">Sort</button>
-      </form>
-      <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-3">
-        <div class="d-flex flex-wrap align-items-center gap-2">
-          {% if technique_active_filters %}
-          {% for filter in technique_active_filters %}
-          <a
-            href="{{ filter.remove_url }}"
-            class="badge bg-secondary-subtle text-secondary"
-            data-technique-filter-query="{{ filter.param }}={{ filter.value|urlencode }}"
-          >
-            {{ filter.label }}: {{ filter.value }} <i class="ti ti-x ms-1"></i>
-          </a>
-          {% endfor %}
-          {% else %}
-          <span class="text-muted fs-xs">No filters active.</span>
-          {% endif %}
-        </div>
-        <span class="text-muted fs-xs">
-          Filter options follow the current search query; KPIs, charts, and table use the exact filters above.
-        </span>
       </div>
-    </div>
+      <div class="collapse{% if filters.contest or filters.year %} show{% endif %}" id="concept-more-filters">
+        <div class="row g-3 mt-1 pt-2">
+          <div class="col-sm-7 col-xl-5"><label class="form-label" for="concept-contest">Contest</label><select class="form-select" name="contest" id="concept-contest"><option value="">All contests</option>{% for contest in filter_options.contests %}<option{% if filters.contest == contest %} selected{% endif %}>{{ contest }}</option>{% endfor %}</select></div>
+          <div class="col-sm-5 col-xl-3"><label class="form-label" for="concept-year">Contest year</label><select class="form-select" name="year" id="concept-year"><option value="">All years</option>{% for year in filter_options.years %}<option value="{{ year }}"{% if filters.year == year|stringformat:'s' %} selected{% endif %}>{{ year }}</option>{% endfor %}</select></div>
+        </div>
+      </div>
+      {% if active_filters %}<div class="d-flex flex-wrap gap-2 mt-3" aria-label="Active filters">{% for filter in active_filters %}<a class="badge bg-primary-subtle text-primary py-2 px-2" href="{{ filter.url }}" aria-label="Remove {{ filter.label }} filter: {{ filter.value }}">{{ filter.value }} <i class="ti ti-x ms-1" aria-hidden="true"></i></a>{% endfor %}</div>{% endif %}
+    </form>
   </div>
 
-  <div class="row g-3 mt-1">
-    <div class="col-sm-6 col-xl-3">
-      <div class="card m-0">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-primary-subtle text-primary rounded">
-                <i class="ti ti-tags fs-24"></i>
-              </span>
-            </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Distinct techniques</p>
-              <h3 class="mb-0">{{ technique_total }}</h3>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-6 col-xl-3">
-      <div class="card m-0">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-info-subtle text-info rounded">
-                <i class="ti ti-binary-tree-2 fs-24"></i>
-              </span>
-            </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Technique rows</p>
-              <h3 class="mb-0">{{ technique_row_total }}</h3>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-6 col-xl-3">
-      <div class="card m-0">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-warning-subtle text-warning rounded">
-                <i class="ti ti-trophy fs-24"></i>
-              </span>
-            </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Tagged problems</p>
-              <h3 class="mb-0">{{ tagged_problem_total }}</h3>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-6 col-xl-3">
-      <div class="card m-0">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-success-subtle text-success rounded">
-                <i class="ti ti-chart-histogram fs-24"></i>
-              </span>
-            </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Avg techniques / problem</p>
-              <h3 class="mb-0">{{ technique_stats.average_techniques_per_problem }}</h3>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+  <div class="row g-3 mb-3" aria-label="Library coverage summary">
+    <div class="col-6 col-xl-3"><div class="card ca-stat h-100 m-0"><div class="card-body"><div class="d-flex align-items-center"><span class="avatar-title bg-primary-subtle text-primary rounded flex-shrink-0"><i class="ti ti-books fs-24" aria-hidden="true"></i></span><div class="ms-2"><p class="text-muted mb-1 fs-xs">Problems in view</p><h3 class="mb-0">{{ stats.problems }}</h3></div></div><p class="text-muted fs-xs mb-0 mt-3">{{ stats.mapped }} with mapped concepts</p></div></div></div>
+    <div class="col-6 col-xl-3"><div class="card ca-stat h-100 m-0"><div class="card-body"><div class="d-flex align-items-center"><span class="avatar-title bg-primary-subtle text-primary rounded flex-shrink-0"><i class="ti ti-layout-grid fs-24" aria-hidden="true"></i></span><div class="ms-2"><p class="text-muted mb-1 fs-xs">Areas represented</p><h3 class="mb-0">{{ stats.areas }}</h3></div></div><p class="text-muted fs-xs mb-0 mt-3">Areas with at least one problem</p></div></div></div>
+    <div class="col-6 col-xl-3"><div class="card ca-stat h-100 m-0"><div class="card-body"><div class="d-flex align-items-center"><span class="avatar-title bg-primary-subtle text-primary rounded flex-shrink-0"><i class="ti ti-circles-relation fs-24" aria-hidden="true"></i></span><div class="ms-2"><p class="text-muted mb-1 fs-xs">Concepts covered</p><h3 class="mb-0">{{ stats.covered }} <span class="text-muted fs-sm fw-normal">/ {{ stats.catalogue }}</span></h3></div></div><p class="text-muted fs-xs mb-0 mt-3">{{ stats.percent }}% of the catalogue in view</p></div></div></div>
+    <div class="col-6 col-xl-3"><a href="{% for tab in state_tabs %}{% if tab.value == 'gaps' %}{{ tab.url }}{% endif %}{% endfor %}#concept-explorer" class="card ca-stat h-100 m-0 text-body"><div class="card-body"><div class="d-flex align-items-center"><span class="avatar-title bg-warning-subtle text-warning rounded flex-shrink-0"><i class="ti ti-circle-dashed fs-24" aria-hidden="true"></i></span><div class="ms-2"><p class="text-muted mb-1 fs-xs">Coverage gaps</p><h3 class="mb-0">{{ stats.gaps }}</h3></div></div><p class="text-muted fs-xs mb-0 mt-3">Find concepts without problems <i class="ti ti-arrow-right ms-1" aria-hidden="true"></i></p></div></a></div>
   </div>
 
-  {% if not has_any_technique_rows %}
-  <div class="alert alert-info mt-4" role="alert">
-    <strong>No technique data yet.</strong> Import analytics via
-    <a href="{% url 'pages:problem_import' %}" class="alert-link">Import problems</a>
-    to populate this dashboard.
-  </div>
-  {% elif technique_total == 0 %}
-  <div class="alert alert-info mt-4" role="alert">
-    <strong>No matching techniques.</strong> Adjust the search or exact filters above to widen the dataset.
-  </div>
-  {% else %}
+  {% if not stats.problems %}<div class="alert alert-info d-flex gap-2 align-items-center" role="status"><i class="ti ti-info-circle fs-22" aria-hidden="true"></i><div>No active problems in this view. {% if active_filters %}<a href="{{ reset_url }}" class="alert-link">Clear the filters</a> to broaden your view.{% else %}<a href="{% url 'pages:problem_import' %}" class="alert-link">Import problems</a> to start building coverage.{% endif %} The catalogue below still shows what you can add.</div></div>{% endif %}
 
-  <div class="row g-3 mt-1">
-    <div class="col-xxl-8">
-      <div class="card">
-        <div class="card-header border-0 pb-0">
-          <h4 class="header-title mb-0">Technique usage volume</h4>
-          <p class="text-muted fs-xs mb-0">Most-used techniques by tagged problem count</p>
+  <div class="row g-3 mb-3">
+    <section class="col-xl-8" aria-labelledby="area-coverage-title">
+      <div class="card h-100 mb-0">
+        <div class="card-header border-0 d-flex align-items-start justify-content-between gap-2 pb-3 pt-3"><div><h2 id="area-coverage-title" class="header-title mb-1">Coverage by area</h2><p class="text-muted fs-xs mb-0">Concepts represented in each area. Select an area to explore it.</p></div><span class="badge bg-light text-body border">{{ area_rows|length }} areas</span></div>
+        <div>
+          {% for area in area_rows|slice:':6' %}{% include 'pages/partials/concept-area-row.html' %}{% empty %}<div class="ca-empty"><p class="text-muted mb-2">No catalogue areas match this view.</p><a href="{{ reset_url }}" class="btn btn-outline-secondary btn-sm">Reset filters</a></div>{% endfor %}
+          {% if area_rows|length > 6 %}<details><summary class="text-muted fs-sm px-4 py-3 border-top">Show all {{ area_rows|length }} areas</summary>{% for area in area_rows|slice:'6:' %}{% include 'pages/partials/concept-area-row.html' %}{% endfor %}</details>{% endif %}
         </div>
-        <div class="card-body pt-2">
-          <div id="chart-technique-volume" style="min-height: 340px;"></div>
-        </div>
+        <div class="px-4 py-3 border-top text-muted fs-xs mt-auto"><i class="ti ti-info-circle me-1" aria-hidden="true"></i>Each problem counts once per area. A problem can appear in several areas.</div>
       </div>
-    </div>
-    <div class="col-xxl-4">
-      <div class="card h-100">
-        <div class="card-header border-0 pb-0">
-          <h4 class="header-title mb-0">Technique leaders</h4>
-          <p class="text-muted fs-xs mb-0">Quick reads on scale, spread, and difficulty</p>
-        </div>
-        <div class="card-body p-0">
-          <div class="table-responsive">
-            <table class="table table-sm table-hover align-middle mb-0">
-              <tbody>
-                {% for row in technique_leader_rows %}
-                <tr>
-                  <td>
-                    <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">{{ row.label }}</p>
-                    <a href="{{ row.url }}" class="fw-semibold">{{ row.technique }}</a>
-                  </td>
-                  <td class="text-end">
-                    <span class="badge {{ row.badge_class }}">{{ row.value_label }}</span>
-                  </td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
+    </section>
+    <aside class="col-xl-4" aria-labelledby="library-coverage-title"><div class="card h-100 mb-0"><div class="card-header border-0 pt-3"><h2 id="library-coverage-title" class="header-title mb-0">Catalogue coverage</h2></div><div class="card-body pt-2">
+      <div class="ca-ring" role="img" aria-label="{{ stats.percent }} percent of concepts have at least one problem"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="ca-ring-track" cx="60" cy="60" r="50"/><circle class="ca-ring-fill" cx="60" cy="60" r="50" pathLength="100" stroke-dasharray="{{ stats.percent }} 100"/></svg><div class="ca-ring-caption"><strong>{{ stats.percent }}%</strong><span class="text-muted fs-xs">concepts represented</span></div></div>
+      <p class="text-center text-muted fs-sm mb-4">{{ stats.covered }} of {{ stats.catalogue }} concepts have problems.<br>Coverage measures availability in the library.</p>
+      <h3 class="text-muted text-uppercase fs-xs fw-semibold mb-2">Problem mapping quality</h3>
+      <div class="ca-quality-row fs-sm"><span><span class="ca-dot ca-dot-primary"></span>Fully mapped</span><strong class="ca-number">{{ quality.mapped }}</strong></div>
+      <div class="ca-quality-row fs-sm"><span><span class="ca-dot ca-dot-warning"></span>Needs review</span><strong class="ca-number">{{ quality.review }}</strong></div>
+      <div class="ca-quality-row fs-sm"><span><span class="ca-dot"></span>Untagged</span><strong class="ca-number">{{ quality.untagged }}</strong></div>
+      {% if quality.total %}<a href="#mapping-review" class="btn btn-outline-secondary w-100 mt-3">Inspect {{ quality.total }} problems <i class="ti ti-arrow-down ms-1" aria-hidden="true"></i></a>{% endif %}
+    </div></div></aside>
   </div>
 
-  <div class="row g-3 mt-0">
-    <div class="col-12">
-      <div class="card">
-        <div class="card-header border-bottom pb-0">
-          <ul class="nav nav-tabs card-header-tabs" id="technique-dashboard-chart-tabs" role="tablist">
-            <li class="nav-item" role="presentation">
-              <button class="nav-link active" id="technique-dashboard-coverage-tab" data-bs-toggle="tab" data-bs-target="#technique-dashboard-coverage-pane" type="button" role="tab" aria-controls="technique-dashboard-coverage-pane" aria-selected="true">Coverage</button>
-            </li>
-            <li class="nav-item" role="presentation">
-              <button class="nav-link" id="technique-dashboard-breadth-tab" data-bs-toggle="tab" data-bs-target="#technique-dashboard-breadth-pane" type="button" role="tab" aria-controls="technique-dashboard-breadth-pane" aria-selected="false">Breadth</button>
-            </li>
-            <li class="nav-item" role="presentation">
-              <button class="nav-link" id="technique-dashboard-difficulty-tab" data-bs-toggle="tab" data-bs-target="#technique-dashboard-difficulty-pane" type="button" role="tab" aria-controls="technique-dashboard-difficulty-pane" aria-selected="false">Difficulty</button>
-            </li>
-            <li class="nav-item" role="presentation">
-              <button class="nav-link" id="technique-dashboard-activity-tab" data-bs-toggle="tab" data-bs-target="#technique-dashboard-activity-pane" type="button" role="tab" aria-controls="technique-dashboard-activity-pane" aria-selected="false">Activity</button>
-            </li>
-          </ul>
-        </div>
-        <div class="card-body">
-          <div class="tab-content" id="technique-dashboard-chart-tab-content">
-            <div class="tab-pane fade show active" id="technique-dashboard-coverage-pane" role="tabpanel" aria-labelledby="technique-dashboard-coverage-tab" tabindex="0">
-              <div class="row g-3">
-                <div class="col-xl-6">
-                  <h4 class="header-title mb-0">Contest coverage</h4>
-                  <p class="text-muted fs-xs mb-2">Techniques that travel across the widest contest spread</p>
-                  <div id="chart-technique-contest-coverage" style="min-height: 320px;"></div>
-                </div>
-                <div class="col-xl-6">
-                  <h4 class="header-title mb-0">Domain breadth</h4>
-                  <p class="text-muted fs-xs mb-2">How many domain labels each technique spans</p>
-                  <div id="chart-technique-domain-breadth" style="min-height: 320px;"></div>
-                </div>
-              </div>
-            </div>
-            <div class="tab-pane fade" id="technique-dashboard-breadth-pane" role="tabpanel" aria-labelledby="technique-dashboard-breadth-tab" tabindex="0">
-              <div class="row g-3">
-                <div class="col-xl-6">
-                  <h4 class="header-title mb-0">Topic volume</h4>
-                  <p class="text-muted fs-xs mb-2">Technique rows by main topic</p>
-                  <div id="chart-technique-topic-volume" style="min-height: 320px;"></div>
-                </div>
-                <div class="col-xl-6">
-                  <h4 class="header-title mb-0">Domain label volume</h4>
-                  <p class="text-muted fs-xs mb-2">Most common domain labels across all technique rows</p>
-                  <div id="chart-technique-domain-volume" style="min-height: 320px;"></div>
-                </div>
-              </div>
-            </div>
-            <div class="tab-pane fade" id="technique-dashboard-difficulty-pane" role="tabpanel" aria-labelledby="technique-dashboard-difficulty-tab" tabindex="0">
-              <h4 class="header-title mb-0">Average MOHS by technique</h4>
-              <p class="text-muted fs-xs mb-2">X-axis shows problem count; Y-axis shows average MOHS.{% if technique_chart_is_capped %} Showing the 200 most-used matching techniques; narrow the filters to explore others.{% endif %}</p>
-              <div id="chart-technique-mohs-scatter" style="min-height: 360px;"></div>
-            </div>
-            <div class="tab-pane fade" id="technique-dashboard-activity-pane" role="tabpanel" aria-labelledby="technique-dashboard-activity-tab" tabindex="0">
-              <h4 class="header-title mb-0">Technique activity by year</h4>
-              <p class="text-muted fs-xs mb-2">Count of normalized technique rows attached to problems in each year</p>
-              <div id="chart-technique-year-activity" style="min-height: 320px;"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="row g-3 mt-0 mb-4">
-    <div class="col-12">
-      <div class="card">
-        <div class="card-header border-bottom d-flex flex-wrap align-items-center gap-2">
-          <div class="flex-grow-1">
-            <h4 class="header-title mb-0">Technique directory</h4>
-            <p class="text-muted fs-xs mb-0">Grouped normalized techniques across contests, topics, years, domains, and difficulty.</p>
-          </div>
-          <span id="technique-dashboard-visible-count" class="badge bg-secondary-subtle text-secondary">
-            {{ technique_total }} visible
-          </span>
-        </div>
-        <div class="card-body">
-          <div class="table-responsive technique-dashboard-table-tools">
-            {% include 'pages/partials/server-pagination.html' %}
-            <table id="technique-analytics-table" class="table table-striped table-bordered align-middle w-100"></table>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
+  {% if selected_concept %}
+  <section class="card ca-detail mb-3" id="concept-detail" aria-labelledby="concept-detail-title">
+    <div class="card-header border-0 d-flex justify-content-between align-items-start gap-3 pt-3"><div><p class="text-muted fs-xs mb-1">{{ selected_concept.subject }} / {{ selected_concept.area }}</p><h2 class="header-title mb-1" id="concept-detail-title">{{ selected_concept.label }}</h2><p class="text-muted fs-xs mb-0">{{ selected_concept.problem_count }} problems · {{ selected_concept.contest_count }} contests</p></div><a href="{{ close_detail_url }}#concept-explorer" class="btn btn-sm btn-outline-secondary" aria-label="Close concept details"><i class="ti ti-x" aria-hidden="true"></i></a></div>
+    {% if problem_page.object_list %}<div class="table-responsive"><table class="table table-hover ca-table mb-0"><caption class="visually-hidden">Problems covering {{ selected_concept.label }}</caption><thead><tr><th scope="col">Problem</th><th scope="col">Subject</th><th scope="col" class="text-end">MOHS</th><th scope="col">Mapping</th></tr></thead><tbody>{% for problem in problem_page %}<tr><td><a class="ca-concept-name" href="{{ problem.url }}">{{ problem.label }} <i class="ti ti-arrow-up-right ms-1" aria-hidden="true"></i></a></td><td>{{ problem.subject|default:'—' }}</td><td class="text-end ca-number">{{ problem.mohs|default_if_none:'—' }}</td><td><span class="text-muted fs-xs">{{ problem.concept_coverage_status }}</span></td></tr>{% endfor %}</tbody></table></div><div class="ca-pagination text-muted fs-xs"><span>{{ problem_page.start_index }}–{{ problem_page.end_index }} of {{ problem_page.paginator.count }} problems</span><nav aria-label="Concept problem pages" class="d-flex gap-2">{% if problem_page.has_previous %}<a class="btn btn-sm btn-outline-secondary" href="{{ problem_pagination_url }}{% if '?' in problem_pagination_url %}&amp;{% else %}?{% endif %}problem_page={{ problem_page.previous_page_number }}#concept-detail">Previous</a>{% endif %}{% if problem_page.has_next %}<a class="btn btn-sm btn-outline-secondary" href="{{ problem_pagination_url }}{% if '?' in problem_pagination_url %}&amp;{% else %}?{% endif %}problem_page={{ problem_page.next_page_number }}#concept-detail">Next</a>{% endif %}</nav></div>{% else %}<div class="ca-empty"><i class="ti ti-circle-dashed fs-24 text-muted" aria-hidden="true"></i><p class="mt-2 mb-1 fw-semibold">No problems for this concept in this view</p><p class="text-muted fs-sm mb-0">Broaden the filters or add problems to the library.</p></div>{% endif %}
+  </section>
   {% endif %}
+
+  <section class="card mb-3" id="concept-explorer" aria-labelledby="concept-explorer-title">
+    <div class="card-header border-0 pt-3 pb-2"><div><h2 id="concept-explorer-title" class="header-title mb-1">Concept explorer</h2><p class="text-muted fs-xs mb-0">Find concepts, compare coverage, and open the problems behind each count.</p></div></div>
+    <div class="px-3 px-sm-4 py-3 d-flex flex-wrap align-items-center justify-content-between gap-3 border-bottom">
+      <nav class="ca-tabs" aria-label="Concept coverage">{% for tab in state_tabs %}<a class="ca-tab{% if filters.state == tab.value %} active{% endif %}" href="{{ tab.url }}#concept-explorer"{% if filters.state == tab.value %} aria-current="page"{% endif %}>{{ tab.label }}<span class="ca-tab-count">{{ tab.count }}</span></a>{% endfor %}</nav>
+      <form method="get" class="ca-search" role="search" aria-label="Search concepts">
+        {% for key, value in scope_inputs.items %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}<input type="hidden" name="state" value="{{ filters.state }}"><input type="hidden" name="sort" value="{{ filters.sort }}">
+        <label for="concept-search" class="visually-hidden">Search concepts in this view</label><i class="ti ti-search" aria-hidden="true"></i><input id="concept-search" type="search" name="q" value="{{ filters.q }}" class="form-control" placeholder="Search concepts or areas…"><button type="submit" class="btn btn-sm btn-link text-muted" aria-label="Search concepts"><i class="ti ti-arrow-right" aria-hidden="true"></i></button>
+      </form>
+    </div>
+    <div class="px-3 px-sm-4 py-2 d-flex flex-wrap align-items-center justify-content-between gap-2">
+      <span class="text-muted fs-xs" role="status">{{ concept_page.paginator.count }} matching concepts{% if filters.q %} for “{{ filters.q }}”{% endif %}</span>
+      <form method="get" class="d-flex align-items-center gap-2">
+        {% for key, value in scope_inputs.items %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}<input type="hidden" name="q" value="{{ filters.q }}"><input type="hidden" name="state" value="{{ filters.state }}">
+        <label class="text-muted fs-xs text-nowrap" for="concept-sort">Sort by</label><select id="concept-sort" name="sort" class="form-select form-select-sm py-1" style="min-height:2rem;width:auto"><option value="problems"{% if filters.sort == 'problems' %} selected{% endif %}>Most problems</option><option value="fewest"{% if filters.sort == 'fewest' %} selected{% endif %}>Fewest problems</option><option value="name"{% if filters.sort == 'name' %} selected{% endif %}>Concept name</option><option value="mohs"{% if filters.sort == 'mohs' %} selected{% endif %}>Highest median MOHS</option></select><button class="btn btn-sm btn-outline-secondary" type="submit">Sort</button>
+      </form>
+    </div>
+    {% if concept_page.object_list %}
+    <div class="table-responsive"><table class="table table-hover ca-table mb-0" id="concept-analytics-table">
+      <caption class="visually-hidden">Concept coverage in the selected library scope</caption>
+      <thead><tr><th scope="col">Concept</th><th scope="col">Area</th><th scope="col" class="text-end">Problems</th><th scope="col" class="text-end">Contests</th><th scope="col" class="text-end">Median MOHS</th><th scope="col"><span class="visually-hidden">Explore</span></th></tr></thead>
+      <tbody>{% for concept in concept_page %}<tr>
+        <td><a class="ca-concept-name" href="{{ concept.url }}">{{ concept.label }}</a><div class="text-muted fs-xs mt-1">{{ concept.subject }}</div></td>
+        <td><span class="fs-sm">{{ concept.area }}</span></td>
+        <td class="text-end ca-number">{% if concept.problem_count %}<a class="fw-semibold" href="{{ concept.url }}" aria-label="View {{ concept.problem_count }} problems for {{ concept.label }}">{{ concept.problem_count }}</a>{% else %}<span class="badge bg-light text-body border fw-normal">No problems</span>{% endif %}</td>
+        <td class="text-end text-muted ca-number">{{ concept.contest_count }}</td>
+        <td class="text-end ca-number">{% if concept.median_mohs is not None %}<span title="Based on {{ concept.rated_count }} rated problems">{{ concept.median_mohs|floatformat:'-1' }}</span>{% else %}<span class="text-muted" aria-label="No difficulty data">—</span>{% endif %}</td>
+        <td class="text-end"><a href="{{ concept.url }}" class="text-muted" aria-label="Explore {{ concept.label }}"><i class="ti ti-arrow-up-right fs-18" aria-hidden="true"></i></a></td>
+      </tr>{% endfor %}</tbody>
+    </table></div>
+    <div class="ca-pagination"><span class="text-muted fs-xs">Showing {{ concept_page.start_index }}–{{ concept_page.end_index }} of {{ concept_page.paginator.count }} concepts</span><nav aria-label="Concept pages" class="d-flex align-items-center gap-2">{% if concept_page.has_previous %}<a href="{{ pagination_url }}{% if '?' in pagination_url %}&amp;{% else %}?{% endif %}page={{ concept_page.previous_page_number }}#concept-explorer" class="btn btn-sm btn-outline-secondary"><i class="ti ti-chevron-left" aria-hidden="true"></i> Previous</a>{% endif %}<span class="text-muted fs-xs">{{ concept_page.number }} / {{ concept_page.paginator.num_pages }}</span>{% if concept_page.has_next %}<a href="{{ pagination_url }}{% if '?' in pagination_url %}&amp;{% else %}?{% endif %}page={{ concept_page.next_page_number }}#concept-explorer" class="btn btn-sm btn-outline-secondary">Next <i class="ti ti-chevron-right" aria-hidden="true"></i></a>{% endif %}</nav></div>
+    {% else %}<div class="ca-empty"><i class="ti ti-search fs-24 text-muted" aria-hidden="true"></i><h3 class="fs-sm mt-3">No concepts match these explorer filters</h3><p class="text-muted fs-sm mb-3">Try a broader search or switch the coverage tab.</p><a class="btn btn-sm btn-outline-secondary" href="{{ reset_url }}#concept-explorer">Reset view</a></div>{% endif %}
+  </section>
+
+  {% if quality.total %}<details class="card mb-3" id="mapping-review"{% if quality.expanded %} open{% endif %}><summary class="px-4 py-3"><span class="fw-semibold fs-sm">Problems to review</span><span class="text-muted fs-xs ms-2">{{ quality.total }} need mapping attention</span></summary><div class="table-responsive"><table class="table ca-table mb-0"><caption class="visually-hidden">Sample of problems needing mapping attention</caption><thead><tr><th scope="col">Problem</th><th scope="col">Status</th><th scope="col">Original tags</th></tr></thead><tbody>{% for problem in quality.rows %}<tr><td><a class="ca-concept-name" href="{{ problem.url }}">{{ problem.label }}</a></td><td class="fs-xs text-muted">{{ problem.concept_coverage_status }}</td><td class="fs-xs text-muted">{{ problem.concept_source_tags|join:', '|truncatechars:100|default:'No tags yet' }}</td></tr>{% endfor %}</tbody></table></div><div class="ca-pagination text-muted fs-xs"><span>{{ quality.page.start_index }}–{{ quality.page.end_index }} of {{ quality.total }} problems</span><nav class="d-flex gap-2" aria-label="Mapping review pages">{% if quality.page.has_previous %}<a class="btn btn-sm btn-outline-secondary" href="{{ pagination_url }}{% if '?' in pagination_url %}&amp;{% else %}?{% endif %}review_page={{ quality.page.previous_page_number }}#mapping-review">Previous</a>{% endif %}{% if quality.page.has_next %}<a class="btn btn-sm btn-outline-secondary" href="{{ pagination_url }}{% if '?' in pagination_url %}&amp;{% else %}?{% endif %}review_page={{ quality.page.next_page_number }}#mapping-review">Next</a>{% endif %}</nav></div></details>{% endif %}
+
+  <details class="text-muted fs-xs px-1 mt-4"><summary>How coverage is counted</summary><div class="mt-2" style="max-width:65rem"><p>Active problem statements take priority. Active archive problems without a statement are included. Linked entries share one problem identity and count once. Statement tags take priority over linked archive tags.</p><p>Concepts use the shared mathematical catalogue. Aliases and different roles for the same concept count once per problem. Concepts with no matching problems remain visible as coverage gaps. Median MOHS uses only problems with a known difficulty.</p><p class="mb-0">Subject, area, contest, and year define this view. Search, coverage tabs, and sorting refine the concept explorer. Library coverage does not measure a learner’s mastery.</p></div></details>
 </div>
-
-{{ charts_payload|json_script:"technique-dashboard-charts-data" }}
-{{ technique_rows|json_script:"technique-dashboard-table-data" }}
-
 {% endblock page_content %}
 
 {% block extra_javascript %}
-{% if technique_total > 0 %}
-{% include 'partials/apexcharts-vendor-script.html' %}
-{% include 'partials/datatables-vendor-scripts.html' %}
 <script>
 (function () {
-  var dataEl = document.getElementById("technique-dashboard-charts-data");
-  var tableEl = document.getElementById("technique-dashboard-table-data");
-  if (!dataEl || !tableEl) return;
-
-  var charts = JSON.parse(dataEl.textContent);
-  var rows = JSON.parse(tableEl.textContent);
-  var rootStyles = window.getComputedStyle(document.documentElement);
-
-  function themeColor(name, fallback) {
-    return (rootStyles.getPropertyValue(name) || fallback).trim();
-  }
-
-  var colors = {
-    primary: themeColor("--bs-primary", "#0d6efd"),
-    success: themeColor("--bs-success", "#198754"),
-    warning: themeColor("--bs-warning", "#ffc107"),
-    info: themeColor("--bs-info", "#0dcaf0"),
-    secondary: themeColor("--bs-secondary", "#6c757d"),
-    purple: "#6f42c1"
-  };
-
-  function escapeHtml(value) {
-    return String(value == null ? "" : value)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/\"/g, "&quot;")
-      .replace(/'/g, "&#39;");
-  }
-
-  function formatMetric(value) {
-    if (typeof value !== "number") return value;
-    return Number.isInteger(value) ? String(value) : value.toFixed(2);
-  }
-
-  function applyChartFilter(param, value) {
-    if (!param || !value) return;
-    var url = new URL(window.location.href);
-    url.searchParams.delete("page");
-    url.searchParams.set(param, value);
-    window.location.assign(url.pathname + "?" + url.searchParams.toString());
-  }
-
-  function barOptions(payload, color) {
-    return {
-      chart: {
-        type: "bar",
-        height: Math.max(320, 34 * payload.labels.length),
-        toolbar: { show: false },
-        fontFamily: "inherit",
-        events: {
-          dataPointSelection: function (_event, _chartContext, opts) {
-            if (!opts || opts.dataPointIndex < 0) return;
-            applyChartFilter(payload.filterParam, payload.labels[opts.dataPointIndex]);
-          }
-        }
-      },
-      series: [{ name: payload.seriesName || "Value", data: payload.values }],
-      plotOptions: { bar: { borderRadius: 3, horizontal: true, barHeight: "72%" } },
-      dataLabels: {
-        enabled: payload.values.length <= 12,
-        formatter: function (value) { return formatMetric(value); }
-      },
-      tooltip: {
-        y: {
-          formatter: function (value) { return formatMetric(value); }
-        }
-      },
-      colors: [color],
-      grid: { strokeDashArray: 4, borderColor: "rgba(108,117,125,0.15)" },
-      xaxis: {
-        categories: payload.labels,
-        labels: { style: { fontSize: "11px" } },
-      },
-    };
-  }
-
-  var renderedCharts = {};
-
-  function renderBar(selector, payload, color) {
-    var element = document.querySelector(selector);
-    if (
-      renderedCharts[selector] ||
-      !element ||
-      typeof ApexCharts === "undefined" ||
-      !payload ||
-      !payload.labels ||
-      !payload.labels.length
-    ) return;
-    if (payload.filterParam) element.classList.add("technique-dashboard-chart-clickable");
-    var chart = new ApexCharts(element, barOptions(payload, color));
-    chart.render();
-    renderedCharts[selector] = chart;
-  }
-
-  function renderScatter(selector, payload) {
-    var element = document.querySelector(selector);
-    var series = payload && payload.series ? payload.series : [];
-    if (renderedCharts[selector] || !element || typeof ApexCharts === "undefined" || !series.length) return;
-    element.classList.add("technique-dashboard-chart-clickable");
-    var chart = new ApexCharts(element, {
-      chart: {
-        type: "scatter",
-        height: 360,
-        toolbar: { show: false },
-        fontFamily: "inherit",
-        zoom: { enabled: false },
-        events: {
-          dataPointSelection: function (_event, optsContext, opts) {
-            if (!opts || opts.seriesIndex < 0 || opts.dataPointIndex < 0) return;
-            var point = optsContext.w.config.series[opts.seriesIndex].data[opts.dataPointIndex];
-            applyChartFilter(point.filter_param, point.filter_value);
-          }
-        }
-      },
-      series: series,
-      colors: [colors.purple],
-      grid: { strokeDashArray: 4, borderColor: "rgba(108,117,125,0.15)" },
-      markers: { size: 6, strokeWidth: 1 },
-      tooltip: {
-        custom: function (opts) {
-          var point = opts.w.config.series[opts.seriesIndex].data[opts.dataPointIndex];
-          return '<div class="p-2">' +
-            '<div class="fw-semibold">' + escapeHtml(point.technique) + '</div>' +
-            '<div class="text-muted fs-xs">' + escapeHtml(point.problem_count) + ' problems</div>' +
-            '<div class="fs-xs">Avg MOHS: ' + escapeHtml(formatMetric(point.avg_mohs)) + '</div>' +
-            '<div class="fs-xs">Max MOHS: ' + escapeHtml(point.max_mohs) + '</div>' +
-          '</div>';
-        }
-      },
-      xaxis: {
-        title: { text: "Problems" },
-        labels: { style: { fontSize: "11px" } },
-        tickAmount: 6,
-      },
-      yaxis: {
-        title: { text: "Avg MOHS" },
-        labels: {
-          formatter: function (value) { return formatMetric(Number(value)); },
-          style: { fontSize: "11px" }
-        },
-      },
-    });
-    chart.render();
-    renderedCharts[selector] = chart;
-  }
-
-  function renderChartGroup(group) {
-    if (group === "coverage") {
-      renderBar("#chart-technique-contest-coverage", charts.byContestCoverage, colors.success);
-      renderBar("#chart-technique-domain-breadth", charts.byDomainBreadth, colors.info);
-    }
-    if (group === "breadth") {
-      renderBar("#chart-technique-topic-volume", charts.byTopicVolume, colors.warning);
-      renderBar("#chart-technique-domain-volume", charts.byDomainVolume, colors.success);
-    }
-    if (group === "difficulty") {
-      renderScatter("#chart-technique-mohs-scatter", charts.byAvgMohsScatter);
-    }
-    if (group === "activity") {
-      renderBar("#chart-technique-year-activity", charts.byYearActivity, colors.secondary);
-    }
-  }
-
-  renderBar("#chart-technique-volume", charts.byProblemVolume, colors.primary);
-  renderChartGroup("coverage");
-  document.querySelectorAll('[data-bs-toggle="tab"][data-bs-target^="#technique-dashboard-"]').forEach(function (tabButton) {
-    tabButton.addEventListener("shown.bs.tab", function () {
-      var target = tabButton.getAttribute("data-bs-target") || "";
-      if (target.indexOf("coverage") !== -1) renderChartGroup("coverage");
-      if (target.indexOf("breadth") !== -1) renderChartGroup("breadth");
-      if (target.indexOf("difficulty") !== -1) renderChartGroup("difficulty");
-      if (target.indexOf("activity") !== -1) renderChartGroup("activity");
+  "use strict";
+  const subject = document.getElementById("concept-subject");
+  const area = document.getElementById("concept-area");
+  subject.addEventListener("change", function () {
+    area.value = "";
+    Array.from(area.options).forEach(function (option) {
+      option.hidden = Boolean(option.value && subject.value && option.dataset.subject !== subject.value);
+      option.disabled = option.hidden;
     });
   });
-
-  if (typeof DataTable === "undefined") return;
-
-  function renderBadgeList(values, badgeClass) {
-    if (!Array.isArray(values) || !values.length) return "";
-    return '<span class="technique-dashboard-badge-list d-flex flex-wrap gap-1">' +
-      values.map(function (value) {
-        return '<span class="badge ' + badgeClass + '">' + escapeHtml(value) + '</span>';
-      }).join("") +
-    '</span>';
-  }
-
-  function renderCountWithBadges(count, values, badgeClass) {
-    return '<div class="d-flex align-items-center gap-2">' +
-      '<span class="text-nowrap fw-semibold">' + escapeHtml(formatMetric(Number(count || 0))) + '</span>' +
-      renderBadgeList(values, badgeClass) +
-    '</div>';
-  }
-
-  var table = new DataTable("#technique-analytics-table", {
-    data: rows,
-    columns: [
-      {
-        data: "technique",
-        title: "Technique",
-        render: function (data, type, row) {
-          if (type === "display") {
-            return '<a href="' + escapeHtml(row.search_href || "#") + '" class="fw-semibold">' + escapeHtml(data) + '</a>';
-          }
-          return data;
-        }
-      },
-      { data: "problem_count", title: "Problems", className: "text-end text-nowrap" },
-      { data: "contest_count", title: "Contests", className: "text-end text-nowrap" },
-      {
-        data: "topic_count",
-        title: "Topics",
-        render: function (data, type, row) {
-          if (type === "display") {
-            return renderCountWithBadges(data, row.topics, "bg-warning-subtle text-warning");
-          }
-          if (type === "filter") return row.topics_label || "";
-          return data;
-        }
-      },
-      {
-        data: "domain_count",
-        title: "Domains",
-        render: function (data, type, row) {
-          if (type === "display") {
-            return renderCountWithBadges(data, row.domains, "bg-info-subtle text-info");
-          }
-          if (type === "filter") return row.domains_label || "";
-          return data;
-        }
-      },
-      { data: "active_years", title: "Active years", className: "text-end text-nowrap" },
-      { data: "year_span_label", title: "Year span", className: "text-nowrap" },
-      {
-        data: "avg_mohs",
-        title: "Avg MOHS",
-        className: "text-end text-nowrap",
-        render: function (data, type) {
-          if (type === "display" || type === "filter") return formatMetric(Number(data || 0));
-          return data;
-        }
-      },
-      { data: "max_mohs", title: "Max MOHS", className: "text-end text-nowrap" },
-      { data: "sample_contests_label", title: "Top contests", defaultContent: "" },
-    ],
-    order: [[1, "desc"], [0, "asc"]],
-    pageLength: 25,
-    lengthMenu: [10, 25, 50, 100],
-    paging: false,
-    searching: false,
-    info: false,
-    ordering: false,
-    scrollX: true,
-    autoWidth: false,
-    drawCallback: function () {
-      var countEl = document.getElementById("technique-dashboard-visible-count");
-      if (!countEl) return;
-      var visible = this.api().rows({ search: "applied" }).count();
-      countEl.textContent = visible + " visible";
-    }
+  const reviewLink = document.querySelector('a[href="#mapping-review"]');
+  if (reviewLink) reviewLink.addEventListener("click", function () {
+    document.getElementById("mapping-review").open = true;
   });
 })();
 </script>
-{% endif %}
 {% endblock extra_javascript %}
