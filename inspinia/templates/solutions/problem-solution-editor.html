@@ -1,336 +1,259 @@
 {% extends 'layouts/vertical.html' %}
-
-{% load static %}
-{% load topic_labels %}
-
-{% block title %}Edit solution{% endblock title %}
+{% load static topic_labels %}
+{% block title %}Solution workspace{% endblock title %}
 
 {% block extra_css %}
 <style>
-  .solution-editor-grid {
-    display: grid;
-    gap: 1rem;
-  }
-
-  .solution-meta-grid {
-    display: grid;
-    gap: 0.85rem;
-    grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
-  }
-
-  .solution-meta-item {
-    min-width: 0;
-  }
-
-  .solution-meta-label {
-    display: block;
-    margin-bottom: 0.3rem;
-    font-size: 0.7rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--bs-secondary-color);
-  }
-
-  .solution-statement-panel {
-    width: 100%;
-  }
-
+  .solution-workspace-page { --se-surface: var(--ins-secondary-bg); --se-muted: var(--ins-secondary-color); padding-bottom: 2rem; }
+  .solution-workspace-page .se-eyebrow { color: var(--se-muted); font-size: .68rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+  .solution-masthead { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 1.5rem 0 1.25rem; }
+  .solution-masthead h1 { font-size: clamp(1.4rem, 2vw, 1.9rem); font-weight: 700; letter-spacing: -.035em; margin: .35rem 0 .6rem; }
+  .solution-masthead-meta { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem .85rem; color: var(--se-muted); font-size: .8rem; }
+  .solution-masthead-meta strong { color: var(--ins-body-color); }
+  .solution-context-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(17rem, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+  .solution-reference, .solution-coverage { min-width: 0; border: 1px solid var(--ins-border-color); border-radius: var(--ins-border-radius-lg); background: var(--se-surface); }
+  .solution-context-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 1.25rem .7rem; }
+  .solution-context-heading h2 { display: flex; align-items: center; gap: .55rem; font-size: .82rem; font-weight: 700; margin: 0; }
+  .solution-context-heading i { color: var(--ins-primary); font-size: 1.05rem; }
+  .solution-reference-body { padding: .25rem 1.25rem 1.15rem; max-height: 16rem; overflow: auto; line-height: 1.85; font-size: .95rem; }
+  .solution-reference-body .statement-evan-box { padding: 0; border: 0; background: transparent; box-shadow: none; }
+  .solution-reference-body .statement-text-fragment { white-space: pre-wrap; }
+  .solution-reference-body svg, .solution-reference-body img { max-width: 100%; height: auto; }
+  .solution-context-details { padding: .65rem 1.25rem; border-top: 1px solid var(--ins-border-color); color: var(--se-muted); font-size: .75rem; }
+  .solution-context-details summary { cursor: pointer; width: fit-content; }
+  .solution-context-details dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: .4rem 1rem; padding-top: .8rem; margin: 0; }
+  .solution-context-details dd { margin: 0; overflow-wrap: anywhere; color: var(--ins-body-color); }
+  .solution-coverage-body { padding: .15rem 1.25rem 1rem; max-height: 18rem; overflow: auto; }
+  .solution-area-list { display: flex; flex-wrap: wrap; gap: .4rem; margin: .4rem 0 .9rem; }
+  .solution-area-item { color: var(--ins-body-color); background: var(--ins-tertiary-bg); border-radius: var(--ins-border-radius); padding: .3rem .55rem; font-size: .75rem; line-height: 1.5; }
+  .solution-concept-list { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .4rem; }
+  .solution-concept { display: inline-flex; align-items: center; gap: .35rem; color: var(--ins-primary-text-emphasis); background: var(--ins-primary-bg-subtle); border: 1px solid var(--ins-primary-border-subtle); padding: .3rem .6rem; border-radius: var(--ins-border-radius); text-decoration: none; font-size: .75rem; font-weight: 600; line-height: 1.4; }
+  .solution-concept:hover { color: var(--ins-primary-text-emphasis); border-color: var(--ins-primary); }
+  .solution-mapping-notes { margin-top: .9rem; font-size: .75rem; color: var(--se-muted); }
+  .solution-mapping-notes summary { cursor: pointer; }
+  .solution-mapping-notes ul { padding-left: 1rem; margin: .5rem 0; overflow-wrap: anywhere; }
+  .solution-workspace-toolbar { position: sticky; top: calc(var(--ins-topbar-height, 64px) + .5rem); z-index: 20; display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; margin-bottom: 1rem; padding: .75rem 1rem; border: 1px solid var(--ins-border-color); border-radius: var(--ins-border-radius-lg); background: var(--se-surface); box-shadow: 0 4px 16px rgba(var(--ins-body-color-rgb), .04); }
+  .solution-view-switch { display: inline-flex; gap: .2rem; padding: .2rem; background: var(--ins-tertiary-bg); border-radius: var(--ins-border-radius); }
+  .solution-view-switch button { border: 0; border-radius: var(--ins-border-radius); background: transparent; color: var(--se-muted); padding: .35rem .65rem; font-size: .75rem; font-weight: 600; transition: background-color .15s, color .15s; }
+  .solution-view-switch button[aria-pressed="true"] { background: var(--se-surface); color: var(--ins-body-color); box-shadow: 0 1px 4px rgba(var(--ins-body-color-rgb), .08); }
+  .solution-save-status { font-size: .75rem; color: var(--se-muted); }
+  .solution-save-status[data-dirty="true"] { color: var(--ins-warning-text-emphasis); }
+  .solution-actions-menu { position: relative; }
+  .solution-actions-menu > summary { list-style: none; }
+  .solution-actions-menu > summary::-webkit-details-marker { display: none; }
+  .solution-actions-dropdown { position: absolute; right: 0; top: calc(100% + .5rem); min-width: 12rem; padding: .45rem; background: var(--se-surface); border: 1px solid var(--ins-border-color); border-radius: var(--ins-border-radius); box-shadow: var(--ins-box-shadow); }
+  .solution-actions-dropdown > * { display: block; width: 100%; text-align: left; padding: .5rem .65rem; font-size: .8rem; border: 0; background: transparent; color: var(--ins-body-color); text-decoration: none; border-radius: var(--ins-border-radius); }
+  .solution-actions-dropdown > *:hover { background: var(--ins-tertiary-bg); }
+  .solution-editor-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, .95fr); gap: 1.25rem; align-items: start; }
+  .solution-editor-grid[data-view="write"], .solution-editor-grid[data-view="preview"] { grid-template-columns: minmax(0, 1fr); }
+  .solution-editor-grid[data-view="write"] .solution-preview-pane, .solution-editor-grid[data-view="preview"] .solution-write-pane { display: none; }
+  .solution-write-pane, .solution-preview-pane { min-width: 0; }
+  .solution-pane-label { display: flex; align-items: center; justify-content: space-between; margin-bottom: .7rem; font-size: .7rem; color: var(--se-muted); letter-spacing: .08em; font-weight: 700; text-transform: uppercase; }
+  .solution-document-settings { padding: 1.25rem; margin-bottom: 1rem; background: var(--se-surface); border: 1px solid var(--ins-border-color); border-radius: var(--ins-border-radius-lg); }
+  .solution-document-settings .form-control { background-color: transparent; }
+  .solution-document-settings input { font-size: 1.1rem; font-weight: 600; }
+  .solution-summary-toggle { margin-top: .85rem; font-size: .8rem; }
+  .solution-summary-toggle summary { color: var(--se-muted); cursor: pointer; }
+  .solution-summary-toggle[open] summary { margin-bottom: .65rem; }
+  .solution-block-editor { background: var(--se-surface); border: 1px solid var(--ins-border-color); border-radius: var(--ins-border-radius-lg); margin-bottom: 1rem; overflow: hidden; }
+  .solution-block-header { display: flex; align-items: center; justify-content: space-between; gap: .65rem; padding: .8rem 1rem; border-bottom: 1px solid var(--ins-border-color); }
+  .solution-block-heading { display: flex; align-items: center; gap: .6rem; font-size: .8rem; font-weight: 600; margin: 0; }
+  .solution-block-number { color: var(--ins-primary); font-family: var(--ins-font-monospace); font-size: .75rem; }
+  .solution-block-header .btn { color: var(--se-muted); padding: .25rem .4rem; }
+  .solution-block-header .btn:hover { background: var(--ins-tertiary-bg); color: var(--ins-body-color); }
+  .solution-block-header .btn[data-remove-block]:hover { color: var(--ins-danger); }
+  .solution-block-fields { padding: 1rem; }
+  .solution-block-fields .form-label { font-size: .75rem; color: var(--se-muted); }
+  .solution-block-fields textarea { min-height: 14rem; font-size: .82rem; line-height: 1.75; tab-size: 2; resize: vertical; background: var(--se-surface); }
+  .solution-block-options { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: .75rem; margin-bottom: .9rem; }
+  .solution-block-options .form-select { font-size: .8rem; }
+  .solution-block-source-tools { display: flex; align-items: center; flex-wrap: wrap; gap: .25rem; margin-top: .5rem; }
+  .solution-block-source-tools .btn { color: var(--se-muted); font-size: .7rem; padding: .2rem .4rem; }
+  .solution-manual-order { margin-top: .75rem; font-size: .7rem; color: var(--se-muted); }
+  .solution-manual-order summary { cursor: pointer; width: fit-content; }
+  .solution-manual-order .form-control { max-width: 6rem; margin-top: .4rem; }
+  .solution-add-block { width: 100%; border-style: dashed; padding: .8rem; font-size: .8rem; }
+  .solution-preview-pane { position: sticky; top: calc(var(--ins-topbar-height, 64px) + 6rem); }
+  .solution-preview-paper { min-height: 28rem; padding: clamp(1.25rem, 2.5vw, 2.5rem); background: var(--se-surface); border: 1px solid var(--ins-border-color); border-radius: var(--ins-border-radius-lg); box-shadow: 0 8px 28px rgba(var(--ins-body-color-rgb), .035); overflow-wrap: anywhere; }
+  .solution-preview-title { font-family: Georgia, "Times New Roman", serif; font-size: 1.4rem; line-height: 1.4; margin: .15rem 0 .75rem; }
+  .solution-preview-summary { color: var(--se-muted); font-style: italic; line-height: 1.7; padding-bottom: 1rem; margin-bottom: 1rem; border-bottom: 1px solid var(--ins-border-color); }
+  .solution-preview-block + .solution-preview-block { padding-top: 1.25rem; margin-top: 1.25rem; border-top: 1px solid var(--ins-border-color); }
+  .solution-preview-block-heading { font-weight: 700; margin-bottom: .6rem; }
+  .solution-preview-body, .solution-preview-block-body { font-family: Georgia, "Times New Roman", serif; white-space: pre-wrap; font-size: 1rem; line-height: 1.85; }
+  .solution-reference-body mjx-container[display="true"], .solution-preview-paper mjx-container[display="true"] { max-width: 100%; overflow-x: auto; overflow-y: hidden; }
+  .solution-preview-placeholder { color: var(--se-muted); padding: 2rem 0; text-align: center; line-height: 1.8; font-family: inherit; }
+  .solution-preview-live { display: inline-flex; gap: .35rem; align-items: center; font-size: .65rem; letter-spacing: 0; font-weight: 500; text-transform: none; }
+  .solution-preview-live::before { content: ""; width: .35rem; height: .35rem; background: var(--ins-primary); border-radius: 50%; }
+  .solution-editor-help { margin-top: 1.25rem; color: var(--se-muted); font-size: .8rem; }
+  .solution-editor-help > summary { cursor: pointer; width: fit-content; }
+  .solution-editor-help ul { line-height: 1.9; padding-left: 1.15rem; margin: .75rem 0 0; }
+  .solution-workspace-page button:focus-visible, .solution-workspace-page summary:focus-visible, .solution-workspace-page a:focus-visible { outline: 2px solid var(--ins-primary); outline-offset: 3px; }
   @media (min-width: 1200px) {
-    .solution-editor-grid {
-      grid-template-columns: minmax(0, 1.1fr) minmax(22rem, 0.9fr);
-      align-items: start;
-    }
-
-    .solution-statement-panel {
-      max-width: calc(50% - 0.5rem);
-      justify-self: start;
-    }
+    .solution-editor-grid[data-view="split"] .solution-preview-paper { min-height: min(28rem, calc(100dvh - var(--ins-topbar-height, 64px) - 8rem)); max-height: calc(100dvh - var(--ins-topbar-height, 64px) - 8rem); overflow-y: auto; }
   }
-
-  .solution-block-editor + .solution-block-editor {
-    margin-top: 1rem;
+  @media (max-width: 1199.98px) {
+    .solution-editor-grid { grid-template-columns: minmax(0, 1fr); }
+    .solution-editor-grid[data-view="split"] .solution-preview-pane { display: none; }
+    .solution-split-toggle { display: none; }
+    .solution-preview-pane { position: static; }
   }
-
-  .solution-preview-shell {
-    position: sticky;
-    top: 1rem;
+  @media (max-width: 991.98px) { .solution-context-grid { grid-template-columns: minmax(0, 1fr); } }
+  @media (max-width: 575.98px) {
+    .solution-masthead { align-items: flex-start; }
+    .solution-workspace-page .solution-masthead-links { display: none !important; }
+    .solution-workspace-toolbar { gap: .65rem; padding: .65rem; top: var(--ins-topbar-height, 64px); }
+    .solution-toolbar-state { flex-basis: 100%; justify-content: space-between; }
+    .solution-toolbar-actions { width: 100%; }
+    #solution-save { flex-grow: 1; }
+    .solution-reference-body { font-size: .9rem; }
   }
-
-  .solution-preview-body,
-  .solution-preview-block-body {
-    white-space: pre-wrap;
-    line-height: 1.8;
-  }
+  @media (prefers-reduced-motion: reduce) { .solution-view-switch button { transition: none; } }
 </style>
 {% endblock extra_css %}
 
 {% block page_content %}
-<div class="container-fluid">
-
-  {% include 'partials/page-title.html' with title='Solution editor' subtitle=problem_data.problem_label %}
-
-  {% if messages %}
-  <div class="mt-3">
-    {% for message in messages %}
-      <div class="alert alert-{% if message.tags == 'error' %}danger{% elif message.tags == 'debug' %}secondary{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
-        {{ message }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-      </div>
-    {% endfor %}
-  </div>
-  {% endif %}
-
-  <div class="row g-3 mt-0">
-    <div class="col-12">
-      <div class="d-grid gap-3">
-        <div class="card solution-statement-panel">
-          <div class="card-header border-bottom">
-            <h4 class="header-title mb-0">Problem metadata</h4>
-          </div>
-          <div class="card-body">
-            <div class="solution-meta-grid">
-              <div class="solution-meta-item">
-                <span class="solution-meta-label">Contest</span>
-                <div class="fw-semibold">{{ problem_data.problem.contest }}</div>
-                <div class="text-muted fs-sm">{{ problem_data.problem.year }} · {{ problem_data.problem.problem }}</div>
-              </div>
-              <div class="solution-meta-item">
-                <span class="solution-meta-label">Topic</span>
-                <div class="fw-semibold">{{ problem_data.problem.topic|topic_label }}</div>
-              </div>
-              <div class="solution-meta-item">
-                <span class="solution-meta-label">MOHS</span>
-                <div class="fw-semibold">{{ problem_data.problem.mohs }}</div>
-              </div>
-              <div class="solution-meta-item">
-                <span class="solution-meta-label">Confidence</span>
-                <div>{% if problem_data.problem.confidence %}{{ problem_data.problem.confidence }}{% else %}<span class="text-muted fs-sm">—</span>{% endif %}</div>
-              </div>
-              <div class="solution-meta-item">
-                <span class="solution-meta-label">IMO slot guess</span>
-                <div>{% if problem_data.problem.imo_slot_guess %}{{ problem_data.problem.imo_slot_guess }}{% else %}<span class="text-muted fs-sm">—</span>{% endif %}</div>
-              </div>
-              <div class="solution-meta-item">
-                <span class="solution-meta-label">Problem UUID</span>
-                <code>{{ problem_data.problem.problem_uuid }}</code>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {% if problem_data.statement_entry %}
-        <div class="card solution-statement-panel">
-          <div class="card-header border-bottom">
-            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
-              <h4 class="header-title mb-0">Linked statement</h4>
-              <span class="badge bg-light text-body-secondary">
-                {{ problem_data.statement_entry.problem_code }}{% if problem_data.statement_entry.day_label %} · {{ problem_data.statement_entry.day_label }}{% endif %}
-              </span>
-            </div>
-          </div>
-          <div class="card-body">
-            {% include 'partials/statement-render-content.html' with segments=problem_data.statement_render_segments %}
-          </div>
-        </div>
-        {% endif %}
-
-        <div class="card h-100">
-        <div class="card-header border-bottom">
-          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
-            <div>
-              <h4 class="header-title mb-0">{{ problem_data.problem_label }}</h4>
-              <p class="text-muted fs-xs mb-0">Build your solution as ordered blocks and preview the rendered LaTeX alongside the editor.</p>
-            </div>
-            <div class="d-flex flex-wrap gap-2">
-              <span class="badge {{ solution_status_badge_class }}">{{ solution_status_label }}</span>
-              <a href="{{ problem_data.solutions_url }}" class="btn btn-outline-secondary btn-sm">View solution page</a>
-              {% if problem_data.contest_archive_url %}
-              <a href="{{ problem_data.contest_archive_url }}#{{ problem_data.problem_anchor }}" class="btn btn-outline-secondary btn-sm">Open contest archive</a>
-              {% endif %}
-            </div>
-          </div>
-        </div>
-        <div class="card-body">
-          <form method="post" novalidate id="solution-editor-form">
-            {% csrf_token %}
-            {{ formset.management_form }}
-
-            {% if form.non_field_errors %}
-            <div class="alert alert-danger">
-              {% for err in form.non_field_errors %}
-              <div>{{ err }}</div>
-              {% endfor %}
-            </div>
-            {% endif %}
-
-            {% if formset.non_form_errors %}
-            <div class="alert alert-danger">
-              {% for err in formset.non_form_errors %}
-              <div>{{ err }}</div>
-              {% endfor %}
-            </div>
-            {% endif %}
-
-            <div class="solution-editor-grid">
-              <div>
-                <div class="card border mb-3">
-                  <div class="card-body">
-                    <div class="mb-3">
-                      <label class="form-label" for="{{ form.title.id_for_label }}">{{ form.title.label }}</label>
-                      {{ form.title }}
-                      {% for err in form.title.errors %}<div class="invalid-feedback d-block">{{ err }}</div>{% endfor %}
-                    </div>
-                    <div>
-                      <label class="form-label" for="{{ form.summary.id_for_label }}">{{ form.summary.label }}</label>
-                      {{ form.summary }}
-                      {% for err in form.summary.errors %}<div class="invalid-feedback d-block">{{ err }}</div>{% endfor %}
-                    </div>
-                  </div>
-                </div>
-
-                <div id="solution-block-list">
-                  {% for block_form in formset %}
-                  <div class="card border solution-block-editor" data-block-form>
-                    <div class="card-header border-bottom py-2">
-                      <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
-                        <h5 class="mb-0">Block <span data-block-number>{{ forloop.counter }}</span></h5>
-                        <button type="button" class="btn btn-outline-danger btn-sm" data-remove-block>Remove</button>
-                      </div>
-                    </div>
-                    <div class="card-body">
-                      {{ block_form.id }}
-                      {{ block_form.DELETE }}
-                      <div class="row g-3">
-                        <div class="col-sm-3">
-                          <label class="form-label" for="{{ block_form.ORDER.id_for_label }}">Order</label>
-                          {{ block_form.ORDER }}
-                          {% for err in block_form.ORDER.errors %}<div class="invalid-feedback d-block">{{ err }}</div>{% endfor %}
-                        </div>
-                        <div class="col-sm-4">
-                          <label class="form-label" for="{{ block_form.block_type.id_for_label }}">{{ block_form.block_type.label }}</label>
-                          {{ block_form.block_type }}
-                          {% for err in block_form.block_type.errors %}<div class="invalid-feedback d-block">{{ err }}</div>{% endfor %}
-                        </div>
-                        <div class="col-sm-5">
-                          <label class="form-label" for="{{ block_form.title.id_for_label }}">{{ block_form.title.label }}</label>
-                          {{ block_form.title }}
-                          {% for err in block_form.title.errors %}<div class="invalid-feedback d-block">{{ err }}</div>{% endfor %}
-                        </div>
-                        <div class="col-sm-4">
-                          <label class="form-label" for="{{ block_form.body_format.id_for_label }}">{{ block_form.body_format.label }}</label>
-                          {{ block_form.body_format }}
-                          {% for err in block_form.body_format.errors %}<div class="invalid-feedback d-block">{{ err }}</div>{% endfor %}
-                        </div>
-                        <div class="col-12">
-                          <label class="form-label" for="{{ block_form.body_source.id_for_label }}">{{ block_form.body_source.label }}</label>
-                          {{ block_form.body_source }}
-                          {% for err in block_form.body_source.errors %}<div class="invalid-feedback d-block">{{ err }}</div>{% endfor %}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  {% endfor %}
-                </div>
-
-                <template id="solution-block-empty-form">
-                  <div class="card border solution-block-editor" data-block-form>
-                    <div class="card-header border-bottom py-2">
-                      <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
-                        <h5 class="mb-0">Block <span data-block-number></span></h5>
-                        <button type="button" class="btn btn-outline-danger btn-sm" data-remove-block>Remove</button>
-                      </div>
-                    </div>
-                    <div class="card-body">
-                      {{ formset.empty_form.id }}
-                      {{ formset.empty_form.DELETE }}
-                      <div class="row g-3">
-                        <div class="col-sm-3">
-                          <label class="form-label" for="{{ formset.empty_form.ORDER.id_for_label }}">Order</label>
-                          {{ formset.empty_form.ORDER }}
-                        </div>
-                        <div class="col-sm-4">
-                          <label class="form-label" for="{{ formset.empty_form.block_type.id_for_label }}">{{ formset.empty_form.block_type.label }}</label>
-                          {{ formset.empty_form.block_type }}
-                        </div>
-                        <div class="col-sm-5">
-                          <label class="form-label" for="{{ formset.empty_form.title.id_for_label }}">{{ formset.empty_form.title.label }}</label>
-                          {{ formset.empty_form.title }}
-                        </div>
-                        <div class="col-sm-4">
-                          <label class="form-label" for="{{ formset.empty_form.body_format.id_for_label }}">{{ formset.empty_form.body_format.label }}</label>
-                          {{ formset.empty_form.body_format }}
-                        </div>
-                        <div class="col-12">
-                          <label class="form-label" for="{{ formset.empty_form.body_source.id_for_label }}">{{ formset.empty_form.body_source.label }}</label>
-                          {{ formset.empty_form.body_source }}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </template>
-
-                <div class="d-flex flex-wrap gap-2 mt-3">
-                  <button type="button" class="btn btn-outline-secondary" id="solution-add-block">
-                    <i class="ti ti-plus me-1"></i>Add block
-                  </button>
-                  {% if form.instance.pk %}
-                  <a
-                    href="{% url 'solutions:problem_solution_pdf' problem_data.problem.problem_uuid %}"
-                    class="btn btn-outline-secondary"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <i class="ti ti-file-type-pdf me-1"></i>Download PDF
-                  </a>
-                  {% endif %}
-                  <button type="submit" name="action" value="save" class="btn btn-primary">Save changes</button>
-                  <button type="submit" name="action" value="save_draft" class="btn btn-outline-secondary">Save as draft</button>
-                  <button type="submit" name="action" value="publish" class="btn btn-success">Publish solution</button>
-                </div>
-              </div>
-
-              <div class="solution-preview-shell">
-                <div class="card border">
-                  <div class="card-header border-bottom">
-                    <h4 class="header-title mb-0">Live preview</h4>
-                  </div>
-                  <div class="card-body">
-                    <div id="solution-live-preview" class="d-grid gap-3"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </form>
-        </div>
-        </div>
-
-        <div class="card">
-          <div class="card-header border-bottom">
-            <h4 class="header-title mb-0">Editor notes</h4>
-          </div>
-          <div class="card-body">
-            <p class="text-muted">
-              Use block titles for natural transitions like <code>Therefore</code>, <code>Hence</code>, or
-              <code>When n is even</code>. Keep the structural type small and stable.
-            </p>
-            <p class="text-muted">
-              Save order follows the numeric <code>Order</code> field. The live preview uses that sequence even if the editor cards themselves are still stacked in their original order.
-            </p>
-            <p class="text-muted">
-              The preview renders LaTeX-style math with the same MathJax stack used elsewhere in the project.
-              In <strong>Body format: LaTeX</strong>, you can paste an image from the clipboard into <strong>Body source</strong>
-              to upload it and insert <code>\includegraphics</code> automatically.
-            </p>
-            <p class="text-muted mb-0">
-              <strong>Download PDF</strong> typesets your <strong>last saved</strong> blocks with Evan Chen&rsquo;s
-              <code>evan.sty</code> (KOMA class) on the server; fix compile errors shown in the log if export fails.
-            </p>
-          </div>
-        </div>
+<div class="container-fluid solution-workspace-page">
+  <header class="solution-masthead">
+    <div>
+      <div class="se-eyebrow">Your solution workspace</div>
+      <h1>{{ problem_data.problem_label }}</h1>
+      <div class="solution-masthead-meta">
+        <span><i class="ti ti-category me-1" aria-hidden="true"></i>{{ problem_data.problem.topic|topic_label }}</span>
+        <span>MOHS <strong>{{ problem_data.problem_mohs|default_if_none:'—' }}</strong></span>
+        <span class="badge {{ solution_status_badge_class }}">{{ solution_status_label }}</span>
       </div>
     </div>
+    <div class="d-flex gap-2 solution-masthead-links">
+      <a href="{{ problem_data.solutions_url }}" class="btn btn-outline-secondary btn-sm"><i class="ti ti-arrow-left me-1" aria-hidden="true"></i>All solutions</a>
+      {% if problem_data.contest_archive_url %}<a href="{{ problem_data.contest_archive_url }}#{{ problem_data.problem_anchor }}" class="btn btn-outline-secondary btn-sm">Contest archive<i class="ti ti-arrow-up-right ms-1" aria-hidden="true"></i></a>{% endif %}
+    </div>
+  </header>
+
+  {% for message in messages %}
+  <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags|default:'info' }}{% endif %}" role="status">{{ message }}</div>
+  {% endfor %}
+
+  <div class="solution-context-grid">
+    <section class="solution-reference" aria-labelledby="solution-problem-heading">
+      <div class="solution-context-heading">
+        <h2 id="solution-problem-heading"><i class="ti ti-book-2" aria-hidden="true"></i>Problem</h2>
+        {% if problem_data.statement_entry %}<span class="text-muted fs-xs">{{ problem_data.statement_entry.problem_code }}{% if problem_data.statement_entry.day_label %} · {{ problem_data.statement_entry.day_label }}{% endif %}</span>{% endif %}
+      </div>
+      <div class="solution-reference-body">
+        {% if problem_data.statement_entry %}{% include 'partials/statement-render-content.html' with segments=problem_data.statement_render_segments %}
+        {% else %}<p class="text-muted mb-0">No linked statement is available. <a href="{{ problem_data.solutions_url }}">Open the problem page</a> for its available information.</p>{% endif %}
+      </div>
+      <details class="solution-context-details">
+        <summary>Problem details</summary>
+        <dl>
+          <dt>Contest</dt><dd>{{ problem_data.problem.contest }} · {{ problem_data.problem.year }} · {{ problem_data.problem.problem }}</dd>
+          <dt>Confidence</dt><dd>{{ problem_data.problem.confidence|default:'—' }}</dd>
+          <dt>IMO slots</dt><dd>{{ problem_data.problem.imo_slot_guess|default:'—' }}</dd>
+          <dt>Problem UUID</dt><dd><code>{{ problem_data.problem.problem_uuid }}</code></dd>
+        </dl>
+      </details>
+    </section>
+    <section class="solution-coverage" aria-labelledby="solution-coverage-heading">
+      <div class="solution-context-heading">
+        <h2 id="solution-coverage-heading"><i class="ti ti-topology-star-3" aria-hidden="true"></i>Areas &amp; concepts</h2>
+        <span class="text-muted fs-xs">{{ editor_coverage.concept_coverage|length }} concept{{ editor_coverage.concept_coverage|length|pluralize }}</span>
+      </div>
+      <div class="solution-coverage-body">
+        <div class="se-eyebrow">Areas</div>
+        <div class="solution-area-list">
+          {% for area in editor_coverage.concept_areas %}<span class="solution-area-item">{{ area }}</span>{% empty %}<span class="text-muted fs-xs">No areas mapped yet.</span>{% endfor %}
+        </div>
+        <div class="se-eyebrow">Concepts in this problem</div>
+        <div class="solution-concept-list">
+          {% for concept in editor_coverage.concept_coverage %}
+          <a class="solution-concept" href="{% url 'pages:problem_statement_list' %}?q={{ concept.label|urlencode }}" title="Find problems using {{ concept.display }} · {{ concept.area }}">{{ concept.display }}<i class="ti ti-arrow-up-right" aria-hidden="true"></i></a>
+          {% empty %}<span class="text-muted fs-xs">No confirmed concepts yet. Existing tags are available below.</span>{% endfor %}
+        </div>
+        <details class="solution-mapping-notes">
+          <summary>{% if editor_coverage.concept_review_labels %}<i class="ti ti-info-circle me-1" aria-hidden="true"></i>{{ editor_coverage.concept_review_labels|length }} tag{{ editor_coverage.concept_review_labels|length|pluralize }} to review{% else %}Source tags{% endif %}</summary>
+          {% if editor_coverage.concept_review_labels %}<p class="mt-2 mb-1">These captions need a confirmed mapping.</p><ul>{% for label in editor_coverage.concept_review_labels %}<li>{{ label }}</li>{% endfor %}</ul>{% endif %}
+          <div class="fw-semibold mt-2">Original tags</div>
+          <ul>{% for label in editor_coverage.concept_source_tags %}<li>{{ label }}</li>{% empty %}<li>No source tags assigned.</li>{% endfor %}</ul>
+        </details>
+      </div>
+    </section>
   </div>
+
+  <div class="solution-workspace-toolbar">
+    <div class="d-flex align-items-center gap-3 solution-toolbar-state">
+      <div class="solution-view-switch" role="group" aria-label="Workspace view">
+        <button type="button" data-editor-view="write" aria-pressed="false"><i class="ti ti-pencil me-1" aria-hidden="true"></i>Write</button>
+        <button type="button" data-editor-view="preview" aria-pressed="false"><i class="ti ti-eye me-1" aria-hidden="true"></i>Preview</button>
+        <button type="button" class="solution-split-toggle" data-editor-view="split" aria-pressed="true"><i class="ti ti-layout-columns me-1" aria-hidden="true"></i>Split</button>
+      </div>
+      <span id="solution-save-status" class="solution-save-status" role="status" aria-live="polite">{% if form.instance.pk %}Saved{% else %}Not saved yet{% endif %}</span>
+    </div>
+    <div class="d-flex align-items-center gap-2 solution-toolbar-actions">
+      <button type="submit" form="solution-editor-form" name="action" value="save" id="solution-save" class="btn btn-primary btn-sm"><i class="ti ti-device-floppy me-1" aria-hidden="true"></i>Save changes</button>
+      {% if solution_status_label != 'Published' %}<button type="submit" form="solution-editor-form" name="action" value="publish" class="btn btn-outline-primary btn-sm">Publish solution</button>{% endif %}
+      <details class="solution-actions-menu">
+        <summary class="btn btn-outline-secondary btn-sm" aria-label="More solution actions"><i class="ti ti-dots" aria-hidden="true"></i></summary>
+        <div class="solution-actions-dropdown">
+          <button type="submit" form="solution-editor-form" name="action" value="save_draft">{% if solution_status_label == 'Published' %}Move to draft{% else %}Save as draft{% endif %}</button>
+          {% if form.instance.pk %}<a href="{% url 'solutions:problem_solution_pdf' problem_data.problem.problem_uuid %}" target="_blank" rel="noopener noreferrer"><i class="ti ti-file-type-pdf me-1" aria-hidden="true"></i>PDF · saved version</a>{% endif %}
+          <a href="{{ problem_data.solutions_url }}">View solution page</a>
+          {% if problem_data.contest_archive_url %}<a href="{{ problem_data.contest_archive_url }}#{{ problem_data.problem_anchor }}">Open contest archive</a>{% endif %}
+        </div>
+      </details>
+    </div>
+  </div>
+
+  <div id="solution-upload-feedback" class="alert alert-danger" role="alert" hidden></div>
+  <div id="solution-removed-feedback" class="alert alert-light border d-flex align-items-center gap-2 d-none" role="status"><span>Block removed.</span><button type="button" class="btn btn-link btn-sm p-0" id="solution-undo-remove">Undo</button></div>
+
+  <form method="post" novalidate id="solution-editor-form" data-bound="{{ form.is_bound|yesno:'true,false' }}" data-saved="{{ form.instance.pk|yesno:'true,false' }}">
+    {% csrf_token %}
+    {{ formset.management_form }}
+    {% if form.non_field_errors or formset.non_form_errors %}
+    <div class="alert alert-danger" role="alert"><strong>Please check your solution.</strong>{{ form.non_field_errors }}{{ formset.non_form_errors }}</div>
+    {% endif %}
+    <div class="solution-editor-grid" id="solution-editor-workspace" data-view="split">
+      <section class="solution-write-pane" aria-labelledby="solution-writing-heading">
+        <div class="solution-pane-label"><span id="solution-writing-heading">Your working</span><span id="solution-writing-stats"></span></div>
+        <div class="solution-document-settings">
+          <label class="form-label fs-xs text-muted" for="{{ form.title.id_for_label }}">Solution title <span class="fw-normal">(optional)</span></label>
+          {{ form.title }}
+          {% for err in form.title.errors %}<div class="invalid-feedback d-block">{{ err }}</div>{% endfor %}
+          <details class="solution-summary-toggle"{% if form.summary.value or form.summary.errors %} open{% endif %}>
+            <summary>Key idea <span class="text-muted">(optional)</span></summary>
+            <label class="visually-hidden" for="{{ form.summary.id_for_label }}">Key idea</label>{{ form.summary }}
+            {% for err in form.summary.errors %}<div class="invalid-feedback d-block">{{ err }}</div>{% endfor %}
+          </details>
+        </div>
+        <div id="solution-block-list">
+          {% for block_form in formset %}{% include 'solutions/partials/solution-block-form.html' with block_form=block_form number=forloop.counter %}{% endfor %}
+        </div>
+        <template id="solution-block-empty-form">{% include 'solutions/partials/solution-block-form.html' with block_form=formset.empty_form number='' %}</template>
+        <button type="button" class="btn btn-outline-secondary solution-add-block" id="solution-add-block"><i class="ti ti-plus me-1" aria-hidden="true"></i>Add a block</button>
+        <details class="solution-editor-help">
+          <summary><i class="ti ti-bulb me-1" aria-hidden="true"></i>Writing tips &amp; shortcuts</summary>
+          <ul>
+            <li>Use <code>$...$</code> for inline math and <code>\[...\]</code> for displayed equations.</li>
+            <li>Move blocks with the arrow buttons. The preview follows the same order.</li>
+            <li>Paste an image into a LaTeX block to upload it and insert <code>\includegraphics</code>.</li>
+            <li>Use <kbd>Ctrl</kbd> / <kbd>⌘</kbd> + <kbd>S</kbd> to save. PDF export uses your last saved solution.</li>
+          </ul>
+        </details>
+      </section>
+      <section class="solution-preview-pane" aria-labelledby="solution-preview-heading">
+        <div class="solution-preview-shell">
+          <div class="solution-pane-label"><span id="solution-preview-heading">Live preview</span><span id="solution-preview-status" class="solution-preview-live">Updates as you write</span></div>
+          <div class="solution-preview-paper">
+            <div class="se-eyebrow mb-3">Solution</div>
+            <h2 class="solution-preview-title" id="solution-preview-title">My solution</h2>
+            <div class="solution-preview-summary" id="solution-preview-summary" hidden></div>
+            <div id="solution-live-preview"></div>
+          </div>
+        </div>
+      </section>
+    </div>
+    <noscript><p class="alert alert-info mt-3">You can save this form without JavaScript. Enable JavaScript for live preview and block controls.</p></noscript>
+  </form>
 </div>
 {% endblock page_content %}
 
@@ -396,6 +319,117 @@ window.ASTERPROOF_SOLUTION_PREVIEW = {
     window.ASTERPROOF_SOLUTION_PREVIEW && window.ASTERPROOF_SOLUTION_PREVIEW.plainBlockTypeId
   ) || "";
   var previewTimer = null;
+  var workspace = document.getElementById("solution-editor-workspace");
+  var saveStatus = document.getElementById("solution-save-status");
+  var saveButton = document.getElementById("solution-save");
+  var submitButtons = Array.from(document.querySelectorAll('button[type="submit"][form="solution-editor-form"]'));
+  var lastRemoved = null;
+  var pendingUploads = 0;
+  var submitting = false;
+  var initialSnapshot = "";
+  var initialStatus = saveStatus.textContent;
+  var previewVersion = 0;
+  var wideLayout = window.matchMedia("(min-width: 1200px)");
+
+  function formSnapshot() {
+    return JSON.stringify(Array.from(new FormData(form).entries()).filter(function (entry) {
+      return entry[0] !== "csrfmiddlewaretoken";
+    }).sort(function (left, right) { return left[0].localeCompare(right[0]); }));
+  }
+
+  function hasChanges() {
+    return form.dataset.bound === "true" || formSnapshot() !== initialSnapshot;
+  }
+
+  function updateSaveState() {
+    var dirty = hasChanges();
+    saveStatus.dataset.dirty = String(dirty);
+    saveStatus.textContent = pendingUploads ? "Uploading image\u2026" : (dirty ? "Unsaved changes" : initialStatus);
+    submitButtons.forEach(function (button) { button.disabled = pendingUploads > 0; });
+  }
+
+  function setView(mode) {
+    if (mode === "split" && !wideLayout.matches) mode = "write";
+    workspace.dataset.view = mode;
+    document.querySelectorAll("[data-editor-view]").forEach(function (button) {
+      button.setAttribute("aria-pressed", String(button.dataset.editorView === mode));
+    });
+    if (mode !== "write") scheduleRenderPreview();
+  }
+
+  function normalizeOrder() {
+    visibleBlocks().forEach(function (node, index) {
+      node.querySelector(".solution-order-input").value = String(index + 1);
+    });
+  }
+
+  function moveBlock(node, direction) {
+    var rows = visibleBlocks(), index = rows.indexOf(node);
+    var target = rows[index + (direction === "up" ? -1 : 1)];
+    if (!target) return;
+    if (direction === "up") blockList.insertBefore(node, target);
+    else blockList.insertBefore(target, node);
+    normalizeOrder(); refreshBlockNumbers(); updateSaveState(); scheduleRenderPreview();
+  }
+
+  function removeBlock(node) {
+    var rows = visibleBlocks(), index = rows.indexOf(node);
+    lastRemoved = { node: node, next: rows[index + 1] || null };
+    var checkbox = node.querySelector(".solution-delete-input");
+    if (checkbox) checkbox.checked = true;
+    node.classList.add("d-none");
+    document.getElementById("solution-removed-feedback").classList.remove("d-none");
+    normalizeOrder(); refreshBlockNumbers(); updateSaveState(); scheduleRenderPreview();
+    document.getElementById("solution-undo-remove").focus();
+  }
+
+  function insertMath(node, display) {
+    var input = node.querySelector('textarea[name$="-body_source"]');
+    var start = input.selectionStart, end = input.selectionEnd;
+    var selected = input.value.slice(start, end);
+    var before = display ? "\\[\n" : "$", after = display ? "\n\\]" : "$";
+    input.setRangeText(before + selected + after, start, end, "end");
+    input.focus();
+    input.setSelectionRange(start + before.length, start + before.length + selected.length);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+
+  document.querySelectorAll("[data-editor-view]").forEach(function (button) {
+    button.addEventListener("click", function () { setView(button.dataset.editorView); });
+  });
+  wideLayout.addEventListener("change", function () {
+    if (!wideLayout.matches && workspace.dataset.view === "split") setView("write");
+  });
+  document.getElementById("solution-undo-remove").addEventListener("click", function () {
+    if (!lastRemoved) return;
+    var node = lastRemoved.node;
+    node.querySelector(".solution-delete-input").checked = false;
+    node.classList.remove("d-none");
+    if (lastRemoved.next && lastRemoved.next.parentNode === blockList) blockList.insertBefore(node, lastRemoved.next);
+    else blockList.appendChild(node);
+    lastRemoved = null;
+    document.getElementById("solution-removed-feedback").classList.add("d-none");
+    normalizeOrder(); refreshBlockNumbers(); updateSaveState(); scheduleRenderPreview();
+    node.querySelector('textarea[name$="-body_source"]').focus();
+  });
+  form.addEventListener("input", function () { updateSaveState(); scheduleRenderPreview(); });
+  form.addEventListener("change", updateSaveState);
+  form.addEventListener("submit", function (event) {
+    if (pendingUploads || submitting) { event.preventDefault(); return; }
+    submitting = true;
+    saveStatus.textContent = event.submitter && event.submitter.value === "publish" ? "Publishing\u2026" : "Saving\u2026";
+  });
+  window.addEventListener("beforeunload", function (event) {
+    if (!submitting && (pendingUploads || hasChanges())) { event.preventDefault(); event.returnValue = ""; }
+  });
+  document.addEventListener("keydown", function (event) {
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+      event.preventDefault();
+      if (!pendingUploads && !submitting) form.requestSubmit(saveButton);
+    }
+    if (event.key === "Escape") document.querySelectorAll(".solution-actions-menu[open]").forEach(function (menu) { menu.open = false; });
+  });
+
 
   function getCookie(name) {
     var match = document.cookie.match(new RegExp("(^| )" + name + "=([^;]+)"));
@@ -412,7 +446,7 @@ window.ASTERPROOF_SOLUTION_PREVIEW = {
   function visibleBlocks() {
     return Array.from(blockList.querySelectorAll("[data-block-form]")).filter(function (node) {
       var deleteInput = node.querySelector(".solution-delete-input");
-      return !node.classList.contains("d-none") && (!deleteInput || !deleteInput.checked);
+      return !node.hidden && !node.classList.contains("d-none") && (!deleteInput || !deleteInput.checked);
     });
   }
 
@@ -437,12 +471,18 @@ window.ASTERPROOF_SOLUTION_PREVIEW = {
   }
 
   function refreshBlockNumbers() {
-    visibleBlocks().forEach(function (node, index) {
+    var rows = visibleBlocks(), words = 0;
+    rows.forEach(function (node, index) {
       var numberNode = node.querySelector("[data-block-number]");
       var orderInput = node.querySelector(".solution-order-input");
-      if (numberNode) numberNode.textContent = String(index + 1);
+      if (numberNode) numberNode.textContent = String(index + 1).padStart(2, "0");
       if (orderInput && !orderInput.value) orderInput.value = String(index + 1);
+      node.querySelector('[data-move-block="up"]').disabled = index === 0;
+      node.querySelector('[data-move-block="down"]').disabled = index === rows.length - 1;
+      var body = node.querySelector('textarea[name$="-body_source"]').value.trim();
+      words += body ? body.split(/\s+/).length : 0;
     });
+    document.getElementById("solution-writing-stats").textContent = rows.length + (rows.length === 1 ? " block" : " blocks") + " \u00b7 " + words + " words";
   }
 
   function typesetPlainPreviewBodies() {
@@ -478,24 +518,39 @@ window.ASTERPROOF_SOLUTION_PREVIEW = {
 
   function renderPreviewNow() {
     var rows = orderedVisibleBlocks();
+    var version = ++previewVersion;
+    document.getElementById("solution-preview-title").textContent = form.querySelector('[name="solution-title"]').value.trim() || "My solution";
+    var summary = document.getElementById("solution-preview-summary");
+    summary.textContent = form.querySelector('[name="solution-summary"]').value.trim();
+    summary.hidden = !summary.textContent;
+    previewRoot.setAttribute("aria-busy", "true");
     previewRoot.innerHTML = "";
     if (!rows.length) {
       var emptyState = document.createElement("div");
-      emptyState.className = "alert alert-light border mb-0";
+      emptyState.className = "solution-preview-placeholder";
       emptyState.textContent = "Add at least one block to preview your solution.";
       previewRoot.appendChild(emptyState);
+      previewRoot.setAttribute("aria-busy", "false");
       return Promise.resolve();
     }
 
     var pending = Promise.resolve();
     rows.forEach(function (node, index) {
       pending = pending.then(function () {
+        if (version !== previewVersion) return;
         var bodyInput = node.querySelector('textarea[name$="-body_source"]');
         var typeSelect = node.querySelector('select[name$="-block_type"]');
         var bodyFormatSelect = node.querySelector('select[name$="-body_format"]');
         var isPlain = isPlainBlockType(node);
         var raw = bodyInput ? bodyInput.value : "";
         var isLatexBody = bodyFormatSelect && bodyFormatSelect.value === "latex";
+        if (!raw.trim()) {
+          var placeholder = document.createElement("p");
+          placeholder.className = "solution-preview-placeholder";
+          placeholder.textContent = "Your argument will appear here as you write.";
+          previewRoot.appendChild(placeholder);
+          return;
+        }
         if (isPlain) {
           var plainBody = document.createElement("div");
           plainBody.className = "solution-preview-body mb-0";
@@ -510,31 +565,18 @@ window.ASTERPROOF_SOLUTION_PREVIEW = {
         }
 
         var card = document.createElement("div");
-        card.className = "card border";
+        card.className = "solution-preview-block";
         var cardBody = document.createElement("div");
-        cardBody.className = "card-body py-3";
+        cardBody.className = "solution-preview-block-content";
 
         var head = document.createElement("div");
-        head.className = "d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2";
+        head.className = "solution-preview-block-heading";
         var title = document.createElement("div");
         title.className = "fw-semibold";
         title.textContent = previewBlockTitle(node, index);
-        var orderBadge = document.createElement("span");
-        orderBadge.className = "badge bg-light text-body-secondary";
-        orderBadge.textContent = "#" + String(index + 1);
         head.appendChild(title);
-        head.appendChild(orderBadge);
-        cardBody.appendChild(head);
 
-        if (typeSelect && typeSelect.selectedOptions.length) {
-          var typeLabel = typeSelect.selectedOptions[0].text.trim();
-          if (typeLabel && typeLabel !== "---------") {
-            var typeNode = document.createElement("div");
-            typeNode.className = "text-muted fs-12 text-uppercase mb-2";
-            typeNode.textContent = typeLabel;
-            cardBody.appendChild(typeNode);
-          }
-        }
+        cardBody.appendChild(head);
 
         var body = document.createElement("div");
         body.className = "solution-preview-block-body";
@@ -554,7 +596,16 @@ window.ASTERPROOF_SOLUTION_PREVIEW = {
     });
 
     return pending.then(function () {
+      if (version !== previewVersion) return;
       return typesetPlainPreviewBodies();
+    }).then(function () {
+      if (version !== previewVersion) return;
+      previewRoot.setAttribute("aria-busy", "false");
+      document.getElementById("solution-preview-status").textContent = "Up to date";
+    }).catch(function () {
+      if (version !== previewVersion) return;
+      previewRoot.setAttribute("aria-busy", "false");
+      document.getElementById("solution-preview-status").textContent = "Preview needs attention";
     });
   }
 
@@ -566,26 +617,24 @@ window.ASTERPROOF_SOLUTION_PREVIEW = {
   }
 
   function attachRowHandlers(node) {
-    if (!node) return;
+    if (!node || node.dataset.editorBound) return;
+    node.dataset.editorBound = "true";
     node.querySelectorAll("input, textarea, select").forEach(function (element) {
-      element.addEventListener("input", function () {
-        refreshBlockNumbers();
-        scheduleRenderPreview();
-      });
+      element.addEventListener("input", function () { refreshBlockNumbers(); scheduleRenderPreview(); });
       element.addEventListener("change", function () {
-        refreshBlockNumbers();
-        scheduleRenderPreview();
+        if (element.classList.contains("solution-order-input")) {
+          orderedVisibleBlocks().forEach(function (row) { blockList.appendChild(row); });
+          normalizeOrder();
+        }
+        refreshBlockNumbers(); scheduleRenderPreview();
       });
     });
-
-    var removeButton = node.querySelector("[data-remove-block]");
-    if (!removeButton) return;
-    removeButton.addEventListener("click", function () {
-      var deleteInput = node.querySelector(".solution-delete-input");
-      if (deleteInput) deleteInput.checked = true;
-      node.classList.add("d-none");
-      refreshBlockNumbers();
-      scheduleRenderPreview();
+    node.querySelector("[data-remove-block]").addEventListener("click", function () { removeBlock(node); });
+    node.querySelectorAll("[data-move-block]").forEach(function (button) {
+      button.addEventListener("click", function () { moveBlock(node, button.dataset.moveBlock); });
+    });
+    node.querySelectorAll("[data-insert-math]").forEach(function (button) {
+      button.addEventListener("click", function () { insertMath(node, button.dataset.insertMath === "display"); });
     });
   }
 
@@ -606,7 +655,9 @@ window.ASTERPROOF_SOLUTION_PREVIEW = {
   }
 
   function showUploadError(message) {
-    window.alert(message || "Could not upload image.");
+    var feedback = document.getElementById("solution-upload-feedback");
+    feedback.textContent = message || "Could not upload image.";
+    feedback.hidden = false;
   }
 
   form.addEventListener(
@@ -632,6 +683,9 @@ window.ASTERPROOF_SOLUTION_PREVIEW = {
         return;
       }
       var headers = { "X-CSRFToken": csrf };
+      pendingUploads += 1;
+      document.getElementById("solution-upload-feedback").hidden = true;
+      updateSaveState();
       fetch(uploadUrl, { method: "POST", body: fd, headers: headers, credentials: "same-origin" })
         .then(function (r) {
           var ct = (r.headers.get("content-type") || "").toLowerCase();
@@ -655,6 +709,9 @@ window.ASTERPROOF_SOLUTION_PREVIEW = {
         })
         .catch(function (err) {
           showUploadError(err.message);
+        }).finally(function () {
+          pendingUploads -= 1;
+          updateSaveState();
         });
     },
     true
@@ -662,23 +719,47 @@ window.ASTERPROOF_SOLUTION_PREVIEW = {
 
   function addBlock() {
     if (!emptyTemplate || !totalFormsInput) return;
-    var formIndex = Number(totalFormsInput.value || "0");
-    var html = emptyTemplate.innerHTML.replace(/__prefix__/g, String(formIndex));
-    var wrapper = document.createElement("div");
-    wrapper.innerHTML = html.trim();
-    var newNode = wrapper.firstElementChild;
-    blockList.appendChild(newNode);
-    totalFormsInput.value = String(formIndex + 1);
+    var newNode = blockList.querySelector('[data-unused-block="true"]');
+    if (newNode) {
+      newNode.hidden = false;
+      delete newNode.dataset.unusedBlock;
+    } else {
+      var formIndex = Number(totalFormsInput.value || "0");
+      var maxFormsInput = form.querySelector('[name="blocks-MAX_NUM_FORMS"]');
+      if (maxFormsInput && formIndex >= Number(maxFormsInput.value)) { showUploadError("The block limit has been reached."); return; }
+      var html = emptyTemplate.innerHTML.replace(/__prefix__/g, String(formIndex));
+      var wrapper = document.createElement("div");
+      wrapper.innerHTML = html.trim();
+      newNode = wrapper.firstElementChild;
+      blockList.appendChild(newNode);
+      totalFormsInput.value = String(formIndex + 1);
+    }
     attachRowHandlers(newNode);
-    refreshBlockNumbers();
-    scheduleRenderPreview();
+    normalizeOrder(); refreshBlockNumbers(); updateSaveState(); scheduleRenderPreview();
+    newNode.querySelector('textarea[name$="-body_source"]').focus();
   }
 
-  visibleBlocks().forEach(attachRowHandlers);
+  var initialRows = orderedVisibleBlocks();
+  initialRows.forEach(function (node) { blockList.appendChild(node); });
+  var hasExistingBody = initialRows.some(function (node) { return node.querySelector('textarea[name$="-body_source"]').value.trim(); });
+  initialRows.forEach(function (node) {
+    var deleted = node.querySelector(".solution-delete-input");
+    if (deleted && deleted.checked) { node.classList.add("d-none"); return; }
+    var body = node.querySelector('textarea[name$="-body_source"]').value.trim();
+    var title = node.querySelector('input[name$="-title"]').value.trim();
+    var savedId = node.querySelector('input[name$="-id"]').value;
+    if (hasExistingBody && !body && !title && !savedId && !node.dataset.hasErrors) {
+      node.hidden = true; node.dataset.unusedBlock = "true";
+    }
+    attachRowHandlers(node);
+  });
   if (addBlockButton) {
     addBlockButton.addEventListener("click", addBlock);
   }
   refreshBlockNumbers();
+  initialSnapshot = formSnapshot();
+  setView(wideLayout.matches ? "split" : "write");
+  updateSaveState();
   window.AsterProofSolutionLatex.mathJaxReady().then(function () {
     return renderPreviewNow();
   });

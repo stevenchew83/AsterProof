@@ -1,0 +1,27 @@
+<article class="solution-block-editor" data-block-form{% if block_form.errors %} data-has-errors="true"{% endif %}>
+  <header class="solution-block-header">
+    <h3 class="solution-block-heading"><span class="solution-block-number" data-block-number>{{ number }}</span><span>Solution block</span></h3>
+    <div class="d-flex align-items-center gap-1">
+      <button type="button" class="btn btn-sm" data-move-block="up" aria-label="Move block up" title="Move block up"><i class="ti ti-arrow-up" aria-hidden="true"></i></button>
+      <button type="button" class="btn btn-sm" data-move-block="down" aria-label="Move block down" title="Move block down"><i class="ti ti-arrow-down" aria-hidden="true"></i></button>
+      <button type="button" class="btn btn-sm" data-remove-block aria-label="Remove block" title="Remove block"><i class="ti ti-trash" aria-hidden="true"></i></button>
+    </div>
+  </header>
+  <div class="solution-block-fields">
+    {{ block_form.id }}{{ block_form.DELETE }}
+    {% if block_form.non_field_errors %}<div class="alert alert-danger" role="alert">{{ block_form.non_field_errors }}</div>{% endif %}
+    {% for err in block_form.id.errors %}<div class="invalid-feedback d-block">{{ err }}</div>{% endfor %}
+    <div class="solution-block-options">
+      <div><label class="form-label" for="{{ block_form.block_type.id_for_label }}">Block type</label>{{ block_form.block_type }}{% for err in block_form.block_type.errors %}<div class="invalid-feedback d-block">{{ err }}</div>{% endfor %}</div>
+      <div><label class="form-label" for="{{ block_form.body_format.id_for_label }}">Format</label>{{ block_form.body_format }}{% for err in block_form.body_format.errors %}<div class="invalid-feedback d-block">{{ err }}</div>{% endfor %}</div>
+    </div>
+    <div class="mb-3"><label class="form-label" for="{{ block_form.title.id_for_label }}">Heading <span class="fw-normal">(optional)</span></label>{{ block_form.title }}{% for err in block_form.title.errors %}<div class="invalid-feedback d-block">{{ err }}</div>{% endfor %}</div>
+    <label class="form-label" for="{{ block_form.body_source.id_for_label }}">Your argument</label>{{ block_form.body_source }}
+    {% for err in block_form.body_source.errors %}<div class="invalid-feedback d-block">{{ err }}</div>{% endfor %}
+    <div class="solution-block-source-tools" role="group" aria-label="Insert math">
+      <button type="button" class="btn btn-sm" data-insert-math="inline"><i class="ti ti-math-function me-1" aria-hidden="true"></i>Inline math</button>
+      <button type="button" class="btn btn-sm" data-insert-math="display"><i class="ti ti-math-symbols me-1" aria-hidden="true"></i>Display equation</button>
+    </div>
+    <details class="solution-manual-order"{% if block_form.ORDER.errors %} open{% endif %}><summary>Manual order</summary><label class="visually-hidden" for="{{ block_form.ORDER.id_for_label }}">Order</label>{{ block_form.ORDER }}{% for err in block_form.ORDER.errors %}<div class="invalid-feedback d-block">{{ err }}</div>{% endfor %}</details>
+  </div>
+</article>

@@ -1559,7 +1559,7 @@ def test_admin_problem_solution_pdf_returns_attachment_for_admin(monkeypatch, cl
     assert "attachment" in response["Content-Disposition"]
 
 
-def test_problem_solution_edit_stacks_statement_editor_and_notes_in_order(client):
+def test_problem_solution_edit_shows_reference_workspace_and_progressive_help(client):
     user = UserFactory()
     client.force_login(user)
     problem = _problem()
@@ -1577,19 +1577,22 @@ def test_problem_solution_edit_stacks_statement_editor_and_notes_in_order(client
 
     assert response.status_code == HTTPStatus.OK
     response_html = response.content.decode("utf-8")
-    assert "Problem metadata" in response_html
+    assert "Problem details" in response_html
     assert "Problem UUID" in response_html
     assert "2026 · P1" in response_html
     assert "Algebra" in response_html
     assert ">5<" in response_html
     assert "Linked statement preview text" in response_html
-    assert response_html.index("Problem metadata") < response_html.index("Linked statement")
-    assert response_html.index("Linked statement") < response_html.index("Live preview")
-    assert response_html.index("Live preview") < response_html.index("Editor notes")
+    assert response_html.index("Linked statement preview text") < response_html.index("Your working")
+    assert 'aria-label="Workspace view"' in response_html
+    assert 'data-editor-view="write"' in response_html
+    assert 'data-editor-view="preview"' in response_html
+    assert 'data-editor-view="split"' in response_html
+    assert "Writing tips &amp; shortcuts" in response_html
     assert "mediaUrlPrefix:" in response_html
-    assert "preview the rendered LaTeX alongside the editor." in response_html
+    assert "Areas &amp; concepts" in response_html
     assert 'class="col-xl-4"' not in response_html
-    assert "solution-statement-panel" in response_html
+    assert "solution-context-grid" in response_html
     assert 'textbullet: "\\\\bullet"' in response_html
 
 
