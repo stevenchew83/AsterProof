@@ -169,7 +169,7 @@ def verify_release(
     artifact_digest: str,
     *,
     stabilization_seconds: int = 10,
-    readiness_timeout_seconds: float = 15,
+    readiness_timeout_seconds: float = 60,
 ) -> dict[str, Any]:
     deadline = time.monotonic() + readiness_timeout_seconds
     while True:
