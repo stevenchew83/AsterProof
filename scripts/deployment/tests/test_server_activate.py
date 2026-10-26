@@ -165,3 +165,52 @@ def test_stabilization_rejects_changed_process_evidence(monkeypatch: pytest.Monk
 
     with pytest.raises(ReleaseStateError, match="changed during stabilization"):
         verify_release(contract, "a" * 40, "b" * 64)
+
+
+def test_default_readiness_window_allows_slow_healthy_startup(monkeypatch: pytest.MonkeyPatch) -> None:
+    contract = _contract(Path("/tmp/asterproof-slow-startup-test"))
+    clock = [0.0]
+    calls = [0]
+
+    def health(*_args):
+        calls[0] += 1
+        if calls[0] == 1:
+            clock[0] = 20.0
+            raise OSError
+        return {"process_commit_sha": "a" * 40}
+
+    def advance_clock(seconds):
+        clock[0] += seconds
+
+    monkeypatch.setattr("scripts.deployment.server_activate.time.monotonic", lambda: clock[0])
+    monkeypatch.setattr("scripts.deployment.server_activate.time.sleep", advance_clock)
+    monkeypatch.setattr("scripts.deployment.server_activate.health_check", health)
+    monkeypatch.setattr("scripts.deployment.server_activate.verify_static_assets", lambda *_args: None)
+    monkeypatch.setattr("scripts.deployment.server_activate.verify_service_processes", lambda *_args: {1: 100})
+
+    result = verify_release(contract, "a" * 40, "b" * 64, stabilization_seconds=0)
+
+    assert result["process_commit_sha"] == "a" * 40
+    expected_health_calls = 3
+    assert calls[0] == expected_health_calls
+
+
+def test_default_readiness_window_still_rejects_never_ready_release(monkeypatch: pytest.MonkeyPatch) -> None:
+    contract = _contract(Path("/tmp/asterproof-never-ready-test"))
+    clock = [0.0]
+
+    def unavailable(*_args):
+        clock[0] += 10.0
+        raise OSError
+
+    def advance_clock(seconds):
+        clock[0] += seconds
+
+    monkeypatch.setattr("scripts.deployment.server_activate.time.monotonic", lambda: clock[0])
+    monkeypatch.setattr("scripts.deployment.server_activate.time.sleep", advance_clock)
+    monkeypatch.setattr("scripts.deployment.server_activate.health_check", unavailable)
+
+    with pytest.raises(ReleaseStateError, match="deadline"):
+        verify_release(contract, "a" * 40, "b" * 64)
+    maximum_elapsed_seconds = 70
+    assert clock[0] <= maximum_elapsed_seconds
