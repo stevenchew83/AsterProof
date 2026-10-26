@@ -1,5 +1,6 @@
 from django.urls import path
 
+from inspinia.pages.concept_assignment_source_export import assignment_source_export
 from inspinia.pages.shared_progress_views import shared_progress_comparison_view
 from inspinia.pages.shared_progress_views import shared_progress_view
 from inspinia.pages.views import archive_hub_view
@@ -53,6 +54,7 @@ from inspinia.pages.views import user_solution_record_list_view
 app_name = "pages"
 
 urlpatterns = [
+    path("tools/concept-assignment-sources/", assignment_source_export, name="concept_assignment_source_export"),
     path("dashboard/progress/compare/", shared_progress_comparison_view, name="shared_progress_comparison"),
     path(
         "dashboard/progress/compare/<slug:section>/",
