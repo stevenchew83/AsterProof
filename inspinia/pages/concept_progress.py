@@ -7,7 +7,6 @@ from statistics import mean
 from statistics import median
 
 from django.core.paginator import Paginator
-from django.db.models import Q
 from django.http import HttpResponse
 from django.urls import reverse
 from django.utils.http import urlencode
@@ -16,6 +15,7 @@ from inspinia.pages.completion_record_fields import is_completion_status_solved
 from inspinia.pages.concept_analytics import PAGE_SIZE
 from inspinia.pages.concept_analytics import SUBJECTS
 from inspinia.pages.concept_analytics import library_coverage_rows
+from inspinia.pages.concept_analytics import library_problem_url
 from inspinia.pages.models import TechniqueBenchmark
 from inspinia.pages.models import UserProblemCompletion
 from inspinia.pages.technique_concepts import CONCEPTS
@@ -50,24 +50,26 @@ def _counts(problems):
 
 def _completed_library(user):
     library, _ = library_coverage_rows({"contest": "", "year": ""})
-    statement_ids = [p["statement_id"] for p in library.values() if p["statement_id"]]
-    problem_ids = [p["problem_id"] for p in library.values() if p["problem_id"]]
-    completions = list(
-        UserProblemCompletion.objects.filter(user=user)
-        .filter(
-            Q(statement_id__in=statement_ids) | Q(problem_id__in=problem_ids),
-        )
-        .values("statement_id", "problem_id", "status", "completion_date"),
-    )
-    by_statement = {c["statement_id"]: c for c in completions if c["statement_id"]}
-    by_problem = {c["problem_id"]: c for c in completions if c["problem_id"]}
+    statement_ids = {p["statement_id"] for p in library.values() if p["statement_id"]}
+    problem_ids = {p["problem_id"] for p in library.values() if p["problem_id"]}
+    by_statement, by_problem = {}, {}
+    # The indexed user scope is already narrow. Avoid sending the whole library
+    # back to the database as two potentially enormous IN clauses.
+    for completion in UserProblemCompletion.objects.filter(user=user).values(
+        "statement_id", "problem_id", "status", "completion_date",
+    ).iterator(chunk_size=256):
+        if completion["statement_id"] in statement_ids:
+            by_statement[completion["statement_id"]] = completion
+        if completion["problem_id"] in problem_ids:
+            by_problem[completion["problem_id"]] = completion
+    status_labels = dict(UserProblemCompletion.Status.choices)
     for problem in library.values():
         completion = by_statement.get(problem["statement_id"], by_problem.get(problem["problem_id"])) or {}
         status = completion.get("status", UserProblemCompletion.Status.UNATTEMPTED)
         problem.update(
             is_solved=is_completion_status_solved(status),
             status=status,
-            status_label=dict(UserProblemCompletion.Status.choices).get(status, "Unattempted"),
+            status_label=status_labels.get(status, "Unattempted"),
             completion_date=completion.get("completion_date"),
         )
     return library
@@ -159,7 +161,7 @@ def _study_notes(cid):
     return notes if notes and any(notes.values()) else None
 
 
-def build_concept_progress_context(*, request_user, params, topic_slug=""):  # noqa: C901, PLR0912
+def build_concept_progress_context(*, request_user, params, topic_slug=""):  # noqa: C901, PLR0912, PLR0915
     if topic_slug and topic_slug not in SUBJECT_SLUGS:
         raise ValueError(topic_slug)
     selected_user, can_select = resolve_technique_progress_user(
@@ -288,6 +290,9 @@ def build_concept_progress_context(*, request_user, params, topic_slug=""):  # n
     else:
         matching = _explorer_rows(mode_rows, filters)
     page = Paginator(matching, PAGE_SIZE).get_page(params.get("page"))
+    if filters["mode"] == "problems":
+        for problem in page.object_list:
+            problem["url"] = library_problem_url(problem)
     completion_query = {"target_user_id": selected_user.pk} if can_select else {}
     return {
         "selected_user": selected_user,

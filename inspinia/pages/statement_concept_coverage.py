@@ -4,6 +4,7 @@ import json
 import re
 from collections import Counter
 from collections import defaultdict
+from functools import lru_cache
 
 from django.db import connection
 from django.db.models import CharField
@@ -39,9 +40,9 @@ TAG_FIELDS = (
 )
 
 
-def _values(tag: dict, kind: str) -> list:
+def _values(tag: dict, kind: str) -> list | tuple:
     value = tag.get(ROLE_FIELDS[kind]) or []
-    return value if isinstance(value, list) else [value]
+    return value if isinstance(value, (list, tuple)) else [value]
 
 
 def _resolve_member(tag: dict, kind: str, caption: str, topic: str) -> set[str]:
@@ -79,13 +80,39 @@ def _tag_coverage(tag: dict, topic: str, roles: dict, review: dict) -> None:
         review[tag["technique"]].add("technique")
 
 
-def _coverage(tags: list[dict], *, topic: str, active: bool) -> dict:
+class TagCoverageResolver:
+    """Resolve repeated source tags once, with a bounded cache owned by one request."""
+
+    def __init__(self):
+        self._resolve = lru_cache(maxsize=2048)(self._resolve_signature)
+
+    @staticmethod
+    def _resolve_signature(topic, signature):
+        roles, review = defaultdict(set), defaultdict(set)
+        _tag_coverage(dict(zip(TAG_FIELDS, signature, strict=True)), topic, roles, review)
+        return tuple((cid, tuple(kinds)) for cid, kinds in roles.items()), tuple(
+            (caption, tuple(kinds)) for caption, kinds in review.items()
+        )
+
+    def apply(self, tag, topic, roles, review):
+        signature = tuple(tuple(tag[field]) if isinstance(tag[field], list) else tag[field] for field in TAG_FIELDS)
+        resolved, held = self._resolve(topic, signature)
+        for cid, kinds in resolved:
+            roles[cid].update(kinds)
+        for caption, kinds in held:
+            review[caption].update(kinds)
+
+
+def _coverage(tags: list[dict], *, topic: str, active: bool, resolver=None) -> dict:
     roles = defaultdict(set)
     review = defaultdict(set)
     valid = [tag for tag in tags if caption_key(tag["normalization_status"]) not in SUPPRESSED]
     if active:
         for tag in valid:
-            _tag_coverage(tag, topic, roles, review)
+            if resolver is None:
+                _tag_coverage(tag, topic, roles, review)
+            else:
+                resolver.apply(tag, topic, roles, review)
     concepts = [
         {
             "id": cid,
@@ -124,20 +151,17 @@ def _coverage(tags: list[dict], *, topic: str, active: bool) -> dict:
     }
 
 
-def statement_coverage_payloads(statements: list) -> dict:
+def statement_coverage_payloads(statements: list, *, resolver=None) -> dict:
     """Two bounded tag reads; statement tags suppress linked fallback even when invalid."""
     by_statement, by_problem = defaultdict(list), defaultdict(list)
     seen_statement, seen_problem = set(), set()
-    for model, relation, ids, target, seen in (
-        (StatementTopicTechnique, "statement_id", [s.pk for s in statements], by_statement, seen_statement),
-        (
-            ProblemTopicTechnique,
-            "record_id",
-            {s.linked_problem_id for s in statements if s.linked_problem_id},
-            by_problem,
-            seen_problem,
-        ),
+    for model, relation, target, seen in (
+        (StatementTopicTechnique, "statement_id", by_statement, seen_statement),
+        (ProblemTopicTechnique, "record_id", by_problem, seen_problem),
     ):
+        ids = [s.pk for s in statements] if model is StatementTopicTechnique else {
+            s.linked_problem_id for s in statements if s.linked_problem_id and not by_statement[s.pk]
+        }
         for tag in (
             model.objects.filter(**{f"{relation}__in": ids})
             .order_by("technique", "id")
@@ -153,6 +177,7 @@ def statement_coverage_payloads(statements: list) -> dict:
     return {
         s.pk: _coverage(
             by_statement[s.pk] or by_problem[s.linked_problem_id], topic=effective_topic(s), active=s.is_active,
+            resolver=resolver,
         )
         for s in statements
     }
