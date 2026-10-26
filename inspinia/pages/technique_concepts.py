@@ -5,6 +5,9 @@ import json
 from collections import defaultdict
 from pathlib import Path
 
+from inspinia.pages.concept_alias_policy import POLICY_BYTES
+from inspinia.pages.concept_alias_policy import apply_alias_policy
+
 DATA = Path(__file__).parent / "data"
 CATALOG_PATH = DATA / "algebra_concepts_v1.json"
 NUMBER_THEORY_CATALOG_PATH = DATA / "number_theory_concepts_v1.json"
@@ -12,7 +15,7 @@ GEOMETRY_CATALOG_PATH = DATA / "geometry_concepts_v1.json"
 COMBINATORICS_CATALOG_PATH = DATA / "combinatorics_concepts_v1.json"
 CATALOG_SHA256 = hashlib.sha256(
     CATALOG_PATH.read_bytes() + NUMBER_THEORY_CATALOG_PATH.read_bytes() + GEOMETRY_CATALOG_PATH.read_bytes()
-    + COMBINATORICS_CATALOG_PATH.read_bytes(),
+    + COMBINATORICS_CATALOG_PATH.read_bytes() + POLICY_BYTES,
 ).hexdigest()
 CATALOG = json.loads(CATALOG_PATH.read_bytes())
 NUMBER_THEORY_CATALOG = json.loads(NUMBER_THEORY_CATALOG_PATH.read_bytes())
@@ -22,7 +25,13 @@ ALGEBRA_CONCEPTS = {row["concept_id"]: row for row in CATALOG["concepts"]}
 NUMBER_THEORY_CONCEPTS = {row["concept_id"]: row for row in NUMBER_THEORY_CATALOG["concepts"]}
 GEOMETRY_CONCEPTS = {row["concept_id"]: row for row in GEOMETRY_CATALOG["concepts"]}
 COMBINATORICS_CONCEPTS = {row["concept_id"]: row for row in COMBINATORICS_CATALOG["concepts"]}
-CONCEPTS = {**ALGEBRA_CONCEPTS, **NUMBER_THEORY_CONCEPTS, **GEOMETRY_CONCEPTS, **COMBINATORICS_CONCEPTS}
+CONCEPTS = apply_alias_policy({
+    **ALGEBRA_CONCEPTS, **NUMBER_THEORY_CONCEPTS, **GEOMETRY_CONCEPTS, **COMBINATORICS_CONCEPTS,
+})
+ALGEBRA_CONCEPTS = {cid: CONCEPTS[cid] for cid in ALGEBRA_CONCEPTS}
+NUMBER_THEORY_CONCEPTS = {cid: CONCEPTS[cid] for cid in NUMBER_THEORY_CONCEPTS}
+GEOMETRY_CONCEPTS = {cid: CONCEPTS[cid] for cid in GEOMETRY_CONCEPTS}
+COMBINATORICS_CONCEPTS = {cid: CONCEPTS[cid] for cid in COMBINATORICS_CONCEPTS}
 CONCEPT_REDIRECTS = {**NUMBER_THEORY_CATALOG["redirects"], **COMBINATORICS_CATALOG["redirects"]}
 # Preserve established Algebra captions and public identifiers.
 for _cid, _label in {
@@ -182,6 +191,8 @@ def concepts_for_fact(fact: dict, *, topic: str = "") -> tuple[str, ...]:
     for subject in subjects:
         if subject and (cid := concept_for(str(fact["layer"]), str(fact["label"]), topic=subject)):
             return (cid,)
+        if subject and fact.get("_alias_context_ids", {}).get(subject):
+            return tuple(fact["_alias_context_ids"][subject])
         if subject == "Combinatorics" and fact.get("_comb_context_ids"):
             return tuple(fact["_comb_context_ids"])
     return ()
@@ -233,11 +244,14 @@ def concept_fact_filter(concept_id: str):
     from django.db import connection
     from django.db.models import Q
 
+    from inspinia.pages.concept_alias_context import contextual_fact_filter as alias_context_filter
+
     concept_id = resolve_concept_id(concept_id)
     query = Q(pk__in=[])
     for kind, display in CONCEPTS.get(concept_id, {}).get("aliases", ()):
         layer = "subtopic" if kind == "canonical_subtopic" else kind
         query |= Q(layer=layer, label__iexact=display)
+    query |= alias_context_filter(concept_id)
     if concept_id in COMBINATORICS_CONCEPTS:
         from inspinia.pages.combinatorics_concept_context import contextual_fact_filter
 

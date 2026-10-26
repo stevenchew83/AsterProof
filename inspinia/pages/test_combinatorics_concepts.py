@@ -10,6 +10,7 @@ import pytest
 from django.core.cache import cache
 from django.urls import reverse
 
+from inspinia.pages.concept_alias_policy import POLICY_BYTES
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
 from inspinia.pages.models import ProblemTopicTechnique
@@ -118,7 +119,7 @@ def test_complete_namespaced_catalog_and_cache_hash():
                     GEOMETRY_CATALOG_PATH,
                     COMBINATORICS_CATALOG_PATH,
                 )
-            ),
+            ) + POLICY_BYTES,
         ).hexdigest()
         == CATALOG_SHA256
     )

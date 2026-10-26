@@ -306,7 +306,7 @@ def test_full_captured_catalog_resolves_151_references_and_keeps_29_unrated():
     context = build_technique_benchmark_dashboard_context(TechniqueBenchmark.objects.all(), catalog_filters={})
     rows = context["technique_benchmark_rows"]
     assert len(rows) == len(CONCEPTS) == 180
-    assert len(CONCEPT_BY_MEMBER) == 543
+    assert len(CONCEPT_BY_MEMBER) == 539
     assert sum(row["training_type"] == "Unrated" for row in rows) == 29
     assert not any(row["profile_conflicts"] for row in rows)
     for row in rows:

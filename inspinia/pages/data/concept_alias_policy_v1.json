@@ -1,0 +1,393 @@
+{
+  "version": "concept-alias-policy-v1",
+  "scope": "Priority caption corrections and holds; no physical tag or benchmark writes.",
+  "matching": "Exact role, subject and full casefolded caption; no punctuation stripping or fuzzy matching.",
+  "display_names": {
+    "rank": "Matrix rank"
+  },
+  "bindings": [
+    {
+      "id": "A01",
+      "subject": "Algebra",
+      "kind": "method",
+      "caption": "SUBSTITUTION",
+      "resolution": "EXACT",
+      "lifecycle": "ACTIVE",
+      "concept_id": "substitution",
+      "context_rules": [],
+      "review_finding": "INCORRECT",
+      "previous_concept_ids": [
+        "integer-domain-functional-equations"
+      ],
+      "reason": "Generic substitution does not establish an integer-domain functional equation.",
+      "evidence": "source-definition-evidence.json and production-priority-contexts.json, 2026-10-26"
+    },
+    {
+      "id": "A02",
+      "subject": "Algebra",
+      "kind": "method",
+      "caption": "LINEAR RECURRENCE",
+      "resolution": "EXACT",
+      "lifecycle": "ACTIVE",
+      "concept_id": "linear-recurrences",
+      "context_rules": [],
+      "review_finding": "INCORRECT",
+      "previous_concept_ids": [
+        "recurrences"
+      ],
+      "reason": "The linear qualifier is explicit; retain the general recurrence parent separately.",
+      "evidence": "source-definition-evidence.json and production-priority-contexts.json, 2026-10-26"
+    },
+    {
+      "id": "A03",
+      "subject": "Algebra",
+      "kind": "object",
+      "caption": "FINITE DIFFERENCES",
+      "resolution": "EXACT",
+      "lifecycle": "ACTIVE",
+      "concept_id": "finite-differences",
+      "context_rules": [],
+      "review_finding": "INCORRECT",
+      "previous_concept_ids": [
+        "integer-valued-polynomials"
+      ],
+      "reason": "The difference operation is not identical to integer-valued polynomials.",
+      "evidence": "source-definition-evidence.json and production-priority-contexts.json, 2026-10-26"
+    },
+    {
+      "id": "A04",
+      "subject": "Algebra",
+      "kind": "object",
+      "caption": "TELESCOPING",
+      "resolution": "EXACT",
+      "lifecycle": "ACTIVE",
+      "concept_id": "telescoping",
+      "context_rules": [],
+      "review_finding": "INCORRECT",
+      "previous_concept_ids": [
+        "harmonic-sums"
+      ],
+      "reason": "Telescoping is not restricted to harmonic sums.",
+      "evidence": "source-definition-evidence.json and production-priority-contexts.json, 2026-10-26"
+    },
+    {
+      "id": "A05.1",
+      "subject": "Algebra",
+      "kind": "method",
+      "caption": "RANK",
+      "resolution": "CONTEXTUAL",
+      "lifecycle": "ACTIVE",
+      "concept_id": null,
+      "context_rules": [
+        {
+          "id": "matrix-rank-1",
+          "technique": "MINIMAL-RANK IDEMPOTENT",
+          "family": "Algebraic structures and linear algebra",
+          "requires": {
+            "technique_tags": [
+              "MATRIX FACTORIZATION"
+            ],
+            "lemma_theorem_tags": [
+              "RANK-NULLITY"
+            ]
+          },
+          "concept_id": "rank"
+        },
+        {
+          "id": "matrix-rank-2",
+          "technique": "RANK / KERNEL / IMAGE",
+          "family": "Algebraic structures and linear algebra",
+          "requires": {
+            "technique_tags": [
+              "MATRIX FACTORIZATION"
+            ],
+            "lemma_theorem_tags": [
+              "RANK-NULLITY"
+            ]
+          },
+          "concept_id": "rank"
+        }
+      ],
+      "review_finding": "INCORRECT",
+      "previous_concept_ids": [
+        "determinants"
+      ],
+      "reason": "Resolve only an explicitly witnessed matrix-rank source; the unqualified type remains held.",
+      "evidence": "source-definition-evidence.json and production-priority-contexts.json, 2026-10-26"
+    },
+    {
+      "id": "A05.2",
+      "subject": "Algebra",
+      "kind": "object",
+      "caption": "RANK",
+      "resolution": "CONTEXTUAL",
+      "lifecycle": "ACTIVE",
+      "concept_id": null,
+      "context_rules": [
+        {
+          "id": "matrix-rank-1",
+          "technique": "MINIMAL-RANK IDEMPOTENT",
+          "family": "Algebraic structures and linear algebra",
+          "requires": {
+            "technique_tags": [
+              "MATRIX FACTORIZATION"
+            ],
+            "lemma_theorem_tags": [
+              "RANK-NULLITY"
+            ]
+          },
+          "concept_id": "rank"
+        },
+        {
+          "id": "matrix-rank-2",
+          "technique": "RANK / KERNEL / IMAGE",
+          "family": "Algebraic structures and linear algebra",
+          "requires": {
+            "technique_tags": [
+              "MATRIX FACTORIZATION"
+            ],
+            "lemma_theorem_tags": [
+              "RANK-NULLITY"
+            ]
+          },
+          "concept_id": "rank"
+        }
+      ],
+      "review_finding": "",
+      "previous_concept_ids": [],
+      "reason": "Resolve only an explicitly witnessed matrix-rank source; the unqualified type remains held.",
+      "evidence": "source-definition-evidence.json and production-priority-contexts.json, 2026-10-26"
+    },
+    {
+      "id": "A05.3",
+      "subject": "Algebra",
+      "kind": "technique",
+      "caption": "RANK",
+      "resolution": "CONTEXTUAL",
+      "lifecycle": "ACTIVE",
+      "concept_id": null,
+      "context_rules": [
+        {
+          "id": "matrix-rank-1",
+          "technique": "MINIMAL-RANK IDEMPOTENT",
+          "family": "Algebraic structures and linear algebra",
+          "requires": {
+            "technique_tags": [
+              "MATRIX FACTORIZATION"
+            ],
+            "lemma_theorem_tags": [
+              "RANK-NULLITY"
+            ]
+          },
+          "concept_id": "rank"
+        },
+        {
+          "id": "matrix-rank-2",
+          "technique": "RANK / KERNEL / IMAGE",
+          "family": "Algebraic structures and linear algebra",
+          "requires": {
+            "technique_tags": [
+              "MATRIX FACTORIZATION"
+            ],
+            "lemma_theorem_tags": [
+              "RANK-NULLITY"
+            ]
+          },
+          "concept_id": "rank"
+        }
+      ],
+      "review_finding": "",
+      "previous_concept_ids": [],
+      "reason": "Resolve only an explicitly witnessed matrix-rank source; the unqualified type remains held.",
+      "evidence": "source-definition-evidence.json and production-priority-contexts.json, 2026-10-26"
+    },
+    {
+      "id": "A06",
+      "subject": "Algebra",
+      "kind": "method",
+      "caption": "RANK ARGUMENT",
+      "resolution": "CONTEXTUAL",
+      "lifecycle": "ACTIVE",
+      "concept_id": null,
+      "context_rules": [
+        {
+          "id": "matrix-rank-1",
+          "technique": "MINIMAL-RANK IDEMPOTENT",
+          "family": "Algebraic structures and linear algebra",
+          "requires": {
+            "technique_tags": [
+              "MATRIX FACTORIZATION"
+            ],
+            "lemma_theorem_tags": [
+              "RANK-NULLITY"
+            ]
+          },
+          "concept_id": "rank"
+        },
+        {
+          "id": "matrix-rank-2",
+          "technique": "RANK / KERNEL / IMAGE",
+          "family": "Algebraic structures and linear algebra",
+          "requires": {
+            "technique_tags": [
+              "MATRIX FACTORIZATION"
+            ],
+            "lemma_theorem_tags": [
+              "RANK-NULLITY"
+            ]
+          },
+          "concept_id": "rank"
+        }
+      ],
+      "review_finding": "",
+      "previous_concept_ids": [],
+      "reason": "A rank argument without an established rank type remains held.",
+      "evidence": "source-definition-evidence.json and production-priority-contexts.json, 2026-10-26"
+    },
+    {
+      "id": "A07",
+      "subject": "Algebra",
+      "kind": "method",
+      "caption": "MATRIX METHOD",
+      "resolution": "AMBIGUOUS",
+      "lifecycle": "ACTIVE",
+      "concept_id": null,
+      "context_rules": [],
+      "review_finding": "INCORRECT",
+      "previous_concept_ids": [
+        "determinants"
+      ],
+      "reason": "Matrix context alone does not identify a determinant method. Preserve the raw caption for review.",
+      "evidence": "source-definition-evidence.json and production-priority-contexts.json, 2026-10-26"
+    },
+    {
+      "id": "A08.1",
+      "subject": "Algebra",
+      "kind": "method",
+      "caption": "EXPANSION",
+      "resolution": "CONTEXTUAL",
+      "lifecycle": "ACTIVE",
+      "concept_id": null,
+      "context_rules": [
+        {
+          "id": "polynomial-expansion-1",
+          "technique": "ALG-POLYNOMIAL SUMS; SYMMETRY; EXPANSION",
+          "family": "Polynomials and algebraic manipulation",
+          "requires": {
+            "object_tags": [
+              "POLYNOMIAL SUMS"
+            ]
+          },
+          "concept_id": "expansion"
+        }
+      ],
+      "review_finding": "INCORRECT",
+      "previous_concept_ids": [
+        "algebraic-identities"
+      ],
+      "reason": "Only confirmed polynomial expansion maps to Algebraic Expansion; beta and unspecified expansions remain held.",
+      "evidence": "source-definition-evidence.json and production-priority-contexts.json, 2026-10-26"
+    },
+    {
+      "id": "A08.2",
+      "subject": "Algebra",
+      "kind": "technique",
+      "caption": "EXPANSION",
+      "resolution": "CONTEXTUAL",
+      "lifecycle": "ACTIVE",
+      "concept_id": null,
+      "context_rules": [
+        {
+          "id": "polynomial-expansion-1",
+          "technique": "ALG-POLYNOMIAL SUMS; SYMMETRY; EXPANSION",
+          "family": "Polynomials and algebraic manipulation",
+          "requires": {
+            "object_tags": [
+              "POLYNOMIAL SUMS"
+            ]
+          },
+          "concept_id": "expansion"
+        }
+      ],
+      "review_finding": "",
+      "previous_concept_ids": [],
+      "reason": "Only confirmed polynomial expansion maps to Algebraic Expansion; beta and unspecified expansions remain held.",
+      "evidence": "source-definition-evidence.json and production-priority-contexts.json, 2026-10-26"
+    },
+    {
+      "id": "N01",
+      "subject": "Number Theory",
+      "kind": "lemma",
+      "caption": "SUM OF TWO SQUARES",
+      "resolution": "CONTEXTUAL",
+      "lifecycle": "ACTIVE",
+      "concept_id": null,
+      "context_rules": [
+        {
+          "id": "fermat-two-squares-1",
+          "technique": "SUM OF TWO SQUARES",
+          "family": "Diophantine equations and descent",
+          "requires": {
+            "lemma_theorem_tags": [
+              "FERMAT TWO-SQUARE THEOREM"
+            ]
+          },
+          "concept_id": "nt-fermat-two-squares"
+        },
+        {
+          "id": "fermat-two-squares-2",
+          "technique": "FERMAT TWO-SQUARE THEOREM",
+          "family": "Diophantine equations and descent",
+          "requires": {},
+          "concept_id": "nt-fermat-two-squares"
+        }
+      ],
+      "review_finding": "",
+      "previous_concept_ids": [],
+      "reason": "The representation identity remains separate. A short lemma caption needs an explicit same-source Fermat theorem witness.",
+      "evidence": "source-definition-evidence.json and production-priority-contexts.json, 2026-10-26"
+    },
+    {
+      "id": "A09.1",
+      "subject": "Algebra",
+      "kind": "method",
+      "caption": "MATRIX RANK",
+      "resolution": "EXACT",
+      "lifecycle": "ACTIVE",
+      "concept_id": "rank",
+      "context_rules": [],
+      "review_finding": "",
+      "previous_concept_ids": [],
+      "reason": "The caption itself establishes the rank type.",
+      "evidence": "source-definition-evidence.json and production-priority-contexts.json, 2026-10-26"
+    },
+    {
+      "id": "A09.2",
+      "subject": "Algebra",
+      "kind": "object",
+      "caption": "MATRIX RANK",
+      "resolution": "EXACT",
+      "lifecycle": "ACTIVE",
+      "concept_id": "rank",
+      "context_rules": [],
+      "review_finding": "",
+      "previous_concept_ids": [],
+      "reason": "The caption itself establishes the rank type.",
+      "evidence": "source-definition-evidence.json and production-priority-contexts.json, 2026-10-26"
+    },
+    {
+      "id": "A09.3",
+      "subject": "Algebra",
+      "kind": "technique",
+      "caption": "MATRIX RANK",
+      "resolution": "EXACT",
+      "lifecycle": "ACTIVE",
+      "concept_id": "rank",
+      "context_rules": [],
+      "review_finding": "",
+      "previous_concept_ids": [],
+      "reason": "The caption itself establishes the rank type.",
+      "evidence": "source-definition-evidence.json and production-priority-contexts.json, 2026-10-26"
+    }
+  ]
+}
