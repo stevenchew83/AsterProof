@@ -43,6 +43,7 @@ from inspinia.pages.models import UserProblemDifficultyRating
 from inspinia.pages.page_views import PageViewPayload
 from inspinia.pages.page_views import record_page_view
 from inspinia.pages.statement_analytics import effective_mohs
+from inspinia.pages.statement_concept_coverage import statement_coverage_payloads
 from inspinia.pages.topic_labels import display_topic_label
 from inspinia.problemsets.selectors import problem_list_add_target_rows
 from inspinia.solutions.forms import ProblemSolutionBlockFormSet
@@ -852,6 +853,10 @@ def problem_solution_edit_view(request, problem_uuid):
 
     current_status = solution.status or ProblemSolution.Status.DRAFT
     problem_data = _problem_context(problem)
+    coverage_source = problem_data["statement_entry"] or ContestProblemStatement(
+        linked_problem=problem, topic=problem.topic, is_active=problem.is_active,
+    )
+    editor_coverage = statement_coverage_payloads([coverage_source])[coverage_source.pk]
     plain_block_type = SolutionBlockType.objects.filter(slug="plain").only("id").first()
     context = {
         "form": form,
@@ -863,6 +868,7 @@ def problem_solution_edit_view(request, problem_uuid):
             args=[problem.problem_uuid],
         ),
         "solution_media_base_url": _solution_media_base_url(request),
+        "editor_coverage": editor_coverage,
         "solution_status_badge_class": _solution_status_badge(current_status),
         "solution_status_label": ProblemSolution.Status(current_status).label,
     }
