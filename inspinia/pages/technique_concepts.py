@@ -2,23 +2,28 @@
 
 import hashlib
 import json
+from collections import defaultdict
 from pathlib import Path
 
 DATA = Path(__file__).parent / "data"
 CATALOG_PATH = DATA / "algebra_concepts_v1.json"
 NUMBER_THEORY_CATALOG_PATH = DATA / "number_theory_concepts_v1.json"
 GEOMETRY_CATALOG_PATH = DATA / "geometry_concepts_v1.json"
+COMBINATORICS_CATALOG_PATH = DATA / "combinatorics_concepts_v1.json"
 CATALOG_SHA256 = hashlib.sha256(
-    CATALOG_PATH.read_bytes() + NUMBER_THEORY_CATALOG_PATH.read_bytes() + GEOMETRY_CATALOG_PATH.read_bytes(),
+    CATALOG_PATH.read_bytes() + NUMBER_THEORY_CATALOG_PATH.read_bytes() + GEOMETRY_CATALOG_PATH.read_bytes()
+    + COMBINATORICS_CATALOG_PATH.read_bytes(),
 ).hexdigest()
 CATALOG = json.loads(CATALOG_PATH.read_bytes())
 NUMBER_THEORY_CATALOG = json.loads(NUMBER_THEORY_CATALOG_PATH.read_bytes())
 GEOMETRY_CATALOG = json.loads(GEOMETRY_CATALOG_PATH.read_bytes())
+COMBINATORICS_CATALOG = json.loads(COMBINATORICS_CATALOG_PATH.read_bytes())
 ALGEBRA_CONCEPTS = {row["concept_id"]: row for row in CATALOG["concepts"]}
 NUMBER_THEORY_CONCEPTS = {row["concept_id"]: row for row in NUMBER_THEORY_CATALOG["concepts"]}
 GEOMETRY_CONCEPTS = {row["concept_id"]: row for row in GEOMETRY_CATALOG["concepts"]}
-CONCEPTS = {**ALGEBRA_CONCEPTS, **NUMBER_THEORY_CONCEPTS, **GEOMETRY_CONCEPTS}
-CONCEPT_REDIRECTS = NUMBER_THEORY_CATALOG["redirects"]
+COMBINATORICS_CONCEPTS = {row["concept_id"]: row for row in COMBINATORICS_CATALOG["concepts"]}
+CONCEPTS = {**ALGEBRA_CONCEPTS, **NUMBER_THEORY_CONCEPTS, **GEOMETRY_CONCEPTS, **COMBINATORICS_CONCEPTS}
+CONCEPT_REDIRECTS = {**NUMBER_THEORY_CATALOG["redirects"], **COMBINATORICS_CATALOG["redirects"]}
 # Preserve established Algebra captions and public identifiers.
 for _cid, _label in {
     "am-gm": "AM-GM", "cauchy-schwarz": "CAUCHY-SCHWARZ", "engel": "ENGEL FORM",
@@ -39,6 +44,10 @@ GEOMETRY_BY_MEMBER = {
     (kind, label.strip().casefold()): cid
     for cid, definition in GEOMETRY_CONCEPTS.items() for kind, label in definition["aliases"]
 }
+COMBINATORICS_BY_MEMBER = {
+    (kind, label.strip().casefold()): cid
+    for cid, definition in COMBINATORICS_CONCEPTS.items() for kind, label in definition["aliases"]
+}
 CONCEPT_BY_PROFILE = {
     (profile["kind"], profile["label_key"]): cid
     for cid, definition in ALGEBRA_CONCEPTS.items() for profile in definition["profiles"]
@@ -50,6 +59,10 @@ NUMBER_THEORY_BY_PROFILE = {
 GEOMETRY_BY_PROFILE = {
     (profile["kind"], profile["label_key"]): cid
     for cid, definition in GEOMETRY_CONCEPTS.items() for profile in definition["profiles"]
+}
+COMBINATORICS_BY_PROFILE = {
+    (profile["kind"], profile["label_key"]): cid
+    for cid, definition in COMBINATORICS_CONCEPTS.items() for profile in definition["profiles"]
 }
 CONCEPT_MEMBER_KEYS = {
     cid: tuple(f"{p['kind']}:{p['label_key']}" for p in definition["profiles"])
@@ -66,6 +79,7 @@ SUBJECT_LABELS = {
     "n": "Number Theory", "nt": "Number Theory", "number theory": "Number Theory",
     "number-theory": "Number Theory",
     "g": "Geometry", "geo": "Geometry", "geometry": "Geometry",
+    "c": "Combinatorics", "comb": "Combinatorics", "combinatorics": "Combinatorics",
 }
 
 
@@ -84,6 +98,8 @@ def catalog_concept_ids(topic: str = "Algebra", *, scope: str = "core") -> tuple
         return tuple(ALGEBRA_CONCEPTS)
     if subject == "Geometry":
         return tuple(GEOMETRY_CONCEPTS)
+    if subject == "Combinatorics":
+        return tuple(COMBINATORICS_CONCEPTS)
     if subject != "Number Theory":
         return ()
     return tuple(cid for cid, definition in NUMBER_THEORY_CONCEPTS.items() if (
@@ -116,6 +132,7 @@ def concept_for(kind: str, label: str, *, topic: str = "Algebra") -> str:
     members = {
         "Algebra": CONCEPT_BY_MEMBER, "Number Theory": NUMBER_THEORY_BY_MEMBER,
         "Geometry": GEOMETRY_BY_MEMBER,
+        "Combinatorics": COMBINATORICS_BY_MEMBER,
     }.get(SUBJECT_LABELS.get(str(topic).strip().casefold(), ""), {})
     return members.get((kind, str(label).strip().casefold()), "")
 
@@ -130,11 +147,14 @@ def concept_for_benchmark(kind: str, label_key: str, *, topic: str = "") -> str:
         return CONCEPT_BY_PROFILE.get(pair, "")
     if subject == "Geometry":
         return GEOMETRY_BY_PROFILE.get(pair, "")
+    if subject == "Combinatorics":
+        return COMBINATORICS_BY_PROFILE.get(pair, "")
     # Preserve established ownership in the unfiltered map. Area catalogs use
     # explicit subject ownership for shared source profiles.
     return (
         CONCEPT_BY_PROFILE.get(pair, "") or NUMBER_THEORY_BY_PROFILE.get(pair, "")
         or GEOMETRY_BY_PROFILE.get(pair, "")
+        or COMBINATORICS_BY_PROFILE.get(pair, "")
     )
 
 
@@ -146,6 +166,13 @@ def is_algebra_fact(fact: dict) -> bool:
 
 
 def concept_for_fact(fact: dict, *, topic: str = "") -> str:
+    """Compatibility lookup for facts that identify exactly one concept."""
+    ids = concepts_for_fact(fact, topic=topic)
+    return ids[0] if len(ids) == 1 else ""
+
+
+def concepts_for_fact(fact: dict, *, topic: str = "") -> tuple[str, ...]:
+    """A merged fact may have separate graph/permutation source occurrences."""
     labels = [fact.get("main_topic", ""), *(fact.get("main_topic_labels") or []),
               *(fact.get("domain_topic_labels") or [])]
     subjects = list(dict.fromkeys(SUBJECT_LABELS.get(str(label).casefold(), "") for label in labels))
@@ -154,27 +181,25 @@ def concept_for_fact(fact: dict, *, topic: str = "") -> str:
         subjects = [requested] if requested in subjects else []
     for subject in subjects:
         if subject and (cid := concept_for(str(fact["layer"]), str(fact["label"]), topic=subject)):
-            return cid
-    return ""
+            return (cid,)
+        if subject == "Combinatorics" and fact.get("_comb_context_ids"):
+            return tuple(fact["_comb_context_ids"])
+    return ()
 
 
 def conflicting_concept_profiles(concept_ids: set[str]) -> set[str]:
     """Use reviewed references; differing retained vectors never acquire a combined rating."""
-    from django.db.models import Q
-
     from inspinia.pages.models import TechniqueBenchmark
 
     definitions = {cid: CONCEPTS[cid] for cid in concept_ids if cid in CONCEPTS}
-    query = Q(pk__in=[])
+    member_keys = set()
     for definition in definitions.values():
         keys = CONCEPT_MEMBER_KEYS[definition["concept_id"]] if definition.get("reference_policy") else (
             (definition["preferred"],) if definition["preferred"] else ()
         )
-        for key in keys:
-            kind, label_key = key.split(":", 1)
-            query |= Q(kind=kind, label_key=label_key)
+        member_keys.update(keys)
     profiles = {
-        f"{p.kind}:{p.label_key}": p for p in TechniqueBenchmark.objects.filter(query)
+        f"{p.kind}:{p.label_key}": p for p in TechniqueBenchmark.objects.filter(benchmark_member_filter(member_keys))
     }
     conflicts = set()
     for cid, definition in definitions.items():
@@ -189,6 +214,20 @@ def conflicting_concept_profiles(concept_ids: set[str]) -> set[str]:
     return conflicts
 
 
+def benchmark_member_filter(members):
+    """Keep exact role/key membership without a deep OR tree per profile."""
+    from django.db.models import Q
+
+    by_kind = defaultdict(set)
+    for member in members:
+        kind, label_key = member.split(":", 1)
+        by_kind[kind].add(label_key)
+    query = Q(pk__in=[])
+    for kind, keys in by_kind.items():
+        query |= Q(kind=kind, label_key__in=sorted(keys))
+    return query
+
+
 def concept_fact_filter(concept_id: str):
     """Exact role/name union with the same subject boundary used by gap counts."""
     from django.db import connection
@@ -199,6 +238,10 @@ def concept_fact_filter(concept_id: str):
     for kind, display in CONCEPTS.get(concept_id, {}).get("aliases", ()):
         layer = "subtopic" if kind == "canonical_subtopic" else kind
         query |= Q(layer=layer, label__iexact=display)
+    if concept_id in COMBINATORICS_CONCEPTS:
+        from inspinia.pages.combinatorics_concept_context import contextual_fact_filter
+
+        query |= contextual_fact_filter(concept_id)
     subject = concept_subject(concept_id)
     scope = Q(main_topic=subject)
     if connection.vendor == "postgresql":

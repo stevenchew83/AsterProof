@@ -20,6 +20,8 @@ from django.http import HttpResponse
 from django.urls import reverse
 from django.utils import timezone
 
+from inspinia.pages.combinatorics_concept_context import annotate_combinatorics_context
+from inspinia.pages.combinatorics_concept_context import iter_combinatorics_context
 from inspinia.pages.completion_record_fields import is_completion_status_solved
 from inspinia.pages.models import TOPIC_TAG_LAYER_FIELDS
 from inspinia.pages.models import ContestProblemStatement
@@ -41,7 +43,7 @@ from inspinia.pages.technique_benchmarking.scoring import final_training_type
 from inspinia.pages.technique_benchmarking.scoring import normalize_target_profile
 from inspinia.pages.technique_concepts import CATALOG_SHA256
 from inspinia.pages.technique_concepts import CONCEPTS
-from inspinia.pages.technique_concepts import concept_for_fact
+from inspinia.pages.technique_concepts import concepts_for_fact
 from inspinia.pages.technique_concepts import conflicting_concept_profiles
 from inspinia.pages.technique_progress_catalog import technique_progress_catalog_status_context
 from inspinia.pages.topic_labels import display_topic_label
@@ -488,12 +490,13 @@ def _progress_fact_rows(
                 "proof_roles": sorted(layer_metadata.get("proof_roles", set()), key=str.casefold),
                 "search_text": str(fact.get("search_text") or ""),
                 "statement_id": statement_id,
+                "linked_problem_id": fact["linked_problem_id"],
                 "subtopic": label if layer == TechniqueProgressFact.Layer.SUBTOPIC else canonical_subtopic,
                 "technique": label if layer == TechniqueProgressFact.Layer.TECHNIQUE else "",
                 "technique_tags": sorted(layer_metadata.get("technique_tags", set()), key=str.casefold),
             },
         )
-    return rows
+    return annotate_combinatorics_context(rows)
 
 
 def _fact_effective_mohs(fact: dict[str, object]) -> int | None:
@@ -2472,11 +2475,11 @@ def _scoped_subtopic_gap_rows(*, user: User, gap_topic: str) -> list[dict[str, o
         queryset = _filter_progress_fact_queryset(queryset, gap_topic=gap_topic, gap_canonical_subtopic="")
     buckets = defaultdict(lambda: {"total": set(), "solved": set()})
     fields = (
-        "statement_id", "label", "layer", "canonical_subtopic", "canonical_subtopic_labels",
+        "statement_id", "linked_problem_id", "label", "layer", "canonical_subtopic", "canonical_subtopic_labels",
         "main_topic", "main_topic_labels", "_dashboard_statement_completion_exists",
         "_dashboard_statement_completion_solved", "_dashboard_problem_completion_solved",
     )
-    for fact in queryset.values(*fields).iterator(chunk_size=1000):
+    for fact in iter_combinatorics_context(queryset.values(*fields).iterator(chunk_size=1000)):
         if gap_topic != GAP_TOPIC_ALL:
             topic = GAP_TOPIC_SLUGS.get(gap_topic, OTHER_TOPIC_LABEL)
             if fact["main_topic"] != topic and topic not in (fact["main_topic_labels"] or []):
@@ -2487,14 +2490,18 @@ def _scoped_subtopic_gap_rows(*, user: User, gap_topic: str) -> list[dict[str, o
         families = set(fact["canonical_subtopic_labels"] or [])
         if fact["canonical_subtopic"]:
             families.add(fact["canonical_subtopic"])
+        concept_ids = concepts_for_fact(fact, topic=GAP_TOPIC_SLUGS.get(gap_topic, ""))
         for family in families:
-            concept_id = concept_for_fact(fact, topic=GAP_TOPIC_SLUGS.get(gap_topic, ""))
-            layer = "concept" if concept_id else fact["layer"]
-            label = CONCEPTS[concept_id]["label"] if concept_id else fact["label"]
-            bucket = buckets[(family, layer, label)]
-            bucket["total"].add(fact["statement_id"])
-            if solved:
-                bucket["solved"].add(fact["statement_id"])
+            for concept_id in concept_ids or ("",):
+                context_families = fact.get("_comb_context_families", {}).get(concept_id)
+                if context_families is not None and family not in context_families:
+                    continue
+                layer = "concept" if concept_id else fact["layer"]
+                label = CONCEPTS[concept_id]["label"] if concept_id else fact["label"]
+                bucket = buckets[(family, layer, label)]
+                bucket["total"].add(fact["statement_id"])
+                if solved:
+                    bucket["solved"].add(fact["statement_id"])
     return [
         {
             "canonical_subtopic_labels": [family], "label": label,
@@ -2512,7 +2519,7 @@ def _ungrouped_progress_rows(
     configs = {str(c["fact_layer"]): (kind, str(c["type"])) for kind, c in LAYER_GAP_KIND_CONFIG.items()}
     for layer, (kind, type_label) in configs.items():
         facts = [fact for fact in tagged_rows if fact["layer"] == layer and not (
-            concept_for_fact(fact, topic=GAP_TOPIC_SLUGS.get(gap_topic, ""))
+            concepts_for_fact(fact, topic=GAP_TOPIC_SLUGS.get(gap_topic, ""))
         )]
         rows = _aggregate_progress_rows(
             facts, label_key="label", type_label=type_label,
@@ -2530,8 +2537,7 @@ def _concept_progress_rows(
     members = []
     roles = defaultdict(set)
     for fact in tagged_rows:
-        concept_id = concept_for_fact(fact, topic=GAP_TOPIC_SLUGS.get(gap_topic, ""))
-        if concept_id:
+        for concept_id in concepts_for_fact(fact, topic=GAP_TOPIC_SLUGS.get(gap_topic, "")):
             members.append({**fact, "_concept_id": concept_id})
             roles[concept_id].add(str(fact["layer"]))
     rows = _aggregate_progress_rows(

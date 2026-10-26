@@ -6,7 +6,6 @@ from decimal import Decimal
 from statistics import mean
 
 from django.core.paginator import Paginator
-from django.db.models import Q
 
 from inspinia.pages.models import TechniqueBenchmark
 from inspinia.pages.technique_benchmarking.keys import build_benchmark_row_key
@@ -17,6 +16,7 @@ from inspinia.pages.technique_benchmarking.scoring import target_weight_for_benc
 from inspinia.pages.technique_concepts import CONCEPT_MEMBER_KEYS
 from inspinia.pages.technique_concepts import CONCEPTS
 from inspinia.pages.technique_concepts import PROFILE_FIELDS
+from inspinia.pages.technique_concepts import benchmark_member_filter
 from inspinia.pages.technique_concepts import catalog_concept_ids
 from inspinia.pages.technique_concepts import concept_for_benchmark
 
@@ -73,11 +73,9 @@ def build_technique_benchmark_dashboard_context(  # noqa: PLR0913 -- preserve ex
         concept_for_benchmark(row["kind"], row["row_key"].partition(":")[2], topic=catalog_subject) for row in rows
     } - {""} if combine_concepts else set()
     if concept_ids:
-        query = Q(pk__in=[])
-        for concept_id in concept_ids:
-            for member in CONCEPT_MEMBER_KEYS[concept_id]:
-                kind, key = member.split(":", 1)
-                query |= Q(kind=kind, label_key=key)
+        query = benchmark_member_filter(
+            member for concept_id in concept_ids for member in CONCEPT_MEMBER_KEYS[concept_id]
+        )
         members = TechniqueBenchmark.objects.filter(query)
         if not paginate:
             members = members.prefetch_related("aliases")
