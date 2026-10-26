@@ -23,6 +23,8 @@ from django.utils import timezone
 from inspinia.pages.combinatorics_concept_context import annotate_combinatorics_context
 from inspinia.pages.combinatorics_concept_context import iter_combinatorics_context
 from inspinia.pages.completion_record_fields import is_completion_status_solved
+from inspinia.pages.concept_alias_context import annotate_alias_context
+from inspinia.pages.concept_alias_context import iter_alias_context
 from inspinia.pages.models import TOPIC_TAG_LAYER_FIELDS
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemTopicTechnique
@@ -496,7 +498,7 @@ def _progress_fact_rows(
                 "technique_tags": sorted(layer_metadata.get("technique_tags", set()), key=str.casefold),
             },
         )
-    return annotate_combinatorics_context(rows)
+    return annotate_alias_context(annotate_combinatorics_context(rows), canonical_subtopic=gap_canonical_subtopic)
 
 
 def _fact_effective_mohs(fact: dict[str, object]) -> int | None:
@@ -2479,7 +2481,7 @@ def _scoped_subtopic_gap_rows(*, user: User, gap_topic: str) -> list[dict[str, o
         "main_topic", "main_topic_labels", "_dashboard_statement_completion_exists",
         "_dashboard_statement_completion_solved", "_dashboard_problem_completion_solved",
     )
-    for fact in iter_combinatorics_context(queryset.values(*fields).iterator(chunk_size=1000)):
+    for fact in iter_alias_context(iter_combinatorics_context(queryset.values(*fields).iterator(chunk_size=1000))):
         if gap_topic != GAP_TOPIC_ALL:
             topic = GAP_TOPIC_SLUGS.get(gap_topic, OTHER_TOPIC_LABEL)
             if fact["main_topic"] != topic and topic not in (fact["main_topic_labels"] or []):
@@ -2493,8 +2495,7 @@ def _scoped_subtopic_gap_rows(*, user: User, gap_topic: str) -> list[dict[str, o
         concept_ids = concepts_for_fact(fact, topic=GAP_TOPIC_SLUGS.get(gap_topic, ""))
         for family in families:
             for concept_id in concept_ids or ("",):
-                context_families = fact.get("_comb_context_families", {}).get(concept_id)
-                if context_families is not None and family not in context_families:
+                if not _concept_context_matches_family(fact, concept_id, family):
                     continue
                 layer = "concept" if concept_id else fact["layer"]
                 label = CONCEPTS[concept_id]["label"] if concept_id else fact["label"]
@@ -2510,6 +2511,14 @@ def _scoped_subtopic_gap_rows(*, user: User, gap_topic: str) -> list[dict[str, o
         }
         for (family, layer, label), bucket in buckets.items()
     ]
+
+
+def _concept_context_matches_family(fact: dict, concept_id: str, family: str) -> bool:
+    return all(
+        family in families[concept_id]
+        for families in (fact.get("_comb_context_families", {}), fact.get("_alias_context_families", {}))
+        if concept_id in families
+    )
 
 
 def _ungrouped_progress_rows(

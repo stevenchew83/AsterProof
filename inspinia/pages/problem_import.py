@@ -24,6 +24,7 @@ from inspinia.pages.algebra_tag_imports import algebra_import_session
 from inspinia.pages.algebra_tag_imports import normalization_active
 from inspinia.pages.algebra_tag_imports import runtime_import_policy
 from inspinia.pages.algebra_tag_imports import vocabulary_policy_session
+from inspinia.pages.concept_alias_policy import normalize_alias_assignments
 from inspinia.pages.models import TOPIC_TAG_LAYER_FIELDS
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
@@ -695,7 +696,9 @@ def prepare_topic_tag_entries(
                 )
                 for entry in entries
             ]
-        parsed_entries.extend(entries)
+        parsed_entries.extend(
+            normalize_alias_assignments(entry, topic=topic or "", active=active) for entry in entries
+        )
     return parsed_entries
 
 

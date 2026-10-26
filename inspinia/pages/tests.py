@@ -6978,8 +6978,8 @@ def test_problem_statement_list_keeps_average_difficulty_without_user_editor(cli
     assert "js-statement-difficulty-save" not in response_html
     assert "statement-difficulty-editor" not in response_html
     assert response.context["statement_copy_tsv"].splitlines()[0] == (
-        "Year\tContest\tTopic\tProblem code\tDay\tSolved\tTopic tags\tMOHS\t"
-        "Avg difficulty\tDifficulty ratings\tConfidence\tIMO slot\tUpdated"
+        "Year\tContest\tTopic\tProblem code\tDay\tSolved\tArea\tCoverage\tMapping status\tMOHS\t"
+        "Avg difficulty\tDifficulty ratings\tConfidence\tIMO slot\tUpdated\tReview labels\tOriginal tags"
     )
 
 
@@ -20229,7 +20229,7 @@ def test_problem_statement_list_shows_statement_rows_and_link_counts(client):
     assert "Within loaded rows..." in response_html
     assert "problem-statements-table-alert" in response_html
     assert 'aria-describedby="problem-statements-loaded-status"' in response_html
-    assert 'order: [[6, "desc"]]' in response_html
+    assert 'order: [[7, "desc"]]' in response_html
     assert 'top: ["pageLength", "search", "paging"]' in response_html
     assert 'aria-label="Statement pages"' not in response_html
     assert "dataTables_filter" not in response_html.lower()

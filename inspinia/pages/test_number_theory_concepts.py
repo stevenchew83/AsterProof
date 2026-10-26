@@ -89,7 +89,7 @@ def test_catalog_sizes_and_subject_namespaces_preserve_the_algebra_contract():
     ("technique", "HENSEL-STYLE LIFTING", "nt-lifting"),
     ("lemma", "Hensel's lemma", "nt-hensel"),
     ("method", "finite logarithm", "nt-discrete-logarithms"),
-    ("lemma", "sum of two squares", "nt-fermat-two-squares"),
+    ("lemma", "sum of two squares", ""),
     ("technique", "sum of two squares", "nt-sum-two-squares"),
 ])
 def test_exact_aliases_preserve_role_and_subject(kind, label, expected):
