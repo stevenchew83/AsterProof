@@ -41,9 +41,8 @@ from inspinia.pages.technique_benchmarking.scoring import final_training_type
 from inspinia.pages.technique_benchmarking.scoring import normalize_target_profile
 from inspinia.pages.technique_concepts import CATALOG_SHA256
 from inspinia.pages.technique_concepts import CONCEPTS
-from inspinia.pages.technique_concepts import concept_for
+from inspinia.pages.technique_concepts import concept_for_fact
 from inspinia.pages.technique_concepts import conflicting_concept_profiles
-from inspinia.pages.technique_concepts import is_algebra_fact
 from inspinia.pages.technique_progress_catalog import technique_progress_catalog_status_context
 from inspinia.pages.topic_labels import display_topic_label
 from inspinia.users.models import User
@@ -2277,10 +2276,10 @@ def _build_progress_payload(  # noqa: PLR0913
         ),
         "gap_rows": gap_rows,
         "ungrouped_rows": _ungrouped_progress_rows(
-            tagged_rows, selected_user=selected_user, can_select_user=can_select_user,
+            tagged_rows, selected_user=selected_user, can_select_user=can_select_user, gap_topic=gap_topic,
         ),
         "concept_rows": _concept_progress_rows(
-            tagged_rows, selected_user=selected_user, can_select_user=can_select_user,
+            tagged_rows, selected_user=selected_user, can_select_user=can_select_user, gap_topic=gap_topic,
         ),
         "lemma_rows": layer_rows_by_kind[GAP_KIND_LEMMAS],
         "main_topic_rows": _main_topic_rows(
@@ -2489,7 +2488,7 @@ def _scoped_subtopic_gap_rows(*, user: User, gap_topic: str) -> list[dict[str, o
         if fact["canonical_subtopic"]:
             families.add(fact["canonical_subtopic"])
         for family in families:
-            concept_id = concept_for(str(fact["layer"]), str(fact["label"])) if is_algebra_fact(fact) else ""
+            concept_id = concept_for_fact(fact, topic=GAP_TOPIC_SLUGS.get(gap_topic, ""))
             layer = "concept" if concept_id else fact["layer"]
             label = CONCEPTS[concept_id]["label"] if concept_id else fact["label"]
             bucket = buckets[(family, layer, label)]
@@ -2506,12 +2505,14 @@ def _scoped_subtopic_gap_rows(*, user: User, gap_topic: str) -> list[dict[str, o
     ]
 
 
-def _ungrouped_progress_rows(tagged_rows: list[dict], *, selected_user: User, can_select_user: bool) -> list[dict]:
+def _ungrouped_progress_rows(
+    tagged_rows: list[dict], *, selected_user: User, can_select_user: bool, gap_topic: str = GAP_TOPIC_ALL,
+) -> list[dict]:
     result = []
     configs = {str(c["fact_layer"]): (kind, str(c["type"])) for kind, c in LAYER_GAP_KIND_CONFIG.items()}
     for layer, (kind, type_label) in configs.items():
         facts = [fact for fact in tagged_rows if fact["layer"] == layer and not (
-            is_algebra_fact(fact) and concept_for(layer, str(fact["label"]))
+            concept_for_fact(fact, topic=GAP_TOPIC_SLUGS.get(gap_topic, ""))
         )]
         rows = _aggregate_progress_rows(
             facts, label_key="label", type_label=type_label,
@@ -2523,13 +2524,13 @@ def _ungrouped_progress_rows(tagged_rows: list[dict], *, selected_user: User, ca
     return result
 
 
-def _concept_progress_rows(tagged_rows: list[dict], *, selected_user: User, can_select_user: bool) -> list[dict]:
+def _concept_progress_rows(
+    tagged_rows: list[dict], *, selected_user: User, can_select_user: bool, gap_topic: str = GAP_TOPIC_ALL,
+) -> list[dict]:
     members = []
     roles = defaultdict(set)
     for fact in tagged_rows:
-        if not is_algebra_fact(fact):
-            continue
-        concept_id = concept_for(str(fact["layer"]), str(fact["label"])) if is_algebra_fact(fact) else ""
+        concept_id = concept_for_fact(fact, topic=GAP_TOPIC_SLUGS.get(gap_topic, ""))
         if concept_id:
             members.append({**fact, "_concept_id": concept_id})
             roles[concept_id].add(str(fact["layer"]))

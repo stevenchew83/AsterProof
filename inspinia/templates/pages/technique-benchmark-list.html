@@ -128,6 +128,9 @@
   <div class="d-flex flex-column flex-xl-row align-items-xl-center justify-content-between gap-2 mb-3">
     <div>
       <a class="btn btn-sm btn-light mb-2" href="{% url 'pages:technique_benchmark_list' %}?area=Algebra">Algebra concept catalog</a>
+      <a class="btn btn-sm btn-light mb-2" href="{% url 'pages:technique_benchmark_list' %}?area=Number%20Theory">Number theory concept catalog</a>
+      <a class="btn btn-sm btn-light mb-2" href="{% url 'pages:technique_benchmark_list' %}?area=Number%20Theory&amp;scope=shared">Shared number theory tools</a>
+      <a class="btn btn-sm btn-light mb-2" href="{% url 'pages:technique_benchmark_list' %}?area=Number%20Theory&amp;view=profiles">Number theory role profiles</a>
       <p class="text-muted fs-xs mb-0">{{ technique_benchmark_total }} benchmark row{{ technique_benchmark_total|pluralize }} loaded</p>
     </div>
     <div class="d-flex align-items-center gap-2 benchmark-map-target">
@@ -136,7 +139,7 @@
         {% for option in technique_benchmark_target_profile_options %}
         <a
           class="btn {% if option.selected %}btn-primary{% else %}btn-light{% endif %}"
-          href="?target_profile={{ option.key }}"
+          href="?{{ option.query }}"
           {% if option.selected %}aria-current="page"{% endif %}
         >{{ option.label }}</a>
         {% endfor %}
@@ -217,6 +220,9 @@
     <div class="card-body pt-2">
       <form method="get" class="d-flex flex-wrap gap-2 mb-3">
         <input type="hidden" name="target_profile" value="{{ technique_benchmark_target_profile }}">
+        {% for name, value in benchmark_scope_filters.items %}
+        <input type="hidden" name="{{ name }}" value="{{ value }}">
+        {% endfor %}
         <label for="benchmark-search" class="visually-hidden">Search all benchmark rows</label>
         <input id="benchmark-search" class="form-control form-control-sm w-auto flex-grow-1" type="search" name="q" value="{{ benchmark_search }}" placeholder="Technique, alias, area, family…">
         <button class="btn btn-sm btn-primary" type="submit">Search all rows</button>
@@ -228,7 +234,7 @@
           <option value="name"{% if benchmark_sort == 'name' %} selected{% endif %}>Technique name</option>
         </select>
         <button class="btn btn-sm btn-outline-secondary" type="submit">Sort</button>
-        <a class="btn btn-sm btn-outline-secondary" href="?target_profile={{ technique_benchmark_target_profile }}">Reset</a>
+        <a class="btn btn-sm btn-outline-secondary" href="?{{ benchmark_reset_query }}">Reset</a>
       </form>
       {% if technique_benchmark_chart_is_capped %}<p class="text-muted fs-xs">The matrix shows the 200 highest-value matching rows. The heatmap shows up to 40 families and 12 areas. Search to explore a smaller scope; every matching benchmark remains available in the paginated catalog.</p>{% endif %}
       {% include 'pages/partials/server-pagination.html' %}
