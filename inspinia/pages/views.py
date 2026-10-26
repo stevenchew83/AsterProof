@@ -78,6 +78,9 @@ from inspinia.pages.completion_record_fields import completion_metadata_from_pos
 from inspinia.pages.completion_record_fields import completion_metadata_payload
 from inspinia.pages.completion_record_fields import has_completion_metadata
 from inspinia.pages.completion_record_fields import is_completion_status_solved
+from inspinia.pages.concept_analytics import build_concept_analytics_context
+from inspinia.pages.concept_progress import build_concept_progress_context
+from inspinia.pages.concept_progress import concept_progress_csv
 from inspinia.pages.contest_existence_audit import ContestExistenceAuditValidationError
 from inspinia.pages.contest_existence_audit import build_contest_existence_audit_payload
 from inspinia.pages.contest_existence_audit import fetch_contest_existence_audit_source_text
@@ -172,18 +175,14 @@ from inspinia.pages.technique_benchmarking.importing import apply_benchmark_impo
 from inspinia.pages.technique_benchmarking.importing import preview_benchmark_import
 from inspinia.pages.technique_benchmarking.importing import restore_benchmark_import_batch
 from inspinia.pages.technique_benchmarking.keys import benchmark_row_key
-from inspinia.pages.technique_progress import build_technique_progress_context
 from inspinia.pages.technique_progress import build_technique_progress_export_response
 from inspinia.pages.technique_progress import build_technique_progress_gaps_context
 from inspinia.pages.technique_progress import build_technique_progress_gaps_csv_response
 from inspinia.pages.technique_progress import build_technique_progress_gaps_datatable_payload
-from inspinia.pages.technique_progress import build_technique_progress_topic_context
 from inspinia.pages.technique_progress import technique_progress_gap_rows_for_benchmark_export
 from inspinia.pages.technique_progress_catalog import request_technique_progress_catalog_rebuild
 from inspinia.pages.topic_labels import FULL_TOPIC_LABEL_MAP
 from inspinia.pages.topic_labels import display_topic_label
-from inspinia.pages.topic_tag_analytics import TOPIC_CHART_POINT_LIMIT
-from inspinia.pages.topic_tag_analytics import topic_tag_analytics_data
 from inspinia.problemsets.selectors import problem_list_add_target_rows
 from inspinia.solutions.models import ProblemSolution
 from inspinia.users.models import AuditEvent
@@ -8483,10 +8482,9 @@ def technique_progress_catalog_rebuild_view(request):
 
 @login_required
 def technique_progress_dashboard_view(request):
-    context = build_technique_progress_context(
-        request_user=request.user,
-        raw_user_id=(request.GET.get("user") or "").strip(),
-    )
+    context = build_concept_progress_context(request_user=request.user, params=request.GET)
+    if request.GET.get("export") == "csv":
+        return concept_progress_csv(context)
     return render(request, "pages/technique-progress.html", context)
 
 
@@ -8747,152 +8745,25 @@ def technique_gap_benchmark_view(request):
 
 @login_required
 def technique_progress_topic_detail_view(request, topic_slug):
+    if topic_slug == "other":
+        url = reverse("pages:technique_dashboard")
+        query = request.GET.urlencode()
+        return redirect(f"{url}?{query}" if query else url)
     try:
-        context = build_technique_progress_topic_context(
-            request_user=request.user,
-            raw_user_id=(request.GET.get("user") or "").strip(),
-            topic_slug=topic_slug,
-        )
+        context = build_concept_progress_context(request_user=request.user, params=request.GET, topic_slug=topic_slug)
     except ValueError as exc:
-        raise Http404("Technique progress topic was not found.") from exc
+        message = "Progress subject was not found."
+        raise Http404(message) from exc
+    if request.GET.get("export") == "csv":
+        return concept_progress_csv(context)
     return render(request, "pages/technique-progress-topic.html", context)
 
 
 @login_required
 def topic_tag_analytics_view(request):
-    """Technique analytics: coverage, breadth, and difficulty signals per parsed technique."""
+    """Explore mathematical areas and concepts across the active problem library."""
     _require_admin_tools_access(request)
-
-    initial_search_query = (request.GET.get("q") or "").strip()
-    selected_filters = {
-        "q": initial_search_query,
-        "contest": (request.GET.get("contest") or "").strip(),
-        "topic": (request.GET.get("topic") or "").strip(),
-        "domain": (request.GET.get("domain") or "").strip().upper(),
-        "year": (request.GET.get("year") or "").strip(),
-    }
-    if selected_filters["year"] and not selected_filters["year"].isdigit():
-        selected_filters["year"] = ""
-
-    data = topic_tag_analytics_data(
-        selected_filters, page_number=request.GET.get("page"), sort=request.GET.get("sort", "problems"),
-    )
-    tag_directory = data["directory"]
-    technique_total = len(tag_directory)
-    technique_row_total = data["totals"]["rows"]
-    technique_filtered_total = technique_row_total
-    tagged_problem_total = data["totals"]["problems"]
-    average_techniques_per_problem = (
-        round(technique_row_total / tagged_problem_total, 2) if tagged_problem_total else 0.0
-    )
-    active_filter_rows = _build_technique_active_filter_rows(selected_filters)
-    scope_label = "Filtered dataset" if active_filter_rows else "All technique rows"
-    year_activity_rows = data["year_volume"]
-    domain_volume_rows = data["domain_volume"]
-
-    charts_payload = {
-        "byProblemVolume": _with_bar_payload_metadata(
-            _rows_to_bar_payload(
-                sorted(tag_directory, key=lambda row: (-row["problem_count"], row["technique"]))[:12],
-                "technique",
-                value_key="problem_count",
-            ),
-            filter_param="q",
-            series_name="Problems",
-        ),
-        "byContestCoverage": _with_bar_payload_metadata(
-            _rows_to_bar_payload(
-                sorted(
-                    tag_directory,
-                    key=lambda row: (-row["contest_count"], -row["problem_count"], row["technique"]),
-                )[:12],
-                "technique",
-                value_key="contest_count",
-            ),
-            filter_param="q",
-            series_name="Contests",
-        ),
-        "byDomainBreadth": _with_bar_payload_metadata(
-            _rows_to_bar_payload(
-                sorted(
-                    tag_directory,
-                    key=lambda row: (-row["domain_count"], -row["problem_count"], row["technique"]),
-                )[:12],
-                "technique",
-                value_key="domain_count",
-            ),
-            filter_param="q",
-            series_name="Domains",
-        ),
-        "byTopicVolume": _with_bar_payload_metadata(
-            _rows_to_bar_payload(data["topic_volume"], "topic"), filter_param="topic", series_name="Technique rows",
-        ),
-        "byAvgMohs": _with_bar_payload_metadata(
-            _rows_to_bar_payload(
-                sorted(
-                    tag_directory,
-                    key=lambda row: (-row["avg_mohs"], -row["problem_count"], row["technique"]),
-                )[:12],
-                "technique",
-                value_key="avg_mohs",
-                decimals=2,
-            ),
-            filter_param="q",
-            series_name="Avg MOHS",
-        ),
-        "byAvgMohsScatter": _build_technique_avg_mohs_scatter_payload(
-            sorted(tag_directory, key=lambda row: (-row["problem_count"], row["technique"]))[:TOPIC_CHART_POINT_LIMIT],
-        ),
-        "byYearActivity": _with_bar_payload_metadata(
-            _rows_to_bar_payload(
-                year_activity_rows,
-                "year",
-            ),
-            filter_param="year",
-            series_name="Technique rows",
-        ),
-        "byDomainVolume": _with_bar_payload_metadata(
-            _rows_to_bar_payload(
-                domain_volume_rows,
-                "domain",
-            ),
-            filter_param="domain",
-            series_name="Technique rows",
-        ),
-    }
-    technique_leader_rows = _build_technique_leader_rows(tag_directory, selected_filters)
-
-    context = {
-        "has_any_technique_rows": ProblemTopicTechnique.objects.exists(),
-        "has_technique_source_rows": data["has_source"],
-        "technique_total": technique_total,
-        "technique_row_total": technique_row_total,
-        "technique_filtered_total": technique_filtered_total,
-        "tagged_problem_total": tagged_problem_total,
-        "initial_search_query": initial_search_query,
-        "technique_active_filters": active_filter_rows,
-        "technique_filters": selected_filters,
-        "technique_reset_url": reverse("pages:topic_tag_dashboard"),
-        "technique_scope_label": scope_label,
-        "technique_stats": {
-            "contest_total": data["totals"]["contests"],
-            "domain_total": data["domain_total"],
-            "topic_total": data["totals"]["topics"],
-            "average_techniques_per_problem": average_techniques_per_problem,
-        },
-        "technique_leader_rows": technique_leader_rows,
-        "technique_filter_options": data["options"],
-        "technique_rows": data["page"].object_list,
-        "charts_payload": charts_payload,
-    }
-    params = request.GET.copy()
-    params.pop("page", None)
-    context.update(
-        page_obj=data["page"], pagination_query=params.urlencode(),
-        technique_chart_is_capped=technique_total > TOPIC_CHART_POINT_LIMIT,
-        technique_sort=request.GET.get("sort", "problems"),
-    )
-    return render(request, "pages/topic-tag-analytics.html", context)
+    return render(request, "pages/topic-tag-analytics.html", build_concept_analytics_context(request.GET))
 
 
 def _preview_problem_import(request, workbook_df) -> dict:

@@ -1,0 +1,7 @@
+<a class="ca-area-row" href="{{ area.url }}" aria-label="Explore {{ area.subject }}: {{ area.label }}, {{ area.problem_count }} problems, {{ area.covered }} of {{ area.total }} concepts covered">
+  <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
+    <div><span class="text-muted fs-xs">{{ area.subject }}</span><div class="ca-area-title fs-sm mt-1">{{ area.label }} <i class="ti ti-arrow-up-right ms-1" aria-hidden="true"></i></div></div>
+    <div class="text-end text-nowrap"><strong class="fs-sm ca-number">{{ area.problem_count }}</strong><span class="text-muted fs-xs"> problems</span><div class="text-muted fs-xs mt-1">{{ area.covered }} / {{ area.total }} concepts</div></div>
+  </div>
+  <div class="ca-area-track" aria-hidden="true"><div class="ca-area-fill" style="width:{{ area.percent }}%"></div></div>
+</a>
