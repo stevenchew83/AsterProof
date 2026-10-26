@@ -2,6 +2,7 @@
 
 from collections import Counter
 from collections import defaultdict
+from itertools import batched
 from statistics import median
 
 from django.core.paginator import Paginator
@@ -14,12 +15,14 @@ from inspinia.pages.models import ProblemTopicTechnique
 from inspinia.pages.statement_analytics import effective_mohs
 from inspinia.pages.statement_analytics import effective_topic
 from inspinia.pages.statement_concept_coverage import TAG_FIELDS
+from inspinia.pages.statement_concept_coverage import TagCoverageResolver
 from inspinia.pages.statement_concept_coverage import _coverage
 from inspinia.pages.statement_concept_coverage import statement_coverage_payloads
 from inspinia.pages.technique_concepts import CONCEPTS
 from inspinia.pages.technique_concepts import SUBJECT_LABELS
 
 PAGE_SIZE = 25
+SOURCE_BATCH_SIZE = 256
 SUBJECTS = ("Algebra", "Combinatorics", "Geometry", "Number Theory")
 
 
@@ -55,10 +58,12 @@ def library_coverage_rows(filters):
     archive = ProblemSolveRecord.objects.filter(is_active=True, statement_entries__isnull=True)
     options = {
         "contests": sorted(
-            set(statements.values_list("contest_name", flat=True)) | set(archive.values_list("contest", flat=True)),
+            set(statements.order_by().values_list("contest_name", flat=True).distinct())
+            | set(archive.order_by().values_list("contest", flat=True).distinct()),
         ),
         "years": sorted(
-            set(statements.values_list("contest_year", flat=True)) | set(archive.values_list("year", flat=True)),
+            set(statements.order_by().values_list("contest_year", flat=True).distinct())
+            | set(archive.order_by().values_list("year", flat=True).distinct()),
             reverse=True,
         ),
     }
@@ -69,47 +74,67 @@ def library_coverage_rows(filters):
         if filters[key]:
             statements = statements.filter(**{statement_field: filters[key]})
             archive = archive.filter(**{archive_field: filters[key]})
-    statements = list(statements.order_by("id"))
-    payloads = statement_coverage_payloads(statements)
+    resolver = TagCoverageResolver()
+    # Explorer rows need identity membership and status, not a full set of role
+    # dictionaries for every problem/concept occurrence in the library.
+    concept_refs = {cid: {"id": cid} for cid in CONCEPTS}
+
+    def compact(payload):
+        return {
+            "concept_coverage": tuple(concept_refs[c["id"]] for c in payload["concept_coverage"]),
+            "concept_coverage_status": payload["concept_coverage_status"],
+            "concept_source_tags": payload["concept_source_tags"],
+        }
+
     rows = {}
-    for statement in statements:
-        rows.setdefault(
-            str(statement.problem_uuid),
-            {
-                "statement_id": statement.pk,
-                "problem_id": statement.linked_problem_id,
-                "label": f"{statement.contest_name} {statement.contest_year} {statement.problem_code}",
-                "contest": statement.contest_name,
-                "year": statement.contest_year,
-                "subject": _subject(effective_topic(statement)),
-                "mohs": effective_mohs(statement),
-                "url": reverse("pages:problem_statement_detail", args=[statement.statement_uuid]),
-                **payloads[statement.pk],
-            },
-        )
-    archive = list(archive.order_by("id").values("id", "problem_uuid", "contest", "year", "problem", "topic", "mohs"))
-    tags = defaultdict(list)
-    for tag in ProblemTopicTechnique.objects.filter(record_id__in=[r["id"] for r in archive]).values(
-        "record_id",
-        *TAG_FIELDS,
-    ):
-        tags[tag["record_id"]].append(tag)
-    for record in archive:
-        rows.setdefault(
-            str(record["problem_uuid"]),
-            {
-                "statement_id": None,
-                "problem_id": record["id"],
-                "label": f"{record['contest']} {record['year']} {record['problem']}",
-                "contest": record["contest"],
-                "year": record["year"],
-                "subject": _subject(record["topic"]),
-                "mohs": record["mohs"],
-                "url": reverse("solutions:problem_solution_list", args=[record["problem_uuid"]]),
-                **_coverage(tags[record["id"]], topic=record["topic"], active=True),
-            },
-        )
+    for batch in batched(statements.order_by("id").iterator(chunk_size=SOURCE_BATCH_SIZE), SOURCE_BATCH_SIZE):
+        payloads = statement_coverage_payloads(batch, resolver=resolver)
+        for statement in batch:
+            rows.setdefault(
+                str(statement.problem_uuid),
+                {
+                    "statement_id": statement.pk,
+                    "statement_uuid": statement.statement_uuid,
+                    "problem_uuid": statement.problem_uuid,
+                    "problem_id": statement.linked_problem_id,
+                    "label": f"{statement.contest_name} {statement.contest_year} {statement.problem_code}",
+                    "contest": statement.contest_name,
+                    "year": statement.contest_year,
+                    "subject": _subject(effective_topic(statement)),
+                    "mohs": effective_mohs(statement),
+                    **compact(payloads[statement.pk]),
+                },
+            )
+    archive = archive.order_by("id").values("id", "problem_uuid", "contest", "year", "problem", "topic", "mohs")
+    for batch in batched(archive.iterator(chunk_size=SOURCE_BATCH_SIZE), SOURCE_BATCH_SIZE):
+        tags = defaultdict(list)
+        for tag in ProblemTopicTechnique.objects.filter(record_id__in=[r["id"] for r in batch]).order_by(
+            "technique", "id",
+        ).values("record_id", *TAG_FIELDS):
+            tags[tag["record_id"]].append(tag)
+        for record in batch:
+            rows.setdefault(
+                str(record["problem_uuid"]),
+                {
+                    "statement_id": None,
+                    "problem_id": record["id"],
+                    "problem_uuid": record["problem_uuid"],
+                    "label": f"{record['contest']} {record['year']} {record['problem']}",
+                    "contest": record["contest"],
+                    "year": record["year"],
+                    "subject": _subject(record["topic"]),
+                    "mohs": record["mohs"],
+                    **compact(_coverage(tags[record["id"]], topic=record["topic"], active=True, resolver=resolver)),
+                },
+            )
     return rows, options
+
+
+def library_problem_url(problem):
+    """Resolve links only for visible rows or explicitly exported problems."""
+    if problem["statement_id"]:
+        return reverse("pages:problem_statement_detail", args=[problem["statement_uuid"]])
+    return reverse("solutions:problem_solution_list", args=[problem["problem_uuid"]])
 
 
 def _concept_row(cid, definition, problems):
@@ -234,6 +259,8 @@ def build_concept_analytics_context(params):  # noqa: C901, PLR0912, PLR0915
         problem_page = Paginator(
             sorted(by_concept[selected["id"]].values(), key=lambda p: (-p["year"], p["label"])), PAGE_SIZE,
         ).get_page(params.get("problem_page"))
+    for problem in [*review_page.object_list, *(problem_page.object_list if problem_page else ())]:
+        problem["url"] = library_problem_url(problem)
     active = [
         {"label": label, "value": filters[key], "url": link(**{key: "", "concept": ""})}
         for key, label in (("subject", "Subject"), ("area", "Area"), ("contest", "Contest"), ("year", "Year"))

@@ -1,6 +1,7 @@
-# ruff: noqa: PLR2004
+# ruff: noqa: PLR2004, SLF001
 """Coverage, drill-down, permissions, and bounded rendering for concept analytics."""
 
+from unittest.mock import patch
 from urllib.parse import parse_qs
 from urllib.parse import urlsplit
 
@@ -9,11 +10,14 @@ from django.db import connection
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
+from inspinia.pages import statement_concept_coverage as coverage
 from inspinia.pages.concept_analytics import PAGE_SIZE
+from inspinia.pages.concept_analytics import SOURCE_BATCH_SIZE
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
 from inspinia.pages.models import ProblemTopicTechnique
 from inspinia.pages.models import StatementTopicTechnique
+from inspinia.pages.models import UserProblemCompletion
 from inspinia.pages.technique_concepts import CONCEPTS
 from inspinia.users.models import User
 from inspinia.users.tests.factories import UserFactory
@@ -269,3 +273,72 @@ def test_concept_detail_preserves_explorer_page(admin_client):
     detail = get(admin_client, **params)
     assert detail.context["selected_concept"]["id"] == concept["id"]
     assert parse_qs(urlsplit(detail.context["close_detail_url"]).query)["page"] == ["3"]
+
+
+def test_large_library_batches_sources_and_preserves_last_page_and_completion(admin_client):
+    count = SOURCE_BATCH_SIZE * 2 + 5
+    ContestProblemStatement.objects.bulk_create([
+        ContestProblemStatement(
+            contest_year=2026, contest_name="Scale", problem_number=n, problem_code=f"P{n}",
+            contest_year_problem=f"Scale {n}", statement_latex="Synthetic", topic="ALG", mohs=20,
+        ) for n in range(count)
+    ])
+    statements = list(ContestProblemStatement.objects.order_by("id"))
+    StatementTopicTechnique.objects.bulk_create([
+        StatementTopicTechnique(statement=s, technique="AM-GM", main_topic="ALG", domains=["ALG"])
+        for s in statements
+    ])
+    with (
+        patch(
+            "inspinia.pages.concept_analytics.statement_coverage_payloads", wraps=coverage.statement_coverage_payloads,
+        ) as batches,
+        patch.object(coverage, "_tag_coverage", wraps=coverage._tag_coverage) as resolved,
+    ):
+        response = get(admin_client, concept="am-gm", problem_page="21")
+    assert response.context["stats"]["problems"] == count
+    assert response.context["selected_concept"]["problem_count"] == count
+    assert response.context["problem_page"].paginator.count == count
+    assert response.context["problem_page"].has_previous()
+    assert len(batches.call_args_list) == 3
+    assert all(len(call.args[0]) <= SOURCE_BATCH_SIZE for call in batches.call_args_list)
+    assert resolved.call_count == 1  # Repeated source metadata is resolved once across batches.
+    assert all(p["url"] for p in response.context["problem_page"])
+
+    user = response.wsgi_request.user
+    UserProblemCompletion.objects.create(user=user, statement=statements[-1], status="solved")
+    with CaptureQueriesContext(connection) as queries:
+        progress = admin_client.get(reverse("pages:technique_dashboard"))
+    assert progress.context["stats"]["total"] == count
+    assert progress.context["stats"]["solved"] == 1
+    completion_reads = [q["sql"] for q in queries if 'FROM "pages_userproblemcompletion"' in q["sql"]]
+    assert len(completion_reads) == 1
+    assert len(completion_reads[0]) < 1000  # SQL size must not grow with every library ID.
+
+
+def test_own_statement_tags_do_not_fetch_shadowed_archive_tags():
+    archive = ProblemSolveRecord.objects.create(year=2026, contest="IMO", problem="P1", topic="ALG", mohs=20)
+    tag(archive)
+    own = statement(linked_problem=archive)
+    tag(own, "INVALID", normalization_status="corrupt")
+    with CaptureQueriesContext(connection) as queries:
+        result = coverage.statement_coverage_payloads([own], resolver=coverage.TagCoverageResolver())
+    assert result[own.pk]["concept_coverage_status"] == "No valid tags"
+    assert result[own.pk]["concept_coverage"] == []
+    assert not any('FROM "pages_problemtopictechnique"' in q["sql"] for q in queries)
+
+
+def test_request_resolution_cache_keeps_subject_context_and_source_edits_distinct():
+    source = {
+        "technique": "AM-GM", "canonical_subtopic": "", "main_topic": "", "domains": [],
+        "normalization_status": "", "object_tags": [], "technique_tags": ["AM-GM"],
+        "lemma_theorem_tags": [], "proof_roles": [],
+    }
+    resolver = coverage.TagCoverageResolver()
+    for topic in ("ALG", "GEO", "NT", "COMB"):
+        expected = coverage._coverage([source], topic=topic, active=True)
+        assert coverage._coverage([source], topic=topic, active=True, resolver=resolver) == expected
+    source["technique"] = "CAUCHY-SCHWARZ"
+    source["technique_tags"] = ["CAUCHY-SCHWARZ"]
+    actual = coverage._coverage([source], topic="ALG", active=True, resolver=resolver)
+    assert {c["id"] for c in actual["concept_coverage"]} == {"cauchy-schwarz"}
+    assert actual == coverage._coverage([source], topic="ALG", active=True)
