@@ -8,6 +8,7 @@ from .base import REDIS_URL
 from .base import env
 
 REQUEST_TIMING_LOG = env.bool("DJANGO_REQUEST_TIMING_LOG", default=True)
+PREPARE_FIRST_REQUEST = env.bool("DJANGO_PREPARE_FIRST_REQUEST", default=True)
 
 # GENERAL
 # ------------------------------------------------------------------------------

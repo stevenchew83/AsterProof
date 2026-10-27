@@ -105,8 +105,14 @@ def build_progress_context(*, request_user, params, topic_slug=""):  # noqa: C90
     if filters["sort"] not in {"name", "progress"}:
         filters["sort"] = "remaining"
 
+    current_route = (
+        reverse("pages:technique_progress_topic_detail", args=[topic_slug])
+        if topic_slug
+        else reverse("pages:technique_dashboard")
+    )
+
     def link(*, slug=topic_slug, **changes):
-        route = (
+        route = current_route if slug == topic_slug else (
             reverse("pages:technique_progress_topic_detail", args=[slug])
             if slug
             else reverse("pages:technique_dashboard")

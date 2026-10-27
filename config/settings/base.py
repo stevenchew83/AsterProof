@@ -48,6 +48,7 @@ LOCALE_PATHS = [str(BASE_DIR / "locale")]
 
 # Optional per-request duration logging (production may override via env).
 REQUEST_TIMING_LOG = False
+PREPARE_FIRST_REQUEST = False
 
 # DATABASES
 # ------------------------------------------------------------------------------
