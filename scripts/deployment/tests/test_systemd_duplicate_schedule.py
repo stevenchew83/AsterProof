@@ -23,17 +23,21 @@ pytestmark = pytest.mark.skipif(
 def test_duplicate_job_cannot_start_app_and_stops_before_explicit_app_stop(tmp_path):
     run_id = os.environ["GITHUB_RUN_ID"]
     assert re.fullmatch(r"[1-9][0-9]{0,19}", run_id)
+    app_user = os.environ["SUDO_USER"]
+    assert app_user != "root"
+    assert re.fullmatch(r"[a-z_][a-z0-9_-]*", app_user)
     prefix = "asterproof-ci-duplicates-" + run_id
     app, job, timer = (prefix + suffix for suffix in ("-app.service", ".service", ".timer"))
     units = render_units(SimpleNamespace(
-        service=app, app_user="nobody", release_root=Path("/srv/asterproof-ci"), environment_file=Path("/dev/null"),
+        service=app, app_user=app_user,
+        release_root=Path("/srv/asterproof-ci"), environment_file=Path("/dev/null"),
     ))
     # Keep the real dependency/sandbox/resource settings; substitute only the
     # synthetic executable/path. No application environment or data is used.
     service = re.sub(r"^ExecStart=.*$", "ExecStart=/bin/sleep 600", units[SERVICE], flags=re.MULTILINE)
     service = re.sub(r"^WorkingDirectory=.*$", "WorkingDirectory=/", service, flags=re.MULTILINE)
     definitions = {
-        app: "[Service]\nType=simple\nUser=nobody\nExecStart=/bin/sleep 600\nTimeoutStopSec=10s\n",
+        app: f"[Service]\nType=simple\nUser={app_user}\nExecStart=/bin/sleep 600\nTimeoutStopSec=10s\n",
         job: service,
         timer: units[TIMER].replace(SERVICE, job),
     }
@@ -60,7 +64,6 @@ def test_duplicate_job_cannot_start_app_and_stops_before_explicit_app_stop(tmp_p
         assert systemctl("start", job, check=False).returncode != 0
         assert pid(app) == "0"
         assert pid(job) == "0"
-        systemctl("reset-failed", job)
         systemctl("start", app)
         systemctl("start", "--no-block", job)
         for _ in range(40):
