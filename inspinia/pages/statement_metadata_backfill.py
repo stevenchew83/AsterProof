@@ -4,9 +4,9 @@ import csv
 import io
 import uuid
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 from typing import BinaryIO
 
-import pandas as pd
 from django.db import IntegrityError
 from django.db import models
 from django.db import transaction
@@ -28,6 +28,9 @@ from inspinia.pages.problem_import import sync_problem_topic_techniques
 from inspinia.pages.statement_analytics_sync import sync_statement_analytics_from_linked_problem
 from inspinia.pages.subtopic_cleanup import build_unmatched_subtopic_review
 from inspinia.pages.topic_tags_parse import merge_domain_lists
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 STATEMENT_METADATA_EXPORT_COLUMNS = [
     "STATEMENT UUID",
@@ -201,6 +204,8 @@ def _metadata_export_mohs(
 
 
 def _cell_str(value: object) -> str | None:
+    import pandas as pd
+
     if value is None or (isinstance(value, float) and pd.isna(value)):
         return None
     text = str(value).strip()
@@ -208,6 +213,8 @@ def _cell_str(value: object) -> str | None:
 
 
 def _cell_int(value: object) -> int | None:
+    import pandas as pd
+
     if value is None or (isinstance(value, float) and pd.isna(value)):
         return None
     if isinstance(value, bool):
@@ -219,6 +226,8 @@ def _cell_int(value: object) -> int | None:
 
 
 def _column_might_contribute_metadata(column: str, raw_row: dict[str, object]) -> bool:
+    import pandas as pd
+
     val = raw_row.get(column)
     if column in {"CONTEST YEAR", "PROBLEM NUMBER", "MOHS"}:
         return _cell_int(val) is not None
@@ -302,6 +311,8 @@ def _resolved_problem_for_statement(
 def build_statement_metadata_export_dataframe(
     statements: list[ContestProblemStatement],
 ) -> pd.DataFrame:
+    import pandas as pd
+
     records_by_uuid = _build_statement_problem_lookup(statements)
     rows = []
     for statement in statements:
@@ -359,6 +370,8 @@ def _unique_subtopic_labels() -> list[str]:
 
 
 def build_statement_subtopic_export_dataframe() -> pd.DataFrame:
+    import pandas as pd
+
     rows = [{"Subtopic": subtopic} for subtopic in _unique_subtopic_labels()]
     return pd.DataFrame(rows, columns=STATEMENT_SUBTOPIC_EXPORT_COLUMNS)
 
@@ -369,6 +382,8 @@ def build_statement_subtopic_export_workbook_bytes() -> bytes:
 
 
 def build_statement_unmatched_subtopic_export_dataframe() -> pd.DataFrame:
+    import pandas as pd
+
     review = build_unmatched_subtopic_review()
     rows = [
         {
@@ -390,12 +405,16 @@ def build_statement_unmatched_subtopic_export_workbook_bytes() -> bytes:
 
 
 def _metadata_cell_is_blank_for_ffill(value: object) -> bool:
+    import pandas as pd
+
     if value is None or (isinstance(value, float) and pd.isna(value)):
         return True
     return isinstance(value, str) and not value.strip()
 
 
 def _ffill_like_pandas(series: pd.Series) -> pd.Series:
+    import pandas as pd
+
     last: object = pd.NA
     filled: list[object] = []
     for value in series:
@@ -409,6 +428,8 @@ def _ffill_like_pandas(series: pd.Series) -> pd.Series:
 
 def _row_has_problem_grid_cells(row: pd.Series) -> bool:
     """Merged contest headers apply to real problem rows, not blank template/footer rows."""
+    import pandas as pd
+
     if not _metadata_cell_is_blank_for_ffill(row.get("PROBLEM CODE")):
         return True
     if not _metadata_cell_is_blank_for_ffill(row.get("DAY LABEL")):
@@ -435,6 +456,8 @@ def _canonicalize_statement_metadata_column_names(dataframe: pd.DataFrame) -> pd
 
 def _forward_fill_statement_metadata_columns(dataframe: pd.DataFrame) -> None:
     """Excel often merges CONTEST YEAR / CONTEST NAME / CONTEST PROBLEM; only the first row has text."""
+    import pandas as pd
+
     grid_mask = dataframe.apply(_row_has_problem_grid_cells, axis=1)
     for column in ("CONTEST YEAR", "CONTEST NAME", "CONTEST PROBLEM"):
         if column not in dataframe.columns:
@@ -477,6 +500,8 @@ def _prospective_statement_unique_key(
 
 
 def statement_metadata_dataframe_from_excel(source: str | BinaryIO | bytes) -> pd.DataFrame:
+    import pandas as pd
+
     if isinstance(source, bytes):
         source = io.BytesIO(source)
     try:
@@ -489,6 +514,8 @@ def statement_metadata_dataframe_from_excel(source: str | BinaryIO | bytes) -> p
 
 
 def statement_metadata_dataframe_from_text(source_text: str) -> pd.DataFrame:
+    import pandas as pd
+
     text = source_text.strip()
     if not text:
         msg = "Paste at least one metadata row."
@@ -516,6 +543,8 @@ def statement_metadata_dataframe_from_text(source_text: str) -> pd.DataFrame:
 
 
 def statement_metadata_dataframe_from_rows(rows: list[dict[str, object]]) -> pd.DataFrame:
+    import pandas as pd
+
     dataframe = pd.DataFrame(rows)
     return _normalize_and_validate_statement_metadata_dataframe(dataframe)
 
@@ -612,6 +641,8 @@ def _identity_patch_day_label(
     sheet_columns: set[str],
     patch: dict[str, object],
 ) -> None:
+    import pandas as pd
+
     if "DAY LABEL" not in sheet_columns:
         return
     raw = raw_cells.get("DAY LABEL")
@@ -661,6 +692,8 @@ def _identity_patch_statement_latex(
     sheet_columns: set[str],
     patch: dict[str, object],
 ) -> None:
+    import pandas as pd
+
     if "STATEMENT LATEX" not in sheet_columns:
         return
     raw = raw_cells.get("STATEMENT LATEX")

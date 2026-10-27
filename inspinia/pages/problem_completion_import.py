@@ -13,7 +13,6 @@ from typing import Any
 from typing import BinaryIO
 from uuid import UUID
 
-import pandas as pd
 from django.contrib.auth import get_user_model
 from django.db import transaction
 
@@ -29,6 +28,8 @@ from inspinia.pages.topic_tags_parse import parse_contest_problem_string
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+    import pandas as pd
 
 
 COMPLETION_REQUIRED_COLUMNS = frozenset({"USER EMAIL", "COMPLETION DATE"})
@@ -149,6 +150,8 @@ def _resolve_prepared_completion_row(
 
 
 def _parse_completion_value(value: Any) -> tuple[bool, date | None, bool]:
+    import pandas as pd
+
     if value is None or (isinstance(value, float) and pd.isna(value)):
         return (False, None, False)
 
@@ -184,6 +187,8 @@ def _parse_problem_uuid(value: Any) -> UUID | None:
 
 def completion_dataframe_from_excel(source: Path | str | BinaryIO | bytes) -> pd.DataFrame:
     """Load completion workbook; normalize column headers (strip)."""
+    import pandas as pd
+
     if isinstance(source, bytes):
         source = io.BytesIO(source)
     try:

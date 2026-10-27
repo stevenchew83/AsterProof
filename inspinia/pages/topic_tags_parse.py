@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 import hashlib
+import math
 import re
 from typing import Any
-
-import pandas as pd
 
 # En dash or hyphen surrounded by spaces (domain vs technique).
 DASH_RE = re.compile(r"\s[\u2013-]\s")
@@ -176,7 +175,7 @@ def parse_topic_tags_value(block_text: str) -> list[dict[str, Any]]:
 
 def parse_topic_tags_cell(cell_text: Any) -> list[dict[str, Any]]:
     """Parse a full Excel cell value (may include multiple `Topic tags:` lines)."""
-    if cell_text is None or (isinstance(cell_text, float) and pd.isna(cell_text)):
+    if cell_text is None or (isinstance(cell_text, float) and math.isnan(cell_text)):
         return []
 
     text = str(cell_text)

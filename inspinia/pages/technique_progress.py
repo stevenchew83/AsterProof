@@ -6,7 +6,6 @@ from collections import defaultdict
 from typing import TYPE_CHECKING
 from urllib.parse import urlencode
 
-import pandas as pd
 from django.core.cache import cache
 from django.db import connection
 from django.db.models import Count
@@ -34,7 +33,6 @@ from inspinia.pages.models import TechniqueBenchmarkAlias
 from inspinia.pages.models import TechniqueProgressCatalogState
 from inspinia.pages.models import TechniqueProgressFact
 from inspinia.pages.models import UserProblemCompletion
-from inspinia.pages.problem_import import dataframes_to_safe_excel_bytes
 from inspinia.pages.statement_analytics import effective_topic
 from inspinia.pages.technique_benchmarking.keys import benchmark_row_key
 from inspinia.pages.technique_benchmarking.keys import normalize_benchmark_key
@@ -893,6 +891,12 @@ def build_technique_progress_export_workbook_bytes(  # noqa: PLR0913
     raw_canonical_subtopic: str = "",
     raw_target_profile: str = "",
 ) -> bytes:
+    # Spreadsheet engines are only needed for this explicit export, not during
+    # app/signal startup or the frequent catalogue maintenance process.
+    import pandas as pd
+
+    from inspinia.pages.problem_import import dataframes_to_safe_excel_bytes
+
     (
         selected_user,
         can_select_user,

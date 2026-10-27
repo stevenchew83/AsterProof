@@ -16,7 +16,6 @@ from typing import TYPE_CHECKING
 from typing import Any
 from typing import BinaryIO
 
-import pandas as pd
 from django.db import transaction
 from django.utils import timezone
 
@@ -30,6 +29,7 @@ from inspinia.rankings.models import normalize_whitespace
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
+    import pandas as pd
     from pandas import Series
 
 ASSESSMENT_RESULT_LOGICAL_COLUMNS = (
@@ -118,6 +118,8 @@ def assessment_result_dataframe_from_csv(source: Path | str | BinaryIO | bytes) 
 
 def assessment_result_dataframe_from_source(source: Path | str | BinaryIO | bytes | pd.DataFrame) -> pd.DataFrame:
     """Load CSV/XLSX-like tabular data into a normalized dataframe."""
+    import pandas as pd
+
     if isinstance(source, pd.DataFrame):
         return _normalize_dataframe_columns(source.copy())
 
@@ -489,6 +491,8 @@ def _normalize_dataframe_columns(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def _read_tabular_source(source: Path | str | BinaryIO | bytes, *, prefer_excel: bool = True) -> pd.DataFrame:  # noqa: PLR0911
+    import pandas as pd
+
     if isinstance(source, bytes):
         buffer = io.BytesIO(source)
         return _read_tabular_source(buffer, prefer_excel=prefer_excel)
@@ -601,6 +605,8 @@ def _row_value(row: Series, column_map: Mapping[str, str], logical_name: str) ->
 
 
 def _is_missing_value(value: Any) -> bool:
+    import pandas as pd
+
     if value is None:
         return True
     if isinstance(value, float):
@@ -618,6 +624,8 @@ def _json_safe_mapping(mapping: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _json_safe_value(value: Any) -> Any:  # noqa: PLR0911
+    import pandas as pd
+
     if _is_missing_value(value):
         return None
     if isinstance(value, pd.Timestamp):
