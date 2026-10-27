@@ -211,3 +211,18 @@ def test_private_solution_edits_do_not_invalidate_but_published_bulk_edits_do():
     assert current_snapshot().pk == snapshot.pk
     ProblemSolution.objects.filter(pk=solution.pk).update(status="published")
     assert current_snapshot() is None
+
+
+def test_progress_area_options_retain_subject_names(client):
+    user = UserFactory()
+    client.force_login(user)
+    tag(statement())
+    rebuild_library_snapshot()
+    response = client.get(reverse("pages:technique_dashboard"), {"mode": "areas"})
+    assert response.status_code == 200
+    options = {area["id"]: area for area in response.context["scope_areas"]}
+    assert options["Algebra:inequalities"]["subject"] == "Algebra"
+    assert options["Geometry:circles"]["subject"] == "Geometry"
+    content = response.content.decode()
+    assert "Algebra · Inequalities and optimization" in content
+    assert "Geometry · Circles, tangency, and cyclicity" in content

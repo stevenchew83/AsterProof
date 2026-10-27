@@ -323,7 +323,10 @@ def build_progress_context(*, request_user, params, topic_slug=""):  # noqa: C90
         "snapshot": snapshot,
         "stats": stats,
         "subject_rows": subject_rows,
-        "scope_areas": sorted(({"id": a["id"], "label": a["name"]} for a in scope_areas), key=lambda a: a["label"]),
+        "scope_areas": sorted(
+            ({"id": a["id"], "label": a["name"], "subject": a["subject__name"]} for a in scope_areas),
+            key=lambda a: a["label"],
+        ),
         "selected_area": {"id": selected_area["id"], "label": selected_area["name"]} if selected_area else None,
         "selected_concept": selected,
         "selected_summary": selected,
