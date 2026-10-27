@@ -300,6 +300,7 @@ def _source_cli(args):
                 "--no-owner",
                 "--no-privileges",
                 "--lock-wait-timeout=2s",
+                "--no-password",
                 "--snapshot=" + snapshot,
             ],
             env=environment,
@@ -704,7 +705,9 @@ def smoke_recovery():
             for filename in ("restore-private.log", "postgres-private.log", "manifest-difference.json"):
                 path = scratch / filename
                 if path.is_file():
-                    print("Synthetic fixture diagnostic " + filename + ": " + path.read_text()[-8000:], file=sys.stderr)
+                    print(
+                        "Synthetic fixture diagnostic " + filename + ": " + path.read_text()[-8000:], file=sys.stderr,
+                    )
             raise
 
 
