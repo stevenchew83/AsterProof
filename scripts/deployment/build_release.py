@@ -12,6 +12,7 @@ from datetime import UTC
 from datetime import datetime
 from pathlib import Path
 
+from scripts.deployment.concept_schema import MAX_DISCLOSURE_BYTES
 from scripts.deployment.release_manifest import ReleaseManifest
 from scripts.deployment.release_manifest import sha256_file
 
@@ -72,10 +73,18 @@ def build_release(
     python_abi: str,
     built_at: str,
     source_date_epoch: int,
+    schema_evidence: Path | None = None,
 ) -> dict[str, object]:
     entries = {path.as_posix(): repository_root / path for path in _tracked_files(repository_root, release_sha)}
     _add_tree(entries, "staticfiles", static_root)
     _add_tree(entries, "wheelhouse", wheelhouse)
+    if schema_evidence is not None:
+        if (
+            schema_evidence.is_symlink() or not schema_evidence.is_file()
+            or schema_evidence.stat().st_size > MAX_DISCLOSURE_BYTES
+        ):
+            raise ValueError("invalid schema evidence file")
+        entries["deployment-schema-evidence.json"] = schema_evidence
 
     files = tuple(
         {
@@ -145,6 +154,7 @@ def main() -> int:
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--target-platform", required=True)
     parser.add_argument("--python-abi", default="cp312")
+    parser.add_argument("--schema-evidence", type=Path)
     args = parser.parse_args()
     root = args.repository_root.resolve()
     epoch = int(_git(root, "show", "-s", "--format=%ct", args.release_sha))
@@ -162,6 +172,7 @@ def main() -> int:
         python_abi=args.python_abi,
         built_at=built_at,
         source_date_epoch=epoch,
+        schema_evidence=args.schema_evidence,
     )
     args.envelope.write_text(json.dumps(envelope, sort_keys=True, indent=2) + "\n")
     print(json.dumps(envelope, sort_keys=True))

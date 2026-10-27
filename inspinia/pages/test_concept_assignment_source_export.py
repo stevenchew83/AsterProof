@@ -83,6 +83,25 @@ def test_snapshot_reports_missing_identity(client):
     assert response.json()["missing_problem_uuids"] == [key]
 
 
+def test_fingerprint_matches_trace_normalization_and_array_order():
+    from inspinia.pages.concept_assignment_trace import source_fingerprint as trace_fingerprint
+
+    source = {
+        "problem_uuid": str(uuid.uuid4()),
+        "subject": "Algebra",
+        "active": True,
+        "source_owner_active": False,
+        "effective_source": "statement",
+        "tags": [{"technique": "CAPTION", "domains": [], "object_tags": ["B", "A"]}],
+    }
+    assert source_fingerprint(source) == trace_fingerprint(source)
+    initial = source_fingerprint(source)
+    source["tags"][0]["object_tags"].reverse()
+    assert source_fingerprint(source) == initial
+    source["source_owner_active"] = True
+    assert source_fingerprint(source) != initial
+
+
 def test_source_export_still_works_without_review_schema(client, monkeypatch):
     from inspinia.pages import concept_assignment_source_export as module
 

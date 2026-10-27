@@ -896,3 +896,10 @@ class UserProblemDifficultyRating(models.Model):
 
     def __str__(self) -> str:
         return f"{self.user.email} rated {self.statement.contest_year_problem} as {self.rating}"
+
+
+# Registered here so Django discovers the additive assignment-review models.
+from inspinia.pages.concept_assignment_models import ConceptAssignmentReviewBatch  # noqa: E402, F401
+from inspinia.pages.concept_assignment_models import ConceptAssignmentReviewEvent  # noqa: E402, F401
+from inspinia.pages.concept_assignment_models import ConceptAssignmentState  # noqa: E402, F401
+from inspinia.pages.concept_assignment_models import ProblemConceptAssignment  # noqa: E402, F401

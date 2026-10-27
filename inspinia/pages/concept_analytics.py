@@ -9,6 +9,11 @@ from django.core.paginator import Paginator
 from django.urls import reverse
 from django.utils.http import urlencode
 
+from inspinia.pages.concept_assignment_service import catalogue_definitions
+from inspinia.pages.concept_assignment_service import observed_area_memberships
+from inspinia.pages.concept_assignment_service import projection_enabled
+from inspinia.pages.concept_assignment_service import projection_payloads
+from inspinia.pages.concept_assignment_trace import load_sources
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
 from inspinia.pages.models import ProblemTopicTechnique
@@ -32,6 +37,23 @@ def _subject(value):
 
 def _area_key(concept):
     return f"{concept.get('subject', 'Algebra')}:{concept['area']}"
+
+
+def _compact_coverage(payload, refs, *, assignment_mode):
+    concepts = []
+    for concept in payload["concept_coverage"]:
+        if assignment_mode:
+            key = (concept["id"], concept["subject"], concept["area_id"])
+            reference = {field: concept[field] for field in ("id", "subject", "area_id", "area")}
+        else:
+            key = concept["id"]
+            reference = {"id": key}
+        concepts.append(refs.setdefault(key, reference))
+    return {
+        "concept_coverage": tuple(concepts),
+        "concept_coverage_status": payload["concept_coverage_status"],
+        "concept_source_tags": payload["concept_source_tags"],
+    }
 
 
 def library_coverage_rows(filters):
@@ -77,14 +99,8 @@ def library_coverage_rows(filters):
     resolver = TagCoverageResolver()
     # Explorer rows need identity membership and status, not a full set of role
     # dictionaries for every problem/concept occurrence in the library.
-    concept_refs = {cid: {"id": cid} for cid in CONCEPTS}
-
-    def compact(payload):
-        return {
-            "concept_coverage": tuple(concept_refs[c["id"]] for c in payload["concept_coverage"]),
-            "concept_coverage_status": payload["concept_coverage_status"],
-            "concept_source_tags": payload["concept_source_tags"],
-        }
+    concept_refs = {}
+    assignment_mode = projection_enabled()
 
     rows = {}
     for batch in batched(statements.order_by("id").iterator(chunk_size=SOURCE_BATCH_SIZE), SOURCE_BATCH_SIZE):
@@ -102,16 +118,23 @@ def library_coverage_rows(filters):
                     "year": statement.contest_year,
                     "subject": _subject(effective_topic(statement)),
                     "mohs": effective_mohs(statement),
-                    **compact(payloads[statement.pk]),
+                    **_compact_coverage(payloads[statement.pk], concept_refs, assignment_mode=assignment_mode),
                 },
             )
     archive = archive.order_by("id").values("id", "problem_uuid", "contest", "year", "problem", "topic", "mohs")
     for batch in batched(archive.iterator(chunk_size=SOURCE_BATCH_SIZE), SOURCE_BATCH_SIZE):
-        tags = defaultdict(list)
-        for tag in ProblemTopicTechnique.objects.filter(record_id__in=[r["id"] for r in batch]).order_by(
-            "technique", "id",
-        ).values("record_id", *TAG_FIELDS):
-            tags[tag["record_id"]].append(tag)
+        if assignment_mode:
+            mapped = projection_payloads(load_sources([r["problem_uuid"] for r in batch]))
+        else:
+            tags = defaultdict(list)
+            for tag in ProblemTopicTechnique.objects.filter(record_id__in=[r["id"] for r in batch]).order_by(
+                "technique", "id",
+            ).values("record_id", *TAG_FIELDS):
+                tags[tag["record_id"]].append(tag)
+            mapped = {
+                str(r["problem_uuid"]): _coverage(tags[r["id"]], topic=r["topic"], active=True, resolver=resolver)
+                for r in batch
+            }
         for record in batch:
             rows.setdefault(
                 str(record["problem_uuid"]),
@@ -124,7 +147,9 @@ def library_coverage_rows(filters):
                     "year": record["year"],
                     "subject": _subject(record["topic"]),
                     "mohs": record["mohs"],
-                    **compact(_coverage(tags[record["id"]], topic=record["topic"], active=True, resolver=resolver)),
+                    **_compact_coverage(
+                        mapped[str(record["problem_uuid"])], concept_refs, assignment_mode=assignment_mode,
+                    ),
                 },
             )
     return rows, options
@@ -181,21 +206,51 @@ def build_concept_analytics_context(params):  # noqa: C901, PLR0912, PLR0915
         query = urlencode({k: v for k, v in values.items() if v and not (k == "sort" and v == "problems")})
         return reverse("pages:topic_tag_dashboard") + (f"?{query}" if query else "")
 
+    library, options = library_coverage_rows(filters)
+    assignment_mode = projection_enabled()
+    definitions = (
+        catalogue_definitions(filters["subject"], filters["area"], observed=observed_area_memberships(library))
+        if assignment_mode
+        else CONCEPTS
+    )
+    if assignment_mode:
+        from inspinia.pages.concept_assignment_registry import REGISTRY
+
+        filters["concept"] = REGISTRY.canonical(filters["concept"])
     catalogue = {
         cid: c
-        for cid, c in CONCEPTS.items()
+        for cid, c in definitions.items()
         if not filters["subject"] or c.get("subject", "Algebra") == filters["subject"]
     }
     area_options = sorted(
         {(_area_key(c), c["area_label"], c.get("subject", "Algebra")) for c in CONCEPTS.values()},
         key=lambda a: (a[2], a[1]),
     )
+    if projection_enabled():
+        from inspinia.pages.concept_assignment_registry import REGISTRY
+
+        area_options = sorted(
+            {
+                (f"{a['subject']}:{a['area']}", a["label"], a["subject"])
+                for d in REGISTRY.definitions.values()
+                for a in d["area_memberships"]
+            },
+        )
     if filters["area"]:
         catalogue = {cid: c for cid, c in catalogue.items() if _area_key(c) == filters["area"]}
-    library, options = library_coverage_rows(filters)
     scoped = {}
     for uuid, problem in library.items():
-        ids = {c["id"] for c in problem["concept_coverage"]} & catalogue.keys()
+        ids = {
+            c["id"]
+            for c in problem["concept_coverage"]
+            if (
+                not assignment_mode
+                or (
+                    (not filters["subject"] or c["subject"] == filters["subject"])
+                    and (not filters["area"] or f"{c['subject']}:{c.get('area_id', '')}" == filters["area"])
+                )
+            )
+        } & catalogue.keys()
         if filters["area"] and not ids:
             continue
         if filters["subject"] and problem["subject"] != filters["subject"] and not ids:
@@ -208,20 +263,43 @@ def build_concept_analytics_context(params):  # noqa: C901, PLR0912, PLR0915
     concepts = [_concept_row(cid, definition, by_concept[cid]) for cid, definition in catalogue.items()]
     areas = {}
     for concept in concepts:
-        area = areas.setdefault(
-            concept["area_key"],
-            {
-                "key": concept["area_key"],
-                "label": concept["area"],
-                "subject": concept["subject"],
-                "total": 0,
-                "covered": 0,
-                "problems": set(),
-            },
+        definition = catalogue[concept["id"]]
+        memberships = definition.get(
+            "area_memberships",
+            [{"subject": concept["subject"], "area": definition["area"], "label": concept["area"]}],
         )
-        area["total"] += 1
-        area["covered"] += bool(concept["problem_count"])
-        area["problems"].update(by_concept[concept["id"]])
+        for membership in memberships:
+            key = f"{membership['subject']}:{membership['area']}"
+            if filters["subject"] and membership["subject"] != filters["subject"]:
+                continue
+            if filters["area"] and key != filters["area"]:
+                continue
+            matches = by_concept[concept["id"]]
+            if assignment_mode:
+                matches = {
+                    uuid: p
+                    for uuid, p in matches.items()
+                    if any(
+                        c["id"] == concept["id"]
+                        and c["subject"] == membership["subject"]
+                        and c["area"] == membership["label"]
+                        for c in p["concept_coverage"]
+                    )
+                }
+            area = areas.setdefault(
+                key,
+                {
+                    "key": key,
+                    "label": membership["label"],
+                    "subject": membership["subject"],
+                    "total": 0,
+                    "covered": 0,
+                    "problems": set(),
+                },
+            )
+            area["total"] += 1
+            area["covered"] += bool(matches)
+            area["problems"].update(matches)
     for area in areas.values():
         area.update(
             problem_count=len(area.pop("problems")),
@@ -257,7 +335,8 @@ def build_concept_analytics_context(params):  # noqa: C901, PLR0912, PLR0915
     problem_page = None
     if selected:
         problem_page = Paginator(
-            sorted(by_concept[selected["id"]].values(), key=lambda p: (-p["year"], p["label"])), PAGE_SIZE,
+            sorted(by_concept[selected["id"]].values(), key=lambda p: (-p["year"], p["label"])),
+            PAGE_SIZE,
         ).get_page(params.get("problem_page"))
     for problem in [*review_page.object_list, *(problem_page.object_list if problem_page else ())]:
         problem["url"] = library_problem_url(problem)
