@@ -718,3 +718,49 @@ def test_shared_contest_coverage_names_the_subject_and_uses_all_time_scope(clien
     point_titles = [point["title"] for series in chart["series"] for point in series["data"]]
     assert any("solved by Ben" in title for title in point_titles)
     assert all("solved by you" not in title for title in point_titles)
+
+
+@pytest.mark.parametrize("subject", ["alex", "ben"])
+@pytest.mark.parametrize("contest", ["", "IMO"])
+def test_shared_analysis_contest_navigation_preserves_filters(client, learners, completions, subject, contest):
+    client.force_login(learners["alex"])
+    response = client.get(progress_url(subject), {"range": "365d", "topic": "Algebra", "q": "IMO", "contest": contest})
+    html = response.content.decode()
+    form = html.split('<form id="completion-progress-contest-coverage-form"', 1)[1].split("</form>", 1)[0]
+    assert f'action="{progress_url(subject)}#shared-progress-analysis"' in form
+    for name in ("range", "start", "end", "topic", "q", "mohs_min", "mohs_max", "solution_status"):
+        assert f'name="{name}" value="{response.context["completion_progress_filters"][name]}"' in form
+    active = "contest" if contest else "topics"
+    assert f'class="nav-link active" id="completion-progress-{active}-tab"' in html
+    pane_class = "tab-pane fade" + (" lp-analysis-pane" if contest else "") + " show active"
+    assert f'class="{pane_class}" id="completion-progress-{active}-pane"' in html
+    if contest:
+        assert '<option value="IMO" selected>' in form
+        assert 'id="chart-completion-progress-contest-heatmap"' in html
+    else:
+        assert '<option value="" selected>Choose a contest…</option>' in form
+        assert "0 years · 0 codes" not in html
+
+
+def test_shared_analysis_calendar_keeps_latest_visible_and_retains_earlier_dates(client, learners, completions):
+    old_date = timezone.localdate() - timedelta(days=400)
+    old_statement = ContestProblemStatement.objects.create(
+        contest_name="Earlier contest",
+        contest_year=old_date.year,
+        problem_code="P1",
+        problem_number=1,
+        statement_latex="An earlier exact-date problem",
+        topic="GEO",
+    )
+    UserProblemCompletion.objects.create(user=learners["alex"], statement=old_statement, completion_date=old_date)
+    client.force_login(learners["ben"])
+    response = client.get(progress_url("alex"), {"range": "all"})
+    sections = response.context["shared_progress_calendar_sections"]
+    assert [section["is_latest"] for section in sections] == [True, False]
+    assert sum(section["heatmap"]["exact_total"] for section in sections) == 2  # noqa: PLR2004
+    html = response.content.decode()
+    assert '<details class="lp-calendar-history">' in html
+    assert html.index(sections[0]["heatmap"]["start_label"]) < html.index("Earlier activity")
+    assert old_date.isoformat() in html
+    assert "shown from first to latest" not in html
+    assert "Latest window" not in html

@@ -56,6 +56,7 @@ def shared_completion_overview_context(*, context, completions, filtered_rows, c
         "shared_progress_period_stats": stats,
         "shared_progress_streak_stats": streak_stats,
         "shared_progress_topics": topics,
+        "shared_progress_calendar_sections": list(reversed(context["completion_progress_yearly_heatmap"]["sections"])),
         "completion_progress_table_rows": table_rows,
         "completion_progress_charts_payload": completion_progress_charts_payload(
             dated_rows,

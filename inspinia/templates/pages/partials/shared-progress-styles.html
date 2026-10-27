@@ -36,11 +36,49 @@
   .lp-topic .progress-bar { background: var(--lp-ink); }
   .lp-quality { font-size: .75rem; padding: .5rem 1rem; border-top: 1px solid var(--ins-border-color); color: var(--ins-secondary-color); }
   .lp-analysis summary { cursor: pointer; }
+  .lp-analysis-toggle { display: flex; align-items: center; justify-content: space-between; gap: .75rem; list-style: none; }
+  .lp-analysis-toggle::-webkit-details-marker { display: none; }
+  .lp-analysis-chevron { color: var(--ins-secondary-color); transition: transform .15s ease; }
+  .lp-analysis[open] > summary .lp-analysis-chevron { transform: rotate(180deg); }
   .lp-analysis[open] > summary { border-bottom: 1px solid var(--ins-border-color); }
-  .lp-analysis .row { margin-top: 0 !important; }
-  .lp-analysis .card { margin-bottom: .75rem; }
+  .lp-analysis-metrics { border-bottom: 1px solid var(--ins-border-color); }
+  .lp-analysis-metrics .lp-metric-value { font-size: 1.35rem; }
+  .learner-progress .lp-analysis-nav { flex-wrap: nowrap; gap: 1.5rem; padding: 0 1rem; margin-bottom: 0 !important; border-bottom: 1px solid var(--ins-border-color); overflow-x: auto; }
+  .lp-analysis-nav .nav-link { white-space: nowrap; padding-block: .7rem; font-size: .8rem; }
+  .lp-analysis-content { padding: 1rem; min-width: 0; }
+  .lp-analysis-content > .tab-pane { min-width: 0; }
+  .learner-progress .lp-analysis-pane > .card-header { padding: 0 0 .75rem; border-bottom: 0 !important; }
+  .learner-progress .lp-analysis-pane > .card-body { padding: 0; }
+  .lp-analysis #completion-progress-difficulty-pane .row > .col-12 { border-top: 1px solid var(--ins-border-color); padding-top: .85rem; }
   .lp-analysis .completion-progress-empty-state { min-height: 0; padding: 1rem; }
-  .lp-stats-detail { display: flex; flex-wrap: wrap; gap: .6rem 1.5rem; font-size: .8rem; }
+  .lp-analysis .completion-progress-yearly-heatmap {
+    --completion-progress-yearly-cell-size: 1rem;
+    --completion-progress-yearly-cell-gap: .25rem;
+    --completion-progress-yearly-cell-border: var(--ins-border-color);
+    --completion-progress-yearly-empty: var(--ins-body-bg);
+    --completion-progress-yearly-level-1: var(--ins-primary-bg-subtle);
+    --completion-progress-yearly-level-2: var(--ins-primary-border-subtle);
+    --completion-progress-yearly-level-3: var(--ins-primary);
+    --completion-progress-yearly-level-4: var(--lp-ink);
+  }
+  .lp-analysis .completion-progress-yearly-heatmap-wrap { border: 1px solid var(--ins-border-color); border-radius: var(--ins-border-radius); background: var(--ins-tertiary-bg); padding: .85rem; }
+  .lp-analysis .completion-progress-yearly-heatmap-canvas { display: block; width: max-content; margin-inline: auto; }
+  .lp-analysis .completion-progress-yearly-month:first-child { transform: translateX(-.4rem); }
+  .lp-calendar-window-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .35rem 1rem; margin-bottom: .6rem; font-size: .75rem; }
+  .lp-calendar-history { margin-top: .75rem; border: 1px solid var(--ins-border-color); border-radius: var(--ins-border-radius); }
+  .lp-calendar-history > summary { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .75rem; padding: .6rem .75rem; font-size: .75rem; list-style: none; }
+  .lp-calendar-history > summary::-webkit-details-marker { display: none; }
+  .lp-calendar-history .completion-progress-yearly-section { padding: .75rem; border-top: 1px solid var(--ins-border-color); }
+  .lp-calendar-history[open] .lp-calendar-chevron { transform: rotate(180deg); }
+  .lp-contest-toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: .6rem; padding-bottom: .85rem; }
+  .lp-contest-field { flex: 1 1 18rem; min-width: 0; max-width: 36rem; }
+  .lp-contest-toolbar .form-label { font-size: .7rem; margin-bottom: .25rem; }
+  .lp-contest-toolbar .form-select, .lp-contest-toolbar .btn { min-height: 2.1rem; }
+  .lp-contest-empty { display: flex; align-items: center; gap: .85rem; padding: 1rem; border: 1px dashed var(--ins-border-color); border-radius: var(--ins-border-radius); background: var(--ins-tertiary-bg); }
+  .lp-contest-empty .avatar-title { width: 2rem; height: 2rem; }
+  .lp-analysis .completion-progress-contest-heatmap-scroll { max-height: 30rem; overflow: auto; border: 1px solid var(--ins-border-color); border-radius: var(--ins-border-radius); }
+  @media (prefers-reduced-motion: reduce) { .lp-analysis-chevron { transition: none; } }
+  @media print { .lp-analysis-nav { display: none; } .lp-analysis .tab-pane { display: block !important; opacity: 1; } }
   .learner-progress .table { font-size: .8rem; }
   .learner-progress .table th { color: var(--ins-secondary-color); font-size: .7rem; font-weight: 600; white-space: nowrap; }
   .learner-progress .table td, .learner-progress .table th { padding: .55rem .75rem; vertical-align: middle; }
@@ -64,5 +102,9 @@
     .learner-progress .nav-underline { gap: 1rem !important; font-size: .8rem; }
     .learner-progress .btn, .learner-progress .nav-link { min-height: 2.25rem; }
     .lp-record-table .lp-problem, .lp-record-table .lp-area { max-width: 14rem; }
+    .lp-analysis-content { padding: .75rem; }
+    .lp-analysis .completion-progress-yearly-heatmap { --completion-progress-yearly-cell-size: .8rem; --completion-progress-yearly-cell-gap: .2rem; }
+    .lp-contest-toolbar > .lp-contest-field { flex-basis: 100%; max-width: none; }
   }
 </style>
+<noscript><style>.lp-analysis-nav { display: none; } .lp-analysis .tab-pane { display: block; opacity: 1; margin-bottom: 1rem; }</style></noscript>

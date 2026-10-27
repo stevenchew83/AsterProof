@@ -1,0 +1,51 @@
+<details class="card lp-analysis" id="shared-progress-analysis"{% if completion_progress_filters.contest %} open{% endif %}>
+  <summary class="card-header lp-analysis-toggle">
+    <span class="d-flex flex-wrap align-items-center gap-2">
+      <i class="ti ti-chart-infographic text-primary fs-20" aria-hidden="true"></i>
+      <span class="fw-semibold fs-sm">More analysis</span>
+      <span class="text-body-secondary fs-xs">Patterns, activity &amp; contest coverage</span>
+    </span>
+    <i class="ti ti-chevron-down lp-analysis-chevron" aria-hidden="true"></i>
+  </summary>
+  <div class="lp-metrics lp-analysis-metrics" aria-label="Additional progress statistics">
+    <div class="lp-metric">
+      <div class="lp-metric-label">Total MOHS</div>
+      <div class="lp-metric-value">{{ shared_progress_period_stats.total_mohs|floatformat:'0g' }}</div>
+      <div class="lp-metric-note">This period</div>
+    </div>
+    <div class="lp-metric">
+      <div class="lp-metric-label">Peak MOHS</div>
+      <div class="lp-metric-value">{{ shared_progress_period_stats.max_mohs|default_if_none:'—' }}</div>
+      <div class="lp-metric-note">This period</div>
+    </div>
+    <div class="lp-metric">
+      <div class="lp-metric-label">Longest streak</div>
+      <div class="lp-metric-value">{{ shared_progress_streak_stats.longest_streak }} <span class="fs-xs fw-normal text-body-secondary">day{{ shared_progress_streak_stats.longest_streak|pluralize }}</span></div>
+      <div class="lp-metric-note">All dates</div>
+    </div>
+    <div class="lp-metric">
+      <div class="lp-metric-label">No linked solution</div>
+      <div class="lp-metric-value">{{ shared_progress_period_stats.no_solution_total|floatformat:'0g' }}</div>
+      <div class="lp-metric-note">This period</div>
+    </div>
+  </div>
+  <ul class="nav nav-underline lp-analysis-nav" id="completion-progress-chart-tabs" role="tablist" aria-label="Detailed analysis">
+    <li class="nav-item" role="presentation"><button class="nav-link{% if not completion_progress_filters.contest %} active{% endif %}" id="completion-progress-topics-tab" data-bs-toggle="tab" data-bs-target="#completion-progress-topics-pane" type="button" role="tab" aria-controls="completion-progress-topics-pane" aria-selected="{% if completion_progress_filters.contest %}false{% else %}true{% endif %}">Topics</button></li>
+    <li class="nav-item" role="presentation"><button class="nav-link" id="completion-progress-difficulty-tab" data-bs-toggle="tab" data-bs-target="#completion-progress-difficulty-pane" type="button" role="tab" aria-controls="completion-progress-difficulty-pane" aria-selected="false">Difficulty</button></li>
+    <li class="nav-item" role="presentation"><button class="nav-link" id="completion-progress-solutions-tab" data-bs-toggle="tab" data-bs-target="#completion-progress-solutions-pane" type="button" role="tab" aria-controls="completion-progress-solutions-pane" aria-selected="false">Solutions</button></li>
+    <li class="nav-item" role="presentation"><button class="nav-link" id="completion-progress-calendar-tab" data-bs-toggle="tab" data-bs-target="#completion-progress-calendar-pane" type="button" role="tab" aria-controls="completion-progress-calendar-pane" aria-selected="false">Calendar</button></li>
+    <li class="nav-item" role="presentation"><button class="nav-link{% if completion_progress_filters.contest %} active{% endif %}" id="completion-progress-contest-tab" data-bs-toggle="tab" data-bs-target="#completion-progress-contest-pane" type="button" role="tab" aria-controls="completion-progress-contest-pane" aria-selected="{% if completion_progress_filters.contest %}true{% else %}false{% endif %}">Contests</button></li>
+  </ul>
+  <div class="tab-content lp-analysis-content">
+    {% with completion_progress_stats=shared_progress_period_stats %}
+      {% include 'pages/partials/completion-progress-chart-panes.html' %}
+    {% endwith %}
+    <div class="tab-pane fade lp-analysis-pane" id="completion-progress-calendar-pane" role="tabpanel" aria-labelledby="completion-progress-calendar-tab" tabindex="0">
+      {% include 'pages/partials/completion-progress-calendar.html' %}
+    </div>
+    <div class="tab-pane fade lp-analysis-pane{% if completion_progress_filters.contest %} show active{% endif %}" id="completion-progress-contest-pane" role="tabpanel" aria-labelledby="completion-progress-contest-tab" tabindex="0">
+      {% include 'pages/partials/completion-progress-contest.html' %}
+    </div>
+  </div>
+  <noscript><p class="lp-quality mb-0">Interactive charts require JavaScript. The calendar, difficulty matrix and contest selector remain available.</p></noscript>
+</details>
