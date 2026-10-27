@@ -650,11 +650,90 @@ def test_shared_overview_separates_dated_unique_problems_from_record_history(cli
     assert len(context["completion_progress_rows"]) == 3  # noqa: PLR2004
     assert context["completion_progress_charts_payload"]["topicTotals"] == {"labels": ["Algebra"], "values": [1]}
     assert [row["label"] for row in context["shared_progress_topics"]] == ["Algebra"]
+    assert context["shared_progress_topics"][0]["median_mohs"] == 0
+    assert 'aria-label="Algebra median MOHS: 0"' in response.content.decode()
     row = next(row for row in context["completion_progress_table_rows"] if row["contest"] == "IMO")
     assert row["areas"] == "Inequalities and optimization"
     assert row["record_status"] == "Solved"
     assert row["problem_url"] == reverse("pages:problem_statement_detail", args=[source.statement_uuid])
     assert "1 additional undated problem" in response.content.decode()
+
+
+@pytest.mark.parametrize("subject", ["alex", "ben"])
+def test_shared_topic_medians_use_filtered_dated_unique_problems(client, learners, subject):
+    today = timezone.localdate()
+    sources = []
+    for index, (topic, mohs) in enumerate(
+        [
+            ("ALG", 0),
+            ("ALG", 15),
+            ("ALG", 40),
+            ("ALG", None),
+            ("GEO", 0),
+            ("GEO", 15),
+            ("NT", None),
+            ("", 5),
+            ("", 25),
+        ],
+        start=1,
+    ):
+        statement = ContestProblemStatement.objects.create(
+            contest_name="Median Cup",
+            contest_year=today.year,
+            problem_code=f"P{index}",
+            problem_number=index,
+            statement_latex=f"Median sample {index}: x = {index}.",
+            topic=topic,
+            mohs=mohs,
+        )
+        sources.append(statement)
+        UserProblemCompletion.objects.create(user=learners[subject], statement=statement, completion_date=today)
+    duplicate = ContestProblemStatement.objects.create(
+        contest_name="Median Cup",
+        contest_year=today.year,
+        problem_code="P10",
+        problem_number=10,
+        statement_latex=sources[0].statement_latex,
+        topic="ALG",
+        mohs=0,
+    )
+    UserProblemCompletion.objects.create(user=learners[subject], statement=duplicate, completion_date=today)
+    for code, user, completed, contest in (
+        ("UNDATED", learners[subject], None, "Median Cup"),
+        ("OLD", learners[subject], today - timedelta(days=60), "Median Cup"),
+        ("OTHER-LEARNER", learners["other"], today, "Median Cup"),
+        ("OTHER-CONTEST", learners[subject], today, "Excluded Cup"),
+    ):
+        statement = ContestProblemStatement.objects.create(
+            contest_name=contest,
+            contest_year=today.year,
+            problem_code=code,
+            problem_number=1,
+            statement_latex=f"Excluded median sample {code}",
+            topic="ALG",
+            mohs=50,
+        )
+        UserProblemCompletion.objects.create(user=user, statement=statement, completion_date=completed)
+    client.force_login(learners["alex"])
+    response = client.get(progress_url(subject), {"range": "7d", "contest": "Median Cup"})
+    assert response.status_code == HTTPStatus.OK
+    topics = {row["label"]: row for row in response.context["shared_progress_topics"]}
+    assert {label: row["median_mohs"] for label, row in topics.items()} == {
+        "Algebra": 15,
+        "Geometry": 7.5,
+        "Number Theory": None,
+        "Unlinked": 15,
+    }
+    assert {label: row["count"] for label, row in topics.items()} == {
+        "Algebra": 4,
+        "Geometry": 2,
+        "Number Theory": 1,
+        "Unlinked": 2,
+    }
+    html = response.content.decode()
+    assert 'aria-label="Geometry median MOHS: 7.5"' in html
+    assert 'aria-label="Number Theory median MOHS: —"' in html
+    assert "Median MOHS" in html
 
 
 def test_shared_overview_preserves_filter_scope_when_switching_learners(client, learners, completions):
