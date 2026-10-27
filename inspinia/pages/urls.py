@@ -1,5 +1,7 @@
 from django.urls import path
 
+from inspinia.pages.concept_assignment_bulk_views import concept_review_bulk_check
+from inspinia.pages.concept_assignment_bulk_views import concept_review_snapshot_export
 from inspinia.pages.concept_assignment_source_export import assignment_source_export
 from inspinia.pages.concept_assignment_views import concept_assignment_receipt
 from inspinia.pages.concept_assignment_views import concept_assignment_review_apply
@@ -61,6 +63,8 @@ app_name = "pages"
 urlpatterns = [
     path("tools/concept-assignment-sources/", assignment_source_export, name="concept_assignment_source_export"),
     path("tools/concept-assignments/", concept_assignment_review_list, name="concept_assignment_review"),
+    path("tools/concept-assignments/snapshot/", concept_review_snapshot_export, name="concept_review_snapshot_export"),
+    path("tools/concept-assignments/bulk-check/", concept_review_bulk_check, name="concept_review_bulk_check"),
     path("tools/concept-assignments/preview/", concept_assignment_review_preview, name="concept_assignment_preview"),
     path("tools/concept-assignments/apply/", concept_assignment_review_apply, name="concept_assignment_apply"),
     path(
