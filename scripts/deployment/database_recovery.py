@@ -51,6 +51,23 @@ PRESERVED_TABLES = frozenset({
 })
 RESTORE_PORT = 55439
 RESTORE_DATABASE = "asterproof_restore"
+# PG17 deparse/reparse distributes varchar[] -> text[] casts over literal elements.
+# These two exact existing definitions are equivalent; no other SQL is normalized.
+PG17_INDEX_REPARSE_EQUIVALENTS = {}
+for _index, _table, _columns, _field, _values in (
+    ("unique_authenticator_type", "mfa_authenticator", "user_id, type", "type", ("totp", "recovery_codes")),
+    ("training_pointledger_unique_award_source", "training_pointledger", "source_type, source_id", "source_type",
+     ("material_completion", "problem_submission")),
+):
+    _prefix = (
+        f"CREATE UNIQUE INDEX {_index} ON public.{_table} USING btree ({_columns}) "
+        f"WHERE (({_field})::text = ANY ("
+    )
+    _array_cast = ", ".join(f"'{value}'::character varying" for value in _values)
+    _element_cast = ", ".join(f"('{value}'::character varying)::text" for value in _values)
+    PG17_INDEX_REPARSE_EQUIVALENTS[_prefix + f"(ARRAY[{_array_cast}])::text[]))"] = (
+        _prefix + f"ARRAY[{_element_cast}]))"
+    )
 META_SQL = """SELECT json_build_object(
  'database',current_database(),'server_version',current_setting('server_version_num')::int,
  'database_bytes',pg_database_size(current_database()),'locale',d.datcollate,
@@ -187,13 +204,15 @@ def _copy_digest(connection, query):
 
 
 def logical_backup_schema(snapshot):
-    """pg_dump recreates visible columns without historical dropped-column slot gaps."""
+    """Normalize only dropped slots and two exact PG17 literal-array cast rewrites."""
     result = {k: [dict(row) for row in rows] for k, rows in snapshot.items()}
     ordinals = {}
     for row in sorted(result["columns"], key=lambda r: (r["schema"], r["table"], r["position"])):
         key = (row["schema"], row["table"])
         ordinals[key] = ordinals.get(key, 0) + 1
         row["position"] = ordinals[key]
+    for row in result.get("indexes", []):
+        row["definition"] = PG17_INDEX_REPARSE_EQUIVALENTS.get(row["definition"], row["definition"])
     return result
 
 

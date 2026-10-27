@@ -12,8 +12,6 @@ on:
       - scripts/deployment/tests/test_postgres_runtime.py
       - scripts/deployment/tests/test_recovery_crypto.py
       - scripts/deployment/tests/test_catalogue_*.py
-      - scripts/deployment/postgres_runtime.py
-      - scripts/deployment/tests/test_postgres_runtime.py
       - inspinia/pages/migrations/0037_catalogue_tables.py
       - inspinia/pages/migrations/0038_seed_catalogue.py
       - inspinia/pages/migrations/0038_catalogue_seed.json

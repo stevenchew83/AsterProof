@@ -149,3 +149,19 @@ def test_dump_schema_compares_visible_order_without_obsolete_physical_slots():
     changed_order["columns"][0]["column"] = "note"
     changed_order["columns"][1]["column"] = "id"
     assert recovery.logical_backup_schema(before) != recovery.logical_backup_schema(changed_order)
+
+
+@pytest.mark.parametrize(("original", "restored"), recovery.PG17_INDEX_REPARSE_EQUIVALENTS.items())
+def test_only_exact_known_pg17_index_cast_reparsing_is_equivalent(original, restored):
+    def snapshot(definition):
+        return {"columns": [], "indexes": [{"definition": definition}]}
+    assert recovery.logical_backup_schema(snapshot(original)) == recovery.logical_backup_schema(snapshot(restored))
+    for change in (
+        original.replace("CREATE UNIQUE INDEX", "CREATE INDEX"),
+        original.replace(" ON public.", " ON other_schema."),
+        original.replace("::text[]", "::varchar[]"),
+        original.replace("'totp'", "'changed'").replace("'material_completion'", "'changed'"),
+        original.replace("USING btree", "USING hash"),
+    ):
+        assert recovery.logical_backup_schema(snapshot(change)) != recovery.logical_backup_schema(snapshot(restored))
+    assert snapshot(original)["indexes"][0]["definition"] == original
