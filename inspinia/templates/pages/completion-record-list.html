@@ -9,35 +9,36 @@
 <link rel="stylesheet" href="{% static 'plugins/tom-select/tom-select.bootstrap5.min.css' %}">
 <style>
   .completion-record-page { padding-bottom: 1.5rem; }
-  .completion-record-page .page-title-head { padding-block: 1.5rem 1rem; gap: 1rem; }
-  .completion-record-page h1 { font-size: 1.75rem; letter-spacing: -.035em; margin: .25rem 0 .4rem; }
+  .completion-record-page .page-title-head { padding-block: .85rem .35rem; gap: .75rem; }
+  .completion-record-page h1 { font-size: 1.5rem; letter-spacing: -.035em; margin: .15rem 0 .25rem; }
   .completion-record-eyebrow { font-size: .68rem; letter-spacing: .1em; }
   .completion-record-page .card { margin-bottom: 0; box-shadow: none; border: 1px solid var(--ins-border-color-translucent); }
   .completion-record-page .header-title { font-size: 1rem; font-weight: 600; letter-spacing: -.015em; }
   .completion-record-page .form-control,
   .completion-record-page .form-select,
-  .completion-record-page .ts-control { min-height: 2.35rem; }
+  .completion-record-page .ts-control { min-height: 2rem; }
   .completion-record-page .btn { white-space: nowrap; }
   .completion-record-page .table-responsive { container-type: inline-size; }
   .completion-record-page a:focus-visible,
   .completion-record-page button:focus-visible { outline: 2px solid var(--ins-primary); outline-offset: 3px; }
-  .completion-record-page .completion-record-filter-actions { padding-top: 1.55rem; }
-  .completion-record-filter-actions .btn { min-height: 2.35rem; display: inline-flex; align-items: center; }
+  .completion-record-filter-actions .btn { min-height: 2rem; display: inline-flex; align-items: center; }
+  .completion-record-filter-card .ts-control { padding-block: .25rem; }
+  .completion-record-filter-header { padding: .6rem .85rem .25rem; gap: .5rem; }
   .completion-record-page .completion-record-search-input { position: relative; }
-  .completion-record-search-input > .ti { position: absolute; left: .75rem; top: .7rem; color: var(--ins-secondary-color); }
+  .completion-record-search-input > .ti { position: absolute; left: .75rem; top: 50%; transform: translateY(-50%); color: var(--ins-secondary-color); }
   .completion-record-search-input input { padding-left: 2.2rem; }
-  .completion-record-table-heading { padding: 1rem 1.15rem; border-bottom: 1px solid var(--ins-border-color); }
+  .completion-record-table-heading { padding: .65rem .85rem; border-bottom: 1px solid var(--ins-border-color); }
   .completion-record-scope { font-size: .72rem; color: var(--ins-secondary-color); }
   .completion-record-summary { font-variant-numeric: tabular-nums; }
   .completion-record-scope-note { display: flex; gap: .45rem; align-items: center; padding: .65rem 1.15rem; background: var(--ins-tertiary-bg); border-top: 1px solid var(--ins-border-color); }
   .completion-record-kpi .card-body {
-    padding: .85rem 1rem;
+    padding: .6rem .75rem;
   }
 
   .completion-record-kpi .avatar-title {
-    flex: 0 0 2.35rem;
-    height: 2.35rem;
-    width: 2.35rem;
+    flex: 0 0 1.75rem;
+    height: 1.75rem;
+    width: 1.75rem;
   }
 
   .completion-record-kpi .avatar-title i {
@@ -45,11 +46,16 @@
   }
 
   .completion-record-kpi .flex-grow-1 {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
     min-width: 0;
   }
 
   .completion-record-kpi .text-muted {
     line-height: 1.2;
+    font-size: .65rem;
     overflow-wrap: anywhere;
   }
 
@@ -57,23 +63,24 @@
     line-height: 1.2;
     font-variant-numeric: tabular-nums;
     letter-spacing: -.035em;
-    font-size: 1.6rem;
+    font-size: 1.2rem;
+    flex-shrink: 0;
   }
 
   .completion-record-filter-card .card-body {
-    padding: 1.15rem;
+    padding: .4rem .85rem .65rem;
   }
 
   .completion-record-advanced-fields {
     border-top: 1px solid var(--ins-border-color);
-    margin-top: .85rem;
-    padding-top: .85rem;
+    margin-top: .6rem;
+    padding-top: .6rem;
   }
 
   .completion-record-filter-chips {
     border-top: 1px solid var(--ins-border-color);
-    margin-top: .85rem;
-    padding-top: .75rem;
+    margin-top: .6rem;
+    padding-top: .5rem;
   }
 
   .completion-record-filter-chip {
@@ -208,7 +215,7 @@
 
   #completion-record-table_wrapper .dt-layout-row {
     margin: 0;
-    padding: .75rem 1.15rem;
+    padding: .45rem .85rem;
   }
 
   #completion-record-table_wrapper .dt-length label,
@@ -232,7 +239,6 @@
     .completion-record-problem-cell { width: 29%; }
     .completion-record-topic-cell { width: 14%; }
     .completion-record-area-cell { width: 25%; }
-    .completion-record-page .completion-record-filter-actions { padding-top: 0; }
     .completion-record-detail-overview { grid-template-columns: 1fr; }
     .completion-record-detail-section + .completion-record-detail-section { border-left: 0; border-top: 1px solid var(--ins-border-color); margin-left: 0; padding-left: 0; }
     .completion-record-detail-review .completion-record-detail-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -241,6 +247,13 @@
   @media (max-width: 575.98px) {
     .completion-record-page .page-title-head { align-items: start !important; flex-direction: column; }
     .completion-record-page h1 { font-size: 1.5rem; }
+    .completion-record-filter-card .form-control,
+    .completion-record-filter-card .form-select,
+    .completion-record-filter-card .ts-control,
+    .completion-record-filter-actions .btn { min-height: 2.75rem; }
+    .completion-record-filter-actions .btn { padding-inline: .4rem; }
+    .completion-record-filter-card .ts-control { align-items: center; }
+    .completion-record-kpi > .col:last-child { width: 100%; }
     #completion-record-table { min-width: 680px; }
     .completion-record-detail-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .completion-record-detail-review { grid-template-columns: 1fr; }
@@ -262,13 +275,13 @@
     <a href="{% url 'pages:completion_quick_update' %}" class="btn btn-outline-primary"><i class="ti ti-plus me-1" aria-hidden="true"></i>Record progress</a>
   </div>
 
-  <div class="row row-cols-2 row-cols-sm-3 row-cols-xl-5 g-3 mt-0 mb-3 completion-record-kpi">
+  <div class="row row-cols-2 row-cols-sm-3 row-cols-xl-5 g-2 mt-0 mb-2 completion-record-kpi" role="group" aria-label="Summary of loaded completion records">
     <div class="col">
       <div class="card m-0 h-100">
         <div class="card-body">
           <div class="d-flex align-items-center">
             <span class="avatar-title bg-primary-subtle text-primary rounded flex-shrink-0">
-              <i class="ti ti-list-check fs-24"></i>
+              <i class="ti ti-list-check fs-18" aria-hidden="true"></i>
             </span>
             <div class="flex-grow-1 ms-2">
               <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Loaded records</p>
@@ -283,10 +296,10 @@
         <div class="card-body">
           <div class="d-flex align-items-center">
             <span class="avatar-title bg-info-subtle text-info rounded flex-shrink-0">
-              <i class="ti ti-users fs-24"></i>
+              <i class="ti ti-users fs-18" aria-hidden="true"></i>
             </span>
             <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Users in loaded records</p>
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold" title="Users in loaded records">Loaded users</p>
               <h3 class="mb-0">{{ completion_record_stats.user_total }}</h3>
             </div>
           </div>
@@ -298,10 +311,10 @@
         <div class="card-body">
           <div class="d-flex align-items-center">
             <span class="avatar-title bg-warning-subtle text-warning rounded flex-shrink-0">
-              <i class="ti ti-trophy fs-24"></i>
+              <i class="ti ti-trophy fs-18" aria-hidden="true"></i>
             </span>
             <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Contests in loaded records</p>
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold" title="Contests in loaded records">Loaded contests</p>
               <h3 class="mb-0">{{ completion_record_stats.contest_total }}</h3>
             </div>
           </div>
@@ -313,10 +326,10 @@
         <div class="card-body">
           <div class="d-flex align-items-center">
             <span class="avatar-title bg-success-subtle text-success rounded flex-shrink-0">
-              <i class="ti ti-file-check fs-24"></i>
+              <i class="ti ti-file-check fs-18" aria-hidden="true"></i>
             </span>
             <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Records with solution</p>
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold" title="Records with solution in loaded records">With solution</p>
               <h3 class="mb-0">{{ completion_record_stats.solution_total }}</h3>
             </div>
           </div>
@@ -328,10 +341,10 @@
         <div class="card-body">
           <div class="d-flex align-items-center">
             <span class="avatar-title bg-secondary-subtle text-secondary rounded flex-shrink-0">
-              <i class="ti ti-file-x fs-24"></i>
+              <i class="ti ti-file-x fs-18" aria-hidden="true"></i>
             </span>
             <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Records without solution</p>
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold" title="Records without solution in loaded records">Without solution</p>
               <h3 class="mb-0">{{ completion_record_stats.missing_solution_total }}</h3>
             </div>
           </div>
@@ -340,16 +353,13 @@
     </div>
   </div>
 
-  <div class="row g-3 mt-0 mb-3">
+  <div class="row g-2 mt-0 mb-2">
     <div class="col-12">
       <div class="card completion-record-filter-card">
-        <div class="card-header border-bottom py-2">
-          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
-            <div>
-              <h2 class="header-title mb-1">Find completion records</h2>
-              <p class="text-muted fs-xs mb-0">Search and filters apply to all saved records.</p>
-            </div>
-            <div class="d-flex flex-wrap align-items-center justify-content-end gap-2">
+        <div class="card-header border-0 completion-record-filter-header">
+            <h2 class="header-title fs-sm mb-0">Filters</h2>
+            <span class="text-muted fs-xs">All saved records</span>
+            <div class="d-flex flex-wrap align-items-center gap-2 ms-auto">
               {% if completion_record_is_capped %}
               <span class="badge bg-info-subtle text-info">Latest {{ completion_record_result_limit }} matches</span>
               <span class="text-muted fs-xs">More matches are available.</span>
@@ -357,11 +367,10 @@
               <span class="badge bg-secondary-subtle text-secondary">{{ completion_record_visible_total }} matching records</span>
               {% endif %}
             </div>
-          </div>
         </div>
         <div class="card-body">
           <form method="get">
-            <div class="row g-3 align-items-start">
+            <div class="row g-2 align-items-end">
               <div class="col-md-6 col-xl-3">
                 <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-record-q">Search all records</label>
                 <div class="completion-record-search-input"><i class="ti ti-search" aria-hidden="true"></i><input
@@ -383,12 +392,13 @@
                 </select>
               </div>
               <div class="col-md-6 col-xl-3">
-                <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-record-user">User</label>
+                <div class="d-flex align-items-baseline justify-content-between gap-1"><label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-record-user">User</label><span class="text-muted fs-xs">Name or email</span></div>
                 <select
                   id="completion-record-user"
                   name="user"
                   class="form-select form-select-sm"
                   data-user-options-url="{{ completion_record_user_options_url }}"
+                  aria-describedby="completion-record-user-status"
                   autocomplete="off"
                 >
                   <option value="">All users</option>
@@ -418,7 +428,7 @@
                 </div>
               </div>
             </div>
-            <p id="completion-record-user-status" class="completion-record-user-status text-muted fs-xs mt-2" aria-live="polite">Type a name or email in User to search all completion users.</p>
+            <p id="completion-record-user-status" class="completion-record-user-status visually-hidden text-muted fs-xs mt-2" aria-live="polite">Type a name or email in User to search all completion users.</p>
 
             <div id="completion-record-advanced-filters" class="collapse{% if completion_record_advanced_filters_open %} show{% endif %}">
               <div class="row g-2 align-items-end completion-record-advanced-fields">
@@ -468,8 +478,8 @@
 
           {% if completion_record_active_filters %}
           <div class="completion-record-filter-chips">
-            <p class="text-muted mb-2 fs-xs text-uppercase fw-semibold">Active filters</p>
-            <div class="d-flex flex-wrap gap-1">
+            <div class="d-flex flex-wrap align-items-center gap-1">
+              <span class="text-muted fs-xs me-1">Active filters</span>
               {% for chip in completion_record_active_filters %}
               <a href="{{ chip.remove_url }}" class="badge rounded-pill text-bg-light border text-decoration-none completion-record-filter-chip" aria-label="Remove {{ chip.label }} filter">
                 <span>{{ chip.label }}: {{ chip.value }}</span>
@@ -484,11 +494,11 @@
     </div>
   </div>
 
-  <div class="row g-3 mt-0 mb-3">
+  <div class="row g-2 mt-0 mb-2">
     <div class="col-12">
       <div class="card overflow-hidden">
         <div class="completion-record-table-heading d-flex flex-wrap justify-content-between align-items-center gap-2">
-          <div><h2 class="header-title mb-1">Recent completion records</h2><span class="completion-record-scope">Newest first · {{ completion_record_visible_total }} loaded{% if completion_record_is_capped %} · latest {{ completion_record_result_limit }} matches{% endif %}</span></div>
+          <div class="d-flex flex-wrap align-items-baseline gap-2"><h2 class="header-title mb-0">Recent completion records</h2><span class="completion-record-scope">Newest first · {{ completion_record_visible_total }} loaded{% if completion_record_is_capped %} · latest {{ completion_record_result_limit }} matches{% endif %}</span></div>
           <span class="text-muted fs-xs"><i class="ti ti-chevron-down me-1" aria-hidden="true"></i>Expand a row for all details</span>
         </div>
         <div class="card-body p-0">
@@ -528,11 +538,12 @@
   var activeRequest = null;
   var pendingLoad = null;
 
-  function setStatus(message, isError) {
+  function setStatus(message, isError, showNotice) {
     if (!statusEl) return;
     statusEl.textContent = message;
     statusEl.classList.toggle("text-danger", Boolean(isError));
     statusEl.classList.toggle("text-muted", !isError);
+    statusEl.classList.toggle("visually-hidden", !isError && !showNotice);
   }
 
   function abortActiveRequest() {
@@ -583,7 +594,7 @@
           })
           : [];
         if (payload.has_more) {
-          setStatus("Showing the first 20 matches. Type more to narrow the results.", false);
+          setStatus("Showing the first 20 matches. Type more to narrow the results.", false, true);
         } else if (results.length) {
           setStatus(results.length + (results.length === 1 ? " matching user." : " matching users."), false);
         } else {
