@@ -123,3 +123,7 @@ jobs:
       - name: Verify encrypted snapshot and complete isolated database restore
         run: |
           .catalogue-quality/bin/python -m scripts.deployment.database_recovery smoke
+      - name: Verify encrypted restore across separate users with production systemd isolation
+        run: |
+          sudo --preserve-env=GITHUB_ACTIONS,GITHUB_RUN_ID,GITHUB_SHA,DATABASE_URL .catalogue-quality/bin/python -m pytest \
+            scripts/deployment/tests/test_systemd_recovery.py -q

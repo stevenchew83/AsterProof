@@ -43,6 +43,8 @@ AUTHORITY_MANIFEST = Path("/etc/asterproof/authority-manifest.json")
 MAX_SOURCE_BYTES = 1024 * 1024 * 1024
 MAX_METADATA_BYTES = 2 * 1024 * 1024
 MAX_AGE_SECONDS = 1800
+PRIVATE_DIRECTORY_MODE = 0o700
+RESTORE_PARENT_MODE = 0o711
 KEY_BYTES = 32
 PRESERVED_TABLES = frozenset({
     "users_user", "pages_userproblemcompletion", "pages_problemconceptassignment", "pages_conceptassignmentstate",
@@ -128,10 +130,17 @@ def _private_file(path):
 
 def _root_directory(path, *, private=True):
     if not path.exists():
-        path.mkdir(mode=0o700 if private else 0o711)
+        path.mkdir(mode=PRIVATE_DIRECTORY_MODE if private else RESTORE_PARENT_MODE)
     metadata = path.lstat()
     if not stat.S_ISDIR(metadata.st_mode) or metadata.st_uid != 0 or metadata.st_mode & (0o077 if private else 0o022):
         raise RecoveryError("recovery_directory_unsafe")
+    if not private:
+        # The deployment worker's 0077 umask masks mkdir(0711) to 0700.
+        # Only this root-owned traversal parent is shared; each child stays private.
+        if stat.S_IMODE(metadata.st_mode) == PRIVATE_DIRECTORY_MODE:
+            path.chmod(RESTORE_PARENT_MODE)
+        elif stat.S_IMODE(metadata.st_mode) != RESTORE_PARENT_MODE:
+            raise RecoveryError("recovery_directory_unsafe")
 
 
 def validate_source_metadata(meta):
