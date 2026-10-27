@@ -43,6 +43,16 @@ All existing tests remain available; no production packaging runs for ordinary
 PRs. Shared changes may also require the complete suite during PR verification.
 Deploy and rollback remain manual and retain their production environment gate.
 
+Production WSGI workers prepare the catalogue/progress templates, their shared
+navigation URL resolvers, and the local static manifest before accepting requests.
+This moves fixed initialization into worker startup after a restart; it does not
+render a user page, query the database, or refresh progress summaries. The journal
+records `startup_prepared` with elapsed milliseconds. Missing templates or manifest
+entries fail worker startup instead of deferring the error to a visitor. The
+optional `DJANGO_PREPARE_FIRST_REQUEST=False` switch disables preparation; local
+and test settings keep it disabled by default. Other languages and unrelated
+templates can still initialize on their first use.
+
 An owner-authorized CI exception may set the manual dispatch input `skip_ci=true`.
 This skips installation and execution of the automated quality suite and records
 the exception in the workflow summary. Production lock validation, reproducible

@@ -89,3 +89,9 @@ def test_production_request_timing_defaults_on_and_can_be_disabled(monkeypatch):
     monkeypatch.delenv("DJANGO_REQUEST_TIMING_LOG", raising=False)
     assert _load_production_settings(monkeypatch).REQUEST_TIMING_LOG is True
     assert _load_production_settings(monkeypatch, DJANGO_REQUEST_TIMING_LOG="False").REQUEST_TIMING_LOG is False
+
+
+def test_production_startup_preparation_defaults_on_and_can_be_disabled(monkeypatch):
+    monkeypatch.delenv("DJANGO_PREPARE_FIRST_REQUEST", raising=False)
+    assert _load_production_settings(monkeypatch).PREPARE_FIRST_REQUEST is True
+    assert _load_production_settings(monkeypatch, DJANGO_PREPARE_FIRST_REQUEST="False").PREPARE_FIRST_REQUEST is False
