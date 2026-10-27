@@ -24,6 +24,9 @@ def shared_progress_view(request, learner: str, section: str = "completions"):
         query = comparison_query_string(request.GET)
         if query and context["shared_progress_compare_url"]:
             context["shared_progress_compare_url"] += f"?{query}"
+        if query:
+            for entry in context["shared_progress_learners"]:
+                entry["url"] += f"?{query}"
         return _render_completion_progress_analytics(
             request,
             selected_user=subject,
@@ -38,8 +41,23 @@ def shared_progress_view(request, learner: str, section: str = "completions"):
         )
     if section == "techniques":
         context["coverage"] = technique_progress_summary(subject)
+        stats = context["coverage"]["stats"]
+        context["shared_progress_coverage_remaining"] = (
+            stats["tagged_statement_total"] - stats["completed_statement_total"]
+        )
     else:
         context["training"] = training_progress_summary(subject)
+        topics = context["training"]["topics"]
+        context["shared_progress_training_completed"] = sum(topic["completed"] for topic in topics)
+        context["shared_progress_training_total"] = sum(topic["total"] for topic in topics)
+        context["shared_progress_training_topics"] = [
+            {
+                **topic,
+                "practice_subtopics": [row for row in topic["subtopics"] if row["total"]],
+                "empty_subtopics": [row for row in topic["subtopics"] if not row["total"]],
+            }
+            for topic in topics
+        ]
     return render(request, "pages/shared-progress.html", context)
 
 

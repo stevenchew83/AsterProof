@@ -2,76 +2,94 @@
 
 {% block title %}{{ shared_progress_label }}'s progress{% endblock title %}
 
+{% block extra_css %}
+{% load static %}
+<link rel="stylesheet" href="{% static 'plugins/datatables/dataTables.bootstrap5.min.css' %}">
+{% include 'pages/partials/shared-progress-styles.html' %}
+{% endblock extra_css %}
+
 {% block page_content %}
-<div class="container-fluid">
-  {% include 'partials/page-title.html' with title='Shared progress' subtitle='Our progress' %}
+<div class="container-fluid learner-progress">
   {% include 'pages/partials/shared-progress-header.html' %}
 
   {% if shared_progress_section == 'techniques' %}
-  <div class="card">
-    <div class="card-header border-0 pb-0">
-      <h4 class="header-title mb-1">Technique coverage</h4>
-      <p class="text-muted fs-sm mb-0">{{ coverage.stats.completed_statement_total }} of {{ coverage.stats.tagged_statement_total }} tagged problems completed · {{ coverage.stats.completion_percent }}% coverage</p>
-      <p class="text-muted fs-xs mb-0 mt-1">
-        Coverage data: {% if coverage.technique_progress_catalog_last_refreshed_at %}updated {{ coverage.technique_progress_catalog_last_refreshed_at|timesince }} ago{% else %}not built yet{% endif %}
-        {% if not coverage.technique_progress_catalog_is_current %}<span class="badge bg-warning-subtle text-warning">Awaiting refresh</span>{% endif %}
-      </p>
+  <section class="card" aria-label="Coverage summary">
+    <div class="lp-coverage-summary">
+      <div><span class="lp-metric-label">Tagged problems</span><strong>{{ coverage.stats.tagged_statement_total }}</strong></div>
+      <div><span class="lp-metric-label">Completed</span><strong>{{ coverage.stats.completed_statement_total }}</strong></div>
+      <div><span class="lp-metric-label">Remaining</span><strong>{{ shared_progress_coverage_remaining }}</strong></div>
+      <div><span class="lp-metric-label">Coverage</span><strong>{{ coverage.stats.completion_percent }}%</strong></div>
     </div>
-    <div class="card-body pt-2">
-      {% if coverage.stats.tagged_statement_total %}
+    <div class="lp-quality">All time · Coverage {% if coverage.technique_progress_catalog_last_refreshed_at %}updated {{ coverage.technique_progress_catalog_last_refreshed_at|timesince }} ago{% else %}not built yet{% endif %}{% if not coverage.technique_progress_catalog_is_current %} <span class="badge bg-warning-subtle text-warning">Awaiting refresh</span>{% endif %}. A problem can appear in several areas or tags.</div>
+  </section>
+  <section class="card">
+    <div class="card-header"><h2 class="header-title mb-0">Main topics</h2></div>
+    <div class="card-body pt-1">
       {% include 'pages/partials/shared-coverage-table.html' with rows=coverage.main_topic_rows label='Topic' %}
-      {% else %}
-      <div class="alert alert-info mb-0">No tagged problems are available yet.</div>
-      {% endif %}
     </div>
-  </div>
-  <div class="card">
-    <div class="card-header border-0 pb-0"><h4 class="header-title mb-0">Subtopic coverage</h4></div>
-    <div class="card-body pt-2">
-      {% include 'pages/partials/shared-coverage-table.html' with rows=coverage.subtopic_rows label='Subtopic' %}
+  </section>
+  <section class="card">
+    <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2"><h2 class="header-title mb-0">Areas &amp; subtopics</h2><span class="text-body-secondary fs-xs">Largest remaining gaps first</span></div>
+    <div class="card-body pt-1">
+      {% include 'pages/partials/shared-coverage-table.html' with rows=coverage.subtopic_rows label='Area' paginated=True %}
     </div>
-  </div>
-  <div class="card">
-    <div class="card-header border-0 pb-0"><h4 class="header-title mb-0">Techniques</h4></div>
-    <div class="card-body pt-2">
-      {% include 'pages/partials/shared-coverage-table.html' with rows=coverage.technique_rows label='Technique' %}
+  </section>
+  <details class="card lp-analysis">
+    <summary class="card-header"><span class="fw-semibold fs-sm">Concept tags</span><span class="text-body-secondary fs-xs ms-2">Explore the source tags behind coverage</span></summary>
+    <div class="card-body pt-1">
+      {% include 'pages/partials/shared-coverage-table.html' with rows=coverage.technique_rows label='Tag' paginated=True %}
     </div>
-  </div>
+  </details>
   {% else %}
-  <div class="row g-3 mt-0">
-    <div class="col-md-6">
-      <div class="card h-100"><div class="card-body">
-        <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Training level</p>
-        <h3 class="mb-1">Level {{ training.level.level_number }} · {{ training.level.name }}</h3>
-        <p class="text-muted mb-0">{{ training.points }} training points</p>
-      </div></div>
+  <section class="card" aria-label="Training summary">
+    <div class="lp-metrics">
+      <div class="lp-metric"><div class="lp-metric-label">Training level</div><div class="lp-metric-value">{{ training.level.level_number }}</div><div class="lp-metric-note">{{ training.level.name }}</div></div>
+      <div class="lp-metric"><div class="lp-metric-label">Training points</div><div class="lp-metric-value">{{ training.points }}</div><div class="lp-metric-note">All time</div></div>
+      <div class="lp-metric"><div class="lp-metric-label">Completed</div><div class="lp-metric-value">{{ shared_progress_training_completed }} <span class="text-body-secondary fs-xs fw-normal">/ {{ shared_progress_training_total }}</span></div><div class="lp-metric-note">Published materials &amp; problems</div></div>
+      <div class="lp-metric"><div class="lp-metric-label">Next subtopic</div><div class="fs-sm fw-semibold mt-1">{% if training.next_subtopic %}{{ training.next_subtopic.title }}{% else %}No remaining practice{% endif %}</div><div class="lp-metric-note">{{ training.next_subtopic.topic|default:'Published practice only' }}</div></div>
     </div>
-    <div class="col-md-6">
-      <div class="card h-100"><div class="card-body">
-        <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">{{ shared_progress_label }}'s next subtopic</p>
-        {% if training.next_subtopic %}
-        <h4 class="mb-1">{{ training.next_subtopic.title }}</h4>
-        <p class="text-muted mb-0">{{ training.next_subtopic.topic }}</p>
-        {% else %}
-        <p class="text-muted mb-0">No remaining published practice with materials or problems.</p>
-        {% endif %}
-      </div></div>
-    </div>
-  </div>
-  <p class="text-muted fs-sm mt-3">Roadmap progress counts completed materials and accepted or partially accepted training problems. Problem completions are tracked separately.</p>
-  {% for topic in training.topics %}
-  <details class="card"{% if topic.total %} open{% endif %}>
-    <summary class="card-header border-0 d-flex flex-wrap justify-content-between gap-2">
-      <h4 class="header-title mb-0">{{ topic.title }}</h4>
-      <span class="text-muted fs-sm">{{ topic.completed }} / {{ topic.total }} completed · {{ topic.percent }}% <i class="ti ti-chevron-down ms-1"></i></span>
+    <div class="lp-quality">All time · Materials and accepted or partially accepted training problems. Completion history is tracked separately.</div>
+  </section>
+  {% for topic in shared_progress_training_topics %}
+  <details class="card lp-analysis"{% if topic.title == training.next_subtopic.topic %} open{% endif %}>
+    <summary class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+      <span class="fw-semibold fs-sm">{{ topic.title }}</span>
+      <span class="text-body-secondary fs-xs">{% if topic.total %}{{ topic.completed }} / {{ topic.total }} completed <strong class="text-body ms-2">{{ topic.percent }}%</strong>{% else %}No published practice{% endif %} <i class="ti ti-chevron-down ms-1" aria-hidden="true"></i></span>
     </summary>
-    <div class="card-body pt-2">
-      {% include 'pages/partials/shared-coverage-table.html' with rows=topic.subtopics label='Subtopic' training_rows=True %}
+    <div class="card-body pt-1">
+      {% if topic.practice_subtopics %}
+      {% include 'pages/partials/shared-coverage-table.html' with rows=topic.practice_subtopics label='Subtopic' training_rows=True paginated=True %}
+      {% else %}<p class="text-body-secondary fs-sm mb-0">No published practice in this topic yet.</p>{% endif %}
+      {% if topic.empty_subtopics %}
+      <details class="mt-2">
+        <summary class="text-body-secondary fs-xs">{{ topic.empty_subtopics|length }} subtopic{{ topic.empty_subtopics|length|pluralize }} without published practice</summary>
+        <div class="pt-2">{% include 'pages/partials/shared-coverage-table.html' with rows=topic.empty_subtopics label='Subtopic' training_rows=True paginated=True %}</div>
+      </details>
+      {% endif %}
     </div>
   </details>
   {% empty %}
-  <div class="alert alert-info">No published training subtopics are available yet.</div>
+  <div class="card"><div class="lp-empty">No published training subtopics are available yet.</div></div>
   {% endfor %}
   {% endif %}
 </div>
 {% endblock page_content %}
+
+{% block extra_javascript %}
+{% include 'partials/datatables-vendor-scripts.html' %}
+<script>
+(function () {
+  if (typeof DataTable === 'undefined') return;
+  document.querySelectorAll('[data-shared-coverage]').forEach(function (table) {
+    var details = table.closest('details');
+    var api = null;
+    function initialise() {
+      if (api || (details && !details.open)) return;
+      api = new DataTable(table, { pageLength: 10, order: table.hasAttribute('data-training-rows') ? [] : [[2, 'desc']], language: { search: 'Search:', searchPlaceholder: 'Filter these rows…' } });
+    }
+    if (details) details.addEventListener('toggle', initialise);
+    initialise();
+  });
+})();
+</script>
+{% endblock extra_javascript %}

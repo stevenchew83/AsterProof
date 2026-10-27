@@ -1,0 +1,68 @@
+<style>
+  .learner-progress { --lp-ink: var(--ins-primary-text-emphasis, var(--ins-primary)); }
+  .learner-progress .card { border: 1px solid var(--ins-border-color); box-shadow: none; margin-bottom: .75rem; }
+  .learner-progress .card-header { padding: .75rem 1rem; }
+  .learner-progress .card-body { padding: 1rem; }
+  .learner-progress .header-title { font-size: .95rem; font-weight: 600; }
+  .learner-progress .page-title-head { min-height: 0; padding-block: .3rem !important; margin-bottom: .25rem !important; }
+  .learner-progress > .nav-underline { margin-bottom: .6rem !important; }
+  .learner-progress .avatar-title { width: 2.25rem; height: 2.25rem; }
+  .learner-progress .nav-underline .nav-link { color: var(--ins-secondary-color); }
+  .learner-progress .nav-underline .nav-link.active { color: var(--lp-ink); }
+  .learner-progress .btn-primary { --ins-btn-bg: var(--lp-ink); --ins-btn-border-color: var(--lp-ink); }
+  .learner-progress .btn-outline-primary { --ins-btn-color: var(--lp-ink); --ins-btn-border-color: var(--lp-ink); }
+  .learner-progress a:focus-visible, .learner-progress summary:focus-visible { outline: 2px solid var(--lp-ink); outline-offset: 3px; }
+  .lp-toolbar { display: flex; align-items: end; flex-wrap: wrap; gap: .6rem; }
+  .lp-toolbar .lp-field { flex: 0 1 10rem; min-width: 8rem; }
+  .lp-toolbar .lp-search { flex: 1 1 14rem; }
+  .lp-toolbar .form-label, .lp-advanced .form-label { font-size: .7rem; margin-bottom: .25rem; }
+  .lp-toolbar .form-control, .lp-toolbar .form-select, .lp-toolbar .btn { min-height: 2.1rem; }
+  .lp-toolbar .lp-custom-dates { display: flex; gap: .6rem; }
+  .lp-toolbar [hidden] { display: none !important; }
+  .lp-advanced { flex: 0 0 auto; align-self: center; }
+  .lp-advanced > summary { width: max-content; font-size: .8rem; color: var(--ins-secondary-color); }
+  .lp-advanced[open] { flex-basis: 100%; padding-top: .5rem; border-top: 1px solid var(--ins-border-color); }
+  .lp-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .lp-metric { padding: .6rem .8rem; border-inline-start: 1px solid var(--ins-border-color); }
+  .lp-metric:first-child { border: 0; }
+  .lp-metric-label { color: var(--ins-secondary-color); font-size: .73rem; font-weight: 600; }
+  .lp-metric-value { font-size: 1.65rem; line-height: 1.2; font-weight: 700; letter-spacing: -.035em; font-variant-numeric: tabular-nums; }
+  .lp-metric-note { font-size: .7rem; color: var(--ins-secondary-color); margin-top: .25rem; }
+  .lp-chart { min-height: 230px; }
+  .learner-progress .completion-progress-chart { min-height: 230px; }
+  .lp-topic { display: block; padding: .6rem 0; color: var(--ins-body-color); }
+  .lp-topic:hover { color: var(--lp-ink); }
+  .lp-topic .progress { height: .3rem; margin-top: .4rem; background: var(--ins-tertiary-bg); }
+  .lp-topic .progress-bar { background: var(--lp-ink); }
+  .lp-quality { font-size: .75rem; padding: .5rem 1rem; border-top: 1px solid var(--ins-border-color); color: var(--ins-secondary-color); }
+  .lp-analysis summary { cursor: pointer; }
+  .lp-analysis[open] > summary { border-bottom: 1px solid var(--ins-border-color); }
+  .lp-analysis .row { margin-top: 0 !important; }
+  .lp-analysis .card { margin-bottom: .75rem; }
+  .lp-analysis .completion-progress-empty-state { min-height: 0; padding: 1rem; }
+  .lp-stats-detail { display: flex; flex-wrap: wrap; gap: .6rem 1.5rem; font-size: .8rem; }
+  .learner-progress .table { font-size: .8rem; }
+  .learner-progress .table th { color: var(--ins-secondary-color); font-size: .7rem; font-weight: 600; white-space: nowrap; }
+  .learner-progress .table td, .learner-progress .table th { padding: .55rem .75rem; vertical-align: middle; }
+  .lp-record-table th, .lp-record-table td { white-space: nowrap; }
+  .lp-record-table .lp-problem, .lp-record-table .lp-area { max-width: 20rem; overflow: hidden; text-overflow: ellipsis; }
+  .lp-record-table a { color: var(--lp-ink); }
+  .learner-progress .dt-container .dt-layout-row { margin-block: .5rem; }
+  .learner-progress .dt-container .dt-length label, .learner-progress .dt-container .dt-search label { font-size: .75rem; }
+  .learner-progress .dt-container .dt-search input { min-height: 2rem; }
+  .lp-empty { padding: 2rem 1rem; text-align: center; color: var(--ins-secondary-color); }
+  .lp-coverage-summary { display: flex; flex-wrap: wrap; gap: .75rem 2rem; padding: .9rem 1rem; }
+  .lp-coverage-summary strong { display: block; font-size: 1.35rem; line-height: 1.2; font-variant-numeric: tabular-nums; }
+  @media (max-width: 767.98px) {
+    .lp-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .lp-metric:nth-child(3) { border-inline-start: 0; }
+    .lp-metric:nth-child(n+3) { border-top: 1px solid var(--ins-border-color); }
+    .lp-toolbar .lp-field { flex: 1 1 8rem; }
+    .lp-toolbar .lp-search { flex-basis: 100%; }
+    .lp-toolbar .lp-custom-dates { flex-basis: 100%; }
+    .lp-toolbar .lp-custom-dates .lp-field { min-width: 0; }
+    .learner-progress .nav-underline { gap: 1rem !important; font-size: .8rem; }
+    .learner-progress .btn, .learner-progress .nav-link { min-height: 2.25rem; }
+    .lp-record-table .lp-problem, .lp-record-table .lp-area { max-width: 14rem; }
+  }
+</style>

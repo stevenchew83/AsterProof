@@ -12,11 +12,11 @@ from inspinia.users.roles import user_has_admin_role
 
 LEARNER_LABELS = {"alex": "Alex", "ben": "Ben"}
 PROGRESS_SECTIONS = {
-    "completions": "Problem completions",
-    "techniques": "Technique coverage",
-    "training": "Training roadmap",
+    "completions": "Overview",
+    "techniques": "Areas & Concepts",
+    "training": "Training",
 }
-COMPARISON_SECTION_LABELS = {"completions": "Completions", "techniques": "Techniques", "training": "Training"}
+COMPARISON_SECTION_LABELS = {"completions": "Completions", "techniques": "Areas & Concepts", "training": "Training"}
 
 
 def shared_progress_learners(viewer) -> list[dict]:
