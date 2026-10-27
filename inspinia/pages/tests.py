@@ -6284,13 +6284,13 @@ def test_contest_dashboard_listing_view_filters_selected_contest_and_year_for_ad
     assert "js-problem-select" in response_html
     assert "js-sort-header" in response_html
     assert "Set inactive" in response_html
-    assert 'text-nowrap text-muted fw-semibold js-row-index">1<' in response_html
+    assert 'class="problem-code">P1</span>' in response_html
     assert "Problem code" not in response_html
     assert "Solved date" not in response_html
     assert "statement-drawer-row" in response_html
     assert 'data-statement-target="statement-drawer-usamo-2026-p1"' in response_html
     assert "js-statement-toggle" in response_html
-    assert "Problem metadata" in response_html
+    assert 'aria-label="View details for USAMO 2026 P1"' in response_html
     assert "js-completion-save" in response_html
     assert "Unknown" in response_html
     assert "USAMO 2026 P1" in response_html

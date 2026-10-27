@@ -7,268 +7,161 @@
 {% block extra_css %}
   {{ block.super }}
   <style>
-    .contest-dashboard-listing .statement-text-fragment {
-      white-space: pre-wrap;
-      word-break: break-word;
-      line-height: 1.7;
-    }
-
-    .contest-dashboard-listing .asymptote-svg-frame {
-      overflow-x: auto;
-      padding: 0.75rem;
-      border-radius: var(--bs-border-radius);
-      border: 1px solid var(--bs-border-color);
-      background: var(--bs-body-bg);
-    }
-
-    .contest-dashboard-listing .asymptote-svg-frame svg {
-      display: block;
-      max-width: 100%;
-      height: auto;
-      margin: 0 auto;
-    }
-
     .contest-dashboard-listing .contest-dashboard-heading {
-      align-items: flex-start;
+      align-items: center;
       gap: 1rem;
-      margin-bottom: 1rem;
+      margin-bottom: .75rem;
     }
-
-    .contest-dashboard-listing .contest-dashboard-kicker {
-      letter-spacing: 0;
-    }
-
     .contest-dashboard-listing .contest-dashboard-title {
       margin: 0;
-      font-size: 1.55rem;
-      line-height: 1.2;
+      font-size: 1.4rem;
+      line-height: 1.3;
       font-weight: 700;
-      color: var(--bs-heading-color);
+      color: var(--ins-heading-color);
     }
-
-    .contest-dashboard-listing .contest-dashboard-back-link {
-      white-space: nowrap;
-    }
-
-    .contest-dashboard-listing .contest-dashboard-summary-band,
-    .contest-dashboard-listing .contest-dashboard-filter-card,
-    .contest-dashboard-listing .contest-year-card {
-      border: 1px solid var(--bs-border-color);
-      box-shadow: 0 0.5rem 1.25rem rgba(var(--bs-body-color-rgb), 0.04);
-    }
-
+    .contest-dashboard-listing .contest-dashboard-back-link { white-space: nowrap; }
     .contest-dashboard-listing .contest-dashboard-summary-band {
       display: flex;
       flex-wrap: wrap;
       align-items: center;
-      gap: 0.75rem 1rem;
-      padding: 0.9rem 1rem;
-      border-radius: var(--bs-border-radius);
-      background: var(--bs-body-bg);
+      gap: .4rem 1.25rem;
+      margin-top: .5rem;
+      color: var(--ins-body-color);
+      font-size: .8rem;
     }
-
-    .contest-dashboard-listing .summary-item {
-      display: inline-flex;
-      align-items: baseline;
-      gap: 0.35rem;
-      padding-right: 1rem;
-      border-right: 1px solid var(--bs-border-color);
+    .contest-dashboard-listing .summary-item { display: inline-flex; gap: .3rem; }
+    .contest-dashboard-listing .summary-value { font-weight: 600; color: var(--ins-body-color); }
+    .contest-dashboard-listing .contest-workspace {
+      border: 1px solid var(--ins-border-color);
+      overflow: hidden;
+      box-shadow: 0 .25rem 1rem rgba(var(--ins-body-color-rgb), .025);
     }
-
-    .contest-dashboard-listing .summary-item:last-child,
-    .contest-dashboard-listing .summary-topics {
-      border-right: 0;
-      padding-right: 0;
-    }
-
-    .contest-dashboard-listing .summary-value {
-      font-weight: 700;
-      color: var(--bs-heading-color);
-    }
-
     .contest-dashboard-listing .contest-dashboard-filter-toolbar {
       display: grid;
-      grid-template-columns: minmax(15rem, 1.2fr) minmax(16rem, 1.6fr) auto auto;
-      gap: 0.75rem;
-      align-items: end;
+      grid-template-columns: minmax(12rem, 1fr) 8rem auto auto;
+      gap: .5rem;
+      align-items: center;
     }
-
+    .contest-dashboard-listing .filter-search { position: relative; }
+    .contest-dashboard-listing .filter-search > i {
+      position: absolute; left: .65rem; top: 50%; transform: translateY(-50%);
+      color: var(--ins-secondary-color); pointer-events: none;
+    }
+    .contest-dashboard-listing .filter-search input { padding-left: 2rem; }
     .contest-dashboard-listing .contest-dashboard-filter-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.25rem;
-      text-decoration: none;
+      display: inline-flex; align-items: center; gap: .25rem; text-decoration: none;
     }
-
-    .contest-dashboard-listing .problem-tag-list {
-      display: flex;
-      flex-direction: column;
-      gap: 0.25rem;
-      align-items: flex-start;
-    }
-
-    .contest-dashboard-listing .problem-table {
-      min-width: 74rem;
-    }
-
+    .contest-dashboard-listing .problem-table { min-width: 57rem; font-size: .8rem; }
     .contest-dashboard-listing .problem-table thead th {
-      position: sticky;
-      top: 0;
-      z-index: 3;
-      background: var(--bs-tertiary-bg);
-      box-shadow: inset 0 -1px 0 var(--bs-border-color);
-    }
-
-    .contest-dashboard-listing .problem-table td {
-      vertical-align: middle;
-    }
-
-    .contest-dashboard-listing .problem-table tbody tr.js-problem-row {
-      transition: background-color 0.15s ease;
-    }
-
-    .contest-dashboard-listing .problem-table tbody tr.js-problem-row:hover,
-    .contest-dashboard-listing .problem-table tbody tr.js-problem-row.is-drawer-open {
-      background: var(--bs-tertiary-bg);
-    }
-
-    .contest-dashboard-listing .problem-table tbody tr.js-problem-row.is-selected {
-      background: var(--bs-primary-bg-subtle);
-    }
-
-    .contest-dashboard-listing .problem-sticky-col {
-      position: sticky;
-      left: 0;
-      z-index: 2;
-      min-width: 18rem;
-      background: var(--bs-body-bg);
-      box-shadow: 1px 0 0 var(--bs-border-color);
-    }
-
-    .contest-dashboard-listing thead .problem-sticky-col {
-      z-index: 4;
-      background: var(--bs-tertiary-bg);
-    }
-
-    .contest-dashboard-listing .problem-table .btn {
+      position: sticky; top: 0; z-index: 2;
+      background: var(--ins-tertiary-bg);
+      padding: .65rem .75rem;
       white-space: nowrap;
+      border-top: 1px solid var(--ins-border-color);
+      font-size: .68rem;
+      letter-spacing: .035em;
     }
-
-    .contest-dashboard-listing .problem-list-add-form {
-      min-width: 15rem;
+    .contest-dashboard-listing .problem-table .js-problem-row > td {
+      vertical-align: middle;
+      white-space: nowrap;
+      padding: .35rem .75rem;
+      height: 43px;
     }
-
-    .contest-dashboard-listing .statement-preview-button {
-      max-width: 20rem;
-      color: inherit;
-      text-decoration: none;
+    .contest-dashboard-listing .js-problem-row { cursor: pointer; }
+    .contest-dashboard-listing .problem-sticky-col {
+      position: sticky; left: 0; z-index: 2;
+      min-width: 9rem;
+      background: var(--ins-secondary-bg);
+      box-shadow: 1px 0 0 var(--ins-border-color);
     }
-
-    .contest-dashboard-listing .statement-preview-text {
-      display: -webkit-box;
-      overflow: hidden;
-      -webkit-box-orient: vertical;
-      -webkit-line-clamp: 2;
+    .contest-dashboard-listing thead .problem-sticky-col { z-index: 3; }
+    .contest-dashboard-listing .js-problem-row:hover > td,
+    .contest-dashboard-listing .js-problem-row.is-drawer-open > td { background-color: var(--ins-tertiary-bg); }
+    .contest-dashboard-listing .js-problem-row.is-selected > td { background-color: var(--ins-primary-bg-subtle); }
+    .contest-dashboard-listing .problem-identity { display: flex; align-items: center; gap: .6rem; }
+    .contest-dashboard-listing .problem-identity .form-check-input { margin: 0; flex-shrink: 0; }
+    .contest-dashboard-listing .problem-open-button {
+      display: inline-flex; align-items: center; gap: .55rem;
+      padding: 0; border: 0; background: transparent; color: inherit;
+      font: inherit; white-space: nowrap;
     }
-
-    .contest-dashboard-listing .statement-drawer-row > td {
-      background: var(--bs-tertiary-bg);
-      border-top: 0;
+    .contest-dashboard-listing .problem-code { font-weight: 700; color: var(--ins-body-color); }
+    .contest-dashboard-listing .problem-chevron { color: var(--ins-primary); transition: transform .15s; }
+    .contest-dashboard-listing .is-drawer-open .problem-chevron { transform: rotate(90deg); }
+    .contest-dashboard-listing .problem-tag-list {
+      display: inline-flex; align-items: center; gap: .4rem;
+      max-width: 14rem; vertical-align: middle;
+      border: 0; padding: 0; background: transparent; color: var(--ins-body-color); font: inherit;
     }
-
-    .contest-dashboard-listing .statement-drawer-panel {
-      border-left: 3px solid var(--bs-primary);
-      border-radius: var(--bs-border-radius);
-      background: var(--bs-body-bg);
-      padding: 1rem;
+    .contest-dashboard-listing .problem-tag-name,
+    .contest-dashboard-listing .problem-session { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .contest-dashboard-listing .problem-session { display: block; max-width: 12rem; }
+    .contest-dashboard-listing .problem-tag-more { flex-shrink: 0; font-size: .7rem; }
+    .contest-dashboard-listing .problem-actions { display: flex; align-items: center; gap: .4rem; }
+    .contest-dashboard-listing .problem-actions .btn,
+    .contest-dashboard-listing .completion-editor .btn-icon {
+      min-height: 28px; padding: .2rem .45rem; font-size: .75rem;
     }
-
-    .contest-dashboard-listing .statement-render-content {
-      border: 0;
-      background: transparent;
-      padding: 0;
-    }
-
-    .contest-dashboard-listing .completion-editor {
-      min-width: 10rem;
-    }
-
+    .contest-dashboard-listing .problem-actions .btn-icon,
+    .contest-dashboard-listing .completion-editor .btn-icon { width: 28px; }
+    .contest-dashboard-listing .completion-editor { min-width: 8.5rem; }
     .contest-dashboard-listing .completion-popover {
-      width: 16rem;
-      max-width: calc(100vw - 2rem);
-      border: 1px solid var(--bs-border-color);
-      box-shadow: 0 0.75rem 1.5rem rgba(var(--bs-body-color-rgb), 0.12);
+      width: 16rem; max-width: calc(100vw - 2rem);
+      border: 1px solid var(--ins-border-color);
+      box-shadow: 0 .75rem 1.5rem rgba(var(--ins-body-color-rgb), .12);
+      white-space: normal;
     }
-
-    .contest-dashboard-listing .completion-editor .dropdown-menu.show {
-      position: static !important;
-      transform: none !important;
-      margin-top: 0.5rem !important;
+    .contest-dashboard-listing .completion-editor.is-busy { opacity: .72; }
+    .contest-dashboard-listing .js-completion-display { color: var(--ins-body-color) !important; }
+    .contest-dashboard-listing .statement-drawer-row > td { padding: .75rem; background: var(--ins-tertiary-bg); }
+    .contest-dashboard-listing .statement-drawer-panel {
+      border: 1px solid var(--ins-border-color);
+      border-left: 3px solid var(--ins-primary);
+      border-radius: var(--ins-border-radius);
+      background: var(--ins-secondary-bg);
+      padding: 1rem 1.25rem;
     }
-
-    .contest-dashboard-listing .completion-editor.is-busy {
-      opacity: 0.72;
+    .contest-dashboard-listing .statement-render-content { border: 0; background: transparent; padding: 0; }
+    .contest-dashboard-listing .statement-text-fragment { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.7; }
+    .contest-dashboard-listing .asymptote-svg-frame {
+      overflow-x: auto; padding: .75rem;
+      border-radius: var(--ins-border-radius);
+      border: 1px solid var(--ins-border-color); background: var(--ins-body-bg);
     }
-
+    .contest-dashboard-listing .asymptote-svg-frame svg { display: block; max-width: 100%; height: auto; margin: 0 auto; }
+    .contest-dashboard-listing .problem-detail-tags { display: flex; flex-wrap: wrap; gap: .4rem; }
+    .contest-dashboard-listing .problem-detail-tags .badge { white-space: normal; overflow-wrap: anywhere; }
+    .contest-dashboard-listing .statement-drawer-panel mjx-container[display="true"] { overflow-x: auto; max-width: 100%; }
+    .contest-dashboard-listing .problem-list-add-form { width: min(100%, 22rem); }
     .contest-dashboard-listing .contest-dashboard-bulk-bar {
-      position: sticky;
-      right: 1rem;
-      bottom: 1rem;
-      left: 1rem;
-      z-index: 10;
-      margin-top: 1rem;
-      border: 1px solid var(--bs-border-color);
-      border-radius: var(--bs-border-radius);
-      background: var(--bs-body-bg);
-      box-shadow: 0 0.75rem 2rem rgba(var(--bs-body-color-rgb), 0.16);
-      padding: 0.75rem 1rem;
+      position: sticky; bottom: 1rem; z-index: 10; margin-top: .75rem;
+      border: 1px solid var(--ins-border-color); border-radius: var(--ins-border-radius);
+      background: var(--ins-secondary-bg); box-shadow: 0 .75rem 2rem rgba(var(--ins-body-color-rgb), .16);
+      padding: .65rem 1rem;
     }
-
-    .contest-dashboard-listing .contest-dashboard-bulk-bar-inner {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
-      gap: 0.75rem;
-    }
-
-    .contest-dashboard-listing .bulk-toolbar-actions {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
+    .contest-dashboard-listing .contest-dashboard-bulk-bar-inner,
+    .contest-dashboard-listing .bulk-toolbar-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+    .contest-dashboard-listing .contest-dashboard-bulk-bar-inner { justify-content: space-between; }
     .contest-dashboard-listing .js-sort-header {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-      padding: 0;
-      border: 0;
-      background: transparent;
-      color: inherit;
-      font: inherit;
-      text-transform: inherit;
-      letter-spacing: inherit;
+      display: inline-flex; align-items: center; gap: .35rem; padding: 0; border: 0;
+      background: transparent; color: inherit; font: inherit; text-transform: inherit; letter-spacing: inherit;
     }
-
-    .contest-dashboard-listing .js-sort-header .sort-icon {
-      font-size: 1rem;
-      opacity: 0.55;
+    .contest-dashboard-listing .sort-icon { font-size: .9rem; opacity: .5; }
+    .contest-dashboard-listing button:focus-visible { outline: 2px solid var(--ins-primary); outline-offset: 3px; }
+    @media (max-width: 767.98px) {
+      .contest-dashboard-listing .contest-dashboard-heading { flex-direction: column; align-items: flex-start; gap: .65rem; }
+      .contest-dashboard-listing .contest-dashboard-title { font-size: 1.2rem; }
+      .contest-dashboard-listing .contest-dashboard-filter-toolbar { grid-template-columns: minmax(0, 1fr) auto; }
+      .contest-dashboard-listing .filter-search { grid-column: 1 / -1; }
+      .contest-dashboard-listing .filter-submit-actions { grid-column: 1 / -1; }
+      .contest-dashboard-listing .filter-submit-actions .btn-primary { flex-grow: 1; }
+      .contest-dashboard-listing .contest-dashboard-summary-band { gap: .3rem .8rem; }
+      .contest-dashboard-listing .statement-drawer-panel { position: sticky; left: .75rem; width: calc(100vw - 4.5rem); padding: 1rem; }
     }
-
-    @media (max-width: 991.98px) {
-      .contest-dashboard-listing .contest-dashboard-filter-toolbar {
-        grid-template-columns: 1fr;
-      }
-
-      .contest-dashboard-listing .contest-dashboard-heading {
-        flex-direction: column;
-      }
-
-      .contest-dashboard-listing .contest-dashboard-heading .text-end {
-        text-align: start !important;
-      }
+    @media (pointer: coarse) {
+      .contest-dashboard-listing .problem-open-button,
+      .contest-dashboard-listing .problem-actions .btn,
+      .contest-dashboard-listing .completion-editor .btn-icon { min-height: 40px; }
     }
   </style>
 {% endblock extra_css %}
@@ -277,369 +170,284 @@
 <div class="container-fluid contest-dashboard-listing">
   <div class="page-title-head d-flex contest-dashboard-heading">
     <div class="flex-grow-1">
-      <p class="contest-dashboard-kicker text-muted mb-1 fs-xs text-uppercase fw-semibold">Contest listing</p>
       <h1 class="contest-dashboard-title">{{ contest_title }}</h1>
-    </div>
-    <div class="text-end">
-      <ol class="breadcrumb m-0 py-0 justify-content-end">
-        <li class="breadcrumb-item"><a href="{% url 'pages:user_activity_dashboard' %}">AsterProof</a></li>
-        <li class="breadcrumb-item text-body-secondary">Contest listing</li>
-        <li class="breadcrumb-item active">{{ contest_title }}</li>
-      </ol>
-      <a href="{{ contest_back_url }}" class="btn btn-outline-secondary btn-sm contest-dashboard-back-link">
-        <i class="ti ti-arrow-left me-1"></i>{{ contest_back_label }}
-      </a>
-    </div>
-  </div>
-
-  <div class="row g-3 mt-0">
-    <div class="col-12">
       <div class="contest-dashboard-summary-band">
         <span class="summary-item"><span class="summary-value">{{ matching_problem_total }} visible</span></span>
-        <span class="summary-item"><span class="summary-value">{{ contest_problem_stats.statement_total }} statements</span></span>
-        <span class="summary-item"><span class="summary-value">{{ contest_problem_stats.year_range_label }}</span><span class="text-muted fs-xs text-uppercase fw-semibold">years</span></span>
-        <span class="summary-item"><span class="text-muted fs-xs text-uppercase fw-semibold">Avg MOHS</span><span class="summary-value">{{ contest_problem_stats.avg_mohs|floatformat:1 }}</span></span>
+        <span class="summary-item">{{ contest_problem_stats.year_range_label }}</span>
+        <span class="summary-item">Avg MOHS <span class="summary-value">{{ contest_problem_stats.avg_mohs|floatformat:1 }}</span></span>
         <span class="summary-item"><span class="summary-value">{{ completion_summary.solved_visible_total }} solved</span></span>
-        {% if top_topics %}
-        <span class="summary-topics d-inline-flex flex-wrap align-items-center gap-2">
-          <span class="text-muted fs-xs text-uppercase fw-semibold">Top topics</span>
-          {% for topic in top_topics %}
-          <span class="badge bg-light text-dark border">{{ topic }}</span>
-          {% endfor %}
-        </span>
-        {% endif %}
       </div>
     </div>
+    <a href="{{ contest_back_url }}" class="btn btn-outline-secondary btn-sm contest-dashboard-back-link">
+      <i class="ti ti-arrow-left me-1" aria-hidden="true"></i>{{ contest_back_label }}
+    </a>
   </div>
 
-  <div class="row g-3 mt-0">
-    <div class="col-12">
-      <div class="card contest-dashboard-filter-card">
-        <div class="card-body">
-          <form method="get">
-            <div class="contest-dashboard-filter-toolbar">
-              <div>
-                <label class="form-label" for="contest-dashboard-selector">Contest</label>
-              <select id="contest-dashboard-selector" name="contest" class="form-select">
+  <div class="card contest-workspace">
+    <div class="card-body p-3">
+      <form method="get">
+        <div class="contest-dashboard-filter-toolbar">
+          <div class="filter-search">
+            <label class="visually-hidden" for="contest-dashboard-search">Search problems</label>
+            <i class="ti ti-search" aria-hidden="true"></i>
+            <input id="contest-dashboard-search" type="search" name="q" value="{{ initial_search_query }}" class="form-control form-control-sm" placeholder="Search problems, topics or tags">
+          </div>
+          <div>
+            <label class="visually-hidden" for="contest-dashboard-year">Year</label>
+            <select id="contest-dashboard-year" name="year" class="form-select form-select-sm">
+              <option value="">All years</option>
+              {% for year in filter_options.years %}
+              <option value="{{ year }}" {% if selected_year == year|stringformat:"s" %}selected{% endif %}>{{ year }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#contest-dashboard-advanced-filters" aria-expanded="{% if selected_mohs or selected_topic or selected_tag %}true{% else %}false{% endif %}" aria-controls="contest-dashboard-advanced-filters">
+            <i class="ti ti-adjustments-horizontal me-1" aria-hidden="true"></i>Filters
+          </button>
+          <div class="d-flex gap-2 filter-submit-actions">
+            <button type="submit" class="btn btn-primary btn-sm">Apply</button>
+            {% if has_active_filters %}<a href="{{ contest_listing_base_url }}" class="btn btn-outline-secondary btn-sm">Clear</a>{% endif %}
+          </div>
+        </div>
+        <div id="contest-dashboard-advanced-filters" class="collapse {% if selected_mohs or selected_topic or selected_tag %}show{% endif %}">
+          <div class="row g-2 pt-3">
+            <div class="col-lg-4 col-md-6">
+              <label class="form-label fs-xs" for="contest-dashboard-selector">Contest</label>
+              <select id="contest-dashboard-selector" name="contest" class="form-select form-select-sm">
                 {% for row in contest_choices %}
-                <option value="{{ row.contest }}" {% if row.contest == selected_contest %}selected{% endif %}>
-                  {{ row.contest }} ({{ row.problem_count }} statements)
-                </option>
+                <option value="{{ row.contest }}" {% if row.contest == selected_contest %}selected{% endif %}>{{ row.contest }}</option>
                 {% endfor %}
               </select>
             </div>
-              <div>
-              <label class="form-label" for="contest-dashboard-search">Search</label>
-              <input
-                id="contest-dashboard-search"
-                type="search"
-                name="q"
-                value="{{ initial_search_query }}"
-                class="form-control"
-                placeholder="Problem id, topic, tag, IMO slot"
-              >
+            <div class="col-lg-2 col-md-6">
+              <label class="form-label fs-xs" for="contest-dashboard-mohs">MOHS</label>
+              <select id="contest-dashboard-mohs" name="mohs" class="form-select form-select-sm">
+                <option value="">All MOHS</option>
+                {% for mohs_value in filter_options.mohs_values %}
+                <option value="{{ mohs_value }}" {% if selected_mohs == mohs_value|stringformat:"s" %}selected{% endif %}>{{ mohs_value }}</option>
+                {% endfor %}
+              </select>
             </div>
-              <button
-                class="btn btn-outline-secondary"
-                type="button"
-                data-bs-toggle="collapse"
-                data-bs-target="#contest-dashboard-advanced-filters"
-                aria-expanded="{% if has_advanced_filters %}true{% else %}false{% endif %}"
-                aria-controls="contest-dashboard-advanced-filters"
-              >
-                <i class="ti ti-adjustments-horizontal me-1"></i>Filters
-              </button>
-              <div class="d-flex flex-wrap gap-2">
-                <button type="submit" class="btn btn-primary">Apply filters</button>
-                {% if has_active_filters %}
-                <a href="{{ contest_listing_base_url }}" class="btn btn-outline-secondary">Clear</a>
-                {% endif %}
-              </div>
+            <div class="col-lg-3 col-md-6">
+              <label class="form-label fs-xs" for="contest-dashboard-topic">Topic</label>
+              <select id="contest-dashboard-topic" name="topic" class="form-select form-select-sm">
+                <option value="">All topics</option>
+                {% for topic in filter_options.topics %}
+                <option value="{{ topic }}" {% if selected_topic == topic %}selected{% endif %}>{{ topic }}</option>
+                {% endfor %}
+              </select>
             </div>
-            <div id="contest-dashboard-advanced-filters" class="collapse {% if has_advanced_filters %}show{% endif %}">
-              <div class="row g-3 pt-3">
-                <div class="col-xl-2 col-md-4">
-                  <label class="form-label" for="contest-dashboard-year">Year</label>
-                  <select id="contest-dashboard-year" name="year" class="form-select">
-                    <option value="">All years</option>
-                    {% for year in filter_options.years %}
-                    <option value="{{ year }}" {% if selected_year == year|stringformat:"s" %}selected{% endif %}>{{ year }}</option>
-                    {% endfor %}
-                  </select>
-                </div>
-                <div class="col-xl-2 col-md-4">
-                  <label class="form-label" for="contest-dashboard-mohs">MOHS</label>
-                  <select id="contest-dashboard-mohs" name="mohs" class="form-select">
-                    <option value="">All MOHS</option>
-                    {% for mohs_value in filter_options.mohs_values %}
-                    <option value="{{ mohs_value }}" {% if selected_mohs == mohs_value|stringformat:"s" %}selected{% endif %}>{{ mohs_value }}</option>
-                    {% endfor %}
-                  </select>
-                </div>
-                <div class="col-xl-4 col-md-6">
-                  <label class="form-label" for="contest-dashboard-topic">Topic</label>
-                  <select id="contest-dashboard-topic" name="topic" class="form-select">
-                    <option value="">All topics</option>
-                    {% for topic in filter_options.topics %}
-                    <option value="{{ topic }}" {% if selected_topic == topic %}selected{% endif %}>{{ topic }}</option>
-                    {% endfor %}
-                  </select>
-                </div>
-                <div class="col-xl-4 col-md-6">
-                  <label class="form-label" for="contest-dashboard-tag">Topic tag</label>
-                  <select id="contest-dashboard-tag" name="tag" class="form-select">
-                    <option value="">All tags</option>
-                    {% for tag in filter_options.tags %}
-                    <option value="{{ tag }}" {% if selected_tag == tag %}selected{% endif %}>{{ tag }}</option>
-                    {% endfor %}
-                  </select>
-                </div>
-              </div>
-            </div>
-          </form>
-          {% if active_filter_chips %}
-          <div class="d-flex flex-wrap gap-2 mt-3">
-            {% for chip in active_filter_chips %}
-            <a href="{{ chip.remove_url }}" class="badge {{ chip.badge_class }} contest-dashboard-filter-chip">
-              <span>{{ chip.label }}: {{ chip.value }}</span>
-              <i class="ti ti-x"></i>
-            </a>
-            {% endfor %}
-          </div>
-          {% endif %}
-        </div>
-      </div>
-    </div>
-  </div>
-
-  {% if contest_listing_is_capped %}
-  <div class="row g-3 mt-0">
-    <div class="col-12">
-      <div class="alert alert-info mb-0" role="alert">
-        Showing latest {{ contest_listing_result_limit }} rows out of {{ matching_problem_filtered_total }} matches. Use search and filters to narrow further.
-      </div>
-    </div>
-  </div>
-  {% endif %}
-
-  <div class="row g-3 mt-0">
-    <div class="col-12">
-      {% if grouped_years %}
-        {% for year_group in grouped_years %}
-        <div class="card contest-year-card {% if not forloop.last %}mb-3{% endif %}">
-          <div class="card-header border-bottom">
-            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
-              <div>
-                <h4 class="header-title mb-0">{{ year_group.year }}</h4>
-                <p class="text-muted fs-xs mb-0">{{ year_group.problems|length }} visible problem{{ year_group.problems|length|pluralize }} in this year.</p>
-              </div>
-              <span class="badge bg-primary-subtle text-primary">{{ contest_title }} {{ year_group.year }}</span>
-            </div>
-          </div>
-          <div class="card-body">
-            <div class="table-responsive">
-              <table class="table table-hover align-middle mb-0 problem-table">
-                <thead>
-                  <tr class="text-muted fs-xs text-uppercase">
-                    <th class="problem-sticky-col">
-                      {% if show_contest_dashboard_bulk %}
-                      <input type="checkbox" class="form-check-input js-year-select-all me-2" aria-label="Select all rows in this table">
-                      {% endif %}
-                      <button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by problem">Problem <i class="ti ti-arrows-sort sort-icon"></i></button>
-                    </th>
-                    <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by topic">Topic <i class="ti ti-arrows-sort sort-icon"></i></button></th>
-                    <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by MOHS">MOHS <i class="ti ti-arrows-sort sort-icon"></i></button></th>
-                    <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by tags">Tags <i class="ti ti-arrows-sort sort-icon"></i></button></th>
-                    <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by statement">Statement <i class="ti ti-arrows-sort sort-icon"></i></button></th>
-                    <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by actions">Actions <i class="ti ti-arrows-sort sort-icon"></i></button></th>
-                    <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by progress">Progress <i class="ti ti-arrows-sort sort-icon"></i></button></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for problem in year_group.problems %}
-                  <tr id="{{ problem.anchor }}" class="js-problem-row" data-statement-target="statement-drawer-{{ problem.anchor }}">
-                    <td class="problem-sticky-col" data-sort-value="{{ problem.problem_code }}">
-                      <div class="d-flex align-items-start gap-2">
-                        {% if show_contest_dashboard_bulk %}
-                        <input
-                          type="checkbox"
-                          class="form-check-input js-problem-select mt-1"
-                          value="{{ problem.statement_id }}"
-                          aria-label="Select {{ problem.label }}"
-                        >
-                        {% endif %}
-                        <span class="text-nowrap text-muted fw-semibold js-row-index">{{ forloop.counter }}</span>
-                        <div class="min-w-0">
-                          <div class="fw-semibold">{{ problem.label }}</div>
-                          <div class="d-flex flex-wrap align-items-center gap-1 mt-1">
-                            <span class="badge bg-light text-dark border">{{ problem.problem_code }}</span>
-                            <span class="text-muted fs-xs">{{ problem.technique_count }} technique row{{ problem.technique_count|pluralize }}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td data-sort-value="{% if problem.is_linked %}{{ problem.topic }}{% else %}Unlinked{% endif %}">
-                      {% if problem.is_linked and problem.topic %}
-                      <span class="badge bg-light text-dark border">{{ problem.topic }}</span>
-                      {% else %}
-                      <span class="text-muted fs-xs">Unlinked</span>
-                      {% endif %}
-                    </td>
-                    <td class="text-nowrap" data-sort-value="{% if problem.mohs is not None %}{{ problem.mohs }}{% else %}{% if problem.is_linked %}—{% else %}Unlinked{% endif %}{% endif %}">
-                      {% if problem.mohs is not None %}
-                      {{ problem.mohs }}
-                      {% elif problem.is_linked %}
-                      <span class="text-muted fs-xs">—</span>
-                      {% else %}
-                      <span class="text-muted fs-xs">Unlinked</span>
-                      {% endif %}
-                    </td>
-                    <td data-sort-value="{% for tag in problem.topic_tags %}{{ tag.technique }} {% endfor %}">
-                      {% if problem.topic_tags %}
-                      <div class="problem-tag-list">
-                        {% for tag in problem.topic_tags %}
-                        <span class="text-body-secondary fs-sm" {% if tag.domains_label %}title="Domains: {{ tag.domains_label }}"{% endif %}>{{ tag.technique }}</span>
-                        {% endfor %}
-                      </div>
-                      {% else %}
-                      <span class="text-muted fs-xs">—</span>
-                      {% endif %}
-                    </td>
-                    <td data-sort-value="{% if problem.has_statement %}1-{{ problem.statement_day_label|default:'Statement' }} {{ problem.statement_preview }}{% else %}0-Not imported{% endif %}">
-                      {% if problem.has_statement %}
-                      <button
-                        type="button"
-                        class="btn btn-link p-0 text-start statement-preview-button js-statement-toggle"
-                        aria-expanded="false"
-                        aria-controls="statement-drawer-{{ problem.anchor }}"
-                      >
-                        <span class="d-block fw-semibold">{% if problem.statement_day_label %}{{ problem.statement_day_label }}{% else %}Statement{% endif %}</span>
-                        <span class="statement-preview-text text-muted fs-xs">{{ problem.statement_preview|default:"Open statement" }}</span>
-                      </button>
-                      {% else %}
-                      <span class="text-muted fs-xs">Not imported</span>
-                      {% endif %}
-                    </td>
-                    <td data-sort-value="{% if problem.is_linked %}{{ problem.published_solution_total }}{% else %}-1{% endif %}">
-                      {% if problem.is_linked %}
-                      <div class="d-flex flex-column gap-2 align-items-start">
-                        <div class="d-flex flex-wrap gap-1">
-                          <a href="{{ problem.solutions_url }}" class="btn btn-outline-secondary btn-sm">Solution page</a>
-                          <a href="{{ problem.solution_editor_url }}" class="btn btn-outline-primary btn-sm">
-                            {% if problem.has_my_solution %}Edit my draft{% else %}Start my draft{% endif %}
-                          </a>
-                        </div>
-                        <span class="text-muted fs-xs">{{ problem.published_solution_total }} published</span>
-                        {% if problem.has_my_solution %}
-                        <span class="badge {{ problem.my_solution_status_badge_class }}">Mine: {{ problem.my_solution_status_label }}</span>
-                        {% endif %}
-                        {% if problem.is_addable_to_problem_list and problem_list_add_targets %}
-                        <form
-                          method="post"
-                          action="{{ problem_list_add_targets.0.add_url }}"
-                          class="problem-list-add-form"
-                        >
-                          {% csrf_token %}
-                          <input type="hidden" name="problem_uuid" value="{{ problem.problem_uuid }}">
-                          <input type="hidden" name="next" value="{{ contest_dashboard_current_url }}#{{ problem.anchor }}">
-                          <div class="input-group input-group-sm">
-                            <select class="form-select js-problem-list-add-target" aria-label="Choose problem list">
-                              {% for target in problem_list_add_targets %}
-                              <option value="{{ target.add_url }}">{{ target.title }}</option>
-                              {% endfor %}
-                            </select>
-                            <button type="submit" class="btn btn-outline-primary">
-                              <i class="ti ti-plus me-1"></i>Add to list
-                            </button>
-                          </div>
-                        </form>
-                        {% elif problem.is_addable_to_problem_list %}
-                        <a href="{% url 'problemsets:create' %}" class="btn btn-outline-secondary btn-sm">Create list</a>
-                        {% endif %}
-                      </div>
-                      {% else %}
-                      <span class="text-muted fs-xs">Unlinked</span>
-                      {% endif %}
-                    </td>
-                    <td class="js-status-cell js-solved-date-cell" data-sort-value="{% if problem.completion_known %}2-{{ problem.completion_date|date:'Y-m-d' }}{% elif problem.is_completed %}1-unknown{% else %}0-unsolved{% endif %}">
-                      <div
-                        class="completion-editor dropdown"
-                        data-statement-uuid="{{ problem.statement_uuid }}"
-                        data-problem-label="{{ problem.label }}"
-                      >
-                        <div class="d-flex align-items-center gap-2">
-                          <span
-                            class="badge js-completion-display js-contest-problem-status {% if problem.completion_state_kind == 'solved' %}bg-success-subtle text-success border border-success-subtle{% elif problem.completion_state_kind == 'unknown' %}bg-info-subtle text-info border border-info-subtle{% else %}bg-light text-dark border{% endif %}"
-                            title="{{ problem.completion_state_label }}"
-                          >
-                            {% if problem.completion_state_kind == 'solved' %}
-                            {{ problem.completion_display }}
-                            {% elif problem.completion_state_kind == 'unknown' %}
-                            Unknown date
-                            {% else %}
-                            Open
-                            {% endif %}
-                          </span>
-                          <button type="button" class="btn btn-light btn-sm btn-icon" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" aria-label="Edit progress for {{ problem.label }}">
-                            <i class="ti ti-pencil"></i>
-                          </button>
-                        </div>
-                        <div class="dropdown-menu dropdown-menu-end p-3 completion-popover">
-                          <label class="form-label fs-xs text-uppercase fw-semibold text-muted" for="completion-date-{{ problem.anchor }}">Completion date</label>
-                          <input
-                            id="completion-date-{{ problem.anchor }}"
-                            type="date"
-                            class="form-control form-control-sm js-completion-date"
-                            title="Pick a date or paste YYYY-MM-DD (e.g. 2025-11-27)."
-                            value="{% if problem.completion_known %}{{ problem.completion_date|date:'Y-m-d' }}{% endif %}"
-                          >
-                          <div class="d-grid mt-2">
-                            <button type="button" class="btn btn-primary btn-sm js-completion-save">Save</button>
-                          </div>
-                          <div class="d-flex flex-wrap gap-1 mt-2">
-                            <button type="button" class="btn btn-light btn-sm js-completion-today">Today</button>
-                            <button type="button" class="btn btn-outline-info btn-sm js-completion-unknown">Unknown</button>
-                            <button type="button" class="btn btn-outline-secondary btn-sm js-completion-clear">Clear</button>
-                          </div>
-                          <div class="text-danger fs-xs mt-2 d-none js-completion-error"></div>
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                  <tr id="statement-drawer-{{ problem.anchor }}" class="statement-drawer-row js-statement-drawer d-none">
-                    <td colspan="7">
-                      <div class="statement-drawer-panel">
-                        <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
-                          <span class="text-muted fs-xs text-uppercase fw-semibold">Problem metadata</span>
-                          <span class="badge bg-light text-dark border">{{ problem.problem_code }}</span>
-                          {% if problem.imo_slot_guess_value %}
-                          <span class="badge bg-primary-subtle text-primary">IMO {{ problem.imo_slot_guess_value }}</span>
-                          {% endif %}
-                          <span class="badge {% if problem.is_linked %}bg-success-subtle text-success{% else %}bg-secondary-subtle text-secondary{% endif %}">
-                            {% if problem.is_linked %}Linked{% else %}Unlinked{% endif %}
-                          </span>
-                          {% if problem.statement_day_label %}
-                          <span class="text-muted fs-xs">{{ problem.statement_day_label }}</span>
-                          {% endif %}
-                          <span class="text-muted fs-xs">Updated {{ problem.statement_updated_at_label }}</span>
-                        </div>
-                        {% include 'partials/statement-render-content.html' with segments=problem.statement_render_segments render_style='classic' %}
-                      </div>
-                    </td>
-                  </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
+            <div class="col-lg-3 col-md-6">
+              <label class="form-label fs-xs" for="contest-dashboard-tag">Tag</label>
+              <select id="contest-dashboard-tag" name="tag" class="form-select form-select-sm">
+                <option value="">All tags</option>
+                {% for tag in filter_options.tags %}
+                <option value="{{ tag }}" {% if selected_tag == tag %}selected{% endif %}>{{ tag }}</option>
+                {% endfor %}
+              </select>
             </div>
           </div>
         </div>
+      </form>
+      {% if active_filter_chips %}
+      <div class="d-flex flex-wrap gap-2 mt-2">
+        {% for chip in active_filter_chips %}
+        <a href="{{ chip.remove_url }}" class="badge {{ chip.badge_class }} contest-dashboard-filter-chip" aria-label="Remove {{ chip.label }} filter: {{ chip.value }}">
+          <span>{{ chip.label }}: {{ chip.value }}</span><i class="ti ti-x" aria-hidden="true"></i>
+        </a>
         {% endfor %}
-      {% else %}
-      <div class="alert alert-warning mb-0" role="alert">
-        No problems matched the current filters inside <strong>{{ contest_title }}</strong>.
       </div>
       {% endif %}
     </div>
+
+  {% if contest_listing_is_capped %}
+    <div class="alert alert-info mx-3 mb-3 py-2 fs-sm" role="alert">
+      Showing latest {{ contest_listing_result_limit }} rows out of {{ matching_problem_filtered_total }} matches. Use search and filters to narrow further.
+    </div>
+  {% endif %}
+
+    {% if grouped_years %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 problem-table">
+        <caption class="visually-hidden">Problems across all years. Open a problem to read its statement, all tags and list tools.</caption>
+        <thead>
+          <tr class="text-muted fs-xs text-uppercase">
+            <th class="problem-sticky-col">
+              {% if show_contest_dashboard_bulk %}
+              <input type="checkbox" class="form-check-input js-year-select-all me-2" aria-label="Select all rows in this table">
+              {% endif %}
+              <button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by problem">Problem <i class="ti ti-arrows-sort sort-icon"></i></button>
+            </th>
+            <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by topic">Topic <i class="ti ti-arrows-sort sort-icon"></i></button></th>
+            <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by MOHS">MOHS <i class="ti ti-arrows-sort sort-icon"></i></button></th>
+            <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by tags">Tags <i class="ti ti-arrows-sort sort-icon"></i></button></th>
+            <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by session">Session <i class="ti ti-arrows-sort sort-icon"></i></button></th>
+            <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by published solutions">Solutions <i class="ti ti-arrows-sort sort-icon"></i></button></th>
+            <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by progress">Progress <i class="ti ti-arrows-sort sort-icon"></i></button></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for year_group in grouped_years %}
+          {% for problem in year_group.problems %}
+          <tr id="{{ problem.anchor }}" class="js-problem-row" data-statement-target="statement-drawer-{{ problem.anchor }}">
+            <td class="problem-sticky-col" data-sort-value="{{ problem.year }} {{ problem.problem_code }}">
+              <div class="problem-identity">
+                {% if show_contest_dashboard_bulk %}
+                <input type="checkbox" class="form-check-input js-problem-select" value="{{ problem.statement_id }}" aria-label="Select {{ problem.label }}">
+                {% endif %}
+                <button type="button" class="problem-open-button js-statement-toggle" aria-expanded="false" aria-controls="statement-drawer-{{ problem.anchor }}" aria-label="View details for {{ problem.label }}">
+                  <span>{{ problem.year }}</span><span class="problem-code">{{ problem.problem_code }}</span><i class="ti ti-chevron-right problem-chevron" aria-hidden="true"></i>
+                </button>
+              </div>
+            </td>
+            <td data-sort-value="{% if problem.is_linked %}{{ problem.topic }}{% else %}Unlinked{% endif %}">
+              {% if problem.is_linked and problem.topic %}
+              <span class="badge bg-light text-dark border">{{ problem.topic }}</span>
+              {% else %}
+              <span class="text-muted fs-xs">Unlinked</span>
+              {% endif %}
+            </td>
+            <td class="text-nowrap" data-sort-value="{% if problem.mohs is not None %}{{ problem.mohs }}{% else %}{% if problem.is_linked %}—{% else %}Unlinked{% endif %}{% endif %}">
+              {% if problem.mohs is not None %}
+              {{ problem.mohs }}
+              {% elif problem.is_linked %}
+              <span class="text-muted fs-xs">—</span>
+              {% else %}
+              <span class="text-muted fs-xs">Unlinked</span>
+              {% endif %}
+            </td>
+            <td data-sort-value="{% for tag in problem.topic_tags %}{{ tag.technique }} {% endfor %}">
+              {% if problem.topic_tags %}
+              <button type="button" class="problem-tag-list js-statement-toggle" aria-expanded="false" aria-controls="statement-drawer-{{ problem.anchor }}" aria-label="View all tags for {{ problem.label }}" title="{% for tag in problem.topic_tags %}{{ tag.technique }}{% if not forloop.last %}, {% endif %}{% endfor %}">
+                <span class="problem-tag-name">{{ problem.topic_tags.0.technique }}</span>
+                {% if problem.topic_tags|length > 1 %}<span class="badge bg-light text-dark border problem-tag-more">+{{ problem.topic_tags|length|add:"-1" }}</span>{% endif %}
+              </button>
+              {% else %}
+              <span class="text-muted fs-xs">—</span>
+              {% endif %}
+            </td>
+            <td data-sort-value="{% if problem.has_statement %}1-{{ problem.statement_day_label|default:'Statement' }}{% else %}0-Not imported{% endif %}">
+              {% if problem.has_statement %}
+              <span class="problem-session" title="{{ problem.statement_day_label|default:'Statement available' }}">{{ problem.statement_day_label|default:"—" }}</span>
+              {% else %}
+              <span class="text-muted fs-xs">Not imported</span>
+              {% endif %}
+            </td>
+            <td data-sort-value="{% if problem.is_linked %}{{ problem.published_solution_total }}{% else %}-1{% endif %}">
+              {% if problem.is_linked %}
+              <div class="problem-actions">
+                <a href="{{ problem.solutions_url }}" class="btn btn-outline-secondary btn-sm" aria-label="Solution page for {{ problem.label }}: {{ problem.published_solution_total }} published">View <span class="ms-1 text-muted">{{ problem.published_solution_total }}</span></a>
+                <a href="{{ problem.solution_editor_url }}" class="btn btn-outline-primary btn-sm btn-icon" title="{% if problem.has_my_solution %}Edit my draft{% else %}Start my draft{% endif %}" aria-label="{% if problem.has_my_solution %}Edit my draft{% else %}Start my draft{% endif %} for {{ problem.label }}"><i class="ti ti-pencil-plus" aria-hidden="true"></i></a>
+              </div>
+              {% else %}
+              <span class="text-muted fs-xs">Unlinked</span>
+              {% endif %}
+            </td>
+            <td class="js-status-cell js-solved-date-cell" data-sort-value="{% if problem.completion_known %}2-{{ problem.completion_date|date:'Y-m-d' }}{% elif problem.is_completed %}1-unknown{% else %}0-unsolved{% endif %}">
+              <div
+                class="completion-editor dropdown d-flex align-items-center gap-2"
+                data-statement-uuid="{{ problem.statement_uuid }}"
+                data-problem-label="{{ problem.label }}"
+              >
+                <span
+                  class="badge js-completion-display js-contest-problem-status {% if problem.completion_state_kind == 'solved' %}bg-success-subtle text-success border border-success-subtle{% elif problem.completion_state_kind == 'unknown' %}bg-info-subtle text-info border border-info-subtle{% else %}bg-light text-dark border{% endif %}"
+                  title="{{ problem.completion_state_label }}"
+                >
+                  {% if problem.completion_state_kind == 'solved' %}
+                  {{ problem.completion_display }}
+                  {% elif problem.completion_state_kind == 'unknown' %}
+                  Unknown date
+                  {% else %}
+                  Open
+                  {% endif %}
+                </span>
+                <button type="button" class="btn btn-light btn-sm btn-icon" data-bs-toggle="dropdown" data-bs-auto-close="outside" data-bs-config='{"popperConfig":{"strategy":"fixed"}}' aria-expanded="false" aria-label="Edit progress for {{ problem.label }}">
+                  <i class="ti ti-pencil"></i>
+                </button>
+                <div class="dropdown-menu dropdown-menu-end p-3 completion-popover">
+                  <label class="form-label fs-xs text-uppercase fw-semibold text-muted" for="completion-date-{{ problem.anchor }}">Completion date</label>
+                  <input
+                    id="completion-date-{{ problem.anchor }}"
+                    type="date"
+                    class="form-control form-control-sm js-completion-date"
+                    title="Pick a date or paste YYYY-MM-DD (e.g. 2025-11-27)."
+                    value="{% if problem.completion_known %}{{ problem.completion_date|date:'Y-m-d' }}{% endif %}"
+                  >
+                  <div class="d-grid mt-2">
+                    <button type="button" class="btn btn-primary btn-sm js-completion-save">Save</button>
+                  </div>
+                  <div class="d-flex flex-wrap gap-1 mt-2">
+                    <button type="button" class="btn btn-light btn-sm js-completion-today">Today</button>
+                    <button type="button" class="btn btn-outline-info btn-sm js-completion-unknown">Unknown</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm js-completion-clear">Clear</button>
+                  </div>
+                  <div class="text-danger fs-xs mt-2 d-none js-completion-error"></div>
+                </div>
+              </div>
+            </td>
+          </tr>
+          <tr id="statement-drawer-{{ problem.anchor }}" class="statement-drawer-row js-statement-drawer d-none">
+            <td colspan="7">
+              <div class="statement-drawer-panel">
+                <div class="d-flex align-items-start justify-content-between gap-3 mb-2">
+                  <div>
+                    <h2 class="fs-sm fw-semibold mb-1">{{ problem.label }}</h2>
+                    <div class="d-flex flex-wrap align-items-center gap-2 text-muted fs-xs">
+                      {% if problem.statement_day_label %}<span>{{ problem.statement_day_label }}</span>{% endif %}
+                      {% if problem.imo_slot_guess_value %}<span class="badge bg-primary-subtle text-primary">IMO {{ problem.imo_slot_guess_value }}</span>{% endif %}
+                      {% if not problem.is_linked %}<span>Unlinked</span>{% endif %}
+                      <span>Updated {{ problem.statement_updated_at_label }}</span>
+                    </div>
+                  </div>
+                  <button type="button" class="btn btn-light btn-sm js-statement-close" aria-label="Close details for {{ problem.label }}"><i class="ti ti-x" aria-hidden="true"></i></button>
+                </div>
+                {% if problem.topic_tags %}
+                <div class="problem-detail-tags mb-3">
+                  {% for tag in problem.topic_tags %}<span class="badge bg-light text-dark border" {% if tag.domains_label %}title="Domains: {{ tag.domains_label }}"{% endif %}>{{ tag.technique }}</span>{% endfor %}
+                </div>
+                {% endif %}
+                {% if not problem.has_statement %}<p class="text-muted mb-0">Statement not imported yet.</p>{% endif %}
+                {% include 'partials/statement-render-content.html' with segments=problem.statement_render_segments render_style='classic' %}
+                {% if problem.is_addable_to_problem_list or problem.has_my_solution %}
+                <div class="d-flex flex-wrap align-items-center gap-3 border-top pt-3 mt-3">
+                  {% if problem.is_addable_to_problem_list and problem_list_add_targets %}
+                  <form
+                    method="post"
+                    action="{{ problem_list_add_targets.0.add_url }}"
+                    class="problem-list-add-form"
+                  >
+                    {% csrf_token %}
+                    <input type="hidden" name="problem_uuid" value="{{ problem.problem_uuid }}">
+                    <input type="hidden" name="next" value="{{ contest_dashboard_current_url }}#{{ problem.anchor }}">
+                    <div class="input-group input-group-sm">
+                      <select class="form-select js-problem-list-add-target" aria-label="Choose problem list">
+                        {% for target in problem_list_add_targets %}
+                        <option value="{{ target.add_url }}">{{ target.title }}</option>
+                        {% endfor %}
+                      </select>
+                      <button type="submit" class="btn btn-outline-primary">
+                        <i class="ti ti-plus me-1"></i>Add to list
+                      </button>
+                    </div>
+                  </form>
+                  {% elif problem.is_addable_to_problem_list %}
+                  <a href="{% url 'problemsets:create' %}" class="btn btn-outline-secondary btn-sm">Create list</a>
+                  {% endif %}
+                  {% if problem.has_my_solution %}<span class="badge {{ problem.my_solution_status_badge_class }}">My solution: {{ problem.my_solution_status_label }}</span>{% endif %}
+                </div>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="px-3 py-2 border-top text-muted fs-xs">Open a problem for its statement, all tags and list tools.</div>
+    {% else %}
+    <div class="p-4 text-center text-muted" role="status">No problems matched the current filters inside <strong>{{ contest_title }}</strong>.</div>
+    {% endif %}
   </div>
   {% if show_contest_dashboard_bulk %}
   <div id="contest-dashboard-bulk-bar" class="contest-dashboard-bulk-bar d-none">
@@ -797,7 +605,31 @@
       }
     }
 
+    function closeDrawer(drawer) {
+      var row = document.querySelector('.js-problem-row[data-statement-target="' + drawer.id + '"]');
+      if (!row) return;
+      setDrawerOpen(row, false);
+      var trigger = row.querySelector(".problem-open-button");
+      if (trigger) trigger.focus();
+    }
+
+    document.addEventListener("keydown", function (event) {
+      if (event.key !== "Escape") return;
+      var drawer = event.target.closest(".js-statement-drawer");
+      var toggle = event.target.closest(".js-statement-toggle");
+      if (!drawer && toggle) {
+        var row = toggle.closest(".js-problem-row");
+        if (row) drawer = document.getElementById(row.dataset.statementTarget || "");
+      }
+      if (drawer && !drawer.classList.contains("d-none")) closeDrawer(drawer);
+    });
+
     document.addEventListener("click", function (event) {
+      var close = event.target.closest(".js-statement-close");
+      if (close) {
+        closeDrawer(close.closest(".js-statement-drawer"));
+        return;
+      }
       var toggle = event.target.closest(".js-statement-toggle");
       if (toggle) {
         var toggleRow = toggle.closest(".js-problem-row");
@@ -833,15 +665,6 @@
       return drawerId ? document.getElementById(drawerId) : null;
     }
 
-    function updateRowIndexes(table) {
-      problemRows(table).forEach(function (row, index) {
-        var cell = row.querySelector(".js-row-index");
-        if (cell) {
-          cell.textContent = String(index + 1);
-        }
-      });
-    }
-
     tables.forEach(function (table) {
       var body = table.tBodies[0];
       if (!body) return;
@@ -863,6 +686,8 @@
               }
             }
           });
+          table.querySelectorAll("th").forEach(function (cell) { cell.removeAttribute("aria-sort"); });
+          headerCell.setAttribute("aria-sort", nextDirection === "asc" ? "ascending" : "descending");
           button.dataset.sortDirection = nextDirection;
           var activeIcon = button.querySelector(".sort-icon");
           if (activeIcon) {
@@ -885,7 +710,6 @@
               body.appendChild(drawer);
             }
           });
-          updateRowIndexes(table);
         });
       });
     });
