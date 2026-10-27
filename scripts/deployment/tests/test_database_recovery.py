@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import io
+import os
 from datetime import UTC
 from datetime import datetime
 from datetime import timedelta
@@ -165,3 +166,27 @@ def test_only_exact_known_pg17_index_cast_reparsing_is_equivalent(original, rest
     ):
         assert recovery.logical_backup_schema(snapshot(change)) != recovery.logical_backup_schema(snapshot(restored))
     assert snapshot(original)["indexes"][0]["definition"] == original
+
+
+@pytest.mark.parametrize("already_exists", [False, True])
+def test_restore_traversal_parent_survives_private_worker_umask(tmp_path, already_exists):
+    parent = tmp_path / "restore"
+    if already_exists:
+        parent.mkdir(mode=0o700)
+    previous = os.umask(0o077)
+    try:
+        recovery._root_directory(RootPath(parent), private=False)
+    finally:
+        os.umask(previous)
+    assert parent.stat().st_mode & 0o777 == 0o711
+    leaf = parent / "42"
+    leaf.mkdir(mode=0o700)
+    assert leaf.stat().st_mode & 0o777 == 0o700
+
+
+def test_restore_parent_rejects_listable_or_writable_existing_directory(tmp_path):
+    parent = tmp_path / "restore"
+    parent.mkdir(mode=0o755)
+    with pytest.raises(recovery.RecoveryError, match="directory_unsafe"):
+        recovery._root_directory(RootPath(parent), private=False)
+    assert parent.stat().st_mode & 0o777 == 0o755
