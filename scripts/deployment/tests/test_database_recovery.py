@@ -132,3 +132,20 @@ def test_smoke_is_never_a_generic_database_command(monkeypatch):
     monkeypatch.setenv("DATABASE_URL", "postgres://production.invalid/database")
     with pytest.raises(recovery.RecoveryError, match="isolated_actions"):
         recovery.smoke_recovery()
+
+
+def test_dump_schema_compares_visible_order_without_obsolete_physical_slots():
+    before = {"columns": [
+        {"schema": "public", "table": "example", "position": 1, "column": "id", "type": "bigint"},
+        {"schema": "public", "table": "example", "position": 3, "column": "note", "type": "text"},
+    ]}
+    restored = {"columns": [{**row, "position": n} for n, row in enumerate(before["columns"], 1)]}
+    assert recovery.logical_backup_schema(before) == recovery.logical_backup_schema(restored)
+    assert before["columns"][1]["position"] == 3
+    changed_type = {"columns": [dict(row) for row in restored["columns"]]}
+    changed_type["columns"][1]["type"] = "integer"
+    assert recovery.logical_backup_schema(before) != recovery.logical_backup_schema(changed_type)
+    changed_order = {"columns": [dict(row) for row in restored["columns"]]}
+    changed_order["columns"][0]["column"] = "note"
+    changed_order["columns"][1]["column"] = "id"
+    assert recovery.logical_backup_schema(before) != recovery.logical_backup_schema(changed_order)

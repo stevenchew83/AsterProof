@@ -186,6 +186,17 @@ def _copy_digest(connection, query):
     return {"rows": count, "sha256": digest.hexdigest()}
 
 
+def logical_backup_schema(snapshot):
+    """pg_dump recreates visible columns without historical dropped-column slot gaps."""
+    result = {k: [dict(row) for row in rows] for k, rows in snapshot.items()}
+    ordinals = {}
+    for row in sorted(result["columns"], key=lambda r: (r["schema"], r["table"], r["position"])):
+        key = (row["schema"], row["table"])
+        ordinals[key] = ordinals.get(key, 0) + 1
+        row["position"] = ordinals[key]
+    return result
+
+
 def capture_manifest(connection, *, preserved_only=False):
     """Hash bounded streams of all user tables/sequences/large objects, never log rows."""
     from psycopg import sql
@@ -199,7 +210,7 @@ def capture_manifest(connection, *, preserved_only=False):
         raise RecoveryError("recovery_schema_scope_too_large")
     result = {"tables": [], "sequences": [], "schema_fingerprint": None}
     if not preserved_only:
-        result["schema_fingerprint"] = schema_state(_snapshot(connection))["fingerprint"]
+        result["schema_fingerprint"] = schema_state(logical_backup_schema(_snapshot(connection)))["fingerprint"]
     for schema, table, _keys in tables:
         if preserved_only and (schema != "public" or table not in PRESERVED_TABLES):
             continue
@@ -270,6 +281,7 @@ def _source_cli(args):
             validate_source_metadata(meta)
             _assert_no_other_clients(raw, args.audit_role)
             manifest = capture_manifest(raw, preserved_only=args.action == "verify")
+            meta["catalog_schema_fingerprint"] = schema_state(_snapshot(raw))["fingerprint"]
             if args.action == "verify":
                 print(json.dumps({"tables": manifest["tables"]}), flush=True)
                 return
@@ -505,7 +517,7 @@ def create_verified_backup(contract, run_id, active_sha, starting_state_fingerpr
                 raise RecoveryError("recovery_source_header_invalid")
             source = json.loads(header)
             validate_source_metadata(source["source"])
-            if source["manifest"]["schema_fingerprint"] != audit_before["schema_fingerprint"]:
+            if source["source"]["catalog_schema_fingerprint"] != audit_before["schema_fingerprint"]:
                 raise RecoveryError("recovery_source_schema_drift")
             prefix = process.stdout.read(5)
             if prefix != b"PGDMP":
