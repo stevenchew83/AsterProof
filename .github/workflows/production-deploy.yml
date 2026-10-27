@@ -14,8 +14,9 @@ on:
         options:
           - none
           - backward-compatible-schema
+          - data-or-non-compatible
       schema_disclosure:
-        description: Frozen fingerprint disclosure JSON for the approved pages.0036 migration only; blank for none
+        description: Frozen disclosure for the exact approved 0036 schema or 0037-0039 catalogue maintenance; blank for none
         required: false
         default: ""
         type: string
@@ -56,7 +57,7 @@ jobs:
     timeout-minutes: 45
     services:
       schema-postgres:
-        image: ${{ inputs.migration_class == 'backward-compatible-schema' && 'postgres:17.9-bookworm@sha256:47f917f7409eacd22fc5dfb1dee634e1b55cf0c01d1a7eb701be2227a03e0641' || '' }}
+        image: ${{ inputs.migration_class != 'none' && 'postgres:17.9-bookworm@sha256:47f917f7409eacd22fc5dfb1dee634e1b55cf0c01d1a7eb701be2227a03e0641' || '' }}
         env:
           POSTGRES_DB: asterproof_schema_rehearsal
           POSTGRES_USER: postgres
@@ -167,6 +168,32 @@ jobs:
             --active-sha "$active_sha" --release-sha "$RELEASE_SHA" \
             --output "$RUNNER_TEMP/schema-evidence.json"
 
+      - name: Rehearse frozen catalogue maintenance on PostgreSQL 17.9
+        if: ${{ inputs.migration_class == 'data-or-non-compatible' }}
+        env:
+          DATABASE_URL: postgres://postgres@127.0.0.1:5432/asterproof_schema_rehearsal
+          SCHEMA_DISCLOSURE: ${{ inputs.schema_disclosure }}
+          RELEASE_SHA: ${{ inputs.release_sha }}
+        run: |
+          active_sha="$(python -c 'import json,os; print(json.loads(os.environ["SCHEMA_DISCLOSURE"])["active_sha"])')"
+          mkdir "$RUNNER_TEMP/active-catalogue-smoke"
+          git archive "$active_sha" | tar -x -C "$RUNNER_TEMP/active-catalogue-smoke"
+          .release-runtime/bin/python -m scripts.deployment.catalogue_rehearsal \
+            --active-source "$RUNNER_TEMP/active-catalogue-smoke" \
+            --active-sha "$active_sha" --release-sha "$RELEASE_SHA" \
+            --output "$RUNNER_TEMP/catalogue-proof"
+          cp "$RUNNER_TEMP/catalogue-proof/evidence.json" "$RUNNER_TEMP/schema-evidence.json"
+
+      - name: Package private PostgreSQL 17 recovery runtime
+        if: ${{ inputs.migration_class == 'data-or-non-compatible' }}
+        env:
+          POSTGRES_CONTAINER: ${{ job.services.schema-postgres.id }}
+          RELEASE_SHA: ${{ inputs.release_sha }}
+        run: |
+          python -m scripts.deployment.postgres_runtime build \
+            --container "$POSTGRES_CONTAINER" --source-sha "$RELEASE_SHA" \
+            --output "$RUNNER_TEMP/postgres-runtime.tar"
+
       - name: Build production static files
         env:
           ASTERPROOF_PYTHON: ${{ github.workspace }}/.release-runtime/bin/python
@@ -200,8 +227,11 @@ jobs:
           MIGRATION_CLASS: ${{ inputs.migration_class }}
         run: |
           schema_build_args=()
-          if [ "$MIGRATION_CLASS" = "backward-compatible-schema" ]; then
+          if [ "$MIGRATION_CLASS" != "none" ]; then
             schema_build_args=(--schema-evidence "$RUNNER_TEMP/schema-evidence.json")
+          fi
+          if [ "$MIGRATION_CLASS" = "data-or-non-compatible" ]; then
+            schema_build_args+=(--recovery-runtime "$RUNNER_TEMP/postgres-runtime.tar")
           fi
           python -m scripts.deployment.build_release \
             --repository-root "$GITHUB_WORKSPACE" \
@@ -337,12 +367,20 @@ jobs:
           print(f"- Classified migrations: `{len(value['migrations'])}`")
           import os
           if os_disclosure := os.environ.get('SCHEMA_DISCLOSURE'):
-              from scripts.deployment.concept_schema import validate_disclosure
+              if value['classification'] == 'data-or-non-compatible':
+                  from scripts.deployment.catalogue_schema import MIGRATIONS, validate_disclosure
+                  expected = [
+                      {'migration': 'pages.' + name, 'classification': 'backward-compatible-schema' if i == 0 else 'data-or-non-compatible'}
+                      for i, name in enumerate(MIGRATIONS)
+                  ]
+              else:
+                  from scripts.deployment.concept_schema import MIGRATION, validate_disclosure
+                  expected = [{'migration': MIGRATION, 'classification': 'backward-compatible-schema'}]
               schema = validate_disclosure(json.loads(os_disclosure), target_sha=value['target_sha'])
               if schema['active_sha'] != value['active_sha']:
                   raise SystemExit('Schema disclosure active release mismatch')
-              if value['migrations'] != [{'migration': schema['migration'], 'classification': 'backward-compatible-schema'}]:
-                  raise SystemExit('Schema plan is outside the approved migration')
+              if value['migrations'] != expected:
+                  raise SystemExit('Schema plan is outside the approved migrations')
               print('```json')
               print(json.dumps(schema, sort_keys=True, indent=2))
               print('```')

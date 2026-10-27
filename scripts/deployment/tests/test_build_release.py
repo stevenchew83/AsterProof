@@ -122,3 +122,28 @@ def test_schema_proof_is_bound_into_the_immutable_archive(tmp_path):
     manifest = safe_extract(output, extracted, expected_digest=receipt["archive_sha256"])
     assert (extracted / "deployment-schema-evidence.json").read_bytes() == proof.read_bytes()
     assert any(row["path"] == "deployment-schema-evidence.json" for row in manifest.files)
+
+
+def test_private_postgres_runtime_is_an_attested_regular_file_only(tmp_path):
+    root, release_sha = _repository(tmp_path)
+    static_root, wheelhouse = tmp_path / "static", tmp_path / "wheels"
+    static_root.mkdir()
+    wheelhouse.mkdir()
+    runtime = tmp_path / "postgres-runtime.tar"
+    runtime.write_bytes(b"synthetic runtime archive; installer validates its internal manifest")
+    arguments = {
+        "repository_root": root, "static_root": static_root, "wheelhouse": wheelhouse,
+        "output": tmp_path / "release.tar", "repository": "owner/AsterProof", "repository_id": "123",
+        "release_sha": release_sha, "run_id": "42", "target_platform": "x86_64-manylinux_2_28",
+        "python_abi": "cp312", "built_at": "2026-10-27T00:00:00Z", "source_date_epoch": 1700000000,
+        "recovery_runtime": runtime,
+    }
+    receipt = build_release(**arguments)
+    extracted = tmp_path / "extracted"
+    manifest = safe_extract(arguments["output"], extracted, expected_digest=receipt["archive_sha256"])
+    assert (extracted / "deployment-postgres-runtime.tar").read_bytes() == runtime.read_bytes()
+    assert any(row["path"] == "deployment-postgres-runtime.tar" for row in manifest.files)
+    link = tmp_path / "runtime-link.tar"
+    link.symlink_to(runtime)
+    with pytest.raises(ValueError, match="invalid recovery runtime"):
+        build_release(**{**arguments, "recovery_runtime": link})

@@ -2,9 +2,11 @@
 
 ## Current status
 
-The user authorized the bounded deployment-support update after application PR #311 merged. PostgreSQL 17.9 rehearsal and prior-revision compatibility have now passed in [run 40485838675](https://github.com/stevenchew83/AsterProof/actions/runs/40485838675). The proof preserves original fixture records and verifies trigger invalidation. Its downloaded archive matches GitHub's artifact digest; schema and function/trigger fingerprints are frozen in `scripts/deployment/catalogue_schema.py`.
+Application PR #311 and verification/audit PR #312 are merged. The user subsequently authorized creation of a production database backup, verification of an isolated restore, and the catalogue migration/deployment. That opens the bounded backup-authority scope required by the earlier release gate.
 
-PR #312 prepares verification and a fixed-name, identity-checked `catalogue-behaviour` audit through the existing catalog-only interface. It does not enable data-class maintenance deployment or replace installed authority. Current checks found no independent production recovery-point/restore-drill record. That evidence remains required before enabling a maintenance path; a rehearsal against synthetic data does not satisfy it. Provider inspection is technically unavailable through the connected session, and no IAM or identity changes are included.
+The prepared implementation now follows [catalogue backup and maintenance](catalogue-backup-and-maintenance.md): private matching PG17 runtime, root-only encrypted backup, full isolated local restore, deterministic data/schema hashes, durable drain/backup states, exact migration plan and post-migration original-record verification. Existing protections and fixed target identities remain in force. Production backup/restore/migration outcomes must be recorded from the eventual operation; preparation and CI tests do not establish their success.
+
+The earlier PostgreSQL schema proof remains valid: source identity preservation, prior-revision compatibility and frozen schema/behaviour fingerprints were verified in runs 40485838675 and 40487423449. The newly added native-runtime and complete encrypted-restore rehearsal must also pass before host installation or activation.
 
 ## Recorded boundary before authorization
 

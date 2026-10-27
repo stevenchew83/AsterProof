@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from typing import Any
 from typing import BinaryIO
 
+from scripts.deployment import catalogue_schema
 from scripts.deployment.concept_schema import ConceptSchemaError
 from scripts.deployment.concept_schema import validate_disclosure
 
@@ -134,6 +135,14 @@ class OperationEnvelope:
             raise ProtocolError("invalid OIDC token")
 
     def _validate_schema(self) -> None:
+        if self.migration_class == "data-or-non-compatible":
+            if self.operation != "deploy" or self.schema_disclosure is None:
+                raise ProtocolError("Catalogue maintenance requires its exact frozen disclosure")
+            try:
+                catalogue_schema.validate_disclosure(self.schema_disclosure, target_sha=self.release_sha)
+            except ValueError as exc:
+                raise ProtocolError(str(exc)) from exc
+            return
         if self.schema_disclosure is not None:
             if self.operation != "deploy" or self.migration_class != "backward-compatible-schema":
                 raise ProtocolError("schema disclosure is only valid for the bounded schema deploy")

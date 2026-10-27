@@ -136,3 +136,137 @@ def validate_rehearsal_evidence(value: dict, *, release_sha: str, active_sha: st
     ):
         message = "Catalogue PostgreSQL proof does not match the frozen release and behaviour"
         raise ValueError(message)
+
+
+KIND = "catalogue-maintenance-v1"
+MAX_DISCLOSURE_BYTES = 8192
+POSTGRES_VERSION = 170009
+RECOVERY_POLICY = {"rpo_seconds": 0, "max_age_seconds": 1800, "isolated": True, "encrypted": True}
+FINGERPRINT_FIELDS = (
+    "state_fingerprint", "schema_fingerprint", "migration_fingerprint", "behaviour_fingerprint",
+)
+EMPTY_BEHAVIOUR_SHA256 = behaviour_fingerprint({"functions": [], "triggers": []})
+EVIDENCE_PATH = "deployment-schema-evidence.json"
+
+
+def rehearsal_evidence(*, release_sha: str, active_sha: str) -> dict:
+    return {
+        "format_version": 1, "source_sha": release_sha, "active_sha": active_sha,
+        "postgres_version": 170009, "input_hashes": INPUT_HASHES,
+        "delta_sha256": DELTA_SHA256, "behaviour_sha256": BEHAVIOUR_SHA256,
+        "existing_schema_unchanged": True, "existing_records_unchanged": True,
+        "active_revision_smoke_passed": True, "runtime_invalidation_passed": True,
+        "trigger_uninstall_reinstall_passed": True,
+    }
+
+
+def rehearsal_digest(*, release_sha: str, active_sha: str) -> str:
+    import json
+
+    return hashlib.sha256(
+        (json.dumps(rehearsal_evidence(release_sha=release_sha, active_sha=active_sha), indent=2) + "\n").encode(),
+    ).hexdigest()
+
+
+def validate_disclosure(value: object, *, target_sha: str) -> dict:
+    fields = {
+        "format_version", "kind", "active_sha", "target_sha", "input_hashes", "starting", "expected",
+        "postgresql_rehearsal_sha256", "recovery_policy",
+    }
+    if not isinstance(value, dict) or set(value) != fields or type(value["format_version"]) is not int:
+        message = "Malformed catalogue maintenance disclosure"
+        raise ValueError(message)
+    if value["format_version"] != 1 or value["kind"] != KIND or value["input_hashes"] != INPUT_HASHES:
+        message = "Catalogue maintenance is outside the frozen migration scope"
+        raise ValueError(message)
+    if (
+        not re.fullmatch(r"[0-9a-f]{40}", target_sha)
+        or not isinstance(value["active_sha"], str)
+        or not re.fullmatch(r"[0-9a-f]{40}", value["active_sha"])
+        or value["target_sha"] != target_sha or value["active_sha"] == target_sha
+    ):
+        message = "Catalogue maintenance release identity mismatch"
+        raise ValueError(message)
+    for stage in ("starting", "expected"):
+        data = value[stage]
+        if not isinstance(data, dict) or set(data) != set(FINGERPRINT_FIELDS) or any(
+            not isinstance(v, str) or not re.fullmatch(r"[0-9a-f]{64}", v) for v in data.values()
+        ):
+            message = "Catalogue maintenance fingerprint fields are invalid"
+            raise ValueError(message)
+    if (
+        value["starting"]["behaviour_fingerprint"] != EMPTY_BEHAVIOUR_SHA256
+        or value["expected"]["behaviour_fingerprint"] != BEHAVIOUR_SHA256
+        or any(value["starting"][key] == value["expected"][key] for key in FINGERPRINT_FIELDS)
+    ):
+        message = "Catalogue maintenance requires the exact starting and ending behaviour"
+        raise ValueError(message)
+    policy = value["recovery_policy"]
+    if policy != RECOVERY_POLICY or any(type(policy[k]) is not type(v) for k, v in RECOVERY_POLICY.items()):
+        message = "Catalogue maintenance requires the fixed verified-recovery policy"
+        raise ValueError(message)
+    if value["postgresql_rehearsal_sha256"] != rehearsal_digest(
+        release_sha=target_sha, active_sha=value["active_sha"],
+    ):
+        message = "Catalogue maintenance rehearsal digest differs from the exact release"
+        raise ValueError(message)
+    return value
+
+
+def validate_build_evidence(release: Path, disclosure: dict) -> None:
+    import json
+
+    path = release / EVIDENCE_PATH
+    if path.is_symlink() or not path.is_file() or path.stat().st_size > MAX_DISCLOSURE_BYTES:
+        message = "Invalid packaged catalogue rehearsal proof"
+        raise ValueError(message)
+    data = path.read_bytes()
+    if hashlib.sha256(data).hexdigest() != disclosure["postgresql_rehearsal_sha256"]:
+        message = "Packaged catalogue rehearsal proof digest differs"
+        raise ValueError(message)
+    validate_rehearsal_evidence(
+        json.loads(data), release_sha=disclosure["target_sha"], active_sha=disclosure["active_sha"],
+    )
+
+
+def audit_matches(disclosure: dict, audit: dict, *, stage: str) -> bool:
+    return audit.get("server_version_num") == POSTGRES_VERSION and all(
+        audit.get(field) == disclosure[stage][field] for field in FINGERPRINT_FIELDS
+    )
+
+
+def expected_catalog_audit(start: dict, delta: dict) -> dict:
+    from scripts.deployment.schema_fingerprint import migration_state
+    from scripts.deployment.schema_fingerprint import normalize_schema_snapshot
+    from scripts.deployment.schema_fingerprint import schema_state
+
+    if start.get("server_version_num") != POSTGRES_VERSION or (
+        hashlib.sha256(canonical_json(start["state"])).hexdigest() != start["state_fingerprint"]
+    ):
+        message = "Starting catalogue audit identity/version mismatch"
+        raise ValueError(message)
+    before, delta = normalize_schema_snapshot(start["catalog_snapshot"]), normalize_schema_snapshot(delta)
+    if schema_state(delta)["fingerprint"] != DELTA_SHA256 or {r["table"] for r in delta["tables"]} != TABLES:
+        message = "Catalogue schema delta differs from the frozen rehearsal"
+        raise ValueError(message)
+    if delta["extensions"] or any(r["table"] in TABLES for r in before["tables"]):
+        message = "Catalogue schema already exists or changes extensions"
+        raise ValueError(message)
+    migrations = start["migration_rows"]
+    if any(["pages", name] in migrations for name in MIGRATIONS):
+        message = "Catalogue migrations are already recorded"
+        raise ValueError(message)
+    if schema_state(before) != start["state"]["schema"] or migration_state(migrations) != start["state"]["migration"]:
+        message = "Starting catalogue metadata does not match its fingerprints"
+        raise ValueError(message)
+    combined = {field: [*before[field], *delta[field]] for field in before}
+    state = {
+        **start["state"], "schema": schema_state(combined),
+        "migration": migration_state([*migrations, *[["pages", name] for name in MIGRATIONS]]),
+    }
+    return {
+        "state_fingerprint": hashlib.sha256(canonical_json(state)).hexdigest(),
+        "schema_fingerprint": state["schema"]["fingerprint"],
+        "migration_fingerprint": state["migration"]["fingerprint"],
+        "behaviour_fingerprint": BEHAVIOUR_SHA256,
+    }
