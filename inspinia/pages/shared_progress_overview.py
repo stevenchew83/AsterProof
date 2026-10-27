@@ -1,6 +1,8 @@
 """Presentation data for the fixed, read-only learner dashboards."""
 
 from collections import Counter
+from collections import defaultdict
+from statistics import median
 
 from inspinia.pages.completion_progress import completion_progress_charts_payload
 from inspinia.pages.completion_progress import completion_progress_stats
@@ -32,11 +34,16 @@ def shared_completion_overview_context(*, context, completions, filtered_rows, c
             },
         )
     topic_counts = Counter(row.topic or "Unlinked" for row in dated_rows)
+    topic_mohs = defaultdict(list)
+    for row in dated_rows:
+        if row.mohs is not None:
+            topic_mohs[row.topic or "Unlinked"].append(row.mohs)
     topics = [
         {
             "label": label,
             "count": count,
             "percent": round(count / len(dated_rows) * 100),
+            "median_mohs": median(topic_mohs[label]) if topic_mohs[label] else None,
             "url": context["completion_progress_reset_url"]
             + "?"
             + comparison_query_string({**context["completion_progress_filters"], "topic": label}),

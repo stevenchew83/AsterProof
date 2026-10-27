@@ -113,8 +113,18 @@
       <section class="card h-100">
         <div class="card-header d-flex justify-content-between align-items-center"><h2 class="header-title mb-0">Topic balance</h2><span class="text-body-secondary fs-xs">This period</span></div>
         <div class="card-body py-2">
+          {% if shared_progress_topics %}
+          <div class="lp-topic-grid text-body-secondary fs-xs mb-1" aria-hidden="true"><span>Topic</span><span class="text-end">Recorded</span><span class="text-end" title="Median MOHS of unique dated problems with a recorded difficulty in this topic.">Median MOHS</span></div>
+          {% endif %}
           {% for topic in shared_progress_topics %}
-          <a href="{{ topic.url }}" class="lp-topic"><div class="d-flex justify-content-between gap-2 fs-sm"><span>{{ topic.label }}</span><span class="fw-semibold">{{ topic.count }} <span class="text-body-secondary fs-xs fw-normal">· {{ topic.percent }}%</span></span></div><div class="progress" role="progressbar" aria-label="{{ topic.label }} share of dated problems" aria-valuenow="{{ topic.percent }}" aria-valuemin="0" aria-valuemax="100"><div class="progress-bar" style="width: {{ topic.percent }}%"></div></div></a>
+          <a href="{{ topic.url }}" class="lp-topic">
+            <div class="lp-topic-grid fs-sm">
+              <span>{{ topic.label }}</span>
+              <span class="fw-semibold text-end text-nowrap">{{ topic.count }} <span class="text-body-secondary fs-xs fw-normal">· {{ topic.percent }}%</span></span>
+              <span class="fw-semibold text-end" aria-label="{{ topic.label }} median MOHS: {{ topic.median_mohs|floatformat:'-1'|default:'—' }}">{{ topic.median_mohs|floatformat:'-1'|default:'—' }}</span>
+            </div>
+            <div class="progress" role="progressbar" aria-label="{{ topic.label }} share of dated problems" aria-valuenow="{{ topic.percent }}" aria-valuemin="0" aria-valuemax="100"><div class="progress-bar" style="width: {{ topic.percent }}%"></div></div>
+          </a>
           {% empty %}<div class="lp-empty fs-sm">Topic totals appear when dated records match these filters.</div>{% endfor %}
         </div>
       </section>
