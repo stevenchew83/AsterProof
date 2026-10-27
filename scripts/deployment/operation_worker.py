@@ -349,8 +349,18 @@ class WorkerBackend:
             check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=90,
         )
         for unit in (timer, contract.scheduler_service, contract.service):
-            properties = self._unit_properties(unit, "ActiveState,MainPID,ControlGroup")
-            if properties.get("ActiveState") != "inactive" or properties.get("MainPID", "0") != "0":
+            properties = self._unit_properties(
+                unit, "ActiveState,MainPID,ControlGroup,Result,ExecMainCode,ExecMainStatus",
+            )
+            # A stopped oneshot scheduler can retain failed/signal after our SIGTERM.
+            # Accept only that exact scheduler outcome; PID/cgroup/writer guards still apply.
+            stopped_scheduler = unit == contract.scheduler_service and (
+                properties.get("ActiveState"), properties.get("Result"),
+                properties.get("ExecMainCode"), properties.get("ExecMainStatus"),
+            ) == ("failed", "signal", "2", "15")
+            if (properties.get("ActiveState") != "inactive" and not stopped_scheduler) or (
+                properties.get("MainPID", "0") != "0"
+            ):
                 raise OperationError("maintenance_drain_incomplete")
             group = properties.get("ControlGroup", "")
             if group:
@@ -358,6 +368,9 @@ class WorkerBackend:
                 if path.exists() and path.read_text().strip():
                     raise OperationError("maintenance_cgroup_not_empty")
 
+            if unit == contract.scheduler_service:
+                state["maintenance_scheduler_stop_result"] = properties
+        atomic_write_json(state_path, state)
         self.assert_database_drained()
 
     def assert_database_drained(self) -> None:
