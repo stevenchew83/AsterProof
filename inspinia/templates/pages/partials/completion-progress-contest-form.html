@@ -1,0 +1,31 @@
+              <form id="completion-progress-contest-coverage-form" method="get" {% if shared_progress_subject %}action="{{ completion_progress_reset_url }}#shared-progress-analysis"{% endif %} class="{% if shared_progress_subject %}lp-contest-toolbar{% else %}row g-2 align-items-end{% endif %}">
+                {% if completion_progress_filters.user %}
+                <input type="hidden" name="user" value="{{ completion_progress_filters.user }}">
+                {% endif %}
+                <input type="hidden" name="range" value="{{ completion_progress_filters.range }}">
+                <input type="hidden" name="start" value="{{ completion_progress_filters.start }}">
+                <input type="hidden" name="end" value="{{ completion_progress_filters.end }}">
+                <input type="hidden" name="topic" value="{{ completion_progress_filters.topic }}">
+                <input type="hidden" name="mohs_min" value="{{ completion_progress_filters.mohs_min }}">
+                <input type="hidden" name="mohs_max" value="{{ completion_progress_filters.mohs_max }}">
+                <input type="hidden" name="solution_status" value="{{ completion_progress_filters.solution_status }}">
+                <input type="hidden" name="q" value="{{ completion_progress_filters.q }}">
+                <div class="{% if shared_progress_subject %}lp-contest-field{% else %}col-12 col-md-5{% endif %}">
+                  <label class="form-label text-muted fs-xs {% if not shared_progress_subject %}text-uppercase {% endif %}fw-semibold mb-1" for="completion-progress-contest-coverage-select">Contest</label>
+                  <select id="completion-progress-contest-coverage-select" name="contest" class="form-select form-select-sm" {% if shared_progress_subject %}required{% endif %} {% if not completion_progress_contest_options %}disabled{% endif %}>
+                    {% if shared_progress_subject and completion_progress_contest_options %}<option value="" {% if not completion_progress_contest_heatmap.selected_contest %}selected{% endif %}>Choose a contest…</option>{% endif %}
+                    {% if completion_progress_contest_options %}
+                    {% for contest in completion_progress_contest_options %}
+                    <option value="{{ contest }}" {% if contest == completion_progress_contest_heatmap.selected_contest %}selected{% endif %}>{{ contest }}</option>
+                    {% endfor %}
+                    {% else %}
+                    <option value="">No contests available</option>
+                    {% endif %}
+                  </select>
+                </div>
+                <div class="{% if not shared_progress_subject %}col-12 col-md-auto{% endif %}">
+                  <button type="submit" class="btn btn-sm btn-primary" {% if not completion_progress_contest_options %}disabled{% endif %}>
+                    <i class="ti ti-layout-grid me-1" aria-hidden="true"></i>{% if shared_progress_subject %}View coverage{% else %}Load coverage{% endif %}
+                  </button>
+                </div>
+              </form>

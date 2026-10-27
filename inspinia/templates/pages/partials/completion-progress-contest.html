@@ -1,0 +1,83 @@
+        <div class="card-header border-bottom d-flex flex-wrap align-items-center gap-2">
+          <div class="flex-grow-1">
+            <h4 class="header-title mb-0">Contest coverage</h4>
+            <p class="text-muted fs-xs mb-0">{% if shared_progress_subject %}All-time completion coverage for the selected contest.{% else %}Year-by-problem completion coverage for the selected contest.{% endif %}</p>
+          </div>
+          <div class="d-flex flex-wrap align-items-center gap-2">
+            {% if not shared_progress_subject or completion_progress_contest_heatmap.selected_contest %}
+            <span id="completion-progress-contest-heatmap-summary" class="badge text-bg-light">
+              {{ completion_progress_contest_heatmap.year_total }} years · {{ completion_progress_contest_heatmap.problem_code_total }} codes
+            </span>
+            {% endif %}
+            {% if completion_progress_contest_heatmap.problem_codes %}
+            {% if shared_progress_subject %}
+            <div class="dropdown">
+              <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false"><i class="ti ti-download me-1" aria-hidden="true"></i>Export</button>
+              <ul class="dropdown-menu dropdown-menu-end">
+                <li><button type="button" class="dropdown-item" data-completion-progress-contest-export="png" disabled><i class="ti ti-photo me-2" aria-hidden="true"></i>Download image</button></li>
+                <li><button type="button" class="dropdown-item" data-completion-progress-contest-export="pdf" disabled><i class="ti ti-file-type-pdf me-2" aria-hidden="true"></i>Save PDF</button></li>
+              </ul>
+            </div>
+            {% else %}
+            <div class="btn-group btn-group-sm completion-progress-contest-export-actions" role="group" aria-label="Contest coverage export options">
+              <button type="button" class="btn btn-outline-secondary" data-completion-progress-contest-export="png" disabled>
+                <i class="ti ti-photo me-1"></i>Download image
+              </button>
+              <button type="button" class="btn btn-outline-secondary" data-completion-progress-contest-export="pdf" disabled>
+                <i class="ti ti-file-type-pdf me-1"></i>Save PDF
+              </button>
+            </div>
+            {% endif %}
+            {% endif %}
+          </div>
+        </div>
+        <div class="card-body">
+          {% if shared_progress_subject %}
+          {% include 'pages/partials/completion-progress-contest-form.html' %}
+          {% endif %}
+          {% if not completion_progress_contest_heatmap.selected_contest %}
+          {% if shared_progress_subject %}
+          <div class="lp-contest-empty" role="status">
+            <span class="avatar-title bg-primary-subtle text-primary rounded flex-shrink-0"><i class="ti ti-layout-grid fs-20" aria-hidden="true"></i></span>
+            <div><h5 class="fs-sm mb-1">Choose a contest to explore coverage</h5><p class="text-body-secondary fs-xs mb-0">See completed and remaining problems by year. Published problems are included before the first completion.</p></div>
+          </div>
+          {% else %}
+          <div class="completion-progress-empty-state is-compact">
+            <div class="w-100">
+              <h5 class="mb-1">Select a contest to load coverage.</h5>
+              <p class="text-muted fs-xs mb-3">Coverage can use statement-backed contests even before you have completions in that contest.</p>
+              {% include 'pages/partials/completion-progress-contest-form.html' %}
+            </div>
+          </div>
+          {% endif %}
+          {% elif completion_progress_contest_heatmap.problem_codes %}
+          <div class="d-flex flex-wrap align-items-center completion-progress-contest-legend mb-3">
+            <span class="completion-progress-contest-legend-item">
+              <span class="completion-progress-contest-legend-swatch completion-progress-contest-legend-swatch-solved"></span>
+              {% if shared_progress_subject %}{{ shared_progress_label }}'s completions{% else %}Your completions{% endif %}
+            </span>
+            <span class="completion-progress-contest-legend-item">
+              <span class="completion-progress-contest-legend-swatch completion-progress-contest-legend-swatch-unsolved"></span>
+              {% if shared_progress_subject %}No completion recorded yet{% else %}No completion from you yet{% endif %}
+            </span>
+            {% if completion_progress_contest_heatmap.has_partial_cells %}
+            <span class="completion-progress-contest-legend-item">
+              <span class="completion-progress-contest-legend-swatch completion-progress-contest-legend-swatch-partial"></span>
+              Mixed coverage when a year/code has multiple rows
+            </span>
+            {% endif %}
+            <span class="completion-progress-contest-legend-item">
+              <span class="completion-progress-contest-legend-swatch completion-progress-contest-legend-swatch-empty"></span>
+              No statement row for that year/code
+            </span>
+          </div>
+          <p id="completion-progress-contest-export-status" class="completion-progress-contest-export-status text-muted fs-xs mb-2 d-none" role="status" aria-live="polite"></p>
+          <div class="completion-progress-contest-heatmap-scroll">
+            <div id="chart-completion-progress-contest-heatmap"></div>
+          </div>
+          {% else %}
+          <div class="alert alert-info mb-0" role="alert">
+            No statement-backed problem codes are available for this contest yet.
+          </div>
+          {% endif %}
+        </div>

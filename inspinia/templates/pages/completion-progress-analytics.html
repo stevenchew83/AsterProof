@@ -1030,7 +1030,7 @@
   function renderContestHeatmap() {
     var dataEl = contestHeatmapDataEl;
     var chartEl = document.getElementById("chart-completion-progress-contest-heatmap");
-    if (!dataEl || !chartEl || contestHeatmapChart || typeof ApexCharts === "undefined") return;
+    if (!dataEl || !chartEl || !chartEl.offsetWidth || contestHeatmapChart || typeof ApexCharts === "undefined") return;
 
     var payload = JSON.parse(dataEl.textContent || "{}");
     contestHeatmapPayload = payload;
@@ -1428,6 +1428,8 @@
 
   function renderSecondaryCharts(group) {
     if (renderedProgressCharts[group]) return;
+    var pane = document.getElementById("completion-progress-" + group + "-pane");
+    if (pane && !pane.offsetWidth) return;
     if (group === "topics") {
       renderBar(
         "#chart-completion-progress-topic-mix",
@@ -1462,26 +1464,25 @@
   }
   renderActivityCharts();
   var analysisDetails = document.getElementById("shared-progress-analysis");
-  if (!analysisDetails || analysisDetails.open) renderSecondaryCharts("topics");
+  function renderVisibleAnalysisCharts() {
+    ["topics", "difficulty", "solutions"].forEach(renderSecondaryCharts);
+    renderContestHeatmap();
+  }
   if (analysisDetails) {
     analysisDetails.addEventListener("toggle", function () {
       if (!analysisDetails.open) return;
-      renderSecondaryCharts("topics");
-      renderContestHeatmap();
+      renderVisibleAnalysisCharts();
     });
   }
   document.querySelectorAll('[data-bs-toggle="tab"][data-bs-target^="#completion-progress-"]').forEach(function (tabButton) {
     tabButton.addEventListener("shown.bs.tab", function () {
-      var target = tabButton.getAttribute("data-bs-target") || "";
       renderActivityCharts();
-      if (target.indexOf("difficulty") !== -1) renderSecondaryCharts("difficulty");
-      if (target.indexOf("solutions") !== -1) renderSecondaryCharts("solutions");
-      if (target.indexOf("topics") !== -1) renderSecondaryCharts("topics");
+      renderVisibleAnalysisCharts();
     });
   });
   wireContestHeatmapExports();
   wireTopicMohsMatrixExports();
-  if (!analysisDetails || analysisDetails.open) renderContestHeatmap();
+  if (!analysisDetails || analysisDetails.open) renderVisibleAnalysisCharts();
   initCompletionProgressTooltips();
 
   if (tableDataEl && typeof DataTable !== "undefined") {

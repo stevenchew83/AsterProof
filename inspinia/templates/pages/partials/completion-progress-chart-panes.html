@@ -1,0 +1,144 @@
+            <div class="tab-pane fade{% if not shared_progress_subject or not completion_progress_filters.contest %} show active{% endif %}" id="completion-progress-topics-pane" role="tabpanel" aria-labelledby="completion-progress-topics-tab" tabindex="0">
+              <div class="row g-3">
+                <div class="{% if shared_progress_subject %}col-12{% else %}col-xl-7{% endif %}">
+                  <h4 class="header-title mb-0">Topic mix</h4>
+                  <p class="text-muted fs-xs mb-2">{% if shared_progress_subject %}Dated recorded problems by main topic.{% else %}Daily exact completions by main topic.{% endif %}</p>
+                  {% if completion_progress_stats.known_date_total %}
+                  <div id="chart-completion-progress-topic-mix" class="completion-progress-chart" data-completion-progress-chart="topicMix"></div>
+                  {% else %}
+                  <div class="completion-progress-empty-state is-compact">
+                    <div>
+                      <h5 class="mb-1">No dated topic activity.</h5>
+                      <p class="text-muted fs-xs mb-0">Unknown-date rows stay in the table but do not appear in daily charts.</p>
+                    </div>
+                  </div>
+                  {% endif %}
+                </div>
+                {% if not shared_progress_subject %}
+                <div class="col-xl-5">
+                  <h4 class="header-title mb-0">Topic totals</h4>
+                  <p class="text-muted fs-xs mb-2">Filtered completions by topic.</p>
+                  {% if completion_progress_charts_payload.topicTotals.values %}
+                  <div id="chart-completion-progress-topic-totals" class="completion-progress-chart" data-completion-progress-chart="topicTotals"></div>
+                  {% else %}
+                  <div class="completion-progress-empty-state is-compact">
+                    <div>
+                      <h5 class="mb-1">No topic totals yet.</h5>
+                      <p class="text-muted fs-xs mb-0">Topic charts appear after matching completion rows are available.</p>
+                    </div>
+                  </div>
+                  {% endif %}
+                </div>
+                {% endif %}
+              </div>
+            </div>
+            <div class="tab-pane fade" id="completion-progress-difficulty-pane" role="tabpanel" aria-labelledby="completion-progress-difficulty-tab" tabindex="0">
+              <div class="row g-3">
+                <div class="col-xl-5">
+                  <h4 class="header-title mb-0">Difficulty mix</h4>
+                  <p class="text-muted fs-xs mb-2">Filtered completions by MOHS value.</p>
+                  {% if completion_progress_charts_payload.mohsDistribution.values %}
+                  <div id="chart-completion-progress-mohs-distribution" class="completion-progress-chart" data-completion-progress-chart="mohsDistribution"></div>
+                  {% else %}
+                  <div class="completion-progress-empty-state is-compact">
+                    <div>
+                      <h5 class="mb-1">No MOHS values in view.</h5>
+                      <p class="text-muted fs-xs mb-0">Difficulty charts need at least one row with MOHS metadata.</p>
+                    </div>
+                  </div>
+                  {% endif %}
+                </div>
+                <div class="col-xl-7">
+                  <h4 class="header-title mb-0">Topic x MOHS</h4>
+                  <p class="text-muted fs-xs mb-2">Filtered topic and difficulty cells.</p>
+                  {% if completion_progress_charts_payload.topicMohsHeatmap.series %}
+                  <div id="chart-completion-progress-topic-mohs" class="completion-progress-chart" data-completion-progress-chart="topicMohs"></div>
+                  {% else %}
+                  <div class="completion-progress-empty-state is-compact">
+                    <div>
+                      <h5 class="mb-1">No difficulty cells yet.</h5>
+                      <p class="text-muted fs-xs mb-0">This grid appears once filtered rows include topic and MOHS metadata.</p>
+                    </div>
+                  </div>
+                  {% endif %}
+                </div>
+                <div class="col-12">
+                  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                    <div>
+                      <h4 class="header-title mb-0">Topic x MOHS matrix</h4>
+                      <p class="text-muted fs-xs mb-2">{% if shared_progress_subject %}Dated recorded problems by topic and MOHS.{% else %}Number of completed problem statements by topic and MOHS.{% endif %}</p>
+                    </div>
+                    {% if completion_progress_topic_mohs_matrix.rows %}
+                    <div class="btn-group btn-group-sm completion-progress-matrix-actions" role="group" aria-label="Topic MOHS matrix export options">
+                      <button type="button" class="btn btn-outline-secondary" data-completion-progress-topic-mohs-export="copy">
+                        <i class="ti ti-copy me-1"></i>Copy
+                      </button>
+                      <button type="button" class="btn btn-outline-secondary" data-completion-progress-topic-mohs-export="csv">
+                        <i class="ti ti-file-spreadsheet me-1"></i>CSV
+                      </button>
+                    </div>
+                    {% endif %}
+                  </div>
+                  {% if completion_progress_topic_mohs_matrix.rows %}
+                  <p id="completion-progress-topic-mohs-export-status" class="completion-progress-matrix-status text-muted fs-xs mb-2 d-none" role="status" aria-live="polite"></p>
+                  <div class="completion-progress-matrix-wrap">
+                    <table id="completion-progress-topic-mohs-matrix" class="table table-sm table-hover align-middle mb-0">
+                      <thead>
+                        <tr>
+                          <th scope="col" class="completion-progress-matrix-topic">Topic</th>
+                          {% for mohs in completion_progress_topic_mohs_matrix.mohs_values %}
+                          <th scope="col" class="text-end">MOHS {{ mohs }}</th>
+                          {% endfor %}
+                          <th scope="col" class="text-end">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for matrix_row in completion_progress_topic_mohs_matrix.rows %}
+                        <tr>
+                          <th scope="row" class="completion-progress-matrix-topic">{{ matrix_row.topic }}</th>
+                          {% for cell in matrix_row.cells %}
+                          <td
+                            class="completion-progress-matrix-cell text-end{% if cell.count %} is-active{% endif %}"
+                            title="{{ matrix_row.topic }} MOHS {{ cell.mohs }}: {{ cell.count }} completion{{ cell.count|pluralize }}"
+                          >{{ cell.count }}</td>
+                          {% endfor %}
+                          <td class="text-end fw-semibold">{{ matrix_row.total }}</td>
+                        </tr>
+                        {% endfor %}
+                      </tbody>
+                      <tfoot>
+                        <tr>
+                          <th scope="row" class="completion-progress-matrix-topic">Total</th>
+                          {% for mohs, count in completion_progress_topic_mohs_matrix.column_totals.items %}
+                          <td class="text-end fw-semibold">{{ count }}</td>
+                          {% endfor %}
+                          <td class="text-end fw-bold">{{ completion_progress_topic_mohs_matrix.grand_total }}</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                  {% else %}
+                  <div class="completion-progress-empty-state is-compact">
+                    <div>
+                      <h5 class="mb-1">No MOHS matrix yet.</h5>
+                      <p class="text-muted fs-xs mb-0">The matrix appears after filtered rows include at least one completed statement with MOHS metadata.</p>
+                    </div>
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            <div class="tab-pane fade" id="completion-progress-solutions-pane" role="tabpanel" aria-labelledby="completion-progress-solutions-tab" tabindex="0">
+              <h4 class="header-title mb-0">Solution status</h4>
+              <p class="text-muted fs-xs mb-2">Filtered completions by solution follow-through.</p>
+              {% if completion_progress_charts_payload.solutionStatus.values %}
+              <div id="chart-completion-progress-solutions" class="completion-progress-chart" data-completion-progress-chart="solutions"></div>
+              {% else %}
+              <div class="completion-progress-empty-state is-compact">
+                <div>
+                  <h5 class="mb-1">No solution statuses yet.</h5>
+                  <p class="text-muted fs-xs mb-0">Solution follow-through appears after matching completion rows are available.</p>
+                </div>
+              </div>
+              {% endif %}
+            </div>

@@ -1,0 +1,114 @@
+        <div class="card-header border-bottom d-flex flex-wrap align-items-center gap-2">
+          <div class="flex-grow-1">
+            <h4 class="header-title mb-0">Activity calendar</h4>
+            <p class="text-muted fs-xs mb-0">{% if shared_progress_subject %}Daily completions with exact dates.{% else %}Daily solve density from the first exact completion to the latest.{% endif %}</p>
+          </div>
+          {% if not shared_progress_subject %}<span class="badge text-bg-light">
+            {{ completion_progress_yearly_heatmap.start_label }} to {{ completion_progress_yearly_heatmap.end_label }}
+          </span>{% endif %}
+        </div>
+        <div class="card-body">
+          {% if completion_progress_yearly_heatmap.exact_total == 0 %}
+          <div class="completion-progress-empty-state is-compact" role="status">
+            <div>
+              <h5 class="mb-1">No exact completion dates match these filters.</h5>
+              <p class="text-muted fs-xs mb-0">
+                The activity calendar uses exact completion dates.
+                {% if completion_progress_yearly_heatmap.missing_date_total %}
+                {{ completion_progress_yearly_heatmap.missing_date_total }} unknown-date row{{ completion_progress_yearly_heatmap.missing_date_total|pluralize }} remain visible in the table.
+                {% endif %}
+              </p>
+            </div>
+          </div>
+          {% else %}
+          <div class="completion-progress-yearly-heatmap">
+            {% for section in shared_progress_calendar_sections|default:completion_progress_yearly_heatmap.sections %}
+            {% if shared_progress_subject and not section.is_latest %}
+            <details class="lp-calendar-history">
+              <summary><span class="fw-semibold">Earlier activity</span><span class="text-body-secondary">{{ section.heatmap.start_label }} – {{ section.heatmap.end_label }}</span><i class="ti ti-chevron-down lp-calendar-chevron ms-auto" aria-hidden="true"></i></summary>
+            {% endif %}
+            <div class="completion-progress-yearly-section">
+              {% if shared_progress_subject %}
+              <div class="lp-calendar-window-head">
+                {% if section.is_latest %}<span class="fw-semibold">{{ section.heatmap.start_label }} – {{ section.heatmap.end_label }}</span>{% endif %}
+                <span class="text-body-secondary">{{ section.heatmap.exact_total|floatformat:'0g' }} dated completion{{ section.heatmap.exact_total|pluralize }}</span>
+              </div>
+              {% else %}
+              <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                  <span class="badge text-bg-light">{{ section.heatmap.start_label }} to {{ section.heatmap.end_label }}</span>
+                  {% if section.is_latest %}
+                  <span class="badge bg-primary-subtle text-primary">Latest window</span>
+                  {% else %}
+                  <span class="badge text-bg-light">Earlier window</span>
+                  {% endif %}
+                </div>
+                <span class="text-muted fs-xs">{{ section.heatmap.exact_total }} exact-date completion{{ section.heatmap.exact_total|pluralize }} shown in this window</span>
+              </div>
+              {% endif %}
+            <div class="completion-progress-yearly-heatmap-wrap">
+              <div class="completion-progress-yearly-heatmap-canvas">
+                <div class="completion-progress-yearly-months" aria-hidden="true">
+                  {% for week in section.heatmap.weeks %}
+                  <span class="completion-progress-yearly-month">{{ week.month_label }}</span>
+                  {% endfor %}
+                </div>
+                <div class="completion-progress-yearly-body">
+                  <div class="completion-progress-yearly-weekdays" aria-hidden="true">
+                    {% for day_label in section.heatmap.day_labels %}
+                    <span class="completion-progress-yearly-weekday">{{ day_label }}</span>
+                    {% endfor %}
+                  </div>
+                  <div class="completion-progress-yearly-grid" role="img" aria-label="Activity calendar, {{ section.heatmap.start_label }} to {{ section.heatmap.end_label }}">
+                    {% for week in section.heatmap.weeks %}
+                    <div class="completion-progress-yearly-week">
+                      {% for day in week.days %}
+                      {% if day.is_blank %}
+                      <span class="completion-progress-yearly-cell is-outside" aria-hidden="true"></span>
+                      {% else %}
+                      <span
+                        class="completion-progress-yearly-cell level-{{ day.level }}{% if day.is_today %} is-today{% endif %}"
+                        data-bs-toggle="tooltip"
+                        data-bs-placement="top"
+                        data-bs-title="{{ day.title }}"
+                        title="{{ day.title }}"
+                        aria-label="{{ day.title }}"
+                        {% if day.count or day.is_today %}tabindex="0"{% endif %}
+                      ></span>
+                      {% endif %}
+                      {% endfor %}
+                    </div>
+                    {% endfor %}
+                  </div>
+                </div>
+              </div>
+            </div>
+            </div>
+            {% if shared_progress_subject and not section.is_latest %}</details>{% endif %}
+            {% endfor %}
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-3">
+              <p class="text-muted fs-xs mb-0">
+                {% if shared_progress_subject %}
+                {% if completion_progress_yearly_heatmap.missing_date_total %}{{ completion_progress_yearly_heatmap.missing_date_total|floatformat:'0g' }} undated record{{ completion_progress_yearly_heatmap.missing_date_total|pluralize }} excluded.{% else %}Exact completion dates only.{% endif %}
+                {% else %}
+                {{ completion_progress_yearly_heatmap.exact_total }} exact-date completion{{ completion_progress_yearly_heatmap.exact_total|pluralize }} shown from first to latest.
+                {% if completion_progress_yearly_heatmap.missing_date_total %}
+                {{ completion_progress_yearly_heatmap.missing_date_total }} unknown-date row{{ completion_progress_yearly_heatmap.missing_date_total|pluralize }} excluded from the grid.
+                {% endif %}
+                {% endif %}
+              </p>
+              <div class="completion-progress-yearly-legend" aria-hidden="true">
+                <span>Less</span>
+                <span class="completion-progress-yearly-legend-scale">
+                  <span class="completion-progress-yearly-legend-swatch level-0"></span>
+                  <span class="completion-progress-yearly-legend-swatch level-1"></span>
+                  <span class="completion-progress-yearly-legend-swatch level-2"></span>
+                  <span class="completion-progress-yearly-legend-swatch level-3"></span>
+                  <span class="completion-progress-yearly-legend-swatch level-4"></span>
+                </span>
+                <span>More</span>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+        </div>
