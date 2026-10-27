@@ -6115,27 +6115,28 @@ def test_contest_mohs_summary_renders_table_without_my_average_when_user_has_no_
     assert 'data-has-user-averages="false"' in response_html
     assert 'id="contest-mohs-filter-all"' in response_html
     assert 'id="contest-mohs-filter-reliable"' in response_html
-    assert 'id="contest-mohs-filter-category-shortlist"' in response_html
-    assert 'id="contest-mohs-sort-average"' in response_html
+    assert 'id="contest-mohs-category"' in response_html
+    assert '<option value="shortlist">Shortlist</option>' in response_html
+    assert 'id="contest-mohs-search"' in response_html
+    assert 'id="contest-mohs-reset"' in response_html
     assert 'id="contest-mohs-sort-user-average"' not in response_html
     assert 'id="contest-mohs-filter-threshold"' not in response_html
     assert 'id="contest-mohs-hide-low-count"' not in response_html
-    assert "data-hide-threshold=\"20\"" in response_html
-    assert 'data-has-user-averages="false"' in response_html
+    assert 'data-hide-threshold="20"' in response_html
     assert "DataTable.ext.search.push" in response_html
     assert "numeric.toFixed(2)" in response_html
-    assert "Problems with MOHS" in response_html
-    assert "Avg MOHS" in response_html
-    assert "Completed contests" in response_html
+    assert "Rated problems" in response_html
+    assert "Archive average" in response_html
+    assert "Completed contests" not in response_html
     assert "Reliable contests" in response_html
     assert "Reliable 20+" in response_html
     assert "Algebra" in response_html
     assert "Combinatorics" in response_html
     assert "Geometry" in response_html
     assert "Number Theory" in response_html
-    assert "MOHS Count" in response_html
-    assert "No completed contests yet" in response_html
-    assert "Add quick completions" in response_html
+    assert 'title: "Samples"' in response_html
+    assert "Record solved problems to add your personal averages" in response_html
+    assert "Record completions" in response_html
     assert "My Avg" not in response_html
     assert "A Count" not in response_html
     assert "C Count" not in response_html
@@ -6185,9 +6186,28 @@ def test_contest_mohs_summary_renders_my_average_when_user_has_completions(clien
     assert response.status_code == HTTPStatus.OK
     response_html = response.content.decode("utf-8")
     assert 'data-has-user-averages="true"' in response_html
-    assert 'id="contest-mohs-sort-user-average"' in response_html
-    assert 'id="contest-mohs-filter-category-completed"' in response_html
+    assert '<option value="completed">My activity</option>' in response_html
+    assert 'key: "userAverage"' in response_html
+    assert "My average · highest first" in response_html
+    assert "Record solved problems to add your personal averages" not in response_html
     assert "My Avg" in response_html
+
+
+def test_contest_mohs_summary_empty_state_omits_inactive_controls(client):
+    client.force_login(UserFactory())
+
+    response = client.get(reverse("pages:contest_mohs_summary"))
+
+    assert response.status_code == HTTPStatus.OK
+    response_html = response.content.decode("utf-8")
+    assert "No contest ratings yet" in response_html
+    assert "Contests appear here once their problems have a subject and a MOHS rating." in response_html
+    assert 'id="contest-mohs-search"' not in response_html
+    assert 'id="contest-mohs-category"' not in response_html
+    assert 'id="contest-mohs-filter-reliable"' not in response_html
+    assert 'id="contest-mohs-summary-table"' not in response_html
+    assert "Record solved problems to add your personal averages" not in response_html
+
 
 
 def test_contest_dashboard_listing_view_filters_selected_contest_and_year_for_admin(client):
