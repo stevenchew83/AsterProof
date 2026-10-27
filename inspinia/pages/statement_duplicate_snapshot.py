@@ -41,8 +41,10 @@ from inspinia.pages.statement_duplicates import normalize_exact_statement_text
 MANIFEST_KEY = "statement-duplicates:snapshot:v1"
 PAGE_SIZE = 25
 SIMILAR_LIMIT = 250
-CACHE_TIMEOUT = 3 * 60 * 60
-MAX_AGE = timedelta(hours=1)
+# Keep the last complete nightly publication through two missed runs. Old
+# generation chunks still expire; request handling never rebuilds the report.
+CACHE_TIMEOUT = 3 * 24 * 60 * 60
+MAX_AGE = timedelta(hours=26)
 GROUP_KEY_LENGTH = 64
 MIN_START_FREE_BYTES = 1024 * 1024 * 1024
 RESERVED_FREE_BYTES = 512 * 1024 * 1024
@@ -203,6 +205,33 @@ def refresh_statement_duplicate_snapshot(*, force=False, max_seconds=DEFAULT_BUI
             raise RuntimeError(message)
         _store(MANIFEST_KEY, manifest, timeout=CACHE_TIMEOUT - 3600)
         return True
+
+
+def retain_statement_duplicate_snapshot():  # noqa: PLR0911 - fail closed before extending the publication pointer.
+    """Extend a complete old publication during the hourly-to-nightly transition.
+
+    No source reads or analysis. Do not extend the manifest unless every existing
+    inventory/chunk was verified and renewed; generated_at remains truthful.
+    """
+    with _refresh_lock() as acquired:
+        if not acquired:
+            return False
+        manifest = cache.get(MANIFEST_KEY)
+        if not manifest or not manifest.get("inventory_pages"):
+            return False
+        for page in range(manifest["inventory_pages"]):
+            inventory = _key(manifest["generation"], f"inventory:{page}")
+            keys = cache.get(inventory)
+            if not keys or len(cache.get_many(keys)) != len(keys):
+                return False
+            for key in keys:
+                if not cache.touch(key, timeout=CACHE_TIMEOUT):
+                    return False
+            if not cache.touch(inventory, timeout=CACHE_TIMEOUT):
+                return False
+        if cache.get(MANIFEST_KEY) != manifest:
+            return False
+        return cache.touch(MANIFEST_KEY, timeout=CACHE_TIMEOUT - 3600)
 
 
 def _index_statements(db, *, guard):

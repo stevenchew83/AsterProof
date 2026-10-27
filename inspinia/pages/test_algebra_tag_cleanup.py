@@ -552,14 +552,15 @@ def test_grouped_analytics_search_retains_old_names(algebra_problem):
 
 
 def test_catalog_only_rebuild_skips_independent_duplicate_report(algebra_problem, monkeypatch):
-    from inspinia.pages.management.commands import recompute_technique_progress_catalog as command
-
     statement_for(algebra_problem)
     tag(algebra_problem, "SUBSTITUTION")
 
     def fail_duplicate_refresh(**kwargs):
         pytest.fail("Catalog-only maintenance must not refresh the duplicate report")
 
-    monkeypatch.setattr(command, "refresh_statement_duplicate_snapshot", fail_duplicate_refresh)
+    monkeypatch.setattr(
+        "inspinia.pages.statement_duplicate_snapshot.refresh_statement_duplicate_snapshot",
+        fail_duplicate_refresh,
+    )
     call_command("recompute_technique_progress_catalog", catalog_only=True, stdout=StringIO())
     assert not TechniqueProgressCatalogState.objects.get(singleton_key=1).needs_rebuild
