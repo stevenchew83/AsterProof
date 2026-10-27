@@ -1,0 +1,3 @@
+{% extends 'layouts/vertical.html' %}
+{% block title %}Concept review receipt{% endblock %}
+{% block page_content %}<div class="container-fluid">{% include 'partials/page-title.html' with title='Concept review receipt' subtitle='Archive tools' %}<div class="alert alert-success" role="status">Applied {{ receipt.assignments_changed }} assignment decision{{ receipt.assignments_changed|pluralize }}.</div><p>Operation <code>{{ receipt.operation_id }}</code></p><div class="d-flex gap-2"><a class="btn btn-primary" href="{% url 'pages:concept_assignment_review' %}">Continue reviewing</a><a class="btn btn-outline-secondary" href="{{ receipt_url }}">Audit receipt JSON</a></div></div>{% endblock %}

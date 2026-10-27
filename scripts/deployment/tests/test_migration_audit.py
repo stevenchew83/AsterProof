@@ -29,6 +29,7 @@ def test_collect_audit_uses_fixed_read_only_queries_and_fingerprints() -> None:
             "public,table,table_pkey,p,PRIMARY KEY (id)\n",
             "public,table,table_pkey,CREATE UNIQUE INDEX table_pkey ON public.table USING btree (id)\n",
             "plpgsql,1.0\n",
+            "170009\n",
         ],
     )
     commands: list[list[str]] = []

@@ -8,6 +8,9 @@ from dataclasses import dataclass
 from typing import Any
 from typing import BinaryIO
 
+from scripts.deployment.concept_schema import ConceptSchemaError
+from scripts.deployment.concept_schema import validate_disclosure
+
 PROTOCOL_VERSION = "v1"
 COMMANDS = {"preflight", "receive", "submit", "status"}
 OPERATIONS = {"deploy", "rollback", "migration-audit"}
@@ -81,6 +84,7 @@ class OperationEnvelope:
     target_marker: str
     migration_class: str
     oidc_token: str
+    schema_disclosure: dict[str, Any] | None = None
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> OperationEnvelope:
@@ -95,8 +99,10 @@ class OperationEnvelope:
             "migration_class",
             "oidc_token",
         }
-        if set(data) != required:
+        if set(data) not in (required, required | {"schema_disclosure"}):
             raise ProtocolError("operation envelope fields do not match the protocol")
+        if "schema_disclosure" in data and not isinstance(data["schema_disclosure"], dict):
+            raise ProtocolError("schema disclosure must be an object")
         values = cls(**data)
         values.validate()
         return values
@@ -118,6 +124,7 @@ class OperationEnvelope:
             raise ProtocolError("invalid target marker")
         if self.migration_class not in {"none", "backward-compatible-schema", "data-or-non-compatible"}:
             raise ProtocolError("invalid migration class")
+        self._validate_schema()
         if (
             not self.oidc_token
             or not self.oidc_token.isascii()
@@ -126,8 +133,19 @@ class OperationEnvelope:
         ):
             raise ProtocolError("invalid OIDC token")
 
-    def public_dict(self) -> dict[str, str]:
-        return {
+    def _validate_schema(self) -> None:
+        if self.schema_disclosure is not None:
+            if self.operation != "deploy" or self.migration_class != "backward-compatible-schema":
+                raise ProtocolError("schema disclosure is only valid for the bounded schema deploy")
+            try:
+                validate_disclosure(self.schema_disclosure, target_sha=self.release_sha)
+            except ConceptSchemaError as exc:
+                raise ProtocolError(str(exc)) from exc
+        elif self.operation == "deploy" and self.migration_class == "backward-compatible-schema":
+            raise ProtocolError("bounded schema deploy requires its frozen disclosure")
+
+    def public_dict(self) -> dict[str, Any]:
+        value = {
             "artifact_digest": self.artifact_digest,
             "deployment_id": self.deployment_id,
             "migration_class": self.migration_class,
@@ -137,3 +155,6 @@ class OperationEnvelope:
             "target_marker": self.target_marker,
             "workflow_sha": self.workflow_sha,
         }
+        if self.schema_disclosure is not None:
+            value["schema_disclosure"] = self.schema_disclosure
+        return value

@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "acceptance": "direct_exact_headline_only",
+  "specialist_concepts": [
+    "nt-farey",
+    "comb-farey-sequences",
+    "nt-beatty"
+  ],
+  "suppressed_statuses": [
+    "invalid",
+    "corrupt",
+    "metadata"
+  ],
+  "review_statuses": [
+    "needs_review"
+  ],
+  "max_batch_size": 250,
+  "ambiguous_captions": [
+    "ROUNDING"
+  ]
+}

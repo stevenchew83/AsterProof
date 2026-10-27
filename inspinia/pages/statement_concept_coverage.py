@@ -153,6 +153,14 @@ def _coverage(tags: list[dict], *, topic: str, active: bool, resolver=None) -> d
 
 def statement_coverage_payloads(statements: list, *, resolver=None) -> dict:
     """Two bounded tag reads; statement tags suppress linked fallback even when invalid."""
+    from inspinia.pages.concept_assignment_service import projection_enabled
+    from inspinia.pages.concept_assignment_service import projection_payloads
+    from inspinia.pages.concept_assignment_trace import load_sources
+
+    if projection_enabled():
+        keys = {s.pk: str(s.problem_uuid if s.pk else s.linked_problem.problem_uuid) for s in statements}
+        payloads = projection_payloads(load_sources(keys.values()))
+        return {s.pk: payloads[keys[s.pk]] for s in statements}
     by_statement, by_problem = defaultdict(list), defaultdict(list)
     seen_statement, seen_problem = set(), set()
     for model, relation, target, seen in (
@@ -254,6 +262,18 @@ def _policy_search(subject: str, ids: set) -> Q:
 
 def statement_concept_search(token: str) -> Q:
     """Search canonical names and areas before the row cap, without a fact rebuild."""
+    from inspinia.pages.concept_assignment_registry import REGISTRY
+    from inspinia.pages.concept_assignment_service import accepted_problem_ids
+    from inspinia.pages.concept_assignment_service import projection_enabled
+
+    if projection_enabled():
+        ids = {
+            cid
+            for cid, definition in REGISTRY.definitions.items()
+            if caption_key(token)
+            in caption_key(" ".join([definition["label"], *(a["label"] for a in definition["area_memberships"])]))
+        }
+        return Q(problem_uuid__in=accepted_problem_ids(ids))
     by_subject = defaultdict(set)
     for cid, definition in CONCEPTS.items():
         if caption_key(token) in caption_key(f"{definition['label']} {definition['area_label']}"):

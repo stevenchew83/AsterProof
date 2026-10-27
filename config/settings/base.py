@@ -314,3 +314,6 @@ SHARED_PROGRESS_LEARNERS = {
     "alex": env("DJANGO_PROGRESS_ALEX_EMAIL", default=""),
     "ben": env("DJANGO_PROGRESS_BEN_EMAIL", default=""),
 }
+
+# Dual gate: this setting and the reviewed database activation state must both be enabled.
+CONCEPT_ASSIGNMENTS_ENABLED = env.bool("CONCEPT_ASSIGNMENTS_ENABLED", default=False)

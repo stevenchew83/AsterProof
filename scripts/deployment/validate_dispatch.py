@@ -14,6 +14,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from scripts.deployment.concept_schema import ConceptSchemaError
+from scripts.deployment.concept_schema import validate_disclosure
 from scripts.deployment.migration_plan import load_registry
 from scripts.deployment.protocol import DIGEST_RE
 from scripts.deployment.protocol import MARKER_RE
@@ -69,6 +71,21 @@ def validate_migration_class(value: str, *, routine: bool = True) -> None:
         if value == "data-or-non-compatible" and routine:
             raise DispatchValidationError("data-or-non-compatible requires the maintenance deployment procedure")
         raise DispatchValidationError("unknown migration class")
+
+
+def validate_schema_input(value: str, *, release_sha: str, migration_class: str, initial_adoption: bool) -> None:
+    if migration_class != "backward-compatible-schema":
+        if value:
+            raise DispatchValidationError("Only the bounded schema deploy accepts a schema disclosure")
+        return
+    if initial_adoption:
+        raise DispatchValidationError("Schema deployment cannot be combined with initial adoption")
+    if len(value) > 8192:
+        raise DispatchValidationError("Schema disclosure exceeds its bound")
+    try:
+        validate_disclosure(json.loads(value), target_sha=release_sha)
+    except (json.JSONDecodeError, ConceptSchemaError) as exc:
+        raise DispatchValidationError("The approved schema deploy requires its exact frozen disclosure") from exc
 
 
 def validate_ssh_contract(*, host: str, port: str, user: str, marker: str, known_hosts: Path) -> None:
@@ -335,22 +352,24 @@ def _operation_from_args(args: argparse.Namespace) -> OperationEnvelope:
     token = args.oidc_token
     if token is None:
         token = os.environ.get("ASTERPROOF_OIDC_TOKEN", "")
-    return OperationEnvelope.from_dict(
-        {
-            "operation": args.operation,
-            "run_id": args.run_id,
-            "deployment_id": args.deployment_id,
-            "workflow_sha": args.workflow_sha,
-            "release_sha": args.release_sha,
-            "artifact_digest": args.artifact_digest,
-            "target_marker": args.target_marker,
-            "migration_class": args.migration_class,
-            "oidc_token": token,
-        },
-    )
+    value = {
+        "operation": args.operation,
+        "run_id": args.run_id,
+        "deployment_id": args.deployment_id,
+        "workflow_sha": args.workflow_sha,
+        "release_sha": args.release_sha,
+        "artifact_digest": args.artifact_digest,
+        "target_marker": args.target_marker,
+        "migration_class": args.migration_class,
+        "oidc_token": token,
+    }
+    if args.schema_disclosure is not None:
+        value["schema_disclosure"] = _json_file(args.schema_disclosure)
+    return OperationEnvelope.from_dict(value)
 
 
 def _add_envelope_arguments(parser: argparse.ArgumentParser, *, token: bool) -> None:
+    parser.add_argument("--schema-disclosure", type=Path)
     parser.add_argument("--operation", required=True, choices=("deploy", "rollback", "migration-audit"))
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--deployment-id", required=True)
@@ -375,6 +394,7 @@ def _parser() -> argparse.ArgumentParser:
     dispatch.add_argument("--checked-out-sha", required=True)
     dispatch.add_argument("--release-sha", required=True)
     dispatch.add_argument("--migration-class", required=True)
+    dispatch.add_argument("--schema-disclosure-json", default="")
     dispatch.add_argument("--initial-adoption", action="store_true")
     dispatch.add_argument("--initial-legacy-sha", default="")
 
@@ -434,6 +454,12 @@ def _parser() -> argparse.ArgumentParser:
 def main() -> int:
     args = _parser().parse_args()
     if args.command == "dispatch":
+        validate_schema_input(
+            args.schema_disclosure_json,
+            release_sha=args.release_sha,
+            migration_class=args.migration_class,
+            initial_adoption=args.initial_adoption,
+        )
         validate_current_main(
             event=args.event,
             ref=args.ref,

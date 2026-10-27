@@ -64,6 +64,8 @@ def rebuild_technique_progress_catalog(
             refreshed_count += sync_technique_progress_facts_for_statement(statement_id)
 
         _mark_catalog_refreshed(full_refresh=is_full_refresh)
+        from inspinia.pages.concept_assignment_service import refresh_current_projection
+        refresh_current_projection()
     except Exception as exc:
         _mark_catalog_error(str(exc))
         raise

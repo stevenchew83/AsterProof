@@ -4,6 +4,9 @@ from collections import defaultdict
 
 from django.urls import reverse
 
+from inspinia.pages.concept_assignment_service import projection_enabled
+from inspinia.pages.concept_assignment_service import projection_payloads
+from inspinia.pages.concept_assignment_trace import load_sources
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemTopicTechnique
 from inspinia.pages.statement_analytics import effective_mohs
@@ -26,6 +29,7 @@ def completion_record_area_metadata(completions):
         .only(
             "id",
             "statement_uuid",
+            "problem_uuid",
             "linked_problem_id",
             "topic",
             "mohs",
@@ -38,11 +42,24 @@ def completion_record_area_metadata(completions):
         linked.setdefault(statement.linked_problem_id, statement)
         statements[statement.pk] = statement
 
-    resolver = TagCoverageResolver()
-    payloads = statement_coverage_payloads(list(statements.values()), resolver=resolver)
+    assignment_mode = projection_enabled()
+    keys = {}
+    if assignment_mode:
+        keys = {
+            completion.pk: str(
+                (completion.statement if completion.statement_id else linked.get(completion.problem_id)).problem_uuid
+                if completion.statement_id or completion.problem_id in linked
+                else completion.problem.problem_uuid,
+            )
+            for completion in completions
+        }
+        payloads = projection_payloads(load_sources(keys.values()))
+    else:
+        resolver = TagCoverageResolver()
+        payloads = statement_coverage_payloads(list(statements.values()), resolver=resolver)
     archive_tags = defaultdict(list)
     for tag in (
-        ProblemTopicTechnique.objects.filter(record_id__in=legacy_ids - linked.keys())
+        ProblemTopicTechnique.objects.filter(record_id__in=[] if assignment_mode else legacy_ids - linked.keys())
         .order_by(
             "technique",
             "id",
@@ -54,7 +71,9 @@ def completion_record_area_metadata(completions):
     result = {}
     for completion in completions:
         statement = completion.statement if completion.statement_id else linked.get(completion.problem_id)
-        if statement is not None:
+        if assignment_mode:
+            payload = payloads[keys[completion.pk]]
+        elif statement is not None:
             payload = payloads[statement.pk]
         else:
             problem = completion.problem

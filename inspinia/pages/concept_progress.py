@@ -188,14 +188,38 @@ def build_concept_progress_context(*, request_user, params, topic_slug=""):  # n
         return route + (f"?{query}" if query else "")
 
     library = _completed_library(selected_user)
-    concepts, areas, subjects, by_concept = _catalogue_rows(library)
-    scope_concepts = [c for c in concepts if not subject or c["subject"] == subject]
+    from inspinia.pages.concept_assignment_registry import REGISTRY
+    from inspinia.pages.concept_assignment_service import projection_enabled
+
+    assignment_mode = projection_enabled()
+    if assignment_mode:
+        from inspinia.pages.concept_assignment_progress import assignment_catalogue_rows
+
+        filters["concept"] = REGISTRY.canonical(filters["concept"])
+        valid_areas = {
+            f"{a['subject']}:{a['area']}"
+            for d in REGISTRY.definitions.values()
+            for a in d["area_memberships"]
+            if not subject or a["subject"] == subject
+        }
+        if filters["area"] not in valid_areas:
+            filters["area"] = ""
+        concepts, areas, subjects, by_concept = assignment_catalogue_rows(
+            library,
+            _counts,
+            SUBJECTS,
+            subject=subject,
+            area_key=filters["area"],
+        )
+    else:
+        concepts, areas, subjects, by_concept = _catalogue_rows(library)
+    scope_concepts = [c for c in concepts if not subject or subject in c.get("subjects", [c["subject"]])]
     scope_areas = [a for a in areas if not subject or a["subject"] == subject]
     if filters["area"] and filters["area"] not in {a["id"] for a in scope_areas}:
         filters["area"] = ""
     selected_area = next((a for a in scope_areas if a["id"] == filters["area"]), None)
     if selected_area:
-        scope_concepts = [c for c in scope_concepts if c["area_key"] == selected_area["id"]]
+        scope_concepts = [c for c in scope_concepts if selected_area["id"] in c.get("area_keys", [c["area_key"]])]
         scope_areas = [selected_area]
     scope_problems = {}
     for concept in scope_concepts:
@@ -302,7 +326,18 @@ def build_concept_progress_context(*, request_user, params, topic_slug=""):  # n
         "subject": subject,
         "stats": stats,
         "subject_rows": subject_rows,
-        "scope_areas": sorted((a for a in areas if not subject or a["subject"] == subject), key=lambda a: a["label"]),
+        "scope_areas": sorted(
+            (
+                a
+                for a in (
+                    assignment_catalogue_rows(library, _counts, SUBJECTS, subject=subject)[1]
+                    if assignment_mode
+                    else areas
+                )
+                if not subject or a["subject"] == subject
+            ),
+            key=lambda a: a["label"],
+        ),
         "selected_area": selected_area,
         "selected_concept": selected_concept,
         "selected_summary": _counts(by_concept[selected_concept["id"]]) if selected_concept else None,

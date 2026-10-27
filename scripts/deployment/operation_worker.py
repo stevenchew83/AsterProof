@@ -13,6 +13,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from scripts.deployment.concept_schema import MIGRATION_APPLY
+from scripts.deployment.concept_schema import PLAN_CHECK
+from scripts.deployment.concept_schema import ConceptSchemaError
+from scripts.deployment.concept_schema import audit_matches
+from scripts.deployment.concept_schema import validate_build_evidence
+from scripts.deployment.concept_schema import validate_candidate
+from scripts.deployment.concept_schema import validate_disclosure
 from scripts.deployment.protocol import DIGEST_RE
 from scripts.deployment.protocol import NUMERIC_RE
 from scripts.deployment.protocol import SHA_RE
@@ -197,7 +204,14 @@ class WorkerBackend:
             os.chown(path, 0, 0, follow_symlinks=False)
         staging.replace(release)
 
-    def _run_candidate(self, contract: TargetContract, release: Path, arguments: list[str]) -> None:
+    def _run_candidate(
+        self,
+        contract: TargetContract,
+        release: Path,
+        arguments: list[str],
+        *,
+        migration: bool = False,
+    ) -> None:
         subprocess.run(
             [
                 str(SYSTEMD_RUN),
@@ -207,6 +221,7 @@ class WorkerBackend:
                 "--service-type=exec",
                 f"--uid={contract.app_user}",
                 "--setenv=DJANGO_READ_DOT_ENV_FILE=False",
+                *(["--setenv=PGOPTIONS=-c lock_timeout=2s -c statement_timeout=30s"] if migration else []),
                 f"--property=WorkingDirectory={release}",
                 f"--property=EnvironmentFile={contract.environment_file}",
                 "--property=NoNewPrivileges=yes",
@@ -233,7 +248,15 @@ class WorkerBackend:
     def migrate(self, contract: TargetContract, release: Path) -> None:
         self._run_candidate(contract, release, ["migrate", "--noinput"])
 
-    def state_fingerprint(self, contract: TargetContract) -> str:
+    def check_concept_schema(self, contract: TargetContract, release: Path) -> None:
+        validate_candidate(release)
+        self._run_candidate(contract, release, ["shell", "--command", PLAN_CHECK])
+
+    def migrate_concept_schema(self, contract: TargetContract, release: Path) -> None:
+        # MigrationExecutor avoids unrelated post_migrate content-type/permission writes.
+        self._run_candidate(contract, release, ["shell", "--command", MIGRATION_APPLY], migration=True)
+
+    def schema_audit(self, contract: TargetContract) -> dict[str, Any]:
         result = subprocess.run(
             [str(MIGRATION_AUDIT_HELPER), "fingerprint", "--contract", str(self.contract_path)],
             check=True,
@@ -247,7 +270,10 @@ class WorkerBackend:
         fingerprint = value.get("state_fingerprint") if isinstance(value, dict) else None
         if not isinstance(fingerprint, str) or not DIGEST_RE.fullmatch(fingerprint):
             raise OperationError("migration_audit_invalid")
-        return fingerprint
+        return value
+
+    def state_fingerprint(self, contract: TargetContract) -> str:
+        return self.schema_audit(contract)["state_fingerprint"]
 
     def legacy_service_matches(self, contract: TargetContract, source_root: Path) -> bool:
         try:
@@ -275,14 +301,16 @@ class WorkerBackend:
         try:
             owner = pwd.getpwuid(source_root.stat().st_uid).pw_name
             environment = os.environ.copy()
-            environment.update({
-                "GIT_CONFIG_GLOBAL": "/dev/null",
-                "GIT_CONFIG_NOSYSTEM": "1",
-                "GIT_NO_REPLACE_OBJECTS": "1",
-                "GIT_OPTIONAL_LOCKS": "0",
-                "GIT_TERMINAL_PROMPT": "0",
-                "XDG_CONFIG_HOME": "/nonexistent",
-            })
+            environment.update(
+                {
+                    "GIT_CONFIG_GLOBAL": "/dev/null",
+                    "GIT_CONFIG_NOSYSTEM": "1",
+                    "GIT_NO_REPLACE_OBJECTS": "1",
+                    "GIT_OPTIONAL_LOCKS": "0",
+                    "GIT_TERMINAL_PROMPT": "0",
+                    "XDG_CONFIG_HOME": "/nonexistent",
+                },
+            )
 
             def git(*arguments: str) -> str:
                 # Probe an existing owner's checkout without executing its Git config as root.
@@ -377,8 +405,15 @@ def _validate_request(request: dict[str, Any], run_id: str) -> None:
         "workflow_sha",
         "workflow_ref",
     }
-    if set(request) != required or request.get("run_id") != run_id:
+    if set(request) not in (required, required | {"schema_disclosure"}) or request.get("run_id") != run_id:
         raise OperationError("request_invalid")
+    if "schema_disclosure" in request:
+        if request["operation"] != "deploy" or request["migration_class"] != "backward-compatible-schema":
+            raise OperationError("request_invalid")
+        try:
+            validate_disclosure(request["schema_disclosure"], target_sha=request["release_sha"])
+        except ConceptSchemaError as exc:
+            raise OperationError("schema_disclosure_invalid") from exc
     if not NUMERIC_RE.fullmatch(run_id) or not SHA_RE.fullmatch(str(request.get("release_sha", ""))):
         raise OperationError("request_invalid")
     if not DIGEST_RE.fullmatch(str(request.get("artifact_digest", ""))):
@@ -473,16 +508,36 @@ def _deploy(
     backend.publish_permissions(contract, staging, release)
     try:
         backend.candidate_check(contract, release)
-        backend.candidate_migrations_applied(contract, release)
         transition(state_path, "prepared")
         if request["migration_class"] == "data-or-non-compatible":
             raise OperationError("maintenance_workflow_required")
         if request["migration_class"] == "backward-compatible-schema":
-            # The current protocol does not carry the approved starting/ending
-            # migration and schema fingerprints. Do not mutate production until
-            # that disclosure can be compared by the trusted audit helper.
-            raise OperationError("migration_disclosure_contract_missing")
+            disclosure = request.get("schema_disclosure")
+            if disclosure is None:
+                raise OperationError("migration_disclosure_contract_missing")
+            if disclosure["active_sha"] != baseline_sha or not audit_matches(
+                disclosure,
+                backend.schema_audit(contract),
+                stage="starting",
+            ):
+                raise OperationError("schema_starting_state_mismatch")
+            try:
+                validate_build_evidence(release, disclosure)
+                backend.check_concept_schema(contract, release)
+            except ConceptSchemaError as exc:
+                raise OperationError("schema_candidate_invalid") from exc
+            if not audit_matches(disclosure, backend.schema_audit(contract), stage="starting"):
+                raise OperationError("schema_starting_state_drift")
+            transition(state_path, "migrating")
+            backend.migrate_concept_schema(contract, release)
+            if not audit_matches(disclosure, backend.schema_audit(contract), stage="expected"):
+                raise OperationError("schema_ending_state_mismatch")
+        backend.candidate_migrations_applied(contract, release)
         ending_fingerprint = backend.state_fingerprint(contract)
+        if request["migration_class"] == "backward-compatible-schema" and (
+            ending_fingerprint != request["schema_disclosure"]["expected"]["state_fingerprint"]
+        ):
+            raise OperationError("schema_ending_state_drift")
         if request["migration_class"] == "none" and ending_fingerprint != baseline_fingerprint:
             raise OperationError("unexpected_state_drift")
         write_runtime_state(
@@ -492,7 +547,8 @@ def _deploy(
             state_fingerprint=ending_fingerprint,
         )
     except Exception:
-        backend.discard_candidate(contract, release)
+        if read_json(state_path).get("state") != "migrating":
+            backend.discard_candidate(contract, release)
         raise
     transition(state_path, "activating")
     backend.activate(contract, request["release_sha"])
@@ -547,7 +603,7 @@ def _deploy(
         state_fingerprint=ending_fingerprint,
     )
     if baseline_sha is not None:
-        _set_release_record_state(contract, baseline_sha, "previous")
+        _set_release_record_state(contract, baseline_sha, "previous", state_fingerprint=ending_fingerprint)
     else:
         adoption_path = contract.registry_dir / "adoption.json"
         adoption = read_json(adoption_path)

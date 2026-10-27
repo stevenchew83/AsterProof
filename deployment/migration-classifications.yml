@@ -1,5 +1,17 @@
 {
   "format_version": 1,
   "baseline_sha": null,
-  "migrations": {}
+  "migrations": {
+    "pages.0036_concept_assignment_reviews": {
+      "classification": "backward-compatible-schema",
+      "recovery_required": false,
+      "code_rollback_permitted": true,
+      "data_preconditions": [
+        "assignment_tables_absent",
+        "review_projection_disabled",
+        "existing_schema_unchanged"
+      ],
+      "rationale": "Creates four isolated assignment/review tables, indexes and foreign keys only. Existing source tags, statements, ratings and completion tables are not rewritten. Prior application remains compatible with the additive tables; retained audit data must not be dropped during code recovery."
+    }
+  }
 }

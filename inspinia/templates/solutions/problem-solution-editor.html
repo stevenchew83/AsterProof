@@ -156,19 +156,23 @@
     <section class="solution-coverage" aria-labelledby="solution-coverage-heading">
       <div class="solution-context-heading">
         <h2 id="solution-coverage-heading"><i class="ti ti-topology-star-3" aria-hidden="true"></i>Areas &amp; concepts</h2>
-        <span class="text-muted fs-xs">{{ editor_coverage.concept_coverage|length }} concept{{ editor_coverage.concept_coverage|length|pluralize }}</span>
+        <span class="text-muted fs-xs">{{ editor_coverage.concept_coverage|length }} {% if editor_coverage.assignment_projection %}accepted{% else %}concept{{ editor_coverage.concept_coverage|length|pluralize }}{% endif %}</span>
       </div>
       <div class="solution-coverage-body">
         <div class="se-eyebrow">Areas</div>
         <div class="solution-area-list">
           {% for area in editor_coverage.concept_areas %}<span class="solution-area-item">{{ area }}</span>{% empty %}<span class="text-muted fs-xs">No areas mapped yet.</span>{% endfor %}
         </div>
-        <div class="se-eyebrow">Concepts in this problem</div>
+        <div class="se-eyebrow">{% if editor_coverage.assignment_projection %}Accepted concepts{% else %}Concepts in this problem{% endif %}</div>
         <div class="solution-concept-list">
           {% for concept in editor_coverage.concept_coverage %}
-          <a class="solution-concept" href="{% url 'pages:problem_statement_list' %}?q={{ concept.label|urlencode }}" title="Find problems using {{ concept.display }} · {{ concept.area }}">{{ concept.display }}<i class="ti ti-arrow-up-right" aria-hidden="true"></i></a>
-          {% empty %}<span class="text-muted fs-xs">No confirmed concepts yet. Existing tags are available below.</span>{% endfor %}
+          <a class="solution-concept" href="{% url 'pages:problem_statement_list' %}?{% if editor_coverage.assignment_projection %}concept={{ concept.id|urlencode }}{% else %}q={{ concept.label|urlencode }}{% endif %}" title="Find problems using {{ concept.display }} · {{ concept.area }}{% if concept.support_basis %} · {{ concept.support_basis }}{% endif %}">{{ concept.display }}<i class="ti ti-arrow-up-right" aria-hidden="true"></i></a>
+          {% empty %}<span class="text-muted fs-xs">{% if editor_coverage.assignment_projection %}No accepted concepts yet. Suggestions and source tags are available below.{% else %}No confirmed concepts yet. Existing tags are available below.{% endif %}</span>{% endfor %}
         </div>
+        {% if editor_coverage.concept_suggestions %}
+        <details class="solution-mapping-notes"><summary>{{ editor_coverage.concept_suggestions|length }} suggestion{{ editor_coverage.concept_suggestions|length|pluralize }} to review</summary><p class="mt-2 mb-1">Suggestions do not contribute to areas, coverage, or progress.</p><ul>{% for concept in editor_coverage.concept_suggestions %}<li><strong>{{ concept.label }}</strong> · {{ concept.subject }}<div class="text-muted">{{ concept.reason_labels|join:'; ' }}</div></li>{% endfor %}</ul></details>
+        {% endif %}
+        {% if editor_coverage.assignment_projection and editor_coverage.concept_coverage %}<details class="solution-mapping-notes"><summary>Why these concepts are accepted</summary>{% for concept in editor_coverage.concept_coverage %}<p class="mt-2 mb-1"><strong>{{ concept.label }}</strong> · {{ concept.support_basis }}</p><ul>{% for entry in concept.evidence %}<li>{{ entry.source_caption }} → <code>{{ entry.field }}</code>: {{ entry.caption }} ({{ entry.role }})</li>{% endfor %}</ul>{% endfor %}</details>{% endif %}
         <details class="solution-mapping-notes">
           <summary>{% if editor_coverage.concept_review_labels %}<i class="ti ti-info-circle me-1" aria-hidden="true"></i>{{ editor_coverage.concept_review_labels|length }} tag{{ editor_coverage.concept_review_labels|length|pluralize }} to review{% else %}Source tags{% endif %}</summary>
           {% if editor_coverage.concept_review_labels %}<p class="mt-2 mb-1">These captions need a confirmed mapping.</p><ul>{% for label in editor_coverage.concept_review_labels %}<li>{{ label }}</li>{% endfor %}</ul>{% endif %}

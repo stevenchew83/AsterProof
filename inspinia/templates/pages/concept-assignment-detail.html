@@ -1,0 +1,32 @@
+{% extends 'layouts/vertical.html' %}
+{% block title %}Review {{ source.label }}{% endblock %}
+{% block extra_css %}<style>.assignment-evidence{white-space:pre-wrap;overflow-wrap:anywhere}.assignment-reference{position:sticky;top:calc(var(--ins-topbar-height,64px) + 1rem);max-height:calc(100vh - var(--ins-topbar-height,64px) - 2rem);overflow:auto}@media(max-width:1199.98px){.assignment-reference{position:static;max-height:none}}</style>{% endblock %}
+{% block page_content %}
+<div class="container-fluid">
+  {% include 'partials/page-title.html' with title='Review problem concepts' subtitle='Archive tools' %}
+  <div class="d-flex justify-content-between align-items-center gap-2 mb-3"><div><h1 class="h3 mb-1">{{ source.label }}</h1><span class="text-muted">{{ source.subject }} · {{ coverage.concept_coverage|length }} accepted · {{ coverage.concept_suggestions|length }} suggestions</span></div><a class="btn btn-outline-secondary btn-sm" href="{% url 'pages:concept_assignment_review' %}">Back to queue</a></div>
+  {% if not storage_ready %}<div class="alert alert-info" role="status">Read-only preview. Applying decisions requires the separate review-storage schema rollout.</div>{% endif %}
+  {% if trace.conflicts %}<div class="alert alert-danger" role="alert">Identity conflict: {{ trace.conflicts|join:', ' }}. Resolve the problem linkage before applying decisions.</div>{% endif %}
+  <div class="row g-3">
+    <div class="col-xl-5"><aside class="card assignment-reference"><div class="card-header"><h2 class="h5 mb-0">Problem &amp; evidence</h2></div><div class="card-body">
+      {% if source.statement_text %}{% include 'partials/statement-render-content.html' with segments=statement_segments %}{% else %}<p class="text-muted">No linked statement is available.</p>{% endif %}
+      <details class="mt-3"><summary class="fw-semibold">Statement source for excerpts</summary><div class="assignment-evidence fs-sm mt-2">{{ source.statement_text }}</div></details>
+      {% for proof in proofs %}<details class="mt-3"><summary>{{ proof.title }}</summary><div class="assignment-evidence fs-sm mt-2">{{ proof.text }}</div></details>{% empty %}<p class="text-muted fs-xs mt-3 mb-0">No published solution is available. Private drafts are excluded from global evidence.</p>{% endfor %}
+      <hr><div class="text-muted fs-xs">Effective source: {{ source.effective_source }}<br>Problem UUID: <code>{{ source.problem_uuid }}</code></div>
+    </div></aside></div>
+    <div class="col-xl-7">
+      {% for candidate in candidates %}<article class="card"><div class="card-header d-flex justify-content-between align-items-start"><div><h2 class="h5 mb-1">{{ candidate.label }}</h2><span class="text-muted fs-xs">{{ candidate.subject }} · {{ candidate.area }}</span></div><span class="badge bg-secondary-subtle text-secondary-emphasis">{% if candidate.record %}{{ candidate.record.disposition }}{% else %}Unreviewed{% endif %}</span></div><div class="card-body">
+        <p class="text-muted fs-xs">{{ candidate.reason_labels|join:' · '|default:'Clear direct legacy caption' }}</p>
+        <details><summary class="fw-semibold fs-sm">Trace {{ candidate.evidence|length }} source occurrence{{ candidate.evidence|length|pluralize }}</summary><div class="table-responsive mt-2"><table class="table table-sm fs-xs"><thead><tr><th>Source</th><th>Field / role</th><th>Caption</th><th>Rule</th></tr></thead><tbody>{% for entry in candidate.evidence %}<tr><td>{{ entry.source_model }} #{{ entry.source_row_id }}<br>{{ entry.source_caption }}</td><td><code>{{ entry.field }}{% if entry.value_index != None %}[{{ entry.value_index }}]{% endif %}</code><br>{{ entry.role }}</td><td>{{ entry.caption }}</td><td>{{ entry.rule }}<br>{{ entry.subject }} · {{ entry.resolution }}</td></tr>{% empty %}<tr><td colspan="4">This assignment was added through evidence review.</td></tr>{% endfor %}</tbody></table></div></details>
+        {% if candidate.record.rationale %}<p class="mt-3 fs-sm"><strong>Last review:</strong> {{ candidate.record.rationale }}</p>{% endif %}
+        <details class="mt-3"><summary class="fw-semibold">Review decision</summary>{% include 'pages/partials/concept-assignment-decision.html' %}</details>
+      </div></article>{% empty %}<div class="alert alert-light border">No catalog concepts were found in the effective source tags. You can add a supported concept below.</div>{% endfor %}
+      <details class="card card-body"><summary class="fw-semibold">Add a missing concept</summary>{% include 'pages/partials/concept-assignment-decision.html' with candidate=None %}</details>
+      <details class="card card-body"><summary class="fw-semibold">Unmapped and excluded source captions</summary><ul class="mt-2 mb-0">{% for item in trace.unresolved %}<li>{{ item.caption }} · {{ item.field }} · {{ item.reason }}</li>{% endfor %}{% for item in trace.excluded %}<li>{{ item.caption }} · {{ item.reason }}</li>{% endfor %}</ul></details>
+      <details class="card card-body"><summary class="fw-semibold">Decision history</summary>{% for event in events %}<div class="border-bottom py-2"><strong>{{ event.action }}</strong> · {{ event.concept_id }}<div class="text-muted fs-xs">{{ event.created_at }} · reviewer #{{ event.actor_id|default:'system' }} · batch {{ event.batch_id }}</div><pre class="assignment-evidence fs-xs mb-0">{{ event.after|pprint }}</pre></div>{% empty %}<p class="text-muted mt-2 mb-0">No decisions have been applied.</p>{% endfor %}</details>
+    </div>
+  </div>
+  <datalist id="canonical-concepts">{% for concept in concept_options %}<option value="{{ concept.concept_id }}">{{ concept.label }} · {{ concept.subjects|join:', ' }}</option>{% endfor %}</datalist>
+</div>
+{% endblock %}
+{% block extra_javascript %}<script>window.MathJax={tex:{inlineMath:[["$","$"],["\\(","\\)"]],displayMath:[["\\[","\\]"]]},options:{skipHtmlTags:["script","noscript","style","textarea","pre","code"]}};</script><script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>{% endblock %}

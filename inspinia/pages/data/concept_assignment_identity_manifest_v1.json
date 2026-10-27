@@ -1,0 +1,2162 @@
+{
+  "version": 1,
+  "approved_merges": [
+    {
+      "sources": [
+        "nt-floor-ceiling"
+      ],
+      "target": "floor-ceiling",
+      "reviewed_by": "Codex local definition review, 2026-10-26",
+      "reason": "Both entries describe the floor/ceiling function family. Object recognition, manipulation, identities and direction variants are roles/variants of that family rather than separate subject identities.",
+      "evidence": {
+        "catalog_entries": [
+          "algebra_concepts_v1.json:floor-ceiling",
+          "number_theory_concepts_v1.json:nt-floor-ceiling"
+        ],
+        "common_object_alias": "FLOOR FUNCTION",
+        "source_definition_note": "Retain floor/ceiling direction as a variant.",
+        "production_application": "Not authorized or performed; included in the local reviewed candidate only."
+      }
+    },
+    {
+      "sources": [
+        "geo-triangle-inequality"
+      ],
+      "target": "triangle-inequality",
+      "reviewed_by": "Codex, delegated by user on 2026-10-26",
+      "reason": "Both entries name the triangle inequality and have matching object/method/lemma aliases. The Geometry note explicitly calls it a shared metric inequality.",
+      "evidence": {
+        "catalog_definition_evidence": [
+          {
+            "id": "geo-triangle-inequality",
+            "label": "Triangle inequality",
+            "subjects": [
+              "Geometry"
+            ],
+            "note": "Shared metric inequality; preserve its cross-topic identity and any original benchmark profiles.",
+            "aliases": [
+              [
+                "lemma",
+                "TRIANGLE INEQUALITY"
+              ],
+              [
+                "method",
+                "TRIANGLE INEQUALITY"
+              ],
+              [
+                "object",
+                "TRIANGLE INEQUALITY"
+              ],
+              [
+                "technique",
+                "triangle inequalities"
+              ],
+              [
+                "technique",
+                "TRIANGLE INEQUALITY"
+              ]
+            ],
+            "definition_sha256": "deef9f96b294386aa7a6f244c87eaba5d9887f77745a30f473a7284dc0a6627a"
+          },
+          {
+            "id": "triangle-inequality",
+            "label": "Triangle inequality",
+            "subjects": [
+              "Algebra"
+            ],
+            "note": "",
+            "aliases": [
+              [
+                "lemma",
+                "TRIANGLE INEQUALITY"
+              ],
+              [
+                "method",
+                "TRIANGLE INEQUALITY"
+              ],
+              [
+                "object",
+                "TRIANGLE INEQUALITY"
+              ],
+              [
+                "technique",
+                "TRIANGLE INEQUALITY"
+              ]
+            ],
+            "definition_sha256": "4337533b2833c51ba009de997a4c16c2a88827681d51fdf06b295617fe59ad16"
+          }
+        ],
+        "mapping_conditions": "Retain metric/norm/Euclidean context and any stronger named inequalities separately.",
+        "approval_scope": "Identity equivalence only. No problem association is semantically approved by this merge.",
+        "source_artifact_sha256": "b85829d18e7830a510c0a1a2b44f96fee81efe0e18ca072a5df978b5db3d8826"
+      }
+    },
+    {
+      "sources": [
+        "nt-factorization"
+      ],
+      "target": "factorization",
+      "reviewed_by": "Codex, delegated by user on 2026-10-26",
+      "reason": "The Number Theory definition explicitly says Shared Algebra identity, and separately distinguishes prime factorization. Its method aliases match the Algebra operation.",
+      "evidence": {
+        "catalog_definition_evidence": [
+          {
+            "id": "factorization",
+            "label": "FACTORIZATION",
+            "subjects": [
+              "Algebra"
+            ],
+            "note": "",
+            "aliases": [
+              [
+                "method",
+                "ALGEBRAIC FACTORIZATION"
+              ],
+              [
+                "method",
+                "CLEVER FACTORIZATION"
+              ],
+              [
+                "method",
+                "FACTOR TRICK"
+              ],
+              [
+                "method",
+                "FACTORIZATION"
+              ],
+              [
+                "method",
+                "SIMPLE FACTORIZATION"
+              ],
+              [
+                "object",
+                "FACTORIZATION"
+              ],
+              [
+                "technique",
+                "CLEVER FACTORIZATION"
+              ],
+              [
+                "technique",
+                "FACTOR TRICK"
+              ],
+              [
+                "technique",
+                "FACTORIZATION"
+              ],
+              [
+                "technique",
+                "SIMPLE FACTORIZATION"
+              ]
+            ],
+            "definition_sha256": "a762e487a890d6d3c6831d16089cbb773784938a367f53ee5eda3d6a19d27095"
+          },
+          {
+            "id": "nt-factorization",
+            "label": "Factorization",
+            "subjects": [
+              "Number Theory"
+            ],
+            "note": "Shared Algebra identity; prime factorization remains a distinct Number Theory concept.",
+            "aliases": [
+              [
+                "method",
+                "factorization"
+              ],
+              [
+                "proof_role",
+                "Factorization"
+              ],
+              [
+                "proof_role",
+                "factorization"
+              ],
+              [
+                "technique",
+                "Factorization"
+              ]
+            ],
+            "definition_sha256": "acb27f4ef1e30a15f595c89fce8d51d5cde5c63eebdf4ceda5b4ddd0b5a4390b"
+          }
+        ],
+        "mapping_conditions": "Do not merge nt-prime-factorization, nt-ufd or nt-cyclotomic-factorization into this identity; inspect generic Number Theory captions separately.",
+        "approval_scope": "Identity equivalence only. No problem association is semantically approved by this merge.",
+        "source_artifact_sha256": "b85829d18e7830a510c0a1a2b44f96fee81efe0e18ca072a5df978b5db3d8826"
+      }
+    },
+    {
+      "sources": [
+        "nt-degree-arguments"
+      ],
+      "target": "polynomial-degree",
+      "reviewed_by": "Codex, delegated by user on 2026-10-26",
+      "reason": "Both labels specify polynomial degree arguments. The Number Theory note explicitly excludes field degree, while Algebra method aliases use degree comparison/forcing.",
+      "evidence": {
+        "catalog_definition_evidence": [
+          {
+            "id": "nt-degree-arguments",
+            "label": "Polynomial degree arguments",
+            "subjects": [
+              "Number Theory"
+            ],
+            "note": "Do not conflate with field degree.",
+            "aliases": [
+              [
+                "object",
+                "Degree"
+              ],
+              [
+                "object",
+                "degree"
+              ],
+              [
+                "technique",
+                "DEGREE CLASSIFICATION"
+              ],
+              [
+                "technique",
+                "Degree classification"
+              ],
+              [
+                "technique",
+                "Polynomial degree arguments"
+              ],
+              [
+                "technique",
+                "degree"
+              ],
+              [
+                "technique",
+                "degree classification"
+              ]
+            ],
+            "definition_sha256": "16a7f18e61bc938d1d3f91940e82c068d0fc727920338c65d1a08d1d42413cd7"
+          },
+          {
+            "id": "polynomial-degree",
+            "label": "Polynomial degree arguments",
+            "subjects": [
+              "Algebra"
+            ],
+            "note": "",
+            "aliases": [
+              [
+                "method",
+                "DEGREE ARGUMENT"
+              ],
+              [
+                "method",
+                "DEGREE COMPARISON"
+              ],
+              [
+                "method",
+                "DEGREE FORCING"
+              ],
+              [
+                "method",
+                "LEADING COEFFICIENT"
+              ],
+              [
+                "method",
+                "ROOT BOUND"
+              ]
+            ],
+            "definition_sha256": "f7b913ffe7b9a229077141f5dac4268371f0150160314326f941f0c13f33fbe3"
+          }
+        ],
+        "mapping_conditions": "Bare DEGREE needs polynomial context. Leading-coefficient and root-bound uses retain their original provenance and specific results remain distinct.",
+        "approval_scope": "Identity equivalence only. No problem association is semantically approved by this merge.",
+        "source_artifact_sha256": "b85829d18e7830a510c0a1a2b44f96fee81efe0e18ca072a5df978b5db3d8826"
+      }
+    },
+    {
+      "sources": [
+        "comb-polynomial-method"
+      ],
+      "target": "polynomial-method",
+      "reviewed_by": "Codex, delegated by user on 2026-10-26",
+      "reason": "Both catalog entries identify the general polynomial-method family and share the exact POLYNOMIAL METHOD caption; their difference is subject and role.",
+      "evidence": {
+        "catalog_definition_evidence": [
+          {
+            "id": "comb-polynomial-method",
+            "label": "Polynomial method",
+            "subjects": [
+              "Combinatorics"
+            ],
+            "note": "",
+            "aliases": [
+              [
+                "canonical_subtopic",
+                "POLYNOMIAL METHOD"
+              ],
+              [
+                "technique",
+                "POLYNOMIAL METHOD"
+              ]
+            ],
+            "definition_sha256": "9be3ad8728c92fc0aae7d1c4cf5df2c57d272b6df714e6ee7bb269c3b25b296b"
+          },
+          {
+            "id": "polynomial-method",
+            "label": "Polynomial method",
+            "subjects": [
+              "Algebra"
+            ],
+            "note": "",
+            "aliases": [
+              [
+                "method",
+                "POLYNOMIAL METHOD"
+              ],
+              [
+                "technique",
+                "POLYNOMIAL METHOD"
+              ]
+            ],
+            "definition_sha256": "27c14aee08ebbbd81538d74279157b388b2ca5912e9ba99231b22431daa87e3d"
+          }
+        ],
+        "mapping_conditions": "This approves a common family, not equality of all polynomial techniques. Keep named lemmas and special applications separately.",
+        "approval_scope": "Identity equivalence only. No problem association is semantically approved by this merge.",
+        "source_artifact_sha256": "b85829d18e7830a510c0a1a2b44f96fee81efe0e18ca072a5df978b5db3d8826"
+      }
+    },
+    {
+      "sources": [
+        "comb-binomial-theorem"
+      ],
+      "target": "binomial-theorem",
+      "reviewed_by": "Codex, delegated by user on 2026-10-26",
+      "reason": "Both entries share the same Binomial theorem label and exact BINOMIAL THEOREM lemma/headline aliases, without a conflicting definition.",
+      "evidence": {
+        "catalog_definition_evidence": [
+          {
+            "id": "binomial-theorem",
+            "label": "Binomial theorem",
+            "subjects": [
+              "Algebra"
+            ],
+            "note": "",
+            "aliases": [
+              [
+                "lemma",
+                "BINOMIAL THEOREM"
+              ],
+              [
+                "technique",
+                "BINOMIAL THEOREM"
+              ]
+            ],
+            "definition_sha256": "c1ce4a8d47b67f365e317ae9d22a700a3a296708ebd0779f47b2f72861a7305b"
+          },
+          {
+            "id": "comb-binomial-theorem",
+            "label": "Binomial theorem",
+            "subjects": [
+              "Combinatorics"
+            ],
+            "note": "",
+            "aliases": [
+              [
+                "lemma",
+                "BINOMIAL THEOREM"
+              ],
+              [
+                "technique",
+                "BINOMIAL THEOREM"
+              ]
+            ],
+            "definition_sha256": "7b103b7d66f8d0a149392a73018f59acf6676125377ba52e4a2f58bd456e733a"
+          }
+        ],
+        "mapping_conditions": "Keep the q-binomial theorem, Gaussian-binomial identities and other explicitly generalized forms distinct.",
+        "approval_scope": "Identity equivalence only. No problem association is semantically approved by this merge.",
+        "source_artifact_sha256": "b85829d18e7830a510c0a1a2b44f96fee81efe0e18ca072a5df978b5db3d8826"
+      }
+    },
+    {
+      "sources": [
+        "nt-denominator-clearing"
+      ],
+      "target": "clearing-denominators",
+      "reviewed_by": "Codex, delegated by user on 2026-10-26",
+      "reason": "The Number Theory note defines the same algebraic operation and distinguishes denominator bounds. Both entries explicitly contain clearing denominators.",
+      "evidence": {
+        "catalog_definition_evidence": [
+          {
+            "id": "clearing-denominators",
+            "label": "Clearing denominators",
+            "subjects": [
+              "Algebra"
+            ],
+            "note": "",
+            "aliases": [
+              [
+                "method",
+                "CLEARING DENOMINATORS"
+              ],
+              [
+                "technique",
+                "CLEARING DENOMINATORS"
+              ]
+            ],
+            "definition_sha256": "cc7977c65cadb9683dcfccbab4580d88f60df6d28559ec36f552dfbe187922c3"
+          },
+          {
+            "id": "nt-denominator-clearing",
+            "label": "Clearing denominators",
+            "subjects": [
+              "Number Theory"
+            ],
+            "note": "Algebraic operation, distinct from a bound on denominators.",
+            "aliases": [
+              [
+                "method",
+                "Denominator clearing"
+              ],
+              [
+                "method",
+                "clearing denominators"
+              ],
+              [
+                "method",
+                "denominator clearing"
+              ],
+              [
+                "technique",
+                "CLEARING DENOMINATORS"
+              ],
+              [
+                "technique",
+                "Clearing denominators"
+              ],
+              [
+                "technique",
+                "DENOMINATOR CLEARING"
+              ],
+              [
+                "technique",
+                "Denominator clearing"
+              ],
+              [
+                "technique",
+                "denominator clearing"
+              ]
+            ],
+            "definition_sha256": "2afb1b979187db1acb22a77dbf2e158fce8fe98692c73e20744a5c7f9075aaa9"
+          }
+        ],
+        "mapping_conditions": "Preserve nonzero-denominator conditions and do not map denominator bounds to this operation.",
+        "approval_scope": "Identity equivalence only. No problem association is semantically approved by this merge.",
+        "source_artifact_sha256": "b85829d18e7830a510c0a1a2b44f96fee81efe0e18ca072a5df978b5db3d8826"
+      }
+    },
+    {
+      "sources": [
+        "comb-recurrence-relations"
+      ],
+      "target": "recurrences",
+      "reviewed_by": "Codex, delegated by user on 2026-10-26",
+      "reason": "Both entries name general recurrence relations and share RECURRENCE RELATION as a method. Neither defines the family as linear only.",
+      "evidence": {
+        "catalog_definition_evidence": [
+          {
+            "id": "comb-recurrence-relations",
+            "label": "Recurrence relations",
+            "subjects": [
+              "Combinatorics"
+            ],
+            "note": "",
+            "aliases": [
+              [
+                "canonical_subtopic",
+                "RECURRENCE"
+              ],
+              [
+                "method",
+                "RECURRENCE"
+              ],
+              [
+                "method",
+                "RECURRENCE RELATION"
+              ],
+              [
+                "technique",
+                "RECURRENCE RELATIONS"
+              ]
+            ],
+            "definition_sha256": "3a3b3774a3d568fc75e812c83b8083fdf348900aa125be20531392147a6eba26"
+          },
+          {
+            "id": "recurrences",
+            "label": "Recurrence relations",
+            "subjects": [
+              "Algebra"
+            ],
+            "note": "",
+            "aliases": [
+              [
+                "method",
+                "RECURRENCE IDENTITY"
+              ],
+              [
+                "method",
+                "RECURRENCE RELATION"
+              ],
+              [
+                "method",
+                "RECURSION"
+              ]
+            ],
+            "definition_sha256": "a9259f9d86559f9fa21952d481ab4a4b1c31a897d675c6975b6b196b2f1ceccd"
+          }
+        ],
+        "mapping_conditions": "Keep Linear recurrences as a specialization. Bare RECURSION needs a recurrence context rather than an arbitrary recursive algorithm.",
+        "approval_scope": "Identity equivalence only. No problem association is semantically approved by this merge.",
+        "source_artifact_sha256": "b85829d18e7830a510c0a1a2b44f96fee81efe0e18ca072a5df978b5db3d8826"
+      }
+    },
+    {
+      "sources": [
+        "comb-linear-recurrences"
+      ],
+      "target": "linear-recurrences",
+      "reviewed_by": "Codex, delegated by user on 2026-10-26",
+      "reason": "Both entries explicitly say Linear recurrences and have the general recurrence family as their parent. The parents are the same approved shared identity.",
+      "evidence": {
+        "catalog_definition_evidence": [
+          {
+            "id": "comb-linear-recurrences",
+            "label": "Linear recurrences",
+            "subjects": [
+              "Combinatorics"
+            ],
+            "note": "",
+            "aliases": [
+              [
+                "canonical_subtopic",
+                "LINEAR RECURRENCE"
+              ],
+              [
+                "technique",
+                "LINEAR RECURRENCES"
+              ]
+            ],
+            "definition_sha256": "f99916ed5237f87f39a528d524b4787806515ccb59490fbe4d714edea3800e7d"
+          },
+          {
+            "id": "linear-recurrences",
+            "label": "Linear recurrences",
+            "subjects": [
+              "Algebra"
+            ],
+            "note": "",
+            "aliases": [
+              [
+                "object",
+                "LINEAR RECURRENCE"
+              ],
+              [
+                "technique",
+                "LINEAR RECURRENCE"
+              ],
+              [
+                "technique",
+                "LINEAR RECURRENCES"
+              ],
+              [
+                "method",
+                "LINEAR RECURRENCE"
+              ]
+            ],
+            "definition_sha256": "b986ca3be8cdac6fd53d1c347a2951aa0b93d8f70b61b958ffcb9a7384cbb6e7"
+          }
+        ],
+        "mapping_conditions": "Retain the general recurrence parent, order/coefficient restrictions and nonlinear recurrences separately.",
+        "approval_scope": "Identity equivalence only. No problem association is semantically approved by this merge.",
+        "source_artifact_sha256": "b85829d18e7830a510c0a1a2b44f96fee81efe0e18ca072a5df978b5db3d8826"
+      }
+    },
+    {
+      "sources": [
+        "nt-lucas-sequences"
+      ],
+      "target": "lucas-sequences",
+      "reviewed_by": "Codex, delegated by user on 2026-10-26",
+      "reason": "Both entries identify Lucas sequences; the Number Theory note explicitly distinguishes the sequence family from Lucas binomial congruences.",
+      "evidence": {
+        "catalog_definition_evidence": [
+          {
+            "id": "lucas-sequences",
+            "label": "Lucas sequences",
+            "subjects": [
+              "Algebra"
+            ],
+            "note": "",
+            "aliases": [
+              [
+                "lemma",
+                "LUCAS SEQUENCE IDENTITIES"
+              ]
+            ],
+            "definition_sha256": "cd8b2d484ed7314d4b8ae3e2d4192e6ace074da3264c5f07016204cea319c31b"
+          },
+          {
+            "id": "nt-lucas-sequences",
+            "label": "Lucas sequences",
+            "subjects": [
+              "Number Theory"
+            ],
+            "note": "Sequence family, distinct from Lucas's binomial theorem.",
+            "aliases": [
+              [
+                "technique",
+                "Lucas sequences"
+              ]
+            ],
+            "definition_sha256": "6ee20357450b9ab9f639619461e50e9b3a3fe51ae088ea82b468c003a2fb0670"
+          }
+        ],
+        "mapping_conditions": "Keep comb-lucas-theorem separate and preserve recurrence parameters and sequence-specific identities.",
+        "approval_scope": "Identity equivalence only. No problem association is semantically approved by this merge.",
+        "source_artifact_sha256": "b85829d18e7830a510c0a1a2b44f96fee81efe0e18ca072a5df978b5db3d8826"
+      }
+    },
+    {
+      "sources": [
+        "comb-binomial-identities"
+      ],
+      "target": "binomial-sums",
+      "reviewed_by": "Codex, delegated by user on 2026-10-26",
+      "reason": "Both entries explicitly use the combined family Binomial sums and identities and both contain BINOMIAL SUM and BINOMIAL IDENTITY object aliases. This resolves the earlier concern about mismatched family scope.",
+      "evidence": {
+        "catalog_definition_evidence": [
+          {
+            "id": "binomial-sums",
+            "label": "Binomial sums and identities",
+            "subjects": [
+              "Algebra"
+            ],
+            "note": "",
+            "aliases": [
+              [
+                "object",
+                "BINOMIAL IDENTITY"
+              ],
+              [
+                "object",
+                "BINOMIAL SUM"
+              ],
+              [
+                "object",
+                "BINOMIAL SUMS"
+              ],
+              [
+                "technique",
+                "BINOMIAL IDENTITY"
+              ],
+              [
+                "technique",
+                "BINOMIAL SUMS"
+              ]
+            ],
+            "definition_sha256": "c0adda3a3166a413b88d55f6785c46f8dc93431bc823e5db18a556718e98be8c"
+          },
+          {
+            "id": "comb-binomial-identities",
+            "label": "Binomial sums and identities",
+            "subjects": [
+              "Combinatorics"
+            ],
+            "note": "",
+            "aliases": [
+              [
+                "method",
+                "BINOMIAL IDENTITIES"
+              ],
+              [
+                "object",
+                "BINOMIAL IDENTITY"
+              ],
+              [
+                "object",
+                "BINOMIAL SUM"
+              ],
+              [
+                "technique",
+                "BINOMIAL SUMS AND IDENTITIES"
+              ]
+            ],
+            "definition_sha256": "da65b3e14277644ccd0ada4e8f2eb2795855bcf4d15d061c80fe60ca9cebe5e2"
+          }
+        ],
+        "mapping_conditions": "The common parent includes both subfamilies; it does not assert that every sum is an identity. Preserve exact source captions and q-analog concepts.",
+        "approval_scope": "Identity equivalence only. No problem association is semantically approved by this merge.",
+        "source_artifact_sha256": "b85829d18e7830a510c0a1a2b44f96fee81efe0e18ca072a5df978b5db3d8826"
+      }
+    },
+    {
+      "sources": [
+        "nt-arithmetic-progressions"
+      ],
+      "target": "arithmetic-progressions",
+      "reviewed_by": "Codex, delegated by user on 2026-10-26",
+      "reason": "Both entries identify arithmetic progressions. The Number Theory note explicitly treats length three as an instance rather than a new identity.",
+      "evidence": {
+        "catalog_definition_evidence": [
+          {
+            "id": "arithmetic-progressions",
+            "label": "Arithmetic progressions",
+            "subjects": [
+              "Algebra"
+            ],
+            "note": "",
+            "aliases": [
+              [
+                "method",
+                "ARITHMETIC PROGRESSIONS"
+              ],
+              [
+                "technique",
+                "ARITHMETIC PROGRESSIONS"
+              ]
+            ],
+            "definition_sha256": "adecdca56b1d471c9862e44e82cad7d7b72b5222e03e895a1f61c2b31cdd54c8"
+          },
+          {
+            "id": "nt-arithmetic-progressions",
+            "label": "Arithmetic progressions",
+            "subjects": [
+              "Number Theory"
+            ],
+            "note": "A 3-term progression is a parameterized instance. Length 3 is a progression parameter; preserve the avoidance variant.",
+            "aliases": [
+              [
+                "canonical_subtopic",
+                "Arithmetic progressions"
+              ],
+              [
+                "object",
+                "arithmetic progressions"
+              ],
+              [
+                "technique",
+                "3-TERM AP"
+              ],
+              [
+                "technique",
+                "3-term AP"
+              ],
+              [
+                "technique",
+                "Arithmetic progressions"
+              ],
+              [
+                "technique",
+                "Three-term arithmetic progressions"
+              ],
+              [
+                "technique",
+                "arithmetic progressions"
+              ]
+            ],
+            "definition_sha256": "af95d2be0bb2f5a9c962834b54a416f2f75ce178d910c8ae9f225490de17f7bb"
+          }
+        ],
+        "mapping_conditions": "Keep length/common-difference parameters and progression-free/avoidance constraints in source context; do not merge avoidance problems with the progression object.",
+        "approval_scope": "Identity equivalence only. No problem association is semantically approved by this merge.",
+        "source_artifact_sha256": "b85829d18e7830a510c0a1a2b44f96fee81efe0e18ca072a5df978b5db3d8826"
+      }
+    },
+    {
+      "sources": [
+        "nt-geometric-progressions"
+      ],
+      "target": "geometric-progressions",
+      "reviewed_by": "Codex, delegated by user on 2026-10-26",
+      "reason": "Both entries identify geometric progressions, with the Number Theory note treating length three as a parameter and distinguishing arithmetic progressions.",
+      "evidence": {
+        "catalog_definition_evidence": [
+          {
+            "id": "geometric-progressions",
+            "label": "Geometric progressions",
+            "subjects": [
+              "Algebra"
+            ],
+            "note": "",
+            "aliases": [
+              [
+                "object",
+                "GEOMETRIC PROGRESSION"
+              ],
+              [
+                "technique",
+                "GEOMETRIC PROGRESSION"
+              ],
+              [
+                "technique",
+                "GEOMETRIC PROGRESSIONS"
+              ]
+            ],
+            "definition_sha256": "07530b10c83d336a0dbdf7053fde44fd3ed2ab4739a972b5e65d00e9ee681c6b"
+          },
+          {
+            "id": "nt-geometric-progressions",
+            "label": "Geometric progressions",
+            "subjects": [
+              "Number Theory"
+            ],
+            "note": "Distinct from arithmetic progressions. Length 3 is a progression parameter; preserve ratio/nonzero constraints.",
+            "aliases": [
+              [
+                "technique",
+                "3-term GP"
+              ],
+              [
+                "technique",
+                "GEOMETRIC PROGRESSIONS"
+              ],
+              [
+                "technique",
+                "Geometric progressions"
+              ],
+              [
+                "technique",
+                "Three-term geometric progressions"
+              ],
+              [
+                "technique",
+                "geometric progressions"
+              ]
+            ],
+            "definition_sha256": "b1eb6160d1a42713581e0df9986d61735e0b8c3faa1b9e29eb6b60cedb85774d"
+          }
+        ],
+        "mapping_conditions": "Preserve ratio, length and nonzero restrictions; do not merge arithmetic progressions.",
+        "approval_scope": "Identity equivalence only. No problem association is semantically approved by this merge.",
+        "source_artifact_sha256": "b85829d18e7830a510c0a1a2b44f96fee81efe0e18ca072a5df978b5db3d8826"
+      }
+    },
+    {
+      "sources": [
+        "nt-determinants"
+      ],
+      "target": "determinants",
+      "reviewed_by": "Codex, delegated by user on 2026-10-26",
+      "reason": "Number Theory explicitly defines its entry as a shared linear-algebra object. Algebra includes both the determinant object and its use as a technique.",
+      "evidence": {
+        "catalog_definition_evidence": [
+          {
+            "id": "determinants",
+            "label": "Determinants",
+            "subjects": [
+              "Algebra"
+            ],
+            "note": "",
+            "aliases": [
+              [
+                "method",
+                "DETERMINANT METHOD"
+              ],
+              [
+                "object",
+                "DETERMINANT"
+              ],
+              [
+                "technique",
+                "DETERMINANT"
+              ],
+              [
+                "technique",
+                "DETERMINANTS"
+              ]
+            ],
+            "definition_sha256": "780af99bbc9db15eb51fa367cea68d8e8b10e1ba4d265a5925b2bb7010c713fc"
+          },
+          {
+            "id": "nt-determinants",
+            "label": "Determinants",
+            "subjects": [
+              "Number Theory"
+            ],
+            "note": "Shared linear algebra object.",
+            "aliases": [
+              [
+                "object",
+                "Determinant"
+              ],
+              [
+                "object",
+                "determinant"
+              ],
+              [
+                "technique",
+                "Determinants"
+              ],
+              [
+                "technique",
+                "determinant"
+              ]
+            ],
+            "definition_sha256": "e302e0f136a5f058abd255d302aa56709093da564cbd323419f0237cc31988ff"
+          }
+        ],
+        "mapping_conditions": "Preserve roles. MATRIX METHOD and RANK do not become determinant synonyms; specialized determinant methods remain separately identifiable.",
+        "approval_scope": "Identity equivalence only. No problem association is semantically approved by this merge.",
+        "source_artifact_sha256": "b85829d18e7830a510c0a1a2b44f96fee81efe0e18ca072a5df978b5db3d8826"
+      }
+    },
+    {
+      "sources": [
+        "comb-group-actions"
+      ],
+      "target": "group-actions",
+      "reviewed_by": "Codex, delegated by user on 2026-10-26",
+      "reason": "Both entries refer to group actions and share GROUP ACTION method aliases. Algebra supplies the groups parent; the combinatorial use is an application of that same structure.",
+      "evidence": {
+        "catalog_definition_evidence": [
+          {
+            "id": "comb-group-actions",
+            "label": "Group actions",
+            "subjects": [
+              "Combinatorics"
+            ],
+            "note": "",
+            "aliases": [
+              [
+                "canonical_subtopic",
+                "GROUP ACTION"
+              ],
+              [
+                "method",
+                "GROUP ACTION"
+              ],
+              [
+                "technique",
+                "GROUP ACTIONS"
+              ]
+            ],
+            "definition_sha256": "5066cc05a187d7c1bb0c6564284146fc30cc49cf91ca03ebdd1b3ed96a334101"
+          },
+          {
+            "id": "group-actions",
+            "label": "Group actions",
+            "subjects": [
+              "Algebra"
+            ],
+            "note": "",
+            "aliases": [
+              [
+                "method",
+                "GROUP ACTION"
+              ],
+              [
+                "method",
+                "GROUP ACTIONS"
+              ],
+              [
+                "object",
+                "GROUP ACTION"
+              ],
+              [
+                "object",
+                "GROUP ACTIONS"
+              ],
+              [
+                "technique",
+                "GROUP ACTION"
+              ],
+              [
+                "technique",
+                "GROUP ACTIONS"
+              ]
+            ],
+            "definition_sha256": "c90f6240214e3e2c7b31ed7e713b83400c619a40c99f59b39dc900e5bf836a4b"
+          }
+        ],
+        "mapping_conditions": "Retain the groups parent, action hypotheses and special named results such as Burnside separately.",
+        "approval_scope": "Identity equivalence only. No problem association is semantically approved by this merge.",
+        "source_artifact_sha256": "b85829d18e7830a510c0a1a2b44f96fee81efe0e18ca072a5df978b5db3d8826"
+      }
+    },
+    {
+      "sources": [
+        "comb-functional-graphs"
+      ],
+      "target": "functional-graphs",
+      "reviewed_by": "Codex, delegated by user on 2026-10-26",
+      "reason": "The functional graph/digraph object and functional graph model are the same family across the two catalogs; the differing methods and objects are roles.",
+      "evidence": {
+        "catalog_definition_evidence": [
+          {
+            "id": "comb-functional-graphs",
+            "label": "Functional graphs",
+            "subjects": [
+              "Combinatorics"
+            ],
+            "note": "",
+            "aliases": [
+              [
+                "method",
+                "FUNCTIONAL GRAPH MODEL"
+              ],
+              [
+                "object",
+                "FUNCTIONAL DIGRAPH"
+              ],
+              [
+                "technique",
+                "FUNCTIONAL DIGRAPH"
+              ],
+              [
+                "technique",
+                "FUNCTIONAL GRAPHS"
+              ]
+            ],
+            "definition_sha256": "38d068d02160b87ca3ccb72dadcb0b3ad25f31feecac3ef83816414086421387"
+          },
+          {
+            "id": "functional-graphs",
+            "label": "Functional graphs",
+            "subjects": [
+              "Algebra"
+            ],
+            "note": "",
+            "aliases": [
+              [
+                "object",
+                "FUNCTIONAL GRAPH"
+              ],
+              [
+                "technique",
+                "FUNCTIONAL GRAPH"
+              ]
+            ],
+            "definition_sha256": "ce9f11913cdcec04e2a51054bbda3648c61074ddce1c969bb5b2958241b86dd6"
+          }
+        ],
+        "mapping_conditions": "Keep the endomorphism, finite-set and component restrictions in the source. Do not merge general graph theory or unrelated functional equations.",
+        "approval_scope": "Identity equivalence only. No problem association is semantically approved by this merge.",
+        "source_artifact_sha256": "b85829d18e7830a510c0a1a2b44f96fee81efe0e18ca072a5df978b5db3d8826"
+      }
+    },
+    {
+      "sources": [
+        "nt-case-analysis"
+      ],
+      "target": "case-analysis",
+      "reviewed_by": "Codex, delegated by user on 2026-10-26",
+      "reason": "Number Theory explicitly describes a shared proof strategy and says role tags must not create separate mathematical concepts. The Algebra entry is that same strategy.",
+      "evidence": {
+        "catalog_definition_evidence": [
+          {
+            "id": "case-analysis",
+            "label": "Case analysis",
+            "subjects": [
+              "Algebra"
+            ],
+            "note": "",
+            "aliases": [
+              [
+                "method",
+                "CASE CONTROL"
+              ],
+              [
+                "method",
+                "CASE SPLIT"
+              ],
+              [
+                "object",
+                "CASEWORK"
+              ],
+              [
+                "proof_role",
+                "CASE ANALYSIS"
+              ],
+              [
+                "proof_role",
+                "CASEWORK"
+              ]
+            ],
+            "definition_sha256": "734af3201c15a49edeea987e29441b9f315bceaf565c6269c11b3ae8f3dc895f"
+          },
+          {
+            "id": "nt-case-analysis",
+            "label": "Case analysis",
+            "subjects": [
+              "Number Theory"
+            ],
+            "note": "Shared proof strategy; do not count role tags as separate mathematical concepts.",
+            "aliases": [
+              [
+                "method",
+                "Case chasing"
+              ],
+              [
+                "method",
+                "Case check"
+              ],
+              [
+                "method",
+                "case chasing"
+              ],
+              [
+                "method",
+                "case check"
+              ],
+              [
+                "object",
+                "Cases"
+              ],
+              [
+                "object",
+                "cases"
+              ],
+              [
+                "proof_role",
+                "Case reduction"
+              ],
+              [
+                "proof_role",
+                "Case verification"
+              ],
+              [
+                "proof_role",
+                "case analysis"
+              ],
+              [
+                "proof_role",
+                "case reduction"
+              ],
+              [
+                "proof_role",
+                "case verification"
+              ],
+              [
+                "technique",
+                "CASE CHECK"
+              ],
+              [
+                "technique",
+                "CASE-CHASING"
+              ],
+              [
+                "technique",
+                "Case analysis"
+              ],
+              [
+                "technique",
+                "Case chasing"
+              ],
+              [
+                "technique",
+                "Case check"
+              ],
+              [
+                "technique",
+                "case chasing"
+              ],
+              [
+                "technique",
+                "case check"
+              ],
+              [
+                "technique",
+                "case reduction"
+              ],
+              [
+                "technique",
+                "case verification"
+              ],
+              [
+                "technique",
+                "cases"
+              ]
+            ],
+            "definition_sha256": "aa0da0321fbffb2694355a4dbc2a855ff9b3b0fce99bec1cb755e338fde5b0e3"
+          }
+        ],
+        "mapping_conditions": "Record case split/check/reduction as roles or source details, rather than counting each caption separately.",
+        "approval_scope": "Identity equivalence only. No problem association is semantically approved by this merge.",
+        "source_artifact_sha256": "b85829d18e7830a510c0a1a2b44f96fee81efe0e18ca072a5df978b5db3d8826"
+      }
+    },
+    {
+      "sources": [
+        "comb-induction"
+      ],
+      "target": "induction",
+      "reviewed_by": "Codex, delegated by user on 2026-10-26",
+      "reason": "Both entries identify Mathematical induction and share INDUCTION method aliases, with no incompatible definition.",
+      "evidence": {
+        "catalog_definition_evidence": [
+          {
+            "id": "comb-induction",
+            "label": "Mathematical induction",
+            "subjects": [
+              "Combinatorics"
+            ],
+            "note": "",
+            "aliases": [
+              [
+                "canonical_subtopic",
+                "INDUCTION"
+              ],
+              [
+                "method",
+                "INDUCTION"
+              ],
+              [
+                "technique",
+                "MATHEMATICAL INDUCTION"
+              ]
+            ],
+            "definition_sha256": "ef5c46ed6c6012b503ec1aa646cf7b243649e09331eeebb5be0aa64b6cd77a1f"
+          },
+          {
+            "id": "induction",
+            "label": "Mathematical induction",
+            "subjects": [
+              "Algebra"
+            ],
+            "note": "",
+            "aliases": [
+              [
+                "method",
+                "INDUCTION"
+              ],
+              [
+                "object",
+                "INDUCTION"
+              ],
+              [
+                "technique",
+                "INDUCTION"
+              ]
+            ],
+            "definition_sha256": "a994254a96b17eaa4d0ff86a7ac68d8871c844c083d1247ec6fd19cf4dfd5f07"
+          }
+        ],
+        "mapping_conditions": "Keep tree, constructive, backward and other specialized induction concepts separately accessible; retain parent links through the redirect.",
+        "approval_scope": "Identity equivalence only. No problem association is semantically approved by this merge.",
+        "source_artifact_sha256": "b85829d18e7830a510c0a1a2b44f96fee81efe0e18ca072a5df978b5db3d8826"
+      }
+    },
+    {
+      "sources": [
+        "comb-invariants"
+      ],
+      "target": "invariants",
+      "reviewed_by": "Codex, delegated by user on 2026-10-26",
+      "reason": "Both entries share INVARIANT/INVARIANT ARGUMENT methods; Algebra also explicitly identifies a conserved quantity. Their object, method and proof-role differences do not require separate identities.",
+      "evidence": {
+        "catalog_definition_evidence": [
+          {
+            "id": "comb-invariants",
+            "label": "Invariants",
+            "subjects": [
+              "Combinatorics"
+            ],
+            "note": "",
+            "aliases": [
+              [
+                "canonical_subtopic",
+                "INVARIANT"
+              ],
+              [
+                "canonical_subtopic",
+                "PROCESS INVARIANT"
+              ],
+              [
+                "method",
+                "INVARIANT"
+              ],
+              [
+                "method",
+                "INVARIANT ARGUMENT"
+              ],
+              [
+                "method",
+                "INVARIANTS"
+              ],
+              [
+                "method",
+                "PROCESS INVARIANT"
+              ],
+              [
+                "technique",
+                "INVARIANTS"
+              ]
+            ],
+            "definition_sha256": "88a2743840a6e655915dec90a471ad47f2a595ee647a3b51923da2cf3f63a0af"
+          },
+          {
+            "id": "invariants",
+            "label": "Invariants",
+            "subjects": [
+              "Algebra"
+            ],
+            "note": "",
+            "aliases": [
+              [
+                "method",
+                "CONSERVED QUANTITY"
+              ],
+              [
+                "method",
+                "INVARIANT"
+              ],
+              [
+                "method",
+                "INVARIANT ARGUMENT"
+              ],
+              [
+                "method",
+                "INVARIANTS"
+              ],
+              [
+                "object",
+                "INVARIANT"
+              ],
+              [
+                "proof_role",
+                "INVARIANT"
+              ],
+              [
+                "technique",
+                "INVARIANT"
+              ],
+              [
+                "technique",
+                "INVARIANTS"
+              ]
+            ],
+            "definition_sha256": "f45f868a010a1afc0b6d1dacfb9908188c35a4a3f96b352d7b99e341135e2550"
+          }
+        ],
+        "mapping_conditions": "Do not merge monotonicity/monovariants into conserved invariants; preserve the particular invariant used in each proof.",
+        "approval_scope": "Identity equivalence only. No problem association is semantically approved by this merge.",
+        "source_artifact_sha256": "b85829d18e7830a510c0a1a2b44f96fee81efe0e18ca072a5df978b5db3d8826"
+      }
+    },
+    {
+      "sources": [
+        "comb-pigeonhole-principle",
+        "nt-pigeonhole"
+      ],
+      "target": "pigeonhole",
+      "reviewed_by": "Codex, delegated by user on 2026-10-26",
+      "reason": "All three entries name Pigeonhole principle. The Number Theory note explicitly ties its Dirichlet wording to the pigeonhole family, and Combinatorics supplies matching method aliases.",
+      "evidence": {
+        "catalog_definition_evidence": [
+          {
+            "id": "comb-pigeonhole-principle",
+            "label": "Pigeonhole principle",
+            "subjects": [
+              "Combinatorics"
+            ],
+            "note": "",
+            "aliases": [
+              [
+                "lemma",
+                "DIRICHLET PRINCIPLE"
+              ],
+              [
+                "method",
+                "PIGEONHOLE"
+              ],
+              [
+                "method",
+                "PIGEONHOLE PRINCIPLE"
+              ],
+              [
+                "technique",
+                "PIGEONHOLE PRINCIPLE"
+              ]
+            ],
+            "definition_sha256": "52cbe5292682b33e8af3bdb47e4c950ae08bf2a561efbd2acb07ecbf611f7bef"
+          },
+          {
+            "id": "nt-pigeonhole",
+            "label": "Pigeonhole principle",
+            "subjects": [
+              "Number Theory"
+            ],
+            "note": "Dirichlet principle/style here has explicit pigeonhole family context.",
+            "aliases": [
+              [
+                "lemma",
+                "Dirichlet principle"
+              ],
+              [
+                "method",
+                "Pigeonhole"
+              ],
+              [
+                "method",
+                "pigeonhole"
+              ],
+              [
+                "method",
+                "pigeonhole principle"
+              ],
+              [
+                "proof_role",
+                "Pigeonhole"
+              ],
+              [
+                "proof_role",
+                "pigeonhole"
+              ],
+              [
+                "technique",
+                "DIRICHLET-STYLE ARGUMENT"
+              ],
+              [
+                "technique",
+                "Dirichlet principle"
+              ],
+              [
+                "technique",
+                "Dirichlet-style argument"
+              ],
+              [
+                "technique",
+                "Pigeonhole principle"
+              ],
+              [
+                "technique",
+                "pigeonhole"
+              ]
+            ],
+            "definition_sha256": "33f4dc73942fde483a7f2fd4ae37b2e0d38bf8cf3fe567c776b6440b17ce0c81"
+          },
+          {
+            "id": "pigeonhole",
+            "label": "Pigeonhole principle",
+            "subjects": [
+              "Algebra"
+            ],
+            "note": "",
+            "aliases": [],
+            "definition_sha256": "79d0fe9c27215e35d0641328f07aea36589ed18846a03537d818ff1ea3c59df2"
+          }
+        ],
+        "mapping_conditions": "Preserve quantitative variants. Do not introduce a global bare Dirichlet alias outside the already witnessed pigeonhole context.",
+        "approval_scope": "Identity equivalence only. No problem association is semantically approved by this merge.",
+        "source_artifact_sha256": "b85829d18e7830a510c0a1a2b44f96fee81efe0e18ca072a5df978b5db3d8826"
+      }
+    },
+    {
+      "sources": [
+        "comb-frobenius-coin"
+      ],
+      "target": "nt-frobenius-coin",
+      "reviewed_by": "Codex, delegated by user on 2026-10-26",
+      "reason": "Both entries explicitly name the Frobenius coin problem; the Number Theory note excludes the Frobenius map in finite fields.",
+      "evidence": {
+        "catalog_definition_evidence": [
+          {
+            "id": "comb-frobenius-coin",
+            "label": "Frobenius coin problem",
+            "subjects": [
+              "Combinatorics"
+            ],
+            "note": "",
+            "aliases": [
+              [
+                "lemma",
+                "FROBENIUS COIN PROBLEM"
+              ],
+              [
+                "technique",
+                "FROBENIUS COIN PROBLEM"
+              ]
+            ],
+            "definition_sha256": "41b81b3155dea8045cdc72ced952765468d8fc63b6be6546dd5e42fdd85d3bc0"
+          },
+          {
+            "id": "nt-frobenius-coin",
+            "label": "Frobenius coin problem",
+            "subjects": [
+              "Number Theory"
+            ],
+            "note": "Keep distinct from the Frobenius map in finite fields.",
+            "aliases": [
+              [
+                "lemma",
+                "Frobenius coin theorem"
+              ],
+              [
+                "object",
+                "Coin representation"
+              ],
+              [
+                "object",
+                "coin representation"
+              ],
+              [
+                "technique",
+                "FROBENIUS COIN PROBLEM"
+              ],
+              [
+                "technique",
+                "Frobenius coin problem"
+              ],
+              [
+                "technique",
+                "Frobenius coin theorem"
+              ],
+              [
+                "technique",
+                "coin representation"
+              ]
+            ],
+            "definition_sha256": "006ebbe5f4bebdcb52ed99972bbb4ba09cfb540067560a289f1c28979ef6128f"
+          }
+        ],
+        "mapping_conditions": "Retain denomination/coprimality hypotheses and distinguish the two-coin theorem from the general problem family in source roles.",
+        "approval_scope": "Identity equivalence only. No problem association is semantically approved by this merge.",
+        "source_artifact_sha256": "b85829d18e7830a510c0a1a2b44f96fee81efe0e18ca072a5df978b5db3d8826"
+      }
+    },
+    {
+      "sources": [
+        "nt-automatic-sequences"
+      ],
+      "target": "comb-automatic-sequences",
+      "reviewed_by": "Codex, delegated by user on 2026-10-26",
+      "reason": "Both entries identify automatic sequences. The Number Theory note explicitly retains Thue-Morse as an example, rather than a synonym for every sequence in the family.",
+      "evidence": {
+        "catalog_definition_evidence": [
+          {
+            "id": "comb-automatic-sequences",
+            "label": "Automatic sequences",
+            "subjects": [
+              "Combinatorics"
+            ],
+            "note": "",
+            "aliases": [
+              [
+                "canonical_subtopic",
+                "AUTOMATIC SEQUENCE"
+              ],
+              [
+                "technique",
+                "AUTOMATIC SEQUENCES"
+              ]
+            ],
+            "definition_sha256": "63ac13d0f277ec0907cba51bf124f7a5e6d7dbf9b131a488f95558d810947c08"
+          },
+          {
+            "id": "nt-automatic-sequences",
+            "label": "Automatic sequences",
+            "subjects": [
+              "Number Theory"
+            ],
+            "note": "Thue-Morse retained as an example, not equated with every automatic sequence.",
+            "aliases": [
+              [
+                "technique",
+                "Automatic sequences"
+              ],
+              [
+                "technique",
+                "Thue-Morse / automatic sequences, when used arithmetically"
+              ]
+            ],
+            "definition_sha256": "a713fa87c88899d9cd9e554d2616729643e429f82dcad3f041395c503fbea066"
+          }
+        ],
+        "mapping_conditions": "Retain the base, automaton and sequence example; do not equate the whole family with Thue-Morse.",
+        "approval_scope": "Identity equivalence only. No problem association is semantically approved by this merge.",
+        "source_artifact_sha256": "b85829d18e7830a510c0a1a2b44f96fee81efe0e18ca072a5df978b5db3d8826"
+      }
+    },
+    {
+      "sources": [
+        "nt-van-der-waerden"
+      ],
+      "target": "comb-van-der-waerden",
+      "reviewed_by": "Codex, delegated by user on 2026-10-26",
+      "reason": "Both entries name the same arithmetic-progression theorem. Their subject differences do not define different theorems.",
+      "evidence": {
+        "catalog_definition_evidence": [
+          {
+            "id": "comb-van-der-waerden",
+            "label": "Van der Waerden's theorem",
+            "subjects": [
+              "Combinatorics"
+            ],
+            "note": "",
+            "aliases": [
+              [
+                "lemma",
+                "VAN DER WAERDEN"
+              ],
+              [
+                "technique",
+                "VAN DER WAERDEN'S THEOREM"
+              ]
+            ],
+            "definition_sha256": "4c9bb42a6d84bdc7203c46a01ee2314a80ccbde1817e632350641c79adbbd2a5"
+          },
+          {
+            "id": "nt-van-der-waerden",
+            "label": "Van der Waerden's theorem",
+            "subjects": [
+              "Number Theory"
+            ],
+            "note": "Source connection; theorem hypotheses remain context.",
+            "aliases": [
+              [
+                "technique",
+                "Van der Waerden's theorem"
+              ],
+              [
+                "technique",
+                "van der Waerden flavor"
+              ]
+            ],
+            "definition_sha256": "d6d095caef85d1d1c95e7c493a6155a5001a8fc007b2adb2ec12bf75268819cc"
+          }
+        ],
+        "mapping_conditions": "Keep hypotheses. The caption van der Waerden flavor is a contextual hint, not automatic confirmation that the theorem applies.",
+        "approval_scope": "Identity equivalence only. No problem association is semantically approved by this merge.",
+        "source_artifact_sha256": "b85829d18e7830a510c0a1a2b44f96fee81efe0e18ca072a5df978b5db3d8826"
+      }
+    },
+    {
+      "sources": [
+        "comb-stern-brocot-tree"
+      ],
+      "target": "nt-stern-brocot",
+      "reviewed_by": "Codex, delegated by user on 2026-10-26",
+      "reason": "Combinatorics defines the mediant tree of positive reduced rationals. Number Theory names the same tree and explicitly keeps the Farey sequence distinct.",
+      "evidence": {
+        "catalog_definition_evidence": [
+          {
+            "id": "comb-stern-brocot-tree",
+            "label": "Stern-Brocot tree",
+            "subjects": [
+              "Combinatorics"
+            ],
+            "note": "The mediant tree of positive reduced rationals.",
+            "aliases": [
+              [
+                "lemma",
+                "STERN-BROCOT TREE"
+              ],
+              [
+                "technique",
+                "STERN-BROCOT TREE"
+              ]
+            ],
+            "definition_sha256": "8c26b53311d015e3045d1600c530b91da4613f74ef06fdce47f64f8c54df109c"
+          },
+          {
+            "id": "nt-stern-brocot",
+            "label": "Stern-Brocot tree",
+            "subjects": [
+              "Number Theory"
+            ],
+            "note": "Distinct from the Farey sequence itself.",
+            "aliases": [
+              [
+                "lemma",
+                "Stern-Brocot tree"
+              ],
+              [
+                "object",
+                "Stern-Brocot tree"
+              ],
+              [
+                "technique",
+                "Stern-Brocot tree"
+              ]
+            ],
+            "definition_sha256": "9c678e7cb993fb561224da74059f7c255e3417ee58d6db4fad2a825697b809e3"
+          }
+        ],
+        "mapping_conditions": "Retain Farey sequences/fractions separately; preserve positive/reduced/mediant construction details.",
+        "approval_scope": "Identity equivalence only. No problem association is semantically approved by this merge.",
+        "source_artifact_sha256": "b85829d18e7830a510c0a1a2b44f96fee81efe0e18ca072a5df978b5db3d8826"
+      }
+    },
+    {
+      "sources": [
+        "comb-sylvester-gallai"
+      ],
+      "target": "geo-sylvester-gallai",
+      "reviewed_by": "Codex, delegated by user on 2026-10-26",
+      "reason": "Both entries explicitly identify the Sylvester-Gallai theorem; Geometry notes that the original applicability qualifier must remain.",
+      "evidence": {
+        "catalog_definition_evidence": [
+          {
+            "id": "comb-sylvester-gallai",
+            "label": "Sylvester-Gallai theorem",
+            "subjects": [
+              "Combinatorics"
+            ],
+            "note": "",
+            "aliases": [
+              [
+                "lemma",
+                "SYLVESTER-GALLAI WHEN APPLICABLE"
+              ],
+              [
+                "technique",
+                "SYLVESTER-GALLAI THEOREM"
+              ]
+            ],
+            "definition_sha256": "a1681ee2ca3cca40220495e2186ed7f1d66393c05e4f2af05f30d61c7afcd30e"
+          },
+          {
+            "id": "geo-sylvester-gallai",
+            "label": "Sylvester-Gallai theorem",
+            "subjects": [
+              "Geometry"
+            ],
+            "note": "Observed incidence theorem label; retain the source applicability qualifier.",
+            "aliases": [
+              [
+                "technique",
+                "sylvester gallai theorem"
+              ],
+              [
+                "technique",
+                "Sylvester-Gallai theorem"
+              ]
+            ],
+            "definition_sha256": "dcbbfa1be5ab7c0020cdb6d49bcbf743ac18e6cfde67cf4a24e38cf90fe655e0"
+          }
+        ],
+        "mapping_conditions": "Keep real-plane/geometric hypotheses. WHEN APPLICABLE remains a condition, not evidence that a problem satisfies it.",
+        "approval_scope": "Identity equivalence only. No problem association is semantically approved by this merge.",
+        "source_artifact_sha256": "b85829d18e7830a510c0a1a2b44f96fee81efe0e18ca072a5df978b5db3d8826"
+      }
+    },
+    {
+      "sources": [
+        "geo-tilings"
+      ],
+      "target": "comb-tilings",
+      "reviewed_by": "Codex, delegated by user on 2026-10-26",
+      "reason": "Both entries explicitly identify the general tiling family and share TILING object/method aliases. Geometry excludes arbitrary coverings and packings rather than defining a different tiling operation.",
+      "evidence": {
+        "catalog_definition_evidence": [
+          {
+            "id": "comb-tilings",
+            "label": "Tilings",
+            "subjects": [
+              "Combinatorics"
+            ],
+            "note": "",
+            "aliases": [
+              [
+                "canonical_subtopic",
+                "TILING"
+              ],
+              [
+                "method",
+                "TILING"
+              ],
+              [
+                "object",
+                "TILING"
+              ],
+              [
+                "object",
+                "TILINGS"
+              ],
+              [
+                "technique",
+                "TILINGS"
+              ]
+            ],
+            "definition_sha256": "55b70483d7e7913ef5728cafc4f3387c689e089b1658c2dba25f1524edb9871b"
+          },
+          {
+            "id": "geo-tilings",
+            "label": "Tilings",
+            "subjects": [
+              "Geometry"
+            ],
+            "note": "An observed geometric covering-by-pieces concept; not a synonym of arbitrary coverings or packings.",
+            "aliases": [
+              [
+                "method",
+                "TILING"
+              ],
+              [
+                "object",
+                "TILING"
+              ],
+              [
+                "technique",
+                "tiling"
+              ],
+              [
+                "technique",
+                "tilings"
+              ]
+            ],
+            "definition_sha256": "c9f37be0bc2529f0f21353af175ce70b3170e9463949b6475c1665d3f8f85c89"
+          }
+        ],
+        "mapping_conditions": "Preserve tile, region, overlap/coverage and geometric restrictions. Packings, coverings and restricted tiling subfamilies remain distinct.",
+        "approval_scope": "Identity equivalence only. No problem association is semantically approved by this merge.",
+        "source_artifact_sha256": "b85829d18e7830a510c0a1a2b44f96fee81efe0e18ca072a5df978b5db3d8826"
+      }
+    },
+    {
+      "sources": [
+        "geo-euler-characteristic"
+      ],
+      "target": "comb-euler-characteristic",
+      "reviewed_by": "Codex, delegated by user on 2026-10-26",
+      "reason": "Both entries identify Euler characteristic as the topological invariant. Geometry explicitly holds bare Euler formulas apart from that identity.",
+      "evidence": {
+        "catalog_definition_evidence": [
+          {
+            "id": "comb-euler-characteristic",
+            "label": "Euler characteristic",
+            "subjects": [
+              "Combinatorics"
+            ],
+            "note": "",
+            "aliases": [
+              [
+                "canonical_subtopic",
+                "EULER CHARACTERISTIC"
+              ],
+              [
+                "lemma",
+                "EULER CHARACTERISTIC"
+              ],
+              [
+                "method",
+                "EULER CHARACTERISTIC"
+              ],
+              [
+                "technique",
+                "EULER CHARACTERISTIC"
+              ]
+            ],
+            "definition_sha256": "d933d3a494e5178f5635c21a1cb558a8f9dab25b8d3051de5063709bf61a354a"
+          },
+          {
+            "id": "geo-euler-characteristic",
+            "label": "Euler characteristic",
+            "subjects": [
+              "Geometry"
+            ],
+            "note": "Observed topological invariant; bare Euler formula/relation remains ambiguous.",
+            "aliases": [
+              [
+                "method",
+                "EULER CHARACTERISTIC"
+              ],
+              [
+                "technique",
+                "EULER CHARACTERISTIC"
+              ]
+            ],
+            "definition_sha256": "91deb3dfe509cd7435f38e375160a0f28f09a3c3eb46c4c3d24f54e89398f5a5"
+          }
+        ],
+        "mapping_conditions": "Keep planar/arrangement/polyhedron formulas and number-theoretic Euler results distinct; do not accept a bare Euler caption automatically.",
+        "approval_scope": "Identity equivalence only. No problem association is semantically approved by this merge.",
+        "source_artifact_sha256": "b85829d18e7830a510c0a1a2b44f96fee81efe0e18ca072a5df978b5db3d8826"
+      }
+    },
+    {
+      "sources": [
+        "comb-am-gm"
+      ],
+      "target": "am-gm",
+      "reviewed_by": "Codex, delegated by user on 2026-10-26",
+      "reason": "Both entries contain the exact AM-GM lemma and method aliases. The added word inequality in the Combinatorics display name does not define another result.",
+      "evidence": {
+        "catalog_definition_evidence": [
+          {
+            "id": "am-gm",
+            "label": "AM-GM",
+            "subjects": [
+              "Algebra"
+            ],
+            "note": "",
+            "aliases": [
+              [
+                "lemma",
+                "AM-GM"
+              ],
+              [
+                "method",
+                "AM-GM"
+              ],
+              [
+                "technique",
+                "AM-GM"
+              ]
+            ],
+            "definition_sha256": "f79d2a6d3547605aab75d8e9ade661f4f5cff9ab640a41655679caec89571da9"
+          },
+          {
+            "id": "comb-am-gm",
+            "label": "AM-GM inequality",
+            "subjects": [
+              "Combinatorics"
+            ],
+            "note": "",
+            "aliases": [
+              [
+                "lemma",
+                "AM-GM"
+              ],
+              [
+                "lemma",
+                "AM-GM INEQUALITY"
+              ],
+              [
+                "method",
+                "AM-GM"
+              ],
+              [
+                "method",
+                "AM-GM METHOD"
+              ],
+              [
+                "technique",
+                "AM-GM INEQUALITY"
+              ],
+              [
+                "technique",
+                "AM-GM TECHNIQUE"
+              ]
+            ],
+            "definition_sha256": "4ac62985c1cf5942c4ea0a0f0ef3fad08ad1a7375a6153474da503b0e7c462bc"
+          }
+        ],
+        "mapping_conditions": "Retain weighted AM-GM as a specialization and preserve method/lemma roles; a general inequality statement alone does not prove use of AM-GM.",
+        "approval_scope": "Identity equivalence only. No problem association is semantically approved by this merge.",
+        "source_artifact_sha256": "b85829d18e7830a510c0a1a2b44f96fee81efe0e18ca072a5df978b5db3d8826"
+      }
+    },
+    {
+      "sources": [
+        "comb-cauchy-schwarz"
+      ],
+      "target": "cauchy-schwarz",
+      "reviewed_by": "Codex, delegated by user on 2026-10-26",
+      "reason": "Both entries share CAUCHY-SCHWARZ lemma/method aliases. Method, object and inequality wording identify the same mathematical result.",
+      "evidence": {
+        "catalog_definition_evidence": [
+          {
+            "id": "cauchy-schwarz",
+            "label": "CAUCHY-SCHWARZ",
+            "subjects": [
+              "Algebra"
+            ],
+            "note": "",
+            "aliases": [
+              [
+                "lemma",
+                "CAUCHY"
+              ],
+              [
+                "lemma",
+                "CAUCHY WHEN APPLICABLE"
+              ],
+              [
+                "lemma",
+                "CAUCHY-SCHWARZ"
+              ],
+              [
+                "method",
+                "CAUCHY"
+              ],
+              [
+                "method",
+                "CAUCHY-SCHWARZ"
+              ]
+            ],
+            "definition_sha256": "f1beebe55ef188a7abacf7ee8beb7e874d3c492cac0910b735157bf96f9961ed"
+          },
+          {
+            "id": "comb-cauchy-schwarz",
+            "label": "Cauchy-Schwarz inequality",
+            "subjects": [
+              "Combinatorics"
+            ],
+            "note": "",
+            "aliases": [
+              [
+                "lemma",
+                "CAUCHY WHEN APPLICABLE"
+              ],
+              [
+                "lemma",
+                "CAUCHY-SCHWARZ"
+              ],
+              [
+                "lemma",
+                "CAUCHY-SCHWARZ INEQUALITY"
+              ],
+              [
+                "method",
+                "CAUCHY METHOD"
+              ],
+              [
+                "method",
+                "CAUCHY-SCHWARZ"
+              ],
+              [
+                "method",
+                "CAUCHY-SCHWARZ METHOD"
+              ],
+              [
+                "object",
+                "CAUCHY-SCHWARZ"
+              ],
+              [
+                "technique",
+                "CAUCHY-SCHWARZ INEQUALITY"
+              ]
+            ],
+            "definition_sha256": "6135f6bd23b7d7b92cd2ae577198a658e025bf305a30950a65c18e7f9d8b015e"
+          }
+        ],
+        "mapping_conditions": "Keep Engel/Titu as a specialization; do not absorb Cauchy additive equations, Cauchy-Davenport or an unqualified Cauchy caption outside its scoped binding.",
+        "approval_scope": "Identity equivalence only. No problem association is semantically approved by this merge.",
+        "source_artifact_sha256": "b85829d18e7830a510c0a1a2b44f96fee81efe0e18ca072a5df978b5db3d8826"
+      }
+    },
+    {
+      "sources": [
+        "comb-ham-sandwich"
+      ],
+      "target": "geo-ham-sandwich",
+      "reviewed_by": "Codex, delegated by user on 2026-10-26",
+      "reason": "Geometry and Combinatorics explicitly name the Ham-sandwich theorem. The hyphen and method-versus-lemma roles do not change the theorem.",
+      "evidence": {
+        "catalog_definition_evidence": [
+          {
+            "id": "geo-ham-sandwich",
+            "label": "Ham-sandwich theorem",
+            "subjects": [
+              "Geometry"
+            ],
+            "note": "Explicit geometric bisection theorem labels.",
+            "aliases": [
+              [
+                "technique",
+                "ham sandwich theorem"
+              ],
+              [
+                "technique",
+                "Ham-sandwich theorem"
+              ]
+            ],
+            "definition_sha256": "67fcf25e573645457e925b843a3bd9bcb018444d8df8ea89b0b64b105614d17a"
+          },
+          {
+            "id": "comb-ham-sandwich",
+            "label": "Ham sandwich theorem",
+            "subjects": [
+              "Combinatorics"
+            ],
+            "note": "",
+            "aliases": [
+              [
+                "lemma",
+                "HAM SANDWICH THEOREM"
+              ],
+              [
+                "technique",
+                "HAM SANDWICH THEOREM"
+              ]
+            ],
+            "definition_sha256": "460f455e9487b51f3a8ba23d6315209cc061cf784535b52bf070f91c04517af5"
+          }
+        ],
+        "mapping_conditions": "Preserve dimension, measure and applicability hypotheses; do not conflate it with arbitrary simultaneous bisection tasks.",
+        "approval_scope": "Identity equivalence only. No problem association is semantically approved by this merge.",
+        "source_artifact_sha256": "b85829d18e7830a510c0a1a2b44f96fee81efe0e18ca072a5df978b5db3d8826"
+      }
+    }
+  ],
+  "proposals": [
+    {
+      "sources": [
+        "nt-rounding"
+      ],
+      "target": "nearest-integer",
+      "status": "scope_review",
+      "reason": "Rounding is broader than nearest-integer rounding. The Number Theory note only fixes ties and excludes arbitrary floor manipulation; it does not establish equivalence with the narrower Algebra label.",
+      "conditions": "Keep general rounding and nearest-integer specializations distinguishable; do not approve ROUNDING without identifying the operation.",
+      "reviewed_by": "Codex, delegated by user on 2026-10-26"
+    },
+    {
+      "sources": [
+        "log-concavity"
+      ],
+      "target": "comb-log-concavity",
+      "status": "scope_review",
+      "reason": "Combinatorics explicitly defines nonnegative sequences. The Algebra entry is unqualified and has no source aliases establishing a sequence restriction.",
+      "conditions": "Resolve sequence versus function scope before combining; the same displayed name is insufficient.",
+      "reviewed_by": "Codex, delegated by user on 2026-10-26"
+    },
+    {
+      "sources": [
+        "generating-functions"
+      ],
+      "target": "comb-generating-functions",
+      "status": "scope_review",
+      "reason": "The Algebra parent currently absorbs EXPONENTIAL GENERATING FUNCTIONS; the Combinatorics entry is a general generating-function family. There is no distinct exponential specialization in the current registry.",
+      "conditions": "Define the generic parent and ordinary/exponential specializations before migration so the exponential caption is not flattened.",
+      "reviewed_by": "Codex, delegated by user on 2026-10-26"
+    },
+    {
+      "sources": [
+        "convolution"
+      ],
+      "target": "comb-convolution",
+      "status": "scope_review",
+      "reason": "Both entries are unqualified Convolution. Their catalogs do not establish whether the intended operation is ordinary, binomial, cyclic or another convolution.",
+      "conditions": "Keep nt-dirichlet-convolution separate. Inspect source context before choosing a common definition.",
+      "reviewed_by": "Codex, delegated by user on 2026-10-26"
+    },
+    {
+      "sources": [
+        "subadditivity"
+      ],
+      "target": "comb-subadditivity",
+      "status": "scope_review",
+      "reason": "Combinatorics specifies a(m+n)<=a(m)+a(n) and separates the limit theorem. Algebra explicitly includes SUBADDITIVE SEQUENCE/FUNCTION, leaving a wider domain.",
+      "conditions": "Establish a shared property parent with sequence/function variants, and keep Feketes lemma distinct. FEKETE-STYLE is not sufficient evidence for the limit theorem.",
+      "reviewed_by": "Codex, delegated by user on 2026-10-26"
+    },
+    {
+      "sources": [
+        "nt-sidon"
+      ],
+      "target": "comb-sidon-sets",
+      "status": "scope_review",
+      "reason": "The catalogs do not state the pair-sum uniqueness convention. Number Theory distinguishes arbitrary distinct-difference conditions, but that does not settle strong versus weak Sidon conventions.",
+      "conditions": "Identify whether repeated indices are allowed and which sum/difference condition is used before combining precise identities.",
+      "reviewed_by": "Codex, delegated by user on 2026-10-26"
+    },
+    {
+      "sources": [
+        "geo-triangulation"
+      ],
+      "target": "comb-triangulation",
+      "status": "scope_review",
+      "reason": "Geometry describes an observed geometric decomposition, while Combinatorics only lists an unqualified triangulation method/object. Neither definition fixes polygon, embedded planar graph, surface or dimension.",
+      "conditions": "Resolve the underlying object and dimension before combining; identical captions do not prove precise equivalence.",
+      "reviewed_by": "Codex, delegated by user on 2026-10-26"
+    }
+  ]
+}
