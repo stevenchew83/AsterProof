@@ -3,6 +3,7 @@ from __future__ import annotations
 from time import monotonic
 
 from django.core.cache import cache
+from django.core.management import call_command
 from django.core.management.base import BaseCommand
 from django.core.management.base import CommandError
 
@@ -22,7 +23,8 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser) -> None:
         parser.add_argument(
-            "--catalog-only", action="store_true",
+            "--catalog-only",
+            action="store_true",
             help="Recompute technique facts without refreshing the independent duplicate report.",
         )
         parser.add_argument(
@@ -55,6 +57,12 @@ class Command(BaseCommand):
     def handle(self, *args, **options) -> None:
         started = monotonic()
         self._handle_catalog(*args, **options)
+        # The existing maintenance timer also publishes the independent concept
+        # memberships, including when the older technique catalogue is current.
+        try:
+            call_command("refresh_concept_summaries", stdout=self.stdout, stderr=self.stderr)
+        except Exception as exc:  # noqa: BLE001 - independent maintenance keeps the previous publication intact.
+            self.stderr.write(f"Concept summary refresh failed: {type(exc).__name__}")
         if options.get("catalog_only"):
             return
         try:

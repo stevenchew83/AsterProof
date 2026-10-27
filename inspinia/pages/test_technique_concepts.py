@@ -11,6 +11,7 @@ import pytest
 from django.core.cache import cache
 from django.urls import reverse
 
+from inspinia.pages.catalogue_snapshots import rebuild_library_snapshot
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import StatementTopicTechnique
 from inspinia.pages.models import TechniqueBenchmark
@@ -20,6 +21,7 @@ from inspinia.pages.technique_concepts import concept_for
 from inspinia.pages.technique_progress import _enrich_gap_rows_with_benchmarks
 from inspinia.pages.technique_progress import _scoped_subtopic_gap_rows
 from inspinia.pages.technique_progress import _score_gap_rows
+from inspinia.pages.technique_progress import _subtopic_rows_with_layer_previews
 from inspinia.pages.technique_progress import technique_progress_gap_rows_for_benchmark_export
 from inspinia.pages.technique_progress_catalog import rebuild_technique_progress_catalog
 from inspinia.users.tests.factories import UserFactory
@@ -216,15 +218,16 @@ def test_subtopic_gaps_use_local_counts_union_roles_and_suppress_self_heading(cl
     inequalities = [row for row in rows if row["canonical_subtopic_labels"] == ["Inequalities and optimization"]]
     assert next(row for row in inequalities if row["label"] == "FACTORIZATION")["remaining"] == 1
     assert next(row for row in inequalities if row["label"] == "AM-GM")["remaining"] == 1
+    rebuild_library_snapshot()
     cache.clear()
     response = client.get(reverse("pages:technique_progress_topic_detail", kwargs={"topic_slug": "algebra"}))
-    row = next(
-        row
-        for row in response.context["technique_progress_topic_subtopic_rows"]
-        if row["label"] == "Inequalities and optimization"
-    )
-    assert {item["label"] for item in row["layer_gap_preview"]} == {"AM-GM", "FACTORIZATION"}
+    assert response.status_code == HTTPStatus.OK
+    row = next(row for row in response.context["progress_page"] if row["id"] == "Algebra:inequalities")
     assert row["total"] == 1
+    preview = _subtopic_rows_with_layer_previews(
+        [row], layer_rows=rows, selected_user=user, can_select_user=False, topic_slug="algebra",
+    )[0]
+    assert {item["label"] for item in preview["layer_gap_preview"]} == {"AM-GM", "FACTORIZATION"}
 
 
 def test_full_algebra_catalog_contains_180_including_unscored_definitions(client):

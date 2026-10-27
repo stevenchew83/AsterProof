@@ -1,5 +1,5 @@
 # ruff: noqa: PLR2004, SLF001
-"""Coverage, drill-down, permissions, and bounded rendering for concept analytics."""
+"""Catalogue navigation is independent of problems and preserves reviewed identities."""
 
 from unittest.mock import patch
 from urllib.parse import parse_qs
@@ -11,13 +11,15 @@ from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
 from inspinia.pages import statement_concept_coverage as coverage
-from inspinia.pages.concept_analytics import PAGE_SIZE
-from inspinia.pages.concept_analytics import SOURCE_BATCH_SIZE
+from inspinia.pages.catalogue_models import CatalogueConcept
+from inspinia.pages.catalogue_models import CatalogueConceptAlias
+from inspinia.pages.catalogue_models import CatalogueSubject
+from inspinia.pages.catalogue_snapshots import rebuild_library_snapshot
+from inspinia.pages.concept_assignment_registry import REGISTRY
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
 from inspinia.pages.models import ProblemTopicTechnique
 from inspinia.pages.models import StatementTopicTechnique
-from inspinia.pages.models import UserProblemCompletion
 from inspinia.pages.technique_concepts import CONCEPTS
 from inspinia.users.models import User
 from inspinia.users.tests.factories import UserFactory
@@ -29,6 +31,126 @@ pytestmark = pytest.mark.django_db
 def admin_client(client):
     client.force_login(UserFactory(role=User.Role.ADMIN))
     return client
+
+
+def get(client, **params):
+    response = client.get(reverse("pages:topic_tag_dashboard"), params)
+    assert response.status_code == 200
+    return response
+
+
+def params_for(url):
+    return {k: v[0] for k, v in parse_qs(urlsplit(url).query).items()}
+
+
+def test_frozen_catalogue_preserves_every_id_and_reviewed_redirect():
+    assert set(CatalogueConcept.objects.values_list("pk", flat=True)) == set(CONCEPTS) | set(REGISTRY.redirects)
+    assert CatalogueConcept.objects.filter(redirect__isnull=True).count() == len(REGISTRY.definitions)
+    assert CatalogueSubject.objects.count() == 4
+    for legacy in REGISTRY.redirects:
+        assert CatalogueConcept.objects.get(pk=legacy).redirect_id == REGISTRY.canonical(legacy)
+    assert CatalogueConceptAlias.objects.filter(resolution="CONTEXTUAL").exists()
+    assert CatalogueConceptAlias.objects.filter(rules__id="A01").exists()
+    assert CatalogueConceptAlias.objects.filter(rules__id="A07", concept__isnull=True).exists()
+
+
+def test_root_subject_area_concept_and_up_navigation(admin_client):
+    root = get(admin_client)
+    assert root.context["level"] == "subjects"
+    assert len(root.context["rows"]) == 4
+    subject = get(admin_client, **params_for(root.context["rows"][0]["url"]))
+    assert subject.context["level"] == "areas"
+    area = get(admin_client, **params_for(subject.context["rows"][0]["url"]))
+    assert area.context["level"] == "concepts"
+    detail = get(admin_client, **params_for(area.context["rows"][0]["url"]))
+    assert detail.context["selected_concept"]
+    assert detail.context["breadcrumbs"][0]["label"] == "All subjects"
+    assert get(admin_client, **params_for(detail.context["up_url"])).context["heading"] != detail.context["heading"]
+    html = detail.content.decode()
+    assert "Names, tags &amp; roles" in html
+    assert "Example problems" in html
+    assert "Up one level" in html
+
+
+def test_legacy_id_bookmarks_resolve_without_rewriting_id_records(admin_client):
+    old = next(iter(REGISTRY.redirects))
+    response = get(admin_client, concept=old)
+    assert response.context["selected_concept"].pk == REGISTRY.canonical(old)
+    assert CatalogueConcept.objects.filter(pk=old).exists()
+
+
+def test_alias_search_and_role_filters_are_scoped_and_escaped(admin_client):
+    response = get(admin_client, subject="Algebra", q="Vieta's formulas")
+    assert [r["id"] for r in response.context["rows"]] == ["vieta"]
+    roles = get(admin_client, subject="Geometry", role="object")
+    assert roles.context["rows"]
+    empty = get(admin_client, q="<script>bad</script>")
+    assert "&lt;script&gt;" in empty.content.decode()
+    assert "<script>bad</script>" not in empty.content.decode()
+    assert empty.context["page"].paginator.count == 0
+
+
+def test_catalogue_get_never_reads_problem_or_completion_sources(admin_client):
+    with patch(
+        "inspinia.pages.catalogue_sources.iter_catalogue_sources",
+        side_effect=AssertionError("GET rebuilt sources"),
+    ):
+        for params in ({}, {"subject": "Algebra"}, {"area": "Algebra:inequalities"}, {"concept": "am-gm"}):
+            with CaptureQueriesContext(connection) as captured:
+                response = get(admin_client, **params)
+            sql = "\n".join(q["sql"] for q in captured)
+            assert all(
+                f'FROM "{name}"' not in sql
+                for name in (
+                    "pages_contestproblemstatement",
+                    "pages_problemsolverecord",
+                    "pages_statementtopictechnique",
+                    "pages_problemtopictechnique",
+                    "pages_userproblemcompletion",
+                    "pages_catalogueproblem",
+                )
+            )
+            assert len(response.content) < 150_000
+            assert len(captured) < 35
+
+
+def test_examples_are_explicit_and_missing_snapshot_never_rebuilds(admin_client):
+    row = ContestProblemStatement.objects.create(
+        contest_name="IMO",
+        contest_year=2026,
+        problem_code="P1",
+        problem_number=1,
+        topic="ALG",
+    )
+    StatementTopicTechnique.objects.create(
+        statement=row,
+        technique="AM-GM",
+        main_topic="ALG",
+        lemma_theorem_tags=["AM-GM"],
+    )
+    missing = get(admin_client, concept="am-gm", tab="problems")
+    assert missing.context["examples_unavailable"]
+    assert "being updated" in missing.content.decode()
+    rebuild_library_snapshot()
+    ready = get(admin_client, concept="am-gm", tab="problems")
+    assert ready.context["examples"].paginator.count == 1
+    assert ready.context["examples"][0].statement_id == row.pk
+    assert ready.context["examples"][0].url == reverse("pages:problem_statement_detail", args=[row.statement_uuid])
+
+
+def test_catalogue_permissions_are_unchanged(client):
+    assert client.get(reverse("pages:topic_tag_dashboard")).status_code == 302
+    client.force_login(UserFactory(role=User.Role.NORMAL))
+    assert client.get(reverse("pages:topic_tag_dashboard")).status_code == 403
+    client.force_login(UserFactory(role=User.Role.ADMIN))
+    assert get(client).context["rows"]
+
+
+def test_unknown_concept_is_404_and_cycles_are_bounded(admin_client):
+    assert admin_client.get(reverse("pages:topic_tag_dashboard"), {"concept": "missing"}).status_code == 404
+    CatalogueConcept.objects.filter(pk="am-gm").update(redirect_id="vieta")
+    CatalogueConcept.objects.filter(pk="vieta").update(redirect_id="am-gm")
+    assert admin_client.get(reverse("pages:topic_tag_dashboard"), {"concept": "am-gm"}).status_code == 404
 
 
 def statement(number=1, **values):
@@ -64,255 +186,6 @@ def tag(parent, caption="AM-GM", **values):
             **values,
         },
     )
-
-
-def get(client, **params):
-    response = client.get(reverse("pages:topic_tag_dashboard"), params)
-    assert response.status_code == 200
-    return response
-
-
-def concepts(response):
-    return response.context["concept_page"].paginator.object_list
-
-
-def test_area_concept_dashboard_counts_identities_and_roles_once(admin_client):
-    archive = ProblemSolveRecord.objects.create(year=2026, contest="IMO", problem="P1", topic="ALG", mohs=50)
-    tag(archive)
-    primary = statement(linked_problem=archive, mohs=10)
-    tag(primary, technique_tags=["AM-GM"], lemma_theorem_tags=["AM-GM"])
-    another = statement(3, contest_name="EGMO", mohs=30)
-    tag(another)
-    tag(another, "CAUCHY-SCHWARZ", lemma_theorem_tags=["CAUCHY-SCHWARZ"])
-    response = get(admin_client, subject="Algebra")
-    stats = response.context["stats"]
-    assert stats["problems"] == 2
-    assert stats["mapped"] == 2
-    assert stats["covered"] == 2
-    assert stats["catalogue"] > stats["covered"]
-    assert stats["gaps"] == stats["catalogue"] - 2
-    amgm = next(c for c in concepts(response) if c["id"] == "am-gm")
-    assert (amgm["problem_count"], amgm["contest_count"], amgm["median_mohs"]) == (2, 2, 20)
-    area = next(a for a in response.context["area_rows"] if a["key"] == amgm["area_key"])
-    assert area["problem_count"] == 2
-    assert area["covered"] == 2
-    html = response.content.decode()
-    assert "Areas &amp; concepts" in html
-    assert 'id="concept-analytics-table"' in html
-    assert 'id="concept-more-filters"' in html
-    assert "Technique usage volume" not in html
-
-
-def test_statement_precedence_orphan_archive_and_inactive_entries(admin_client):
-    archive = ProblemSolveRecord.objects.create(year=2026, contest="IMO", problem="P1", topic="ALG", mohs=10)
-    tag(archive)
-    primary = statement(linked_problem=archive)
-    tag(primary, "UNRECOGNIZED", normalization_status="corrupt")
-    orphan = ProblemSolveRecord.objects.create(year=2026, contest="BMO", problem="P2", topic="ALG", mohs=0)
-    tag(orphan)
-    hidden = ProblemSolveRecord.objects.create(year=2026, contest="BMO", problem="P3", topic="ALG", mohs=10)
-    tag(hidden)
-    statement(3, linked_problem=hidden, is_active=False)
-    inactive = ProblemSolveRecord.objects.create(
-        year=2026,
-        contest="BMO",
-        problem="P4",
-        topic="ALG",
-        mohs=10,
-        is_active=False,
-    )
-    tag(inactive)
-    untagged = statement(4)
-    response = get(admin_client, subject="Algebra", concept="am-gm")
-    assert response.context["stats"]["problems"] == 3
-    assert response.context["stats"]["mapped"] == 1
-    assert response.context["quality"]["review"] == 1
-    assert response.context["quality"]["untagged"] == 1
-    assert response.context["selected_concept"]["median_mohs"] == 0
-    problems = response.context["problem_page"].object_list
-    assert len(problems) == 1
-    assert problems[0]["url"] == reverse("solutions:problem_solution_list", args=[orphan.problem_uuid])
-    assert any(
-        r["url"] == reverse("pages:problem_statement_detail", args=[untagged.statement_uuid])
-        for r in response.context["quality"]["rows"]
-    )
-
-
-def test_global_scope_filters_and_clickable_area_links(admin_client):
-    tag(statement(1, contest_name="IMO", contest_year=2026))
-    tag(statement(2, contest_name="EGMO", contest_year=2025), "VIETA", lemma_theorem_tags=["VIETA"])
-    response = get(admin_client, subject="Algebra", contest="EGMO", year="2025")
-    assert response.context["stats"]["problems"] == 1
-    assert response.context["stats"]["covered"] == 1
-    assert response.context["filter_options"]["contests"] == ["EGMO", "IMO"]
-    assert [r["label"] for r in response.context["active_filters"]] == ["Subject", "Contest", "Year"]
-    area = next(a for a in response.context["area_rows"] if a["problem_count"])
-    target = parse_qs(urlsplit(area["url"]).query)
-    assert target["contest"] == ["EGMO"]
-    filtered = get(admin_client, subject="Algebra", area=area["key"], contest="EGMO", year="2025")
-    assert len(filtered.context["area_rows"]) == 1
-    assert {c["area_key"] for c in concepts(filtered)} == {area["key"]}
-    assert filtered.context["stats"]["covered"] == 1
-    assert get(admin_client, year="9999999999999999999").context["filters"]["year"] == ""
-    assert get(admin_client, year="²²²²").context["filters"]["year"] == ""
-
-
-def test_catalogue_gaps_and_explorer_search_preserve_scope_totals(admin_client):
-    tag(statement())
-    base = get(admin_client, subject="Algebra")
-    gaps = get(admin_client, subject="Algebra", state="gaps", q="Jensen")
-    assert gaps.context["stats"] == base.context["stats"]
-    assert gaps.context["concept_page"].paginator.count == 1
-    assert concepts(gaps)[0]["problem_count"] == 0
-    assert "No problems" in gaps.content.decode()
-    covered = get(admin_client, subject="Algebra", state="covered")
-    assert [c["id"] for c in concepts(covered)] == ["am-gm"]
-    empty = get(admin_client, q="<script>alert(1)</script>")
-    assert empty.context["concept_page"].paginator.count == 0
-    assert "No concepts match" in empty.content.decode()
-    assert "&lt;script&gt;" in empty.content.decode()
-    assert "<script>alert(1)</script>" not in empty.content.decode()
-
-
-def test_concept_and_problem_pagination_keep_full_totals(admin_client):
-    for number in range(1, 122):
-        tag(statement(number))
-    result = get(admin_client, subject="Algebra", concept="am-gm")
-    assert result.context["stats"]["problems"] == 121
-    assert result.context["selected_concept"]["problem_count"] == 121
-    assert len(result.context["problem_page"].object_list) == PAGE_SIZE
-    last = get(admin_client, subject="Algebra", concept="am-gm", problem_page=5)
-    assert last.context["problem_page"].end_index() == 121
-    assert last.context["problem_page"].paginator.count == 121
-    assert len(result.context["concept_page"].object_list) == PAGE_SIZE
-    seen = set()
-    for number in range(1, result.context["concept_page"].paginator.num_pages + 1):
-        page = get(admin_client, subject="Algebra", page=number)
-        seen.update(c["id"] for c in page.context["concept_page"])
-    assert len(seen) == result.context["stats"]["catalogue"]
-
-
-def test_sorting_and_missing_difficulty(admin_client):
-    tag(statement(1, mohs=None))
-    tag(statement(2, mohs=59), "JENSEN", lemma_theorem_tags=["JENSEN"])
-    result = get(admin_client, subject="Algebra", sort="mohs")
-    assert result.context["concept_page"][0]["id"] == "jensen"
-    assert next(c for c in concepts(result) if c["id"] == "am-gm")["median_mohs"] is None
-    assert concepts(result)[-1]["median_mohs"] is None
-    alphabetical = get(admin_client, sort="name", page="nonsense")
-    labels = [c["label"].casefold() for c in concepts(alphabetical)]
-    assert labels == sorted(labels)
-
-
-def test_dashboard_empty_state_and_permissions(client, admin_client):
-    response = get(admin_client)
-    assert response.context["stats"]["problems"] == 0
-    assert response.context["stats"]["catalogue"] == len(CONCEPTS)
-    assert response.context["stats"]["covered"] == 0
-    assert "Import problems" in response.content.decode()
-    client.logout()
-    assert client.get(reverse("pages:topic_tag_dashboard")).status_code == 302
-    client.force_login(UserFactory(role=User.Role.NORMAL))
-    assert client.get(reverse("pages:topic_tag_dashboard")).status_code == 403
-
-
-def test_dashboard_queries_and_html_stay_bounded(admin_client):
-    for number in range(1, 32):
-        tag(statement(number, statement_latex="large statement " * 1000, rationale="large rationale " * 1000))
-    with CaptureQueriesContext(connection) as queries:
-        response = get(admin_client)
-    source_queries = [
-        q["sql"]
-        for q in queries
-        if any(
-            name in q["sql"]
-            for name in (
-                'FROM "pages_contestproblemstatement"',
-                'FROM "pages_problemsolverecord"',
-                'FROM "pages_statementtopictechnique"',
-                'FROM "pages_problemtopictechnique"',
-            )
-        )
-    ]
-    assert len(source_queries) <= 12
-    assert all(
-        '"statement_latex"' not in q and '"rationale"' not in q and '"core_ideas"' not in q for q in source_queries
-    )
-    assert len(response.content) < 150_000
-    assert len(response.context["concept_page"].object_list) == PAGE_SIZE
-
-
-def test_cross_subject_concepts_follow_their_catalogue_subject(admin_client):
-    tag(statement(1, topic="GEO"))
-    statement(2, topic="GEO")
-    response = get(admin_client, subject="Algebra", state="covered")
-    assert response.context["stats"]["problems"] == 1
-    assert response.context["stats"]["covered"] == 1
-    assert concepts(response)[0]["id"] == "am-gm"
-
-
-def test_all_mapping_review_problems_are_reachable(admin_client):
-    for number in range(1, 28):
-        statement(number)
-    first = get(admin_client)
-    assert first.context["quality"]["total"] == 27
-    assert len(first.context["quality"]["rows"]) == PAGE_SIZE
-    second = get(admin_client, review_page=2)
-    assert len(second.context["quality"]["rows"]) == 2
-    assert second.context["quality"]["expanded"] is True
-    assert second.context["quality"]["page"].end_index() == 27
-    assert not ({r["url"] for r in first.context["quality"]["rows"]}
-                & {r["url"] for r in second.context["quality"]["rows"]})
-
-
-def test_concept_detail_preserves_explorer_page(admin_client):
-    response = get(admin_client, page=3, sort="name")
-    concept = response.context["concept_page"][0]
-    params = {k: v[0] for k, v in parse_qs(urlsplit(concept["url"]).query).items()}
-    assert params["page"] == "3"
-    detail = get(admin_client, **params)
-    assert detail.context["selected_concept"]["id"] == concept["id"]
-    assert parse_qs(urlsplit(detail.context["close_detail_url"]).query)["page"] == ["3"]
-
-
-def test_large_library_batches_sources_and_preserves_last_page_and_completion(admin_client):
-    count = SOURCE_BATCH_SIZE * 2 + 5
-    ContestProblemStatement.objects.bulk_create([
-        ContestProblemStatement(
-            contest_year=2026, contest_name="Scale", problem_number=n, problem_code=f"P{n}",
-            contest_year_problem=f"Scale {n}", statement_latex="Synthetic", topic="ALG", mohs=20,
-        ) for n in range(count)
-    ])
-    statements = list(ContestProblemStatement.objects.order_by("id"))
-    StatementTopicTechnique.objects.bulk_create([
-        StatementTopicTechnique(statement=s, technique="AM-GM", main_topic="ALG", domains=["ALG"])
-        for s in statements
-    ])
-    with (
-        patch(
-            "inspinia.pages.concept_analytics.statement_coverage_payloads", wraps=coverage.statement_coverage_payloads,
-        ) as batches,
-        patch.object(coverage, "_tag_coverage", wraps=coverage._tag_coverage) as resolved,
-    ):
-        response = get(admin_client, concept="am-gm", problem_page="21")
-    assert response.context["stats"]["problems"] == count
-    assert response.context["selected_concept"]["problem_count"] == count
-    assert response.context["problem_page"].paginator.count == count
-    assert response.context["problem_page"].has_previous()
-    assert len(batches.call_args_list) == 3
-    assert all(len(call.args[0]) <= SOURCE_BATCH_SIZE for call in batches.call_args_list)
-    assert resolved.call_count == 1  # Repeated source metadata is resolved once across batches.
-    assert all(p["url"] for p in response.context["problem_page"])
-
-    user = response.wsgi_request.user
-    UserProblemCompletion.objects.create(user=user, statement=statements[-1], status="solved")
-    with CaptureQueriesContext(connection) as queries:
-        progress = admin_client.get(reverse("pages:technique_dashboard"))
-    assert progress.context["stats"]["total"] == count
-    assert progress.context["stats"]["solved"] == 1
-    completion_reads = [q["sql"] for q in queries if 'FROM "pages_userproblemcompletion"' in q["sql"]]
-    assert len(completion_reads) == 1
-    assert len(completion_reads[0]) < 1000  # SQL size must not grow with every library ID.
 
 
 def test_own_statement_tags_do_not_fetch_shadowed_archive_tags():

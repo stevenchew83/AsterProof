@@ -91,6 +91,9 @@
 {% endblock extra_css %}
 
 {% block page_content %}
+{% if progress_unavailable %}
+<div class="container-fluid py-3"><h1 class="h3">Area &amp; Concepts Progress</h1><div class="alert alert-info" role="status">Progress summaries are being updated. Your completion records are preserved. Please try again shortly.</div></div>
+{% else %}
 <div class="container-fluid concept-progress">
   <div class="page-title-head d-flex flex-wrap align-items-center justify-content-between gap-3">
     <div>
@@ -156,4 +159,5 @@
 
   <details class="text-muted fs-xs mt-4 px-1"><summary>How progress is counted</summary><div class="mt-2" style="max-width:65rem"><p>Each problem counts once in an area or concept, even when it has several aliases or roles. Subject groups follow the mathematical concept catalogue. A problem can contribute to more than one area or subject, so their counts can overlap.</p><p>Solved, checked, written, and published records count as completed. Attempted and unattempted records remain open. A statement completion takes priority over a linked archive completion.</p><p>Concepts practiced have at least one completed problem. This measures recorded practice and does not establish mastery. Areas or concepts without problems have no completion percentage.</p><p class="mb-0">Progress reflects current library mappings and recorded completions.{% if unmapped_total %} {{ unmapped_total }} active problems in this subject scope have no mapped concepts and are excluded from these progress counts.{% endif %} Search and status tabs refine the explorer; summary figures follow the selected subject and area.</p></div></details>
 </div>
+{% endif %}
 {% endblock page_content %}

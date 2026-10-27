@@ -11,6 +11,7 @@ from django.db import connection
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
+from inspinia.pages.catalogue_snapshots import rebuild_library_snapshot
 from inspinia.pages.concept_alias_policy import ROLE_FIELDS
 from inspinia.pages.concept_analytics import PAGE_SIZE
 from inspinia.pages.models import ContestProblemStatement
@@ -69,6 +70,8 @@ def tag(parent, cid="am-gm"):
 
 
 def get(client, slug="", **params):
+    # Simulate the existing scheduled publication; completion changes need no library rebuild.
+    rebuild_library_snapshot()
     route = (
         reverse("pages:technique_progress_topic_detail", args=[slug]) if slug else reverse("pages:technique_dashboard")
     )
@@ -108,7 +111,16 @@ def test_canonical_roles_and_areas_count_shared_problem_once(learner):
 
 @pytest.mark.parametrize(
     ("status", "solved"),
-    [("unattempted", 0), ("attempted", 0), ("solved", 1), ("checked", 1), ("written", 1), ("published", 1)],
+    [
+        ("unattempted", 0),
+        ("attempted", 0),
+        ("solved", 1),
+        ("checked", 1),
+        ("written", 1),
+        ("published", 1),
+        (" Solved ", 1),
+        ("CHECKED", 1),
+    ],
 )
 def test_only_solved_statuses_count_as_completed(learner, status, solved):
     user, client = learner
@@ -119,6 +131,8 @@ def test_only_solved_statuses_count_as_completed(learner, status, solved):
     assert result.context["stats"]["solved"] == solved
     assert result.context["stats"]["remaining"] == 1 - solved
     assert result.context["stats"]["practiced"] == solved
+    detail = get(client, concept="am-gm", mode="problems", state="completed")
+    assert detail.context["progress_page"].paginator.count == solved
 
 
 def test_statement_completion_overrides_legacy_and_changes_are_immediate(learner):
@@ -323,6 +337,7 @@ def test_queries_and_response_stay_bounded(learner):
     _, client = learner
     for number in range(1, 32):
         tag(statement(number, statement_latex="large body " * 500, rationale="large rationale " * 500))
+    rebuild_library_snapshot()
     with CaptureQueriesContext(connection) as queries:
         response = get(client, mode="concepts")
     source = [
