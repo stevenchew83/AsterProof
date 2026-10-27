@@ -219,13 +219,88 @@ def test_duplicate_scheduled_refresh_repairs_evicted_generation_chunks(missing):
     assert snapshots.snapshot_context()["statement_duplicate_available"] is True
 
 
-def test_duplicate_refresh_runs_when_scheduled_catalog_has_no_queued_work():
+def test_scheduled_catalog_never_runs_duplicate_analysis():
     statement(1, "Scheduled snapshot")
     TechniqueProgressCatalogState.objects.update_or_create(singleton_key=1, defaults={"needs_rebuild": False})
     output = StringIO()
-    call_command("recompute_technique_progress_catalog", queued_only=True, stdout=output)
+    with patch.object(snapshots, "refresh_statement_duplicate_snapshot", side_effect=AssertionError("Heavy refresh")):
+        call_command("recompute_technique_progress_catalog", queued_only=True, stdout=output)
     assert "No queued rebuild" in output.getvalue()
+    assert snapshots.snapshot_context()["statement_duplicate_available"] is False
+
+
+def test_independent_duplicate_command_does_not_refresh_catalogue_or_user_progress():
+    from inspinia.pages.catalogue_models import UserConceptProgressSummary
+    from inspinia.pages.catalogue_snapshots import rebuild_library_snapshot
+    from inspinia.pages.catalogue_snapshots import user_progress_summary
+    from inspinia.pages.models import UserProblemCompletion
+    from inspinia.pages.test_concept_progress import tag
+
+    row = statement(1, "Independent snapshot")
+    user = UserFactory()
+    UserProblemCompletion.objects.create(user=user, statement=row, status="solved")
+    tag(row)
+    snapshot = rebuild_library_snapshot()
+    progress = user_progress_summary(user, snapshot)
+    original = list(UserProblemCompletion.objects.values())
+    original_summaries = list(UserConceptProgressSummary.objects.values())
+    with (
+        patch("inspinia.pages.catalogue_snapshots.rebuild_library_snapshot", side_effect=AssertionError("Catalogue")),
+        patch(
+            "inspinia.pages.technique_progress_catalog.rebuild_technique_progress_catalog",
+            side_effect=AssertionError("Facts"),
+        ),
+    ):
+        call_command("refresh_statement_duplicate_report", force=True, stdout=StringIO())
     assert snapshots.snapshot_context()["statement_duplicate_available"] is True
+    assert list(UserProblemCompletion.objects.values()) == original
+    assert list(UserConceptProgressSummary.objects.values()) == original_summaries
+    assert user_progress_summary(user, snapshot) == progress
+
+
+def test_independent_duplicate_command_failure_keeps_last_publication(monkeypatch):
+    from django.core.management.base import CommandError
+
+    statement(1, "Previous report")
+    call_command("refresh_statement_duplicate_report", force=True, stdout=StringIO())
+    previous = cache.get(snapshots.MANIFEST_KEY)
+    monkeypatch.setattr(snapshots.cache, "set", lambda *args, **kwargs: None)
+    with pytest.raises(CommandError, match="previous publication retained"):
+        call_command("refresh_statement_duplicate_report", force=True, stdout=StringIO())
+    assert cache.get(snapshots.MANIFEST_KEY) == previous
+
+
+def test_nightly_transition_extends_complete_report_without_analysis(monkeypatch):
+    statement(1, "Last complete report")
+    snapshots.refresh_statement_duplicate_snapshot(force=True)
+    previous = cache.get(snapshots.MANIFEST_KEY)
+    touches = []
+    original = cache.touch
+
+    def touch(key, timeout):
+        touches.append((key, timeout))
+        return original(key, timeout=timeout)
+
+    monkeypatch.setattr(cache, "touch", touch)
+    with (
+        patch.object(snapshots, "source_signature", side_effect=AssertionError("Source query")),
+        patch.object(snapshots, "_index_statements", side_effect=AssertionError("Analysis")),
+    ):
+        call_command("refresh_statement_duplicate_report", retain_current=True, stdout=StringIO())
+    assert cache.get(snapshots.MANIFEST_KEY) == previous
+    assert touches[-1] == (snapshots.MANIFEST_KEY, snapshots.CACHE_TIMEOUT - 3600)
+    assert all(timeout >= 2 * 24 * 60 * 60 for _, timeout in touches)
+
+
+def test_nightly_transition_never_extends_an_incomplete_manifest(monkeypatch):
+    statement(1, "Missing report chunk")
+    snapshots.refresh_statement_duplicate_snapshot(force=True)
+    previous = cache.get(snapshots.MANIFEST_KEY)
+    cache.delete(snapshots._key(previous["generation"], "similar"))
+    touches = []
+    monkeypatch.setattr(cache, "touch", lambda key, timeout: touches.append(key) or True)
+    assert snapshots.retain_statement_duplicate_snapshot() is False
+    assert snapshots.MANIFEST_KEY not in touches
 
 
 def test_linker_checks_hidden_claimants_and_duplicate_codes_without_loading_archive_bodies():

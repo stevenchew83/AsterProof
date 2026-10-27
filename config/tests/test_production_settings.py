@@ -83,3 +83,9 @@ def test_production_settings_middleware_timing_then_security_then_whitenoise(mon
     assert mw[0] == "config.middleware.RequestTimingMiddleware"
     assert mw[1] == "django.middleware.security.SecurityMiddleware"
     assert mw[2] == "whitenoise.middleware.WhiteNoiseMiddleware"
+
+
+def test_production_request_timing_defaults_on_and_can_be_disabled(monkeypatch):
+    monkeypatch.delenv("DJANGO_REQUEST_TIMING_LOG", raising=False)
+    assert _load_production_settings(monkeypatch).REQUEST_TIMING_LOG is True
+    assert _load_production_settings(monkeypatch, DJANGO_REQUEST_TIMING_LOG="False").REQUEST_TIMING_LOG is False

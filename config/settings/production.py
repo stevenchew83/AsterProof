@@ -7,7 +7,7 @@ from .base import MIDDLEWARE
 from .base import REDIS_URL
 from .base import env
 
-REQUEST_TIMING_LOG = env.bool("DJANGO_REQUEST_TIMING_LOG", default=False)
+REQUEST_TIMING_LOG = env.bool("DJANGO_REQUEST_TIMING_LOG", default=True)
 
 # GENERAL
 # ------------------------------------------------------------------------------

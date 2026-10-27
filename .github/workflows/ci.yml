@@ -128,3 +128,9 @@ jobs:
               raise SystemExit("Runtime changes must select tests")
           subprocess.run([sys.executable, "-m", "pytest", *targets], check=True)
           PY
+
+      - name: Verify nightly maintenance dependencies on synthetic systemd units
+        if: steps.checks.outputs.runtime == 'true'
+        run: |
+          sudo --preserve-env=GITHUB_ACTIONS,GITHUB_RUN_ID .ci-quality/bin/python -m pytest \
+            scripts/deployment/tests/test_systemd_duplicate_schedule.py -q

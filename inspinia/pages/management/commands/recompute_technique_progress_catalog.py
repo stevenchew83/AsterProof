@@ -1,16 +1,13 @@
 from __future__ import annotations
 
-from time import monotonic
-
 from django.core.cache import cache
+from django.core.checks import Tags
 from django.core.management import call_command
 from django.core.management.base import BaseCommand
 from django.core.management.base import CommandError
 
 from inspinia.pages.models import TechniqueProgressCatalogState
 from inspinia.pages.models import TechniqueProgressFact
-from inspinia.pages.statement_duplicate_snapshot import MANIFEST_KEY as DUPLICATE_REPORT_MANIFEST_KEY
-from inspinia.pages.statement_duplicate_snapshot import refresh_statement_duplicate_snapshot
 from inspinia.pages.technique_progress_catalog import rebuild_technique_progress_catalog
 from inspinia.pages.technique_progress_catalog import technique_progress_catalog_needs_rebuild
 
@@ -20,12 +17,14 @@ CATALOG_REBUILD_LOCK_TIMEOUT_SECONDS = 30 * 60
 
 class Command(BaseCommand):
     help = "Recompute technique progress catalog facts for all statements or a targeted statement/problem scope."
+    # Release CI checks URLs separately; a maintenance process needs only model checks.
+    requires_system_checks = [Tags.models]
 
     def add_arguments(self, parser) -> None:
         parser.add_argument(
             "--catalog-only",
             action="store_true",
-            help="Recompute technique facts without refreshing the independent duplicate report.",
+            help="Compatibility option: catalogue maintenance never runs duplicate analysis.",
         )
         parser.add_argument(
             "--statement-id",
@@ -55,7 +54,6 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options) -> None:
-        started = monotonic()
         self._handle_catalog(*args, **options)
         # The existing maintenance timer also publishes the independent concept
         # memberships, including when the older technique catalogue is current.
@@ -63,20 +61,6 @@ class Command(BaseCommand):
             call_command("refresh_concept_summaries", stdout=self.stdout, stderr=self.stderr)
         except Exception as exc:  # noqa: BLE001 - independent maintenance keeps the previous publication intact.
             self.stderr.write(f"Concept summary refresh failed: {type(exc).__name__}")
-        if options.get("catalog_only"):
-            return
-        try:
-            if refresh_statement_duplicate_snapshot(max_seconds=max(0, 25 * 60 - (monotonic() - started))):
-                report = cache.get(DUPLICATE_REPORT_MANIFEST_KEY)
-                self.stdout.write(
-                    "Refreshed statement duplicate report: "
-                    f"{report['statement_total']} statements, {report['exact_duplicate_group_total']} exact groups, "
-                    f"{report['similar_pair_total']} similar pairs, {report['build_seconds']} seconds.",
-                )
-        except Exception as exc:  # noqa: BLE001 -- independent maintenance must preserve the completed catalog run.
-            # Preserve completed catalog maintenance and the previous duplicate
-            # generation if the independent report refresh fails.
-            self.stderr.write(f"Statement duplicate report refresh failed: {type(exc).__name__}")
 
     def _handle_catalog(self, *args, **options) -> None:
         statement_ids = options.get("statement_ids") or []
