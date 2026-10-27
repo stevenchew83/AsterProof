@@ -1,6 +1,6 @@
 # Catalogue exploration and derived progress
 
-Implemented on 27 October 2026 and integrated against main `29a2053d9622113a66e34538dade876f0e11b7c5`. Production activation requires the separately authorized support described in [release readiness](deployment/catalogue-release-readiness-2026-10-27.md).
+Implemented on 27 October 2026 and integrated against main `29a2053d9622113a66e34538dade876f0e11b7c5`. Production activation awaits the bounded deployment-support work and recovery evidence described in [release readiness](deployment/catalogue-release-readiness-2026-10-27.md).
 
 ## Behaviour
 
@@ -67,6 +67,10 @@ The initial shared generation is created by maintenance rather than the migratio
 - Browser verification used the real Django routes with 80 synthetic problems and a synthetic learner. Subject → area → concept navigation, explicit examples and the personal progress link were exercised. Desktop at 1440 × 900 and mobile at 390 × 844 were inspected. The mobile document measured 375 px wide, without page-level horizontal overflow, and its scope navigation expanded successfully. Temporary viewport overrides were restored.
 - Captured local catalogue, example and progress requests made **zero reads of original problem/tag source tables**. These are synthetic local observations, not production latency claims. Production performance needs remeasurement after a separately requested deployment.
 
-### PostgreSQL verification limit
+### PostgreSQL verification
 
-The SQLite migration and trigger paths were executed. PostgreSQL 15 is installed locally, but temporary cluster initialization failed because macOS could not allocate a System V shared-memory segment (`shmget`, OS shared-memory quota). No OS setting, existing database or existing service was changed to work around it. PostgreSQL trigger runtime verification remains outstanding before production schema activation.
+The frozen migrations were executed successfully against the existing pinned PostgreSQL 17.9 image in [Actions run 40485838675](https://github.com/stevenchew83/AsterProof/actions/runs/40485838675). The disposable fixture retained original user, problem UUID, statement, assignment, completion and note fields unchanged after migration. The prior production revision passed its compatibility smoke. Shared publication, statement precedence, normalized completion status, raw SQL and bulk invalidation, private versus published evidence, and trigger uninstall/reinstall passed.
+
+The metadata-only proof archive was downloaded and its SHA-256 checked against GitHub's artifact digest. The resulting schema delta and exact function/trigger fingerprints are frozen in `scripts/deployment/catalogue_schema.py`. This is synthetic rehearsal evidence, not production activation or a production backup/restore drill.
+
+Local PostgreSQL cluster initialization remains limited by the macOS shared-memory quota. No OS setting or existing database/service was changed. The isolated Actions service resolves the runtime verification gap without using production as a test environment.

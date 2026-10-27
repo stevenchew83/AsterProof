@@ -428,6 +428,8 @@ def test_admin_html_and_signed_preview_apply_flow(client, source_problem):
     )
 
 
+# The audit command establishes REPEATABLE READ before its first query.
+@pytest.mark.django_db(transaction=True)
 def test_audit_command_is_read_only_and_exports_formula_safe_csv(source_problem, tmp_path):
     from inspinia.pages.concept_assignment_views import report_csv
 

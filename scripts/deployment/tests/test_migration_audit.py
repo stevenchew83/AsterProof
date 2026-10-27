@@ -9,6 +9,7 @@ import pytest
 from scripts.deployment.migration_audit import AuditConfig
 from scripts.deployment.migration_audit import MigrationAuditError
 from scripts.deployment.migration_audit import collect_audit
+from scripts.deployment.migration_audit import collect_catalogue_behaviour
 from scripts.deployment.migration_audit import collect_identity
 from scripts.deployment.schema_fingerprint import canonical_json
 
@@ -86,3 +87,30 @@ def test_identity_discovery_validates_role_without_trusting_placeholder_hash() -
 
     assert result["role"] == "asterproof_catalog"
     assert result["database_identity_hash"] != config.expected_database_identity_hash
+
+
+def test_catalogue_behaviour_audit_is_fixed_name_read_only_and_checks_identity():
+    identity = ["asterproof", "asterproof_catalog", "prod", "10.0.0.1", "5432"]
+    config = AuditConfig(
+        os_user="asterproof_audit", pg_service="asterproof_audit",
+        pg_service_file=Path("/etc/asterproof/pg_service.conf"), expected_role="asterproof_catalog",
+        expected_database_identity_hash=hashlib.sha256(canonical_json(identity)).hexdigest(),
+    )
+    outputs = iter([",".join(identity) + "\n", "", ""])
+    commands = []
+
+    def runner(command, **_kwargs):
+        commands.append(command)
+        return Result(next(outputs))
+
+    result = collect_catalogue_behaviour(config, runner=runner)
+    assert result["function_count"] == result["trigger_count"] == 0
+    assert result["metadata"] == {"functions": [], "triggers": []}
+    assert all("BEGIN READ ONLY" in command[-1] and "statement_timeout='10s'" in command[-1] for command in commands)
+    assert "p.proname='asterproof_catalogue_revision'" in commands[1][-1]
+    assert "left(t.tgname,13) = 'ap_catalogue_'" in commands[2][-1]
+    assert all("pages_userproblemcompletion" not in command[-1] for command in commands)
+    with pytest.raises(MigrationAuditError, match="identity"):
+        collect_catalogue_behaviour(
+            config, runner=lambda *_args, **_kwargs: Result("otherdb,asterproof_catalog,prod,10.0.0.1,5432\n"),
+        )
