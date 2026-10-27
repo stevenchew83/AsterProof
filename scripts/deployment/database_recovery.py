@@ -41,7 +41,7 @@ AUTHORITY = Path("/usr/local/libexec/asterproof-authority")
 AUDIT_CONFIG = Path("/etc/asterproof/migration-audit.json")
 AUTHORITY_MANIFEST = Path("/etc/asterproof/authority-manifest.json")
 MAX_SOURCE_BYTES = 1024 * 1024 * 1024
-MAX_METADATA_BYTES = 256 * 1024
+MAX_METADATA_BYTES = 2 * 1024 * 1024
 MAX_AGE_SECONDS = 1800
 KEY_BYTES = 32
 PRESERVED_TABLES = frozenset({
@@ -210,7 +210,8 @@ def capture_manifest(connection, *, preserved_only=False):
         raise RecoveryError("recovery_schema_scope_too_large")
     result = {"tables": [], "sequences": [], "schema_fingerprint": None}
     if not preserved_only:
-        result["schema_fingerprint"] = schema_state(logical_backup_schema(_snapshot(connection)))["fingerprint"]
+        result["schema_snapshot"] = logical_backup_schema(_snapshot(connection))
+        result["schema_fingerprint"] = schema_state(result["schema_snapshot"])["fingerprint"]
     for schema, table, _keys in tables:
         if preserved_only and (schema != "public" or table not in PRESERVED_TABLES):
             continue
@@ -406,6 +407,18 @@ def _restore_cli(args):
                     {"object": str(k), "expected": old_rows.get(k), "actual": new_rows.get(k)}
                     for k in sorted(old_rows.keys() | new_rows.keys()) if old_rows.get(k) != new_rows.get(k)
                 ]
+            definitions = {}
+            for category, old_objects in expected["manifest"]["schema_snapshot"].items():
+                keys = {"tables": ("schema", "table"), "columns": ("schema", "table", "column"),
+                        "constraints": ("schema", "table", "name"), "indexes": ("schema", "table", "name"),
+                        "extensions": ("name",)}[category]
+                old_items = {tuple(r[k] for k in keys): r for r in old_objects}
+                new_items = {tuple(r[k] for k in keys): r for r in actual["schema_snapshot"][category]}
+                definitions[category] = [
+                    {"object": str(k), "expected": old_items.get(k), "actual": new_items.get(k)}
+                    for k in sorted(old_items.keys() | new_items.keys()) if old_items.get(k) != new_items.get(k)
+                ]
+            differences["schema_objects"] = definitions
             (scratch / "manifest-difference.json").write_bytes(canonical_json(differences))
             raise RecoveryError("recovery_restored_data_or_schema_mismatch")
         print(
