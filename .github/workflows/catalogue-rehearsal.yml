@@ -5,6 +5,12 @@ on:
     paths:
       - .github/workflows/catalogue-rehearsal.yml
       - scripts/deployment/catalogue_*.py
+      - scripts/deployment/database_recovery.py
+      - scripts/deployment/postgres_runtime.py
+      - scripts/deployment/recovery_crypto.py
+      - scripts/deployment/tests/test_database_recovery.py
+      - scripts/deployment/tests/test_postgres_runtime.py
+      - scripts/deployment/tests/test_recovery_crypto.py
       - scripts/deployment/tests/test_catalogue_*.py
       - inspinia/pages/migrations/0037_catalogue_tables.py
       - inspinia/pages/migrations/0038_seed_catalogue.py
@@ -77,9 +83,47 @@ jobs:
               "inspinia/pages/test_concept_assignments.py", "-q",
           ]))
           PY
+      - name: Reproduce a real stopped oneshot scheduler on the ephemeral runner
+        run: |
+          sudo --preserve-env=GITHUB_ACTIONS,GITHUB_RUN_ID .catalogue-quality/bin/python -m pytest \
+            scripts/deployment/tests/test_systemd_drain.py -q
       - name: Retain metadata-only rehearsal proof
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v7.0.1
         with:
           name: catalogue-postgres-rehearsal-${{ github.sha }}
           path: ${{ runner.temp }}/catalogue-evidence
           retention-days: 30
+      - name: Package private PostgreSQL 17.9 recovery runtime
+        env:
+          POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
+        run: |
+          .catalogue-quality/bin/python -m scripts.deployment.postgres_runtime build \
+            --container "$POSTGRES_CONTAINER" --source-sha "$GITHUB_SHA" \
+            --output "$RUNNER_TEMP/postgres-runtime.tar"
+      - name: Install public runtime into its fixed private prefix on the ephemeral runner
+        run: |
+          archive_digest="$(sha256sum "$RUNNER_TEMP/postgres-runtime.tar" | cut -d' ' -f1)"
+          sudo install -m 0400 "$RUNNER_TEMP/postgres-runtime.tar" "$RUNNER_TEMP/postgres-runtime-root.tar"
+          sudo .catalogue-quality/bin/python -m scripts.deployment.postgres_runtime install \
+            --archive "$RUNNER_TEMP/postgres-runtime-root.tar" --sha256 "$archive_digest" \
+            --source-sha "$GITHUB_SHA"
+      - name: Verify private runtime with an isolated synthetic dump and restore
+        run: |
+          .catalogue-quality/bin/python -m scripts.deployment.postgres_runtime smoke \
+            > "$RUNNER_TEMP/postgres-runtime-smoke.json"
+      - name: Retain verified public PostgreSQL recovery runtime
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v7.0.1
+        with:
+          name: postgres-recovery-runtime-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/postgres-runtime.tar
+            ${{ runner.temp }}/postgres-runtime.manifest.json
+            ${{ runner.temp }}/postgres-runtime-smoke.json
+          retention-days: 30
+      - name: Verify encrypted snapshot and complete isolated database restore
+        run: |
+          .catalogue-quality/bin/python -m scripts.deployment.database_recovery smoke
+      - name: Verify encrypted restore across separate users with production systemd isolation
+        run: |
+          sudo --preserve-env=GITHUB_ACTIONS,GITHUB_RUN_ID,GITHUB_SHA,DATABASE_URL .catalogue-quality/bin/python -m pytest \
+            scripts/deployment/tests/test_systemd_recovery.py -q

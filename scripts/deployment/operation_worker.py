@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from scripts.deployment import catalogue_schema
 from scripts.deployment.concept_schema import MIGRATION_APPLY
 from scripts.deployment.concept_schema import PLAN_CHECK
 from scripts.deployment.concept_schema import ConceptSchemaError
@@ -211,6 +212,7 @@ class WorkerBackend:
         arguments: list[str],
         *,
         migration: bool = False,
+        runtime_seconds: int | None = None,
     ) -> None:
         subprocess.run(
             [
@@ -229,6 +231,7 @@ class WorkerBackend:
                 "--property=ProtectHome=yes",
                 "--property=ProtectSystem=strict",
                 "--property=RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6",
+                *([f"--property=RuntimeMaxSec={runtime_seconds}s"] if runtime_seconds else []),
                 str(release / ".venv/bin/python"),
                 str(release / "manage.py"),
                 *arguments,
@@ -236,6 +239,7 @@ class WorkerBackend:
             check=True,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
+            **({"timeout": runtime_seconds + 30} if runtime_seconds else {}),
         )
 
     def candidate_check(self, contract: TargetContract, release: Path) -> None:
@@ -255,6 +259,146 @@ class WorkerBackend:
     def migrate_concept_schema(self, contract: TargetContract, release: Path) -> None:
         # MigrationExecutor avoids unrelated post_migrate content-type/permission writes.
         self._run_candidate(contract, release, ["shell", "--command", MIGRATION_APPLY], migration=True)
+
+    def check_catalogue_schema(self, contract: TargetContract, release: Path) -> None:
+        catalogue_schema.validate_candidate(release)
+        self._run_candidate(contract, release, ["shell", "--command", catalogue_schema.PLAN_CHECK])
+
+    def migrate_catalogue_schema(self, contract: TargetContract, release: Path) -> None:
+        self._run_candidate(
+            contract, release, ["shell", "--command", catalogue_schema.MIGRATION_APPLY], migration=True,
+        )
+
+    def refresh_catalogue(self, contract: TargetContract, release: Path) -> None:
+        self._run_candidate(contract, release, ["refresh_concept_summaries"], runtime_seconds=900)
+
+    def catalogue_audit(self, contract: TargetContract) -> dict[str, Any]:
+        audit = self.schema_audit(contract)
+        response = subprocess.run(
+            [str(MIGRATION_AUDIT_HELPER), "catalogue-behaviour", "--contract", str(self.contract_path)],
+            check=True, capture_output=True, text=True, timeout=45,
+        )
+        try:
+            behaviour = json.loads(response.stdout)
+            if behaviour["database_identity_hash"] != audit["state"]["database_identity_hash"]:
+                raise OperationError("catalogue_audit_identity_mismatch")
+            fingerprint = behaviour["behaviour_fingerprint"]
+            if not isinstance(fingerprint, str) or not DIGEST_RE.fullmatch(fingerprint):
+                raise OperationError("catalogue_audit_invalid")
+        except (ValueError, TypeError, KeyError) as exc:
+            raise OperationError("catalogue_audit_invalid") from exc
+        return {**audit, "behaviour_fingerprint": fingerprint}
+
+    def preflight_recovery(self, contract: TargetContract) -> None:
+        from scripts.deployment.database_recovery import preflight_recovery
+
+        try:
+            preflight_recovery(contract)
+            self._scheduler_plan(contract)
+        except Exception as exc:
+            raise OperationError("recovery_preflight_failed") from exc
+
+    def create_recovery(self, contract: TargetContract, run_id: str, active_sha: str, fingerprint: str) -> dict:
+        from scripts.deployment.database_recovery import create_verified_backup
+
+        try:
+            return create_verified_backup(contract, run_id, active_sha, fingerprint)
+        except Exception as exc:
+            raise OperationError("recovery_backup_or_restore_failed") from exc
+
+    def verify_recovery(self, contract: TargetContract, run_id: str, active_sha: str, fingerprint: str) -> dict:
+        from scripts.deployment.database_recovery import validate_saved_recovery
+
+        try:
+            return validate_saved_recovery(contract, run_id, active_sha, fingerprint)
+        except Exception as exc:
+            raise OperationError("recovery_receipt_invalid") from exc
+
+    def verify_catalogue_records(self, contract: TargetContract, run_id: str, active_sha: str) -> None:
+        from scripts.deployment.database_recovery import verify_preserved_records
+
+        try:
+            verify_preserved_records(contract, run_id, active_sha)
+        except Exception as exc:
+            raise OperationError("catalogue_original_records_changed") from exc
+
+    def _unit_properties(self, unit: str, names: str) -> dict[str, str]:
+        response = subprocess.run(
+            ["/usr/bin/systemctl", "show", unit, "--property=" + names],
+            check=True, capture_output=True, text=True, timeout=15,
+        )
+        return dict(line.split("=", 1) for line in response.stdout.splitlines() if "=" in line)
+
+    def _scheduler_plan(self, contract: TargetContract) -> tuple[str, bool]:
+        timer = contract.scheduler_service.removesuffix(".service") + ".timer"
+        scheduler = self._unit_properties(contract.scheduler_service, "LoadState,TriggeredBy")
+        timer_state = self._unit_properties(timer, "LoadState,ActiveState")
+        if scheduler.get("LoadState") != "loaded" or set(scheduler.get("TriggeredBy", "").split()) != {timer}:
+            raise OperationError("maintenance_scheduler_trigger_unknown")
+        if timer_state.get("LoadState") != "loaded" or timer_state.get("ActiveState") not in {"active", "inactive"}:
+            raise OperationError("maintenance_scheduler_state_unknown")
+        return timer, timer_state["ActiveState"] == "active"
+
+    def drain(self, contract: TargetContract, state_path: Path) -> None:
+        timer, was_active = self._scheduler_plan(contract)
+        state = read_json(state_path)
+        state["maintenance_scheduler_was_active"] = was_active
+        atomic_write_json(state_path, state)
+        subprocess.run(
+            ["/usr/bin/systemctl", "stop", timer, contract.scheduler_service, contract.service],
+            check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=90,
+        )
+        for unit in (timer, contract.scheduler_service, contract.service):
+            properties = self._unit_properties(
+                unit, "ActiveState,MainPID,ControlGroup,Result,ExecMainCode,ExecMainStatus",
+            )
+            # A stopped oneshot scheduler can retain failed/signal after our SIGTERM.
+            # Accept only that exact scheduler outcome; PID/cgroup/writer guards still apply.
+            stopped_scheduler = unit == contract.scheduler_service and (
+                properties.get("ActiveState"), properties.get("Result"),
+                properties.get("ExecMainCode"), properties.get("ExecMainStatus"),
+            ) == ("failed", "signal", "2", "15")
+            if (properties.get("ActiveState") != "inactive" and not stopped_scheduler) or (
+                properties.get("MainPID", "0") != "0"
+            ):
+                raise OperationError("maintenance_drain_incomplete")
+            group = properties.get("ControlGroup", "")
+            if group:
+                path = Path("/sys/fs/cgroup") / group.lstrip("/") / "cgroup.procs"
+                if path.exists() and path.read_text().strip():
+                    raise OperationError("maintenance_cgroup_not_empty")
+
+            if unit == contract.scheduler_service:
+                state["maintenance_scheduler_stop_result"] = properties
+        atomic_write_json(state_path, state)
+        self.assert_database_drained()
+
+    def assert_database_drained(self) -> None:
+        from scripts.deployment.migration_audit import DEFAULT_CONFIG
+        from scripts.deployment.migration_audit import AuditConfig
+        from scripts.deployment.migration_audit import _run_query
+        from scripts.deployment.migration_audit import collect_identity
+
+        config = AuditConfig.load(DEFAULT_CONFIG)
+        if collect_identity(config)["database_identity_hash"] != config.expected_database_identity_hash:
+            raise OperationError("maintenance_database_identity_drift")
+        count = _run_query(config, """
+            SELECT count(*) FROM pg_catalog.pg_stat_activity
+            WHERE datname=current_database() AND backend_type='client backend'
+              AND pid<>pg_backend_pid() AND usename<>current_user
+        """).strip()
+        if count != "0":
+            raise OperationError("maintenance_database_writers_present")
+
+    def resume_scheduler(self, contract: TargetContract, state_path: Path) -> None:
+        if read_json(state_path).get("maintenance_scheduler_was_active"):
+            timer = contract.scheduler_service.removesuffix(".service") + ".timer"
+            subprocess.run(
+                ["/usr/bin/systemctl", "start", timer], check=True,
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=30,
+            )
+            if self._unit_properties(timer, "ActiveState").get("ActiveState") != "active":
+                raise OperationError("maintenance_scheduler_resume_failed")
 
     def schema_audit(self, contract: TargetContract) -> dict[str, Any]:
         result = subprocess.run(
@@ -408,12 +552,21 @@ def _validate_request(request: dict[str, Any], run_id: str) -> None:
     if set(request) not in (required, required | {"schema_disclosure"}) or request.get("run_id") != run_id:
         raise OperationError("request_invalid")
     if "schema_disclosure" in request:
-        if request["operation"] != "deploy" or request["migration_class"] != "backward-compatible-schema":
+        if request["operation"] != "deploy" or request["migration_class"] not in {
+            "backward-compatible-schema", "data-or-non-compatible",
+        }:
             raise OperationError("request_invalid")
         try:
-            validate_disclosure(request["schema_disclosure"], target_sha=request["release_sha"])
-        except ConceptSchemaError as exc:
+            validator = (
+                catalogue_schema.validate_disclosure
+                if request["migration_class"] == "data-or-non-compatible"
+                else validate_disclosure
+            )
+            validator(request["schema_disclosure"], target_sha=request["release_sha"])
+        except ValueError as exc:
             raise OperationError("schema_disclosure_invalid") from exc
+    elif request["migration_class"] == "data-or-non-compatible":
+        raise OperationError("schema_disclosure_invalid")
     if not NUMERIC_RE.fullmatch(run_id) or not SHA_RE.fullmatch(str(request.get("release_sha", ""))):
         raise OperationError("request_invalid")
     if not DIGEST_RE.fullmatch(str(request.get("artifact_digest", ""))):
@@ -510,7 +663,46 @@ def _deploy(
         backend.candidate_check(contract, release)
         transition(state_path, "prepared")
         if request["migration_class"] == "data-or-non-compatible":
-            raise OperationError("maintenance_workflow_required")
+            disclosure = request["schema_disclosure"]
+            if baseline_sha is None or disclosure["active_sha"] != baseline_sha or not catalogue_schema.audit_matches(
+                disclosure, backend.catalogue_audit(contract), stage="starting",
+            ):
+                raise OperationError("catalogue_starting_state_mismatch")
+            try:
+                catalogue_schema.validate_build_evidence(release, disclosure)
+                backend.check_catalogue_schema(contract, release)
+            except (OSError, ValueError) as exc:
+                raise OperationError("catalogue_candidate_invalid") from exc
+            backend.preflight_recovery(contract)
+            if not catalogue_schema.audit_matches(disclosure, backend.catalogue_audit(contract), stage="starting"):
+                raise OperationError("catalogue_starting_state_drift")
+            transition(state_path, "draining")
+            backend.drain(contract, state_path)
+            transition(state_path, "backing_up")
+            backend.create_recovery(contract, request["run_id"], baseline_sha, baseline_fingerprint)
+            receipt = backend.verify_recovery(contract, request["run_id"], baseline_sha, baseline_fingerprint)
+            if (
+                not isinstance(receipt, dict) or not isinstance(receipt.get("backup_id"), str)
+                or not receipt["backup_id"] or not DIGEST_RE.fullmatch(str(receipt.get("archive_sha256", "")))
+            ):
+                raise OperationError("recovery_receipt_invalid")
+            state = read_json(state_path)
+            state.update({
+                "recovery_backup_id": receipt["backup_id"],
+                "recovery_archive_sha256": receipt["archive_sha256"],
+            })
+            atomic_write_json(state_path, state)
+            if not catalogue_schema.audit_matches(disclosure, backend.catalogue_audit(contract), stage="starting"):
+                raise OperationError("catalogue_starting_state_drift")
+            backend.assert_database_drained()
+            transition(state_path, "migrating")
+            backend.migrate_catalogue_schema(contract, release)
+            if not catalogue_schema.audit_matches(disclosure, backend.catalogue_audit(contract), stage="expected"):
+                raise OperationError("catalogue_ending_state_mismatch")
+            backend.refresh_catalogue(contract, release)
+            backend.verify_catalogue_records(contract, request["run_id"], baseline_sha)
+            if not catalogue_schema.audit_matches(disclosure, backend.catalogue_audit(contract), stage="expected"):
+                raise OperationError("catalogue_ending_behaviour_drift")
         if request["migration_class"] == "backward-compatible-schema":
             disclosure = request.get("schema_disclosure")
             if disclosure is None:
@@ -534,7 +726,7 @@ def _deploy(
                 raise OperationError("schema_ending_state_mismatch")
         backend.candidate_migrations_applied(contract, release)
         ending_fingerprint = backend.state_fingerprint(contract)
-        if request["migration_class"] == "backward-compatible-schema" and (
+        if request["migration_class"] in {"backward-compatible-schema", "data-or-non-compatible"} and (
             ending_fingerprint != request["schema_disclosure"]["expected"]["state_fingerprint"]
         ):
             raise OperationError("schema_ending_state_drift")
@@ -547,7 +739,7 @@ def _deploy(
             state_fingerprint=ending_fingerprint,
         )
     except Exception:
-        if read_json(state_path).get("state") != "migrating":
+        if read_json(state_path).get("state") not in {"draining", "backing_up", "migrating"}:
             backend.discard_candidate(contract, release)
         raise
     transition(state_path, "activating")
@@ -559,6 +751,10 @@ def _deploy(
             or backend.state_fingerprint(contract) != ending_fingerprint
         ):
             raise OperationError("activation_state_drift")
+        if request["migration_class"] == "data-or-non-compatible" and not catalogue_schema.audit_matches(
+            request["schema_disclosure"], backend.catalogue_audit(contract), stage="expected",
+        ):
+            raise OperationError("catalogue_activation_behaviour_drift")
     except Exception as activation_error:
         can_rollback = request["migration_class"] in {"none", "backward-compatible-schema"} and bool(
             baseline_record.get("rollback_eligible"),
@@ -595,6 +791,8 @@ def _deploy(
         if baseline_sha is not None:
             _set_release_record_state(contract, baseline_sha, "active", state_fingerprint=ending_fingerprint)
         return transition(state_path, "rolled_back", error_code="activation_failed")
+    if request["migration_class"] == "data-or-non-compatible":
+        backend.resume_scheduler(contract, state_path)
     _write_release_record(
         contract,
         request,
@@ -629,6 +827,8 @@ def _rollback(
     if current_sha is None:
         raise OperationError("baseline_missing")
     current_record = _load_release_record(contract, current_sha)
+    if current_record.get("migration_class") == "data-or-non-compatible":
+        raise OperationError("rollback_requires_independent_recovery")
     target_record = _load_release_record(contract, request["release_sha"])
     if current_record.get("state") != "active" or target_record.get("state") != "previous":
         raise OperationError("rollback_release_state_invalid")
@@ -709,11 +909,11 @@ def run_operation(
             raise OperationError("operation_not_supported")
         except OperationError as exc:
             state = read_json(state_path).get("state")
-            recovery = state in {"migrating", "activating"}
+            recovery = state in {"draining", "backing_up", "migrating", "activating"}
             return _mark_failure(state_path, recovery=recovery, code=exc.code)
         except (OSError, subprocess.SubprocessError, ReleaseStateError):
             state = read_json(state_path).get("state")
-            recovery = state in {"migrating", "activating"}
+            recovery = state in {"draining", "backing_up", "migrating", "activating"}
             return _mark_failure(state_path, recovery=recovery, code="operation_failed")
 
 
