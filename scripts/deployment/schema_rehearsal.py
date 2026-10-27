@@ -26,6 +26,15 @@ FIELDS = {
     "extensions": ("name", "version"),
 }
 POSTGRES_VERSION = 170009
+REHEARSAL_URL = "postgres://postgres@127.0.0.1:5432/asterproof_schema_rehearsal"
+REHEARSAL_DATABASE = {
+    "ENGINE": "django.db.backends.postgresql",
+    "HOST": "127.0.0.1",
+    "PORT": "5432",
+    "NAME": "asterproof_schema_rehearsal",
+    "USER": "postgres",
+    "PASSWORD": "",
+}
 SMOKE = """
 import django
 django.setup()
@@ -53,6 +62,23 @@ def _arguments():
     return parser.parse_args()
 
 
+def configure_rehearsal_database(settings):
+    if os.environ.get("GITHUB_ACTIONS") != "true" or os.environ.get("DATABASE_URL") != REHEARSAL_URL:
+        raise ValueError("Rehearsal requires its exact isolated Actions database target")
+    # Test settings intentionally force SQLite; DATABASE_URL alone does not select PostgreSQL.
+    settings.DATABASES = {"default": REHEARSAL_DATABASE.copy()}
+    settings.CONCEPT_ASSIGNMENTS_ENABLED = False
+
+
+def smoke_command():
+    # The active revision has the same SQLite test default; configure its fresh process explicitly.
+    return (
+        "from django.conf import settings\n"
+        f"settings.DATABASES = {{'default': {REHEARSAL_DATABASE!r}}}\n"
+        "settings.CONCEPT_ASSIGNMENTS_ENABLED = False\n" + SMOKE
+    )
+
+
 
 def _snapshot(connection):
     result = {}
@@ -65,20 +91,11 @@ def _snapshot(connection):
 
 def main():
     args = _arguments()
-    if os.environ.get("GITHUB_ACTIONS") != "true":
-        raise ValueError("This rehearsal only runs on the disposable Actions service")
     os.environ["DJANGO_SETTINGS_MODULE"] = "config.settings.test"
     os.environ["DJANGO_READ_DOT_ENV_FILE"] = "false"
     from django.conf import settings
 
-    database = settings.DATABASES["default"]
-    if (database["HOST"], database["NAME"], database["USER"]) != (
-        "127.0.0.1",
-        "asterproof_schema_rehearsal",
-        "postgres",
-    ):
-        raise ValueError("Rehearsal database is not the isolated loopback target")
-    settings.CONCEPT_ASSIGNMENTS_ENABLED = False
+    configure_rehearsal_database(settings)
     import django
 
     django.setup()
@@ -137,7 +154,7 @@ def main():
     if schema_state(delta)["fingerprint"] != DELTA_SHA256:
         raise ValueError("PostgreSQL catalog delta differs from the reviewed additive schema")
     smoke_env = {**os.environ, "PYTHONPATH": str(args.active_source.resolve())}
-    subprocess.run([sys.executable, "-c", SMOKE], cwd=args.active_source, env=smoke_env, check=True)
+    subprocess.run([sys.executable, "-c", smoke_command()], cwd=args.active_source, env=smoke_env, check=True)
     if _snapshot(connection) != after or source_content() != content:
         raise ValueError("Active revision smoke changed schema or the source fixture")
     args.output.write_text(
