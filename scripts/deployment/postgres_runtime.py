@@ -121,7 +121,7 @@ def build_runtime(container: str, *, output: Path, source_sha: str) -> dict:
     with tempfile.TemporaryDirectory(prefix="pg17-package-", dir=output.parent) as temporary:
         root = Path(temporary)
         files = _command([
-            "docker", "exec", container, "find", "/usr/share/postgresql/17", "-type", "f", "-print",
+            "docker", "exec", container, "find", "-L", "/usr/share/postgresql/17", "-type", "f", "-print",
         ]).splitlines()
         locale_root = _command(["docker", "exec", container, "mktemp", "-d"])
         if not re.fullmatch(r"/tmp/[A-Za-z0-9_.-]+", locale_root):  # noqa: S108 - validates container mktemp output.
@@ -134,7 +134,7 @@ def build_runtime(container: str, *, output: Path, source_sha: str) -> dict:
             "docker", "exec", container, "find", locale_root + "/en_US.utf8", "-type", "f", "-print",
         ]).splitlines()
         plugins = _command([
-            "docker", "exec", container, "find", "/usr/lib/postgresql/17/lib", "-maxdepth", "1",
+            "docker", "exec", container, "find", "-L", "/usr/lib/postgresql/17/lib", "-maxdepth", "1",
             "-name", "*.so", "!", "-name", "llvmjit*", "-print",
         ]).splitlines()
         sources = [*("/" + str(BIN / p) for p in PROGRAMS), *plugins]
@@ -248,7 +248,8 @@ def _validate(handle: BinaryIO, *, expected_sha256: str, expected_source_sha: st
             str(LOCALE / "LC_CTYPE"),
         }
         if not required <= set(paths):
-            raise PostgresRuntimeError("Recovery runtime is missing required programs or server support")
+            missing = ",".join(sorted(required - set(paths)))
+            raise PostgresRuntimeError("Recovery runtime is missing required programs or server support: " + missing)
         total = 0
         for record in records:
             name = record["path"]
