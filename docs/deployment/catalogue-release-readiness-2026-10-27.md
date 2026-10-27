@@ -1,6 +1,12 @@
 # Catalogue release readiness — 27 October 2026
 
-## Current boundary
+## Current status
+
+The user authorized the bounded deployment-support update after application PR #311 merged. PostgreSQL 17.9 rehearsal and prior-revision compatibility have now passed in [run 40485838675](https://github.com/stevenchew83/AsterProof/actions/runs/40485838675). The proof preserves original fixture records and verifies trigger invalidation. Its downloaded archive matches GitHub's artifact digest; schema and function/trigger fingerprints are frozen in `scripts/deployment/catalogue_schema.py`.
+
+PR #312 prepares verification and a fixed-name, identity-checked `catalogue-behaviour` audit through the existing catalog-only interface. It does not enable data-class maintenance deployment or replace installed authority. Current checks found no independent production recovery-point/restore-drill record. That evidence remains required before enabling a maintenance path; a rehearsal against synthetic data does not satisfy it. Provider inspection is technically unavailable through the connected session, and no IAM or identity changes are included.
+
+## Recorded boundary before authorization
 
 The application release has been requested. Production activation is not ready: the current protected deployment workflow and installed authority contract allow only migration-free releases and the exact earlier `pages.0036_concept_assignment_reviews` exception. This release requires migrations 0037–0039. Application deployment authorization does not authorize replacing its root-owned deployment authority, changing protection rules, or declaring these migrations migration-free.
 
@@ -17,7 +23,7 @@ The existing migration classifier requires RunPython migrations to be `data-or-n
 
 0037 creates eleven catalogue, membership-generation and derived-summary models, with references to existing identities. 0038 inserts four subjects, 45 areas, 1,163 concept ID rows, 1,140 memberships, 262 relations, and 4,836 scoped aliases/holds into the new tables only. Existing concept IDs, original problems, reviewed assignments, completion rows, users and study notes are preserved.
 
-0039 creates `asterproof_catalogue_revision()` and fourteen `ap_catalogue_*` triggers. Those triggers increment only `pages_cataloguestate.source_revision` when relevant source/catalogue/published-evidence rows change. Installation does not rewrite the existing source rows. The PostgreSQL implementation needs runtime rehearsal; SQLite execution is verified.
+0039 creates `asterproof_catalogue_revision()` and fourteen `ap_catalogue_*` triggers. Those triggers increment only `pages_cataloguestate.source_revision` when relevant source/catalogue/published-evidence rows change. Installation does not rewrite the existing source rows. The PostgreSQL implementation has passed the pinned rehearsal described above; SQLite execution is also verified.
 
 ## Separately authorized deployment-support scope needed
 
@@ -31,7 +37,7 @@ Authorize preparation, review and installation of a frozen, narrowly bounded dep
 - install only the reviewed authority files at a frozen revision using the supported bootstrap procedure, retaining owner/mode/hash read-back and its disclosed systemd daemon-reload effect;
 - introduce no IAM, account, database-role, credential, firewall, DNS, network or secret changes.
 
-The authority patch is not implemented or installed by this application PR. Its exact revision and effects must be frozen and checked before any separately authorized installation. If the existing recovery evidence or bootstrap cannot satisfy this bounded scope, stop and disclose the additional requirement.
+The application PR did not implement or install an authority patch. Verification/audit preparation is now in PR #312; maintenance enablement and authority installation remain pending the required recovery evidence. Its exact revision and effects must be frozen and checked before any separately authorized installation. If the existing recovery evidence or bootstrap cannot satisfy this bounded scope, stop and disclose the additional requirement.
 
 ## Activation acceptance
 

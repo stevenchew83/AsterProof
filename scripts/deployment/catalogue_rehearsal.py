@@ -17,6 +17,7 @@ from scripts.deployment.catalogue_schema import behaviour_fingerprint
 from scripts.deployment.catalogue_schema import behaviour_snapshot
 from scripts.deployment.catalogue_schema import validate_behaviour_shape
 from scripts.deployment.catalogue_schema import validate_candidate
+from scripts.deployment.catalogue_schema import validate_rehearsal_evidence
 from scripts.deployment.schema_fingerprint import schema_state
 from scripts.deployment.schema_rehearsal import POSTGRES_VERSION
 from scripts.deployment.schema_rehearsal import _snapshot
@@ -177,6 +178,7 @@ def main():
         "active_revision_smoke_passed": True, "runtime_invalidation_passed": True,
         "trigger_uninstall_reinstall_passed": True,
     }
+    validate_rehearsal_evidence(result, release_sha=args.release_sha, active_sha=args.active_sha)
     args.output.mkdir()
     for name, data in (("evidence", result), ("schema-delta", delta), ("behaviour", behaviour)):
         (args.output / f"{name}.json").write_text(json.dumps(data, indent=2) + "\n")

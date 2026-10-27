@@ -64,6 +64,19 @@ jobs:
             --active-source "$RUNNER_TEMP/active-catalogue-smoke" \
             --active-sha "$ACTIVE_SHA" --release-sha "$GITHUB_SHA" \
             --output "$RUNNER_TEMP/catalogue-evidence"
+      - name: Run catalogue and reviewed-assignment regressions on PostgreSQL
+        run: |
+          .catalogue-quality/bin/python - <<'PY'
+          from django.conf import settings
+          from scripts.deployment.schema_rehearsal import configure_rehearsal_database
+          configure_rehearsal_database(settings)
+          import pytest
+          raise SystemExit(pytest.main([
+              "inspinia/pages/test_catalogue_snapshots.py",
+              "inspinia/pages/test_concept_progress.py",
+              "inspinia/pages/test_concept_assignments.py", "-q",
+          ]))
+          PY
       - name: Retain metadata-only rehearsal proof
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v7.0.1
         with:

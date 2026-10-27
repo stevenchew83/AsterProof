@@ -8,12 +8,15 @@ from pathlib import Path
 
 import pytest
 
+from scripts.deployment.catalogue_schema import BEHAVIOUR_SHA256
+from scripts.deployment.catalogue_schema import DELTA_SHA256
 from scripts.deployment.catalogue_schema import INPUT_HASHES
 from scripts.deployment.catalogue_schema import PLAN_CHECK
 from scripts.deployment.catalogue_schema import TRIGGER_TABLES
 from scripts.deployment.catalogue_schema import behaviour_fingerprint
 from scripts.deployment.catalogue_schema import validate_behaviour_shape
 from scripts.deployment.catalogue_schema import validate_candidate
+from scripts.deployment.catalogue_schema import validate_rehearsal_evidence
 
 ROOT = Path(__file__).resolve().parents[3]
 
@@ -80,3 +83,37 @@ def test_unapproved_behaviour_shape_is_rejected(mutation):
         value["functions"][0][5] = "search_path=untrusted"
     with pytest.raises(ValueError, match="Catalogue trigger"):
         validate_behaviour_shape(value)
+
+
+def evidence():
+    return {
+        "format_version": 1, "source_sha": "a" * 40, "active_sha": "b" * 40,
+        "postgres_version": 170009, "input_hashes": INPUT_HASHES,
+        "delta_sha256": DELTA_SHA256, "behaviour_sha256": BEHAVIOUR_SHA256,
+        "existing_schema_unchanged": True, "existing_records_unchanged": True,
+        "active_revision_smoke_passed": True, "runtime_invalidation_passed": True,
+        "trigger_uninstall_reinstall_passed": True,
+    }
+
+
+def test_complete_proof_is_bound_to_exact_release_and_active_revision():
+    validate_rehearsal_evidence(evidence(), release_sha="a" * 40, active_sha="b" * 40)
+    with pytest.raises(ValueError, match="frozen release"):
+        validate_rehearsal_evidence(evidence(), release_sha="c" * 40, active_sha="b" * 40)
+    with pytest.raises(ValueError, match="distinct immutable"):
+        validate_rehearsal_evidence(evidence(), release_sha="a" * 40, active_sha="a" * 40)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("format_version", True), ("input_hashes", {}), ("existing_records_unchanged", 1),
+        ("runtime_invalidation_passed", "true"), ("active_revision_smoke_passed", False),
+        ("behaviour_sha256", "0" * 64), ("delta_sha256", "0" * 64),
+    ],
+)
+def test_incomplete_or_modified_runtime_proof_is_rejected(field, value):
+    proof = evidence()
+    proof[field] = value
+    with pytest.raises(ValueError, match="frozen release"):
+        validate_rehearsal_evidence(proof, release_sha="a" * 40, active_sha="b" * 40)

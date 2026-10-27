@@ -7,6 +7,7 @@ class, install authority, or grant a production maintenance operation.
 from __future__ import annotations
 
 import hashlib
+import re
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -33,6 +34,10 @@ TABLES = frozenset(
         "cataloguestate", "catalogueproblem", "catalogueproblemconcept", "userconceptprogresssummary",
     )
 )
+# PostgreSQL 17.9 proof: Actions run 40485838675, artifact 12725162197.
+# These bind the complete additive table delta and exact trigger/function bodies.
+DELTA_SHA256 = "688fe37d565e69fe6547264c2b48ee60689972fbf8007023939b813ed9f49e94"
+BEHAVIOUR_SHA256 = "d20b95dd341b53b253bed83d0145c9d3301c80f323c6eff313e3fe066d514f40"
 TRIGGER_TABLES = frozenset(
     [
         "pages_contestproblemstatement", "pages_problemsolverecord", "pages_statementtopictechnique",
@@ -54,7 +59,7 @@ TRIGGERS_SQL = """
 SELECT n.nspname,c.relname,t.tgname,pg_catalog.pg_get_triggerdef(t.oid,true),t.tgenabled
 FROM pg_catalog.pg_trigger t JOIN pg_catalog.pg_class c ON c.oid=t.tgrelid
 JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace
-WHERE n.nspname='public' AND NOT t.tgisinternal AND t.tgname LIKE 'ap_catalogue_%'
+WHERE n.nspname='public' AND NOT t.tgisinternal AND left(t.tgname,13) = 'ap_catalogue_'
 ORDER BY 1,2,3
 """
 PLAN_CHECK = f"""from django.db import connection
@@ -104,4 +109,30 @@ def validate_behaviour_shape(snapshot: dict) -> None:
     expected = {("public", t, "ap_catalogue_" + t, "O") for t in TRIGGER_TABLES}
     if len(triggers) != len(expected) or {(r[0], r[1], r[2], r[4]) for r in triggers} != expected:
         message = "Catalogue trigger names, enabled states or tables differ from the reviewed scope"
+        raise ValueError(message)
+
+
+def validate_rehearsal_evidence(value: dict, *, release_sha: str, active_sha: str) -> None:
+    """Bind build proof to this release; truthy strings/integers are not proof."""
+    if (
+        not re.fullmatch(r"[0-9a-f]{40}", release_sha)
+        or not re.fullmatch(r"[0-9a-f]{40}", active_sha)
+        or release_sha == active_sha
+    ):
+        message = "Catalogue PostgreSQL proof requires distinct immutable release revisions"
+        raise ValueError(message)
+    expected = {
+        "format_version": 1, "source_sha": release_sha, "active_sha": active_sha,
+        "postgres_version": 170009, "input_hashes": INPUT_HASHES,
+        "delta_sha256": DELTA_SHA256, "behaviour_sha256": BEHAVIOUR_SHA256,
+        "existing_schema_unchanged": True, "existing_records_unchanged": True,
+        "active_revision_smoke_passed": True, "runtime_invalidation_passed": True,
+        "trigger_uninstall_reinstall_passed": True,
+    }
+    flags = [k for k, v in expected.items() if v is True]
+    if (
+        not isinstance(value, dict) or type(value.get("format_version")) is not int
+        or value != expected or any(value[k] is not True for k in flags)
+    ):
+        message = "Catalogue PostgreSQL proof does not match the frozen release and behaviour"
         raise ValueError(message)
