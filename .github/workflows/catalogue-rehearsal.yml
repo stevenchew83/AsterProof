@@ -83,6 +83,10 @@ jobs:
               "inspinia/pages/test_concept_assignments.py", "-q",
           ]))
           PY
+      - name: Reproduce a real stopped oneshot scheduler on the ephemeral runner
+        run: |
+          sudo --preserve-env=GITHUB_ACTIONS,GITHUB_RUN_ID .catalogue-quality/bin/python -m pytest \
+            scripts/deployment/tests/test_systemd_drain.py -q
       - name: Retain metadata-only rehearsal proof
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v7.0.1
         with:

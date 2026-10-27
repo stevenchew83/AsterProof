@@ -348,3 +348,79 @@ def test_expected_audit_uses_the_verified_public_schema_delta_and_exact_migratio
     start["state_fingerprint"] = "1" * 64
     with pytest.raises(ValueError, match="identity/version"):
         catalogue.expected_catalog_audit(start, delta)
+
+
+@pytest.mark.parametrize(
+    ("scenario", "error"),
+    [
+        ("inactive", None), ("scheduler_sigterm", None),
+        ("scheduler_exit_error", "maintenance_drain_incomplete"),
+        ("scheduler_sigkill", "maintenance_drain_incomplete"),
+        ("scheduler_pid_present", "maintenance_drain_incomplete"),
+        ("scheduler_cgroup_present", "maintenance_cgroup_not_empty"),
+        ("app_sigterm", "maintenance_drain_incomplete"),
+        ("timer_active", "maintenance_drain_incomplete"),
+        ("writers_present", "maintenance_database_writers_present"),
+    ],
+)
+def test_real_drain_accepts_only_a_fully_stopped_scheduler_after_sigterm(tmp_path, monkeypatch, scenario, error):
+    contract = _contract(tmp_path)
+    timer = contract.scheduler_service.removesuffix(".service") + ".timer"
+    properties = {
+        timer: {"ActiveState": "inactive"},
+        contract.service: {"ActiveState": "inactive", "MainPID": "0", "ControlGroup": ""},
+        contract.scheduler_service: {
+            "ActiveState": "inactive", "MainPID": "0", "ControlGroup": "/scheduler",
+            "Result": "success", "ExecMainCode": "1", "ExecMainStatus": "0",
+        },
+    }
+    scheduler = properties[contract.scheduler_service]
+    if scenario not in {"inactive", "app_sigterm", "timer_active"}:
+        scheduler.update(ActiveState="failed", Result="signal", ExecMainCode="2", ExecMainStatus="15")
+    if scenario == "scheduler_exit_error":
+        scheduler.update(Result="exit-code", ExecMainCode="1", ExecMainStatus="1")
+    if scenario == "scheduler_sigkill":
+        scheduler["ExecMainStatus"] = "9"
+    if scenario == "scheduler_pid_present":
+        scheduler["MainPID"] = "123"
+    if scenario == "app_sigterm":
+        properties[contract.service].update(
+            ActiveState="failed", Result="signal", ExecMainCode="2", ExecMainStatus="15",
+        )
+    if scenario == "timer_active":
+        properties[timer]["ActiveState"] = "active"
+    group = tmp_path / "cgroups/scheduler"
+    group.mkdir(parents=True)
+    (group / "cgroup.procs").write_text("123\n" if scenario == "scheduler_cgroup_present" else "")
+    original_path = Path
+    monkeypatch.setattr(
+        "scripts.deployment.operation_worker.Path",
+        lambda value: tmp_path / "cgroups" if str(value) == "/sys/fs/cgroup" else original_path(value),
+    )
+    state_path = tmp_path / "operation.json"
+    atomic_write_json(state_path, {"state": "draining"})
+    backend = WorkerBackend()
+    monkeypatch.setattr(backend, "_scheduler_plan", lambda _contract: (timer, True))
+    monkeypatch.setattr(backend, "_unit_properties", lambda unit, _names: properties[unit])
+    commands = []
+    monkeypatch.setattr(
+        "scripts.deployment.operation_worker.subprocess.run", lambda args, **kwargs: commands.append((args, kwargs)),
+    )
+    writer_checks = []
+
+    def assert_no_writers():
+        writer_checks.append(True)
+        if scenario == "writers_present":
+            raise OperationError("maintenance_database_writers_present")
+
+    monkeypatch.setattr(backend, "assert_database_drained", assert_no_writers)
+    if error:
+        with pytest.raises(OperationError, match=error):
+            backend.drain(contract, state_path)
+        assert bool(writer_checks) == (scenario == "writers_present")
+    else:
+        backend.drain(contract, state_path)
+        assert writer_checks == [True]
+        assert read_json(state_path)["maintenance_scheduler_stop_result"] == scheduler
+    assert commands[0][0] == ["/usr/bin/systemctl", "stop", timer, contract.scheduler_service, contract.service]
+    assert commands[0][1]["timeout"] == 90
