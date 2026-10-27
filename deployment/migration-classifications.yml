@@ -12,6 +12,37 @@
         "existing_schema_unchanged"
       ],
       "rationale": "Creates four isolated assignment/review tables, indexes and foreign keys only. Existing source tags, statements, ratings and completion tables are not rewritten. Prior application remains compatible with the additive tables; retained audit data must not be dropped during code recovery."
+    },
+    "pages.0037_catalogue_tables": {
+      "classification": "backward-compatible-schema",
+      "recovery_required": false,
+      "code_rollback_permitted": true,
+      "data_preconditions": [
+        "catalogue_tables_absent",
+        "existing_schema_unchanged"
+      ],
+      "rationale": "Creates eleven isolated catalogue and disposable summary models. Existing problem, assignment, completion, and user fields are preserved."
+    },
+    "pages.0038_seed_catalogue": {
+      "classification": "data-or-non-compatible",
+      "recovery_required": true,
+      "code_rollback_permitted": false,
+      "data_preconditions": [
+        "catalogue_tables_empty",
+        "frozen_seed_hash_verified"
+      ],
+      "rationale": "RunPython inserts the hash-checked catalogue seed into the new tables only. The protocol classifies RunPython as data; recovery must preserve existing and newly seeded identities."
+    },
+    "pages.0039_catalogue_revision_triggers": {
+      "classification": "data-or-non-compatible",
+      "recovery_required": true,
+      "code_rollback_permitted": false,
+      "data_preconditions": [
+        "catalogue_state_seeded",
+        "source_tables_present",
+        "trigger_function_absent"
+      ],
+      "rationale": "RunPython installs revision triggers on fourteen source/catalogue/evidence tables. They update only the new CatalogueState revision. Schema fingerprints alone do not certify function/trigger definitions; explicit definition audits and PostgreSQL runtime rehearsal are required."
     }
   }
 }

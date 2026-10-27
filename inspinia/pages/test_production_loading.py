@@ -271,14 +271,13 @@ def test_concept_directory_payload_is_bounded_with_full_catalogue_totals(admin_c
     )
     ProblemTopicTechnique.objects.create(record=problem, technique="AM-GM", domains=["ALG"])
     response = admin_client.get(reverse("pages:topic_tag_dashboard"))
-    assert response.context["stats"]["problems"] == 1
-    assert response.context["stats"]["covered"] == 1
-    assert response.context["quality"]["review"] == 1
-    assert len(response.context["concept_page"].object_list) == 25
+    assert response.context["level"] == "subjects"
+    assert response.context["page"].paginator.count == 4
+    assert len(response.context["rows"]) == 4
     assert len(response.content) < 150_000
     filtered = admin_client.get(reverse("pages:topic_tag_dashboard"), {"q": "Jensen", "state": "gaps"})
-    assert filtered.context["concept_page"].paginator.count == 1
-    assert filtered.context["concept_page"][0]["id"] == "jensen"
+    assert filtered.context["page"].paginator.count == 1
+    assert filtered.context["rows"][0]["id"] == "jensen"
 
 
 def test_benchmark_payload_pages_details_and_searches_beyond_first_page(admin_client):
@@ -371,7 +370,7 @@ def test_benchmark_matrix_limit_applies_after_chartability_filter(admin_client):
     assert [point["row_key"] for point in points] == ["method:complete"]
 
 
-def test_concept_sort_uses_all_problem_difficulties_before_pagination(admin_client):
+def test_published_concept_statistics_use_all_problem_difficulties(admin_client):
     problems = [
         ProblemSolveRecord.objects.create(year=2026, contest="IMO", problem=f"P{n}", topic="ALG", mohs=5)
         for n in range(30)
@@ -383,8 +382,9 @@ def test_concept_sort_uses_all_problem_difficulties_before_pagination(admin_clie
     ProblemTopicTechnique.objects.create(
         record=hard, technique="JENSEN", lemma_theorem_tags=["JENSEN"], domains=["ALG"],
     )
-    result = admin_client.get(reverse("pages:topic_tag_dashboard"), {"sort": "mohs", "subject": "Algebra"})
-    assert result.context["concept_page"][0]["id"] == "jensen"
-    assert result.context["concept_page"][0]["median_mohs"] == 59
-    assert result.context["stats"]["problems"] == 31
-    assert result.context["stats"]["covered"] == 2
+    from inspinia.pages.catalogue_snapshots import rebuild_library_snapshot
+
+    snapshot = rebuild_library_snapshot()
+    assert snapshot.totals["c:jensen"]["median_mohs"] == 59
+    assert snapshot.totals["c:am-gm"]["median_mohs"] == 5
+    assert snapshot.totals["all"]["total"] == 31

@@ -27144,7 +27144,7 @@ def test_dashboard_sidebar_groups_training_first_and_collapses_management_for_ad
         "Problems &amp; resources", "Problem library", "Problem lists", "Discover lists", "Benchmark map",
         "My work", "Record completions", "My solutions", "My activity", "Tools", "LaTeX preview",
         "Handle parser", "Advanced analytics", "Problem analytics", "Contest analytics",
-        "Area &amp; Concept analytics",
+        "Mathematics catalogue",
         "Statement analytics", "View analytics", "Completion records", "Progress analytics", "Solution records",
         "Management", "Trainer queue", "Training content", "Rankings", "Ranking table", "Ranking dashboard",
         "Students", "Assessments", "Formulas", "Ranking imports", "Content maintenance", "Problem data",

@@ -410,6 +410,9 @@ def _catalog_state() -> TechniqueProgressCatalogState:
 
 
 def _mark_catalog_stale() -> None:
+    from inspinia.pages.catalogue_signals import invalidate_catalogue_snapshot
+
+    invalidate_catalogue_snapshot()
     state = _catalog_state()
     update_fields = {"updated_at"}
     if not state.needs_rebuild:

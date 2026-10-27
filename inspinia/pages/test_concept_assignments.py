@@ -10,6 +10,7 @@ from django.core.management import call_command
 from django.test import override_settings
 from django.urls import reverse
 
+from inspinia.pages.catalogue_snapshots import rebuild_library_snapshot
 from inspinia.pages.concept_assignment_registry import REGISTRY
 from inspinia.pages.concept_assignment_registry import AssignmentRegistry
 from inspinia.pages.concept_assignment_registry import RegistryError
@@ -347,9 +348,14 @@ def test_library_progress_and_filter_share_accepted_membership(source_problem, s
     assert list(result.values_list("id", flat=True)) == [statement.pk]
     analytics = build_concept_analytics_context({"concept": "am-gm"})
     assert analytics["selected_concept"]["problem_count"] == 1
+    rebuild_library_snapshot()  # Scheduled publication precedes progress reads.
     progress = build_concept_progress_context(request_user=user, params={"concept": "am-gm", "mode": "problems"})
     assert progress["selected_summary"]["total"] == 1
-    assert len(progress["export_rows"]) == 1
+    assert len(progress["progress_page"]) == 1
+    exported = build_concept_progress_context(
+        request_user=user, params={"concept": "am-gm", "mode": "problems", "export": "csv"},
+    )
+    assert len(list(exported["export_rows"])) == 1
 
 
 def test_seed_activation_requires_complete_current_evidence(source_problem, settings):
@@ -589,6 +595,7 @@ def test_active_library_filter_and_legacy_gap_url_use_accepted_projection(client
     no = client.get(reverse("pages:problem_statement_list"), {"concept": "floor-ceiling"})
     assert yes.context["statement_filtered_total"] == 1
     assert no.context["statement_filtered_total"] == 0
+    rebuild_library_snapshot()  # Scheduled publication precedes progress reads.
     gaps = client.get(reverse("pages:technique_progress_gaps"), {"format": "datatable"}).json()
     assert any(row["id"] == "am-gm" for row in gaps["data"])
     assert not any(row["id"] == "floor-ceiling" for row in gaps["data"])
@@ -729,6 +736,7 @@ def test_invalid_progress_area_restores_supported_scope(source_problem, settings
     add_tag(statement)
     seed(problem)
     enable(settings)
+    rebuild_library_snapshot()  # Scheduled publication precedes progress reads.
     context = build_concept_progress_context(
         request_user=UserFactory(),
         params={"area": "invalid", "mode": "concepts"},
@@ -801,6 +809,7 @@ def test_reviewed_area_context_is_shared_by_library_analytics_and_progress(sourc
         {"subject": "Algebra", "area": "Algebra:inequalities", "concept": "sign-analysis"},
     )
     assert analytics["selected_concept"]["problem_count"] == 1
+    rebuild_library_snapshot()  # Scheduled publication precedes progress reads.
     progress = build_concept_progress_context(
         request_user=UserFactory(),
         params={"area": "Algebra:inequalities", "concept": "sign-analysis", "mode": "problems"},

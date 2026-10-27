@@ -1,219 +1,91 @@
 {% extends 'layouts/vertical.html' %}
-{% load static %}
 
-{% block title %}Area & Concept analytics{% endblock title %}
+{% block title %}Mathematics catalogue{% endblock title %}
 
 {% block extra_css %}
 <style>
-  .concept-analytics { --ca-accent: var(--ins-primary); padding-bottom: 2rem; }
-  .concept-analytics .page-title-head { align-items: center; padding-block: 1.75rem 1.25rem; }
-  .concept-analytics h1 { font-size: clamp(1.5rem, 2.4vw, 2rem); letter-spacing: -.035em; margin: .3rem 0 .5rem; }
-  .concept-analytics .ca-eyebrow { letter-spacing: .12em; font-size: .68rem; }
-  .concept-analytics .header-title { font-size: 1rem; font-weight: 600; letter-spacing: -.015em; }
-  .concept-analytics #mapping-review, .concept-analytics #concept-explorer { scroll-margin-top: 6rem; }
-  .concept-analytics .card { border: 1px solid var(--ins-border-color-translucent); box-shadow: none; }
-  .concept-analytics .ca-stat .card-body { padding: 1.25rem; }
-  .concept-analytics .ca-stat h3 { font-size: 1.85rem; font-variant-numeric: tabular-nums; letter-spacing: -.04em; }
-  .concept-analytics .ca-stat .avatar-title { width: 2.5rem; height: 2.5rem; }
-  .concept-analytics .ca-filter-bar { padding: 1rem 1.25rem; }
-  .concept-analytics .ca-filter-bar .form-label { font-size: .72rem; font-weight: 600; margin-bottom: .4rem; }
-  .concept-analytics .form-control, .concept-analytics .form-select { min-height: 2.5rem; }
-  .concept-analytics .ca-area-row { display: block; padding: 1rem 1.25rem; color: var(--ins-body-color); border-top: 1px solid var(--ins-border-color-translucent); transition: background .15s ease; }
-  .concept-analytics .ca-area-row:hover { background: var(--ins-tertiary-bg); }
-  .concept-analytics .ca-area-title { font-weight: 600; }
-  .concept-analytics .ca-area-row .ti-arrow-up-right { opacity: 0; transition: opacity .15s ease; }
-  .concept-analytics .ca-area-row:hover .ti-arrow-up-right, .concept-analytics .ca-area-row:focus-visible .ti-arrow-up-right { opacity: 1; }
-  .concept-analytics .ca-area-track { height: .3rem; border-radius: 1rem; background: var(--ins-tertiary-bg); overflow: hidden; }
-  .concept-analytics .ca-area-fill { height: 100%; background: var(--ca-accent); border-radius: inherit; }
-  .concept-analytics .ca-ring { position: relative; width: 156px; height: 156px; margin: .5rem auto 1.25rem; }
-  .concept-analytics .ca-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
-  .concept-analytics .ca-ring-track { fill: none; stroke: var(--ins-tertiary-bg); stroke-width: 8; }
-  .concept-analytics .ca-ring-fill { fill: none; stroke: var(--ca-accent); stroke-width: 8; stroke-linecap: round; }
-  .concept-analytics .ca-ring-caption { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; }
-  .concept-analytics .ca-ring-caption strong { font-size: 2rem; letter-spacing: -.04em; }
-  .concept-analytics .ca-quality-row { display: flex; align-items: center; justify-content: space-between; padding: .65rem 0; border-top: 1px solid var(--ins-border-color-translucent); }
-  .concept-analytics .ca-quality-row:first-child { border: 0; }
-  .concept-analytics .ca-dot { display: inline-block; width: .4rem; height: .4rem; border-radius: 50%; margin-right: .5rem; background: var(--ins-secondary-color); }
-  .concept-analytics .ca-dot-primary { background: var(--ca-accent); }
-  .concept-analytics .ca-dot-warning { background: var(--ins-warning); }
-  .concept-analytics .ca-tabs { gap: .3rem; display: flex; flex-wrap: wrap; }
-  .concept-analytics .ca-tab { padding: .55rem .8rem; color: var(--ins-secondary-color); border-radius: var(--ins-border-radius); font-size: .8rem; font-weight: 600; }
-  .concept-analytics .ca-tab.active { color: var(--ins-primary-text-emphasis); background: var(--ins-primary-bg-subtle); }
-  .concept-analytics .ca-tab:hover { background: var(--ins-tertiary-bg); }
-  .concept-analytics .ca-tab-count { margin-left: .35rem; opacity: .75; font-variant-numeric: tabular-nums; }
-  .concept-analytics .ca-search { position: relative; max-width: 23rem; flex: 1 1 14rem; }
-  .concept-analytics .ca-search > .ti { position: absolute; left: .85rem; top: .82rem; color: var(--ins-secondary-color); }
-  .concept-analytics .ca-search input { padding-left: 2.35rem; padding-right: 2.5rem; }
-  .concept-analytics .ca-search button { position: absolute; right: .25rem; top: .2rem; }
-  .concept-analytics .table-responsive { position: relative; }
-  .concept-analytics .ca-filter-bar .btn { white-space: nowrap; }
-  .concept-analytics .ca-table th { font-size: .68rem; letter-spacing: .06em; text-transform: uppercase; color: var(--ins-secondary-color); font-weight: 600; background: var(--ins-tertiary-bg); white-space: nowrap; padding: .85rem 1.25rem; }
-  .concept-analytics .ca-table td { padding: .9rem 1.25rem; vertical-align: middle; }
-  .concept-analytics .ca-table .ca-concept-name { color: var(--ins-body-color); font-weight: 600; }
-  .concept-analytics .ca-table a.ca-concept-name:hover { color: var(--ca-accent); }
-  .concept-analytics .ca-number { font-variant-numeric: tabular-nums; }
-  .concept-analytics .ca-pagination { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: 1rem 1.25rem; flex-wrap: wrap; }
-  .concept-analytics .ca-empty { text-align: center; padding: 3rem 1.25rem; }
-  .concept-analytics .ca-detail { border-left: 3px solid var(--ca-accent); scroll-margin-top: 6rem; }
-  .concept-analytics summary { cursor: pointer; }
-  .concept-analytics summary::marker { color: var(--ins-secondary-color); }
-  .concept-analytics a:focus-visible, .concept-analytics summary:focus-visible { outline: 2px solid var(--ca-accent); outline-offset: 3px; border-radius: var(--ins-border-radius); }
-  @media (max-width: 575.98px) {
-    .concept-analytics .page-title-head { align-items: start; gap: 1rem; }
-    .concept-analytics .ca-stat .card-body { padding: 1rem; }
-    .concept-analytics .ca-stat .avatar-title { display: none; }
-    .concept-analytics .ca-stat .ms-2 { margin-left: 0 !important; }
-    .concept-analytics .ca-area-row, .concept-analytics .ca-table td, .concept-analytics .ca-table th { padding-inline: 1rem; }
-    .concept-analytics .ca-search { max-width: none; flex-basis: 100%; }
-    .concept-analytics .ca-table { min-width: 650px; }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .concept-analytics *, .concept-analytics *::before { transition: none !important; scroll-behavior: auto !important; }
-  }
+  .catalogue-browser { padding-bottom: 1.5rem; }
+  .catalogue-browser .page-title-head { padding-block: .8rem; }
+  .catalogue-browser h1 { font-size: 1.45rem; margin: 0; letter-spacing: -.025em; }
+  .catalogue-browser .header-title { font-size: 1rem; font-weight: 600; }
+  .catalogue-browser .card { box-shadow: none; border: 1px solid var(--ins-border-color); }
+  .catalogue-browser .cb-nav a { display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: .45rem .65rem; color: var(--ins-body-color); border-radius: var(--ins-border-radius); }
+  .catalogue-browser .cb-nav a:hover, .catalogue-browser .cb-nav a.active { background: var(--ins-primary-bg-subtle); color: var(--ins-primary-text-emphasis); }
+  .catalogue-browser .cb-areas { border-left: 1px solid var(--ins-border-color); margin: .3rem 0 .6rem .65rem; padding-left: .4rem; }
+  .catalogue-browser .cb-breadcrumb { display: flex; flex-wrap: wrap; gap: .3rem .5rem; list-style: none; padding: 0; margin: 0; }
+  .catalogue-browser .cb-breadcrumb li + li::before { content: '/'; color: var(--ins-secondary-color); margin-right: .5rem; }
+  .catalogue-browser .cb-search { display: flex; flex-wrap: wrap; gap: .5rem; }
+  .catalogue-browser .cb-search input { flex: 1 1 14rem; width: auto; min-width: 0; }
+  .catalogue-browser .cb-search select { flex: 0 1 11rem; width: auto; }
+  .catalogue-browser .table-responsive { overflow-y: hidden; }
+  .catalogue-browser .table th { font-size: .7rem; text-transform: uppercase; color: var(--ins-secondary-color); background: var(--ins-tertiary-bg); }
+  .catalogue-browser .table th, .catalogue-browser .table td { padding: .6rem 1rem; vertical-align: middle; }
+  .catalogue-browser .cb-name { font-weight: 600; color: var(--ins-body-color); }
+  .catalogue-browser .cb-name:hover { color: var(--ins-primary); }
+  .catalogue-browser .cb-description { max-width: 60rem; }
+  .catalogue-browser .cb-alias { display: flex; flex-wrap: wrap; align-items: baseline; gap: .3rem .65rem; padding: .4rem 0; border-bottom: 1px solid var(--ins-border-color); }
+  .catalogue-browser .cb-alias > span { overflow-wrap: anywhere; min-width: 0; }
+  .catalogue-browser #concept-explorer { scroll-margin-top: 5rem; }
+  .catalogue-browser a:focus-visible, .catalogue-browser summary:focus-visible { outline: 2px solid var(--ins-primary); outline-offset: 2px; }
+  @media (min-width: 1200px) { .catalogue-browser .cb-sidebar { position: sticky; top: 5rem; max-height: calc(100vh - 7rem); overflow-y: auto; } }
+  @media (max-width: 575.98px) { .catalogue-browser .table th, .catalogue-browser .table td { padding-inline: .7rem; } }
 </style>
 {% endblock extra_css %}
 
 {% block page_content %}
-<div class="container-fluid concept-analytics">
-  <div class="page-title-head d-flex flex-wrap justify-content-between">
-    <div>
-      <span class="text-muted text-uppercase fw-semibold ca-eyebrow">Problem library / Analytics</span>
-      <h1 class="fw-bold">Areas &amp; concepts</h1>
-      <p class="text-muted mb-0">See what your library covers and where to add problems next.</p>
-    </div>
-    <a href="{% url 'pages:problem_statement_list' %}" class="btn btn-outline-secondary"><i class="ti ti-books me-1" aria-hidden="true"></i> Open library <i class="ti ti-arrow-up-right ms-1" aria-hidden="true"></i></a>
+<div class="container-fluid catalogue-browser">
+  <div class="page-title-head d-flex flex-wrap align-items-center justify-content-between gap-2">
+    <div><h1 class="fw-bold">Mathematics catalogue</h1><p class="text-muted fs-sm mb-0 mt-1">Explore subjects, areas, concepts and techniques.</p></div>
+    <a href="{{ progress_url }}" class="btn btn-sm btn-outline-primary"><i class="ti ti-chart-bar me-1" aria-hidden="true"></i> Area &amp; Concepts Progress</a>
   </div>
-
-  <div class="card mb-3">
-    <form method="get" class="ca-filter-bar" id="concept-scope-form">
-      {% if filters.q %}<input type="hidden" name="q" value="{{ filters.q }}">{% endif %}
-      {% if filters.state %}<input type="hidden" name="state" value="{{ filters.state }}">{% endif %}
-      <input type="hidden" name="sort" value="{{ filters.sort }}">
-      <div class="row g-3 align-items-end">
-        <div class="col-sm-5 col-xl-3">
-          <label class="form-label" for="concept-subject">Subject</label>
-          <select class="form-select" id="concept-subject" name="subject">
-            <option value="">All subjects</option>
-            {% for subject in subjects %}<option value="{{ subject }}"{% if filters.subject == subject %} selected{% endif %}>{{ subject }}</option>{% endfor %}
-          </select>
-        </div>
-        <div class="col-sm-7 col-xl-5">
-          <label class="form-label" for="concept-area">Area</label>
-          <select class="form-select" id="concept-area" name="area">
-            <option value="">All areas</option>
-            {% for key, label, subject in area_options %}<option value="{{ key }}" data-subject="{{ subject }}"{% if filters.subject and filters.subject != subject %} hidden disabled{% endif %}{% if filters.area == key %} selected{% endif %}>{% if not filters.subject %}{{ subject }} · {% endif %}{{ label }}</option>{% endfor %}
-          </select>
-        </div>
-        <div class="col-xl-4 d-flex flex-wrap align-items-center gap-2">
-          <button class="btn btn-primary" type="submit"><i class="ti ti-adjustments-horizontal me-1" aria-hidden="true"></i> Apply</button>
-          <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#concept-more-filters" aria-controls="concept-more-filters" aria-expanded="{% if filters.contest or filters.year %}true{% else %}false{% endif %}"><i class="ti ti-filter me-1" aria-hidden="true"></i> More filters{% if filters.contest or filters.year %}<span class="visually-hidden"> active</span><span class="ca-dot ca-dot-primary ms-1" aria-hidden="true"></span>{% endif %}</button>
-          {% if active_filters %}<a class="btn btn-link text-muted px-1" href="{{ reset_url }}">Reset</a>{% endif %}
-        </div>
-      </div>
-      <div class="collapse{% if filters.contest or filters.year %} show{% endif %}" id="concept-more-filters">
-        <div class="row g-3 mt-1 pt-2">
-          <div class="col-sm-7 col-xl-5"><label class="form-label" for="concept-contest">Contest</label><select class="form-select" name="contest" id="concept-contest"><option value="">All contests</option>{% for contest in filter_options.contests %}<option{% if filters.contest == contest %} selected{% endif %}>{{ contest }}</option>{% endfor %}</select></div>
-          <div class="col-sm-5 col-xl-3"><label class="form-label" for="concept-year">Contest year</label><select class="form-select" name="year" id="concept-year"><option value="">All years</option>{% for year in filter_options.years %}<option value="{{ year }}"{% if filters.year == year|stringformat:'s' %} selected{% endif %}>{{ year }}</option>{% endfor %}</select></div>
-        </div>
-      </div>
-      {% if active_filters %}<div class="d-flex flex-wrap gap-2 mt-3" aria-label="Active filters">{% for filter in active_filters %}<a class="badge bg-primary-subtle text-primary py-2 px-2" href="{{ filter.url }}" aria-label="Remove {{ filter.label }} filter: {{ filter.value }}">{{ filter.value }} <i class="ti ti-x ms-1" aria-hidden="true"></i></a>{% endfor %}</div>{% endif %}
-    </form>
-  </div>
-
-  <div class="row g-3 mb-3" aria-label="Library coverage summary">
-    <div class="col-6 col-xl-3"><div class="card ca-stat h-100 m-0"><div class="card-body"><div class="d-flex align-items-center"><span class="avatar-title bg-primary-subtle text-primary rounded flex-shrink-0"><i class="ti ti-books fs-24" aria-hidden="true"></i></span><div class="ms-2"><p class="text-muted mb-1 fs-xs">Problems in view</p><h3 class="mb-0">{{ stats.problems }}</h3></div></div><p class="text-muted fs-xs mb-0 mt-3">{{ stats.mapped }} with mapped concepts</p></div></div></div>
-    <div class="col-6 col-xl-3"><div class="card ca-stat h-100 m-0"><div class="card-body"><div class="d-flex align-items-center"><span class="avatar-title bg-primary-subtle text-primary rounded flex-shrink-0"><i class="ti ti-layout-grid fs-24" aria-hidden="true"></i></span><div class="ms-2"><p class="text-muted mb-1 fs-xs">Areas represented</p><h3 class="mb-0">{{ stats.areas }}</h3></div></div><p class="text-muted fs-xs mb-0 mt-3">Areas with at least one problem</p></div></div></div>
-    <div class="col-6 col-xl-3"><div class="card ca-stat h-100 m-0"><div class="card-body"><div class="d-flex align-items-center"><span class="avatar-title bg-primary-subtle text-primary rounded flex-shrink-0"><i class="ti ti-circles-relation fs-24" aria-hidden="true"></i></span><div class="ms-2"><p class="text-muted mb-1 fs-xs">Concepts covered</p><h3 class="mb-0">{{ stats.covered }} <span class="text-muted fs-sm fw-normal">/ {{ stats.catalogue }}</span></h3></div></div><p class="text-muted fs-xs mb-0 mt-3">{{ stats.percent }}% of the catalogue in view</p></div></div></div>
-    <div class="col-6 col-xl-3"><a href="{% for tab in state_tabs %}{% if tab.value == 'gaps' %}{{ tab.url }}{% endif %}{% endfor %}#concept-explorer" class="card ca-stat h-100 m-0 text-body"><div class="card-body"><div class="d-flex align-items-center"><span class="avatar-title bg-warning-subtle text-warning rounded flex-shrink-0"><i class="ti ti-circle-dashed fs-24" aria-hidden="true"></i></span><div class="ms-2"><p class="text-muted mb-1 fs-xs">Coverage gaps</p><h3 class="mb-0">{{ stats.gaps }}</h3></div></div><p class="text-muted fs-xs mb-0 mt-3">Find concepts without problems <i class="ti ti-arrow-right ms-1" aria-hidden="true"></i></p></div></a></div>
-  </div>
-
-  {% if not stats.problems %}<div class="alert alert-info d-flex gap-2 align-items-center" role="status"><i class="ti ti-info-circle fs-22" aria-hidden="true"></i><div>No active problems in this view. {% if active_filters %}<a href="{{ reset_url }}" class="alert-link">Clear the filters</a> to broaden your view.{% else %}<a href="{% url 'pages:problem_import' %}" class="alert-link">Import problems</a> to start building coverage.{% endif %} The catalogue below still shows what you can add.</div></div>{% endif %}
-
-  <div class="row g-3 mb-3">
-    <section class="col-xl-8" aria-labelledby="area-coverage-title">
-      <div class="card h-100 mb-0">
-        <div class="card-header border-0 d-flex align-items-start justify-content-between gap-2 pb-3 pt-3"><div><h2 id="area-coverage-title" class="header-title mb-1">Coverage by area</h2><p class="text-muted fs-xs mb-0">Concepts represented in each area. Select an area to explore it.</p></div><span class="badge bg-light text-body border">{{ area_rows|length }} areas</span></div>
-        <div>
-          {% for area in area_rows|slice:':6' %}{% include 'pages/partials/concept-area-row.html' %}{% empty %}<div class="ca-empty"><p class="text-muted mb-2">No catalogue areas match this view.</p><a href="{{ reset_url }}" class="btn btn-outline-secondary btn-sm">Reset filters</a></div>{% endfor %}
-          {% if area_rows|length > 6 %}<details><summary class="text-muted fs-sm px-4 py-3 border-top">Show all {{ area_rows|length }} areas</summary>{% for area in area_rows|slice:'6:' %}{% include 'pages/partials/concept-area-row.html' %}{% endfor %}</details>{% endif %}
-        </div>
-        <div class="px-4 py-3 border-top text-muted fs-xs mt-auto"><i class="ti ti-info-circle me-1" aria-hidden="true"></i>Each problem counts once per area. A problem can appear in several areas.</div>
-      </div>
-    </section>
-    <aside class="col-xl-4" aria-labelledby="library-coverage-title"><div class="card h-100 mb-0"><div class="card-header border-0 pt-3"><h2 id="library-coverage-title" class="header-title mb-0">Catalogue coverage</h2></div><div class="card-body pt-2">
-      <div class="ca-ring" role="img" aria-label="{{ stats.percent }} percent of concepts have at least one problem"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="ca-ring-track" cx="60" cy="60" r="50"/><circle class="ca-ring-fill" cx="60" cy="60" r="50" pathLength="100" stroke-dasharray="{{ stats.percent }} 100"/></svg><div class="ca-ring-caption"><strong>{{ stats.percent }}%</strong><span class="text-muted fs-xs">concepts represented</span></div></div>
-      <p class="text-center text-muted fs-sm mb-4">{{ stats.covered }} of {{ stats.catalogue }} concepts have problems.<br>Coverage measures availability in the library.</p>
-      <h3 class="text-muted text-uppercase fs-xs fw-semibold mb-2">Problem mapping quality</h3>
-      <div class="ca-quality-row fs-sm"><span><span class="ca-dot ca-dot-primary"></span>Fully mapped</span><strong class="ca-number">{{ quality.mapped }}</strong></div>
-      <div class="ca-quality-row fs-sm"><span><span class="ca-dot ca-dot-warning"></span>Needs review</span><strong class="ca-number">{{ quality.review }}</strong></div>
-      <div class="ca-quality-row fs-sm"><span><span class="ca-dot"></span>Untagged</span><strong class="ca-number">{{ quality.untagged }}</strong></div>
-      {% if quality.total %}<a href="#mapping-review" class="btn btn-outline-secondary w-100 mt-3">Inspect {{ quality.total }} problems <i class="ti ti-arrow-down ms-1" aria-hidden="true"></i></a>{% endif %}
+  <nav aria-label="Catalogue breadcrumb" class="mb-3 fs-sm"><ol class="cb-breadcrumb">{% for crumb in breadcrumbs %}<li>{% if forloop.last %}<span aria-current="page">{{ crumb.label }}</span>{% else %}<a href="{{ crumb.url }}">{{ crumb.label }}</a>{% endif %}</li>{% endfor %}</ol></nav>
+  <div class="row g-3">
+    <aside class="col-xl-3" aria-label="Subject and area navigation"><div class="card cb-sidebar mb-0"><div class="card-body p-2">
+      <button class="btn btn-sm btn-outline-secondary d-xl-none w-100" type="button" data-bs-toggle="collapse" data-bs-target="#catalogue-scope-tree" aria-controls="catalogue-scope-tree" aria-expanded="false">Browse subjects &amp; areas</button><div class="collapse d-xl-block" id="catalogue-scope-tree"><div class="text-muted text-uppercase fs-xs fw-semibold px-2 py-2 d-none d-xl-block">Subjects &amp; areas</div><nav class="cb-nav fs-sm" aria-label="Catalogue scopes">
+        <a href="{{ root_url }}"{% if not selected_subject %} class="active" aria-current="page"{% endif %}><span>All subjects</span><i class="ti ti-layout-grid" aria-hidden="true"></i></a>
+        {% for subject in subjects %}<a href="{{ subject.url }}"{% if selected_subject.pk == subject.pk %} class="active"{% endif %}><span>{{ subject.name }}</span><span class="text-muted fs-xs">{{ subject.area_count }} areas</span></a>
+        {% if selected_subject.pk == subject.pk %}<div class="cb-areas">{% for area in areas %}<a href="{{ area.url }}"{% if selected_area.pk == area.pk %} class="active" aria-current="page"{% endif %}><span>{{ area.name }}</span><span class="text-muted fs-xs">{{ area.concept_count }}</span></a>{% endfor %}</div>{% endif %}{% endfor %}
+      </nav></div>
     </div></div></aside>
+    <main class="col-xl-9" id="concept-explorer">
+      <section class="card mb-3" aria-labelledby="catalogue-scope-title">
+        <div class="card-header border-0 d-flex flex-wrap align-items-start justify-content-between gap-2 py-3">
+          <div><h2 id="catalogue-scope-title" class="header-title mb-1">{{ heading }}</h2>{% if selected_concept %}<p class="text-muted fs-xs mb-0">Concept ID: <code>{{ selected_concept.pk }}</code></p>{% else %}<p class="text-muted fs-xs mb-0">Select a {{ level|slice:':-1' }} to explore its structure.</p>{% endif %}</div>
+          {% if up_url %}<a href="{{ up_url }}" class="btn btn-sm btn-outline-secondary"><i class="ti ti-arrow-up me-1" aria-hidden="true"></i> Up one level</a>{% endif %}
+        </div>
+        {% if selected_concept %}<div class="px-3 pb-3">
+          {% if selected_concept.description %}<p class="fs-sm cb-description mb-2">{{ selected_concept.description }}</p>{% endif %}
+          {% if locations %}<div class="d-flex flex-wrap gap-2 fs-xs" aria-label="Concept locations">{% for location in locations %}<a class="badge bg-primary-subtle text-primary" href="{{ location.url }}">{{ location.label }}</a>{% endfor %}</div>{% endif %}
+        </div>
+        <nav class="nav nav-tabs px-3" aria-label="Concept detail"><a class="nav-link{% if tab == 'structure' %} active{% endif %}" href="{{ structure_url }}"{% if tab == 'structure' %} aria-current="page"{% endif %}>Structure &amp; names</a><a class="nav-link{% if tab == 'problems' %} active{% endif %}" href="{{ examples_url }}"{% if tab == 'problems' %} aria-current="page"{% endif %}>Example problems</a></nav>{% endif %}
+        {% if tab == 'structure' %}
+        <form method="get" id="concept-scope-form" role="search" aria-label="Search catalogue" class="cb-search p-3 border-bottom">
+          {% for key, value in scope_inputs.items %}{% if value %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endif %}{% endfor %}
+          {% if selected_concept %}<input type="hidden" name="concept" value="{{ selected_concept.pk }}">{% endif %}
+          <label class="visually-hidden" for="concept-search">Search this scope</label><input id="concept-search" class="form-control form-control-sm" type="search" name="q" value="{{ q }}" placeholder="Search names, IDs or aliases…">
+          <label class="visually-hidden" for="concept-role">Classification</label><select id="concept-role" name="role" class="form-select form-select-sm"><option value="">All classifications</option>{% for value, label in role_options.items %}<option value="{{ value }}"{% if value == role %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+          <button class="btn btn-sm btn-primary" type="submit">Search</button>
+        </form>
+        <div class="px-3 py-2 text-muted fs-xs" role="status">{{ page.paginator.count }} {% if selected_concept %}narrower concept{{ page.paginator.count|pluralize }}{% else %}{{ level }}{% endif %}{% if q %} matching “{{ q }}”{% endif %}</div>
+        {% if rows %}<div class="table-responsive"><table class="table table-hover mb-0" id="concept-analytics-table"><caption class="visually-hidden">{{ heading }} structure</caption><thead><tr><th scope="col">{% if level == 'subjects' %}Subject{% elif level == 'areas' %}Area{% else %}Concept{% endif %}</th><th scope="col">{% if level == 'concepts' %}Classification{% else %}Contains{% endif %}</th><th scope="col"><span class="visually-hidden">Explore</span></th></tr></thead><tbody>
+          {% for row in rows %}<tr><td><a class="cb-name" href="{{ row.url }}">{{ row.name }}</a>{% if row.description %}<p class="text-muted fs-xs mb-0 mt-1">{{ row.description|truncatechars:140 }}</p>{% endif %}</td><td>{% if level == 'concepts' %}<span class="text-muted fs-xs">{{ row.roles|join:' · '|default:'Concept' }}</span>{% else %}<span class="text-muted fs-sm">{{ row.count }} {% if level == 'subjects' %}areas{% else %}concepts{% endif %}</span>{% endif %}</td><td class="text-end"><a href="{{ row.url }}" aria-label="Explore {{ row.name }}"><i class="ti ti-chevron-right" aria-hidden="true"></i></a></td></tr>{% endfor %}
+        </tbody></table></div>{% else %}<div class="px-3 py-4 text-muted fs-sm">{% if selected_concept and not q %}No narrower concepts are currently recorded. Explore the names and relationships below.{% else %}No catalogue entries match this scope.{% endif %}</div>{% endif %}
+        {% if page.paginator.num_pages > 1 %}<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 px-3 py-2 border-top"><span class="text-muted fs-xs">{{ page.start_index }}–{{ page.end_index }} of {{ page.paginator.count }}</span><nav aria-label="Catalogue pages" class="d-flex align-items-center gap-2">{% if page.has_previous %}<a class="btn btn-sm btn-outline-secondary" href="{{ pagination_url }}{% if '?' in pagination_url %}&amp;{% else %}?{% endif %}page={{ page.previous_page_number }}">Previous</a>{% endif %}<span class="text-muted fs-xs">{{ page.number }} / {{ page.paginator.num_pages }}</span>{% if page.has_next %}<a class="btn btn-sm btn-outline-secondary" href="{{ pagination_url }}{% if '?' in pagination_url %}&amp;{% else %}?{% endif %}page={{ page.next_page_number }}">Next</a>{% endif %}</nav></div>{% endif %}
+        {% else %}
+          {% if examples_unavailable %}<div class="alert alert-info m-3" role="status">Problem examples are being updated. The catalogue remains available.</div>{% else %}
+          <div class="px-3 py-2 text-muted fs-xs">{{ examples.paginator.count }} problems in this area · mappings updated {{ snapshot.created_at|date:'j M Y, H:i' }}</div>
+          {% if examples %}<div class="table-responsive"><table class="table table-hover mb-0"><caption class="visually-hidden">Example problems for {{ selected_concept.name }}</caption><thead><tr><th scope="col">Problem</th><th scope="col" class="text-end">MOHS</th></tr></thead><tbody>{% for problem in examples %}<tr><td><a href="{{ problem.url }}">{{ problem.label }}</a></td><td class="text-end">{{ problem.mohs|default_if_none:'—' }}</td></tr>{% endfor %}</tbody></table></div><nav class="d-flex gap-2 px-3 py-2" aria-label="Example problem pages">{% if examples.has_previous %}<a class="btn btn-sm btn-outline-secondary" href="{{ pagination_url }}&amp;page={{ examples.previous_page_number }}">Previous</a>{% endif %}{% if examples.has_next %}<a class="btn btn-sm btn-outline-secondary" href="{{ pagination_url }}&amp;page={{ examples.next_page_number }}">Next</a>{% endif %}</nav>{% else %}<p class="text-muted fs-sm p-3 mb-0">No mapped problems in this area yet.</p>{% endif %}{% endif %}
+        {% endif %}
+      </section>
+      {% if held_aliases %}<details class="card mb-3"><summary class="px-3 py-2 fs-sm fw-semibold">Names awaiting classification</summary><div class="card-body pt-0">{% for alias in held_aliases %}<p class="fs-sm mb-2"><strong>{{ alias.label }}</strong> <span class="text-muted fs-xs">{{ alias.subject.name }} · {{ alias.role }} · {{ alias.resolution }}</span><br><span class="text-muted fs-xs">{{ alias.rules.reason }}</span></p>{% endfor %}</div></details>{% endif %}
+      {% if selected_concept and tab == 'structure' %}
+      <section class="card mb-3" aria-labelledby="concept-names-title"><div class="card-body p-3"><h2 id="concept-names-title" class="header-title mb-2">Names, tags &amp; roles</h2><p class="text-muted fs-xs mb-2">Names retain their subject and role. Contextual mappings need the stated source context.</p>
+        {% for alias in aliases %}<div class="cb-alias fs-sm"><span class="fw-semibold">{{ alias.label }}</span><span class="text-muted fs-xs">{{ alias.subject.name }} · {{ alias.role }}</span>{% if alias.resolution != 'EXACT' or alias.lifecycle != 'ACTIVE' %}<span class="badge bg-warning-subtle text-warning">{{ alias.resolution }} · {{ alias.lifecycle }}</span>{% endif %}{% if alias.rules.reason %}<span class="text-muted fs-xs">{{ alias.rules.reason }}</span>{% endif %}</div>{% empty %}<p class="text-muted fs-sm mb-0">No alternate names recorded.</p>{% endfor %}
+        {% if aliases.paginator.num_pages > 1 %}<nav class="d-flex align-items-center gap-2 mt-2" aria-label="Alias pages">{% if aliases.has_previous %}<a class="btn btn-sm btn-outline-secondary" href="{{ structure_url }}&amp;alias_page={{ aliases.previous_page_number }}">Previous names</a>{% endif %}<span class="text-muted fs-xs">{{ aliases.number }} / {{ aliases.paginator.num_pages }}</span>{% if aliases.has_next %}<a class="btn btn-sm btn-outline-secondary" href="{{ structure_url }}&amp;alias_page={{ aliases.next_page_number }}">More names</a>{% endif %}</nav>{% endif %}
+      </div></section>
+      {% if related %}<section class="card"><div class="card-body p-3"><h2 class="header-title mb-2">Related concepts</h2>{% for row in related %}<a class="d-block py-1" href="{{ row.url }}">{{ row.name }} <i class="ti ti-arrow-up-right" aria-hidden="true"></i></a>{% endfor %}</div></section>{% endif %}
+      {% endif %}
+    </main>
   </div>
-
-  {% if selected_concept %}
-  <section class="card ca-detail mb-3" id="concept-detail" aria-labelledby="concept-detail-title">
-    <div class="card-header border-0 d-flex justify-content-between align-items-start gap-3 pt-3"><div><p class="text-muted fs-xs mb-1">{{ selected_concept.subject }} / {{ selected_concept.area }}</p><h2 class="header-title mb-1" id="concept-detail-title">{{ selected_concept.label }}</h2><p class="text-muted fs-xs mb-0">{{ selected_concept.problem_count }} problems · {{ selected_concept.contest_count }} contests</p></div><a href="{{ close_detail_url }}#concept-explorer" class="btn btn-sm btn-outline-secondary" aria-label="Close concept details"><i class="ti ti-x" aria-hidden="true"></i></a></div>
-    {% if problem_page.object_list %}<div class="table-responsive"><table class="table table-hover ca-table mb-0"><caption class="visually-hidden">Problems covering {{ selected_concept.label }}</caption><thead><tr><th scope="col">Problem</th><th scope="col">Subject</th><th scope="col" class="text-end">MOHS</th><th scope="col">Mapping</th></tr></thead><tbody>{% for problem in problem_page %}<tr><td><a class="ca-concept-name" href="{{ problem.url }}">{{ problem.label }} <i class="ti ti-arrow-up-right ms-1" aria-hidden="true"></i></a></td><td>{{ problem.subject|default:'—' }}</td><td class="text-end ca-number">{{ problem.mohs|default_if_none:'—' }}</td><td><span class="text-muted fs-xs">{{ problem.concept_coverage_status }}</span></td></tr>{% endfor %}</tbody></table></div><div class="ca-pagination text-muted fs-xs"><span>{{ problem_page.start_index }}–{{ problem_page.end_index }} of {{ problem_page.paginator.count }} problems</span><nav aria-label="Concept problem pages" class="d-flex gap-2">{% if problem_page.has_previous %}<a class="btn btn-sm btn-outline-secondary" href="{{ problem_pagination_url }}{% if '?' in problem_pagination_url %}&amp;{% else %}?{% endif %}problem_page={{ problem_page.previous_page_number }}#concept-detail">Previous</a>{% endif %}{% if problem_page.has_next %}<a class="btn btn-sm btn-outline-secondary" href="{{ problem_pagination_url }}{% if '?' in problem_pagination_url %}&amp;{% else %}?{% endif %}problem_page={{ problem_page.next_page_number }}#concept-detail">Next</a>{% endif %}</nav></div>{% else %}<div class="ca-empty"><i class="ti ti-circle-dashed fs-24 text-muted" aria-hidden="true"></i><p class="mt-2 mb-1 fw-semibold">No problems for this concept in this view</p><p class="text-muted fs-sm mb-0">Broaden the filters or add problems to the library.</p></div>{% endif %}
-  </section>
-  {% endif %}
-
-  <section class="card mb-3" id="concept-explorer" aria-labelledby="concept-explorer-title">
-    <div class="card-header border-0 pt-3 pb-2"><div><h2 id="concept-explorer-title" class="header-title mb-1">Concept explorer</h2><p class="text-muted fs-xs mb-0">Find concepts, compare coverage, and open the problems behind each count.</p></div></div>
-    <div class="px-3 px-sm-4 py-3 d-flex flex-wrap align-items-center justify-content-between gap-3 border-bottom">
-      <nav class="ca-tabs" aria-label="Concept coverage">{% for tab in state_tabs %}<a class="ca-tab{% if filters.state == tab.value %} active{% endif %}" href="{{ tab.url }}#concept-explorer"{% if filters.state == tab.value %} aria-current="page"{% endif %}>{{ tab.label }}<span class="ca-tab-count">{{ tab.count }}</span></a>{% endfor %}</nav>
-      <form method="get" class="ca-search" role="search" aria-label="Search concepts">
-        {% for key, value in scope_inputs.items %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}<input type="hidden" name="state" value="{{ filters.state }}"><input type="hidden" name="sort" value="{{ filters.sort }}">
-        <label for="concept-search" class="visually-hidden">Search concepts in this view</label><i class="ti ti-search" aria-hidden="true"></i><input id="concept-search" type="search" name="q" value="{{ filters.q }}" class="form-control" placeholder="Search concepts or areas…"><button type="submit" class="btn btn-sm btn-link text-muted" aria-label="Search concepts"><i class="ti ti-arrow-right" aria-hidden="true"></i></button>
-      </form>
-    </div>
-    <div class="px-3 px-sm-4 py-2 d-flex flex-wrap align-items-center justify-content-between gap-2">
-      <span class="text-muted fs-xs" role="status">{{ concept_page.paginator.count }} matching concepts{% if filters.q %} for “{{ filters.q }}”{% endif %}</span>
-      <form method="get" class="d-flex align-items-center gap-2">
-        {% for key, value in scope_inputs.items %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}<input type="hidden" name="q" value="{{ filters.q }}"><input type="hidden" name="state" value="{{ filters.state }}">
-        <label class="text-muted fs-xs text-nowrap" for="concept-sort">Sort by</label><select id="concept-sort" name="sort" class="form-select form-select-sm py-1" style="min-height:2rem;width:auto"><option value="problems"{% if filters.sort == 'problems' %} selected{% endif %}>Most problems</option><option value="fewest"{% if filters.sort == 'fewest' %} selected{% endif %}>Fewest problems</option><option value="name"{% if filters.sort == 'name' %} selected{% endif %}>Concept name</option><option value="mohs"{% if filters.sort == 'mohs' %} selected{% endif %}>Highest median MOHS</option></select><button class="btn btn-sm btn-outline-secondary" type="submit">Sort</button>
-      </form>
-    </div>
-    {% if concept_page.object_list %}
-    <div class="table-responsive"><table class="table table-hover ca-table mb-0" id="concept-analytics-table">
-      <caption class="visually-hidden">Concept coverage in the selected library scope</caption>
-      <thead><tr><th scope="col">Concept</th><th scope="col">Area</th><th scope="col" class="text-end">Problems</th><th scope="col" class="text-end">Contests</th><th scope="col" class="text-end">Median MOHS</th><th scope="col"><span class="visually-hidden">Explore</span></th></tr></thead>
-      <tbody>{% for concept in concept_page %}<tr>
-        <td><a class="ca-concept-name" href="{{ concept.url }}">{{ concept.label }}</a><div class="text-muted fs-xs mt-1">{{ concept.subject }}</div></td>
-        <td><span class="fs-sm">{{ concept.area }}</span></td>
-        <td class="text-end ca-number">{% if concept.problem_count %}<a class="fw-semibold" href="{{ concept.url }}" aria-label="View {{ concept.problem_count }} problems for {{ concept.label }}">{{ concept.problem_count }}</a>{% else %}<span class="badge bg-light text-body border fw-normal">No problems</span>{% endif %}</td>
-        <td class="text-end text-muted ca-number">{{ concept.contest_count }}</td>
-        <td class="text-end ca-number">{% if concept.median_mohs is not None %}<span title="Based on {{ concept.rated_count }} rated problems">{{ concept.median_mohs|floatformat:'-1' }}</span>{% else %}<span class="text-muted" aria-label="No difficulty data">—</span>{% endif %}</td>
-        <td class="text-end"><a href="{{ concept.url }}" class="text-muted" aria-label="Explore {{ concept.label }}"><i class="ti ti-arrow-up-right fs-18" aria-hidden="true"></i></a></td>
-      </tr>{% endfor %}</tbody>
-    </table></div>
-    <div class="ca-pagination"><span class="text-muted fs-xs">Showing {{ concept_page.start_index }}–{{ concept_page.end_index }} of {{ concept_page.paginator.count }} concepts</span><nav aria-label="Concept pages" class="d-flex align-items-center gap-2">{% if concept_page.has_previous %}<a href="{{ pagination_url }}{% if '?' in pagination_url %}&amp;{% else %}?{% endif %}page={{ concept_page.previous_page_number }}#concept-explorer" class="btn btn-sm btn-outline-secondary"><i class="ti ti-chevron-left" aria-hidden="true"></i> Previous</a>{% endif %}<span class="text-muted fs-xs">{{ concept_page.number }} / {{ concept_page.paginator.num_pages }}</span>{% if concept_page.has_next %}<a href="{{ pagination_url }}{% if '?' in pagination_url %}&amp;{% else %}?{% endif %}page={{ concept_page.next_page_number }}#concept-explorer" class="btn btn-sm btn-outline-secondary">Next <i class="ti ti-chevron-right" aria-hidden="true"></i></a>{% endif %}</nav></div>
-    {% else %}<div class="ca-empty"><i class="ti ti-search fs-24 text-muted" aria-hidden="true"></i><h3 class="fs-sm mt-3">No concepts match these explorer filters</h3><p class="text-muted fs-sm mb-3">Try a broader search or switch the coverage tab.</p><a class="btn btn-sm btn-outline-secondary" href="{{ reset_url }}#concept-explorer">Reset view</a></div>{% endif %}
-  </section>
-
-  {% if quality.total %}<details class="card mb-3" id="mapping-review"{% if quality.expanded %} open{% endif %}><summary class="px-4 py-3"><span class="fw-semibold fs-sm">Problems to review</span><span class="text-muted fs-xs ms-2">{{ quality.total }} need mapping attention</span></summary><div class="table-responsive"><table class="table ca-table mb-0"><caption class="visually-hidden">Sample of problems needing mapping attention</caption><thead><tr><th scope="col">Problem</th><th scope="col">Status</th><th scope="col">Original tags</th></tr></thead><tbody>{% for problem in quality.rows %}<tr><td><a class="ca-concept-name" href="{{ problem.url }}">{{ problem.label }}</a></td><td class="fs-xs text-muted">{{ problem.concept_coverage_status }}</td><td class="fs-xs text-muted">{{ problem.concept_source_tags|join:', '|truncatechars:100|default:'No tags yet' }}</td></tr>{% endfor %}</tbody></table></div><div class="ca-pagination text-muted fs-xs"><span>{{ quality.page.start_index }}–{{ quality.page.end_index }} of {{ quality.total }} problems</span><nav class="d-flex gap-2" aria-label="Mapping review pages">{% if quality.page.has_previous %}<a class="btn btn-sm btn-outline-secondary" href="{{ pagination_url }}{% if '?' in pagination_url %}&amp;{% else %}?{% endif %}review_page={{ quality.page.previous_page_number }}#mapping-review">Previous</a>{% endif %}{% if quality.page.has_next %}<a class="btn btn-sm btn-outline-secondary" href="{{ pagination_url }}{% if '?' in pagination_url %}&amp;{% else %}?{% endif %}review_page={{ quality.page.next_page_number }}#mapping-review">Next</a>{% endif %}</nav></div></details>{% endif %}
-
-  <details class="text-muted fs-xs px-1 mt-4"><summary>How coverage is counted</summary><div class="mt-2" style="max-width:65rem"><p>Active problem statements take priority. Active archive problems without a statement are included. Linked entries share one problem identity and count once. Statement tags take priority over linked archive tags.</p><p>Concepts use the shared mathematical catalogue. Aliases and different roles for the same concept count once per problem. Concepts with no matching problems remain visible as coverage gaps. Median MOHS uses only problems with a known difficulty.</p><p class="mb-0">Subject, area, contest, and year define this view. Search, coverage tabs, and sorting refine the concept explorer. Library coverage does not measure a learner’s mastery.</p></div></details>
 </div>
 {% endblock page_content %}
-
-{% block extra_javascript %}
-<script>
-(function () {
-  "use strict";
-  const subject = document.getElementById("concept-subject");
-  const area = document.getElementById("concept-area");
-  subject.addEventListener("change", function () {
-    area.value = "";
-    Array.from(area.options).forEach(function (option) {
-      option.hidden = Boolean(option.value && subject.value && option.dataset.subject !== subject.value);
-      option.disabled = option.hidden;
-    });
-  });
-  const reviewLink = document.querySelector('a[href="#mapping-review"]');
-  if (reviewLink) reviewLink.addEventListener("click", function () {
-    document.getElementById("mapping-review").open = true;
-  });
-})();
-</script>
-{% endblock extra_javascript %}

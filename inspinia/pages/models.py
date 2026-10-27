@@ -11,6 +11,17 @@ from inspinia.pages.analytics_field_parse import parse_core_ideas_value
 from inspinia.pages.analytics_field_parse import parse_imo_slot_guess_value
 from inspinia.pages.analytics_field_parse import parse_pitfalls_value
 from inspinia.pages.analytics_field_parse import parse_rationale_value
+from inspinia.pages.catalogue_models import CatalogueArea  # noqa: F401
+from inspinia.pages.catalogue_models import CatalogueConcept  # noqa: F401
+from inspinia.pages.catalogue_models import CatalogueConceptAlias  # noqa: F401
+from inspinia.pages.catalogue_models import CatalogueConceptArea  # noqa: F401
+from inspinia.pages.catalogue_models import CatalogueConceptRelation  # noqa: F401
+from inspinia.pages.catalogue_models import CatalogueProblem  # noqa: F401
+from inspinia.pages.catalogue_models import CatalogueProblemConcept  # noqa: F401
+from inspinia.pages.catalogue_models import CatalogueState  # noqa: F401
+from inspinia.pages.catalogue_models import CatalogueSubject  # noqa: F401
+from inspinia.pages.catalogue_models import ConceptLibrarySnapshot  # noqa: F401
+from inspinia.pages.catalogue_models import UserConceptProgressSummary  # noqa: F401
 from inspinia.pages.contest_names import PROJECT_CONTEST_NAME_MAX_LENGTH
 from inspinia.pages.contest_names import normalize_contest_name
 from inspinia.pages.contest_names import normalize_text_list

@@ -54,6 +54,7 @@ from inspinia.pages.algebra_tag_imports import normalization_active
 from inspinia.pages.algebra_tag_search import tag_token_query
 from inspinia.pages.asymptote_render import build_statement_render_segments
 from inspinia.pages.asymptote_render import has_asymptote_blocks
+from inspinia.pages.catalogue_browser import build_catalogue_context
 from inspinia.pages.completion_duplicates import upsert_exact_duplicate_statement_completions
 from inspinia.pages.completion_progress import COMPLETION_PROGRESS_RANGE_OPTIONS
 from inspinia.pages.completion_progress import CompletionProgressFilters
@@ -79,7 +80,6 @@ from inspinia.pages.completion_record_fields import completion_metadata_from_pos
 from inspinia.pages.completion_record_fields import completion_metadata_payload
 from inspinia.pages.completion_record_fields import has_completion_metadata
 from inspinia.pages.completion_record_fields import is_completion_status_solved
-from inspinia.pages.concept_analytics import build_concept_analytics_context
 from inspinia.pages.concept_progress import build_concept_progress_context
 from inspinia.pages.concept_progress import concept_progress_csv
 from inspinia.pages.contest_existence_audit import ContestExistenceAuditValidationError
@@ -8818,9 +8818,9 @@ def technique_progress_topic_detail_view(request, topic_slug):
 
 @login_required
 def topic_tag_analytics_view(request):
-    """Explore mathematical areas and concepts across the active problem library."""
+    """Drill through the catalogue without scanning the problem library."""
     _require_admin_tools_access(request)
-    return render(request, "pages/topic-tag-analytics.html", build_concept_analytics_context(request.GET))
+    return render(request, "pages/topic-tag-analytics.html", build_catalogue_context(request.GET))
 
 
 def _preview_problem_import(request, workbook_df) -> dict:
