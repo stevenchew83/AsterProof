@@ -13,6 +13,7 @@ from datetime import datetime
 from pathlib import Path
 
 from scripts.deployment.concept_schema import MAX_DISCLOSURE_BYTES
+from scripts.deployment.postgres_runtime import MAX_BYTES as MAX_RECOVERY_RUNTIME_BYTES
 from scripts.deployment.release_manifest import ReleaseManifest
 from scripts.deployment.release_manifest import sha256_file
 
@@ -74,6 +75,7 @@ def build_release(
     built_at: str,
     source_date_epoch: int,
     schema_evidence: Path | None = None,
+    recovery_runtime: Path | None = None,
 ) -> dict[str, object]:
     entries = {path.as_posix(): repository_root / path for path in _tracked_files(repository_root, release_sha)}
     _add_tree(entries, "staticfiles", static_root)
@@ -85,6 +87,14 @@ def build_release(
         ):
             raise ValueError("invalid schema evidence file")
         entries["deployment-schema-evidence.json"] = schema_evidence
+
+    if recovery_runtime is not None:
+        if (
+            recovery_runtime.is_symlink() or not recovery_runtime.is_file()
+            or recovery_runtime.stat().st_size > MAX_RECOVERY_RUNTIME_BYTES
+        ):
+            raise ValueError("invalid recovery runtime archive")
+        entries["deployment-postgres-runtime.tar"] = recovery_runtime
 
     files = tuple(
         {
@@ -155,6 +165,7 @@ def main() -> int:
     parser.add_argument("--target-platform", required=True)
     parser.add_argument("--python-abi", default="cp312")
     parser.add_argument("--schema-evidence", type=Path)
+    parser.add_argument("--recovery-runtime", type=Path)
     args = parser.parse_args()
     root = args.repository_root.resolve()
     epoch = int(_git(root, "show", "-s", "--format=%ct", args.release_sha))
@@ -173,6 +184,7 @@ def main() -> int:
         built_at=built_at,
         source_date_epoch=epoch,
         schema_evidence=args.schema_evidence,
+        recovery_runtime=args.recovery_runtime,
     )
     args.envelope.write_text(json.dumps(envelope, sort_keys=True, indent=2) + "\n")
     print(json.dumps(envelope, sort_keys=True))

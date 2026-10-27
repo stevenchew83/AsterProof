@@ -14,6 +14,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from scripts.deployment import catalogue_schema
 from scripts.deployment.concept_schema import ConceptSchemaError
 from scripts.deployment.concept_schema import validate_disclosure
 from scripts.deployment.migration_plan import load_registry
@@ -65,7 +66,9 @@ def validate_ref_response(*, expected_sha: str, response: dict[str, Any]) -> Non
         raise DispatchValidationError("main moved after workflow dispatch")
 
 
-def validate_migration_class(value: str, *, routine: bool = True) -> None:
+def validate_migration_class(value: str, *, routine: bool = True, catalogue: bool = False) -> None:
+    if catalogue and value == "data-or-non-compatible":
+        return
     allowed = ROUTINE_MIGRATION_CLASSES if routine else ALL_MIGRATION_CLASSES
     if value not in allowed:
         if value == "data-or-non-compatible" and routine:
@@ -74,6 +77,14 @@ def validate_migration_class(value: str, *, routine: bool = True) -> None:
 
 
 def validate_schema_input(value: str, *, release_sha: str, migration_class: str, initial_adoption: bool) -> None:
+    if migration_class == "data-or-non-compatible":
+        if initial_adoption or len(value) > 8192:
+            raise DispatchValidationError("Catalogue maintenance cannot use adoption or an oversized disclosure")
+        try:
+            catalogue_schema.validate_disclosure(json.loads(value), target_sha=release_sha)
+        except (ValueError, TypeError) as exc:
+            raise DispatchValidationError("Catalogue maintenance requires its exact frozen disclosure") from exc
+        return
     if migration_class != "backward-compatible-schema":
         if value:
             raise DispatchValidationError("Only the bounded schema deploy accepts a schema disclosure")
@@ -135,6 +146,8 @@ def validate_status(*, expected_marker: str, response: dict[str, Any]) -> None:
         "receiving",
         "verified",
         "prepared",
+        "draining",
+        "backing_up",
         "migrating",
         "activating",
         "active",
@@ -295,7 +308,7 @@ def build_migration_disclosure(
 ) -> dict[str, Any]:
     if SHA_RE.fullmatch(active_sha) is None or SHA_RE.fullmatch(target_sha) is None:
         raise DispatchValidationError("migration disclosure SHA is invalid")
-    validate_migration_class(declared_class)
+    validate_migration_class(declared_class, catalogue=declared_class == "data-or-non-compatible")
     try:
         changed = subprocess.run(
             ["git", "diff", "--name-status", "--find-renames=0", f"{active_sha}..{target_sha}", "--", "inspinia"],
@@ -325,6 +338,20 @@ def build_migration_disclosure(
         derived = "data-or-non-compatible"
     elif migrations:
         derived = "backward-compatible-schema"
+    if declared_class == "data-or-non-compatible":
+        expected = [
+            {
+                "migration": "pages." + name,
+                "classification": "backward-compatible-schema" if i == 0 else declared_class,
+            }
+            for i, name in enumerate(catalogue_schema.MIGRATIONS)
+        ]
+        if migrations != expected:
+            raise DispatchValidationError("Data-class deployment is restricted to the exact catalogue migration plan")
+        try:
+            catalogue_schema.validate_candidate(repository)
+        except (OSError, ValueError) as exc:
+            raise DispatchValidationError("Catalogue migration bytes differ from the frozen scope") from exc
     if derived != declared_class:
         raise DispatchValidationError("declared migration class does not match the reviewed registry")
     return {
@@ -466,7 +493,7 @@ def main() -> int:
             checked_out_sha=args.checked_out_sha,
             requested_sha=args.release_sha,
         )
-        validate_migration_class(args.migration_class)
+        validate_migration_class(args.migration_class, catalogue=args.migration_class == "data-or-non-compatible")
         validate_adoption_input(
             initial_adoption=args.initial_adoption,
             legacy_sha=args.initial_legacy_sha,

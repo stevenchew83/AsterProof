@@ -9,13 +9,15 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-NON_TERMINAL_STATES = {"receiving", "verified", "prepared", "migrating", "activating"}
+NON_TERMINAL_STATES = {"receiving", "verified", "prepared", "draining", "backing_up", "migrating", "activating"}
 TERMINAL_STATES = {"active", "rolled_back", "failed", "recovery_required"}
 ALL_STATES = NON_TERMINAL_STATES | TERMINAL_STATES
 TRANSITIONS = {
     "receiving": {"verified", "failed"},
     "verified": {"prepared", "activating", "failed"},
-    "prepared": {"migrating", "activating", "failed"},
+    "prepared": {"draining", "migrating", "activating", "failed"},
+    "draining": {"backing_up", "recovery_required"},
+    "backing_up": {"migrating", "recovery_required"},
     "migrating": {"activating", "recovery_required"},
     "activating": {"active", "rolled_back", "recovery_required"},
     "active": set(),

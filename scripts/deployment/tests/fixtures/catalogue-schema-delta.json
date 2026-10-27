@@ -1,0 +1,1252 @@
+{
+  "tables": [
+    {
+      "schema": "public",
+      "table": "pages_cataloguearea",
+      "kind": "r"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconcept",
+      "kind": "r"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconceptalias",
+      "kind": "r"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconceptarea",
+      "kind": "r"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconceptrelation",
+      "kind": "r"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueproblem",
+      "kind": "r"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueproblemconcept",
+      "kind": "r"
+    },
+    {
+      "schema": "public",
+      "table": "pages_cataloguestate",
+      "kind": "r"
+    },
+    {
+      "schema": "public",
+      "table": "pages_cataloguesubject",
+      "kind": "r"
+    },
+    {
+      "schema": "public",
+      "table": "pages_conceptlibrarysnapshot",
+      "kind": "r"
+    },
+    {
+      "schema": "public",
+      "table": "pages_userconceptprogresssummary",
+      "kind": "r"
+    }
+  ],
+  "columns": [
+    {
+      "schema": "public",
+      "table": "pages_cataloguearea",
+      "position": 1,
+      "column": "id",
+      "type": "character varying(180)",
+      "nullable": false,
+      "default": null,
+      "collation": "default"
+    },
+    {
+      "schema": "public",
+      "table": "pages_cataloguearea",
+      "position": 2,
+      "column": "slug",
+      "type": "character varying(120)",
+      "nullable": false,
+      "default": null,
+      "collation": "default"
+    },
+    {
+      "schema": "public",
+      "table": "pages_cataloguearea",
+      "position": 3,
+      "column": "name",
+      "type": "character varying(200)",
+      "nullable": false,
+      "default": null,
+      "collation": "default"
+    },
+    {
+      "schema": "public",
+      "table": "pages_cataloguearea",
+      "position": 4,
+      "column": "subject_id",
+      "type": "character varying(40)",
+      "nullable": false,
+      "default": null,
+      "collation": "default"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconcept",
+      "position": 1,
+      "column": "id",
+      "type": "character varying(160)",
+      "nullable": false,
+      "default": null,
+      "collation": "default"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconcept",
+      "position": 2,
+      "column": "name",
+      "type": "character varying(240)",
+      "nullable": false,
+      "default": null,
+      "collation": "default"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconcept",
+      "position": 3,
+      "column": "description",
+      "type": "text",
+      "nullable": false,
+      "default": null,
+      "collation": "default"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconcept",
+      "position": 4,
+      "column": "roles",
+      "type": "jsonb",
+      "nullable": false,
+      "default": null,
+      "collation": null
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconcept",
+      "position": 5,
+      "column": "metadata",
+      "type": "jsonb",
+      "nullable": false,
+      "default": null,
+      "collation": null
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconcept",
+      "position": 6,
+      "column": "redirect_id",
+      "type": "character varying(160)",
+      "nullable": true,
+      "default": null,
+      "collation": "default"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconceptalias",
+      "position": 1,
+      "column": "id",
+      "type": "character varying(64)",
+      "nullable": false,
+      "default": null,
+      "collation": "default"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconceptalias",
+      "position": 2,
+      "column": "role",
+      "type": "character varying(32)",
+      "nullable": false,
+      "default": null,
+      "collation": "default"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconceptalias",
+      "position": 3,
+      "column": "label",
+      "type": "character varying(512)",
+      "nullable": false,
+      "default": null,
+      "collation": "default"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconceptalias",
+      "position": 4,
+      "column": "resolution",
+      "type": "character varying(24)",
+      "nullable": false,
+      "default": null,
+      "collation": "default"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconceptalias",
+      "position": 5,
+      "column": "lifecycle",
+      "type": "character varying(24)",
+      "nullable": false,
+      "default": null,
+      "collation": "default"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconceptalias",
+      "position": 6,
+      "column": "rules",
+      "type": "jsonb",
+      "nullable": false,
+      "default": null,
+      "collation": null
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconceptalias",
+      "position": 7,
+      "column": "concept_id",
+      "type": "character varying(160)",
+      "nullable": true,
+      "default": null,
+      "collation": "default"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconceptalias",
+      "position": 8,
+      "column": "subject_id",
+      "type": "character varying(40)",
+      "nullable": false,
+      "default": null,
+      "collation": "default"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconceptarea",
+      "position": 1,
+      "column": "id",
+      "type": "bigint",
+      "nullable": false,
+      "default": null,
+      "collation": null
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconceptarea",
+      "position": 2,
+      "column": "area_id",
+      "type": "character varying(180)",
+      "nullable": false,
+      "default": null,
+      "collation": "default"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconceptarea",
+      "position": 3,
+      "column": "concept_id",
+      "type": "character varying(160)",
+      "nullable": false,
+      "default": null,
+      "collation": "default"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconceptrelation",
+      "position": 1,
+      "column": "id",
+      "type": "bigint",
+      "nullable": false,
+      "default": null,
+      "collation": null
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconceptrelation",
+      "position": 2,
+      "column": "kind",
+      "type": "character varying(16)",
+      "nullable": false,
+      "default": null,
+      "collation": "default"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconceptrelation",
+      "position": 3,
+      "column": "source_id",
+      "type": "character varying(160)",
+      "nullable": false,
+      "default": null,
+      "collation": "default"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconceptrelation",
+      "position": 4,
+      "column": "target_id",
+      "type": "character varying(160)",
+      "nullable": false,
+      "default": null,
+      "collation": "default"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueproblem",
+      "position": 1,
+      "column": "id",
+      "type": "bigint",
+      "nullable": false,
+      "default": null,
+      "collation": null
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueproblem",
+      "position": 2,
+      "column": "problem_uuid",
+      "type": "uuid",
+      "nullable": false,
+      "default": null,
+      "collation": null
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueproblem",
+      "position": 3,
+      "column": "statement_uuid",
+      "type": "uuid",
+      "nullable": true,
+      "default": null,
+      "collation": null
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueproblem",
+      "position": 4,
+      "column": "label",
+      "type": "character varying(320)",
+      "nullable": false,
+      "default": null,
+      "collation": "default"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueproblem",
+      "position": 5,
+      "column": "subject",
+      "type": "character varying(64)",
+      "nullable": false,
+      "default": null,
+      "collation": "default"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueproblem",
+      "position": 6,
+      "column": "contest",
+      "type": "character varying(128)",
+      "nullable": false,
+      "default": null,
+      "collation": "default"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueproblem",
+      "position": 7,
+      "column": "year",
+      "type": "integer",
+      "nullable": false,
+      "default": null,
+      "collation": null
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueproblem",
+      "position": 8,
+      "column": "mohs",
+      "type": "integer",
+      "nullable": true,
+      "default": null,
+      "collation": null
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueproblem",
+      "position": 9,
+      "column": "problem_id",
+      "type": "bigint",
+      "nullable": true,
+      "default": null,
+      "collation": null
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueproblem",
+      "position": 10,
+      "column": "statement_id",
+      "type": "bigint",
+      "nullable": true,
+      "default": null,
+      "collation": null
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueproblem",
+      "position": 11,
+      "column": "snapshot_id",
+      "type": "uuid",
+      "nullable": false,
+      "default": null,
+      "collation": null
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueproblemconcept",
+      "position": 1,
+      "column": "id",
+      "type": "bigint",
+      "nullable": false,
+      "default": null,
+      "collation": null
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueproblemconcept",
+      "position": 2,
+      "column": "area_id",
+      "type": "character varying(180)",
+      "nullable": false,
+      "default": null,
+      "collation": "default"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueproblemconcept",
+      "position": 3,
+      "column": "concept_id",
+      "type": "character varying(160)",
+      "nullable": false,
+      "default": null,
+      "collation": "default"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueproblemconcept",
+      "position": 4,
+      "column": "problem_id",
+      "type": "bigint",
+      "nullable": false,
+      "default": null,
+      "collation": null
+    },
+    {
+      "schema": "public",
+      "table": "pages_cataloguestate",
+      "position": 1,
+      "column": "singleton_key",
+      "type": "smallint",
+      "nullable": false,
+      "default": null,
+      "collation": null
+    },
+    {
+      "schema": "public",
+      "table": "pages_cataloguestate",
+      "position": 2,
+      "column": "catalogue_version",
+      "type": "character varying(64)",
+      "nullable": false,
+      "default": null,
+      "collation": "default"
+    },
+    {
+      "schema": "public",
+      "table": "pages_cataloguestate",
+      "position": 3,
+      "column": "source_revision",
+      "type": "bigint",
+      "nullable": false,
+      "default": null,
+      "collation": null
+    },
+    {
+      "schema": "public",
+      "table": "pages_cataloguestate",
+      "position": 4,
+      "column": "snapshot_id",
+      "type": "uuid",
+      "nullable": true,
+      "default": null,
+      "collation": null
+    },
+    {
+      "schema": "public",
+      "table": "pages_cataloguesubject",
+      "position": 1,
+      "column": "id",
+      "type": "character varying(40)",
+      "nullable": false,
+      "default": null,
+      "collation": "default"
+    },
+    {
+      "schema": "public",
+      "table": "pages_cataloguesubject",
+      "position": 2,
+      "column": "name",
+      "type": "character varying(64)",
+      "nullable": false,
+      "default": null,
+      "collation": "default"
+    },
+    {
+      "schema": "public",
+      "table": "pages_cataloguesubject",
+      "position": 3,
+      "column": "position",
+      "type": "smallint",
+      "nullable": false,
+      "default": null,
+      "collation": null
+    },
+    {
+      "schema": "public",
+      "table": "pages_conceptlibrarysnapshot",
+      "position": 1,
+      "column": "id",
+      "type": "uuid",
+      "nullable": false,
+      "default": null,
+      "collation": null
+    },
+    {
+      "schema": "public",
+      "table": "pages_conceptlibrarysnapshot",
+      "position": 2,
+      "column": "source_revision",
+      "type": "bigint",
+      "nullable": false,
+      "default": null,
+      "collation": null
+    },
+    {
+      "schema": "public",
+      "table": "pages_conceptlibrarysnapshot",
+      "position": 3,
+      "column": "catalogue_version",
+      "type": "character varying(64)",
+      "nullable": false,
+      "default": null,
+      "collation": "default"
+    },
+    {
+      "schema": "public",
+      "table": "pages_conceptlibrarysnapshot",
+      "position": 4,
+      "column": "assignment_signature",
+      "type": "character varying(64)",
+      "nullable": false,
+      "default": null,
+      "collation": "default"
+    },
+    {
+      "schema": "public",
+      "table": "pages_conceptlibrarysnapshot",
+      "position": 5,
+      "column": "totals",
+      "type": "jsonb",
+      "nullable": false,
+      "default": null,
+      "collation": null
+    },
+    {
+      "schema": "public",
+      "table": "pages_conceptlibrarysnapshot",
+      "position": 6,
+      "column": "unmapped",
+      "type": "jsonb",
+      "nullable": false,
+      "default": null,
+      "collation": null
+    },
+    {
+      "schema": "public",
+      "table": "pages_conceptlibrarysnapshot",
+      "position": 7,
+      "column": "created_at",
+      "type": "timestamp with time zone",
+      "nullable": false,
+      "default": null,
+      "collation": null
+    },
+    {
+      "schema": "public",
+      "table": "pages_userconceptprogresssummary",
+      "position": 1,
+      "column": "id",
+      "type": "bigint",
+      "nullable": false,
+      "default": null,
+      "collation": null
+    },
+    {
+      "schema": "public",
+      "table": "pages_userconceptprogresssummary",
+      "position": 2,
+      "column": "completion_fingerprint",
+      "type": "character varying(64)",
+      "nullable": false,
+      "default": null,
+      "collation": "default"
+    },
+    {
+      "schema": "public",
+      "table": "pages_userconceptprogresssummary",
+      "position": 3,
+      "column": "progress",
+      "type": "jsonb",
+      "nullable": false,
+      "default": null,
+      "collation": null
+    },
+    {
+      "schema": "public",
+      "table": "pages_userconceptprogresssummary",
+      "position": 4,
+      "column": "created_at",
+      "type": "timestamp with time zone",
+      "nullable": false,
+      "default": null,
+      "collation": null
+    },
+    {
+      "schema": "public",
+      "table": "pages_userconceptprogresssummary",
+      "position": 5,
+      "column": "snapshot_id",
+      "type": "uuid",
+      "nullable": false,
+      "default": null,
+      "collation": null
+    },
+    {
+      "schema": "public",
+      "table": "pages_userconceptprogresssummary",
+      "position": 6,
+      "column": "user_id",
+      "type": "bigint",
+      "nullable": false,
+      "default": null,
+      "collation": null
+    }
+  ],
+  "constraints": [
+    {
+      "schema": "public",
+      "table": "pages_cataloguearea",
+      "name": "pages_ca_subject_slug_uniq",
+      "type": "u",
+      "definition": "UNIQUE (subject_id, slug)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_cataloguearea",
+      "name": "pages_cataloguearea_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_cataloguearea",
+      "name": "pages_cataloguearea_subject_id_c4a6fa1a_fk_pages_cat",
+      "type": "f",
+      "definition": "FOREIGN KEY (subject_id) REFERENCES pages_cataloguesubject(id) DEFERRABLE INITIALLY DEFERRED"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconcept",
+      "name": "pages_catalogueconce_redirect_id_61aac013_fk_pages_cat",
+      "type": "f",
+      "definition": "FOREIGN KEY (redirect_id) REFERENCES pages_catalogueconcept(id) DEFERRABLE INITIALLY DEFERRED"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconcept",
+      "name": "pages_catalogueconcept_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconceptalias",
+      "name": "pages_catalogueconce_concept_id_051336be_fk_pages_cat",
+      "type": "f",
+      "definition": "FOREIGN KEY (concept_id) REFERENCES pages_catalogueconcept(id) DEFERRABLE INITIALLY DEFERRED"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconceptalias",
+      "name": "pages_catalogueconce_subject_id_6f24a240_fk_pages_cat",
+      "type": "f",
+      "definition": "FOREIGN KEY (subject_id) REFERENCES pages_cataloguesubject(id) DEFERRABLE INITIALLY DEFERRED"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconceptalias",
+      "name": "pages_catalogueconceptalias_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconceptarea",
+      "name": "pages_catalogueconce_area_id_047a2078_fk_pages_cat",
+      "type": "f",
+      "definition": "FOREIGN KEY (area_id) REFERENCES pages_cataloguearea(id) DEFERRABLE INITIALLY DEFERRED"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconceptarea",
+      "name": "pages_catalogueconce_concept_id_5ec41671_fk_pages_cat",
+      "type": "f",
+      "definition": "FOREIGN KEY (concept_id) REFERENCES pages_catalogueconcept(id) DEFERRABLE INITIALLY DEFERRED"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconceptarea",
+      "name": "pages_catalogueconceptarea_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconceptarea",
+      "name": "pages_cca_concept_area_uniq",
+      "type": "u",
+      "definition": "UNIQUE (concept_id, area_id)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconceptrelation",
+      "name": "pages_catalogueconce_source_id_fa464b14_fk_pages_cat",
+      "type": "f",
+      "definition": "FOREIGN KEY (source_id) REFERENCES pages_catalogueconcept(id) DEFERRABLE INITIALLY DEFERRED"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconceptrelation",
+      "name": "pages_catalogueconce_target_id_4cc4e383_fk_pages_cat",
+      "type": "f",
+      "definition": "FOREIGN KEY (target_id) REFERENCES pages_catalogueconcept(id) DEFERRABLE INITIALLY DEFERRED"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconceptrelation",
+      "name": "pages_catalogueconceptrelation_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconceptrelation",
+      "name": "pages_ccr_edge_uniq",
+      "type": "u",
+      "definition": "UNIQUE (source_id, target_id, kind)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconceptrelation",
+      "name": "pages_ccr_no_self",
+      "type": "c",
+      "definition": "CHECK (NOT source_id::text = target_id::text)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueproblem",
+      "name": "pages_catalogueprobl_problem_id_c9663094_fk_pages_pro",
+      "type": "f",
+      "definition": "FOREIGN KEY (problem_id) REFERENCES pages_problemsolverecord(id) DEFERRABLE INITIALLY DEFERRED"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueproblem",
+      "name": "pages_catalogueprobl_snapshot_id_89bed246_fk_pages_con",
+      "type": "f",
+      "definition": "FOREIGN KEY (snapshot_id) REFERENCES pages_conceptlibrarysnapshot(id) DEFERRABLE INITIALLY DEFERRED"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueproblem",
+      "name": "pages_catalogueprobl_statement_id_51fc4583_fk_pages_con",
+      "type": "f",
+      "definition": "FOREIGN KEY (statement_id) REFERENCES pages_contestproblemstatement(id) DEFERRABLE INITIALLY DEFERRED"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueproblem",
+      "name": "pages_catalogueproblem_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueproblem",
+      "name": "pages_cp_snapshot_uuid_uniq",
+      "type": "u",
+      "definition": "UNIQUE (snapshot_id, problem_uuid)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueproblemconcept",
+      "name": "pages_catalogueprobl_area_id_2fe8ee68_fk_pages_cat",
+      "type": "f",
+      "definition": "FOREIGN KEY (area_id) REFERENCES pages_cataloguearea(id) DEFERRABLE INITIALLY DEFERRED"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueproblemconcept",
+      "name": "pages_catalogueprobl_concept_id_32913e04_fk_pages_cat",
+      "type": "f",
+      "definition": "FOREIGN KEY (concept_id) REFERENCES pages_catalogueconcept(id) DEFERRABLE INITIALLY DEFERRED"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueproblemconcept",
+      "name": "pages_catalogueprobl_problem_id_334a1426_fk_pages_cat",
+      "type": "f",
+      "definition": "FOREIGN KEY (problem_id) REFERENCES pages_catalogueproblem(id) DEFERRABLE INITIALLY DEFERRED"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueproblemconcept",
+      "name": "pages_catalogueproblemconcept_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueproblemconcept",
+      "name": "pages_cpc_membership_uniq",
+      "type": "u",
+      "definition": "UNIQUE (problem_id, concept_id, area_id)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_cataloguestate",
+      "name": "pages_cataloguestate_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (singleton_key)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_cataloguestate",
+      "name": "pages_cataloguestate_singleton_key_check",
+      "type": "c",
+      "definition": "CHECK (singleton_key >= 0)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_cataloguestate",
+      "name": "pages_cataloguestate_snapshot_id_c67889ba_fk_pages_con",
+      "type": "f",
+      "definition": "FOREIGN KEY (snapshot_id) REFERENCES pages_conceptlibrarysnapshot(id) DEFERRABLE INITIALLY DEFERRED"
+    },
+    {
+      "schema": "public",
+      "table": "pages_cataloguestate",
+      "name": "pages_cataloguestate_source_revision_check",
+      "type": "c",
+      "definition": "CHECK (source_revision >= 0)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_cataloguesubject",
+      "name": "pages_cataloguesubject_name_key",
+      "type": "u",
+      "definition": "UNIQUE (name)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_cataloguesubject",
+      "name": "pages_cataloguesubject_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_cataloguesubject",
+      "name": "pages_cataloguesubject_position_check",
+      "type": "c",
+      "definition": "CHECK (\"position\" >= 0)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_conceptlibrarysnapshot",
+      "name": "pages_conceptlibrarysnapshot_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_conceptlibrarysnapshot",
+      "name": "pages_conceptlibrarysnapshot_source_revision_check",
+      "type": "c",
+      "definition": "CHECK (source_revision >= 0)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_userconceptprogresssummary",
+      "name": "pages_ucps_generation_uniq",
+      "type": "u",
+      "definition": "UNIQUE (user_id, snapshot_id, completion_fingerprint)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_userconceptprogresssummary",
+      "name": "pages_userconceptpro_snapshot_id_3440c61f_fk_pages_con",
+      "type": "f",
+      "definition": "FOREIGN KEY (snapshot_id) REFERENCES pages_conceptlibrarysnapshot(id) DEFERRABLE INITIALLY DEFERRED"
+    },
+    {
+      "schema": "public",
+      "table": "pages_userconceptprogresssummary",
+      "name": "pages_userconceptpro_user_id_cc099b85_fk_users_use",
+      "type": "f",
+      "definition": "FOREIGN KEY (user_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED"
+    },
+    {
+      "schema": "public",
+      "table": "pages_userconceptprogresssummary",
+      "name": "pages_userconceptprogresssummary_pkey",
+      "type": "p",
+      "definition": "PRIMARY KEY (id)"
+    }
+  ],
+  "indexes": [
+    {
+      "schema": "public",
+      "table": "pages_cataloguearea",
+      "name": "pages_ca_subject_slug_uniq",
+      "definition": "CREATE UNIQUE INDEX pages_ca_subject_slug_uniq ON public.pages_cataloguearea USING btree (subject_id, slug)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_cataloguearea",
+      "name": "pages_cataloguearea_id_641e3bad_like",
+      "definition": "CREATE INDEX pages_cataloguearea_id_641e3bad_like ON public.pages_cataloguearea USING btree (id varchar_pattern_ops)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_cataloguearea",
+      "name": "pages_cataloguearea_pkey",
+      "definition": "CREATE UNIQUE INDEX pages_cataloguearea_pkey ON public.pages_cataloguearea USING btree (id)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_cataloguearea",
+      "name": "pages_cataloguearea_subject_id_c4a6fa1a",
+      "definition": "CREATE INDEX pages_cataloguearea_subject_id_c4a6fa1a ON public.pages_cataloguearea USING btree (subject_id)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_cataloguearea",
+      "name": "pages_cataloguearea_subject_id_c4a6fa1a_like",
+      "definition": "CREATE INDEX pages_cataloguearea_subject_id_c4a6fa1a_like ON public.pages_cataloguearea USING btree (subject_id varchar_pattern_ops)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconcept",
+      "name": "pages_catalogueconcept_id_163d6449_like",
+      "definition": "CREATE INDEX pages_catalogueconcept_id_163d6449_like ON public.pages_catalogueconcept USING btree (id varchar_pattern_ops)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconcept",
+      "name": "pages_catalogueconcept_pkey",
+      "definition": "CREATE UNIQUE INDEX pages_catalogueconcept_pkey ON public.pages_catalogueconcept USING btree (id)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconcept",
+      "name": "pages_catalogueconcept_redirect_id_61aac013",
+      "definition": "CREATE INDEX pages_catalogueconcept_redirect_id_61aac013 ON public.pages_catalogueconcept USING btree (redirect_id)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconcept",
+      "name": "pages_catalogueconcept_redirect_id_61aac013_like",
+      "definition": "CREATE INDEX pages_catalogueconcept_redirect_id_61aac013_like ON public.pages_catalogueconcept USING btree (redirect_id varchar_pattern_ops)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconceptalias",
+      "name": "pages_catalogueconceptalias_concept_id_051336be",
+      "definition": "CREATE INDEX pages_catalogueconceptalias_concept_id_051336be ON public.pages_catalogueconceptalias USING btree (concept_id)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconceptalias",
+      "name": "pages_catalogueconceptalias_concept_id_051336be_like",
+      "definition": "CREATE INDEX pages_catalogueconceptalias_concept_id_051336be_like ON public.pages_catalogueconceptalias USING btree (concept_id varchar_pattern_ops)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconceptalias",
+      "name": "pages_catalogueconceptalias_id_6d9e849f_like",
+      "definition": "CREATE INDEX pages_catalogueconceptalias_id_6d9e849f_like ON public.pages_catalogueconceptalias USING btree (id varchar_pattern_ops)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconceptalias",
+      "name": "pages_catalogueconceptalias_pkey",
+      "definition": "CREATE UNIQUE INDEX pages_catalogueconceptalias_pkey ON public.pages_catalogueconceptalias USING btree (id)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconceptalias",
+      "name": "pages_catalogueconceptalias_subject_id_6f24a240",
+      "definition": "CREATE INDEX pages_catalogueconceptalias_subject_id_6f24a240 ON public.pages_catalogueconceptalias USING btree (subject_id)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconceptalias",
+      "name": "pages_catalogueconceptalias_subject_id_6f24a240_like",
+      "definition": "CREATE INDEX pages_catalogueconceptalias_subject_id_6f24a240_like ON public.pages_catalogueconceptalias USING btree (subject_id varchar_pattern_ops)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconceptalias",
+      "name": "pages_ccalias_scope_idx",
+      "definition": "CREATE INDEX pages_ccalias_scope_idx ON public.pages_catalogueconceptalias USING btree (subject_id, role)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconceptarea",
+      "name": "pages_catalogueconceptarea_area_id_047a2078",
+      "definition": "CREATE INDEX pages_catalogueconceptarea_area_id_047a2078 ON public.pages_catalogueconceptarea USING btree (area_id)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconceptarea",
+      "name": "pages_catalogueconceptarea_area_id_047a2078_like",
+      "definition": "CREATE INDEX pages_catalogueconceptarea_area_id_047a2078_like ON public.pages_catalogueconceptarea USING btree (area_id varchar_pattern_ops)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconceptarea",
+      "name": "pages_catalogueconceptarea_concept_id_5ec41671",
+      "definition": "CREATE INDEX pages_catalogueconceptarea_concept_id_5ec41671 ON public.pages_catalogueconceptarea USING btree (concept_id)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconceptarea",
+      "name": "pages_catalogueconceptarea_concept_id_5ec41671_like",
+      "definition": "CREATE INDEX pages_catalogueconceptarea_concept_id_5ec41671_like ON public.pages_catalogueconceptarea USING btree (concept_id varchar_pattern_ops)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconceptarea",
+      "name": "pages_catalogueconceptarea_pkey",
+      "definition": "CREATE UNIQUE INDEX pages_catalogueconceptarea_pkey ON public.pages_catalogueconceptarea USING btree (id)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconceptarea",
+      "name": "pages_cca_concept_area_uniq",
+      "definition": "CREATE UNIQUE INDEX pages_cca_concept_area_uniq ON public.pages_catalogueconceptarea USING btree (concept_id, area_id)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconceptrelation",
+      "name": "pages_catalogueconceptrelation_pkey",
+      "definition": "CREATE UNIQUE INDEX pages_catalogueconceptrelation_pkey ON public.pages_catalogueconceptrelation USING btree (id)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconceptrelation",
+      "name": "pages_catalogueconceptrelation_source_id_fa464b14",
+      "definition": "CREATE INDEX pages_catalogueconceptrelation_source_id_fa464b14 ON public.pages_catalogueconceptrelation USING btree (source_id)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconceptrelation",
+      "name": "pages_catalogueconceptrelation_source_id_fa464b14_like",
+      "definition": "CREATE INDEX pages_catalogueconceptrelation_source_id_fa464b14_like ON public.pages_catalogueconceptrelation USING btree (source_id varchar_pattern_ops)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconceptrelation",
+      "name": "pages_catalogueconceptrelation_target_id_4cc4e383",
+      "definition": "CREATE INDEX pages_catalogueconceptrelation_target_id_4cc4e383 ON public.pages_catalogueconceptrelation USING btree (target_id)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconceptrelation",
+      "name": "pages_catalogueconceptrelation_target_id_4cc4e383_like",
+      "definition": "CREATE INDEX pages_catalogueconceptrelation_target_id_4cc4e383_like ON public.pages_catalogueconceptrelation USING btree (target_id varchar_pattern_ops)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueconceptrelation",
+      "name": "pages_ccr_edge_uniq",
+      "definition": "CREATE UNIQUE INDEX pages_ccr_edge_uniq ON public.pages_catalogueconceptrelation USING btree (source_id, target_id, kind)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueproblem",
+      "name": "pages_catalogueproblem_pkey",
+      "definition": "CREATE UNIQUE INDEX pages_catalogueproblem_pkey ON public.pages_catalogueproblem USING btree (id)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueproblem",
+      "name": "pages_catalogueproblem_problem_id_c9663094",
+      "definition": "CREATE INDEX pages_catalogueproblem_problem_id_c9663094 ON public.pages_catalogueproblem USING btree (problem_id)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueproblem",
+      "name": "pages_catalogueproblem_snapshot_id_89bed246",
+      "definition": "CREATE INDEX pages_catalogueproblem_snapshot_id_89bed246 ON public.pages_catalogueproblem USING btree (snapshot_id)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueproblem",
+      "name": "pages_catalogueproblem_statement_id_51fc4583",
+      "definition": "CREATE INDEX pages_catalogueproblem_statement_id_51fc4583 ON public.pages_catalogueproblem USING btree (statement_id)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueproblem",
+      "name": "pages_cp_snapshot_uuid_uniq",
+      "definition": "CREATE UNIQUE INDEX pages_cp_snapshot_uuid_uniq ON public.pages_catalogueproblem USING btree (snapshot_id, problem_uuid)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueproblemconcept",
+      "name": "pages_catalogueproblemconcept_area_id_2fe8ee68",
+      "definition": "CREATE INDEX pages_catalogueproblemconcept_area_id_2fe8ee68 ON public.pages_catalogueproblemconcept USING btree (area_id)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueproblemconcept",
+      "name": "pages_catalogueproblemconcept_area_id_2fe8ee68_like",
+      "definition": "CREATE INDEX pages_catalogueproblemconcept_area_id_2fe8ee68_like ON public.pages_catalogueproblemconcept USING btree (area_id varchar_pattern_ops)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueproblemconcept",
+      "name": "pages_catalogueproblemconcept_concept_id_32913e04",
+      "definition": "CREATE INDEX pages_catalogueproblemconcept_concept_id_32913e04 ON public.pages_catalogueproblemconcept USING btree (concept_id)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueproblemconcept",
+      "name": "pages_catalogueproblemconcept_concept_id_32913e04_like",
+      "definition": "CREATE INDEX pages_catalogueproblemconcept_concept_id_32913e04_like ON public.pages_catalogueproblemconcept USING btree (concept_id varchar_pattern_ops)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueproblemconcept",
+      "name": "pages_catalogueproblemconcept_pkey",
+      "definition": "CREATE UNIQUE INDEX pages_catalogueproblemconcept_pkey ON public.pages_catalogueproblemconcept USING btree (id)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueproblemconcept",
+      "name": "pages_catalogueproblemconcept_problem_id_334a1426",
+      "definition": "CREATE INDEX pages_catalogueproblemconcept_problem_id_334a1426 ON public.pages_catalogueproblemconcept USING btree (problem_id)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_catalogueproblemconcept",
+      "name": "pages_cpc_membership_uniq",
+      "definition": "CREATE UNIQUE INDEX pages_cpc_membership_uniq ON public.pages_catalogueproblemconcept USING btree (problem_id, concept_id, area_id)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_cataloguestate",
+      "name": "pages_cataloguestate_pkey",
+      "definition": "CREATE UNIQUE INDEX pages_cataloguestate_pkey ON public.pages_cataloguestate USING btree (singleton_key)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_cataloguestate",
+      "name": "pages_cataloguestate_snapshot_id_c67889ba",
+      "definition": "CREATE INDEX pages_cataloguestate_snapshot_id_c67889ba ON public.pages_cataloguestate USING btree (snapshot_id)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_cataloguesubject",
+      "name": "pages_cataloguesubject_id_b420c133_like",
+      "definition": "CREATE INDEX pages_cataloguesubject_id_b420c133_like ON public.pages_cataloguesubject USING btree (id varchar_pattern_ops)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_cataloguesubject",
+      "name": "pages_cataloguesubject_name_baefeee3_like",
+      "definition": "CREATE INDEX pages_cataloguesubject_name_baefeee3_like ON public.pages_cataloguesubject USING btree (name varchar_pattern_ops)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_cataloguesubject",
+      "name": "pages_cataloguesubject_name_key",
+      "definition": "CREATE UNIQUE INDEX pages_cataloguesubject_name_key ON public.pages_cataloguesubject USING btree (name)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_cataloguesubject",
+      "name": "pages_cataloguesubject_pkey",
+      "definition": "CREATE UNIQUE INDEX pages_cataloguesubject_pkey ON public.pages_cataloguesubject USING btree (id)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_conceptlibrarysnapshot",
+      "name": "pages_conceptlibrarysnapshot_pkey",
+      "definition": "CREATE UNIQUE INDEX pages_conceptlibrarysnapshot_pkey ON public.pages_conceptlibrarysnapshot USING btree (id)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_userconceptprogresssummary",
+      "name": "pages_ucps_generation_uniq",
+      "definition": "CREATE UNIQUE INDEX pages_ucps_generation_uniq ON public.pages_userconceptprogresssummary USING btree (user_id, snapshot_id, completion_fingerprint)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_userconceptprogresssummary",
+      "name": "pages_userconceptprogresssummary_pkey",
+      "definition": "CREATE UNIQUE INDEX pages_userconceptprogresssummary_pkey ON public.pages_userconceptprogresssummary USING btree (id)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_userconceptprogresssummary",
+      "name": "pages_userconceptprogresssummary_snapshot_id_3440c61f",
+      "definition": "CREATE INDEX pages_userconceptprogresssummary_snapshot_id_3440c61f ON public.pages_userconceptprogresssummary USING btree (snapshot_id)"
+    },
+    {
+      "schema": "public",
+      "table": "pages_userconceptprogresssummary",
+      "name": "pages_userconceptprogresssummary_user_id_cc099b85",
+      "definition": "CREATE INDEX pages_userconceptprogresssummary_user_id_cc099b85 ON public.pages_userconceptprogresssummary USING btree (user_id)"
+    }
+  ],
+  "extensions": []
+}
