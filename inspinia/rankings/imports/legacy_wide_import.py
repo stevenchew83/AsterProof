@@ -7,9 +7,9 @@ from dataclasses import dataclass
 from dataclasses import field
 from decimal import Decimal
 from decimal import InvalidOperation
+from typing import TYPE_CHECKING
 from typing import Any
 
-import pandas as pd
 from django.db import transaction
 from django.utils import timezone
 from django.utils.text import slugify
@@ -23,6 +23,9 @@ from inspinia.rankings.models import StudentResult
 from inspinia.rankings.models import StudentSelectionStatus
 from inspinia.rankings.models import normalize_name
 from inspinia.rankings.models import normalize_whitespace
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 STUDENT_COLUMN_TOKENS = {
     "active",
@@ -573,6 +576,8 @@ def _normalize_gender_value(value: Any) -> str:
 
 
 def _is_blank_value(value: Any) -> bool:
+    import pandas as pd
+
     if value is None:
         return True
     if isinstance(value, float) and pd.isna(value):

@@ -11,11 +11,7 @@ from typing import TYPE_CHECKING
 from typing import Any
 from typing import BinaryIO
 
-import pandas as pd
 from django.db import transaction
-from openpyxl import Workbook
-from openpyxl.cell.cell import ILLEGAL_CHARACTERS_RE
-from openpyxl.utils.dataframe import dataframe_to_rows
 
 from inspinia.pages.algebra_tag_aliases import is_algebra_scope
 from inspinia.pages.algebra_tag_aliases import merge_raw_sources
@@ -40,6 +36,8 @@ from inspinia.pages.topic_tags_parse import parse_topic_tags_cell
 if TYPE_CHECKING:
     from collections.abc import Mapping
     from pathlib import Path
+
+    import pandas as pd
 
 REQUIRED_COLUMNS = frozenset(
     {"YEAR", "TOPIC", "MOHS", "CONTEST", "PROBLEM", "CONTEST PROBLEM", "Topic tags"},
@@ -102,6 +100,8 @@ class ProblemImportValidationError(ValueError):
 
 
 def _cell_str(value: Any) -> str | None:
+    import pandas as pd
+
     if value is None or (isinstance(value, float) and pd.isna(value)):
         return None
     text = str(value).strip()
@@ -109,6 +109,8 @@ def _cell_str(value: Any) -> str | None:
 
 
 def _cell_int(value: Any) -> int | None:
+    import pandas as pd
+
     if value is None or (isinstance(value, float) and pd.isna(value)):
         return None
     if isinstance(value, bool):
@@ -388,6 +390,8 @@ def _topic_tags_export_value(record: ProblemSolveRecord) -> str:
 
 
 def build_problem_export_dataframe(records: list[ProblemSolveRecord]) -> pd.DataFrame:
+    import pandas as pd
+
     rows = [
         {
             "PROBLEM UUID": str(record.problem_uuid),
@@ -410,6 +414,10 @@ def build_problem_export_dataframe(records: list[ProblemSolveRecord]) -> pd.Data
 
 
 def _write_safe_dataframe_to_worksheet(worksheet, dataframe: pd.DataFrame) -> None:
+    import pandas as pd
+    from openpyxl.cell.cell import ILLEGAL_CHARACTERS_RE
+    from openpyxl.utils.dataframe import dataframe_to_rows
+
     for row_index, row in enumerate(dataframe_to_rows(dataframe, index=False, header=True), start=1):
         for column_index, value in enumerate(row, start=1):
             cell = worksheet.cell(row=row_index, column=column_index)
@@ -426,6 +434,8 @@ def _write_safe_dataframe_to_worksheet(worksheet, dataframe: pd.DataFrame) -> No
 
 
 def dataframe_to_safe_excel_bytes(dataframe: pd.DataFrame) -> bytes:
+    from openpyxl import Workbook
+
     buffer = io.BytesIO()
     workbook = Workbook()
     worksheet = workbook.active
@@ -435,6 +445,9 @@ def dataframe_to_safe_excel_bytes(dataframe: pd.DataFrame) -> bytes:
 
 
 def dataframes_to_safe_excel_bytes(dataframes: Mapping[str, pd.DataFrame]) -> bytes:
+    import pandas as pd
+    from openpyxl import Workbook
+
     buffer = io.BytesIO()
     workbook = Workbook()
     used_titles: set[str] = set()
@@ -476,6 +489,8 @@ def build_problem_export_workbook_bytes(records: list[ProblemSolveRecord]) -> by
 def build_problem_statement_export_dataframe(
     statements: list[ContestProblemStatement],
 ) -> pd.DataFrame:
+    import pandas as pd
+
     rows = [
         {
             "PROBLEM UUID": str(statement.problem_uuid),
@@ -504,6 +519,8 @@ def build_problem_statement_export_workbook_bytes(
 
 def dataframe_from_excel(source: Path | str | BinaryIO | bytes) -> pd.DataFrame:
     """Load workbook; normalize column headers (strip)."""
+    import pandas as pd
+
     if isinstance(source, bytes):
         source = io.BytesIO(source)
     try:

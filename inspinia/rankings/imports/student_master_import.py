@@ -14,7 +14,6 @@ from pathlib import Path
 from typing import Any
 
 from django.db import transaction
-from openpyxl import load_workbook
 
 from inspinia.rankings.models import ImportBatch
 from inspinia.rankings.models import ImportRowIssue
@@ -439,6 +438,8 @@ def _load_csv_rows(payload: bytes) -> list[tuple[int, dict[str, Any]]]:
 
 
 def _load_xlsx_rows(payload: bytes) -> list[tuple[int, dict[str, Any]]]:
+    from openpyxl import load_workbook
+
     workbook = load_workbook(BytesIO(payload), read_only=True, data_only=True)
     sheet = workbook.active
     rows: list[tuple[int, dict[str, Any]]] = []

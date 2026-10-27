@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import csv
 from decimal import Decimal
+from typing import TYPE_CHECKING
 
-import pandas as pd
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
@@ -18,7 +18,6 @@ from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
 from django.shortcuts import render
 from django.utils import timezone
-from openpyxl import Workbook
 
 from inspinia.rankings.forms import AssessmentResultImportForm
 from inspinia.rankings.forms import LegacyWideImportForm
@@ -44,6 +43,9 @@ from inspinia.users.models import AuditEvent
 from inspinia.users.monitoring import record_event
 from inspinia.users.roles import user_has_moderator_or_admin_role
 
+if TYPE_CHECKING:
+    import pandas as pd
+
 RANKING_TABLE_MAX_ROWS = 5000
 IMPORT_BATCH_HISTORY_LIMIT = 20
 MAX_DERIVED_AGE = 100
@@ -55,6 +57,8 @@ def _require_rankings_access(request) -> None:
 
 
 def _read_tabular_upload(upload) -> pd.DataFrame:
+    import pandas as pd
+
     if isinstance(upload, str):
         if upload.lower().endswith(".csv"):
             return pd.read_csv(upload)
@@ -362,6 +366,8 @@ def ranking_export_csv_view(request):
 @login_required
 def ranking_export_xlsx_view(request):
     _require_rankings_access(request)
+    from openpyxl import Workbook
+
     filter_form = RankingTableFilterForm(request.GET or None)
     filter_data = filter_form.cleaned_data if filter_form.is_valid() else {}
     formula = _resolve_formula(filter_data)
