@@ -379,6 +379,9 @@ def _restore_cli(args):
             cursor.execute("SELECT datcollversion FROM pg_database WHERE datname=current_database()")
             collation_version = cursor.fetchone()[0]
         if actual != expected["manifest"]:
+            (scratch / "manifest-difference.json").write_bytes(canonical_json({
+                "expected": expected["manifest"], "actual": actual,
+            }))
             raise RecoveryError("recovery_restored_data_or_schema_mismatch")
         print(
             json.dumps(
@@ -694,7 +697,15 @@ def smoke_recovery():
             archive, scratch / "dump.pgdump", key, b"isolated-actions-fixture", encrypted["plaintext_sha256"],
         )
         (scratch / "expected.json").write_bytes(canonical_json({"manifest": source["manifest"]}))
-        _restore_cli(SimpleNamespace(scratch=scratch))
+        try:
+            _restore_cli(SimpleNamespace(scratch=scratch))
+        except RecoveryError:
+            # Only this fixed Actions fixture may emit diagnostics; no production data is involved.
+            for filename in ("restore-private.log", "postgres-private.log", "manifest-difference.json"):
+                path = scratch / filename
+                if path.is_file():
+                    print("Synthetic fixture diagnostic " + filename + ": " + path.read_text()[-8000:], file=sys.stderr)
+            raise
 
 
 def main():
@@ -711,8 +722,11 @@ def main():
             _restore_cli(args)
         else:
             smoke_recovery()
-    except Exception:  # noqa: BLE001 - error text may contain private data/credentials; root retains private logs.
-        print("recovery_subprocess_failed", file=sys.stderr)
+    except RecoveryError as exc:
+        print(str(exc), file=sys.stderr)  # Fixed normalized codes, never server exception text.
+        return 1
+    except Exception as exc:  # noqa: BLE001 - server exception text may contain private data or credentials.
+        print("recovery_subprocess_failed_" + type(exc).__name__, file=sys.stderr)
         return 1
     return 0
 
