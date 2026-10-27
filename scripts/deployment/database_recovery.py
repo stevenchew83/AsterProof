@@ -380,9 +380,21 @@ def _restore_cli(args):
             cursor.execute("SELECT datcollversion FROM pg_database WHERE datname=current_database()")
             collation_version = cursor.fetchone()[0]
         if actual != expected["manifest"]:
-            (scratch / "manifest-difference.json").write_bytes(canonical_json({
-                "expected": expected["manifest"], "actual": actual,
-            }))
+            differences = {}
+            for category in ("schema_fingerprint", "large_objects"):
+                if expected["manifest"][category] != actual[category]:
+                    differences[category] = {"expected": expected["manifest"][category], "actual": actual[category]}
+            for category in ("tables", "sequences"):
+                old_rows = {
+                    (r["schema"], r.get("table", r.get("sequence"))): r
+                    for r in expected["manifest"][category]
+                }
+                new_rows = {(r["schema"], r.get("table", r.get("sequence"))): r for r in actual[category]}
+                differences[category] = [
+                    {"object": str(k), "expected": old_rows.get(k), "actual": new_rows.get(k)}
+                    for k in sorted(old_rows.keys() | new_rows.keys()) if old_rows.get(k) != new_rows.get(k)
+                ]
+            (scratch / "manifest-difference.json").write_bytes(canonical_json(differences))
             raise RecoveryError("recovery_restored_data_or_schema_mismatch")
         print(
             json.dumps(
