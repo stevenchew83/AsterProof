@@ -157,12 +157,18 @@ def collect_identity(config: AuditConfig, *, runner: Any = subprocess.run) -> di
     }
 
 
-def collect_audit(config: AuditConfig, *, runner: Any = subprocess.run) -> dict[str, Any]:
+def collect_audit(
+    config: AuditConfig,
+    *,
+    runner: Any = subprocess.run,
+    include_catalog: bool = False,
+) -> dict[str, Any]:
     identity = collect_identity(config, runner=runner)
     identity_hash = identity["database_identity_hash"]
     if identity_hash != config.expected_database_identity_hash:
         raise MigrationAuditError("migration audit database identity mismatch")
-    migrations = migration_state(_parse_csv(_run_query(config, MIGRATIONS_SQL, runner=runner), 2))
+    migration_rows = _parse_csv(_run_query(config, MIGRATIONS_SQL, runner=runner), 2)
+    migrations = migration_state(migration_rows)
 
     snapshot: dict[str, list[dict[str, object]]] = {}
     field_names = {
@@ -191,24 +197,39 @@ def collect_audit(config: AuditConfig, *, runner: Any = subprocess.run) -> dict[
         "role": config.expected_role,
         "schema": schema,
     }
-    return {
+    result = {
         "format_version": 1,
         "migration_fingerprint": migrations["fingerprint"],
         "schema_fingerprint": schema["fingerprint"],
         "state_fingerprint": hashlib.sha256(canonical_json(state)).hexdigest(),
         "state": state,
     }
+    if include_catalog:
+        result["catalog_snapshot"] = snapshot
+        result["migration_rows"] = migration_rows
+    version = _parse_csv(_run_query(config, "SELECT current_setting('server_version_num')", runner=runner), 1)
+    if len(version) != 1 or not version[0][0].isdigit():
+        raise MigrationAuditError("migration audit server version is invalid")
+    result["server_version_num"] = int(version[0][0])
+    return result
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("command", choices=("fingerprint", "identity"))
+    parser.add_argument("command", choices=("fingerprint", "identity", "catalog-snapshot"))
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     parser.add_argument("--contract", type=Path)
     args = parser.parse_args()
     del args.contract
     config = AuditConfig.load(args.config)
-    value = collect_identity(config) if args.command == "identity" else collect_audit(config)
+    value = (
+        collect_identity(config)
+        if args.command == "identity"
+        else collect_audit(
+            config,
+            include_catalog=args.command == "catalog-snapshot",
+        )
+    )
     print(json.dumps(value, sort_keys=True, separators=(",", ":")))
     return 0
 

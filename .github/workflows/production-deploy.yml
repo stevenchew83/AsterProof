@@ -13,6 +13,12 @@ on:
         type: choice
         options:
           - none
+          - backward-compatible-schema
+      schema_disclosure:
+        description: Frozen fingerprint disclosure JSON for the approved pages.0036 migration only; blank for none
+        required: false
+        default: ""
+        type: string
       skip_ci:
         description: Explicitly skip automated quality checks; retain release integrity and activation checks
         required: false
@@ -48,6 +54,18 @@ jobs:
     name: Verify, build, and attest
     runs-on: ubuntu-24.04
     timeout-minutes: 45
+    services:
+      schema-postgres:
+        image: ${{ inputs.migration_class == 'backward-compatible-schema' && 'postgres:17.9-bookworm@sha256:47f917f7409eacd22fc5dfb1dee634e1b55cf0c01d1a7eb701be2227a03e0641' || '' }}
+        env:
+          POSTGRES_DB: asterproof_schema_rehearsal
+          POSTGRES_USER: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - '127.0.0.1:5432:5432'
+        options: >-
+          --health-cmd pg_isready --health-interval 5s
+          --health-timeout 5s --health-retries 10
     permissions:
       contents: read
       id-token: write
@@ -74,6 +92,7 @@ jobs:
           MIGRATION_CLASS: ${{ inputs.migration_class }}
           INITIAL_ADOPTION: ${{ inputs.initial_adoption }}
           INITIAL_LEGACY_SHA: ${{ inputs.initial_legacy_sha }}
+          SCHEMA_DISCLOSURE: ${{ inputs.schema_disclosure }}
         run: |
           python -m scripts.deployment.validate_dispatch dispatch \
             --event "$EVENT_NAME" \
@@ -81,6 +100,7 @@ jobs:
             --checked-out-sha "$WORKFLOW_SHA" \
             --release-sha "$REQUESTED_SHA" \
             --migration-class "$MIGRATION_CLASS" \
+            --schema-disclosure-json "$SCHEMA_DISCLOSURE" \
             --initial-legacy-sha "$INITIAL_LEGACY_SHA" \
             ${{ inputs.initial_adoption && '--initial-adoption' || '' }}
 
@@ -132,6 +152,21 @@ jobs:
             --only-binary=:all: --find-links .release-wheelhouse -r .release-wheelhouse/install.lock
           .release-runtime/bin/python -c "import django, gunicorn, psycopg, bleach, markdown, cryptography"
 
+      - name: Rehearse the bounded schema on PostgreSQL 17.9
+        if: ${{ inputs.migration_class == 'backward-compatible-schema' }}
+        env:
+          DATABASE_URL: postgres://postgres@127.0.0.1:5432/asterproof_schema_rehearsal
+          SCHEMA_DISCLOSURE: ${{ inputs.schema_disclosure }}
+          RELEASE_SHA: ${{ inputs.release_sha }}
+        run: |
+          active_sha="$(python -c 'import json,os; print(json.loads(os.environ["SCHEMA_DISCLOSURE"])["active_sha"])')"
+          mkdir "$RUNNER_TEMP/active-schema-smoke"
+          git archive "$active_sha" | tar -x -C "$RUNNER_TEMP/active-schema-smoke"
+          .release-runtime/bin/python -m scripts.deployment.schema_rehearsal \
+            --active-source "$RUNNER_TEMP/active-schema-smoke" \
+            --active-sha "$active_sha" --release-sha "$RELEASE_SHA" \
+            --output "$RUNNER_TEMP/schema-evidence.json"
+
       - name: Build production static files
         env:
           ASTERPROOF_PYTHON: ${{ github.workspace }}/.release-runtime/bin/python
@@ -162,7 +197,12 @@ jobs:
           REPOSITORY_ID: ${{ github.repository_id }}
           OUTPUT_FILE: ${{ runner.temp }}/asterproof-release.tar
           ENVELOPE_FILE: ${{ runner.temp }}/release-envelope.json
+          MIGRATION_CLASS: ${{ inputs.migration_class }}
         run: |
+          schema_build_args=()
+          if [ "$MIGRATION_CLASS" = "backward-compatible-schema" ]; then
+            schema_build_args=(--schema-evidence "$RUNNER_TEMP/schema-evidence.json")
+          fi
           python -m scripts.deployment.build_release \
             --repository-root "$GITHUB_WORKSPACE" \
             --static-root "$GITHUB_WORKSPACE/staticfiles" \
@@ -173,7 +213,7 @@ jobs:
             --repository-id "$REPOSITORY_ID" \
             --release-sha "$RELEASE_SHA" \
             --run-id "$RUN_ID" \
-            --target-platform x86_64-manylinux_2_28
+            --target-platform x86_64-manylinux_2_28 "${schema_build_args[@]}"
           python - "$ENVELOPE_FILE" "$GITHUB_OUTPUT" <<'PY'
           import json
           import sys
@@ -276,6 +316,7 @@ jobs:
           ACTIVE_SHA: ${{ steps.health.outputs.active_sha }}
           TARGET_SHA: ${{ inputs.release_sha }}
           MIGRATION_CLASS: ${{ inputs.migration_class }}
+          SCHEMA_DISCLOSURE: ${{ inputs.schema_disclosure }}
         run: |
           python -m scripts.deployment.validate_dispatch migration-disclosure \
             --active-sha "$ACTIVE_SHA" \
@@ -294,6 +335,19 @@ jobs:
           print(f"- Target SHA: `{value['target_sha']}`")
           print(f"- Migration class: `{value['classification']}`")
           print(f"- Classified migrations: `{len(value['migrations'])}`")
+          import os
+          if os_disclosure := os.environ.get('SCHEMA_DISCLOSURE'):
+              from scripts.deployment.concept_schema import validate_disclosure
+              schema = validate_disclosure(json.loads(os_disclosure), target_sha=value['target_sha'])
+              if schema['active_sha'] != value['active_sha']:
+                  raise SystemExit('Schema disclosure active release mismatch')
+              if value['migrations'] != [{'migration': schema['migration'], 'classification': 'backward-compatible-schema'}]:
+                  raise SystemExit('Schema plan is outside the approved migration')
+              print('```json')
+              print(json.dumps(schema, sort_keys=True, indent=2))
+              print('```')
+              value['schema_disclosure'] = schema
+              Path(sys.argv[1]).write_text(json.dumps(value, sort_keys=True, indent=2) + '\n')
           PY
 
       - name: Record explicit initial-adoption disclosure
@@ -448,8 +502,14 @@ jobs:
           INITIAL_ADOPTION: ${{ inputs.initial_adoption }}
           INITIAL_LEGACY_SHA: ${{ inputs.initial_legacy_sha }}
           REPOSITORY_ID: ${{ github.repository_id }}
+          SCHEMA_DISCLOSURE: ${{ inputs.schema_disclosure }}
         run: |
           set +x
+          schema_args=()
+          if [ -n "$SCHEMA_DISCLOSURE" ]; then
+            printf '%s' "$SCHEMA_DISCLOSURE" > "$RUNNER_TEMP/schema-disclosure.json"
+            schema_args=(--schema-disclosure "$RUNNER_TEMP/schema-disclosure.json")
+          fi
           request_token() {
             local audience="$1"
             local encoded
@@ -466,14 +526,14 @@ jobs:
               --operation deploy --run-id "$GITHUB_RUN_ID" --deployment-id "$DEPLOYMENT_ID" \
               --workflow-sha "$RELEASE_SHA" \
               --release-sha "$RELEASE_SHA" --artifact-digest "$ARTIFACT_DIGEST" \
-              --target-marker "$TARGET_MARKER" --migration-class "$MIGRATION_CLASS")"
+              --target-marker "$TARGET_MARKER" --migration-class "$MIGRATION_CLASS" "${schema_args[@]}")"
             token="$(request_token "$audience")"
             echo "::add-mask::$token" >&2
             ASTERPROOF_OIDC_TOKEN="$token" python -m scripts.deployment.validate_dispatch frame \
               --operation deploy --run-id "$GITHUB_RUN_ID" --deployment-id "$DEPLOYMENT_ID" \
               --workflow-sha "$RELEASE_SHA" \
               --release-sha "$RELEASE_SHA" --artifact-digest "$ARTIFACT_DIGEST" \
-              --target-marker "$TARGET_MARKER" --migration-class "$MIGRATION_CLASS" \
+              --target-marker "$TARGET_MARKER" --migration-class "$MIGRATION_CLASS" "${schema_args[@]}" \
               | ssh -F "$RUNNER_TEMP/asterproof-ssh/config" \
               asterproof-production "$command v1"
           }
@@ -492,14 +552,14 @@ jobs:
             --operation deploy --run-id "$GITHUB_RUN_ID" --deployment-id "$DEPLOYMENT_ID" \
             --workflow-sha "$RELEASE_SHA" \
             --release-sha "$RELEASE_SHA" --artifact-digest "$ARTIFACT_DIGEST" \
-            --target-marker "$TARGET_MARKER" --migration-class "$MIGRATION_CLASS")"
+            --target-marker "$TARGET_MARKER" --migration-class "$MIGRATION_CLASS" "${schema_args[@]}")"
           token="$(request_token "$audience")"
           echo "::add-mask::$token"
           { ASTERPROOF_OIDC_TOKEN="$token" python -m scripts.deployment.validate_dispatch frame \
               --operation deploy --run-id "$GITHUB_RUN_ID" --deployment-id "$DEPLOYMENT_ID" \
               --workflow-sha "$RELEASE_SHA" \
               --release-sha "$RELEASE_SHA" --artifact-digest "$ARTIFACT_DIGEST" \
-              --target-marker "$TARGET_MARKER" --migration-class "$MIGRATION_CLASS" \
+              --target-marker "$TARGET_MARKER" --migration-class "$MIGRATION_CLASS" "${schema_args[@]}" \
               --artifact-size "$EXPECTED_SIZE"; cat "$RELEASE_FILE"; } \
             | ssh -F "$RUNNER_TEMP/asterproof-ssh/config" asterproof-production 'receive v1' \
             > "$RUNNER_TEMP/receive.json"

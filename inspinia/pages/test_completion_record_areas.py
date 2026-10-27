@@ -7,6 +7,10 @@ from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
 from inspinia.pages.completion_record_areas import completion_record_area_metadata
+from inspinia.pages.concept_assignment_service import apply_refresh
+from inspinia.pages.concept_assignment_service import audit_sources
+from inspinia.pages.concept_assignment_trace import load_sources
+from inspinia.pages.models import ConceptAssignmentState
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
 from inspinia.pages.models import ProblemTopicTechnique
@@ -162,3 +166,24 @@ def test_table_places_area_after_topic_and_keeps_full_details(admin):
     assert "completion-record-detail-areas" in html
     assert "including all mapped areas" in html
     assert 'search: "Filter loaded records:"' in html
+
+
+@pytest.mark.parametrize("origin", ["statement", "linked_archive", "orphan_archive"])
+def test_enabled_projection_uses_only_accepted_areas_for_every_completion_origin(admin, settings, origin):
+    user, client = admin
+    problem = archive()
+    source = statement(linked=problem, topic="ALG") if origin != "orphan_archive" else problem
+    tag(source, object_tags=["Farey fraction"], domains=["ALG", "NT"])
+    completion = UserProblemCompletion.objects.create(
+        user=user,
+        **({"statement": source} if origin == "statement" else {"problem": problem}),
+    )
+    apply_refresh(audit_sources(load_sources([problem.problem_uuid])))
+    settings.CONCEPT_ASSIGNMENTS_ENABLED = True
+    ConceptAssignmentState.objects.update_or_create(
+        singleton_key=1, defaults={"enabled": True, "initial_seed_complete": True},
+    )
+    row = records(client).context["completion_record_rows"][0]
+    assert row["completion_id"] == completion.pk
+    assert row["areas"] == ["Inequalities and optimization"]
+    assert row["area_mapping_status"] == "Needs review"

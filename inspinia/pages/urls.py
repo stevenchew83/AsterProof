@@ -1,6 +1,11 @@
 from django.urls import path
 
 from inspinia.pages.concept_assignment_source_export import assignment_source_export
+from inspinia.pages.concept_assignment_views import concept_assignment_receipt
+from inspinia.pages.concept_assignment_views import concept_assignment_review_apply
+from inspinia.pages.concept_assignment_views import concept_assignment_review_detail
+from inspinia.pages.concept_assignment_views import concept_assignment_review_list
+from inspinia.pages.concept_assignment_views import concept_assignment_review_preview
 from inspinia.pages.shared_progress_views import shared_progress_comparison_view
 from inspinia.pages.shared_progress_views import shared_progress_view
 from inspinia.pages.views import archive_hub_view
@@ -55,6 +60,19 @@ app_name = "pages"
 
 urlpatterns = [
     path("tools/concept-assignment-sources/", assignment_source_export, name="concept_assignment_source_export"),
+    path("tools/concept-assignments/", concept_assignment_review_list, name="concept_assignment_review"),
+    path("tools/concept-assignments/preview/", concept_assignment_review_preview, name="concept_assignment_preview"),
+    path("tools/concept-assignments/apply/", concept_assignment_review_apply, name="concept_assignment_apply"),
+    path(
+        "tools/concept-assignments/receipts/<uuid:operation_id>/",
+        concept_assignment_receipt,
+        name="concept_assignment_receipt",
+    ),
+    path(
+        "tools/concept-assignments/<uuid:problem_uuid>/",
+        concept_assignment_review_detail,
+        name="concept_assignment_detail",
+    ),
     path("dashboard/progress/compare/", shared_progress_comparison_view, name="shared_progress_comparison"),
     path(
         "dashboard/progress/compare/<slug:section>/",

@@ -93,3 +93,32 @@ def test_build_release_rejects_dirty_tracked_source(tmp_path: Path) -> None:
             built_at="2026-09-01T00:00:00Z",
             source_date_epoch=1_700_000_000,
         )
+
+
+def test_schema_proof_is_bound_into_the_immutable_archive(tmp_path):
+    root, release_sha = _repository(tmp_path)
+    static_root, wheelhouse = tmp_path / "static", tmp_path / "wheels"
+    static_root.mkdir()
+    wheelhouse.mkdir()
+    proof = tmp_path / "schema-proof.json"
+    proof.write_text('{"synthetic_schema_proof":true}\n')
+    output = tmp_path / "release.tar"
+    receipt = build_release(
+        repository_root=root,
+        static_root=static_root,
+        wheelhouse=wheelhouse,
+        output=output,
+        repository="owner/AsterProof",
+        repository_id="123",
+        release_sha=release_sha,
+        run_id="42",
+        target_platform="manylinux2014_x86_64",
+        python_abi="cp312",
+        built_at="2026-10-27T00:00:00Z",
+        source_date_epoch=1_700_000_000,
+        schema_evidence=proof,
+    )
+    extracted = tmp_path / "extracted"
+    manifest = safe_extract(output, extracted, expected_digest=receipt["archive_sha256"])
+    assert (extracted / "deployment-schema-evidence.json").read_bytes() == proof.read_bytes()
+    assert any(row["path"] == "deployment-schema-evidence.json" for row in manifest.files)

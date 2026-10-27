@@ -939,6 +939,7 @@ def _problem_statement_list_filter_url(filters: dict[str, str], *, omit: str) ->
 def _problem_statement_list_active_filter_chips(filters: dict[str, str]) -> list[dict[str, str]]:
     filter_labels = [
         ("q", "Search"),
+        ("concept", "Concept"),
         ("year", "Year"),
         ("topic", "Topic"),
         ("confidence", "Confidence"),
@@ -1071,6 +1072,9 @@ def _statement_table_rows_copy_tsv(rows: list[dict]) -> str:
         "Year\tContest\tTopic\tProblem code\tDay\tSolved\tArea\tCoverage\tMapping status\tMOHS\t"
         "Avg difficulty\tDifficulty ratings\tConfidence\tIMO slot\tUpdated\tReview labels\tOriginal tags\n"
     )
+    reviewed = any(row.get("assignment_projection") for row in rows)
+    if reviewed:
+        header = header.rstrip("\n") + "\tSuggestions (not counted)\tSuggestion reasons\tAcceptance basis\n"
     lines = [header]
     for row in rows:
         areas = ", ".join(row.get("concept_areas") or [])
@@ -1097,7 +1101,17 @@ def _statement_table_rows_copy_tsv(rows: list[dict]) -> str:
                     str(row.get("updated_at") or ""),
                     ", ".join(row.get("concept_review_labels") or []),
                     ", ".join(row.get("concept_source_tags") or []),
-                ]
+                ] + ([
+                    ", ".join(c["display"] for c in row.get("concept_suggestions") or []),
+                    "; ".join(
+                        c["display"] + ": " + ", ".join(c.get("reason_labels") or c.get("reasons") or [])
+                        for c in row.get("concept_suggestions") or []
+                    ),
+                    "; ".join(
+                        c["display"] + ": " + c.get("support_basis", "")
+                        for c in row.get("concept_coverage") or []
+                    ),
+                ] if reviewed else [])
             )
             + "\n",
         )
@@ -5045,6 +5059,11 @@ def _completion_quick_update_resolve_layer_filter(
 
 def _completion_quick_update_apply_layer_filter(queryset, *, raw_kind: str, raw_tag: str):
     if raw_kind == "concepts":
+        from inspinia.pages.concept_assignment_service import accepted_problem_ids
+        from inspinia.pages.concept_assignment_service import projection_enabled
+
+        if projection_enabled():
+            return queryset.filter(problem_uuid__in=accepted_problem_ids(raw_tag))
         from inspinia.pages.technique_concepts import concept_fact_filter
 
         return queryset.filter(Exists(
@@ -6962,6 +6981,20 @@ def problem_statement_list_view(request):
         mohs_max=fmohs_max,
         include_concepts=True,
     )
+    fconcept = str(request.GET.get("concept") or "").strip()
+    if fconcept:
+        from inspinia.pages.concept_assignment_registry import REGISTRY
+        from inspinia.pages.concept_assignment_service import accepted_problem_ids
+        from inspinia.pages.concept_assignment_service import projection_enabled
+
+        if projection_enabled():
+            fconcept = REGISTRY.canonical(fconcept)
+            filtered_statements = filtered_statements.filter(problem_uuid__in=accepted_problem_ids(fconcept))
+        else:
+            definition = REGISTRY.definitions.get(REGISTRY.canonical(fconcept))
+            filtered_statements = filtered_statements.filter(
+                statement_concept_search(definition["label"] if definition else fconcept),
+            )
     statement_filtered_total = filtered_statements.count()
     visible_statement_rows = (
         _statement_table_rows(
@@ -6990,6 +7023,8 @@ def problem_statement_list_view(request):
         "mohs_min": fmohs_min,
         "mohs_max": fmohs_max,
     }
+    if fconcept:
+        statement_list_filters["concept"] = fconcept
     active_filter_chips = _problem_statement_list_active_filter_chips(statement_list_filters)
 
     context = {
@@ -8495,6 +8530,10 @@ def technique_progress_dashboard_view(request):
 
 @login_required
 def technique_progress_gaps_view(request):
+    from inspinia.pages.concept_assignment_service import projection_enabled
+    if projection_enabled():
+        from inspinia.pages.concept_assignment_gaps import assignment_gaps_response
+        return assignment_gaps_response(request)
     export_format = request.GET.get("export")
     if export_format == "csv":
         return build_technique_progress_gaps_csv_response(

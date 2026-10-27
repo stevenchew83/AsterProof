@@ -477,7 +477,8 @@
       <div class="card-body statement-taxonomy-body">
         <p id="statement-taxonomy-status" class="text-muted"></p>
         <h6>Areas</h6><p id="statement-taxonomy-areas"></p>
-        <h6>Covered concepts</h6><ul id="statement-taxonomy-concepts" class="mb-3"></ul>
+        <h6 id="statement-taxonomy-concepts-heading">Covered concepts</h6><ul id="statement-taxonomy-concepts" class="mb-3"></ul>
+        <section id="statement-taxonomy-suggestions-section" hidden><h6>Suggestions · not counted</h6><ul id="statement-taxonomy-suggestions" class="mb-3"></ul></section>
         <div id="statement-taxonomy-review-section" hidden>
           <h6>Needs review</h6><ul id="statement-taxonomy-review" class="mb-3"></ul>
         </div>
@@ -631,14 +632,16 @@
   function taxonomyCell(row, type, isArea) {
     var labels = isArea ? (row.concept_areas || []) : (row.concept_coverage || []).map(function (c) { return c.display; });
     var review = row.concept_review_labels || [];
+    var suggestions = row.concept_suggestions || [];
     var status = row.concept_coverage_status || "Untagged";
-    if (type === "filter") return labels.concat(review, row.concept_source_tags || [], [status]).join(" ");
+    if (type === "filter") return labels.concat(review, suggestions.map(function(c) { return c.label; }), row.concept_source_tags || [], [status]).join(" ");
     if (type !== "display") return labels.join(", ") || status;
     var limit = isArea ? 1 : 2;
     var visible = labels.slice(0, limit).join(", ") || (status === "Mapped" ? "\u2014" : status);
     var more = labels.length > limit ? '<span class="ms-1 fw-semibold">+' + (labels.length - limit) + '</span>' : '';
-    var held = !isArea && labels.length && review.length
-      ? '<span class="ms-2 text-warning-emphasis">Needs review (' + review.length + ')</span>' : '';
+    var heldCount = row.assignment_projection ? suggestions.length : review.length;
+    var held = !isArea && heldCount
+      ? '<span class="ms-2 text-warning-emphasis">Needs review (' + heldCount + ')</span>' : '';
     return '<button type="button" class="btn btn-link p-0 text-start statement-taxonomy-button" ' +
       'aria-haspopup="dialog" aria-controls="statement-taxonomy-modal" data-statement-uuid="' +
       escapeHtml(row.statement_uuid) + '" aria-label="View all areas, concepts and original tags for ' +
@@ -664,8 +667,11 @@
     document.getElementById("statement-taxonomy-title").textContent = problemLabel(row);
     document.getElementById("statement-taxonomy-status").textContent = row.concept_coverage_status;
     document.getElementById("statement-taxonomy-areas").textContent = (row.concept_areas || []).join(", ") || "None mapped";
+    document.getElementById("statement-taxonomy-concepts-heading").textContent = row.assignment_projection ? "Accepted concepts" : "Covered concepts";
+    fillList("statement-taxonomy-suggestions", (row.concept_suggestions || []).map(function(c) { return c.label + " · " + (c.reason_labels || []).join("; "); }));
+    document.getElementById("statement-taxonomy-suggestions-section").hidden = !(row.concept_suggestions || []).length;
     fillList("statement-taxonomy-concepts", (row.concept_coverage || []).map(function (c) {
-      return c.display + " \u00b7 " + c.subject + " \u00b7 " + c.area;
+      return c.display + " \u00b7 " + c.subject + " \u00b7 " + c.area + (c.support_basis ? " · " + c.support_basis : "");
     }));
     fillList("statement-taxonomy-review", row.concept_review_labels || []);
     document.getElementById("statement-taxonomy-review-section").hidden = !(row.concept_review_labels || []).length;
