@@ -1,0 +1,167 @@
+{% extends 'pages/completion-progress-analytics.html' %}
+
+{% block extra_css %}
+{{ block.super }}
+{% include 'pages/partials/shared-progress-styles.html' %}
+{% endblock extra_css %}
+
+{% block page_content %}
+<div class="container-fluid learner-progress" id="shared-progress-dashboard">
+  {% include 'pages/partials/shared-progress-header.html' %}
+
+  <section class="card" aria-label="Progress filters">
+    <div class="card-body py-2">
+      <form method="get" class="lp-toolbar" id="shared-progress-filters">
+        <div class="lp-field">
+          <label for="completion-progress-range" class="form-label">Period</label>
+          <select id="completion-progress-range" name="range" class="form-select form-select-sm">
+            {% for option in completion_progress_range_options %}<option value="{{ option.value }}"{% if option.value == completion_progress_filters.range %} selected{% endif %}>{{ option.label }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="lp-custom-dates" id="shared-progress-custom-dates">
+          <div class="lp-field"><label for="completion-progress-start" class="form-label">From</label><input id="completion-progress-start" type="date" name="start" value="{{ completion_progress_filters.start }}" class="form-control form-control-sm"></div>
+          <div class="lp-field"><label for="completion-progress-end" class="form-label">To</label><input id="completion-progress-end" type="date" name="end" value="{{ completion_progress_filters.end }}" class="form-control form-control-sm"></div>
+        </div>
+        <div class="lp-field">
+          <label for="completion-progress-topic" class="form-label">Topic</label>
+          <select id="completion-progress-topic" name="topic" class="form-select form-select-sm">
+            <option value="">All topics</option>
+            {% for topic in completion_progress_filter_options.topics %}<option value="{{ topic }}"{% if topic == completion_progress_filters.topic %} selected{% endif %}>{{ topic }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="lp-search">
+          <label for="completion-progress-q" class="form-label">Search problems</label>
+          <input id="completion-progress-q" type="search" name="q" value="{{ completion_progress_filters.q }}" class="form-control form-control-sm" placeholder="Contest, problem or topic…">
+        </div>
+        <button type="submit" class="btn btn-sm btn-primary">Apply</button>
+        <a href="{{ completion_progress_reset_url }}" class="btn btn-sm btn-outline-secondary">Reset</a>
+        <noscript><button type="submit" name="export" value="csv" class="btn btn-sm btn-outline-secondary">Export CSV</button></noscript>
+        <div class="dropdown">
+          <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false"><i class="ti ti-download me-1" aria-hidden="true"></i>Export</button>
+          <div class="dropdown-menu dropdown-menu-end">
+            <button type="submit" name="export" value="csv" class="dropdown-item">CSV · page filters</button>
+          </div>
+        </div>
+        <details class="lp-advanced"{% if completion_progress_filters.contest or completion_progress_filters.mohs_min or completion_progress_filters.mohs_max or completion_progress_filters.solution_status %} open{% endif %}>
+          <summary><i class="ti ti-adjustments-horizontal me-1" aria-hidden="true"></i>More filters{% if completion_progress_filters.contest or completion_progress_filters.mohs_min or completion_progress_filters.mohs_max or completion_progress_filters.solution_status %} · Active{% endif %}</summary>
+          <div class="row g-2 mt-0 pb-1">
+            <div class="col-sm-5"><label for="completion-progress-contest" class="form-label">Contest</label><select id="completion-progress-contest" name="contest" class="form-select form-select-sm"><option value="">All contests</option>{% for contest in completion_progress_contest_options %}<option value="{{ contest }}"{% if contest == completion_progress_filters.contest %} selected{% endif %}>{{ contest }}</option>{% endfor %}</select></div>
+            <div class="col-6 col-sm-2"><label for="completion-progress-mohs-min" class="form-label">MOHS min</label><input id="completion-progress-mohs-min" name="mohs_min" type="number" min="0" value="{{ completion_progress_filters.mohs_min }}" class="form-control form-control-sm"></div>
+            <div class="col-6 col-sm-2"><label for="completion-progress-mohs-max" class="form-label">MOHS max</label><input id="completion-progress-mohs-max" name="mohs_max" type="number" min="0" value="{{ completion_progress_filters.mohs_max }}" class="form-control form-control-sm"></div>
+            <div class="col-sm-3"><label for="completion-progress-solution" class="form-label">Solution</label><select id="completion-progress-solution" name="solution_status" class="form-select form-select-sm"><option value="">All solutions</option>{% for status in completion_progress_filter_options.solution_statuses %}<option value="{{ status.value }}"{% if status.value == completion_progress_filters.solution_status %} selected{% endif %}>{{ status.label }}</option>{% endfor %}</select></div>
+          </div>
+        </details>
+      </form>
+    </div>
+  </section>
+
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-1 mb-2 fs-xs text-body-secondary">
+    <span>{{ completion_progress_date_range.label }} · Unique dated problems</span>
+    <a href="#shared-progress-analysis" id="shared-progress-analysis-link" class="text-body-secondary">More analysis <i class="ti ti-arrow-down-right" aria-hidden="true"></i></a>
+  </div>
+  <section class="card" aria-label="Period summary">
+    <div class="lp-metrics">
+      <div class="lp-metric">
+        <div class="lp-metric-label">Problems recorded</div>
+        <div class="lp-metric-value">{{ shared_progress_period_stats.known_date_total }}</div>
+        <div class="lp-metric-note">{% if completion_progress_insights.has_comparison %}{{ completion_progress_insights.deltas.0.display_delta }} vs {{ completion_progress_insights.deltas.0.previous }} previously{% else %}With a completion date{% endif %}</div>
+      </div>
+      <div class="lp-metric">
+        <div class="lp-metric-label">Active days</div>
+        <div class="lp-metric-value">{{ shared_progress_period_stats.active_day_total }}</div>
+        <div class="lp-metric-note">{% if completion_progress_insights.has_comparison %}{{ completion_progress_insights.deltas.1.display_delta }} vs {{ completion_progress_insights.deltas.1.previous }} previously{% else %}In the selected period{% endif %}</div>
+      </div>
+      <div class="lp-metric">
+        <div class="lp-metric-label">Average MOHS</div>
+        <div class="lp-metric-value">{{ shared_progress_period_stats.average_mohs|default_if_none:'—' }}</div>
+        <div class="lp-metric-note">{% if shared_progress_period_stats.missing_mohs_total %}{{ shared_progress_period_stats.missing_mohs_total }} without a difficulty{% else %}Dated problems in this period{% endif %}</div>
+      </div>
+      <div class="lp-metric">
+        <div class="lp-metric-label">Current streak</div>
+        <div class="lp-metric-value">{{ shared_progress_streak_stats.current_streak }} <span class="fs-xs fw-normal text-body-secondary">day{{ shared_progress_streak_stats.current_streak|pluralize }}</span></div>
+        <div class="lp-metric-note">Through today · All dates</div>
+      </div>
+    </div>
+    {% if completion_progress_stats.missing_date_total %}
+    <div class="lp-quality"><i class="ti ti-calendar-question me-1" aria-hidden="true"></i>{{ completion_progress_stats.missing_date_total }} additional undated problem{{ completion_progress_stats.missing_date_total|pluralize }} kept in history; excluded from period metrics and charts.</div>
+    {% endif %}
+  </section>
+
+  <div class="row g-3">
+    <div class="col-lg-8">
+      <section class="card h-100">
+        <div class="card-header d-flex align-items-center justify-content-between gap-2">
+          <h2 class="header-title mb-0">Recorded activity</h2>
+          <ul class="nav nav-pills gap-1" role="tablist" aria-label="Activity chart">
+            <li class="nav-item" role="presentation"><button class="nav-link active py-1 px-2 fs-xs" id="completion-progress-activity-tab" data-bs-toggle="tab" data-bs-target="#completion-progress-activity-pane" type="button" role="tab" aria-controls="completion-progress-activity-pane" aria-selected="true">Problems</button></li>
+            <li class="nav-item" role="presentation"><button class="nav-link py-1 px-2 fs-xs" id="completion-progress-trend-tab" data-bs-toggle="tab" data-bs-target="#completion-progress-trend-pane" type="button" role="tab" aria-controls="completion-progress-trend-pane" aria-selected="false">Difficulty</button></li>
+          </ul>
+        </div>
+        <div class="card-body pt-1">
+          {% if shared_progress_period_stats.known_date_total %}
+          <div class="tab-content">
+            <div class="tab-pane show active" id="completion-progress-activity-pane" role="tabpanel" aria-labelledby="completion-progress-activity-tab" tabindex="0"><div id="chart-completion-progress-daily" class="lp-chart" data-chart-height="230"></div></div>
+            <div class="tab-pane" id="completion-progress-trend-pane" role="tabpanel" aria-labelledby="completion-progress-trend-tab" tabindex="0"><div id="chart-completion-progress-mohs" class="lp-chart" data-chart-height="230"></div></div>
+          </div>
+          {% else %}
+          <div class="lp-empty"><i class="ti ti-chart-bar-off fs-24 d-block mb-2" aria-hidden="true"></i><strong>No dated activity in this period</strong><p class="fs-xs mt-1 mb-2">Undated records are available in history below.</p><a href="{{ completion_progress_reset_url }}?range=all" class="btn btn-sm btn-outline-primary">View all dates</a></div>
+          {% endif %}
+        </div>
+      </section>
+    </div>
+    <div class="col-lg-4">
+      <section class="card h-100">
+        <div class="card-header d-flex justify-content-between align-items-center"><h2 class="header-title mb-0">Topic balance</h2><span class="text-body-secondary fs-xs">This period</span></div>
+        <div class="card-body py-2">
+          {% for topic in shared_progress_topics %}
+          <a href="{{ topic.url }}" class="lp-topic"><div class="d-flex justify-content-between gap-2 fs-sm"><span>{{ topic.label }}</span><span class="fw-semibold">{{ topic.count }} <span class="text-body-secondary fs-xs fw-normal">· {{ topic.percent }}%</span></span></div><div class="progress" role="progressbar" aria-label="{{ topic.label }} share of dated problems" aria-valuenow="{{ topic.percent }}" aria-valuemin="0" aria-valuemax="100"><div class="progress-bar" style="width: {{ topic.percent }}%"></div></div></a>
+          {% empty %}<div class="lp-empty fs-sm">Topic totals appear when dated records match these filters.</div>{% endfor %}
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <section class="card mt-3" aria-labelledby="shared-progress-history-title">
+    <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+      <div><h2 class="header-title mb-1" id="shared-progress-history-title">Completion history</h2><p class="text-body-secondary fs-xs mb-0">{{ completion_progress_rows|length }} record{{ completion_progress_rows|length|pluralize }} · {{ completion_progress_stats.solved_total }} unique problem{{ completion_progress_stats.solved_total|pluralize }}{% if completion_progress_stats.missing_date_total %} · Includes undated history{% endif %}</p></div>
+      {% if completion_progress_rows %}<button type="button" class="btn btn-sm btn-outline-secondary" id="shared-progress-record-details" aria-pressed="false"><i class="ti ti-columns-3 me-1" aria-hidden="true"></i>More columns</button>{% endif %}
+    </div>
+    <div class="card-body pt-1">
+      {% if completion_progress_rows %}
+      <div class="table-responsive"><table id="completion-progress-table" class="table table-sm table-hover align-middle lp-record-table mb-0" data-compact-progress="true" data-can-edit-difficulty="false" data-show-difficulty="false"><caption class="visually-hidden">{{ shared_progress_label }}'s completion records matching the page filters, including undated history</caption><thead><tr><th>Completed</th><th>Problem</th><th>Topic</th><th>Area</th><th>MOHS</th><th>Solution</th><th>Status</th><th>Contest</th><th>Year</th><th>Learner difficulty</th><th>Updated</th></tr></thead><tbody>{% for row in completion_progress_table_rows|slice:':10' %}<tr><td>{{ row.completion_date }}</td><td>{% if row.problem_url %}<a href="{{ row.problem_url }}">{{ row.problem_label }}</a>{% else %}{{ row.problem_label }}{% endif %}</td><td>{{ row.topic }}</td><td>{{ row.areas }}</td><td>{{ row.mohs }}</td><td>{{ row.solution_status_label }}</td><td>{{ row.record_status }}</td><td>{{ row.contest }}</td><td>{{ row.year }}</td><td>{{ row.user_difficulty_rating|default_if_none:"—" }}</td><td>{{ row.updated_at }}</td></tr>{% endfor %}</tbody></table></div>
+      <noscript><p class="text-body-secondary fs-xs mt-2 mb-0">Showing the first 10 records. Export CSV above for every record matching the page filters.</p></noscript>
+      {% else %}<div class="lp-empty"><strong>No records match these filters</strong><p class="fs-xs mt-1 mb-2">Try a wider period or clear a filter.</p><a href="{{ completion_progress_reset_url }}" class="btn btn-sm btn-outline-secondary">Reset filters</a></div>{% endif %}
+    </div>
+  </section>
+
+  <details class="card lp-analysis" id="shared-progress-analysis"{% if completion_progress_filters.contest %} open{% endif %}>
+    <summary class="card-header"><span class="fw-semibold fs-sm">More analysis</span><span class="text-body-secondary fs-xs ms-2">Difficulty, solutions, calendar &amp; contest coverage</span></summary>
+    <div class="card-body">
+      <div class="lp-stats-detail mb-3 text-body-secondary"><span>Period total MOHS <strong class="text-body">{{ shared_progress_period_stats.total_mohs }}</strong></span><span>Period maximum <strong class="text-body">{{ shared_progress_period_stats.max_mohs|default_if_none:'—' }}</strong></span><span>Longest streak · all dates <strong class="text-body">{{ shared_progress_streak_stats.longest_streak }} day{{ shared_progress_streak_stats.longest_streak|pluralize }}</strong></span><span>No linked solution · period <strong class="text-body">{{ shared_progress_period_stats.no_solution_total }}</strong></span></div>
+      {% with completion_progress_stats=shared_progress_period_stats %}{% include 'pages/partials/completion-progress-analysis.html' %}{% endwith %}
+    </div>
+  </details>
+
+  {{ completion_progress_charts_payload|json_script:'completion-progress-chart-data' }}
+  {{ completion_progress_table_rows|json_script:'completion-progress-table-data' }}
+  {{ completion_progress_topic_mohs_matrix|json_script:'completion-progress-topic-mohs-matrix-data' }}
+  {{ completion_progress_contest_heatmap.chart|json_script:'completion-progress-contest-heatmap-data' }}
+  {{ completion_progress_export_metadata|json_script:'completion-progress-export-metadata' }}
+</div>
+{% endblock page_content %}
+
+{% block extra_javascript %}
+{{ block.super }}
+<script>
+(function () {
+  var period = document.getElementById('completion-progress-range');
+  var dates = document.getElementById('shared-progress-custom-dates');
+  function showCustomDates() { dates.hidden = period.value !== 'custom'; }
+  period.addEventListener('change', showCustomDates);
+  showCustomDates();
+  document.getElementById('shared-progress-analysis-link').addEventListener('click', function () {
+    document.getElementById('shared-progress-analysis').open = true;
+  });
+})();
+</script>
+{% endblock extra_javascript %}

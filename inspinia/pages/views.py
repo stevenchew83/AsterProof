@@ -6521,6 +6521,19 @@ def _render_completion_progress_analytics(  # noqa: PLR0913
     }
     if extra_context:
         context.update(extra_context)
+    if context.get("shared_progress_subject"):
+        from inspinia.pages.shared_progress_overview import shared_completion_overview_context
+
+        context.update(
+            shared_completion_overview_context(
+                context=context,
+                completions=completions,
+                filtered_rows=filtered_rows,
+                comparison_rows=comparison_scoped_rows,
+                today=today,
+            ),
+        )
+        return render(request, "pages/shared-completion-progress.html", context)
     return render(request, "pages/completion-progress-analytics.html", context)
 
 

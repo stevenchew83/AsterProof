@@ -2,16 +2,10 @@
 
 {% block title %}Compare Alex &amp; Ben{% endblock title %}
 
+{% block extra_css %}{% include 'pages/partials/shared-progress-styles.html' %}{% endblock extra_css %}
+
 {% block page_content %}
-<div class="container-fluid">
-  <div class="page-title-head d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-2 py-2">
-    <h4 class="fs-sm text-uppercase fw-bold m-0">Compare Alex &amp; Ben</h4>
-    <ol class="breadcrumb m-0 py-0">
-      <li class="breadcrumb-item"><a href="{% url 'pages:user_activity_dashboard' %}">AsterProof</a></li>
-      <li class="breadcrumb-item text-body-secondary">Our progress</li>
-      <li class="breadcrumb-item active" aria-current="page">Comparison</li>
-    </ol>
-  </div>
+<div class="container-fluid learner-progress">
   {% include 'pages/partials/shared-progress-header.html' %}
 
   {% if shared_progress_section == 'completions' %}
@@ -59,7 +53,7 @@
   {% elif shared_progress_section == 'techniques' %}
   <div class="card">
     <div class="card-header border-0 pb-0">
-      <h4 class="header-title mb-1">Technique coverage · All time</h4>
+      <h4 class="header-title mb-1">Areas &amp; Concepts · All time</h4>
       <p class="text-muted fs-sm mb-0">Solved or later completion statuses count toward coverage. A tagged problem can appear under several topics or techniques.</p>
       <p class="text-muted fs-xs mt-1 mb-0">Coverage updated: {% if comparison_coverage.alex.technique_progress_catalog_last_refreshed_at %}{{ comparison_coverage.alex.technique_progress_catalog_last_refreshed_at|timesince }} ago{% else %}not built yet{% endif %}</p>
     </div>

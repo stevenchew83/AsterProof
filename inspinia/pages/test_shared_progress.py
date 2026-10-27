@@ -1,5 +1,8 @@
+import json
 from datetime import timedelta
 from http import HTTPStatus
+from urllib.parse import parse_qs
+from urllib.parse import urlsplit
 
 import pytest
 from django.core.cache import cache
@@ -77,7 +80,10 @@ def test_shared_completions_use_subject_and_ignore_user_parameters(client, learn
     assert [row["statement_uuid"] for row in rows] == [str(completions[subject].statement.statement_uuid)]
     html = response.content.decode()
     assert "Read-only progress" in html
-    assert "Continue my training" in html
+    assert "Continue my training" not in html
+    assert 'id="shared-progress-dashboard"' in html
+    assert 'id="shared-progress-analysis"' in html
+    assert "Unique dated problems" in html
     assert reverse("pages:shared_progress_comparison_section", kwargs={"section": "completions"}) in html
     assert 'id="completion-progress-user"' not in html
     assert 'data-can-edit-difficulty="false"' in html
@@ -102,7 +108,8 @@ def test_shared_heading_uses_learner_label_when_display_name_is_blank(client, le
     client.force_login(learners["alex"])
     response = client.get(progress_url("ben"))
     assert response.status_code == HTTPStatus.OK
-    assert "Viewing Ben · Read-only progress" in response.content.decode()
+    assert "Ben's progress</h1>" in response.content.decode()
+    assert "Read-only progress" in response.content.decode()
 
 
 @pytest.mark.parametrize("section", ["completions", "techniques", "training"])
@@ -194,6 +201,7 @@ def test_shared_training_uses_subject_published_progress_and_distinct_accepted_p
         )
     hidden = Subtopic.objects.create(topic=topic, title="Unpublished subtopic", is_published=False)
     Material.objects.create(subtopic=hidden, title="Private notes", content_markdown="Private")
+    Subtopic.objects.create(topic=topic, title="Future published practice")
     client.force_login(learners["alex"])
     response = client.get(progress_url("ben", "training"))
 
@@ -202,6 +210,9 @@ def test_shared_training_uses_subject_published_progress_and_distinct_accepted_p
     assert row["completed"] == row["total"] == 2  # noqa: PLR2004
     assert row["percent"] == 100  # noqa: PLR2004
     assert response.context["training"]["next_subtopic"] is None
+    display_topic = next(row for row in response.context["shared_progress_training_topics"] if row["id"] == topic.pk)
+    assert [row["title"] for row in display_topic["practice_subtopics"]] == ["Polynomials"]
+    assert [row["title"] for row in display_topic["empty_subtopics"]] == ["Future published practice"]
     html = response.content.decode()
     assert "Unpublished subtopic" not in html
     assert "Private" not in html
@@ -251,8 +262,8 @@ def test_comparison_is_available_to_both_learners_with_fixed_subjects(client, le
     assert "no-store" in response.headers["Cache-Control"]
     html = response.content.decode()
     assert "Read-only progress" in html
-    assert '<h3 class="mb-1">Alex &amp; Ben</h3>' in html
-    assert "Continue my training" in html
+    assert "Alex &amp; Ben</h1>" in html
+    assert "Continue my training" not in html
     assert "other@example.com" not in html
     assert "target_user_id" not in html
     assert progress_url("alex", section) in html
@@ -491,7 +502,8 @@ def administrator(learners, request):
 def test_admin_can_read_only_configured_learner_progress(client, learners, administrator, subject, section):
     client.force_login(administrator)
     response = client.get(
-        progress_url(subject, section), {"user": administrator.pk, "target_user_id": administrator.pk},
+        progress_url(subject, section),
+        {"user": administrator.pk, "target_user_id": administrator.pk},
     )
     assert response.status_code == HTTPStatus.OK
     assert response.context["shared_progress_subject"] == learners[subject]
@@ -548,7 +560,11 @@ def test_admin_access_preserves_learner_availability_checks(client, learners, ad
 
 @pytest.mark.parametrize("peer_email", ["", "alex@example.com"])
 def test_admin_access_fails_closed_for_invalid_learner_configuration(
-    client, learners, administrator, settings, peer_email,
+    client,
+    learners,
+    administrator,
+    settings,
+    peer_email,
 ):
     settings.SHARED_PROGRESS_LEARNERS["ben"] = peer_email
     client.force_login(administrator)
@@ -578,3 +594,127 @@ def test_admin_progress_views_do_not_write_database_records(learners, completion
         query["sql"] for query in queries if query["sql"].lstrip().upper().startswith(("INSERT", "UPDATE", "DELETE"))
     ]
     assert writes == []
+
+
+@pytest.mark.parametrize("subject", ["alex", "ben"])
+def test_shared_overview_separates_dated_unique_problems_from_record_history(client, learners, completions, subject):
+    source = completions[subject].statement
+    source.mohs = 0
+    source.save(update_fields=["mohs"])
+    StatementTopicTechnique.objects.create(statement=source, technique="AM-GM", main_topic="ALG", domains=["ALG"])
+    duplicate = ContestProblemStatement.objects.create(
+        contest_name="Duplicate",
+        contest_year=2026,
+        problem_code="P1",
+        problem_number=1,
+        statement_latex=source.statement_latex,
+        topic="ALG",
+        mohs=0,
+    )
+    UserProblemCompletion.objects.create(
+        user=learners[subject],
+        statement=duplicate,
+        completion_date=timezone.localdate(),
+    )
+    undated = ContestProblemStatement.objects.create(
+        contest_name="Undated",
+        contest_year=2026,
+        problem_code="P1",
+        problem_number=1,
+        statement_latex="A different undated problem",
+        topic="GEO",
+        mohs=50,
+    )
+    UserProblemCompletion.objects.create(user=learners[subject], statement=undated)
+    old = ContestProblemStatement.objects.create(
+        contest_name="Old",
+        contest_year=2025,
+        problem_code="P1",
+        problem_number=1,
+        statement_latex="A different older problem",
+        topic="NT",
+        mohs=40,
+    )
+    UserProblemCompletion.objects.create(
+        user=learners[subject],
+        statement=old,
+        completion_date=timezone.localdate() - timedelta(days=60),
+    )
+    client.force_login(learners["alex"])
+    response = client.get(progress_url(subject), {"range": "7d"})
+    context = response.context
+    assert context["shared_progress_period_stats"]["known_date_total"] == 1
+    assert context["shared_progress_period_stats"]["average_mohs"] == 0
+    assert context["completion_progress_stats"]["solved_total"] == 2  # noqa: PLR2004
+    assert context["completion_progress_stats"]["missing_date_total"] == 1
+    assert len(context["completion_progress_rows"]) == 3  # noqa: PLR2004
+    assert context["completion_progress_charts_payload"]["topicTotals"] == {"labels": ["Algebra"], "values": [1]}
+    assert [row["label"] for row in context["shared_progress_topics"]] == ["Algebra"]
+    row = next(row for row in context["completion_progress_table_rows"] if row["contest"] == "IMO")
+    assert row["areas"] == "Inequalities and optimization"
+    assert row["record_status"] == "Solved"
+    assert row["problem_url"] == reverse("pages:problem_statement_detail", args=[source.statement_uuid])
+    assert "1 additional undated problem" in response.content.decode()
+
+
+def test_shared_overview_preserves_filter_scope_when_switching_learners(client, learners, completions):
+    statement = completions["ben"].statement
+    statement.mohs = 0
+    statement.save(update_fields=["mohs"])
+    client.force_login(learners["alex"])
+    params = {"range": "90d", "topic": "Algebra", "q": "IMO", "mohs_min": "0", "user": learners["other"].pk}
+    response = client.get(progress_url("ben"), params)
+    for learner in response.context["shared_progress_learners"]:
+        query = parse_qs(urlsplit(learner["url"]).query)
+        assert query == {"range": ["90d"], "topic": ["Algebra"], "q": ["IMO"], "mohs_min": ["0"]}
+    topic = response.context["shared_progress_topics"][0]
+    assert parse_qs(urlsplit(topic["url"]).query)["q"] == ["IMO"]
+
+
+def test_shared_overview_with_only_undated_history_has_no_period_activity(client, learners, completions):
+    completion = completions["ben"]
+    completion.completion_date = None
+    completion.save(update_fields=["completion_date"])
+    client.force_login(learners["alex"])
+    response = client.get(progress_url("ben"))
+    assert response.context["shared_progress_period_stats"]["known_date_total"] == 0
+    assert response.context["shared_progress_period_stats"]["average_mohs"] is None
+    assert len(response.context["completion_progress_table_rows"]) == 1
+    assert response.context["shared_progress_topics"] == []
+    assert "No dated activity in this period" in response.content.decode()
+    assert "Quick completions" not in response.content.decode()
+
+
+@pytest.mark.parametrize("section", ["completions", "techniques", "training"])
+def test_shared_redesign_does_not_write_database_records(learners, completions, section):
+    request = RequestFactory().get(progress_url("ben", section))
+    request.user = learners["alex"]
+    request.session = {}
+    with CaptureQueriesContext(connection) as queries:
+        response = shared_progress_view(request, learner="ben", section=section)
+    assert response.status_code == HTTPStatus.OK
+    assert not [q["sql"] for q in queries if q["sql"].lstrip().upper().startswith(("INSERT", "UPDATE", "DELETE"))]
+
+
+def test_shared_contest_coverage_names_the_subject_and_uses_all_time_scope(client, learners, completions):
+    client.force_login(learners["alex"])
+    response = client.get(progress_url("ben"), {"contest": "IMO", "range": "7d"})
+    titles = [
+        cell["title"]
+        for row in response.context["completion_progress_contest_heatmap"]["rows"]
+        for cell in row["cells"]
+    ]
+    assert any("solved by Ben" in title for title in titles)
+    assert all("solved by you" not in title for title in titles)
+    html = response.content.decode()
+    assert "All-time completion coverage for the selected contest" in html
+    chart = json.loads(
+        html.split('<script id="completion-progress-contest-heatmap-data" type="application/json">', 1)[1].split(
+            "</script>", 1,
+        )[0],
+    )
+    assert chart == response.context["completion_progress_contest_heatmap"]["chart"]
+    assert chart["series"]
+    point_titles = [point["title"] for series in chart["series"] for point in series["data"]]
+    assert any("solved by Ben" in title for title in point_titles)
+    assert all("solved by you" not in title for title in point_titles)

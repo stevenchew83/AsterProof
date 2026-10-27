@@ -1,30 +1,22 @@
-<div class="card">
-  <div class="card-body">
-    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
-      <div>
-        <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Our progress</p>
-        {% if shared_progress_is_comparison %}
-        <h3 class="mb-1">Alex &amp; Ben</h3>
-        <p class="text-muted mb-0 fs-sm">Read-only progress</p>
-        {% else %}
-        <h3 class="mb-1">{{ shared_progress_label }}'s progress</h3>
-        <p class="text-muted mb-0 fs-sm">Viewing {{ shared_progress_subject.name|default:shared_progress_label }} · Read-only progress</p>
-        {% endif %}
-      </div>
-      <nav class="btn-group" aria-label="Choose progress view">
-        {% for learner in shared_progress_learners %}
-        <a href="{{ learner.url }}" class="btn btn-sm {% if learner.slug == shared_progress_learner %}btn-primary{% else %}btn-outline-primary{% endif %}"{% if learner.slug == shared_progress_learner %} aria-current="page"{% endif %}>{{ learner.label }}</a>
-        {% endfor %}
-        {% if shared_progress_compare_url %}
-        <a href="{{ shared_progress_compare_url }}" class="btn btn-sm {% if shared_progress_is_comparison %}btn-primary{% else %}btn-outline-primary{% endif %}"{% if shared_progress_is_comparison %} aria-current="page"{% endif %}>Compare</a>
-        {% endif %}
-      </nav>
-      <a href="{% url 'training:dashboard' %}" class="btn btn-sm btn-outline-primary"><i class="ti ti-arrow-right me-1"></i>Continue my training</a>
+<header class="page-title-head d-flex flex-wrap align-items-center justify-content-between gap-2 py-2 mb-2">
+  <div class="d-flex align-items-center gap-2">
+    <span class="avatar-title bg-primary-subtle text-primary rounded" aria-hidden="true"><i class="ti ti-chart-dots-3 fs-22"></i></span>
+    <div>
+      <h1 class="fs-lg fw-bold mb-0">{% if shared_progress_is_comparison %}Alex &amp; Ben{% else %}{{ shared_progress_label }}'s progress{% endif %}</h1>
+      <span class="text-body-secondary fs-xs"><i class="ti ti-lock me-1" aria-hidden="true"></i>Read-only progress</span>
     </div>
-    <nav class="nav nav-pills gap-2 mt-3" aria-label="Progress views">
-      {% for tab in shared_progress_tabs %}
-      <a href="{{ tab.url }}" class="nav-link{% if shared_progress_is_comparison %} px-2{% endif %}{% if tab.key == shared_progress_section %} active{% endif %}"{% if tab.key == shared_progress_section %} aria-current="page"{% endif %}>{{ tab.label }}</a>
-      {% endfor %}
-    </nav>
   </div>
-</div>
+  <nav class="btn-group" aria-label="Choose progress view">
+    {% for learner in shared_progress_learners %}
+    <a href="{{ learner.url }}" class="btn btn-sm {% if learner.slug == shared_progress_learner %}btn-primary{% else %}btn-outline-primary{% endif %}"{% if learner.slug == shared_progress_learner %} aria-current="page"{% endif %}>{{ learner.label }}</a>
+    {% endfor %}
+    {% if shared_progress_compare_url %}
+    <a href="{{ shared_progress_compare_url }}" class="btn btn-sm {% if shared_progress_is_comparison %}btn-primary{% else %}btn-outline-primary{% endif %}"{% if shared_progress_is_comparison %} aria-current="page"{% endif %}><i class="ti ti-arrows-diff me-1" aria-hidden="true"></i>Compare</a>
+    {% endif %}
+  </nav>
+</header>
+<nav class="nav nav-underline border-bottom gap-3 mb-3" aria-label="Progress views">
+  {% for tab in shared_progress_tabs %}
+  <a href="{{ tab.url }}" class="nav-link py-2{% if tab.key == shared_progress_section %} active{% endif %}"{% if tab.key == shared_progress_section %} aria-current="page"{% endif %}>{{ tab.label }}</a>
+  {% endfor %}
+</nav>

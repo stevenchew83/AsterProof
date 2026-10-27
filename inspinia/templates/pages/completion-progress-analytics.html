@@ -753,373 +753,7 @@
   </div>
   {% endif %}
 
-  <div class="row g-3 mt-0">
-    <div class="col-12">
-      <div class="card">
-        <div class="card-header border-bottom pb-0">
-          <ul class="nav nav-tabs card-header-tabs" id="completion-progress-chart-tabs" role="tablist">
-            <li class="nav-item" role="presentation">
-              <button class="nav-link active" id="completion-progress-topics-tab" data-bs-toggle="tab" data-bs-target="#completion-progress-topics-pane" type="button" role="tab" aria-controls="completion-progress-topics-pane" aria-selected="true">Topics</button>
-            </li>
-            <li class="nav-item" role="presentation">
-              <button class="nav-link" id="completion-progress-difficulty-tab" data-bs-toggle="tab" data-bs-target="#completion-progress-difficulty-pane" type="button" role="tab" aria-controls="completion-progress-difficulty-pane" aria-selected="false">Difficulty</button>
-            </li>
-            <li class="nav-item" role="presentation">
-              <button class="nav-link" id="completion-progress-solutions-tab" data-bs-toggle="tab" data-bs-target="#completion-progress-solutions-pane" type="button" role="tab" aria-controls="completion-progress-solutions-pane" aria-selected="false">Solutions</button>
-            </li>
-          </ul>
-        </div>
-        <div class="card-body">
-          <div class="tab-content" id="completion-progress-chart-tab-content">
-            <div class="tab-pane fade show active" id="completion-progress-topics-pane" role="tabpanel" aria-labelledby="completion-progress-topics-tab" tabindex="0">
-              <div class="row g-3">
-                <div class="col-xl-7">
-                  <h4 class="header-title mb-0">Topic mix</h4>
-                  <p class="text-muted fs-xs mb-2">Daily exact completions by main topic.</p>
-                  {% if completion_progress_stats.known_date_total %}
-                  <div id="chart-completion-progress-topic-mix" class="completion-progress-chart" data-completion-progress-chart="topicMix"></div>
-                  {% else %}
-                  <div class="completion-progress-empty-state is-compact">
-                    <div>
-                      <h5 class="mb-1">No dated topic activity.</h5>
-                      <p class="text-muted fs-xs mb-0">Unknown-date rows stay in the table but do not appear in daily charts.</p>
-                    </div>
-                  </div>
-                  {% endif %}
-                </div>
-                <div class="col-xl-5">
-                  <h4 class="header-title mb-0">Topic totals</h4>
-                  <p class="text-muted fs-xs mb-2">Filtered completions by topic.</p>
-                  {% if completion_progress_charts_payload.topicTotals.values %}
-                  <div id="chart-completion-progress-topic-totals" class="completion-progress-chart" data-completion-progress-chart="topicTotals"></div>
-                  {% else %}
-                  <div class="completion-progress-empty-state is-compact">
-                    <div>
-                      <h5 class="mb-1">No topic totals yet.</h5>
-                      <p class="text-muted fs-xs mb-0">Topic charts appear after matching completion rows are available.</p>
-                    </div>
-                  </div>
-                  {% endif %}
-                </div>
-              </div>
-            </div>
-            <div class="tab-pane fade" id="completion-progress-difficulty-pane" role="tabpanel" aria-labelledby="completion-progress-difficulty-tab" tabindex="0">
-              <div class="row g-3">
-                <div class="col-xl-5">
-                  <h4 class="header-title mb-0">Difficulty mix</h4>
-                  <p class="text-muted fs-xs mb-2">Filtered completions by MOHS value.</p>
-                  {% if completion_progress_charts_payload.mohsDistribution.values %}
-                  <div id="chart-completion-progress-mohs-distribution" class="completion-progress-chart" data-completion-progress-chart="mohsDistribution"></div>
-                  {% else %}
-                  <div class="completion-progress-empty-state is-compact">
-                    <div>
-                      <h5 class="mb-1">No MOHS values in view.</h5>
-                      <p class="text-muted fs-xs mb-0">Difficulty charts need at least one row with MOHS metadata.</p>
-                    </div>
-                  </div>
-                  {% endif %}
-                </div>
-                <div class="col-xl-7">
-                  <h4 class="header-title mb-0">Topic x MOHS</h4>
-                  <p class="text-muted fs-xs mb-2">Filtered topic and difficulty cells.</p>
-                  {% if completion_progress_charts_payload.topicMohsHeatmap.series %}
-                  <div id="chart-completion-progress-topic-mohs" class="completion-progress-chart" data-completion-progress-chart="topicMohs"></div>
-                  {% else %}
-                  <div class="completion-progress-empty-state is-compact">
-                    <div>
-                      <h5 class="mb-1">No difficulty cells yet.</h5>
-                      <p class="text-muted fs-xs mb-0">This grid appears once filtered rows include topic and MOHS metadata.</p>
-                    </div>
-                  </div>
-                  {% endif %}
-                </div>
-                <div class="col-12">
-                  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
-                    <div>
-                      <h4 class="header-title mb-0">Topic x MOHS matrix</h4>
-                      <p class="text-muted fs-xs mb-2">Number of completed problem statements by topic and MOHS.</p>
-                    </div>
-                    {% if completion_progress_topic_mohs_matrix.rows %}
-                    <div class="btn-group btn-group-sm completion-progress-matrix-actions" role="group" aria-label="Topic MOHS matrix export options">
-                      <button type="button" class="btn btn-outline-secondary" data-completion-progress-topic-mohs-export="copy">
-                        <i class="ti ti-copy me-1"></i>Copy
-                      </button>
-                      <button type="button" class="btn btn-outline-secondary" data-completion-progress-topic-mohs-export="csv">
-                        <i class="ti ti-file-spreadsheet me-1"></i>CSV
-                      </button>
-                    </div>
-                    {% endif %}
-                  </div>
-                  {% if completion_progress_topic_mohs_matrix.rows %}
-                  <p id="completion-progress-topic-mohs-export-status" class="completion-progress-matrix-status text-muted fs-xs mb-2 d-none" role="status" aria-live="polite"></p>
-                  <div class="completion-progress-matrix-wrap">
-                    <table id="completion-progress-topic-mohs-matrix" class="table table-sm table-hover align-middle mb-0">
-                      <thead>
-                        <tr>
-                          <th scope="col" class="completion-progress-matrix-topic">Topic</th>
-                          {% for mohs in completion_progress_topic_mohs_matrix.mohs_values %}
-                          <th scope="col" class="text-end">MOHS {{ mohs }}</th>
-                          {% endfor %}
-                          <th scope="col" class="text-end">Total</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {% for matrix_row in completion_progress_topic_mohs_matrix.rows %}
-                        <tr>
-                          <th scope="row" class="completion-progress-matrix-topic">{{ matrix_row.topic }}</th>
-                          {% for cell in matrix_row.cells %}
-                          <td
-                            class="completion-progress-matrix-cell text-end{% if cell.count %} is-active{% endif %}"
-                            title="{{ matrix_row.topic }} MOHS {{ cell.mohs }}: {{ cell.count }} completion{{ cell.count|pluralize }}"
-                          >{{ cell.count }}</td>
-                          {% endfor %}
-                          <td class="text-end fw-semibold">{{ matrix_row.total }}</td>
-                        </tr>
-                        {% endfor %}
-                      </tbody>
-                      <tfoot>
-                        <tr>
-                          <th scope="row" class="completion-progress-matrix-topic">Total</th>
-                          {% for mohs, count in completion_progress_topic_mohs_matrix.column_totals.items %}
-                          <td class="text-end fw-semibold">{{ count }}</td>
-                          {% endfor %}
-                          <td class="text-end fw-bold">{{ completion_progress_topic_mohs_matrix.grand_total }}</td>
-                        </tr>
-                      </tfoot>
-                    </table>
-                  </div>
-                  {% else %}
-                  <div class="completion-progress-empty-state is-compact">
-                    <div>
-                      <h5 class="mb-1">No MOHS matrix yet.</h5>
-                      <p class="text-muted fs-xs mb-0">The matrix appears after filtered rows include at least one completed statement with MOHS metadata.</p>
-                    </div>
-                  </div>
-                  {% endif %}
-                </div>
-              </div>
-            </div>
-            <div class="tab-pane fade" id="completion-progress-solutions-pane" role="tabpanel" aria-labelledby="completion-progress-solutions-tab" tabindex="0">
-              <h4 class="header-title mb-0">Solution status</h4>
-              <p class="text-muted fs-xs mb-2">Filtered completions by solution follow-through.</p>
-              {% if completion_progress_charts_payload.solutionStatus.values %}
-              <div id="chart-completion-progress-solutions" class="completion-progress-chart" data-completion-progress-chart="solutions"></div>
-              {% else %}
-              <div class="completion-progress-empty-state is-compact">
-                <div>
-                  <h5 class="mb-1">No solution statuses yet.</h5>
-                  <p class="text-muted fs-xs mb-0">Solution follow-through appears after matching completion rows are available.</p>
-                </div>
-              </div>
-              {% endif %}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="row g-3 mt-0">
-    <div class="col-12">
-      <div class="card">
-        <div class="card-header border-bottom d-flex flex-wrap align-items-center gap-2">
-          <div class="flex-grow-1">
-            <h4 class="header-title mb-0">Activity calendar</h4>
-            <p class="text-muted fs-xs mb-0">Daily solve density from the first exact completion to the latest.</p>
-          </div>
-          <span class="badge text-bg-light">
-            {{ completion_progress_yearly_heatmap.start_label }} to {{ completion_progress_yearly_heatmap.end_label }}
-          </span>
-        </div>
-        <div class="card-body">
-          {% if completion_progress_yearly_heatmap.exact_total == 0 %}
-          <div class="completion-progress-empty-state is-compact" role="status">
-            <div>
-              <h5 class="mb-1">No exact completion dates match these filters.</h5>
-              <p class="text-muted fs-xs mb-0">
-                The activity calendar uses exact completion dates.
-                {% if completion_progress_yearly_heatmap.missing_date_total %}
-                {{ completion_progress_yearly_heatmap.missing_date_total }} unknown-date row{{ completion_progress_yearly_heatmap.missing_date_total|pluralize }} remain visible in the table.
-                {% endif %}
-              </p>
-            </div>
-          </div>
-          {% else %}
-          <div class="completion-progress-yearly-heatmap">
-            {% for section in completion_progress_yearly_heatmap.sections %}
-            <div class="completion-progress-yearly-section">
-              <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
-                <div class="d-flex flex-wrap align-items-center gap-2">
-                  <span class="badge text-bg-light">{{ section.heatmap.start_label }} to {{ section.heatmap.end_label }}</span>
-                  {% if section.is_latest %}
-                  <span class="badge bg-primary-subtle text-primary">Latest window</span>
-                  {% else %}
-                  <span class="badge text-bg-light">Earlier window</span>
-                  {% endif %}
-                </div>
-                <span class="text-muted fs-xs">{{ section.heatmap.exact_total }} exact-date completion{{ section.heatmap.exact_total|pluralize }} shown in this window</span>
-              </div>
-            <div class="completion-progress-yearly-heatmap-wrap">
-              <div class="completion-progress-yearly-heatmap-canvas">
-                <div class="completion-progress-yearly-months" aria-hidden="true">
-                  {% for week in section.heatmap.weeks %}
-                  <span class="completion-progress-yearly-month">{{ week.month_label }}</span>
-                  {% endfor %}
-                </div>
-                <div class="completion-progress-yearly-body">
-                  <div class="completion-progress-yearly-weekdays" aria-hidden="true">
-                    {% for day_label in section.heatmap.day_labels %}
-                    <span class="completion-progress-yearly-weekday">{{ day_label }}</span>
-                    {% endfor %}
-                  </div>
-                  <div class="completion-progress-yearly-grid" role="img" aria-label="Activity calendar">
-                    {% for week in section.heatmap.weeks %}
-                    <div class="completion-progress-yearly-week">
-                      {% for day in week.days %}
-                      {% if day.is_blank %}
-                      <span class="completion-progress-yearly-cell is-outside" aria-hidden="true"></span>
-                      {% else %}
-                      <span
-                        class="completion-progress-yearly-cell level-{{ day.level }}{% if day.is_today %} is-today{% endif %}"
-                        data-bs-toggle="tooltip"
-                        data-bs-placement="top"
-                        data-bs-title="{{ day.title }}"
-                        title="{{ day.title }}"
-                        aria-label="{{ day.title }}"
-                        {% if day.count or day.is_today %}tabindex="0"{% endif %}
-                      ></span>
-                      {% endif %}
-                      {% endfor %}
-                    </div>
-                    {% endfor %}
-                  </div>
-                </div>
-              </div>
-            </div>
-            </div>
-            {% endfor %}
-            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-3">
-              <p class="text-muted fs-xs mb-0">
-                {{ completion_progress_yearly_heatmap.exact_total }} exact-date completion{{ completion_progress_yearly_heatmap.exact_total|pluralize }} shown from first to latest.
-                {% if completion_progress_yearly_heatmap.missing_date_total %}
-                {{ completion_progress_yearly_heatmap.missing_date_total }} unknown-date row{{ completion_progress_yearly_heatmap.missing_date_total|pluralize }} excluded from the grid.
-                {% endif %}
-              </p>
-              <div class="completion-progress-yearly-legend" aria-hidden="true">
-                <span>Less</span>
-                <span class="completion-progress-yearly-legend-scale">
-                  <span class="completion-progress-yearly-legend-swatch level-0"></span>
-                  <span class="completion-progress-yearly-legend-swatch level-1"></span>
-                  <span class="completion-progress-yearly-legend-swatch level-2"></span>
-                  <span class="completion-progress-yearly-legend-swatch level-3"></span>
-                  <span class="completion-progress-yearly-legend-swatch level-4"></span>
-                </span>
-                <span>More</span>
-              </div>
-            </div>
-          </div>
-          {% endif %}
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="row g-3 mt-0">
-    <div class="col-12">
-      <div class="card">
-        <div class="card-header border-bottom d-flex flex-wrap align-items-center gap-2">
-          <div class="flex-grow-1">
-            <h4 class="header-title mb-0">Contest coverage</h4>
-            <p class="text-muted fs-xs mb-0">Year-by-problem completion coverage for the selected contest.</p>
-          </div>
-          <div class="d-flex flex-wrap align-items-center gap-2">
-            <span id="completion-progress-contest-heatmap-summary" class="badge text-bg-light">
-              {{ completion_progress_contest_heatmap.year_total }} years · {{ completion_progress_contest_heatmap.problem_code_total }} codes
-            </span>
-            {% if completion_progress_contest_heatmap.problem_codes %}
-            <div class="btn-group btn-group-sm completion-progress-contest-export-actions" role="group" aria-label="Contest coverage export options">
-              <button type="button" class="btn btn-outline-secondary" data-completion-progress-contest-export="png" disabled>
-                <i class="ti ti-photo me-1"></i>Download image
-              </button>
-              <button type="button" class="btn btn-outline-secondary" data-completion-progress-contest-export="pdf" disabled>
-                <i class="ti ti-file-type-pdf me-1"></i>Save PDF
-              </button>
-            </div>
-            {% endif %}
-          </div>
-        </div>
-        <div class="card-body">
-          {% if not completion_progress_contest_heatmap.selected_contest %}
-          <div class="completion-progress-empty-state is-compact">
-            <div class="w-100">
-              <h5 class="mb-1">Select a contest to load coverage.</h5>
-              <p class="text-muted fs-xs mb-3">Coverage can use statement-backed contests even before you have completions in that contest.</p>
-              <form id="completion-progress-contest-coverage-form" method="get" class="row g-2 align-items-end">
-                {% if completion_progress_filters.user %}
-                <input type="hidden" name="user" value="{{ completion_progress_filters.user }}">
-                {% endif %}
-                <input type="hidden" name="range" value="{{ completion_progress_filters.range }}">
-                <input type="hidden" name="start" value="{{ completion_progress_filters.start }}">
-                <input type="hidden" name="end" value="{{ completion_progress_filters.end }}">
-                <input type="hidden" name="topic" value="{{ completion_progress_filters.topic }}">
-                <input type="hidden" name="mohs_min" value="{{ completion_progress_filters.mohs_min }}">
-                <input type="hidden" name="mohs_max" value="{{ completion_progress_filters.mohs_max }}">
-                <input type="hidden" name="solution_status" value="{{ completion_progress_filters.solution_status }}">
-                <input type="hidden" name="q" value="{{ completion_progress_filters.q }}">
-                <div class="col-12 col-md-5">
-                  <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-progress-contest-coverage-select">Contest</label>
-                  <select id="completion-progress-contest-coverage-select" name="contest" class="form-select form-select-sm" {% if not completion_progress_contest_options %}disabled{% endif %}>
-                    {% if completion_progress_contest_options %}
-                    {% for contest in completion_progress_contest_options %}
-                    <option value="{{ contest }}">{{ contest }}</option>
-                    {% endfor %}
-                    {% else %}
-                    <option value="">No contests available</option>
-                    {% endif %}
-                  </select>
-                </div>
-                <div class="col-12 col-md-auto">
-                  <button type="submit" class="btn btn-sm btn-primary" {% if not completion_progress_contest_options %}disabled{% endif %}>
-                    <i class="ti ti-layout-grid me-1"></i>Load coverage
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-          {% elif completion_progress_contest_heatmap.problem_codes %}
-          <div class="d-flex flex-wrap align-items-center completion-progress-contest-legend mb-3">
-            <span class="completion-progress-contest-legend-item">
-              <span class="completion-progress-contest-legend-swatch completion-progress-contest-legend-swatch-solved"></span>
-              Your completions
-            </span>
-            <span class="completion-progress-contest-legend-item">
-              <span class="completion-progress-contest-legend-swatch completion-progress-contest-legend-swatch-unsolved"></span>
-              No completion from you yet
-            </span>
-            {% if completion_progress_contest_heatmap.has_partial_cells %}
-            <span class="completion-progress-contest-legend-item">
-              <span class="completion-progress-contest-legend-swatch completion-progress-contest-legend-swatch-partial"></span>
-              Mixed coverage when a year/code has multiple rows
-            </span>
-            {% endif %}
-            <span class="completion-progress-contest-legend-item">
-              <span class="completion-progress-contest-legend-swatch completion-progress-contest-legend-swatch-empty"></span>
-              No statement row for that year/code
-            </span>
-          </div>
-          <p id="completion-progress-contest-export-status" class="completion-progress-contest-export-status text-muted fs-xs mb-2 d-none" role="status" aria-live="polite"></p>
-          <div class="completion-progress-contest-heatmap-scroll">
-            <div id="chart-completion-progress-contest-heatmap"></div>
-          </div>
-          {% else %}
-          <div class="alert alert-info mb-0" role="alert">
-            No statement-backed problem codes are available for this contest yet.
-          </div>
-          {% endif %}
-        </div>
-      </div>
-    </div>
-  </div>
+  {% include 'pages/partials/completion-progress-analysis.html' %}
 
   <div class="row g-3 mt-0 mb-3">
     <div class="col-12">
@@ -1174,6 +808,7 @@
 {% endif %}
 <script>
 (function () {
+  var sharedDashboard = document.getElementById("shared-progress-dashboard");
   var chartDataEl = document.getElementById("completion-progress-chart-data");
   var tableDataEl = document.getElementById("completion-progress-table-data");
   var topicMohsMatrixDataEl = document.getElementById("completion-progress-topic-mohs-matrix-data");
@@ -1205,6 +840,16 @@
     });
   }
 
+  function chartHeight(el) {
+    return Number(el.getAttribute("data-chart-height") || (sharedDashboard ? 230 : 320));
+  }
+
+  function primaryChartColor() {
+    if (!sharedDashboard) return "#0d6efd";
+    var style = getComputedStyle(sharedDashboard);
+    return style.getPropertyValue("--ins-primary-text-emphasis").trim() || style.getPropertyValue("--ins-primary").trim();
+  }
+
   function renderBar(selector, labels, series, colors, stacked) {
     var el = document.querySelector(selector);
     if (!el || typeof ApexCharts === "undefined" || !labels || !labels.length) return;
@@ -1213,7 +858,8 @@
     var chart = new ApexCharts(el, {
       chart: {
         type: "bar",
-        height: 320,
+        height: chartHeight(el),
+        animations: { enabled: !sharedDashboard },
         stacked: Boolean(stacked),
         toolbar: { show: false },
         fontFamily: "inherit"
@@ -1246,12 +892,12 @@
     if (!hasValues(dailyPayload.values)) return;
 
     var chart = new ApexCharts(el, {
-      chart: { type: "bar", height: 320, toolbar: { show: false }, fontFamily: "inherit" },
-      colors: ["#0d6efd"],
+      chart: { type: "bar", height: chartHeight(el), animations: { enabled: !sharedDashboard }, toolbar: { show: false }, fontFamily: "inherit" },
+      colors: [primaryChartColor()],
       dataLabels: { enabled: false },
       grid: { borderColor: "rgba(108,117,125,0.15)", strokeDashArray: 4 },
       plotOptions: { bar: { borderRadius: 4, columnWidth: "44%" } },
-      series: [{ name: "Completions", data: dailyPayload.values }],
+      series: [{ name: sharedDashboard ? "Recorded problems" : "Completions", data: dailyPayload.values }],
       tooltip: {
         shared: false,
         intersect: false,
@@ -1263,6 +909,7 @@
       },
       xaxis: {
         categories: dailyPayload.labels,
+        tickAmount: sharedDashboard ? 6 : undefined,
         labels: {
           formatter: shortDateLabel,
           rotate: dailyPayload.labels.length > 8 ? -45 : 0,
@@ -1285,7 +932,7 @@
     if (!hasValues(payload.totalValues) && !hasValues(payload.averageValues)) return;
 
     var chart = new ApexCharts(el, {
-      chart: { type: "line", height: 320, toolbar: { show: false }, fontFamily: "inherit" },
+      chart: { type: "line", height: chartHeight(el), animations: { enabled: !sharedDashboard }, toolbar: { show: false }, fontFamily: "inherit" },
       colors: ["#20c997", "#ffc107"],
       dataLabels: { enabled: false },
       grid: { borderColor: "rgba(108,117,125,0.15)", strokeDashArray: 4 },
@@ -1383,7 +1030,7 @@
   function renderContestHeatmap() {
     var dataEl = contestHeatmapDataEl;
     var chartEl = document.getElementById("chart-completion-progress-contest-heatmap");
-    if (!dataEl || !chartEl || typeof ApexCharts === "undefined") return;
+    if (!dataEl || !chartEl || contestHeatmapChart || typeof ApexCharts === "undefined") return;
 
     var payload = JSON.parse(dataEl.textContent || "{}");
     contestHeatmapPayload = payload;
@@ -1805,12 +1452,28 @@
     renderedProgressCharts[group] = true;
   }
 
-  renderDailyCompletions("#chart-completion-progress-daily", charts.dailyCompletions);
-  renderMohsTrend("#chart-completion-progress-mohs", charts.dailyMohs);
-  renderSecondaryCharts("topics");
+  var dailyChart = null;
+  var mohsChart = null;
+  function renderActivityCharts() {
+    var daily = document.getElementById("chart-completion-progress-daily");
+    var mohs = document.getElementById("chart-completion-progress-mohs");
+    if (!dailyChart && daily && daily.offsetWidth) dailyChart = renderDailyCompletions("#chart-completion-progress-daily", charts.dailyCompletions);
+    if (!mohsChart && mohs && mohs.offsetWidth) mohsChart = renderMohsTrend("#chart-completion-progress-mohs", charts.dailyMohs);
+  }
+  renderActivityCharts();
+  var analysisDetails = document.getElementById("shared-progress-analysis");
+  if (!analysisDetails || analysisDetails.open) renderSecondaryCharts("topics");
+  if (analysisDetails) {
+    analysisDetails.addEventListener("toggle", function () {
+      if (!analysisDetails.open) return;
+      renderSecondaryCharts("topics");
+      renderContestHeatmap();
+    });
+  }
   document.querySelectorAll('[data-bs-toggle="tab"][data-bs-target^="#completion-progress-"]').forEach(function (tabButton) {
     tabButton.addEventListener("shown.bs.tab", function () {
       var target = tabButton.getAttribute("data-bs-target") || "";
+      renderActivityCharts();
       if (target.indexOf("difficulty") !== -1) renderSecondaryCharts("difficulty");
       if (target.indexOf("solutions") !== -1) renderSecondaryCharts("solutions");
       if (target.indexOf("topics") !== -1) renderSecondaryCharts("topics");
@@ -1818,7 +1481,7 @@
   });
   wireContestHeatmapExports();
   wireTopicMohsMatrixExports();
-  renderContestHeatmap();
+  if (!analysisDetails || analysisDetails.open) renderContestHeatmap();
   initCompletionProgressTooltips();
 
   if (tableDataEl && typeof DataTable !== "undefined") {
@@ -1869,7 +1532,7 @@
     function difficultyColumn() {
       return {
         data: "user_difficulty_rating",
-        title: "Your difficulty",
+        title: sharedDashboard ? "Learner difficulty" : "Your difficulty",
         className: "text-nowrap",
         orderable: false,
         render: function (data, type, row) {
@@ -1967,14 +1630,63 @@
       }
     );
 
+    var compactTable = tableEl && tableEl.getAttribute("data-compact-progress") === "true";
+    if (compactTable) {
+      var textRenderer = DataTable.render.text();
+      var difficulty = difficultyColumn();
+      difficulty.visible = false;
+      tableColumns = [
+        tableColumns[0],
+        {
+          data: "problem_label", title: "Problem", className: "lp-problem",
+          render: function (data, type, row) {
+            if (type !== "display") return data;
+            var label = escapeHtml(data);
+            return row.problem_url ? '<a class="fw-semibold" href="' + escapeHtml(row.problem_url) + '" title="' + label + '">' + label + '</a>' : label;
+          }
+        },
+        { data: "topic", title: "Topic", render: textRenderer },
+        {
+          data: "areas", title: "Area", className: "lp-area",
+          render: function (data, type) {
+            return type === "display" ? '<span title="' + escapeHtml(data) + '">' + escapeHtml(data) + '</span>' : data;
+          }
+        },
+        { data: "mohs", title: "MOHS", className: "text-end", render: textRenderer },
+        tableColumns[tableColumns.length - 2],
+        { data: "record_status", title: "Status", visible: false, render: textRenderer },
+        { data: "contest", title: "Contest", visible: false, render: textRenderer },
+        { data: "year", title: "Year", visible: false, render: textRenderer },
+        difficulty,
+        Object.assign({}, tableColumns[tableColumns.length - 1], { visible: false })
+      ];
+    }
+
     var updatedColumnIndex = tableColumns.length - 1;
-    var tableApi = new DataTable("#completion-progress-table", {
+    var tableOptions = {
       data: rows,
       columns: tableColumns,
       order: [[updatedColumnIndex, "desc"]],
       pageLength: 25,
       responsive: true
-    });
+    };
+    if (compactTable) {
+      tableOptions.order = [[0, "desc"], [updatedColumnIndex, "desc"]];
+      tableOptions.pageLength = 10;
+      tableOptions.language = { search: "Search records:", searchPlaceholder: "Within these records…" };
+    }
+    var tableApi = new DataTable("#completion-progress-table", tableOptions);
+
+    var columnsButton = document.getElementById("shared-progress-record-details");
+    if (compactTable && columnsButton) {
+      columnsButton.addEventListener("click", function () {
+        var show = columnsButton.getAttribute("aria-pressed") !== "true";
+        var extraColumns = tableColumns.map(function (_, index) { return index; }).slice(6);
+        tableApi.columns(extraColumns).visible(show);
+        columnsButton.setAttribute("aria-pressed", String(show));
+        columnsButton.textContent = show ? "Fewer columns" : "More columns";
+      });
+    }
 
     function submitDifficultyRating(editor, rowNode) {
       if (!tableApi || !ratingSaveUrl || !csrfTokenInput) return;
