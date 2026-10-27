@@ -104,7 +104,7 @@
             <div class="tab-pane" id="completion-progress-trend-pane" role="tabpanel" aria-labelledby="completion-progress-trend-tab" tabindex="0"><div id="chart-completion-progress-mohs" class="lp-chart" data-chart-height="230"></div></div>
           </div>
           {% else %}
-          <div class="lp-empty"><i class="ti ti-chart-bar-off fs-24 d-block mb-2" aria-hidden="true"></i><strong>No dated activity in this period</strong><p class="fs-xs mt-1 mb-2">Undated records are available in history below.</p><a href="{{ completion_progress_reset_url }}?range=all" class="btn btn-sm btn-outline-primary">View all dates</a></div>
+          <div class="lp-empty"><i class="ti ti-chart-bar-off fs-24 d-block mb-2" aria-hidden="true"></i><strong>No dated activity in this period</strong><p class="fs-xs mt-1 mb-2">Try a wider period or adjust your filters.</p><a href="{{ completion_progress_reset_url }}?range=all" class="btn btn-sm btn-outline-primary">View all dates</a></div>
           {% endif %}
         </div>
       </section>
