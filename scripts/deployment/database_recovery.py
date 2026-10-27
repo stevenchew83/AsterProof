@@ -20,6 +20,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+import time
 from datetime import UTC
 from datetime import datetime
 from datetime import timedelta
@@ -226,14 +227,18 @@ def capture_manifest(connection, *, preserved_only=False):
 
 
 def _assert_no_other_clients(connection, audit_role):
-    with connection.cursor() as cursor:
-        cursor.execute(
-            "SELECT count(*) FROM pg_stat_activity WHERE datname=current_database() "
-            "AND pid<>pg_backend_pid() AND backend_type='client backend' AND usename<>%s",
-            [audit_role],
-        )
-        if cursor.fetchone()[0]:
-            raise RecoveryError("recovery_unexpected_database_clients")
+    # Refresh this connection's statistics snapshot; the exported MVCC data snapshot stays unchanged.
+    for _attempt in range(10):
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT pg_stat_clear_snapshot()")
+            cursor.execute(
+                "SELECT count(*) FROM pg_stat_activity WHERE datname=current_database() "
+                "AND pid<>pg_backend_pid() AND backend_type='client backend' AND usename<>%s", [audit_role],
+            )
+            if cursor.fetchone()[0] == 0:
+                return
+        time.sleep(0.1)
+    raise RecoveryError("recovery_unexpected_database_clients")
 
 
 def _source_cli(args):
@@ -645,42 +650,50 @@ def verify_preserved_records(contract, run_id, active_sha):
 
 
 def smoke_recovery():
-    """Production-data-free Actions proof of snapshot, encryption and full isolated restore."""
+    """Production-data-free Actions proof of the actual source protocol and isolated restore."""
     from scripts.deployment.schema_rehearsal import REHEARSAL_URL
 
     if os.environ.get("GITHUB_ACTIONS") != "true" or os.environ.get("DATABASE_URL") != REHEARSAL_URL:
         raise RecoveryError("recovery_smoke_requires_isolated_actions_service")
     import psycopg
 
-    from scripts.deployment.postgres_runtime import program_path
     from scripts.deployment.recovery_crypto import decrypt_archive
     from scripts.deployment.recovery_crypto import encrypt_stream
 
+    with psycopg.connect(REHEARSAL_URL, autocommit=True) as connection, connection.cursor() as cursor:
+        cursor.execute(
+            "SELECT current_database(),current_user,coalesce(current_setting('cluster_name',true),''),"
+            "coalesce(inet_server_addr()::text,''),inet_server_port()::text",
+        )
+        identity = _sha(list(cursor.fetchone()))
     with tempfile.TemporaryDirectory(prefix="asterproof-recovery-smoke-") as temporary:
         directory = Path(temporary)
         scratch = directory / "restore"
         scratch.mkdir(mode=0o700)
         archive, key = directory / "archive.gcm", directory / "key"
-        with psycopg.connect(REHEARSAL_URL, autocommit=True) as connection, connection.transaction():
-            with connection.cursor() as cursor:
-                _set_readonly(cursor)
-                expected = capture_manifest(connection)
-                cursor.execute("SELECT pg_export_snapshot()")
-                snapshot = cursor.fetchone()[0]
-            process = subprocess.Popen(
-                [str(program_path("pg_dump")), "--format=custom", "--no-owner",
-                 "--no-privileges", "--snapshot=" + snapshot],
-                env={**os.environ, "PGHOST": "127.0.0.1", "PGPORT": "5432", "PGUSER": "postgres",
-                     "PGDATABASE": "asterproof_schema_rehearsal"},
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            )
-            encrypted = encrypt_stream(process.stdout, archive, key, b"isolated-actions-fixture")
-            if process.wait(timeout=120):
-                raise RecoveryError("recovery_smoke_dump_failed")
+        code = (
+            "from django.conf import settings\n"
+            "from scripts.deployment.schema_rehearsal import configure_rehearsal_database\n"
+            "configure_rehearsal_database(settings)\n"
+            "from scripts.deployment.database_recovery import _source_cli\n"
+            "from types import SimpleNamespace\nimport sys\n"
+            "_source_cli(SimpleNamespace(identity=sys.argv[1],audit_role='postgres',action='source'))\n"
+        )
+        process = subprocess.Popen(
+            [sys.executable, "-c", code, identity], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        )
+        header = process.stdout.readline(MAX_METADATA_BYTES + 1)
+        source = json.loads(header)
+        prefix = process.stdout.read(5)
+        if prefix != b"PGDMP":
+            raise RecoveryError("recovery_smoke_source_protocol_failed")
+        encrypted = encrypt_stream(_PrefixStream(prefix, process.stdout), archive, key, b"isolated-actions-fixture")
+        if process.wait(timeout=120):
+            raise RecoveryError("recovery_smoke_dump_failed")
         decrypt_archive(
             archive, scratch / "dump.pgdump", key, b"isolated-actions-fixture", encrypted["plaintext_sha256"],
         )
-        (scratch / "expected.json").write_bytes(canonical_json({"manifest": expected}))
+        (scratch / "expected.json").write_bytes(canonical_json({"manifest": source["manifest"]}))
         _restore_cli(SimpleNamespace(scratch=scratch))
 
 
