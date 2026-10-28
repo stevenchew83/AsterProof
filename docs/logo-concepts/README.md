@@ -16,7 +16,7 @@ Assets under `../../inspinia/static/images/`:
 - `asterproof-favicon.ico`: PNG-backed 16, 32, 48, and 64-pixel icon frames rendered from the SVG favicon.
 - `asterproof-apple-touch-icon.png`: 180-pixel touch icon rendered from the same SVG on an opaque light background.
 
-The shared topbar, sidebar, and base-page favicon links use these assets. The original Inspinia image files remain unused. The branding change preserves the existing CSS framework, layout, and application behavior. Deployment status is recorded by the production workflow.
+The shared topbar, sidebar, authentication entrance layout (including sign-in and sign-up), and base-page favicon links use these assets. Authentication branding follows the page theme independently of sidebar colors. The five original Inspinia logo and favicon files were removed after confirming they had no remaining references. The branding change preserves the existing CSS framework, layout, and application behavior. Deployment status is recorded by the production workflow.
 
 ## Verification
 
@@ -25,6 +25,7 @@ The shared topbar, sidebar, and base-page favicon links use these assets. The or
 - All four ICO frames decode successfully; the touch icon is an opaque 180 x 180 PNG.
 - Local Chrome previews cover desktop light/dark, collapsed navigation, and mobile light/dark. The browser uses the actual shared templates and bundled theme assets through offline request routing; it does not connect to production or require a database. External Google Font requests are blocked in the preview.
 - Favicon and touch-icon requests return their expected files. No browser page errors were recorded.
+- Authentication branding: real anonymous sign-in/sign-up GETs pass with an isolated in-memory database. Desktop light/dark and 375px phone previews show exactly one loaded theme-appropriate logo without horizontal overflow. The shared brand link preserves a single page heading. The asset build and Django system check pass, and the removed Inspinia files have no remaining references or static-file matches.
 
 Screenshots are saved in [verification/](verification/).
 
