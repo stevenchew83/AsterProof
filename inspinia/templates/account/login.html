@@ -1,44 +1,130 @@
 {% extends "account/base_entrance.html" %}
-{% load i18n %}
-{% load allauth account %}
+{% load i18n static %}
 
 {% block head_title %}
   {% trans "Sign In" %}
 {% endblock head_title %}
 
-{% block content %}
-  {% element h1 %}
-    {% trans "Sign In" %}
-  {% endelement %}
-  {% element p %}
-    {% blocktranslate %}Use your email address and password to enter the AsterProof workspace.{% endblocktranslate %}
-  {% endelement %}
-  {% if not SOCIALACCOUNT_ONLY %}
-    {% setvar link %}
-      <a href="{{ signup_url }}">
-    {% endsetvar %}
-    {% setvar end_link %}
+{% block body %}
+  <main class="auth-login">
+    <section class="auth-login-story" aria-labelledby="auth-story-title">
+      <a href="{% url 'account_login' %}" class="auth-login-story-brand">
+        <img src="{% static 'images/asterproof-logo-light.svg' %}"
+             alt="AsterProof" width="507" height="100">
       </a>
-    {% endsetvar %}
-    {% element p %}
-      {% blocktranslate %}Need an account? Please {{ link }}sign up{{ end_link }} first.{% endblocktranslate %}
-    {% endelement %}
-    {% url "account_login" as login_url %}
-    {% element form form=form method="post" action=login_url tags="entrance,login" %}
-      {% slot body %}
-        {% csrf_token %}
-        {% element fields form=form unlabeled=True %}
-        {% endelement %}
-        {{ redirect_field }}
-      {% endslot %}
-      {% slot actions %}
-        {% element button type="submit" tags="prominent,login" %}
-          {% trans "Sign In" %}
-        {% endelement %}
-        <a href="{% url 'account_reset_password' %}" class="link-primary text-decoration-none">
-          {% trans "Forgot password?" %}
-        </a>
-      {% endslot %}
-    {% endelement %}
-  {% endif %}
-{% endblock content %}
+      <div class="auth-login-story-content">
+        <p class="auth-login-eyebrow">{% trans "The art of problem solving" %}</p>
+        <h2 id="auth-story-title">{% trans "A little insight." %}<br><em>{% trans "Infinite possibilities." %}</em></h2>
+        <p class="auth-login-story-description">
+          {% trans "Explore olympiad problems, build rigorous solutions, and see your progress take shape." %}
+        </p>
+      </div>
+      <figure class="auth-login-geometry" aria-label="{% trans 'An equilateral triangle with its incircle and circumcircle' %}">
+        <svg viewBox="0 0 580 380" fill="none" aria-hidden="true" focusable="false">
+          <g class="auth-login-construction">
+            <path d="M45 210H535M290 20V365" />
+            <circle cx="290" cy="210" r="165" />
+            <path d="M147.106 292.5 290 210 432.894 292.5M290 45V292.5" stroke-dasharray="4 7" />
+          </g>
+          <path class="auth-login-triangle" d="M290 45 147.106 292.5H432.894Z" />
+          <circle class="auth-login-incircle" cx="290" cy="210" r="82.5" />
+          <path class="auth-login-right-angle" d="M290 281.5H301V292.5" />
+          <g class="auth-login-vertices">
+            <circle cx="290" cy="45" r="4" />
+            <circle cx="147.106" cy="292.5" r="4" />
+            <circle cx="432.894" cy="292.5" r="4" />
+          </g>
+          <circle class="auth-login-center" cx="290" cy="210" r="4" />
+          <g class="auth-login-point-labels">
+            <text x="305" y="40">A</text>
+            <text x="125" y="315">B</text>
+            <text x="444" y="315">C</text>
+            <text x="303" y="205">O</text>
+          </g>
+        </svg>
+        <figcaption><span></span>{% trans "Different angles. Deeper understanding." %}</figcaption>
+      </figure>
+      <p class="auth-login-subjects">
+        {% trans "Algebra" %}<span>·</span>{% trans "Geometry" %}<span>·</span>{% trans "Number theory" %}<span>·</span>{% trans "Combinatorics" %}
+      </p>
+    </section>
+    <section class="auth-login-workspace" aria-labelledby="auth-login-title">
+      <a href="{% url 'account_login' %}" class="auth-brand auth-login-mobile-brand">
+        <img src="{% static 'images/asterproof-logo.svg' %}"
+             class="auth-brand-dark" alt="AsterProof" width="507" height="100">
+        <img src="{% static 'images/asterproof-logo-light.svg' %}"
+             class="auth-brand-light" alt="AsterProof" width="507" height="100">
+      </a>
+      <div class="auth-login-panel">
+        <header class="auth-login-heading">
+          <p class="auth-login-eyebrow">{% trans "Your mathematics workspace" %}</p>
+          <h1 id="auth-login-title">{% trans "Welcome back." %}</h1>
+          <p>{% trans "Sign in to return to your problems and progress." %}</p>
+        </header>
+        {% if messages %}
+          {% for message in messages %}
+            <div class="alert {% if message.tags %}alert-{{ message.tags }}{% else %}alert-info{% endif %}" role="status">{{ message }}</div>
+          {% endfor %}
+        {% endif %}
+        {% if not SOCIALACCOUNT_ONLY %}
+          <form method="post" action="{% url 'account_login' %}" class="auth-login-form">
+            {% csrf_token %}
+            {{ redirect_field }}
+            {% if form.non_field_errors %}
+              <div class="alert alert-danger" role="alert">{{ form.non_field_errors }}</div>
+            {% endif %}
+            {% for field in form %}
+              {% if field.is_hidden %}
+                {{ field }}
+              {% elif field.name == "remember" %}
+                <div class="auth-login-remember">
+                  {{ field }}
+                  <label for="{{ field.id_for_label }}">{% trans "Keep me signed in" %}</label>
+                </div>
+              {% else %}
+                <div class="auth-login-field">
+                  <div class="auth-login-field-heading">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {% if field.name == "password" %}
+                      <a href="{% url 'account_reset_password' %}" id="{{ field.auto_id }}_helptext">{% trans "Forgot password?" %}</a>
+                    {% endif %}
+                  </div>
+                  <div class="auth-login-control">
+                    {{ field }}
+                    {% if field.name == "password" %}
+                      <button type="button" class="auth-login-toggle" hidden
+                              aria-controls="{{ field.id_for_label }}" aria-pressed="false"
+                              aria-label="{% trans 'Show password' %}"
+                              data-show-label="{% trans 'Show password' %}"
+                              data-hide-label="{% trans 'Hide password' %}">
+                        <i class="ti ti-eye" aria-hidden="true"></i>
+                      </button>
+                    {% endif %}
+                  </div>
+                  {% if field.errors %}
+                    <div class="auth-login-field-errors" id="{{ field.auto_id }}_error" role="alert">{{ field.errors }}</div>
+                  {% endif %}
+                  {% if field.help_text and field.name != "password" %}
+                    <div class="form-text" id="{{ field.auto_id }}_helptext">{{ field.help_text|safe }}</div>
+                  {% endif %}
+                </div>
+              {% endif %}
+            {% endfor %}
+            <button type="submit" class="btn btn-primary auth-login-submit">
+              {% trans "Sign in" %}<i class="ti ti-arrow-right" aria-hidden="true"></i>
+            </button>
+          </form>
+          {% if LOGIN_BY_CODE_ENABLED %}
+            <a class="auth-login-code" href="{{ request_login_code_url }}">{% trans "Email me a sign-in code" %}</a>
+          {% endif %}
+        {% endif %}
+        <p class="auth-login-signup">{% trans "New to AsterProof?" %} <a href="{{ signup_url }}">{% trans "Create an account" %}<i class="ti ti-arrow-up-right" aria-hidden="true"></i></a></p>
+      </div>
+      <p class="auth-login-footer">{% trans "One problem. One insight. One step forward." %}</p>
+    </section>
+  </main>
+{% endblock body %}
+
+{% block extra_javascript %}
+  <script src="{% static 'js/account-login.js' %}" defer></script>
+{% endblock extra_javascript %}
