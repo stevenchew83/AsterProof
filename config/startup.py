@@ -25,6 +25,7 @@ FIRST_REQUEST_TEMPLATES = (
     "partials/page-header-intro.html",
     "partials/page-header-stat.html",
     "pages/topic-tag-analytics.html",
+    "pages/partials/catalogue-problem-list.html",
     "pages/technique-progress.html",
     "pages/technique-progress-topic.html",
     "pages/partials/concept-progress-bar.html",
