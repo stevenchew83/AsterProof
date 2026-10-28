@@ -7478,7 +7478,7 @@ def _build_dashboard_contest_statement_listing_context(
             "-id",
         )[:ADMIN_TABLE_LATEST_LIMIT],
     )
-    statement_ids = [statement.id for statement in statements]
+    coverage_payloads = statement_coverage_payloads(statements)
     linked_problem_ids = sorted(
         {
             statement.linked_problem_id
@@ -7492,7 +7492,7 @@ def _build_dashboard_contest_statement_listing_context(
         .order_by("technique", "record_id"),
     )
     stmt_topic_tag_rows = list(
-        StatementTopicTechnique.objects.filter(statement_id__in=statement_ids)
+        StatementTopicTechnique.objects.filter(statement_id__in=coverage_payloads.keys())
         .values("statement_id", "technique", "domains")
         .order_by("technique", "statement_id"),
     )
@@ -7597,6 +7597,7 @@ def _build_dashboard_contest_statement_listing_context(
         )
         problem_rows.append(
             {
+                **coverage_payloads[statement.id],
                 "anchor": _problem_anchor(label, f"statement-{statement.id}"),
                 "completion_date": completion_date,
                 "completion_display": completion_display,
