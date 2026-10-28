@@ -633,7 +633,8 @@ def _merge_raw_tag_values(values: list[str]) -> str:
     for value in values:
         cleaned = (value or "").strip()
         key = cleaned.casefold()
-        if cleaned and key not in seen:
+        contained = any(f"; {key}; " in f"; {source.casefold()}; " for source in merged)
+        if cleaned and key not in seen and not contained:
             seen.add(key)
             merged.append(cleaned)
     return "; ".join(merged)[:512]

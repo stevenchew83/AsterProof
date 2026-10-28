@@ -22,6 +22,11 @@ including secondary subject associations. Completion keeps the existing
 statement-before-linked-problem precedence. Existing role-specific tabs and
 benchmark import/export keys remain available.
 
+Statement metadata imports preserve the atomic Radical axis, Arc-midpoint geometry,
+and Trapezoids captions instead of collapsing them into legacy families. Re-imports
+update both statement and archive tags, respecting the selected merge or replace
+behavior, so authoritative statement coverage reflects the imported metadata.
+
 Aliases match a complete caption, case-insensitively, within its role and subject.
 Canonical captions and the explicit approved terms also work as legacy technique
 tags. Source captions become aliases only through an explicit exact-equivalence

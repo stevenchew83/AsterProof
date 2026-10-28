@@ -1,0 +1,112 @@
+[
+  {
+    "problem": "2025 A2",
+    "topic_tags": "GEO - RADICAL AXIS, POWER OF A POINT, CIRCLE TANGENCY AND TANGENTS, ARC-MIDPOINT GEOMETRY, ISOSCELES TRIANGLE",
+    "concept_ids": [
+      "geo-radical-axis",
+      "geo-power-of-a-point",
+      "geo-tangency",
+      "geo-arc-midpoints",
+      "geo-isosceles-triangles"
+    ],
+    "areas": [
+      "Circles, tangency, and cyclicity",
+      "Triangle centers and configurations"
+    ]
+  },
+  {
+    "problem": "2025 A5",
+    "topic_tags": "GEO - MONGE THEOREM, HOMOTHETY AND SIMILARITY CENTERS, POLE POLAR, HARMONIC CONJUGATES, RADICAL AXIS, SAWAYAMA'S THEOREM",
+    "concept_ids": [
+      "geo-monge",
+      "geo-homothety",
+      "geo-pole-polar",
+      "geo-harmonic-bundles",
+      "geo-radical-axis"
+    ],
+    "areas": [
+      "Circles, tangency, and cyclicity",
+      "Projective, affine, and conic geometry",
+      "Transformations and symmetry"
+    ]
+  },
+  {
+    "problem": "2025 I1",
+    "topic_tags": "GEO - TRAPEZOIDS, PERPENDICULARITY AND ORTHOGONALITY, SIMILARITIES, RATIOS",
+    "concept_ids": [
+      "geo-trapezoids",
+      "geo-perpendicularity",
+      "geo-similarity",
+      "geo-ratio-chasing"
+    ],
+    "areas": [
+      "Euclidean foundations and methods"
+    ]
+  },
+  {
+    "problem": "2025 I3",
+    "topic_tags": "GEO - ARC-MIDPOINT GEOMETRY, ANGLE BISECTOR GEOMETRY, CIRCLE TANGENCY AND TANGENTS, REFLECT, CONCYCLICITY AND CYCLIC QUADRILATERALS, MIDPOINTS AND THE MIDSEGMENT THEOREM",
+    "concept_ids": [
+      "geo-arc-midpoints",
+      "geo-angle-bisectors",
+      "geo-tangency",
+      "geo-reflection",
+      "geo-cyclicity",
+      "geo-midpoints"
+    ],
+    "areas": [
+      "Circles, tangency, and cyclicity",
+      "Euclidean foundations and methods",
+      "Transformations and symmetry",
+      "Triangle centers and configurations"
+    ]
+  },
+  {
+    "problem": "2025 I4",
+    "topic_tags": "GEO - CENTRAL SYMMETRY, GEOMETRIC INEQUALITIES, TRAPEZOIDS, PYTHAGOREAN THEOREM",
+    "concept_ids": [
+      "geo-central-symmetry",
+      "geo-geometric-inequalities",
+      "geo-trapezoids",
+      "geo-pythagoras"
+    ],
+    "areas": [
+      "Area, metric identities, and inequalities",
+      "Euclidean foundations and methods"
+    ]
+  },
+  {
+    "problem": "2024 A4",
+    "topic_tags": "GEO - PERPENDICULARITY AND ORTHOGONALITY, INCENTER AND INCIRCLE GEOMETRY, HARMONIC CONJUGATES, RADICAL AXIS, CONCYCLICITY AND CYCLIC QUADRILATERALS, ISOGONAL REFLECTION",
+    "concept_ids": [
+      "geo-perpendicularity",
+      "geo-incenter-incircle",
+      "geo-harmonic-bundles",
+      "geo-radical-axis",
+      "geo-cyclicity",
+      "geo-isogonal-lines"
+    ],
+    "areas": [
+      "Circles, tangency, and cyclicity",
+      "Euclidean foundations and methods",
+      "Projective, affine, and conic geometry",
+      "Triangle centers and configurations"
+    ]
+  },
+  {
+    "problem": "2024 I5",
+    "topic_tags": "GEO - RADICAL AXIS, CONCYCLICITY AND CYCLIC QUADRILATERALS, REFLECT, SPIRAL SIMILARITIES, ANGLE CHASING",
+    "concept_ids": [
+      "geo-radical-axis",
+      "geo-cyclicity",
+      "geo-reflection",
+      "geo-spiral-similarity",
+      "geo-angle-chasing"
+    ],
+    "areas": [
+      "Circles, tangency, and cyclicity",
+      "Euclidean foundations and methods",
+      "Transformations and symmetry"
+    ]
+  }
+]

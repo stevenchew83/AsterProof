@@ -1014,7 +1014,8 @@ def _merge_statement_raw_tag_values(values: list[str]) -> str:
     for value in values:
         cleaned = (value or "").strip()
         key = cleaned.casefold()
-        if cleaned and key not in seen:
+        contained = any(f"; {key}; " in f"; {source.casefold()}; " for source in merged)
+        if cleaned and key not in seen and not contained:
             seen.add(key)
             merged.append(cleaned)
     return "; ".join(merged)[:512]
@@ -1169,6 +1170,13 @@ def _import_metadata_link_statement_and_sync(
     if prepared_row.raw_topic_tags is not None:
         result.technique_count += sync_problem_topic_techniques(
             record=record,
+            raw_topic_tags=prepared_row.raw_topic_tags,
+            replace_tags=replace_tags,
+        )
+        # Statement tags take precedence in coverage, including on re-import.
+        # Count each imported technique once while keeping both sources current.
+        sync_statement_topic_techniques(
+            statement=statement,
             raw_topic_tags=prepared_row.raw_topic_tags,
             replace_tags=replace_tags,
         )
