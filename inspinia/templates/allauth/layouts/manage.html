@@ -9,8 +9,6 @@
 
 {% block page_content %}
   <div class="container-fluid">
-    {% include "partials/page-title.html" with title="Account" subtitle="Users" page_icon='ti-key' %}
-
     {% if messages %}
       <div class="mt-3">
         {% for message in messages %}
@@ -22,7 +20,7 @@
       </div>
     {% endif %}
 
-    <div class="row g-3 mt-0">
+    <div class="row g-0">
       <div class="col-12 col-xl-8">
         {% block content %}
         {% endblock content %}

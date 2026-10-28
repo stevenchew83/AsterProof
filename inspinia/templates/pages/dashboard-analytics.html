@@ -101,17 +101,19 @@
 
 <div class="container-fluid">
 
-  {% include 'partials/page-title.html' with title='Problem analytics' subtitle='Admin' page_icon='ti-chart-bar' %}
+  {% url 'pages:user_activity_dashboard' as analytics_home_url %}
+  <header class="page-title-head app-page-header">
+    {% include 'partials/page-header-intro.html' with title='Problem analytics' subtitle='Admin' page_icon='ti-chart-bar' back_url=analytics_home_url back_label='AsterProof' only %}
+    <div class="app-page-header-description d-flex flex-wrap align-items-center gap-1 gap-sm-2 fs-xs lh-sm problem-analytics-meta">
+      <span>Updated {{ analytics_summary.last_updated_label }}</span>
+      <span class="vr d-none d-sm-inline-block"></span>
+      <span>{{ analytics_summary.filtered_statements_label }} / {{ analytics_summary.active_statements_label }} statements</span>
+      <span class="vr d-none d-sm-inline-block"></span>
+      <span>{{ analytics_summary.source_label }}</span>
+    </div>
+  </header>
 
-  <div class="d-flex flex-wrap align-items-center gap-2 problem-analytics-meta mt-1">
-    <span>Last updated: {{ analytics_summary.last_updated_label }}</span>
-    <span class="vr d-none d-sm-inline-block"></span>
-    <span>{{ analytics_summary.filtered_statements_label }} of {{ analytics_summary.active_statements_label }} statements shown</span>
-    <span class="vr d-none d-sm-inline-block"></span>
-    <span>{{ analytics_summary.source_label }}</span>
-  </div>
-
-  <form method="get" id="problem-analytics-filter-form" class="card problem-analytics-filter-card mt-3 mb-0">
+  <form method="get" id="problem-analytics-filter-form" class="card problem-analytics-filter-card mt-0 mb-0">
     <div class="card-body">
       <div class="row g-2 align-items-end">
         <div class="col-md-6 col-xl-3">
