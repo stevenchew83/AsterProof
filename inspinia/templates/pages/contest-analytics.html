@@ -52,9 +52,6 @@
   .contest-quality-row:hover { background: var(--ins-tertiary-bg); border-color: var(--ins-primary); }
   .contest-workspace :is(a, button, input, select, .contest-table-wrap):focus-visible { outline: 2px solid var(--ins-primary); outline-offset: 3px; }
   @media (max-width: 767.98px) {
-    .contest-workspace .app-page-header--with-stats { grid-template-columns: minmax(0, 1fr); }
-    .contest-workspace .app-page-header .app-page-header-actions { grid-column: 1; grid-row: 2; }
-    .contest-workspace .app-page-header .app-page-header-stats { grid-column: 1; grid-row: 3; }
     .contest-directory-toolbar { align-items: stretch; }
     .contest-search { flex-basis: 100%; }
     .contest-workspace table.dataTable > tbody > tr > td { padding-block: .625rem; }
@@ -80,8 +77,8 @@
       {% include 'partials/page-header-stat.html' with label='Complete metadata' value=contest_stats.complete_metadata_percent|floatformat:1 unit='%' stat_icon='ti-shield-check' accent=True only %}
     </dl>
     <nav class="app-page-header-actions" aria-label="Related contest tools">
-      <a href="{% url 'pages:contest_mohs_summary' %}" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-2" aria-label="MOHS summary" title="MOHS summary"><i class="ti ti-chart-dots" aria-hidden="true"></i>MOHS</a>
-      <a href="{% url 'pages:contest_advanced_dashboard' %}" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-2" aria-label="Contest progress" title="Contest progress"><i class="ti ti-chart-line" aria-hidden="true"></i>Progress</a>
+      <a href="{% url 'pages:contest_mohs_summary' %}" class="btn btn-sm btn-outline-secondary app-page-header-action-icon d-inline-flex align-items-center gap-2" aria-label="MOHS summary" title="MOHS summary"><i class="ti ti-chart-dots" aria-hidden="true"></i><span>MOHS</span></a>
+      <a href="{% url 'pages:contest_advanced_dashboard' %}" class="btn btn-sm btn-outline-secondary app-page-header-action-icon d-inline-flex align-items-center gap-2" aria-label="Contest progress" title="Contest progress"><i class="ti ti-chart-line" aria-hidden="true"></i><span>Progress</span></a>
     </nav>
   </header>
 
