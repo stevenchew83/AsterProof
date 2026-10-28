@@ -1,11 +1,11 @@
 {% extends 'layouts/vertical.html' %}
 {% block title %}Review {{ source.label }}{% endblock %}
-{% block extra_css %}<style>.assignment-evidence{white-space:pre-wrap;overflow-wrap:anywhere}.assignment-reference{position:sticky;top:calc(var(--ins-topbar-height,64px) + 1rem);max-height:calc(100vh - var(--ins-topbar-height,64px) - 2rem);overflow:auto}@media(max-width:1199.98px){.assignment-reference{position:static;max-height:none}}</style>{% endblock %}
+{% block extra_css %}<style>.assignment-evidence{white-space:pre-wrap;overflow-wrap:anywhere}.card.assignment-reference{position:sticky;top:calc(var(--ins-topbar-height,64px) + 1rem);max-height:calc(100vh - var(--ins-topbar-height,64px) - 2rem);overflow:auto}@media(max-width:1199.98px){.card.assignment-reference{position:static;max-height:none}}</style>{% endblock %}
 {% block page_content %}
 <div class="container-fluid">
   {% url 'pages:concept_assignment_review' as header_review_url %}
   <header class="page-title-head app-page-header">
-    {% include 'partials/page-header-intro.html' with title=source.label subtitle='Review problem concepts' page_icon='ti-hierarchy-2' back_url=header_review_url back_label='Review queue' only %}
+    {% include 'partials/page-header-intro.html' with title=source.label page_icon='ti-hierarchy-2' back_url=header_review_url back_label='Review queue' only %}
     <p class="app-page-header-description">{{ source.subject }} · {{ coverage.concept_coverage|length }} accepted · {{ coverage.concept_suggestions|length }} suggestions</p>
   </header>
   {% if not storage_ready %}<div class="alert alert-info" role="status">Read-only preview. Applying decisions requires the separate review-storage schema rollout.</div>{% endif %}

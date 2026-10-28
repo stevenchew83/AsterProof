@@ -1,10 +1,13 @@
 {% extends 'layouts/vertical.html' %}
 
-{% block title %}Technique benchmark import{% endblock title %}
+{% block title %}Benchmark import{% endblock title %}
 
 {% block page_content %}
 <div class="container-fluid">
-  {% include 'partials/page-title.html' with title='Technique benchmark import' subtitle='Utilities' page_icon='ti-file-import' %}
+  {% url 'pages:technique_benchmark_list' as header_benchmark_url %}
+  <header class="page-title-head app-page-header">
+    {% include 'partials/page-header-intro.html' with title='Benchmark import' page_icon='ti-file-import' back_url=header_benchmark_url back_label='Benchmark Map' only %}
+  </header>
 
   <div class="row g-3">
     <div class="col-12 col-xl-8">
