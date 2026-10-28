@@ -432,9 +432,15 @@ def test_catalog_is_authenticated_and_navigation_exposes_both_views(client):
     url = reverse("pages:technique_benchmark_list")
     assert client.get(url, {"area": "Combinatorics"}).status_code == HTTPStatus.FOUND
     client.force_login(UserFactory())
-    html = client.get(url, {"area": "Combinatorics"}).content.decode()
-    assert "Combinatorics concept catalog" in html
-    assert "Combinatorics role profiles" in html
+    response = client.get(url, {"area": "Combinatorics"})
+    html = response.content.decode()
+    assert 'aria-label="Benchmark subjects"' in html
+    assert 'aria-label="Benchmark view"' in html
+    concepts, profiles = response.context["benchmark_view_options"]
+    assert concepts["label"] == "Concepts"
+    assert concepts["selected"] is True
+    assert profiles["label"] == "Role profiles"
+    assert 'href="?area=Combinatorics&amp;view=profiles"' in html
 
 
 def test_unfiltered_map_preserves_every_profile_across_all_subject_catalogs():

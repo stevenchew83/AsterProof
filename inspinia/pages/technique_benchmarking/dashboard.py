@@ -167,6 +167,52 @@ def benchmark_navigation_context(params, *, options: list[dict], target_profile:
             key: params[key] for key in ("area", "family", "row_key", "scope", "view") if params.get(key)
         },
         "benchmark_reset_query": reset_params.urlencode(),
+        **_benchmark_catalog_navigation(params),
+    }
+
+
+def _benchmark_catalog_navigation(params) -> dict:
+    """Build subject and view links without carrying a stale chart selection."""
+    area_options = []
+    for area in ("", "Algebra", "Number Theory", "Geometry", "Combinatorics"):
+        area_params = params.copy()
+        for key in ("area", "family", "row_key", "scope"):
+            area_params.pop(key, None)
+        if area:
+            area_params["area"] = area
+        area_options.append({
+            "label": area or "All subjects",
+            "selected": params.get("area", "").casefold() == area.casefold(),
+            "query": area_params.urlencode(),
+        })
+    view_options = []
+    for view, label in (("", "Concepts"), ("profiles", "Role profiles")):
+        view_params = params.copy()
+        for key in ("view", "family", "row_key"):
+            view_params.pop(key, None)
+        if view:
+            view_params["view"] = view
+        view_options.append({
+            "label": label,
+            "selected": (params.get("view") == "profiles") == bool(view),
+            "query": view_params.urlencode(),
+        })
+    scope_options = []
+    if params.get("area", "").casefold() == "number theory" and params.get("view") != "profiles":
+        for scope, label in (("core", "Core concepts"), ("shared", "Shared tools")):
+            scope_params = params.copy()
+            for key in ("family", "row_key"):
+                scope_params.pop(key, None)
+            scope_params["scope"] = scope
+            scope_options.append({
+                "label": label,
+                "selected": params.get("scope", "core") == scope,
+                "query": scope_params.urlencode(),
+            })
+    return {
+        "benchmark_area_options": area_options,
+        "benchmark_view_options": view_options,
+        "benchmark_scope_options": scope_options,
     }
 
 

@@ -7,85 +7,252 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'plugins/datatables/dataTables.bootstrap5.min.css' %}">
 <style>
-  .benchmark-map-target .btn {
-    min-width: 5.75rem;
+  .benchmark-page {
+    --benchmark-radius: .65rem;
   }
 
-  .benchmark-map-chart {
-    min-height: 360px;
+  .benchmark-page .page-title-head {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    margin: 0;
+    padding: 1.25rem 0 1rem;
   }
 
-  .benchmark-map-heatmap {
-    min-height: 360px;
-    overflow-x: auto;
+  .benchmark-page .app-page-header-title {
+    font-size: 1.65rem;
+    letter-spacing: -.045em;
   }
 
-  .benchmark-map-table-shell {
-    width: 100%;
+  .benchmark-page .card {
+    border: 1px solid var(--ins-border-color);
+    border-radius: var(--benchmark-radius);
+    box-shadow: none;
   }
 
-  #technique-benchmarks-table_wrapper .dt-layout-row {
-    align-items: center;
-    gap: .75rem 1rem;
-    margin: .5rem 0;
+  .benchmark-page a:focus-visible,
+  .benchmark-page button:focus-visible,
+  .benchmark-page summary:focus-visible,
+  .benchmark-page [tabindex="0"]:focus-visible {
+    outline: 3px solid rgba(var(--ins-primary-rgb), .65);
+    outline-offset: 3px;
   }
 
-  #technique-benchmarks-table_wrapper .dt-length label,
-  #technique-benchmarks-table_wrapper .dt-search label {
-    color: var(--bs-secondary-color);
-    font-size: .75rem;
-    font-weight: 600;
-    text-transform: uppercase;
+  .benchmark-segmented {
+    background: var(--ins-tertiary-bg);
+    border: 1px solid var(--ins-border-color);
+    border-radius: .5rem;
+    padding: .2rem;
   }
 
-  #technique-benchmarks-table_wrapper .dt-length .form-select,
-  #technique-benchmarks-table_wrapper .dt-search .form-control {
-    font-size: .8125rem;
-    min-height: calc(1.5em + .5rem + 2px);
-    padding-bottom: .25rem;
-    padding-top: .25rem;
-  }
-
-  #technique-benchmarks-table thead th {
-    background-color: var(--bs-tertiary-bg);
-    color: var(--bs-secondary-color);
-    font-size: .7rem;
-    font-weight: 700;
-    text-transform: uppercase;
-  }
-
-  #technique-benchmarks-table tbody td {
-    vertical-align: middle;
-  }
-
-  .benchmark-technique-title {
-    max-width: 22rem;
-  }
-
-  .benchmark-row-key-subtext {
-    color: var(--bs-secondary-color);
-    display: block;
-    font-family: var(--bs-font-monospace);
-    font-size: .7rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  .benchmark-segmented .btn {
+    border: 0;
+    border-radius: .3rem !important;
+    padding: .35rem .7rem;
     white-space: nowrap;
   }
 
+  .benchmark-segmented .btn[aria-current="page"] {
+    background: var(--ins-body-bg);
+    color: var(--ins-primary);
+    box-shadow: 0 1px 3px rgba(var(--ins-dark-rgb), .1);
+    font-weight: 600;
+  }
+
+  .benchmark-navigation {
+    border-bottom: 1px solid var(--ins-border-color);
+    margin-bottom: 1rem;
+  }
+
+  .benchmark-subjects {
+    display: flex;
+    gap: 1.25rem;
+    min-width: 0;
+    overflow-x: auto;
+  }
+
+  .benchmark-subjects a {
+    border-bottom: 2px solid transparent;
+    color: var(--ins-secondary-color);
+    padding: .8rem 0;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .benchmark-subjects a:hover,
+  .benchmark-subjects a[aria-current="page"] {
+    border-bottom-color: var(--ins-primary);
+    color: var(--ins-primary);
+  }
+
+  .benchmark-summary {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .benchmark-stat {
+    padding: 1rem;
+  }
+
+  .benchmark-stat + .benchmark-stat {
+    border-left: 1px solid var(--ins-border-color);
+  }
+
+  .benchmark-stat .avatar-title,
+  .benchmark-insights .avatar-title,
+  .benchmark-empty-icon {
+    height: 2rem;
+    width: 2rem;
+  }
+
+  .benchmark-stat h3,
+  .benchmark-score {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -.025em;
+  }
+
+  .benchmark-insights > summary {
+    align-items: center;
+    cursor: pointer;
+    display: flex;
+    gap: .75rem;
+    list-style: none;
+    padding: .85rem 1rem;
+  }
+
+  .benchmark-insights > summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .benchmark-insights .benchmark-insights-chevron {
+    transition: transform .18s ease;
+  }
+
+  .benchmark-insights[open] .benchmark-insights-chevron {
+    transform: rotate(180deg);
+  }
+
+  .benchmark-insights[open] > summary {
+    border-bottom: 1px solid var(--ins-border-color);
+  }
+
+  .benchmark-map-chart,
+  .benchmark-map-heatmap {
+    min-height: 280px;
+  }
+
+  .benchmark-map-heatmap {
+    min-width: 0;
+    overflow-x: auto;
+  }
+
+  .benchmark-toolbar {
+    display: grid;
+    gap: .65rem;
+    grid-template-columns: minmax(10rem, 1fr) minmax(10rem, 13rem) auto auto;
+  }
+
+  .benchmark-search-field {
+    position: relative;
+  }
+
+  .benchmark-search-field > .ti {
+    color: var(--ins-secondary-color);
+    left: .75rem;
+    pointer-events: none;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  .benchmark-page #benchmark-search {
+    padding-left: 2.15rem;
+  }
+
+  .benchmark-toolbar .form-control,
+  .benchmark-toolbar .form-select {
+    min-height: 2.25rem;
+  }
+
+  .benchmark-map-table-shell {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    width: 100%;
+  }
+
+  #technique-benchmarks-table {
+    min-width: 960px;
+    width: 100% !important;
+  }
+
+  #technique-benchmarks-table thead th {
+    background-color: var(--ins-tertiary-bg);
+    color: var(--ins-secondary-color);
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .035em;
+    padding: .65rem .75rem;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  #technique-benchmarks-table tbody td {
+    padding: .65rem .75rem;
+    vertical-align: middle;
+  }
+
+  #technique-benchmarks-table th:first-child,
+  #technique-benchmarks-table td:first-child {
+    padding-left: 1rem;
+  }
+
+  #technique-benchmarks-table tbody tr:has(.benchmark-detail-toggle[aria-expanded="true"]) {
+    background: rgba(var(--ins-primary-rgb), .045);
+  }
+
+  .benchmark-technique-title {
+    max-width: 21rem;
+    min-width: 12rem;
+  }
+
+  .benchmark-family {
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    display: -webkit-box;
+    line-clamp: 2;
+    max-width: 16rem;
+    min-width: 8rem;
+    overflow: hidden;
+  }
+
+  .benchmark-score {
+    font-weight: 600;
+  }
+
+  .benchmark-value-score {
+    background: rgba(var(--ins-primary-rgb), .08);
+    border-radius: .35rem;
+    color: var(--ins-primary);
+    display: inline-block;
+    min-width: 2.8rem;
+    padding: .25rem .4rem;
+    text-align: center;
+  }
+
   .benchmark-mohs-range {
-    min-width: 8.5rem;
+    min-width: 5rem;
   }
 
   .benchmark-mohs-track {
-    background-color: var(--bs-tertiary-bg);
+    background-color: var(--ins-tertiary-bg);
     border-radius: 999px;
-    height: .45rem;
+    height: .25rem;
     overflow: hidden;
     position: relative;
   }
 
   .benchmark-mohs-segment {
-    background-color: rgba(var(--bs-primary-rgb), .68);
+    background-color: rgba(var(--ins-primary-rgb), .68);
     border-radius: inherit;
     height: 100%;
     left: var(--mohs-start);
@@ -96,9 +263,9 @@
   }
 
   .benchmark-detail-panel {
-    background-color: var(--bs-tertiary-bg);
-    border: 1px solid var(--bs-border-color);
-    border-radius: .5rem;
+    background-color: var(--ins-tertiary-bg);
+    border: 1px solid var(--ins-border-color);
+    border-radius: var(--benchmark-radius);
     padding: 1rem;
   }
 
@@ -118,138 +285,181 @@
   .benchmark-chart-clickable .apexcharts-heatmap-rect {
     cursor: pointer;
   }
+
+  @media (max-width: 1199.98px) {
+    .benchmark-summary { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .benchmark-stat:nth-child(4) { border-left: 0; }
+    .benchmark-stat:nth-child(n+4) { border-top: 1px solid var(--ins-border-color); }
+  }
+
+  @media (max-width: 767.98px) {
+    .benchmark-page .page-title-head { align-items: flex-start !important; }
+    .benchmark-page .app-page-header-title { font-size: 1.4rem; }
+    .benchmark-summary { display: flex; overflow-x: auto; scroll-snap-type: x proximity; }
+    .benchmark-stat { flex: 0 0 9.5rem; padding: .75rem; scroll-snap-align: start; }
+    .benchmark-stat + .benchmark-stat { border-left: 1px solid var(--ins-border-color); }
+    .benchmark-stat:nth-child(n+3) { border-top: 0; }
+    .benchmark-subjects { gap: 1rem; }
+    .benchmark-toolbar { grid-template-columns: minmax(0, 1fr) auto; }
+    .benchmark-search-field { grid-column: 1 / -1; }
+    .benchmark-toolbar > .benchmark-reset { grid-column: 1 / -1; justify-self: start; }
+    .benchmark-insights-description { display: none; }
+    #technique-benchmarks-table tbody > tr > td:first-child:not([colspan]) {
+      background-color: var(--ins-body-bg);
+      left: 0;
+      position: sticky;
+      z-index: 1;
+    }
+    .benchmark-technique-title { min-width: 9rem; max-width: 11rem; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .benchmark-insights .benchmark-insights-chevron { transition: none; }
+  }
 </style>
 {% endblock extra_css %}
 
 {% block page_content %}
-<div class="container-fluid">
-  {% include 'partials/page-title.html' with title='Benchmark Map' subtitle='Library' page_icon='ti-map' %}
-
-  <div class="d-flex flex-column flex-xl-row align-items-xl-center justify-content-between gap-2 mb-3">
-    <div>
-      <a class="btn btn-sm btn-light mb-2" href="{% url 'pages:technique_benchmark_list' %}?area=Algebra">Algebra concept catalog</a>
-      <a class="btn btn-sm btn-light mb-2" href="{% url 'pages:technique_benchmark_list' %}?area=Number%20Theory">Number theory concept catalog</a>
-      <a class="btn btn-sm btn-light mb-2" href="{% url 'pages:technique_benchmark_list' %}?area=Number%20Theory&amp;scope=shared">Shared number theory tools</a>
-      <a class="btn btn-sm btn-light mb-2" href="{% url 'pages:technique_benchmark_list' %}?area=Number%20Theory&amp;view=profiles">Number theory role profiles</a>
-      <a class="btn btn-sm btn-light mb-2" href="{% url 'pages:technique_benchmark_list' %}?area=Geometry">Geometry concept catalog</a>
-      <a class="btn btn-sm btn-light mb-2" href="{% url 'pages:technique_benchmark_list' %}?area=Geometry&amp;view=profiles">Geometry role profiles</a>
-      <a class="btn btn-sm btn-light mb-2" href="{% url 'pages:technique_benchmark_list' %}?area=Combinatorics">Combinatorics concept catalog</a>
-      <a class="btn btn-sm btn-light mb-2" href="{% url 'pages:technique_benchmark_list' %}?area=Combinatorics&amp;view=profiles">Combinatorics role profiles</a>
-      <p class="text-muted fs-xs mb-0">{{ technique_benchmark_total }} benchmark row{{ technique_benchmark_total|pluralize }} loaded</p>
-    </div>
-    <div class="d-flex align-items-center gap-2 benchmark-map-target">
-      <span class="text-muted fs-xs text-uppercase fw-semibold">Target</span>
-      <div class="btn-group btn-group-sm" role="group" aria-label="Benchmark target profile">
-        {% for option in technique_benchmark_target_profile_options %}
-        <a
-          class="btn {% if option.selected %}btn-primary{% else %}btn-light{% endif %}"
-          href="?{{ option.query }}"
-          {% if option.selected %}aria-current="page"{% endif %}
-        >{{ option.label }}</a>
-        {% endfor %}
+<div class="container-fluid benchmark-page">
+  <header class="page-title-head app-page-header justify-content-between">
+    {% url 'pages:user_activity_dashboard' as benchmark_home_url %}
+    {% include 'partials/page-header-intro.html' with title='Benchmark Map' subtitle='Library' page_icon='ti-map' back_url=benchmark_home_url back_label='AsterProof' only %}
+    <div class="app-page-header-actions gap-3">
+      <div class="benchmark-map-target">
+        <span class="text-muted fs-xs d-block mb-1" id="benchmark-target-label">Training target</span>
+        <nav class="benchmark-segmented d-inline-flex" aria-labelledby="benchmark-target-label">
+          {% for option in technique_benchmark_target_profile_options %}
+          <a class="btn btn-sm" href="?{{ option.query }}" {% if option.selected %}aria-current="page"{% endif %}>{{ option.label }}</a>
+          {% endfor %}
+        </nav>
       </div>
-    </div>
-  </div>
-
-  <div class="row g-3 mt-0">
-    {% for card in technique_benchmark_summary_cards %}
-    <div class="col-sm-6 col-xl">
-      <div class="card m-0 h-100">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-{{ card.variant }}-subtle text-{{ card.variant }} rounded">
-                <i class="{{ card.icon }} fs-24"></i>
-              </span>
-            </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">{{ card.label }}</p>
-              <h3 class="mb-0">{{ card.value }}</h3>
-              <p class="text-muted fs-xs mb-0">{{ card.caption }}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    {% endfor %}
-  </div>
-
-  <div class="row g-3 mt-1">
-    <div class="col-xl-7">
-      <div class="card h-100">
-        <div class="card-header border-0 pb-0 d-flex align-items-start justify-content-between gap-2">
-          <div>
-            <h4 class="header-title mb-0">Value vs difficulty</h4>
-            <p class="text-muted fs-xs mb-0">{{ technique_benchmark_target_profile_label }} weighting</p>
-          </div>
-          <button type="button" class="btn btn-sm btn-light benchmark-filter-reset">
-            <i class="ti ti-filter-x me-1"></i>Reset
-          </button>
-        </div>
-        <div class="card-body pt-2">
-          <div id="technique-benchmark-matrix-alert" class="alert alert-warning d-none" role="alert"></div>
-          <div id="technique-benchmark-matrix" class="benchmark-map-chart benchmark-chart-clickable"></div>
-        </div>
-      </div>
-    </div>
-    <div class="col-xl-5">
-      <div class="card h-100">
-        <div class="card-header border-0 pb-0 d-flex align-items-start justify-content-between gap-2">
-          <div>
-            <h4 class="header-title mb-0">Area family heatmap</h4>
-            <p class="text-muted fs-xs mb-0">Average value score</p>
-          </div>
-          <button type="button" class="btn btn-sm btn-light benchmark-filter-reset">
-            <i class="ti ti-filter-x me-1"></i>Reset
-          </button>
-        </div>
-        <div class="card-body pt-2">
-          <div id="technique-benchmark-heatmap-alert" class="alert alert-warning d-none" role="alert"></div>
-          <div id="technique-benchmark-heatmap" class="benchmark-map-heatmap benchmark-chart-clickable"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="card mt-3">
-    <div class="card-header border-0 pb-0 d-flex flex-column flex-xl-row align-items-xl-center justify-content-between gap-2">
-      <div>
-        <h4 class="header-title mb-0">Benchmark catalog</h4>
-        <p class="text-muted fs-xs mb-0" id="technique-benchmark-active-filter">All benchmark rows</p>
-      </div>
-      <a href="{% url 'pages:technique_benchmark_import' %}" class="btn btn-sm btn-outline-primary">
-        <i class="ti ti-database-import me-1"></i>Benchmark import
+      <a href="{% url 'pages:technique_benchmark_import' %}" class="btn btn-sm btn-outline-secondary" aria-label="Benchmark import" title="Benchmark import">
+        <i class="ti ti-database-import" aria-hidden="true"></i><span class="d-none d-sm-inline ms-1">Benchmark import</span>
       </a>
     </div>
-    <div class="card-body pt-2">
-      <form method="get" class="d-flex flex-wrap gap-2 mb-3">
+    <p class="app-page-header-description">Find the concepts worth your next training session.</p>
+  </header>
+
+  <div class="benchmark-navigation d-flex flex-wrap align-items-center justify-content-between gap-2">
+    <nav class="benchmark-subjects fs-sm fw-semibold" aria-label="Benchmark subjects">
+      {% for option in benchmark_area_options %}
+      <a href="?{{ option.query }}" {% if option.selected %}aria-current="page"{% endif %}>{{ option.label }}</a>
+      {% endfor %}
+    </nav>
+    <nav class="benchmark-segmented d-flex mb-2 mb-xl-0" aria-label="Benchmark view">
+      {% for option in benchmark_view_options %}
+      <a class="btn btn-sm" href="?{{ option.query }}" {% if option.selected %}aria-current="page"{% endif %}>{{ option.label }}</a>
+      {% endfor %}
+    </nav>
+  </div>
+
+  <section class="card mb-3" aria-label="Benchmark overview">
+    <div class="benchmark-summary">
+      {% for card in technique_benchmark_summary_cards %}
+      <div class="benchmark-stat">
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <span class="avatar-title bg-{{ card.variant }}-subtle text-{{ card.variant }} rounded flex-shrink-0">
+            <i class="{{ card.icon }} fs-20" aria-hidden="true"></i>
+          </span>
+          <p class="text-muted mb-0 fs-xs fw-semibold">{{ card.label }}</p>
+        </div>
+        <div class="d-flex align-items-baseline gap-2">
+          <h3 class="mb-0 fs-xl fw-bold">{{ card.value }}</h3>
+        </div>
+        <p class="text-muted fs-xs mb-0 mt-1">{{ card.caption }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <details class="card benchmark-insights mb-3" id="benchmark-insights">
+    <summary>
+      <span class="avatar-title bg-primary-subtle text-primary rounded flex-shrink-0"><i class="ti ti-chart-dots fs-20" aria-hidden="true"></i></span>
+      <span class="fw-semibold fs-sm">Visual insights</span>
+      <span class="benchmark-insights-description text-muted fs-xs">Value vs difficulty &amp; area families</span>
+      <span class="badge bg-primary-subtle text-primary ms-auto">{{ technique_benchmark_target_profile_label }}</span>
+      <i class="ti ti-chevron-down benchmark-insights-chevron" aria-hidden="true"></i>
+    </summary>
+    <div class="p-3">
+      <div class="row g-3">
+        <section class="col-xl-6" aria-labelledby="benchmark-matrix-title">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <div>
+              <h2 class="header-title fs-sm mb-1" id="benchmark-matrix-title">Value vs difficulty</h2>
+              <p class="text-muted fs-xs mb-0">Select a point to explore its benchmark.</p>
+            </div>
+          </div>
+          <div id="technique-benchmark-matrix-alert" class="alert alert-warning d-none" role="alert"></div>
+          <div id="technique-benchmark-matrix" class="benchmark-map-chart benchmark-chart-clickable"></div>
+        </section>
+        <section class="col-xl-6" aria-labelledby="benchmark-heatmap-title">
+          <h2 class="header-title fs-sm mb-1" id="benchmark-heatmap-title">Area family heatmap</h2>
+          <p class="text-muted fs-xs mb-2">Average value by family. Select a cell to filter the catalog.</p>
+          <div id="technique-benchmark-heatmap-alert" class="alert alert-warning d-none" role="alert"></div>
+          <div class="benchmark-map-heatmap" tabindex="0" role="region" aria-label="Scrollable area family heatmap">
+            <div id="technique-benchmark-heatmap" class="benchmark-chart-clickable"></div>
+          </div>
+        </section>
+      </div>
+      {% if technique_benchmark_chart_is_capped %}
+      <p class="text-muted fs-xs mb-0 mt-2"><i class="ti ti-info-circle me-1" aria-hidden="true"></i>Matrix: top 200 matching benchmarks. Heatmap: up to 40 families and 12 areas. The catalog includes every match.</p>
+      {% endif %}
+      <noscript><p class="text-muted fs-sm mb-0">Enable JavaScript to explore charts. You can still search and browse the catalog below.</p></noscript>
+    </div>
+  </details>
+
+  <section class="card mb-3" aria-labelledby="benchmark-catalog-title">
+    <div class="card-body p-3">
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+        <div class="d-flex flex-wrap align-items-center gap-2">
+          <h2 class="header-title fs-sm fw-semibold mb-0" id="benchmark-catalog-title">Benchmark catalog</h2>
+          <span class="badge bg-secondary-subtle text-secondary">{{ technique_benchmark_total }} benchmark{{ technique_benchmark_total|pluralize }}</span>
+        </div>
+        {% if benchmark_scope_options %}
+        <nav class="d-flex gap-3 fs-xs" aria-label="Number theory scope">
+          {% for option in benchmark_scope_options %}
+          <a class="{% if option.selected %}text-primary fw-semibold{% else %}text-muted{% endif %}" href="?{{ option.query }}" {% if option.selected %}aria-current="page"{% endif %}>{{ option.label }}</a>
+          {% endfor %}
+        </nav>
+        {% endif %}
+      </div>
+      <form method="get" class="benchmark-toolbar" role="search" aria-label="Search benchmark catalog">
         <input type="hidden" name="target_profile" value="{{ technique_benchmark_target_profile }}">
         {% for name, value in benchmark_scope_filters.items %}
         <input type="hidden" name="{{ name }}" value="{{ value }}">
         {% endfor %}
-        <label for="benchmark-search" class="visually-hidden">Search all benchmark rows</label>
-        <input id="benchmark-search" class="form-control form-control-sm w-auto flex-grow-1" type="search" name="q" value="{{ benchmark_search }}" placeholder="Technique, alias, area, family…">
-        <button class="btn btn-sm btn-primary" type="submit">Search all rows</button>
+        <div class="benchmark-search-field">
+          <label for="benchmark-search" class="visually-hidden">Search all benchmark rows</label>
+          <i class="ti ti-search" aria-hidden="true"></i>
+          <input id="benchmark-search" class="form-control form-control-sm" type="search" name="q" value="{{ benchmark_search }}" placeholder="Search concepts, aliases, areas or families…">
+        </div>
         <label for="benchmark-sort" class="visually-hidden">Sort all matching benchmarks</label>
-        <select id="benchmark-sort" name="sort" class="form-select form-select-sm w-auto">
+        <select id="benchmark-sort" name="sort" class="form-select form-select-sm">
           <option value="value"{% if benchmark_sort == 'value' %} selected{% endif %}>Highest value</option>
           <option value="difficulty"{% if benchmark_sort == 'difficulty' %} selected{% endif %}>Highest difficulty</option>
           <option value="confidence"{% if benchmark_sort == 'confidence' %} selected{% endif %}>Highest confidence</option>
           <option value="name"{% if benchmark_sort == 'name' %} selected{% endif %}>Technique name</option>
         </select>
-        <button class="btn btn-sm btn-outline-secondary" type="submit">Sort</button>
-        <a class="btn btn-sm btn-outline-secondary" href="?{{ benchmark_reset_query }}">Reset</a>
+        <button class="btn btn-sm btn-primary px-3" type="submit">Apply</button>
+        <a class="btn btn-sm btn-light benchmark-reset" href="?{{ benchmark_reset_query }}">Clear filters</a>
       </form>
-      {% if technique_benchmark_chart_is_capped %}<p class="text-muted fs-xs">The matrix shows the 200 highest-value matching rows. The heatmap shows up to 40 families and 12 areas. Search to explore a smaller scope; every matching benchmark remains available in the paginated catalog.</p>{% endif %}
-      {% include 'pages/partials/server-pagination.html' %}
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-3">
+        <p class="text-muted fs-xs mb-0" id="technique-benchmark-active-filter" aria-live="polite">
+          {% if benchmark_search %}Results for <strong class="text-body">“{{ benchmark_search }}”</strong>{% else %}All benchmark rows{% endif %}
+          {% if benchmark_scope_filters.family %}<span class="mx-1" aria-hidden="true">·</span>{{ benchmark_scope_filters.family }}{% endif %}
+          {% if benchmark_scope_filters.row_key %}<span class="mx-1" aria-hidden="true">·</span>Selected benchmark{% endif %}
+        </p>
+        {% if technique_benchmark_rows %}<span class="text-muted fs-xs">Showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ technique_benchmark_total }}</span>{% endif %}
+      </div>
+    </div>
       <div id="technique-benchmarks-table-alert" class="alert alert-warning d-none" role="alert"></div>
       {% if technique_benchmark_rows %}
-      <div class="benchmark-map-table-shell">
+      <div class="benchmark-map-table-shell" tabindex="0" role="region" aria-label="Benchmark catalog table, scroll horizontally for more columns">
         <table id="technique-benchmarks-table" class="table table-sm table-hover align-middle mb-0">
           <thead>
             <tr>
               {% for column in technique_benchmark_table_columns %}
-              <th>{{ column }}</th>
+              <th scope="col">{{ column }}</th>
               {% endfor %}
             </tr>
           </thead>
@@ -263,13 +473,12 @@
               <td>
                 <div class="benchmark-technique-title">
                   <span class="fw-semibold">{{ row.label }}</span>
-                  <span class="benchmark-row-key-subtext">{% if row.concept_id %}concept:{{ row.concept_id }}{% else %}{{ row.row_key }}{% endif %}</span>
-                  {% if row.concept_id %}<span class="text-muted fs-xs">Roles: {{ row.roles|join:", " }}</span>{% endif %}
+                  {% if row.concept_id %}<span class="text-muted fs-xs d-block">Roles: {{ row.roles|join:", " }}</span>{% endif %}
                   {% if row.profile_conflicts %}<span class="badge bg-warning-subtle text-warning">Profiles need reconciliation</span>{% endif %}
                 </div>
               </td>
-              <td>{{ row.primary_area }}</td>
-              <td>{{ row.parent_family }}</td>
+              <td><span class="fs-xs text-muted">{{ row.primary_area }}</span></td>
+              <td><span class="benchmark-family fs-xs text-muted" title="{{ row.parent_family }}">{{ row.parent_family }}</span></td>
               <td>
                 <span class="badge bg-primary-subtle text-primary">{{ row.training_type }}</span>
               </td>
@@ -277,10 +486,10 @@
                 <span class="badge bg-secondary-subtle text-secondary">{{ row.target_level }}</span>
               </td>
               <td data-order="{{ row.value_score|default:'-1' }}">
-                {% if row.value_score %}{{ row.value_score }}{% else %}<span class="text-muted">-</span>{% endif %}
+                {% if row.value_score %}<span class="benchmark-score benchmark-value-score">{{ row.value_score }}</span>{% else %}<span class="text-muted">-</span>{% endif %}
               </td>
               <td data-order="{{ row.difficulty_score|default:'-1' }}">
-                {% if row.difficulty_score %}{{ row.difficulty_score }}{% else %}<span class="text-muted">-</span>{% endif %}
+                {% if row.difficulty_score %}<span class="benchmark-score">{{ row.difficulty_score }}</span>{% else %}<span class="text-muted">-</span>{% endif %}
               </td>
               <td data-order="{{ row.typical_mohs_min|default:'-1' }}">
                 {% if row.mohs_band_label %}
@@ -302,7 +511,6 @@
               <td data-order="{{ row.benchmark_confidence|default:'-1' }}">
                 {% if row.confidence_label %}
                 <span class="badge bg-{{ row.confidence_variant }}-subtle text-{{ row.confidence_variant }}">{{ row.confidence_label }}</span>
-                <span class="text-muted fs-xs d-block">{{ row.confidence_bucket }}</span>
                 {% else %}
                 <span class="text-muted">-</span>
                 {% endif %}
@@ -319,15 +527,23 @@
         </table>
       </div>
       {% else %}
-      <div class="text-center text-muted py-4">
-        <p class="mb-2">No technique benchmarks yet.</p>
-        <a href="{% url 'pages:technique_benchmark_import' %}" class="btn btn-sm btn-outline-primary">
-          <i class="ti ti-database-import me-1"></i>Benchmark import
-        </a>
+      <div class="text-center py-5 px-3">
+        <span class="avatar-title benchmark-empty-icon bg-primary-subtle text-primary rounded mx-auto mb-3"><i class="ti ti-search fs-24" aria-hidden="true"></i></span>
+        {% if benchmark_search or benchmark_scope_filters %}
+        <h3 class="fs-sm fw-semibold mb-1">No matching benchmarks</h3>
+        <p class="text-muted fs-sm mb-3">Try a broader search or clear the current filters.</p>
+        <a class="btn btn-sm btn-outline-primary" href="?{{ benchmark_reset_query }}">Clear filters</a>
+        {% else %}
+        <h3 class="fs-sm fw-semibold mb-1">No technique benchmarks yet.</h3>
+        <p class="text-muted fs-sm mb-3">Import benchmark data to start exploring your curriculum.</p>
+        <a href="{% url 'pages:technique_benchmark_import' %}" class="btn btn-sm btn-outline-primary">Benchmark import</a>
+        {% endif %}
       </div>
       {% endif %}
+    <div class="px-3">
+      {% include 'pages/partials/server-pagination.html' %}
     </div>
-  </div>
+  </section>
 </div>
 {% endblock page_content %}
 
@@ -373,14 +589,14 @@
   function themeColors() {
     var styles = window.getComputedStyle(document.documentElement);
     return {
-      primary: styles.getPropertyValue("--bs-primary").trim() || "#3b7ddd",
-      success: styles.getPropertyValue("--bs-success").trim() || "#1abc9c",
-      warning: styles.getPropertyValue("--bs-warning").trim() || "#f7b84b",
-      info: styles.getPropertyValue("--bs-info").trim() || "#39afd1",
-      secondary: styles.getPropertyValue("--bs-secondary").trim() || "#6c757d",
-      danger: styles.getPropertyValue("--bs-danger").trim() || "#f1556c",
-      border: styles.getPropertyValue("--bs-border-color").trim() || "rgba(108,117,125,0.2)",
-      body: styles.getPropertyValue("--bs-body-color").trim() || "#495057"
+      primary: styles.getPropertyValue("--ins-primary").trim() || "#3b7ddd",
+      success: styles.getPropertyValue("--ins-success").trim() || "#1abc9c",
+      warning: styles.getPropertyValue("--ins-warning").trim() || "#f7b84b",
+      info: styles.getPropertyValue("--ins-info").trim() || "#39afd1",
+      secondary: styles.getPropertyValue("--ins-secondary").trim() || "#6c757d",
+      danger: styles.getPropertyValue("--ins-danger").trim() || "#f1556c",
+      border: styles.getPropertyValue("--ins-border-color").trim() || "rgba(108,117,125,0.2)",
+      body: styles.getPropertyValue("--ins-body-color").trim() || "#495057"
     };
   }
 
@@ -393,19 +609,7 @@
   });
 
   var activeFilter = null;
-  var activeFilterEl = document.getElementById("technique-benchmark-active-filter");
   var table = null;
-
-  function activeFilterLabel() {
-    if (!activeFilter) return "All benchmark rows";
-    if (activeFilter.rowKey && rowsByKey[activeFilter.rowKey]) {
-      return rowsByKey[activeFilter.rowKey].label;
-    }
-    if (activeFilter.area && activeFilter.family) {
-      return activeFilter.area + " / " + activeFilter.family;
-    }
-    return "Filtered benchmark rows";
-  }
 
   function applyActiveFilter() {
     var url = new URL(window.location.href);
@@ -413,20 +617,7 @@
     if (activeFilter && activeFilter.rowKey) url.searchParams.set("row_key", activeFilter.rowKey);
     if (activeFilter && activeFilter.area) url.searchParams.set("area", activeFilter.area);
     if (activeFilter && activeFilter.family) url.searchParams.set("family", activeFilter.family);
-    window.location.assign(url.pathname + "?" + url.searchParams.toString());
-  }
-
-  if (typeof DataTable !== "undefined") {
-    DataTable.ext.search.push(function (settings, _data, _dataIndex, rowNode) {
-      if (!settings || !settings.nTable || settings.nTable.id !== "technique-benchmarks-table") return true;
-      var node = rowNode || (settings.aoData && settings.aoData[_dataIndex] && settings.aoData[_dataIndex].nTr);
-      if (!activeFilter || !node) return true;
-      if (activeFilter.rowKey) return node.dataset.rowKey === activeFilter.rowKey;
-      if (activeFilter.area && activeFilter.family) {
-        return node.dataset.primaryArea === activeFilter.area && node.dataset.parentFamily === activeFilter.family;
-      }
-      return true;
-    });
+    window.location.assign(url.pathname + "?" + url.searchParams.toString() + "#benchmark-catalog-title");
   }
 
   function meterHtml(item, variant) {
@@ -445,13 +636,14 @@
   }
 
   function detailHtml(row) {
-    var valueProfile = (row.detail_groups.value_profile || []).map(function (item) {
+    var groups = row.detail_groups || {};
+    var valueProfile = (groups.value_profile || []).map(function (item) {
       return meterHtml(item, "primary");
     }).join("");
-    var difficultyProfile = (row.detail_groups.difficulty_profile || []).map(function (item) {
+    var difficultyProfile = (groups.difficulty_profile || []).map(function (item) {
       return meterHtml(item, "warning");
     }).join("");
-    var weights = (row.detail_groups.target_weights || []).map(function (item) {
+    var weights = (groups.target_weights || []).map(function (item) {
       return '<span class="badge bg-secondary-subtle text-secondary me-1">' +
         escapeHtml(item.label) + " " + escapeHtml(item.value || "-") + '</span>';
     }).join("");
@@ -470,6 +662,7 @@
     }).join('');
     return [
       '<div class="benchmark-detail-panel">',
+        '<p class="text-muted fs-xs mb-2">Benchmark reference <code>' + escapeHtml(row.row_key) + '</code></p>',
         row.reference_resolution ? '<p class="fs-xs">' + escapeHtml(row.reference_resolution) + '</p>' : '',
         profiles ? '<p class="fw-semibold mb-2">One concept; original role profiles retained</p><div class="table-responsive"><table class="table table-sm table-bordered"><thead><tr><th>Role profile</th><th>Training</th><th>Target</th><th>Value</th><th>Difficulty</th><th>MOHS</th><th>Rationale</th><th>Pitfalls</th><th>Sequence</th></tr></thead><tbody>' + profiles + '</tbody></table></div>' : '',
         row.profile_conflicts && row.profile_conflicts.length ? '<p class="text-warning fs-xs">Ratings differ across these profiles. No combined rating or chart point has been assigned. The reference components below belong to ' + escapeHtml(row.row_key) + '.</p>' : '',
@@ -506,21 +699,8 @@
         topStart: null,
         topEnd: null,
         bottomStart: null,
-        bottomEnd: null,
-        top: ["pageLength", "search", "paging"],
-        bottom: ["info", "paging"],
+        bottomEnd: null
       },
-      language: {
-        search: "Filter rows:",
-        searchPlaceholder: "Technique, area, family...",
-        info: "Showing _START_ to _END_ of _TOTAL_ benchmark rows",
-        infoEmpty: "No benchmark rows to show",
-        infoFiltered: "(filtered from _MAX_ benchmark row(s))",
-        lengthMenu: "Show _MENU_ rows",
-      },
-      order: [[5, "desc"]],
-      pageLength: 25,
-      lengthMenu: [10, 25, 50, 100],
       paging: false,
       searching: false,
       info: false,
@@ -549,14 +729,6 @@
     showAlert("technique-benchmarks-table-alert", "Benchmark table controls could not be loaded.");
   }
 
-  document.querySelectorAll(".benchmark-filter-reset").forEach(function (button) {
-    button.addEventListener("click", function () {
-      activeFilter = null;
-      if (table) table.search("");
-      applyActiveFilter();
-    });
-  });
-
   function renderMatrix() {
     var el = document.getElementById("technique-benchmark-matrix");
     if (!el || typeof ApexCharts === "undefined") {
@@ -572,7 +744,8 @@
     new ApexCharts(el, {
       chart: {
         type: "bubble",
-        height: 360,
+        height: 280,
+        animations: { enabled: !window.matchMedia("(prefers-reduced-motion: reduce)").matches },
         toolbar: { show: false },
         fontFamily: "inherit",
         zoom: { enabled: false },
@@ -588,6 +761,8 @@
       series: matrixPayload.series,
       colors: [colors.success, colors.warning, colors.info, colors.primary, colors.secondary, colors.danger],
       dataLabels: { enabled: false },
+      plotOptions: { bubble: { minBubbleRadius: 4, maxBubbleRadius: 14 } },
+      fill: { opacity: 0.7 },
       grid: { strokeDashArray: 4, borderColor: colors.border },
       markers: { strokeWidth: 1, strokeColors: colors.border },
       xaxis: {
@@ -640,7 +815,8 @@
     new ApexCharts(el, {
       chart: {
         type: "heatmap",
-        height: Math.max(300, heatmapPayload.series.length * 34 + 92),
+        height: Math.max(280, heatmapPayload.series.length * 30 + 100),
+        animations: { enabled: !window.matchMedia("(prefers-reduced-motion: reduce)").matches },
         toolbar: { show: false },
         fontFamily: "inherit",
         events: {
@@ -692,8 +868,16 @@
     }).render();
   }
 
-  renderMatrix();
-  renderHeatmap();
+  var insights = document.getElementById("benchmark-insights");
+  var chartsRendered = false;
+  function renderInsights() {
+    if (!insights || !insights.open || chartsRendered) return;
+    chartsRendered = true;
+    renderMatrix();
+    renderHeatmap();
+  }
+  if (insights) insights.addEventListener("toggle", renderInsights);
+  renderInsights();
 })();
 </script>
 {% endblock extra_javascript %}
