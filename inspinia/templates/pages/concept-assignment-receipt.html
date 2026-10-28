@@ -1,3 +1,16 @@
 {% extends 'layouts/vertical.html' %}
 {% block title %}Concept review receipt{% endblock %}
-{% block page_content %}<div class="container-fluid">{% include 'partials/page-title.html' with title='Concept review receipt' subtitle='Archive tools' %}<div class="alert alert-success" role="status">Applied {{ receipt.assignments_changed }} assignment decision{{ receipt.assignments_changed|pluralize }}.</div><p>Operation <code>{{ receipt.operation_id }}</code></p><div class="d-flex gap-2"><a class="btn btn-primary" href="{% url 'pages:concept_assignment_review' %}">Continue reviewing</a><a class="btn btn-outline-secondary" href="{{ receipt_url }}">Audit receipt JSON</a></div></div>{% endblock %}
+{% block page_content %}
+<div class="container-fluid">
+  {% url 'pages:concept_assignment_review' as header_review_url %}
+  <header class="page-title-head app-page-header">
+    {% include 'partials/page-header-intro.html' with title='Concept review receipt' subtitle='Archive tools' page_icon='ti-receipt' back_url=header_review_url back_label='Review queue' only %}
+    <div class="app-page-header-actions">
+      <a class="btn btn-primary btn-sm" href="{{ header_review_url }}">Continue reviewing<i class="ti ti-arrow-right ms-1" aria-hidden="true"></i></a>
+      <a class="btn btn-outline-secondary btn-sm" href="{{ receipt_url }}"><i class="ti ti-braces me-1" aria-hidden="true"></i>Audit receipt JSON</a>
+    </div>
+  </header>
+  <div class="alert alert-success" role="status">Applied {{ receipt.assignments_changed }} assignment decision{{ receipt.assignments_changed|pluralize }}.</div>
+  <p>Operation <code>{{ receipt.operation_id }}</code></p>
+</div>
+{% endblock %}
