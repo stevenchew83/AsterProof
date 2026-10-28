@@ -46,13 +46,17 @@ def test_first_pages_use_prepared_templates_and_urls_without_changing_progress(c
         patch("django.urls.resolvers.URLResolver._populate", side_effect=AssertionError("Cold URL reverser")),
     ):
         catalogue = client.get("/dashboard/topic-tags/", HTTP_ACCEPT_LANGUAGE="en-US")
+        area_problems = client.get(
+            "/dashboard/topic-tags/", {"area": "Algebra:inequalities"}, HTTP_ACCEPT_LANGUAGE="en-US",
+        )
         progress = client.get("/dashboard/techniques/", {"user": learner.pk}, HTTP_ACCEPT_LANGUAGE="en-US")
         concepts = client.get(
             "/dashboard/techniques/topics/algebra/",
             {"user": learner.pk, "mode": "concepts"},
             HTTP_ACCEPT_LANGUAGE="en-US",
         )
-    assert catalogue.status_code == progress.status_code == concepts.status_code == 200
+    assert catalogue.status_code == area_problems.status_code == progress.status_code == concepts.status_code == 200
+    assert area_problems.context["examples"].paginator.count == 2
     assert progress.context["stats"]["solved"] == 1
     assert progress.context["stats"]["total"] == 2
     assert concepts.context["stats"]["solved"] == 1

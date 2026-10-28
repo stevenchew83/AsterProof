@@ -1,0 +1,76 @@
+<form method="get" class="cb-problem-filters p-3 border-bottom" role="search" aria-label="Search problems in this scope">
+  {% for key, value in scope_inputs.items %}{% if value %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endif %}{% endfor %}
+  <input type="hidden" name="tab" value="problems">
+  <div class="cb-problem-search">
+    <label class="form-label text-muted fs-xs mb-1" for="catalogue-problem-search">Search problems</label>
+    <input id="catalogue-problem-search" name="q" type="search" class="form-control form-control-sm" value="{{ problem_filters.q }}" placeholder="Problem, concept, tag or UUID…">
+  </div>
+  {% if selected_area %}<div class="cb-problem-concept">
+    <label class="form-label text-muted fs-xs mb-1" for="catalogue-problem-concept">Concept</label>
+    <select id="catalogue-problem-concept" name="concept" class="form-select form-select-sm">
+      <option value="">All concepts in this area</option>
+      {% for choice in problem_concept_choices %}<option value="{{ choice.pk }}"{% if selected_concept.pk == choice.pk %} selected{% endif %}>{{ choice.name }}</option>{% endfor %}
+    </select>
+  </div>{% elif selected_concept %}<input type="hidden" name="concept" value="{{ selected_concept.pk }}">{% endif %}
+  <div class="cb-problem-range">
+    <label class="form-label text-muted fs-xs mb-1" for="catalogue-mohs-min">MOHS from</label>
+    <input id="catalogue-mohs-min" name="mohs_min" type="number" min="0" step="1" class="form-control form-control-sm" value="{{ problem_filters.mohs_min }}" placeholder="Min">
+  </div>
+  <div class="cb-problem-range">
+    <label class="form-label text-muted fs-xs mb-1" for="catalogue-mohs-max">MOHS to</label>
+    <input id="catalogue-mohs-max" name="mohs_max" type="number" min="0" step="1" class="form-control form-control-sm" value="{{ problem_filters.mohs_max }}" placeholder="Max">
+  </div>
+  <div class="cb-problem-sort">
+    <label class="form-label text-muted fs-xs mb-1" for="catalogue-problem-sort">Sort by</label>
+    <select id="catalogue-problem-sort" name="sort" class="form-select form-select-sm">
+      {% for value, label in problem_sort_options.items %}<option value="{{ value }}"{% if problem_filters.sort == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="d-flex gap-2">
+    <button class="btn btn-sm btn-primary" type="submit">Apply</button>
+    <a href="{{ problem_reset_url }}" class="btn btn-sm btn-outline-secondary">Reset</a>
+  </div>
+</form>
+{% if examples_unavailable %}
+  <div class="alert alert-info m-3" role="status">Problem mappings are being updated. You can still browse the concept structure.</div>
+{% else %}
+  <div class="d-flex flex-wrap justify-content-between gap-1 px-3 py-2 text-muted fs-xs" role="status">
+    <span>{{ examples.paginator.count }} problem{{ examples.paginator.count|pluralize }}{% if selected_concept %} for {{ selected_concept.name }}{% endif %}{% if problem_filters.q %} matching “{{ problem_filters.q }}”{% endif %}</span>
+    <span>Mappings updated {{ snapshot.created_at|date:'j M Y, H:i' }}</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover mb-0 cb-problems-table" id="catalogue-problems-table">
+      <caption class="visually-hidden">Problems for {{ heading }}</caption>
+      <thead><tr>
+        <th scope="col">Problem</th>
+        <th scope="col">Concepts</th>
+        <th scope="col">Original tags</th>
+        <th scope="col" class="text-end"{% if problem_filters.sort == 'mohs' %} aria-sort="ascending"{% elif problem_filters.sort == 'mohs_desc' %} aria-sort="descending"{% endif %}>
+          <a href="{{ mohs_sort_url }}" class="text-reset text-decoration-none" aria-label="Sort MOHS {% if problem_filters.sort == 'mohs' %}high to low{% else %}low to high{% endif %}">MOHS <i class="ti {% if problem_filters.sort == 'mohs' %}ti-arrow-up{% elif problem_filters.sort == 'mohs_desc' %}ti-arrow-down{% else %}ti-arrows-sort{% endif %}" aria-hidden="true"></i></a>
+        </th>
+      </tr></thead>
+      <tbody>
+        {% for problem in examples %}<tr data-problem-uuid="{{ problem.problem_uuid }}">
+          <td><a href="{{ problem.url }}" class="cb-name fs-sm">{{ problem.label }}</a></td>
+          <td><div class="cb-problem-chips">
+            {% for item in problem.concepts|slice:':2' %}<a href="{{ item.url }}" class="badge bg-primary-subtle text-primary fw-normal fs-xs">{{ item.name }}</a>{% empty %}<span class="text-muted fs-xs">—</span>{% endfor %}
+            {% if problem.concepts|length > 2 %}<details class="cb-more"><summary aria-label="Show remaining concepts for {{ problem.label }}">+{{ problem.concepts|length|add:'-2' }} more</summary><div class="cb-problem-chips mt-1">{% for item in problem.concepts|slice:'2:' %}<a href="{{ item.url }}" class="badge bg-primary-subtle text-primary fw-normal fs-xs">{{ item.name }}</a>{% endfor %}</div></details>{% endif %}
+          </div></td>
+          <td><div class="cb-problem-chips">
+            {% for tag in problem.source_tags|slice:':3' %}<span class="badge bg-secondary-subtle text-secondary-emphasis fw-normal fs-xs">{{ tag }}</span>{% empty %}<span class="text-muted fs-xs">—</span>{% endfor %}
+            {% if problem.source_tags|length > 3 %}<details class="cb-more"><summary aria-label="Show remaining original tags for {{ problem.label }}">+{{ problem.source_tags|length|add:'-3' }} more</summary><div class="cb-problem-chips mt-1">{% for tag in problem.source_tags|slice:'3:' %}<span class="badge bg-secondary-subtle text-secondary-emphasis fw-normal fs-xs">{{ tag }}</span>{% endfor %}</div></details>{% endif %}
+          </div></td>
+          <td class="text-end fw-semibold fs-sm">{{ problem.mohs|default_if_none:'—' }}</td>
+        </tr>{% empty %}<tr><td colspan="4" class="text-muted fs-sm py-4">No problems match this scope{% if problem_filters.q or problem_filters.mohs_min or problem_filters.mohs_max %} and filters{% endif %}. Try another concept or <a href="{{ problem_reset_url }}">reset the filters</a>.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if examples.paginator.num_pages > 1 %}<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 px-3 py-2 border-top">
+    <span class="text-muted fs-xs">{{ examples.start_index }}–{{ examples.end_index }} of {{ examples.paginator.count }}</span>
+    <nav aria-label="Problem pages" class="d-flex align-items-center gap-2">
+      {% if examples.has_previous %}<a class="btn btn-sm btn-outline-secondary" href="{{ pagination_url }}&amp;page={{ examples.previous_page_number }}">Previous</a>{% endif %}
+      <span class="text-muted fs-xs">{{ examples.number }} / {{ examples.paginator.num_pages }}</span>
+      {% if examples.has_next %}<a class="btn btn-sm btn-outline-secondary" href="{{ pagination_url }}&amp;page={{ examples.next_page_number }}">Next</a>{% endif %}
+    </nav>
+  </div>{% endif %}
+{% endif %}
