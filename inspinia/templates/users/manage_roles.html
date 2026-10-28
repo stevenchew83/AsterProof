@@ -25,14 +25,14 @@
   </div>
   {% endif %}
 
-  <div class="row mt-3">
+  <div class="row g-3 mt-0">
     <div class="col-12">
       <form method="post" class="card">
         {% csrf_token %}
         <div class="card-header border-0 pb-0">
           <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
             <div>
-              <h4 class="header-title mb-0">{% translate "User access" %}</h4>
+              <h4 class="header-title mb-0">{% translate "Access settings" %}</h4>
               <p class="text-muted fs-xs mb-0">
                 {% translate "Admin-only access settings. Approval unlocks authenticated AsterProof features. Admin and superuser accounts are always treated as approved." %}
               </p>

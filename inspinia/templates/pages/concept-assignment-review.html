@@ -4,10 +4,10 @@
 <div class="container-fluid">
   {% url 'pages:archive_hub' as header_archive_url %}
   <header class="page-title-head app-page-header">
-    {% include 'partials/page-header-intro.html' with title='Concept assignment review' subtitle='Archive tools' page_icon='ti-hierarchy-2' back_url=header_archive_url back_label='Archive' only %}
+    {% include 'partials/page-header-intro.html' with title='Concept assignment review' page_icon='ti-hierarchy-2' back_url=header_archive_url back_label='Archive' only %}
     <div class="app-page-header-actions">
       <div class="dropdown">
-        <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="ti ti-download me-1" aria-hidden="true"></i>Export</button>
+        <button class="btn btn-outline-secondary btn-sm dropdown-toggle app-page-header-action-icon d-inline-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Export review" title="Export review"><i class="ti ti-download" aria-hidden="true"></i><span>Export</span></button>
         <ul class="dropdown-menu dropdown-menu-end">
           <li><a class="dropdown-item" href="?{{ request.GET.urlencode }}&amp;export=csv">Export page CSV</a></li>
           <li><a class="dropdown-item" href="?{{ request.GET.urlencode }}&amp;export=json">Export page JSON</a></li>
