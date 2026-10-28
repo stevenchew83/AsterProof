@@ -3,8 +3,11 @@
 {% block extra_css %}<style>.assignment-evidence{white-space:pre-wrap;overflow-wrap:anywhere}.assignment-reference{position:sticky;top:calc(var(--ins-topbar-height,64px) + 1rem);max-height:calc(100vh - var(--ins-topbar-height,64px) - 2rem);overflow:auto}@media(max-width:1199.98px){.assignment-reference{position:static;max-height:none}}</style>{% endblock %}
 {% block page_content %}
 <div class="container-fluid">
-  {% include 'partials/page-title.html' with title='Review problem concepts' subtitle='Archive tools' %}
-  <div class="d-flex justify-content-between align-items-center gap-2 mb-3"><div><h1 class="h3 mb-1">{{ source.label }}</h1><span class="text-muted">{{ source.subject }} · {{ coverage.concept_coverage|length }} accepted · {{ coverage.concept_suggestions|length }} suggestions</span></div><a class="btn btn-outline-secondary btn-sm" href="{% url 'pages:concept_assignment_review' %}">Back to queue</a></div>
+  {% url 'pages:concept_assignment_review' as header_review_url %}
+  <header class="page-title-head app-page-header">
+    {% include 'partials/page-header-intro.html' with title=source.label subtitle='Review problem concepts' page_icon='ti-hierarchy-2' back_url=header_review_url back_label='Back to queue' only %}
+  </header>
+  <p class="text-muted fs-sm mb-3">{{ source.subject }} · {{ coverage.concept_coverage|length }} accepted · {{ coverage.concept_suggestions|length }} suggestions</p>
   {% if not storage_ready %}<div class="alert alert-info" role="status">Read-only preview. Applying decisions requires the separate review-storage schema rollout.</div>{% endif %}
   {% if trace.conflicts %}<div class="alert alert-danger" role="alert">Identity conflict: {{ trace.conflicts|join:', ' }}. Resolve the problem linkage before applying decisions.</div>{% endif %}
   <div class="row g-3">

@@ -169,7 +169,7 @@
 {% block page_content %}
 <div class="container-fluid contest-progress-page">
 
-  {% include 'partials/page-title.html' with title='Contest progress' subtitle=selected_contest|default:'Contest drill-down' %}
+  {% include 'partials/page-title.html' with title='Contest progress' subtitle=selected_contest|default:'Contest drill-down' page_icon='ti-chart-line' %}
 
   {% if not has_contests %}
   <div class="alert alert-info mt-3" role="alert">

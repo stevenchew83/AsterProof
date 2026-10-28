@@ -46,32 +46,6 @@
     color: var(--pl-warm);
   }
 
-  .problem-list-public-hero {
-    padding: 2.5rem 0 1.5rem;
-  }
-
-  .problem-list-public-eyebrow {
-    color: var(--pl-warm);
-    font-size: 0.75rem;
-    font-weight: 700;
-    letter-spacing: 0;
-    text-transform: uppercase;
-  }
-
-  .problem-list-public-title {
-    max-width: 48rem;
-    color: var(--pl-ink);
-    font-size: 3rem;
-    line-height: 1;
-  }
-
-  .problem-list-public-description {
-    max-width: 46rem;
-    color: var(--pl-muted);
-    font-size: 1.05rem;
-    line-height: 1.65;
-  }
-
   .problem-list-public-card {
     border: 1px solid var(--pl-border);
     border-radius: 0.5rem;
@@ -194,17 +168,6 @@
     color: #cbdad6 !important;
   }
 
-  @media (max-width: 575.98px) {
-    .problem-list-public-hero {
-      padding-top: 1.75rem;
-    }
-
-    .problem-list-public-title {
-      font-size: 2rem;
-      line-height: 1.1;
-    }
-
-  }
 </style>
 {% endblock extra_css %}
 
@@ -236,15 +199,10 @@
   </header>
 
   <main class="container pb-5">
-    <section class="problem-list-public-hero">
-      <div class="d-flex flex-column gap-4">
-        <div>
-          <p class="problem-list-public-eyebrow mb-2">Curated by {{ problem_list_author_label }}</p>
-          <h1 class="problem-list-public-title fw-bold mb-3">{{ problem_list.title }}</h1>
-          {% if problem_list.description %}
-          <p class="problem-list-public-description mb-0">{{ problem_list.description }}</p>
-          {% endif %}
-        </div>
+    <header class="app-page-header">
+      {% with author_context='Curated by '|add:problem_list_author_label %}
+        {% include 'partials/page-header-intro.html' with title=problem_list.title subtitle=author_context page_icon='ti-list-details' only %}
+      {% endwith %}
         {% if can_vote %}
         <form method="post" action="{% url 'problemsets:vote' problem_list.list_uuid %}" class="d-flex flex-wrap gap-2">
           {% csrf_token %}
@@ -257,8 +215,8 @@
           </button>
         </form>
         {% endif %}
-      </div>
-    </section>
+      {% if problem_list.description %}<p class="app-page-header-description">{{ problem_list.description }}</p>{% endif %}
+    </header>
 
     {% if problem_list_items %}
     <div class="d-grid gap-4">

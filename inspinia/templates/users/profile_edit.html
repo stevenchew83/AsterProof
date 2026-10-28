@@ -34,27 +34,12 @@
 {% block problem_page_content %}
   <section class="problem-section">
     <div class="container">
-      <a class="problem-back-link" href="{% url 'users:profile' %}">
-        <i class="ti ti-arrow-left"></i>
-        Back to profile
-      </a>
-
+      {% url 'users:profile' as header_profile_url %}
+      <header class="app-page-header">
+        {% include 'partials/page-header-intro.html' with title='Edit profile' subtitle=request.user.email page_icon='ti-user-edit' back_url=header_profile_url back_label='Profile' only %}
+      </header>
       <div class="row g-4">
-        <div class="col-lg-4">
-          <div class="problem-hero-card profile-edit-card h-100">
-            <span class="problem-label">Edit profile</span>
-            <h1 class="problem-title mt-3 mb-3" style="max-width: 12ch;">Refresh your profile.</h1>
-            <p class="problem-lead mb-0">
-              Update the fields your account space uses, while keeping the admin dashboard separate.
-            </p>
-            <div class="problem-chip-row mt-4">
-              <span class="problem-pill"><i class="ti ti-user-circle"></i> {{ request.user.email }}</span>
-              <span class="problem-pill"><i class="ti ti-shield-check"></i> {{ request.user.get_role_display }}</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-lg-8">
+        <div class="col-12">
           <div class="problem-directory-card profile-edit-card">
             <div class="problem-directory-head">
               <div>

@@ -4,7 +4,7 @@
 
 {% block page_content %}
 <div class="container-fluid py-4">
-  {% include 'partials/page-title.html' with title='PDF export failed' subtitle=problem_data.problem_label %}
+  {% include 'partials/page-title.html' with title='PDF export failed' subtitle=problem_data.problem_label page_icon='ti-file-alert' %}
   <div class="alert alert-danger" role="alert">
     LaTeX did not produce a PDF. Fix any errors in your block bodies and try again.
   </div>

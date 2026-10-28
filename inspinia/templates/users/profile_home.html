@@ -5,30 +5,9 @@
 {% block extra_css %}
   {{ block.super }}
   <style>
-    .profile-hero-card {
-      padding: 1.75rem;
-    }
-
-    .profile-title {
-      max-width: 16ch;
-      margin-bottom: 0.75rem;
-    }
-
-    .profile-hero-head,
-    .profile-action-stack,
     .profile-detail-stack {
       display: flex;
       gap: 1rem;
-    }
-
-    .profile-hero-head {
-      justify-content: space-between;
-      align-items: flex-start;
-    }
-
-    .profile-action-stack {
-      flex-wrap: wrap;
-      justify-content: flex-end;
     }
 
     .profile-detail-stack {
@@ -201,14 +180,6 @@
     }
 
     @media (max-width: 767.98px) {
-      .profile-hero-head {
-        flex-direction: column;
-      }
-
-      .profile-action-stack {
-        justify-content: flex-start;
-      }
-
       .profile-analytics-grid {
         grid-template-columns: 1fr;
       }
@@ -219,11 +190,6 @@
 {% block problem_page_content %}
   <section class="problem-section profile-content-section">
     <div class="container">
-      <a class="problem-back-link" href="{% url 'pages:user_activity_dashboard' %}">
-        <i class="ti ti-arrow-left"></i>
-        Back to dashboard
-      </a>
-
       {% if messages %}
       <div class="mt-4">
         {% for message in messages %}
@@ -235,26 +201,16 @@
       </div>
       {% endif %}
 
-      <div class="problem-hero-card profile-hero-card">
-        <span class="problem-label">Profile</span>
-        <div class="profile-hero-head mt-3">
-          <div>
-            <h1 class="problem-title profile-title">{{ profile_user.name|default:profile_user.email }}</h1>
-            <p class="problem-lead mb-0">
-              Your profile keeps account details easy to manage without sending you into the admin dashboard.
-            </p>
-          </div>
-          <div class="profile-action-stack">
-            <a class="btn btn-primary rounded-pill px-4" href="{% url 'users:profile_edit' %}">
-              <i class="ti ti-edit me-1"></i> Edit profile
-            </a>
-            <a class="btn btn-outline-secondary rounded-pill px-4" href="{% url 'pages:archive_hub' %}">
-              <i class="ti ti-list-details me-1"></i> Open archive
-            </a>
-          </div>
+      {% url 'pages:user_activity_dashboard' as header_dashboard_url %}
+      <header class="app-page-header">
+        {% include 'partials/page-header-intro.html' with title=profile_user.name|default:profile_user.email subtitle='Profile' page_icon='ti-user-circle' back_url=header_dashboard_url back_label='Dashboard' only %}
+        <div class="app-page-header-actions">
+          <a class="btn btn-sm btn-primary" href="{% url 'users:profile_edit' %}"><i class="ti ti-edit me-1" aria-hidden="true"></i> Edit profile</a>
+          <a class="btn btn-sm btn-outline-secondary" href="{% url 'pages:archive_hub' %}"><i class="ti ti-list-details me-1" aria-hidden="true"></i> Open archive</a>
         </div>
-
-        <div class="problem-chip-row mt-4">
+      </header>
+      <div class="mb-3">
+        <div class="problem-chip-row">
           <span class="problem-pill"><i class="ti ti-mail"></i> {{ profile_user.email }}</span>
           <span class="problem-pill"><i class="ti ti-shield-check"></i> {{ profile_user.get_role_display }}</span>
           {% if profile_user.school %}
