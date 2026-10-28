@@ -234,6 +234,7 @@ deploy” request means merging through a pull request and dispatching the exact
 [`Production deploy`](.github/workflows/production-deploy.yml) workflow; it never authorizes a workstation SSH deploy.
 
 - [Normal production release](docs/deployment/production-release.md)
+- [Operator login and AsterProof AWS SSO](docs/deployment/production-release.md#operator-login)
 - [One-time target bootstrap](docs/deployment/production-bootstrap.md)
 - [GitHub governance](docs/deployment/github-administration.md)
 - [Rollback and operation recovery](docs/deployment/rollback-and-recovery.md)
