@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n %}
+{% load i18n static %}
 {% block title %}
   {% block head_title %}
     {% trans "Sign In" %}
@@ -11,8 +11,11 @@
       <div class="row justify-content-center">
         <div class="col-12 col-md-8 col-lg-6 col-xl-5 col-xxl-4">
           <div class="text-center mb-4">
-            <a href="{% url 'account_login' %}" class="text-decoration-none">
-              <h1 class="h3 mb-1 text-body">AsterProof</h1>
+            <a href="{% url 'account_login' %}" class="auth-brand d-inline-block mb-1">
+              <img src="{% static 'images/asterproof-logo.svg' %}"
+                   class="auth-brand-dark" alt="AsterProof" width="507" height="100">
+              <img src="{% static 'images/asterproof-logo-light.svg' %}"
+                   class="auth-brand-light" alt="AsterProof" width="507" height="100">
             </a>
             <p class="text-muted mb-0">Sign in or create an account to access the workspace.</p>
           </div>
