@@ -1,0 +1,6 @@
+{% load i18n %}{% trans "Hello from AsterProof," %}
+
+{% block content %}{% endblock content %}
+
+{% trans "The AsterProof team" %}
+{% trans "One problem. One insight. One step forward." %}

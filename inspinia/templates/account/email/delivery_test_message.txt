@@ -1,0 +1,4 @@
+{% extends "account/email/base_message.txt" %}
+{% block content %}This is a test of AsterProof's Gmail email delivery and branded templates.
+
+No account details or passwords have changed. No other users were contacted.{% endblock content %}

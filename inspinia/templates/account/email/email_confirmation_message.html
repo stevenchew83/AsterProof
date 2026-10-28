@@ -1,0 +1,17 @@
+{% extends "account/email/base_message.html" %}
+{% load i18n %}
+{% block email_title %}{% trans "Confirm your email" %} | AsterProof{% endblock email_title %}
+{% block preheader %}{% trans "Confirm this email address for your AsterProof account." %}{% endblock preheader %}
+{% block email_heading %}{% trans "Confirm your email." %}{% endblock email_heading %}
+{% block email_content %}
+  <p style="margin: 0 0 18px;">{% trans "Confirm this email address to connect it to your AsterProof account." %}</p>
+  {% if code %}
+    {% include "account/email/_code.html" %}
+  {% else %}
+    {% trans "Confirm email" as action_label %}
+    {% include "account/email/_action.html" with action_url=activate_url %}
+  {% endif %}
+{% endblock email_content %}
+{% block email_note %}
+  <p style="margin: 0; padding-top: 18px; border-top: 1px solid #e8e9e5; font-size: 12px; color: #627078;">{% trans "If you didn't add this email address, you can safely ignore this message." %}</p>
+{% endblock email_note %}

@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import typing
+from email.mime.image import MIMEImage
 
 from allauth.account.adapter import DefaultAccountAdapter
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from django.conf import settings
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
 from django.urls import reverse
 
 if typing.TYPE_CHECKING:
@@ -22,6 +25,31 @@ def _apply_signup_auto_approval(user: User) -> None:
 
 
 class AccountAdapter(DefaultAccountAdapter):
+    def render_mail(self, template_prefix, email, context, headers=None):
+        message = super().render_mail(template_prefix, email, context, headers=headers)
+        if isinstance(message, EmailMultiAlternatives) and not message.alternatives:
+            # Give every account notification the same HTML shell, retaining its
+            # original plain text, security details, recipients and headers.
+            html = render_to_string(
+                "account/email/fallback_message.html",
+                {
+                    **context,
+                    "email_heading": message.subject.removeprefix(settings.ACCOUNT_EMAIL_SUBJECT_PREFIX),
+                    "email_body": message.body,
+                },
+            )
+            message.attach_alternative(html, "text/html")
+        if isinstance(message, EmailMultiAlternatives) and any(
+            'src="cid:asterproof-logo"' in body for body, mimetype in message.alternatives if mimetype == "text/html"
+        ):
+            logo_path = settings.APPS_DIR / "static/images/asterproof-logo-email.png"
+            logo = MIMEImage(logo_path.read_bytes(), _subtype="png")
+            logo.add_header("Content-ID", "<asterproof-logo>")
+            logo.add_header("Content-Disposition", "inline", filename="asterproof-logo.png")
+            message.mixed_subtype = "related"
+            message.attach(logo)
+        return message
+
     def is_open_for_signup(self, request: HttpRequest) -> bool:
         return getattr(settings, "ACCOUNT_ALLOW_REGISTRATION", True)
 

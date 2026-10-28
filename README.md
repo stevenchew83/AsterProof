@@ -24,6 +24,9 @@ AsterProof is a Django 5 project built on the Inspinia dashboard shell. The curr
 - `pyproject.toml` defines pytest, coverage, mypy, djLint, and Ruff settings.
 - `.venv/` at the repo root is the intended local virtualenv and is gitignored.
 
+For Gmail SMTP setup, the hidden app-password prompt, and account email styling,
+see [transactional email](docs/email.md).
+
 ## Setup (pip)
 
 ```bash
