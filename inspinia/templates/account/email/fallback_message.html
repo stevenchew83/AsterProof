@@ -1,0 +1,5 @@
+{% extends "account/email/base_message.html" %}
+{% block email_title %}{{ email_heading }} | AsterProof{% endblock email_title %}
+{% block email_content %}
+  {{ email_body|urlize|linebreaks }}
+{% endblock email_content %}

@@ -1,0 +1,9 @@
+{% extends "account/email/base_message.html" %}
+{% load i18n %}
+{% block email_title %}{% trans "Email delivery check" %} | AsterProof{% endblock email_title %}
+{% block preheader %}{% trans "A test of AsterProof's Gmail sending configuration." %}{% endblock preheader %}
+{% block email_heading %}{% trans "Your email is connected." %}{% endblock email_heading %}
+{% block email_content %}
+  <p style="margin: 0 0 18px;">{% trans "This is a test of AsterProof's Gmail email delivery and branded templates." %}</p>
+  <p style="margin: 0;">{% trans "No account details or passwords have changed. No other users were contacted." %}</p>
+{% endblock email_content %}
