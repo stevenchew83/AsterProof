@@ -27,7 +27,7 @@
     .contest-dashboard-listing .contest-dashboard-filter-chip {
       display: inline-flex; align-items: center; gap: .25rem; text-decoration: none;
     }
-    .contest-dashboard-listing .problem-table { min-width: 57rem; font-size: .8rem; }
+    .contest-dashboard-listing .problem-table { min-width: 77rem; font-size: .8rem; }
     .contest-dashboard-listing .problem-table thead th {
       position: sticky; top: 0; z-index: 2;
       background: var(--ins-tertiary-bg);
@@ -237,7 +237,7 @@
     {% if grouped_years %}
     <div class="table-responsive">
       <table class="table table-hover align-middle mb-0 problem-table">
-        <caption class="visually-hidden">Problems across all years. Open a problem to read its statement, all tags and list tools.</caption>
+        <caption class="visually-hidden">Problems across all years. Open a problem to read its statement, all areas, concepts, tags and list tools.</caption>
         <thead>
           <tr class="text-muted fs-xs text-uppercase">
             <th class="problem-sticky-col">
@@ -248,6 +248,8 @@
             </th>
             <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by topic">Topic <i class="ti ti-arrows-sort sort-icon"></i></button></th>
             <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by MOHS">MOHS <i class="ti ti-arrows-sort sort-icon"></i></button></th>
+            <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by areas">Areas <i class="ti ti-arrows-sort sort-icon"></i></button></th>
+            <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by concepts">Concepts <i class="ti ti-arrows-sort sort-icon"></i></button></th>
             <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by tags">Tags <i class="ti ti-arrows-sort sort-icon"></i></button></th>
             <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by session">Session <i class="ti ti-arrows-sort sort-icon"></i></button></th>
             <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by published solutions">Solutions <i class="ti ti-arrows-sort sort-icon"></i></button></th>
@@ -284,9 +286,29 @@
               <span class="text-muted fs-xs">Unlinked</span>
               {% endif %}
             </td>
+            <td data-sort-value="{{ problem.concept_areas|join:', ' }}">
+              {% if problem.concept_areas %}
+              <button type="button" class="problem-tag-list js-statement-toggle" data-bs-toggle="tooltip" data-bs-container="body" aria-expanded="false" aria-controls="statement-drawer-{{ problem.anchor }}" aria-label="View all areas for {{ problem.label }}" title="{{ problem.concept_areas|join:', ' }}">
+                <span class="problem-tag-name">{{ problem.concept_areas.0 }}</span>
+                {% if problem.concept_areas|length > 1 %}<span class="badge bg-light text-dark border problem-tag-more">+{{ problem.concept_areas|length|add:"-1" }}</span>{% endif %}
+              </button>
+              {% else %}
+              <span class="text-muted fs-xs">—</span>
+              {% endif %}
+            </td>
+            <td data-sort-value="{% for concept in problem.concept_coverage %}{{ concept.display }} {% endfor %}">
+              {% if problem.concept_coverage %}
+              <button type="button" class="problem-tag-list js-statement-toggle" data-bs-toggle="tooltip" data-bs-container="body" aria-expanded="false" aria-controls="statement-drawer-{{ problem.anchor }}" aria-label="View all concepts for {{ problem.label }}" title="{% for concept in problem.concept_coverage %}{{ concept.display }}{% if not forloop.last %}, {% endif %}{% endfor %}">
+                <span class="problem-tag-name">{{ problem.concept_coverage.0.display }}</span>
+                {% if problem.concept_coverage|length > 1 %}<span class="badge bg-light text-dark border problem-tag-more">+{{ problem.concept_coverage|length|add:"-1" }}</span>{% endif %}
+              </button>
+              {% else %}
+              <span class="text-muted fs-xs">—</span>
+              {% endif %}
+            </td>
             <td data-sort-value="{% for tag in problem.topic_tags %}{{ tag.technique }} {% endfor %}">
               {% if problem.topic_tags %}
-              <button type="button" class="problem-tag-list js-statement-toggle" aria-expanded="false" aria-controls="statement-drawer-{{ problem.anchor }}" aria-label="View all tags for {{ problem.label }}" title="{% for tag in problem.topic_tags %}{{ tag.technique }}{% if not forloop.last %}, {% endif %}{% endfor %}">
+              <button type="button" class="problem-tag-list js-statement-toggle" data-bs-toggle="tooltip" data-bs-container="body" aria-expanded="false" aria-controls="statement-drawer-{{ problem.anchor }}" aria-label="View all tags for {{ problem.label }}" title="{% for tag in problem.topic_tags %}{{ tag.technique }}{% if not forloop.last %}, {% endif %}{% endfor %}">
                 <span class="problem-tag-name">{{ problem.topic_tags.0.technique }}</span>
                 {% if problem.topic_tags|length > 1 %}<span class="badge bg-light text-dark border problem-tag-more">+{{ problem.topic_tags|length|add:"-1" }}</span>{% endif %}
               </button>
@@ -355,7 +377,7 @@
             </td>
           </tr>
           <tr id="statement-drawer-{{ problem.anchor }}" class="statement-drawer-row js-statement-drawer d-none">
-            <td colspan="7">
+            <td colspan="9">
               <div class="statement-drawer-panel">
                 <div class="d-flex align-items-start justify-content-between gap-3 mb-2">
                   <div>
@@ -369,6 +391,22 @@
                   </div>
                   <button type="button" class="btn btn-light btn-sm js-statement-close" aria-label="Close details for {{ problem.label }}"><i class="ti ti-x" aria-hidden="true"></i></button>
                 </div>
+                {% if problem.concept_areas %}
+                <div class="mb-3">
+                  <h3 class="text-muted fs-xs text-uppercase fw-semibold mb-1">Areas</h3>
+                  <div class="problem-detail-tags">
+                    {% for area in problem.concept_areas %}<span class="badge bg-light text-dark border">{{ area }}</span>{% endfor %}
+                  </div>
+                </div>
+                {% endif %}
+                {% if problem.concept_coverage %}
+                <div class="mb-3">
+                  <h3 class="text-muted fs-xs text-uppercase fw-semibold mb-1">Concepts</h3>
+                  <div class="problem-detail-tags">
+                    {% for concept in problem.concept_coverage %}<span class="badge bg-light text-dark border">{{ concept.display }}</span>{% endfor %}
+                  </div>
+                </div>
+                {% endif %}
                 {% if problem.topic_tags %}
                 <div class="problem-detail-tags mb-3">
                   {% for tag in problem.topic_tags %}<span class="badge bg-light text-dark border" {% if tag.domains_label %}title="Domains: {{ tag.domains_label }}"{% endif %}>{{ tag.technique }}</span>{% endfor %}
@@ -412,7 +450,7 @@
         </tbody>
       </table>
     </div>
-    <div class="px-3 py-2 border-top text-muted fs-xs">Open a problem for its statement, all tags and list tools.</div>
+    <div class="px-3 py-2 border-top text-muted fs-xs">Open a problem for its statement, all areas, concepts, tags and list tools.</div>
     {% else %}
     <div class="p-4 text-center text-muted" role="status">No problems matched the current filters inside <strong>{{ contest_title }}</strong>.</div>
     {% endif %}
