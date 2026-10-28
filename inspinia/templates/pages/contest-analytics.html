@@ -1,322 +1,201 @@
 {% extends 'layouts/vertical.html' %}
 
-{% load static i18n %}
+{% load static %}
 
 {% block title %}Contest analytics{% endblock title %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'plugins/datatables/dataTables.bootstrap5.min.css' %}">
 <style>
-  .contest-dashboard-table-tools .dt-search {
-    display: none;
+  .contest-workspace { padding-bottom: 1rem; }
+  .contest-workspace h2 { font-size: .95rem; font-weight: 600; margin: 0; }
+  .contest-workspace .card { border: 1px solid var(--ins-border-color); box-shadow: none; }
+  .contest-directory-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; padding: .875rem 1rem; border-bottom: 1px solid var(--ins-border-color); }
+  .contest-directory-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; padding: .75rem 1rem; }
+  .contest-search { position: relative; flex: 1 1 15rem; }
+  .contest-search > i { position: absolute; inset-inline-start: .75rem; top: 50%; transform: translateY(-50%); color: var(--ins-secondary-color); pointer-events: none; }
+  .contest-search input { padding-inline-start: 2.25rem; }
+  .contest-workspace .form-control, .contest-workspace .form-select, .contest-workspace .btn-sm { min-height: 2.125rem; font-size: .8125rem; }
+  .contest-workspace .btn-outline-secondary { --ins-btn-color: var(--ins-body-color); --ins-btn-border-color: var(--ins-border-color); --ins-btn-hover-color: var(--ins-emphasis-color); --ins-btn-hover-bg: var(--ins-tertiary-bg); --ins-btn-hover-border-color: var(--ins-secondary-color); --ins-btn-active-color: var(--ins-emphasis-color); --ins-btn-active-bg: var(--ins-tertiary-bg); --ins-btn-active-border-color: var(--ins-secondary-color); }
+  .contest-directory-toolbar .form-select { width: auto; max-width: 100%; }
+  .contest-filter-status { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; padding: 0 1rem .625rem; font-size: .75rem; color: var(--ins-secondary-color); }
+  .contest-filter-status button { border: 0; background: transparent; padding: 0; color: var(--ins-primary-text-emphasis); text-decoration: underline; text-underline-offset: .2em; }
+  .contest-table-wrap { overflow-x: auto; }
+  .contest-workspace .dt-container > .row { margin: 0; padding: .75rem 1rem; font-size: .75rem; }
+  .contest-workspace .dt-container > .row > div { padding-inline: 0; }
+  .contest-workspace .dt-container .dt-layout-table { padding: 0; }
+  .contest-workspace table.dataTable { margin: 0 !important; width: 100% !important; }
+  .contest-workspace table.dataTable > thead > tr > th { background: var(--ins-tertiary-bg); color: var(--ins-secondary-color); font-size: .6875rem; font-weight: 600; white-space: nowrap; padding-block: .625rem; }
+  .contest-workspace table.dataTable > tbody > tr > td { padding: .65rem .875rem; border-color: var(--ins-border-color); font-size: .8125rem; font-variant-numeric: tabular-nums; }
+  .contest-workspace table.dataTable > thead > tr > th:first-child, .contest-workspace table.dataTable > tbody > tr > td:first-child { padding-inline-start: 1rem; }
+  .contest-workspace table.dataTable > tbody > tr:hover > td { background: var(--ins-tertiary-bg); box-shadow: none; }
+  .contest-name { display: inline-block; max-width: 30rem; color: var(--ins-emphasis-color); line-height: 1.4; }
+  .contest-name:hover { color: var(--ins-primary-text-emphasis); }
+  .contest-row-meta { color: var(--ins-secondary-color); font-size: .6875rem; margin-top: .125rem; }
+  .contest-coverage { display: inline-flex; align-items: center; justify-content: flex-end; gap: .5rem; min-width: 7rem; }
+  .contest-coverage .progress { width: 3.25rem; height: .25rem; background: var(--ins-tertiary-bg); }
+  .contest-coverage .progress-bar { background: var(--ins-primary); }
+  .contest-coverage-value { min-width: 3.25rem; }
+  .contest-row-action { white-space: nowrap; }
+  .contest-row-action i { transition: transform .15s ease; }
+  .contest-row-action:hover i { transform: translateX(2px); }
+  .contest-insights { margin-top: 1rem; }
+  .contest-insights-toggle { display: flex; align-items: center; gap: .75rem; width: 100%; padding: .875rem 1rem; background: transparent; border: 0; color: var(--ins-emphasis-color); text-align: start; }
+  .contest-insights-toggle > .ti-chevron-down { margin-inline-start: auto; transition: transform .15s ease; }
+  .contest-insights-toggle[aria-expanded="true"] > .ti-chevron-down { transform: rotate(180deg); }
+  .contest-insights-content { padding: 0 1rem 1rem; }
+  .contest-chart-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; margin-block: .75rem .25rem; }
+  .contest-chart-toolbar .form-select { width: auto; max-width: 100%; }
+  .contest-chart { min-height: 340px; }
+  .contest-quality-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: .5rem; margin-top: .75rem; }
+  .contest-quality-row { padding: .625rem .75rem; border: 1px solid var(--ins-border-color); border-radius: var(--ins-border-radius); color: var(--ins-body-color); }
+  .contest-quality-row:hover { background: var(--ins-tertiary-bg); border-color: var(--ins-primary); }
+  .contest-workspace :is(a, button, input, select, .contest-table-wrap):focus-visible { outline: 2px solid var(--ins-primary); outline-offset: 3px; }
+  @media (max-width: 767.98px) {
+    .contest-workspace .app-page-header--with-stats { grid-template-columns: minmax(0, 1fr); }
+    .contest-workspace .app-page-header .app-page-header-actions { grid-column: 1; grid-row: 2; }
+    .contest-workspace .app-page-header .app-page-header-stats { grid-column: 1; grid-row: 3; }
+    .contest-directory-toolbar { align-items: stretch; }
+    .contest-search { flex-basis: 100%; }
+    .contest-workspace table.dataTable > tbody > tr > td { padding-block: .625rem; }
+    .contest-name { min-width: 10rem; max-width: 15rem; }
+    .contest-insights-toggle .text-muted { display: none; }
+    .contest-workspace .dt-container > .row:not(.dt-layout-table) { gap: .5rem; }
   }
-
-  .contest-dashboard-table-tools .dt-length,
-  .contest-dashboard-table-tools .dt-info,
-  .contest-dashboard-table-tools .dt-paging {
-    font-size: 0.8rem;
-  }
-
-  .contest-leader-link,
-  .contest-quality-row {
-    transition: border-color 0.15s ease, background-color 0.15s ease;
-  }
-
-  .contest-leader-link:hover,
-  .contest-quality-row:hover {
-    border-color: var(--bs-primary) !important;
-    background-color: var(--bs-primary-bg-subtle);
+  @media (prefers-reduced-motion: reduce) {
+    .contest-workspace *, .contest-workspace *::before, .contest-workspace *::after { transition: none !important; }
   }
 </style>
 {% endblock extra_css %}
 
 {% block page_content %}
-
-<div class="container-fluid">
-
-  {% include 'partials/page-title.html' with title='Contest analytics' subtitle='Admin' page_icon='ti-chart-bar' %}
-
-  <div class="row g-3 mt-0">
-    <div class="col-sm-6 col-xl-3">
-      <div class="card m-0">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-primary-subtle text-primary rounded">
-                <i class="ti ti-trophy fs-24"></i>
-              </span>
-            </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Distinct contests</p>
-              <h3 class="mb-0">{{ contest_total }}</h3>
-              <p class="text-muted fs-xs mb-0">{{ contest_stats.multi_year_contests }} multi-year contests</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-6 col-xl-3">
-      <div class="card m-0">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-info-subtle text-info rounded">
-                <i class="ti ti-database fs-24"></i>
-              </span>
-            </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Statement rows</p>
-              <h3 class="mb-0">{{ contest_problem_total }}</h3>
-              <p class="text-muted fs-xs mb-0">{{ contest_stats.global_year_span_label }} active row span</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-6 col-xl-3">
-      <div class="card m-0">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-warning-subtle text-warning rounded">
-                <i class="ti ti-stack-3 fs-24"></i>
-              </span>
-            </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Avg statements per contest</p>
-              <h3 class="mb-0">{{ contest_stats.average_problems_per_contest }}</h3>
-              <p class="text-muted fs-xs mb-0">
-                {% if contest_leaders.biggest %}
-                Largest: {{ contest_leaders.biggest.contest }}
-                {% else %}
-                No contest rows yet
-                {% endif %}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-6 col-xl-3">
-      <div class="card m-0">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-success-subtle text-success rounded">
-                <i class="ti ti-circle-check fs-24"></i>
-              </span>
-            </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Rows with full metadata</p>
-              <h3 class="mb-0">{{ contest_stats.complete_metadata_percent }}%</h3>
-              <p class="text-muted fs-xs mb-0">
-                MOHS {{ contest_stats.mohs_coverage_percent }}% · Topics {{ contest_stats.topic_coverage_percent }}% · Techniques {{ contest_stats.technique_coverage_percent }}%
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+<div class="container-fluid contest-workspace">
+  {% url 'pages:archive_hub' as header_archive_url %}
+  <header class="page-title-head app-page-header app-page-header--with-stats">
+    {% include 'partials/page-header-intro.html' with title='Contest analytics' page_icon='ti-chart-bar' back_url=header_archive_url back_label='Archive' only %}
+    <dl class="app-page-header-stats" aria-label="Archive overview">
+      {% include 'partials/page-header-stat.html' with label='Contests' value=contest_total|floatformat:"0g" stat_icon='ti-trophy' only %}
+      {% include 'partials/page-header-stat.html' with label='Statements' value=contest_problem_total|floatformat:"0g" stat_icon='ti-stack-2' only %}
+      {% include 'partials/page-header-stat.html' with label='Archive years' value=contest_stats.global_year_span_label stat_icon='ti-calendar' text_value=True only %}
+      {% include 'partials/page-header-stat.html' with label='Complete metadata' value=contest_stats.complete_metadata_percent|floatformat:1 unit='%' stat_icon='ti-shield-check' accent=True only %}
+    </dl>
+    <nav class="app-page-header-actions" aria-label="Related contest tools">
+      <a href="{% url 'pages:contest_mohs_summary' %}" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-2" aria-label="MOHS summary" title="MOHS summary"><i class="ti ti-chart-dots" aria-hidden="true"></i>MOHS</a>
+      <a href="{% url 'pages:contest_advanced_dashboard' %}" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-2" aria-label="Contest progress" title="Contest progress"><i class="ti ti-chart-line" aria-hidden="true"></i>Progress</a>
+    </nav>
+  </header>
 
   {% if contest_total == 0 %}
-  <div class="alert alert-info mt-4" role="alert">
-    <strong>No contest data yet.</strong> Import analytics via <a href="{% url 'pages:problem_import' %}" class="alert-link">Import problems</a> to populate this dashboard.
+  <div class="card text-center p-4">
+    <i class="ti ti-trophy fs-24 text-muted mb-2" aria-hidden="true"></i>
+    <h2>No contest data yet.</h2>
+    <p class="text-muted mt-2 mb-3">Import problems to start exploring the contest archive.</p>
+    <div><a href="{% url 'pages:problem_import' %}" class="btn btn-primary btn-sm">Import problems</a></div>
   </div>
   {% else %}
-
-  <div class="alert alert-info mt-3 mb-0" role="alert">
-    <div class="d-flex gap-2">
-      <i class="ti ti-bulb fs-22 flex-shrink-0"></i>
-      <div>
-        <p class="fw-semibold mb-1">Dataset readout</p>
-        <p class="mb-0 fs-sm">
-          {{ contest_insights.largest }}
-          {{ contest_insights.longest_running }}
-          {{ contest_insights.hardest }}
-          {{ contest_insights.metadata }}
-        </p>
+  <section class="card mb-0" aria-labelledby="contest-directory-title">
+    <div class="contest-directory-header">
+      <h2 id="contest-directory-title">Contest directory</h2>
+      <div class="d-flex flex-wrap gap-2">
+        <button type="button" id="contest-directory-columns" class="btn btn-outline-secondary btn-sm" aria-pressed="false" aria-controls="contest-analytics-table"><i class="ti ti-columns-3 me-1" aria-hidden="true"></i>More columns</button>
+        <button type="button" id="contest-directory-copy" aria-live="polite" class="btn btn-outline-primary btn-sm"><i class="ti ti-copy me-1" aria-hidden="true"></i>Copy filtered rows</button>
       </div>
     </div>
-  </div>
+    <div class="contest-directory-toolbar">
+      <div class="contest-search">
+        <label class="visually-hidden" for="contest-directory-search">Search contests</label>
+        <i class="ti ti-search" aria-hidden="true"></i>
+        <input id="contest-directory-search" type="search" class="form-control form-control-sm" placeholder="Search contests or years…" aria-controls="contest-analytics-table">
+      </div>
+      <label class="visually-hidden" for="contest-directory-quality-filter">Quality filter</label>
+      <select id="contest-directory-quality-filter" class="form-select form-select-sm" aria-controls="contest-analytics-table">
+        <option value="all">All metadata</option>
+        <option value="incomplete">Incomplete metadata</option>
+        <option value="low_sample">Low sample</option>
+        <option value="missing_mohs">Missing MOHS</option>
+        <option value="missing_topic">Missing topic</option>
+        <option value="no_techniques">No concepts</option>
+      </select>
+      <label class="visually-hidden" for="contest-directory-page-size">Contests per page</label>
+      <select id="contest-directory-page-size" class="form-select form-select-sm" aria-controls="contest-analytics-table">
+        <option value="10">10 / page</option>
+        <option value="25" selected>25 / page</option>
+        <option value="50">50 / page</option>
+        <option value="100">100 / page</option>
+      </select>
+    </div>
+    <div class="contest-filter-status">
+      <span id="contest-directory-filter-summary" role="status" aria-live="polite">{{ contest_total }} contests</span>
+      <button type="button" id="contest-directory-reset" hidden>Clear filters</button>
+      <span class="ms-auto" title="Statements with MOHS, a topic, and at least one concept">Metadata = MOHS + topic + concepts</span>
+    </div>
+    <p class="d-md-none text-muted fs-xs px-3 mb-2">Swipe the table to see more columns <i class="ti ti-arrow-right" aria-hidden="true"></i></p>
+    <div class="contest-table-wrap contest-dashboard-table-tools" role="region" aria-label="Contest directory table" tabindex="0">
+      <table id="contest-analytics-table" class="table table-hover align-middle w-100"><caption class="visually-hidden">Contest difficulty, archive size, and metadata coverage. Select a contest for detailed analytics.</caption></table>
+    </div>
+  </section>
 
-  <div class="row g-3 mt-1">
-    <div class="col-xxl-8">
-      <div class="card h-100">
-        <div class="card-header border-0 pb-0">
-          <div class="d-flex flex-wrap align-items-start gap-2">
-            <div class="flex-grow-1">
-              <h4 class="header-title mb-0">Ranked contests</h4>
-              <p class="text-muted fs-xs mb-0">Switch metrics without losing the comparison context</p>
-            </div>
-            <span class="badge text-bg-light">Top {{ contest_analytics_chart_limit }}</span>
-          </div>
-        </div>
-        <div class="card-body pt-2">
-          <div class="d-flex flex-wrap align-items-end gap-2 mb-3">
-            <div>
-              <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold">Metric</label>
-              <div id="contest-ranked-metric-controls" class="btn-group btn-group-sm" role="group" aria-label="Ranked contest metric">
-                <button type="button" class="btn btn-primary active" data-contest-ranked-metric="problem_count">Statements</button>
-                <button type="button" class="btn btn-outline-primary" data-contest-ranked-metric="active_years">Active years</button>
-                <button type="button" class="btn btn-outline-primary" data-contest-ranked-metric="avg_mohs">Avg MOHS</button>
-                <button type="button" class="btn btn-outline-primary" data-contest-ranked-metric="topic_coverage_percent">Topic coverage</button>
-                <button type="button" class="btn btn-outline-primary" data-contest-ranked-metric="techniques_per_problem">Technique density</button>
-              </div>
-            </div>
-            <div>
-              <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="contest-ranked-min-statements">Min sample</label>
+  <section class="card contest-insights mb-0" aria-label="Archive insights">
+    <button type="button" class="contest-insights-toggle" data-bs-toggle="collapse" data-bs-target="#contest-insights-content" aria-expanded="false" aria-controls="contest-insights-content">
+      <i class="ti ti-chart-bar text-primary fs-22" aria-hidden="true"></i>
+      <span class="fw-semibold">Explore insights</span>
+      <span class="text-muted fs-xs">Rankings, topic mix &amp; data quality</span>
+      <i class="ti ti-chevron-down" aria-hidden="true"></i>
+    </button>
+    <div id="contest-insights-content" class="collapse">
+      <div class="contest-insights-content">
+        <div class="row g-3">
+          <section class="col-xl-6" aria-labelledby="contest-ranking-title">
+            <h2 id="contest-ranking-title">Ranked contests</h2>
+            <div id="contest-ranked-metric-controls" class="contest-chart-toolbar">
+              <label class="visually-hidden" for="contest-ranked-metric">Ranking metric</label>
+              <select id="contest-ranked-metric" class="form-select form-select-sm">
+                <option value="problem_count">Statements</option>
+                <option value="active_years">Active years</option>
+                <option value="avg_mohs">Average MOHS</option>
+                <option value="topic_coverage_percent">Topic coverage</option>
+                <option value="techniques_per_problem">Concepts per statement</option>
+              </select>
+              <label class="visually-hidden" for="contest-ranked-min-statements">Minimum sample</label>
               <select id="contest-ranked-min-statements" class="form-select form-select-sm">
-                <option value="0">All</option>
-                <option value="{{ contest_analytics_low_sample_threshold }}" selected>{{ contest_analytics_low_sample_threshold }}+</option>
-                <option value="25">25+</option>
-                <option value="50">50+</option>
+                <option value="0">Any sample</option>
+                <option value="{{ contest_analytics_low_sample_threshold }}" selected>{{ contest_analytics_low_sample_threshold }}+ sample rows</option>
+                <option value="25">25+ sample rows</option>
+                <option value="50">50+ sample rows</option>
               </select>
+              <span id="contest-ranked-summary" class="text-muted fs-xs" role="status"></span>
             </div>
-            <span id="contest-ranked-summary" class="text-muted fs-xs"></span>
-          </div>
-          <div id="contest-ranked-chart" style="min-height: 360px;"></div>
+            <div id="contest-ranked-chart" class="contest-chart"></div>
+          </section>
+          <section class="col-xl-6" aria-labelledby="contest-topics-title">
+            <h2 id="contest-topics-title">Topic mix by contest</h2>
+            <p class="text-muted fs-xs mt-2 mb-0">Top {{ contest_analytics_chart_limit }} by statement count</p>
+            <div id="contest-topic-composition-chart" class="contest-chart"></div>
+          </section>
         </div>
+        <section id="contest-data-quality-watchlist" class="border-top pt-3 mt-3" aria-labelledby="contest-quality-title">
+          <div class="d-flex align-items-center justify-content-between gap-2">
+            <h2 id="contest-quality-title">Metadata to review</h2>
+            <button id="contest-directory-review" type="button" class="btn btn-sm btn-outline-secondary">View incomplete contests<i class="ti ti-arrow-up-right ms-1" aria-hidden="true"></i></button>
+          </div>
+          <div class="contest-quality-list">
+            {% for contest_row in data_quality_watchlist %}
+            <a href="{{ contest_row.detail_url }}" class="contest-quality-row text-decoration-none">
+              <div class="fw-semibold fs-sm">{{ contest_row.contest }}</div>
+              <p class="text-muted fs-xs mt-1 mb-0">{{ contest_row.complete_metadata_percent|floatformat:0 }}% complete · {{ contest_row.problem_count }} statements</p>
+            </a>
+            {% empty %}
+            <p class="text-muted fs-sm mb-0">All contest metadata is complete.</p>
+            {% endfor %}
+          </div>
+        </section>
       </div>
     </div>
-    <div class="col-xxl-4">
-      <div class="card h-100">
-        <div class="card-header border-0 pb-0">
-          <h4 class="header-title mb-0">Contest leaders</h4>
-          <p class="text-muted fs-xs mb-0">Clickable shortcuts into the advanced contest view</p>
-        </div>
-        <div class="card-body pt-2">
-          <div class="d-flex flex-column gap-2">
-            {% if contest_leaders.biggest %}
-            <a href="{{ contest_leaders.biggest.detail_url }}" class="contest-leader-link border rounded p-3 text-reset text-decoration-none">
-              <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Largest dataset</p>
-              <div class="d-flex align-items-center justify-content-between gap-2">
-                <h5 class="mb-0">{{ contest_leaders.biggest.contest }}</h5>
-                <span class="badge bg-primary-subtle text-primary">{{ contest_leaders.biggest.problem_count }} rows</span>
-              </div>
-            </a>
-            {% endif %}
-            {% if contest_leaders.longest_running %}
-            <a href="{{ contest_leaders.longest_running.detail_url }}" class="contest-leader-link border rounded p-3 text-reset text-decoration-none">
-              <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Longest-running</p>
-              <div class="d-flex align-items-center justify-content-between gap-2">
-                <h5 class="mb-0">{{ contest_leaders.longest_running.contest }}</h5>
-                <span class="badge bg-info-subtle text-info">{{ contest_leaders.longest_running.active_years }} years</span>
-              </div>
-            </a>
-            {% endif %}
-            {% if contest_leaders.hardest %}
-            <a href="{{ contest_leaders.hardest.detail_url }}" class="contest-leader-link border rounded p-3 text-reset text-decoration-none">
-              <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Hardest on average</p>
-              <div class="d-flex align-items-center justify-content-between gap-2">
-                <h5 class="mb-0">{{ contest_leaders.hardest.contest }}</h5>
-                <span class="badge bg-warning-subtle text-warning">Avg MOHS {{ contest_leaders.hardest.avg_mohs }}</span>
-              </div>
-            </a>
-            {% endif %}
-            {% if contest_leaders.broadest %}
-            <a href="{{ contest_leaders.broadest.detail_url }}" class="contest-leader-link border rounded p-3 text-reset text-decoration-none">
-              <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Broadest topic mix</p>
-              <div class="d-flex align-items-center justify-content-between gap-2">
-                <h5 class="mb-0">{{ contest_leaders.broadest.contest }}</h5>
-                <span class="badge bg-success-subtle text-success">{{ contest_leaders.broadest.distinct_topics }} topics</span>
-              </div>
-            </a>
-            {% endif %}
-          </div>
-
-          <hr class="my-3">
-
-          <div id="contest-data-quality-watchlist">
-            <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
-              <h5 class="mb-0">Data quality watchlist</h5>
-              <span class="badge bg-secondary-subtle text-secondary">{{ contest_quality_counts.missing_mohs }} with missing MOHS</span>
-            </div>
-            <div class="d-flex flex-column gap-2">
-              {% for contest_row in data_quality_watchlist %}
-              <a href="{{ contest_row.detail_url }}" class="contest-quality-row border rounded p-2 text-reset text-decoration-none">
-                <div class="d-flex align-items-center justify-content-between gap-2">
-                  <span class="fw-semibold text-truncate">{{ contest_row.contest }}</span>
-                  <span class="badge text-bg-light">{{ contest_row.complete_metadata_percent }}% complete</span>
-                </div>
-                <p class="text-muted fs-xs mb-0">
-                  Missing: MOHS {{ contest_row.missing_mohs_count }}, topics {{ contest_row.missing_topic_count }}, techniques {{ contest_row.missing_technique_count }}
-                </p>
-              </a>
-              {% endfor %}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="row g-3 mt-0">
-    <div class="col-12">
-      <div class="card">
-        <div class="card-header border-0 pb-0">
-          <h4 class="header-title mb-0">Topic mix by contest</h4>
-          <p class="text-muted fs-xs mb-0">Top contests by statement volume, stacked by effective topic metadata</p>
-        </div>
-        <div class="card-body pt-2">
-          <div id="contest-topic-composition-chart" style="min-height: 360px;"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="row g-3 mt-0 mb-4">
-    <div class="col-12">
-      <div class="card">
-        <div class="card-header border-bottom d-flex flex-wrap align-items-center gap-2">
-          <div class="flex-grow-1">
-            <h4 class="header-title mb-0">Contest directory</h4>
-            <p class="text-muted fs-xs mb-0">Search, filter, and compare contest-level metrics in-browser</p>
-          </div>
-        </div>
-        <div class="card-body">
-          <div class="d-flex flex-wrap align-items-end gap-2 mb-3">
-            <div>
-              <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="contest-directory-search">Search contests</label>
-              <input
-                id="contest-directory-search"
-                type="search"
-                class="form-control form-control-sm"
-                placeholder="Search contest, year span, or badge"
-              >
-            </div>
-            <div>
-              <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="contest-directory-quality-filter">Quality filter</label>
-              <select id="contest-directory-quality-filter" class="form-select form-select-sm">
-                <option value="all">All contests</option>
-                <option value="low_sample">Low sample</option>
-                <option value="missing_mohs">Missing MOHS</option>
-                <option value="missing_topic">Missing topic</option>
-                <option value="no_techniques">No techniques</option>
-              </select>
-            </div>
-            <button type="button" id="contest-directory-reset" class="btn btn-outline-secondary btn-sm">Reset</button>
-            <button type="button" id="contest-directory-copy" class="btn btn-outline-primary btn-sm">
-              <i class="ti ti-copy me-1"></i>Copy filtered rows
-            </button>
-            <span id="contest-directory-filter-summary" class="text-muted fs-xs">
-              {{ contest_quality_counts.missing_topics }} with missing topics · {{ contest_quality_counts.no_techniques }} with no techniques
-            </span>
-          </div>
-          <div class="table-responsive contest-dashboard-table-tools">
-            <table id="contest-analytics-table" class="table table-striped table-bordered align-middle w-100"></table>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
+  </section>
   {% endif %}
 </div>
-
 {{ charts_payload|json_script:"contest-dashboard-charts-data" }}
 {{ contest_rows|json_script:"contest-dashboard-table-data" }}
-
 {% endblock page_content %}
 
 {% block extra_javascript %}
@@ -327,31 +206,37 @@
 (function () {
   var dataEl = document.getElementById("contest-dashboard-charts-data");
   var tableEl = document.getElementById("contest-dashboard-table-data");
-  if (!dataEl || !tableEl || typeof ApexCharts === "undefined") return;
+  if (!dataEl || !tableEl) return;
 
   var charts = JSON.parse(dataEl.textContent);
   var rows = JSON.parse(tableEl.textContent);
   var rankedChart = null;
   var rankedRows = [];
+  var topicChart = null;
+  var chartStyles = getComputedStyle(document.documentElement);
+  var accentColor = chartStyles.getPropertyValue("--ins-primary").trim() || "#1ab394";
+  var textColor = chartStyles.getPropertyValue("--ins-body-color").trim();
+  var borderColor = chartStyles.getPropertyValue("--ins-border-color").trim();
+  var reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   var rankedLimit = Number("{{ contest_analytics_chart_limit }}") || 12;
 
   var metricConfig = {
     problem_count: {
-      color: "#0d6efd",
+      color: accentColor,
       label: "Statements",
       sampleField: "problem_count",
       suffix: "",
       valueField: "problem_count"
     },
     active_years: {
-      color: "#198754",
+      color: accentColor,
       label: "Active years",
       sampleField: "problem_count",
       suffix: "",
       valueField: "active_years"
     },
     avg_mohs: {
-      color: "#fd7e14",
+      color: accentColor,
       label: "Avg MOHS",
       requireField: "has_mohs",
       sampleField: "mohs_statement_count",
@@ -359,15 +244,15 @@
       valueField: "avg_mohs"
     },
     topic_coverage_percent: {
-      color: "#0dcaf0",
+      color: accentColor,
       label: "Topic coverage",
       sampleField: "problem_count",
       suffix: "%",
       valueField: "topic_coverage_percent"
     },
     techniques_per_problem: {
-      color: "#d63384",
-      label: "Technique density",
+      color: accentColor,
+      label: "Concepts per statement",
       sampleField: "problem_count",
       suffix: "",
       valueField: "techniques_per_problem"
@@ -385,7 +270,7 @@
 
   function formatMetric(value, suffix) {
     var numberValue = Number(value || 0);
-    var rendered = Number.isInteger(numberValue) ? String(numberValue) : numberValue.toFixed(2);
+    var rendered = numberValue.toLocaleString(undefined, { maximumFractionDigits: 2 });
     return suffix ? rendered + suffix : rendered;
   }
 
@@ -394,7 +279,9 @@
     return {
       chart: {
         type: "bar",
-        height: Math.max(360, 34 * Math.max(labels.length, 8)),
+        height: 390,
+        foreColor: textColor,
+        animations: { enabled: !reducedMotion },
         toolbar: { show: false },
         fontFamily: "inherit",
         events: {
@@ -407,13 +294,14 @@
         }
       },
       colors: [config.color],
+      theme: { mode: document.documentElement.getAttribute("data-bs-theme") === "dark" ? "dark" : "light" },
       dataLabels: {
         enabled: labels.length <= rankedLimit,
         formatter: function (value) { return formatMetric(value, config.suffix); }
       },
-      grid: { strokeDashArray: 4, borderColor: "rgba(108,117,125,0.15)" },
+      grid: { strokeDashArray: 4, borderColor: borderColor },
       noData: { text: "No contests match this sample threshold" },
-      plotOptions: { bar: { borderRadius: 3, horizontal: true, barHeight: "72%" } },
+      plotOptions: { bar: { borderRadius: 3, horizontal: true, barHeight: "58%" } },
       series: [{ name: config.label, data: values }],
       tooltip: {
         y: {
@@ -438,8 +326,8 @@
   }
 
   function selectedMetricKey() {
-    var active = document.querySelector("[data-contest-ranked-metric].active");
-    return active ? active.getAttribute("data-contest-ranked-metric") : "problem_count";
+    var metricSelect = document.getElementById("contest-ranked-metric");
+    return metricSelect ? metricSelect.value : "problem_count";
   }
 
   function selectedMinSample() {
@@ -448,6 +336,7 @@
   }
 
   function renderRankedChart() {
+    if (typeof ApexCharts === "undefined") return;
     var metricKey = selectedMetricKey();
     var config = metricConfig[metricKey] || metricConfig.problem_count;
     var minSample = selectedMinSample();
@@ -490,40 +379,37 @@
     var payload = charts.topicComposition || {};
     var labels = payload.labels || [];
     var series = payload.series || [];
-    if (!chartEl || !labels.length || !series.length) return;
-    var palette = ["#0d6efd", "#198754", "#fd7e14", "#0dcaf0", "#d63384", "#6c757d"];
-    new ApexCharts(chartEl, {
+    if (!chartEl || topicChart || !labels.length || !series.length || typeof ApexCharts === "undefined") return;
+    var palette = [accentColor, "#6689a5", "#caa56b", "#8c81a7", "#adb5bd"];
+    topicChart = new ApexCharts(chartEl, {
       chart: {
         type: "bar",
-        height: 380,
+        height: 390,
+        foreColor: textColor,
+        animations: { enabled: !reducedMotion },
         stacked: true,
         toolbar: { show: false },
         fontFamily: "inherit"
       },
       colors: palette,
+      theme: { mode: document.documentElement.getAttribute("data-bs-theme") === "dark" ? "dark" : "light" },
       dataLabels: { enabled: false },
-      grid: { strokeDashArray: 4, borderColor: "rgba(108,117,125,0.15)" },
+      grid: { strokeDashArray: 4, borderColor: borderColor },
       legend: { position: "top", horizontalAlign: "left" },
-      plotOptions: { bar: { borderRadius: 3, columnWidth: "58%" } },
+      plotOptions: { bar: { borderRadius: 2, horizontal: true, barHeight: "58%" } },
       series: series,
       tooltip: { shared: true, intersect: false },
       xaxis: {
         categories: labels,
-        labels: { rotate: labels.length > 6 ? -45 : 0, style: { fontSize: "11px" } }
+        labels: { style: { fontSize: "11px" } }
       },
-      yaxis: { labels: { style: { fontSize: "11px" } } }
-    }).render();
-  }
-
-  function qualityBadgeClass(label) {
-    if (label === "Low sample") return "bg-secondary-subtle text-secondary";
-    if (label === "No MOHS") return "bg-warning-subtle text-warning";
-    if (label === "No topic") return "bg-info-subtle text-info";
-    if (label === "No techniques") return "bg-danger-subtle text-danger";
-    return "text-bg-light";
+      yaxis: { labels: { maxWidth: 190, style: { fontSize: "11px" } } }
+    });
+    topicChart.render();
   }
 
   function qualityFilterMatches(row, filterValue) {
+    if (filterValue === "incomplete") return Number(row.complete_metadata_percent || 0) < 100;
     if (filterValue === "low_sample") return Boolean(row.is_low_sample);
     if (filterValue === "missing_mohs") return Number(row.missing_mohs_count || 0) > 0;
     if (filterValue === "missing_topic") return Number(row.missing_topic_count || 0) > 0;
@@ -548,8 +434,8 @@
       "Missing topics",
       "MOHS coverage",
       "Topic coverage",
-      "Technique coverage",
-      "Techniques / statement",
+      "Concept coverage",
+      "Concepts / statement",
       "Quality flags"
     ];
     var lines = [headers];
@@ -591,7 +477,7 @@
       area.focus();
       area.select();
       try {
-        document.execCommand("copy");
+        if (!document.execCommand("copy")) throw new Error("Copy was not available");
         document.body.removeChild(area);
         resolve();
       } catch (err) {
@@ -601,25 +487,24 @@
     });
   }
 
-  document.querySelectorAll("[data-contest-ranked-metric]").forEach(function (button) {
-    button.addEventListener("click", function () {
-      document.querySelectorAll("[data-contest-ranked-metric]").forEach(function (metricButton) {
-        metricButton.classList.remove("active", "btn-primary");
-        metricButton.classList.add("btn-outline-primary");
-      });
-      button.classList.add("active", "btn-primary");
-      button.classList.remove("btn-outline-primary");
-      renderRankedChart();
-    });
-  });
-
+  var metricSelect = document.getElementById("contest-ranked-metric");
+  if (metricSelect) metricSelect.addEventListener("change", renderRankedChart);
   var minSampleSelect = document.getElementById("contest-ranked-min-statements");
-  if (minSampleSelect) {
-    minSampleSelect.addEventListener("change", renderRankedChart);
+  if (minSampleSelect) minSampleSelect.addEventListener("change", renderRankedChart);
+  var insightsPanel = document.getElementById("contest-insights-content");
+  if (insightsPanel) {
+    insightsPanel.addEventListener("shown.bs.collapse", function () {
+      if (typeof ApexCharts === "undefined") {
+        document.getElementById("contest-ranked-chart").textContent = "Charts are unavailable. The directory is still ready to use.";
+        return;
+      }
+      chartStyles = getComputedStyle(document.documentElement);
+      textColor = chartStyles.getPropertyValue("--ins-body-color").trim();
+      borderColor = chartStyles.getPropertyValue("--ins-border-color").trim();
+      renderRankedChart();
+      renderTopicComposition();
+    });
   }
-
-  renderRankedChart();
-  renderTopicComposition();
 
   if (typeof DataTable === "undefined") return;
 
@@ -630,83 +515,79 @@
         data: "contest",
         title: "Contest",
         render: function (data, type, row) {
+          if (type === "filter") return [data, row.year_span_label].concat(row.quality_badges || []).join(" ");
           if (type !== "display") return data;
-          var badges = (row.quality_badges || []).map(function (label) {
-            return '<span class="badge ' + qualityBadgeClass(label) + '">' + escapeHtml(label) + '</span>';
-          }).join(" ");
-          return (
-            '<a href="' + escapeHtml(row.detail_url) + '" class="fw-semibold text-decoration-none">' +
-            escapeHtml(data) +
-            "</a>" +
-            (badges ? '<div class="d-flex flex-wrap gap-1 mt-1">' + badges + "</div>" : "")
-          );
+          return '<a href="' + escapeHtml(row.detail_url) + '" class="contest-name fw-semibold text-decoration-none">' +
+            escapeHtml(data) + '</a><div class="contest-row-meta">' + escapeHtml(row.year_span_label) +
+            ' · ' + Number(row.active_years || 0) + ' active years' +
+            (row.is_low_sample ? ' · <span title="Fewer than {{ contest_analytics_low_sample_threshold }} statements">Low sample</span>' : '') + '</div>';
         }
       },
-      { data: "problem_count", title: "Statements", className: "text-end text-nowrap" },
-      { data: "year_span_label", title: "Year span", className: "text-nowrap" },
-      { data: "active_years", title: "Active years", className: "text-end text-nowrap" },
+      { data: "problem_count", title: "Statements", className: "text-end text-nowrap", render: DataTable.render.number(",", ".", 0) },
       {
-        data: "avg_mohs",
-        title: "Avg MOHS",
-        className: "text-end text-nowrap",
+        data: "avg_mohs", title: "Avg MOHS", className: "text-end text-nowrap",
         render: function (data, type, row) {
-          if (type === "display" || type === "filter") {
-            return row.has_mohs ? formatMetric(data, "") : "-";
-          }
-          return data;
-        }
-      },
-      { data: "missing_mohs_count", title: "Missing MOHS", className: "text-end text-nowrap" },
-      { data: "missing_topic_count", title: "Missing topics", className: "text-end text-nowrap" },
-      {
-        data: "mohs_coverage_percent",
-        title: "MOHS coverage",
-        className: "text-end text-nowrap",
-        render: function (data, type) {
-          if (type === "display" || type === "filter") return formatMetric(data, "%");
-          return data;
+          if (type === "display" || type === "filter") return row.has_mohs ? formatMetric(data, "") : "—";
+          return row.has_mohs ? data : -1;
         }
       },
       {
-        data: "topic_coverage_percent",
-        title: "Topic coverage",
-        className: "text-end text-nowrap",
-        render: function (data, type) {
-          if (type === "display" || type === "filter") return formatMetric(data, "%");
-          return data;
+        data: "complete_metadata_percent", title: "Metadata", className: "text-end text-nowrap",
+        render: function (data, type, row) {
+          if (type !== "display") return data;
+          var value = Math.max(0, Math.min(100, Number(data) || 0));
+          var detail = 'MOHS ' + formatMetric(row.mohs_coverage_percent, '%') +
+            ' · Topics ' + formatMetric(row.topic_coverage_percent, '%') +
+            ' · Concepts ' + formatMetric(row.technique_coverage_percent, '%');
+          return '<span class="contest-coverage" title="' + escapeHtml(detail) + '">' +
+            '<span class="progress" aria-hidden="true"><span class="progress-bar" style="width:' + value + '%"></span></span>' +
+            '<span class="contest-coverage-value">' + formatMetric(value, '%') + '</span></span>';
         }
       },
       {
-        data: "technique_coverage_percent",
-        title: "Technique coverage",
-        className: "text-end text-nowrap",
+        data: "techniques_per_problem", title: "Concepts / stmt", className: "text-end text-nowrap",
         render: function (data, type) {
-          if (type === "display" || type === "filter") return formatMetric(data, "%");
-          return data;
+          return type === "display" ? Number(data || 0).toFixed(2) : data;
         }
       },
       {
-        data: "techniques_per_problem",
-        title: "Techniques / statement",
-        className: "text-end text-nowrap",
-        render: function (data, type) {
-          if (type === "display" || type === "filter") return formatMetric(data, "");
-          return data;
+        data: null, title: '<span class="visually-hidden">Browse problems</span>', orderable: false, searchable: false, className: "text-end",
+        render: function (_data, type, row) {
+          if (type !== "display") return "";
+          return '<a class="contest-row-action btn btn-sm btn-outline-secondary" href="{% url 'pages:contest_dashboard_listing' %}?contest=' +
+            encodeURIComponent(row.contest) + '" aria-label="' + escapeHtml('Browse ' + row.contest + ' problems') +
+            '">Problems<i class="ti ti-arrow-up-right ms-1" aria-hidden="true"></i></a>';
         }
       },
-      { data: "quality_issue_count", title: "Quality flags", className: "text-end text-nowrap" },
+      { data: "year_span_label", title: "Year span", className: "text-nowrap", visible: false },
+      { data: "active_years", title: "Active years", className: "text-end text-nowrap", visible: false },
+      { data: "missing_mohs_count", title: "Missing MOHS", className: "text-end text-nowrap", visible: false },
+      { data: "missing_topic_count", title: "Missing topics", className: "text-end text-nowrap", visible: false },
+      { data: "mohs_coverage_percent", title: "MOHS coverage", className: "text-end text-nowrap", visible: false, render: function (data, type) { return type === "display" ? formatMetric(data, "%") : data; } },
+      { data: "topic_coverage_percent", title: "Topic coverage", className: "text-end text-nowrap", visible: false, render: function (data, type) { return type === "display" ? formatMetric(data, "%") : data; } },
+      { data: "technique_coverage_percent", title: "Concept coverage", className: "text-end text-nowrap", visible: false, render: function (data, type) { return type === "display" ? formatMetric(data, "%") : data; } },
+      { data: "quality_issue_count", title: "Quality flags", className: "text-end text-nowrap", visible: false }
     ],
     order: [[1, "desc"], [0, "asc"]],
     pageLength: 25,
-    lengthMenu: [10, 25, 50, 100],
-    scrollX: true,
     autoWidth: false,
+    layout: { topStart: null, topEnd: null, bottomStart: "info", bottomEnd: "paging" },
+    language: {
+      info: "_START_–_END_ of _TOTAL_ contests",
+      infoEmpty: "0 contests",
+      infoFiltered: "(from _MAX_)",
+      zeroRecords: "No contests match your filters. Try another search or clear filters.",
+      emptyTable: "No contests available"
+    }
   });
 
   var searchInput = document.getElementById("contest-directory-search");
   var qualityFilter = document.getElementById("contest-directory-quality-filter");
   var resetButton = document.getElementById("contest-directory-reset");
   var copyButton = document.getElementById("contest-directory-copy");
+  var columnsButton = document.getElementById("contest-directory-columns");
+  var pageSizeSelect = document.getElementById("contest-directory-page-size");
+  var reviewButton = document.getElementById("contest-directory-review");
   var copyButtonDefaultHtml = copyButton ? copyButton.innerHTML : "";
   var copyButtonTimer = null;
 
@@ -729,6 +610,36 @@
     if (!row) return true;
     return qualityFilterMatches(row, qualityFilter ? qualityFilter.value : "all");
   });
+
+  function updateFilterSummary() {
+    var shown = table.rows({ search: "applied" }).count();
+    var filtered = Boolean((searchInput && searchInput.value) || (qualityFilter && qualityFilter.value !== "all"));
+    var summary = document.getElementById("contest-directory-filter-summary");
+    if (summary) summary.textContent = filtered ? shown + " of " + rows.length + " contests" : rows.length + " contests";
+    if (resetButton) resetButton.hidden = !filtered;
+  }
+  table.on("draw", updateFilterSummary);
+  updateFilterSummary();
+
+  if (columnsButton) {
+    columnsButton.addEventListener("click", function () {
+      var expanded = columnsButton.getAttribute("aria-pressed") !== "true";
+      table.columns([6, 7, 8, 9, 10, 11, 12, 13]).visible(expanded, false);
+      table.columns.adjust().draw(false);
+      columnsButton.setAttribute("aria-pressed", String(expanded));
+      columnsButton.innerHTML = '<i class="ti ti-columns-3 me-1" aria-hidden="true"></i>' + (expanded ? "Fewer columns" : "More columns");
+    });
+  }
+  if (pageSizeSelect) pageSizeSelect.addEventListener("change", function () { table.page.len(Number(pageSizeSelect.value)).draw(); });
+  if (reviewButton) {
+    reviewButton.addEventListener("click", function () {
+      if (searchInput) searchInput.value = "";
+      if (qualityFilter) qualityFilter.value = "incomplete";
+      table.search("").draw();
+      qualityFilter.focus();
+      document.getElementById("contest-directory-title").scrollIntoView({ behavior: reducedMotion ? "instant" : "smooth", block: "start" });
+    });
+  }
 
   if (searchInput) {
     searchInput.addEventListener("input", function () {

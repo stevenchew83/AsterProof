@@ -6272,6 +6272,7 @@ def test_contest_dashboard_listing_view_filters_selected_contest_and_year_for_ad
     response_html = response.content.decode("utf-8")
     assert '<h1 class="app-page-header-title">USAMO</h1>' in response_html
     assert "Back to advanced analytics" in response_html
+    assert f'href="{response.context["contest_back_url"]}"' in response_html
     assert '<nav class="app-page-header-context" aria-label="Breadcrumb">' in response_html
     assert '<dl class="app-page-header-stats" aria-label="Contest overview">' in response_html
     assert re.search(r"Visible problems\s*</dt>\s*<dd>\s*1\s*</dd>", response_html)
