@@ -60,7 +60,7 @@ def test_root_subject_area_concept_and_up_navigation(admin_client):
     assert len(root.context["rows"]) == 4
     subject = get(admin_client, **params_for(root.context["rows"][0]["url"]))
     assert subject.context["level"] == "areas"
-    area = get(admin_client, **params_for(subject.context["rows"][0]["url"]))
+    area = get(admin_client, **{**params_for(subject.context["rows"][0]["url"]), "tab": "structure"})
     assert area.context["level"] == "concepts"
     detail = get(admin_client, **params_for(area.context["rows"][0]["url"]))
     assert detail.context["selected_concept"]
@@ -68,7 +68,7 @@ def test_root_subject_area_concept_and_up_navigation(admin_client):
     assert get(admin_client, **params_for(detail.context["up_url"])).context["heading"] != detail.context["heading"]
     html = detail.content.decode()
     assert "Names, tags &amp; roles" in html
-    assert "Example problems" in html
+    assert "Problems</a>" in html
     assert "Up one level" in html
 
 
@@ -95,7 +95,9 @@ def test_catalogue_get_never_reads_problem_or_completion_sources(admin_client):
         "inspinia.pages.catalogue_sources.iter_catalogue_sources",
         side_effect=AssertionError("GET rebuilt sources"),
     ):
-        for params in ({}, {"subject": "Algebra"}, {"area": "Algebra:inequalities"}, {"concept": "am-gm"}):
+        for params in (
+            {}, {"subject": "Algebra"}, {"area": "Algebra:inequalities", "tab": "structure"}, {"concept": "am-gm"},
+        ):
             with CaptureQueriesContext(connection) as captured:
                 response = get(admin_client, **params)
             sql = "\n".join(q["sql"] for q in captured)

@@ -1,4 +1,4 @@
-"""Catalogue-only navigation; problem examples use published memberships on demand."""
+"""Catalogue navigation and area problem lists backed by published memberships."""
 
 from django.core.paginator import Paginator
 from django.db.models import Count
@@ -11,8 +11,10 @@ from inspinia.pages.catalogue_models import CatalogueArea
 from inspinia.pages.catalogue_models import CatalogueConcept
 from inspinia.pages.catalogue_models import CatalogueConceptAlias
 from inspinia.pages.catalogue_models import CatalogueConceptRelation
-from inspinia.pages.catalogue_models import CatalogueProblem
 from inspinia.pages.catalogue_models import CatalogueSubject
+from inspinia.pages.catalogue_problems import SORT_OPTIONS
+from inspinia.pages.catalogue_problems import problem_filters
+from inspinia.pages.catalogue_problems import problem_page
 from inspinia.pages.catalogue_snapshots import current_snapshot
 from inspinia.pages.technique_concepts import SUBJECT_LABELS
 
@@ -86,6 +88,11 @@ def build_catalogue_context(params):  # noqa: C901, PLR0912, PLR0915
         role = "proof_role"
     if role not in ROLE_LABELS:
         role = ""
+    default_tab = "problems" if area and not concept else "structure"
+    tab = str(params.get("tab", default_tab))
+    if tab not in {"structure", "problems"} or not (area or concept):
+        tab = default_tab
+    filters = problem_filters(params)
     scope = {"subject": subject.pk if subject else "", "area": area.pk if area else ""}
     search_scope = {**scope, "q": q, "role": role}
     breadcrumbs = [{"label": "All subjects", "url": catalogue_url()}]
@@ -130,7 +137,10 @@ def build_catalogue_context(params):  # noqa: C901, PLR0912, PLR0915
     for row in areas:
         row.url = catalogue_url(subject=subject.pk, area=row.pk)
     rows, level = [], "subjects"
-    if concept or area or q or role:
+    page = Paginator([], PAGE_SIZE).get_page(1)
+    if tab == "problems":
+        level = "concepts"
+    elif concept or area or q or role:
         level = "concepts"
         query = CatalogueConcept.objects.filter(redirect__isnull=True)
         if concept:
@@ -163,18 +173,16 @@ def build_catalogue_context(params):  # noqa: C901, PLR0912, PLR0915
     else:
         page = Paginator(subjects, PAGE_SIZE).get_page(params.get("page"))
         rows = [{"id": s.pk, "name": s.name, "count": s.area_count, "url": s.url} for s in page]
-    tab = "problems" if concept and params.get("tab") == "problems" else "structure"
     examples, snapshot, examples_unavailable = None, None, False
     if tab == "problems":
+        search_scope = {**scope, **filters}
         snapshot = current_snapshot()
         if snapshot:
-            link_filters = {"concept_links__concept": concept}
-            if area:
-                link_filters["concept_links__area"] = area
-            query = CatalogueProblem.objects.filter(snapshot=snapshot, **link_filters)
-            examples = Paginator(query.distinct().order_by("-year", "label"), PAGE_SIZE).get_page(params.get("page"))
+            examples = problem_page(snapshot, params, area=area, concept=concept)
             for p in examples:
                 p.url = concept_problem_url({"statement_uuid": p.statement_uuid, "problem_uuid": p.problem_uuid})
+                for item in p.concepts:
+                    item["url"] = catalogue_url(**scope, concept=item["id"], tab="problems")
         else:
             examples_unavailable = True
     return {
@@ -202,11 +210,25 @@ def build_catalogue_context(params):  # noqa: C901, PLR0912, PLR0915
         if subject
         else "Mathematics catalogue",
         "pagination_url": catalogue_url(**search_scope, concept=concept.pk if concept else "", tab=tab),
-        "structure_url": catalogue_url(**scope, concept=concept.pk if concept else ""),
+        "structure_url": catalogue_url(**scope, concept=concept.pk if concept else "", tab="structure"),
         "examples_url": catalogue_url(**scope, concept=concept.pk if concept else "", tab="problems"),
         "examples": examples,
         "examples_unavailable": examples_unavailable,
         "snapshot": snapshot,
+        "problem_filters": filters,
+        "problem_sort_options": SORT_OPTIONS,
+        "problem_concept_choices": CatalogueConcept.objects.filter(
+            memberships__area=area,
+            redirect__isnull=True,
+        ).order_by("name", "pk")
+        if tab == "problems" and area
+        else [],
+        "problem_reset_url": catalogue_url(**scope, tab="problems"),
+        "mohs_sort_url": catalogue_url(
+            **{**search_scope, "sort": "mohs_desc" if filters["sort"] == "mohs" else "mohs"},
+            concept=concept.pk if concept else "",
+            tab="problems",
+        ),
         "aliases": Paginator(concept.aliases.select_related("subject"), PAGE_SIZE).get_page(params.get("alias_page"))
         if concept
         else [],
@@ -225,7 +247,7 @@ def build_catalogue_context(params):  # noqa: C901, PLR0912, PLR0915
             Q(subject=subject) if subject else Q(),
             concept__isnull=True,
         ).select_related("subject")[:25]
-        if not concept
+        if not concept and tab == "structure"
         else [],
         "related": [
             {"name": r.target.name, "url": catalogue_url(**scope, concept=r.target_id)}
