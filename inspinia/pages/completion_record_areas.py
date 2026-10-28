@@ -31,6 +31,7 @@ def completion_record_area_metadata(completions):
             "statement_uuid",
             "problem_uuid",
             "linked_problem_id",
+            "day_label",
             "topic",
             "mohs",
             "is_active",
@@ -88,6 +89,7 @@ def completion_record_area_metadata(completions):
         else:
             topic, mohs = completion.problem.topic, completion.problem.mohs
         result[completion.pk] = {
+            "day_label": statement.day_label if statement is not None else "",
             "areas": payload["concept_areas"],
             "area_mapping_status": payload["concept_coverage_status"],
             "topic": display_topic_label(topic) if topic else "Unspecified",

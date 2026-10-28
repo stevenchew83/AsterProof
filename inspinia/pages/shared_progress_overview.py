@@ -28,6 +28,7 @@ def shared_completion_overview_context(*, context, completions, filtered_rows, c
         table_rows.append(
             {
                 **table_row,
+                "day_label": areas["day_label"],
                 "areas": "; ".join(areas["areas"]) or areas["area_mapping_status"],
                 "record_status": completions_by_id[row.completion_id].get_status_display(),
                 "problem_url": table_row["problem_url"] or areas["statement_url"],
