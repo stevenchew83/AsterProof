@@ -1,0 +1,9 @@
+<div class="app-page-header-stat{% if accent %} app-page-header-stat--accent{% endif %}{% if text_value %} app-page-header-stat--text{% endif %}">
+  <dt>
+    {% if stat_icon %}<span class="app-page-header-stat-icon" aria-hidden="true"><i class="ti {{ stat_icon }}"></i></span>{% endif %}
+    {{ label }}
+  </dt>
+  <dd>
+    {% if value is not None and value != '' %}{{ value }}{% else %}—{% endif %}{% if unit %} <small>{{ unit }}</small>{% endif %}
+  </dd>
+</div>

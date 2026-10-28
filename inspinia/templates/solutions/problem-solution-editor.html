@@ -6,8 +6,6 @@
 <style>
   .solution-workspace-page { --se-surface: var(--ins-secondary-bg); --se-muted: var(--ins-secondary-color); padding-bottom: 2rem; }
   .solution-workspace-page .se-eyebrow { color: var(--se-muted); font-size: .68rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
-  .solution-masthead { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 1.5rem 0 1.25rem; }
-  .solution-masthead h1 { font-size: clamp(1.4rem, 2vw, 1.9rem); font-weight: 700; letter-spacing: -.035em; margin: .35rem 0 .6rem; }
   .solution-masthead-meta { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem .85rem; color: var(--se-muted); font-size: .8rem; }
   .solution-masthead-meta strong { color: var(--ins-body-color); }
   .solution-context-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(17rem, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
@@ -99,8 +97,6 @@
   }
   @media (max-width: 991.98px) { .solution-context-grid { grid-template-columns: minmax(0, 1fr); } }
   @media (max-width: 575.98px) {
-    .solution-masthead { align-items: flex-start; }
-    .solution-workspace-page .solution-masthead-links { display: none !important; }
     .solution-workspace-toolbar { gap: .65rem; padding: .65rem; top: var(--ins-topbar-height, 64px); }
     .solution-toolbar-state { flex-basis: 100%; justify-content: space-between; }
     .solution-toolbar-actions { width: 100%; }
@@ -113,20 +109,14 @@
 
 {% block page_content %}
 <div class="container-fluid solution-workspace-page">
-  <header class="solution-masthead">
-    <div>
-      <div class="se-eyebrow">Your solution workspace</div>
-      <h1>{{ problem_data.problem_label }}</h1>
-      <div class="solution-masthead-meta">
+  <header class="page-title-head app-page-header">
+    {% include 'partials/page-header-intro.html' with title=problem_data.problem_label subtitle='Solution workspace' page_icon='ti-edit' back_url=problem_data.solutions_url back_label='All solutions' only %}
+    {% if problem_data.contest_archive_url %}<div class="app-page-header-actions"><a href="{{ problem_data.contest_archive_url }}#{{ problem_data.problem_anchor }}" class="btn btn-outline-secondary btn-sm">Contest archive<i class="ti ti-arrow-up-right ms-1" aria-hidden="true"></i></a></div>{% endif %}
+      <div class="app-page-header-description solution-masthead-meta">
         <span><i class="ti ti-category me-1" aria-hidden="true"></i>{{ problem_data.problem.topic|topic_label }}</span>
         <span>MOHS <strong>{{ problem_data.problem_mohs|default_if_none:'—' }}</strong></span>
         <span class="badge {{ solution_status_badge_class }}">{{ solution_status_label }}</span>
       </div>
-    </div>
-    <div class="d-flex gap-2 solution-masthead-links">
-      <a href="{{ problem_data.solutions_url }}" class="btn btn-outline-secondary btn-sm"><i class="ti ti-arrow-left me-1" aria-hidden="true"></i>All solutions</a>
-      {% if problem_data.contest_archive_url %}<a href="{{ problem_data.contest_archive_url }}#{{ problem_data.problem_anchor }}" class="btn btn-outline-secondary btn-sm">Contest archive<i class="ti ti-arrow-up-right ms-1" aria-hidden="true"></i></a>{% endif %}
-    </div>
   </header>
 
   {% for message in messages %}

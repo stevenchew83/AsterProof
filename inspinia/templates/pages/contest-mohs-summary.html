@@ -15,74 +15,6 @@
       padding-bottom: 1rem;
     }
 
-    .contest-mohs-page .page-title-head {
-      min-height: auto;
-      padding: .625rem 0 .25rem;
-      margin: 0;
-      border: 0;
-      background: transparent;
-    }
-
-    .contest-mohs-heading {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-      padding-block: .25rem .75rem;
-    }
-
-    .contest-mohs-heading h1 {
-      font-size: clamp(1.35rem, 2vw, 1.6rem);
-      letter-spacing: -.04em;
-      margin: 0;
-    }
-
-    .contest-mohs-overview {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      margin-bottom: .75rem;
-      padding-block: .625rem;
-      border-block: 1px solid var(--ins-border-color);
-    }
-
-    .contest-mohs-stat {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: baseline;
-      gap: .2rem .625rem;
-      padding-inline: 1rem;
-      border-inline-start: 1px solid var(--ins-border-color);
-    }
-
-    .contest-mohs-stat:first-child {
-      padding-inline-start: 0;
-      border: 0;
-    }
-
-    .contest-mohs-stat dt {
-      color: var(--mohs-muted);
-      font-size: .7rem;
-      font-weight: 500;
-      margin: 0;
-    }
-
-    .contest-mohs-stat dd {
-      margin: 0;
-      font-size: 1.2rem;
-      font-weight: 600;
-      letter-spacing: -.035em;
-      font-variant-numeric: tabular-nums;
-      line-height: 1.15;
-      white-space: nowrap;
-    }
-
-    .contest-mohs-stat dd small {
-      font-size: .6875rem;
-      font-weight: 400;
-      color: var(--mohs-muted);
-      letter-spacing: normal;
-    }
-
     .contest-mohs-workspace.card {
       border: 1px solid var(--ins-border-color);
       box-shadow: none;
@@ -477,32 +409,6 @@
     }
 
     @media (max-width: 767.98px) {
-      .contest-mohs-heading {
-        flex-wrap: wrap;
-        gap: .5rem;
-        padding-bottom: .625rem;
-      }
-
-      .contest-mohs-overview {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: .625rem 0;
-      }
-
-      .contest-mohs-stat {
-        flex-direction: column;
-        gap: .15rem;
-        padding-inline: .75rem;
-      }
-
-      .contest-mohs-stat:nth-child(3) {
-        border: 0;
-        padding-inline-start: 0;
-      }
-
-      .contest-mohs-stat dd {
-        font-size: 1.125rem;
-      }
-
       .contest-mohs-workspace .card-header {
         padding: .625rem .75rem .375rem;
       }
@@ -601,7 +507,6 @@
     }
 
     @media (pointer: coarse) {
-      .contest-mohs-heading>.btn,
       .contest-mohs-toolbar .form-control,
       .contest-mohs-toolbar .form-select {
         min-height: 2.75rem;
@@ -621,54 +526,22 @@
 {% endblock extra_css %}
 {% block page_content %}
   <div class="container-fluid contest-mohs-page">
-    <nav class="page-title-head" aria-label="Breadcrumb">
-      <ol class="breadcrumb m-0 py-0 fs-xs">
-        <li class="breadcrumb-item">
-          <a href="{% url 'pages:archive_hub' %}">Archive</a>
-        </li>
-        <li class="breadcrumb-item active" aria-current="page">Contest analysis</li>
-      </ol>
-    </nav>
-    <header class="contest-mohs-heading">
-      <div>
-        <h1>Contest MOHS</h1>
-      </div>
+    {% url 'pages:archive_hub' as header_archive_url %}
+    <header class="page-title-head app-page-header app-page-header--with-stats contest-mohs-hero">
+      {% include 'partials/page-header-intro.html' with title='Contest MOHS' page_icon='ti-chart-bar' back_url=header_archive_url back_label='Archive' only %}
+      <dl class="app-page-header-stats" aria-label="Archive overview">
+        {% include 'partials/page-header-stat.html' with label='Contests' value=contest_mohs_summary_stats.contest_total|floatformat:'0g' stat_icon='ti-trophy' only %}
+        {% include 'partials/page-header-stat.html' with label='Rated problems' value=contest_mohs_summary_stats.total_statement_count|floatformat:'0g' stat_icon='ti-stack-2' only %}
+        {% include 'partials/page-header-stat.html' with label='Archive average' value=contest_mohs_summary_stats.overall_average_mohs|floatformat:2 unit='MOHS' stat_icon='ti-chart-dots-3' accent=True only %}
+        {% include 'partials/page-header-stat.html' with label='Reliable contests' value=contest_mohs_summary_stats.visible_over_threshold|floatformat:'0g' stat_icon='ti-shield-check' only %}
+      </dl>
       <a href="{% url 'pages:completion_quick_update' %}"
-         class="btn btn-sm btn-primary d-inline-flex align-items-center gap-2">
-        <i class="ti ti-plus fs-16" aria-hidden="true"></i>Record completions
+         class="btn btn-sm btn-primary app-page-header-action-icon d-inline-flex align-items-center gap-2"
+         aria-label="Record completions"
+         title="Record completions">
+        <i class="ti ti-plus fs-16" aria-hidden="true"></i><span>Record completions</span>
       </a>
     </header>
-    <dl class="contest-mohs-overview" aria-label="Archive overview">
-      <div class="contest-mohs-stat">
-        <dt>Contests</dt>
-        <dd>
-          {{ contest_mohs_summary_stats.contest_total|floatformat:"0g" }}
-        </dd>
-      </div>
-      <div class="contest-mohs-stat">
-        <dt>Rated problems</dt>
-        <dd>
-          {{ contest_mohs_summary_stats.total_statement_count|floatformat:"0g" }}
-        </dd>
-      </div>
-      <div class="contest-mohs-stat">
-        <dt>Archive average</dt>
-        <dd>
-          {% if contest_mohs_summary_stats.overall_average_mohs is not None %}
-            {{ contest_mohs_summary_stats.overall_average_mohs|floatformat:2 }}
-          {% else %}
-                —
-          {% endif %}
-          <small>MOHS</small>
-        </dd>
-      </div>
-      <div class="contest-mohs-stat">
-        <dt>Reliable contests</dt>
-        <dd>
-          {{ contest_mohs_summary_stats.visible_over_threshold|floatformat:"0g" }}
-        </dd>
-      </div>
-    </dl>
     <section class="card contest-mohs-workspace mb-3"
              aria-labelledby="contest-mohs-table-title">
       <div class="card-header border-0 d-flex align-items-center justify-content-between gap-2">

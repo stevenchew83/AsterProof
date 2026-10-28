@@ -9,9 +9,6 @@
 <link rel="stylesheet" href="{% static 'plugins/tom-select/tom-select.bootstrap5.min.css' %}">
 <style>
   .completion-record-page { padding-bottom: 1.5rem; }
-  .completion-record-page .page-title-head { padding-block: .85rem .35rem; gap: .75rem; }
-  .completion-record-page h1 { font-size: 1.5rem; letter-spacing: -.035em; margin: .15rem 0 .25rem; }
-  .completion-record-eyebrow { font-size: .68rem; letter-spacing: .1em; }
   .completion-record-page .card { margin-bottom: 0; box-shadow: none; border: 1px solid var(--ins-border-color-translucent); }
   .completion-record-page .header-title { font-size: 1rem; font-weight: 600; letter-spacing: -.015em; }
   .completion-record-page .form-control,
@@ -245,8 +242,6 @@
   }
 
   @media (max-width: 575.98px) {
-    .completion-record-page .page-title-head { align-items: start !important; flex-direction: column; }
-    .completion-record-page h1 { font-size: 1.5rem; }
     .completion-record-filter-card .form-control,
     .completion-record-filter-card .form-select,
     .completion-record-filter-card .ts-control,
@@ -266,14 +261,12 @@
 {% block page_content %}
 <div class="container-fluid completion-record-page">
 
-  <div class="page-title-head d-flex justify-content-between align-items-center">
-    <div>
-      <span class="completion-record-eyebrow text-muted text-uppercase fw-semibold">Learning activity / Admin</span>
-      <h1>Completion records</h1>
-      <p class="text-muted fs-sm mb-0">Review progress, explore problem areas and find the study notes behind each record.</p>
+  <header class="page-title-head app-page-header">
+    {% include 'partials/page-header-intro.html' with title='Completion records' subtitle='Learning activity / Admin' page_icon='ti-checklist' only %}
+    <div class="app-page-header-actions">
+      <a href="{% url 'pages:completion_quick_update' %}" class="btn btn-sm btn-outline-primary app-page-header-action-icon d-inline-flex align-items-center gap-2" aria-label="Record progress" title="Record progress"><i class="ti ti-plus" aria-hidden="true"></i><span>Record progress</span></a>
     </div>
-    <a href="{% url 'pages:completion_quick_update' %}" class="btn btn-outline-primary"><i class="ti ti-plus me-1" aria-hidden="true"></i>Record progress</a>
-  </div>
+  </header>
 
   <div class="row row-cols-2 row-cols-sm-3 row-cols-xl-5 g-2 mt-0 mb-2 completion-record-kpi" role="group" aria-label="Summary of loaded completion records">
     <div class="col">

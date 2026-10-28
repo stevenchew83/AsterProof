@@ -1,0 +1,19 @@
+<div class="app-page-header-intro">
+  <span class="app-page-header-icon" aria-hidden="true">
+    <i class="ti {{ page_icon|default:'ti-layout-dashboard' }}"></i>
+  </span>
+  <div class="app-page-header-copy">
+    {% if back_url or subtitle %}
+      <nav class="app-page-header-context" aria-label="Breadcrumb">
+        {% if back_url %}
+          <a href="{{ back_url }}"><i class="ti ti-arrow-left" aria-hidden="true"></i>{{ back_label }}</a>
+        {% endif %}
+        {% if subtitle and subtitle != title %}
+          {% if back_url %}<span aria-hidden="true">/</span>{% endif %}
+          <span>{{ subtitle }}</span>
+        {% endif %}
+      </nav>
+    {% endif %}
+    <h1 class="app-page-header-title">{{ title }}</h1>
+  </div>
+</div>
