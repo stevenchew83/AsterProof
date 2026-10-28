@@ -11,42 +11,6 @@
       --statement-detail-surface: var(--ins-body-bg, var(--bs-body-bg, #ffffff));
     }
 
-    .problem-statement-detail .statement-brief {
-      animation: statement-detail-enter 360ms ease both;
-      background:
-        linear-gradient(90deg, rgba(var(--ins-primary-rgb, 26, 179, 148), 0.09), rgba(var(--ins-secondary-rgb, 28, 132, 198), 0.035) 52%, transparent),
-        var(--statement-detail-surface);
-      border: 1px solid var(--statement-detail-border);
-      border-left: 4px solid var(--ins-primary, var(--bs-primary, #1ab394));
-      border-radius: var(--ins-border-radius, var(--bs-border-radius, 0.5rem));
-      padding: 1rem;
-    }
-
-    .problem-statement-detail .statement-problem-code {
-      align-items: center;
-      background: var(--ins-primary-bg-subtle, var(--bs-primary-bg-subtle, #ddf4ef));
-      border: 1px solid var(--ins-primary-border-subtle, var(--bs-primary-border-subtle, #a3e1d4));
-      border-radius: var(--ins-border-radius, var(--bs-border-radius, 0.5rem));
-      color: var(--ins-primary-text-emphasis, var(--bs-primary-text-emphasis, #16987e));
-      display: inline-flex;
-      font-size: 1.45rem;
-      font-weight: 700;
-      justify-content: center;
-      line-height: 1;
-      min-height: 3.25rem;
-      min-width: 3.25rem;
-      padding: 0.65rem;
-    }
-
-    .problem-statement-detail .statement-action-bar .btn {
-      transition: transform 160ms ease, box-shadow 160ms ease;
-    }
-
-    .problem-statement-detail .statement-action-bar .btn:hover {
-      box-shadow: var(--ins-box-shadow-sm, var(--bs-box-shadow-sm, 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075)));
-      transform: translateY(-1px);
-    }
-
     .problem-statement-detail .statement-reading-card {
       animation: statement-detail-enter 420ms ease 70ms both;
       border-color: var(--statement-detail-border);
@@ -128,80 +92,45 @@
 
     @media (prefers-reduced-motion: reduce) {
 
-      .problem-statement-detail .statement-brief,
       .problem-statement-detail .statement-reading-card,
       .problem-statement-detail .statement-context-rail {
         animation: none;
-      }
-
-      .problem-statement-detail .statement-action-bar .btn {
-        transition: none;
-      }
-
-      .problem-statement-detail .statement-action-bar .btn:hover {
-        transform: none;
       }
     }
   </style>
 {% endblock extra_css %}
 {% block page_content %}
   <div class="container-fluid problem-statement-detail">
-    {% include 'partials/page-title.html' with title=problem_statement_context.label subtitle='Problem statement' page_icon='ti-file-text' %}
-    <div class="row g-3 mt-0">
-      <div class="col-12">
-        <section class="statement-brief">
-          <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
-            <div class="d-flex align-items-start gap-3">
-              <span class="statement-problem-code">{{ problem_statement_context.problem_code }}</span>
-              <div>
-                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-                  <span class="badge bg-primary-subtle text-primary border border-primary-subtle">{{ problem_statement_context.topic|default:"Uncategorized" }}</span>
-                  {% if problem_statement_context.mohs is not None %}
-                    <span class="badge bg-info-subtle text-info border border-info-subtle">MOHS {{ problem_statement_context.mohs }}</span>
-                  {% endif %}
-                  {% if problem_statement_context.statement_has_asymptote %}
-                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle">Asymptote</span>
-                  {% endif %}
-                </div>
-                <h2 class="mb-1 fw-bold">{{ problem_statement_context.label }}</h2>
-                <p class="text-muted mb-0">
-                  {{ problem_statement.contest_name }} {{ problem_statement_context.year }}
-                  {% if problem_statement_context.day_label %}
-                    <span class="mx-1">/</span>{{ problem_statement_context.day_label }}
-                  {% endif %}
-                </p>
-              </div>
-            </div>
-            <span class="badge fs-sm {% if problem_statement_context.completion_state_kind == 'solved' %}bg-success-subtle text-success border border-success-subtle{% elif problem_statement_context.completion_state_kind == 'unknown' %}bg-info-subtle text-info border border-info-subtle{% else %}bg-light text-dark border{% endif %}"
-                  title="{{ problem_statement_context.completion_state_label }}">
-              {{ problem_statement_context.completion_display }}
-            </span>
-          </div>
-          <div class="statement-action-bar d-flex flex-wrap gap-2 mt-3">
-            <a href="{{ problem_statement_context.contest_listing_url }}"
-               class="btn btn-outline-secondary btn-sm">
-              <i class="ti ti-arrow-left me-1"></i>Contest row
-            </a>
-            <a href="{% url 'pages:completion_quick_update' %}"
-               class="btn btn-outline-secondary btn-sm">
-              <i class="ti ti-bolt me-1"></i>Quick completions
-            </a>
-            {% if problem_statement_context.solutions_url %}
-              <a href="{{ problem_statement_context.solutions_url }}"
-                 class="btn btn-outline-secondary btn-sm">
-                <i class="ti ti-file-text me-1"></i>Solution page
-              </a>
-            {% endif %}
-            {% if problem_statement_context.solution_editor_url %}
-              <a href="{{ problem_statement_context.solution_editor_url }}"
-                 class="btn btn-primary btn-sm">
-                <i class="ti ti-edit me-1"></i>Start or edit solution
-              </a>
-            {% endif %}
-          </div>
-        </section>
+    <header class="page-title-head app-page-header statement-brief">
+      {% include 'partials/page-header-intro.html' with title=problem_statement_context.label subtitle='Problem statement' page_icon='ti-file-text' back_url=problem_statement_context.contest_listing_url back_label='Contest row' only %}
+      <div class="app-page-header-actions statement-action-bar">
+        <a href="{% url 'pages:completion_quick_update' %}" class="btn btn-outline-secondary btn-sm">
+          <i class="ti ti-bolt me-1" aria-hidden="true"></i>Quick completions
+        </a>
+        {% if problem_statement_context.solutions_url %}
+          <a href="{{ problem_statement_context.solutions_url }}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-file-text me-1" aria-hidden="true"></i>Solution page
+          </a>
+        {% endif %}
+        {% if problem_statement_context.solution_editor_url %}
+          <a href="{{ problem_statement_context.solution_editor_url }}" class="btn btn-primary btn-sm">
+            <i class="ti ti-edit me-1" aria-hidden="true"></i>Start or edit solution
+          </a>
+        {% endif %}
       </div>
-    </div>
+      <div class="app-page-header-description d-flex flex-wrap align-items-center gap-2">
+        <span class="badge bg-primary-subtle text-primary border border-primary-subtle">{{ problem_statement_context.topic|default:"Uncategorized" }}</span>
+        {% if problem_statement_context.mohs is not None %}
+          <span class="badge bg-info-subtle text-info border border-info-subtle">MOHS {{ problem_statement_context.mohs }}</span>
+        {% endif %}
+        {% if problem_statement_context.statement_has_asymptote %}
+          <span class="badge bg-warning-subtle text-warning border border-warning-subtle">Asymptote</span>
+        {% endif %}
+        <span class="badge {% if problem_statement_context.completion_state_kind == 'solved' %}bg-success-subtle text-success border border-success-subtle{% elif problem_statement_context.completion_state_kind == 'unknown' %}bg-info-subtle text-info border border-info-subtle{% else %}bg-body-tertiary text-body border{% endif %}"
+              title="{{ problem_statement_context.completion_state_label }}">{{ problem_statement_context.completion_display }}</span>
+        {% if problem_statement_context.day_label %}<span>{{ problem_statement_context.day_label }}</span>{% endif %}
+      </div>
+    </header>
     <div class="row g-3 mt-1">
       <div class="col-xl-8">
         <article class="card h-100 statement-reading-card">

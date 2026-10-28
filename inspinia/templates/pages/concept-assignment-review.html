@@ -2,11 +2,21 @@
 {% block title %}Concept assignment review{% endblock %}
 {% block page_content %}
 <div class="container-fluid">
-  {% include 'partials/page-title.html' with title='Concept assignment review' subtitle='Archive tools' page_icon='ti-hierarchy-2' %}
-  <div class="d-flex justify-content-between align-items-start gap-3 mb-3 flex-wrap">
-    <div><h2 class="h3 mb-1">Review what each problem teaches</h2><p class="text-muted mb-0">Trace source tags, keep clear matches, and review uncertain concepts.</p></div>
-    <div class="d-flex gap-2"><a class="btn btn-outline-secondary btn-sm" href="?{{ request.GET.urlencode }}&amp;export=csv">Export page CSV</a><a class="btn btn-outline-secondary btn-sm" href="?{{ request.GET.urlencode }}&amp;export=json">Export page JSON</a>{% if filters.subject %}<a class="btn btn-outline-primary btn-sm" href="{% url 'pages:concept_review_snapshot_export' %}?subject={{ filters.subject|urlencode }}&amp;year={{ filters.year|urlencode }}&amp;contest={{ filters.contest|urlencode }}&amp;q={{ filters.q|urlencode }}" title="All assignments and source evidence for matching problems, including inactive records. State and concept filters do not limit this snapshot.">Export review snapshot</a>{% endif %}</div>
-  </div>
+  {% url 'pages:archive_hub' as header_archive_url %}
+  <header class="page-title-head app-page-header">
+    {% include 'partials/page-header-intro.html' with title='Concept assignment review' subtitle='Archive tools' page_icon='ti-hierarchy-2' back_url=header_archive_url back_label='Archive' only %}
+    <div class="app-page-header-actions">
+      <div class="dropdown">
+        <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="ti ti-download me-1" aria-hidden="true"></i>Export</button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><a class="dropdown-item" href="?{{ request.GET.urlencode }}&amp;export=csv">Export page CSV</a></li>
+          <li><a class="dropdown-item" href="?{{ request.GET.urlencode }}&amp;export=json">Export page JSON</a></li>
+          {% if filters.subject %}<li><a class="dropdown-item" href="{% url 'pages:concept_review_snapshot_export' %}?subject={{ filters.subject|urlencode }}&amp;year={{ filters.year|urlencode }}&amp;contest={{ filters.contest|urlencode }}&amp;q={{ filters.q|urlencode }}" title="All assignments and source evidence for matching problems, including inactive records. State and concept filters do not limit this snapshot.">Export review snapshot</a></li>{% endif %}
+        </ul>
+      </div>
+    </div>
+    <p class="app-page-header-description">Trace source tags, keep clear matches, and review uncertain concepts.</p>
+  </header>
   {% if not storage_ready %}<div class="alert alert-info" role="status"><strong>Read-only source audit.</strong> Review storage has not been installed. Previews and exports work; applying decisions requires the separate schema rollout.</div>{% endif %}
   <form method="get" class="card card-body mb-3">
     <div class="row g-2 align-items-end">
