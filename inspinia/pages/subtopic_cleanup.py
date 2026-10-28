@@ -4337,6 +4337,41 @@ GEOMETRY_COMPOUND_SPLITS: dict[str, tuple[str, ...]] = {
 }
 
 
+# Atomic catalog captions must retain their identity before legacy family rules
+# combine them with related concepts or infer additional techniques.
+GEOMETRY_EXACT_IDENTITY_MAPPINGS: tuple[LayeredTopicTagMapping, ...] = (
+    LayeredTopicTagMapping(
+        domains=("GEO",),
+        main_topic="GEO",
+        canonical_subtopic="Circle geometry",
+        stored_technique="RADICAL AXIS",
+        aliases=("RADICAL AXIS", "RADICAL AXES", "RADICAL AXIS METHOD", "RADICAL AXIS THEOREM"),
+        object_tags=("RADICAL AXIS",),
+        technique_tags=("RADICAL AXIS",),
+        lemma_theorem_tags=("RADICAL AXIS THEOREM",),
+        normalization_status=NORMALIZATION_STATUS_CANONICAL,
+    ),
+    LayeredTopicTagMapping(
+        domains=("GEO",),
+        main_topic="GEO",
+        canonical_subtopic="Circle geometry",
+        stored_technique="ARC-MIDPOINT GEOMETRY",
+        aliases=("ARC MIDPOINT", "ARC MIDPOINTS", "ARC MIDPOINT GEOMETRY", "ARC-MIDPOINT GEOMETRY"),
+        object_tags=("ARC MIDPOINT",),
+        normalization_status=NORMALIZATION_STATUS_CANONICAL,
+    ),
+    LayeredTopicTagMapping(
+        domains=("GEO",),
+        main_topic="GEO",
+        canonical_subtopic="Core Euclidean geometry",
+        stored_technique="TRAPEZOIDS",
+        aliases=("TRAPEZOID", "TRAPEZOIDS"),
+        object_tags=("TRAPEZOID",),
+        normalization_status=NORMALIZATION_STATUS_CANONICAL,
+    ),
+)
+
+
 COMBINATORICS_STORED_ALIASES: tuple[tuple[str, str, str, str], ...] = (
     *_stored_aliases(
         "COMB",
@@ -5415,6 +5450,9 @@ def _add_geometry_entries(lookup: dict[str, SubtopicTaxonomyEntry]) -> None:
             alias,
             stored_technique=stored_technique,
         )
+    for mapping in GEOMETRY_EXACT_IDENTITY_MAPPINGS:
+        for alias in mapping.aliases:
+            lookup[_taxonomy_key(alias)] = _entry_from_layered_mapping(mapping, alias)
 
 
 def _add_combinatorics_entries(lookup: dict[str, SubtopicTaxonomyEntry]) -> None:
