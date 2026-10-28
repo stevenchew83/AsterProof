@@ -775,6 +775,33 @@ def test_shared_completion_history_includes_contest_day_label(client, learners, 
     assert payload[0]["day_label"] == day_label
 
 
+@pytest.mark.parametrize("mapped", [False, True])
+def test_shared_completion_history_shows_canonical_concepts_after_area(client, learners, completions, mapped):
+    source = completions["alex"].statement
+    if mapped:
+        StatementTopicTechnique.objects.create(
+            statement=source, technique="AM-GM", main_topic="ALG", domains=["ALG"], lemma_theorem_tags=["AM-GM"],
+        )
+        StatementTopicTechnique.objects.create(
+            statement=source, technique="VIETA", main_topic="ALG", domains=["ALG"], lemma_theorem_tags=["VIETA"],
+        )
+    client.force_login(learners["alex"])
+    response = client.get(progress_url("alex"), {"range": "all"})
+    assert response.status_code == HTTPStatus.OK
+    expected = "AM-GM; VIETA" if mapped else ""
+    assert response.context["completion_progress_table_rows"][0]["concepts"] == expected
+    html = response.content.decode()
+    history = html.split('id="completion-progress-table"', 1)[1].split("</table>", 1)[0]
+    assert "<th>Area</th><th>Concepts</th><th>MOHS</th>" in history
+    assert f'<td class="lp-concepts" title="{expected or "—"}">{expected or "—"}</td>' in history
+    payload = json.loads(
+        html.split('<script id="completion-progress-table-data" type="application/json">', 1)[1].split(
+            "</script>", 1,
+        )[0],
+    )
+    assert payload[0]["concepts"] == expected
+
+
 def test_shared_overview_preserves_filter_scope_when_switching_learners(client, learners, completions):
     statement = completions["ben"].statement
     statement.mohs = 0

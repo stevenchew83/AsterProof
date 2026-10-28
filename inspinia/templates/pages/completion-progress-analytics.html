@@ -1659,6 +1659,13 @@
             return type === "display" ? '<span title="' + escapeHtml(data) + '">' + escapeHtml(data) + '</span>' : data;
           }
         },
+        {
+          data: "concepts", title: "Concepts", className: "lp-concepts",
+          render: function (data, type) {
+            var label = data || "—";
+            return type === "display" ? '<span title="' + escapeHtml(label) + '">' + escapeHtml(label) + '</span>' : data;
+          }
+        },
         { data: "mohs", title: "MOHS", className: "text-end", render: textRenderer },
         tableColumns[tableColumns.length - 2],
         { data: "record_status", title: "Status", visible: false, render: textRenderer },
@@ -1688,7 +1695,7 @@
     if (compactTable && columnsButton) {
       columnsButton.addEventListener("click", function () {
         var show = columnsButton.getAttribute("aria-pressed") !== "true";
-        var extraColumns = tableColumns.map(function (_, index) { return index; }).slice(7);
+        var extraColumns = tableColumns.map(function (_, index) { return index; }).slice(8);
         tableApi.columns(extraColumns).visible(show);
         columnsButton.setAttribute("aria-pressed", String(show));
         columnsButton.textContent = show ? "Fewer columns" : "More columns";

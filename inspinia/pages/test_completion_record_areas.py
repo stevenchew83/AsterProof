@@ -75,6 +75,7 @@ def test_statement_only_completion_uses_own_topic_difficulty_area_and_link(admin
     assert row["topic"] == "Algebra"
     assert row["mohs"] == 0
     assert row["areas"] == ["Inequalities and optimization"]
+    assert row["concepts"] == ["AM-GM"]
     assert row["statement_url"] == reverse("pages:problem_statement_detail", args=[source.statement_uuid])
     assert row["area_mapping_status"] == "Mapped"
     assert len(records(client, q="Algebra").context["completion_record_rows"]) == 1
@@ -89,6 +90,8 @@ def test_orphan_archive_exposes_every_area_once(admin):
     UserProblemCompletion.objects.create(user=user, problem=source)
     row = records(client).context["completion_record_rows"][0]
     assert row["areas"] == ["Inequalities and optimization", "Polynomials and algebraic manipulation"]
+    # Unresolved source captions are excluded from canonical concepts.
+    assert row["concepts"] == ["AM-GM", "VIETA"]
 
 
 @pytest.mark.parametrize("suppressed", [False, True])
@@ -102,6 +105,7 @@ def test_legacy_completion_area_follows_statement_tag_precedence(admin, suppress
     row = records(client).context["completion_record_rows"][0]
     assert row["areas"] == ([] if suppressed else ["Inequalities and optimization"])
     assert row["area_mapping_status"] == ("No valid tags" if suppressed else "Mapped")
+    assert row["concepts"] == ([] if suppressed else ["AM-GM"])
 
 
 def test_linked_statement_without_own_tags_falls_back_to_archive(admin):
@@ -114,6 +118,7 @@ def test_linked_statement_without_own_tags_falls_back_to_archive(admin):
     assert row["areas"] == ["Inequalities and optimization"]
     assert row["topic"] == "Algebra"
     assert row["mohs"] == 20
+    assert row["concepts"] == ["AM-GM"]
 
 
 def test_inactive_statement_does_not_resurrect_archive_area(admin):
@@ -125,6 +130,7 @@ def test_inactive_statement_does_not_resurrect_archive_area(admin):
     row = records(client).context["completion_record_rows"][0]
     assert row["areas"] == []
     assert row["area_mapping_status"] == "Inactive"
+    assert row["concepts"] == []
 
 
 def test_area_reads_are_bounded_to_the_loaded_window_and_exclude_bodies(admin):
@@ -187,3 +193,4 @@ def test_enabled_projection_uses_only_accepted_areas_for_every_completion_origin
     assert row["completion_id"] == completion.pk
     assert row["areas"] == ["Inequalities and optimization"]
     assert row["area_mapping_status"] == "Needs review"
+    assert row["concepts"] == ["AM-GM"]
