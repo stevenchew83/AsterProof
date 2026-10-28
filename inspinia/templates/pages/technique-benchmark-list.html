@@ -11,19 +11,6 @@
     --benchmark-radius: .65rem;
   }
 
-  .benchmark-page .page-title-head {
-    background: transparent;
-    border: 0;
-    border-radius: 0;
-    margin: 0;
-    padding: 1.25rem 0 1rem;
-  }
-
-  .benchmark-page .app-page-header-title {
-    font-size: 1.65rem;
-    letter-spacing: -.045em;
-  }
-
   .benchmark-page .card {
     border: 1px solid var(--ins-border-color);
     border-radius: var(--benchmark-radius);
@@ -293,8 +280,7 @@
   }
 
   @media (max-width: 767.98px) {
-    .benchmark-page .page-title-head { align-items: flex-start !important; }
-    .benchmark-page .app-page-header-title { font-size: 1.4rem; }
+    .benchmark-map-target .benchmark-segmented .btn { padding-inline: .5rem; }
     .benchmark-summary { display: flex; overflow-x: auto; scroll-snap-type: x proximity; }
     .benchmark-stat { flex: 0 0 9.5rem; padding: .75rem; scroll-snap-align: start; }
     .benchmark-stat + .benchmark-stat { border-left: 1px solid var(--ins-border-color); }
@@ -324,7 +310,7 @@
   <header class="page-title-head app-page-header justify-content-between">
     {% url 'pages:user_activity_dashboard' as benchmark_home_url %}
     {% include 'partials/page-header-intro.html' with title='Benchmark Map' subtitle='Library' page_icon='ti-map' back_url=benchmark_home_url back_label='AsterProof' only %}
-    <div class="app-page-header-actions gap-3">
+    <div class="app-page-header-actions">
       <div class="benchmark-map-target">
         <span class="text-muted fs-xs d-block mb-1" id="benchmark-target-label">Training target</span>
         <nav class="benchmark-segmented d-inline-flex" aria-labelledby="benchmark-target-label">
@@ -333,11 +319,10 @@
           {% endfor %}
         </nav>
       </div>
-      <a href="{% url 'pages:technique_benchmark_import' %}" class="btn btn-sm btn-outline-secondary" aria-label="Benchmark import" title="Benchmark import">
-        <i class="ti ti-database-import" aria-hidden="true"></i><span class="d-none d-sm-inline ms-1">Benchmark import</span>
+      <a href="{% url 'pages:technique_benchmark_import' %}" class="btn btn-sm btn-outline-secondary app-page-header-action-icon d-inline-flex align-items-center gap-2" aria-label="Benchmark import" title="Benchmark import">
+        <i class="ti ti-database-import" aria-hidden="true"></i><span>Benchmark import</span>
       </a>
     </div>
-    <p class="app-page-header-description">Find the concepts worth your next training session.</p>
   </header>
 
   <div class="benchmark-navigation d-flex flex-wrap align-items-center justify-content-between gap-2">
