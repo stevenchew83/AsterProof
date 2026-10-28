@@ -41,6 +41,30 @@
     }
 }
 
+// Authentication branding follows the page theme independently of sidebar colors.
+.auth-brand {
+    img {
+        display: block;
+        width: auto;
+        max-width: 100%;
+        height: 36px;
+    }
+
+    .auth-brand-light {
+        display: none;
+    }
+}
+
+html[data-bs-theme="dark"] .auth-brand {
+    .auth-brand-dark {
+        display: none;
+    }
+
+    .auth-brand-light {
+        display: block;
+    }
+}
+
 // Sidebar Logo
 .logo {
     display: block;

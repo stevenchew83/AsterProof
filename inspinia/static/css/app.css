@@ -16324,6 +16324,23 @@ html[data-sidenav-size=offcanvas].sidebar-enable .sidenav-menu {
   height: var(--ins-logo-sm-height);
 }
 
+.auth-brand img {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: 36px;
+}
+.auth-brand .auth-brand-light {
+  display: none;
+}
+
+html[data-bs-theme=dark] .auth-brand .auth-brand-dark {
+  display: none;
+}
+html[data-bs-theme=dark] .auth-brand .auth-brand-light {
+  display: block;
+}
+
 .logo {
   display: block;
   top: 0;

@@ -111,7 +111,7 @@
 <div class="container-fluid solution-workspace-page">
   <header class="page-title-head app-page-header">
     {% include 'partials/page-header-intro.html' with title=problem_data.problem_label subtitle='Solution workspace' page_icon='ti-edit' back_url=problem_data.solutions_url back_label='All solutions' only %}
-    {% if problem_data.contest_archive_url %}<div class="app-page-header-actions"><a href="{{ problem_data.contest_archive_url }}#{{ problem_data.problem_anchor }}" class="btn btn-outline-secondary btn-sm">Contest archive<i class="ti ti-arrow-up-right ms-1" aria-hidden="true"></i></a></div>{% endif %}
+    {% if problem_data.contest_archive_url %}<div class="app-page-header-actions"><a href="{{ problem_data.contest_archive_url }}#{{ problem_data.problem_anchor }}" class="btn btn-outline-secondary btn-sm app-page-header-action-icon d-inline-flex align-items-center gap-2" aria-label="Contest archive" title="Contest archive"><i class="ti ti-arrow-up-right" aria-hidden="true"></i><span>Contest archive</span></a></div>{% endif %}
       <div class="app-page-header-description solution-masthead-meta">
         <span><i class="ti ti-category me-1" aria-hidden="true"></i>{{ problem_data.problem.topic|topic_label }}</span>
         <span>MOHS <strong>{{ problem_data.problem_mohs|default_if_none:'—' }}</strong></span>
