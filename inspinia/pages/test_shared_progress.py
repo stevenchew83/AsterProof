@@ -1,5 +1,6 @@
 import json
 from datetime import timedelta
+from html import unescape
 from http import HTTPStatus
 from urllib.parse import parse_qs
 from urllib.parse import urlsplit
@@ -108,7 +109,7 @@ def test_shared_heading_uses_learner_label_when_display_name_is_blank(client, le
     client.force_login(learners["alex"])
     response = client.get(progress_url("ben"))
     assert response.status_code == HTTPStatus.OK
-    assert "Ben's progress</h1>" in response.content.decode()
+    assert "Ben's progress</h1>" in unescape(response.content.decode())
     assert "Read-only progress" in response.content.decode()
 
 
@@ -262,7 +263,7 @@ def test_comparison_is_available_to_both_learners_with_fixed_subjects(client, le
     assert "no-store" in response.headers["Cache-Control"]
     html = response.content.decode()
     assert "Read-only progress" in html
-    assert "Alex &amp; Ben</h1>" in html
+    assert "Alex & Ben</h1>" in unescape(html)
     assert "Continue my training" not in html
     assert "other@example.com" not in html
     assert "target_user_id" not in html

@@ -2,6 +2,7 @@
 """Canonical progress, completion precedence, permission boundaries, and usable drill-downs."""
 
 import csv
+from html import unescape
 from io import StringIO
 from urllib.parse import parse_qs
 from urllib.parse import urlsplit
@@ -102,7 +103,7 @@ def test_canonical_roles_and_areas_count_shared_problem_once(learner):
     assert all(r["total"] == r["solved"] == 1 for r in rows)
     assert sum(r["solved"] for r in rows) == 2  # Areas can overlap; the overall count remains one.
     html = result.content.decode()
-    assert "Area &amp; Concepts Progress" in html
+    assert "Area & Concepts Progress" in unescape(html)
     assert 'id="area-concept-progress-table"' in html
     assert "Canonical subtopic" not in html
     assert "Recognition burden" not in html
