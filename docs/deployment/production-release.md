@@ -2,6 +2,97 @@
 
 GitHub Actions is the sole normal authority for changing AsterProof production. A local request to “merge and deploy” means: merge an approved pull request, obtain the resulting exact `main` SHA, and manually dispatch **Production deploy** for that SHA. It never means deploying over workstation SSH.
 
+## Operator login
+
+### GitHub for normal releases
+
+Check the active GitHub account before preparing a release:
+
+```bash
+gh auth status --active --hostname github.com
+```
+
+If authentication is missing or expired, sign in with the existing authorized
+repository account, then repeat the status check:
+
+```bash
+gh auth login --hostname github.com --web --skip-ssh-key
+gh auth status --active --hostname github.com
+```
+
+Confirm that the active account has the required repository and protected
+`production` environment access under [GitHub governance](github-administration.md).
+The Actions workflow uses its configured production transport; a workstation AWS
+SSO session is not a prerequisite for dispatching it.
+
+### Dedicated AsterProof AWS SSO
+
+**Verified on 2026-10-28:** `asterproof-production-sso` is installed locally and
+uses the existing `steven-production` Identity Center user with the separate
+`AsterProofProductionDiagnostics` permission set. AWS confirmed provisioning and
+the account assignment. After the operator completed SSO login, read-only SDK
+checks using that profile verified the expected account, role, and AsterProof
+instance metadata. Complete MFA when the SSO login flow requests it; a root
+Console session does not authenticate the CLI.
+
+The authenticated Console confirmed that AsterProof's Lightsail instance
+`asterproof-prod-app-1` has public IPv4 `18.142.249.181` and shares its AWS account
+with Scorpius. Identity Center is already enabled in `us-east-2`; the AsterProof
+resource region is `ap-southeast-1`. The dedicated local session name is
+`asterproof-human-sso`. Its account and access-portal values belong in the local
+`~/.aws/config`.
+
+Sign in and verify the resulting identity:
+
+```bash
+aws sso login --profile asterproof-production-sso
+aws sts get-caller-identity --profile asterproof-production-sso \
+  --query '{Account:Account,Arn:Arn}' --output json --no-cli-pager
+aws lightsail get-instance --profile asterproof-production-sso \
+  --region ap-southeast-1 --instance-name asterproof-prod-app-1 \
+  --query 'instance.{Name:name,PublicIp:publicIpAddress,Region:location.regionName}' \
+  --output json --no-cli-pager
+```
+
+Confirm that `Account` matches the verified hosting account and that `Arn` uses
+the `AWSReservedSSO_AsterProofProductionDiagnostics_` role. Keep `--profile`
+explicit on AWS CLI checks. Confirm the instance name, region, and public IP
+match the verified target above. This profile's one-hour role permits only
+`lightsail:GetInstance` in Singapore. That read does not support instance-level
+IAM resource restrictions, so it also permits reading metadata for other named
+Lightsail instances in the same region. It grants no resource changes or host
+access. See the [Lightsail authorization reference](https://docs.aws.amazon.com/service-authorization/latest/reference/list_lightsail.html)
+and [AWS CLI SSO guide](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-sso.html).
+
+Normal application releases continue through GitHub Actions. This setup
+preserved the existing Scorpius profiles, permission sets, and assignments.
+
+### Root Console access
+
+The owner identified root-user Console access on **2026-10-28**. For account
+administration or checks through that existing access, confirm the account and
+resource before proceeding.
+
+For a bounded, authorized Console check:
+
+1. Reuse an existing authenticated session after confirming its account and
+   identity. If sign-in is needed, open the [AWS Management Console](https://console.aws.amazon.com/).
+2. Choose **Root user**, or **Sign in using root user email** if the browser
+   displays an IAM user sign-in page.
+3. The account owner signs in with the root account's email address and password
+   and completes MFA. Keep credentials and MFA values out of the repository,
+   release records, and command output.
+4. Confirm the account ID, resource region, and exact AsterProof resource against
+   the release record and confirmed [target contract](../../deployment/production-target.json)
+   before running the authorized check.
+
+These steps follow the [AWS root-user sign-in guide](https://docs.aws.amazon.com/signin/latest/userguide/introduction-to-root-user-sign-in-tutorial.html).
+Root Console sign-in and the dedicated Identity Center profile use separate
+authentication flows.
+
+Console access does not replace the GitHub release path or authorize host changes,
+IAM changes, or deployment. Continue to use GitHub Actions for normal releases.
+
 ## Preconditions
 
 Before dispatch, require all of the following:
