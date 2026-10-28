@@ -14773,8 +14773,8 @@ def test_technique_benchmark_import_page_applies_table_and_restores(client):
 
     assert response.status_code == HTTPStatus.OK
     html = response.content.decode("utf-8")
-    assert "Technique benchmark import" in html
-    assert "Utilities" in html
+    assert "Benchmark import" in html
+    assert "Benchmark Map" in html
     assert "Paste benchmark table" in html
     assert "Step 1: Copy this prompt to ChatGPT" not in html
     assert "Mark reviewed" in html
