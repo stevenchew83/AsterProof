@@ -6270,12 +6270,12 @@ def test_contest_dashboard_listing_view_filters_selected_contest_and_year_for_ad
     assert grouped_years[0]["problems"][0]["problem_code"] == "P1"
     assert grouped_years[0]["problems"][0]["statement_preview"] == "Statement one"
     response_html = response.content.decode("utf-8")
-    assert '<h1 class="contest-dashboard-title">USAMO</h1>' in response_html
+    assert '<h1 class="app-page-header-title">USAMO</h1>' in response_html
     assert "Back to advanced analytics" in response_html
-    assert 'class="btn btn-outline-secondary btn-sm contest-dashboard-back-link"' in response_html
-    assert "contest-dashboard-summary-band" in response_html
-    assert "1 visible" in response_html
-    assert "1 solved" in response_html
+    assert '<nav class="app-page-header-context" aria-label="Breadcrumb">' in response_html
+    assert '<dl class="app-page-header-stats" aria-label="Contest overview">' in response_html
+    assert re.search(r"Visible problems\s*</dt>\s*<dd>\s*1\s*</dd>", response_html)
+    assert re.search(r"Solved\s*</dt>\s*<dd>\s*1\s*</dd>", response_html)
     assert "contest-dashboard-filter-toolbar" in response_html
     assert "contest-dashboard-bulk-bar" in response_html
     assert "Bulk selection" not in response_html

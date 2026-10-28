@@ -24,9 +24,6 @@
   .concept-progress .btn-primary { --ins-btn-bg: var(--cp-primary-ink); --ins-btn-border-color: var(--cp-primary-ink); --ins-btn-color: var(--ins-secondary-bg); }
   .concept-progress .btn-outline-secondary { --ins-btn-color: var(--cp-muted); --ins-btn-border-color: var(--cp-muted); --ins-btn-hover-bg: var(--ins-tertiary-bg); --ins-btn-hover-color: var(--ins-body-color); --ins-btn-hover-border-color: var(--ins-body-color); }
   .concept-progress .btn-outline-primary { --ins-btn-color: var(--cp-primary-ink); --ins-btn-border-color: var(--cp-primary-ink); }
-  .concept-progress .page-title-head { padding-block: 1.7rem 1.25rem; }
-  .concept-progress h1 { font-size: clamp(1.5rem, 2.3vw, 1.9rem); letter-spacing: -.035em; margin: .4rem 0 .55rem; }
-  .concept-progress .cp-eyebrow { font-size: .68rem; letter-spacing: .11em; }
   .concept-progress .header-title { font-size: 1rem; font-weight: 600; letter-spacing: -.015em; }
   .concept-progress .card { border: 1px solid var(--ins-border-color); box-shadow: none; }
   .concept-progress .cp-context { padding: 1rem 1.25rem; }
@@ -92,17 +89,19 @@
 
 {% block page_content %}
 {% if progress_unavailable %}
-<div class="container-fluid py-3"><h1 class="h3">Area &amp; Concepts Progress</h1><div class="alert alert-info" role="status">Progress summaries are being updated. Your completion records are preserved. Please try again shortly.</div></div>
+<div class="container-fluid">{% include 'partials/page-title.html' with title='Area & Concepts Progress' subtitle='Learning' page_icon='ti-circles-relation' %}<div class="alert alert-info" role="status">Progress summaries are being updated. Your completion records are preserved. Please try again shortly.</div></div>
 {% else %}
 <div class="container-fluid concept-progress">
-  <div class="page-title-head d-flex flex-wrap align-items-center justify-content-between gap-3">
-    <div>
-      <div class="text-muted text-uppercase fw-semibold cp-eyebrow">{% if subject %}<a href="{{ all_subjects_url }}" class="text-muted">Area &amp; Concepts Progress</a> / {{ subject }}{% else %}Learning / Progress overview{% endif %}</div>
-      <h1 class="fw-bold">{% if subject %}{{ subject }} progress{% else %}Area &amp; Concepts Progress{% endif %}</h1>
-      <p class="text-muted mb-0">Track completed problems, explore your coverage, and choose what to practice next.</p>
+  <header class="page-title-head app-page-header">
+    {% if subject %}
+      {% include 'partials/page-header-intro.html' with title=subject|add:' progress' page_icon='ti-circles-relation' back_url=all_subjects_url back_label='Area & Concepts Progress' only %}
+    {% else %}
+      {% include 'partials/page-header-intro.html' with title='Area & Concepts Progress' subtitle='Learning' page_icon='ti-circles-relation' only %}
+    {% endif %}
+    <div class="app-page-header-actions">
+      <a href="{{ completion_url }}" class="btn btn-sm btn-primary app-page-header-action-icon d-inline-flex align-items-center gap-2" aria-label="Record completions" title="Record completions"><i class="ti ti-calendar-check" aria-hidden="true"></i><span>Record completions</span></a>
     </div>
-    <a href="{{ completion_url }}" class="btn btn-primary"><i class="ti ti-calendar-check me-1" aria-hidden="true"></i> Record completions</a>
-  </div>
+  </header>
 
   <div class="card mb-3"><div class="cp-context">
     <form method="get" action="{{ form_url }}" class="row g-3 align-items-end" id="progress-scope-form">

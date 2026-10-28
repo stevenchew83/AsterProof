@@ -431,7 +431,7 @@
 {% block page_content %}
 <div class="container-fluid">
 
-  {% include 'partials/page-title.html' with title=completion_progress_page_title subtitle=completion_progress_page_subtitle %}
+  {% include 'partials/page-title.html' with title=completion_progress_page_title subtitle=completion_progress_page_subtitle page_icon='ti-chart-line' %}
 
   {% if shared_progress_subject %}
   {% include 'pages/partials/shared-progress-header.html' %}

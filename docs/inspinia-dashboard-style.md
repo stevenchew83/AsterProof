@@ -23,12 +23,13 @@ Keep new admin/dashboard UI consistent with the **Inspinia 4.x / Bootstrap 5** s
 | Region | Pattern |
 |--------|---------|
 | Main width | `container-fluid` for dashboard content (matches demo density). |
-| Title row | Include `partials/page-title.html` with `title` / `subtitle`, or match its markup: `page-title-head`, uppercase small title, breadcrumb right. |
+| Title row | Include `partials/page-title.html` with `title`, optional `subtitle`, and a Tabler `page_icon` (for example, `ti-trophy`). It renders a compact icon, context link and one sentence-case page title. |
 | Vertical rhythm | Use `row` + **`g-3`** gutters; stack sections with `mt-0` / `mt-1` / `mt-4` sparingly to match existing pages. |
 | Cards | `card`; headers often `card-header border-0 pb-0` with `h4.header-title` and `p.text-muted.fs-xs`; body `card-body` with **`pt-2`** when the header is tight. |
 
 ## Components and micro‑patterns
 
+- **Page headers**: Use the shared `.app-page-header` component from `components/_page-header.scss`. For custom actions, include `partials/page-header-intro.html` inside `<header class="page-title-head app-page-header">`, then use `.app-page-header-actions` for the controls. Pass explicit values with `only` to the intro partial. For four summary metrics, add `app-page-header--with-stats` and use a `<dl class="app-page-header-stats">` with `partials/page-header-stat.html`; add `app-page-header--stats-only` when there are no actions. Keep navigation context useful and avoid repeating the page title in a breadcrumb. Long titles wrap, metrics reflow, and every icon-only action needs an accessible label.
 - **KPI / stat tiles**: `card` → `card-body` → `d-flex align-items-center` → icon in `flex-shrink-0` → copy in `flex-grow-1 ms-2`. Icons live in `span.avatar-title.bg-{primary\|info\|warning\|success}-subtle.text-{same}.rounded` with **`i.ti.ti-*.fs-24`** (Tabler icons).
 - **Labels**: Uppercase muted labels: `text-muted mb-0 fs-xs text-uppercase fw-semibold`. Headline numbers: `h3.mb-0` or `fs-lg` on `h3` when needed.
 - **Alerts / tables / buttons**: Use Bootstrap 5 variants (`alert-info`, `btn-primary`, etc.) so they track `data-bs-theme` and Inspinia’s component SCSS.
