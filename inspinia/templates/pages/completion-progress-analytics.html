@@ -1646,6 +1646,12 @@
             return row.problem_url ? '<a class="fw-semibold" href="' + escapeHtml(row.problem_url) + '" title="' + label + '">' + label + '</a>' : label;
           }
         },
+        {
+          data: "day_label", title: "Day label",
+          render: function (data, type) {
+            return type === "display" ? escapeHtml(data || "—") : data;
+          }
+        },
         { data: "topic", title: "Topic", render: textRenderer },
         {
           data: "areas", title: "Area", className: "lp-area",
@@ -1682,7 +1688,7 @@
     if (compactTable && columnsButton) {
       columnsButton.addEventListener("click", function () {
         var show = columnsButton.getAttribute("aria-pressed") !== "true";
-        var extraColumns = tableColumns.map(function (_, index) { return index; }).slice(6);
+        var extraColumns = tableColumns.map(function (_, index) { return index; }).slice(7);
         tableApi.columns(extraColumns).visible(show);
         columnsButton.setAttribute("aria-pressed", String(show));
         columnsButton.textContent = show ? "Fewer columns" : "More columns";
