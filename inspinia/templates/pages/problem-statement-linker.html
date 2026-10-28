@@ -101,7 +101,7 @@
 {% block page_content %}
 <div class="container-fluid">
 
-  {% include 'partials/page-title.html' with title='Statement links' subtitle='Linker' page_icon='ti-link' %}
+  {% include 'partials/page-title.html' with title='Statement links' subtitle='Statement tools' page_icon='ti-link' %}
 
   {% if messages %}
   <div class="mt-3">
@@ -120,12 +120,11 @@
     Save parsed results from <a href="{% url 'pages:latex_preview' %}" class="alert-link">LaTeX preview</a> before linking them to tracked problems.
   </div>
   {% else %}
-  <div class="row g-3 mt-1 mb-4">
+  <div class="row g-3 mt-0 mb-4">
     <div class="col-12">
       <div class="card">
         <div class="card-header border-bottom d-flex flex-wrap align-items-center gap-2">
           <div class="flex-grow-1">
-            <h4 class="header-title mb-0">Statement-to-problem linker</h4>
             <p class="text-muted fs-xs mb-0">
               Review unlinked statement rows, accept safe suggestions, or manually attach a tracked problem from the same contest-year. Clearing a link releases that UUID claim so another statement row can take it later.
             </p>

@@ -4606,7 +4606,8 @@ def test_problem_statement_editor_page_renders_tools_for_admin(client):
     assert 'id="statement-editor-table"' in response_html
     assert 'id="statement-editor-modal"' in response_html
     assert 'id="statement-editor-form"' in response_html
-    assert "Edit raw statement rows" in response_html
+    assert response_html.count('class="app-page-header-title"') == 1
+    assert "Review imported statement text" in response_html
     assert "Problem code" in response_html
     assert "Topic" in response_html
 
