@@ -8,6 +8,7 @@
 <div class="container-fluid app-table-page">
 
   {% include 'partials/page-title.html' with title='My solutions' subtitle='Personal' page_icon='ti-notebook' %}
+  {% if writer_draft %}<div class="alert alert-info mt-3" role="status">Your Solution Writer draft is waiting. <a class="alert-link" href="{{ writer_handoff_url }}">Choose a problem and continue</a>.</div>{% endif %}
 
   {% if messages %}
   <div class="mt-3">

@@ -1,12 +1,18 @@
-<div class="public-solution-tool" data-pdf-document data-pdf-date="{{ pdf_date_label }}" data-solution-preview data-block-limit="{{ preview_block_limit }}" data-plain-block-type="{{ plain_block_type_id }}">
+<div class="public-solution-tool" data-pdf-document data-pdf-date="{{ pdf_date_label }}" data-solution-preview data-block-limit="{{ preview_block_limit }}" data-plain-block-type="{{ plain_block_type_id }}" data-login-url="{% url 'account_login' %}" data-signup-url="{% url 'account_signup' %}" data-writer-resumed="{{ writer_draft_resumed|yesno:'true,false' }}">
   <form action="{% url 'website:solution_preview' %}" method="post" id="solution-preview-form" novalidate>
     {% csrf_token %}{{ formset.management_form }}
     {% if form.non_field_errors or formset.non_form_errors %}
       <div class="public-tool-errors" role="alert"><strong>Please check your document.</strong>{{ form.non_field_errors }}{{ formset.non_form_errors }}</div>
     {% endif %}
     <div class="public-tool-toolbar">
-      <p>No sign-in needed. Your writing is not saved; download your PDF before leaving.</p>
-      <div><a href="{% url 'website:solution_preview' %}" class="website-text-link">Reset example ↺</a><button type="submit" class="website-button">Download PDF <span aria-hidden="true">↓</span></button></div>
+      <p>No sign-in needed. Keep a recovery copy on this device, download a PDF, or continue in your workspace to save privately.</p>
+      <div><a href="{% url 'website:solution_preview' %}" class="website-text-link">Reset example ↺</a><button type="submit" name="action" value="continue_workspace" class="website-text-link" data-workspace-handoff>Continue in workspace ↗</button><button type="submit" name="action" value="download_pdf" class="website-button">Download PDF <span aria-hidden="true">↓</span></button></div>
+    </div>
+    <div class="public-tool-recovery" data-draft-recovery hidden>
+      <label><input type="checkbox" data-draft-enable> Keep a recovery copy on this device for seven days</label>
+      <p class="website-fineprint" data-draft-status role="status">Device recovery is off. Your writing stays open in this tab.</p>
+      <div data-draft-offer hidden><p data-draft-offer-text></p><button type="button" class="website-text-link" data-draft-restore>Restore device draft</button></div>
+      <button type="button" class="website-text-link" data-draft-clear hidden>Clear device draft</button>
     </div>
     <p class="website-fineprint" data-pdf-status role="status"></p>
     <div class="public-tool-grid">
@@ -28,7 +34,7 @@
       </section>
       <section class="public-tool-preview" aria-labelledby="converter-preview-title">
         <div class="public-tool-pane-title"><h2 id="converter-preview-title">Live preview</h2><span id="converter-preview-status" role="status">Updates as you write</span></div>
-        <p class="website-fineprint public-tool-tips">Your PDF includes a framed problem statement, styled claims, and proofs. To keep drafts and track your practice, <a class="website-text-link" href="{% url 'account_signup' %}">create an account</a>.</p>
+        <p class="website-fineprint public-tool-tips">Your PDF includes a framed problem statement, styled claims, and proofs.{% if not request.user.is_authenticated %} To keep this writing in your workspace, <button type="submit" name="action" value="continue_signup" class="website-text-link" data-signup-handoff>create an account</button>.{% endif %}</p>
         <article class="public-tool-paper" aria-labelledby="converter-document-title">
           <p class="website-kicker">Your solution</p><h2 id="converter-document-title" class="tex2jax_ignore">{{ form.title.value|default:'My solution' }}</h2>
           {% include 'solutions/partials/pdf-preview-metadata.html' %}
