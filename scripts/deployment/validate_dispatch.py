@@ -15,8 +15,8 @@ from pathlib import Path
 from typing import Any
 
 from scripts.deployment import catalogue_schema
+from scripts.deployment.additive_schema import validate_disclosure
 from scripts.deployment.concept_schema import ConceptSchemaError
-from scripts.deployment.concept_schema import validate_disclosure
 from scripts.deployment.migration_plan import load_registry
 from scripts.deployment.protocol import DIGEST_RE
 from scripts.deployment.protocol import MARKER_RE
