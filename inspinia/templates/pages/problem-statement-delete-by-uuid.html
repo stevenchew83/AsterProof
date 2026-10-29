@@ -11,7 +11,7 @@
 {% endblock extra_css %}
 
 {% block page_content %}
-<div class="container-fluid">
+<div class="container-fluid app-table-page">
 
   {% include 'partials/page-title.html' with title='Delete statement by UUID' subtitle='Statement tools' page_icon='ti-trash' %}
 
@@ -113,10 +113,10 @@
             </div>
 
             {% if statement_delete_total %}
-            <div class="table-responsive">
-              <table
+            <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
+              <table data-paging-type="simple"
                 id="statement-delete-table"
-                class="table align-middle table-hover mb-0"
+                class="app-table-compact table align-middle table-hover mb-0"
                 data-rows-url="{{ statement_delete_rows_url }}"
                 data-page-length="{{ statement_delete_page_length }}"
               >
@@ -211,6 +211,13 @@
       return data || "";
     }
     return escapeHtml(data || "");
+  }
+
+  function renderPreview(data, type) {
+    if (type !== "display") return data || "";
+    if (!data) return '<span class="text-muted">—</span>';
+    return '<details class="app-table-details"><summary>Preview</summary>' +
+      '<div class="app-table-details-body">' + escapeHtml(data) + '</div></details>';
   }
 
   function renderUuid(data, type) {
@@ -363,7 +370,7 @@
         { data: "day_label", render: renderText },
         { data: "contest_year_problem", render: renderProblem },
         { data: "statement_uuid", render: renderUuid },
-        { data: "statement_preview", render: renderText, className: "text-wrap text-muted" }
+        { data: "statement_preview", render: renderPreview, className: "text-muted" }
       ],
       createdRow: function (row, data) {
         row.setAttribute("data-statement-uuid", data && data.statement_uuid ? data.statement_uuid : "");

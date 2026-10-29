@@ -18655,6 +18655,410 @@ html[data-bs-theme=dark] .auth-login .auth-login-submit {
     padding: 0.875rem;
   }
 }
+.content-page,
+.app-table-page,
+.app-table-page .card,
+.app-table-page .card-body,
+.app-table-page .card-body .flex-grow-1,
+.app-table-page [class*=col-] {
+  min-width: 0;
+}
+
+.app-table-region {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+}
+.app-table-region:focus-visible {
+  outline: 2px solid var(--ins-primary);
+  outline-offset: -2px;
+}
+
+.app-table-page .dt-container:has(.app-table-compact),
+.app-table-region .dt-container {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  font-size: 0.8125rem;
+}
+.app-table-page .dt-container:has(.app-table-compact) > .row,
+.app-table-region .dt-container > .row {
+  margin-inline: 0;
+  row-gap: 0.5rem;
+}
+.app-table-page .dt-container:has(.app-table-compact) > .row > *,
+.app-table-region .dt-container > .row > * {
+  min-width: 0;
+}
+.app-table-page .dt-container:has(.app-table-compact) .dt-layout-table > .col-12,
+.app-table-region .dt-container .dt-layout-table > .col-12 {
+  display: block !important;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  padding-inline: 0;
+}
+.app-table-page .dt-container:has(.app-table-compact) .dt-scroll,
+.app-table-page .dt-container:has(.app-table-compact) .dt-scroll-body,
+.app-table-page .dt-container:has(.app-table-compact) .dt-scroll-head,
+.app-table-region .dt-container .dt-scroll,
+.app-table-region .dt-container .dt-scroll-body,
+.app-table-region .dt-container .dt-scroll-head {
+  max-width: 100%;
+}
+.app-table-page .dt-container:has(.app-table-compact) > .row:not(.dt-layout-table),
+.app-table-region .dt-container > .row:not(.dt-layout-table) {
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  margin-block: 0.5rem;
+}
+.app-table-page .dt-container:has(.app-table-compact) .dt-search,
+.app-table-page .dt-container:has(.app-table-compact) .dt-length,
+.app-table-region .dt-container .dt-search,
+.app-table-region .dt-container .dt-length {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  gap: 0.375rem;
+  margin: 0;
+}
+.app-table-page .dt-container:has(.app-table-compact) .dt-search label,
+.app-table-page .dt-container:has(.app-table-compact) .dt-length label,
+.app-table-region .dt-container .dt-search label,
+.app-table-region .dt-container .dt-length label {
+  margin: 0;
+}
+.app-table-page .dt-container:has(.app-table-compact) .dt-search input, .app-table-page .dt-container:has(.app-table-compact) .dt-search select,
+.app-table-page .dt-container:has(.app-table-compact) .dt-length input,
+.app-table-page .dt-container:has(.app-table-compact) .dt-length select,
+.app-table-region .dt-container .dt-search input,
+.app-table-region .dt-container .dt-search select,
+.app-table-region .dt-container .dt-length input,
+.app-table-region .dt-container .dt-length select {
+  margin: 0;
+}
+.app-table-page .dt-container:has(.app-table-compact) .dt-search input,
+.app-table-region .dt-container .dt-search input {
+  width: min(16rem, 100%);
+  min-width: 0;
+}
+.app-table-page .dt-container:has(.app-table-compact) .dt-length select,
+.app-table-region .dt-container .dt-length select {
+  width: auto;
+}
+.app-table-page .dt-container:has(.app-table-compact) .dt-info,
+.app-table-region .dt-container .dt-info {
+  white-space: normal;
+  color: var(--ins-secondary-color);
+  font-size: 0.75rem;
+}
+.app-table-page .dt-container:has(.app-table-compact) .pagination,
+.app-table-region .dt-container .pagination {
+  margin: 0;
+  -ms-flex-wrap: wrap;
+      flex-wrap: wrap;
+  gap: 0.25rem;
+}
+.app-table-page .dt-container:has(.app-table-compact) .page-link,
+.app-table-region .dt-container .page-link {
+  border-radius: var(--ins-border-radius-sm);
+  font-size: 0.75rem;
+  padding: 0.375rem 0.625rem;
+}
+
+.app-table-page table.app-table-compact.table,
+table.app-table-compact {
+  margin-bottom: 0;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+}
+.app-table-page table.app-table-compact.table > thead > tr > th,
+table.app-table-compact > thead > tr > th {
+  padding: 0.5rem 0.75rem;
+  white-space: nowrap;
+  background: var(--ins-tertiary-bg);
+  color: var(--ins-secondary-color);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  vertical-align: middle;
+}
+.app-table-page table.app-table-compact.table > tbody > tr > td,
+.app-table-page table.app-table-compact.table > tbody > tr > th,
+table.app-table-compact > tbody > tr > td,
+table.app-table-compact > tbody > tr > th {
+  padding: 0.5rem 0.75rem;
+  vertical-align: middle;
+  white-space: nowrap;
+  border-color: var(--ins-border-color);
+}
+.app-table-page table.app-table-compact.table > tbody > tr > td[colspan],
+table.app-table-compact > tbody > tr > td[colspan] {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.app-table-page table.app-table-compact.table .app-table-meta,
+table.app-table-compact .app-table-meta {
+  display: inline;
+  margin-block: 0 !important;
+  -webkit-margin-start: 0.5rem;
+          margin-inline-start: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--ins-secondary-color);
+}
+.app-table-page table.app-table-compact.table .app-table-actions,
+table.app-table-compact .app-table-actions {
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  gap: 0.375rem !important;
+  white-space: nowrap;
+  -ms-flex-wrap: nowrap;
+      flex-wrap: nowrap;
+}
+.app-table-page table.app-table-compact.table .btn,
+table.app-table-compact .btn {
+  white-space: nowrap;
+  min-height: 1.625rem;
+  line-height: 1.4;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+}
+.app-table-page table.app-table-compact.table .form-control, .app-table-page table.app-table-compact.table .form-select,
+table.app-table-compact .form-control,
+table.app-table-compact .form-select {
+  font-size: 0.8125rem;
+}
+.app-table-page table.app-table-compact.table .app-table-text,
+table.app-table-compact .app-table-text {
+  display: inline-block;
+  max-width: 24rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+.app-table-page table.app-table-compact.table .contest-name,
+table.app-table-compact .contest-name {
+  max-width: none;
+  min-width: 0;
+  white-space: nowrap;
+}
+.app-table-page table.app-table-compact.table .contest-row-meta,
+table.app-table-compact .contest-row-meta {
+  display: inline;
+}
+.app-table-page table.app-table-compact.table .cb-problem-chips,
+table.app-table-compact .cb-problem-chips {
+  -ms-flex-wrap: nowrap;
+      flex-wrap: nowrap;
+}
+
+.app-table-details {
+  display: inline-block;
+  vertical-align: middle;
+}
+.app-table-details > summary {
+  display: list-item;
+  cursor: pointer;
+  white-space: nowrap;
+  font-size: 0.75rem;
+}
+.app-table-details[open] {
+  min-width: 16rem;
+  max-width: 30rem;
+}
+.app-table-details .app-table-details-body {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  padding: 0.625rem;
+  margin-top: 0.5rem;
+  background: var(--ins-tertiary-bg);
+  border-radius: var(--ins-border-radius);
+}
+
+.app-table-filters {
+  -webkit-box-align: end;
+      -ms-flex-align: end;
+          align-items: end;
+  gap: 0.5rem;
+}
+.app-table-filters .form-label {
+  font-size: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+.app-table-filters .form-control, .app-table-filters .form-select {
+  min-width: 0;
+  min-height: 2rem;
+  font-size: 0.8125rem;
+  padding-block: 0.25rem;
+}
+.app-table-filters .btn {
+  min-height: 2rem;
+  font-size: 0.8125rem;
+  padding: 0.25rem 0.625rem;
+  white-space: nowrap;
+}
+.app-table-filters.row {
+  --ins-gutter-x: 0;
+  margin-inline: 0;
+}
+.app-table-filters.row > [class*=col-] {
+  -webkit-box-flex: 1;
+      -ms-flex: 1 1 9rem;
+          flex: 1 1 9rem;
+  width: auto;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.app-table-pagination,
+.app-table-pager {
+  font-size: 0.75rem;
+  -ms-flex-wrap: wrap;
+      flex-wrap: wrap;
+  gap: 0.25rem;
+}
+.app-table-pagination .page-link, .app-table-pagination .btn,
+.app-table-pager .page-link,
+.app-table-pager .btn {
+  padding: 0.375rem 0.625rem;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+@media (max-width: 575.98px) {
+  .app-table-page .dt-container:has(.app-table-compact) > .row:not(.dt-layout-table) > * {
+    padding-inline: 0;
+  }
+  .app-table-page .dt-container:has(.app-table-compact) .dt-search {
+    width: 100%;
+  }
+  .app-table-page .dt-container:has(.app-table-compact) .dt-search input {
+    -webkit-box-flex: 1;
+        -ms-flex: 1;
+            flex: 1;
+    width: 100%;
+  }
+  .app-table-page .dt-container:has(.app-table-compact) .dt-paging {
+    width: 100%;
+  }
+  .app-table-page .dt-container:has(.app-table-compact) .pagination {
+    -webkit-box-pack: start !important;
+        -ms-flex-pack: start !important;
+            justify-content: flex-start !important;
+  }
+  .app-table-filters.row > [class*=col-]:has(input[type=search], input[name=q]) {
+    -ms-flex-preferred-size: 100%;
+        flex-basis: 100%;
+  }
+  .app-table-pager .btn-group {
+    -ms-flex-wrap: wrap;
+        flex-wrap: wrap;
+    row-gap: 0.25rem;
+  }
+}
+.app-table-compact .problem-list-sequence-problem-cell,
+.app-table-compact .problem-list-meta-badges,
+.app-table-compact .problem-list-tag-badges,
+.app-table-compact .problem-list-draft-note-summary,
+.app-table-compact .benchmark-mohs-range,
+.app-table-compact .completion-progress-difficulty-display,
+.app-table-compact .completion-progress-difficulty-editor {
+  display: -webkit-inline-box;
+  display: -ms-inline-flexbox;
+  display: inline-flex;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  -ms-flex-wrap: nowrap;
+      flex-wrap: nowrap;
+  gap: 0.5rem;
+  white-space: nowrap;
+}
+.app-table-compact .problem-list-sequence-problem-cell > .mt-1,
+.app-table-compact .benchmark-mohs-range .mb-1 {
+  margin-block: 0 !important;
+}
+.app-table-compact .benchmark-mohs-track {
+  width: 4rem;
+}
+.app-table-compact .benchmark-technique-title > span {
+  display: inline;
+}
+.app-table-compact .problem-list-tag-badges .badge {
+  white-space: nowrap;
+}
+.app-table-compact .problem-list-picker-note-text {
+  display: block;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.app-table-compact .completion-progress-difficulty-display > .text-muted,
+.app-table-compact .completion-progress-difficulty-editor > .text-muted {
+  margin-block: 0 !important;
+}
+
+.app-table-compact > tbody > tr > td > div.fw-semibold,
+.app-table-compact > tbody > tr > td > div.text-muted {
+  display: inline;
+  margin-block: 0 !important;
+}
+.app-table-compact > tbody > tr > td > div.text-muted {
+  -webkit-margin-start: 0.5rem;
+          margin-inline-start: 0.5rem;
+}
+.app-table-compact > tbody > tr > td > .app-table-inline {
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  margin-block: 0 !important;
+  vertical-align: middle;
+}
+
+.app-table-page .min-w-0 {
+  min-width: 0;
+}
+.app-table-page .card-header > * {
+  min-width: 0;
+  max-width: 100%;
+}
+.app-table-page .app-table-toolbar {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-wrap: wrap;
+      flex-wrap: wrap;
+  max-width: 100%;
+  gap: 0.25rem;
+}
+.app-table-page .app-table-toolbar > .btn {
+  -webkit-box-flex: 0;
+      -ms-flex: 0 1 auto;
+          flex: 0 1 auto;
+  border-radius: var(--ins-border-radius-sm) !important;
+}
+
+.app-table-compact .cp-coverage {
+  display: -webkit-inline-box;
+  display: -ms-inline-flexbox;
+  display: inline-flex;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  gap: 0.5rem;
+}
+.app-table-compact .cp-coverage .mb-2 {
+  margin-bottom: 0 !important;
+}
+.app-table-compact .cp-coverage .cp-track {
+  width: 4rem;
+}
+
 .btn {
   display: -webkit-inline-box;
   display: -ms-inline-flexbox;

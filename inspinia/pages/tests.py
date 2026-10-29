@@ -9879,7 +9879,7 @@ def test_user_solution_record_list_renders_admin_inventory(client):
     assert '<p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Drafts</p>' in response_html
     assert '<p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Problems</p>' in response_html
     assert '<p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Latest update</p>' in response_html
-    assert 'class="table table-sm table-hover align-middle w-100 mb-0"' in response_html
+    assert 'class="app-table-compact table table-sm table-hover align-middle w-100 mb-0"' in response_html
     assert 'title: "Solution"' in response_html
     assert 'title: "Problem"' in response_html
     assert 'title: "Content"' in response_html

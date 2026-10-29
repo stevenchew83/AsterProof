@@ -44,7 +44,7 @@
 {% endblock extra_css %}
 
 {% block page_content %}
-<div class="container-fluid catalogue-browser">
+<div class="container-fluid app-table-page catalogue-browser">
   {% url 'pages:archive_hub' as header_archive_url %}
   <header class="page-title-head app-page-header">
     {% include 'partials/page-header-intro.html' with title='Mathematics catalogue' page_icon='ti-hierarchy-2' back_url=header_archive_url back_label='Archive' only %}
@@ -73,7 +73,7 @@
         </div>{% endif %}
         {% if selected_area or selected_concept %}<nav class="nav nav-tabs px-3" aria-label="Catalogue views"><a class="nav-link{% if tab == 'problems' %} active{% endif %}" href="{{ examples_url }}"{% if tab == 'problems' %} aria-current="page"{% endif %}>Problems</a><a class="nav-link{% if tab == 'structure' %} active{% endif %}" href="{{ structure_url }}"{% if tab == 'structure' %} aria-current="page"{% endif %}>{% if selected_concept %}Structure &amp; names{% else %}Concept structure{% endif %}</a></nav>{% endif %}
         {% if tab == 'structure' %}
-        <form method="get" id="concept-scope-form" role="search" aria-label="Search catalogue" class="cb-search p-3 border-bottom">
+        <form method="get" id="concept-scope-form" role="search" aria-label="Search catalogue" class="app-table-filters cb-search p-3 border-bottom">
           {% for key, value in scope_inputs.items %}{% if value %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endif %}{% endfor %}
           {% if selected_concept %}<input type="hidden" name="concept" value="{{ selected_concept.pk }}">{% endif %}
           <label class="visually-hidden" for="concept-search">Search this scope</label><input id="concept-search" class="form-control form-control-sm" type="search" name="q" value="{{ q }}" placeholder="Search names, IDs or aliases…">
@@ -81,7 +81,7 @@
           <button class="btn btn-sm btn-primary" type="submit">Search</button>
         </form>
         <div class="px-3 py-2 text-muted fs-xs" role="status">{{ page.paginator.count }} {% if selected_concept %}narrower concept{{ page.paginator.count|pluralize }}{% else %}{{ level }}{% endif %}{% if q %} matching “{{ q }}”{% endif %}</div>
-        {% if rows %}<div class="table-responsive"><table class="table table-hover mb-0" id="concept-analytics-table"><caption class="visually-hidden">{{ heading }} structure</caption><thead><tr><th scope="col">{% if level == 'subjects' %}Subject{% elif level == 'areas' %}Area{% else %}Concept{% endif %}</th><th scope="col">{% if level == 'concepts' %}Classification{% else %}Contains{% endif %}</th><th scope="col"><span class="visually-hidden">Explore</span></th></tr></thead><tbody>
+        {% if rows %}<div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results"><table class="app-table-compact table table-hover mb-0" id="concept-analytics-table"><caption class="visually-hidden">{{ heading }} structure</caption><thead><tr><th scope="col">{% if level == 'subjects' %}Subject{% elif level == 'areas' %}Area{% else %}Concept{% endif %}</th><th scope="col">{% if level == 'concepts' %}Classification{% else %}Contains{% endif %}</th><th scope="col"><span class="visually-hidden">Explore</span></th></tr></thead><tbody>
           {% for row in rows %}<tr><td><a class="cb-name" href="{{ row.url }}">{{ row.name }}</a>{% if row.description %}<p class="text-muted fs-xs mb-0 mt-1">{{ row.description|truncatechars:140 }}</p>{% endif %}</td><td>{% if level == 'concepts' %}<span class="text-muted fs-xs">{{ row.roles|join:' · '|default:'Concept' }}</span>{% else %}<span class="text-muted fs-sm">{{ row.count }} {% if level == 'subjects' %}areas{% else %}concepts{% endif %}</span>{% endif %}</td><td class="text-end"><a href="{{ row.url }}" aria-label="Explore {{ row.name }}"><i class="ti ti-chevron-right" aria-hidden="true"></i></a></td></tr>{% endfor %}
         </tbody></table></div>{% else %}<div class="px-3 py-4 text-muted fs-sm">{% if selected_concept and not q %}No narrower concepts are currently recorded. Explore the names and relationships below.{% else %}No catalogue entries match this scope.{% endif %}</div>{% endif %}
         {% if page.paginator.num_pages > 1 %}<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 px-3 py-2 border-top"><span class="text-muted fs-xs">{{ page.start_index }}–{{ page.end_index }} of {{ page.paginator.count }}</span><nav aria-label="Catalogue pages" class="d-flex align-items-center gap-2">{% if page.has_previous %}<a class="btn btn-sm btn-outline-secondary" href="{{ pagination_url }}{% if '?' in pagination_url %}&amp;{% else %}?{% endif %}page={{ page.previous_page_number }}">Previous</a>{% endif %}<span class="text-muted fs-xs">{{ page.number }} / {{ page.paginator.num_pages }}</span>{% if page.has_next %}<a class="btn btn-sm btn-outline-secondary" href="{{ pagination_url }}{% if '?' in pagination_url %}&amp;{% else %}?{% endif %}page={{ page.next_page_number }}">Next</a>{% endif %}</nav></div>{% endif %}

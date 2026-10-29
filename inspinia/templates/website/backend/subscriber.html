@@ -1,0 +1,55 @@
+{% extends 'website/backend/base.html' %}
+
+{% block newsletter_content %}
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+    <div>
+      <a href="{% url 'website:newsletter_subscribers' %}"
+         class="text-muted fs-xs"><i class="ti ti-arrow-left me-1" aria-hidden="true"></i>Subscribers</a>
+      <h2 class="h4 mt-2 mb-1 newsletter-email">{{ subscriber.email }}</h2>
+      <span class="badge {{ subscriber.badge_class }}">{{ subscriber.get_status_display }}</span>
+    </div>
+    {% if subscriber.status != 'unsubscribed' %}
+      <form method="post">
+        {% csrf_token %}
+        <button class="btn btn-outline-danger btn-sm" type="submit">Unsubscribe this address</button>
+      </form>
+    {% endif %}
+  </div>
+  <div class="card">
+    <div class="card-body py-3">
+      <dl class="newsletter-consent-grid mb-0">
+        <div>
+          <dt>Requested</dt>
+          <dd>
+            {{ subscriber.requested_at|date:'d M Y, H:i' }}
+          </dd>
+        </div>
+        <div>
+          <dt>Confirmed</dt>
+          <dd>
+            {{ subscriber.confirmed_at|date:'d M Y, H:i'|default:'—' }}
+          </dd>
+        </div>
+        <div>
+          <dt>Unsubscribed</dt>
+          <dd>
+            {{ subscriber.unsubscribed_at|date:'d M Y, H:i'|default:'—' }}
+          </dd>
+        </div>
+        <div>
+          <dt>Consent version</dt>
+          <dd>
+            {{ subscriber.consent_version }}
+          </dd>
+        </div>
+      </dl>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header border-0 py-3">
+      <h2 class="header-title mb-0">Delivery history</h2>
+    </div>
+    {% include 'website/backend/deliveries.html' with rows=page show_campaign=True %}
+    {% include 'website/backend/pagination.html' %}
+  </div>
+{% endblock newsletter_content %}

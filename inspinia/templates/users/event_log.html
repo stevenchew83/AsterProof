@@ -6,7 +6,7 @@
 
 {% block page_content %}
 
-<div class="container-fluid">
+<div class="container-fluid app-table-page">
   {% include 'partials/page-title.html' with title='Event log' subtitle='Admin monitoring' page_icon='ti-history' %}
 
   <div class="row g-3 mt-0">
@@ -88,7 +88,7 @@
           <p class="text-muted fs-xs mb-0">{% translate "Search by message, actor, or target. Event type filtering is server-side." %}</p>
         </div>
         <div class="card-body pt-2">
-          <form method="get" class="row g-2 align-items-end">
+          <form method="get" class="app-table-filters row g-2 align-items-end">
             <div class="col-md-4">
               <label for="event-type-filter" class="form-label">{% translate "Event type" %}</label>
               <select id="event-type-filter" name="event_type" class="form-select">
@@ -131,8 +131,8 @@
           <p class="text-muted fs-xs mb-0">{% translate "Authentication, session, role, and import activity lands here." %}</p>
         </div>
         <div class="card-body">
-          <div class="table-responsive">
-            <table class="table table-striped align-middle mb-0">
+          <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
+            <table class="app-table-compact table table-striped align-middle mb-0">
               <thead class="table-light">
                 <tr>
                   <th scope="col">{% translate "When" %}</th>
@@ -152,28 +152,28 @@
                   </td>
                   <td>
                     {% if event.actor %}
-                    <div class="fw-semibold">{{ event.actor.email }}</div>
-                    <div class="text-muted fs-xs">{{ event.actor.name|default:"—" }}</div>
+                    <span class="fw-semibold">{{ event.actor.email }}</span>
+                    <span class="text-muted fs-xs app-table-meta">{{ event.actor.name|default:"—" }}</span>
                     {% else %}
                     <span class="text-muted">—</span>
                     {% endif %}
                   </td>
                   <td>
                     {% if event.target_user %}
-                    <div class="fw-semibold">{{ event.target_user.email }}</div>
-                    <div class="text-muted fs-xs">{{ event.target_user.name|default:"—" }}</div>
+                    <span class="fw-semibold">{{ event.target_user.email }}</span>
+                    <span class="text-muted fs-xs app-table-meta">{{ event.target_user.name|default:"—" }}</span>
                     {% else %}
                     <span class="text-muted">—</span>
                     {% endif %}
                   </td>
                   <td class="text-muted fs-xs">
-                    <div>{% translate "IP" %}: {{ event.ip_address|default:"—" }}</div>
-                    <div>{% translate "Path" %}: {{ event.path|default:"—" }}</div>
+                    <span>{% translate "IP" %}: {{ event.ip_address|default:"—" }}</span>
+                    <span class="app-table-meta">{% translate "Path" %}: {{ event.path|default:"—" }}</span>
                   </td>
                   <td>
-                    <div>{{ event.message }}</div>
+                    <span class="app-table-text" title="{{ event.message }}">{{ event.message }}</span>
                     {% if event.metadata.identifier %}
-                    <div class="text-muted fs-xs">{% translate "Identifier" %}: {{ event.metadata.identifier }}</div>
+                    <span class="text-muted fs-xs app-table-meta">{% translate "Identifier" %}: {{ event.metadata.identifier }}</span>
                     {% endif %}
                   </td>
                 </tr>
@@ -188,7 +188,7 @@
 
           {% if page_obj.paginator.num_pages > 1 %}
           <nav class="mt-3" aria-label="{% translate 'Event pagination' %}">
-            <ul class="pagination pagination-boxed mb-0">
+            <ul class="pagination pagination-sm app-table-pagination mb-0">
               {% if page_obj.has_previous %}
               <li class="page-item">
                 <a class="page-link" href="?page={{ page_obj.previous_page_number }}{{ pagination_suffix }}">{% translate "Previous" %}</a>

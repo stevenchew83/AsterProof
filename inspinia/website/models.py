@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 
+from django.conf import settings
 from django.core.validators import URLValidator
 from django.db import models
 from django.urls import reverse
@@ -126,3 +127,110 @@ class NewsletterSubscriber(models.Model):
 
     def __str__(self):
         return self.email
+
+    @property
+    def badge_class(self):
+        return {
+            self.Status.PENDING: "text-bg-warning",
+            self.Status.CONFIRMED: "text-bg-success",
+            self.Status.UNSUBSCRIBED: "text-bg-secondary",
+        }[self.status]
+
+
+class NewsletterCampaign(models.Model):
+    class Status(models.TextChoices):
+        DRAFT = "draft", "Draft"
+        SENDING = "sending", "Sending"
+        PAUSED = "paused", "Paused"
+        COMPLETED = "completed", "Completed"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    subject = models.CharField(max_length=180)
+    preheader = models.CharField(max_length=180, blank=True)
+    body_markdown = models.TextField()
+    version = models.PositiveIntegerField(default=1)
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.DRAFT, db_index=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL)
+    started_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="started_newsletters",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    started_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at", "-pk"]
+
+    def __str__(self):
+        return self.subject
+
+    @property
+    def is_editable(self):
+        return self.status == self.Status.DRAFT and self.started_at is None
+
+    @property
+    def badge_class(self):
+        return {
+            self.Status.DRAFT: "text-bg-secondary",
+            self.Status.SENDING: "text-bg-primary",
+            self.Status.PAUSED: "text-bg-warning",
+            self.Status.COMPLETED: "text-bg-success",
+        }[self.status]
+
+    def get_absolute_url(self):
+        return reverse("website:newsletter_campaign", kwargs={"pk": self.pk})
+
+
+class NewsletterDelivery(models.Model):
+    class Kind(models.TextChoices):
+        TEST = "test", "Test"
+        CAMPAIGN = "campaign", "Campaign"
+
+    class Status(models.TextChoices):
+        QUEUED = "queued", "Queued"
+        SENDING = "sending", "In progress"
+        ACCEPTED = "accepted", "Accepted"
+        FAILED = "failed", "Failed"
+        UNKNOWN = "unknown", "Needs review"
+        SKIPPED = "skipped", "Skipped"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    campaign = models.ForeignKey(NewsletterCampaign, on_delete=models.PROTECT, related_name="deliveries")
+    subscriber = models.ForeignKey(NewsletterSubscriber, null=True, blank=True, on_delete=models.SET_NULL)
+    recipient_email = models.EmailField()
+    subject = models.CharField(max_length=180)
+    consent_confirmed_at = models.DateTimeField(null=True, blank=True)
+    campaign_version = models.PositiveIntegerField()
+    kind = models.CharField(max_length=12, choices=Kind.choices, default=Kind.CAMPAIGN)
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.QUEUED, db_index=True)
+    detail = models.CharField(max_length=180, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    attempted_at = models.DateTimeField(null=True, blank=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at", "-pk"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["campaign", "recipient_email"], condition=models.Q(kind="campaign"),
+                name="website_campaign_recipient_once",
+            ),
+            models.UniqueConstraint(
+                fields=["campaign"], condition=models.Q(status="sending"), name="website_campaign_one_inflight",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.campaign_id}: {self.get_status_display()}"
+
+    @property
+    def badge_class(self):
+        return {
+            self.Status.QUEUED: "text-bg-secondary",
+            self.Status.SENDING: "text-bg-info",
+            self.Status.ACCEPTED: "text-bg-success",
+            self.Status.FAILED: "text-bg-danger",
+            self.Status.UNKNOWN: "text-bg-warning",
+            self.Status.SKIPPED: "text-bg-secondary",
+        }[self.status]

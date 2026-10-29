@@ -3,7 +3,7 @@
 {% block title %}Import center{% endblock title %}
 
 {% block page_content %}
-<div class="container-fluid">
+<div class="container-fluid app-table-page">
   {% include 'partials/page-title.html' with title='Import center' subtitle='Rankings' page_icon='ti-file-import' %}
 
   {% if messages %}
@@ -197,8 +197,8 @@
       <p class="text-muted fs-xs mb-0">Latest {{ import_batches|length }} batches with status and issue counts.</p>
     </div>
     <div class="card-body pt-2">
-      <div class="table-responsive">
-        <table class="table table-sm table-striped table-bordered mb-0">
+      <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
+        <table class="app-table-compact table table-sm table-striped table-bordered mb-0">
           <thead>
             <tr>
               <th>ID</th>

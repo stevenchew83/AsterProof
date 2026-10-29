@@ -1,12 +1,15 @@
-"""Select only the two separately approved, hash-frozen additive schema plans."""
+"""Select only the separately approved, hash-frozen additive schema plans."""
 
 from __future__ import annotations
 
 from scripts.deployment import concept_schema
+from scripts.deployment import newsletter_schema
 from scripts.deployment import website_schema
 
 
 def schema_for_disclosure(value):
+    if isinstance(value, dict) and value.get("migration") == newsletter_schema.MIGRATION:
+        return newsletter_schema
     if isinstance(value, dict) and value.get("migration") == website_schema.MIGRATION:
         return website_schema
     # Unknown plans still fail the original strict disclosure validator.

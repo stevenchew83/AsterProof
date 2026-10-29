@@ -1,0 +1,37 @@
+{% extends "account/email/base_message.html" %}
+
+{% block email_title %}
+  {{ campaign.subject }} | AsterProof
+{% endblock email_title %}
+{% block preheader %}
+  {{ campaign.preheader }}
+{% endblock preheader %}
+{% block email_heading %}
+  {{ campaign.subject }}
+{% endblock email_heading %}
+{% block email_content %}
+  {% if is_test %}
+    <p style="margin:0 0 16px;
+              padding:8px 10px;
+              background:#eef6f4;
+              color:#08796f;
+              font-size:11px">Test email · Sent only to your signed-in address.</p>
+  {% endif %}
+  <div>{{ rendered_body }}</div>
+  <div style="margin-top:24px;
+              padding-top:16px;
+              border-top:1px solid #e8e9e5;
+              font-size:10px;
+              line-height:1.6;
+              color:#627078">
+    {% if unsubscribe_url %}
+      <p style="margin:0 0 6px;">You receive this because you confirmed your AsterProof newsletter subscription.</p>
+      <a href="{{ unsubscribe_url }}" style="color:#08796f;">Unsubscribe</a>
+    {% else %}
+      <span style="color:#08796f;">Unsubscribe</span>
+      <p style="margin:6px 0 0;">
+        Each subscriber receives their own preference link. This preview does not change your subscription.
+      </p>
+    {% endif %}
+  </div>
+{% endblock email_content %}

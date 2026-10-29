@@ -259,7 +259,7 @@
 {% endblock extra_css %}
 
 {% block page_content %}
-<div class="container-fluid completion-record-page">
+<div class="container-fluid app-table-page completion-record-page">
 
   <header class="page-title-head app-page-header">
     {% include 'partials/page-header-intro.html' with title='Completion records' subtitle='Learning activity / Admin' page_icon='ti-checklist' only %}
@@ -362,7 +362,7 @@
             </div>
         </div>
         <div class="card-body">
-          <form method="get">
+          <form method="get" class="app-table-filters">
             <div class="row g-2 align-items-end">
               <div class="col-md-6 col-xl-3">
                 <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-record-q">Search all records</label>
@@ -496,8 +496,8 @@
         </div>
         <div class="card-body p-0">
           {% if completion_record_rows %}
-          <div class="table-responsive">
-            <table id="completion-record-table" class="table table-sm table-hover align-middle w-100 mb-0"><caption class="visually-hidden">Completion records with topic, canonical areas, status and solution details</caption></table>
+          <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
+            <table data-paging-type="simple" id="completion-record-table" class="app-table-compact table table-sm table-hover align-middle w-100 mb-0"><caption class="visually-hidden">Completion records with topic, canonical areas, status and solution details</caption></table>
           </div>
           {% else %}
           <div class="text-center py-5 px-3" role="status"><i class="ti ti-list-search fs-24 text-muted" aria-hidden="true"></i><h3 class="fs-lg mt-2">No records to show</h3><p class="text-muted mb-3">

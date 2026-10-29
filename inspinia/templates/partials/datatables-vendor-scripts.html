@@ -50,5 +50,21 @@ sync window.DataTable from jQuery.fn.dataTable if the global is still missing.
   if (typeof g.DataTable !== "function" && jq && jq.fn && typeof jq.fn.dataTable === "function") {
     g.DataTable = jq.fn.dataTable;
   }
+
+  // Keep the actual horizontal scroll area keyboard-accessible after DT builds its layout.
+  if (jq) {
+    jq(document).off("init.dt.asterproofCompactTables").on("init.dt.asterproofCompactTables", function (event, settings) {
+      var table = settings.nTable;
+      if (!table || !table.classList.contains("app-table-compact")) return;
+      var layout = table.closest(".dt-layout-table");
+      var region = table.closest(".dt-scroll-body") || (layout && layout.firstElementChild);
+      if (!region) return;
+      region.setAttribute("tabindex", "0");
+      region.setAttribute("role", "region");
+      if (!region.hasAttribute("aria-label")) {
+        region.setAttribute("aria-label", table.getAttribute("aria-label") || "Scrollable table results");
+      }
+    });
+  }
 })();
 </script>

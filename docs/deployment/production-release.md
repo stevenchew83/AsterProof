@@ -193,6 +193,13 @@ After approval, the job rechecks current `main`, validates the pinned target and
 
 The root worker moves each received archive out of deploy-user control before handing it to the isolated build account, deletes that stabilized archive after preparation, promotes only frozen root-owned release trees, and retains at most five release directories while always preserving `current`, `previous`, and non-terminal operation targets. A cleanup failure is recorded as `retention_cleanup_failed`; capacity monitoring remains a release gate.
 
+The exact `website.0002_newsletter_campaigns` allowance is documented in
+[Newsletter schema release](newsletter-schema.md). It creates only the campaign
+and delivery tables and preserves existing subscribers. Its separately approved
+runner extension, frozen PostgreSQL delta, prior-record preservation proof and
+normal protected build/activation gates are required. Existing audit-role
+permissions remain unchanged.
+
 ## Success evidence
 
 A release is successful only when all of these agree:
