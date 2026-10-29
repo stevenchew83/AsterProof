@@ -96,7 +96,7 @@ def run(args):
         statement_latex="Synthetic AM-GM statement.",
     )
     StatementTopicTechnique.objects.create(statement=statement, technique="AM-GM", main_topic="ALG", domains=["ALG"])
-    UserProblemCompletion.objects.create(user=user, problem_uuid=problem.problem_uuid)
+    UserProblemCompletion.objects.create(user=user, problem=problem, statement=statement)
     before = _snapshot(connection)
     records, sequences = existing_records(connection), existing_sequences(connection)
     exec(website_schema.MIGRATION_APPLY, {})
