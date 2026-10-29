@@ -99,7 +99,7 @@ pytestmark = pytest.mark.django_db
 EXPECTED_RECORD_COUNT = 1
 EXPECTED_ONE_TECHNIQUE = 1
 EXPECTED_TWO_TECHNIQUES = 2
-EXPECTED_COMPACT_COMPLETION_COLUMNS = 8
+EXPECTED_COMPACT_COMPLETION_COLUMNS = 9
 EXPECTED_MULTI_CONTEST_RENAME_TOTAL = 2
 UPDATED_MOHS = 5
 EXPECTED_PROGRESS_HALF_PERCENT = 50
@@ -8119,7 +8119,7 @@ def test_completion_quick_update_renders_insights_in_row_detail_source(client):
     assert "Forgetting the terminal case." in response_html
 
 
-def test_completion_quick_update_shows_full_classification_in_detail_source(client):
+def test_completion_quick_update_preserves_full_source_tags_in_detail(client):
     user = UserFactory()
     client.force_login(user)
     statement_tagged = _create_quick_completion_statement(problem_code="P1", problem_number=1)
@@ -8158,7 +8158,9 @@ def test_completion_quick_update_shows_full_classification_in_detail_source(clie
     header_html = response_html[
         response_html.index("<thead>") : response_html.index("</thead>")
     ]
-    assert "Classification" in header_html
+    assert "Area" in header_html
+    assert "Concepts" in header_html
+    assert "Classification" not in header_html
     assert "Subtopics" not in header_html
     assert "Technique" not in header_html
     assert "User MOHS" not in header_html
@@ -8170,50 +8172,6 @@ def test_completion_quick_update_shows_full_classification_in_detail_source(clie
     assert "Angle chasing" in response_html
     assert "DO NOT DISPLAY" not in response_html
     assert "Do not display" not in response_html
-
-
-def test_completion_quick_update_classification_preview_is_unique_and_limited(client):
-    user = UserFactory()
-    client.force_login(user)
-    statement = _create_quick_completion_statement(problem_code="P1", problem_number=1)
-    untagged_statement = _create_quick_completion_statement(problem_code="P2", problem_number=2)
-    StatementTopicTechnique.objects.create(
-        statement=statement,
-        technique="ALPHA",
-        domains=["COMB"],
-        canonical_subtopic="Shared",
-    )
-    StatementTopicTechnique.objects.create(
-        statement=statement,
-        technique="SHARED",
-        domains=["COMB"],
-        canonical_subtopic="Second",
-    )
-    StatementTopicTechnique.objects.create(
-        statement=statement,
-        technique="THIRD",
-        domains=["COMB"],
-    )
-
-    response = client.get(reverse("pages:completion_quick_update"))
-
-    assert response.status_code == HTTPStatus.OK
-    row_by_uuid = {
-        row["statement_uuid"]: row
-        for row in response.context["completion_quick_update_rows"]
-    }
-    tagged_row = row_by_uuid[str(statement.statement_uuid)]
-    assert [link["label"] for link in tagged_row["classification_preview_links"]] == [
-        "Shared",
-        "Second",
-    ]
-    assert tagged_row["classification_overflow_count"] == EXPECTED_TWO_TECHNIQUES
-    assert row_by_uuid[str(untagged_statement.statement_uuid)]["classification_preview_links"] == []
-    assert row_by_uuid[str(untagged_statement.statement_uuid)]["classification_overflow_count"] == 0
-    response_html = response.content.decode("utf-8")
-    assert "+2 more" in response_html
-    assert "ALPHA" in response_html
-    assert "THIRD" in response_html
 
 
 def test_completion_quick_update_technique_filter_uses_linked_tags_only_as_fallback(client):
@@ -8938,8 +8896,9 @@ def test_completion_quick_update_renders_datatable_with_status_filter(client):  
         "Problem",
         "Day",
         "Topic",
+        "Area",
+        "Concepts",
         "MOHS",
-        "Classification",
         "Progress",
         "Quick action",
         "More",
@@ -8947,8 +8906,8 @@ def test_completion_quick_update_renders_datatable_with_status_filter(client):  
     header_positions = [header_html.index(f">{header}</th>") for header in expected_headers]
     assert header_positions == sorted(header_positions)
     assert header_html.count("<th ") == EXPECTED_COMPACT_COMPLETION_COLUMNS
-    assert "targets: [5, 6, 7]" in response_html
-    assert "targets: [6, 7]" in response_html
+    assert "targets: [6, 7, 8]" in response_html
+    assert "targets: [7, 8]" in response_html
     assert "scrollX: false" in response_html
     assert 'search: "Filter loaded rows:"' in response_html
     assert 'searchPlaceholder: "Search these loaded rows"' in response_html
