@@ -1,0 +1,6 @@
+{% load l10n %}
+<div class="cp-topic-bar cp-{{ slug }}" data-topic-bar data-learner="{{ learner }}" data-count="{{ count|unlocalize }}" data-share="{{ share|unlocalize }}" data-share-label="{{ share|floatformat:'-1' }}%" data-width="{{ width|unlocalize }}">
+  <span class="cp-learner">{{ learner }}</span>
+  <span class="cp-bar-track" aria-hidden="true"><span class="cp-bar-fill" style="width: {{ width|unlocalize }}%"></span></span>
+  <span class="cp-topic-value" aria-label="{{ learner }}: {{ count }}">{{ count }}</span>
+</div>

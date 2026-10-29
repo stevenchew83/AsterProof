@@ -69,15 +69,29 @@ def completion_comparison(learners: list[dict], params) -> dict:
         ("missing_date_total", "Undated records"),
         ("missing_mohs_total", "Records without MOHS"),
     )
+    summary_keys = {"solved_total", "active_day_total", "average_mohs", "total_mohs"}
+    metric_rows = [
+        {"key": key, "label": label, "alex": stats["alex"][key], "ben": stats["ben"][key]}
+        for key, label in metric_labels
+    ]
+    topic_labels = sorted(set(topic_counts["alex"]) | set(topic_counts["ben"]))
+    largest_topic = max((count for counts in topic_counts.values() for count in counts.values()), default=0)
+    topic_rows = []
+    for label in topic_labels:
+        row = {"label": label}
+        for slug in ("alex", "ben"):
+            count = topic_counts[slug][label]
+            total = stats[slug]["solved_total"]
+            row[slug] = count
+            row[f"{slug}_share"] = round(count / total * 100, 1) if total else 0
+            row[f"{slug}_width"] = round(count / largest_topic * 100, 1) if largest_topic else 0
+        topic_rows.append(row)
     return {
         "comparison_completion_stats": stats,
-        "comparison_metric_rows": [
-            {"label": label, "alex": stats["alex"][key], "ben": stats["ben"][key]} for key, label in metric_labels
-        ],
-        "comparison_topic_rows": [
-            {"label": label, "alex": topic_counts["alex"][label], "ben": topic_counts["ben"][label]}
-            for label in sorted(set(topic_counts["alex"]) | set(topic_counts["ben"]))
-        ],
+        "comparison_metric_rows": metric_rows,
+        "comparison_summary_rows": [row for row in metric_rows if row["key"] in summary_keys],
+        "comparison_detail_rows": [row for row in metric_rows if row["key"] not in summary_keys],
+        "comparison_topic_rows": topic_rows,
         "comparison_date_range": date_range,
         "comparison_filters": filters,
         "comparison_filter_options": completion_progress_filter_options(all_rows),

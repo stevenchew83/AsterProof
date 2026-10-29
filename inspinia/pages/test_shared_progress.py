@@ -414,6 +414,74 @@ def test_comparison_keeps_undated_records_visible_and_reports_empty_filters(clie
     assert "Neither learner has completion records matching these filters." in response.content.decode()
 
 
+def test_comparison_topic_chart_preserves_totals_and_includes_undated_history(client, learners, completions):
+    for slug, mohs in (("alex", 10), ("ben", 20)):
+        statement = completions[slug].statement
+        statement.mohs = mohs
+        statement.save()
+    for index, (topic, mohs, completion_date) in enumerate(
+        (("ALG", None, timezone.localdate()), ("GEO", 30, None)), start=1,
+    ):
+        statement = ContestProblemStatement.objects.create(
+            contest_name="Chart fixtures",
+            contest_year=2026,
+            problem_code=f"P{index}",
+            problem_number=index,
+            statement_latex=f"Distinct topic chart statement {index}",
+            topic=topic,
+            mohs=mohs,
+        )
+        UserProblemCompletion.objects.create(
+            user=learners["alex"], statement=statement, completion_date=completion_date,
+        )
+    client.force_login(learners["alex"])
+    response = client.get(compare_url(), {"range": "7d"})
+    assert response.status_code == HTTPStatus.OK
+    stats = response.context["comparison_completion_stats"]["alex"]
+    assert stats == {
+        "solved_total": 3,
+        "known_date_total": 2,
+        "missing_date_total": 1,
+        "missing_mohs_total": 1,
+        "average_mohs": 20,
+        "total_mohs": 40,
+        "max_mohs": 30,
+        "active_day_total": 1,
+        "current_streak": 1,
+        "longest_streak": 1,
+        "no_solution_total": 3,
+    }
+    topics = {row["label"]: row for row in response.context["comparison_topic_rows"]}
+    assert topics["Algebra"] == {
+        "label": "Algebra", "alex": 2, "ben": 1,
+        "alex_share": 66.7, "ben_share": 100, "alex_width": 100, "ben_width": 50,
+    }
+    assert topics["Geometry"] == {
+        "label": "Geometry", "alex": 1, "ben": 0,
+        "alex_share": 33.3, "ben_share": 0, "alex_width": 50, "ben_width": 0,
+    }
+    html = response.content.decode()
+    assert "Recorded totals, MOHS and topic bars include undated records." in html
+    assert 'data-share-label="66.7%"' in html
+    assert "More details" in html
+
+
+def test_comparison_topic_chart_handles_an_empty_learner_and_empty_filters(client, learners, completions):
+    client.force_login(learners["ben"])
+    response = client.get(compare_url(), {"q": "P1"})
+    assert response.status_code == HTTPStatus.OK
+    topics = response.context["comparison_topic_rows"]
+    assert len(topics) == 1
+    assert topics[0]["alex_share"] == 100  # noqa: PLR2004
+    assert topics[0]["ben_share"] == 0
+    assert topics[0]["alex_width"] == 100  # noqa: PLR2004
+    assert topics[0]["ben_width"] == 0
+    assert response.context["comparison_completion_stats"]["ben"]["average_mohs"] is None
+    response = client.get(compare_url(), {"q": "NO_MATCHING_PROBLEM"})
+    assert response.context["comparison_topic_rows"] == []
+    assert "No topics match these filters." in response.content.decode()
+
+
 def test_comparison_pairs_technique_labels_and_reflects_changed_completions(client, learners, completions):
     cache.clear()
     for slug, technique in (("alex", "POLYNOMIALS"), ("ben", "ANGLE CHASE"), ("other", "MODULAR ARITHMETIC")):
