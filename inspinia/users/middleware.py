@@ -10,7 +10,7 @@ from inspinia.users.roles import user_can_access_app_features
 
 class RequireApprovedUserMiddleware:
     exempt_path_prefixes = ("/accounts/", "/static/", "/media/")
-    public_paths = {"/", "/about/", "/contact/", "/privacy/", "/terms/"}
+    public_paths = {"/", "/problem-solving/", "/about/", "/contact/", "/privacy/", "/terms/"}
     public_path_prefixes = ("/library/", "/newsletter/")
 
     def __init__(self, get_response):

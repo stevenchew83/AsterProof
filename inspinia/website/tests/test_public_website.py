@@ -5,6 +5,7 @@ from django.contrib import admin
 from django.core.exceptions import ValidationError
 from django.test import RequestFactory
 from django.urls import reverse
+from django.utils.http import urlencode
 
 from inspinia.pages.models import CatalogueConcept
 from inspinia.users.tests.factories import UserFactory
@@ -32,7 +33,8 @@ def library():
 
 
 @pytest.mark.parametrize(
-    "name", ["pages:home", "website:about", "website:contact", "website:privacy", "website:terms"],
+    "name",
+    ["pages:home", "website:problem_solving", "website:about", "website:contact", "website:privacy", "website:terms"],
 )
 def test_public_pages_have_shared_navigation_and_operator(client, name):
     response = client.get(reverse(name))
@@ -43,13 +45,17 @@ def test_public_pages_have_shared_navigation_and_operator(client, name):
     assert reverse("account_login") in html
     assert reverse("website:library") in html
     assert "Operated by Steven" in html
-    assert 'name="consent"' in html
+    if name != "website:problem_solving":
+        assert 'name="consent"' in html
     assert 'rel="canonical" href="https://asterproof.com/' in html
 
 
 @pytest.mark.parametrize(
     "path",
-    ["/", "/about/", "/contact/", "/privacy/", "/terms/", "/library/", "/library/geometry/", "/newsletter/subscribe/"],
+    [
+        "/", "/problem-solving/", "/about/", "/contact/", "/privacy/", "/terms/",
+        "/library/", "/library/geometry/", "/newsletter/subscribe/",
+    ],
 )
 def test_pending_users_can_browse_public_site_without_opening_workspace_access(client, path):
     client.force_login(UserFactory(is_approved=False))
@@ -66,6 +72,42 @@ def test_subjects_and_empty_library_are_honest(client):
         assert url in response.content.decode()
         assert client.get(url).status_code == HTTPStatus.OK
     assert client.get("/library/not-a-subject/").status_code == HTTPStatus.NOT_FOUND
+
+
+def test_problem_solving_walkthrough_is_public_and_uses_an_explicit_example(client):
+    response = client.get(reverse("website:problem_solving"))
+
+    assert response.status_code == HTTPStatus.OK
+    html = response.content.decode()
+    assert "A first inequality" in html
+    assert "Live preview" in html
+    assert "Personal progress" in html
+    assert "Illustrative data" in html
+    assert "Example edits reset when you reload" in html
+    assert "Save your solution, then record your attempt or completion" in html
+    assert "New accounts require approval" in html
+    assert 'href="https://asterproof.com/problem-solving/"' in html
+    assert "Find olympiad problems by topic and MOHS difficulty" in html
+    assert "mathjax" in html.lower()
+    assert response.context["workspace_url"] == reverse("account_login") + "?" + urlencode(
+        {"next": reverse("pages:problem_statement_list")},
+    )
+    assert client.post(reverse("website:problem_solving")).status_code == HTTPStatus.METHOD_NOT_ALLOWED
+    assert client.get(reverse("pages:problem_statement_list")).status_code == HTTPStatus.FOUND
+
+
+def test_problem_solving_links_approved_users_to_the_problem_library(client):
+    client.force_login(UserFactory(is_approved=True))
+
+    response = client.get(reverse("website:problem_solving"))
+
+    assert response.context["workspace_url"] == reverse("pages:problem_statement_list")
+
+
+def test_homepage_invites_visitors_to_the_problem_solving_walkthrough(client):
+    html = client.get(reverse("pages:home")).content.decode()
+
+    assert f'href="{reverse("website:problem_solving")}">Explore the problem-solving workspace' in html
 
 
 def test_published_hierarchy_links_and_math_render(client, library):

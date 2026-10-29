@@ -1,0 +1,133 @@
+{% extends "website/base.html" %}
+{% load static %}
+
+{% block public_content %}
+  <div class="problem-solving" data-solving-demo>
+    <section class="website-container solving-hero" aria-labelledby="solving-title">
+      <div class="solving-hero-copy">
+        <p class="website-kicker">For the joy of working it out</p>
+        <h1 id="solving-title">Pick a problem.<br>Build your proof.<br><em>See your progress.</em></h1>
+        <p class="solving-description">A workspace for students who love solving problems. Find your next challenge, give your ideas a clear form, and keep a record of your practice.</p>
+        <div class="solving-actions">
+          <a class="website-button" href="{{ workspace_url }}">Start solving <span aria-hidden="true">↗</span></a>
+          <a class="website-text-link" href="#example-editor">Try the example <span aria-hidden="true">↓</span></a>
+        </div>
+        <p class="website-fineprint">Explore the example below without an account.</p>
+      </div>
+      <article class="solving-problem" aria-labelledby="example-problem-title">
+        <div class="solving-example-label"><span class="solving-dot" aria-hidden="true"></span> One problem, from idea to proof</div>
+        <div class="solving-problem-paper">
+          <p class="website-kicker">01 / The problem</p>
+          <h2 id="example-problem-title">A first inequality</h2>
+          <p>Let $a$, $b$, and $c$ be real numbers. Prove that</p>
+          <div class="solving-statement">\[a^2+b^2+c^2\geq ab+bc+ca.\]</div>
+          <p>When does equality hold?</p>
+          <dl class="solving-problem-meta">
+            <div><dt>Topic</dt><dd>Algebra</dd></div>
+            <div><dt>Area</dt><dd>Inequalities</dd></div>
+            <div><dt>Difficulty</dt><dd>MOHS 5*</dd></div>
+          </dl>
+          <details class="solving-concept-reveal">
+            <summary>Reveal the concept</summary>
+            <p>Sum of squares. In your workspace, mapped concepts help you find related problems to practise.</p>
+          </details>
+          <p class="website-fineprint">Practice example. *Illustrative MOHS difficulty, not a contest rating. MOHS helps you compare problem difficulty.</p>
+        </div>
+      </article>
+    </section>
+
+    <nav class="website-container solving-journey" aria-label="Example walkthrough">
+      <a href="#example-problem-title"><span>01</span> Understand the problem <span aria-hidden="true">↗</span></a>
+      <a href="#example-editor"><span>02</span> Write &amp; preview <span aria-hidden="true">↗</span></a>
+      <a href="#example-progress"><span>03</span> Follow your progress <span aria-hidden="true">↗</span></a>
+    </nav>
+
+    <section id="example-editor" class="website-container solving-editor-section" aria-labelledby="example-editor-title">
+      <div class="solving-section-heading">
+        <div><p class="website-kicker">02 / Your argument, taking shape</p><h2 id="example-editor-title">Small steps.<br><em>A complete proof.</em></h2></div>
+        <p>Start with an idea. Add a claim, explain why it holds, and bring the argument together. Edit any block below to see the preview change.</p>
+      </div>
+      <div class="solving-editor">
+        <div class="solving-editor-toolbar">
+          <div><span class="solving-dot" aria-hidden="true"></span><strong>A first inequality</strong><span class="solving-demo-badge">Interactive example</span></div>
+          <button type="button" class="solving-reset" data-demo-reset hidden>Reset example <span aria-hidden="true">↺</span></button>
+        </div>
+        <div class="solving-editor-grid">
+          <div class="solving-write-pane">
+            <div class="solving-pane-heading"><h3>Your working</h3><span>LaTeX &amp; plain text</span></div>
+            {% for block in example_blocks %}
+              <div class="solving-input-block">
+                <label for="demo-block-{{ forloop.counter }}"><span aria-hidden="true">{{ forloop.counter|stringformat:"02d" }}</span>{{ block.kind }}</label>
+                <textarea id="demo-block-{{ forloop.counter }}" data-demo-source="{{ forloop.counter }}" rows="3" spellcheck="false" aria-describedby="demo-edit-note">{{ block.body }}</textarea>
+              </div>
+            {% endfor %}
+            <p id="demo-edit-note" class="website-fineprint">Try <code>$...$</code> for inline math or <code>\[...\]</code> for an equation. Example edits reset when you reload; they are not saved to an account.</p>
+          </div>
+          <div class="solving-preview-pane">
+            <div class="solving-pane-heading"><h3>Live preview</h3><span data-demo-preview-status role="status">Example solution</span></div>
+            <article class="solving-preview-paper" aria-labelledby="demo-proof-title">
+              <p class="website-kicker">A first inequality / Solution</p>
+              <h4 id="demo-proof-title">The difference is<br>a sum of squares.</h4>
+              {% for block in example_blocks %}
+                <section class="solving-preview-block">
+                  <h5>{{ block.kind }}</h5>
+                  <div data-demo-preview="{{ forloop.counter }}">{{ block.body }}</div>
+                </section>
+              {% endfor %}
+              <div class="solving-proof-end" aria-label="End of example proof">□</div>
+            </article>
+          </div>
+        </div>
+        <div class="solving-editor-footnote">
+          <p>In your workspace: add and reorder blocks, paste images, save drafts, and export your saved solution as a PDF.</p>
+          <a class="website-text-link" href="{{ workspace_url }}">Write your own solution <span aria-hidden="true">↗</span></a>
+        </div>
+      </div>
+      <noscript><p class="website-fineprint">Enable JavaScript to update the preview as you type. The example proof is shown above.</p></noscript>
+    </section>
+
+    <section id="example-progress" class="solving-progress-section" aria-labelledby="example-progress-title">
+      <div class="website-container solving-progress-grid">
+        <div class="solving-progress-copy">
+          <p class="website-kicker">03 / Every attempt has something to teach</p>
+          <h2 id="example-progress-title">Keep the proof.<br><em>Remember the practice.</em></h2>
+          <p>Save your solution, then record your attempt or completion. Your personal progress brings your activity, topics, and difficulty together.</p>
+          <ul class="solving-feature-list">
+            <li><strong>Keep your work.</strong> Return to drafts, publish a solution when ready, and find your writing in My solutions.</li>
+            <li><strong>Reflect on the attempt.</strong> Record time spent, obstacles, confidence, and a date to try again.</li>
+            <li><strong>Choose your next challenge.</strong> Explore completed and remaining problems by area and concept.</li>
+          </ul>
+          <p class="website-fineprint">Progress reflects your recorded practice. Saving a draft and marking a problem solved are separate steps.</p>
+        </div>
+        <figure class="solving-progress-example">
+          <figcaption><strong>Personal progress</strong><span class="solving-demo-badge">Illustrative data</span></figcaption>
+          <div class="solving-progress-stats">
+            <div><strong>1</strong><span>Problem completed</span></div>
+            <div><strong>1</strong><span>Solution saved</span></div>
+            <div><strong>5*</strong><span>Average MOHS</span></div>
+          </div>
+          <div class="solving-calendar-heading"><strong>A little practice, recorded.</strong><span>Example week</span></div>
+          <div class="solving-example-week" aria-label="Illustrative activity: one problem completed on Wednesday">
+            {% for day in example_days %}
+              <div><span>{{ day }}</span><span class="solving-day{% if day == 'Wed' %} is-completed{% endif %}" aria-hidden="true">{% if day == 'Wed' %}1{% else %}·{% endif %}</span></div>
+            {% endfor %}
+          </div>
+          <div class="solving-example-record">
+            <div><span class="solving-completed-mark" aria-hidden="true">✓</span><div><strong>A first inequality</strong><span>Algebra · Inequalities · MOHS 5*</span></div><span class="solving-record-status">Solved</span></div>
+            <dl><div><dt>Key technique</dt><dd>Sum of squares</dd></div><div><dt>Reflection</dt><dd>Look at the difference before estimating each side.</dd></div></dl>
+          </div>
+          <p class="website-fineprint">Example record for the problem above. It does not change as you edit the demo. *Uses the illustrative difficulty shown above.</p>
+        </figure>
+      </div>
+    </section>
+
+    <section class="website-container solving-final" aria-labelledby="solving-final-title">
+      <div><p class="website-kicker">Your next idea starts somewhere</p><h2 id="solving-final-title">Find a problem worth<br><em>spending time with.</em></h2><p>Browse by topic and MOHS difficulty. Make the next proof your own.</p></div>
+      <div class="solving-final-action"><a class="website-button" href="{{ workspace_url }}">Open your workspace <span aria-hidden="true">↗</span></a><p class="website-fineprint">Sign in to save your work and track your practice.<br>New accounts require approval.</p></div>
+    </section>
+  </div>
+{% endblock public_content %}
+
+{% block website_javascript %}
+  <script defer src="{% static 'js/website-problem-solving.js' %}"></script>
+{% endblock website_javascript %}

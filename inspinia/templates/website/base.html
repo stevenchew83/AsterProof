@@ -2,7 +2,7 @@
 {% load static %}
 {% block title %}{{ page_title }}{% endblock title %}
 {% block extra_css %}<link href="{% static 'css/public-site.min.css' %}" rel="stylesheet">{% endblock extra_css %}
-{% block meta_description %}{% if lecture.summary %}{{ lecture.summary }}{% elif concept.summary %}{{ concept.summary }}{% else %}AsterProof is a library and workspace for olympiad mathematics. Explore ideas, follow rigorous proofs, and build understanding one insight at a time.{% endif %}{% endblock meta_description %}
+{% block meta_description %}{% if page_description %}{{ page_description }}{% elif lecture.summary %}{{ lecture.summary }}{% elif concept.summary %}{{ concept.summary }}{% else %}AsterProof is a library and workspace for olympiad mathematics. Explore ideas, follow rigorous proofs, and build understanding one insight at a time.{% endif %}{% endblock meta_description %}
 {% block extra_meta %}
   <link rel="canonical" href="{{ canonical_url }}">
   <meta name="theme-color" content="#f8f7f2">
@@ -22,6 +22,7 @@
         </a>
         <nav class="website-nav" aria-label="Main navigation">
           <a href="{% url 'website:library' %}"{% if active_nav == 'library' %} aria-current="page"{% endif %}>Library</a>
+          <a href="{% url 'website:problem_solving' %}"{% if active_nav == 'problem_solving' %} aria-current="page"{% endif %}>Problem solving</a>
           <a href="{% url 'website:about' %}"{% if active_nav == 'about' %} aria-current="page"{% endif %}>About</a>
           <a href="{% url 'website:contact' %}"{% if active_nav == 'contact' %} aria-current="page"{% endif %}>Contact</a>
         </nav>
