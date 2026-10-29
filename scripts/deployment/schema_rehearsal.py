@@ -91,6 +91,10 @@ def _snapshot(connection):
 
 def main():
     args = _arguments()
+    if json.loads(os.environ.get("SCHEMA_DISCLOSURE") or "{}").get("migration") == "website.0002_newsletter_campaigns":
+        from scripts.deployment.newsletter_schema_rehearsal import run
+
+        return run(args)
     # Dispatch remains a fixed allowlist; the new rehearsal cannot choose a module.
     if json.loads(os.environ.get("SCHEMA_DISCLOSURE") or "{}").get("migration") == "website.0001_initial":
         from scripts.deployment.website_schema_rehearsal import run

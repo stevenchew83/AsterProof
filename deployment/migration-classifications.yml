@@ -2,6 +2,13 @@
   "format_version": 1,
   "baseline_sha": null,
   "migrations": {
+    "website.0002_newsletter_campaigns": {
+      "classification": "backward-compatible-schema",
+      "recovery_required": false,
+      "code_rollback_permitted": true,
+      "data_preconditions": ["newsletter_campaign_tables_absent", "existing_subscriber_records_unchanged"],
+      "rationale": "Creates only campaign and delivery tables, indexes, foreign keys and uniqueness constraints. Existing subscriber consent, editorial, account and progress records are preserved. Prior code remains compatible. This classification does not itself update the root-owned migration authority."
+    },
     "website.0001_initial": {
       "classification": "backward-compatible-schema",
       "recovery_required": false,
