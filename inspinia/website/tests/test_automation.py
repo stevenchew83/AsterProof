@@ -12,6 +12,7 @@ from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management import call_command
+from django.db import connection
 from django.test import Client
 from django.test import RequestFactory
 from django.urls import reverse
@@ -494,3 +495,19 @@ def test_renamed_pending_lecture_is_frozen_with_matching_history_and_link(intro,
     assert lecture.newsletter_notice.title == "After editing"
     assert lecture.newsletter_notice.public_url.endswith(lecture.get_absolute_url())
     assert "after-editing" in mail.outbox[0].body
+
+
+def test_queue_readiness_is_read_only_even_when_background_mode_is_off(intro, settings):
+    settings.NEWSLETTER_BACKGROUND_ENABLED = False
+    output = StringIO()
+    with connection.execute_wrapper(_reject_writes):
+        call_command("audit_newsletter_queue", stdout=output)
+    assert '"sending_campaigns": 0' in output.getvalue()
+    assert not NewsletterAutomation.objects.exists()
+    assert not mail.outbox
+
+
+def _reject_writes(execute, sql, params, many, context):
+    if sql.lstrip().upper().startswith(("INSERT", "UPDATE", "DELETE", "CREATE", "ALTER", "DROP")):
+        pytest.fail("Queue readiness attempted a write")
+    return execute(sql, params, many, context)
