@@ -86,7 +86,7 @@ jobs:
           rehearsal_args=()
           if ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/newsletter_automation_schema.py scripts/deployment/newsletter_automation_rehearsal.py inspinia/website/migrations/0003_newsletter_automation.py; then
             rehearsal=scripts.deployment.newsletter_automation_rehearsal
-            active_sha=93e03dc0dd785f37c994696aa3c618732952ebd5
+            active_sha=6c90b211fcd74eb08022fb0dee7243b440590ed3
           elif ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/solution_pdf_schema.py scripts/deployment/solution_pdf_schema_rehearsal.py inspinia/solutions/migrations/0004_solution_pdf_display_options.py; then
             rehearsal=scripts.deployment.solution_pdf_schema_rehearsal
             active_sha="$SOLUTION_PDF_BASELINE_SHA"
