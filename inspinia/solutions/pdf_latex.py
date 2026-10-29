@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import logging
+import os
 import re
 import shutil
+import signal
 import subprocess
 import tempfile
 import unicodedata
@@ -194,10 +196,8 @@ def normalize_latex_unicode_math(value: str) -> str:
 def latex_escape_plain_text(value: str) -> str:
     if not value:
         return ""
-    out = normalize_latex_unicode_math(value)
-    for a, b in _LATEX_ESCAPES:
-        out = out.replace(a, b)
-    return out
+    escapes = dict(_LATEX_ESCAPES)
+    return "".join(escapes.get(char, char) for char in normalize_latex_unicode_math(value))
 
 
 def latex_unicode_character_declarations() -> list[str]:
@@ -280,6 +280,11 @@ def _missing_solution_body_image_paths(
 def _solution_pdf_author_display(user) -> str:
     name = (getattr(user, "name", None) or "").strip()
     return name or "Unknown"
+
+
+def solution_pdf_date_display(solution: ProblemSolution) -> str:
+    dt_ref = solution.published_at or solution.updated_at or timezone.now()
+    return timezone.localtime(dt_ref).strftime("%Y-%m-%d")
 
 
 def _solution_pdf_subtitle(solution: ProblemSolution) -> str:
@@ -392,21 +397,23 @@ def _render_block(block: ProblemSolutionBlock) -> list[str]:
     return rendered
 
 
-def build_solution_tex_source(
+def build_solution_tex_source(  # noqa: PLR0913
     *,
     solution: ProblemSolution,
     blocks: Sequence[ProblemSolutionBlock],
     media_root: Path,
     problem_label: str,
     problem_statement_latex: str = "",
+    author_display: str | None = None,
 ) -> str:
     title = latex_escape_plain_text(problem_label)
     subtitle = latex_escape_plain_text(_solution_pdf_subtitle(solution))
-    author = latex_escape_plain_text(_solution_pdf_author_display(solution.author))
-    dt_ref = solution.published_at or solution.updated_at
-    date_str = latex_escape_plain_text(
-        timezone.localtime(dt_ref).strftime("%Y-%m-%d"),
-    )
+    author = ""
+    if solution.pdf_show_author:
+        author = latex_escape_plain_text(
+            _solution_pdf_author_display(solution.author) if author_display is None else author_display,
+        )
+    date_str = solution_pdf_date_display(solution) if solution.pdf_show_date else ""
     gp = _graphicspath_tex(media_root)
 
     lines: list[str] = [
@@ -422,6 +429,14 @@ def build_solution_tex_source(
     ]
     if subtitle:
         lines.insert(4, rf"\subtitle{{{subtitle}}}")
+    if not author or not date_str:
+        header = r"\footnotesize\textbf{\theauthor}" if author else ""
+        if date_str:
+            header += r"\footnotesize\thedate"
+        lines.insert(lines.index(r"\begin{document}"), rf"\ihead{{{header}}}")
+    if not solution.pdf_show_footer:
+        # The starred forms also clear the title page's plain footer.
+        lines.insert(lines.index(r"\begin{document}"), r"\ifoot*{}\cfoot*{}\ofoot*{}")
     stmt_body = (problem_statement_latex or "").strip()
     if stmt_body:
         lines.append(r"\begin{mdframed}[style=mdpurplebox,frametitle={Problem Statement}]")
@@ -477,11 +492,33 @@ def _merge_latex_fail_detail(*, log_text: str, stderr: str, max_chars: int) -> s
     return excerpt[:room] + suffix
 
 
+def _run_restricted_latex(command, *, cwd, env, timeout):
+    # latexmk launches TeX children; a public export deadline must stop them too.
+    with subprocess.Popen(  # noqa: S603
+        command, cwd=cwd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        text=True, start_new_session=True,
+    ) as process:
+        try:
+            stdout, stderr = process.communicate(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            try:
+                if os.name == "posix":
+                    os.killpg(process.pid, signal.SIGKILL)
+                else:
+                    process.kill()
+            except ProcessLookupError:
+                pass
+            process.communicate()
+            raise
+        return subprocess.CompletedProcess(command, process.returncode, stdout, stderr)
+
+
 def compile_solution_tex_to_pdf(
     tex_source: str,
     *,
     timeout: int,
     latex_binary: str,
+    restrict_file_access: bool = False,
 ) -> bytes:
     if not EVAN_STY_PATH.is_file():
         msg = f"Missing vendored evan.sty at {EVAN_STY_PATH}"
@@ -502,15 +539,21 @@ def compile_solution_tex_to_pdf(
             "-halt-on-error",
             str(main_tex.name),
         ]
+        env = None
+        if restrict_file_access:
+            cmd.insert(2, "-no-shell-escape")
+            env = {
+                **os.environ, "openin_any": "p", "openout_any": "p", "shell_escape": "f",
+                "TEXINPUTS": "." + os.pathsep, "TEXMFOUTPUT": str(tmp_path),
+            }
         try:
-            completed = subprocess.run(  # noqa: S603
-                cmd,
-                cwd=tmp_path,
-                capture_output=True,
-                text=True,
-                timeout=timeout,
-                check=False,
-            )
+            if restrict_file_access:
+                completed = _run_restricted_latex(cmd, cwd=tmp_path, env=env, timeout=timeout)
+            else:
+                completed = subprocess.run(  # noqa: S603
+                    cmd, cwd=tmp_path, capture_output=True, text=True,
+                    timeout=timeout, check=False,
+                )
         except subprocess.TimeoutExpired as exc:
             log_raw = _read_log_bytes(tmp_path / "main.log")
             log_tail = _merge_latex_fail_detail(log_text=log_raw, stderr="", max_chars=LOG_TAIL_MAX_CHARS)

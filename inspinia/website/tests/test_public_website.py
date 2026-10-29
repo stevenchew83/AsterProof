@@ -53,7 +53,7 @@ def test_public_pages_have_shared_navigation_and_operator(client, name):
 @pytest.mark.parametrize(
     "path",
     [
-        "/", "/problem-solving/", "/about/", "/contact/", "/privacy/", "/terms/",
+        "/", "/problem-solving/", "/tools/solution-preview/", "/about/", "/contact/", "/privacy/", "/terms/",
         "/library/", "/library/geometry/", "/newsletter/subscribe/",
     ],
 )
@@ -84,7 +84,9 @@ def test_problem_solving_walkthrough_is_public_and_uses_an_explicit_example(clie
     assert "Personal progress" in html
     assert "Illustrative data" in html
     assert "Example edits reset when you reload" in html
-    assert "Save your solution, then record your attempt or completion" in html
+    assert "Save your proof as a draft, then mark the problem solved" in html
+    assert "Normal draft saves leave progress unchanged" in html
+    assert f'href="{reverse("website:solution_preview")}">Solution Writer</a>' in html
     assert "New accounts require approval" in html
     assert 'href="https://asterproof.com/problem-solving/"' in html
     assert "Find olympiad problems by topic and MOHS difficulty" in html

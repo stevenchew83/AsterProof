@@ -11,10 +11,16 @@
       </div>
     </div>
   </section>
+  <section id="solution-tool" class="public-tool-home">
+    <div class="website-container">
+      <div class="public-tool-home-intro"><div><p class="website-kicker">Solution Writer</p><h2>Write your proof.<br><em>See it take shape.</em></h2><p>Turn LaTeX or plain text into a PDF, with live preview. Try the inequality below or write your own solution. No account required.</p></div><a class="website-text-link" href="{% url 'website:solution_preview' %}">Open Solution Writer <span aria-hidden="true">↗</span></a></div>
+      {% include 'website/partials/solution_preview.html' %}
+    </div>
+  </section>
   <section id="the-library" class="website-section website-container website-library-intro">
     <div class="website-section-intro"><p class="website-kicker">The AsterProof library</p><h2>Every idea has<br><em>a place to begin.</em></h2><p>Choose a subject. Explore its areas, concepts, and lectures at your own pace.</p><a class="website-text-link" href="{% url 'website:library' %}">Browse the library <span aria-hidden="true">↗</span></a></div>
     {% include "website/partials/subjects.html" %}
   </section>
   <section class="website-process"><div class="website-container"><div class="website-process-heading"><p class="website-kicker">Understanding, one layer deeper</p><h2>Know what works.<br><em>Understand why.</em></h2></div><div class="website-process-grid"><article><span>01 / The idea</span><h3>Notice the structure.</h3><p>Understand the concept and when to use it.</p></article><article><span>02 / The reasoning</span><h3>Follow the proof.</h3><p>Turn a small observation into a rigorous argument.</p></article><article><span>03 / The practice</span><h3>Make it your own.</h3><p>Work through problems and reflect on your progress.</p></article></div><a class="website-text-link" href="{% url 'website:problem_solving' %}">Explore the problem-solving workspace <span aria-hidden="true">↗</span></a></div></section>
 {% endblock public_content %}
-{% block website_javascript %}<script defer src="{% static 'js/website-geometry.bundle.js' %}"></script>{% endblock website_javascript %}
+{% block website_javascript %}<script defer src="{% static 'js/website-geometry.bundle.js' %}"></script><script defer src="{% static 'js/solution-pdf-options.js' %}"></script><script defer src="{% static 'js/solution-preview.js' %}"></script>{% endblock website_javascript %}

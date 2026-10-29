@@ -96,6 +96,10 @@ def main():
         from scripts.deployment.newsletter_automation_rehearsal import run
 
         return run(args)
+    if disclosed_migration == "solutions.0004_solution_pdf_display_options":
+        from scripts.deployment.solution_pdf_schema_rehearsal import run
+
+        return run(args)
     if json.loads(os.environ.get("SCHEMA_DISCLOSURE") or "{}").get("migration") == "website.0002_newsletter_campaigns":
         from scripts.deployment.newsletter_schema_rehearsal import run
 

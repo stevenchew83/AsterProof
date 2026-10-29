@@ -1,0 +1,38 @@
+{
+  "columns": [
+    {
+      "collation": null,
+      "column": "pdf_show_author",
+      "default": "true",
+      "nullable": false,
+      "position": 11,
+      "schema": "public",
+      "table": "solutions_problemsolution",
+      "type": "boolean"
+    },
+    {
+      "collation": null,
+      "column": "pdf_show_date",
+      "default": "true",
+      "nullable": false,
+      "position": 12,
+      "schema": "public",
+      "table": "solutions_problemsolution",
+      "type": "boolean"
+    },
+    {
+      "collation": null,
+      "column": "pdf_show_footer",
+      "default": "true",
+      "nullable": false,
+      "position": 13,
+      "schema": "public",
+      "table": "solutions_problemsolution",
+      "type": "boolean"
+    }
+  ],
+  "constraints": [],
+  "extensions": [],
+  "indexes": [],
+  "tables": []
+}

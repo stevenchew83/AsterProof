@@ -7,12 +7,14 @@ from django.db import transaction
 
 from inspinia.pages.completion_record_fields import COMPLETION_METADATA_FIELDS
 from inspinia.pages.completion_record_fields import SOLVED_STATUSES
+from inspinia.pages.completion_record_fields import is_completion_status_solved
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import UserProblemCompletion
 from inspinia.pages.statement_duplicates import normalize_exact_statement_text
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
+    from datetime import date
 
     from inspinia.pages.models import ProblemSolveRecord
     from inspinia.users.models import User
@@ -145,6 +147,40 @@ def _completion_defaults_from_source(completion: UserProblemCompletion) -> dict[
         defaults[field_name] = getattr(completion, field_name)
     defaults["problem"] = None
     return defaults
+
+
+@transaction.atomic
+def mark_problem_solved(
+    *,
+    user: User,
+    problem: ProblemSolveRecord,
+    statement: ContestProblemStatement | None,
+    today: date,
+) -> None:
+    """Record a solve while retaining each existing record's dates and study details."""
+    statements = [None]
+    if statement is not None:
+        statement_ids = _exact_duplicate_statement_ids(statement) or [statement.pk]
+        statements = list(ContestProblemStatement.objects.filter(pk__in=statement_ids).order_by("pk"))
+    for target in statements:
+        lookup = {"user": user, "statement": target} if target else {"user": user, "problem": problem}
+        defaults: dict[str, object] = {"completion_date": today, "status": UserProblemCompletion.Status.SOLVED}
+        if target and target.linked_problem_id:
+            legacy = UserProblemCompletion.objects.filter(
+                user=user, problem_id=target.linked_problem_id, statement__isnull=True,
+            ).first()
+            if legacy is not None:
+                defaults = _completion_defaults_from_source(legacy)
+                if not is_completion_status_solved(legacy.status):
+                    defaults["status"] = UserProblemCompletion.Status.SOLVED
+                    defaults["completion_date"] = legacy.completion_date or today
+        completion, created = UserProblemCompletion.objects.select_for_update().get_or_create(
+            **lookup, defaults=defaults,
+        )
+        if not created and not is_completion_status_solved(completion.status):
+            completion.status = UserProblemCompletion.Status.SOLVED
+            completion.completion_date = completion.completion_date or today
+            completion.save(update_fields=["status", "completion_date", "updated_at"])
 
 
 def _covered_statement_completion_keys(index: ExactDuplicateStatementIndex) -> set[tuple[int, int]]:
