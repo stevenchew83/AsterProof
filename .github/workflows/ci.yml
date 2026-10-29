@@ -95,6 +95,10 @@ jobs:
             if docker exec "$container" pg_isready -U postgres -d asterproof_schema_rehearsal; then
               break
             fi
+            if [ "$attempt" -eq 30 ]; then
+              echo 'Isolated PostgreSQL rehearsal did not become ready' >&2
+              exit 1
+            fi
             sleep 1
           done
           mkdir "$RUNNER_TEMP/website-active-source"
