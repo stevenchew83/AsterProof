@@ -9,6 +9,7 @@ from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
 from django.shortcuts import render
 from django.urls import reverse
+from django.utils.http import urlencode
 from django.views.decorators.http import require_GET
 from django.views.decorators.http import require_http_methods
 
@@ -84,6 +85,50 @@ def _page(request, template, **context):
 @require_GET
 def home_view(request):
     return _page(request, "home", page_title="A little insight. Infinite possibilities.", active_nav="home")
+
+
+@require_GET
+def problem_solving_view(request):
+    workspace_url = reverse("pages:problem_statement_list")
+    if not request.user.is_authenticated:
+        workspace_url = reverse("account_login") + "?" + urlencode({"next": workspace_url})
+    return _page(
+        request,
+        "problem_solving",
+        page_title="Problem solving",
+        page_description=(
+            "Find olympiad problems by topic and MOHS difficulty, write proofs with live preview, "
+            "and follow your personal progress in AsterProof."
+        ),
+        active_nav="problem_solving",
+        has_math=True,
+        hide_newsletter=True,
+        workspace_url=workspace_url,
+        example_blocks=[
+            {
+                "kind": "Idea",
+                "body": "Compare the two sides by writing their difference as a sum of squares.",
+            },
+            {
+                "kind": "Claim",
+                "body": (
+                    r"\[2(a^2+b^2+c^2-ab-bc-ca)=(a-b)^2+(b-c)^2+(c-a)^2.\]"
+                ),
+            },
+            {
+                "kind": "Proof",
+                "body": (
+                    "Every square is non-negative, so the identity gives "
+                    r"$a^2+b^2+c^2-ab-bc-ca\geq 0$, as required."
+                ),
+            },
+            {
+                "kind": "Conclusion",
+                "body": "Equality holds if and only if all three squares vanish, which is equivalent to $a=b=c$.",
+            },
+        ],
+        example_days=["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+    )
 
 
 @require_GET
