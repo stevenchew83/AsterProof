@@ -49,6 +49,15 @@
 
   {% include 'partials/page-title.html' with title='Create solution' subtitle='Choose problem statement' page_icon='ti-pencil-plus' %}
 
+  {% if writer_draft %}
+  <div class="alert alert-info mt-3" role="status">
+    <strong>{{ writer_draft.document.title|default:'Your Solution Writer draft' }}</strong> is ready to continue.
+    Choose a problem without an existing solution, review the imported blocks, then save a private draft.
+    Your original statement is kept as an editable opening block. Workspace PDFs use your profile name.
+    <a href="{% url 'website:solution_preview' %}?resume=1" class="alert-link">Return to your writing</a>.
+  </div>
+  {% endif %}
+
   {% if messages %}
   <div class="mt-3">
     {% for message in messages %}

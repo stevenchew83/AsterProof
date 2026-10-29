@@ -2307,6 +2307,48 @@
   color: #8c3228;
 }
 
+.public-tool-toolbar > div {
+  -ms-flex-wrap: wrap;
+      flex-wrap: wrap;
+  -webkit-box-pack: end;
+      -ms-flex-pack: end;
+          justify-content: flex-end;
+  -ms-flex-negative: 1;
+      flex-shrink: 1;
+}
+
+.public-solution-tool button.website-text-link {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  color: var(--w-accent);
+}
+
+.public-tool-recovery {
+  margin-bottom: 20px;
+  padding: 14px 16px;
+  border: 1px solid var(--w-line);
+  border-radius: 3px;
+  font-size: 12px;
+}
+.public-tool-recovery label {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.public-tool-recovery p {
+  margin: 6px 0;
+}
+.public-tool-recovery button {
+  margin: 6px 16px 0 0;
+}
+
 @media (max-width: 767px) {
   .website-nav {
     gap: clamp(12px, 3.7vw, 25px);

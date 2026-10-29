@@ -309,9 +309,15 @@ user_redirect_view = UserRedirectView.as_view()
 
 @login_required
 def approval_pending_view(request):
+    from inspinia.solutions.writer_drafts import get_writer_draft
+    from inspinia.solutions.writer_drafts import writer_handoff_url
+
+    writer_draft = get_writer_draft(request)
     if user_can_access_app_features(request.user):
+        if writer_draft:
+            return redirect(writer_handoff_url())
         return redirect("pages:user_activity_dashboard")
-    return render(request, "users/approval_pending.html")
+    return render(request, "users/approval_pending.html", {"writer_draft": writer_draft})
 
 
 def _require_app_admin(request) -> None:

@@ -88,6 +88,8 @@ class ProblemSolutionBlockForm(forms.ModelForm):
 
 
 class BaseProblemSolutionBlockFormSet(BaseInlineFormSet):
+    allow_empty_blocks = False
+
     def _construct_form(self, i, **kwargs):
         form = super()._construct_form(i, **kwargs)
         if not hasattr(self, "_shared_block_type_queryset"):
@@ -129,7 +131,7 @@ class BaseProblemSolutionBlockFormSet(BaseInlineFormSet):
             if body_source:
                 non_deleted_total += 1
 
-        if non_deleted_total == 0:
+        if non_deleted_total == 0 and not self.allow_empty_blocks:
             msg = "Add at least one solution block before saving."
             raise forms.ValidationError(msg)
 
@@ -193,5 +195,22 @@ class BaseSolutionPreviewBlockFormSet(BaseProblemSolutionBlockFormSet):
 SolutionPreviewBlockFormSet = inlineformset_factory(
     ProblemSolution, ProblemSolutionBlock, form=SolutionPreviewBlockForm,
     formset=BaseSolutionPreviewBlockFormSet, extra=0, can_delete=True, can_order=True,
+    max_num=PREVIEW_BLOCK_LIMIT, absolute_max=PREVIEW_BLOCK_LIMIT, validate_max=True,
+)
+
+
+class SolutionWriterHandoffBlockForm(SolutionPreviewBlockForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["body_source"].required = False
+
+
+class BaseSolutionWriterHandoffBlockFormSet(BaseSolutionPreviewBlockFormSet):
+    allow_empty_blocks = True
+
+
+SolutionWriterHandoffBlockFormSet = inlineformset_factory(
+    ProblemSolution, ProblemSolutionBlock, form=SolutionWriterHandoffBlockForm,
+    formset=BaseSolutionWriterHandoffBlockFormSet, extra=0, can_delete=True, can_order=True,
     max_num=PREVIEW_BLOCK_LIMIT, absolute_max=PREVIEW_BLOCK_LIMIT, validate_max=True,
 )

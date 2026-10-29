@@ -22,6 +22,12 @@
                 {% translate "You can stay signed in, update account security settings, or log out. AsterProof features will unlock after an admin approves this account." %}
               </p>
               <div class="d-flex flex-wrap gap-2">
+                {% if writer_draft %}
+                <div class="alert alert-info w-100 mb-2" role="status">
+                  Your Solution Writer draft is kept in this session for up to seven days. After approval, return here to continue in your workspace.
+                  <a href="{% url 'website:solution_preview' %}?resume=1" class="alert-link">Continue writing in Solution Writer</a>.
+                </div>
+                {% endif %}
                 <a href="{% url 'account_email' %}" class="btn btn-sm btn-outline-secondary">
                   <i class="ti ti-mail me-1"></i>{% translate "Email settings" %}
                 </a>

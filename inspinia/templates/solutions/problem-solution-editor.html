@@ -189,7 +189,7 @@
     </div>
     <div class="d-flex align-items-center flex-wrap gap-2 solution-toolbar-actions">
       <button type="submit" form="solution-editor-form" name="action" value="save" id="solution-save" class="btn btn-primary btn-sm"><i class="ti ti-device-floppy me-1" aria-hidden="true"></i>Save changes</button>
-      {% if solution_status_label != 'Published' %}<button type="submit" form="solution-editor-form" name="action" value="publish" class="btn btn-outline-primary btn-sm">Publish solution</button>{% endif %}
+      {% if solution_status_label != 'Published' and not writer_import %}<button type="submit" form="solution-editor-form" name="action" value="publish" class="btn btn-outline-primary btn-sm">Publish solution</button>{% endif %}
       <details class="solution-actions-menu">
         <summary class="btn btn-outline-secondary btn-sm" aria-label="More solution actions"><i class="ti ti-dots" aria-hidden="true"></i></summary>
         <div class="solution-actions-dropdown">
@@ -230,6 +230,10 @@
 
   <form method="post" novalidate id="solution-editor-form" data-pdf-document data-pdf-author="{{ pdf_author_name }}" data-pdf-date="{{ pdf_date_label }}" data-bound="{{ form.is_bound|yesno:'true,false' }}" data-saved="{{ form.instance.pk|yesno:'true,false' }}">
     {% csrf_token %}
+    {% if writer_import %}
+    <input type="hidden" name="writer_draft_token" value="{{ writer_import.token }}">
+    <div class="alert alert-info" role="status">Your Solution Writer blocks are ready for review. Save to keep a private draft. Your original statement is an editable opening block; workspace PDFs use your profile name.</div>
+    {% endif %}
     {{ formset.management_form }}
     {% if form.non_field_errors or formset.non_form_errors %}
     <div class="alert alert-danger" role="alert"><strong>Please check your solution.</strong>{{ form.non_field_errors }}{{ formset.non_form_errors }}</div>
