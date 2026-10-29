@@ -75,9 +75,14 @@ def test_homepage_and_tool_are_public_for_anonymous_and_pending_users(client):
             assert "Solution Writer" in html
             if url == reverse("website:solution_preview"):
                 assert "convert LaTeX to PDF" in html
-            signup_link = f'<a class="website-text-link" href="{reverse("account_signup")}">create an account</a>'
-            assert signup_link in html
-            assert html.index(signup_link) < html.index('<article class="public-tool-paper"')
+            signup_button = "data-signup-handoff>create an account</button>"
+            if not logged_in:
+                assert signup_button in html
+                assert html.index(signup_button) < html.index('<article class="public-tool-paper"')
+            else:
+                assert signup_button not in html
+            assert "data-workspace-handoff" in html
+            assert "data-draft-recovery" in html
             assert 'aria-label="Main navigation"' in html
             assert 'class="website-tools-menu"' in html
             assert reverse("website:solution_preview") in html
@@ -98,6 +103,7 @@ def test_pdf_download_uses_current_unsaved_blocks_and_evan_layout(tool, monkeypa
 
     monkeypatch.setattr("inspinia.website.solution_preview.compile_solution_tex_to_pdf", compile_pdf)
     data = preview_data()
+    data["action"] = "download_pdf"
     data["blocks-0-body_source"] = "My latest unsaved idea."
     response = client.post(url, data)
 

@@ -5,11 +5,14 @@ import tempfile
 from http import HTTPStatus
 from io import BytesIO
 from pathlib import Path
+from urllib.parse import urlencode
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.http import FileResponse
+from django.shortcuts import redirect
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.text import slugify
 from django.views.decorators.http import require_http_methods
@@ -21,6 +24,7 @@ from inspinia.solutions.forms import PDF_DISPLAY_FIELDS
 from inspinia.solutions.forms import PREVIEW_BLOCK_LIMIT
 from inspinia.solutions.forms import SolutionPreviewBlockFormSet
 from inspinia.solutions.forms import SolutionPreviewForm
+from inspinia.solutions.forms import SolutionWriterHandoffBlockFormSet
 from inspinia.solutions.models import ProblemSolution
 from inspinia.solutions.models import ProblemSolutionBlock
 from inspinia.solutions.models import SolutionBlockType
@@ -29,6 +33,9 @@ from inspinia.solutions.pdf_latex import SolutionPdfToolError
 from inspinia.solutions.pdf_latex import build_solution_tex_source
 from inspinia.solutions.pdf_latex import compile_solution_tex_to_pdf
 from inspinia.solutions.pdf_latex import latex_escape_plain_text
+from inspinia.solutions.writer_drafts import get_writer_draft
+from inspinia.solutions.writer_drafts import stage_writer_draft
+from inspinia.solutions.writer_drafts import writer_handoff_url
 
 from .solution_preview_latex import PUBLIC_PDF_CHARACTER_LIMIT
 from .solution_preview_latex import PUBLIC_PDF_TIMEOUT
@@ -45,11 +52,18 @@ def solution_preview_context(request):
         {"block_type": types.get(block["slug"]), "body_format": "latex", "body_source": block["body"]}
         for block in INEQUALITY_BLOCKS
     ]
+    resume = request.path == reverse("website:solution_preview") and request.GET.get("resume") == "1"
+    draft = get_writer_draft(request) if resume else None
+    document = draft["document"] if draft else {"title": INEQUALITY_TITLE, "problem_statement": INEQUALITY_STATEMENT}
+    if draft:
+        initial = document["blocks"]
     form = SolutionPreviewForm(
         request.POST if request.method == "POST" else None,
-        initial={"title": INEQUALITY_TITLE, "problem_statement": INEQUALITY_STATEMENT},
+        initial=document,
     )
-    formset = SolutionPreviewBlockFormSet(
+    handoff = request.method == "POST" and request.POST.get("action") in {"continue_workspace", "continue_signup"}
+    formset_class = SolutionWriterHandoffBlockFormSet if handoff else SolutionPreviewBlockFormSet
+    formset = formset_class(
         request.POST if request.method == "POST" else None, instance=solution, prefix="blocks",
         queryset=ProblemSolutionBlock.objects.none(), initial=initial if request.method == "GET" else None,
     )
@@ -59,6 +73,7 @@ def solution_preview_context(request):
         "form": form, "formset": formset, "preview_block_limit": PREVIEW_BLOCK_LIMIT,
         "plain_block_type_id": types.get("plain", ""),
         "pdf_date_label": timezone.localdate().isoformat(),
+        "writer_draft_resumed": bool(draft),
     }
 
 
@@ -110,6 +125,22 @@ def _download_pdf(context):
     )
 
 
+def _continue_in_workspace(request, context):
+    form, formset = context["form"], context["formset"]
+    if not (form.is_valid() and formset.is_valid()):
+        return None
+    try:
+        stage_writer_draft(request, form, formset)
+    except ValidationError as error:
+        form.add_error(None, error)
+        return None
+    destination = writer_handoff_url()
+    if request.user.is_authenticated:
+        return redirect(destination)
+    account_view = "account_signup" if request.POST.get("action") == "continue_signup" else "account_login"
+    return redirect(reverse(account_view) + "?" + urlencode({"next": destination}))
+
+
 @transaction.non_atomic_requests
 @require_http_methods(["GET", "POST"])
 def solution_preview_view(request):
@@ -118,7 +149,11 @@ def solution_preview_view(request):
     context = solution_preview_context(request)
     form, formset = context["form"], context["formset"]
     response, status = None, 200
-    if request.method == "POST":
+    if request.method == "POST" and request.POST.get("action") in {"continue_workspace", "continue_signup"}:
+        response = _continue_in_workspace(request, context)
+        if response is None:
+            status = 400
+    elif request.method == "POST":
         valid_form, valid_blocks = form.is_valid(), formset.is_valid()
         if valid_form and valid_blocks and _validate_fragments(form, list(formset.ordered_forms)):
             with public_pdf_slot(request) as available:

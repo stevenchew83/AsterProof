@@ -12,6 +12,7 @@ from django.core.exceptions import FieldError
 from django.core.exceptions import PermissionDenied
 from django.core.files.base import ContentFile
 from django.db import DatabaseError
+from django.db import IntegrityError
 from django.db import transaction
 from django.db.models import Avg
 from django.db.models import Count
@@ -25,6 +26,7 @@ from django.shortcuts import render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.text import slugify
+from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
 from PIL import Image
 from PIL import UnidentifiedImageError
@@ -60,6 +62,10 @@ from inspinia.solutions.pdf_latex import SolutionPdfMissingBodyImagesError
 from inspinia.solutions.pdf_latex import SolutionPdfToolError
 from inspinia.solutions.pdf_latex import compile_solution_to_pdf
 from inspinia.solutions.pdf_latex import solution_pdf_date_display
+from inspinia.solutions.writer_drafts import WRITER_DRAFT_SESSION_KEY
+from inspinia.solutions.writer_drafts import get_writer_draft
+from inspinia.solutions.writer_drafts import writer_editor_initial
+from inspinia.solutions.writer_drafts import writer_handoff_url
 from inspinia.users.roles import user_has_admin_role
 
 logger = logging.getLogger(__name__)
@@ -742,6 +748,7 @@ def _apply_editor_action(solution: ProblemSolution, action: str) -> tuple[str, s
 
 
 @login_required
+@never_cache
 def my_solution_list_view(request):
     solutions = list(
         ProblemSolution.objects.filter(author=request.user)
@@ -752,6 +759,8 @@ def my_solution_list_view(request):
     status_counts = Counter(solution.status for solution in solutions)
     context = {
         "my_solution_rows": _solution_card_rows(solutions),
+        "writer_draft": get_writer_draft(request),
+        "writer_handoff_url": writer_handoff_url(),
         "my_solution_stats": {
             "draft_total": status_counts[ProblemSolution.Status.DRAFT],
             "published_total": status_counts[ProblemSolution.Status.PUBLISHED],
@@ -763,8 +772,15 @@ def my_solution_list_view(request):
 
 
 @login_required
+@never_cache
 def problem_solution_create_view(request):
     statement_problem_rows, statement_problem_list_meta = _statement_backed_problem_rows(request.user)
+    writer_draft = get_writer_draft(request) if request.GET.get("from_writer") == "1" else None
+    if writer_draft:
+        for row in statement_problem_rows:
+            if not row["has_solution"]:
+                row["editor_url"] += "?" + urlencode({"from_writer": writer_draft["token"]})
+                row["editor_button_label"] = "Continue with this problem"
     started_total = sum(1 for row in statement_problem_rows if row["has_solution"])
     context = {
         "create_stats": {
@@ -775,6 +791,7 @@ def problem_solution_create_view(request):
         "statement_problem_list_is_capped": statement_problem_list_meta["is_capped"],
         "statement_problem_list_limit": statement_problem_list_meta["limit"],
         "statement_problem_rows": statement_problem_rows,
+        "writer_draft": writer_draft,
     }
     return render(request, "solutions/problem-solution-create.html", context)
 
@@ -833,25 +850,54 @@ def problem_solution_list_view(request, problem_uuid):
 
 
 @login_required
+@never_cache
 def problem_solution_edit_view(request, problem_uuid):
     problem = get_object_or_404(ProblemSolveRecord, problem_uuid=problem_uuid)
     solution = ProblemSolution.objects.filter(problem=problem, author=request.user).first()
+    draft = get_writer_draft(request)
+    writer_token = request.POST.get("writer_draft_token") or request.GET.get("from_writer")
+    writer_import = draft if draft and writer_token == draft["token"] else None
+    existing_solution = solution is not None
+    if request.method == "GET" and writer_token and (not writer_import or existing_solution):
+        messages.warning(
+            request, "Your writing has not replaced any saved solution. Choose an unused problem to continue.",
+        )
+        return redirect(writer_handoff_url())
     if solution is None:
         solution = ProblemSolution(problem=problem, author=request.user, status=ProblemSolution.Status.DRAFT)
 
     form, formset = _solution_form_context(solution, request.POST or None)
+    if writer_import and request.method == "GET":
+        initial, blocks = writer_editor_initial(writer_import)
+        form = ProblemSolutionForm(instance=solution, prefix="solution", initial=initial)
+        formset = ProblemSolutionBlockFormSet(instance=solution, prefix="blocks", initial=blocks)
+        formset.extra = len(blocks)
+    if request.method == "POST" and writer_token and (
+        not writer_import or existing_solution or request.POST.get("action") == "publish"
+    ):
+        form.add_error(None, (
+            "This handoff cannot be saved here. Your writing is still in this form; "
+            "return to the problem picker to continue with your pending draft."
+        ))
 
     if request.method == "POST" and form.is_valid() and formset.is_valid():
-        action = request.POST.get("action") or "save"
-        solution, message_text, message_level = _save_solution_form_request(
-            form=form,
-            formset=formset,
-            problem=problem,
-            request=request,
-            action=action,
-        )
-        getattr(messages, message_level)(request, message_text)
-        return redirect("solutions:problem_solution_edit", problem.problem_uuid)
+        action = "save_draft" if writer_import else request.POST.get("action") or "save"
+        try:
+            solution, message_text, message_level = _save_solution_form_request(
+                form=form, formset=formset, problem=problem, request=request, action=action,
+            )
+        except IntegrityError:
+            if not writer_import:
+                raise
+            form.add_error(None, (
+                "A solution could not be created for this problem. Your pending draft is still available; "
+                "choose another problem and try again."
+            ))
+        else:
+            if writer_import:
+                request.session.pop(WRITER_DRAFT_SESSION_KEY, None)
+            getattr(messages, message_level)(request, message_text)
+            return redirect("solutions:problem_solution_edit", problem.problem_uuid)
 
     current_status = solution.status or ProblemSolution.Status.DRAFT
     problem_data = _problem_context(problem)
@@ -863,6 +909,7 @@ def problem_solution_edit_view(request, problem_uuid):
     context = {
         "form": form,
         "formset": formset,
+        "writer_import": writer_import,
         "plain_block_type_id": str(plain_block_type.id) if plain_block_type is not None else "",
         "problem_data": problem_data,
         "completion_state": _solution_page_completion_payload(

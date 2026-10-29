@@ -1,4 +1,4 @@
-/* Standalone solution blocks: previews stay in memory; PDF export posts current fields. */
+/* Public solution blocks: local recovery is optional; handoff and PDF post current fields. */
 (function () {
   "use strict";
   const root = document.querySelector("[data-solution-preview]");
@@ -12,6 +12,7 @@
   const statement = document.getElementById("converter-statement");
   const status = document.getElementById("converter-preview-status");
   let timer;
+  let recovery;
   let pending = Promise.resolve();
 
   function blocks() {
@@ -34,6 +35,40 @@
       block.querySelector('[data-move-block="down"]').disabled = index === rows.length - 1;
     });
     add.disabled = rows.length >= Number(root.dataset.blockLimit);
+  }
+
+  function snapshot() {
+    const document = {};
+    ["title", "author_name", "problem_statement"].forEach(key => { document[key] = form.elements[key].value; });
+    ["pdf_show_author", "pdf_show_date", "pdf_show_footer"].forEach(key => { document[key] = form.elements[key].checked; });
+    document.blocks = blocks().slice().sort((a, b) => Number(a.querySelector('[name$="-ORDER"]').value) -
+      Number(b.querySelector('[name$="-ORDER"]').value)).map(function (block) {
+      const values = {};
+      ["block_type", "title", "body_format", "body_source"].forEach(key => {
+        values[key] = block.querySelector('[name$="-' + key + '"]').value;
+      });
+      return values;
+    });
+    return document;
+  }
+
+  function restore(document) {
+    ["title", "author_name", "problem_statement"].forEach(key => { form.elements[key].value = document[key]; });
+    ["pdf_show_author", "pdf_show_date", "pdf_show_footer"].forEach(key => { form.elements[key].checked = document[key]; });
+    list.replaceChildren();
+    document.blocks.forEach(function (values, index) {
+      const holder = window.document.createElement("div");
+      holder.innerHTML = template.innerHTML.replace(/__prefix__/g, index);
+      const block = holder.firstElementChild;
+      ["block_type", "title", "body_format", "body_source"].forEach(key => {
+        block.querySelector('[name$="-' + key + '"]').value = values[key];
+      });
+      list.appendChild(block);
+    });
+    total.value = document.blocks.length;
+    refresh();
+    form.dispatchEvent(new Event("change", {bubbles: true}));
+    render();
   }
 
   function render() {
@@ -84,6 +119,7 @@
   function schedule() {
     clearTimeout(timer);
     timer = setTimeout(render, 180);
+    if (recovery) recovery.changed();
   }
 
   add.hidden = false;
@@ -131,9 +167,12 @@
 
   form.addEventListener("input", schedule);
   form.addEventListener("change", schedule);
-  form.addEventListener("submit", function () {
+  form.addEventListener("submit", function (event) {
+    if (recovery) recovery.flush();
     const pdfStatus = root.querySelector("[data-pdf-status]");
-    if (pdfStatus) pdfStatus.textContent = "PDF requested. Keep this tab open until the download starts.";
+    const handoff = event.submitter && ["continue_workspace", "continue_signup"].includes(event.submitter.value);
+    if (pdfStatus) pdfStatus.textContent = handoff ? "Carrying your writing into your workspace…" :
+      "PDF requested. Keep this tab open until the download starts.";
     blocks().forEach(function (block) {
       const order = block.querySelector('[name$="-ORDER"]');
       if (!order.value) order.value = 1;
@@ -143,6 +182,21 @@
     return Number(left.querySelector('[name$="-ORDER"]').value) - Number(right.querySelector('[name$="-ORDER"]').value);
   }).forEach(function (block) { list.appendChild(block); });
   refresh();
+  const startingDocument = JSON.stringify(snapshot());
+  if (window.AsterProofDraftRecovery) recovery = window.AsterProofDraftRecovery.create({root, snapshot, restore});
+  document.addEventListener("click", function (event) {
+    const link = event.target.closest("a[href]");
+    if (!link || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const url = new URL(link.href, window.location.href);
+    if (url.origin !== window.location.origin) return;
+    const signup = url.pathname === root.dataset.signupUrl;
+    if (!signup && url.pathname !== root.dataset.loginUrl) return;
+    if (JSON.stringify(snapshot()) === startingDocument && root.dataset.writerResumed !== "true") return;
+    const button = root.querySelector(signup ? "[data-signup-handoff]" : "[data-workspace-handoff]");
+    if (!button) return;
+    event.preventDefault();
+    form.requestSubmit(button);
+  });
   if (document.readyState === "complete") render();
   else window.addEventListener("load", render, {once: true});
 }());

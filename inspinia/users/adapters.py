@@ -68,7 +68,12 @@ class AccountAdapter(DefaultAccountAdapter):
         signup,
         redirect_url,
     ):
-        if not signup:
+        from inspinia.solutions.writer_drafts import get_writer_draft
+        from inspinia.solutions.writer_drafts import writer_handoff_url
+
+        if get_writer_draft(request):
+            redirect_url = writer_handoff_url()
+        elif not signup:
             redirect_url = reverse("pages:user_activity_dashboard")
         return super().post_login(
             request,
