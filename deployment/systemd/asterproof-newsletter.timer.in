@@ -1,0 +1,11 @@
+[Unit]
+Description=Process due AsterProof newsletters every minute
+
+[Timer]
+OnBootSec=60s
+OnUnitInactiveSec=60s
+AccuracySec=5s
+Unit=asterproof-newsletter.service
+
+[Install]
+WantedBy=timers.target

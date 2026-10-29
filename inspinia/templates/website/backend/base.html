@@ -24,7 +24,34 @@
       <a class="nav-link{% if newsletter_tab == 'history' %} active{% endif %}"
          href="{% url 'website:newsletter_history' %}"
          {% if newsletter_tab == 'history' %}aria-current="page"{% endif %}>Delivery history</a>
+      <a class="nav-link{% if newsletter_tab == 'automation' %} active{% endif %}"
+         href="{% url 'website:newsletter_automation' %}"
+         {% if newsletter_tab == 'automation' %}aria-current="page"{% endif %}>Automation</a>
+      <a class="nav-link{% if newsletter_tab == 'bounces' %} active{% endif %}"
+         href="{% url 'website:newsletter_bounces' %}"
+         {% if newsletter_tab == 'bounces' %}aria-current="page"{% endif %}>Bounce import</a>
     </nav>
+    {% if background_enabled %}
+      <div class="d-flex flex-wrap gap-2 align-items-center fs-xs text-muted mb-3">
+        <span class="badge {% if worker_fresh %}text-bg-success{% else %}text-bg-warning{% endif %}">
+          {% if worker_fresh %}
+            Worker checked in recently
+          {% else %}
+            Worker heartbeat unavailable
+          {% endif %}
+        </span>
+        <span>
+          {% if worker_fresh %}
+            Sending continues when you close this page.
+          {% else %}
+            Queued mail waits for the worker. Check Automation.
+          {% endif %}
+        </span>
+        {% if worker_policy.worker_error or worker_policy.lecture_error %}
+          <span class="text-warning">Worker needs attention. Check Automation.</span>
+        {% endif %}
+      </div>
+    {% endif %}
     {% for message in messages %}
       <div class="alert alert-{{ message.tags|default:'info' }} py-2"
            role="status">{{ message }}</div>

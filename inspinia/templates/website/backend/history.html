@@ -12,7 +12,7 @@
     </div>
     <div class="card-body py-3">
       <form method="get" class="row g-2 align-items-end">
-        <div class="col-md-5">
+        <div class="col-md-3">
           <label class="form-label fs-xs" for="delivery-search">Recipient or subject</label>
           <input class="form-control form-control-sm"
                  id="delivery-search"
@@ -21,7 +21,7 @@
                  maxlength="100"
                  placeholder="Search delivery history" />
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
           <label class="form-label fs-xs" for="delivery-status">Status</label>
           <select class="form-select form-select-sm" id="delivery-status" name="status">
             <option value="">All statuses</option>
@@ -36,6 +36,15 @@
             <option value="">All types</option>
             {% for value,label in kinds %}
               <option value="{{ value }}"{% if value == kind %} selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label fs-xs" for="delivery-result">Delivery result</label>
+          <select class="form-select form-select-sm" id="delivery-result" name="result">
+            <option value="">All results</option>
+            {% for value,label in results %}
+              <option value="{{ value }}"{% if value == result %} selected{% endif %}>{{ label }}</option>
             {% endfor %}
           </select>
         </div>
