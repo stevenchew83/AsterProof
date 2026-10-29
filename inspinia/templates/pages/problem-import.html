@@ -7,6 +7,7 @@
 {% block extra_css %}
 {% if preview_payload %}
 <link rel="stylesheet" href="{% static 'plugins/datatables/dataTables.bootstrap5.min.css' %}">
+<style>.import-preview-text { white-space: pre-wrap; }</style>
 {% endif %}
 {% endblock extra_css %}
 
@@ -433,28 +434,48 @@
   if (!dataEl || typeof DataTable === "undefined") return;
   var payload = JSON.parse(dataEl.textContent);
 
+  function escapePreviewText(value) {
+    return String(value == null ? "" : value)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/\"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+
+  function renderPreviewText(data, type) {
+    var text = Array.isArray(data) ? data.join(", ") : String(data == null ? "" : data);
+    if (type !== "display") return text;
+    if (!text.trim()) return "—";
+    return '<span class="app-table-text" title="' + escapePreviewText(text) + '">' + escapePreviewText(text) + '</span>';
+  }
+
+  function renderPreviewDetails(data, type) {
+    if (type !== "display") return data || "";
+    if (!data) return "—";
+    return '<details class="app-table-details"><summary>View text</summary>' +
+      '<div class="app-table-details-body import-preview-text">' + escapePreviewText(data) + '</div></details>';
+  }
+
   var problemCols = [
     { data: "year", title: "Year", className: "text-nowrap" },
     { data: "topic", title: "Topic" },
     { data: "mohs", title: "MOHS", className: "text-nowrap" },
-    { data: "contest", title: "Contest" },
+    { data: "contest", title: "Contest", render: renderPreviewText },
     { data: "problem", title: "Problem", className: "text-nowrap" },
-    { data: "contest_year_problem", title: "CONTEST PROBLEM" },
+    { data: "contest_year_problem", title: "CONTEST PROBLEM", render: renderPreviewText },
     { data: "confidence", title: "Confidence" },
     { data: "imo_slot_guess", title: "IMO slot guess" },
-    { data: "topic_tags_raw", title: "Topic tags (raw)", className: "text-wrap" },
-    { data: "core_ideas", title: "Core ideas", className: "text-wrap" },
-    { data: "rationale", title: "Rationale", className: "text-wrap" },
-    { data: "pitfalls", title: "Pitfalls", className: "text-wrap" },
+    { data: "topic_tags_raw", title: "Topic tags (raw)", render: renderPreviewDetails },
+    { data: "core_ideas", title: "Core ideas", render: renderPreviewDetails },
+    { data: "rationale", title: "Rationale", render: renderPreviewDetails },
+    { data: "pitfalls", title: "Pitfalls", render: renderPreviewDetails },
     { data: "parsed_technique_count", title: "# techniques", className: "text-nowrap" },
   ];
 
   var techniqueCols = [
     { data: "year", title: "Year", className: "text-nowrap" },
-    { data: "contest", title: "Contest" },
+    { data: "contest", title: "Contest", render: renderPreviewText },
     { data: "problem", title: "Problem", className: "text-nowrap" },
-    { data: "technique", title: "Technique", className: "text-wrap" },
-    { data: "domains", title: "Domains (JSON list)", className: "text-wrap" },
+    { data: "technique", title: "Technique", render: renderPreviewText },
+    { data: "domains", title: "Domains (JSON list)", render: renderPreviewText },
   ];
 
   if (payload.problems && payload.problems.length) {
@@ -467,6 +488,11 @@
       scrollX: true,
       autoWidth: false,
     });
+    document.getElementById("preview-problems-table").addEventListener("toggle", function (event) {
+      if (event.target.matches("details[open]")) {
+        event.target.scrollIntoView({ block: "nearest", inline: "nearest" });
+      }
+    }, true);
   }
 
   if (payload.techniques && payload.techniques.length) {

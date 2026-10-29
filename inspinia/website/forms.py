@@ -1,5 +1,7 @@
 from django import forms
+from django.utils import timezone
 
+from .models import NewsletterAutomation
 from .models import NewsletterCampaign
 
 MAX_BODY_LENGTH = 30000
@@ -60,3 +62,82 @@ class NewsletterCampaignForm(forms.ModelForm):
 class NewsletterSendForm(forms.Form):
     version = forms.IntegerField(min_value=1, widget=forms.HiddenInput)
     confirm = forms.BooleanField(label="I have reviewed this version and its test email.")
+
+
+class NewsletterScheduleForm(NewsletterSendForm):
+    scheduled_at = forms.DateTimeField(
+        label="Send at (Malaysia time)",
+        widget=forms.DateTimeInput(attrs={"type": "datetime-local", "class": "form-control form-control-sm"}),
+    )
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("auto_id", "schedule_%s")
+        super().__init__(*args, **kwargs)
+
+    def clean_scheduled_at(self):
+        when = self.cleaned_data["scheduled_at"]
+        if when <= timezone.now():
+            msg = "Choose a future date and time."
+            raise forms.ValidationError(msg)
+        return when
+
+
+class NewsletterAutomationForm(forms.ModelForm):
+    confirm = forms.BooleanField(
+        required=False,
+        label="I approve automatic lecture emails to confirmed subscribers.",
+        widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
+    )
+
+    class Meta:
+        model = NewsletterAutomation
+        fields = ["lecture_enabled", "lecture_template", "digest_time"]
+        labels = {
+            "lecture_enabled": "Enable lecture digests", "lecture_template": "Tested introduction draft",
+            "digest_time": "Daily time (MYT)",
+        }
+        widgets = {
+            "lecture_enabled": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "lecture_template": forms.Select(attrs={"class": "form-select form-select-sm"}),
+            "digest_time": forms.TimeInput(attrs={"type": "time", "class": "form-control form-control-sm"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["lecture_template"].queryset = NewsletterCampaign.objects.filter(
+            status=NewsletterCampaign.Status.DRAFT, started_at__isnull=True,
+        )
+        self.fields["lecture_template"].required = False
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get("lecture_enabled") and (not cleaned.get("confirm") or not cleaned.get("lecture_template")):
+            msg = "Choose a tested introduction and confirm automatic lecture emails."
+            raise forms.ValidationError(msg)
+        return cleaned
+
+
+class NewsletterBounceUploadForm(forms.Form):
+    report = forms.FileField(
+        label="Gmail delivery-failure email (.eml)",
+        widget=forms.ClearableFileInput(attrs={"accept": ".eml", "class": "form-control form-control-sm"}),
+    )
+
+    def clean_report(self):
+        report = self.cleaned_data["report"]
+        if report.size > 1024 * 1024 or not report.name.casefold().endswith(".eml"):
+            msg = "Choose a saved .eml delivery report no larger than 1 MB."
+            raise forms.ValidationError(msg)
+        return report
+
+
+class NewsletterBounceApplyForm(forms.Form):
+    token = forms.CharField(max_length=4096, widget=forms.HiddenInput)
+    confirm = forms.BooleanField(label="I verified this report came from my Gmail delivery-failure notice.")
+
+
+class NewsletterHoldClearForm(forms.Form):
+    reason = forms.CharField(max_length=180, widget=forms.TextInput(attrs={
+        "class": "form-control form-control-sm", "placeholder": "Why this address can receive newsletters again",
+    }))
+    confirm = forms.BooleanField(label="I reviewed the bounce and want to restore newsletter sending.")

@@ -33,8 +33,35 @@
             </div>
           </form>
           <p class="fs-xs text-muted mt-3 mb-0">
-            Keep this page open while sending. Pause at any time and continue later from the campaign page.
+            {% if background_enabled %}
+              The worker sends in the background. You can close this page and return later.
+            {% else %}
+              Keep this page open while sending. Pause at any time and continue later from the campaign page.
+            {% endif %}
           </p>
+          {% if background_enabled %}
+            <details class="mt-3">
+              <summary class="fs-sm fw-semibold">Schedule for later</summary>
+              <form method="post"
+                    class="mt-3"
+                    action="{% url 'website:newsletter_schedule' pk=campaign.pk %}">
+                {% csrf_token %}{{ schedule_form.version }}{{ schedule_form.non_field_errors }}
+                <label class="form-label fs-xs"
+                       for="{{ schedule_form.scheduled_at.id_for_label }}">
+                  {{ schedule_form.scheduled_at.label }}
+                </label>
+                {{ schedule_form.scheduled_at }}{{ schedule_form.scheduled_at.errors }}
+                <label class="form-check d-flex gap-2 my-3">
+                  {{ schedule_form.confirm }}<span class="fs-sm">{{ schedule_form.confirm.label }}</span>
+                </label>
+                {{ schedule_form.confirm.errors }}
+                <button class="btn btn-outline-primary btn-sm" type="submit">Schedule newsletter</button>
+                <p class="fs-xs text-muted mt-2 mb-0">
+                  Content is locked until cancelled. The confirmed audience is captured at send time; the worker checks due campaigns every minute.
+                </p>
+              </form>
+            </details>
+          {% endif %}
         {% else %}
           <div class="alert alert-warning py-2 fs-sm">
             {% if not campaign.is_editable %}

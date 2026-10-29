@@ -15,6 +15,45 @@
       </form>
     {% endif %}
   </div>
+  {% for hold in sending_holds %}
+    <section class="card">
+      <div class="card-body py-3">
+        <h3 class="h5 mb-1">
+          {% if hold.cleared_at %}
+            Previous sending hold
+          {% else %}
+            Newsletter sending is on hold
+          {% endif %}
+        </h3>
+        <p class="fs-xs text-muted mb-2">
+          Imported address failure {{ hold.report.status_code }} · {{ hold.created_at|date:'d M Y, H:i' }}. Subscription consent is kept separately.
+        </p>
+        {% if hold.cleared_at %}
+          <p class="fs-xs mb-0">Cleared {{ hold.cleared_at|date:'d M Y, H:i' }} · {{ hold.clear_reason }}</p>
+        {% else %}
+          <details>
+            <summary class="fs-sm">Review and restore newsletter sending</summary>
+            <form class="mt-3"
+                  method="post"
+                  action="{% url 'website:newsletter_clear_hold' pk=hold.pk %}">
+              {% csrf_token %}
+              <label class="form-label fs-xs" for="clear-reason-{{ hold.pk }}">Reason</label>
+              <input class="form-control form-control-sm"
+                     id="clear-reason-{{ hold.pk }}"
+                     name="reason"
+                     maxlength="180"
+                     required />
+              <label class="form-check d-flex gap-2 my-2">
+                <input class="form-check-input" type="checkbox" name="confirm" required />
+                <span class="fs-xs">I reviewed the bounce and want to restore newsletter sending.</span>
+              </label>
+              <button class="btn btn-outline-primary btn-sm">Restore sending</button>
+            </form>
+          </details>
+        {% endif %}
+      </div>
+    </section>
+  {% endfor %}
   <div class="card">
     <div class="card-body py-3">
       <dl class="newsletter-consent-grid mb-0">

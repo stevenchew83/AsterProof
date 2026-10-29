@@ -1,0 +1,114 @@
+{% extends 'website/backend/base.html' %}
+
+{% block newsletter_content %}
+  <div class="row g-3 mb-3">
+    <section class="col-lg-6">
+      <div class="card h-100">
+        <div class="card-header border-0 pb-0">
+          <h2 class="header-title mb-1">Import a Gmail bounce</h2>
+          <p class="fs-xs text-muted mb-0">Record failures and delays without connecting to your inbox.</p>
+        </div>
+        <div class="card-body pt-3">
+          <p class="fs-sm text-muted">
+            In Gmail, open the delivery-failure notice and choose More → Download message. Upload that .eml file here. The original Message-ID and recipient must match a recorded newsletter attempt.
+          </p>
+          <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}{{ upload_form.non_field_errors }}
+            <label for="{{ upload_form.report.id_for_label }}" class="form-label fs-xs">{{ upload_form.report.label }}</label>
+            {{ upload_form.report }}{{ upload_form.report.errors }}
+            <button class="btn btn-primary btn-sm mt-3" name="action" value="preview">Review report</button>
+          </form>
+          <p class="fs-xs text-muted mt-3 mb-0">
+            Maximum 1 MB. Uploaded email bodies and attachments are not retained. A manually imported report is evidence you supply; successful inbox delivery is not inferred.
+          </p>
+        </div>
+      </div>
+    </section>
+    {% if apply_form %}
+      <section class="col-lg-6">
+        <div class="card h-100">
+          <div class="card-header border-0 pb-0">
+            <h2 class="header-title mb-1">Review before applying</h2>
+          </div>
+          <div class="card-body pt-3">
+            {% if review %}
+              <dl class="row fs-sm">
+                <dt class="col-4">Newsletter</dt>
+                <dd class="col-8">
+                  {{ review.delivery.subject }}
+                </dd>
+                <dt class="col-4">Recipient</dt>
+                <dd class="col-8 newsletter-email">
+                  {{ review.delivery.recipient_email }}
+                </dd>
+                <dt class="col-4">Reported action</dt>
+                <dd class="col-8">
+                  {{ review.action }} · {{ review.status_code }}
+                </dd>
+              </dl>
+              {% if review.duplicate %}
+                <p class="fs-sm text-muted">This report was already imported; applying again has no effect.</p>
+              {% endif %}
+              <p class="fs-sm">
+                {% if review.will_hold %}
+                  This address failure will also hold future newsletter sends to this address. Consent records stay intact.
+                {% else %}
+                  This records the attempt’s result without placing an address hold.
+                {% endif %}
+              </p>
+            {% endif %}
+            <form method="post">
+              {% csrf_token %}{{ apply_form.token }}{{ apply_form.non_field_errors }}
+              <label class="form-check d-flex gap-2 mb-3">
+                {{ apply_form.confirm }}<span class="fs-sm">{{ apply_form.confirm.label }}</span>
+              </label>
+              {{ apply_form.confirm.errors }}
+              <button class="btn btn-outline-primary btn-sm" name="action" value="apply">Apply bounce report</button>
+            </form>
+          </div>
+        </div>
+      </section>
+    {% endif %}
+  </div>
+  <div class="card">
+    <div class="card-header border-0 py-3">
+      <h2 class="header-title mb-0">
+        Imported reports <span class="fs-sm fw-normal text-muted">{{ page.paginator.count }}</span>
+      </h2>
+    </div>
+    <div class="app-table-region table-responsive"
+         role="region"
+         aria-label="Imported bounce reports"
+         tabindex="0">
+      <table class="table table-hover app-table-compact mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Recipient</th>
+            <th>Newsletter</th>
+            <th>Report</th>
+            <th>Imported by</th>
+            <th>Imported</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for report in page %}
+            <tr>
+              <td>{{ report.delivery.recipient_email }}</td>
+              <td>
+                <a href="{{ report.delivery.campaign.get_absolute_url }}">{{ report.delivery.subject|truncatechars:50 }}</a>
+              </td>
+              <td>{{ report.action }} · {{ report.status_code }}</td>
+              <td>{{ report.imported_by.email|default:'Former administrator' }}</td>
+              <td>{{ report.imported_at|date:'d M Y, H:i' }}</td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="5" class="text-muted py-3">No reports imported yet.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% include 'website/backend/pagination.html' %}
+  </div>
+{% endblock newsletter_content %}

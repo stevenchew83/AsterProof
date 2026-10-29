@@ -18852,10 +18852,54 @@ table.app-table-compact .contest-name {
 table.app-table-compact .contest-row-meta {
   display: inline;
 }
-.app-table-page table.app-table-compact.table .cb-problem-chips,
-table.app-table-compact .cb-problem-chips {
+
+.catalogue-browser table.app-table-compact.cb-problems-table {
+  table-layout: auto;
+}
+.catalogue-browser table.app-table-compact.cb-problems-table td:first-child {
+  min-width: 12rem;
+  max-width: 20rem;
+}
+.catalogue-browser table.app-table-compact.cb-problems-table .cb-name {
+  display: block;
+  max-width: 20rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.catalogue-browser table.app-table-compact.cb-problems-table .cb-problem-chips {
   -ms-flex-wrap: nowrap;
       flex-wrap: nowrap;
+  gap: 0.3rem;
+}
+.catalogue-browser table.app-table-compact.cb-problems-table .cb-problem-chips > .badge {
+  -webkit-box-flex: 0;
+      -ms-flex: 0 0 auto;
+          flex: 0 0 auto;
+  white-space: nowrap;
+}
+.catalogue-browser table.app-table-compact.cb-problems-table .cb-problem-chips:has(> details[open]) {
+  -ms-flex-wrap: wrap;
+      flex-wrap: wrap;
+}
+.catalogue-browser table.app-table-compact.cb-problems-table .cb-more {
+  -webkit-box-flex: 0;
+      -ms-flex: 0 0 auto;
+          flex: 0 0 auto;
+  width: auto;
+}
+.catalogue-browser table.app-table-compact.cb-problems-table .cb-more[open] {
+  -ms-flex-preferred-size: 100%;
+      flex-basis: 100%;
+}
+.catalogue-browser table.app-table-compact.cb-problems-table .cb-more > .cb-problem-chips {
+  max-width: 24rem;
+  -ms-flex-wrap: wrap;
+      flex-wrap: wrap;
+  padding-top: 0.25rem;
+}
+.catalogue-browser table.app-table-compact.cb-problems-table .cb-more > .cb-problem-chips > .badge {
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .app-table-details {

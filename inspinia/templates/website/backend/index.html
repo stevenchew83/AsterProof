@@ -8,7 +8,7 @@
          href="{% url 'website:newsletter_campaign_new' %}"><i class="ti ti-plus me-1" aria-hidden="true"></i>New draft</a>
     </div>
     <dl class="app-page-header-stats">
-      {% include 'partials/page-header-stat.html' with label='Subscribed' value=subscribed accent=True stat_icon='ti-users' only %}
+      {% include 'partials/page-header-stat.html' with label='Eligible subscribers' value=subscribed accent=True stat_icon='ti-users' only %}
       {% include 'partials/page-header-stat.html' with label='Awaiting confirmation' value=pending only %}
       {% include 'partials/page-header-stat.html' with label='Drafts' value=draft_count only %}
       {% include 'partials/page-header-stat.html' with label='Emails accepted' value=accepted only %}
@@ -24,7 +24,10 @@
       </div>
       <span class="text-muted fs-xs">{{ page.paginator.count }} total</span>
     </div>
-    <div class="app-table-region table-responsive" role="region" aria-label="Newsletter results" tabindex="0">
+    <div class="app-table-region table-responsive"
+         role="region"
+         aria-label="Newsletter results"
+         tabindex="0">
       <table class="table table-hover align-middle mb-0 newsletter-table app-table-compact">
         <thead class="table-light">
           <tr>

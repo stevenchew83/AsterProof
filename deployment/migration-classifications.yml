@@ -2,6 +2,17 @@
   "format_version": 1,
   "baseline_sha": null,
   "migrations": {
+    "website.0003_newsletter_automation": {
+      "classification": "backward-compatible-schema",
+      "recovery_required": false,
+      "code_rollback_permitted": true,
+      "data_preconditions": [
+        "automation_tables_absent",
+        "existing_subscriber_and_campaign_fields_unchanged",
+        "background_worker_inactive_during_migration"
+      ],
+      "rationale": "Adds only frozen scheduling/result columns, four automation/report/hold tables and fixed indexes/constraints. Existing consent, campaign content and attempt statuses remain intact; historical delivery defaults to unconfirmed. No automatic activation or old-field data rewrite. This classification does not update the separately installed root authority."
+    },
     "website.0002_newsletter_campaigns": {
       "classification": "backward-compatible-schema",
       "recovery_required": false,
