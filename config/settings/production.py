@@ -129,9 +129,8 @@ INSTALLED_APPS = ["collectfasta", *INSTALLED_APPS]
 # https://docs.djangoproject.com/en/dev/ref/settings/#logging
 # See https://docs.djangoproject.com/en/dev/topics/logging for
 # more details on how to customize your logging configuration.
-# A sample logging configuration. The only tangible logging
-# performed by this configuration is to send an email to
-# the site admins on every HTTP 500 error when DEBUG=False.
+# Keep request errors in the console and email admins once when DEBUG=False.
+# Rejected hosts stay in the console without generating alert emails.
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -156,14 +155,15 @@ LOGGING = {
     "root": {"level": "INFO", "handlers": ["console"]},
     "loggers": {
         "django.request": {
-            "handlers": ["mail_admins"],
+            "handlers": ["console", "mail_admins"],
             "level": "ERROR",
-            "propagate": True,
+            # The parent django logger also emails admins by default.
+            "propagate": False,
         },
         "django.security.DisallowedHost": {
             "level": "ERROR",
-            "handlers": ["console", "mail_admins"],
-            "propagate": True,
+            "handlers": ["console"],
+            "propagate": False,
         },
     },
 }
