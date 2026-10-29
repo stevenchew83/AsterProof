@@ -20,32 +20,22 @@
   }
 
   .statement-linker-toolbar-copy {
-    min-width: min(24rem, 100%);
+    flex: 1 1 20rem;
+    min-width: 0;
   }
 
   .statement-linker-toolbar-bulk {
+    flex: 1 1 20rem;
+    min-width: 0;
     display: grid;
     gap: 0.5rem;
     justify-items: end;
-    min-width: min(24rem, 100%);
-  }
-
-  .statement-linker-filter-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: end;
-    gap: 0.75rem;
-  }
-
-  .statement-linker-filter-row .form-select,
-  .statement-linker-filter-row .form-control {
-    min-width: 10rem;
   }
 
   .statement-linker-actions {
     display: grid;
     gap: 0.5rem;
-    min-width: 19rem;
+    width: 19rem;
   }
 
   .statement-linker-actions-row {
@@ -56,8 +46,14 @@
   }
 
   .statement-linker-actions-row .form-select {
-    min-width: 13rem;
-    flex: 1 1 13rem;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .statement-linker-preview {
+    min-width: 16rem;
+    max-width: 24rem;
+    overflow-wrap: anywhere;
   }
 
   .statement-linker-suggestion {
@@ -122,7 +118,7 @@
   {% else %}
   <div class="row g-3 mt-0 mb-4">
     <div class="col-12">
-      <div class="card">
+      <div class="card statement-tool-workspace">
         <div class="card-header border-bottom d-flex flex-wrap align-items-center gap-2">
           <div class="flex-grow-1">
             <p class="text-muted fs-xs mb-0">
@@ -146,9 +142,8 @@
           {% endif %}
           <div class="statement-linker-toolbar">
             <div class="statement-linker-toolbar-copy">
-              <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Suggested workflow</p>
               <h5 class="mb-1">Start with unlinked rows</h5>
-              <p class="text-muted fs-xs mb-0">Rows stay visible even when there is no safe suggestion. Those will usually need a manual pick from the same contest-year candidate list. Manual dropdown changes are staged locally until you save them together.</p>
+              <p class="text-muted fs-xs mb-0">Choose a tracked problem to stage a manual link, then save your choices together.</p>
             </div>
             <div class="statement-linker-toolbar-bulk">
               <div class="d-flex flex-wrap justify-content-end align-items-center gap-2">
@@ -156,12 +151,12 @@
                 <button type="button" id="statement-linker-reset-staged" class="btn btn-outline-secondary btn-sm" disabled>Reset staged</button>
                 <button type="button" id="statement-linker-save-staged" class="btn btn-primary btn-sm" disabled>Save staged links</button>
               </div>
-              <p class="text-muted fs-xs mb-0 text-end">Safe suggestions and clears still save immediately. Manual dropdown picks can now be collected across many rows and committed in one batch.</p>
+              <p class="text-muted fs-xs mb-0 text-end">Suggestions and Clear save immediately.</p>
             </div>
-            <div class="statement-linker-filter-row">
+            <div class="statement-tool-filters">
               <div>
                 <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-linker-search">Search</label>
-                <input id="statement-linker-search" type="search" class="form-control form-control-sm" placeholder="Search within the loaded table (latest rows shown below)">
+                <input id="statement-linker-search" type="search" class="form-control form-control-sm" placeholder="Search loaded rows…">
               </div>
               <div>
                 <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-linker-status-filter">Status</label>
@@ -199,7 +194,8 @@
             <input type="hidden" name="action" value="link_selected_bulk">
             <div id="statement-linker-bulk-fields"></div>
           </form>
-          <table id="statement-linker-table" class="table table-striped table-bordered align-middle w-100"></table>
+          <p class="d-lg-none text-muted fs-xs mb-2"><i class="ti ti-arrows-horizontal me-1" aria-hidden="true"></i>Scroll the table for more columns and linking controls.</p>
+          <table id="statement-linker-table" class="table table-sm table-hover table-bordered align-middle w-100" aria-label="Statement links"></table>
         </div>
       </div>
     </div>
@@ -388,6 +384,20 @@
   var table = new DataTable("#statement-linker-table", {
     data: rows,
     rowId: "statement_id",
+    scrollX: true,
+    autoWidth: false,
+    layout: {
+      topStart: "pageLength",
+      topEnd: null,
+      bottomStart: "info",
+      bottomEnd: { paging: { type: "simple" } }
+    },
+    initComplete: function () {
+      var scroller = this.api().table().container().querySelector(".dt-scroll-body");
+      scroller.setAttribute("tabindex", "0");
+      scroller.setAttribute("role", "region");
+      scroller.setAttribute("aria-label", "Statement links columns");
+    },
     columns: [
       {
         data: null,
@@ -400,7 +410,7 @@
       { data: "contest_year_label", title: "Contest-year", className: "text-nowrap" },
       { data: "day_label", title: "Day", className: "text-nowrap" },
       { data: "problem_code", title: "Code", className: "text-nowrap" },
-      { data: "statement_preview", title: "Statement preview", className: "text-wrap" },
+      { data: "statement_preview", title: "Statement preview", className: "statement-linker-preview" },
       {
         data: "linked_problem_label",
         title: "Current link",

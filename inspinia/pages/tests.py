@@ -18651,8 +18651,8 @@ def test_problem_statement_list_shows_statement_rows_and_link_counts(client):
     assert 'id="problem-statements-copy-status"' in response_html
     assert 'id="problem-statements-loaded-status"' in response_html
     assert "Copy loaded rows" in response_html
-    assert "Find problem statements" in response_html
-    assert "Advanced filters" in response_html
+    assert 'role="search" aria-label="Statement library"' in response_html
+    assert "Search library" in response_html
     assert "Open statement" in response_html
     assert "Loaded 2 matching rows" in response_html
     assert 'id="problem-statements-table"' in response_html
@@ -18668,12 +18668,13 @@ def test_problem_statement_list_shows_statement_rows_and_link_counts(client):
     assert "dataTables.min.js" in response_html
     assert 'new DataTable("#problem-statements-table"' in response_html
     assert 'id="problem-statements-table-data"' in response_html
-    assert "Filter loaded rows:" in response_html
-    assert "Within loaded rows..." in response_html
+    assert "Filter loaded rows:" not in response_html
+    assert "Within loaded rows..." not in response_html
+    assert "searching: false" in response_html
     assert "problem-statements-table-alert" in response_html
     assert 'aria-describedby="problem-statements-loaded-status"' in response_html
     assert 'order: [[7, "desc"]]' in response_html
-    assert 'top: ["pageLength", "search", "paging"]' in response_html
+    assert 'topStart: "pageLength"' in response_html
     assert 'aria-label="Statement pages"' not in response_html
     assert "dataTables_filter" not in response_html.lower()
     assert "statement-completion-save" not in response_html
@@ -19194,7 +19195,7 @@ def test_problem_statement_list_recheck_links_updates_matching_rows_for_admin(cl
     assert response.context["statement_stats"]["unlinked_total"] == 0
     response_html = response.content.decode("utf-8")
     assert 'id="problem-statements-recheck-links"' in response_html
-    assert "Recheck problem links" in response_html
+    assert "Recheck links" in response_html
     assert (
         "Rechecked 1 statement row(s): 1 linked, 1 newly linked, 0 skipped, "
         "0 still unlinked, 1 updated."

@@ -19,19 +19,7 @@
   }
 
   .statement-editor-toolbar-copy {
-    min-width: min(24rem, 100%);
-  }
-
-  .statement-editor-filter-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: end;
-    gap: 0.75rem;
-  }
-
-  .statement-editor-filter-row .form-select,
-  .statement-editor-filter-row .form-control {
-    min-width: 10rem;
+    min-width: 0;
   }
 
   .statement-editor-identity {
@@ -50,6 +38,12 @@
   .statement-editor-preview {
     white-space: pre-wrap;
     word-break: break-word;
+  }
+
+  #statement-editor-table .statement-editor-preview {
+    min-width: 16rem;
+    max-width: 24rem;
+    overflow-wrap: anywhere;
   }
 
   #statement-editor-table_wrapper .dt-layout-row {
@@ -100,7 +94,7 @@
 
   <div class="row g-3 mt-0 mb-4">
     <div class="col-12">
-      <div class="card">
+      <div class="card statement-tool-workspace">
         <div class="card-header border-bottom d-flex flex-wrap align-items-center gap-2">
           <div class="flex-grow-1">
             <p class="text-muted fs-xs mb-0">
@@ -129,14 +123,12 @@
           {% else %}
           <div class="statement-editor-toolbar">
             <div class="statement-editor-toolbar-copy">
-              <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Suggested workflow</p>
-              <h5 class="mb-1">Filter first, edit one row at a time</h5>
-              <p class="text-muted fs-xs mb-0">Use search plus contest, year, and status filters to narrow the queue, then open a row in the modal to inspect its immutable identifiers alongside editable metadata.</p>
+              <p class="text-muted fs-xs mb-0">Find a statement, then choose Edit to inspect its identifiers and update metadata or text.</p>
             </div>
-            <div class="statement-editor-filter-row">
+            <div class="statement-tool-filters">
               <div>
                 <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-editor-search">Search</label>
-                <input id="statement-editor-search" type="search" class="form-control form-control-sm" placeholder="Search within the loaded table (latest rows shown below)">
+                <input id="statement-editor-search" type="search" class="form-control form-control-sm" placeholder="Search loaded rows…">
               </div>
               <div>
                 <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-editor-contest-filter">Contest</label>
@@ -170,7 +162,8 @@
             </div>
           </div>
           {% endif %}
-          <table id="statement-editor-table" class="table table-striped table-bordered align-middle w-100"></table>
+          <p class="d-lg-none text-muted fs-xs mb-2"><i class="ti ti-arrows-horizontal me-1" aria-hidden="true"></i>Scroll the table for more columns. Edit stays in view.</p>
+          <table id="statement-editor-table" class="table table-sm table-hover table-bordered align-middle w-100" aria-label="Statement editor"></table>
         </div>
       </div>
     </div>
@@ -309,6 +302,20 @@
   var table = new DataTable(tableNode, {
     data: rows,
     pageLength: 25,
+    scrollX: true,
+    autoWidth: false,
+    layout: {
+      topStart: "pageLength",
+      topEnd: null,
+      bottomStart: "info",
+      bottomEnd: { paging: { type: "simple" } }
+    },
+    initComplete: function () {
+      var scroller = this.api().table().container().querySelector(".dt-scroll-body");
+      scroller.setAttribute("tabindex", "0");
+      scroller.setAttribute("role", "region");
+      scroller.setAttribute("aria-label", "Statement editor columns");
+    },
     columns: [
       {
         title: "Statement",
@@ -393,7 +400,7 @@
         data: null,
         orderable: false,
         searchable: false,
-        className: "text-nowrap",
+        className: "text-nowrap statement-tool-action-cell",
         render: function (_data, _type, row) {
           return "<button type=\"button\" class=\"btn btn-outline-primary btn-sm statement-editor-open\" data-statement-id=\"" + escapeHtml(row.statement_id) + "\">Edit</button>";
         },
