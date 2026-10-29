@@ -13,6 +13,7 @@ from scripts.deployment.schema_fingerprint import canonical_json
 from scripts.deployment.schema_fingerprint import migration_state
 from scripts.deployment.schema_fingerprint import normalize_schema_snapshot
 from scripts.deployment.schema_fingerprint import schema_state
+from scripts.deployment.schema_rehearsal import smoke_command
 
 MIGRATION = "website.0001_initial"
 MIGRATION_NAME = MIGRATION.split(".", 1)[1]
@@ -32,6 +33,7 @@ DIGEST = re.compile(r"^[0-9a-f]{64}$")
 SHA = re.compile(r"^[0-9a-f]{40}$")
 FINGERPRINT_FIELDS = ("state_fingerprint", "schema_fingerprint", "migration_fingerprint")
 MAX_DISCLOSURE_BYTES = 8192
+COMPATIBILITY_SMOKE_SHA256 = hashlib.sha256(smoke_command().encode()).hexdigest()
 PLAN_CHECK = f"""from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
 executor=MigrationExecutor(connection)
@@ -86,6 +88,8 @@ def validate_disclosure(value: Any, *, target_sha: str) -> dict[str, Any]:
     for field in ("postgresql_rehearsal_sha256", "compatibility_smoke_sha256"):
         if not isinstance(value[field], str) or not DIGEST.fullmatch(value[field]):
             raise WebsiteSchemaError("Schema rehearsal and compatibility evidence must be frozen")
+    if value["compatibility_smoke_sha256"] != COMPATIBILITY_SMOKE_SHA256:
+        raise WebsiteSchemaError("Website compatibility smoke differs from the approved fixed command")
     _validate_fingerprints(value)
     if len(canonical_json(value)) > MAX_DISCLOSURE_BYTES:
         raise WebsiteSchemaError("Schema disclosure exceeds its bound")
@@ -111,9 +115,12 @@ def validate_build_evidence(release: Path, disclosure: dict[str, Any]) -> None:
     if path.is_symlink() or path.stat().st_size > MAX_DISCLOSURE_BYTES:
         raise WebsiteSchemaError("Invalid packaged schema evidence")
     try:
-        value = json.loads(path.read_text())
+        content = path.read_bytes()
+        value = json.loads(content)
     except (ValueError, UnicodeError) as exc:
         raise WebsiteSchemaError("Invalid packaged schema evidence JSON") from exc
+    if hashlib.sha256(content).hexdigest() != disclosure["postgresql_rehearsal_sha256"]:
+        raise WebsiteSchemaError("Packaged website rehearsal proof digest does not match its disclosure")
     expected = {
         "format_version": 1,
         "source_sha": disclosure["target_sha"],

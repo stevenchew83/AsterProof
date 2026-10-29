@@ -44,6 +44,8 @@ def existing_sequences(connection):
     new_sequences = sorted(
         table + "_id_seq" for table in website_schema.TABLES if table != "website_newslettersubscriber"
     )
+    # The one approved migration also advances Django's migration recorder.
+    new_sequences.append("django_migrations_id_seq")
     with connection.cursor() as cursor:
         cursor.execute(
             "SELECT schemaname, sequencename, last_value FROM pg_catalog.pg_sequences "
@@ -53,31 +55,37 @@ def existing_sequences(connection):
         return cursor.fetchall()
 
 
-def run(args):
-    os.environ["DJANGO_SETTINGS_MODULE"] = "config.settings.test"
-    os.environ["DJANGO_READ_DOT_ENV_FILE"] = "false"
-    from django.conf import settings
+def migration_metadata(connection):
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT id, app, name, applied::text FROM django_migrations ORDER BY id")
+        rows = cursor.fetchall()
+        cursor.execute(
+            "SELECT last_value FROM pg_catalog.pg_sequences "
+            "WHERE schemaname='public' AND sequencename='django_migrations_id_seq'",
+        )
+        return rows, cursor.fetchone()[0]
 
-    configure_rehearsal_database(settings)
-    import django
 
-    django.setup()
-    from django.db import connection
-    from django.db.migrations.executor import MigrationExecutor
+def validate_migration_record(before, after):
+    rows_before, sequence_before = before
+    rows_after, sequence_after = after
+    if (
+        len(rows_after) != len(rows_before) + 1
+        or rows_after[:-1] != rows_before
+        or rows_after[-1][1:3] != ("website", "0001_initial")
+        or rows_after[-1][0] != sequence_before + 1
+        or sequence_after != sequence_before + 1
+    ):
+        raise ValueError("Website rehearsal changed migration metadata beyond its one approved record")
 
+
+def seed_fixture():
     from inspinia.pages.models import ContestProblemStatement
     from inspinia.pages.models import ProblemSolveRecord
     from inspinia.pages.models import StatementTopicTechnique
     from inspinia.pages.models import UserProblemCompletion
     from inspinia.users.models import User
 
-    if connection.pg_version != POSTGRES_VERSION:
-        raise ValueError("Website rehearsal requires the pinned PostgreSQL 17.9 runtime")
-    if connection.introspection.table_names():
-        raise ValueError("Website rehearsal database must be empty")
-    website_schema.validate_candidate(Path.cwd())
-    executor = MigrationExecutor(connection)
-    executor.migrate([node for node in executor.loader.graph.leaf_nodes() if node[0] != "website"])
     user = User.objects.create(email="schema-rehearsal@example.invalid")
     problem = ProblemSolveRecord.objects.create(
         contest="SCHEMA REHEARSAL",
@@ -97,9 +105,34 @@ def run(args):
     )
     StatementTopicTechnique.objects.create(statement=statement, technique="AM-GM", main_topic="ALG", domains=["ALG"])
     UserProblemCompletion.objects.create(user=user, problem=problem, statement=statement)
+
+
+def run(args):
+    os.environ["DJANGO_SETTINGS_MODULE"] = "config.settings.test"
+    os.environ["DJANGO_READ_DOT_ENV_FILE"] = "false"
+    from django.conf import settings
+
+    configure_rehearsal_database(settings)
+    import django
+
+    django.setup()
+    from django.db import connection
+    from django.db.migrations.executor import MigrationExecutor
+
+    if connection.pg_version != POSTGRES_VERSION:
+        raise ValueError("Website rehearsal requires the pinned PostgreSQL 17.9 runtime")
+    if connection.introspection.table_names():
+        raise ValueError("Website rehearsal database must be empty")
+    website_schema.validate_candidate(Path.cwd())
+    executor = MigrationExecutor(connection)
+    executor.migrate([node for node in executor.loader.graph.leaf_nodes() if node[0] != "website"])
+    seed_fixture()
     before = _snapshot(connection)
     records, sequences = existing_records(connection), existing_sequences(connection)
+    metadata_before = migration_metadata(connection)
     exec(website_schema.MIGRATION_APPLY, {})
+    metadata_after = migration_metadata(connection)
+    validate_migration_record(metadata_before, metadata_after)
     after = _snapshot(connection)
     delta = {
         category: [row for row in rows if row.get("table") in website_schema.TABLES]
@@ -111,8 +144,14 @@ def run(args):
     }
     if {row["table"] for row in delta["tables"]} != website_schema.TABLES or delta["extensions"]:
         raise ValueError("Website rehearsal did not create exactly the five approved tables")
-    if previous != before or existing_records(connection) != records or existing_sequences(connection) != sequences:
-        raise ValueError("Website rehearsal changed existing schema, records, or sequences")
+    records_after, sequences_after = existing_records(connection), existing_sequences(connection)
+    if previous != before or records_after != records or sequences_after != sequences:
+        changed_records = sorted(table for table in records if records[table] != records_after.get(table))
+        message = (
+            f"Website preservation failed: schema={previous != before}, "
+            f"records={changed_records}, sequences={sequences_after != sequences}"
+        )
+        raise ValueError(message)
     fingerprint = schema_state(delta)["fingerprint"]
     if not getattr(args, "record_delta", False) and fingerprint != website_schema.DELTA_SHA256:
         raise ValueError("Website schema delta does not match the frozen PostgreSQL rehearsal")
@@ -122,6 +161,7 @@ def run(args):
         _snapshot(connection) != after
         or existing_records(connection) != records
         or existing_sequences(connection) != sequences
+        or migration_metadata(connection) != metadata_after
     ):
         raise ValueError("Active-release compatibility smoke changed existing schema or data")
     if getattr(args, "record_delta", False):

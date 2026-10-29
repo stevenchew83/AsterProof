@@ -30,6 +30,7 @@ from scripts.deployment.tests.test_operation_worker import _contract
 from scripts.deployment.tests.test_operation_worker import _seed
 from scripts.deployment.tests.test_protocol import _envelope
 from scripts.deployment.validate_dispatch import validate_schema_input
+from scripts.deployment.website_schema_rehearsal import validate_migration_record
 
 ROOT = Path(__file__).resolve().parents[3]
 
@@ -37,7 +38,13 @@ ROOT = Path(__file__).resolve().parents[3]
 def disclosure():
     value = concept_disclosure()
     value.update(migration=schema.MIGRATION, migration_file_sha256=schema.MIGRATION_SHA256)
+    value["postgresql_rehearsal_sha256"] = hashlib.sha256(evidence_bytes(build_evidence())).hexdigest()
+    value["compatibility_smoke_sha256"] = schema.COMPATIBILITY_SMOKE_SHA256
     return value
+
+
+def evidence_bytes(value):
+    return (json.dumps(value, sort_keys=True, indent=2) + "\n").encode()
 
 
 def build_evidence():
@@ -104,9 +111,12 @@ def test_website_migration_bytes_are_frozen_and_symlinks_rejected(tmp_path):
 def test_data_preservation_evidence_must_be_explicit_true(tmp_path, field, value):
     report = build_evidence()
     report[field] = value
-    (tmp_path / schema.EVIDENCE_PATH).write_text(json.dumps(report))
+    content = evidence_bytes(report)
+    (tmp_path / schema.EVIDENCE_PATH).write_bytes(content)
+    bound = disclosure()
+    bound["postgresql_rehearsal_sha256"] = hashlib.sha256(content).hexdigest()
     with pytest.raises(schema.WebsiteSchemaError):
-        schema.validate_build_evidence(tmp_path, disclosure())
+        schema.validate_build_evidence(tmp_path, bound)
 
 
 @pytest.mark.parametrize("extra", [False, True])
@@ -137,7 +147,7 @@ class WebsiteBackend(SchemaBackend):
         path = destination / schema.MIGRATION_PATH
         path.parent.mkdir(parents=True)
         path.write_bytes((ROOT / schema.MIGRATION_PATH).read_bytes())
-        (destination / schema.EVIDENCE_PATH).write_text(json.dumps(build_evidence()))
+        (destination / schema.EVIDENCE_PATH).write_bytes(evidence_bytes(build_evidence()))
 
     def check_website_schema(self, contract, release):
         if self.fail_at == "candidate":
@@ -189,3 +199,12 @@ def test_website_migration_retains_lock_and_statement_bounds(tmp_path, monkeypat
     WorkerBackend().migrate_website_schema(_contract(tmp_path), tmp_path / "candidate")
     assert "--setenv=PGOPTIONS=-c lock_timeout=2s -c statement_timeout=30s" in seen[0]
     assert seen[0][-3:] == ["shell", "--command", schema.MIGRATION_APPLY]
+
+
+def test_only_the_one_new_migration_metadata_record_is_permitted():
+    old = [(1, "pages", "0039_catalogue_revision_triggers", "before")]
+    new = [*old, (2, "website", "0001_initial", "after")]
+    validate_migration_record((old, 1), (new, 2))
+    for changed in ([*new, (3, "users", "other", "after")], [(1, "pages", "changed", "before"), new[-1]]):
+        with pytest.raises(ValueError, match="beyond its one approved record"):
+            validate_migration_record((old, 1), (changed, 2))
