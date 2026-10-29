@@ -1,5 +1,8 @@
 import importlib
+import json
+import subprocess
 import sys
+import textwrap
 
 import pytest
 from django.core.exceptions import ImproperlyConfigured
@@ -136,3 +139,58 @@ def test_production_keeps_mailgun_when_explicitly_selected(monkeypatch):
     assert production.EMAIL_BACKEND == "anymail.backends.mailgun.EmailBackend"
     assert production.ANYMAIL["MAILGUN_SENDER_DOMAIN"] == "mg.example.com"
     assert "anymail" in production.INSTALLED_APPS
+
+
+@pytest.mark.parametrize(
+    ("logger_name", "debug", "expected_email_count"),
+    [
+        ("django.security.DisallowedHost", False, 0),
+        ("django.request", False, 1),
+        ("django.security.SuspiciousOperation", False, 1),
+        ("django.request", True, 0),
+    ],
+)
+def test_production_logging_retains_logs_without_duplicate_or_host_emails(
+    monkeypatch,
+    logger_name,
+    debug,
+    expected_email_count,
+):
+    production = _load_production_settings(monkeypatch)
+    # Configure Django in a separate process so the real logger hierarchy cannot
+    # replace pytest's handlers or leak changes into other tests.
+    script = textwrap.dedent(
+        """
+        import json
+        import logging
+        import sys
+
+        import django
+        from django.conf import settings
+        from django.core import mail
+
+        settings.configure(
+            DEBUG=sys.argv[2] == "True",
+            SECRET_KEY="logging-regression-test-only",
+            ADMINS=[("Test admin", "admin@example.com")],
+            EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+            USE_I18N=False,
+            LOGGING=json.load(sys.stdin),
+        )
+        django.setup()
+        logging.getLogger(sys.argv[1]).error("Production logging regression")
+        print(json.dumps({"email_count": len(getattr(mail, "outbox", []))}))
+        """,
+    )
+
+    result = subprocess.run(  # noqa: S603 - fixed test script and parametrized inputs
+        [sys.executable, "-c", script, logger_name, str(debug)],
+        input=json.dumps(production.LOGGING),
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=15,
+    )
+
+    assert json.loads(result.stdout)["email_count"] == expected_email_count
+    assert result.stderr.count("Production logging regression") == 1
