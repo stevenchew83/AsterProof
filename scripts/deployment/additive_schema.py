@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 from scripts.deployment import concept_schema
+from scripts.deployment import newsletter_automation_schema
 from scripts.deployment import newsletter_schema
 from scripts.deployment import website_schema
 
 
 def schema_for_disclosure(value):
+    if isinstance(value, dict) and value.get("migration") == newsletter_automation_schema.MIGRATION:
+        return newsletter_automation_schema
     if isinstance(value, dict) and value.get("migration") == newsletter_schema.MIGRATION:
         return newsletter_schema
     if isinstance(value, dict) and value.get("migration") == website_schema.MIGRATION:

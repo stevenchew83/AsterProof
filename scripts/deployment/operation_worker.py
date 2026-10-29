@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from scripts.deployment import catalogue_schema
+from scripts.deployment import newsletter_automation_schema
 from scripts.deployment import newsletter_schema
 from scripts.deployment import website_schema
 from scripts.deployment.additive_schema import validate_disclosure
@@ -277,6 +278,15 @@ class WorkerBackend:
     def check_newsletter_schema(self, contract: TargetContract, release: Path) -> None:
         newsletter_schema.validate_candidate(release)
         self._run_candidate(contract, release, ["shell", "--command", newsletter_schema.PLAN_CHECK])
+
+    def check_newsletter_automation_schema(self, contract: TargetContract, release: Path) -> None:
+        newsletter_automation_schema.validate_candidate(release)
+        self._run_candidate(contract, release, ["shell", "--command", newsletter_automation_schema.PLAN_CHECK])
+
+    def migrate_newsletter_automation_schema(self, contract: TargetContract, release: Path) -> None:
+        self._run_candidate(
+            contract, release, ["shell", "--command", newsletter_automation_schema.MIGRATION_APPLY], migration=True,
+        )
 
     def migrate_newsletter_schema(self, contract: TargetContract, release: Path) -> None:
         self._run_candidate(
@@ -739,6 +749,9 @@ def _deploy(
                 elif disclosure["migration"] == newsletter_schema.MIGRATION:
                     newsletter_schema.validate_build_evidence(release, disclosure)
                     backend.check_newsletter_schema(contract, release)
+                elif disclosure["migration"] == newsletter_automation_schema.MIGRATION:
+                    newsletter_automation_schema.validate_build_evidence(release, disclosure)
+                    backend.check_newsletter_automation_schema(contract, release)
                 else:
                     validate_build_evidence(release, disclosure)
                     backend.check_concept_schema(contract, release)
@@ -751,6 +764,8 @@ def _deploy(
                 backend.migrate_website_schema(contract, release)
             elif disclosure["migration"] == newsletter_schema.MIGRATION:
                 backend.migrate_newsletter_schema(contract, release)
+            elif disclosure["migration"] == newsletter_automation_schema.MIGRATION:
+                backend.migrate_newsletter_automation_schema(contract, release)
             else:
                 backend.migrate_concept_schema(contract, release)
             if not audit_matches(disclosure, backend.schema_audit(contract), stage="expected"):
