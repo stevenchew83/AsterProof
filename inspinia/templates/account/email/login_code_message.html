@@ -6,6 +6,7 @@
 {% block email_content %}
   <p style="margin: 0 0 18px;">{% trans "Use this one-time code to sign in to your AsterProof workspace." %}</p>
   {% include "account/email/_code.html" %}
+  <p style="margin: 0 0 18px; font-size: 12px; color: #627078;">{% trans "This code expires in 3 minutes and can be used once." %}</p>
 {% endblock email_content %}
 {% block email_note %}
   <p style="margin: 0; padding-top: 18px; border-top: 1px solid #e8e9e5; font-size: 12px; color: #627078;">{% trans "Didn't try to sign in? You can ignore this email." %}</p>

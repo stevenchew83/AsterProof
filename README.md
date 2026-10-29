@@ -27,6 +27,9 @@ AsterProof is a Django 5 project built on the Inspinia dashboard shell. The curr
 For Gmail SMTP setup, the hidden app-password prompt, and account email styling,
 see [transactional email](docs/email.md).
 
+For the public pages, draft-first learning library, and newsletter consent flow,
+see [public website and library](docs/public-website.md).
+
 ## Setup (pip)
 
 ```bash

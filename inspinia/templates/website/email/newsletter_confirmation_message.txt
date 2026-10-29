@@ -1,0 +1,14 @@
+Hello from AsterProof,
+
+You asked to receive new lectures, useful ideas, and occasional AsterProof updates.
+
+Confirm your subscription:
+{{ confirmation_url }}
+
+The link expires in 48 hours. You will only be subscribed after confirming on the website. If you did not request this, ignore this email.
+
+Manage your newsletter preference:
+{{ unsubscribe_url }}
+
+A little insight. Infinite possibilities.
+AsterProof

@@ -1,1 +1,4 @@
 * text=auto
+
+# esbuild preserves upstream Three.js shader strings in the generated bundle.
+inspinia/static/js/website-geometry.bundle.js linguist-generated=true whitespace=-blank-at-eol,-space-before-tab

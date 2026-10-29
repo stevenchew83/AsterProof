@@ -271,9 +271,10 @@ def _active_dashboard_statements():
     return ContestProblemStatement.objects.filter(is_active=True)
 
 
-@login_required
 def root_page_view(request):
-    return redirect("pages:user_activity_dashboard")
+    from inspinia.website.views import home_view
+
+    return home_view(request)
 
 
 def _extract_uploaded_statement_pdf_text(uploaded_pdfs) -> tuple[str, str]:

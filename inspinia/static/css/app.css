@@ -17753,6 +17753,22 @@ html.sidebar-with-line .sub-menu .side-nav-link::after {
   -webkit-animation: auth-login-enter 0.6s 0.08s ease-out both;
           animation: auth-login-enter 0.6s 0.08s ease-out both;
 }
+.auth-login-panel > h1, .auth-login-panel > .h1 {
+  margin-bottom: 18px;
+  color: var(--auth-ink);
+  font-size: 34px;
+  font-weight: 600;
+  letter-spacing: -0.045em;
+}
+.auth-login-panel > p {
+  color: var(--auth-muted);
+  font-size: 13px;
+  line-height: 1.8;
+}
+.auth-login-panel .alert {
+  font-size: 12px;
+  line-height: 1.65;
+}
 
 .auth-login-heading {
   margin-bottom: 36px;
@@ -17847,8 +17863,16 @@ html.sidebar-with-line .sub-menu .side-nav-link::after {
 .auth-login-control input[aria-invalid=true] {
   border-color: var(--ins-danger);
 }
-.auth-login-control input[name=password] {
+.auth-login-control--password input {
   padding-right: 52px;
+}
+.auth-login-control input[name=code] {
+  height: 56px;
+  font-family: var(--ins-font-monospace);
+  font-size: 22px;
+  letter-spacing: 0.25em;
+  text-align: center;
+  text-transform: uppercase;
 }
 
 .auth-login-toggle {
@@ -17950,10 +17974,69 @@ html.sidebar-with-line .sub-menu .side-nav-link::after {
 }
 
 .auth-login-code {
-  display: block;
-  margin-top: 20px;
-  text-align: center;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  -webkit-box-pack: center;
+      -ms-flex-pack: center;
+          justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+  margin-top: 14px;
+  padding: 10px;
+  border: 1px solid var(--auth-line);
+  border-radius: var(--ins-border-radius);
   color: var(--auth-accent);
+  font-size: 12px;
+  font-weight: 600;
+  -webkit-transition: border-color 0.18s ease, background-color 0.18s ease;
+  transition: border-color 0.18s ease, background-color 0.18s ease;
+}
+.auth-login-code:hover {
+  border-color: var(--auth-accent);
+  background: rgba(20, 158, 146, 0.06);
+}
+
+.auth-login-help, .auth-login-note {
+  color: var(--auth-muted);
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+.auth-login-help {
+  margin-top: 9px;
+}
+.auth-login-help ul {
+  margin: 0;
+  padding-left: 16px;
+}
+
+.auth-login-note {
+  margin: 20px 0;
+}
+
+.auth-login-recipient {
+  color: var(--auth-ink);
+  overflow-wrap: anywhere;
+}
+
+.auth-login-alternative-form {
+  margin-top: 12px;
+}
+
+.auth-login-text-button {
+  padding: 4px;
+  border: 0;
+  background: transparent;
+  color: var(--auth-accent);
+  font: inherit;
+  font-weight: 600;
+}
+.auth-login-text-button:hover {
+  text-decoration: underline;
 }
 
 .auth-login-signup {

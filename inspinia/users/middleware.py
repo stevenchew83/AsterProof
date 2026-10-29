@@ -10,6 +10,8 @@ from inspinia.users.roles import user_can_access_app_features
 
 class RequireApprovedUserMiddleware:
     exempt_path_prefixes = ("/accounts/", "/static/", "/media/")
+    public_paths = {"/", "/about/", "/contact/", "/privacy/", "/terms/"}
+    public_path_prefixes = ("/library/", "/newsletter/")
 
     def __init__(self, get_response):
         self.get_response = get_response
@@ -30,7 +32,9 @@ class RequireApprovedUserMiddleware:
 
     def _is_exempt_path(self, path: str) -> bool:
         admin_path_prefix = f"/{settings.ADMIN_URL.strip('/')}/"
-        return path.startswith((*self.exempt_path_prefixes, admin_path_prefix))
+        return path in self.public_paths or path.startswith((
+            *self.exempt_path_prefixes, *self.public_path_prefixes, admin_path_prefix,
+        ))
 
 
 class TrackActiveSessionMiddleware:

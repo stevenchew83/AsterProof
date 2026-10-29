@@ -1,45 +1,68 @@
 {% extends "base.html" %}
 {% load i18n static %}
-{% block title %}
-  {% block head_title %}
-    {% trans "Sign In" %}
-  {% endblock head_title %}
-{% endblock title %}
+{% block title %}{% block head_title %}{% trans "Account access" %}{% endblock head_title %}{% endblock title %}
 {% block body %}
-  <div class="min-vh-100 d-flex align-items-center py-5 bg-body-tertiary">
-    <div class="container">
-      <div class="row justify-content-center">
-        <div class="col-12 col-md-8 col-lg-6 col-xl-5 col-xxl-4">
-          <div class="text-center mb-4">
-            <a href="{% url 'account_login' %}" class="auth-brand d-inline-block mb-1">
-              <img src="{% static 'images/asterproof-logo.svg' %}"
-                   class="auth-brand-dark" alt="AsterProof" width="507" height="100">
-              <img src="{% static 'images/asterproof-logo-light.svg' %}"
-                   class="auth-brand-light" alt="AsterProof" width="507" height="100">
-            </a>
-            <p class="text-muted mb-0">Sign in or create an account to access the workspace.</p>
-          </div>
-
-          {% if messages %}
-            {% for message in messages %}
-              <div class="alert alert-dismissible {% if message.tags %}alert-{{ message.tags }}{% endif %}">
-                {{ message }}
-                <button type="button"
-                        class="btn-close"
-                        data-bs-dismiss="alert"
-                        aria-label="Close"></button>
-              </div>
-            {% endfor %}
-          {% endif %}
-
-          <div class="card border-0 shadow-sm">
-            <div class="card-body p-4 p-lg-5">
-              {% block content %}
-              {% endblock content %}
-            </div>
-          </div>
-        </div>
+  <main class="auth-login">
+    <section class="auth-login-story" aria-labelledby="auth-story-title">
+      <a href="{% url 'account_login' %}" class="auth-login-story-brand">
+        <img src="{% static 'images/asterproof-logo-light.svg' %}"
+             alt="AsterProof" width="507" height="100">
+      </a>
+      <div class="auth-login-story-content">
+        <p class="auth-login-eyebrow">{% trans "The art of problem solving" %}</p>
+        <h2 id="auth-story-title">{% trans "A little insight." %}<br><em>{% trans "Infinite possibilities." %}</em></h2>
+        <p class="auth-login-story-description">
+          {% trans "Explore olympiad problems, build rigorous solutions, and see your progress take shape." %}
+        </p>
       </div>
-    </div>
-  </div>
+      <figure class="auth-login-geometry" aria-label="{% trans 'An equilateral triangle with its incircle and circumcircle' %}">
+        <svg viewBox="0 0 580 380" fill="none" aria-hidden="true" focusable="false">
+          <g class="auth-login-construction">
+            <path d="M45 210H535M290 20V365" />
+            <circle cx="290" cy="210" r="165" />
+            <path d="M147.106 292.5 290 210 432.894 292.5M290 45V292.5" stroke-dasharray="4 7" />
+          </g>
+          <path class="auth-login-triangle" d="M290 45 147.106 292.5H432.894Z" />
+          <circle class="auth-login-incircle" cx="290" cy="210" r="82.5" />
+          <path class="auth-login-right-angle" d="M290 281.5H301V292.5" />
+          <g class="auth-login-vertices">
+            <circle cx="290" cy="45" r="4" />
+            <circle cx="147.106" cy="292.5" r="4" />
+            <circle cx="432.894" cy="292.5" r="4" />
+          </g>
+          <circle class="auth-login-center" cx="290" cy="210" r="4" />
+          <g class="auth-login-point-labels">
+            <text x="305" y="40">A</text>
+            <text x="125" y="315">B</text>
+            <text x="444" y="315">C</text>
+            <text x="303" y="205">O</text>
+          </g>
+        </svg>
+        <figcaption><span></span>{% trans "Different angles. Deeper understanding." %}</figcaption>
+      </figure>
+      <p class="auth-login-subjects">
+        {% trans "Algebra" %}<span>·</span>{% trans "Geometry" %}<span>·</span>{% trans "Number theory" %}<span>·</span>{% trans "Combinatorics" %}
+      </p>
+    </section>
+    <section class="auth-login-workspace" aria-label="{% trans 'Account access' %}">
+      <a href="{% url 'account_login' %}" class="auth-brand auth-login-mobile-brand">
+        <img src="{% static 'images/asterproof-logo.svg' %}"
+             class="auth-brand-dark" alt="AsterProof" width="507" height="100">
+        <img src="{% static 'images/asterproof-logo-light.svg' %}"
+             class="auth-brand-light" alt="AsterProof" width="507" height="100">
+      </a>
+      <div class="auth-login-panel">
+        {% if messages %}
+          {% for message in messages %}
+            <div class="alert {% if message.tags %}alert-{{ message.tags }}{% else %}alert-info{% endif %}" role="status">{{ message }}</div>
+          {% endfor %}
+        {% endif %}
+        {% block content %}{% endblock content %}
+      </div>
+      <p class="auth-login-footer">{% trans "One problem. One insight. One step forward." %}</p>
+    </section>
+  </main>
 {% endblock body %}
+{% block extra_javascript %}
+  <script src="{% static 'js/account-login.js' %}" defer></script>
+{% endblock extra_javascript %}

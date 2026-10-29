@@ -37,7 +37,7 @@ This app owns the contest/problem archive and its surrounding tooling.
 - `archive_hub_view` (`/archive/`) is the authenticated hub for current archive workflows.
 - `/problems/` is only a temporary redirect to `/archive/`; do not add new links to legacy `/problems/` routes.
 - Contest drill-down for users is `contest_dashboard_listing_view` (`/dashboard/contests/listing/`).
-- The root route redirects authenticated users to `user_activity_dashboard`; archive search lives in dashboard pages, not a public landing page.
+- The root route renders the public website for all visitors. Sign-in still leads to `user_activity_dashboard`; archive search remains in authenticated dashboard pages.
 - Topic-tag analytics and problem-statement analytics are separate pages with their own payloads.
 
 ## Tests and fixtures

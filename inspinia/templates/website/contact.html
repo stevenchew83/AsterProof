@@ -1,0 +1,7 @@
+{% extends "website/base.html" %}
+{% block public_content %}
+  <div class="website-container">
+    <section class="website-page-hero"><p class="website-kicker">Get in touch</p><h1>Good questions<br><em>are always welcome.</em></h1><p>Have an idea for the library, a correction to suggest, or a question about AsterProof? Write to {{ public_operator_name }}.</p></section>
+    <section class="website-contact-grid website-section"><div><p class="website-kicker">Email</p><a class="website-contact-email" href="mailto:{{ public_contact_email }}">{{ public_contact_email }} <span aria-hidden="true">↗</span></a><p>Include a link to the page or concept if your message is about a particular resource.</p></div><div class="website-prose"><h2>A correction or source credit?</h2><p>Careful mathematics depends on careful attribution. Please send the relevant page, the issue you found, and the source or reasoning that helps explain it.</p><h2>Account or privacy questions?</h2><p>Use the same email for account help, data access, correction, or deletion requests. Please keep passwords and sign-in codes out of your message.</p><p>For password recovery, <a href="{% url 'account_reset_password' %}">request a reset link</a>.</p></div></section>
+  </div>
+{% endblock public_content %}

@@ -1,0 +1,9 @@
+{% extends "account/email/base_message.txt" %}
+{% load i18n %}
+{% block content %}{% trans "Use this one-time code to sign in to AsterProof:" %}
+
+{{ code }}
+
+{% trans "This code expires in 3 minutes and can be used once. Enter it only in your open AsterProof browser window." %}
+
+{% trans "If you didn't try to sign in, you can ignore this email. Keep your code private." %}{% endblock content %}

@@ -1,0 +1,1 @@
+<nav class="website-breadcrumbs" aria-label="Breadcrumb"><a href="{% url 'pages:home' %}">Home</a>{% for label, url in breadcrumbs %}<span aria-hidden="true">/</span><a href="{{ url }}">{{ label }}</a>{% endfor %}<span aria-hidden="true">/</span><span aria-current="page">{{ page_title }}</span></nav>

@@ -1,0 +1,31 @@
+{% extends "account/base_entrance.html" %}
+{% load i18n %}
+{% block head_title %}{% trans "Enter sign-in code" %}{% endblock head_title %}
+{% block content %}
+  <header class="auth-login-heading">
+    <p class="auth-login-eyebrow">{% trans "One step to your workspace" %}</p>
+    <h1 id="auth-login-title">{% trans "Check your email." %}</h1>
+    <p>{% trans "Enter the sign-in code for" %} <strong class="auth-login-recipient">{{ email }}</strong>.</p>
+  </header>
+  <form method="post" action="{% url 'account_confirm_login_code' %}" class="auth-login-form">
+    {% csrf_token %}
+    {{ redirect_field }}
+    {% include "account/partials/entrance_fields.html" %}
+    <button type="submit" class="btn btn-primary auth-login-submit">
+      {% trans "Verify and sign in" %}<i class="ti ti-arrow-right" aria-hidden="true"></i>
+    </button>
+  </form>
+  <p class="auth-login-note">{% trans "Codes expire after 3 minutes and can be used once. Keep your code private." %}</p>
+  <div class="auth-login-signup">
+    <form method="post" action="{% url 'account_logout' %}">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{% url 'account_request_login_code' %}">
+      <button type="submit" class="auth-login-text-button">{% trans "Request a new code" %}</button>
+    </form>
+    <form method="post" action="{% url 'account_logout' %}" class="auth-login-alternative-form">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{% url 'account_login' %}">
+      <button type="submit" class="auth-login-text-button">{% trans "Use my password instead" %}</button>
+    </form>
+  </div>
+{% endblock content %}

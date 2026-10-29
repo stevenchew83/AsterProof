@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ page_title }}{% endblock title %}
+{% block extra_css %}<link href="{% static 'css/public-site.min.css' %}" rel="stylesheet">{% endblock extra_css %}
+{% block meta_description %}{% if lecture.summary %}{{ lecture.summary }}{% elif concept.summary %}{{ concept.summary }}{% else %}AsterProof is a library and workspace for olympiad mathematics. Explore ideas, follow rigorous proofs, and build understanding one insight at a time.{% endif %}{% endblock meta_description %}
+{% block extra_meta %}
+  <link rel="canonical" href="{{ canonical_url }}">
+  <meta name="theme-color" content="#f8f7f2">
+  <meta property="og:title" content="{{ page_title }} | AsterProof">
+  <meta property="og:type" content="{% if lecture %}article{% else %}website{% endif %}">
+  <meta property="og:url" content="{{ canonical_url }}">
+  {% if noindex %}<meta name="robots" content="noindex,nofollow">{% endif %}
+{% endblock extra_meta %}
+{% block body_attribute %}class="website-body"{% endblock body_attribute %}
+{% block body %}
+  <div class="website">
+    <a class="website-skip" href="#main-content">Skip to content</a>
+    <header class="website-header">
+      <div class="website-container website-header-inner">
+        <a class="website-wordmark" href="{% url 'pages:home' %}" aria-label="AsterProof home">
+          <img src="{% static 'images/asterproof-logo.svg' %}" alt="AsterProof" width="507" height="100">
+        </a>
+        <nav class="website-nav" aria-label="Main navigation">
+          <a href="{% url 'website:library' %}"{% if active_nav == 'library' %} aria-current="page"{% endif %}>Library</a>
+          <a href="{% url 'website:about' %}"{% if active_nav == 'about' %} aria-current="page"{% endif %}>About</a>
+          <a href="{% url 'website:contact' %}"{% if active_nav == 'contact' %} aria-current="page"{% endif %}>Contact</a>
+        </nav>
+        <a class="website-header-login" href="{% if request.user.is_authenticated %}{% url 'pages:user_activity_dashboard' %}{% else %}{% url 'account_login' %}{% endif %}">
+          {% if request.user.is_authenticated %}Workspace{% else %}Sign in{% endif %}<span aria-hidden="true">↗</span>
+        </a>
+      </div>
+    </header>
+    <main id="main-content" tabindex="-1">{% block public_content %}{% endblock public_content %}</main>
+    {% if not hide_newsletter %}
+      <section class="website-newsletter" aria-labelledby="newsletter-title">
+        <div class="website-container website-newsletter-inner">
+          <div><p class="website-kicker">A note for the curious</p><h2 id="newsletter-title">Keep <em>discovering.</em></h2><p>New lectures, useful ideas, and occasional AsterProof updates.</p></div>
+          <div>{% include "website/partials/newsletter_form.html" %}</div>
+        </div>
+      </section>
+    {% endif %}
+    <footer class="website-footer">
+      <div class="website-container">
+        <div class="website-footer-top">
+          <div><a href="{% url 'pages:home' %}" class="website-wordmark"><img src="{% static 'images/asterproof-logo-light.svg' %}" alt="AsterProof" width="507" height="100"></a><p>A little insight. Infinite possibilities.</p></div>
+          <nav aria-label="Explore"><span>Explore</span><a href="{% url 'website:library' %}">The library</a><a href="{% url 'website:about' %}">About AsterProof</a><a href="{% url 'website:contact' %}">Get in touch</a></nav>
+          <nav aria-label="Your workspace"><span>Your workspace</span><a href="{% url 'account_login' %}">Sign in</a><a href="{% url 'account_signup' %}">Create an account</a><a href="{% url 'account_reset_password' %}">Reset password</a></nav>
+        </div>
+        <div class="website-footer-bottom"><span>© {% now "Y" %} AsterProof · Operated by {{ public_operator_name }}</span><nav aria-label="Legal"><a href="{% url 'website:privacy' %}">Privacy Policy</a><a href="{% url 'website:terms' %}">Terms</a></nav></div>
+      </div>
+    </footer>
+  </div>
+{% endblock body %}
+{% block extra_javascript %}
+  {% block website_javascript %}{% endblock website_javascript %}
+  {% if has_math %}{% include "training/partials/mathjax.html" %}{% endif %}
+{% endblock extra_javascript %}
