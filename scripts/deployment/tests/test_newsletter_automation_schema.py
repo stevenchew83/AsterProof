@@ -21,6 +21,7 @@ from scripts.deployment.protocol import ProtocolError
 from scripts.deployment.protocol import envelope_audience
 from scripts.deployment.release_state import atomic_write_json
 from scripts.deployment.release_state import read_json
+from scripts.deployment.schema_fingerprint import schema_state
 from scripts.deployment.tests.test_concept_schema import END
 from scripts.deployment.tests.test_concept_schema import START
 from scripts.deployment.tests.test_concept_schema import SchemaBackend
@@ -33,6 +34,14 @@ from scripts.deployment.tests.test_protocol import _envelope
 from scripts.deployment.validate_dispatch import validate_schema_input
 
 ROOT = Path(__file__).resolve().parents[3]
+
+
+def test_frozen_automation_delta_matches_real_postgresql():
+    delta = json.loads((Path(__file__).parent / "fixtures/newsletter-automation-schema-delta.json").read_text())
+    assert schema_state(delta)["fingerprint"] == schema.DELTA_SHA256
+    assert {row["table"] for row in delta["tables"]} == schema.TABLES
+    assert {row["table"] for row in delta["columns"]} == schema.TABLES | schema.EXTENDED_TABLES
+    assert not delta["extensions"]
 
 
 def disclosure():
