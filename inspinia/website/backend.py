@@ -4,6 +4,7 @@ from datetime import timedelta
 from functools import wraps
 from urllib.parse import urlencode
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
@@ -11,7 +12,10 @@ from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Count
+from django.db.models import Exists
+from django.db.models import OuterRef
 from django.db.models import Q
+from django.db.models.functions import Lower
 from django.http import HttpResponse
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
@@ -26,11 +30,22 @@ from django.views.decorators.http import require_POST
 
 from inspinia.users.roles import user_has_admin_role
 
+from . import automation
+from . import bounces
 from . import campaigns
+from .forms import NewsletterAutomationForm
+from .forms import NewsletterBounceApplyForm
+from .forms import NewsletterBounceUploadForm
 from .forms import NewsletterCampaignForm
+from .forms import NewsletterHoldClearForm
+from .forms import NewsletterScheduleForm
 from .forms import NewsletterSendForm
+from .models import NewsletterAutomation
+from .models import NewsletterBounceReport
 from .models import NewsletterCampaign
 from .models import NewsletterDelivery
+from .models import NewsletterLectureNotice
+from .models import NewsletterSendingHold
 from .models import NewsletterSubscriber
 from .newsletter import unsubscribe
 
@@ -50,7 +65,14 @@ def newsletter_admin(view):
 
 
 def _page(request, template, *, tab="campaigns", **context):
-    return render(request, "website/backend/" + template + ".html", {"newsletter_tab": tab, **context})
+    policy = NewsletterAutomation.objects.filter(pk=1).first()
+    fresh = bool(
+        policy and policy.worker_started_at and policy.worker_started_at > timezone.now() - timedelta(minutes=3),
+    )
+    return render(request, "website/backend/" + template + ".html", {
+        "newsletter_tab": tab, "background_enabled": settings.NEWSLETTER_BACKGROUND_ENABLED,
+        "worker_policy": policy, "worker_fresh": fresh, **context,
+    })
 
 
 def _paginate(request, rows, params):
@@ -95,7 +117,9 @@ def index(request):
 def subscribers(request):
     query = request.GET.get("q", "").strip()[:100]
     status = request.GET.get("status", "")
-    rows = NewsletterSubscriber.objects.all()
+    rows = NewsletterSubscriber.objects.annotate(is_suppressed=Exists(
+        NewsletterSendingHold.objects.filter(email=Lower(OuterRef("email")), cleared_at__isnull=True),
+    ))
     if query:
         rows = rows.filter(email__icontains=query)
     if status in NewsletterSubscriber.Status.values:
@@ -119,6 +143,8 @@ def subscriber(request, pk):
         return redirect("website:newsletter_subscriber", pk=pk)
     return _page(
         request, "subscriber", tab="subscribers", subscriber=row,
+        sending_holds=NewsletterSendingHold.objects.filter(email=row.email.casefold()).select_related("report"),
+        hold_form=NewsletterHoldClearForm(),
         **_paginate(request, NewsletterDelivery.objects.filter(subscriber=row).select_related("campaign"), {}),
     )
 
@@ -195,6 +221,8 @@ def _runner_response(request, pk, error=None):
             "campaign_url": campaign.get_absolute_url(),
             "step_url": reverse("website:newsletter_send_next", kwargs={"pk": pk}),
             "pause_url": reverse("website:newsletter_pause", kwargs={"pk": pk}),
+            "background": settings.NEWSLETTER_BACKGROUND_ENABLED,
+            "status_url": reverse("website:newsletter_status", kwargs={"pk": pk}),
         }, status=400 if error else 200)
     if error:
         messages.warning(request, error)
@@ -220,7 +248,121 @@ def campaign_send(request, pk):
     return _page(
         request, "send", campaign=campaign, form=form, test_ready=campaigns.has_current_test(campaign),
         recipient_count=campaigns.confirmed_subscribers().count(),
+        schedule_form=NewsletterScheduleForm(initial={"version": campaign.version}),
     )
+
+
+@newsletter_admin
+@require_GET
+def campaign_status(request, pk):
+    campaign = get_object_or_404(NewsletterCampaign, pk=pk)
+    return JsonResponse({
+        "status": campaign.status, "counts": _counts(campaign), "background": settings.NEWSLETTER_BACKGROUND_ENABLED,
+        "campaign_url": campaign.get_absolute_url(),
+        "status_url": reverse("website:newsletter_status", kwargs={"pk": pk}),
+    })
+
+
+@newsletter_admin
+@require_POST
+def campaign_schedule(request, pk):
+    campaign = get_object_or_404(NewsletterCampaign, pk=pk)
+    form = NewsletterScheduleForm(request.POST)
+    if form.is_valid():
+        try:
+            campaigns.schedule_campaign(
+                pk, request.user, form.cleaned_data["version"], form.cleaned_data["scheduled_at"],
+            )
+            messages.success(request, "Scheduled. The confirmed audience will be captured when sending starts.")
+            return redirect(campaign)
+        except ValidationError as error:
+            form.add_error(None, error)
+    return _page(
+        request, "send", campaign=campaign,
+        form=NewsletterSendForm(initial={"version": campaign.version}), schedule_form=form,
+        test_ready=campaigns.has_current_test(campaign), recipient_count=campaigns.confirmed_subscribers().count(),
+    )
+
+
+@newsletter_admin
+@require_POST
+def campaign_cancel_schedule(request, pk):
+    get_object_or_404(NewsletterCampaign, pk=pk)
+    try:
+        campaigns.cancel_schedule(pk)
+        messages.success(request, "Schedule cancelled. Review and test the draft again before sending.")
+    except ValidationError as error:
+        messages.warning(request, " ".join(error.messages))
+    return redirect("website:newsletter_campaign", pk=pk)
+
+
+@newsletter_admin
+@require_http_methods(["GET", "POST"])
+def automation_settings(request):
+    policy = NewsletterAutomation.objects.filter(pk=1).first() or NewsletterAutomation()
+    form = NewsletterAutomationForm(request.POST or None, instance=policy)
+    if request.method == "POST" and form.is_valid():
+        try:
+            automation.configure_lectures(
+                enabled=form.cleaned_data["lecture_enabled"], template=form.cleaned_data["lecture_template"],
+                digest_time=form.cleaned_data["digest_time"],
+            )
+            messages.success(request, "Lecture notification settings saved.")
+            return redirect("website:newsletter_automation")
+        except ValidationError as error:
+            form.add_error(None, error)
+    return _page(
+        request, "automation", tab="automation", form=form, policy=policy,
+        notices=NewsletterLectureNotice.objects.select_related("campaign")[:25],
+    )
+
+
+@newsletter_admin
+@require_http_methods(["GET", "POST"])
+def bounce_import(request):
+    upload = NewsletterBounceUploadForm()
+    review, apply_form = None, None
+    if request.method == "POST":
+        if request.POST.get("action") == "apply":
+            apply_form = NewsletterBounceApplyForm(request.POST)
+            if apply_form.is_valid():
+                try:
+                    report, created = bounces.apply_report(apply_form.cleaned_data["token"], request.user)
+                    messages.success(
+                        request, "Bounce report recorded." if created else "This report was already imported.",
+                    )
+                    return redirect("website:newsletter_bounces")
+                except (ValidationError, NewsletterDelivery.DoesNotExist) as error:
+                    detail = (
+                        " ".join(error.messages) if isinstance(error, ValidationError)
+                        else "The delivery is no longer available."
+                    )
+                    apply_form.add_error(None, detail)
+        else:
+            upload = NewsletterBounceUploadForm(request.POST, request.FILES)
+            if upload.is_valid():
+                try:
+                    review = bounces.preview_report(upload.cleaned_data["report"].read(bounces.MAX_BYTES + 1))
+                    apply_form = NewsletterBounceApplyForm(initial={"token": review["token"]})
+                except ValidationError as error:
+                    upload.add_error("report", error)
+    return _page(
+        request, "bounces", tab="bounces", upload_form=upload, review=review, apply_form=apply_form,
+        **_paginate(request, NewsletterBounceReport.objects.select_related("delivery__campaign", "imported_by"), {}),
+    )
+
+
+@newsletter_admin
+@require_POST
+def clear_sending_hold(request, pk):
+    get_object_or_404(NewsletterSendingHold, pk=pk)
+    form = NewsletterHoldClearForm(request.POST)
+    if form.is_valid():
+        bounces.clear_hold(pk, request.user, form.cleaned_data["reason"])
+        messages.success(request, "Sending hold cleared. Newsletter consent is still required.")
+    else:
+        messages.warning(request, "Confirm and record a reason before restoring sending.")
+    return redirect("website:newsletter_bounces")
 
 
 @transaction.non_atomic_requests
@@ -228,6 +370,8 @@ def campaign_send(request, pk):
 @require_POST
 def campaign_step(request, pk):
     get_object_or_404(NewsletterCampaign, pk=pk)
+    if settings.NEWSLETTER_BACKGROUND_ENABLED:
+        return _runner_response(request, pk, "The background worker handles sending. Refresh to see progress.")
     try:
         campaigns.send_next(request, pk)
     except ValidationError as error:
@@ -288,6 +432,7 @@ def history(request):
     query = request.GET.get("q", "").strip()[:100]
     status = request.GET.get("status", "")
     kind = request.GET.get("kind", "")
+    result = request.GET.get("result", "")
     rows = NewsletterDelivery.objects.select_related("campaign")
     if query:
         rows = rows.filter(Q(recipient_email__icontains=query) | Q(subject__icontains=query))
@@ -295,8 +440,11 @@ def history(request):
         rows = rows.filter(status=status)
     if kind in NewsletterDelivery.Kind.values:
         rows = rows.filter(kind=kind)
+    if result in NewsletterDelivery.Result.values:
+        rows = rows.filter(delivery_result=result)
     return _page(
         request, "history", tab="history", query=query, status=status, kind=kind,
         statuses=NewsletterDelivery.Status.choices, kinds=NewsletterDelivery.Kind.choices,
-        **_paginate(request, rows, {"q": query, "status": status, "kind": kind}),
+        results=NewsletterDelivery.Result.choices, result=result,
+        **_paginate(request, rows, {"q": query, "status": status, "kind": kind, "result": result}),
     )

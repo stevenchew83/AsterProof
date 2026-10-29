@@ -33,6 +33,26 @@
 {% endblock newsletter_heading %}
 {% block newsletter_content %}
   {% include 'website/backend/runner.html' %}
+  {% if campaign.status == 'scheduled' %}
+    <div class="alert alert-info py-2 d-flex flex-wrap justify-content-between gap-2 align-items-center">
+      <span class="fs-sm">Scheduled for <strong>{{ campaign.scheduled_at|date:'d M Y, H:i' }}</strong> Malaysia time. The confirmed audience is captured when sending starts.</span>
+      <form method="post"
+            action="{% url 'website:newsletter_cancel_schedule' pk=campaign.pk %}">
+        {% csrf_token %}
+        <button class="btn btn-outline-secondary btn-sm">Cancel schedule &amp; edit</button>
+      </form>
+    </div>
+  {% endif %}
+  {% if campaign.lecture_template_version %}
+    <p class="fs-xs text-muted">
+      Automatic lecture digest · approved introduction v{{ campaign.lecture_template_version }}
+    </p>
+  {% endif %}
+  {% if campaign.next_attempt_at %}
+    <p class="fs-xs text-muted">
+      Waiting for the sending allowance. The worker will check again after {{ campaign.next_attempt_at|date:'d M Y, H:i' }}. Use Pause to stop automatic continuation.
+    </p>
+  {% endif %}
   {% if inflight %}
     <div class="alert alert-info py-2 fs-sm">
       <p class="mb-2">
@@ -79,7 +99,7 @@
             </form>
           </div>
         </div>
-        {% if campaign.status == 'sending' %}
+        {% if campaign.status == 'sending' and not background_enabled %}
           <noscript>
             <form class="mt-3"
                   method="post"

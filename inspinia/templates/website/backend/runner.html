@@ -1,5 +1,7 @@
 <section class="alert alert-info newsletter-runner"
          data-newsletter-progress
+         {% if background_enabled and campaign.status == 'sending' %}data-newsletter-status-url="{% url 'website:newsletter_status' pk=campaign.pk %}"{% endif %}
+         {% if background_enabled and campaign.status == 'sending' %}data-newsletter-pause-url="{% url 'website:newsletter_pause' pk=campaign.pk %}"{% endif %}
          hidden
          aria-live="polite">
   <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
@@ -16,7 +18,13 @@
        aria-valuenow="0">
     <div class="progress-bar"></div>
   </div>
-  <p class="fs-sm mb-1" data-newsletter-result>Keep this page open while sending.</p>
+  <p class="fs-sm mb-1" data-newsletter-result>
+    {% if background_enabled %}
+      Sending continues in the background.
+    {% else %}
+      Keep this page open while sending.
+    {% endif %}
+  </p>
   <a class="fs-sm"
      href="{{ campaign.get_absolute_url }}"
      data-newsletter-campaign-link>View campaign and history</a>

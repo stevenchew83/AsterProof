@@ -3,6 +3,7 @@
   const panel = document.querySelector("[data-newsletter-progress]");
   let running = false;
   let stopping = false;
+  let background = false;
   let pauseUrl;
   let csrf;
 
@@ -35,6 +36,15 @@
     return data;
   };
 
+  const readStatus = async url => {
+    const response = await fetch(url, {credentials: "same-origin", headers: {Accept: "application/json"}});
+    if (!response.ok) throw new Error("Progress unavailable");
+    return response.json();
+  };
+
+  const progressText = data => data.status === "completed" ? "Campaign completed" :
+    (data.status === "sending" ? (background ? "Sending in the background · You can close this page" : "Sending · Keep this page open") : "Sending paused");
+
   document.querySelectorAll("form[data-newsletter-send]").forEach(form => {
     form.addEventListener("submit", async event => {
       event.preventDefault();
@@ -47,15 +57,16 @@
       show({}, "Preparing to send…");
       try {
         let data = await post(form.action, new FormData(form));
+        background = data.background === true;
         pauseUrl = data.pause_url;
-        show(data, "Sending · Keep this page open");
+        show(data, progressText(data));
         while (data.status === "sending" && !stopping) {
           await new Promise(resolve => setTimeout(resolve, 3200));
           if (stopping) break;
           const body = new FormData();
           body.set("csrfmiddlewaretoken", csrf);
-          data = await post(data.step_url, body);
-          show(data, data.status === "completed" ? "Campaign completed" : "Sending · Keep this page open");
+          data = background ? await readStatus(data.status_url) : await post(data.step_url, body);
+          show(data, progressText(data));
         }
         if (data.status === "completed") {
           running = false;
@@ -64,10 +75,10 @@
         else if (!stopping) show(data, "Sending paused. Review the campaign before continuing.");
       } catch (error) {
         if (panel && !error.newsletterHandled) {
-          show({}, "Sending stopped. Check delivery history before continuing.");
+          show({}, background ? "Progress unavailable. Background sending may continue." : "Sending stopped. Check delivery history before continuing.");
         }
         if (panel) {
-          panel.querySelector("[data-newsletter-result]").textContent = "No request will be retried automatically. Check delivery history before continuing.";
+          panel.querySelector("[data-newsletter-result]").textContent = background ? "Refresh the campaign to see its current status." : "No request will be retried automatically. Check delivery history before continuing.";
         }
       } finally {
         running = false;
@@ -86,13 +97,36 @@
       const data = await post(pauseUrl, body);
       show(data, "Paused. Any email already in progress can finish.");
     } catch (_error) {
-      show({}, "Sending stopped here. Check the campaign before continuing.");
+      show({}, background ? "Pause could not be confirmed. Background sending may continue; refresh the campaign." : "Sending stopped here. Check the campaign before continuing.");
     }
   });
 
   window.addEventListener("beforeunload", event => {
-    if (running && !stopping) { event.preventDefault(); event.returnValue = ""; }
+    if (running && !stopping && !background) { event.preventDefault(); event.returnValue = ""; }
   });
+  if (panel?.dataset.newsletterStatusUrl) {
+    background = true;
+    running = true;
+    pauseUrl = panel.dataset.newsletterPauseUrl;
+    csrf = document.querySelector("[name=csrfmiddlewaretoken]")?.value;
+    (async () => {
+      try {
+        let data = await readStatus(panel.dataset.newsletterStatusUrl);
+        show(data, progressText(data));
+        while (data.status === "sending" && !stopping) {
+          await new Promise(resolve => setTimeout(resolve, 5000));
+          if (stopping) break;
+          data = await readStatus(data.status_url);
+          show(data, progressText(data));
+        }
+      } catch (_error) {
+        show({}, "Progress unavailable. Background sending may continue; refresh the campaign.");
+      } finally {
+        running = false;
+        panel.querySelector("[data-newsletter-stop]").hidden = true;
+      }
+    })();
+  }
   document.querySelectorAll("[data-preview-size]").forEach(button => {
     button.addEventListener("click", () => {
       document.querySelector("[data-preview-stage]")?.classList.toggle("is-mobile", button.dataset.previewSize === "mobile");

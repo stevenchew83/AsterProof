@@ -1,0 +1,705 @@
+{
+  "columns": [
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "website_newsletterautomation",
+      "type": "smallint"
+    },
+    {
+      "collation": null,
+      "column": "lecture_enabled",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "website_newsletterautomation",
+      "type": "boolean"
+    },
+    {
+      "collation": null,
+      "column": "template_version",
+      "default": null,
+      "nullable": true,
+      "position": 3,
+      "schema": "public",
+      "table": "website_newsletterautomation",
+      "type": "integer"
+    },
+    {
+      "collation": null,
+      "column": "digest_time",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "website_newsletterautomation",
+      "type": "time without time zone"
+    },
+    {
+      "collation": null,
+      "column": "enabled_at",
+      "default": null,
+      "nullable": true,
+      "position": 5,
+      "schema": "public",
+      "table": "website_newsletterautomation",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "next_digest_at",
+      "default": null,
+      "nullable": true,
+      "position": 6,
+      "schema": "public",
+      "table": "website_newsletterautomation",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "lease_token",
+      "default": null,
+      "nullable": true,
+      "position": 7,
+      "schema": "public",
+      "table": "website_newsletterautomation",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "lease_until",
+      "default": null,
+      "nullable": true,
+      "position": 8,
+      "schema": "public",
+      "table": "website_newsletterautomation",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "worker_started_at",
+      "default": null,
+      "nullable": true,
+      "position": 9,
+      "schema": "public",
+      "table": "website_newsletterautomation",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "worker_finished_at",
+      "default": null,
+      "nullable": true,
+      "position": 10,
+      "schema": "public",
+      "table": "website_newsletterautomation",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": "default",
+      "column": "worker_error",
+      "default": null,
+      "nullable": false,
+      "position": 11,
+      "schema": "public",
+      "table": "website_newsletterautomation",
+      "type": "character varying(32)"
+    },
+    {
+      "collation": "default",
+      "column": "lecture_error",
+      "default": null,
+      "nullable": false,
+      "position": 12,
+      "schema": "public",
+      "table": "website_newsletterautomation",
+      "type": "character varying(32)"
+    },
+    {
+      "collation": null,
+      "column": "lecture_template_id",
+      "default": null,
+      "nullable": true,
+      "position": 13,
+      "schema": "public",
+      "table": "website_newsletterautomation",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "website_newsletterbouncereport",
+      "type": "uuid"
+    },
+    {
+      "collation": "default",
+      "column": "fingerprint",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "website_newsletterbouncereport",
+      "type": "character varying(64)"
+    },
+    {
+      "collation": "default",
+      "column": "source_sha256",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "website_newsletterbouncereport",
+      "type": "character varying(64)"
+    },
+    {
+      "collation": "default",
+      "column": "action",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "website_newsletterbouncereport",
+      "type": "character varying(12)"
+    },
+    {
+      "collation": "default",
+      "column": "status_code",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "website_newsletterbouncereport",
+      "type": "character varying(12)"
+    },
+    {
+      "collation": null,
+      "column": "imported_at",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "website_newsletterbouncereport",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "delivery_id",
+      "default": null,
+      "nullable": false,
+      "position": 7,
+      "schema": "public",
+      "table": "website_newsletterbouncereport",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "imported_by_id",
+      "default": null,
+      "nullable": true,
+      "position": 8,
+      "schema": "public",
+      "table": "website_newsletterbouncereport",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "lecture_template_id",
+      "default": null,
+      "nullable": true,
+      "position": 13,
+      "schema": "public",
+      "table": "website_newslettercampaign",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "lecture_template_version",
+      "default": null,
+      "nullable": true,
+      "position": 14,
+      "schema": "public",
+      "table": "website_newslettercampaign",
+      "type": "integer"
+    },
+    {
+      "collation": null,
+      "column": "next_attempt_at",
+      "default": null,
+      "nullable": true,
+      "position": 15,
+      "schema": "public",
+      "table": "website_newslettercampaign",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": "default",
+      "column": "pause_reason",
+      "default": null,
+      "nullable": false,
+      "position": 16,
+      "schema": "public",
+      "table": "website_newslettercampaign",
+      "type": "character varying(24)"
+    },
+    {
+      "collation": null,
+      "column": "scheduled_at",
+      "default": null,
+      "nullable": true,
+      "position": 17,
+      "schema": "public",
+      "table": "website_newslettercampaign",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": "default",
+      "column": "delivery_result",
+      "default": null,
+      "nullable": false,
+      "position": 14,
+      "schema": "public",
+      "table": "website_newsletterdelivery",
+      "type": "character varying(16)"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "website_newsletterlecturenotice",
+      "type": "uuid"
+    },
+    {
+      "collation": "default",
+      "column": "title",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "website_newsletterlecturenotice",
+      "type": "character varying(180)"
+    },
+    {
+      "collation": "default",
+      "column": "public_url",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "website_newsletterlecturenotice",
+      "type": "character varying(1000)"
+    },
+    {
+      "collation": "default",
+      "column": "status",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "website_newsletterlecturenotice",
+      "type": "character varying(16)"
+    },
+    {
+      "collation": null,
+      "column": "observed_at",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "website_newsletterlecturenotice",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "campaign_id",
+      "default": null,
+      "nullable": true,
+      "position": 6,
+      "schema": "public",
+      "table": "website_newsletterlecturenotice",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "lecture_id",
+      "default": null,
+      "nullable": true,
+      "position": 7,
+      "schema": "public",
+      "table": "website_newsletterlecturenotice",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "website_newslettersendinghold",
+      "type": "uuid"
+    },
+    {
+      "collation": "default",
+      "column": "email",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "website_newslettersendinghold",
+      "type": "character varying(254)"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "website_newslettersendinghold",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "cleared_at",
+      "default": null,
+      "nullable": true,
+      "position": 4,
+      "schema": "public",
+      "table": "website_newslettersendinghold",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": "default",
+      "column": "clear_reason",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "website_newslettersendinghold",
+      "type": "character varying(180)"
+    },
+    {
+      "collation": null,
+      "column": "cleared_by_id",
+      "default": null,
+      "nullable": true,
+      "position": 6,
+      "schema": "public",
+      "table": "website_newslettersendinghold",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "report_id",
+      "default": null,
+      "nullable": false,
+      "position": 7,
+      "schema": "public",
+      "table": "website_newslettersendinghold",
+      "type": "uuid"
+    }
+  ],
+  "constraints": [
+    {
+      "definition": "CHECK (id = 1)",
+      "name": "website_newsletter_single_policy",
+      "schema": "public",
+      "table": "website_newsletterautomation",
+      "type": "c"
+    },
+    {
+      "definition": "FOREIGN KEY (lecture_template_id) REFERENCES website_newslettercampaign(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "website_newsletterau_lecture_template_id_2462f124_fk_website_n",
+      "schema": "public",
+      "table": "website_newsletterautomation",
+      "type": "f"
+    },
+    {
+      "definition": "CHECK (id >= 0)",
+      "name": "website_newsletterautomation_id_check",
+      "schema": "public",
+      "table": "website_newsletterautomation",
+      "type": "c"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "website_newsletterautomation_pkey",
+      "schema": "public",
+      "table": "website_newsletterautomation",
+      "type": "p"
+    },
+    {
+      "definition": "CHECK (template_version >= 0)",
+      "name": "website_newsletterautomation_template_version_check",
+      "schema": "public",
+      "table": "website_newsletterautomation",
+      "type": "c"
+    },
+    {
+      "definition": "FOREIGN KEY (delivery_id) REFERENCES website_newsletterdelivery(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "website_newsletterbo_delivery_id_2277f0a8_fk_website_n",
+      "schema": "public",
+      "table": "website_newsletterbouncereport",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (imported_by_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "website_newsletterbo_imported_by_id_bb74407c_fk_users_use",
+      "schema": "public",
+      "table": "website_newsletterbouncereport",
+      "type": "f"
+    },
+    {
+      "definition": "UNIQUE (fingerprint)",
+      "name": "website_newsletterbouncereport_fingerprint_key",
+      "schema": "public",
+      "table": "website_newsletterbouncereport",
+      "type": "u"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "website_newsletterbouncereport_pkey",
+      "schema": "public",
+      "table": "website_newsletterbouncereport",
+      "type": "p"
+    },
+    {
+      "definition": "FOREIGN KEY (lecture_template_id) REFERENCES website_newslettercampaign(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "website_newsletterca_lecture_template_id_10e5fe83_fk_website_n",
+      "schema": "public",
+      "table": "website_newslettercampaign",
+      "type": "f"
+    },
+    {
+      "definition": "CHECK (lecture_template_version >= 0)",
+      "name": "website_newslettercampaign_lecture_template_version_check",
+      "schema": "public",
+      "table": "website_newslettercampaign",
+      "type": "c"
+    },
+    {
+      "definition": "FOREIGN KEY (campaign_id) REFERENCES website_newslettercampaign(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "website_newsletterle_campaign_id_73952769_fk_website_n",
+      "schema": "public",
+      "table": "website_newsletterlecturenotice",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (lecture_id) REFERENCES website_librarylecture(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "website_newsletterle_lecture_id_8b64f9cd_fk_website_l",
+      "schema": "public",
+      "table": "website_newsletterlecturenotice",
+      "type": "f"
+    },
+    {
+      "definition": "UNIQUE (lecture_id)",
+      "name": "website_newsletterlecturenotice_lecture_id_key",
+      "schema": "public",
+      "table": "website_newsletterlecturenotice",
+      "type": "u"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "website_newsletterlecturenotice_pkey",
+      "schema": "public",
+      "table": "website_newsletterlecturenotice",
+      "type": "p"
+    },
+    {
+      "definition": "FOREIGN KEY (cleared_by_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "website_newsletterse_cleared_by_id_80e6e06d_fk_users_use",
+      "schema": "public",
+      "table": "website_newslettersendinghold",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (report_id) REFERENCES website_newsletterbouncereport(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "website_newsletterse_report_id_72fb285b_fk_website_n",
+      "schema": "public",
+      "table": "website_newslettersendinghold",
+      "type": "f"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "website_newslettersendinghold_pkey",
+      "schema": "public",
+      "table": "website_newslettersendinghold",
+      "type": "p"
+    }
+  ],
+  "extensions": [],
+  "indexes": [
+    {
+      "definition": "CREATE INDEX website_newsletterautomation_lecture_template_id_2462f124 ON public.website_newsletterautomation USING btree (lecture_template_id)",
+      "name": "website_newsletterautomation_lecture_template_id_2462f124",
+      "schema": "public",
+      "table": "website_newsletterautomation"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX website_newsletterautomation_pkey ON public.website_newsletterautomation USING btree (id)",
+      "name": "website_newsletterautomation_pkey",
+      "schema": "public",
+      "table": "website_newsletterautomation"
+    },
+    {
+      "definition": "CREATE INDEX website_newsletterbouncereport_delivery_id_2277f0a8 ON public.website_newsletterbouncereport USING btree (delivery_id)",
+      "name": "website_newsletterbouncereport_delivery_id_2277f0a8",
+      "schema": "public",
+      "table": "website_newsletterbouncereport"
+    },
+    {
+      "definition": "CREATE INDEX website_newsletterbouncereport_fingerprint_c20b6370_like ON public.website_newsletterbouncereport USING btree (fingerprint varchar_pattern_ops)",
+      "name": "website_newsletterbouncereport_fingerprint_c20b6370_like",
+      "schema": "public",
+      "table": "website_newsletterbouncereport"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX website_newsletterbouncereport_fingerprint_key ON public.website_newsletterbouncereport USING btree (fingerprint)",
+      "name": "website_newsletterbouncereport_fingerprint_key",
+      "schema": "public",
+      "table": "website_newsletterbouncereport"
+    },
+    {
+      "definition": "CREATE INDEX website_newsletterbouncereport_imported_by_id_bb74407c ON public.website_newsletterbouncereport USING btree (imported_by_id)",
+      "name": "website_newsletterbouncereport_imported_by_id_bb74407c",
+      "schema": "public",
+      "table": "website_newsletterbouncereport"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX website_newsletterbouncereport_pkey ON public.website_newsletterbouncereport USING btree (id)",
+      "name": "website_newsletterbouncereport_pkey",
+      "schema": "public",
+      "table": "website_newsletterbouncereport"
+    },
+    {
+      "definition": "CREATE INDEX website_newslettercampaign_lecture_template_id_10e5fe83 ON public.website_newslettercampaign USING btree (lecture_template_id)",
+      "name": "website_newslettercampaign_lecture_template_id_10e5fe83",
+      "schema": "public",
+      "table": "website_newslettercampaign"
+    },
+    {
+      "definition": "CREATE INDEX website_newslettercampaign_next_attempt_at_3eaaa275 ON public.website_newslettercampaign USING btree (next_attempt_at)",
+      "name": "website_newslettercampaign_next_attempt_at_3eaaa275",
+      "schema": "public",
+      "table": "website_newslettercampaign"
+    },
+    {
+      "definition": "CREATE INDEX website_newslettercampaign_scheduled_at_1b2f4a6b ON public.website_newslettercampaign USING btree (scheduled_at)",
+      "name": "website_newslettercampaign_scheduled_at_1b2f4a6b",
+      "schema": "public",
+      "table": "website_newslettercampaign"
+    },
+    {
+      "definition": "CREATE INDEX website_newsletterdelivery_delivery_result_82511d37 ON public.website_newsletterdelivery USING btree (delivery_result)",
+      "name": "website_newsletterdelivery_delivery_result_82511d37",
+      "schema": "public",
+      "table": "website_newsletterdelivery"
+    },
+    {
+      "definition": "CREATE INDEX website_newsletterdelivery_delivery_result_82511d37_like ON public.website_newsletterdelivery USING btree (delivery_result varchar_pattern_ops)",
+      "name": "website_newsletterdelivery_delivery_result_82511d37_like",
+      "schema": "public",
+      "table": "website_newsletterdelivery"
+    },
+    {
+      "definition": "CREATE INDEX website_newsletterlecturenotice_campaign_id_73952769 ON public.website_newsletterlecturenotice USING btree (campaign_id)",
+      "name": "website_newsletterlecturenotice_campaign_id_73952769",
+      "schema": "public",
+      "table": "website_newsletterlecturenotice"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX website_newsletterlecturenotice_lecture_id_key ON public.website_newsletterlecturenotice USING btree (lecture_id)",
+      "name": "website_newsletterlecturenotice_lecture_id_key",
+      "schema": "public",
+      "table": "website_newsletterlecturenotice"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX website_newsletterlecturenotice_pkey ON public.website_newsletterlecturenotice USING btree (id)",
+      "name": "website_newsletterlecturenotice_pkey",
+      "schema": "public",
+      "table": "website_newsletterlecturenotice"
+    },
+    {
+      "definition": "CREATE INDEX website_newsletterlecturenotice_status_ee4fb906 ON public.website_newsletterlecturenotice USING btree (status)",
+      "name": "website_newsletterlecturenotice_status_ee4fb906",
+      "schema": "public",
+      "table": "website_newsletterlecturenotice"
+    },
+    {
+      "definition": "CREATE INDEX website_newsletterlecturenotice_status_ee4fb906_like ON public.website_newsletterlecturenotice USING btree (status varchar_pattern_ops)",
+      "name": "website_newsletterlecturenotice_status_ee4fb906_like",
+      "schema": "public",
+      "table": "website_newsletterlecturenotice"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX website_newsletter_one_hold ON public.website_newslettersendinghold USING btree (email) WHERE (cleared_at IS NULL)",
+      "name": "website_newsletter_one_hold",
+      "schema": "public",
+      "table": "website_newslettersendinghold"
+    },
+    {
+      "definition": "CREATE INDEX website_newslettersendinghold_cleared_by_id_80e6e06d ON public.website_newslettersendinghold USING btree (cleared_by_id)",
+      "name": "website_newslettersendinghold_cleared_by_id_80e6e06d",
+      "schema": "public",
+      "table": "website_newslettersendinghold"
+    },
+    {
+      "definition": "CREATE INDEX website_newslettersendinghold_email_720c4a4e ON public.website_newslettersendinghold USING btree (email)",
+      "name": "website_newslettersendinghold_email_720c4a4e",
+      "schema": "public",
+      "table": "website_newslettersendinghold"
+    },
+    {
+      "definition": "CREATE INDEX website_newslettersendinghold_email_720c4a4e_like ON public.website_newslettersendinghold USING btree (email varchar_pattern_ops)",
+      "name": "website_newslettersendinghold_email_720c4a4e_like",
+      "schema": "public",
+      "table": "website_newslettersendinghold"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX website_newslettersendinghold_pkey ON public.website_newslettersendinghold USING btree (id)",
+      "name": "website_newslettersendinghold_pkey",
+      "schema": "public",
+      "table": "website_newslettersendinghold"
+    },
+    {
+      "definition": "CREATE INDEX website_newslettersendinghold_report_id_72fb285b ON public.website_newslettersendinghold USING btree (report_id)",
+      "name": "website_newslettersendinghold_report_id_72fb285b",
+      "schema": "public",
+      "table": "website_newslettersendinghold"
+    }
+  ],
+  "tables": [
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "website_newsletterautomation"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "website_newsletterbouncereport"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "website_newsletterlecturenotice"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "website_newslettersendinghold"
+    }
+  ]
+}

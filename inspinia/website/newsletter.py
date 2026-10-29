@@ -14,6 +14,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.crypto import salted_hmac
 
+from .models import NewsletterSendingHold
 from .models import NewsletterSubscriber
 
 logger = logging.getLogger(__name__)
@@ -73,6 +74,8 @@ def subscriber_from_token(token, *, unsubscribe=False, for_update=False):
 
 
 def request_subscription(request, email):
+    if NewsletterSendingHold.objects.filter(email=email.casefold(), cleared_at__isnull=True).exists():
+        return
     if not can_request_confirmation(request, email):
         return
     with transaction.atomic():

@@ -1,0 +1,126 @@
+{% extends 'website/backend/base.html' %}
+
+{% block newsletter_content %}
+  <div class="row g-3">
+    <section class="col-lg-6">
+      <div class="card">
+        <div class="card-header border-0 pb-0">
+          <h2 class="header-title mb-1">Lecture notifications</h2>
+          <p class="fs-xs text-muted mb-0">A daily digest of new public lectures, with your tested introduction.</p>
+        </div>
+        <div class="card-body pt-3">
+          {% if not background_enabled %}
+            <div class="alert alert-warning py-2 fs-sm">
+              Background sending is not configured. No automatic emails will be sent.
+            </div>
+          {% endif %}
+          <form method="post">
+            {% csrf_token %}{{ form.non_field_errors }}
+            <label class="form-check d-flex gap-2 mb-3">
+              {{ form.lecture_enabled }}<span class="fs-sm">{{ form.lecture_enabled.label }}</span>
+            </label>
+            <div class="row g-2 mb-3">
+              {% for field in form.visible_fields %}
+                {% if field.name != 'lecture_enabled' and field.name != 'confirm' %}
+                  <div class="{% if field.name == 'digest_time' %}col-md-4{% else %}col-md-8{% endif %}">
+                    <label class="form-label fs-xs" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}{{ field.errors }}
+                  </div>
+                {% endif %}
+              {% endfor %}
+            </div>
+            <p class="fs-xs text-muted">Choose a tested draft. Up to 10 new lecture links are added to each daily digest.</p>
+            <label class="form-check d-flex gap-2 mb-3">
+              {{ form.confirm }}<span class="fs-sm">{{ form.confirm.label }}</span>
+            </label>
+            {{ form.confirm.errors }}
+            <button class="btn btn-primary btn-sm">Save automation</button>
+          </form>
+          <details class="mt-3 fs-xs text-muted">
+            <summary>Sending rules</summary>
+            <p class="mb-0 mt-2">
+              Existing public lectures are excluded when you enable this. Each lecture is announced once, only while its full area/concept/lecture path is public. Disabling excludes the pending backlog and pauses active lecture campaigns; an email already in progress may finish. Changing the approved introduction pauses digests until you test and approve it again.
+            </p>
+          </details>
+        </div>
+      </div>
+    </section>
+    <section class="col-lg-6">
+      <div class="card">
+        <div class="card-header border-0 pb-0">
+          <h2 class="header-title mb-1">Worker status</h2>
+        </div>
+        <div class="card-body pt-3">
+          <dl class="row fs-sm mb-0">
+            <dt class="col-5">Background sending</dt>
+            <dd class="col-7">
+              {{ background_enabled|yesno:'Enabled,Not configured' }}
+            </dd>
+            <dt class="col-5">Last started</dt>
+            <dd class="col-7">
+              {{ policy.worker_started_at|date:'d M Y, H:i:s'|default:'Not run yet' }}
+            </dd>
+            <dt class="col-5">Last completed</dt>
+            <dd class="col-7">
+              {{ policy.worker_finished_at|date:'d M Y, H:i:s'|default:'—' }}
+            </dd>
+            <dt class="col-5">Next lecture digest</dt>
+            <dd class="col-7">
+              {{ policy.next_digest_at|date:'d M Y, H:i'|default:'Disabled' }}
+            </dd>
+          </dl>
+          {% if policy.lecture_error %}
+            <div class="alert alert-warning fs-sm py-2 mt-2 mb-0">
+              The introduction changed or its latest test failed. Test and approve the introduction again.
+            </div>
+          {% endif %}
+          {% if policy.worker_error %}
+            <div class="alert alert-warning fs-sm py-2 mt-2 mb-0">
+              The last worker run failed. Check the service and sending configuration before continuing.
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+  </div>
+  <section class="card mt-3">
+    <div class="card-header border-0 py-3">
+      <h2 class="header-title mb-0">Lecture notification history</h2>
+    </div>
+    <div class="app-table-region table-responsive"
+         role="region"
+         aria-label="Lecture notification history"
+         tabindex="0">
+      <table class="table table-hover app-table-compact mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Lecture</th>
+            <th>Status</th>
+            <th>Digest</th>
+            <th>Observed</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for notice in notices %}
+            <tr>
+              <td>{{ notice.title }}</td>
+              <td>{{ notice.get_status_display }}</td>
+              <td>
+                {% if notice.campaign %}
+                  <a href="{{ notice.campaign.get_absolute_url }}">{{ notice.campaign.subject }}</a>
+                {% else %}
+                  —
+                {% endif %}
+              </td>
+              <td>{{ notice.observed_at|date:'d M Y, H:i' }}</td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="4" class="text-muted py-3">No lecture notifications yet.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+{% endblock newsletter_content %}

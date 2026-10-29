@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import time
 
 from django.conf import settings
 from django.core.validators import URLValidator
@@ -140,6 +141,7 @@ class NewsletterSubscriber(models.Model):
 class NewsletterCampaign(models.Model):
     class Status(models.TextChoices):
         DRAFT = "draft", "Draft"
+        SCHEDULED = "scheduled", "Scheduled"
         SENDING = "sending", "Sending"
         PAUSED = "paused", "Paused"
         COMPLETED = "completed", "Completed"
@@ -158,6 +160,13 @@ class NewsletterCampaign(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     started_at = models.DateTimeField(null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)
+    scheduled_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    next_attempt_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    pause_reason = models.CharField(max_length=24, blank=True)
+    lecture_template = models.ForeignKey(
+        "self", null=True, blank=True, on_delete=models.SET_NULL, related_name="lecture_digests",
+    )
+    lecture_template_version = models.PositiveIntegerField(null=True, blank=True)
 
     class Meta:
         ordering = ["-created_at", "-pk"]
@@ -173,6 +182,7 @@ class NewsletterCampaign(models.Model):
     def badge_class(self):
         return {
             self.Status.DRAFT: "text-bg-secondary",
+            self.Status.SCHEDULED: "text-bg-info",
             self.Status.SENDING: "text-bg-primary",
             self.Status.PAUSED: "text-bg-warning",
             self.Status.COMPLETED: "text-bg-success",
@@ -183,6 +193,11 @@ class NewsletterCampaign(models.Model):
 
 
 class NewsletterDelivery(models.Model):
+    class Result(models.TextChoices):
+        UNCONFIRMED = "unconfirmed", "Delivery unconfirmed"
+        DELAYED = "delayed", "Delay reported"
+        BOUNCED = "bounced", "Bounce reported"
+
     class Kind(models.TextChoices):
         TEST = "test", "Test"
         CAMPAIGN = "campaign", "Campaign"
@@ -208,6 +223,9 @@ class NewsletterDelivery(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     attempted_at = models.DateTimeField(null=True, blank=True)
     finished_at = models.DateTimeField(null=True, blank=True)
+    delivery_result = models.CharField(
+        max_length=16, choices=Result.choices, default=Result.UNCONFIRMED, db_index=True,
+    )
 
     class Meta:
         ordering = ["-created_at", "-pk"]
@@ -234,3 +252,90 @@ class NewsletterDelivery(models.Model):
             self.Status.UNKNOWN: "text-bg-warning",
             self.Status.SKIPPED: "text-bg-secondary",
         }[self.status]
+
+
+class NewsletterAutomation(models.Model):
+    """One queue lease and an explicitly enabled, tested lecture digest policy."""
+
+    id = models.PositiveSmallIntegerField(primary_key=True, default=1, editable=False)
+    lecture_enabled = models.BooleanField(default=False)
+    lecture_template = models.ForeignKey(
+        NewsletterCampaign, null=True, blank=True, on_delete=models.SET_NULL, related_name="automation_policies",
+    )
+    template_version = models.PositiveIntegerField(null=True, blank=True)
+    digest_time = models.TimeField(default=time(9))
+    enabled_at = models.DateTimeField(null=True, blank=True)
+    next_digest_at = models.DateTimeField(null=True, blank=True)
+    lease_token = models.UUIDField(null=True, blank=True, editable=False)
+    lease_until = models.DateTimeField(null=True, blank=True, editable=False)
+    worker_started_at = models.DateTimeField(null=True, blank=True, editable=False)
+    worker_finished_at = models.DateTimeField(null=True, blank=True, editable=False)
+    worker_error = models.CharField(max_length=32, blank=True, editable=False)
+    lecture_error = models.CharField(max_length=32, blank=True, editable=False)
+
+    class Meta:
+        constraints = [models.CheckConstraint(condition=models.Q(pk=1), name="website_newsletter_single_policy")]
+
+    def __str__(self):
+        return "Newsletter automation"
+
+
+class NewsletterLectureNotice(models.Model):
+    class Status(models.TextChoices):
+        BASELINE = "baseline", "Existing when enabled"
+        PENDING = "pending", "Awaiting digest"
+        INCLUDED = "included", "Included in digest"
+        EXCLUDED = "excluded", "Not sent"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    lecture = models.OneToOneField(
+        LibraryLecture, null=True, blank=True, on_delete=models.SET_NULL, related_name="newsletter_notice",
+    )
+    title = models.CharField(max_length=180)
+    public_url = models.CharField(max_length=1000)
+    status = models.CharField(max_length=16, choices=Status.choices, db_index=True)
+    observed_at = models.DateTimeField(auto_now_add=True)
+    campaign = models.ForeignKey(
+        NewsletterCampaign, null=True, blank=True, on_delete=models.SET_NULL, related_name="lecture_notices",
+    )
+
+    class Meta:
+        ordering = ["observed_at", "pk"]
+
+    def __str__(self):
+        return self.title
+
+
+class NewsletterBounceReport(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    delivery = models.ForeignKey(NewsletterDelivery, on_delete=models.PROTECT, related_name="bounce_reports")
+    fingerprint = models.CharField(max_length=64, unique=True)
+    source_sha256 = models.CharField(max_length=64)
+    action = models.CharField(max_length=12)
+    status_code = models.CharField(max_length=12)
+    imported_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL)
+    imported_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-imported_at", "-pk"]
+
+    def __str__(self):
+        return f"{self.delivery_id}: {self.action} {self.status_code}"
+
+
+class NewsletterSendingHold(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    email = models.EmailField(db_index=True)
+    report = models.ForeignKey(NewsletterBounceReport, on_delete=models.PROTECT, related_name="sending_holds")
+    created_at = models.DateTimeField(auto_now_add=True)
+    cleared_at = models.DateTimeField(null=True, blank=True)
+    cleared_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
+    clear_reason = models.CharField(max_length=180, blank=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(
+            fields=["email"], condition=models.Q(cleared_at__isnull=True), name="website_newsletter_one_hold",
+        )]
+
+    def __str__(self):
+        return self.email

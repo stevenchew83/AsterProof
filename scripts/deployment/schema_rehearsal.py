@@ -89,24 +89,33 @@ def _snapshot(connection):
     return result
 
 
-def main():
-    args = _arguments()
-    if (
-        json.loads(os.environ.get("SCHEMA_DISCLOSURE") or "{}").get("migration")
-        == "solutions.0004_solution_pdf_display_options"
-    ):
+def _approved_rehearsal(disclosed_migration):
+    # Every dispatch target is a literal import from the approved source.
+    if disclosed_migration == "website.0003_newsletter_automation":
+        from scripts.deployment.newsletter_automation_rehearsal import run
+
+        return run
+    if disclosed_migration == "solutions.0004_solution_pdf_display_options":
         from scripts.deployment.solution_pdf_schema_rehearsal import run
 
-        return run(args)
-    if json.loads(os.environ.get("SCHEMA_DISCLOSURE") or "{}").get("migration") == "website.0002_newsletter_campaigns":
+        return run
+    if disclosed_migration == "website.0002_newsletter_campaigns":
         from scripts.deployment.newsletter_schema_rehearsal import run
 
-        return run(args)
-    # Dispatch remains a fixed allowlist; the new rehearsal cannot choose a module.
-    if json.loads(os.environ.get("SCHEMA_DISCLOSURE") or "{}").get("migration") == "website.0001_initial":
+        return run
+    if disclosed_migration == "website.0001_initial":
         from scripts.deployment.website_schema_rehearsal import run
 
-        return run(args)
+        return run
+    return None
+
+
+def main():
+    args = _arguments()
+    migration = json.loads(os.environ.get("SCHEMA_DISCLOSURE") or "{}").get("migration")
+    rehearsal = _approved_rehearsal(migration)
+    if rehearsal is not None:
+        return rehearsal(args)
     os.environ["DJANGO_SETTINGS_MODULE"] = "config.settings.test"
     os.environ["DJANGO_READ_DOT_ENV_FILE"] = "false"
     from django.conf import settings
