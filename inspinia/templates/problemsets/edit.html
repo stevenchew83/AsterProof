@@ -191,13 +191,19 @@
     border-radius: var(--bs-border-radius);
     display: grid;
     gap: .5rem;
-    grid-template-columns: minmax(12rem, 1fr) minmax(14rem, 1.25fr) minmax(14rem, 1.25fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr) minmax(0, 1.25fr);
     padding: .625rem;
   }
 
   .problem-list-draft-notes-panel-compact {
     margin: .15rem 0;
+    position: sticky;
+    left: 0;
+    width: var(--problem-list-notes-width, 100%);
+    max-width: 100%;
   }
+
+  .problem-list-draft-notes-panel > div { min-width: 0; }
 
   .problem-list-order-handle {
     color: var(--bs-secondary-color);
@@ -1439,6 +1445,18 @@
   }
 
   initDataTables();
+  if (draftTableNode) {
+    var draftScrollFrame = draftTableNode.parentElement;
+    var syncNotesWidth = function () {
+      draftTableNode.style.setProperty("--problem-list-notes-width", Math.max(0, draftScrollFrame.clientWidth - 24) + "px");
+    };
+    syncNotesWidth();
+    if (typeof ResizeObserver !== "undefined") {
+      new ResizeObserver(syncNotesWidth).observe(draftScrollFrame);
+    } else {
+      window.addEventListener("resize", syncNotesWidth);
+    }
+  }
   renderDraftRows();
   renderActiveFilters();
 })();
