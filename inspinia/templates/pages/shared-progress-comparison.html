@@ -2,7 +2,10 @@
 
 {% block title %}Compare Alex &amp; Ben{% endblock title %}
 
-{% block extra_css %}{% include 'pages/partials/shared-progress-styles.html' %}{% endblock extra_css %}
+{% block extra_css %}
+{% include 'pages/partials/shared-progress-styles.html' %}
+{% if shared_progress_section == 'completions' %}{% include 'pages/partials/comparison-completion-styles.html' %}{% endif %}
+{% endblock extra_css %}
 
 {% block page_content %}
 <div class="container-fluid learner-progress">
@@ -10,46 +13,85 @@
 
   {% if shared_progress_section == 'completions' %}
   {% include 'pages/partials/comparison-completion-filters.html' %}
-  <div class="card">
-    <div class="card-header border-0 pb-0">
-      <h4 class="header-title mb-1">Problem completions · {{ comparison_date_range.label }}</h4>
-      <p class="text-muted fs-sm mb-0">Recorded problems match the individual progress totals. Exact duplicate statements count once per learner. Undated records remain included and are shown separately.</p>
+  <section class="card cp-summary" aria-labelledby="comparison-summary-title">
+    <div class="card-header cp-section-heading">
+      <h2 class="header-title mb-0" id="comparison-summary-title">Problem completions</h2>
+      <span class="text-body-secondary fs-xs">{{ comparison_date_range.label }}</span>
     </div>
-    <div class="card-body pt-2">
-      {% if not comparison_completion_stats.alex.solved_total and not comparison_completion_stats.ben.solved_total %}
-      <div class="alert alert-info">Neither learner has completion records matching these filters.</div>
+    {% if not comparison_completion_stats.alex.solved_total and not comparison_completion_stats.ben.solved_total %}
+    <div class="alert alert-info mx-3 mt-2 mb-0">Neither learner has completion records matching these filters.</div>
+    {% endif %}
+    <div class="cp-metrics">
+      {% for row in comparison_summary_rows %}
+      <section class="cp-metric" aria-label="{{ row.label }}">
+        <h3 class="lp-metric-label mb-1">{{ row.label }}</h3>
+        <dl class="cp-metric-pair mb-0">
+          <div><dt class="cp-learner cp-alex"><span class="cp-dot" aria-hidden="true"></span>Alex</dt><dd class="cp-metric-value mb-0">{{ row.alex|default_if_none:'—' }}</dd></div>
+          <div><dt class="cp-learner cp-ben"><span class="cp-dot" aria-hidden="true"></span>Ben</dt><dd class="cp-metric-value mb-0">{{ row.ben|default_if_none:'—' }}</dd></div>
+        </dl>
+        <p class="lp-metric-note mb-0">{% if row.key == 'active_day_total' %}Dated records only{% else %}Includes undated history{% endif %}</p>
+      </section>
+      {% endfor %}
+    </div>
+    <div class="cp-scope">
+      <div class="cp-scope-heading"><i class="ti ti-calendar-question" aria-hidden="true"></i><strong>Undated history</strong><span>Alex <strong>{{ comparison_completion_stats.alex.missing_date_total }}</strong> · Ben <strong>{{ comparison_completion_stats.ben.missing_date_total }}</strong></span></div>
+      <p class="mb-0">Recorded totals, MOHS and topic bars include undated records. Active days and streaks use dated records within the selected period.</p>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="comparison-topics-title">
+    <div class="card-header cp-section-heading">
+      <div>
+        <h2 class="header-title mb-1" id="comparison-topics-title">Recorded problems by topic</h2>
+        <p class="text-body-secondary fs-xs mb-0" id="comparison-topic-scale" role="status">Count of recorded problems · shared scale</p>
+      </div>
+      {% if comparison_topic_rows %}
+      <div class="btn-group btn-group-sm cp-topic-toggle" role="group" aria-label="Topic chart display" id="comparison-topic-toggle" hidden>
+        <button type="button" class="btn btn-outline-secondary active" aria-pressed="true" aria-controls="comparison-topic-bars" data-topic-mode="count">Count</button>
+        <button type="button" class="btn btn-outline-secondary" aria-pressed="false" aria-controls="comparison-topic-bars" data-topic-mode="share">Share %</button>
+      </div>
       {% endif %}
+    </div>
+    <div class="card-body pt-0">
+      <ul class="cp-topics list-unstyled mb-0" id="comparison-topic-bars" aria-describedby="comparison-topic-scale">
+        {% for row in comparison_topic_rows %}
+        <li class="cp-topic">
+          <h3 class="fs-sm fw-semibold mb-0">{{ row.label }}</h3>
+          <div class="cp-topic-pair">
+            {% include 'pages/partials/comparison-topic-bar.html' with learner='Alex' slug='alex' count=row.alex share=row.alex_share width=row.alex_width only %}
+            {% include 'pages/partials/comparison-topic-bar.html' with learner='Ben' slug='ben' count=row.ben share=row.ben_share width=row.ben_width only %}
+          </div>
+        </li>
+        {% empty %}
+        <li class="lp-empty fs-sm">No topics match these filters.</li>
+        {% endfor %}
+      </ul>
+      <p class="text-body-secondary fs-xs mb-0 mt-2">Share % is each topic’s share of that learner’s recorded problems, including undated history.</p>
+    </div>
+  </section>
+
+  <details class="card lp-analysis cp-details" id="comparison-details">
+    <summary class="card-header lp-analysis-toggle">
+      <span class="header-title">More details <span class="text-body-secondary fs-xs fw-normal ms-1">Streaks, record quality &amp; counting rules</span></span>
+      <i class="ti ti-chevron-down lp-analysis-chevron" aria-hidden="true"></i>
+    </summary>
+    <div class="card-body pt-2">
       <div class="table-responsive">
-        <table class="table table-sm table-hover align-middle mb-0">
-          <caption class="visually-hidden">Alex and Ben completion metrics with the same filters</caption>
+        <table class="table table-sm align-middle mb-0">
+          <caption class="visually-hidden">Alex and Ben additional completion metrics with the same filters</caption>
           <thead><tr><th scope="col" class="w-50">Metric</th><th scope="col" class="w-25">Alex</th><th scope="col" class="w-25">Ben</th></tr></thead>
           <tbody>
-            {% for row in comparison_metric_rows %}
-            <tr><th scope="row">{{ row.label }}</th><td class="font-monospace">{{ row.alex|default_if_none:'—' }}</td><td class="font-monospace">{{ row.ben|default_if_none:'—' }}</td></tr>
+            <tr><th scope="row">Dated records</th><td>{{ comparison_completion_stats.alex.known_date_total }}</td><td>{{ comparison_completion_stats.ben.known_date_total }}</td></tr>
+            {% for row in comparison_detail_rows %}
+            <tr><th scope="row">{{ row.label }}</th><td>{{ row.alex|default_if_none:'—' }}</td><td>{{ row.ben|default_if_none:'—' }}</td></tr>
             {% endfor %}
           </tbody>
         </table>
       </div>
+      <p class="text-body-secondary fs-xs mb-1 mt-3">Exact duplicate statements count once per learner. The same period and filters apply to both learners; undated records remain included when they match the other filters.</p>
+      <p class="text-body-secondary fs-xs mb-0">Average MOHS uses records with a known difficulty. Streaks use dated records matching these filters; the current streak is evaluated relative to today.</p>
     </div>
-  </div>
-  <div class="card">
-    <div class="card-header border-0 pb-0"><h4 class="header-title mb-0">Recorded problems by topic</h4></div>
-    <div class="card-body pt-2">
-      <div class="table-responsive">
-        <table class="table table-sm table-hover align-middle mb-0">
-          <caption class="visually-hidden">Alex and Ben completion counts by topic</caption>
-          <thead><tr><th scope="col" class="w-50">Topic</th><th scope="col" class="w-25">Alex</th><th scope="col" class="w-25">Ben</th></tr></thead>
-          <tbody>
-            {% for row in comparison_topic_rows %}
-            <tr><th scope="row">{{ row.label }}</th><td class="font-monospace">{{ row.alex }}</td><td class="font-monospace">{{ row.ben }}</td></tr>
-            {% empty %}
-            <tr><td colspan="3" class="text-muted py-3">No topics match these filters.</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
+  </details>
   {% elif shared_progress_section == 'techniques' %}
   <div class="card">
     <div class="card-header border-0 pb-0">
@@ -109,3 +151,45 @@
   {% endif %}
 </div>
 {% endblock page_content %}
+
+{% block extra_javascript %}
+{{ block.super }}
+{% if shared_progress_section == 'completions' %}
+<script>
+(function () {
+  var period = document.getElementById('compare-range');
+  var dates = document.getElementById('compare-custom-dates');
+  function showCustomDates() { dates.hidden = period.value !== 'custom'; }
+  period.addEventListener('change', showCustomDates);
+  showCustomDates();
+
+  var toggle = document.getElementById('comparison-topic-toggle');
+  if (!toggle) return;
+  var buttons = toggle.querySelectorAll('[data-topic-mode]');
+  var chart = document.getElementById('comparison-topic-bars');
+  var scale = document.getElementById('comparison-topic-scale');
+  toggle.hidden = false;
+  buttons.forEach(function (button) {
+    button.addEventListener('click', function () {
+      var shareMode = button.dataset.topicMode === 'share';
+      buttons.forEach(function (option) {
+        var selected = option === button;
+        option.classList.toggle('active', selected);
+        option.setAttribute('aria-pressed', String(selected));
+      });
+      chart.querySelectorAll('[data-topic-bar]').forEach(function (row) {
+        var value = shareMode ? row.dataset.shareLabel : row.dataset.count;
+        row.querySelector('.cp-bar-fill').style.width = (shareMode ? row.dataset.share : row.dataset.width) + '%';
+        var readout = row.querySelector('.cp-topic-value');
+        readout.textContent = value;
+        readout.setAttribute('aria-label', row.dataset.learner + ': ' + value);
+      });
+      scale.textContent = shareMode
+        ? 'Share of each learner’s recorded problems · 0–100% scale'
+        : 'Count of recorded problems · shared scale';
+    });
+  });
+})();
+</script>
+{% endif %}
+{% endblock extra_javascript %}
