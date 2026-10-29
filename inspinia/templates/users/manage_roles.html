@@ -10,7 +10,7 @@
 
 {% block page_content %}
 
-<div class="container-fluid">
+<div class="container-fluid app-table-page">
 
   {% include 'partials/page-title.html' with title='User access' subtitle='Admin' page_icon='ti-shield-check' %}
 
@@ -90,8 +90,8 @@
               </div>
             </div>
           </div>
-          <div class="table-responsive">
-            <table id="user-access-table" class="table table-hover table-striped align-middle mb-0 w-100">
+          <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
+            <table data-paging-type="simple" id="user-access-table" class="app-table-compact table table-hover table-striped align-middle mb-0 w-100">
               <thead class="table-light">
                 <tr>
                   <th scope="col">{% translate "User" %}</th>
@@ -105,13 +105,13 @@
                 {% for u in users %}
                 <tr>
                   <td>
-                    <div class="fw-semibold text-nowrap">{{ u.email }}</div>
-                    <div class="text-muted fs-xs">
+                    <span class="fw-semibold text-nowrap">{{ u.email }}</span>
+                    <span class="text-muted fs-xs app-table-meta">
                       {% if u.name %}{{ u.name }}{% else %}{% translate "No name set" %}{% endif %}
-                    </div>
+                    </span>
                   </td>
                   <td data-search="{% if u.is_superuser or u.role == 'admin' %}{% translate 'Auto-approved' %}{% elif u.is_approved %}{% translate 'Approved' %}{% else %}{% translate 'Pending' %}{% endif %}{% if u.is_superuser %} {% translate 'Superuser' %}{% endif %}">
-                    <div class="d-flex flex-wrap gap-1">
+                    <div class="app-table-inline d-inline-flex flex-nowrap gap-1">
                       {% if u.is_superuser or u.role == 'admin' %}
                       <span class="badge text-bg-success">{% translate "Auto-approved" %}</span>
                       {% elif u.is_approved %}
@@ -152,8 +152,8 @@
                     </div>
                   </td>
                   <td data-order="{{ u.date_joined|date:'c' }}">
-                    <div class="text-nowrap">{{ u.date_joined|date:"M j, Y" }}</div>
-                    <div class="text-muted fs-xs text-nowrap">{{ u.date_joined|time:"H:i" }}</div>
+                    <span class="text-nowrap">{{ u.date_joined|date:"M j, Y" }}</span>
+                    <span class="text-muted fs-xs text-nowrap app-table-meta">{{ u.date_joined|time:"H:i" }}</span>
                   </td>
                 </tr>
                 {% empty %}

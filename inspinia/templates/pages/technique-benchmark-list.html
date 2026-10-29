@@ -306,7 +306,7 @@
 {% endblock extra_css %}
 
 {% block page_content %}
-<div class="container-fluid benchmark-page">
+<div class="container-fluid app-table-page benchmark-page">
   <header class="page-title-head app-page-header justify-content-between">
     {% url 'pages:user_activity_dashboard' as benchmark_home_url %}
     {% include 'partials/page-header-intro.html' with title='Benchmark Map' subtitle='Library' page_icon='ti-map' back_url=benchmark_home_url back_label='AsterProof' only %}
@@ -408,7 +408,7 @@
         </nav>
         {% endif %}
       </div>
-      <form method="get" class="benchmark-toolbar" role="search" aria-label="Search benchmark catalog">
+      <form method="get" class="app-table-filters benchmark-toolbar" role="search" aria-label="Search benchmark catalog">
         <input type="hidden" name="target_profile" value="{{ technique_benchmark_target_profile }}">
         {% for name, value in benchmark_scope_filters.items %}
         <input type="hidden" name="{{ name }}" value="{{ value }}">
@@ -440,7 +440,7 @@
       <div id="technique-benchmarks-table-alert" class="alert alert-warning d-none" role="alert"></div>
       {% if technique_benchmark_rows %}
       <div class="benchmark-map-table-shell" tabindex="0" role="region" aria-label="Benchmark catalog table, scroll horizontally for more columns">
-        <table id="technique-benchmarks-table" class="table table-sm table-hover align-middle mb-0">
+        <table data-paging-type="simple" id="technique-benchmarks-table" class="app-table-compact table table-sm table-hover align-middle mb-0">
           <thead>
             <tr>
               {% for column in technique_benchmark_table_columns %}
@@ -458,7 +458,7 @@
               <td>
                 <div class="benchmark-technique-title">
                   <span class="fw-semibold">{{ row.label }}</span>
-                  {% if row.concept_id %}<span class="text-muted fs-xs d-block">Roles: {{ row.roles|join:", " }}</span>{% endif %}
+                  {% if row.concept_id %}<span class="text-muted fs-xs app-table-meta">Roles: {{ row.roles|join:", " }}</span>{% endif %}
                   {% if row.profile_conflicts %}<span class="badge bg-warning-subtle text-warning">Profiles need reconciliation</span>{% endif %}
                 </div>
               </td>
@@ -649,7 +649,7 @@
       '<div class="benchmark-detail-panel">',
         '<p class="text-muted fs-xs mb-2">Benchmark reference <code>' + escapeHtml(row.row_key) + '</code></p>',
         row.reference_resolution ? '<p class="fs-xs">' + escapeHtml(row.reference_resolution) + '</p>' : '',
-        profiles ? '<p class="fw-semibold mb-2">One concept; original role profiles retained</p><div class="table-responsive"><table class="table table-sm table-bordered"><thead><tr><th>Role profile</th><th>Training</th><th>Target</th><th>Value</th><th>Difficulty</th><th>MOHS</th><th>Rationale</th><th>Pitfalls</th><th>Sequence</th></tr></thead><tbody>' + profiles + '</tbody></table></div>' : '',
+        profiles ? '<p class="fw-semibold mb-2">One concept; original role profiles retained</p><div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results"><table class="app-table-compact table table-sm table-bordered"><thead><tr><th>Role profile</th><th>Training</th><th>Target</th><th>Value</th><th>Difficulty</th><th>MOHS</th><th>Rationale</th><th>Pitfalls</th><th>Sequence</th></tr></thead><tbody>' + profiles + '</tbody></table></div>' : '',
         row.profile_conflicts && row.profile_conflicts.length ? '<p class="text-warning fs-xs">Ratings differ across these profiles. No combined rating or chart point has been assigned. The reference components below belong to ' + escapeHtml(row.row_key) + '.</p>' : '',
         '<div class="row g-3">',
           '<div class="col-lg-4">',

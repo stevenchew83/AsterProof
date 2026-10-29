@@ -3,7 +3,7 @@
 {% block title %}Level settings{% endblock title %}
 
 {% block page_content %}
-<div class="container-fluid">
+<div class="container-fluid app-table-page">
   {% include 'partials/page-title.html' with title='Level settings' subtitle='Admin' page_icon='ti-stairs' %}
   {% include 'training/partials/messages.html' %}
   <div class="card mt-0">
@@ -11,8 +11,8 @@
       <form method="post">
         {% csrf_token %}
         {{ formset.management_form }}
-        <div class="table-responsive">
-          <table class="table align-middle">
+        <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
+          <table class="app-table-compact table align-middle">
             <thead><tr><th>Level</th><th>Name</th><th>Minimum points</th></tr></thead>
             <tbody>
               {% for form in formset %}

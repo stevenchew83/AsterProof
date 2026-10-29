@@ -18,7 +18,7 @@
 {% endblock extra_css %}
 
 {% block page_content %}
-<div class="container-fluid">
+<div class="container-fluid app-table-page">
   {% include 'partials/page-title.html' with title='Contest existence audit' subtitle='Workspace tool' page_icon='ti-list-check' %}
 
   {% if messages %}
@@ -145,8 +145,8 @@
           </div>
         </div>
         <div class="card-body p-0">
-          <div class="table-responsive">
-            <table id="contest-existence-audit-results-table" class="table table-striped table-bordered align-middle mb-0">
+          <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
+            <table id="contest-existence-audit-results-table" class="app-table-compact table table-striped table-bordered align-middle mb-0">
               <thead class="table-light">
                 <tr>
                   <th scope="col">Line</th>

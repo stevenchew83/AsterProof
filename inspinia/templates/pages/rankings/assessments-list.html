@@ -3,12 +3,12 @@
 {% block title %}Assessments{% endblock title %}
 
 {% block page_content %}
-<div class="container-fluid">
+<div class="container-fluid app-table-page">
   {% include 'partials/page-title.html' with title='Assessments' subtitle='Rankings' page_icon='ti-clipboard-check' %}
 
   <div class="card mt-0">
     <div class="card-body">
-      <form method="get" class="row g-2 align-items-end">
+      <form method="get" class="app-table-filters row g-2 align-items-end">
         <div class="col-sm-6 col-md-2">
           <label class="form-label mb-1" for="assessment-season">Season</label>
           <input id="assessment-season" type="number" name="season" value="{{ request.GET.season|default:'' }}" class="form-control" placeholder="Season">
@@ -43,8 +43,8 @@
       <p class="text-muted fs-xs mb-0">Showing {{ assessments|length }} row(s) (max 500).</p>
     </div>
     <div class="card-body pt-2">
-      <div class="table-responsive">
-        <table class="table table-striped table-bordered align-middle mb-0">
+      <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
+        <table class="app-table-compact table table-striped table-bordered align-middle mb-0">
           <thead>
             <tr>
               <th>Code</th>

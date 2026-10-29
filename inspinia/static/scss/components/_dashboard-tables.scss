@@ -1,0 +1,235 @@
+// Compact dashboard lists. Opt in on tables; statements and expanded content keep wrapping.
+.content-page,
+.app-table-page,
+.app-table-page .card,
+.app-table-page .card-body,
+.app-table-page .card-body .flex-grow-1,
+.app-table-page [class*="col-"] {
+    min-width: 0;
+}
+
+.app-table-region {
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+
+    &:focus-visible {
+        outline: 2px solid var(--ins-primary);
+        outline-offset: -2px;
+    }
+
+}
+
+.app-table-page .dt-container:has(.app-table-compact),
+.app-table-region .dt-container {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    font-size: .8125rem;
+
+    > .row {
+        margin-inline: 0;
+        row-gap: .5rem;
+
+        > * { min-width: 0; }
+    }
+
+    .dt-layout-table > .col-12 {
+        display: block !important; // Bootstrap applies d-md-flex here; the table needs a block scroll frame.
+        overflow-x: auto;
+        overflow-y: hidden;
+        overscroll-behavior-x: contain;
+        padding-inline: 0;
+    }
+
+    .dt-scroll,
+    .dt-scroll-body,
+    .dt-scroll-head { max-width: 100%; }
+
+    > .row:not(.dt-layout-table) {
+        align-items: center;
+        margin-block: .5rem;
+    }
+
+    .dt-search,
+    .dt-length {
+        display: flex;
+        align-items: center;
+        gap: .375rem;
+        margin: 0;
+
+        label { margin: 0; }
+        input, select { margin: 0; }
+    }
+
+    .dt-search input { width: min(16rem, 100%); min-width: 0; }
+    .dt-length select { width: auto; }
+    .dt-info { white-space: normal; color: var(--ins-secondary-color); font-size: .75rem; }
+    .pagination { margin: 0; flex-wrap: wrap; gap: .25rem; }
+    .page-link { border-radius: var(--ins-border-radius-sm); font-size: .75rem; padding: .375rem .625rem; }
+}
+
+// Specificity intentionally beats legacy per-page table padding, not narrative/detail content.
+.app-table-page table.app-table-compact.table,
+table.app-table-compact {
+    margin-bottom: 0;
+    font-size: .8125rem;
+    line-height: 1.4;
+    font-variant-numeric: tabular-nums;
+
+    > thead > tr > th {
+        padding: .5rem .75rem;
+        white-space: nowrap;
+        background: var(--ins-tertiary-bg);
+        color: var(--ins-secondary-color);
+        font-size: .6875rem;
+        font-weight: 600;
+        vertical-align: middle;
+    }
+
+    > tbody > tr > td,
+    > tbody > tr > th {
+        padding: .5rem .75rem;
+        vertical-align: middle;
+        white-space: nowrap;
+        border-color: var(--ins-border-color);
+    }
+
+    // Empty states, nested evidence tables and child rows remain readable.
+    > tbody > tr > td[colspan] {
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    .app-table-meta {
+        display: inline;
+        margin-block: 0 !important;
+        margin-inline-start: .5rem;
+        font-size: .75rem;
+        color: var(--ins-secondary-color);
+    }
+
+    .app-table-actions {
+        align-items: center;
+        gap: .375rem !important;
+        white-space: nowrap;
+        flex-wrap: nowrap;
+    }
+
+    .btn { white-space: nowrap; min-height: 1.625rem; line-height: 1.4; font-size: .75rem; padding: .25rem .5rem; }
+    .form-control, .form-select { font-size: .8125rem; }
+    .app-table-text { display: inline-block; max-width: 24rem; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
+    .contest-name { max-width: none; min-width: 0; white-space: nowrap; }
+    .contest-row-meta { display: inline; }
+    .cb-problem-chips { flex-wrap: nowrap; }
+}
+
+.app-table-details {
+    display: inline-block;
+    vertical-align: middle;
+
+    > summary {
+        display: list-item;
+        cursor: pointer;
+        white-space: nowrap;
+        font-size: .75rem;
+    }
+
+    &[open] { min-width: 16rem; max-width: 30rem; }
+    .app-table-details-body {
+        white-space: normal;
+        overflow-wrap: anywhere;
+        padding: .625rem;
+        margin-top: .5rem;
+        background: var(--ins-tertiary-bg);
+        border-radius: var(--ins-border-radius);
+    }
+}
+
+.app-table-filters {
+    align-items: end;
+    gap: .5rem;
+
+    .form-label { font-size: .75rem; margin-bottom: .25rem; }
+    .form-control, .form-select { min-width: 0; min-height: 2rem; font-size: .8125rem; padding-block: .25rem; }
+    .btn { min-height: 2rem; font-size: .8125rem; padding: .25rem .625rem; white-space: nowrap; }
+
+    &.row {
+        --ins-gutter-x: 0;
+        margin-inline: 0;
+
+        > [class*="col-"] { flex: 1 1 9rem; width: auto; min-width: 0; max-width: 100%; }
+    }
+}
+
+.app-table-pagination,
+.app-table-pager {
+    font-size: .75rem;
+    flex-wrap: wrap;
+    gap: .25rem;
+
+    .page-link, .btn { padding: .375rem .625rem; font-size: .75rem; white-space: nowrap; }
+}
+
+@media (max-width: 575.98px) {
+    .app-table-page .dt-container:has(.app-table-compact) {
+        > .row:not(.dt-layout-table) > * { padding-inline: 0; }
+        .dt-search { width: 100%; }
+        .dt-search input { flex: 1; width: 100%; }
+        .dt-paging { width: 100%; }
+        .pagination { justify-content: flex-start !important; }
+    }
+
+    .app-table-filters.row > [class*="col-"]:has(input[type="search"], input[name="q"]) { flex-basis: 100%; }
+    .app-table-pager .btn-group { flex-wrap: wrap; row-gap: .25rem; }
+}
+
+// Inline summaries for specialized list renderers; their expanded editors stay unchanged.
+.app-table-compact {
+    .problem-list-sequence-problem-cell,
+    .problem-list-meta-badges,
+    .problem-list-tag-badges,
+    .problem-list-draft-note-summary,
+    .benchmark-mohs-range,
+    .completion-progress-difficulty-display,
+    .completion-progress-difficulty-editor {
+        display: inline-flex;
+        align-items: center;
+        flex-wrap: nowrap;
+        gap: .5rem;
+        white-space: nowrap;
+    }
+
+    .problem-list-sequence-problem-cell > .mt-1,
+    .benchmark-mohs-range .mb-1 { margin-block: 0 !important; }
+    .benchmark-mohs-track { width: 4rem; }
+    .benchmark-technique-title > span { display: inline; }
+    .problem-list-tag-badges .badge { white-space: nowrap; }
+    .problem-list-picker-note-text { display: block; white-space: nowrap; text-overflow: ellipsis; }
+    .completion-progress-difficulty-display > .text-muted,
+    .completion-progress-difficulty-editor > .text-muted { margin-block: 0 !important; }
+}
+
+.app-table-compact > tbody > tr > td {
+    > div.fw-semibold,
+    > div.text-muted { display: inline; margin-block: 0 !important; }
+    > div.text-muted { margin-inline-start: .5rem; }
+    > .app-table-inline { align-items: center; margin-block: 0 !important; vertical-align: middle; }
+}
+
+.app-table-page {
+    .min-w-0 { min-width: 0; }
+    .card-header > * { min-width: 0; max-width: 100%; }
+    .app-table-toolbar { display: flex; flex-wrap: wrap; max-width: 100%; gap: .25rem; }
+    .app-table-toolbar > .btn { flex: 0 1 auto; border-radius: var(--ins-border-radius-sm) !important; }
+}
+
+.app-table-compact .cp-coverage {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+
+    .mb-2 { margin-bottom: 0 !important; }
+    .cp-track { width: 4rem; }
+}

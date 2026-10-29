@@ -12,7 +12,7 @@
 
 {% block page_content %}
 
-<div class="container-fluid">
+<div class="container-fluid app-table-page">
 
   {% include 'partials/page-title.html' with title='Import / export problems' subtitle='Data' page_icon='ti-file-import' %}
 
@@ -161,13 +161,13 @@
           </p>
 
           <h6 class="text-uppercase fs-12 text-muted mb-2">Problems (DB upsert rows)</h6>
-          <div class="table-responsive mb-4">
-            <table id="preview-problems-table" class="table table-striped table-bordered align-middle w-100"></table>
+          <div class="app-table-region table-responsive mb-4" tabindex="0" role="region" aria-label="Scrollable results">
+            <table data-paging-type="simple" id="preview-problems-table" class="app-table-compact table table-striped table-bordered align-middle w-100"></table>
           </div>
 
           <h6 class="text-uppercase fs-12 text-muted mb-2">Topic techniques (parsed tags → technique + domains)</h6>
-          <div class="table-responsive">
-            <table id="preview-techniques-table" class="table table-striped table-bordered align-middle w-100"></table>
+          <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
+            <table data-paging-type="simple" id="preview-techniques-table" class="app-table-compact table table-striped table-bordered align-middle w-100"></table>
           </div>
           {% endif %}
         </div>

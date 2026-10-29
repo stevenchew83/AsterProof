@@ -3,7 +3,7 @@
 {% block title %}Benchmark import{% endblock title %}
 
 {% block page_content %}
-<div class="container-fluid">
+<div class="container-fluid app-table-page">
   {% url 'pages:technique_benchmark_list' as header_benchmark_url %}
   <header class="page-title-head app-page-header">
     {% include 'partials/page-header-intro.html' with title='Benchmark import' page_icon='ti-file-import' back_url=header_benchmark_url back_label='Benchmark Map' only %}
@@ -76,8 +76,8 @@
       </div>
     </div>
     <div class="card-body pt-2">
-      <div class="table-responsive">
-        <table class="table table-sm table-hover align-middle mb-0">
+      <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
+        <table class="app-table-compact table table-sm table-hover align-middle mb-0">
           <thead>
             <tr>
               <th>Status</th>
@@ -105,14 +105,14 @@
               <td>{{ row.label|default:'-' }}</td>
               <td>
                 {% if row.details %}
-                <div class="d-flex flex-wrap gap-1 mb-1">
+                <div class="app-table-inline d-inline-flex flex-nowrap gap-1 mb-1">
                   {% if row.details.typical_mohs_band %}<span class="badge bg-info-subtle text-info">MOHS {{ row.details.typical_mohs_band }}</span>{% endif %}
                   {% if row.details.importance_score %}<span class="badge bg-success-subtle text-success">Importance {{ row.details.importance_score }}</span>{% endif %}
                   {% if row.details.difficulty_score %}<span class="badge bg-warning-subtle text-warning">Difficulty {{ row.details.difficulty_score }}</span>{% endif %}
                 </div>
-                <div class="text-muted fs-xs">{{ row.details.importance_inputs }}</div>
-                <div class="text-muted fs-xs">{{ row.details.difficulty_inputs }}</div>
-                <div class="text-muted fs-xs">{{ row.details.profile_weights }}</div>
+                <span class="text-muted fs-xs app-table-meta">{{ row.details.importance_inputs }}</span>
+                <span class="text-muted fs-xs app-table-meta">{{ row.details.difficulty_inputs }}</span>
+                <span class="text-muted fs-xs app-table-meta">{{ row.details.profile_weights }}</span>
                 {% if row.details.rationale %}
                 <div class="fs-xs mt-1">{{ row.details.rationale }}</div>
                 {% endif %}
@@ -150,8 +150,8 @@
       <p class="text-muted fs-xs mb-0">Restore reverses benchmark field updates and imported alias suggestions.</p>
     </div>
     <div class="card-body pt-2">
-      <div class="table-responsive">
-        <table class="table table-sm align-middle mb-0">
+      <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
+        <table class="app-table-compact table table-sm align-middle mb-0">
           <thead>
             <tr>
               <th>Batch</th>

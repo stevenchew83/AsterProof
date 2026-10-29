@@ -4,7 +4,7 @@
 {% block title %}Student detail{% endblock title %}
 
 {% block page_content %}
-<div class="container-fluid">
+<div class="container-fluid app-table-page">
   {% include 'partials/page-title.html' with title=student.full_name subtitle='Student detail' page_icon='ti-user' %}
 
   <div class="row g-3 mt-0">
@@ -44,8 +44,8 @@
           <h4 class="header-title mb-1">Result history</h4>
         </div>
         <div class="card-body pt-2">
-          <div class="table-responsive">
-            <table class="table table-sm table-striped mb-0">
+          <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
+            <table class="app-table-compact table table-sm table-striped mb-0">
               <thead>
                 <tr>
                   <th>Assessment</th>
@@ -84,8 +84,8 @@
           <h4 class="header-title mb-1">Selection statuses</h4>
         </div>
         <div class="card-body pt-2">
-          <div class="table-responsive">
-            <table class="table table-sm table-striped mb-0">
+          <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
+            <table class="app-table-compact table table-sm table-striped mb-0">
               <thead>
                 <tr>
                   <th>Season</th>
@@ -116,8 +116,8 @@
           <h4 class="header-title mb-1">Import / audit summary</h4>
         </div>
         <div class="card-body pt-2">
-          <div class="table-responsive">
-            <table class="table table-sm table-striped mb-0">
+          <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
+            <table class="app-table-compact table table-sm table-striped mb-0">
               <thead>
                 <tr>
                   <th>Source File</th>
