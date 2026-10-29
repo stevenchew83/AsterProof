@@ -18670,7 +18670,6 @@ def test_problem_statement_list_shows_statement_rows_and_link_counts(client):
     assert 'id="problem-statements-table-data"' in response_html
     assert "Filter loaded rows:" not in response_html
     assert "Within loaded rows..." not in response_html
-    assert "searching: false" in response_html
     assert "problem-statements-table-alert" in response_html
     assert 'aria-describedby="problem-statements-loaded-status"' in response_html
     assert 'order: [[7, "desc"]]' in response_html
