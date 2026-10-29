@@ -66,7 +66,7 @@
 {% endblock extra_css %}
 
 {% block page_content %}
-<div class="container-fluid contest-workspace">
+<div class="container-fluid app-table-page contest-workspace">
   {% url 'pages:archive_hub' as header_archive_url %}
   <header class="page-title-head app-page-header app-page-header--with-stats">
     {% include 'partials/page-header-intro.html' with title='Contest analytics' page_icon='ti-chart-bar' back_url=header_archive_url back_label='Archive' only %}
@@ -127,8 +127,8 @@
       <span class="ms-auto" title="Statements with MOHS, a topic, and at least one concept">Metadata = MOHS + topic + concepts</span>
     </div>
     <p class="d-md-none text-muted fs-xs px-3 mb-2">Swipe the table to see more columns <i class="ti ti-arrow-right" aria-hidden="true"></i></p>
-    <div class="contest-table-wrap contest-dashboard-table-tools" role="region" aria-label="Contest directory table" tabindex="0">
-      <table id="contest-analytics-table" class="table table-hover align-middle w-100"><caption class="visually-hidden">Contest difficulty, archive size, and metadata coverage. Select a contest for detailed analytics.</caption></table>
+    <div class="app-table-region contest-table-wrap contest-dashboard-table-tools" role="region" aria-label="Contest directory table" tabindex="0">
+      <table data-paging-type="simple" id="contest-analytics-table" class="app-table-compact table table-hover align-middle w-100"><caption class="visually-hidden">Contest difficulty, archive size, and metadata coverage. Select a contest for detailed analytics.</caption></table>
     </div>
   </section>
 
@@ -515,9 +515,9 @@
           if (type === "filter") return [data, row.year_span_label].concat(row.quality_badges || []).join(" ");
           if (type !== "display") return data;
           return '<a href="' + escapeHtml(row.detail_url) + '" class="contest-name fw-semibold text-decoration-none">' +
-            escapeHtml(data) + '</a><div class="contest-row-meta">' + escapeHtml(row.year_span_label) +
+            escapeHtml(data) + '</a><span class="contest-row-meta app-table-meta">' + escapeHtml(row.year_span_label) +
             ' · ' + Number(row.active_years || 0) + ' active years' +
-            (row.is_low_sample ? ' · <span title="Fewer than {{ contest_analytics_low_sample_threshold }} statements">Low sample</span>' : '') + '</div>';
+            (row.is_low_sample ? ' · <span title="Fewer than {{ contest_analytics_low_sample_threshold }} statements">Low sample</span>' : '') + '</span>';
         }
       },
       { data: "problem_count", title: "Statements", className: "text-end text-nowrap", render: DataTable.render.number(",", ".", 0) },

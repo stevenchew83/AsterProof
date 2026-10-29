@@ -3,7 +3,7 @@
 {% block title %}Ranking formulas{% endblock title %}
 
 {% block page_content %}
-<div class="container-fluid">
+<div class="container-fluid app-table-page">
   {% include 'partials/page-title.html' with title='Ranking formulas' subtitle='Rankings' page_icon='ti-math-function' %}
 
   <div class="row g-3 mt-0">
@@ -26,8 +26,8 @@
             <p class="mb-1"><strong>Missing-score policy:</strong> {{ formula.get_missing_score_policy_display }}</p>
             <p class="mb-0"><strong>Notes:</strong> {{ formula.notes|default:'-' }}</p>
           </div>
-          <div class="table-responsive">
-            <table class="table table-sm table-striped mb-0">
+          <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
+            <table class="app-table-compact table table-sm table-striped mb-0">
               <thead>
                 <tr>
                   <th>#</th>

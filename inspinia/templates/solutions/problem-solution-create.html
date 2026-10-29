@@ -45,7 +45,7 @@
 {% endblock extra_css %}
 
 {% block page_content %}
-<div class="container-fluid">
+<div class="container-fluid app-table-page">
 
   {% include 'partials/page-title.html' with title='Create solution' subtitle='Choose problem statement' page_icon='ti-pencil-plus' %}
 
@@ -129,7 +129,7 @@
       </div>
       {% endif %}
       {% if statement_problem_rows %}
-      <table id="solution-problem-picker-table" class="table table-striped table-bordered align-middle w-100">
+      <table data-paging-type="simple" id="solution-problem-picker-table" class="app-table-compact table table-striped table-bordered align-middle w-100">
         <thead>
           <tr>
             <th>Problem</th>
@@ -142,19 +142,19 @@
           {% for row in statement_problem_rows %}
           <tr>
             <td>
-              <div class="fw-semibold">{{ row.problem_label }}</div>
-              <div class="text-muted fs-12">{{ row.problem_topic }} · MOHS {{ row.problem_mohs }}</div>
+              <span class="fw-semibold">{{ row.problem_label }}</span>
+              <span class="text-muted fs-12 app-table-meta">{{ row.problem_topic }} · MOHS {{ row.problem_mohs }}</span>
             </td>
             <td>
-              <div class="fw-semibold">{{ row.statement_label }}</div>
-              <div class="text-muted fs-12">Updated {{ row.statement_updated_at_label }}</div>
-              <div class="solution-picker-preview mt-2">{{ row.statement_preview }}</div>
+              <span class="fw-semibold">{{ row.statement_label }}</span>
+              <span class="text-muted fs-12 app-table-meta">Updated {{ row.statement_updated_at_label }}</span>
+              <details class="app-table-details ms-2"><summary>Preview</summary><div class="app-table-details-body">{{ row.statement_preview }}</div></details>
             </td>
             <td>
               <span class="badge {{ row.solution_status_badge_class }}">{{ row.solution_status_label }}</span>
             </td>
             <td class="text-end">
-              <div class="d-inline-flex flex-wrap justify-content-end gap-2">
+              <div class="app-table-actions d-inline-flex justify-content-end gap-2">
                 <a href="{{ row.editor_url }}" class="btn btn-primary btn-sm">{{ row.editor_button_label }}</a>
                 <a href="{{ row.problem_url }}" class="btn btn-outline-secondary btn-sm">Solution page</a>
                 {% if row.contest_archive_url %}

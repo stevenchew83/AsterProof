@@ -167,7 +167,7 @@
 {% endblock extra_css %}
 
 {% block page_content %}
-<div class="container-fluid contest-progress-page">
+<div class="container-fluid app-table-page contest-progress-page">
 
   {% include 'partials/page-title.html' with title='Contest progress' subtitle=selected_contest|default:'Contest drill-down' page_icon='ti-chart-line' %}
 
@@ -184,7 +184,7 @@
           <div class="d-flex flex-wrap align-items-end justify-content-between gap-3">
             <div class="flex-grow-1">
               <h4 class="header-title mb-2">Change contest</h4>
-              <form method="get" class="contest-progress-toolbar-form">
+              <form method="get" class="app-table-filters contest-progress-toolbar-form">
                 <div>
                   <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="contest-advanced-selector">Contest</label>
                   <div class="input-group">
@@ -367,8 +367,8 @@
           <h4 class="header-title mb-0">Years</h4>
         </div>
         <div class="card-body">
-          <div class="table-responsive">
-            <table class="table table-striped align-middle mb-0">
+          <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
+            <table class="app-table-compact table table-striped align-middle mb-0">
               <thead>
                 <tr class="text-muted fs-xs text-uppercase">
                   <th>Year</th>
@@ -426,8 +426,8 @@
           <h4 class="header-title mb-0">Topics</h4>
         </div>
         <div class="card-body">
-          <div class="table-responsive">
-            <table class="table table-striped align-middle mb-0">
+          <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
+            <table class="app-table-compact table table-striped align-middle mb-0">
               <thead>
                 <tr class="text-muted fs-xs text-uppercase">
                   <th>Topic</th>
@@ -472,8 +472,8 @@
           <h4 class="header-title mb-0">Data quality</h4>
         </div>
         <div class="card-body">
-          <div class="table-responsive">
-            <table class="table table-striped align-middle mb-0">
+          <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
+            <table class="app-table-compact table table-striped align-middle mb-0">
               <thead>
                 <tr class="text-muted fs-xs text-uppercase">
                   <th>Confidence</th>
@@ -503,8 +503,8 @@
           <h4 class="header-title mb-0">Recent updates</h4>
         </div>
         <div class="card-body">
-          <div class="table-responsive">
-            <table class="table table-striped align-middle mb-0">
+          <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
+            <table class="app-table-compact table table-striped align-middle mb-0">
               <thead>
                 <tr class="text-muted fs-xs text-uppercase">
                   <th>Problem</th>

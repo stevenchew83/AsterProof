@@ -3,17 +3,17 @@
 {% block title %}My submissions{% endblock title %}
 
 {% block page_content %}
-<div class="container-fluid">
+<div class="container-fluid app-table-page">
   {% include 'partials/page-title.html' with title='My submissions' subtitle='Training' page_icon='ti-send' %}
   <div class="card mt-0">
     <div class="card-body">
-      <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
+      <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
+        <table class="app-table-compact table table-hover align-middle mb-0">
           <thead><tr><th>Problem</th><th>Status</th><th>Points</th><th>Updated</th><th></th></tr></thead>
           <tbody>
             {% for submission in submissions %}
             <tr>
-              <td><div class="fw-semibold">{{ submission.problem.title }}</div><div class="text-muted fs-xs">{{ submission.problem.subtopic.topic.title }}</div></td>
+              <td><span class="fw-semibold">{{ submission.problem.title }}</span><span class="text-muted fs-xs app-table-meta">{{ submission.problem.subtopic.topic.title }}</span></td>
               <td><span class="badge {{ submission.status_badge_class }}">{{ submission.get_status_display }}</span></td>
               <td>{{ submission.awarded_points }}/{{ submission.problem.max_points }}</td>
               <td>{{ submission.updated_at|date:'Y-m-d H:i' }}</td>

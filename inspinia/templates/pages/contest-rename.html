@@ -10,7 +10,7 @@
 
 {% block page_content %}
 
-<div class="container-fluid">
+<div class="container-fluid app-table-page">
 
   {% include 'partials/page-title.html' with title='Update contest names' subtitle='Data' page_icon='ti-edit' %}
 
@@ -104,8 +104,8 @@
               >
               <div class="form-text">Matches contest name, year span, problem count, and statement count.</div>
             </div>
-            <div class="table-responsive">
-              <table id="contest-inventory-table" class="table align-middle mb-0">
+            <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
+              <table data-paging-type="simple" id="contest-inventory-table" class="app-table-compact table align-middle mb-0">
                 <thead>
                   <tr class="text-muted fs-xs text-uppercase">
                     <th class="text-center">Use</th>
@@ -134,10 +134,10 @@
                     <td><span class="badge bg-primary-subtle text-primary">{{ row.problem_count }}</span></td>
                     <td><span class="badge bg-info-subtle text-info">{{ row.statement_count }}</span></td>
                     <td>
-                      <div class="fw-semibold">{{ row.year_span_label|default:"-" }}</div>
-                      <div class="text-muted fs-12">
+                      <span class="fw-semibold">{{ row.year_span_label|default:"-" }}</span>
+                      <span class="text-muted fs-12 app-table-meta">
                         Problems: {{ row.problem_year_span_label|default:"-" }} | Statements: {{ row.statement_year_span_label|default:"-" }}
-                      </div>
+                      </span>
                     </td>
                   </tr>
                   {% endfor %}
