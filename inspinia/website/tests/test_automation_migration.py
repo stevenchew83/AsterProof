@@ -1,6 +1,8 @@
 import uuid
+from io import StringIO
 
 import pytest
+from django.core.management import call_command
 from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
 from django.utils import timezone
@@ -44,6 +46,9 @@ def test_automation_migration_preserves_existing_consent_campaigns_and_attempts(
         for model in (Subscriber, Campaign, Delivery)
     }
     try:
+        readiness = StringIO()
+        call_command("audit_newsletter_queue", stdout=readiness)
+        assert '"lecture_automation_enabled": false' in readiness.getvalue()
         executor = MigrationExecutor(connection)
         executor.migrate(after_target)
         new_apps = executor.loader.project_state(after_target).apps

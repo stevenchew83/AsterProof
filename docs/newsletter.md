@@ -101,6 +101,12 @@ manual/review pauses require an administrator to continue. Worker heartbeat and
 failure state are visible in Automation. The sending page only polls GET status
 in background mode and never dispatches recipients itself.
 
+`audit_newsletter_queue` is a count-only, read-only installation preflight. It
+works before or after the automation migration, does not create a policy row,
+and never sends mail. On PostgreSQL it uses a read-only transaction with a
+2-second statement bound. Worker activation must stop for review if an old
+campaign is still sending/scheduled or lecture automation is already enabled.
+
 The default is off until the schema and separately reviewed service are ready.
 Render proposed units without installing them:
 
