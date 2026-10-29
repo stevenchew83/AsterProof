@@ -1,73 +1,74 @@
-<details class="card"{% if comparison_filters.contest or comparison_filters.topic or comparison_filters.q or comparison_filters.mohs_min or comparison_filters.mohs_max or comparison_filters.solution_status or comparison_filters.range == 'custom' %} open{% endif %}>
-  <summary class="card-header border-0 d-flex justify-content-between align-items-center gap-2">
-    <div>
-      <h4 class="header-title mb-1">Comparison filters</h4>
-      <p class="text-muted fs-sm mb-0">Apply the same period and filters to Alex and Ben.</p>
-    </div>
-    <i class="ti ti-chevron-down" aria-hidden="true"></i>
-  </summary>
-  <div class="card-body pt-2">
-    <form method="get" class="row g-3" aria-label="Comparison filters">
-      <div class="col-sm-4 col-lg-2">
-        <label for="compare-range" class="form-label fs-sm">Date range</label>
-        <select id="compare-range" name="range" class="form-select form-select-sm">
-          {% for option in comparison_range_options %}
-          <option value="{{ option.value }}"{% if option.value == comparison_filters.range %} selected{% endif %}>{{ option.label }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-6 col-sm-4 col-lg-2">
-        <label for="compare-start" class="form-label fs-sm">Custom start</label>
-        <input id="compare-start" type="date" name="start" value="{{ comparison_filters.start }}" class="form-control form-control-sm" />
-      </div>
-      <div class="col-6 col-sm-4 col-lg-2">
-        <label for="compare-end" class="form-label fs-sm">Custom end</label>
-        <input id="compare-end" type="date" name="end" value="{{ comparison_filters.end }}" class="form-control form-control-sm" />
-      </div>
-      <div class="col-sm-6 col-lg-3">
-        <label for="compare-contest" class="form-label fs-sm">Contest</label>
-        <select id="compare-contest" name="contest" class="form-select form-select-sm">
-          <option value="">All contests</option>
-          {% for contest in comparison_filter_options.contests %}
-          <option{% if contest == comparison_filters.contest %} selected{% endif %}>{{ contest }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-sm-6 col-lg-3">
-        <label for="compare-topic" class="form-label fs-sm">Topic</label>
-        <select id="compare-topic" name="topic" class="form-select form-select-sm">
-          <option value="">All topics</option>
-          {% for topic in comparison_filter_options.topics %}
-          <option{% if topic == comparison_filters.topic %} selected{% endif %}>{{ topic }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-sm-6 col-lg-4">
-        <label for="compare-search" class="form-label fs-sm">Search completions</label>
-        <input id="compare-search" type="search" name="q" value="{{ comparison_filters.q }}" class="form-control form-control-sm" placeholder="Contest, problem, topic…" />
-      </div>
-      <div class="col-6 col-sm-3 col-lg-2">
-        <label for="compare-mohs-min" class="form-label fs-sm">MOHS min</label>
-        <input id="compare-mohs-min" type="number" name="mohs_min" min="0" value="{{ comparison_filters.mohs_min }}" class="form-control form-control-sm" />
-      </div>
-      <div class="col-6 col-sm-3 col-lg-2">
-        <label for="compare-mohs-max" class="form-label fs-sm">MOHS max</label>
-        <input id="compare-mohs-max" type="number" name="mohs_max" min="0" value="{{ comparison_filters.mohs_max }}" class="form-control form-control-sm" />
-      </div>
-      <div class="col-sm-6 col-lg-4">
-        <label for="compare-solution" class="form-label fs-sm">Solution status</label>
-        <select id="compare-solution" name="solution_status" class="form-select form-select-sm">
-          <option value="">All solutions</option>
-          {% for status in comparison_filter_options.solution_statuses %}
-          <option value="{{ status.value }}"{% if status.value == comparison_filters.solution_status %} selected{% endif %}>{{ status.label }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-12 d-flex flex-wrap align-items-center gap-2">
-        <button type="submit" class="btn btn-sm btn-primary"><i class="ti ti-filter me-1"></i>Apply filters</button>
+<section class="card" aria-label="Comparison filters">
+  <div class="card-body py-2">
+    <form method="get" aria-label="Comparison filters">
+      <div class="lp-toolbar cp-toolbar">
+        <div class="lp-field">
+          <label for="compare-range" class="form-label">Period</label>
+          <select id="compare-range" name="range" class="form-select form-select-sm">
+            {% for option in comparison_range_options %}
+            <option value="{{ option.value }}"{% if option.value == comparison_filters.range %} selected{% endif %}>{{ option.label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="lp-custom-dates" id="compare-custom-dates">
+          <div class="lp-field">
+            <label for="compare-start" class="form-label">Start date</label>
+            <input id="compare-start" type="date" name="start" value="{{ comparison_filters.start }}" class="form-control form-control-sm" />
+          </div>
+          <div class="lp-field">
+            <label for="compare-end" class="form-label">End date</label>
+            <input id="compare-end" type="date" name="end" value="{{ comparison_filters.end }}" class="form-control form-control-sm" />
+          </div>
+        </div>
+        <div class="lp-field">
+          <label for="compare-topic" class="form-label">Topic</label>
+          <select id="compare-topic" name="topic" class="form-select form-select-sm">
+            <option value="">All topics</option>
+            {% for topic in comparison_filter_options.topics %}
+            <option{% if topic == comparison_filters.topic %} selected{% endif %}>{{ topic }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button type="submit" class="btn btn-sm btn-primary">Apply</button>
         <a href="{% url 'pages:shared_progress_comparison' %}" class="btn btn-sm btn-outline-secondary">Reset</a>
-        <span class="text-muted fs-xs">Select Custom range to use the start and end dates.</span>
+        <span class="cp-filter-note text-body-secondary fs-xs">Same filters for both learners</span>
       </div>
+      <details class="lp-advanced cp-advanced mt-2"{% if comparison_filters.contest or comparison_filters.q or comparison_filters.mohs_min or comparison_filters.mohs_max or comparison_filters.solution_status %} open{% endif %}>
+        <summary>More filters{% if comparison_filters.contest or comparison_filters.q or comparison_filters.mohs_min or comparison_filters.mohs_max or comparison_filters.solution_status %}<span class="badge bg-primary-subtle text-primary-emphasis ms-1">Active</span>{% endif %}</summary>
+        <div class="row g-2 pt-2">
+          <div class="col-sm-6 col-lg-3">
+            <label for="compare-search" class="form-label">Search completions</label>
+            <input id="compare-search" type="search" name="q" value="{{ comparison_filters.q }}" class="form-control form-control-sm" placeholder="Contest, problem, topic…" />
+          </div>
+          <div class="col-sm-6 col-lg-3">
+            <label for="compare-contest" class="form-label">Contest</label>
+            <select id="compare-contest" name="contest" class="form-select form-select-sm">
+              <option value="">All contests</option>
+              {% for contest in comparison_filter_options.contests %}
+              <option{% if contest == comparison_filters.contest %} selected{% endif %}>{{ contest }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-6 col-sm-3 col-lg-1">
+            <label for="compare-mohs-min" class="form-label">MOHS min</label>
+            <input id="compare-mohs-min" type="number" name="mohs_min" min="0" value="{{ comparison_filters.mohs_min }}" class="form-control form-control-sm" />
+          </div>
+          <div class="col-6 col-sm-3 col-lg-1">
+            <label for="compare-mohs-max" class="form-label">MOHS max</label>
+            <input id="compare-mohs-max" type="number" name="mohs_max" min="0" value="{{ comparison_filters.mohs_max }}" class="form-control form-control-sm" />
+          </div>
+          <div class="col-sm-6 col-lg-4">
+            <label for="compare-solution" class="form-label">Solution status</label>
+            <select id="compare-solution" name="solution_status" class="form-select form-select-sm">
+              <option value="">All solutions</option>
+              {% for status in comparison_filter_options.solution_statuses %}
+              <option value="{{ status.value }}"{% if status.value == comparison_filters.solution_status %} selected{% endif %}>{{ status.label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+      </details>
+      <noscript><p class="text-body-secondary fs-xs mt-2 mb-0">Select Custom range to use the start and end dates.</p></noscript>
     </form>
   </div>
-</details>
+</section>
