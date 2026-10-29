@@ -75,7 +75,7 @@
 {% endblock extra_css %}
 
 {% block page_content %}
-<div class="container-fluid">
+<div class="container-fluid app-table-page">
 
   {% include 'partials/page-title.html' with title='Statement duplicates' subtitle='Admin' page_icon='ti-copy' %}
 
@@ -191,7 +191,7 @@
         </div>
         <div class="card-body">
           {% if statement_duplicate_exact_rows %}
-          <table id="statement-exact-duplicates-table" class="table table-striped table-bordered align-middle w-100"></table>
+          <table data-paging-type="simple" id="statement-exact-duplicates-table" class="app-table-compact table table-striped table-bordered align-middle w-100"></table>
           {% else %}
           <div class="alert alert-success mb-0" role="alert">
             No exact duplicate statement groups were detected.
@@ -223,7 +223,7 @@
             Showing the top {{ statement_duplicate_similar_display_total }} pairs out of {{ statement_duplicate_stats.similar_pair_total }} detected candidates to keep the page reviewable.
           </div>
           {% endif %}
-          <table id="statement-similarity-table" class="table table-striped table-bordered align-middle w-100"></table>
+          <table data-paging-type="simple" id="statement-similarity-table" class="app-table-compact table table-striped table-bordered align-middle w-100"></table>
           {% else %}
           <div class="alert alert-success mb-0" role="alert">
             No high-similarity statement pairs were detected.

@@ -1,4 +1,4 @@
-<form method="get" class="cb-problem-filters p-3 border-bottom" role="search" aria-label="Search problems in this scope">
+<form method="get" class="app-table-filters cb-problem-filters p-3 border-bottom" role="search" aria-label="Search problems in this scope">
   {% for key, value in scope_inputs.items %}{% if value %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endif %}{% endfor %}
   <input type="hidden" name="tab" value="problems">
   <div class="cb-problem-search">
@@ -38,8 +38,8 @@
     <span>{{ examples.paginator.count }} problem{{ examples.paginator.count|pluralize }}{% if selected_concept %} for {{ selected_concept.name }}{% endif %}{% if problem_filters.q %} matching “{{ problem_filters.q }}”{% endif %}</span>
     <span>Mappings updated {{ snapshot.created_at|date:'j M Y, H:i' }}</span>
   </div>
-  <div class="table-responsive">
-    <table class="table table-hover mb-0 cb-problems-table" id="catalogue-problems-table">
+  <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
+    <table class="app-table-compact table table-hover mb-0 cb-problems-table" id="catalogue-problems-table">
       <caption class="visually-hidden">Problems for {{ heading }}</caption>
       <thead><tr>
         <th scope="col">Problem</th>

@@ -93,7 +93,7 @@
 
 {% block page_content %}
 
-<div class="container-fluid">
+<div class="container-fluid app-table-page">
   {% include 'partials/page-title.html' with title='LaTeX preview' subtitle='Workspace tool' page_icon='ti-math-function' %}
 
   {% if messages %}
@@ -351,7 +351,7 @@
           <h4 class="header-title mb-0">Day breakdown</h4>
         </div>
         <div class="card-body">
-          <div class="table-responsive">
+          <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
             <table class="table table-striped align-middle mb-0">
               <thead class="table-light">
                 <tr>

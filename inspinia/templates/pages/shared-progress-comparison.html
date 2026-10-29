@@ -8,7 +8,7 @@
 {% endblock extra_css %}
 
 {% block page_content %}
-<div class="container-fluid learner-progress">
+<div class="container-fluid app-table-page learner-progress">
   {% include 'pages/partials/shared-progress-header.html' %}
 
   {% if shared_progress_section == 'completions' %}
@@ -76,8 +76,8 @@
       <i class="ti ti-chevron-down lp-analysis-chevron" aria-hidden="true"></i>
     </summary>
     <div class="card-body pt-2">
-      <div class="table-responsive">
-        <table class="table table-sm align-middle mb-0">
+      <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
+        <table class="app-table-compact table table-sm align-middle mb-0">
           <caption class="visually-hidden">Alex and Ben additional completion metrics with the same filters</caption>
           <thead><tr><th scope="col" class="w-50">Metric</th><th scope="col" class="w-25">Alex</th><th scope="col" class="w-25">Ben</th></tr></thead>
           <tbody>

@@ -35,6 +35,14 @@ Keep new admin/dashboard UI consistent with the **Inspinia 4.x / Bootstrap 5** s
 - **Alerts / tables / buttons**: Use Bootstrap 5 variants (`alert-info`, `btn-primary`, etc.) so they track `data-bs-theme` and Inspinia’s component SCSS.
 - **Icons**: Stick to **`ti ti-*`** (Tabler) with Inspinia size utilities (`fs-22`, `fs-24`, …), not mixed icon sets on the same strip unless the template already does.
 
+## Compact dashboard tables
+
+Use `app-table-page` on the page container, `app-table-compact` on list tables, and `app-table-region table-responsive` on their scroll frames. Give the frame a descriptive region label and `tabindex="0"`. Keep horizontal scrolling inside the table; DataTables filters and pagination must remain within the page width. DataTables lists use `data-paging-type="simple"`; retain explicit page sizes and server pagination parameters.
+
+Keep summary rows on one line. Use `app-table-meta` for secondary inline text and `app-table-actions` for a single action group. Put long previews and metadata in native `app-table-details` disclosures with an `app-table-details-body`; keep their full text in the DOM for search and keyboard access. Narrative tables, matrices, empty states and expanded editors may wrap. Do not apply nowrap rules to mathematical statement bodies.
+
+Use `app-table-filters` for GET filter forms and `app-table-toolbar` for tool groups that can wrap on phones. Preserve every filter name, form method, CSRF token, action URL, selection hook and pagination query. Verify populated states at desktop and narrow phone widths, including redraws and expanded details.
+
 ## Typography scale (template)
 
 Prefer theme utilities over raw font sizes: `fs-xs`, `fs-sm`, `fs-lg`, `fs-12`; weights `fw-semibold`, `fw-bold`; color `text-muted` for secondary copy.

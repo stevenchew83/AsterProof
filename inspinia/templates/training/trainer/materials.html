@@ -281,7 +281,7 @@
 {% endblock extra_css %}
 
 {% block page_content %}
-<div class="container-fluid">
+<div class="container-fluid app-table-page">
   {% include 'partials/page-title.html' with title='Training materials' subtitle='Trainer CMS' page_icon='ti-books' %}
   {% include 'training/partials/messages.html' %}
 
@@ -531,8 +531,8 @@
         </div>
         <div class="card-body pt-2">
           {% if materials %}
-          <div class="table-responsive">
-            <table id="training-materials-table" class="table table-sm table-hover align-middle mb-0">
+          <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
+            <table data-paging-type="simple" id="training-materials-table" class="app-table-compact table table-sm table-hover align-middle mb-0">
               <thead>
                 <tr>
                   <th>Material</th>
@@ -548,12 +548,12 @@
                 {% for material in materials %}
                 <tr{% if selected_material and selected_material.id == material.id %} class="training-material-row-active"{% endif %}>
                   <td>
-                    <div class="fw-semibold">{{ material.title }}</div>
-                    <div class="text-muted fs-xs"><code>{{ material.slug }}</code></div>
+                    <span class="fw-semibold">{{ material.title }}</span>
+                    <span class="text-muted fs-xs app-table-meta"><code>{{ material.slug }}</code></span>
                   </td>
                   <td>
-                    <div class="fw-semibold">{{ material.subtopic.title }}</div>
-                    <div class="text-muted fs-xs">{{ material.subtopic.topic.title }}</div>
+                    <span class="fw-semibold">{{ material.subtopic.title }}</span>
+                    <span class="text-muted fs-xs app-table-meta">{{ material.subtopic.topic.title }}</span>
                   </td>
                   <td class="text-nowrap">
                     {% if material.is_published %}

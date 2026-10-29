@@ -32,7 +32,7 @@
 {% endblock extra_css %}
 
 {% block page_content %}
-<div class="container-fluid">
+<div class="container-fluid app-table-page">
   {% include 'partials/page-title.html' with title='Discover lists' subtitle='Library' page_icon='ti-compass' %}
 
   {% if messages %}
@@ -63,7 +63,7 @@
       </a>
     </div>
     <div class="card-body">
-      <form method="get" class="row g-2 align-items-end mb-3">
+      <form method="get" class="app-table-filters row g-2 align-items-end mb-3">
         <div class="col-xl-6 col-lg-8">
           <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="{{ form.q.id_for_label }}">Search</label>
           {{ form.q }}
@@ -84,8 +84,8 @@
 
       {% if problem_list_rows %}
         {% if problem_list_discover_is_admin %}
-        <div class="table-responsive">
-          <table id="problem-list-discover-table" class="table table-sm table-hover table-striped align-middle w-100 mb-0">
+        <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
+          <table data-paging-type="simple" id="problem-list-discover-table" class="app-table-compact table table-sm table-hover table-striped align-middle w-100 mb-0">
             <thead>
               <tr>
                 <th>List</th>
@@ -104,7 +104,7 @@
                 <td>
                   <a href="{{ row.detail_url }}" class="fw-semibold text-decoration-none">{{ row.title }}</a>
                   {% if row.description %}
-                  <div class="text-muted fs-12">{{ row.description|truncatechars:120 }}</div>
+                  <span class="text-muted fs-12 app-table-meta app-table-text" title="{{ row.description }}">{{ row.description|truncatechars:120 }}</span>
                   {% endif %}
                 </td>
                 <td>{{ row.author_label }}</td>

@@ -3,7 +3,7 @@
 {% block title %}Ranking dashboard{% endblock title %}
 
 {% block page_content %}
-<div class="container-fluid">
+<div class="container-fluid app-table-page">
   {% include 'partials/page-title.html' with title='Ranking dashboard' subtitle='Rankings' page_icon='ti-trophy' %}
 
   <div class="row g-3 mt-0">
@@ -41,8 +41,8 @@
           <p class="text-muted fs-xs mb-0">Current selection overview for the active filters.</p>
         </div>
         <div class="card-body pt-2">
-          <div class="table-responsive">
-            <table class="table table-sm table-striped mb-0">
+          <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
+            <table class="app-table-compact table table-sm table-striped mb-0">
               <thead>
                 <tr>
                   <th>Rank</th>
@@ -81,8 +81,8 @@
           <div class="row g-3">
             <div class="col-12">
               <h6 class="text-muted text-uppercase fs-xs mb-2">Schools</h6>
-              <div class="table-responsive">
-                <table class="table table-sm table-striped mb-0">
+              <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
+                <table class="app-table-compact table table-sm table-striped mb-0">
                   <thead>
                     <tr>
                       <th>School</th>
@@ -109,8 +109,8 @@
 
             <div class="col-12">
               <h6 class="text-muted text-uppercase fs-xs mb-2">States</h6>
-              <div class="table-responsive">
-                <table class="table table-sm table-striped mb-0">
+              <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
+                <table class="app-table-compact table table-sm table-striped mb-0">
                   <thead>
                     <tr>
                       <th>State</th>

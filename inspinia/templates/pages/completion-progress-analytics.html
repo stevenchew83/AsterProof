@@ -429,7 +429,7 @@
 {% endblock extra_css %}
 
 {% block page_content %}
-<div class="container-fluid">
+<div class="container-fluid app-table-page">
 
   {% include 'partials/page-title.html' with title=completion_progress_page_title subtitle=completion_progress_page_subtitle page_icon='ti-chart-line' %}
 
@@ -452,7 +452,7 @@
           </div>
         </div>
         <div class="card-body">
-          <form method="get" class="completion-progress-filter-row">
+          <form method="get" class="app-table-filters completion-progress-filter-row">
             {% if completion_progress_can_select_user %}
             <div class="completion-progress-field is-wide">
               <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-progress-user">User</label>
@@ -769,10 +769,10 @@
         </div>
         <div class="card-body p-2 p-md-3">
           {% if completion_progress_rows %}
-          <div class="table-responsive">
-            <table
+          <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
+            <table data-paging-type="simple"
               id="completion-progress-table"
-              class="table table-sm table-hover table-striped align-middle w-100 mb-0"
+              class="app-table-compact table table-sm table-hover table-striped align-middle w-100 mb-0"
               data-can-edit-difficulty="{% if completion_progress_can_edit_difficulty %}true{% else %}false{% endif %}"
               data-show-difficulty="{% if completion_progress_show_difficulty %}true{% else %}false{% endif %}"
               data-difficulty-rating-save-url="{{ completion_progress_difficulty_save_url }}"

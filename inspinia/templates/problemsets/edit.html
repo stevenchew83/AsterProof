@@ -114,7 +114,7 @@
 
   .problem-list-sequence-table {
     min-width: 0;
-    table-layout: fixed;
+    table-layout: auto;
     width: 100% !important;
   }
 
@@ -248,7 +248,7 @@
 {% endblock extra_css %}
 
 {% block page_content %}
-<div class="container-fluid">
+<div class="container-fluid app-table-page">
   {% include 'partials/page-title.html' with title=problem_list.title subtitle='Edit problem list' page_icon='ti-list-details' %}
 
   {% if messages %}
@@ -422,8 +422,8 @@
             Search for problems, then add rows to the draft sequence.
           </div>
 
-          <div class="table-responsive mt-2">
-            <table id="problem-list-search-results-table" class="table table-striped table-hover align-middle problem-list-picker-table w-100 mb-0">
+          <div class="app-table-region table-responsive mt-2" tabindex="0" role="region" aria-label="Scrollable results">
+            <table data-paging-type="simple" id="problem-list-search-results-table" class="app-table-compact table table-striped table-hover align-middle problem-list-picker-table w-100 mb-0">
               <thead>
                 <tr>
                   <th>Problem</th>
@@ -503,8 +503,8 @@
           <form method="post" action="{% url 'problemsets:save_items' problem_list.list_uuid %}" id="problem-list-save-form">
             {% csrf_token %}
             <div id="problem-list-hidden-order-fields"></div>
-            <div class="table-responsive">
-              <table id="problem-list-sequence-table" class="table table-striped table-hover align-middle problem-list-picker-table problem-list-sequence-table w-100 mb-0">
+            <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
+              <table data-paging-type="simple" id="problem-list-sequence-table" class="app-table-compact table table-striped table-hover align-middle problem-list-picker-table problem-list-sequence-table w-100 mb-0">
                 <thead>
                   <tr>
                     <th>Order</th>

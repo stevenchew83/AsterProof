@@ -47,7 +47,7 @@
 
 {% block page_content %}
 
-<div class="container-fluid">
+<div class="container-fluid app-table-page">
   {% include 'partials/page-title.html' with title=technique_progress_gap_title subtitle='Area &amp; Concepts Progress' page_icon='ti-target-arrow' %}
 
   <div class="row g-3 mt-0">
@@ -80,7 +80,7 @@
             </div>
             <div class="d-flex flex-wrap align-items-end gap-2">
               {% if technique_progress_can_select_user %}
-              <form method="get" class="d-flex flex-wrap align-items-end gap-2">
+              <form method="get" class="app-table-filters d-flex flex-wrap align-items-end gap-2">
                 <input type="hidden" name="kind" value="{{ technique_progress_gap_kind }}">
                 <input type="hidden" name="topic" value="{{ technique_progress_gap_topic }}">
                 <input type="hidden" name="min_total" value="{% if technique_progress_gap_min_total %}{{ technique_progress_gap_min_total }}{% endif %}">
@@ -151,7 +151,7 @@
               </a>
               {% endif %}
               {% if not technique_progress_gap_is_drilldown %}
-              <div class="btn-group btn-group-sm" role="group" aria-label="Practice gap type">
+              <div class="app-table-toolbar btn-group btn-group-sm" role="group" aria-label="Practice gap type">
                 {% for option in technique_progress_gap_kind_options %}
                 <a href="{{ option.url }}" class="btn {% if option.is_active %}btn-primary{% else %}btn-outline-primary{% endif %}">{{ option.label }}</a>
                 {% endfor %}
@@ -179,7 +179,7 @@
             {% endfor %}
           </ul>
 
-          <form method="get" class="d-flex flex-wrap align-items-end gap-2 mb-3">
+          <form method="get" class="app-table-filters d-flex flex-wrap align-items-end gap-2 mb-3">
             {% if technique_progress_can_select_user %}
             <input type="hidden" name="user" value="{{ technique_progress_filters.user }}">
             {% endif %}
@@ -216,10 +216,10 @@
           </div>
           {% endif %}
 
-          <div class="table-responsive">
-            <table
+          <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
+            <table data-paging-type="simple"
               id="technique-progress-gaps-table"
-              class="table table-sm table-hover align-middle mb-0 w-100"
+              class="app-table-compact table table-sm table-hover align-middle mb-0 w-100"
               data-page-length="50"
               data-rows-url="{{ technique_progress_gap_rows_url }}"
               data-gap-kind="{{ technique_progress_gap_kind }}"

@@ -1,7 +1,7 @@
 {% extends 'layouts/vertical.html' %}
 {% block title %}Concept assignment review{% endblock %}
 {% block page_content %}
-<div class="container-fluid">
+<div class="container-fluid app-table-page">
   {% url 'pages:archive_hub' as header_archive_url %}
   <header class="page-title-head app-page-header">
     {% include 'partials/page-header-intro.html' with title='Concept assignment review' page_icon='ti-hierarchy-2' back_url=header_archive_url back_label='Archive' only %}
@@ -18,7 +18,7 @@
     <p class="app-page-header-description">Trace source tags, keep clear matches, and review uncertain concepts.</p>
   </header>
   {% if not storage_ready %}<div class="alert alert-info" role="status"><strong>Read-only source audit.</strong> Review storage has not been installed. Previews and exports work; applying decisions requires the separate schema rollout.</div>{% endif %}
-  <form method="get" class="card card-body mb-3">
+  <form method="get" class="app-table-filters card card-body mb-3">
     <div class="row g-2 align-items-end">
       <div class="col-sm-6 col-lg-2"><label class="form-label" for="review-subject">Subject</label><select class="form-select" name="subject" id="review-subject"><option value="">All four subjects</option>{% for subject in subjects %}<option{% if filters.subject == subject %} selected{% endif %}>{{ subject }}</option>{% endfor %}</select></div>
       <div class="col-sm-6 col-lg-2"><label class="form-label" for="review-contest">Contest</label><input class="form-control" id="review-contest" name="contest" value="{{ filters.contest }}"></div>
@@ -34,8 +34,8 @@
     {% csrf_token %}
     <div class="card">
       <div class="card-header d-flex justify-content-between align-items-center"><h2 class="h5 mb-0">Assignment queue</h2><span class="text-muted fs-xs">{{ page.paginator.count }} {% if materialized %}records{% else %}source problems{% endif %}</span></div>
-      <div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead><tr><th aria-label="Select"></th><th>Problem</th><th>Concept</th><th>State / basis</th><th>Review reasons</th><th></th></tr></thead><tbody>
-      {% for row in rows %}<tr><td>{% if row.concept_id %}<input class="form-check-input" type="checkbox" name="selected" value="{{ row.problem_uuid }}|{{ row.concept_id }}" aria-label="Select {{ row.concept }} for {{ row.label }}">{% endif %}</td><td><a class="fw-semibold" href="{% url 'pages:concept_assignment_detail' row.problem_uuid %}">{{ row.label }}</a><div class="text-muted fs-xs">{{ row.subject }}</div></td><td>{{ row.concept }}<div class="text-muted fs-xs font-monospace">{{ row.concept_id }}</div></td><td><span class="badge bg-secondary-subtle text-secondary-emphasis">{{ row.state }}</span><div class="text-muted fs-xs mt-1">{{ row.basis }}</div></td><td class="fs-xs">{{ row.reason_labels|join:' · '|default:'—' }}</td><td><a class="btn btn-sm btn-outline-primary" href="{% url 'pages:concept_assignment_detail' row.problem_uuid %}">Review</a></td></tr>{% empty %}<tr><td colspan="6" class="text-center text-muted py-5">No assignments match these filters.</td></tr>{% endfor %}
+      <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results"><table class="app-table-compact table table-hover align-middle mb-0"><thead><tr><th aria-label="Select"></th><th>Problem</th><th>Concept</th><th>State / basis</th><th>Review reasons</th><th></th></tr></thead><tbody>
+      {% for row in rows %}<tr><td>{% if row.concept_id %}<input class="form-check-input" type="checkbox" name="selected" value="{{ row.problem_uuid }}|{{ row.concept_id }}" aria-label="Select {{ row.concept }} for {{ row.label }}">{% endif %}</td><td><a class="fw-semibold" href="{% url 'pages:concept_assignment_detail' row.problem_uuid %}">{{ row.label }}</a><span class="text-muted fs-xs app-table-meta">{{ row.subject }}</span></td><td>{{ row.concept }}<span class="text-muted fs-xs font-monospace app-table-meta">{{ row.concept_id }}</span></td><td><span class="badge bg-secondary-subtle text-secondary-emphasis">{{ row.state }}</span><span class="text-muted fs-xs mt-1 app-table-meta">{{ row.basis }}</span></td><td class="fs-xs">{{ row.reason_labels|join:' · '|default:'—' }}</td><td><a class="btn btn-sm btn-outline-primary" href="{% url 'pages:concept_assignment_detail' row.problem_uuid %}">Review</a></td></tr>{% empty %}<tr><td colspan="6" class="text-center text-muted py-5">No assignments match these filters.</td></tr>{% endfor %}
       </tbody></table></div>
       <div class="card-body border-top"><div class="row g-2 align-items-end"><div class="col-sm-3"><label class="form-label" for="bulk-action">Selected assignments</label><select class="form-select" id="bulk-action" name="action"><option value="hold">Hold for review</option><option value="reject">Reject</option></select></div><div class="col-sm-7"><label class="form-label" for="bulk-rationale">Rationale</label><input class="form-control" id="bulk-rationale" name="rationale" required></div><div class="col-sm-2"><button class="btn btn-outline-primary w-100">Preview batch</button></div></div><p class="text-muted fs-xs mt-2 mb-0">Confirm concepts on their problem page with evidence, or preview a reviewed JSON manifest below.</p></div>
     </div>
@@ -50,6 +50,6 @@
       <button class="btn btn-outline-primary mt-2">Check freshness and download dry run</button>
     </form>
   </details>
-  <details class="card card-body mb-3"><summary class="fw-semibold">Shared identity proposals · {{ identity_proposals|length }}</summary><p class="text-muted fs-xs mt-2">Proposals do not change the catalog. Approved equivalence manifests must retain subject memberships, roles and legacy IDs.</p><div class="table-responsive"><table class="table table-sm"><thead><tr><th>Source IDs</th><th>Candidate destination</th><th>Decision needed</th></tr></thead><tbody>{% for proposal in identity_proposals %}<tr><td class="font-monospace fs-xs">{{ proposal.sources|join:', ' }}</td><td class="font-monospace fs-xs">{{ proposal.target }}</td><td>{{ proposal.reason }}</td></tr>{% endfor %}</tbody></table></div></details>
+  <details class="card card-body mb-3"><summary class="fw-semibold">Shared identity proposals · {{ identity_proposals|length }}</summary><p class="text-muted fs-xs mt-2">Proposals do not change the catalog. Approved equivalence manifests must retain subject memberships, roles and legacy IDs.</p><div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results"><table class="app-table-compact table table-sm"><thead><tr><th>Source IDs</th><th>Candidate destination</th><th>Decision needed</th></tr></thead><tbody>{% for proposal in identity_proposals %}<tr><td class="font-monospace fs-xs">{{ proposal.sources|join:', ' }}</td><td class="font-monospace fs-xs">{{ proposal.target }}</td><td>{{ proposal.reason }}</td></tr>{% endfor %}</tbody></table></div></details>
 </div>
 {% endblock %}
