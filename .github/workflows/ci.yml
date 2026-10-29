@@ -79,7 +79,7 @@ jobs:
         if: steps.checks.outputs.runtime == 'true'
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          ACTIVE_SHA: 457172aef8d8fa058bf20f140fd64de8eccb9576
+          WEBSITE_BASELINE_SHA: 457172aef8d8fa058bf20f140fd64de8eccb9576
           DATABASE_URL: postgres://postgres@127.0.0.1:5432/asterproof_schema_rehearsal
         run: |
           if ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/newsletter_schema.py scripts/deployment/newsletter_schema_rehearsal.py inspinia/website/migrations/0002_newsletter_campaigns.py; then
@@ -87,7 +87,7 @@ jobs:
             active_sha=cadde5c7a0f374dfcd6d19a3abac893f2b1d99b2
           elif ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/website_schema.py scripts/deployment/website_schema_rehearsal.py; then
             rehearsal=scripts.deployment.website_schema_rehearsal
-            active_sha="$ACTIVE_SHA"
+            active_sha="$WEBSITE_BASELINE_SHA"
           else
             exit 0
           fi
