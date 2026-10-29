@@ -4,10 +4,13 @@ from __future__ import annotations
 
 from scripts.deployment import concept_schema
 from scripts.deployment import newsletter_schema
+from scripts.deployment import solution_pdf_schema
 from scripts.deployment import website_schema
 
 
 def schema_for_disclosure(value):
+    if isinstance(value, dict) and value.get("migration") == solution_pdf_schema.MIGRATION:
+        return solution_pdf_schema
     if isinstance(value, dict) and value.get("migration") == newsletter_schema.MIGRATION:
         return newsletter_schema
     if isinstance(value, dict) and value.get("migration") == website_schema.MIGRATION:
