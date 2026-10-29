@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 from datetime import date
+from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfoNotFoundError
+
+from django.utils import timezone
 
 from inspinia.pages.models import UserProblemCompletion
 
 BOOLEAN_TRUE_VALUES = {"1", "true", "yes", "y", "on"}
 BOOLEAN_FALSE_VALUES = {"0", "false", "no", "n", "off"}
 POST_MORTEM_MAX_LENGTH = 240
+COMPLETION_TIMEZONE_MAX_LENGTH = 128
 
 COMPLETION_METADATA_FIELDS = (
     "status",
@@ -25,6 +30,16 @@ SOLVED_STATUSES = {
     UserProblemCompletion.Status.WRITTEN,
     UserProblemCompletion.Status.PUBLISHED,
 }
+
+
+def completion_today(timezone_name: str = "") -> date:
+    name = timezone_name.strip()
+    if name and len(name) <= COMPLETION_TIMEZONE_MAX_LENGTH:
+        try:
+            return timezone.localdate(timezone.now(), ZoneInfo(name))
+        except (ValueError, ZoneInfoNotFoundError):
+            pass
+    return timezone.localdate()
 
 
 def _choice_values(choices) -> set[str]:

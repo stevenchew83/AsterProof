@@ -23,6 +23,7 @@
         <nav class="website-nav" aria-label="Main navigation">
           <a href="{% url 'website:library' %}"{% if active_nav == 'library' %} aria-current="page"{% endif %}>Library</a>
           <a href="{% url 'website:problem_solving' %}"{% if active_nav == 'problem_solving' %} aria-current="page"{% endif %}>Problem solving</a>
+          <details class="website-tools-menu"><summary>Tools <span aria-hidden="true">⌄</span></summary><div><a href="{% url 'website:solution_preview' %}"{% if active_nav == 'tools' %} aria-current="page"{% endif %}>Solution Writer</a></div></details>
           <a href="{% url 'website:about' %}"{% if active_nav == 'about' %} aria-current="page"{% endif %}>About</a>
           <a href="{% url 'website:contact' %}"{% if active_nav == 'contact' %} aria-current="page"{% endif %}>Contact</a>
         </nav>

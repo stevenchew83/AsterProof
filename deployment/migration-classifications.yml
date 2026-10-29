@@ -2,6 +2,16 @@
   "format_version": 1,
   "baseline_sha": null,
   "migrations": {
+    "solutions.0004_solution_pdf_display_options": {
+      "classification": "backward-compatible-schema",
+      "recovery_required": false,
+      "code_rollback_permitted": true,
+      "data_preconditions": [
+        "pdf_display_columns_absent",
+        "existing_solution_records_preserved"
+      ],
+      "rationale": "Adds three non-null Boolean display preferences with true defaults to existing solution rows. Existing code, solution bodies, identities, progress, and relationships remain compatible. SQLite uses native additive columns to preserve catalogue triggers. This classification does not expand the frozen production migration allowlist."
+    },
     "website.0001_initial": {
       "classification": "backward-compatible-schema",
       "recovery_required": false,

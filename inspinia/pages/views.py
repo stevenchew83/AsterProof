@@ -10,8 +10,6 @@ from datetime import timedelta
 from io import StringIO
 from types import SimpleNamespace
 from urllib.parse import urlencode
-from zoneinfo import ZoneInfo
-from zoneinfo import ZoneInfoNotFoundError
 
 from django.conf import settings
 from django.contrib import messages
@@ -55,6 +53,7 @@ from inspinia.pages.algebra_tag_search import tag_token_query
 from inspinia.pages.asymptote_render import build_statement_render_segments
 from inspinia.pages.asymptote_render import has_asymptote_blocks
 from inspinia.pages.catalogue_browser import build_catalogue_context
+from inspinia.pages.completion_duplicates import mark_problem_solved
 from inspinia.pages.completion_duplicates import upsert_exact_duplicate_statement_completions
 from inspinia.pages.completion_progress import COMPLETION_PROGRESS_RANGE_OPTIONS
 from inspinia.pages.completion_progress import CompletionProgressFilters
@@ -78,6 +77,7 @@ from inspinia.pages.completion_record_areas import completion_record_area_metada
 from inspinia.pages.completion_record_fields import SOLVED_STATUSES
 from inspinia.pages.completion_record_fields import completion_metadata_from_post
 from inspinia.pages.completion_record_fields import completion_metadata_payload
+from inspinia.pages.completion_record_fields import completion_today
 from inspinia.pages.completion_record_fields import has_completion_metadata
 from inspinia.pages.completion_record_fields import is_completion_status_solved
 from inspinia.pages.concept_progress import build_concept_progress_context
@@ -250,7 +250,6 @@ STATEMENT_ANALYTICS_SUCCESS_RATE = 90
 STATEMENT_ANALYTICS_WARNING_RATE = 60
 COMPLETION_BOARD_INITIAL_ROW_LIMIT = 30
 COMPLETION_BOARD_ROW_LOAD_STEP = 30
-COMPLETION_TIMEZONE_MAX_LENGTH = 128
 ADMIN_TABLE_LATEST_LIMIT = 100
 COMPLETION_RECORD_USER_OPTIONS_LIMIT = 20
 COMPLETION_RECORD_TOPIC_ALIAS_MIN_LENGTH = 2
@@ -3568,13 +3567,7 @@ def _completion_board_parse_requested_date(
 
 
 def _completion_request_today(request) -> date:
-    raw_timezone = (request.POST.get("completion_timezone") or "").strip()
-    if raw_timezone and len(raw_timezone) <= COMPLETION_TIMEZONE_MAX_LENGTH:
-        try:
-            return timezone.localdate(timezone.now(), ZoneInfo(raw_timezone))
-        except (ValueError, ZoneInfoNotFoundError):
-            pass
-    return timezone.localdate()
+    return completion_today(request.POST.get("completion_timezone") or "")
 
 
 def _completion_board_apply_action(
@@ -3587,29 +3580,9 @@ def _completion_board_apply_action(
     user,
     metadata_defaults: dict[str, object] | None = None,
 ) -> tuple[bool, date | None, str | None]:
-    statement_completion = None
-    legacy_problem_completion = None
-    if statement is not None:
-        statement_completion = UserProblemCompletion.objects.filter(
-            user=user,
-            statement=statement,
-        ).first()
-        if statement_completion is None and problem is not None:
-            legacy_problem_completion = UserProblemCompletion.objects.filter(
-                user=user,
-                statement__isnull=True,
-                problem=problem,
-            ).first()
-        completion = statement_completion or legacy_problem_completion
-    else:
-        completion = (
-            UserProblemCompletion.objects.filter(
-                user=user,
-                problem=problem,
-            ).first()
-            if problem is not None
-            else None
-        )
+    completion = _completion_board_current_completion(user=user, statement=statement, problem=problem)
+    statement_completion = completion if completion and completion.statement_id is not None else None
+    legacy_problem_completion = completion if completion and completion.statement_id is None else None
     error_message: str | None = None
 
     def defaults_for_completion(completion_date: date | None, *, solved_default: bool) -> dict[str, object]:
@@ -3669,6 +3642,11 @@ def _completion_board_apply_action(
                 completion.delete()
                 is_solved = False
                 completion_date = None
+    elif action == "mark_solved":
+        mark_problem_solved(user=user, problem=problem, statement=statement, today=today)
+        completion = _completion_board_current_completion(user=user, statement=statement, problem=problem)
+        is_solved = _completion_is_solved(completion)
+        completion_date = completion.completion_date if completion is not None else None
     elif action == "set_date":
         completion_date, error_message = _completion_board_parse_requested_date(
             raw_completion_date,

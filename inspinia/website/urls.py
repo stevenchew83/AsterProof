@@ -1,10 +1,12 @@
 from django.urls import path
 
 from . import views
+from .solution_preview import solution_preview_view
 
 app_name = "website"
 
 urlpatterns = [
+    path("tools/solution-preview/", solution_preview_view, name="solution_preview"),
     path("problem-solving/", views.problem_solving_view, name="problem_solving"),
     path("about/", views.about_view, name="about"),
     path("contact/", views.contact_view, name="contact"),
