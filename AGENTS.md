@@ -16,6 +16,10 @@ For the paths being changed, use the applicable nested `AGENTS.md` files under `
 
 ## Completion and checks
 
+### Deployment completion
+
+Complete immediate preflight, postflight, and short stabilization checks for a deployment. Delayed monitoring or +1 hour, +4 hour, and +24 hour follow-ups are optional and require an explicit user request. Do not automatically schedule or perform them, assign them to the user, or report unrequested follow-ups as pending work. This rule takes precedence over monitoring defaults in deployment runbooks.
+
 ### Read-only command authorization
 
 Read-only commands within the requested task are pre-approved, including production diagnostics. Do not ask for approval before each read-only command; this supersedes the earlier per-command approval requirement for production reads. For production, use the `asterproof-prod` alias, show the exact command and its purpose before execution, and report the exit status and relevant findings afterward. Keep queries bounded and do not expose secrets or unrelated personal data.

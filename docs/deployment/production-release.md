@@ -207,7 +207,7 @@ A release is successful only when all of these agree:
 
 Record the workflow URL, approver, run ID, SHA, artifact digest, migration class, target marker, old/new process evidence, health/static result, and outcome. The workflow artifact retention is currently 30 days; the server registry is the longer-lived rollback authority.
 
-Then assign the named +1 hour, +4 hour, and +24 hour follow-ups in [production monitoring](production-monitoring.md). They are operational follow-ups and do not hold the workflow open.
+Only when the user explicitly requests delayed monitoring, assign the named +1 hour, +4 hour, and +24 hour follow-ups in [production monitoring](production-monitoring.md). These optional observations do not hold the workflow open or leave an otherwise verified deployment incomplete.
 
 ## Failure handling
 
