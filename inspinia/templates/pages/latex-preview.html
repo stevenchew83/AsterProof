@@ -32,6 +32,20 @@
     min-height: 12rem;
   }
 
+  .latex-preview-surface mjx-container[display="true"],
+  .latex-problem-statement mjx-container[display="true"] {
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    padding-block: .25rem;
+  }
+
+  mjx-container[display="true"]:focus-visible {
+    outline: 2px solid var(--ins-primary);
+    outline-offset: 2px;
+  }
+
   .statement-text-fragment {
     white-space: pre-wrap;
     word-break: break-word;
@@ -537,6 +551,13 @@ window.MathJax = {
     }
 
     return window.MathJax.typesetPromise(targets).then(function () {
+      targets.forEach(function (target) {
+        target.querySelectorAll('mjx-container[display="true"]').forEach(function (equation) {
+          equation.setAttribute("tabindex", "0");
+          equation.setAttribute("role", "region");
+          equation.setAttribute("aria-label", "Scrollable mathematical expression");
+        });
+      });
       if (!opts.suppressStatus && (sequence == null || sequence === renderSequence)) {
         setStatus("Preview updated.", "success");
       }

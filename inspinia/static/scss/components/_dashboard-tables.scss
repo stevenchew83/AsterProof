@@ -122,7 +122,36 @@ table.app-table-compact {
     .app-table-text { display: inline-block; max-width: 24rem; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
     .contest-name { max-width: none; min-width: 0; white-space: nowrap; }
     .contest-row-meta { display: inline; }
-    .cb-problem-chips { flex-wrap: nowrap; }
+}
+
+// Catalogue columns need room for badges without shrinking their text vertically.
+.catalogue-browser table.app-table-compact.cb-problems-table {
+    table-layout: auto;
+
+    td:first-child { min-width: 12rem; max-width: 20rem; }
+    .cb-name { display: block; max-width: 20rem; overflow: hidden; text-overflow: ellipsis; }
+
+    .cb-problem-chips {
+        flex-wrap: nowrap;
+        gap: .3rem;
+
+        > .badge { flex: 0 0 auto; white-space: nowrap; }
+        &:has(> details[open]) { flex-wrap: wrap; }
+    }
+
+    .cb-more {
+        flex: 0 0 auto;
+        width: auto;
+
+        &[open] { flex-basis: 100%; }
+        > .cb-problem-chips {
+            max-width: 24rem;
+            flex-wrap: wrap;
+            padding-top: .25rem;
+
+            > .badge { white-space: normal; overflow-wrap: anywhere; }
+        }
+    }
 }
 
 .app-table-details {
