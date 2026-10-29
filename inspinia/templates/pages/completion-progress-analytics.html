@@ -1646,11 +1646,24 @@
             return row.problem_url ? '<a class="fw-semibold" href="' + escapeHtml(row.problem_url) + '" title="' + label + '">' + label + '</a>' : label;
           }
         },
+        {
+          data: "day_label", title: "Day label",
+          render: function (data, type) {
+            return type === "display" ? escapeHtml(data || "—") : data;
+          }
+        },
         { data: "topic", title: "Topic", render: textRenderer },
         {
           data: "areas", title: "Area", className: "lp-area",
           render: function (data, type) {
             return type === "display" ? '<span title="' + escapeHtml(data) + '">' + escapeHtml(data) + '</span>' : data;
+          }
+        },
+        {
+          data: "concepts", title: "Concepts", className: "lp-concepts",
+          render: function (data, type) {
+            var label = data || "—";
+            return type === "display" ? '<span title="' + escapeHtml(label) + '">' + escapeHtml(label) + '</span>' : data;
           }
         },
         { data: "mohs", title: "MOHS", className: "text-end", render: textRenderer },
@@ -1682,7 +1695,7 @@
     if (compactTable && columnsButton) {
       columnsButton.addEventListener("click", function () {
         var show = columnsButton.getAttribute("aria-pressed") !== "true";
-        var extraColumns = tableColumns.map(function (_, index) { return index; }).slice(6);
+        var extraColumns = tableColumns.map(function (_, index) { return index; }).slice(8);
         tableApi.columns(extraColumns).visible(show);
         columnsButton.setAttribute("aria-pressed", String(show));
         columnsButton.textContent = show ? "Fewer columns" : "More columns";

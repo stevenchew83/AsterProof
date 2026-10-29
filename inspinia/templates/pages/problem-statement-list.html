@@ -7,6 +7,23 @@
 {% block extra_css %}
 {% if statement_total > 0 %}
 <style>
+  .statement-library-searchbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: .5rem;
+  }
+
+  .statement-library-query {
+    flex: 1 1 20rem;
+    min-width: 0;
+  }
+
+  .statement-filter-chip {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
   .statement-filter-chip,
   .statement-inline-link {
     display: inline-flex;
@@ -47,6 +64,7 @@
 
   .statement-table-shell {
     width: 100%;
+    min-width: 0;
   }
 
   .statement-table-meta {
@@ -287,92 +305,60 @@
   <div class="row g-3 mt-1 mb-4">
     <div class="col-12">
       <div class="card">
-        <div class="card-header border-bottom d-flex flex-wrap align-items-center gap-2">
-          <div class="flex-grow-1">
-            <h4 class="header-title mb-0">All problem statements</h4>
-            <p class="text-muted fs-xs mb-0">
-              Filters load matching rows from the server. Table search filters only loaded rows.
-            </p>
-          </div>
-          <div class="d-flex flex-wrap align-items-center gap-2">
-            <span class="badge text-bg-light">{{ statement_stats.contest_total }} contests</span>
-            {% if show_problem_import_link %}
-            <form method="post" class="d-inline-flex mb-0">
-              {% csrf_token %}
-              <input type="hidden" name="action" value="recheck_links">
-              <button type="submit" id="problem-statements-recheck-links" class="btn btn-outline-secondary btn-sm">
-                <i class="ti ti-link-check me-1"></i>Recheck problem links
-              </button>
-            </form>
-            {% endif %}
-          </div>
-        </div>
         <div class="card-body">
-          <div class="mb-3">
-            <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Library search</p>
-            <h5 class="mb-1">Find problem statements</h5>
-            <p class="text-muted fs-xs mb-0">Search and filters choose which rows load. The table controls below sort, page, and filter the loaded rows.</p>
-          </div>
-
-          <form method="get" action="{% url 'pages:problem_statement_list' %}" class="mb-3">
-            <div class="row g-2 align-items-end">
-              <div class="col-md-6 col-xl-4">
-                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-search-q">Search</label>
+          <form id="statement-library-search" method="get" action="{% url 'pages:problem_statement_list' %}" role="search" aria-label="Statement library" class="mb-3">
+            <div class="statement-library-searchbar">
+              <div class="statement-library-query">
+                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-search-q">Search library</label>
                 <input
                   type="search"
                   name="q"
                   id="statement-search-q"
                   class="form-control form-control-sm"
                   value="{{ statement_list_filters.q }}"
-                  placeholder="Contest, UUID, topic, tags, …"
+                  placeholder="Contest, problem, UUID, topic or concept…"
                   autocomplete="off"
                 >
               </div>
-              <div class="col-sm-6 col-md-3 col-xl-2">
-                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-year-filter">Year</label>
-                <select id="statement-year-filter" name="year" class="form-select form-select-sm">
-                  <option value="">All years</option>
-                  {% for y in statement_filter_years %}
-                  <option value="{{ y }}"{% if statement_list_filters.year == y %} selected{% endif %}>{{ y }}</option>
-                  {% endfor %}
-                </select>
-              </div>
-              <div class="col-sm-6 col-md-3 col-xl-2">
-                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-topic-filter">Topic</label>
-                <select id="statement-topic-filter" name="topic" class="form-select form-select-sm">
-                  <option value="">All topics</option>
-                  {% for t in statement_filter_topics %}
-                  <option value="{{ t }}"{% if statement_list_filters.topic == t %} selected{% endif %}>{{ t }}</option>
-                  {% endfor %}
-                </select>
-              </div>
-              <div class="col-md-12 col-xl-4">
-                <div class="d-flex flex-wrap gap-2">
-                  <button type="submit" class="btn btn-primary btn-sm">
-                    <i class="ti ti-filter me-1"></i>Apply filters
-                  </button>
-                  <button
-                    class="btn btn-outline-secondary btn-sm"
-                    type="button"
-                    data-bs-toggle="collapse"
-                    data-bs-target="#statement-advanced-filters"
-                    aria-expanded="{% if statement_has_advanced_filters %}true{% else %}false{% endif %}"
-                    aria-controls="statement-advanced-filters"
-                  >
-                    <i class="ti ti-adjustments-horizontal me-1"></i>Advanced filters
-                  </button>
-                  {% if statement_has_active_filters %}
-                  <a href="{% url 'pages:problem_statement_list' %}" class="btn btn-outline-secondary btn-sm">
-                    <i class="ti ti-refresh me-1"></i>Reset
-                  </a>
-                  {% endif %}
-                </div>
-              </div>
+              <button type="submit" class="btn btn-primary btn-sm">
+                <i class="ti ti-search me-1" aria-hidden="true"></i>Search
+              </button>
+              <button
+                class="btn btn-outline-secondary btn-sm"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#statement-advanced-filters"
+                aria-expanded="{% if statement_has_advanced_filters or statement_list_filters.year or statement_list_filters.topic %}true{% else %}false{% endif %}"
+                aria-controls="statement-advanced-filters"
+              >
+                <i class="ti ti-adjustments-horizontal me-1" aria-hidden="true"></i>Filters
+              </button>
+              {% if statement_has_active_filters %}
+              <a href="{% url 'pages:problem_statement_list' %}" class="btn btn-outline-secondary btn-sm">Clear</a>
+              {% endif %}
             </div>
 
-            <div id="statement-advanced-filters" class="collapse{% if statement_has_advanced_filters %} show{% endif %} mt-2">
-              <div class="row g-2 align-items-end">
-                <div class="col-md-6 col-xl-4">
+            <div id="statement-advanced-filters" class="collapse{% if statement_has_advanced_filters or statement_list_filters.year or statement_list_filters.topic %} show{% endif %} mt-2">
+              <div class="row g-2 align-items-end pt-2">
+                <div class="col-6 col-lg-2">
+                  <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-year-filter">Year</label>
+                  <select id="statement-year-filter" name="year" class="form-select form-select-sm">
+                    <option value="">All years</option>
+                    {% for y in statement_filter_years %}
+                    <option value="{{ y }}"{% if statement_list_filters.year == y %} selected{% endif %}>{{ y }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="col-6 col-lg-2">
+                  <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-topic-filter">Topic</label>
+                  <select id="statement-topic-filter" name="topic" class="form-select form-select-sm">
+                    <option value="">All topics</option>
+                    {% for t in statement_filter_topics %}
+                    <option value="{{ t }}"{% if statement_list_filters.topic == t %} selected{% endif %}>{{ t }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="col-12 col-lg-4">
                   <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-confidence-filter">Confidence</label>
                   <select id="statement-confidence-filter" name="confidence" class="form-select form-select-sm">
                     <option value="">All confidence</option>
@@ -381,11 +367,11 @@
                     {% endfor %}
                   </select>
                 </div>
-                <div class="col-sm-6 col-md-3 col-xl-2">
+                <div class="col-6 col-lg-2">
                   <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-mohs-min">MOHS from</label>
                   <input id="statement-mohs-min" name="mohs_min" type="number" min="0" step="1" class="form-control form-control-sm" placeholder="Min" value="{{ statement_list_filters.mohs_min }}">
                 </div>
-                <div class="col-sm-6 col-md-3 col-xl-2">
+                <div class="col-6 col-lg-2">
                   <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-mohs-max">MOHS to</label>
                   <input id="statement-mohs-max" name="mohs_max" type="number" min="0" step="1" class="form-control form-control-sm" placeholder="Max" value="{{ statement_list_filters.mohs_max }}">
                 </div>
@@ -412,6 +398,15 @@
               {% endif %}
             </p>
             <div class="d-flex flex-wrap align-items-center gap-2">
+              {% if show_problem_import_link %}
+              <form method="post" class="d-inline-flex mb-0">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="recheck_links">
+                <button type="submit" id="problem-statements-recheck-links" class="btn btn-outline-secondary btn-sm">
+                  <i class="ti ti-link-check me-1" aria-hidden="true"></i>Recheck links
+                </button>
+              </form>
+              {% endif %}
               <button type="button" id="problem-statements-copy" class="btn btn-outline-primary btn-sm">
                 <i class="ti ti-copy me-1"></i>Copy loaded rows
               </button>
@@ -686,21 +681,18 @@
   new DataTable("#problem-statements-table", {
     data: rows,
     layout: {
-      topStart: null,
+      topStart: "pageLength",
       topEnd: null,
-      bottomStart: null,
-      bottomEnd: null,
-      top: ["pageLength", "search", "paging"],
-      bottom: ["info", "paging"],
+      bottomStart: "info",
+      bottomEnd: { paging: { type: "simple" } },
     },
     language: {
-      search: "Filter loaded rows:",
-      searchPlaceholder: "Within loaded rows...",
       info: "Showing _START_ to _END_ of _TOTAL_ loaded rows",
       infoEmpty: "No loaded rows to show",
       infoFiltered: "(filtered from _MAX_ loaded row(s))",
       lengthMenu: "Show _MENU_ rows",
     },
+    searching: false,
     order: [[7, "desc"]],
     pageLength: 25,
     lengthMenu: [10, 25, 50, 100],

@@ -99,7 +99,7 @@ pytestmark = pytest.mark.django_db
 EXPECTED_RECORD_COUNT = 1
 EXPECTED_ONE_TECHNIQUE = 1
 EXPECTED_TWO_TECHNIQUES = 2
-EXPECTED_COMPACT_COMPLETION_COLUMNS = 7
+EXPECTED_COMPACT_COMPLETION_COLUMNS = 8
 EXPECTED_MULTI_CONTEST_RENAME_TOTAL = 2
 UPDATED_MOHS = 5
 EXPECTED_PROGRESS_HALF_PERCENT = 50
@@ -7147,7 +7147,7 @@ def test_completion_quick_update_filters_by_mohs_range(client):
     assert 'aria-expanded="true"' in response_html
     assert "MOHS: 15\N{EN DASH}20" in response_html
     assert '<td class="quick-completion-mohs-cell" data-label="MOHS">' in response_html
-    assert "<span>18</span>" in response_html
+    assert '<span class="quick-completion-mohs-value">18</span>' in response_html
     assert "MOHS 10" not in response_html
     assert "MOHS 25" not in response_html
 
@@ -8936,6 +8936,7 @@ def test_completion_quick_update_renders_datatable_with_status_filter(client):  
     ]
     expected_headers = [
         "Problem",
+        "Day",
         "Topic",
         "MOHS",
         "Classification",
@@ -8946,8 +8947,8 @@ def test_completion_quick_update_renders_datatable_with_status_filter(client):  
     header_positions = [header_html.index(f">{header}</th>") for header in expected_headers]
     assert header_positions == sorted(header_positions)
     assert header_html.count("<th ") == EXPECTED_COMPACT_COMPLETION_COLUMNS
-    assert "targets: [4, 5, 6]" in response_html
-    assert "targets: [5, 6]" in response_html
+    assert "targets: [5, 6, 7]" in response_html
+    assert "targets: [6, 7]" in response_html
     assert "scrollX: false" in response_html
     assert 'search: "Filter loaded rows:"' in response_html
     assert 'searchPlaceholder: "Search these loaded rows"' in response_html
@@ -8967,6 +8968,34 @@ def test_completion_quick_update_renders_datatable_with_status_filter(client):  
     assert "statusFilter.focus();" in response_html
     assert "Clear completion and study details" in response_html
     assert '<caption class="visually-hidden">' in response_html
+
+
+@pytest.mark.parametrize(
+    ("day_label", "expected_day"),
+    [
+        ("Day 2", "Day 2"),
+        ("", '<span class="text-muted" aria-label="Day not specified">—</span>'),
+        ("Day <2>", "Day &lt;2&gt;"),
+    ],
+)
+def test_completion_quick_update_day_column_preserves_label(client, day_label, expected_day):
+    user = UserFactory()
+    client.force_login(user)
+    statement = _create_quick_completion_statement()
+    statement.day_label = day_label
+    statement.save(update_fields=["day_label"])
+
+    response = client.get(reverse("pages:completion_quick_update"))
+
+    assert response.status_code == HTTPStatus.OK
+    response_html = response.content.decode("utf-8")
+    day_cell = re.search(
+        r'<td class="quick-completion-day-cell" data-label="Day">(.*?)</td>',
+        response_html,
+        re.DOTALL,
+    )
+    assert day_cell is not None
+    assert day_cell.group(1).strip() == expected_day
 
 
 def test_completion_quick_update_announces_recent_backend_cap(client):
@@ -18622,8 +18651,8 @@ def test_problem_statement_list_shows_statement_rows_and_link_counts(client):
     assert 'id="problem-statements-copy-status"' in response_html
     assert 'id="problem-statements-loaded-status"' in response_html
     assert "Copy loaded rows" in response_html
-    assert "Find problem statements" in response_html
-    assert "Advanced filters" in response_html
+    assert 'role="search" aria-label="Statement library"' in response_html
+    assert "Search library" in response_html
     assert "Open statement" in response_html
     assert "Loaded 2 matching rows" in response_html
     assert 'id="problem-statements-table"' in response_html
@@ -18639,12 +18668,12 @@ def test_problem_statement_list_shows_statement_rows_and_link_counts(client):
     assert "dataTables.min.js" in response_html
     assert 'new DataTable("#problem-statements-table"' in response_html
     assert 'id="problem-statements-table-data"' in response_html
-    assert "Filter loaded rows:" in response_html
-    assert "Within loaded rows..." in response_html
+    assert "Filter loaded rows:" not in response_html
+    assert "Within loaded rows..." not in response_html
     assert "problem-statements-table-alert" in response_html
     assert 'aria-describedby="problem-statements-loaded-status"' in response_html
     assert 'order: [[7, "desc"]]' in response_html
-    assert 'top: ["pageLength", "search", "paging"]' in response_html
+    assert 'topStart: "pageLength"' in response_html
     assert 'aria-label="Statement pages"' not in response_html
     assert "dataTables_filter" not in response_html.lower()
     assert "statement-completion-save" not in response_html
@@ -19165,7 +19194,7 @@ def test_problem_statement_list_recheck_links_updates_matching_rows_for_admin(cl
     assert response.context["statement_stats"]["unlinked_total"] == 0
     response_html = response.content.decode("utf-8")
     assert 'id="problem-statements-recheck-links"' in response_html
-    assert "Recheck problem links" in response_html
+    assert "Recheck links" in response_html
     assert (
         "Rechecked 1 statement row(s): 1 linked, 1 newly linked, 0 skipped, "
         "0 still unlinked, 1 updated."

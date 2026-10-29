@@ -14,6 +14,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from inspinia.pages.models import ContestProblemStatement
+from inspinia.pages.models import ProblemSolveRecord
 from inspinia.pages.models import StatementTopicTechnique
 from inspinia.pages.models import UserProblemCompletion
 from inspinia.pages.shared_progress_views import shared_progress_comparison_view
@@ -735,6 +736,70 @@ def test_shared_topic_medians_use_filtered_dated_unique_problems(client, learner
     assert 'aria-label="Geometry median MOHS: 7.5"' in html
     assert 'aria-label="Number Theory median MOHS: —"' in html
     assert "Median MOHS" in html
+
+
+@pytest.mark.parametrize(
+    ("origin", "day_label"),
+    [("statement", "Beginner (A&B)"), ("linked_archive", "Advanced"), ("statement", ""), ("orphan_archive", "")],
+)
+def test_shared_completion_history_includes_contest_day_label(client, learners, origin, day_label):
+    problem = ProblemSolveRecord.objects.create(year=2026, contest="IGO", problem="P1", topic="GEO", mohs=15)
+    statement = None
+    if origin != "orphan_archive":
+        statement = ContestProblemStatement.objects.create(
+            contest_name="IGO",
+            contest_year=2026,
+            problem_code="P1",
+            problem_number=1,
+            statement_latex="A geometry problem",
+            linked_problem=problem,
+            day_label=day_label,
+        )
+    UserProblemCompletion.objects.create(
+        user=learners["alex"],
+        **({"statement": statement} if origin == "statement" else {"problem": problem}),
+    )
+    client.force_login(learners["alex"])
+    response = client.get(progress_url("alex"), {"range": "all"})
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["completion_progress_table_rows"][0]["day_label"] == day_label
+    html = response.content.decode()
+    history = html.split('id="completion-progress-table"', 1)[1].split("</table>", 1)[0]
+    assert "<th>Problem</th><th>Day label</th><th>Topic</th>" in history
+    assert f"<td>{day_label or '—'}</td>" in unescape(history)
+    payload = json.loads(
+        html.split('<script id="completion-progress-table-data" type="application/json">', 1)[1].split(
+            "</script>", 1,
+        )[0],
+    )
+    assert payload[0]["day_label"] == day_label
+
+
+@pytest.mark.parametrize("mapped", [False, True])
+def test_shared_completion_history_shows_canonical_concepts_after_area(client, learners, completions, mapped):
+    source = completions["alex"].statement
+    if mapped:
+        StatementTopicTechnique.objects.create(
+            statement=source, technique="AM-GM", main_topic="ALG", domains=["ALG"], lemma_theorem_tags=["AM-GM"],
+        )
+        StatementTopicTechnique.objects.create(
+            statement=source, technique="VIETA", main_topic="ALG", domains=["ALG"], lemma_theorem_tags=["VIETA"],
+        )
+    client.force_login(learners["alex"])
+    response = client.get(progress_url("alex"), {"range": "all"})
+    assert response.status_code == HTTPStatus.OK
+    expected = "AM-GM; VIETA" if mapped else ""
+    assert response.context["completion_progress_table_rows"][0]["concepts"] == expected
+    html = response.content.decode()
+    history = html.split('id="completion-progress-table"', 1)[1].split("</table>", 1)[0]
+    assert "<th>Area</th><th>Concepts</th><th>MOHS</th>" in history
+    assert f'<td class="lp-concepts" title="{expected or "—"}">{expected or "—"}</td>' in history
+    payload = json.loads(
+        html.split('<script id="completion-progress-table-data" type="application/json">', 1)[1].split(
+            "</script>", 1,
+        )[0],
+    )
+    assert payload[0]["concepts"] == expected
 
 
 def test_shared_overview_preserves_filter_scope_when_switching_learners(client, learners, completions):
