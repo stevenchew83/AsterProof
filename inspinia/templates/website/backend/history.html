@@ -1,0 +1,50 @@
+{% extends 'website/backend/base.html' %}
+
+{% block newsletter_content %}
+  <div class="card">
+    <div class="card-header border-0 pb-0">
+      <h2 class="header-title mb-1">
+        Delivery history <span class="text-muted fw-normal fs-sm ms-1">{{ page.paginator.count }}</span>
+      </h2>
+      <p class="text-muted fs-xs mb-0">
+        Accepted records the email server’s acknowledgement. Needs review means receipt is unconfirmed.
+      </p>
+    </div>
+    <div class="card-body py-3">
+      <form method="get" class="row g-2 align-items-end">
+        <div class="col-md-5">
+          <label class="form-label fs-xs" for="delivery-search">Recipient or subject</label>
+          <input class="form-control form-control-sm"
+                 id="delivery-search"
+                 name="q"
+                 value="{{ query }}"
+                 maxlength="100"
+                 placeholder="Search delivery history" />
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fs-xs" for="delivery-status">Status</label>
+          <select class="form-select form-select-sm" id="delivery-status" name="status">
+            <option value="">All statuses</option>
+            {% for value,label in statuses %}
+              <option value="{{ value }}"{% if value == status %} selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label fs-xs" for="delivery-kind">Type</label>
+          <select class="form-select form-select-sm" id="delivery-kind" name="kind">
+            <option value="">All types</option>
+            {% for value,label in kinds %}
+              <option value="{{ value }}"{% if value == kind %} selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2">
+          <button class="btn btn-light btn-sm w-100">Filter</button>
+        </div>
+      </form>
+    </div>
+    {% include 'website/backend/deliveries.html' with rows=page show_campaign=True %}
+    {% include 'website/backend/pagination.html' %}
+  </div>
+{% endblock newsletter_content %}

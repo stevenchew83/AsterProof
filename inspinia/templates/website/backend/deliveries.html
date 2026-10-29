@@ -1,0 +1,39 @@
+<div class="app-table-region table-responsive" role="region" aria-label="Newsletter results" tabindex="0">
+  <table class="table table-hover align-middle mb-0 newsletter-table app-table-compact">
+    <thead class="table-light">
+      <tr>
+        <th scope="col">Recipient</th>
+        {% if show_campaign %}<th scope="col">Newsletter</th>{% endif %}
+        <th scope="col">Type</th>
+        <th scope="col">Status</th>
+        <th scope="col">Time</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for delivery in rows %}
+        <tr>
+          <td class="newsletter-email">{{ delivery.recipient_email }}</td>
+          {% if show_campaign %}
+            <td>
+              <a href="{{ delivery.campaign.get_absolute_url }}">{{ delivery.subject|truncatechars:55 }}</a>
+            </td>
+          {% endif %}
+          <td class="text-nowrap fs-xs">{{ delivery.get_kind_display }} · v{{ delivery.campaign_version }}</td>
+          <td>
+            <span class="badge {{ delivery.badge_class }}">{{ delivery.get_status_display }}</span>
+            {% if delivery.detail %}
+              <div class="text-muted fs-xs mt-1 newsletter-delivery-detail">{{ delivery.detail }}</div>
+            {% endif %}
+          </td>
+          <td class="fs-xs text-muted text-nowrap">
+            {{ delivery.finished_at|default:delivery.attempted_at|default:delivery.created_at|date:'d M Y, H:i' }}
+          </td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="5" class="newsletter-empty text-muted">No delivery records yet.</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

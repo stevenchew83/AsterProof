@@ -73,9 +73,10 @@ subject/area/concept/lecture library is the main structure for learning material
 - Requests return a generic response to avoid exposing subscription status.
   A hidden bot field, rate limits, and a global budget bound confirmation sends.
   Cache failure prevents sending rather than bypassing the limits.
-- Limits: one request per address per minute, three per address per rolling
-  24-hour window, ten per `REMOTE_ADDR` per hour, and 100 global requests per
-  rolling 24-hour window by default. Counters may consume allowance without a
+- Limits: one request per address per minute, three per address per
+  24-hour window, ten per `REMOTE_ADDR` per hour, and a shared allowance of 100
+  newsletter emails per 24-hour counter window by default. Confirmations, campaign
+  emails and tests share that allowance. Counters may consume allowance without a
   successful send. The production reverse proxy can make `REMOTE_ADDR` shared
   across visitors, so the hourly limit is intentionally conservative. Do not
   trust arbitrary forwarded headers; revisit the proxy's trusted-IP policy
@@ -90,10 +91,13 @@ subject/area/concept/lecture library is the main structure for learning material
   request. Review old pending records periodically; no automatic retention job is
   added. Only `confirmed` records are eligible for future newsletter campaigns.
 
-This release collects confirmed subscriptions and sends confirmation emails.
-It does not include a campaign composer, bulk sender, automatic lecture alerts,
-or an email-provider migration. Future campaign emails must include the signed
-unsubscribe link and apply delivery/provider limits.
+App admins manage newsletters from **Administration → Newsletter** at
+`/manage/newsletter/`. The workspace includes subscriber search and opt-out,
+branded Markdown drafts and previews, tests to the signed-in administrator,
+confirmed-only campaigns, individual unsubscribe links and delivery history.
+See [Newsletter operations](newsletter.md) for sending and interrupted-delivery
+handling. Automatic lecture alerts and an email-provider migration are outside
+this feature.
 
 ## Settings and assets
 

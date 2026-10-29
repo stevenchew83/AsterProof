@@ -185,6 +185,7 @@
             {% endif %}
             {% if is_app_admin %}
             <li class="side-nav-title">Administration</li>
+            {% include 'partials/sidenav-link.html' with route_name='website:newsletter_dashboard' label='Newsletter' icon='mail' only %}
             {% include 'partials/sidenav-link.html' with route_name='pages:concept_assignment_review' label='Concept assignment review' icon='list-check' only %}
             {% include 'partials/sidenav-link.html' with route_name='users:manage_roles' label='User roles' only %}
             {% include 'partials/sidenav-link.html' with route_name='training:admin_levels' label='Level settings' only %}

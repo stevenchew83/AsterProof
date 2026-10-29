@@ -1,11 +1,25 @@
 from django.urls import path
 
+from . import backend
 from . import views
 
 app_name = "website"
 
 urlpatterns = [
     path("problem-solving/", views.problem_solving_view, name="problem_solving"),
+    path("manage/newsletter/", backend.index, name="newsletter_dashboard"),
+    path("manage/newsletter/subscribers/", backend.subscribers, name="newsletter_subscribers"),
+    path("manage/newsletter/subscribers/<uuid:pk>/", backend.subscriber, name="newsletter_subscriber"),
+    path("manage/newsletter/drafts/new/", backend.campaign_editor, name="newsletter_campaign_new"),
+    path("manage/newsletter/campaigns/<uuid:pk>/", backend.campaign_editor, name="newsletter_campaign"),
+    path("manage/newsletter/campaigns/<uuid:pk>/preview/", backend.campaign_preview, name="newsletter_preview"),
+    path("manage/newsletter/campaigns/<uuid:pk>/send/", backend.campaign_send, name="newsletter_send"),
+    path("manage/newsletter/campaigns/<uuid:pk>/next/", backend.campaign_step, name="newsletter_send_next"),
+    path("manage/newsletter/campaigns/<uuid:pk>/resume/", backend.campaign_resume, name="newsletter_resume"),
+    path("manage/newsletter/campaigns/<uuid:pk>/pause/", backend.campaign_pause, name="newsletter_pause"),
+    path("manage/newsletter/campaigns/<uuid:pk>/review/", backend.campaign_interrupted, name="newsletter_interrupted"),
+    path("manage/newsletter/campaigns/<uuid:pk>/duplicate/", backend.campaign_duplicate, name="newsletter_duplicate"),
+    path("manage/newsletter/history/", backend.history, name="newsletter_history"),
     path("about/", views.about_view, name="about"),
     path("contact/", views.contact_view, name="contact"),
     path("privacy/", views.privacy_view, name="privacy"),

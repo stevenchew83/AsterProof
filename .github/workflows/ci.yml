@@ -74,15 +74,21 @@ jobs:
         if: steps.checks.outputs.locks == 'true'
         run: python scripts/deployment/check_production_lock.py --verify-resolution
 
-      - name: Rehearse the exact public-website schema
+      - name: Rehearse the exact additive schema
         id: website-schema
         if: steps.checks.outputs.runtime == 'true'
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          ACTIVE_SHA: 457172aef8d8fa058bf20f140fd64de8eccb9576
+          WEBSITE_BASELINE_SHA: 457172aef8d8fa058bf20f140fd64de8eccb9576
           DATABASE_URL: postgres://postgres@127.0.0.1:5432/asterproof_schema_rehearsal
         run: |
-          if git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/website_schema.py scripts/deployment/website_schema_rehearsal.py scripts/deployment/additive_schema.py .github/workflows/production-deploy.yml; then
+          if ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/newsletter_schema.py scripts/deployment/newsletter_schema_rehearsal.py inspinia/website/migrations/0002_newsletter_campaigns.py; then
+            rehearsal=scripts.deployment.newsletter_schema_rehearsal
+            active_sha=cadde5c7a0f374dfcd6d19a3abac893f2b1d99b2
+          elif ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/website_schema.py scripts/deployment/website_schema_rehearsal.py; then
+            rehearsal=scripts.deployment.website_schema_rehearsal
+            active_sha="$WEBSITE_BASELINE_SHA"
+          else
             exit 0
           fi
           container="asterproof-website-schema-$GITHUB_RUN_ID"
@@ -102,18 +108,18 @@ jobs:
             sleep 1
           done
           mkdir "$RUNNER_TEMP/website-active-source"
-          git archive "$ACTIVE_SHA" | tar -x -C "$RUNNER_TEMP/website-active-source"
-          .ci-quality/bin/python -m scripts.deployment.website_schema_rehearsal \
-            --active-source "$RUNNER_TEMP/website-active-source" --active-sha "$ACTIVE_SHA" \
-            --release-sha "$GITHUB_SHA" --output "$RUNNER_TEMP/website-schema-delta.json" --record-delta
+          git archive "$active_sha" | tar -x -C "$RUNNER_TEMP/website-active-source"
+          .ci-quality/bin/python -m "$rehearsal" \
+            --active-source "$RUNNER_TEMP/website-active-source" --active-sha "$active_sha" \
+            --release-sha "$GITHUB_SHA" --output "$RUNNER_TEMP/website-schema-evidence.json"
           echo 'ran=true' >> "$GITHUB_OUTPUT"
 
-      - name: Save the website schema rehearsal
+      - name: Save the additive schema preservation proof
         if: steps.website-schema.outputs.ran == 'true'
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: website-schema-rehearsal-${{ github.run_id }}
-          path: ${{ runner.temp }}/website-schema-delta.json
+          path: ${{ runner.temp }}/website-schema-evidence.json
           if-no-files-found: error
           retention-days: 7
 

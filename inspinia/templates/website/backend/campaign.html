@@ -1,0 +1,212 @@
+{% extends 'website/backend/base.html' %}
+
+{% block newsletter_heading %}
+  <header class="page-title-head app-page-header">
+    <div>
+      {% url 'website:newsletter_dashboard' as back_url %}
+      {% include 'partials/page-header-intro.html' with title=campaign.subject|default:'New draft' back_url=back_url back_label='Newsletter' page_icon='ti-edit' only %}
+    </div>
+    <div class="app-page-header-actions">
+      <span class="badge {{ campaign.badge_class }}">{{ campaign.get_status_display }}</span>
+      {% if campaign.created_at %}<span class="text-muted fs-xs">v{{ campaign.version }}</span>{% endif %}
+      {% if campaign.is_editable %}
+        <button type="submit"
+                form="newsletter-draft"
+                name="action"
+                value="save"
+                class="btn btn-primary btn-sm">Save draft</button>
+        <button type="submit"
+                form="newsletter-draft"
+                name="action"
+                value="test"
+                class="btn btn-outline-primary btn-sm">Save &amp; send test</button>
+        <button type="submit"
+                form="newsletter-draft"
+                name="action"
+                value="review"
+                class="btn btn-light btn-sm">
+          Review &amp; send<i class="ti ti-arrow-right ms-1" aria-hidden="true"></i>
+        </button>
+      {% endif %}
+    </div>
+  </header>
+{% endblock newsletter_heading %}
+{% block newsletter_content %}
+  {% include 'website/backend/runner.html' %}
+  {% if inflight %}
+    <div class="alert alert-info py-2 fs-sm">
+      <p class="mb-2">
+        A delivery is in progress. An interrupted attempt can be marked for review after five minutes. It will not be retried automatically.
+      </p>
+      <form method="post"
+            action="{% url 'website:newsletter_interrupted' pk=campaign.pk %}">
+        {% csrf_token %}
+        <button class="btn btn-outline-secondary btn-sm"
+                {% if not can_review_interrupted %}disabled{% endif %}>Mark interrupted delivery for review</button>
+      </form>
+    </div>
+  {% endif %}
+  {% if not campaign.is_editable %}
+    <div class="card">
+      <div class="card-body py-3">
+        <div class="d-flex justify-content-between flex-wrap gap-3">
+          <div>
+            <h2 class="h5 mb-1">{{ counts.processed }} of {{ counts.total }} recipients processed</h2>
+            <p class="text-muted fs-xs mb-0">
+              {{ counts.accepted }} accepted · {{ counts.skipped }} skipped · {{ counts.failed }} failed · {{ counts.unknown }} need review
+            </p>
+          </div>
+          <div class="d-flex flex-wrap gap-2">
+            {% if campaign.status == 'sending' or campaign.status == 'paused' %}
+              <form method="post"
+                    action="{% url 'website:newsletter_resume' pk=campaign.pk %}"
+                    data-newsletter-send>
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary btn-sm">Continue sending</button>
+              </form>
+              <form method="post"
+                    action="{% url 'website:newsletter_pause' pk=campaign.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-light btn-sm">Pause</button>
+              </form>
+            {% endif %}
+            <form method="post"
+                  action="{% url 'website:newsletter_duplicate' pk=campaign.pk %}">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-light btn-sm">
+                <i class="ti ti-copy me-1" aria-hidden="true"></i>Copy to new draft
+              </button>
+            </form>
+          </div>
+        </div>
+        {% if campaign.status == 'sending' %}
+          <noscript>
+            <form class="mt-3"
+                  method="post"
+                  action="{% url 'website:newsletter_send_next' pk=campaign.pk %}">
+              {% csrf_token %}
+              <button class="btn btn-primary btn-sm">Send next recipient</button>
+            </form>
+          </noscript>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+  <div class="newsletter-editor-grid">
+    <div>
+      <section class="card">
+        <div class="card-header border-0 pb-0">
+          <h2 class="header-title">
+            {% if campaign.is_editable %}
+              Write your newsletter
+            {% else %}
+              Sent version
+            {% endif %}
+          </h2>
+        </div>
+        <div class="card-body pt-2">
+          {% if campaign.is_editable %}
+            <form method="post" id="newsletter-draft" data-newsletter-draft>
+              {% csrf_token %}{{ form.version }}{{ form.non_field_errors }}
+              {% for field in form.visible_fields %}
+                <div class="mb-3">
+                  <label for="{{ field.id_for_label }}" class="form-label fs-sm">{{ field.label }}</label>
+                  {{ field }}
+                  {% if field.help_text %}<div class="form-text fs-xs">{{ field.help_text }}</div>{% endif %}
+                  {% for error in field.errors %}<div class="text-danger fs-xs mt-1">{{ error }}</div>{% endfor %}
+                </div>
+              {% endfor %}
+              <p class="text-muted fs-xs mt-3 mb-0">
+                Test emails go to {{ request.user.email }}. Changes require a new test before sending.
+              </p>
+            </form>
+          {% else %}
+            <p class="text-muted fs-sm mb-2">This version and its audience are saved with the campaign.</p>
+            <dl class="mb-3 fs-sm">
+              <dt>Subject</dt>
+              <dd>
+                {{ campaign.subject }}
+              </dd>
+              <dt>Inbox preview</dt>
+              <dd>
+                {{ campaign.preheader|default:'—' }}
+              </dd>
+              <dt>Started</dt>
+              <dd>
+                {{ campaign.started_at|date:'d M Y, H:i' }}
+              </dd>
+            </dl>
+            <details>
+              <summary class="fs-sm">View message source</summary>
+              <pre class="newsletter-source mt-2 mb-0">{{ campaign.body_markdown }}</pre>
+            </details>
+          {% endif %}
+        </div>
+      </section>
+      {% if campaign.is_editable %}
+        <div class="d-flex gap-2 align-items-start px-1">
+          <i class="ti {% if test_ready %}ti-circle-check text-success{% else %}ti-mail-check text-muted{% endif %} fs-22"
+             aria-hidden="true"></i>
+          <p class="text-muted fs-xs mb-0">
+            {% if test_ready %}
+              A test for this version was accepted. Check its appearance in your inbox, then review your audience.
+            {% else %}
+              Save your draft, preview it, and send yourself a test before sending to subscribers.
+            {% endif %}
+          </p>
+        </div>
+      {% endif %}
+    </div>
+    <section class="card newsletter-preview-card">
+      <div class="card-header border-0 py-3 d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="header-title mb-0">Email preview</h2>
+          <span class="text-muted fs-xs" data-preview-caption>Saved version</span>
+        </div>
+        <div class="btn-group btn-group-sm" aria-label="Preview size">
+          <button class="btn btn-light"
+                  type="button"
+                  data-preview-size="desktop"
+                  aria-pressed="true"
+                  aria-label="Desktop preview">
+            <i class="ti ti-device-desktop" aria-hidden="true"></i>
+          </button>
+          <button class="btn btn-light"
+                  type="button"
+                  data-preview-size="mobile"
+                  aria-pressed="false"
+                  aria-label="Mobile preview">
+            <i class="ti ti-device-mobile" aria-hidden="true"></i>
+          </button>
+        </div>
+      </div>
+      <div class="newsletter-preview-stage" data-preview-stage>
+        {% if campaign.created_at %}
+          <iframe src="{% url 'website:newsletter_preview' pk=campaign.pk %}?v={{ campaign.version }}"
+                  title="Branded newsletter preview"
+                  sandbox=""
+                  class="newsletter-preview-frame"></iframe>
+        {% else %}
+          <div class="newsletter-empty text-muted">
+            <i class="ti ti-mail fs-24 mb-2 d-block" aria-hidden="true"></i>Save your draft to see the branded preview.
+          </div>
+        {% endif %}
+      </div>
+    </section>
+  </div>
+  {% if campaign.created_at %}
+    <section class="card mt-3">
+      <div class="card-header border-0 py-3 d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="header-title mb-1">Recent deliveries</h2>
+          <p class="text-muted fs-xs mb-0">
+            Accepted records the email server’s acknowledgement. Interrupted attempts require review.
+          </p>
+        </div>
+        <a class="fs-sm"
+           href="{% url 'website:newsletter_history' %}?q={{ campaign.subject|urlencode }}">All history<i class="ti ti-arrow-up-right ms-1" aria-hidden="true"></i></a>
+      </div>
+      {% include 'website/backend/deliveries.html' with rows=recent_deliveries %}
+    </section>
+  {% endif %}
+{% endblock newsletter_content %}
