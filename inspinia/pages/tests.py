@@ -4358,22 +4358,22 @@ def test_extract_svg_markup_strips_unsafe_svg_content():
     assert "javascript:" not in svg_markup
 
 
-def test_home_requires_login(client):
+def test_home_is_public(client):
     response = client.get(reverse("pages:home"))
-    login_url = reverse(settings.LOGIN_URL)
 
-    assert response.status_code == HTTPStatus.FOUND
-    assert response.url == f"{login_url}?next={reverse('pages:home')}"
+    assert response.status_code == HTTPStatus.OK
+    assert reverse("website:library") in response.content.decode()
+    assert reverse("account_login") in response.content.decode()
 
 
-def test_home_redirects_authenticated_user_to_activity_dashboard(client):
+def test_home_links_authenticated_user_to_activity_dashboard(client):
     user = UserFactory()
     client.force_login(user)
 
     response = client.get(reverse("pages:home"))
 
-    assert response.status_code == HTTPStatus.FOUND
-    assert response.url == reverse("pages:user_activity_dashboard")
+    assert response.status_code == HTTPStatus.OK
+    assert reverse("pages:user_activity_dashboard") in response.content.decode()
 
 
 def test_latex_preview_requires_login(client):
@@ -25777,7 +25777,7 @@ def test_problem_import_page_imports_statement_csv_rows_for_admin(client):
 
 
 @override_settings(DEBUG=False)
-def test_home_redirects_authenticated_user_with_archive_data_to_activity_dashboard(client):
+def test_public_home_does_not_display_authenticated_users_archive_data(client):
     user = UserFactory()
     client.force_login(user)
     problem = ProblemSolveRecord.objects.create(
@@ -25792,8 +25792,9 @@ def test_home_redirects_authenticated_user_with_archive_data_to_activity_dashboa
 
     response = client.get(reverse("pages:home"))
 
-    assert response.status_code == HTTPStatus.FOUND
-    assert response.url == reverse("pages:user_activity_dashboard")
+    assert response.status_code == HTTPStatus.OK
+    assert reverse("pages:user_activity_dashboard") in response.content.decode()
+    assert "ISRAEL TST" not in response.content.decode()
 
 
 def test_user_activity_dashboard_exposes_solution_workspace_navigation(client):
@@ -27147,7 +27148,7 @@ def test_contest_problem_list_renders_asymptote_statement_blocks(client, monkeyp
     assert "Show Asymptote source" in response_html
 
 
-def test_home_redirects_admin_to_activity_dashboard(client):
+def test_public_home_links_admin_to_activity_dashboard(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     client.force_login(admin_user)
     record = ProblemSolveRecord.objects.create(
@@ -27162,8 +27163,9 @@ def test_home_redirects_admin_to_activity_dashboard(client):
 
     response = client.get(reverse("pages:home"))
 
-    assert response.status_code == HTTPStatus.FOUND
-    assert response.url == reverse("pages:user_activity_dashboard")
+    assert response.status_code == HTTPStatus.OK
+    assert reverse("pages:user_activity_dashboard") in response.content.decode()
+    assert "ISRAEL TST" not in response.content.decode()
 
 
 def test_dashboard_sidebar_shows_personal_progress_link_for_authenticated_user(client):

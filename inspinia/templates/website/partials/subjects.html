@@ -1,0 +1,5 @@
+<div class="website-subject-list">
+  {% for subject in public_subjects %}
+    <a class="website-subject" href="{{ subject.url }}"><span class="website-subject-number">0{{ forloop.counter }}</span><div><h3>{{ subject.title }}</h3><p>{{ subject.description }}</p></div><span class="website-subject-symbol" aria-hidden="true">{% if subject.slug == 'geometry' %}△{% elif subject.slug == 'algebra' %}ƒ{% elif subject.slug == 'number-theory' %}ℕ{% else %}∑{% endif %}</span><span class="website-arrow" aria-hidden="true">↗</span></a>
+  {% endfor %}
+</div>

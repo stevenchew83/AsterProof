@@ -10,7 +10,7 @@ import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-APPS = {"pages", "problemsets", "rankings", "solutions", "training", "users"}
+APPS = {"pages", "problemsets", "rankings", "solutions", "training", "users", "website"}
 # These apps consume the shared problem identity and statement/solution helpers.
 DEPENDENTS = {"pages": {"problemsets", "solutions"}, "solutions": {"problemsets"}}
 CORE_TESTS = {"config/tests", "inspinia/users/tests"}

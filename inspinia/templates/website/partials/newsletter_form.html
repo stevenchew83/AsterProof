@@ -1,0 +1,10 @@
+<form method="post" action="{% url 'website:newsletter_subscribe' %}" class="website-newsletter-form">
+  {% csrf_token %}
+  {{ newsletter_form.company }}
+  <label for="{{ newsletter_form.email.id_for_label }}">Your email address</label>
+  <div class="website-email-row">{{ newsletter_form.email }}<button type="submit" class="website-button">Keep me curious <span aria-hidden="true">↗</span></button></div>
+  {% if newsletter_form.email.errors %}<div class="website-field-error" role="alert">{{ newsletter_form.email.errors }}</div>{% endif %}
+  <label class="website-consent" for="{{ newsletter_form.consent.id_for_label }}">{{ newsletter_form.consent }}<span>{{ newsletter_form.consent.label }} I can unsubscribe at any time.</span></label>
+  {% if newsletter_form.consent.errors %}<div class="website-field-error" role="alert">{{ newsletter_form.consent.errors }}</div>{% endif %}
+  <p class="website-fineprint">Confirm by email to subscribe. Read our <a href="{% url 'website:privacy' %}">Privacy Policy</a>.</p>
+</form>

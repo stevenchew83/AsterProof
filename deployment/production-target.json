@@ -5,7 +5,7 @@
   "deploy_user": "asterproof_deploy",
   "environment_file": "/var/lib/asterproof/environment",
   "format_version": 1,
-  "health_url": "https://18.142.249.181/healthz/",
+  "health_url": "https://52.74.244.123/healthz/",
   "marker": "asterproof-production",
   "media_root": "/var/lib/asterproof/media",
   "minimum_free_bytes": 2147483648,

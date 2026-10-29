@@ -1,0 +1,20 @@
+{% extends "website/base.html" %}
+{% load static %}
+{% block public_content %}
+  <section class="website-hero" aria-labelledby="hero-title">
+    <div class="website-hero-grid" aria-hidden="true"></div>
+    <div class="website-container website-hero-inner">
+      <div class="website-hero-copy"><p class="website-kicker"><span></span> A place for mathematical thinking</p><h1 id="hero-title">A little insight.<br><em>Infinite possibilities.</em></h1><p class="website-hero-description">Explore olympiad mathematics, connect ideas, and understand the proof.</p><a href="{% url 'website:library' %}" class="website-button">Explore the library <span aria-hidden="true">↗</span></a></div>
+      <div class="website-geometry" data-geometry>
+        <svg class="website-geometry-fallback" viewBox="0 0 600 600" fill="none" aria-hidden="true"><circle cx="300" cy="300" r="205"/><ellipse cx="300" cy="300" rx="205" ry="83" transform="rotate(-25 300 300)"/><path d="M300 95 122.5 402.5H477.5Z"/><circle cx="300" cy="300" r="102.5"/><path d="M70 300H530M300 70V530" stroke-dasharray="3 8"/><circle cx="300" cy="95" r="4"/><circle cx="122.5" cy="402.5" r="4"/><circle cx="477.5" cy="402.5" r="4"/></svg>
+        <canvas aria-hidden="true"></canvas><span class="website-geometry-label website-geometry-label-a" aria-hidden="true">A</span><span class="website-geometry-label website-geometry-label-b" aria-hidden="true">B</span><span class="website-geometry-label website-geometry-label-c" aria-hidden="true">C</span><div class="website-geometry-caption"><span>Different angles. Deeper understanding.</span><button type="button" data-motion-toggle hidden aria-pressed="false">Pause motion</button></div>
+      </div>
+    </div>
+  </section>
+  <section id="the-library" class="website-section website-container website-library-intro">
+    <div class="website-section-intro"><p class="website-kicker">The AsterProof library</p><h2>Every idea has<br><em>a place to begin.</em></h2><p>Choose a subject. Explore its areas, concepts, and lectures at your own pace.</p><a class="website-text-link" href="{% url 'website:library' %}">Browse the library <span aria-hidden="true">↗</span></a></div>
+    {% include "website/partials/subjects.html" %}
+  </section>
+  <section class="website-process"><div class="website-container"><div class="website-process-heading"><p class="website-kicker">Understanding, one layer deeper</p><h2>Know what works.<br><em>Understand why.</em></h2></div><div class="website-process-grid"><article><span>01 / The idea</span><h3>Notice the structure.</h3><p>Understand the concept and when to use it.</p></article><article><span>02 / The reasoning</span><h3>Follow the proof.</h3><p>Turn a small observation into a rigorous argument.</p></article><article><span>03 / The practice</span><h3>Make it your own.</h3><p>Work through problems and reflect on your progress.</p></article></div><a class="website-text-link" href="{% url 'account_login' %}">Open your workspace <span aria-hidden="true">↗</span></a></div></section>
+{% endblock public_content %}
+{% block website_javascript %}<script defer src="{% static 'js/website-geometry.bundle.js' %}"></script>{% endblock website_javascript %}

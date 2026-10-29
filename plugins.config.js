@@ -1,5 +1,11 @@
 module.exports = [
     {
+        name: "three",
+        assets: [
+            "./node_modules/three/LICENSE",
+        ],
+    },
+    {
         vendorsJS: [
             "./node_modules/jquery/dist/jquery.min.js",
             "./node_modules/bootstrap/dist/js/bootstrap.bundle.min.js",

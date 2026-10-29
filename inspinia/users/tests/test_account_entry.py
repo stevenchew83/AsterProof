@@ -83,3 +83,46 @@ def test_password_reset_generates_email_and_single_use_working_link(client):
     assert not user.check_password(TEST_OLD_PASSWORD)
     response = client.get(reset_path, follow=True)
     assert 'name="password1"' not in response.content.decode()
+
+
+@pytest.mark.parametrize(
+    "url_name",
+    [
+        "account_signup", "account_reset_password", "account_reset_password_done",
+        "account_reset_password_from_key_done", "account_request_login_code",
+    ],
+)
+def test_account_entrances_share_the_brand_layout_and_single_heading(client, url_name):
+    response = client.get(reverse(url_name))
+    html = response.content.decode()
+
+    assert response.status_code == HTTPStatus.OK
+    assert 'class="auth-login"' in html
+    assert 'class="auth-login-story"' in html
+    assert len(re.findall(r"<h1(?:\s|>)", html)) == 1
+    assert "account-login.js" in html
+
+
+def test_signup_renders_password_validation_errors_and_keeps_inputs_private(client):
+    response = client.post(
+        reverse("account_signup"),
+        {"email": "new-account@example.com", "password1": TEST_OLD_PASSWORD, "password2": TEST_NEW_PASSWORD},
+    )
+    html = response.content.decode()
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["form"].errors
+    assert 'role="alert"' in html
+    assert TEST_OLD_PASSWORD not in html
+    assert TEST_NEW_PASSWORD not in html
+    assert 'aria-controls="id_password1"' in html
+    assert 'aria-controls="id_password2"' in html
+
+
+def test_invalid_reset_link_offers_a_new_link(client):
+    response = client.get(reverse("account_reset_password_from_key", kwargs={"uidb36": "1", "key": "invalid"}))
+    html = response.content.decode()
+
+    assert response.status_code == HTTPStatus.OK
+    assert "Request a new reset link" in html
+    assert 'name="password1"' not in html

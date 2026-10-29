@@ -119,6 +119,16 @@
 .auth-login-panel {
     width: min(100%, 380px);
     animation: auth-login-enter .6s .08s ease-out both;
+
+    > h1 {
+        margin-bottom: 18px;
+        color: var(--auth-ink);
+        font-size: 34px;
+        font-weight: 600;
+        letter-spacing: -.045em;
+    }
+    > p { color: var(--auth-muted); font-size: 13px; line-height: 1.8; }
+    .alert { font-size: 12px; line-height: 1.65; }
 }
 
 .auth-login-heading {
@@ -164,7 +174,15 @@
         &:focus { border-color: var(--auth-accent); box-shadow: 0 0 0 3px rgba(20, 158, 146, .1); }
         &[aria-invalid="true"] { border-color: var(--ins-danger); }
     }
-    input[name="password"] { padding-right: 52px; }
+    &--password input { padding-right: 52px; }
+    input[name="code"] {
+        height: 56px;
+        font-family: var(--ins-font-monospace);
+        font-size: 22px;
+        letter-spacing: .25em;
+        text-align: center;
+        text-transform: uppercase;
+    }
 }
 
 .auth-login-toggle {
@@ -227,7 +245,44 @@
     ul { margin: 0; padding-left: 18px; }
 }
 
-.auth-login-code { display: block; margin-top: 20px; text-align: center; color: var(--auth-accent); }
+.auth-login-code {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 46px;
+    margin-top: 14px;
+    padding: 10px;
+    border: 1px solid var(--auth-line);
+    border-radius: var(--ins-border-radius);
+    color: var(--auth-accent);
+    font-size: 12px;
+    font-weight: 600;
+    transition: border-color .18s ease, background-color .18s ease;
+    &:hover { border-color: var(--auth-accent); background: rgba(20, 158, 146, .06); }
+}
+
+.auth-login-help, .auth-login-note {
+    color: var(--auth-muted);
+    font-size: 11px;
+    line-height: 1.7;
+}
+.auth-login-help {
+    margin-top: 9px;
+    ul { margin: 0; padding-left: 16px; }
+}
+.auth-login-note { margin: 20px 0; }
+.auth-login-recipient { color: var(--auth-ink); overflow-wrap: anywhere; }
+.auth-login-alternative-form { margin-top: 12px; }
+.auth-login-text-button {
+    padding: 4px;
+    border: 0;
+    background: transparent;
+    color: var(--auth-accent);
+    font: inherit;
+    font-weight: 600;
+    &:hover { text-decoration: underline; }
+}
 
 .auth-login-signup {
     margin: 30px 0 0;

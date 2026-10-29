@@ -100,6 +100,7 @@ LOCAL_APPS = [
     "inspinia.problemsets",
     "inspinia.rankings",
     "inspinia.training",
+    "inspinia.website",
     # Your stuff: custom apps go here
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
@@ -301,6 +302,14 @@ REDIS_SSL = REDIS_URL.startswith("rediss://")
 ACCOUNT_ALLOW_REGISTRATION = env.bool("DJANGO_ACCOUNT_ALLOW_REGISTRATION", True)
 # https://docs.allauth.org/en/latest/account/configuration.html
 ACCOUNT_LOGIN_METHODS = {"email"}
+# Keep password sign-in available alongside short-lived, optional email codes.
+ACCOUNT_LOGIN_BY_CODE_ENABLED = True
+ACCOUNT_LOGIN_BY_CODE_REQUIRED = False
+ACCOUNT_LOGIN_BY_CODE_TIMEOUT = 180
+ACCOUNT_LOGIN_BY_CODE_MAX_ATTEMPTS = 3
+# All other Allauth rate limits retain their defaults. Limit repeat emails to
+# preserve the shared Gmail sending allowance and prevent resend bursts.
+ACCOUNT_RATE_LIMITS = {"request_login_code": "20/m/ip,1/m/key"}
 # https://docs.allauth.org/en/latest/account/configuration.html
 ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
 # https://docs.allauth.org/en/latest/account/configuration.html
@@ -321,6 +330,11 @@ SOCIALACCOUNT_FORMS = {"signup": "inspinia.users.forms.UserSocialSignupForm"}
 
 # Your stuff...
 # ------------------------------------------------------------------------------
+PUBLIC_SITE_ORIGIN = env("DJANGO_PUBLIC_SITE_ORIGIN", default="https://asterproof.com")
+PUBLIC_CONTACT_EMAIL = "chinchiat83@gmail.com"
+PUBLIC_OPERATOR_NAME = env("DJANGO_PUBLIC_OPERATOR_NAME", default="Steven")
+NEWSLETTER_DAILY_EMAIL_LIMIT = env.int("DJANGO_NEWSLETTER_DAILY_EMAIL_LIMIT", default=100)
+
 SHARED_PROGRESS_LEARNERS = {
     "alex": env("DJANGO_PROGRESS_ALEX_EMAIL", default=""),
     "ben": env("DJANGO_PROGRESS_BEN_EMAIL", default=""),

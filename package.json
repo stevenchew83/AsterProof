@@ -16,10 +16,12 @@
     "jquery": "3.7.1",
     "lucide": "^0.510.0",
     "simplebar": "^6.3.0",
+    "three": "0.186.1",
     "tom-select": "2.6.2"
   },
   "devDependencies": {
     "cross-env": "^7.0.3",
+    "esbuild": "0.28.2",
     "gulp": "^4.0.2",
     "gulp-autoprefixer": "^8.0.0",
     "gulp-clean-css": "^4.2.0",

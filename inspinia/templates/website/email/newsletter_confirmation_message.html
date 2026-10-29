@@ -1,0 +1,5 @@
+{% extends "account/email/base_message.html" %}
+{% block email_title %}A note for the curious | AsterProof{% endblock email_title %}
+{% block preheader %}Confirm your email to receive new lectures and occasional AsterProof updates.{% endblock preheader %}
+{% block email_heading %}A little room for discovery.{% endblock email_heading %}
+{% block email_content %}<p style="margin:0 0 16px">You asked to hear about new lectures, useful ideas, and AsterProof updates. Confirm your subscription below.</p>{% include 'account/email/_action.html' with action_url=confirmation_url action_label='Confirm subscription' %}<p style="font-size:11px;margin:18px 0 0">This link expires in 48 hours. If you didn’t request this, you can ignore this email. You won’t be subscribed without confirming.</p><p style="font-size:11px;margin:16px 0 0"><a href="{{ unsubscribe_url }}" style="color:#08796f">Manage your newsletter preference</a></p>{% endblock email_content %}

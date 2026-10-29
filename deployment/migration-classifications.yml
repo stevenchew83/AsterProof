@@ -2,6 +2,16 @@
   "format_version": 1,
   "baseline_sha": null,
   "migrations": {
+    "website.0001_initial": {
+      "classification": "backward-compatible-schema",
+      "recovery_required": false,
+      "code_rollback_permitted": true,
+      "data_preconditions": [
+        "website_tables_absent",
+        "existing_schema_unchanged"
+      ],
+      "rationale": "Adds four isolated public-library and newsletter-consent models plus the concept prerequisite join table, indexes, constraints and foreign keys. Existing catalogue, user, problem and progress rows are not rewritten. Prior application code remains compatible with the additive tables; a code rollback must preserve consent and editorial records. This classification does not expand the frozen production migration allowlist."
+    },
     "pages.0036_concept_assignment_reviews": {
       "classification": "backward-compatible-schema",
       "recovery_required": false,

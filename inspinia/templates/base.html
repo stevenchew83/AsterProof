@@ -7,10 +7,11 @@
 <meta charset="utf-8" />
 <title>{% block title %}{% endblock title %} | AsterProof</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="AsterProof problem analytics and workbook import dashboard.">
+<meta name="description" content="{% block meta_description %}AsterProof problem analytics and workbook import dashboard.{% endblock meta_description %}">
 <meta name="keywords" content="AsterProof, problem analytics, workbook import, math training">
 <meta name="author" content="AsterProof">
 <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+{% block extra_meta %}{% endblock extra_meta %}
 <link rel="icon" href="{% static 'images/asterproof-favicon.ico' %}" sizes="16x16 32x32 48x48 64x64">
 <link rel="icon" href="{% static 'images/asterproof-favicon.svg' %}" type="image/svg+xml" sizes="any">
 <link rel="apple-touch-icon" href="{% static 'images/asterproof-apple-touch-icon.png' %}" sizes="180x180">

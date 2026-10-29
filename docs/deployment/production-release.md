@@ -35,9 +35,13 @@ checks using that profile verified the expected account, role, and AsterProof
 instance metadata. Complete MFA when the SSO login flow requests it; a root
 Console session does not authenticate the CLI.
 
-The authenticated Console confirmed that AsterProof's Lightsail instance
-`asterproof-prod-app-1` has public IPv4 `18.142.249.181` and shares its AWS account
-with Scorpius. Identity Center is already enabled in `us-east-2`; the AsterProof
+The current production target is `52.74.244.123`. On 2026-10-28 the configured
+`asterproof-prod` SSH alias, GitHub production health variable, installed root-owned
+target contract, host marker, release registry, and public health response were
+verified against that address. The repository target contract uses the same URL;
+older reports may contain the previous address. The Lightsail instance
+`asterproof-prod-app-1` shares its AWS account with Scorpius.
+Identity Center is already enabled in `us-east-2`; the AsterProof
 resource region is `ap-southeast-1`. The dedicated local session name is
 `asterproof-human-sso`. Its account and access-portal values belong in the local
 `~/.aws/config`.

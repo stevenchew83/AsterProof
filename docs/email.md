@@ -47,9 +47,33 @@ plain-text alternative.
 Password-reset links, confirmation links, verification codes, and login codes
 have dedicated layouts. Other account/security messages receive the same HTML
 shell through `AccountAdapter.render_mail`, retaining their original instructions,
-security details, recipients, and headers. This does not enable code-based login
-or change the site's email-verification policy.
+security details, recipients, and headers. The site's signup email-verification
+policy is unchanged.
+
+## Optional email sign-in codes
+
+Password sign-in remains available. Users can choose **Email me a sign-in code**
+instead. Allauth owns code generation, verification, session binding and the
+existing MFA/approval stages; the application does not implement a second
+authentication system. Codes expire after 180 seconds and allow three attempts.
+Requesting a replacement code uses the email-entry page and invalidates the old
+challenge. **Use my password instead** cancels the pending challenge.
+
+The `request_login_code` rate limit is `20/m/ip,1/m/key`: at most twenty requests
+per minute per IP and one per minute per email address. Other Allauth rate limits
+retain their defaults. Production's shared Redis cache supplies these limits;
+they are not a global Gmail quota counter or a guarantee against distributed
+abuse. Never disable them to bypass a delivery problem.
+
+Gmail's personal-account sending limit can be reached above 500 messages per day,
+shared across login codes, reset emails, other account notices, and the mailbox's
+other usage. Codes remain optional so ordinary password login can continue when
+email delivery is delayed or unavailable. Before considering mandatory codes or
+larger traffic, measure actual volume and delivery failures and review the mail
+provider capacity. Do not use user-facing login pages to expose provider details.
 
 References: [Google app passwords](https://support.google.com/accounts/answer/185833),
 [Django 5.1 email](https://docs.djangoproject.com/en/5.1/topics/email/),
 [allauth email templates](https://docs.allauth.org/en/latest/common/email.html).
+See also [Allauth code configuration](https://docs.allauth.org/en/latest/account/configuration.html)
+and [Gmail sending limits](https://support.google.com/mail/answer/22839).

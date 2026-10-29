@@ -8,6 +8,7 @@ const rename = require("gulp-rename");
 const rtlcss = require("gulp-rtlcss");
 const sourcemaps = require("gulp-sourcemaps");
 const sass = require("gulp-sass")(require("sass"));
+const esbuild = require("esbuild");
 
 const pluginFile = require("./plugins.config"); // Import the plugins list
 
@@ -150,19 +151,32 @@ const rtl = function () {
 
 function watchFiles() {
     watch(paths.baseSrcAssets + "scss/**/*.scss", series(scss));
+    watch(paths.baseSrcAssets + "js/website-geometry.js", geometry);
 }
+
+const geometry = function () {
+    return esbuild.build({
+        entryPoints: [paths.baseSrcAssets + "js/website-geometry.js"],
+        outfile: paths.baseDistAssets + "js/website-geometry.bundle.js",
+        bundle: true,
+        minify: true,
+        format: "iife",
+        target: ["es2020"],
+        legalComments: "eof",
+    });
+};
 
 // Production Tasks
 exports.default = series(
     plugins,
-    parallel(scss),
+    parallel(scss, geometry),
     parallel(watchFiles),
 );
 
 // Build Tasks
 exports.build = series(
     plugins,
-    parallel(scss),
+    parallel(scss, geometry),
 );
 
 // RTL Tasks

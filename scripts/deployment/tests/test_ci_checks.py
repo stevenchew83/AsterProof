@@ -34,7 +34,14 @@ def test_shared_problem_changes_cover_solution_and_problem_list_consumers():
 @pytest.mark.parametrize("path", ["inspinia/users/roles.py", "config/urls.py", "inspinia/templates/base.html"])
 def test_shared_auth_routing_and_shell_changes_cover_all_apps(path):
     checks = select_checks([path])
-    assert {"inspinia/pages", "inspinia/training", "inspinia/solutions", "inspinia/rankings"} <= set(checks["tests"])
+    assert {
+        "inspinia/pages", "inspinia/training", "inspinia/solutions", "inspinia/rankings", "inspinia/website",
+    } <= set(checks["tests"])
+
+
+def test_public_website_changes_run_their_own_tests():
+    checks = select_checks(["inspinia/website/newsletter.py"])
+    assert "inspinia/website" in checks["tests"]
 
 
 def test_workflow_changes_run_deployment_contracts_and_actionlint():
