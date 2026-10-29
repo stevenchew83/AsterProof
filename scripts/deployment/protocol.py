@@ -9,8 +9,8 @@ from typing import Any
 from typing import BinaryIO
 
 from scripts.deployment import catalogue_schema
+from scripts.deployment.additive_schema import validate_disclosure
 from scripts.deployment.concept_schema import ConceptSchemaError
-from scripts.deployment.concept_schema import validate_disclosure
 
 PROTOCOL_VERSION = "v1"
 COMMANDS = {"preflight", "receive", "submit", "status"}

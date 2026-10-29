@@ -74,6 +74,49 @@ jobs:
         if: steps.checks.outputs.locks == 'true'
         run: python scripts/deployment/check_production_lock.py --verify-resolution
 
+      - name: Rehearse the exact public-website schema
+        id: website-schema
+        if: steps.checks.outputs.runtime == 'true'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          ACTIVE_SHA: 457172aef8d8fa058bf20f140fd64de8eccb9576
+          DATABASE_URL: postgres://postgres@127.0.0.1:5432/asterproof_schema_rehearsal
+        run: |
+          if git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/website_schema.py scripts/deployment/website_schema_rehearsal.py scripts/deployment/additive_schema.py .github/workflows/production-deploy.yml; then
+            exit 0
+          fi
+          container="asterproof-website-schema-$GITHUB_RUN_ID"
+          trap 'docker rm -f "$container" >/dev/null 2>&1 || true' EXIT
+          docker run --detach --rm --name "$container" --memory=768m --cpus=2 \
+            -e POSTGRES_DB=asterproof_schema_rehearsal -e POSTGRES_USER=postgres \
+            -e POSTGRES_HOST_AUTH_METHOD=trust -p 127.0.0.1:5432:5432 \
+            postgres:17.9-bookworm@sha256:47f917f7409eacd22fc5dfb1dee634e1b55cf0c01d1a7eb701be2227a03e0641
+          for attempt in $(seq 1 30); do
+            if docker exec "$container" pg_isready -U postgres -d asterproof_schema_rehearsal; then
+              break
+            fi
+            if [ "$attempt" -eq 30 ]; then
+              echo 'Isolated PostgreSQL rehearsal did not become ready' >&2
+              exit 1
+            fi
+            sleep 1
+          done
+          mkdir "$RUNNER_TEMP/website-active-source"
+          git archive "$ACTIVE_SHA" | tar -x -C "$RUNNER_TEMP/website-active-source"
+          .ci-quality/bin/python -m scripts.deployment.website_schema_rehearsal \
+            --active-source "$RUNNER_TEMP/website-active-source" --active-sha "$ACTIVE_SHA" \
+            --release-sha "$GITHUB_SHA" --output "$RUNNER_TEMP/website-schema-delta.json" --record-delta
+          echo 'ran=true' >> "$GITHUB_OUTPUT"
+
+      - name: Save the website schema rehearsal
+        if: steps.website-schema.outputs.ran == 'true'
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: website-schema-rehearsal-${{ github.run_id }}
+          path: ${{ runner.temp }}/website-schema-delta.json
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Set up Node
         if: steps.checks.outputs.static == 'true'
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0

@@ -14,13 +14,14 @@ from pathlib import Path
 from typing import Any
 
 from scripts.deployment import catalogue_schema
+from scripts.deployment import website_schema
+from scripts.deployment.additive_schema import validate_disclosure
 from scripts.deployment.concept_schema import MIGRATION_APPLY
 from scripts.deployment.concept_schema import PLAN_CHECK
 from scripts.deployment.concept_schema import ConceptSchemaError
 from scripts.deployment.concept_schema import audit_matches
 from scripts.deployment.concept_schema import validate_build_evidence
 from scripts.deployment.concept_schema import validate_candidate
-from scripts.deployment.concept_schema import validate_disclosure
 from scripts.deployment.protocol import DIGEST_RE
 from scripts.deployment.protocol import NUMERIC_RE
 from scripts.deployment.protocol import SHA_RE
@@ -259,6 +260,14 @@ class WorkerBackend:
     def migrate_concept_schema(self, contract: TargetContract, release: Path) -> None:
         # MigrationExecutor avoids unrelated post_migrate content-type/permission writes.
         self._run_candidate(contract, release, ["shell", "--command", MIGRATION_APPLY], migration=True)
+
+    def check_website_schema(self, contract: TargetContract, release: Path) -> None:
+        website_schema.validate_candidate(release)
+        self._run_candidate(contract, release, ["shell", "--command", website_schema.PLAN_CHECK])
+
+    def migrate_website_schema(self, contract: TargetContract, release: Path) -> None:
+        # The exact executor plan skips unrelated post_migrate permission writes.
+        self._run_candidate(contract, release, ["shell", "--command", website_schema.MIGRATION_APPLY], migration=True)
 
     def check_catalogue_schema(self, contract: TargetContract, release: Path) -> None:
         catalogue_schema.validate_candidate(release)
@@ -714,14 +723,21 @@ def _deploy(
             ):
                 raise OperationError("schema_starting_state_mismatch")
             try:
-                validate_build_evidence(release, disclosure)
-                backend.check_concept_schema(contract, release)
+                if disclosure["migration"] == website_schema.MIGRATION:
+                    website_schema.validate_build_evidence(release, disclosure)
+                    backend.check_website_schema(contract, release)
+                else:
+                    validate_build_evidence(release, disclosure)
+                    backend.check_concept_schema(contract, release)
             except ConceptSchemaError as exc:
                 raise OperationError("schema_candidate_invalid") from exc
             if not audit_matches(disclosure, backend.schema_audit(contract), stage="starting"):
                 raise OperationError("schema_starting_state_drift")
             transition(state_path, "migrating")
-            backend.migrate_concept_schema(contract, release)
+            if disclosure["migration"] == website_schema.MIGRATION:
+                backend.migrate_website_schema(contract, release)
+            else:
+                backend.migrate_concept_schema(contract, release)
             if not audit_matches(disclosure, backend.schema_audit(contract), stage="expected"):
                 raise OperationError("schema_ending_state_mismatch")
         backend.candidate_migrations_applied(contract, release)

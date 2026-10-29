@@ -1,0 +1,826 @@
+{
+  "columns": [
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "website_libraryarea",
+      "type": "bigint"
+    },
+    {
+      "collation": "default",
+      "column": "title",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "website_libraryarea",
+      "type": "character varying(180)"
+    },
+    {
+      "collation": "default",
+      "column": "slug",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "website_libraryarea",
+      "type": "character varying(180)"
+    },
+    {
+      "collation": "default",
+      "column": "summary",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "website_libraryarea",
+      "type": "character varying(320)"
+    },
+    {
+      "collation": "default",
+      "column": "body_markdown",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "website_libraryarea",
+      "type": "text"
+    },
+    {
+      "collation": null,
+      "column": "order",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "website_libraryarea",
+      "type": "integer"
+    },
+    {
+      "collation": null,
+      "column": "is_published",
+      "default": null,
+      "nullable": false,
+      "position": 7,
+      "schema": "public",
+      "table": "website_libraryarea",
+      "type": "boolean"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 8,
+      "schema": "public",
+      "table": "website_libraryarea",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "updated_at",
+      "default": null,
+      "nullable": false,
+      "position": 9,
+      "schema": "public",
+      "table": "website_libraryarea",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": "default",
+      "column": "subject",
+      "default": null,
+      "nullable": false,
+      "position": 10,
+      "schema": "public",
+      "table": "website_libraryarea",
+      "type": "character varying(24)"
+    },
+    {
+      "collation": "default",
+      "column": "catalogue_area_id",
+      "default": null,
+      "nullable": true,
+      "position": 11,
+      "schema": "public",
+      "table": "website_libraryarea",
+      "type": "character varying(180)"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "website_libraryconcept",
+      "type": "bigint"
+    },
+    {
+      "collation": "default",
+      "column": "title",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "website_libraryconcept",
+      "type": "character varying(180)"
+    },
+    {
+      "collation": "default",
+      "column": "slug",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "website_libraryconcept",
+      "type": "character varying(180)"
+    },
+    {
+      "collation": "default",
+      "column": "summary",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "website_libraryconcept",
+      "type": "character varying(320)"
+    },
+    {
+      "collation": "default",
+      "column": "body_markdown",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "website_libraryconcept",
+      "type": "text"
+    },
+    {
+      "collation": null,
+      "column": "order",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "website_libraryconcept",
+      "type": "integer"
+    },
+    {
+      "collation": null,
+      "column": "is_published",
+      "default": null,
+      "nullable": false,
+      "position": 7,
+      "schema": "public",
+      "table": "website_libraryconcept",
+      "type": "boolean"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 8,
+      "schema": "public",
+      "table": "website_libraryconcept",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "updated_at",
+      "default": null,
+      "nullable": false,
+      "position": 9,
+      "schema": "public",
+      "table": "website_libraryconcept",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "area_id",
+      "default": null,
+      "nullable": false,
+      "position": 10,
+      "schema": "public",
+      "table": "website_libraryconcept",
+      "type": "bigint"
+    },
+    {
+      "collation": "default",
+      "column": "catalogue_concept_id",
+      "default": null,
+      "nullable": true,
+      "position": 11,
+      "schema": "public",
+      "table": "website_libraryconcept",
+      "type": "character varying(160)"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "website_libraryconcept_prerequisites",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "from_libraryconcept_id",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "website_libraryconcept_prerequisites",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "to_libraryconcept_id",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "website_libraryconcept_prerequisites",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "website_librarylecture",
+      "type": "bigint"
+    },
+    {
+      "collation": "default",
+      "column": "title",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "website_librarylecture",
+      "type": "character varying(180)"
+    },
+    {
+      "collation": "default",
+      "column": "slug",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "website_librarylecture",
+      "type": "character varying(180)"
+    },
+    {
+      "collation": "default",
+      "column": "summary",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "website_librarylecture",
+      "type": "character varying(320)"
+    },
+    {
+      "collation": "default",
+      "column": "body_markdown",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "website_librarylecture",
+      "type": "text"
+    },
+    {
+      "collation": null,
+      "column": "order",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "website_librarylecture",
+      "type": "integer"
+    },
+    {
+      "collation": null,
+      "column": "is_published",
+      "default": null,
+      "nullable": false,
+      "position": 7,
+      "schema": "public",
+      "table": "website_librarylecture",
+      "type": "boolean"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 8,
+      "schema": "public",
+      "table": "website_librarylecture",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "updated_at",
+      "default": null,
+      "nullable": false,
+      "position": 9,
+      "schema": "public",
+      "table": "website_librarylecture",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "estimated_minutes",
+      "default": null,
+      "nullable": false,
+      "position": 10,
+      "schema": "public",
+      "table": "website_librarylecture",
+      "type": "smallint"
+    },
+    {
+      "collation": "default",
+      "column": "resource_url",
+      "default": null,
+      "nullable": false,
+      "position": 11,
+      "schema": "public",
+      "table": "website_librarylecture",
+      "type": "character varying(200)"
+    },
+    {
+      "collation": "default",
+      "column": "attribution",
+      "default": null,
+      "nullable": false,
+      "position": 12,
+      "schema": "public",
+      "table": "website_librarylecture",
+      "type": "character varying(255)"
+    },
+    {
+      "collation": null,
+      "column": "concept_id",
+      "default": null,
+      "nullable": false,
+      "position": 13,
+      "schema": "public",
+      "table": "website_librarylecture",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "website_newslettersubscriber",
+      "type": "uuid"
+    },
+    {
+      "collation": "default",
+      "column": "email",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "website_newslettersubscriber",
+      "type": "character varying(254)"
+    },
+    {
+      "collation": "default",
+      "column": "status",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "website_newslettersubscriber",
+      "type": "character varying(16)"
+    },
+    {
+      "collation": null,
+      "column": "confirmation_nonce",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "website_newslettersubscriber",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "requested_at",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "website_newslettersubscriber",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "confirmed_at",
+      "default": null,
+      "nullable": true,
+      "position": 6,
+      "schema": "public",
+      "table": "website_newslettersubscriber",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "unsubscribed_at",
+      "default": null,
+      "nullable": true,
+      "position": 7,
+      "schema": "public",
+      "table": "website_newslettersubscriber",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": "default",
+      "column": "consent_version",
+      "default": null,
+      "nullable": false,
+      "position": 8,
+      "schema": "public",
+      "table": "website_newslettersubscriber",
+      "type": "character varying(32)"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 9,
+      "schema": "public",
+      "table": "website_newslettersubscriber",
+      "type": "timestamp with time zone"
+    }
+  ],
+  "constraints": [
+    {
+      "definition": "UNIQUE (subject, slug)",
+      "name": "website_area_subject_slug",
+      "schema": "public",
+      "table": "website_libraryarea",
+      "type": "u"
+    },
+    {
+      "definition": "FOREIGN KEY (catalogue_area_id) REFERENCES pages_cataloguearea(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "website_libraryarea_catalogue_area_id_b777cacf_fk_pages_cat",
+      "schema": "public",
+      "table": "website_libraryarea",
+      "type": "f"
+    },
+    {
+      "definition": "CHECK (\"order\" >= 0)",
+      "name": "website_libraryarea_order_check",
+      "schema": "public",
+      "table": "website_libraryarea",
+      "type": "c"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "website_libraryarea_pkey",
+      "schema": "public",
+      "table": "website_libraryarea",
+      "type": "p"
+    },
+    {
+      "definition": "UNIQUE (area_id, slug)",
+      "name": "website_concept_area_slug",
+      "schema": "public",
+      "table": "website_libraryconcept",
+      "type": "u"
+    },
+    {
+      "definition": "FOREIGN KEY (area_id) REFERENCES website_libraryarea(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "website_libraryconce_area_id_27792985_fk_website_l",
+      "schema": "public",
+      "table": "website_libraryconcept",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (catalogue_concept_id) REFERENCES pages_catalogueconcept(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "website_libraryconce_catalogue_concept_id_cedec61c_fk_pages_cat",
+      "schema": "public",
+      "table": "website_libraryconcept",
+      "type": "f"
+    },
+    {
+      "definition": "CHECK (\"order\" >= 0)",
+      "name": "website_libraryconcept_order_check",
+      "schema": "public",
+      "table": "website_libraryconcept",
+      "type": "c"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "website_libraryconcept_pkey",
+      "schema": "public",
+      "table": "website_libraryconcept",
+      "type": "p"
+    },
+    {
+      "definition": "FOREIGN KEY (from_libraryconcept_id) REFERENCES website_libraryconcept(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "website_libraryconce_from_libraryconcept__84a6b03b_fk_website_l",
+      "schema": "public",
+      "table": "website_libraryconcept_prerequisites",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (to_libraryconcept_id) REFERENCES website_libraryconcept(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "website_libraryconce_to_libraryconcept_id_fbe96c25_fk_website_l",
+      "schema": "public",
+      "table": "website_libraryconcept_prerequisites",
+      "type": "f"
+    },
+    {
+      "definition": "UNIQUE (from_libraryconcept_id, to_libraryconcept_id)",
+      "name": "website_libraryconcept_p_from_libraryconcept_id_t_fd64d749_uniq",
+      "schema": "public",
+      "table": "website_libraryconcept_prerequisites",
+      "type": "u"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "website_libraryconcept_prerequisites_pkey",
+      "schema": "public",
+      "table": "website_libraryconcept_prerequisites",
+      "type": "p"
+    },
+    {
+      "definition": "UNIQUE (concept_id, slug)",
+      "name": "website_lecture_concept_slug",
+      "schema": "public",
+      "table": "website_librarylecture",
+      "type": "u"
+    },
+    {
+      "definition": "FOREIGN KEY (concept_id) REFERENCES website_libraryconcept(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "website_librarylectu_concept_id_594ef221_fk_website_l",
+      "schema": "public",
+      "table": "website_librarylecture",
+      "type": "f"
+    },
+    {
+      "definition": "CHECK (estimated_minutes >= 0)",
+      "name": "website_librarylecture_estimated_minutes_check",
+      "schema": "public",
+      "table": "website_librarylecture",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (\"order\" >= 0)",
+      "name": "website_librarylecture_order_check",
+      "schema": "public",
+      "table": "website_librarylecture",
+      "type": "c"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "website_librarylecture_pkey",
+      "schema": "public",
+      "table": "website_librarylecture",
+      "type": "p"
+    },
+    {
+      "definition": "UNIQUE (email)",
+      "name": "website_newslettersubscriber_email_key",
+      "schema": "public",
+      "table": "website_newslettersubscriber",
+      "type": "u"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "website_newslettersubscriber_pkey",
+      "schema": "public",
+      "table": "website_newslettersubscriber",
+      "type": "p"
+    }
+  ],
+  "extensions": [],
+  "indexes": [
+    {
+      "definition": "CREATE UNIQUE INDEX website_area_subject_slug ON public.website_libraryarea USING btree (subject, slug)",
+      "name": "website_area_subject_slug",
+      "schema": "public",
+      "table": "website_libraryarea"
+    },
+    {
+      "definition": "CREATE INDEX website_libraryarea_catalogue_area_id_b777cacf ON public.website_libraryarea USING btree (catalogue_area_id)",
+      "name": "website_libraryarea_catalogue_area_id_b777cacf",
+      "schema": "public",
+      "table": "website_libraryarea"
+    },
+    {
+      "definition": "CREATE INDEX website_libraryarea_catalogue_area_id_b777cacf_like ON public.website_libraryarea USING btree (catalogue_area_id varchar_pattern_ops)",
+      "name": "website_libraryarea_catalogue_area_id_b777cacf_like",
+      "schema": "public",
+      "table": "website_libraryarea"
+    },
+    {
+      "definition": "CREATE INDEX website_libraryarea_is_published_19412f10 ON public.website_libraryarea USING btree (is_published)",
+      "name": "website_libraryarea_is_published_19412f10",
+      "schema": "public",
+      "table": "website_libraryarea"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX website_libraryarea_pkey ON public.website_libraryarea USING btree (id)",
+      "name": "website_libraryarea_pkey",
+      "schema": "public",
+      "table": "website_libraryarea"
+    },
+    {
+      "definition": "CREATE INDEX website_libraryarea_slug_845bf685 ON public.website_libraryarea USING btree (slug)",
+      "name": "website_libraryarea_slug_845bf685",
+      "schema": "public",
+      "table": "website_libraryarea"
+    },
+    {
+      "definition": "CREATE INDEX website_libraryarea_slug_845bf685_like ON public.website_libraryarea USING btree (slug varchar_pattern_ops)",
+      "name": "website_libraryarea_slug_845bf685_like",
+      "schema": "public",
+      "table": "website_libraryarea"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX website_concept_area_slug ON public.website_libraryconcept USING btree (area_id, slug)",
+      "name": "website_concept_area_slug",
+      "schema": "public",
+      "table": "website_libraryconcept"
+    },
+    {
+      "definition": "CREATE INDEX website_libraryconcept_area_id_27792985 ON public.website_libraryconcept USING btree (area_id)",
+      "name": "website_libraryconcept_area_id_27792985",
+      "schema": "public",
+      "table": "website_libraryconcept"
+    },
+    {
+      "definition": "CREATE INDEX website_libraryconcept_catalogue_concept_id_cedec61c ON public.website_libraryconcept USING btree (catalogue_concept_id)",
+      "name": "website_libraryconcept_catalogue_concept_id_cedec61c",
+      "schema": "public",
+      "table": "website_libraryconcept"
+    },
+    {
+      "definition": "CREATE INDEX website_libraryconcept_catalogue_concept_id_cedec61c_like ON public.website_libraryconcept USING btree (catalogue_concept_id varchar_pattern_ops)",
+      "name": "website_libraryconcept_catalogue_concept_id_cedec61c_like",
+      "schema": "public",
+      "table": "website_libraryconcept"
+    },
+    {
+      "definition": "CREATE INDEX website_libraryconcept_is_published_cfc44dab ON public.website_libraryconcept USING btree (is_published)",
+      "name": "website_libraryconcept_is_published_cfc44dab",
+      "schema": "public",
+      "table": "website_libraryconcept"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX website_libraryconcept_pkey ON public.website_libraryconcept USING btree (id)",
+      "name": "website_libraryconcept_pkey",
+      "schema": "public",
+      "table": "website_libraryconcept"
+    },
+    {
+      "definition": "CREATE INDEX website_libraryconcept_slug_1a3dba62 ON public.website_libraryconcept USING btree (slug)",
+      "name": "website_libraryconcept_slug_1a3dba62",
+      "schema": "public",
+      "table": "website_libraryconcept"
+    },
+    {
+      "definition": "CREATE INDEX website_libraryconcept_slug_1a3dba62_like ON public.website_libraryconcept USING btree (slug varchar_pattern_ops)",
+      "name": "website_libraryconcept_slug_1a3dba62_like",
+      "schema": "public",
+      "table": "website_libraryconcept"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX website_libraryconcept_p_from_libraryconcept_id_t_fd64d749_uniq ON public.website_libraryconcept_prerequisites USING btree (from_libraryconcept_id, to_libraryconcept_id)",
+      "name": "website_libraryconcept_p_from_libraryconcept_id_t_fd64d749_uniq",
+      "schema": "public",
+      "table": "website_libraryconcept_prerequisites"
+    },
+    {
+      "definition": "CREATE INDEX website_libraryconcept_pre_from_libraryconcept_id_84a6b03b ON public.website_libraryconcept_prerequisites USING btree (from_libraryconcept_id)",
+      "name": "website_libraryconcept_pre_from_libraryconcept_id_84a6b03b",
+      "schema": "public",
+      "table": "website_libraryconcept_prerequisites"
+    },
+    {
+      "definition": "CREATE INDEX website_libraryconcept_pre_to_libraryconcept_id_fbe96c25 ON public.website_libraryconcept_prerequisites USING btree (to_libraryconcept_id)",
+      "name": "website_libraryconcept_pre_to_libraryconcept_id_fbe96c25",
+      "schema": "public",
+      "table": "website_libraryconcept_prerequisites"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX website_libraryconcept_prerequisites_pkey ON public.website_libraryconcept_prerequisites USING btree (id)",
+      "name": "website_libraryconcept_prerequisites_pkey",
+      "schema": "public",
+      "table": "website_libraryconcept_prerequisites"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX website_lecture_concept_slug ON public.website_librarylecture USING btree (concept_id, slug)",
+      "name": "website_lecture_concept_slug",
+      "schema": "public",
+      "table": "website_librarylecture"
+    },
+    {
+      "definition": "CREATE INDEX website_librarylecture_concept_id_594ef221 ON public.website_librarylecture USING btree (concept_id)",
+      "name": "website_librarylecture_concept_id_594ef221",
+      "schema": "public",
+      "table": "website_librarylecture"
+    },
+    {
+      "definition": "CREATE INDEX website_librarylecture_is_published_b2867cf6 ON public.website_librarylecture USING btree (is_published)",
+      "name": "website_librarylecture_is_published_b2867cf6",
+      "schema": "public",
+      "table": "website_librarylecture"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX website_librarylecture_pkey ON public.website_librarylecture USING btree (id)",
+      "name": "website_librarylecture_pkey",
+      "schema": "public",
+      "table": "website_librarylecture"
+    },
+    {
+      "definition": "CREATE INDEX website_librarylecture_slug_204650a5 ON public.website_librarylecture USING btree (slug)",
+      "name": "website_librarylecture_slug_204650a5",
+      "schema": "public",
+      "table": "website_librarylecture"
+    },
+    {
+      "definition": "CREATE INDEX website_librarylecture_slug_204650a5_like ON public.website_librarylecture USING btree (slug varchar_pattern_ops)",
+      "name": "website_librarylecture_slug_204650a5_like",
+      "schema": "public",
+      "table": "website_librarylecture"
+    },
+    {
+      "definition": "CREATE INDEX website_newslettersubscriber_email_0ddff1bb_like ON public.website_newslettersubscriber USING btree (email varchar_pattern_ops)",
+      "name": "website_newslettersubscriber_email_0ddff1bb_like",
+      "schema": "public",
+      "table": "website_newslettersubscriber"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX website_newslettersubscriber_email_key ON public.website_newslettersubscriber USING btree (email)",
+      "name": "website_newslettersubscriber_email_key",
+      "schema": "public",
+      "table": "website_newslettersubscriber"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX website_newslettersubscriber_pkey ON public.website_newslettersubscriber USING btree (id)",
+      "name": "website_newslettersubscriber_pkey",
+      "schema": "public",
+      "table": "website_newslettersubscriber"
+    },
+    {
+      "definition": "CREATE INDEX website_newslettersubscriber_status_e1d7c907 ON public.website_newslettersubscriber USING btree (status)",
+      "name": "website_newslettersubscriber_status_e1d7c907",
+      "schema": "public",
+      "table": "website_newslettersubscriber"
+    },
+    {
+      "definition": "CREATE INDEX website_newslettersubscriber_status_e1d7c907_like ON public.website_newslettersubscriber USING btree (status varchar_pattern_ops)",
+      "name": "website_newslettersubscriber_status_e1d7c907_like",
+      "schema": "public",
+      "table": "website_newslettersubscriber"
+    }
+  ],
+  "tables": [
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "website_libraryarea"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "website_libraryconcept"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "website_libraryconcept_prerequisites"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "website_librarylecture"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "website_newslettersubscriber"
+    }
+  ]
+}

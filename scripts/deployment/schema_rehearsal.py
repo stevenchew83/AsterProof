@@ -91,6 +91,11 @@ def _snapshot(connection):
 
 def main():
     args = _arguments()
+    # Dispatch remains a fixed allowlist; the new rehearsal cannot choose a module.
+    if json.loads(os.environ.get("SCHEMA_DISCLOSURE") or "{}").get("migration") == "website.0001_initial":
+        from scripts.deployment.website_schema_rehearsal import run
+
+        return run(args)
     os.environ["DJANGO_SETTINGS_MODULE"] = "config.settings.test"
     os.environ["DJANGO_READ_DOT_ENV_FILE"] = "false"
     from django.conf import settings

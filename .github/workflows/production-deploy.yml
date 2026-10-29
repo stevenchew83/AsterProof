@@ -16,7 +16,7 @@ on:
           - backward-compatible-schema
           - data-or-non-compatible
       schema_disclosure:
-        description: Frozen disclosure for the exact approved 0036 schema or 0037-0039 catalogue maintenance; blank for none
+        description: Frozen disclosure for approved assignment, website, or catalogue schema; blank for none
         required: false
         default: ""
         type: string
@@ -374,8 +374,9 @@ jobs:
                       for i, name in enumerate(MIGRATIONS)
                   ]
               else:
-                  from scripts.deployment.concept_schema import MIGRATION, validate_disclosure
-                  expected = [{'migration': MIGRATION, 'classification': 'backward-compatible-schema'}]
+                  from scripts.deployment.additive_schema import schema_for_disclosure, validate_disclosure
+                  approved = schema_for_disclosure(json.loads(os_disclosure))
+                  expected = [{'migration': approved.MIGRATION, 'classification': 'backward-compatible-schema'}]
               schema = validate_disclosure(json.loads(os_disclosure), target_sha=value['target_sha'])
               if schema['active_sha'] != value['active_sha']:
                   raise SystemExit('Schema disclosure active release mismatch')
