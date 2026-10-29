@@ -1,0 +1,76 @@
+{% extends 'website/backend/base.html' %}
+
+{% block newsletter_heading %}
+  <header class="page-title-head app-page-header app-page-header--with-stats">
+    {% include 'partials/page-header-intro.html' with title='Newsletter' subtitle='Administration' page_icon='ti-mail' only %}
+    <div class="app-page-header-actions">
+      <a class="btn btn-primary btn-sm"
+         href="{% url 'website:newsletter_campaign_new' %}"><i class="ti ti-plus me-1" aria-hidden="true"></i>New draft</a>
+    </div>
+    <dl class="app-page-header-stats">
+      {% include 'partials/page-header-stat.html' with label='Subscribed' value=subscribed accent=True stat_icon='ti-users' only %}
+      {% include 'partials/page-header-stat.html' with label='Awaiting confirmation' value=pending only %}
+      {% include 'partials/page-header-stat.html' with label='Drafts' value=draft_count only %}
+      {% include 'partials/page-header-stat.html' with label='Emails accepted' value=accepted only %}
+    </dl>
+  </header>
+{% endblock newsletter_heading %}
+{% block newsletter_content %}
+  <div class="card">
+    <div class="card-header border-0 d-flex align-items-center justify-content-between py-3">
+      <div>
+        <h2 class="header-title mb-1">Campaigns</h2>
+        <p class="text-muted fs-xs mb-0">Write, test and send to confirmed subscribers.</p>
+      </div>
+      <span class="text-muted fs-xs">{{ page.paginator.count }} total</span>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 newsletter-table">
+        <thead class="table-light">
+          <tr>
+            <th scope="col">Newsletter</th>
+            <th scope="col">Status</th>
+            <th scope="col">Recipients</th>
+            <th scope="col">Accepted</th>
+            <th scope="col">Updated</th>
+            <th scope="col">
+              <span class="visually-hidden">Open</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for campaign in page %}
+            <tr>
+              <td>
+                <a class="fw-semibold" href="{{ campaign.get_absolute_url }}">{{ campaign.subject }}</a>
+                <div class="text-muted fs-xs">{{ campaign.preheader|default:'No inbox preview'|truncatechars:75 }}</div>
+              </td>
+              <td>
+                <span class="badge {{ campaign.badge_class }}">{{ campaign.get_status_display }}</span>
+              </td>
+              <td>{{ campaign.recipient_count }}</td>
+              <td>{{ campaign.accepted_count }}</td>
+              <td class="text-muted fs-xs text-nowrap">{{ campaign.updated_at|date:'d M Y, H:i' }}</td>
+              <td>
+                <a class="btn btn-light btn-sm" href="{{ campaign.get_absolute_url }}">Open<i class="ti ti-arrow-up-right ms-1" aria-hidden="true"></i></a>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="6">
+                <div class="newsletter-empty">
+                  <i class="ti ti-mail-plus fs-24 text-primary" aria-hidden="true"></i>
+                  <h3 class="h5 mt-2">Create your first draft</h3>
+                  <p class="text-muted fs-sm">Use the AsterProof template to share a lecture, an idea or a project update.</p>
+                  <a href="{% url 'website:newsletter_campaign_new' %}"
+                     class="btn btn-primary btn-sm">New draft</a>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% include 'website/backend/pagination.html' %}
+  </div>
+{% endblock newsletter_content %}

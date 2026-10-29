@@ -1,0 +1,64 @@
+{% extends 'website/backend/base.html' %}
+
+{% block newsletter_content %}
+  {% include 'website/backend/runner.html' %}
+  <div class="newsletter-editor-grid">
+    <section class="card align-self-start">
+      <div class="card-header border-0 pb-0">
+        <h2 class="header-title mb-1">Review &amp; send</h2>
+        <p class="text-muted fs-xs mb-0">{{ campaign.subject }}</p>
+      </div>
+      <div class="card-body pt-3">
+        <div class="newsletter-audience mb-3">
+          <i class="ti ti-users fs-24 text-primary" aria-hidden="true"></i>
+          <div>
+            <strong class="h3 mb-0 d-block">{{ recipient_count }}</strong><span class="text-muted fs-xs">currently confirmed subscribers</span>
+          </div>
+        </div>
+        <p class="fs-sm text-muted">
+          Each recipient gets an individual email and unsubscribe link. Subscription status is checked again before each send.
+        </p>
+        {% if campaign.is_editable and test_ready and recipient_count %}
+          <form method="post" data-newsletter-send>
+            {% csrf_token %}{{ form.version }}{{ form.non_field_errors }}
+            <label class="form-check d-flex gap-2 mb-3">
+              <span>{{ form.confirm }}</span><span class="fs-sm">{{ form.confirm.label }}</span>
+            </label>
+            {{ form.confirm.errors }}
+            <div class="d-flex gap-2">
+              <button class="btn btn-primary btn-sm" type="submit">
+                <i class="ti ti-send me-1" aria-hidden="true"></i>Send to subscribers
+              </button>
+              <a class="btn btn-light btn-sm" href="{{ campaign.get_absolute_url }}">Back to draft</a>
+            </div>
+          </form>
+          <p class="fs-xs text-muted mt-3 mb-0">
+            Keep this page open while sending. Pause at any time and continue later from the campaign page.
+          </p>
+        {% else %}
+          <div class="alert alert-warning py-2 fs-sm">
+            {% if not campaign.is_editable %}
+              This campaign has already started.
+            {% elif not test_ready %}
+              Send a successful test email for this version first.
+            {% else %}
+              There are no confirmed subscribers yet.
+            {% endif %}
+          </div>
+          <a class="btn btn-light btn-sm" href="{{ campaign.get_absolute_url }}">Back to campaign</a>
+        {% endif %}
+      </div>
+    </section>
+    <section class="card newsletter-preview-card">
+      <div class="card-header border-0 py-3">
+        <h2 class="header-title mb-0">Version {{ campaign.version }}</h2>
+      </div>
+      <div class="newsletter-preview-stage">
+        <iframe class="newsletter-preview-frame"
+                src="{% url 'website:newsletter_preview' pk=campaign.pk %}?v={{ campaign.version }}"
+                title="Newsletter ready to send"
+                sandbox=""></iframe>
+      </div>
+    </section>
+  </div>
+{% endblock newsletter_content %}

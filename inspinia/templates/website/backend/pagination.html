@@ -1,0 +1,16 @@
+{% if page.paginator.num_pages > 1 %}
+  <nav class="d-flex align-items-center justify-content-between gap-2 p-3 border-top fs-sm"
+       aria-label="Results pages">
+    <span class="text-muted">{{ page.start_index }}–{{ page.end_index }} of {{ page.paginator.count }}</span>
+    <div class="btn-group btn-group-sm">
+      {% if page.has_previous %}
+        <a class="btn btn-outline-secondary"
+           href="?{{ pagination_query }}&amp;page={{ page.previous_page_number }}">Previous</a>
+      {% endif %}
+      {% if page.has_next %}
+        <a class="btn btn-outline-secondary"
+           href="?{{ pagination_query }}&amp;page={{ page.next_page_number }}">Next</a>
+      {% endif %}
+    </div>
+  </nav>
+{% endif %}

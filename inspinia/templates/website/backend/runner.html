@@ -1,0 +1,23 @@
+<section class="alert alert-info newsletter-runner"
+         data-newsletter-progress
+         hidden
+         aria-live="polite">
+  <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+    <strong data-newsletter-status>Preparing to send…</strong>
+    <button type="button"
+            class="btn btn-outline-secondary btn-sm"
+            data-newsletter-stop>Pause</button>
+  </div>
+  <div class="progress mb-2"
+       role="progressbar"
+       aria-label="Campaign progress"
+       aria-valuemin="0"
+       aria-valuemax="100"
+       aria-valuenow="0">
+    <div class="progress-bar"></div>
+  </div>
+  <p class="fs-sm mb-1" data-newsletter-result>Keep this page open while sending.</p>
+  <a class="fs-sm"
+     href="{{ campaign.get_absolute_url }}"
+     data-newsletter-campaign-link>View campaign and history</a>
+</section>

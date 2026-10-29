@@ -1,0 +1,38 @@
+{% extends 'layouts/vertical.html' %}
+
+{% load static %}
+
+{% block title %}
+  Newsletter
+{% endblock title %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/newsletter.min.css' %}" />
+{% endblock extra_css %}
+{% block page_content %}
+  <div class="container-fluid newsletter-workspace">
+    {% block newsletter_heading %}
+      {% include 'partials/page-title.html' with title='Newsletter' subtitle='Administration' page_icon='ti-mail' %}
+    {% endblock newsletter_heading %}
+    <nav class="nav nav-underline newsletter-tabs mb-3"
+         aria-label="Newsletter">
+      <a class="nav-link{% if newsletter_tab == 'campaigns' %} active{% endif %}"
+         href="{% url 'website:newsletter_dashboard' %}"
+         {% if newsletter_tab == 'campaigns' %}aria-current="page"{% endif %}>Campaigns</a>
+      <a class="nav-link{% if newsletter_tab == 'subscribers' %} active{% endif %}"
+         href="{% url 'website:newsletter_subscribers' %}"
+         {% if newsletter_tab == 'subscribers' %}aria-current="page"{% endif %}>Subscribers</a>
+      <a class="nav-link{% if newsletter_tab == 'history' %} active{% endif %}"
+         href="{% url 'website:newsletter_history' %}"
+         {% if newsletter_tab == 'history' %}aria-current="page"{% endif %}>Delivery history</a>
+    </nav>
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags|default:'info' }} py-2"
+           role="status">{{ message }}</div>
+    {% endfor %}
+    {% block newsletter_content %}
+    {% endblock newsletter_content %}
+  </div>
+{% endblock page_content %}
+{% block extra_javascript %}
+  <script defer src="{% static 'js/newsletter-admin.js' %}"></script>
+{% endblock extra_javascript %}

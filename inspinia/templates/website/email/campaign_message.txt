@@ -1,0 +1,11 @@
+{% autoescape off %}{% if is_test %}TEST EMAIL — sent only to your signed-in address.
+
+{% endif %}{{ campaign.subject }}
+
+{{ campaign.body_markdown }}
+
+---
+AsterProof · A little insight. Infinite possibilities.
+{% if unsubscribe_url %}You receive this because you confirmed your AsterProof newsletter subscription.
+Unsubscribe: {{ unsubscribe_url }}{% else %}This preview does not change your newsletter subscription.{% endif %}
+{% endautoescape %}

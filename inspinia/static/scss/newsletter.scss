@@ -1,0 +1,28 @@
+.newsletter-workspace {
+  .newsletter-runner .progress-bar { width: 0; }
+  .card-header .header-title { font-size: 1rem; font-weight: 600; line-height: 1.3; }
+  .newsletter-tabs { gap: 1.5rem; border-bottom: 1px solid var(--ins-border-color); }
+  .newsletter-table { font-size: .8125rem; }
+  .newsletter-table th { font-size: .6875rem; font-weight: 600; white-space: nowrap; }
+  .newsletter-table td, .newsletter-table th { padding: .7rem 1rem; }
+  .newsletter-email { overflow-wrap: anywhere; }
+  .newsletter-delivery-detail { max-width: 22rem; }
+  .newsletter-empty { text-align: center; padding: 2.25rem 1rem; }
+  .newsletter-editor-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.12fr); gap: 1rem; align-items: start; }
+  .newsletter-editor-grid > * { min-width: 0; }
+  .newsletter-source { font-family: var(--ins-font-monospace, monospace); font-size: .8125rem; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .newsletter-preview-stage { background: var(--ins-tertiary-bg); padding: .75rem; text-align: center; border-radius: 0 0 var(--ins-card-border-radius, .375rem) var(--ins-card-border-radius, .375rem); }
+  .newsletter-preview-frame { display: block; width: 100%; height: 610px; margin: 0 auto; border: 0; background: var(--ins-body-bg); transition: width .15s ease; }
+  .newsletter-preview-stage.is-mobile .newsletter-preview-frame { width: min(100%, 375px); }
+  .newsletter-consent-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; }
+  .newsletter-consent-grid dt { color: var(--ins-secondary-color); font-size: .6875rem; font-weight: 500; margin-bottom: .35rem; }
+  .newsletter-consent-grid dd { margin: 0; font-size: .8125rem; }
+  .newsletter-audience { display: flex; align-items: center; gap: .75rem; padding: 1rem; background: var(--ins-primary-bg-subtle); border-radius: .375rem; }
+  .errorlist { color: var(--ins-danger); font-size: .8125rem; padding-left: 1.25rem; }
+  @media (max-width: 991.98px) {
+    .newsletter-editor-grid { grid-template-columns: 1fr; }
+    .newsletter-preview-frame { height: 580px; }
+    .newsletter-consent-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (prefers-reduced-motion: reduce) { .newsletter-preview-frame { transition: none; } }
+}

@@ -1,0 +1,75 @@
+{% extends 'website/backend/base.html' %}
+
+{% block newsletter_content %}
+  <div class="card">
+    <div class="card-header border-0 pb-0">
+      <h2 class="header-title mb-1">
+        Subscribers <span class="text-muted fs-sm fw-normal ms-1">{{ page.paginator.count }}</span>
+      </h2>
+      <p class="text-muted fs-xs mb-0">Consent comes from the public signup and email confirmation flow.</p>
+    </div>
+    <div class="card-body py-3">
+      <form method="get" class="row g-2 align-items-end">
+        <div class="col-md-7">
+          <label for="subscriber-search" class="form-label fs-xs">Email address</label>
+          <input id="subscriber-search"
+                 class="form-control form-control-sm"
+                 name="q"
+                 value="{{ query }}"
+                 placeholder="Search subscribers"
+                 maxlength="100" />
+        </div>
+        <div class="col-md-3">
+          <label for="subscriber-status" class="form-label fs-xs">Status</label>
+          <select id="subscriber-status"
+                  name="status"
+                  class="form-select form-select-sm">
+            <option value="">All statuses</option>
+            {% for value,label in statuses %}
+              <option value="{{ value }}"{% if value == status %} selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2">
+          <button class="btn btn-light btn-sm w-100" type="submit">Filter</button>
+        </div>
+      </form>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 newsletter-table">
+        <thead class="table-light">
+          <tr>
+            <th scope="col">Email address</th>
+            <th scope="col">Status</th>
+            <th scope="col">Requested</th>
+            <th scope="col">Confirmed</th>
+            <th scope="col">
+              <span class="visually-hidden">Manage subscriber</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for subscriber in page %}
+            <tr>
+              <td class="newsletter-email">{{ subscriber.email }}</td>
+              <td>
+                <span class="badge {{ subscriber.badge_class }}">{{ subscriber.get_status_display }}</span>
+              </td>
+              <td class="fs-xs text-muted text-nowrap">{{ subscriber.requested_at|date:'d M Y, H:i' }}</td>
+              <td class="fs-xs text-muted text-nowrap">{{ subscriber.confirmed_at|date:'d M Y, H:i'|default:'—' }}</td>
+              <td>
+                <a href="{% url 'website:newsletter_subscriber' pk=subscriber.pk %}"
+                   class="btn btn-light btn-sm">Manage</a>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="5" class="newsletter-empty text-muted">No subscribers match these filters.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% include 'website/backend/pagination.html' %}
+  </div>
+{% endblock newsletter_content %}
