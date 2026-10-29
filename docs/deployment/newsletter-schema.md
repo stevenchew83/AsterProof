@@ -23,9 +23,11 @@ schema objects and sequences to remain unchanged. Only the single expected
 Django migration-record/counter increment is allowed. The active application's
 fixed read-only compatibility smoke must pass against the resulting database.
 
-Freeze the discovered two-table catalogue delta as a fixture, bind its digest
-in the allowance, and verify the packaged proof again in the protected release
-build. Disclosure, release, artifact, starting/ending catalogue fingerprints and
+The discovered two-table catalogue delta is frozen in
+`scripts/deployment/tests/fixtures/newsletter-schema-delta.json`; its digest is
+bound in the allowance and checked by CI. The protected release build repeats
+the preservation rehearsal and verifies the packaged proof. Disclosure, release,
+artifact, starting/ending catalogue fingerprints and
 OIDC audience retain their existing bindings. The production audit role keeps
 its existing schema-only privileges; no subscriber rows or credentials are
 exported and no additional database privileges are granted.

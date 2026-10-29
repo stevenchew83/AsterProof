@@ -1,0 +1,399 @@
+{
+  "columns": [
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "website_newslettercampaign",
+      "type": "uuid"
+    },
+    {
+      "collation": "default",
+      "column": "subject",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "website_newslettercampaign",
+      "type": "character varying(180)"
+    },
+    {
+      "collation": "default",
+      "column": "preheader",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "website_newslettercampaign",
+      "type": "character varying(180)"
+    },
+    {
+      "collation": "default",
+      "column": "body_markdown",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "website_newslettercampaign",
+      "type": "text"
+    },
+    {
+      "collation": null,
+      "column": "version",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "website_newslettercampaign",
+      "type": "integer"
+    },
+    {
+      "collation": "default",
+      "column": "status",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "website_newslettercampaign",
+      "type": "character varying(16)"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 7,
+      "schema": "public",
+      "table": "website_newslettercampaign",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "updated_at",
+      "default": null,
+      "nullable": false,
+      "position": 8,
+      "schema": "public",
+      "table": "website_newslettercampaign",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "started_at",
+      "default": null,
+      "nullable": true,
+      "position": 9,
+      "schema": "public",
+      "table": "website_newslettercampaign",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "completed_at",
+      "default": null,
+      "nullable": true,
+      "position": 10,
+      "schema": "public",
+      "table": "website_newslettercampaign",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "created_by_id",
+      "default": null,
+      "nullable": true,
+      "position": 11,
+      "schema": "public",
+      "table": "website_newslettercampaign",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "started_by_id",
+      "default": null,
+      "nullable": true,
+      "position": 12,
+      "schema": "public",
+      "table": "website_newslettercampaign",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "website_newsletterdelivery",
+      "type": "uuid"
+    },
+    {
+      "collation": "default",
+      "column": "recipient_email",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "website_newsletterdelivery",
+      "type": "character varying(254)"
+    },
+    {
+      "collation": "default",
+      "column": "subject",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "website_newsletterdelivery",
+      "type": "character varying(180)"
+    },
+    {
+      "collation": null,
+      "column": "consent_confirmed_at",
+      "default": null,
+      "nullable": true,
+      "position": 4,
+      "schema": "public",
+      "table": "website_newsletterdelivery",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "campaign_version",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "website_newsletterdelivery",
+      "type": "integer"
+    },
+    {
+      "collation": "default",
+      "column": "kind",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "website_newsletterdelivery",
+      "type": "character varying(12)"
+    },
+    {
+      "collation": "default",
+      "column": "status",
+      "default": null,
+      "nullable": false,
+      "position": 7,
+      "schema": "public",
+      "table": "website_newsletterdelivery",
+      "type": "character varying(12)"
+    },
+    {
+      "collation": "default",
+      "column": "detail",
+      "default": null,
+      "nullable": false,
+      "position": 8,
+      "schema": "public",
+      "table": "website_newsletterdelivery",
+      "type": "character varying(180)"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 9,
+      "schema": "public",
+      "table": "website_newsletterdelivery",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "attempted_at",
+      "default": null,
+      "nullable": true,
+      "position": 10,
+      "schema": "public",
+      "table": "website_newsletterdelivery",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "finished_at",
+      "default": null,
+      "nullable": true,
+      "position": 11,
+      "schema": "public",
+      "table": "website_newsletterdelivery",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "campaign_id",
+      "default": null,
+      "nullable": false,
+      "position": 12,
+      "schema": "public",
+      "table": "website_newsletterdelivery",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "subscriber_id",
+      "default": null,
+      "nullable": true,
+      "position": 13,
+      "schema": "public",
+      "table": "website_newsletterdelivery",
+      "type": "uuid"
+    }
+  ],
+  "constraints": [
+    {
+      "definition": "FOREIGN KEY (created_by_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "website_newsletterca_created_by_id_e1816a28_fk_users_use",
+      "schema": "public",
+      "table": "website_newslettercampaign",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (started_by_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "website_newsletterca_started_by_id_12cd3e15_fk_users_use",
+      "schema": "public",
+      "table": "website_newslettercampaign",
+      "type": "f"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "website_newslettercampaign_pkey",
+      "schema": "public",
+      "table": "website_newslettercampaign",
+      "type": "p"
+    },
+    {
+      "definition": "CHECK (version >= 0)",
+      "name": "website_newslettercampaign_version_check",
+      "schema": "public",
+      "table": "website_newslettercampaign",
+      "type": "c"
+    },
+    {
+      "definition": "FOREIGN KEY (campaign_id) REFERENCES website_newslettercampaign(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "website_newsletterde_campaign_id_334ef03c_fk_website_n",
+      "schema": "public",
+      "table": "website_newsletterdelivery",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (subscriber_id) REFERENCES website_newslettersubscriber(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "website_newsletterde_subscriber_id_816e767f_fk_website_n",
+      "schema": "public",
+      "table": "website_newsletterdelivery",
+      "type": "f"
+    },
+    {
+      "definition": "CHECK (campaign_version >= 0)",
+      "name": "website_newsletterdelivery_campaign_version_check",
+      "schema": "public",
+      "table": "website_newsletterdelivery",
+      "type": "c"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "website_newsletterdelivery_pkey",
+      "schema": "public",
+      "table": "website_newsletterdelivery",
+      "type": "p"
+    }
+  ],
+  "extensions": [],
+  "indexes": [
+    {
+      "definition": "CREATE INDEX website_newslettercampaign_created_by_id_e1816a28 ON public.website_newslettercampaign USING btree (created_by_id)",
+      "name": "website_newslettercampaign_created_by_id_e1816a28",
+      "schema": "public",
+      "table": "website_newslettercampaign"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX website_newslettercampaign_pkey ON public.website_newslettercampaign USING btree (id)",
+      "name": "website_newslettercampaign_pkey",
+      "schema": "public",
+      "table": "website_newslettercampaign"
+    },
+    {
+      "definition": "CREATE INDEX website_newslettercampaign_started_by_id_12cd3e15 ON public.website_newslettercampaign USING btree (started_by_id)",
+      "name": "website_newslettercampaign_started_by_id_12cd3e15",
+      "schema": "public",
+      "table": "website_newslettercampaign"
+    },
+    {
+      "definition": "CREATE INDEX website_newslettercampaign_status_81441bc8 ON public.website_newslettercampaign USING btree (status)",
+      "name": "website_newslettercampaign_status_81441bc8",
+      "schema": "public",
+      "table": "website_newslettercampaign"
+    },
+    {
+      "definition": "CREATE INDEX website_newslettercampaign_status_81441bc8_like ON public.website_newslettercampaign USING btree (status varchar_pattern_ops)",
+      "name": "website_newslettercampaign_status_81441bc8_like",
+      "schema": "public",
+      "table": "website_newslettercampaign"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX website_campaign_one_inflight ON public.website_newsletterdelivery USING btree (campaign_id) WHERE ((status)::text = 'sending'::text)",
+      "name": "website_campaign_one_inflight",
+      "schema": "public",
+      "table": "website_newsletterdelivery"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX website_campaign_recipient_once ON public.website_newsletterdelivery USING btree (campaign_id, recipient_email) WHERE ((kind)::text = 'campaign'::text)",
+      "name": "website_campaign_recipient_once",
+      "schema": "public",
+      "table": "website_newsletterdelivery"
+    },
+    {
+      "definition": "CREATE INDEX website_newsletterdelivery_campaign_id_334ef03c ON public.website_newsletterdelivery USING btree (campaign_id)",
+      "name": "website_newsletterdelivery_campaign_id_334ef03c",
+      "schema": "public",
+      "table": "website_newsletterdelivery"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX website_newsletterdelivery_pkey ON public.website_newsletterdelivery USING btree (id)",
+      "name": "website_newsletterdelivery_pkey",
+      "schema": "public",
+      "table": "website_newsletterdelivery"
+    },
+    {
+      "definition": "CREATE INDEX website_newsletterdelivery_status_0a4744d9 ON public.website_newsletterdelivery USING btree (status)",
+      "name": "website_newsletterdelivery_status_0a4744d9",
+      "schema": "public",
+      "table": "website_newsletterdelivery"
+    },
+    {
+      "definition": "CREATE INDEX website_newsletterdelivery_status_0a4744d9_like ON public.website_newsletterdelivery USING btree (status varchar_pattern_ops)",
+      "name": "website_newsletterdelivery_status_0a4744d9_like",
+      "schema": "public",
+      "table": "website_newsletterdelivery"
+    },
+    {
+      "definition": "CREATE INDEX website_newsletterdelivery_subscriber_id_816e767f ON public.website_newsletterdelivery USING btree (subscriber_id)",
+      "name": "website_newsletterdelivery_subscriber_id_816e767f",
+      "schema": "public",
+      "table": "website_newsletterdelivery"
+    }
+  ],
+  "tables": [
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "website_newslettercampaign"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "website_newsletterdelivery"
+    }
+  ]
+}
