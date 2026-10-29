@@ -13,6 +13,7 @@ from django.utils.http import urlencode
 from django.views.decorators.http import require_GET
 from django.views.decorators.http import require_http_methods
 
+from inspinia.solutions.examples import INEQUALITY_BLOCKS
 from inspinia.training.markdown import render_markdown
 
 from .forms import NewsletterForm
@@ -24,6 +25,7 @@ from .newsletter import confirm_subscription
 from .newsletter import request_subscription
 from .newsletter import subscriber_from_token
 from .newsletter import unsubscribe
+from .solution_preview import solution_preview_context
 
 SUBJECT_DESCRIPTIONS = {
     Subject.ALGEBRA: ("A", "Find structure in expressions, equations, and inequalities."),
@@ -62,7 +64,7 @@ def _lectures():
     ).select_related("concept", "concept__area")
 
 
-def _page(request, template, **context):
+def _page(request, template, *, status=200, **context):
     context.setdefault("newsletter_form", NewsletterForm(auto_id="newsletter_%s"))
     context.update(
         {
@@ -72,7 +74,7 @@ def _page(request, template, **context):
             "canonical_url": settings.PUBLIC_SITE_ORIGIN.rstrip("/") + request.path,
         },
     )
-    response = render(request, "website/" + template + ".html", context)
+    response = render(request, "website/" + template + ".html", context, status=status)
     if context.get("noindex"):
         response["X-Robots-Tag"] = "noindex, nofollow"
         # no-referrer can turn form POST origins into "null" in browsers,
@@ -84,7 +86,10 @@ def _page(request, template, **context):
 
 @require_GET
 def home_view(request):
-    return _page(request, "home", page_title="A little insight. Infinite possibilities.", active_nav="home")
+    return _page(
+        request, "home", page_title="A little insight. Infinite possibilities.", active_nav="home",
+        has_math=True, **solution_preview_context(request),
+    )
 
 
 @require_GET
@@ -104,29 +109,7 @@ def problem_solving_view(request):
         has_math=True,
         hide_newsletter=True,
         workspace_url=workspace_url,
-        example_blocks=[
-            {
-                "kind": "Idea",
-                "body": "Compare the two sides by writing their difference as a sum of squares.",
-            },
-            {
-                "kind": "Claim",
-                "body": (
-                    r"\[2(a^2+b^2+c^2-ab-bc-ca)=(a-b)^2+(b-c)^2+(c-a)^2.\]"
-                ),
-            },
-            {
-                "kind": "Proof",
-                "body": (
-                    "Every square is non-negative, so the identity gives "
-                    r"$a^2+b^2+c^2-ab-bc-ca\geq 0$, as required."
-                ),
-            },
-            {
-                "kind": "Conclusion",
-                "body": "Equality holds if and only if all three squares vanish, which is equivalent to $a=b=c$.",
-            },
-        ],
+        example_blocks=INEQUALITY_BLOCKS,
         example_days=["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
     )
 

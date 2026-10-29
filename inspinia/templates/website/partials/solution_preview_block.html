@@ -1,0 +1,25 @@
+<article class="public-tool-block" data-block-form>
+  <header>
+    <h3><span data-block-number>{{ number }}</span>Solution block</h3>
+    <div class="public-tool-controls">
+      <button type="button" data-move-block="up" aria-label="Move block up" title="Move block up">↑</button>
+      <button type="button" data-move-block="down" aria-label="Move block down" title="Move block down">↓</button>
+      <button type="button" data-remove-block aria-label="Remove block" title="Remove block">×</button>
+    </div>
+  </header>
+  {{ block_form.id }}{{ block_form.DELETE }}
+  {{ block_form.non_field_errors }}
+  {% for error in block_form.id.errors %}<p class="website-field-error">{{ error }}</p>{% endfor %}
+  <div class="public-tool-options">
+    <div><label for="{{ block_form.block_type.id_for_label }}">Block type</label>{{ block_form.block_type }}{{ block_form.block_type.errors }}</div>
+    <div><label for="{{ block_form.body_format.id_for_label }}">Format</label>{{ block_form.body_format }}{{ block_form.body_format.errors }}</div>
+  </div>
+  <label class="visually-hidden" for="{{ block_form.body_source.id_for_label }}">Your argument</label>{{ block_form.body_source }}{{ block_form.body_source.errors }}
+  <details class="public-tool-block-details"{% if block_form.title.errors or block_form.ORDER.errors or block_form.title.value %} open{% endif %}>
+    <summary>Heading &amp; order</summary>
+    <div class="public-tool-options">
+      <div><label for="{{ block_form.title.id_for_label }}">Heading (optional)</label>{{ block_form.title }}{{ block_form.title.errors }}</div>
+      <div><label for="{{ block_form.ORDER.id_for_label }}">Order</label>{{ block_form.ORDER }}{{ block_form.ORDER.errors }}</div>
+    </div>
+  </details>
+</article>

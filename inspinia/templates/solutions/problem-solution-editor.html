@@ -80,6 +80,10 @@
   .solution-preview-body, .solution-preview-block-body { font-family: Georgia, "Times New Roman", serif; white-space: pre-wrap; font-size: 1rem; line-height: 1.85; }
   .solution-reference-body mjx-container[display="true"], .solution-preview-paper mjx-container[display="true"] { max-width: 100%; overflow-x: auto; overflow-y: hidden; }
   .solution-preview-placeholder { color: var(--se-muted); padding: 2rem 0; text-align: center; line-height: 1.8; font-family: inherit; }
+  .pdf-display-options { font-size: .75rem; margin-bottom: 1rem; }
+  .pdf-document-meta p { margin-bottom: .35rem; color: var(--se-muted); font: .85rem/1.6 Georgia, serif; }
+  .pdf-document-meta:has(p:not([hidden])) { margin-bottom: 1.25rem; }
+  .pdf-document-footer { margin-top: 2rem; text-align: center; font: .85rem/1.6 Georgia, serif; color: var(--se-muted); }
   .solution-preview-live { display: inline-flex; gap: .35rem; align-items: center; font-size: .65rem; letter-spacing: 0; font-weight: 500; text-transform: none; }
   .solution-preview-live::before { content: ""; width: .35rem; height: .35rem; background: var(--ins-primary); border-radius: 50%; }
   .solution-editor-help { margin-top: 1.25rem; color: var(--se-muted); font-size: .8rem; }
@@ -116,6 +120,7 @@
         <span><i class="ti ti-category me-1" aria-hidden="true"></i>{{ problem_data.problem.topic|topic_label }}</span>
         <span>MOHS <strong>{{ problem_data.problem_mohs|default_if_none:'—' }}</strong></span>
         <span class="badge {{ solution_status_badge_class }}">{{ solution_status_label }}</span>
+        {% if completion_state.is_solved %}<a href="{% url 'pages:my_completion_progress_analytics' %}" class="badge bg-success-subtle text-success border border-success-subtle">Solved{% if completion_state.completion_date %} · {{ completion_state.completion_date }}{% endif %}</a>{% endif %}
       </div>
   </header>
 
@@ -182,7 +187,7 @@
       </div>
       <span id="solution-save-status" class="solution-save-status" role="status" aria-live="polite">{% if form.instance.pk %}Saved{% else %}Not saved yet{% endif %}</span>
     </div>
-    <div class="d-flex align-items-center gap-2 solution-toolbar-actions">
+    <div class="d-flex align-items-center flex-wrap gap-2 solution-toolbar-actions">
       <button type="submit" form="solution-editor-form" name="action" value="save" id="solution-save" class="btn btn-primary btn-sm"><i class="ti ti-device-floppy me-1" aria-hidden="true"></i>Save changes</button>
       {% if solution_status_label != 'Published' %}<button type="submit" form="solution-editor-form" name="action" value="publish" class="btn btn-outline-primary btn-sm">Publish solution</button>{% endif %}
       <details class="solution-actions-menu">
@@ -197,10 +202,33 @@
     </div>
   </div>
 
+  <section class="card mb-3" id="solution-completion-panel"
+           data-save-url="{% url 'pages:completion_board_toggle' %}"
+           data-problem-uuid="{{ problem_data.problem.problem_uuid }}"
+           data-statement-uuid="{{ problem_data.statement_entry.statement_uuid|default:'' }}"
+           aria-labelledby="solution-progress-heading">
+    <div class="card-body py-3">
+      <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+        <div>
+          <h2 id="solution-progress-heading" class="h6 mb-1">Your progress</h2>
+          <p class="text-muted fs-xs mb-1">Saving or publishing a solution does not mark this problem solved.</p>
+          <span id="solution-completion-status" class="fs-sm fw-semibold" role="status" aria-live="polite">{{ completion_state.state_label }}</span>
+        </div>
+        <div class="d-flex align-items-center flex-wrap gap-2">
+          <button type="button" id="solution-mark-solved" class="btn btn-outline-success btn-sm"{% if completion_state.is_solved %} disabled{% endif %}>
+            <i class="ti ti-check me-1" aria-hidden="true"></i>{% if completion_state.is_solved %}Marked solved{% else %}Mark problem solved{% endif %}
+          </button>
+          <a href="{% url 'pages:my_completion_progress_analytics' %}" class="btn btn-outline-secondary btn-sm">View my progress</a>
+        </div>
+      </div>
+      <p id="solution-completion-feedback" class="text-muted fs-xs mt-2 mb-0" role="status" aria-live="polite">Marking solved updates your progress only. Save your proof separately.</p>
+    </div>
+  </section>
+
   <div id="solution-upload-feedback" class="alert alert-danger" role="alert" hidden></div>
   <div id="solution-removed-feedback" class="alert alert-light border d-flex align-items-center gap-2 d-none" role="status"><span>Block removed.</span><button type="button" class="btn btn-link btn-sm p-0" id="solution-undo-remove">Undo</button></div>
 
-  <form method="post" novalidate id="solution-editor-form" data-bound="{{ form.is_bound|yesno:'true,false' }}" data-saved="{{ form.instance.pk|yesno:'true,false' }}">
+  <form method="post" novalidate id="solution-editor-form" data-pdf-document data-pdf-author="{{ pdf_author_name }}" data-pdf-date="{{ pdf_date_label }}" data-bound="{{ form.is_bound|yesno:'true,false' }}" data-saved="{{ form.instance.pk|yesno:'true,false' }}">
     {% csrf_token %}
     {{ formset.management_form }}
     {% if form.non_field_errors or formset.non_form_errors %}
@@ -219,6 +247,7 @@
             {% for err in form.summary.errors %}<div class="invalid-feedback d-block">{{ err }}</div>{% endfor %}
           </details>
         </div>
+        {% include 'solutions/partials/pdf-display-options.html' %}
         <div id="solution-block-list">
           {% for block_form in formset %}{% include 'solutions/partials/solution-block-form.html' with block_form=block_form number=forloop.counter %}{% endfor %}
         </div>
@@ -230,7 +259,7 @@
             <li>Use <code>$...$</code> for inline math and <code>\[...\]</code> for displayed equations.</li>
             <li>Move blocks with the arrow buttons. The preview follows the same order.</li>
             <li>Paste an image into a LaTeX block to upload it and insert <code>\includegraphics</code>.</li>
-            <li>Use <kbd>Ctrl</kbd> / <kbd>⌘</kbd> + <kbd>S</kbd> to save. PDF export uses your last saved solution.</li>
+            <li>Use <kbd>Ctrl</kbd> / <kbd>⌘</kbd> + <kbd>S</kbd> to save without changing progress. Use the separate <strong>Mark problem solved</strong> control to update your progress. PDF export uses your last saved solution.</li>
           </ul>
         </details>
       </section>
@@ -240,8 +269,10 @@
           <div class="solution-preview-paper">
             <div class="se-eyebrow mb-3">Solution</div>
             <h2 class="solution-preview-title" id="solution-preview-title">My solution</h2>
+            {% include 'solutions/partials/pdf-preview-metadata.html' %}
             <div class="solution-preview-summary" id="solution-preview-summary" hidden></div>
             <div id="solution-live-preview"></div>
+            <footer class="pdf-document-footer tex2jax_ignore" data-pdf-preview-footer hidden aria-label="Page number">1</footer>
           </div>
         </div>
       </section>
@@ -252,6 +283,7 @@
 {% endblock page_content %}
 
 {% block extra_javascript %}
+<script defer src="{% static 'js/solution-pdf-options.js' %}"></script>
 <script>
 window.MathJax = {
   loader: { load: ["[tex]/textmacros"] },
@@ -411,7 +443,8 @@ window.ASTERPROOF_SOLUTION_PREVIEW = {
   form.addEventListener("submit", function (event) {
     if (pendingUploads || submitting) { event.preventDefault(); return; }
     submitting = true;
-    saveStatus.textContent = event.submitter && event.submitter.value === "publish" ? "Publishing\u2026" : "Saving\u2026";
+    var action = event.submitter && event.submitter.value;
+    saveStatus.textContent = action === "publish" ? "Publishing\u2026" : "Saving\u2026";
   });
   window.addEventListener("beforeunload", function (event) {
     if (!submitting && (pendingUploads || hasChanges())) { event.preventDefault(); event.returnValue = ""; }
@@ -756,6 +789,45 @@ window.ASTERPROOF_SOLUTION_PREVIEW = {
   updateSaveState();
   window.AsterProofSolutionLatex.mathJaxReady().then(function () {
     return renderPreviewNow();
+  });
+})();
+</script>
+<script>
+(function () {
+  var panel = document.getElementById("solution-completion-panel");
+  var button = document.getElementById("solution-mark-solved");
+  var status = document.getElementById("solution-completion-status");
+  var feedback = document.getElementById("solution-completion-feedback");
+  var token = document.querySelector('#solution-editor-form input[name="csrfmiddlewaretoken"]');
+  if (!panel || !button || !token) return;
+  button.addEventListener("click", function () {
+    if (button.disabled) return;
+    var params = new URLSearchParams({action: "mark_solved", problem_uuid: panel.dataset.problemUuid});
+    if (panel.dataset.statementUuid) params.set("statement_uuid", panel.dataset.statementUuid);
+    try { params.set("completion_timezone", Intl.DateTimeFormat().resolvedOptions().timeZone || ""); } catch (_) {}
+    button.disabled = true;
+    button.textContent = "Marking solved\u2026";
+    feedback.classList.remove("text-danger");
+    feedback.textContent = "Updating your progress\u2026";
+    fetch(panel.dataset.saveUrl, {
+      method: "POST", credentials: "same-origin",
+      headers: {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8", "X-CSRFToken": token.value, "X-Requested-With": "XMLHttpRequest"},
+      body: params.toString()
+    }).then(function (response) {
+      return response.json().then(function (payload) {
+        if (!response.ok || !payload.is_solved) throw new Error(payload.error || "Could not mark this problem solved.");
+        return payload;
+      });
+    }).then(function (payload) {
+      status.textContent = payload.state_label;
+      button.textContent = "Marked solved";
+      feedback.textContent = "Problem marked solved. Your proof was not saved by this action.";
+    }).catch(function () {
+      button.disabled = false;
+      button.textContent = "Mark problem solved";
+      feedback.classList.add("text-danger");
+      feedback.textContent = "Could not update your progress. Your proof is unchanged. Try again, or sign in if your session has expired.";
+    });
   });
 })();
 </script>

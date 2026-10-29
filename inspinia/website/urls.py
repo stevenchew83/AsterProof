@@ -2,10 +2,12 @@ from django.urls import path
 
 from . import backend
 from . import views
+from .solution_preview import solution_preview_view
 
 app_name = "website"
 
 urlpatterns = [
+    path("tools/solution-preview/", solution_preview_view, name="solution_preview"),
     path("problem-solving/", views.problem_solving_view, name="problem_solving"),
     path("manage/newsletter/", backend.index, name="newsletter_dashboard"),
     path("manage/newsletter/subscribers/", backend.subscribers, name="newsletter_subscribers"),

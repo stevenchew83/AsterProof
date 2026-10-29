@@ -1,0 +1,14 @@
+{{ form.pdf_options_present }}
+<details class="pdf-display-options mt-3"{% if form.author_name.errors %} open{% endif %}>
+  <summary class="fs-xs text-muted">Preview &amp; PDF options</summary>
+  <div class="mt-2">
+    <label class="d-inline-flex align-items-center gap-2 me-3 mb-2" for="{{ form.pdf_show_author.id_for_label }}">{{ form.pdf_show_author }}<span>{{ form.pdf_show_author.label }}</span></label>
+    <label class="d-inline-flex align-items-center gap-2 me-3 mb-2" for="{{ form.pdf_show_date.id_for_label }}">{{ form.pdf_show_date }}<span>{{ form.pdf_show_date.label }}</span></label>
+    <label class="d-inline-flex align-items-center gap-2 mb-2" for="{{ form.pdf_show_footer.id_for_label }}">{{ form.pdf_show_footer }}<span>{{ form.pdf_show_footer.label }}</span></label>
+    {% if form.author_name %}
+      <label for="{{ form.author_name.id_for_label }}">{{ form.author_name.label }}</label>{{ form.author_name }}{{ form.author_name.errors }}
+    {% else %}
+      <p class="text-muted fs-xs mb-0">Save changes to keep these options for PDF export.</p>
+    {% endif %}
+  </div>
+</details>

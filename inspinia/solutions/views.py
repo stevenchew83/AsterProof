@@ -30,6 +30,7 @@ from PIL import Image
 from PIL import UnidentifiedImageError
 
 from inspinia.pages.asymptote_render import build_statement_render_segments
+from inspinia.pages.completion_record_fields import is_completion_status_solved
 from inspinia.pages.contest_links import contest_dashboard_listing_url
 from inspinia.pages.models import DIFFICULTY_RATING_MAX
 from inspinia.pages.models import DIFFICULTY_RATING_MIN
@@ -58,6 +59,7 @@ from inspinia.solutions.pdf_latex import SolutionPdfError
 from inspinia.solutions.pdf_latex import SolutionPdfMissingBodyImagesError
 from inspinia.solutions.pdf_latex import SolutionPdfToolError
 from inspinia.solutions.pdf_latex import compile_solution_to_pdf
+from inspinia.solutions.pdf_latex import solution_pdf_date_display
 from inspinia.users.roles import user_has_admin_role
 
 logger = logging.getLogger(__name__)
@@ -398,7 +400,7 @@ def _solution_page_completion_payload(
     else:
         completion = UserProblemCompletion.objects.filter(user=user, problem=problem).first()
 
-    is_solved = completion is not None
+    is_solved = completion is not None and is_completion_status_solved(completion.status)
     completion_date = completion.completion_date if completion is not None else None
     return {
         "completion_date": completion_date.isoformat() if completion_date is not None else "",
@@ -426,13 +428,13 @@ def _save_solution_form_request(
     form: ProblemSolutionForm,
     formset,
     problem: ProblemSolveRecord,
-    user,
+    request,
     action: str,
 ) -> tuple[ProblemSolution, str, str]:
     with transaction.atomic():
         solution = form.save(commit=False)
         solution.problem = problem
-        solution.author = user
+        solution.author = request.user
         message_text, message_level = _apply_editor_action(solution, action)
         solution.save()
         formset.instance = solution
@@ -806,7 +808,7 @@ def problem_solution_list_view(request, problem_uuid):
                 form=form,
                 formset=formset,
                 problem=problem,
-                user=request.user,
+                request=request,
                 action=action,
             )
             getattr(messages, message_level)(request, message_text)
@@ -845,7 +847,7 @@ def problem_solution_edit_view(request, problem_uuid):
             form=form,
             formset=formset,
             problem=problem,
-            user=request.user,
+            request=request,
             action=action,
         )
         getattr(messages, message_level)(request, message_text)
@@ -863,6 +865,9 @@ def problem_solution_edit_view(request, problem_uuid):
         "formset": formset,
         "plain_block_type_id": str(plain_block_type.id) if plain_block_type is not None else "",
         "problem_data": problem_data,
+        "completion_state": _solution_page_completion_payload(
+            problem=problem, statement=problem_data["statement_entry"], user=request.user,
+        ),
         "solution_body_image_upload_url": reverse(
             "solutions:solution_body_image_upload",
             args=[problem.problem_uuid],
@@ -871,6 +876,8 @@ def problem_solution_edit_view(request, problem_uuid):
         "editor_coverage": editor_coverage,
         "solution_status_badge_class": _solution_status_badge(current_status),
         "solution_status_label": ProblemSolution.Status(current_status).label,
+        "pdf_author_name": (request.user.name or "").strip() or "Unknown",
+        "pdf_date_label": solution_pdf_date_display(solution),
     }
     return render(request, "solutions/problem-solution-editor.html", context)
 

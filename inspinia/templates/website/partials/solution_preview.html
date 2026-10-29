@@ -1,0 +1,42 @@
+<div class="public-solution-tool" data-pdf-document data-pdf-date="{{ pdf_date_label }}" data-solution-preview data-block-limit="{{ preview_block_limit }}" data-plain-block-type="{{ plain_block_type_id }}">
+  <form action="{% url 'website:solution_preview' %}" method="post" id="solution-preview-form" novalidate>
+    {% csrf_token %}{{ formset.management_form }}
+    {% if form.non_field_errors or formset.non_form_errors %}
+      <div class="public-tool-errors" role="alert"><strong>Please check your document.</strong>{{ form.non_field_errors }}{{ formset.non_form_errors }}</div>
+    {% endif %}
+    <div class="public-tool-toolbar">
+      <p>No sign-in needed. Your writing is not saved; download your PDF before leaving.</p>
+      <div><a href="{% url 'website:solution_preview' %}" class="website-text-link">Reset example ↺</a><button type="submit" class="website-button">Download PDF <span aria-hidden="true">↓</span></button></div>
+    </div>
+    <p class="website-fineprint" data-pdf-status role="status"></p>
+    <div class="public-tool-grid">
+      <section class="public-tool-writing" aria-labelledby="converter-writing-title">
+        <div class="public-tool-pane-title"><h2 id="converter-writing-title">Your working</h2><span>LaTeX &amp; plain text</span></div>
+        <div class="public-tool-document">
+          <label for="{{ form.title.id_for_label }}">{{ form.title.label }}</label>{{ form.title }}{{ form.title.errors }}
+          <details{% if form.problem_statement.errors %} open{% endif %}>
+            <summary>Problem statement (optional)</summary>
+            <label class="visually-hidden" for="{{ form.problem_statement.id_for_label }}">{{ form.problem_statement.label }}</label>{{ form.problem_statement }}{{ form.problem_statement.errors }}
+          </details>
+        </div>
+        {% include 'solutions/partials/pdf-display-options.html' %}
+        <div id="preview-block-list">{% for block_form in formset %}{% include 'website/partials/solution_preview_block.html' with block_form=block_form number=forloop.counter %}{% endfor %}</div>
+        <template id="preview-block-empty-form">{% include 'website/partials/solution_preview_block.html' with block_form=formset.empty_form number='' %}</template>
+        <button type="button" id="preview-add-block" class="public-tool-add" hidden>+ Add a block</button>
+        <p class="website-fineprint public-tool-tips">Use <code>$...$</code> for inline math or <code>\[...\]</code> for an equation. Choose Plain text to keep symbols as typed. Write text and math fragments; the PDF supplies the layout.</p>
+        <noscript><p class="website-fineprint">Enable JavaScript for live preview and block controls. You can still edit the example and download a PDF.</p></noscript>
+      </section>
+      <section class="public-tool-preview" aria-labelledby="converter-preview-title">
+        <div class="public-tool-pane-title"><h2 id="converter-preview-title">Live preview</h2><span id="converter-preview-status" role="status">Updates as you write</span></div>
+        <p class="website-fineprint public-tool-tips">Your PDF includes a framed problem statement, styled claims, and proofs. To keep drafts and track your practice, <a class="website-text-link" href="{% url 'account_signup' %}">create an account</a>.</p>
+        <article class="public-tool-paper" aria-labelledby="converter-document-title">
+          <p class="website-kicker">Your solution</p><h2 id="converter-document-title" class="tex2jax_ignore">{{ form.title.value|default:'My solution' }}</h2>
+          {% include 'solutions/partials/pdf-preview-metadata.html' %}
+          <div id="converter-statement" class="converter-statement"{% if not form.problem_statement.value %} hidden{% endif %}>{{ form.problem_statement.value|default:'' }}</div>
+          <div id="converter-block-preview"></div>
+          <footer class="pdf-document-footer tex2jax_ignore" data-pdf-preview-footer hidden aria-label="Page number">1</footer>
+        </article>
+      </section>
+    </div>
+  </form>
+</div>
