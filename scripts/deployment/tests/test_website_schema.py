@@ -20,6 +20,7 @@ from scripts.deployment.protocol import ProtocolError
 from scripts.deployment.protocol import envelope_audience
 from scripts.deployment.release_state import atomic_write_json
 from scripts.deployment.release_state import read_json
+from scripts.deployment.schema_fingerprint import schema_state
 from scripts.deployment.tests.test_concept_schema import END
 from scripts.deployment.tests.test_concept_schema import START
 from scripts.deployment.tests.test_concept_schema import SchemaBackend
@@ -33,6 +34,13 @@ from scripts.deployment.validate_dispatch import validate_schema_input
 from scripts.deployment.website_schema_rehearsal import validate_migration_record
 
 ROOT = Path(__file__).resolve().parents[3]
+
+
+def test_frozen_website_delta_matches_the_postgresql_rehearsal():
+    delta = json.loads((Path(__file__).parent / "fixtures/website-schema-delta.json").read_text())
+    assert schema_state(delta)["fingerprint"] == schema.DELTA_SHA256
+    assert {row["table"] for row in delta["tables"]} == schema.TABLES
+    assert not delta["extensions"]
 
 
 def disclosure():
