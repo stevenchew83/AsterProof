@@ -84,7 +84,10 @@ jobs:
           DATABASE_URL: postgres://postgres@127.0.0.1:5432/asterproof_schema_rehearsal
         run: |
           rehearsal_args=()
-          if ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/newsletter_automation_schema.py scripts/deployment/newsletter_automation_rehearsal.py inspinia/website/migrations/0003_newsletter_automation.py; then
+          if ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/solution_sharing_schema.py scripts/deployment/solution_sharing_schema_rehearsal.py inspinia/solutions/migrations/0005_solutionpublicshare.py; then
+            rehearsal=scripts.deployment.solution_sharing_schema_rehearsal
+            active_sha=cecd909e0def36783065b500cc1ea5692f4f5f59
+          elif ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/newsletter_automation_schema.py scripts/deployment/newsletter_automation_rehearsal.py inspinia/website/migrations/0003_newsletter_automation.py; then
             rehearsal=scripts.deployment.newsletter_automation_rehearsal
             active_sha=6c90b211fcd74eb08022fb0dee7243b440590ed3
           elif ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/solution_pdf_schema.py scripts/deployment/solution_pdf_schema_rehearsal.py inspinia/solutions/migrations/0004_solution_pdf_display_options.py; then
