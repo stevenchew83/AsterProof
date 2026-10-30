@@ -33,6 +33,14 @@ The attested artifact binds that proof to its exact target and active revision.
 Additional or modified migrations remain rejected. The existing 2-second lock
 and 30-second statement limits and recovery-required behavior remain intact.
 
+After merging, manually run **CI** on `main` with `baseline_sha` equal to the
+verified active production SHA. Download its PostgreSQL rehearsal artifact and
+verify that `source_sha` is the exact current `main` revision and `active_sha`
+matches production. Use the digest of those original bytes in the disclosure;
+never rewrite a PR proof's source revision to stand in for a release rehearsal.
+The protected production build repeats that same rehearsal and must produce the
+identical proof bytes before its attested artifact is accepted.
+
 The separately authorized authority installation must preserve target and audit
 configuration, marker, key identity and forced command, users, database
 roles/privileges, environment/media, app/scheduler/proxy units, and all GitHub
