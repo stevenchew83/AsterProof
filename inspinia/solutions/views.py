@@ -68,9 +68,9 @@ from inspinia.solutions.pdf_latex import SolutionPdfMissingBodyImagesError
 from inspinia.solutions.pdf_latex import SolutionPdfToolError
 from inspinia.solutions.pdf_latex import compile_solution_to_pdf
 from inspinia.solutions.pdf_latex import solution_pdf_date_display
-from inspinia.solutions.sharing import build_preview_image
 from inspinia.solutions.sharing import build_public_snapshot
 from inspinia.solutions.sharing import public_description
+from inspinia.solutions.sharing import public_preview_image
 from inspinia.solutions.sharing import public_share_url
 from inspinia.solutions.sharing import snapshot_digest
 from inspinia.solutions.sharing import whatsapp_share_url
@@ -1070,7 +1070,7 @@ def _write_shared_snapshot(solution, share, snapshot):
     elif not share.is_active:
         share.token = uuid.uuid4()
     share.snapshot = snapshot
-    share.preview_image = build_preview_image(snapshot)
+    share.preview_image = public_preview_image()
     share.source_updated_at = solution.updated_at
     share.revision = uuid.uuid4()
     share.is_active = True

@@ -1,5 +1,6 @@
 from django.urls import path
 
+from inspinia.solutions.admin_sharing import admin_public_shares_view
 from inspinia.solutions.public_views import public_solution_image_view
 from inspinia.solutions.public_views import public_solution_view
 from inspinia.solutions.views import admin_problem_solution_pdf_view
@@ -14,6 +15,7 @@ from inspinia.solutions.views import solution_body_image_upload_view
 app_name = "solutions"
 
 urlpatterns = [
+    path("admin/shared/", admin_public_shares_view, name="admin_public_shares"),
     path("shared/<uuid:token>/", public_solution_view, name="public_solution"),
     path("shared/<uuid:token>/preview/<uuid:revision>.jpg", public_solution_image_view, name="public_solution_image"),
     path("", my_solution_list_view, name="my_solution_list"),

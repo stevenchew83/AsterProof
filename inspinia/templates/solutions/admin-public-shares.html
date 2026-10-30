@@ -1,0 +1,137 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}Public solutions{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid app-table-page">
+  <header class="page-title-head app-page-header app-page-header--with-stats app-page-header--stats-only">
+    {% include 'partials/page-header-intro.html' with title='Public solutions' subtitle='Administration' page_icon='ti-world' only %}
+    <dl class="app-page-header-stats">
+      {% include 'partials/page-header-stat.html' with label='Active links' value=metrics.active stat_icon='ti-link' accent=True only %}
+      {% include 'partials/page-header-stat.html' with label='Sharing authors' value=metrics.authors stat_icon='ti-users' only %}
+      {% include 'partials/page-header-stat.html' with label='Stopped links' value=metrics.stopped stat_icon='ti-link-off' only %}
+      {% include 'partials/page-header-stat.html' with label='Views · 30 days' value=metrics.views stat_icon='ti-eye' only %}
+    </dl>
+  </header>
+
+  <div class="card">
+    <div class="card-body">
+      <form method="get" class="app-table-filters row g-2 align-items-end">
+        <div class="col-md-4">
+          <label for="share-query" class="form-label">Search</label>
+          <input type="search" name="q" id="share-query" maxlength="200" class="form-control" value="{{ filters.q }}" placeholder="Shared title, problem, or author">
+        </div>
+        <div class="col-6 col-md-2">
+          <label for="share-status" class="form-label">Status</label>
+          <select name="status" id="share-status" class="form-select">
+            <option value="">All statuses</option>
+            <option value="active" {% if filters.status == 'active' %}selected{% endif %}>Active</option>
+            <option value="stopped" {% if filters.status == 'stopped' %}selected{% endif %}>Stopped</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-2">
+          <label for="share-topic" class="form-label">Shared topic</label>
+          <select name="topic" id="share-topic" class="form-select">
+            <option value="">All topics</option>
+            {% for topic in topics %}<option value="{{ topic }}" {% if filters.topic == topic %}selected{% endif %}>{{ topic }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="col-6 col-md-2">
+          <label for="share-sort" class="form-label">Order</label>
+          <select name="sort" id="share-sort" class="form-select">
+            <option value="updated" {% if filters.sort == 'updated' %}selected{% endif %}>Latest change</option>
+            <option value="views" {% if filters.sort == 'views' %}selected{% endif %}>Most viewed</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-2 d-flex gap-2">
+          <button type="submit" class="btn btn-primary">Apply</button>
+          <a href="{% url 'solutions:admin_public_shares' %}" class="btn btn-outline-secondary">Reset</a>
+        </div>
+      </form>
+      <p class="text-muted fs-xs mt-2 mb-0">All metrics follow these filters. Topic filtering includes active snapshots only.</p>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-8">
+      <section class="card h-100 mb-0" aria-labelledby="sharing-traffic-heading">
+        <div class="card-header border-0 pb-0">
+          <h2 class="header-title fs-lg mb-0" id="sharing-traffic-heading">Reader views</h2>
+          <span class="text-muted fs-xs">{{ first_day|date:"j M" }}–{{ today|date:"j M Y" }}</span>
+        </div>
+        <div class="card-body pt-2">
+          <figure class="mb-2">
+            <div class="d-flex align-items-end gap-1 border-bottom" style="height: 100px" aria-hidden="true">
+              {% for point in trend %}<div class="bg-primary rounded-top flex-fill" style="height: {{ point.width }}%" title="{{ point.day|date:'j M' }}: {{ point.views }} views"></div>{% endfor %}
+            </div>
+            <figcaption class="d-flex justify-content-between text-muted fs-xs mt-1"><span>{{ first_day|date:"j M" }}</span><span>{{ metrics.views }} views · {{ first_share_count }} first shares</span><span>{{ today|date:"j M" }}</span></figcaption>
+          </figure>
+          {% if not metrics.views %}<p class="text-muted fs-sm mb-2">No recorded views in this period for these filters.</p>{% endif %}
+          <details class="app-table-details">
+            <summary>Daily breakdown and counting rules</summary>
+            <div class="app-table-details-body">
+              <p class="text-muted fs-xs">Views are page opens, including repeat visits. Known preview crawlers, prefetches, HEAD/image requests, owners, and admins are excluded. Automated traffic may still count. No visitor identifiers are stored. Traffic before tracking was deployed is unavailable.</p>
+              <p class="text-muted fs-xs">First shares count each solution once. Updates and re-sharing do not add another first share. Views include earlier versions and links for the same solution. Stopped content is removed; aggregate counts remain. Dates use {{ report_timezone }}.</p>
+              <table class="table table-sm mb-0">
+                <caption class="visually-hidden">Daily reader views and first shares for the filtered solutions</caption>
+                <thead><tr><th scope="col">Day</th><th scope="col">Views</th><th scope="col">First shares</th></tr></thead>
+                <tbody>{% for point in trend %}<tr><th scope="row">{{ point.day|date:"j M Y" }}</th><td>{{ point.views }}</td><td>{{ point.shares }}</td></tr>{% endfor %}</tbody>
+              </table>
+            </div>
+          </details>
+        </div>
+      </section>
+    </div>
+    <div class="col-lg-4">
+      <section class="card h-100 mb-0" aria-labelledby="sharing-topics-heading">
+        <div class="card-header border-0 pb-0"><h2 class="header-title fs-lg mb-0" id="sharing-topics-heading">Active shares by topic</h2></div>
+        <div class="card-body pt-2">
+          <ul class="list-group list-group-flush">
+            {% for item in topic_counts %}<li class="list-group-item px-0 d-flex justify-content-between gap-2"><span>{{ item.shared_topic|default:'Unspecified' }}</span><strong>{{ item.total }}</strong></li>{% empty %}<li class="list-group-item px-0 text-muted">No active shares for these filters.</li>{% endfor %}
+          </ul>
+          <p class="text-muted fs-xs mt-2 mb-0">Topics and MOHS come from the shared version. Private draft changes are excluded.</p>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <section class="card mt-3" aria-labelledby="shared-solutions-heading">
+    <div class="card-header border-bottom">
+      <h2 class="header-title fs-lg mb-0" id="shared-solutions-heading">Shared solutions</h2>
+      <span class="text-muted fs-xs">{{ page_obj.paginator.count }} record{{ page_obj.paginator.count|pluralize }} · public snapshots only</span>
+    </div>
+    <div class="card-body">
+      <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Shared solution results">
+        <table class="app-table-compact table table-striped align-middle mb-0">
+          <thead class="table-light"><tr><th scope="col">Shared solution</th><th scope="col">Account owner</th><th scope="col">Status</th><th scope="col">Topic / MOHS</th><th scope="col">Last sharing change</th><th scope="col" class="text-end">Views · 30d</th></tr></thead>
+          <tbody>
+            {% for share in page_obj %}
+            <tr>
+              <td>
+                {% if share.is_active %}
+                <a href="{{ share.public_url }}" target="_blank" rel="noopener noreferrer" class="app-table-text fw-semibold" title="{{ share.shared_title }}" aria-label="View shared solution: {{ share.shared_title }}">{{ share.shared_title|default:'Untitled solution' }} <i class="ti ti-external-link ms-1" aria-hidden="true"></i></a>
+                {% else %}<span class="text-muted">Shared content removed</span>{% endif %}
+                <details class="app-table-details mt-1">
+                  <summary class="fs-xs">Details</summary>
+                  <div class="app-table-details-body fs-xs">
+                    <div>Account: {{ share.author_email }}</div>
+                    <div>First shared: {{ share.created_at|date:"j M Y, H:i" }}</div>
+                    {% if share.is_active %}<div>Problem: {{ share.shared_problem|default:'Problem' }}</div><div>Shared version saved: {{ share.source_updated_at|date:"j M Y, H:i" }}</div><div class="text-break mt-1">{{ share.public_url }}</div>{% else %}<div>The public proof and link are unavailable.</div>{% endif %}
+                  </div>
+                </details>
+              </td>
+              <td><span class="fw-semibold">{{ share.author_name|default:'Learner' }}</span></td>
+              <td>{% if share.is_active %}<span class="badge bg-success-subtle text-success">Active</span>{% else %}<span class="badge bg-secondary-subtle text-secondary">Stopped</span>{% endif %}</td>
+              <td>{% if share.is_active %}{{ share.shared_topic|default:'—' }}<span class="app-table-meta text-muted fs-xs">MOHS {{ share.shared_mohs|default_if_none:'—' }}</span>{% else %}<span class="text-muted">—</span>{% endif %}</td>
+              <td>{{ share.updated_at|date:"j M Y, H:i" }}</td>
+              <td class="text-end fw-semibold">{{ share.views_30d }}</td>
+            </tr>
+            {% empty %}<tr><td colspan="6" class="text-muted py-4">No shared solutions match these filters.</td></tr>{% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% include 'pages/partials/server-pagination.html' %}
+    </div>
+  </section>
+</div>
+{% endblock page_content %}
