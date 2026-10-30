@@ -20865,6 +20865,234 @@ input::-webkit-inner-spin-button {
   --ins-popover-body-padding-y: .5rem !important;
 }
 
+.solution-share-active-dot {
+  display: inline-block;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: var(--ins-primary);
+}
+
+.solution-share-dialog {
+  position: fixed;
+  inset: var(--share-top, 5rem) auto auto var(--share-left, calc(100vw - 430px));
+  width: 390px;
+  max-width: calc(100vw - 24px);
+  max-height: calc(100dvh - 24px);
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--ins-border-color);
+  border-radius: 0.75rem;
+  background: var(--ins-secondary-bg);
+  color: var(--ins-body-color);
+  -webkit-box-shadow: 0 12px 48px rgba(0, 0, 0, 0.18);
+          box-shadow: 0 12px 48px rgba(0, 0, 0, 0.18);
+  overflow-y: auto;
+  font-size: 0.875rem;
+}
+.solution-share-dialog::-ms-backdrop {
+  background: rgba(0, 0, 0, 0.12);
+}
+.solution-share-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.12);
+}
+.solution-share-dialog [hidden] {
+  display: none !important;
+}
+.solution-share-dialog button:focus-visible, .solution-share-dialog a:focus-visible, .solution-share-dialog input:focus-visible {
+  outline: 2px solid var(--ins-primary);
+  outline-offset: 3px;
+}
+
+.solution-share-header {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  -webkit-box-pack: justify;
+      -ms-flex-pack: justify;
+          justify-content: space-between;
+  padding: 0.5rem 0.9rem;
+  border-bottom: 1px solid var(--ins-border-color);
+}
+.solution-share-header h2, .solution-share-header .h2 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 0;
+}
+.solution-share-header button {
+  font-size: 1rem;
+}
+
+.solution-share-handle {
+  display: none;
+}
+
+.solution-share-body {
+  padding: 0.75rem 0.9rem;
+}
+
+.solution-share-saved-title {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  margin-bottom: 0.4rem;
+}
+
+.solution-share-access {
+  margin: 0;
+}
+
+.solution-share-description {
+  margin: 0.5rem 0 0;
+  color: var(--ins-secondary-color);
+  font-size: 0.75rem;
+}
+
+.solution-share-access-icon {
+  display: grid;
+  place-items: center;
+  -webkit-box-flex: 0;
+      -ms-flex: 0 0 2rem;
+          flex: 0 0 2rem;
+  height: 2rem;
+  background: var(--ins-tertiary-bg);
+  border-radius: 0.5rem;
+  font-size: 1.15rem;
+}
+
+.solution-share-version-row {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  -webkit-box-pack: justify;
+      -ms-flex-pack: justify;
+          justify-content: space-between;
+  -ms-flex-wrap: wrap;
+      flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-block: 0.75rem;
+}
+
+.solution-share-version {
+  margin: 0;
+  font-size: 0.75rem;
+}
+
+.solution-share-dirty {
+  padding: 0.5rem 0.65rem;
+  border-left: 2px solid var(--ins-warning);
+  background: rgba(var(--ins-warning-rgb), 0.08);
+  font-size: 0.8rem;
+}
+
+.solution-share-feedback {
+  font-size: 0.8rem;
+  margin-bottom: 0.6rem;
+}
+.solution-share-feedback:empty {
+  display: none;
+}
+
+.solution-share-update-row, .solution-share-stop-row {
+  -ms-flex-negative: 0;
+      flex-shrink: 0;
+}
+
+.solution-share-links {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-align: baseline;
+      -ms-flex-align: baseline;
+          align-items: baseline;
+  -ms-flex-wrap: wrap;
+      flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  font-size: 0.75rem;
+}
+
+.solution-share-more summary {
+  color: var(--ins-secondary-color);
+  cursor: pointer;
+}
+.solution-share-more[open] {
+  -ms-flex-preferred-size: 100%;
+      flex-basis: 100%;
+}
+
+.solution-share-more-body {
+  padding-top: 0.6rem;
+}
+
+.solution-share-link-details {
+  margin-top: 0.4rem;
+}
+.solution-share-link-details summary {
+  color: var(--ins-secondary-color);
+  cursor: pointer;
+}
+
+.solution-share-footer {
+  position: sticky;
+  bottom: 0;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-wrap: wrap;
+      flex-wrap: wrap;
+  gap: 0.5rem;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  -webkit-box-pack: justify;
+      -ms-flex-pack: justify;
+          justify-content: space-between;
+  padding: 0.65rem 0.9rem;
+  border-top: 1px solid var(--ins-border-color);
+  background: var(--ins-secondary-bg);
+}
+
+.solution-share-primary-actions {
+  margin-left: auto;
+}
+
+html.solution-share-open {
+  overflow: hidden;
+}
+
+@media (max-width: 767px) {
+  .solution-share-dialog {
+    inset: auto 0 0;
+    width: 100%;
+    max-width: 100%;
+    max-height: calc(100dvh - 32px);
+    padding-bottom: env(safe-area-inset-bottom);
+    border-bottom: 0;
+    border-radius: 1rem 1rem 0 0;
+  }
+  .solution-share-dialog::-ms-backdrop {
+    background: rgba(0, 0, 0, 0.3);
+  }
+  .solution-share-dialog::backdrop {
+    background: rgba(0, 0, 0, 0.3);
+  }
+  .solution-share-handle {
+    display: block;
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--ins-border-color);
+    margin: 0.65rem auto 0;
+  }
+  .solution-share-dialog input {
+    font-size: 16px;
+  }
+}
 @media print {
   .sidenav-menu,
   .page-title-head,

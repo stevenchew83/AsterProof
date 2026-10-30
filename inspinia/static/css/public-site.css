@@ -2392,3 +2392,211 @@
     font-size: 28px;
   }
 }
+.public-shared-page {
+  max-width: 920px;
+  padding-block: 32px 48px;
+}
+
+.public-shared-toolbar {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-pack: justify;
+      -ms-flex-pack: justify;
+          justify-content: space-between;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  -ms-flex-wrap: wrap;
+      flex-wrap: wrap;
+  gap: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--w-line);
+}
+.public-shared-toolbar p {
+  margin: 0;
+  color: var(--w-muted);
+  font-size: 12px;
+}
+.public-shared-toolbar > div {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  gap: 24px;
+  -ms-flex-wrap: wrap;
+      flex-wrap: wrap;
+}
+.public-shared-toolbar button {
+  border: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.public-shared-paper {
+  --shared-ink: #233d34;
+  --shared-accent: #28766a;
+  color: var(--shared-ink);
+  background: #fffefa;
+  padding: clamp(20px, 5vw, 52px);
+  border: 1px solid #d6ddd0;
+  border-radius: 3px;
+  overflow-wrap: anywhere;
+}
+.public-shared-paper header h1, .public-shared-paper header .public-shared-title {
+  color: var(--shared-ink);
+  font: 400 clamp(28px, 4vw, 42px)/1.2 Georgia, serif;
+  letter-spacing: -0.035em;
+  margin: 0 0 16px;
+}
+.public-shared-paper h2 {
+  font: 600 14px/1.6 var(--ins-body-font-family);
+  letter-spacing: 0;
+  color: var(--shared-accent);
+}
+.public-shared-paper .public-shared-byline {
+  font: 13px/1.8 Georgia, serif;
+  color: #596c63;
+  margin-bottom: 24px;
+}
+.public-shared-paper mjx-container[display=true] {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-block: 8px;
+}
+.public-shared-paper pre {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.public-shared-kicker {
+  font: 600 10px/1.6 var(--ins-body-font-family);
+  color: #28766a;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  margin-bottom: 18px;
+}
+
+.public-shared-problem {
+  border-block: 1px solid #d6ddd0;
+  padding-block: 22px;
+  margin-block: 28px;
+}
+.public-shared-problem h2 {
+  margin-bottom: 5px;
+}
+
+.public-shared-tags {
+  font-size: 11px;
+  color: #596c63;
+  margin-bottom: 18px;
+}
+
+.public-shared-body {
+  white-space: pre-wrap;
+  font-size: 14px;
+  line-height: 1.85;
+}
+.public-shared-body img {
+  display: block;
+  max-width: 100%;
+  max-height: 640px;
+  height: auto;
+  margin-block: 16px;
+}
+
+.public-shared-diagram {
+  display: block;
+  max-width: 100%;
+  max-height: 520px;
+  margin: 20px auto;
+}
+
+.public-shared-topics {
+  font-size: 12px;
+  margin-top: 18px;
+}
+.public-shared-topics summary {
+  cursor: pointer;
+  color: #28766a;
+  margin-bottom: 8px;
+}
+.public-shared-topics p {
+  margin: 8px 0;
+}
+
+.public-shared-summary {
+  font: italic 17px/1.8 Georgia, serif;
+  white-space: pre-wrap;
+  padding-left: 18px;
+  border-left: 2px solid #84ab95;
+  margin-bottom: 28px;
+}
+
+.public-shared-block {
+  margin-bottom: 28px;
+}
+.public-shared-block h2 {
+  margin-bottom: 10px;
+}
+
+.public-shared-page-number {
+  text-align: center;
+  font: 12px Georgia, serif;
+  color: #596c63;
+  margin-top: 32px;
+}
+
+.public-shared-cta {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  -webkit-box-pack: justify;
+      -ms-flex-pack: justify;
+          justify-content: space-between;
+  -ms-flex-wrap: wrap;
+      flex-wrap: wrap;
+  gap: 24px;
+  border-top: 1px solid var(--w-line);
+  margin-top: 36px;
+  padding-top: 32px;
+}
+.public-shared-cta p:not(.website-kicker) {
+  font-size: 12px;
+  color: var(--w-muted);
+}
+.public-shared-cta h2 {
+  margin-bottom: 12px;
+}
+
+.shared-card-preview {
+  border: 1px solid var(--ins-border-color);
+  border-left: 4px solid #28766a;
+  border-radius: 3px;
+  padding: 20px;
+  background: #f8f7f2;
+  color: #233d34;
+}
+.shared-card-preview h3 {
+  font: 400 26px/1.3 Georgia, serif;
+  overflow-wrap: anywhere;
+}
+.shared-card-preview p {
+  font-size: 12px;
+  color: #596c63;
+  margin-bottom: 12px;
+}
+
+@media print {
+  .public-shared-toolbar, .public-shared-cta {
+    display: none;
+  }
+  .public-shared-paper {
+    border: 0;
+    padding: 0;
+  }
+}

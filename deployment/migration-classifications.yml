@@ -2,6 +2,16 @@
   "format_version": 1,
   "baseline_sha": null,
   "migrations": {
+    "solutions.0005_solutionpublicshare": {
+      "classification": "backward-compatible-schema",
+      "recovery_required": false,
+      "code_rollback_permitted": true,
+      "data_preconditions": [
+        "solution_public_share_table_absent",
+        "existing_solution_and_progress_records_preserved"
+      ],
+      "rationale": "Creates one isolated public snapshot table with a unique token and one-to-one solution foreign key. No backfill or existing solution, user, block, or progress writes. Prior application code remains compatible with the additive table; code recovery must retain shared snapshots and their revocation state. This classification does not expand the frozen production migration allowlist."
+    },
     "website.0003_newsletter_automation": {
       "classification": "backward-compatible-schema",
       "recovery_required": false,

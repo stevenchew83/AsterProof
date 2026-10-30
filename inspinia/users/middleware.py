@@ -13,7 +13,7 @@ class RequireApprovedUserMiddleware:
     public_paths = {
         "/", "/problem-solving/", "/tools/solution-preview/", "/about/", "/contact/", "/privacy/", "/terms/",
     }
-    public_path_prefixes = ("/library/", "/newsletter/")
+    public_path_prefixes = ("/library/", "/newsletter/", "/solutions/shared/")
 
     def __init__(self, get_response):
         self.get_response = get_response

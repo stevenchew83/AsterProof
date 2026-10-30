@@ -1,0 +1,5 @@
+{% extends 'website/base.html' %}
+{% block public_content %}
+<section class="website-container website-page-hero"><p class="website-kicker">Shared solutions</p><h1>This solution is unavailable<em>.</em></h1>
+        <p>The author may have stopped sharing, or the link may no longer be valid.</p><a href="{% url 'website:solution_preview' %}" class="website-button">Open Solution Writer <span aria-hidden="true">↗</span></a></section>
+{% endblock public_content %}

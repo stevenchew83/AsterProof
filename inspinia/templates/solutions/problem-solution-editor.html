@@ -189,6 +189,8 @@
     </div>
     <div class="d-flex align-items-center flex-wrap gap-2 solution-toolbar-actions">
       <button type="submit" form="solution-editor-form" name="action" value="save" id="solution-save" class="btn btn-primary btn-sm"><i class="ti ti-device-floppy me-1" aria-hidden="true"></i>Save changes</button>
+      {% if form.instance.pk %}<a href="{% url 'solutions:problem_solution_share' problem_data.problem.problem_uuid %}" class="btn btn-outline-secondary btn-sm" data-share-fallback><i class="ti ti-share me-1" aria-hidden="true"></i>Share solution</a>{% endif %}
+      <button type="button" id="solution-share-trigger" class="btn btn-outline-secondary btn-sm" aria-label="Share solution" aria-haspopup="dialog" aria-controls="solution-share-dialog" aria-expanded="false" data-share-open hidden><i class="ti ti-share me-1" aria-hidden="true"></i>Share<span class="solution-share-active-dot ms-2" data-share-indicator{% if not public_share %} hidden{% endif %} aria-hidden="true"></span></button>
       {% if solution_status_label != 'Published' and not writer_import %}<button type="submit" form="solution-editor-form" name="action" value="publish" class="btn btn-outline-primary btn-sm">Publish solution</button>{% endif %}
       <details class="solution-actions-menu">
         <summary class="btn btn-outline-secondary btn-sm" aria-label="More solution actions"><i class="ti ti-dots" aria-hidden="true"></i></summary>
@@ -201,6 +203,10 @@
       </details>
     </div>
   </div>
+
+  <p class="text-muted fs-sm mb-3" data-share-active-notice{% if not public_share %} hidden{% endif %}><i class="ti ti-link me-1" aria-hidden="true"></i>A public copy is shared. Saving here keeps that copy unchanged. <a href="{% url 'solutions:problem_solution_share' problem_data.problem.problem_uuid %}" data-share-open>Manage the public link</a> to update it or stop sharing.</p>
+
+  {% include 'solutions/partials/solution-share-popover.html' %}
 
   <section class="card mb-3" id="solution-completion-panel"
            data-save-url="{% url 'pages:completion_board_toggle' %}"
@@ -287,6 +293,7 @@
 {% endblock page_content %}
 
 {% block extra_javascript %}
+<script defer src="{% static 'js/solution-share-popover.js' %}"></script>
 <script defer src="{% static 'js/solution-pdf-options.js' %}"></script>
 <script>
 window.MathJax = {
@@ -374,6 +381,7 @@ window.ASTERPROOF_SOLUTION_PREVIEW = {
   function updateSaveState() {
     var dirty = hasChanges();
     saveStatus.dataset.dirty = String(dirty);
+    form.dispatchEvent(new CustomEvent("asterproof:solution-save-state"));
     saveStatus.textContent = pendingUploads ? "Uploading image\u2026" : (dirty ? "Unsaved changes" : initialStatus);
     submitButtons.forEach(function (button) { button.disabled = pendingUploads > 0; });
   }
