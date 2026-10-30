@@ -37,6 +37,7 @@ test('device recovery is opt-in and restores all writing and choices without aut
   const original = document();
   original.blocks.reverse();
   const first = controls(original);
+  assert.equal(first.elements['[data-draft-enable]'].disabled, false);
   first.recovery.changed(); first.recovery.flush();
   assert.equal(first.storage.has(KEY), false);
   first.elements['[data-draft-enable]'].checked = true;

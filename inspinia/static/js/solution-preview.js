@@ -198,7 +198,18 @@
     event.preventDefault();
     form.requestSubmit(button);
   });
-  document.addEventListener("asterproof:math-ready", render);
-  if (document.readyState === "complete") render();
-  else window.addEventListener("load", render, {once: true});
+  let startupRenderQueued = false;
+  function renderStartupPreview() {
+    if (startupRenderQueued) return;
+    startupRenderQueued = true;
+    // Let MathJax's startup task finish before adding preview typesetting work.
+    setTimeout(render, 0);
+  }
+  function initializePreview() {
+    if (window.AsterProofMathReady) window.AsterProofMathReady.then(renderStartupPreview);
+    else render(); // The lazy homepage still needs a text preview before math is requested.
+  }
+  document.addEventListener("asterproof:math-ready", renderStartupPreview, {once: true});
+  if (document.readyState === "complete") initializePreview();
+  else window.addEventListener("load", initializePreview, {once: true});
 }());
