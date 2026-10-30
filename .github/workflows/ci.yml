@@ -2,6 +2,12 @@ name: CI
 
 on:
   pull_request:
+  workflow_dispatch:
+    inputs:
+      baseline_sha:
+        description: Exact active production SHA for release rehearsal
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -33,7 +39,7 @@ jobs:
       - name: Select checks and validate whitespace
         id: checks
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || inputs.baseline_sha }}
         run: |
           python3 scripts/ci_checks.py --base "$BASE_SHA"
           git diff --check "$BASE_SHA" HEAD --
@@ -78,7 +84,7 @@ jobs:
         id: website-schema
         if: steps.checks.outputs.runtime == 'true'
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || inputs.baseline_sha }}
           WEBSITE_BASELINE_SHA: 457172aef8d8fa058bf20f140fd64de8eccb9576
           SOLUTION_PDF_BASELINE_SHA: a92717340acafffc07adecef6442cc9a6c58066f
           DATABASE_URL: postgres://postgres@127.0.0.1:5432/asterproof_schema_rehearsal
