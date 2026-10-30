@@ -1,0 +1,108 @@
+{
+  "columns": [
+    {
+      "collation": null,
+      "column": "day",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "solutions_solutionsharedailyviews",
+      "type": "date"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "solutions_solutionsharedailyviews",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "share_id",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "solutions_solutionsharedailyviews",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "views",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "solutions_solutionsharedailyviews",
+      "type": "bigint"
+    }
+  ],
+  "constraints": [
+    {
+      "definition": "CHECK (views >= 0)",
+      "name": "solutions_solutionsharedailyviews_views_check",
+      "schema": "public",
+      "table": "solutions_solutionsharedailyviews",
+      "type": "c"
+    },
+    {
+      "definition": "FOREIGN KEY (share_id) REFERENCES solutions_solutionpublicshare(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_solutionsh_share_id_3d1f4140_fk_solutions",
+      "schema": "public",
+      "table": "solutions_solutionsharedailyviews",
+      "type": "f"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "solutions_solutionsharedailyviews_pkey",
+      "schema": "public",
+      "table": "solutions_solutionsharedailyviews",
+      "type": "p"
+    },
+    {
+      "definition": "UNIQUE (share_id, day)",
+      "name": "solutions_share_views_unique_day",
+      "schema": "public",
+      "table": "solutions_solutionsharedailyviews",
+      "type": "u"
+    }
+  ],
+  "extensions": [],
+  "indexes": [
+    {
+      "definition": "CREATE INDEX solutions_solutionsharedailyviews_day_8b8103b4 ON public.solutions_solutionsharedailyviews USING btree (day)",
+      "name": "solutions_solutionsharedailyviews_day_8b8103b4",
+      "schema": "public",
+      "table": "solutions_solutionsharedailyviews"
+    },
+    {
+      "definition": "CREATE INDEX solutions_solutionsharedailyviews_share_id_3d1f4140 ON public.solutions_solutionsharedailyviews USING btree (share_id)",
+      "name": "solutions_solutionsharedailyviews_share_id_3d1f4140",
+      "schema": "public",
+      "table": "solutions_solutionsharedailyviews"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX solutions_share_views_unique_day ON public.solutions_solutionsharedailyviews USING btree (share_id, day)",
+      "name": "solutions_share_views_unique_day",
+      "schema": "public",
+      "table": "solutions_solutionsharedailyviews"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX solutions_solutionsharedailyviews_pkey ON public.solutions_solutionsharedailyviews USING btree (id)",
+      "name": "solutions_solutionsharedailyviews_pkey",
+      "schema": "public",
+      "table": "solutions_solutionsharedailyviews"
+    }
+  ],
+  "tables": [
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "solutions_solutionsharedailyviews"
+    }
+  ]
+}

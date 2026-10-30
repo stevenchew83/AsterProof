@@ -89,7 +89,11 @@ def _snapshot(connection):
     return result
 
 
-def _approved_rehearsal(disclosed_migration):
+def _approved_rehearsal(disclosed_migration):  # noqa: PLR0911 - Only literal, reviewed rehearsal imports.
+    if disclosed_migration == "solutions.0006_solution_share_daily_views":
+        from scripts.deployment.solution_analytics_schema_rehearsal import run
+
+        return run
     if disclosed_migration == "solutions.0005_solutionpublicshare":
         from scripts.deployment.solution_sharing_schema_rehearsal import run
 
