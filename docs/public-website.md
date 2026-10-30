@@ -123,6 +123,12 @@ Public pages use a single Bootstrap/Inspinia stylesheet containing the theme's
 typography, form controls, and required utilities, without dashboard JavaScript
 or icon fonts. Homepage MathJax loads when the editor is used or its preview
 enters the viewport; other mathematics pages load it immediately.
+The interactive writer loads MathJax 3.2.2's TeX, MathML, CommonHTML, and menu
+components separately so the combined engine does not execute as one large task.
+Its preview controller owns the initial typesetting pass; MathJax's automatic
+page scan is disabled there to avoid rendering the statement twice. Static
+mathematics pages retain automatic typesetting. A failed component load releases
+the editor into its existing text-preview fallback.
 
 `/robots.txt` points to `/sitemap.xml`, an index of paginated public page, area,
 concept, and lecture sitemaps. URLs use `DJANGO_PUBLIC_SITE_ORIGIN`. Drafts and

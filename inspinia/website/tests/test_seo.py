@@ -62,6 +62,10 @@ def test_public_pages_load_only_the_public_asset_bundle(client):
     scripts = re.findall(r'<script\b[^>]*\ssrc="([^"]+)"', homepage)
     assert "/static/js/website-geometry.bundle.js" not in scripts
     assert "data-lazy-math" in homepage
+    for path in ("/", "/tools/solution-preview/"):
+        assert 'data-preview-math-src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/startup.js"' in (
+            client.get(path).content.decode()
+        )
     assert not any("cdn.jsdelivr.net/npm/mathjax" in src for src in scripts)
     assert "data-lazy-math" not in client.get("/tools/solution-preview/").content.decode()
 
