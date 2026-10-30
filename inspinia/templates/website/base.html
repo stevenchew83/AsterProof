@@ -10,18 +10,19 @@
   <meta property="og:title" content="{{ seo_title|default:page_title }} | AsterProof">
   <meta property="og:description" content="{{ page_description }}">
   <meta property="og:site_name" content="AsterProof">
-  <meta property="og:type" content="{% if lecture %}article{% else %}website{% endif %}">
+  <meta property="og:type" content="{% if lecture or shared_solution %}article{% else %}website{% endif %}">
   <meta property="og:url" content="{{ canonical_url }}">
   <meta property="og:image" content="{{ social_image_url }}">
+  {% if shared_solution %}<meta property="og:image:type" content="image/jpeg">{% endif %}
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="AsterProof — Olympiad mathematics, ideas, and proofs">
+  <meta property="og:image:alt" content="{{ social_image_alt|default:'AsterProof — Olympiad mathematics, ideas, and proofs' }}">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="{{ seo_title|default:page_title }} | AsterProof">
   <meta name="twitter:description" content="{{ page_description }}">
   <meta name="twitter:image" content="{{ social_image_url }}">
-  <meta name="twitter:image:alt" content="AsterProof — Olympiad mathematics, ideas, and proofs">
-  {% if indexing_rule %}<meta name="robots" content="{{ indexing_rule }}">{% endif %}
+  <meta name="twitter:image:alt" content="{{ social_image_alt|default:'AsterProof — Olympiad mathematics, ideas, and proofs' }}">
+  {% if noindex %}<meta name="robots" content="noindex,nofollow">{% elif indexing_rule %}<meta name="robots" content="{{ indexing_rule }}">{% endif %}
 {% endblock extra_meta %}
 {% block body_attribute %}class="website-body"{% endblock body_attribute %}
 {% block body %}

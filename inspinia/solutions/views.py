@@ -1,6 +1,8 @@
 import logging
 import re
+import uuid
 from collections import Counter
+from http import HTTPStatus
 from io import BytesIO
 from pathlib import Path
 from urllib.parse import urlencode
@@ -10,6 +12,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import FieldError
 from django.core.exceptions import PermissionDenied
+from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
 from django.db import DatabaseError
 from django.db import IntegrityError
@@ -18,7 +21,9 @@ from django.db.models import Avg
 from django.db.models import Count
 from django.db.models import Max
 from django.db.models import Prefetch
+from django.db.models import Q
 from django.http import FileResponse
+from django.http import HttpResponseBadRequest
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
@@ -55,6 +60,7 @@ from inspinia.solutions.models import ProblemSolution
 from inspinia.solutions.models import ProblemSolutionBlock
 from inspinia.solutions.models import SolutionBlockType
 from inspinia.solutions.models import SolutionBodyImage
+from inspinia.solutions.models import SolutionPublicShare
 from inspinia.solutions.pdf_latex import SolutionPdfCompileError
 from inspinia.solutions.pdf_latex import SolutionPdfCompileParams
 from inspinia.solutions.pdf_latex import SolutionPdfError
@@ -62,6 +68,12 @@ from inspinia.solutions.pdf_latex import SolutionPdfMissingBodyImagesError
 from inspinia.solutions.pdf_latex import SolutionPdfToolError
 from inspinia.solutions.pdf_latex import compile_solution_to_pdf
 from inspinia.solutions.pdf_latex import solution_pdf_date_display
+from inspinia.solutions.sharing import build_preview_image
+from inspinia.solutions.sharing import build_public_snapshot
+from inspinia.solutions.sharing import public_description
+from inspinia.solutions.sharing import public_share_url
+from inspinia.solutions.sharing import snapshot_digest
+from inspinia.solutions.sharing import whatsapp_share_url
 from inspinia.solutions.writer_drafts import WRITER_DRAFT_SESSION_KEY
 from inspinia.solutions.writer_drafts import get_writer_draft
 from inspinia.solutions.writer_drafts import writer_editor_initial
@@ -311,6 +323,8 @@ def _solution_card_rows(solutions: list[ProblemSolution]) -> list[dict]:
                 "edit_url": reverse("solutions:problem_solution_edit", args=[solution.problem.problem_uuid]),
                 "id": solution.id,
                 "is_published": solution.status == ProblemSolution.Status.PUBLISHED,
+                "has_public_link": bool(getattr(solution, "public_share_count", 0)),
+                "share_manage_url": reverse("solutions:problem_solution_share", args=[solution.problem.problem_uuid]),
                 "problem_label": (
                     solution.problem.contest_year_problem
                     or f"{solution.problem.contest} {solution.problem.year} {solution.problem.problem}"
@@ -753,7 +767,10 @@ def my_solution_list_view(request):
     solutions = list(
         ProblemSolution.objects.filter(author=request.user)
         .select_related("problem", "author")
-        .annotate(block_count=Count("blocks"))
+        .annotate(
+            block_count=Count("blocks"),
+            public_share_count=Count("public_share", filter=Q(public_share__is_active=True), distinct=True),
+        )
         .order_by("-updated_at", "-id"),
     )
     status_counts = Counter(solution.status for solution in solutions)
@@ -909,6 +926,9 @@ def problem_solution_edit_view(request, problem_uuid):
     context = {
         "form": form,
         "formset": formset,
+        "public_share": (
+            SolutionPublicShare.objects.filter(solution=solution, is_active=True).first() if solution.pk else None
+        ),
         "writer_import": writer_import,
         "plain_block_type_id": str(plain_block_type.id) if plain_block_type is not None else "",
         "problem_data": problem_data,
@@ -927,6 +947,143 @@ def problem_solution_edit_view(request, problem_uuid):
         "pdf_date_label": solution_pdf_date_display(solution),
     }
     return render(request, "solutions/problem-solution-editor.html", context)
+
+
+@login_required
+@never_cache
+@transaction.atomic
+def problem_solution_share_view(request, problem_uuid):
+    queryset = ProblemSolution.objects.select_related("author", "problem")
+    if request.method == "POST":
+        # All share mutations lock the same owner row, including first creation.
+        queryset = queryset.select_for_update(of=("self",))
+    solution = get_object_or_404(queryset, problem__problem_uuid=problem_uuid, author=request.user)
+    share = SolutionPublicShare.objects.filter(solution=solution).first()
+    if request.method == "POST":
+        return _change_solution_sharing(request, solution, share)
+    if request.method != "GET":
+        return HttpResponseBadRequest("Use GET to review or POST to change sharing.")
+    review_error = ""
+    try:
+        snapshot = _public_snapshot(solution)
+    except ValidationError as exc:
+        snapshot = None
+        review_error = " ".join(exc.messages)
+        if not _sharing_json_request(request):
+            messages.error(request, review_error)
+    share_url = public_share_url(share) if share and share.is_active else ""
+    context = {
+        "solution": solution,
+        "snapshot": snapshot,
+        "share": share,
+        "share_url": share_url,
+        "whatsapp_url": whatsapp_share_url(share_url),
+        "preview_description": public_description(snapshot) if snapshot else "",
+        "share_outdated": bool(share and share.is_active and (
+            share.source_updated_at != solution.updated_at or snapshot is None
+            or snapshot_digest(share.snapshot) != snapshot_digest(snapshot)
+        )),
+        "solution_media_url": settings.MEDIA_URL,
+        "review_snapshot": True,
+        "review_digest": snapshot_digest(snapshot) if snapshot else "",
+    }
+    if _sharing_json_request(request):
+        return JsonResponse({
+            "is_active": bool(share_url),
+            "can_share": snapshot is not None,
+            "share_url": share_url,
+            "whatsapp_url": context["whatsapp_url"] if share_url else "",
+            "preview_url": share_url or reverse("solutions:problem_solution_share", args=[problem_uuid]),
+            "review_url": reverse("solutions:problem_solution_share", args=[problem_uuid]),
+            "source_version": solution.updated_at.isoformat(),
+            "share_revision": str(share.revision) if share else "",
+            "review_digest": context["review_digest"],
+            "has_saved_changes": context["share_outdated"],
+            "saved_title": snapshot["title"] if snapshot else solution.title,
+            "saved_author": snapshot["author"] if snapshot else "",
+            "saved_date": snapshot["date"] if snapshot else "",
+            "shared_at": timezone.localtime(share.updated_at).strftime("%d %b %Y, %H:%M") if share_url else "",
+            "error": review_error,
+        })
+    return render(request, "solutions/problem-solution-share.html", context)
+
+
+def _sharing_json_request(request):
+    return "application/json" in request.headers.get("Accept", "")
+
+
+def _sharing_result(request, solution, message, *, status=HTTPStatus.OK):
+    if _sharing_json_request(request):
+        return JsonResponse({"ok": status == HTTPStatus.OK, "message": message}, status=status)
+    level = "success" if status == HTTPStatus.OK else "warning"
+    getattr(messages, level)(request, message)
+    return redirect("solutions:problem_solution_share", solution.problem.problem_uuid)
+
+
+def _sharing_action_error(request, solution, share):
+    expected_revision = str(share.revision) if share else ""
+    if request.POST.get("share_revision", "") != expected_revision:
+        return "Sharing changed in another tab. Review the current version before trying again."
+    if request.POST["action"] == "stop":
+        return ""
+    if request.POST.get("source_version") != solution.updated_at.isoformat():
+        return "Your saved solution changed. Review its latest saved version before sharing."
+    if (request.POST["action"] == "update") != bool(share and share.is_active):
+        return "Review the current sharing settings before trying again."
+    return ""
+
+
+def _change_solution_sharing(request, solution, share):
+    action = request.POST.get("action")
+    if action not in {"create", "update", "stop"}:
+        return (
+            _sharing_result(request, solution, "Unknown sharing action.", status=400)
+            if _sharing_json_request(request) else HttpResponseBadRequest("Unknown sharing action.")
+        )
+    error = _sharing_action_error(request, solution, share)
+    if error:
+        return _sharing_result(request, solution, error, status=409)
+    if action == "stop":
+        if share and share.is_active:
+            share.is_active = False
+            share.snapshot = {}
+            share.preview_image = b""
+            share.revision = uuid.uuid4()
+            share.save()
+        return _sharing_result(request, solution, "Public sharing stopped. Your saved solution is unchanged.")
+    try:
+        snapshot = _public_snapshot(solution)
+    except ValidationError as exc:
+        return _sharing_result(request, solution, " ".join(exc.messages), status=400)
+    if request.POST.get("review_digest") != snapshot_digest(snapshot):
+        return _sharing_result(
+            request, solution, "The saved preview changed. Review it again before sharing.", status=409,
+        )
+    _write_shared_snapshot(solution, share, snapshot)
+    message = "Shared version updated." if action == "update" else "Public link created."
+    return _sharing_result(request, solution, message)
+
+
+def _write_shared_snapshot(solution, share, snapshot):
+    if share is None:
+        share = SolutionPublicShare(solution=solution)
+    elif not share.is_active:
+        share.token = uuid.uuid4()
+    share.snapshot = snapshot
+    share.preview_image = build_preview_image(snapshot)
+    share.source_updated_at = solution.updated_at
+    share.revision = uuid.uuid4()
+    share.is_active = True
+    share.save()
+
+
+def _public_snapshot(solution):
+    problem_data = _problem_context(solution.problem)
+    source = problem_data["statement_entry"] or ContestProblemStatement(
+        linked_problem=solution.problem, topic=solution.problem.topic, is_active=solution.problem.is_active,
+    )
+    coverage = statement_coverage_payloads([source])[source.pk]
+    return build_public_snapshot(solution, problem_data, coverage)
 
 
 @login_required

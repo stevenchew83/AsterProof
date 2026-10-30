@@ -1,0 +1,21 @@
+{% extends 'website/base.html' %}
+{% load static %}
+{% block public_content %}
+<div class="website-container public-shared-page">
+  <div class="public-shared-toolbar">
+    <p>Shared by its author · Read without an account</p>
+    <div>
+      <button type="button" class="website-text-link" data-copy-public-link="{{ canonical_url }}">Copy link</button>
+      <a href="{{ whatsapp_url }}" target="_blank" rel="noopener noreferrer" class="website-text-link">Share on WhatsApp ↗</a>
+    </div>
+  </div>
+  <p class="website-fineprint" data-copy-feedback role="status"></p>
+  {% include 'solutions/partials/shared-solution-content.html' %}
+  <div class="public-shared-cta"><div><p class="website-kicker">Your next insight</p><h2>Write your own solution.</h2>
+        <p>Work in blocks, preview the mathematics, and save your progress.</p></div><a href="{% url 'website:solution_preview' %}" class="website-button">Open Solution Writer <span aria-hidden="true">↗</span></a></div>
+</div>
+{% endblock public_content %}
+{% block website_javascript %}
+  <script src="{% static 'js/solution-sharing.js' %}" defer></script>
+  {% include 'solutions/partials/shared-solution-math.html' %}
+{% endblock website_javascript %}

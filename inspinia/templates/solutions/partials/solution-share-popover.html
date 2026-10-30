@@ -1,0 +1,53 @@
+<dialog id="solution-share-dialog" class="solution-share-dialog" aria-labelledby="solution-share-heading" aria-describedby="solution-share-description"{% if form.instance.pk %} data-share-url="{% url 'solutions:problem_solution_share' problem_data.problem.problem_uuid %}"{% endif %}>
+  <div class="solution-share-handle" aria-hidden="true"></div>
+  <header class="solution-share-header">
+    <h2 id="solution-share-heading">Share solution</h2>
+    <button type="button" class="btn btn-sm btn-link text-body-secondary" data-share-close aria-label="Close sharing" autofocus><i class="ti ti-x" aria-hidden="true"></i></button>
+  </header>
+  <div class="solution-share-body">
+    <p class="solution-share-feedback" data-share-feedback role="status" aria-live="polite">Loading sharing settings…</p>
+    <button type="button" class="btn btn-outline-secondary btn-sm mb-3" data-share-retry hidden>Retry loading</button>
+    <a href="{% url 'solutions:problem_solution_share' problem_data.problem.problem_uuid %}" target="_blank" rel="noopener noreferrer" class="fs-sm d-block mb-3" data-share-recovery hidden>Open sharing settings ↗</a>
+    <div data-share-content hidden>
+      <div class="solution-share-access">
+        <div class="visually-hidden">General access</div>
+        <div class="d-flex align-items-center gap-2">
+          <span class="solution-share-access-icon"><i class="ti ti-lock" data-share-access-icon aria-hidden="true"></i></span>
+          <div class="flex-grow-1"><strong data-share-access-label>Only you</strong><span class="visually-hidden" data-share-access-description>Your saved solution is private.</span></div>
+          <span class="text-muted fs-xs flex-shrink-0" data-share-permission hidden>Can view</span>
+        </div>
+      </div>
+      <p id="solution-share-description" class="solution-share-description">Saved version only. Draft edits stay private.</p>
+      <div class="solution-share-version-row">
+        <p class="solution-share-version" data-share-version></p>
+        <div class="solution-share-update-row" data-share-update-row hidden><button type="button" class="btn btn-outline-primary btn-sm" data-share-action="update">Update shared version</button></div>
+      </div>
+      <p class="solution-share-dirty" data-share-dirty hidden>Unsaved editor changes are excluded. Save first to share them.</p>
+      <div class="solution-share-links">
+        <a href="{% url 'solutions:problem_solution_share' problem_data.problem.problem_uuid %}" target="_blank" rel="noopener noreferrer" data-share-preview>Review saved version ↗</a>
+        <details class="solution-share-more" data-share-options>
+          <summary>More options</summary>
+          <div class="solution-share-more-body">
+            <p class="solution-share-saved-title" data-share-saved-title></p>
+            <p class="text-muted fs-xs" data-share-saved-credit hidden></p>
+            <a class="d-block" data-share-review target="_blank" rel="noopener noreferrer" hidden>Review saved changes ↗</a>
+            <details class="solution-share-link-details" data-share-link-group hidden>
+              <summary>View link</summary>
+              <label class="visually-hidden" for="solution-share-link">Public solution link</label>
+              <input id="solution-share-link" class="form-control form-control-sm mt-2" type="url" readonly data-share-link />
+            </details>
+          </div>
+        </details>
+      </div>
+    </div>
+  </div>
+  <footer class="solution-share-footer" data-share-footer hidden>
+    <span class="visually-hidden" data-share-footer-note>Anyone with the link can read it.</span>
+    <div class="solution-share-stop-row" data-share-stop-row hidden><button type="button" class="btn btn-link btn-sm text-danger p-0" data-share-action="stop">Stop sharing</button></div>
+    <div class="solution-share-primary-actions d-flex flex-wrap gap-2 justify-content-end">
+      <a class="btn btn-outline-secondary btn-sm" data-share-whatsapp href="https://wa.me/" target="_blank" rel="noopener noreferrer" hidden><i class="ti ti-brand-whatsapp me-1" aria-hidden="true"></i>WhatsApp</a>
+      <button type="button" class="btn btn-primary btn-sm" data-share-copy hidden><i class="ti ti-link me-1" aria-hidden="true"></i>Copy link</button>
+      <button type="button" class="btn btn-primary btn-sm" data-share-action="create" hidden>Create public link</button>
+    </div>
+  </footer>
+</dialog>

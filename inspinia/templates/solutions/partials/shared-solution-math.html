@@ -1,0 +1,29 @@
+{% load static %}
+<script>
+window.MathJax = {
+  loader: {load: ['ui/safe', '[tex]/textmacros']},
+  tex: {
+    packages: {'[+]': ['textmacros']},
+    inlineMath: [['$', '$'], ['\\(', '\\)']],
+    displayMath: [['$$', '$$'], ['\\[', '\\]']],
+    processEscapes: true
+  },
+  options: {
+    skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+    safeOptions: {
+      allow: {URLs: 'safe', classes: 'none', cssIDs: 'none', styles: 'none'},
+      safeProtocols: {http: true, https: true, file: false, javascript: false, data: false}
+    }
+  },
+  startup: {ready: function () {
+    MathJax.startup.defaultReady();
+    window.dispatchEvent(new Event('asterproof:mathjax-ready'));
+  }}
+};
+window.ASTERPROOF_SOLUTION_MEDIA = {mediaUrlPrefix: '{{ solution_media_url|escapejs }}'};
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<script src="{% static 'js/solution-latex-hybrid.js' %}"></script>
+<script>
+window.AsterProofSolutionLatex.initSolutionListBodies(document.querySelector('.public-shared-paper'), '{{ solution_media_url|escapejs }}');
+</script>

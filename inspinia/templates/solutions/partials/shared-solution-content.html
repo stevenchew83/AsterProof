@@ -1,0 +1,32 @@
+<article class="public-shared-paper" aria-label="Shared solution">
+  <header>
+    <p class="public-shared-kicker">A shared solution</p>
+    {% if review_snapshot %}<h2 class="public-shared-title">{{ snapshot.title }}</h2>{% else %}<h1>{{ snapshot.title }}</h1>{% endif %}
+    {% if snapshot.author or snapshot.date %}<p class="public-shared-byline">{% if snapshot.author %}By {{ snapshot.author }}{% endif %}{% if snapshot.author and snapshot.date %} · {% endif %}{{ snapshot.date }}</p>{% endif %}
+  </header>
+  <section class="public-shared-problem" aria-labelledby="shared-problem-heading">
+    <h2 id="shared-problem-heading">{{ snapshot.problem.label }}</h2>
+    <p class="public-shared-tags">{{ snapshot.problem.topic }}{% if snapshot.problem.mohs != None %} · MOHS {{ snapshot.problem.mohs }}{% endif %}</p>
+    {% for segment in snapshot.problem.segments %}
+      {% if segment.kind == 'text' %}<div class="public-shared-body solution-block-body-latex">{{ segment.content }}</div>
+      {% elif segment.kind == 'image' %}<img class="public-shared-diagram" src="{{ segment.src }}" alt="Problem diagram" />
+      {% else %}<details><summary>Diagram source</summary><p>The diagram could not be rendered. Its original source is available below.</p><pre class="tex2jax_ignore"><code>{{ segment.content }}</code></pre></details>{% endif %}
+    {% empty %}<p>No catalogue statement is available for this problem.</p>{% endfor %}
+    {% if snapshot.problem.areas or snapshot.problem.concepts %}
+    <details class="public-shared-topics"><summary>Areas &amp; concepts</summary>
+      {% if snapshot.problem.areas %}<p>{{ snapshot.problem.areas|join:' · ' }}</p>{% endif %}
+      {% if snapshot.problem.concepts %}<p>{{ snapshot.problem.concepts|join:' · ' }}</p>{% endif %}
+    </details>
+    {% endif %}
+  </section>
+  {% if snapshot.summary %}<p class="public-shared-summary solution-block-body-latex">{{ snapshot.summary }}</p>{% endif %}
+  <div class="public-shared-blocks">
+    {% for block in snapshot.blocks %}
+    <section class="public-shared-block">
+      <h2>{% if block.heading %}{{ block.heading }}{% elif block.label %}{{ block.label }}{% else %}Step {{ forloop.counter }}{% endif %}</h2>
+      <div class="public-shared-body {% if block.format == 'latex' %}solution-block-body-latex{% else %}tex2jax_ignore{% endif %}">{{ block.source }}</div>
+    </section>
+    {% endfor %}
+  </div>
+  {% if snapshot.show_footer %}<footer class="public-shared-page-number" aria-label="Page number">1</footer>{% endif %}
+</article>

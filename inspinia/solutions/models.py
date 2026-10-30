@@ -62,6 +62,23 @@ class ProblemSolution(models.Model):
         return f"{self.author.email} - {self.problem.contest_year_problem or self.problem}"
 
 
+class SolutionPublicShare(models.Model):
+    """An explicitly shared copy; editor saves never change this snapshot."""
+
+    solution = models.OneToOneField(ProblemSolution, on_delete=models.CASCADE, related_name="public_share")
+    token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    revision = models.UUIDField(default=uuid.uuid4, editable=False)
+    is_active = models.BooleanField(default=False)
+    snapshot = models.JSONField(default=dict)
+    preview_image = models.BinaryField(default=bytes, editable=False)
+    source_updated_at = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Public share for solution {self.solution_id}"
+
+
 class SolutionBlockType(models.Model):
     slug = models.SlugField(unique=True)
     label = models.CharField(max_length=64)

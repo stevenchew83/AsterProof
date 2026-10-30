@@ -1,0 +1,73 @@
+{% extends 'layouts/vertical.html' %}
+{% load static %}
+
+{% block title %}Share solution{% endblock title %}
+{% block extra_css %}<link href="{% static 'css/public-site.min.css' %}" rel="stylesheet" />{% endblock extra_css %}
+{% block page_content %}
+<div class="container-fluid">
+  {% url 'solutions:problem_solution_edit' solution.problem.problem_uuid as editor_url %}
+  {% include 'partials/page-title.html' with title='Share solution' subtitle='A public copy of your saved work' page_icon='ti-share' %}
+  <p><a href="{{ editor_url }}" class="btn btn-outline-secondary btn-sm"><i class="ti ti-arrow-left me-1" aria-hidden="true"></i>Back to editor</a></p>
+  {% for message in messages %}<div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags|default:'info' }}{% endif %}" role="status">{{ message }}</div>{% endfor %}
+  <div class="row g-3">
+    <div class="col-xl-4">
+      <section class="card">
+        <div class="card-body">
+          <h2 class="h5">{% if share_url %}Anyone with the link{% else %}Sharing is off{% endif %}</h2>
+          <p class="text-muted">A public link lets anyone read this copy without signing in. Recipients can forward it. It is not listed in AsterProof, and search engines are asked not to index it.</p>
+          {% if share_url %}
+          <label class="form-label" for="public-solution-url">Public solution link</label>
+          <input id="public-solution-url" class="form-control mb-3" readonly value="{{ share_url }}" />
+          <div class="d-flex flex-wrap gap-2 mb-2">
+            <button type="button" class="btn btn-primary btn-sm" data-copy-public-link="{{ share_url }}">Copy link</button>
+            <a href="{{ share_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm">Open public page</a>
+            <a href="{{ whatsapp_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary btn-sm"><i class="ti ti-brand-whatsapp me-1" aria-hidden="true"></i>Share on WhatsApp</a>
+          </div>
+          <p class="text-muted fs-xs" data-copy-feedback role="status"></p>
+          <p class="fs-sm">{% if share_outdated %}<strong>Your saved solution has changes that are not shared.</strong>{% else %}The public copy matches your last saved solution.{% endif %}</p>
+          <p class="text-muted fs-xs">Last shared {{ share.updated_at|date:'j M Y, H:i' }}. Further edits stay private until you update the shared version.</p>
+          {% else %}
+          <p class="fs-sm">Your solution stays in your workspace until you create a public link.</p>
+          {% endif %}
+          <p class="text-muted fs-sm">The preview below uses your <strong>last saved solution</strong>. Save any editor changes first. Author, date, and page-number options follow your saved preview settings. Your email and progress are never included.</p>
+          {% if snapshot %}
+          <form method="post" data-share-form>
+            {% csrf_token %}
+            <input type="hidden" name="source_version" value="{{ solution.updated_at.isoformat }}" />
+            <input type="hidden" name="review_digest" value="{{ review_digest }}" />
+            <input type="hidden" name="share_revision" value="{% if share %}{{ share.revision }}{% endif %}" />
+            <button type="submit" name="action" value="{% if share_url %}update{% else %}create{% endif %}" class="btn btn-primary">{% if share_url %}Update shared version{% else %}Create public link{% endif %}</button>
+          </form>
+          {% endif %}
+          {% if share_url %}
+          <hr />
+          <form method="post" data-share-form>
+            {% csrf_token %}<input type="hidden" name="share_revision" value="{{ share.revision }}" />
+            <button type="submit" name="action" value="stop" class="btn btn-outline-danger btn-sm">Stop sharing</button>
+          </form>
+          <p class="text-muted fs-xs mt-2 mb-0">Stops access to the page and preview image. Your saved solution remains. Previews already sent in messages may remain. Sharing again creates a new link.</p>
+          {% endif %}
+        </div>
+      </section>
+      {% if snapshot %}
+      <section class="card mt-3"><div class="card-body">
+        <h2 class="h6">Link preview for this saved version</h2>
+        <div class="shared-card-preview"><p>AsterProof · A shared solution</p><h3>{{ snapshot.title }}</h3>
+        <p>{{ preview_description }}</p></div>
+        <p class="text-muted fs-xs mt-2 mb-0">WhatsApp chooses how to display the card. Preview generation also depends on the sender’s privacy settings.</p>
+      </div></section>
+      {% endif %}
+    </div>
+    <div class="col-xl-8">
+      {% if snapshot %}
+      <h2 class="h5">Review saved version</h2>
+      {% include 'solutions/partials/shared-solution-content.html' %}
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock page_content %}
+{% block extra_javascript %}
+  <script src="{% static 'js/solution-sharing.js' %}" defer></script>
+  {% include 'solutions/partials/shared-solution-math.html' %}
+{% endblock extra_javascript %}

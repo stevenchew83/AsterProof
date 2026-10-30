@@ -15,7 +15,7 @@ class RequireApprovedUserMiddleware:
         "/robots.txt", "/sitemap.xml", "/sitemap-pages.xml", "/sitemap-areas.xml",
         "/sitemap-concepts.xml", "/sitemap-lectures.xml",
     }
-    public_path_prefixes = ("/library/", "/newsletter/")
+    public_path_prefixes = ("/library/", "/newsletter/", "/solutions/shared/")
 
     def __init__(self, get_response):
         self.get_response = get_response
