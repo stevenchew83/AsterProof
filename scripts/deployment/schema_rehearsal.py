@@ -90,6 +90,10 @@ def _snapshot(connection):
 
 
 def _approved_rehearsal(disclosed_migration):
+    if disclosed_migration == "solutions.0005_solutionpublicshare":
+        from scripts.deployment.solution_sharing_schema_rehearsal import run
+
+        return run
     # Every dispatch target is a literal import from the approved source.
     if disclosed_migration == "website.0003_newsletter_automation":
         from scripts.deployment.newsletter_automation_rehearsal import run
