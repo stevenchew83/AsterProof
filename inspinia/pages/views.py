@@ -143,6 +143,7 @@ from inspinia.pages.statement_analytics import effective_pitfalls_value
 from inspinia.pages.statement_analytics import effective_rationale_value
 from inspinia.pages.statement_analytics import effective_topic
 from inspinia.pages.statement_analytics_sync import sync_statement_analytics_from_linked_problem
+from inspinia.pages.statement_concept_coverage import TagCoverageResolver
 from inspinia.pages.statement_concept_coverage import statement_concept_search
 from inspinia.pages.statement_concept_coverage import statement_coverage_payloads
 from inspinia.pages.statement_duplicate_snapshot import snapshot_context as statement_duplicate_snapshot_context
@@ -5607,6 +5608,9 @@ def _completion_quick_update_rows(
     selected_filters: dict[str, str],
     tag_payload_by_statement_id: dict[int, dict[str, list[str]]],
 ) -> list[dict[str, object]]:
+    if not statements:
+        return []
+    coverage_payloads = statement_coverage_payloads(statements, resolver=TagCoverageResolver())
     rows = []
     for statement in statements:
         tag_payload = tag_payload_by_statement_id.get(
@@ -5620,6 +5624,14 @@ def _completion_quick_update_rows(
             subtopics=tag_payload["subtopics"],
             techniques=tag_payload["techniques"],
         )
+        coverage = coverage_payloads[statement.id]
+        row.update(
+            concept_areas=coverage["concept_areas"],
+            concept_coverage=coverage["concept_coverage"],
+            concept_coverage_status=coverage["concept_coverage_status"],
+            area_overflow_count=max(len(coverage["concept_areas"]) - 1, 0),
+            concept_overflow_count=max(len(coverage["concept_coverage"]) - 2, 0),
+        )
         row["subtopic_links"] = _completion_quick_update_filter_links(
             row["subtopics"],
             filter_name="subtopics",
@@ -5630,20 +5642,6 @@ def _completion_quick_update_rows(
             filter_name="technique",
             selected_filters=selected_filters,
         )
-        classification_links = []
-        seen_classification_labels = set()
-        for kind, links in (
-            ("subtopic", row["subtopic_links"]),
-            ("technique", row["technique_links"]),
-        ):
-            for link in links:
-                label_key = str(link["label"]).casefold()
-                if label_key in seen_classification_labels:
-                    continue
-                seen_classification_labels.add(label_key)
-                classification_links.append({**link, "kind": kind})
-        row["classification_preview_links"] = classification_links[:2]
-        row["classification_overflow_count"] = max(len(classification_links) - 2, 0)
         rows.append(row)
     return rows
 
@@ -5743,6 +5741,7 @@ def completion_quick_update_view(request):
             confidence="",
             mohs_min=selected_mohs_min,
             mohs_max=selected_mohs_max,
+            include_concepts=True,
         )
         filtered_statements = _completion_quick_update_apply_problem_filter(
             filtered_statements,

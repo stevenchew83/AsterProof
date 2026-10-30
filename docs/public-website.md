@@ -113,9 +113,24 @@ Privacy Policy and Terms text for the intended launch before publishing it.
 
 Run `npm ci` and `npm run build` to compile public SCSS and the self-hosted Three.js
 geometry bundle. Three.js is pinned; esbuild bundles only the homepage entry.
-The animation has a pause control, honours reduced motion, pauses when hidden
-or outside the viewport, and falls back to SVG without WebGL2 or JavaScript.
+The homepage initially displays the SVG illustration. Its Play motion control
+loads the optional Three.js bundle on request. The animation has a pause control,
+honours reduced motion, pauses when hidden or outside the viewport, and falls
+back to SVG without WebGL2 or JavaScript.
 Other public pages do not load the Three.js bundle.
+
+Public pages use a single Bootstrap/Inspinia stylesheet containing the theme's
+typography, form controls, and required utilities, without dashboard JavaScript
+or icon fonts. Homepage MathJax loads when the editor is used or its preview
+enters the viewport; other mathematics pages load it immediately.
+
+`/robots.txt` points to `/sitemap.xml`, an index of paginated public page, area,
+concept, and lecture sitemaps. URLs use `DJANGO_PUBLIC_SITE_ORIGIN`. Drafts and
+descendants of draft ancestors are excluded. Empty subject directories are
+accessible with `noindex,follow` until an area is published; library search
+results also use `noindex,follow`. The sitemap excludes accounts, newsletter
+tokens, workspace data, and shared lists. Page-specific descriptions and the
+1200 × 630 social preview image are shared by Open Graph and Twitter metadata.
 
 The additive `website.0001_initial` migration creates the editorial and consent
 tables. Apply it through the normal reviewed release procedure; do not enable

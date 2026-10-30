@@ -175,7 +175,7 @@
   }
 
   #quick-completion-table {
-    min-width: 62rem;
+    min-width: 68rem;
     table-layout: fixed;
   }
 
@@ -197,13 +197,14 @@
     vertical-align: middle;
   }
 
-  #quick-completion-table .quick-completion-problem-cell { width: 22%; }
+  #quick-completion-table .quick-completion-problem-cell { width: 19%; }
   #quick-completion-table .quick-completion-day-cell { width: 6%; }
-  #quick-completion-table .quick-completion-topic-cell { width: 9%; }
+  #quick-completion-table .quick-completion-topic-cell { width: 10%; }
   #quick-completion-table .quick-completion-mohs-cell { width: 5%; }
-  #quick-completion-table .quick-completion-classification-cell { width: 22%; }
-  #quick-completion-table .quick-completion-progress-cell { width: 18%; }
-  #quick-completion-table .quick-completion-quick-action-cell { width: 11%; }
+  #quick-completion-table .quick-completion-area-cell { width: 12%; }
+  #quick-completion-table .quick-completion-concept-cell { width: 15%; }
+  #quick-completion-table .quick-completion-progress-cell { width: 16%; }
+  #quick-completion-table .quick-completion-quick-action-cell { width: 10%; }
   #quick-completion-table .quick-completion-more-cell { width: 7%; }
 
   .quick-completion-problem-cell a {
@@ -230,7 +231,7 @@
     text-align: center;
   }
 
-  .quick-completion-classification-list,
+  .quick-completion-concept-list,
   .quick-completion-detail-tag-list {
     align-items: center;
     display: flex;
@@ -238,7 +239,7 @@
     gap: .25rem;
   }
 
-  .quick-completion-classification-list .badge {
+  .quick-completion-concept-list .badge {
     font-size: .65rem;
     font-weight: 500;
     max-width: 100%;
@@ -268,7 +269,43 @@
     --ins-btn-active-border-color: var(--ins-primary);
   }
 
-  .quick-completion-classification-list .btn { font-size: .7rem; min-height: 0; }
+  .quick-completion-taxonomy-trigger {
+    align-items: center;
+    color: var(--ins-body-color);
+    display: flex;
+    flex-wrap: wrap;
+    gap: .25rem;
+    max-width: 100%;
+    min-height: 0 !important;
+    text-decoration: none;
+  }
+
+  .quick-completion-area-cell .quick-completion-taxonomy-trigger {
+    flex-wrap: nowrap;
+    width: 100%;
+  }
+
+  .quick-completion-area-label {
+    display: block;
+    flex: 1 1 0;
+    min-width: 0;
+    font-size: .75rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .quick-completion-taxonomy-trigger:hover .badge,
+  .quick-completion-taxonomy-trigger:hover .quick-completion-area-label {
+    color: var(--ins-primary-text-emphasis) !important;
+    text-decoration: underline;
+  }
+
+  .quick-completion-taxonomy-overflow {
+    color: var(--ins-secondary-color);
+    font-size: .7rem;
+    white-space: nowrap;
+  }
   .quick-completion-detail-tag-list .badge { white-space: normal; text-align: left; }
 
   .quick-completion-subtopic-link:hover,
@@ -366,11 +403,23 @@
     }
     #quick-completion-table tbody td { border: 0; min-width: 0; padding: 0; width: auto; }
     #quick-completion-table tbody .quick-completion-problem-cell { font-size: .875rem; grid-column: 1 / -1; }
-    #quick-completion-table tbody .quick-completion-day-cell { color: var(--ins-secondary-color); grid-column: 1; }
-    #quick-completion-table tbody .quick-completion-topic-cell { grid-column: 2; text-align: right; }
-    #quick-completion-table tbody .quick-completion-classification-cell { grid-column: 1 / -1; padding: .25rem 0; }
+    #quick-completion-table tbody .quick-completion-day-cell { color: var(--ins-secondary-color); grid-column: 1; grid-row: 2; }
+    #quick-completion-table tbody .quick-completion-topic-cell { grid-column: 2; grid-row: 2; text-align: right; }
+    #quick-completion-table tbody .quick-completion-area-cell,
+    #quick-completion-table tbody .quick-completion-concept-cell { grid-column: 1 / -1; padding: .25rem 0; }
+    #quick-completion-table tbody .quick-completion-area-cell::before,
+    #quick-completion-table tbody .quick-completion-concept-cell::before {
+      color: var(--ins-secondary-color);
+      content: attr(data-label);
+      display: block;
+      font-size: .65rem;
+      font-weight: 600;
+      margin-bottom: .25rem;
+      text-transform: uppercase;
+    }
+    #quick-completion-table .quick-completion-taxonomy-trigger { min-height: 44px !important; width: 100%; }
     #quick-completion-table tbody .quick-completion-progress-cell { border-top: 1px solid var(--qc-line); grid-column: 1 / -1; padding-top: .5rem; }
-    #quick-completion-table tbody .quick-completion-mohs-cell { text-align: right; }
+    #quick-completion-table tbody .quick-completion-mohs-cell { grid-column: 3; grid-row: 2; text-align: right; }
     #quick-completion-table tbody .quick-completion-mohs-cell::before { color: var(--ins-secondary-color); content: "MOHS "; font-size: .7rem; }
     #quick-completion-table tbody .quick-completion-quick-action-cell { grid-column: 1 / 3; padding-top: .125rem; }
     #quick-completion-table .quick-completion-quick-action-cell .btn { width: 100%; }
@@ -402,7 +451,7 @@
         <div class="card-body">
           <div class="quick-completion-filter-heading">
             <h2 class="header-title fs-sm mb-0">Find a problem</h2>
-            <span class="text-muted fs-xs">Search the full library by contest, topic, or keyword.</span>
+            <span class="text-muted fs-xs">Search the full library by contest, area, concept, or keyword.</span>
           </div>
           <form method="get" action="{% url 'pages:completion_quick_update' %}">
             {% if completion_quick_update_filters.layer_kind and completion_quick_update_filters.layer_tag %}
@@ -431,7 +480,7 @@
                     type="search"
                     class="form-control form-control-sm{% if completion_quick_update_search_error %} is-invalid{% endif %}"
                     value="{{ completion_quick_update_filters.q }}"
-                    placeholder="Contest, topic, tag, or statement text"
+                    placeholder="Contest, area, concept, or statement text"
                     {% if completion_quick_update_search_error %}
                     aria-invalid="true"
                     aria-describedby="quick-completion-search-error"
@@ -661,14 +710,15 @@
               data-server-today="{{ completion_quick_update_today }}"
               data-today="{{ completion_quick_update_today }}"
             >
-              <caption class="visually-hidden">Problem rows with day, topic, MOHS, classification, progress, and quick completion actions.</caption>
+              <caption class="visually-hidden">Problem rows with day, topic, area, concepts, MOHS, progress, and quick completion actions.</caption>
               <thead>
                 <tr>
                   <th scope="col" class="quick-completion-problem-cell">Problem</th>
                   <th scope="col" class="quick-completion-day-cell">Day</th>
                   <th scope="col" class="quick-completion-topic-cell">Topic</th>
+                  <th scope="col" class="quick-completion-area-cell">Area</th>
+                  <th scope="col" class="quick-completion-concept-cell">Concepts</th>
                   <th scope="col" class="quick-completion-mohs-cell">MOHS</th>
-                  <th scope="col" class="quick-completion-classification-cell">Classification</th>
                   <th scope="col" class="quick-completion-progress-cell">Progress</th>
                   <th scope="col" class="quick-completion-quick-action-cell">Quick action</th>
                   <th scope="col" class="quick-completion-more-cell">More</th>
@@ -717,44 +767,38 @@
                     <span class="text-muted fs-xs">Not available</span>
                     {% endif %}
                   </td>
-                  <td class="quick-completion-mohs-cell" data-label="MOHS">
-                    {% if row.mohs is not None %}
-                    <span class="quick-completion-mohs-value">{{ row.mohs }}</span>
-                    {% else %}
-                    <span class="text-muted fs-xs">Not available</span>
-                    {% endif %}
+                  <td class="quick-completion-area-cell" data-label="Area" data-order="{{ row.concept_areas|join:', ' }}" data-search="{{ row.concept_areas|join:', ' }}">
+                    {% if row.concept_areas %}
+                    <button type="button" class="btn btn-link btn-sm p-0 text-start quick-completion-taxonomy-trigger js-quick-completion-edit" data-open-reference="true" data-bs-toggle="offcanvas" data-bs-target="#quick-completion-detail-editor" aria-controls="quick-completion-detail-editor" aria-label="View all areas for {{ row.label }}" title="{{ row.concept_areas|join:', ' }}">
+                      <span class="quick-completion-area-label">{{ row.concept_areas.0 }}</span>
+                      {% if row.area_overflow_count %}<span class="quick-completion-taxonomy-overflow">+{{ row.area_overflow_count }} more</span>{% endif %}
+                    </button>
+                    {% else %}<span class="text-muted fs-xs" aria-label="No mapped area">—</span>{% endif %}
                   </td>
-                  <td
-                    class="quick-completion-classification-cell"
-                    data-label="Classification"
-                  >
-                    {% if row.classification_preview_links %}
-                    <div class="quick-completion-classification-list">
-                      {% for classification_link in row.classification_preview_links %}
-                      <a
-                        href="{{ classification_link.url }}"
-                        class="badge border text-decoration-none {% if classification_link.kind == 'subtopic' %}quick-completion-subtopic-link{% else %}quick-completion-technique-link{% endif %} {% if classification_link.is_selected %}bg-primary-subtle text-primary border-primary-subtle{% else %}bg-light text-dark{% endif %}"
-                        title="{% if classification_link.is_selected %}Remove matching {{ classification_link.kind }}{% else %}Add matching {{ classification_link.kind }}{% endif %}"
-                        aria-label="{% if classification_link.is_selected %}Remove {{ classification_link.kind }} {{ classification_link.label }} from filter{% else %}Find problems with {{ classification_link.kind }} {{ classification_link.label }}{% endif %}"
-                      >{{ classification_link.label }}</a>
+                  <td class="quick-completion-concept-cell" data-label="Concepts" data-order="{% for concept in row.concept_coverage %}{{ concept.display }}{% if not forloop.last %}, {% endif %}{% endfor %}">
+                    {% if row.concept_coverage %}
+                    <button type="button" class="btn btn-link btn-sm p-0 text-start quick-completion-taxonomy-trigger quick-completion-concept-list js-quick-completion-edit" data-open-reference="true" data-bs-toggle="offcanvas" data-bs-target="#quick-completion-detail-editor" aria-controls="quick-completion-detail-editor" aria-label="View all concepts for {{ row.label }}">
+                      {% for concept in row.concept_coverage|slice:':2' %}
+                      <span class="badge bg-light text-dark border" title="{{ concept.display }} · {{ concept.area }}">{{ concept.display }}</span>
                       {% endfor %}
-                      {% if row.classification_overflow_count %}
-                      <button
-                        type="button"
-                        class="btn btn-link btn-sm p-0 js-quick-completion-edit" data-open-reference="true"
-                        data-bs-toggle="offcanvas"
-                        data-bs-target="#quick-completion-detail-editor"
-                        aria-controls="quick-completion-detail-editor"
-                      >
-                        +{{ row.classification_overflow_count }} more
-                      </button>
-                      {% endif %}
-                    </div>
-                    {% else %}
-                    <span class="text-muted fs-xs">No classification tags</span>
-                    {% endif %}
+                      {% if row.concept_overflow_count %}<span class="quick-completion-taxonomy-overflow">+{{ row.concept_overflow_count }} more</span>{% endif %}
+                    </button>
+                    {% else %}<span class="text-muted fs-xs">{{ row.concept_coverage_status }}</span>{% endif %}
 
                     <div class="d-none js-quick-completion-row-details">
+                      <div class="js-quick-completion-detail-areas-source">
+                        {% if row.concept_areas %}
+                        <div class="quick-completion-detail-tag-list">{% for area in row.concept_areas %}<span class="badge bg-light text-dark border">{{ area }}</span>{% endfor %}</div>
+                        {% else %}<span class="text-muted fs-sm">No mapped area</span>{% endif %}
+                      </div>
+                      <div class="js-quick-completion-detail-concepts-source">
+                        {% if row.concept_coverage %}
+                        <ul class="list-unstyled d-grid gap-2 mb-0">
+                          {% for concept in row.concept_coverage %}<li><span class="fw-semibold">{{ concept.display }}</span><span class="text-muted fs-xs d-block">{{ concept.area }}</span></li>{% endfor %}
+                        </ul>
+                        {% else %}<span class="text-muted fs-sm">{{ row.concept_coverage_status }}</span>{% endif %}
+                      </div>
+                      <div class="js-quick-completion-detail-mapping-status-source">{{ row.concept_coverage_status }}</div>
                       <div class="js-quick-completion-detail-subtopics-source">
                         {% if row.subtopic_links %}
                         <div class="quick-completion-detail-tag-list">
@@ -791,6 +835,13 @@
                       <div class="js-quick-completion-detail-rationale-source">{% if row.rationale %}{{ row.rationale }}{% else %}Not available{% endif %}</div>
                       <div class="js-quick-completion-detail-pitfalls-source">{% if row.pitfalls %}{{ row.pitfalls }}{% else %}Not available{% endif %}</div>
                     </div>
+                  </td>
+                  <td class="quick-completion-mohs-cell" data-label="MOHS">
+                    {% if row.mohs is not None %}
+                    <span class="quick-completion-mohs-value">{{ row.mohs }}</span>
+                    {% else %}
+                    <span class="text-muted fs-xs">Not available</span>
+                    {% endif %}
                   </td>
                   <td class="quick-completion-progress-cell" data-label="Progress">
                     <div class="quick-completion-progress">
@@ -1004,9 +1055,17 @@
                 </div>
 
                 <details id="quick-completion-detail-reference" class="border-top pt-3 mb-1">
-                  <summary class="fw-semibold fs-sm mb-3">Problem classification &amp; insights</summary>
+                  <summary class="fw-semibold fs-sm mb-3">Areas, concepts &amp; insights</summary>
+                  <section class="mb-3" aria-labelledby="quick-completion-detail-taxonomy-heading">
+                    <h6 id="quick-completion-detail-taxonomy-heading" class="mb-2">Area &amp; concepts</h6>
+                    <p id="quick-completion-detail-mapping-status" class="text-muted fs-xs mb-2"></p>
+                    <p class="text-muted fs-xs text-uppercase fw-semibold mb-1">Area</p>
+                    <div id="quick-completion-detail-areas" class="mb-3"></div>
+                    <p class="text-muted fs-xs text-uppercase fw-semibold mb-1">Concepts</p>
+                    <div id="quick-completion-detail-concepts"></div>
+                  </section>
                   <section aria-labelledby="quick-completion-detail-classification-heading">
-                    <h6 id="quick-completion-detail-classification-heading" class="mb-2">Classification</h6>
+                    <h6 id="quick-completion-detail-classification-heading" class="mb-2">Source tags</h6>
                     <div class="mb-2">
                       <p class="text-muted fs-xs text-uppercase fw-semibold mb-1">Subtopics</p>
                       <div id="quick-completion-detail-subtopics"><span class="text-muted fs-sm">Not available</span></div>
@@ -1175,6 +1234,9 @@
       reattempt: document.getElementById("quick-completion-detail-reattempt"),
       confidence: document.getElementById("quick-completion-detail-confidence"),
       error: document.getElementById("quick-completion-detail-error"),
+      areas: document.getElementById("quick-completion-detail-areas"),
+      concepts: document.getElementById("quick-completion-detail-concepts"),
+      mappingStatus: document.getElementById("quick-completion-detail-mapping-status"),
       subtopics: document.getElementById("quick-completion-detail-subtopics"),
       techniques: document.getElementById("quick-completion-detail-techniques"),
       coreIdeas: document.getElementById("quick-completion-detail-core-ideas-copy"),
@@ -1463,6 +1525,9 @@
       if (detailFields.postMortem) detailFields.postMortem.value = dataValue(row, "post-mortem");
       if (detailFields.reattempt) detailFields.reattempt.value = dataValue(row, "reattempt-date");
       if (detailFields.confidence) detailFields.confidence.value = dataValue(row, "confidence");
+      cloneDetailSource(row, ".js-quick-completion-detail-areas-source", detailFields.areas);
+      cloneDetailSource(row, ".js-quick-completion-detail-concepts-source", detailFields.concepts);
+      if (detailFields.mappingStatus) detailFields.mappingStatus.textContent = detailSourceText(row, ".js-quick-completion-detail-mapping-status-source");
       cloneDetailSource(row, ".js-quick-completion-detail-subtopics-source", detailFields.subtopics);
       cloneDetailSource(row, ".js-quick-completion-detail-techniques-source", detailFields.techniques);
       if (detailFields.coreIdeas) detailFields.coreIdeas.textContent = detailSourceText(row, ".js-quick-completion-detail-core-ideas-source");
@@ -1547,11 +1612,11 @@
         autoWidth: false,
         columnDefs: [
           {
-            targets: [5, 6, 7],
+            targets: [6, 7, 8],
             orderable: false
           },
           {
-            targets: [6, 7],
+            targets: [7, 8],
             searchable: false
           }
         ],
