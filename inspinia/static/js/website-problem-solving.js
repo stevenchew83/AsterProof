@@ -18,6 +18,7 @@
   function render() {
     // Serialize MathJax work so fast edits cannot leave an older preview on screen.
     pending = pending.then(async function () {
+      if (window.AsterProofMathReady) await window.AsterProofMathReady;
       const math = window.MathJax;
       if (math && math.startup && math.startup.promise) await math.startup.promise;
       if (math && math.typesetClear) math.typesetClear(previews);
@@ -49,7 +50,8 @@
     render();
     sources[0].focus();
   });
-  // The shared MathJax script is deferred and may still be loading at this point.
+  document.addEventListener("asterproof:math-ready", render);
+  // The shared MathJax script may still be loading at this point.
   if (document.readyState === "complete") render();
   else window.addEventListener("load", render, { once: true });
 }());

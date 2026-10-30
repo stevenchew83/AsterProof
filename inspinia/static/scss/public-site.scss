@@ -1,3 +1,28 @@
+// Retain the theme's Bootstrap tokens, typography and form controls without
+// dashboard chrome, icon fonts, plugins or unrelated component styles.
+@import "./node_modules/bootstrap/scss/functions";
+@import "./node_modules/bootstrap/scss/variables";
+@import "variables";
+@import "variables-dark";
+@import "./node_modules/bootstrap/scss/variables-dark";
+@import "./node_modules/bootstrap/scss/maps";
+@import "./node_modules/bootstrap/scss/mixins";
+@import "./node_modules/bootstrap/scss/root";
+@import "./node_modules/bootstrap/scss/reboot";
+@import "./node_modules/bootstrap/scss/type";
+@import "./node_modules/bootstrap/scss/forms";
+@import "./node_modules/bootstrap/scss/helpers/visually-hidden";
+@import "./node_modules/bootstrap/scss/utilities";
+
+$public-utilities: ();
+@each $name in ("display", "align-items", "gap", "margin", "margin-top", "margin-bottom", "margin-end", "font-family") {
+    $public-utilities: map-merge($public-utilities, ($name: map-merge(map-get($utilities, $name), (responsive: false))));
+}
+$utilities: $public-utilities;
+@import "./node_modules/bootstrap/scss/utilities/api";
+@import "config/fonts";
+@import "config/root";
+
 @import "structure/website";
 @import "structure/website-problem-solving";
 @import "structure/website-solution-preview";

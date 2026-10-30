@@ -1,12 +1,16 @@
 from django.urls import path
 
 from . import backend
+from . import seo
 from . import views
 from .solution_preview import solution_preview_view
 
 app_name = "website"
 
 urlpatterns = [
+    path("robots.txt", seo.robots_view, name="robots"),
+    path("sitemap.xml", seo.sitemap_index_view, name="sitemap"),
+    path("sitemap-<str:section>.xml", seo.sitemap_section_view, name="sitemap_section"),
     path("tools/solution-preview/", solution_preview_view, name="solution_preview"),
     path("problem-solving/", views.problem_solving_view, name="problem_solving"),
     path("manage/newsletter/", backend.index, name="newsletter_dashboard"),

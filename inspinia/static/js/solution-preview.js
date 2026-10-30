@@ -73,6 +73,7 @@
 
   function render() {
     pending = pending.then(async function () {
+      if (window.AsterProofMathReady) await window.AsterProofMathReady;
       const math = window.MathJax;
       if (math && math.startup && math.startup.promise) await math.startup.promise;
       if (math && math.typesetClear) math.typesetClear([preview, statement]);
@@ -109,7 +110,7 @@
         await math.typesetPromise(targets);
         status.textContent = "Up to date";
       } else {
-        status.textContent = "Text preview · math rendering unavailable";
+        status.textContent = "Text preview";
       }
     }).catch(function () {
       status.textContent = "Preview unavailable · your text is still here";
@@ -197,6 +198,7 @@
     event.preventDefault();
     form.requestSubmit(button);
   });
+  document.addEventListener("asterproof:math-ready", render);
   if (document.readyState === "complete") render();
   else window.addEventListener("load", render, {once: true});
 }());
