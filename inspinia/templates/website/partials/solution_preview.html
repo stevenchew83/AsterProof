@@ -8,11 +8,12 @@
       <p>No sign-in needed. Keep a recovery copy on this device, download a PDF, or continue in your workspace to save privately.</p>
       <div><a href="{% url 'website:solution_preview' %}" class="website-text-link">Reset example ↺</a><button type="submit" name="action" value="continue_workspace" class="website-text-link" data-workspace-handoff>Continue in workspace ↗</button><button type="submit" name="action" value="download_pdf" class="website-button">Download PDF <span aria-hidden="true">↓</span></button></div>
     </div>
-    <div class="public-tool-recovery" data-draft-recovery hidden>
-      <label><input type="checkbox" data-draft-enable> Keep a recovery copy on this device for seven days</label>
+    <div class="public-tool-recovery" data-draft-recovery>
+      <label><input type="checkbox" data-draft-enable disabled> Keep a recovery copy on this device for seven days</label>
       <p class="website-fineprint" data-draft-status role="status">Device recovery is off. Your writing stays open in this tab.</p>
       <div data-draft-offer hidden><p data-draft-offer-text></p><button type="button" class="website-text-link" data-draft-restore>Restore device draft</button></div>
       <button type="button" class="website-text-link" data-draft-clear hidden>Clear device draft</button>
+      <noscript><p class="website-fineprint">Enable JavaScript for device recovery.</p></noscript>
     </div>
     <p class="website-fineprint" data-pdf-status role="status"></p>
     <div class="public-tool-grid">

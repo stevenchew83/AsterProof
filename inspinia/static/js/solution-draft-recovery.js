@@ -34,6 +34,7 @@
     const clear = root.querySelector("[data-draft-clear]");
     let knownRaw = null, awaitingRestore = false, timer;
     root.hidden = false;
+    enable.disabled = false;
 
     function failed() {
       enable.checked = false;

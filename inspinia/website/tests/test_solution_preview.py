@@ -2,6 +2,7 @@
 
 import signal
 import subprocess
+from html.parser import HTMLParser
 from http import HTTPStatus
 from pathlib import Path
 from types import SimpleNamespace
@@ -91,6 +92,29 @@ def test_homepage_and_tool_are_public_for_anonymous_and_pending_users(client):
         assert not ProblemSolution.objects.exists()
         assert not UserProblemCompletion.objects.exists()
     assert client.get(reverse("pages:latex_preview")).url == reverse("users:approval_pending")
+
+
+@pytest.mark.parametrize("name", ["pages:home", "website:solution_preview"])
+def test_recovery_panel_reserves_its_space_before_javascript_initializes(client, name):
+    class RecoveryMarkup(HTMLParser):
+        panel = None
+        checkbox = None
+
+        def handle_starttag(self, tag, attrs):
+            attrs = dict(attrs)
+            if tag == "div" and "data-draft-recovery" in attrs:
+                self.panel = attrs
+            if tag == "input" and "data-draft-enable" in attrs:
+                self.checkbox = attrs
+
+    markup = RecoveryMarkup()
+    markup.feed(client.get(reverse(name)).content.decode())
+
+    assert markup.panel is not None
+    assert "hidden" not in markup.panel
+    assert markup.checkbox is not None
+    assert "disabled" in markup.checkbox
+    assert "checked" not in markup.checkbox
 
 
 def test_pdf_download_uses_current_unsaved_blocks_and_evan_layout(tool, monkeypatch):
