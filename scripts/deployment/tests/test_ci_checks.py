@@ -107,10 +107,18 @@ def test_invalid_base_does_not_silently_skip_checks():
 def test_pr_ci_keeps_required_check_without_a_duplicate_main_run():
     workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
     # PyYAML's YAML 1.1 loader treats the Actions `on` key as True.
-    assert workflow[True] == {"pull_request": None}
+    assert set(workflow[True]) == {"pull_request", "workflow_dispatch"}
+    assert workflow[True]["pull_request"] is None
+    manual_input = workflow[True]["workflow_dispatch"]["inputs"]["baseline_sha"]
+    assert manual_input["required"] is True
+    assert manual_input["type"] == "string"
     assert set(workflow["jobs"]) == {"verify"}
     assert "if" not in workflow["jobs"]["verify"]
     assert "paths-ignore" not in workflow[True]
+    assert workflow["permissions"] == {"contents": "read"}
+    for name in ("Select checks and validate whitespace", "Rehearse the exact additive schema"):
+        step = next(step for step in workflow["jobs"]["verify"]["steps"] if step["name"] == name)
+        assert step["env"]["BASE_SHA"] == "${{ github.event.pull_request.base.sha || inputs.baseline_sha }}"
 
 
 @pytest.mark.parametrize("name", ["production-deploy.yml", "production-rollback.yml"])
