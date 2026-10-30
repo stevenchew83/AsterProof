@@ -1,6 +1,18 @@
 const assert = require('node:assert/strict');
 const {test} = require('node:test');
+const {readFileSync} = require('node:fs');
+const vm = require('node:vm');
 const {create, decode, KEY, TTL} = require('../../inspinia/static/js/solution-draft-recovery.js');
+
+test('public browser bundles retain the recovery window export', () => {
+  for (const filename of ['public-writer.bundle.js', 'public-home.bundle.js']) {
+    const document = {readyState:'complete', querySelector:()=>null, querySelectorAll:()=>[]};
+    const window = {document};
+    vm.runInNewContext(readFileSync(require.resolve('../../inspinia/static/js/' + filename), 'utf8'), {window, document});
+    assert.equal(typeof window.AsterProofDraftRecovery.create, 'function', filename);
+    assert.deepEqual(Object.keys(window.AsterProofDraftRecovery), ['create']);
+  }
+});
 
 function document(title = 'My proof') {
   return {title, author_name:'Student', problem_statement:'Prove $x^2\\geq0$.',

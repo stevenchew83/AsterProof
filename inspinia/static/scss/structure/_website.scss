@@ -114,3 +114,15 @@
     .website-newsletter-state { padding-block: 40px; min-height: 320px; }
 }
 @media (prefers-reduced-motion: reduce) { .website *, .website *::before, .website *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
+
+// Shared navigation belongs to every public page, including its mobile menu.
+.website-tools-menu {
+    position: relative; font-size: inherit;
+    summary { cursor: pointer; padding: 10px 0; list-style: none; &::-webkit-details-marker { display: none; } &:focus-visible { outline: 3px solid var(--w-accent); outline-offset: 4px; } }
+    > div { position: absolute; top: 100%; left: 0; min-width: 210px; padding: 10px 16px; border: 1px solid var(--w-line); background: #fffefa; border-radius: 3px; box-shadow: 0 8px 20px #20354412; }
+    &[open] summary { color: var(--w-accent); }
+}
+@media (max-width: 767px) {
+    .website-nav { gap: clamp(12px, 3.7vw, 25px); }
+    .website-tools-menu { summary { padding-block: 6px; } > div { left: auto; right: 0; text-align: left; } }
+}
