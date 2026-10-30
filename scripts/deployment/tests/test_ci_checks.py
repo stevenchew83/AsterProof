@@ -116,8 +116,9 @@ def test_pr_ci_keeps_required_check_without_a_duplicate_main_run():
     assert "if" not in workflow["jobs"]["verify"]
     assert "paths-ignore" not in workflow[True]
     assert workflow["permissions"] == {"contents": "read"}
-    source = (ROOT / ".github/workflows/ci.yml").read_text()
-    assert source.count("BASE_SHA: ${{ github.event.pull_request.base.sha || inputs.baseline_sha }}") == 2
+    for name in ("Select checks and validate whitespace", "Rehearse the exact additive schema"):
+        step = next(step for step in workflow["jobs"]["verify"]["steps"] if step["name"] == name)
+        assert step["env"]["BASE_SHA"] == "${{ github.event.pull_request.base.sha || inputs.baseline_sha }}"
 
 
 @pytest.mark.parametrize("name", ["production-deploy.yml", "production-rollback.yml"])
