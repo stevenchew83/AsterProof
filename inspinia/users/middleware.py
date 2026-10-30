@@ -12,6 +12,8 @@ class RequireApprovedUserMiddleware:
     exempt_path_prefixes = ("/accounts/", "/static/", "/media/")
     public_paths = {
         "/", "/problem-solving/", "/tools/solution-preview/", "/about/", "/contact/", "/privacy/", "/terms/",
+        "/robots.txt", "/sitemap.xml", "/sitemap-pages.xml", "/sitemap-areas.xml",
+        "/sitemap-concepts.xml", "/sitemap-lectures.xml",
     }
     public_path_prefixes = ("/library/", "/newsletter/")
 

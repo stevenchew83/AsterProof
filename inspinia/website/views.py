@@ -8,6 +8,7 @@ from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
 from django.shortcuts import render
+from django.templatetags.static import static
 from django.urls import reverse
 from django.utils.http import urlencode
 from django.views.decorators.http import require_GET
@@ -66,15 +67,26 @@ def _lectures():
 
 def _page(request, template, *, status=200, **context):
     context.setdefault("newsletter_form", NewsletterForm(auto_id="newsletter_%s"))
+    entry = context.get("lecture") or context.get("concept") or context.get("area")
+    context.setdefault(
+        "page_description",
+        (entry.summary or f"Study {entry.title} with olympiad mathematics explanations and proofs on AsterProof.")
+        if entry else "Explore olympiad mathematics, follow rigorous proofs, and develop your problem-solving skills.",
+    )
+    if context.get("noindex"):
+        context["indexing_rule"] = "noindex,nofollow"
     context.update(
         {
             "public_contact_email": settings.PUBLIC_CONTACT_EMAIL,
             "public_operator_name": settings.PUBLIC_OPERATOR_NAME,
             "public_subjects": _subjects(),
             "canonical_url": settings.PUBLIC_SITE_ORIGIN.rstrip("/") + request.path,
+            "social_image_url": settings.PUBLIC_SITE_ORIGIN.rstrip("/") + static("images/asterproof-social.png"),
         },
     )
     response = render(request, "website/" + template + ".html", context, status=status)
+    if context.get("indexing_rule"):
+        response["X-Robots-Tag"] = context["indexing_rule"]
     if context.get("noindex"):
         response["X-Robots-Tag"] = "noindex, nofollow"
         # no-referrer can turn form POST origins into "null" in browsers,
@@ -88,7 +100,12 @@ def _page(request, template, *, status=200, **context):
 def home_view(request):
     return _page(
         request, "home", page_title="A little insight. Infinite possibilities.", active_nav="home",
-        has_math=True, **solution_preview_context(request),
+        seo_title="Olympiad Mathematics & Solution Writer",
+        page_description=(
+            "Explore olympiad mathematics, write proofs with live equation preview, "
+            "and convert LaTeX to PDF with AsterProof's free Solution Writer."
+        ),
+        has_math=True, lazy_math=True, **solution_preview_context(request),
     )
 
 
@@ -116,22 +133,42 @@ def problem_solving_view(request):
 
 @require_GET
 def about_view(request):
-    return _page(request, "about", page_title="About", active_nav="about")
+    return _page(
+        request, "about", page_title="About", active_nav="about",
+        page_description=(
+            "Learn how AsterProof connects mathematical ideas, rigorous proofs, and deliberate olympiad practice."
+        ),
+    )
 
 
 @require_GET
 def contact_view(request):
-    return _page(request, "contact", page_title="Contact", active_nav="contact")
+    return _page(
+        request, "contact", page_title="Contact", active_nav="contact",
+        page_description=(
+            "Contact AsterProof about mathematical corrections, source credits, accounts, and privacy questions."
+        ),
+    )
 
 
 @require_GET
 def privacy_view(request):
-    return _page(request, "privacy", page_title="Privacy Policy")
+    return _page(
+        request, "privacy", page_title="Privacy Policy",
+        page_description=(
+            "How AsterProof handles account information, learning records, cookies, and newsletter choices."
+        ),
+    )
 
 
 @require_GET
 def terms_view(request):
-    return _page(request, "terms", page_title="Terms of Use")
+    return _page(
+        request, "terms", page_title="Terms of Use",
+        page_description=(
+            "Read the terms for using AsterProof's mathematics library, problem-solving workspace, and shared content."
+        ),
+    )
 
 
 @require_GET
@@ -148,6 +185,11 @@ def library_view(request):
         request,
         "library",
         page_title="The Library",
+        seo_title="Olympiad Mathematics Library",
+        page_description=(
+            "Browse olympiad algebra, geometry, number theory, and combinatorics by area, concept, and lecture."
+        ),
+        indexing_rule="noindex,follow" if query else "",
         active_nav="library",
         query=query,
         concepts=list(concepts[:12]),
@@ -168,6 +210,11 @@ def library_subject_view(request, subject):
         request,
         "library_subject",
         page_title=subject_row["title"],
+        seo_title=f"Olympiad {subject_row['title']}",
+        page_description=(
+            f"{subject_row['description']} Explore olympiad {subject_row['title'].lower()} on AsterProof."
+        ),
+        indexing_rule="" if areas.exists() else "noindex,follow",
         active_nav="library",
         subject=subject_row,
         areas=areas,
