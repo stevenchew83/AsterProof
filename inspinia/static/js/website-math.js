@@ -18,8 +18,9 @@
       startup: {typeset: !lazy && !editor}
     };
     if (editor) {
-      // Keep the combined bundle's features, split into separate script tasks.
-      window.MathJax.loader = {load: ["input/tex", "input/mml", "output/chtml", "ui/menu"]};
+      // Writer fields contain TeX text, never MathML DOM. Accessibility extensions
+      // can still request the MathML parser through MathJax's dependency loader.
+      window.MathJax.loader = {load: ["input/tex", "output/chtml", "ui/menu"]};
     }
     pending = new Promise(function (resolve, reject) {
       if (editor) window.MathJax.loader.failed = function (error) {

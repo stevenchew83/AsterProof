@@ -9,6 +9,7 @@ const rtlcss = require("gulp-rtlcss");
 const sourcemaps = require("gulp-sourcemaps");
 const sass = require("gulp-sass")(require("sass"));
 const esbuild = require("esbuild");
+const fs = require("fs/promises");
 
 const pluginFile = require("./plugins.config"); // Import the plugins list
 
@@ -16,6 +17,31 @@ const paths = {
     baseDistAssets: "inspinia/static/", // build assets directory
     baseSrcAssets: "inspinia/static/", // source assets directory
 };
+
+const writerScripts = ["solution-pdf-options.js", "solution-draft-recovery.js", "solution-preview.js"];
+const publicScriptGroups = {
+    "public-writer.bundle.js": writerScripts,
+    "public-home.bundle.js": ["website-home.js", ...writerScripts],
+    "website-problem-solving.min.js": ["website-problem-solving.js"],
+    "website-math.min.js": ["website-math.js"],
+};
+
+async function publicScripts() {
+    await Promise.all(Object.entries(publicScriptGroups).map(async ([output, files]) => {
+        const sources = await Promise.all(files.map(name => fs.readFile(paths.baseSrcAssets + "js/" + name, "utf8")));
+        // Transform ordinary browser scripts without a module wrapper: recovery's
+        // CommonJS test export must still use its window export in the browser.
+        const result = await esbuild.transform(sources.join("\n"), {
+            minify: true,
+            target: ["es2020"],
+            legalComments: "eof",
+            sourcemap: "external",
+            sourcefile: files.join("+"),
+        });
+        await fs.writeFile(paths.baseDistAssets + "js/" + output, result.code + "//# sourceMappingURL=" + output + ".map\n");
+        await fs.writeFile(paths.baseDistAssets + "js/" + output + ".map", result.map);
+    }));
+}
 
 const stripSourceMappingURL = function () {
     return new Transform({
@@ -152,6 +178,7 @@ const rtl = function () {
 function watchFiles() {
     watch(paths.baseSrcAssets + "scss/**/*.scss", series(scss));
     watch(paths.baseSrcAssets + "js/website-geometry.js", geometry);
+    watch([...new Set(Object.values(publicScriptGroups).flat())].map(name => paths.baseSrcAssets + "js/" + name), publicScripts);
 }
 
 const geometry = function () {
@@ -169,14 +196,14 @@ const geometry = function () {
 // Production Tasks
 exports.default = series(
     plugins,
-    parallel(scss, geometry),
+    parallel(scss, geometry, publicScripts),
     parallel(watchFiles),
 );
 
 // Build Tasks
 exports.build = series(
     plugins,
-    parallel(scss, geometry),
+    parallel(scss, geometry, publicScripts),
 );
 
 // RTL Tasks

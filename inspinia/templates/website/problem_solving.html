@@ -1,6 +1,7 @@
 {% extends "website/base.html" %}
 {% load static %}
 
+{% block public_stylesheet %}{% static 'css/public-solving.min.css' %}{% endblock public_stylesheet %}
 {% block public_content %}
   <div class="problem-solving" data-solving-demo>
     <section class="website-container solving-hero" aria-labelledby="solving-title">
@@ -129,5 +130,5 @@
 {% endblock public_content %}
 
 {% block website_javascript %}
-  <script defer src="{% static 'js/website-problem-solving.js' %}"></script>
+  <script defer src="{% static 'js/website-problem-solving.min.js' %}"></script>
 {% endblock website_javascript %}

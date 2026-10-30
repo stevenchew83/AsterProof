@@ -278,6 +278,10 @@ vendors.js
 *.min.js
 *.min.js.map
 !inspinia/static/js/vendors.min.js
+!inspinia/static/js/website-math.min.js
+!inspinia/static/js/website-math.min.js.map
+!inspinia/static/js/website-problem-solving.min.js
+!inspinia/static/js/website-problem-solving.min.js.map
 !inspinia/static/plugins/**/*.min.js
 !inspinia/static/plugins/**/*.min.css
 

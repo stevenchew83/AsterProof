@@ -52,9 +52,15 @@ def test_public_pages_have_unique_descriptions_and_complete_social_metadata(clie
 
 
 def test_public_pages_load_only_the_public_asset_bundle(client):
-    for path in ("/", "/library/", "/tools/solution-preview/", "/problem-solving/"):
+    stylesheets = {
+        "/": "public-writer", "/library/": "public-site",
+        "/tools/solution-preview/": "public-writer", "/problem-solving/": "public-solving",
+    }
+    for path, stylesheet in stylesheets.items():
         html = client.get(path).content.decode()
-        assert "css/public-site.min.css" in html
+        assert f"css/{stylesheet}.min.css" in html
+        assert len(re.findall(r'<link\b[^>]*rel="stylesheet"', html)) == 1
+        assert 'as="font" type="font/woff2" crossorigin' in html
         for asset in ("css/app.min.css", "css/vendors.min.css", "js/vendors.min.js", "js/app.js", "js/config.js"):
             assert asset not in html
     homepage = client.get("/").content.decode()
@@ -67,6 +73,12 @@ def test_public_pages_load_only_the_public_asset_bundle(client):
             client.get(path).content.decode()
         )
     assert not any("cdn.jsdelivr.net/npm/mathjax" in src for src in scripts)
+    assert 'rel="preconnect"' not in homepage
+    assert [src.rsplit("/", 1)[-1] for src in scripts] == ["public-home.bundle.js", "website-math.min.js"]
+    writer = client.get("/tools/solution-preview/").content.decode()
+    assert "js/public-writer.bundle.js" in writer
+    assert "js/website-math.min.js" in writer
+    assert 'rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin' in writer
     assert "data-lazy-math" not in client.get("/tools/solution-preview/").content.decode()
 
 

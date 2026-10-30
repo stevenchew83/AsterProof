@@ -1,9 +1,10 @@
 {% extends 'website/base.html' %}
 {% load static %}
+{% block public_stylesheet %}{% static 'css/public-writer.min.css' %}{% endblock public_stylesheet %}
 {% block public_content %}
   <div class="website-container public-tool-page">
     <header class="website-page-hero"><p class="website-kicker">Tools / Solution Writer</p><h1>Solution <em>Writer.</em></h1><p>Write a solution in blocks, preview your equations as you type, and convert LaTeX to PDF. Combine plain text with mathematical notation, start with the example or make it your own, and download a formatted solution without signing in.</p></header>
     {% include 'website/partials/solution_preview.html' %}
   </div>
 {% endblock public_content %}
-{% block website_javascript %}<script defer src="{% static 'js/solution-pdf-options.js' %}"></script><script defer src="{% static 'js/solution-draft-recovery.js' %}"></script><script defer src="{% static 'js/solution-preview.js' %}"></script>{% endblock website_javascript %}
+{% block website_javascript %}<script defer src="{% static 'js/public-writer.bundle.js' %}"></script>{% endblock website_javascript %}

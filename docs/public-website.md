@@ -111,20 +111,28 @@ Optional settings (documented in `.env.sample`):
 Contact uses `chinchiat83@gmail.com`, the configured project sender. Review the
 Privacy Policy and Terms text for the intended launch before publishing it.
 
-Run `npm ci` and `npm run build` to compile public SCSS and the self-hosted Three.js
-geometry bundle. Three.js is pinned; esbuild bundles only the homepage entry.
+Run `npm ci` and `npm run build` to compile public SCSS, minify the public scripts,
+and build the self-hosted Three.js geometry bundle. Three.js is pinned.
 The homepage initially displays the SVG illustration. Its Play motion control
 loads the optional Three.js bundle on request. The animation has a pause control,
 honours reduced motion, pauses when hidden or outside the viewport, and falls
 back to SVG without WebGL2 or JavaScript.
 Other public pages do not load the Three.js bundle.
 
-Public pages use a single Bootstrap/Inspinia stylesheet containing the theme's
-typography, form controls, and required utilities, without dashboard JavaScript
-or icon fonts. Homepage MathJax loads when the editor is used or its preview
+Each public page loads one Bootstrap/Inspinia stylesheet: `public-site` for
+general pages, or `public-writer`, `public-solving`, and `public-shared` for their
+respective tools. These include the common styles and only the relevant page
+partial. Public CSS retains the existing Open Sans faces, weights, italics,
+Unicode ranges, and swap behavior; unused theme families, dark-mode overrides,
+and form widgets are excluded. The normal Latin variable font is preloaded.
+Dashboard assets and typography are unchanged. Public browser scripts are
+minified; the homepage and writer each use one controller bundle plus the shared
+math loader. Homepage MathJax loads when the editor is used or its preview
 enters the viewport; other mathematics pages load it immediately.
-The interactive writer loads MathJax 3.2.2's TeX, MathML, CommonHTML, and menu
+The interactive writer loads MathJax 3.2.2's TeX, CommonHTML, and menu
 components separately so the combined engine does not execute as one large task.
+Its editor accepts TeX text; the MathML input parser remains available on demand
+for extensions that need it. MathML output and accessibility remain enabled.
 Its preview controller owns the initial typesetting pass; MathJax's automatic
 page scan is disabled there to avoid rendering the statement twice. Static
 mathematics pages retain automatic typesetting. A failed component load releases

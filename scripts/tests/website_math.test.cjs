@@ -5,7 +5,7 @@ const vm = require('node:vm');
 
 const source = readFileSync(require.resolve('../../inspinia/static/js/website-math.js'), 'utf8');
 
-function page({lazy = false, editor = true, intersection = true} = {}) {
+function page({lazy = false, editor = true, intersection = true, code = source} = {}) {
   const scripts = [], events = [], handlers = new Map(), observers = [];
   const preview = {};
   const root = {
@@ -27,7 +27,7 @@ function page({lazy = false, editor = true, intersection = true} = {}) {
     head: {appendChild: script => scripts.push(script)},
     dispatchEvent: event => events.push(event.type),
   };
-  vm.runInNewContext(source, {window, document, Event, IntersectionObserver: Observer});
+  vm.runInNewContext(code, {window, document, Event, IntersectionObserver: Observer});
   function startup() {
     let finish;
     window.MathJax.startup.promise = new Promise(resolve => { finish = resolve; });
@@ -40,7 +40,7 @@ test('the writer loads eagerly but leaves its initial typeset to the preview con
   const app = page();
   assert.equal(app.scripts.length, 1);
   assert.equal(app.scripts[0].src, 'https://cdn.example/startup.js');
-  assert.deepEqual(Array.from(app.window.MathJax.loader.load), ['input/tex', 'input/mml', 'output/chtml', 'ui/menu']);
+  assert.deepEqual(Array.from(app.window.MathJax.loader.load), ['input/tex', 'output/chtml', 'ui/menu']);
   assert.equal(app.window.MathJax.startup.typeset, false);
   const startup = app.startup();
   await Promise.resolve();
@@ -100,4 +100,21 @@ test('a failed component releases preview initialization even when startup canno
   await new Promise(setImmediate);
   assert.equal(app.window.MathJax, null);
   assert.deepEqual(app.events, []);
+});
+
+test('the minified loader preserves startup readiness and lazy homepage loading', async () => {
+  const code = readFileSync(require.resolve('../../inspinia/static/js/website-math.min.js'), 'utf8');
+  const app = page({code});
+  assert.equal(app.window.MathJax.startup.typeset, false);
+  assert.equal(app.scripts[0].src, 'https://cdn.example/startup.js');
+  const startup = app.startup();
+  startup.finish();
+  await startup.loaded;
+  await app.window.AsterProofMathReady;
+  assert.deepEqual(app.events, ['asterproof:math-ready']);
+  const home = page({code, lazy: true});
+  assert.equal(home.scripts.length, 0);
+  home.handlers.get('focusin')();
+  home.handlers.get('input')();
+  assert.equal(home.scripts.length, 1);
 });
