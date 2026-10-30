@@ -6,18 +6,12 @@
   </header>
   <section class="public-shared-problem" aria-labelledby="shared-problem-heading">
     <h2 id="shared-problem-heading">{{ snapshot.problem.label }}</h2>
-    <p class="public-shared-tags">{{ snapshot.problem.topic }}{% if snapshot.problem.mohs != None %} · MOHS {{ snapshot.problem.mohs }}{% endif %}</p>
+    <p class="public-shared-tags">{{ snapshot.problem.topic }}</p>
     {% for segment in snapshot.problem.segments %}
       {% if segment.kind == 'text' %}<div class="public-shared-body solution-block-body-latex">{{ segment.content }}</div>
       {% elif segment.kind == 'image' %}<img class="public-shared-diagram" src="{{ segment.src }}" alt="Problem diagram" />
       {% else %}<details><summary>Diagram source</summary><p>The diagram could not be rendered. Its original source is available below.</p><pre class="tex2jax_ignore"><code>{{ segment.content }}</code></pre></details>{% endif %}
     {% empty %}<p>No catalogue statement is available for this problem.</p>{% endfor %}
-    {% if snapshot.problem.areas or snapshot.problem.concepts %}
-    <details class="public-shared-topics"><summary>Areas &amp; concepts</summary>
-      {% if snapshot.problem.areas %}<p>{{ snapshot.problem.areas|join:' · ' }}</p>{% endif %}
-      {% if snapshot.problem.concepts %}<p>{{ snapshot.problem.concepts|join:' · ' }}</p>{% endif %}
-    </details>
-    {% endif %}
   </section>
   {% if snapshot.summary %}<p class="public-shared-summary solution-block-body-latex">{{ snapshot.summary }}</p>{% endif %}
   <div class="public-shared-blocks">

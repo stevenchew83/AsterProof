@@ -87,8 +87,6 @@ def snapshot_digest(snapshot):
 def public_description(snapshot):
     problem = snapshot["problem"]
     details = [problem["label"], problem["topic"]]
-    if problem["mohs"] is not None:
-        details.append(f"MOHS {problem['mohs']}")
     if snapshot["author"]:
         details.append(f"By {snapshot['author']}")
     return " · ".join(part for part in details if part)[:200] + ". Read the full solution on AsterProof."
