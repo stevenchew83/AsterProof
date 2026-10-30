@@ -10,20 +10,28 @@ block, account, catalogue, and completion rows remain unchanged.
 
 The migration is classified `backward-compatible-schema` in
 `deployment/migration-classifications.yml`. Classification alone does not admit
-it to the installed root-owned migration authority. The current bounded schema
-selector has no allowance for this migration. Do not dispatch it as
+it to the installed root-owned migration authority. The bounded source allowance
+is `scripts/deployment/solution_sharing_schema.py`; installation remains a
+separately authorized bootstrap operation. Do not dispatch it as
 `migration_class=none`, apply it over workstation SSH, or substitute a broad
 migration command.
 
-Before deployment, separately authorize preparation, review, and installation of
-a frozen allowance for this exact migration through the existing bootstrap
-procedure. Follow the bounded PDF schema precedent in
-[solution-pdf-schema.md](solution-pdf-schema.md): hash-bind this migration and its
-prior dependencies, require an exact pending plan, freeze the PostgreSQL 17.9
-catalogue delta, prove prior records/sequences/triggers and the active revision
-remain unchanged, and bind the evidence to the exact release and artifact.
-Reject additional or modified migrations. Retain the existing lock/statement
-limits and recovery-required behavior after migration failure.
+The allowance follows the bounded PDF schema precedent in
+[solution-pdf-schema.md](solution-pdf-schema.md). It pins this migration and all
+four prior solution migrations, admits exactly one `CreateModel` operation, and
+checks the one-table catalogue fixture with fingerprint
+`323b8aec381d76e850cb3d99e0f24f72b5d3c3c68218a9a885cf7ff4b7bb264e`.
+`solution_sharing_schema_rehearsal.py` requires an empty, isolated PostgreSQL
+17.9 Actions database. It compares all prior records, sequences, trigger/function
+definitions, catalogue objects and migration metadata before and after applying
+the exact plan and running the active revision's fixed compatibility check.
+Only one migration-recorder row/counter increment and the unused new table's
+identity sequence may differ. The table remains empty; existing drafts are not
+shared. A hand-authored fixture is not evidence: both PR CI and the protected
+release build must verify the actual PostgreSQL delta and preservation checks.
+The attested artifact binds that proof to its exact target and active revision.
+Additional or modified migrations remain rejected. The existing 2-second lock
+and 30-second statement limits and recovery-required behavior remain intact.
 
 The separately authorized authority installation must preserve target and audit
 configuration, marker, key identity and forced command, users, database
