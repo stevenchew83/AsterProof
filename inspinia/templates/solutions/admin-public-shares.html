@@ -62,9 +62,9 @@
         <div class="card-body pt-2">
           <figure class="mb-2">
             <div class="d-flex align-items-end gap-1 border-bottom" style="height: 100px" aria-hidden="true">
-              {% for point in trend %}<div class="bg-primary rounded-top flex-fill" style="height: {{ point.width }}%" title="{{ point.day|date:'j M' }}: {{ point.views }} views"></div>{% endfor %}
+              {% for point in trend %}<div class="bg-primary rounded-top flex-fill" style="height: {{ point.width }}%" title="{{ point.day|date:'j M' }}: {{ point.views }} view{{ point.views|pluralize }}"></div>{% endfor %}
             </div>
-            <figcaption class="d-flex justify-content-between text-muted fs-xs mt-1"><span>{{ first_day|date:"j M" }}</span><span>{{ metrics.views }} views · {{ first_share_count }} first shares</span><span>{{ today|date:"j M" }}</span></figcaption>
+            <figcaption class="d-flex justify-content-between text-muted fs-xs mt-1"><span>{{ first_day|date:"j M" }}</span><span>{{ metrics.views }} view{{ metrics.views|pluralize }} · {{ first_share_count }} first share{{ first_share_count|pluralize }}</span><span>{{ today|date:"j M" }}</span></figcaption>
           </figure>
           {% if not metrics.views %}<p class="text-muted fs-sm mb-2">No recorded views in this period for these filters.</p>{% endif %}
           <details class="app-table-details">

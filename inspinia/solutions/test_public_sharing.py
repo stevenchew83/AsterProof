@@ -133,11 +133,15 @@ def test_creation_is_explicit_keeps_status_and_progress_and_snapshots_order(clie
 
 def test_anonymous_reading_has_server_metadata_and_no_private_context(client, writing):
     share = create_share(client, writing)
+    share.snapshot["problem"].update({"areas": ["Hidden training area"], "concepts": ["Hidden training concept"]})
+    share.save(update_fields=["snapshot"])
     response = Client().get(public_path(share))
     html = response.content.decode()
     assert response.status_code == HTTPStatus.OK
-    for expected in ["An elegant proof", "SHARED-PROOF", "SHARING TEST", "Algebra", "MOHS 5", "Ada Learner"]:
+    for expected in ["An elegant proof", "SHARED-PROOF", "SHARING TEST", "Algebra", "Ada Learner"]:
         assert expected in html
+    for hidden in ["MOHS", "Areas &amp; concepts", "Hidden training area", "Hidden training concept"]:
+        assert hidden not in html
     assert writing.author.email not in html
     assert "Your progress" not in html
     assert "Edit draft" not in html
