@@ -79,6 +79,22 @@ class SolutionPublicShare(models.Model):
         return f"Public share for solution {self.solution_id}"
 
 
+class SolutionShareDailyViews(models.Model):
+    """Aggregate page opens; no visitor identifiers or request details are retained."""
+
+    share = models.ForeignKey(SolutionPublicShare, on_delete=models.CASCADE, related_name="daily_views")
+    day = models.DateField(db_index=True)
+    views = models.PositiveBigIntegerField(default=0)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["share", "day"], name="solutions_share_views_unique_day"),
+        ]
+
+    def __str__(self):
+        return f"Share {self.share_id}: {self.day}"
+
+
 class SolutionBlockType(models.Model):
     slug = models.SlugField(unique=True)
     label = models.CharField(max_length=64)

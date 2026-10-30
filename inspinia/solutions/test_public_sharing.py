@@ -17,6 +17,7 @@ from inspinia.solutions.models import ProblemSolution
 from inspinia.solutions.models import ProblemSolutionBlock
 from inspinia.solutions.models import SolutionBlockType
 from inspinia.solutions.models import SolutionPublicShare
+from inspinia.solutions.sharing import public_preview_image
 from inspinia.solutions.sharing import snapshot_digest
 from inspinia.users.tests.factories import UserFactory
 
@@ -147,6 +148,7 @@ def test_anonymous_reading_has_server_metadata_and_no_private_context(client, wr
     assert f'property="og:image" content="https://asterproof.example{image_path(share)}"' in html
     assert 'property="og:description"' in html
     assert 'property="og:image:width" content="1200"' in html
+    assert 'property="og:image:alt" content="AsterProof logo"' in html
     assert "https://wa.me/?text=https%3A%2F%2Fasterproof.example" in html
     assert "noindex" in response["X-Robots-Tag"]
     assert "no-store" in response["Cache-Control"]
@@ -155,17 +157,18 @@ def test_anonymous_reading_has_server_metadata_and_no_private_context(client, wr
     assert "Page number" not in html
 
 
-def test_public_image_is_a_real_lightweight_jpeg_generated_before_fetch(client, writing, monkeypatch):
+def test_public_image_is_the_prebuilt_lightweight_website_logo(client, writing, monkeypatch):
     share = create_share(client, writing)
 
     def must_not_build(*args, **kwargs):
         pytest.fail("Anonymous requests must not render snapshots, compile TeX, or regenerate images")
 
     monkeypatch.setattr("inspinia.solutions.views._public_snapshot", must_not_build)
-    monkeypatch.setattr("inspinia.solutions.views.build_preview_image", must_not_build)
+    monkeypatch.setattr("inspinia.solutions.views.public_preview_image", must_not_build)
     response = Client().get(image_path(share))
     assert response.status_code == HTTPStatus.OK
     assert response["Content-Type"] == "image/jpeg"
+    assert response.content == public_preview_image() == bytes(share.preview_image)
     assert len(response.content) < PREVIEW_IMAGE_BUDGET
     image = Image.open(BytesIO(response.content))
     assert image.size == (1200, 630)
@@ -174,6 +177,20 @@ def test_public_image_is_a_real_lightweight_jpeg_generated_before_fetch(client, 
     assert Client().get(public_path(share)).status_code == HTTPStatus.OK
     assert Client().head(public_path(share)).status_code == HTTPStatus.OK
     assert Client().head(image_path(share)).status_code == HTTPStatus.OK
+
+
+def test_existing_links_use_the_logo_without_changing_the_shared_snapshot(client, writing):
+    share = create_share(client, writing)
+    snapshot, revision = share.snapshot, share.revision
+    share.preview_image = b"Previous solution-specific thumbnail"
+    share.save(update_fields=["preview_image"])
+    response = Client().get(image_path(share))
+    assert response.status_code == HTTPStatus.OK
+    assert response.content == public_preview_image()
+    share.refresh_from_db()
+    assert share.snapshot == snapshot
+    assert share.revision == revision
+    assert bytes(share.preview_image) == b"Previous solution-specific thumbnail"
 
 
 def test_real_editor_save_stays_private_until_explicit_update(client, writing):
@@ -198,7 +215,7 @@ def test_real_editor_save_stays_private_until_explicit_update(client, writing):
     share.refresh_from_db()
     assert public_path(share) == initial_url
     assert share.revision != initial_revision
-    assert bytes(share.preview_image) != initial_image
+    assert bytes(share.preview_image) == initial_image == public_preview_image()
     assert Client().get(old_image).status_code == HTTPStatus.NOT_FOUND
     new_html = Client().get(initial_url).content.decode()
     assert "PRIVATE-REVISION" in new_html
