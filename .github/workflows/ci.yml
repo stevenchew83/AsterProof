@@ -90,7 +90,10 @@ jobs:
           DATABASE_URL: postgres://postgres@127.0.0.1:5432/asterproof_schema_rehearsal
         run: |
           rehearsal_args=()
-          if ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/statement_authoring_schema.py scripts/deployment/statement_authoring_rehearsal.py inspinia/pages/migrations/0040_statement_authoring_metadata.py; then
+          if ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/curated_collections_schema.py scripts/deployment/curated_collections_schema_rehearsal.py scripts/deployment/tests/fixtures/curated-collections-schema-delta.json inspinia/solutions/migrations/0008_solutioncollection_kind_and_nullable_owner.py; then
+            rehearsal=scripts.deployment.curated_collections_schema_rehearsal
+            active_sha="$BASE_SHA"
+          elif ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/statement_authoring_schema.py scripts/deployment/statement_authoring_rehearsal.py inspinia/pages/migrations/0040_statement_authoring_metadata.py; then
             rehearsal=scripts.deployment.statement_authoring_rehearsal
             active_sha="$BASE_SHA"
           elif ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/solution_collections_schema.py scripts/deployment/solution_collections_schema_rehearsal.py scripts/deployment/tests/fixtures/solution-collections-schema-delta.json inspinia/solutions/migrations/0007_solutioncollection_solutioncollectionentry.py; then
@@ -205,6 +208,43 @@ jobs:
           if not targets:
               raise SystemExit("Runtime changes must select tests")
           subprocess.run([sys.executable, "-m", "pytest", *targets], check=True)
+          PY
+
+      - name: Test curated source locks on PostgreSQL 17.9
+        if: steps.checks.outputs.runtime == 'true'
+        env:
+          DATABASE_URL: postgres://postgres@127.0.0.1:5432/asterproof_schema_rehearsal
+        run: |
+          container="asterproof-curated-locks-$GITHUB_RUN_ID"
+          trap 'docker rm -f "$container" >/dev/null 2>&1 || true' EXIT
+          docker run --detach --rm --name "$container" --memory=768m --cpus=2 \
+            -e POSTGRES_DB=asterproof_schema_rehearsal -e POSTGRES_USER=postgres \
+            -e POSTGRES_HOST_AUTH_METHOD=trust -p 127.0.0.1:5432:5432 \
+            postgres:17.9-bookworm@sha256:47f917f7409eacd22fc5dfb1dee634e1b55cf0c01d1a7eb701be2227a03e0641
+          for attempt in $(seq 1 30); do
+            if docker exec "$container" pg_isready -U postgres -d asterproof_schema_rehearsal; then
+              break
+            fi
+            if [ "$attempt" -eq 30 ]; then
+              echo 'Isolated PostgreSQL concurrency database did not become ready' >&2
+              exit 1
+            fi
+            sleep 1
+          done
+          .ci-quality/bin/python - <<'PY'
+          from django.conf import settings
+          from scripts.deployment.schema_rehearsal import configure_rehearsal_database
+          configure_rehearsal_database(settings)
+          settings.DATABASES['default']['TEST'] = {'NAME': 'test_curated_source_locks'}
+          import django
+          django.setup()
+          from django.db import connection
+          if connection.pg_version != 170009:
+              raise SystemExit('Concurrency checks require PostgreSQL 17.9')
+          import pytest
+          raise SystemExit(pytest.main([
+              'inspinia/solutions/test_admin_collection_concurrency.py', '--create-db', '-q',
+          ]))
           PY
 
       - name: Verify nightly maintenance dependencies on synthetic systemd units

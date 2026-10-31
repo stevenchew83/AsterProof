@@ -1,11 +1,13 @@
 """Read-only administration of shared snapshots and aggregate readership."""
 
+import uuid
 from datetime import timedelta
 from urllib.parse import urlencode
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
+from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.db.models import Count
 from django.db.models import IntegerField
@@ -24,6 +26,8 @@ from django.utils import timezone
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET
 
+from inspinia.solutions.admin_collections import parse_refs
+from inspinia.solutions.admin_collections import selection_rows
 from inspinia.solutions.models import SolutionPublicShare
 from inspinia.solutions.models import SolutionShareDailyViews
 from inspinia.users.roles import user_has_admin_role
@@ -77,6 +81,18 @@ def admin_public_shares_view(request):
     if not user_has_admin_role(request.user):
         raise PermissionDenied
 
+    try:
+        flow = str(uuid.UUID(request.GET.get("flow", "")))
+    except (ValueError, TypeError, AttributeError):
+        flow = str(uuid.uuid4())
+    selection_error = ""
+    try:
+        refs = parse_refs(request.GET.getlist("share"))
+    except ValidationError as exc:
+        refs = []
+        selection_error = " ".join(exc.messages)
+    selected_shares = selection_rows(refs)
+
     today = timezone.localdate()
     first_day = today - timedelta(days=WINDOW_DAYS - 1)
     shares, filters, topics = _filtered_shares(request)
@@ -116,6 +132,7 @@ def admin_public_shares_view(request):
     ordering = ("-views_30d", "-updated_at", "-pk") if filters["sort"] == "views" else ("-updated_at", "-pk")
     page = Paginator(rows.order_by(*ordering), PAGE_SIZE).get_page(request.GET.get("page"))
     for row in page:
+        row["ref"] = f"{row['pk']}:{row['token']}"
         row["author_name"] = row.pop("solution__author__name")
         row["author_email"] = row.pop("solution__author__email")
         # SQLite's JSON text extraction represents JSON null as the text "null".
@@ -131,8 +148,12 @@ def admin_public_shares_view(request):
         "trend": trend, "page_obj": page, "first_day": first_day, "today": today,
         "first_share_count": sum(first_shares.values()),
         "report_timezone": timezone.get_current_timezone_name(),
-        "pagination_query": urlencode({key: value for key, value in filters.items() if value}),
-    })
+        "pagination_query": urlencode(
+            {**{key: value for key, value in filters.items() if value}, "flow": flow, "share": refs}, doseq=True,
+        ),
+        "flow": flow, "selected_shares": selected_shares, "selection_error": selection_error,
+        "max_collection_solutions": 20,
+    }, status=400 if selection_error else 200)
     response["Referrer-Policy"] = "same-origin"
     response["X-Robots-Tag"] = "noindex, nofollow, noarchive"
     return response

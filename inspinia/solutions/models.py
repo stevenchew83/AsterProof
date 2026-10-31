@@ -96,9 +96,16 @@ class SolutionShareDailyViews(models.Model):
 
 
 class SolutionCollection(models.Model):
-    """An explicitly ordered public page of the owner's shared solution copies."""
+    """An ordered public page of personal or site-curated shared copies."""
 
-    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="solution_collections")
+    class Kind(TextChoices):
+        PERSONAL = "personal", "Personal"
+        ADMIN_CURATED = "admin_curated", "Admin curated"
+
+    kind = models.CharField(max_length=20, choices=Kind.choices, default=Kind.PERSONAL, db_default=Kind.PERSONAL)
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="solution_collections", null=True, blank=True,
+    )
     title = models.CharField(max_length=160)
     introduction = models.TextField(blank=True, max_length=2000)
     token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
@@ -109,6 +116,15 @@ class SolutionCollection(models.Model):
 
     class Meta:
         ordering = ["-updated_at", "-id"]
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    models.Q(kind="personal", owner__isnull=False)
+                    | models.Q(kind="admin_curated", owner__isnull=True)
+                ),
+                name="solution_collection_kind_owner",
+            ),
+        ]
 
     def __str__(self):
         return self.title

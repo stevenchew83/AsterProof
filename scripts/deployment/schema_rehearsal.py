@@ -90,6 +90,10 @@ def _snapshot(connection):
 
 
 def _approved_rehearsal(disclosed_migration):  # noqa: PLR0911 - Only literal, reviewed rehearsal imports.
+    if disclosed_migration == "solutions.0008_solutioncollection_kind_and_nullable_owner":
+        from scripts.deployment.curated_collections_schema_rehearsal import run
+
+        return run
     if disclosed_migration == "solutions.0007_solutioncollection_solutioncollectionentry":
         from scripts.deployment.solution_collections_schema_rehearsal import run
 

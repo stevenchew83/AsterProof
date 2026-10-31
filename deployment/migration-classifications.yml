@@ -2,6 +2,17 @@
   "format_version": 1,
   "baseline_sha": null,
   "migrations": {
+    "solutions.0008_solutioncollection_kind_and_nullable_owner": {
+      "classification": "backward-compatible-schema",
+      "recovery_required": false,
+      "code_rollback_permitted": true,
+      "data_preconditions": [
+        "existing_collections_personal_with_non_null_owners",
+        "curated_collection_kind_column_and_check_absent",
+        "existing_collections_entries_shares_and_progress_preserved"
+      ],
+      "rationale": "Adds a persistent personal kind default, permits site-owned curated collections with a null owner, and enforces the corresponding kind/owner check. Existing collection owners, entries, anchors, tokens, public copies and progress remain intact. Old application code can still insert personal collections through the database default; code recovery retains the schema and data while curated entries render empty under the old reader. Requires the separate exact frozen allowance and PostgreSQL 17.9 preservation and compatibility proof."
+    },
     "pages.0040_statement_authoring_metadata": {
       "classification": "data-or-non-compatible",
       "recovery_required": true,
