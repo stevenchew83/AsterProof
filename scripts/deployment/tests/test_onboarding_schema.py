@@ -290,7 +290,7 @@ def test_expected_audit_adds_only_the_frozen_columns_and_one_migration_record():
     assert start == unchanged
 
 
-@pytest.mark.parametrize("change", ["new_column", "default", "nullable", "table", "position", "index"])
+@pytest.mark.parametrize("change", ["new_column", "default", "nullable", "table", "position", "index", "collation"])
 def test_expected_audit_rejects_any_different_catalog_delta(change):
     delta = frozen_delta()
     if change == "new_column":
@@ -310,6 +310,7 @@ def test_expected_audit_rejects_any_different_catalog_delta(change):
             "nullable": True,
             "table": "solutions_problemsolution",
             "position": 99,
+            "collation": "C",
         }[change]
     with pytest.raises(schema.OnboardingSchemaError):
         schema.expected_catalog_audit(starting_audit(), delta)

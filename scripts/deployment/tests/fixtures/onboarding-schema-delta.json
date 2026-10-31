@@ -1,7 +1,7 @@
 {
   "columns": [
     {
-      "collation": null,
+      "collation": "default",
       "column": "solution_guide_status",
       "default": "'not_enrolled'::character varying",
       "nullable": false,

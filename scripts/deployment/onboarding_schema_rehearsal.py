@@ -183,7 +183,9 @@ def run(args):
         raise ValueError("Onboarding migration changed existing schema, records, sequences, triggers, or defaults")
     fingerprint = schema_state(delta)["fingerprint"]
     if not getattr(args, "record_delta", False) and fingerprint != schema.DELTA_SHA256:
-        raise ValueError("Onboarding schema delta does not match the frozen one-column fixture")
+        detail = json.dumps(delta, sort_keys=True)
+        message = f"Onboarding schema delta differs from the frozen fixture: {fingerprint}; {detail}"
+        raise ValueError(message)
     smoke_env = {**os.environ, "PYTHONPATH": str(args.active_source.resolve())}
     subprocess.run([sys.executable, "-c", schema.smoke_command()], cwd=args.active_source, env=smoke_env, check=True)
     if (
