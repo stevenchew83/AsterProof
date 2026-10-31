@@ -9103,7 +9103,7 @@ def test_completion_record_list_renders_admin_inventory(client):
     assert 'data: "completion_datetime"' in response_html
     assert 'order: [[columnIndexByKey.updatedSort, "desc"]]' in response_html
     assert "Search all records" in response_html
-    assert 'search: "Filter loaded records:"' in response_html
+    assert 'search: "Find in results:"' in response_html
     assert "including all mapped areas" in response_html
     assert "tom-select.bootstrap5.min.css" in response_html
     assert "tom-select.base.js" in response_html
@@ -9343,7 +9343,11 @@ def test_completion_record_list_renders_compact_kpis_and_missing_solution_stats(
     assert "Contests in loaded records" in response_html
     assert "Records with solution" in response_html
     assert "Records without solution" in response_html
-    assert "row-cols-2 row-cols-sm-3 row-cols-xl-5" in response_html
+    assert 'class="completion-record-metrics"' in response_html
+    assert 'aria-label="Completion record inventory"' in response_html
+    assert 'role="search" aria-label="Filter all completion records"' in response_html
+    assert "<dt>Loaded records</dt>" in response_html
+    assert "completion-record-kpi" not in response_html
 
 
 def test_completion_record_list_renders_active_filter_chips_and_opens_advanced_filters(client):
