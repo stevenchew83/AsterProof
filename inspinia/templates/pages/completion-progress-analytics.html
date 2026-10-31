@@ -5,799 +5,412 @@
 {% block title %}{{ completion_progress_page_title|default:"Progress analytics" }}{% endblock title %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'plugins/datatables/dataTables.bootstrap5.min.css' %}">
-<style>
-  .completion-progress-filter-row {
-    display: grid;
-    grid-template-columns: repeat(12, minmax(0, 1fr));
-    gap: .75rem;
-    align-items: end;
-  }
+<link rel="stylesheet" href="{% static 'plugins/datatables/dataTables.bootstrap5.min.css' %}" />
 
-  .completion-progress-field {
-    grid-column: span 2;
-  }
-
-  .completion-progress-field.is-wide {
-    grid-column: span 3;
-  }
-
-  .completion-progress-field.is-actions {
-    grid-column: span 12;
-  }
-
-  .completion-progress-advanced-wrap {
-    grid-column: span 12;
-  }
-
-  .completion-progress-advanced-fields {
-    border-top: 1px solid var(--ins-border-color);
-    display: grid;
-    gap: .75rem;
-    grid-template-columns: repeat(12, minmax(0, 1fr));
-    margin-top: .25rem;
-    padding-top: .75rem;
-  }
-
-  .completion-progress-filter-chips {
-    border-top: 1px solid var(--ins-border-color);
-    margin-top: 1rem;
-    padding-top: .75rem;
-  }
-
-  .completion-progress-chart {
-    min-height: 320px;
-  }
-
-  .completion-progress-empty-state {
-    align-items: center;
-    border: 1px dashed var(--ins-border-color);
-    border-radius: .5rem;
-    display: flex;
-    min-height: 220px;
-    padding: 1.5rem;
-  }
-
-  .completion-progress-empty-state.is-compact {
-    min-height: 0;
-  }
-
-  .completion-progress-secondary-metrics {
-    display: grid;
-    gap: .75rem;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  .completion-progress-secondary-metric {
-    border-left: 1px solid var(--ins-border-color);
-    padding-left: .75rem;
-  }
-
-  .completion-progress-secondary-metric:first-child {
-    border-left: 0;
-    padding-left: 0;
-  }
-
-  .completion-progress-insight-strip {
-    display: grid;
-    gap: .75rem;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-  }
-
-  .completion-progress-insight {
-    border: 1px solid var(--ins-border-color);
-    border-radius: .5rem;
-    padding: .85rem;
-  }
-
-  .completion-progress-insight-value {
-    font-size: 1.05rem;
-    font-weight: 700;
-    line-height: 1.2;
-  }
-
-  .completion-progress-yearly-heatmap-wrap {
-    overflow-x: auto;
-    overflow-y: hidden;
-    padding-bottom: 0.35rem;
-  }
-
-  .completion-progress-yearly-heatmap-canvas {
-    display: inline-block;
-    min-width: max-content;
-  }
-
-  .completion-progress-yearly-heatmap {
-    --completion-progress-yearly-cell-size: 0.86rem;
-    --completion-progress-yearly-cell-gap: 0.22rem;
-    --completion-progress-yearly-weekday-width: 2.25rem;
-    --completion-progress-yearly-cell-border: rgba(27, 31, 36, 0.06);
-    --completion-progress-yearly-empty: #ebedf0;
-    --completion-progress-yearly-level-1: #9be9a8;
-    --completion-progress-yearly-level-2: #40c463;
-    --completion-progress-yearly-level-3: #30a14e;
-    --completion-progress-yearly-level-4: #216e39;
-  }
-
-  [data-bs-theme="dark"] .completion-progress-yearly-heatmap {
-    --completion-progress-yearly-cell-border: rgba(240, 246, 252, 0.08);
-    --completion-progress-yearly-empty: #161b22;
-    --completion-progress-yearly-level-1: #0e4429;
-    --completion-progress-yearly-level-2: #006d32;
-    --completion-progress-yearly-level-3: #26a641;
-    --completion-progress-yearly-level-4: #39d353;
-  }
-
-  .completion-progress-yearly-section + .completion-progress-yearly-section {
-    border-top: 1px solid var(--ins-border-color);
-    margin-top: 1.25rem;
-    padding-top: 1.25rem;
-  }
-
-  .completion-progress-yearly-months {
-    display: grid;
-    grid-auto-columns: var(--completion-progress-yearly-cell-size);
-    grid-auto-flow: column;
-    gap: var(--completion-progress-yearly-cell-gap);
-    margin-bottom: 0.35rem;
-    margin-left: calc(var(--completion-progress-yearly-weekday-width) + var(--completion-progress-yearly-cell-gap));
-  }
-
-  .completion-progress-yearly-month {
-    color: var(--ins-secondary-color);
-    font-size: 0.72rem;
-    line-height: 1;
-    min-height: 0.8rem;
-    white-space: nowrap;
-  }
-
-  .completion-progress-yearly-body {
-    display: flex;
-    gap: var(--completion-progress-yearly-cell-gap);
-  }
-
-  .completion-progress-yearly-weekdays {
-    display: grid;
-    gap: var(--completion-progress-yearly-cell-gap);
-    grid-template-rows: repeat(7, var(--completion-progress-yearly-cell-size));
-    width: var(--completion-progress-yearly-weekday-width);
-  }
-
-  .completion-progress-yearly-weekday {
-    align-items: center;
-    color: var(--ins-secondary-color);
-    display: flex;
-    font-size: 0.68rem;
-    line-height: var(--completion-progress-yearly-cell-size);
-  }
-
-  .completion-progress-yearly-grid {
-    display: grid;
-    gap: var(--completion-progress-yearly-cell-gap);
-    grid-auto-flow: column;
-    grid-template-rows: repeat(7, var(--completion-progress-yearly-cell-size));
-  }
-
-  .completion-progress-yearly-week {
-    display: contents;
-  }
-
-  .completion-progress-yearly-cell {
-    background: var(--completion-progress-yearly-empty);
-    border: 1px solid var(--completion-progress-yearly-cell-border);
-    border-radius: 0.18rem;
-    display: block;
-    height: var(--completion-progress-yearly-cell-size);
-    min-width: var(--completion-progress-yearly-cell-size);
-    width: var(--completion-progress-yearly-cell-size);
-  }
-
-  .completion-progress-yearly-cell.is-outside {
-    opacity: 0;
-    pointer-events: none;
-  }
-
-  .completion-progress-yearly-cell.is-today {
-    box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.38);
-  }
-
-  .completion-progress-yearly-cell.level-0 {
-    background: var(--completion-progress-yearly-empty);
-  }
-
-  .completion-progress-yearly-cell.level-1 {
-    background: var(--completion-progress-yearly-level-1);
-  }
-
-  .completion-progress-yearly-cell.level-2 {
-    background: var(--completion-progress-yearly-level-2);
-  }
-
-  .completion-progress-yearly-cell.level-3 {
-    background: var(--completion-progress-yearly-level-3);
-  }
-
-  .completion-progress-yearly-cell.level-4 {
-    background: var(--completion-progress-yearly-level-4);
-  }
-
-  .completion-progress-yearly-legend {
-    align-items: center;
-    color: var(--ins-secondary-color);
-    display: flex;
-    flex-wrap: wrap;
-    font-size: 0.72rem;
-    gap: 0.45rem;
-  }
-
-  .completion-progress-yearly-legend-scale {
-    display: inline-flex;
-    gap: var(--completion-progress-yearly-cell-gap);
-  }
-
-  .completion-progress-yearly-legend-swatch {
-    border: 1px solid var(--completion-progress-yearly-cell-border);
-    border-radius: 0.18rem;
-    display: inline-flex;
-    height: var(--completion-progress-yearly-cell-size);
-    width: var(--completion-progress-yearly-cell-size);
-  }
-
-  .completion-progress-yearly-legend-swatch.level-0 {
-    background: var(--completion-progress-yearly-empty);
-  }
-
-  .completion-progress-yearly-legend-swatch.level-1 {
-    background: var(--completion-progress-yearly-level-1);
-  }
-
-  .completion-progress-yearly-legend-swatch.level-2 {
-    background: var(--completion-progress-yearly-level-2);
-  }
-
-  .completion-progress-yearly-legend-swatch.level-3 {
-    background: var(--completion-progress-yearly-level-3);
-  }
-
-  .completion-progress-yearly-legend-swatch.level-4 {
-    background: var(--completion-progress-yearly-level-4);
-  }
-
-  .completion-progress-contest-legend {
-    gap: 0.75rem;
-  }
-
-  .completion-progress-contest-legend-item {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45rem;
-    color: var(--bs-secondary-color);
-    font-size: 0.78rem;
-  }
-
-  .completion-progress-contest-legend-swatch {
-    width: 0.95rem;
-    height: 0.95rem;
-    display: inline-flex;
-    border-radius: 0.3rem;
-    border: 1px solid rgba(17, 32, 59, 0.12);
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
-  }
-
-  .completion-progress-contest-legend-swatch-solved {
-    background: #2fbf71;
-  }
-
-  .completion-progress-contest-legend-swatch-partial {
-    background: #f1b44c;
-  }
-
-  .completion-progress-contest-legend-swatch-unsolved {
-    background: #e25563;
-  }
-
-  .completion-progress-contest-legend-swatch-empty {
-    background: #d6d9e0;
-  }
-
-  .completion-progress-contest-heatmap-scroll {
-    overflow-x: auto;
-    overflow-y: hidden;
-    padding-bottom: 0.25rem;
-  }
-
-  #chart-completion-progress-contest-heatmap {
-    min-height: 240px;
-  }
-
-  #chart-completion-progress-contest-heatmap.completion-progress-contest-heatmap-clickable .apexcharts-heatmap-rect,
-  #chart-completion-progress-contest-heatmap.completion-progress-contest-heatmap-clickable .apexcharts-series rect {
-    cursor: pointer;
-  }
-
-  .completion-progress-contest-export-actions .btn {
-    min-width: 7.75rem;
-  }
-
-  .completion-progress-contest-export-status {
-    min-height: 1rem;
-  }
-
-  .completion-progress-matrix-wrap {
-    border: 1px solid var(--ins-border-color);
-    border-radius: .5rem;
-    overflow-x: auto;
-  }
-
-  #completion-progress-topic-mohs-matrix {
-    min-width: 42rem;
-  }
-
-  #completion-progress-topic-mohs-matrix th,
-  #completion-progress-topic-mohs-matrix td {
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-  }
-
-  .completion-progress-matrix-topic {
-    min-width: 9rem;
-  }
-
-  .completion-progress-matrix-cell {
-    min-width: 4.25rem;
-  }
-
-  .completion-progress-matrix-cell.is-active {
-    background: rgba(var(--bs-primary-rgb), .11);
-    color: var(--bs-primary);
-    font-weight: 700;
-  }
-
-  .completion-progress-matrix-actions .btn {
-    min-width: 6.75rem;
-  }
-
-  .completion-progress-matrix-status {
-    min-height: 1rem;
-  }
-
-  .completion-progress-difficulty-editor {
-    min-width: 10rem;
-  }
-
-  .completion-progress-difficulty-input {
-    min-width: 4.5rem;
-  }
-
-  #completion-progress-table_wrapper .dt-layout-row {
-    margin: .5rem 0;
-  }
-
-  #completion-progress-table_wrapper .dt-length label,
-  #completion-progress-table_wrapper .dt-search label {
-    color: var(--bs-secondary-color);
-    font-size: .75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-  }
-
-  #completion-progress-table_wrapper .dt-length .form-select,
-  #completion-progress-table_wrapper .dt-search .form-control {
-    font-size: .8125rem;
-    min-height: calc(1.5em + .5rem + 2px);
-    padding-bottom: .25rem;
-    padding-top: .25rem;
-  }
-
-  @media (max-width: 1199.98px) {
-    .completion-progress-field,
-    .completion-progress-field.is-wide {
-      grid-column: span 4;
-    }
-
-    .completion-progress-secondary-metrics,
-    .completion-progress-insight-strip {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-  }
-
-  @media (max-width: 767.98px) {
-    .completion-progress-field,
-    .completion-progress-field.is-wide {
-      grid-column: span 12;
-    }
-
-    .completion-progress-advanced-fields,
-    .completion-progress-secondary-metrics,
-    .completion-progress-insight-strip {
-      grid-template-columns: 1fr;
-    }
-
-    .completion-progress-secondary-metric {
-      border-left: 0;
-      border-top: 1px solid var(--ins-border-color);
-      padding-left: 0;
-      padding-top: .75rem;
-    }
-
-    .completion-progress-secondary-metric:first-child {
-      border-top: 0;
-      padding-top: 0;
-    }
-  }
-</style>
 {% endblock extra_css %}
 
 {% block page_content %}
-<div class="container-fluid app-table-page">
-
-  {% include 'partials/page-title.html' with title=completion_progress_page_title subtitle=completion_progress_page_subtitle page_icon='ti-chart-line' %}
-
-  {% if shared_progress_subject %}
-  {% include 'pages/partials/shared-progress-header.html' %}
-  {% endif %}
-
-  <div class="row g-3 mt-0">
-    <div class="col-12">
-      <div class="card">
-        <div class="card-header border-bottom py-2">
-          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
-            <div>
-              <h4 class="header-title mb-0">Progress analytics filters</h4>
-              <p class="text-muted fs-xs mb-0">Daily progress uses exact completion dates. Unknown-date rows stay visible in the table and missing-date KPI.</p>
+  <div class="container-fluid app-table-page completion-progress-page"
+       id="completion-progress-dashboard">
+    <header class="page-title-head app-page-header">
+      {% url 'pages:user_activity_dashboard' as progress_home_url %}
+      {% include 'partials/page-header-intro.html' with title=completion_progress_page_title subtitle=completion_progress_page_subtitle page_icon='ti-chart-line' back_url=progress_home_url back_label='AsterProof' only %}
+      <div class="app-page-header-actions">
+        <a href="{{ completion_progress_quick_update_url }}"
+           class="btn btn-sm btn-outline-primary"><i class="ti ti-plus me-1" aria-hidden="true"></i>Record progress</a>
+      </div>
+    </header>
+    <section class="completion-progress-overview" aria-label="Progress summary">
+      <dl class="completion-progress-metrics">
+        <div>
+          <dt>Solved</dt>
+          <dd>
+            {{ completion_progress_stats.solved_total }}
+          </dd>
+        </div>
+        <div>
+          <dt>Active days</dt>
+          <dd>
+            {{ completion_progress_stats.active_day_total }}
+          </dd>
+        </div>
+        <div>
+          <dt>Current streak</dt>
+          <dd>
+            {{ completion_progress_stats.current_streak }}<span>days</span>
+          </dd>
+          <small>Longest {{ completion_progress_stats.longest_streak }}</small>
+        </div>
+        <div>
+          <dt>Total MOHS</dt>
+          <dd>
+            {{ completion_progress_stats.total_mohs }}
+          </dd>
+        </div>
+      </dl>
+      <div class="completion-progress-overview-meta">
+        {% if completion_progress_selected_user %}
+          <span class="completion-progress-subject"
+                title="{{ completion_progress_selected_user.email }}">{{ completion_progress_selected_user.name|default:completion_progress_selected_user.email }}</span>
+        {% endif %}
+        <span>{{ completion_progress_date_range.label }}</span>
+      </div>
+      <dl class="completion-progress-quality">
+        <div>
+          <dt>Average MOHS</dt>
+          <dd>
+            {{ completion_progress_stats.average_mohs|default_if_none:"—" }}
+          </dd>
+        </div>
+        <div>
+          <dt>Max MOHS</dt>
+          <dd>
+            {{ completion_progress_stats.max_mohs|default_if_none:"—" }}
+          </dd>
+        </div>
+        <div>
+          <dt>Missing dates</dt>
+          <dd>
+            {{ completion_progress_stats.missing_date_total }}
+          </dd>
+        </div>
+        <div>
+          <dt>No solution</dt>
+          <dd>
+            {{ completion_progress_stats.no_solution_total }}
+          </dd>
+        </div>
+      </dl>
+    </section>
+    <section class="card completion-progress-filter-panel"
+             aria-label="Progress analytics filters">
+      <form method="get"
+            class="app-table-filters completion-progress-filters"
+            role="search"
+            aria-label="Filter progress analytics">
+        <div class="completion-progress-primary-filters">
+          {% if completion_progress_can_select_user %}
+            <div class="completion-progress-user-field">
+              <label class="form-label" for="completion-progress-user">User</label>
+              <select id="completion-progress-user"
+                      name="user"
+                      class="form-select form-select-sm">
+                {% if not completion_progress_user_options %}<option value="">No completion users</option>{% endif %}
+                {% for user_option in completion_progress_user_options %}
+                  <option value="{{ user_option.value }}"
+                          {% if user_option.value == completion_progress_filters.user %}selected{% endif %}>
+                    {{ user_option.label }}
+                  </option>
+                {% endfor %}
+              </select>
             </div>
-            {% if completion_progress_selected_user %}
-            <span class="badge bg-primary-subtle text-primary">{{ completion_progress_selected_user.email }}</span>
-            {% endif %}
+          {% endif %}
+          <div class="completion-progress-range-field">
+            <label class="form-label" for="completion-progress-range">Range</label>
+            <select id="completion-progress-range"
+                    name="range"
+                    class="form-select form-select-sm">
+              {% for range_option in completion_progress_range_options %}
+                <option value="{{ range_option.value }}"
+                        {% if range_option.value == completion_progress_filters.range %}selected{% endif %}>
+                  {{ range_option.label }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="form-label" for="completion-progress-contest">Contest</label>
+            <select id="completion-progress-contest"
+                    name="contest"
+                    class="form-select form-select-sm">
+              <option value="">All contests</option>
+              {% for contest in completion_progress_contest_options %}
+                <option value="{{ contest }}"
+                        {% if contest == completion_progress_filters.contest %}selected{% endif %}>
+                  {{ contest }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="completion-progress-search-field">
+            <label class="form-label" for="completion-progress-q">Search</label>
+            <div class="completion-progress-search-input">
+              <i class="ti ti-search" aria-hidden="true"></i>
+              <input id="completion-progress-q"
+                     type="search"
+                     name="q"
+                     value="{{ completion_progress_filters.q }}"
+                     class="form-control form-control-sm"
+                     placeholder="Contest, problem or topic…" />
+            </div>
           </div>
         </div>
-        <div class="card-body">
-          <form method="get" class="app-table-filters completion-progress-filter-row">
-            {% if completion_progress_can_select_user %}
-            <div class="completion-progress-field is-wide">
-              <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-progress-user">User</label>
-              <select id="completion-progress-user" name="user" class="form-select form-select-sm">
-                {% if not completion_progress_user_options %}
-                <option value="">No completion users</option>
-                {% endif %}
-                {% for user_option in completion_progress_user_options %}
-                <option value="{{ user_option.value }}" {% if user_option.value == completion_progress_filters.user %}selected{% endif %}>{{ user_option.label }}</option>
-                {% endfor %}
-              </select>
+        <div class="completion-progress-filter-actions">
+          <button type="submit"
+                  class="btn btn-sm btn-primary"
+                  aria-label="Apply filters">
+            <i class="ti ti-filter me-1" aria-hidden="true"></i>Apply
+          </button>
+          <button class="btn btn-sm btn-light"
+                  type="button"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#completion-progress-advanced-filters"
+                  aria-expanded="{% if completion_progress_filters.range == 'custom' or completion_progress_filters.topic or completion_progress_filters.mohs_min or completion_progress_filters.mohs_max or completion_progress_filters.solution_status %}true{% else %}false{% endif %}"
+                  aria-controls="completion-progress-advanced-filters">
+            <i class="ti ti-adjustments-horizontal me-1" aria-hidden="true"></i>Advanced filters
+          </button>
+          <a href="{{ completion_progress_reset_url }}"
+             class="btn btn-sm btn-light">Reset</a>
+          <button type="submit"
+                  name="export"
+                  value="csv"
+                  class="btn btn-sm btn-outline-secondary ms-auto">
+            <i class="ti ti-download me-1" aria-hidden="true"></i>Export CSV
+          </button>
+        </div>
+        <div id="completion-progress-advanced-filters"
+             class="collapse{% if completion_progress_filters.range == 'custom' or completion_progress_filters.topic or completion_progress_filters.mohs_min or completion_progress_filters.mohs_max or completion_progress_filters.solution_status %} show{% endif %}">
+          <div class="completion-progress-advanced-fields">
+            <div>
+              <label class="form-label" for="completion-progress-start">Start</label>
+              <input id="completion-progress-start"
+                     type="date"
+                     name="start"
+                     value="{{ completion_progress_filters.start }}"
+                     class="form-control form-control-sm" />
             </div>
-            {% endif %}
-            <div class="completion-progress-field">
-              <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-progress-range">Range</label>
-              <select id="completion-progress-range" name="range" class="form-select form-select-sm">
-                {% for range_option in completion_progress_range_options %}
-                <option value="{{ range_option.value }}" {% if range_option.value == completion_progress_filters.range %}selected{% endif %}>{{ range_option.label }}</option>
-                {% endfor %}
-              </select>
+            <div>
+              <label class="form-label" for="completion-progress-end">End</label>
+              <input id="completion-progress-end"
+                     type="date"
+                     name="end"
+                     value="{{ completion_progress_filters.end }}"
+                     class="form-control form-control-sm" />
             </div>
-            <div class="completion-progress-field">
-              <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-progress-start">Start</label>
-              <input id="completion-progress-start" type="date" name="start" value="{{ completion_progress_filters.start }}" class="form-control form-control-sm">
-            </div>
-            <div class="completion-progress-field">
-              <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-progress-end">End</label>
-              <input id="completion-progress-end" type="date" name="end" value="{{ completion_progress_filters.end }}" class="form-control form-control-sm">
-            </div>
-            <div class="completion-progress-field">
-              <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-progress-contest">Contest</label>
-              <select id="completion-progress-contest" name="contest" class="form-select form-select-sm">
-                <option value="">All contests</option>
-                {% for contest in completion_progress_contest_options %}
-                <option value="{{ contest }}" {% if contest == completion_progress_filters.contest %}selected{% endif %}>{{ contest }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="completion-progress-field">
-              <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-progress-topic">Topic</label>
-              <select id="completion-progress-topic" name="topic" class="form-select form-select-sm">
+            <div>
+              <label class="form-label" for="completion-progress-topic">Topic</label>
+              <select id="completion-progress-topic"
+                      name="topic"
+                      class="form-select form-select-sm">
                 <option value="">All topics</option>
                 {% for topic in completion_progress_filter_options.topics %}
-                <option value="{{ topic }}" {% if topic == completion_progress_filters.topic %}selected{% endif %}>{{ topic }}</option>
+                  <option value="{{ topic }}"
+                          {% if topic == completion_progress_filters.topic %}selected{% endif %}>{{ topic }}</option>
                 {% endfor %}
               </select>
             </div>
-            <div class="completion-progress-field is-wide">
-              <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-progress-q">Search</label>
-              <input id="completion-progress-q" type="search" name="q" value="{{ completion_progress_filters.q }}" class="form-control form-control-sm" placeholder="Contest, problem, topic...">
+            <div>
+              <label class="form-label" for="completion-progress-mohs-min">MOHS min</label>
+              <input id="completion-progress-mohs-min"
+                     type="number"
+                     name="mohs_min"
+                     value="{{ completion_progress_filters.mohs_min }}"
+                     class="form-control form-control-sm"
+                     min="0" />
             </div>
-            <div class="completion-progress-advanced-wrap">
-              <button
-                class="btn btn-sm btn-outline-secondary"
-                type="button"
-                data-bs-toggle="collapse"
-                data-bs-target="#completion-progress-advanced-filters"
-                aria-expanded="{% if completion_progress_filters.mohs_min or completion_progress_filters.mohs_max or completion_progress_filters.solution_status %}true{% else %}false{% endif %}"
-                aria-controls="completion-progress-advanced-filters"
-              >
-                <i class="ti ti-adjustments-horizontal me-1"></i>Advanced filters
-              </button>
-              <div id="completion-progress-advanced-filters" class="collapse{% if completion_progress_filters.mohs_min or completion_progress_filters.mohs_max or completion_progress_filters.solution_status %} show{% endif %}">
-                <div class="completion-progress-advanced-fields">
-                  <div class="completion-progress-field">
-                    <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-progress-mohs-min">MOHS min</label>
-                    <input id="completion-progress-mohs-min" type="number" name="mohs_min" value="{{ completion_progress_filters.mohs_min }}" class="form-control form-control-sm" min="0">
-                  </div>
-                  <div class="completion-progress-field">
-                    <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-progress-mohs-max">MOHS max</label>
-                    <input id="completion-progress-mohs-max" type="number" name="mohs_max" value="{{ completion_progress_filters.mohs_max }}" class="form-control form-control-sm" min="0">
-                  </div>
-                  <div class="completion-progress-field">
-                    <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-progress-solution">Solution</label>
-                    <select id="completion-progress-solution" name="solution_status" class="form-select form-select-sm">
-                      <option value="">All solutions</option>
-                      {% for status in completion_progress_filter_options.solution_statuses %}
-                      <option value="{{ status.value }}" {% if status.value == completion_progress_filters.solution_status %}selected{% endif %}>{{ status.label }}</option>
-                      {% endfor %}
-                    </select>
+            <div>
+              <label class="form-label" for="completion-progress-mohs-max">MOHS max</label>
+              <input id="completion-progress-mohs-max"
+                     type="number"
+                     name="mohs_max"
+                     value="{{ completion_progress_filters.mohs_max }}"
+                     class="form-control form-control-sm"
+                     min="0" />
+            </div>
+            <div>
+              <label class="form-label" for="completion-progress-solution">Solution</label>
+              <select id="completion-progress-solution"
+                      name="solution_status"
+                      class="form-select form-select-sm">
+                <option value="">All solutions</option>
+                {% for status in completion_progress_filter_options.solution_statuses %}
+                  <option value="{{ status.value }}"
+                          {% if status.value == completion_progress_filters.solution_status %}selected{% endif %}>
+                    {{ status.label }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+        </div>
+        <noscript><style>.completion-progress-page #completion-progress-advanced-filters { display: block; }</style></noscript>
+      </form>
+      <div class="completion-progress-filter-chips">
+        <span>{{ completion_progress_date_range.label }}</span>
+        {% if completion_progress_filters.contest %}
+          <span class="badge bg-primary-subtle text-primary-emphasis">Contest: {{ completion_progress_filters.contest }}</span>
+        {% endif %}
+        {% if completion_progress_filters.topic %}
+          <span class="badge bg-primary-subtle text-primary-emphasis">Topic: {{ completion_progress_filters.topic }}</span>
+        {% endif %}
+        {% if completion_progress_filters.mohs_min or completion_progress_filters.mohs_max %}
+          <span class="badge bg-primary-subtle text-primary-emphasis">MOHS: {{ completion_progress_filters.mohs_min|default:"0" }}
+            {% if completion_progress_filters.mohs_max %}
+              –{{ completion_progress_filters.mohs_max }}
+            {% else %}
+              +
+            {% endif %}
+          </span>
+        {% endif %}
+        {% if completion_progress_filters.solution_status %}
+          <span class="badge bg-primary-subtle text-primary-emphasis">Solution: {{ completion_progress_filters.solution_status }}</span>
+        {% endif %}
+        {% if completion_progress_filters.q %}
+          <span class="badge bg-primary-subtle text-primary-emphasis">Search: {{ completion_progress_filters.q }}</span>
+        {% endif %}
+      </div>
+    </section>
+    {% if not completion_progress_selected_user %}
+      <div class="completion-progress-empty-state" role="status">
+        <div>
+          <h2 class="header-title">No completion rows yet</h2>
+          <p class="text-muted fs-xs mb-0">This page will populate after at least one user completion is saved.</p>
+        </div>
+      </div>
+    {% else %}
+      <nav class="completion-progress-section-nav"
+           aria-label="Progress sections">
+        <a href="#completion-progress-trends">Trends</a><a href="#completion-progress-breakdown">Breakdown</a><a href="#completion-progress-activity">Activity</a><a href="#completion-progress-coverage">Coverage</a><a href="#completion-progress-records">Records</a>
+      </nav>
+      <div class="row g-3 completion-progress-trends"
+           id="completion-progress-trends">
+        <div class="{% if completion_progress_stats.known_date_total %}col-xl-6{% else %}col-12{% endif %}">
+          <section class="card h-100" aria-labelledby="completion-progress-daily-title">
+            <div class="card-header">
+              <h2 class="header-title" id="completion-progress-daily-title">Daily completions</h2>
+              <p class="text-muted fs-xs mb-0">Exact completions by date.</p>
+            </div>
+            <div class="card-body pt-0">
+              {% if completion_progress_stats.known_date_total %}
+                <div id="chart-completion-progress-daily"
+                     class="completion-progress-chart"
+                     data-chart-height="260"></div>
+              {% else %}
+                <div class="completion-progress-empty-state">
+                  <div>
+                    <h3 class="header-title">No completions in this range.</h3>
+                    <p class="text-muted fs-xs mb-3">Try a wider date range or add completions from the quick update page.</p>
+                    <div class="d-flex flex-wrap gap-2">
+                      <a href="{{ completion_progress_reset_url }}"
+                         class="btn btn-sm btn-outline-secondary">Reset filters</a><a href="{{ completion_progress_quick_update_url }}"
+   class="btn btn-sm btn-primary">Quick completions</a>
+                      {% if completion_progress_filters.range != "all" %}
+                        <a href="{{ completion_progress_reset_url }}?range=all"
+                           class="btn btn-sm btn-outline-primary">Show all dates</a>
+                      {% endif %}
+                    </div>
                   </div>
                 </div>
+              {% endif %}
+            </div>
+            <p class="completion-progress-chart-note">Unknown-date rows stay in the table and missing-date total.</p>
+          </section>
+        </div>
+        {% if completion_progress_stats.known_date_total %}
+          <div class="col-xl-6">
+            <section class="card h-100" aria-labelledby="completion-progress-mohs-title">
+              <div class="card-header">
+                <h2 class="header-title" id="completion-progress-mohs-title">MOHS trend</h2>
+                <p class="text-muted fs-xs mb-0">Total and average MOHS by completion date.</p>
               </div>
-            </div>
-            <div class="completion-progress-field is-actions">
-              <div class="d-flex flex-wrap gap-2">
-                <button type="submit" class="btn btn-sm btn-primary">
-                  <i class="ti ti-filter me-1"></i>Apply filters
-                </button>
-                <button type="submit" name="export" value="csv" class="btn btn-sm btn-outline-primary">
-                  <i class="ti ti-download me-1"></i>Export CSV
-                </button>
-                <a href="{{ completion_progress_reset_url }}" class="btn btn-sm btn-outline-secondary">
-                  <i class="ti ti-refresh me-1"></i>Reset
-                </a>
-                <span class="text-muted fs-xs align-self-center">{{ completion_progress_date_range.label }}</span>
+              <div class="card-body pt-0">
+                <div id="chart-completion-progress-mohs"
+                     class="completion-progress-chart"
+                     data-chart-height="260"></div>
               </div>
-            </div>
-          </form>
-          <div class="completion-progress-filter-chips d-flex flex-wrap align-items-center gap-2">
-            <span class="badge text-bg-light">{{ completion_progress_date_range.label }}</span>
-            {% if completion_progress_selected_user %}
-            <span class="badge bg-primary-subtle text-primary">{{ completion_progress_selected_user.email }}</span>
-            {% endif %}
-            {% if completion_progress_filters.contest %}
-            <span class="badge bg-info-subtle text-info">Contest: {{ completion_progress_filters.contest }}</span>
-            {% endif %}
-            {% if completion_progress_filters.topic %}
-            <span class="badge bg-info-subtle text-info">Topic: {{ completion_progress_filters.topic }}</span>
-            {% endif %}
-            {% if completion_progress_filters.mohs_min or completion_progress_filters.mohs_max %}
-            <span class="badge bg-warning-subtle text-warning">MOHS: {{ completion_progress_filters.mohs_min|default:"0" }}{% if completion_progress_filters.mohs_max %}-{{ completion_progress_filters.mohs_max }}{% else %}+{% endif %}</span>
-            {% endif %}
-            {% if completion_progress_filters.solution_status %}
-            <span class="badge bg-secondary-subtle text-secondary">Solution: {{ completion_progress_filters.solution_status }}</span>
-            {% endif %}
-            {% if completion_progress_filters.q %}
-            <span class="badge bg-secondary-subtle text-secondary">Search: {{ completion_progress_filters.q }}</span>
-            {% endif %}
+              <p class="completion-progress-chart-note">
+                {{ completion_progress_stats.missing_mohs_total }} missing MOHS · {{ completion_progress_stats.known_date_total }} dated completions
+              </p>
+            </section>
           </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="row g-3 mt-0">
-    <div class="col-sm-6 col-xl-3">
-      <div class="card">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-primary-subtle text-primary rounded"><i class="ti ti-checks fs-24"></i></span>
-            </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Solved</p>
-              <h3 class="mb-0">{{ completion_progress_stats.solved_total }}</h3>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-6 col-xl-3">
-      <div class="card">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-info-subtle text-info rounded"><i class="ti ti-calendar-stats fs-24"></i></span>
-            </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Active days</p>
-              <h3 class="mb-0">{{ completion_progress_stats.active_day_total }}</h3>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-6 col-xl-3">
-      <div class="card">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-success-subtle text-success rounded"><i class="ti ti-flame fs-24"></i></span>
-            </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Current streak</p>
-              <h3 class="mb-0">{{ completion_progress_stats.current_streak }}</h3>
-              <span class="text-muted fs-xs">Longest {{ completion_progress_stats.longest_streak }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-6 col-xl-3">
-      <div class="card">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-warning-subtle text-warning rounded"><i class="ti ti-target-arrow fs-24"></i></span>
-            </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Total MOHS</p>
-              <h3 class="mb-0">{{ completion_progress_stats.total_mohs }}</h3>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="row g-3 mt-0">
-    <div class="col-12">
-      <div class="card">
-        <div class="card-body">
-          <div class="completion-progress-secondary-metrics">
-            <div class="completion-progress-secondary-metric">
-              <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Average MOHS</p>
-              <h4 class="mb-0">{{ completion_progress_stats.average_mohs|default:"—" }}</h4>
-            </div>
-            <div class="completion-progress-secondary-metric">
-              <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Max MOHS</p>
-              <h4 class="mb-0">{{ completion_progress_stats.max_mohs|default:"—" }}</h4>
-            </div>
-            <div class="completion-progress-secondary-metric">
-              <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">Missing dates</p>
-              <h4 class="mb-0">{{ completion_progress_stats.missing_date_total }}</h4>
-            </div>
-            <div class="completion-progress-secondary-metric">
-              <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">No solution</p>
-              <h4 class="mb-0">{{ completion_progress_stats.no_solution_total }}</h4>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="row g-3 mt-0">
-    <div class="col-12">
-      <div class="completion-progress-insight-strip">
-        {% for insight_delta in completion_progress_insights.deltas %}
-        <div class="completion-progress-insight">
-          <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">{{ insight_delta.label }}</p>
-          <div class="completion-progress-insight-value">{{ insight_delta.value }}</div>
-          <span class="badge bg-{{ insight_delta.tone }}-subtle text-{{ insight_delta.tone }}">{{ insight_delta.display_delta }}</span>
-          <span class="text-muted fs-xs">vs {{ insight_delta.previous }}</span>
-        </div>
-        {% endfor %}
-        {% if completion_progress_insights.best_day %}
-        <div class="completion-progress-insight">
-          <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">{{ completion_progress_insights.best_day.label }}</p>
-          <div class="completion-progress-insight-value">{{ completion_progress_insights.best_day.value }}</div>
-          <span class="text-muted fs-xs">{{ completion_progress_insights.best_day.detail }}</span>
-        </div>
-        {% endif %}
-        {% if completion_progress_insights.top_topic %}
-        <div class="completion-progress-insight">
-          <p class="text-muted mb-1 fs-xs text-uppercase fw-semibold">{{ completion_progress_insights.top_topic.label }}</p>
-          <div class="completion-progress-insight-value">{{ completion_progress_insights.top_topic.value }}</div>
-          <span class="text-muted fs-xs">{{ completion_progress_insights.top_topic.detail }}</span>
-        </div>
         {% endif %}
       </div>
-      {% if completion_progress_insights.has_comparison %}
-      <p class="text-muted fs-xs mb-0 mt-2">{{ completion_progress_insights.comparison_label }}</p>
-      {% endif %}
-    </div>
-  </div>
-
-  {% if not completion_progress_selected_user %}
-  <div class="alert alert-info mt-3" role="alert">
-    No completion rows exist yet. This page will populate after at least one user completion is saved.
-  </div>
-  {% else %}
-
-  <div class="row g-3 mt-0">
-    <div class="col-12">
-      <div class="card">
-        <div class="card-header border-0 pb-0">
-          <h4 class="header-title mb-0">Daily completions</h4>
-          <p class="text-muted fs-xs mb-0">Exact completions by date.</p>
-        </div>
-        <div class="card-body pt-2">
-          {% if completion_progress_stats.known_date_total %}
-          <div id="chart-completion-progress-daily" class="completion-progress-chart"></div>
-          {% else %}
-          <div class="completion-progress-empty-state">
-            <div>
-              <h5 class="mb-1">No completions in this range.</h5>
-              <p class="text-muted fs-xs mb-3">Try a wider date range or add completions from the quick update page.</p>
-              <div class="d-flex flex-wrap gap-2">
-                <a href="{{ completion_progress_reset_url }}" class="btn btn-sm btn-outline-secondary">Reset filters</a>
-                <a href="{{ completion_progress_quick_update_url }}" class="btn btn-sm btn-primary">Quick completions</a>
-                {% if completion_progress_filters.range != "all" %}
-                <a href="{{ completion_progress_reset_url }}?range=all" class="btn btn-sm btn-outline-primary">Show all dates</a>
-                {% endif %}
-              </div>
+      {% if completion_progress_insights.deltas or completion_progress_insights.best_day or completion_progress_insights.top_topic %}
+        <details class="completion-progress-comparison">
+          <summary>
+            <span>
+              {% if completion_progress_insights.has_comparison %}
+                Period comparison
+              {% else %}
+                Progress highlights
+              {% endif %}
+            </span><span class="completion-progress-comparison-scope">
+            {% if completion_progress_insights.has_comparison %}
+              {{ completion_progress_insights.comparison_label }}
+            {% else %}
+              Best day and leading topic
+            {% endif %}
+          </span><i class="ti ti-chevron-down" aria-hidden="true"></i>
+        </summary>
+        <div class="completion-progress-insight-strip">
+          {% for insight_delta in completion_progress_insights.deltas %}
+            <div class="completion-progress-insight">
+              <p class="text-muted mb-1 fs-xs">{{ insight_delta.label }}</p>
+              <div class="completion-progress-insight-value">{{ insight_delta.value }}</div>
+              <span class="text-{{ insight_delta.tone }}-emphasis fs-xs">{{ insight_delta.display_delta }}</span> <span class="text-muted fs-xs">vs {{ insight_delta.previous }}</span>
             </div>
-          </div>
+          {% endfor %}
+          {% if completion_progress_insights.best_day %}
+            <div class="completion-progress-insight">
+              <p class="text-muted mb-1 fs-xs">{{ completion_progress_insights.best_day.label }}</p>
+              <div class="completion-progress-insight-value">{{ completion_progress_insights.best_day.value }}</div>
+              <span class="text-muted fs-xs">{{ completion_progress_insights.best_day.detail }}</span>
+            </div>
+          {% endif %}
+          {% if completion_progress_insights.top_topic %}
+            <div class="completion-progress-insight">
+              <p class="text-muted mb-1 fs-xs">{{ completion_progress_insights.top_topic.label }}</p>
+              <div class="completion-progress-insight-value">{{ completion_progress_insights.top_topic.value }}</div>
+              <span class="text-muted fs-xs">{{ completion_progress_insights.top_topic.detail }}</span>
+            </div>
           {% endif %}
         </div>
+      </details>
+    {% endif %}
+    {% include 'pages/partials/completion-progress-analysis.html' %}
+    <section class="card completion-progress-records"
+             id="completion-progress-records"
+             aria-labelledby="completion-progress-records-title">
+      <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+        <div>
+          <h2 class="header-title" id="completion-progress-records-title">Filtered completion rows</h2>
+          <p class="text-muted fs-xs mb-0">The table and CSV export use the same filters. Charts count each problem once.</p>
+        </div>
+        <span class="text-muted fs-xs">{{ completion_progress_rows|length }} loaded</span>
       </div>
-    </div>
-  </div>
-
-  {% if completion_progress_stats.known_date_total %}
-  <div class="row g-3 mt-0">
-    <div class="col-12">
-      <div class="card">
-        <div class="card-header border-0 pb-0">
-          <h4 class="header-title mb-0">MOHS trend</h4>
-          <p class="text-muted fs-xs mb-0">Total and average MOHS by completion date.</p>
-        </div>
-        <div class="card-body pt-2">
-          <div id="chart-completion-progress-mohs" class="completion-progress-chart"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-  {% endif %}
-
-  {% include 'pages/partials/completion-progress-analysis.html' %}
-
-  <div class="row g-3 mt-0 mb-3">
-    <div class="col-12">
-      <div class="card">
-        <div class="card-header border-bottom py-2">
-          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
-            <div>
-              <h4 class="header-title mb-0">Filtered completion rows</h4>
-              <p class="text-muted fs-xs mb-0">The table and CSV export use the same filtered row set as the charts.</p>
-            </div>
-            <span class="badge bg-secondary-subtle text-secondary">{{ completion_progress_rows|length }} loaded</span>
-          </div>
-        </div>
-        <div class="card-body p-2 p-md-3">
-          {% if completion_progress_rows %}
-          <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
+      <div class="card-body pt-0">
+        {% if completion_progress_rows %}
+          <div class="app-table-region table-responsive"
+               tabindex="0"
+               role="region"
+               aria-label="Scrollable completion results">
             <table data-paging-type="simple"
-              id="completion-progress-table"
-              class="app-table-compact table table-sm table-hover table-striped align-middle w-100 mb-0"
-              data-can-edit-difficulty="{% if completion_progress_can_edit_difficulty %}true{% else %}false{% endif %}"
-              data-show-difficulty="{% if completion_progress_show_difficulty %}true{% else %}false{% endif %}"
-              data-difficulty-rating-save-url="{{ completion_progress_difficulty_save_url }}"
-            ></table>
+                   id="completion-progress-table"
+                   class="app-table-compact table table-sm table-hover align-middle w-100 mb-0"
+                   data-can-edit-difficulty="{% if completion_progress_can_edit_difficulty %}true{% else %}false{% endif %}"
+                   data-show-difficulty="{% if completion_progress_show_difficulty %}true{% else %}false{% endif %}"
+                   data-difficulty-rating-save-url="{{ completion_progress_difficulty_save_url }}">
+              <caption class="visually-hidden">Filtered completion records with problem, topic, MOHS and solution details</caption>
+            </table>
           </div>
-          {% else %}
-          <div class="alert alert-info py-2 mb-0" role="alert">
-            No completion rows match the current filters.
+        {% else %}
+          <div class="completion-progress-empty-state is-compact" role="status">
+            <p class="text-muted fs-xs mb-0">No completion rows match the current filters.</p>
           </div>
-          {% endif %}
-        </div>
+        {% endif %}
       </div>
-    </div>
-  </div>
-
+    </section>
   {% endif %}
 </div>
-
 {{ completion_progress_charts_payload|json_script:"completion-progress-chart-data" }}
 {{ completion_progress_table_rows|json_script:"completion-progress-table-data" }}
 {{ completion_progress_topic_mohs_matrix|json_script:"completion-progress-topic-mohs-matrix-data" }}
 {{ completion_progress_contest_heatmap.chart|json_script:"completion-progress-contest-heatmap-data" }}
 {{ completion_progress_export_metadata|json_script:"completion-progress-export-metadata" }}
 {% if completion_progress_rows and completion_progress_can_edit_difficulty %}
-<form id="completion-progress-difficulty-csrf" class="d-none">{% csrf_token %}</form>
+  <form id="completion-progress-difficulty-csrf" class="d-none">
+    {% csrf_token %}
+  </form>
 {% endif %}
 {% endblock page_content %}
 
@@ -809,6 +422,7 @@
 <script>
 (function () {
   var sharedDashboard = document.getElementById("shared-progress-dashboard");
+  var progressDashboard = document.getElementById("completion-progress-dashboard");
   var chartDataEl = document.getElementById("completion-progress-chart-data");
   var tableDataEl = document.getElementById("completion-progress-table-data");
   var topicMohsMatrixDataEl = document.getElementById("completion-progress-topic-mohs-matrix-data");
@@ -819,6 +433,18 @@
   var exportMetadata = exportMetadataEl ? JSON.parse(exportMetadataEl.textContent || "{}") : {};
   var contestHeatmapChart = null;
   var contestHeatmapPayload = null;
+
+  if (progressDashboard) {
+    var rangeSelect = document.getElementById("completion-progress-range");
+    var advancedFilters = document.getElementById("completion-progress-advanced-filters");
+    rangeSelect.addEventListener("change", function () {
+      if (rangeSelect.value !== "custom") return;
+      window.bootstrap.Collapse.getOrCreateInstance(advancedFilters, { toggle: false }).show();
+    });
+    ["completion-progress-start", "completion-progress-end"].forEach(function (id) {
+      document.getElementById(id).addEventListener("change", function () { rangeSelect.value = "custom"; });
+    });
+  }
 
   function escapeHtml(value) {
     return String(value == null ? "" : value)
@@ -841,12 +467,12 @@
   }
 
   function chartHeight(el) {
-    return Number(el.getAttribute("data-chart-height") || (sharedDashboard ? 230 : 320));
+    return Number(el.getAttribute("data-chart-height") || (sharedDashboard ? 230 : progressDashboard ? 260 : 320));
   }
 
   function primaryChartColor() {
-    if (!sharedDashboard) return "#0d6efd";
-    var style = getComputedStyle(sharedDashboard);
+    if (!sharedDashboard && !progressDashboard) return "#0d6efd";
+    var style = getComputedStyle(sharedDashboard || progressDashboard);
     return style.getPropertyValue("--ins-primary-text-emphasis").trim() || style.getPropertyValue("--ins-primary").trim();
   }
 
@@ -1677,6 +1303,11 @@
     }
 
     var updatedColumnIndex = tableColumns.length - 1;
+    if (progressDashboard) {
+      tableColumns.forEach(function (column) {
+        if (column.data === "contest" || column.data === "year") column.visible = false;
+      });
+    }
     var tableOptions = {
       data: rows,
       columns: tableColumns,
@@ -1684,6 +1315,11 @@
       pageLength: 25,
       responsive: true
     };
+    if (progressDashboard) {
+      tableOptions.lengthMenu = [10, 25, 50, 100];
+      tableOptions.layout = { topStart: null, topEnd: "search", bottomStart: ["pageLength", "info"], bottomEnd: "paging" };
+      tableOptions.language = { search: "Find in results:", searchPlaceholder: "Quick find…" };
+    }
     if (compactTable) {
       tableOptions.order = [[0, "desc"], [updatedColumnIndex, "desc"]];
       tableOptions.pageLength = 10;

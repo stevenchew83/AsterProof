@@ -51,6 +51,23 @@ def test_workflow_changes_run_deployment_contracts_and_actionlint():
     assert "inspinia/pages" not in checks["tests"]
 
 
+def test_ci_runs_real_curated_source_locks_on_the_pinned_disposable_postgresql():
+    workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+    step = next(
+        step for step in workflow["jobs"]["verify"]["steps"]
+        if step["name"] == "Test curated source locks on PostgreSQL 17.9"
+    )
+    assert step["if"] == "steps.checks.outputs.runtime == 'true'"
+    script = step["run"]
+    assert "postgres:17.9-bookworm@sha256:" in script
+    assert "configure_rehearsal_database(settings)" in script
+    assert "'test_curated_source_locks'" in script
+    assert "connection.pg_version != 170009" in script
+    assert "inspinia/solutions/test_admin_collection_concurrency.py" in script
+    assert "'--create-db'" in script
+    assert "trap 'docker rm -f" in script
+
+
 @pytest.mark.parametrize(
     "path", ["inspinia/static/scss/app.scss", "package-lock.json", "scripts/build_and_collectstatic.sh"],
 )

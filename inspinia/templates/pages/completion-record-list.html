@@ -7,512 +7,185 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'plugins/datatables/dataTables.bootstrap5.min.css' %}">
 <link rel="stylesheet" href="{% static 'plugins/tom-select/tom-select.bootstrap5.min.css' %}">
-<style>
-  .completion-record-page { padding-bottom: 1.5rem; }
-  .completion-record-page .card { margin-bottom: 0; box-shadow: none; border: 1px solid var(--ins-border-color-translucent); }
-  .completion-record-page .header-title { font-size: 1rem; font-weight: 600; letter-spacing: -.015em; }
-  .completion-record-page .form-control,
-  .completion-record-page .form-select,
-  .completion-record-page .ts-control { min-height: 2rem; }
-  .completion-record-page .btn { white-space: nowrap; }
-  .completion-record-page .table-responsive { container-type: inline-size; }
-  .completion-record-page a:focus-visible,
-  .completion-record-page button:focus-visible { outline: 2px solid var(--ins-primary); outline-offset: 3px; }
-  .completion-record-filter-actions .btn { min-height: 2rem; display: inline-flex; align-items: center; }
-  .completion-record-filter-card .ts-control { padding-block: .25rem; }
-  .completion-record-filter-header { padding: .6rem .85rem .25rem; gap: .5rem; }
-  .completion-record-page .completion-record-search-input { position: relative; }
-  .completion-record-search-input > .ti { position: absolute; left: .75rem; top: 50%; transform: translateY(-50%); color: var(--ins-secondary-color); }
-  .completion-record-search-input input { padding-left: 2.2rem; }
-  .completion-record-table-heading { padding: .65rem .85rem; border-bottom: 1px solid var(--ins-border-color); }
-  .completion-record-scope { font-size: .72rem; color: var(--ins-secondary-color); }
-  .completion-record-summary { font-variant-numeric: tabular-nums; }
-  .completion-record-scope-note { display: flex; gap: .45rem; align-items: center; padding: .65rem 1.15rem; background: var(--ins-tertiary-bg); border-top: 1px solid var(--ins-border-color); }
-  .completion-record-kpi .card-body {
-    padding: .6rem .75rem;
-  }
-
-  .completion-record-kpi .avatar-title {
-    flex: 0 0 1.75rem;
-    height: 1.75rem;
-    width: 1.75rem;
-  }
-
-  .completion-record-kpi .avatar-title i {
-    line-height: 1;
-  }
-
-  .completion-record-kpi .flex-grow-1 {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: .5rem;
-    min-width: 0;
-  }
-
-  .completion-record-kpi .text-muted {
-    line-height: 1.2;
-    font-size: .65rem;
-    overflow-wrap: anywhere;
-  }
-
-  .completion-record-kpi h3 {
-    line-height: 1.2;
-    font-variant-numeric: tabular-nums;
-    letter-spacing: -.035em;
-    font-size: 1.2rem;
-    flex-shrink: 0;
-  }
-
-  .completion-record-filter-card .card-body {
-    padding: .4rem .85rem .65rem;
-  }
-
-  .completion-record-advanced-fields {
-    border-top: 1px solid var(--ins-border-color);
-    margin-top: .6rem;
-    padding-top: .6rem;
-  }
-
-  .completion-record-filter-chips {
-    border-top: 1px solid var(--ins-border-color);
-    margin-top: .6rem;
-    padding-top: .5rem;
-  }
-
-  .completion-record-filter-chip {
-    align-items: center;
-    display: inline-flex;
-    gap: .25rem;
-    max-width: 100%;
-    white-space: normal;
-  }
-
-  .completion-record-detail-toggle {
-    height: 1.8rem;
-    width: 1.8rem;
-  }
-
-  .completion-record-ellipsis { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .completion-record-user-cell { width: 14%; }
-  .completion-record-problem-cell { width: 21%; }
-  .completion-record-topic-cell { width: 10%; }
-  .completion-record-area-cell { width: 20%; }
-  .completion-record-mohs-cell { width: 5%; font-variant-numeric: tabular-nums; text-align: right; }
-  .completion-record-status-cell { width: 8%; }
-  .completion-record-completed-cell { width: 11%; font-variant-numeric: tabular-nums; }
-  .completion-record-solution-cell { width: 8%; }
-  .completion-record-area-value { display: flex; gap: .35rem; align-items: center; min-width: 0; }
-  .completion-record-area-value .badge { flex-shrink: 0; }
-  .completion-record-unmapped { color: var(--ins-secondary-color); font-size: .75rem; }
-
-  .completion-record-user-status {
-    margin-bottom: 0;
-  }
-
-  .completion-record-detail-panel {
-    background: var(--ins-secondary-bg);
-    border: 1px solid var(--ins-border-color);
-    border-inline-start: 3px solid var(--ins-primary);
-    border-radius: var(--ins-border-radius);
-    max-width: calc(100vw - 4.5rem);
-    max-width: calc(100cqw - 2rem);
-    padding: .75rem;
-    text-align: left;
-    white-space: normal;
-  }
-
-  .completion-record-detail-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem .75rem; padding-bottom: .65rem; }
-  .completion-record-detail-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: .3rem .6rem; min-width: 0; }
-  .completion-record-detail-title { font-size: .9375rem; font-weight: 600; letter-spacing: -.015em; line-height: 1.4; margin: 0; overflow-wrap: anywhere; }
-  .completion-record-detail-actions { display: flex; flex-wrap: wrap; gap: .35rem; flex-shrink: 0; }
-  .completion-record-detail-actions .btn { display: inline-flex; align-items: center; gap: .3rem; padding: .3rem .55rem; }
-  #completion-record-table .completion-record-detail-actions .btn-primary { color: var(--ins-btn-color); }
-  .completion-record-detail-overview { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); border-top: 1px solid var(--ins-border-color); }
-  .completion-record-detail-section { min-width: 0; padding-block: .65rem; }
-  .completion-record-detail-section + .completion-record-detail-section { border-left: 1px solid var(--ins-border-color); margin-left: .85rem; padding-left: .85rem; }
-  .completion-record-detail-section-title { display: flex; align-items: center; gap: .35rem; color: var(--ins-secondary-color); font-size: .72rem; font-weight: 600; letter-spacing: .045em; text-transform: uppercase; margin: 0 0 .45rem; }
-  .completion-record-detail-section-title > .ti { color: var(--ins-primary); font-size: .95rem; }
-  .completion-record-detail-identity { display: flex; align-items: center; gap: .5rem; min-width: 0; }
-  .completion-record-detail-avatar { flex-shrink: 0; font-size: .75rem; font-weight: 600; }
-  .completion-record-detail-learner { display: flex; flex-wrap: wrap; align-items: baseline; gap: .25rem .5rem; font-weight: 600; overflow-wrap: anywhere; }
-  .completion-record-detail-email { color: var(--ins-secondary-color); font-size: .75rem; font-weight: 400; overflow-wrap: anywhere; }
-  .completion-record-detail-grid {
-    display: grid;
-    gap: .45rem .75rem;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    margin: .5rem 0 0;
-  }
-  .completion-record-detail-grid > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: .15rem .4rem; }
-  .completion-record-detail-grid dt,
-  .completion-record-detail-note dt {
-    color: var(--ins-secondary-color);
-    font-size: .72rem;
-    font-weight: 500;
-    margin-bottom: 0;
-  }
-  .completion-record-detail-grid dd,
-  .completion-record-detail-note dd {
-    color: var(--ins-body-color);
-    font-size: .8125rem;
-    margin-bottom: 0;
-    overflow-wrap: anywhere;
-    white-space: pre-wrap;
-  }
-  .completion-record-detail-context { grid-template-columns: minmax(0, 1fr) minmax(0, .6fr) minmax(0, 1fr); margin-top: 0; }
-  .completion-record-detail-areas { grid-column: 1 / -1; }
-  .completion-record-detail-areas dd { display: flex; flex-wrap: wrap; gap: .3rem; min-width: 0; }
-  #completion-record-table .completion-record-detail-area { background: var(--ins-primary-bg-subtle); border: 1px solid rgba(var(--ins-primary-rgb), .15); border-radius: var(--ins-border-radius); color: var(--ins-primary-text-emphasis); font-size: .75rem; padding: .15rem .4rem; white-space: normal; }
-  .completion-record-detail-review { display: grid; grid-template-columns: 7.25rem minmax(0, 1fr); align-items: center; gap: .5rem .75rem; border-top: 1px solid var(--ins-border-color); padding-top: .65rem; }
-  .completion-record-detail-review > .completion-record-detail-section-title { margin: 0; }
-  .completion-record-detail-review .completion-record-detail-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: 0; }
-  .completion-record-detail-metrics { background: var(--ins-tertiary-bg); border-radius: var(--ins-border-radius); padding: .5rem .65rem; }
-  .completion-record-detail-metric dt { display: flex; align-items: center; gap: .35rem; }
-  .completion-record-detail-metric dt > .ti { color: var(--ins-primary); font-size: 1rem; }
-  .completion-record-detail-metric dd { font-weight: 600; }
-  .completion-record-detail-reflections { grid-column: 1 / -1; background: rgba(var(--ins-primary-rgb), .04); border: 1px solid var(--ins-border-color-translucent); border-radius: var(--ins-border-radius); padding: .6rem .75rem; }
-  .completion-record-detail-notes { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: .5rem 1rem; margin: 0; }
-  .completion-record-detail-note { min-width: 0; }
-  .completion-record-detail-note-postmortem { grid-column: 1 / -1; border-top: 1px solid var(--ins-border-color-translucent); padding-top: .5rem; }
-  .completion-record-detail-note-postmortem:first-child { border-top: 0; padding-top: 0; }
-  .completion-record-detail-note dd { line-height: 1.5; margin-top: .2rem; }
-  .completion-record-detail-followup { display: flex; flex-wrap: wrap; align-items: baseline; grid-column: 1 / -1; gap: .4rem; font-size: .75rem; }
-  .completion-record-detail-empty { display: flex; align-items: center; gap: .4rem; color: var(--ins-secondary-color); }
-  .completion-record-detail-empty p { margin: 0; }
-  .completion-record-detail-empty .ti { flex-shrink: 0; font-size: 1rem; }
-  #completion-record-table tbody > tr > td[colspan] { padding: .5rem .75rem; text-align: left; white-space: normal; background: var(--ins-tertiary-bg); }
-
-  #completion-record-table { table-layout: fixed; min-width: 1100px; font-size: .8125rem; }
-  #completion-record-table tbody > tr > td { padding: .4rem .75rem; white-space: nowrap; vertical-align: middle; }
-  #completion-record-table tbody > tr:not(.shown) > td { border-color: var(--ins-border-color-translucent); }
-  #completion-record-table tbody > tr.shown > td { background: var(--ins-primary-bg-subtle); }
-  #completion-record-table .badge { font-weight: 500; font-size: .7rem; padding: .35em .55em; }
-  #completion-record-table a { color: var(--ins-body-color); }
-  #completion-record-table a:hover { color: var(--ins-primary); }
-
-  #completion-record-table th:first-child,
-  #completion-record-table td:first-child {
-    text-align: center;
-    width: 3%;
-  }
-
-  #completion-record-table thead th {
-    background: var(--ins-tertiary-bg);
-    position: sticky;
-    top: 0;
-    z-index: 2;
-    font-size: .65rem;
-    text-transform: uppercase;
-    letter-spacing: .055em;
-    font-weight: 600;
-    color: var(--ins-secondary-color);
-    padding: .75rem;
-    white-space: nowrap;
-  }
-
-  #completion-record-table_wrapper .dt-layout-row {
-    margin: 0;
-    padding: .45rem .85rem;
-  }
-
-  #completion-record-table_wrapper .dt-length label,
-  #completion-record-table_wrapper .dt-search label {
-    color: var(--ins-secondary-color);
-    font-size: .75rem;
-    font-weight: 600;
-  }
-
-  #completion-record-table_wrapper .dt-length .form-select,
-  #completion-record-table_wrapper .dt-search .form-control {
-    font-size: .8125rem;
-    min-height: calc(1.5em + .5rem + 2px);
-    padding-bottom: .25rem;
-    padding-top: .25rem;
-  }
-
-  @media (max-width: 991.98px) {
-    #completion-record-table { min-width: 800px; }
-    .completion-record-user-cell { width: 20%; }
-    .completion-record-problem-cell { width: 29%; }
-    .completion-record-topic-cell { width: 14%; }
-    .completion-record-area-cell { width: 25%; }
-    .completion-record-detail-overview { grid-template-columns: 1fr; }
-    .completion-record-detail-section + .completion-record-detail-section { border-left: 0; border-top: 1px solid var(--ins-border-color); margin-left: 0; padding-left: 0; }
-    .completion-record-detail-review .completion-record-detail-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  }
-
-  @media (max-width: 575.98px) {
-    .completion-record-filter-card .form-control,
-    .completion-record-filter-card .form-select,
-    .completion-record-filter-card .ts-control,
-    .completion-record-filter-actions .btn { min-height: 2.75rem; }
-    .completion-record-filter-actions .btn { padding-inline: .4rem; }
-    .completion-record-filter-card .ts-control { align-items: center; }
-    .completion-record-kpi > .col:last-child { width: 100%; }
-    #completion-record-table { min-width: 680px; }
-    .completion-record-detail-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .completion-record-detail-review { grid-template-columns: 1fr; }
-    .completion-record-detail-context { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .completion-record-detail-notes { grid-template-columns: 1fr; }
-  }
-</style>
 {% endblock extra_css %}
 
 {% block page_content %}
 <div class="container-fluid app-table-page completion-record-page">
 
   <header class="page-title-head app-page-header">
-    {% include 'partials/page-header-intro.html' with title='Completion records' subtitle='Learning activity / Admin' page_icon='ti-checklist' only %}
+    {% url 'pages:user_activity_dashboard' as header_home_url %}
+    {% include 'partials/page-header-intro.html' with title='Completion records' subtitle='Admin inventory' page_icon='ti-checklist' back_url=header_home_url back_label='AsterProof' only %}
     <div class="app-page-header-actions">
-      <a href="{% url 'pages:completion_quick_update' %}" class="btn btn-sm btn-outline-primary app-page-header-action-icon d-inline-flex align-items-center gap-2" aria-label="Record progress" title="Record progress"><i class="ti ti-plus" aria-hidden="true"></i><span>Record progress</span></a>
+      <a href="{% url 'pages:completion_quick_update' %}" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-2" aria-label="Record progress" title="Record progress"><i class="ti ti-plus" aria-hidden="true"></i><span>Record progress</span></a>
     </div>
   </header>
 
-  <div class="row row-cols-2 row-cols-sm-3 row-cols-xl-5 g-2 mt-0 mb-2 completion-record-kpi" role="group" aria-label="Summary of loaded completion records">
-    <div class="col">
-      <div class="card m-0 h-100">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <span class="avatar-title bg-primary-subtle text-primary rounded flex-shrink-0">
-              <i class="ti ti-list-check fs-18" aria-hidden="true"></i>
-            </span>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Loaded records</p>
-              <h3 class="mb-0">{{ completion_record_visible_total }}</h3>
-            </div>
-          </div>
-        </div>
-      </div>
+  <section class="completion-record-overview" aria-label="Summary of loaded completion records">
+    <dl class="completion-record-metrics">
+      <div><dt>Loaded records</dt><dd>{{ completion_record_visible_total }}</dd></div>
+      <div><dt title="Records with solution">With solution</dt><dd>{{ completion_record_stats.solution_total }}<i class="ti ti-file-check text-primary" aria-hidden="true"></i></dd></div>
+      <div><dt title="Records without solution">Without solution</dt><dd>{{ completion_record_stats.missing_solution_total }}</dd></div>
+      <div><dt title="Users in loaded records">Users</dt><dd>{{ completion_record_stats.user_total }}</dd></div>
+    </dl>
+    <div class="completion-record-overview-meta">
+      <span title="Contests in loaded records">{{ completion_record_stats.contest_total }} contest{{ completion_record_stats.contest_total|pluralize }} in loaded results</span>
+      {% if completion_record_is_capped %}
+      <span class="completion-record-cap-note"><i class="ti ti-clock" aria-hidden="true"></i> Latest {{ completion_record_result_limit }} matches · More matches are available.</span>
+      {% else %}
+      <span><i class="ti ti-clock" aria-hidden="true"></i> Latest update {{ completion_record_rows.0.updated_at|default:"—" }}</span>
+      {% endif %}
     </div>
-    <div class="col">
-      <div class="card m-0 h-100">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <span class="avatar-title bg-info-subtle text-info rounded flex-shrink-0">
-              <i class="ti ti-users fs-18" aria-hidden="true"></i>
-            </span>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold" title="Users in loaded records">Loaded users</p>
-              <h3 class="mb-0">{{ completion_record_stats.user_total }}</h3>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col">
-      <div class="card m-0 h-100">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <span class="avatar-title bg-warning-subtle text-warning rounded flex-shrink-0">
-              <i class="ti ti-trophy fs-18" aria-hidden="true"></i>
-            </span>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold" title="Contests in loaded records">Loaded contests</p>
-              <h3 class="mb-0">{{ completion_record_stats.contest_total }}</h3>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col">
-      <div class="card m-0 h-100">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <span class="avatar-title bg-success-subtle text-success rounded flex-shrink-0">
-              <i class="ti ti-file-check fs-18" aria-hidden="true"></i>
-            </span>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold" title="Records with solution in loaded records">With solution</p>
-              <h3 class="mb-0">{{ completion_record_stats.solution_total }}</h3>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col">
-      <div class="card m-0 h-100">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <span class="avatar-title bg-secondary-subtle text-secondary rounded flex-shrink-0">
-              <i class="ti ti-file-x fs-18" aria-hidden="true"></i>
-            </span>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold" title="Records without solution in loaded records">Without solution</p>
-              <h3 class="mb-0">{{ completion_record_stats.missing_solution_total }}</h3>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+  </section>
 
-  <div class="row g-2 mt-0 mb-2">
-    <div class="col-12">
-      <div class="card completion-record-filter-card">
-        <div class="card-header border-0 completion-record-filter-header">
-            <h2 class="header-title fs-sm mb-0">Filters</h2>
-            <span class="text-muted fs-xs">All saved records</span>
-            <div class="d-flex flex-wrap align-items-center gap-2 ms-auto">
-              {% if completion_record_is_capped %}
-              <span class="badge bg-info-subtle text-info">Latest {{ completion_record_result_limit }} matches</span>
-              <span class="text-muted fs-xs">More matches are available.</span>
-              {% else %}
-              <span class="badge bg-secondary-subtle text-secondary">{{ completion_record_visible_total }} matching records</span>
-              {% endif %}
-            </div>
-        </div>
-        <div class="card-body">
-          <form method="get" class="app-table-filters">
-            <div class="row g-2 align-items-end">
-              <div class="col-md-6 col-xl-3">
-                <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-record-q">Search all records</label>
-                <div class="completion-record-search-input"><i class="ti ti-search" aria-hidden="true"></i><input
-                  id="completion-record-q"
-                  type="text"
-                  name="q"
-                  class="form-control form-control-sm"
-                  value="{{ completion_record_filters.q }}"
-                  placeholder="User, contest, problem, topic"
-                ></div>
-              </div>
-              <div class="col-md-6 col-xl-2">
-                <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-record-contest">Contest</label>
-                <select id="completion-record-contest" name="contest" class="form-select form-select-sm">
-                  <option value="">All contests</option>
-                  {% for contest in completion_record_filter_options.contests %}
-                  <option value="{{ contest }}" {% if contest == completion_record_filters.contest %}selected{% endif %}>{{ contest }}</option>
-                  {% endfor %}
-                </select>
-              </div>
-              <div class="col-md-6 col-xl-3">
-                <div class="d-flex align-items-baseline justify-content-between gap-1"><label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-record-user">User</label><span class="text-muted fs-xs">Name or email</span></div>
-                <select
-                  id="completion-record-user"
-                  name="user"
-                  class="form-select form-select-sm"
-                  data-user-options-url="{{ completion_record_user_options_url }}"
-                  aria-describedby="completion-record-user-status"
-                  autocomplete="off"
-                >
-                  <option value="">All users</option>
-                  {% if completion_record_selected_user_option %}
-                  <option value="{{ completion_record_selected_user_option.value }}" selected>{{ completion_record_selected_user_option.label }}</option>
-                  {% endif %}
-                </select>
-              </div>
-              <div class="col-md-6 col-xl-4">
-                <div class="d-flex flex-wrap gap-2 completion-record-filter-actions">
-                  <button type="submit" class="btn btn-sm btn-primary">
-                    <i class="ti ti-filter me-1" aria-hidden="true"></i>Apply filters
-                  </button>
-                  <button
-                    class="btn btn-sm btn-outline-secondary"
-                    type="button"
-                    data-bs-toggle="collapse"
-                    data-bs-target="#completion-record-advanced-filters"
-                    aria-expanded="{% if completion_record_advanced_filters_open %}true{% else %}false{% endif %}"
-                    aria-controls="completion-record-advanced-filters"
-                  >
-                    <i class="ti ti-adjustments-horizontal me-1" aria-hidden="true"></i>More filters
-                  </button>
-                  <a href="{% url 'pages:completion_record_list' %}" class="btn btn-sm btn-outline-secondary">
-                    <i class="ti ti-refresh me-1" aria-hidden="true"></i>Reset
-                  </a>
-                </div>
-              </div>
-            </div>
-            <p id="completion-record-user-status" class="completion-record-user-status visually-hidden text-muted fs-xs mt-2" aria-live="polite">Type a name or email in User to search all completion users.</p>
-
-            <div id="completion-record-advanced-filters" class="collapse{% if completion_record_advanced_filters_open %} show{% endif %}">
-              <div class="row g-2 align-items-end completion-record-advanced-fields">
-                <div class="col-md-3 col-xl-2">
-                  <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-record-date-status">Date</label>
-                  <select id="completion-record-date-status" name="date_status" class="form-select form-select-sm">
-                    <option value="">All dates</option>
-                    {% for status in completion_record_filter_options.date_statuses %}
-                    <option value="{{ status }}" {% if status == completion_record_filters.date_status %}selected{% endif %}>
-                      {% if status == "known" %}Known date{% else %}Unknown date{% endif %}
-                    </option>
-                    {% endfor %}
-                  </select>
-                </div>
-                <div class="col-md-3 col-xl-2">
-                  <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-record-status">Status</label>
-                  <select id="completion-record-status" name="status" class="form-select form-select-sm">
-                    <option value="">All statuses</option>
-                    {% for status in completion_record_filter_options.statuses %}
-                    <option value="{{ status.value }}" {% if status.value == completion_record_filters.status %}selected{% endif %}>{{ status.label }}</option>
-                    {% endfor %}
-                  </select>
-                </div>
-                <div class="col-md-3 col-xl-2">
-                  <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-record-confidence">Confidence</label>
-                  <select id="completion-record-confidence" name="confidence" class="form-select form-select-sm">
-                    <option value="">All confidence</option>
-                    {% for confidence in completion_record_filter_options.confidences %}
-                    <option value="{{ confidence.value }}" {% if confidence.value == completion_record_filters.confidence %}selected{% endif %}>{{ confidence.label }}</option>
-                    {% endfor %}
-                  </select>
-                </div>
-                <div class="col-md-3 col-xl-2">
-                  <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="completion-record-solution-status">Solution</label>
-                  <select id="completion-record-solution-status" name="solution_status" class="form-select form-select-sm">
-                    <option value="">All solutions</option>
-                    {% for status in completion_record_filter_options.solution_statuses %}
-                    <option value="{{ status }}" {% if status == completion_record_filters.solution_status %}selected{% endif %}>
-                      {% if status == "none" %}No solution{% elif status == "draft" %}Draft{% elif status == "published" %}Published{% elif status == "submitted" %}Submitted{% elif status == "archived" %}Archived{% else %}{{ status|title }}{% endif %}
-                    </option>
-                    {% endfor %}
-                  </select>
-                </div>
-              </div>
-            </div>
-          </form>
-
-          {% if completion_record_active_filters %}
-          <div class="completion-record-filter-chips">
-            <div class="d-flex flex-wrap align-items-center gap-1">
-              <span class="text-muted fs-xs me-1">Active filters</span>
-              {% for chip in completion_record_active_filters %}
-              <a href="{{ chip.remove_url }}" class="badge rounded-pill text-bg-light border text-decoration-none completion-record-filter-chip" aria-label="Remove {{ chip.label }} filter">
-                <span>{{ chip.label }}: {{ chip.value }}</span>
-                <i class="ti ti-x"></i>
-              </a>
+  <section class="card completion-record-workspace" aria-label="Completion record inventory">
+    <div class="card-header completion-record-workspace-header">
+      <h2 class="header-title mb-0">Recent completion records</h2>
+      <span class="completion-record-admin-note"><i class="ti ti-shield-lock" aria-hidden="true"></i> Admin inventory</span>
+    </div>
+    <div class="completion-record-filter-panel">
+      <form method="get" class="app-table-filters completion-record-filters" role="search" aria-label="Filter all completion records">
+        <div class="completion-record-primary-filters">
+          <div class="completion-record-search">
+            <label class="form-label text-muted fs-xs mb-1" for="completion-record-q">Search all records</label>
+            <div class="completion-record-search-input"><i class="ti ti-search" aria-hidden="true"></i><input
+              id="completion-record-q"
+              type="search"
+              name="q"
+              class="form-control form-control-sm"
+              value="{{ completion_record_filters.q }}"
+              placeholder="Problem, user, contest or topic…"
+            ></div>
+          </div>
+          <div class="completion-record-contest">
+            <label class="form-label text-muted fs-xs mb-1" for="completion-record-contest">Contest</label>
+            <select id="completion-record-contest" name="contest" class="form-select form-select-sm">
+              <option value="">All contests</option>
+              {% for contest in completion_record_filter_options.contests %}
+              <option value="{{ contest }}" {% if contest == completion_record_filters.contest %}selected{% endif %}>{{ contest }}</option>
               {% endfor %}
+            </select>
+          </div>
+          <div class="completion-record-user-filter">
+            <div class="d-flex align-items-baseline justify-content-between gap-1"><label class="form-label text-muted fs-xs mb-1" for="completion-record-user">User</label><span class="text-muted fs-xs">Name or email</span></div>
+            <select
+              id="completion-record-user"
+              name="user"
+              class="form-select form-select-sm"
+              data-user-options-url="{{ completion_record_user_options_url }}"
+              aria-describedby="completion-record-user-status"
+              autocomplete="off"
+            >
+              <option value="">All users</option>
+              {% if completion_record_selected_user_option %}
+              <option value="{{ completion_record_selected_user_option.value }}" selected>{{ completion_record_selected_user_option.label }}</option>
+              {% endif %}
+            </select>
+          </div>
+          <div class="completion-record-filter-buttons">
+            <div class="d-flex flex-wrap gap-2 completion-record-filter-actions">
+              <button type="submit" class="btn btn-sm btn-primary" aria-label="Apply filters">
+                <i class="ti ti-filter" aria-hidden="true"></i> Apply
+              </button>
+              <button
+                class="btn btn-sm btn-light"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#completion-record-advanced-filters"
+                aria-expanded="{% if completion_record_advanced_filters_open %}true{% else %}false{% endif %}"
+                aria-controls="completion-record-advanced-filters"
+              >
+                <i class="ti ti-adjustments-horizontal me-1" aria-hidden="true"></i>More filters
+              </button>
+              <a href="{% url 'pages:completion_record_list' %}" class="btn btn-sm btn-light">
+                Reset
+              </a>
             </div>
           </div>
-          {% endif %}
         </div>
-      </div>
-    </div>
-  </div>
+        <p id="completion-record-user-status" class="completion-record-user-status visually-hidden text-muted fs-xs mt-2" aria-live="polite">Type a name or email in User to search all completion users.</p>
 
-  <div class="row g-2 mt-0 mb-2">
-    <div class="col-12">
-      <div class="card overflow-hidden">
-        <div class="completion-record-table-heading d-flex flex-wrap justify-content-between align-items-center gap-2">
-          <div class="d-flex flex-wrap align-items-baseline gap-2"><h2 class="header-title mb-0">Recent completion records</h2><span class="completion-record-scope">Newest first · {{ completion_record_visible_total }} loaded{% if completion_record_is_capped %} · latest {{ completion_record_result_limit }} matches{% endif %}</span></div>
-          <span class="text-muted fs-xs"><i class="ti ti-chevron-down me-1" aria-hidden="true"></i>Expand a row for all details</span>
-        </div>
-        <div class="card-body p-0">
-          {% if completion_record_rows %}
-          <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
-            <table data-paging-type="simple" id="completion-record-table" class="app-table-compact table table-sm table-hover align-middle w-100 mb-0"><caption class="visually-hidden">Completion records with topic, canonical areas, status and solution details</caption></table>
+        <div id="completion-record-advanced-filters" class="collapse{% if completion_record_advanced_filters_open %} show{% endif %}">
+          <div class="row g-2 align-items-end completion-record-advanced-fields">
+            <div class="col-6 col-md-3">
+              <label class="form-label text-muted fs-xs mb-1" for="completion-record-date-status">Date</label>
+              <select id="completion-record-date-status" name="date_status" class="form-select form-select-sm">
+                <option value="">All dates</option>
+                {% for status in completion_record_filter_options.date_statuses %}
+                <option value="{{ status }}" {% if status == completion_record_filters.date_status %}selected{% endif %}>
+                  {% if status == "known" %}Known date{% else %}Unknown date{% endif %}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label text-muted fs-xs mb-1" for="completion-record-status">Status</label>
+              <select id="completion-record-status" name="status" class="form-select form-select-sm">
+                <option value="">All statuses</option>
+                {% for status in completion_record_filter_options.statuses %}
+                <option value="{{ status.value }}" {% if status.value == completion_record_filters.status %}selected{% endif %}>{{ status.label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label text-muted fs-xs mb-1" for="completion-record-confidence">Confidence</label>
+              <select id="completion-record-confidence" name="confidence" class="form-select form-select-sm">
+                <option value="">All confidence</option>
+                {% for confidence in completion_record_filter_options.confidences %}
+                <option value="{{ confidence.value }}" {% if confidence.value == completion_record_filters.confidence %}selected{% endif %}>{{ confidence.label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label text-muted fs-xs mb-1" for="completion-record-solution-status">Solution</label>
+              <select id="completion-record-solution-status" name="solution_status" class="form-select form-select-sm">
+                <option value="">All solutions</option>
+                {% for status in completion_record_filter_options.solution_statuses %}
+                <option value="{{ status }}" {% if status == completion_record_filters.solution_status %}selected{% endif %}>
+                  {% if status == "none" %}No solution{% elif status == "draft" %}Draft{% elif status == "published" %}Published{% elif status == "submitted" %}Submitted{% elif status == "archived" %}Archived{% else %}{{ status|title }}{% endif %}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
           </div>
-          {% else %}
-          <div class="text-center py-5 px-3" role="status"><i class="ti ti-list-search fs-24 text-muted" aria-hidden="true"></i><h3 class="fs-lg mt-2">No records to show</h3><p class="text-muted mb-3">
-            {% if completion_record_has_active_filters %}
-            No completion rows match the current filters.
-            {% else %}
-            No completion rows have been saved yet.
-            {% endif %}
-          </p>{% if completion_record_has_active_filters %}<a href="{% url 'pages:completion_record_list' %}" class="btn btn-sm btn-outline-primary">Clear filters</a>{% else %}<a href="{% url 'pages:completion_quick_update' %}" class="btn btn-sm btn-primary">Record progress</a>{% endif %}</div>
-          {% endif %}
         </div>
-        {% if completion_record_rows %}<div class="completion-record-scope-note text-muted fs-xs"><i class="ti ti-info-circle" aria-hidden="true"></i><span>The table filter searches these {{ completion_record_visible_total }} loaded records, including all mapped areas. Use the filters above to search all records.</span></div>{% endif %}
+      </form>
+
+      {% if completion_record_active_filters %}
+      <div class="completion-record-filter-chips">
+        <div class="d-flex flex-wrap align-items-center gap-1">
+          <span class="text-muted fs-xs me-1">Active filters</span>
+          {% for chip in completion_record_active_filters %}
+          <a href="{{ chip.remove_url }}" class="badge bg-primary-subtle text-primary text-decoration-none completion-record-filter-chip" aria-label="Remove {{ chip.label }} filter">
+            <span>{{ chip.label }}: {{ chip.value }}</span>
+            <i class="ti ti-x"></i>
+          </a>
+          {% endfor %}
+        </div>
       </div>
+      {% endif %}
     </div>
-  </div>
+    <div class="card-body completion-record-results">
+      {% if completion_record_rows %}
+      <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Completion records" aria-describedby="completion-record-search-scope">
+        <table data-paging-type="simple" id="completion-record-table" class="app-table-compact table table-sm table-hover align-middle w-100 mb-0"><caption class="visually-hidden">Completion records with topic, canonical areas, status and solution details</caption></table>
+      </div>
+      <p id="completion-record-search-scope" class="completion-record-scope-note mb-0">Quick find searches these {{ completion_record_visible_total }} loaded records, including all mapped areas. Use the filters above to search all records.</p>
+      {% else %}
+      <div class="completion-record-empty" role="status">
+        <span class="completion-record-empty-icon"><i class="ti ti-checklist" aria-hidden="true"></i></span>
+        {% if completion_record_has_active_filters %}
+        <h3>No matching completions</h3>
+        <p>No completion rows match the current filters.</p>
+        <a href="{% url 'pages:completion_record_list' %}" class="btn btn-sm btn-outline-primary">Clear filters</a>
+        {% else %}
+        <h3>Your completion records start here</h3>
+        <p>No completion rows have been saved yet.</p>
+        <a href="{% url 'pages:completion_quick_update' %}" class="btn btn-sm btn-primary">Record progress</a>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </section>
 </div>
 
 {{ completion_record_rows|json_script:"completion-record-table-data" }}
@@ -713,6 +386,20 @@
       : '<span class="completion-record-ellipsis" title="' + tooltip + '">' + text + '</span>';
   }
 
+  function problemLine(row) {
+    var label = row.problem_label || row.problem || "Problem";
+    var code = [row.year, row.problem].filter(present).join(" ");
+    var href = row.problem_url || row.statement_url;
+    var title = label + " · " + problemMeta(row);
+    if (!code || label === code || !label.endsWith(code)) return singleLine(label, href, title);
+    var name = label.slice(0, -code.length).trim();
+    var content = '<span class="completion-record-problem-name">' + escapeHtml(name) + '</span> ' +
+      '<span class="completion-record-problem-code">' + escapeHtml(code) + '</span>';
+    return href
+      ? '<a class="completion-record-problem-link fw-semibold text-decoration-none" href="' + escapeHtml(href) + '" title="' + escapeHtml(title) + '">' + content + '</a>'
+      : '<span class="completion-record-problem-link" title="' + escapeHtml(title) + '">' + content + '</span>';
+  }
+
   function detailTerm(label, value) {
     var content = present(value) ? escapeHtml(value) : '<span class="text-muted">Not recorded</span>';
     return "<div><dt>" + escapeHtml(label) + "</dt><dd>" + content + "</dd></div>";
@@ -886,27 +573,13 @@
         if (type !== "display") return "";
         var detailId = escapeHtml(completionRecordDetailId(row));
         return (
-          '<button type="button" class="btn btn-sm btn-outline-secondary btn-icon completion-record-detail-toggle" data-completion-record-details aria-expanded="false" aria-controls="completion-record-details-' +
+          '<button type="button" class="btn btn-sm btn-light btn-icon completion-record-detail-toggle" data-completion-record-details aria-expanded="false" aria-controls="completion-record-details-' +
           escapeHtml(String(row.completion_id)) +
           '" aria-label="Show completion details" title="Show details">' +
           '<i class="ti ti-chevron-down" aria-hidden="true"></i>' +
           "</button>" +
           '<span id="' + detailId + '" hidden></span>'
         );
-      }
-    },
-    {
-      key: "user",
-      data: "user_label",
-      title: "User",
-      className: "completion-record-user-cell",
-      render: function (data, type, row) {
-        var email = row.user_email || "";
-        if (type === "display") {
-          var fullLabel = email && email !== data ? data + " · " + email : data;
-          return singleLine(data, row.user_url, fullLabel);
-        }
-        return data + " " + email;
       }
     },
     {
@@ -918,7 +591,22 @@
         var meta = problemMeta(row);
         if (type === "filter") return detailSearchText(row);
         if (type !== "display") return row.problem_label + " " + meta;
-        return singleLine(row.problem_label || row.problem, row.problem_url || row.statement_url, row.problem_label + " · " + meta);
+        return problemLine(row);
+      }
+    },
+    {
+      key: "user",
+      data: "user_label",
+      title: "User",
+      className: "completion-record-user-cell",
+      render: function (data, type, row) {
+        var email = row.user_email || "";
+        if (type === "display") {
+          var fullLabel = email && email !== data ? data + " · " + email : data;
+          return '<div class="completion-record-user-identity"><span class="completion-record-avatar" aria-hidden="true">' +
+            escapeHtml(learnerInitials(data || email)) + '</span>' + singleLine(data, row.user_url, fullLabel) + '</div>';
+        }
+        return data + " " + email;
       }
     },
     {
@@ -962,7 +650,9 @@
       render: function (data, type, row) {
         if (type === "filter") return (data || "") + " " + (row.status || "");
         if (type !== "display") return data || "";
-        return '<span class="badge ' + escapeHtml(row.status_badge_class) + '">' + escapeHtml(data || "Unattempted") + "</span>";
+        var icons = { unattempted: "circle-dashed", attempted: "pencil", solved: "check", checked: "circle-check", written: "writing", published: "circle-check" };
+        return '<span class="completion-record-state' + (row.status === "unattempted" ? ' text-muted' : '') + '"><i class="ti ti-' +
+          (icons[row.status] || "circle") + '" aria-hidden="true"></i>' + escapeHtml(data || "Unattempted") + '</span>';
       }
     },
     {
@@ -972,7 +662,11 @@
       className: "completion-record-completed-cell text-nowrap",
       render: function (data, type, row) {
         if (type === "sort" || type === "type") return row.completion_date_sort;
-        return data === "Unknown" ? mutedDash() : escapeHtml(data);
+        if (type !== "display") return data || "";
+        if (data === "Unknown") return '<span class="text-muted">Unknown</span>';
+        var parts = String(data).split(" ");
+        return '<time datetime="' + escapeHtml(row.completion_date_sort) + '" title="' + escapeHtml(data) + '">' +
+          escapeHtml(parts[0]) + '<span class="visually-hidden"> ' + escapeHtml(parts.slice(1).join(" ")) + '</span></time>';
       }
     },
     {
@@ -982,7 +676,10 @@
       className: "completion-record-solution-cell text-nowrap",
       render: function (data, type, row) {
         if (type === "display") {
-          return '<span class="badge ' + escapeHtml(row.solution_status_badge_class) + '">' + escapeHtml(data) + "</span>";
+          var hasSolution = present(row.solution_status);
+          return '<span class="completion-record-state' + (hasSolution ? '' : ' text-muted') + '"><i class="ti ti-' +
+            (row.solution_status === "published" ? "file-check" : hasSolution ? "file-text" : "file-minus") +
+            '" aria-hidden="true"></i>' + escapeHtml(data || "No solution") + '</span>';
         }
         return data;
       }
@@ -1027,13 +724,14 @@
     pageLength: 25,
     lengthMenu: [10, 25, 50, 100],
     autoWidth: false,
+    layout: { topStart: "search", topEnd: null, bottomStart: ["pageLength", "info"], bottomEnd: "paging" },
     language: {
-      search: "Filter loaded records:",
-      searchPlaceholder: "User, problem, topic or area",
+      search: "Find in results:",
+      searchPlaceholder: "Quick find…",
       info: "Showing _START_ to _END_ of _TOTAL_ loaded results",
       infoEmpty: "No loaded results to show",
       infoFiltered: "(filtered from _MAX_ loaded results)",
-      lengthMenu: "Rows per page _MENU_",
+      lengthMenu: "_MENU_ per page",
       zeroRecords: "No loaded results match the table filter."
     }
   });

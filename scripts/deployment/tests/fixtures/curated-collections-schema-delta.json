@@ -1,0 +1,56 @@
+{
+  "added": {
+    "columns": [
+      {
+        "collation": "default",
+        "column": "kind",
+        "default": "'personal'::character varying",
+        "nullable": false,
+        "position": 10,
+        "schema": "public",
+        "table": "solutions_solutioncollection",
+        "type": "character varying(20)"
+      },
+      {
+        "collation": null,
+        "column": "owner_id",
+        "default": null,
+        "nullable": true,
+        "position": 9,
+        "schema": "public",
+        "table": "solutions_solutioncollection",
+        "type": "bigint"
+      }
+    ],
+    "constraints": [
+      {
+        "definition": "CHECK (kind::text = 'personal'::text AND owner_id IS NOT NULL OR kind::text = 'admin_curated'::text AND owner_id IS NULL)",
+        "name": "solution_collection_kind_owner",
+        "schema": "public",
+        "table": "solutions_solutioncollection",
+        "type": "c"
+      }
+    ],
+    "extensions": [],
+    "indexes": [],
+    "tables": []
+  },
+  "removed": {
+    "columns": [
+      {
+        "collation": null,
+        "column": "owner_id",
+        "default": null,
+        "nullable": false,
+        "position": 9,
+        "schema": "public",
+        "table": "solutions_solutioncollection",
+        "type": "bigint"
+      }
+    ],
+    "constraints": [],
+    "extensions": [],
+    "indexes": [],
+    "tables": []
+  }
+}

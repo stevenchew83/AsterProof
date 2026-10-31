@@ -7,10 +7,11 @@
     var addButton = root.querySelector('[data-collection-add-button]');
     var feedback = root.querySelector('[data-collection-feedback], [data-selection-count]');
     var max = Number(root.dataset.maxSolutions || 20);
+    var inputName = root.dataset.collectionInput || 'solution';
     function items() { return Array.from(list.querySelectorAll('[data-collection-item]')); }
     function ids() { return items().map(function (item) { return item.dataset.collectionItem; }); }
     function announce(message) { if (feedback) feedback.textContent = message; }
-    function refresh() {
+    function refresh(sync) {
       var ordered = ids();
       items().forEach(function (item, index) {
         item.querySelector('[data-collection-move="up"]').disabled = index === 0;
@@ -38,6 +39,7 @@
       if (submit) submit.disabled = !ordered.length;
       announce(ordered.length ? ordered.length + ' selected. Reading order is shown above.' :
         (select ? 'Add a solution to start your collection.' : 'Select solutions in reading order.'));
+      if (sync !== false) root.dispatchEvent(new CustomEvent('collectionchange', {detail: ordered}));
     }
     function append(id, label) {
       if (ids().includes(id)) return;
@@ -51,6 +53,7 @@
         '<button type="button" class="btn btn-outline-secondary btn-sm" data-collection-move="down"><i class="ti ti-arrow-down" aria-hidden="true"></i></button>' +
         '<button type="button" class="btn btn-outline-danger btn-sm" data-collection-remove><i class="ti ti-x" aria-hidden="true"></i></button></div>';
       item.querySelector('input').value = id;
+      item.querySelector('input').name = inputName;
       item.querySelector('[data-collection-label]').textContent = label;
       list.appendChild(item);
     }
@@ -61,6 +64,13 @@
       choice.addEventListener('change', function () {
         var atLimit = ids().length >= max;
         var adding = choice.checked;
+        if (adding && inputName === 'share' && ids().some(function (id) {
+          return id !== choice.value && id.split(':')[0] === choice.value.split(':')[0];
+        })) {
+          refresh();
+          announce('Remove the unavailable entry before selecting its new shared version.');
+          return;
+        }
         if (choice.checked) append(choice.value, choice.dataset.solutionLabel);
         else items().filter(function (item) { return item.dataset.collectionItem === choice.value; }).forEach(function (item) { item.remove(); });
         refresh();
@@ -89,6 +99,19 @@
       item.focus();
       announce(label + ' moved to position ' + (items().indexOf(item) + 1) + '.');
     });
+    var clear = root.querySelector('[data-collection-clear]');
+    if (clear) clear.addEventListener('click', function () {
+      items().forEach(function (item) { item.remove(); });
+      refresh();
+    });
+    root.addEventListener('collectionrestore', function (event) {
+      items().forEach(function (item) { item.remove(); });
+      event.detail.forEach(function (row) {
+        append(row.ref, row.label + (row.author ? ' · ' + row.author : '') +
+          (row.available ? '' : ' · Unavailable — remove or replace'));
+      });
+      refresh();
+    });
     if (select) {
       select.addEventListener('change', refresh);
       addButton.addEventListener('click', function () {
@@ -107,15 +130,15 @@
     });
     var existingForm = document.querySelector('[data-existing-collection]');
     if (existingForm) existingForm.addEventListener('submit', function () {
-      existingForm.querySelectorAll('input[name="solution"]').forEach(function (input) { input.remove(); });
+      existingForm.querySelectorAll('input[name="' + inputName + '"]').forEach(function (input) { input.remove(); });
       ids().forEach(function (id) {
         var input = document.createElement('input');
-        input.type = 'hidden'; input.name = 'solution'; input.value = id;
+        input.type = 'hidden'; input.name = inputName; input.value = id;
         existingForm.appendChild(input);
       });
     });
     refresh();
     // Browser back/forward restoration may restore checkbox state after startup.
-    window.addEventListener('pageshow', function () { refresh(); });
+    window.addEventListener('pageshow', function () { refresh(false); });
   });
 })();

@@ -1,9 +1,10 @@
 {% extends 'layouts/vertical.html' %}
+{% load static %}
 
 {% block title %}Public solutions{% endblock title %}
 
 {% block page_content %}
-<div class="container-fluid app-table-page">
+<div class="container-fluid app-table-page" data-collection-selection data-collection-input="share" data-max-solutions="{{ max_collection_solutions }}" data-curated-selection data-curated-flow="{{ flow }}" data-curated-user="{{ request.user.pk }}">
   <header class="page-title-head app-page-header app-page-header--with-stats app-page-header--stats-only">
     {% include 'partials/page-header-intro.html' with title='Public solutions' subtitle='Administration' page_icon='ti-world' only %}
     <dl class="app-page-header-stats">
@@ -13,6 +14,19 @@
       {% include 'partials/page-header-stat.html' with label='Views · 30 days' value=metrics.views stat_icon='ti-eye' only %}
     </dl>
   </header>
+
+  <div class="app-table-toolbar d-flex gap-2 flex-wrap mb-3"><a href="{% url 'solutions:admin_collections' %}" class="btn btn-outline-primary">Curated collections</a></div>
+  {% if selection_error %}<div class="alert alert-danger" role="alert">{{ selection_error }}</div>{% endif %}
+  <p class="text-muted fs-sm" role="status" data-selection-persistence></p>
+  <section class="card" data-selection-tray {% if not selected_shares %}hidden{% endif %}><div class="card-body">
+    <h2 class="h5">Selected reading order</h2>
+    <form method="get" action="{% url 'solutions:admin_collection_create' %}" data-selection-next>
+      <input type="hidden" name="flow" value="{{ flow }}" />
+      {% include 'solutions/partials/curated-order.html' %}
+      <p class="text-muted fs-sm" role="status" aria-live="polite" data-selection-count></p>
+      <div class="d-flex gap-2 flex-wrap"><button class="btn btn-primary" data-collection-submit>Create curated collection</button><button class="btn btn-outline-primary" name="choose_existing" value="1" formaction="{% url 'solutions:admin_collection_create' %}#append-collection">Add to existing collection</button><button type="button" class="btn btn-outline-secondary" data-collection-clear>Clear selection</button></div>
+    </form>
+  </div></section>
 
   <div class="card">
     <div class="card-body">
@@ -45,7 +59,7 @@
         </div>
         <div class="col-6 col-md-2 d-flex gap-2">
           <button type="submit" class="btn btn-primary">Apply</button>
-          <a href="{% url 'solutions:admin_public_shares' %}" class="btn btn-outline-secondary">Reset</a>
+          <a href="{% url 'solutions:admin_public_shares' %}" class="btn btn-outline-secondary" data-selection-reset>Reset</a>
         </div>
       </form>
       <p class="text-muted fs-xs mt-2 mb-0">All metrics follow these filters. Topic filtering includes active snapshots only.</p>
@@ -103,10 +117,11 @@
     <div class="card-body">
       <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Shared solution results">
         <table class="app-table-compact table table-striped align-middle mb-0">
-          <thead class="table-light"><tr><th scope="col">Shared solution</th><th scope="col">Account owner</th><th scope="col">Status</th><th scope="col">Topic / MOHS</th><th scope="col">Last sharing change</th><th scope="col" class="text-end">Views · 30d</th></tr></thead>
+          <thead class="table-light"><tr><th scope="col">Select</th><th scope="col">Shared solution</th><th scope="col">Account owner</th><th scope="col">Status</th><th scope="col">Topic / MOHS</th><th scope="col">Last sharing change</th><th scope="col" class="text-end">Views · 30d</th></tr></thead>
           <tbody>
             {% for share in page_obj %}
             <tr>
+              <td>{% if share.is_active %}<input type="checkbox" class="form-check-input" data-solution-choice value="{{ share.ref }}" data-solution-label="{{ share.shared_title|default:'Untitled solution' }}" aria-label="Select {{ share.shared_title|default:'Untitled solution' }}" /><span class="badge bg-primary ms-1" data-selection-number hidden></span>{% else %}<input type="checkbox" class="form-check-input" disabled aria-label="Stopped solution cannot be selected" /><span class="text-muted fs-xs d-block">Unavailable</span>{% endif %}</td>
               <td>
                 {% if share.is_active %}
                 <a href="{{ share.public_url }}" target="_blank" rel="noopener noreferrer" class="app-table-text fw-semibold" title="{{ share.shared_title }}" aria-label="View shared solution: {{ share.shared_title }}">{{ share.shared_title|default:'Untitled solution' }} <i class="ti ti-external-link ms-1" aria-hidden="true"></i></a>
@@ -126,7 +141,7 @@
               <td>{{ share.updated_at|date:"j M Y, H:i" }}</td>
               <td class="text-end fw-semibold">{{ share.views_30d }}</td>
             </tr>
-            {% empty %}<tr><td colspan="6" class="text-muted py-4">No shared solutions match these filters.</td></tr>{% endfor %}
+            {% empty %}<tr><td colspan="7" class="text-muted py-4">No shared solutions match these filters.</td></tr>{% endfor %}
           </tbody>
         </table>
       </div>
@@ -135,3 +150,4 @@
   </section>
 </div>
 {% endblock page_content %}
+{% block extra_javascript %}<script src="{% static 'js/solution-collections.js' %}" defer></script><script src="{% static 'js/admin-solution-collections.js' %}" defer></script>{% endblock extra_javascript %}

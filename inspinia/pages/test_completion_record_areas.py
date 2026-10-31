@@ -171,7 +171,7 @@ def test_table_places_area_after_topic_and_keeps_full_details(admin):
     assert "escapeHtml(row.user_email)" in html
     assert "completion-record-detail-areas" in html
     assert "including all mapped areas" in html
-    assert 'search: "Filter loaded records:"' in html
+    assert 'search: "Find in results:"' in html
 
 
 @pytest.mark.parametrize("origin", ["statement", "linked_archive", "orphan_archive"])

@@ -791,7 +791,9 @@ def my_solution_list_view(request):
     writer_draft = get_writer_draft(request)
     context = {
         "my_solution_rows": _solution_card_rows(solutions),
-        "solution_collections": SolutionCollection.objects.filter(owner=request.user).annotate(
+        "solution_collections": SolutionCollection.objects.filter(
+            owner=request.user, kind=SolutionCollection.Kind.PERSONAL,
+        ).annotate(
             entry_count=Count("entries"),
         ),
         "writer_draft": writer_draft,
