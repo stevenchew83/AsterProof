@@ -1,6 +1,7 @@
 """Contest papers preserve statement order and keep review clues closed."""
 
 import re
+from html import unescape
 from http import HTTPStatus
 from unittest.mock import patch
 
@@ -55,7 +56,7 @@ def test_contest_papers_preserves_approval_gate(client):
 def test_directory_links_to_contests_with_active_statement_year_counts(learner_client):
     _statement()
     _statement(contest_year=2024)
-    _statement(contest_year=2023, is_active=False)
+    _statement(contest_year=2026, is_active=False)
     _statement(contest_name="Hidden Cup", is_active=False)
     ContestMetadata.objects.create(contest="Fixture Cup", full_name="The Fixture Mathematics Olympiad")
 
@@ -70,6 +71,10 @@ def test_directory_links_to_contests_with_active_statement_year_counts(learner_c
     assert "The Fixture Mathematics Olympiad" in html
     assert "Hidden Cup" not in html
     assert 'href="/dashboard/contest-papers/?contest=Fixture+Cup"' in html
+    assert rows[0]["latest_url"] == reverse("pages:contest_papers") + "?contest=Fixture+Cup&year=2025"
+    latest = learner_client.get(rows[0]["latest_url"])
+    assert latest.status_code == HTTPStatus.OK
+    assert latest.context["paper_title"] == "Fixture Cup 2025"
     assert '<span class="menu-text">Contest papers</span>' in html
 
 
@@ -105,8 +110,48 @@ def test_contest_selection_shows_years_newest_first_without_premature_statements
     assert response.status_code == HTTPStatus.OK
     assert [row["contest_year"] for row in response.context["year_rows"]] == [2025, 2024]
     assert "paper_groups" not in response.context
-    assert "Choose a year" in response.content.decode()
+    assert "Papers by year" in response.content.decode()
     assert "?contest=Fixture+Cup&amp;year=2025" in response.content.decode()
+
+
+def test_year_archive_groups_decade_boundaries_and_links_latest_active_paper(learner_client):
+    for year in [1994, 1999, 2000, 2009, 2010, 2024, 2025]:
+        _statement(contest_name="APMO", contest_year=year)
+    _statement(contest_name="APMO", contest_year=2025, problem_code="P2", problem_number=2)
+    _statement(contest_name="APMO", contest_year=2026, is_active=False)
+    ContestMetadata.objects.create(contest="APMO", full_name="Asian Pacific Mathematics Olympiad")
+
+    response = learner_client.get(reverse("pages:contest_papers"), {"contest": "APMO"})
+
+    groups = response.context["decade_groups"]
+    assert [(group["decade"], [row["contest_year"] for row in group["years"]]) for group in groups] == [
+        (2020, [2025, 2024]), (2010, [2010]), (2000, [2009, 2000]), (1990, [1999, 1994]),
+    ]
+    assert response.context["latest_paper"]["contest_year"] == 2025  # noqa: PLR2004
+    assert response.context["latest_paper"]["problem_count"] == 2  # noqa: PLR2004
+    assert response.context["first_year"] == 1994  # noqa: PLR2004
+    assert response.context["last_year"] == 2025  # noqa: PLR2004
+    html = response.content.decode()
+    assert "Asian Pacific Mathematics Olympiad" in html
+    assert html.count('paper-year-link--latest"') == 1
+    latest_link = re.search(r'<a href="([^"]+)" class="[^"]*paper-open-latest">', html)
+    assert latest_link is not None
+    assert unescape(latest_link[1]) == response.context["latest_paper"]["url"]
+    latest = learner_client.get(response.context["latest_paper"]["url"])
+    assert latest.status_code == HTTPStatus.OK
+    assert latest.context["paper_title"] == "APMO 2025"
+
+
+def test_single_year_archive_works_without_contest_metadata(learner_client):
+    _statement(contest_year=2000)
+
+    response = learner_client.get(reverse("pages:contest_papers"), {"contest": "Fixture Cup"})
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.context["contest_full_name"] == ""
+    assert [group["decade"] for group in response.context["decade_groups"]] == [2000]
+    assert response.context["first_year"] == response.context["last_year"] == 2000  # noqa: PLR2004
+    assert "Open latest paper" in response.content.decode()
 
 
 def test_paper_groups_rounds_naturally_and_restarts_numbering(learner_client):
