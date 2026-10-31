@@ -14,6 +14,9 @@ from inspinia.solutions.models import ProblemSolutionBlock
 from inspinia.solutions.models import SolutionPublicShare
 from inspinia.solutions.test_public_sharing import create_share
 from inspinia.solutions.test_public_sharing import saved_editor_data
+from inspinia.solutions.test_writer_handoff import source_data
+from inspinia.solutions.writer_drafts import WRITER_DRAFT_SESSION_KEY
+from inspinia.solutions.writer_drafts import writer_handoff_url
 from inspinia.users.models import User
 from inspinia.users.models import UserAccessSettings
 from inspinia.users.tests.factories import UserFactory
@@ -21,7 +24,6 @@ from inspinia.users.tests.test_views import TEST_PASSWORD
 
 pytestmark = pytest.mark.django_db
 SAVED_STEPS = 2
-SHARED_STEPS = 3
 
 
 @pytest.fixture
@@ -56,6 +58,8 @@ def test_new_account_starts_with_optional_guide_and_no_fabricated_work(client, l
     assert progress["start_url"] == reverse("solutions:problem_solution_create")
     html = client.get(reverse("solutions:my_solution_list")).content.decode()
     assert "Write my first solution" in html
+    assert "0 of 2 complete" in html
+    assert "Save your first solution" in html
     assert "Skip for now" in html
     assert "Optional" in html
     assert "All solutions</p>" not in html
@@ -85,7 +89,7 @@ def test_empty_upload_placeholder_does_not_count_as_saved_proof(client, solution
     assert progress["editor_url"] == reverse("solutions:problem_solution_edit", args=[solution.problem.problem_uuid])
 
 
-def test_save_then_share_advances_guide_without_publishing_or_marking_solved(client, solution):
+def test_save_completes_getting_started_and_sharing_remains_optional(client, solution):
     editor_url = reverse("solutions:problem_solution_edit", args=[solution.problem.problem_uuid])
     editor = client.get(editor_url)
     assert "Next: save your solution." in editor.content.decode()
@@ -104,7 +108,7 @@ def test_save_then_share_advances_guide_without_publishing_or_marking_solved(cli
 
     share = create_share(client, solution)
     progress = guide(client)
-    assert progress["completed_steps"] == SHARED_STEPS
+    assert progress["completed_steps"] == SAVED_STEPS
     assert progress["shared"]
     assert "Your public link is ready." in client.get(editor_url).content.decode()
     assert Client().get(reverse("solutions:public_solution", args=[share.token])).status_code == HTTPStatus.OK
@@ -114,10 +118,77 @@ def test_save_then_share_advances_guide_without_publishing_or_marking_solved(cli
     assert solution.submitted_at is None
     assert not UserProblemCompletion.objects.exists()
 
-    # Stopping sharing is reflected immediately; no stale completion flag survives.
+    # Stopping optional sharing does not undo getting started.
     share.is_active = False
     share.save(update_fields=["is_active"])
-    assert guide(client)["completed_steps"] == SAVED_STEPS
+    progress = guide(client)
+    assert progress["completed_steps"] == SAVED_STEPS
+    assert not progress["shared"]
+
+
+def test_saved_guide_names_the_solution_and_focuses_on_optional_sharing(client, solution):
+    ProblemSolutionBlock.objects.create(solution=solution, position=1, body_source="A saved proof.")
+    response = client.get(reverse("solutions:my_solution_list"))
+    panel = response.content.decode().split('id="solution-guide"', 1)[1].split("</section>", 1)[0]
+    progress = response.context["solution_guide"]
+    assert "Getting started · Complete" in panel
+    assert "Your solution is saved" in panel
+    assert "My first proof" in panel
+    assert progress["solution_title"] == solution.title
+    assert progress["problem_label"] == "GUIDE 2026 P1"
+    assert "Problem selected" in panel
+    assert "Solution saved" in panel
+    assert "Optional" in panel
+    assert "Review and share" in panel
+    assert "Continue editing" in panel
+    assert f'href="{progress["share_url"]}"' in panel
+    assert f'href="{progress["editor_url"]}"' in panel
+    assert "Write, preview, and save" not in panel
+    assert "of 3 complete" not in panel
+    assert "See an example" not in panel
+
+
+def test_shared_guide_shows_link_management_without_extra_required_progress(client, solution):
+    ProblemSolutionBlock.objects.create(solution=solution, position=1, body_source="A saved proof.")
+    create_share(client, solution)
+    response = client.get(reverse("solutions:my_solution_list"))
+    panel = response.content.decode().split('id="solution-guide"', 1)[1].split("</section>", 1)[0]
+    assert "Getting started · Complete" in panel
+    assert "Your public link is ready" in panel
+    assert "Public link active" in panel
+    assert "Copy or open public link" in panel
+    assert "Continue editing" in panel
+    assert "Optional" not in panel
+
+
+def test_pending_writer_guide_focuses_on_the_handoff_instead_of_an_existing_solution(client, solution):
+    ProblemSolutionBlock.objects.create(solution=solution, position=1, body_source="A saved proof.")
+    staged = client.post(reverse("website:solution_preview"), source_data())
+    assert staged.status_code == HTTPStatus.FOUND
+    assert ProblemSolution.objects.count() == 1
+    token = client.session[WRITER_DRAFT_SESSION_KEY]["token"]
+    response = client.get(reverse("solutions:my_solution_list"))
+    panel = response.content.decode().split('id="solution-guide"', 1)[1].split("</section>", 1)[0]
+    assert "Draft ready to continue" in panel
+    assert "Continue your writing" in panel
+    assert f'href="{writer_handoff_url()}"' in panel
+    assert "My first proof" not in panel
+    assert "Review and share" not in panel
+    assert client.session[WRITER_DRAFT_SESSION_KEY]["token"] == token
+
+
+@pytest.mark.parametrize("title", ["  ", "<script>Example title</script>"])
+def test_guide_solution_label_has_safe_title_and_problem_fallback(client, solution, title):
+    solution.title = title
+    solution.save(update_fields=["title"])
+    response = client.get(reverse("solutions:my_solution_list"))
+    panel = response.content.decode().split('id="solution-guide"', 1)[1].split("</section>", 1)[0]
+    if title.strip():
+        assert "&lt;script&gt;Example title&lt;/script&gt;" in panel
+        assert title not in panel
+    else:
+        assert response.context["solution_guide"]["solution_title"] == "GUIDE 2026 P1"
+        assert panel.count("GUIDE 2026 P1") == 1
 
 
 def test_guide_uses_owners_saved_solution_even_with_newer_empty_draft(client, solution):

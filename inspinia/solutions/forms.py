@@ -5,6 +5,7 @@ from django.forms import inlineformset_factory
 from inspinia.solutions.models import ProblemSolution
 from inspinia.solutions.models import ProblemSolutionBlock
 from inspinia.solutions.models import SolutionBlockType
+from inspinia.solutions.models import SolutionCollection
 
 PREVIEW_BLOCK_LIMIT = 32
 PREVIEW_BODY_LIMIT = 12_000
@@ -12,6 +13,16 @@ PREVIEW_TOTAL_LIMIT = 64_000
 
 
 PDF_DISPLAY_FIELDS = ("pdf_show_author", "pdf_show_date", "pdf_show_footer")
+
+
+class SolutionCollectionForm(forms.ModelForm):
+    class Meta:
+        model = SolutionCollection
+        fields = ["title", "introduction"]
+        widgets = {
+            "title": forms.TextInput(attrs={"class": "form-control", "placeholder": "Give this collection a title"}),
+            "introduction": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+        }
 
 
 def _pdf_display_option(label, part):

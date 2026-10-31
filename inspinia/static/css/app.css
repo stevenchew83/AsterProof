@@ -19103,6 +19103,460 @@ table.app-table-compact .contest-row-meta {
   width: 4rem;
 }
 
+.user-solution-records .user-solution-overview {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  -webkit-box-pack: justify;
+      -ms-flex-pack: justify;
+          justify-content: space-between;
+  gap: 1.25rem;
+  padding: 0.5rem 0.25rem 1.25rem;
+}
+.user-solution-records .user-solution-metrics {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  gap: clamp(1.5rem, 3vw, 3rem);
+  margin: 0;
+}
+.user-solution-records .user-solution-metrics dt {
+  color: var(--ins-secondary-color);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+.user-solution-records .user-solution-metrics dd {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  gap: 0.5rem;
+  margin: 0.125rem 0 0;
+  font-size: 1.625rem;
+  font-weight: 600;
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+}
+.user-solution-records .user-solution-metrics i {
+  font-size: 1rem;
+}
+.user-solution-records .user-solution-overview-meta {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+      -ms-flex-direction: column;
+          flex-direction: column;
+  gap: 0.25rem;
+  text-align: end;
+  color: var(--ins-secondary-color);
+  font-size: 0.75rem;
+}
+.user-solution-records .user-solution-workspace {
+  border: 1px solid var(--ins-border-color);
+  -webkit-box-shadow: none;
+          box-shadow: none;
+}
+.user-solution-records .user-solution-workspace-header {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-pack: justify;
+      -ms-flex-pack: justify;
+          justify-content: space-between;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  gap: 1rem;
+  padding: 0.875rem 1.25rem;
+  border-bottom: 1px solid var(--ins-border-color);
+}
+.user-solution-records .user-solution-workspace-header h2, .user-solution-records .user-solution-workspace-header .h2 {
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+.user-solution-records .user-solution-admin-note {
+  display: -webkit-inline-box;
+  display: -ms-inline-flexbox;
+  display: inline-flex;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  gap: 0.375rem;
+  color: var(--ins-secondary-color);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+.user-solution-records .user-solution-filter-panel {
+  padding: 1rem 1.25rem;
+  background: rgba(var(--ins-tertiary-bg-rgb), 0.4);
+  border-bottom: 1px solid var(--ins-border-color);
+}
+.user-solution-records .user-solution-filters {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-wrap: wrap;
+      flex-wrap: wrap;
+  gap: 0.75rem;
+}
+.user-solution-records .user-solution-filters > div {
+  min-width: 0;
+  -webkit-box-flex: 1;
+      -ms-flex: 1 1 9rem;
+          flex: 1 1 9rem;
+}
+.user-solution-records .user-solution-filters .user-solution-search {
+  -webkit-box-flex: 2;
+      -ms-flex: 2 1 15rem;
+          flex: 2 1 15rem;
+}
+.user-solution-records .user-solution-filters .user-solution-contest, .user-solution-records .user-solution-filters .user-solution-author {
+  -webkit-box-flex: 1.25;
+      -ms-flex: 1.25 1 10rem;
+          flex: 1.25 1 10rem;
+}
+.user-solution-records .user-solution-filters .user-solution-status {
+  -webkit-box-flex: 0.75;
+      -ms-flex: 0.75 1 8rem;
+          flex: 0.75 1 8rem;
+}
+.user-solution-records .user-solution-filters .user-solution-filter-actions {
+  -webkit-box-flex: 0;
+      -ms-flex: 0 0 auto;
+          flex: 0 0 auto;
+}
+.user-solution-records .user-solution-filters .form-control, .user-solution-records .user-solution-filters .form-select, .user-solution-records .user-solution-filters .btn {
+  min-height: 2.25rem;
+}
+.user-solution-records .user-solution-filters .form-label {
+  font-weight: 500;
+}
+.user-solution-records .user-solution-record-filter-chip {
+  display: -webkit-inline-box;
+  display: -ms-inline-flexbox;
+  display: inline-flex;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  gap: 0.375rem;
+  text-decoration: none;
+  padding: 0.375rem 0.5rem;
+}
+.user-solution-records .user-solution-results {
+  padding: 0.75rem 1.25rem 0.5rem;
+}
+.user-solution-records .dt-container .dt-search {
+  font-size: 0.75rem;
+  color: var(--ins-secondary-color);
+}
+.user-solution-records .dt-container .dt-search input {
+  font-size: 0.8125rem;
+}
+.user-solution-records .dt-container .dt-length {
+  font-size: 0.75rem;
+  color: var(--ins-secondary-color);
+}
+.user-solution-records .dt-container .dt-layout-start:has(.dt-length) {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-wrap: wrap;
+      flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+}
+.user-solution-records table.app-table-compact.table > thead > tr > th {
+  padding-block: 0.75rem;
+}
+.user-solution-records table.app-table-compact.table > tbody > tr > td {
+  padding-block: 0.625rem;
+}
+.user-solution-records .user-solution-problem-cell {
+  width: 40%;
+}
+.user-solution-records .user-solution-problem-line {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-align: baseline;
+      -ms-flex-align: baseline;
+          align-items: baseline;
+  gap: 0.75rem;
+}
+.user-solution-records .user-solution-problem-link {
+  display: inline-block;
+  max-width: 40ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+  color: var(--ins-body-color);
+  text-decoration: none;
+  font-weight: 600;
+}
+.user-solution-records .user-solution-problem-link:hover {
+  color: var(--ins-primary);
+}
+.user-solution-records .user-solution-details {
+  -webkit-box-flex: 0;
+      -ms-flex: 0 0 auto;
+          flex: 0 0 auto;
+  color: var(--ins-secondary-color);
+}
+.user-solution-records .user-solution-details > summary {
+  font-size: 0.6875rem;
+}
+.user-solution-records .user-solution-details[open] {
+  -webkit-box-flex: 1;
+      -ms-flex: 1 1 auto;
+          flex: 1 1 auto;
+  min-width: 0;
+  max-width: none;
+}
+.user-solution-records .user-solution-details[open] .app-table-details-body {
+  min-width: 15rem;
+  max-width: 26rem;
+}
+.user-solution-records .user-solution-details dl {
+  margin: 0;
+}
+.user-solution-records .user-solution-details dl > div {
+  margin-bottom: 0.5rem;
+}
+.user-solution-records .user-solution-details dl > div:last-child {
+  margin: 0;
+}
+.user-solution-records .user-solution-details dt {
+  color: var(--ins-secondary-color);
+  font-size: 0.6875rem;
+  font-weight: 500;
+}
+.user-solution-records .user-solution-details dd {
+  margin: 0.125rem 0 0;
+  font-size: 0.75rem;
+  color: var(--ins-body-color);
+}
+.user-solution-records .user-solution-problem-line:has(details[open]) {
+  -ms-flex-wrap: wrap;
+      flex-wrap: wrap;
+  -webkit-box-align: start;
+      -ms-flex-align: start;
+          align-items: start;
+}
+.user-solution-records .user-solution-problem-line:has(details[open]) > a {
+  max-width: none;
+  white-space: normal;
+}
+.user-solution-records .user-solution-problem-line:has(details[open]) > details {
+  -ms-flex-preferred-size: 100%;
+      flex-basis: 100%;
+}
+.user-solution-records .user-solution-author-link {
+  display: -webkit-inline-box;
+  display: -ms-inline-flexbox;
+  display: inline-flex;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  color: var(--ins-body-color);
+}
+.user-solution-records .user-solution-author-name {
+  display: inline-block;
+  max-width: 19ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+.user-solution-records .user-solution-author-link:hover {
+  color: var(--ins-primary);
+}
+.user-solution-records .user-solution-avatar {
+  display: -webkit-inline-box;
+  display: -ms-inline-flexbox;
+  display: inline-flex;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  -webkit-box-pack: center;
+      -ms-flex-pack: center;
+          justify-content: center;
+  -webkit-box-flex: 0;
+      -ms-flex: 0 0 1.625rem;
+          flex: 0 0 1.625rem;
+  height: 1.625rem;
+  background: var(--ins-tertiary-bg);
+  color: var(--ins-secondary-color);
+  border: 1px solid var(--ins-border-color);
+  border-radius: 50%;
+  font-size: 0.625rem;
+  font-weight: 600;
+}
+.user-solution-records .user-solution-status-label {
+  display: -webkit-inline-box;
+  display: -ms-inline-flexbox;
+  display: inline-flex;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+.user-solution-records .user-solution-published {
+  color: var(--ins-body-color);
+}
+.user-solution-records .user-solution-published i {
+  color: var(--ins-primary-text-emphasis);
+}
+.user-solution-records .user-solution-draft {
+  color: var(--ins-secondary-color);
+}
+.user-solution-records .user-solution-time {
+  -webkit-margin-start: 0.5rem;
+          margin-inline-start: 0.5rem;
+  color: var(--ins-secondary-color);
+  font-size: 0.75rem;
+}
+.user-solution-records .user-solution-record-actions {
+  -webkit-box-pack: end;
+      -ms-flex-pack: end;
+          justify-content: flex-end;
+}
+.user-solution-records .user-solution-record-actions .btn {
+  display: -webkit-inline-box;
+  display: -ms-inline-flexbox;
+  display: inline-flex;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  -webkit-box-pack: center;
+      -ms-flex-pack: center;
+          justify-content: center;
+  gap: 0.25rem;
+}
+.user-solution-records .user-solution-open {
+  color: var(--ins-body-color);
+}
+.user-solution-records a:focus-visible, .user-solution-records summary:focus-visible {
+  outline: 2px solid var(--ins-primary);
+  outline-offset: 3px;
+  border-radius: var(--ins-border-radius-sm);
+}
+.user-solution-records .user-solution-problem-link, .user-solution-records .user-solution-author-link, .user-solution-records .user-solution-record-actions .btn {
+  -webkit-transition: color 0.15s ease, background-color 0.15s ease;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+.user-solution-records .user-solution-empty {
+  padding: 3rem 1rem;
+  text-align: center;
+}
+.user-solution-records .user-solution-empty-icon {
+  display: -webkit-inline-box;
+  display: -ms-inline-flexbox;
+  display: inline-flex;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  color: var(--ins-primary-text-emphasis);
+  background: var(--ins-primary-bg-subtle);
+  border-radius: var(--ins-border-radius);
+  font-size: 1.5rem;
+}
+.user-solution-records .user-solution-empty h3, .user-solution-records .user-solution-empty .h3 {
+  font-size: 1rem;
+}
+.user-solution-records .user-solution-empty p {
+  color: var(--ins-secondary-color);
+  font-size: 0.8125rem;
+}
+@media (max-width: 1199.98px) {
+  .user-solution-records .user-solution-problem-link {
+    max-width: 22ch;
+  }
+  .user-solution-records .user-solution-avatar {
+    display: none;
+  }
+  .user-solution-records .user-solution-author-name {
+    max-width: 15ch;
+  }
+}
+@media (max-width: 991.98px) {
+  .user-solution-records .user-solution-overview {
+    -webkit-box-align: start;
+        -ms-flex-align: start;
+            align-items: start;
+    -webkit-box-orient: vertical;
+    -webkit-box-direction: normal;
+        -ms-flex-direction: column;
+            flex-direction: column;
+    gap: 0.75rem;
+  }
+  .user-solution-records .user-solution-overview-meta {
+    -webkit-box-orient: horizontal;
+    -webkit-box-direction: normal;
+        -ms-flex-direction: row;
+            flex-direction: row;
+    -ms-flex-wrap: wrap;
+        flex-wrap: wrap;
+    gap: 0.25rem 1rem;
+    text-align: start;
+  }
+  .user-solution-records .user-solution-metrics {
+    width: 100%;
+    -webkit-box-pack: justify;
+        -ms-flex-pack: justify;
+            justify-content: space-between;
+  }
+}
+@media (max-width: 575.98px) {
+  .user-solution-records .user-solution-metrics {
+    gap: 0.75rem;
+  }
+  .user-solution-records .user-solution-metrics dt {
+    font-size: 0.6875rem;
+  }
+  .user-solution-records .user-solution-metrics dd {
+    font-size: 1.375rem;
+  }
+  .user-solution-records .user-solution-admin-note {
+    display: none;
+  }
+  .user-solution-records .user-solution-workspace-header, .user-solution-records .user-solution-filter-panel {
+    padding: 0.875rem;
+  }
+  .user-solution-records .user-solution-results {
+    padding-inline: 0.875rem;
+  }
+  .user-solution-records .user-solution-filters .user-solution-search {
+    -ms-flex-preferred-size: 100%;
+        flex-basis: 100%;
+  }
+  .user-solution-records .user-solution-filters .user-solution-contest, .user-solution-records .user-solution-filters .user-solution-author {
+    -ms-flex-preferred-size: calc(50% - 0.375rem);
+        flex-basis: calc(50% - 0.375rem);
+  }
+  .user-solution-records .dt-container .dt-search {
+    -ms-flex-wrap: wrap;
+        flex-wrap: wrap;
+  }
+  .user-solution-records .dt-container .dt-search input {
+    -ms-flex-preferred-size: 100%;
+        flex-basis: 100%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .user-solution-records .user-solution-problem-link, .user-solution-records .user-solution-author-link, .user-solution-records .user-solution-record-actions .btn {
+    -webkit-transition: none;
+    transition: none;
+  }
+}
+
 .btn {
   display: -webkit-inline-box;
   display: -ms-inline-flexbox;

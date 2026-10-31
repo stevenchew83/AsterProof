@@ -19,12 +19,18 @@ def solution_guide_context(user, solutions, *, writer_draft):
         create_url = writer_handoff_url()
     editor_url = reverse("solutions:problem_solution_edit", args=[current.problem.problem_uuid]) if current else ""
     share_url = reverse("solutions:problem_solution_share", args=[current.problem.problem_uuid]) if current else ""
+    problem_label = (
+        current.problem.contest_year_problem
+        or f"{current.problem.contest} {current.problem.year} {current.problem.problem}"
+    ) if current else ""
     return {
         "visible": user.solution_guide_status == User.SolutionGuideStatus.ACTIVE,
         "chosen": bool(current),
         "saved": has_saved_content,
         "shared": bool(shared),
-        "completed_steps": int(bool(current)) + int(has_saved_content) + int(bool(shared)),
+        "completed_steps": int(bool(current)) + int(has_saved_content),
+        "solution_title": (current.title.strip() or problem_label) if current else "",
+        "problem_label": problem_label,
         "start_url": create_url,
         "editor_url": editor_url,
         "share_url": share_url,

@@ -17,6 +17,7 @@ def test_solution_preview_startup_contract():
             str(Path(__file__).with_name("solution_preview_startup.test.cjs")),
             str(Path(__file__).with_name("website_math.test.cjs")),
             str(Path(__file__).with_name("solution_editor_clipboard.test.cjs")),
+            str(Path(__file__).with_name("solution_collections.test.cjs")),
         ],
         capture_output=True, text=True, check=False, timeout=20,
     )
