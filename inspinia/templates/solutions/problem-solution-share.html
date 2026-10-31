@@ -14,6 +14,7 @@
       <section class="card">
         <div class="card-body">
           <h2 class="h5">{% if share_url %}Anyone with the link{% else %}Sharing is off{% endif %}</h2>
+          <p><a href="{% url 'solutions:collection_create' %}?solution={{ solution.pk }}">Share this solution in a collection</a></p>
           <p class="text-muted">A public link lets anyone read this copy without signing in. Recipients can forward it. It is not listed in AsterProof, and search engines are asked not to index it.</p>
           {% if share_url %}
           <label class="form-label" for="public-solution-url">Public solution link</label>

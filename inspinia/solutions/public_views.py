@@ -4,11 +4,14 @@ from django.conf import settings
 from django.db.models import F
 from django.http import HttpResponse
 from django.shortcuts import render
+from django.templatetags.static import static
 from django.urls import reverse
 from django.views.decorators.http import require_safe
 
+from inspinia.solutions.models import SolutionCollection
 from inspinia.solutions.models import SolutionPublicShare
 from inspinia.solutions.share_analytics import record_public_view
+from inspinia.solutions.sharing import public_collection_url
 from inspinia.solutions.sharing import public_description
 from inspinia.solutions.sharing import public_preview_image
 from inspinia.solutions.sharing import public_share_url
@@ -69,3 +72,32 @@ def public_solution_image_view(request, token, revision):
     response = HttpResponse(public_preview_image(), content_type="image/jpeg")
     response["X-Content-Type-Options"] = "nosniff"
     return _private_cache(response)
+
+
+@require_safe
+def public_collection_view(request, token):
+    collection = SolutionCollection.objects.filter(token=token, is_active=True).first()
+    if collection is None:
+        return _unavailable(request)
+    entries = collection.entries.filter(
+        share__is_active=True,
+        share__token=F("share_token"),
+        share__solution__author_id=collection.owner_id,
+    ).select_related("share").defer("share__preview_image")
+    rows = [{"anchor": f"solution-{entry.anchor}", "snapshot": entry.share.snapshot} for entry in entries]
+    url = public_collection_url(collection)
+    return _private_cache(render(request, "website/shared_collection.html", {
+        "collection": collection,
+        "collection_rows": rows,
+        "page_title": collection.title,
+        "page_description": f"{len(rows)} shared solutions. Read the full collection on AsterProof.",
+        "canonical_url": url,
+        "social_image_url": settings.PUBLIC_SITE_ORIGIN.rstrip("/") + static("images/asterproof-share-logo.jpg"),
+        "social_image_alt": "AsterProof logo",
+        "whatsapp_url": whatsapp_share_url(url),
+        "public_operator_name": settings.PUBLIC_OPERATOR_NAME,
+        "hide_newsletter": True,
+        "noindex": True,
+        "shared_solution": True,
+        "solution_media_url": settings.MEDIA_URL,
+    }))

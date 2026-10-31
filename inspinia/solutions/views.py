@@ -60,6 +60,7 @@ from inspinia.solutions.models import ProblemSolution
 from inspinia.solutions.models import ProblemSolutionBlock
 from inspinia.solutions.models import SolutionBlockType
 from inspinia.solutions.models import SolutionBodyImage
+from inspinia.solutions.models import SolutionCollection
 from inspinia.solutions.models import SolutionPublicShare
 from inspinia.solutions.onboarding import solution_guide_context
 from inspinia.solutions.pdf_latex import SolutionPdfCompileError
@@ -790,6 +791,9 @@ def my_solution_list_view(request):
     writer_draft = get_writer_draft(request)
     context = {
         "my_solution_rows": _solution_card_rows(solutions),
+        "solution_collections": SolutionCollection.objects.filter(owner=request.user).annotate(
+            entry_count=Count("entries"),
+        ),
         "writer_draft": writer_draft,
         "writer_handoff_url": writer_handoff_url(),
         "solution_guide": solution_guide_context(request.user, solutions, writer_draft=writer_draft),
@@ -1107,6 +1111,7 @@ def _write_shared_snapshot(solution, share, snapshot):
     share.revision = uuid.uuid4()
     share.is_active = True
     share.save()
+    return share
 
 
 def _public_snapshot(solution):

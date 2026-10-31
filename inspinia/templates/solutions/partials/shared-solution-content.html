@@ -1,11 +1,11 @@
-<article class="public-shared-paper" aria-label="Shared solution">
+<article class="public-shared-paper"{% if shared_anchor %} id="{{ shared_anchor }}"{% endif %} aria-label="Shared solution">
   <header>
     <p class="public-shared-kicker">A shared solution</p>
-    {% if review_snapshot %}<h2 class="public-shared-title">{{ snapshot.title }}</h2>{% else %}<h1>{{ snapshot.title }}</h1>{% endif %}
+    {% if review_snapshot or shared_anchor %}<h2 class="public-shared-title">{{ snapshot.title }}</h2>{% else %}<h1>{{ snapshot.title }}</h1>{% endif %}
     {% if snapshot.author or snapshot.date %}<p class="public-shared-byline">{% if snapshot.author %}By {{ snapshot.author }}{% endif %}{% if snapshot.author and snapshot.date %} · {% endif %}{{ snapshot.date }}</p>{% endif %}
   </header>
-  <section class="public-shared-problem" aria-labelledby="shared-problem-heading">
-    <h2 id="shared-problem-heading">{{ snapshot.problem.label }}</h2>
+  <section class="public-shared-problem" aria-labelledby="{% if shared_anchor %}{{ shared_anchor }}-problem{% else %}shared-problem-heading{% endif %}">
+    {% if shared_anchor %}<h3 id="{{ shared_anchor }}-problem">{{ snapshot.problem.label }}</h3>{% else %}<h2 id="shared-problem-heading">{{ snapshot.problem.label }}</h2>{% endif %}
     <p class="public-shared-tags">{{ snapshot.problem.topic }}</p>
     {% for segment in snapshot.problem.segments %}
       {% if segment.kind == 'text' %}<div class="public-shared-body solution-block-body-latex">{{ segment.content }}</div>
@@ -17,7 +17,7 @@
   <div class="public-shared-blocks">
     {% for block in snapshot.blocks %}
     <section class="public-shared-block">
-      <h2>{% if block.heading %}{{ block.heading }}{% elif block.label %}{{ block.label }}{% else %}Step {{ forloop.counter }}{% endif %}</h2>
+      {% if shared_anchor %}<h3>{% else %}<h2>{% endif %}{% if block.heading %}{{ block.heading }}{% elif block.label %}{{ block.label }}{% else %}Step {{ forloop.counter }}{% endif %}{% if shared_anchor %}</h3>{% else %}</h2>{% endif %}
       <div class="public-shared-body {% if block.format == 'latex' %}solution-block-body-latex{% else %}tex2jax_ignore{% endif %}">{{ block.source }}</div>
     </section>
     {% endfor %}
