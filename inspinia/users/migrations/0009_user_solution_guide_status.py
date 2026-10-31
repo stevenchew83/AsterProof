@@ -14,7 +14,7 @@ class Migration(migrations.Migration):
             model_name="user",
             name="solution_guide_status",
             field=models.CharField(
-                choices=CHOICES, default="not_enrolled", editable=False, max_length=16,
+                choices=CHOICES, default="not_enrolled", db_default="not_enrolled", editable=False, max_length=16,
                 verbose_name="Solution getting-started guide",
             ),
         ),
@@ -22,7 +22,7 @@ class Migration(migrations.Migration):
             model_name="user",
             name="solution_guide_status",
             field=models.CharField(
-                choices=CHOICES, default="active", editable=False, max_length=16,
+                choices=CHOICES, default="active", db_default="not_enrolled", editable=False, max_length=16,
                 verbose_name="Solution getting-started guide",
             ),
         ),

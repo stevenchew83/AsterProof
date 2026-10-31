@@ -104,6 +104,17 @@
         "existing_solution_records_preserved"
       ],
       "rationale": "Adds three non-null Boolean display preferences with true defaults to existing solution rows. Existing code, solution bodies, identities, progress, and relationships remain compatible. SQLite uses native additive columns to preserve catalogue triggers. This classification does not expand the frozen production migration allowlist."
+    },
+    "users.0009_user_solution_guide_status": {
+      "classification": "backward-compatible-schema",
+      "recovery_required": false,
+      "code_rollback_permitted": true,
+      "data_preconditions": [
+        "solution_guide_column_absent",
+        "existing_accounts_not_enrolled",
+        "existing_records_preserved"
+      ],
+      "rationale": "Adds one first-login preference column, with a persistent not_enrolled database default for existing accounts and compatibility with old-code account creation. New application accounts default to active. The AlterField changes only the Python default; existing profile, approval, solution and progress data remain intact. Requires separately installed frozen migration authority."
     }
   }
 }

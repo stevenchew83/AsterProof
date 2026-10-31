@@ -84,6 +84,7 @@ class User(AbstractUser):
         max_length=16,
         choices=SolutionGuideStatus.choices,
         default=SolutionGuideStatus.ACTIVE,
+        db_default=SolutionGuideStatus.NOT_ENROLLED,
         editable=False,
     )
     first_name = None  # type: ignore[assignment]

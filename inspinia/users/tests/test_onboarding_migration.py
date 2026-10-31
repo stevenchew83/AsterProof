@@ -22,5 +22,7 @@ def test_solution_guide_migration_preserves_existing_accounts_and_enrols_new_one
         assert preserved.name == "Existing Learner"
         assert preserved.is_approved
         assert new_user.objects.create(email="new-guide@example.test").solution_guide_status == "active"
+        legacy_created = old_user.objects.create(email="legacy-code-guide@example.test")
+        assert new_user.objects.get(pk=legacy_created.pk).solution_guide_status == "not_enrolled"
     finally:
         MigrationExecutor(connection).migrate(after)

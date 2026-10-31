@@ -16,6 +16,7 @@ from typing import Any
 from scripts.deployment import catalogue_schema
 from scripts.deployment import newsletter_automation_schema
 from scripts.deployment import newsletter_schema
+from scripts.deployment import onboarding_schema
 from scripts.deployment import solution_analytics_schema
 from scripts.deployment import solution_pdf_schema
 from scripts.deployment import solution_sharing_schema
@@ -277,6 +278,15 @@ class WorkerBackend:
     def check_catalogue_schema(self, contract: TargetContract, release: Path) -> None:
         catalogue_schema.validate_candidate(release)
         self._run_candidate(contract, release, ["shell", "--command", catalogue_schema.PLAN_CHECK])
+
+    def check_onboarding_schema(self, contract: TargetContract, release: Path) -> None:
+        onboarding_schema.validate_candidate(release)
+        self._run_candidate(contract, release, ["shell", "--command", onboarding_schema.PLAN_CHECK])
+
+    def migrate_onboarding_schema(self, contract: TargetContract, release: Path) -> None:
+        self._run_candidate(
+            contract, release, ["shell", "--command", onboarding_schema.MIGRATION_APPLY], migration=True,
+        )
 
     def check_solution_pdf_schema(self, contract: TargetContract, release: Path) -> None:
         solution_pdf_schema.validate_candidate(release)
@@ -782,6 +792,9 @@ def _deploy(
                 elif disclosure["migration"] == solution_sharing_schema.MIGRATION:
                     solution_sharing_schema.validate_build_evidence(release, disclosure)
                     backend.check_solution_sharing_schema(contract, release)
+                elif disclosure["migration"] == onboarding_schema.MIGRATION:
+                    onboarding_schema.validate_build_evidence(release, disclosure)
+                    backend.check_onboarding_schema(contract, release)
                 elif disclosure["migration"] == solution_pdf_schema.MIGRATION:
                     solution_pdf_schema.validate_build_evidence(release, disclosure)
                     backend.check_solution_pdf_schema(contract, release)
@@ -805,6 +818,8 @@ def _deploy(
                 backend.migrate_solution_analytics_schema(contract, release)
             elif disclosure["migration"] == solution_sharing_schema.MIGRATION:
                 backend.migrate_solution_sharing_schema(contract, release)
+            elif disclosure["migration"] == onboarding_schema.MIGRATION:
+                backend.migrate_onboarding_schema(contract, release)
             elif disclosure["migration"] == solution_pdf_schema.MIGRATION:
                 backend.migrate_solution_pdf_schema(contract, release)
             elif disclosure["migration"] == newsletter_schema.MIGRATION:

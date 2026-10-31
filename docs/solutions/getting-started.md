@@ -7,7 +7,10 @@ are unchanged.
 
 Migration `users.0009_user_solution_guide_status` gives existing accounts the
 `not_enrolled` state, preserving their **My activity** destination. Newly created
-accounts default to `active`. **Skip for now** changes only the current user's
+accounts default to `active`. A persistent database default of `not_enrolled`
+keeps account creation compatible with the previous application revision.
+Production schema controls follow [the frozen release procedure](../deployment/onboarding-schema.md).
+**Skip for now** changes only the current user's
 guide preference to `dismissed`; **Show getting-started guide** reopens it. Both
 actions use authenticated, CSRF-protected POST requests and persist across sessions
 and devices. Accounts enrolled in the guide continue landing on My solutions even
