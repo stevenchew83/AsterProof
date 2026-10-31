@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from scripts.deployment import catalogue_schema
+from scripts.deployment import curated_collections_schema
 from scripts.deployment import newsletter_automation_schema
 from scripts.deployment import newsletter_schema
 from scripts.deployment import onboarding_schema
@@ -306,6 +307,15 @@ class WorkerBackend:
     def migrate_solution_pdf_schema(self, contract: TargetContract, release: Path) -> None:
         self._run_candidate(
             contract, release, ["shell", "--command", solution_pdf_schema.MIGRATION_APPLY], migration=True,
+        )
+
+    def check_curated_collections_schema(self, contract: TargetContract, release: Path) -> None:
+        curated_collections_schema.validate_candidate(release)
+        self._run_candidate(contract, release, ["shell", "--command", curated_collections_schema.PLAN_CHECK])
+
+    def migrate_curated_collections_schema(self, contract: TargetContract, release: Path) -> None:
+        self._run_candidate(
+            contract, release, ["shell", "--command", curated_collections_schema.MIGRATION_APPLY], migration=True,
         )
 
     def check_solution_collections_schema(self, contract: TargetContract, release: Path) -> None:
@@ -815,6 +825,9 @@ def _deploy(
                 elif disclosure["migration"] == solution_analytics_schema.MIGRATION:
                     solution_analytics_schema.validate_build_evidence(release, disclosure)
                     backend.check_solution_analytics_schema(contract, release)
+                elif disclosure["migration"] == curated_collections_schema.MIGRATION:
+                    curated_collections_schema.validate_build_evidence(release, disclosure)
+                    backend.check_curated_collections_schema(contract, release)
                 elif disclosure["migration"] == solution_collections_schema.MIGRATION:
                     solution_collections_schema.validate_build_evidence(release, disclosure)
                     backend.check_solution_collections_schema(contract, release)
@@ -845,6 +858,8 @@ def _deploy(
                 backend.migrate_website_schema(contract, release)
             elif disclosure["migration"] == solution_analytics_schema.MIGRATION:
                 backend.migrate_solution_analytics_schema(contract, release)
+            elif disclosure["migration"] == curated_collections_schema.MIGRATION:
+                backend.migrate_curated_collections_schema(contract, release)
             elif disclosure["migration"] == solution_collections_schema.MIGRATION:
                 backend.migrate_solution_collections_schema(contract, release)
             elif disclosure["migration"] == solution_sharing_schema.MIGRATION:

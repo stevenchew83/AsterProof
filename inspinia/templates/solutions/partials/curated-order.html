@@ -1,0 +1,13 @@
+<ol class="list-group list-group-numbered mb-3" data-collection-order>
+  {% for share in selected_shares %}
+  <li class="list-group-item d-flex align-items-center gap-2" data-collection-item="{{ share.ref }}">
+    <input type="hidden" name="share" value="{{ share.ref }}" />
+    <span class="flex-grow-1 text-break" data-collection-label>{{ share.label }}{% if share.author %} · {{ share.author }}{% endif %}{% if not share.available %} · Unavailable — remove or replace{% endif %}</span>
+    <div class="d-flex gap-1 flex-shrink-0">
+      <button type="button" class="btn btn-outline-secondary btn-sm" data-collection-move="up" aria-label="Move solution up"><i class="ti ti-arrow-up" aria-hidden="true"></i></button>
+      <button type="button" class="btn btn-outline-secondary btn-sm" data-collection-move="down" aria-label="Move solution down"><i class="ti ti-arrow-down" aria-hidden="true"></i></button>
+      <button type="button" class="btn btn-outline-danger btn-sm" data-collection-remove aria-label="Remove solution"><i class="ti ti-x" aria-hidden="true"></i></button>
+    </div>
+  </li>
+  {% endfor %}
+</ol>

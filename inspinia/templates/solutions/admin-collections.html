@@ -1,0 +1,33 @@
+{% extends 'layouts/vertical.html' %}
+{% block title %}Curated collections{% endblock title %}
+{% block page_content %}
+<div class="container-fluid app-table-page">
+  {% include 'partials/page-title.html' with title='Curated collections' subtitle='Administration' page_icon='ti-stack-2' %}
+  <div class="app-table-toolbar d-flex gap-2 flex-wrap mb-3">
+    <a href="{% url 'solutions:admin_public_shares' %}" class="btn btn-primary">Select public solutions</a>
+    <a href="{% url 'solutions:admin_collection_create' %}" class="btn btn-outline-primary">Create collection</a>
+  </div>
+  <p class="text-muted">A shared workspace for collections curated from authors’ public copies. Every administrator can manage these collections.</p>
+  {% for message in messages %}<div class="alert alert-{{ message.tags|default:'info' }}" role="status">{{ message }}</div>{% endfor %}
+  <div class="card"><div class="card-body">
+    <form method="get" class="app-table-filters row g-2 align-items-end mb-3">
+      <div class="col-md-6"><label for="collection-query" class="form-label">Search titles</label><input type="search" id="collection-query" name="q" maxlength="200" value="{{ filters.q }}" class="form-control" /></div>
+      <div class="col-md-3"><label for="collection-status" class="form-label">Status</label><select id="collection-status" name="status" class="form-select"><option value="">All statuses</option><option value="active" {% if filters.status == 'active' %}selected{% endif %}>Active</option><option value="stopped" {% if filters.status == 'stopped' %}selected{% endif %}>Stopped</option></select></div>
+      <div class="col-md-3 d-flex gap-2"><button class="btn btn-primary">Apply</button><a href="{% url 'solutions:admin_collections' %}" class="btn btn-outline-secondary">Reset</a></div>
+    </form>
+    <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Curated collections">
+      <table class="table app-table-compact table-striped align-middle"><thead><tr><th>Collection</th><th>Status</th><th>Available / total</th><th>Last updated</th><th>Actions</th></tr></thead><tbody>
+      {% for item in page_obj %}<tr>
+        <td><a class="fw-semibold" href="{% url 'solutions:admin_collection_edit' item.pk %}">{{ item.title }}</a></td>
+        <td>{% if item.is_active %}<span class="badge bg-success-subtle text-success">Active</span>{% else %}<span class="badge bg-secondary-subtle text-secondary">Stopped</span>{% endif %}</td>
+        <td>{{ item.available_entries }} / {{ item.total_entries }}</td><td>{{ item.updated_at|date:'j M Y, H:i' }}</td>
+        <td><div class="app-table-actions d-flex gap-2"><a class="btn btn-outline-secondary btn-sm" href="{% url 'solutions:admin_collection_edit' item.pk %}">Manage</a>{% if item.is_active %}<button type="button" class="btn btn-outline-primary btn-sm" data-copy-public-link="{{ item.public_url }}">Copy link</button><a class="btn btn-outline-primary btn-sm" href="{{ item.public_url }}" target="_blank" rel="noopener noreferrer">Open ↗</a>{% endif %}</div></td>
+      </tr>{% empty %}<tr><td colspan="5" class="text-muted py-4">No curated collections match these filters.</td></tr>{% endfor %}
+      </tbody></table>
+    </div>
+    <p class="text-muted fs-sm" role="status" data-copy-feedback></p>
+    {% include 'pages/partials/server-pagination.html' %}
+  </div></div>
+</div>
+{% endblock page_content %}
+{% block extra_javascript %}{% load static %}<script src="{% static 'js/solution-sharing.js' %}" defer></script>{% endblock extra_javascript %}

@@ -1,5 +1,8 @@
 # Solution collections schema release
 
+For the later site-owned admin curation alteration, see
+[admin-curated collection schema release](curated-collections-schema.md).
+
 The collection feature requires exactly
 `solutions.0007_solutioncollection_solutioncollectionentry`. The hash-bound
 allowance in `scripts/deployment/solution_collections_schema.py` pins that file
