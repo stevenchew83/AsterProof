@@ -496,7 +496,7 @@ def _run_restricted_latex(command, *, cwd, env, timeout):
     # latexmk launches TeX children; a public export deadline must stop them too.
     with subprocess.Popen(  # noqa: S603
         command, cwd=cwd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-        text=True, start_new_session=True,
+        text=True, encoding="utf-8", errors="replace", start_new_session=True,
     ) as process:
         try:
             stdout, stderr = process.communicate(timeout=timeout)
@@ -552,6 +552,7 @@ def compile_solution_tex_to_pdf(
             else:
                 completed = subprocess.run(  # noqa: S603
                     cmd, cwd=tmp_path, capture_output=True, text=True,
+                    encoding="utf-8", errors="replace",
                     timeout=timeout, check=False,
                 )
         except subprocess.TimeoutExpired as exc:
