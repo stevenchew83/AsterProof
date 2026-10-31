@@ -1,0 +1,135 @@
+// The solution inventory keeps its workspace and disclosures inside the theme shell.
+.user-solution-records {
+    .user-solution-overview {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1.25rem;
+        padding: .5rem .25rem 1.25rem;
+    }
+
+    .user-solution-metrics {
+        display: flex;
+        gap: clamp(1.5rem, 3vw, 3rem);
+        margin: 0;
+
+        dt { color: var(--ins-secondary-color); font-size: .75rem; font-weight: 500; }
+        dd { display: flex; align-items: center; gap: .5rem; margin: .125rem 0 0; font-size: 1.625rem; font-weight: 600; line-height: 1.25; font-variant-numeric: tabular-nums; }
+        i { font-size: 1rem; }
+    }
+
+    .user-solution-overview-meta {
+        display: flex;
+        flex-direction: column;
+        gap: .25rem;
+        text-align: end;
+        color: var(--ins-secondary-color);
+        font-size: .75rem;
+    }
+
+    .user-solution-workspace { border: 1px solid var(--ins-border-color); box-shadow: none; }
+    .user-solution-workspace-header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: .875rem 1.25rem; border-bottom: 1px solid var(--ins-border-color); }
+    .user-solution-workspace-header h2 { font-size: .9375rem; font-weight: 600; }
+    .user-solution-admin-note { display: inline-flex; align-items: center; gap: .375rem; color: var(--ins-secondary-color); font-size: .75rem; white-space: nowrap; }
+    .user-solution-filter-panel { padding: 1rem 1.25rem; background: rgba(var(--ins-tertiary-bg-rgb), .4); border-bottom: 1px solid var(--ins-border-color); }
+
+    .user-solution-filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .75rem;
+
+        > div { min-width: 0; flex: 1 1 9rem; }
+        .user-solution-search { flex: 2 1 15rem; }
+        .user-solution-contest, .user-solution-author { flex: 1.25 1 10rem; }
+        .user-solution-status { flex: .75 1 8rem; }
+        .user-solution-filter-actions { flex: 0 0 auto; }
+        .form-control, .form-select, .btn { min-height: 2.25rem; }
+        .form-label { font-weight: 500; }
+    }
+
+    .user-solution-record-filter-chip { display: inline-flex; align-items: center; gap: .375rem; text-decoration: none; padding: .375rem .5rem; }
+    .user-solution-results { padding: .75rem 1.25rem .5rem; }
+
+    .dt-container {
+        .dt-search { font-size: .75rem; color: var(--ins-secondary-color); }
+        .dt-search input { font-size: .8125rem; }
+        .dt-length { font-size: .75rem; color: var(--ins-secondary-color); }
+        .dt-layout-start:has(.dt-length) { display: flex; flex-wrap: wrap; gap: .5rem 1rem; }
+    }
+
+    table.app-table-compact.table {
+        > thead > tr > th { padding-block: .75rem; }
+        > tbody > tr > td { padding-block: .625rem; }
+    }
+
+    .user-solution-problem-cell { width: 40%; }
+    .user-solution-problem-line { display: flex; align-items: baseline; gap: .75rem; }
+    .user-solution-problem-link { display: inline-block; max-width: 40ch; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; color: var(--ins-body-color); text-decoration: none; font-weight: 600; }
+    .user-solution-problem-link:hover { color: var(--ins-primary); }
+
+    .user-solution-details {
+        flex: 0 0 auto;
+        color: var(--ins-secondary-color);
+
+        > summary { font-size: .6875rem; }
+        &[open] { flex: 1 1 auto; min-width: 0; max-width: none; }
+        &[open] .app-table-details-body { min-width: 15rem; max-width: 26rem; }
+        dl { margin: 0; }
+        dl > div { margin-bottom: .5rem; }
+        dl > div:last-child { margin: 0; }
+        dt { color: var(--ins-secondary-color); font-size: .6875rem; font-weight: 500; }
+        dd { margin: .125rem 0 0; font-size: .75rem; color: var(--ins-body-color); }
+    }
+
+    .user-solution-problem-line:has(details[open]) { flex-wrap: wrap; align-items: start; }
+    .user-solution-problem-line:has(details[open]) > a { max-width: none; white-space: normal; }
+    .user-solution-problem-line:has(details[open]) > details { flex-basis: 100%; }
+    .user-solution-author-link { display: inline-flex; align-items: center; gap: .5rem; text-decoration: none; color: var(--ins-body-color); }
+    .user-solution-author-name { display: inline-block; max-width: 19ch; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
+    .user-solution-author-link:hover { color: var(--ins-primary); }
+    .user-solution-avatar { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 1.625rem; height: 1.625rem; background: var(--ins-tertiary-bg); color: var(--ins-secondary-color); border: 1px solid var(--ins-border-color); border-radius: 50%; font-size: .625rem; font-weight: 600; }
+    .user-solution-status-label { display: inline-flex; align-items: center; gap: .375rem; font-size: .75rem; font-weight: 500; }
+    .user-solution-published { color: var(--ins-body-color); }
+    .user-solution-published i { color: var(--ins-primary-text-emphasis); }
+    .user-solution-draft { color: var(--ins-secondary-color); }
+    .user-solution-time { margin-inline-start: .5rem; color: var(--ins-secondary-color); font-size: .75rem; }
+    .user-solution-record-actions { justify-content: flex-end; }
+    .user-solution-record-actions .btn { display: inline-flex; align-items: center; justify-content: center; gap: .25rem; }
+    .user-solution-open { color: var(--ins-body-color); }
+    a:focus-visible, summary:focus-visible { outline: 2px solid var(--ins-primary); outline-offset: 3px; border-radius: var(--ins-border-radius-sm); }
+    .user-solution-problem-link, .user-solution-author-link, .user-solution-record-actions .btn { transition: color .15s ease, background-color .15s ease; }
+
+    .user-solution-empty { padding: 3rem 1rem; text-align: center; }
+    .user-solution-empty-icon { display: inline-flex; padding: .75rem; margin-bottom: 1rem; color: var(--ins-primary-text-emphasis); background: var(--ins-primary-bg-subtle); border-radius: var(--ins-border-radius); font-size: 1.5rem; }
+    .user-solution-empty h3 { font-size: 1rem; }
+    .user-solution-empty p { color: var(--ins-secondary-color); font-size: .8125rem; }
+
+    @media (max-width: 1199.98px) {
+        .user-solution-problem-link { max-width: 22ch; }
+        .user-solution-avatar { display: none; }
+        .user-solution-author-name { max-width: 15ch; }
+    }
+
+    @media (max-width: 991.98px) {
+        .user-solution-overview { align-items: start; flex-direction: column; gap: .75rem; }
+        .user-solution-overview-meta { flex-direction: row; flex-wrap: wrap; gap: .25rem 1rem; text-align: start; }
+        .user-solution-metrics { width: 100%; justify-content: space-between; }
+    }
+
+    @media (max-width: 575.98px) {
+        .user-solution-metrics { gap: .75rem; }
+        .user-solution-metrics dt { font-size: .6875rem; }
+        .user-solution-metrics dd { font-size: 1.375rem; }
+        .user-solution-admin-note { display: none; }
+        .user-solution-workspace-header, .user-solution-filter-panel { padding: .875rem; }
+        .user-solution-results { padding-inline: .875rem; }
+        .user-solution-filters .user-solution-search { flex-basis: 100%; }
+        .user-solution-filters .user-solution-contest, .user-solution-filters .user-solution-author { flex-basis: calc(50% - .375rem); }
+        .dt-container .dt-search { flex-wrap: wrap; }
+        .dt-container .dt-search input { flex-basis: 100%; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .user-solution-problem-link, .user-solution-author-link, .user-solution-record-actions .btn { transition: none; }
+    }
+}
