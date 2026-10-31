@@ -95,6 +95,43 @@ class SolutionShareDailyViews(models.Model):
         return f"Share {self.share_id}: {self.day}"
 
 
+class SolutionCollection(models.Model):
+    """An explicitly ordered public page of the owner's shared solution copies."""
+
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="solution_collections")
+    title = models.CharField(max_length=160)
+    introduction = models.TextField(blank=True, max_length=2000)
+    token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    revision = models.UUIDField(default=uuid.uuid4, editable=False)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-updated_at", "-id"]
+
+    def __str__(self):
+        return self.title
+
+
+class SolutionCollectionEntry(models.Model):
+    collection = models.ForeignKey(SolutionCollection, on_delete=models.CASCADE, related_name="entries")
+    share = models.ForeignKey(SolutionPublicShare, on_delete=models.CASCADE, related_name="collection_entries")
+    anchor = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    position = models.PositiveIntegerField()
+    # Bind to this sharing session. Stop + reshare must not revive old collections.
+    share_token = models.UUIDField()
+
+    class Meta:
+        ordering = ["position", "id"]
+        constraints = [
+            models.UniqueConstraint(fields=["collection", "share"], name="solutions_collection_unique_share"),
+        ]
+
+    def __str__(self):
+        return f"Collection {self.collection_id}: solution share {self.share_id} at {self.position}"
+
+
 class SolutionBlockType(models.Model):
     slug = models.SlugField(unique=True)
     label = models.CharField(max_length=64)

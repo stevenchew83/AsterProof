@@ -23,6 +23,13 @@
 
   {% include 'solutions/partials/solution-guide.html' %}
 
+  {% if solution_collections %}
+  <section class="card mt-3"><div class="card-body">
+    <h2 class="h5">Your collections</h2>
+    <ul class="list-group list-group-flush">{% for collection in solution_collections %}<li class="list-group-item d-flex align-items-center justify-content-between gap-3 px-0"><div><a class="fw-semibold" href="{% url 'solutions:collection_edit' collection.pk %}">{{ collection.title }}</a><span class="text-muted fs-xs d-block">{{ collection.entry_count }} selected solution{{ collection.entry_count|pluralize }} · {% if collection.is_active %}Public link active{% else %}Sharing stopped{% endif %}</span></div><a href="{% url 'solutions:collection_edit' collection.pk %}" class="btn btn-outline-secondary btn-sm">Manage collection</a></li>{% endfor %}</ul>
+  </div></section>
+  {% endif %}
+
   {% if my_solution_stats.total %}
   <div class="row g-3 mt-0">
     <div class="col-sm-6 col-xl-3">
@@ -111,10 +118,19 @@
     </div>
     <div class="card-body">
       {% if my_solution_rows %}
+      <form method="get" action="{% url 'solutions:collection_create' %}" data-collection-selection>
+      <div class="d-flex align-items-center flex-wrap gap-2 mb-3">
+        <label class="visually-hidden" for="collection-solution-search">Filter your solutions</label>
+        <input type="search" class="form-control form-control-sm w-auto" id="collection-solution-search" placeholder="Filter your solutions" data-collection-filter />
+        <button class="btn btn-outline-primary btn-sm" data-collection-submit>Share selected solutions</button>
+        <span class="text-muted fs-xs" role="status" aria-live="polite" data-selection-count>Select solutions in reading order.</span>
+      </div>
+      <div class="mb-3" data-selection-tray hidden><h3 class="h6">Selected reading order</h3><ol class="list-group list-group-numbered" data-collection-order></ol></div>
       <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
         <table class="app-table-compact table align-middle mb-0">
           <thead>
             <tr class="text-muted fs-xs text-uppercase">
+              <th><span class="visually-hidden">Select for collection</span></th>
               <th>Problem</th>
               <th>Status</th>
               <th>Blocks</th>
@@ -124,7 +140,8 @@
           </thead>
           <tbody>
             {% for row in my_solution_rows %}
-            <tr>
+            <tr data-solution-row>
+              <td><input type="checkbox" name="solution" value="{{ row.id }}" class="form-check-input" data-solution-choice data-solution-label="{{ row.title }} · {{ row.problem_label }}" aria-label="Select {{ row.problem_label }} for collection" /><span class="badge bg-primary-subtle text-primary ms-1" data-selection-number hidden></span></td>
               <td>
                 <span class="fw-semibold">{{ row.problem_label }}</span>
                 <span class="text-muted fs-12 app-table-meta">{{ row.title }}</span>
@@ -144,6 +161,7 @@
           </tbody>
         </table>
       </div>
+      </form>
       {% else %}
       <div class="alert alert-info mb-0" role="alert">
         You have not started any solutions yet. Pick a statement-backed problem and create your first draft.
@@ -156,3 +174,4 @@
   </div>
 </div>
 {% endblock page_content %}
+{% block extra_javascript %}<script src="{% static 'js/solution-collections.js' %}" defer></script>{% endblock extra_javascript %}

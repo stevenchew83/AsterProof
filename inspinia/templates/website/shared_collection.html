@@ -1,0 +1,43 @@
+{% extends 'website/base.html' %}
+{% load static %}
+{% block public_stylesheet %}{% static 'css/public-shared.min.css' %}{% endblock public_stylesheet %}
+{% block public_content %}
+<div class="website-container public-shared-page public-collection-page">
+  <div class="public-shared-toolbar">
+    <p>A solution collection · Read without an account</p>
+    <div>
+      <button type="button" class="website-text-link" data-copy-public-link="{{ canonical_url }}">Copy collection link</button>
+      <a href="{{ whatsapp_url }}" target="_blank" rel="noopener noreferrer" class="website-text-link">Share on WhatsApp ↗</a>
+    </div>
+  </div>
+  <p class="website-fineprint" data-copy-feedback role="status"></p>
+  <header class="public-collection-header">
+    <p class="website-kicker">{{ collection_rows|length }} solution{{ collection_rows|length|pluralize }}</p>
+    <h1>{{ collection.title }}</h1>
+    {% if collection.introduction %}<p class="public-collection-introduction">{{ collection.introduction }}</p>{% endif %}
+  </header>
+  {% if collection_rows %}
+  <div class="public-collection-layout">
+    <nav class="public-collection-contents" aria-label="Collection contents" id="collection-contents">
+      <details open data-collection-contents>
+        <summary>Contents <span aria-hidden="true">⌄</span></summary>
+        <ol>{% for row in collection_rows %}<li><a href="#{{ row.anchor }}">{{ row.snapshot.title }}</a><span>{{ row.snapshot.problem.label }}</span></li>{% endfor %}</ol>
+      </details>
+    </nav>
+    <div class="public-collection-solutions">
+      {% for row in collection_rows %}
+      <section class="public-collection-entry" aria-label="Solution {{ forloop.counter }}">
+        <div class="public-collection-entry-links"><span>Solution {{ forloop.counter }}</span><a href="#collection-contents">Back to contents ↑</a><button type="button" data-copy-public-link="{{ canonical_url }}#{{ row.anchor }}">Copy solution link</button></div>
+        {% include 'solutions/partials/shared-solution-content.html' with snapshot=row.snapshot shared_anchor=row.anchor %}
+      </section>
+      {% endfor %}
+    </div>
+  </div>
+  {% else %}<p class="public-collection-empty">No solutions are currently available in this collection.</p>{% endif %}
+</div>
+{% endblock public_content %}
+{% block website_javascript %}
+  <script src="{% static 'js/solution-sharing.js' %}" defer></script>
+  <script src="{% static 'js/solution-collection-public.js' %}" defer></script>
+  {% include 'solutions/partials/shared-solution-math.html' %}
+{% endblock website_javascript %}

@@ -1,0 +1,107 @@
+{% extends 'layouts/vertical.html' %}
+{% load static %}
+{% block title %}{% if collection %}Edit collection{% else %}Share a collection{% endif %}{% endblock title %}
+{% block extra_css %}{% if review_rows %}<link href="{% static 'css/public-shared.min.css' %}" rel="stylesheet" />{% endif %}{% endblock extra_css %}
+{% block page_content %}
+<div class="container-fluid">
+  {% include 'partials/page-title.html' with title='Solution collection' subtitle='My solutions' page_icon='ti-stack-2' %}
+  <p><a href="{% url 'solutions:my_solution_list' %}" class="btn btn-outline-secondary btn-sm"><i class="ti ti-arrow-left me-1" aria-hidden="true"></i>My solutions</a></p>
+  {% for message in messages %}<div class="alert alert-{{ message.tags|default:'info' }}" role="status">{{ message }}</div>{% endfor %}
+  {% if form.errors %}<div class="alert alert-danger" role="alert">{{ form.non_field_errors }}{% for field in form %}{{ field.errors }}{% endfor %}</div>{% endif %}
+  {% if review_rows %}
+  <div class="card"><div class="card-body">
+    <h2 class="h4">Review your public collection</h2>
+    <h3 class="h5">{{ form.title.value }}</h3>
+    {% if form.introduction.value %}<p class="text-break">{{ form.introduction.value|linebreaksbr }}</p>{% endif %}
+    <p>Anyone with the link can read and forward these copies without an account. Search engines are asked not to index them.</p>
+    <p class="text-muted fs-sm">Existing shared versions are reused. New saved copies shown below become public when you confirm. Saving editor changes stays private; updating a solution’s shared version updates every collection containing it.</p>
+    <ol>{% for row in review_rows %}<li><a href="#{{ row.anchor }}">{{ row.snapshot.title }}</a> — {% if row.is_shared %}existing shared copy{% else %}<strong>saved copy to share</strong>{% endif %}</li>{% endfor %}</ol>
+    <form method="post" data-share-form>
+      {% csrf_token %}
+      <input type="hidden" name="collection_revision" value="{{ collection_revision }}" />
+      <input type="hidden" name="review_token" value="{{ review_token }}" />
+      <input type="hidden" name="title" value="{{ form.title.value }}" />
+      <input type="hidden" name="introduction" value="{{ form.introduction.value|default:'' }}" />
+      {% for solution in selected_solutions %}<input type="hidden" name="solution" value="{{ solution.pk }}" />{% endfor %}
+      <div class="d-flex gap-2 flex-wrap">
+        <button class="btn btn-primary" name="action" value="publish">{% if collection.is_active %}Update public collection{% else %}Create public collection{% endif %}</button>
+        <button class="btn btn-outline-secondary" name="action" value="edit">Back to editing</button>
+      </div>
+    </form>
+  </div></div>
+  {% for row in review_rows %}
+  <section class="mt-3">
+    <p class="text-muted fs-sm">{{ forloop.counter }}. {% if row.is_shared %}Existing shared copy{% else %}Saved copy to share{% endif %} · <a href="{{ row.share_manage_url }}" target="_blank" rel="noopener noreferrer">Manage this solution’s shared version ↗</a></p>
+    {% include 'solutions/partials/shared-solution-content.html' with snapshot=row.snapshot shared_anchor=row.anchor review_snapshot=True %}
+  </section>
+  {% endfor %}
+  {% else %}
+  <div class="row g-3">
+    <div class="col-lg-8">
+      <form method="post" class="card" data-collection-builder data-max-solutions="{{ max_collection_solutions }}">
+        <div class="card-body">
+          {% csrf_token %}<input type="hidden" name="collection_revision" value="{{ collection_revision }}" />
+          <h2 class="h4">{% if collection %}Edit collection{% else %}Create a collection{% endif %}</h2>
+          <div class="mb-3"><label class="form-label" for="{{ form.title.id_for_label }}">Title</label>{{ form.title }}</div>
+          <div class="mb-3"><label class="form-label" for="{{ form.introduction.id_for_label }}">Introduction <span class="text-muted">(optional)</span></label>{{ form.introduction }}</div>
+          <h3 class="h5">Reading order</h3>
+          <p class="text-muted fs-sm">Solutions start in the order you selected them. Use the arrows to reorder. You can include up to {{ max_collection_solutions }}.</p>
+          <ol class="list-group list-group-numbered mb-3" data-collection-order>
+            {% for solution in selected_solutions %}
+            <li class="list-group-item d-flex align-items-center gap-2" data-collection-item="{{ solution.pk }}">
+              <input type="hidden" name="solution" value="{{ solution.pk }}" />
+              <span class="flex-grow-1 text-break" data-collection-label>{% firstof solution.title solution.problem.contest_year_problem solution.problem %}</span>
+              <div class="d-flex gap-1 flex-shrink-0">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-collection-move="up" aria-label="Move solution up"><i class="ti ti-arrow-up" aria-hidden="true"></i></button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-collection-move="down" aria-label="Move solution down"><i class="ti ti-arrow-down" aria-hidden="true"></i></button>
+                <button type="button" class="btn btn-outline-danger btn-sm" data-collection-remove aria-label="Remove solution"><i class="ti ti-x" aria-hidden="true"></i></button>
+              </div>
+            </li>
+            {% endfor %}
+          </ol>
+          <label for="collection-add" class="form-label">Add a solution</label>
+          <div class="d-flex gap-2 mb-3">
+            <select id="collection-add" class="form-select" data-collection-add><option value="">Choose from your saved solutions</option>{% for solution in available_solutions %}<option value="{{ solution.pk }}">{% firstof solution.title solution.problem.contest_year_problem solution.problem %} · {% firstof solution.problem.contest_year_problem solution.problem %}</option>{% endfor %}</select>
+            <button type="button" class="btn btn-outline-primary" data-collection-add-button>Add</button>
+          </div>
+          <p class="text-muted fs-sm" role="status" aria-live="polite" data-collection-feedback></p>
+          <button class="btn btn-primary" name="action" value="review">Review before sharing</button>
+          <p class="text-muted fs-xs mt-3 mb-0">The next step shows exactly which copies will be public. Removing an entry here does not stop its individual solution link.</p>
+        </div>
+      </form>
+    </div>
+    <div class="col-lg-4">
+      {% if share_url %}
+      <section class="card"><div class="card-body">
+        <h2 class="h5">Public collection link</h2>
+        <label class="visually-hidden" for="public-solution-url">Public collection link</label>
+        <input id="public-solution-url" class="form-control mb-3" readonly value="{{ share_url }}" />
+        <div class="d-flex gap-2 flex-wrap"><button class="btn btn-primary btn-sm" data-copy-public-link="{{ share_url }}">Copy link</button><a href="{{ share_url }}" class="btn btn-outline-primary btn-sm" target="_blank" rel="noopener noreferrer">Open public page</a><a href="{{ whatsapp_url }}" class="btn btn-outline-secondary btn-sm" target="_blank" rel="noopener noreferrer">WhatsApp ↗</a></div>
+        <p class="text-muted fs-xs mt-2" role="status" data-copy-feedback></p>
+        <hr />
+        <form method="post" data-share-form>{% csrf_token %}<input type="hidden" name="collection_revision" value="{{ collection_revision }}" /><button class="btn btn-outline-danger btn-sm" name="action" value="stop">Stop sharing collection</button></form>
+        <p class="text-muted fs-xs mt-2 mb-0">Stops this collection link. Individual solution links stay active. Sharing this collection again creates a new link.</p>
+      </div></section>
+      {% elif collection %}<div class="alert alert-info">Collection sharing is stopped. Review and share again to create a new link.</div>{% endif %}
+      {% if not collection and other_collections %}
+      <section class="card"><div class="card-body">
+        <h2 class="h5">Add to an existing collection</h2>
+        <form method="get" data-existing-collection>
+          {% for solution in selected_solutions %}<input type="hidden" name="solution" value="{{ solution.pk }}" />{% endfor %}
+          <label class="visually-hidden" for="target-collection">Choose a collection</label>
+          <select id="target-collection" class="form-select mb-2" name="target_collection" required>{% for item in other_collections %}<option value="{{ item.pk }}">{{ item.title }}{% if not item.is_active %} (stopped){% endif %}</option>{% endfor %}</select>
+          <button class="btn btn-outline-secondary btn-sm">Continue with this collection</button>
+        </form>
+      </div></section>
+      {% endif %}
+      <p class="text-muted fs-sm mt-3">Editor saves stay private. Collections show the existing shared copy of each solution. Stopping a solution’s sharing removes it from every collection.</p>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock page_content %}
+{% block extra_javascript %}
+  <script src="{% static 'js/solution-collections.js' %}" defer></script>
+  <script src="{% static 'js/solution-sharing.js' %}" defer></script>
+  {% if review_rows %}{% include 'solutions/partials/shared-solution-math.html' %}{% endif %}
+{% endblock extra_javascript %}

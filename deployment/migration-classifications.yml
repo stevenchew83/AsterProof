@@ -2,6 +2,16 @@
   "format_version": 1,
   "baseline_sha": null,
   "migrations": {
+    "solutions.0007_solutioncollection_solutioncollectionentry": {
+      "classification": "backward-compatible-schema",
+      "recovery_required": false,
+      "code_rollback_permitted": true,
+      "data_preconditions": [
+        "solution_collection_tables_absent",
+        "existing_solutions_shares_accounts_and_progress_preserved"
+      ],
+      "rationale": "Creates only collection and ordered-entry tables with cascading owner/share foreign keys and unique public tokens and entry anchors. No data migration, backfill, or automatic sharing. Prior application code remains compatible with the additive tables; code recovery must retain collection links and revocation state. This classification does not expand the installed root-owned migration authority; a separate bounded allowance and PostgreSQL rehearsal remain required."
+    },
     "solutions.0006_solution_share_daily_views": {
       "classification": "backward-compatible-schema",
       "recovery_required": false,

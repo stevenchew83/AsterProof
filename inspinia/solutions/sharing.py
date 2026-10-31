@@ -19,6 +19,10 @@ def public_share_url(share):
     return settings.PUBLIC_SITE_ORIGIN.rstrip("/") + reverse("solutions:public_solution", args=[share.token])
 
 
+def public_collection_url(collection):
+    return settings.PUBLIC_SITE_ORIGIN.rstrip("/") + reverse("solutions:public_collection", args=[collection.token])
+
+
 def whatsapp_share_url(url):
     return "https://wa.me/?" + urlencode({"text": url})
 

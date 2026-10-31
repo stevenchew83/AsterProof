@@ -28,6 +28,7 @@
         <details class="solution-share-more" data-share-options>
           <summary>More options</summary>
           <div class="solution-share-more-body">
+            <a class="d-block mb-2" href="{% url 'solutions:collection_create' %}?solution={{ form.instance.pk }}">Add to a collection</a>
             <p class="solution-share-saved-title" data-share-saved-title></p>
             <p class="text-muted fs-xs" data-share-saved-credit hidden></p>
             <a class="d-block" data-share-review target="_blank" rel="noopener noreferrer" hidden>Review saved changes ↗</a>
