@@ -1,0 +1,557 @@
+// Existing progress widgets are also inherited by the shared learner dashboard.
+.completion-progress-filter-row {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: .75rem;
+  align-items: end;
+}
+
+.completion-progress-field {
+  grid-column: span 2;
+}
+
+.completion-progress-field.is-wide {
+  grid-column: span 3;
+}
+
+.completion-progress-field.is-actions {
+  grid-column: span 12;
+}
+
+.completion-progress-advanced-wrap {
+  grid-column: span 12;
+}
+
+.completion-progress-advanced-fields {
+  border-top: 1px solid var(--ins-border-color);
+  display: grid;
+  gap: .75rem;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  margin-top: .25rem;
+  padding-top: .75rem;
+}
+
+.completion-progress-filter-chips {
+  border-top: 1px solid var(--ins-border-color);
+  margin-top: 1rem;
+  padding-top: .75rem;
+}
+
+.completion-progress-chart {
+  min-height: 320px;
+}
+
+.completion-progress-empty-state {
+  align-items: center;
+  border: 1px dashed var(--ins-border-color);
+  border-radius: .5rem;
+  display: flex;
+  min-height: 220px;
+  padding: 1.5rem;
+}
+
+.completion-progress-empty-state.is-compact {
+  min-height: 0;
+}
+
+.completion-progress-secondary-metrics {
+  display: grid;
+  gap: .75rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.completion-progress-secondary-metric {
+  border-left: 1px solid var(--ins-border-color);
+  padding-left: .75rem;
+}
+
+.completion-progress-secondary-metric:first-child {
+  border-left: 0;
+  padding-left: 0;
+}
+
+.completion-progress-insight-strip {
+  display: grid;
+  gap: .75rem;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.completion-progress-insight {
+  border: 1px solid var(--ins-border-color);
+  border-radius: .5rem;
+  padding: .85rem;
+}
+
+.completion-progress-insight-value {
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.completion-progress-yearly-heatmap-wrap {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 0.35rem;
+}
+
+.completion-progress-yearly-heatmap-canvas {
+  display: inline-block;
+  min-width: max-content;
+}
+
+.completion-progress-yearly-heatmap {
+  --completion-progress-yearly-cell-size: 0.86rem;
+  --completion-progress-yearly-cell-gap: 0.22rem;
+  --completion-progress-yearly-weekday-width: 2.25rem;
+  --completion-progress-yearly-cell-border: rgba(27, 31, 36, 0.06);
+  --completion-progress-yearly-empty: #ebedf0;
+  --completion-progress-yearly-level-1: #9be9a8;
+  --completion-progress-yearly-level-2: #40c463;
+  --completion-progress-yearly-level-3: #30a14e;
+  --completion-progress-yearly-level-4: #216e39;
+}
+
+[data-bs-theme="dark"] .completion-progress-yearly-heatmap {
+  --completion-progress-yearly-cell-border: rgba(240, 246, 252, 0.08);
+  --completion-progress-yearly-empty: #161b22;
+  --completion-progress-yearly-level-1: #0e4429;
+  --completion-progress-yearly-level-2: #006d32;
+  --completion-progress-yearly-level-3: #26a641;
+  --completion-progress-yearly-level-4: #39d353;
+}
+
+.completion-progress-yearly-section + .completion-progress-yearly-section {
+  border-top: 1px solid var(--ins-border-color);
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+}
+
+.completion-progress-yearly-months {
+  display: grid;
+  grid-auto-columns: var(--completion-progress-yearly-cell-size);
+  grid-auto-flow: column;
+  gap: var(--completion-progress-yearly-cell-gap);
+  margin-bottom: 0.35rem;
+  margin-left: calc(var(--completion-progress-yearly-weekday-width) + var(--completion-progress-yearly-cell-gap));
+}
+
+.completion-progress-yearly-month {
+  color: var(--ins-secondary-color);
+  font-size: 0.72rem;
+  line-height: 1;
+  min-height: 0.8rem;
+  white-space: nowrap;
+}
+
+.completion-progress-yearly-body {
+  display: flex;
+  gap: var(--completion-progress-yearly-cell-gap);
+}
+
+.completion-progress-yearly-weekdays {
+  display: grid;
+  gap: var(--completion-progress-yearly-cell-gap);
+  grid-template-rows: repeat(7, var(--completion-progress-yearly-cell-size));
+  width: var(--completion-progress-yearly-weekday-width);
+}
+
+.completion-progress-yearly-weekday {
+  align-items: center;
+  color: var(--ins-secondary-color);
+  display: flex;
+  font-size: 0.68rem;
+  line-height: var(--completion-progress-yearly-cell-size);
+}
+
+.completion-progress-yearly-grid {
+  display: grid;
+  gap: var(--completion-progress-yearly-cell-gap);
+  grid-auto-flow: column;
+  grid-template-rows: repeat(7, var(--completion-progress-yearly-cell-size));
+}
+
+.completion-progress-yearly-week {
+  display: contents;
+}
+
+.completion-progress-yearly-cell {
+  background: var(--completion-progress-yearly-empty);
+  border: 1px solid var(--completion-progress-yearly-cell-border);
+  border-radius: 0.18rem;
+  display: block;
+  height: var(--completion-progress-yearly-cell-size);
+  min-width: var(--completion-progress-yearly-cell-size);
+  width: var(--completion-progress-yearly-cell-size);
+}
+
+.completion-progress-yearly-cell.is-outside {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.completion-progress-yearly-cell.is-today {
+  box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.38);
+}
+
+.completion-progress-yearly-cell.level-0 {
+  background: var(--completion-progress-yearly-empty);
+}
+
+.completion-progress-yearly-cell.level-1 {
+  background: var(--completion-progress-yearly-level-1);
+}
+
+.completion-progress-yearly-cell.level-2 {
+  background: var(--completion-progress-yearly-level-2);
+}
+
+.completion-progress-yearly-cell.level-3 {
+  background: var(--completion-progress-yearly-level-3);
+}
+
+.completion-progress-yearly-cell.level-4 {
+  background: var(--completion-progress-yearly-level-4);
+}
+
+.completion-progress-yearly-legend {
+  align-items: center;
+  color: var(--ins-secondary-color);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.72rem;
+  gap: 0.45rem;
+}
+
+.completion-progress-yearly-legend-scale {
+  display: inline-flex;
+  gap: var(--completion-progress-yearly-cell-gap);
+}
+
+.completion-progress-yearly-legend-swatch {
+  border: 1px solid var(--completion-progress-yearly-cell-border);
+  border-radius: 0.18rem;
+  display: inline-flex;
+  height: var(--completion-progress-yearly-cell-size);
+  width: var(--completion-progress-yearly-cell-size);
+}
+
+.completion-progress-yearly-legend-swatch.level-0 {
+  background: var(--completion-progress-yearly-empty);
+}
+
+.completion-progress-yearly-legend-swatch.level-1 {
+  background: var(--completion-progress-yearly-level-1);
+}
+
+.completion-progress-yearly-legend-swatch.level-2 {
+  background: var(--completion-progress-yearly-level-2);
+}
+
+.completion-progress-yearly-legend-swatch.level-3 {
+  background: var(--completion-progress-yearly-level-3);
+}
+
+.completion-progress-yearly-legend-swatch.level-4 {
+  background: var(--completion-progress-yearly-level-4);
+}
+
+.completion-progress-contest-legend {
+  gap: 0.75rem;
+}
+
+.completion-progress-contest-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--bs-secondary-color);
+  font-size: 0.78rem;
+}
+
+.completion-progress-contest-legend-swatch {
+  width: 0.95rem;
+  height: 0.95rem;
+  display: inline-flex;
+  border-radius: 0.3rem;
+  border: 1px solid rgba(17, 32, 59, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.completion-progress-contest-legend-swatch-solved {
+  background: #2fbf71;
+}
+
+.completion-progress-contest-legend-swatch-partial {
+  background: #f1b44c;
+}
+
+.completion-progress-contest-legend-swatch-unsolved {
+  background: #e25563;
+}
+
+.completion-progress-contest-legend-swatch-empty {
+  background: #d6d9e0;
+}
+
+.completion-progress-contest-heatmap-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 0.25rem;
+}
+
+#chart-completion-progress-contest-heatmap {
+  min-height: 240px;
+}
+
+#chart-completion-progress-contest-heatmap.completion-progress-contest-heatmap-clickable .apexcharts-heatmap-rect,
+#chart-completion-progress-contest-heatmap.completion-progress-contest-heatmap-clickable .apexcharts-series rect {
+  cursor: pointer;
+}
+
+.completion-progress-contest-export-actions .btn {
+  min-width: 7.75rem;
+}
+
+.completion-progress-contest-export-status {
+  min-height: 1rem;
+}
+
+.completion-progress-matrix-wrap {
+  border: 1px solid var(--ins-border-color);
+  border-radius: .5rem;
+  overflow-x: auto;
+}
+
+#completion-progress-topic-mohs-matrix {
+  min-width: 42rem;
+}
+
+#completion-progress-topic-mohs-matrix th,
+#completion-progress-topic-mohs-matrix td {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.completion-progress-matrix-topic {
+  min-width: 9rem;
+}
+
+.completion-progress-matrix-cell {
+  min-width: 4.25rem;
+}
+
+.completion-progress-matrix-cell.is-active {
+  background: rgba(var(--bs-primary-rgb), .11);
+  color: var(--bs-primary);
+  font-weight: 700;
+}
+
+.completion-progress-matrix-actions .btn {
+  min-width: 6.75rem;
+}
+
+.completion-progress-matrix-status {
+  min-height: 1rem;
+}
+
+.completion-progress-difficulty-editor {
+  min-width: 10rem;
+}
+
+.completion-progress-difficulty-input {
+  min-width: 4.5rem;
+}
+
+#completion-progress-table_wrapper .dt-layout-row {
+  margin: .5rem 0;
+}
+
+#completion-progress-table_wrapper .dt-length label,
+#completion-progress-table_wrapper .dt-search label {
+  color: var(--bs-secondary-color);
+  font-size: .75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+#completion-progress-table_wrapper .dt-length .form-select,
+#completion-progress-table_wrapper .dt-search .form-control {
+  font-size: .8125rem;
+  min-height: calc(1.5em + .5rem + 2px);
+  padding-bottom: .25rem;
+  padding-top: .25rem;
+}
+
+@media (max-width: 1199.98px) {
+  .completion-progress-field,
+  .completion-progress-field.is-wide {
+    grid-column: span 4;
+  }
+
+  .completion-progress-secondary-metrics,
+  .completion-progress-insight-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 767.98px) {
+  .completion-progress-field,
+  .completion-progress-field.is-wide {
+    grid-column: span 12;
+  }
+
+  .completion-progress-advanced-fields,
+  .completion-progress-secondary-metrics,
+  .completion-progress-insight-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .completion-progress-secondary-metric {
+    border-left: 0;
+    border-top: 1px solid var(--ins-border-color);
+    padding-left: 0;
+    padding-top: .75rem;
+  }
+
+  .completion-progress-secondary-metric:first-child {
+    border-top: 0;
+    padding-top: 0;
+  }
+}
+
+// The records-page visual language, scoped away from shared learner dashboards.
+.completion-progress-page {
+    padding-bottom: 1.5rem;
+
+    .card { min-width: 0; border: 1px solid var(--ins-border-color); box-shadow: none; margin-bottom: 0; }
+    .card-header { display: block; padding: 1rem 1.25rem .75rem; background: transparent; border: 0; }
+    .card-body { min-width: 0; padding: 1rem 1.25rem; }
+    .header-title { margin: 0 0 .25rem; font-size: .9375rem; font-weight: 600; letter-spacing: -.01em; }
+    .row > * { min-width: 0; }
+    [id^="completion-progress-"] { scroll-margin-top: 5.5rem; }
+    a:focus-visible, button:focus-visible, summary:focus-visible {
+        outline: 2px solid var(--ins-primary);
+        outline-offset: 3px;
+        border-radius: var(--ins-border-radius-sm);
+    }
+
+    .completion-progress-overview { display: flex; flex-wrap: wrap; align-items: start; justify-content: space-between; gap: 1rem; padding: .5rem .25rem 1.25rem; }
+    .completion-progress-metrics { display: flex; gap: clamp(1.5rem, 3vw, 3rem); margin: 0; }
+    .completion-progress-metrics dt { color: var(--ins-secondary-color); font-size: .75rem; font-weight: 500; }
+    .completion-progress-metrics dd { display: flex; align-items: baseline; gap: .375rem; margin: .125rem 0 0; font-size: 1.625rem; font-weight: 600; line-height: 1.25; font-variant-numeric: tabular-nums; }
+    .completion-progress-metrics dd span, .completion-progress-metrics small { color: var(--ins-secondary-color); font-size: .6875rem; font-weight: 400; }
+    .completion-progress-overview-meta { display: flex; flex-direction: column; align-items: end; gap: .25rem; max-width: 35%; color: var(--ins-secondary-color); font-size: .75rem; overflow-wrap: anywhere; text-align: end; }
+    .completion-progress-subject { color: var(--ins-body-color); font-weight: 600; }
+    .completion-progress-quality { display: flex; flex-wrap: wrap; flex: 1 1 100%; gap: .5rem 1.5rem; margin: -.125rem 0 0; }
+    .completion-progress-quality > div { display: flex; align-items: baseline; gap: .375rem; }
+    .completion-progress-quality dt { color: var(--ins-secondary-color); font-size: .75rem; font-weight: 400; }
+    .completion-progress-quality dd { margin: 0; font-size: .75rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+    .completion-progress-filter-panel { padding: 1rem 1.25rem .875rem; }
+    .completion-progress-primary-filters { display: flex; flex-wrap: wrap; align-items: end; gap: .75rem; }
+    .completion-progress-primary-filters > div { flex: 1 1 10rem; min-width: 0; }
+    .completion-progress-primary-filters .completion-progress-user-field { flex: 1.3 1 12rem; }
+    .completion-progress-primary-filters .completion-progress-range-field { flex: .7 1 8rem; }
+    .completion-progress-primary-filters .completion-progress-search-field { flex: 1.2 1 12rem; }
+    .completion-progress-filters {
+        .form-label { color: var(--ins-secondary-color); font-size: .75rem; font-weight: 500; margin-bottom: .375rem; }
+        .form-control, .form-select, .btn { min-height: 2.25rem; }
+        .btn { white-space: nowrap; }
+    }
+    .completion-progress-search-input { position: relative; }
+    .completion-progress-search-input > .ti { position: absolute; top: 50%; left: .75rem; transform: translateY(-50%); color: var(--ins-secondary-color); }
+    .completion-progress-search-input input { padding-left: 2.2rem; }
+    .completion-progress-filter-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .875rem; }
+    .completion-progress-advanced-fields { grid-template-columns: repeat(6, minmax(0, 1fr)); margin-top: .875rem; padding-top: .875rem; }
+    .completion-progress-filter-chips { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; margin-top: .875rem; padding-top: .75rem; font-size: .75rem; color: var(--ins-secondary-color); }
+    .completion-progress-filter-chips .badge { max-width: 100%; padding: .375rem .5rem; white-space: normal; overflow-wrap: anywhere; font-weight: 500; }
+
+    .completion-progress-section-nav { display: flex; flex-wrap: wrap; gap: .375rem 1.5rem; padding: .875rem .25rem; }
+    .completion-progress-section-nav a { color: var(--ins-secondary-color); font-size: .75rem; font-weight: 500; text-decoration: none; }
+    .completion-progress-section-nav a:hover { color: var(--ins-primary-text-emphasis); }
+    .completion-progress-chart { min-height: 260px; }
+    .completion-progress-chart-note { margin: 0; padding: .625rem 1.25rem; color: var(--ins-secondary-color); border-top: 1px solid var(--ins-border-color-translucent); font-size: .6875rem; }
+    .completion-progress-trends .card { overflow: hidden; }
+    .completion-progress-empty-state { min-height: 180px; padding: 1.25rem; background: var(--ins-tertiary-bg); border: 0; border-radius: var(--ins-border-radius); }
+    .completion-progress-empty-state.is-compact { min-height: 0; padding: 1rem; }
+
+    .completion-progress-comparison { margin-top: 1rem; border: 1px solid var(--ins-border-color); border-radius: var(--ins-border-radius); }
+    .completion-progress-comparison > summary { display: flex; align-items: center; flex-wrap: wrap; gap: .375rem .875rem; padding: .75rem 1rem; font-size: .8125rem; font-weight: 600; cursor: pointer; list-style: none; }
+    .completion-progress-comparison > summary::-webkit-details-marker { display: none; }
+    .completion-progress-comparison > summary > .ti { margin-left: auto; color: var(--ins-secondary-color); transition: transform .15s ease; }
+    .completion-progress-comparison[open] > summary > .ti { transform: rotate(180deg); }
+    .completion-progress-comparison-scope { color: var(--ins-secondary-color); font-size: .6875rem; font-weight: 400; }
+    .completion-progress-insight-strip { grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr)); gap: .75rem; padding: .875rem 1rem; border-top: 1px solid var(--ins-border-color); }
+    .completion-progress-insight { min-width: 0; border: 0; border-inline-start: 1px solid var(--ins-border-color); border-radius: 0; padding: 0 0 0 .75rem; }
+    .completion-progress-insight:first-child { border: 0; padding: 0; }
+    .completion-progress-insight-value { font-size: 1.125rem; font-weight: 600; font-variant-numeric: tabular-nums; margin-bottom: .25rem; }
+    .completion-progress-breakdown-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; }
+    .completion-progress-breakdown-header .header-title { margin-bottom: .75rem; }
+    .completion-progress-breakdown-header .card-header-tabs { gap: .25rem; margin-inline: 0; }
+    .completion-progress-breakdown-header .nav-link { color: var(--ins-secondary-color); font-size: .8125rem; padding: .625rem .875rem; }
+    .completion-progress-breakdown-header .nav-link.active { color: var(--ins-primary-text-emphasis); background: var(--ins-secondary-bg); }
+
+    .completion-progress-yearly-heatmap {
+        --completion-progress-yearly-cell-border: var(--ins-border-color-translucent);
+        --completion-progress-yearly-empty: var(--ins-tertiary-bg);
+        --completion-progress-yearly-level-1: var(--ins-primary-bg-subtle);
+        --completion-progress-yearly-level-2: var(--ins-primary-border-subtle);
+        --completion-progress-yearly-level-3: var(--ins-primary);
+        --completion-progress-yearly-level-4: var(--ins-primary-text-emphasis);
+    }
+    .completion-progress-yearly-heatmap-wrap { padding: .75rem; background: var(--ins-secondary-bg); border: 1px solid var(--ins-border-color); border-radius: var(--ins-border-radius); }
+    .completion-progress-yearly-heatmap-canvas { display: block; width: max-content; margin-inline: auto; }
+    .completion-progress-yearly-cell.is-today { box-shadow: 0 0 0 2px rgba(var(--ins-primary-rgb), .4); }
+    .completion-progress-matrix-wrap { border-radius: var(--ins-border-radius); }
+    .completion-progress-matrix-cell.is-active { background: var(--ins-primary-bg-subtle); color: var(--ins-primary-text-emphasis); }
+    .completion-progress-contest-legend-item { color: var(--ins-secondary-color); font-size: .75rem; }
+    .completion-progress-contest-export-actions .btn { min-width: 0; }
+    .completion-progress-matrix-actions .btn { min-width: 0; }
+    .completion-progress-records { margin-top: 1rem; }
+    #completion-progress-table { min-width: 780px; }
+    #completion-progress-table th { font-size: .6875rem; }
+    #completion-progress-table td { font-size: .8125rem; padding: .625rem; }
+    #completion-progress-table a { color: var(--ins-body-color); }
+    #completion-progress-table a:hover { color: var(--ins-primary); }
+    #completion-progress-table_wrapper .dt-search label,
+    #completion-progress-table_wrapper .dt-length label { font-weight: 400; text-transform: none; }
+    #completion-progress-table_wrapper .dt-layout-start:has(.dt-length) { display: flex; flex-wrap: wrap; gap: .5rem 1rem; }
+    .apexcharts-text { fill: var(--ins-secondary-color); }
+    .apexcharts-tooltip, .apexcharts-xaxistooltip { background: var(--ins-secondary-bg); color: var(--ins-body-color); border-color: var(--ins-border-color); }
+    .apexcharts-tooltip-title { background: var(--ins-tertiary-bg); border-color: var(--ins-border-color); }
+    .apexcharts-legend-text { color: var(--ins-secondary-color) !important; }
+
+    @media (max-width: 991.98px) {
+        .completion-progress-overview-meta { max-width: 100%; }
+        .completion-progress-primary-filters > div,
+        .completion-progress-primary-filters .completion-progress-user-field,
+        .completion-progress-primary-filters .completion-progress-range-field,
+        .completion-progress-primary-filters .completion-progress-search-field { flex: 1 1 calc(50% - .375rem); }
+        .completion-progress-advanced-fields { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+    @media (max-width: 575.98px) {
+        .completion-progress-overview { gap: .75rem; }
+        .completion-progress-metrics { width: 100%; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .625rem; }
+        .completion-progress-metrics dt { font-size: .6875rem; min-height: 2.8em; }
+        .completion-progress-metrics dd { font-size: 1.375rem; }
+        .completion-progress-metrics dd span { display: none; }
+        .completion-progress-overview-meta { flex-direction: row; flex-wrap: wrap; gap: .25rem .75rem; align-items: baseline; text-align: start; }
+        .completion-progress-quality { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .375rem .75rem; }
+        .completion-progress-quality > div { justify-content: space-between; }
+        .completion-progress-quality dt, .completion-progress-quality dd { font-size: .6875rem; }
+        .completion-progress-filter-panel, .card-body { padding: .875rem; }
+        .card-header { padding: .875rem; }
+        .completion-progress-filter-actions { gap: .375rem; }
+        .completion-progress-filter-actions .btn { font-size: .75rem; padding-inline: .5rem; }
+        .completion-progress-filter-actions .ms-auto { margin-left: 0 !important; }
+        .completion-progress-advanced-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .completion-progress-section-nav { gap: .375rem 1.125rem; }
+        .completion-progress-insight-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .completion-progress-insight { border: 0; padding: 0; }
+        .completion-progress-comparison-scope { flex-basis: calc(100% - 2rem); order: 1; }
+        .completion-progress-chart-note { padding-inline: .875rem; }
+        .completion-progress-yearly-heatmap-wrap { padding: .625rem; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .completion-progress-comparison > summary > .ti { transition: none; }
+    }
+}
