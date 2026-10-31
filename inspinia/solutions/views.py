@@ -480,7 +480,7 @@ def _problem_solution_list_inline_form_context(
     existing_solution: ProblemSolution | None,
     post_data=None,
 ) -> dict[str, object]:
-    if existing_solution is not None and post_data is None:
+    if existing_solution is not None and post_data is None and request.GET.get("edit") != "1":
         return {
             "inline_draft_block_form": None,
             "inline_draft_form": None,
@@ -493,10 +493,21 @@ def _problem_solution_list_inline_form_context(
         status=ProblemSolution.Status.DRAFT,
     )
     form, formset = _solution_form_context(solution, post_data)
+    plain_block_type = SolutionBlockType.objects.filter(slug="plain").only("id").first()
     return {
         "inline_draft_block_form": _inline_draft_block_form(formset),
         "inline_draft_form": form,
         "inline_draft_formset": formset,
+        "plain_block_type_id": str(plain_block_type.pk) if plain_block_type else "",
+        "solution_body_image_upload_url": reverse(
+            "solutions:solution_body_image_upload", args=[problem.problem_uuid],
+        ),
+        "solution_status_label": ProblemSolution.Status(solution.status).label,
+        "public_share": (
+            SolutionPublicShare.objects.filter(solution=solution, is_active=True).first() if solution.pk else None
+        ),
+        "pdf_author_name": (request.user.name or "").strip() or "Unknown",
+        "pdf_date_label": solution_pdf_date_display(solution),
     }
 
 
@@ -557,7 +568,7 @@ def _solution_list_context(  # noqa: PLR0913
         "problem_list_add_targets": problem_list_add_target_rows(request.user),
         "problem_list_next_url": request.get_full_path(),
         "selected_solution_id": selected_solution_id,
-        "show_inline_draft_editor": show_inline_draft_editor,
+        "show_inline_draft_editor": show_inline_draft_editor or request.GET.get("edit") == "1",
         "solution_media_base_url": _solution_media_base_url(request),
         "visible_solution_empty_message": visible_solution_empty_message,
         "visible_solution_rows": visible_solution_rows,

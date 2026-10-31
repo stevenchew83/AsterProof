@@ -1607,4 +1607,4 @@ def test_problem_solution_edit_exposes_plain_block_type_for_live_preview_branch(
     response_html = response.content.decode("utf-8")
     plain_block_type = SolutionBlockType.objects.get(slug="plain")
     assert f'plainBlockTypeId: "{plain_block_type.id}"' in response_html
-    assert "function isPlainBlockType(node)" in response_html
+    assert "js/solution-editor.js" in response_html

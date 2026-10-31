@@ -1,0 +1,58 @@
+  <div id="solution-upload-feedback" class="alert alert-danger" role="alert" hidden></div>
+  <div id="solution-removed-feedback" class="alert alert-light border d-flex align-items-center gap-2 d-none" role="status"><span>Block removed.</span><button type="button" class="btn btn-link btn-sm p-0" id="solution-undo-remove">Undo</button></div>
+
+  <form method="post" novalidate id="solution-editor-form" data-pdf-document data-pdf-author="{{ pdf_author_name }}" data-pdf-date="{{ pdf_date_label }}" data-bound="{{ form.is_bound|yesno:'true,false' }}" data-saved="{{ form.instance.pk|yesno:'true,false' }}">
+    {% csrf_token %}
+    {% if writer_import %}
+    <input type="hidden" name="writer_draft_token" value="{{ writer_import.token }}">
+    <div class="alert alert-info" role="status">Your Solution Writer blocks are ready for review. Save to keep a private draft. Your original statement is an editable opening block; workspace PDFs use your profile name.</div>
+    {% endif %}
+    {{ formset.management_form }}
+    {% if form.non_field_errors or formset.non_form_errors %}
+    <div class="alert alert-danger" role="alert"><strong>Please check your solution.</strong>{{ form.non_field_errors }}{{ formset.non_form_errors }}</div>
+    {% endif %}
+    <div class="solution-editor-grid" id="solution-editor-workspace" data-view="split">
+      <section class="solution-write-pane" aria-labelledby="solution-writing-heading">
+        <div class="solution-pane-label"><span id="solution-writing-heading">Your working</span><span id="solution-writing-stats"></span></div>
+        <div class="solution-document-settings">
+          <label class="form-label fs-xs text-muted" for="{{ form.title.id_for_label }}">Solution title <span class="fw-normal">(optional)</span></label>
+          {{ form.title }}
+          {% for err in form.title.errors %}<div class="invalid-feedback d-block">{{ err }}</div>{% endfor %}
+          <details class="solution-summary-toggle"{% if form.summary.value or form.summary.errors %} open{% endif %}>
+            <summary>Key idea <span class="text-muted">(optional)</span></summary>
+            <label class="visually-hidden" for="{{ form.summary.id_for_label }}">Key idea</label>{{ form.summary }}
+            {% for err in form.summary.errors %}<div class="invalid-feedback d-block">{{ err }}</div>{% endfor %}
+          </details>
+        </div>
+        {% include 'solutions/partials/pdf-display-options.html' %}
+        <div id="solution-block-list">
+          {% for block_form in formset %}{% include 'solutions/partials/solution-block-form.html' with block_form=block_form number=forloop.counter %}{% endfor %}
+        </div>
+        <template id="solution-block-empty-form">{% include 'solutions/partials/solution-block-form.html' with block_form=formset.empty_form number='' %}</template>
+        <button type="button" class="btn btn-outline-secondary solution-add-block" id="solution-add-block"><i class="ti ti-plus me-1" aria-hidden="true"></i>Add a block</button>
+        <details class="solution-editor-help">
+          <summary><i class="ti ti-bulb me-1" aria-hidden="true"></i>Writing tips &amp; shortcuts</summary>
+          <ul>
+            <li>Use <code>$...$</code> for inline math and <code>\[...\]</code> for displayed equations.</li>
+            <li>Move blocks with the arrow buttons. The preview follows the same order.</li>
+            <li>Paste an image into a LaTeX block to upload it and insert <code>\includegraphics</code>.</li>
+            <li>Use <kbd>Ctrl</kbd> / <kbd>⌘</kbd> + <kbd>S</kbd> to save without changing progress. Use the separate <strong>Mark problem solved</strong> control to update your progress. PDF export uses your last saved solution.</li>
+          </ul>
+        </details>
+      </section>
+      <section class="solution-preview-pane" aria-labelledby="solution-preview-heading">
+        <div class="solution-preview-shell">
+          <div class="solution-pane-label"><span id="solution-preview-heading">Live preview</span><span id="solution-preview-status" class="solution-preview-live">Updates as you write</span></div>
+          <div class="solution-preview-paper">
+            <div class="se-eyebrow mb-3">Solution</div>
+            <h2 class="solution-preview-title" id="solution-preview-title">My solution</h2>
+            {% include 'solutions/partials/pdf-preview-metadata.html' %}
+            <div class="solution-preview-summary" id="solution-preview-summary" hidden></div>
+            <div id="solution-live-preview"></div>
+            <footer class="pdf-document-footer tex2jax_ignore" data-pdf-preview-footer hidden aria-label="Page number">1</footer>
+          </div>
+        </div>
+      </section>
+    </div>
+    <noscript><p class="alert alert-info mt-3">You can save this form without JavaScript. Enable JavaScript for live preview and block controls.</p></noscript>
+  </form>
