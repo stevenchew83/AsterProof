@@ -8,7 +8,6 @@ from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
-from django.urls import reverse
 
 if typing.TYPE_CHECKING:
     from allauth.socialaccount.models import SocialLogin
@@ -71,10 +70,7 @@ class AccountAdapter(DefaultAccountAdapter):
         from inspinia.solutions.writer_drafts import get_writer_draft
         from inspinia.solutions.writer_drafts import writer_handoff_url
 
-        if get_writer_draft(request):
-            redirect_url = writer_handoff_url()
-        elif not signup:
-            redirect_url = reverse("pages:user_activity_dashboard")
+        redirect_url = writer_handoff_url() if get_writer_draft(request) else user.get_login_redirect_url()
         return super().post_login(
             request,
             user,

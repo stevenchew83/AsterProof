@@ -128,6 +128,21 @@
   <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags|default:'info' }}{% endif %}" role="status">{{ message }}</div>
   {% endfor %}
 
+  {% if show_solution_guide %}
+  <aside class="alert alert-info d-flex flex-wrap align-items-center justify-content-between gap-2" aria-label="Getting started">
+    <div>
+      {% if public_share %}
+      <strong>Your public link is ready.</strong> Open Share to copy it. Saving edits here keeps the public copy unchanged until you update it.
+      {% elif guide_has_saved_content %}
+      <strong>Your solution is saved.</strong> When you are ready, open Share to review your work and create a public link. Sharing is optional.
+      {% else %}
+      <strong>Next: save your solution.</strong> Write or paste your proof into a block, check Preview, then select Save changes. Saving does not create a public link.
+      {% endif %}
+    </div>
+    <a href="{% url 'solutions:my_solution_list' %}#solution-guide" class="alert-link fs-sm">View checklist</a>
+  </aside>
+  {% endif %}
+
   <div class="solution-context-grid">
     <section class="solution-reference" aria-labelledby="solution-problem-heading">
       <div class="solution-context-heading">

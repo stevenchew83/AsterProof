@@ -61,6 +61,7 @@ from inspinia.solutions.models import ProblemSolutionBlock
 from inspinia.solutions.models import SolutionBlockType
 from inspinia.solutions.models import SolutionBodyImage
 from inspinia.solutions.models import SolutionPublicShare
+from inspinia.solutions.onboarding import solution_guide_context
 from inspinia.solutions.pdf_latex import SolutionPdfCompileError
 from inspinia.solutions.pdf_latex import SolutionPdfCompileParams
 from inspinia.solutions.pdf_latex import SolutionPdfError
@@ -78,6 +79,7 @@ from inspinia.solutions.writer_drafts import WRITER_DRAFT_SESSION_KEY
 from inspinia.solutions.writer_drafts import get_writer_draft
 from inspinia.solutions.writer_drafts import writer_editor_initial
 from inspinia.solutions.writer_drafts import writer_handoff_url
+from inspinia.users.models import User
 from inspinia.users.roles import user_has_admin_role
 
 logger = logging.getLogger(__name__)
@@ -774,10 +776,12 @@ def my_solution_list_view(request):
         .order_by("-updated_at", "-id"),
     )
     status_counts = Counter(solution.status for solution in solutions)
+    writer_draft = get_writer_draft(request)
     context = {
         "my_solution_rows": _solution_card_rows(solutions),
-        "writer_draft": get_writer_draft(request),
+        "writer_draft": writer_draft,
         "writer_handoff_url": writer_handoff_url(),
+        "solution_guide": solution_guide_context(request.user, solutions, writer_draft=writer_draft),
         "my_solution_stats": {
             "draft_total": status_counts[ProblemSolution.Status.DRAFT],
             "published_total": status_counts[ProblemSolution.Status.PUBLISHED],
@@ -786,6 +790,18 @@ def my_solution_list_view(request):
         },
     }
     return render(request, "solutions/my-solution-list.html", context)
+
+
+@login_required
+@never_cache
+@require_POST
+def solution_guide_preference_view(request):
+    statuses = {"dismiss": User.SolutionGuideStatus.DISMISSED, "show": User.SolutionGuideStatus.ACTIVE}
+    status = statuses.get(request.POST.get("action"))
+    if status is None:
+        return HttpResponseBadRequest("Choose whether to show or dismiss the solution guide.")
+    User.objects.filter(pk=request.user.pk).update(solution_guide_status=status)
+    return redirect(reverse("solutions:my_solution_list") + "#solution-guide")
 
 
 @login_required
@@ -923,9 +939,14 @@ def problem_solution_edit_view(request, problem_uuid):
     )
     editor_coverage = statement_coverage_payloads([coverage_source])[coverage_source.pk]
     plain_block_type = SolutionBlockType.objects.filter(slug="plain").only("id").first()
+    show_solution_guide = request.user.solution_guide_status == User.SolutionGuideStatus.ACTIVE
     context = {
         "form": form,
         "formset": formset,
+        "show_solution_guide": show_solution_guide,
+        "guide_has_saved_content": bool(
+            show_solution_guide and solution.pk and solution.blocks.exists(),
+        ),
         "public_share": (
             SolutionPublicShare.objects.filter(solution=solution, is_active=True).first() if solution.pk else None
         ),

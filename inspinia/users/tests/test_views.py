@@ -144,22 +144,24 @@ class TestUserRedirectView:
         view = UserRedirectView()
         request = rf.get("/fake-url")
         request.user = user
+        request.session = {}
 
         view.request = request
-        assert view.get_redirect_url() == reverse("pages:user_activity_dashboard")
+        assert view.get_redirect_url() == reverse("solutions:my_solution_list")
 
     def test_get_redirect_url_for_admin_user(self, rf: RequestFactory):
-        admin_user = UserFactory(role=User.Role.ADMIN)
+        admin_user = UserFactory(role=User.Role.ADMIN, solution_guide_status=User.SolutionGuideStatus.NOT_ENROLLED)
         view = UserRedirectView()
         request = rf.get("/fake-url")
         request.user = admin_user
+        request.session = {}
 
         view.request = request
         assert view.get_redirect_url() == reverse("pages:user_activity_dashboard")
 
 
 def test_account_login_ignores_next_and_lands_on_my_activity(client: Client):
-    user = UserFactory(password=TEST_PASSWORD)
+    user = UserFactory(password=TEST_PASSWORD, solution_guide_status=User.SolutionGuideStatus.NOT_ENROLLED)
     _verify_email(user)
 
     response = client.post(

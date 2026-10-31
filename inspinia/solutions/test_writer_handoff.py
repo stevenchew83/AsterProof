@@ -236,3 +236,13 @@ def test_homepage_does_not_render_session_draft_and_logout_clears_handoff(client
     assert "Your Solution Writer draft is waiting" in response.content.decode()
     client.post(reverse("account_logout"))
     assert WRITER_DRAFT_SESSION_KEY not in client.session
+
+
+@pytest.mark.parametrize("route", ["users:redirect", "users:approval_pending"])
+def test_draft_takes_priority_over_first_login_destination_and_guide_dismissal(client, route):
+    client.force_login(UserFactory())
+    stage(client)
+    token = client.session[WRITER_DRAFT_SESSION_KEY]["token"]
+    client.post(reverse("solutions:solution_guide_preference"), {"action": "dismiss"})
+    assert client.get(reverse(route)).url == writer_handoff_url()
+    assert client.session[WRITER_DRAFT_SESSION_KEY]["token"] == token

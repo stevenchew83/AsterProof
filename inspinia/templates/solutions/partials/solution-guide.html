@@ -1,0 +1,59 @@
+{% if solution_guide.visible %}
+<section class="card mt-3" id="solution-guide" aria-labelledby="solution-guide-heading">
+  <div class="card-body">
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+      <div>
+        <p class="text-muted fs-xs mb-1">Getting started · {{ solution_guide.completed_steps }} of 3 complete</p>
+        <h2 class="h4 mb-2" id="solution-guide-heading">{% if solution_guide.shared %}Your public link is ready{% else %}Your first solution{% endif %}</h2>
+        <p class="text-muted mb-3">{% if solution_guide.shared %}Copy your link to share your saved proof. You can keep writing and update the shared copy when you choose.{% else %}Start with a problem you have already solved. Save your proof, then share it when you are ready.{% endif %}</p>
+      </div>
+      <form method="post" action="{% url 'solutions:solution_guide_preference' %}">
+        {% csrf_token %}
+        <button type="submit" name="action" value="dismiss" class="btn btn-outline-secondary btn-sm">{% if solution_guide.shared %}Hide guide{% else %}Skip for now{% endif %}</button>
+      </form>
+    </div>
+    <div class="d-flex flex-wrap align-items-center gap-2">
+      {% if writer_draft %}
+      <a href="{{ solution_guide.start_url }}" class="btn btn-primary">Continue my writing</a>
+      {% elif solution_guide.shared %}
+      <a href="{{ solution_guide.share_url }}" class="btn btn-primary">Copy or open public link</a>
+      {% elif solution_guide.saved %}
+      <a href="{{ solution_guide.share_url }}" class="btn btn-primary">Review and share solution</a>
+      {% elif solution_guide.chosen %}
+      <a href="{{ solution_guide.editor_url }}" class="btn btn-primary">Continue writing</a>
+      {% else %}
+      <a href="{{ solution_guide.start_url }}" class="btn btn-primary">Write my first solution</a>
+      {% endif %}
+      <a href="{% url 'website:solution_preview' %}" class="btn btn-link btn-sm">See an example</a>
+    </div>
+  </div>
+  <ol class="list-group list-group-flush list-unstyled mb-0">
+    <li class="list-group-item px-3 py-3 d-flex align-items-start gap-3">
+      <span class="badge {% if solution_guide.chosen %}bg-success-subtle text-success{% else %}bg-primary-subtle text-primary{% endif %} mt-1">{% if solution_guide.chosen %}<i class="ti ti-check" aria-hidden="true"></i><span class="visually-hidden">Complete: </span>{% endif %}1</span>
+      <div>
+        <h3 class="h6 mb-1">Choose a problem</h3>
+        <p class="text-muted fs-sm mb-0">Find a problem you have already worked on. You can use a proof you already have.</p>
+      </div>
+    </li>
+    <li class="list-group-item px-3 py-3 d-flex align-items-start gap-3">
+      <span class="badge {% if solution_guide.saved %}bg-success-subtle text-success{% else %}bg-secondary-subtle text-secondary{% endif %} mt-1">{% if solution_guide.saved %}<i class="ti ti-check" aria-hidden="true"></i><span class="visually-hidden">Complete: </span>{% endif %}2</span>
+      <div>
+        <h3 class="h6 mb-1">Write, preview, and save</h3>
+        <p class="text-muted fs-sm mb-0">Write or paste your proof into a block, check the preview, and select Save changes. You can return to your draft later.</p>
+      </div>
+    </li>
+    <li class="list-group-item px-3 py-3 d-flex align-items-start gap-3">
+      <span class="badge {% if solution_guide.shared %}bg-success-subtle text-success{% else %}bg-secondary-subtle text-secondary{% endif %} mt-1">{% if solution_guide.shared %}<i class="ti ti-check" aria-hidden="true"></i><span class="visually-hidden">Complete: </span>{% endif %}3</span>
+      <div>
+        <h3 class="h6 mb-1">Create a public link <span class="text-muted fw-normal fs-xs">Optional</span></h3>
+        <p class="text-muted fs-sm mb-0">Open Share, review your saved work and author credit, then select Create public link. Anyone with the link can read that copy. Copy it to share.</p>
+      </div>
+    </li>
+  </ol>
+</section>
+{% else %}
+<form method="post" action="{% url 'solutions:solution_guide_preference' %}" id="solution-guide" class="mt-3 mb-3">
+  {% csrf_token %}
+  <button type="submit" name="action" value="show" class="btn btn-outline-secondary btn-sm"><i class="ti ti-list-check me-1" aria-hidden="true"></i>Show getting-started guide</button>
+</form>
+{% endif %}

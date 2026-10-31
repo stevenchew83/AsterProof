@@ -301,7 +301,12 @@ class UserRedirectView(LoginRequiredMixin, RedirectView):
     permanent = False
 
     def get_redirect_url(self) -> str:
-        return reverse("pages:user_activity_dashboard")
+        from inspinia.solutions.writer_drafts import get_writer_draft
+        from inspinia.solutions.writer_drafts import writer_handoff_url
+
+        if get_writer_draft(self.request):
+            return writer_handoff_url()
+        return self.request.user.get_login_redirect_url()
 
 
 user_redirect_view = UserRedirectView.as_view()
@@ -316,7 +321,7 @@ def approval_pending_view(request):
     if user_can_access_app_features(request.user):
         if writer_draft:
             return redirect(writer_handoff_url())
-        return redirect("pages:user_activity_dashboard")
+        return redirect(request.user.get_login_redirect_url())
     return render(request, "users/approval_pending.html", {"writer_draft": writer_draft})
 
 
