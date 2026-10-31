@@ -8,6 +8,7 @@ from inspinia.pages.concept_assignment_views import concept_assignment_review_ap
 from inspinia.pages.concept_assignment_views import concept_assignment_review_detail
 from inspinia.pages.concept_assignment_views import concept_assignment_review_list
 from inspinia.pages.concept_assignment_views import concept_assignment_review_preview
+from inspinia.pages.contest_papers import contest_papers_view
 from inspinia.pages.shared_progress_views import shared_progress_comparison_view
 from inspinia.pages.shared_progress_views import shared_progress_view
 from inspinia.pages.views import archive_hub_view
@@ -91,6 +92,7 @@ urlpatterns = [
     ),
     path("", root_page_view, name="home"),
     path("archive/", archive_hub_view, name="archive_hub"),
+    path("dashboard/contest-papers/", contest_papers_view, name="contest_papers"),
     path("dashboard/my-activity/", user_activity_dashboard_view, name="user_activity_dashboard"),
     path(
         "dashboard/my-progress/",

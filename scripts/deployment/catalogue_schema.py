@@ -169,6 +169,10 @@ def rehearsal_digest(*, release_sha: str, active_sha: str) -> str:
 
 
 def validate_disclosure(value: object, *, target_sha: str) -> dict:
+    if isinstance(value, dict) and value.get("kind") == "statement-authoring-maintenance-v1":
+        from scripts.deployment import statement_authoring_schema
+
+        return statement_authoring_schema.validate_disclosure(value, target_sha=target_sha)
     fields = {
         "format_version", "kind", "active_sha", "target_sha", "input_hashes", "starting", "expected",
         "postgresql_rehearsal_sha256", "recovery_policy",
@@ -214,6 +218,12 @@ def validate_disclosure(value: object, *, target_sha: str) -> dict:
 
 
 def validate_build_evidence(release: Path, disclosure: dict) -> None:
+    if disclosure.get("kind") == "statement-authoring-maintenance-v1":
+        from scripts.deployment import statement_authoring_schema
+
+        statement_authoring_schema.validate_build_evidence(release, disclosure)
+        return
+
     import json
 
     path = release / EVIDENCE_PATH

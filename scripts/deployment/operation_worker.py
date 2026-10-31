@@ -21,6 +21,7 @@ from scripts.deployment import solution_analytics_schema
 from scripts.deployment import solution_collections_schema
 from scripts.deployment import solution_pdf_schema
 from scripts.deployment import solution_sharing_schema
+from scripts.deployment import statement_authoring_schema
 from scripts.deployment import website_schema
 from scripts.deployment.additive_schema import validate_disclosure
 from scripts.deployment.concept_schema import MIGRATION_APPLY
@@ -279,6 +280,15 @@ class WorkerBackend:
     def check_catalogue_schema(self, contract: TargetContract, release: Path) -> None:
         catalogue_schema.validate_candidate(release)
         self._run_candidate(contract, release, ["shell", "--command", catalogue_schema.PLAN_CHECK])
+
+    def check_statement_authoring_schema(self, contract: TargetContract, release: Path) -> None:
+        statement_authoring_schema.validate_candidate(release)
+        self._run_candidate(contract, release, ["shell", "--command", statement_authoring_schema.PLAN_CHECK])
+
+    def migrate_statement_authoring_schema(self, contract: TargetContract, release: Path) -> None:
+        self._run_candidate(
+            contract, release, ["shell", "--command", statement_authoring_schema.MIGRATION_APPLY], migration=True,
+        )
 
     def check_onboarding_schema(self, contract: TargetContract, release: Path) -> None:
         onboarding_schema.validate_candidate(release)
@@ -749,7 +759,10 @@ def _deploy(
                 raise OperationError("catalogue_starting_state_mismatch")
             try:
                 catalogue_schema.validate_build_evidence(release, disclosure)
-                backend.check_catalogue_schema(contract, release)
+                if disclosure["kind"] == statement_authoring_schema.KIND:
+                    backend.check_statement_authoring_schema(contract, release)
+                else:
+                    backend.check_catalogue_schema(contract, release)
             except (OSError, ValueError) as exc:
                 raise OperationError("catalogue_candidate_invalid") from exc
             backend.preflight_recovery(contract)
@@ -775,7 +788,10 @@ def _deploy(
                 raise OperationError("catalogue_starting_state_drift")
             backend.assert_database_drained()
             transition(state_path, "migrating")
-            backend.migrate_catalogue_schema(contract, release)
+            if disclosure["kind"] == statement_authoring_schema.KIND:
+                backend.migrate_statement_authoring_schema(contract, release)
+            else:
+                backend.migrate_catalogue_schema(contract, release)
             if not catalogue_schema.audit_matches(disclosure, backend.catalogue_audit(contract), stage="expected"):
                 raise OperationError("catalogue_ending_state_mismatch")
             backend.refresh_catalogue(contract, release)

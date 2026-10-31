@@ -1004,7 +1004,7 @@ def _row_mohs(completion: UserProblemCompletion) -> int | None:
         if statement_mohs is not None:
             return int(statement_mohs)
     problem = _effective_problem(completion)
-    return int(problem.mohs) if problem is not None else None
+    return int(problem.mohs) if problem is not None and problem.mohs is not None else None
 
 
 def _solution_status_label(status: str) -> str:

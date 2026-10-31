@@ -105,13 +105,13 @@ class ProblemSolveRecord(models.Model):
     problem_uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
     year = models.IntegerField()
     topic = models.CharField(max_length=32)
-    mohs = models.IntegerField()
+    mohs = models.IntegerField(null=True, blank=True)
 
-    contest = models.CharField(max_length=64)
+    contest = models.CharField(max_length=128)
     problem = models.CharField(max_length=64)
 
     # Second "CONTEST" column in the sample, e.g. "BMO SL 2020 P1".
-    contest_year_problem = models.CharField(max_length=128, null=True, blank=True)
+    contest_year_problem = models.CharField(max_length=160, null=True, blank=True)
 
     confidence = models.TextField(null=True, blank=True)
     imo_slot_guess = models.TextField(null=True, blank=True)

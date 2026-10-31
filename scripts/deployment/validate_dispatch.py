@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from scripts.deployment import catalogue_schema
+from scripts.deployment import statement_authoring_schema
 from scripts.deployment.additive_schema import validate_disclosure
 from scripts.deployment.concept_schema import ConceptSchemaError
 from scripts.deployment.migration_plan import load_registry
@@ -339,6 +340,7 @@ def build_migration_disclosure(
     elif migrations:
         derived = "backward-compatible-schema"
     if declared_class == "data-or-non-compatible":
+        authoring_plan = [{"migration": statement_authoring_schema.MIGRATION, "classification": declared_class}]
         expected = [
             {
                 "migration": "pages." + name,
@@ -346,10 +348,13 @@ def build_migration_disclosure(
             }
             for i, name in enumerate(catalogue_schema.MIGRATIONS)
         ]
-        if migrations != expected:
+        if migrations not in (expected, authoring_plan):
             raise DispatchValidationError("Data-class deployment is restricted to the exact catalogue migration plan")
         try:
-            catalogue_schema.validate_candidate(repository)
+            if migrations == authoring_plan:
+                statement_authoring_schema.validate_candidate(repository)
+            else:
+                catalogue_schema.validate_candidate(repository)
         except (OSError, ValueError) as exc:
             raise DispatchValidationError("Catalogue migration bytes differ from the frozen scope") from exc
     if derived != declared_class:
