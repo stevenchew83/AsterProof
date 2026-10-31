@@ -134,7 +134,9 @@ def _existing_collection_redirect(request):
     target_id = request.GET["target_collection"]
     if not target_id.isdecimal():
         raise Http404
-    target = get_object_or_404(SolutionCollection, pk=target_id, owner=request.user)
+    target = get_object_or_404(
+        SolutionCollection, pk=target_id, owner=request.user, kind=SolutionCollection.Kind.PERSONAL,
+    )
     return redirect(
         reverse("solutions:collection_edit", args=[target.pk])
         + "?"
@@ -159,7 +161,7 @@ def _validate_review(request, payload):
 def _owner_collection(request, collection_pk):
     if collection_pk is None:
         return None
-    queryset = SolutionCollection.objects.filter(owner=request.user)
+    queryset = SolutionCollection.objects.filter(owner=request.user, kind=SolutionCollection.Kind.PERSONAL)
     if request.method == "POST":
         queryset = queryset.select_for_update()
     return get_object_or_404(queryset, pk=collection_pk)
@@ -235,7 +237,9 @@ def collection_edit_view(request, collection_pk=None):
             "form": form,
             "selected_solutions": selected,
             "available_solutions": catalogue,
-            "other_collections": SolutionCollection.objects.filter(owner=request.user),
+            "other_collections": SolutionCollection.objects.filter(
+                owner=request.user, kind=SolutionCollection.Kind.PERSONAL,
+            ),
             "review_rows": review_rows if review_token else [],
             "review_token": review_token,
             "max_collection_solutions": MAX_COLLECTION_SOLUTIONS,

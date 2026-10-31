@@ -77,13 +77,14 @@ def public_solution_image_view(request, token, revision):
 @require_safe
 def public_collection_view(request, token):
     collection = SolutionCollection.objects.filter(token=token, is_active=True).first()
-    if collection is None:
+    if collection is None or collection.kind not in SolutionCollection.Kind.values:
         return _unavailable(request)
     entries = collection.entries.filter(
         share__is_active=True,
         share__token=F("share_token"),
-        share__solution__author_id=collection.owner_id,
     ).select_related("share").defer("share__preview_image")
+    if collection.kind == SolutionCollection.Kind.PERSONAL:
+        entries = entries.filter(share__solution__author_id=collection.owner_id)
     rows = [{"anchor": f"solution-{entry.anchor}", "snapshot": entry.share.snapshot} for entry in entries]
     url = public_collection_url(collection)
     return _private_cache(render(request, "website/shared_collection.html", {

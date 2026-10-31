@@ -4,7 +4,7 @@
 {% block public_content %}
 <div class="website-container public-shared-page public-collection-page">
   <div class="public-shared-toolbar">
-    <p>A solution collection · Read without an account</p>
+    <p>{% if collection.kind == 'admin_curated' %}A curated collection{% else %}A solution collection{% endif %} · Read without an account</p>
     <div>
       <button type="button" class="website-text-link" data-copy-public-link="{{ canonical_url }}">Copy collection link</button>
       <a href="{{ whatsapp_url }}" target="_blank" rel="noopener noreferrer" class="website-text-link">Share on WhatsApp ↗</a>
@@ -21,7 +21,7 @@
     <nav class="public-collection-contents" aria-label="Collection contents" id="collection-contents">
       <details open data-collection-contents>
         <summary>Contents <span aria-hidden="true">⌄</span></summary>
-        <ol>{% for row in collection_rows %}<li><a href="#{{ row.anchor }}">{{ row.snapshot.title }}</a><span>{{ row.snapshot.problem.label }}</span></li>{% endfor %}</ol>
+        <ol>{% for row in collection_rows %}<li><a href="#{{ row.anchor }}">{{ row.snapshot.title }}</a><span>{{ row.snapshot.problem.label }}{% if row.snapshot.author %} · {{ row.snapshot.author }}{% endif %}</span></li>{% endfor %}</ol>
       </details>
     </nav>
     <div class="public-collection-solutions">

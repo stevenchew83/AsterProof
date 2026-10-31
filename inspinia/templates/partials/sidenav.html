@@ -186,6 +186,7 @@
             {% if is_app_admin %}
             <li class="side-nav-title">Administration</li>
             {% include 'partials/sidenav-link.html' with route_name='solutions:admin_public_shares' label='Public solutions' icon='world' only %}
+            {% include 'partials/sidenav-link.html' with route_name='solutions:admin_collections' label='Curated collections' icon='stack-2' only %}
             {% include 'partials/sidenav-link.html' with route_name='website:newsletter_dashboard' label='Newsletter' icon='mail' only %}
             {% include 'partials/sidenav-link.html' with route_name='pages:concept_assignment_review' label='Concept assignment review' icon='list-check' only %}
             {% include 'partials/sidenav-link.html' with route_name='users:manage_roles' label='User roles' only %}
