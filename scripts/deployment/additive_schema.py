@@ -5,6 +5,7 @@ from __future__ import annotations
 from scripts.deployment import concept_schema
 from scripts.deployment import newsletter_automation_schema
 from scripts.deployment import newsletter_schema
+from scripts.deployment import onboarding_schema
 from scripts.deployment import solution_analytics_schema
 from scripts.deployment import solution_pdf_schema
 from scripts.deployment import solution_sharing_schema
@@ -12,6 +13,8 @@ from scripts.deployment import website_schema
 
 
 def schema_for_disclosure(value):  # noqa: PLR0911 - Keep each frozen allowance explicit.
+    if isinstance(value, dict) and value.get("migration") == onboarding_schema.MIGRATION:
+        return onboarding_schema
     if isinstance(value, dict) and value.get("migration") == solution_analytics_schema.MIGRATION:
         return solution_analytics_schema
     if isinstance(value, dict) and value.get("migration") == solution_sharing_schema.MIGRATION:

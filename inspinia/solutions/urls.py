@@ -11,6 +11,7 @@ from inspinia.solutions.views import problem_solution_list_view
 from inspinia.solutions.views import problem_solution_pdf_view
 from inspinia.solutions.views import problem_solution_share_view
 from inspinia.solutions.views import solution_body_image_upload_view
+from inspinia.solutions.views import solution_guide_preference_view
 
 app_name = "solutions"
 
@@ -19,6 +20,7 @@ urlpatterns = [
     path("shared/<uuid:token>/", public_solution_view, name="public_solution"),
     path("shared/<uuid:token>/preview/<uuid:revision>.jpg", public_solution_image_view, name="public_solution_image"),
     path("", my_solution_list_view, name="my_solution_list"),
+    path("guide/", solution_guide_preference_view, name="solution_guide_preference"),
     path("new/", problem_solution_create_view, name="problem_solution_create"),
     path("problems/<uuid:problem_uuid>/", problem_solution_list_view, name="problem_solution_list"),
     path(

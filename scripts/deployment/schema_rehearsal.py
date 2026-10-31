@@ -103,6 +103,10 @@ def _approved_rehearsal(disclosed_migration):  # noqa: PLR0911 - Only literal, r
         from scripts.deployment.newsletter_automation_rehearsal import run
 
         return run
+    if disclosed_migration == "users.0009_user_solution_guide_status":
+        from scripts.deployment.onboarding_schema_rehearsal import run
+
+        return run
     if disclosed_migration == "solutions.0004_solution_pdf_display_options":
         from scripts.deployment.solution_pdf_schema_rehearsal import run
 

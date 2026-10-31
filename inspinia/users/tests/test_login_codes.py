@@ -60,7 +60,7 @@ def test_code_sign_in_uses_branded_mail_and_keeps_existing_password(client):
     response = client.post(reverse("account_confirm_login_code"), {"code": code})
 
     assert response.status_code == HTTPStatus.FOUND
-    assert response.url == reverse("pages:user_activity_dashboard")
+    assert response.url == reverse("solutions:my_solution_list")
     assert client.session["_auth_user_id"] == str(user.pk)
     user.refresh_from_db()
     assert user.check_password(TEST_CREDENTIAL)
@@ -72,7 +72,7 @@ def test_password_sign_in_does_not_send_or_require_a_code(client):
     response = client.post(reverse("account_login"), {"login": user.email, "password": TEST_CREDENTIAL})
 
     assert response.status_code == HTTPStatus.FOUND
-    assert response.url == reverse("pages:user_activity_dashboard")
+    assert response.url == reverse("solutions:my_solution_list")
     assert client.session["_auth_user_id"] == str(user.pk)
     assert not mail.outbox
 
@@ -88,7 +88,7 @@ def test_code_is_bound_to_the_requesting_session(client):
     assert response.url == reverse("account_request_login_code")
     assert "_auth_user_id" not in other.session
     response = client.post(reverse("account_confirm_login_code"), {"code": code})
-    assert response.url == reverse("pages:user_activity_dashboard")
+    assert response.url == reverse("solutions:my_solution_list")
 
 
 def test_code_cannot_be_reused_after_logout(client):
@@ -142,7 +142,7 @@ def test_repeated_email_request_is_throttled_but_password_fallback_works(client)
     client.post(reverse("account_logout"), {"next": reverse("account_login")})
     assert "account_login" not in client.session
     response = client.post(reverse("account_login"), {"login": user.email, "password": TEST_CREDENTIAL})
-    assert response.url == reverse("pages:user_activity_dashboard")
+    assert response.url == reverse("solutions:my_solution_list")
     assert len(mail.outbox) == 1
 
 
@@ -162,7 +162,7 @@ def test_requesting_a_new_code_invalidates_the_previous_code(client, monkeypatch
     assert response.status_code == HTTPStatus.OK
     assert "_auth_user_id" not in client.session
     response = client.post(reverse("account_confirm_login_code"), {"code": new_code})
-    assert response.url == reverse("pages:user_activity_dashboard")
+    assert response.url == reverse("solutions:my_solution_list")
 
 
 @pytest.mark.parametrize("existing_inactive_user", [False, True])

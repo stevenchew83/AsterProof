@@ -21,6 +21,9 @@
   </div>
   {% endif %}
 
+  {% include 'solutions/partials/solution-guide.html' %}
+
+  {% if my_solution_stats.total %}
   <div class="row g-3 mt-0">
     <div class="col-sm-6 col-xl-3">
       <div class="card m-0">
@@ -91,6 +94,7 @@
       </div>
     </div>
   </div>
+  {% endif %}
 
   <div class="card mt-3">
     <div class="card-header border-bottom">

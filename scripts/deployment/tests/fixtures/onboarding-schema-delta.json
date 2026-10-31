@@ -1,0 +1,18 @@
+{
+  "columns": [
+    {
+      "collation": "default",
+      "column": "solution_guide_status",
+      "default": "'not_enrolled'::character varying",
+      "nullable": false,
+      "position": 21,
+      "schema": "public",
+      "table": "users_user",
+      "type": "character varying(16)"
+    }
+  ],
+  "constraints": [],
+  "extensions": [],
+  "indexes": [],
+  "tables": []
+}

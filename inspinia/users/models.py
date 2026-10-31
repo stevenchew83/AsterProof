@@ -36,6 +36,11 @@ class User(AbstractUser):
         OTHER = "other", _("Other")
         PREFER_NOT_TO_SAY = "prefer_not_to_say", _("Prefer not to say")
 
+    class SolutionGuideStatus(TextChoices):
+        ACTIVE = "active", _("Active")
+        DISMISSED = "dismissed", _("Dismissed")
+        NOT_ENROLLED = "not_enrolled", _("Not enrolled")
+
     # First and last name do not cover name patterns around the globe
     name = CharField(_("Name of User"), blank=True, max_length=255)
     school = CharField(_("School"), blank=True, max_length=255)
@@ -74,6 +79,14 @@ class User(AbstractUser):
         db_index=True,
         help_text=_("Unapproved users can sign in but cannot use AsterProof features."),
     )
+    solution_guide_status = CharField(
+        _("Solution getting-started guide"),
+        max_length=16,
+        choices=SolutionGuideStatus.choices,
+        default=SolutionGuideStatus.ACTIVE,
+        db_default=SolutionGuideStatus.NOT_ENROLLED,
+        editable=False,
+    )
     first_name = None  # type: ignore[assignment]
     last_name = None  # type: ignore[assignment]
     email = EmailField(_("email address"), unique=True)
@@ -83,6 +96,11 @@ class User(AbstractUser):
     REQUIRED_FIELDS = []
 
     objects: ClassVar[UserManager] = UserManager()
+
+    def get_login_redirect_url(self) -> str:
+        if self.solution_guide_status != self.SolutionGuideStatus.NOT_ENROLLED:
+            return reverse("solutions:my_solution_list")
+        return reverse("pages:user_activity_dashboard")
 
     def get_absolute_url(self) -> str:
         """Get URL for user's detail view.

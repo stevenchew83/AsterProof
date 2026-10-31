@@ -80,4 +80,4 @@ def test_approved_user_is_redirected_away_from_pending_page(client):
     response = client.get(reverse("users:approval_pending"))
 
     assert response.status_code == HTTPStatus.FOUND
-    assert response.url == reverse("pages:user_activity_dashboard")
+    assert response.url == reverse("solutions:my_solution_list")
