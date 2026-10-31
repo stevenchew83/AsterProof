@@ -88,6 +88,7 @@
             {% include 'partials/sidenav-link.html' with route_name='pages:contest_mohs_summary' label='Contest MOHS' icon='table-options' only %}
             {% endif %}
             <li class="side-nav-title">Problems &amp; resources</li>
+            {% include 'partials/sidenav-link.html' with route_name='pages:contest_papers' label='Contest papers' icon='files' only %}
             {% include 'partials/sidenav-link.html' with route_name='pages:problem_statement_list' label='Problem library' icon='file-text' only %}
             {% if show_problem_lists_link %}
             {% include 'partials/sidenav-link.html' with route_name='problemsets:my_lists' label='Problem lists' icon='list-details' only %}
