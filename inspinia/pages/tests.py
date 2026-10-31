@@ -9830,27 +9830,30 @@ def test_user_solution_record_list_renders_admin_inventory(client):
     assert first_row["solution_url"] == expected_solution_url
     assert first_row["pdf_url"] == expected_pdf_url
     response_html = response.content.decode("utf-8")
-    assert "User solution listing" in response_html
-    assert 'id="user-solution-record-table"' in response_html
-    assert '<p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Loaded solutions</p>' in response_html
-    assert '<p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Authors</p>' in response_html
-    assert '<p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Published</p>' in response_html
-    assert '<p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Drafts</p>' in response_html
-    assert '<p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Problems</p>' in response_html
-    assert '<p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Latest update</p>' in response_html
+    for marker in (
+        'aria-label="User solution listing"',
+        "Solution library",
+        'id="user-solution-record-table"',
+        'aria-label="Loaded solution overview"',
+    ):
+        assert marker in response_html
+    for label in ("Loaded solutions", "Authors", "Published", "Drafts"):
+        assert f"<dt>{label}</dt>" in response_html
+    assert "1 problem in loaded results" in response_html
+    assert "Latest update" in response_html
     assert 'class="app-table-compact table table-sm table-hover align-middle w-100 mb-0"' in response_html
-    assert 'title: "Solution"' in response_html
-    assert 'title: "Problem"' in response_html
-    assert 'title: "Content"' in response_html
-    assert 'title: "Dates"' in response_html
-    assert 'title: "Actions"' in response_html
-    assert 'title: "Summary chars"' not in response_html
-    assert 'title: "Evan PDF"' not in response_html
-    assert 'title: "Contest"' not in response_html
-    assert 'title: "Year"' not in response_html
-    assert 'title: "MOHS"' not in response_html
-    assert "Filter visible rows:" in response_html
-    assert "Within loaded rows..." in response_html
+    for column in ("Solution / problem", "Author", "Status", "Updated", "Actions"):
+        assert f'title: "{column}"' in response_html
+    assert 'title: "Content"' not in response_html
+    assert 'title: "Dates"' not in response_html
+    assert "app-table-details user-solution-details" in response_html
+    assert 'detail("Solution title", title)' in response_html
+    assert 'detail("Content", blockLabel' in response_html
+    assert 'detail("Published", row.published_at' in response_html
+    assert "Find in results:" in response_html
+    assert "Quick find…" in response_html
+    assert 'role="search" aria-label="Filter all solution records"' in response_html
+    assert "Search all solutions" in response_html
     assert "Showing 1 matching solution record." in response_html
     assert f'"solution_url": "{expected_solution_url}"' in response_html
     assert f'"pdf_url": "{expected_pdf_url}"' in response_html
