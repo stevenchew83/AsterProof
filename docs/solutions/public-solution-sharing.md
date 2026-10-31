@@ -26,7 +26,7 @@ The guest URL under `/solutions/shared/collections/` renders all available publi
 
 Updating a solution's public copy updates collections containing that copy. Stopping its sharing immediately excludes it from every collection. An entry is also bound to the solution's sharing token: stopping and later sharing the solution again does not reactivate old collection entries. An owner can explicitly review and update a collection to include it again. Removing an entry does not revoke its individual solution link. Stopping a collection revokes only the collection URL; sharing the collection again rotates that URL. Deleting a solution cascades its collection entries.
 
-Migration `solutions.0007_solutioncollection_solutioncollectionentry` adds only the collection and ordered-entry tables, with owner/share foreign keys and unique public tokens/anchors. It does not share or rewrite existing solutions. Production deployment still requires the project's separately reviewed bounded schema allowance and PostgreSQL rehearsal for this new migration; the existing sharing/analytics allowances do not admit it.
+Migration `solutions.0007_solutioncollection_solutioncollectionentry` adds only the collection and ordered-entry tables, with owner/share foreign keys and unique public tokens/anchors. It does not share or rewrite existing solutions. Its frozen allowance, PostgreSQL rehearsal and release procedure are documented in [the collection schema release guide](../deployment/solution-collections-schema.md); the existing sharing/analytics allowances do not admit it.
 
 ## Admin oversight and readership
 
