@@ -8,6 +8,7 @@ from inspinia.solutions.collection_views import collection_edit_view
 from inspinia.solutions.public_views import public_collection_view
 from inspinia.solutions.public_views import public_solution_image_view
 from inspinia.solutions.public_views import public_solution_view
+from inspinia.solutions.statement_authoring import statement_solution_start_view
 from inspinia.solutions.views import admin_problem_solution_pdf_view
 from inspinia.solutions.views import my_solution_list_view
 from inspinia.solutions.views import problem_solution_create_view
@@ -32,6 +33,7 @@ urlpatterns = [
     path("", my_solution_list_view, name="my_solution_list"),
     path("guide/", solution_guide_preference_view, name="solution_guide_preference"),
     path("new/", problem_solution_create_view, name="problem_solution_create"),
+    path("statements/<uuid:statement_uuid>/write/", statement_solution_start_view, name="statement_solution_start"),
     path("collections/new/", collection_edit_view, name="collection_create"),
     path("collections/<int:collection_pk>/", collection_edit_view, name="collection_edit"),
     path("problems/<uuid:problem_uuid>/", problem_solution_list_view, name="problem_solution_list"),

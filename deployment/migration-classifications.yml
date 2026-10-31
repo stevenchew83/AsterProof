@@ -13,6 +13,17 @@
       ],
       "rationale": "Adds a persistent personal kind default, permits site-owned curated collections with a null owner, and enforces the corresponding kind/owner check. Existing collection owners, entries, anchors, tokens, public copies and progress remain intact. Old application code can still insert personal collections through the database default; code recovery retains the schema and data while curated entries render empty under the old reader. Requires the separate exact frozen allowance and PostgreSQL 17.9 preservation and compatibility proof."
     },
+    "pages.0040_statement_authoring_metadata": {
+      "classification": "data-or-non-compatible",
+      "recovery_required": true,
+      "code_rollback_permitted": false,
+      "data_preconditions": [
+        "existing_problem_statement_and_solution_records_preserved",
+        "existing_catalogue_trigger_definitions_preserved",
+        "verified_database_recovery_point"
+      ],
+      "rationale": "Allows unknown legacy problem difficulty and widens contest/label columns to the canonical statement limits. Existing records remain unchanged. The migration contains SQLite trigger-preservation RunPython operations; PostgreSQL performs only three AlterField operations. New authoring can subsequently create NULL difficulty values that the earlier application cannot safely consume, so ordinary code rollback is not permitted. This classification does not expand the separately installed frozen migration authority."
+    },
     "solutions.0007_solutioncollection_solutioncollectionentry": {
       "classification": "backward-compatible-schema",
       "recovery_required": false,

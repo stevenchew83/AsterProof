@@ -2151,6 +2151,7 @@ def _contest_year_mohs_pivot_payload() -> dict[str, object]:
         problem_row["problem_uuid"]: int(problem_row["mohs"])
         for problem_row in ProblemSolveRecord.objects.filter(
             problem_uuid__in=[row["problem_uuid"] for row in statement_rows],
+            mohs__isnull=False,
         ).values("problem_uuid", "mohs")
     }
     statement_problem_code_counts = Counter(
@@ -2180,6 +2181,7 @@ def _contest_year_mohs_pivot_payload() -> dict[str, object]:
             year__in={key[1] for key in statement_problem_keys},
             contest__in={key[0] for key in statement_problem_keys},
             problem__in={key[2] for key in statement_problem_keys},
+            mohs__isnull=False,
         ).values("contest", "year", "problem", "mohs")
     }
 
@@ -2480,7 +2482,10 @@ def contest_mohs_summary_view(request):
 def _user_topic_mohs_completion_heatmap_payload(
     completions: list[UserProblemCompletion],
 ) -> dict[str, object]:
-    completion_problems = [problem for problem in (_completion_problem_record(c) for c in completions) if problem is not None]
+    completion_problems = [
+        problem for problem in (_completion_problem_record(c) for c in completions)
+        if problem is not None and problem.mohs is not None
+    ]
     if not completion_problems:
         return {"max_value": 0, "mohs_values": [], "series": []}
 
@@ -2808,7 +2813,8 @@ def _user_completion_table_rows(completions: list[UserProblemCompletion]) -> tup
             contests.add(contest_name)
         if problem is not None:
             topics.add(display_topic_label(problem.topic))
-            mohs_values.add(problem.mohs)
+            if problem.mohs is not None:
+                mohs_values.add(problem.mohs)
         if completion.status:
             statuses.add(completion.status)
         if completion.confidence:

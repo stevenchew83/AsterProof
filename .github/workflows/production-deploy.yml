@@ -178,11 +178,18 @@ jobs:
           active_sha="$(python -c 'import json,os; print(json.loads(os.environ["SCHEMA_DISCLOSURE"])["active_sha"])')"
           mkdir "$RUNNER_TEMP/active-catalogue-smoke"
           git archive "$active_sha" | tar -x -C "$RUNNER_TEMP/active-catalogue-smoke"
-          .release-runtime/bin/python -m scripts.deployment.catalogue_rehearsal \
-            --active-source "$RUNNER_TEMP/active-catalogue-smoke" \
-            --active-sha "$active_sha" --release-sha "$RELEASE_SHA" \
-            --output "$RUNNER_TEMP/catalogue-proof"
-          cp "$RUNNER_TEMP/catalogue-proof/evidence.json" "$RUNNER_TEMP/schema-evidence.json"
+          if [ "$(python -c 'import json,os; print(json.loads(os.environ["SCHEMA_DISCLOSURE"]).get("kind", ""))')" = 'statement-authoring-maintenance-v1' ]; then
+            .release-runtime/bin/python -m scripts.deployment.statement_authoring_rehearsal \
+              --active-source "$RUNNER_TEMP/active-catalogue-smoke" \
+              --active-sha "$active_sha" --release-sha "$RELEASE_SHA" \
+              --output "$RUNNER_TEMP/schema-evidence.json"
+          else
+            .release-runtime/bin/python -m scripts.deployment.catalogue_rehearsal \
+              --active-source "$RUNNER_TEMP/active-catalogue-smoke" \
+              --active-sha "$active_sha" --release-sha "$RELEASE_SHA" \
+              --output "$RUNNER_TEMP/catalogue-proof"
+            cp "$RUNNER_TEMP/catalogue-proof/evidence.json" "$RUNNER_TEMP/schema-evidence.json"
+          fi
 
       - name: Package private PostgreSQL 17 recovery runtime
         if: ${{ inputs.migration_class == 'data-or-non-compatible' }}
@@ -368,11 +375,16 @@ jobs:
           import os
           if os_disclosure := os.environ.get('SCHEMA_DISCLOSURE'):
               if value['classification'] == 'data-or-non-compatible':
-                  from scripts.deployment.catalogue_schema import MIGRATIONS, validate_disclosure
-                  expected = [
-                      {'migration': 'pages.' + name, 'classification': 'backward-compatible-schema' if i == 0 else 'data-or-non-compatible'}
-                      for i, name in enumerate(MIGRATIONS)
-                  ]
+                  from scripts.deployment.catalogue_schema import validate_disclosure
+                  if json.loads(os_disclosure).get('kind') == 'statement-authoring-maintenance-v1':
+                      from scripts.deployment.statement_authoring_schema import MIGRATION
+                      expected = [{'migration': MIGRATION, 'classification': 'data-or-non-compatible'}]
+                  else:
+                      from scripts.deployment.catalogue_schema import MIGRATIONS
+                      expected = [
+                          {'migration': 'pages.' + name, 'classification': 'backward-compatible-schema' if i == 0 else 'data-or-non-compatible'}
+                          for i, name in enumerate(MIGRATIONS)
+                      ]
               else:
                   from scripts.deployment.additive_schema import schema_for_disclosure, validate_disclosure
                   approved = schema_for_disclosure(json.loads(os_disclosure))

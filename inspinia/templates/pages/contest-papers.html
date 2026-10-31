@@ -1,0 +1,216 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}{% if selected_contest %}{{ selected_contest }}{% if selected_year %} {{ selected_year }}{% endif %} · {% endif %}Contest papers{% endblock title %}
+
+{% block extra_css %}
+  {{ block.super }}
+  <style>
+    .contest-papers { --paper-reading-width: 60rem; }
+    .contest-papers .app-page-header { margin-bottom: .75rem; }
+    .contest-papers .paper-header-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; }
+    .contest-papers .paper-year-form { display: flex; align-items: center; gap: .35rem; }
+    .contest-papers .paper-year-form .form-select { width: 6.5rem; }
+    .contest-papers .paper-intro { color: var(--ins-secondary-color); font-size: .8rem; margin: 0; }
+    .contest-papers .paper-sheet { overflow: clip; }
+    .contest-papers .paper-jump-nav { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; padding: .65rem 1.25rem; border-bottom: 1px solid var(--ins-border-color); }
+    .contest-papers .paper-jump-nav a { display: inline-flex; align-items: center; gap: .45rem; padding: .3rem .65rem; border-radius: var(--ins-border-radius); color: var(--ins-secondary-color); font-size: .78rem; text-decoration: none; transition: background-color .15s, color .15s; }
+    .contest-papers .paper-jump-nav a:hover { background: var(--ins-primary-bg-subtle); color: var(--ins-primary); }
+    .contest-papers .paper-jump-nav .badge { font-weight: 500; }
+    .contest-papers .paper-reading { max-width: var(--paper-reading-width); margin-inline: auto; padding: .3rem 1.5rem .75rem; }
+    .contest-papers .paper-section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; padding: 1rem 0 .45rem; border-bottom: 1px solid var(--ins-border-color); }
+    .contest-papers .paper-section-heading h2 { margin: 0; font-size: .9rem; font-weight: 700; scroll-margin-top: 6rem; }
+    .contest-papers .paper-section-heading h2:target { color: var(--ins-primary); }
+    .contest-papers .paper-section-heading span { color: var(--ins-secondary-color); font-size: .75rem; white-space: nowrap; }
+    .contest-papers .paper-problem { padding: 1rem 0; border-bottom: 1px solid var(--ins-border-color); scroll-margin-top: 6rem; }
+    .contest-papers .paper-problem:last-child { border-bottom: 0; }
+    .contest-papers .paper-problem-header { display: flex; justify-content: space-between; align-items: center; gap: .75rem; margin-bottom: .6rem; }
+    .contest-papers .paper-problem-header h3 { font-size: .85rem; font-weight: 700; margin: 0; }
+    .contest-papers .paper-write-button { flex-shrink: 0; font-size: .75rem; min-height: 30px; gap: .35rem; }
+    .contest-papers .statement-text-fragment { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.6; font-size: .875rem; }
+    .contest-papers .statement-render-content { min-width: 0; gap: .5rem !important; }
+    .contest-papers .asymptote-svg-frame { overflow-x: auto; }
+    .contest-papers .asymptote-svg-frame svg { display: block; max-width: 100%; height: auto; margin-inline: auto; }
+    .contest-papers mjx-container[display="true"] { overflow-x: auto; max-width: 100%; margin: .5rem 0 !important; padding-bottom: .15rem; }
+    .contest-papers .paper-review { margin-top: .6rem; }
+    .contest-papers .paper-review summary { width: fit-content; cursor: pointer; color: var(--ins-secondary-color); font-size: .75rem; }
+    .contest-papers .paper-review summary:focus-visible,
+    .contest-papers .paper-jump-nav a:focus-visible { outline: 2px solid var(--ins-primary); outline-offset: 4px; }
+    .contest-papers .paper-review-body { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; margin-top: .5rem; padding: .6rem .75rem; border-radius: var(--ins-border-radius); background: var(--ins-tertiary-bg); font-size: .78rem; }
+    .contest-papers .contest-name { overflow-wrap: anywhere; }
+    .contest-papers .paper-directory-link { padding: .8rem 0; gap: 1rem; transition: background-color .15s; }
+    .contest-papers .paper-directory-meta { font-size: .76rem; color: var(--ins-secondary-color); }
+    .contest-papers .paper-year-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr)); gap: .6rem; }
+    .contest-papers .paper-year-link { display: flex; flex-direction: column; align-items: flex-start; gap: .25rem; padding: .75rem 1rem; }
+    @media (max-width: 575.98px) {
+      .contest-papers .paper-header-actions { width: 100%; gap: .4rem; }
+      .contest-papers .paper-year-form .form-select { width: 5.5rem; }
+      .contest-papers .paper-header-actions .btn,
+      .contest-papers .paper-year-form .form-select { min-height: 34px; }
+      .contest-papers .paper-reading { padding-inline: 1rem; }
+      .contest-papers .paper-jump-nav { padding: .5rem .75rem; }
+      .contest-papers .paper-problem { padding-block: .85rem; }
+      .contest-papers .paper-write-button { min-height: 34px; padding-inline: .55rem; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .contest-papers .paper-jump-nav a, .contest-papers .paper-directory-link { transition: none; }
+    }
+    @media print {
+      .sidenav-menu, .app-topbar, .footer, .paper-controls, .paper-review, .paper-jump-nav, .paper-write-action,
+      .contest-papers .app-page-header-context { display: none !important; }
+      .content-page { margin: 0 !important; padding: 0 !important; }
+      .contest-papers .card { border: 0; box-shadow: none; }
+      .contest-papers .paper-reading { max-width: none; padding: 0; }
+      .contest-papers .paper-problem { break-inside: avoid; }
+    }
+  </style>
+{% endblock extra_css %}
+
+{% block page_content %}
+<div class="container-fluid contest-papers">
+  <header class="page-title-head app-page-header">
+    {% if selected_year %}
+      {% include 'partials/page-header-intro.html' with title=paper_title subtitle='Contest papers' page_icon='ti-files' back_url=browser_url back_label='All contests' only %}
+    {% elif selected_contest %}
+      {% include 'partials/page-header-intro.html' with title=selected_contest subtitle='Contest papers' page_icon='ti-files' back_url=browser_url back_label='All contests' only %}
+    {% else %}
+      {% include 'partials/page-header-intro.html' with title='Contest papers' page_icon='ti-files' only %}
+    {% endif %}
+    {% if selected_year %}
+    <div class="app-page-header-actions paper-header-actions paper-controls">
+      <form method="get" action="{{ browser_url }}" class="paper-year-form">
+        <input type="hidden" name="contest" value="{{ selected_contest }}" />
+        <label for="contest-paper-year" class="visually-hidden">Year</label>
+        <select id="contest-paper-year" name="year" class="form-select form-select-sm">
+          {% for year in year_rows %}
+          <option value="{{ year.contest_year }}" {% if selected_year == year.contest_year|stringformat:'s' %}selected{% endif %}>{{ year.contest_year }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-primary btn-sm" aria-label="Open paper">Open<span class="d-none d-sm-inline ms-1">paper</span></button>
+      </form>
+      <a href="{{ contest_url }}" class="btn btn-outline-secondary btn-sm">All years</a>
+      <button type="button" class="btn btn-outline-secondary btn-sm" id="contest-paper-print"><i class="ti ti-printer" aria-hidden="true"></i><span class="visually-hidden">Print paper</span></button>
+    </div>
+    {% endif %}
+  </header>
+
+  {% if not selected_contest %}
+  <section class="card" aria-label="Find a contest">
+    <div class="card-body">
+      <form method="get" action="{{ browser_url }}" role="search" aria-label="Contest papers" class="row g-2 align-items-end">
+        <div class="col-md-9 col-lg-10">
+          <label for="contest-paper-search" class="form-label">Find a contest</label>
+          <input type="search" id="contest-paper-search" name="q" value="{{ search_query }}" maxlength="160" class="form-control form-control-sm" placeholder="Contest name or abbreviation, e.g. IMO" />
+        </div>
+        <div class="col-md-3 col-lg-2 d-grid"><button type="submit" class="btn btn-primary btn-sm">Search contests</button></div>
+      </form>
+    </div>
+    <div class="card-body pt-0">
+      <p class="text-muted fs-sm">{{ contest_page.paginator.count }} contest{{ contest_page.paginator.count|pluralize }}{% if search_query %} matching “{{ search_query }}” · <a href="{{ browser_url }}">Clear search</a>{% endif %}</p>
+      <div class="list-group list-group-flush">
+        {% for contest in contest_page %}
+        <a href="{{ contest.url }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center paper-directory-link">
+          <span class="contest-name">
+            <span class="d-block fw-semibold">{{ contest.contest_name }}</span>
+            {% if contest.full_name and contest.full_name != contest.contest_name %}<span class="d-block paper-directory-meta">{{ contest.full_name }}</span>{% endif %}
+            <span class="d-block paper-directory-meta">{{ contest.first_year }}{% if contest.last_year != contest.first_year %}–{{ contest.last_year }}{% endif %} · {{ contest.year_count }} year{{ contest.year_count|pluralize }} · {{ contest.problem_count }} problem{{ contest.problem_count|pluralize }}</span>
+          </span>
+          <i class="ti ti-chevron-right text-muted flex-shrink-0" aria-hidden="true"></i>
+        </a>
+        {% empty %}
+        <div class="py-4 text-muted">{% if search_query %}No contests match your search. Try another name or abbreviation.{% else %}No contest papers are available yet.{% endif %}</div>
+        {% endfor %}
+      </div>
+      {% if contest_page.has_other_pages %}
+      <nav class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3" aria-label="Contest pages">
+        {% if contest_page.has_previous %}<a class="btn btn-outline-secondary btn-sm" href="{{ directory_url }}&amp;page={{ contest_page.previous_page_number }}">Previous</a>{% endif %}
+        <span class="text-muted fs-sm">Page {{ contest_page.number }} of {{ contest_page.paginator.num_pages }}</span>
+        {% if contest_page.has_next %}<a class="btn btn-outline-secondary btn-sm" href="{{ directory_url }}&amp;page={{ contest_page.next_page_number }}">Next</a>{% endif %}
+      </nav>
+      {% endif %}
+    </div>
+  </section>
+  {% elif not selected_year %}
+  <section class="card" aria-labelledby="paper-year-heading">
+    <div class="card-body">
+      <h2 id="paper-year-heading" class="h4 mb-1">Choose a year</h2>
+      <p class="text-muted fs-sm mb-3">Open a paper to read its available statements in order.</p>
+      <div class="paper-year-grid">
+        {% for year in year_rows %}
+          <a href="{{ year.url }}" class="btn btn-outline-primary text-start paper-year-link">
+            <span class="fw-semibold">{{ year.contest_year }}</span>
+            <span class="fs-xs">{{ year.problem_count }} problem{{ year.problem_count|pluralize }}</span>
+          </a>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+  {% else %}
+  <div class="card paper-sheet">
+    <nav class="paper-jump-nav paper-controls" aria-label="Paper sections">
+      <span class="paper-intro me-auto">{{ paper_problem_count }} problem{{ paper_problem_count|pluralize }} · {{ paper_section_count }} section{{ paper_section_count|pluralize }}</span>
+      {% for group in paper_groups %}<a href="#paper-section-{{ forloop.counter }}">{{ group.label }}<span class="badge bg-light text-dark">{{ group.problems|length }}</span></a>{% endfor %}
+    </nav>
+    <div class="card-body p-0">
+      <div class="paper-reading">
+        {% for group in paper_groups %}
+        <section class="paper-section" aria-labelledby="paper-section-{{ forloop.counter }}">
+          <div class="paper-section-heading">
+            <h2 id="paper-section-{{ forloop.counter }}">{{ group.label }}</h2>
+            <span>{{ group.problems|length }} problem{{ group.problems|length|pluralize }}</span>
+          </div>
+          {% for problem in group.problems %}
+          <article class="paper-problem" id="problem-{{ problem.statement.statement_uuid }}" aria-labelledby="heading-{{ problem.statement.statement_uuid }}">
+            <div class="paper-problem-header">
+              <h3 id="heading-{{ problem.statement.statement_uuid }}">{{ problem.heading }}</h3>
+              <form method="post" action="{{ problem.write_solution_url }}" class="paper-write-action">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary btn-sm paper-write-button" aria-label="{{ problem.write_solution_label }} for {{ problem.heading }} — {{ group.label }}"><i class="ti ti-pencil" aria-hidden="true"></i>{{ problem.write_solution_label }}</button>
+              </form>
+            </div>
+            {% if problem.statement.statement_latex %}
+              {% include 'partials/statement-render-content.html' with segments=problem.segments render_style='classic' only %}
+            {% else %}
+              <p class="text-muted">Statement not available.</p>
+            {% endif %}
+            <details class="paper-review">
+              <summary>Review details</summary>
+              <div class="paper-review-body">
+                <span>Topic: {{ problem.topic|default:'Not recorded' }}</span>
+                <span>Difficulty (MOHS): {% if problem.mohs is not None %}{{ problem.mohs }}{% else %}Not recorded{% endif %}</span>
+                {% if problem.solutions_url %}<a href="{{ problem.solutions_url }}">View solutions</a>{% else %}<span class="text-muted">Solutions unavailable</span>{% endif %}
+              </div>
+            </details>
+          </article>
+          {% endfor %}
+        </section>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock page_content %}
+
+{% block extra_javascript %}
+  {{ block.super }}
+  {% if paper_groups %}
+  <script>
+    document.getElementById("contest-paper-print").addEventListener("click", function() { window.print(); });
+    window.MathJax = {
+      loader: { load: ["[tex]/textmacros"] },
+      tex: {
+        packages: { "[+]": ["textmacros"] },
+        macros: {
+          tiny: "", scriptsize: "", footnotesize: "", small: "", normalsize: "", large: "", Large: "",
+          LARGE: "", huge: "", Huge: "", textbullet: "\\bullet", hdots: "\\dots",
+          overarc: ["\\overset{\\frown}{#1}", 1], vspace: ["\\kern0pt", 1]
+        },
+        inlineMath: [["$", "$"], ["\\(", "\\)"]],
+        displayMath: [["$$", "$$"], ["\\[", "\\]"]]
+      },
+      options: { skipHtmlTags: ["script", "noscript", "style", "textarea", "pre", "code"] }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  {% endif %}
+{% endblock extra_javascript %}
