@@ -40,7 +40,8 @@ test('the writer loads eagerly but leaves its initial typeset to the preview con
   const app = page();
   assert.equal(app.scripts.length, 1);
   assert.equal(app.scripts[0].src, 'https://cdn.example/startup.js');
-  assert.deepEqual(Array.from(app.window.MathJax.loader.load), ['input/tex', 'output/chtml', 'ui/menu']);
+  assert.deepEqual(Array.from(app.window.MathJax.loader.load), ['input/tex', 'output/chtml', 'ui/menu', 'ui/safe']);
+  assert.equal(app.window.MathJax.options.safeOptions.safeProtocols.javascript, false);
   assert.equal(app.window.MathJax.startup.typeset, false);
   const startup = app.startup();
   await Promise.resolve();

@@ -296,6 +296,11 @@ LOGGING = {
 REDIS_URL = env("REDIS_URL", default="redis://localhost:6379/0")
 REDIS_SSL = REDIS_URL.startswith("rediss://")
 
+# Coaching is opt-in twice: this kill switch and an enabled, funded pilot policy.
+SOLUTION_DOCUMENT_WRITES_ENABLED = env.bool("SOLUTION_DOCUMENT_WRITES_ENABLED", default=False)
+SOLUTION_AI_REVIEW_ENABLED = env.bool("SOLUTION_AI_REVIEW_ENABLED", default=False)
+OPENAI_API_KEY = env("OPENAI_API_KEY", default="")
+
 
 # django-allauth
 # ------------------------------------------------------------------------------

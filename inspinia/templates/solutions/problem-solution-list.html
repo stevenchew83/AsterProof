@@ -493,9 +493,9 @@
             </button>
           </div>
           {% endif %}
-          {% if inline_draft_form and inline_draft_formset %}
+          {% if inline_draft_form %}
           <div id="inline-draft-editor" class="solution-workspace-page solution-inline-draft mt-3 {% if not show_inline_draft_editor %}d-none{% endif %}" tabindex="-1">
-            {% with form=inline_draft_form formset=inline_draft_formset editor_embedded=True %}
+            {% with form=inline_draft_form editor_embedded=True %}
               {% include 'solutions/partials/solution-editor-toolbar.html' %}
               <p class="text-muted fs-xs">Saving or publishing a solution does not mark this problem solved. Use the completion date control above to update your progress.</p>
               {% include 'solutions/partials/solution-editor-workspace.html' %}
@@ -562,7 +562,7 @@
 {% block extra_javascript %}
 <script>
 window.MathJax = {
-  loader: { load: ["[tex]/textmacros"] },
+  loader: { load: ["ui/safe", "[tex]/textmacros"] },
   tex: {
     packages: { "[+]": ["textmacros"] },
     macros: {
@@ -584,7 +584,10 @@ window.MathJax = {
     inlineMath: [["$", "$"], ["\\(", "\\)"]],
     displayMath: [["$$", "$$"], ["\\[", "\\]"]]
   },
-  options: { skipHtmlTags: ["script", "noscript", "style", "textarea", "pre", "code"] },
+  options: {
+    skipHtmlTags: ["script", "noscript", "style", "textarea", "pre", "code"],
+    safeOptions: {allow: {URLs: "safe", classes: "none", cssIDs: "none", styles: "none"}, safeProtocols: {http: true, https: true, file: false, javascript: false, data: false}}
+  },
   startup: {
     ready: function () {
       MathJax.startup.defaultReady();
@@ -602,12 +605,9 @@ window.ASTERPROOF_SOLUTION_MEDIA = {
 };
 </script>
 {% if inline_draft_form %}
-<script>
-window.ASTERPROOF_SOLUTION_PREVIEW = {plainBlockTypeId: "{{ plain_block_type_id|escapejs }}"};
-</script>
 <script defer src="{% static 'js/solution-share-popover.js' %}"></script>
 <script defer src="{% static 'js/solution-pdf-options.js' %}"></script>
-<script defer src="{% static 'js/solution-editor.js' %}"></script>
+<script defer src="{% static 'js/solution-document-editor.bundle.js' %}"></script>
 {% endif %}
 <script>
 (function () {
@@ -620,8 +620,9 @@ window.ASTERPROOF_SOLUTION_PREVIEW = {plainBlockTypeId: "{{ plain_block_type_id|
     });
     if (!focusEditor) return;
     panel.scrollIntoView({block: "start"});
-    var focusTarget = panel.querySelector('textarea[name$="-body_source"]');
-    if (focusTarget) focusTarget.focus();
+    var editor = window.AsterProofDocumentEditors && window.AsterProofDocumentEditors.get(panel.querySelector('form'));
+    if (editor) editor.focusRange(editor.source().length);
+    else { var focusTarget = panel.querySelector('[data-solution-source]'); if (focusTarget) focusTarget.focus(); }
   }
 
   document.addEventListener("click", function (event) {
@@ -911,6 +912,7 @@ window.ASTERPROOF_SOLUTION_PREVIEW = {plainBlockTypeId: "{{ plain_block_type_id|
 })();
 </script>
 <script src="{% static 'js/solution-latex-hybrid.js' %}"></script>
+<script defer src="{% static 'js/solution-document-preview.bundle.js' %}"></script>
 <script>
 (function () {
   var base = (window.ASTERPROOF_SOLUTION_MEDIA && window.ASTERPROOF_SOLUTION_MEDIA.baseUrl) || "";

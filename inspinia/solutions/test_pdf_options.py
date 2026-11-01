@@ -14,8 +14,8 @@ from inspinia.pages.models import ProblemSolveRecord
 from inspinia.solutions.forms import ProblemSolutionForm
 from inspinia.solutions.models import ProblemSolution
 from inspinia.solutions.models import ProblemSolutionBlock
-from inspinia.solutions.models import SolutionBlockType
 from inspinia.solutions.pdf_latex import build_solution_tex_source
+from inspinia.solutions.revisions import editor_context
 from inspinia.users.tests.factories import UserFactory
 
 pytestmark = pytest.mark.django_db
@@ -54,20 +54,18 @@ def _workspace(client):
     return user, problem, reverse("solutions:problem_solution_edit", args=[problem.problem_uuid])
 
 
-def _proof_data():
+def _proof_data(user, problem):
     return {
         "solution-title": "Proof with options", "solution-summary": "", "solution-pdf_options_present": "1",
         "solution-pdf_show_date": "on", "action": "save",
-        "blocks-TOTAL_FORMS": "1", "blocks-INITIAL_FORMS": "0", "blocks-MIN_NUM_FORMS": "0",
-        "blocks-MAX_NUM_FORMS": "1000", "blocks-0-ORDER": "1", "blocks-0-title": "",
-        "blocks-0-body_format": "latex", "blocks-0-body_source": "This proves the claim.",
-        "blocks-0-block_type": str(SolutionBlockType.objects.get(slug="proof").pk),
+        "solution-body_source": "\\begin{proof}\nThis proves the claim.\n\\end{proof}",
+        "solution-base_version": "0", "solution-editor_context": editor_context(user, problem.problem_uuid),
     }
 
 
 def test_editor_options_persist_and_control_saved_pdf(client, monkeypatch):
     user, problem, url = _workspace(client)
-    response = client.post(url, _proof_data(), follow=True)
+    response = client.post(url, _proof_data(user, problem), follow=True)
     assert response.status_code == HTTPStatus.OK
     solution = ProblemSolution.objects.get(author=user, problem=problem)
     assert (solution.pdf_show_author, solution.pdf_show_date, solution.pdf_show_footer) == (False, True, False)
@@ -89,13 +87,17 @@ def test_editor_options_persist_and_control_saved_pdf(client, monkeypatch):
     assert rf"\date{{{timezone.localdate().isoformat()}}}" in sources[0]
 
 
-def test_legacy_forms_preserve_saved_display_options(client):
+def test_document_forms_without_pdf_controls_preserve_saved_display_options(client):
     user, problem, _ = _workspace(client)
     solution = ProblemSolution.objects.create(
         author=user, problem=problem, pdf_show_author=False, pdf_show_date=False, pdf_show_footer=False,
     )
     form = ProblemSolutionForm(
-        {"solution-title": "Revised", "solution-summary": ""}, instance=solution, prefix="solution",
+        {
+            "solution-title": "Revised", "solution-summary": "", "solution-body_source": "Proof.",
+            "solution-base_version": "0",
+            "solution-editor_context": editor_context(user, problem.problem_uuid, solution=solution),
+        }, instance=solution, prefix="solution",
     )
     assert form.is_valid()
     form.save()

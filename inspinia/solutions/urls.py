@@ -8,6 +8,8 @@ from inspinia.solutions.collection_views import collection_edit_view
 from inspinia.solutions.public_views import public_collection_view
 from inspinia.solutions.public_views import public_solution_image_view
 from inspinia.solutions.public_views import public_solution_view
+from inspinia.solutions.review_views import solution_review_create_view
+from inspinia.solutions.review_views import solution_review_status_view
 from inspinia.solutions.statement_authoring import statement_solution_start_view
 from inspinia.solutions.views import admin_problem_solution_pdf_view
 from inspinia.solutions.views import my_solution_list_view
@@ -43,6 +45,9 @@ urlpatterns = [
         name="solution_body_image_upload",
     ),
     path("problems/<uuid:problem_uuid>/draft/", problem_solution_edit_view, name="problem_solution_edit"),
+    path("problems/<uuid:problem_uuid>/reviews/", solution_review_create_view, name="solution_review_create"),
+    path("problems/<uuid:problem_uuid>/reviews/<uuid:review_id>/", solution_review_status_view,
+         name="solution_review_status"),
     path("problems/<uuid:problem_uuid>/share/", problem_solution_share_view, name="problem_solution_share"),
     path(
         "problems/<uuid:problem_uuid>/draft/pdf/",

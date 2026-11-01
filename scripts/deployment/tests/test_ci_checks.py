@@ -14,7 +14,9 @@ ROOT = Path(__file__).resolve().parents[3]
 
 def test_documentation_changes_need_no_runtime_or_build():
     checks = select_checks(["README.md", "docs/deployment/production-release.md", "inspinia/pages/AGENTS.md"])
-    assert checks == {"runtime": False, "workflows": False, "static": False, "locks": False, "tests": []}
+    assert checks == {
+        "runtime": False, "workflows": False, "static": False, "javascript": False, "locks": False, "tests": [],
+    }
 
 
 @pytest.mark.parametrize("path", ["inspinia/rankings/views.py", "inspinia/templates/rankings/table.html"])
@@ -75,6 +77,19 @@ def test_asset_changes_build_static_files(path):
     checks = select_checks([path])
     assert checks["static"]
     assert checks["runtime"]
+
+
+def test_javascript_only_changes_select_actual_document_contracts():
+    checks = select_checks(["inspinia/static/js/solution-document-editor.js"])
+    assert checks["javascript"]
+    assert "scripts/tests/test_solution_document_js.py" in checks["tests"]
+
+
+def test_script_checks_install_node_dependencies_without_forcing_a_static_build():
+    checks = select_checks(["scripts/deployment/operation_worker.py"])
+    assert checks["javascript"]
+    assert "scripts" in checks["tests"]
+    assert not checks["static"]
 
 
 def test_dependency_changes_keep_broad_tests_build_and_lock_validation():

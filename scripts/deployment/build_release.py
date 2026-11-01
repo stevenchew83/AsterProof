@@ -16,6 +16,8 @@ from scripts.deployment.concept_schema import MAX_DISCLOSURE_BYTES
 from scripts.deployment.postgres_runtime import MAX_BYTES as MAX_RECOVERY_RUNTIME_BYTES
 from scripts.deployment.release_manifest import ReleaseManifest
 from scripts.deployment.release_manifest import sha256_file
+from scripts.deployment.solution_document_compat import READER_VERSION
+from scripts.deployment.solution_document_compat import reader_sources_match
 
 EXCLUDED_PARTS = {".git", ".venv", "node_modules", "__pycache__", "media"}
 EXCLUDED_NAMES = {".env"}
@@ -104,6 +106,9 @@ def build_release(
         }
         for relative, path in sorted(entries.items())
     )
+    reader_verified = reader_sources_match(files)
+    if "inspinia/solutions/document_source.py" in entries and not reader_verified:
+        raise ValueError("solution document reader changes require a reviewed capability refresh")
     manifest = ReleaseManifest(
         repository=repository,
         repository_id=repository_id,
@@ -113,6 +118,7 @@ def build_release(
         target_platform=target_platform,
         python_abi=python_abi,
         files=files,
+        solution_document_reader=READER_VERSION if reader_verified else 0,
     )
     manifest_bytes = manifest.to_json_bytes()
 

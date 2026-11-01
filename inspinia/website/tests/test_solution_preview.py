@@ -87,7 +87,9 @@ def test_homepage_and_tool_are_public_for_anonymous_and_pending_users(client):
             assert 'aria-label="Main navigation"' in html
             assert 'class="website-tools-menu"' in html
             assert reverse("website:solution_preview") in html
-            assert len(response.context["formset"].forms) == len(INEQUALITY_BLOCKS)
+            assert response.context["form"]["body_source"].value()
+            assert "data-solution-source" in html
+            assert "preview-add-block" not in html
             assert 'class="sidenav-menu"' not in html
         assert not ProblemSolution.objects.exists()
         assert not UserProblemCompletion.objects.exists()

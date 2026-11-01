@@ -18,16 +18,31 @@ const paths = {
     baseSrcAssets: "inspinia/static/", // source assets directory
 };
 
-const writerScripts = ["solution-pdf-options.js", "solution-draft-recovery.js", "solution-preview.js"];
 const publicScriptGroups = {
-    "public-writer.bundle.js": writerScripts,
-    "public-home.bundle.js": ["website-home.js", ...writerScripts],
     "website-problem-solving.min.js": ["website-problem-solving.js"],
     "website-math.min.js": ["website-math.js"],
 };
+const moduleScriptEntries = {
+    "public-writer.bundle.js": "public-writer-entry.js",
+    "public-home.bundle.js": "public-home-entry.js",
+    "solution-document-editor.bundle.js": "solution-document-editor.js",
+    "solution-document-preview.bundle.js": "solution-document-preview-entry.js",
+};
 
 async function publicScripts() {
-    await Promise.all(Object.entries(publicScriptGroups).map(async ([output, files]) => {
+    await Promise.all([...Object.entries(moduleScriptEntries).map(([output, entry]) => esbuild.build({
+        entryPoints: [paths.baseSrcAssets + "js/" + entry],
+        outfile: paths.baseDistAssets + "js/" + output,
+        bundle: true,
+        minify: true,
+        format: "iife",
+        target: ["es2020"],
+        // Keep embedded snippet newlines escaped in generated files, rather than
+        // emitting whitespace-only template-literal lines into tracked bundles.
+        supported: {"template-literal": false},
+        legalComments: "eof",
+        sourcemap: "external",
+    })), ...Object.entries(publicScriptGroups).map(async ([output, files]) => {
         const sources = await Promise.all(files.map(name => fs.readFile(paths.baseSrcAssets + "js/" + name, "utf8")));
         // Transform ordinary browser scripts without a module wrapper: recovery's
         // CommonJS test export must still use its window export in the browser.
@@ -40,7 +55,7 @@ async function publicScripts() {
         });
         await fs.writeFile(paths.baseDistAssets + "js/" + output, result.code + "//# sourceMappingURL=" + output + ".map\n");
         await fs.writeFile(paths.baseDistAssets + "js/" + output + ".map", result.map);
-    }));
+    })]);
 }
 
 const stripSourceMappingURL = function () {
@@ -179,6 +194,7 @@ function watchFiles() {
     watch(paths.baseSrcAssets + "scss/**/*.scss", series(scss));
     watch(paths.baseSrcAssets + "js/website-geometry.js", geometry);
     watch([...new Set(Object.values(publicScriptGroups).flat())].map(name => paths.baseSrcAssets + "js/" + name), publicScripts);
+    watch(["solution-document-*.js", "public-*-entry.js", "solution-pdf-options.js", "solution-draft-recovery.js"].map(name => paths.baseSrcAssets + "js/" + name), publicScripts);
 }
 
 const geometry = function () {

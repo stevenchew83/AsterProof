@@ -11,7 +11,6 @@ from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import IntegrityError
 from django.db import connection
-from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
 from PIL import Image
@@ -39,6 +38,8 @@ from inspinia.solutions.pdf_latex import _latex_log_user_excerpt
 from inspinia.solutions.pdf_latex import _merge_latex_fail_detail
 from inspinia.solutions.pdf_latex import build_solution_tex_source
 from inspinia.solutions.pdf_latex import compile_solution_to_pdf
+from inspinia.solutions.revisions import editor_context
+from inspinia.solutions.revisions import save_document
 from inspinia.solutions.views import STATEMENT_BACKED_PROBLEM_LIST_LIMIT
 from inspinia.users.models import User
 from inspinia.users.tests.factories import UserFactory
@@ -228,13 +229,29 @@ def test_my_solution_list_counts_blocks_without_reading_proof_bodies(client):
         blocks=[("Idea", "A large proof body. " * 1000, "idea"), ("Proof", "Done.", "proof")],
     )
     _solution_with_blocks(problem=_problem(year=2025), author=user)
+    canonical_problem = _problem(year=2024)
+    save_document(
+        solution=ProblemSolution(problem=canonical_problem, author=user), user=user,
+        source="A large canonical proof. " * 1000, title="Canonical", summary="",
+        pdf_options={"pdf_show_author": True, "pdf_show_date": True, "pdf_show_footer": True},
+        base_version=0, context=editor_context(user, canonical_problem.problem_uuid),
+    )
+    selected_columns = []
 
-    with CaptureQueriesContext(connection) as queries:
+    def capture_columns(execute, sql, params, many, context):
+        result = execute(sql, params, many, context)
+        if context["cursor"].description:
+            selected_columns.extend(column[0] for column in context["cursor"].description)
+        return result
+
+    with connection.execute_wrapper(capture_columns):
         response = client.get(reverse("solutions:my_solution_list"))
 
     assert response.status_code == HTTPStatus.OK
-    assert sorted(row["block_count"] for row in response.context["my_solution_rows"]) == [0, 2]
-    assert all('"body_source"' not in query["sql"] for query in queries)
+    assert sorted(row["block_count"] for row in response.context["my_solution_rows"]) == [0, 1, 2]
+    assert "body_source" not in selected_columns
+    assert "A large proof body." not in response.content.decode()
+    assert "A large canonical proof." not in response.content.decode()
 
 
 def test_problem_solution_create_view_lists_only_statement_backed_problems(client):
@@ -644,7 +661,6 @@ def test_problem_solution_list_inline_draft_post_creates_solution_and_returns_to
     user = UserFactory()
     client.force_login(user)
     problem = _problem()
-    proof_block_type = SolutionBlockType.objects.get(slug="proof")
     url = reverse("solutions:problem_solution_list", args=[problem.problem_uuid])
 
     get_response = client.get(url)
@@ -660,16 +676,8 @@ def test_problem_solution_list_inline_draft_post_creates_solution_and_returns_to
             "action": "save_draft",
             "solution-title": "First draft from page",
             "solution-summary": "Started without leaving the problem page.",
-            "blocks-TOTAL_FORMS": "1",
-            "blocks-INITIAL_FORMS": "0",
-            "blocks-MIN_NUM_FORMS": "0",
-            "blocks-MAX_NUM_FORMS": "1000",
-            "blocks-0-id": "",
-            "blocks-0-ORDER": "1",
-            "blocks-0-block_type": str(proof_block_type.id),
-            "blocks-0-title": "Proof",
-            "blocks-0-body_format": ProblemSolutionBlock.BodyFormat.LATEX,
-            "blocks-0-body_source": "Inline draft body.",
+            "solution-body_source": "\\begin{proof}\nInline draft body.\n\\end{proof}",
+            "solution-base_version": "0", "solution-editor_context": editor_context(user, problem.problem_uuid),
         },
     )
 
@@ -679,7 +687,8 @@ def test_problem_solution_list_inline_draft_post_creates_solution_and_returns_to
     assert solution.title == "First draft from page"
     assert solution.summary == "Started without leaving the problem page."
     assert solution.status == ProblemSolution.Status.DRAFT
-    assert list(solution.blocks.values_list("title", "body_source")) == [("Proof", "Inline draft body.")]
+    assert solution.current_revision.body_source == "\\begin{proof}\nInline draft body.\n\\end{proof}"
+    assert not solution.blocks.exists()
 
 
 def test_problem_solution_list_shows_all_user_solutions_for_admin(client):
@@ -746,12 +755,15 @@ def test_problem_solution_list_highlights_selected_solution_from_query_string_fo
     assert "solution-card-selected" in response_html
 
 
-def test_problem_solution_edit_creates_and_publishes_ordered_blocks(client):
+def test_problem_solution_edit_publishes_structured_document_in_authored_order(client):
     user = UserFactory()
     client.force_login(user)
     problem = _problem()
-    claim_block_type = SolutionBlockType.objects.get(slug="claim")
-    proof_block_type = SolutionBlockType.objects.get(slug="proof")
+    source = (
+        "\\begin{claim}\nClaim 1\n\\end{claim}\n\n"
+        "\\begin{proof}\nFirst establish the key claim.\n\\end{proof}\n\n"
+        "\\begin{proof}\nNow we finish the proof.\n\\end{proof}"
+    )
 
     response = client.post(
         reverse("solutions:problem_solution_edit", args=[problem.problem_uuid]),
@@ -759,22 +771,8 @@ def test_problem_solution_edit_creates_and_publishes_ordered_blocks(client):
             "action": "publish",
             "solution-title": "Invariant solution",
             "solution-summary": "A two-step argument.",
-            "blocks-TOTAL_FORMS": "2",
-            "blocks-INITIAL_FORMS": "0",
-            "blocks-MIN_NUM_FORMS": "0",
-            "blocks-MAX_NUM_FORMS": "1000",
-            "blocks-0-id": "",
-            "blocks-0-ORDER": "2",
-            "blocks-0-block_type": str(proof_block_type.id),
-            "blocks-0-title": "Proof",
-            "blocks-0-body_format": ProblemSolutionBlock.BodyFormat.LATEX,
-            "blocks-0-body_source": "Now we finish the proof.",
-            "blocks-1-id": "",
-            "blocks-1-ORDER": "1",
-            "blocks-1-block_type": str(claim_block_type.id),
-            "blocks-1-title": "Claim 1",
-            "blocks-1-body_format": ProblemSolutionBlock.BodyFormat.LATEX,
-            "blocks-1-body_source": "First establish the key claim.",
+            "solution-body_source": source, "solution-base_version": "0",
+            "solution-editor_context": editor_context(user, problem.problem_uuid),
         },
     )
 
@@ -783,11 +781,12 @@ def test_problem_solution_edit_creates_and_publishes_ordered_blocks(client):
     assert solution.status == ProblemSolution.Status.PUBLISHED
     assert solution.published_at is not None
     assert solution.summary == "A two-step argument."
-    assert [block.title for block in solution.blocks.order_by("position")] == ["Claim 1", "Proof"]
-    assert [block.position for block in solution.blocks.order_by("position")] == [1, 2]
+    assert solution.current_revision.body_source == source
+    assert source.index("Claim 1") < source.index("Now we finish")
+    assert not solution.blocks.exists()
 
 
-def test_problem_solution_edit_reorders_and_deletes_existing_blocks(client):
+def test_problem_solution_edit_replaces_visible_source_without_mutating_legacy_blocks(client):
     user = UserFactory()
     client.force_login(user)
     problem = _problem()
@@ -800,8 +799,7 @@ def test_problem_solution_edit_reorders_and_deletes_existing_blocks(client):
             ("Case 2", "Old second block.", "case"),
         ],
     )
-    first_block, second_block = list(solution.blocks.order_by("position"))
-    proof_block_type = SolutionBlockType.objects.get(slug="proof")
+    source = "\\begin{proof}\nNew leading argument.\n\\end{proof}\n\n\\textbf{Case 1.}\nMoved to second."
 
     response = client.post(
         reverse("solutions:problem_solution_edit", args=[problem.problem_uuid]),
@@ -809,29 +807,8 @@ def test_problem_solution_edit_reorders_and_deletes_existing_blocks(client):
             "action": "save_draft",
             "solution-title": "Editable draft",
             "solution-summary": "Updated ordering.",
-            "blocks-TOTAL_FORMS": "3",
-            "blocks-INITIAL_FORMS": "2",
-            "blocks-MIN_NUM_FORMS": "0",
-            "blocks-MAX_NUM_FORMS": "1000",
-            "blocks-0-id": str(first_block.id),
-            "blocks-0-ORDER": "2",
-            "blocks-0-block_type": str(first_block.block_type_id),
-            "blocks-0-title": "Case 1",
-            "blocks-0-body_format": first_block.body_format,
-            "blocks-0-body_source": "Moved to second.",
-            "blocks-1-id": str(second_block.id),
-            "blocks-1-ORDER": "1",
-            "blocks-1-block_type": str(second_block.block_type_id),
-            "blocks-1-title": "Case 2",
-            "blocks-1-body_format": second_block.body_format,
-            "blocks-1-body_source": "Delete this block.",
-            "blocks-1-DELETE": "on",
-            "blocks-2-id": "",
-            "blocks-2-ORDER": "1",
-            "blocks-2-block_type": str(proof_block_type.id),
-            "blocks-2-title": "Final proof",
-            "blocks-2-body_format": ProblemSolutionBlock.BodyFormat.LATEX,
-            "blocks-2-body_source": "New leading block.",
+            "solution-body_source": source, "solution-base_version": "0",
+            "solution-editor_context": editor_context(user, problem.problem_uuid, solution=solution),
         },
     )
 
@@ -839,10 +816,12 @@ def test_problem_solution_edit_reorders_and_deletes_existing_blocks(client):
     solution.refresh_from_db()
     assert solution.status == ProblemSolution.Status.DRAFT
     remaining_blocks = list(solution.blocks.order_by("position"))
-    assert [block.title for block in remaining_blocks] == ["Final proof", "Case 1"]
+    assert solution.current_revision.body_source == source
+    assert "Case 2" not in solution.current_revision.body_source
+    assert [block.title for block in remaining_blocks] == ["Case 1", "Case 2"]
     assert [block.body_source for block in remaining_blocks] == [
-        "New leading block.",
-        "Moved to second.",
+        "Old first block.",
+        "Old second block.",
     ]
     assert [block.position for block in remaining_blocks] == [1, 2]
 
@@ -1583,7 +1562,7 @@ def test_problem_solution_edit_shows_reference_workspace_and_progressive_help(cl
     assert "Algebra" in response_html
     assert ">5<" in response_html
     assert "Linked statement preview text" in response_html
-    assert response_html.index("Linked statement preview text") < response_html.index("Your working")
+    assert response_html.index("Linked statement preview text") < response_html.index('id="solution-writing-heading"')
     assert 'aria-label="Workspace view"' in response_html
     assert 'data-editor-view="write"' in response_html
     assert 'data-editor-view="preview"' in response_html
@@ -1596,7 +1575,7 @@ def test_problem_solution_edit_shows_reference_workspace_and_progressive_help(cl
     assert 'textbullet: "\\\\bullet"' in response_html
 
 
-def test_problem_solution_edit_exposes_plain_block_type_for_live_preview_branch(client):
+def test_problem_solution_edit_mounts_one_continuous_source_editor(client):
     user = UserFactory()
     client.force_login(user)
     problem = _problem()
@@ -1605,6 +1584,7 @@ def test_problem_solution_edit_exposes_plain_block_type_for_live_preview_branch(
 
     assert response.status_code == HTTPStatus.OK
     response_html = response.content.decode("utf-8")
-    plain_block_type = SolutionBlockType.objects.get(slug="plain")
-    assert f'plainBlockTypeId: "{plain_block_type.id}"' in response_html
-    assert "js/solution-editor.js" in response_html
+    assert response_html.count('name="solution-body_source"') == 1
+    assert "js/solution-document-editor.bundle.js" in response_html
+    assert "js/solution-editor.js" not in response_html
+    assert 'id="solution-add-block"' not in response_html

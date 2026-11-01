@@ -15,12 +15,16 @@
   </section>
   {% if snapshot.summary %}<p class="public-shared-summary solution-block-body-latex">{{ snapshot.summary }}</p>{% endif %}
   <div class="public-shared-blocks">
+    {% if snapshot.version == 2 %}
+    <div class="public-shared-body tex2jax_ignore" data-solution-document-source>{{ snapshot.document.source }}</div>
+    {% else %}
     {% for block in snapshot.blocks %}
     <section class="public-shared-block">
       {% if shared_anchor %}<h3>{% else %}<h2>{% endif %}{% if block.heading %}{{ block.heading }}{% elif block.label %}{{ block.label }}{% else %}Step {{ forloop.counter }}{% endif %}{% if shared_anchor %}</h3>{% else %}</h2>{% endif %}
       <div class="public-shared-body {% if block.format == 'latex' %}solution-block-body-latex{% else %}tex2jax_ignore{% endif %}">{{ block.source }}</div>
     </section>
     {% endfor %}
+    {% endif %}
   </div>
   {% if snapshot.show_footer %}<footer class="public-shared-page-number" aria-label="Page number">1</footer>{% endif %}
 </article>

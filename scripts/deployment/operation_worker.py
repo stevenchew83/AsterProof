@@ -20,6 +20,7 @@ from scripts.deployment import newsletter_schema
 from scripts.deployment import onboarding_schema
 from scripts.deployment import solution_analytics_schema
 from scripts.deployment import solution_collections_schema
+from scripts.deployment import solution_document_schema
 from scripts.deployment import solution_pdf_schema
 from scripts.deployment import solution_sharing_schema
 from scripts.deployment import statement_authoring_schema
@@ -49,6 +50,7 @@ from scripts.deployment.server_activate import restore_previous
 from scripts.deployment.server_activate import verify_release
 from scripts.deployment.server_activate import write_runtime_state
 from scripts.deployment.server_gate import DEFAULT_CONTRACT
+from scripts.deployment.solution_document_compat import verified_reader_release
 from scripts.deployment.target import TargetContract
 
 PREPARE_HELPER = Path("/usr/local/libexec/asterproof-prepare-release")
@@ -304,6 +306,15 @@ class WorkerBackend:
         solution_pdf_schema.validate_candidate(release)
         self._run_candidate(contract, release, ["shell", "--command", solution_pdf_schema.PLAN_CHECK])
 
+    def check_solution_document_schema(self, contract: TargetContract, release: Path) -> None:
+        solution_document_schema.validate_candidate(release)
+        self._run_candidate(contract, release, ["shell", "--command", solution_document_schema.PLAN_CHECK])
+
+    def migrate_solution_document_schema(self, contract: TargetContract, release: Path) -> None:
+        self._run_candidate(
+            contract, release, ["shell", "--command", solution_document_schema.MIGRATION_APPLY], migration=True,
+        )
+
     def migrate_solution_pdf_schema(self, contract: TargetContract, release: Path) -> None:
         self._run_candidate(
             contract, release, ["shell", "--command", solution_pdf_schema.MIGRATION_APPLY], migration=True,
@@ -517,6 +528,27 @@ class WorkerBackend:
 
     def state_fingerprint(self, contract: TargetContract) -> str:
         return self.schema_audit(contract)["state_fingerprint"]
+
+    def document_reader_required(self, contract: TargetContract) -> bool:
+        try:
+            result = subprocess.run(
+                [str(MIGRATION_AUDIT_HELPER), "document-reader-floor", "--contract", str(self.contract_path)],
+                check=True, capture_output=True, text=True, timeout=30,
+            )
+            value = json.loads(result.stdout)
+            if (
+                not isinstance(value, dict) or type(value.get("format_version")) is not int
+                or value.get("format_version") != 1
+                or type(value.get("reader_required")) is not bool
+            ):
+                raise ValueError
+        except (OSError, ValueError, subprocess.SubprocessError) as exc:
+            raise OperationError("document_reader_floor_unavailable") from exc
+        return value["reader_required"]
+
+    def ensure_document_reader(self, contract: TargetContract, release: Path, *, required: bool = False) -> None:
+        if (required or self.document_reader_required(contract)) and not verified_reader_release(release):
+            raise OperationError("document_reader_required")
 
     def legacy_service_matches(self, contract: TargetContract, source_root: Path) -> bool:
         try:
@@ -759,6 +791,7 @@ def _deploy(
     backend.prepare(contract, request, staging)
     backend.publish_permissions(contract, staging, release)
     try:
+        backend.ensure_document_reader(contract, release)
         backend.candidate_check(contract, release)
         transition(state_path, "prepared")
         if request["migration_class"] == "data-or-non-compatible":
@@ -819,7 +852,11 @@ def _deploy(
             ):
                 raise OperationError("schema_starting_state_mismatch")
             try:
-                if disclosure["migration"] == website_schema.MIGRATION:
+                if disclosure["migration"] == solution_document_schema.MIGRATION:
+                    backend.ensure_document_reader(contract, release, required=True)
+                    solution_document_schema.validate_build_evidence(release, disclosure)
+                    backend.check_solution_document_schema(contract, release)
+                elif disclosure["migration"] == website_schema.MIGRATION:
                     website_schema.validate_build_evidence(release, disclosure)
                     backend.check_website_schema(contract, release)
                 elif disclosure["migration"] == solution_analytics_schema.MIGRATION:
@@ -854,7 +891,9 @@ def _deploy(
             if not audit_matches(disclosure, backend.schema_audit(contract), stage="starting"):
                 raise OperationError("schema_starting_state_drift")
             transition(state_path, "migrating")
-            if disclosure["migration"] == website_schema.MIGRATION:
+            if disclosure["migration"] == solution_document_schema.MIGRATION:
+                backend.migrate_solution_document_schema(contract, release)
+            elif disclosure["migration"] == website_schema.MIGRATION:
                 backend.migrate_website_schema(contract, release)
             elif disclosure["migration"] == solution_analytics_schema.MIGRATION:
                 backend.migrate_solution_analytics_schema(contract, release)
@@ -913,6 +952,9 @@ def _deploy(
         )
         if not can_rollback:
             raise OperationError("activation_failed_ineligible_rollback") from activation_error
+        # Check before touching the current/previous symlinks. The schema floor
+        # also applies to automatic recovery after activation failure.
+        backend.ensure_document_reader(contract, safe_release_path(contract.releases_dir, baseline_sha))
         try:
             if backend.state_fingerprint(contract) != ending_fingerprint:
                 raise OperationError("rollback_database_state_drift")
@@ -989,6 +1031,7 @@ def _rollback(
     previous_sha = release_sha_from_link(contract.release_root / "previous", releases_dir=contract.releases_dir)
     if previous_sha != request["release_sha"]:
         raise OperationError("rollback_target_not_previous")
+    backend.ensure_document_reader(contract, safe_release_path(contract.releases_dir, request["release_sha"]))
     before_fingerprint = backend.state_fingerprint(contract)
     if (
         current_record["state_fingerprint"] != before_fingerprint

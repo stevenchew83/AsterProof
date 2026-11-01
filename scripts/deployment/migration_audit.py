@@ -240,14 +240,36 @@ def collect_catalogue_behaviour(config: AuditConfig, *, runner: Any = subprocess
     }
 
 
+def collect_document_reader_floor(config: AuditConfig, *, runner: Any = subprocess.run) -> dict[str, Any]:
+    """The additive schema establishes the reader floor before any author writes.
+
+    A schema floor deliberately avoids an EXISTS-on-data race and needs no new
+    privileges to inspect private proofs or public-copy JSON.
+    """
+    identity = collect_identity(config, runner=runner)
+    if identity["database_identity_hash"] != config.expected_database_identity_hash:
+        raise MigrationAuditError("document compatibility audit database identity mismatch")
+    rows = _parse_csv(_run_query(
+        config, "SELECT to_regclass('public.solutions_solutionrevision') IS NOT NULL", runner=runner,
+    ), 1)
+    if len(rows) != 1 or rows[0][0] not in {"t", "f"}:
+        raise MigrationAuditError("document compatibility audit returned an invalid schema flag")
+    return {"format_version": 1, **identity, "reader_required": rows[0][0] == "t"}
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("command", choices=("fingerprint", "identity", "catalog-snapshot", "catalogue-behaviour"))
+    parser.add_argument("command", choices=(
+        "fingerprint", "identity", "catalog-snapshot", "catalogue-behaviour", "document-reader-floor",
+    ))
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     parser.add_argument("--contract", type=Path)
     args = parser.parse_args()
     del args.contract
     config = AuditConfig.load(args.config)
+    if args.command == "document-reader-floor":
+        print(json.dumps(collect_document_reader_floor(config), sort_keys=True, separators=(",", ":")))
+        return 0
     if args.command == "catalogue-behaviour":
         print(json.dumps(collect_catalogue_behaviour(config), sort_keys=True, separators=(",", ":")))
         return 0

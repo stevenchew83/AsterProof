@@ -17,6 +17,7 @@ from inspinia.solutions.models import ProblemSolution
 from inspinia.solutions.models import ProblemSolutionBlock
 from inspinia.solutions.models import SolutionBlockType
 from inspinia.solutions.models import SolutionPublicShare
+from inspinia.solutions.revisions import editor_context
 from inspinia.solutions.sharing import public_preview_image
 from inspinia.solutions.sharing import snapshot_digest
 from inspinia.users.tests.factories import UserFactory
@@ -82,19 +83,13 @@ def image_path(share):
 
 
 def saved_editor_data(solution, *, title="PRIVATE-REVISION", body="PRIVATE-PROOF-CHANGES"):
-    blocks = list(solution.blocks.order_by("position"))
-    data = {
+    solution.refresh_from_db()
+    return {
         "action": "save", "solution-title": title, "solution-summary": "PRIVATE-SUMMARY",
-        "solution-pdf_options_present": "1", "blocks-TOTAL_FORMS": str(len(blocks)),
-        "blocks-INITIAL_FORMS": str(len(blocks)), "blocks-MIN_NUM_FORMS": "0", "blocks-MAX_NUM_FORMS": "1000",
+        "solution-pdf_options_present": "1", "solution-body_source": body,
+        "solution-base_version": str(solution.edit_version),
+        "solution-editor_context": editor_context(solution.author, solution.problem.problem_uuid, solution=solution),
     }
-    for index, block in enumerate(blocks):
-        data.update({
-            f"blocks-{index}-id": str(block.pk), f"blocks-{index}-block_type": str(block.block_type_id),
-            f"blocks-{index}-title": block.title, f"blocks-{index}-body_format": block.body_format,
-            f"blocks-{index}-body_source": body + str(index), f"blocks-{index}-ORDER": str(index + 1),
-        })
-    return data
 
 
 @pytest.mark.parametrize("status", [ProblemSolution.Status.DRAFT, ProblemSolution.Status.PUBLISHED])
