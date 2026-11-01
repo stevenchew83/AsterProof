@@ -1,1 +1,0 @@
-<span class="badge {% if problem.status == 'approved' %}bg-success-subtle text-success{% elif problem.status == 'declined' %}bg-danger-subtle text-danger{% elif problem.status == 'changes_requested' %}bg-warning-subtle text-warning{% else %}bg-info-subtle text-info{% endif %}">{{ problem.get_status_display }}</span>

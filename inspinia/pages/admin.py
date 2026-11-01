@@ -1,7 +1,6 @@
 from django import forms
 from django.contrib import admin
 
-from . import community_admin  # noqa: F401
 from .contest_names import normalize_text_list
 from .models import ContestMetadata
 from .models import ContestProblemStatement
