@@ -1,0 +1,83 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}
+  Community problems
+{% endblock title %}
+{% block page_content %}
+  <div class="container-fluid app-table-page">
+    {% include 'partials/page-title.html' with title='Community problems' subtitle='Problems & resources' page_icon='ti-messages' %}
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+      <p class="text-muted mb-0">Problems shared by users. Admin review does not add a post to the main library.</p>
+      <a class="btn btn-primary"
+         href="{% url 'pages:community_problem_create' %}"><i class="ti ti-plus me-1"></i>Post a problem</a>
+    </div>
+    <nav class="nav nav-tabs mb-3" aria-label="Community problem lists">
+      <a class="nav-link{% if tab == 'reviewed' %} active{% endif %}"
+         href="{% url 'pages:community_problem_list' %}"
+         {% if tab == 'reviewed' %}aria-current="page"{% endif %}>Admin reviewed <span class="badge bg-success-subtle text-success ms-1">{{ reviewed_count }}</span></a>
+      <a class="nav-link{% if tab == 'all' %} active{% endif %}"
+         href="{% url 'pages:community_problem_list' %}?tab=all"
+         {% if tab == 'all' %}aria-current="page"{% endif %}>All problems <span class="badge bg-secondary-subtle text-secondary ms-1">{{ all_count }}</span></a>
+    </nav>
+    {% if tab == 'all' %}
+      <p class="text-muted fs-sm">Every post is included here: pending, admin reviewed, changes requested, and declined.</p>
+    {% endif %}
+    <div class="card">
+      <div class="app-table-region table-responsive"
+           role="region"
+           aria-label="Community problems"
+           tabindex="0">
+        <table class="table table-striped align-middle app-table-compact mb-0">
+          <thead>
+            <tr>
+              <th>Problem</th>
+              <th>Subject</th>
+              <th>Proposed MOHS</th>
+              <th>Status</th>
+              <th>Posted by</th>
+              <th>Posted</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for problem in problems %}
+              <tr>
+                <td>
+                  <a class="fw-semibold"
+                     href="{% url 'pages:community_problem_detail' problem.pk %}">{{ problem.title }}</a><span class="app-table-meta text-muted">{{ problem.topic_tags|truncatechars:100 }}</span>
+                </td>
+                <td>{{ problem.get_topic_display }}</td>
+                <td>{{ problem.mohs }}</td>
+                <td>{% include 'pages/partials/community-status.html' %}</td>
+                <td>{{ problem.author.name|default:'Community member' }}</td>
+                <td>{{ problem.created_at|date:'Y-m-d' }}</td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="6" class="text-center text-muted py-5">
+                  {% if tab == 'reviewed' %}
+                    No admin-reviewed problems yet. Browse all problems or post one for review.
+                  {% else %}
+                    No community problems yet. Post the first problem.
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="card-body d-flex flex-wrap gap-2 align-items-center justify-content-between">
+        <span class="text-muted fs-sm">Page {{ problems.number }} of {{ problems.paginator.num_pages }} · {{ problems.paginator.count }} posts</span>
+        <nav aria-label="Problem pages" class="d-flex gap-2">
+          {% if problems.has_previous %}
+            <a class="btn btn-sm btn-outline-secondary"
+               href="{{ pagination_url }}{{ problems.previous_page_number }}">Previous</a>
+          {% endif %}
+          {% if problems.has_next %}
+            <a class="btn btn-sm btn-outline-secondary"
+               href="{{ pagination_url }}{{ problems.next_page_number }}">Next</a>
+          {% endif %}
+        </nav>
+      </div>
+    </div>
+  </div>
+{% endblock page_content %}
