@@ -57,6 +57,7 @@ def _directory_context(base, params):
     }
     for row in page:
         row["url"] = _papers_url(contest=row["contest_name"])
+        row["latest_url"] = _papers_url(contest=row["contest_name"], year=row["last_year"])
         row["full_name"] = names.get(row["contest_name"], "")
     return {"contest_page": page, "search_query": search, "directory_url": _papers_url(q=search)}
 
@@ -122,6 +123,20 @@ def contest_papers_view(request):
         for row in years:
             row["url"] = _papers_url(contest=contest, year=row["contest_year"])
         context.update({"year_rows": years, "contest_url": _papers_url(contest=contest)})
+        if not year:
+            decades = defaultdict(list)
+            for row in years:
+                decades[row["contest_year"] // 10 * 10].append(row)
+            metadata = ContestMetadata.objects.filter(contest=contest).values_list("full_name", flat=True).first()
+            context.update(
+                {
+                    "contest_full_name": metadata or "",
+                    "latest_paper": years[0],
+                    "first_year": years[-1]["contest_year"],
+                    "last_year": years[0]["contest_year"],
+                    "decade_groups": [{"decade": decade, "years": rows} for decade, rows in decades.items()],
+                },
+            )
         if year:
             if not re.fullmatch(r"[0-9]{1,4}", year) or int(year) not in {row["contest_year"] for row in years}:
                 message = "Contest paper not found."
