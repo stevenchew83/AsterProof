@@ -83,6 +83,21 @@ def test_library_contains_all_sources_without_merging_matching_labels(client):
     assert ">Unlinked<" not in html
 
 
+def test_record_only_workspace_keeps_compact_layout_without_link_diagnostics(client):
+    client.force_login(UserFactory())
+    older = problem()
+
+    response = client.get(reverse("solutions:problem_solution_list", args=[older.problem_uuid]))
+
+    assert response.status_code == HTTPStatus.OK
+    html = response.content.decode()
+    assert 'class="solution-problem-layout' in html
+    assert "Statement missing. Existing progress and solutions are retained." in html
+    assert "A statement is needed before rating difficulty." in html
+    assert "linked statement" not in html
+    assert "Link a statement" not in html
+
+
 def test_library_reads_preserve_uuids_completion_history_and_solution_revisions(client):
     viewer = UserFactory()
     client.force_login(viewer)
