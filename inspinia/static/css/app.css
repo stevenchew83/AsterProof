@@ -25224,8 +25224,11 @@ html.solution-share-open {
 .solution-context-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.5fr) minmax(17rem, 1fr);
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  -webkit-box-align: start;
+      -ms-flex-align: start;
+          align-items: start;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
 }
 
 .solution-reference, .solution-coverage {
@@ -25265,6 +25268,37 @@ html.solution-share-open {
 .solution-context-heading i {
   color: var(--ins-primary);
   font-size: 1.05rem;
+}
+
+.solution-context-disclosure > summary {
+  min-height: 52px;
+  padding: 0.85rem 1rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.solution-context-disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+.solution-context-disclosure .solution-context-heading h2, .solution-context-disclosure .solution-context-heading .h2 {
+  width: 100%;
+}
+
+.solution-context-disclosure .solution-context-chevron {
+  -ms-flex-negative: 0;
+      flex-shrink: 0;
+  margin-left: auto;
+  color: var(--se-muted);
+}
+
+.solution-context-disclosure[open] > summary {
+  border-bottom: 1px solid var(--ins-border-color);
+}
+
+.solution-context-disclosure[open] .solution-context-chevron {
+  -webkit-transform: rotate(180deg);
+          transform: rotate(180deg);
 }
 
 .solution-reference-body {
@@ -25510,7 +25544,7 @@ html.solution-share-open {
           align-items: start;
 }
 
-#solution-editor-workspace {
+#solution-editor-workspace, #solution-writing-area {
   scroll-margin-top: calc(var(--ins-topbar-height, 64px) + 6rem);
 }
 
@@ -25909,7 +25943,7 @@ html.solution-share-open {
   .solution-workspace-page .app-page-header-actions .btn, #solution-completion-panel .btn {
     min-height: 44px;
   }
-  #solution-editor-workspace {
+  #solution-editor-workspace, #solution-writing-area {
     scroll-margin-top: calc(var(--ins-topbar-height, 64px) + 10rem);
   }
   .solution-reference-body {
