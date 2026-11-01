@@ -196,6 +196,23 @@ def test_progress_selector_cannot_resolve_unapproved_users(client, settings, sel
     assert response.status_code == HTTPStatus.FORBIDDEN
 
 
+@pytest.mark.parametrize("slug", ["alex", "ben"])
+def test_configured_learner_can_open_a_link_to_their_own_progress(client, settings, slug):
+    learners = {name: UserFactory() for name in ("alex", "ben")}
+    settings.SHARED_PROGRESS_LEARNERS = {name: user.email for name, user in learners.items()}
+    viewer = learners[slug]
+    client.force_login(viewer)
+    older = problem()
+    UserProblemCompletion.objects.create(user=viewer, problem=older, completion_date=date(2025, 1, 1))
+
+    response = library(client, learner=slug)
+
+    assert response.context["library_progress_user"] == viewer
+    assert response.context["library_progress_selection"] == "my"
+    assert response.context["library_progress_label"] == "My progress"
+    assert rows_by_uuid(response)[str(older.problem_uuid)]["user_completion_display"] == "2025-01-01"
+
+
 def test_record_only_search_and_metadata_filters_apply_before_cap(client):
     client.force_login(UserFactory())
     target = problem(1, confidence="High")

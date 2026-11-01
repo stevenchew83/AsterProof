@@ -68,13 +68,16 @@ def solved_problems(problems, user):
 
 def progress_context(request):
     """Reuse existing shared-progress authority; never resolve arbitrary user IDs."""
+    learners = shared_progress_learners(request.user)
     options = [{"value": "my", "label": "My progress", "user": request.user}]
     options.extend(
         {"value": row["slug"], "label": f"{row['label']}'s progress", "user": row["user"]}
-        for row in shared_progress_learners(request.user)
+        for row in learners
         if row["user"].pk != request.user.pk
     )
     selected = request.GET.get("learner", "my") or "my"
+    if any(row["slug"] == selected and row["user"].pk == request.user.pk for row in learners):
+        selected = "my"
     subject = next((row for row in options if row["value"] == selected), None)
     if subject is None:
         raise PermissionDenied
