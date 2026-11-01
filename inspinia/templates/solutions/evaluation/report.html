@@ -1,0 +1,14 @@
+<section class="mb-4" aria-label="Imported report">
+  <h2 class="h5">Imported report</h2>
+  <p><strong>{{ report.assessment|default:report.status }}</strong></p>
+  {% if report.summary %}<p>{{ report.summary|linebreaksbr }}</p>{% endif %}
+  {% if report.abstention_reason %}<p><strong>Abstention reason:</strong> {{ report.abstention_reason }}</p>{% endif %}
+  {% for finding in report.findings %}<article class="border-start ps-3 mb-3">
+    <h3 class="h6">Finding {{ forloop.counter }} · {{ finding.id }}</h3>
+    {% if finding.quote %}<blockquote class="text-muted">{{ finding.quote }}</blockquote>{% endif %}
+    <p>{{ finding.explanation|linebreaksbr }}</p>
+    {% for hint in finding.hints %}<p class="fs-sm"><strong>Hint {{ forloop.counter }}:</strong> {{ hint }}</p>{% endfor %}
+  </article>{% endfor %}
+  {% if report.next_step %}<p><strong>Next step:</strong> {{ report.next_step|linebreaksbr }}</p>{% endif %}
+  {% if report.limitations %}<ul class="text-muted fs-sm">{% for limitation in report.limitations %}<li>{{ limitation }}</li>{% endfor %}</ul>{% endif %}
+</section>

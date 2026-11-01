@@ -1,0 +1,14 @@
+{% if judgments %}
+<section class="mb-4" aria-label="Preserved mathematical judgments">
+  <h2 class="h5">Preserved mathematical judgments</h2>
+  {% for item in judgments %}<details class="app-table-details mb-3" open>
+    <summary class="fw-semibold py-2">{{ item.kind|title }} judgment · {{ item.payload.assessment }}</summary>
+    <div class="app-table-details-body">
+      <p>{{ item.payload.explanation|linebreaksbr }}</p>
+      {% if item.payload.reason %}<p><strong>Adjudication reason:</strong> {{ item.payload.reason|linebreaksbr }}</p>{% endif %}
+      <dl class="row fs-sm"><dt class="col-sm-4">Logical validity</dt><dd class="col-sm-8">{{ item.payload.logical_validity }}</dd><dt class="col-sm-4">Completeness</dt><dd class="col-sm-8">{{ item.payload.proof_completeness }}</dd><dt class="col-sm-4">Justification</dt><dd class="col-sm-8">{{ item.payload.justification }}</dd><dt class="col-sm-4">Method</dt><dd class="col-sm-8">{{ item.payload.method }}</dd></dl>
+      {% for defect in item.payload.defects %}<div class="border-start ps-3 mb-3"><p class="mb-1"><strong>{{ defect.significance|title }} defect</strong> <code>{{ defect.id }}</code></p><p>{{ defect.explanation|linebreaksbr }}</p><p class="text-muted">{{ defect.justification|linebreaksbr }}</p></div>{% endfor %}
+    </div>
+  </details>{% endfor %}
+</section>
+{% endif %}

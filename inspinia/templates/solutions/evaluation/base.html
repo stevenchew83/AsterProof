@@ -1,0 +1,17 @@
+{% extends 'layouts/vertical.html' %}
+{% block title %}{{ page_title }} · Evaluation workspace{% endblock title %}
+{% block page_content %}
+<div class="container-fluid app-table-page">
+  {% include 'partials/page-title.html' with title=page_title subtitle='Coach evaluation' page_icon='ti-clipboard-check' %}
+  <nav class="d-flex gap-2 flex-wrap mb-3" aria-label="Evaluation workspace">
+    <a href="{% url 'solutions:evaluation_workspace' %}" class="btn btn-outline-secondary btn-sm">Assigned work</a>
+    {% block workspace_actions %}{% endblock workspace_actions %}
+  </nav>
+  <div class="alert alert-info d-flex gap-2 align-items-start" role="note">
+    <i class="ti ti-flask fs-22" aria-hidden="true"></i>
+    <span>Offline evaluation workspace. Student AI review is disabled. Imported reports do not establish verified model performance.</span>
+  </div>
+  {% for message in messages %}<div class="alert alert-{{ message.tags|default:'info' }}" role="status">{{ message }}</div>{% endfor %}
+  {% block workspace_content %}{% endblock workspace_content %}
+</div>
+{% endblock page_content %}

@@ -374,5 +374,24 @@ class SolutionBodyImage(models.Model):
         return f"Body image {self.pk} → solution {self.solution_id}"
 
 
+from inspinia.solutions.evaluation_models import ActivationAuthorization  # noqa: E402, F401
+from inspinia.solutions.evaluation_models import AssistancePolicy  # noqa: E402, F401
+from inspinia.solutions.evaluation_models import CoachJudgment  # noqa: E402, F401
+from inspinia.solutions.evaluation_models import EvaluationAssignment  # noqa: E402, F401
+from inspinia.solutions.evaluation_models import EvaluationAuditEvent  # noqa: E402, F401
+from inspinia.solutions.evaluation_models import EvaluationCase  # noqa: E402, F401
+from inspinia.solutions.evaluation_models import EvaluationDatasetSnapshot  # noqa: E402, F401
+from inspinia.solutions.evaluation_models import EvaluationFindingJudgment  # noqa: E402, F401
+from inspinia.solutions.evaluation_models import EvaluationLifecycle  # noqa: E402, F401
+from inspinia.solutions.evaluation_models import EvaluationProblemFamily  # noqa: E402, F401
+from inspinia.solutions.evaluation_models import EvaluationRun  # noqa: E402, F401
+from inspinia.solutions.evaluation_models import HintRevealEvent  # noqa: E402, F401
+from inspinia.solutions.evaluation_models import ReadinessEvidence  # noqa: E402, F401
+from inspinia.solutions.evaluation_models import ReviewBundleAsset  # noqa: E402, F401
+from inspinia.solutions.evaluation_models import ReviewConsent  # noqa: E402, F401
+from inspinia.solutions.evaluation_models import ReviewerProfile  # noqa: E402, F401
+from inspinia.solutions.evaluation_models import ReviewExecutionAttempt  # noqa: E402, F401
+from inspinia.solutions.evaluation_models import ReviewInputBundle  # noqa: E402, F401
+from inspinia.solutions.evaluation_models import ReviewSpendEvent  # noqa: E402, F401
 from inspinia.solutions.review_models import SolutionReview  # noqa: E402, F401
 from inspinia.solutions.review_models import SolutionReviewPolicy  # noqa: E402, F401

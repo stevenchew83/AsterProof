@@ -1,0 +1,24 @@
+{% extends 'solutions/evaluation/base.html' %}
+{% block workspace_actions %}
+{% if can_create %}<a class="btn btn-outline-primary btn-sm" href="{% url 'solutions:evaluation_family_create' %}">Create problem family</a><a class="btn btn-outline-primary btn-sm" href="{% url 'solutions:evaluation_profile_create' %}">Freeze reviewer profile</a>{% endif %}
+{% if can_freeze %}<a class="btn btn-outline-primary btn-sm" href="{% url 'solutions:evaluation_snapshot_create' %}">Freeze dataset</a>{% endif %}
+{% endblock workspace_actions %}
+{% block workspace_content %}
+<div class="card"><div class="card-body">
+  <form method="get" class="app-table-filters row g-2 align-items-end mb-3">
+    <div class="col-md-6"><label class="form-label" for="case-query">Case identifier</label><input class="form-control" type="search" name="q" id="case-query" maxlength="100" value="{{ filters.q }}" /></div>
+    <div class="col-md-3"><label class="form-label" for="case-domain">Domain</label><select class="form-select" name="domain" id="case-domain"><option value="">All domains</option>{% for value,label in domains %}<option value="{{ value }}" {% if filters.domain == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+    <div class="col-md-3 d-flex gap-2"><button class="btn btn-primary" type="submit">Apply</button><a class="btn btn-outline-secondary" href="{% url 'solutions:evaluation_workspace' %}">Reset</a></div>
+  </form>
+  <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Assigned evaluation cases">
+    <table class="table table-striped app-table-compact align-middle"><thead><tr><th>Case</th><th>Domain</th><th>Input version</th><th>Created</th><th>Action</th></tr></thead><tbody>
+    {% for item in page_obj %}<tr><td><a class="fw-semibold" href="{% url 'solutions:evaluation_case_detail' item.pk %}">{{ item.pk }}</a></td><td>{{ item.family.domain }}</td><td><code>{{ item.bundle.digest|slice:':12' }}</code></td><td>{{ item.created_at|date:'j M Y, H:i' }}</td><td><a class="btn btn-outline-primary btn-sm" href="{% url 'solutions:evaluation_case_detail' item.pk %}">Open case</a></td></tr>
+    {% empty %}<tr><td colspan="5" class="text-muted py-4">No assigned cases match these filters.</td></tr>{% endfor %}
+    </tbody></table>
+  </div>
+  {% include 'pages/partials/server-pagination.html' %}
+</div></div>
+{% if families %}<section class="card"><div class="card-body"><h2 class="h5">Problem families</h2><ul class="list-unstyled mb-3">{% for family in families %}<li class="d-flex gap-2 flex-wrap align-items-center py-2"><span>{{ family.domain }} · {{ family.title }}</span><a class="btn btn-outline-secondary btn-sm" href="{% url 'solutions:evaluation_case_create' family.pk %}">Prepare a case</a></li>{% endfor %}</ul><nav class="d-flex gap-2 align-items-center" aria-label="Problem family pages">{% if family_page.has_previous %}<a class="btn btn-outline-secondary btn-sm" href="?{{ family_pagination_query }}&amp;family_page={{ family_page.previous_page_number }}">Previous families</a>{% endif %}<span class="text-muted fs-sm">Page {{ family_page.number }} of {{ family_page.paginator.num_pages }}</span>{% if family_page.has_next %}<a class="btn btn-outline-secondary btn-sm" href="?{{ family_pagination_query }}&amp;family_page={{ family_page.next_page_number }}">Next families</a>{% endif %}</nav></div></section>{% endif %}
+{% if snapshots %}<section class="card"><div class="card-body"><h2 class="h5">Dataset snapshots</h2><ul class="list-unstyled mb-0">{% for item in snapshots %}<li class="d-flex gap-2 flex-wrap align-items-center py-2"><span>{{ item.name }} · <code>{{ item.digest|slice:':12' }}</code></span>{% if item.can_import %}<a class="btn btn-outline-secondary btn-sm" href="{% url 'solutions:evaluation_run_import' item.pk %}">Import reports</a>{% endif %}</li>{% endfor %}</ul></div></section>{% endif %}
+{% if runs %}<section class="card"><div class="card-body"><h2 class="h5">Evaluation runs</h2><ul class="list-unstyled mb-0">{% for item in runs %}<li class="py-2"><a href="{% url 'solutions:evaluation_run_detail' item.pk %}">{{ item.pk }}</a> <span class="text-muted fs-sm">{{ item.created_at|date:'j M Y, H:i' }}</span></li>{% endfor %}</ul></div></section>{% endif %}
+{% endblock workspace_content %}

@@ -107,8 +107,13 @@ def _usage(response):
         result["model"] = model[:120]
     if usage is not None:
         result.update(
-            input_tokens=getattr(usage, "input_tokens", None), output_tokens=getattr(usage, "output_tokens", None),
+            input_tokens=getattr(usage, "input_tokens", None),
+            output_tokens=getattr(usage, "output_tokens", None),
         )
+        for key in ("input_tokens_details", "output_tokens_details"):
+            detail = getattr(usage, key, None)
+            if detail is not None and hasattr(detail, "model_dump"):
+                result[key] = detail.model_dump()
     return result or None
 
 
@@ -134,7 +139,11 @@ def _report(response):
     return ProviderResult(feedback=feedback, **details)
 
 
-def generate_review(review, images):
+def generate_review(review, images, *, fake_client_factory=None):
+    if fake_client_factory is None:
+        from .evaluation_execution import require_offline_provider
+
+        require_offline_provider()
     # Import only at dispatch so a disabled deployment needs no credentials and
     # ordinary local tests can always use a deterministic fake provider.
     try:
@@ -147,6 +156,7 @@ def generate_review(review, images):
         msg = "provider_not_configured"
         raise ProviderError(msg, definitive=True)
     snapshot = review.input_snapshot
+    profile = review.execution.profile.payload if hasattr(review, "execution") else {}
     content = [
         {
             "type": "input_text",
@@ -165,20 +175,24 @@ def generate_review(review, images):
         for data in images
     )
     try:
-        client = openai.OpenAI(api_key=key, timeout=300.0, max_retries=0)
+        client_factory = fake_client_factory or openai.OpenAI
+        client = client_factory(api_key=key, timeout=profile.get("timeout", 300.0), max_retries=0)
         with client:
             response = client.responses.create(
-                model=review.model,
+                model=profile.get("model", review.model),
                 store=False,
-                max_output_tokens=16_000,
-                reasoning={"effort": "medium"},
-                input=[{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": content}],
+                max_output_tokens=profile.get("output_limit", 16_000),
+                reasoning=profile.get("reasoning", {"effort": "medium"}),
+                input=[
+                    {"role": "system", "content": profile.get("prompt", SYSTEM_PROMPT)},
+                    {"role": "user", "content": content},
+                ],
                 text={
                     "format": {
                         "type": "json_schema",
                         "name": "solution_coach",
                         "strict": True,
-                        "schema": FEEDBACK_SCHEMA,
+                        "schema": profile.get("output_schema", FEEDBACK_SCHEMA),
                     },
                 },
             )

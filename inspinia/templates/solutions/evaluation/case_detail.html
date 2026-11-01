@@ -1,0 +1,17 @@
+{% extends 'solutions/evaluation/base.html' %}
+{% block workspace_actions %}
+{% if case_data.can_judge %}<a class="btn btn-primary btn-sm" href="{% url 'solutions:evaluation_judgment' case.pk %}">Record independent judgment</a>{% endif %}
+{% if case_data.can_adjudicate %}<a class="btn btn-outline-primary btn-sm" href="{% url 'solutions:evaluation_adjudication' case.pk %}">Adjudicate judgments</a>{% endif %}
+{% endblock workspace_actions %}
+{% block workspace_content %}
+<div class="row g-3"><div class="col-xl-9"><div class="card"><div class="card-body">
+  {% include 'solutions/evaluation/input.html' %}
+  {% include 'solutions/evaluation/judgments.html' %}
+  {% if finding_runs %}<section><h2 class="h5">Report quality reviews</h2><ul class="list-unstyled">{% for run in finding_runs %}<li class="d-flex flex-wrap gap-2 align-items-center py-2"><span class="text-break fs-sm">Report {{ run.pk }}</span>{% if run.can_assess %}<a class="btn btn-outline-primary btn-sm" href="{% url 'solutions:evaluation_finding_judgment' run.pk case.pk %}">Assess findings</a>{% endif %}{% if run.can_adjudicate %}<a class="btn btn-outline-secondary btn-sm" href="{% url 'solutions:evaluation_finding_adjudication' run.pk case.pk %}">Adjudicate findings</a>{% endif %}</li>{% endfor %}</ul></section>{% endif %}
+</div></div></div>
+<aside class="col-xl-3"><div class="card"><div class="card-body">
+  <h2 class="h5">Input identity</h2><p class="text-muted fs-sm">This case refers to one frozen version.</p>
+  <dl class="mb-0"><dt class="fs-sm">Case</dt><dd class="text-break fs-sm">{{ case.pk }}</dd><dt class="fs-sm">Input digest</dt><dd class="text-break fs-sm"><code>{{ case_data.digest }}</code></dd></dl>
+  {% if not judgments %}<p class="text-muted fs-sm mb-0">Other judgments and expected defects are hidden during independent review.</p>{% endif %}
+</div></div></aside></div>
+{% endblock workspace_content %}

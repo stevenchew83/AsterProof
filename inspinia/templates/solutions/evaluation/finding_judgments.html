@@ -1,0 +1,13 @@
+{% if finding_judgments %}
+<section class="mb-4" aria-label="Preserved report assessments">
+  <h2 class="h5">Preserved report assessments</h2>
+  <p class="text-muted fs-sm">Resolve the mathematical disagreement with a supported final assessment. These original records remain unchanged.</p>
+  {% for item in finding_judgments %}<details class="app-table-details mb-3" open>
+    <summary class="fw-semibold py-2">Original assessment {{ forloop.counter }}</summary>
+    <div class="app-table-details-body">
+      <dl class="row fs-sm"><dt class="col-sm-5">Useful feedback</dt><dd class="col-sm-7">{{ item.payload.useful|yesno:'Yes,No' }}</dd><dt class="col-sm-5">Report spoiler</dt><dd class="col-sm-7">{{ item.payload.report_spoiler|yesno:'Yes,No' }}</dd><dt class="col-sm-5">Appropriate abstention</dt><dd class="col-sm-7">{{ item.payload.abstention_appropriate|yesno:'Yes,No' }}</dd></dl>
+      {% for finding in item.payload.findings %}<article class="border-start ps-3 mb-3"><h3 class="h6">Finding {{ finding.finding_id }}</h3><dl class="row fs-sm"><dt class="col-sm-5">Mathematically supported</dt><dd class="col-sm-7">{{ finding.supported|yesno:'Yes,No' }}</dd><dt class="col-sm-5">Material allegation</dt><dd class="col-sm-7">{{ finding.material|yesno:'Yes,No' }}</dd><dt class="col-sm-5">Correct location</dt><dd class="col-sm-7">{{ finding.localization_correct|yesno:'Yes,No' }}</dd><dt class="col-sm-5">Correct severity</dt><dd class="col-sm-7">{{ finding.severity_correct|yesno:'Yes,No' }}</dd><dt class="col-sm-5">Correct context</dt><dd class="col-sm-7">{{ finding.context_correct|yesno:'Yes,No' }}</dd><dt class="col-sm-5">Correct hints</dt><dd class="col-sm-7">{{ finding.hint_correct|yesno:'Yes,No' }}</dd><dt class="col-sm-5">Spoiler</dt><dd class="col-sm-7">{{ finding.spoiler|yesno:'Yes,No' }}</dd></dl>{% if finding.matched_defect_ids %}<p class="fs-sm">Matched defects: {% for identifier in finding.matched_defect_ids %}<code>{{ identifier }}</code> {% endfor %}</p>{% endif %}</article>{% endfor %}
+    </div>
+  </details>{% endfor %}
+</section>
+{% endif %}

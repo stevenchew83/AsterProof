@@ -10,6 +10,7 @@ from scripts.ci_checks import changed_paths
 from scripts.ci_checks import select_checks
 
 ROOT = Path(__file__).resolve().parents[3]
+ISOLATION_MODES = 2
 
 
 def test_documentation_changes_need_no_runtime_or_build():
@@ -51,6 +52,12 @@ def test_workflow_changes_run_deployment_contracts_and_actionlint():
     assert checks["workflows"]
     assert "scripts" in checks["tests"]
     assert "inspinia/pages" not in checks["tests"]
+
+
+def test_combined_workflow_and_editor_changes_keep_all_script_contracts_collectable():
+    checks = select_checks([".github/workflows/ci.yml", "inspinia/static/js/solution-document-editor.js"])
+    assert "scripts" in checks["tests"]
+    assert not any(target.startswith("scripts/") for target in checks["tests"])
 
 
 def test_ci_runs_real_curated_source_locks_on_the_pinned_disposable_postgresql():
@@ -165,3 +172,35 @@ def test_full_suite_and_verified_artifact_stay_in_manual_release():
     assert workflow.index(".release-quality/bin/python -m pytest") < workflow.index("Build immutable release")
     assert "artifact-ids: ${{ needs.build.outputs.artifact_id }}" in workflow
     assert "environment:\n      name: production" in workflow
+
+
+def test_ci_prepares_dependencies_without_source_context_or_provider_credentials():
+    workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+    preparation = next(step for step in workflow["jobs"]["verify"]["steps"] if step.get("id") == "offline-image")
+    assert preparation["if"] == "steps.checks.outputs.runtime == 'true'"
+    assert "--file scripts/offline/Dockerfile" in preparation["run"]
+    assert '--iidfile "$RUNNER_TEMP/offline-dependencies.iid" requirements' in preparation["run"]
+    assert "--network=none" in preparation["run"]
+    assert "secrets." not in preparation["run"]
+    dockerfile = (ROOT / "scripts/offline/Dockerfile").read_text()
+    copy_lines = [line for line in dockerfile.splitlines() if line.startswith("COPY ")]
+    assert copy_lines == ["COPY base.txt production.txt local.txt ./requirements/"]
+    assert 'io.asterproof.offline-dependencies="true"' in dockerfile
+
+
+def test_ci_executes_both_isolation_modes_for_all_evaluation_subsystems():
+    workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+    step = next(step for step in workflow["jobs"]["verify"]["steps"]
+                if step["name"] == "Verify offline evaluation isolation and PostgreSQL races")
+    assert step["if"] == "steps.checks.outputs.runtime == 'true'"
+    assert step["env"]["OFFLINE_IMAGE_ID"] == "${{ steps.offline-image.outputs.image_id }}"
+    assert step["run"].count('-m scripts.offline_evaluation --image "$OFFLINE_IMAGE_ID"') == ISOLATION_MODES
+    assert '--postgres "${offline_targets[@]}"' in step["run"]
+    assert "set -o pipefail" in step["run"]
+    for subsystem in (
+        "contract", "assistance", "execution", "governance", "scoring", "views", "concurrency", "security",
+    ):
+        assert f"--test-target inspinia/solutions/test_evaluation_{subsystem}.py" in step["run"]
+    for module in (ROOT / "inspinia/solutions").glob("test_evaluation_*.py"):
+        assert f"--test-target inspinia/solutions/{module.name}" in step["run"]
+    assert "--test-target scripts/tests/test_offline_evaluation.py" in step["run"]
