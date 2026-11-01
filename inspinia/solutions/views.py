@@ -55,7 +55,6 @@ from inspinia.pages.models import UserProblemDifficultyRating
 from inspinia.pages.page_views import PageViewPayload
 from inspinia.pages.page_views import record_page_view
 from inspinia.pages.statement_analytics import effective_mohs
-from inspinia.pages.statement_analytics import effective_topic
 from inspinia.pages.statement_concept_coverage import statement_coverage_payloads
 from inspinia.pages.topic_labels import display_topic_label
 from inspinia.problemsets.selectors import problem_list_add_target_rows
@@ -718,13 +717,29 @@ def _statement_preview_text(statement_latex: str, *, max_length: int = 220) -> s
 
 
 def _statement_backed_problem_rows(user) -> tuple[list[dict], dict[str, bool | int]]:
-    statements = list(
-        ContestProblemStatement.objects.filter(is_active=True)
+    latest_statement_by_problem_id: dict[int, ContestProblemStatement] = {}
+    for statement in (
+        ContestProblemStatement.objects.filter(linked_problem__isnull=False)
         .select_related("linked_problem")
-        .order_by("-updated_at", "-id")[:STATEMENT_BACKED_PROBLEM_LIST_LIMIT + 1],
+        .order_by("-updated_at", "-id")
+    ):
+        if statement.linked_problem_id in latest_statement_by_problem_id:
+            continue
+        latest_statement_by_problem_id[statement.linked_problem_id] = statement
+        if len(latest_statement_by_problem_id) >= STATEMENT_BACKED_PROBLEM_LIST_LIMIT:
+            break
+
+    if not latest_statement_by_problem_id:
+        return [], {"is_capped": False, "limit": STATEMENT_BACKED_PROBLEM_LIST_LIMIT}
+
+    capped_problem_ids = list(latest_statement_by_problem_id.keys())
+    list_is_capped = len(capped_problem_ids) >= STATEMENT_BACKED_PROBLEM_LIST_LIMIT and (
+        ContestProblemStatement.objects.filter(linked_problem__isnull=False)
+        .exclude(linked_problem_id__in=capped_problem_ids)
+        .exists()
     )
-    list_is_capped = len(statements) > STATEMENT_BACKED_PROBLEM_LIST_LIMIT
-    statements = statements[:STATEMENT_BACKED_PROBLEM_LIST_LIMIT]
+
+    statements = list(latest_statement_by_problem_id.values())
     problem_ids = [statement.linked_problem_id for statement in statements if statement.linked_problem_id is not None]
     solution_status_by_problem_id = {
         row["problem_id"]: row["status"]
@@ -734,50 +749,46 @@ def _statement_backed_problem_rows(user) -> tuple[list[dict], dict[str, bool | i
         ).values("problem_id", "status")
     }
     contest_to_slug, _slug_to_contest = _build_contest_slug_maps(
-        [statement.contest_name for statement in statements],
+        [statement.linked_problem.contest for statement in statements if statement.linked_problem is not None],
     )
 
     rows: list[dict] = []
     for statement in sorted(
         statements,
         key=lambda row: (
-            -int(row.contest_year),
-            row.contest_name,
+            -int(row.linked_problem.year),
+            row.linked_problem.contest,
+            row.linked_problem.problem,
             row.problem_code,
         ),
     ):
         problem = statement.linked_problem
-        problem_label = statement.contest_year_problem
-        solution_status = solution_status_by_problem_id.get(statement.linked_problem_id, "")
-        contest_slug = contest_to_slug.get(statement.contest_name)
+        if problem is None:
+            continue
+
+        problem_label = problem.contest_year_problem or f"{problem.contest} {problem.year} {problem.problem}"
+        solution_status = solution_status_by_problem_id.get(problem.id, "")
+        contest_slug = contest_to_slug.get(problem.contest)
         contest_archive_url = ""
         if contest_slug:
             contest_archive_url = contest_dashboard_listing_url(
-                statement.contest_name,
-                year=int(statement.contest_year),
+                problem.contest,
+                year=int(problem.year),
             ) + "#" + _problem_anchor(
                 problem_label,
-                f"statement-{statement.id}",
+                f"{problem.year}-{problem.problem}",
             )
 
         rows.append(
             {
                 "contest_archive_url": contest_archive_url,
                 "editor_button_label": "Continue solution" if solution_status else "Start solution",
-                "editor_url": (
-                    reverse("solutions:problem_solution_edit", args=[problem.problem_uuid]) if problem else ""
-                ),
-                "solution_start_url": (
-                    reverse("solutions:statement_solution_start", args=[statement.statement_uuid])
-                    if not problem else ""
-                ),
+                "editor_url": reverse("solutions:problem_solution_edit", args=[problem.problem_uuid]),
                 "has_solution": bool(solution_status),
                 "problem_label": problem_label,
-                "problem_topic": display_topic_label(effective_topic(statement)),
-                "problem_mohs": effective_mohs(statement),
-                "problem_url": (
-                    reverse("solutions:problem_solution_list", args=[problem.problem_uuid]) if problem else ""
-                ),
+                "problem_topic": display_topic_label(problem.topic),
+                "problem_mohs": problem.mohs,
+                "problem_url": reverse("solutions:problem_solution_list", args=[problem.problem_uuid]),
                 "solution_status_badge_class": (
                     _solution_status_badge(solution_status) if solution_status else "text-bg-light"
                 ),
@@ -914,8 +925,7 @@ def problem_solution_create_view(request):
     if writer_draft:
         for row in statement_problem_rows:
             if not row["has_solution"]:
-                if row["editor_url"]:
-                    row["editor_url"] += "?" + urlencode({"from_writer": writer_draft["token"]})
+                row["editor_url"] += "?" + urlencode({"from_writer": writer_draft["token"]})
                 row["editor_button_label"] = "Continue with this problem"
     started_total = sum(1 for row in statement_problem_rows if row["has_solution"])
     context = {
