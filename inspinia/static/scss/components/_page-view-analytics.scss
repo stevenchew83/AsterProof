@@ -10,6 +10,7 @@
     .row > *, .tab-content, .tab-pane { min-width: 0; }
     a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--ins-primary); outline-offset: 3px; border-radius: var(--ins-border-radius-sm); }
     #page-view-recent { scroll-margin-top: 5.5rem; }
+    #page-view-learning { scroll-margin-top: 5.5rem; }
     .page-view-period { display: inline-flex; align-items: center; gap: .375rem; color: var(--ins-secondary-color); font-size: .75rem; }
 
     .page-view-filter-panel { padding: .75rem 1rem; }
@@ -140,6 +141,16 @@
     .page-view-empty-icon { display: inline-flex; padding: .75rem; margin: 0 auto 1rem; color: var(--ins-primary-text-emphasis); background: var(--ins-primary-bg-subtle); border-radius: var(--ins-border-radius); font-size: 1.5rem; }
     .page-view-empty p { color: var(--ins-secondary-color); font-size: .8125rem; }
     .page-view-coverage-note { display: flex; align-items: flex-start; gap: .375rem; margin: 1rem 0 0; color: var(--ins-secondary-color); font-size: .625rem; }
+
+    .page-view-learning-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; padding: .75rem 0; margin: 0 0 .75rem; border-block: 1px solid var(--page-view-hairline); }
+    .page-view-learning-stats dt { color: var(--ins-secondary-color); font-size: .6875rem; font-weight: 500; }
+    .page-view-learning-stats dd { margin: .25rem 0 0; font-size: 1.25rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .page-view-learning-track { display: block; max-width: 12rem; height: .25rem; margin-top: .375rem; border-radius: 2px; background: var(--ins-tertiary-bg); }
+    .page-view-learning-track > span { display: block; height: 100%; border-radius: inherit; background: var(--ins-primary); opacity: .7; }
+    .page-view-learning-table { min-width: 24rem; }
+    .page-view-learning-recent, .page-view-learning-recent[open] { display: block; width: 100%; min-width: 0; max-width: 100%; }
+    .page-view-learning-recent .table { min-width: 38rem; }
+    @media (max-width: 575.98px) { .page-view-learning-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
     @media (max-width: 1199.98px) {
         .page-view-summary-metric { gap: .5rem; padding-inline: .625rem; }

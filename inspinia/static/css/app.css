@@ -21463,6 +21463,9 @@ table.app-table-compact .contest-row-meta {
 .page-view-page #page-view-recent {
   scroll-margin-top: 5.5rem;
 }
+.page-view-page #page-view-learning {
+  scroll-margin-top: 5.5rem;
+}
 .page-view-page .page-view-period {
   display: -webkit-inline-box;
   display: -ms-inline-flexbox;
@@ -22250,6 +22253,57 @@ table.app-table-compact .contest-row-meta {
   margin: 1rem 0 0;
   color: var(--ins-secondary-color);
   font-size: 0.625rem;
+}
+.page-view-page .page-view-learning-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  padding: 0.75rem 0;
+  margin: 0 0 0.75rem;
+  border-block: 1px solid var(--page-view-hairline);
+}
+.page-view-page .page-view-learning-stats dt {
+  color: var(--ins-secondary-color);
+  font-size: 0.6875rem;
+  font-weight: 500;
+}
+.page-view-page .page-view-learning-stats dd {
+  margin: 0.25rem 0 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.page-view-page .page-view-learning-track {
+  display: block;
+  max-width: 12rem;
+  height: 0.25rem;
+  margin-top: 0.375rem;
+  border-radius: 2px;
+  background: var(--ins-tertiary-bg);
+}
+.page-view-page .page-view-learning-track > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--ins-primary);
+  opacity: 0.7;
+}
+.page-view-page .page-view-learning-table {
+  min-width: 24rem;
+}
+.page-view-page .page-view-learning-recent, .page-view-page .page-view-learning-recent[open] {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+.page-view-page .page-view-learning-recent .table {
+  min-width: 38rem;
+}
+@media (max-width: 575.98px) {
+  .page-view-page .page-view-learning-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 @media (max-width: 1199.98px) {
   .page-view-page .page-view-summary-metric {

@@ -1,0 +1,192 @@
+<section class="card page-view-learning mt-3"
+         id="page-view-learning"
+         aria-labelledby="learning-activity-heading">
+  <div class="card-header page-view-panel-heading">
+    <div>
+      <h2 class="header-title" id="learning-activity-heading">Learning activity</h2>
+      <p class="text-muted fs-xs mb-0">Estimated visible time and button clicks · signed-in learning pages</p>
+    </div>
+    <span class="page-view-panel-label">
+      {% if not learning_activity.enabled %}
+        Collection disabled
+      {% else %}
+        First-party measurements
+      {% endif %}
+    </span>
+  </div>
+  <div class="card-body pt-2">
+    {% if not learning_activity.available %}
+      <p class="text-muted fs-sm mb-0">
+        Learning activity measurements are unavailable until the activity schema is installed.
+      </p>
+    {% else %}
+      <form method="get"
+            action="{% url 'pages:page_view_analytics' %}#page-view-learning"
+            class="app-table-filters d-flex flex-wrap gap-2 mb-3"
+            aria-label="Filter measured learning activity">
+        {% for field in learning_activity.hidden_filters %}
+          <input type="hidden" name="{{ field.name }}" value="{{ field.value }}" />
+        {% endfor %}
+        <div>
+          <label class="form-label" for="activity-user">Learner</label>
+          <select id="activity-user"
+                  name="activity_user"
+                  class="form-select form-select-sm">
+            <option value="">All signed-in users</option>
+            {% for option in learning_activity.user_options %}
+              <option value="{{ option.value }}"
+                      {% if option.selected %}selected{% endif %}>
+                {{ option.user__name|default:option.user__email }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        <button class="btn btn-sm btn-primary" type="submit">Apply</button>
+      </form>
+      <dl class="page-view-learning-stats">
+        <div>
+          <dt>Measured visits</dt>
+          <dd>
+            {{ learning_activity.visits }}
+          </dd>
+        </div>
+        <div>
+          <dt>Total visible time</dt>
+          <dd>
+            {{ learning_activity.duration }}
+          </dd>
+        </div>
+        <div>
+          <dt>Average / visit</dt>
+          <dd>
+            {{ learning_activity.average }}
+          </dd>
+        </div>
+        <div>
+          <dt>Button clicks</dt>
+          <dd>
+            {{ learning_activity.clicks }}
+          </dd>
+        </div>
+      </dl>
+      <p class="text-muted fs-xs mb-3">
+        Time is an estimate of a visible tab, not proof of attention. Hidden tabs and suspended browser time are excluded. Earlier page views have no time or click measurements.
+      </p>
+      {% if learning_activity.visits %}
+        <div class="row g-3">
+          <div class="col-lg-6">
+            <h3 class="header-title">Time by page</h3>
+            <div class="app-table-region table-responsive"
+                 tabindex="0"
+                 role="region"
+                 aria-label="Viewing time by page">
+              <table class="table table-sm app-table-compact page-view-learning-table mb-0">
+                <thead>
+                  <tr>
+                    <th scope="col">Page</th>
+                    <th scope="col" class="text-end">Total</th>
+                    <th scope="col" class="text-end">Average</th>
+                    <th scope="col" class="text-end">Visits</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for row in learning_activity.pages %}
+                    <tr>
+                      <td>
+                        <span class="fw-semibold">{{ row.label }}</span>
+                        <details class="app-table-details page-view-path-details">
+                          <summary>Page path</summary>
+                          <div class="app-table-details-body">
+                            <code>{{ row.path }}</code>
+                          </div>
+                        </details>
+                        <span class="page-view-learning-track" aria-hidden="true"><span style="width: {{ row.width }}%"></span></span>
+                      </td>
+                      <td class="text-end">{{ row.duration }}</td>
+                      <td class="text-end">{{ row.average }}</td>
+                      <td class="text-end">{{ row.visits }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <h3 class="header-title">Button activity</h3>
+            <div class="app-table-region table-responsive"
+                 tabindex="0"
+                 role="region"
+                 aria-label="Button clicks by page">
+              <table class="table table-sm app-table-compact page-view-learning-table mb-0">
+                <thead>
+                  <tr>
+                    <th scope="col">Action / page</th>
+                    <th scope="col" class="text-end">Clicks</th>
+                    <th scope="col" class="text-end">Users</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for row in learning_activity.actions %}
+                    <tr>
+                      <td>
+                        <span class="fw-semibold">{{ row.label }}</span><span class="d-block text-muted fs-xs">{{ row.page }}</span><span class="page-view-learning-track" aria-hidden="true"><span style="width: {{ row.width }}%"></span></span>
+                      </td>
+                      <td class="text-end">{{ row.clicks }}</td>
+                      <td class="text-end">{{ row.users }}</td>
+                    </tr>
+                  {% empty %}
+                    <tr>
+                      <td colspan="3" class="text-muted">No button clicks recorded in this range.</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <details class="page-view-learning-recent app-table-details mt-3">
+          <summary>Recent measured visits · up to 20</summary>
+          <div class="app-table-region table-responsive mt-2"
+               tabindex="0"
+               role="region"
+               aria-label="Recent measured learning visits">
+            <table class="table table-sm app-table-compact page-view-learning-table mb-0">
+              <thead>
+                <tr>
+                  <th scope="col">Opened</th>
+                  <th scope="col">Learner</th>
+                  <th scope="col">Page</th>
+                  <th scope="col" class="text-end">Visible time</th>
+                  <th scope="col" class="text-end">Clicks</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in learning_activity.recent %}
+                  <tr>
+                    <td>{{ row.time }}</td>
+                    <td>{{ row.user }}</td>
+                    <td>
+                      {{ row.page }}
+                      <details class="app-table-details page-view-path-details">
+                        <summary>Page path</summary>
+                        <div class="app-table-details-body">
+                          <code>{{ row.path }}</code>
+                        </div>
+                      </details>
+                    </td>
+                    <td class="text-end">{{ row.duration }}</td>
+                    <td class="text-end">{{ row.clicks }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </details>
+      {% else %}
+        <p class="text-muted fs-sm mb-0">
+          No measured learning visits in this range. Measurements appear after signed-in users open learning pages with tracking enabled.
+        </p>
+      {% endif %}
+    {% endif %}
+  </div>
+</section>

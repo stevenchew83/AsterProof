@@ -17,6 +17,7 @@ def test_page_view_analytics_interactions():
             "--test",
             str(Path(__file__).with_name("page_view_analytics.test.cjs")),
             str(Path(__file__).with_name("page_view_charts.test.cjs")),
+            str(Path(__file__).with_name("learning_activity.test.cjs")),
         ],
         capture_output=True,
         text=True,
