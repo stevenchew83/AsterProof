@@ -97,6 +97,11 @@ jobs:
           offline_targets=(
             --test-target inspinia/solutions/test_coach_evaluation.py
             --test-target inspinia/solutions/test_reviews.py
+            --test-target inspinia/solutions/test_evaluation_harness.py
+            --test-target inspinia/solutions/test_evaluation_packages.py
+            --test-target inspinia/solutions/test_assessment_contracts.py
+            --test-target inspinia/solutions/test_model_comparison.py
+            --test-target inspinia/solutions/test_review_prototype.py
             --test-target inspinia/solutions/test_evaluation_contract.py
             --test-target inspinia/solutions/test_evaluation_assistance.py
             --test-target inspinia/solutions/test_evaluation_consent_views.py
@@ -141,7 +146,10 @@ jobs:
           DATABASE_URL: postgres://postgres@127.0.0.1:5432/asterproof_schema_rehearsal
         run: |
           rehearsal_args=()
-          if ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/solution_evaluation_schema.py scripts/deployment/solution_evaluation_schema_rehearsal.py scripts/deployment/tests/fixtures/solution-evaluation-schema-delta.json inspinia/solutions/migrations/0010_offline_evaluation_contract.py; then
+          if ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/assessment_prototype_schema.py scripts/deployment/assessment_prototype_schema_rehearsal.py scripts/deployment/tests/fixtures/assessment-prototype-schema-delta.json inspinia/solutions/migrations/0011_problem_evaluation_packages.py inspinia/solutions/migrations/0012_synthetic_review_prototype.py; then
+            rehearsal=scripts.deployment.assessment_prototype_schema_rehearsal
+            active_sha="$BASE_SHA"
+          elif ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/solution_evaluation_schema.py scripts/deployment/solution_evaluation_schema_rehearsal.py scripts/deployment/tests/fixtures/solution-evaluation-schema-delta.json inspinia/solutions/migrations/0010_offline_evaluation_contract.py; then
             rehearsal=scripts.deployment.solution_evaluation_schema_rehearsal
             active_sha="$BASE_SHA"
           elif ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/evaluation_schema.py inspinia/solutions/migrations/0010_offline_evaluation_contract.py; then
@@ -320,6 +328,7 @@ jobs:
           raise SystemExit(pytest.main([
               'inspinia/solutions/test_admin_collection_concurrency.py',
               'inspinia/solutions/test_document_revisions.py',
+              'inspinia/solutions/test_review_prototype.py',
               'inspinia/solutions/test_reviews.py', '--create-db', '-q',
           ]))
           PY
