@@ -128,6 +128,9 @@ class FakeBackend(WorkerBackend):
     def state_fingerprint(self, contract: TargetContract) -> str:
         return FINGERPRINT
 
+    def document_reader_required(self, contract: TargetContract) -> bool:
+        return False
+
     def legacy_service_matches(self, contract: TargetContract, source_root: Path) -> bool:
         return source_root == Path("/srv/legacy-asterproof")
 

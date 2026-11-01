@@ -6,7 +6,7 @@ const {create, decode, KEY, TTL} = require('../../inspinia/static/js/solution-dr
 
 test('public browser bundles retain the recovery window export', () => {
   for (const filename of ['public-writer.bundle.js', 'public-home.bundle.js']) {
-    const document = {readyState:'complete', querySelector:()=>null, querySelectorAll:()=>[]};
+    const document = {readyState:'complete', documentElement:{style:{}}, querySelector:()=>null, querySelectorAll:()=>[]};
     const window = {document};
     vm.runInNewContext(readFileSync(require.resolve('../../inspinia/static/js/' + filename), 'utf8'), {window, document});
     assert.equal(typeof window.AsterProofDraftRecovery.create, 'function', filename);

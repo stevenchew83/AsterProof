@@ -4,6 +4,7 @@ from http import HTTPStatus
 from io import BytesIO
 
 import pytest
+from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from PIL import Image
@@ -14,7 +15,6 @@ from inspinia.pages.models import ProblemTopicTechnique
 from inspinia.pages.models import StatementTopicTechnique
 from inspinia.solutions.models import ProblemSolution
 from inspinia.solutions.models import ProblemSolutionBlock
-from inspinia.solutions.models import SolutionBlockType
 from inspinia.users.tests.factories import UserFactory
 
 pytestmark = pytest.mark.django_db
@@ -25,7 +25,11 @@ def editor(client):
     user = UserFactory()
     client.force_login(user)
     problem = ProblemSolveRecord.objects.create(
-        contest="WORKSPACE TEST", year=2026, problem="A1", topic="ALG", mohs=30,
+        contest="WORKSPACE TEST",
+        year=2026,
+        problem="A1",
+        topic="ALG",
+        mohs=30,
     )
     url = reverse("solutions:problem_solution_edit", args=[problem.problem_uuid])
     return client, problem, url
@@ -33,8 +37,13 @@ def editor(client):
 
 def linked_statement(problem):
     return ContestProblemStatement.objects.create(
-        linked_problem=problem, contest_name=problem.contest, contest_year=problem.year,
-        problem_code="A1", problem_number=1, topic="A", statement_latex="Prove the inequality.",
+        linked_problem=problem,
+        contest_name=problem.contest,
+        contest_year=problem.year,
+        problem_code="A1",
+        problem_number=1,
+        topic="A",
+        statement_latex="Prove the inequality.",
     )
 
 
@@ -42,11 +51,18 @@ def test_editor_canonical_coverage_combines_roles_and_preserves_held_captions(ed
     client, problem, url = editor
     row = linked_statement(problem)
     StatementTopicTechnique.objects.create(
-        statement=row, technique="AM-GM", main_topic="ALG", domains=["ALG"],
-        technique_tags=["AM-GM"], lemma_theorem_tags=["AM-GM"],
+        statement=row,
+        technique="AM-GM",
+        main_topic="ALG",
+        domains=["ALG"],
+        technique_tags=["AM-GM"],
+        lemma_theorem_tags=["AM-GM"],
     )
     StatementTopicTechnique.objects.create(
-        statement=row, technique="MATRIX METHOD", main_topic="ALG", domains=["ALG"],
+        statement=row,
+        technique="MATRIX METHOD",
+        main_topic="ALG",
+        domains=["ALG"],
         technique_tags=["MATRIX METHOD"],
     )
     response = client.get(url)
@@ -66,7 +82,10 @@ def test_editor_canonical_coverage_combines_roles_and_preserves_held_captions(ed
 def test_editor_uses_problem_tags_without_creating_a_statement_or_solution(editor):
     client, problem, url = editor
     ProblemTopicTechnique.objects.create(
-        record=problem, technique="SUBSTITUTION", main_topic="ALG", domains=["ALG"],
+        record=problem,
+        technique="SUBSTITUTION",
+        main_topic="ALG",
+        domains=["ALG"],
         technique_tags=["SUBSTITUTION"],
     )
     response = client.get(url)
@@ -82,7 +101,10 @@ def test_editor_suppressed_statement_tags_block_linked_problem_fallback(editor):
     ProblemTopicTechnique.objects.create(record=problem, technique="AM-GM", domains=["ALG"])
     row = linked_statement(problem)
     StatementTopicTechnique.objects.create(
-        statement=row, technique="CORRUPT SOURCE", main_topic="ALG", domains=["ALG"],
+        statement=row,
+        technique="CORRUPT SOURCE",
+        main_topic="ALG",
+        domains=["ALG"],
         normalization_status="invalid",
     )
     response = client.get(url)
@@ -92,24 +114,31 @@ def test_editor_suppressed_statement_tags_block_linked_problem_fallback(editor):
     assert "No confirmed concepts yet" in response.content.decode()
 
 
+def solution_payload(client, url, *, source="Opening\n\nStart here.\n\nFirst argument\n\n$a=b$", action="save_draft"):
+    response = client.get(url, {"edit": "1"})
+    form = response.context.get("form") or response.context["inline_draft_form"]
+    return {
+        "action": action,
+        "solution-title": "My proof",
+        "solution-summary": "Two steps.",
+        "solution-body_source": source,
+        "solution-base_version": form["base_version"].value(),
+        "solution-editor_context": form["editor_context"].value(),
+        "solution-pdf_options_present": "1",
+        "solution-pdf_show_date": "on",
+    }
+
+
 def test_editor_invalid_publish_retains_input_and_exposes_validation(editor):
     client, _problem, url = editor
-    proof = SolutionBlockType.objects.get(slug="proof")
-    response = client.post(url, {
-        "action": "publish", "solution-title": "My unfinished argument", "solution-summary": "Keep this idea.",
-        "blocks-TOTAL_FORMS": "1", "blocks-INITIAL_FORMS": "0", "blocks-MIN_NUM_FORMS": "0",
-        "blocks-MAX_NUM_FORMS": "1000", "blocks-0-id": "", "blocks-0-ORDER": "1",
-        "blocks-0-block_type": str(proof.pk), "blocks-0-title": "Still working", "blocks-0-body_format": "latex",
-        "blocks-0-body_source": "",
-    })
+    payload = solution_payload(client, url, source="", action="publish")
+    payload.update({"solution-title": "My unfinished argument", "solution-summary": "Keep this idea."})
+    response = client.post(url, payload)
     assert response.status_code == HTTPStatus.OK
-    assert response.context["formset"].errors
+    assert response.context["form"].errors
     html = response.content.decode()
     assert "My unfinished argument" in html
     assert "Keep this idea." in html
-    assert "Still working" in html
-    assert "This field is required." in html
-    assert 'data-has-errors="true"' in html
     assert 'data-bound="true"' in html
     assert not ProblemSolution.objects.exists()
 
@@ -121,28 +150,27 @@ def test_problem_page_uses_the_full_editor_workspace(editor):
     templates = {template.name for template in response.templates}
     assert "solutions/partials/solution-editor-toolbar.html" in templates
     assert "solutions/partials/solution-editor-workspace.html" in templates
-    assert "solutions/partials/solution-block-form.html" in templates
+    assert "solutions/partials/solution-block-form.html" not in templates
     assert html.count('id="solution-editor-form"') == 1
-    assert html.count("js/solution-editor.js") == 1
-    assert html.count("js/solution-latex-hybrid.js") == 1
+    assert html.count("js/solution-document-editor.bundle.js") == 1
     assert response.context["solution_body_image_upload_url"] == reverse(
-        "solutions:solution_body_image_upload", args=[problem.problem_uuid],
+        "solutions:solution_body_image_upload",
+        args=[problem.problem_uuid],
     )
     assert 'data-editor-view="preview"' in html
-    assert 'id="solution-add-block"' in html
-    assert 'data-insert-math="display"' in html
+    assert 'id="solution-add-block"' not in html
+    assert 'name="solution-body_source"' in html
     assert 'name="solution-pdf_options_present"' in html
     assert not ProblemSolution.objects.exists()
 
 
 def test_problem_page_edits_only_the_current_users_solution(editor):
     client, problem, url = editor
-    client.post(url, solution_payload())
+    assert client.post(url, solution_payload(client, url)).status_code == HTTPStatus.FOUND
     own = ProblemSolution.objects.get(problem=problem)
     other = ProblemSolution.objects.create(problem=problem, author=UserFactory(), title="Other private draft")
     page_url = reverse("solutions:problem_solution_list", args=[problem.problem_uuid])
     response = client.get(page_url, {"edit": "1", "solution": str(other.pk)})
-    assert response.status_code == HTTPStatus.OK
     assert response.context["inline_draft_form"].instance.pk == own.pk
     assert response.context["show_inline_draft_editor"]
     html = response.content.decode()
@@ -152,80 +180,159 @@ def test_problem_page_edits_only_the_current_users_solution(editor):
     assert "data-share-url=" in html
 
 
-def solution_payload():
-    return {
-        "action": "save_draft", "solution-title": "My proof", "solution-summary": "Two steps.",
-        "solution-pdf_options_present": "1", "solution-pdf_show_date": "on",
-        "blocks-TOTAL_FORMS": "2", "blocks-INITIAL_FORMS": "0", "blocks-MIN_NUM_FORMS": "0",
-        "blocks-MAX_NUM_FORMS": "1000", "blocks-0-id": "", "blocks-0-ORDER": "2",
-        "blocks-0-block_type": "", "blocks-0-title": "First argument", "blocks-0-body_format": "latex",
-        "blocks-0-body_source": "$a=b$", "blocks-1-id": "", "blocks-1-ORDER": "1",
-        "blocks-1-block_type": "", "blocks-1-title": "Opening", "blocks-1-body_format": "plain_text",
-        "blocks-1-body_source": "Start here.",
-    }
-
-
 @pytest.mark.parametrize("route", ["problem_solution_list", "problem_solution_edit"])
-def test_shared_editor_saves_multiple_blocks_after_clipboard_upload(editor, route):
+def test_shared_editor_saves_continuous_document_after_clipboard_upload(editor, route):
     client, problem, _url = editor
+    url = reverse(f"solutions:{route}", args=[problem.problem_uuid])
+    payload = solution_payload(client, url)
     image = BytesIO()
     Image.new("RGB", (2, 2), "white").save(image, format="PNG")
-    uploaded = client.post(reverse("solutions:solution_body_image_upload", args=[problem.problem_uuid]), {
-        "image": SimpleUploadedFile("clipboard.png", image.getvalue(), content_type="image/png"),
-    })
+    uploaded = client.post(
+        reverse("solutions:solution_body_image_upload", args=[problem.problem_uuid]),
+        {
+            "image": SimpleUploadedFile("clipboard.png", image.getvalue(), content_type="image/png"),
+        },
+    )
     assert uploaded.status_code == HTTPStatus.OK
-    draft = ProblemSolution.objects.get(problem=problem)
-    payload = solution_payload()
-    payload["blocks-0-body_source"] += "\\includegraphics{" + uploaded.json()["path"] + "}"
-    response = client.post(reverse(f"solutions:{route}", args=[problem.problem_uuid]), payload)
+    payload["solution-body_source"] += "\\includegraphics{" + uploaded.json()["path"] + "}"
+    response = client.post(url, payload)
     assert response.status_code == HTTPStatus.FOUND
-    draft.refresh_from_db()
-    assert ProblemSolution.objects.filter(problem=problem).count() == 1
+    draft = ProblemSolution.objects.get(problem=problem)
     assert draft.status == ProblemSolution.Status.DRAFT
     assert draft.pdf_show_date
     assert not draft.pdf_show_author
     assert not draft.pdf_show_footer
-    blocks = list(draft.blocks.order_by("position"))
-    assert [block.title for block in blocks] == ["Opening", "First argument"]
-    assert uploaded.json()["path"] in blocks[1].body_source
+    assert uploaded.json()["path"] in draft.current_revision.body_source
+    assert "Opening" in draft.current_revision.body_source
+    assert not draft.blocks.exists()
     assert not problem.user_completions.exists()
 
 
-def test_problem_page_validation_keeps_every_block_and_its_controls(editor):
-    client, problem, _url = editor
-    payload = solution_payload()
-    payload["blocks-1-body_source"] = ""
-    response = client.post(reverse("solutions:problem_solution_list", args=[problem.problem_uuid]), payload)
+def test_old_block_request_recovers_whole_document_without_saving(editor):
+    client, problem, url = editor
+    response = client.post(
+        url,
+        {
+            "action": "save",
+            "solution-title": "Preserved title",
+            "blocks-TOTAL_FORMS": "1",
+            "blocks-INITIAL_FORMS": "0",
+            "blocks-0-body_source": "Original argument",
+            "blocks-0-title": "Opening",
+            "blocks-0-body_format": "latex",
+            "blocks-0-ORDER": "1",
+        },
+    )
     assert response.status_code == HTTPStatus.OK
-    html = response.content.decode()
-    assert 'name="blocks-1-body_source"' in html
-    assert "First argument" in html
-    assert "Opening" in html
-    assert "This field is required." in html
-    assert 'data-bound="true"' in html
-    assert response.context["show_inline_draft_editor"]
-    assert not ProblemSolutionBlock.objects.exists()
+    assert "Original argument" in response.content.decode()
+    assert "Opening" in response.content.decode()
+    assert "Review the recovered document" in response.content.decode()
+    assert not ProblemSolution.objects.filter(problem=problem).exists()
 
 
-def test_problem_page_can_update_reorder_remove_and_publish_existing_blocks(editor):
-    client, problem, _url = editor
-    url = reverse("solutions:problem_solution_list", args=[problem.problem_uuid])
-    assert client.post(url, solution_payload()).status_code == HTTPStatus.FOUND
-    solution = ProblemSolution.objects.get(problem=problem)
-    opening, argument = solution.blocks.order_by("position")
-    payload = solution_payload()
-    payload.update({
-        "action": "publish", "blocks-INITIAL_FORMS": "2", "blocks-TOTAL_FORMS": "3",
-        "blocks-0-id": str(argument.pk), "blocks-0-DELETE": "on",
-        "blocks-1-id": str(opening.pk), "blocks-1-ORDER": "2", "blocks-1-body_source": "Updated opening.",
-        "blocks-2-id": "", "blocks-2-ORDER": "1", "blocks-2-block_type": "",
-        "blocks-2-title": "New first block", "blocks-2-body_format": "latex", "blocks-2-body_source": "$x=y$",
-    })
+def test_document_edit_preserves_frozen_legacy_blocks_and_publishes(editor):
+    client, problem, url = editor
+    user = get_user_model().objects.get(pk=client.session["_auth_user_id"])
+    solution = ProblemSolution.objects.create(problem=problem, author=user)
+    block = ProblemSolutionBlock.objects.create(solution=solution, position=1, body_source="Legacy source")
+    assert "Legacy source" in client.get(url).content.decode()
+    payload = solution_payload(client, url, source="New first paragraph.\n\nUpdated argument.", action="publish")
     assert client.post(url, payload).status_code == HTTPStatus.FOUND
     solution.refresh_from_db()
-    assert solution.status == ProblemSolution.Status.PUBLISHED
-    assert list(solution.blocks.order_by("position").values_list("title", "body_source")) == [
-        ("New first block", "$x=y$"), ("Opening", "Updated opening."),
-    ]
-    assert not ProblemSolutionBlock.objects.filter(pk=argument.pk).exists()
+    block.refresh_from_db()
+    assert solution.status == "published"
+    assert solution.current_revision.body_source == payload["solution-body_source"]
+    assert block.body_source == "Legacy source"
     assert not problem.user_completions.exists()
+
+
+def test_stale_ajax_save_preserves_both_versions(editor):
+    client, problem, url = editor
+    first = solution_payload(client, url, source="First version")
+    stale = dict(first, **{"solution-body_source": "Other tab"})
+    saved = client.post(url, first, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
+    assert saved.status_code == HTTPStatus.OK
+    assert saved.json()["revision_id"]
+    response = client.post(url, stale, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
+    assert response.status_code == HTTPStatus.CONFLICT
+    assert ProblemSolution.objects.get(problem=problem).current_revision.body_source == "First version"
+
+
+def test_editor_context_cannot_follow_an_account_switch(editor):
+    client, problem, url = editor
+    payload = solution_payload(client, url, source="Private proof")
+    client.force_login(UserFactory())
+    response = client.post(url, payload, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
+    assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+    assert not ProblemSolution.objects.filter(problem=problem).exists()
+
+
+def test_document_write_gate_preserves_submitted_source(editor, settings):
+    client, problem, url = editor
+    payload = solution_payload(client, url, source="Keep this unsaved proof")
+    settings.SOLUTION_DOCUMENT_WRITES_ENABLED = False
+    response = client.post(url, payload, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
+    assert response.status_code == HTTPStatus.SERVICE_UNAVAILABLE
+    assert not ProblemSolution.objects.filter(problem=problem).exists()
+
+
+def test_revision_cannot_be_deleted_without_its_solution(editor):
+    from django.core.exceptions import ValidationError
+
+    client, problem, url = editor
+    client.post(url, solution_payload(client, url))
+    solution = ProblemSolution.objects.get(problem=problem)
+    revision = solution.current_revision
+    with pytest.raises(ValidationError):
+        revision.delete()
+    with pytest.raises(ValidationError):
+        type(revision).objects.filter(pk=revision.pk).delete()
+    solution.delete()
+    assert not type(revision).objects.filter(pk=revision.pk).exists()
+
+
+@pytest.mark.django_db(transaction=True)
+def test_concurrent_first_document_saves_have_one_winner(editor):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Barrier
+
+    from django.db import close_old_connections
+    from django.db import connection
+
+    from inspinia.solutions.revisions import StaleSolutionVersion
+    from inspinia.solutions.revisions import save_document
+
+    if connection.vendor != "postgresql":
+        pytest.skip("Row-lock concurrency requires PostgreSQL.")
+    client, problem, url = editor
+    user = get_user_model().objects.get(pk=client.session["_auth_user_id"])
+    payload = solution_payload(client, url)
+    barrier = Barrier(2)
+
+    def submit(source):
+        close_old_connections()
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("SET lock_timeout = '5s'")
+                cursor.execute("SET statement_timeout = '10s'")
+            barrier.wait(timeout=10)
+            try:
+                save_document(
+                    solution=ProblemSolution(problem=problem, author=user), user=user, source=source,
+                    title="Concurrent proof", summary="", pdf_options={
+                        "pdf_show_author": True, "pdf_show_date": True, "pdf_show_footer": True,
+                    }, base_version=0, context=payload["solution-editor_context"],
+                )
+            except StaleSolutionVersion:
+                return "conflict"
+            return "saved"
+        finally:
+            connection.close()
+
+    with ThreadPoolExecutor(max_workers=2) as workers:
+        results = list(workers.map(submit, ["First tab proof", "Second tab proof"]))
+    assert sorted(results) == ["conflict", "saved"]
+    solution = ProblemSolution.objects.get(problem=problem, author=user)
+    assert solution.revisions.count() == 1
+    assert solution.edit_version == 1
+    assert solution.current_revision.body_source in {"First tab proof", "Second tab proof"}

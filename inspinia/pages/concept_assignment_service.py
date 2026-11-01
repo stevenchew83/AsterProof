@@ -10,6 +10,7 @@ from django.core.exceptions import PermissionDenied
 from django.db import connection
 from django.db import transaction
 from django.db.models import F
+from django.db.models import Prefetch
 
 from inspinia.pages.concept_alias_policy import ROLE_FIELDS
 from inspinia.pages.concept_assignment_registry import POLICY
@@ -86,31 +87,35 @@ def _records(uuids):
 
 def published_solution_evidence(uuids, ids=None):
     """Two batch queries, only published solutions belonging to these identities."""
+    from inspinia.solutions.document_source import solution_source
     from inspinia.solutions.models import ProblemSolution
     from inspinia.solutions.models import ProblemSolutionBlock
 
-    query = ProblemSolution.objects.filter(problem__problem_uuid__in=uuids, status=ProblemSolution.Status.PUBLISHED)
+    query = ProblemSolution.objects.filter(
+        problem__problem_uuid__in=uuids, status=ProblemSolution.Status.PUBLISHED,
+    ).select_related("problem", "current_revision").prefetch_related(Prefetch(
+        "blocks", queryset=ProblemSolutionBlock.objects.order_by("position", "id"),
+    ))
     if ids is not None:
         query = query.filter(pk__in=ids)
-    solutions = {row["id"]: row for row in query.values("id", "title", "problem__problem_uuid")}
-    blocks = defaultdict(list)
-    for row in (
-        ProblemSolutionBlock.objects.filter(solution_id__in=solutions)
-        .order_by("position", "id")
-        .values("solution_id", "title", "body_source")
-    ):
-        blocks[row["solution_id"]].append((row["title"], row["body_source"]))
-    return {
-        key: {
+    evidence = {}
+    for solution in query:
+        blocks = [(block.title, block.body_source) for block in solution.blocks.all()]
+        if solution.current_revision_id:
+            text = "\n".join([solution.title, solution_source(solution)])
+            content_hash = digest([solution.title, solution.current_revision.source_digest])
+        else:
+            text = "\n".join([solution.title, *("\n".join(block) for block in blocks)])
+            content_hash = digest([solution.title, blocks])
+        evidence[solution.pk] = {
             "kind": "published_solution",
-            "reference": key,
-            "problem_uuid": str(row["problem__problem_uuid"]),
-            "title": row["title"] or f"Published solution {key}",
-            "text": "\n".join([row["title"], *("\n".join(block) for block in blocks[key])]),
-            "content_hash": digest([row["title"], blocks[key]]),
+            "reference": solution.pk,
+            "problem_uuid": str(solution.problem.problem_uuid),
+            "title": solution.title or f"Published solution {solution.pk}",
+            "text": text,
+            "content_hash": content_hash,
         }
-        for key, row in solutions.items()
-    }
+    return evidence
 
 
 def _proofs_for_records(sources, records):

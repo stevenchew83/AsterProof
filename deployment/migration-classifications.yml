@@ -2,6 +2,17 @@
   "format_version": 1,
   "baseline_sha": null,
   "migrations": {
+    "solutions.0009_problemsolution_edit_version_solutionreviewpolicy_and_more": {
+      "classification": "backward-compatible-schema",
+      "recovery_required": false,
+      "code_rollback_permitted": true,
+      "data_preconditions": [
+        "document_revision_and_review_tables_absent",
+        "existing_solution_content_and_shared_copies_preserved",
+        "document_writes_disabled_until_compatible_reader_baseline"
+      ],
+      "rationale": "Adds only immutable document/review tables, a nullable current revision pointer, and edit_version with persistent database default zero. Existing blocks, public snapshots, accounts and completion records remain unchanged. Code recovery is permitted only to a verified document-aware reader after canonical revisions or v2 public copies exist; the installed worker enforces that data compatibility floor. Exact frozen migration and PostgreSQL preservation evidence remain required."
+    },
     "solutions.0008_solutioncollection_kind_and_nullable_owner": {
       "classification": "backward-compatible-schema",
       "recovery_required": false,

@@ -361,7 +361,7 @@ def _render_bold_leadin(label: str, *, title: str, body: str) -> list[str]:
 
 def _render_block(block: ProblemSolutionBlock) -> list[str]:
     rendered: list[str]
-    if _is_plain_block(block):
+    if getattr(block, "is_continuous_document", False) or _is_plain_block(block):
         rendered = [block.body_source or "", ""]
     else:
         slug = _block_slug(block)
@@ -582,6 +582,10 @@ def compile_solution_to_pdf(
     blocks: Sequence[ProblemSolutionBlock],
     params: SolutionPdfCompileParams,
 ) -> bytes:
+    if solution.current_revision_id:
+        from inspinia.solutions.document_source import solution_blocks
+
+        blocks = solution_blocks(solution)
     missing_paths = _missing_solution_body_image_paths(blocks, media_root=params.media_root)
     if missing_paths:
         raise SolutionPdfMissingBodyImagesError(missing_paths)

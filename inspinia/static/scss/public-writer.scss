@@ -1,2 +1,21 @@
 @import "public-site";
 @import "structure/website-solution-preview";
+@import "components/solution-document";
+.public-solution-tool, .public-solution-tool .solution-document-rendered {
+  --document-surface: #fffefa;
+  --document-ink: var(--w-ink);
+  --document-muted: var(--w-muted);
+  --document-line: var(--w-line);
+  --document-soft: #edf0e8;
+  --document-accent: var(--w-accent);
+}
+.public-tool-view-switch { margin-bottom: 1rem; }
+.public-tool-view-switch button { padding: .4rem .9rem; border: 1px solid var(--w-line); border-radius: 3px; background: transparent; color: var(--w-muted); font-size: .75rem; }
+.public-tool-view-switch button[aria-pressed="true"] { color: var(--w-accent); background: var(--document-soft); }
+.public-tool-grid[data-view="write"], .public-tool-grid[data-view="preview"] { grid-template-columns: minmax(0, 1fr); }
+.public-tool-grid[data-view="write"] .solution-preview-pane, .public-tool-grid[data-view="preview"] .solution-write-pane { display: none; }
+@media (max-width: 1199.98px) {
+  .public-tool-grid[data-view="split"] .solution-preview-pane { display: none; }
+  .public-tool-view-switch .solution-split-toggle { display: none; }
+  .public-tool-grid { grid-template-columns: minmax(0, 1fr); }
+}

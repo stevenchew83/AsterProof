@@ -1,0 +1,23 @@
+{% load static %}
+{% if solution_review_config.visible %}
+{{ solution_review_config|json_script:'solution-review-config' }}
+<section data-ai-coach aria-label="Solution coach">
+  <h3 class="h5">Review your reasoning</h3>
+  <p class="text-muted fs-sm">Get coaching feedback on a saved version of your proof. AI feedback can miss mistakes and does not mark the problem solved.</p>
+  <details class="mb-3"><summary>What is sent for review</summary>
+    <p class="fs-sm mt-2">The problem statement, your saved proof, and its managed images are sent to OpenAI. Your account email and other users’ proofs are excluded. OpenAI’s applicable retention controls still apply.</p>
+    <label class="form-check"><input type="checkbox" class="form-check-input" data-review-acknowledgement><span class="form-check-label">I understand and want to send this writing for AI feedback.</span></label>
+  </details>
+  {% if not solution_review_config.hasStatement %}
+  <label class="form-label" for="solution-review-statement">Problem statement for this review</label>
+  <textarea id="solution-review-statement" class="form-control font-monospace mb-2" rows="4" maxlength="12000" data-review-statement></textarea>
+  <label class="form-check mb-3"><input type="checkbox" class="form-check-input" data-review-statement-confirmed><span class="form-check-label">This is the statement I am solving.</span></label>
+  {% endif %}
+  <button type="button" class="btn btn-primary btn-sm" data-review-start disabled><i class="ti ti-message-circle me-1" aria-hidden="true"></i>Review my solution</button>
+  <p class="fs-sm text-muted mt-2" role="status" aria-live="polite" data-review-status>Enable JavaScript to request private coaching feedback.</p>
+  <div data-review-report></div>
+  <details data-review-source-details hidden><summary>Writing reviewed</summary><pre class="border rounded p-3 text-wrap tex2jax_ignore" data-review-source></pre></details>
+  <noscript><p>Saving and PDF export remain available without AI feedback.</p></noscript>
+</section>
+<script defer src="{% static 'js/solution-ai-review.js' %}"></script>
+{% endif %}

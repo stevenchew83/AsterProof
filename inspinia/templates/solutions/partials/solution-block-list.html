@@ -1,3 +1,6 @@
+{% if row.document_source %}
+<div class="solution-block-body tex2jax_ignore" data-solution-document-source>{{ row.document_source }}</div>
+{% else %}
 {% for block in row.blocks %}
 <div class="card border solution-block-card">
   <div class="card-body py-3">
@@ -18,3 +21,4 @@
   </div>
 </div>
 {% endfor %}
+{% endif %}

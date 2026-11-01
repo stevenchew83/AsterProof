@@ -27,7 +27,7 @@
       {% elif guide_has_saved_content %}
       <strong>Your solution is saved.</strong> When you are ready, open Share to review your work and create a public link. Sharing is optional.
       {% else %}
-      <strong>Next: save your solution.</strong> Write or paste your proof into a block, check Preview, then select Save changes. Saving does not create a public link.
+      <strong>Next: save your solution.</strong> Write or paste your proof, check Preview, then select Save changes. Saving does not create a public link.
       {% endif %}
     </div>
     <a href="{% url 'solutions:my_solution_list' %}#solution-guide" class="alert-link fs-sm">View checklist</a>
@@ -118,7 +118,7 @@
 <script defer src="{% static 'js/solution-pdf-options.js' %}"></script>
 <script>
 window.MathJax = {
-  loader: { load: ["[tex]/textmacros"] },
+  loader: { load: ["ui/safe", "[tex]/textmacros"] },
   tex: {
     packages: { "[+]": ["textmacros"] },
     macros: {
@@ -140,7 +140,10 @@ window.MathJax = {
     inlineMath: [["$", "$"], ["\\(", "\\)"]],
     displayMath: [["$$", "$$"], ["\\[", "\\]"]]
   },
-  options: { skipHtmlTags: ["script", "noscript", "style", "textarea", "pre", "code"] },
+  options: {
+    skipHtmlTags: ["script", "noscript", "style", "textarea", "pre", "code"],
+    safeOptions: {allow: {URLs: "safe", classes: "none", cssIDs: "none", styles: "none"}, safeProtocols: {http: true, https: true, file: false, javascript: false, data: false}}
+  },
   startup: {
     ready: function () {
       MathJax.startup.defaultReady();
@@ -156,12 +159,8 @@ window.ASTERPROOF_SOLUTION_MEDIA = {
   mediaUrlPrefix: "{{ MEDIA_URL|escapejs }}",
   uploadUrl: "{{ solution_body_image_upload_url|escapejs }}"
 };
-window.ASTERPROOF_SOLUTION_PREVIEW = {
-  plainBlockTypeId: "{{ plain_block_type_id|escapejs }}"
-};
 </script>
-<script src="{% static 'js/solution-latex-hybrid.js' %}"></script>
-<script src="{% static 'js/solution-editor.js' %}"></script>
+<script defer src="{% static 'js/solution-document-editor.bundle.js' %}"></script>
 <script>
 (function () {
   var panel = document.getElementById("solution-completion-panel");

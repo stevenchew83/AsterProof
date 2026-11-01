@@ -34,6 +34,11 @@ class ProblemSolution(models.Model):
     title = models.CharField(max_length=160, blank=True)
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.DRAFT, db_index=True)
     summary = models.TextField(blank=True)
+    current_revision = models.ForeignKey(
+        "SolutionRevision", null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="current_for_solutions",
+    )
+    edit_version = models.PositiveIntegerField(default=0, db_default=0)
     pdf_show_author = models.BooleanField(default=True, db_default=True)
     pdf_show_date = models.BooleanField(default=True, db_default=True)
     pdf_show_footer = models.BooleanField(default=True, db_default=True)
@@ -60,6 +65,73 @@ class ProblemSolution(models.Model):
         if title:
             return title
         return f"{self.author.email} - {self.problem.contest_year_problem or self.problem}"
+
+    def clean(self):
+        super().clean()
+        if self.current_revision_id and self.current_revision.solution_id != self.pk:
+            message = "The current revision must belong to this solution."
+            raise ValidationError({"current_revision": message})
+
+
+class ImmutableRevisionQuerySet(models.QuerySet):
+    def delete(self):
+        message = "Saved revisions are removed only with their owning solution."
+        raise ValidationError(message)
+
+    def update(self, **kwargs):
+        message = "Saved solution revisions cannot be changed. Save a new revision instead."
+        raise ValidationError(message)
+
+    def bulk_update(self, objs, fields, batch_size=None):
+        message = "Saved solution revisions cannot be changed. Save a new revision instead."
+        raise ValidationError(message)
+
+    def bulk_create(self, objs, **kwargs):
+        if kwargs.get("update_conflicts"):
+            message = "Saved solution revisions cannot be changed. Save a new revision instead."
+            raise ValidationError(message)
+        return super().bulk_create(objs, **kwargs)
+
+
+class SolutionRevision(models.Model):
+    """An immutable authored document; legacy blocks remain untouched."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    solution = models.ForeignKey(ProblemSolution, on_delete=models.CASCADE, related_name="revisions")
+    sequence = models.PositiveIntegerField()
+    body_source = models.TextField(blank=True)
+    syntax_version = models.PositiveSmallIntegerField(default=1)
+    title = models.CharField(max_length=160, blank=True)
+    summary = models.TextField(blank=True)
+    pdf_show_author = models.BooleanField(default=True)
+    pdf_show_date = models.BooleanField(default=True)
+    pdf_show_footer = models.BooleanField(default=True)
+    source_digest = models.CharField(max_length=64)
+    conversion_version = models.PositiveSmallIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    objects = ImmutableRevisionQuerySet.as_manager()
+
+    class Meta:
+        ordering = ["sequence"]
+        constraints = [
+            models.UniqueConstraint(fields=["solution", "sequence"], name="solution_revision_unique_sequence"),
+            models.CheckConstraint(condition=models.Q(sequence__gte=1), name="solution_revision_positive_sequence"),
+        ]
+
+    def save(self, *args, **kwargs):
+        if not self._state.adding or kwargs.get("force_update"):
+            message = "Saved solution revisions cannot be changed. Save a new revision instead."
+            raise ValidationError(message)
+        kwargs["force_insert"] = True
+        return super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Solution {self.solution_id}, revision {self.sequence}"
+
+    def delete(self, *args, **kwargs):
+        message = "Saved revisions are removed only with their owning solution."
+        raise ValidationError(message)
 
 
 class SolutionPublicShare(models.Model):
@@ -300,3 +372,7 @@ class SolutionBodyImage(models.Model):
 
     def __str__(self) -> str:
         return f"Body image {self.pk} → solution {self.solution_id}"
+
+
+from inspinia.solutions.review_models import SolutionReview  # noqa: E402, F401
+from inspinia.solutions.review_models import SolutionReviewPolicy  # noqa: E402, F401
