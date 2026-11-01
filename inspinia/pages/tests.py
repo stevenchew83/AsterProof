@@ -19715,7 +19715,7 @@ def test_problem_statement_analytics_groups_rows_by_contest_and_year_for_admin(c
     assert "progress-bar" in response_html
     assert "Open contest-year" in response_html
     assert "Statement rows by year" in response_html
-    assert "Bar graph of year-only imported statement coverage across the archive." in response_html
+    assert "Statement rows by contest year across the archive." in response_html
     assert "Contest-year statement volume" not in response_html
     assert "Link rate by contest-year" not in response_html
     assert reverse("pages:problem_statement_dashboard") in response_html
