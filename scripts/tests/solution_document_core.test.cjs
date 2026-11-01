@@ -2,8 +2,9 @@ const assert = require('node:assert/strict');
 const {test} = require('node:test');
 const {EditorState} = require('@codemirror/state');
 const {nextSnippetField} = require('@codemirror/autocomplete');
+const {deleteGroupBackward} = require('@codemirror/commands');
 const {parseDocument, escapeLiteralText, convertLegacyBlock, unclosedEnvironment, imageSnippet, mapOffset, mapUploadBookmark, uploadReplacementRange} = require('../../inspinia/static/js/solution-document-core.js');
-const {completions, completionSpec} = require('../../inspinia/static/js/solution-document-editor.js');
+const {completions, completionSpec, createEditorState} = require('../../inspinia/static/js/solution-document-editor.js');
 const {decode, recoveryKey, TTL} = require('../../inspinia/static/js/solution-document-recovery.js');
 const fixtures = require('./fixtures/solution-document-conformance.json');
 
@@ -63,6 +64,28 @@ test('end suggestions follow the innermost unclosed environment and ignore comme
   assert.deepEqual(completionSpec(source, source.length).names, ['proof']);
   const state = EditorState.create({doc: source});
   assert.equal(completions({state, pos: source.length}).options[0].apply, '\\end{proof}');
+});
+
+test('generic begin completion links both names through typing and snippet navigation', () => {
+  let state = createEditorState('\\beg');
+  state = state.update({selection: {anchor: state.doc.length}}).state;
+  const result = completions({state, pos: state.doc.length});
+  const completion = result.options.find(value => value.label === '\\begin');
+  const editor = {get state() { return state; }, dispatch(transaction) { state = transaction.state; }};
+  completion.apply(editor, completion, result.from, result.to);
+  assert.equal(state.selection.ranges.length, 2);
+  let name = '';
+  for (const character of 'proof') {
+    name += character;
+    state = state.update(state.replaceSelection(character)).state;
+    assert.equal(state.doc.toString(), '\\begin{' + name + '}\n  \n\\end{' + name + '}');
+  }
+  assert.equal(deleteGroupBackward(editor), true);
+  state = state.update(state.replaceSelection('claim')).state;
+  assert.equal(state.doc.toString(), '\\begin{claim}\n  \n\\end{claim}');
+  assert.equal(nextSnippetField(editor), true);
+  state = state.update(state.replaceSelection('Body')).state;
+  assert.equal(state.doc.toString(), '\\begin{claim}\n  Body\n\\end{claim}');
 });
 
 test('fraction completion has empty navigable fields and remains one undoable transaction', () => {
