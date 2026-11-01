@@ -63,6 +63,13 @@
     .app-table-compact a:hover { color: var(--ins-primary); }
     .app-table-compact .badge { font-weight: 500; font-size: .6875rem; }
     .page-view-ranking-table td:last-child { color: var(--ins-secondary-color); font-size: .6875rem; }
+    .page-view-recent-table { min-width: 48rem; table-layout: fixed; width: 100%; }
+    .page-view-recent-table th:first-child { width: 14%; }
+    .page-view-recent-table th:nth-child(2) { width: 15%; }
+    .page-view-recent-table th:nth-child(3) { width: 39%; }
+    .page-view-recent-table th:nth-child(4) { width: 24%; }
+    .page-view-recent-table th:last-child { width: 8%; }
+    .page-view-recent-table td:nth-child(3) > a, .page-view-recent-table td:nth-child(3) > span.fw-semibold { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
     .page-view-recent-filters { display: flex; flex-wrap: wrap; align-items: end; gap: .75rem; margin-bottom: .75rem; padding-bottom: .875rem; border-bottom: 1px solid var(--ins-border-color); }
     .page-view-recent-filters > div { flex: 1 1 8rem; min-width: 0; }

@@ -21766,6 +21766,32 @@ table.app-table-compact .contest-row-meta {
   color: var(--ins-secondary-color);
   font-size: 0.6875rem;
 }
+.page-view-page .page-view-recent-table {
+  min-width: 48rem;
+  table-layout: fixed;
+  width: 100%;
+}
+.page-view-page .page-view-recent-table th:first-child {
+  width: 14%;
+}
+.page-view-page .page-view-recent-table th:nth-child(2) {
+  width: 15%;
+}
+.page-view-page .page-view-recent-table th:nth-child(3) {
+  width: 39%;
+}
+.page-view-page .page-view-recent-table th:nth-child(4) {
+  width: 24%;
+}
+.page-view-page .page-view-recent-table th:last-child {
+  width: 8%;
+}
+.page-view-page .page-view-recent-table td:nth-child(3) > a, .page-view-page .page-view-recent-table td:nth-child(3) > span.fw-semibold {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .page-view-page .page-view-recent-filters {
   display: -webkit-box;
   display: -ms-flexbox;
