@@ -2,6 +2,16 @@
   "format_version": 1,
   "baseline_sha": null,
   "migrations": {
+    "pages.0041_statement_issue_reports": {
+      "classification": "backward-compatible-schema",
+      "recovery_required": false,
+      "code_rollback_permitted": true,
+      "data_preconditions": [
+        "statement_report_table_absent",
+        "existing_statements_accounts_solutions_and_progress_preserved"
+      ],
+      "rationale": "Creates only an isolated reader-report table with statement snapshots, nullable statement/reporter/reviewer foreign keys, a unique submission token, and a status/time index. No backfill, existing-record writes, automatic notifications, or permission changes. Prior code remains compatible with the additive table; code recovery retains report history. Requires the separately installed hash-frozen allowance and PostgreSQL preservation proof."
+    },
     "solutions.0009_problemsolution_edit_version_solutionreviewpolicy_and_more": {
       "classification": "backward-compatible-schema",
       "recovery_required": false,
