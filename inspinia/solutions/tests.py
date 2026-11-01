@@ -611,7 +611,7 @@ def test_problem_solution_list_exposes_completion_date_control(client):
     assert response.context["completion_statement_uuid"] == str(statement.statement_uuid)
     assert response.context["completion_problem_uuid"] == str(problem.problem_uuid)
     response_html = response.content.decode("utf-8")
-    assert "Your complete date" in response_html
+    assert 'for="solution-completion-date">Completion date</label>' in response_html
     assert 'placeholder="YYYY-MM-DD"' in response_html
     assert 'pattern="\\d{4}-\\d{2}-\\d{2}"' in response_html
     assert 'value="2026-01-24"' in response_html
@@ -739,7 +739,7 @@ def test_problem_solution_list_highlights_selected_solution_from_query_string_fo
         title="Hidden draft",
         blocks=[("Idea", "This should be highlighted.", "idea")],
     )
-    _solution_with_blocks(
+    own_solution = _solution_with_blocks(
         problem=problem,
         author=admin_user,
         status=ProblemSolution.Status.PUBLISHED,
@@ -757,6 +757,16 @@ def test_problem_solution_list_highlights_selected_solution_from_query_string_fo
     response_html = response.content.decode("utf-8")
     assert f'id="solution-{selected_solution.id}"' in response_html
     assert "solution-card-selected" in response_html
+
+    own_response = client.get(
+        reverse("solutions:problem_solution_list", args=[problem.problem_uuid]),
+        {"solution": str(own_solution.id)},
+    )
+
+    assert own_response.status_code == HTTPStatus.OK
+    own_html = own_response.content.decode("utf-8")
+    assert own_html.count(f'id="solution-{own_solution.id}"') == 1
+    assert own_html.count("Another visible solution.") == 1
 
 
 def test_problem_solution_edit_publishes_structured_document_in_authored_order(client):
