@@ -227,3 +227,17 @@ Only when the user explicitly requests delayed monitoring, assign the named +1 h
 - During or after migration: do not imply the database was rolled back. A failed or ambiguous result is `recovery_required`.
 - After activation: automatic code/static rollback is allowed only when the recorded compatibility gate permits it and the unchanged database fingerprint is proven.
 - On `unknown`, an unclosed non-terminal state, identity drift, or disagreement between evidence sources: stop both deploy and rollback and follow [rollback and recovery](rollback-and-recovery.md).
+
+
+## Offline mathematical evaluation schema
+
+The later four-table synthetic assessment prototype is a separate exact bundle.
+Follow [its release contract](assessment-prototype-release.md); it preserves the
+existing evidence workspace and requires a separately installed trusted allowance.
+Its source preparation does not authorize authority installation or enable AI.
+
+The separately bounded `solutions.0010_offline_evaluation_contract` release adds
+only nineteen empty evidence tables. Follow [offline evaluation release](offline-evaluation-release.md)
+for the frozen migration/delta, active-code PostgreSQL proof and future authority
+installation/disclosure requirements. Its repository allowance does not install
+production authority, authorize deployment or enable either AI review pipeline.

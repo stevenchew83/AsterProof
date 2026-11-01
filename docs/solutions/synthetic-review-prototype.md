@@ -113,7 +113,7 @@ records a reveal. Private report responses use no-store and noindex headers.
 Both tables reuse Phase 1's append-only application guards and protected foreign
 keys. Privileged SQL or low-level Django save APIs remain outside that immutability
 boundary. This does not implement a human final-mark table, student publication,
-or learning analytics. Migration `0011_synthetic_review_prototype` is additive and
+or learning analytics. Migration `0012_synthetic_review_prototype` is additive and
 creates only these two tables and their constraints, without backfilling users,
 solutions, approvals, or operating policy.
 

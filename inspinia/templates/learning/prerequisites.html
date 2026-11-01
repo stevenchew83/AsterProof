@@ -1,0 +1,20 @@
+{% extends 'learning/base.html' %}
+
+{% block learning_content %}
+  <h1 class="h3">Curate pedagogical prerequisites</h1>
+  <p class="text-muted">
+    Add only a reviewed teaching dependency. Catalogue related/narrower edges remain unchanged. Cycles and stale edits are rejected.
+  </p>
+  <form method="post" class="card card-body learning-form-width">
+    {% csrf_token %}
+    {% include 'learning/form.html' %}
+    <button class="btn btn-primary">Apply reviewed prerequisite change</button>
+  </form>
+  <div class="list-group">
+    {% for edge in edges %}
+      <div class="list-group-item">{{ edge.prerequisite.name }} → {{ edge.dependent.name }}</div>
+    {% empty %}
+      <p class="list-group-item text-muted">No curated prerequisites yet.</p>
+    {% endfor %}
+  </div>
+{% endblock %}

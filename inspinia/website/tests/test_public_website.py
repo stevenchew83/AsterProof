@@ -183,7 +183,8 @@ def test_library_sanitizes_html_and_renders_safe_resource_link(client, library):
         lecture.full_clean()
 
 
-def test_admin_supports_drafts_and_cannot_manually_enrol_newsletter_subscribers(library):
+def test_admin_supports_legacy_drafts_when_module_disabled_and_cannot_manually_enrol_subscribers(library, settings):
+    settings.LEARNING_MODULE_ENABLED = False
     request = RequestFactory().get("/admin/")
     request.user = UserFactory(is_staff=True, is_superuser=True)
     for entry in library:

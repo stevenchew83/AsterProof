@@ -89,7 +89,23 @@ def _snapshot(connection):
     return result
 
 
-def _approved_rehearsal(disclosed_migration):  # noqa: C901, PLR0911 - Only literal, reviewed rehearsal imports.
+def _approved_rehearsal(disclosed_migration):  # noqa: C901, PLR0911, PLR0912 - Only literal, reviewed rehearsal imports.
+    if disclosed_migration == "solutions.0011_problem_evaluation_packages":
+        from scripts.deployment.assessment_prototype_schema_rehearsal import run
+
+        return run
+    if disclosed_migration == "solutions.0010_offline_evaluation_contract":
+        from scripts.deployment.solution_evaluation_schema_rehearsal import run
+
+        return run
+    if disclosed_migration == "pages.0044_learning_page_activity":
+        from scripts.deployment.learning_activity_schema_rehearsal import run
+
+        return run
+    if disclosed_migration == "learning.0002_contentdraft_is_archived":
+        from scripts.deployment.learning_schema_rehearsal import run
+
+        return run
     if disclosed_migration == "pages.0041_statement_issue_reports":
         from scripts.deployment.statement_reports_schema_rehearsal import run
 

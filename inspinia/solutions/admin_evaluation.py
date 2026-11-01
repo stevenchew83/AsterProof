@@ -3,8 +3,8 @@
 from django import forms
 from django.contrib import admin
 
-from inspinia.solutions.evaluation_models import EvaluationPackageApproval
-from inspinia.solutions.evaluation_models import ProblemEvaluationPackage
+from inspinia.solutions.problem_evaluation_models import EvaluationPackageApproval
+from inspinia.solutions.problem_evaluation_models import ProblemEvaluationPackage
 from inspinia.users.roles import user_has_admin_role
 
 

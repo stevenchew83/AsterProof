@@ -2,6 +2,68 @@
   "format_version": 1,
   "baseline_sha": null,
   "migrations": {
+    "pages.0045_prerequisitegraphstate_catalogueprerequisite": {
+      "classification": "backward-compatible-schema",
+      "recovery_required": false,
+      "code_rollback_permitted": true,
+      "data_preconditions": [
+        "exact_learning_bundle_and_postgresql_17_9_delta",
+        "new_learning_schema_tables_absent",
+        "historical_records_sequences_and_triggers_preserved",
+        "new_learning_tables_empty_and_notes_unpublished",
+        "verified_learning_reader_for_activation_and_recovery"
+      ],
+      "rationale": "Part of the exact additive Training 2.0 bundle: two prerequisite tables, thirteen shared-content tables, an archive flag on the newly created draft table, and five pathway/import/history tables. No backfill, source changes, grants, publication or announcements. The installed schema immediately establishes a durable learning-reader floor regardless of rows or feature flags. Code recovery is permitted only to an independently verified learning-aware reader; the ordinary previous reader is incompatible and must never be activated. The frozen PostgreSQL delta, preservation evidence and separate trusted allowance installation are required; this classification grants no production or content-publication authority."
+    },
+    "learning.0001_initial": {
+      "classification": "backward-compatible-schema",
+      "recovery_required": false,
+      "code_rollback_permitted": true,
+      "data_preconditions": [
+        "exact_learning_bundle_and_postgresql_17_9_delta",
+        "new_learning_schema_tables_absent",
+        "historical_records_sequences_and_triggers_preserved",
+        "new_learning_tables_empty_and_notes_unpublished",
+        "verified_learning_reader_for_activation_and_recovery"
+      ],
+      "rationale": "Part of the exact additive Training 2.0 bundle: two prerequisite tables, thirteen shared-content tables, an archive flag on the newly created draft table, and five pathway/import/history tables. No backfill, source changes, grants, publication or announcements. The installed schema immediately establishes a durable learning-reader floor regardless of rows or feature flags. Code recovery is permitted only to an independently verified learning-aware reader; the ordinary previous reader is incompatible and must never be activated. The frozen PostgreSQL delta, preservation evidence and separate trusted allowance installation are required; this classification grants no production or content-publication authority."
+    },
+    "learning.0002_contentdraft_is_archived": {
+      "classification": "backward-compatible-schema",
+      "recovery_required": false,
+      "code_rollback_permitted": true,
+      "data_preconditions": [
+        "exact_learning_bundle_and_postgresql_17_9_delta",
+        "new_learning_schema_tables_absent",
+        "historical_records_sequences_and_triggers_preserved",
+        "new_learning_tables_empty_and_notes_unpublished",
+        "verified_learning_reader_for_activation_and_recovery"
+      ],
+      "rationale": "Part of the exact additive Training 2.0 bundle: two prerequisite tables, thirteen shared-content tables, an archive flag on the newly created draft table, and five pathway/import/history tables. No backfill, source changes, grants, publication or announcements. The installed schema immediately establishes a durable learning-reader floor regardless of rows or feature flags. Code recovery is permitted only to an independently verified learning-aware reader; the ordinary previous reader is incompatible and must never be activated. The frozen PostgreSQL delta, preservation evidence and separate trusted allowance installation are required; this classification grants no production or content-publication authority."
+    },
+    "training.0006_learningpath_learningpathrevision_learningpathitem_and_more": {
+      "classification": "backward-compatible-schema",
+      "recovery_required": false,
+      "code_rollback_permitted": true,
+      "data_preconditions": [
+        "exact_learning_bundle_and_postgresql_17_9_delta",
+        "new_learning_schema_tables_absent",
+        "historical_records_sequences_and_triggers_preserved",
+        "new_learning_tables_empty_and_notes_unpublished",
+        "verified_learning_reader_for_activation_and_recovery"
+      ],
+      "rationale": "Part of the exact additive Training 2.0 bundle: two prerequisite tables, thirteen shared-content tables, an archive flag on the newly created draft table, and five pathway/import/history tables. No backfill, source changes, grants, publication or announcements. The installed schema immediately establishes a durable learning-reader floor regardless of rows or feature flags. Code recovery is permitted only to an independently verified learning-aware reader; the ordinary previous reader is incompatible and must never be activated. The frozen PostgreSQL delta, preservation evidence and separate trusted allowance installation are required; this classification grants no production or content-publication authority."
+    },
+    "pages.0044_learning_page_activity": {
+      "classification": "backward-compatible-schema",
+      "recovery_required": false,
+      "code_rollback_permitted": true,
+      "data_preconditions": [
+        "learning_activity_tables_absent",
+        "existing_accounts_learning_records_and_page_views_preserved"
+      ],
+      "rationale": "Creates only signed-in learning-visit and per-visit action-count tables with user/visit foreign keys, a visit/user date index, and a unique visit/action constraint. No backfill, existing-record changes, new roles, or permissions. Account deletion cascades through the new telemetry. Production application requires the normal separately reviewed frozen additive-schema allowance and preservation proof; this classification does not authorize installation or activation."
+    },
     "pages.0041_statement_issue_reports": {
       "classification": "backward-compatible-schema",
       "recovery_required": false,
@@ -191,6 +253,48 @@
         "existing_statement_and_catalogue_trigger_definitions_preserved"
       ],
       "rationale": "Creates the isolated similarity-source table, seeds its singleton revision, and installs an invoker-security trigger function on ContestProblemStatement. The trigger increments only the new revision when statement text or active status changes, or on insertion/deletion; existing source records are preserved. RunPython is data-class under the established protocol, requiring an exact frozen allowance, PostgreSQL rehearsal, trigger/function audits, verified recovery and separately authorized installed authority. Ordinary rollback is not permitted by this classification."
+    },
+    "solutions.0010_offline_evaluation_contract": {
+      "classification": "backward-compatible-schema",
+      "recovery_required": false,
+      "code_rollback_permitted": true,
+      "data_preconditions": [
+        "evaluation_tables_absent",
+        "document_compatible_baseline_already_applied",
+        "existing_content_and_database_objects_preserved",
+        "student_and_statement_ai_review_disabled",
+        "review_policy_disabled_and_unfunded",
+        "no_provider_or_worker_activation"
+      ],
+      "rationale": "Creates exactly 19 isolated evaluation/evidence tables with no backfill or changes to existing rows. Requires the separate hash-frozen PostgreSQL 17.9 delta, active-code compatibility proof and installed bounded authority. Existing document-aware code remains compatible; recovery retains evidence and accounting tables. No dataset/model readiness, activation, paid execution or production authority is granted by classification."
+    },
+    "solutions.0011_problem_evaluation_packages": {
+      "classification": "backward-compatible-schema",
+      "recovery_required": false,
+      "code_rollback_permitted": true,
+      "data_preconditions": [
+        "exact_four_table_prototype_bundle",
+        "existing_evaluation_schema_applied",
+        "existing_records_sequences_and_triggers_preserved",
+        "new_package_approval_report_and_hint_tables_empty",
+        "student_statement_ai_and_synthetic_prototype_disabled",
+        "no_provider_or_worker_activation"
+      ],
+      "rationale": "Creates only four isolated immutable reference-package, human-decision, synthetic-report and hint-reveal tables across two frozen migrations. No backfill, account permission grants, publication, policy funding or provider activation. Existing evaluation workspace models and migration 0010 remain unchanged. Requires the exact PostgreSQL 17.9 preservation proof and a separately installed trusted allowance; this classification grants no production authority."
+    },
+    "solutions.0012_synthetic_review_prototype": {
+      "classification": "backward-compatible-schema",
+      "recovery_required": false,
+      "code_rollback_permitted": true,
+      "data_preconditions": [
+        "exact_four_table_prototype_bundle",
+        "existing_evaluation_schema_applied",
+        "existing_records_sequences_and_triggers_preserved",
+        "new_package_approval_report_and_hint_tables_empty",
+        "student_statement_ai_and_synthetic_prototype_disabled",
+        "no_provider_or_worker_activation"
+      ],
+      "rationale": "Creates only four isolated immutable reference-package, human-decision, synthetic-report and hint-reveal tables across two frozen migrations. No backfill, account permission grants, publication, policy funding or provider activation. Existing evaluation workspace models and migration 0010 remain unchanged. Requires the exact PostgreSQL 17.9 preservation proof and a separately installed trusted allowance; this classification grants no production authority."
     }
   }
 }

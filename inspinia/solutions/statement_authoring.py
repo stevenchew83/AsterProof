@@ -1,5 +1,7 @@
 """Start authoring from the canonical statement identity, without manual linking."""
 
+from urllib.parse import urlencode
+
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.shortcuts import get_object_or_404
@@ -36,4 +38,6 @@ def statement_solution_start_view(request, statement_uuid):
         statement.linked_problem = problem
         statement.save(update_fields={"linked_problem", "updated_at"})
     editor_url = reverse("solutions:problem_solution_edit", args=[statement.problem_uuid])
+    if writer_token := request.POST.get("writer_draft_token"):
+        editor_url += "?" + urlencode({"from_writer": writer_token})
     return redirect(f"{editor_url}#solution-writing-area")

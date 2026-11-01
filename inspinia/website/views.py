@@ -18,6 +18,10 @@ from inspinia.solutions.examples import INEQUALITY_BLOCKS
 from inspinia.training.markdown import render_markdown
 
 from .forms import NewsletterForm
+from .learning import bridge_response
+from .learning import exclude_cutovers
+from .learning import note_entries
+from .learning import schema_ready
 from .models import LibraryArea
 from .models import LibraryConcept
 from .models import LibraryLecture
@@ -54,15 +58,29 @@ def _subject(slug):
 
 
 def _concepts():
-    return LibraryConcept.objects.filter(is_published=True, area__is_published=True).select_related("area")
+    return exclude_cutovers(
+        LibraryConcept.objects.filter(is_published=True, area__is_published=True).select_related("area"),
+    )
 
 
 def _lectures():
-    return LibraryLecture.objects.filter(
+    return exclude_cutovers(LibraryLecture.objects.filter(
         is_published=True,
         concept__is_published=True,
         concept__area__is_published=True,
-    ).select_related("concept", "concept__area")
+    ).select_related("concept", "concept__area"))
+
+
+def _public_pathways(*, subject=None, limit=12):
+    from inspinia.learning.permissions import module_enabled
+    from inspinia.training.pathways import published_pathways
+
+    if not module_enabled() or not schema_ready():
+        return []
+    paths = published_pathways(public=True)
+    if subject:
+        paths = paths.filter(subject_id=subject)
+    return list(paths.order_by("slug")[:limit])
 
 
 def _page(request, template, *, status=200, **context):
@@ -106,6 +124,7 @@ def home_view(request):
             "and convert LaTeX to PDF with AsterProof's free Solution Writer."
         ),
         has_math=True, lazy_math=True, **solution_preview_context(request),
+        note_entries=note_entries(limit=4), public_pathways=_public_pathways(limit=5),
     )
 
 
@@ -174,9 +193,9 @@ def terms_view(request):
 @require_GET
 def library_view(request):
     query = request.GET.get("q", "").strip()[:100]
-    concepts = _concepts().annotate(lecture_count=Count("lectures", filter=Q(lectures__is_published=True)))
+    concepts = _concepts().annotate(lecture_count=Count("lectures", filter=Q(lectures__in=_lectures())))
     lectures = _lectures()
-    areas = LibraryArea.objects.filter(is_published=True)
+    areas = exclude_cutovers(LibraryArea.objects.filter(is_published=True))
     if query:
         concepts = concepts.filter(Q(title__icontains=query) | Q(summary__icontains=query))
         lectures = lectures.filter(Q(title__icontains=query) | Q(summary__icontains=query))
@@ -195,6 +214,7 @@ def library_view(request):
         concepts=list(concepts[:12]),
         lectures=list(lectures[:12]) if query else [],
         areas=list(areas[:12]),
+        note_entries=note_entries(query=query), public_pathways=_public_pathways(),
     )
 
 
@@ -203,9 +223,11 @@ def library_subject_view(request, subject):
     subject_row = _subject(subject)
     if subject_row is None:
         raise Http404
-    areas = LibraryArea.objects.filter(is_published=True, subject=subject).annotate(
-        concept_count=Count("concepts", filter=Q(concepts__is_published=True)),
+    areas = exclude_cutovers(LibraryArea.objects.filter(is_published=True, subject=subject)).annotate(
+        concept_count=Count("concepts", filter=Q(concepts__in=_concepts())),
     )
+    notes = note_entries(subject=subject)
+    paths = _public_pathways(subject=subject)
     return _page(
         request,
         "library_subject",
@@ -214,22 +236,28 @@ def library_subject_view(request, subject):
         page_description=(
             f"{subject_row['description']} Explore olympiad {subject_row['title'].lower()} on AsterProof."
         ),
-        indexing_rule="" if areas.exists() else "noindex,follow",
+        indexing_rule="" if areas.exists() or notes or paths else "noindex,follow",
         active_nav="library",
         subject=subject_row,
         areas=areas,
+        note_entries=notes, public_pathways=paths,
         breadcrumbs=[("Library", reverse("website:library"))],
     )
 
 
 @require_GET
 def library_area_view(request, subject, area_slug):
-    area = get_object_or_404(LibraryArea, subject=subject, slug=area_slug, is_published=True)
+    area = get_object_or_404(LibraryArea, subject=subject, slug=area_slug)
+    bridged = bridge_response(request, area)
+    if bridged is not None:
+        return bridged
+    if not area.is_published:
+        raise Http404
     concepts = (
         _concepts()
         .filter(area=area)
         .annotate(
-            lecture_count=Count("lectures", filter=Q(lectures__is_published=True)),
+            lecture_count=Count("lectures", filter=Q(lectures__in=_lectures())),
         )
     )
     return _page(
@@ -256,8 +284,16 @@ def library_area_view(request, subject, area_slug):
 
 @require_GET
 def library_concept_view(request, subject, area_slug, concept_slug):
-    concept = get_object_or_404(_concepts(), area__subject=subject, area__slug=area_slug, slug=concept_slug)
-    prerequisites = concept.prerequisites.filter(is_published=True, area__is_published=True).exclude(pk=concept.pk)
+    concept = get_object_or_404(
+        LibraryConcept.objects.select_related("area"),
+        area__subject=subject, area__slug=area_slug, slug=concept_slug,
+    )
+    bridged = bridge_response(request, concept)
+    if bridged is not None:
+        return bridged
+    if not concept.is_published or not concept.area.is_published:
+        raise Http404
+    prerequisites = _concepts().filter(pk__in=concept.prerequisites.values("pk")).exclude(pk=concept.pk)
     return _page(
         request,
         "library_concept",
@@ -275,12 +311,17 @@ def library_concept_view(request, subject, area_slug, concept_slug):
 @require_GET
 def library_lecture_view(request, subject, area_slug, concept_slug, lecture_slug):
     lecture = get_object_or_404(
-        _lectures(),
+        LibraryLecture.objects.select_related("concept__area"),
         concept__area__subject=subject,
         concept__area__slug=area_slug,
         concept__slug=concept_slug,
         slug=lecture_slug,
     )
+    bridged = bridge_response(request, lecture)
+    if bridged is not None:
+        return bridged
+    if not lecture.is_published or not lecture.concept.is_published or not lecture.concept.area.is_published:
+        raise Http404
     return _page(
         request,
         "library_lecture",

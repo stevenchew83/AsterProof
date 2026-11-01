@@ -17,7 +17,7 @@ from inspinia.solutions.evaluation_contracts import canonical_digest
 from inspinia.solutions.evaluation_contracts import load_json_file
 from inspinia.solutions.evaluation_contracts import require
 from inspinia.solutions.evaluation_harness import validate_dataset
-from inspinia.solutions.evaluation_models import require_curator
+from inspinia.solutions.problem_evaluation_models import require_curator
 
 DATA = Path(__file__).with_name("testdata")
 

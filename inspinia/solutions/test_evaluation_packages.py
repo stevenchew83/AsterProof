@@ -15,8 +15,8 @@ from django.db.models.deletion import ProtectedError
 from django.urls import reverse
 
 from inspinia.pages.models import ProblemSolveRecord
-from inspinia.solutions.evaluation_models import EvaluationPackageApproval
-from inspinia.solutions.evaluation_models import ProblemEvaluationPackage
+from inspinia.solutions.problem_evaluation_models import EvaluationPackageApproval
+from inspinia.solutions.problem_evaluation_models import ProblemEvaluationPackage
 from inspinia.users.tests.factories import UserFactory
 
 pytestmark = pytest.mark.django_db

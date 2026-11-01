@@ -1,0 +1,585 @@
+{
+  "columns": [
+    {
+      "collation": "default",
+      "column": "case_id",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "solutions_syntheticreview",
+      "type": "character varying(120)"
+    },
+    {
+      "collation": "default",
+      "column": "content_digest",
+      "default": null,
+      "nullable": false,
+      "position": 11,
+      "schema": "public",
+      "table": "solutions_syntheticreview",
+      "type": "character varying(64)"
+    },
+    {
+      "collation": "default",
+      "column": "content_digest",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "solutions_problemevaluationpackage",
+      "type": "character varying(64)"
+    },
+    {
+      "collation": "default",
+      "column": "decision",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "solutions_evaluationpackageapproval",
+      "type": "character varying(16)"
+    },
+    {
+      "collation": "default",
+      "column": "finding_id",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "solutions_synthetichintreveal",
+      "type": "character varying(120)"
+    },
+    {
+      "collation": "default",
+      "column": "mode",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "solutions_syntheticreview",
+      "type": "character varying(16)"
+    },
+    {
+      "collation": "default",
+      "column": "notes",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "solutions_evaluationpackageapproval",
+      "type": "text"
+    },
+    {
+      "collation": "default",
+      "column": "package_digest",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "solutions_evaluationpackageapproval",
+      "type": "character varying(64)"
+    },
+    {
+      "collation": null,
+      "column": "assessment",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "solutions_syntheticreview",
+      "type": "jsonb"
+    },
+    {
+      "collation": null,
+      "column": "content",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "solutions_problemevaluationpackage",
+      "type": "jsonb"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 12,
+      "schema": "public",
+      "table": "solutions_syntheticreview",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "solutions_synthetichintreveal",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "solutions_evaluationpackageapproval",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "solutions_problemevaluationpackage",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "created_by_id",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "solutions_problemevaluationpackage",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "solutions_evaluationpackageapproval",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "solutions_problemevaluationpackage",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "solutions_synthetichintreveal",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "solutions_syntheticreview",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "idempotency_key",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "solutions_syntheticreview",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "level",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "solutions_synthetichintreveal",
+      "type": "smallint"
+    },
+    {
+      "collation": null,
+      "column": "mode_feedback",
+      "default": null,
+      "nullable": false,
+      "position": 7,
+      "schema": "public",
+      "table": "solutions_syntheticreview",
+      "type": "jsonb"
+    },
+    {
+      "collation": null,
+      "column": "package_id",
+      "default": null,
+      "nullable": false,
+      "position": 7,
+      "schema": "public",
+      "table": "solutions_evaluationpackageapproval",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "packet",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "solutions_syntheticreview",
+      "type": "jsonb"
+    },
+    {
+      "collation": null,
+      "column": "private_hints",
+      "default": null,
+      "nullable": false,
+      "position": 9,
+      "schema": "public",
+      "table": "solutions_syntheticreview",
+      "type": "jsonb"
+    },
+    {
+      "collation": null,
+      "column": "problem_id",
+      "default": null,
+      "nullable": false,
+      "position": 7,
+      "schema": "public",
+      "table": "solutions_problemevaluationpackage",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "prompt_manifest",
+      "default": null,
+      "nullable": false,
+      "position": 10,
+      "schema": "public",
+      "table": "solutions_syntheticreview",
+      "type": "jsonb"
+    },
+    {
+      "collation": null,
+      "column": "report",
+      "default": null,
+      "nullable": false,
+      "position": 8,
+      "schema": "public",
+      "table": "solutions_syntheticreview",
+      "type": "jsonb"
+    },
+    {
+      "collation": null,
+      "column": "requested_by_id",
+      "default": null,
+      "nullable": false,
+      "position": 13,
+      "schema": "public",
+      "table": "solutions_syntheticreview",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "review_id",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "solutions_synthetichintreveal",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "reviewer_id",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "solutions_synthetichintreveal",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "reviewer_id",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "solutions_evaluationpackageapproval",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "version",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "solutions_problemevaluationpackage",
+      "type": "integer"
+    }
+  ],
+  "constraints": [
+    {
+      "definition": "CHECK (decision::text = ANY (ARRAY['approved'::character varying, 'rejected'::character varying, 'revoked'::character varying]::text[]))",
+      "name": "evaluation_package_valid_decision",
+      "schema": "public",
+      "table": "solutions_evaluationpackageapproval",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (level = ANY (ARRAY[1, 2]))",
+      "name": "synthetic_hint_valid_level",
+      "schema": "public",
+      "table": "solutions_synthetichintreveal",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (level >= 0)",
+      "name": "solutions_synthetichintreveal_level_check",
+      "schema": "public",
+      "table": "solutions_synthetichintreveal",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (mode::text = ANY (ARRAY['coach'::character varying, 'provisional'::character varying, 'examiner'::character varying]::text[]))",
+      "name": "synthetic_review_valid_mode",
+      "schema": "public",
+      "table": "solutions_syntheticreview",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (version >= 0)",
+      "name": "solutions_problemevaluationpackage_version_check",
+      "schema": "public",
+      "table": "solutions_problemevaluationpackage",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (version >= 1)",
+      "name": "evaluation_package_positive_version",
+      "schema": "public",
+      "table": "solutions_problemevaluationpackage",
+      "type": "c"
+    },
+    {
+      "definition": "FOREIGN KEY (created_by_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_problemeva_created_by_id_7f0c8b5f_fk_users_use",
+      "schema": "public",
+      "table": "solutions_problemevaluationpackage",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (package_id) REFERENCES solutions_problemevaluationpackage(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_evaluation_package_id_89c9b9e7_fk_solutions",
+      "schema": "public",
+      "table": "solutions_evaluationpackageapproval",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (problem_id) REFERENCES pages_problemsolverecord(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_problemeva_problem_id_905aff23_fk_pages_pro",
+      "schema": "public",
+      "table": "solutions_problemevaluationpackage",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (requested_by_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_syntheticr_requested_by_id_4bbc7772_fk_users_use",
+      "schema": "public",
+      "table": "solutions_syntheticreview",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (review_id) REFERENCES solutions_syntheticreview(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_synthetich_review_id_666b571d_fk_solutions",
+      "schema": "public",
+      "table": "solutions_synthetichintreveal",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (reviewer_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_evaluation_reviewer_id_ceca7521_fk_users_use",
+      "schema": "public",
+      "table": "solutions_evaluationpackageapproval",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (reviewer_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_synthetich_reviewer_id_85b3537a_fk_users_use",
+      "schema": "public",
+      "table": "solutions_synthetichintreveal",
+      "type": "f"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "solutions_evaluationpackageapproval_pkey",
+      "schema": "public",
+      "table": "solutions_evaluationpackageapproval",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "solutions_problemevaluationpackage_pkey",
+      "schema": "public",
+      "table": "solutions_problemevaluationpackage",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "solutions_synthetichintreveal_pkey",
+      "schema": "public",
+      "table": "solutions_synthetichintreveal",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "solutions_syntheticreview_pkey",
+      "schema": "public",
+      "table": "solutions_syntheticreview",
+      "type": "p"
+    },
+    {
+      "definition": "UNIQUE (problem_id, version)",
+      "name": "evaluation_package_problem_version",
+      "schema": "public",
+      "table": "solutions_problemevaluationpackage",
+      "type": "u"
+    },
+    {
+      "definition": "UNIQUE (requested_by_id, idempotency_key)",
+      "name": "synthetic_review_idempotency",
+      "schema": "public",
+      "table": "solutions_syntheticreview",
+      "type": "u"
+    },
+    {
+      "definition": "UNIQUE (review_id, reviewer_id, finding_id, level)",
+      "name": "synthetic_hint_reveal_once",
+      "schema": "public",
+      "table": "solutions_synthetichintreveal",
+      "type": "u"
+    }
+  ],
+  "extensions": [],
+  "indexes": [
+    {
+      "definition": "CREATE INDEX solutions_evaluationpackageapproval_package_id_89c9b9e7 ON public.solutions_evaluationpackageapproval USING btree (package_id)",
+      "name": "solutions_evaluationpackageapproval_package_id_89c9b9e7",
+      "schema": "public",
+      "table": "solutions_evaluationpackageapproval"
+    },
+    {
+      "definition": "CREATE INDEX solutions_evaluationpackageapproval_reviewer_id_ceca7521 ON public.solutions_evaluationpackageapproval USING btree (reviewer_id)",
+      "name": "solutions_evaluationpackageapproval_reviewer_id_ceca7521",
+      "schema": "public",
+      "table": "solutions_evaluationpackageapproval"
+    },
+    {
+      "definition": "CREATE INDEX solutions_problemevaluationpackage_created_by_id_7f0c8b5f ON public.solutions_problemevaluationpackage USING btree (created_by_id)",
+      "name": "solutions_problemevaluationpackage_created_by_id_7f0c8b5f",
+      "schema": "public",
+      "table": "solutions_problemevaluationpackage"
+    },
+    {
+      "definition": "CREATE INDEX solutions_problemevaluationpackage_problem_id_905aff23 ON public.solutions_problemevaluationpackage USING btree (problem_id)",
+      "name": "solutions_problemevaluationpackage_problem_id_905aff23",
+      "schema": "public",
+      "table": "solutions_problemevaluationpackage"
+    },
+    {
+      "definition": "CREATE INDEX solutions_synthetichintreveal_review_id_666b571d ON public.solutions_synthetichintreveal USING btree (review_id)",
+      "name": "solutions_synthetichintreveal_review_id_666b571d",
+      "schema": "public",
+      "table": "solutions_synthetichintreveal"
+    },
+    {
+      "definition": "CREATE INDEX solutions_synthetichintreveal_reviewer_id_85b3537a ON public.solutions_synthetichintreveal USING btree (reviewer_id)",
+      "name": "solutions_synthetichintreveal_reviewer_id_85b3537a",
+      "schema": "public",
+      "table": "solutions_synthetichintreveal"
+    },
+    {
+      "definition": "CREATE INDEX solutions_syntheticreview_requested_by_id_4bbc7772 ON public.solutions_syntheticreview USING btree (requested_by_id)",
+      "name": "solutions_syntheticreview_requested_by_id_4bbc7772",
+      "schema": "public",
+      "table": "solutions_syntheticreview"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX evaluation_package_problem_version ON public.solutions_problemevaluationpackage USING btree (problem_id, version)",
+      "name": "evaluation_package_problem_version",
+      "schema": "public",
+      "table": "solutions_problemevaluationpackage"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX solutions_evaluationpackageapproval_pkey ON public.solutions_evaluationpackageapproval USING btree (id)",
+      "name": "solutions_evaluationpackageapproval_pkey",
+      "schema": "public",
+      "table": "solutions_evaluationpackageapproval"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX solutions_problemevaluationpackage_pkey ON public.solutions_problemevaluationpackage USING btree (id)",
+      "name": "solutions_problemevaluationpackage_pkey",
+      "schema": "public",
+      "table": "solutions_problemevaluationpackage"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX solutions_synthetichintreveal_pkey ON public.solutions_synthetichintreveal USING btree (id)",
+      "name": "solutions_synthetichintreveal_pkey",
+      "schema": "public",
+      "table": "solutions_synthetichintreveal"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX solutions_syntheticreview_pkey ON public.solutions_syntheticreview USING btree (id)",
+      "name": "solutions_syntheticreview_pkey",
+      "schema": "public",
+      "table": "solutions_syntheticreview"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX synthetic_hint_reveal_once ON public.solutions_synthetichintreveal USING btree (review_id, reviewer_id, finding_id, level)",
+      "name": "synthetic_hint_reveal_once",
+      "schema": "public",
+      "table": "solutions_synthetichintreveal"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX synthetic_review_idempotency ON public.solutions_syntheticreview USING btree (requested_by_id, idempotency_key)",
+      "name": "synthetic_review_idempotency",
+      "schema": "public",
+      "table": "solutions_syntheticreview"
+    }
+  ],
+  "tables": [
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "solutions_evaluationpackageapproval"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "solutions_problemevaluationpackage"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "solutions_synthetichintreveal"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "solutions_syntheticreview"
+    }
+  ]
+}

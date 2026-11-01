@@ -33,6 +33,8 @@ from inspinia.pages.community_models import StatementSimilarityTerm  # noqa: F40
 from inspinia.pages.contest_names import PROJECT_CONTEST_NAME_MAX_LENGTH
 from inspinia.pages.contest_names import normalize_contest_name
 from inspinia.pages.contest_names import normalize_text_list
+from inspinia.pages.prerequisite_models import CataloguePrerequisite  # noqa: F401
+from inspinia.pages.prerequisite_models import PrerequisiteGraphState  # noqa: F401
 from inspinia.pages.topic_tags_parse import clean_token
 from inspinia.pages.topic_tags_parse import domains_dedup_preserve_order
 from inspinia.pages.topic_tags_parse import normalize_topic_tag
@@ -448,6 +450,36 @@ class PageViewEvent(models.Model):
     def __str__(self) -> str:
         label = self.label or self.path or self.object_uuid or "page"
         return f"{self.get_view_type_display()}: {label}"
+
+
+class LearningPageVisit(models.Model):
+    visit_uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="learning_page_visits")
+    page_name = models.CharField(max_length=100)
+    path = models.CharField(max_length=255)
+    started_at = models.DateTimeField(default=timezone.now, db_index=True)
+    updated_at = models.DateTimeField(default=timezone.now)
+    visible_ms = models.PositiveIntegerField(default=0)
+    sequence = models.PositiveIntegerField(default=0)
+    click_total = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        indexes = [models.Index(fields=["user", "-started_at"], name="learning_visit_user_date_idx")]
+
+    def __str__(self):
+        return f"{self.page_name}: {self.visit_uuid}"
+
+
+class LearningPageAction(models.Model):
+    visit = models.ForeignKey(LearningPageVisit, on_delete=models.CASCADE, related_name="actions")
+    action = models.CharField(max_length=64)
+    count = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["visit", "action"], name="learning_visit_action_unique")]
+
+    def __str__(self):
+        return f"{self.action}: {self.count}"
 
 
 class UserProblemCompletion(models.Model):

@@ -8,7 +8,7 @@ from django.db import models
 
 from inspinia.solutions.assessment_contracts import MODES
 from inspinia.solutions.evaluation_contracts import EvaluationDataError
-from inspinia.solutions.evaluation_models import AppendOnlyRecord
+from inspinia.solutions.problem_evaluation_models import AppendOnlyRecord
 
 
 class SyntheticReview(AppendOnlyRecord):

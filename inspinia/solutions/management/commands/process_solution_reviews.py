@@ -6,6 +6,7 @@ import signal
 from django.core.management.base import BaseCommand
 from django.core.management.base import CommandError
 
+from inspinia.solutions.evaluation import EvaluationError
 from inspinia.solutions.review_provider import ProviderError
 from inspinia.solutions.reviews import ReviewError
 from inspinia.solutions.reviews import process_next_review
@@ -17,7 +18,7 @@ def _timeout(_signum, _frame):
 
 
 class Command(BaseCommand):
-    help = "Process at most one AI review. An activated worker can make a paid OpenAI request."
+    help = "Provider execution is refused by the offline release. No paid request can be dispatched."
 
     def handle(self, *args, **options):
         previous = signal.signal(signal.SIGALRM, _timeout)
@@ -25,7 +26,7 @@ class Command(BaseCommand):
         try:
             try:
                 result = process_next_review()
-            except ReviewError as error:
+            except (ReviewError, EvaluationError) as error:
                 raise CommandError(str(error)) from error
             self.stdout.write(json.dumps(result))
         finally:

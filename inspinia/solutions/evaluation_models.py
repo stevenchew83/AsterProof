@@ -1,170 +1,227 @@
-"""Append-only reference packages and separately attributed human decisions."""
+"""Versioned offline evidence. Content records are immutable; eligibility is separate."""
 
+# ruff: noqa: DJ008, EM101, TRY003
 import uuid
 
 from django.conf import settings
-from django.contrib.auth import get_user_model
-from django.core.exceptions import PermissionDenied
 from django.core.exceptions import ValidationError
 from django.db import models
 
-from inspinia.pages.models import ProblemSolveRecord
-from inspinia.solutions.evaluation_contracts import EvaluationDataError
-from inspinia.solutions.evaluation_contracts import package_digest
-from inspinia.solutions.evaluation_contracts import text
-from inspinia.users.roles import user_has_admin_role
 
-
-def require_curator(user_id, permission):
-    # Reload authority rather than trusting caller-supplied role flags or cached permissions.
-    user = get_user_model().objects.filter(pk=user_id, is_active=True).first()
-    if not user_has_admin_role(user) or not user.has_perm(f"solutions.{permission}"):
-        raise PermissionDenied
-
-
-class AppendOnlyQuerySet(models.QuerySet):
+class ImmutableQuerySet(models.QuerySet):
     def update(self, **kwargs):
-        message = "Evaluation history is append-only. Create a new version or decision."
-        raise ValidationError(message)
+        raise ValidationError("Evidence is immutable; append a new record.")
 
     def delete(self):
-        message = "Evaluation history cannot be deleted through the application."
-        raise ValidationError(message)
+        raise ValidationError("Use the explicit content-withdrawal service.")
 
     def bulk_update(self, objs, fields, batch_size=None):
-        return self.update()
+        raise ValidationError("Evidence is immutable; append a new record.")
 
     def bulk_create(self, objs, **kwargs):
-        message = "Create evaluation records individually so validation and attribution cannot be skipped."
-        raise ValidationError(message)
+        if kwargs.get("update_conflicts"):
+            raise ValidationError("Evidence cannot be replaced.")
+        return super().bulk_create(objs, **kwargs)
 
 
-class AppendOnlyRecord(models.Model):
-    objects = AppendOnlyQuerySet.as_manager()
+class EvidenceRecord(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    objects = ImmutableQuerySet.as_manager()
 
     class Meta:
         abstract = True
-        base_manager_name = "objects"
 
     def save(self, *args, **kwargs):
-        if not self._state.adding or kwargs.get("force_update"):
-            message = "Evaluation history is append-only. Create a new version or decision."
-            raise ValidationError(message)
-        # Derive internal digest fields before Django validates required fields.
-        self.clean()
-        self.full_clean()
+        if not self._state.adding:
+            raise ValidationError("Evidence is immutable; append a new record.")
         kwargs["force_insert"] = True
         return super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
-        return self.__class__.objects.none().delete()
+        raise ValidationError("Use the explicit content-withdrawal service.")
 
 
-class ProblemEvaluationPackage(AppendOnlyRecord):
+class EvaluationAssignment(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    problem = models.ForeignKey(
-        "pages.ProblemSolveRecord",
-        on_delete=models.PROTECT,
-        related_name="evaluation_packages",
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="evaluation_assignments",
     )
-    version = models.PositiveIntegerField()
-    content = models.JSONField(help_text="Frozen statement, references, image hashes, and optional marking rubric.")
-    content_digest = models.CharField(max_length=64, editable=False)
-    created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.PROTECT,
-        related_name="evaluation_packages",
-    )
+    appointed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="+")
+    role = models.CharField(max_length=24)
+    scope_id = models.UUIDField(db_index=True)
+    expertise = models.TextField(blank=True)
+    active = models.BooleanField(default=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
-    class Meta(AppendOnlyRecord.Meta):
-        ordering = ["problem_id", "version"]
+    class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["problem", "version"], name="evaluation_package_problem_version"),
-            models.CheckConstraint(condition=models.Q(version__gte=1), name="evaluation_package_positive_version"),
+            models.UniqueConstraint(fields=["actor", "role", "scope_id"], name="evaluation_assignment_unique"),
         ]
 
-    def clean(self):
-        super().clean()
-        require_curator(self.created_by_id, "add_problemevaluationpackage")
-        if self.problem_id:
-            try:
-                self.content_digest = self.expected_digest()
-            except EvaluationDataError as error:
-                raise ValidationError({"content": str(error)}) from error
 
-    def expected_digest(self):
-        # Do not bind history to an unsaved change on a caller's related object.
-        try:
-            problem_uuid = ProblemSolveRecord.objects.values_list("problem_uuid", flat=True).get(pk=self.problem_id)
-        except ProblemSolveRecord.DoesNotExist as error:
-            message = "Choose an existing problem for the evaluation package."
-            raise ValidationError({"problem": message}) from error
-        return package_digest(str(problem_uuid), self.version, self.content)
-
-    def check_integrity(self):
-        expected = self.expected_digest()
-        if self.content_digest != expected:
-            message = "The stored evaluation package no longer matches its frozen digest."
-            raise ValidationError(message)
-
-    @property
-    def approval_status(self):
-        if self._state.adding:
-            return "pending"
-        self.check_integrity()
-        decision = self.approvals.order_by("-pk").first()
-        if decision is None:
-            return "pending"
-        if decision.package_digest != self.content_digest:
-            message = "The human decision does not match this package."
-            raise ValidationError(message)
-        return decision.decision
-
-    def __str__(self):
-        return f"Problem {self.problem_id}, evaluation package v{self.version}"
+class EvaluationLifecycle(models.Model):
+    target_id = models.UUIDField(primary_key=True)
+    generation = models.PositiveIntegerField(default=1)
+    eligible = models.BooleanField(default=True)
+    reason = models.CharField(max_length=64, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
 
-class EvaluationPackageApproval(AppendOnlyRecord):
-    class Decision(models.TextChoices):
-        APPROVED = "approved", "Approved"
-        REJECTED = "rejected", "Rejected"
-        REVOKED = "revoked", "Revoked"
+class EvaluationAuditEvent(EvidenceRecord):
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="+")
+    target_id = models.UUIDField(db_index=True)
+    kind = models.CharField(max_length=48, db_index=True)
+    metadata = models.JSONField(default=dict)
 
-    package = models.ForeignKey(ProblemEvaluationPackage, on_delete=models.PROTECT, related_name="approvals")
-    package_digest = models.CharField(max_length=64, editable=False)
-    reviewer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="package_approvals")
-    decision = models.CharField(max_length=16, choices=Decision.choices)
-    notes = models.TextField(help_text="Human mathematical review and reasons for this decision.")
+
+class ReviewInputBundle(EvidenceRecord):
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="+")
+    problem_uuid = models.UUIDField(null=True, blank=True)
+    payload = models.JSONField(default=dict)
+    digest = models.CharField(max_length=64, db_index=True)
+
+
+class ReviewBundleAsset(EvidenceRecord):
+    bundle = models.ForeignKey(ReviewInputBundle, on_delete=models.CASCADE, related_name="assets")
+    original = models.BinaryField()
+    normalized = models.BinaryField()
+    manifest = models.JSONField(default=dict)
+
+
+class ReviewerProfile(EvidenceRecord):
+    payload = models.JSONField(default=dict)
+    digest = models.CharField(max_length=64, unique=True)
+
+
+class EvaluationProblemFamily(EvidenceRecord):
+    title = models.CharField(max_length=200)
+    domain = models.CharField(max_length=3)
+    metadata = models.JSONField(default=dict)
+    prepared_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="+")
+
+
+class EvaluationCase(EvidenceRecord):
+    family = models.ForeignKey(EvaluationProblemFamily, on_delete=models.PROTECT, related_name="cases")
+    bundle = models.OneToOneField(ReviewInputBundle, on_delete=models.PROTECT, related_name="evaluation_case")
+    prepared_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="+")
+    provenance = models.JSONField(default=dict)
+    metadata = models.JSONField(default=dict)
+    supersedes = models.ForeignKey("self", on_delete=models.PROTECT, null=True, blank=True)
+
+
+class CoachJudgment(EvidenceRecord):
+    case = models.ForeignKey(EvaluationCase, on_delete=models.PROTECT, related_name="judgments")
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="+")
+    kind = models.CharField(max_length=16, default="independent")
+    payload = models.JSONField(default=dict)
+    input_digest = models.CharField(max_length=64)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["case", "actor", "kind"], name="evaluation_judgment_unique")]
+
+
+class EvaluationDatasetSnapshot(EvidenceRecord):
+    name = models.CharField(max_length=200)
+    manifest = models.JSONField(default=dict)
+    digest = models.CharField(max_length=64, unique=True)
+    prepared_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="+")
+
+
+class EvaluationRun(EvidenceRecord):
+    snapshot = models.ForeignKey(EvaluationDatasetSnapshot, on_delete=models.PROTECT, related_name="runs")
+    profile = models.ForeignKey(ReviewerProfile, on_delete=models.PROTECT)
+    origin = models.CharField(max_length=32)
+    protocol = models.JSONField(default=dict)
+    reports = models.JSONField(default=dict)
+    digest = models.CharField(max_length=64)
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="+")
+
+
+class EvaluationFindingJudgment(EvidenceRecord):
+    run = models.ForeignKey(EvaluationRun, on_delete=models.PROTECT, related_name="finding_judgments")
+    case = models.ForeignKey(EvaluationCase, on_delete=models.PROTECT)
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="+")
+    payload = models.JSONField(default=dict)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["run", "case", "actor"], name="evaluation_finding_judgment_unique"),
+        ]
+
+
+class ReviewExecutionAttempt(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    review = models.OneToOneField(
+        "solutions.SolutionReview", on_delete=models.SET_NULL, null=True, related_name="execution",
+    )
+    run = models.ForeignKey(EvaluationRun, on_delete=models.PROTECT, null=True)
+    bundle = models.ForeignKey(ReviewInputBundle, on_delete=models.SET_NULL, null=True)
+    profile = models.ForeignKey(ReviewerProfile, on_delete=models.PROTECT)
+    subject_id = models.UUIDField()
+    origin = models.CharField(max_length=32, default="deterministic_fixture")
+    status = models.CharField(max_length=24, default="queued")
+    receipt = models.JSONField(default=dict)
     created_at = models.DateTimeField(auto_now_add=True)
 
-    class Meta(AppendOnlyRecord.Meta):
-        ordering = ["pk"]
+
+class ReviewSpendEvent(EvidenceRecord):
+    attempt = models.ForeignKey(ReviewExecutionAttempt, on_delete=models.PROTECT, related_name="spend_events")
+    kind = models.CharField(max_length=16)
+    amount_micros = models.PositiveBigIntegerField()
+    currency = models.CharField(max_length=3, default="USD")
+    idempotency_key = models.CharField(max_length=100)
+    metadata = models.JSONField(default=dict)
+
+    class Meta:
         constraints = [
-            models.CheckConstraint(
-                condition=models.Q(decision__in=["approved", "rejected", "revoked"]),
-                name="evaluation_package_valid_decision",
+            models.UniqueConstraint(fields=["attempt", "idempotency_key"], name="evaluation_spend_idempotent"),
+        ]
+
+
+class HintRevealEvent(EvidenceRecord):
+    review = models.ForeignKey("solutions.SolutionReview", on_delete=models.CASCADE, related_name="hint_releases")
+    finding_id = models.CharField(max_length=64)
+    content_digest = models.CharField(max_length=64)
+    level = models.PositiveSmallIntegerField()
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="+")
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["review", "finding_id", "content_digest", "level"], name="evaluation_hint_unique",
             ),
         ]
 
-    def clean(self):
-        super().clean()
-        require_curator(self.reviewer_id, "add_evaluationpackageapproval")
-        if not text(self.notes):
-            message = "Record the human review and reasons for the decision."
-            raise ValidationError({"notes": message})
-        if self.package_id:
-            # Fetch persisted content, not a potentially modified related object.
-            try:
-                package = ProblemEvaluationPackage.objects.get(pk=self.package_id)
-            except ProblemEvaluationPackage.DoesNotExist as error:
-                message = "Choose an existing evaluation package."
-                raise ValidationError({"package": message}) from error
-            package.check_integrity()
-            if self.decision == self.Decision.APPROVED and not package.content["references"]:
-                message = "Approval requires at least one reviewed reference solution."
-                raise ValidationError({"package": message})
-            self.package_digest = package.content_digest
 
-    def __str__(self):
-        return f"Package {self.package_id}: {self.decision}"
+class AssistancePolicy(EvidenceRecord):
+    problem_uuid = models.UUIDField(db_index=True, null=True)
+    actor_id_scope = models.PositiveBigIntegerField(null=True)
+    mode = models.CharField(max_length=24)
+    starts_at = models.DateTimeField()
+    ends_at = models.DateTimeField()
+    reason = models.CharField(max_length=200)
+    appointed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="+")
+
+
+class ReviewConsent(EvidenceRecord):
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="+")
+    purpose = models.CharField(max_length=24)
+    payload = models.JSONField(default=dict)
+    expires_at = models.DateTimeField()
+
+
+class ReadinessEvidence(EvidenceRecord):
+    gate = models.CharField(max_length=1)
+    target_id = models.UUIDField()
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="+")
+    payload = models.JSONField(default=dict)
+    decision = models.CharField(max_length=24)
+
+
+class ActivationAuthorization(EvidenceRecord):
+    activity = models.CharField(max_length=24)
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="+")
+    payload = models.JSONField(default=dict)
+    expires_at = models.DateTimeField()

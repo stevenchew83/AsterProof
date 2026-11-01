@@ -30,6 +30,10 @@ Public compilation keeps its existing restricted command/file/time/resource gate
 
 ## AI coach
 
+The following describes the legacy provider design and future activation prerequisites.
+The offline evaluation release hard-blocks real-provider execution independently of
+flags or funded policies; see the current offline architecture section below.
+
 Review is an explicit owner action. Unsaved writing is saved first, then a
 revision-bound request enters a database queue. The worker calls the OpenAI
 Responses API with structured output, no tools, `store=false`, and automatic SDK
@@ -80,3 +84,13 @@ reader-compatible schema/release floor must be established before enabling write
 Follow the document-schema deployment runbook; do not install deployment authority,
 change production configuration, or start a production worker as a side effect of
 running local checks. Do not roll back to a block-only writer after the schema floor.
+
+## Offline evaluation architecture v2
+
+The offline workspace and stricter evidence contract are described in
+[AI solution checking architecture](ai-solution-checking-architecture.md).
+Provider execution is hard-disabled in this release, independently of the student
+flag and funded policy. The old scorer stays compatible but explicitly reports
+non-authoritative model readiness. New hints require authenticated per-finding
+release actions; status query parameters cannot reveal them. No production worker,
+model experiment or activation is part of this implementation.

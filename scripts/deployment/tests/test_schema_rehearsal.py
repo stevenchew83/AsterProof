@@ -1,5 +1,6 @@
 # ruff: noqa: S603
 """CI rehearsal must override the application's deliberately SQLite-only test settings."""
+
 from __future__ import annotations
 
 import json
@@ -15,6 +16,45 @@ from scripts.deployment.schema_rehearsal import REHEARSAL_DATABASE
 from scripts.deployment.schema_rehearsal import REHEARSAL_URL
 from scripts.deployment.schema_rehearsal import configure_rehearsal_database
 from scripts.deployment.schema_rehearsal import smoke_command
+
+
+def test_learning_bundle_uses_its_own_rehearsal_with_shared_arguments(monkeypatch, tmp_path):
+    from scripts.deployment import learning_schema
+    from scripts.deployment import learning_schema_rehearsal
+    from scripts.deployment import schema_rehearsal
+
+    seen = []
+    args = SimpleNamespace(
+        active_source=tmp_path, active_sha="a" * 40, release_sha="b" * 40, output=tmp_path / "evidence.json",
+    )
+    monkeypatch.setattr(schema_rehearsal, "_arguments", lambda: args)
+    monkeypatch.setenv("SCHEMA_DISCLOSURE", json.dumps({"migration": learning_schema.MIGRATION}))
+    monkeypatch.setattr(learning_schema_rehearsal, "run", lambda value: seen.append(value) or 0)
+    monkeypatch.setattr(
+        schema_rehearsal, "configure_rehearsal_database", lambda settings: pytest.fail("Generic fallback"),
+    )
+    assert schema_rehearsal.main() == 0
+    assert seen == [args]
+
+
+@pytest.mark.parametrize(
+    ("migration", "module"),
+    [
+        ("pages.0044_learning_page_activity", "learning_activity_schema_rehearsal"),
+        ("solutions.0010_offline_evaluation_contract", "solution_evaluation_schema_rehearsal"),
+        (
+            "solutions.0009_problemsolution_edit_version_solutionreviewpolicy_and_more",
+            "solution_document_schema_rehearsal",
+        ),
+    ],
+)
+def test_learning_dispatch_preserves_existing_literal_rehearsal_targets(migration, module):
+    import importlib
+
+    from scripts.deployment.schema_rehearsal import _approved_rehearsal
+
+    existing = importlib.import_module("scripts.deployment." + module)
+    assert _approved_rehearsal(migration) is existing.run
 
 
 def test_cold_test_settings_select_postgresql_before_connecting():
@@ -35,8 +75,12 @@ print(json.dumps(settings.DATABASES['default']))
         "DJANGO_READ_DOT_ENV_FILE": "false",
     }
     result = subprocess.run(
-        [sys.executable, "-c", code], cwd=Path(__file__).resolve().parents[3],
-        env=environment, check=True, capture_output=True, text=True,
+        [sys.executable, "-c", code],
+        cwd=Path(__file__).resolve().parents[3],
+        env=environment,
+        check=True,
+        capture_output=True,
+        text=True,
     )
     assert json.loads(result.stdout) == REHEARSAL_DATABASE
 

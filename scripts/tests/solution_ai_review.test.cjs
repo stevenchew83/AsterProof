@@ -108,7 +108,9 @@ function harness({enabled = true, acknowledged = false, checked = true, sourceTe
 const saved = (revision = 'revision-1') => ({saved: true, revision_id: revision, edit_version: 2, editor_context: 'signed-new'});
 const created = (id = 'review-1') => ({id, revision_id: 'revision-1', status: 'queued', status_url: '/solutions/problems/problem/reviews/' + id + '/'});
 function completed({source = 'First proof', revision = 'revision-1', stale = false, hintLevel = 0, hintCount = 2} = {}) {
-  const finding = {quote: source, explanation: '<script>must stay literal</script>', anchor: {line: 1, end_line: 1}, hint_count: hintCount};
+  const finding = {id: 'finding-1', reveal_url: created().status_url + 'findings/finding-1/reveal/',
+    released_level: hintLevel, quote: source, explanation: '<script>must stay literal</script>',
+    anchor: {line: 1, end_line: 1}, hint_count: hintCount};
   if (hintLevel) finding.hints = ['First hidden hint', 'Second hidden hint'].slice(0, hintLevel);
   return {id: 'review-1', status: 'completed', revision_id: revision, stale, reviewed_source: source,
     feedback: {assessment: 'gap_found', summary: 'A justification is missing.', strengths: [], findings: [finding], next_step: 'Explain the step.', limitations: []}};
@@ -168,26 +170,30 @@ test('authentication failure during save preserves the buffer and never enqueues
 
 test('hints are fetched progressively and rendered as literal text', async () => {
   const app = harness({latestStatusUrl: created().status_url, dirty: false});
-  assert.match(app.calls[0].url, /hint_level=0$/);
+  assert.equal(app.calls[0].url, created().status_url);
   await app.respond(0, completed());
   assert.doesNotMatch(app.controls.report.textContent, /hidden hint/);
   assert.match(app.controls.report.textContent, /<script>must stay literal<\/script>/);
   assert.equal(app.controls.report.all().some(node => node.tagName === 'SCRIPT'), false);
-  app.button('Reveal a hint').fire('click');
-  assert.match(app.calls[1].url, /hint_level=1$/);
+  app.button('Reveal hint 1').fire('click');
+  assert.match(app.calls[1].url, /findings\/finding-1\/reveal\/$/);
+  assert.equal(app.calls[1].options.method, 'POST');
+  assert.equal(JSON.parse(app.calls[1].options.body).level, 1);
+  assert.ok(app.calls[1].options.headers['X-CSRFToken']);
   await app.respond(1, completed({hintLevel: 1}));
   assert.match(app.controls.report.textContent, /First hidden hint/);
   assert.doesNotMatch(app.controls.report.textContent, /Second hidden hint/);
-  app.button('Reveal the next hints').fire('click');
+  app.button('Reveal hint 2').fire('click');
+  assert.equal(JSON.parse(app.calls[2].options.body).level, 2);
   await app.respond(2, completed({hintLevel: 2}));
   assert.match(app.controls.report.textContent, /Second hidden hint/);
-  assert.equal(app.button('Reveal the next hints'), undefined);
+  assert.equal(app.button('Reveal hint 2'), undefined);
 });
 
 test('reports with no hints do not offer an empty reveal action', async () => {
   const app = harness({latestStatusUrl: created().status_url});
   await app.respond(0, completed({hintCount: 0}));
-  assert.equal(app.button('Reveal a hint'), undefined);
+  assert.equal(app.button('Reveal hint 1'), undefined);
 });
 
 test('passage links select the current source only when the reviewed version matches', async () => {
@@ -208,7 +214,7 @@ test('passage links select the current source only when the reviewed version mat
 test('an old hint response cannot replace the status or source of a newly requested revision', async () => {
   const app = harness({latestStatusUrl: created().status_url, dirty: false});
   await app.respond(0, completed());
-  app.button('Reveal a hint').fire('click');
+  app.button('Reveal hint 1').fire('click');
   await app.input('New proof');
   const click = app.click();
   await app.respond(2, saved('revision-2'));
@@ -269,4 +275,35 @@ test('fallback textarea saves capture a baseline before an asynchronously loaded
   await app.respond(1, created());
   await app.respond(2, completed());
   await click;
+});
+
+test('a failed stale hint request cannot overwrite a newer review status', async () => {
+  const app = harness({latestStatusUrl: created().status_url, dirty: false});
+  await app.respond(0, completed());
+  app.button('Reveal hint 1').fire('click');
+  await app.input('New proof');
+  const click = app.click();
+  await app.respond(2, saved('revision-2'));
+  await app.respond(3, created('review-2'));
+  await app.respond(4, {status: 'queued', revision_id: 'revision-2', reviewed_source: 'New proof'});
+  await click;
+  await app.fail(1);
+  assert.match(app.controls.status.textContent, /queued/);
+  assert.equal(app.controls.source.textContent, 'New proof');
+});
+
+test('revealing a hint on one finding does not advance another finding', async () => {
+  const app = harness({latestStatusUrl: created().status_url, dirty: false});
+  const data = completed();
+  data.feedback.findings.push({...data.feedback.findings[0], id: 'finding-2',
+    reveal_url: created().status_url + 'findings/finding-2/reveal/'});
+  await app.respond(0, data);
+  app.button('Reveal hint 1').fire('click');
+  const released = structuredClone(data);
+  released.feedback.findings[0].released_level = 1;
+  released.feedback.findings[0].hints = ['First hidden hint'];
+  await app.respond(1, released);
+  app.button('Reveal hint 1').fire('click');
+  assert.match(app.calls[2].url, /finding-2\/reveal\/$/);
+  assert.equal(JSON.parse(app.calls[2].options.body).level, 1);
 });

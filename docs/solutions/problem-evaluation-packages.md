@@ -48,12 +48,19 @@ save APIs. Integrity checks detect content/digest mismatches. Reviewer and creat
 accounts are protected from normal deletion while referenced. A future retention
 or erasure procedure must deliberately address that history.
 
-Migration `solutions.0010_problem_evaluation_packages` creates only two new tables
+Migration `solutions.0011_problem_evaluation_packages` creates only two new tables
 and their constraints; it has no data backfill or provider configuration. The
 consolidated local validation below covers SQLite and PostgreSQL. Production
 schema/release compatibility remains outside this local work.
 
 ## Consolidated local review and validation
+
+Integration with newer main preserves its existing evidence workspace. The two
+prototype migrations were renumbered from the original local 0010–0011 to
+0011–0012 after `0010_offline_evaluation_contract`, and package model definitions
+moved to `problem_evaluation_models.py`. The historical results below describe
+the original local commit; integration receives fresh PR verification. See the
+[exact release contract](../deployment/assessment-prototype-release.md).
 
 On 1 November 2026, the Phase 1–3 feature and existing review/revision/completion
 regressions passed: 259 tests on an isolated PostgreSQL 15.19 cluster, and 255
