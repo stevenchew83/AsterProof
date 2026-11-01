@@ -2,6 +2,16 @@
   "format_version": 1,
   "baseline_sha": null,
   "migrations": {
+    "pages.0041_statement_issue_reports": {
+      "classification": "backward-compatible-schema",
+      "recovery_required": false,
+      "code_rollback_permitted": true,
+      "data_preconditions": [
+        "statement_report_table_absent",
+        "existing_statements_accounts_solutions_and_progress_preserved"
+      ],
+      "rationale": "Creates only an isolated reader-report table with statement snapshots, nullable statement/reporter/reviewer foreign keys, a unique submission token, and a status/time index. No backfill, existing-record writes, automatic notifications, or permission changes. Prior code remains compatible with the additive table; code recovery retains report history. Requires the separately installed hash-frozen allowance and PostgreSQL preservation proof."
+    },
     "solutions.0009_problemsolution_edit_version_solutionreviewpolicy_and_more": {
       "classification": "backward-compatible-schema",
       "recovery_required": false,
@@ -159,7 +169,7 @@
       ],
       "rationale": "Adds one first-login preference column, with a persistent not_enrolled database default for existing accounts and compatibility with old-code account creation. New application accounts default to active. The AlterField changes only the Python default; existing profile, approval, solution and progress data remain intact. Requires separately installed frozen migration authority."
     },
-    "pages.0041_community_problems": {
+    "pages.0042_community_problems": {
       "classification": "backward-compatible-schema",
       "recovery_required": false,
       "code_rollback_permitted": true,
@@ -170,7 +180,7 @@
       ],
       "rationale": "Creates seven isolated community-post, human-review, AI-policy/job and similarity-index tables. Existing library statements, accounts, solutions and completion records are not rewritten. AI review remains disabled with zero budgets. Old application code remains compatible while the new tables and retained community data are preserved. Classification does not install or broaden production migration authority."
     },
-    "pages.0042_statement_similarity_source": {
+    "pages.0043_statement_similarity_source": {
       "classification": "data-or-non-compatible",
       "recovery_required": true,
       "code_rollback_permitted": false,

@@ -10,7 +10,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("pages", "0040_statement_authoring_metadata"),
+        ("pages", "0041_statement_issue_reports"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 

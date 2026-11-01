@@ -50,7 +50,7 @@ def uninstall(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("pages", "0041_community_problems"),
+        ("pages", "0042_community_problems"),
     ]
 
     operations = [

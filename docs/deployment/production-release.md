@@ -202,6 +202,11 @@ permissions remain unchanged.
 
 ## Success evidence
 
+The exact `pages.0041_statement_issue_reports` allowance follows
+[Statement reports release](statement-reports-schema.md). It adds one isolated
+reader-feedback table and requires the separately installed frozen worker
+allowance, PostgreSQL preservation proof, and normal protected release gates.
+
 A release is successful only when all of these agree:
 
 - workflow requested SHA and archive SHA-256;

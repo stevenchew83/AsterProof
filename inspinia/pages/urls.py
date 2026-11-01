@@ -15,6 +15,9 @@ from inspinia.pages.concept_assignment_views import concept_assignment_review_pr
 from inspinia.pages.contest_papers import contest_papers_view
 from inspinia.pages.shared_progress_views import shared_progress_comparison_view
 from inspinia.pages.shared_progress_views import shared_progress_view
+from inspinia.pages.statement_reports import statement_report_create
+from inspinia.pages.statement_reports import statement_report_list
+from inspinia.pages.statement_reports import statement_report_update
 from inspinia.pages.views import archive_hub_view
 from inspinia.pages.views import completion_board_bulk_view
 from inspinia.pages.views import completion_board_toggle_view
@@ -74,6 +77,9 @@ urlpatterns = [
         "community/problems/<uuid:problem_id>/ai-review/", community_problem_ai_review,
         name="community_problem_ai_review",
     ),
+    path("statement-reports/<uuid:statement_uuid>/", statement_report_create, name="statement_report_create"),
+    path("tools/statement-reports/", statement_report_list, name="statement_report_list"),
+    path("tools/statement-reports/<int:report_id>/", statement_report_update, name="statement_report_update"),
     path("tools/concept-assignment-sources/", assignment_source_export, name="concept_assignment_source_export"),
     path("tools/concept-assignments/", concept_assignment_review_list, name="concept_assignment_review"),
     path("tools/concept-assignments/snapshot/", concept_review_snapshot_export, name="concept_review_snapshot_export"),

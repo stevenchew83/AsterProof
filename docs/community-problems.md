@@ -38,7 +38,7 @@ source; this workflow never executes or sends diagram code to a rendering servic
 
 ## Library similarity index
 
-Apply migrations `0041_community_problems` and `0042_statement_similarity_source`, then build the derived index:
+Apply migrations `0042_community_problems` and `0043_statement_similarity_source`, then build the derived index:
 
 ```bash
 python manage.py refresh_statement_similarity_index

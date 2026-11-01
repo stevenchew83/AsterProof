@@ -90,7 +90,10 @@ jobs:
           DATABASE_URL: postgres://postgres@127.0.0.1:5432/asterproof_schema_rehearsal
         run: |
           rehearsal_args=()
-          if ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/solution_document_schema.py scripts/deployment/solution_document_schema_rehearsal.py scripts/deployment/tests/fixtures/solution-document-schema-delta.json inspinia/solutions/migrations/0009_problemsolution_edit_version_solutionreviewpolicy_and_more.py; then
+          if ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/statement_reports_schema.py scripts/deployment/statement_reports_schema_rehearsal.py scripts/deployment/tests/fixtures/statement-reports-schema-delta.json inspinia/pages/migrations/0041_statement_issue_reports.py; then
+            rehearsal=scripts.deployment.statement_reports_schema_rehearsal
+            active_sha="$BASE_SHA"
+          elif ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/solution_document_schema.py scripts/deployment/solution_document_schema_rehearsal.py scripts/deployment/tests/fixtures/solution-document-schema-delta.json inspinia/solutions/migrations/0009_problemsolution_edit_version_solutionreviewpolicy_and_more.py; then
             rehearsal=scripts.deployment.solution_document_schema_rehearsal
             active_sha="$BASE_SHA"
           elif ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/curated_collections_schema.py scripts/deployment/curated_collections_schema_rehearsal.py scripts/deployment/tests/fixtures/curated-collections-schema-delta.json inspinia/solutions/migrations/0008_solutioncollection_kind_and_nullable_owner.py; then

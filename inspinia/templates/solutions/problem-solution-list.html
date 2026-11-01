@@ -89,6 +89,9 @@
               </p>
             </div>
             <div class="d-flex flex-wrap gap-2">
+              {% if problem_data.statement_entry %}
+              <a href="{% url 'pages:statement_report_create' problem_data.statement_entry.statement_uuid %}" class="btn btn-outline-secondary btn-sm"><i class="ti ti-flag me-1" aria-hidden="true"></i>Report a statement error</a>
+              {% endif %}
               {% if my_solution_row %}
               <a href="{{ problem_data.solutions_url }}?edit=1#inline-draft-editor" class="btn btn-primary btn-sm">Edit my solution</a>
               {% else %}

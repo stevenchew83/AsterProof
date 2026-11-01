@@ -15,14 +15,14 @@ is activated by this release.
 
 | Migration | SHA-256 | Classification |
 | --- | --- | --- |
-| pages.0041_community_problems | ec6e5563f4a5ffb34e9e8d099488bb4d89ea8c3e28e58ccea42a647746cf519c | backward-compatible-schema |
-| pages.0042_statement_similarity_source | 33fa41b76b06fa06e997321a58be645b03b68e3fb5b96a9e30f288d93e619024 | data-or-non-compatible |
+| pages.0042_community_problems | 6d0e0da75b317154aa1102922e08f04387bff62bd1d5ecd485d416619de07b93 | backward-compatible-schema |
+| pages.0043_statement_similarity_source | 0c13e1213ecf0686fbd966d22a387438b2ea2b805f932e2afd1fd35ff552dab7 | data-or-non-compatible |
 
-The complete release is data-class because 0042 contains RunPython. Do not
+The complete release is data-class because 0043 contains RunPython. Do not
 reclassify it as a no-migration or additive-only release. Do not run migrations
 through workstation SSH or weaken the pending-plan guard.
 
-0041 creates seven separate tables. 0042 creates the eighth table, seeds only
+0042 creates seven separate tables. 0043 creates the eighth table, seeds only
 its singleton revision, and installs exactly one PostgreSQL invoker-security
 function and one trigger:
 

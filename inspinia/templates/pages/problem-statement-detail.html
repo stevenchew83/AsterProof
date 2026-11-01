@@ -104,6 +104,9 @@
     <header class="page-title-head app-page-header statement-brief">
       {% include 'partials/page-header-intro.html' with title=problem_statement_context.label subtitle='Problem statement' page_icon='ti-file-text' back_url=problem_statement_context.contest_listing_url back_label='Contest row' only %}
       <div class="app-page-header-actions statement-action-bar">
+        <a href="{% url 'pages:statement_report_create' problem_statement.statement_uuid %}" class="btn btn-outline-secondary btn-sm">
+          <i class="ti ti-flag me-1" aria-hidden="true"></i>Report a statement error
+        </a>
         <a href="{% url 'pages:completion_quick_update' %}" class="btn btn-outline-secondary btn-sm">
           <i class="ti ti-bolt me-1" aria-hidden="true"></i>Quick completions
         </a>
