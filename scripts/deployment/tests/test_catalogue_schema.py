@@ -5,9 +5,12 @@ from __future__ import annotations
 import ast
 import shutil
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import Mock
 
 import pytest
 
+from scripts.deployment.catalogue_rehearsal import apply_historical_catalogue
 from scripts.deployment.catalogue_schema import BEHAVIOUR_SHA256
 from scripts.deployment.catalogue_schema import DELTA_SHA256
 from scripts.deployment.catalogue_schema import INPUT_HASHES
@@ -19,6 +22,37 @@ from scripts.deployment.catalogue_schema import validate_candidate
 from scripts.deployment.catalogue_schema import validate_rehearsal_evidence
 
 ROOT = Path(__file__).resolve().parents[3]
+
+
+@pytest.mark.parametrize("change", [None, "later", "backwards", "operations", "missing"])
+def test_historical_rehearsal_applies_only_its_exact_frozen_plan(change):
+    def migration(name, operations):
+        return SimpleNamespace(
+            app_label="pages", name=name,
+            operations=[type(operation, (), {})() for operation in operations],
+        )
+    plan = [
+        (migration("0037_catalogue_tables", ["CreateModel"] * 11 + ["AddConstraint"] * 3), False),
+        (migration("0038_seed_catalogue", ["RunPython"]), False),
+        (migration("0039_catalogue_revision_triggers", ["RunPython"]), False),
+    ]
+    if change == "later":
+        plan.append((migration("0040_statement_authoring_metadata", ["AddField"]), False))
+    elif change == "backwards":
+        plan[1] = (plan[1][0], True)
+    elif change == "operations":
+        plan[0] = (migration("0037_catalogue_tables", ["RunSQL"]), False)
+    elif change == "missing":
+        plan.pop()
+    executor = SimpleNamespace(migration_plan=Mock(return_value=plan), migrate=Mock())
+    if change is None:
+        apply_historical_catalogue(executor)
+        executor.migrate.assert_called_once_with([("pages", "0039_catalogue_revision_triggers")])
+    else:
+        with pytest.raises(ValueError, match="frozen catalogue plan"):
+            apply_historical_catalogue(executor)
+        executor.migrate.assert_not_called()
+    executor.migration_plan.assert_called_once_with([("pages", "0039_catalogue_revision_triggers")])
 
 
 def test_reviewed_input_hashes_and_exact_operations():
