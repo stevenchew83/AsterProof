@@ -3,16 +3,18 @@
 This release adds the coach evidence workspace while leaving student AI review
 and real-provider execution disabled. It creates no worker, provider credential,
 funded policy, appointment, approved dataset, or activation authorization.
-Repository preparation and CI are authorized; deployment, authority installation
-and production changes have not been authorized by this task.
+The separately approved authority installation and deployment completed on
+2026-11-01. This historical record grants no new production operation or AI
+activation. See [the readiness evidence](../solutions/ai-solution-checking-readiness.md)
+for PRs, exact release, checks and limitations.
 
 ## Exact migration allowance
 
 Only `solutions.0010_offline_evaluation_contract` is admitted. It contains exactly
 19 `CreateModel` operations, 131 columns, 62 constraints and 65 indexes. All new
-tables remain empty. The existing document-compatible migration 0009 must already
-be applied. No data backfill, existing-table change, or unrelated pending migration
-is admitted.
+tables were empty at release acceptance. The existing document-compatible migration
+0009 must already be applied. No data backfill, existing-table change, or unrelated
+pending migration is admitted.
 
 - Migration SHA-256: `9fee1f590a8cdde9df9d30c201a49caea20a5c31efe2f4b0aa7c92171d4844a8`.
 - Normalized PostgreSQL 17.9 delta fingerprint: `e34c2715374cba7a9aab59c473d3308c4dcd656896509c76165972cf568842d0`.
@@ -43,7 +45,22 @@ objects; successful old-code read compatibility does not authorize arbitrary dat
 changes under recovered code. A later release that enables evidence use must review
 its own recovery and lifecycle implications.
 
-## Future production procedure — not executed here
+## Completed operation and procedure for future releases
+
+The reviewed allowance source was `8b09bf548aa96c857b2b74a24ac06633d929c585`.
+The successful application artifact was
+`c0c7ff57829a32a33bb4a4351ff151c70055ff94`, deployment
+[41295842073](https://github.com/stevenchew83/AsterProof/actions/runs/41295842073).
+The original failed run did not activate an artifact; the corrected deployment
+had its own explicit approval. Installation preserved target/audit configuration,
+marker, operation unit, sudoers and forced-command public key byte-for-byte.
+Immediate postflight confirmed the exact additive migration and disabled AI.
+
+The following sequence records the schema-release procedure and provides a
+reference for separately reviewed future schema releases. Migration 0010 is already
+applied: do not reinstall its allowance or add its delta again for an ordinary code
+release. Resolve the current state and applicable release class first. Past
+authorization and success do not authorize another dispatch or authority change.
 
 1. Merge the reviewed PR under normal protections; bind CI and release evidence to
    the exact resulting SHA and then-current verified active revision. Do not reuse
@@ -73,5 +90,5 @@ its own recovery and lifecycle implications.
    checks must not create learner data. Schedule no delayed monitoring.
 
 Dataset rights and coach judgments remain provisional. Model and pedagogical
-readiness remain untested. Deployment of this offline foundation would establish
+readiness remain untested. Deployment of this offline foundation establishes
 none of those claims and would not activate AI.

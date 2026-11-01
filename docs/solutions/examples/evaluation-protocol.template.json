@@ -1,0 +1,19 @@
+{
+  "partition": null,
+  "thresholds": {
+    "minimum_agreement": null,
+    "min_usable_coverage": null,
+    "min_finding_precision": null,
+    "min_defect_recall": null,
+    "min_families": null
+  },
+  "min_cases": null,
+  "max_runs": null,
+  "sampling_plan": "",
+  "analysis_plan": "",
+  "population": "",
+  "languages": [],
+  "levels": "",
+  "custodian_ids": [],
+  "aggregate_recipient_ids": []
+}

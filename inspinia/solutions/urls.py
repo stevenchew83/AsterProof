@@ -67,6 +67,16 @@ urlpatterns = [
     path("evaluation/snapshots/new/", evaluation.evaluation_snapshot_create, name="evaluation_snapshot_create"),
     path("evaluation/profiles/new/", evaluation.evaluation_profile_create, name="evaluation_profile_create"),
     path(
+        "evaluation/snapshots/<uuid:snapshot_id>/protocols/new/",
+        evaluation.evaluation_protocol_create,
+        name="evaluation_protocol_create",
+    ),
+    path(
+        "evaluation/protocols/<uuid:protocol_id>/",
+        evaluation.evaluation_protocol_detail,
+        name="evaluation_protocol_detail",
+    ),
+    path(
         "evaluation/snapshots/<uuid:snapshot_id>/import/",
         evaluation.evaluation_run_import,
         name="evaluation_run_import",

@@ -40,6 +40,7 @@ CONCURRENCY_TARGETS = (
     "inspinia/solutions/test_evaluation_concurrency.py::test_postgres_freeze_racing_with_withdrawal_preserves_invalidity",
     "inspinia/solutions/test_evaluation_concurrency.py::test_postgres_final_aggregate_is_delivered_once_across_actors",
     "inspinia/solutions/test_evaluation_concurrency.py::test_postgres_revocation_serializes_with_judgment",
+    "inspinia/solutions/test_evaluation_concurrency.py::test_postgres_protocol_freeze_and_import_limits_are_atomic",
 )
 MIN_TIMEOUT = 30
 MAX_TIMEOUT = 1800

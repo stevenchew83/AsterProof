@@ -802,10 +802,23 @@ def create_profile(actor, payload):
 
 
 @transaction.atomic
-def import_run(actor, snapshot, profile, reports, protocol, origin="manual_import"):
+def import_run(actor, snapshot, profile, reports, protocol, origin="manual_import", *, registration=None):
     require(actor, "custodian", snapshot)
     snapshot_eligible(snapshot, lock=True)
     require_offline_origin(origin)
+    from .evaluation_protocols import import_protocol
+    from .evaluation_protocols import registrations
+
+    if not isinstance(protocol, dict) or "preregistration" in protocol:
+        raise EvaluationError("Caller-supplied preregistration evidence is not accepted.", status=422)
+    if registration is not None:
+        if protocol:
+            raise EvaluationError("A preregistered import cannot override its frozen rules.", status=422)
+        protocol = import_protocol(actor, registration, snapshot, profile)
+    elif registrations(snapshot, profile).filter(
+        metadata__body__spec__partition=protocol.get("partition", "final_test"),
+    ).exists():
+        raise EvaluationError("Select the frozen protocol for this candidate/partition.", status=409)
     protocol = {**protocol, "partition": protocol.get("partition", "final_test")}
     from .evaluation_scoring import _protocol
 
@@ -913,6 +926,9 @@ def run_payload(actor, run, *, aggregate_only=False):
         require(actor, "developer", run.snapshot)
         aggregate_only = True
     snapshot_eligible(run.snapshot, lock=True)
+    from .evaluation_protocols import check_run_recipient
+
+    check_run_recipient(actor, run, custodian=is_custodian)
     from .evaluation_finding_adjudication import resolve_finding_judgments
 
     judgments = resolve_finding_judgments(run)
@@ -982,6 +998,7 @@ def run_payload(actor, run, *, aggregate_only=False):
         "reports": run.reports,
         "annotation_pending": pending,
         "aggregate_only": False,
+        "preregistration": run.protocol.get("preregistration"),
     }
 
 
