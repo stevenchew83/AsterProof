@@ -11,14 +11,9 @@ from django.shortcuts import render
 from django.urls import reverse
 from django.views.decorators.http import require_safe
 
-from .learning import exclude_cutovers
-from .learning import note_url
-from .learning import public_notes
-from .learning import schema_ready
 from .models import LibraryArea
 from .models import LibraryConcept
 from .models import LibraryLecture
-from .models import Subject
 
 
 def public_url(path):
@@ -44,30 +39,10 @@ class StaticSitemap(PublicSitemap):
             "website:terms",
         ]
         paths = [reverse(name) for name in pages]
-        subjects = set(
-            exclude_cutovers(LibraryArea.objects.filter(is_published=True)).values_list("subject", flat=True),
+        subjects = LibraryArea.objects.filter(is_published=True).order_by("subject").values_list("subject", flat=True)
+        paths.extend(
+            reverse("website:library_subject", kwargs={"subject": subject}) for subject in subjects.distinct()
         )
-        from inspinia.learning.permissions import module_enabled
-
-        if module_enabled() and schema_ready():
-            from inspinia.training.pathways import published_pathways
-
-            subjects.update(public_notes().values_list("document__canonical_area__subject_id", flat=True))
-            subjects.update(
-                public_notes().values_list(
-                    "document__canonical_concept__memberships__area__subject_id",
-                    flat=True,
-                ),
-            )
-            subjects.update(
-                public_notes().values_list(
-                    "revision__concept_links__concept__memberships__area__subject_id",
-                    flat=True,
-                ),
-            )
-            subjects.update(published_pathways(public=True).values_list("subject_id", flat=True))
-        subjects.intersection_update(Subject.values)
-        paths.extend(reverse("website:library_subject", kwargs={"subject": subject}) for subject in sorted(subjects))
         return paths
 
     def location(self, item):
@@ -76,7 +51,7 @@ class StaticSitemap(PublicSitemap):
 
 class AreaSitemap(PublicSitemap):
     def items(self):
-        return exclude_cutovers(LibraryArea.objects.filter(is_published=True)).order_by("pk")
+        return LibraryArea.objects.filter(is_published=True).order_by("pk")
 
     def lastmod(self, item):
         return item.updated_at
@@ -84,63 +59,27 @@ class AreaSitemap(PublicSitemap):
 
 class ConceptSitemap(AreaSitemap):
     def items(self):
-        return exclude_cutovers(
+        return (
             LibraryConcept.objects.filter(is_published=True, area__is_published=True)
             .select_related("area")
-            .order_by("pk"),
+            .order_by("pk")
         )
 
 
 class LectureSitemap(AreaSitemap):
     def items(self):
-        return exclude_cutovers(
+        return (
             LibraryLecture.objects.filter(
                 is_published=True,
                 concept__is_published=True,
                 concept__area__is_published=True,
             )
             .select_related("concept__area")
-            .order_by("pk"),
+            .order_by("pk")
         )
 
 
-class LearningNoteSitemap(PublicSitemap):
-    def items(self):
-        return public_notes().order_by("document_id")
-
-    def location(self, item):
-        return note_url(item)
-
-    def lastmod(self, item):
-        return item.published_at
-
-
-class LearningPathwaySitemap(PublicSitemap):
-    def items(self):
-        from inspinia.learning.permissions import module_enabled
-        from inspinia.training.models import LearningPath
-
-        if not module_enabled() or not schema_ready():
-            return LearningPath.objects.none()
-        from inspinia.training.pathways import published_pathways
-
-        return published_pathways(public=True).order_by("slug")
-
-    def location(self, item):
-        return reverse("website:learning_pathway", args=[item.slug])
-
-    def lastmod(self, item):
-        return item.current_revision.created_at
-
-
-SITEMAPS = {
-    "pages": StaticSitemap,
-    "areas": AreaSitemap,
-    "concepts": ConceptSitemap,
-    "lectures": LectureSitemap,
-    "notes": LearningNoteSitemap,
-    "pathways": LearningPathwaySitemap,
-}
+SITEMAPS = {"pages": StaticSitemap, "areas": AreaSitemap, "concepts": ConceptSitemap, "lectures": LectureSitemap}
 
 
 @require_safe

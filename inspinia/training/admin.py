@@ -28,25 +28,8 @@ class SubtopicAdmin(admin.ModelAdmin):
     search_fields = ("title", "category", "description", "topic__title")
 
 
-class SharedTeachingGuard:
-    def has_add_permission(self, request):
-        from inspinia.learning.permissions import module_enabled
-
-        return not module_enabled() and super().has_add_permission(request)
-
-    def has_change_permission(self, request, obj=None):
-        from inspinia.learning.permissions import module_enabled
-
-        return not module_enabled() and super().has_change_permission(request, obj)
-
-    def has_delete_permission(self, request, obj=None):
-        from inspinia.learning.permissions import module_enabled
-
-        return not module_enabled() and super().has_delete_permission(request, obj)
-
-
 @admin.register(Material)
-class MaterialAdmin(SharedTeachingGuard, admin.ModelAdmin):
+class MaterialAdmin(admin.ModelAdmin):
     list_display = ("title", "subtopic", "completion_points", "order", "is_published")
     list_filter = ("is_published", "subtopic__topic")
     prepopulated_fields = {"slug": ("title",)}

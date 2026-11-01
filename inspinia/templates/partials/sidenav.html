@@ -66,13 +66,7 @@
             {% include 'partials/sidenav-link.html' with route_name='training:dashboard' label='Training overview' icon='home' only %}
             <li class="side-nav-title">Train</li>
             {% include 'partials/sidenav-link.html' with route_name='training:dashboard' label='Continue training' icon='arrow-right' fragment='#recommended-next' only %}
-            {% if learning_enabled %}
-            {% include 'partials/sidenav-link.html' with route_name='learning:learn' label='Learn' icon='school' only %}
-            {% include 'partials/sidenav-link.html' with route_name='learning:explore' label='Areas and concepts' icon='books' only %}
-            {% if learning_can_contribute %}{% include 'partials/sidenav-link.html' with route_name='learning:my_drafts' label='My notes' icon='pencil' only %}{% endif %}
-            {% else %}
             {% include 'partials/sidenav-link.html' with route_name='training:roadmap' label='Roadmap' icon='map' only %}
-            {% endif %}
             {% include 'partials/sidenav-link.html' with route_name='training:my_submissions' label='My submissions' icon='send' only %}
             <li class="side-nav-title">Our progress</li>
             {% for learner in shared_progress_links %}

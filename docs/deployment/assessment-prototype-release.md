@@ -21,11 +21,6 @@ migration remain byte-for-byte unchanged. Package models live in
 evidence models. These are separate workflows with separate records and access
 checks. A synthetic report does not approve a database package or a dataset.
 
-The Training allowance's complete migration-history fingerprint now includes
-these two new files (94 sources). Its own migration bytes, catalog delta, pending
-plan, reader floor, and recovery checks are unchanged. Its installation and
-schema release remain separate operations.
-
 `assessment_prototype_schema.py` freezes both migration files, previous migration
 hashes, the exact two-item pending plan, four-table catalog delta, compatibility
 smoke, and packaged preservation evidence. It admits no backfill, unrelated
@@ -60,8 +55,7 @@ Dispatch `Production deploy` only for exact current main, with full CI,
 `backward-compatible-schema`, and the source-bound disclosure and proof. Keep the
 protected environment approval and normal immediate/stabilization checks.
 
-Other pending migrations, including the separate Training bundle, require their
-own established release path. This allowance cannot consume them, and their
+Other pending migrations require their own established release path. This allowance cannot consume them, and their
 installation is not implied by preparation of this four-table release. Do not
 dispatch an incomplete disclosure or widen a plan to bypass a deployment gate.
 

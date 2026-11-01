@@ -281,7 +281,6 @@
 {% endblock extra_css %}
 
 {% block page_content %}
-{% if learning_enabled %}<div class="container-fluid"><div class="alert alert-info">Teaching notes now use private drafts and Steven’s publication review. <a href="{% url 'learning:new' %}">Draft a new note</a>{% if selected_material %} · <a href="{% url 'learning:legacy_draft' 'material' selected_material.pk %}">Propose changes to {{ selected_material.title }}</a>{% endif %}</div></div>{% endif %}
 <div class="container-fluid app-table-page">
   {% include 'partials/page-title.html' with title='Training materials' subtitle='Trainer CMS' page_icon='ti-books' %}
   {% include 'training/partials/messages.html' %}

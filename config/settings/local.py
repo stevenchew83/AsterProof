@@ -1,6 +1,5 @@
 # ruff: noqa: E501
 from .base import *  # noqa: F403
-from .base import BASE_DIR
 from .base import DATABASES
 from .base import INSTALLED_APPS
 from .base import env
@@ -11,14 +10,6 @@ from .base import env
 DEBUG = True
 SYNTHETIC_REVIEW_PROTOTYPE_ENABLED = True
 SOLUTION_DOCUMENT_WRITES_ENABLED = env.bool("SOLUTION_DOCUMENT_WRITES_ENABLED", default=True)
-LEARNING_MODULE_ENABLED = env.bool("LEARNING_MODULE_ENABLED", default=True)
-LEARNING_CONTRIBUTIONS_ENABLED = env.bool("LEARNING_CONTRIBUTIONS_ENABLED", default=True)
-LEARNING_CONTENT_PACK_ROOT = env(
-    "LEARNING_CONTENT_PACK_ROOT", default=str(BASE_DIR / ".learning-content-packs"),
-)
-LEARNING_PRIVATE_ASSET_ROOT = env(
-    "LEARNING_PRIVATE_ASSET_ROOT", default=str(BASE_DIR / ".learning-private"),
-)
 # https://docs.djangoproject.com/en/dev/ref/settings/#secret-key
 SECRET_KEY = env(
     "DJANGO_SECRET_KEY",
