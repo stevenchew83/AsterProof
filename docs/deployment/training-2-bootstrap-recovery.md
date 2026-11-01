@@ -91,6 +91,10 @@ Regression coverage rejects changed names, schemas, tables, types, literals,
 operators and null predicates. This schema-only proof does not establish record
 preservation; the populated migration rehearsal remains a separate required check.
 No migration bytes or production schema fingerprints are changed by this comparison.
+The historical catalogue rehearsal excludes later Teaching dependencies from its
+initial baseline, then prepares the full current schema for encrypted and isolated
+restore verification. The new Training CHECK therefore participates in the Linux
+recovery checks rather than being omitted by an older baseline target.
 
 ## Evidence for the new baseline
 
